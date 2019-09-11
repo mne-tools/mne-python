@@ -115,24 +115,140 @@ def test_standard_montages_in_head(kind, tol):
 
 
 from mne.channels.montage import transform_to_head
+from pytest import approx
 
-@pytest.mark.parametrize('kind', _BUILT_IN_MONTAGES)
-def test_foo(kind):
+@pytest.mark.parametrize('kind, foo', [
+    # XXX All should be 0.085 but they are not !!
+    ['EGI_256', 0.08500001],
+    ['easycap-M1', 0.08499999999999999],
+    ['easycap-M10', 0.08499999999999999],
+    ['GSN-HydroCel-128', 9.763325532616348],
+    ['GSN-HydroCel-129', 9.781833508100744],
+    ['GSN-HydroCel-256', 10.53120179308986],
+    ['GSN-HydroCel-257', 10.542564039112401],
+    ['GSN-HydroCel-32', 9.334690825727204],
+    ['GSN-HydroCel-64_1.0', 11.375727506868348],
+    ['GSN-HydroCel-65_1.0', 11.41411195568285],
+    ['biosemi128', 103.13293097944218],
+    ['biosemi16', 102.54836114601703],
+    ['biosemi160', 103.24734353529684],
+    ['biosemi256', 102.31834042785782],
+    ['biosemi32', 102.66433014370907],
+    ['biosemi64', 101.87617188729301],
+    ['mgh60', 0.11734227421583884],
+    ['mgh70', 0.11808759279592418],
+    ['standard_1005', 0.1171808880579489],
+    ['standard_1020', 0.11460403303216726],
+    ['standard_alphabetic', 0.12012639557866846],
+    ['standard_postfixed', 0.11887390168465949],
+    ['standard_prefixed', 0.11675854869450944],
+    ['standard_primed', 0.11887390168465949],
+])
+def test_foo(kind, foo):
     """Test standard montage properties (ie: they form a head)."""
     montage = read_standard_montage(kind)
     # import pdb; pdb.set_trace()
     montage = transform_to_head(montage) if montage._coord_frame != 'head' else montage  # noqa
     eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(montage.dig)])
-    # print(np.linalg.norm(eeg_loc, axis=1))
 
-    print(np.linalg.norm(eeg_loc, axis=1).mean())
     # assert_allclose(
     #     actual=np.linalg.norm(eeg_loc, axis=1),
     #     desired=np.full((eeg_loc.shape[0], ), EXPECTED_HEAD_SIZE),
     #     atol=1e-2  # Use a high tolerance for now # tol,
     # )
+    assert np.linalg.norm(eeg_loc, axis=1).mean() == approx(foo)
+
+
+import matplotlib.pyplot as plt
+from mne.channels._dig_montage_utils import _get_fid_coords
+from mne.transforms import _sph_to_cart
+
+
+def _plot_dig_transformation(transformed, original):
+    EXPECTED_HEAD_SIZE = 0.085
+    from mne.viz.backends.renderer import _Renderer
+    def get_data(montage):
+        data, coord_frame = _get_fid_coords(montage.dig)
+        data['eeg'] = np.array([ch['r'] for ch in _get_dig_eeg(montage.dig)])
+        data['coord_frame'] = coord_frame
+
+        return data
+
+    def _plot_fid_coord(renderer, data, color):
+        renderer.tube(
+            # origin=data.lpa,  # XXX: why I cannot pas a (3,) ?
+            origin=np.atleast_2d(data.lpa),
+            destination=np.atleast_2d(data.rpa),
+            # color='red',  # XXX: why I cannot do that?
+            color=color,
+            radius=0.001,  # XXX: why radious=1 which is default does not work?
+        )
+        renderer.tube(
+            origin=np.atleast_2d((data.lpa+data.rpa)/2),
+            destination=np.atleast_2d(data.nasion),
+            color=color,
+            radius=0.001,  # XXX: why radious=1 which is default does not work?
+        )
+
+    ren = _Renderer()
+    ren.sphere(
+        center=np.array([0, 0, 0]),
+        # color=(100, 100, 100),  # XXX: is color (R,G,B) 0-255? doc needs rev.
+        color=(1.0, 1.0, 1.0),  # XXX: doc don't say [0-1 or 0-255] ??
+        scale=EXPECTED_HEAD_SIZE,  # XXX: why I cannot put radius a value in mm??  # noqa
+        opacity=0.5,
+        resolution=8,  # XXX: why this is not callen n_poligons??
+        backface_culling=False,
+    )
+    N_RAND_PTS = 50
+    ren.sphere(
+        center=_sph_to_cart(np.stack(
+            [np.full((N_RAND_PTS,), EXPECTED_HEAD_SIZE),
+             np.random.rand(N_RAND_PTS) * 3 * 3.1415,
+             np.random.rand(N_RAND_PTS) * 3 * 3.1415,
+            ],
+            axis=-1,
+        )),
+        color=(1.0, 1.0, 1.0),
+        scale=0.001
+    )
+
+    orig_data = get_data(original)
+    trans_data = get_data(transformed)
+
+    for oo, tt in zip(orig_data.eeg, trans_data.eeg):
+        ren.tube(
+            origin=np.atleast_2d(oo),
+            destination=np.atleast_2d(tt),
+            color=(.0, .1, .0),
+            radius=0.0005,
+        )
+
+    _plot_fid_coord(ren, orig_data, (1.0, 0, 0))
+    ren.sphere(center=orig_data.eeg, color=(1.0, .0, .0), scale=0.001)
+
+    _plot_fid_coord(ren, trans_data, (0, 0, 1.0))
+    ren.sphere(center=trans_data.eeg, color=(.0, .0, 1.0), scale=0.001)
+    
+
+    ren.show()
+
+    # import pdb; pdb.set_trace()
+    pass
+
 
 
 def test_bar():
     """Test bar."""
+    plt.switch_backend('Qt5Agg')
+
+    # kind = 'EGI_256'
     kind = 'mgh60'
+    montage = read_standard_montage(kind)
+    trf_montage = transform_to_head(montage)
+
+    eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(montage.dig)])
+
+    _plot_dig_transformation(trf_montage, montage)
+
+    import pdb; pdb.set_trace()

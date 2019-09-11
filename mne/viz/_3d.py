@@ -48,7 +48,7 @@ from ..bem import (ConductorModel, _bem_find_surface, _surf_dict, _surf_name,
 FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION,
                   FIFF.FIFFV_POINT_RPA)
 
-
+# XXX: to unify with digitization
 def _fiducial_coords(points, coord_frame=None):
     """Generate 3x3 array of fiducial coordinates."""
     points = points or []  # None -> list
