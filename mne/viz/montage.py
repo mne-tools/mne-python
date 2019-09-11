@@ -43,6 +43,9 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
                         "mne.channels.montage.DigMontage")
     _check_option('kind', kind, ['topomap', '3d'])
 
+    if len(ch_names) == 0:
+        raise RuntimeError('No valid channel positions found.')
+
     if isinstance(montage, Montage):  # check for duplicate labels
         dists = cdist(montage.pos, montage.pos)
         # only consider upper triangular part by setting the rest to np.nan
