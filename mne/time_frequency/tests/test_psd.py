@@ -180,14 +180,8 @@ def test_psd_welch_average_kwarg_raw():
     n_per_seg = 128
     n_overlap = 0
 
-    kws = dict(fmin=fmin,
-               fmax=fmax,
-               tmin=tmin,
-               tmax=tmax,
-               n_fft=n_fft,
-               n_per_seg=n_per_seg,
-               n_overlap=n_overlap,
-               picks=picks_psd)
+    kws = dict(fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax, n_fft=n_fft,
+               n_per_seg=n_per_seg, n_overlap=n_overlap, picks=picks_psd)
 
     psds_mean, freqs_mean = psd_welch(inst=raw, average='mean', **kws)
     psds_median, freqs_median = psd_welch(inst=raw, average='median', **kws)
