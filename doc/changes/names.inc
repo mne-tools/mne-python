@@ -255,7 +255,7 @@
 .. _Milan Rybář: http://milanrybar.cz
 
 .. _Joshua Bear: https://github.com/joshbear
-￼
+
 .. _Eberhard Eich: https://github.com/ebeich
 
 .. _Abram Hindle: http://softwareprocess.es
