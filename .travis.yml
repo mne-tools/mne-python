@@ -106,16 +106,12 @@ install:
     # files to act as a FREESURFER_HOME for the coreg tests
     - if [ "${DEPS}" != "nodata" ]; then
         python -c 'import mne; mne.datasets.testing.data_path(verbose=True)';
-        ls -al $HOME/mne_data/;
-        ls -al $HOME/mne_data/MNE-testing-data/;
-        ls -al $HOME/mne_data/MNE-testing-data/MEG/;
-        ls -al $HOME/mne_data/MNE-testing-data/MEG/sample/;
-        if [ "${DEPS}" == "" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-          export FREESURFER_HOME=$(python -c 'import mne; print(mne.datasets.testing.data_path())');
-          export MNE_SKIP_FS_FLASH_CALL=1;
-        fi;
       else
         export MNE_SKIP_TESTING_DATASET_TESTS=true;
+      fi;
+    - if [ "${DEPS}" == "" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+        export FREESURFER_HOME=$(python -c 'import mne; print(mne.datasets.testing.data_path())');
+        export MNE_SKIP_FS_FLASH_CALL=1;
       fi;
     - MNE_DIR=$(python -c 'import mne;print(mne.__path__[0])')
     # We run two versions: one out of the source directory (that makes
