@@ -227,13 +227,19 @@ class _Brain(object):
                                          bgcolor=background)]]
         else:
             if isinstance(figure, int):
-                figures = [[create_3d_figure(size=fig_size,
-                                             bgcolor=background,
-                                             handle=figure)]]
+                figure = [create_3d_figure(size=fig_size,
+                                           bgcolor=background,
+                                           handle=figure)]
             elif not isinstance(figure, list):
                 raise TypeError('Expected type for `figure` is scene, '
                                 'list, int or None: '
                                 '{} was given'.format(type(figure)))
+
+            if not len(figure) == n_row * n_col:
+                raise ValueError('For the requested view, figure must be a '
+                                 'list or tuple with exactly %i elements, '
+                                 'not %i' % (n_row * n_col, len(figure)))
+
             figures = [figure[slice(ri * n_col, (ri + 1) * n_col)]
                        for ri in range(n_row)]
 
@@ -276,21 +282,13 @@ class _Brain(object):
             self.geo[h] = geo
 
         for ri, v in enumerate(views):
-            renderer = _Renderer(size=fig_size, bgcolor=background, fig=figure)
-            self._renderers[ri].append(renderer)
-            renderer.set_camera(azimuth=views_dict[v].azim,
-                                elevation=views_dict[v].elev,
-                                distance=490.0)
-
             for ci, h in enumerate(self._hemis):
-                if ci == 1 and hemi == 'split':
-                    # create a separate figure for right hemisphere
-                    renderer = _Renderer(size=fig_size, bgcolor=background,
-                                         fig=figure)
-                    self._renderers[ri].append(renderer)
-                    renderer.set_camera(azimuth=views_dict[v].azim,
-                                        elevation=views_dict[v].elev,
-                                        distance=490.0)
+                renderer = _Renderer(size=fig_size, bgcolor=background,
+                                     fig=figures[ri][ci])
+                self._renderers[ri].append(renderer)
+                renderer.set_camera(azimuth=views_dict[v].azim,
+                                    elevation=views_dict[v].elev,
+                                    distance=490.0)
 
                 mesh = renderer.mesh(x=self.geo[h].coords[:, 0],
                                      y=self.geo[h].coords[:, 1],
