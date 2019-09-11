@@ -285,8 +285,8 @@ def test_setup_source_space(tmpdir):
     # Using the sample dataset
     subjects_dir = op.join(sample.data_path(download=False), 'subjects')
     use_fname = op.join(tmpdir, "sources-src.fif")
-    with ArgvSetter(('-f', use_fname, '-d', subjects_dir,
-                     '-s', 'sample')):
+    with ArgvSetter(('--src', use_fname, '-d', subjects_dir,
+                     '-s', 'sample', '--spacing', '20', '--morph', 'sample')):
         mne_setup_source_space.run()
     src = read_source_spaces(use_fname)
     assert len(src) == 2
