@@ -18,6 +18,8 @@ from .base_renderer import _BaseRenderer
 from ._utils import _get_colormap_from_array
 from ...utils import copy_base_doc_to_subclass_doc
 
+_FIGURES = dict()
+
 
 class _Figure(object):
     def __init__(self, plotter=None,
@@ -99,7 +101,15 @@ class _Renderer(_BaseRenderer):
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
                  name="PyVista Scene", show=False):
         from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
-        if fig is None:
+        if isinstance(fig, int):
+            if _FIGURES.get(fig) is None:
+                self.figure = _Figure(title=name, size=size,
+                                      background_color=bgcolor,
+                                      notebook=_check_notebook())
+                _FIGURES[fig] = self.figure
+            else:
+                self.figure = _FIGURES.get(fig)
+        elif fig is None:
             self.figure = _Figure(title=name, size=size,
                                   background_color=bgcolor,
                                   notebook=_check_notebook())

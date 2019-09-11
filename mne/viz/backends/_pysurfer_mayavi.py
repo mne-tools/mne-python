@@ -62,6 +62,8 @@ class _Renderer(_BaseRenderer):
         self.mlab = _import_mlab()
         if fig is None:
             self.fig = _mlab_figure(figure=name, bgcolor=bgcolor, size=size)
+        elif isinstance(fig, int):
+            self.fig = _mlab_figure(figure=fig, bgcolor=bgcolor, size=size)
         else:
             self.fig = fig
         if show is False:

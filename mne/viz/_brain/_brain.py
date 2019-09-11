@@ -202,11 +202,8 @@ class _Brain(object):
         if interaction is not None:
             raise ValueError('"interaction" parameter is not supported.')
 
-        from ..backends.renderer import _Renderer, _check_figure
+        from ..backends.renderer import _Renderer, create_3d_figure
         from matplotlib.colors import colorConverter
-
-        if figure is not None:
-            _check_figure(figure)
 
         if isinstance(background, str):
             background = colorConverter.to_rgb(background)
@@ -214,6 +211,31 @@ class _Brain(object):
             foreground = colorConverter.to_rgb(foreground)
         if isinstance(views, str):
             views = [views]
+        n_row = len(views)
+        col_dict = dict(lh=1, rh=1, both=1, split=2)
+        n_col = col_dict[hemi]
+
+        if isinstance(size, int):
+            fig_size = (size, size)
+        elif isinstance(size, tuple):
+            fig_size = size
+        else:
+            raise ValueError('"size" parameter must be int or tuple.')
+
+        if figure is None:
+            figures = [[create_3d_figure(size=fig_size,
+                                         bgcolor=background)]]
+        else:
+            if isinstance(figure, int):
+                figures = [[create_3d_figure(size=fig_size,
+                                             bgcolor=background,
+                                             handle=figure)]]
+            elif not isinstance(figure, list):
+                raise TypeError('Expected type for `figure` is scene, '
+                                'list, int or None: '
+                                '{} was given'.format(type(figure)))
+            figures = [figure[slice(ri * n_col, (ri + 1) * n_col)]
+                       for ri in range(n_row)]
 
         self._foreground = foreground
         self._hemi = hemi
@@ -240,13 +262,6 @@ class _Brain(object):
         else:
             raise KeyError('hemi has to be either "lh", "rh", "split", '
                            'or "both"')
-
-        if isinstance(size, int):
-            fig_size = (size, size)
-        elif isinstance(size, tuple):
-            fig_size = size
-        else:
-            raise ValueError('"size" parameter must be int or tuple.')
 
         # XXX: use the geo_ variables
         # geo_kwargs, geo_reverse, geo_curv = \
