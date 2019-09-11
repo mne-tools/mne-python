@@ -104,10 +104,13 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     Returns
     -------
     psds : ndarray, shape (..., n_freqs) or shape (..., n_freqs, n_segments)
-        The power spectral densities. If ``average='mean'`` or
-        ``average='median'``, all dimensions up to the last will
-        be the same as input. If ``average=None``, the returned array will have
-        an additional dimension corresponding to the unaggregated segments.
+    psds : ndarray, shape (..., n_freqs) or (..., n_freqs, n_segments)
+        The power spectral densities. If ``average='mean`` or
+        ``average='median'`` and input is of type Raw or Evoked, then psds will
+        be of shape (n_channels, n_freqs); if input is of type Epochs, then
+        psds will be of shape (n_epochs, n_channels, n_freqs).
+        If ``average=None``, the returned array will have an additional
+        dimension corresponding to the unaggregated segments.
     freqs : ndarray, shape (n_freqs,)
         The frequencies.
 
@@ -216,11 +219,11 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     -------
     psds : ndarray, shape (..., n_freqs) or (..., n_freqs, n_segments)
         The power spectral densities. If ``average='mean`` or
-        ``average='median'`` and input is of type Raw, then psds will be of
-        shape (n_channels, n_freqs); if input is type Epochs, then psds will be
-        of shape (n_epochs, n_channels, n_freqs). If ``average=None``, the
-        returned array will have an additional dimension corresponding to the
-        unaggregated segments.
+        ``average='median'`` and input is of type Raw or Evoked, then psds will
+        be of shape (n_channels, n_freqs); if input is of type Epochs, then
+        psds will be of shape (n_epochs, n_channels, n_freqs).
+        If ``average=None``, the returned array will have an additional
+        dimension corresponding to the unaggregated segments.
     freqs : ndarray, shape (n_freqs,)
         The frequencies.
 
