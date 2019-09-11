@@ -283,7 +283,7 @@ class _Brain(object):
 
         for ri, v in enumerate(views):
             for ci, h in enumerate(self._hemis):
-                ci = hi if hemi == 'split' else 0
+                ci = ri if hemi == 'split' else 0
                 renderer = _Renderer(size=fig_size, bgcolor=background,
                                      fig=figures[ri][ci])
                 self._renderers[ri].append(renderer)
