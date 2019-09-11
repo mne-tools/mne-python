@@ -71,7 +71,7 @@ def test_array_copy():
 
 
 @pytest.mark.slowtest
-@requires_version('scipy', '0.12')
+@requires_version('scipy', '1.2.0')
 def test_array_raw():
     """Test creating raw from array."""
     # creating
