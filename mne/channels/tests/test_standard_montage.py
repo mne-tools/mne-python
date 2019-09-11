@@ -26,7 +26,7 @@ from mne.channels.montage import _BUILT_IN_MONTAGES
 # from mne.channels.montage import transform_to_head
 # from mne.channels._dig_montage_utils import _transform_to_head_call
 # from mne.channels._dig_montage_utils import _fix_data_fiducials
-from mne.channels._standard_montage_utils import read_standard_montage
+from mne.channels import read_standard_montage
 from mne.utils import Bunch
 # from mne.utils import (_TempDir, run_tests_if_main, assert_dig_allclose,
 #                        object_diff, Bunch)

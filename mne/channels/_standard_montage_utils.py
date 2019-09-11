@@ -188,6 +188,8 @@ def get_standard_1005():
     )
 
 standard_montage_look_up_table = {
+    'EGI_256': get_egi_256,
+
     'easycap-M1': partial(get_easycap, basename='easycap-M1.txt'),
     'easycap-M10': partial(get_easycap, basename='easycap-M1.txt'),
 
@@ -223,83 +225,3 @@ standard_montage_look_up_table = {
     'standard_primed': partial(get_mgh_or_standard,
                                basename='standard_primed.elc'),
 }
-
-
-def read_standard_montage(kind):
-    """Read a generic (built-in) montage.
-
-    Individualized (digitized) electrode positions should be read in using
-    :func:`read_dig_montage`.  # XXXX
-
-    Parameters
-    ----------
-    kind : str
-        The name of the montage file without the file extension (e.g.
-        kind='easycap-M10' for 'easycap-M10.txt'). See notes for valid kinds.
-
-    Returns
-    -------
-    montage : instance of DigMontage
-        The montage.
-
-    See Also
-    --------
-    DigMontage
-
-    Notes
-    -----
-    Valid ``kind`` arguments are:
-
-    ===================   =====================================================
-    Kind                  Description
-    ===================   =====================================================
-    standard_1005         Electrodes are named and positioned according to the
-                          international 10-05 system (343+3 locations)
-    standard_1020         Electrodes are named and positioned according to the
-                          international 10-20 system (94+3 locations)
-    standard_alphabetic   Electrodes are named with LETTER-NUMBER combinations
-                          (A1, B2, F4, ...) (65+3 locations)
-    standard_postfixed    Electrodes are named according to the international
-                          10-20 system using postfixes for intermediate
-                          positions (100+3 locations)
-    standard_prefixed     Electrodes are named according to the international
-                          10-20 system using prefixes for intermediate
-                          positions (74+3 locations)
-    standard_primed       Electrodes are named according to the international
-                          10-20 system using prime marks (' and '') for
-                          intermediate positions (100+3 locations)
-
-    biosemi16             BioSemi cap with 16 electrodes (16+3 locations)
-    biosemi32             BioSemi cap with 32 electrodes (32+3 locations)
-    biosemi64             BioSemi cap with 64 electrodes (64+3 locations)
-    biosemi128            BioSemi cap with 128 electrodes (128+3 locations)
-    biosemi160            BioSemi cap with 160 electrodes (160+3 locations)
-    biosemi256            BioSemi cap with 256 electrodes (256+3 locations)
-
-    easycap-M1            EasyCap with 10-05 electrode names (74 locations)
-    easycap-M10           EasyCap with numbered electrodes (61 locations)
-
-    EGI_256               Geodesic Sensor Net (256 locations)
-
-    GSN-HydroCel-32       HydroCel Geodesic Sensor Net and Cz (33+3 locations)
-    GSN-HydroCel-64_1.0   HydroCel Geodesic Sensor Net (64+3 locations)
-    GSN-HydroCel-65_1.0   HydroCel Geodesic Sensor Net and Cz (65+3 locations)
-    GSN-HydroCel-128      HydroCel Geodesic Sensor Net (128+3 locations)
-    GSN-HydroCel-129      HydroCel Geodesic Sensor Net and Cz (129+3 locations)
-    GSN-HydroCel-256      HydroCel Geodesic Sensor Net (256+3 locations)
-    GSN-HydroCel-257      HydroCel Geodesic Sensor Net and Cz (257+3 locations)
-
-    mgh60                 The (older) 60-channel cap used at
-                          MGH (60+3 locations)
-    mgh70                 The (newer) 70-channel BrainVision cap used at
-                          MGH (70+3 locations)
-    ===================   =====================================================
-
-    .. versionadded:: 0.9.0
-    """
-    if kind not in standard_montage_look_up_table:
-        # XXX: this is the old message needs update
-        raise ValueError('Could not find the montage. Please provide the '
-                         'full path.')
-    else:
-        return standard_montage_look_up_table[kind]()

@@ -28,9 +28,7 @@ subjects_dir = op.dirname(fetch_fsaverage())
 
 for current_montage in get_builtin_montages():
 
-    montage = mne.channels.read_montage(current_montage,
-                                        unit='auto',
-                                        transform=False)
+    montage = mne.channels.read_standard_montage(current_montage)
 
     info = mne.create_info(ch_names=montage.ch_names,
                            sfreq=1,
@@ -43,4 +41,4 @@ for current_montage in get_builtin_montages():
                          eeg=['projected'],
                          )
     set_3d_view(figure=fig, azimuth=135, elevation=80)
-    set_3d_title(figure=fig, title=montage.kind)
+    set_3d_title(figure=fig, title=current_montage)
