@@ -6,7 +6,7 @@ import pytest
 
 from mne import pick_types, Epochs, read_events
 from mne.io import RawArray, read_raw_fif
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, requires_version
 from mne.time_frequency import psd_welch, psd_multitaper, psd_array_welch
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -14,6 +14,7 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 event_fname = op.join(base_dir, 'test-eve.fif')
 
 
+@requires_version('scipy', '1.2.0')
 def test_psd_nan():
     """Test handling of NaN in psd_array_welch."""
     n_samples, n_fft, n_overlap = 2048,  1024, 512
@@ -32,6 +33,7 @@ def test_psd_nan():
     assert_allclose(psds[0], psds_2)
 
 
+@requires_version('scipy', '1.2.0')
 def test_psd():
     """Tests the welch and multitaper PSD."""
     raw = read_raw_fif(raw_fname)
@@ -160,6 +162,7 @@ def test_psd():
         assert (psds_ev.shape == (len(kws['picks']), len(freqs)))
 
 
+@requires_version('scipy', '1.2.0')
 def test_psd_welch_average_kwarg_raw():
     """Test `average` kwarg of psd_welch() with Raw input data."""
     raw = read_raw_fif(raw_fname)
@@ -206,6 +209,7 @@ def test_psd_welch_average_kwarg_raw():
     assert_allclose(psds_median, np.median(psds_unagg, axis=-1) / median_bias)
 
 
+@requires_version('scipy', '1.2.0')
 def test_psd_welch_average_kwarg_epo():
     """Test `average` kwarg of psd_welch() with Epochs input data."""
     raw = read_raw_fif(raw_fname)
@@ -265,6 +269,7 @@ def test_psd_welch_average_kwarg_epo():
 
 
 @pytest.mark.slowtest
+@requires_version('scipy', '1.2.0')
 def test_compares_psd():
     """Test PSD estimation on raw for plt.psd and scipy.signal.welch."""
     raw = read_raw_fif(raw_fname)
