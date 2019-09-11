@@ -94,9 +94,9 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
         Length of each Welch segment (windowed with a Hamming window). Defaults
         to None, which sets n_per_seg equal to n_fft.
     average : str | None
-        How to average  to segments. If ``mean`` (default), calculate the
+        How to average the segments. If ``mean`` (default), calculate the
         arithmetic mean. If ``median``, calculate the median, corrected for
-        its bias relative to thee mean. If ``None``, returns the unaggregated
+        its bias relative to the mean. If ``None``, returns the unaggregated
         segments.
     %(n_jobs)s
     %(verbose)s
@@ -195,9 +195,9 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
         Length of each Welch segment (windowed with a Hamming window). Defaults
         to None, which sets n_per_seg equal to n_fft.
     average : str | None
-        How to average  to segments. If ``mean`` (default), calculate the
+        How to average the segments. If ``mean`` (default), calculate the
         arithmetic mean. If ``median``, calculate the median, corrected for
-        its bias relative to thee mean. If ``None``, returns the unaggregated
+        its bias relative to the mean. If ``None``, returns the unaggregated
         segments.
     %(picks_good_data_noref)s
     proj : bool
