@@ -121,11 +121,11 @@ plt.show()
 ###############################################################################
 # Lastly, we can retrieve the unaggregated segments by passing ``average=None``
 # to :func:`mne.time_frequency.psd_welch`
-
-# The dimensions of the returned PSD array are:
-# n_epochs x n_sensors x n_freqs x n_segments
-
 psds_welch_unagg, freqs_unagg = psd_welch(epochs, average=None, **kwargs)
+
+###############################################################################
+# The dimensions of the returned array are:
+# n_epochs x n_sensors x n_freqs x n_segments
 print(psds_welch_unagg.shape)
 
 ###############################################################################
