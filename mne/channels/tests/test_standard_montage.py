@@ -112,3 +112,27 @@ def test_standard_montages_in_head(kind, tol):
         desired=np.full((eeg_loc.shape[0], ), EXPECTED_HEAD_SIZE),
         atol=tol,
     )
+
+
+from mne.channels.montage import transform_to_head
+
+@pytest.mark.parametrize('kind', _BUILT_IN_MONTAGES)
+def test_foo(kind):
+    """Test standard montage properties (ie: they form a head)."""
+    montage = read_standard_montage(kind)
+    # import pdb; pdb.set_trace()
+    montage = transform_to_head(montage) if montage._coord_frame != 'head' else montage  # noqa
+    eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(montage.dig)])
+    # print(np.linalg.norm(eeg_loc, axis=1))
+
+    print(np.linalg.norm(eeg_loc, axis=1).mean())
+    # assert_allclose(
+    #     actual=np.linalg.norm(eeg_loc, axis=1),
+    #     desired=np.full((eeg_loc.shape[0], ), EXPECTED_HEAD_SIZE),
+    #     atol=1e-2  # Use a high tolerance for now # tol,
+    # )
+
+
+def test_bar():
+    """Test bar."""
+    kind = 'mgh60'
