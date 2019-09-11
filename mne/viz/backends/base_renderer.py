@@ -227,7 +227,7 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def text2d(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
+    def text2d(self, x, y, text, size=14, color=(1.0, 1.0, 1.0)):
         """Add 2d text in the scene.
 
         Parameters
@@ -238,8 +238,8 @@ class _BaseRenderer(metaclass=ABCMeta):
             The Y component to use as position of the text.
         text: str
             The content of the text.
-        width: float
-            The width of the text.
+        size: int
+            The size of the font.
         color: tuple
             The color of the text.
         """

@@ -200,11 +200,11 @@ class _Renderer(_BaseRenderer):
                     glyph_resolution
                 quiv.actor.property.backface_culling = backface_culling
 
-    def text2d(self, x, y, text, width=14, color=(1.0, 1.0, 1.0)):
+    def text2d(self, x, y, text, size=14, color=(1.0, 1.0, 1.0)):
+        size = 14 if size is None else size
         with warnings.catch_warnings(record=True):  # traits
             text = self.mlab.text(x, y, text, color=color, figure=self.fig)
-            width = 14 if width is None else width
-            text.property.font_size = width
+            text.property.font_size = size
             text.actor.text_scale_mode = 'viewport'
             text.property.justification = 'right'
 

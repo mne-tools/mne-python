@@ -322,14 +322,14 @@ class _Renderer(_BaseRenderer):
                                       smooth_shading=self.figure.
                                       smooth_shading)
 
-    def text2d(self, x, y, text, width=14, color=(1.0, 1.0, 1.0)):
-        width = int(width * 100) if isinstance(width, float) else width
-        position = (x*self.figure.store['window_size'][0],
-                    y*self.figure.store['window_size'][1])
+    def text2d(self, x, y, text, size=14, color=(1.0, 1.0, 1.0)):
+        size = 14 if size is None else size
+        position = (x * self.figure.store['window_size'][0],
+                    y * self.figure.store['window_size'][1])
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             actor = self.plotter.add_text(text, position=position,
-                                          font_size=width,
+                                          font_size=size,
                                           color=color)
             actor.GetTextProperty().SetJustificationToRight()
 
