@@ -324,7 +324,7 @@ class SourceMorph(object):
 
     @verbose
     def apply(self, stc_from, output='stc', mri_resolution=False,
-              mri_space=False, verbose=None):
+              mri_space=None, verbose=None):
         """Morph source space data.
 
         Parameters
@@ -339,9 +339,9 @@ class SourceMorph(object):
             If True the image is saved in MRI resolution. Default False.
             WARNING: if you have many time points the file produced can be
             huge. The default is mri_resolution=False.
-        mri_space : bool
+        mri_space : bool | None
             Whether the image to world registration should be in mri space. The
-            default is mri_space=mri_resolution.
+            default (None) is mri_space=mri_resolution.
         %(verbose_meth)s
 
         Returns
@@ -363,7 +363,7 @@ class SourceMorph(object):
         if not isinstance(output, str):
             raise TypeError('output must be str, got type %s (%s)'
                             % (type(output), output))
-        out = _apply_morph_data(self, stc)
+        out = _apply_morph_data(self, stc, mri_resolution=True, mri_space=True)
         if output != 'stc':  # convert to volume
             out = _morphed_stc_as_volume(
                 self, out, mri_resolution=mri_resolution, mri_space=mri_space,
@@ -468,7 +468,7 @@ def _check_dep(nibabel='2.1.0', dipy='0.10.1'):
                                                                         ver))
 
 
-def _morphed_stc_as_volume(morph, stc, mri_resolution=False, mri_space=True,
+def _morphed_stc_as_volume(morph, stc, mri_resolution, mri_space,
                            output='nifti1'):
     """Return volume source space as Nifti1Image and/or save to disk."""
     if isinstance(stc, VolVectorSourceEstimate):
@@ -572,8 +572,7 @@ def _get_src_data(src):
     return src_data, src_kind
 
 
-def _interpolate_data(stc, morph, mri_resolution=True, mri_space=True,
-                      output='nifti1'):
+def _interpolate_data(stc, morph, mri_resolution, mri_space, output='nifti1'):
     """Interpolate source estimate data to MRI."""
     _check_dep(nibabel='2.1.0', dipy=False)
     if output not in ('nifti', 'nifti1', 'nifti2'):
@@ -1123,7 +1122,7 @@ def _get_zooms_orig(morph):
             zip(morph.zooms, morph.shape, morph.src_data['src_shape_full'])]
 
 
-def _apply_morph_data(morph, stc_from):
+def _apply_morph_data(morph, stc_from, mri_resolution, mri_space):
     """Morph a source estimate from one subject to another."""
     if stc_from.subject is not None and stc_from.subject != morph.subject_from:
         raise ValueError('stc.subject (%s) != morph.subject_from (%s)'
@@ -1142,8 +1141,9 @@ def _apply_morph_data(morph, stc_from):
 
         def _morph_one(stc_one):
             # prepare data to be morphed
-            img_to = _interpolate_data(stc_one, morph, mri_resolution=True,
-                                       mri_space=True)
+            img_to = _interpolate_data(stc_one, morph,
+                                       mri_resolution=mri_resolution,
+                                       mri_space=mri_space)
 
             # reslice to match morph
             img_to, img_to_affine = reslice(
