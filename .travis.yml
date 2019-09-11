@@ -68,13 +68,13 @@ before_install:
         if [ ! -z "$CONDA_ENV" ]; then
           source deactivate;
           conda env update --file $CONDA_ENV;
-          conda install openssl=1.1.1c;
           pip uninstall -yq mne;
           pip install codecov nitime;
           if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
             pip install "pyqt5>=5.10";
           fi;
         fi;
+        conda install "openssl=1.1.1c";
       fi
     # Don't source mne_setup_sh here because changing PATH etc. can't be done in a script
     - if [ "${DEPS}" == "" ]; then
