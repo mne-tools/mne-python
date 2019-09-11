@@ -164,7 +164,7 @@ def test_psd():
 
 @requires_version('scipy', '1.2.0')
 @pytest.mark.parametrize('kind', ('raw', 'epochs', 'evoked'))
-def test_psd_welch_average_kwarg_raw(kind):
+def test_psd_welch_average_kwarg(kind):
     """Test `average` kwarg of psd_welch()."""
     raw = read_raw_fif(raw_fname)
     picks_psd = [0, 1]
