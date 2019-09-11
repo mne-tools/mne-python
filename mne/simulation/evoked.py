@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #

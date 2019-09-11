@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Juergen Dammers <j.dammers@fz-juelich.de>
 #
 # License: BSD (3-clause)

@@ -5,7 +5,7 @@ Compute LCMV inverse solution in volume source space
 
 Compute LCMV beamformer on an auditory evoked dataset in a volume source space.
 """
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 

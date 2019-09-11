@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Single-dipole functions and classes."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: Simplified BSD

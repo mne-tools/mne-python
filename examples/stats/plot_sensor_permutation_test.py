@@ -8,7 +8,7 @@ during a fixed time window of interest. Here computation
 is performed on MNE sample dataset between 40 and 60 ms.
 
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 

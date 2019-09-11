@@ -1,6 +1,6 @@
 """Plot Cortex Surface."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Oleh Kozynets <ok7mailbox@gmail.com>
 #          Guillaume Favelier <guillaume.favelier@gmail.com>

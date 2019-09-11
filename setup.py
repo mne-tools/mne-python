@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-# Copyright (C) 2011-2017 Alexandre Gramfort
-# <alexandre.gramfort@telecom-paristech.fr>
+# Copyright (C) 2011-2019 Alexandre Gramfort
+# <alexandre.gramfort@inria.fr>
 
 import os
 import os.path as op
@@ -24,7 +24,7 @@ descr = """MNE python project for MEG and EEG data analysis."""
 DISTNAME = 'mne'
 DESCRIPTION = descr
 MAINTAINER = 'Alexandre Gramfort'
-MAINTAINER_EMAIL = 'alexandre.gramfort@telecom-paristech.fr'
+MAINTAINER_EMAIL = 'alexandre.gramfort@inria.fr'
 URL = 'http://martinos.org/mne'
 LICENSE = 'BSD (3-clause)'
 DOWNLOAD_URL = 'http://github.com/mne-tools/mne-python'

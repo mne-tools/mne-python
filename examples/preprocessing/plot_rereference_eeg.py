@@ -6,7 +6,7 @@ Re-referencing the EEG signal
 This example shows how to load raw data and apply some EEG referencing schemes.
 """
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 

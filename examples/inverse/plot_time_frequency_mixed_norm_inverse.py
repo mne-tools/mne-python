@@ -31,7 +31,7 @@ References
    Lecture Notes in Computer Science, Volume 6801/2011, pp. 600-611, 2011.
    DOI: 10.1007/978-3-642-22092-0_49
 """
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: BSD (3-clause)

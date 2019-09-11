@@ -8,7 +8,7 @@ Tests if the source space data are significantly different between
 The multiple comparisons problem is addressed with a cluster-level
 permutation test across space and time.
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD (3-clause)
 
