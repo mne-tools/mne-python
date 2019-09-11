@@ -16,6 +16,7 @@ MONTAGE_PATH = op.join(op.dirname(_CHANNELS_INIT_FILE), 'data', 'montages')
 # HEAD_SIZE_ESTIMATION = 0.085  # in [m]
 HEAD_SIZE_ESTIMATION = 1  # in [m]
 
+
 def _split_eeg_fid(ch_pos, nz_str='Nz', lpa_str='LPA', rpa_str='RPA'):
     nasion = ch_pos.pop(nz_str).reshape(3, ) if nz_str in ch_pos else None
     lpa = ch_pos.pop(lpa_str).reshape(3, ) if lpa_str in ch_pos else None
@@ -151,41 +152,6 @@ def get_mgh_or_standard(basename):
         ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='unknown',
     )
 
-
-def get_standard_1005():
-    fname = op.join(MONTAGE_PATH, 'standard_1005.elc')
-
-    ch_names_, pos = [], []
-    with open(fname) as fid:
-        # Default units are meters
-        for line in fid:
-            if 'UnitPosition' in line:
-                units = line.split()[1]
-                scale_factor = dict(m=1., mm=1e-3)[units]
-                break
-        else:
-            raise RuntimeError('Could not detect units in file %s' % fname)
-        for line in fid:
-            if 'Positions\n' in line:
-                break
-        pos = []
-        for line in fid:
-            if 'Labels\n' in line:
-                break
-            pos.append(list(map(float, line.split())))
-        for line in fid:
-            if not line or not set(line) - {' '}:
-                break
-            ch_names_.append(line.strip(' ').strip('\n'))
-    pos = np.array(pos) * scale_factor
-
-    ch_pos, nasion, lpa, rpa = _split_eeg_fid(
-        ch_pos=dict(zip(ch_names_, pos)),
-        nz_str='Nz', lpa_str='LPA', rpa_str='RPA'
-    )
-    return make_dig_montage(
-        ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='unknown',
-    )
 
 standard_montage_look_up_table = {
     'EGI_256': get_egi_256,
