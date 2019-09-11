@@ -1858,15 +1858,15 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
                      glass_brain=plot_glass_brain)[mode]
     _validate_type(stc, VolSourceEstimate, 'stc')
     if isinstance(src, SourceMorph):
-        img = src.apply(stc, 'nifti1', mri_resolution=False, mri_space=True)
-        stc = src.apply(stc, mri_resolution=False, mri_space=True)
+        img = src.apply(stc, 'nifti1', mri_resolution=False, mri_space=False)
+        stc = src.apply(stc, mri_resolution=False, mri_space=False)
         kind, src_subject = 'morph.subject_to', src.subject_to
     else:
         src = _ensure_src(src, kind='volume', extra=' or SourceMorph')
         img = stc.as_volume(src, mri_resolution=False)
         kind, src_subject = 'src subject', src[0].get('subject_his_id', None)
     _print_coord_trans(Transform('mri_voxel', 'ras', img.affine),
-                       prefix='Image affine ', units='mm')
+                       prefix='Image affine ', units='mm', level='debug')
     subject = _check_subject(src_subject, subject, True, kind=kind)
     stc_ijk = np.array(
         np.unravel_index(stc.vertices, img.shape[:3], order='F')).T
@@ -1911,17 +1911,23 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         logger.debug('')
 
         if params['mode'] == 'glass_brain':  # find idx for MIP
+            # Figure out what XYZ in world coordinates is in our voxel data
+            codes = ''.join(nib.aff2axcodes(params['img_idx'].affine))
+            assert len(codes) == 3
+            # We don't care about directionality, just which is which dim
+            codes = codes.replace('L', 'R').replace('P', 'A').replace('I', 'S')
+            idx = codes.index(dict(x='R', y='A', z='S')[ax])
             img_data = np.abs(_get_img_fdata(params['img_idx']))
             ijk = _cut_coords_to_ijk(cut_coords, params['img_idx'])
-            if ax == 'x':
+            if idx == 0:
                 ijk[0] = np.argmax(img_data[:, ijk[1], ijk[2]])
-                logger.debug('    MIP: X = %d idx' % (ijk[0],))
-            elif ax == 'y':
+                logger.debug('    MIP: i = %d idx' % (ijk[0],))
+            elif idx == 1:
                 ijk[1] = np.argmax(img_data[ijk[0], :, ijk[2]])
-                logger.debug('    MIP: Y = %d idx' % (ijk[1],))
+                logger.debug('    MIP: j = %d idx' % (ijk[1],))
             else:
                 ijk[2] = np.argmax(img_data[ijk[0], ijk[1], :])
-                logger.debug('    MIP: Z = %d idx' % (ijk[2],))
+                logger.debug('    MIP: k = %d idx' % (ijk[2],))
             cut_coords = _ijk_to_cut_coords(ijk, params['img_idx'])
 
         logger.debug('    Cut coords for %s: (%0.1f, %0.1f, %0.1f) mm'
@@ -2044,8 +2050,8 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     ijk = stc_ijk[loc_idx]
     cut_coords = _ijk_to_cut_coords(ijk, img_idx)
     np.testing.assert_allclose(_cut_coords_to_ijk(cut_coords, img_idx), ijk)
-    logger.info('Showing t = %0.3f s (%0.1f, %0.1f, %0.1f) mm [%d, %d, %d] idx'
-                ' %d vertex'
+    logger.info('Showing: t = %0.3f s, (%0.1f, %0.1f, %0.1f) mm, '
+                '[%d, %d, %d] vox, %d vertex'
                 % ((stc.times[time_idx],) + tuple(cut_coords) + tuple(ijk) +
                    (stc.vertices[loc_idx],)))
     del ijk

@@ -20,7 +20,7 @@ from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
 from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
-                    _check_path_like, get_subjects_dir, _check_subject)
+                    _check_path_like, get_subjects_dir)
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -174,15 +174,17 @@ def _coord_frame_name(cframe):
     return _verbose_frames.get(int(cframe), 'unknown')
 
 
-def _print_coord_trans(t, prefix='Coordinate transformation: ', units='m'):
+def _print_coord_trans(t, prefix='Coordinate transformation: ', units='m',
+                       level='info'):
     # Units gives the units of the transformation. This always prints in mm.
-    logger.info(prefix + '%s -> %s'
-                % (_coord_frame_name(t['from']), _coord_frame_name(t['to'])))
+    log_func = getattr(logger, level)
+    log_func(prefix + '%s -> %s'
+             % (_coord_frame_name(t['from']), _coord_frame_name(t['to'])))
     for ti, tt in enumerate(t['trans']):
         scale = 1000. if (ti != 3 and units != 'mm') else 1.
         text = ' mm' if ti != 3 else ''
-        logger.info('    % 8.6f % 8.6f % 8.6f    %7.2f%s' %
-                    (tt[0], tt[1], tt[2], scale * tt[3], text))
+        log_func('    % 8.6f % 8.6f % 8.6f    %7.2f%s' %
+                 (tt[0], tt[1], tt[2], scale * tt[3], text))
 
 
 def _find_trans(subject, subjects_dir=None):

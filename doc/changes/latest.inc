@@ -92,6 +92,12 @@ Bug
 
 - Fix one-sample baseline issue in :class:`mne.BaseEpochs` when using `tmin=0` by `Milan Rybář`_
 
+- Fix bug in :func:`mne.viz.plot_volume_source_estimates` where ``'glass_brain'`` MRIs were not transformed to MNI space, by `Eric Larson`_
+
+- Fix bug in :func:`mne.viz.plot_volume_source_estimates` where MRIs with voxels not in RAS orientation could not be browsed properly, by `Eric Larson`_
+
+- Fix bug in :meth:`mne.SourceMorph.apply` where output STCs had ``stc.vertices`` defined improperly, by `Eric Larson`_
+
 - Fix :meth:`mne.io.Raw.set_annotations` for ``meas_date`` previous to 1970 by `Joan Massich`_
 
 - Fix horizontal spacing issues in :meth:`mne.io.Raw.plot_psd` by `Jeff Hanna`_

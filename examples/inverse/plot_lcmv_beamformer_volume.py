@@ -10,8 +10,6 @@ and show activation on ``fsaverage``.
 #
 # License: BSD (3-clause)
 
-# sphinx_gallery_thumbnail_number = 3
-
 import mne
 from mne.datasets import sample
 from mne.beamformer import make_lcmv, apply_lcmv
@@ -48,7 +46,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
 evoked = epochs.average()
 
 # Visualize sensor space data
-# evoked.plot_joint()
+evoked.plot_joint()
 
 ###############################################################################
 # Compute covariance matrices, fit and apply  spatial filter.
@@ -83,38 +81,36 @@ stc = apply_lcmv(evoked, filters, max_ori_out='signed')
 
 # You can save result in stc files with:
 # stc.save('lcmv-vol')
-clim = dict(kind='value', pos_lims=[0.3, 0.6, 0.9])
-#stc.plot(src=forward['src'], subject='sample', subjects_dir=subjects_dir,
-#         clim=clim, mode='stat_map', verbose='debug')
+lims = [0.3, 0.6, 0.9]
+stc.plot(
+    src=forward['src'], subject='sample', subjects_dir=subjects_dir,
+    clim=dict(kind='value', pos_lims=lims), mode='stat_map',
+    initial_time=0.1, verbose=True)
 
 ###############################################################################
-# Now let's:
-# - visualize the activity on a "glass brain",
-# - show absolute values, and
-# - morph data to ``'fsaverage'`` instead of `sample`
+# Now let's plot this on a glass brain, which will automatically transform the
+# data to MNI Talairach space:
 
-morph = mne.compute_source_morph(
-    forward['src'], 'sample', 'fsaverage', subjects_dir=subjects_dir,
-    verbose='debug', zooms=7)
-stc = abs(stc.crop(0.08, 0.12))
+# sphinx_gallery_thumbnail_number = 4
 
 clim = dict(kind='value', lims=[0.3, 0.6, 0.9])
-"""
-print('*' * 80)
 stc.plot(
-    src=forward['src'],
-    subject='sample', subjects_dir=subjects_dir,
-    mode='stat_map', clim=clim, verbose='debug')
-"""
-initial_pos = (-56.7, -44.1, -0.3)
-print('*' * 80)
-stc.plot(
-    src=forward['src'], initial_pos=initial_pos,
-    subject='sample', subjects_dir=subjects_dir,
-    mode='glass_brain', clim=clim, verbose='debug')
-print('*' * 80)
-stc.plot(
-    src=morph, initial_pos=initial_pos,
-    subject='fsaverage', subjects_dir=subjects_dir,
-    mode='glass_brain', clim=clim, verbose='debug')
-print('*' * 80)
+    src=forward['src'], subject='sample', subjects_dir=subjects_dir,
+    mode='glass_brain', clim=dict(kind='value', lims=lims),
+    initial_time=0.1, verbose=True)
+
+###############################################################################
+# Finally let's get another view, this time plotting again a ``'stat_map'``
+# style but using volumetric morphing to get data to fsaverage space,
+# which we can get by passing a :class:`mne.SourceMorph` as the ``src``
+# argument to `mne.VolSourceEstimate.plot`. To save a bit of speed when
+# applying the morph, we will crop the STC:
+
+clim = dict(kind='value', pos_lims=[0.3, 0.6, 0.9])
+morph = mne.compute_source_morph(
+    forward['src'], 'sample', 'fsaverage', subjects_dir=subjects_dir,
+    zooms=7, verbose=True)
+stc.copy().crop(0.05, 0.18).plot(
+    src=morph, subject='fsaverage', subjects_dir=subjects_dir,
+    mode='stat_map', clim=dict(kind='value', pos_lims=lims),
+    initial_time=0.1, verbose=True)
