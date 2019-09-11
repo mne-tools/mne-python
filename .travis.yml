@@ -75,7 +75,7 @@ before_install:
           fi;
         fi;
         if [ "$PYTHON_VERSION" != "3.5" ]; then
-          conda install "openssl=1.1.1c";
+          conda install openssl=1.1.1c $CONDA_DEPENDENCIES;
         fi;
       fi
     # Don't source mne_setup_sh here because changing PATH etc. can't be done in a script
