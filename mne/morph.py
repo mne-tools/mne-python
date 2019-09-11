@@ -363,7 +363,7 @@ class SourceMorph(object):
         if not isinstance(output, str):
             raise TypeError('output must be str, got type %s (%s)'
                             % (type(output), output))
-        out = _apply_morph_data(self, stc, mri_resolution=True, mri_space=True)
+        out = _apply_morph_data(self, stc)
         if output != 'stc':  # convert to volume
             out = _morphed_stc_as_volume(
                 self, out, mri_resolution=mri_resolution, mri_space=mri_space,
@@ -653,10 +653,10 @@ def _interpolate_data(stc, morph, mri_resolution, mri_space, output='nifti1'):
     vols = vols.T
 
     # set correct space
-    affine = morph.src_data['src_affine_vox']
-
     if not mri_resolution:
         affine = morph.src_data['src_affine_src']
+    else:
+        affine = morph.src_data['src_affine_vox']
 
     if mri_space:
         affine = np.dot(morph.src_data['src_affine_ras'], affine)
@@ -1122,7 +1122,7 @@ def _get_zooms_orig(morph):
             zip(morph.zooms, morph.shape, morph.src_data['src_shape_full'])]
 
 
-def _apply_morph_data(morph, stc_from, mri_resolution, mri_space):
+def _apply_morph_data(morph, stc_from):
     """Morph a source estimate from one subject to another."""
     if stc_from.subject is not None and stc_from.subject != morph.subject_from:
         raise ValueError('stc.subject (%s) != morph.subject_from (%s)'
@@ -1140,10 +1140,9 @@ def _apply_morph_data(morph, stc_from, mri_resolution, mri_space):
         n_times = np.prod(stc_from.data.shape[1:])
 
         def _morph_one(stc_one):
-            # prepare data to be morphed
-            img_to = _interpolate_data(stc_one, morph,
-                                       mri_resolution=mri_resolution,
-                                       mri_space=mri_space)
+            # prepare data to be morphed (in high-res space, slice)
+            img_to = _interpolate_data(stc_one, morph, mri_resolution=True,
+                                       mri_space=True)
 
             # reslice to match morph
             img_to, img_to_affine = reslice(
@@ -1165,7 +1164,7 @@ def _apply_morph_data(morph, stc_from, mri_resolution, mri_space):
                                      stc_from.vertices,
                                      tmin=0., tstep=1.)
         img_to = _morph_one(stc_ones)
-        vertices_to = np.where(img_to.sum(axis=1) != 0)[0]
+        vertices_to = np.where(img_to.any(axis=1))[0]
         data = np.empty((len(vertices_to), n_times))
         data_from = np.reshape(stc_from.data, (stc_from.data.shape[0], -1))
         # Loop over time points to save memory
