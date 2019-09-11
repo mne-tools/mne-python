@@ -29,10 +29,9 @@ from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials, create_info
 from ..source_space import _ensure_src, _create_surf_spacing, _check_spacing
 
-from ..surface import (get_meg_helmet_surf, read_surface,
+from ..surface import (get_meg_helmet_surf, read_surface, _DistanceQuery,
                        transform_surface_to, _project_onto_surface,
-                       mesh_edges, _reorder_ccw, _compute_nearest,
-                       _complete_sphere_surf, _DistanceQuery)
+                       mesh_edges, _reorder_ccw, _complete_sphere_surf)
 from ..transforms import (read_trans, _find_trans, apply_trans, rot_to_quat,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform,

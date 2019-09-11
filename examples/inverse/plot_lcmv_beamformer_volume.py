@@ -93,7 +93,6 @@ stc.plot(
 
 # sphinx_gallery_thumbnail_number = 4
 
-clim = dict(kind='value', lims=[0.3, 0.6, 0.9])
 stc.plot(
     src=forward['src'], subject='sample', subjects_dir=subjects_dir,
     mode='glass_brain', clim=dict(kind='value', lims=lims),
@@ -106,7 +105,6 @@ stc.plot(
 # argument to `mne.VolSourceEstimate.plot`. To save a bit of speed when
 # applying the morph, we will crop the STC:
 
-clim = dict(kind='value', pos_lims=[0.3, 0.6, 0.9])
 morph = mne.compute_source_morph(
     forward['src'], 'sample', 'fsaverage', subjects_dir=subjects_dir,
     zooms=7, verbose=True)
