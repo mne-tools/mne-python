@@ -477,9 +477,9 @@ def test_snapshot_brain_montage(renderer):
 @requires_nibabel()
 @requires_version('nilearn', '0.4')
 @pytest.mark.parametrize('mode, stype, init_t, want_t, init_p, want_p', [
-    ('glass_brain', 's', None, 2, None, (-33.3, 16.0, 63.7)),
+    ('glass_brain', 's', None, 2, None, (-30.9, 18.4, 56.7)),
     ('stat_map', 'vec', 1, 1, None, (15.7, 16.0, -6.3)),
-    ('glass_brain', 'vec', None, 2, (10, -10, 20), (8.7, -12.0, 21.7)),
+    ('glass_brain', 'vec', None, 1, (10, -10, 20), (6.6, -9.0, 19.9)),
     ('stat_map', 's', 1, 1, (-10, 5, 10), (-12.3, 2.0, 7.7))])
 def test_plot_volume_source_estimates(mode, stype, init_t, want_t,
                                       init_p, want_p):

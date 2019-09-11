@@ -326,7 +326,7 @@ class SourceMorph(object):
 
     @verbose
     def apply(self, stc_from, output='stc', mri_resolution=False,
-              mri_space=False, verbose=None):
+              mri_space=None, verbose=None):
         """Morph source space data.
 
         Parameters
@@ -341,9 +341,9 @@ class SourceMorph(object):
             If True the image is saved in MRI resolution. Default False.
             WARNING: if you have many time points the file produced can be
             huge. The default is mri_resolution=False.
-        mri_space : bool
+        mri_space : bool | None
             Whether the image to world registration should be in mri space. The
-            default is mri_space=mri_resolution.
+            default (None) is mri_space=mri_resolution.
         %(verbose_meth)s
 
         Returns
@@ -470,8 +470,7 @@ def _check_dep(nibabel='2.1.0', dipy='0.10.1'):
                                                                         ver))
 
 
-def _morphed_stc_as_volume(morph, stc, mri_resolution=False, mri_space=True,
-                           output='nifti1'):
+def _morphed_stc_as_volume(morph, stc, mri_resolution, mri_space, output):
     """Return volume source space as Nifti1Image and/or save to disk."""
     if isinstance(stc, VolVectorSourceEstimate):
         stc = stc.magnitude()
@@ -480,15 +479,7 @@ def _morphed_stc_as_volume(morph, stc, mri_resolution=False, mri_space=True,
                          'volumes')
     _check_dep(nibabel='2.1.0', dipy=False)
 
-    _check_option('output', output, ['nifti', 'nifti1', 'nifti2'])
-    if output in ('nifti', 'nifti1'):
-        from nibabel import (Nifti1Image as NiftiImage,
-                             Nifti1Header as NiftiHeader)
-    else:
-        assert output == 'nifti2'
-        from nibabel import (Nifti2Image as NiftiImage,
-                             Nifti2Header as NiftiHeader)
-
+    NiftiImage, NiftiHeader = _triage_output(output)
     new_zooms = None
 
     # if full MRI resolution, compute zooms from shape and MRI zooms
@@ -574,13 +565,8 @@ def _get_src_data(src):
     return src_data, src_kind
 
 
-def _interpolate_data(stc, morph, mri_resolution=True, mri_space=True,
-                      output='nifti1'):
-    """Interpolate source estimate data to MRI."""
-    _check_dep(nibabel='2.1.0', dipy=False)
-    if output not in ('nifti', 'nifti1', 'nifti2'):
-        raise ValueError("invalid output specifier %s. Must be 'nifti1' or"
-                         " 'nifti2'" % output)
+def _triage_output(output):
+    _check_option('output', output, ['nifti', 'nifti1', 'nifti2'])
     if output in ('nifti', 'nifti1'):
         from nibabel import (Nifti1Image as NiftiImage,
                              Nifti1Header as NiftiHeader)
@@ -588,6 +574,13 @@ def _interpolate_data(stc, morph, mri_resolution=True, mri_space=True,
         assert output == 'nifti2'
         from nibabel import (Nifti2Image as NiftiImage,
                              Nifti2Header as NiftiHeader)
+    return NiftiImage, NiftiHeader
+
+
+def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
+    """Interpolate source estimate data to MRI."""
+    _check_dep(nibabel='2.1.0', dipy=False)
+    NiftiImage, NiftiHeader = _triage_output(output)
     assert morph.kind == 'volume'
 
     voxel_size_defined = False
@@ -1151,9 +1144,11 @@ def _apply_morph_data(morph, stc_from):
 
         def _morph_one(stc_one):
             # prepare data to be morphed
+            # here we use mri_resolution=True, mri_space=True because
+            # we will slice afterward
             assert stc_one.data.shape[1] == 1
             img_to = _interpolate_data(stc_one, morph, mri_resolution=True,
-                                       mri_space=True)
+                                       mri_space=True, output='nifti1')
 
             # reslice to match morph
             img_to, img_to_affine = reslice(

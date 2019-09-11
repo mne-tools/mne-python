@@ -1780,7 +1780,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
 
         Returns
         -------
-        img : instance Nifti1Image
+        img : instance of Nifti1Image
             The image object.
 
         Notes
