@@ -17,8 +17,9 @@ matrix:
         # No data + style testing
         - os: linux
           env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
-               CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx pytest pytest-timeout pytest-cov pytest-mock openssl=1.1.1a"
+               CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx pytest pytest-timeout pytest-cov pytest-mock"
                PIP_DEPENDENCIES="codecov flake8 numpydoc codespell pydocstyle codecov check-manifest pytest-sugar pytest-faulthandler"
+               PYTHONHTTPSVERIFY=0
 
         # Linux
         - os: linux
@@ -55,7 +56,7 @@ before_install:
     - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
         /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
       fi;
-    # One openssl=1.1.1c here and two above should be removed once conda un-breaks openssl
+    # One openssl=1.1.1c here, one above, and PYTHONHTTPSVERIFY should be removed once conda un-breaks openssl
     - if [ -z "$CONDA_ENV" ] && [ -z "$CONDA_DEPENDENCIES" ]; then
         pip uninstall -yq numpy;
         pip install -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" --pre numpy scipy;
