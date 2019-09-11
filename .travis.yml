@@ -8,12 +8,9 @@ env:
     # TRAVIS_PYTHON_VERSION is only needed for neo's setup.py
     # OPENBLAS_NUM_THREADS=1 avoid slowdowns:
     # https://github.com/xianyi/OpenBLAS/issues/731
-    # The PYTHONHTTPSVERIFY is to deal with a (hopefully!) temporary
-    # SSL certificate problem with GitHub
     global: PYTHON_VERSION=3.7 DISPLAY=:99.0 MNE_LOGGING_LEVEL=warning TEST_LOCATION=src
             TRAVIS_PYTHON_VERSION=3.7 CONDA_VERSION=">=4.3.27"
             OPENBLAS_NUM_THREADS=1
-            PYTHONHTTPSVERIFY=0
 
 matrix:
     include:
@@ -58,6 +55,7 @@ before_install:
     - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
         /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
       fi;
+    # Temporary openssl=1.1.1c should be removed once conda un-breaks
     - if [ -z "$CONDA_ENV" ] && [ -z "$CONDA_DEPENDENCIES" ]; then
         pip uninstall -yq numpy;
         pip install -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" --pre numpy scipy;
@@ -70,6 +68,7 @@ before_install:
         if [ ! -z "$CONDA_ENV" ]; then
           source deactivate;
           conda env update --file $CONDA_ENV;
+          conda install openssl=1.1.1c;
           pip uninstall -yq mne;
           pip install codecov nitime;
           if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
