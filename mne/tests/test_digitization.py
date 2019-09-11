@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Joan Massich <mailsik@gmail.com>
 #
 # License: BSD (3-clause)

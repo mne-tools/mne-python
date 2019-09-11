@@ -1,4 +1,4 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Denis Engemann <denis.engemann@gmail.com>
 #         Andrew Dykstra <andrew.r.dykstra@gmail.com>
 #         Mads Jensen <mje.mads@gmail.com>

@@ -9,7 +9,7 @@ PSFs describe the spread of activation from one label
 across the cortical surface.
 """
 # Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 

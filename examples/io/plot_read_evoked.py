@@ -5,7 +5,7 @@ Reading and writing an evoked file
 
 This script shows how to read and write evoked datasets.
 """
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 

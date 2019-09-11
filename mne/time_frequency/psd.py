@@ -1,4 +1,4 @@
-# Authors : Alexandre Gramfort, alexandre.gramfort@telecom-paristech.fr (2011)
+# Authors : Alexandre Gramfort, alexandre.gramfort@inria.fr (2011)
 #           Denis A. Engemann <denis.engemann@gmail.com>
 # License : BSD 3-clause
 

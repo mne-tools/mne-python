@@ -1,7 +1,7 @@
 """Functions to plot ICA specific data (besides topographies)."""
 
 # Authors: Denis Engemann <denis.engemann@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Daniel McCloy <dan.mccloy@gmail.com>
 #

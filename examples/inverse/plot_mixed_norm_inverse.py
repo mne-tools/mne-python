@@ -20,7 +20,7 @@ References
    4th International Workshop on Pattern Recognition in Neuroimaging,
    Tuebingen, 2014. 10.1109/PRNI.2014.6858545
 """
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: BSD (3-clause)

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)

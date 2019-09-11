@@ -16,7 +16,7 @@ References
     108, 328-342, NeuroImage.
 
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)

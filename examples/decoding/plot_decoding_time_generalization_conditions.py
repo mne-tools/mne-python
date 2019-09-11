@@ -16,7 +16,7 @@ References
        Cognitive Sciences, 18(4), 203-210. doi: 10.1016/j.tics.2014.01.002.
 """
 # Authors: Jean-Remi King <jeanremi.king@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)

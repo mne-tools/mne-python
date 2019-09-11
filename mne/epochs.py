@@ -2,7 +2,7 @@
 
 """Tools for working with epoched data."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #          Denis Engemann <denis.engemann@gmail.com>

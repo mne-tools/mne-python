@@ -2,7 +2,7 @@
 
 Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 """
-# Authors : Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors : Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #           Hari Bharadwaj <hari@nmr.mgh.harvard.edu>
 #           Clement Moutard <clement.moutard@polytechnique.org>
 #           Jean-Remi King <jeanremi.king@gmail.com>

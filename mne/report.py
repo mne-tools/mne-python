@@ -1,6 +1,6 @@
 """Generate self-contained HTML reports from MNE objects."""
 
-# Authors: Alex Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alex Gramfort <alexandre.gramfort@inria.fr>
 #          Mainak Jas <mainak@neuro.hut.fi>
 #          Teon Brooks <teon.brooks@gmail.com>
 #
