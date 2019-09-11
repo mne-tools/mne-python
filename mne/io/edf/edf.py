@@ -302,6 +302,11 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, chs, filenames):
     buf_len = int(raw_extras['max_samp'])
     dtype = raw_extras['dtype_np']
     dtype_byte = raw_extras['dtype_byte']
+    if isinstance(dtype, list):  # depending on the type of GDF raw_extras
+        dtype = dtype[0]         # wraps things in lists?
+    dtype_byte = raw_extras['dtype_byte']
+    if isinstance(dtype_byte, list):  # depending on the type of GDF raw_extras
+        dtype_byte = dtype_byte[0]   # wraps things in lists?
     data_offset = raw_extras['data_offset']
     stim_channel = raw_extras['stim_channel']
     orig_sel = raw_extras['sel']
@@ -964,6 +969,8 @@ def _read_gdf_header(fname, exclude):
             for i, unit in enumerate(units):
                 if unit == 4275:  # microvolts
                     units[i] = 1e-6
+                elif unit == 4274:  # millivolts
+                    units[i] = 1e-3
                 elif unit == 512:  # dimensionless
                     units[i] = 1
                 elif unit == 0:
