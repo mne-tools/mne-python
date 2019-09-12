@@ -20,8 +20,13 @@ def _spect_func(epoch, n_overlap, n_per_seg, nfft, fs, freq_mask, func):
 def _welch_func(epoch, n_overlap, n_per_seg, nfft, fs, freq_mask, average,
                 func):
     """Aux function."""
-    _, psd = func(epoch, fs=fs, nperseg=n_per_seg, noverlap=n_overlap,
-                  nfft=nfft, window='hamming', average=average)
+    kws = dict(fs=fs, nperseg=n_per_seg, noverlap=n_overlap, nfft=nfft,
+               window='hamming', average=average)
+
+    if average == 'mean':  # Compatibility with SciPy <1.2
+        del kws['average']
+
+    _, psd = func(epoch, **kws)
     return psd[..., freq_mask]
 
 
