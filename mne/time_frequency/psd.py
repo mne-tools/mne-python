@@ -76,7 +76,7 @@ def _check_psd_data(inst, tmin, tmax, picks, proj, reject_by_annotation=False):
 
 @verbose
 def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
-                    n_per_seg=None, average='mean', n_jobs=1, verbose=None):
+                    n_per_seg=None, n_jobs=1,  average='mean', verbose=None):
     """Compute power spectral density (PSD) using Welch's method.
 
     Parameters
@@ -98,6 +98,7 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     n_per_seg : int | None
         Length of each Welch segment (windowed with a Hamming window). Defaults
         to None, which sets n_per_seg equal to n_fft.
+    %(n_jobs)s
     average : str | None
         How to average the segments. If ``mean`` (default), calculate the
         arithmetic mean. If ``median``, calculate the median, corrected for
@@ -105,7 +106,6 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
         segments.
 
         .. versionadded:: 0.18
-    %(n_jobs)s
     %(verbose)s
 
     Returns
@@ -174,8 +174,8 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
 
 @verbose
 def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
-              n_overlap=0, n_per_seg=None, average='mean', picks=None,
-              proj=False, n_jobs=1, reject_by_annotation=True, verbose=None):
+              n_overlap=0, n_per_seg=None, picks=None, proj=False, n_jobs=1,
+              reject_by_annotation=True, average='mean', verbose=None):
     """Compute the power spectral density (PSD) using Welch's method.
 
     Calculates periodograms for a sliding window over the time dimension, then
@@ -204,13 +204,6 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     n_per_seg : int | None
         Length of each Welch segment (windowed with a Hamming window). Defaults
         to None, which sets n_per_seg equal to n_fft.
-    average : str | None
-        How to average the segments. If ``mean`` (default), calculate the
-        arithmetic mean. If ``median``, calculate the median, corrected for
-        its bias relative to the mean. If ``None``, returns the unaggregated
-        segments.
-
-        .. versionadded:: 0.18
     %(picks_good_data_noref)s
     proj : bool
         Apply SSP projection vectors. If inst is ndarray this is not used.
@@ -222,6 +215,13 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
         Evoked object. Defaults to True.
 
         .. versionadded:: 0.15.0
+    average : str | None
+        How to average the segments. If ``mean`` (default), calculate the
+        arithmetic mean. If ``median``, calculate the median, corrected for
+        its bias relative to the mean. If ``None``, returns the unaggregated
+        segments.
+
+        .. versionadded:: 0.18
     %(verbose)s
 
     Returns
