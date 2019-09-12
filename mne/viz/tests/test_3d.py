@@ -571,11 +571,10 @@ def test_brain_colorbar(orientation, diverging, lims):
     else:
         clim['lims'] = lims
     plot_brain_colorbar(ax, clim, orientation=orientation)
-    plt.draw()  # old mpl only updates ticks after a draw
     if orientation == 'vertical':
-        have, empty = ax.get_yticks, ax.get_xticks
+        have, empty = ax.get_yticklabels, ax.get_xticklabels
     else:
-        have, empty = ax.get_xticks, ax.get_yticks
+        have, empty = ax.get_xticklabels, ax.get_yticklabels
     if diverging:
         if lims[0] == 0:
             ticks = list(-np.array(lims[1:][::-1])) + lims
@@ -583,7 +582,11 @@ def test_brain_colorbar(orientation, diverging, lims):
             ticks = list(-np.array(lims[::-1])) + [0] + lims
     else:
         ticks = lims
-    assert_array_equal(have(), ticks)
+    plt.draw()
+    # old mpl always spans 0->1 for the actual ticks, so we need to
+    # look at the labels
+    assert_array_equal(
+        [float(h.get_text().replace('−', '-')) for h in have()], ticks)
     assert_array_equal(empty(), [])
     plt.close('all')
 
