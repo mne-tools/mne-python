@@ -14,7 +14,6 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 event_fname = op.join(base_dir, 'test-eve.fif')
 
 
-@requires_version('scipy', '1.2.0')
 def test_psd_nan():
     """Test handling of NaN in psd_array_welch."""
     n_samples, n_fft, n_overlap = 2048,  1024, 512
@@ -33,7 +32,6 @@ def test_psd_nan():
     assert_allclose(psds[0], psds_2)
 
 
-@requires_version('scipy', '1.2.0')
 def test_psd():
     """Tests the welch and multitaper PSD."""
     raw = read_raw_fif(raw_fname)
@@ -226,7 +224,6 @@ def test_psd_welch_average_kwarg(kind):
 
 
 @pytest.mark.slowtest
-@requires_version('scipy', '1.2.0')
 def test_compares_psd():
     """Test PSD estimation on raw for plt.psd and scipy.signal.welch."""
     raw = read_raw_fif(raw_fname)
