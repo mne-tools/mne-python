@@ -25,8 +25,7 @@ subjects_dir = op.dirname(fetch_fsaverage())
 # check all montages
 #
 
-# for current_montage in get_builtin_montages():
-for current_montage in ['easycap-M1', 'easycap-M10']:
+for current_montage in get_builtin_montages():
 
     montage = mne.channels.make_standard_montage(current_montage)
 

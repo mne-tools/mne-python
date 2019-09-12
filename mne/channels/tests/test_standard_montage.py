@@ -122,7 +122,7 @@ from mne.channels._dig_montage_utils import _get_fid_coords
 from mne.transforms import _sph_to_cart
 
 
-def _plot_dig_transformation(transformed, original):
+def _plot_dig_transformation(transformed, original, title=''):
     EXPECTED_HEAD_SIZE = 0.085
     from mne.viz.backends.renderer import _Renderer
     def get_data(montage):
@@ -190,9 +190,10 @@ def _plot_dig_transformation(transformed, original):
     ren.sphere(center=trans_data.eeg, color=(.0, .0, 1.0), scale=0.0022)
 
 
+    ren.text2d(x=0, y=0, text=title, width=.1)
     ren.show()
 
-    # import pdb; pdb.set_trace()
+    return
 
 
 @pytest.mark.skip(reason='this is my plotting tinkering')
