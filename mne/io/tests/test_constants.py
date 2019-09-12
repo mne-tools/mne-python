@@ -28,7 +28,6 @@ _dir_ignore_names = ('clear', 'copy', 'fromkeys', 'get', 'items', 'keys',
                      )
 _tag_ignore_names = ('FIFFV_COIL_FNIRS_RAW',
                      'FIFFV_COIL_FNIRS_OD',
-                     'FIFFV_COIL_FNIRS_CHROMA',
                      # for fiff-constants pending updates
                      )
 _ignore_incomplete_enums = (  # XXX eventually we could complete these

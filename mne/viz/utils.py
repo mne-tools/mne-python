@@ -3115,8 +3115,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
         info['chs'] = [inst.info['chs'][p] for p in picks]
         valid_channel_types = ['mag', 'grad', 'eeg', 'seeg', 'eog', 'ecg',
                                'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
-                               'hbr', 'misc', 'fnirs_raw', 'fnirs_od',
-                               'fnirs_chroma']
+                               'hbr', 'misc', 'fnirs_raw', 'fnirs_od']
         ch_types_used = list()
         for this_type in valid_channel_types:
             if this_type in types:
