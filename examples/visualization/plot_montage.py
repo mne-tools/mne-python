@@ -20,6 +20,9 @@ from mne.channels.montage import get_builtin_montages
 from mne.datasets import fetch_fsaverage
 from mne.viz import set_3d_title, set_3d_view
 
+import warnings
+
+warnings.simplefilter("ignore")
 
 ###############################################################################
 # Check all montages against a sphere

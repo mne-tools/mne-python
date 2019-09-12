@@ -16,7 +16,7 @@ MONTAGE_PATH = op.join(op.dirname(_CHANNELS_INIT_FILE), 'data', 'montages')
 HEAD_SIZE_DEFAULT = 0.085  # in [m]
 
 
-def _read_egi_256():
+def _egi_256():
     fname = op.join(MONTAGE_PATH, 'EGI_256.csd')
     options = dict(
         comments='//',
@@ -41,7 +41,7 @@ def _read_egi_256():
     )
 
 
-def _read_easycap(basename):
+def _easycap(basename):
     fname = op.join(MONTAGE_PATH, basename)
     options = dict(
         skiprows=1,
@@ -66,12 +66,12 @@ def _read_easycap(basename):
     )
 
 
-def _read_hydrocel(basename, fid_names=('FidNz', 'FidT9', 'FidT10')):
+def _hydrocel(basename, fid_names=('FidNz', 'FidT9', 'FidT10')):
     fname = op.join(MONTAGE_PATH, basename)
     options = dict(
         unpack=True,
         dtype={'names': ('ch_names', 'x', 'y', 'z'),
-            'formats': (object, 'f4', 'f4', 'f4')},
+               'formats': (object, 'f4', 'f4', 'f4')},
     )
     ch_names, xs, ys, zs = np.loadtxt(fname, **options)
 
@@ -82,7 +82,7 @@ def _read_hydrocel(basename, fid_names=('FidNz', 'FidT9', 'FidT10')):
     return make_dig_montage(ch_pos=ch_pos, coord_frame='head')
 
 
-def _read_biosemi(basename, fid_names=('Nz', 'LPA', 'RPA')):
+def _biosemi(basename, fid_names=('Nz', 'LPA', 'RPA')):
     fname = op.join(MONTAGE_PATH, basename)
     options = dict(
         skiprows=1,
@@ -107,8 +107,7 @@ def _read_biosemi(basename, fid_names=('Nz', 'LPA', 'RPA')):
     return make_dig_montage(ch_pos=ch_pos, coord_frame='head')
 
 
-
-def _read_mgh_or_standard(basename, fid_names=('Nz', 'LPA', 'RPA')):
+def _mgh_or_standard(basename, fid_names=('Nz', 'LPA', 'RPA')):
     fname = op.join(MONTAGE_PATH, basename)
 
     ch_names_, pos = [], []
@@ -143,40 +142,40 @@ def _read_mgh_or_standard(basename, fid_names=('Nz', 'LPA', 'RPA')):
 
 
 standard_montage_look_up_table = {
-    'EGI_256': _read_egi_256,
+    'EGI_256': _egi_256,
 
-    'easycap-M1': partial(_read_easycap, basename='easycap-M1.txt'),
-    'easycap-M10': partial(_read_easycap, basename='easycap-M1.txt'),
+    'easycap-M1': partial(_easycap, basename='easycap-M1.txt'),
+    'easycap-M10': partial(_easycap, basename='easycap-M1.txt'),
 
-    'GSN-HydroCel-128': partial(_read_hydrocel, basename='GSN-HydroCel-128.sfp'),
-    'GSN-HydroCel-129': partial(_read_hydrocel, basename='GSN-HydroCel-129.sfp'),
-    'GSN-HydroCel-256': partial(_read_hydrocel, basename='GSN-HydroCel-256.sfp'),
-    'GSN-HydroCel-257': partial(_read_hydrocel, basename='GSN-HydroCel-257.sfp'),
-    'GSN-HydroCel-32': partial(_read_hydrocel, basename='GSN-HydroCel-32.sfp'),
-    'GSN-HydroCel-64_1.0': partial(_read_hydrocel,
+    'GSN-HydroCel-128': partial(_hydrocel, basename='GSN-HydroCel-128.sfp'),
+    'GSN-HydroCel-129': partial(_hydrocel, basename='GSN-HydroCel-129.sfp'),
+    'GSN-HydroCel-256': partial(_hydrocel, basename='GSN-HydroCel-256.sfp'),
+    'GSN-HydroCel-257': partial(_hydrocel, basename='GSN-HydroCel-257.sfp'),
+    'GSN-HydroCel-32': partial(_hydrocel, basename='GSN-HydroCel-32.sfp'),
+    'GSN-HydroCel-64_1.0': partial(_hydrocel,
                                    basename='GSN-HydroCel-64_1.0.sfp'),
-    'GSN-HydroCel-65_1.0': partial(_read_hydrocel,
+    'GSN-HydroCel-65_1.0': partial(_hydrocel,
                                    basename='GSN-HydroCel-65_1.0.sfp'),
 
-    'biosemi128': partial(_read_biosemi, basename='biosemi128.txt'),
-    'biosemi16': partial(_read_biosemi, basename='biosemi16.txt'),
-    'biosemi160': partial(_read_biosemi, basename='biosemi160.txt'),
-    'biosemi256': partial(_read_biosemi, basename='biosemi256.txt'),
-    'biosemi32': partial(_read_biosemi, basename='biosemi32.txt'),
-    'biosemi64': partial(_read_biosemi, basename='biosemi64.txt'),
+    'biosemi128': partial(_biosemi, basename='biosemi128.txt'),
+    'biosemi16': partial(_biosemi, basename='biosemi16.txt'),
+    'biosemi160': partial(_biosemi, basename='biosemi160.txt'),
+    'biosemi256': partial(_biosemi, basename='biosemi256.txt'),
+    'biosemi32': partial(_biosemi, basename='biosemi32.txt'),
+    'biosemi64': partial(_biosemi, basename='biosemi64.txt'),
 
-    'mgh60': partial(_read_mgh_or_standard, basename='mgh60.elc'),
-    'mgh70': partial(_read_mgh_or_standard, basename='mgh70.elc'),
-    'standard_1005': partial(_read_mgh_or_standard,
+    'mgh60': partial(_mgh_or_standard, basename='mgh60.elc'),
+    'mgh70': partial(_mgh_or_standard, basename='mgh70.elc'),
+    'standard_1005': partial(_mgh_or_standard,
                              basename='standard_1005.elc'),
-    'standard_1020': partial(_read_mgh_or_standard,
+    'standard_1020': partial(_mgh_or_standard,
                              basename='standard_1020.elc'),
-    'standard_alphabetic': partial(_read_mgh_or_standard,
+    'standard_alphabetic': partial(_mgh_or_standard,
                                    basename='standard_alphabetic.elc'),
-    'standard_postfixed': partial(_read_mgh_or_standard,
+    'standard_postfixed': partial(_mgh_or_standard,
                                   basename='standard_postfixed.elc'),
-    'standard_prefixed': partial(_read_mgh_or_standard,
+    'standard_prefixed': partial(_mgh_or_standard,
                                  basename='standard_prefixed.elc'),
-    'standard_primed': partial(_read_mgh_or_standard,
+    'standard_primed': partial(_mgh_or_standard,
                                basename='standard_primed.elc'),
 }
