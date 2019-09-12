@@ -21,7 +21,7 @@ References
        weight vectors of linear models in multivariate neuroimaging.
        NeuroImage, 87, 96–110. doi:10.1016/j.neuroimage.2013.10.067
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Romain Trachel <trachelr@gmail.com>
 #          Jean-Remi King <jeanremi.king@gmail.com>
 #

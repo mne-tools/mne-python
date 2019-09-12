@@ -26,7 +26,7 @@ import numpy as np
 from scipy import linalg
 from scipy.linalg import LinAlgError
 from scipy._lib._util import _asarray_validated
-
+from ..fixes import _check_info
 
 _d = np.empty(0, np.float64)
 _z = np.empty(0, np.complex128)
@@ -129,7 +129,7 @@ def _repeated_eig(a, lwork, overwrite_a=False):
             a, lwork=lwork, compute_vl=False, compute_vr=True,
             overwrite_a=overwrite_a)
         need_complex = False
-    linalg.decomp._check_info(
+    _check_info(
         info, 'eig algorithm (geev)',
         positive='did not converge (only eigenvalues '
                  'with order >= %d have converged)')

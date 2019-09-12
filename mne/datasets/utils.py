@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Denis Egnemann <denis.engemann@gmail.com>
@@ -237,7 +237,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.68', misc='0.3')
+    releases = dict(testing='0.70', misc='0.3')
     # And also update the "md5_hashes['testing']" variable below.
 
     # To update any other dataset, update the data archive itself (upload
@@ -319,7 +319,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         sample='fc2d5b9eb0a144b1d6ba84dc3b983602',
         somato='f08f17924e23c57a751b3bed4a05fe02',
         spm='9f43f67150e3b694b523a21eb929ea75',
-        testing='f93565bda6900b6464f2869092157bf9',
+        testing='592a922a40406fd40950c825122aa7be',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
         opm='370ad1dcfd5c47e029e692c85358a374',
         visual_92_categories=['74f50bbeb65740903eadc229c9fa759f',
@@ -552,8 +552,14 @@ def has_dataset(name):
 @verbose
 def _download_all_example_data(verbose=True):
     """Download all datasets used in examples and tutorials."""
-    # This function is designed primarily to be used by CircleCI. It has
-    # verbose=True by default so we get nice status messages
+    # This function is designed primarily to be used by CircleCI, to:
+    #
+    # 1. Streamline data downloading
+    # 2. Make CircleCI fail early (rather than later) if some necessary data
+    #    cannot be retrieved.
+    # 3. Avoid download statuses and timing biases in rendered examples.
+    #
+    # verbose=True by default so we get nice status messages.
     # Consider adding datasets from here to CircleCI for PR-auto-build
     from . import (sample, testing, misc, spm_face, somato, brainstorm,
                    eegbci, multimodal, opm, hf_sef, mtrf, fieldtrip_cmc,
@@ -580,6 +586,8 @@ def _download_all_example_data(verbose=True):
     finally:
         sys.argv.pop(-1)
     eegbci.load_data(1, [6, 10, 14], update_path=True)
+    for subj in range(4):
+        eegbci.load_data(subj + 1, runs=[3], update_path=True)
     sleep_physionet.age.fetch_data(subjects=[0, 1], recording=[1],
                                    update_path=True)
     # If the user has SUBJECTS_DIR, respect it, if not, set it to the EEG one

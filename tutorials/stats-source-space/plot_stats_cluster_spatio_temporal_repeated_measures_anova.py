@@ -13,7 +13,7 @@ interaction effect using a repeated measures ANOVA. The multiple
 comparisons problem is addressed with a cluster-level permutation test
 across space and time.
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Denis Engemannn <denis.engemann@gmail.com>
 #

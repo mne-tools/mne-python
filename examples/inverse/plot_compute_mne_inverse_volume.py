@@ -9,7 +9,7 @@ Compute dSPM inverse solution on MNE evoked dataset in a volume source
 space and stores the solution in a nifti file for visualisation.
 
 """
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 

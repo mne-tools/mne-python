@@ -61,8 +61,7 @@ def _annotation_helper(raw, events=False):
     fig = raw.plot(events=events)
     assert len(plt.get_fignums()) == 1
     data_ax = fig.axes[0]
-    with pytest.warns(None):  # on old mpl we warns about no modifications
-        fig.canvas.key_press_event('a')  # annotation mode
+    fig.canvas.key_press_event('a')  # annotation mode
     assert len(plt.get_fignums()) == 2
     # +2 from the scale bars
     n_scale = 2
@@ -71,8 +70,7 @@ def _annotation_helper(raw, events=False):
     ann_fig = plt.gcf()
     for key in ' test':
         ann_fig.canvas.key_press_event(key)
-    with pytest.warns(None):  # old mpl
-        ann_fig.canvas.key_press_event('enter')
+    ann_fig.canvas.key_press_event('enter')
 
     ann_fig = plt.gcf()
     # XXX: _fake_click raises an error on Agg backend
@@ -136,17 +134,14 @@ def _annotation_helper(raw, events=False):
         assert_allclose(raw.annotations.duration[n_anns], 5.0)
     assert len(fig.axes[0].texts) == n_anns + 1 + n_events + n_scale
     # Delete
-    with pytest.warns(None):  # old mpl
-        _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3,
-                    kind='press')
-        fig.canvas.key_press_event('a')  # exit annotation mode
+    _fake_click(fig, data_ax, [1.5, 1.], xform='data', button=3,
+                kind='press')
+    fig.canvas.key_press_event('a')  # exit annotation mode
     assert len(raw.annotations.onset) == n_anns
     assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
-    with pytest.warns(None):  # old mpl
-        fig.canvas.key_press_event('shift+right')
+    fig.canvas.key_press_event('shift+right')
     assert len(fig.axes[0].texts) == n_scale
-    with pytest.warns(None):  # old mpl
-        fig.canvas.key_press_event('shift+left')
+    fig.canvas.key_press_event('shift+left')
     assert len(fig.axes[0].texts) == n_anns + n_events + n_scale
     plt.close('all')
 
@@ -230,15 +225,19 @@ def test_plot_raw():
     # test keypresses
     # test for group_by='original'
     for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=', 'd', 'd',
-                'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'escape']:
+                'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'z',
+                'escape']:
         fig.canvas.key_press_event(key)
 
     # test for group_by='selection'
     fig = plot_raw(raw, events=events, group_by='selection')
     for key in ['b', 'down', 'up', 'right', 'left', 'o', '-', '+', '=', 'd',
-                'd', 'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'b',
+                'd', 'pageup', 'pagedown', 'home', 'end', '?', 'f11', 'b', 'z',
                 'escape']:
         fig.canvas.key_press_event(key)
+
+    # test zen mode
+    fig = plot_raw(raw, show_scrollbars=False)
 
     # Color setting
     pytest.raises(KeyError, raw.plot, event_color={0: 'r'})
@@ -256,7 +255,8 @@ def test_plot_raw():
             fig = raw.plot(group_by=group_by, order=order)
         x = fig.get_axes()[0].lines[1].get_xdata()[10]
         y = fig.get_axes()[0].lines[1].get_ydata()[10]
-        _fake_click(fig, data_ax, [x, y], xform='data')  # mark bad
+        with pytest.warns(None):  # old mpl (at least 2.0) can warn
+            _fake_click(fig, data_ax, [x, y], xform='data')  # mark bad
         fig.canvas.key_press_event('down')  # change selection
         _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
         sel_fig = plt.figure(1)
@@ -333,22 +333,21 @@ def test_plot_annotations():
     plt.close('all')
 
 
-def test_plot_raw_filtered():
+@pytest.mark.parametrize('filtorder', (0, 2))  # FIR, IIR
+def test_plot_raw_filtered(filtorder):
     """Test filtering of raw plots."""
     raw = _get_raw()
-    with pytest.raises(ValueError, match='lowpass must be < Nyquist'):
-        raw.plot(lowpass=raw.info['sfreq'] / 2.)
+    with pytest.raises(ValueError, match='lowpass.*Nyquist'):
+        raw.plot(lowpass=raw.info['sfreq'] / 2., filtorder=filtorder)
     with pytest.raises(ValueError, match='highpass must be > 0'):
-        raw.plot(highpass=0)
-    with pytest.raises(ValueError, match=r'lowpass \(1\) must be > highpass'):
-        raw.plot(lowpass=1, highpass=1)
-    with pytest.raises(ValueError, match=r'filtorder \(-1\) must be >= 0'):
+        raw.plot(highpass=0, filtorder=filtorder)
+    with pytest.raises(ValueError, match='Filter order must be'):
         raw.plot(lowpass=1, filtorder=-1)
     with pytest.raises(ValueError, match="Invalid value for the 'clipping'"):
         raw.plot(clipping='foo')
-    raw.plot(lowpass=1, clipping='transparent')
-    raw.plot(highpass=1, clipping='clamp')
-    raw.plot(lowpass=40, butterfly=True, filtorder=0)
+    raw.plot(lowpass=40, clipping='transparent', filtorder=filtorder)
+    raw.plot(highpass=1, clipping='clamp', filtorder=filtorder)
+    raw.plot(lowpass=40, butterfly=True, filtorder=filtorder)
     plt.close('all')
 
 

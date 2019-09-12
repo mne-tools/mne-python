@@ -223,6 +223,7 @@ Visualization
    circular_layout
    mne_analyze_colormap
    plot_bem
+   plot_brain_colorbar
    plot_connectivity_circle
    plot_cov
    plot_csd
@@ -307,12 +308,15 @@ Projections:
    DigMontage
    fix_mag_coil_types
    read_montage
+   read_polhemus_fastscan
    get_builtin_montages
    read_dig_montage
    make_dig_montage
+   read_dig_polhemus_isotrak
    read_dig_captrack
    read_dig_egi
    read_dig_fif
+   compute_dev_head_t
    read_layout
    find_layout
    make_eeg_layout
@@ -529,6 +533,7 @@ Step by step instructions for using :func:`gui.coregistration`:
 .. autosummary::
    :toctree: generated/
 
+   coreg.get_mni_fiducials
    gui.coregistration
    gui.fiducials
    create_default_subject

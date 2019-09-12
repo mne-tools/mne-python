@@ -172,11 +172,11 @@ html_theme_options = {
     'bootstrap_version': "3",  # default
     'navbar_links': [
         ("Install", "install/index"),
-        ("Documentation", "documentation"),
-        ("API", "python_reference"),
-        ("Glossary", "glossary"),
-        ("Examples", "auto_examples/index"),
+        ("Overview", "overview/index"),
         ("Tutorials", "auto_tutorials/index"),
+        ("Examples", "auto_examples/index"),
+        ("Glossary", "glossary"),
+        ("API", "python_reference"),
         ("Contribute", "install/contributing"),
     ],
 }
@@ -522,6 +522,7 @@ numpydoc_xref_aliases = {
     'Axes': 'matplotlib.axes.Axes',
     'Figure': 'matplotlib.figure.Figure',
     'Axes3D': 'mpl_toolkits.mplot3d.axes3d.Axes3D',
+    'ColorbarBase': 'matplotlib.colorbar.ColorbarBase',
     # Mayavi
     'mayavi.mlab.Figure': 'mayavi.core.api.Scene',
     'mlab.Figure': 'mayavi.core.api.Scene',

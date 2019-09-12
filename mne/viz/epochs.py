@@ -1,6 +1,6 @@
 """Functions to plot epochs data."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -22,7 +22,7 @@ from ..utils import verbose, logger, warn, fill_doc, check_version
 from ..io.meas_info import create_info
 from ..io.pick import (pick_types, channel_type, _get_channel_types,
                        _picks_to_idx, _DATA_CH_TYPES_SPLIT,
-                       _DATA_CH_TYPES_ORDER_DEFAULT)
+                       _DATA_CH_TYPES_ORDER_DEFAULT, _VALID_CHANNEL_TYPES)
 from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _prepare_mne_browse, _setup_vmin_vmax, _channels_changed,
@@ -30,7 +30,7 @@ from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
                     _handle_decim, _setup_plot_projector, _set_ax_label_style,
                     _set_title_multiple_electrodes, _make_combine_callable,
-                    _get_figsize_from_config)
+                    _get_figsize_from_config, _toggle_scrollbars)
 from .misc import _handle_event_colors
 
 
@@ -364,7 +364,14 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                 top_tick = func(yticks)
                 ax.spines['left'].set_bounds(top_tick, args[0])
     plt_show(show)
-    return [this_group_dict['fig'] for this_group_dict in group_by.values()]
+
+    # impose deterministic order of returned objects
+    return_order = np.array(sorted(group_by))
+    are_ch_types = np.in1d(return_order, _VALID_CHANNEL_TYPES)
+    if any(are_ch_types):
+        return_order = np.concatenate((return_order[are_ch_types],
+                                       return_order[~are_ch_types]))
+    return [group_by[group]['fig'] for group in return_order]
 
 
 def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar, clear=False):
@@ -720,7 +727,7 @@ def _epochs_axes_onclick(event, params):
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                 title=None, events=None, event_colors=None, order=None,
                 show=True, block=False, decim='auto', noise_cov=None,
-                butterfly=False):
+                butterfly=False, show_scrollbars=True):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
@@ -804,6 +811,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         Whether to directly call the butterfly view.
 
         .. versionadded:: 0.18.0
+    %(show_scrollbars)s
 
     Returns
     -------
@@ -836,7 +844,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     params = dict(epochs=epochs, info=epochs.info.copy(), t_start=0.,
                   bad_color=(0.8, 0.8, 0.8), histogram=None, decim=decim,
                   data_picks=data_picks, noise_cov=noise_cov,
-                  use_noise_cov=noise_cov is not None)
+                  use_noise_cov=noise_cov is not None,
+                  show_scrollbars=show_scrollbars)
     params['label_click_fun'] = partial(_pick_bad_channels, params=params)
     _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks, events=events, order=order,
@@ -1228,15 +1237,19 @@ def _plot_traces(params):
                                           set(_DATA_CH_TYPES_SPLIT),
                                           key=params['order'].index)
                 ylim = ax.get_ylim()[0]
-                ticks = np.arange(0, ylim, ylim / (4 * len(chan_types_split)))
+                ticks = np.arange(
+                    0, ylim, ylim / (4 * max(len(chan_types_split), 1)))
                 offset_pos = np.arange(2, len(chan_types_split) * 4, 4)
                 if ch_type in chan_types_split:
                     offset = ticks[offset_pos[chan_types_split.index(ch_type)]]
                 else:
                     lines[line_idx].set_segments(list())
+                    offset = None
             else:
                 tick_list += [params['ch_names'][ch_idx]]
                 offset = offsets[line_idx]
+            if offset is None:
+                continue
 
             if params['inds'][ch_idx] in params['data_picks']:
                 this_decim = params['decim']
@@ -1286,7 +1299,8 @@ def _plot_traces(params):
                                   set(_DATA_CH_TYPES_SPLIT),
                                   key=params['order'].index)
         ylim = ax.get_ylim()[0]
-        ticks = np.arange(0, ylim + 1, ylim / (4 * len(chan_types_split)))
+        ticks = np.arange(
+            0, ylim + 1, ylim / (4 * max(len(chan_types_split), 1)))
         offset_pos = np.arange(2, (len(chan_types_split) * 4) + 1, 4)
         ax.set_yticks(ticks)
         labels = [''] * 20
@@ -1672,6 +1686,9 @@ def _plot_onkey(event, params):
         _onclick_help(event, params)
     elif event.key == 'escape':
         plt.close(params['fig'])
+    elif event.key == 'z':
+        # zen mode: remove scrollbars and buttons
+        _toggle_scrollbars(params)
 
 
 def _prepare_butterfly(params):

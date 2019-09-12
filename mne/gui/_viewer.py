@@ -20,8 +20,8 @@ from traitsui.api import (View, Item, HGroup, VGrid, VGroup, Spring,
 from tvtk.api import tvtk
 
 from ..defaults import DEFAULTS
-from ..surface import _project_onto_surface, _normalize_vectors
-from ..source_space import _points_outside_surface
+from ..surface import _CheckInside, _DistanceQuery
+from ..transforms import apply_trans
 from ..utils import SilenceStdout
 from ..viz.backends._pysurfer_mayavi import (_create_mesh_surf,
                                              _toggle_mlab_render)
@@ -201,13 +201,14 @@ class PointObject(Object):
     label = Bool(False)
     label_scale = Float(0.01)
     projectable = Bool(False)  # set based on type of points
-    orientable = Property(depends_on=['project_to_points'])
+    orientable = Property(depends_on=['nearest'])
     text3d = List
     point_scale = Float(10, label='Point Scale')
 
     # projection onto a surface
-    project_to_points = Array(float, shape=(None, 3))
-    project_to_tris = Array(int, shape=(None, 3))
+    nearest = Instance(_DistanceQuery)
+    check_inside = Instance(_CheckInside)
+    project_to_trans = Array(float, shape=(4, 4))
     project_to_surface = Bool(False, label='Project', desc='project points '
                               'onto the surface')
     orient_to_surface = Bool(False, label='Orient', desc='orient points '
@@ -353,8 +354,20 @@ class PointObject(Object):
         _toggle_mlab_render(self, True)
         # self.scene.camera.parallel_scale = _scale
 
-    # don't put project_to_tris here, just always set project_to_points second
-    @on_trait_change('points,project_to_points,project_to_surface,mark_inside')
+    def _nearest_default(self):
+        return _DistanceQuery(np.zeros((1, 3)))
+
+    def _get_nearest(self, proj_rr):
+        idx = self.nearest.query(proj_rr)[1]
+        proj_pts = apply_trans(
+            self.project_to_trans, self.nearest.data[idx])
+        proj_nn = apply_trans(
+            self.project_to_trans, self.check_inside.surf['nn'][idx],
+            move=False)
+        return proj_pts, proj_nn
+
+    @on_trait_change('points,project_to_trans,project_to_surface,mark_inside,'
+                     'nearest')
     def _update_projections(self):
         """Update the styles of the plotted points."""
         if not hasattr(self.src, 'data'):
@@ -364,26 +377,20 @@ class PointObject(Object):
             self.src.data.point_data.update()
             return
         # projections
-        if len(self.project_to_points) <= 1 or len(self.points) == 0:
+        if len(self.nearest.data) <= 1 or len(self.points) == 0:
             return
 
         # Do the projections
         pts = self.points
-        surf = dict(rr=np.array(self.project_to_points),
-                    tris=np.array(self.project_to_tris))
-        method = 'accurate' if len(surf['rr']) <= 20484 else 'nearest'
-        proj_pts, proj_nn = _project_onto_surface(
-            pts, surf, project_rrs=True, return_nn=True,
-            method=method)[2:4]
+        inv_trans = np.linalg.inv(self.project_to_trans)
+        proj_rr = apply_trans(inv_trans, self.points)
+        proj_pts, proj_nn = self._get_nearest(proj_rr)
         vec = pts - proj_pts  # point to the surface
         if self.project_to_surface:
             pts = proj_pts
-            nn = proj_nn
-        else:
-            nn = vec.copy()
-            _normalize_vectors(nn)
+        nn = proj_nn
         if self.mark_inside and not self.project_to_surface:
-            scalars = _points_outside_surface(pts, surf).astype(int)
+            scalars = (~self.check_inside(proj_rr, verbose=False)).astype(int)
         else:
             scalars = np.ones(len(pts))
         # With this, a point exactly on the surface is of size point_scale
@@ -453,8 +460,7 @@ class PointObject(Object):
 
     @cached_property
     def _get_orientable(self):
-        return (len(self.project_to_points) > 0 and
-                len(self.project_to_tris) > 0)
+        return len(self.nearest.data) > 1
 
 
 class SurfaceObject(Object):

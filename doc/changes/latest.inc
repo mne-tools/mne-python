@@ -15,6 +15,10 @@ Current (0.19.dev0)
 Changelog
 ~~~~~~~~~
 
+- Add :func:`mne.channels.compute_dev_head_t` to compute Device-to-Head transformation from a montage by `Joan Massich`_ and `Alex Gramfort`_.
+
+- Add :func:`mne.channels.read_dig_polhemus_isotrak` and :func:`mne.channels.read_polhemus_fastscan` to read Polhemus data by `Joan Massich`_
+
 - Add support for making epochs with duplicated events, by allowing three policies: "error" (default), "drop", or "merge" in :class:`mne.Epochs` by `Stefan Appelhoff`_
 
 - Add :func:`mne.channels.make_dig_montage` to create :class:`mne.channels.DigMontage` objects out of np.arrays by `Joan Massich`_
@@ -33,6 +37,8 @@ Changelog
 
 - Do not convert effective number of averages (``nave`` attribute of :class:`mne.Evoked`) to integer except when saving to FIFF file by `Daniel McCloy`_.
 
+- Add automatic fiducial position estimation in :ref:`mne coreg <gen_mne_coreg>` using MNI Talairach fiducial locations in :func:`mne.coreg.get_mni_fiducials` by `Jon Houck`_ and `Eric Larson`_
+
 - Add support for :ref:`mne coreg <gen_mne_coreg>` scaling surrogate subjects without surface reconstructions, such as those created for volumetric analyses only (e.g., with ``recon-all -autorecon1``) by `Eric Larson`_
 
 - Add reader for Curry data in :func:`mne.io.read_raw_curry` by `Dirk Gütlin`_
@@ -49,9 +55,13 @@ Changelog
 
 - Speed up :func:`mne.setup_volume_source_space`, especially when ``volume_label is not None`` by `Eric Larson`_
 
+- Speed up :ref:`mne coreg <gen_mne_coreg>` interactive and automated (ICP) alignment by using nearest-neighbor calculations in the MRI coordinate frame, by `Eric Larson`_
+
 - Add :func:`mne.dig_mri_distances` to compute the distances between digitized head points and the MRI head surface by `Alex Gramfort`_ and `Eric Larson`_
 
 - Add scale bars for data channels in :func:`mne.io.Raw.plot` by `Eric Larson`_
+
+- Add :func:`mne.viz.plot_brain_colorbar` to plot a colorbar appropriately matched to a :func:`mne.viz.plot_source_estimates` plot by `Eric Larson`_
 
 - Add support for showing head surface (to visualize digitization fit) while showing a single-layer BEM to :func:`mne.viz.plot_alignment` by `Eric Larson`_
 
@@ -64,6 +74,8 @@ Changelog
 - Add a new :func:`mne.viz.plot_sensors_connectivity` function to visualize the sensor connectivity in 3D by `Guillaume Favelier`_ and `Alex Gramfort`_
 
 - Add control over dipole colors in :func:`mne.viz.plot_dipole_locations` when using orthoview mode by `Eric Larson`_
+
+- Use second-order-sections filtering in :meth:`mne.io.Raw.plot` and :ref:`mne browse_raw <gen_mne_browse_raw>` by `Eric Larson`_
 
 - Add re-referencing functionality for ecog and seeg channel types in :func:`mne.set_eeg_reference` by `Keith Doelling`_
 
@@ -134,6 +146,16 @@ Bug
 
 API
 ~~~
+
+- Minimum dependency versions for the following libraries have been bumped up (by `Eric Larson`_):
+
+  - NumPy: 1.12.1
+  - SciPy: 0.18.1
+  - matplotlib: 2.0.2
+  - scikit-learn: 0.18.2
+  - pandas 0.19.2
+
+- New boolean parameter ``show_scrollbars`` for :meth:`mne.io.Raw.plot`, :meth:`mne.Epochs.plot`, and :meth:`mne.preprocessing.ICA.plot_sources` (and associated functions) that allows hiding the scrollbars and buttons for a "zen mode" data browsing experience. When the plot window has focus, zen mode can be toggled by pressing :kbd:`z`, by `Daniel McCloy`_.
 
 - Deprecate passing ``np.arrays`` as ``hsp``, ``hpi`` or ``elp`` parameters to ``mne.channels.read_dig_montage`` by `Joan Massich`_.
 

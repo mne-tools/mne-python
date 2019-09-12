@@ -70,6 +70,9 @@ def run():
     parser.add_option("--filterchpi", dest="filterchpi",
                       help="Enable filtering cHPI signals.", default=None,
                       action="store_true")
+    parser.add_option("--verbose", dest='verbose',
+                      help="Enable verbose mode.", default=None,
+                      action="store_true")
 
     options, args = parser.parse_args()
 
@@ -91,6 +94,7 @@ def run():
     filtorder = options.filtorder
     clipping = options.clipping
     filterchpi = options.filterchpi
+    verbose = options.verbose
 
     if raw_in is None:
         parser.print_help()
@@ -117,7 +121,7 @@ def run():
     raw.plot(duration=duration, start=start, n_channels=n_channels,
              group_by=group_by, show_options=show_options, events=events,
              highpass=highpass, lowpass=lowpass, filtorder=filtorder,
-             clipping=clipping)
+             clipping=clipping, verbose=verbose)
     plt.show(block=True)
 
 

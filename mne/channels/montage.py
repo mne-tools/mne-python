@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -14,7 +14,9 @@
 from collections.abc import Iterable
 import os
 import os.path as op
+import re
 from copy import deepcopy
+from itertools import takewhile
 
 import numpy as np
 import xml.etree.ElementTree as ElementTree
@@ -22,10 +24,13 @@ import xml.etree.ElementTree as ElementTree
 from ..viz import plot_montage
 from .channels import _contains_ch_type
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
-                          _topo_to_sph, _frame_to_str)
+                          _topo_to_sph, _frame_to_str, _str_to_frame,
+                          Transform)
 from .._digitization import Digitization
+from .._digitization.base import _count_points_by_type
 from .._digitization._utils import (_make_dig_points, _read_dig_points,
-                                    write_dig, _read_dig_fif)
+                                    write_dig, _read_dig_fif,
+                                    _format_dig_points)
 from ..io.pick import pick_types
 from ..io.open import fiff_open
 from ..io.constants import FIFF
@@ -47,8 +52,8 @@ DEPRECATED_PARAM = object()
 def _check_get_coord_frame(dig):
     _MSG = 'Only single coordinate frame in dig is supported'
     dig_coord_frames = set([d['coord_frame'] for d in dig])
-    assert len(dig_coord_frames) == 1, _MSG
-    return _frame_to_str[dig_coord_frames.pop()]
+    assert len(dig_coord_frames) <= 1, _MSG
+    return _frame_to_str[dig_coord_frames.pop()] if dig_coord_frames else None
 
 
 class Montage(object):
@@ -292,10 +297,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         pos = np.array(pos) * scale_factor
     elif ext == '.txt':
         # easycap
-        try:  # newer version
-            data = np.genfromtxt(fname, dtype='str', skip_header=1)
-        except TypeError:
-            data = np.genfromtxt(fname, dtype='str', skiprows=1)
+        data = np.genfromtxt(fname, dtype='str', skip_header=1)
         ch_names_ = data[:, 0].tolist()
         az = np.deg2rad(data[:, 2].astype(float))
         pol = np.deg2rad(data[:, 1].astype(float))
@@ -304,11 +306,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         pos = _sph_to_cart(np.array([rad, az, pol]).T)
     elif ext == '.csd':
         # CSD toolbox
-        try:  # newer version
-            data = np.genfromtxt(fname, dtype='str', skip_header=2)
-        except TypeError:
-            data = np.genfromtxt(fname, dtype='str', skiprows=2)
-
+        data = np.genfromtxt(fname, dtype='str', skip_header=2)
         ch_names_ = data[:, 0].tolist()
         az = np.deg2rad(data[:, 1].astype(float))
         pol = np.deg2rad(90. - data[:, 2].astype(float))
@@ -413,10 +411,8 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
                    lpa=fids['lpa'], nasion=fids['nasion'], rpa=fids['rpa'])
 
 
-# XXX: shall we avoid transform
 def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
-                     hsp=None, hpi=None, hpi_dev=None, coord_frame='unknown',
-                     transform_to_head=False, compute_dev_head_t=False):
+                     hsp=None, hpi=None, coord_frame='unknown'):
     r"""Make montage from arrays.
 
     Parameters
@@ -441,24 +437,9 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
         This corresponds to an array of HPI points in the native digitizer
         space. They only necessary if computation of a ``compute_dev_head_t``
         is True.
-    hpi_dev : None | array, shape (n_hpi, 3)
-        This corresponds to an array of HPI points. These points are in device
-        space, and are only necessary if computation of a
-        ``compute_dev_head_t`` is True.
     coord_frame : str
         The coordinate frame of the points. Usually this is "unknown"
         for native digitizer space.
-    transform_to_head : bool
-        If True (default), points will be transformed to Neuromag head space.
-        The fiducials (nasion, lpa, and rpa) must be specified. This is useful
-        for points captured using a device that does not automatically convert
-        points to Neuromag head coordinates
-        (e.g., Polhemus FastSCAN).
-    compute_dev_head_t : bool
-        If True, a Dev-to-Head transformation matrix will be added to the
-        montage. To get a proper `dev_head_t`, the hpi and the hpi_dev points
-        must be in the same order. If False (default), no transformation will
-        be added to the montage.
 
     Returns
     -------
@@ -473,9 +454,22 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     read_dig_montage
 
     """
+    ch_names = None if ch_pos is None else list(sorted(ch_pos.keys()))
+    dig = _make_dig_points(
+        nasion=nasion, lpa=lpa, rpa=rpa, hpi=hpi, extra_points=hsp,
+        dig_ch_pos=ch_pos, coord_frame=coord_frame
+    )
+
+    return DigMontage(dig=dig, ch_names=ch_names)
+
+
+# XXX : should be kill one read_dig_montage is removed in 0.20
+def _make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
+                      hsp=None, hpi=None, hpi_dev=None, coord_frame='unknown',
+                      transform_to_head=False, compute_dev_head_t=False):
     # XXX: hpi was historically elp
     # XXX: hpi_dev was historically hpi
-    assert coord_frame in ('unknown', 'head')
+    assert coord_frame in _str_to_frame
     from ..coreg import fit_matched_points
     data = Bunch(
         nasion=nasion, lpa=lpa, rpa=rpa,
@@ -567,6 +561,7 @@ class DigMontage(object):
     Notes
     -----
     .. versionadded:: 0.9.0
+
     """
 
     def __init__(self,
@@ -588,6 +583,7 @@ class DigMontage(object):
             ).items() if val is not DEPRECATED_PARAM
         ]
         if not _non_deprecated_kwargs:
+            dig = Digitization() if dig is None else dig
             _validate_type(item=dig, types=Digitization,
                            item_name='dig', type_name='Digitization')
             ch_names = list() if ch_names is None else ch_names
@@ -663,14 +659,9 @@ class DigMontage(object):
 
     def __repr__(self):
         """Return string representation."""
-        _data = _foo_get_data_from_dig(self.dig)
-        s = ('<DigMontage | %d extras (headshape), %d HPIs, %d fiducials, %d '
-             'channels>' %
-             (len(_data.hsp) if _data.hsp is not None else 0,
-              len(_data.hpi) if _data.hpi is not None else 0,
-              sum(x is not None for x in (_data.lpa, _data.rpa, _data.nasion)),
-              len(_data.dig_ch_pos_location) if _data.dig_ch_pos_location is not None else 0,))  # noqa
-        return s
+        n_points = _count_points_by_type(self.dig)
+        return ('<DigMontage | {extra:d} extras (headshape), {hpi:d} HPIs,'
+                ' {fid:d} fiducials, {eeg:d} channels>').format(**n_points)
 
     @copy_function_doc_to_method_doc(plot_montage)
     def plot(self, scale_factor=20, show_names=False, kind='3d', show=True):
@@ -716,6 +707,73 @@ class DigMontage(object):
             raise RuntimeError('Can only write out digitization points in '
                                'head coordinates.')
         write_dig(fname, self.dig)
+
+    def __iadd__(self, other):
+        """Add two DigMontages in place.
+
+        Notes
+        -----
+        Two DigMontages can only be added if there are no duplicated ch_names
+        and if fiducials are present they should share the same coordinate
+        system and location values.
+        """
+        def is_fid_defined(fid):
+            return not(
+                fid.nasion is None and fid.lpa is None and fid.rpa is None
+            )
+
+        # Check for none duplicated ch_names
+        ch_names_intersection = set(self.ch_names).intersection(other.ch_names)
+        if ch_names_intersection:
+            raise RuntimeError((
+                "Cannot add two DigMontage objects if they contain duplicated"
+                " channel names. Duplicated channel(s) found: {}."
+            ).format(
+                ', '.join(['%r' % v for v in sorted(ch_names_intersection)])
+            ))
+
+        # Check for unique matching fiducials
+        self_fid, self_coord = _get_fid_coords(self.dig)
+        other_fid, other_coord = _get_fid_coords(other.dig)
+
+        if is_fid_defined(self_fid) and is_fid_defined(other_fid):
+            if self_coord != other_coord:
+                raise RuntimeError('Cannot add two DigMontage objects if '
+                                   'fiducial locations are not in the same '
+                                   'coordinate system.')
+
+            for kk in self_fid:
+                if not np.array_equal(self_fid[kk], other_fid[kk]):
+                    raise RuntimeError('Cannot add two DigMontage objects if '
+                                       'fiducial locations do not match '
+                                       '(%s)' % kk)
+
+            # keep self
+            self.dig = _format_dig_points(
+                self.dig + [d for d in other.dig
+                            if d['kind'] != FIFF.FIFFV_POINT_CARDINAL]
+            )
+        else:
+            self.dig = _format_dig_points(self.dig + other.dig)
+
+        self.ch_names += other.ch_names
+        return self
+
+    def copy(self):
+        """Copy the DigMontage object.
+
+        Returns
+        -------
+        dig : instance of DigMontage
+            The copied DigMontage instance.
+        """
+        return deepcopy(self)
+
+    def __add__(self, other):
+        """Add two DigMontages."""
+        out = self.copy()
+        out += other
+        return out
 
     @property
     def dig_ch_pos(self):
@@ -772,9 +830,11 @@ def _get_scaling(unit, scale):
         return scale[unit]
 
 
-# XXX: this function will evolve with issue-6461
-# and should be tested as soon as we have the Polhemus
-# reader.
+def _check_unit_and_get_scaling(unit, valid_scales):
+    _check_option('unit', unit, list(valid_scales.keys()))
+    return valid_scales[unit]
+
+
 def transform_to_head(montage):
     """Transform a DigMontage object into head coordinate.
 
@@ -1015,7 +1075,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None,
     data['hpi_dev'] = data['hpi']
     data['hpi'] = data.pop('elp')
     data['ch_pos'] = data.pop('dig_ch_pos')
-    montage = make_dig_montage(
+    montage = _make_dig_montage(
         **data, transform_to_head=transform,
         compute_dev_head_t=dev_head_t,
     )
@@ -1044,8 +1104,10 @@ def read_dig_fif(fname):
     See Also
     --------
     DigMontage
-    Montage
     read_montage
+    read_dig_egi
+    read_dig_captrack
+    make_dig_montage
     """
     _check_fname(fname, overwrite='read', must_exist=True)
     # Load the dig data
@@ -1078,8 +1140,10 @@ def read_dig_egi(fname):
     See Also
     --------
     DigMontage
-    Montage
     read_montage
+    read_dig_fif
+    read_dig_captrack
+    make_dig_montage
     """
     _check_fname(fname, overwrite='read', must_exist=True)
 
@@ -1091,15 +1155,10 @@ def read_dig_egi(fname):
 
     # XXX: to change to the new naming in v.0.20 (all this block should go)
     data.pop('point_names')
-    data['hpi_dev'] = data['hpi']
     data['hpi'] = data.pop('elp')
     data['ch_pos'] = data.pop('dig_ch_pos')
 
-    return make_dig_montage(
-        **data,
-        transform_to_head=False,
-        compute_dev_head_t=False,
-    )
+    return make_dig_montage(**data)
 
 
 def read_dig_captrack(fname):
@@ -1119,23 +1178,20 @@ def read_dig_captrack(fname):
     See Also
     --------
     DigMontage
-    Montage
     read_montage
+    read_dig_egi
+    read_dig_fif
+    make_dig_montage
     """
     _check_fname(fname, overwrite='read', must_exist=True)
     data = _parse_brainvision_dig_montage(fname)
 
     # XXX: to change to the new naming in v.0.20 (all this block should go)
     data.pop('point_names')
-    data['hpi_dev'] = data['hpi']
     data['hpi'] = data.pop('elp')
     data['ch_pos'] = data.pop('dig_ch_pos')
 
-    return make_dig_montage(
-        **data,
-        transform_to_head=False,
-        compute_dev_head_t=False,
-    )
+    return make_dig_montage(**data)
 
 
 def _set_montage(info, montage, update_ch_names=False, set_dig=True):
@@ -1270,3 +1326,221 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
     else:
         raise TypeError("Montage must be a 'Montage', 'DigMontage', 'str' or "
                         "'None' instead of '%s'." % type(montage))
+
+
+def _read_isotrak_elp_points(fname):
+    """Read Polhemus Isotrak digitizer data from a ``.elp`` file.
+
+    Parameters
+    ----------
+    fname : str
+        The filepath of .elp Polhemus Isotrak file.
+
+    Returns
+    -------
+    out : dict of arrays
+        The dictionary containing locations for 'nasion', 'lpa', 'rpa'
+        and 'points'.
+    """
+    value_pattern = r"\-?\d+\.?\d*e?\-?\d*"
+    coord_pattern = r"({0})\s+({0})\s+({0})\s*$".format(value_pattern)
+
+    with open(fname) as fid:
+        file_str = fid.read()
+
+    points_str = [m.groups() for m in re.finditer(coord_pattern, file_str,
+                                                  re.MULTILINE)]
+    points = np.array(points_str, dtype=float)
+
+    return {
+        'nasion': points[0], 'lpa': points[1], 'rpa': points[2],
+        'points': points[3:]
+    }
+
+
+def _read_isotrak_hsp_points(fname):
+    """Read Polhemus Isotrak digitizer data from a ``.hsp`` file.
+
+    Parameters
+    ----------
+    fname : str
+        The filepath of .hsp Polhemus Isotrak file.
+
+    Returns
+    -------
+    out : dict of arrays
+        The dictionary containing locations for 'nasion', 'lpa', 'rpa'
+        and 'points'.
+    """
+    def consume(fid, predicate):  # just a consumer to move around conveniently
+        while(predicate(fid.readline())):
+            pass
+
+    def get_hsp_fiducial(line):
+        return np.fromstring(line.replace('%F', ''), dtype=float, sep='\t')
+
+    with open(fname) as ff:
+        consume(ff, lambda l: 'position of fiducials' not in l.lower())
+
+        nasion = get_hsp_fiducial(ff.readline())
+        lpa = get_hsp_fiducial(ff.readline())
+        rpa = get_hsp_fiducial(ff.readline())
+
+        _ = ff.readline()
+        n_points, n_cols = np.fromstring(ff.readline(), dtype=int, sep='\t')
+        points = np.fromstring(
+            string=ff.read(), dtype=float, sep='\t',
+        ).reshape(-1, n_cols)
+        assert points.shape[0] == n_points
+
+    return {
+        'nasion': nasion, 'lpa': lpa, 'rpa': rpa, 'points': points
+    }
+
+
+def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
+    """Read Polhemus digitizer data from a file.
+
+    Parameters
+    ----------
+    fname : str
+        The filepath of Polhemus ISOTrak formatted file.
+        File extension is expected to be '.hsp', '.elp' or '.eeg'.
+    ch_names : None | list of str
+        The names of the points. This will make the points
+        considered as EEG channels.
+    unit : 'm' | 'cm' | 'mm'
+        Unit of the digitizer file. Polhemus ISOTrak systems data is usually
+        exported in meters. Defaults to 'm'
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+
+    See Also
+    --------
+    make_dig_montage
+    read_polhemus_fastscan
+    """
+    VALID_FILE_EXT = ('.hsp', '.elp', '.eeg')
+    VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
+    _scale = _check_unit_and_get_scaling(unit, VALID_SCALES)
+
+    _, ext = op.splitext(fname)
+    _check_option('fname', ext, VALID_FILE_EXT)
+
+    if ext == '.elp':
+        data = _read_isotrak_elp_points(fname)
+    else:
+        # Default case we read points as hsp since is the most likely scenario
+        data = _read_isotrak_hsp_points(fname)
+
+    if _scale != 1:
+        data = {key: val * _scale for key, val in data.items()}
+    else:
+        pass  # noqa
+
+    if ch_names is None:
+        keyword = 'hpi' if ext == '.elp' else 'hsp'
+        data[keyword] = data.pop('points')
+
+    else:
+        points = data.pop('points')
+        if points.shape[0] == len(ch_names):
+            data['ch_pos'] = dict(zip(ch_names, points))
+        else:
+            raise ValueError((
+                "Length of ``ch_names`` does not match the number of points"
+                " in {fname}. Expected ``ch_names`` length {n_points:d},"
+                " given {n_chnames:d}"
+            ).format(
+                fname=fname, n_points=points.shape[0], n_chnames=len(ch_names)
+            ))
+
+    return make_dig_montage(**data)
+
+
+def _get_polhemus_fastscan_header(fname):
+    with open(fname, 'r') as fid:
+        header = [l for l in takewhile(lambda line: line.startswith('%'), fid)]
+
+    return ''.join(header)
+
+
+def read_polhemus_fastscan(fname, unit='mm'):
+    """Read Polhemus FastSCAN digitizer data from a ``.txt`` file.
+
+    Parameters
+    ----------
+    fname : str
+        The filepath of .txt Polhemus FastSCAN file.
+    unit : 'm' | 'cm' | 'mm'
+        Unit of the digitizer file. Polhemus FastSCAN systems data is usually
+        exported in millimeters. Defaults to 'mm'
+
+    Returns
+    -------
+    points : array, shape (n_points, 3)
+        The digitization points in digitizer coordinates.
+
+    See Also
+    --------
+    read_dig_polhemus_isotrak
+    make_dig_montage
+    """
+    VALID_FILE_EXT = ['.txt']
+    VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
+    _scale = _check_unit_and_get_scaling(unit, VALID_SCALES)
+
+    _, ext = op.splitext(fname)
+    _check_option('fname', ext, VALID_FILE_EXT)
+
+    if _get_polhemus_fastscan_header(fname).find('FastSCAN') == -1:
+        raise ValueError(
+            "%s does not contain Polhemus FastSCAN header" % fname
+        )
+
+    points = _scale * np.loadtxt(fname, comments='%', ndmin=2)
+
+    return points
+
+
+def compute_dev_head_t(montage):
+    """Compute device to head transform from a DigMontage.
+
+    Parameters
+    ----------
+    montage : instance of DigMontage
+        The DigMontage must contain the fiducials in head
+        coordinate system and hpi points in both head and
+        meg device coordinate system.
+
+    Returns
+    -------
+    dev_head_t : instance of Transform
+        A Device-to-Head transformation matrix.
+    """
+    from ..coreg import fit_matched_points
+
+    _, coord_frame = _get_fid_coords(montage.dig)
+    if coord_frame != FIFF.FIFFV_COORD_HEAD:
+        raise ValueError('montage should have been set to head coordinate '
+                         'system with transform_to_head function.')
+
+    hpi_head = [d['r'] for d in montage.dig
+                if (d['kind'] == FIFF.FIFFV_POINT_HPI and
+                    d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)]
+    hpi_dev = [d['r'] for d in montage.dig
+               if (d['kind'] == FIFF.FIFFV_POINT_HPI and
+                   d['coord_frame'] == FIFF.FIFFV_COORD_DEVICE)]
+
+    if not (len(hpi_head) == len(hpi_dev) and len(hpi_dev) > 0):
+        raise ValueError((
+            "To compute Device-to-Head transformation, the same number of HPI"
+            " points in device and head coordinates is required. (Got {dev}"
+            " points in device and {head} points in head coordinate systems)"
+        ).format(dev=len(hpi_dev), head=len(hpi_head)))
+
+    trans = fit_matched_points(tgt_pts=hpi_head, src_pts=hpi_dev, out='trans')
+    return Transform(fro='meg', to='head', trans=trans)

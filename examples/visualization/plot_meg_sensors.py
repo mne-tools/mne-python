@@ -1,4 +1,6 @@
 """
+.. _ex-plot-meg-sensors:
+
 ======================================
 Plotting sensor layouts of MEG systems
 ======================================

@@ -1,6 +1,6 @@
 """Compute Linearly constrained minimum variance (LCMV) beamformer."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Roman Goj <roman.goj@gmail.com>
 #          Britta Westner <britta.wstnr@gmail.com>
 #

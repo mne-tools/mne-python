@@ -5,7 +5,7 @@ Reading an inverse operator
 
 The inverse operator's source space is shown in 3D.
 """
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 

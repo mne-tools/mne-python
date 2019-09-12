@@ -11,7 +11,7 @@ of your data (frequency and time-frequency). Here we'll work on Epochs.
 We will use this dataset: :ref:`somato-dataset`. It contains so-called event
 related synchronizations (ERS) / desynchronizations (ERD) in the beta band.
 """  # noqa: E501
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)

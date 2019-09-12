@@ -2,18 +2,14 @@
 
 .. _glossary:
 
-==========================
 Glossary
-==========================
-
-.. .. contents:: Contents
-..    :local:
-
+========
 
 .. currentmodule:: mne
 
-MNE-Python core terminology and general concepts
-================================================
+The Glossary provides short definitions of MNE-Python-specific vocabulary and
+general neuroimaging concepts. If you think a term is missing, please consider
+`creating a new issue`_ or `opening a pull request`_ to add it.
 
 .. glossary::
 
@@ -145,8 +141,9 @@ MNE-Python core terminology and general concepts
     morphing
         Morphing refers to the operation of transferring source estimates from
         one anatomy to another. It is commonly referred as realignment in fMRI
-        literature. This operation is necessary for group studies.
-        See :ref:`ch_morph` for more details.
+        literature. This operation is necessary for group studies (to get the
+        data in a common space for statistical analysis).
+        See :ref:`c_legacy_ch_morph` for more details.
 
     pick
         An integer that is the index of a channel in the measurement info.
@@ -209,3 +206,11 @@ MNE-Python core terminology and general concepts
     trans
         A coordinate frame affine transformation, usually between the Neuromag head
         coordinate frame and the MRI Surface RAS coordinate frame used by Freesurfer.
+
+
+.. LINKS
+
+.. _`creating a new issue`:
+   https://github.com/mne-tools/mne-python/issues/new?template=glossary.md
+.. _`opening a pull request`:
+   https://github.com/mne-tools/mne-python/pull/new/master

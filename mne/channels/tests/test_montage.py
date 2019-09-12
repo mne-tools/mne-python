@@ -12,6 +12,7 @@ import numpy as np
 from scipy.io import savemat
 from copy import deepcopy
 from functools import partial
+from string import ascii_lowercase
 
 from numpy.testing import (assert_array_equal, assert_almost_equal,
                            assert_allclose, assert_array_almost_equal,
@@ -21,17 +22,23 @@ from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
 from mne.channels import (Montage, read_montage, read_dig_montage,
                           get_builtin_montages, DigMontage,
                           read_dig_egi, read_dig_captrack, read_dig_fif)
-from mne.channels.montage import _set_montage
+from mne.channels.montage import _set_montage, make_dig_montage
 from mne.channels.montage import transform_to_head
+from mne.channels import read_polhemus_fastscan, read_dig_polhemus_isotrak
+from mne.channels import compute_dev_head_t
+
 from mne.channels._dig_montage_utils import _transform_to_head_call
 from mne.channels._dig_montage_utils import _fix_data_fiducials
+from mne.channels._dig_montage_utils import _get_fid_coords
 from mne.utils import (_TempDir, run_tests_if_main, assert_dig_allclose,
                        object_diff, Bunch)
 from mne.bem import _fit_sphere
 from mne.transforms import apply_trans, get_ras_to_neuromag_trans
 from mne.io.constants import FIFF
 from mne._digitization import Digitization
-from mne._digitization._utils import _read_dig_points
+from mne._digitization._utils import _read_dig_points, _format_dig_points
+from mne._digitization.base import _get_dig_eeg, _count_points_by_type
+
 from mne.viz._3d import _fiducial_coords
 
 from mne.io.kit import read_mrk
@@ -40,6 +47,7 @@ from mne.io import (read_raw_brainvision, read_raw_egi, read_raw_fif,
                     read_raw_eeglab, read_fiducials, __file__ as _mne_io_file)
 
 from mne.datasets import testing
+
 
 data_path = testing.data_path(download=False)
 fif_dig_montage_fname = op.join(data_path, 'montage', 'eeganes07.fif')
@@ -441,6 +449,286 @@ def test_read_dig_montage():
     with pytest.deprecated_call():
         assert_allclose(montage_extra.hsp, montage.hsp)
         assert_allclose(montage_extra.elp, montage.elp)
+
+
+def test_read_dig_montage_using_polhemus_fastscan():
+    """Test FastScan."""
+    N_EEG_CH = 10
+
+    my_electrode_positions = read_polhemus_fastscan(
+        op.join(kit_dir, 'test_elp.txt')
+    )
+
+    montage = make_dig_montage(
+        # EEG_CH
+        ch_pos=dict(zip(ascii_lowercase[:N_EEG_CH],
+                        np.random.RandomState(0).rand(N_EEG_CH, 3))),
+        # NO NAMED points
+        nasion=my_electrode_positions[0],
+        lpa=my_electrode_positions[1],
+        rpa=my_electrode_positions[2],
+        hpi=my_electrode_positions[3:],
+        hsp=read_polhemus_fastscan(op.join(kit_dir, 'test_hsp.txt')),
+
+        # Other defaults
+        coord_frame='unknown'
+    )
+
+    assert montage.__repr__() == (
+        '<DigMontage | '
+        '500 extras (headshape), 5 HPIs, 3 fiducials, 10 channels>'
+    )  # XXX: is this wrong? extra is not in headspace, is it?
+
+    assert set([d['coord_frame'] for d in montage.dig]) == {
+        FIFF.FIFFV_COORD_UNKNOWN
+    }  # XXX: so far we build everything in 'unknown'
+
+    EXPECTED_FID_IN_POLHEMUS = {
+        'nasion': [0.001393, 0.0131613, -0.0046967],
+        'lpa': [-0.0624997, -0.0737271, 0.07996],
+        'rpa': [-0.0748957, 0.0873785, 0.0811943],
+    }
+    fiducials, fid_coordframe = _get_fid_coords(montage.dig)
+    assert fid_coordframe == FIFF.FIFFV_COORD_UNKNOWN
+    for kk, val in fiducials.items():
+        assert_allclose(val, EXPECTED_FID_IN_POLHEMUS[kk])
+
+
+def test_read_dig_montage_using_polhemus_fastscan_error_handling(tmpdir):
+    """Test reading Polhemus FastSCAN errors."""
+    with open(op.join(kit_dir, 'test_elp.txt')) as fid:
+        content = fid.read().replace('FastSCAN', 'XxxxXXXX')
+
+    fname = str(tmpdir.join('faulty_FastSCAN.txt'))
+    with open(fname, 'w') as fid:
+        fid.write(content)
+
+    with pytest.raises(ValueError, match='not contain Polhemus FastSCAN'):
+        _ = read_polhemus_fastscan(fname)
+
+    EXPECTED_ERR_MSG = "allowed value is '.txt', but got '.bar' instead"
+    with pytest.raises(ValueError, match=EXPECTED_ERR_MSG):
+        _ = read_polhemus_fastscan(fname=tmpdir.join('foo.bar'))
+
+
+def test_read_dig_polhemus_isotrak_hsp():
+    """Test reading Polhemus IsoTrak HSP file."""
+    EXPECTED_FID_IN_POLHEMUS = {
+        'nasion': np.array([1.1056e-01, -5.4210e-19, 0]),
+        'lpa': np.array([-2.1075e-04, 8.0793e-02, -7.5894e-19]),
+        'rpa': np.array([2.1075e-04, -8.0793e-02, -2.8731e-18]),
+    }
+    montage = read_dig_polhemus_isotrak(fname=op.join(kit_dir, 'test.hsp'),
+                                        ch_names=None)
+    assert montage.__repr__() == (
+        '<DigMontage | '
+        '500 extras (headshape), 0 HPIs, 3 fiducials, 0 channels>'
+    )
+
+    fiducials, fid_coordframe = _get_fid_coords(montage.dig)
+
+    assert fid_coordframe == FIFF.FIFFV_COORD_UNKNOWN
+    for kk, val in fiducials.items():
+        assert_array_equal(val, EXPECTED_FID_IN_POLHEMUS[kk])
+
+
+def test_read_dig_polhemus_isotrak_elp():
+    """Test reading Polhemus IsoTrak ELP file."""
+    EXPECTED_FID_IN_POLHEMUS = {
+        'nasion': np.array([1.1056e-01, -5.4210e-19, 0]),
+        'lpa': np.array([-2.1075e-04, 8.0793e-02, -7.5894e-19]),
+        'rpa': np.array([2.1075e-04, -8.0793e-02, -2.8731e-18]),
+    }
+    montage = read_dig_polhemus_isotrak(fname=op.join(kit_dir, 'test.elp'),
+                                        ch_names=None)
+    assert montage.__repr__() == (
+        '<DigMontage | '
+        '0 extras (headshape), 5 HPIs, 3 fiducials, 0 channels>'
+    )
+    fiducials, fid_coordframe = _get_fid_coords(montage.dig)
+
+    assert fid_coordframe == FIFF.FIFFV_COORD_UNKNOWN
+    for kk, val in fiducials.items():
+        assert_array_equal(val, EXPECTED_FID_IN_POLHEMUS[kk])
+
+
+@pytest.fixture(scope='module')
+def isotrak_eeg(tmpdir_factory):
+    """Mock isotrak file with EEG positions."""
+    _SEED = 42
+    N_ROWS, N_COLS = 5, 3
+    content = np.random.RandomState(_SEED).randn(N_ROWS, N_COLS)
+
+    fname = tmpdir_factory.mktemp('data').join('test.eeg')
+    with open(str(fname), 'w') as fid:
+        fid.write((
+            '3	200\n'
+            '//Shape file\n'
+            '//Minor revision number\n'
+            '2\n'
+            '//Subject Name\n'
+            '%N	Name    \n'
+            '////Shape code, number of digitized points\n'
+        ))
+        fid.write('0 {rows:d}\n'.format(rows=N_ROWS))
+        fid.write((
+            '//Position of fiducials X+, Y+, Y- on the subject\n'
+            '%F	0.11056	-5.421e-19	0	\n'
+            '%F	-0.00021075	0.080793	-7.5894e-19	\n'
+            '%F	0.00021075	-0.080793	-2.8731e-18	\n'
+            '//No of rows, no of columns; position of digitized points\n'
+        ))
+        fid.write('{rows:d} {cols:d}\n'.format(rows=N_ROWS, cols=N_COLS))
+        for row in content:
+            fid.write('\t'.join('%0.18e' % cell for cell in row) + '\n')
+
+    return str(fname)
+
+
+def test_read_dig_polhemus_isotrak_eeg(isotrak_eeg):
+    """Test reading Polhemus IsoTrak EEG positions."""
+    N_CHANNELS = 5
+    _SEED = 42
+    EXPECTED_FID_IN_POLHEMUS = {
+        'nasion': np.array([1.1056e-01, -5.4210e-19, 0]),
+        'lpa': np.array([-2.1075e-04, 8.0793e-02, -7.5894e-19]),
+        'rpa': np.array([2.1075e-04, -8.0793e-02, -2.8731e-18]),
+    }
+    ch_names = ['eeg {:01d}'.format(ii) for ii in range(N_CHANNELS)]
+    EXPECTED_CH_POS = dict(zip(
+        ch_names, np.random.RandomState(_SEED).randn(N_CHANNELS, 3)))
+
+    montage = read_dig_polhemus_isotrak(fname=isotrak_eeg, ch_names=ch_names)
+    assert montage.__repr__() == (
+        '<DigMontage | '
+        '0 extras (headshape), 0 HPIs, 3 fiducials, 5 channels>'
+    )
+
+    fiducials, fid_coordframe = _get_fid_coords(montage.dig)
+
+    assert fid_coordframe == FIFF.FIFFV_COORD_UNKNOWN
+    for kk, val in fiducials.items():
+        assert_array_equal(val, EXPECTED_FID_IN_POLHEMUS[kk])
+
+    for kk, dig_point in zip(montage.ch_names, _get_dig_eeg(montage.dig)):
+        assert_array_equal(dig_point['r'], EXPECTED_CH_POS[kk])
+        assert dig_point['coord_frame'] == FIFF.FIFFV_COORD_UNKNOWN
+
+
+def test_read_dig_polhemus_isotrak_error_handling(isotrak_eeg, tmpdir):
+    """Test errors in reading Polhemus IsoTrak files.
+
+    1 - matching ch_names and number of points in isotrak file.
+    2 - error for unsupported file extensions.
+    """
+    # Check ch_names
+    N_CHANNELS = 5
+    EXPECTED_ERR_MSG = "not match the number of points.*Expected.*5, given 47"
+    with pytest.raises(ValueError, match=EXPECTED_ERR_MSG):
+        _ = read_dig_polhemus_isotrak(
+            fname=isotrak_eeg,
+            ch_names=['eeg {:01d}'.format(ii) for ii in range(N_CHANNELS + 42)]
+        )
+
+    # Check fname extensions
+    fname = op.join(tmpdir, 'foo.bar')
+    with pytest.raises(
+        ValueError,
+        match="Allowed val.*'.hsp', '.elp' and '.eeg', but got '.bar' instead"
+    ):
+        _ = read_dig_polhemus_isotrak(fname=fname, ch_names=None)
+
+
+def test_combining_digmontage_objects():
+    """Test combining different DigMontage objects."""
+    rng = np.random.RandomState(0)
+    fiducials = dict(zip(('nasion', 'lpa', 'rpa'), rng.rand(3, 3)))
+
+    # hsp positions are [1X, 1X, 1X]
+    hsp1 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 11.))
+    hsp2 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 12.))
+    hsp3 = make_dig_montage(**fiducials, hsp=np.full((2, 3), 13.))
+
+    # hpi positions are [2X, 2X, 2X]
+    hpi1 = make_dig_montage(**fiducials, hpi=np.full((2, 3), 21.))
+    hpi2 = make_dig_montage(**fiducials, hpi=np.full((2, 3), 22.))
+    hpi3 = make_dig_montage(**fiducials, hpi=np.full((2, 3), 23.))
+
+    # channels have positions at 40s, 50s, and 60s.
+    ch_pos1 = make_dig_montage(
+        **fiducials,
+        ch_pos={'h': [41, 41, 41], 'b': [42, 42, 42], 'g': [43, 43, 43]}
+    )
+    ch_pos2 = make_dig_montage(
+        **fiducials,
+        ch_pos={'n': [51, 51, 51], 'y': [52, 52, 52], 'p': [53, 53, 53]}
+    )
+    ch_pos3 = make_dig_montage(
+        **fiducials,
+        ch_pos={'v': [61, 61, 61], 'a': [62, 62, 62], 'l': [63, 63, 63]}
+    )
+
+    montage = (
+        DigMontage() + hsp1 + hsp2 + hsp3 + hpi1 + hpi2 + hpi3 + ch_pos1 +
+        ch_pos2 + ch_pos3
+    )
+    assert montage.__repr__() == (
+        '<DigMontage | '
+        '6 extras (headshape), 6 HPIs, 3 fiducials, 9 channels>'
+    )
+
+    EXPECTED_MONTAGE = make_dig_montage(
+        **fiducials,
+        hsp=np.concatenate([np.full((2, 3), 11.), np.full((2, 3), 12.),
+                            np.full((2, 3), 13.)]),
+        hpi=np.concatenate([np.full((2, 3), 21.), np.full((2, 3), 22.),
+                            np.full((2, 3), 23.)]),
+        ch_pos={
+            'h': [41, 41, 41], 'b': [42, 42, 42], 'g': [43, 43, 43],
+            'n': [51, 51, 51], 'y': [52, 52, 52], 'p': [53, 53, 53],
+            'v': [61, 61, 61], 'a': [62, 62, 62], 'l': [63, 63, 63],
+        }
+    )
+
+    # Do some checks to ensure they are the same DigMontage
+    assert len(montage.ch_names) == len(EXPECTED_MONTAGE.ch_names)
+    assert all([c in montage.ch_names for c in EXPECTED_MONTAGE.ch_names])
+    actual_occurrences = _count_points_by_type(montage.dig)
+    expected_occurrences = _count_points_by_type(EXPECTED_MONTAGE.dig)
+    assert actual_occurrences == expected_occurrences
+
+
+def test_combining_digmontage_forbiden_behaviors():
+    """Test combining different DigMontage objects with repeated names."""
+    rng = np.random.RandomState(0)
+    fiducials = dict(zip(('nasion', 'lpa', 'rpa'), rng.rand(3, 3)))
+    dig1 = make_dig_montage(
+        **fiducials,
+        ch_pos=dict(zip(list('abc'), rng.rand(3, 3))),
+    )
+    dig2 = make_dig_montage(
+        **fiducials,
+        ch_pos=dict(zip(list('bcd'), rng.rand(3, 3))),
+    )
+    dig2_wrong_fid = make_dig_montage(
+        nasion=rng.rand(3), lpa=rng.rand(3), rpa=rng.rand(3),
+        ch_pos=dict(zip(list('ghi'), rng.rand(3, 3))),
+    )
+    dig2_wrong_coordframe = make_dig_montage(
+        **fiducials,
+        ch_pos=dict(zip(list('ghi'), rng.rand(3, 3))),
+        coord_frame='meg'
+    )
+
+    EXPECTED_ERR_MSG = "Cannot.*duplicated channel.*found: \'b\', \'c\'."
+    with pytest.raises(RuntimeError, match=EXPECTED_ERR_MSG):
+        _ = dig1 + dig2
+
+    with pytest.raises(RuntimeError, match='fiducial locations do not match'):
+        _ = dig1 + dig2_wrong_fid
+
+    with pytest.raises(RuntimeError, match='not in the same coordinate '):
+        _ = dig1 + dig2_wrong_coordframe
 
 
 def test_set_dig_montage():
@@ -920,11 +1208,89 @@ def test_dig_dev_head_t_regression():
     assert_allclose(montage.dev_head_t, EXPECTED_DEV_HEAD_T, atol=1e-7)
 
 
-def test_make_dig_montage_errors():
+def test_digmontage_constructor_errors():
     """Test proper error messaging."""
     with pytest.raises(ValueError, match='does not match the number'):
         _ = DigMontage(ch_names=['foo', 'bar'], dig=Digitization())
-    with pytest.raises(TypeError, match='must be an instance of Digitization'):
-        _ = DigMontage(ch_names=['foo', 'bar'], dig=None)
+
+
+def test_transform_to_head_and_compute_dev_head_t():
+    """Test transform_to_head and compute_dev_head_t."""
+    EXPECTED_DEV_HEAD_T = \
+        [[-3.72201691e-02, -9.98212167e-01, -4.67667497e-02, -7.31583414e-04],
+         [8.98064989e-01, -5.39382685e-02, 4.36543170e-01, 1.60134431e-02],
+         [-4.38285221e-01, -2.57513699e-02, 8.98466990e-01, 6.13035748e-02],
+         [0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
+
+    EXPECTED_FID_IN_POLHEMUS = {
+        'nasion': np.array([0.001393, 0.0131613, -0.0046967]),
+        'lpa': np.array([-0.0624997, -0.0737271, 0.07996]),
+        'rpa': np.array([-0.0748957, 0.0873785, 0.0811943]),
+    }
+
+    EXPECTED_FID_IN_HEAD = {
+        'nasion': np.array([-8.94466792e-18, 1.10559624e-01, -3.85185989e-34]),
+        'lpa': np.array([-8.10816716e-02, 6.56321671e-18, 0]),
+        'rpa': np.array([8.05048781e-02, -6.47441364e-18, 0]),
+    }
+
+    hpi_dev = np.array(
+        [[ 2.13951493e-02,  8.47444056e-02, -5.65431188e-02],  # noqa
+         [ 2.10299433e-02, -8.03141101e-02, -6.34420259e-02],  # noqa
+         [ 1.05916829e-01,  8.18485672e-05,  1.19928083e-02],  # noqa
+         [ 9.26595105e-02,  4.64804385e-02,  8.45141253e-03],  # noqa
+         [ 9.42554419e-02, -4.35206589e-02,  8.78999363e-03]]  # noqa
+    )
+
+    hpi_polhemus = np.array(
+        [[-0.0595004, -0.0704836,  0.075893 ],  # noqa
+         [-0.0646373,  0.0838228,  0.0762123],  # noqa
+         [-0.0135035,  0.0072522, -0.0268405],  # noqa
+         [-0.0202967, -0.0351498, -0.0129305],  # noqa
+         [-0.0277519,  0.0452628, -0.0222407]]  # noqa
+    )
+
+    montage_polhemus = make_dig_montage(
+        **EXPECTED_FID_IN_POLHEMUS, hpi=hpi_polhemus, coord_frame='unknown'
+    )
+
+    montage_meg = make_dig_montage(hpi=hpi_dev, coord_frame='meg')
+
+    # Test regular worflow to get dev_head_t
+    montage = montage_polhemus + montage_meg
+    fids, _ = _get_fid_coords(montage.dig)
+    for kk in fids:
+        assert_allclose(fids[kk], EXPECTED_FID_IN_POLHEMUS[kk], atol=1e-5)
+
+    with pytest.raises(ValueError, match='set to head coordinate system'):
+        _ = compute_dev_head_t(montage)
+
+    montage = transform_to_head(montage)
+
+    fids, _ = _get_fid_coords(montage.dig)
+    for kk in fids:
+        assert_allclose(fids[kk], EXPECTED_FID_IN_HEAD[kk], atol=1e-5)
+
+    dev_head_t = compute_dev_head_t(montage)
+    assert_allclose(dev_head_t['trans'], EXPECTED_DEV_HEAD_T, atol=1e-7)
+
+    # Test errors when number of HPI points do not match
+    EXPECTED_ERR_MSG = 'Device-to-Head .*Got 0 .*device and 5 points in head'
+    with pytest.raises(ValueError, match=EXPECTED_ERR_MSG):
+        _ = compute_dev_head_t(transform_to_head(montage_polhemus))
+
+    EXPECTED_ERR_MSG = 'Device-to-Head .*Got 5 .*device and 0 points in head'
+    with pytest.raises(ValueError, match=EXPECTED_ERR_MSG):
+        _ = compute_dev_head_t(transform_to_head(
+            montage_meg + make_dig_montage(**EXPECTED_FID_IN_POLHEMUS)
+        ))
+
+    EXPECTED_ERR_MSG = 'Device-to-Head .*Got 3 .*device and 5 points in head'
+    with pytest.raises(ValueError, match=EXPECTED_ERR_MSG):
+        _ = compute_dev_head_t(transform_to_head(
+            DigMontage(dig=_format_dig_points(montage_meg.dig[:3])) +
+            montage_polhemus
+        ))
+
 
 run_tests_if_main()

@@ -18,7 +18,8 @@ from traitsui.api import HGroup, Item, VGroup, View, Handler, ArrayEditor
 from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
-from ..coreg import fid_fname, _find_fiducials_files, _find_head_bem
+from ..coreg import (fid_fname, _find_fiducials_files, _find_head_bem,
+                     get_mni_fiducials)
 from ..defaults import DEFAULTS
 from ..io import write_fiducials
 from ..io.constants import FIFF
@@ -197,6 +198,14 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
                                          nn=surf['nn'])
         else:
             self.bem_low_res.file = low_res_path
+
+        # Set MNI points
+        try:
+            fids = get_mni_fiducials(subject, subjects_dir)
+        except Exception:  # some problem, leave at origin
+            self.fid.mni_points = None
+        else:
+            self.fid.mni_points = np.array([f['r'] for f in fids], float)
 
         # find fiducials file
         fid_files = _find_fiducials_files(subject, subjects_dir)

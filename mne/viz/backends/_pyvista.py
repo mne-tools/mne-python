@@ -4,7 +4,7 @@ Core visualization operations based on PyVista.
 Actual implementation of _Renderer and _Projection classes.
 """
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Guillaume Favelier <guillaume.favelier@gmail.com>
 #          Joan Massich <mailsik@gmail.com>

@@ -19,7 +19,7 @@ computed.
 
 Thus FreeSurfer provides an easy way to shift anatomically related
 data between different representations and spaces. See e.g.
-:ref:`ch_morph` for information about how to
+:ref:`c_legacy_ch_morph` for information about how to
 use FreeSurfer surface representations to allow functional data to morph
 between different subjects.
 
@@ -103,7 +103,8 @@ of a subject when calling a function, the corresponding data will be read (e.g.
 ``subject='fsaverage'``) from '~/subjects/fsaverage'. This becomes especially
 handy, when attempting statistical analyses on group level, based on
 individual's brain space data. In that case ``'fsaverage'`` will by default act
-as reference space for :ref:`source estimate transformations <ch_morph>`.
+as reference space for :ref:`source estimate transformations
+<c_legacy_ch_morph>`.
 
 Use with MNE-Python
 ===================

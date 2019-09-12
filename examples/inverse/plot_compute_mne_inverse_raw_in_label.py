@@ -8,7 +8,7 @@ to a brain label and stores the solution in stc files for
 visualisation.
 
 """
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 

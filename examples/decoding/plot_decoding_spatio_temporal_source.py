@@ -13,7 +13,7 @@ classifier then is trained to selected features of epochs in source space.
 # sphinx_gallery_thumbnail_number = 2
 
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
-#         Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Jean-Remi King <jeanremi.king@gmail.com>
 #         Eric Larson <larson.eric.d@gmail.com>
 #

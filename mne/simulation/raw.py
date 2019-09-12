@@ -26,10 +26,10 @@ from ..forward import (_magnetic_dipole_field_vec, _merge_meg_eeg_fwds,
                        _compute_forwards, _to_forward_dict,
                        restrict_forward_to_stc, _prep_meg_channels)
 from ..transforms import _get_trans, transform_surface_to
-from ..source_space import (_ensure_src, _points_outside_surface,
-                            _set_source_space_vertices,
+from ..source_space import (_ensure_src, _set_source_space_vertices,
                             setup_volume_source_space)
 from ..source_estimate import _BaseSourceEstimate
+from ..surface import _CheckInside
 from ..utils import (logger, verbose, check_random_state, _pl, _validate_type,
                      warn, _check_preload)
 from ..parallel import check_n_jobs
@@ -822,12 +822,12 @@ def _iter_forward_solutions(info, trans, src, bem, dev_head_ts, mindist,
         _transform_orig_meg_coils(compcoils, dev_head_t)
 
         # Make sure our sensors are all outside our BEM
-        coil_rr = [coil['r0'] for coil in megcoils]
+        coil_rr = np.array([coil['r0'] for coil in megcoils])
 
         # Compute forward
         if forward is None:
             if not bem['is_sphere']:
-                outside = _points_outside_surface(coil_rr, bem_surf, n_jobs,
+                outside = ~_CheckInside(bem_surf)(coil_rr, n_jobs,
                                                   verbose=False)
             elif bem.radius is not None:
                 d = coil_rr - bem['r0']

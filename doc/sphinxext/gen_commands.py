@@ -24,13 +24,15 @@ def setup_module():
 # 4. -   : Command sections (Examples, Notes)
 
 header = """\
+:orphan:
+
 .. _python_commands:
 
 ===============================
 Command line tools using Python
 ===============================
 
-.. contents:: Contents
+.. contents:: Page contents
    :local:
    :depth: 1
 

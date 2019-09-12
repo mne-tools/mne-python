@@ -18,7 +18,7 @@ matrix:
         - os: linux
           env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
                CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx pytest pytest-timeout pytest-cov pytest-mock"
-               PIP_DEPENDENCIES="codecov flake8 numpydoc codespell pydocstyle codecov check-manifest pytest-sugar pytest-faulthandler"
+               PIP_DEPENDENCIES="codecov flake8 numpydoc codespell pydocstyle codecov check-manifest pytest-sugar pytest-faulthandler twine"
 
         # Linux
         - os: linux
@@ -40,8 +40,9 @@ matrix:
         # Old dependencies
         - os: linux
           env: PYTHON_VERSION=3.5
-               CONDA_DEPENDENCIES="numpy=1.11 scipy=0.17 matplotlib=1.5 pandas=0.18 scikit-learn=0.18 pytest pytest-cov pytest-mock pytest-timeout"
+               CONDA_DEPENDENCIES="numpy=1.12 scipy=0.18 matplotlib=2.0 pandas=0.19 scikit-learn=0.18 pytest pytest-cov pytest-mock pytest-timeout"
                PIP_DEPENDENCIES="codecov nitime"
+               CONDA_CHANNELS="conda-forge"
 
         # Minimal
         - os: linux
@@ -54,6 +55,7 @@ before_install:
     - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
         /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
       fi;
+    # Remove openssl=1.1.1c once conda un-breaks openssl
     - if [ -z "$CONDA_ENV" ] && [ -z "$CONDA_DEPENDENCIES" ]; then
         pip uninstall -yq numpy;
         pip install -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" --pre numpy scipy;
@@ -71,6 +73,9 @@ before_install:
           if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
             pip install "pyqt5>=5.10";
           fi;
+        fi;
+        if [ "$PYTHON_VERSION" != "3.5" ]; then
+          conda install openssl=1.1.1c $CONDA_DEPENDENCIES;
         fi;
       fi
     # Don't source mne_setup_sh here because changing PATH etc. can't be done in a script
@@ -105,16 +110,12 @@ install:
     # files to act as a FREESURFER_HOME for the coreg tests
     - if [ "${DEPS}" != "nodata" ]; then
         python -c 'import mne; mne.datasets.testing.data_path(verbose=True)';
-        ls -al $HOME/mne_data/;
-        ls -al $HOME/mne_data/MNE-testing-data/;
-        ls -al $HOME/mne_data/MNE-testing-data/MEG/;
-        ls -al $HOME/mne_data/MNE-testing-data/MEG/sample/;
-        if [ "${DEPS}" == "" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-          export FREESURFER_HOME=$(python -c 'import mne; print(mne.datasets.testing.data_path())');
-          export MNE_SKIP_FS_FLASH_CALL=1;
-        fi;
       else
         export MNE_SKIP_TESTING_DATASET_TESTS=true;
+      fi;
+    - if [ "${DEPS}" == "" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+        export FREESURFER_HOME=$(python -c 'import mne; print(mne.datasets.testing.data_path())');
+        export MNE_SKIP_FS_FLASH_CALL=1;
       fi;
     - MNE_DIR=$(python -c 'import mne;print(mne.__path__[0])')
     # We run two versions: one out of the source directory (that makes

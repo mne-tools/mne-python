@@ -5,7 +5,7 @@ Reading a source space from a forward operator
 
 This example visualizes a source space mesh used by a forward operator.
 """
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 

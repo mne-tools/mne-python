@@ -45,7 +45,6 @@ def _plot_update_raw_proj(params, bools):
 
 def _update_raw_data(params):
     """Deal with time or proj changed."""
-    from scipy.signal import filtfilt
     start = params['t_start']
     start -= params['first_time']
     stop = params['raw'].time_as_index(start + params['duration'])[0]
@@ -64,13 +63,14 @@ def _update_raw_data(params):
         starts = np.maximum(starts[mask], start) - start
         stops = np.minimum(stops[mask], stop) - start
         for start_, stop_ in zip(starts, stops):
-            if isinstance(params['ba'], np.ndarray):
+            if isinstance(params['ba'], np.ndarray):  # FIR
                 data[data_picks, start_:stop_] = _overlap_add_filter(
                     data[data_picks, start_:stop_], params['ba'], copy=False)
-            else:
-                data[data_picks, start_:stop_] = filtfilt(
-                    params['ba'][0], params['ba'][1],
-                    data[data_picks, start_:stop_], axis=1, padlen=0)
+            else:  # IIR
+                from scipy.signal import sosfiltfilt
+                data[data_picks, start_:stop_] = sosfiltfilt(
+                    params['ba']['sos'], data[data_picks, start_:stop_],
+                    axis=1, padlen=0)
     # scale
     for di in range(data.shape[0]):
         ch_name = params['info']['ch_names'][di]
@@ -97,13 +97,15 @@ def _pick_bad_channels(event, params):
     _plot_update_raw_proj(params, None)
 
 
+@verbose
 def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
              show_first_samp=False, proj=True, group_by='type',
-             butterfly=False, decim='auto', noise_cov=None, event_id=None):
+             butterfly=False, decim='auto', noise_cov=None, event_id=None,
+             show_scrollbars=True, verbose=None):
     """Plot raw data.
 
     Parameters
@@ -172,6 +174,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Highpass to apply when displaying data.
     lowpass : float | None
         Lowpass to apply when displaying data.
+        If highpass > lowpass, a bandstop rather than bandpass filter
+        will be applied.
     filtorder : int
         Filtering order. 0 will use FIR filtering with MNE defaults.
         Other values will construct an IIR filter of the given order
@@ -231,6 +235,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         theh event numbers).
 
         .. versionadded:: 0.16.0
+    %(show_scrollbars)s
+    %(verbose)s
 
     Returns
     -------
@@ -242,9 +248,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     The arrow keys (up/down/left/right) can typically be used to navigate
     between channels and time ranges, but this depends on the backend
     matplotlib is configured to use (e.g., mpl.use('TkAgg') should work). The
-    left/right arrows will scroll by 25% of ``duration``, whereas
-    shift+left/shift+right will scroll by 100% of ``duration``. The scaling can
-    be adjusted with - and + (or =) keys. The viewport dimensions can be
+    left/right arrows will scroll by 25%% of ``duration``, whereas
+    shift+left/shift+right will scroll by 100%% of ``duration``. The scaling
+    can be adjusted with - and + (or =) keys. The viewport dimensions can be
     adjusted with page up/page down and home/end keys. Full screen mode can be
     toggled with the F11 key. To mark or un-mark a channel as bad, click on a
     channel label or a channel trace. The changes will be reflected immediately
@@ -262,7 +268,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     ``True``. This flag can be toggled by pressing 'd'.
     """
     import matplotlib as mpl
-    from scipy.signal import butter
     from ..io.base import BaseRaw
     color = _handle_default('color', color)
     scalings = _compute_scalings(scalings, raw, remove_dc=remove_dc,
@@ -274,33 +279,22 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # figure out the IIR filtering parameters
     sfreq = raw.info['sfreq']
-    nyq = sfreq / 2.
+    if highpass is not None and highpass <= 0:
+        raise ValueError('highpass must be > 0, got %s' % (highpass,))
     if highpass is None and lowpass is None:
         ba = filt_bounds = None
     else:
+
         filtorder = int(filtorder)
-        if highpass is not None and highpass <= 0:
-            raise ValueError('highpass must be > 0, not %s' % highpass)
-        if lowpass is not None and lowpass >= nyq:
-            raise ValueError('lowpass must be < Nyquist (%s), not %s'
-                             % (nyq, lowpass))
-        if highpass is not None and lowpass is not None and \
-                lowpass <= highpass:
-            raise ValueError('lowpass (%s) must be > highpass (%s)'
-                             % (lowpass, highpass))
         if filtorder == 0:
-            ba = create_filter(np.zeros((1, int(round(duration * sfreq)))),
-                               sfreq, highpass, lowpass)
-        elif filtorder < 0:
-            raise ValueError('filtorder (%s) must be >= 0' % filtorder)
+            method = 'fir'
+            iir_params = None
         else:
-            if highpass is None:
-                Wn, btype = lowpass / nyq, 'lowpass'
-            elif lowpass is None:
-                Wn, btype = highpass / nyq, 'highpass'
-            else:
-                Wn, btype = [highpass / nyq, lowpass / nyq], 'bandpass'
-            ba = butter(filtorder, Wn, btype, analog=False)
+            method = 'iir'
+            iir_params = dict(order=filtorder, output='sos', ftype='butter')
+        ba = create_filter(np.zeros((1, int(round(duration * sfreq)))),
+                           sfreq, highpass, lowpass, method=method,
+                           iir_params=iir_params)
         filt_bounds = _annotations_starts_stops(
             raw, ('edge', 'bad_acq_skip'), invert=True)
 
@@ -402,7 +396,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   data_picks=data_picks, event_id_rev=event_id_rev,
                   noise_cov=noise_cov, use_noise_cov=noise_cov is not None,
                   filt_bounds=filt_bounds, units=units, snap_annotations=False,
-                  unit_scalings=unit_scalings, use_scalebars=True)
+                  unit_scalings=unit_scalings, use_scalebars=True,
+                  show_scrollbars=show_scrollbars)
 
     if group_by in ['selection', 'position']:
         params['fig_selection'] = fig_selection
