@@ -76,24 +76,17 @@ def _read_easycap(basename):
 
 def _read_hydrocel(basename):
     fname = op.join(MONTAGE_PATH, basename)
+    options = dict(
+        unpack=True,
+        dtype={'names': ('ch_names', 'x', 'y', 'z'),
+            'formats': (object, 'f4', 'f4', 'f4')},
+    )
+    ch_names, xs, ys, zs = np.loadtxt(fname, **options)
 
-    with open(fname, 'r') as f:
-        lines = f.read().replace('\t', ' ').splitlines()
-
-    ch_names_, pos = [], []
-    for ii, line in enumerate(lines):
-        line = line.strip().split()
-        if len(line) > 0:  # skip empty lines
-            if len(line) != 4:  # name, x, y, z
-                raise ValueError("Malformed .sfp file in line " + str(ii))
-            this_name, x, y, z = line
-            ch_names_.append(this_name)
-            pos.append([float(cord) for cord in (x, y, z)])
-
-    pos = np.asarray(pos) * 0.01
+    pos = np.stack([xs, ys, zs], axis=-1) * 0.01
 
     ch_pos, nasion, lpa, rpa = _split_eeg_fid(
-        ch_pos=dict(zip(ch_names_, pos)),
+        ch_pos=dict(zip(ch_names, pos)),
         nz_str='FidNz', lpa_str='FidT9', rpa_str='FidT10'
     )
 
