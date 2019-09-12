@@ -97,15 +97,22 @@ def _read_hydrocel(basename):
 
 def _read_biosemi(basename):
     fname = op.join(MONTAGE_PATH, basename)
-    data = np.genfromtxt(fname, dtype='str', skip_header=1)
-    ch_names_ = data[:, 0].tolist()
-    az = np.deg2rad(data[:, 2].astype(float))
-    pol = np.deg2rad(data[:, 1].astype(float))
-    rad = np.ones(len(az))  # spherical head model of radius 1
-    pos = _sph_to_cart(np.array([rad, az, pol]).T)
+    options = dict(
+        skiprows=1,
+        unpack=True,
+        dtype={'names': ('Site', 'Theta', 'Phi'),
+               'formats': (object, 'i4', 'i4')},
+    )
+    ch_names, theta, phi = np.loadtxt(fname, **options)
+
+    radii = np.full_like(phi, 1)  # XXX: HEAD_SIZE_DEFAULT should work
+    pos = _sph_to_cart(np.stack(
+        [radii, np.deg2rad(phi), np.deg2rad(theta)],
+        axis=-1,
+    ))
 
     # scale up to realistic head radius (8.5cm == 85mm):
-    pos *= HEAD_SIZE_DEFAULT
+    pos *= HEAD_SIZE_DEFAULT  # XXXX: this should be done through radii
 
     ch_pos, nasion, lpa, rpa = _split_eeg_fid(
         ch_pos=dict(zip(ch_names_, pos)),
