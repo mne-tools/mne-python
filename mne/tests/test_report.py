@@ -20,8 +20,7 @@ from mne.io import read_raw_fif
 from mne.datasets import testing
 from mne.report import Report, open_report, _ReportScraper
 from mne.utils import (_TempDir, requires_mayavi, requires_nibabel, Bunch,
-                       run_tests_if_main, traits_test, requires_h5py,
-                       requires_version)
+                       run_tests_if_main, traits_test, requires_h5py)
 from mne.viz import plot_alignment
 
 data_dir = testing.data_path(download=False)
@@ -150,7 +149,6 @@ def test_render_report():
 
 
 @testing.requires_testing_data
-@requires_version('scipy', '1.2.0')
 def test_report_raw_psd_and_date():
     """Test report raw PSD and DATE_NONE functionality."""
     with pytest.raises(TypeError, match='dict'):

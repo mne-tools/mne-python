@@ -28,8 +28,7 @@ from mne.surface import _get_ico_surface
 from mne.io import read_raw_fif, RawArray
 from mne.io.constants import FIFF
 from mne.time_frequency import psd_welch
-from mne.utils import (run_tests_if_main, catch_logging, check_version,
-                       requires_version)
+from mne.utils import run_tests_if_main, catch_logging, check_version
 
 base_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname_short = op.join(base_path, 'test_raw.fif')
@@ -505,7 +504,6 @@ def test_simulate_round_trip(raw_data):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_version('scipy', '1.2.0')
 def test_simulate_raw_chpi():
     """Test simulation of raw data with cHPI."""
     raw = read_raw_fif(raw_chpi_fname, allow_maxshield='yes')

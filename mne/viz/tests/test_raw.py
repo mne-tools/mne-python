@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from mne import read_events, pick_types, Annotations, create_info
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_ctf, RawArray
-from mne.utils import run_tests_if_main, requires_version
+from mne.utils import run_tests_if_main
 from mne.viz.utils import _fake_click, _annotation_radio_clicked, _sync_onset
 from mne.viz import plot_raw, plot_sensors
 
@@ -351,7 +351,6 @@ def test_plot_raw_filtered(filtorder):
     plt.close('all')
 
 
-@requires_version('scipy', '1.2.0')
 def test_plot_raw_psd():
     """Test plotting of raw psds."""
     raw = _get_raw()
