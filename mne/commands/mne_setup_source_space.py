@@ -122,10 +122,10 @@ def run():
             use_spacing = spacing
     # Generate filename
     if fname is None:
-        if morh is None:
+        if subject_to is None:
             fname = subject + '_' + use_spacing + '-src.fif'
         else:
-            fname = morph + '_' + subject + '_' + use_spacing + '-src.fif'
+            fname = subject_to + '_' + subject + '_' + use_spacing + '-src.fif'
     else:
         if not (fname.endswith('_src.fif') or fname.endswith('-src.fif')):
             fname = fname + "-src.fif"
