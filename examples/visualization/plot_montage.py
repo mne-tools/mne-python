@@ -28,7 +28,7 @@ subjects_dir = op.dirname(fetch_fsaverage())
 
 for current_montage in get_builtin_montages():
 
-    montage = mne.channels.read_standard_montage(current_montage)
+    montage = mne.channels.make_standard_montage(current_montage)
 
     info = mne.create_info(ch_names=montage.ch_names,
                            sfreq=1,

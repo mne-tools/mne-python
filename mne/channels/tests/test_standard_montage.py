@@ -12,7 +12,7 @@ from numpy.testing import assert_array_equal, assert_allclose
 
 from mne.channels.montage import read_montage
 from mne.channels.montage import _BUILT_IN_MONTAGES
-from mne.channels import read_standard_montage
+from mne.channels import make_standard_montage
 from mne._digitization.base import _get_dig_eeg
 
 
@@ -25,7 +25,7 @@ MONTAGES_WITH_FIDUCIALS = [k for k in _BUILT_IN_MONTAGES
 EXPECTED_HEAD_SIZE = 0.085
 
 
-def test_read_standard_montage_egi_256():
+def test_make_standard_montage_egi_256():
     """Test egi_256."""
     EXPECTED_HEAD_SIZE = 0.085
     EXPECTED_HEAD_VARIANCE = 0.00418
@@ -41,7 +41,7 @@ def test_read_standard_montage_egi_256():
          [-1.05002738e-02,  1.95003515e-02,  7.85765571e-02]]  # noqa
     )
 
-    montage = read_standard_montage('EGI_256')
+    montage = make_standard_montage('EGI_256')
     eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(montage.dig)])
     eeg_center = eeg_loc.mean(axis=0)
     distance_to_center = np.linalg.norm(eeg_loc - eeg_center, axis=1)
@@ -81,7 +81,7 @@ def test_read_standard_montage_egi_256():
 def test_old_vs_new(kind):
     """Test difference between old and new standard montages."""
     mont = read_montage(kind)
-    digm = read_standard_montage(kind)
+    digm = make_standard_montage(kind)
     eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(digm.dig)])
 
     # Assert we are reading the same thing. (notice dig reorders chnames)
@@ -94,7 +94,7 @@ def test_old_vs_new(kind):
 def test_standard_montage_errors():
     """Test error handling for wrong keys."""
     with pytest.raises(ValueError, match='Could not find the montage'):
-        _ = read_standard_montage('not-here')
+        _ = make_standard_montage('not-here')
 
 
 @pytest.mark.parametrize('kind, tol', [
@@ -104,7 +104,7 @@ def test_standard_montage_errors():
 ])
 def test_standard_montages_in_head(kind, tol):
     """Test standard montage properties (ie: they form a head)."""
-    montage = read_standard_montage(kind)
+    montage = make_standard_montage(kind)
     eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(montage.dig)])
 
     assert_allclose(
@@ -204,7 +204,7 @@ def test_bar():
 
     # kind = 'EGI_256'
     kind = 'mgh60'
-    montage = read_standard_montage(kind)
+    montage = make_standard_montage(kind)
     trf_montage = transform_to_head(montage)
 
     eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(montage.dig)])
@@ -244,7 +244,7 @@ def test_bar():
 def test_foo(kind, foo):
     """Test standard montage properties (ie: they form a head)."""
     import pdb; pdb.set_trace()
-    montage = read_standard_montage(kind)
+    montage = make_standard_montage(kind)
     eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(montage.dig)])
     dist_mean = np.linalg.norm(eeg_loc, axis=1).mean()
     # assert  dist_mean == approx(0.085, atol=1e-2)
@@ -265,7 +265,7 @@ def test_foo(kind, foo):
 def test_foo(kind, orig_mean, trans_mean):
     """Test standard montage properties (ie: they form a head)."""
     # import pdb; pdb.set_trace()
-    montage = read_standard_montage(kind)
+    montage = make_standard_montage(kind)
     eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(montage.dig)])
     assert  np.linalg.norm(eeg_loc, axis=1).mean() == approx(orig_mean, abs=1e-4)
 
