@@ -285,11 +285,23 @@ def test_setup_source_space(tmpdir):
     # Using the sample dataset
     subjects_dir = op.join(sample.data_path(download=False), 'subjects')
     use_fname = op.join(tmpdir, "sources-src.fif")
+    # Test  command
     with ArgvSetter(('--src', use_fname, '-d', subjects_dir,
-                     '-s', 'sample', '--spacing', '20', '--morph', 'sample')):
+                     '-s', 'sample', '--morph', 'sample')):
         mne_setup_source_space.run()
     src = read_source_spaces(use_fname)
     assert len(src) == 2
+    with pytest.raises(Exception):
+        with ArgvSetter(('--src', use_fname, '-d', subjects_dir,
+                         '-s', 'sample', '--ico', '3', '--oct', '3')):
+            assert mne_setup_source_space.run()
+        with ArgvSetter(('--src', use_fname, '-d', subjects_dir,
+                         '-s', 'sample', '--ico', '3', '--spacing', '10')):
+            assert mne_setup_source_space.run()
+        with ArgvSetter(('--src', use_fname, '-d', subjects_dir,
+                         '-s', 'sample', '--ico', '3', '--spacing', '10',
+                         '--oct', '3')):
+            assert mne_setup_source_space.run()
 
 
 def test_show_info():
