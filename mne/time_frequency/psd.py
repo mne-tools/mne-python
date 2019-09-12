@@ -105,7 +105,7 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
         its bias relative to the mean. If ``None``, returns the unaggregated
         segments.
 
-        .. versionadded:: 0.18
+        .. versionadded:: 0.19.0
     %(verbose)s
 
     Returns
@@ -220,7 +220,7 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
         its bias relative to the mean. If ``None``, returns the unaggregated
         segments.
 
-        .. versionadded:: 0.18
+        .. versionadded:: 0.19.0
     %(verbose)s
 
     Returns
