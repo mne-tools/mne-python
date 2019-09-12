@@ -79,7 +79,7 @@ psds_std = psds.mean(0).std(0)
 ax.plot(freqs, psds_mean, color='k')
 ax.fill_between(freqs, psds_mean - psds_std, psds_mean + psds_std,
                 color='k', alpha=.5)
-ax.set(title='Multitaper PSD (gradiometers)', xlabel='Frequency',
+ax.set(title='Multitaper PSD (gradiometers)', xlabel='Frequency (Hz)',
        ylabel='Power Spectral Density (dB)')
 plt.show()
 
@@ -112,7 +112,7 @@ ax.plot(freqs_median, psds_welch_median[epo_idx, ch_idx, :], color='k',
         ls='--', label='median of segments')
 
 ax.set(title='Welch PSD ({}, Epoch {})'.format(ch_name, epo_idx),
-       xlabel='Frequency', ylabel='Power Spectral Density (dB)')
+       xlabel='Frequency (Hz)', ylabel='Power Spectral Density (dB)')
 ax.legend(loc='upper right')
 plt.show()
 
