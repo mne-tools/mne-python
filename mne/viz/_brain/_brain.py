@@ -516,7 +516,7 @@ class _Brain(object):
                                  vmin=dt_min,
                                  vmax=dt_max,
                                  scalars=act_data)
-            if array.ndim >= 2 and time_label is not None:
+            if array.ndim >= 2 and callable(time_label):
                 renderer.text2d(x=0.95, y=y_txt, size=time_label_size,
                                 text=time_label(time[time_idx]))
             renderer.scalarbar(source=mesh, n_labels=8,
