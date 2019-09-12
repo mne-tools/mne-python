@@ -20,6 +20,11 @@ from mne.channels.montage import get_builtin_montages
 from mne.datasets import fetch_fsaverage
 from mne.viz import plot_alignment, set_3d_view, set_3d_title
 
+import warnings
+
+
+warnings.simplefilter("ignore")
+
 subjects_dir = op.dirname(fetch_fsaverage())
 
 sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.085)
@@ -57,7 +62,7 @@ for current_montage in get_builtin_montages():
         # Plot options
         show_axes=True, dig=True, surfaces='inner_skull', bem=sphere,
 
-        # Create dummy info 
+        # Create dummy info
         info=mne.create_info(
             ch_names=montage.ch_names,
             sfreq=1,
@@ -81,7 +86,7 @@ for current_montage in get_builtin_montages():
             # Plot options
             show_axes=True, dig=True, surfaces='inner_skull', bem=sphere,
 
-            # Create dummy info 
+            # Create dummy info
             info=mne.create_info(
                 ch_names=montage.ch_names,
                 sfreq=1,
@@ -103,7 +108,7 @@ for current_montage in get_builtin_montages():
         show_axes=True, dig=True, surfaces='inner_skull', trans=None,
         subject='fsaverage', subjects_dir=subjects_dir,
 
-        # Create dummy info 
+        # Create dummy info
         info=mne.create_info(
             ch_names=montage.ch_names,
             sfreq=1,
@@ -128,7 +133,7 @@ for current_montage in get_builtin_montages():
             show_axes=True, dig=True, surfaces='inner_skull', trans=None,
             subject='fsaverage', subjects_dir=subjects_dir,
 
-            # Create dummy info 
+            # Create dummy info
             info=mne.create_info(
                 ch_names=montage.ch_names,
                 sfreq=1,
