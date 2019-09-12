@@ -13,7 +13,7 @@ related synchronizations (ERS) / desynchronizations (ERD) in the beta band.
 """  # noqa: E501
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
-#          Richard Höchenberger <richard.hoechenberger@gmaill.com>
+#          Richard Höchenberger <richard.hoechenberger@gmail.com>
 #
 # License: BSD (3-clause)
 import os.path as op
