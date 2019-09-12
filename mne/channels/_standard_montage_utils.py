@@ -104,8 +104,10 @@ def get_biosemi(basename):
     az = np.deg2rad(data[:, 2].astype(float))
     pol = np.deg2rad(data[:, 1].astype(float))
     rad = np.ones(len(az))  # spherical head model
-    rad *= 85.  # scale up to realistic head radius (8.5cm == 85mm)
+    # rad *= 85.  # scale up to realistic head radius (8.5cm == 85mm)
     pos = _sph_to_cart(np.array([rad, az, pol]).T)
+
+    pos *= 0.085  # XXX this should work out of the box with HEAD_SIZE
 
     ch_pos, nasion, lpa, rpa = _split_eeg_fid(
         ch_pos=dict(zip(ch_names_, pos)),
@@ -113,7 +115,8 @@ def get_biosemi(basename):
     )
 
     return make_dig_montage(
-        ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='unknown',
+        # ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='unknown',
+        ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='head',
     )
 
 

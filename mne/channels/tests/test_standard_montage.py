@@ -117,47 +117,6 @@ def test_standard_montages_in_head(kind, tol):
 from mne.channels.montage import transform_to_head
 from pytest import approx
 
-@pytest.mark.parametrize('kind, foo', [
-    # XXX All should be 0.085 but they are not !!
-    ['EGI_256', 0.08500001],
-    ['easycap-M1', 0.08499999999999999],
-    ['easycap-M10', 0.08499999999999999],
-    ['GSN-HydroCel-128', 9.763325532616348],
-    ['GSN-HydroCel-129', 9.781833508100744],
-    ['GSN-HydroCel-256', 10.53120179308986],
-    ['GSN-HydroCel-257', 10.542564039112401],
-    ['GSN-HydroCel-32', 9.334690825727204],
-    ['GSN-HydroCel-64_1.0', 11.375727506868348],
-    ['GSN-HydroCel-65_1.0', 11.41411195568285],
-    ['biosemi128', 103.13293097944218],
-    ['biosemi16', 102.54836114601703],
-    ['biosemi160', 103.24734353529684],
-    ['biosemi256', 102.31834042785782],
-    ['biosemi32', 102.66433014370907],
-    ['biosemi64', 101.87617188729301],
-    ['mgh60', 0.11734227421583884],
-    ['mgh70', 0.11808759279592418],
-    ['standard_1005', 0.1171808880579489],
-    ['standard_1020', 0.11460403303216726],
-    ['standard_alphabetic', 0.12012639557866846],
-    ['standard_postfixed', 0.11887390168465949],
-    ['standard_prefixed', 0.11675854869450944],
-    ['standard_primed', 0.11887390168465949],
-])
-def test_foo(kind, foo):
-    """Test standard montage properties (ie: they form a head)."""
-    montage = read_standard_montage(kind)
-    # import pdb; pdb.set_trace()
-    montage = transform_to_head(montage) if montage._coord_frame != 'head' else montage  # noqa
-    eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(montage.dig)])
-
-    # assert_allclose(
-    #     actual=np.linalg.norm(eeg_loc, axis=1),
-    #     desired=np.full((eeg_loc.shape[0], ), EXPECTED_HEAD_SIZE),
-    #     atol=1e-2  # Use a high tolerance for now # tol,
-    # )
-    assert np.linalg.norm(eeg_loc, axis=1).mean() == approx(foo)
-
 
 import matplotlib.pyplot as plt
 from mne.channels._dig_montage_utils import _get_fid_coords
@@ -195,9 +154,10 @@ def _plot_dig_transformation(transformed, original):
         center=np.array([0, 0, 0]),
         # color=(100, 100, 100),  # XXX: is color (R,G,B) 0-255? doc needs rev.
         color=(1.0, 1.0, 1.0),  # XXX: doc don't say [0-1 or 0-255] ??
-        scale=EXPECTED_HEAD_SIZE,  # XXX: why I cannot put radius a value in mm??  # noqa
-        opacity=0.5,
-        resolution=8,  # XXX: why this is not callen n_poligons??
+        # scale=EXPECTED_HEAD_SIZE,  # XXX: why I cannot put radius a value in mm??  # noqa
+        scale=0.17,  # XXXX magic number!!
+        opacity=0.3,
+        resolution=20,  # XXX: why this is not callen n_poligons??
         backface_culling=False,
     )
     N_RAND_PTS = 50
@@ -225,10 +185,10 @@ def _plot_dig_transformation(transformed, original):
         )
 
     _plot_fid_coord(ren, orig_data, (1.0, 0, 0))
-    ren.sphere(center=orig_data.eeg, color=(1.0, .0, .0), scale=0.001)
+    ren.sphere(center=orig_data.eeg, color=(1.0, .0, .0), scale=0.0022)
 
     _plot_fid_coord(ren, trans_data, (0, 0, 1.0))
-    ren.sphere(center=trans_data.eeg, color=(.0, .0, 1.0), scale=0.001)
+    ren.sphere(center=trans_data.eeg, color=(.0, .0, 1.0), scale=0.0022)
     
 
     ren.show()
@@ -252,3 +212,69 @@ def test_bar():
     _plot_dig_transformation(trf_montage, montage)
 
     import pdb; pdb.set_trace()
+
+
+@pytest.mark.parametrize('kind, foo', [
+    # XXX All should be 0.085 but they are not !!
+    # ['EGI_256', 0.08500001],
+    # ['easycap-M1', 0.08499999999999999],
+    # ['easycap-M10', 0.08499999999999999],
+    # ['GSN-HydroCel-128', 9.763325532616348],
+    # ['GSN-HydroCel-129', 9.781833508100744],
+    # ['GSN-HydroCel-256', 10.53120179308986],
+    # ['GSN-HydroCel-257', 10.542564039112401],
+    # ['GSN-HydroCel-32', 9.334690825727204],
+    # ['GSN-HydroCel-64_1.0', 11.375727506868348],
+    # ['GSN-HydroCel-65_1.0', 11.41411195568285],
+    # ['biosemi128', 103.13293097944218],
+    # ['biosemi16', 102.54836114601703],
+    # ['biosemi160', 103.24734353529684],
+    # ['biosemi256', 102.31834042785782],
+    # ['biosemi32', 102.66433014370907],
+    # ['biosemi64', 101.87617188729301],
+    ['mgh60', 0.11734227421583884],
+    # ['mgh70', 0.11808759279592418],
+    # ['standard_1005', 0.1171808880579489],
+    # ['standard_1020', 0.11460403303216726],
+    # ['standard_alphabetic', 0.12012639557866846],
+    # ['standard_postfixed', 0.11887390168465949],
+    # ['standard_prefixed', 0.11675854869450944],
+    # ['standard_primed', 0.11887390168465949],
+])
+def test_foo(kind, foo):
+    """Test standard montage properties (ie: they form a head)."""
+    import pdb; pdb.set_trace()
+    montage = read_standard_montage(kind)
+    eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(montage.dig)])
+    dist_mean = np.linalg.norm(eeg_loc, axis=1).mean()
+    # assert  dist_mean == approx(0.085, atol=1e-2)
+    montage = transform_to_head(montage) if montage._coord_frame != 'head' else montage  # noqa
+    eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(montage.dig)])
+
+    # assert_allclose(
+    #     actual=np.linalg.norm(eeg_loc, axis=1),
+    #     desired=np.full((eeg_loc.shape[0], ), EXPECTED_HEAD_SIZE),
+    #     atol=1e-2  # Use a high tolerance for now # tol,
+    # )
+    assert np.linalg.norm(eeg_loc, axis=1).mean() == approx(foo)
+
+
+@pytest.mark.parametrize('kind, orig_mean, trans_mean', [
+    ['mgh60', 0.09797280213313385, 0.11734227421583884],
+])
+def test_foo(kind, orig_mean, trans_mean):
+    """Test standard montage properties (ie: they form a head)."""
+    # import pdb; pdb.set_trace()
+    montage = read_standard_montage(kind)
+    eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(montage.dig)])
+    assert  np.linalg.norm(eeg_loc, axis=1).mean() == approx(orig_mean, abs=1e-4)
+
+    trans_montage = transform_to_head(montage) if montage._coord_frame != 'head' else montage  # noqa
+    trans_eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(trans_montage.dig)])
+
+    # assert_allclose(
+    #     actual=np.linalg.norm(eeg_loc, axis=1),
+    #     desired=np.full((eeg_loc.shape[0], ), EXPECTED_HEAD_SIZE),
+    #     atol=1e-2  # Use a high tolerance for now # tol,
+    # )
+    assert np.linalg.norm(trans_eeg_loc, axis=1).mean() == approx(trans_mean, abs=1e-4)
