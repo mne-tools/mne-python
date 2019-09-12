@@ -60,7 +60,10 @@ def _read_easycap(basename):
     ch_names, theta, phi = np.loadtxt(fname, **options)
 
     radii = np.full_like(phi, 1)  # XXX: HEAD_SIZE_DEFAULT should work
-    pos = _sph_to_cart(np.stack([radii, phi, theta], axis=-1,))
+    pos = _sph_to_cart(np.stack(
+        [radii, np.deg2rad(phi), np.deg2rad(theta)],
+        axis=-1,
+    ))
 
     # scale up to realistic head radius (8.5cm == 85mm):
     pos *= HEAD_SIZE_DEFAULT  # XXXX: this should be done through radii
@@ -117,8 +120,8 @@ def _read_biosemi(basename):
     )
 
     return make_dig_montage(
-        # ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='unknown',
-        ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='head',
+        ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='unknown',
+        # ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='head',
     )
 
 

@@ -1555,6 +1555,7 @@ def compute_dev_head_t(montage):
     return Transform(fro='meg', to='head', trans=trans)
 
 
+from ._standard_montage_utils import standard_montage_look_up_table
 def make_standard_montage(kind):
     """Read a generic (built-in) montage.
 
@@ -1627,7 +1628,6 @@ def make_standard_montage(kind):
 
     .. versionadded:: 0.19.0
     """
-    from ._standard_montage_utils import standard_montage_look_up_table
     if kind not in standard_montage_look_up_table:
         raise ValueError('Could not find the montage %s. Please provide one '
                          'among: %s' % (kind,

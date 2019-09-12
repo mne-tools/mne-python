@@ -16,7 +16,6 @@ shipped in MNE-python, and display it on fsaverage template.
 import os.path as op
 
 import mne
-from mne.channels.montage import get_builtin_montages
 from mne.datasets import fetch_fsaverage
 from mne.viz import plot_alignment, set_3d_view, set_3d_title
 
@@ -26,7 +25,8 @@ subjects_dir = op.dirname(fetch_fsaverage())
 # check all montages
 #
 
-for current_montage in get_builtin_montages():
+# for current_montage in get_builtin_montages():
+for current_montage in ['easycap-M1', 'easycap-M10']:
 
     montage = mne.channels.make_standard_montage(current_montage)
 
