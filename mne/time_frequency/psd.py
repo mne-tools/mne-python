@@ -76,7 +76,7 @@ def _check_psd_data(inst, tmin, tmax, picks, proj, reject_by_annotation=False):
 
 @verbose
 def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
-                    n_per_seg=None, n_jobs=1,  average='mean', verbose=None):
+                    n_per_seg=None, n_jobs=1, average='mean', verbose=None):
     """Compute power spectral density (PSD) using Welch's method.
 
     Parameters
