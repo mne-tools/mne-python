@@ -11,6 +11,7 @@ import os.path as op
 from pathlib import Path
 
 import numpy as np
+from numpy.testing import assert_array_equal
 import pytest
 import matplotlib.pyplot as plt
 
@@ -26,7 +27,7 @@ from mne.io.constants import FIFF
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      snapshot_brain_montage, plot_head_positions,
                      plot_alignment, plot_volume_source_estimates,
-                     plot_sensors_connectivity)
+                     plot_sensors_connectivity, plot_brain_colorbar)
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
                        _import_mlab, requires_nibabel, check_version,
@@ -556,5 +557,38 @@ def test_plot_sensors_connectivity():
                                   picks=picks)
 
     plot_sensors_connectivity(info=info, con=con, picks=picks)
+
+
+@pytest.mark.parametrize('orientation', ('horizontal', 'vertical'))
+@pytest.mark.parametrize('diverging', (True, False))
+@pytest.mark.parametrize('lims', ([0.5, 1, 10], [0, 1, 10]))
+def test_brain_colorbar(orientation, diverging, lims):
+    """Test brain colorbar plotting."""
+    _, ax = plt.subplots()
+    clim = dict(kind='value')
+    if diverging:
+        clim['pos_lims'] = lims
+    else:
+        clim['lims'] = lims
+    plot_brain_colorbar(ax, clim, orientation=orientation)
+    if orientation == 'vertical':
+        have, empty = ax.get_yticklabels, ax.get_xticklabels
+    else:
+        have, empty = ax.get_xticklabels, ax.get_yticklabels
+    if diverging:
+        if lims[0] == 0:
+            ticks = list(-np.array(lims[1:][::-1])) + lims
+        else:
+            ticks = list(-np.array(lims[::-1])) + [0] + lims
+    else:
+        ticks = lims
+    plt.draw()
+    # old mpl always spans 0->1 for the actual ticks, so we need to
+    # look at the labels
+    assert_array_equal(
+        [float(h.get_text().replace('−', '-')) for h in have()], ticks)
+    assert_array_equal(empty(), [])
+    plt.close('all')
+
 
 run_tests_if_main()

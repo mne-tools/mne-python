@@ -522,6 +522,7 @@ numpydoc_xref_aliases = {
     'Axes': 'matplotlib.axes.Axes',
     'Figure': 'matplotlib.figure.Figure',
     'Axes3D': 'mpl_toolkits.mplot3d.axes3d.Axes3D',
+    'ColorbarBase': 'matplotlib.colorbar.ColorbarBase',
     # Mayavi
     'mayavi.mlab.Figure': 'mayavi.core.api.Scene',
     'mlab.Figure': 'mayavi.core.api.Scene',

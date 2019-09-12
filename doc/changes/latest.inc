@@ -61,6 +61,8 @@ Changelog
 
 - Add scale bars for data channels in :func:`mne.io.Raw.plot` by `Eric Larson`_
 
+- Add :func:`mne.viz.plot_brain_colorbar` to plot a colorbar appropriately matched to a :func:`mne.viz.plot_source_estimates` plot by `Eric Larson`_
+
 - Add support for showing head surface (to visualize digitization fit) while showing a single-layer BEM to :func:`mne.viz.plot_alignment` by `Eric Larson`_
 
 - Add option ``include_tmax=True`` to cropping methods :meth:`mne.io.Raw.crop`, :meth:`mne.Epochs.crop`, :meth:`mne.Evoked.crop`, :meth:`mne.SourceEstimate.crop`, :meth:`mne.Dipole.crop`, and :meth:`mne.time_frequency.AverageTFR.crop` by `Eric Larson`_
