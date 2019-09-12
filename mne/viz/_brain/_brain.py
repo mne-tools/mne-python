@@ -8,7 +8,9 @@
 # License: Simplified BSD
 
 import numpy as np
-
+import os
+import nibabel as nib
+from os.path import join as pjoin
 from .colormap import _calculate_lut
 from .view import views_dict
 from .surface import Surface
@@ -561,7 +563,77 @@ class _Brain(object):
         -----
         To remove previously added labels, run Brain.remove_labels().
         """
-        pass
+        from matplotlib.colors import colorConverter
+        if isinstance(label, str):
+            hemi = self._check_hemi(hemi)
+            if color is None:
+                color = "crimson"
+
+            if os.path.isfile(label):
+                filepath = label
+                label_name = os.path.basename(filepath).split('.')[1]
+            else:
+                label_name = label
+                label_fname = ".".join([hemi, label_name, 'label'])
+                if subdir is None:
+                    filepath = pjoin(self.subjects_dir, self.subject_id,
+                                     'label', label_fname)
+                else:
+                    filepath = pjoin(self.subjects_dir, self.subject_id,
+                                     'label', subdir, label_fname)
+                if not os.path.exists(filepath):
+                    raise ValueError('Label file %s does not exist'
+                                     % filepath)
+            # Load the label data and create binary overlay
+            if scalar_thresh is None:
+                ids = nib.freesurfer.read_label(filepath)
+            else:
+                ids, scalars = nib.freesurfer.read_label(filepath,
+                                                         read_scalars=True)
+                ids = ids[scalars >= scalar_thresh]
+        else:
+            # try to extract parameters from label instance
+            try:
+                hemi = label.hemi
+                ids = label.vertices
+                if label.name is None:
+                    label_name = 'unnamed'
+                else:
+                    label_name = str(label.name)
+
+                if color is None:
+                    if hasattr(label, 'color') and label.color is not None:
+                        color = label.color
+                    else:
+                        color = "crimson"
+
+                if scalar_thresh is not None:
+                    scalars = label.values
+            except Exception:
+                raise ValueError('Label was not a filename (str), and could '
+                                 'not be understood as a class. The class '
+                                 'must have attributes "hemi", "vertices", '
+                                 '"name", and (if scalar_thresh is not None)'
+                                 '"values"')
+            hemi = self._check_hemi(hemi)
+
+            if scalar_thresh is not None:
+                ids = ids[scalars >= scalar_thresh]
+
+        label = np.zeros((self.geo[hemi].coords.shape[0], 4))
+        label[ids] = colorConverter.to_rgba(color, alpha)
+
+        for ri, v in enumerate(self._views):
+            if self._hemi != 'split':
+                ci = 0
+            else:
+                ci = 0 if hemi == 'lh' else 1
+            renderer = self._renderers[ri][ci]
+            renderer.mesh(x=self.geo[hemi].coords[:, 0],
+                          y=self.geo[hemi].coords[:, 1],
+                          z=self.geo[hemi].coords[:, 2],
+                          triangles=self.geo[hemi].faces,
+                          color=label)
 
     def remove_labels(self, labels=None, hemi=None):
         """Remove one or more previously added labels from the image.
@@ -625,7 +697,7 @@ class _Brain(object):
             logger.info("No active/running renderer available.")
 
     def show_view(self, view=None, roll=None, distance=None):
-        """Orient camera to display view"""
+        """Orient camera to display view."""
         pass
 
     def update_lut(self, fmin=None, fmid=None, fmax=None):
