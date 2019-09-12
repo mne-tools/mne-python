@@ -131,14 +131,8 @@ class _Renderer(_BaseRenderer):
 
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False):
-        if center.ndim == 1:
-            x = center[0]
-            y = center[1]
-            z = center[2]
-        elif center.ndim == 2:
-            x = center[:, 0]
-            y = center[:, 1]
-            z = center[:, 2]
+        center = np.atleast_2d(center)
+        x, y, z = center.T
         surface = self.mlab.points3d(x, y, z, color=color,
                                      resolution=resolution,
                                      scale_factor=scale, opacity=opacity,
