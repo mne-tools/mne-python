@@ -6,7 +6,7 @@ Examples
 --------
 .. code-block:: console
 
-    $ mne setup_source_space --subject sample --src filename-src.fif
+    $ mne setup_source_space --subject sample
 
 
  .. note : Only one of --ico, --oct or --spacing options can be set at the same
@@ -81,9 +81,7 @@ def run():
                       default=None)
     parser.add_option('-o', '--overwrite',
                       dest='overwrite',
-                      help='If True, the destination file (if it exists)'
-                            ' will be overwritten. If False (default),'
-                            ' an error will be raised if the file exists.',
+                      help='to write over existing files',
                       default=False)
 
     options, args = parser.parse_args()
@@ -122,10 +120,15 @@ def run():
             use_spacing = "oct" + str(oct)
         elif spacing is not None:
             use_spacing = spacing
-
-    if not (fname.endswith('_src.fif') or fname.endswith('-src.fif')):
-        fname = fname + "-src.fif"
-
+    # Generate filename
+    if fname is None:
+        if morh is None:
+            fname = subject + '_' + use_spacing + '-src.fif'
+        else:
+            fname = morph + '_' + subject + '_' + use_spacing + '-src.fif'
+    else:
+        if not (fname.endswith('_src.fif') or fname.endswith('-src.fif')):
+            fname = fname + "-src.fif"
     # Create source space
     src = mne.setup_source_space(subject=subject, spacing=use_spacing,
                                  surface=surface, subjects_dir=subjects_dir,
