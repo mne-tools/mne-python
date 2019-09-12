@@ -523,6 +523,60 @@ class _Brain(object):
                                bgcolor=(0.5, 0.5, 0.5))
             self._overlays[hemi + '_' + v] = mesh
 
+    def add_label(self, label, color=None, alpha=1, scalar_thresh=None,
+                  borders=False, hemi=None, subdir=None):
+        """Add an ROI label to the image.
+
+        Parameters
+        ----------
+        label : str | instance of Label
+            label filepath or name. Can also be an instance of
+            an object with attributes "hemi", "vertices", "name", and
+            optionally "color" and "values" (if scalar_thresh is not None).
+        color : matplotlib-style color | None
+            anything matplotlib accepts: string, RGB, hex, etc. (default
+            "crimson")
+        alpha : float in [0, 1]
+            alpha level to control opacity
+        scalar_thresh : None or number
+            threshold the label ids using this value in the label
+            file's scalar field (i.e. label only vertices with
+            scalar >= thresh)
+        borders : bool | int
+            Show only label borders. If int, specify the number of steps
+            (away from the true border) along the cortical mesh to include
+            as part of the border definition.
+        hemi : str | None
+            If None, it is assumed to belong to the hemipshere being
+            shown. If two hemispheres are being shown, an error will
+            be thrown.
+        subdir : None | str
+            If a label is specified as name, subdir can be used to indicate
+            that the label file is in a sub-directory of the subject's
+            label directory rather than in the label directory itself (e.g.
+            for ``$SUBJECTS_DIR/$SUBJECT/label/aparc/lh.cuneus.label``
+            ``brain.add_label('cuneus', subdir='aparc')``).
+
+        Notes
+        -----
+        To remove previously added labels, run Brain.remove_labels().
+        """
+        pass
+
+    def remove_labels(self, labels=None, hemi=None):
+        """Remove one or more previously added labels from the image.
+
+        Parameters
+        ----------
+        labels : None | str | list of str
+            Labels to remove. Can be a string naming a single label, or None to
+            remove all labels. Possible names can be found in the Brain.labels
+            attribute.
+        hemi : None
+            Deprecated parameter, do not use.
+        """
+        pass
+
     def index_for_time(self, time, rounding='closest'):
         """Find the data time index closest to a specific time point.
 
@@ -569,6 +623,10 @@ class _Brain(object):
             return self._renderers[0][0].show()
         except RuntimeError:
             logger.info("No active/running renderer available.")
+
+    def show_view(self, view=None, roll=None, distance=None):
+        """Orient camera to display view"""
+        pass
 
     def update_lut(self, fmin=None, fmid=None, fmax=None):
         u"""Update color map.
