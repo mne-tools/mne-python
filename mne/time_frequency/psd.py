@@ -103,6 +103,8 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
         arithmetic mean. If ``median``, calculate the median, corrected for
         its bias relative to the mean. If ``None``, returns the unaggregated
         segments.
+
+        .. versionadded:: 0.18
     %(n_jobs)s
     %(verbose)s
 
@@ -207,6 +209,8 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
         arithmetic mean. If ``median``, calculate the median, corrected for
         its bias relative to the mean. If ``None``, returns the unaggregated
         segments.
+
+        .. versionadded:: 0.18
     %(picks_good_data_noref)s
     proj : bool
         Apply SSP projection vectors. If inst is ndarray this is not used.
