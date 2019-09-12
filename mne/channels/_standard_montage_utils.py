@@ -115,7 +115,7 @@ def _read_biosemi(basename):
     pos *= HEAD_SIZE_DEFAULT  # XXXX: this should be done through radii
 
     ch_pos, nasion, lpa, rpa = _split_eeg_fid(
-        ch_pos=dict(zip(ch_names_, pos)),
+        ch_pos=dict(zip(ch_names, pos)),
         nz_str='Nz', lpa_str='LPA', rpa_str='RPA'
     )
 
