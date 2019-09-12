@@ -159,7 +159,7 @@ def test_stc_as_volume():
     assert isinstance(img, nib.Nifti1Image)
     assert img.shape[:3] == inverse_operator_vol['src'][0]['shape'][:3]
 
-    with pytest.raises(ValueError, match='invalid output'):
+    with pytest.raises(ValueError, match='Invalid value.*output.*'):
         stc_vol.as_volume(inverse_operator_vol['src'], format='42')
 
 
