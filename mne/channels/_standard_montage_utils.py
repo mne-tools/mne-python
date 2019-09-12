@@ -17,6 +17,7 @@ HEAD_SIZE_DEFAULT = 0.085  # in [m]
 
 
 def _split_eeg_fid(ch_pos, nz_str='Nz', lpa_str='LPA', rpa_str='RPA'):
+    # _ = [xx.pop(k, None) for k in list('ab')]
     nasion = ch_pos.pop(nz_str).reshape(3, ) if nz_str in ch_pos else None
     lpa = ch_pos.pop(lpa_str).reshape(3, ) if lpa_str in ch_pos else None
     rpa = ch_pos.pop(rpa_str).reshape(3, ) if rpa_str in ch_pos else None
@@ -36,8 +37,8 @@ def _read_egi_256():
         }
     )
 
-    ch_names, _, _, _, x, y, z, _ = np.loadtxt(fname, **options)
-    pos = np.stack([x, y, z], axis=-1)
+    ch_names, _, _, _, xs, ys, zs, _ = np.loadtxt(fname, **options)
+    pos = np.stack([xs, ys, zs], axis=-1)
 
     # Fix pos to match Montage code
     # pos -= np.mean(pos, axis=0)
