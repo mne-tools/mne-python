@@ -85,7 +85,8 @@ def get_hydrocel(basename):
             this_name, x, y, z = line
             ch_names_.append(this_name)
             pos.append([float(cord) for cord in (x, y, z)])
-    pos = np.asarray(pos)
+
+    pos = np.asarray(pos) * 0.01
 
     ch_pos, nasion, lpa, rpa = _split_eeg_fid(
         ch_pos=dict(zip(ch_names_, pos)),
