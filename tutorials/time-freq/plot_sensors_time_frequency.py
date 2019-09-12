@@ -96,23 +96,20 @@ kwargs = dict(fmin=2, fmax=40, n_jobs=1)
 psds_welch_mean, freqs_mean = psd_welch(epochs, average='mean', **kwargs)
 psds_welch_median, freqs_median = psd_welch(epochs, average='median', **kwargs)
 
-# The returned frequencies should be identical, since they were estimated from
-# the same input data.
-assert np.array_equal(freqs_mean, freqs_median)
-
 # Convert power to dB scale.
 psds_welch_mean = 10 * np.log10(psds_welch_mean)
 psds_welch_median = 10 * np.log10(psds_welch_median)
 
-# We will only plot the PSD for the third sensor in the first epoch.
-epo_idx, ch_idx = 0, 2
-ch_name = epochs.info['ch_names'][ch_idx]
+# We will only plot the PSD for a single sensor in the first epoch.
+ch_name = 'MEG 0122'
+ch_idx = epochs.info['ch_names'].index(ch_name)
+epo_idx = 0
 
 _, ax = plt.subplots()
-ax.plot(freqs_mean, psds_welch_mean[epo_idx, ch_idx, :], color='k', ls='-',
-        label='mean of segments')
-ax.plot(freqs_median, psds_welch_median[epo_idx, ch_idx, :], color='k',ls='--',
-        label='median of segments')
+ax.plot(freqs_mean, psds_welch_mean[epo_idx, ch_idx, :], color='k',
+        ls='-', label='mean of segments')
+ax.plot(freqs_median, psds_welch_median[epo_idx, ch_idx, :], color='k',
+        ls='--', label='median of segments')
 
 ax.set(title='Welch PSD ({}, Epoch {})'.format(ch_name, epo_idx),
        xlabel='Frequency', ylabel='Power Spectral Density (dB)')
@@ -120,13 +117,11 @@ ax.legend(loc='upper right')
 plt.show()
 
 ###############################################################################
-# Lastly, we can retrieve the unaggregated segments by passing ``average=None``
-# to :func:`mne.time_frequency.psd_welch`
-psds_welch_unagg, freqs_unagg = psd_welch(epochs, average=None, **kwargs)
+# Lastly, we can also retrieve the unaggregated segments by passing
+# ``average=None`` to :func:`mne.time_frequency.psd_welch`. The dimensions of
+# the returned array are ``(n_epochs, n_sensors, n_freqs, n_segments)``.
 
-###############################################################################
-# The dimensions of the returned array are:
-# n_epochs x n_sensors x n_freqs x n_segments
+psds_welch_unagg, freqs_unagg = psd_welch(epochs, average=None, **kwargs)
 print(psds_welch_unagg.shape)
 
 ###############################################################################
