@@ -16,15 +16,6 @@ MONTAGE_PATH = op.join(op.dirname(_CHANNELS_INIT_FILE), 'data', 'montages')
 HEAD_SIZE_DEFAULT = 0.085  # in [m]
 
 
-def _split_eeg_fid(ch_pos, nz_str='Nz', lpa_str='LPA', rpa_str='RPA'):
-    # _ = [xx.pop(k, None) for k in list('ab')]
-    nasion = ch_pos.pop(nz_str).reshape(3, ) if nz_str in ch_pos else None
-    lpa = ch_pos.pop(lpa_str).reshape(3, ) if lpa_str in ch_pos else None
-    rpa = ch_pos.pop(rpa_str).reshape(3, ) if rpa_str in ch_pos else None
-
-    return ch_pos, nasion, lpa, rpa
-
-
 def _read_egi_256():
     fname = op.join(MONTAGE_PATH, 'EGI_256.csd')
     options = dict(
@@ -75,7 +66,7 @@ def _read_easycap(basename):
     )
 
 
-def _read_hydrocel(basename):
+def _read_hydrocel(basename, fid_names=('FidNz', 'FidT9', 'FidT10')):
     fname = op.join(MONTAGE_PATH, basename)
     options = dict(
         unpack=True,
@@ -85,18 +76,13 @@ def _read_hydrocel(basename):
     ch_names, xs, ys, zs = np.loadtxt(fname, **options)
 
     pos = np.stack([xs, ys, zs], axis=-1) * 0.01
+    ch_pos = dict(zip(ch_names, pos))
+    _ = [ch_pos.pop(n, None) for n in fid_names]
 
-    ch_pos, nasion, lpa, rpa = _split_eeg_fid(
-        ch_pos=dict(zip(ch_names, pos)),
-        nz_str='FidNz', lpa_str='FidT9', rpa_str='FidT10'
-    )
-
-    return make_dig_montage(
-        ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='unknown',
-    )
+    return make_dig_montage(ch_pos=ch_pos, coord_frame='head')
 
 
-def _read_biosemi(basename):
+def _read_biosemi(basename, fid_names=('Nz', 'LPA', 'RPA')):
     fname = op.join(MONTAGE_PATH, basename)
     options = dict(
         skiprows=1,
@@ -115,18 +101,14 @@ def _read_biosemi(basename):
     # scale up to realistic head radius (8.5cm == 85mm):
     pos *= HEAD_SIZE_DEFAULT  # XXXX: this should be done through radii
 
-    ch_pos, nasion, lpa, rpa = _split_eeg_fid(
-        ch_pos=dict(zip(ch_names, pos)),
-        nz_str='Nz', lpa_str='LPA', rpa_str='RPA'
-    )
+    ch_pos = dict(zip(ch_names, pos))
+    _ = [ch_pos.pop(n, None) for n in fid_names]
 
-    return make_dig_montage(
-        ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='unknown',
-        # ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='head',
-    )
+    return make_dig_montage(ch_pos=ch_pos, coord_frame='head')
 
 
-def _read_mgh_or_standard(basename):
+
+def _read_mgh_or_standard(basename, fid_names=('Nz', 'LPA', 'RPA')):
     fname = op.join(MONTAGE_PATH, basename)
 
     ch_names_, pos = [], []
@@ -151,15 +133,13 @@ def _read_mgh_or_standard(basename):
             if not line or not set(line) - {' '}:
                 break
             ch_names_.append(line.strip(' ').strip('\n'))
+
     pos = np.array(pos) * scale_factor
 
-    ch_pos, nasion, lpa, rpa = _split_eeg_fid(
-        ch_pos=dict(zip(ch_names_, pos)),
-        nz_str='Nz', lpa_str='LPA', rpa_str='RPA'
-    )
-    return make_dig_montage(
-        ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='unknown',
-    )
+    ch_pos = dict(zip(ch_names_, pos))
+    _ = [ch_pos.pop(n, None) for n in fid_names]
+
+    return make_dig_montage(ch_pos=ch_pos, coord_frame='head')
 
 
 standard_montage_look_up_table = {
