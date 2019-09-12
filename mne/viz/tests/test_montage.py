@@ -6,11 +6,13 @@
 
 # Set our plotters to test mode
 import os.path as op
+import numpy as np
 
 import pytest
 import matplotlib.pyplot as plt
 
-from mne.channels import read_montage, read_dig_montage, read_dig_fif
+from mne.channels import (read_montage, read_dig_montage, read_dig_fif,
+                          make_dig_montage)
 
 p_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'kit', 'tests', 'data')
 elp = op.join(p_dir, 'test_elp.txt')
@@ -60,3 +62,10 @@ def test_plot_defect_montage():
         assert collection._edgecolors.shape[0] == n
         assert collection._facecolors.shape[0] == n
         assert collection._offsets.shape[0] == n
+
+
+def test_plot_digmontage():
+    """Test plot DigMontage."""
+    montage = make_dig_montage(ch_pos=dict(zip(list('abc'), np.eye(3))))
+    montage.plot()
+    plt.close('all')
