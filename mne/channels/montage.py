@@ -46,6 +46,7 @@ from ._dig_montage_utils import _fix_data_fiducials
 from ._dig_montage_utils import _parse_brainvision_dig_montage
 from ._dig_montage_utils import _get_fid_coords
 
+
 DEPRECATED_PARAM = object()
 _BUILT_IN_MONTAGES = [
     'EGI_256',
@@ -1555,7 +1556,6 @@ def compute_dev_head_t(montage):
     return Transform(fro='meg', to='head', trans=trans)
 
 
-from ._standard_montage_utils import standard_montage_look_up_table
 def read_standard_montage(kind):
     """Read a generic (built-in) montage.
 
@@ -1626,11 +1626,12 @@ def read_standard_montage(kind):
                           MGH (70+3 locations)
     ===================   =====================================================
 
-    .. versionadded:: 0.9.0
+    .. versionadded:: 0.19.0
     """
+    from ._standard_montage_utils import standard_montage_look_up_table
     if kind not in standard_montage_look_up_table:
-        # XXX: this is the old message needs update
-        raise ValueError('Could not find the montage. Please provide the '
-                         'full path.')
+        raise ValueError('Could not find the montage %s. Please provide one '
+                         'among: %s' % (kind,
+                                        standard_montage_look_up_table.keys()))
     else:
         return standard_montage_look_up_table[kind]()

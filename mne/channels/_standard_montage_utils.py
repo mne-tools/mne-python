@@ -1,5 +1,5 @@
 # Authors: Joan Massich <mailsik@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 import os.path as op
@@ -13,8 +13,7 @@ from . import __file__ as _CHANNELS_INIT_FILE
 
 MONTAGE_PATH = op.join(op.dirname(_CHANNELS_INIT_FILE), 'data', 'montages')
 
-# HEAD_SIZE_ESTIMATION = 0.085  # in [m]
-HEAD_SIZE_ESTIMATION = 1  # in [m]
+HEAD_SIZE_DEFAULT = 0.085  # in [m]
 
 
 def _split_eeg_fid(ch_pos, nz_str='Nz', lpa_str='LPA', rpa_str='RPA'):
@@ -42,7 +41,7 @@ def get_egi_256():
 
     # Fix pos to match Montage code
     # pos -= np.mean(pos, axis=0)
-    pos = 0.085 * (pos / np.linalg.norm(pos, axis=1).mean())
+    pos = HEAD_SIZE_DEFAULT * (pos / np.linalg.norm(pos, axis=1).mean())
 
     return make_dig_montage(
         ch_pos=dict(zip(ch_names, pos)),
@@ -59,10 +58,11 @@ def get_easycap(basename):
                'formats': (object, 'i4', 'i4')},
     )
     ch_names, theta, phi = np.loadtxt(fname, **options)
-    radious = np.full_like(phi, HEAD_SIZE_ESTIMATION)
-    pos = _sph_to_cart(np.stack([radious, phi, theta], axis=-1,))
+    radii = np.full_like(phi, 1.)
+    pos = _sph_to_cart(np.stack([radii, phi, theta], axis=-1,))
 
-    pos *= 0.085  # XXX this should work out of the box with HEAD_SIZE
+    # scale up to realistic head radius (8.5cm == 85mm):
+    pos *= HEAD_SIZE_DEFAULT
 
     return make_dig_montage(
         ch_pos=dict(zip(ch_names, pos)),
@@ -103,11 +103,11 @@ def get_biosemi(basename):
     ch_names_ = data[:, 0].tolist()
     az = np.deg2rad(data[:, 2].astype(float))
     pol = np.deg2rad(data[:, 1].astype(float))
-    rad = np.ones(len(az))  # spherical head model
-    # rad *= 85.  # scale up to realistic head radius (8.5cm == 85mm)
+    rad = np.ones(len(az))  # spherical head model of radius 1
     pos = _sph_to_cart(np.array([rad, az, pol]).T)
 
-    pos *= 0.085  # XXX this should work out of the box with HEAD_SIZE
+    # scale up to realistic head radius (8.5cm == 85mm):
+    pos *= HEAD_SIZE_DEFAULT
 
     ch_pos, nasion, lpa, rpa = _split_eeg_fid(
         ch_pos=dict(zip(ch_names_, pos)),
@@ -115,8 +115,7 @@ def get_biosemi(basename):
     )
 
     return make_dig_montage(
-        # ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='unknown',
-        ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='head',
+        ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa, coord_frame='unknown'
     )
 
 
