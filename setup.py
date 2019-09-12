@@ -45,6 +45,9 @@ if __name__ == "__main__":
     if op.exists('MANIFEST'):
         os.remove('MANIFEST')
 
+    with open('README.rst', 'r') as fid:
+        long_description = fid.read()
+
     setup(name=DISTNAME,
           maintainer=MAINTAINER,
           include_package_data=True,
@@ -54,7 +57,8 @@ if __name__ == "__main__":
           url=URL,
           version=VERSION,
           download_url=DOWNLOAD_URL,
-          long_description=open('README.rst').read(),
+          long_description=long_description,
+          long_description_content_type='text/x-rst',
           zip_safe=False,  # the package can run out of an .egg file
           classifiers=['Intended Audience :: Science/Research',
                        'Intended Audience :: Developers',
