@@ -43,7 +43,7 @@ def run():
     parser.add_option('--spacing',
                       dest='spacing',
                       help='Specifies the approximate grid spacing of the '
-                           'source space in mm. (defaults to 7 mm)',
+                           'source space in mm. (default to 7mm)',
                       default=None,
                       type='int')
     parser.add_option('--ico',
@@ -102,8 +102,6 @@ def run():
     verbose = True if options.verbose is not None else False
     overwrite = True if options.overwrite is not None else False
 
-    if fname is None:
-        raise ValueError("Output file name must be set (--src)")
     # Parse source spacing option
     spacing_options = [ico, oct, spacing]
     n_options = len([x for x in spacing_options if x is not None])
@@ -135,13 +133,12 @@ def run():
                                  verbose=verbose)
     # Morph source space if --morph is set
     if subject_to is not None:
-        sources = mne.morph_source_spaces(src, subject_to=subject_to,
-                                          subjects_dir=subjects_dir,
-                                          surf=surface,
-                                          verbose=verbose)
-    else:
-        sources = src
+        src = mne.morph_source_spaces(src, subject_to=subject_to,
+                                      subjects_dir=subjects_dir,
+                                      surf=surface,
+                                      verbose=verbose)
+
     # Save source space to file
-    sources.save(fname=fname, overwrite=overwrite)
+    src.save(fname=fname, overwrite=overwrite)
 
 mne.utils.run_command_if_main()
