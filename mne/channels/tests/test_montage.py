@@ -1309,32 +1309,34 @@ def test_set_montage_with_mismatching_ch_names():
     raw.set_montage(montage)  # does not raise
 
 
-# XXX: Just describing the current status
 def test_set_montage_with_sub_super_set_of_chnames():
-    """Test xxx."""
-    from mne.io import RawArray
-    info = create_info(ch_names=list('abc'), sfreq=1, ch_types='eeg')
+    """Test info and montage ch_names matching criteria."""
     montage = make_dig_montage(
         ch_pos=dict(zip(list('abcdf'), np.empty(shape=(5, 3))))
     )
 
-    # Subset case
-    _MSG = 'Montage channel d not found in info'
-    with pytest.raises(RuntimeError, match=_MSG):
-        # info.set_montage(montage)  # only set_montage in raw
-        _ = RawArray(
-            data=np.empty(shape=(len(info['ch_names']), 1)), info=info,
-        ).set_montage(montage)
+    # Montage and info match
+    _ = create_info(
+        ch_names=list('abcdf'), sfreq=1, ch_types='eeg', montage=montage
+    )
 
-    with pytest.raises(RuntimeError, match=_MSG):
-        _ = create_info(
+    # Montage is a SUPER-set of info
+    with pytest.warns(RuntimeWarning, match='super-set'):
+        info = create_info(
             ch_names=list('abc'), sfreq=1, ch_types='eeg', montage=montage
         )
+    assert len(info['dig']) == len(list('abc'))
 
-    # Superset case
-    with pytest.warns(RuntimeWarning, match='Did not set 2 channel positions'):
+    # Montage is a SUB-set of info
+    with pytest.raises(ValueError, match='sub-set'):
         _ = create_info(
             ch_names=list('abcdfgh'), sfreq=1, ch_types='eeg', montage=montage
+        )
+
+    # Disjoint case
+    with pytest.raises(ValueError, match='there are no shared ch_names'):
+        _ = create_info(
+            ch_names=list('xyz'), sfreq=1, ch_types='eeg', montage=montage
         )
 
 

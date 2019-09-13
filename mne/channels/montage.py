@@ -68,6 +68,37 @@ def _check_get_coord_frame(dig):
     return _frame_to_str[dig_coord_frames.pop()] if dig_coord_frames else None
 
 
+def _check_ch_names_are_compatible(info_names, montage_names):
+    assert isinstance(info_names, set) and isinstance(montage_names, set)
+
+    match = info_names & montage_names
+    not_in_montage = info_names - montage_names
+    not_in_info = montage_names - info_names
+
+    montage_is_subset = len(not_in_montage) > 0 and len(not_in_info) == 0
+    montage_is_superset = len(not_in_info) > 0 and len(not_in_montage) == 0
+
+    # XXX: maybe using the DigMontage name for the err. msg. is not ideal
+    if len(match) == 0:
+        raise ValueError(
+            'Cannot set up DigMontage when there are no shared ch_names.'
+        )
+    elif montage_is_subset:
+        raise ValueError(
+            'DigMontage is a only a sub-set of info. Aborting.'
+        )
+    elif montage_is_superset:
+        raise ValueError(
+            'DigMontage is a only a super-set of info. Aborting.'
+        )
+    elif len(not_in_montage) and len(not_in_info):
+        raise ValueError(
+            'DigMontage is both a subset and a superset of info. Aborting.'
+        )
+    else:
+        return True
+
+
 class Montage(object):
     """Montage for standard EEG electrode locations.
 
@@ -1292,6 +1323,12 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
                  'left untouched.')
 
     elif isinstance(montage, DigMontage):
+
+        # This raises based on info being sub/supper set of montage
+        assert _check_ch_names_are_compatible(
+            info_names=set(info['ch_names']),
+            montage_names=set(montage.ch_names),
+        )
 
         if set_dig:
             info['dig'] = montage.dig
