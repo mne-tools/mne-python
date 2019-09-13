@@ -28,6 +28,7 @@ from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           Transform)
 from .._digitization import Digitization
 from .._digitization.base import _count_points_by_type
+from .._digitization.base import _get_dig_eeg
 from .._digitization._utils import (_make_dig_points, _read_dig_points,
                                     write_dig, _read_dig_fif,
                                     _format_dig_points)
@@ -71,7 +72,7 @@ def _check_get_coord_frame(dig):
 def _check_ch_names_are_compatible(info_names, montage_names):
     assert isinstance(info_names, set) and isinstance(montage_names, set)
 
-    match = info_names & montage_names
+    match_set = info_names & montage_names
     not_in_montage = info_names - montage_names
     not_in_info = montage_names - info_names
 
@@ -79,7 +80,7 @@ def _check_ch_names_are_compatible(info_names, montage_names):
     montage_is_superset = len(not_in_info) > 0 and len(not_in_montage) == 0
 
     # XXX: maybe using the DigMontage name for the err. msg. is not ideal
-    if len(match) == 0:
+    if len(match_set) == 0:
         raise ValueError(
             'Cannot set up DigMontage when there are no shared ch_names.'
         )
@@ -88,15 +89,18 @@ def _check_ch_names_are_compatible(info_names, montage_names):
             'DigMontage is a only a sub-set of info. Aborting.'
         )
     elif montage_is_superset:
-        raise ValueError(
-            'DigMontage is a only a super-set of info. Aborting.'
+        warn(
+            'DigMontage is a only a super-set of info. Aborting.',
+            RuntimeWarning
         )
     elif len(not_in_montage) and len(not_in_info):
         raise ValueError(
             'DigMontage is both a subset and a superset of info. Aborting.'
         )
     else:
-        return True
+        pass  # noqa
+
+    return match_set
 
 
 class Montage(object):
@@ -822,8 +826,8 @@ class DigMontage(object):
         return self._ch_pos()
 
     def _get_ch_pos(self):
-        return dict(zip(self.ch_names,
-                        _foo_get_data_from_dig(self.dig).dig_ch_pos_location))
+        pos = [d['r'] for d in _get_dig_eeg(self.dig)]
+        return dict(zip(self.ch_names, pos))
 
     @property
     def elp(self):
@@ -1323,46 +1327,27 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
                  'left untouched.')
 
     elif isinstance(montage, DigMontage):
+        ch_pos = montage._get_ch_pos()
+        eeg_ref_pos = ch_pos.pop('EEG000', np.zeros(3))
 
         # This raises based on info being sub/supper set of montage
-        assert _check_ch_names_are_compatible(
+        matched_ch_names = _check_ch_names_are_compatible(
             info_names=set(info['ch_names']),
-            montage_names=set(montage.ch_names),
+            montage_names=set(ch_pos),
         )
 
         if set_dig:
+            # XXX: we need to check backcompat in set_dig=false
+            # XXX: this does not take into account ch_names
             info['dig'] = montage.dig
 
         if montage.dev_head_t is not None:
             info['dev_head_t'] = Transform('meg', 'head', montage.dev_head_t)
 
-        if montage.ch_names:  # update channel positions, too
-            dig_ch_pos = dict(zip(montage.ch_names, [
-                d['r'] for d in montage.dig
-                if d['kind'] == FIFF.FIFFV_POINT_EEG
-            ]))
-            eeg_ref_pos = dig_ch_pos.get('EEG000', np.zeros(3))
-            did_set = np.zeros(len(info['ch_names']), bool)
-            is_eeg = np.zeros(len(info['ch_names']), bool)
-            is_eeg[pick_types(info, meg=False, eeg=True, exclude=())] = True
-
-            for ch_name, ch_pos in dig_ch_pos.items():
-                if ch_name == 'EEG000':  # what if eeg ref. has different name?
-                    continue
-                if ch_name not in info['ch_names']:
-                    raise RuntimeError('Montage channel %s not found in info'
-                                       % ch_name)
-                idx = info['ch_names'].index(ch_name)
-                did_set[idx] = True
-                this_loc = np.concatenate((ch_pos, eeg_ref_pos))
-                info['chs'][idx]['loc'][:6] = this_loc
-
-            did_not_set = [info['chs'][ii]['ch_name']
-                           for ii in np.where(is_eeg & ~did_set)[0]]
-
-            if len(did_not_set) > 0:
-                warn('Did not set %s channel positions:\n%s'
-                     % (len(did_not_set), ', '.join(did_not_set)))
+        for name in matched_ch_names:
+            idx = info['ch_names'].index(name)
+            this_loc = np.concatenate((ch_pos[name], eeg_ref_pos))
+            info['chs'][idx]['loc'][:6] = this_loc
 
     elif montage is None:
         for ch in info['chs']:

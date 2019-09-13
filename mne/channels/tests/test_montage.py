@@ -732,7 +732,7 @@ def test_combining_digmontage_forbiden_behaviors():
         _ = dig1 + dig2_wrong_coordframe
 
 
-def test_set_dig_montage():
+def test_set_dig_montage_old():
     """Test applying DigMontage to inst."""
     # Extensive testing of applying `dig` to info is done in test_meas_info
     # with `test_make_dig_points`.
@@ -775,6 +775,36 @@ def test_set_dig_montage():
         assert_allclose(lpa_dig.ravel(), lpa, atol=1e-7)
         assert_allclose(rpa_dig.ravel(), rpa, atol=1e-7)
         assert_allclose(hpi_dig, elp_points[3:], atol=1e-7)
+
+
+def test_set_dig_montage():
+    """Test setting DigMontage with toy understandable points."""
+    N_CHANNELS = 3
+    ch_names = list(ascii_lowercase[:N_CHANNELS])
+    ch_pos = dict(zip(
+        ch_names,
+        np.arange(N_CHANNELS * 3).reshape(N_CHANNELS, 3),
+    ))
+
+    montage_without_ref = make_dig_montage(ch_pos=ch_pos, coord_frame='head')
+    montage_with_ref = make_dig_montage(
+        ch_pos=dict(**ch_pos, EEG000=np.full(3, 42)),
+        coord_frame='head'
+    )
+
+    info = create_info(ch_names=ch_names, sfreq=1, ch_types='eeg',
+                       montage=montage_without_ref)
+    assert_allclose(actual=np.array([ch['loc'][:6] for ch in info['chs']]),
+                    desired=[[0., 1., 2., 0., 0., 0.],
+                             [3., 4., 5., 0., 0., 0.],
+                             [6., 7., 8., 0., 0., 0.]])
+
+    info = create_info(ch_names=ch_names, sfreq=1, ch_types='eeg',
+                       montage=montage_with_ref)
+    assert_allclose(actual=np.array([ch['loc'][:6] for ch in info['chs']]),
+                    desired=[[0., 1., 2., 42., 42., 42.],
+                             [3., 4., 5., 42., 42., 42.],
+                             [6., 7., 8., 42., 42., 42.]])
 
 
 @testing.requires_testing_data
@@ -1311,9 +1341,8 @@ def test_set_montage_with_mismatching_ch_names():
 
 def test_set_montage_with_sub_super_set_of_chnames():
     """Test info and montage ch_names matching criteria."""
-    montage = make_dig_montage(
-        ch_pos=dict(zip(list('abcdf'), np.empty(shape=(5, 3))))
-    )
+    pos = np.arange(5 * 3).reshape(5, 3)
+    montage = make_dig_montage(ch_pos=dict(zip(list('abcdf'), pos)))
 
     # Montage and info match
     _ = create_info(
