@@ -45,7 +45,7 @@ from mne.viz._3d import _fiducial_coords
 from mne.io.kit import read_mrk
 from mne.io import (read_raw_brainvision, read_raw_egi, read_raw_fif,
                     read_raw_cnt, read_raw_edf, read_raw_nicolet, read_raw_bdf,
-                    read_raw_eeglab, read_fiducials, __file__ as _mne_io_file)
+                    read_raw_eeglab, read_fiducials, __file__ as _MNE_IO_FILE)
 
 from mne.datasets import testing
 
@@ -66,7 +66,7 @@ bdf_fname2 = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
 egi_fname1 = op.join(data_path, 'EGI', 'test_egi.mff')
 cnt_fname = op.join(data_path, 'CNT', 'scan41_short.cnt')
 
-io_dir = op.dirname(_mne_io_file)
+io_dir = op.dirname(_MNE_IO_FILE)
 kit_dir = op.join(io_dir, 'kit', 'tests', 'data')
 elp = op.join(kit_dir, 'test_elp.txt')
 hsp = op.join(kit_dir, 'test_hsp.txt')
@@ -1297,13 +1297,16 @@ def test_transform_to_head_and_compute_dev_head_t():
 def test_set_montage_with_mismatching_ch_names():
     """Test setting a DigMontage with mismatching ch_names."""
     raw = read_raw_fif(fif_fname)
-    # raw.set_montage('mgh60')  # XXX: Do we still want to be able to do that?
     montage = make_standard_montage('mgh60')
 
-    assert 'EEG 001' in raw.info['ch_names']
-    assert 'EEG001' in montage.ch_names
+    # 'EEG 001' and 'EEG001' wont match
+    with pytest.raises(RuntimeError, match='channel .*not found'):
+        raw.set_montage(montage)
 
-    raw.set_montage(montage)  # should it break?
+    montage.ch_names = [  # modify the names in place
+        name.replace('EEG', 'EEG ') for name in montage.ch_names
+    ]
+    raw.set_montage(montage)  # does not raise
 
 
 # XXX: Just describing the current status
