@@ -33,7 +33,7 @@ def run():
                       metavar='FILE', default=None)
     parser.add_option('--morph',
                       dest='subject_to',
-                      help='morph the soure space to this subject',
+                      help='morph the source space to this subject',
                       default=None)
     parser.add_option('--surf',
                       dest='surface',
