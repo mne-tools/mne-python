@@ -69,7 +69,8 @@ def init_cuda(ignore_config=False, verbose=None):
         return
     try:
         # Initialize CUDA
-        cupy.cuda.Device()
+        device_id = int(get_config('CUPY_CUDA_DEVICE', '0'))
+        cupy.cuda.Device(device_id).use()
     except Exception:
         warn('so CUDA device could be initialized, likely a hardware error, '
              'CUDA not enabled%s' % _explain_exception())

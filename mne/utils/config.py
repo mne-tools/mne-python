@@ -117,6 +117,7 @@ known_config_types = (
     'MNE_USE_CUDA',
     'MNE_SKIP_FS_FLASH_CALL',
     'SUBJECTS_DIR',
+    'CUPY_CUDA_DEVICE',
 )
 
 # These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
