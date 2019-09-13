@@ -407,8 +407,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions. If None,
         read sensor locations from header file if present, otherwise (0, 0, 0).
-        See the documentation of :func:`mne.channels.read_montage` for more
-        information.
+        See the documentation of :func:`mne.channels.read_dig_captrack` for
+        more information.
 
     Returns
     -------

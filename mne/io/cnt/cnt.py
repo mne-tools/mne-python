@@ -109,7 +109,7 @@ def read_raw_cnt(input_fname, montage='deprecated', eog=(), misc=(), ecg=(),
         sphere), all the channel locations will be distorted. If you are not
         sure that the channel locations in the header are correct, it is
         probably safer to use a (standard) montage. See
-        :func:`mne.channels.read_montage`
+        :func:`mne.channels.make_standard_montage`
 
     Parameters
     ----------
@@ -359,7 +359,7 @@ class RawCNT(BaseRaw):
         sphere), all the channel locations will be distorted. If you are not
         sure that the channel locations in the header are correct, it is
         probably safer to use a (standard) montage. See
-        :func:`mne.channels.read_montage`
+        :func:`mne.channels.make_standard_montage`
 
     Parameters
     ----------
@@ -369,7 +369,7 @@ class RawCNT(BaseRaw):
         Path or instance of montage containing electrode positions. If None,
         xy sensor locations are read from the header (``x_coord`` and
         ``y_coord`` in ``ELECTLOC``) and fit to a sphere. See the documentation
-        of :func:`mne.channels.read_montage` for more information.
+        of :func:`mne.channels.make_standard_montage` for more information.
     eog : list | tuple
         Names of channels or list of indices that should be designated
         EOG channels. If 'auto', the channel names beginning with
