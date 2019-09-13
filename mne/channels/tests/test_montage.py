@@ -756,28 +756,42 @@ def test_set_dig_montage_old():
 
 def test_set_dig_montage():
     """Test setting DigMontage with toy understandable points."""
-    N_CHANNELS = 3
+    N_CHANNELS, N_HSP, N_HPI = 3, 2, 1
     ch_names = list(ascii_lowercase[:N_CHANNELS])
     ch_pos = dict(zip(
         ch_names,
         np.arange(N_CHANNELS * 3).reshape(N_CHANNELS, 3),
     ))
 
-    montage_without_ref = make_dig_montage(ch_pos=ch_pos, coord_frame='head')
-    montage_with_ref = make_dig_montage(
-        ch_pos=dict(**ch_pos, EEG000=np.full(3, 42)),
-        coord_frame='head'
-    )
+    montage_ch_only = make_dig_montage(ch_pos=ch_pos, coord_frame='head')
 
-    info = create_info(ch_names=ch_names, sfreq=1, ch_types='eeg',
-                       montage=montage_without_ref)
+    assert montage_ch_only.__repr__() == (
+        '<DigMontage | 0 extras (headshape), 0 HPIs, 0 fiducials, 3 channels>'
+    )
+    info = create_info(ch_names, sfreq=1, ch_types='eeg',
+                       montage=montage_ch_only)
+    assert len(info['dig']) == len(montage_ch_only.dig)
+
     assert_allclose(actual=np.array([ch['loc'][:6] for ch in info['chs']]),
                     desired=[[0., 1., 2., 0., 0., 0.],
                              [3., 4., 5., 0., 0., 0.],
                              [6., 7., 8., 0., 0., 0.]])
 
-    info = create_info(ch_names=ch_names, sfreq=1, ch_types='eeg',
-                       montage=montage_with_ref)
+    montage_full = make_dig_montage(
+        ch_pos=dict(**ch_pos, EEG000=np.full(3, 42)),  # 4 = 3 egg + 1 eeg_ref
+        nasion=[1, 1, 1], lpa=[2, 2, 2], rpa=[3, 3, 3],
+        hsp=np.full((N_HSP, 3), 4),
+        hpi=np.full((N_HPI, 3), 4),
+        coord_frame='head'
+    )
+
+    assert montage_full.__repr__() == (
+        '<DigMontage | 2 extras (headshape), 1 HPIs, 3 fiducials, 4 channels>'
+    )
+
+    info = create_info(ch_names, sfreq=1, ch_types='eeg', montage=montage_full)
+    EXPECTED_LEN = sum({'hsp': 2, 'hpi': 1, 'fid': 3, 'eeg': 4 - 1}.values())
+    assert len(info['dig']) == EXPECTED_LEN
     assert_allclose(actual=np.array([ch['loc'][:6] for ch in info['chs']]),
                     desired=[[0., 1., 2., 42., 42., 42.],
                              [3., 4., 5., 42., 42., 42.],

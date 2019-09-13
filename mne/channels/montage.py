@@ -1336,6 +1336,10 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
             montage_names=set(ch_pos),
         )
 
+        for name in matched_ch_names:
+            _loc_view = info['chs'][info['ch_names'].index(name)]['loc']
+            _loc_view[:6] = np.concatenate((ch_pos[name], eeg_ref_pos))
+
         if set_dig:
             # XXX: we need to check backcompat in set_dig=false
             # XXX: this does not take into account ch_names
@@ -1343,10 +1347,6 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
 
         if montage.dev_head_t is not None:
             info['dev_head_t'] = Transform('meg', 'head', montage.dev_head_t)
-
-        for name in matched_ch_names:
-            _loc_view = info['chs'][info['ch_names'].index(name)]['loc']
-            _loc_view[:6] = np.concatenate((ch_pos[name], eeg_ref_pos))
 
     elif montage is None:
         for ch in info['chs']:
