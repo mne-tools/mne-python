@@ -829,6 +829,13 @@ class DigMontage(object):
         pos = [d['r'] for d in _get_dig_eeg(self.dig)]
         return dict(zip(self.ch_names, pos))
 
+    def _get_dig_point_name(self):
+        NAMED_KIND = (FIFF.FIFFV_POINT_EEG, FIFF.FIFFV_EEG_CH)
+        _ch_names = iter(self.ch_names)
+        for d in self.dig:
+            yield next(_ch_names) if d['kind'] in NAMED_KIND else None
+
+
     @property
     def elp(self):
         warn('"elp" attribute is deprecated and will be removed in v0.20',
@@ -1343,16 +1350,11 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
         if set_dig:
             # XXX: we need to check backcompat in set_dig=false
             # XXX: this does not take into account ch_names
+            keep = lambda x: x in matched_ch_names.union({None})  # noqa
+            _selection = [keep(name) for name in montage._get_dig_point_name()]
+            selection = [ii for ii, vv in enumerate(_selection) if vv]
 
-            NAMED_KIND = (FIFF.FIFFV_POINT_EEG, FIFF.FIFFV_EEG_CH)
-            is_eeg = [d['kind'] in NAMED_KIND for d in montage.dig]
-            names = iter(montage.ch_names)
-
-            foo = [next(names) if x else None for x in is_eeg]
-            # foo = [None, None, None, 'EEG000', None, None, 'a', 'b', 'c']
-
-            print(foo)
-            info['dig'] = montage.dig
+            info['dig'] = montage.dig[selection]
 
         if montage.dev_head_t is not None:
             info['dev_head_t'] = Transform('meg', 'head', montage.dev_head_t)
