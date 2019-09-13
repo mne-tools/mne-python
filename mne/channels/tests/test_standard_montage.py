@@ -10,18 +10,21 @@ import numpy as np
 
 from numpy.testing import assert_allclose
 
-from mne.channels.montage import _BUILT_IN_MONTAGES
 from mne.channels import make_standard_montage
 from mne._digitization.base import _get_dig_eeg
 from mne.channels.montage import get_builtin_montages
 from mne.io.constants import FIFF
 
 
-MONTAGES_WITHOUT_FIDUCIALS = ['EGI_256', 'easycap-M1', 'easycap-M10']
-MONTAGES_WITH_FIDUCIALS = [k for k in _BUILT_IN_MONTAGES
-                           if k not in MONTAGES_WITHOUT_FIDUCIALS]
-
 EXPECTED_HEAD_SIZE = 0.085
+
+
+@pytest.mark.parametrize('kind', get_builtin_montages())
+def test_all_points_in_standard_montages_are_in_head_coord(kind):
+    """Test standard montage are all in head coord."""
+    montage = make_standard_montage(kind)
+    for d in montage.dig:
+        assert d['coord_frame'] == FIFF.FIFFV_COORD_HEAD
 
 
 def test_standard_montage_errors():
@@ -51,15 +54,3 @@ def test_standard_montages_on_sphere(kind, tol):
         desired=np.full((eeg_loc.shape[0], ), EXPECTED_HEAD_SIZE),
         atol=tol,
     )
-
-
-def _is_in_head(montage):
-    for d in montage.dig:
-        assert d['coord_frame'] == FIFF.FIFFV_COORD_HEAD
-
-
-def test_standard_montages_in_head_coord():
-    """Test standard montage are all in head coord."""
-    for current_montage in get_builtin_montages():
-        montage = make_standard_montage(current_montage)
-        _is_in_head(montage)
