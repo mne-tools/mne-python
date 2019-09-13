@@ -21,7 +21,7 @@ import numpy as np
 #           :ref:`tut-info-class`. See also :ref:`ex-array-classes`.
 #
 # Normally, :class:`mne.Info` objects are created by the various
-# :ref:`data import functions <ch_convert>`.
+# data import functions.
 # However, if you wish to create one from scratch, you can use the
 # :func:`mne.create_info` function to initialize the minimally required
 # fields. Further fields can be assigned later as one would with a regular

@@ -135,8 +135,8 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None,
     -----
     When no structural MRI is available for a subject, an average brain can be
     substituted. Freesurfer comes with such an average brain model, and MNE
-    comes with some auxiliary files which make coregistration easier (see
-    :ref:`CACGEAFI`). :py:func:`create_default_subject` copies the relevant
+    comes with some auxiliary files which make coregistration easier.
+    :py:func:`create_default_subject` copies the relevant
     files from Freesurfer into the current subjects_dir, and also adds the
     auxiliary files provided by MNE.
     """

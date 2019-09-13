@@ -10,16 +10,17 @@ Before you install
 Overview of the MNE tools suite
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- :doc:`MNE-C <../manual/c_reference>` was the initial stage of this project,
+- MNE-C was the initial stage of this project,
   providing a set of interrelated command-line and GUI programs focused on
   computing cortically constrained Minimum Norm Estimates from MEG and EEG
-  data. These tools were written in C by Matti Hämäläinen.
+  data. These tools were written in C by Matti Hämäläinen, and are
+  documented `here <MNE-C manual_>`_.
 
 - :doc:`MNE-Python <../python_reference>` reimplements the functionality of
   MNE-C, and extends considerably the analysis and visualization capabilities.
   MNE-Python is collaboratively developed and has more than 150 contributors.
 
-- The :doc:`../manual/matlab` provides a MATLAB interface to the .fif file
+- The :ref:`mne_matlab` provides a MATLAB interface to the .fif file
   format and other MNE data structures, and provides example MATLAB
   implementations of some of the core analysis functionality of MNE-C. It is
   distributed alongside MNE-C, and can also be downloaded from the `MNE-MATLAB
