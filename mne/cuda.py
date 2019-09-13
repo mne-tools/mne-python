@@ -63,14 +63,14 @@ def init_cuda(ignore_config=False, verbose=None):
     # Triage possible errors for informative messaging
     _cuda_capable = False
     try:
-        import cupy
+        import cupy  # noqa
     except ImportError:
         warn('module cupy not found, CUDA not enabled')
         return
     try:
         # Initialize CUDA
-        device_id = int(get_config('CUPY_CUDA_DEVICE', '0'))
-        cupy.cuda.Device(device_id).use()
+        device_id = int(get_config('MNE_CUDA_DEVICE', '0'))
+        _set_cuda_device(device_id, verbose)
     except Exception:
         warn('so CUDA device could be initialized, likely a hardware error, '
              'CUDA not enabled%s' % _explain_exception())
@@ -79,6 +79,30 @@ def init_cuda(ignore_config=False, verbose=None):
     _cuda_capable = True
     # Figure out limit for CUDA FFT calculations
     logger.info('Enabling CUDA with %s available memory' % get_cuda_memory())
+
+
+@verbose
+def set_cuda_device(device_id, verbose=None):
+    """Set the CUDA device temporarily for the current session.
+
+    Parameters
+    ----------
+    device_id : int
+        Numeric ID of the CUDA-capable device you want MNE-Python to use.
+    %(verbose)s
+    """
+    if not _cuda_capable:
+        warn('CUDA is not enabled; did you forget to run `init_cuda()`?')
+    else:
+        _set_cuda_device(device_id, verbose)
+
+
+@verbose
+def _set_cuda_device(device_id, verbose=None):
+    """Set the CUDA device."""
+    import cupy
+    cupy.cuda.Device(device_id).use()
+    logger.info('Now using CUDA device {}'.format(device_id))
 
 
 ###############################################################################

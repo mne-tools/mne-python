@@ -84,6 +84,7 @@ known_config_types = (
     'MNE_COREG_WINDOW_HEIGHT',
     'MNE_COREG_WINDOW_WIDTH',
     'MNE_COREG_SUBJECTS_DIR',
+    'MNE_CUDA_DEVICE',
     'MNE_CUDA_IGNORE_PRECISION',
     'MNE_DATA',
     'MNE_DATASETS_BRAINSTORM_PATH',
@@ -117,7 +118,6 @@ known_config_types = (
     'MNE_USE_CUDA',
     'MNE_SKIP_FS_FLASH_CALL',
     'SUBJECTS_DIR',
-    'CUPY_CUDA_DEVICE',
 )
 
 # These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
