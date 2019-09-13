@@ -1345,9 +1345,8 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
             info['dev_head_t'] = Transform('meg', 'head', montage.dev_head_t)
 
         for name in matched_ch_names:
-            idx = info['ch_names'].index(name)
-            this_loc = np.concatenate((ch_pos[name], eeg_ref_pos))
-            info['chs'][idx]['loc'][:6] = this_loc
+            _loc_view = info['chs'][info['ch_names'].index(name)]['loc']
+            _loc_view[:6] = np.concatenate((ch_pos[name], eeg_ref_pos))
 
     elif montage is None:
         for ch in info['chs']:
