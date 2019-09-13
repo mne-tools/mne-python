@@ -751,30 +751,7 @@ def test_set_dig_montage_old():
     fname_temp = op.join(temp_dir, 'test.fif')
     montage.save(fname_temp)
     with pytest.deprecated_call():
-        montage_read = read_dig_montage(fif=fname_temp)
-    for use_mon in (montage, montage_read):
-        info = create_info(['Test Ch'], 1e3, ['eeg'])
-        with pytest.warns(None):  # warns on one run about not all positions
-            _set_montage(info, use_mon)
-        hs = np.array([p['r'] for i, p in enumerate(info['dig'])
-                       if p['kind'] == FIFF.FIFFV_POINT_EXTRA])
-        nasion_dig = np.array([p['r'] for p in info['dig']
-                               if all([p['ident'] == FIFF.FIFFV_POINT_NASION,
-                                       p['kind'] == FIFF.FIFFV_POINT_CARDINAL])
-                               ])
-        lpa_dig = np.array([p['r'] for p in info['dig']
-                            if all([p['ident'] == FIFF.FIFFV_POINT_LPA,
-                                    p['kind'] == FIFF.FIFFV_POINT_CARDINAL])])
-        rpa_dig = np.array([p['r'] for p in info['dig']
-                            if all([p['ident'] == FIFF.FIFFV_POINT_RPA,
-                                    p['kind'] == FIFF.FIFFV_POINT_CARDINAL])])
-        hpi_dig = np.array([p['r'] for p in info['dig']
-                            if p['kind'] == FIFF.FIFFV_POINT_HPI])
-        assert_allclose(hs, hsp_points, atol=1e-7)
-        assert_allclose(nasion_dig.ravel(), nasion, atol=1e-7)
-        assert_allclose(lpa_dig.ravel(), lpa, atol=1e-7)
-        assert_allclose(rpa_dig.ravel(), rpa, atol=1e-7)
-        assert_allclose(hpi_dig, elp_points[3:], atol=1e-7)
+        _ = read_dig_montage(fif=fname_temp)
 
 
 def test_set_dig_montage():
