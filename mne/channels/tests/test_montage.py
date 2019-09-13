@@ -1306,4 +1306,33 @@ def test_set_montage_with_mismatching_ch_names():
     raw.set_montage(montage)  # should it break?
 
 
+# XXX: Just describing the current status
+def test_set_montage_with_sub_super_set_of_chnames():
+    """Test xxx."""
+    from mne.io import RawArray
+    info = create_info(ch_names=list('abc'), sfreq=1, ch_types='eeg')
+    montage = make_dig_montage(
+        ch_pos=dict(zip(list('abcdf'), np.empty(shape=(5, 3))))
+    )
+
+    # Subset case
+    _MSG = 'Montage channel d not found in info'
+    with pytest.raises(RuntimeError, match=_MSG):
+        # info.set_montage(montage)  # only set_montage in raw
+        _ = RawArray(
+            data=np.empty(shape=(len(info['ch_names']), 1)), info=info,
+        ).set_montage(montage)
+
+    with pytest.raises(RuntimeError, match=_MSG):
+        _ = create_info(
+            ch_names=list('abc'), sfreq=1, ch_types='eeg', montage=montage
+        )
+
+    # Superset case
+    with pytest.warns(RuntimeWarning, match='Did not set 2 channel positions'):
+        _ = create_info(
+            ch_names=list('abcdfgh'), sfreq=1, ch_types='eeg', montage=montage
+        )
+
+
 run_tests_if_main()
