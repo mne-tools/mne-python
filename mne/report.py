@@ -665,7 +665,7 @@ footer_template = HTMLTemplate(u"""
 <div class="footer">
         &copy; Copyright 2012-{{current_year}}, MNE Developers.
       Created on {{date}}.
-      Powered by <a href="http://martinos.org/mne">MNE.
+      Powered by <a href="http://mne.tools/">MNE.
 </div>
 </html>
 """)

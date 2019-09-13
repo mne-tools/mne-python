@@ -20,8 +20,8 @@
 .. |Zenodo| image:: https://zenodo.org/badge/5822/mne-tools/mne-python.svg
 .. _Zenodo: https://zenodo.org/badge/latestdoi/5822/mne-tools/mne-python
 
-.. |MNE| image:: https://martinos.org/mne/stable/_static/mne_logo.png
-.. _MNE: https://martinos.org/mne
+.. |MNE| image:: https://mne.tools/stable/_static/mne_logo.png
+.. _MNE: https://mne.tools/dev/
 
 MNE-Python
 ==========
@@ -101,7 +101,7 @@ Contributing to MNE-Python
 
 Please see the documentation on the MNE-Python homepage:
 
-https://martinos.org/mne/contributing.html
+https://mne.tools/dev/contributing.html
 
 
 Mailing list
@@ -149,7 +149,7 @@ MNE-Python is **BSD-licenced** (3 clause):
     damage.**
 
 
-.. _MNE-Python software: https://martinos.org/mne
-.. _MNE documentation: http://martinos.org/mne/documentation.html
-.. _getting started page: https://martinos.org/mne/getting_started.html
+.. _MNE-Python software: https://mne.tools/dev/
+.. _MNE documentation: https://mne.tools/dev/overview/index.html
+.. _getting started page: https://mne.tools/dev/install/index.html
 .. _pip: https://pip.pypa.io/en/stable/

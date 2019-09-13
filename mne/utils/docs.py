@@ -731,7 +731,7 @@ def open_docs(kind=None, version=None):
     if version is None:
         version = get_config('MNE_DOCS_VERSION', 'stable')
     _check_option('version', version, ['stable', 'dev'])
-    webbrowser.open_new_tab('https://martinos.org/mne/%s/%s' % (version, kind))
+    webbrowser.open_new_tab('https://mne.tools/%s/%s' % (version, kind))
 
 
 # Following deprecated class copied from scikit-learn
