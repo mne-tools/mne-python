@@ -17,7 +17,6 @@ import numpy as np
 
 from ..transforms import apply_trans, get_ras_to_neuromag_trans
 
-from ..io.constants import FIFF
 from ..utils import _check_fname, Bunch, warn
 
 
@@ -87,13 +86,6 @@ def _transform_to_head_call(data):
     return data
 
 
-_cardinal_ident_mapping = {
-    FIFF.FIFFV_POINT_NASION: 'nasion',
-    FIFF.FIFFV_POINT_LPA: 'lpa',
-    FIFF.FIFFV_POINT_RPA: 'rpa',
-}
-
-
 # XXX: to split as _parse like bvct
 def _read_dig_montage_egi(
         fname,
@@ -148,72 +140,6 @@ def _read_dig_montage_egi(
         # not EGI stuff
         hsp=None, hpi=None, elp=None, point_names=None,
     )
-
-
-# XXX: this should go in _digitization/utils
-def _foo_get_data_from_dig(dig):
-    # XXXX:
-    # This does something really similar to _read_dig_montage_fif but:
-    #   - does not check coord_frame
-    #   - does not do any operation that implies assumptions with the names
-
-    # Split up the dig points by category
-    hsp, hpi, elp = list(), list(), list()
-    fids, dig_ch_pos_location = dict(), list()
-
-    for d in dig:
-        if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
-            fids[_cardinal_ident_mapping[d['ident']]] = d['r']
-        elif d['kind'] == FIFF.FIFFV_POINT_HPI:
-            hpi.append(d['r'])
-            elp.append(d['r'])
-            # XXX: point_names.append('HPI%03d' % d['ident'])
-        elif d['kind'] == FIFF.FIFFV_POINT_EXTRA:
-            hsp.append(d['r'])
-        elif d['kind'] == FIFF.FIFFV_POINT_EEG:
-            # XXX: dig_ch_pos['EEG%03d' % d['ident']] = d['r']
-            dig_ch_pos_location.append(d['r'])
-
-    dig_coord_frames = set([d['coord_frame'] for d in dig])
-    assert len(dig_coord_frames) == 1, 'Only single coordinate frame in dig is supported' # noqa # XXX
-
-    return Bunch(
-        nasion=fids.get('nasion', None),
-        lpa=fids.get('lpa', None),
-        rpa=fids.get('rpa', None),
-        hsp=np.array(hsp) if len(hsp) else None,
-        hpi=np.array(hpi) if len(hpi) else None,
-        elp=np.array(elp) if len(elp) else None,
-        dig_ch_pos_location=dig_ch_pos_location,
-        coord_frame=dig_coord_frames.pop(),
-    )
-
-
-# XXX: this should go in _digitization/utils
-def _get_fid_coords(dig):
-    fid_coords = Bunch(nasion=None, lpa=None, rpa=None)
-    fid_coord_frames = dict()
-
-    for d in dig:
-        if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
-            key = _cardinal_ident_mapping[d['ident']]
-            fid_coords[key] = d['r']
-            fid_coord_frames[key] = d['coord_frame']
-
-    if len(fid_coord_frames) > 0:
-        if set(fid_coord_frames.keys()) != set(['nasion', 'lpa', 'rpa']):
-            raise ValueError("Some fiducial points are missing (got %s)." %
-                             fid_coords.keys())
-
-        if len(set(fid_coord_frames.values())) > 1:
-            raise ValueError(
-                'All fiducial points must be in the same coordinate system '
-                '(got %s)' % len(fid_coord_frames)
-            )
-
-    coord_frame = fid_coord_frames.popitem()[1] if fid_coord_frames else None
-
-    return fid_coords, coord_frame
 
 
 # XXX: to remove in 0.20

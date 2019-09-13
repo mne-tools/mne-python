@@ -37,14 +37,13 @@ from ..io.constants import FIFF
 from ..utils import (warn, copy_function_doc_to_method_doc,
                      _check_option, Bunch, deprecated, _validate_type,
                      _check_fname)
+from .._digitization._utils import _get_fid_coords, _foo_get_data_from_dig
 
 from .layout import _pol_to_cart, _cart_to_sph
 from ._dig_montage_utils import _transform_to_head_call
 from ._dig_montage_utils import _read_dig_montage_egi, _read_dig_montage_bvct
-from ._dig_montage_utils import _foo_get_data_from_dig
 from ._dig_montage_utils import _fix_data_fiducials
 from ._dig_montage_utils import _parse_brainvision_dig_montage
-from ._dig_montage_utils import _get_fid_coords
 
 
 DEPRECATED_PARAM = object()
