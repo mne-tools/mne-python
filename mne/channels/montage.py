@@ -68,6 +68,10 @@ def _check_get_coord_frame(dig):
     return _frame_to_str[dig_coord_frames.pop()] if dig_coord_frames else None
 
 
+# @deprecated(
+#     'Montage class is deprecated and will be removed in v0.20.'
+#     ' Please use DigMontage instead.'
+# )
 class Montage(object):
     """Montage for standard EEG electrode locations.
 
@@ -136,6 +140,13 @@ def get_builtin_montages():
     return _BUILT_IN_MONTAGES
 
 
+@deprecated(
+    '``read_montage`` is deprecated and will be removed in v0.20. Please use'
+    ' ``read_dig_fif``, ``read_dig_egi`` or ``read_dig_captrack``'
+    ' to read a digitization based on your needs instead;'
+    ' or ``make_standard_montage`` to create ``DigMontage`` based on template;'
+    ' or ``make_dig_montage`` to create a ``DigMontage`` out of np.arrays'
+)
 def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     """Read a generic (built-in) montage.
 

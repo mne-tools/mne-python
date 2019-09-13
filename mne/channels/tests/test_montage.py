@@ -26,6 +26,7 @@ from mne.channels.montage import _set_montage, make_dig_montage
 from mne.channels.montage import transform_to_head
 from mne.channels import read_polhemus_fastscan, read_dig_polhemus_isotrak
 from mne.channels import compute_dev_head_t
+from mne.channels import make_standard_montage
 
 from mne.channels._dig_montage_utils import _transform_to_head_call
 from mne.channels._dig_montage_utils import _fix_data_fiducials
@@ -223,7 +224,9 @@ def test_montage():
         with open(fname, 'w') as fid:
             fid.write(text)
         unit = 'mm' if kind == 'bvef' else 'm'
-        montage = read_montage(fname, unit=unit)
+        with pytest.deprecated_call():
+            # XXX: maybe this should be updated to new call
+            montage = read_montage(fname, unit=unit)
         if kind in ('sfp', 'txt'):
             assert ('very_very_very_long_name' in montage.ch_names)
         assert_equal(len(montage.ch_names), 4)
@@ -252,13 +255,8 @@ def test_montage():
     # Bvef is either auto or mm in terms of "units"
     with pytest.raises(ValueError, match='be "auto" or "mm" for .bvef files.'):
         bvef_file = op.join(tempdir, 'test.' + 'bvef')
-        read_montage(bvef_file, unit='m')
-
-    # Test reading in different letter case.
-    ch_names = ["F3", "FZ", "F4", "FC3", "FCz", "FC4", "C3", "CZ", "C4", "CP3",
-                "CPZ", "CP4", "P3", "PZ", "P4", "O1", "OZ", "O2"]
-    montage = read_montage('standard_1020', ch_names=ch_names)
-    assert_array_equal(ch_names, montage.ch_names)
+        with pytest.deprecated_call():
+            read_montage(bvef_file, unit='m')
 
     # test transform
     input_strs = ["""
@@ -285,7 +283,10 @@ def test_montage():
         fname = op.join(tempdir, kind)
         with open(fname, 'w') as fid:
             fid.write(input_str)
-        montage = read_montage(op.join(tempdir, kind), transform=True)
+
+        with pytest.deprecated_call():
+            # XXX: This is a regression test that might need to be translated.
+            montage = read_montage(op.join(tempdir, kind), transform=True)
 
         # check coordinate transformation
         pos = np.array([-95.0, -31.0, -3.0])
@@ -301,7 +302,9 @@ def test_montage():
         assert_array_equal(montage.rpa[[1, 2]], [0, 0])
         pos = np.array([-95.0, -31.0, -3.0])
         montage_fname = op.join(tempdir, kind)
-        montage = read_montage(montage_fname, unit='mm')
+        with pytest.deprecated_call():
+            # XXX: This is a regression test that might need to be translated.
+            montage = read_montage(montage_fname, unit='mm')
         assert_array_equal(montage.pos[0], pos * 1e-3)
 
         # test with last
@@ -348,21 +351,6 @@ def test_montage():
         _set_montage(info, montage, set_dig=False)
     assert (info['dig'] is None)
 
-    # test get_pos2d method
-    montage = read_montage("standard_1020")
-    c3 = montage.get_pos2d()[montage.ch_names.index("C3")]
-    c4 = montage.get_pos2d()[montage.ch_names.index("C4")]
-    fz = montage.get_pos2d()[montage.ch_names.index("Fz")]
-    oz = montage.get_pos2d()[montage.ch_names.index("Oz")]
-    f1 = montage.get_pos2d()[montage.ch_names.index("F1")]
-    assert (c3[0] < 0)  # left hemisphere
-    assert (c4[0] > 0)  # right hemisphere
-    assert (fz[1] > 0)  # frontal
-    assert (oz[1] < 0)  # occipital
-    assert_allclose(fz[0], 0, atol=1e-2)  # midline
-    assert_allclose(oz[0], 0, atol=1e-2)  # midline
-    assert (f1[0] < 0 and f1[1] > 0)  # left frontal
-
     # test get_builtin_montages function
     montages = get_builtin_montages()
     assert (len(montages) > 0)  # MNE should always ship with montages
@@ -373,7 +361,9 @@ def test_montage():
 @testing.requires_testing_data
 def test_read_locs():
     """Test reading EEGLAB locs."""
-    pos = read_montage(locs_montage_fname).pos
+    with pytest.deprecated_call():
+        # XXX: needs read_dig_xxxx to create DigMontage from `.locs`
+        pos = read_montage(locs_montage_fname).pos
     expected = [[0., 9.99779165e-01, -2.10157875e-02],
                 [3.08738197e-01, 7.27341573e-01, -6.12907052e-01],
                 [-5.67059636e-01, 6.77066318e-01, 4.69067752e-01],
@@ -959,14 +949,38 @@ def test_set_montage():
     raw = read_raw_fif(fif_fname)
     orig_pos = np.array([ch['loc'][:3] for ch in raw.info['chs']
                          if ch['ch_name'].startswith('EEG')])
-    raw.set_montage('mgh60')  # test loading with string argument
+    with pytest.deprecated_call():
+        raw.set_montage('mgh60')  # test loading with string argument
     new_pos = np.array([ch['loc'][:3] for ch in raw.info['chs']
                         if ch['ch_name'].startswith('EEG')])
     assert ((orig_pos != new_pos).all())
     r0 = _fit_sphere(new_pos)[1]
     assert_allclose(r0, [0., -0.016, 0.], atol=1e-3)
+
     # mgh70 has no 61/62/63/64 (these are EOG/ECG)
-    mon = read_montage('mgh70')
+    mon = make_standard_montage('mgh70')
+    assert 'EEG061' not in mon.ch_names
+    assert 'EEG074' in mon.ch_names
+
+
+@pytest.mark.skip(reason='todo')
+def test_set_montage_with_template_when_ch_names_dont_match():
+    """Test setting a montage."""
+    raw = read_raw_fif(fif_fname)
+    orig_pos = np.array([ch['loc'][:3] for ch in raw.info['chs']
+                         if ch['ch_name'].startswith('EEG')])
+    # test loading with string argument
+    raw.set_montage(make_standard_montage('mgh60'))
+    new_pos = np.array([ch['loc'][:3] for ch in raw.info['chs']
+                        if ch['ch_name'].startswith('EEG')])
+    assert ((orig_pos != new_pos).all())
+    r0 = _fit_sphere(new_pos)[1]
+    assert_allclose(r0, [0., -0.016, 0.], atol=1e-3)
+
+
+    # XXX: this needs translation
+    # mgh70 has no 61/62/63/64 (these are EOG/ECG)
+    mon = make_standard_montage('mgh70')
     assert 'EEG061' not in mon.ch_names
     assert 'EEG074' in mon.ch_names
 
@@ -1138,9 +1152,11 @@ EXPECTED_DIG_RPR = [
 
 def test_setting_hydrocel_montage():
     """Test set_montage using GSN-HydroCel-32."""
+    # XXX: deprecated. To be removed in v0.20
     from mne.io import RawArray
 
-    montage = read_montage('GSN-HydroCel-32')
+    with pytest.deprecated_call():
+        montage = read_montage('GSN-HydroCel-32')
     ch_names = [name for name in montage.ch_names if name.startswith('E')]
     montage.pos /= 1e3
 
