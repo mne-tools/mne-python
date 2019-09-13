@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-'''Set up bilateral hemisphere surface-based source space with subsampling
- using :func:`mne.setup_source_space`
+"""Set up bilateral hemisphere surface-based source space with subsampling
 
 Examples
 --------
@@ -10,9 +9,9 @@ Examples
 
 
  .. note : Only one of --ico, --oct or --spacing options can be set at the same
-           time. Default to spacing = 7mm .
+           time. Default to spacing = 7mm.
 
-'''
+"""
 
 import sys
 
