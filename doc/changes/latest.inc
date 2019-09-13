@@ -15,6 +15,8 @@ Current (0.19.dev0)
 Changelog
 ~~~~~~~~~
 
+- Add :func:`mne.channels.make_standard_montage` to create :class:`mne.channels.DigMontage` from templates by `Joan Massich`_ and `Alex Gramfort`_.
+
 - Add :func:`mne.channels.compute_dev_head_t` to compute Device-to-Head transformation from a montage by `Joan Massich`_ and `Alex Gramfort`_.
 
 - Add :func:`mne.channels.read_dig_polhemus_isotrak` and :func:`mne.channels.read_polhemus_fastscan` to read Polhemus data by `Joan Massich`_
