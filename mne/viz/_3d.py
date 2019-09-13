@@ -1989,12 +1989,11 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         plot_map_callback(params['img_idx'], title='',
                           cut_coords=cut_coords)
         loc_idx = _cut_coords_to_idx(cut_coords, params['img_idx'])
+        ydata = stc.data[loc_idx]
         if loc_idx is not None:
-            ax_time.lines[0].set_ydata(stc.data[loc_idx].T)
+            ax_time.lines[0].set_ydata(ydata)
         else:
             ax_time.lines[0].set_ydata(0.)
-        ax_time.relim()
-        ax_time.autoscale_view()
         params['fig'].canvas.draw()
 
     if mode == 'glass_brain':
@@ -2057,18 +2056,34 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
     # Plot initial figure
     fig, (axes, ax_time) = plt.subplots(2)
+    axes.set(xticks=[], yticks=[])
     marker = 'o' if len(stc.times) == 1 else None
-    ax_time.plot(stc.times, stc.data[loc_idx].T, color='k', marker=marker)
+    ydata = stc.data[loc_idx]
+    ax_time.plot(stc.times, ydata, color='k', marker=marker, clip_on=False)
     if len(stc.times) > 1:
         ax_time.set(xlim=stc.times[[0, -1]])
     ax_time.set(xlabel='Time (s)', ylabel='Activation')
     lx = ax_time.axvline(stc.times[time_idx], color='g')
-    axes.set(xticks=[], yticks=[])
     fig.tight_layout()
 
     allow_pos_lims = (mode != 'glass_brain')
-    colormap, scale_pts, diverging, _, _ = _limits_to_control_points(
+    colormap, scale_pts, diverging, _, ticks = _limits_to_control_points(
         clim, stc.data, colormap, transparent, allow_pos_lims, linearize=True)
+    ylim = [min((scale_pts[0], ydata.min())),
+            max((scale_pts[-1], ydata.max()))]
+    ylim = np.array(ylim) + np.array([-1, 1]) * 0.05 * np.diff(ylim)[0]
+    dup_neg = False
+    if stc.data.min() < 0:
+        ax_time.axhline(0., color='0.5', ls='-', lw=0.5, zorder=2)
+        dup_neg = not diverging  # glass brain with signed data
+    yticks = list(ticks)
+    if dup_neg:
+        yticks += [0] + list(-np.array(ticks))
+    yticks = np.unique(yticks)
+    ax_time.set(yticks=yticks)
+    ax_time.set(ylim=ylim)
+    del yticks
+
     if not diverging:  # set eq above iff one-sided
         # there is a bug in nilearn where this messes w/transparency
         # Need to double the colormap
@@ -2118,11 +2133,12 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             # adjust one-sided colorbars
             if not diverging:
                 _crop_colorbar(params['fig_anat']._cbar, *scale_pts[[0, -1]])
+            params['fig_anat']._cbar.set_ticks(params['cbar_ticks'])
         if mode == 'glass_brain':
             _glass_brain_crosshairs(params, *kwargs['cut_coords'])
 
     params = dict(stc=stc, ax_time=ax_time, plot_func=plot_and_correct,
-                  img_idx=img_idx, fig=fig, lx=lx, mode=mode)
+                  img_idx=img_idx, fig=fig, lx=lx, mode=mode, cbar_ticks=ticks)
 
     plot_and_correct(stat_map_img=params['img_idx'], title='',
                      cut_coords=cut_coords)
