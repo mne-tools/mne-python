@@ -21,7 +21,8 @@ from numpy.testing import (assert_array_equal, assert_almost_equal,
 from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
 from mne.channels import (Montage, read_montage, read_dig_montage,
                           get_builtin_montages, DigMontage,
-                          read_dig_egi, read_dig_captrack, read_dig_fif)
+                          read_dig_egi, read_dig_captrack, read_dig_fif,
+                          make_standard_montage)
 from mne.channels.montage import _set_montage, make_dig_montage
 from mne.channels.montage import transform_to_head
 from mne.channels import read_polhemus_fastscan, read_dig_polhemus_isotrak
@@ -1291,6 +1292,18 @@ def test_transform_to_head_and_compute_dev_head_t():
             DigMontage(dig=_format_dig_points(montage_meg.dig[:3])) +
             montage_polhemus
         ))
+
+
+def test_set_montage_with_mismatching_ch_names():
+    """Test setting a DigMontage with mismatching ch_names."""
+    raw = read_raw_fif(fif_fname)
+    # raw.set_montage('mgh60')  # XXX: Do we still want to be able to do that?
+    montage = make_standard_montage('mgh60')
+
+    assert 'EEG 001' in raw.info['ch_names']
+    assert 'EEG001' in montage.ch_names
+
+    raw.set_montage(montage)  # should it break?
 
 
 run_tests_if_main()
