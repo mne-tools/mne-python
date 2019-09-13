@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Set up bilateral hemisphere surface-based source space with subsampling
+"""Set up bilateral hemisphere surface-based source space with subsampling.
 
 Examples
 --------
@@ -19,7 +19,7 @@ import mne
 
 
 def run():
-    '''Run command.'''
+    """Run command."""
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)
