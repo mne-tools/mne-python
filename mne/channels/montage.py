@@ -1343,6 +1343,15 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
         if set_dig:
             # XXX: we need to check backcompat in set_dig=false
             # XXX: this does not take into account ch_names
+
+            NAMED_KIND = (FIFF.FIFFV_POINT_EEG, FIFF.FIFFV_EEG_CH)
+            is_eeg = [d['kind'] in NAMED_KIND for d in montage.dig]
+            names = iter(montage.ch_names)
+
+            foo = [next(names) if x else None for x in is_eeg]
+            # foo = [None, None, None, 'EEG000', None, None, 'a', 'b', 'c']
+
+            print(foo)
             info['dig'] = montage.dig
 
         if montage.dev_head_t is not None:
