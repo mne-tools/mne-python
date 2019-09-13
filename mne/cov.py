@@ -1440,8 +1440,8 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     .. note:: This function is kept for reasons of backward-compatibility.
               Please consider explicitly using the ``method`` parameter in
               :func:`mne.compute_covariance` to directly combine estimation
-              with regularization in a data-driven fashion.
-              See the `faq <http://martinos.org/mne/dev/faq.html#how-should-i-regularize-the-covariance-matrix>`_
+              with regularization in a data-driven fashion. See the `faq
+              <http://mne.tools/dev/overview/faq.html#how-should-i-regularize-the-covariance-matrix>`_
               for more information.
 
     Parameters

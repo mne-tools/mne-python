@@ -1,5 +1,5 @@
 Thanks for contributing a pull request! Please make sure you have read the
-[contribution guidelines](https://martinos.org/mne/stable/contributing.html)
+[contribution guidelines](https://mne.tools/dev/install/contributing.html)
 before submitting.
 
 Please be aware that we are a loose team of volunteers so patience is
