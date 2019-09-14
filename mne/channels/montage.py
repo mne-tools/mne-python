@@ -832,8 +832,14 @@ class DigMontage(object):
     def _get_dig_point_name(self):
         NAMED_KIND = (FIFF.FIFFV_POINT_EEG, FIFF.FIFFV_EEG_CH)
         _ch_names = iter(self.ch_names)
-        for d in self.dig:
-            yield next(_ch_names) if d['kind'] in NAMED_KIND else None
+
+        # StopIteration is deprecated since py3.5
+        # see https://stackoverflow.com/questions/43617399/how-to-get-rid-of-warning-deprecationwarning-generator-ngrams-raised-stopiter  # noqa
+        try:
+            for d in self.dig:
+                yield next(_ch_names) if d['kind'] in NAMED_KIND else None
+        except (StopIteration):
+            return
 
 
     @property
