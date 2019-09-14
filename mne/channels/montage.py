@@ -1342,7 +1342,6 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
                  'left untouched.')
 
     elif isinstance(montage, DigMontage):
-        import pdb; pdb.set_trace()
         ch_pos = montage._get_ch_pos()
         eeg_ref_pos = ch_pos.pop('EEG000', np.zeros(3))
 
@@ -1356,34 +1355,12 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
             _loc_view = info['chs'][info['ch_names'].index(name)]['loc']
             _loc_view[:6] = np.concatenate((ch_pos[name], eeg_ref_pos))
 
-        if set_dig:
-            # XXX: we need to check backcompat in set_dig=false
-            # XXX: this does not take into account ch_names
+        if set_dig:  # XXX: we need to check backcompat in set_dig=false
             _names = montage._get_dig_point_name()
-            _idx = [
-                ii for ii, name in enumerate(_names)
-                if name in matched_ch_names.union({None})
-            ]
-
-            print(list(montage._get_dig_point_name()))
-            foo = {
-                ii: vv for ii, vv in enumerate(zip(
-                    list(montage._get_dig_point_name()),
-                    [d['kind'] for d in montage.dig]
-                ))
-            }
-            for ii, vv in foo.items():
-                print(ii, ': ', vv)
-
-            print('keep:', _idx)
-
             info['dig'] = _format_dig_points([
-                # montage.dig[ii] for ii, name in enumerate(_names)
-                # if name in matched_ch_names.union({None})
-
-                montage.dig[ii] for ii in _idx
+                montage.dig[ii] for ii, name in enumerate(_names)
+                if name in matched_ch_names.union({None})
             ])
-            print('len info[dig]', len(info['dig']))
 
         if montage.dev_head_t is not None:
             info['dev_head_t'] = Transform('meg', 'head', montage.dev_head_t)
