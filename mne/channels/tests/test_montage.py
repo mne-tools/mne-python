@@ -768,6 +768,7 @@ def test_set_dig_montage():
     assert montage_ch_only.__repr__() == (
         '<DigMontage | 0 extras (headshape), 0 HPIs, 0 fiducials, 3 channels>'
     )
+    # with pytest.deprecated_call():  # XXX: fix it. generator
     info = create_info(ch_names, sfreq=1, ch_types='eeg',
                        montage=montage_ch_only)
     assert len(info['dig']) == len(montage_ch_only.dig)

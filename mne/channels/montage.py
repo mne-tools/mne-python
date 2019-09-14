@@ -1350,11 +1350,11 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
         if set_dig:
             # XXX: we need to check backcompat in set_dig=false
             # XXX: this does not take into account ch_names
-            keep = lambda x: x in matched_ch_names.union({None})  # noqa
-            _selection = [keep(name) for name in montage._get_dig_point_name()]
-            selection = [ii for ii, vv in enumerate(_selection) if vv]
-
-            info['dig'] = montage.dig[selection]
+            _names = montage._get_dig_point_name()
+            info['dig'] = _format_dig_points([
+                montage.dig[ii] for ii, name in enumerate(_names)
+                if name in matched_ch_names.union({None})
+            ])
 
         if montage.dev_head_t is not None:
             info['dev_head_t'] = Transform('meg', 'head', montage.dev_head_t)
