@@ -79,43 +79,45 @@ def _read_coil_def_file(fname, use_registry=True):
             lines = fid.readlines()
         lines = lines[::-1]
         while len(lines) > 0:
-            line = lines.pop()
-            if line[0] != '#':
-                vals = np.fromstring(line, sep=' ')
-                assert len(vals) in (6, 7)  # newer numpy can truncate comment
-                start = line.find('"')
-                end = len(line.strip()) - 1
-                assert line.strip()[end] == '"'
-                desc = line[start:end]
-                npts = int(vals[3])
-                coil = dict(coil_type=vals[1], coil_class=vals[0], desc=desc,
-                            accuracy=vals[2], size=vals[4], base=vals[5])
-                # get parameters of each component
-                rmag = list()
-                cosmag = list()
-                w = list()
-                for p in range(npts):
-                    # get next non-comment line
+            line = lines.pop().strip()
+            if line[0] == '#' and len(line) > 0:
+                continue
+            desc_start = line.find('"')
+            desc_end = len(line) - 1
+            assert line.strip()[desc_end] == '"'
+            desc = line[desc_start:desc_end]
+            vals = np.fromstring(line[:desc_start].strip(),
+                                 dtype=float, sep=' ')
+            assert len(vals) == 6
+            npts = int(vals[3])
+            coil = dict(coil_type=vals[1], coil_class=vals[0], desc=desc,
+                        accuracy=vals[2], size=vals[4], base=vals[5])
+            # get parameters of each component
+            rmag = list()
+            cosmag = list()
+            w = list()
+            for p in range(npts):
+                # get next non-comment line
+                line = lines.pop()
+                while(line[0] == '#'):
                     line = lines.pop()
-                    while(line[0] == '#'):
-                        line = lines.pop()
-                    vals = np.fromstring(line, sep=' ')
-                    assert len(vals) == 7
-                    # Read and verify data for each integration point
-                    w.append(vals[0])
-                    rmag.append(vals[[1, 2, 3]])
-                    cosmag.append(vals[[4, 5, 6]])
-                w = np.array(w)
-                rmag = np.array(rmag)
-                cosmag = np.array(cosmag)
-                size = np.sqrt(np.sum(cosmag ** 2, axis=1))
-                if np.any(np.sqrt(np.sum(rmag ** 2, axis=1)) > big_val):
-                    raise RuntimeError('Unreasonable integration point')
-                if np.any(size <= 0):
-                    raise RuntimeError('Unreasonable normal')
-                cosmag /= size[:, np.newaxis]
-                coil.update(dict(w=w, cosmag=cosmag, rmag=rmag))
-                coils.append(coil)
+                vals = np.fromstring(line, sep=' ')
+                assert len(vals) == 7
+                # Read and verify data for each integration point
+                w.append(vals[0])
+                rmag.append(vals[[1, 2, 3]])
+                cosmag.append(vals[[4, 5, 6]])
+            w = np.array(w)
+            rmag = np.array(rmag)
+            cosmag = np.array(cosmag)
+            size = np.sqrt(np.sum(cosmag ** 2, axis=1))
+            if np.any(np.sqrt(np.sum(rmag ** 2, axis=1)) > big_val):
+                raise RuntimeError('Unreasonable integration point')
+            if np.any(size <= 0):
+                raise RuntimeError('Unreasonable normal')
+            cosmag /= size[:, np.newaxis]
+            coil.update(dict(w=w, cosmag=cosmag, rmag=rmag))
+            coils.append(coil)
         if use_registry:
             _coil_registry[fname] = coils
     if use_registry:
