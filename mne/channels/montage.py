@@ -829,20 +829,15 @@ class DigMontage(object):
         pos = [d['r'] for d in _get_dig_eeg(self.dig)]
         return dict(zip(self.ch_names, pos))
 
-    def _get_dig_point_name(self):
-        # NAMED_KIND = (FIFF.FIFFV_POINT_EEG, FIFF.FIFFV_EEG_CH)
-        NAMED_KIND = (FIFF.FIFFV_POINT_EEG,)  # XXXX: This puzzles me
-        _ch_names = iter(self.ch_names)
+    def _get_dig_names(self):
+        NAMED_KIND = (FIFF.FIFFV_POINT_EEG,)
+        is_eeg = np.array([d['kind'] in NAMED_KIND for d in self.dig])
+        assert len(self.ch_names) == is_eeg.sum()
+        dig_names = [None] * len(self.dig)
+        for ch_name_idx, dig_idx in enumerate(np.where(is_eeg)[0]):
+            dig_names[dig_idx] = self.ch_names[ch_name_idx]
 
-        # XXX: StopIteration is deprecated since py3.5
-        # see https://stackoverflow.com/questions/43617399/how-to-get-rid-of-warning-deprecationwarning-generator-ngrams-raised-stopiter  # noqa
-        try:
-            for d in self.dig:
-                out = next(_ch_names) if d['kind'] in NAMED_KIND else None
-                print(d['kind'], out)
-                yield out
-        except (StopIteration):
-            return
+        return dig_names
 
     @property
     def elp(self):
@@ -1356,7 +1351,7 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
             _loc_view[:6] = np.concatenate((ch_pos[name], eeg_ref_pos))
 
         if set_dig:  # XXX: we need to check backcompat in set_dig=false
-            _names = montage._get_dig_point_name()
+            _names = montage._get_dig_names()
             info['dig'] = _format_dig_points([
                 montage.dig[ii] for ii, name in enumerate(_names)
                 if name in matched_ch_names.union({None})
