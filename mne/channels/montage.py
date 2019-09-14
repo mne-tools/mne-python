@@ -833,14 +833,13 @@ class DigMontage(object):
         NAMED_KIND = (FIFF.FIFFV_POINT_EEG, FIFF.FIFFV_EEG_CH)
         _ch_names = iter(self.ch_names)
 
-        # StopIteration is deprecated since py3.5
+        # XXX: StopIteration is deprecated since py3.5
         # see https://stackoverflow.com/questions/43617399/how-to-get-rid-of-warning-deprecationwarning-generator-ngrams-raised-stopiter  # noqa
         try:
             for d in self.dig:
                 yield next(_ch_names) if d['kind'] in NAMED_KIND else None
         except (StopIteration):
             return
-
 
     @property
     def elp(self):
@@ -1357,10 +1356,30 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
             # XXX: we need to check backcompat in set_dig=false
             # XXX: this does not take into account ch_names
             _names = montage._get_dig_point_name()
-            info['dig'] = _format_dig_points([
-                montage.dig[ii] for ii, name in enumerate(_names)
+            _idx = [
+                ii for ii, name in enumerate(_names)
                 if name in matched_ch_names.union({None})
+            ]
+
+            print(list(montage._get_dig_point_name()))
+            foo = {
+                ii: vv for ii, vv in enumerate(zip(
+                    list(montage._get_dig_point_name()),
+                    [d['kind'] for d in montage.dig]
+                ))
+            }
+            for ii, vv in foo.items():
+                print(ii, ': ', vv)
+
+            print('keep:', _idx)
+
+            info['dig'] = _format_dig_points([
+                # montage.dig[ii] for ii, name in enumerate(_names)
+                # if name in matched_ch_names.union({None})
+
+                montage.dig[ii] for ii in _idx
             ])
+            print('len info[dig]', len(info['dig']))
 
         if montage.dev_head_t is not None:
             info['dev_head_t'] = Transform('meg', 'head', montage.dev_head_t)
