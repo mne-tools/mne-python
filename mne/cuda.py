@@ -67,9 +67,9 @@ def init_cuda(ignore_config=False, verbose=None):
     except ImportError:
         warn('module cupy not found, CUDA not enabled')
         return
+    device_id = int(get_config('MNE_CUDA_DEVICE', '0'))
     try:
         # Initialize CUDA
-        device_id = int(get_config('MNE_CUDA_DEVICE', '0'))
         _set_cuda_device(device_id, verbose)
     except Exception:
         warn('so CUDA device could be initialized, likely a hardware error, '
