@@ -91,10 +91,15 @@ def set_cuda_device(device_id, verbose=None):
         Numeric ID of the CUDA-capable device you want MNE-Python to use.
     %(verbose)s
     """
-    if not _cuda_capable:
-        warn('CUDA is not enabled; did you forget to run `init_cuda()`?')
-    else:
+    if _cuda_capable:
         _set_cuda_device(device_id, verbose)
+    elif get_config('MNE_USE_CUDA', 'false').lower() == 'true':
+        init_cuda()
+        _set_cuda_device(device_id, verbose)
+    else:
+        warn('Could not set CUDA device because CUDA is not enabled; either '
+             'run mne.cuda.init_cuda() first, or set the MNE_USE_CUDA config '
+             'variable to "true".')
 
 
 @verbose
