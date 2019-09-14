@@ -830,14 +830,17 @@ class DigMontage(object):
         return dict(zip(self.ch_names, pos))
 
     def _get_dig_point_name(self):
-        NAMED_KIND = (FIFF.FIFFV_POINT_EEG, FIFF.FIFFV_EEG_CH)
+        # NAMED_KIND = (FIFF.FIFFV_POINT_EEG, FIFF.FIFFV_EEG_CH)
+        NAMED_KIND = (FIFF.FIFFV_POINT_EEG,)  # XXXX: This puzzles me
         _ch_names = iter(self.ch_names)
 
         # XXX: StopIteration is deprecated since py3.5
         # see https://stackoverflow.com/questions/43617399/how-to-get-rid-of-warning-deprecationwarning-generator-ngrams-raised-stopiter  # noqa
         try:
             for d in self.dig:
-                yield next(_ch_names) if d['kind'] in NAMED_KIND else None
+                out = next(_ch_names) if d['kind'] in NAMED_KIND else None
+                print(d['kind'], out)
+                yield out
         except (StopIteration):
             return
 
@@ -1339,6 +1342,7 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
                  'left untouched.')
 
     elif isinstance(montage, DigMontage):
+        import pdb; pdb.set_trace()
         ch_pos = montage._get_ch_pos()
         eeg_ref_pos = ch_pos.pop('EEG000', np.zeros(3))
 
