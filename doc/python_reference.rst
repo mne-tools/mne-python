@@ -1026,3 +1026,4 @@ Logging and Configuration
 
    get_cuda_memory
    init_cuda
+   set_cuda_device
