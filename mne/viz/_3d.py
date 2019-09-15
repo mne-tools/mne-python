@@ -1806,14 +1806,18 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         Show figures if True. Defaults to True.
     initial_time : float | None
         The initial time to plot. Can be None (default) to use the time point
-        with the maximal absolute value activation.
+        with the maximal absolute value activation across all voxels
+        or the ``initial_pos`` voxel (if ``initial_pos is None`` or not,
+        respectively).
 
-        .. versionadded:: 0.18
+        .. versionadded:: 0.19
     initial_pos : ndarray, shape (3,) | None
         The initial position to use (in m). Can be None (default) to use the
-        voxel with the maximum absolute value activation.
+        voxel with the maximum absolute value activation across all time points
+        or at ``initial_time`` (if ``initial_time is None`` or not,
+        respectively).
 
-        .. versionadded:: 0.18
+        .. versionadded:: 0.19
     %(verbose)s
 
     Notes
@@ -1824,11 +1828,15 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     The left and right arrow keys can be used to navigate in time.
     To move in time by larger steps, use shift+left and shift+right.
 
+    In ``'glass_brain'`` mode, values are transformed to the standard MNI
+    brain using the FreeSurfer Talairach transformation
+    ``$SUBJECTS_DIR/$SUBJECT/mri/transforms/talairach.xfm``.
+
     .. versionadded:: 0.17
 
-    In ``'glass_brain'`` mode, values are transformed to the standard MNI brain
-    using the FreeSurfer Talairach transformation
-    ``$SUBJECTS_DIR/$SUBJECT/mri/transforms/talairach.xfm``.
+    .. versionchanged:: 0.19
+       MRI volumes are automatically transformed to MNI space in
+       ``'glass_brain'`` mode.
 
     Examples
     --------
@@ -2059,7 +2067,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     axes.set(xticks=[], yticks=[])
     marker = 'o' if len(stc.times) == 1 else None
     ydata = stc.data[loc_idx]
-    ax_time.plot(stc.times, ydata, color='k', marker=marker, clip_on=False)
+    ax_time.plot(stc.times, ydata, color='k', marker=marker)
     if len(stc.times) > 1:
         ax_time.set(xlim=stc.times[[0, -1]])
     ax_time.set(xlabel='Time (s)', ylabel='Activation')
