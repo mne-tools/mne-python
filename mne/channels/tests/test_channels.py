@@ -237,7 +237,10 @@ def test_1020_selection():
     raw_fname = op.join(base_dir, 'test_raw.set')
     loc_fname = op.join(base_dir, 'test_chans.locs')
     raw = read_raw_eeglab(raw_fname)
-    raw.set_montage(loc_fname)
+    with pytest.deprecated_call():
+        # XXX : there is no alternative to read in .locs files
+        # in the new API
+        raw.set_montage(loc_fname)
 
     for input in ("a_string", 100, raw, [1, 2]):
         pytest.raises(TypeError, make_1020_channel_selections, input)

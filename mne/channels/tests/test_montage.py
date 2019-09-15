@@ -1003,13 +1003,8 @@ def _check_roundtrip(montage, fname):
 
 
 def _fake_montage(ch_names):
-    return Montage(
-        pos=np.random.RandomState(42).randn(len(ch_names), 3),
-        ch_names=ch_names,
-        kind='foo',
-        selection=np.arange(len(ch_names))
-    )
-
+    pos = np.random.RandomState(42).randn(len(ch_names), 3)
+    return make_dig_montage(ch_pos=dict(zip(ch_names, pos)))
 
 cnt_ignore_warns = [
     pytest.mark.filterwarnings(

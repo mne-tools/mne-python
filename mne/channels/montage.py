@@ -68,10 +68,10 @@ def _check_get_coord_frame(dig):
     return _frame_to_str[dig_coord_frames.pop()] if dig_coord_frames else None
 
 
-# @deprecated(
-#     'Montage class is deprecated and will be removed in v0.20.'
-#     ' Please use DigMontage instead.'
-# )
+@deprecated(
+    'Montage class is deprecated and will be removed in v0.20.'
+    ' Please use DigMontage instead.'
+)
 class Montage(object):
     """Montage for standard EEG electrode locations.
 
