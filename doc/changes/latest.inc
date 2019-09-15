@@ -53,6 +53,8 @@ Changelog
 
 - Add function to check the type of a FIF file using :func:`mne.what` and `mne what <gen_mne_what>` by `Eric Larson`_
 
+- Add support for specifying the initial time and/or position and providing a :class:`mne.SourceMorph` instead of :class:`mne.SourceSpaces` in :func:`mne.viz.plot_volume_source_estimates` by `Eric Larson`_
+
 - Speed up morph map generation in :func:`mne.read_morph_map` by ~5-10x by using :func:`numba.jit` by `Eric Larson`_
 
 - Speed up :func:`mne.setup_volume_source_space`, especially when ``volume_label is not None`` by `Eric Larson`_
@@ -89,6 +91,14 @@ Bug
 - Fix :func:`mne.grand_average` to use equal sum-to-one weights (like it used to, before changes to underlying :func:`mne.combine_evoked`) by `Daniel McCloy`_
 
 - Fix one-sample baseline issue in :class:`mne.BaseEpochs` when using `tmin=0` by `Milan Rybář`_
+
+- Fix bug in :func:`mne.viz.plot_volume_source_estimates` where ``'glass_brain'`` MRIs were not transformed to MNI space, by `Eric Larson`_
+
+- Fix bug in :func:`mne.viz.plot_volume_source_estimates` where MRIs with voxels not in RAS orientation could not be browsed properly, by `Eric Larson`_
+
+- Fix bug in :meth:`mne.SourceMorph.apply` where output STCs had ``stc.vertices`` defined improperly, by `Eric Larson`_
+
+- Fix bug in :meth:`mne.SourceMorph.apply` where the default was errantly ``mri_space=False`` instead of ``mri_space=None`` (as documented), by `Eric Larson`_
 
 - Fix :meth:`mne.io.Raw.set_annotations` for ``meas_date`` previous to 1970 by `Joan Massich`_
 

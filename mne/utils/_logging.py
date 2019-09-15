@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 
+import contextlib
 import inspect
 from io import StringIO
 import re
@@ -356,3 +357,17 @@ class ETSContext(object):
             value.code += ("\nThis can probably be solved by setting "
                            "ETS_TOOLKIT=qt4. On bash, type\n\n    $ export "
                            "ETS_TOOLKIT=qt4\n\nand run the command again.")
+
+
+@contextlib.contextmanager
+def wrapped_stdout(indent=''):
+    """Wrap stdout writes to logger.info, with an optional indent prefix."""
+    orig_stdout = sys.stdout
+    my_out = StringIO()
+    sys.stdout = my_out
+    try:
+        yield
+    finally:
+        sys.stdout = orig_stdout
+        for line in my_out.getvalue().split('\n'):
+            logger.info(indent + line)

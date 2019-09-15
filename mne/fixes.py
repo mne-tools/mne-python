@@ -420,6 +420,14 @@ def minimum_phase(h):
 ###############################################################################
 # Misc utilities
 
+# Deal with nibabel 2.5 img.get_data() deprecation
+def _get_img_fdata(img):
+    try:
+        return img.get_fdata()
+    except AttributeError:
+        return img.get_data().astype(float)
+
+
 def _read_volume_info(fobj):
     """An implementation of nibabel.freesurfer.io._read_volume_info, since old
     versions of nibabel (<=2.1.0) don't have it.
