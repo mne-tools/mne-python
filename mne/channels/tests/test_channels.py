@@ -14,7 +14,8 @@ from scipy.io import savemat
 from numpy.testing import assert_array_equal, assert_equal
 
 from mne.channels import (rename_channels, read_ch_connectivity,
-                          find_ch_connectivity, make_1020_channel_selections)
+                          find_ch_connectivity, make_1020_channel_selections,
+                          read_dig_eeglab)
 from mne.channels.channels import (_ch_neighbor_connectivity,
                                    _compute_ch_connectivity)
 from mne.io import (read_info, read_raw_fif, read_raw_ctf, read_raw_bti,
@@ -237,10 +238,8 @@ def test_1020_selection():
     raw_fname = op.join(base_dir, 'test_raw.set')
     loc_fname = op.join(base_dir, 'test_chans.locs')
     raw = read_raw_eeglab(raw_fname)
-    with pytest.deprecated_call():
-        # XXX : there is no alternative to read in .locs files
-        # in the new API
-        raw.set_montage(loc_fname)
+    montage = read_dig_eeglab(loc_fname)
+    raw.set_montage(montage)
 
     for input in ("a_string", 100, raw, [1, 2]):
         pytest.raises(TypeError, make_1020_channel_selections, input)

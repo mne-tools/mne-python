@@ -1645,3 +1645,14 @@ def make_standard_montage(kind):
                                         standard_montage_look_up_table.keys()))
     else:
         return standard_montage_look_up_table[kind]()
+
+
+def read_dig_eeglab(fname):
+    # XXX: check fname extension
+    ch_names = np.genfromtxt(fname, dtype=str, usecols=3).tolist()
+    topo = np.loadtxt(fname, dtype=float, usecols=[1, 2])
+    sph = _topo_to_sph(topo)
+    pos = _sph_to_cart(sph)
+    pos[:, [0, 1]] = pos[:, [1, 0]] * [-1, 1]
+
+    return make_dig_montage(ch_pos=dict(zip(ch_names, pos)))
