@@ -80,9 +80,9 @@ class RawNIRX(BaseRaw):
         inf = inf._sections['Subject Demographics']
 
         # Store subject information from inf file in mne format
-        # TODO: Can you put more values in subject_info than specified in link?
-        #       NIRX also records "Study Type", "Experiment History",
-        #       "Additional Notes", "Contact Information"
+        # Note: NIRX also records "Study Type", "Experiment History",
+        #       "Additional Notes", "Contact Information" and this information
+        #       is currently discarded
         subject_info = {}
         names = inf['name'].split()
         if len(names) > 0:
@@ -104,8 +104,8 @@ class RawNIRX(BaseRaw):
         # NIRStar does not record an id, or handedness by default
 
         # Read header file
-        # The header file isn't compliant with the configparser. So we need to
-        # remove all text between comments before passing to parser
+        # The header file isn't compliant with the configparser. So all the
+        # text between comments must be removed before passing to parser
         with open(files['hdr']) as f:
             hdr_str = f.read()
         hdr_str = re.sub('#.*?#', '', hdr_str, flags=re.DOTALL)
@@ -177,9 +177,6 @@ class RawNIRX(BaseRaw):
         chnames = [val for pair in zip(sd1, sd2) for val in pair]
 
         # Create mne structure
-        # TODO: ch_type is currently misc as I could not find appropriate
-        #       other type, the hbo and hbr type are not relevant until the
-        #       signal has been converted
         info = create_info(chnames,
                            samplingrate,
                            ch_types='fnirs_raw')
@@ -190,7 +187,6 @@ class RawNIRX(BaseRaw):
         # The source location is stored in the second 3 entries of loc.
         # The detector location is stored in the third 3 entries of loc.
         # NIRx NIRSite uses MNI coordinates.
-        # TODO: pretty sure this should be done using a info.update call
         for ch_idx2 in range(requested_channels.shape[0]):
             # Find source and store location
             src = int(requested_channels[ch_idx2, 0]) - 1
@@ -236,10 +232,8 @@ class RawNIRX(BaseRaw):
         """Read a segment of data from a file.
 
         The NIRX machine records raw data as two different wavelengths.
-        These are stored in two files [wl1, wl2]. This function will
-        return the data as ([wl1, wl2] x samples)
+        The returned data interleaves the wavelengths.
         """
-        # Temporary solution until I write a reader
         # TODO: Write space separated values file reader
         pd = _check_pandas_installed(strict=True)
 
@@ -254,9 +248,7 @@ class RawNIRX(BaseRaw):
         wl1 = wl1[start:stop, sdindex].T
         wl2 = wl2[start:stop, sdindex].T
 
-        # Currently saving the two wavelengths in same dimension
-        # this seems like a bad idea
-        # TODO: Can mne return (num_wavelengths x num_channels x num_samples)?
+        # Interleave wavelength 1 and 2 to match channel names
         data[0::2, :] = wl1
         data[1::2, :] = wl2
 
@@ -264,7 +256,7 @@ class RawNIRX(BaseRaw):
 
     def _probe_distances(self):
         """Return the distance between each source-detector pair."""
-        # TODO: Write my own euclidean distance function
+        # TODO: Write stand alone euclidean distance function
         from scipy.spatial.distance import euclidean
         dist = [euclidean(self.info['chs'][idx]['loc'][3:6],
                 self.info['chs'][idx]['loc'][6:9])
