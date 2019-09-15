@@ -67,6 +67,8 @@ EEG           :ref:`eXimia <import-nxe>`                    .nxe       :func:`mn
 EEG           :ref:`General data format <import-gdf>`       .gdf       :func:`mne.io.read_raw_gdf`
 
 EEG           :ref:`Nicolet <import-nicolet>`               .data      :func:`mne.io.read_raw_nicolet`
+
+NIRS          :ref:`NIRx <import-nirx>`                     directory  :func:`mne.io.read_raw_nirx`
 ============  ============================================  =========  ===================================
 
 More details are provided in the tutorials in the :ref:`tut-data-formats`
