@@ -576,7 +576,7 @@ print(template_eog_component)
 # .. LINKS
 #
 # .. _`blind source separation`:
-#    https://en.wikipedia.org/wiki/Signal_separation`
+#    https://en.wikipedia.org/wiki/Signal_separation
 # .. _`statistically independent`:
 #    https://en.wikipedia.org/wiki/Independence_(probability_theory)
 # .. _`scikit-learn`: https://scikit-learn.org
