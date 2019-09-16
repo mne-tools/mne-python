@@ -868,15 +868,16 @@ _DATA_CH_TYPES_SPLIT = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr',
 _DATA_CH_TYPES_ORDER_DEFAULT = ('mag', 'grad', 'eeg', 'eog', 'ecg', 'emg',
                                 'ref_meg', 'misc', 'stim', 'resp',
                                 'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio',
-                                'ecog', 'hbo', 'hbr', 'fnirs_raw', 'whitened')
+                                'ecog', 'hbo', 'hbr', 'fnirs_raw', 'fnirs_od',
+                                'whitened')
 
 # Valid data types, ordered for consistency, used in viz/evoked.
 _VALID_CHANNEL_TYPES = ('eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg',
                         'dipole', 'gof', 'bio', 'ecog', 'hbo', 'hbr',
-                        'fnirs_raw', 'misc')
+                        'fnirs_raw', 'fnirs_od', 'misc')
 
 _MEG_CH_TYPES_SPLIT = ('mag', 'grad', 'planar1', 'planar2')
-_FNIRS_CH_TYPES_SPLIT = ('hbo', 'hbr', 'fnirs_raw')
+_FNIRS_CH_TYPES_SPLIT = ('hbo', 'hbr', 'fnirs_raw', 'fnirs_od')
 
 
 def _pick_data_channels(info, exclude='bads', with_ref_meg=True):
