@@ -195,10 +195,10 @@ class _Renderer(_BaseRenderer):
                     glyph_resolution
                 quiv.actor.property.backface_culling = backface_culling
 
-    def text2d(self, x, y, text, width, color='white'):
+    def text2d(self, x_window, y_window, text, width, color='white'):
         color = _parse_str_color(color)
         with warnings.catch_warnings(record=True):  # traits
-            self.mlab.text(x, y, text, width=width, color=color,
+            self.mlab.text(x_window, y_window, text, width=width, color=color,
                            figure=self.fig)
 
     def text3d(self, x, y, z, text, scale, color='white'):

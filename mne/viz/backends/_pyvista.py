@@ -319,10 +319,10 @@ class _Renderer(_BaseRenderer):
                                       smooth_shading=self.figure.
                                       smooth_shading)
 
-    def text2d(self, x, y, text, width, color='white'):
+    def text2d(self, x_window, y_window, text, width, color='white'):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            self.plotter.add_text(text, position=(x, y),
+            self.plotter.add_text(text, position=(x_window, y_window),
                                   font_size=int(width * 100),
                                   color=color)
 

@@ -390,7 +390,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
     if '%' in time_label:
         time_label %= (1e3 * evoked.times[time_idx])
-    renderer.text2d(x=0.01, y=0.01, text=time_label, width=0.4)
+    renderer.text2d(x_window=0.01, y_window=0.01, text=time_label, width=0.4)
     renderer.set_camera(azimuth=10, elevation=60)
     renderer.show()
     return renderer.scene()
