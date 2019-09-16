@@ -96,8 +96,9 @@ dimension.
 
 SSP-based rejection is often done using the
 :func:`mne.preprocessing.compute_proj_ecg` and
-:func:`mne.preprocessing.compute_proj_eog` methods, see :ref:`ssp-api`
-section for more information.
+:func:`mne.preprocessing.compute_proj_eog` methods, see
+:ref:`tut-projectors-background` and :ref:`tut-artifact-ssp` for more
+information.
 
 ICA
 ###
