@@ -211,7 +211,7 @@ def test_info():
 def test_read_write_info(tmpdir):
     """Test IO of info."""
     info = read_info(raw_fname)
-    temp_file = tmpdir.join('info.fif')
+    temp_file = str(tmpdir.join('info.fif'))
     # check for bug `#1198`
     info['dev_head_t']['trans'] = np.eye(4)
     t1 = info['dev_head_t']['trans']
@@ -265,10 +265,12 @@ def test_io_dig_points(tmpdir):
     """Test Writing for dig files."""
     points = _read_dig_points(hsp_fname)
 
-    dest = tmpdir.join('test.txt')
-    dest_bad = tmpdir.join('test.mne')
-    pytest.raises(ValueError, _write_dig_points, dest, points[:, :2])
-    pytest.raises(ValueError, _write_dig_points, dest_bad, points)
+    dest = str(tmpdir.join('test.txt'))
+    dest_bad = str(tmpdir.join('test.mne'))
+    with pytest.raises(ValueError, match='must be of shape'):
+        _write_dig_points(dest, points[:, :2])
+    with pytest.raises(ValueError, match='extension'):
+        _write_dig_points(dest_bad, points)
     _write_dig_points(dest, points)
     points1 = _read_dig_points(dest, unit='m')
     err = "Dig points diverged after writing and reading."
@@ -276,7 +278,8 @@ def test_io_dig_points(tmpdir):
 
     points2 = np.array([[-106.93, 99.80], [99.80, 68.81]])
     np.savetxt(dest, points2, delimiter='\t', newline='\n')
-    pytest.raises(ValueError, _read_dig_points, dest)
+    with pytest.raises(ValueError, match='must be of shape'):
+        _read_dig_points(dest)
 
 
 def test_make_dig_points():
