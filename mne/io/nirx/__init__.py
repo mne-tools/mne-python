@@ -1,4 +1,4 @@
-"""Eximia module for conversion to FIF."""
+"""fNIRS module for conversion to FIF."""
 
 # Author: Robert Luke <mail@robertluke.net>
 #
