@@ -147,7 +147,7 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def tube(self, origin, destination, radius=1.0, color=(1.0, 1.0, 1.0),
+    def tube(self, origin, destination, radius=0.001, color=(1.0, 1.0, 1.0),
              scalars=None, vmin=None, vmax=None, colormap='RdBu',
              normalized_colormap=False, reverse_lut=False):
         """Add tube in the scene.

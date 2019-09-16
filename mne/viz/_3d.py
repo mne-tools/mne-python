@@ -2618,7 +2618,7 @@ def plot_sensors_connectivity(info, con, picks=None):
         tube = renderer.tube(origin=np.c_[x1, y1, z1],
                              destination=np.c_[x2, y2, z2],
                              scalars=np.c_[val, val],
-                             vmin=vmin, vmax=vmax, radius=0.001,
+                             vmin=vmin, vmax=vmax,
                              reverse_lut=True)
 
     renderer.scalarbar(source=tube, title='Phase Lag Index (PLI)')
