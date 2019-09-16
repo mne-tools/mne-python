@@ -81,7 +81,7 @@ def run():
     parser.add_option('-o', '--overwrite',
                       dest='overwrite',
                       help='to write over existing files',
-                      default=False)
+                      default=None)
 
     options, args = parser.parse_args()
 

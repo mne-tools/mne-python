@@ -295,9 +295,11 @@ def test_setup_source_space(tmpdir):
         with ArgvSetter(('--src', use_fname, '-d', subjects_dir,
                          '-s', 'sample', '--ico', '3', '--oct', '3')):
             assert mne_setup_source_space.run()
+    with pytest.raises(Exception):
         with ArgvSetter(('--src', use_fname, '-d', subjects_dir,
                          '-s', 'sample', '--ico', '3', '--spacing', '10')):
             assert mne_setup_source_space.run()
+    with pytest.raises(Exception):
         with ArgvSetter(('--src', use_fname, '-d', subjects_dir,
                          '-s', 'sample', '--ico', '3', '--spacing', '10',
                          '--oct', '3')):
