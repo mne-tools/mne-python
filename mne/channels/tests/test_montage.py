@@ -802,8 +802,7 @@ def test_set_dig_montage():
 @testing.requires_testing_data
 def test_fif_dig_montage():
     """Test FIF dig montage support."""
-    with pytest.deprecated_call():
-        dig_montage = read_dig_montage(fif=fif_dig_montage_fname)
+    dig_montage = read_dig_fif(fif_dig_montage_fname)
 
     # test round-trip IO
     temp_dir = _TempDir()
@@ -822,24 +821,26 @@ def test_fif_dig_montage():
     raw_bv_2.rename_channels(mapping)
     raw_bv.add_channels([raw_bv_2])
 
-    for ii in range(2):
-        # Set the montage
-        raw_bv.set_montage(dig_montage)
+    # Set the montage
+    raw_bv.set_montage(dig_montage)
 
-        # Check the result
-        evoked = read_evokeds(evoked_fname)[0]
+    # Check the result
+    evoked = read_evokeds(evoked_fname)[0]
 
-        assert_equal(len(raw_bv.ch_names), len(evoked.ch_names) - 1)
-        for ch_py, ch_c in zip(raw_bv.info['chs'], evoked.info['chs'][:-1]):
-            assert_equal(ch_py['ch_name'],
-                         ch_c['ch_name'].replace('EEG ', 'EEG'))
-            # C actually says it's unknown, but it's not (?):
-            # assert_equal(ch_py['coord_frame'], ch_c['coord_frame'])
-            assert_equal(ch_py['coord_frame'], FIFF.FIFFV_COORD_HEAD)
-            c_loc = ch_c['loc'].copy()
-            c_loc[c_loc == 0] = np.nan
-            assert_allclose(ch_py['loc'], c_loc, atol=1e-7)
-        assert_dig_allclose(raw_bv.info, evoked.info)
+    # check info[chs] matches
+    assert_equal(len(raw_bv.ch_names), len(evoked.ch_names) - 1)
+    for ch_py, ch_c in zip(raw_bv.info['chs'], evoked.info['chs'][:-1]):
+        assert_equal(ch_py['ch_name'],
+                     ch_c['ch_name'].replace('EEG ', 'EEG'))
+        # C actually says it's unknown, but it's not (?):
+        # assert_equal(ch_py['coord_frame'], ch_c['coord_frame'])
+        assert_equal(ch_py['coord_frame'], FIFF.FIFFV_COORD_HEAD)
+        c_loc = ch_c['loc'].copy()
+        c_loc[c_loc == 0] = np.nan
+        assert_allclose(ch_py['loc'], c_loc, atol=1e-7)
+
+    # check info[dig]
+    assert_dig_allclose(raw_bv.info, evoked.info)
 
     # Roundtrip of non-FIF start
     names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']

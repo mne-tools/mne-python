@@ -1354,8 +1354,9 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
             _names = montage._get_dig_names()
             info['dig'] = _format_dig_points([
                 montage.dig[ii] for ii, name in enumerate(_names)
-                if name in matched_ch_names.union({None})
+                if name in matched_ch_names.union({None, 'EEG000'})
             ])
+
         else:
             # XXX: set_dig=False is only used in testing and for Montage
             raise RuntimeError('XXX do we have this?')
