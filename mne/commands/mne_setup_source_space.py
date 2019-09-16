@@ -71,7 +71,7 @@ def run():
                       help='The number of jobs to run in parallel '
                             '(default 1). Requires the joblib package. '
                             'Will use at most 2 jobs'
-                            '(one for each hemisphere).',
+                            ' (one for each hemisphere).',
                       default=1,
                       type='int')
     parser.add_option('--verbose',
