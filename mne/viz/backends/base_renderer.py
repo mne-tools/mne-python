@@ -42,8 +42,10 @@ class _BaseRenderer(metaclass=ABCMeta):
            The array containing the Z component of the vertices.
         triangles: array, shape (n_polygons, 3)
            The array containing the indices of the polygons.
-        color: tuple
-            The color of the mesh: (red, green, blue).
+        color: tuple | str
+            The color of the mesh as a tuple (red, green, blue) of float
+            values between 0 and 1 or a valid color name (i.e. 'white'
+            or 'w').
         opacity: float
             The opacity of the mesh.
         shading: bool
@@ -99,8 +101,10 @@ class _BaseRenderer(metaclass=ABCMeta):
         ----------
         surface: surface object
             The information describing the surface.
-        color: tuple
-            The color of the surface: (red, green, blue).
+        color: tuple | str
+            The color of the surface as a tuple (red, green, blue) of float
+            values between 0 and 1 or a valid color name (i.e. 'white'
+            or 'w').
         opacity: float
             The opacity of the surface.
         vmin: float | None
@@ -127,8 +131,10 @@ class _BaseRenderer(metaclass=ABCMeta):
         ----------
         center: ndarray, shape(n_center, 3)
             The list of centers to use for the sphere(s).
-        color: tuple
-            The color of the sphere(s): (red, green, blue).
+        color: tuple | str
+            The color of the sphere as a tuple (red, green, blue) of float
+            values between 0 and 1 or a valid color name (i.e. 'white'
+            or 'w').
         scale: float
             The scale of the sphere(s).
         opacity: float
@@ -154,8 +160,10 @@ class _BaseRenderer(metaclass=ABCMeta):
             The coordinates of the other end of the tube(s).
         radius: float
             The radius of the tube(s).
-        color: tuple
-            The color of the tube(s): (red, green, blue).
+        color: tuple | str
+            The color of the tube as a tuple (red, green, blue) of float
+            values between 0 and 1 or a valid color name (i.e. 'white'
+            or 'w').
         scalars: array, shape (n_quivers,) | None
             The optional scalar data to use.
         vmin: float | None
@@ -201,8 +209,10 @@ class _BaseRenderer(metaclass=ABCMeta):
             The last Y component of the quiver.
         w: array, shape (n_quivers,)
             The last Z component of the quiver.
-        color: tuple
-            The color of the quiver: (red, green, blue).
+        color: tuple | str
+            The color of the quiver as a tuple (red, green, blue) of float
+            values between 0 and 1 or a valid color name (i.e. 'white'
+            or 'w').
         scale: float
             The scale of the quiver.
         mode: 'arrow', 'cone' or 'cylinder'
@@ -240,8 +250,10 @@ class _BaseRenderer(metaclass=ABCMeta):
             The content of the text.
         width: float
             The width of the text.
-        color: tuple
-            The color of the text.
+        color: tuple | str
+            The color of the text as a tuple (red, green, blue) of float
+            values between 0 and 1 or a valid color name (i.e. 'white'
+            or 'w').
         """
         pass
 
@@ -261,8 +273,10 @@ class _BaseRenderer(metaclass=ABCMeta):
             The content of the text.
         width: float
             The width of the text.
-        color: tuple
-            The color of the text.
+        color: tuple | str
+            The color of the text as a tuple (red, green, blue) of float
+            values between 0 and 1 or a valid color name (i.e. 'white'
+            or 'w').
         """
         pass
 
