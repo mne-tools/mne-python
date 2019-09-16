@@ -147,7 +147,7 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def tube(self, origin, destination, radius=0.001, color=(1.0, 1.0, 1.0),
+    def tube(self, origin, destination, radius=0.001, color='white',
              scalars=None, vmin=None, vmax=None, colormap='RdBu',
              normalized_colormap=False, reverse_lut=False):
         """Add tube in the scene.
@@ -237,7 +237,7 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def text2d(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
+    def text2d(self, x, y, text, width, color='white'):
         """Add 2d text in the scene.
 
         Parameters
@@ -258,7 +258,7 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def text3d(self, x, y, z, text, width, color=(1.0, 1.0, 1.0)):
+    def text3d(self, x, y, z, text, width, color='white'):
         """Add 2d text in the scene.
 
         Parameters

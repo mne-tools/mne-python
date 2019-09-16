@@ -80,7 +80,7 @@ class _Renderer(_BaseRenderer):
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, **kwargs):
         if isinstance(color, str):
-            color = colorConverter(color).to_rgb()
+            color = colorConverter.to_rgb(color)
         if isinstance(color, np.ndarray) and color.ndim > 1:
             if color.shape[1] == 3:
                 vertex_color = np.c_[color, np.ones(len(color))] * 255.0
@@ -121,7 +121,7 @@ class _Renderer(_BaseRenderer):
                 normalized_colormap=False, scalars=None,
                 backface_culling=False):
         if isinstance(color, str):
-            color = colorConverter(color).to_rgb()
+            color = colorConverter.to_rgb(color)
         if normalized_colormap:
             colormap = colormap * 255.0
         # Make a solid surface
@@ -137,7 +137,7 @@ class _Renderer(_BaseRenderer):
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False):
         if isinstance(color, str):
-            color = colorConverter(color).to_rgb()
+            color = colorConverter.to_rgb(color)
         center = np.atleast_2d(center)
         x, y, z = center.T
         surface = self.mlab.points3d(x, y, z, color=color,
@@ -146,11 +146,11 @@ class _Renderer(_BaseRenderer):
                                      figure=self.fig)
         surface.actor.property.backface_culling = backface_culling
 
-    def tube(self, origin, destination, radius=0.001, color=(1.0, 1.0, 1.0),
+    def tube(self, origin, destination, radius=0.001, color='white',
              scalars=None, vmin=None, vmax=None, colormap='RdBu',
              normalized_colormap=False, reverse_lut=False):
         if isinstance(color, str):
-            color = colorConverter(color).to_rgb()
+            color = colorConverter.to_rgb(color)
         origin = np.atleast_2d(origin)
         destination = np.atleast_2d(destination)
         if scalars is None:
@@ -178,7 +178,7 @@ class _Renderer(_BaseRenderer):
                  opacity=1.0, scale_mode='none', scalars=None,
                  backface_culling=False):
         if isinstance(color, str):
-            color = colorConverter(color).to_rgb()
+            color = colorConverter.to_rgb(color)
         with warnings.catch_warnings(record=True):  # traits
             if mode == 'arrow':
                 self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
@@ -200,16 +200,16 @@ class _Renderer(_BaseRenderer):
                     glyph_resolution
                 quiv.actor.property.backface_culling = backface_culling
 
-    def text2d(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
+    def text2d(self, x, y, text, width, color='white'):
         if isinstance(color, str):
-            color = colorConverter(color).to_rgb()
+            color = colorConverter.to_rgb(color)
         with warnings.catch_warnings(record=True):  # traits
             self.mlab.text(x, y, text, width=width, color=color,
                            figure=self.fig)
 
-    def text3d(self, x, y, z, text, scale, color=(1.0, 1.0, 1.0)):
+    def text3d(self, x, y, z, text, scale, color='white'):
         if isinstance(color, str):
-            color = colorConverter(color).to_rgb()
+            color = colorConverter.to_rgb(color)
         with warnings.catch_warnings(record=True):  # traits
             self.mlab.text3d(x, y, z, text, scale=scale, color=color,
                              figure=self.fig)

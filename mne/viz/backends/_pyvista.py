@@ -214,7 +214,7 @@ class _Renderer(_BaseRenderer):
                                   backface_culling=backface_culling,
                                   smooth_shading=self.figure.smooth_shading)
 
-    def tube(self, origin, destination, radius=0.001, color=(1.0, 1.0, 1.0),
+    def tube(self, origin, destination, radius=0.001, color='white',
              scalars=None, vmin=None, vmax=None, colormap='RdBu',
              normalized_colormap=False, reverse_lut=False):
         with warnings.catch_warnings():
@@ -319,14 +319,14 @@ class _Renderer(_BaseRenderer):
                                       smooth_shading=self.figure.
                                       smooth_shading)
 
-    def text2d(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
+    def text2d(self, x, y, text, width, color='white'):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             self.plotter.add_text(text, position=(x, y),
                                   font_size=int(width * 100),
                                   color=color)
 
-    def text3d(self, x, y, z, text, scale, color=(1.0, 1.0, 1.0)):
+    def text3d(self, x, y, z, text, scale, color='white'):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             self.plotter.add_point_labels(points=[x, y, z],
@@ -486,4 +486,4 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
 def _set_3d_title(figure, title, size=40):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
-        figure.plotter.add_text(title, font_size=32, color=(1.0, 1.0, 1.0))
+        figure.plotter.add_text(title, font_size=32, color='white')
