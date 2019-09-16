@@ -1000,8 +1000,14 @@ def test_read_dig_captrack(tmpdir):
 
     # I think that comparing dig should be enough. cc: @sappelhoff
     raw_bv = read_raw_brainvision(bv_raw_fname)
-    with pytest.warns(RuntimeWarning, match='Did not set 3 channel pos'):
-        raw_bv.set_montage(montage)
+
+    # XXX: Now we are crashing so this cannot be used and we end up needing to
+    #      use _bvct_set_montage
+    #
+    # with pytest.warns(RuntimeWarning, match='Did not set 3 channel pos'):
+    #     raw_bv.set_montage(montage)
+    raw_bv = _bvct_set_montage(raw_bv, montage)
+
     test_raw_bv = read_raw_fif(bv_fif_fname)
 
     assert_dig_allclose(raw_bv.info, test_raw_bv.info)
