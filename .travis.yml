@@ -1,6 +1,5 @@
 language: c
 dist: xenial
-sudo: false
 cache:
   apt: true
   pip: true
