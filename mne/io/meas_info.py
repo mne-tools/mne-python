@@ -1825,7 +1825,6 @@ RAW_INFO_FIELDS = (
 
 def _empty_info(sfreq):
     """Create an empty info dictionary."""
-    from ..transforms import Transform
     _none_keys = (
         'acq_pars', 'acq_stim', 'ctf_head_t', 'description',
         'dev_ctf_t', 'dig', 'experimenter', 'utc_offset', 'device_info',
