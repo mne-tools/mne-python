@@ -1337,7 +1337,14 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
                  'left untouched.')
 
     elif isinstance(montage, DigMontage):
+        def _backcompat_value(pos, ref_pos):
+            if any(np.isnan(pos)):
+                return np.full(6, np.nan)
+            else:
+                return np.concatenate((pos, ref_pos))
+
         ch_pos = montage._get_ch_pos()
+        # XXX: we need to discuss if zeros or np.full((3, 3), np.nan)
         eeg_ref_pos = ch_pos.pop('EEG000', np.zeros(3))
 
         # This raises based on info being sub/supper set of montage
@@ -1348,7 +1355,7 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
 
         for name in matched_ch_names:
             _loc_view = info['chs'][info['ch_names'].index(name)]['loc']
-            _loc_view[:6] = np.concatenate((ch_pos[name], eeg_ref_pos))
+            _loc_view[:6] = _backcompat_value(ch_pos[name], eeg_ref_pos)
 
         if set_dig:  # XXX: we need to check backcompat in set_dig=false
             _names = montage._get_dig_names()
