@@ -77,11 +77,11 @@ def run():
     parser.add_option('--verbose',
                       dest='verbose',
                       help='Turn on verbose mode.',
-                      default=None)
+                      default=None, action="store_true")
     parser.add_option('-o', '--overwrite',
                       dest='overwrite',
                       help='to write over existing files',
-                      default=None)
+                      default=None, action="store_true")
 
     options, args = parser.parse_args()
 
@@ -120,9 +120,10 @@ def run():
     # Generate filename
     if fname is None:
         if subject_to is None:
-            fname = subject + '_' + use_spacing + '-src.fif'
+            fname = subject + '_' + str(use_spacing) + '-src.fif'
         else:
-            fname = subject_to + '_' + subject + '_' + use_spacing + '-src.fif'
+            fname = (subject_to + '_' + subject + '_' +
+                     str(use_spacing) + '-src.fif')
     else:
         if not (fname.endswith('_src.fif') or fname.endswith('-src.fif')):
             fname = fname + "-src.fif"
