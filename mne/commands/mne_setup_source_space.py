@@ -120,9 +120,9 @@ def run():
     # Generate filename
     if fname is None:
         if subject_to is None:
-            fname = subject + '_' + str(use_spacing) + '-src.fif'
+            fname = subject + '-' + str(use_spacing) + '-src.fif'
         else:
-            fname = (subject_to + '_' + subject + '_' +
+            fname = (subject_to + '-' + subject + '-' +
                      str(use_spacing) + '-src.fif')
     else:
         if not (fname.endswith('_src.fif') or fname.endswith('-src.fif')):
