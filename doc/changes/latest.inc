@@ -15,6 +15,10 @@ Current (0.19.dev0)
 Changelog
 ~~~~~~~~~
 
+- Add :func:`mne.cuda.set_cuda_device` and config variable ``MNE_CUDA_DEVICE`` to select among multiple GPUs (by numeric device ID) by `Daniel McCloy`_.
+
+- Add :func:`mne.channels.make_standard_montage` to create :class:`mne.channels.DigMontage` from templates by `Joan Massich`_ and `Alex Gramfort`_.
+
 - Add :func:`mne.channels.compute_dev_head_t` to compute Device-to-Head transformation from a montage by `Joan Massich`_ and `Alex Gramfort`_.
 
 - Add :func:`mne.channels.read_dig_polhemus_isotrak` and :func:`mne.channels.read_polhemus_fastscan` to read Polhemus data by `Joan Massich`_
@@ -51,6 +55,8 @@ Changelog
 
 - Add function to check the type of a FIF file using :func:`mne.what` and `mne what <gen_mne_what>` by `Eric Larson`_
 
+- Add support for specifying the initial time and/or position and providing a :class:`mne.SourceMorph` instead of :class:`mne.SourceSpaces` in :func:`mne.viz.plot_volume_source_estimates` by `Eric Larson`_
+
 - Speed up morph map generation in :func:`mne.read_morph_map` by ~5-10x by using :func:`numba.jit` by `Eric Larson`_
 
 - Speed up :func:`mne.setup_volume_source_space`, especially when ``volume_label is not None`` by `Eric Larson`_
@@ -79,6 +85,9 @@ Changelog
 
 - Add re-referencing functionality for ecog and seeg channel types in :func:`mne.set_eeg_reference` by `Keith Doelling`_
 
+- Add support for median averaging and for returning unaggregated segments in :func:`mne.time_frequency.psd_welch` by `Richard Höchenberger`_
+
+
 Bug
 ~~~
 
@@ -88,11 +97,21 @@ Bug
 
 - Fix one-sample baseline issue in :class:`mne.BaseEpochs` when using `tmin=0` by `Milan Rybář`_
 
+- Fix bug in :func:`mne.viz.plot_volume_source_estimates` where ``'glass_brain'`` MRIs were not transformed to MNI space, by `Eric Larson`_
+
+- Fix bug in :func:`mne.viz.plot_volume_source_estimates` where MRIs with voxels not in RAS orientation could not be browsed properly, by `Eric Larson`_
+
+- Fix bug in :meth:`mne.SourceMorph.apply` where output STCs had ``stc.vertices`` defined improperly, by `Eric Larson`_
+
+- Fix bug in :meth:`mne.SourceMorph.apply` where the default was errantly ``mri_space=False`` instead of ``mri_space=None`` (as documented), by `Eric Larson`_
+
 - Fix :meth:`mne.io.Raw.set_annotations` for ``meas_date`` previous to 1970 by `Joan Massich`_
 
 - Fix horizontal spacing issues in :meth:`mne.io.Raw.plot_psd` by `Jeff Hanna`_
 
 - Fix reading of dates in BrainVision files if no "New Segment" marker is specified, no date is given, or data is missing, by `Stefan Appelhoff`_
+
+- Fix bug with reading one-channel GDF files by `Abram Hindle`_
 
 - Fix bug with y-axis labeling in :meth:`mne.io.Raw.plot_psd` by `Eric Larson`_
 

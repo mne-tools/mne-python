@@ -37,16 +37,28 @@ from ..io.constants import FIFF
 from ..utils import (warn, copy_function_doc_to_method_doc,
                      _check_option, Bunch, deprecated, _validate_type,
                      _check_fname)
+from .._digitization._utils import _get_fid_coords, _foo_get_data_from_dig
 
 from .layout import _pol_to_cart, _cart_to_sph
 from ._dig_montage_utils import _transform_to_head_call
 from ._dig_montage_utils import _read_dig_montage_egi, _read_dig_montage_bvct
-from ._dig_montage_utils import _foo_get_data_from_dig
 from ._dig_montage_utils import _fix_data_fiducials
 from ._dig_montage_utils import _parse_brainvision_dig_montage
-from ._dig_montage_utils import _get_fid_coords
+
 
 DEPRECATED_PARAM = object()
+_BUILT_IN_MONTAGES = [
+    'EGI_256',
+    'GSN-HydroCel-128', 'GSN-HydroCel-129', 'GSN-HydroCel-256',
+    'GSN-HydroCel-257', 'GSN-HydroCel-32', 'GSN-HydroCel-64_1.0',
+    'GSN-HydroCel-65_1.0',
+    'biosemi128', 'biosemi16', 'biosemi160', 'biosemi256',
+    'biosemi32', 'biosemi64',
+    'easycap-M1', 'easycap-M10',
+    'mgh60', 'mgh70',
+    'standard_1005', 'standard_1020', 'standard_alphabetic',
+    'standard_postfixed', 'standard_prefixed', 'standard_primed'
+]
 
 
 def _check_get_coord_frame(dig):
@@ -121,11 +133,7 @@ def get_builtin_montages():
         Names of all builtin montages that can be loaded with
         :func:`read_montage`.
     """
-    path = op.join(op.dirname(__file__), 'data', 'montages')
-    supported = ('.elc', '.txt', '.csd', '.sfp', '.elp', '.hpts', '.loc',
-                 '.locs', '.eloc', '.bvef')
-    files = [op.splitext(f) for f in os.listdir(path)]
-    return sorted([f for f, ext in files if ext in supported])
+    return _BUILT_IN_MONTAGES
 
 
 def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
@@ -393,6 +401,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         neuromag_trans = get_ras_to_neuromag_trans(
             fids['nasion'], fids['lpa'], fids['rpa'])
         pos = apply_trans(neuromag_trans, pos)
+    # XXX: This code was duplicated !!
     fids = {key: pos[names_lower.index(fid_names[ii])]
             if fid_names[ii] in names_lower else None
             for ii, key in enumerate(['lpa', 'nasion', 'rpa'])}
@@ -1544,3 +1553,84 @@ def compute_dev_head_t(montage):
 
     trans = fit_matched_points(tgt_pts=hpi_head, src_pts=hpi_dev, out='trans')
     return Transform(fro='meg', to='head', trans=trans)
+
+
+def make_standard_montage(kind):
+    """Read a generic (built-in) montage.
+
+    Individualized (digitized) electrode positions should be read in using
+    :func:`read_dig_montage`.  # XXXX
+
+    Parameters
+    ----------
+    kind : str
+        The name of the montage file without the file extension (e.g.
+        kind='easycap-M10' for 'easycap-M10.txt'). See notes for valid kinds.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+
+    See Also
+    --------
+    DigMontage
+
+    Notes
+    -----
+    Valid ``kind`` arguments are:
+
+    ===================   =====================================================
+    Kind                  Description
+    ===================   =====================================================
+    standard_1005         Electrodes are named and positioned according to the
+                          international 10-05 system (343+3 locations)
+    standard_1020         Electrodes are named and positioned according to the
+                          international 10-20 system (94+3 locations)
+    standard_alphabetic   Electrodes are named with LETTER-NUMBER combinations
+                          (A1, B2, F4, ...) (65+3 locations)
+    standard_postfixed    Electrodes are named according to the international
+                          10-20 system using postfixes for intermediate
+                          positions (100+3 locations)
+    standard_prefixed     Electrodes are named according to the international
+                          10-20 system using prefixes for intermediate
+                          positions (74+3 locations)
+    standard_primed       Electrodes are named according to the international
+                          10-20 system using prime marks (' and '') for
+                          intermediate positions (100+3 locations)
+
+    biosemi16             BioSemi cap with 16 electrodes (16+3 locations)
+    biosemi32             BioSemi cap with 32 electrodes (32+3 locations)
+    biosemi64             BioSemi cap with 64 electrodes (64+3 locations)
+    biosemi128            BioSemi cap with 128 electrodes (128+3 locations)
+    biosemi160            BioSemi cap with 160 electrodes (160+3 locations)
+    biosemi256            BioSemi cap with 256 electrodes (256+3 locations)
+
+    easycap-M1            EasyCap with 10-05 electrode names (74 locations)
+    easycap-M10           EasyCap with numbered electrodes (61 locations)
+
+    EGI_256               Geodesic Sensor Net (256 locations)
+
+    GSN-HydroCel-32       HydroCel Geodesic Sensor Net and Cz (33+3 locations)
+    GSN-HydroCel-64_1.0   HydroCel Geodesic Sensor Net (64+3 locations)
+    GSN-HydroCel-65_1.0   HydroCel Geodesic Sensor Net and Cz (65+3 locations)
+    GSN-HydroCel-128      HydroCel Geodesic Sensor Net (128+3 locations)
+    GSN-HydroCel-129      HydroCel Geodesic Sensor Net and Cz (129+3 locations)
+    GSN-HydroCel-256      HydroCel Geodesic Sensor Net (256+3 locations)
+    GSN-HydroCel-257      HydroCel Geodesic Sensor Net and Cz (257+3 locations)
+
+    mgh60                 The (older) 60-channel cap used at
+                          MGH (60+3 locations)
+    mgh70                 The (newer) 70-channel BrainVision cap used at
+                          MGH (70+3 locations)
+    ===================   =====================================================
+
+    .. versionadded:: 0.19.0
+    """
+    from ._standard_montage_utils import standard_montage_look_up_table
+    if kind not in standard_montage_look_up_table:
+        raise ValueError('Could not find the montage %s. Please provide one '
+                         'among: %s' % (kind,
+                                        standard_montage_look_up_table.keys()))
+    else:
+        return standard_montage_look_up_table[kind]()

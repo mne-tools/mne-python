@@ -9,7 +9,7 @@ from .montage import (read_montage, read_dig_montage, Montage, DigMontage,
                       get_builtin_montages, make_dig_montage,
                       read_dig_egi, read_dig_captrack, read_dig_fif,
                       read_dig_polhemus_isotrak, read_polhemus_fastscan,
-                      compute_dev_head_t)
+                      compute_dev_head_t, make_standard_montage)
 from .channels import (equalize_channels, rename_channels, fix_mag_coil_types,
                        read_ch_connectivity, _get_ch_type,
                        find_ch_connectivity, make_1020_channel_selections)
@@ -20,6 +20,7 @@ __all__ = [
 
     # Factory Methods
     'make_dig_montage', 'make_eeg_layout', 'make_grid_layout',
+    'make_standard_montage',
 
     # Readers
     'read_ch_connectivity', 'read_dig_captrack', 'read_dig_egi',

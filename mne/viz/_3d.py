@@ -22,20 +22,20 @@ import numpy as np
 from scipy import linalg, sparse
 
 from ..defaults import DEFAULTS
-from ..fixes import einsum, _crop_colorbar
+from ..fixes import einsum, _crop_colorbar, _get_img_fdata
 from ..io import _loc_to_coil_trans
 from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials, create_info
 from ..source_space import _ensure_src, _create_surf_spacing, _check_spacing
 
-from ..surface import (get_meg_helmet_surf, read_surface,
+from ..surface import (get_meg_helmet_surf, read_surface, _DistanceQuery,
                        transform_surface_to, _project_onto_surface,
-                       mesh_edges, _reorder_ccw,
-                       _complete_sphere_surf)
+                       mesh_edges, _reorder_ccw, _complete_sphere_surf)
 from ..transforms import (read_trans, _find_trans, apply_trans, rot_to_quat,
                           combine_transforms, _get_trans, _ensure_trans,
-                          invert_transform, Transform)
+                          invert_transform, Transform,
+                          _read_ras_mni_t, _print_coord_trans)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      has_nibabel, check_version, fill_doc, _pl,
                      _ensure_int, _validate_type, _check_option)
@@ -45,10 +45,12 @@ from ..bem import (ConductorModel, _bem_find_surface, _surf_dict, _surf_name,
                    read_bem_surfaces)
 
 
+verbose_dec = verbose
 FIDUCIAL_ORDER = (FIFF.FIFFV_POINT_LPA, FIFF.FIFFV_POINT_NASION,
                   FIFF.FIFFV_POINT_RPA)
 
 
+# XXX: to unify with digitization
 def _fiducial_coords(points, coord_frame=None):
     """Generate 3x3 array of fiducial coordinates."""
     points = points or []  # None -> list
@@ -430,7 +432,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 
     # Load the T1 data
     nim = nib.load(mri_fname)
-    data = nim.get_data()
+    data = _get_img_fdata(nim)
     try:
         affine = nim.affine
     except AttributeError:  # old nibabel
@@ -1748,19 +1750,35 @@ def _glass_brain_crosshairs(params, x, y, z):
         ax.axhline(b, color='0.75')
 
 
+def _cut_coords_to_ijk(cut_coords, img):
+    ijk = apply_trans(linalg.inv(img.affine), cut_coords)
+    ijk = np.clip(np.round(ijk).astype(int), 0, np.array(img.shape[:3]) - 1)
+    return ijk
+
+
+def _ijk_to_cut_coords(ijk, img):
+    return apply_trans(img.affine, ijk)
+
+
 @verbose
 def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
                                  mode='stat_map', bg_img=None, colorbar=True,
                                  colormap='auto', clim='auto',
-                                 transparent=None, show=True, verbose=None):
+                                 transparent=None, show=True,
+                                 initial_time=None, initial_pos=None,
+                                 verbose=None):
     """Plot Nutmeg style volumetric source estimates using nilearn.
 
     Parameters
     ----------
     stc : VectorSourceEstimate
         The vector source estimate to plot.
-    src : instance of SourceSpaces
-        The source space.
+    src : instance of SourceSpaces | instance of SourceMorph
+        The source space. Can also be a SourceMorph to morph the STC to
+        a new subject (see Examples).
+
+        .. versionchanged:: 0.18
+           Support for :class:`~nibabel.spatialimages.SpatialImage`.
     subject : str | None
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT. If None stc.subject will be used. If that
@@ -1772,7 +1790,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         The plotting mode to use. Either 'stat_map' (default) or 'glass_brain'.
         For "glass_brain", activation absolute values are displayed
         after being transformed to a standard MNI brain.
-    bg_img : Niimg-like object | None
+    bg_img : instance of SpatialImage | None
         The background image used in the nilearn plotting function.
         If None, it is the T1.mgz file that is found in the subjects_dir.
         Not used in "glass brain" plotting.
@@ -1783,6 +1801,20 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     %(transparent)s
     show : bool
         Show figures if True. Defaults to True.
+    initial_time : float | None
+        The initial time to plot. Can be None (default) to use the time point
+        with the maximal absolute value activation across all voxels
+        or the ``initial_pos`` voxel (if ``initial_pos is None`` or not,
+        respectively).
+
+        .. versionadded:: 0.19
+    initial_pos : ndarray, shape (3,) | None
+        The initial position to use (in m). Can be None (default) to use the
+        voxel with the maximum absolute value activation across all time points
+        or at ``initial_time`` (if ``initial_time is None`` or not,
+        respectively).
+
+        .. versionadded:: 0.19
     %(verbose)s
 
     Notes
@@ -1793,88 +1825,118 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     The left and right arrow keys can be used to navigate in time.
     To move in time by larger steps, use shift+left and shift+right.
 
+    In ``'glass_brain'`` mode, values are transformed to the standard MNI
+    brain using the FreeSurfer Talairach transformation
+    ``$SUBJECTS_DIR/$SUBJECT/mri/transforms/talairach.xfm``.
+
     .. versionadded:: 0.17
-    """
+
+    .. versionchanged:: 0.19
+       MRI volumes are automatically transformed to MNI space in
+       ``'glass_brain'`` mode.
+
+    Examples
+    --------
+    Passing a :class:`mne.SourceMorph` as the ``src``
+    parameter can be useful for plotting in a different subject's space
+    (here, a ``'sample'`` STC in ``'fsaverage'``'s space)::
+
+    >>> morph = mne.compute_source_morph(src_sample, subject_to='fsaverage')  # doctest: +SKIP
+    >>> fig = stc_vol_sample.plot(morph)  # doctest: +SKIP
+
+    """  # noqa: E501
     from matplotlib import pyplot as plt, colors
     from matplotlib.cbook import mplDeprecation
     import nibabel as nib
     from ..source_estimate import VolSourceEstimate
+    from ..morph import SourceMorph
 
     if not check_version('nilearn', '0.4'):
         raise RuntimeError('This function requires nilearn >= 0.4')
 
     from nilearn.plotting import plot_stat_map, plot_glass_brain
-    from nilearn.image import index_img, resample_to_img
+    from nilearn.image import index_img
 
-    if mode == 'stat_map':
-        plot_func = plot_stat_map
-    elif mode == 'glass_brain':
-        plot_func = plot_glass_brain
+    _check_option('mode', mode, ('stat_map', 'glass_brain'))
+    plot_func = dict(stat_map=plot_stat_map,
+                     glass_brain=plot_glass_brain)[mode]
+    _validate_type(stc, VolSourceEstimate, 'stc')
+    if isinstance(src, SourceMorph):
+        img = src.apply(stc, 'nifti1', mri_resolution=False, mri_space=False)
+        stc = src.apply(stc, mri_resolution=False, mri_space=False)
+        kind, src_subject = 'morph.subject_to', src.subject_to
     else:
-        raise ValueError('Plotting function must be one of'
-                         ' stat_map | glas_brain. Got %s' % mode)
+        src = _ensure_src(src, kind='volume', extra=' or SourceMorph')
+        img = stc.as_volume(src, mri_resolution=False)
+        kind, src_subject = 'src subject', src[0].get('subject_his_id', None)
+    _print_coord_trans(Transform('mri_voxel', 'ras', img.affine),
+                       prefix='Image affine ', units='mm', level='debug')
+    subject = _check_subject(src_subject, subject, True, kind=kind)
+    stc_ijk = np.array(
+        np.unravel_index(stc.vertices, img.shape[:3], order='F')).T
+    assert stc_ijk.shape == (len(stc.vertices), 3)
+    del src, kind
 
-    if not isinstance(stc, VolSourceEstimate):
-        raise ValueError('Only VolSourceEstimate objects are supported.'
-                         'Got %s' % type(stc))
+    # XXX this assumes zooms are uniform, should probably mult by zooms...
+    dist_to_verts = _DistanceQuery(stc_ijk, allow_kdtree=True)
 
-    def _cut_coords_to_idx(cut_coords, img_idx):
+    def _cut_coords_to_idx(cut_coords, img):
         """Convert voxel coordinates to index in stc.data."""
-        # XXX: check lines below
-        cut_coords = apply_trans(linalg.inv(img.affine), cut_coords)
-        cut_coords = np.array([int(round(c)) for c in cut_coords])
+        ijk = _cut_coords_to_ijk(cut_coords, img)
+        del cut_coords
+        logger.debug('    Affine remapped cut coords to [%d, %d, %d] idx'
+                     % tuple(ijk))
+        dist, loc_idx = dist_to_verts.query(ijk[np.newaxis])
+        dist, loc_idx = dist[0], loc_idx[0]
+        logger.debug('    Using vertex %d at a distance of %d voxels'
+                     % (stc.vertices[loc_idx], dist))
+        return loc_idx
 
-        # the affine transformation can sometimes lead to corner
-        # cases near the edges?
-        shape = img_idx.shape
-        cut_coords = np.clip(cut_coords, 0, np.array(shape) - 1)
-        loc_idx = np.ravel_multi_index(
-            cut_coords, shape, order='F')
-        dist_vertices = [abs(v - loc_idx) for v in stc.vertices]
-        nearest_idx = int(round(np.argmin(dist_vertices)))
-        if dist_vertices[nearest_idx] == 0:
-            return nearest_idx
-        else:
-            return None
+    ax_name = dict(x='X (saggital)', y='Y (coronal)', z='Z (axial)')
 
-    def _get_cut_coords_stat_map(event, params):
+    def _click_to_cut_coords(event, params):
         """Get voxel coordinates from mouse click."""
         if event.inaxes is params['ax_x']:
-            cut_coords = (params['ax_z'].lines[0].get_xdata()[0],
-                          event.xdata, event.ydata)
+            ax = 'x'
+            x = params['ax_z'].lines[0].get_xdata()[0]
+            y, z = event.xdata, event.ydata
         elif event.inaxes is params['ax_y']:
-            cut_coords = (event.xdata,
-                          params['ax_x'].lines[0].get_xdata()[0],
-                          event.ydata)
+            ax = 'y'
+            y = params['ax_x'].lines[0].get_xdata()[0]
+            x, z = event.xdata, event.ydata
+        elif event.inaxes is params['ax_z']:
+            ax = 'z'
+            x, y = event.xdata, event.ydata
+            z = params['ax_x'].lines[1].get_ydata()[0]
         else:
-            cut_coords = (event.xdata, event.ydata,
-                          params['ax_x'].lines[1].get_ydata()[0])
+            logger.debug('    Click outside axes')
+            return None
+        cut_coords = np.array((x, y, z))
+        logger.debug('')
+
+        if params['mode'] == 'glass_brain':  # find idx for MIP
+            # Figure out what XYZ in world coordinates is in our voxel data
+            codes = ''.join(nib.aff2axcodes(params['img_idx'].affine))
+            assert len(codes) == 3
+            # We don't care about directionality, just which is which dim
+            codes = codes.replace('L', 'R').replace('P', 'A').replace('I', 'S')
+            idx = codes.index(dict(x='R', y='A', z='S')[ax])
+            img_data = np.abs(_get_img_fdata(params['img_idx']))
+            ijk = _cut_coords_to_ijk(cut_coords, params['img_idx'])
+            if idx == 0:
+                ijk[0] = np.argmax(img_data[:, ijk[1], ijk[2]])
+                logger.debug('    MIP: i = %d idx' % (ijk[0],))
+            elif idx == 1:
+                ijk[1] = np.argmax(img_data[ijk[0], :, ijk[2]])
+                logger.debug('    MIP: j = %d idx' % (ijk[1],))
+            else:
+                ijk[2] = np.argmax(img_data[ijk[0], ijk[1], :])
+                logger.debug('    MIP: k = %d idx' % (ijk[2],))
+            cut_coords = _ijk_to_cut_coords(ijk, params['img_idx'])
+
+        logger.debug('    Cut coords for %s: (%0.1f, %0.1f, %0.1f) mm'
+                     % ((ax_name[ax],) + tuple(cut_coords)))
         return cut_coords
-
-    def _get_cut_coords_glass_brain(event, params):
-        """Get voxel coordinates with max intensity projection."""
-        img_data = np.abs(params['img_idx_resampled'].get_data())
-        shape = img_data.shape
-        if event.inaxes is params['ax_x']:
-            y, z = int(round(event.xdata)), int(round(event.ydata))
-            x = np.argmax(img_data[:, y + shape[1] // 2, z + shape[2] // 2])
-            x -= shape[0] // 2
-        elif event.inaxes is params['ax_y']:
-            x, z = int(round(event.xdata)), int(round(event.ydata))
-            y = np.argmax(img_data[x + shape[0] // 2, :, z + shape[2] // 2])
-            y -= shape[1] // 2
-        else:
-            x, y = int(round(event.xdata)), int(round(event.ydata))
-            z = np.argmax(img_data[x + shape[0] // 2, y + shape[1] // 2, :])
-            z -= shape[2] // 2
-        return (x, y, z)
-
-    def _resample(event, params):
-        """Precompute the resampling as the mouse leaves the time axis."""
-        if event.inaxes is params['ax_time'] and mode == 'glass_brain':
-            img_resampled = resample_to_img(params['img_idx'],
-                                            params['bg_img'])
-            params.update({'img_idx_resampled': img_resampled})
 
     def _press(event, params):
         """Manage keypress on the plot."""
@@ -1888,19 +1950,21 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             idx = min(params['stc'].shape[1] - 1, idx + 2)
         elif event.key == 'shift+right':
             idx = min(params['stc'].shape[1] - 1, idx + 10)
-        params['lx'].set_xdata(idx / params['stc'].sfreq +
-                               params['stc'].tmin)
         _update_timeslice(idx, params)
         params['fig'].canvas.draw()
 
     def _update_timeslice(idx, params):
-        cut_coords = (0, 0, 0)
+        params['lx'].set_xdata(idx / params['stc'].sfreq +
+                               params['stc'].tmin)
         ax_x, ax_y, ax_z = params['ax_x'], params['ax_y'], params['ax_z']
         plot_map_callback = params['plot_func']
-        if mode == 'stat_map':
-            cut_coords = (ax_y.lines[0].get_xdata()[0],
-                          ax_x.lines[0].get_xdata()[0],
-                          ax_x.lines[1].get_ydata()[0])
+        # Crosshairs are the first thing plotted in stat_map, and the last
+        # in glass_brain
+        idxs = [0, 0, 1] if mode == 'stat_map' else [-2, -2, -1]
+        cut_coords = (
+            ax_y.lines[idxs[0]].get_xdata()[0],
+            ax_x.lines[idxs[1]].get_xdata()[0],
+            ax_x.lines[idxs[2]].get_ydata()[0])
         ax_x.clear()
         ax_y.clear()
         ax_z.clear()
@@ -1908,69 +1972,123 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         params.update({'title': 'Activation (t=%.3f s.)'
                        % params['stc'].times[idx]})
         plot_map_callback(
-            params['img_idx'], title='',
-            cut_coords=cut_coords)
+            params['img_idx'], title='', cut_coords=cut_coords)
 
-    def _onclick(event, params):
+    @verbose_dec
+    def _onclick(event, params, verbose=None):
         """Manage clicks on the plot."""
         ax_x, ax_y, ax_z = params['ax_x'], params['ax_y'], params['ax_z']
         plot_map_callback = params['plot_func']
         if event.inaxes is params['ax_time']:
-            idx = params['stc'].time_as_index(event.xdata)[0]
-            params['lx'].set_xdata(event.xdata)
+            idx = params['stc'].time_as_index(
+                event.xdata, use_rounding=True)[0]
             _update_timeslice(idx, params)
 
-        if event.inaxes in [ax_x, ax_y, ax_z]:
-            if mode == 'stat_map':
-                cut_coords = _get_cut_coords_stat_map(event, params)
-            elif mode == 'glass_brain':
-                cut_coords = _get_cut_coords_glass_brain(event, params)
+        cut_coords = _click_to_cut_coords(event, params)
+        if cut_coords is None:
+            return  # not in any axes
 
-            ax_x.clear()
-            ax_y.clear()
-            ax_z.clear()
-            plot_map_callback(params['img_idx'], title='',
-                              cut_coords=cut_coords)
-            loc_idx = _cut_coords_to_idx(cut_coords, params['img_idx'])
-            if loc_idx is not None:
-                ax_time.lines[0].set_ydata(stc.data[loc_idx].T)
-            else:
-                ax_time.lines[0].set_ydata(0.)
+        ax_x.clear()
+        ax_y.clear()
+        ax_z.clear()
+        plot_map_callback(params['img_idx'], title='',
+                          cut_coords=cut_coords)
+        loc_idx = _cut_coords_to_idx(cut_coords, params['img_idx'])
+        ydata = stc.data[loc_idx]
+        if loc_idx is not None:
+            ax_time.lines[0].set_ydata(ydata)
+        else:
+            ax_time.lines[0].set_ydata(0.)
         params['fig'].canvas.draw()
 
-    if bg_img is None:
-        subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
-                                        raise_error=True)
-        subject = _check_subject(stc.subject, subject, True)
-        t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
-        bg_img = nib.load(t1_fname)
-
-    bg_img_param = bg_img
     if mode == 'glass_brain':
-        bg_img_param = None
+        subject = _check_subject(stc.subject, subject, True)
+        ras_mni_t = _read_ras_mni_t(subject, subjects_dir)
+        if not np.allclose(ras_mni_t['trans'], np.eye(4)):
+            _print_coord_trans(
+                ras_mni_t, prefix='Transforming subject ', units='mm')
+            logger.info('')
+            # To get from voxel coords to world coords (i.e., define affine)
+            # we would apply img.affine, then also apply ras_mni_t, which
+            # transforms from the subject's RAS to MNI RAS. So we left-multiply
+            # these.
+            img = nib.Nifti1Image(
+                img.dataobj, np.dot(ras_mni_t['trans'], img.affine))
+        bg_img = None  # not used
+    else:  # stat_map
+        if bg_img is None:
+            subject = _check_subject(stc.subject, subject, True)
+            subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
+                                            raise_error=True)
+            t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
+            bg_img = nib.load(t1_fname)
 
-    img = stc.as_volume(src, mri_resolution=False)
-
-    loc_idx, idx = np.unravel_index(np.abs(stc.data).argmax(),
-                                    stc.data.shape)
-    img_idx = index_img(img, idx)
-    x, y, z = np.unravel_index(stc.vertices[loc_idx], img_idx.shape,
-                               order='F')
-    cut_coords = apply_trans(img.affine, (x, y, z))
+    if initial_time is None:
+        time_sl = slice(0, None)
+    else:
+        initial_time = float(initial_time)
+        logger.info('Fixing initial time: %s sec' % (initial_time,))
+        initial_time = np.argmin(np.abs(stc.times - initial_time))
+        time_sl = slice(initial_time, initial_time + 1)
+    if initial_pos is None:  # find max pos and (maybe) time
+        loc_idx, time_idx = np.unravel_index(
+            np.abs(stc.data[:, time_sl]).argmax(), stc.data[:, time_sl].shape)
+        time_idx += time_sl.start
+    else:  # position specified
+        initial_pos = np.array(initial_pos, float)
+        if initial_pos.shape != (3,):
+            raise ValueError('initial_pos must be float ndarray with shape '
+                             '(3,), got shape %s' % (initial_pos.shape,))
+        initial_pos *= 1000
+        logger.info('Fixing initial position: %s mm'
+                    % (initial_pos.tolist(),))
+        loc_idx = _cut_coords_to_idx(initial_pos, img)
+        if initial_time is not None:  # time also specified
+            time_idx = time_sl.start
+        else:  # find the max
+            time_idx = np.argmax(np.abs(stc.data[loc_idx]))
+    img_idx = index_img(img, time_idx)
+    assert img_idx.shape == img.shape[:3]
+    del initial_time, initial_pos
+    ijk = stc_ijk[loc_idx]
+    cut_coords = _ijk_to_cut_coords(ijk, img_idx)
+    np.testing.assert_allclose(_cut_coords_to_ijk(cut_coords, img_idx), ijk)
+    logger.info('Showing: t = %0.3f s, (%0.1f, %0.1f, %0.1f) mm, '
+                '[%d, %d, %d] vox, %d vertex'
+                % ((stc.times[time_idx],) + tuple(cut_coords) + tuple(ijk) +
+                   (stc.vertices[loc_idx],)))
+    del ijk
 
     # Plot initial figure
     fig, (axes, ax_time) = plt.subplots(2)
-    ax_time.plot(stc.times, stc.data[loc_idx].T, color='k')
+    axes.set(xticks=[], yticks=[])
+    marker = 'o' if len(stc.times) == 1 else None
+    ydata = stc.data[loc_idx]
+    ax_time.plot(stc.times, ydata, color='k', marker=marker)
     if len(stc.times) > 1:
         ax_time.set(xlim=stc.times[[0, -1]])
     ax_time.set(xlabel='Time (s)', ylabel='Activation')
-    lx = ax_time.axvline(stc.times[idx], color='g')
-    axes.set(xticks=[], yticks=[])
+    lx = ax_time.axvline(stc.times[time_idx], color='g')
     fig.tight_layout()
 
     allow_pos_lims = (mode != 'glass_brain')
-    colormap, scale_pts, diverging, _, _ = _limits_to_control_points(
+    colormap, scale_pts, diverging, _, ticks = _limits_to_control_points(
         clim, stc.data, colormap, transparent, allow_pos_lims, linearize=True)
+    ylim = [min((scale_pts[0], ydata.min())),
+            max((scale_pts[-1], ydata.max()))]
+    ylim = np.array(ylim) + np.array([-1, 1]) * 0.05 * np.diff(ylim)[0]
+    dup_neg = False
+    if stc.data.min() < 0:
+        ax_time.axhline(0., color='0.5', ls='-', lw=0.5, zorder=2)
+        dup_neg = not diverging  # glass brain with signed data
+    yticks = list(ticks)
+    if dup_neg:
+        yticks += [0] + list(-np.array(ticks))
+    yticks = np.unique(yticks)
+    ax_time.set(yticks=yticks)
+    ax_time.set(ylim=ylim)
+    del yticks
+
     if not diverging:  # set eq above iff one-sided
         # there is a bug in nilearn where this messes w/transparency
         # Need to double the colormap
@@ -2000,7 +2118,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     plot_kwargs = dict(
         threshold=None, axes=axes,
         resampling_interpolation='nearest', vmax=vmax, figure=fig,
-        colorbar=colorbar, bg_img=bg_img_param, cmap=colormap, black_bg=True,
+        colorbar=colorbar, bg_img=bg_img, cmap=colormap, black_bg=True,
         symmetric_cbar=True)
 
     def plot_and_correct(*args, **kwargs):
@@ -2011,6 +2129,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             warnings.simplefilter('ignore', mplDeprecation)
             params['fig_anat'] = partial(
                 plot_func, **plot_kwargs)(*args, **kwargs)
+        params['fig_anat']._cbar.outline.set_visible(False)
         for key in 'xyz':
             params.update({'ax_' + key: params['fig_anat'].axes[key].ax})
         # Fix nilearn bug w/cbar background being white
@@ -2019,26 +2138,22 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
             # adjust one-sided colorbars
             if not diverging:
                 _crop_colorbar(params['fig_anat']._cbar, *scale_pts[[0, -1]])
+            params['fig_anat']._cbar.set_ticks(params['cbar_ticks'])
         if mode == 'glass_brain':
             _glass_brain_crosshairs(params, *kwargs['cut_coords'])
 
     params = dict(stc=stc, ax_time=ax_time, plot_func=plot_and_correct,
-                  img_idx=img_idx, fig=fig, bg_img=bg_img, lx=lx)
+                  img_idx=img_idx, fig=fig, lx=lx, mode=mode, cbar_ticks=ticks)
 
     plot_and_correct(stat_map_img=params['img_idx'], title='',
                      cut_coords=cut_coords)
-    if mode == 'glass_brain':
-        params.update(img_idx_resampled=resample_to_img(
-            params['img_idx'], params['bg_img']))
 
     if show:
         plt.show()
     fig.canvas.mpl_connect('button_press_event',
-                           partial(_onclick, params=params))
+                           partial(_onclick, params=params, verbose=verbose))
     fig.canvas.mpl_connect('key_press_event',
                            partial(_press, params=params))
-    fig.canvas.mpl_connect('axes_leave_event',
-                           partial(_resample, params=params))
 
     return fig
 
@@ -2666,7 +2781,7 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
                         coord_frame=coord_frame)
 
     zooms = t1.header.get_zooms()
-    data = t1.get_data()
+    data = _get_img_fdata(t1)
     dims = len(data)  # Symmetric size assumed.
     dd = dims / 2.
     dd *= t1.header.get_zooms()[0]

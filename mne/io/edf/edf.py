@@ -308,12 +308,6 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, chs, filenames):
     tal_idx = raw_extras.get('tal_idx', [])
     subtype = raw_extras['subtype']
 
-    if np.size(dtype_byte) > 1:
-        if len(np.unique(dtype_byte)) > 1:
-            warn("Multiple data type not supported")
-        dtype = dtype[0]
-        dtype_byte = dtype_byte[0]
-
     # gain constructor
     physical_range = np.array([ch['range'] for ch in chs])
     cal = np.array([ch['cal'] for ch in chs])
@@ -700,6 +694,23 @@ def _read_edf_header(fname, exclude):
     return edf_info, orig_units
 
 
+GDFTYPE_NP = (None, np.int8, np.uint8, np.int16, np.uint16, np.int32,
+              np.uint32, np.int64, np.uint64, None, None, None, None,
+              None, None, None, np.float32, np.float64)
+GDFTYPE_BYTE = tuple(np.dtype(x).itemsize if x is not None else 0
+                     for x in GDFTYPE_NP)
+
+
+def _check_dtype_byte(types):
+    assert sum(GDFTYPE_BYTE) == 42
+    dtype_byte = [GDFTYPE_BYTE[t] for t in types]
+    dtype_np = [GDFTYPE_NP[t] for t in types]
+    if len(np.unique(dtype_byte)) > 1:
+        # We will not read it properly, so this should be an error
+        raise RuntimeError("Reading multiple data types not supported")
+    return dtype_np[0], dtype_byte[0]
+
+
 def _read_gdf_header(fname, exclude):
     """Read GDF 1.x and GDF 2.x header info."""
     edf_info = dict()
@@ -707,14 +718,6 @@ def _read_gdf_header(fname, exclude):
     with open(fname, 'rb') as fid:
 
         version = fid.read(8).decode()
-
-        gdftype_np = (None, np.int8, np.uint8, np.int16, np.uint16, np.int32,
-                      np.uint32, np.int64, np.uint64, None, None, None, None,
-                      None, None, None, np.float32, np.float64)
-        gdftype_byte = [np.dtype(x).itemsize if x is not None else 0
-                        for x in gdftype_np]
-        assert sum(gdftype_byte) == 42
-
         edf_info['type'] = edf_info['subtype'] = version[:3]
         edf_info['number'] = float(version[4:])
         meas_date = DATE_NONE
@@ -796,16 +799,16 @@ def _read_gdf_header(fname, exclude):
             dtype = np.fromfile(fid, np.int32, len(channels))
 
             # total number of bytes for data
-            bytes_tot = np.sum([gdftype_byte[t] * n_samps[i]
+            bytes_tot = np.sum([GDFTYPE_BYTE[t] * n_samps[i]
                                 for i, t in enumerate(dtype)])
 
             # Populate edf_info
+            dtype_np, dtype_byte = _check_dtype_byte(dtype)
             edf_info.update(
                 bytes_tot=bytes_tot, ch_names=ch_names,
                 data_offset=header_nbytes, digital_min=digital_min,
                 digital_max=digital_max,
-                dtype_byte=[gdftype_byte[t] for t in dtype],
-                dtype_np=[gdftype_np[t] for t in dtype], exclude=exclude,
+                dtype_byte=dtype_byte, dtype_np=dtype_np, exclude=exclude,
                 highpass=highpass, sel=sel, lowpass=lowpass,
                 meas_date=meas_date,
                 meas_id=meas_id, n_records=n_records, n_samps=n_samps,
@@ -964,6 +967,8 @@ def _read_gdf_header(fname, exclude):
             for i, unit in enumerate(units):
                 if unit == 4275:  # microvolts
                     units[i] = 1e-6
+                elif unit == 4274:  # millivolts
+                    units[i] = 1e-3
                 elif unit == 512:  # dimensionless
                     units[i] = 1
                 elif unit == 0:
@@ -1017,15 +1022,15 @@ def _read_gdf_header(fname, exclude):
             assert fid.tell() == header_nbytes
 
             # total number of bytes for data
-            bytes_tot = np.sum([gdftype_byte[t] * n_samps[i]
+            bytes_tot = np.sum([GDFTYPE_BYTE[t] * n_samps[i]
                                 for i, t in enumerate(dtype)])
 
             # Populate edf_info
+            dtype_np, dtype_byte = _check_dtype_byte(dtype)
             edf_info.update(
                 bytes_tot=bytes_tot, ch_names=ch_names,
                 data_offset=header_nbytes,
-                dtype_byte=[gdftype_byte[t] for t in dtype],
-                dtype_np=[gdftype_np[t] for t in dtype],
+                dtype_byte=dtype_byte, dtype_np=dtype_np,
                 digital_min=digital_min, digital_max=digital_max,
                 exclude=exclude, gnd=gnd, highpass=highpass, sel=sel,
                 impedance=impedance, lowpass=lowpass, meas_date=meas_date,

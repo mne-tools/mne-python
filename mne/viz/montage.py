@@ -35,13 +35,16 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
         ch_names = montage.ch_names
         title = montage.kind
     elif isinstance(montage, DigMontage):
-        ch_names = montage._point_names
+        ch_names = montage.ch_names
         title = None
     else:
         raise TypeError("montage must be an instance of "
                         "mne.channels.montage.Montage or"
                         "mne.channels.montage.DigMontage")
     _check_option('kind', kind, ['topomap', '3d'])
+
+    if len(ch_names) == 0:
+        raise RuntimeError('No valid channel positions found.')
 
     if isinstance(montage, Montage):  # check for duplicate labels
         dists = cdist(montage.pos, montage.pos)
