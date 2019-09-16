@@ -533,9 +533,11 @@ numpydoc_xref_aliases = {
     # nibabel
     'Nifti1Image': 'nibabel.nifti1.Nifti1Image',
     'Nifti2Image': 'nibabel.nifti2.Nifti2Image',
+    'SpatialImage': 'nibabel.spatialimages.SpatialImage',
     # MNE
     'Label': 'mne.Label', 'Forward': 'mne.Forward', 'Evoked': 'mne.Evoked',
     'Info': 'mne.Info', 'SourceSpaces': 'mne.SourceSpaces',
+    'SourceMorph': 'mne.SourceMorph',
     'Epochs': 'mne.Epochs', 'Layout': 'mne.channels.Layout',
     'EvokedArray': 'mne.EvokedArray', 'BiHemiLabel': 'mne.BiHemiLabel',
     'AverageTFR': 'mne.time_frequency.AverageTFR',
@@ -584,6 +586,7 @@ numpydoc_xref_ignore = {
     'n_splits', 'n_scores', 'n_outputs', 'n_trials', 'n_estimators', 'n_tasks',
     'nd_features', 'n_classes', 'n_targets', 'n_slices', 'n_hpi', 'n_fids',
     'n_elp', 'n_pts', 'n_tris', 'n_nodes', 'n_nonzero', 'n_events_out',
+    'n_segments',
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
     'RawBrainVision', 'RawCurry',

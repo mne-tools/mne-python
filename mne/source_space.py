@@ -22,6 +22,7 @@ from .io.write import (start_block, end_block, write_int,
                        write_float_matrix, write_int_matrix,
                        write_coord_trans, start_file, end_file, write_id)
 from .bem import read_bem_surfaces, ConductorModel
+from .fixes import _get_img_fdata
 from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _tessellate_sphere_surf, _get_surf_neighbors,
                       _normalize_vectors, _triangle_neighbors, mesh_dist,
@@ -35,7 +36,7 @@ from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
                          _coord_frame_name, Transform, _str_to_frame,
-                         _ensure_trans, _read_fs_xfm)
+                         _ensure_trans, _read_ras_mni_t)
 
 
 def _get_lut():
@@ -354,7 +355,7 @@ class SourceSpaces(list):
                 # get the inuse array
                 if mri_resolution:
                     # read the mri file used to generate volumes
-                    aseg_data = nib.load(vs['mri_file']).get_data()
+                    aseg_data = _get_img_fdata(nib.load(vs['mri_file']))
                     # get the voxel space shape
                     shape3d = (vs['mri_height'], vs['mri_depth'],
                                vs['mri_width'])
@@ -1272,18 +1273,15 @@ def head_to_mni(pos, subject, mri_head_t, subjects_dir=None,
 
 @verbose
 def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
-    """Read MNI transform from FreeSurfer talairach.xfm file.
+    """Compute MNI transform from FreeSurfer talairach.xfm file.
 
     Adapted from freesurfer m-files. Altered to deal with Norig
     and Torig correctly.
     """
     if mode is not None and mode not in ['nibabel', 'freesurfer']:
         raise ValueError('mode must be "nibabel" or "freesurfer"')
-    fname = op.join(subjects_dir, subject, 'mri', 'transforms',
-                    'talairach.xfm')
-
     # Setup the RAS to MNI transform
-    ras_mni_t = Transform('ras', 'mni_tal', _read_fs_xfm(fname)[0])
+    ras_mni_t = _read_ras_mni_t(subject, subjects_dir)
 
     # We want to get from Freesurfer surface RAS ('mri') to MNI ('mni_tal').
     # This file only gives us RAS (non-zero origin) ('ras') to MNI ('mni_tal').
@@ -1829,7 +1827,7 @@ def _get_volume_label_mask(mri, volume_label, rr):
 
     # Read the segmentation data using nibabel
     mgz = nib.load(mri)
-    mgz_data = mgz.get_data()
+    mgz_data = _get_img_fdata(mgz)
 
     # Get the numeric index for this volume label
     lut = _get_lut()
@@ -2326,8 +2324,9 @@ def _adjust_patch_info(s, verbose=None):
 
 
 @verbose
-def _ensure_src(src, kind=None, verbose=None):
+def _ensure_src(src, kind=None, extra='', verbose=None):
     """Ensure we have a source space."""
+    msg = 'src must be a string or instance of SourceSpaces%s' % (extra,)
     if _check_path_like(src):
         src = str(src)
         if not op.isfile(src):
@@ -2335,14 +2334,10 @@ def _ensure_src(src, kind=None, verbose=None):
         logger.info('Reading %s...' % src)
         src = read_source_spaces(src, verbose=False)
     if not isinstance(src, SourceSpaces):
-        raise ValueError('src must be a string or instance of SourceSpaces')
-    if kind is not None:
-        if kind == 'surf':
-            surf = [s for s in src if s['type'] == 'surf']
-            if len(surf) != 2 or len(src) != 2:
-                raise ValueError('Source space must contain exactly two '
-                                 'surfaces.')
-            src = surf
+        raise ValueError('%s, got %s (type %s)' % (msg, src, type(src)))
+    if kind is not None and src.kind != kind:
+        raise ValueError('Source space must be %s type, got '
+                         '%s' % (kind, src.kind))
     return src
 
 
@@ -2516,7 +2511,7 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False):
     import nibabel as nib
 
     # Read the mgz file using nibabel
-    mgz_data = nib.load(mgz_fname).get_data()
+    mgz_data = _get_img_fdata(nib.load(mgz_fname))
 
     # Get the unique label names
     lut = _get_lut()

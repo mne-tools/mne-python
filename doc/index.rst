@@ -34,28 +34,28 @@
     .. raw:: html
 
         <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
-        <a href="documentation.html#collapse_io" class="btn btn-primary btn-lg btn-cont">Data I/O</a>
+        <a href="auto_examples/index.html#input-output" class="btn btn-primary btn-lg btn-cont">Data I/O</a>
         </div>
         <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
-        <a href="documentation.html#collapse_preprocessing" class="btn btn-primary btn-lg btn-cont">Preprocessing</a>
+        <a href="auto_examples/index.html#preprocessing" class="btn btn-primary btn-lg btn-cont">Preprocessing</a>
         </div>
         <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
-        <a href="documentation.html#collapse_visualization" class="btn btn-primary btn-lg btn-cont">Visualization</a>
+        <a href="auto_examples/index.html#visualization" class="btn btn-primary btn-lg btn-cont">Visualization</a>
         </div>
         <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
-        <a href="documentation.html#collapse_source" class="btn btn-primary btn-lg btn-cont">Source estimation</a>
+        <a href="auto_examples/index.html#inverse-problem-and-source-analysis" class="btn btn-primary btn-lg btn-cont">Source estimation</a>
         </div>
         <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
-        <a href="documentation.html#collapse_tf" class="btn btn-primary btn-lg btn-cont">Time-frequency</a>
+        <a href="auto_examples/index.html#time-frequency-examples" class="btn btn-primary btn-lg btn-cont">Time-frequency</a>
         </div>
         <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
-        <a href="documentation.html#collapse_connectivity" class="btn btn-primary btn-lg btn-cont">Connectivity</a>
+        <a href="auto_examples/index.html#connectivity-analysis-examples" class="btn btn-primary btn-lg btn-cont">Connectivity</a>
         </div>
         <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
-        <a href="documentation.html#collapse_ml" class="btn btn-primary btn-lg btn-cont">Machine learning</a>
+        <a href="auto_examples/index.html#machine-learning-decoding-encoding-and-mvpa" class="btn btn-primary btn-lg btn-cont">Machine learning</a>
         </div>
         <div class="col-lg-3 col-md-4 col-sm-6 table-like bottommargin">
-        <a href="documentation.html#collapse_statistics" class="btn btn-primary btn-lg btn-cont">Statistics</a>
+        <a href="auto_examples/index.html#statistics-examples" class="btn btn-primary btn-lg btn-cont">Statistics</a>
         </div>
 
 .. container:: row limitedwidth

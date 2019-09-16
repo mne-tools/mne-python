@@ -321,6 +321,7 @@ Projections:
    find_layout
    make_eeg_layout
    make_grid_layout
+   make_standard_montage
    find_ch_connectivity
    read_ch_connectivity
    equalize_channels
@@ -1025,3 +1026,4 @@ Logging and Configuration
 
    get_cuda_memory
    init_cuda
+   set_cuda_device
