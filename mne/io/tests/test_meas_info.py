@@ -27,7 +27,7 @@ from mne.io.meas_info import (Info, create_info, _merge_info,
 from mne._digitization._utils import (_write_dig_points, _read_dig_points,
                                       _make_dig_points,)
 from mne.io import read_raw_ctf
-from mne.utils import _TempDir, run_tests_if_main, catch_logging, object_diff
+from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
 from mne.channels.montage import read_montage, read_dig_montage
 
 base_dir = op.join(op.dirname(__file__), 'data')
@@ -125,14 +125,13 @@ def test_duplicate_name_correction():
         create_info(['A', 'A', 'A-0'], 1000., verbose='error')
 
 
-def test_fiducials_io():
+def test_fiducials_io(tmpdir):
     """Test fiducials i/o."""
-    tempdir = _TempDir()
     pts, coord_frame = read_fiducials(fiducials_fname)
     assert pts[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI
     assert pts[0]['ident'] == FIFF.FIFFV_POINT_CARDINAL
 
-    temp_fname = op.join(tempdir, 'test.fif')
+    temp_fname = tmpdir.join('test.fif')
     write_fiducials(temp_fname, pts, coord_frame)
     pts_1, coord_frame_1 = read_fiducials(temp_fname)
     assert coord_frame == coord_frame_1
@@ -209,11 +208,10 @@ def test_info():
     assert info == info2
 
 
-def test_read_write_info():
+def test_read_write_info(tmpdir):
     """Test IO of info."""
-    tempdir = _TempDir()
     info = read_info(raw_fname)
-    temp_file = op.join(tempdir, 'info.fif')
+    temp_file = tmpdir.join('info.fif')
     # check for bug `#1198`
     info['dev_head_t']['trans'] = np.eye(4)
     t1 = info['dev_head_t']['trans']
@@ -253,7 +251,7 @@ def test_read_write_info():
     with open(temp_file, 'rb') as fid:
         m1.update(fid.read())
     m1 = m1.hexdigest()
-    temp_file_2 = op.join(tempdir, 'info2.fif')
+    temp_file_2 = tmpdir.join('info2.fif')
     assert temp_file_2 != temp_file
     write_info(temp_file_2, info)
     m2 = hashlib.md5()
@@ -263,13 +261,12 @@ def test_read_write_info():
     assert m1 == m2
 
 
-def test_io_dig_points():
+def test_io_dig_points(tmpdir):
     """Test Writing for dig files."""
-    tempdir = _TempDir()
     points = _read_dig_points(hsp_fname)
 
-    dest = op.join(tempdir, 'test.txt')
-    dest_bad = op.join(tempdir, 'test.mne')
+    dest = tmpdir.join('test.txt')
+    dest_bad = tmpdir.join('test.mne')
     pytest.raises(ValueError, _write_dig_points, dest, points[:, :2])
     pytest.raises(ValueError, _write_dig_points, dest_bad, points)
     _write_dig_points(dest, points)
@@ -485,7 +482,7 @@ def _is_anonymous(inst):
                             anonymous_annotations)
 
 
-def test_anonymize():
+def test_anonymize(tmpdir):
     """Test that sensitive information can be anonymized."""
     pytest.raises(TypeError, anonymize_info, 'foo')
 
@@ -518,14 +515,13 @@ def test_anonymize():
 
     # When we write out with raw.save, these get overwritten with the
     # new save time
-    tempdir = _TempDir()
-    out_fname = op.join(tempdir, 'test_subj_info_raw.fif')
+    out_fname = tmpdir.join('test_subj_info_raw.fif')
     raw.save(out_fname, overwrite=True)
     assert all(_is_anonymous(read_raw_fif(out_fname)))
 
 
 @testing.requires_testing_data
-def test_csr_csc():
+def test_csr_csc(tmpdir):
     """Test CSR and CSC."""
     info = read_info(sss_ctc_fname)
     info = pick_info(info, pick_types(info, meg=True, exclude=[]))
@@ -533,8 +529,7 @@ def test_csr_csc():
     ct = sss_ctc['decoupler'].copy()
     # CSC
     assert isinstance(ct, sparse.csc_matrix)
-    tempdir = _TempDir()
-    fname = op.join(tempdir, 'test.fif')
+    fname = tmpdir.join('test.fif')
     write_info(fname, info)
     info_read = read_info(fname)
     ct_read = info_read['proc_history'][0]['max_info']['sss_ctc']['decoupler']
@@ -545,7 +540,7 @@ def test_csr_csc():
     assert isinstance(csr, sparse.csr_matrix)
     assert_array_equal(csr.toarray(), ct.toarray())
     info['proc_history'][0]['max_info']['sss_ctc']['decoupler'] = csr
-    fname = op.join(tempdir, 'test1.fif')
+    fname = tmpdir.join('test1.fif')
     write_info(fname, info)
     info_read = read_info(fname)
     ct_read = info_read['proc_history'][0]['max_info']['sss_ctc']['decoupler']
@@ -594,8 +589,7 @@ def test_field_round_trip(tmpdir):
     write_info(fname, info)
     info_read = read_info(fname)
     info_read['dig'] = None  # XXX eventually this should go away
-    d = object_diff(info, info_read)
-    assert d == ''
+    assert_object_equal(info, info_read)
 
 
 run_tests_if_main()

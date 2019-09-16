@@ -1695,8 +1695,8 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
     # other fields
     other_fields = ['acq_pars', 'acq_stim', 'bads',
                     'comps', 'custom_ref_applied', 'description',
-                    'experimenter', 'file_id', 'highpass',
-                    'hpi_subsystem', 'events',
+                    'experimenter', 'file_id', 'highpass', 'utc_offset',
+                    'hpi_subsystem', 'events', 'device_info', 'helium_info',
                     'line_freq', 'lowpass', 'meas_id',
                     'proj_id', 'proj_name', 'projs', 'sfreq', 'gantry_angle',
                     'subject_info', 'sfreq', 'xplotter_layout', 'proc_history']
