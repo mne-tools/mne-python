@@ -2,15 +2,15 @@
 #
 # License: BSD (3-clause)
 
-import re as re
-import glob as glob
 from configparser import ConfigParser, RawConfigParser
-import numpy as np
+import glob as glob
+import re as re
 
+import numpy as np
 
 from ..base import BaseRaw
 from ..meas_info import create_info
-from ...utils import logger, verbose, fill_doc, _check_pandas_installed
+from ...utils import logger, verbose, fill_doc
 from ..constants import FIFF
 from ...annotations import Annotations
 
@@ -56,6 +56,7 @@ class RawNIRX(BaseRaw):
 
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
+        from ...externals.pymatreader import read_mat
         logger.info('Loading %s' % fname)
 
         # Check if required files exist and store names for later use
@@ -94,7 +95,7 @@ class RawNIRX(BaseRaw):
         if len(names) > 2:
             subject_info['middle_name'] = \
                 inf['name'].split()[-2].replace("\"", "")
-        subject_info['birthday'] = inf['age']
+        # subject_info['birthday'] = inf['age']  # TODO: not formatted properly
         subject_info['sex'] = inf['gender'].replace("\"", "")
         # Recode values
         if subject_info['sex'] in {'M', 'Male', '1'}:
@@ -146,7 +147,6 @@ class RawNIRX(BaseRaw):
         #   Sources and detectors are both called optodes
         #   Each source - detector pair produces a channel
         #   Channels are defined as the midpoint between source and detector
-        from ...externals.pymatreader import read_mat
         mat_data = read_mat(files['probeInfo.mat'], uint16_codec=None)
         requested_channels = mat_data['probeInfo']['probes']['index_c']
         src_locs = mat_data['probeInfo']['probes']['coords_s3'] * 10
@@ -207,7 +207,6 @@ class RawNIRX(BaseRaw):
             else:
                 info['chs'][ch_idx2 * 2]['loc'][:3] = ch_locs[ch_idx2, :]
                 info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = ch_locs[ch_idx2, :]
-
         raw_extras = {"sd_index": req_ind, 'files': files}
 
         super(RawNIRX, self).__init__(
@@ -234,33 +233,29 @@ class RawNIRX(BaseRaw):
         The NIRX machine records raw data as two different wavelengths.
         The returned data interleaves the wavelengths.
         """
-        # TODO: Write space separated values file reader
-        pd = _check_pandas_installed(strict=True)
-
-        file_wl1 = self._raw_extras[fi]['files']['wl1']
-        file_wl2 = self._raw_extras[fi]['files']['wl2']
-
         sdindex = self._raw_extras[fi]['sd_index']
 
-        wl1 = pd.read_csv(file_wl1, sep=' ', header=None).values
-        wl2 = pd.read_csv(file_wl2, sep=' ', header=None).values
+        wls = [
+            _read_csv_rows_cols(
+                self._raw_extras[fi]['files'][key],
+                start, stop, sdindex, len(self.ch_names) // 2).T
+            for key in ('wl1', 'wl2')
+        ]
 
-        wl1 = wl1[start:stop, sdindex].T
-        wl2 = wl2[start:stop, sdindex].T
-
-        # Interleave wavelength 1 and 2 to match channel names
-        data[0::2, :] = wl1
-        data[1::2, :] = wl2
+        # TODO: Make this more efficient by only indexing above what we need.
+        # For now let's just construct the full data matrix and index.
+        # Interleave wavelength 1 and 2 to match channel names:
+        this_data = np.zeros((len(wls[0]) * 2, stop - start))
+        this_data[0::2, :] = wls[0]
+        this_data[1::2, :] = wls[1]
+        data[:] = this_data[idx]
 
         return data
 
     def _probe_distances(self):
         """Return the distance between each source-detector pair."""
-        # TODO: Write stand alone euclidean distance function
-        from scipy.spatial.distance import euclidean
-        dist = [euclidean(self.info['chs'][idx]['loc'][3:6],
-                self.info['chs'][idx]['loc'][6:9])
-                for idx in range(len(self.info['chs']))]
+        dist = [np.linalg.norm(ch['loc'][3:6] - ch['loc'][6:9])
+                for ch in self.info['chs']]
         return np.array(dist, float)
 
     def _short_channels(self, threshold=10.0):
@@ -269,3 +264,20 @@ class RawNIRX(BaseRaw):
         Channels with distance less than `threshold` are reported as short.
         """
         return self._probe_distances() < threshold
+
+
+def _read_csv_rows_cols(fname, start, stop, cols, n_cols):
+    # The following is equivalent to:
+    # x = pandas.read_csv(fname, header=None, usecols=cols, skiprows=start,
+    #                     nrows=stop - start, delimiter=' ')
+    # But does not require Pandas, and is hopefully fast enough, as the
+    # reading should be done in C (CPython), as should the conversion to float
+    # (NumPy).
+    x = np.zeros((stop - start, n_cols))
+    with open(fname, 'r') as fid:
+        for li, line in enumerate(fid):
+            if li >= start:
+                if li >= stop:
+                    break
+                x[li - start] = np.array(line.split(), float)[cols]
+    return x

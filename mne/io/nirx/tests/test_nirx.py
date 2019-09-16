@@ -7,18 +7,18 @@ import os.path as op
 import numpy as np
 
 from mne.io import read_raw_nirx
+from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import run_tests_if_main
 from mne.datasets.testing import data_path, requires_testing_data
-from mne.utils import logger, requires_pandas
+
+fname_nirx = op.join(data_path(download=False),
+                     'NIRx', 'nirx_15_2_recording_w_short')
 
 
-@requires_pandas
 @requires_testing_data
 def test_nirx():
     """Test reading NIRX files."""
-    fname = op.join(data_path(), 'NIRx', 'nirx_15_2_recording_w_short')
-    logger.info('Calling loader on %s' % fname)
-    raw = read_raw_nirx(fname, preload=True)
+    raw = read_raw_nirx(fname_nirx, preload=True)
 
     # Test data import
     assert raw._data.shape == (26, 145)
@@ -77,6 +77,13 @@ def test_nirx():
     assert raw.annotations[0]['description'] == '3.0'
     assert raw.annotations[1]['description'] == '2.0'
     assert raw.annotations[2]['description'] == '1.0'
+
+
+@requires_testing_data
+def test_nirx_standard():
+    """Test standard operations."""
+    _test_raw_reader(read_raw_nirx, fname=fname_nirx,
+                     boundary_decimal=1)  # low fs
 
 
 run_tests_if_main()
