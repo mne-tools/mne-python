@@ -17,7 +17,6 @@ Actual implementation of _Renderer and _Projection classes.
 
 import warnings
 import numpy as np
-from matplotlib.colors import colorConverter
 from .base_renderer import _BaseRenderer
 from ...surface import _normalize_vectors
 from ...utils import (_import_mlab, _validate_type, SilenceStdout,
@@ -79,6 +78,7 @@ class _Renderer(_BaseRenderer):
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, **kwargs):
+        from matplotlib.colors import colorConverter
         if isinstance(color, str):
             color = colorConverter.to_rgb(color)
         if isinstance(color, np.ndarray) and color.ndim > 1:
@@ -120,6 +120,7 @@ class _Renderer(_BaseRenderer):
                 vmin=None, vmax=None, colormap=None,
                 normalized_colormap=False, scalars=None,
                 backface_culling=False):
+        from matplotlib.colors import colorConverter
         if isinstance(color, str):
             color = colorConverter.to_rgb(color)
         if normalized_colormap:
@@ -136,6 +137,7 @@ class _Renderer(_BaseRenderer):
 
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False):
+        from matplotlib.colors import colorConverter
         if isinstance(color, str):
             color = colorConverter.to_rgb(color)
         center = np.atleast_2d(center)
@@ -149,6 +151,7 @@ class _Renderer(_BaseRenderer):
     def tube(self, origin, destination, radius=0.001, color='white',
              scalars=None, vmin=None, vmax=None, colormap='RdBu',
              normalized_colormap=False, reverse_lut=False):
+        from matplotlib.colors import colorConverter
         if isinstance(color, str):
             color = colorConverter.to_rgb(color)
         origin = np.atleast_2d(origin)
@@ -177,6 +180,7 @@ class _Renderer(_BaseRenderer):
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
                  backface_culling=False):
+        from matplotlib.colors import colorConverter
         if isinstance(color, str):
             color = colorConverter.to_rgb(color)
         with warnings.catch_warnings(record=True):  # traits
@@ -201,6 +205,7 @@ class _Renderer(_BaseRenderer):
                 quiv.actor.property.backface_culling = backface_culling
 
     def text2d(self, x, y, text, width, color='white'):
+        from matplotlib.colors import colorConverter
         if isinstance(color, str):
             color = colorConverter.to_rgb(color)
         with warnings.catch_warnings(record=True):  # traits
@@ -208,6 +213,7 @@ class _Renderer(_BaseRenderer):
                            figure=self.fig)
 
     def text3d(self, x, y, z, text, scale, color='white'):
+        from matplotlib.colors import colorConverter
         if isinstance(color, str):
             color = colorConverter.to_rgb(color)
         with warnings.catch_warnings(record=True):  # traits
