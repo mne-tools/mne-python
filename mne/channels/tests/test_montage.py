@@ -1358,8 +1358,9 @@ def test_set_montage_with_mismatching_ch_names():
     montage = make_standard_montage('mgh60')
 
     # 'EEG 001' and 'EEG001' wont match
-    with pytest.raises(RuntimeError, match='channel .*not found'):
-        raw.set_montage(montage)
+    # with pytest.raises(RuntimeError, match='channel .*not found'):
+    with pytest.warns(RuntimeWarning, match='not set 60 channel positions'):
+        raw.set_montage(montage, raise_if_subset=False)
 
     montage.ch_names = [  # modify the names in place
         name.replace('EEG', 'EEG ') for name in montage.ch_names
@@ -1385,15 +1386,10 @@ def test_set_montage_with_sub_super_set_of_chnames():
     assert len(info['dig']) == len(list('abc'))
 
     # Montage is a SUB-set of info
-    with pytest.raises(ValueError, match='sub-set'):
+    _MSG = 'sub-set of info. There are 2 .* not present it the DigMontage'
+    with pytest.raises(ValueError, match=_MSG):
         _ = create_info(
             ch_names=list('abcdfgh'), sfreq=1, ch_types='eeg', montage=montage
-        )
-
-    # Disjoint case
-    with pytest.raises(ValueError, match='there are no shared ch_names'):
-        _ = create_info(
-            ch_names=list('xyz'), sfreq=1, ch_types='eeg', montage=montage
         )
 
 

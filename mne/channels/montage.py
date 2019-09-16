@@ -17,6 +17,7 @@ import os.path as op
 import re
 from copy import deepcopy
 from itertools import takewhile
+from functools import partial
 
 import numpy as np
 import xml.etree.ElementTree as ElementTree
@@ -79,7 +80,7 @@ def _check_ch_names_are_compatible(info_names, montage_names, raise_if_subset):
 
     if len(not_in_montage):  # Montage is sub-set of info
         if raise_if_subset:
-            raise ValueError(
+            raise ValueError((
                 'DigMontage is a only a sub-set of info.'
                 ' There are {n_ch} channel positions not present it the'
                 ' DigMontage. The required channels are: {ch_names}.'
@@ -87,7 +88,7 @@ def _check_ch_names_are_compatible(info_names, montage_names, raise_if_subset):
                 # XXX: the rest of the message is deprecated. to remove in 0.20
                 '\nYou can use `raise_if_subset=False` in `set_montage` to'
                 ' avoid this ValueError and get a DeprecationWarning instead.'
-            ).format(n_ch=len(not_in_montage), ch_names=not_in_montage)
+            ).format(n_ch=len(not_in_montage), ch_names=not_in_montage))
         else:
             # XXX: deprecated. to remove in 0.20 (raise_if_subset, too)
             warn('DigMontage is a only a sub-set of info.'
@@ -101,7 +102,7 @@ def _check_ch_names_are_compatible(info_names, montage_names, raise_if_subset):
         warn(('DigMontage is a super-set of info.'
               ' {n_ch} in DigMontage will be ignored.'
               ' The ignored channels are: {ch_names}'
-              ).format(n_ch=len(not_in_montage), ch_names=not_in_montage),
+              ).format(n_ch=len(not_in_info), ch_names=not_in_info),
              RuntimeWarning)
     else:
         pass  # noqa
@@ -1358,8 +1359,9 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True,
         eeg_ref_pos = ch_pos.pop('EEG000', np.zeros(3))
 
         # This raises based on info being sub/supper set of montage
+        _pick_eeg = partial(pick_types, eeg=True, meg=False, exclude=['foo'])
         matched_ch_names = _check_ch_names_are_compatible(
-            info_names=set(info['ch_names']),
+            info_names=set([info['ch_names'][ii] for ii in _pick_eeg(info)]),
             montage_names=set(ch_pos),
             raise_if_subset=_raise,  # XXX: deprecated param to remove in 0.20
         )
