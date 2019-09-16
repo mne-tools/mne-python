@@ -46,8 +46,9 @@ from ._dig_montage_utils import _read_dig_montage_egi, _read_dig_montage_bvct
 from ._dig_montage_utils import _fix_data_fiducials
 from ._dig_montage_utils import _parse_brainvision_dig_montage
 
+from .channels import DEPRECATED_PARAM
 
-DEPRECATED_PARAM = object()
+
 _BUILT_IN_MONTAGES = [
     'EGI_256',
     'GSN-HydroCel-128', 'GSN-HydroCel-129', 'GSN-HydroCel-256',
@@ -81,7 +82,11 @@ def _check_ch_names_are_compatible(info_names, montage_names, raise_if_subset):
             raise ValueError(
                 'DigMontage is a only a sub-set of info.'
                 ' There are {n_ch} channel positions not present it the'
-                ' DigMontage. The required channels are: {ch_names}'
+                ' DigMontage. The required channels are: {ch_names}.'
+
+                # XXX: the rest of the message is deprecated. to remove in 0.20
+                '\nYou can use `raise_if_subset=False` in `set_montage` to'
+                ' avoid this ValueError and get a DeprecationWarning instead.'
             ).format(n_ch=len(not_in_montage), ch_names=not_in_montage)
         else:
             # XXX: deprecated. to remove in 0.20 (raise_if_subset, too)
@@ -1249,7 +1254,8 @@ def read_dig_captrack(fname):
     return make_dig_montage(**data)
 
 
-def _set_montage(info, montage, update_ch_names=False, set_dig=True):
+def _set_montage(info, montage, update_ch_names=False, set_dig=True,
+                 raise_if_subset=DEPRECATED_PARAM):
     """Apply montage to data.
 
     With a Montage, this function will replace the EEG channel names and
@@ -1338,6 +1344,10 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
                  'left untouched.')
 
     elif isinstance(montage, DigMontage):
+        _raise = (  # XXX: deprecated to remove in 0.20
+            True if raise_if_subset is DEPRECATED_PARAM else raise_if_subset
+        )
+
         def _backcompat_value(pos, ref_pos):
             if any(np.isnan(pos)):
                 return np.full(6, np.nan)
@@ -1345,13 +1355,13 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
                 return np.concatenate((pos, ref_pos))
 
         ch_pos = montage._get_ch_pos()
-        # XXX: we need to discuss if zeros or np.full((3, 3), np.nan)
         eeg_ref_pos = ch_pos.pop('EEG000', np.zeros(3))
 
         # This raises based on info being sub/supper set of montage
         matched_ch_names = _check_ch_names_are_compatible(
             info_names=set(info['ch_names']),
             montage_names=set(ch_pos),
+            raise_if_subset=_raise,  # XXX: deprecated param to remove in 0.20
         )
 
         for name in matched_ch_names:

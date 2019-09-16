@@ -23,6 +23,9 @@ from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx)
 
 
+DEPRECATED_PARAM = object()
+
+
 def _get_meg_system(info):
     """Educated guess for the helmet type based on channels."""
     have_helmet = True
@@ -444,7 +447,8 @@ class SetChannelsMixin(object):
         rename_channels(self.info, mapping)
 
     @verbose
-    def set_montage(self, montage, set_dig=True, verbose=None):
+    def set_montage(self, montage, set_dig=True, verbose=None,
+                    raise_if_subset=DEPRECATED_PARAM):
         """Set EEG sensor configuration and head digitization.
 
         Parameters
@@ -456,6 +460,14 @@ class SetChannelsMixin(object):
             in addition to the channel positions (``info['chs'][idx]['loc']``).
 
             .. versionadded: 0.15
+        raise_if_subset: bool
+            If True, ValueError will be raised when montage.ch_names is a
+            subset of info['ch_names']. This parameter was introduced for
+            backward compatibility when set to False, and will be removed in
+            v0.20.
+            Defaults to True.
+
+            .. versionadded: 0.19
         %(verbose_meth)s
 
         Notes
@@ -466,7 +478,7 @@ class SetChannelsMixin(object):
         """
         from .montage import _set_montage
         _set_montage(self.info, montage, update_ch_names=False,
-                     set_dig=set_dig)
+                     set_dig=set_dig, raise_if_subset=raise_if_subset)
         return self
 
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,
