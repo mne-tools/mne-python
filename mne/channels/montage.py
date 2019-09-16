@@ -69,34 +69,35 @@ def _check_get_coord_frame(dig):
     return _frame_to_str[dig_coord_frames.pop()] if dig_coord_frames else None
 
 
-def _check_ch_names_are_compatible(info_names, montage_names):
+def _check_ch_names_are_compatible(info_names, montage_names, raise_if_subset):
     assert isinstance(info_names, set) and isinstance(montage_names, set)
 
     match_set = info_names & montage_names
     not_in_montage = info_names - montage_names
     not_in_info = montage_names - info_names
 
-    montage_is_subset = len(not_in_montage) > 0 and len(not_in_info) == 0
-    montage_is_superset = len(not_in_info) > 0 and len(not_in_montage) == 0
+    if len(not_in_montage):  # Montage is sub-set of info
+        if raise_if_subset:
+            raise ValueError(
+                'DigMontage is a only a sub-set of info.'
+                ' There are {n_ch} channel positions not present it the'
+                ' DigMontage. The required channels are: {ch_names}'
+            ).format(n_ch=len(not_in_montage), ch_names=not_in_montage)
+        else:
+            # XXX: deprecated. to remove in 0.20 (raise_if_subset, too)
+            warn('DigMontage is a only a sub-set of info.'
+                 ' Did not set %s channel positions:\n%s'
+                 % (len(not_in_montage), ', '.join(not_in_montage)),
+                 RuntimeWarning)
+    else:
+        pass  # noqa
 
-    # XXX: maybe using the DigMontage name for the err. msg. is not ideal
-    if len(match_set) == 0:
-        raise ValueError(
-            'Cannot set up DigMontage when there are no shared ch_names.'
-        )
-    elif montage_is_subset:
-        raise ValueError(
-            'DigMontage is a only a sub-set of info. Aborting.'
-        )
-    elif montage_is_superset:
-        warn(
-            'DigMontage is a only a super-set of info. Aborting.',
-            RuntimeWarning
-        )
-    elif len(not_in_montage) and len(not_in_info):
-        raise ValueError(
-            'DigMontage is both a subset and a superset of info. Aborting.'
-        )
+    if len(not_in_info):  # Montage is super-set of info
+        warn(('DigMontage is a super-set of info.'
+              ' {n_ch} in DigMontage will be ignored.'
+              ' The ignored channels are: {ch_names}'
+              ).format(n_ch=len(not_in_montage), ch_names=not_in_montage),
+             RuntimeWarning)
     else:
         pass  # noqa
 
@@ -1370,6 +1371,8 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
 
         if montage.dev_head_t is not None:
             info['dev_head_t'] = Transform('meg', 'head', montage.dev_head_t)
+
+
 
     elif montage is None:
         for ch in info['chs']:
