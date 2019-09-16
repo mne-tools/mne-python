@@ -57,8 +57,9 @@ class _Renderer(_BaseRenderer):
         Mayavi scene handle.
     """
 
-    def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
+    def __init__(self, fig=None, size=(600, 600), bgcolor='black',
                  name=None, show=False):
+        bgcolor = _parse_str_color(bgcolor)
         self.mlab = _import_mlab()
         if fig is None:
             self.fig = _mlab_figure(figure=name, bgcolor=bgcolor, size=size)
@@ -78,9 +79,7 @@ class _Renderer(_BaseRenderer):
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, **kwargs):
-        from matplotlib.colors import colorConverter
-        if isinstance(color, str):
-            color = colorConverter.to_rgb(color)
+        color = _parse_str_color(color)
         if isinstance(color, np.ndarray) and color.ndim > 1:
             if color.shape[1] == 3:
                 vertex_color = np.c_[color, np.ones(len(color))] * 255.0
@@ -120,9 +119,7 @@ class _Renderer(_BaseRenderer):
                 vmin=None, vmax=None, colormap=None,
                 normalized_colormap=False, scalars=None,
                 backface_culling=False):
-        from matplotlib.colors import colorConverter
-        if isinstance(color, str):
-            color = colorConverter.to_rgb(color)
+        color = _parse_str_color(color)
         if normalized_colormap:
             colormap = colormap * 255.0
         # Make a solid surface
@@ -137,9 +134,7 @@ class _Renderer(_BaseRenderer):
 
     def sphere(self, center, color, scale, opacity=1.0,
                resolution=8, backface_culling=False):
-        from matplotlib.colors import colorConverter
-        if isinstance(color, str):
-            color = colorConverter.to_rgb(color)
+        color = _parse_str_color(color)
         center = np.atleast_2d(center)
         x, y, z = center.T
         surface = self.mlab.points3d(x, y, z, color=color,
@@ -151,9 +146,7 @@ class _Renderer(_BaseRenderer):
     def tube(self, origin, destination, radius=0.001, color='white',
              scalars=None, vmin=None, vmax=None, colormap='RdBu',
              normalized_colormap=False, reverse_lut=False):
-        from matplotlib.colors import colorConverter
-        if isinstance(color, str):
-            color = colorConverter.to_rgb(color)
+        color = _parse_str_color(color)
         origin = np.atleast_2d(origin)
         destination = np.atleast_2d(destination)
         if scalars is None:
@@ -180,9 +173,7 @@ class _Renderer(_BaseRenderer):
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
                  backface_culling=False):
-        from matplotlib.colors import colorConverter
-        if isinstance(color, str):
-            color = colorConverter.to_rgb(color)
+        color = _parse_str_color(color)
         with warnings.catch_warnings(record=True):  # traits
             if mode == 'arrow':
                 self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
@@ -205,17 +196,13 @@ class _Renderer(_BaseRenderer):
                 quiv.actor.property.backface_culling = backface_culling
 
     def text2d(self, x, y, text, width, color='white'):
-        from matplotlib.colors import colorConverter
-        if isinstance(color, str):
-            color = colorConverter.to_rgb(color)
+        color = _parse_str_color(color)
         with warnings.catch_warnings(record=True):  # traits
             self.mlab.text(x, y, text, width=width, color=color,
                            figure=self.fig)
 
     def text3d(self, x, y, z, text, scale, color='white'):
-        from matplotlib.colors import colorConverter
-        if isinstance(color, str):
-            color = colorConverter.to_rgb(color)
+        color = _parse_str_color(color)
         with warnings.catch_warnings(record=True):  # traits
             self.mlab.text3d(x, y, z, text, scale=scale, color=color,
                              figure=self.fig)
@@ -378,3 +365,10 @@ def _set_3d_title(figure, title, size=40):
     text.property.vertical_justification = 'top'
     text.property.font_size = size
     mlab.draw(figure)
+
+
+def _parse_str_color(color):
+    from matplotlib.colors import colorConverter
+    if isinstance(color, str):
+        color = colorConverter.to_rgb(color)
+    return color

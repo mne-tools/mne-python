@@ -25,7 +25,7 @@ class _Figure(object):
                  display=None,
                  title='PyVista Scene',
                  size=(600, 600),
-                 background_color=(0., 0., 0.),
+                 background_color='black',
                  smooth_shading=True,
                  off_screen=False,
                  notebook=False):
