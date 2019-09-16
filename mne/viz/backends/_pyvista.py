@@ -156,7 +156,9 @@ class _Renderer(_BaseRenderer):
                 # https://github.com/pyvista/pyvista-support/issues/15
                 smooth_shading = False
                 rgba = True
-            if colormap is not None and isinstance(colormap, np.ndarray):
+            if isinstance(colormap, np.ndarray):
+                if colormap.dtype == np.uint8:
+                    colormap = colormap.astype(np.float) / 255.
                 from matplotlib.colors import ListedColormap
                 colormap = ListedColormap(colormap)
 

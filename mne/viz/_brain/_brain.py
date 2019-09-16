@@ -620,10 +620,11 @@ class _Brain(object):
             if scalar_thresh is not None:
                 ids = ids[scalars >= scalar_thresh]
 
-        label = np.zeros((self.geo[hemi].coords.shape[0], 4))
+        label = np.zeros(self.geo[hemi].coords.shape[0])
         label[ids] = 1
         color = colorConverter.to_rgba(color, alpha)
         cmap = np.array([(0, 0, 0, 0,), color])
+        ctable = np.round(cmap * 255).astype(np.uint8)
 
         for ri, v in enumerate(self._views):
             if self._hemi != 'split':
@@ -637,7 +638,8 @@ class _Brain(object):
                           triangles=self.geo[hemi].faces,
                           scalars=label,
                           color=None,
-                          colormap=cmap)
+                          colormap=ctable,
+                          backface_culling=False)
 
     def remove_labels(self, labels=None, hemi=None):
         """Remove one or more previously added labels from the image.

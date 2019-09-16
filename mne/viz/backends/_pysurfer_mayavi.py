@@ -101,13 +101,19 @@ class _Renderer(_BaseRenderer):
                                                 vmin=vmin,
                                                 vmax=vmax,
                                                 **kwargs)
-            lut = colormap
-            if lut is not None:
-                l_m = surface.module_manager.scalar_lut_manager
-                l_m.load_lut_from_list(lut)
             if vertex_color is not None:
                 surface.module_manager.scalar_lut_manager.lut.table = \
                     vertex_color
+            elif isinstance(colormap, np.ndarray):
+                l_m = surface.module_manager.scalar_lut_manager
+                if colormap.dtype == np.uint8:
+                    l_m.lut.table = colormap
+                elif colormap.dtype == np.float:
+                    l_m.load_lut_from_list(colormap)
+                else:
+                    raise TypeError('Expected type for colormap values are'
+                                    ' np.float or np.uint8: '
+                                    '{} was given'.format(colormap.dtype))
             surface.actor.property.shading = shading
             surface.actor.property.backface_culling = backface_culling
         return surface
