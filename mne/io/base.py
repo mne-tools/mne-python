@@ -2111,7 +2111,7 @@ def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
 
     logger.info('Closing %s [done]' % use_fname)
     if info.get('maxshield', False):
-        end_block(fid, FIFF.FIFFB_SMSH_RAW_DATA)
+        end_block(fid, FIFF.FIFFB_IAS_RAW_DATA)
     else:
         end_block(fid, FIFF.FIFFB_RAW_DATA)
     end_block(fid, FIFF.FIFFB_MEAS)
@@ -2184,7 +2184,7 @@ def _start_writing_raw(name, info, sel, data_type,
     # Start the raw data
     #
     if info.get('maxshield', False):
-        start_block(fid, FIFF.FIFFB_SMSH_RAW_DATA)
+        start_block(fid, FIFF.FIFFB_IAS_RAW_DATA)
     else:
         start_block(fid, FIFF.FIFFB_RAW_DATA)
 

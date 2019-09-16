@@ -768,7 +768,7 @@ def _get_aspect(evoked, allow_maxshield):
     aspect = dir_tree_find(evoked, FIFF.FIFFB_ASPECT)
     if len(aspect) == 0:
         _check_maxshield(allow_maxshield)
-        aspect = dir_tree_find(evoked, FIFF.FIFFB_SMSH_ASPECT)
+        aspect = dir_tree_find(evoked, FIFF.FIFFB_IAS_ASPECT)
         is_maxshield = True
     if len(aspect) > 1:
         logger.info('Multiple data aspects found. Taking first one.')
@@ -1215,7 +1215,7 @@ def _write_evokeds(fname, evoked, check=True):
 
             # The epoch itself
             if e.info.get('maxshield'):
-                aspect = FIFF.FIFFB_SMSH_ASPECT
+                aspect = FIFF.FIFFB_IAS_ASPECT
             else:
                 aspect = FIFF.FIFFB_ASPECT
             start_block(fid, aspect)

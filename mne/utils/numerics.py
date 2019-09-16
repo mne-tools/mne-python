@@ -751,8 +751,13 @@ def object_diff(a, b, pre=''):
     """
     out = ''
     if type(a) != type(b):
-        out += pre + ' type mismatch (%s, %s)\n' % (type(a), type(b))
-    elif isinstance(a, dict):
+        # Deal with NamedInt and NamedFloat
+        for sub in (int, float):
+            if isinstance(a, sub) and isinstance(b, sub):
+                break
+        else:
+            return pre + ' type mismatch (%s, %s)\n' % (type(a), type(b))
+    if isinstance(a, dict):
         k1s = _sort_keys(a)
         k2s = _sort_keys(b)
         m1 = set(k2s) - set(k1s)

@@ -20,14 +20,14 @@ from mne.io import (read_fiducials, write_fiducials, _coil_trans_to_loc,
                     _loc_to_coil_trans, read_raw_fif, read_info, write_info,
                     anonymize_info)
 from mne.io.constants import FIFF
-from mne.io.write import DATE_NONE
+from mne.io.write import DATE_NONE, _generate_meas_id
 from mne.io.meas_info import (Info, create_info, _merge_info,
                               _force_update_info, RAW_INFO_FIELDS,
                               _bad_chans_comp, _get_valid_units)
 from mne._digitization._utils import (_write_dig_points, _read_dig_points,
                                       _make_dig_points,)
 from mne.io import read_raw_ctf
-from mne.utils import _TempDir, run_tests_if_main, catch_logging
+from mne.utils import _TempDir, run_tests_if_main, catch_logging, object_diff
 from mne.channels.montage import read_montage, read_dig_montage
 
 base_dir = op.join(op.dirname(__file__), 'data')
@@ -579,6 +579,23 @@ def test_check_compensation_consistency():
             Epochs(raw, events, None, -0.2, 0.2, preload=False,
                    picks=picks, verbose=True)
             assert'Removing 5 compensators' in log.getvalue()
+
+
+def test_field_round_trip(tmpdir):
+    """Test round-trip for new fields."""
+    info = create_info(1, 1000., 'eeg')
+    for key in ('file_id', 'meas_id'):
+        info[key] = _generate_meas_id()
+    info['device_info'] = dict(
+        type='a', model='b', serial='c', site='d')
+    info['helium_info'] = dict(
+        he_level_raw=1., helium_level=2., orig_file_guid='e', meas_date=(1, 2))
+    fname = tmpdir.join('temp-info.fif')
+    write_info(fname, info)
+    info_read = read_info(fname)
+    info_read['dig'] = None  # XXX eventually this should go away
+    d = object_diff(info, info_read)
+    assert d == ''
 
 
 run_tests_if_main()

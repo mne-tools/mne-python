@@ -14,7 +14,7 @@ from mne.forward._make_forward import _read_coil_defs
 from mne.utils import _fetch_file, requires_good_network
 
 
-commit = '244e8004a7b46645afd3c076d146a0d5a77d48b7'  # mne-tools/fiff-constants
+commit = '6733c5eb8a3e036c83ab10915de487fe77016546'  # mne-tools/fiff-constants
 
 # These are oddities that we won't address:
 iod_dups = (355, 359)  # these are in both MEGIN and MNE files
@@ -32,7 +32,6 @@ _ignore_incomplete_enums = (  # XXX eventually we could complete these
     'dacq_system', 'diffusion_param', 'gantry_type', 'map_surf',
     'mne_lin_proj', 'mne_ori', 'mri_format', 'mri_pixel', 'proj_by',
     'tags', 'type', 'iod', 'volume_type', 'vol_type',
-    'coil',  # Especially these!  3015, 3025
 )
 # not in coil_def.dat but in DictionaryTypes:enum(coil)
 _missing_coil_def = (
@@ -44,11 +43,14 @@ _missing_coil_def = (
     200,    # Time-varying dipole definition
     300,    # FNIRS oxyhemoglobin
     301,    # FNIRS deoxyhemoglobin
+    302,    # FNIRS raw data
+    303,    # FNIRS optical density
     1000,   # For testing the MCG software
     2001,   # Generic axial gradiometer
     3011,   # VV prototype wirewound planar sensor
     3014,   # Vectorview SQ20950N planar gradiometer
     3021,   # VV prototype wirewound magnetometer
+    8002,   # QuSpin ZFOPM magnetometer Gen 2
 )
 # explicit aliases in constants.py
 _aliases = dict(
