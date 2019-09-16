@@ -255,7 +255,7 @@ def test_read_write_info(tmpdir):
     assert temp_file_2 != temp_file
     write_info(temp_file_2, info)
     m2 = hashlib.md5()
-    with open(temp_file_2, 'rb') as fid:
+    with open(str(temp_file_2), 'rb') as fid:
         m2.update(fid.read())
     m2 = m2.hexdigest()
     assert m1 == m2
