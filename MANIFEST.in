@@ -27,42 +27,5 @@ recursive-include mne/html *.css
 
 recursive-include mne/io/artemis123/resources *
 
-recursive-include mne mne/datasets *.csv
-include mne/io/edf/gdf_encodes.txt
+recursive-include mne *.csv
 include mne/datasets/sleep_physionet/SHA1SUMS
-
-### Exclude
-
-recursive-exclude examples/MNE-sample-data *
-recursive-exclude examples/MNE-testing-data *
-recursive-exclude examples/MNE-spm-face *
-recursive-exclude examples/MNE-somato-data *
-exclude Makefile
-exclude .coveragerc
-exclude *.yml
-exclude ignore_words.txt
-exclude .mailmap
-recursive-exclude mne *.pyc
-
-recursive-exclude doc *
-recursive-exclude logo *
-
-exclude CODE_OF_CONDUCT.md
-exclude .github
-exclude .github/CONTRIBUTING.md
-exclude .github/ISSUE_TEMPLATE
-exclude .github/ISSUE_TEMPLATE/blank.md
-exclude .github/ISSUE_TEMPLATE/bug_report.md
-exclude .github/ISSUE_TEMPLATE/feature_request.md
-exclude .github/PULL_REQUEST_TEMPLATE.md
-
-# Test files
-
-recursive-exclude mne/io/tests/data *
-recursive-exclude mne/io/bti/tests/data *
-recursive-exclude mne/io/edf/tests/data *
-recursive-exclude mne/io/kit/tests/data *
-recursive-exclude mne/io/brainvision/tests/data *
-recursive-exclude mne/io/egi/tests/data *
-recursive-exclude mne/io/nicolet/tests/data *
-recursive-exclude mne/preprocessing/tests/data *
