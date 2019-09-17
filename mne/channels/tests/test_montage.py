@@ -21,7 +21,8 @@ from numpy.testing import (assert_array_equal, assert_almost_equal,
 from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
 from mne.channels import (Montage, read_montage, read_dig_montage,
                           get_builtin_montages, DigMontage,
-                          read_dig_egi, read_dig_captrack, read_dig_fif)
+                          read_dig_egi, read_dig_captrack, read_dig_fif,
+                          read_dig_eeglab)
 from mne.channels.montage import _set_montage, make_dig_montage
 from mne.channels.montage import transform_to_head
 from mne.channels import read_polhemus_fastscan, read_dig_polhemus_isotrak
@@ -361,14 +362,19 @@ def test_montage():
 @testing.requires_testing_data
 def test_read_locs():
     """Test reading EEGLAB locs."""
-    with pytest.deprecated_call():
-        # XXX: needs read_dig_xxxx to create DigMontage from `.locs`
-        pos = read_montage(locs_montage_fname).pos
-    expected = [[0., 9.99779165e-01, -2.10157875e-02],
-                [3.08738197e-01, 7.27341573e-01, -6.12907052e-01],
-                [-5.67059636e-01, 6.77066318e-01, 4.69067752e-01],
-                [0., 7.14575231e-01, 6.99558616e-01]]
-    assert_allclose(pos[:4], expected, atol=1e-7)
+    data = read_dig_eeglab(locs_montage_fname)._get_ch_pos()
+    assert_allclose(
+        actual=np.stack(
+            [data[kk] for kk in ('FPz', 'EOG1', 'F3', 'Fz')]  # 4 random chs
+        ),
+        desired=[
+            [0., 9.99779165e-01, -2.10157875e-02],
+            [3.08738197e-01, 7.27341573e-01, -6.12907052e-01],
+            [-5.67059636e-01, 6.77066318e-01, 4.69067752e-01],
+            [0., 7.14575231e-01, 6.99558616e-01]
+        ],
+        atol=1e-7
+    )
 
 
 def test_read_dig_montage():
