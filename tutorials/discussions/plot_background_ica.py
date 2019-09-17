@@ -79,9 +79,9 @@ plt.figure(figsize=(9, 6))
 
 models = [X, S, S_, H]
 names = ['Observations (mixed signal)',
-            'True Sources',
-            'ICA estimated sources',
-            'PCA estimated sources']
+         'True Sources',
+         'ICA estimated sources',
+         'PCA estimated sources']
 colors = ['red', 'steelblue', 'orange']
 
 for ii, (model, name) in enumerate(zip(models, names), 1):
