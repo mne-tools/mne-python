@@ -8,9 +8,11 @@
 MNE-MATLAB documentation
 ========================
 
-.. contents:: Contents
+.. contents:: Page contents
    :local:
    :depth: 2
+
+.. note:: The MNE MATLAB Toolbox is compatible with Matlab versions 7.0 or later.
 
 Overview
 ########
@@ -33,13 +35,22 @@ takes place:
 - If you have startup.m and the standard MNE Matlab toolbox
   setup lines are there, nothing happens.
 
-A summary of the available routines is provided in `MNE-C manual`_. The toolbox
-also contains a set of examples which may be useful starting points
+A summary of the available routines is provided in the `MNE-C manual`_. The
+toolbox also contains a set of examples which may be useful starting points
 for your own development. The names of these functions start with ``mne_ex``.
 
-.. note:: The MNE Matlab Toolbox is compatible with    Matlab versions 7.0 or later.
+.. note::
 
-.. note:: The matlab function fiff_setup_read_raw has    a significant change. The sample numbers now take into account possible    initial skip in the file, *i.e.*, the time between    the start of the data acquisition and the start of saving the data    to disk. The first_samp member    of the returned structure indicates the initial skip in samples.    If you want your own routines, which assume that initial skip has    been removed, perform identically with the previous version, subtract first_samp from    the sample numbers you specify to fiff_read_raw_segment .    Furthermore, fiff_setup_read_raw has an    optional argument to allow reading of unprocessed MaxShield data acquired    with the Elekta MEG systems.
+   The MATLAB function ``fiff_setup_read_raw`` has a significant change. The
+   sample numbers now take into account possible initial skip in the file,
+   *i.e.*, the time between the start of the data acquisition and the start of
+   saving the data to disk. The ``first_samp`` member of the returned structure
+   indicates the initial skip in samples. If you want your own routines, which
+   assume that initial skip has been removed, perform identically with the
+   previous version, subtract ``first_samp`` from the sample numbers you
+   specify to ``fiff_read_raw_segment``. Furthermore, ``fiff_setup_read_raw``
+   has an optional argument to allow reading of unprocessed MaxShield data
+   acquired with the Elekta MEG systems.
 
 .. tabularcolumns:: |p{0.3\linewidth}|p{0.6\linewidth}|
 .. _BGBCGHAG:

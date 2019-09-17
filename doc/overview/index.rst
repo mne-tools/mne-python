@@ -38,23 +38,23 @@ The documentation for MNE-Python is divided into four main sections:
    when typing :samp:`mne.{<function_name>}?` in an IPython session or Jupyter
    notebook.
 
-The rest of the MNE-Python documentation (parts outside of the four categories
-above) are linked here:
+The rest of the MNE-Python documentation pages (parts outside of the four
+categories above) are linked here:
 
 .. toctree::
     :maxdepth: 1
 
     faq
     design_philosophy
-    datasets_index
-    migrating
     implementation
+    datasets_index
     cookbook
+    ../generated/commands
+    migrating
     cite
     get_help
-    ../generated/commands
 
-.. note:: MNE-MATLAB and MNE-C documentation
+Documentation for the related C and MATLAB tools are available here:
 
-   - MNE-MATLAB documentation can be found :ref:`here <mne_matlab>`
-   - MNE-C tool documentation can be found `here <MNE-C manual>`_.
+- :ref:`MNE-MATLAB <mne_matlab>` (HTML)
+- `MNE-C <MNE-C manual_>`_ (PDF)
