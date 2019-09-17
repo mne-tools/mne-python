@@ -65,7 +65,8 @@ def run():
     parser.add_option('--cps',
                       dest='cps',
                       help='Add patch information to source space.',
-                      default=True)
+                      default=True,
+                      action="store_true")
     parser.add_option('-n', '--n-jobs',
                       dest='n_jobs',
                       help='The number of jobs to run in parallel '
