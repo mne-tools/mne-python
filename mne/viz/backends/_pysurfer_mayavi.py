@@ -257,7 +257,8 @@ class _Renderer(_BaseRenderer):
     def screenshot(self, mode='rgb'):
         from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
         if MNE_3D_BACKEND_TEST_DATA:
-            return np.zeros(tuple(self.window_size) + (3,), np.uint8)
+            ndim = 3 if mode == 'rgb' else 4
+            return np.zeros(tuple(self.window_size) + (ndim,), np.uint8)
         else:
             with warnings.catch_warnings(record=True):  # traits
                 return self.mlab.screenshot(self.fig, mode=mode)

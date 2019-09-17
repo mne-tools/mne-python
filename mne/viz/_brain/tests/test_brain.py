@@ -49,7 +49,7 @@ def test_brain_screenshot(renderer):
                    surf=surf, subjects_dir=subjects_dir)
     img = brain.screenshot(mode='rgba')
     brain.show()
-    # assert(img.shape == [600, 600, 4])
+    assert(img.shape == (800, 800, 4))
 
 
 @testing.requires_testing_data
