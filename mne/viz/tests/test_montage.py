@@ -66,6 +66,9 @@ def test_plot_defect_montage():
 
 def test_plot_digmontage():
     """Test plot DigMontage."""
-    montage = make_dig_montage(ch_pos=dict(zip(list('abc'), np.eye(3))))
+    montage = make_dig_montage(
+        ch_pos=dict(zip(list('abc'), np.eye(3))),
+        coord_frame='head'
+    )
     montage.plot()
     plt.close('all')

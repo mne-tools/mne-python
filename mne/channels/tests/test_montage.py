@@ -83,6 +83,28 @@ nicolet_fname = op.join(io_dir, 'nicolet', 'tests', 'data',
                         'test_nicolet_raw.data')
 
 
+def _make_toy_raw(n_channels):
+    return RawArray(
+        data=np.empty([n_channels, 1]),
+        info=create_info(
+            ch_names=list(ascii_lowercase[:n_channels]),
+            sfreq=1, ch_types='eeg'
+        )
+    )
+
+def _make_toy_dig_montage(n_channels, **kwargs):
+    return make_dig_montage(
+        ch_pos=dict(zip(
+            list(ascii_lowercase[:n_channels]),
+            np.arange(n_channels * 3).reshape(n_channels, 3),
+        )),
+        **kwargs
+    )
+
+def _get_dig_montage_pos(montage):
+    return np.array([d['r'] for d in _get_dig_eeg(montage.dig)])
+
+
 def test_fiducials():
     """Test handling of fiducials."""
     # Eventually the code used here should be unified with montage.py, but for
@@ -987,12 +1009,8 @@ def test_read_dig_captrack(tmpdir):
     # I think that comparing dig should be enough. cc: @sappelhoff
     raw_bv = read_raw_brainvision(bv_raw_fname)
 
-    # XXX: Now we are crashing so this cannot be used and we end up needing to
-    #      use _bvct_set_montage
-    #
-    # with pytest.warns(RuntimeWarning, match='Did not set 3 channel pos'):
-    #     raw_bv.set_montage(montage)
-    raw_bv = _bvct_set_montage(raw_bv, montage)
+    with pytest.warns(RuntimeWarning, match='Did not set 3 channel positions'):
+        raw_bv.set_montage(montage, raise_if_subset=False)
 
     test_raw_bv = read_raw_fif(bv_fif_fname)
 
@@ -1354,12 +1372,12 @@ def test_set_montage_with_mismatching_ch_names():
 
 def test_set_montage_with_sub_super_set_of_chnames():
     """Test info and montage ch_names matching criteria."""
-    pos = np.arange(5 * 3).reshape(5, 3)
-    montage = make_dig_montage(ch_pos=dict(zip(list('abcdf'), pos)))
+    N_CHANNELS = len('abcdef')
+    montage = _make_toy_dig_montage(N_CHANNELS, coord_frame='head')
 
     # Montage and info match
     _ = create_info(
-        ch_names=list('abcdf'), sfreq=1, ch_types='eeg', montage=montage
+        ch_names=list('abcdef'), sfreq=1, ch_types='eeg', montage=montage
     )
 
     # Montage is a SUPER-set of info
@@ -1382,10 +1400,10 @@ def test_heterogeneous_ch_type():
     VALID_MONTAGE_NAMED_CHS = ('eeg', 'ecog', 'seeg')
     nchan = len(VALID_MONTAGE_NAMED_CHS)
 
-    montage = make_dig_montage(ch_pos=dict(zip(
-        list(ascii_lowercase[:nchan]),
-        np.arange(nchan * 3).reshape(nchan, 3)
-    )))
+    montage = _make_toy_dig_montage(
+        n_channels=len(VALID_MONTAGE_NAMED_CHS),
+        coord_frame='head',
+    )
 
     # Montage and info match
     _ = create_info(
@@ -1396,35 +1414,15 @@ def test_heterogeneous_ch_type():
     )
 
 
-def _make_dummy_raw(n_channels):
-    return RawArray(
-        data=np.empty([n_channels, 1]),
-        info=create_info(
-            ch_names=list(ascii_lowercase[:n_channels]),
-            sfreq=1, ch_types='eeg'
-        )
-    )
-
-def _make_dig_montage(n_channels, **kwargs):
-    return make_dig_montage(
-        ch_pos=dict(zip(
-            list(ascii_lowercase[:n_channels]),
-            np.arange(n_channels * 3).reshape(n_channels, 3),
-        )),
-        **kwargs
-    )
-
-def _get_dig_montage_pos(montage):
-    return np.array([d['r'] for d in _get_dig_eeg(montage.dig)])
-
-
 def test_set_montage_coord_frame_in_head_vs_unknown():
     N_CHANNELS, NaN = 3, np.nan
 
-    raw = _make_dummy_raw(N_CHANNELS)
-    montage_in_head = _make_dig_montage(N_CHANNELS, coord_frame='head')
-    montage_in_unknown = _make_dig_montage(N_CHANNELS, coord_frame='unknown')
-    montage_in_unknown_with_fid = _make_dig_montage(
+    raw = _make_toy_raw(N_CHANNELS)
+    montage_in_head = _make_toy_dig_montage(N_CHANNELS, coord_frame='head')
+    montage_in_unknown = _make_toy_dig_montage(
+        N_CHANNELS, coord_frame='unknown'
+    )
+    montage_in_unknown_with_fid = _make_toy_dig_montage(
         N_CHANNELS, coord_frame='unknown',
         nasion=[0, 1, 0], lpa=[1, 0, 0], rpa=[-1, 0, 0],
     )
@@ -1460,7 +1458,7 @@ def test_set_montage_coord_frame_in_head_vs_unknown():
     )
 
     # check no collateral effects from transforming montage
-    assert montage_in_unknown_with_fid._coord_frame == 'head'
+    assert montage_in_unknown_with_fid._coord_frame == 'unknown'
     assert_array_equal(
         _get_dig_montage_pos(montage_in_unknown_with_fid),
         [[0, 1, 2], [3, 4, 5], [6, 7, 8]],
