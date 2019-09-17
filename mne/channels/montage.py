@@ -1345,6 +1345,7 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True,
                  'left untouched.')
 
     elif isinstance(montage, DigMontage):
+        _mnt = montage if montage._coord_frame == 'head' else transform_to_head(montage.copy())
         _raise = (  # XXX: deprecated to remove in 0.20
             True if raise_if_subset is DEPRECATED_PARAM else raise_if_subset
         )
@@ -1355,7 +1356,7 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True,
             else:
                 return np.concatenate((pos, ref_pos))
 
-        ch_pos = montage._get_ch_pos()
+        ch_pos = _mnt._get_ch_pos()
         eeg_ref_pos = ch_pos.pop('EEG000', np.zeros(3))
 
         # This raises based on info being sub/supper set of montage
@@ -1373,9 +1374,9 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True,
             _loc_view[:6] = _backcompat_value(ch_pos[name], eeg_ref_pos)
 
         if set_dig:  # XXX: we need to check backcompat in set_dig=false
-            _names = montage._get_dig_names()
+            _names = _mnt._get_dig_names()
             info['dig'] = _format_dig_points([
-                montage.dig[ii] for ii, name in enumerate(_names)
+                _mnt.dig[ii] for ii, name in enumerate(_names)
                 if name in matched_ch_names.union({None, 'EEG000'})
             ])
 
@@ -1383,8 +1384,8 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True,
             # XXX: set_dig=False is only used in testing and for Montage
             raise RuntimeError('XXX do we have this?')
 
-        if montage.dev_head_t is not None:
-            info['dev_head_t'] = Transform('meg', 'head', montage.dev_head_t)
+        if _mnt.dev_head_t is not None:
+            info['dev_head_t'] = Transform('meg', 'head', _mnt.dev_head_t)
 
 
 

@@ -47,6 +47,7 @@ from mne.io import (read_raw_brainvision, read_raw_egi, read_raw_fif,
                     read_raw_cnt, read_raw_edf, read_raw_nicolet, read_raw_bdf,
                     read_raw_eeglab, read_fiducials, __file__ as _MNE_IO_FILE)
 
+from mne.io import RawArray
 from mne.datasets import testing
 
 
@@ -1199,8 +1200,6 @@ EXPECTED_DIG_RPR = [
 
 def test_setting_hydrocel_montage():
     """Test set_montage using GSN-HydroCel-32."""
-    from mne.io import RawArray
-
     montage = read_montage('GSN-HydroCel-32')
     ch_names = [name for name in montage.ch_names if name.startswith('E')]
     montage.pos /= 1e3
@@ -1411,6 +1410,77 @@ def test_heterogeneous_ch_type():
         ch_types=list(VALID_MONTAGE_NAMED_CHS),
         montage=montage,
         sfreq=1,
+    )
+
+
+def _make_dummy_raw(n_channels):
+    return RawArray(
+        data=np.empty([n_channels, 1]),
+        info=create_info(
+            ch_names=list(ascii_lowercase[:n_channels]),
+            sfreq=1, ch_types='eeg'
+        )
+    )
+
+def _make_dig_montage(n_channels, **kwargs):
+    return make_dig_montage(
+        ch_pos=dict(zip(
+            list(ascii_lowercase[:n_channels]),
+            np.arange(n_channels * 3).reshape(n_channels, 3),
+        )),
+        **kwargs
+    )
+
+def _get_dig_montage_pos(montage):
+    return np.array([d['r'] for d in _get_dig_eeg(montage.dig)])
+
+
+def test_set_montage_coord_frame_in_head_vs_unknown():
+    N_CHANNELS, NaN = 3, np.nan
+
+    raw = _make_dummy_raw(N_CHANNELS)
+    montage_in_head = _make_dig_montage(N_CHANNELS, coord_frame='head')
+    montage_in_unknown = _make_dig_montage(N_CHANNELS, coord_frame='unknown')
+    montage_in_unknown_with_fid = _make_dig_montage(
+        N_CHANNELS, coord_frame='unknown',
+        nasion=[0, 1, 0], lpa=[1, 0, 0], rpa=[-1, 0, 0],
+    )
+
+    assert_allclose(
+        actual=np.array([ch['loc'] for ch in raw.info['chs']]),
+        desired=np.full((N_CHANNELS, 12), np.nan)
+    )
+
+    raw.set_montage(montage_in_head)
+    assert_allclose(
+        actual=np.array([ch['loc'] for ch in raw.info['chs']]),
+        desired=[
+            [ 0.,  1.,  2.,  0.,  0.,  0., NaN, NaN, NaN, NaN, NaN, NaN],
+            [ 3.,  4.,  5.,  0.,  0.,  0., NaN, NaN, NaN, NaN, NaN, NaN],
+            [ 6.,  7.,  8.,  0.,  0.,  0., NaN, NaN, NaN, NaN, NaN, NaN],
+        ]
+    )
+
+    _MSG = 'Points have to be provided as one dimensional arrays of length 3.'
+    # with pytest.raises(valueerror, match='montage not in head'):
+    with pytest.raises(ValueError, match=_MSG):  # XXX: msg is not that good
+        raw.set_montage(montage_in_unknown)
+
+    raw.set_montage(montage_in_unknown_with_fid)
+    assert_allclose(
+        actual=np.array([ch['loc'] for ch in raw.info['chs']]),
+        desired=[
+            [-0.,  1., -2.,  0.,  0.,  0., NaN, NaN, NaN, NaN, NaN, NaN],
+            [-3.,  4., -5.,  0.,  0.,  0., NaN, NaN, NaN, NaN, NaN, NaN],
+            [-6.,  7., -8.,  0.,  0.,  0., NaN, NaN, NaN, NaN, NaN, NaN],
+        ]
+    )
+
+    # check no collateral effects from transforming montage
+    assert montage_in_unknown_with_fid._coord_frame == 'head'
+    assert_array_equal(
+        _get_dig_montage_pos(montage_in_unknown_with_fid),
+        [[0, 1, 2], [3, 4, 5], [6, 7, 8]],
     )
 
 
