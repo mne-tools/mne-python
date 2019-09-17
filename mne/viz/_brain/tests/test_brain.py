@@ -45,11 +45,12 @@ def test_brain_init(renderer):
 
 @testing.requires_testing_data
 def test_brain_screenshot(renderer):
-    brain = _Brain(subject_id, hemi='both',
+    """Test screenshot of a _Brain instance."""
+    brain = _Brain(subject_id, hemi='both', size=600,
                    surf=surf, subjects_dir=subjects_dir)
     img = brain.screenshot(mode='rgba')
     brain.show()
-    assert(img.shape == (800, 800, 4))
+    assert(img.shape == (600, 600, 4))
 
 
 @testing.requires_testing_data
