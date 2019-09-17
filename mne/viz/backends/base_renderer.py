@@ -310,8 +310,14 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def screenshot(self):
-        """Take a screenshot of the scene."""
+    def screenshot(self, mode='rgba'):
+        """Take a screenshot of the scene.
+
+        Parameters
+        ----------
+        mode: str
+            Either 'rgb' or 'rgba' for values to return.
+        """
         pass
 
     @abstractclassmethod

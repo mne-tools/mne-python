@@ -259,6 +259,7 @@ class _Brain(object):
         self._data = {}
         self.geo, self._hemi_meshes, self._overlays = {}, {}, {}
         self._renderers = [[] for _ in views]
+        self._renderer = None
 
         # load geometry for one or both hemispheres as necessary
         offset = None if (not offset or hemi != 'both') else 0.0
@@ -289,6 +290,7 @@ class _Brain(object):
                 renderer = _Renderer(size=fig_size, bgcolor=background,
                                      fig=figures[ri][ci])
                 self._renderers[ri].append(renderer)
+                self._renderer = renderer
                 renderer.set_camera(azimuth=views_dict[v].azim,
                                     elevation=views_dict[v].elev,
                                     distance=490.0)
@@ -698,13 +700,28 @@ class _Brain(object):
     def show(self):
         u"""Display widget."""
         try:
-            return self._renderers[0][0].show()
+            return self._renderer.show()
         except RuntimeError:
             logger.info("No active/running renderer available.")
 
     def show_view(self, view=None, roll=None, distance=None):
         """Orient camera to display view."""
         pass
+
+    def screenshot(self, mode='rgb'):
+        """Generate a screenshot of current view.
+
+        Parameters
+        ----------
+        mode : string
+            Either 'rgb' or 'rgba' for values to return.
+
+        Returns
+        -------
+        screenshot : array
+            Image pixel values.
+        """
+        return self._renderer.screenshot(mode)
 
     def update_lut(self, fmin=None, fmid=None, fmax=None):
         u"""Update color map.
