@@ -43,7 +43,8 @@ completed, the following files appear in the subject's ``bem/watershed`` directo
 All of these surfaces are in the FreeSurfer format. In addition,
 there will be a directory called ``bem/watershed/ws`` which
 contains the brain MRI volume. Furthermore, ``mne watershed_bem`` script
-converts the scalp surface to fif format and saves the result to ``bem/``  <*subject*> ``-head.fif`` .
+converts the scalp surface to fif format and saves the result to
+:samp:`bem/{<subject>}-head.fif`.
 
 .. _BABFCDJH:
 

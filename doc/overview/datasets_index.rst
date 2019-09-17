@@ -48,7 +48,7 @@ as soon as possible after the appearance of the face.
 .. table:: Trigger codes for the sample data set.
 
     =========  =====  ==========================================
-    Name              #Contents
+    Name              Contents
     =========  =====  ==========================================
     LA         1      Response to left-ear auditory stimulus
     RA         2      Response to right-ear auditory stimulus
