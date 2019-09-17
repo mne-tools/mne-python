@@ -1395,4 +1395,23 @@ def test_set_montage_with_sub_super_set_of_chnames():
         )
 
 
+def test_heterogeneous_ch_type():
+    """Test ch_names matching criteria with heterogeneous ch_type."""
+    VALID_MONTAGE_NAMED_CHS = ('eeg', 'ecog', 'seeg')
+    nchan = len(VALID_MONTAGE_NAMED_CHS)
+
+    montage = make_dig_montage(ch_pos=dict(zip(
+        list(ascii_lowercase[:nchan]),
+        np.arange(nchan * 3).reshape(nchan, 3)
+    )))
+
+    # Montage and info match
+    _ = create_info(
+        ch_names=montage.ch_names,
+        ch_types=list(VALID_MONTAGE_NAMED_CHS),
+        montage=montage,
+        sfreq=1,
+    )
+
+
 run_tests_if_main()

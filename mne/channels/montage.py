@@ -1359,9 +1359,11 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True,
         eeg_ref_pos = ch_pos.pop('EEG000', np.zeros(3))
 
         # This raises based on info being sub/supper set of montage
-        _pick_eeg = partial(pick_types, eeg=True, meg=False, exclude=[])
+        _pick_chs = partial(
+            pick_types, exclude=[], eeg=True, seeg=True, ecog=True, meg=False,
+        )
         matched_ch_names = _check_ch_names_are_compatible(
-            info_names=set([info['ch_names'][ii] for ii in _pick_eeg(info)]),
+            info_names=set([info['ch_names'][ii] for ii in _pick_chs(info)]),
             montage_names=set(ch_pos),
             raise_if_subset=_raise,  # XXX: deprecated param to remove in 0.20
         )
