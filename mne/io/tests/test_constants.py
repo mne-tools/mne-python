@@ -50,7 +50,6 @@ _missing_coil_def = (
     3011,   # VV prototype wirewound planar sensor
     3014,   # Vectorview SQ20950N planar gradiometer
     3021,   # VV prototype wirewound magnetometer
-    8002,   # QuSpin ZFOPM magnetometer Gen 2
 )
 # explicit aliases in constants.py
 _aliases = dict(
