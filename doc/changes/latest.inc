@@ -15,6 +15,8 @@ Current (0.19.dev0)
 Changelog
 ~~~~~~~~~
 
+- Add :func:`mne.channels.read_dig_eeglab` to read :class:`mne.channels.DigMontage` from EEGLAB ``.loc``, ``.locs``, and ``.eloc`` files by `Joan Massich`_ and `Alex Gramfort`_.
+
 - Add :func:`mne.cuda.set_cuda_device` and config variable ``MNE_CUDA_DEVICE`` to select among multiple GPUs (by numeric device ID) by `Daniel McCloy`_.
 
 - Add :func:`mne.channels.make_standard_montage` to create :class:`mne.channels.DigMontage` from templates by `Joan Massich`_ and `Alex Gramfort`_.
@@ -169,6 +171,8 @@ Bug
 
 API
 ~~~
+
+- Deprecate ``mne.channels.Montage`` class and ``mne.channels.read_montage`` function by `Joan Massich`_.
 
 - Minimum dependency versions for the following libraries have been bumped up (by `Eric Larson`_):
 
