@@ -860,47 +860,24 @@ def test_fif_dig_montage():
     assert object_diff(dig_montage.ch_names, dig_montage_fif.ch_names) == ''
 
 
-def _egi_set_montage(raw, montage):  # XXXX: avoid raising the error
-    # import pdb; pdb.set_trace()
-    _xxxx_ch_names = [name for name in raw.info['ch_names'] if name.startswith('DIN')]
-    raw.info['ch_names'] = [name for name in raw.info['ch_names'] if name not in _xxxx_ch_names]
-    _xxxx_chs = [ch for ch in raw.info['chs'] if ch['ch_name'] in _xxxx_ch_names]
-    raw.info['chs'] = [ch for ch in raw.info['chs'] if ch['ch_name'] not in _xxxx_ch_names]
-    raw.info['nchan'] -= len(_xxxx_chs)
-    loc_array = np.array([ch['loc'] for ch in _xxxx_chs])
-
-    raw.set_montage(montage)
-
-    raw.info['ch_names'] += _xxxx_ch_names
-    raw.info['chs'] += _xxxx_chs
-    raw.info['nchan'] += len(_xxxx_chs)
-
-
 @testing.requires_testing_data
 def test_egi_dig_montage():
     """Test EGI MFF XML dig montage support."""
-    with pytest.deprecated_call():
-        dig_montage = read_dig_montage(egi=egi_dig_montage_fname, unit='m')
+    dig_montage = read_dig_egi(egi_dig_montage_fname)
+    fid, coord = _get_fid_coords(dig_montage.dig)
 
-    # # test round-trip IO
-    temp_dir = _TempDir()
-    fname_temp = op.join(temp_dir, 'egi_test.fif')
-    _check_roundtrip(dig_montage, fname_temp)
-
-    with pytest.deprecated_call():
-        # Test coordinate transform
-        # dig_montage.transform_to_head()  # XXX: this call had no effect!!
-        # nasion
-        assert_almost_equal(dig_montage.nasion[0], 0)
-        assert_almost_equal(dig_montage.nasion[2], 0)
-        # lpa and rpa
-        assert_allclose(dig_montage.lpa[1:], 0, atol=1e-16)
-        assert_allclose(dig_montage.rpa[1:], 0, atol=1e-16)
+    assert coord == FIFF.FIFFV_COORD_UNKNOWN
+    assert_allclose(
+        actual=np.array([vv for vv in fid.values()]),
+        desired=[[ 0.   , 10.564, -2.051],
+                 [-8.592,  0.498, -4.128],
+                 [ 8.592,  0.498, -4.128]],
+    )
 
     # Test accuracy and embedding within raw object
     raw_egi = read_raw_egi(egi_raw_fname, channel_naming='EEG %03d')
 
-    _egi_set_montage(raw_egi, dig_montage)  # XXX: this should not be done like this
+    raw_egi.set_montage(dig_montage)
     test_raw_egi = read_raw_fif(egi_fif_fname)
 
     assert_equal(len(raw_egi.ch_names), len(test_raw_egi.ch_names))
@@ -909,7 +886,23 @@ def test_egi_dig_montage():
         assert_equal(ch_raw['ch_name'], ch_test_raw['ch_name'])
         assert_equal(ch_raw['coord_frame'], FIFF.FIFFV_COORD_HEAD)
         assert_allclose(ch_raw['loc'], ch_test_raw['loc'], atol=1e-7)
+
     assert_dig_allclose(raw_egi.info, test_raw_egi.info)
+
+
+    dig_montage_in_head = transform_to_head(dig_montage.copy())
+    fid, coord = _get_fid_coords(dig_montage_in_head.dig)
+    assert coord == FIFF.FIFFV_COORD_HEAD
+    assert_allclose(
+        actual=np.array([vv for vv in fid.values()]),
+        desired=[[0., 10.278, 0.], [-8.592, 0., 0.], [ 8.592, 0., 0.]],
+        atol=1e-4,
+    )
+
+    # test round-trip IO
+    temp_dir = _TempDir()
+    fname_temp = op.join(temp_dir, 'egi_test.fif')
+    _check_roundtrip(dig_montage_in_head, fname_temp)  # XXX: write forces head
 
     # Test old way matches new way
     with pytest.deprecated_call():
