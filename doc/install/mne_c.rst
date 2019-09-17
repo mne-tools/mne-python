@@ -182,15 +182,6 @@ a typical 64-bit Ubuntu-like system this would be accomplished by:
 If you encounter other errors installing MNE-C, please send a message to the
 `MNE mailing list`_.
 
-MNE-MATLAB documentation
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. toctree::
-
-   ../overview/matlab.rst
-
-**Next:** :doc:`advanced`
-
 .. links
 
 .. _MNE-C download page: http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/index.php

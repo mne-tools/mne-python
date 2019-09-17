@@ -55,23 +55,20 @@ What should I install?
 ^^^^^^^^^^^^^^^^^^^^^^
 
 If you intend only to perform ERP, ERF, or other sensor-level analyses,
-:doc:`MNE-Python <mne_python>` is all you need. If you prefer MATLAB
-over Python, probably all you need is :doc:`MNE-C <mne_c>` — the MNE
-MATLAB toolbox is distributed with it — although note that the MATLAB toolbox
-is less actively developed than the MNE-Python module, and hence the MATLAB
-code is considerably less feature-complete.
+:doc:`MNE-Python <mne_python>` is all you need. If you prefer to work with
+shell scripts and the Unix command line, or prefer MATLAB over Python, probably
+all you need is :doc:`MNE-C <mne_c>` — the MNE MATLAB toolbox is distributed
+with it — although note that the C tools and the MATLAB toolbox are less
+actively developed than the MNE-Python module, and hence are considerably less
+feature-complete.
 
 If you want to transform sensor recordings into estimates of localized brain
-activity, you will most likely need:
+activity, you will most likely also need :doc:`FreeSurfer <freesurfer>` to
+convert structural MRI scans into models of the scalp, inner/outer skull, and
+cortical surfaces (specifically, for command-line functions
+:ref:`gen_mne_flash_bem`, :ref:`gen_mne_watershed_bem`, and
+:ref:`gen_mne_make_scalp_surfaces`).
 
-- :doc:`FreeSurfer <freesurfer>` to convert structural MRI scans into
-  models of the scalp, inner/outer skull, and cortical surfaces
-
-- :doc:`MNE-C <mne_c>` for constructing and solving a boundary-element
-  model of tissue conductance, and for aligning coordinate frames between the
-  structural MRI and the digitizations of M/EEG sensor locations
-
-- :doc:`MNE-Python <mne_python>` can be used for everything else
 
 Getting help
 ^^^^^^^^^^^^
