@@ -253,7 +253,7 @@ class _Renderer(_BaseRenderer):
                      elevation=elevation, distance=distance,
                      focalpoint=focalpoint)
 
-    def screenshot(self, mode='rgba'):
+    def screenshot(self, mode='rgb'):
         with warnings.catch_warnings(record=True):  # traits
             return self.mlab.screenshot(self.fig, mode=mode)
 
