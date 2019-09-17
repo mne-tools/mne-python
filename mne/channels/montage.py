@@ -1648,7 +1648,29 @@ def make_standard_montage(kind):
 
 
 def read_dig_eeglab(fname):
-    # XXX: check fname extension
+    """Read an EEGLAB digitization file.
+
+    Parameters
+    ----------
+    fname : str
+        The filepath of Polhemus ISOTrak formatted file.
+        File extension is expected to be '.loc', '.locs' or '.eloc'.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+
+    See Also
+    --------
+    make_dig_montage
+    """
+    VALID_FILE_EXT = ('.loc', '.locs', '.eloc')
+
+    _, ext = op.splitext(fname)
+    _check_option('fname', ext, VALID_FILE_EXT)
+    _check_fname(fname, overwrite='read', must_exist=True)
+
     ch_names = np.genfromtxt(fname, dtype=str, usecols=3).tolist()
     topo = np.loadtxt(fname, dtype=float, usecols=[1, 2])
     sph = _topo_to_sph(topo)

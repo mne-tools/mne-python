@@ -315,6 +315,7 @@ Projections:
    read_dig_polhemus_isotrak
    read_dig_captrack
    read_dig_egi
+   read_dig_eeglab
    read_dig_fif
    compute_dev_head_t
    read_layout
