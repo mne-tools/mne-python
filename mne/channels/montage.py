@@ -142,7 +142,8 @@ def get_builtin_montages():
 
 @deprecated(
     '``read_montage`` is deprecated and will be removed in v0.20. Please use'
-    ' ``read_dig_fif``, ``read_dig_egi`` or ``read_dig_captrack``'
+    ' ``read_dig_fif``, ``read_dig_egi``, ``read_dig_eeglab``,'
+    ' or ``read_dig_captrack``'
     ' to read a digitization based on your needs instead;'
     ' or ``make_standard_montage`` to create ``DigMontage`` based on template;'
     ' or ``make_dig_montage`` to create a ``DigMontage`` out of np.arrays'
