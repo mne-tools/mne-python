@@ -913,17 +913,6 @@ def test_egi_dig_montage():
     assert object_diff(dig_montage.ch_names, dig_montage_egi.ch_names) == ''
 
 
-def _bvct_set_montage(raw, montage):  # XXXX: avoid raising the error
-    _fix_dig_montage = make_dig_montage(
-        ch_pos=dict(zip(['ECG', 'HEOG', 'VEOG'], np.full((3, 3), np.nan))),
-        coord_frame='head'
-    )
-    raw.set_montage(montage + _fix_dig_montage)
-    raw.info['dig'] = raw.info['dig'][:-3]
-
-    return raw
-
-
 @testing.requires_testing_data
 def test_bvct_dig_montage_old_api():  # XXX: to remove in 0.20
     """Test BrainVision CapTrak XML dig montage support."""
@@ -948,7 +937,8 @@ def test_bvct_dig_montage_old_api():  # XXX: to remove in 0.20
 
     # Test accuracy and embedding within raw object
     raw_bv = read_raw_brainvision(bv_raw_fname)
-    raw_bv = _bvct_set_montage(raw_bv, dig_montage)
+    with pytest.warns(RuntimeWarning, match='Did not set 3 channel positions'):
+        raw_bv.set_montage(dig_montage, raise_if_subset=False)
 
     test_raw_bv = read_raw_fif(bv_fif_fname)
 
