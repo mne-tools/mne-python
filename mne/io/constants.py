@@ -828,10 +828,12 @@ FIFF.FIFFV_COIL_VV_PLANAR_W        = 3011  # VV prototype wirewound planar senso
 FIFF.FIFFV_COIL_VV_PLANAR_T1       = 3012  # Vectorview SQ20483N planar gradiometer
 FIFF.FIFFV_COIL_VV_PLANAR_T2       = 3013  # Vectorview SQ20483N-A planar gradiometer
 FIFF.FIFFV_COIL_VV_PLANAR_T3       = 3014  # Vectorview SQ20950N planar gradiometer
+FIFF.FIFFV_COIL_VV_PLANAR_T4       = 3015  # Vectorview planar gradiometer (MEG-MRI)
 FIFF.FIFFV_COIL_VV_MAG_W           = 3021  # VV prototype wirewound magnetometer
 FIFF.FIFFV_COIL_VV_MAG_T1          = 3022  # Vectorview SQ20483N magnetometer
 FIFF.FIFFV_COIL_VV_MAG_T2          = 3023  # Vectorview SQ20483-A magnetometer
 FIFF.FIFFV_COIL_VV_MAG_T3          = 3024  # Vectorview SQ20950N magnetometer
+FIFF.FIFFV_COIL_VV_MAG_T4          = 3025  # Vectorview magnetometer (MEG-MRI)
 
 FIFF.FIFFV_COIL_MAGNES_MAG         = 4001  # Magnes WH magnetometer
 FIFF.FIFFV_COIL_MAGNES_GRAD        = 4002  # Magnes WH gradiometer

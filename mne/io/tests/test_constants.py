@@ -14,7 +14,8 @@ from mne.forward._make_forward import _read_coil_defs
 from mne.utils import _fetch_file, requires_good_network
 
 
-commit = '6733c5eb8a3e036c83ab10915de487fe77016546'  # mne-tools/fiff-constants
+# https://github.com/mne-tools/fiff-constants/commits/master
+commit = '07e87ab09bb235052f086b6a92f49019120dd63c'
 
 # These are oddities that we won't address:
 iod_dups = (355, 359)  # these are in both MEGIN and MNE files
