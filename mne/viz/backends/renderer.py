@@ -139,8 +139,7 @@ def _use_test_3d_backend(backend_name):
     """
     with use_3d_backend(backend_name):
         global MNE_3D_BACKEND_TEST_DATA
-        if backend_name == 'pyvista':
-            MNE_3D_BACKEND_TEST_DATA = True
+        MNE_3D_BACKEND_TEST_DATA = True
         yield
 
 

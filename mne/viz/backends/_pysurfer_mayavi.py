@@ -60,6 +60,7 @@ class _Renderer(_BaseRenderer):
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
                  name=None, show=False):
         self.mlab = _import_mlab()
+        self.window_size = size
         if fig is None:
             self.fig = _mlab_figure(figure=name, bgcolor=bgcolor, size=size)
         elif isinstance(fig, int):
@@ -254,8 +255,12 @@ class _Renderer(_BaseRenderer):
                      focalpoint=focalpoint)
 
     def screenshot(self, mode='rgb'):
-        with warnings.catch_warnings(record=True):  # traits
-            return self.mlab.screenshot(self.fig, mode=mode)
+        from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
+        if MNE_3D_BACKEND_TEST_DATA:
+            return np.zeros(tuple(self.window_size) + (3,), np.uint8)
+        else:
+            with warnings.catch_warnings(record=True):  # traits
+                return self.mlab.screenshot(self.fig, mode=mode)
 
     def project(self, xyz, ch_names):
         xy = _3d_to_2d(self.fig, xyz)

@@ -28,7 +28,6 @@ surf = 'inflated'
 @testing.requires_testing_data
 def test_brain_init(renderer):
     """Test initialization of the _Brain instance."""
-    backend_name = renderer.get_3d_backend()
     hemi = 'both'
 
     with pytest.raises(ValueError, match='hemi'):
@@ -41,14 +40,21 @@ def test_brain_init(renderer):
         _Brain(subject_id=subject_id, hemi="foo", surf=surf)
 
     brain = _Brain(subject_id, hemi, surf, subjects_dir=subjects_dir)
-    if backend_name != 'mayavi':
-        brain.show()
+    brain.show()
+
+
+@testing.requires_testing_data
+def test_brain_screenshot(renderer):
+    brain = _Brain(subject_id, hemi='both',
+                   surf=surf, subjects_dir=subjects_dir)
+    img = brain.screenshot(mode='rgba')
+    brain.show()
+    # assert(img.shape == [600, 600, 4])
 
 
 @testing.requires_testing_data
 def test_brain_add_data(renderer):
     """Test adding data in _Brain instance."""
-    backend_name = renderer.get_3d_backend()
     stc = read_source_estimate(fname_stc)
 
     hemi = 'lh'
@@ -69,9 +75,7 @@ def test_brain_add_data(renderer):
     brain_data.add_data(hemi_data, fmin=fmin, hemi=hemi, fmax=fmax,
                         colormap='hot', vertices=hemi_vertices,
                         colorbar=False)
-
-    if backend_name != 'mayavi':
-        brain_data.show()
+    brain_data.show()
 
 
 def test_brain_colormap():
