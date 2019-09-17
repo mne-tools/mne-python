@@ -562,6 +562,9 @@ class _Brain(object):
             if scalar_thresh is not None:
                 ids = ids[scalars >= scalar_thresh]
 
+        # XXX: add support for label_name
+        self._label_name = label_name
+
         label = np.zeros(self.geo[hemi].coords.shape[0])
         label[ids] = 1
         color = colorConverter.to_rgba(color, alpha)
