@@ -217,8 +217,8 @@ def _read_dig_points(fname, comments='%', unit='auto'):
             dig_points = dig_points[:, :3]
 
     if dig_points.shape[-1] != 3:
-        err = 'Data must be (n, 3) instead of %s' % (dig_points.shape,)
-        raise ValueError(err)
+        raise ValueError(
+            'Data must be of shape (n, 3) instead of %s' % (dig_points.shape,))
 
     if unit == 'mm':
         dig_points /= 1000.

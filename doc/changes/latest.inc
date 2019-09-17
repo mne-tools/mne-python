@@ -79,6 +79,8 @@ Changelog
 
 - Add a new :func:`mne.viz.plot_sensors_connectivity` function to visualize the sensor connectivity in 3D by `Guillaume Favelier`_ and `Alex Gramfort`_
 
+- Add support for ``info['utc_offset']``, ``info['device_info']``, and ``info['helium_info']`` components of :class:`mne.Info` by `Eric Larson`_
+
 - Add control over dipole colors in :func:`mne.viz.plot_dipole_locations` when using orthoview mode by `Eric Larson`_
 
 - Use second-order-sections filtering in :meth:`mne.io.Raw.plot` and :ref:`mne browse_raw <gen_mne_browse_raw>` by `Eric Larson`_
@@ -191,6 +193,8 @@ API
 - :func:`mne.viz.plot_epochs_image` no longer supports ``group_by='type'`` — combining by channel type is now the default when ``picks`` is a channel type string; to get individual plots for each channel, pass ``picks`` as a list of channel names or indices by `Daniel McCloy`_
 
 - New parameter ``combine`` in :func:`mne.viz.plot_compare_evokeds` for specifying method to combine information across channels by `Daniel McCloy`_
+
+- FIFF constants related to SmartShield (``*_SMSH_*`` and ``*_SMARTSHIELD``) have been renamed to ``IAS`` for consistency with MEGIN, by `Eric Larson`_
 
 - The ``gfp`` parameter of :func:`mne.viz.plot_compare_evokeds` is deprecated; use ``combine='gfp'`` instead by `Daniel McCloy`_
 

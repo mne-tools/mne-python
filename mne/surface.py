@@ -26,7 +26,7 @@ from .io.write import (write_int, start_file, end_block, start_block, end_file,
 from .channels.channels import _get_meg_system
 from .parallel import parallel_func
 from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
-                         _get_trans, apply_trans)
+                         _get_trans, apply_trans, Transform)
 from .utils import logger, verbose, get_subjects_dir, warn, _check_fname
 from .fixes import (_serialize_volume_info, _get_read_geometry, einsum, jit,
                     prange)
@@ -162,7 +162,10 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
 
     # Ignore what the file says, it's in device coords and we want MRI coords
     surf['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
-    transform_surface_to(surf, 'head', info['dev_head_t'])
+    dev_head_t = info['dev_head_t']
+    if dev_head_t is None:
+        dev_head_t = Transform('meg', 'head')
+    transform_surface_to(surf, 'head', dev_head_t)
     if trans is not None:
         transform_surface_to(surf, 'mri', trans)
     return surf
