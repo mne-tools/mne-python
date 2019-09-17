@@ -28,7 +28,7 @@ from mne._digitization._utils import (_write_dig_points, _read_dig_points,
                                       _make_dig_points,)
 from mne.io import read_raw_ctf
 from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
-from mne.channels import read_montage, read_polhemus_fastscan, read_dig_montage
+from mne.channels import read_montage, read_polhemus_fastscan
 
 base_dir = op.join(op.dirname(__file__), 'data')
 fiducials_fname = op.join(base_dir, 'fsaverage-fiducials.fif')

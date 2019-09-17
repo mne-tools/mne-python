@@ -820,6 +820,8 @@ def test_fif_dig_montage():
         mapping[ch_name] = 'EEG%03d' % (ii + 33,)
     raw_bv_2.rename_channels(mapping)
     raw_bv.add_channels([raw_bv_2])
+    for ch in raw_bv.info['chs']:
+        ch['kind'] = FIFF.FIFFV_EEG_CH
 
     # Set the montage
     raw_bv.set_montage(dig_montage)
