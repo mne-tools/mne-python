@@ -165,7 +165,7 @@ def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
             axes[0, k].axvline(this_rank - 1, ls='--', color='r',
                                alpha=0.5, zorder=4, clip_on=False)
             axes[0, k].text(this_rank - 1, axes[0, k].get_ylim()[1],
-                            '%d ' % (this_rank,), ha='right', va='top',
+                            'rank ≈ %d' % (this_rank,), ha='right', va='top',
                             color='r', alpha=0.5, zorder=4)
             axes[0, k].set(ylabel=u'Noise σ (%s)' % unit, yscale='log',
                            xlabel='Eigenvalue index', title=name,
