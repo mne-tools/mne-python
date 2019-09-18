@@ -947,10 +947,12 @@ class Report(object):
                 comments = [comments]
         if len(comments) != len(items):
             raise ValueError('Comments and report items must have the same '
-                             'length or comments should be None.')
+                             'length or comments should be None, got %d and %d'
+                             % (len(comments), len(items)))
         elif len(captions) != len(items):
             raise ValueError('Captions and report items must have the same '
-                             'length.')
+                             'length, got %d and %d'
+                             % (len(captions), len(items)))
 
         # Book-keeping of section names
         if section not in self.sections:
