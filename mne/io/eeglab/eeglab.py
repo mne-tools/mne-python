@@ -14,7 +14,7 @@ from ..constants import FIFF
 from ..meas_info import create_info
 from ..base import BaseRaw
 from ...utils import logger, verbose, warn, fill_doc, Bunch
-from ...channels.montage import Montage
+from ...channels import make_dig_montage
 from ...epochs import BaseEpochs
 from ...event import read_events
 from ...annotations import Annotations, read_annotations
@@ -97,10 +97,10 @@ def _get_eeg_montage_information(eeg, get_pos):
                 pos.append(locs)
 
     if pos_ch_names:
-        montage = Montage(pos=np.array(pos),
-                          ch_names=pos_ch_names,
-                          kind='user_defined',
-                          selection=np.arange(len(pos_ch_names)))
+        montage = make_dig_montage(
+            ch_pos=dict(zip(ch_names, np.array(pos))),
+            coord_frame='head',
+        )
     else:
         montage = None
 
@@ -368,8 +368,12 @@ class RawEEGLAB(BaseRaw):
         cal = set([ch['cal'] for ch in self.info['chs']]).pop()
 
         from ...channels.montage import _set_montage
-        _set_montage(self.info, montage, update_ch_names=update_ch_names,
-                     set_dig=set_dig)
+        _set_montage(self.info, montage)  # check what happens with defaults
+        # if montage is None:
+        #     _set_montage(self.info, montage=None)  # avoid passing params
+        # else:
+        #     _set_montage(self.info, montage, update_ch_names=update_ch_names,
+        #                  set_dig=set_dig)
 
         # Revert update_ch_names modifications in cal and coord_frame
         if update_ch_names:
