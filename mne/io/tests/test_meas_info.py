@@ -28,7 +28,7 @@ from mne._digitization._utils import (_write_dig_points, _read_dig_points,
                                       _make_dig_points,)
 from mne.io import read_raw_ctf
 from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
-from mne.channels import read_montage, read_polhemus_fastscan
+from mne.channels import read_montage
 
 base_dir = op.join(op.dirname(__file__), 'data')
 fiducials_fname = op.join(base_dir, 'fsaverage-fiducials.fif')
@@ -90,35 +90,6 @@ def test_make_info():
                        montage=m)
     ch_pos = [ch['loc'][:3] for ch in info['chs']]
     assert_array_equal(ch_pos, m.pos)
-
-
-@pytest.mark.skip(reason="setting a DigMontage is no longer the same")
-def test_make_info_with_dig_montage():
-    m = read_montage('biosemi32')
-    elp_points = _read_dig_points(elp_fname)
-    dig_mont = make_dig_montage(
-        nasion=elp_points[0], lpa=elp_points[1], rpa=elp_points[2],
-        hpi=elp_points[3:],
-        hsp=read_polhemus_fastscan(hsp_fname),
-    )
-    # info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
-    #                    montage=dig_mont)
-    # idents = [p['ident'] for p in info['dig']]
-    # assert FIFF.FIFFV_POINT_NASION in idents
-
-    info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
-                       montage=[dig_mont, m])
-    ch_pos = [ch['loc'][:3] for ch in info['chs']]
-    assert_array_equal(ch_pos, m.pos)
-    idents = [p['ident'] for p in info['dig']]
-    assert (FIFF.FIFFV_POINT_NASION in idents)
-    info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
-                       montage=[dig_mont, 'biosemi32'])
-    ch_pos = [ch['loc'][:3] for ch in info['chs']]
-    assert_array_equal(ch_pos, m.pos)
-    idents = [p['ident'] for p in info['dig']]
-    assert (FIFF.FIFFV_POINT_NASION in idents)
-    assert info['meas_date'] is None
 
 
 def test_duplicate_name_correction():

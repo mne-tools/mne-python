@@ -1370,7 +1370,7 @@ def test_set_montage_with_mismatching_ch_names():
     raw.set_montage(montage)  # does not raise
 
 
-def test_set_montage_with_sub_super_set_of_chnames():
+def test_set_montage_with_sub_super_set_of_ch_names():
     """Test info and montage ch_names matching criteria."""
     N_CHANNELS = len('abcdef')
     montage = _make_toy_dig_montage(N_CHANNELS, coord_frame='head')
@@ -1380,15 +1380,15 @@ def test_set_montage_with_sub_super_set_of_chnames():
         ch_names=list('abcdef'), sfreq=1, ch_types='eeg', montage=montage
     )
 
-    # Montage is a SUPER-set of info
-    with pytest.warns(RuntimeWarning, match='super-set'):
+    # Montage is a SUPERset of info
+    with pytest.warns(RuntimeWarning, match='superset'):
         info = create_info(
             ch_names=list('abc'), sfreq=1, ch_types='eeg', montage=montage
         )
     assert len(info['dig']) == len(list('abc'))
 
-    # Montage is a SUB-set of info
-    _MSG = 'sub-set of info. There are 2 .* not present it the DigMontage'
+    # Montage is a SUBset of info
+    _MSG = 'subset of info. There are 2 .* not present it the DigMontage'
     with pytest.raises(ValueError, match=_MSG):
         _ = create_info(
             ch_names=list('abcdfgh'), sfreq=1, ch_types='eeg', montage=montage
@@ -1398,7 +1398,6 @@ def test_set_montage_with_sub_super_set_of_chnames():
 def test_heterogeneous_ch_type():
     """Test ch_names matching criteria with heterogeneous ch_type."""
     VALID_MONTAGE_NAMED_CHS = ('eeg', 'ecog', 'seeg')
-    nchan = len(VALID_MONTAGE_NAMED_CHS)
 
     montage = _make_toy_dig_montage(
         n_channels=len(VALID_MONTAGE_NAMED_CHS),
