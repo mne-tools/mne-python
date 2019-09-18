@@ -1654,7 +1654,7 @@ def read_dig_eeglab(fname):
     Parameters
     ----------
     fname : str
-        The filepath of Polhemus ISOTrak formatted file.
+        The filepath of Digitization EEGLAB formatted file.
         File extension is expected to be '.loc', '.locs' or '.eloc'.
 
     Returns
@@ -1678,4 +1678,6 @@ def read_dig_eeglab(fname):
     pos = _sph_to_cart(sph)
     pos[:, [0, 1]] = pos[:, [1, 0]] * [-1, 1]
 
+    # XXX: This is not a valid DigMontage. Whatever we are parsing is mapped
+    #      to radius 1 sphere
     return make_dig_montage(ch_pos=dict(zip(ch_names, pos)))
