@@ -102,7 +102,7 @@ class _Brain(object):
        +===========================+==============+=======================+
        | add_data                  | ✓            | -                     |
        +---------------------------+--------------+-----------------------+
-       | add_foci                  | ✓            |                       |
+       | add_foci                  | ✓            | -                     |
        +---------------------------+--------------+-----------------------+
        | add_label                 | ✓            | -                     |
        +---------------------------+--------------+-----------------------+
@@ -585,6 +585,41 @@ class _Brain(object):
                           color=None,
                           colormap=ctable,
                           backface_culling=False)
+
+    def add_foci(self, coords, coords_as_verts=False, map_surface=None,
+                 scale_factor=1, color="white", alpha=1, name=None,
+                 hemi=None):
+        """Add spherical foci, possibly mapping to displayed surf.
+
+        The foci spheres can be displayed at the coordinates given, or
+        mapped through a surface geometry. In other words, coordinates
+        from a volume-based analysis in MNI space can be displayed on an
+        inflated average surface by finding the closest vertex on the
+        white surface and mapping to that vertex on the inflated mesh.
+
+        Parameters
+        ----------
+        coords : numpy array
+            x, y, z coordinates in stereotaxic space (default) or array of
+            vertex ids (with ``coord_as_verts=True``)
+        coords_as_verts : bool
+            whether the coords parameter should be interpreted as vertex ids
+        map_surface : Freesurfer surf or None
+            surface to map coordinates through, or None to use raw coords
+        scale_factor : float
+            Controls the size of the foci spheres (relative to 1cm).
+        color : matplotlib color code
+            HTML name, RBG tuple, or hex code
+        alpha : float in [0, 1]
+            opacity of focus gylphs
+        name : str
+            internal name to use
+        hemi : str | None
+            If None, it is assumed to belong to the hemipshere being
+            shown. If two hemispheres are being shown, an error will
+            be thrown.
+        """
+        pass
 
     def remove_labels(self, labels=None, hemi=None):
         """Remove one or more previously added labels from the image.
