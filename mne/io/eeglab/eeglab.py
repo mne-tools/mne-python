@@ -347,7 +347,8 @@ class RawEEGLAB(BaseRaw):
                             dtype=np.float32, n_channels=self.info['nchan'])
 
     # XXX: to be removed when deprecating montage
-    def set_montage(self, montage, set_dig=True, update_ch_names=True,
+    def set_montage(self, montage,
+                    # set_dig=True, update_ch_names=True,
                     verbose=None):
         """Set EEG sensor configuration and head digitization.
 
@@ -375,10 +376,10 @@ class RawEEGLAB(BaseRaw):
         #     _set_montage(self.info, montage, update_ch_names=update_ch_names,
         #                  set_dig=set_dig)
 
-        # Revert update_ch_names modifications in cal and coord_frame
-        if update_ch_names:
-            for ch in self.info['chs']:
-                ch['cal'] = cal
+        # # Revert update_ch_names modifications in cal and coord_frame
+        # if update_ch_names:
+        #     for ch in self.info['chs']:
+        #         ch['cal'] = cal
 
 
 class EpochsEEGLAB(BaseEpochs):

@@ -22,6 +22,7 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
 from mne.utils import requires_h5py, run_tests_if_main
 from mne.annotations import events_from_annotations, read_annotations
+from mne.io.eeglab.tests._utils import _fix_montage
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
 
@@ -42,7 +43,7 @@ epochs_h5_fnames = [epochs_fname_h5, epochs_fname_onefile_h5]
 
 raw_fnames = [raw_fname_mat, raw_fname_onefile_mat,
               raw_fname_h5, raw_fname_onefile_h5]
-montage = op.join(base_dir, 'test_chans.locs')
+montage = _fix_montage(op.join(base_dir, 'test_chans.locs'))
 
 
 def _check_h5(fname):
@@ -60,20 +61,18 @@ def _check_h5(fname):
 )
 def test_io_set_raw(fname):
     """Test importing EEGLAB .set files."""
-    _test_raw_reader(read_raw_eeglab, input_fname=fname,
-                     montage=montage)
+    _test_raw_reader(read_raw_eeglab, input_fname=fname)
     # test that preloading works
     raw0 = read_raw_eeglab(input_fname=fname, preload=True)
-    if montage is not None:
-        raw0.set_montage(montage, update_ch_names=True)
+    raw0.set_montage(montage)
     raw0.filter(1, None, l_trans_bandwidth='auto', filter_length='auto',
                 phase='zero')
 
     # test that using uint16_codec does not break stuff
     raw0 = read_raw_eeglab(input_fname=fname,
                            preload=False, uint16_codec='ascii')
-    if montage is not None:
-        raw0.set_montage(montage, update_ch_names=True)
+    # if montage is not None:
+    #     raw0.set_montage(montage, update_ch_names=True)
 
 
 @testing.requires_testing_data
