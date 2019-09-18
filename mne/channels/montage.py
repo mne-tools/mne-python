@@ -1256,9 +1256,11 @@ def read_dig_captrack(fname):
 
 
 def _get_montage_in_head(montage):
-    _, coord = _get_fid_coords(montage.dig)
-    _mnt = montage if montage._coord_frame == 'head' else transform_to_head(montage.copy())
-    return _mnt
+    coords = set([d['coord_frame'] for d in montage.dig])
+    if len(coords) == 1 and coords.pop() == FIFF.FIFFV_COORD_HEAD:
+        return montage
+    else:
+        return transform_to_head(montage.copy())
 
 
 def _set_montage(info, montage, update_ch_names=False, set_dig=True,
@@ -1392,8 +1394,6 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True,
 
         if _mnt.dev_head_t is not None:
             info['dev_head_t'] = Transform('meg', 'head', _mnt.dev_head_t)
-
-
 
     elif montage is None:
         for ch in info['chs']:
