@@ -15,6 +15,12 @@ import sys
 import mne
 
 
+def _add_verbose_flag(parser):
+    parser.add_option("--verbose", dest='verbose',
+                      help="Enable verbose mode (printing of log messages).",
+                      default=None, action="store_true")
+
+
 def load_module(name, path):
     """Load module from .py/.pyc file.
 
