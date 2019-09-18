@@ -368,7 +368,8 @@ class RawEEGLAB(BaseRaw):
 
     # XXX: to be removed when deprecating montage
     def set_montage(self, montage, set_dig=DEPRECATED_PARAM,
-                    update_ch_names=True, verbose=None):
+                    update_ch_names=True, raise_if_subset=DEPRECATED_PARAM,
+                    verbose=None):
         """Set EEG sensor configuration and head digitization.
 
         Parameters
@@ -394,7 +395,8 @@ class RawEEGLAB(BaseRaw):
                          set_dig=set_dig)
 
         else:  # DigMontage or None
-            _set_montage(self.info, montage, set_dig=set_dig)
+            _set_montage(self.info, montage, set_dig=set_dig,
+                         raise_if_subset=raise_if_subset)
 
         # Revert update_ch_names modifications in cal and coord_frame
         if update_ch_names:

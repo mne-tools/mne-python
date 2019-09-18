@@ -343,12 +343,19 @@ def test_position_information(one_chanpos_fname):
 
 
     raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
-    _msg = "subset .* The required channels .*'unknown'"
-    with pytest.raises(RuntimeError, match=_msg):
+    # _msg = "subset .* The required channels are: {'unknown'}"
+    # _msg = 'DigMontage is a only a subset of info'
+    # _msg='You can use'
+    # with pytest.raises(ValueError, match=_msg):
+    with pytest.raises(ValueError):
         raw.set_montage(montage, update_ch_names=False)
 
-    with pytest.warns(ValueError, msg=_msg):
-        raw.set_montage(montage, update_ch_names=False)
+    _msg = (
+        'DigMontage is a only a subset of info. '
+        'Did not set 1 channel positions:\nunknown'
+    )
+    with pytest.warns(RuntimeWarning, match=_msg):
+        raw.set_montage(montage, update_ch_names=False, raise_if_subset=False)
     _assert_array_allclose_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
                                EXPECTED_LOCATIONS_FROM_MONTAGE)
 
