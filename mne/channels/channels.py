@@ -448,8 +448,8 @@ class SetChannelsMixin(object):
 
     @verbose
     def set_montage(
-            self, montage, set_dig=True, raise_if_subset=DEPRECATED_PARAM,
-            verbose=None
+            self, montage, set_dig=DEPRECATED_PARAM,
+            raise_if_subset=DEPRECATED_PARAM, verbose=None
     ):
         """Set EEG sensor configuration and head digitization.
 
@@ -461,13 +461,16 @@ class SetChannelsMixin(object):
             If True, update the digitization information (``info['dig']``)
             in addition to the channel positions (``info['chs'][idx]['loc']``).
 
+            Deprecated. This parameter will be removed in 0.20.
+
             .. versionadded: 0.15
         raise_if_subset: bool
             If True, ValueError will be raised when montage.ch_names is a
             subset of info['ch_names']. This parameter was introduced for
-            backward compatibility when set to False, and will be removed in
-            v0.20.
-            Defaults to True.
+            backward compatibility when set to False.
+
+            Defaults to False in 0.19, it will change to default to True in
+            0.20, and will be removed in 0.21.
 
             .. versionadded: 0.19
         %(verbose_meth)s
@@ -482,7 +485,7 @@ class SetChannelsMixin(object):
         # https://gist.github.com/massich/f6a9f4799f1fbeb8f5e8f8bc7b07d3df
 
         from .montage import _set_montage
-        _set_montage(self.info, montage, update_ch_names=False,
+        _set_montage(self.info, montage, update_ch_names=DEPRECATED_PARAM,
                      set_dig=set_dig, raise_if_subset=raise_if_subset)
         return self
 

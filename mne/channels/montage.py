@@ -1263,8 +1263,86 @@ def _get_montage_in_head(montage):
         return transform_to_head(montage.copy())
 
 
-def _set_montage(info, montage, update_ch_names=False, set_dig=True,
-                 raise_if_subset=DEPRECATED_PARAM):
+def _set_montage_deprecation_helper(
+        montage, update_ch_names, set_dig, raise_if_subset
+):
+    """Manage deprecation policy for _set_montage.
+
+    montage : instance of DigMontage | 'kind' | None
+        The montage.
+    update_ch_names : bool
+        Whether to update or not ``ch_names`` in info.
+    set_dig : bool
+        Whether to copy or not ``montage.dig`` into ``info['dig']``
+    raise_if_subset: bool
+        Flag to grant raise/warn backward compatibility.
+
+    Notes
+    -----
+
+    v0.19:
+       - deprecate all montage types but DigMontage (or None, or valid 'kind')
+       - deprecate using update_ch_names and set_dig
+       - add raise_if_subset flag (defaults to False)
+
+    v0.20:
+       - montage is only DigMontage
+       - update_ch_names and set_dig disappear
+       - raise_if_subset defaults to True, still warns
+
+    v0.21:
+       - remove raise_if_subset
+    """
+    if isinstance(montage, (DigMontage, type(None))):
+        # only worry about the DigMontage case
+        if update_ch_names is DEPRECATED_PARAM:
+            warn((
+                'Using ``update_ch_names`` to ``set_montage`` when using'
+                ' DigMontage is deprecated and ``update_ch_names`` will be'
+                ' removed in 0.20'
+            ), DeprecationWarning)
+        if set_dig is DEPRECATED_PARAM:
+            warn((
+                'Using ``set_dig`` to ``set_montage`` when using'
+                ' DigMontage is deprecated and ``set_dig`` will be'
+                ' removed in 0.20'
+            ), DeprecationWarning)
+
+    elif isinstance(montage, str) and montage not in _BUILT_IN_MONTAGES:
+        warn((
+            'Using str in montage different from the built in templates '
+            ' (i.e. a path) is deprecated. Please choose the proper reader to'
+            ' load your montage using: '
+            ' ``read_dig_fif``, ``read_dig_egi``, ``read_dig_eeglab``,'
+            ' or ``read_dig_captrack``'
+        ), DeprecationWarning)
+    else:  # Montage
+        warn((
+            'Setting a montage using a Montage rather than DigMontage'
+            ' is deprecated and will raise an error in v0.20.'
+            ' Please use ``read_dig_fif``, ``read_dig_egi``,'
+            ' ``read_dig_eeglab``, or ``read_dig_captrack``'
+            ' to read a digitization based on your needs instead;'
+            ' or ``make_standard_montage`` to create ``DigMontage`` based on'
+            ' template; or ``make_dig_montage`` to create a ``DigMontage`` out'
+            ' of np.arrays.'
+        ), DeprecationWarning)
+
+    # This is unlikely to be trigger but it applies in all cases
+    if raise_if_subset is DEPRECATED_PARAM:
+        # nothing to be done in 0.19
+        pass  # noqa
+
+    # Return defaults
+    return (
+        False if update_ch_names is DEPRECATED_PARAM else update_ch_names,
+        True if set_dig is DEPRECATED_PARAM else set_dig,
+        True if raise_if_subset is DEPRECATED_PARAM else raise_if_subset,
+    )
+
+
+def _set_montage(info, montage, update_ch_names=DEPRECATED_PARAM,
+                 set_dig=DEPRECATED_PARAM, raise_if_subset=DEPRECATED_PARAM):
     """Apply montage to data.
 
     With a Montage, this function will replace the EEG channel names and
@@ -1283,14 +1361,30 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True,
     montage : instance of Montage | instance of DigMontage | str | None
         The montage to apply (None removes any location information). If
         montage is a string, a builtin montage with that name will be used.
+
+        Deprecated all types of montage but DigMontage in v0.19.
+
     update_ch_names : bool
         If True, overwrite the info channel names with the ones from montage.
         Defaults to False.
 
+    raise_if_subset: bool
+        If True, ValueError will be raised when montage.ch_names is a
+        subset of info['ch_names']. This parameter was introduced for
+        backward compatibility when set to False.
+
+        Defaults to False in 0.19, it will change to default to True in
+        0.20, and will be removed in 0.21.
+
+        .. versionadded: 0.19
     Notes
     -----
     This function will change the info variable in place.
     """
+    update_ch_names, set_dig, _raise = _set_montage_deprecation_helper(
+            montage, update_ch_names, set_dig, raise_if_subset
+    )
+
     if isinstance(montage, str):  # load builtin montage
         montage = read_montage(montage)
 
@@ -1354,9 +1448,6 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True,
 
     elif isinstance(montage, DigMontage):
         _mnt = _get_montage_in_head(montage)
-        _raise = (  # XXX: deprecated to remove in 0.20
-            True if raise_if_subset is DEPRECATED_PARAM else raise_if_subset
-        )
 
         def _backcompat_value(pos, ref_pos):
             if any(np.isnan(pos)):
