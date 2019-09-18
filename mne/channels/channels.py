@@ -478,6 +478,9 @@ class SetChannelsMixin(object):
 
         .. versionadded:: 0.9.0
         """
+        # How to set up a montage to old named fif file (walk through example)
+        # https://gist.github.com/massich/f6a9f4799f1fbeb8f5e8f8bc7b07d3df
+
         from .montage import _set_montage
         _set_montage(self.info, montage, update_ch_names=False,
                      set_dig=set_dig, raise_if_subset=raise_if_subset)
