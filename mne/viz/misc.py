@@ -69,12 +69,12 @@ def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
 
     See Also
     --------
-    mne.estimate_rank
+    mne.compute_rank
 
     Notes
     -----
     For each channel type, the rank is estimated using
-    :func:`mne.estimate_rank`.
+    :func:`mne.compute_rank`.
 
     .. versionchanged:: 0.19
        Approximate ranks for each channel type are shown with red dashed lines.
