@@ -1316,7 +1316,7 @@ def _set_montage_deprecation_helper(
             ' ``read_dig_fif``, ``read_dig_egi``, ``read_dig_eeglab``,'
             ' or ``read_dig_captrack``'
         ), DeprecationWarning)
-    elif not isinstance(montage, str):  # Montage
+    elif not (isinstance(montage, str) or montage is None):  # Montage
         warn((
             'Setting a montage using a Montage rather than DigMontage'
             ' is deprecated and will raise an error in v0.20.'

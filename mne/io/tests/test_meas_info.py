@@ -28,7 +28,7 @@ from mne._digitization._utils import (_write_dig_points, _read_dig_points,
                                       _make_dig_points,)
 from mne.io import read_raw_ctf
 from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
-from mne.channels import read_montage
+from mne.channels import make_standard_montage
 
 base_dir = op.join(op.dirname(__file__), 'data')
 fiducials_fname = op.join(base_dir, 'fsaverage-fiducials.fif')
@@ -85,11 +85,11 @@ def test_make_info():
                   ch_types='awesome')
     pytest.raises(TypeError, create_info, ['Test Ch'], sfreq=1000,
                   ch_types=None, montage=np.array([1]))
-    m = read_montage('biosemi32')
+    m = make_standard_montage('biosemi32')
     info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
                        montage=m)
     ch_pos = [ch['loc'][:3] for ch in info['chs']]
-    assert_array_equal(ch_pos, m.pos)
+    assert_array_equal(ch_pos, np.stack(m._get_ch_pos().values()))
 
 
 def test_duplicate_name_correction():
