@@ -4,7 +4,7 @@ from mne.transforms import _sph_to_cart, _topo_to_sph
 
 
 # XXX: This is a workaround to get the previous behavior.
-def _fix_montage(fname):
+def _read_eeglab_montage(fname):
     """Read an EEGLAB digitization file.
 
     Parameters

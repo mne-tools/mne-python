@@ -336,7 +336,7 @@ class RawEEGLAB(BaseRaw):
             _deprecate_montage(self, "read_raw_eeglab", montage,
                                update_ch_names=True)
         else:
-            self.set_montage(eeg_montage)
+            self._set_dig_montage_in_init(eeg_montage)
 
         latencies = np.round(annot.onset * self.info['sfreq'])
         _check_latencies(latencies)
@@ -345,6 +345,25 @@ class RawEEGLAB(BaseRaw):
         """Read a chunk of raw data."""
         _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
                             dtype=np.float32, n_channels=self.info['nchan'])
+
+    def _set_dig_montage_in_init(self, montage):
+        """Set EEG sensor configuration and head digitization from when init.
+
+        This is done from the information within fname when
+        read_raw_eeglab(fname).
+        """
+        if montage is None:
+            self.set_montage(None)
+        else:
+            missing_channels = set(self.ch_names) - set(montage.ch_names)
+            ch_pos = dict(zip(
+                list(missing_channels),
+                np.full((len(missing_channels), 3), np.nan)
+            ))
+            self.set_montage(
+                montage + make_dig_montage(ch_pos=ch_pos, coord_frame='head')
+            )
+
 
     # XXX: to be removed when deprecating montage
     def set_montage(self, montage,
@@ -369,7 +388,7 @@ class RawEEGLAB(BaseRaw):
         cal = set([ch['cal'] for ch in self.info['chs']]).pop()
 
         from ...channels.montage import _set_montage
-        _set_montage(self.info, montage)  # check what happens with defaults
+        _set_montage(self.info, montage, raise_if_subset=False)  # check what happens with defaults
         # if montage is None:
         #     _set_montage(self.info, montage=None)  # avoid passing params
         # else:

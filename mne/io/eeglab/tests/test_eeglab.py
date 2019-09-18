@@ -22,7 +22,7 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.datasets import testing
 from mne.utils import requires_h5py, run_tests_if_main
 from mne.annotations import events_from_annotations, read_annotations
-from mne.io.eeglab.tests._utils import _fix_montage
+from mne.io.eeglab.tests._utils import _read_eeglab_montage
 
 base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
 
@@ -43,7 +43,7 @@ epochs_h5_fnames = [epochs_fname_h5, epochs_fname_onefile_h5]
 
 raw_fnames = [raw_fname_mat, raw_fname_onefile_mat,
               raw_fname_h5, raw_fname_onefile_h5]
-montage = _fix_montage(op.join(base_dir, 'test_chans.locs'))
+montage_path = op.join(base_dir, 'test_chans.locs')
 
 
 def _check_h5(fname):
@@ -61,6 +61,11 @@ def _check_h5(fname):
 )
 def test_io_set_raw(fname):
     """Test importing EEGLAB .set files."""
+    montage = _read_eeglab_montage(montage_path)
+    montage.ch_names = [
+        'EEG {0:03d}'.format(ii) for ii in range(len(montage.ch_names))
+    ]
+
     _test_raw_reader(read_raw_eeglab, input_fname=fname)
     # test that preloading works
     raw0 = read_raw_eeglab(input_fname=fname, preload=True)
@@ -268,11 +273,8 @@ def test_eeglab_event_from_annot():
     base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
     raw_fname_mat = op.join(base_dir, 'test_raw.set')
     raw_fname = raw_fname_mat
-    montage = op.join(base_dir, 'test_chans.locs')
     event_id = {'rt': 1, 'square': 2}
     raw1 = read_raw_eeglab(input_fname=raw_fname, preload=False)
-    if montage is not None:
-        raw1.set_montage(montage, update_ch_names=True)
 
     annotations = read_annotations(raw_fname)
     assert len(raw1.annotations) == 154
@@ -318,7 +320,7 @@ def one_chanpos_fname(tmpdir_factory):
 
 
 @testing.requires_testing_data
-@pytest.mark.filterwarnings('ignore:.*did not have a position.*')
+# @pytest.mark.filterwarnings('ignore:.*did not have a position.*') 
 def test_position_information(one_chanpos_fname):
     """Test reading file with 3 channels - one without position information."""
     nan = np.nan
@@ -334,6 +336,7 @@ def test_position_information(one_chanpos_fname):
         [0, 0.99977915, -0.02101571, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     ])
 
+    montage = _read_eeglab_montage(montage_path)
     raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
     assert_array_equal(np.array([ch['loc'] for ch in raw.info['chs']]),
                        EXPECTED_LOCATIONS_FROM_FILE)
