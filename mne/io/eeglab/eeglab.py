@@ -14,7 +14,8 @@ from ..constants import FIFF
 from ..meas_info import create_info
 from ..base import BaseRaw
 from ...utils import logger, verbose, warn, fill_doc, Bunch
-from ...channels import make_dig_montage
+from ...channels import make_dig_montage, Montage, DigMontage
+from ...channels.channels import DEPRECATED_PARAM
 from ...epochs import BaseEpochs
 from ...event import read_events
 from ...annotations import Annotations, read_annotations
@@ -366,9 +367,8 @@ class RawEEGLAB(BaseRaw):
 
 
     # XXX: to be removed when deprecating montage
-    def set_montage(self, montage,
-                    # set_dig=True, update_ch_names=True,
-                    verbose=None):
+    def set_montage(self, montage, set_dig=DEPRECATED_PARAM,
+                    update_ch_names=True, verbose=None):
         """Set EEG sensor configuration and head digitization.
 
         Parameters
@@ -385,20 +385,21 @@ class RawEEGLAB(BaseRaw):
             montage. Defaults to False.
         %(verbose_meth)s
         """
+        from ...channels.montage import _set_montage
+
         cal = set([ch['cal'] for ch in self.info['chs']]).pop()
 
-        from ...channels.montage import _set_montage
-        _set_montage(self.info, montage, raise_if_subset=False)  # check what happens with defaults
-        # if montage is None:
-        #     _set_montage(self.info, montage=None)  # avoid passing params
-        # else:
-        #     _set_montage(self.info, montage, update_ch_names=update_ch_names,
-        #                  set_dig=set_dig)
+        if isinstance(montage, Montage):
+            _set_montage(self.info, montage, update_ch_names=update_ch_names,
+                         set_dig=set_dig)
 
-        # # Revert update_ch_names modifications in cal and coord_frame
-        # if update_ch_names:
-        #     for ch in self.info['chs']:
-        #         ch['cal'] = cal
+        else:  # DigMontage or None
+            _set_montage(self.info, montage, set_dig=set_dig)
+
+        # Revert update_ch_names modifications in cal and coord_frame
+        if update_ch_names:
+            for ch in self.info['chs']:
+                ch['cal'] = cal
 
 
 class EpochsEEGLAB(BaseEpochs):
