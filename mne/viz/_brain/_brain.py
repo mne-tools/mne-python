@@ -106,6 +106,8 @@ class _Brain(object):
        +---------------------------+--------------+-----------------------+
        | add_label                 | ✓            | -                     |
        +---------------------------+--------------+-----------------------+
+       | add_text                  | ✓            | -                     |
+       +---------------------------+--------------+-----------------------+
        | close                     | ✓            | ✓                     |
        +---------------------------+--------------+-----------------------+
        | data                      | ✓            | ✓                     |
@@ -618,6 +620,56 @@ class _Brain(object):
             If None, it is assumed to belong to the hemipshere being
             shown. If two hemispheres are being shown, an error will
             be thrown.
+        """
+        from matplotlib.colors import colorConverter
+        hemi = self._check_hemi(hemi)
+
+        # those parameters are not supported yet, only None is allowed
+        _check_option('map_surface', map_surface, [None])
+
+        # Figure out how to interpret the first parameter
+        if coords_as_verts:
+            coords = self.geo[hemi].coords[coords]
+
+        # Convert the color code
+        if not isinstance(color, tuple):
+            color = colorConverter.to_rgb(color)
+
+        if self._units == 'm':
+            scale_factor = scale_factor / 1000.
+        for ri, v in enumerate(self._views):
+            if self._hemi != 'split':
+                ci = 0
+            else:
+                ci = 0 if hemi == 'lh' else 1
+            renderer = self._renderers[ri][ci]
+            renderer.sphere(center=coords, color=color,
+                            scale=(10. * scale_factor), opacity=alpha)
+
+    def add_text(self, x, y, text, name, color=None, opacity=1.0,
+                 row=-1, col=-1, font_size=None, justification=None):
+        """ Add a text to the visualization
+
+        Parameters
+        ----------
+        x : Float
+            x coordinate
+        y : Float
+            y coordinate
+        text : str
+            Text to add
+        name : str
+            Name of the text (text label can be updated using update_text())
+        color : Tuple
+            Color of the text. Default is the foreground color set during
+            initialization (default is black or white depending on the
+            background color).
+        opacity : Float
+            Opacity of the text. Default: 1.0
+        row : int
+            Row index of which brain to use
+        col : int
+            Column index of which brain to use
         """
         pass
 
