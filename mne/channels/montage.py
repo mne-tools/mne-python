@@ -1295,13 +1295,13 @@ def _set_montage_deprecation_helper(
     """
     if isinstance(montage, (DigMontage, type(None))):
         # only worry about the DigMontage case
-        if update_ch_names is DEPRECATED_PARAM:
+        if update_ch_names is not DEPRECATED_PARAM:
             warn((
                 'Using ``update_ch_names`` to ``set_montage`` when using'
                 ' DigMontage is deprecated and ``update_ch_names`` will be'
                 ' removed in 0.20'
             ), DeprecationWarning)
-        if set_dig is DEPRECATED_PARAM:
+        if set_dig is not DEPRECATED_PARAM:
             warn((
                 'Using ``set_dig`` to ``set_montage`` when using'
                 ' DigMontage is deprecated and ``set_dig`` will be'
@@ -1316,7 +1316,7 @@ def _set_montage_deprecation_helper(
             ' ``read_dig_fif``, ``read_dig_egi``, ``read_dig_eeglab``,'
             ' or ``read_dig_captrack``'
         ), DeprecationWarning)
-    else:  # Montage
+    elif not isinstance(montage, str):  # Montage
         warn((
             'Setting a montage using a Montage rather than DigMontage'
             ' is deprecated and will raise an error in v0.20.'
@@ -1329,7 +1329,7 @@ def _set_montage_deprecation_helper(
         ), DeprecationWarning)
 
     # This is unlikely to be trigger but it applies in all cases
-    if raise_if_subset is DEPRECATED_PARAM:
+    if raise_if_subset is not DEPRECATED_PARAM:
         # nothing to be done in 0.19
         pass  # noqa
 
@@ -1386,7 +1386,10 @@ def _set_montage(info, montage, update_ch_names=DEPRECATED_PARAM,
     )
 
     if isinstance(montage, str):  # load builtin montage
-        montage = read_montage(montage)
+        if montage in _BUILT_IN_MONTAGES:
+            montage = make_standard_montage(montage)
+        else:
+            montage = read_montage(montage)
 
     if isinstance(montage, Montage):
         if update_ch_names:

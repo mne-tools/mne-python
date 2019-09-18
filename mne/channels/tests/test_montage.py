@@ -331,7 +331,8 @@ def test_montage():
         # test with last
         info = create_info(montage.ch_names, 1e3,
                            ['eeg'] * len(montage.ch_names))
-        _set_montage(info, montage)
+        with pytest.deprecated_call():
+            _set_montage(info, montage)
         pos2 = np.array([c['loc'][:3] for c in info['chs']])
         assert_array_equal(pos2, montage.pos)
         assert_equal(montage.ch_names, info['ch_names'])
@@ -343,7 +344,8 @@ def test_montage():
             data=np.zeros((len(montage.ch_names), 1)), info=info, tmin=0)
 
         # test return type as well as set montage
-        assert (isinstance(evoked.set_montage(montage), type(evoked)))
+        with pytest.deprecated_call():
+            assert (isinstance(evoked.set_montage(montage), type(evoked)))
 
         pos3 = np.array([c['loc'][:3] for c in evoked.info['chs']])
         assert_array_equal(pos3, montage.pos)
@@ -357,7 +359,8 @@ def test_montage():
 
     # Channel names can be treated case insensitive
     info = create_info(['FP1', 'af7', 'AF3'], 1e3, ['eeg'] * 3)
-    _set_montage(info, montage)
+    with pytest.deprecated_call():
+        _set_montage(info, montage)
 
     # Unless there is a collision in names
     info = create_info(['FP1', 'Fp1', 'AF3'], 1e3, ['eeg'] * 3)
@@ -1103,8 +1106,8 @@ def test_montage_when_reading_and_setting(read_raw, fname):
 
     with pytest.deprecated_call():
         raw_montage = read_raw(fname, montage=montage, preload=False)
+        raw_none.set_montage(montage)
 
-    raw_none.set_montage(montage)
 
     # Check that reading with montage or setting the montage is the same
     assert_array_equal(raw_none.get_data(), raw_montage.get_data())
@@ -1208,7 +1211,9 @@ def test_setting_hydrocel_montage():
     raw = RawArray(
         data=np.empty([len(ch_names), 1]),
         info=create_info(ch_names=ch_names, sfreq=1, ch_types='eeg')
-    ).set_montage(montage)
+    )
+    with pytest.deprecated_call():
+        raw.set_montage(montage)
 
     # test info['chs']
     _slice = [name.startswith('E') for name in montage.ch_names]
