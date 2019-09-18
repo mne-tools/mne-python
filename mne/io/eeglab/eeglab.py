@@ -14,7 +14,7 @@ from ..constants import FIFF
 from ..meas_info import create_info
 from ..base import BaseRaw
 from ...utils import logger, verbose, warn, fill_doc, Bunch
-from ...channels import make_dig_montage, Montage, DigMontage
+from ...channels import make_dig_montage, Montage
 from ...channels.channels import DEPRECATED_PARAM
 from ...epochs import BaseEpochs
 from ...event import read_events
@@ -400,6 +400,14 @@ class RawEEGLAB(BaseRaw):
         if update_ch_names:
             for ch in self.info['chs']:
                 ch['cal'] = cal
+
+        # backcompat set the tail to 0 not to nan
+        _chs_to_fix = [
+            ch for ch in self.info['chs']
+            if not np.isnan(ch['loc'][0]) and np.isnan(ch['loc'][-1])
+        ]
+        for ch in _chs_to_fix:
+            ch['loc'][-6:] = 0
 
 
 class EpochsEEGLAB(BaseEpochs):

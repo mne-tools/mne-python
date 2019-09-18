@@ -341,9 +341,13 @@ def test_position_information(one_chanpos_fname):
     assert_array_equal(np.array([ch['loc'] for ch in raw.info['chs']]),
                        EXPECTED_LOCATIONS_FROM_FILE)
 
+
     raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
-    if montage is not None:
-        raw.set_montage(None)  # flushing
+    _msg = "subset .* The required channels .*'unknown'"
+    with pytest.raises(RuntimeError, match=_msg):
+        raw.set_montage(montage, update_ch_names=False)
+
+    with pytest.warns(ValueError, msg=_msg):
         raw.set_montage(montage, update_ch_names=False)
     _assert_array_allclose_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
                                EXPECTED_LOCATIONS_FROM_MONTAGE)
