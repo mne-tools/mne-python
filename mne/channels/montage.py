@@ -1279,7 +1279,6 @@ def _set_montage_deprecation_helper(
 
     Notes
     -----
-
     v0.19:
        - deprecate all montage types but DigMontage (or None, or valid 'kind')
        - deprecate using update_ch_names and set_dig
@@ -1382,7 +1381,7 @@ def _set_montage(info, montage, update_ch_names=DEPRECATED_PARAM,
     This function will change the info variable in place.
     """
     update_ch_names, set_dig, _raise = _set_montage_deprecation_helper(
-            montage, update_ch_names, set_dig, raise_if_subset
+        montage, update_ch_names, set_dig, raise_if_subset
     )
 
     if isinstance(montage, str):  # load builtin montage

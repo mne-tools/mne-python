@@ -92,6 +92,7 @@ def _make_toy_raw(n_channels):
         )
     )
 
+
 def _make_toy_dig_montage(n_channels, **kwargs):
     return make_dig_montage(
         ch_pos=dict(zip(
@@ -100,6 +101,7 @@ def _make_toy_dig_montage(n_channels, **kwargs):
         )),
         **kwargs
     )
+
 
 def _get_dig_montage_pos(montage):
     return np.array([d['r'] for d in _get_dig_eeg(montage.dig)])
@@ -794,7 +796,6 @@ def test_set_dig_montage():
     assert montage_ch_only.__repr__() == (
         '<DigMontage | 0 extras (headshape), 0 HPIs, 0 fiducials, 3 channels>'
     )
-    # with pytest.deprecated_call():  # XXX: fix it. generator
     info = create_info(ch_names, sfreq=1, ch_types='eeg',
                        montage=montage_ch_only)
     assert len(info['dig']) == len(montage_ch_only.dig)
@@ -894,9 +895,9 @@ def test_egi_dig_montage():
     assert coord == FIFF.FIFFV_COORD_UNKNOWN
     assert_allclose(
         actual=np.array([vv for vv in fid.values()]),
-        desired=[[ 0.   , 10.564, -2.051],
-                 [-8.592,  0.498, -4.128],
-                 [ 8.592,  0.498, -4.128]],
+        desired=[[ 0.   , 10.564, -2.051],  # noqa
+                 [-8.592,  0.498, -4.128],  # noqa
+                 [ 8.592,  0.498, -4.128]],  # noqa
     )
 
     # Test accuracy and embedding within raw object
@@ -914,13 +915,12 @@ def test_egi_dig_montage():
 
     assert_dig_allclose(raw_egi.info, test_raw_egi.info)
 
-
     dig_montage_in_head = transform_to_head(dig_montage.copy())
     fid, coord = _get_fid_coords(dig_montage_in_head.dig)
     assert coord == FIFF.FIFFV_COORD_HEAD
     assert_allclose(
         actual=np.array([vv for vv in fid.values()]),
-        desired=[[0., 10.278, 0.], [-8.592, 0., 0.], [ 8.592, 0., 0.]],
+        desired=[[0., 10.278, 0.], [-8.592, 0., 0.], [8.592, 0., 0.]],
         atol=1e-4,
     )
 
@@ -1107,7 +1107,6 @@ def test_montage_when_reading_and_setting(read_raw, fname):
     with pytest.deprecated_call():
         raw_montage = read_raw(fname, montage=montage, preload=False)
         raw_none.set_montage(montage)
-
 
     # Check that reading with montage or setting the montage is the same
     assert_array_equal(raw_none.get_data(), raw_montage.get_data())
@@ -1364,7 +1363,7 @@ def test_set_montage_with_mismatching_ch_names():
     raw = read_raw_fif(fif_fname)
     montage = make_standard_montage('mgh60')
 
-    # 'EEG 001' and 'EEG001' wont match
+    # 'EEG 001' and 'EEG001' won't match
     # with pytest.raises(RuntimeError, match='channel .*not found'):
     with pytest.warns(RuntimeWarning, match='not set 60 channel positions'):
         raw.set_montage(montage, raise_if_subset=False)
@@ -1419,6 +1418,7 @@ def test_heterogeneous_ch_type():
 
 
 def test_set_montage_coord_frame_in_head_vs_unknown():
+    """Test set montage using head and unknown only."""
     N_CHANNELS, NaN = 3, np.nan
 
     raw = _make_toy_raw(N_CHANNELS)
@@ -1440,15 +1440,14 @@ def test_set_montage_coord_frame_in_head_vs_unknown():
     assert_allclose(
         actual=np.array([ch['loc'] for ch in raw.info['chs']]),
         desired=[
-            [ 0.,  1.,  2.,  0.,  0.,  0., NaN, NaN, NaN, NaN, NaN, NaN],
-            [ 3.,  4.,  5.,  0.,  0.,  0., NaN, NaN, NaN, NaN, NaN, NaN],
-            [ 6.,  7.,  8.,  0.,  0.,  0., NaN, NaN, NaN, NaN, NaN, NaN],
+            [0.,  1.,  2.,  0.,  0.,  0., NaN, NaN, NaN, NaN, NaN, NaN],
+            [3.,  4.,  5.,  0.,  0.,  0., NaN, NaN, NaN, NaN, NaN, NaN],
+            [6.,  7.,  8.,  0.,  0.,  0., NaN, NaN, NaN, NaN, NaN, NaN],
         ]
     )
 
     _MSG = 'Points have to be provided as one dimensional arrays of length 3.'
-    # with pytest.raises(valueerror, match='montage not in head'):
-    with pytest.raises(ValueError, match=_MSG):  # XXX: msg is not that good
+    with pytest.raises(ValueError, match=_MSG):
         raw.set_montage(montage_in_unknown)
 
     raw.set_montage(montage_in_unknown_with_fid)
@@ -1470,6 +1469,7 @@ def test_set_montage_coord_frame_in_head_vs_unknown():
 
 
 def test_set_dig_montage_parameters_deprecation():
+    """Test parameter deprecation for set_montage."""
     N_CHANNELS = 3
     raw = _make_toy_raw(N_CHANNELS)
     montage = _make_toy_dig_montage(N_CHANNELS, coord_frame='head')
@@ -1482,10 +1482,6 @@ def test_set_dig_montage_parameters_deprecation():
 
     with pytest.deprecated_call():
         _set_montage(raw.info, montage, update_ch_names=False)
-
-
-
-
 
 
 run_tests_if_main()

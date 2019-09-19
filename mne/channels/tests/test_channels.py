@@ -14,9 +14,7 @@ from scipy.io import savemat
 from numpy.testing import assert_array_equal, assert_equal
 
 from mne.channels import (rename_channels, read_ch_connectivity,
-                          find_ch_connectivity, make_1020_channel_selections,
-                          make_standard_montage, make_dig_montage
-                          )
+                          find_ch_connectivity, make_1020_channel_selections)
 from mne.channels.channels import (_ch_neighbor_connectivity,
                                    _compute_ch_connectivity)
 from mne.io import (read_info, read_raw_fif, read_raw_ctf, read_raw_bti,

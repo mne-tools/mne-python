@@ -320,7 +320,7 @@ def one_chanpos_fname(tmpdir_factory):
 
 
 @testing.requires_testing_data
-# @pytest.mark.filterwarnings('ignore:.*did not have a position.*') 
+# @pytest.mark.filterwarnings('ignore:.*did not have a position.*')
 def test_position_information(one_chanpos_fname):
     """Test reading file with 3 channels - one without position information."""
     nan = np.nan

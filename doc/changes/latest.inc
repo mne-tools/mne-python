@@ -172,9 +172,9 @@ API
 
 - Deprecate passing ``Montage``, ``str`` as montage parameter in :meth:`mne.io.Raw.set_montage` by `Joan Massich`_.
 
-- Deprecate ``set_dig`` paramter in :meth:`mne.io.Raw.set_montage` and ``update_ch_names`` in :meth:`mne.io.eeglab.eeglab.RawEEGLAB.set_montage` when using :class:`mne.channels.DigMontage` as  by `Joan Massich`_.
+- Deprecate ``set_dig`` parameter in :meth:`mne.io.Raw.set_montage` and ``update_ch_names`` in :meth:`mne.io.eeglab.eeglab.RawEEGLAB.set_montage` when using :class:`mne.channels.DigMontage` as  by `Joan Massich`_.
 
-- Now :meth:`mne.io.Raw.set_montage` raises an error when :class:`mne.channels.DigMontage` contains only a subset of the channels in ``raw.info``. It also adds ``raise_if_subset`` paramter to ensure backward compatibility (defaults to False in 0.19, to True in 0.20, and will be removed in 0.21) by `Joan Massich`_.
+- Now :meth:`mne.io.Raw.set_montage` raises an error when :class:`mne.channels.DigMontage` contains only a subset of the channels in ``raw.info``. It also adds ``raise_if_subset`` parameter to ensure backward compatibility (defaults to False in 0.19, to True in 0.20, and will be removed in 0.21) by `Joan Massich`_.
 
 - Minimum dependency versions for the following libraries have been bumped up (by `Eric Larson`_):
 
