@@ -1489,6 +1489,61 @@ def _get_polhemus_fastscan_header(fname):
     return ''.join(header)
 
 
+def read_dig_polhemus_fastscan(fname, unit='mm'):
+    """Read Polhemus FastSCAN digitizer data from a ``.hpts`` file.
+
+    Parameters
+    ----------
+    fname : str
+        The filepath of .hpts Polhemus FastSCAN file.
+    unit : 'm' | 'cm' | 'mm'
+        Unit of the digitizer file. Polhemus FastSCAN systems data is usually
+        exported in millimeters. Defaults to 'mm'
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+
+    See Also
+    --------
+    read_dig_polhemus_isotrak
+    make_dig_montage
+    """
+    VALID_FILE_EXT = ['.hpts']
+    VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
+    _scale = _check_unit_and_get_scaling(unit, VALID_SCALES)
+
+    _, ext = op.splitext(fname)
+    _check_option('fname', ext, VALID_FILE_EXT)
+
+    # if _get_polhemus_fastscan_header(fname).find('FastSCAN') == -1:
+    #     raise ValueError(
+    #         "%s does not contain Polhemus FastSCAN header" % fname
+    #     )
+
+    options = dict(
+        comments='#',
+        ndmin=2,
+        dtype={'names': ('kind', 'label', 'x', 'y', 'z'),
+               'formats': (object, object, 'f8', 'f8', 'f8')}
+    )
+    data = np.loadtxt(fname, **options)
+
+    fid = {
+        dd['label']: np.array(dd[['x', 'y', 'z']].tolist()) * _scale
+        for dd in data[data['kind'] == 'cardinal']
+    }
+    ch_pos = {
+        dd['label']: np.array(dd[['x', 'y', 'z']].tolist()) * _scale
+        for dd in data[data['kind'] == 'eeg']
+    }
+    hsp_data = data[data['kind'] == 'hpi']
+    hsp = np.stack([hsp_data[kk] for kk in 'xyz'], axis=-1) * _scale
+
+    return make_dig_montage(ch_pos=ch_pos, **fid, hsp=hsp)
+
+
 def read_polhemus_fastscan(fname, unit='mm'):
     """Read Polhemus FastSCAN digitizer data from a ``.txt`` file.
 

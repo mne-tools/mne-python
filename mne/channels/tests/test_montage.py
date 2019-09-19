@@ -19,7 +19,7 @@ from numpy.testing import (assert_array_equal, assert_almost_equal,
                            assert_array_less, assert_equal)
 
 from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
-from mne.channels import (Montage, read_montage, read_dig_montage,
+from mne.channels import (read_montage, read_dig_montage,
                           get_builtin_montages, DigMontage,
                           read_dig_egi, read_dig_captrack, read_dig_fif,
                           read_dig_eeglab)
@@ -28,6 +28,8 @@ from mne.channels.montage import transform_to_head
 from mne.channels import read_polhemus_fastscan, read_dig_polhemus_isotrak
 from mne.channels import compute_dev_head_t
 from mne.channels import make_standard_montage
+
+from mne.channels.montage import read_dig_polhemus_fastscan
 
 from mne.channels._dig_montage_utils import _transform_to_head_call
 from mne.channels._dig_montage_utils import _fix_data_fiducials
@@ -49,6 +51,7 @@ from mne.io import (read_raw_brainvision, read_raw_egi, read_raw_fif,
                     read_raw_eeglab, read_fiducials, __file__ as _mne_io_file)
 
 from mne.datasets import testing
+from mne.io.brainvision import __file__ as _BRAINVISON_FILE
 
 
 data_path = testing.data_path(download=False)
@@ -983,7 +986,6 @@ def test_set_montage_with_template_when_ch_names_dont_match():
     r0 = _fit_sphere(new_pos)[1]
     assert_allclose(r0, [0., -0.016, 0.], atol=1e-3)
 
-
     # XXX: this needs translation
     # mgh70 has no 61/62/63/64 (these are EOG/ECG)
     mon = make_standard_montage('mgh70')
@@ -1308,6 +1310,19 @@ def test_transform_to_head_and_compute_dev_head_t():
             DigMontage(dig=_format_dig_points(montage_meg.dig[:3])) +
             montage_polhemus
         ))
+
+
+def test_read_dig_polhemus_fastscan():
+    """Test reading polhemus fastscan .hpts file."""
+    fname = op.join(
+        op.dirname(_BRAINVISON_FILE), 'tests', 'data', 'test.hpts'
+    )
+
+    montage = read_dig_polhemus_fastscan(fname)
+    assert montage.__repr__() == (
+        '<DigMontage | '
+        '5 extras (headshape), 0 HPIs, 3 fiducials, 34 channels>'
+    )
 
 
 run_tests_if_main()
