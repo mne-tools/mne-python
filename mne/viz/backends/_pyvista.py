@@ -99,7 +99,7 @@ class _Renderer(_BaseRenderer):
     """
 
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
-                 name="PyVista Scene", show=False):
+                 name="PyVista Scene", show=False, shape=(1, 1)):
         from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
         if isinstance(fig, int):
             if _FIGURES.get(fig) is None:
@@ -125,6 +125,9 @@ class _Renderer(_BaseRenderer):
 
         self.plotter = self.figure.build()
         self.plotter.hide_axes()
+
+    def subplot(self, x, y):
+        self.plotter.subplot(x, y)
 
     def scene(self):
         return self.figure

@@ -146,7 +146,7 @@ class _Brain(object):
         if interaction is not None:
             raise ValueError('"interaction" parameter is not supported.')
 
-        from ..backends.renderer import _Renderer, create_3d_figure
+        from ..backends.renderer import _Renderer
         from matplotlib.colors import colorConverter
 
         if isinstance(background, str):
@@ -166,26 +166,8 @@ class _Brain(object):
         else:
             raise ValueError('"size" parameter must be int or tuple.')
 
-        if figure is None:
-            figures = [[create_3d_figure(size=fig_size,
-                                         bgcolor=background)]]
-        else:
-            if isinstance(figure, int):
-                figure = [create_3d_figure(size=fig_size,
-                                           bgcolor=background,
-                                           handle=figure)]
-            elif not isinstance(figure, list):
-                raise TypeError('Expected type for `figure` is scene, '
-                                'list, int or None: '
-                                '{} was given'.format(type(figure)))
-
-            if not len(figure) == n_row * n_col:
-                raise ValueError('For the requested view, figure must be a '
-                                 'list or tuple with exactly %i elements, '
-                                 'not %i' % (n_row * n_col, len(figure)))
-
-            figures = [figure[slice(ri * n_col, (ri + 1) * n_col)]
-                       for ri in range(n_row)]
+        self._renderer = _Renderer(size=fig_size, bgcolor=background,
+                                   shape=(n_row, n_col), fig=figure)
 
         self._foreground = foreground
         self._hemi = hemi
@@ -201,8 +183,6 @@ class _Brain(object):
         # array of data used by TimeViewer
         self._data = {}
         self.geo, self._hemi_meshes, self._overlays = {}, {}, {}
-        self._renderers = [[] for _ in views]
-        self._renderer = None
 
         # load geometry for one or both hemispheres as necessary
         offset = None if (not offset or hemi != 'both') else 0.0
@@ -229,22 +209,17 @@ class _Brain(object):
 
         for ri, v in enumerate(views):
             for ci, h in enumerate(self._hemis):
-                ci = ri if hemi == 'split' else 0
-                renderer = _Renderer(size=fig_size, bgcolor=background,
-                                     fig=figures[ri][ci])
-                self._renderers[ri].append(renderer)
-                self._renderer = renderer
-                renderer.set_camera(azimuth=views_dict[v].azim,
-                                    elevation=views_dict[v].elev,
-                                    distance=490.0)
+                ci = 1 if hemi == 'split' else 0
+                self._renderer.subplot(ri, ci)
+                self._renderer.set_camera(azimuth=views_dict[v].azim,
+                                          elevation=views_dict[v].elev,
+                                          distance=490.0)
 
-                mesh = renderer.mesh(x=self.geo[h].coords[:, 0],
-                                     y=self.geo[h].coords[:, 1],
-                                     z=self.geo[h].coords[:, 2],
-                                     triangles=self.geo[h].faces,
-                                     color=self.geo[h].grey_curv)
-
-                self._hemi_meshes[h + '_' + v] = mesh
+                self._renderer.mesh(x=self.geo[h].coords[:, 0],
+                                    y=self.geo[h].coords[:, 1],
+                                    z=self.geo[h].coords[:, 2],
+                                    triangles=self.geo[h].faces,
+                                    color=self.geo[h].grey_curv)
 
     def add_data(self, array, fmin=None, fmid=None, fmax=None,
                  thresh=None, center=None, transparent=False, colormap="auto",
@@ -449,26 +424,24 @@ class _Brain(object):
         ctable = self.update_lut()
 
         for ri, v in enumerate(self._views):
-            if self._hemi != 'split':
-                ci = 0
-            else:
-                ci = 0 if hemi == 'lh' else 1
-            renderer = self._renderers[ri][ci]
-            mesh = renderer.mesh(x=self.geo[hemi].coords[:, 0],
-                                 y=self.geo[hemi].coords[:, 1],
-                                 z=self.geo[hemi].coords[:, 2],
-                                 triangles=self.geo[hemi].faces,
-                                 color=None,
-                                 colormap=ctable,
-                                 vmin=dt_min,
-                                 vmax=dt_max,
-                                 scalars=act_data)
-            if array.ndim >= 2 and callable(time_label):
-                renderer.text2d(x=0.95, y=y_txt, size=time_label_size,
-                                text=time_label(time[time_idx]))
-            renderer.scalarbar(source=mesh, n_labels=8,
-                               bgcolor=(0.5, 0.5, 0.5))
-            self._overlays[hemi + '_' + v] = mesh
+            for ci, h in enumerate(self._hemis):
+                ci = 1 if hemi == 'split' else 0
+                self._renderer.subplot(ri, ci)
+                mesh = self._renderer.mesh(x=self.geo[hemi].coords[:, 0],
+                                           y=self.geo[hemi].coords[:, 1],
+                                           z=self.geo[hemi].coords[:, 2],
+                                           triangles=self.geo[hemi].faces,
+                                           color=None,
+                                           colormap=ctable,
+                                           vmin=dt_min,
+                                           vmax=dt_max,
+                                           scalars=act_data)
+                if array.ndim >= 2 and callable(time_label):
+                    self._renderer.text2d(x=0.95, y=y_txt,
+                                          size=time_label_size,
+                                          text=time_label(time[time_idx]))
+                self._renderer.scalarbar(source=mesh, n_labels=8,
+                                         bgcolor=(0.5, 0.5, 0.5))
 
     def add_label(self, label, color=None, alpha=1, scalar_thresh=None,
                   borders=False, hemi=None, subdir=None):
@@ -570,19 +543,17 @@ class _Brain(object):
         ctable = np.round(cmap * 255).astype(np.uint8)
 
         for ri, v in enumerate(self._views):
-            if self._hemi != 'split':
-                ci = 0
-            else:
-                ci = 0 if hemi == 'lh' else 1
-            renderer = self._renderers[ri][ci]
-            renderer.mesh(x=self.geo[hemi].coords[:, 0],
-                          y=self.geo[hemi].coords[:, 1],
-                          z=self.geo[hemi].coords[:, 2],
-                          triangles=self.geo[hemi].faces,
-                          scalars=label,
-                          color=None,
-                          colormap=ctable,
-                          backface_culling=False)
+            for ci, h in enumerate(self._hemis):
+                ci = 1 if hemi == 'split' else 0
+                self._renderer.subplot(ri, ci)
+                self._renderer.mesh(x=self.geo[hemi].coords[:, 0],
+                                    y=self.geo[hemi].coords[:, 1],
+                                    z=self.geo[hemi].coords[:, 2],
+                                    triangles=self.geo[hemi].faces,
+                                    scalars=label,
+                                    color=None,
+                                    colormap=ctable,
+                                    backface_culling=False)
 
     def add_foci(self, coords, coords_as_verts=False, map_surface=None,
                  scale_factor=1, color="white", alpha=1, name=None,
@@ -634,13 +605,12 @@ class _Brain(object):
         if self._units == 'm':
             scale_factor = scale_factor / 1000.
         for ri, v in enumerate(self._views):
-            if self._hemi != 'split':
-                ci = 0
-            else:
-                ci = 0 if hemi == 'lh' else 1
-            renderer = self._renderers[ri][ci]
-            renderer.sphere(center=coords, color=color,
-                            scale=(10. * scale_factor), opacity=alpha)
+            for ci, h in enumerate(self._hemis):
+                ci = 1 if hemi == 'split' else 0
+                self._renderer.subplot(ri, ci)
+                self._renderer.sphere(center=coords, color=color,
+                                      scale=(10. * scale_factor),
+                                      opacity=alpha)
 
     def add_text(self, x, y, text, name, color=None, opacity=1.0,
                  row=-1, col=-1, font_size=None, justification=None):
@@ -725,11 +695,7 @@ class _Brain(object):
 
     def close(self):
         """Close all figures and cleanup data structure."""
-        import itertools
-        for renderer in list(itertools.chain(*self._renderers)):
-            if renderer is not None:
-                renderer.close()
-        self._renderers = []
+        self._renderer.close()
 
     def show(self):
         u"""Display widget."""
