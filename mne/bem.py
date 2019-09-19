@@ -26,7 +26,7 @@ from .io.open import fiff_open
 from .surface import (read_surface, write_surface, complete_surface_info,
                       _compute_nearest, _get_ico_surface, read_tri,
                       _fast_cross_nd_sum, _get_solids)
-from .transforms import _ensure_trans, apply_trans
+from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir)
 from .fixes import einsum
@@ -945,7 +945,10 @@ def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
     hsp = get_fitting_dig(info, dig_kinds)
     radius, origin_head = _fit_sphere(np.array(hsp), disp=False)
     # compute origin in device coordinates
-    head_to_dev = _ensure_trans(info['dev_head_t'], 'head', 'meg')
+    dev_head_t = info['dev_head_t']
+    if dev_head_t is None:
+        dev_head_t = Transform('meg', 'head')
+    head_to_dev = _ensure_trans(dev_head_t, 'head', 'meg')
     origin_device = apply_trans(head_to_dev, origin_head)
     logger.info('Fitted sphere radius:'.ljust(30) + '%0.1f mm'
                 % (radius * 1e3,))

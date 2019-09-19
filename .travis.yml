@@ -1,6 +1,5 @@
 language: c
 dist: xenial
-sudo: false
 cache:
   apt: true
   pip: true
@@ -21,8 +20,10 @@ matrix:
                PIP_DEPENDENCIES="codecov flake8 numpydoc codespell pydocstyle codecov check-manifest pytest-sugar pytest-faulthandler twine"
 
         # Linux
+        # As of 2019/09/19 there is a mysterious joblib bug, so temporarily work around it with MNE_FORCE_SERIAL
         - os: linux
           env: CONDA_ENV="environment.yml"
+               MNE_FORCE_SERIAL=true
 
         # OSX conda
         - os: osx

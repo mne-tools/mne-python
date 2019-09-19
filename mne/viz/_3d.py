@@ -726,6 +726,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                 break
     head_mri_t = _ensure_trans(trans, 'head', 'mri')
     dev_head_t = info['dev_head_t']
+    if dev_head_t is None:
+        dev_head_t = Transform('meg', 'head')
     del trans
 
     # Figure out our transformations
@@ -740,7 +742,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         mri_trans = Transform('mri', 'mri')
     else:  # coord_frame == 'head'
         head_trans = Transform('head', 'head')
-        meg_trans = info['dev_head_t']
+        meg_trans = dev_head_t
         mri_trans = invert_transform(head_mri_t)
 
     # both the head and helmet will be in MRI coordinates after this

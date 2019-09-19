@@ -1297,7 +1297,7 @@ def _set_montage(info, montage, update_ch_names=False, set_dig=True):
             info['dig'] = montage.dig
 
         if montage.dev_head_t is not None:
-            info['dev_head_t']['trans'] = montage.dev_head_t
+            info['dev_head_t'] = Transform('meg', 'head', montage.dev_head_t)
 
         if montage.ch_names:  # update channel positions, too
             dig_ch_pos = dict(zip(montage.ch_names, [

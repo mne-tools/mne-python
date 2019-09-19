@@ -21,6 +21,7 @@ from mne.datasets import sample
 # recordings. In this tutorial we cover the basics of noise covariance and
 # construct a noise covariance matrix that can be used when computing the
 # inverse solution. For more information, see :ref:`BABDEEEB`.
+
 data_path = sample.data_path()
 raw_empty_room_fname = op.join(
     data_path, 'MEG', 'sample', 'ernoise_raw.fif')

@@ -1194,7 +1194,8 @@ def test_add_channels():
     raw_arr = rng.randn(2, raw_eeg.n_times)
     raw_arr = RawArray(raw_arr, raw_arr_info)
     # This should error because of conflicts in Info
-    pytest.raises(ValueError, raw_meg.copy().add_channels, [raw_arr])
+    with pytest.raises(RuntimeError, match='to merge'):
+        raw_meg.copy().add_channels([raw_arr])
     raw_meg.copy().add_channels([raw_arr], force_update_info=True)
     # Make sure that values didn't get overwritten
     assert_object_equal(raw_arr.info['dev_head_t'], orig_head_t)
