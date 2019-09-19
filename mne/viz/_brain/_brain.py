@@ -140,9 +140,6 @@ class _Brain(object):
                  foreground=None, figure=None, subjects_dir=None,
                  views=['lateral'], offset=True, show_toolbar=False,
                  offscreen=False, interaction=None, units='mm'):
-        if hemi == 'split':
-            raise ValueError('Option hemi="split" is not supported yet.')
-
         if interaction is not None:
             raise ValueError('"interaction" parameter is not supported.')
 
@@ -208,21 +205,19 @@ class _Brain(object):
             self.geo[h] = geo
 
         for ri, v in enumerate(views):
-            for ci, h in enumerate(self._hemis):
-                if self._hemi != 'split':
-                    ci = 0
-                else:
-                    ci = 0 if hemi == 'lh' else 1
-                self._renderer.subplot(ri, ci)
-                self._renderer.set_camera(azimuth=views_dict[v].azim,
-                                          elevation=views_dict[v].elev,
-                                          distance=490.0)
+            for hi, h in enumerate(['lh', 'rh']):
+                if not (hemi in ['lh', 'rh'] and h != hemi):
+                    ci = hi if hemi == 'split' else 0
+                    self._renderer.subplot(ri, ci)
+                    self._renderer.set_camera(azimuth=views_dict[v].azim,
+                                              elevation=views_dict[v].elev,
+                                              distance=490.0)
 
-                self._renderer.mesh(x=self.geo[h].coords[:, 0],
-                                    y=self.geo[h].coords[:, 1],
-                                    z=self.geo[h].coords[:, 2],
-                                    triangles=self.geo[h].faces,
-                                    color=self.geo[h].grey_curv)
+                    self._renderer.mesh(x=self.geo[h].coords[:, 0],
+                                        y=self.geo[h].coords[:, 1],
+                                        z=self.geo[h].coords[:, 2],
+                                        triangles=self.geo[h].faces,
+                                        color=self.geo[h].grey_curv)
 
     def add_data(self, array, fmin=None, fmid=None, fmax=None,
                  thresh=None, center=None, transparent=False, colormap="auto",
@@ -427,27 +422,26 @@ class _Brain(object):
         ctable = self.update_lut()
 
         for ri, v in enumerate(self._views):
-            for ci, h in enumerate(self._hemis):
-                if self._hemi != 'split':
-                    ci = 0
-                else:
-                    ci = 0 if hemi == 'lh' else 1
-                self._renderer.subplot(ri, ci)
-                mesh = self._renderer.mesh(x=self.geo[hemi].coords[:, 0],
-                                           y=self.geo[hemi].coords[:, 1],
-                                           z=self.geo[hemi].coords[:, 2],
-                                           triangles=self.geo[hemi].faces,
-                                           color=None,
-                                           colormap=ctable,
-                                           vmin=dt_min,
-                                           vmax=dt_max,
-                                           scalars=act_data)
-                if array.ndim >= 2 and callable(time_label):
-                    self._renderer.text2d(x=0.95, y=y_txt,
-                                          size=time_label_size,
-                                          text=time_label(time[time_idx]))
-                self._renderer.scalarbar(source=mesh, n_labels=8,
-                                         bgcolor=(0.5, 0.5, 0.5))
+            if self._hemi != 'split':
+                ci = 0
+            else:
+                ci = 0 if hemi == 'lh' else 1
+            self._renderer.subplot(ri, ci)
+            mesh = self._renderer.mesh(x=self.geo[hemi].coords[:, 0],
+                                       y=self.geo[hemi].coords[:, 1],
+                                       z=self.geo[hemi].coords[:, 2],
+                                       triangles=self.geo[hemi].faces,
+                                       color=None,
+                                       colormap=ctable,
+                                       vmin=dt_min,
+                                       vmax=dt_max,
+                                       scalars=act_data)
+            if array.ndim >= 2 and callable(time_label):
+                self._renderer.text2d(x=0.95, y=y_txt,
+                                      size=time_label_size,
+                                      text=time_label(time[time_idx]))
+            self._renderer.scalarbar(source=mesh, n_labels=8,
+                                     bgcolor=(0.5, 0.5, 0.5))
 
     def add_label(self, label, color=None, alpha=1, scalar_thresh=None,
                   borders=False, hemi=None, subdir=None):
@@ -549,20 +543,19 @@ class _Brain(object):
         ctable = np.round(cmap * 255).astype(np.uint8)
 
         for ri, v in enumerate(self._views):
-            for ci, h in enumerate(self._hemis):
-                if self._hemi != 'split':
-                    ci = 0
-                else:
-                    ci = 0 if hemi == 'lh' else 1
-                self._renderer.subplot(ri, ci)
-                self._renderer.mesh(x=self.geo[hemi].coords[:, 0],
-                                    y=self.geo[hemi].coords[:, 1],
-                                    z=self.geo[hemi].coords[:, 2],
-                                    triangles=self.geo[hemi].faces,
-                                    scalars=label,
-                                    color=None,
-                                    colormap=ctable,
-                                    backface_culling=False)
+            if self._hemi != 'split':
+                ci = 0
+            else:
+                ci = 0 if hemi == 'lh' else 1
+            self._renderer.subplot(ri, ci)
+            self._renderer.mesh(x=self.geo[hemi].coords[:, 0],
+                                y=self.geo[hemi].coords[:, 1],
+                                z=self.geo[hemi].coords[:, 2],
+                                triangles=self.geo[hemi].faces,
+                                scalars=label,
+                                color=None,
+                                colormap=ctable,
+                                backface_culling=False)
 
     def add_foci(self, coords, coords_as_verts=False, map_surface=None,
                  scale_factor=1, color="white", alpha=1, name=None,
@@ -614,15 +607,14 @@ class _Brain(object):
         if self._units == 'm':
             scale_factor = scale_factor / 1000.
         for ri, v in enumerate(self._views):
-            for ci, h in enumerate(self._hemis):
-                if self._hemi != 'split':
-                    ci = 0
-                else:
-                    ci = 0 if hemi == 'lh' else 1
-                self._renderer.subplot(ri, ci)
-                self._renderer.sphere(center=coords, color=color,
-                                      scale=(10. * scale_factor),
-                                      opacity=alpha)
+            if self._hemi != 'split':
+                ci = 0
+            else:
+                ci = 0 if hemi == 'lh' else 1
+            self._renderer.subplot(ri, ci)
+            self._renderer.sphere(center=coords, color=color,
+                                  scale=(10. * scale_factor),
+                                  opacity=alpha)
 
     def add_text(self, x, y, text, name, color=None, opacity=1.0,
                  row=-1, col=-1, font_size=None, justification=None):
