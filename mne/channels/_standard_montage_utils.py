@@ -56,16 +56,18 @@ def _easycap(basename):
     )
 
 
-def _hydrocel(basename, fid_names=('FidNz', 'FidT9', 'FidT10')):
+def _hydrocel(basename):
+    fid_names = ('FidNz', 'FidT9', 'FidT10')
     fname = op.join(MONTAGE_PATH, basename)
     options = dict(dtype=(_str, 'f4', 'f4', 'f4'))
     ch_names, xs, ys, zs = _safe_np_loadtxt(fname, **options)
 
     pos = np.stack([xs, ys, zs], axis=-1) * 0.01
     ch_pos = OrderedDict(zip(ch_names, pos))
-    _ = [ch_pos.pop(n, None) for n in fid_names]
+    nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
 
-    return make_dig_montage(ch_pos=ch_pos, coord_frame='head')
+    return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
+                            nasion=nasion, rpa=rpa, lpa=lpa)
 
 
 def _str_names(ch_names):
@@ -79,7 +81,8 @@ def _safe_np_loadtxt(fname, **kwargs):
     return (ch_names,) + others
 
 
-def _biosemi(basename, fid_names=('Nz', 'LPA', 'RPA')):
+def _biosemi(basename):
+    fid_names = ('Nz', 'LPA', 'RPA')
     fname = op.join(MONTAGE_PATH, basename)
     options = dict(skip_header=1, dtype=(_str, 'i4', 'i4'))
     ch_names, theta, phi = _safe_np_loadtxt(fname, **options)
@@ -94,12 +97,14 @@ def _biosemi(basename, fid_names=('Nz', 'LPA', 'RPA')):
     pos *= HEAD_SIZE_DEFAULT  # XXXX: this should be done through radii
 
     ch_pos = OrderedDict(zip(ch_names, pos))
-    _ = [ch_pos.pop(n, None) for n in fid_names]
+    nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
 
-    return make_dig_montage(ch_pos=ch_pos, coord_frame='head')
+    return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
+                            nasion=nasion, lpa=lpa, rpa=rpa)
 
 
-def _mgh_or_standard(basename, fid_names=('Nz', 'LPA', 'RPA')):
+def _mgh_or_standard(basename):
+    fid_names = ('Nz', 'LPA', 'RPA')
     fname = op.join(MONTAGE_PATH, basename)
 
     ch_names_, pos = [], []
@@ -128,9 +133,10 @@ def _mgh_or_standard(basename, fid_names=('Nz', 'LPA', 'RPA')):
     pos = np.array(pos) * scale_factor
 
     ch_pos = OrderedDict(zip(ch_names_, pos))
-    _ = [ch_pos.pop(n, None) for n in fid_names]
+    nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
 
-    return make_dig_montage(ch_pos=ch_pos, coord_frame='head')
+    return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
+                            nasion=nasion, lpa=lpa, rpa=rpa)
 
 
 standard_montage_look_up_table = {

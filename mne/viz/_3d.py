@@ -526,10 +526,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     info : dict | None
         The measurement info.
         If None (default), no sensor information will be shown.
-    trans : str | 'auto' | dict | None
-        The full path to the head<->MRI transform ``*-trans.fif`` file
-        produced during coregistration. If trans is None, an identity matrix
-        is assumed.
+    %(trans)s
     subject : str | None
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT. Can be omitted if ``src`` is provided.
@@ -714,6 +711,9 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             # let's try to do this in MRI coordinates so they're easy to plot
             subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
             trans = _find_trans(subject, subjects_dir)
+        elif trans == 'fsaverage':
+            trans = op.join(op.dirname(__file__), '..', 'data', 'fsaverage',
+                            'fsaverage-trans.fif')
         _validate_type(trans, 'path-like', 'trans', 'str, Transform, or None')
         trans = read_trans(trans, return_all=True)
         for ti, trans in enumerate(trans):  # we got at least 1
@@ -1006,10 +1006,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                              "not %s" % repr(dig))
         else:
             hpi_loc = np.array([d['r'] for d in (info['dig'] or [])
-                                if d['kind'] == FIFF.FIFFV_POINT_HPI])
+                                if d['kind'] == FIFF.FIFFV_POINT_HPI] and
+                                d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)
             ext_loc = np.array([d['r'] for d in (info['dig'] or [])
-                                if d['kind'] == FIFF.FIFFV_POINT_EXTRA])
-        car_loc = _fiducial_coords(info['dig'])
+                                if d['kind'] == FIFF.FIFFV_POINT_EXTRA and
+                                d['coord_frame'] == FIFF.FIFFV_COORD_HEAD])
+        car_loc = _fiducial_coords(info['dig'], FIFF.FIFFV_COORD_HEAD)
         # Transform from head coords if necessary
         if coord_frame == 'meg':
             for loc in (hpi_loc, ext_loc, car_loc):
@@ -1050,7 +1052,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                         opacity=alphas['lh'])
     if show_axes:
         axes = [(head_trans, (0.9, 0.3, 0.3))]  # always show head
-        if not np.allclose(mri_trans['trans'], np.eye(4)):  # Show MRI
+        if not np.allclose(head_mri_t['trans'], np.eye(4)):  # Show MRI
             axes.append((mri_trans, (0.6, 0.6, 0.6)))
         if len(meg_picks) > 0:  # Show MEG
             axes.append((meg_trans, (0., 0.6, 0.6)))
