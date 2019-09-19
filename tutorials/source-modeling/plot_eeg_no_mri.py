@@ -55,9 +55,8 @@ raw = mne.io.read_raw_edf(raw_fname, preload=True)
 ch_names = [c.replace('.', '') for c in raw.ch_names]
 raw.rename_channels({old: new for old, new in zip(raw.ch_names, ch_names)})
 
-# Read and set the EEG electrode locations
-montage = mne.channels.read_montage('standard_1005', ch_names=raw.ch_names,
-                                    transform=True)
+# Read and set the EEG electrode locations # XXX ch names don't match
+montage = mne.channels.make_standard_montage('standard_1005')
 
 raw.set_montage(montage)
 raw.set_eeg_reference(projection=True)  # needed for inverse modeling
