@@ -37,7 +37,7 @@ subjects_dir = op.dirname(fs_dir)
 
 # The files live in:
 subject = 'fsaverage'
-trans = op.join(fs_dir, 'bem', 'fsaverage-trans.fif')
+trans = 'fsaverage'  # MNE has a built-in fsaverage transformation
 src = op.join(fs_dir, 'bem', 'fsaverage-ico-5-src.fif')
 bem = op.join(fs_dir, 'bem', 'fsaverage-5120-5120-5120-bem-sol.fif')
 
@@ -76,7 +76,8 @@ raw.set_eeg_reference(projection=True)  # needed for inverse modeling
 
 # Check that the locations of EEG electrodes is correct with respect to MRI
 mne.viz.plot_alignment(
-    raw.info, src=src, eeg=['original', 'projected'], trans=trans)
+    raw.info, src=src, eeg=['original', 'projected'], trans=trans,
+    show_axes=True, mri_fiducials=True)
 
 ##############################################################################
 # Setup source space and compute forward

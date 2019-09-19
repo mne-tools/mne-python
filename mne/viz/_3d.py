@@ -704,30 +704,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     ecog_picks = pick_types(info, meg=False, ecog=True, ref_meg=False)
     seeg_picks = pick_types(info, meg=False, seeg=True, ref_meg=False)
 
-    if trans is None:
-        trans = Transform('head', 'mri')
-    elif not isinstance(trans, Transform):
-        if trans == 'auto':
-            # let's try to do this in MRI coordinates so they're easy to plot
-            subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-            trans = _find_trans(subject, subjects_dir)
-        elif trans == 'fsaverage':
-            trans = op.join(op.dirname(__file__), '..', 'data', 'fsaverage',
-                            'fsaverage-trans.fif')
-        _validate_type(trans, 'path-like', 'trans', 'str, Transform, or None')
-        trans = read_trans(trans, return_all=True)
-        for ti, trans in enumerate(trans):  # we got at least 1
-            try:
-                trans = _ensure_trans(trans, 'head', 'mri')
-            except Exception:
-                if ti == len(trans) - 1:
-                    raise
-            else:
-                break
-    head_mri_t = _ensure_trans(trans, 'head', 'mri')
-    dev_head_t = info['dev_head_t']
-    if dev_head_t is None:
-        dev_head_t = Transform('meg', 'head')
+    if trans == 'auto':
+        # let's try to do this in MRI coordinates so they're easy to plot
+        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        trans = _find_trans(subject, subjects_dir)
+    head_mri_t, _ = _get_trans(trans, 'head', 'mri')
+    dev_head_t = _get_trans(info['dev_head_t'], 'meg', 'head')
     del trans
 
     # Figure out our transformations

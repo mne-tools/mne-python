@@ -230,11 +230,10 @@ exclude_frontal : bool
     (below the nasion) and positivy Y values (in front of the LPA/RPA).
 """
 docdict['trans'] = """
-trans : str | 'auto' | dict | None
-    The full path to the head<->MRI transform ``*-trans.fif`` file
-    produced during coregistration. If trans is None, an identity matrix
-    is assumed. Can also be ``'fsaverage'`` to use the built-in
-    fsaverage transformation.
+trans : str | dict | instance of Transformation | None
+    If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+    during coregistration. Can also be ``'fsaverage'`` to use the built-in
+    fsaverage transformation. If trans is None, an identity matrix is assumed.
 
     .. versionchanged:: 0.19
        Support for 'fsaverage' argument.
