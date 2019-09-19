@@ -91,6 +91,11 @@ def test_make_info():
     ch_pos = [ch['loc'][:3] for ch in info['chs']]
     assert_array_equal(ch_pos, np.stack(m._get_ch_pos().values()))
 
+    # XXX: this is a valid call (wrong, but falid).
+    #      Needs to be deprecated in #gh-6764
+    info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
+                       montage=[m, m, m, m, m, m, m])
+
 
 def test_duplicate_name_correction():
     """Test duplicate channel names with running number."""
