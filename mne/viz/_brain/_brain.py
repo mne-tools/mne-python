@@ -730,7 +730,8 @@ class _Brain(object):
 
     def close(self):
         """Close all figures and cleanup data structure."""
-        for renderer in self._renderers:
+        import itertools
+        for renderer in list(itertools.chain(*self._renderers)):
             if renderer is not None:
                 renderer.close()
         self._renderers = []
