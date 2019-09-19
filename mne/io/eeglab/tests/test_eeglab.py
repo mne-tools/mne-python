@@ -76,8 +76,7 @@ def test_io_set_raw(fname):
     # test that using uint16_codec does not break stuff
     raw0 = read_raw_eeglab(input_fname=fname,
                            preload=False, uint16_codec='ascii')
-    # if montage is not None:
-    #     raw0.set_montage(montage, update_ch_names=True)
+    raw0.set_montage(montage, update_ch_names=True)
 
 
 @testing.requires_testing_data
@@ -320,7 +319,6 @@ def one_chanpos_fname(tmpdir_factory):
 
 
 @testing.requires_testing_data
-# @pytest.mark.filterwarnings('ignore:.*did not have a position.*')
 def test_position_information(one_chanpos_fname):
     """Test reading file with 3 channels - one without position information."""
     nan = np.nan

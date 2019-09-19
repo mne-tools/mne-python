@@ -14,22 +14,15 @@ from . import __file__ as _CHANNELS_INIT_FILE
 MONTAGE_PATH = op.join(op.dirname(_CHANNELS_INIT_FILE), 'data', 'montages')
 
 HEAD_SIZE_DEFAULT = 0.085  # in [m]
+_str = 'U100'
 
 
 def _egi_256():
     fname = op.join(MONTAGE_PATH, 'EGI_256.csd')
-    options = dict(
-        comments='//',
-        unpack=True,
-        dtype={
-            'names': ('Label', 'Theta', 'Phi', 'Radius', 'X', 'Y', 'Z',
-                      'off sphere surface'),
-            'formats': (object, 'f4', 'f4', 'f4', 'f4', 'f4', 'f4', 'f4')
-        }
-    )
-
-    ch_names, _, _, _, xs, ys, zs, _ = np.loadtxt(fname, **options)
-    ch_names = _str_names(ch_names)
+    # Label, Theta, Phi, Radius, X, Y, Z, off sphere surface
+    options = dict(comments='//',
+                   dtype=(_str, 'f4', 'f4', 'f4', 'f4', 'f4', 'f4', 'f4'))
+    ch_names, _, _, _, xs, ys, zs, _ = _safe_np_loadtxt(fname, **options)
     pos = np.stack([xs, ys, zs], axis=-1)
 
     # Fix pos to match Montage code
@@ -44,14 +37,8 @@ def _egi_256():
 
 def _easycap(basename):
     fname = op.join(MONTAGE_PATH, basename)
-    options = dict(
-        skiprows=1,
-        unpack=True,
-        dtype={'names': ('Site', 'Theta', 'Phi'),
-               'formats': (object, 'i4', 'i4')},
-    )
-    ch_names, theta, phi = np.loadtxt(fname, **options)
-    ch_names = _str_names(ch_names)
+    options = dict(skip_header=1, dtype=(_str, 'i4', 'i4'))
+    ch_names, theta, phi = _safe_np_loadtxt(fname, **options)
 
     radii = np.full_like(phi, 1)  # XXX: HEAD_SIZE_DEFAULT should work
     pos = _sph_to_cart(np.stack(
@@ -70,13 +57,8 @@ def _easycap(basename):
 
 def _hydrocel(basename, fid_names=('FidNz', 'FidT9', 'FidT10')):
     fname = op.join(MONTAGE_PATH, basename)
-    options = dict(
-        unpack=True,
-        dtype={'names': ('ch_names', 'x', 'y', 'z'),
-               'formats': (object, 'f4', 'f4', 'f4')},
-    )
-    ch_names, xs, ys, zs = np.loadtxt(fname, **options)
-    ch_names = _str_names(ch_names)
+    options = dict(dtype=(_str, 'f4', 'f4', 'f4'))
+    ch_names, xs, ys, zs = _safe_np_loadtxt(fname, **options)
 
     pos = np.stack([xs, ys, zs], axis=-1) * 0.01
     ch_pos = dict(zip(ch_names, pos))
@@ -86,22 +68,20 @@ def _hydrocel(basename, fid_names=('FidNz', 'FidT9', 'FidT10')):
 
 
 def _str_names(ch_names):
-    ch_names = [
-        ch_name.decode('utf8') if isinstance(ch_name, bytes) else ch_name
-        for ch_name in ch_names]
-    return ch_names
+    return [str(ch_name) for ch_name in ch_names]
+
+
+def _safe_np_loadtxt(fname, **kwargs):
+    out = np.genfromtxt(fname, **kwargs)
+    ch_names = _str_names(out['f0'])
+    others = tuple(out['f%d' % ii] for ii in range(1, len(out.dtype.fields)))
+    return (ch_names,) + others
 
 
 def _biosemi(basename, fid_names=('Nz', 'LPA', 'RPA')):
     fname = op.join(MONTAGE_PATH, basename)
-    options = dict(
-        skiprows=1,
-        unpack=True,
-        dtype={'names': ('Site', 'Theta', 'Phi'),
-               'formats': (object, 'i4', 'i4')},
-    )
-    ch_names, theta, phi = np.loadtxt(fname, **options)
-    ch_names = _str_names(ch_names)
+    options = dict(skip_header=1, dtype=(_str, 'i4', 'i4'))
+    ch_names, theta, phi = _safe_np_loadtxt(fname, **options)
 
     radii = np.full_like(phi, 1)  # XXX: HEAD_SIZE_DEFAULT should work
     pos = _sph_to_cart(np.stack(

@@ -1,3 +1,7 @@
+# Author: Joan Massich <mailsik@gmail.com>
+#
+# License: BSD (3-clause)
+
 import numpy as np
 from mne.channels import make_dig_montage
 from mne.transforms import _sph_to_cart, _topo_to_sph
