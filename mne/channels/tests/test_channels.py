@@ -233,34 +233,15 @@ def test_get_set_sensor_positions():
 
 
 @testing.requires_testing_data
-def test_1020_selection_NEW():
+def test_1020_selection():
     """Test making a 10/20 selection dict."""
     base_dir = op.join(testing.data_path(download=False), 'EEGLAB')
     raw_fname = op.join(base_dir, 'test_raw.set')
-
-    _fix_raw_ch_names = {
-        'EEG 000': 'Fpz', 'EEG 001': 'EOG1', 'EEG 002': 'F3', 'EEG 003': 'Fz',
-        'EEG 004': 'F4', 'EEG 005': 'EOG2', 'EEG 006': 'FC5', 'EEG 007': 'FC1',
-        'EEG 008': 'FC2', 'EEG 009': 'FC6', 'EEG 010': 'T7', 'EEG 011': 'C3',
-        'EEG 012': 'C4', 'EEG 013': 'Cz', 'EEG 014': 'T8', 'EEG 015': 'CP5',
-        'EEG 016': 'CP1', 'EEG 017': 'CP2', 'EEG 018': 'CP6', 'EEG 019': 'P7',
-        'EEG 020': 'P3', 'EEG 021': 'Pz', 'EEG 022': 'P4', 'EEG 023': 'P8',
-        'EEG 024': 'PO7', 'EEG 025': 'PO3', 'EEG 026': 'POz', 'EEG 027': 'PO4',
-        'EEG 028': 'PO8', 'EEG 029': 'O1', 'EEG 030': 'Oz', 'EEG 031': 'O2'
-    }
-    _fix_montage = make_dig_montage(
-        ch_pos=dict(zip(('EOG2', 'EOG1'), np.full((2, 3), np.nan))),
-        coord_frame='head',
-    )
-
+    loc_fname = op.join(base_dir, 'test_chans.locs')
     raw = read_raw_eeglab(raw_fname)
-    raw.rename_channels(_fix_raw_ch_names)
-    montage = make_standard_montage('standard_1020') + _fix_montage
-    _msg = 'DigMontage is a superset of info. 64 .* will be ignored.'
-    with pytest.warns(RuntimeWarning, match=_msg):
-        raw.set_montage(montage)
+    with pytest.deprecated_call():
+        raw.set_montage(loc_fname)  # XXX: This require loading loc.
 
-    # import pdb; pdb.set_trace()
     for input in ("a_string", 100, raw, [1, 2]):
         pytest.raises(TypeError, make_1020_channel_selections, input)
 
