@@ -24,7 +24,8 @@ def test_all_points_in_standard_montages_are_in_head_coord(kind):
     """Test standard montage are all in head coord."""
     montage = make_standard_montage(kind)
     for d in montage.dig:
-        assert d['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+        assert d['coord_frame'] in (FIFF.FIFFV_COORD_HEAD,
+                                    FIFF.FIFFV_COORD_UNKNOWN)
 
 
 def test_standard_montage_errors():

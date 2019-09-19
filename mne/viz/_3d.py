@@ -32,7 +32,7 @@ from ..source_space import _ensure_src, _create_surf_spacing, _check_spacing
 from ..surface import (get_meg_helmet_surf, read_surface, _DistanceQuery,
                        transform_surface_to, _project_onto_surface,
                        mesh_edges, _reorder_ccw, _complete_sphere_surf)
-from ..transforms import (read_trans, _find_trans, apply_trans, rot_to_quat,
+from ..transforms import (_find_trans, apply_trans, rot_to_quat,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform,
                           _read_ras_mni_t, _print_coord_trans)
@@ -709,7 +709,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         trans = _find_trans(subject, subjects_dir)
     head_mri_t, _ = _get_trans(trans, 'head', 'mri')
-    dev_head_t = _get_trans(info['dev_head_t'], 'meg', 'head')
+    dev_head_t, _ = _get_trans(info['dev_head_t'], 'meg', 'head')
     del trans
 
     # Figure out our transformations
@@ -987,12 +987,14 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             raise ValueError("dig needs to be True, False or 'fiducials', "
                              "not %s" % repr(dig))
         else:
-            hpi_loc = np.array([d['r'] for d in (info['dig'] or [])
-                                if d['kind'] == FIFF.FIFFV_POINT_HPI] and
-                                d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)
-            ext_loc = np.array([d['r'] for d in (info['dig'] or [])
-                                if d['kind'] == FIFF.FIFFV_POINT_EXTRA and
-                                d['coord_frame'] == FIFF.FIFFV_COORD_HEAD])
+            hpi_loc = np.array([
+                d['r'] for d in (info['dig'] or [])
+                if (d['kind'] == FIFF.FIFFV_POINT_HPI and
+                    d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)])
+            ext_loc = np.array([
+                d['r'] for d in (info['dig'] or [])
+                if (d['kind'] == FIFF.FIFFV_POINT_EXTRA and
+                    d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)])
         car_loc = _fiducial_coords(info['dig'], FIFF.FIFFV_COORD_HEAD)
         # Transform from head coords if necessary
         if coord_frame == 'meg':

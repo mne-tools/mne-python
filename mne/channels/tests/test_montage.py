@@ -1034,7 +1034,7 @@ def test_set_montage():
     assert ((orig_pos != new_pos).all())
 
     r0 = _fit_sphere(new_pos)[1]
-    assert_allclose(r0, [0., -0.016, 0.], atol=1e-3)
+    assert_allclose(r0, [0.000793, 0.007039, 0.048485], atol=1e-3)
 
 
 # XXX: this does not check ch_names + it cannot work because of write_dig
