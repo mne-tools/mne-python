@@ -18,6 +18,11 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
+    def subplot(self, x, y):
+        """Set the active subplot."""
+        pass
+
+    @abstractclassmethod
     def scene(self):
         """Return scene handle."""
         pass

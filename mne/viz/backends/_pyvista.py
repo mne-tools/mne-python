@@ -127,11 +127,15 @@ class _Renderer(_BaseRenderer):
             self.figure.plotter_class = Plotter
             self.figure.store['off_screen'] = True
 
-        self.plotter = self.figure.build()
-        self.plotter.hide_axes()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=FutureWarning)
+            self.plotter = self.figure.build()
+            self.plotter.hide_axes()
 
     def subplot(self, x, y):
-        self.plotter.subplot(x, y)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=FutureWarning)
+            self.plotter.subplot(x, y)
 
     def scene(self):
         return self.figure

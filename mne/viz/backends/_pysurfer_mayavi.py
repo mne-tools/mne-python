@@ -58,7 +58,7 @@ class _Renderer(_BaseRenderer):
     """
 
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
-                 name=None, show=False):
+                 name=None, show=False, shape=(1, 1)):
         self.mlab = _import_mlab()
         self.window_size = size
         if fig is None:
@@ -69,6 +69,9 @@ class _Renderer(_BaseRenderer):
             self.fig = fig
         if show is False:
             _toggle_mlab_render(self.fig, False)
+
+    def subplot(self, x, y):
+        pass
 
     def scene(self):
         return self.fig
@@ -404,5 +407,5 @@ def _set_3d_title(figure, title, size=40):
 
 def _check_figure(figure):
     from mayavi.core.scene import Scene
-    if not all(isinstance(f, Scene) for f in figure):
-        raise TypeError('figure must be a mayavi scene or list of scenes')
+    if not isinstance(figure, Scene):
+        raise TypeError('figure must be a mayavi scene')

@@ -30,8 +30,6 @@ def test_brain_init(renderer):
     """Test initialization of the _Brain instance."""
     hemi = 'both'
 
-    with pytest.raises(ValueError, match='hemi'):
-        _Brain(subject_id=subject_id, hemi="split", surf=surf)
     with pytest.raises(TypeError, match='figure'):
         _Brain(subject_id=subject_id, hemi=hemi, surf=surf, figure='foo')
     with pytest.raises(ValueError, match='interaction'):

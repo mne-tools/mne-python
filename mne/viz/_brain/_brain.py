@@ -143,7 +143,7 @@ class _Brain(object):
         if interaction is not None:
             raise ValueError('"interaction" parameter is not supported.')
 
-        from ..backends.renderer import _Renderer
+        from ..backends.renderer import _Renderer, _check_figure
         from matplotlib.colors import colorConverter
 
         if isinstance(background, str):
@@ -162,9 +162,6 @@ class _Brain(object):
             fig_size = size
         else:
             raise ValueError('"size" parameter must be int or tuple.')
-
-        self._renderer = _Renderer(size=fig_size, bgcolor=background,
-                                   shape=(n_row, n_col), fig=figure)
 
         self._foreground = foreground
         self._hemi = hemi
@@ -191,6 +188,11 @@ class _Brain(object):
         else:
             raise KeyError('hemi has to be either "lh", "rh", "split", '
                            'or "both"')
+
+        if figure is not None and not isinstance(figure, int):
+            _check_figure(figure)
+        self._renderer = _Renderer(size=fig_size, bgcolor=background,
+                                   shape=(n_row, n_col), fig=figure)
 
         # XXX: use the geo_ variables
         # geo_kwargs, geo_reverse, geo_curv = \

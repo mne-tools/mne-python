@@ -31,7 +31,7 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_sensors_connectivity, plot_brain_colorbar)
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
-                       _import_mlab, requires_nibabel, check_version,
+                       requires_nibabel, check_version,
                        traits_test, requires_version, catch_logging)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
@@ -335,7 +335,7 @@ def test_plot_alignment(tmpdir, renderer):
 @requires_pysurfer
 @requires_mayavi
 @traits_test
-def test_limits_to_control_points():
+def test_limits_to_control_points(renderer):
     """Test functionality for determining control points."""
     sample_src = read_source_spaces(src_fname)
     kwargs = dict(subjects_dir=subjects_dir, smoothing_steps=1)
@@ -348,14 +348,12 @@ def test_limits_to_control_points():
     stc = SourceEstimate(stc_data, vertices, 1, 1, 'sample')
 
     # Test for simple use cases
-    mlab = _import_mlab()
     stc.plot(**kwargs)
     stc.plot(clim=dict(pos_lims=(10, 50, 90)), **kwargs)
     stc.plot(colormap='hot', clim='auto', **kwargs)
     stc.plot(colormap='mne', clim='auto', **kwargs)
-    figs = [mlab.figure(), mlab.figure()]
     stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=99, **kwargs)
-    pytest.raises(ValueError, stc.plot, clim='auto', figure=figs, **kwargs)
+    pytest.raises(TypeError, stc.plot, clim='auto', figure=[], **kwargs)
 
     # Test for correct clim values
     with pytest.raises(ValueError, match='monotonically'):
@@ -378,7 +376,7 @@ def test_limits_to_control_points():
     stc._data.fill(0.)
     with pytest.warns(RuntimeWarning, match='All data were zero'):
         plot_source_estimates(stc, **kwargs)
-    mlab.close(all=True)
+    renderer._close_all()
 
 
 @testing.requires_testing_data
