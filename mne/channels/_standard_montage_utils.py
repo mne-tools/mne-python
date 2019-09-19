@@ -91,6 +91,9 @@ def _biosemi(basename, fid_names=('Nz', 'LPA', 'RPA')):
                'formats': (object, 'i4', 'i4')},
     )
     ch_names, theta, phi = np.loadtxt(fname, **options)
+    ch_names = [
+        ch_name.decode('utf8') if isinstance(ch_name, bytes) else ch_name
+        for ch_name in ch_names]
 
     radii = np.full_like(phi, 1)  # XXX: HEAD_SIZE_DEFAULT should work
     pos = _sph_to_cart(np.stack(

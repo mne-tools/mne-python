@@ -919,7 +919,7 @@ def test_egi_dig_montage():
     fid, coord = _get_fid_coords(dig_montage_in_head.dig)
     assert coord == FIFF.FIFFV_COORD_HEAD
     assert_allclose(
-        actual=np.array([vv for vv in fid.values()]),
+        actual=np.array([fid[key] for key in ['nasion', 'lpa', 'rpa']]),
         desired=[[0., 10.278, 0.], [-8.592, 0., 0.], [8.592, 0., 0.]],
         atol=1e-4,
     )

@@ -218,6 +218,6 @@ API
 
 - :func:`mne.io.read_raw_brainvision` no longer raises an error when there are inconsistencies between ``info['chs']`` and ``montage`` but warns instead by `Joan Massich`_
 
-- Add ``update_ch_names`` parameter to :meth:`mne.io.eeglab.eeglab.RawEEGLAB.set_montage` to allow updating the channel names based on the montage by `Joan Massich`_
+- Add ``update_ch_names`` parameter to ``mne.io.RawEEGLAB.set_montage`` to allow updating the channel names based on the montage by `Joan Massich`_
 
 - Reading annotations contained in GDF files with :func:`mne.io.read_raw_gdf` now returns numeric event codes as descriptions (instead of textual descriptions) due to restrictive licensing of the GDF event code table from BioSig by `Clemens Brunner`_
