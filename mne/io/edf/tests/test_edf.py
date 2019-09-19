@@ -34,7 +34,7 @@ from mne.io.meas_info import _kind_dict as _KIND_DICT
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
-montage_path = op.join(data_dir, 'biosemi.hpts')
+montage_path = op.join(data_dir, 'biosemi.hpts')  # XXX: missing reader
 bdf_path = op.join(data_dir, 'test.bdf')
 edf_path = op.join(data_dir, 'test.edf')
 duplicate_channel_labels_path = op.join(data_dir,
@@ -77,7 +77,7 @@ def test_bdf_data():
                               exclude=['M2', 'IEOG'])
     assert len(raw_py.ch_names) == 71
     raw_py = _test_raw_reader(read_raw_bdf, input_fname=bdf_path,
-                              montage=montage_path, eog=eog, misc=misc,
+                              montage='biosemi64', eog=eog, misc=misc,
                               exclude=['M2', 'IEOG'])
     assert len(raw_py.ch_names) == 71
     assert 'RawEDF' in repr(raw_py)

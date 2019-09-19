@@ -11,8 +11,8 @@ import numpy as np
 import pytest
 import matplotlib.pyplot as plt
 
-from mne.channels import (read_montage, read_dig_montage, read_dig_fif,
-                          make_dig_montage)
+from mne.channels import (read_dig_montage, read_dig_fif,
+                          make_dig_montage, make_standard_montage)
 
 p_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'kit', 'tests', 'data')
 elp = op.join(p_dir, 'test_elp.txt')
@@ -25,7 +25,7 @@ fif_fname = op.join(io_dir, 'test_raw.fif')
 
 def test_plot_montage():
     """Test plotting montages."""
-    m = read_montage('easycap-M1')
+    m = make_standard_montage('easycap-M1')
     m.plot()
     plt.close('all')
     m.plot(kind='3d')
@@ -53,10 +53,10 @@ def test_plot_montage():
 def test_plot_defect_montage():
     """Test plotting defect montages (i.e. with duplicate labels)."""
     # montage name and number of unique labels
-    montages = [('standard_1005', 342), ('standard_postfixed', 85),
-                ('standard_primed', 85), ('standard_1020', 93)]
+    montages = [('standard_1005', 343), ('standard_postfixed', 100),
+                ('standard_primed', 100), ('standard_1020', 94)]
     for name, n in montages:
-        m = read_montage(name)
+        m = make_standard_montage(name)
         fig = m.plot()
         collection = fig.axes[0].collections[0]
         assert collection._edgecolors.shape[0] == n
@@ -66,6 +66,9 @@ def test_plot_defect_montage():
 
 def test_plot_digmontage():
     """Test plot DigMontage."""
-    montage = make_dig_montage(ch_pos=dict(zip(list('abc'), np.eye(3))))
+    montage = make_dig_montage(
+        ch_pos=dict(zip(list('abc'), np.eye(3))),
+        coord_frame='head'
+    )
     montage.plot()
     plt.close('all')

@@ -28,7 +28,7 @@ from mne._digitization._utils import (_write_dig_points, _read_dig_points,
                                       _make_dig_points,)
 from mne.io import read_raw_ctf
 from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
-from mne.channels.montage import read_montage, read_dig_montage
+from mne.channels import make_standard_montage
 
 base_dir = op.join(op.dirname(__file__), 'data')
 fiducials_fname = op.join(base_dir, 'fsaverage-fiducials.fif')
@@ -85,33 +85,18 @@ def test_make_info():
                   ch_types='awesome')
     pytest.raises(TypeError, create_info, ['Test Ch'], sfreq=1000,
                   ch_types=None, montage=np.array([1]))
-    m = read_montage('biosemi32')
+    m = make_standard_montage('biosemi32')
     info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
                        montage=m)
     ch_pos = [ch['loc'][:3] for ch in info['chs']]
-    assert_array_equal(ch_pos, m.pos)
+    ch_pos_mon = m._get_ch_pos()
+    ch_pos_mon = [ch_pos_mon[ch_name] for ch_name in m.ch_names]
+    assert_array_equal(ch_pos, ch_pos_mon)
 
-    names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
-    d = read_dig_montage(hsp_fname, None, elp_fname, names, unit='m',
-                         transform=False)
+    # XXX: this is a valid call (wrong, but valid).
+    #      Needs to be deprecated in #gh-6764
     info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
-                       montage=d)
-    idents = [p['ident'] for p in info['dig']]
-    assert FIFF.FIFFV_POINT_NASION in idents
-
-    info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
-                       montage=[d, m])
-    ch_pos = [ch['loc'][:3] for ch in info['chs']]
-    assert_array_equal(ch_pos, m.pos)
-    idents = [p['ident'] for p in info['dig']]
-    assert (FIFF.FIFFV_POINT_NASION in idents)
-    info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
-                       montage=[d, 'biosemi32'])
-    ch_pos = [ch['loc'][:3] for ch in info['chs']]
-    assert_array_equal(ch_pos, m.pos)
-    idents = [p['ident'] for p in info['dig']]
-    assert (FIFF.FIFFV_POINT_NASION in idents)
-    assert info['meas_date'] is None
+                       montage=[m, m, m, m, m, m, m])
 
 
 def test_duplicate_name_correction():
