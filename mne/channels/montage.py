@@ -1318,7 +1318,7 @@ def _set_montage_deprecation_helper(
         ), DeprecationWarning)
     elif not (isinstance(montage, str) or montage is None):  # Montage
         warn((
-            'Setting a montage using a Montage rather than DigMontage'
+            'Setting a montage using anything rather than DigMontage'
             ' is deprecated and will raise an error in v0.20.'
             ' Please use ``read_dig_fif``, ``read_dig_egi``,'
             ' ``read_dig_eeglab``, or ``read_dig_captrack``'
@@ -1475,16 +1475,12 @@ def _set_montage(info, montage, update_ch_names=DEPRECATED_PARAM,
             _loc_view = info['chs'][info['ch_names'].index(name)]['loc']
             _loc_view[:6] = _backcompat_value(ch_pos[name], eeg_ref_pos)
 
-        if set_dig:  # XXX: we need to check backcompat in set_dig=false
+        if set_dig:  # XXX: in 0.20 it is safe to move the code out of the if.
             _names = _mnt._get_dig_names()
             info['dig'] = _format_dig_points([
                 _mnt.dig[ii] for ii, name in enumerate(_names)
                 if name in matched_ch_names.union({None, 'EEG000'})
             ])
-
-        else:
-            # XXX: set_dig=False is only used in testing and for Montage
-            raise RuntimeError('XXX do we have this?')
 
         if _mnt.dev_head_t is not None:
             info['dev_head_t'] = Transform('meg', 'head', _mnt.dev_head_t)

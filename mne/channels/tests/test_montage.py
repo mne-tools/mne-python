@@ -1469,4 +1469,23 @@ def test_set_montage_coord_frame_in_head_vs_unknown():
     )
 
 
+def test_set_dig_montage_parameters_deprecation():
+    N_CHANNELS = 3
+    raw = _make_toy_raw(N_CHANNELS)
+    montage = _make_toy_dig_montage(N_CHANNELS, coord_frame='head')
+
+    # ok
+    raw.set_montage(montage)
+
+    with pytest.deprecated_call():
+        raw.set_montage(montage, set_dig=True)
+
+    with pytest.deprecated_call():
+        _set_montage(raw.info, montage, update_ch_names=False)
+
+
+
+
+
+
 run_tests_if_main()
