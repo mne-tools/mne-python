@@ -9,8 +9,8 @@
 
 import numpy as np
 import os
-import nibabel as nib
 from os.path import join as pjoin
+from ...label import read_label
 from .colormap import _calculate_lut
 from .view import views_dict
 from .surface import Surface
@@ -529,13 +529,8 @@ class _Brain(object):
                 if not os.path.exists(filepath):
                     raise ValueError('Label file %s does not exist'
                                      % filepath)
-            # Load the label data and create binary overlay
-            if scalar_thresh is None:
-                ids = nib.freesurfer.read_label(filepath)
-            else:
-                ids, scalars = nib.freesurfer.read_label(filepath,
-                                                         read_scalars=True)
-                ids = ids[scalars >= scalar_thresh]
+            label = read_label(filepath)
+            ids = label.vertices
         else:
             # try to extract parameters from label instance
             try:
@@ -649,7 +644,7 @@ class _Brain(object):
 
     def add_text(self, x, y, text, name, color=None, opacity=1.0,
                  row=-1, col=-1, font_size=None, justification=None):
-        """ Add a text to the visualization
+        """Add a text to the visualization.
 
         Parameters
         ----------
