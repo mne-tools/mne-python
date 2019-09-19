@@ -24,7 +24,7 @@ from mne.channels import (read_montage, read_dig_montage,
                           read_dig_egi, read_dig_captrack, read_dig_fif,
                           read_dig_eeglab)
 from mne.channels.montage import _set_montage, make_dig_montage
-from mne.channels.montage import transform_to_head
+from mne.channels.montage import transform_to_head, read_standard_montage
 from mne.channels import read_polhemus_fastscan, read_dig_polhemus_isotrak
 from mne.channels import compute_dev_head_t
 from mne.channels import make_standard_montage
@@ -1323,6 +1323,17 @@ def test_read_dig_polhemus_fastscan():
         '<DigMontage | '
         '5 extras (headshape), 0 HPIs, 3 fiducials, 34 channels>'
     )
+
+
+def test_read_standard_montage():
+    old = read_montage(locs_montage_fname)
+    new = read_standard_montage(locs_montage_fname)
+
+    info_old = create_info(old.ch_names, sfreq=1, ch_types='eeg', montage=old)
+    info_new = create_info(new.ch_names, sfreq=1, ch_types='eeg', montage=new)
+
+    for acutal, expected in zip(info_new['chs'], info_old['chs']):
+        assert_allclose(actual['loc'], expected['loc'])
 
 
 run_tests_if_main()

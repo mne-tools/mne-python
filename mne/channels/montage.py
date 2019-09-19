@@ -44,6 +44,7 @@ from ._dig_montage_utils import _transform_to_head_call
 from ._dig_montage_utils import _read_dig_montage_egi, _read_dig_montage_bvct
 from ._dig_montage_utils import _fix_data_fiducials
 from ._dig_montage_utils import _parse_brainvision_dig_montage
+from ._standard_montage_utils import HEAD_SIZE_DEFAULT
 
 
 DEPRECATED_PARAM = object()
@@ -1580,6 +1581,54 @@ def read_polhemus_fastscan(fname, unit='mm'):
     points = _scale * np.loadtxt(fname, comments='%', ndmin=2)
 
     return points
+
+def _read_eeglab_locations(fname, unit):
+    VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
+    _scale = _check_unit_and_get_scaling(unit, VALID_SCALES)
+
+    ch_names = np.genfromtxt(fname, dtype=str, usecols=3).tolist()
+    topo = np.loadtxt(fname, dtype=float, usecols=[1, 2])
+    sph = _topo_to_sph(topo)
+    pos = _sph_to_cart(sph)
+    pos[:, [0, 1]] = pos[:, [1, 0]] * [-1, 1]
+
+    return ch_names, pos
+
+
+def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
+    """Read an EEGLAB digitization file.
+
+    Parameters
+    ----------
+    fname : str
+        The filepath of Polhemus ISOTrak formatted file.
+        File extension is expected to be '.loc', '.locs' or '.eloc'.
+    head_size : float
+        The size of the head in [m].
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+
+    See Also
+    --------
+    make_dig_montage
+    make_standard_montage
+    """
+    FILE_EXT = {'eeglab': ('.loc', '.locs', '.eloc')}
+
+    valid_file_ext = FILE_EXT['eeglab']
+    _, ext = op.splitext(fname)
+    _check_option('fname', ext, valid_file_ext)
+
+    if ext in FILE_EXT['eeglab']:
+        ch_names, pos = _read_eeglab_locations(fname, unit)
+
+    return make_dig_montage(
+        ch_pos=dict(zip(ch_names, pos * head_size)),
+        coord_frame='head',
+    )
 
 
 def compute_dev_head_t(montage):
