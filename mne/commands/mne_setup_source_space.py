@@ -20,8 +20,7 @@ import mne
 
 def run():
     """Run command."""
-    from mne.commands.utils import get_optparser
-
+    from mne.commands.utils import get_optparser, _add_verbose_flag
     parser = get_optparser(__file__)
 
     parser.add_option('-s', '--subject',
@@ -75,14 +74,11 @@ def run():
                             ' (one for each hemisphere).',
                       default=1,
                       type='int')
-    parser.add_option('--verbose',
-                      dest='verbose',
-                      help='Turn on verbose mode.',
-                      default=None, action="store_true")
     parser.add_option('-o', '--overwrite',
                       dest='overwrite',
                       help='to write over existing files',
                       default=None, action="store_true")
+    _add_verbose_flag(parser)
 
     options, args = parser.parse_args()
 
