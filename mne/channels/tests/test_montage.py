@@ -1021,20 +1021,20 @@ def test_read_dig_captrack(tmpdir):
 
 
 def test_set_montage():
-    """Test setting a montage."""
+    """Test setting 'mgh60' montage to old fif."""
     raw = read_raw_fif(fif_fname)
+    raw.rename_channels(lambda x: x.replace('EEG ', 'EEG'))
+
     orig_pos = np.array([ch['loc'][:3] for ch in raw.info['chs']
                          if ch['ch_name'].startswith('EEG')])
+
     raw.set_montage('mgh60')  # test loading with string argument
     new_pos = np.array([ch['loc'][:3] for ch in raw.info['chs']
                         if ch['ch_name'].startswith('EEG')])
     assert ((orig_pos != new_pos).all())
+
     r0 = _fit_sphere(new_pos)[1]
     assert_allclose(r0, [0., -0.016, 0.], atol=1e-3)
-    # mgh70 has no 61/62/63/64 (these are EOG/ECG)
-    mon = read_montage('mgh70')
-    assert 'EEG061' not in mon.ch_names
-    assert 'EEG074' in mon.ch_names
 
 
 # XXX: this does not check ch_names + it cannot work because of write_dig

@@ -14,7 +14,7 @@ from ..constants import FIFF
 from ..meas_info import create_info
 from ..base import BaseRaw
 from ...utils import logger, verbose, warn, fill_doc, Bunch
-from ...channels import make_dig_montage, Montage
+from ...channels import make_dig_montage, DigMontage, make_standard_montage
 from ...channels.channels import DEPRECATED_PARAM
 from ...epochs import BaseEpochs
 from ...event import read_events
@@ -386,17 +386,20 @@ class RawEEGLAB(BaseRaw):
             montage. Defaults to False.
         %(verbose_meth)s
         """
-        from ...channels.montage import _set_montage
+        from ...channels.montage import _set_montage, _BUILT_IN_MONTAGES
 
         cal = set([ch['cal'] for ch in self.info['chs']]).pop()
 
-        if isinstance(montage, Montage):
-            _set_montage(self.info, montage, update_ch_names=update_ch_names,
-                         set_dig=set_dig)
+        if isinstance(montage, str) and montage in _BUILT_IN_MONTAGES:
+            montage = make_standard_montage(montage)
 
-        else:  # DigMontage or None
+        if isinstance(montage, (DigMontage, type(None))):
             _set_montage(self.info, montage, set_dig=set_dig,
                          raise_if_subset=raise_if_subset)
+
+        else:
+            _set_montage(self.info, montage, update_ch_names=update_ch_names,
+                         set_dig=set_dig)
 
         # Revert update_ch_names modifications in cal and coord_frame
         if update_ch_names:
@@ -410,6 +413,8 @@ class RawEEGLAB(BaseRaw):
         ]
         for ch in _chs_to_fix:
             ch['loc'][-6:] = 0
+
+        return self
 
 
 class EpochsEEGLAB(BaseEpochs):

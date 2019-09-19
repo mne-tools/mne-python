@@ -341,12 +341,15 @@ def test_position_information(one_chanpos_fname):
     assert_array_equal(np.array([ch['loc'] for ch in raw.info['chs']]),
                        EXPECTED_LOCATIONS_FROM_FILE)
 
+    # To acomodate the new behavior so that:
+    # read_raw_eeglab(.. montage=montage) and raw.set_montage(montage)
+    # behaves the same we need to flush the montage. otherwise we get
+    # a mix of what is in montage and in the file
+    raw = read_raw_eeglab(
+        input_fname=one_chanpos_fname,
+        preload=True,
+    ).set_montage(None)  # Flush the montage builtin within input_fname
 
-    raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
-    # _msg = "subset .* The required channels are: {'unknown'}"
-    # _msg = 'DigMontage is a only a subset of info'
-    # _msg='You can use'
-    # with pytest.raises(ValueError, match=_msg):
     with pytest.raises(ValueError):
         raw.set_montage(montage, update_ch_names=False)
 
@@ -358,28 +361,6 @@ def test_position_information(one_chanpos_fname):
         raw.set_montage(montage, update_ch_names=False, raise_if_subset=False)
     _assert_array_allclose_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
                                EXPECTED_LOCATIONS_FROM_MONTAGE)
-
-    # To acomodate the new behavior so that:
-    # read_raw_eeglab(.. montage=montage) and raw.set_montage(montage)
-    # behaves the same we need to flush the montage. otherwise we get
-    # a mix of what is in montage and in the file
-
-    foo = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
-    foo.set_montage(None)  # flushing
-    foo.set_montage(montage, update_ch_names=False)
-    _assert_array_allclose_nan(np.array([ch['loc'] for ch in foo.info['chs']]),
-                               EXPECTED_LOCATIONS_FROM_MONTAGE)
-
-    # Mixed montage: from the file and from montage
-    foo = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
-    foo.set_montage(montage, update_ch_names=False)
-    mixed = np.array([
-        [-0.56705965, 0.67706631, 0.46906776, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [-5., 2., 8., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-        [0, 0.99977915, -0.02101571, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    ])
-    _assert_array_allclose_nan(np.array([ch['loc'] for ch in foo.info['chs']]),
-                               mixed)
 
 
 run_tests_if_main()
