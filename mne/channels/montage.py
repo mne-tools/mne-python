@@ -1362,11 +1362,11 @@ def _set_montage(info, montage, update_ch_names=DEPRECATED_PARAM,
         montage is a string, a builtin montage with that name will be used.
 
         Deprecated all types of montage but DigMontage in v0.19.
-
     update_ch_names : bool
         If True, overwrite the info channel names with the ones from montage.
         Defaults to False.
 
+        Deprecated in v0.19 and will be removed in v0.20.
     raise_if_subset: bool
         If True, ValueError will be raised when montage.ch_names is a
         subset of info['ch_names']. This parameter was introduced for

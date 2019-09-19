@@ -894,7 +894,7 @@ def test_egi_dig_montage():
 
     assert coord == FIFF.FIFFV_COORD_UNKNOWN
     assert_allclose(
-        actual=np.array([vv for vv in fid.values()]),
+        actual=np.array([fid[key] for key in ['nasion', 'lpa', 'rpa']]),
         desired=[[ 0.   , 10.564, -2.051],  # noqa
                  [-8.592,  0.498, -4.128],  # noqa
                  [ 8.592,  0.498, -4.128]],  # noqa

@@ -89,7 +89,9 @@ def test_make_info():
     info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
                        montage=m)
     ch_pos = [ch['loc'][:3] for ch in info['chs']]
-    assert_array_equal(ch_pos, np.stack(list(m._get_ch_pos().values())))
+    ch_pos_mon = m._get_ch_pos()
+    ch_pos_mon = [ch_pos_mon[ch_name] for ch_name in m.ch_names]
+    assert_array_equal(ch_pos, ch_pos_mon)
 
     # XXX: this is a valid call (wrong, but valid).
     #      Needs to be deprecated in #gh-6764
