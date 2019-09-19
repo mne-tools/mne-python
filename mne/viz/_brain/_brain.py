@@ -209,7 +209,10 @@ class _Brain(object):
 
         for ri, v in enumerate(views):
             for ci, h in enumerate(self._hemis):
-                ci = 1 if hemi == 'split' else 0
+                if self._hemi != 'split':
+                    ci = 0
+                else:
+                    ci = 0 if hemi == 'lh' else 1
                 self._renderer.subplot(ri, ci)
                 self._renderer.set_camera(azimuth=views_dict[v].azim,
                                           elevation=views_dict[v].elev,
@@ -425,7 +428,10 @@ class _Brain(object):
 
         for ri, v in enumerate(self._views):
             for ci, h in enumerate(self._hemis):
-                ci = 1 if hemi == 'split' else 0
+                if self._hemi != 'split':
+                    ci = 0
+                else:
+                    ci = 0 if hemi == 'lh' else 1
                 self._renderer.subplot(ri, ci)
                 mesh = self._renderer.mesh(x=self.geo[hemi].coords[:, 0],
                                            y=self.geo[hemi].coords[:, 1],
@@ -544,7 +550,10 @@ class _Brain(object):
 
         for ri, v in enumerate(self._views):
             for ci, h in enumerate(self._hemis):
-                ci = 1 if hemi == 'split' else 0
+                if self._hemi != 'split':
+                    ci = 0
+                else:
+                    ci = 0 if hemi == 'lh' else 1
                 self._renderer.subplot(ri, ci)
                 self._renderer.mesh(x=self.geo[hemi].coords[:, 0],
                                     y=self.geo[hemi].coords[:, 1],
@@ -606,7 +615,10 @@ class _Brain(object):
             scale_factor = scale_factor / 1000.
         for ri, v in enumerate(self._views):
             for ci, h in enumerate(self._hemis):
-                ci = 1 if hemi == 'split' else 0
+                if self._hemi != 'split':
+                    ci = 0
+                else:
+                    ci = 0 if hemi == 'lh' else 1
                 self._renderer.subplot(ri, ci)
                 self._renderer.sphere(center=coords, color=color,
                                       scale=(10. * scale_factor),
