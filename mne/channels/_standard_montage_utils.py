@@ -29,6 +29,7 @@ def _egi_256():
     )
 
     ch_names, _, _, _, xs, ys, zs, _ = np.loadtxt(fname, **options)
+    ch_names = _str_names(ch_names)
     pos = np.stack([xs, ys, zs], axis=-1)
 
     # Fix pos to match Montage code
@@ -50,6 +51,7 @@ def _easycap(basename):
                'formats': (object, 'i4', 'i4')},
     )
     ch_names, theta, phi = np.loadtxt(fname, **options)
+    ch_names = _str_names(ch_names)
 
     radii = np.full_like(phi, 1)  # XXX: HEAD_SIZE_DEFAULT should work
     pos = _sph_to_cart(np.stack(
@@ -74,12 +76,20 @@ def _hydrocel(basename, fid_names=('FidNz', 'FidT9', 'FidT10')):
                'formats': (object, 'f4', 'f4', 'f4')},
     )
     ch_names, xs, ys, zs = np.loadtxt(fname, **options)
+    ch_names = _str_names(ch_names)
 
     pos = np.stack([xs, ys, zs], axis=-1) * 0.01
     ch_pos = dict(zip(ch_names, pos))
     _ = [ch_pos.pop(n, None) for n in fid_names]
 
     return make_dig_montage(ch_pos=ch_pos, coord_frame='head')
+
+
+def _str_names(ch_names):
+    ch_names = [
+        ch_name.decode('utf8') if isinstance(ch_name, bytes) else ch_name
+        for ch_name in ch_names]
+    return ch_names
 
 
 def _biosemi(basename, fid_names=('Nz', 'LPA', 'RPA')):
@@ -91,9 +101,7 @@ def _biosemi(basename, fid_names=('Nz', 'LPA', 'RPA')):
                'formats': (object, 'i4', 'i4')},
     )
     ch_names, theta, phi = np.loadtxt(fname, **options)
-    ch_names = [
-        ch_name.decode('utf8') if isinstance(ch_name, bytes) else ch_name
-        for ch_name in ch_names]
+    ch_names = _str_names(ch_names)
 
     radii = np.full_like(phi, 1)  # XXX: HEAD_SIZE_DEFAULT should work
     pos = _sph_to_cart(np.stack(
