@@ -192,6 +192,7 @@ class _Brain(object):
         self._units = units
         self._title = title
         self._subject_id = subject_id
+        self._subjects_dir = subjects_dir
         self._views = views
         self._n_times = None
         # for now only one color bar can be added
@@ -520,10 +521,10 @@ class _Brain(object):
                 label_name = label
                 label_fname = ".".join([hemi, label_name, 'label'])
                 if subdir is None:
-                    filepath = pjoin(self.subjects_dir, self.subject_id,
+                    filepath = pjoin(self._subjects_dir, self._subject_id,
                                      'label', label_fname)
                 else:
-                    filepath = pjoin(self.subjects_dir, self.subject_id,
+                    filepath = pjoin(self._subjects_dir, self._subject_id,
                                      'label', subdir, label_fname)
                 if not os.path.exists(filepath):
                     raise ValueError('Label file %s does not exist'
