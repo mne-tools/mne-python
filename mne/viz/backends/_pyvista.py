@@ -27,6 +27,7 @@ class _Figure(object):
                  display=None,
                  title='PyVista Scene',
                  size=(600, 600),
+                 shape=(1, 1),
                  background_color=(0., 0., 0.),
                  smooth_shading=True,
                  off_screen=False,
@@ -41,6 +42,7 @@ class _Figure(object):
         self.store = dict()
         self.store['title'] = title
         self.store['window_size'] = size
+        self.store['shape'] = shape
         self.store['off_screen'] = off_screen
 
     def build(self):
@@ -104,6 +106,7 @@ class _Renderer(_BaseRenderer):
         if isinstance(fig, int):
             if _FIGURES.get(fig) is None:
                 self.figure = _Figure(title=name, size=size,
+                                      shape=shape,
                                       background_color=bgcolor,
                                       notebook=_check_notebook())
                 _FIGURES[fig] = self.figure
@@ -111,6 +114,7 @@ class _Renderer(_BaseRenderer):
                 self.figure = _FIGURES.get(fig)
         elif fig is None:
             self.figure = _Figure(title=name, size=size,
+                                  shape=shape,
                                   background_color=bgcolor,
                                   notebook=_check_notebook())
         else:
