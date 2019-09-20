@@ -29,7 +29,7 @@ del raw
 #
 # Events used for constructing the epochs here are the triggers for subject
 # being presented a smiley face at the center of the visual field. More of the
-# paradigm at :ref:`BABDHIFJ`.
+# paradigm at :ref:`sample-dataset`.
 #
 # All plotting functions start with ``plot``. Let's start with the most
 # obvious. :func:`mne.Epochs.plot` offers an interactive browser that allows

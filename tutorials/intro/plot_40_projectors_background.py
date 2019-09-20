@@ -296,13 +296,40 @@ print(first_projector.keys())
 ###############################################################################
 # The :class:`~mne.io.Raw`, :class:`~mne.Epochs`, and :class:`~mne.Evoked`
 # objects all have a boolean :attr:`~mne.io.Raw.proj` attribute that indicates
-# whether there are any unapplied / inactive projectors stored in the object,
-# and each individual projector also has a boolean ``active`` field:
+# whether there are any unapplied / inactive projectors stored in the object.
+# In other words, the :attr:`~mne.io.Raw.proj` attribute is ``True`` if at
+# least one :term:`projector` is present and all of them are active. In
+# addition, each individual projector also has a boolean ``active`` field:
 
 print(raw.proj)
 print(first_projector['active'])
 
 ###############################################################################
+# Computing projectors
+# ~~~~~~~~~~~~~~~~~~~~
+#
+
+# In MNE-Python, SSP vectors can be computed using general purpose functions
+# :func:`mne.compute_proj_raw`, :func:`mne.compute_proj_epochs`, and
+# :func:`mne.compute_proj_evoked`. The general assumption these functions make
+# is that the data passed contains raw data, epochs or averages of the artifact
+# you want to repair via projection. In practice this typically involves
+# continuous raw data of empty room recordings or averaged ECG or EOG
+# artifacts. A second set of high-level convenience functions is provided to
+# compute projection vectors for typical use cases. This includes
+# :func:`mne.preprocessing.compute_proj_ecg` and
+# :func:`mne.preprocessing.compute_proj_eog` for computing the ECG and EOG
+# related artifact components, respectively; see :ref:`tut-artifact-ssp` for
+# examples of these uses. For computing the EEG reference signal as a
+# projector, the function :func:`mne.set_eeg_reference` can be used; see
+# :ref:`tut-set-eeg-ref` for more information.
+#
+# .. warning:: It is best to compute projectors only on channels that will be
+#              used (e.g., excluding bad channels). This ensures that
+#              projection vectors will remain ortho-normalized and that they
+#              properly capture the activity of interest.
+#
+#
 # Visualizing the effect of projectors
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
@@ -366,13 +393,17 @@ print(ecg_projs)
 # showed two projectors for gradiometers (the first two, marked "planar"), two
 # for magnetometers (the middle two, marked "axial"), and two for EEG sensors
 # (the last two, marked "eeg"). We can add them to the :class:`~mne.io.Raw`
-# object using the :meth:`~mne.io.Raw.add_proj` method (note that there is a
-# corresponding method :meth:`~mne.io.Raw.del_proj` that will remove projectors
-# based on their index within ``raw.info['projs']``:
+# object using the :meth:`~mne.io.Raw.add_proj` method:
 
 raw.add_proj(ecg_projs)
 
 ###############################################################################
+# To remove projectors, there is a corresponding method
+# :meth:`~mne.io.Raw.del_proj` that will remove projectors based on their index
+# within the ``raw.info['projs']`` list. For the special case of replacing the
+# existing projectors with new ones, use
+# ``raw.add_proj(ecg_projs, remove_existing=True)``.
+#
 # To see how the ECG projectors affect the measured signal, we can once again
 # plot the data with and without the projectors applied (though remember that
 # the :meth:`~mne.io.Raw.plot` method only *temporarily* applies the projectors
@@ -398,8 +429,13 @@ for data, title in zip([mags, mags_ecg], ['Without', 'With']):
 # :class:`~mne.Epochs` constructor. However, even when projectors have not been
 # applied, the :meth:`mne.Epochs.get_data` method will return data *as if the
 # projectors had been applied* (though the :class:`~mne.Epochs` object will be
-# unchanged). Additionally, when performing inverse imaging (i.e., with
-# :func:`~mne.minimum_norm.apply_inverse`), the projectors will be
+# unchanged). Additionally, projectors cannot be applied if the data are not
+# :ref:`preloaded <memory>`. If the data are `memory-mapped`_ (i.e., not
+# preloaded), you can check the ``_projector`` attribute to see whether any
+# projectors will be applied once the data is loaded in memory.
+#
+# Finally, when performing inverse imaging (i.e., with
+# :func:`mne.minimum_norm.apply_inverse`), the projectors will be
 # automatically applied. It is also possible to apply projectors manually when
 # working with :class:`~mne.io.Raw`, :class:`~mne.Epochs` or
 # :class:`~mne.Evoked` objects via the object's :meth:`~mne.io.Raw.apply_proj`
@@ -416,6 +452,23 @@ for data, title in zip([mags, mags_ecg], ['Without', 'With']):
 #     object's :meth:`~mne.io.Raw.copy` method before applying projectors.
 #
 #
+# Best practices
+# ~~~~~~~~~~~~~~
+#
+# In general, it is recommended to apply projectors when creating
+# :class:`~mne.Epochs` from :class:`~mne.io.Raw` data. There are two reasons
+# for this recommendation:
+#
+# 1. It is computationally cheaper to apply projectors to data *after* the
+#    data have been reducted to just the segments of interest (the epochs)
+#
+# 2. If you are applying amplitude-based rejection criteria to epochs, it is
+#    preferable to reject based on the signal *after* projectors have been
+#    applied, because the projectors may reduce noise in some epochs to
+#    tolerable levels (thereby increasing the number of acceptable epochs and
+#    consequenty increasing statistical power in any later analyses).
+#
+#
 # References
 # ^^^^^^^^^^
 #
@@ -430,3 +483,4 @@ for data, title in zip([mags, mags_ecg], ['Without', 'With']):
 #    https://docs.python.org/3/tutorial/controlflow.html#tut-unpacking-arguments
 # .. _`pca`: https://en.wikipedia.org/wiki/Principal_component_analysis
 # .. _`svd`: https://en.wikipedia.org/wiki/Singular_value_decomposition
+# .. _`memory-mapped`: https://en.wikipedia.org/wiki/Memory-mapped_file

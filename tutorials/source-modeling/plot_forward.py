@@ -8,7 +8,7 @@ The aim of this tutorial is to be a getting started for forward
 computation.
 
 For more extensive details and presentation of the general
-concepts for forward modeling. See :ref:`c_legacy_ch_forward`.
+concepts for forward modeling. See :ref:`ch_forward`.
 
 """
 
