@@ -57,8 +57,6 @@ class _Figure(object):
 
         if self.plotter_class == Plotter:
             self.store.pop('title', None)
-        elif self.plotter_class == BackgroundPlotter:
-            self.store.pop('off_screen', None)
 
         if self.plotter is None:
             plotter = self.plotter_class(**self.store)
@@ -120,10 +118,11 @@ class _Renderer(_BaseRenderer):
         else:
             self.figure = fig
 
-        if MNE_3D_BACKEND_TEST_DATA:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=DeprecationWarning)
-                from pyvista import Plotter
+        # Enable off_screen if sphinx-gallery or testing
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=FutureWarning)
+            from pyvista import Plotter, OFF_SCREEN
+        if OFF_SCREEN or MNE_3D_BACKEND_TEST_DATA:
             self.figure.plotter_class = Plotter
             self.figure.store['off_screen'] = True
 

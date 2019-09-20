@@ -37,8 +37,7 @@ def test_brain_init(renderer):
     with pytest.raises(KeyError):
         _Brain(subject_id=subject_id, hemi="foo", surf=surf)
 
-    brain = _Brain(subject_id, hemi, surf, subjects_dir=subjects_dir)
-    brain.show()
+    _Brain(subject_id, hemi, surf, subjects_dir=subjects_dir)
 
 
 @testing.requires_testing_data
@@ -46,9 +45,8 @@ def test_brain_screenshot(renderer):
     """Test screenshot of a _Brain instance."""
     brain = _Brain(subject_id, hemi='both', size=600,
                    surf=surf, subjects_dir=subjects_dir)
-    img = brain.screenshot(mode='rgba')
-    brain.show()
-    assert(img.shape == (600, 600, 4))
+    img = brain.screenshot(mode='rgb')
+    assert(img.shape == (600, 600, 3))
 
 
 @testing.requires_testing_data
@@ -74,7 +72,6 @@ def test_brain_add_data(renderer):
     brain_data.add_data(hemi_data, fmin=fmin, hemi=hemi, fmax=fmax,
                         colormap='hot', vertices=hemi_vertices,
                         colorbar=False)
-    brain_data.show()
 
 
 def test_brain_colormap():

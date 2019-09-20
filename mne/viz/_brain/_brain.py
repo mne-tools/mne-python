@@ -220,6 +220,8 @@ class _Brain(object):
                                         z=self.geo[h].coords[:, 2],
                                         triangles=self.geo[h].faces,
                                         color=self.geo[h].grey_curv)
+        # Force rendering
+        self._renderer.show()
 
     def add_data(self, array, fmin=None, fmid=None, fmax=None,
                  thresh=None, center=None, transparent=False, colormap="auto",
@@ -703,13 +705,6 @@ class _Brain(object):
         """Close all figures and cleanup data structure."""
         self._renderer.close()
 
-    def show(self):
-        u"""Display widget."""
-        try:
-            return self._renderer.show()
-        except RuntimeError:
-            logger.info("No active/running renderer available.")
-
     def show_view(self, view=None, roll=None, distance=None):
         """Orient camera to display view."""
         pass
@@ -771,6 +766,13 @@ class _Brain(object):
     @property
     def hemis(self):
         return self._hemis
+
+    def _show(self):
+        """Request rendering of the window."""
+        try:
+            return self._renderer.show()
+        except RuntimeError:
+            logger.info("No active/running renderer available.")
 
     def _check_hemi(self, hemi):
         u"""Check for safe single-hemi input, returns str."""
