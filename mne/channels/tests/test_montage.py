@@ -31,7 +31,7 @@ from mne.channels import compute_dev_head_t
 from mne.channels._dig_montage_utils import _transform_to_head_call
 from mne.channels._dig_montage_utils import _fix_data_fiducials
 from mne.utils import (_TempDir, run_tests_if_main, assert_dig_allclose,
-                       object_diff, Bunch)
+                       object_diff, Bunch, catch_logging)
 from mne.bem import _fit_sphere
 from mne.transforms import apply_trans, get_ras_to_neuromag_trans
 from mne.io.constants import FIFF
@@ -1364,7 +1364,6 @@ def test_set_montage_with_mismatching_ch_names():
     montage = make_standard_montage('mgh60')
 
     # 'EEG 001' and 'EEG001' won't match
-    # with pytest.raises(RuntimeError, match='channel .*not found'):
     with pytest.warns(RuntimeWarning, match='not set 60 channel positions'):
         raw.set_montage(montage, raise_if_subset=False)
 
@@ -1385,11 +1384,12 @@ def test_set_montage_with_sub_super_set_of_ch_names():
     )
 
     # Montage is a SUPERset of info
-    with pytest.warns(RuntimeWarning, match='superset'):
+    with catch_logging() as log:
         info = create_info(
             ch_names=list('abc'), sfreq=1, ch_types='eeg', montage=montage
         )
     assert len(info['dig']) == len(list('abc'))
+    assert 'superset' in log.getvalue()
 
     # Montage is a SUBset of info
     _MSG = 'subset of info. There are 2 .* not present it the DigMontage'
