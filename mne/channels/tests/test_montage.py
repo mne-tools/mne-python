@@ -984,10 +984,10 @@ def test_read_dig_captrack(tmpdir):
         'AF3', 'AF4', 'AF7', 'AF8', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'CP1',
         'CP2', 'CP3', 'CP4', 'CP5', 'CP6', 'CPz', 'Cz', 'F1', 'F2', 'F3', 'F4',
         'F5', 'F6', 'F7', 'F8', 'FC1', 'FC2', 'FC3', 'FC4', 'FC5', 'FC6',
-        'FT10', 'FT7', 'FT8', 'FT9', 'Fp1', 'Fp2', 'Fz', 'O1', 'O2', 'Oz',
-        'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'PO10', 'PO3', 'PO4',
-        'PO7', 'PO8', 'PO9', 'POz', 'Pz', 'T7', 'T8', 'TP10', 'TP7', 'TP8',
-        'TP9'
+        'FT10', 'FT7', 'FT8', 'FT9', 'Fp1', 'Fp2', 'Fz', 'GND', 'O1', 'O2',
+        'Oz', 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'PO10', 'PO3',
+        'PO4', 'PO7', 'PO8', 'PO9', 'POz', 'Pz', 'REF', 'T7', 'T8', 'TP10',
+        'TP7', 'TP8', 'TP9'
     ]
     montage = read_dig_captrack(
         fname=op.join(data_path, 'montage', 'captrak_coords.bvct')
@@ -996,11 +996,8 @@ def test_read_dig_captrack(tmpdir):
     assert montage.ch_names == EXPECTED_CH_NAMES
     assert montage.__repr__() == (
         '<DigMontage | '
-        '0 extras (headshape), 0 HPIs, 3 fiducials, 64 channels>'
+        '0 extras (headshape), 0 HPIs, 3 fiducials, 66 channels>'
     )
-
-    montage = transform_to_head(montage)  # transform_to_head has to be tested
-    _check_roundtrip(montage=montage, fname=str(tmpdir.join('bvct_test.fif')))
 
     with pytest.deprecated_call():
         assert_allclose(
@@ -1009,15 +1006,29 @@ def test_read_dig_captrack(tmpdir):
             atol=1e-5,
         )
 
-    # I think that comparing dig should be enough. cc: @sappelhoff
+    # set the montage into a raw file for testing purposes
     raw_bv = read_raw_brainvision(bv_raw_fname)
-
-    with pytest.warns(RuntimeWarning, match='Did not set 3 channel positions'):
-        raw_bv.set_montage(montage, raise_if_subset=False)
+    raw_bv.set_channel_types({"HEOG": 'eog', "VEOG": 'eog', "ECG": 'ecg'})
+    raw_bv.set_montage(montage)
 
     test_raw_bv = read_raw_fif(bv_fif_fname)
 
-    assert_dig_allclose(raw_bv.info, test_raw_bv.info)
+    # check the ref
+    # XXX: this should pas but it does not 'cos bv_fif_fname ref is 0,0,0
+    #      montage has 2 refs:
+    #      'GND': [-0.00557997,  0.10879404,  0.0894018 ]
+    #      'REF': [-0.00510269,  0.05394952,  0.14462162]
+    assert_allclose(raw_bv.info['chs'][0]['loc'], test_raw_bv['chs'][0]['loc'])
+
+
+@testing.requires_testing_data
+def test_read_dig_captrack_save_to_fif_roundtrip(tmpdir):
+    """Test reading a captrack montage file."""
+    montage = read_dig_captrack(
+        fname=op.join(data_path, 'montage', 'captrak_coords.bvct')
+    )
+    montage = transform_to_head(montage)  # transform_to_head has to be tested
+    _check_roundtrip(montage=montage, fname=str(tmpdir.join('bvct_test.fif')))
 
 
 def test_set_montage():
