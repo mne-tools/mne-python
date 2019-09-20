@@ -61,11 +61,6 @@ def run():
                       dest='subjects_dir',
                       help='Subjects directory',
                       default=None)
-    parser.add_option('--cps',
-                      dest='cps',
-                      help='Add patch information to source space.',
-                      default=True,
-                      action="store_true")
     parser.add_option('-n', '--n-jobs',
                       dest='n_jobs',
                       help='The number of jobs to run in parallel '
@@ -94,7 +89,6 @@ def run():
     ico = options.ico
     oct = options.oct
     surface = options.surface
-    cps = True if options.cps is not None else False
     n_jobs = options.n_jobs
     verbose = True if options.verbose is not None else False
     overwrite = True if options.overwrite is not None else False
@@ -127,8 +121,7 @@ def run():
     # Create source space
     src = mne.setup_source_space(subject=subject, spacing=use_spacing,
                                  surface=surface, subjects_dir=subjects_dir,
-                                 add_dist=cps, n_jobs=n_jobs,
-                                 verbose=verbose)
+                                 n_jobs=n_jobs, verbose=verbose)
     # Morph source space if --morph is set
     if subject_to is not None:
         src = mne.morph_source_spaces(src, subject_to=subject_to,
