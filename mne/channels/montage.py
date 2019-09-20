@@ -46,9 +46,11 @@ from ._dig_montage_utils import _transform_to_head_call
 from ._dig_montage_utils import _read_dig_montage_egi, _read_dig_montage_bvct
 from ._dig_montage_utils import _fix_data_fiducials
 from ._dig_montage_utils import _parse_brainvision_dig_montage
-from ._standard_montage_utils import HEAD_SIZE_DEFAULT
 
 from .channels import DEPRECATED_PARAM
+
+# from ._standard_montage_utils import HEAD_SIZE_DEFAULT  # XXX: circular dep
+HEAD_SIZE_DEFAULT = 0.085
 
 
 _BUILT_IN_MONTAGES = [
