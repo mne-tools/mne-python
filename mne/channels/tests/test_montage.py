@@ -1495,22 +1495,15 @@ def test_read_standard_montage():
     """Test reading EEGLAB locations data."""
     with pytest.deprecated_call():
         old = read_montage(locs_montage_fname)
-        old.pos *= 0.085  # read_montage was not scaling for loc files
-        info_old = create_info(old.ch_names, sfreq=1, ch_types='eeg',
-                               montage=old)
+    old.pos *= 0.085  # read_montage was not scaling for loc files
 
     new = read_standard_montage(locs_montage_fname)
-    info_new = create_info(new.ch_names, sfreq=1, ch_types='eeg', montage=new)
 
     # compare montages
     old_ch_pos = {kk: vv for kk, vv in zip(old.ch_names, old.pos)}
     new_ch_pos = new._get_ch_pos()
     for kk in old.ch_names:
         assert_allclose(new_ch_pos[kk], old_ch_pos[kk])
-
-    # # compare after set_montage
-    # for actual, expected in zip(info_new['chs'], info_old['chs']):
-    #     assert_allclose(actual['loc'][:6], expected['loc'][:6])
 
 
 run_tests_if_main()
