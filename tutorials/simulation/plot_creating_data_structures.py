@@ -50,7 +50,7 @@ sfreq = 1000  # in Hertz
 # The EEG channels use the standard naming strategy.
 # By supplying the 'montage' parameter, approximate locations
 # will be added for them
-montage = 'standard_1005'
+montage = make_standard_montage('standard_1005') + make_dig_montage(ch_pos={'EOG': np.full(3, np.nan)}, coord_frame='head')
 
 # Initialize required fields
 info = mne.create_info(channel_names, sfreq, channel_types, montage)

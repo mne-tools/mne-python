@@ -28,7 +28,8 @@ print(__doc__)
 mat = loadmat(mne.datasets.misc.data_path() + '/ecog/sample_ecog.mat')
 ch_names = mat['ch_names'].tolist()
 elec = mat['elec']  # electrode positions given in meters
-montage = mne.channels.make_dig_montage(ch_pos=dict(zip(ch_names, elec)))
+montage = mne.channels.make_dig_montage(ch_pos=dict(zip(ch_names, elec)),
+                                        coord_frame='head')  # XXX: I don't think they are in head
 print('Created %s channel positions' % len(ch_names))
 
 ###############################################################################
