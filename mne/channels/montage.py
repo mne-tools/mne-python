@@ -99,7 +99,7 @@ def _check_ch_names_are_compatible(info_names, montage_names, raise_if_subset):
         pass  # noqa
 
     if len(not_in_info):  # Montage is superset of info
-        logger.warning((
+        logger.info((
             'DigMontage is a superset of info. {n_ch} in DigMontage will be'
             ' ignored. The ignored channels are: {ch_names}'
         ).format(n_ch=len(not_in_info), ch_names=not_in_info))

@@ -442,7 +442,7 @@ del raw, filt_raw, ica, new_ica
 # dataset has 109 subjects, we'll just download one run (a left/right hand
 # movement task) from each of the first 4 subjects:
 
-_eegbci_standard_1005_name_equivalence = {
+mapping = {
     'Fc5.': 'FC5', 'Fc3.': 'FC3', 'Fc1.': 'FC1', 'Fcz.': 'FCz', 'Fc2.': 'FC2',
     'Fc4.': 'FC4', 'Fc6.': 'FC6', 'C5..': 'C5', 'C3..': 'C3', 'C1..': 'C1',
     'Cz..': 'Cz', 'C2..': 'C2', 'C4..': 'C4', 'C6..': 'C6', 'Cp5.': 'CP5',
@@ -466,7 +466,7 @@ for subj in range(4):
     fname = mne.datasets.eegbci.load_data(subj + 1, runs=[3])[0]
     raw = mne.io.read_raw_edf(fname)
     # remove trailing `.` from channel names so we can set montage
-    raw.rename_channels(_eegbci_standard_1005_name_equivalence)
+    raw.rename_channels(mapping)
     raw.set_montage('standard_1005')
     # fit ICA
     ica = ICA(n_components=30, random_state=97)

@@ -50,8 +50,12 @@ layout_name = 'custom_layout.lout'
 mat = loadmat(path_data)
 ch_names = mat['ch_names'].tolist()
 elec = mat['elec']  # electrode coordinates in meters
+# Now we make a montage stating that the sEEG contacts are in head
+# coordinate system (although they are in MRI). This is compensated
+# by the fact that below we do not specicty a trans file so the Head<->MRI
+# transform is the identity.
 montage = mne.channels.make_dig_montage(ch_pos=dict(zip(ch_names, elec)),
-                                        coord_frame='head')  # XXX: are they in head?
+                                        coord_frame='head')
 info = mne.create_info(ch_names, 1000., 'ecog', montage=montage)
 print('Created %s channel positions' % len(ch_names))
 
