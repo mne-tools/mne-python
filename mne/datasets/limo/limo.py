@@ -158,7 +158,7 @@ def load_data(subject, path=None, force_update=False, update_path=None,
 
     Returns
     -------
-    epochs : MNE Epochs data structure
+    epochs : instance of Epochs
         The epochs.
     """  # noqa: E501
     pd = _check_pandas_installed()

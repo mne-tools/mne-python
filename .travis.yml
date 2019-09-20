@@ -175,8 +175,8 @@ script:
         pip install -e .;
         python mne/tests/test_evoked.py;
       fi;
-    - echo pytest -m "${CONDITION}" ${USE_DIRS}
-    - pytest -m "${CONDITION}" ${USE_DIRS}
+    - echo pytest -m "${CONDITION}" --cov=mne ${USE_DIRS}
+    - pytest -m "${CONDITION}" --cov=mne ${USE_DIRS}
     - if [ "${DEPS}" == "nodata" ]; then
         make pep;
       fi;
