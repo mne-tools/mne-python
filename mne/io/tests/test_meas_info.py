@@ -93,7 +93,7 @@ def test_make_info():
     ch_pos_mon = np.array(
         [ch_pos_mon[ch_name] for ch_name in info['ch_names']])
     # transform to head
-    ch_pos_mon += (0., 0., 0.03592)
+    ch_pos_mon += (0., 0., 0.04014)
     assert_allclose(ch_pos, ch_pos_mon, atol=1e-5)
 
     # XXX: this is a valid call (wrong, but valid).

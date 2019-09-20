@@ -13,26 +13,19 @@ from numpy.testing import assert_allclose
 from mne.channels import make_standard_montage
 from mne._digitization.base import _get_dig_eeg
 from mne._digitization._utils import _get_fid_coords
-from mne.channels.montage import get_builtin_montages
+from mne.channels.montage import get_builtin_montages, HEAD_SIZE_DEFAULT
 from mne.io.constants import FIFF
 
 
-EXPECTED_HEAD_SIZE = 0.085
-
-
 @pytest.mark.parametrize('kind', get_builtin_montages())
-def test_standard_montages_are_in_head_coord_or_have_fids(kind):
-    """Test standard montage are all in head coord."""
+def test_standard_montages_have_fids(kind):
+    """Test standard montage are all in unknown coord (have fids)."""
     montage = make_standard_montage(kind)
     fids, coord_frame = _get_fid_coords(montage.dig)
-    expected_coord = FIFF.FIFFV_COORD_UNKNOWN
-    for v in fids.values():
-        if v is None:
-            expected_coord = FIFF.FIFFV_COORD_HEAD
-            break
-
+    for k, v in fids.items():
+        assert v is not None, k
     for d in montage.dig:
-        assert d['coord_frame'] == expected_coord
+        assert d['coord_frame'] == FIFF.FIFFV_COORD_UNKNOWN
 
 
 def test_standard_montage_errors():
@@ -41,6 +34,7 @@ def test_standard_montage_errors():
         _ = make_standard_montage('not-here')
 
 
+@pytest.mark.parametrize('head_size', (HEAD_SIZE_DEFAULT, 0.05))
 @pytest.mark.parametrize('kind, tol', [
     ['EGI_256', 1e-5],
     ['easycap-M1', 1e-8],
@@ -52,13 +46,16 @@ def test_standard_montage_errors():
     ['biosemi32', 1e-8],
     ['biosemi64', 1e-8],
 ])
-def test_standard_montages_on_sphere(kind, tol):
+def test_standard_montages_on_sphere(kind, tol, head_size):
     """Test some standard montage are on sphere."""
-    montage = make_standard_montage(kind)
+    kwargs = dict()
+    if head_size != HEAD_SIZE_DEFAULT:
+        kwargs['head_size'] = head_size
+    montage = make_standard_montage(kind, **kwargs)
     eeg_loc = np.array([ch['r'] for ch in _get_dig_eeg(montage.dig)])
 
     assert_allclose(
         actual=np.linalg.norm(eeg_loc, axis=1),
-        desired=np.full((eeg_loc.shape[0], ), EXPECTED_HEAD_SIZE),
+        desired=np.full((eeg_loc.shape[0], ), head_size),
         atol=tol,
     )

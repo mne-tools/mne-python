@@ -14,11 +14,13 @@ from . import __file__ as _CHANNELS_INIT_FILE
 
 MONTAGE_PATH = op.join(op.dirname(_CHANNELS_INIT_FILE), 'data', 'montages')
 
-HEAD_SIZE_DEFAULT = 0.085  # in [m]
 _str = 'U100'
 
 
-def _egi_256():
+# In standard_1020, T9=LPA, T10=RPA, Nasion is the same as Iz with a
+# sign-flipped Y value
+
+def _egi_256(head_size):
     fname = op.join(MONTAGE_PATH, 'EGI_256.csd')
     # Label, Theta, Phi, Radius, X, Y, Z, off sphere surface
     options = dict(comments='//',
@@ -27,42 +29,57 @@ def _egi_256():
     pos = np.stack([xs, ys, zs], axis=-1)
 
     # Fix pos to match Montage code
-    # pos -= np.mean(pos, axis=0)
-    pos = HEAD_SIZE_DEFAULT * (pos / np.linalg.norm(pos, axis=1).mean())
+    pos /= np.median(np.linalg.norm(pos, axis=1))
+    pos *= head_size
+
+    # For this cap, the Nasion is the frontmost electrode,
+    # LPA/RPA we approximate by putting 75% of the way (toward the front)
+    # between the two electrodes that are halfway down the ear holes
+    nasion = pos[ch_names.index('E31')]
+    lpa = (0.75 * pos[ch_names.index('E67')] +
+           0.25 * pos[ch_names.index('E94')])
+    rpa = (0.75 * pos[ch_names.index('E219')] +
+           0.25 * pos[ch_names.index('E190')])
 
     return make_dig_montage(
         ch_pos=OrderedDict(zip(ch_names, pos)),
-        coord_frame='head',
+        coord_frame='unknown', nasion=nasion, lpa=lpa, rpa=rpa,
     )
 
 
-def _easycap(basename):
+def _easycap(basename, head_size):
     fname = op.join(MONTAGE_PATH, basename)
     options = dict(skip_header=1, dtype=(_str, 'i4', 'i4'))
     ch_names, theta, phi = _safe_np_loadtxt(fname, **options)
 
-    radii = np.full_like(phi, 1)  # XXX: HEAD_SIZE_DEFAULT should work
+    radii = np.full(len(phi), head_size)
     pos = _sph_to_cart(np.stack(
         [radii, np.deg2rad(phi), np.deg2rad(theta)],
         axis=-1,
     ))
-
-    # scale up to realistic head radius (8.5cm == 85mm):
-    pos *= HEAD_SIZE_DEFAULT  # XXXX: this should be done through radii
+    nasion = np.concatenate([[0],  pos[ch_names.index('Fpz'), 1:]])
+    nasion *= head_size / np.linalg.norm(nasion)
+    lpa = np.mean([pos[ch_names.index('FT9')],
+                   pos[ch_names.index('TP9')]], axis=0)
+    lpa *= head_size / np.linalg.norm(lpa)  # on sphere
+    rpa = np.mean([pos[ch_names.index('FT10')],
+                   pos[ch_names.index('TP10')]], axis=0)
+    rpa *= head_size / np.linalg.norm(rpa)
 
     return make_dig_montage(
         ch_pos=OrderedDict(zip(ch_names, pos)),
-        coord_frame='head',
+        coord_frame='unknown', nasion=nasion, lpa=lpa, rpa=rpa,
     )
 
 
-def _hydrocel(basename):
+def _hydrocel(basename, head_size):
     fid_names = ('FidNz', 'FidT9', 'FidT10')
     fname = op.join(MONTAGE_PATH, basename)
     options = dict(dtype=(_str, 'f4', 'f4', 'f4'))
     ch_names, xs, ys, zs = _safe_np_loadtxt(fname, **options)
 
-    pos = np.stack([xs, ys, zs], axis=-1) * 0.01
+    pos = np.stack([xs, ys, zs], axis=-1)
+    pos *= head_size / np.median(np.linalg.norm(pos, axis=-1))
     ch_pos = OrderedDict(zip(ch_names, pos))
     nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
 
@@ -81,20 +98,17 @@ def _safe_np_loadtxt(fname, **kwargs):
     return (ch_names,) + others
 
 
-def _biosemi(basename):
+def _biosemi(basename, head_size):
     fid_names = ('Nz', 'LPA', 'RPA')
     fname = op.join(MONTAGE_PATH, basename)
     options = dict(skip_header=1, dtype=(_str, 'i4', 'i4'))
     ch_names, theta, phi = _safe_np_loadtxt(fname, **options)
 
-    radii = np.full_like(phi, 1)  # XXX: HEAD_SIZE_DEFAULT should work
+    radii = np.full(len(phi), head_size)
     pos = _sph_to_cart(np.stack(
         [radii, np.deg2rad(phi), np.deg2rad(theta)],
         axis=-1,
     ))
-
-    # scale up to realistic head radius (8.5cm == 85mm):
-    pos *= HEAD_SIZE_DEFAULT  # XXXX: this should be done through radii
 
     ch_pos = OrderedDict(zip(ch_names, pos))
     nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
@@ -103,20 +117,13 @@ def _biosemi(basename):
                             nasion=nasion, lpa=lpa, rpa=rpa)
 
 
-def _mgh_or_standard(basename):
+def _mgh_or_standard(basename, head_size):
     fid_names = ('Nz', 'LPA', 'RPA')
     fname = op.join(MONTAGE_PATH, basename)
 
     ch_names_, pos = [], []
     with open(fname) as fid:
-        # Default units are meters
-        for line in fid:
-            if 'UnitPosition' in line:
-                units = line.split()[1]
-                scale_factor = dict(m=1., mm=1e-3)[units]
-                break
-        else:
-            raise RuntimeError('Could not detect units in file %s' % fname)
+        # Ignore units as we will scale later using the norms anyway
         for line in fid:
             if 'Positions\n' in line:
                 break
@@ -130,7 +137,9 @@ def _mgh_or_standard(basename):
                 break
             ch_names_.append(line.strip(' ').strip('\n'))
 
-    pos = np.array(pos) * scale_factor
+    pos = np.array(pos)
+    pos /= np.median(np.linalg.norm(pos, axis=-1))
+    pos *= head_size
 
     ch_pos = OrderedDict(zip(ch_names_, pos))
     nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]

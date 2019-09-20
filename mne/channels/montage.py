@@ -50,6 +50,7 @@ from ._dig_montage_utils import _parse_brainvision_dig_montage
 
 from .channels import DEPRECATED_PARAM
 
+HEAD_SIZE_DEFAULT = 0.095  # in [m]
 
 _BUILT_IN_MONTAGES = [
     'EGI_256',
@@ -1718,7 +1719,7 @@ def compute_dev_head_t(montage):
     return Transform(fro='meg', to='head', trans=trans)
 
 
-def make_standard_montage(kind):
+def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
     """Read a generic (built-in) montage.
 
     Individualized (digitized) electrode positions should be read in using
@@ -1729,6 +1730,8 @@ def make_standard_montage(kind):
     kind : str
         The name of the montage file without the file extension (e.g.
         kind='easycap-M10' for 'easycap-M10.txt'). See notes for valid kinds.
+    head_size : float
+        The head size (in meters) to use for spherical montages.
 
     Returns
     -------
@@ -1795,5 +1798,4 @@ def make_standard_montage(kind):
         raise ValueError('Could not find the montage %s. Please provide one '
                          'among: %s' % (kind,
                                         standard_montage_look_up_table.keys()))
-    else:
-        return standard_montage_look_up_table[kind]()
+    return standard_montage_look_up_table[kind](head_size=head_size)
