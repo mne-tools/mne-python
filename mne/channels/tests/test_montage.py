@@ -999,6 +999,9 @@ def test_read_dig_captrack(tmpdir):
         '0 extras (headshape), 0 HPIs, 3 fiducials, 66 channels>'
     )
 
+    montage = transform_to_head(montage)  # transform_to_head has to be tested
+    _check_roundtrip(montage=montage, fname=str(tmpdir.join('bvct_test.fif')))
+
     with pytest.deprecated_call():
         assert_allclose(
             actual=np.array([montage.nasion, montage.lpa, montage.rpa]),
@@ -1006,29 +1009,12 @@ def test_read_dig_captrack(tmpdir):
             atol=1e-5,
         )
 
-    # set the montage into a raw file for testing purposes
     raw_bv = read_raw_brainvision(bv_raw_fname)
     raw_bv.set_channel_types({"HEOG": 'eog', "VEOG": 'eog', "ECG": 'ecg'})
     raw_bv.set_montage(montage)
 
     test_raw_bv = read_raw_fif(bv_fif_fname)
-
-    # check the ref
-    # XXX: this should pas but it does not 'cos bv_fif_fname ref is 0,0,0
-    #      montage has 2 refs:
-    #      'GND': [-0.00557997,  0.10879404,  0.0894018 ]
-    #      'REF': [-0.00510269,  0.05394952,  0.14462162]
-    assert_allclose(raw_bv.info['chs'][0]['loc'], test_raw_bv['chs'][0]['loc'])
-
-
-@testing.requires_testing_data
-def test_read_dig_captrack_save_to_fif_roundtrip(tmpdir):
-    """Test reading a captrack montage file."""
-    montage = read_dig_captrack(
-        fname=op.join(data_path, 'montage', 'captrak_coords.bvct')
-    )
-    montage = transform_to_head(montage)  # transform_to_head has to be tested
-    _check_roundtrip(montage=montage, fname=str(tmpdir.join('bvct_test.fif')))
+    assert_dig_allclose(raw_bv.info, test_raw_bv.info)
 
 
 def test_set_montage():

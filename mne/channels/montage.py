@@ -1458,9 +1458,7 @@ def _set_montage(info, montage, update_ch_names=DEPRECATED_PARAM,
                 return np.concatenate((pos, ref_pos))
 
         ch_pos = _mnt._get_ch_pos()
-
-        refs = set(ch_pos.keys()) & {'EEG000', 'GND', 'REF'}
-        eeg_ref_pos = np.zeros(3) if not(refs) else ch_pos.pop(refs.pop())  # XXX: this is random if len(ref)>1
+        eeg_ref_pos = ch_pos.pop('EEG000', np.zeros(3))
 
         # This raises based on info being subset/superset of montage
         _pick_chs = partial(
