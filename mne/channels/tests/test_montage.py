@@ -1014,7 +1014,11 @@ def test_read_dig_captrack(tmpdir):
     raw_bv.set_montage(montage)
 
     test_raw_bv = read_raw_fif(bv_fif_fname)
-    assert_dig_allclose(raw_bv.info, test_raw_bv.info)
+
+    # compare after set_montage using chs loc.
+    for actual, expected in zip(raw_bv.info['chs'], test_raw_bv.info['chs']):
+        assert_allclose(actual['loc'][:3], expected['loc'][:3])
+        assert_allclose(actual['loc'][:6], [-0.005103, 0.05395, 0.144622])
 
 
 def test_set_montage():
