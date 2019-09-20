@@ -2,6 +2,7 @@
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
+from collections import OrderedDict
 import os.path as op
 import numpy as np
 
@@ -30,7 +31,7 @@ def _egi_256():
     pos = HEAD_SIZE_DEFAULT * (pos / np.linalg.norm(pos, axis=1).mean())
 
     return make_dig_montage(
-        ch_pos=dict(zip(ch_names, pos)),
+        ch_pos=OrderedDict(zip(ch_names, pos)),
         coord_frame='head',
     )
 
@@ -50,7 +51,7 @@ def _easycap(basename):
     pos *= HEAD_SIZE_DEFAULT  # XXXX: this should be done through radii
 
     return make_dig_montage(
-        ch_pos=dict(zip(ch_names, pos)),
+        ch_pos=OrderedDict(zip(ch_names, pos)),
         coord_frame='head',
     )
 
@@ -61,7 +62,7 @@ def _hydrocel(basename, fid_names=('FidNz', 'FidT9', 'FidT10')):
     ch_names, xs, ys, zs = _safe_np_loadtxt(fname, **options)
 
     pos = np.stack([xs, ys, zs], axis=-1) * 0.01
-    ch_pos = dict(zip(ch_names, pos))
+    ch_pos = OrderedDict(zip(ch_names, pos))
     _ = [ch_pos.pop(n, None) for n in fid_names]
 
     return make_dig_montage(ch_pos=ch_pos, coord_frame='head')
@@ -92,7 +93,7 @@ def _biosemi(basename, fid_names=('Nz', 'LPA', 'RPA')):
     # scale up to realistic head radius (8.5cm == 85mm):
     pos *= HEAD_SIZE_DEFAULT  # XXXX: this should be done through radii
 
-    ch_pos = dict(zip(ch_names, pos))
+    ch_pos = OrderedDict(zip(ch_names, pos))
     _ = [ch_pos.pop(n, None) for n in fid_names]
 
     return make_dig_montage(ch_pos=ch_pos, coord_frame='head')
@@ -126,7 +127,7 @@ def _mgh_or_standard(basename, fid_names=('Nz', 'LPA', 'RPA')):
 
     pos = np.array(pos) * scale_factor
 
-    ch_pos = dict(zip(ch_names_, pos))
+    ch_pos = OrderedDict(zip(ch_names_, pos))
     _ = [ch_pos.pop(n, None) for n in fid_names]
 
     return make_dig_montage(ch_pos=ch_pos, coord_frame='head')
