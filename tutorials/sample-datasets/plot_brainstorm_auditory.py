@@ -289,9 +289,7 @@ cov.plot(raw_erm.info)
 del raw_erm
 
 ###############################################################################
-# The transformation is read from a file. More information about coregistering
-# the data, see :ref:`c_legacy_ch_interactive_analysis` or
-# :func:`mne.gui.coregistration`.
+# The transformation is read from a file:
 trans_fname = op.join(data_path, 'MEG', 'bst_auditory',
                       'bst_auditory-trans.fif')
 trans = mne.read_trans(trans_fname)

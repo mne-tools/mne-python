@@ -710,7 +710,7 @@ plt.show()
 # a high-pass, it is important to keep in mind (as most authors note) that
 # filtering choices should depend on the frequency content of both the
 # signal(s) of interest and the noise to be suppressed. For example, in
-# some of the MNE-Python examples involving :ref:`ch_sample_data`,
+# some of the MNE-Python examples involving :ref:`sample-data`,
 # high-pass values of around 1 Hz are used when looking at auditory
 # or visual N100 responses, because we analyze standard (not deviant) trials
 # and thus expect that contamination by later or slower components will

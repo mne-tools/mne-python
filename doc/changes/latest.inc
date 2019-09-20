@@ -174,6 +174,12 @@ API
 
 - Deprecate ``mne.channels.Montage`` class and ``mne.channels.read_montage`` function by `Joan Massich`_.
 
+- Deprecate passing ``Montage``, ``str`` as montage parameter in :meth:`mne.io.Raw.set_montage` by `Joan Massich`_.
+
+- Deprecate ``set_dig`` parameter in :meth:`mne.io.Raw.set_montage` and ``update_ch_names`` in ``mne.io.RawEEGLAB.set_montage`` when using :class:`mne.channels.DigMontage` as  by `Joan Massich`_.
+
+- Now :meth:`mne.io.Raw.set_montage` raises an error when :class:`mne.channels.DigMontage` contains only a subset of the channels in ``raw.info``. It also adds ``raise_if_subset`` parameter to ensure backward compatibility (defaults to False in 0.19, to True in 0.20, and will be removed in 0.21) by `Joan Massich`_.
+
 - Minimum dependency versions for the following libraries have been bumped up (by `Eric Larson`_):
 
   - NumPy: 1.12.1
@@ -216,6 +222,6 @@ API
 
 - :func:`mne.io.read_raw_brainvision` no longer raises an error when there are inconsistencies between ``info['chs']`` and ``montage`` but warns instead by `Joan Massich`_
 
-- Add ``update_ch_names`` parameter to :meth:`mne.io.Raw.set_montage` to allow updating the channel names based on the montage by `Joan Massich`_
+- Add ``update_ch_names`` parameter to ``mne.io.RawEEGLAB.set_montage`` to allow updating the channel names based on the montage by `Joan Massich`_
 
 - Reading annotations contained in GDF files with :func:`mne.io.read_raw_gdf` now returns numeric event codes as descriptions (instead of textual descriptions) due to restrictive licensing of the GDF event code table from BioSig by `Clemens Brunner`_

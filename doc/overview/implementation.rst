@@ -44,3 +44,21 @@ Supported data formats
 
 .. include:: ../_includes/data_formats.rst
    :start-after: data-formats-begin-content
+
+
+Mathematics and algorithms
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For more detailed information about mathematics and algorithms in MNE, see:
+
+.. toctree::
+
+   algorithms/channel_interpolation.rst
+   algorithms/time_frequency.rst
+   algorithms/maxwell.rst
+   algorithms/ssp.rst
+   algorithms/memory.rst
+   algorithms/bem_model.rst
+   algorithms/forward.rst
+   algorithms/inverse.rst
+   algorithms/morph.rst

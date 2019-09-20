@@ -50,11 +50,10 @@ def test_plot_montage():
     # plt.close('all')
 
 
-@pytest.mark.parametrize('name, n',
-                         [('standard_1005', 342),
-                          ('standard_postfixed', 85),
-                          ('standard_primed', 85),
-                          ('standard_1020', 93)])
+@pytest.mark.parametrize('name, n', [
+    ('standard_1005', 342), ('standard_postfixed', 85),
+    ('standard_primed', 85), ('standard_1020', 93)
+])
 def test_plot_defect_montage(name, n):
     """Test plotting defect montages (i.e. with duplicate labels)."""
     # montage name and number of unique labels
@@ -69,6 +68,9 @@ def test_plot_defect_montage(name, n):
 
 def test_plot_digmontage():
     """Test plot DigMontage."""
-    montage = make_dig_montage(ch_pos=dict(zip(list('abc'), np.eye(3))))
+    montage = make_dig_montage(
+        ch_pos=dict(zip(list('abc'), np.eye(3))),
+        coord_frame='head'
+    )
     montage.plot()
     plt.close('all')
