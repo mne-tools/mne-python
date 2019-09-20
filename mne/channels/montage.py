@@ -506,9 +506,12 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     read_dig_montage
 
     """
-    ch_names = None if ch_pos is None else list(ch_pos.keys())
-    if not isinstance(ch_pos, OrderedDict):
-        ch_names = sorted(ch_names)
+    if ch_pos is None:
+        ch_names = None
+    else:
+        ch_names = list(ch_pos.keys())
+        if not isinstance(ch_pos, OrderedDict):
+            ch_names = sorted(ch_names)
     dig = _make_dig_points(
         nasion=nasion, lpa=lpa, rpa=rpa, hpi=hpi, extra_points=hsp,
         dig_ch_pos=ch_pos, coord_frame=coord_frame
