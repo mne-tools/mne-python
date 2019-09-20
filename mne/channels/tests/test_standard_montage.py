@@ -12,6 +12,7 @@ from numpy.testing import assert_allclose
 
 from mne.channels import make_standard_montage
 from mne._digitization.base import _get_dig_eeg
+from mne._digitization._utils import _get_fid_coords
 from mne.channels.montage import get_builtin_montages
 from mne.io.constants import FIFF
 
@@ -20,12 +21,18 @@ EXPECTED_HEAD_SIZE = 0.085
 
 
 @pytest.mark.parametrize('kind', get_builtin_montages())
-def test_all_points_in_standard_montages_are_in_head_coord(kind):
+def test_standard_montages_are_in_head_coord_or_have_fids(kind):
     """Test standard montage are all in head coord."""
     montage = make_standard_montage(kind)
+    fids, coord_frame = _get_fid_coords(montage.dig)
+    expected_coord = FIFF.FIFFV_COORD_UNKNOWN
+    for v in fids.values():
+        if v is None:
+            expected_coord = FIFF.FIFFV_COORD_HEAD
+            break
+
     for d in montage.dig:
-        assert d['coord_frame'] in (FIFF.FIFFV_COORD_HEAD,
-                                    FIFF.FIFFV_COORD_UNKNOWN)
+        assert d['coord_frame'] == expected_coord
 
 
 def test_standard_montage_errors():
