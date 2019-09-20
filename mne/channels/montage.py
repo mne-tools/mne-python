@@ -36,7 +36,7 @@ from .._digitization._utils import (_make_dig_points, _read_dig_points,
 from ..io.pick import pick_types
 from ..io.open import fiff_open
 from ..io.constants import FIFF
-from ..utils import (warn, copy_function_doc_to_method_doc,
+from ..utils import (warn, logger, copy_function_doc_to_method_doc,
                      _check_option, Bunch, deprecated, _validate_type,
                      _check_fname)
 from .._digitization._utils import _get_fid_coords, _foo_get_data_from_dig
@@ -99,11 +99,11 @@ def _check_ch_names_are_compatible(info_names, montage_names, raise_if_subset):
         pass  # noqa
 
     if len(not_in_info):  # Montage is superset of info
-        warn(('DigMontage is a superset of info.'
-              ' {n_ch} in DigMontage will be ignored.'
-              ' The ignored channels are: {ch_names}'
-              ).format(n_ch=len(not_in_info), ch_names=not_in_info),
-             RuntimeWarning)
+        logger.info((
+            'DigMontage is a superset of info. {n_ch} in DigMontage will be'
+            ' ignored. The ignored channels are: {ch_names}'
+        ).format(n_ch=len(not_in_info), ch_names=not_in_info))
+
     else:
         pass  # noqa
 
