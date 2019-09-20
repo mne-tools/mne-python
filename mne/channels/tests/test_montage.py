@@ -1155,6 +1155,8 @@ def test_montage_when_reading_and_setting_more(read_raw, fname):
     loc = np.array([ch['loc'] for ch in raw_none_copy.info['chs']])
     assert_array_equal(loc, np.full_like(loc, np.NaN))
 
+# XXX: deprecated to remove in 0.20, we are testing DigMontages somewhere else
+#      plus the positions are off. They don't fit HEAD_SIZE_DEFAULT
 EXPECTED_DIG_RPR = [
     '<DigPoint |        LPA : (-6.7, 0.0, -3.3) mm      : head frame>',  # FidT9 [-6.711765    0.04040288 -3.25160035]  # noqa
     '<DigPoint |     Nasion : (0.0, 9.1, -2.4) mm       : head frame>',  # FidNz [ 0.          9.07158515 -2.35975445]  # noqa
@@ -1196,7 +1198,8 @@ EXPECTED_DIG_RPR = [
 
 def test_setting_hydrocel_montage():
     """Test set_montage using GSN-HydroCel-32."""
-    montage = read_montage('GSN-HydroCel-32')
+    with pytest.deprecated_call():
+        montage = read_montage('GSN-HydroCel-32')
     ch_names = [name for name in montage.ch_names if name.startswith('E')]
     montage.pos /= 1e3
 
@@ -1490,14 +1493,16 @@ def test_read_dig_polhemus_fastscan():
 
 def test_read_standard_montage():
     """Test reading EEGLAB locations data."""
-    old = read_montage(locs_montage_fname)
-    new = read_standard_montage(locs_montage_fname)
+    with pytest.deprecated_call():
+        old = read_montage(locs_montage_fname)
+        info_old = create_info(old.ch_names, sfreq=1, ch_types='eeg',
+                               montage=old)
 
-    info_old = create_info(old.ch_names, sfreq=1, ch_types='eeg', montage=old)
+    new = read_standard_montage(locs_montage_fname)
     info_new = create_info(new.ch_names, sfreq=1, ch_types='eeg', montage=new)
 
     for actual, expected in zip(info_new['chs'], info_old['chs']):
-        assert_allclose(actual['loc'], expected['loc'])
+        assert_allclose(actual['loc'][:6], expected['loc'][:6])
 
 
 run_tests_if_main()
