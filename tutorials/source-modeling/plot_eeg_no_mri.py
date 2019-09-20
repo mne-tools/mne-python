@@ -8,11 +8,9 @@ EEG forward operator with a template MRI
 This tutorial explains how to compute the forward operator from EEG data
 using the standard template MRI subject ``fsaverage``.
 
-.. important:: Source reconstruction without an individual T1 MRI from the
-               subject will be less accurate. Do not over interpret
-               activity locations which can be off by multiple centimeters.
-
-.. note:: :ref:`plot_montage` show all the standard montages in MNE-Python.
+.. caution:: Source reconstruction without an individual T1 MRI from the
+             subject will be less accurate. Do not over interpret
+             activity locations which can be off by multiple centimeters.
 
 .. contents:: This tutorial covers:
    :local:
@@ -46,6 +44,9 @@ bem = op.join(fs_dir, 'bem', 'fsaverage-5120-5120-5120-bem-sol.fif')
 # -------------
 #
 # We use here EEG data from the BCI dataset.
+#
+# .. note:: See :ref:`plot_montage` to view all the standard EEG montages
+#           available in MNE-Python.
 
 raw_fname, = eegbci.load_data(subject=1, runs=[6])
 raw = mne.io.read_raw_edf(raw_fname, preload=True)
@@ -58,7 +59,7 @@ new_names = dict(
 raw.rename_channels(new_names)
 
 # Read and set the EEG electrode locations
-montage = mne.channels.make_standard_montage('standard_1005')
+montage = mne.channels.make_standard_montage('standard_1020')
 
 raw.set_montage(montage)
 raw.set_eeg_reference(projection=True)  # needed for inverse modeling

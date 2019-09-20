@@ -29,8 +29,7 @@ def _egi_256(head_size):
     pos = np.stack([xs, ys, zs], axis=-1)
 
     # Fix pos to match Montage code
-    pos /= np.median(np.linalg.norm(pos, axis=1))
-    pos *= head_size
+    pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
 
     # For this cap, the Nasion is the frontmost electrode,
     # LPA/RPA we approximate by putting 75% of the way (toward the front)
@@ -79,9 +78,14 @@ def _hydrocel(basename, head_size):
     ch_names, xs, ys, zs = _safe_np_loadtxt(fname, **options)
 
     pos = np.stack([xs, ys, zs], axis=-1)
-    pos *= head_size / np.median(np.linalg.norm(pos, axis=-1))
     ch_pos = OrderedDict(zip(ch_names, pos))
-    nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
+    nasion, lpa, rpa = [ch_pos.pop(n) for n in fid_names]
+    scale = head_size / np.median(np.linalg.norm(pos, axis=-1))
+    for value in ch_pos.values():
+        value *= scale
+    nasion *= scale
+    lpa *= scale
+    rpa *= scale
 
     return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
                             nasion=nasion, rpa=rpa, lpa=lpa)
@@ -111,7 +115,7 @@ def _biosemi(basename, head_size):
     ))
 
     ch_pos = OrderedDict(zip(ch_names, pos))
-    nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
+    nasion, lpa, rpa = [ch_pos.pop(n) for n in fid_names]
 
     return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
                             nasion=nasion, lpa=lpa, rpa=rpa)
@@ -138,11 +142,14 @@ def _mgh_or_standard(basename, head_size):
             ch_names_.append(line.strip(' ').strip('\n'))
 
     pos = np.array(pos)
-    pos /= np.median(np.linalg.norm(pos, axis=-1))
-    pos *= head_size
-
     ch_pos = OrderedDict(zip(ch_names_, pos))
-    nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
+    nasion, lpa, rpa = [ch_pos.pop(n) for n in fid_names]
+    scale = head_size / np.median(np.linalg.norm(pos, axis=1))
+    for value in ch_pos.values():
+        value *= scale
+    nasion *= scale
+    lpa *= scale
+    rpa *= scale
 
     return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
                             nasion=nasion, lpa=lpa, rpa=rpa)

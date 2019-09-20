@@ -841,6 +841,7 @@ class DigMontage(object):
 
     def _get_ch_pos(self):
         pos = [d['r'] for d in _get_dig_eeg(self.dig)]
+        assert len(self.ch_names) == len(pos)
         return dict(zip(self.ch_names, pos))
 
     def _get_dig_names(self):

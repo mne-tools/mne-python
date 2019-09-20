@@ -7,6 +7,7 @@
 #
 # License: BSD (3-clause)
 
+from collections import OrderedDict
 import datetime
 import os.path as op
 import re
@@ -337,7 +338,9 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                         'kind': FIFF.FIFFV_POINT_EXTRA,
                         'coord_frame': coord_frame})
     if dig_ch_pos is not None:
-        keys = sorted(dig_ch_pos.keys())
+        keys = dig_ch_pos.keys()
+        if not isinstance(dig_ch_pos, OrderedDict):
+            keys = sorted(keys)
         try:  # use the last 3 as int if possible (e.g., EEG001->1)
             idents = []
             for key in keys:
