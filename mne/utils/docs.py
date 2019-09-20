@@ -230,7 +230,7 @@ exclude_frontal : bool
     (below the nasion) and positivy Y values (in front of the LPA/RPA).
 """
 docdict['trans'] = """
-trans : str | dict | instance of Transformation | None
+trans : str | dict | instance of Transform | None
     If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
     during coregistration. Can also be ``'fsaverage'`` to use the built-in
     fsaverage transformation. If trans is None, an identity matrix is assumed.
