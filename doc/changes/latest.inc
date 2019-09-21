@@ -91,6 +91,8 @@ Changelog
 
 - Add support for median averaging and for returning unaggregated segments in :func:`mne.time_frequency.psd_welch` by `Richard Höchenberger`_
 
+- :func:`io.read_raw_kit`: add support for NYU New York 2019 system update, by `Christian Brodbeck`_
+
 
 Bug
 ~~~
@@ -215,3 +217,5 @@ API
 - Add ``update_ch_names`` parameter to :meth:`mne.io.Raw.set_montage` to allow updating the channel names based on the montage by `Joan Massich`_
 
 - Reading annotations contained in GDF files with :func:`mne.io.read_raw_gdf` now returns numeric event codes as descriptions (instead of textual descriptions) due to restrictive licensing of the GDF event code table from BioSig by `Clemens Brunner`_
+
+- :func:`channels.find_ch_connectivity` now returns pre-built neighbor maps for KIT systems when available, by `Christian Brodbeck`_
