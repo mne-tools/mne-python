@@ -558,7 +558,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         # unit used for montages in MNE
         montage_pos = np.array(montage_pos) / 1e3
         montage = make_dig_montage(
-            ch_names=dict(zip(montage_names, montage_pos)),
+            ch_pos=dict(zip(montage_names, montage_pos)),
             coord_frame='head'
         )
         if len(to_misc) > 0:

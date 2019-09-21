@@ -1761,12 +1761,11 @@ def _read_eeglab_locations(fname, unit):
 
 
 def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
-    """Read an EEGLAB digitization file.
+    """Read a standard montage file containing polar coordinates.
 
     Parameters
     ----------
     fname : str
-        The filepath of Polhemus ISOTrak formatted file.
         File extension is expected to be '.loc', '.locs' or '.eloc'.
     head_size : float
         The size of the head in [m].
