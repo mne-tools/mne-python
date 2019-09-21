@@ -1466,7 +1466,9 @@ def _set_montage(info, montage, update_ch_names=DEPRECATED_PARAM,
                 return np.concatenate((pos, ref_pos))
 
         ch_pos = _mnt._get_ch_pos()
-        eeg_ref_pos = ch_pos.pop('EEG000', np.zeros(3))
+        refs = set(ch_pos.keys()) & {'EEG000', 'REF'}
+        assert len(refs) <= 1
+        eeg_ref_pos = np.zeros(3) if not(refs) else ch_pos.pop(refs.pop())
 
         # This raises based on info being subset/superset of montage
         _pick_chs = partial(
@@ -1486,7 +1488,7 @@ def _set_montage(info, montage, update_ch_names=DEPRECATED_PARAM,
             _names = _mnt._get_dig_names()
             info['dig'] = _format_dig_points([
                 _mnt.dig[ii] for ii, name in enumerate(_names)
-                if name in matched_ch_names.union({None, 'EEG000'})
+                if name in matched_ch_names.union({None, 'EEG000', 'REF'})
             ])
 
         if _mnt.dev_head_t is not None:
