@@ -158,7 +158,7 @@ def load_data(subject, path=None, force_update=False, update_path=None,
 
     Returns
     -------
-    epochs : MNE Epochs data structure
+    epochs : instance of Epochs
         The epochs.
     """  # noqa: E501
     pd = _check_pandas_installed()
@@ -204,7 +204,7 @@ def load_data(subject, path=None, force_update=False, update_path=None,
     # get montage
     montage = make_standard_montage('biosemi128')
     # add external electrodes (e.g., eogs)
-    ch_names = montage.ch_names[:-3] + ['EXG1', 'EXG2', 'EXG3', 'EXG4']
+    ch_names = montage.ch_names + ['EXG1', 'EXG2', 'EXG3', 'EXG4']
     # match individual labels to labels in montage
     found_inds = [ind for ind, name in enumerate(ch_names) if name in labels]
     missing_chans = [name for name in ch_names if name not in labels]

@@ -32,7 +32,7 @@ from ..source_space import _ensure_src, _create_surf_spacing, _check_spacing
 from ..surface import (get_meg_helmet_surf, read_surface, _DistanceQuery,
                        transform_surface_to, _project_onto_surface,
                        mesh_edges, _reorder_ccw, _complete_sphere_surf)
-from ..transforms import (read_trans, _find_trans, apply_trans, rot_to_quat,
+from ..transforms import (_find_trans, apply_trans, rot_to_quat,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform,
                           _read_ras_mni_t, _print_coord_trans)
@@ -526,10 +526,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     info : dict | None
         The measurement info.
         If None (default), no sensor information will be shown.
-    trans : str | 'auto' | dict | None
-        The full path to the head<->MRI transform ``*-trans.fif`` file
-        produced during coregistration. If trans is None, an identity matrix
-        is assumed.
+    %(trans)s
     subject : str | None
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT. Can be omitted if ``src`` is provided.
@@ -707,27 +704,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     ecog_picks = pick_types(info, meg=False, ecog=True, ref_meg=False)
     seeg_picks = pick_types(info, meg=False, seeg=True, ref_meg=False)
 
-    if trans is None:
-        trans = Transform('head', 'mri')
-    elif not isinstance(trans, Transform):
-        if trans == 'auto':
-            # let's try to do this in MRI coordinates so they're easy to plot
-            subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-            trans = _find_trans(subject, subjects_dir)
-        _validate_type(trans, 'path-like', 'trans', 'str, Transform, or None')
-        trans = read_trans(trans, return_all=True)
-        for ti, trans in enumerate(trans):  # we got at least 1
-            try:
-                trans = _ensure_trans(trans, 'head', 'mri')
-            except Exception:
-                if ti == len(trans) - 1:
-                    raise
-            else:
-                break
-    head_mri_t = _ensure_trans(trans, 'head', 'mri')
-    dev_head_t = info['dev_head_t']
-    if dev_head_t is None:
-        dev_head_t = Transform('meg', 'head')
+    if trans == 'auto':
+        # let's try to do this in MRI coordinates so they're easy to plot
+        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        trans = _find_trans(subject, subjects_dir)
+    head_mri_t, _ = _get_trans(trans, 'head', 'mri')
+    dev_head_t, _ = _get_trans(info['dev_head_t'], 'meg', 'head')
     del trans
 
     # Figure out our transformations
@@ -1005,11 +987,15 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
             raise ValueError("dig needs to be True, False or 'fiducials', "
                              "not %s" % repr(dig))
         else:
-            hpi_loc = np.array([d['r'] for d in (info['dig'] or [])
-                                if d['kind'] == FIFF.FIFFV_POINT_HPI])
-            ext_loc = np.array([d['r'] for d in (info['dig'] or [])
-                                if d['kind'] == FIFF.FIFFV_POINT_EXTRA])
-        car_loc = _fiducial_coords(info['dig'])
+            hpi_loc = np.array([
+                d['r'] for d in (info['dig'] or [])
+                if (d['kind'] == FIFF.FIFFV_POINT_HPI and
+                    d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)])
+            ext_loc = np.array([
+                d['r'] for d in (info['dig'] or [])
+                if (d['kind'] == FIFF.FIFFV_POINT_EXTRA and
+                    d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)])
+        car_loc = _fiducial_coords(info['dig'], FIFF.FIFFV_COORD_HEAD)
         # Transform from head coords if necessary
         if coord_frame == 'meg':
             for loc in (hpi_loc, ext_loc, car_loc):
@@ -1050,7 +1036,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                         opacity=alphas['lh'])
     if show_axes:
         axes = [(head_trans, (0.9, 0.3, 0.3))]  # always show head
-        if not np.allclose(mri_trans['trans'], np.eye(4)):  # Show MRI
+        if not np.allclose(head_mri_t['trans'], np.eye(4)):  # Show MRI
             axes.append((mri_trans, (0.6, 0.6, 0.6)))
         if len(meg_picks) > 0:  # Show MEG
             axes.append((meg_trans, (0., 0.6, 0.6)))

@@ -438,6 +438,9 @@ def _get_trans(trans, fro='mri', to='head'):
     """Get mri_head_t (from=mri, to=head) from mri filename."""
     if _check_path_like(trans):
         trans = str(trans)
+        if trans == 'fsaverage':
+            trans = op.join(op.dirname(__file__), 'data', 'fsaverage',
+                            'fsaverage-trans.fif')
         if not op.isfile(trans):
             raise IOError('trans file "%s" not found' % trans)
         if op.splitext(trans)[1] in ['.fif', '.gz']:

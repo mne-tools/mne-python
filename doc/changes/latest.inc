@@ -129,11 +129,15 @@ Bug
 
 - Fix scaling issue with signals in mV in EDF files read with :func:`mne.io.read_raw_edf` by `Alex Gramfort`_
 
+- Fix :func:`mne.extract_label_time_course` behavior when using STCs generated with ``apply_inverse(..., label=label)`` or ``stc.in_label`` by `Eric Larson`_
+
 - Fix bug in :func:`mne.io.read_raw_brainvision` so that recording date timestamps are also recognized if channel reference data is negative, by `Stefan Appelhoff`_
 
 - Fix order of ``info['dig']`` that was alphabetical based on channel names and not following the channel order when using :meth:`mne.io.Raw.set_montage` and a :class:`mne.channels.Montage` object by `Joan Massich`_ and `Alex Gramfort`_.
 
 - Fix reading CNT files larger than 2Gb by `Joan Massich`_
+
+- Fix reading of 4D/BTi data with different channel names and onsets in :func:`mne.io.read_raw_bti` by `Joshua Bear`_ and `Eberhard Eich`_
 
 - Fix formula for effective number of averages in :func:`mne.combine_evoked` when ``weights='equal'`` by `Daniel McCloy`_.
 

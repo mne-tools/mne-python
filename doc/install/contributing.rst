@@ -33,6 +33,14 @@ shared "upstream" version of the codebase.
 Users and contributors to MNE-Python are expected to follow our `code of
 conduct`_.
 
+.. collapse:: |rocket| Want an example to work through?
+   :class: success
+
+   A great way to learn to contribute is to work through an actual example
+   We recommend that you take a look at the `GitHub issues marked "easy"`_,
+   pick one that looks interesting, and work through it while reading this
+   guide!
+
 .. _`opening an issue`: https://github.com/mne-tools/mne-python/issues/new/choose
 .. _`MNE mailing list`: http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
 .. _`MNE gitter channel`: https://gitter.im/mne-tools/mne-python
@@ -43,7 +51,7 @@ conduct`_.
 .. _`pull request`: https://help.github.com/en/articles/creating-a-pull-request-from-a-fork
 
 .. _`code of conduct`: https://github.com/mne-tools/mne-python/blob/master/CODE_OF_CONDUCT.md
-
+.. _`GitHub issues marked "easy"`:
 
 Overview of contribution process
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
