@@ -2585,7 +2585,7 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty):
             # So if we override vertno with the stc vertices, it will pick
             # the correct normals.
             with _temporary_vertices(src, stc.vertices):
-                this_flip = label_sign_flip(label, src)[:, None]
+                this_flip = label_sign_flip(label, src[:2])[:, None]
 
         label_vertidx.append(this_vertidx)
         label_flip.append(this_flip)
