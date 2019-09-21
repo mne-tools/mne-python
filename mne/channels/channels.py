@@ -1161,8 +1161,6 @@ def find_ch_connectivity(info, ch_type):
     you want to load a template for a given montage use
     :func:`read_ch_connectivity` directly.
     """
-    from ..io.kit.constants import KIT_NEIGHBORS
-
     if ch_type is None:
         picks = channel_indices_by_type(info)
         if sum([len(p) != 0 for p in picks.values()]) != 1:
@@ -1203,6 +1201,7 @@ def find_ch_connectivity(info, ch_type):
         else:
             conn_name = 'ctf151'
     elif n_kit_grads > 0:
+        from ..io.kit.constants import KIT_NEIGHBORS
         conn_name = KIT_NEIGHBORS.get(info['kit_system_id'])
 
     if conn_name is not None:
