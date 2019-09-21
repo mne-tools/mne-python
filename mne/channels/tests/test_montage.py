@@ -1619,6 +1619,7 @@ def test_read_dig_polhemus_fastscan():
     )
 
 
+@testing.requires_testing_data
 def test_read_standard_montage():
     """Test reading EEGLAB locations data."""
     with pytest.deprecated_call():
