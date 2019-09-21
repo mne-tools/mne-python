@@ -186,7 +186,7 @@ def get_builtin_montages():
 
 @deprecated(
     '``read_montage`` is deprecated and will be removed in v0.20. Please use'
-    ' ``read_dig_fif``, ``read_dig_egi``, ``read_dig_eeglab``,'
+    ' ``read_dig_fif``, ``read_dig_egi``, ``read_standard_montage``,'
     ' or ``read_dig_captrack``'
     ' to read a digitization based on your needs instead;'
     ' or ``make_standard_montage`` to create ``DigMontage`` based on template;'
@@ -1332,7 +1332,7 @@ def _set_montage_deprecation_helper(
             'Using str in montage different from the built in templates '
             ' (i.e. a path) is deprecated. Please choose the proper reader to'
             ' load your montage using: '
-            ' ``read_dig_fif``, ``read_dig_egi``, ``read_dig_eeglab``,'
+            ' ``read_dig_fif``, ``read_dig_egi``, ``read_standard_montage``,'
             ' or ``read_dig_captrack``'
         ), DeprecationWarning)
     elif not (isinstance(montage, str) or montage is None):  # Montage
@@ -1340,7 +1340,7 @@ def _set_montage_deprecation_helper(
             'Setting a montage using anything rather than DigMontage'
             ' is deprecated and will raise an error in v0.20.'
             ' Please use ``read_dig_fif``, ``read_dig_egi``,'
-            ' ``read_dig_eeglab``, or ``read_dig_captrack``'
+            ' ``read_standard_montage``, or ``read_dig_captrack``'
             ' to read a digitization based on your needs instead;'
             ' or ``make_standard_montage`` to create ``DigMontage`` based on'
             ' template; or ``make_dig_montage`` to create a ``DigMontage`` out'
@@ -1916,38 +1916,3 @@ def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
                          'among: %s' % (kind,
                                         standard_montage_look_up_table.keys()))
     return standard_montage_look_up_table[kind](head_size=head_size)
-
-
-def read_dig_eeglab(fname):
-    """Read an EEGLAB digitization file.
-
-    Parameters
-    ----------
-    fname : str
-        The filepath of Digitization EEGLAB formatted file.
-        File extension is expected to be '.loc', '.locs' or '.eloc'.
-
-    Returns
-    -------
-    montage : instance of DigMontage
-        The montage.
-
-    See Also
-    --------
-    make_dig_montage
-    """
-    VALID_FILE_EXT = ('.loc', '.locs', '.eloc')
-
-    _, ext = op.splitext(fname)
-    _check_option('fname', ext, VALID_FILE_EXT)
-    _check_fname(fname, overwrite='read', must_exist=True)
-
-    ch_names = np.genfromtxt(fname, dtype=str, usecols=3).tolist()
-    topo = np.loadtxt(fname, dtype=float, usecols=[1, 2])
-    sph = _topo_to_sph(topo)
-    pos = _sph_to_cart(sph)
-    pos[:, [0, 1]] = pos[:, [1, 0]] * [-1, 1]
-
-    # XXX: This is not a valid DigMontage. Whatever we are parsing is mapped
-    #      to radius 1 sphere
-    return make_dig_montage(ch_pos=dict(zip(ch_names, pos)))

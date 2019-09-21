@@ -22,13 +22,12 @@ from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
 from mne.channels import (read_montage, read_dig_montage,
                           get_builtin_montages, DigMontage,
                           read_dig_egi, read_dig_captrack, read_dig_fif,
-                          read_dig_eeglab, make_standard_montage)
-from mne.channels.montage import _set_montage, make_dig_montage
-from mne.channels.montage import transform_to_head, read_standard_montage
-from mne.channels import read_polhemus_fastscan, read_dig_polhemus_isotrak
-from mne.channels import compute_dev_head_t
-
-from mne.channels.montage import read_dig_polhemus_fastscan
+                          make_standard_montage, read_standard_montage,
+                          compute_dev_head_t, make_dig_montage,
+                          read_dig_polhemus_fastscan,
+                          read_dig_polhemus_isotrak,
+                          read_polhemus_fastscan)
+from mne.channels.montage import _set_montage, transform_to_head
 
 from mne.channels._dig_montage_utils import _transform_to_head_call
 from mne.channels._dig_montage_utils import _fix_data_fiducials
@@ -392,18 +391,16 @@ def test_montage():
 @testing.requires_testing_data
 def test_read_locs():
     """Test reading EEGLAB locs."""
-    data = read_dig_eeglab(locs_montage_fname)._get_ch_pos()
+    data = read_standard_montage(locs_montage_fname)._get_ch_pos()
     assert_allclose(
         actual=np.stack(
             [data[kk] for kk in ('FPz', 'EOG1', 'F3', 'Fz')]  # 4 random chs
         ),
-        desired=[
-            [0., 9.99779165e-01, -2.10157875e-02],
-            [3.08738197e-01, 7.27341573e-01, -6.12907052e-01],
-            [-5.67059636e-01, 6.77066318e-01, 4.69067752e-01],
-            [0., 7.14575231e-01, 6.99558616e-01]
-        ],
-        atol=1e-7
+        desired=[[0., 0.094979, -0.001996],
+                 [0.02933, 0.069097, -0.058226],
+                 [-0.053871, 0.064321, 0.044561],
+                 [0., 0.067885, 0.066458]],
+        atol=1e-6
     )
 
 
