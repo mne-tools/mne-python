@@ -46,6 +46,7 @@ KIT.FLL_SETTINGS = {
     50: (2, 1, 1),  # Hanger Type #3
     60: (2, 1, 1),  # Hanger Type #3
     100: (3, 3, 3),  # Low Band Kapper Type
+    120: (3, 3, 3),  # Low Band Kapper Type
     200: (4, 4, 3),  # High Band Kapper Type
 }
 
