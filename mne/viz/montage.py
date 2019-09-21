@@ -3,6 +3,7 @@ from copy import deepcopy
 import numpy as np
 from ..utils import check_version, logger, _check_option
 from . import plot_sensors
+from .._digitization._utils import _get_fid_coords
 
 
 def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
@@ -76,7 +77,9 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
             montage.selection = np.arange(n_chans - n_dupes)
         else:
             ch_pos = dict(zip(ch_names, pos[idx, :]))
-            montage = make_dig_montage(ch_pos=ch_pos)
+            # XXX: this might cause trouble if montage was originally in head
+            fid, _ = _get_fid_coords(montage.dig)
+            montage = make_dig_montage(ch_pos=ch_pos, **fid)
 
     info = create_info(ch_names, sfreq=256, ch_types="eeg", montage=montage)
     fig = plot_sensors(info, kind=kind, show_names=show_names, show=show,

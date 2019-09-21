@@ -27,8 +27,8 @@ from mne.channels import (read_montage, read_dig_montage,
                           read_dig_polhemus_fastscan,
                           read_dig_polhemus_isotrak,
                           read_polhemus_fastscan)
-from mne.channels.montage import _set_montage, transform_to_head
-
+from mne.channels.montage import (_set_montage, transform_to_head,
+                                  HEAD_SIZE_DEFAULT)
 from mne.channels._dig_montage_utils import _transform_to_head_call
 from mne.channels._dig_montage_utils import _fix_data_fiducials
 from mne.utils import (_TempDir, run_tests_if_main, assert_dig_allclose,
@@ -1492,7 +1492,7 @@ def test_read_standard_montage():
     """Test reading EEGLAB locations data."""
     with pytest.deprecated_call():
         old = read_montage(locs_montage_fname)
-    old.pos *= 0.085  # read_montage was not scaling for loc files
+    old.pos *= HEAD_SIZE_DEFAULT  # read_montage was not scaling for loc files
 
     new = read_standard_montage(locs_montage_fname)
 
