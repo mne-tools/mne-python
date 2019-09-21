@@ -990,7 +990,7 @@ def test_read_dig_captrack(tmpdir):
         'AF3', 'AF4', 'AF7', 'AF8', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'CP1',
         'CP2', 'CP3', 'CP4', 'CP5', 'CP6', 'CPz', 'Cz', 'F1', 'F2', 'F3', 'F4',
         'F5', 'F6', 'F7', 'F8', 'FC1', 'FC2', 'FC3', 'FC4', 'FC5', 'FC6',
-        'FT10', 'FT7', 'FT8', 'FT9', 'Fp1', 'Fp2', 'Fz', 'O1', 'O2',
+        'FT10', 'FT7', 'FT8', 'FT9', 'Fp1', 'Fp2', 'Fz', 'GND', 'O1', 'O2',
         'Oz', 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'PO10', 'PO3',
         'PO4', 'PO7', 'PO8', 'PO9', 'POz', 'Pz', 'REF', 'T7', 'T8', 'TP10',
         'TP7', 'TP8', 'TP9'
@@ -1002,7 +1002,7 @@ def test_read_dig_captrack(tmpdir):
     assert montage.ch_names == EXPECTED_CH_NAMES
     assert montage.__repr__() == (
         '<DigMontage | '
-        '0 extras (headshape), 0 HPIs, 3 fiducials, 65 channels>'
+        '0 extras (headshape), 0 HPIs, 3 fiducials, 66 channels>'
     )
 
     montage = transform_to_head(montage)  # transform_to_head has to be tested

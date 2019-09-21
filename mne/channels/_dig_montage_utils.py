@@ -182,11 +182,6 @@ def _parse_brainvision_dig_montage(fname, scale=BACK_COMPAT):
     for s in sensors:
         name = s.find('Name').text
 
-        # Need to prune "GND". It is not the reference so
-        # it has not use.
-        if name == 'GND':
-            continue
-
         is_fid = name in FID_NAME_MAP
         coordinates = np.array([float(s.find('X').text),
                                 float(s.find('Y').text),
