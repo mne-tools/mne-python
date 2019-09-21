@@ -938,6 +938,16 @@ def test_egi_dig_montage():
     assert object_diff(dig_montage.ch_names, dig_montage_egi.ch_names) == ''
 
 
+def _pop_montage(dig_montage, ch_name):
+    # remove reference that was not used in old API
+    ref_idx = dig_montage.ch_names.index(ch_name)
+    n_fids = 3
+    del dig_montage.dig[ref_idx + n_fids]
+    del dig_montage.ch_names[ref_idx]
+    for k in range(ref_idx + n_fids, len(dig_montage.dig)):
+        dig_montage.dig[k]['ident'] -= 1
+
+
 @testing.requires_testing_data
 def test_bvct_dig_montage_old_api():  # XXX: to remove in 0.20
     """Test BrainVision CapTrak XML dig montage support."""
@@ -946,6 +956,9 @@ def test_bvct_dig_montage_old_api():  # XXX: to remove in 0.20
 
     with pytest.deprecated_call():
         dig_montage = read_dig_montage(bvct=bvct_dig_montage_fname)
+
+    _pop_montage(dig_montage, 'REF')
+    _pop_montage(dig_montage, 'GND')
 
     # test round-trip IO
     temp_dir = _TempDir()
@@ -973,6 +986,8 @@ def test_bvct_dig_montage_old_api():  # XXX: to remove in 0.20
         assert_equal(ch_raw['ch_name'], ch_test_raw['ch_name'])
         assert_equal(ch_raw['coord_frame'], FIFF.FIFFV_COORD_HEAD)
         assert_allclose(ch_raw['loc'][:3], ch_test_raw['loc'][:3], atol=1e-7)
+
+    assert_dig_allclose(raw_bv.info, test_raw_bv.info)
 
 
 @testing.requires_testing_data
@@ -1009,6 +1024,7 @@ def test_read_dig_captrack(tmpdir):
 
     raw_bv = read_raw_brainvision(bv_raw_fname)
     raw_bv.set_channel_types({"HEOG": 'eog', "VEOG": 'eog', "ECG": 'ecg'})
+
     raw_bv.set_montage(montage)
 
     test_raw_bv = read_raw_fif(bv_fif_fname)
