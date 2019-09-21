@@ -947,14 +947,6 @@ def test_bvct_dig_montage_old_api():  # XXX: to remove in 0.20
     with pytest.deprecated_call():
         dig_montage = read_dig_montage(bvct=bvct_dig_montage_fname)
 
-    # remove reference that was not used in old API
-    ref_idx = dig_montage.ch_names.index('REF')
-    n_fids = 3
-    del dig_montage.dig[ref_idx + n_fids]
-    del dig_montage.ch_names[ref_idx]
-    for k in range(ref_idx + n_fids, len(dig_montage.dig)):
-        dig_montage.dig[k]['ident'] -= 1
-
     # test round-trip IO
     temp_dir = _TempDir()
     fname_temp = op.join(temp_dir, 'bvct_test.fif')
