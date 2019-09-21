@@ -578,6 +578,27 @@ def test_extract_label_time_course():
     assert (x.size == 0)
 
 
+@testing.requires_testing_data
+def test_extract_label_time_course_equiv():
+    """Test extraction of label time courses from stc equivalences."""
+    label = read_labels_from_annot('sample', 'aparc', 'lh', regexp='transv',
+                                   subjects_dir=subjects_dir)
+    assert len(label) == 1
+    label = label[0]
+    inv = read_inverse_operator(fname_inv)
+    evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0].crop(0, 0.01)
+    stc = apply_inverse(evoked, inv, pick_ori='normal', label=label)
+    stc_full = apply_inverse(evoked, inv, pick_ori='normal')
+    stc_in_label = stc_full.in_label(label)
+    mean = stc.extract_label_time_course(label, inv['src'])
+    mean_2 = stc_in_label.extract_label_time_course(label, inv['src'])
+    assert_allclose(mean, mean_2)
+    inv['src'][0]['vertno'] = np.array([], int)
+    assert len(stc_in_label.vertices[0]) == 22
+    with pytest.raises(ValueError, match='22/22 left hemisphere.*missing'):
+        stc_in_label.extract_label_time_course(label, inv['src'])
+
+
 def _my_trans(data):
     """FFT that adds an additional dimension by repeating result."""
     data_t = fft(data)
