@@ -296,7 +296,8 @@ def test_find_ch_connectivity():
     pytest.raises(ValueError, find_ch_connectivity, raw.info, 'eog')
 
     raw_kit = read_raw_kit(fname_kit_157)
-    _, ch_names = find_ch_connectivity(raw_kit.info, 'mag')
+    neighb, ch_names = find_ch_connectivity(raw_kit.info, 'mag')
+    assert neighb.data.size == 1329
     assert ch_names[0] == 'MEG 001'
 
 
