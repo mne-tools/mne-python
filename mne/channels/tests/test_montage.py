@@ -980,9 +980,7 @@ def test_bvct_dig_montage_old_api():  # XXX: to remove in 0.20
                                    test_raw_bv.info['chs']):
         assert_equal(ch_raw['ch_name'], ch_test_raw['ch_name'])
         assert_equal(ch_raw['coord_frame'], FIFF.FIFFV_COORD_HEAD)
-        assert_allclose(ch_raw['loc'], ch_test_raw['loc'], atol=1e-7)
-
-    assert_dig_allclose(raw_bv.info, test_raw_bv.info)
+        assert_allclose(ch_raw['loc'][:3], ch_test_raw['loc'][:3], atol=1e-7)
 
 
 @testing.requires_testing_data
