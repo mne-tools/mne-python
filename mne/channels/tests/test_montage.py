@@ -947,6 +947,14 @@ def test_bvct_dig_montage_old_api():  # XXX: to remove in 0.20
     with pytest.deprecated_call():
         dig_montage = read_dig_montage(bvct=bvct_dig_montage_fname)
 
+    # remove reference that was not used in old API
+    ref_idx = dig_montage.ch_names.index('REF')
+    n_fids = 3
+    del dig_montage.dig[ref_idx + n_fids]
+    del dig_montage.ch_names[ref_idx]
+    for k in range(ref_idx + n_fids, len(dig_montage.dig)):
+        dig_montage.dig[k]['ident'] -= 1
+
     # test round-trip IO
     temp_dir = _TempDir()
     fname_temp = op.join(temp_dir, 'bvct_test.fif')
@@ -984,7 +992,7 @@ def test_read_dig_captrack(tmpdir):
         'AF3', 'AF4', 'AF7', 'AF8', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'CP1',
         'CP2', 'CP3', 'CP4', 'CP5', 'CP6', 'CPz', 'Cz', 'F1', 'F2', 'F3', 'F4',
         'F5', 'F6', 'F7', 'F8', 'FC1', 'FC2', 'FC3', 'FC4', 'FC5', 'FC6',
-        'FT10', 'FT7', 'FT8', 'FT9', 'Fp1', 'Fp2', 'Fz', 'GND', 'O1', 'O2',
+        'FT10', 'FT7', 'FT8', 'FT9', 'Fp1', 'Fp2', 'Fz', 'O1', 'O2',
         'Oz', 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'PO10', 'PO3',
         'PO4', 'PO7', 'PO8', 'PO9', 'POz', 'Pz', 'REF', 'T7', 'T8', 'TP10',
         'TP7', 'TP8', 'TP9'
@@ -996,7 +1004,7 @@ def test_read_dig_captrack(tmpdir):
     assert montage.ch_names == EXPECTED_CH_NAMES
     assert montage.__repr__() == (
         '<DigMontage | '
-        '0 extras (headshape), 0 HPIs, 3 fiducials, 66 channels>'
+        '0 extras (headshape), 0 HPIs, 3 fiducials, 65 channels>'
     )
 
     montage = transform_to_head(montage)  # transform_to_head has to be tested
@@ -1018,7 +1026,9 @@ def test_read_dig_captrack(tmpdir):
     # compare after set_montage using chs loc.
     for actual, expected in zip(raw_bv.info['chs'], test_raw_bv.info['chs']):
         assert_allclose(actual['loc'][:3], expected['loc'][:3])
-        assert_allclose(actual['loc'][:6], [-0.005103, 0.05395, 0.144622])
+        if actual['kind'] == FIFF.FIFFV_EEG_CH:
+            assert_allclose(actual['loc'][3:6],
+                            [-0.005103, 0.05395, 0.144622], rtol=1e-04)
 
 
 def test_set_montage():
