@@ -1684,11 +1684,6 @@ def read_dig_polhemus_fastscan(fname, unit='mm'):
     _, ext = op.splitext(fname)
     _check_option('fname', ext, VALID_FILE_EXT)
 
-    # if _get_polhemus_fastscan_header(fname).find('FastSCAN') == -1:
-    #     raise ValueError(
-    #         "%s does not contain Polhemus FastSCAN header" % fname
-    #     )
-
     options = dict(
         comments='#',
         ndmin=2,
@@ -1794,6 +1789,7 @@ def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
         'matlab': ('.csd', ),
         'asa electrode': ('.elc', ),
         'generic (Theta-phi in degrees)': ('.txt', ),
+        'legacy mne-c': ('.hpts', ),
     }
 
     _, ext = op.splitext(fname)
@@ -1826,6 +1822,9 @@ def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
             raise(ValueError,
                   "``head_size`` cannot be None for '{}'".format(ext))
         montage = _read_theta_phi_in_degrees(fname, head_size=head_size)
+
+    elif ext in SUPPORTED_FILE_EXT['legacy mne-c']:
+        montage = read_dig_polhemus_fastscan(fname, unit=unit)
 
     return montage
 

@@ -458,7 +458,7 @@ def test_montage():
         'elp', id='elp'),
 
     pytest.param(
-        partial(read_montage, unit='m'),
+        partial(read_standard_montage, head_size=None, unit='m'),
         ('eeg Fp1 -95.0 -3. -3.\n'
          'eeg AF7 -1 -1 -3\n'
          'eeg A3 -2 -2 2\n'
