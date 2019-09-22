@@ -1684,7 +1684,7 @@ def test_read_dig_polhemus_fastscan():
         op.dirname(_BRAINVISON_FILE), 'tests', 'data', 'test.hpts'
     )
 
-    montage = read_dig_polhemus_fastscan(fname)
+    montage = read_standard_montage(fname)
     assert montage.__repr__() == (
         '<DigMontage | '
         '5 extras (headshape), 0 HPIs, 3 fiducials, 34 channels>'

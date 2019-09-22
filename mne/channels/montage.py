@@ -17,8 +17,8 @@ import os
 import os.path as op
 import re
 from copy import deepcopy
-from itertools import takewhile
-from functools import partial, chain
+from itertools import takewhile, chain
+from functools import partial
 
 import numpy as np
 import xml.etree.ElementTree as ElementTree
