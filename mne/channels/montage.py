@@ -1798,8 +1798,12 @@ def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
 
     if ext in SUPPORTED_FILE_EXT['eeglab']:
         ch_names, pos = _read_eeglab_locations(fname, unit)
+        if head_size:
+            scale = head_size / np.median(np.linalg.norm(pos, axis=-1))
+            pos *= scale
+
         montage = make_dig_montage(
-            ch_pos=dict(zip(ch_names, pos * head_size)),
+            ch_pos=dict(zip(ch_names, pos)),
             coord_frame='head',
         )
 
