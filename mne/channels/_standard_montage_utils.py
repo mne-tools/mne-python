@@ -216,3 +216,18 @@ def _read_sfp(fname, head_size):  # XXX: hydrocel
 
     return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
                             nasion=nasion, rpa=rpa, lpa=lpa)
+
+
+def _read_csd(fname, head_size):
+    # Label, Theta, Phi, Radius, X, Y, Z, off sphere surface
+    options = dict(comments='//',
+                   dtype=(_str, 'f4', 'f4', 'f4', 'f4', 'f4', 'f4', 'f4'))
+    ch_names, _, _, _, xs, ys, zs, _ = _safe_np_loadtxt(fname, **options)
+    pos = np.stack([xs, ys, zs], axis=-1)
+
+    if head_size:
+        pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
+
+    return make_dig_montage(
+        ch_pos=OrderedDict(zip(ch_names, pos)),
+    )

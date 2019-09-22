@@ -400,7 +400,7 @@ def test_montage():
         'sfp', id='sfp'),
 
     pytest.param(
-        partial(read_standard_montage, unit='m'),
+        partial(read_standard_montage, head_size=None, unit='m'),
         ('1	       0	 0.50669	     FPz\n'
          '2	      23	 0.71	    	EOG1\n'
          '3	 -39.947	 0.34459	      F3\n'
@@ -410,15 +410,15 @@ def test_montage():
         'loc', id='EEGLAB'),
 
     pytest.param(
-        partial(read_montage, unit='m'),
+        partial(read_standard_montage, head_size=None, unit='m'),
         ('// MatLab   Sphere coordinates [degrees]         Cartesian coordinates\n'  # noqa: E501
          '// Label       Theta       Phi    Radius         X         Y         Z       off sphere surface\n'  # noqa: E501
          'E1      37.700     -14.000       1.000    0.7677    0.5934   -0.2419  -0.00000000000000011\n'  # noqa: E501
          'E3      51.700      11.000       1.000    0.6084    0.7704    0.1908   0.00000000000000000\n'  # noqa: E501
          'E31      90.000     -11.000       1.000    0.0000    0.9816   -0.1908   0.00000000000000000\n'  # noqa: E501
          'E61     158.000     -17.200       1.000   -0.8857    0.3579   -0.2957  -0.00000000000000022'),  # noqa: E501
-        [[0.0, 9.07159, -2.35975], [-6.71176, 0.0404, -3.2516],
-         [-5.83124, -4.49482, 4.95535], [0.0, 0.0, 8.89919]],
+        [[0.7677, 0.5934, -0.2419], [0.6084, 0.7704, 0.1908],
+         [0.0000, 0.9816, -0.1908], [-0.8857, 0.3579, -0.2957]],
         'csd', id='csd'),
 
     pytest.param(

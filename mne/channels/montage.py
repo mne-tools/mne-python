@@ -1786,23 +1786,28 @@ def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
     """
     from itertools import chain
     from ._standard_montage_utils import _read_sfp
-    FILE_EXT = {
+    from ._standard_montage_utils import _read_csd
+    SUPPORTED_FILE_EXT = {
         'eeglab': ('.loc', '.locs', '.eloc', ),
         'hydrocel': ('.sfp', ),
+        'matlab': ('.csd', ),
     }
 
     _, ext = op.splitext(fname)
-    _check_option('fname', ext, list(chain(*FILE_EXT.values())))
+    _check_option('fname', ext, list(chain(*SUPPORTED_FILE_EXT.values())))
 
-    if ext in FILE_EXT['eeglab']:
+    if ext in SUPPORTED_FILE_EXT['eeglab']:
         ch_names, pos = _read_eeglab_locations(fname, unit)
         montage = make_dig_montage(
             ch_pos=dict(zip(ch_names, pos * head_size)),
             coord_frame='head',
         )
 
-    if ext in FILE_EXT['hydrocel']:
+    if ext in SUPPORTED_FILE_EXT['hydrocel']:
         montage = _read_sfp(fname, head_size=head_size)
+
+    if ext in SUPPORTED_FILE_EXT['matlab']:
+        montage = _read_csd(fname, head_size=head_size)
 
     return montage
 
