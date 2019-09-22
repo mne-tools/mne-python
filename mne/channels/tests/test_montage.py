@@ -422,7 +422,7 @@ def test_montage():
         'csd', id='matlab'),
 
     pytest.param(
-        partial(read_montage, unit='m'),
+        partial(read_standard_montage, head_size=None, unit='mm'),
         ('# ASA electrode file\nReferenceLabel  avg\nUnitPosition    mm\n'
          'NumberPositions=    68\n'
          'Positions\n'

@@ -1785,12 +1785,12 @@ def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
     make_standard_montage
     """
     from itertools import chain
-    from ._standard_montage_utils import _read_sfp
-    from ._standard_montage_utils import _read_csd
+    from ._standard_montage_utils import _read_sfp, _read_csd, _read_elc
     SUPPORTED_FILE_EXT = {
         'eeglab': ('.loc', '.locs', '.eloc', ),
         'hydrocel': ('.sfp', ),
         'matlab': ('.csd', ),
+        'asa electrode': ('.elc', ),
     }
 
     _, ext = op.splitext(fname)
@@ -1807,11 +1807,14 @@ def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
             coord_frame='head',
         )
 
-    if ext in SUPPORTED_FILE_EXT['hydrocel']:
+    elif ext in SUPPORTED_FILE_EXT['hydrocel']:
         montage = _read_sfp(fname, head_size=head_size)
 
-    if ext in SUPPORTED_FILE_EXT['matlab']:
+    elif ext in SUPPORTED_FILE_EXT['matlab']:
         montage = _read_csd(fname, head_size=head_size)
+
+    elif ext in SUPPORTED_FILE_EXT['asa electrode']:
+        montage = _read_elc(fname, head_size=head_size)
 
     return montage
 

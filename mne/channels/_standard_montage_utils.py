@@ -231,3 +231,56 @@ def _read_csd(fname, head_size):
     return make_dig_montage(
         ch_pos=OrderedDict(zip(ch_names, pos)),
     )
+
+
+def _read_elc(fname, head_size):
+    """Read .elc files.
+
+    Parameters
+    ----------
+    fname : str
+        File extension is expected to be '.loc', '.locs' or '.eloc'.
+    head_size : float | None
+        The size of the head in [m]. If none, returns the values read from the
+        file with no modification.
+        Defaults to HEAD_SIZE_DEFAULT.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage in [m].
+    """
+    fid_names = ('Nz', 'LPA', 'RPA')
+
+    ch_names_, pos = [], []
+    with open(fname) as fid:
+        # _read_elc does require to detect the units. (see _mgh_or_standard)
+        for line in fid:
+            if 'UnitPosition' in line:
+                units = line.split()[1]
+                scale = dict(m=1., mm=1e-3)[units]
+                break
+        else:
+            raise RuntimeError('Could not detect units in file %s' % fname)
+        for line in fid:
+            if 'Positions\n' in line:
+                break
+        pos = []
+        for line in fid:
+            if 'Labels\n' in line:
+                break
+            pos.append(list(map(float, line.split())))
+        for line in fid:
+            if not line or not set(line) - {' '}:
+                break
+            ch_names_.append(line.strip(' ').strip('\n'))
+
+    pos = np.array(pos) * scale
+    if head_size:
+        pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
+
+    ch_pos = OrderedDict(zip(ch_names_, pos))
+    nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
+
+    return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
+                            nasion=nasion, lpa=lpa, rpa=rpa)
