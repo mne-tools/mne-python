@@ -354,3 +354,44 @@ def _read_brainvision(fname, head_size, unit):
         pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
 
     return make_dig_montage(ch_pos=OrderedDict(zip(ch_names, pos)))
+
+
+def _read_hpts(fname, _scale):
+    """Read historical .hpts mne-c files.
+
+    Parameters
+    ----------
+    fname : str
+        The filepath of .hpts file.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+
+    See Also
+    --------
+    read_dig_polhemus_isotrak
+    make_dig_montage
+    """
+
+    options = dict(
+        comments='#',
+        ndmin=2,
+        dtype={'names': ('kind', 'label', 'x', 'y', 'z'),
+               'formats': (object, object, 'f8', 'f8', 'f8')}
+    )
+    data = np.loadtxt(fname, **options)
+
+    fid = {
+        dd['label']: np.array(dd[['x', 'y', 'z']].tolist()) * _scale
+        for dd in data[data['kind'] == 'cardinal']
+    }
+    ch_pos = {
+        dd['label']: np.array(dd[['x', 'y', 'z']].tolist()) * _scale
+        for dd in data[data['kind'] == 'eeg']
+    }
+    hsp_data = data[data['kind'] == 'hpi']
+    hsp = np.stack([hsp_data[kk] for kk in 'xyz'], axis=-1) * _scale
+
+    return make_dig_montage(ch_pos=ch_pos, **fid, hsp=hsp)

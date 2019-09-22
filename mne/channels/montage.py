@@ -18,7 +18,7 @@ import os.path as op
 import re
 from copy import deepcopy
 from itertools import takewhile
-from functools import partial
+from functools import partial, chain
 
 import numpy as np
 import xml.etree.ElementTree as ElementTree
@@ -1656,56 +1656,6 @@ def _get_polhemus_fastscan_header(fname):
     return ''.join(header)
 
 
-def read_dig_polhemus_fastscan(fname, unit='mm'):
-    """Read Polhemus FastSCAN digitizer data from a ``.hpts`` file.
-
-    Parameters
-    ----------
-    fname : str
-        The filepath of .hpts Polhemus FastSCAN file.
-    unit : 'm' | 'cm' | 'mm'
-        Unit of the digitizer file. Polhemus FastSCAN systems data is usually
-        exported in millimeters. Defaults to 'mm'
-
-    Returns
-    -------
-    montage : instance of DigMontage
-        The montage.
-
-    See Also
-    --------
-    read_dig_polhemus_isotrak
-    make_dig_montage
-    """
-    VALID_FILE_EXT = ['.hpts']
-    VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
-    _scale = _check_unit_and_get_scaling(unit, VALID_SCALES)
-
-    _, ext = op.splitext(fname)
-    _check_option('fname', ext, VALID_FILE_EXT)
-
-    options = dict(
-        comments='#',
-        ndmin=2,
-        dtype={'names': ('kind', 'label', 'x', 'y', 'z'),
-               'formats': (object, object, 'f8', 'f8', 'f8')}
-    )
-    data = np.loadtxt(fname, **options)
-
-    fid = {
-        dd['label']: np.array(dd[['x', 'y', 'z']].tolist()) * _scale
-        for dd in data[data['kind'] == 'cardinal']
-    }
-    ch_pos = {
-        dd['label']: np.array(dd[['x', 'y', 'z']].tolist()) * _scale
-        for dd in data[data['kind'] == 'eeg']
-    }
-    hsp_data = data[data['kind'] == 'hpi']
-    hsp = np.stack([hsp_data[kk] for kk in 'xyz'], axis=-1) * _scale
-
-    return make_dig_montage(ch_pos=ch_pos, **fid, hsp=hsp)
-
-
 def read_polhemus_fastscan(fname, unit='mm'):
     """Read Polhemus FastSCAN digitizer data from a ``.txt`` file.
 
@@ -1745,9 +1695,6 @@ def read_polhemus_fastscan(fname, unit='mm'):
 
 
 def _read_eeglab_locations(fname, unit):
-    # VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
-    # _scale = _check_unit_and_get_scaling(unit, VALID_SCALES)
-
     ch_names = np.genfromtxt(fname, dtype=str, usecols=3).tolist()
     topo = np.loadtxt(fname, dtype=float, usecols=[1, 2])
     sph = _topo_to_sph(topo)
@@ -1758,7 +1705,7 @@ def _read_eeglab_locations(fname, unit):
 
 
 def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
-    """Read a standard montage file containing polar coordinates.
+    """Read a standard montage from file.
 
     Parameters
     ----------
@@ -1779,10 +1726,9 @@ def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
     make_dig_montage
     make_standard_montage
     """
-    from itertools import chain
     from ._standard_montage_utils import (
         _read_theta_phi_in_degrees, _read_sfp, _read_csd, _read_elc,
-        _read_elp_besa, _read_brainvision
+        _read_elp_besa, _read_brainvision, _read_hpts
     )
     SUPPORTED_FILE_EXT = {
         'eeglab': ('.loc', '.locs', '.eloc', ),
@@ -1827,7 +1773,9 @@ def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
         montage = _read_theta_phi_in_degrees(fname, head_size=head_size)
 
     elif ext in SUPPORTED_FILE_EXT['legacy mne-c']:
-        montage = read_dig_polhemus_fastscan(fname, unit=unit)
+        VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
+        _scale = _check_unit_and_get_scaling(unit, VALID_SCALES)
+        montage = _read_hpts(fname, _scale)
 
     elif ext in SUPPORTED_FILE_EXT['standard BESA spherical']:
         # it supports head_size=None

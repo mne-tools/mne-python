@@ -24,7 +24,6 @@ from mne.channels import (read_montage, read_dig_montage,
                           read_dig_egi, read_dig_captrack, read_dig_fif,
                           make_standard_montage, read_standard_montage,
                           compute_dev_head_t, make_dig_montage,
-                          read_dig_polhemus_fastscan,
                           read_dig_polhemus_isotrak,
                           read_polhemus_fastscan)
 from mne.channels.montage import (_set_montage, transform_to_head,
@@ -252,7 +251,6 @@ def test_montage():
             fid.write(text)
         unit = 'mm' if kind == 'bvef' else 'm'
         with pytest.deprecated_call():
-            # XXX: maybe this should be updated to new call
             montage = read_montage(fname, unit=unit)
         if kind in ('sfp', 'txt'):
             assert ('very_very_very_long_name' in montage.ch_names)
