@@ -7,6 +7,7 @@ import os.path as op
 import numpy as np
 
 from functools import partial
+import xml.etree.ElementTree as ElementTree
 
 from .montage import make_dig_montage
 from ..transforms import _sph_to_cart
@@ -225,7 +226,7 @@ def _read_csd(fname, head_size):
     ch_names, _, _, _, xs, ys, zs, _ = _safe_np_loadtxt(fname, **options)
     pos = np.stack([xs, ys, zs], axis=-1)
 
-    if head_size:
+    if head_size is not None:
         pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
 
     return make_dig_montage(
@@ -276,7 +277,7 @@ def _read_elc(fname, head_size):
             ch_names_.append(line.strip(' ').strip('\n'))
 
     pos = np.array(pos) * scale
-    if head_size:
+    if head_size is not None:
         pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
 
     ch_pos = OrderedDict(zip(ch_names_, pos))
@@ -327,4 +328,28 @@ def _read_elp_besa(fname, head_size):
     pos = _sph_to_cart(np.array([rad, az, pol]).T)
 
     # XXX: this code ignores the f4 column
+    return make_dig_montage(ch_pos=OrderedDict(zip(ch_names, pos)))
+
+
+def _read_brainvision(fname, head_size, unit):
+    # 'BrainVision Electrodes File' format
+    # Based on BrainVision Analyzer coordinate system: Defined between
+    # standard electrode positions: X-axis from T7 to T8, Y-axis from Oz to
+    # Fpz, Z-axis orthogonal from XY-plane through Cz, fit to a sphere if
+    # idealized (when radius=1), specified in millimeters
+    if unit not in ['auto', 'mm']:
+        raise ValueError('`unit` must be "auto" or "mm" for .bvef files.')
+    root = ElementTree.parse(fname).getroot()
+    ch_names = [s.text for s in root.findall("./Electrode/Name")]
+    theta = [float(s.text) for s in root.findall("./Electrode/Theta")]
+    pol = np.deg2rad(np.array(theta))
+    phi = [float(s.text) for s in root.findall("./Electrode/Phi")]
+    az = np.deg2rad(np.array(phi))
+    rad = [float(s.text) for s in root.findall("./Electrode/Radius")]
+    rad = np.array(rad)  # specified in mm
+    pos = _sph_to_cart(np.array([rad, az, pol]).T)
+
+    if head_size is not None:
+        pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
+
     return make_dig_montage(ch_pos=OrderedDict(zip(ch_names, pos)))

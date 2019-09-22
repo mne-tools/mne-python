@@ -1782,7 +1782,7 @@ def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
     from itertools import chain
     from ._standard_montage_utils import (
         _read_theta_phi_in_degrees, _read_sfp, _read_csd, _read_elc,
-        _read_elp_besa,
+        _read_elp_besa, _read_brainvision
     )
     SUPPORTED_FILE_EXT = {
         'eeglab': ('.loc', '.locs', '.eloc', ),
@@ -1792,6 +1792,7 @@ def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
         'generic (Theta-phi in degrees)': ('.txt', ),
         'legacy mne-c': ('.hpts', ),
         'standard BESA spherical': ('.elp', ),  # XXX: not same as polhemus elp
+        'brainvision': ('.bvef', ),
     }
 
     _, ext = op.splitext(fname)
@@ -1831,6 +1832,9 @@ def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
     elif ext in SUPPORTED_FILE_EXT['standard BESA spherical']:
         # it supports head_size=None
         montage = _read_elp_besa(fname, head_size)
+
+    elif ext in SUPPORTED_FILE_EXT['brainvision']:
+        montage = _read_brainvision(fname, head_size, unit)
 
     return montage
 
