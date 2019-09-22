@@ -25,7 +25,7 @@ from mne.minimum_norm import make_inverse_operator, apply_inverse_epochs
 from mne.connectivity import spectral_connectivity
 from mne.viz import circular_layout, plot_connectivity_circle
 
-# Set dir
+# Set directories
 data_path = sample.data_path()
 subject = 'sample'
 data_dir = op.join(data_path, 'MEG', subject)

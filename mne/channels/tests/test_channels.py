@@ -19,14 +19,16 @@ from mne.channels import (rename_channels, read_ch_connectivity,
 from mne.channels.channels import (_ch_neighbor_connectivity,
                                    _compute_ch_connectivity)
 from mne.io import (read_info, read_raw_fif, read_raw_ctf, read_raw_bti,
-                    read_raw_eeglab)
+                    read_raw_eeglab, read_raw_kit)
 from mne.io.constants import FIFF
 from mne.utils import _TempDir, run_tests_if_main
 from mne import pick_types, pick_channels
 from mne.datasets import testing
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
+io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
+base_dir = op.join(io_dir, 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
+fname_kit_157 = op.join(io_dir, 'kit', 'tests', 'data', 'test.sqd')
 
 
 def test_reorder_channels():
@@ -295,6 +297,11 @@ def test_find_ch_connectivity():
     assert 'MLC11' in ch_names
 
     pytest.raises(ValueError, find_ch_connectivity, raw.info, 'eog')
+
+    raw_kit = read_raw_kit(fname_kit_157)
+    neighb, ch_names = find_ch_connectivity(raw_kit.info, 'mag')
+    assert neighb.data.size == 1329
+    assert ch_names[0] == 'MEG 001'
 
 
 def test_drop_channels():

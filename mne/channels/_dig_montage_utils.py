@@ -182,13 +182,6 @@ def _parse_brainvision_dig_montage(fname, scale=BACK_COMPAT):
     for s in sensors:
         name = s.find('Name').text
 
-        # Need to prune "GND" and "REF": these are not included in the raw
-        # data and will raise errors when we try to do raw.set_montage(...)
-        # XXX eventually this should be stored in ch['loc'][3:6]
-        # but we don't currently have such capabilities here
-        if name in ['GND', 'REF']:
-            continue
-
         is_fid = name in FID_NAME_MAP
         coordinates = np.array([float(s.find('X').text),
                                 float(s.find('Y').text),
