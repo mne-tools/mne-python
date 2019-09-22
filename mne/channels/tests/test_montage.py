@@ -1065,11 +1065,12 @@ def test_egi_dig_montage():
 
 def _pop_montage(dig_montage, ch_name):
     # remove reference that was not used in old API
-    ref_idx = dig_montage.ch_names.index(ch_name)
-    n_fids = 3
-    del dig_montage.dig[ref_idx + n_fids]
-    del dig_montage.ch_names[ref_idx]
-    for k in range(ref_idx + n_fids, len(dig_montage.dig)):
+    name_idx = dig_montage.ch_names.index(ch_name)
+    dig_idx = dig_montage._get_dig_names().index(ch_name)
+
+    del dig_montage.dig[dig_idx]
+    del dig_montage.ch_names[name_idx]
+    for k in range(dig_idx, len(dig_montage.dig)):
         dig_montage.dig[k]['ident'] -= 1
 
 
