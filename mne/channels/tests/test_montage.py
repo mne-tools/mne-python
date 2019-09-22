@@ -388,7 +388,7 @@ def test_montage():
     assert ("standard_1005" in montages)  # 10/05 montage
 
 
-@pytest.mark.parametrize('reader, file_content, poss, ext', [
+@pytest.mark.parametrize('reader, file_content, expected_dig, ext', [
     pytest.param(
         partial(read_standard_montage, head_size=None, unit='m'),
         ('FidNz 0       9.071585155     -2.359754454\n'
@@ -482,13 +482,20 @@ def test_montage():
 
     pytest.param(
         partial(read_standard_montage, head_size=None, unit='n/a'),
-        ('346\n'
+        ('346\n'  # XXX: this should actually race an error 346 != 4
          'EEG\t      F3\t -62.027\t -50.053\t      85\n'
          'EEG\t      Fz\t  45.608\t      90\t      85\n'
          'EEG\t      F4\t   62.01\t  50.103\t      85\n'
          'EEG\t      FCz\t   68.01\t  58.103\t      85\n'),
-        [[-48.20043, 57.55106, 39.86971], [0.0, 60.73848, 59.4629],
-         [48.1426, 57.58403, 39.89198], [41.64599, 66.91489, 31.8278]],
+        make_dig_montage(
+            ch_pos={
+                'F3': [-0.48200427,  0.57551063,  0.39869712],
+                'Fz': [3.71915931e-17, 6.07384809e-01, 5.94629038e-01],
+                'F4': [0.48142596, 0.57584026, 0.39891983],
+                'FCz': [0.41645989, 0.66914889, 0.31827805],
+            },
+            nasion=None, lpa=None, rpa=None,
+        ),
         'elp', id='BESA spherical model'),
 
     pytest.param(
@@ -497,7 +504,13 @@ def test_montage():
          'eeg AF7 -1 -1 -3\n'
          'eeg A3 -2 -2 2\n'
          'eeg A 0 0 0'),
-        [[-95, -3, -3], [-1, -1., -3.], [-2, -2, 2.], [0, 0, 0]],
+        make_dig_montage(
+            ch_pos={
+                'A': [0., 0., 0.], 'A3': [-2., -2.,  2.],
+                'AF7': [-1., -1., -3.], 'Fp1': [-95.,  -3.,  -3.],
+            },
+            nasion=None, lpa=None, rpa=None,
+        ),
         'hpts', id='legacy mne-c'),
 
     pytest.param(
@@ -534,23 +547,32 @@ def test_montage():
          '    <Number>4</Number>\n'
          '  </Electrode>\n'
          '</Electrodes>'),
-        [[-2.62664445e-02,  8.08398039e-02,  5.20474890e-18],
-         [3.68031324e-18,  6.01040764e-02,  6.01040764e-02],
-         [-4.63256329e-02,  5.72073923e-02,  4.25000000e-02],
-         [-6.87664445e-02,  4.99617464e-02,  5.20474890e-18]],
+        make_dig_montage(
+            ch_pos={
+                'Fp1': [-3.09016994e-01, 9.51056516e-01, 6.12323400e-17],
+                'Fz': [4.32978028e-17, 7.07106781e-01, 7.07106781e-01],
+                'F3': [-0.54500745, 0.67302815, 0.5],
+                'F7': [-8.09016994e-01, 5.87785252e-01, 6.12323400e-17],
+            },
+            nasion=None, lpa=None, rpa=None,
+        ),
         'bvef', id='brainvision'),
 ])
 def test_readable_montage_file_formats(
-    reader, file_content, poss, ext, tmpdir
+    reader, file_content, expected_dig, ext, tmpdir
 ):
     """Test that we have an equivalent of read_montage for all file formats."""
-    # XXX: unit parameter is not done.
     fname = op.join(str(tmpdir), 'test.{ext}'.format(ext=ext))
     with open(fname, 'w') as fid:
         fid.write(file_content)
 
     dig_montage = reader(fname)
     assert isinstance(dig_montage, DigMontage)
+
+    actual_ch_pos = dig_montage._get_ch_pos()
+    expected_ch_pos = expected_dig._get_ch_pos()
+    for kk in actual_ch_pos:
+        assert_allclose(actual_ch_pos[kk], expected_ch_pos[kk], atol=1e-5)
 
 
 @testing.requires_testing_data
