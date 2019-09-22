@@ -1785,22 +1785,27 @@ def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
     make_standard_montage
     """
     from itertools import chain
-    from ._standard_montage_utils import _read_sfp, _read_csd, _read_elc
+    from ._standard_montage_utils import (
+        _read_theta_phi_in_degrees, _read_sfp, _read_csd, _read_elc,
+    )
     SUPPORTED_FILE_EXT = {
         'eeglab': ('.loc', '.locs', '.eloc', ),
         'hydrocel': ('.sfp', ),
         'matlab': ('.csd', ),
         'asa electrode': ('.elc', ),
+        'generic (Theta-phi in degrees)': ('.txt', ),
     }
 
     _, ext = op.splitext(fname)
     _check_option('fname', ext, list(chain(*SUPPORTED_FILE_EXT.values())))
 
     if ext in SUPPORTED_FILE_EXT['eeglab']:
+        if head_size is None:
+            raise(ValueError,
+                  "``head_size`` cannot be None for '{}'".format(ext))
         ch_names, pos = _read_eeglab_locations(fname, unit)
-        if head_size:
-            scale = head_size / np.median(np.linalg.norm(pos, axis=-1))
-            pos *= scale
+        scale = head_size / np.median(np.linalg.norm(pos, axis=-1))
+        pos *= scale
 
         montage = make_dig_montage(
             ch_pos=dict(zip(ch_names, pos)),
@@ -1815,6 +1820,12 @@ def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
 
     elif ext in SUPPORTED_FILE_EXT['asa electrode']:
         montage = _read_elc(fname, head_size=head_size)
+
+    elif ext in SUPPORTED_FILE_EXT['generic (Theta-phi in degrees)']:
+        if head_size is None:
+            raise(ValueError,
+                  "``head_size`` cannot be None for '{}'".format(ext))
+        montage = _read_theta_phi_in_degrees(fname, head_size=head_size)
 
     return montage
 

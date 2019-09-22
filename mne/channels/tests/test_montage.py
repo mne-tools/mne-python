@@ -400,7 +400,7 @@ def test_montage():
         'sfp', id='sfp'),
 
     pytest.param(
-        partial(read_standard_montage, head_size=None, unit='m'),
+        partial(read_standard_montage, head_size=1, unit='n/a'),
         ('1	       0	 0.50669	     FPz\n'
          '2	      23	 0.71	    	EOG1\n'
          '3	 -39.947	 0.34459	      F3\n'
@@ -422,7 +422,7 @@ def test_montage():
         'csd', id='matlab'),
 
     pytest.param(
-        partial(read_standard_montage, head_size=None, unit='mm'),
+        partial(read_standard_montage, head_size=None, unit='not_used'),
         ('# ASA electrode file\nReferenceLabel  avg\nUnitPosition    mm\n'
          'NumberPositions=    68\n'
          'Positions\n'
@@ -436,7 +436,7 @@ def test_montage():
         'elc', id='ASA electrode'),
 
     pytest.param(
-        partial(read_montage, unit='m'),
+        partial(read_standard_montage, head_size=1, unit='n/a'),
         ('Site  Theta  Phi\n'
          'Fp1  -92    -72\n'
          'Fp2   92     72\n'
@@ -510,6 +510,7 @@ def test_readable_montage_file_formats(
     reader, file_content, poss, ext, tmpdir
 ):
     """Test that we have an equivalent of read_montage for all file formats."""
+    # XXX: unit parameter is not done.
     fname = op.join(str(tmpdir), 'test.{ext}'.format(ext=ext))
     with open(fname, 'w') as fid:
         fid.write(file_content)

@@ -284,3 +284,21 @@ def _read_elc(fname, head_size):
 
     return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
                             nasion=nasion, lpa=lpa, rpa=rpa)
+
+
+def _read_theta_phi_in_degrees(fname, head_size):
+    fid_names = ('Nz', 'LPA', 'RPA')
+    options = dict(skip_header=1, dtype=(_str, 'i4', 'i4'))
+    ch_names, theta, phi = _safe_np_loadtxt(fname, **options)
+
+    radii = np.full(len(phi), head_size)
+    pos = _sph_to_cart(np.stack(
+        [radii, np.deg2rad(phi), np.deg2rad(theta)],
+        axis=-1,
+    ))
+
+    ch_pos = OrderedDict(zip(ch_names, pos))
+    nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
+
+    return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
+                            nasion=nasion, lpa=lpa, rpa=rpa)
