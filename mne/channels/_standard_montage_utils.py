@@ -323,11 +323,12 @@ def _read_elp_besa(fname, head_size):
     az = np.deg2rad(np.array([h if a >= 0. else 180 + h
                               for h, a in zip(horiz, az)]))
     pol = radius * np.pi
-    rad = np.ones(len(az))  # spherical head model
-    rad *= 85.  # scale up to realistic head radius (8.5cm == 85mm)
+    rad = data['f4'] / 100
     pos = _sph_to_cart(np.array([rad, az, pol]).T)
 
-    # XXX: this code ignores the f4 column
+    if head_size is not None:
+        pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
+
     return make_dig_montage(ch_pos=OrderedDict(zip(ch_names, pos)))
 
 

@@ -447,7 +447,7 @@ def test_montage():
         'txt', id='generic theta-phi (txt)'),
 
     pytest.param(
-        partial(read_standard_montage, head_size='n/a', unit='n/a'),
+        partial(read_standard_montage, head_size=None, unit='n/a'),
         ('346\n'
          'EEG\t      F3\t -62.027\t -50.053\t      85\n'
          'EEG\t      Fz\t  45.608\t      90\t      85\n'
@@ -455,7 +455,7 @@ def test_montage():
          'EEG\t      FCz\t   68.01\t  58.103\t      85\n'),
         [[-48.20043, 57.55106, 39.86971], [0.0, 60.73848, 59.4629],
          [48.1426, 57.58403, 39.89198], [41.64599, 66.91489, 31.8278]],
-        'elp', id='elp'),
+        'elp', id='BESA spherical model'),
 
     pytest.param(
         partial(read_standard_montage, head_size=None, unit='m'),
@@ -464,7 +464,7 @@ def test_montage():
          'eeg A3 -2 -2 2\n'
          'eeg A 0 0 0'),
         [[-95, -3, -3], [-1, -1., -3.], [-2, -2, 2.], [0, 0, 0]],
-        'hpts', id='hpts'),
+        'hpts', id='legacy mne-c'),
 
     pytest.param(
         partial(read_standard_montage, head_size=None, unit='mm'),
@@ -504,7 +504,7 @@ def test_montage():
          [3.68031324e-18,  6.01040764e-02,  6.01040764e-02],
          [-4.63256329e-02,  5.72073923e-02,  4.25000000e-02],
          [-6.87664445e-02,  4.99617464e-02,  5.20474890e-18]],
-        'bvef', id='bvef'),
+        'bvef', id='brainvision'),
 ])
 def test_readable_montage_file_formats(
     reader, file_content, poss, ext, tmpdir
