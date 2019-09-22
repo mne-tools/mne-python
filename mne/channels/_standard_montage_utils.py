@@ -302,3 +302,29 @@ def _read_theta_phi_in_degrees(fname, head_size):
 
     return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
                             nasion=nasion, lpa=lpa, rpa=rpa)
+
+
+def _read_elp_besa(fname, head_size):
+    # This .elp is not the same as polhemus elp. see _read_isotrak_elp_points
+    if head_size is not None:
+        raise NotImplementedError  # TODO
+
+    dtype = np.dtype('S8, S8, f8, f8, f8')
+    try:
+        data = np.loadtxt(fname, dtype=dtype, skip_header=1)
+    except TypeError:
+        data = np.loadtxt(fname, dtype=dtype, skiprows=1)
+
+    ch_names = data['f1'].astype(str).tolist()
+    az = data['f2']
+    horiz = data['f3']
+    radius = np.abs(az / 180.)
+    az = np.deg2rad(np.array([h if a >= 0. else 180 + h
+                              for h, a in zip(horiz, az)]))
+    pol = radius * np.pi
+    rad = np.ones(len(az))  # spherical head model
+    rad *= 85.  # scale up to realistic head radius (8.5cm == 85mm)
+    pos = _sph_to_cart(np.array([rad, az, pol]).T)
+
+    # XXX: this code ignores the f4 column
+    return make_dig_montage(ch_pos=OrderedDict(zip(ch_names, pos)))

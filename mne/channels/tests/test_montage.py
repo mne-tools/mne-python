@@ -444,10 +444,10 @@ def test_montage():
          'O2        92    -90\n'),
         [[-26.25044, 80.79056, -2.96646], [26.25044, 80.79056, -2.96646],
          [-26.25044, -80.79056, -2.96646], [0.0, -84.94822, -2.96646]],
-        'txt', id='txt'),
+        'txt', id='generic theta-phi (txt)'),
 
     pytest.param(
-        partial(read_montage, unit='m'),
+        partial(read_standard_montage, head_size='n/a', unit='n/a'),
         ('346\n'
          'EEG\t      F3\t -62.027\t -50.053\t      85\n'
          'EEG\t      Fz\t  45.608\t      90\t      85\n'
