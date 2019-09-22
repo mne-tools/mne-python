@@ -193,3 +193,26 @@ standard_montage_look_up_table = {
     'standard_primed': partial(_mgh_or_standard,
                                basename='standard_primed.elc'),
 }
+
+
+def _read_sfp(fname, head_size):  # XXX: hydrocel
+    # fname has been alreay checked
+    fid_names = ('FidNz', 'FidT9', 'FidT10')
+    options = dict(dtype=(_str, 'f4', 'f4', 'f4'))
+    ch_names, xs, ys, zs = _safe_np_loadtxt(fname, **options)
+
+    pos = np.stack([xs, ys, zs], axis=-1)
+    ch_pos = OrderedDict(zip(ch_names, pos))
+    # no one grants that fid names are there.
+    nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
+
+    if head_size is not None:
+        scale = head_size / np.median(np.linalg.norm(pos, axis=-1))
+        for value in ch_pos.values():
+            value *= scale
+        nasion = nasion * scale if nasion is not None else None
+        lpa = lpa * scale if lpa is not None else None
+        rpa = rpa * scale if rpa is not None else None
+
+    return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
+                            nasion=nasion, rpa=rpa, lpa=lpa)

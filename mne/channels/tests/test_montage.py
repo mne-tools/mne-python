@@ -390,7 +390,7 @@ def test_montage():
 
 @pytest.mark.parametrize('reader, file_content, poss, ext', [
     pytest.param(
-        partial(read_montage, unit='m'),
+        partial(read_standard_montage, head_size=None, unit='m'),
         ('FidNz 0       9.071585155     -2.359754454\n'
          'FidT9 -6.711765       0.040402876     -3.251600355\n'
          'very_very_very_long_name -5.831241498 -4.494821698  4.955347697\n'
@@ -400,7 +400,7 @@ def test_montage():
         'sfp', id='sfp'),
 
     pytest.param(
-        partial(read_montage, unit='m'),
+        partial(read_standard_montage, unit='m'),
         ('1	       0	 0.50669	     FPz\n'
          '2	      23	 0.71	    	EOG1\n'
          '3	 -39.947	 0.34459	      F3\n'
@@ -514,9 +514,8 @@ def test_readable_montage_file_formats(
     with open(fname, 'w') as fid:
         fid.write(file_content)
 
-    # XXX: we should find an equivalent for all
-    with pytest.deprecated_call():
-        _ = reader(fname)
+    dig_montage = reader(fname)
+    assert isinstance(dig_montage, DigMontage)
 
 
 @testing.requires_testing_data
