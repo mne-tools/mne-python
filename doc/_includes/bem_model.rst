@@ -50,7 +50,6 @@ contains the brain MRI volume. Furthermore, ``mne watershed_bem`` script
 converts the scalp surface to fif format and saves the result to
 :samp:`bem/{<subject>}-head.fif`.
 
-.. _BABFCDJH:
 
 Using FLASH images
 ~~~~~~~~~~~~~~~~~~
@@ -75,7 +74,7 @@ following steps:
   it with the MPRAGE data, and run the segmentation and meshing program.
   This step is accomplished by running the script :ref:`gen_mne_flash_bem`.
 
-- Inspecting the meshes with tkmedit, see :ref:`BABHJBED`.
+- Inspecting the meshes with tkmedit, see :ref:`inspecting-meshes`.
 
 .. note:: Different methods can be employed for the creation of the
           individual surfaces. For example, it may turn out that the
@@ -88,7 +87,6 @@ following steps:
 .. note:: The following sections assume that you have run the appropriate
           setup scripts to make both MNE and FreeSurfer software available.
 
-.. _BABEBJHI:
 
 Organizing MRI data into directories
 ------------------------------------
@@ -130,7 +128,6 @@ links pointing to the original image data.
 
 .. note:: Since mne_organize_dicom processes    all images, not only the FLASH data, it may be a useful preprocessing    step before FreeSurfer reconstruction process as well.
 
-.. _BABGICFE:
 
 Creating the surface tessellations
 ----------------------------------
@@ -199,7 +196,7 @@ If the ``--noflash30`` option is specified to ``mne flash_bem``,
 steps 3 and 4 in the above are replaced by averaging over the different
 echo times in 5-degree flip angle data.
 
-.. _BABHJBED:
+.. _inspecting-meshes:
 
 Inspecting the meshes
 ---------------------

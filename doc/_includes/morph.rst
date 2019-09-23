@@ -51,7 +51,6 @@ functional similar structures are represented at the same spatial location for
 tell us how the data produced by subject A would be represented on the brain of
 subject B (and vice-versa).
 
-.. _CHDJDHII:
 
 The morphing maps
 ~~~~~~~~~~~~~~~~~
@@ -89,7 +88,6 @@ even if
 
 *i.e.*, the mapping is *almost* a bijection.
 
-.. _CHDEBAHH:
 
 About smoothing
 ~~~~~~~~~~~~~~~
