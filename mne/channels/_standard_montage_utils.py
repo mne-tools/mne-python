@@ -212,7 +212,6 @@ def _read_elc(fname, head_size):
     head_size : float | None
         The size of the head in [m]. If none, returns the values read from the
         file with no modification.
-        Defaults to HEAD_SIZE_DEFAULT.
 
     Returns
     -------

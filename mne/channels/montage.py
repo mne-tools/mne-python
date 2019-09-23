@@ -1802,8 +1802,7 @@ def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
 
     head_size : float | None
         The size of the head in [m]. If none, returns the values read from the
-        file with no modification.
-        Defaults to HEAD_SIZE_DEFAULT.
+        file with no modification. Defaults to 95mm.
 
     Returns
     -------
@@ -1925,6 +1924,7 @@ def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
         The name of the montage to use. See notes for valid kinds.
     head_size : float
         The head size (in meters) to use for spherical montages.
+        Defaults to 95mm.
 
     Returns
     -------
