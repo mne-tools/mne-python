@@ -2236,10 +2236,8 @@ def _filt_check_picks(info, picks, h_freq, l_freq):
     # This will pick *all* data channels
     picks = _picks_to_idx(info, picks, 'data_or_ica', exclude=())
     if h_freq is not None or l_freq is not None:
-        try:
-            data_picks = _picks_to_idx(info, None, 'data_or_ica', exclude=())
-        except ValueError:  # what we throw when there are no data chs
-            data_picks = np.array([], int)
+        data_picks = _picks_to_idx(info, None, 'data_or_ica', exclude=(),
+                                   allow_empty=True)
         if len(data_picks) == 0:
             logger.info('No data channels found. The highpass and '
                         'lowpass values in the measurement info will not '
