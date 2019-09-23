@@ -36,7 +36,8 @@ def test_plot_montage():
     plt.close('all')
     m.plot(kind='topomap', show_names=True)
     plt.close('all')
-    d = read_dig_montage(hsp, hpi, elp, point_names)
+    with pytest.deprecated_call():
+        d = read_dig_montage(hsp, hpi, elp, point_names)
     assert '0 channels' in repr(d)
     with pytest.raises(RuntimeError, match='No valid channel positions'):
         d.plot()
@@ -50,18 +51,20 @@ def test_plot_montage():
     # plt.close('all')
 
 
-def test_plot_defect_montage():
+@pytest.mark.parametrize('name, n', [
+    ('standard_1005', 342), ('standard_postfixed', 85),
+    ('standard_primed', 85), ('standard_1020', 93)
+])
+def test_plot_defect_montage(name, n):
     """Test plotting defect montages (i.e. with duplicate labels)."""
     # montage name and number of unique labels
-    montages = [('standard_1005', 343), ('standard_postfixed', 100),
-                ('standard_primed', 100), ('standard_1020', 94)]
-    for name, n in montages:
-        m = make_standard_montage(name)
-        fig = m.plot()
-        collection = fig.axes[0].collections[0]
-        assert collection._edgecolors.shape[0] == n
-        assert collection._facecolors.shape[0] == n
-        assert collection._offsets.shape[0] == n
+    m = make_standard_montage(name)
+    n -= 3  # new montage does not have fiducials
+    fig = m.plot()
+    collection = fig.axes[0].collections[0]
+    assert collection._edgecolors.shape[0] == n
+    assert collection._facecolors.shape[0] == n
+    assert collection._offsets.shape[0] == n
 
 
 def test_plot_digmontage():

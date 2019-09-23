@@ -26,6 +26,7 @@ from ..meas_info import _empty_info
 from ..base import BaseRaw
 from ..utils import _read_segments_file, _mult_cal_one, _deprecate_montage
 from ...annotations import Annotations, read_annotations
+from ...channels import make_dig_montage
 
 
 @fill_doc
@@ -407,8 +408,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions. If None,
         read sensor locations from header file if present, otherwise (0, 0, 0).
-        See the documentation of :func:`mne.channels.read_montage` for more
-        information.
+        See the documentation of :func:`mne.channels.read_dig_captrack` for
+        more information.
 
     Returns
     -------
@@ -534,7 +535,6 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     # through Cz, fit to a sphere if idealized (when radius=1), specified in mm
     if cfg.has_section('Coordinates') and montage in (None, 'deprecated'):
         from ...transforms import _sph_to_cart
-        from ...channels.montage import Montage
         montage_pos = list()
         montage_names = list()
         to_misc = list()
@@ -557,9 +557,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         # Make a montage, normalizing from BrainVision units "mm" to "m", the
         # unit used for montages in MNE
         montage_pos = np.array(montage_pos) / 1e3
-        montage_sel = np.arange(len(montage_pos))
-        montage = Montage(montage_pos, montage_names, 'Brainvision',
-                          montage_sel)
+        montage = make_dig_montage(
+            ch_pos=dict(zip(montage_names, montage_pos)),
+            coord_frame='head'
+        )
         if len(to_misc) > 0:
             misc += to_misc
             warn('No coordinate information found for channels {}. '

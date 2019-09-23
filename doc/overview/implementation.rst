@@ -46,6 +46,15 @@ Supported data formats
    :start-after: data-formats-begin-content
 
 
+.. _dig-formats:
+
+Supported formats for digitized 3D locations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. include:: ../_includes/dig_formats.rst
+   :start-after: dig-formats-begin-content
+
+
 Mathematics and algorithms
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 

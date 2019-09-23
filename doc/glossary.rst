@@ -77,6 +77,11 @@ general neuroimaging concepts. If you think a term is missing, please consider
         See :class:`EvokedArray` for the API of the corresponding
         object class, and :ref:`tut-evoked-class` for a narrative overview.
 
+    fiducial point
+        There are three fiducial (a.k.a. cardinal) points: the left
+        preauricular point (LPA), the right preauricular point (RPA)
+        and the nasion.
+
     first_samp
         The :attr:`~mne.io.Raw.first_samp` attribute of :class:`~mne.io.Raw`
         objects is an integer representing the number of time samples that
@@ -133,9 +138,19 @@ general neuroimaging concepts. If you think a term is missing, please consider
         A :class:`Label` refers to a region in the cortex, also often called
         a region of interest (ROI) in the literature.
 
+    layout
+        A :class:`Layout <mne.channels.Layout>` gives sensor positions in 2
+        dimensions (defined by ``x``, ``y``, ``width``, and ``height`` values for
+        each sensor). It is primarily used for illustrative purposes (i.e., making
+        diagrams of approximate sensor positions in top-down diagrams of the head,
+        so-called topographies or topomaps).
+
     montage
         EEG channel names and the relative positions of the sensor w.r.t. the scalp.
-        See :class:`~channels.Montage` for the API of the corresponding object
+        While layout are 2D locations, montages give 3D locations. A montage
+        can also contain locations for HPI points, fiducial points, or
+        extra head shape points.
+        See :class:`~channels.DigMontage` for the API of the corresponding object
         class.
 
     morphing
