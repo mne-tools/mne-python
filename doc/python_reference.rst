@@ -319,7 +319,7 @@ Projections:
    read_dig_fif
    read_dig_hpts
    make_standard_montage
-   read_standard_montage
+   read_custom_montage
    compute_dev_head_t
    read_layout
    find_layout

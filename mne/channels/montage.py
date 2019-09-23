@@ -186,7 +186,7 @@ def get_builtin_montages():
 
 @deprecated(
     '``read_montage`` is deprecated and will be removed in v0.20. Please use'
-    ' ``read_dig_fif``, ``read_dig_egi``, ``read_standard_montage``,'
+    ' ``read_dig_fif``, ``read_dig_egi``, ``read_custom_montage``,'
     ' or ``read_dig_captrack``'
     ' to read a digitization based on your needs instead;'
     ' or ``make_standard_montage`` to create ``DigMontage`` based on template;'
@@ -1194,49 +1194,6 @@ def read_dig_fif(fname):
 def read_dig_hpts(fname, unit='mm'):
     """Read historical .hpts mne-c files.
 
-    The hpts format digitzer data file may contain comment lines starting
-    with the pound sign (#) and data lines of the form:
-
-     <*category*> <*identifier*> <*x/mm*> <*y/mm*> <*z/mm*>
-
-    where::
-
-        ``<*category*>``
-
-            defines the type of points. Allowed categories are: `hpi`,
-            `cardinal` (fiducial), `eeg`, and `extra` corresponding to
-            head-position indicator coil locations, cardinal landmarks, EEG
-            electrode locations, and additional head surface points,
-            respectively.
-
-        ``<*identifier*>``
-
-            identifies the point. The identifiers are usually sequential
-            numbers. For cardinal landmarks, 1 = left auricular point,
-            2 = nasion, and 3 = right auricular point. For EEG electrodes,
-            identifier = 0 signifies the reference electrode.
-
-        ``<*x/mm*> , <*y/mm*> , <*z/mm*>``
-
-            Location of the point, usually in the head coordinate system
-            in millimeters. If your points are in [m] then unit parameter can
-            be changed.
-
-    For example::
-
-        cardinal    nasion    -5.6729  -12.3873  -30.3671
-        cardinal    lpa    -37.6782  -10.4957   91.5228
-        cardinal    rpa    -131.3127    9.3976  -22.2363
-        hpi    1    -30.4493  -11.8450   83.3601
-        hpi    2    -122.5353    9.2232  -28.6828
-        hpi    3    -6.8518  -47.0697  -37.0829
-        hpi    4    7.3744  -50.6297  -12.1376
-        hpi    5    -33.4264  -43.7352  -57.7756
-        eeg    FP1  3.8676  -77.0439  -13.0212
-        eeg    FP2  -31.9297  -70.6852  -57.4881
-        eeg    F7  -6.1042  -68.2969   45.4939
-        ...
-
     Parameters
     ----------
     fname : str
@@ -1257,6 +1214,49 @@ def read_dig_hpts(fname, unit='mm'):
     read_dig_fif
     read_dig_polhemus_isotrak
     make_dig_montage
+
+    Notes
+    -----
+    The hpts format digitzer data file may contain comment lines starting
+    with the pound sign (#) and data lines of the form::
+
+         <*category*> <*identifier*> <*x/mm*> <*y/mm*> <*z/mm*>
+
+    where:
+
+    ``<*category*>``
+        defines the type of points. Allowed categories are: `hpi`,
+        `cardinal` (fiducial), `eeg`, and `extra` corresponding to
+        head-position indicator coil locations, cardinal landmarks, EEG
+        electrode locations, and additional head surface points,
+        respectively.
+
+    ``<*identifier*>``
+        identifies the point. The identifiers are usually sequential
+        numbers. For cardinal landmarks, 1 = left auricular point,
+        2 = nasion, and 3 = right auricular point. For EEG electrodes,
+        identifier = 0 signifies the reference electrode.
+
+    ``<*x/mm*> , <*y/mm*> , <*z/mm*>``
+        Location of the point, usually in the head coordinate system
+        in millimeters. If your points are in [m] then unit parameter can
+        be changed.
+
+    For example::
+
+        cardinal    nasion    -5.6729  -12.3873  -30.3671
+        cardinal    lpa    -37.6782  -10.4957   91.5228
+        cardinal    rpa    -131.3127    9.3976  -22.2363
+        hpi    1    -30.4493  -11.8450   83.3601
+        hpi    2    -122.5353    9.2232  -28.6828
+        hpi    3    -6.8518  -47.0697  -37.0829
+        hpi    4    7.3744  -50.6297  -12.1376
+        hpi    5    -33.4264  -43.7352  -57.7756
+        eeg    FP1  3.8676  -77.0439  -13.0212
+        eeg    FP2  -31.9297  -70.6852  -57.4881
+        eeg    F7  -6.1042  -68.2969   45.4939
+        ...
+
     """
     VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
     _scale = _check_unit_and_get_scaling(unit, VALID_SCALES)
@@ -1284,7 +1284,7 @@ def read_dig_hpts(fname, unit='mm'):
 
 
 def read_dig_egi(fname):
-    r"""Read electrode locations from EGI system.
+    """Read electrode locations from EGI system.
 
     Parameters
     ----------
@@ -1322,7 +1322,7 @@ def read_dig_egi(fname):
 
 
 def read_dig_captrack(fname):
-    r"""Read electrode locations from CapTrak Brain Products system.
+    """Read electrode locations from CapTrak Brain Products system.
 
     Parameters
     ----------
@@ -1363,9 +1363,8 @@ def _get_montage_in_head(montage):
         return transform_to_head(montage.copy())
 
 
-def _set_montage_deprecation_helper(
-        montage, update_ch_names, set_dig, raise_if_subset
-):
+def _set_montage_deprecation_helper(montage, update_ch_names, set_dig,
+                                    raise_if_subset):
     """Manage deprecation policy for _set_montage.
 
     montage : instance of DigMontage | 'kind' | None
@@ -1412,7 +1411,7 @@ def _set_montage_deprecation_helper(
             'Using str in montage different from the built in templates '
             ' (i.e. a path) is deprecated. Please choose the proper reader to'
             ' load your montage using: '
-            ' ``read_dig_fif``, ``read_dig_egi``, ``read_standard_montage``,'
+            ' ``read_dig_fif``, ``read_dig_egi``, ``read_custom_montage``,'
             ' or ``read_dig_captrack``'
         ), DeprecationWarning)
     elif not (isinstance(montage, str) or montage is None):  # Montage
@@ -1422,7 +1421,7 @@ def _set_montage_deprecation_helper(
             ' Please use ``read_dig_fif``, ``read_dig_egi``,'
             ' ``read_dig_polhemus_isotrak``, or ``read_dig_captrack``'
             ' ``read_dig_hpts``, ``read_dig_captrack`` or'
-            ' ``read_standard_montage`` to read a digitization based on'
+            ' ``read_custom_montage`` to read a digitization based on'
             ' your needs instead; or ``make_standard_montage`` to create'
             ' ``DigMontage`` based on template; or ``make_dig_montage``'
             ' to create a ``DigMontage`` out of np.arrays.'
@@ -1789,8 +1788,8 @@ def _read_eeglab_locations(fname, unit):
     return ch_names, pos
 
 
-def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
-    """Read a standard montage from file.
+def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
+    """Read a montage from a file.
 
     Parameters
     ----------
@@ -1924,11 +1923,6 @@ def compute_dev_head_t(montage):
 def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
     """Read a generic (built-in) montage.
 
-    Individualized (digitized) electrode positions should be read in using
-    :func:`read_dig_captrack`, :func:`read_dig_egi`, :func:`read_dig_fif`,
-    :func:`read_dig_polhemus_isotrak`, :func:`read_dig_hpts` or made with
-    :func:`make_dig_montage`.
-
     Parameters
     ----------
     kind : str
@@ -1946,10 +1940,15 @@ def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
     --------
     DigMontage
     make_dig_montage
-    read_standard_montage
+    read_custom_montage
 
     Notes
     -----
+    Individualized (digitized) electrode positions should be read in using
+    :func:`read_dig_captrack`, :func:`read_dig_egi`, :func:`read_dig_fif`,
+    :func:`read_dig_polhemus_isotrak`, :func:`read_dig_hpts` or made with
+    :func:`make_dig_montage`.
+
     Valid ``kind`` arguments are:
 
     ===================   =====================================================

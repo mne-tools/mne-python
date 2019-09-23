@@ -10,7 +10,7 @@ from .montage import (read_montage, read_dig_montage, Montage, DigMontage,
                       read_dig_egi, read_dig_captrack, read_dig_fif,
                       read_dig_polhemus_isotrak, read_polhemus_fastscan,
                       compute_dev_head_t, make_standard_montage,
-                      read_standard_montage, read_dig_hpts
+                      read_custom_montage, read_dig_hpts
                       )
 from .channels import (equalize_channels, rename_channels, fix_mag_coil_types,
                        read_ch_connectivity, _get_ch_type,
@@ -28,7 +28,7 @@ __all__ = [
     'read_ch_connectivity', 'read_dig_captrack', 'read_dig_egi',
     'read_dig_fif', 'read_dig_montage', 'read_dig_polhemus_isotrak',
     'read_layout', 'read_montage', 'read_polhemus_fastscan',
-    'read_standard_montage', 'read_dig_hpts',
+    'read_custom_montage', 'read_dig_hpts',
 
     # Helpers
     'rename_channels', 'make_1020_channel_selections',

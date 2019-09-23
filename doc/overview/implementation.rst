@@ -46,6 +46,8 @@ Supported data formats
    :start-after: data-formats-begin-content
 
 
+.. _dig-formats:
+
 Supported formats for digitized 3D locations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
