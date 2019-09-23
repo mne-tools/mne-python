@@ -1,4 +1,6 @@
 """
+.. _tut-sensor-locations:
+
 Working with sensor locations
 =============================
 
