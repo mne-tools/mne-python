@@ -1,20 +1,97 @@
 .. _implementation:
 
-Implementation details
-======================
+Algorithms and Other Implementation details
+===========================================
 
-This page links to information about some of the technical details of
-MNE-Python implementation.
+This page describes some of the technical details of MNE-Python implementation.
+
+.. contents:: Page contents
+   :local:
+   :depth: 2
+
+
+.. _units:
+
+Internal representation (units)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. include:: ../_includes/units.rst
+   :start-after: units-begin-content
+
+
+.. _precision:
+
+Floating-point precision
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. include:: ../_includes/precision.rst
+   :start-after: precision-begin-content
+
+
+.. _channel-types:
+
+Supported channel types
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. include:: ../_includes/channel_types.rst
+   :start-after: channel-types-begin-content
+
+
+.. _data-formats:
+
+Supported data formats
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. include:: ../_includes/data_formats.rst
+   :start-after: data-formats-begin-content
+
+
+.. _dig-formats:
+
+Supported formats for digitized 3D locations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. include:: ../_includes/dig_formats.rst
+   :start-after: dig-formats-begin-content
+
+
+.. _channel-interpolation:
+
+Bad channel repair via interpolation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. include:: ../_includes/channel_interpolation.rst
+   :start-after: channel-interpolation-begin-content
+   :end-before: channel-interpolation-end-content
+
+
+.. _maxwell:
+
+Maxwell filtering
+^^^^^^^^^^^^^^^^^
+
+MNE-Python's implementation of Maxwell filtering is described in the
+:ref:`tut-artifact-sss` tutorial.
+
+
+.. _ssp-method:
+
+Signal-Space Projection (SSP)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. include:: ../_includes/ssp.rst
+   :start-after: ssp-begin-content
+
+
+
+
+Mathematics and algorithms
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For more detailed information about mathematics and algorithms in MNE, see:
 
 .. toctree::
 
-   ../_includes/units.rst
-   ../_includes/precision.rst
-   ../_includes/channel_types.rst
-   ../_includes/dig_formats.rst
-   algorithms/channel_interpolation.rst
-   algorithms/time_frequency.rst
-   algorithms/maxwell.rst
    algorithms/ssp.rst
    algorithms/memory.rst
    algorithms/bem_model.rst
