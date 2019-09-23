@@ -475,6 +475,7 @@ sphinx_gallery_conf = {
                                        '../examples/datasets/',
                                        '../tutorials/intro/',
                                        '../tutorials/raw/',
+                                       '../tutorials/io/',
                                        '../tutorials/preprocessing/',
                                        '../tutorials/epochs/',
                                        '../tutorials/evoked/',
