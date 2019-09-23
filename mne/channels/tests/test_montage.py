@@ -152,6 +152,7 @@ def test_documented():
     assert_equal(set(montages), set(kinds))
 
 
+# XXX: This function tests read_montage and Montage. Should be removed in 0.20
 def test_montage():
     """Test making montages."""
     tempdir = _TempDir()
@@ -311,7 +312,6 @@ def test_montage():
             fid.write(input_str)
 
         with pytest.deprecated_call():
-            # XXX: This is a regression test that might need to be translated.
             montage = read_montage(op.join(tempdir, kind), transform=True)
 
         # check coordinate transformation
@@ -329,7 +329,6 @@ def test_montage():
         pos = np.array([-95.0, -31.0, -3.0])
         montage_fname = op.join(tempdir, kind)
         with pytest.deprecated_call():
-            # XXX: This is a regression test that might need to be translated.
             montage = read_montage(montage_fname, unit='mm')
         assert_array_equal(montage.pos[0], pos * 1e-3)
 
@@ -557,7 +556,7 @@ def test_montage():
         ),
         'bvef', id='brainvision'),
 ])
-def test_readable_montage_file_formats(
+def test_montage_readers(
     reader, file_content, expected_dig, ext, tmpdir
 ):
     """Test that we have an equivalent of read_montage for all file formats."""
@@ -1410,6 +1409,8 @@ EXPECTED_DIG_RPR = [
 ]
 
 
+# XXX : to remove in 0.20 (tested separately in test_montage_readers and
+# test_set_montage functions)
 def test_setting_hydrocel_montage():
     """Test set_montage using GSN-HydroCel-32."""
     with pytest.deprecated_call():
@@ -1706,8 +1707,9 @@ def test_read_dig_hpts():
     )
 
 
+# XXX should be removed in 0.20
 @testing.requires_testing_data
-def test_read_standard_montage():
+def test_read_standard_montage_vs_old_on_loc_eeglab():
     """Test reading EEGLAB locations data."""
     with pytest.deprecated_call():
         old = read_montage(locs_montage_fname)

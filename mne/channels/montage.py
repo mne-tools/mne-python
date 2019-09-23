@@ -1810,6 +1810,17 @@ def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
     montage : instance of DigMontage
         The montage.
 
+    Notes
+    -----
+    The function is a helper to read electrode positions you may have
+    in various formats. Most of these format are weakly specified
+    in terms of units, coordinate systems. It implies that setting
+    a montage using a DigMontage produced by this function may
+    be problematic. If you use a standard/template (eg. 10/20,
+    10/10 or 10/05) we recommend you use :func:`make_standard_montage`.
+    If you can have positions in memory you can also use
+    :func:`make_dig_montage` that takes arrays as input.
+
     See Also
     --------
     make_dig_montage
