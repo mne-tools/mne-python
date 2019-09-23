@@ -11,6 +11,7 @@
 #
 # License: Simplified BSD
 
+from collections import OrderedDict
 from collections.abc import Iterable
 import os
 import os.path as op
@@ -36,7 +37,7 @@ from .._digitization._utils import (_make_dig_points, _read_dig_points,
 from ..io.pick import pick_types
 from ..io.open import fiff_open
 from ..io.constants import FIFF
-from ..utils import (warn, copy_function_doc_to_method_doc,
+from ..utils import (warn, logger, copy_function_doc_to_method_doc,
                      _check_option, Bunch, deprecated, _validate_type,
                      _check_fname)
 from .._digitization._utils import _get_fid_coords, _foo_get_data_from_dig
@@ -49,6 +50,7 @@ from ._dig_montage_utils import _parse_brainvision_dig_montage
 
 from .channels import DEPRECATED_PARAM
 
+HEAD_SIZE_DEFAULT = 0.095  # in [m]
 
 _BUILT_IN_MONTAGES = [
     'EGI_256',
@@ -99,11 +101,11 @@ def _check_ch_names_are_compatible(info_names, montage_names, raise_if_subset):
         pass  # noqa
 
     if len(not_in_info):  # Montage is superset of info
-        warn(('DigMontage is a superset of info.'
-              ' {n_ch} in DigMontage will be ignored.'
-              ' The ignored channels are: {ch_names}'
-              ).format(n_ch=len(not_in_info), ch_names=not_in_info),
-             RuntimeWarning)
+        logger.info((
+            'DigMontage is a superset of info. {n_ch} in DigMontage will be'
+            ' ignored. The ignored channels are: {ch_names}'
+        ).format(n_ch=len(not_in_info), ch_names=not_in_info))
+
     else:
         pass  # noqa
 
@@ -505,7 +507,12 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     read_dig_montage
 
     """
-    ch_names = None if ch_pos is None else list(sorted(ch_pos.keys()))
+    if ch_pos is None:
+        ch_names = None
+    else:
+        ch_names = list(ch_pos.keys())
+        if not isinstance(ch_pos, OrderedDict):
+            ch_names = sorted(ch_names)
     dig = _make_dig_points(
         nasion=nasion, lpa=lpa, rpa=rpa, hpi=hpi, extra_points=hsp,
         dig_ch_pos=ch_pos, coord_frame=coord_frame
@@ -834,6 +841,7 @@ class DigMontage(object):
 
     def _get_ch_pos(self):
         pos = [d['r'] for d in _get_dig_eeg(self.dig)]
+        assert len(self.ch_names) == len(pos)
         return dict(zip(self.ch_names, pos))
 
     def _get_dig_names(self):
@@ -1458,7 +1466,9 @@ def _set_montage(info, montage, update_ch_names=DEPRECATED_PARAM,
                 return np.concatenate((pos, ref_pos))
 
         ch_pos = _mnt._get_ch_pos()
-        eeg_ref_pos = ch_pos.pop('EEG000', np.zeros(3))
+        refs = set(ch_pos.keys()) & {'EEG000', 'REF'}
+        assert len(refs) <= 1
+        eeg_ref_pos = np.zeros(3) if not(refs) else ch_pos.pop(refs.pop())
 
         # This raises based on info being subset/superset of montage
         _pick_chs = partial(
@@ -1478,7 +1488,7 @@ def _set_montage(info, montage, update_ch_names=DEPRECATED_PARAM,
             _names = _mnt._get_dig_names()
             info['dig'] = _format_dig_points([
                 _mnt.dig[ii] for ii, name in enumerate(_names)
-                if name in matched_ch_names.union({None, 'EEG000'})
+                if name in matched_ch_names.union({None, 'EEG000', 'REF'})
             ])
 
         if _mnt.dev_head_t is not None:
@@ -1712,7 +1722,7 @@ def compute_dev_head_t(montage):
     return Transform(fro='meg', to='head', trans=trans)
 
 
-def make_standard_montage(kind):
+def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
     """Read a generic (built-in) montage.
 
     Individualized (digitized) electrode positions should be read in using
@@ -1723,6 +1733,8 @@ def make_standard_montage(kind):
     kind : str
         The name of the montage file without the file extension (e.g.
         kind='easycap-M10' for 'easycap-M10.txt'). See notes for valid kinds.
+    head_size : float
+        The head size (in meters) to use for spherical montages.
 
     Returns
     -------
@@ -1789,5 +1801,4 @@ def make_standard_montage(kind):
         raise ValueError('Could not find the montage %s. Please provide one '
                          'among: %s' % (kind,
                                         standard_montage_look_up_table.keys()))
-    else:
-        return standard_montage_look_up_table[kind]()
+    return standard_montage_look_up_table[kind](head_size=head_size)

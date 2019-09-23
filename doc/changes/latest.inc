@@ -91,9 +91,13 @@ Changelog
 
 - Add support for median averaging and for returning unaggregated segments in :func:`mne.time_frequency.psd_welch` by `Richard Höchenberger`_
 
+- :func:`io.read_raw_kit`: add support for NYU New York 2019 system update, by `Christian Brodbeck`_
+
 
 Bug
 ~~~
+
+- Fix setting montage eeg ref position for captrack by `Joan Massich`_
 
 - Fix saving raw read from BDF file using ``tmin`` and ``tmax`` using ``preload=False`` by `Alex Gramfort`_
 
@@ -127,11 +131,15 @@ Bug
 
 - Fix scaling issue with signals in mV in EDF files read with :func:`mne.io.read_raw_edf` by `Alex Gramfort`_
 
+- Fix :func:`mne.extract_label_time_course` behavior when using STCs generated with ``apply_inverse(..., label=label)`` or ``stc.in_label`` by `Eric Larson`_
+
 - Fix bug in :func:`mne.io.read_raw_brainvision` so that recording date timestamps are also recognized if channel reference data is negative, by `Stefan Appelhoff`_
 
 - Fix order of ``info['dig']`` that was alphabetical based on channel names and not following the channel order when using :meth:`mne.io.Raw.set_montage` and a :class:`mne.channels.Montage` object by `Joan Massich`_ and `Alex Gramfort`_.
 
 - Fix reading CNT files larger than 2Gb by `Joan Massich`_
+
+- Fix reading of 4D/BTi data with different channel names and onsets in :func:`mne.io.read_raw_bti` by `Joshua Bear`_ and `Eberhard Eich`_
 
 - Fix formula for effective number of averages in :func:`mne.combine_evoked` when ``weights='equal'`` by `Daniel McCloy`_.
 
@@ -221,3 +229,5 @@ API
 - Add ``update_ch_names`` parameter to ``mne.io.RawEEGLAB.set_montage`` to allow updating the channel names based on the montage by `Joan Massich`_
 
 - Reading annotations contained in GDF files with :func:`mne.io.read_raw_gdf` now returns numeric event codes as descriptions (instead of textual descriptions) due to restrictive licensing of the GDF event code table from BioSig by `Clemens Brunner`_
+
+- :func:`channels.find_ch_connectivity` now returns pre-built neighbor maps for KIT systems when available, by `Christian Brodbeck`_

@@ -19,7 +19,7 @@ the LIMO .mat files stored on disk.
 If files are not found, the function mne.datasets.limo.load_data() will
 automatically download the data from a remote repository.
 
-mne.datasets.limo.load_data() creates a custom info and
+:func:`mne.datasets.limo.load_data` creates a custom info and
 epochs structure in MNE-Python.
 Missing channels can be interpolated if desired.
 

@@ -5,6 +5,7 @@
 #
 # License: BSD (3-clause)
 
+import contextlib
 import copy
 import os.path as op
 import numpy as np
@@ -2496,22 +2497,6 @@ def _get_ico_tris(grade, verbose=None, return_surf=False):
         return ico
 
 
-def _get_label_flip(labels, label_vertidx, src):
-    """Get sign-flip for labels."""
-    # do the import here to avoid circular dependency
-    from .label import label_sign_flip
-    # get the sign-flip vector for every label
-    label_flip = list()
-    for label, vertidx in zip(labels, label_vertidx):
-        if vertidx is not None:
-            flip = label_sign_flip(label, src)[:, None]
-        else:
-            flip = None
-        label_flip.append(flip)
-
-    return label_flip
-
-
 def _pca_flip(flip, data):
     U, s, V = linalg.svd(data, full_matrices=False)
     # determine sign-flip
@@ -2529,19 +2514,90 @@ _label_funcs = {
 }
 
 
-@verbose
-def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
-                                   allow_empty=False, verbose=None):
-    """Generate extract_label_time_course."""
+@contextlib.contextmanager
+def _temporary_vertices(src, vertices):
+    orig_vertices = [s['vertno'] for s in src]
+    for s, v in zip(src, vertices):
+        s['vertno'] = v
+    try:
+        yield
+    finally:
+        for s, v in zip(src, orig_vertices):
+            s['vertno'] = v
+
+
+def _prepare_label_extraction(stc, labels, src, mode, allow_empty):
+    """Prepare indices and flips for extract_label_time_course."""
     # if src is a mixed src space, the first 2 src spaces are surf type and
     # the other ones are vol type. For mixed source space n_labels will be the
     # given by the number of ROIs of the cortical parcellation plus the number
     # of vol src space
+    from .label import label_sign_flip
 
-    if mode not in _label_funcs:
-        raise ValueError('%s is an invalid mode' % mode)
+    # get vertices from source space, they have to be the same as in the stcs
+    vertno = stc.vertices
+    nvert = [len(vn) for vn in vertno]
+
+    # do the initialization
+    label_vertidx = list()
+    label_flip = list()
+    for s, v, hemi in zip(src, stc.vertices, ('left', 'right')):
+        n_missing = (~np.in1d(v, s['vertno'])).sum()
+        if n_missing:
+            raise ValueError('%d/%d %s hemisphere stc vertices missing from '
+                             'the source space, likely mismatch'
+                             % (n_missing, len(v), hemi))
+    for label in labels:
+        if label.hemi == 'both':
+            # handle BiHemiLabel
+            sub_labels = [label.lh, label.rh]
+        else:
+            sub_labels = [label]
+        this_vertidx = list()
+        for slabel in sub_labels:
+            if slabel.hemi == 'lh':
+                this_vertices = np.intersect1d(vertno[0], slabel.vertices)
+                vertidx = np.searchsorted(vertno[0], this_vertices)
+            elif slabel.hemi == 'rh':
+                this_vertices = np.intersect1d(vertno[1], slabel.vertices)
+                vertidx = nvert[0] + np.searchsorted(vertno[1], this_vertices)
+            else:
+                raise ValueError('label %s has invalid hemi' % label.name)
+            this_vertidx.append(vertidx)
+
+        # convert it to an array
+        this_vertidx = np.concatenate(this_vertidx)
+        this_flip = None
+        if len(this_vertidx) == 0:
+            msg = ('source space does not contain any vertices for label %s'
+                   % label.name)
+            if not allow_empty:
+                raise ValueError(msg)
+            else:
+                warn_(msg + '. Assigning all-zero time series to label.')
+            this_vertidx = None  # to later check if label is empty
+        elif mode not in ('mean', 'max'):  # mode-dependent initialization
+            # label_sign_flip uses two properties:
+            #
+            # - src[ii]['nn']
+            # - src[ii]['vertno']
+            #
+            # So if we override vertno with the stc vertices, it will pick
+            # the correct normals.
+            with _temporary_vertices(src, stc.vertices):
+                this_flip = label_sign_flip(label, src[:2])[:, None]
+
+        label_vertidx.append(this_vertidx)
+        label_flip.append(this_flip)
+
+    return label_vertidx, label_flip
+
+
+def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
+                                   allow_empty=False, verbose=None):
+    # loop through source estimates and extract time series
+    _check_option('mode', mode, sorted(_label_funcs.keys()))
     func = _label_funcs[mode]
-
     if len(src) > 2:
         if src[0]['type'] != 'surf' or src[1]['type'] != 'surf':
             raise ValueError('The first 2 source spaces have to be surf type')
@@ -2553,55 +2609,15 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
         n_labels = n_aparc + n_aseg
     else:
         n_labels = len(labels)
-
-    # get vertices from source space, they have to be the same as in the stcs
-    vertno = [s['vertno'] for s in src]
-    nvert = [len(vn) for vn in vertno]
-
-    # do the initialization
-    label_vertidx = list()
-    for label in labels:
-        if label.hemi == 'both':
-            # handle BiHemiLabel
-            sub_labels = [label.lh, label.rh]
-        else:
-            sub_labels = [label]
-        this_vertidx = list()
-        for slabel in sub_labels:
-            if slabel.hemi == 'lh':
-                this_vertno = np.intersect1d(vertno[0], slabel.vertices)
-                vertidx = np.searchsorted(vertno[0], this_vertno)
-            elif slabel.hemi == 'rh':
-                this_vertno = np.intersect1d(vertno[1], slabel.vertices)
-                vertidx = nvert[0] + np.searchsorted(vertno[1], this_vertno)
-            else:
-                raise ValueError('label %s has invalid hemi' % label.name)
-            this_vertidx.append(vertidx)
-
-        # convert it to an array
-        this_vertidx = np.concatenate(this_vertidx)
-        if len(this_vertidx) == 0:
-            msg = ('source space does not contain any vertices for label %s'
-                   % label.name)
-            if not allow_empty:
-                raise ValueError(msg)
-            else:
-                warn_(msg + '. Assigning all-zero time series to label.')
-            this_vertidx = None  # to later check if label is empty
-
-        label_vertidx.append(this_vertidx)
-
-    # mode-dependent initialization
-    if mode not in ('mean', 'max'):
-        # get the sign-flip vector for every label
-        src_flip = _get_label_flip(labels, label_vertidx, src[:2])
-    else:
-        src_flip = [None] * len(labels)
-
-    # loop through source estimates and extract time series
+    vertno = None
     for stc in stcs:
+        if vertno is None:
+            vertno = copy.deepcopy(stc.vertices)
+            nvert = [len(v) for v in vertno]
+            label_vertidx, src_flip = _prepare_label_extraction(
+                stc, labels, src, mode, allow_empty)
         # make sure the stc is compatible with the source space
-        for i in range(len(src)):
+        for i in range(len(vertno)):
             if len(stc.vertices[i]) != nvert[i]:
                 raise ValueError('stc not compatible with source space. '
                                  'stc has %s time series but there are %s '

@@ -8,11 +8,9 @@ EEG forward operator with a template MRI
 This tutorial explains how to compute the forward operator from EEG data
 using the standard template MRI subject ``fsaverage``.
 
-.. important:: Source reconstruction without an individual T1 MRI from the
-               subject will be less accurate. Do not over interpret
-               activity locations which can be off by multiple centimeters.
-
-.. note:: :ref:`plot_montage` show all the standard montages in MNE-Python.
+.. caution:: Source reconstruction without an individual T1 MRI from the
+             subject will be less accurate. Do not over interpret
+             activity locations which can be off by multiple centimeters.
 
 .. contents:: This tutorial covers:
    :local:
@@ -37,7 +35,7 @@ subjects_dir = op.dirname(fs_dir)
 
 # The files live in:
 subject = 'fsaverage'
-trans = op.join(fs_dir, 'bem', 'fsaverage-trans.fif')
+trans = 'fsaverage'  # MNE has a built-in fsaverage transformation
 src = op.join(fs_dir, 'bem', 'fsaverage-ico-5-src.fif')
 bem = op.join(fs_dir, 'bem', 'fsaverage-5120-5120-5120-bem-sol.fif')
 
@@ -46,25 +44,30 @@ bem = op.join(fs_dir, 'bem', 'fsaverage-5120-5120-5120-bem-sol.fif')
 # -------------
 #
 # We use here EEG data from the BCI dataset.
+#
+# .. note:: See :ref:`plot_montage` to view all the standard EEG montages
+#           available in MNE-Python.
 
 raw_fname, = eegbci.load_data(subject=1, runs=[6])
 raw = mne.io.read_raw_edf(raw_fname, preload=True)
 
-
 # Clean channel names to be able to use a standard 1005 montage
-ch_names = [c.replace('.', '') for c in raw.ch_names]
-raw.rename_channels({old: new for old, new in zip(raw.ch_names, ch_names)})
+new_names = dict(
+    (ch_name,
+     ch_name.rstrip('.').upper().replace('Z', 'z').replace('FP', 'Fp'))
+    for ch_name in raw.ch_names)
+raw.rename_channels(new_names)
 
 # Read and set the EEG electrode locations
-montage = mne.channels.read_montage('standard_1005', ch_names=raw.ch_names,
-                                    transform=True)
+montage = mne.channels.make_standard_montage('standard_1005')
 
 raw.set_montage(montage)
 raw.set_eeg_reference(projection=True)  # needed for inverse modeling
 
 # Check that the locations of EEG electrodes is correct with respect to MRI
 mne.viz.plot_alignment(
-    raw.info, src=src, eeg=['original', 'projected'], trans=trans, dig=True)
+    raw.info, src=src, eeg=['original', 'projected'], trans=trans,
+    show_axes=True, mri_fiducials=True, dig='fiducials')
 
 ##############################################################################
 # Setup source space and compute forward

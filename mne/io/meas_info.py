@@ -1794,15 +1794,11 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
         info['chs'].append(chan_info)
     info._update_redundant()
     if montage is not None:
-        from ..channels.montage import (Montage, DigMontage, _set_montage,
-                                        read_montage)
+        from ..channels.montage import (Montage, DigMontage, _set_montage)
         if not isinstance(montage, list):
             montage = [montage]
         for montage_ in montage:
-            if isinstance(montage_, (Montage, DigMontage)):
-                _set_montage(info, montage_)
-            elif isinstance(montage_, str):
-                montage_ = read_montage(montage_)
+            if isinstance(montage_, (str, Montage, DigMontage)):
                 _set_montage(info, montage_)
             else:
                 raise TypeError('Montage must be an instance of Montage, '

@@ -138,7 +138,7 @@ layout_from_raw.plot()
 # parameter) and whether to display sensor positions in 3D or as a 2D topomap
 # (the ``kind`` parameter):
 
-ten_twenty_montage = mne.channels.read_montage('standard_1020')
+ten_twenty_montage = mne.channels.make_standard_montage('standard_1020')
 ten_twenty_montage.plot(show_names=False)
 fig = ten_twenty_montage.plot(kind='3d')
 fig.gca().view_init(azim=70, elev=15)
