@@ -424,7 +424,7 @@ class _Brain(object):
         dt_max = fmax
         dt_min = fmin if center is None else -1 * fmax
 
-        ctable = self.update_lut()
+        ctable = self.update_lut(transparent=transparent)
 
         for ri, v in enumerate(self._views):
             if self._hemi != 'split':
@@ -725,7 +725,7 @@ class _Brain(object):
         """
         return self._renderer.screenshot(mode)
 
-    def update_lut(self, fmin=None, fmid=None, fmax=None):
+    def update_lut(self, fmin=None, fmid=None, fmax=None, transparent=True):
         u"""Update color map.
 
         Parameters
@@ -747,7 +747,7 @@ class _Brain(object):
 
         self._data['ctable'] = \
             calculate_lut(colormap, alpha=alpha, fmin=fmin, fmid=fmid,
-                          fmax=fmax, center=center)
+                          fmax=fmax, center=center, transparent=transparent)
 
         return self._data['ctable']
 
