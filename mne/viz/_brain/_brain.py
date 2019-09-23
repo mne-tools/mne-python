@@ -11,7 +11,7 @@ import numpy as np
 import os
 from os.path import join as pjoin
 from ...label import read_label
-from .colormap import _calculate_lut
+from .colormap import calculate_lut
 from .view import views_dict
 from .surface import Surface
 from .utils import mesh_edges, smoothing_matrix
@@ -423,6 +423,7 @@ class _Brain(object):
 
         dt_max = fmax
         dt_min = fmin if center is None else -1 * fmax
+
         ctable = self.update_lut()
 
         for ri, v in enumerate(self._views):
@@ -745,8 +746,8 @@ class _Brain(object):
         fmax = self._data['fmax'] if fmax is None else fmax
 
         self._data['ctable'] = \
-            _calculate_lut(colormap, alpha=alpha, fmin=fmin, fmid=fmid,
-                           fmax=fmax, center=center)
+            calculate_lut(colormap, alpha=alpha, fmin=fmin, fmid=fmid,
+                          fmax=fmax, center=center)
 
         return self._data['ctable']
 
