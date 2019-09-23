@@ -686,7 +686,7 @@ def test_read_dig_montage_using_polhemus_fastscan():
         coord_frame='unknown'
     )
 
-    assert montage.__repr__() == (
+    assert repr(montage) == (
         '<DigMontage | '
         '500 extras (headshape), 5 HPIs, 3 fiducials, 10 channels>'
     )  # XXX: is this wrong? extra is not in headspace, is it?
@@ -732,7 +732,7 @@ def test_read_dig_polhemus_isotrak_hsp():
     }
     montage = read_dig_polhemus_isotrak(fname=op.join(kit_dir, 'test.hsp'),
                                         ch_names=None)
-    assert montage.__repr__() == (
+    assert repr(montage) == (
         '<DigMontage | '
         '500 extras (headshape), 0 HPIs, 3 fiducials, 0 channels>'
     )
@@ -753,7 +753,7 @@ def test_read_dig_polhemus_isotrak_elp():
     }
     montage = read_dig_polhemus_isotrak(fname=op.join(kit_dir, 'test.elp'),
                                         ch_names=None)
-    assert montage.__repr__() == (
+    assert repr(montage) == (
         '<DigMontage | '
         '0 extras (headshape), 5 HPIs, 3 fiducials, 0 channels>'
     )
@@ -811,7 +811,7 @@ def test_read_dig_polhemus_isotrak_eeg(isotrak_eeg):
         ch_names, np.random.RandomState(_SEED).randn(N_CHANNELS, 3)))
 
     montage = read_dig_polhemus_isotrak(fname=isotrak_eeg, ch_names=ch_names)
-    assert montage.__repr__() == (
+    assert repr(montage) == (
         '<DigMontage | '
         '0 extras (headshape), 0 HPIs, 3 fiducials, 5 channels>'
     )
@@ -884,7 +884,7 @@ def test_combining_digmontage_objects():
         DigMontage() + hsp1 + hsp2 + hsp3 + hpi1 + hpi2 + hpi3 + ch_pos1 +
         ch_pos2 + ch_pos3
     )
-    assert montage.__repr__() == (
+    assert repr(montage) == (
         '<DigMontage | '
         '6 extras (headshape), 6 HPIs, 3 fiducials, 9 channels>'
     )
@@ -977,7 +977,7 @@ def test_set_dig_montage():
 
     montage_ch_only = make_dig_montage(ch_pos=ch_pos, coord_frame='head')
 
-    assert montage_ch_only.__repr__() == (
+    assert repr(montage_ch_only) == (
         '<DigMontage | 0 extras (headshape), 0 HPIs, 0 fiducials, 3 channels>'
     )
     info = create_info(ch_names, sfreq=1, ch_types='eeg',
@@ -997,7 +997,7 @@ def test_set_dig_montage():
         coord_frame='head'
     )
 
-    assert montage_full.__repr__() == (
+    assert repr(montage_full) == (
         '<DigMontage | 2 extras (headshape), 1 HPIs, 3 fiducials, 4 channels>'
     )
 
@@ -1200,7 +1200,7 @@ def test_read_dig_captrack(tmpdir):
     )
 
     assert montage.ch_names == EXPECTED_CH_NAMES
-    assert montage.__repr__() == (
+    assert repr(montage) == (
         '<DigMontage | '
         '0 extras (headshape), 0 HPIs, 3 fiducials, 66 channels>'
     )
@@ -1701,9 +1701,9 @@ def test_read_dig_hpts():
     )
 
     montage = read_dig_hpts(fname)
-    assert montage.__repr__() == (
+    assert repr(montage) == (
         '<DigMontage | '
-        '5 extras (headshape), 0 HPIs, 3 fiducials, 34 channels>'
+        '0 extras (headshape), 5 HPIs, 3 fiducials, 34 channels>'
     )
 
 
