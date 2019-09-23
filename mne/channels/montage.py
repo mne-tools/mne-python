@@ -1258,29 +1258,27 @@ def read_dig_hpts(fname, unit='mm'):
         ...
 
     """
+    from ._standard_montage_utils import _str_names, _str
     VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
     _scale = _check_unit_and_get_scaling(unit, VALID_SCALES)
 
-    options = dict(
-        comments='#',
-        ndmin=2,
-        dtype={'names': ('kind', 'label', 'x', 'y', 'z'),
-               'formats': (object, object, 'f8', 'f8', 'f8')}
-    )
-    data = np.loadtxt(fname, **options)
-
-    fid = {
-        dd['label']: np.array(dd[['x', 'y', 'z']].tolist()) * _scale
-        for dd in data[data['kind'] == 'cardinal']
-    }
-    ch_pos = {
-        dd['label']: np.array(dd[['x', 'y', 'z']].tolist()) * _scale
-        for dd in data[data['kind'] == 'eeg']
-    }
-    hsp_data = data[data['kind'] == 'hpi']
-    hsp = np.stack([hsp_data[kk] for kk in 'xyz'], axis=-1) * _scale
-
-    return make_dig_montage(ch_pos=ch_pos, **fid, hsp=hsp)
+    out = np.genfromtxt(fname, comments='#',
+                        dtype=(_str, _str, 'f8', 'f8', 'f8'))
+    kind, label = _str_names(out['f0']), _str_names(out['f1'])
+    xyz = np.array([out['f%d' % ii] for ii in range(2, 5)]).T
+    xyz *= _scale
+    del _scale
+    fid = {label[ii]: this_xyz
+           for ii, this_xyz in enumerate(xyz) if kind[ii] == 'cardinal'}
+    ch_pos = {label[ii]: this_xyz
+              for ii, this_xyz in enumerate(xyz) if kind[ii] == 'eeg'}
+    hpi = np.array([this_xyz for ii, this_xyz in enumerate(xyz)
+                    if kind[ii] == 'hpi'])
+    hpi.shape = (-1, 3)  # in case it's empty
+    hsp = np.array([this_xyz for ii, this_xyz in enumerate(xyz)
+                    if kind[ii] == 'extra'])
+    hsp.shape = (-1, 3)  # in case it's empty
+    return make_dig_montage(ch_pos=ch_pos, **fid, hpi=hpi, hsp=hsp)
 
 
 def read_dig_egi(fname):
