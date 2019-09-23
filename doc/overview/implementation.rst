@@ -55,6 +55,15 @@ Supported formats for digitized 3D locations
    :start-after: dig-formats-begin-content
 
 
+.. _memory:
+
+Memory-efficient I/O
+^^^^^^^^^^^^^^^^^^^^
+
+.. include:: ../_includes/memory.rst
+   :start-after: memory-begin-content
+
+
 .. _channel-interpolation:
 
 Bad channel repair via interpolation
@@ -85,6 +94,7 @@ Signal-Space Projection (SSP)
 
 
 
+
 Mathematics and algorithms
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -92,8 +102,6 @@ For more detailed information about mathematics and algorithms in MNE, see:
 
 .. toctree::
 
-   algorithms/ssp.rst
-   algorithms/memory.rst
    algorithms/bem_model.rst
    algorithms/forward.rst
    algorithms/inverse.rst
