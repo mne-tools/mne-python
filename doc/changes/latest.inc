@@ -103,6 +103,8 @@ Bug
 
 - Fix :func:`mne.grand_average` to use equal sum-to-one weights (like it used to, before changes to underlying :func:`mne.combine_evoked`) by `Daniel McCloy`_
 
+- Fix :meth:`mne.io.Raw.filter` to deal with instances with no data channels properly by `Eric Larson`_
+
 - Fix one-sample baseline issue in :class:`mne.BaseEpochs` when using `tmin=0` by `Milan Rybář`_
 
 - Fix bug in :func:`mne.viz.plot_volume_source_estimates` where ``'glass_brain'`` MRIs were not transformed to MNI space, by `Eric Larson`_
