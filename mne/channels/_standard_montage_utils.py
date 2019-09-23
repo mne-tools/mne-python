@@ -263,10 +263,10 @@ def _read_theta_phi_in_degrees(fname, head_size, fid_names):
         [radii, np.deg2rad(phi), np.deg2rad(theta)],
         axis=-1,
     ))
+    ch_pos = OrderedDict(zip(ch_names, pos))
 
     nasion, lpa, rpa = None, None, None
     if fid_names is not None:
-        ch_pos = OrderedDict(zip(ch_names, pos))
         nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
 
     return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
