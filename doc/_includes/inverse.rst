@@ -268,11 +268,6 @@ employed with free-orientation sources is proportional to :math:`L`,
 correspondingly.
 
 .. note::
-   A section discussing statistical considerations related to the noise
-   normalization procedure will be added to this manual in one of the
-   subsequent releases.
-
-.. note::
    The MNE software usually computes the *square roots* of the F-statistic to
    be displayed on the inflated cortical surfaces. These are also proportional
    to :math:`\sqrt{L}`.
