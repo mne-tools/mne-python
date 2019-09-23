@@ -3,15 +3,15 @@
 Bad channel repair via interpolation
 ====================================
 
+Spherical spline interpolation (EEG)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 .. NOTE: part of this file is included in doc/overview/implementation.rst.
    Changes here are reflected there. If you want to link to this content, link
    to :ref:`channel-interpolation` to link to that section of the
    implementation.rst page. The next line is a target for :start-after: so we
    can omit the title from the include:
    channel-interpolation-begin-content
-
-Spherical spline interpolation (EEG)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In short, data repair using spherical spline interpolation [1]_ consists of the following steps:
 
@@ -64,12 +64,11 @@ To interpolate bad channels, one can simply do:
 
 and the bad channel will be fixed.
 
+.. target for :end-before: channel-interpolation-end-content
+
 .. topic:: Examples:
 
 	* :ref:`sphx_glr_auto_examples_preprocessing_plot_interpolate_bad_channels.py`
-
-
-.. target for :end-before: channel-interpolation-end-content
 
 
 References
