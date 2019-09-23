@@ -513,11 +513,11 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
 
     See Also
     --------
-    Montage
-    read_montage
     DigMontage
-    read_dig_montage
-
+    read_dig_captrack
+    read_dig_egi
+    read_dig_fif
+    read_dig_polhemus_isotrak
     """
     if ch_pos is None:
         ch_names = None
@@ -972,14 +972,6 @@ def _read_dig_montage_deprecation_warning_helper(**kwargs):
              ' Please use read_dig_captrack instead.', DeprecationWarning)
         return
 
-    # XXX: for now we only have implemented the case where hsp, hpi and elp
-    #      are np.arrays. we need read_dig_polhemus for the str cases. Plus,
-    #      we need to make sure that we can handle a mix of arrays and str. The
-    #      mixed case is not in our code-base but there was nothing preventing
-    #      a user to do so.
-    #
-    #      we can assume that whatever is not None or np.array is path-like
-    #      therefore str.
     if [kk for kk in ('hsp', 'hpi', 'elp') if isinstance(kwargs[kk],
                                                          np.ndarray)]:
         warn('Passing "np.arrays" to "hsp", "hpi" or "elp" in'
@@ -988,7 +980,7 @@ def _read_dig_montage_deprecation_warning_helper(**kwargs):
         return
 
     warn('Using "read_dig_montage" is deprecated and will be removed in '
-         'v0.20.', DeprecationWarning)
+         'v0.20. Use read_dig_polhemus_isotrak.', DeprecationWarning)
 
 
 def read_dig_montage(hsp=None, hpi=None, elp=None,
@@ -1186,9 +1178,10 @@ def read_dig_fif(fname):
     See Also
     --------
     DigMontage
-    read_montage
     read_dig_egi
     read_dig_captrack
+    read_dig_polhemus_isotrak
+    read_dig_hpts
     make_dig_montage
     """
     _check_fname(fname, overwrite='read', must_exist=True)
@@ -1204,6 +1197,98 @@ def read_dig_fif(fname):
 
     montage = DigMontage(dig=dig, ch_names=ch_names)
     return montage
+
+
+def read_dig_hpts(fname, unit='mm'):
+    """Read historical .hpts mne-c files.
+
+    The hpts format digitzer data file may contain comment lines starting
+    with the pound sign (#) and data lines of the form:
+
+     <*category*> <*identifier*> <*x/mm*> <*y/mm*> <*z/mm*>
+
+    where::
+
+        ``<*category*>``
+
+            defines the type of points. Allowed categories are: `hpi`,
+            `cardinal` (fiducial), `eeg`, and `extra` corresponding to
+            head-position indicator coil locations, cardinal landmarks, EEG
+            electrode locations, and additional head surface points,
+            respectively.
+
+        ``<*identifier*>``
+
+            identifies the point. The identifiers are usually sequential
+            numbers. For cardinal landmarks, 1 = left auricular point,
+            2 = nasion, and 3 = right auricular point. For EEG electrodes,
+            identifier = 0 signifies the reference electrode.
+
+        ``<*x/mm*> , <*y/mm*> , <*z/mm*>``
+
+            Location of the point, usually in the head coordinate system
+            in millimeters. If your points are in [m] then unit parameter can
+            be changed.
+
+    For example::
+
+        cardinal    nasion    -5.6729  -12.3873  -30.3671
+        cardinal    lpa    -37.6782  -10.4957   91.5228
+        cardinal    rpa    -131.3127    9.3976  -22.2363
+        hpi    1    -30.4493  -11.8450   83.3601
+        hpi    2    -122.5353    9.2232  -28.6828
+        hpi    3    -6.8518  -47.0697  -37.0829
+        hpi    4    7.3744  -50.6297  -12.1376
+        hpi    5    -33.4264  -43.7352  -57.7756
+        eeg    FP1  3.8676  -77.0439  -13.0212
+        eeg    FP2  -31.9297  -70.6852  -57.4881
+        eeg    F7  -6.1042  -68.2969   45.4939
+        ...
+
+    Parameters
+    ----------
+    fname : str
+        The filepath of .hpts file.
+    unit : 'm' | 'cm' | 'mm'
+        Unit of the positions. Defaults to 'mm'.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+
+    See Also
+    --------
+    DigMontage
+    read_dig_captrack
+    read_dig_egi
+    read_dig_fif
+    read_dig_polhemus_isotrak
+    make_dig_montage
+    """
+    VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
+    _scale = _check_unit_and_get_scaling(unit, VALID_SCALES)
+
+    options = dict(
+        comments='#',
+        ndmin=2,
+        dtype={'names': ('kind', 'label', 'x', 'y', 'z'),
+               'formats': (object, object, 'f8', 'f8', 'f8')}
+    )
+    data = np.loadtxt(fname, **options)
+
+    fid = {
+        dd['label']: np.array(dd[['x', 'y', 'z']].tolist()) * _scale
+        for dd in data[data['kind'] == 'cardinal']
+    }
+    ch_pos = {
+        dd['label']: np.array(dd[['x', 'y', 'z']].tolist()) * _scale
+        for dd in data[data['kind'] == 'eeg']
+    }
+    hsp_data = data[data['kind'] == 'hpi']
+    hsp = np.stack([hsp_data[kk] for kk in 'xyz'], axis=-1) * _scale
+
+    return make_dig_montage(ch_pos=ch_pos, **fid, hsp=hsp)
 
 
 def read_dig_egi(fname):
@@ -1222,9 +1307,10 @@ def read_dig_egi(fname):
     See Also
     --------
     DigMontage
-    read_montage
-    read_dig_fif
     read_dig_captrack
+    read_dig_fif
+    read_dig_hpts
+    read_dig_polhemus_isotrak
     make_dig_montage
     """
     _check_fname(fname, overwrite='read', must_exist=True)
@@ -1260,9 +1346,10 @@ def read_dig_captrack(fname):
     See Also
     --------
     DigMontage
-    read_montage
     read_dig_egi
     read_dig_fif
+    read_dig_hpts
+    read_dig_polhemus_isotrak
     make_dig_montage
     """
     _check_fname(fname, overwrite='read', must_exist=True)
@@ -1609,8 +1696,12 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
 
     See Also
     --------
+    DigMontage
     make_dig_montage
     read_polhemus_fastscan
+    read_dig_captrack
+    read_dig_egi
+    read_dig_fif
     """
     VALID_FILE_EXT = ('.hsp', '.elp', '.eeg')
     VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
@@ -1711,7 +1802,12 @@ def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
     Parameters
     ----------
     fname : str
-        File extension is expected to be '.loc', '.locs' or '.eloc'.
+        File extension is expected to be:
+        '.loc' or '.locs' or '.eloc' (for EEGLAB files),
+        '.sfp' (BESA/EGI files), '.csd',
+        ‘.elc’, ‘.txt’, ‘.csd’, ‘.elp’ (BESA spherical),
+        .bvef (BrainVision files).
+
     head_size : float | None
         The size of the head in [m]. If none, returns the values read from the
         file with no modification.
@@ -1729,7 +1825,7 @@ def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
     """
     from ._standard_montage_utils import (
         _read_theta_phi_in_degrees, _read_sfp, _read_csd, _read_elc,
-        _read_elp_besa, _read_brainvision, _read_hpts
+        _read_elp_besa, _read_brainvision
     )
     SUPPORTED_FILE_EXT = {
         'eeglab': ('.loc', '.locs', '.eloc', ),
@@ -1737,7 +1833,6 @@ def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
         'matlab': ('.csd', ),
         'asa electrode': ('.elc', ),
         'generic (Theta-phi in degrees)': ('.txt', ),
-        'legacy mne-c': ('.hpts', ),
         'standard BESA spherical': ('.elp', ),  # XXX: not same as polhemus elp
         'brainvision': ('.bvef', ),
     }
@@ -1773,11 +1868,6 @@ def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
                   "``head_size`` cannot be None for '{}'".format(ext))
         montage = _read_theta_phi_in_degrees(fname, head_size=head_size,
                                              fid_names=('Nz', 'LPA', 'RPA'))
-
-    elif ext in SUPPORTED_FILE_EXT['legacy mne-c']:
-        VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
-        _scale = _check_unit_and_get_scaling(unit, VALID_SCALES)
-        montage = _read_hpts(fname, _scale)
 
     elif ext in SUPPORTED_FILE_EXT['standard BESA spherical']:
         # it supports head_size=None
@@ -1833,13 +1923,14 @@ def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
     """Read a generic (built-in) montage.
 
     Individualized (digitized) electrode positions should be read in using
-    :func:`read_dig_montage`.  # XXXX
+    :func:`read_dig_captrack`, :func:`read_dig_egi`, :func:`read_dig_fif`,
+    :func:`read_dig_polhemus_isotrak`, :func:`read_dig_hpts` or made with
+    :func:`make_dig_montage`.
 
     Parameters
     ----------
     kind : str
-        The name of the montage file without the file extension (e.g.
-        kind='easycap-M10' for 'easycap-M10.txt'). See notes for valid kinds.
+        The name of the montage to use. See notes for valid kinds.
     head_size : float
         The head size (in meters) to use for spherical montages.
 
@@ -1851,6 +1942,8 @@ def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
     See Also
     --------
     DigMontage
+    make_dig_montage
+    read_standard_montage
 
     Notes
     -----

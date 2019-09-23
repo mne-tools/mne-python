@@ -25,7 +25,8 @@ from mne.channels import (read_montage, read_dig_montage,
                           make_standard_montage, read_standard_montage,
                           compute_dev_head_t, make_dig_montage,
                           read_dig_polhemus_isotrak,
-                          read_polhemus_fastscan)
+                          read_polhemus_fastscan,
+                          read_dig_hpts)
 from mne.channels.montage import (_set_montage, transform_to_head,
                                   HEAD_SIZE_DEFAULT)
 from mne.channels._dig_montage_utils import _transform_to_head_call
@@ -497,7 +498,7 @@ def test_montage():
         'elp', id='BESA spherical model'),
 
     pytest.param(
-        partial(read_standard_montage, head_size=None, unit='m'),
+        partial(read_dig_hpts, unit='m'),
         ('eeg Fp1 -95.0 -3. -3.\n'
          'eeg AF7 -1 -1 -3\n'
          'eeg A3 -2 -2 2\n'
@@ -1056,7 +1057,6 @@ def test_fif_dig_montage():
     assert_dig_allclose(raw_bv.info, evoked.info)
 
     # Roundtrip of non-FIF start
-    names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
     montage = make_dig_montage(hsp=read_polhemus_fastscan(hsp),
                                hpi=read_mrk(hpi))
     elp_points = read_polhemus_fastscan(elp)
@@ -1692,13 +1692,13 @@ def test_set_dig_montage_parameters_deprecation():
         _set_montage(raw.info, montage, update_ch_names=False)
 
 
-def test_read_dig_polhemus_fastscan():
-    """Test reading polhemus fastscan .hpts file."""
+def test_read_dig_hpts():
+    """Test reading .hpts file (from MNE legacy)."""
     fname = op.join(
         op.dirname(_BRAINVISON_FILE), 'tests', 'data', 'test.hpts'
     )
 
-    montage = read_standard_montage(fname)
+    montage = read_dig_hpts(fname)
     assert montage.__repr__() == (
         '<DigMontage | '
         '5 extras (headshape), 0 HPIs, 3 fiducials, 34 channels>'
