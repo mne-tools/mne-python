@@ -546,3 +546,12 @@ def _check_combine(mode, valid=('mean', 'median', 'std')):
                          " or callable, got %s (type %s)." %
                          (mode, type(mode)))
     return fun
+
+
+def _check_src_normal(pick_ori, src):
+    from ..source_space import SourceSpaces
+    _validate_type(src, SourceSpaces, 'src')
+    if pick_ori == 'normal' and src.kind not in ('surface', 'discrete'):
+        raise RuntimeError('Normal source orientation is supported only for '
+                           'surface or discrete SourceSpaces, got type '
+                           '%s' % (src.kind,))

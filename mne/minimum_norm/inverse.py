@@ -38,7 +38,7 @@ from ..transforms import _ensure_trans, transform_surface_to
 from ..source_estimate import _make_stc, _get_src_type
 from ..utils import (check_fname, logger, verbose, warn,
                      _check_compensation_grade, _check_option,
-                     _check_depth)
+                     _check_depth, _check_src_normal)
 
 
 INVERSE_METHODS = ['MNE', 'dSPM', 'sLORETA', 'eLORETA']
@@ -729,12 +729,13 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
     return K, noise_norm, vertno, source_nn
 
 
-def _check_ori(pick_ori, source_ori):
+def _check_ori(pick_ori, source_ori, src):
     """Check pick_ori."""
     _check_option('pick_ori', pick_ori, [None, 'normal', 'vector'])
     if pick_ori == 'vector' and source_ori != FIFF.FIFFV_MNE_FREE_ORI:
         raise RuntimeError('pick_ori="vector" cannot be combined with an '
                            'inverse operator with fixed orientations.')
+    _check_src_normal(pick_ori, src)
 
 
 def _check_reference(inst, ch_names=None):
@@ -869,7 +870,8 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     _check_option('method', method, INVERSE_METHODS)
     if method == 'eLORETA' and return_residual:
         raise ValueError('eLORETA does not currently support return_residual')
-    _check_ori(pick_ori, inverse_operator['source_ori'])
+    _check_ori(pick_ori, inverse_operator['source_ori'],
+               inverse_operator['src'])
     #
     #   Set up the inverse according to the parameters
     #
@@ -997,7 +999,8 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     """
     _check_reference(raw, inverse_operator['info']['ch_names'])
     _check_option('method', method, INVERSE_METHODS)
-    _check_ori(pick_ori, inverse_operator['source_ori'])
+    _check_ori(pick_ori, inverse_operator['source_ori'],
+               inverse_operator['src'])
     _check_ch_names(inverse_operator, raw.info)
 
     #
@@ -1074,7 +1077,8 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                               verbose=None):
     """Generate inverse solutions for epochs. Used in apply_inverse_epochs."""
     _check_option('method', method, INVERSE_METHODS)
-    _check_ori(pick_ori, inverse_operator['source_ori'])
+    _check_ori(pick_ori, inverse_operator['source_ori'],
+               inverse_operator['src'])
     _check_ch_names(inverse_operator, epochs.info)
 
     #
