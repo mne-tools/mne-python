@@ -317,13 +317,14 @@ Projections:
    read_dig_captrack
    read_dig_egi
    read_dig_fif
+   read_dig_hpts
+   make_standard_montage
+   read_standard_montage
    compute_dev_head_t
    read_layout
    find_layout
    make_eeg_layout
    make_grid_layout
-   make_standard_montage
-   read_standard_montage
    find_ch_connectivity
    read_ch_connectivity
    equalize_channels

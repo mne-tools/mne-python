@@ -31,7 +31,7 @@ Changelog
 
 - Add :func:`mne.channels.make_dig_montage` to create :class:`mne.channels.DigMontage` objects out of np.arrays by `Joan Massich`_
 
-- Add :func:`mne.channels.read_dig_eeglab` to read :class:`mne.channels.DigMontage` from EEGLAB ``.loc``, ``.locs``, and ``.eloc`` files by `Joan Massich`_ and `Alex Gramfort`_.
+- Add :func:`mne.channels.read_standard_montage` to read various EEG electrode locations files by `Joan Massich`_ and `Alex Gramfort`_.
 
 - Add support for making epochs with duplicated events, by allowing three policies: "error" (default), "drop", or "merge" in :class:`mne.Epochs` by `Stefan Appelhoff`_
 
