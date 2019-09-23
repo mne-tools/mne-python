@@ -1420,11 +1420,12 @@ def _set_montage_deprecation_helper(
             'Setting a montage using anything rather than DigMontage'
             ' is deprecated and will raise an error in v0.20.'
             ' Please use ``read_dig_fif``, ``read_dig_egi``,'
-            ' ``read_standard_montage``, or ``read_dig_captrack``'
-            ' to read a digitization based on your needs instead;'
-            ' or ``make_standard_montage`` to create ``DigMontage`` based on'
-            ' template; or ``make_dig_montage`` to create a ``DigMontage`` out'
-            ' of np.arrays.'
+            ' ``read_dig_polhemus_isotrak``, or ``read_dig_captrack``'
+            ' ``read_dig_hpts``, ``read_dig_captrack`` or'
+            ' ``read_standard_montage`` to read a digitization based on'
+            ' your needs instead; or ``make_standard_montage`` to create'
+            ' ``DigMontage`` based on template; or ``make_dig_montage``'
+            ' to create a ``DigMontage`` out of np.arrays.'
         ), DeprecationWarning)
 
     # This is unlikely to be trigger but it applies in all cases
@@ -1861,7 +1862,6 @@ def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
                                              fid_names=('Nz', 'LPA', 'RPA'))
 
     elif ext in SUPPORTED_FILE_EXT['standard BESA spherical']:
-        # it supports head_size=None
         montage = _read_elp_besa(fname, head_size)
 
     elif ext in SUPPORTED_FILE_EXT['brainvision']:
