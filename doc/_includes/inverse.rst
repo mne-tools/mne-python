@@ -21,13 +21,10 @@ Overview
    inverse-begin-content
 
 
-Computing the inverse operator is accomplished
-using :func:`mne.minimum_norm.make_inverse_operator` and
-:func:`mne.minimum_norm.apply_inverse`.
-The use of these functions is presented in the tutorial
-:ref:`tut-inverse-methods`.
-
-The page starts with a mathematical description of the method.
+Computing the inverse operator is accomplished using
+:func:`mne.minimum_norm.make_inverse_operator` and
+:func:`mne.minimum_norm.apply_inverse`. The use of these functions is presented
+in the tutorial :ref:`tut-inverse-methods`.
 
 .. _minimum_norm_estimates:
 

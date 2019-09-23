@@ -585,42 +585,29 @@ The coil geometry information is stored in the text file
 with the pound sign (#) are comments. A coil definition starts with a
 description line containing the following fields:
 
-** <*class*>**
+- :samp:`{<class>}`: A number indicating class of this coil.
 
-    This is a number indicating class of this coil.
+- :samp:`{<id>}`: Coil ID value. This value is listed in the first column of
+  Tables :ref:`normal_coil_descriptions` and :ref:`accurate_coil_descriptions`.
 
-** <*id*>**
+- :samp:`{<accuracy>}`: The coil representation accuracy. Possible values and
+  their meanings are listed in :ref:`coil_accuracies`.
 
-    Coil id value. This value is listed in the first column of Tables
-    :ref:`normal_coil_descriptions` and :ref:`accurate_coil_descriptions`.
+- :samp:`{<np>}`: Number of integration points in this representation.
 
-** <*accuracy*>**
+- :samp:`{<size/m>}`: The size of the coil. For circular coils this is the
+  diameter of the coil and for square ones the side length of the square. This
+  information is mainly included to facilitate drawing of the coil geometry. It
+  should not be employed to infer a coil approximation for the forward
+  calculations.
 
-    The coil representation accuracy. Possible values and their meanings are
-    listed in :ref:`coil_accuracies`.
+- :samp:`{<baseline/m>}`: The baseline of a this kind of a coil. This will be
+  zero for magnetometer coils. This information is mainly included to
+  facilitate drawing of the coil geometry. It should not be employed to infer
+  a coil approximation for the forward calculations.
 
-** <*np*>**
-
-    Number of integration points in this representation.
-
-** <*size/m*>**
-
-    The size of the coil. For circular coils this is the diameter of the coil
-    and for square ones the side length of the square. This information is
-    mainly included to facilitate drawing of the coil geometry. It should not
-    be employed to infer a coil approximation for the forward calculations.
-
-** <*baseline/m*>**
-
-    The baseline of a this kind of a coil. This will be zero for magnetometer
-    coils. This information is mainly included to facilitate drawing of the
-    coil geometry. It should not be employed to infer a coil approximation for
-    the forward calculations.
-
-** <*description*>**
-
-    Short description of this kind of a coil. If the description contains
-    several words, it is enclosed in quotes.
+- :samp:`{<description>}`: Short description of this kind of a coil. If the
+  description contains several words, it is enclosed in quotes.
 
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.5\linewidth}|
@@ -638,34 +625,30 @@ description line containing the following fields:
 Each coil description line is followed by one or more integration point lines,
 consisting of seven numbers:
 
-** <*weight*>**
+- :samp:`{<weight>}`: Gives the weight for this integration point (last column
+  in Tables :ref:`normal_coil_descriptions` and
+  :ref:`accurate_coil_descriptions`).
 
-    Gives the weight for this integration point (last column in Tables
-    :ref:`normal_coil_descriptions` and :ref:`accurate_coil_descriptions`).
+- :samp:`{<x/m>} {<y/m>} {<z/m>}`: Indicates the location of the integration
+  point (fourth column in Tables :ref:`normal_coil_descriptions` and
+  :ref:`accurate_coil_descriptions`).
 
-** <*x/m*> <*y/m*> <*z/m*>**
-
-    Indicates the location of the integration point (fourth column in Tables
-    :ref:`normal_coil_descriptions` and :ref:`accurate_coil_descriptions`).
-
-** <*nx*> <*ny*> <*nz*>**
-
-    Components of a unit vector indicating the field component to be selected.
-    Note that listing a separate unit vector for each integration points allows
-    the implementation of curved coils and coils with the gradiometer loops
-    tilted with respect to each other.
+- :samp:`{<nx>} {<ny>} {<nz>}`: Components of a unit vector indicating the
+  field component to be selected. Note that listing a separate unit vector for
+  each integration points allows the implementation of curved coils and coils
+  with the gradiometer loops tilted with respect to each other.
 
 Creating the coil definition file
 ---------------------------------
 
-The standard coil definition file $MNE_ROOT/share/mne/coil_def.dat
+The standard coil definition file :file:`{$MNE_ROOT}/share/mne/coil_def.dat`
 is included with the MNE software package. The coil definition file
 can be recreated with the MNE-C utility ``mne_list_coil_def``
 as follows:
 
 .. code-block:: console
 
-    mne_list_coil_def --out $MNE_ROOT/share/mne/coil_def.dat
+    $ mne_list_coil_def --out $MNE_ROOT/share/mne/coil_def.dat
 
 
 Computing the forward solution
