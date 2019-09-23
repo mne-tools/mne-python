@@ -33,10 +33,10 @@ MEG/EEG and MRI coordinate systems
    <https://github.com/mne-tools/mne-python/blob/master/mne/io/constants.py#L186-L197>`__.
 
 The coordinate systems used in MNE software (and FreeSurfer) and their
-relationships are depicted in :ref:`coordinate_system_figure`. Except for the *Sensor
-coordinates*, all of the coordinate systems are Cartesian and have the "RAS"
-(Right-Anterior-Superior) orientation, *i.e.*, the :math:`x` axis points to the
-right, the :math:`y` axis to the front, and the :math:`z` axis up.
+relationships are depicted in :ref:`coordinate_system_figure`. Except for the
+*sensor coordinates*, all of the coordinate systems are Cartesian and have the
+"RAS" (Right-Anterior-Superior) orientation, *i.e.*, the :math:`x` axis points
+to the right, the :math:`y` axis to the front, and the :math:`z` axis up.
 
 .. _coordinate_system_figure:
 
@@ -73,8 +73,8 @@ The coordinate systems related to MEG/EEG data are:
     Each MEG sensor has a local coordinate system defining the orientation and
     location of the sensor. With help of this coordinate system, the numerical
     integration data needed for the computation of the magnetic field can be
-    expressed conveniently as discussed in :ref:`coil_geometry_information`. The
-    channel information data in the fif files contain the information to
+    expressed conveniently as discussed in :ref:`coil_geometry_information`.
+    The channel information data in the fif files contain the information to
     specify the coordinate transformation between the coordinates of each
     sensor and the MEG device coordinates.
 
@@ -127,11 +127,10 @@ The coordinate systems related to MRI data are:
     and :math:`T_+` in :ref:`coordinate_system_figure`, are fixed as discussed in
     http://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach (*Approach 2*).
 
-The different coordinate systems are related by coordinate
-transformations depicted in :ref:`coordinate_system_figure`. The arrows and
-coordinate transformation symbols (:math:`T_x`)
-indicate the transformations actually present in the FreeSurfer
-files. Generally,
+The different coordinate systems are related by coordinate transformations
+depicted in :ref:`coordinate_system_figure`. The arrows and coordinate
+transformation symbols (:math:`T_x`) indicate the transformations actually
+present in the FreeSurfer files. Generally,
 
 .. math::    \begin{bmatrix}
 		x_2 \\
@@ -289,29 +288,24 @@ Topology checks
 
 The following topology checks are performed during the creation of BEM models:
 
-- The completeness of each surface is
-  confirmed by calculating the total solid angle subtended by all
-  triangles from a point inside the triangulation. The result should
-  be very close to :math:`4 \pi`. If the result
-  is :math:`-4 \pi` instead, it is conceivable
-  that the ordering of the triangle vertices is incorrect and the
-  ``--swap`` option should be specified.
+- The completeness of each surface is confirmed by calculating the total solid
+  angle subtended by all triangles from a point inside the triangulation. The
+  result should be very close to :math:`4 \pi`. If the result is :math:`-4 \pi`
+  instead, it is conceivable that the ordering of the triangle vertices is
+  incorrect and the ``--swap`` option should be specified.
 
-- The correct ordering of the surfaces is verified by checking
-  that the surfaces are inside each other as expected. This is accomplished
-  by checking that the sum solid angles subtended by triangles of
-  a surface :math:`S_k` at all vertices of another
-  surface :math:`S_p` which is supposed to be
-  inside it equals :math:`4 \pi`. Naturally, this
-  check is applied only if the model has more than one surface. Since
-  the surface relations are transitive, it is enough to check that
-  the outer skull surface is inside the skin surface and that the
-  inner skull surface is inside the outer skull one.
+- The correct ordering of the surfaces is verified by checking that the
+  surfaces are inside each other as expected. This is accomplished by checking
+  that the sum solid angles subtended by triangles of a surface :math:`S_k` at
+  all vertices of another surface :math:`S_p` which is supposed to be inside it
+  equals :math:`4 \pi`. Naturally, this check is applied only if the model has
+  more than one surface. Since the surface relations are transitive, it is
+  enough to check that the outer skull surface is inside the skin surface and
+  that the inner skull surface is inside the outer skull one.
 
-- The extent of each of the triangulated volumes is checked.
-  If the extent is smaller than 50mm, an error is reported. This
-  may indicate that the vertex coordinates have been specified in
-  meters instead of millimeters.
+- The extent of each of the triangulated volumes is checked. If the extent is
+  smaller than 50mm, an error is reported. This may indicate that the vertex
+  coordinates have been specified in meters instead of millimeters.
 
 
 Computing the BEM geometry data
@@ -334,10 +328,9 @@ software. Two pieces of information are needed to characterize the detectors:
 - A unique identifier, which has an one-to-one correspondence to the
   geometrical description of the coil.
 
-.. note:: MNE ships with several coil geometry configurations.
-          They can be found in ``mne/data``.
-          See :ref:`ex-plot-meg-sensors`
-          for a comparison between different coil geometries, and
+.. note:: MNE ships with several coil geometry configurations. They can be
+          found in ``mne/data``. See :ref:`ex-plot-meg-sensors` for a
+          comparison between different coil geometries, and
           :ref:`implemented_coil_geometries` for detailed information regarding
           the files describing Neuromag coil geometries.
 
@@ -345,26 +338,23 @@ software. Two pieces of information are needed to characterize the detectors:
 The sensor coordinate system
 ----------------------------
 
-The sensor coordinate system is completely characterized
-by the location of its origin and the direction cosines of three
-orthogonal unit vectors pointing to the directions of the x, y,
-and z axis. In fact, the unit vectors contain redundant information
-because the orientation can be uniquely defined with three angles.
-The measurement fif files list these data in MEG device coordinates.
-Transformation to the MEG head coordinate frame can be easily accomplished
-by applying the device-to-head coordinate transformation matrix
-available in the data files provided that the head-position indicator
-was used. Optionally, the MNE software forward calculation applies
-another coordinate transformation to the head-coordinate data to
-bring the coil locations and orientations to the MRI coordinate system.
+The sensor coordinate system is completely characterized by the location of its
+origin and the direction cosines of three orthogonal unit vectors pointing to
+the directions of the x, y, and z axis. In fact, the unit vectors contain
+redundant information because the orientation can be uniquely defined with
+three angles. The measurement fif files list these data in MEG device
+coordinates. Transformation to the MEG head coordinate frame can be easily
+accomplished by applying the device-to-head coordinate transformation matrix
+available in the data files provided that the head-position indicator was used.
+Optionally, the MNE software forward calculation applies another coordinate
+transformation to the head-coordinate data to bring the coil locations and
+orientations to the MRI coordinate system.
 
-If :math:`r_0` is a row vector for
-the origin of the local sensor coordinate system and :math:`e_x`, :math:`e_y`,
-and :math:`e_z` are the row vectors for the
-three orthogonal unit vectors, all given in device coordinates,
-a location of a point :math:`r_C` in sensor coordinates
-is transformed to device coordinates (:math:`r_D`)
-by
+If :math:`r_0` is a row vector for the origin of the local sensor coordinate
+system and :math:`e_x`, :math:`e_y`, and :math:`e_z` are the row vectors for
+the three orthogonal unit vectors, all given in device coordinates, a location
+of a point :math:`r_C` in sensor coordinates is transformed to device
+coordinates (:math:`r_D`) by
 
 .. math::    [r_D 1] = [r_C 1] T_{CD}\ ,
 
@@ -380,40 +370,37 @@ where
 Calculation of the magnetic field
 ---------------------------------
 
-The forward calculation in the MNE software computes the
-signals detected by each MEG sensor for three orthogonal dipoles
-at each source space location. This requires specification of the
-conductor model, the location and orientation of the dipoles, and
-the location and orientation of each MEG sensor as well as its coil
-geometry.
+The forward calculation in the MNE software computes the signals detected by
+each MEG sensor for three orthogonal dipoles at each source space location.
+This requires specification of the conductor model, the location and
+orientation of the dipoles, and the location and orientation of each MEG sensor
+as well as its coil geometry.
 
-The output of each SQUID sensor is a weighted sum of the
-magnetic fluxes threading the loops comprising the detection coil.
-Since the flux threading a coil loop is an integral of the magnetic
-field component normal to the coil plane, the output of the k :sup:`th`
-MEG channel, :math:`b_k` can be approximated by:
+The output of each SQUID sensor is a weighted sum of the magnetic fluxes
+threading the loops comprising the detection coil. Since the flux threading a
+coil loop is an integral of the magnetic field component normal to the coil
+plane, the output of the k :sup:`th` MEG channel, :math:`b_k` can be
+approximated by:
 
 .. math::    b_k = \sum_{p = 1}^{N_k} {w_{kp} B(r_{kp}) \cdot n_{kp}}
 
-where :math:`r_{kp}` are a set of :math:`N_k` integration
-points covering the pickup coil loops of the sensor, :math:`B(r_{kp})` is
-the magnetic field due to the current sources calculated at :math:`r_{kp}`,
-:math:`n_{kp}` are the coil normal directions at these points, and
-:math:`w_{kp}` are the weights associated to the integration points. This
-formula essentially presents numerical integration of the magnetic field over
-the pickup loops of sensor :math:`k`.
+where :math:`r_{kp}` are a set of :math:`N_k` integration points covering the
+pickup coil loops of the sensor, :math:`B(r_{kp})` is the magnetic field due to
+the current sources calculated at :math:`r_{kp}`, :math:`n_{kp}` are the coil
+normal directions at these points, and :math:`w_{kp}` are the weights
+associated to the integration points. This formula essentially presents
+numerical integration of the magnetic field over the pickup loops of sensor
+:math:`k`.
 
-There are three accuracy levels for the numerical integration
-expressed above. The *simple* accuracy means
-the simplest description of the coil. This accuracy is not used
-in the MNE forward calculations. The *normal* or *recommended* accuracy typically uses
-two integration points for planar gradiometers, one in each half
-of the pickup coil and four evenly distributed integration points
-for magnetometers. This is the default accuracy used by MNE. If
-the ``--accurate`` option is specified, the forward calculation typically employs
-a total of eight integration points for planar gradiometers and
-sixteen for magnetometers. Detailed information about the integration
-points is given in the next section.
+There are three accuracy levels for the numerical integration expressed above.
+The *simple* accuracy means the simplest description of the coil. This accuracy
+is not used in the MNE forward calculations. The *normal* or *recommended*
+accuracy typically uses two integration points for planar gradiometers, one in
+each half of the pickup coil and four evenly distributed integration points for
+magnetometers. This is the default accuracy used by MNE. If the ``--accurate``
+option is specified, the forward calculation typically employs a total of eight
+integration points for planar gradiometers and sixteen for magnetometers.
+Detailed information about the integration points is given in the next section.
 
 
 .. _implemented_coil_geometries:
@@ -429,22 +416,21 @@ in MNE. The coil types fall in two general categories:
 
 - Planar magnetometers.
 
-For axial sensors, the *z* axis of the
-local coordinate system is parallel to the field component detected, *i.e.*,
-normal to the coil plane.For circular coils, the orientation of
-the *x* and *y* axes on the
-plane normal to the z axis is irrelevant. In the square coils employed
-in the Vectorview (TM) system the *x* axis
-is chosen to be parallel to one of the sides of the magnetometer
-coil. For planar sensors, the *z* axis is likewise
-normal to the coil plane and the x axis passes through the centerpoints
-of the two coil loops so that the detector gives a positive signal
-when the normal field component increases along the *x* axis.
+For axial sensors, the *z* axis of the local coordinate system is parallel to
+the field component detected, *i.e.*, normal to the coil plane.For circular
+coils, the orientation of the *x* and *y* axes on the plane normal to the z
+axis is irrelevant. In the square coils employed in the Vectorview (TM) system
+the *x* axis is chosen to be parallel to one of the sides of the magnetometer
+coil. For planar sensors, the *z* axis is likewise normal to the coil plane and
+the x axis passes through the centerpoints of the two coil loops so that the
+detector gives a positive signal when the normal field component increases
+along the *x* axis.
 
 :ref:`normal_coil_descriptions` lists the parameters of the *normal* coil
-geometry descriptions :ref:`accurate_coil_descriptions` lists the *accurate* descriptions. For simple accuracy,
-please consult the coil definition file, see :ref:`coil_definition_file`.
-The columns of the tables contain the following data:
+geometry descriptions :ref:`accurate_coil_descriptions` lists the *accurate*
+descriptions. For simple accuracy, please consult the coil definition file, see
+:ref:`coil_definition_file`. The columns of the tables contain the following
+data:
 
 - The number identifying the coil id.
   This number is used in the coil descriptions found in the FIF files.
@@ -462,7 +448,9 @@ The columns of the tables contain the following data:
   of the baseline of the gradiometer to show that the output is in
   T/m.
 
-.. note:: The coil geometry information is stored in the file mne/data/coil_def.dat, which is automatically created by the MNE-C utility mne_list_coil_def.
+.. note:: The coil geometry information is stored in the file
+          :file:`{$MNE_ROOT}/share/mne/data/coil_def.dat`, which is
+          automatically created by the MNE-C utility ``mne_list_coil_def``.
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.1\linewidth}|p{0.25\linewidth}|p{0.2\linewidth}|
 .. _normal_coil_descriptions:
@@ -523,7 +511,8 @@ The columns of the tables contain the following data:
     |      | diagonal gradients      |    |                                  |                      |
     +------+-------------------------+----+----------------------------------+----------------------+
 
-.. note:: If a plus-minus sign occurs in several coordinates, all possible combinations have to be included.
+.. note:: If a plus-minus sign occurs in several coordinates, all possible
+          combinations have to be included.
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.05\linewidth}|p{0.25\linewidth}|p{0.15\linewidth}|
 .. _accurate_coil_descriptions:
@@ -674,7 +663,10 @@ is included with the MNE software package. The coil definition file
 can be recreated with the MNE-C utility ``mne_list_coil_def``
 as follows:
 
-mne_list_coil_def --out $MNE_ROOT/share/mne/coil_def.dat
+.. code-block:: console
+
+    mne_list_coil_def --out $MNE_ROOT/share/mne/coil_def.dat
+
 
 Computing the forward solution
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -691,17 +683,16 @@ Implementation of software gradient compensation
 ------------------------------------------------
 
 Accounting for noise cancellation in MNE-Python is accomplished in
-:meth:`mne.io.Raw.apply_gradient_compensation`.
-See :ref:`plot_brainstorm_phantom_ctf` for an example.
+:meth:`mne.io.Raw.apply_gradient_compensation`. See
+:ref:`plot_brainstorm_phantom_ctf` for an example.
 
-CTF and 4D Neuroimaging data may have been
-subjected to noise cancellation employing the data from the reference sensor
-array. Even though these sensor are rather far away from the brain sources,
-:func:`mne.make_forward_solution` takes them into account in the computations.
-If the data file has software gradient
-compensation activated, it computes the field of at the
-reference sensors in addition to the main MEG sensor array and computes a
-compensated forward solution`.
+CTF and 4D Neuroimaging data may have been subjected to noise cancellation
+employing the data from the reference sensor array. Even though these sensor
+are rather far away from the brain sources, :func:`mne.make_forward_solution`
+takes them into account in the computations. If the data file has software
+gradient compensation activated, it computes the field of at the reference
+sensors in addition to the main MEG sensor array and computes a compensated
+forward solution`.
 
 The EEG sphere model definition file
 ------------------------------------

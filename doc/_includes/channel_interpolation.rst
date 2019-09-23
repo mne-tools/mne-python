@@ -74,4 +74,6 @@ and the bad channel will be fixed.
 References
 ~~~~~~~~~~
 
-.. [1] Perrin, F., Pernier, J., Bertrand, O. and Echallier, JF. (1989). Spherical splines for scalp potential and current density mapping. Electroencephalography Clinical Neurophysiology, Feb; 72(2):184-7.
+.. [1] Perrin, F., Pernier, J., Bertrand, O. and Echallier, JF. (1989).
+       Spherical splines for scalp potential and current density mapping.
+       *Electroencephalography Clinical Neurophysiology* 72(2), 184-187.
