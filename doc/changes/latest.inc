@@ -15,21 +15,25 @@ Current (0.19.dev0)
 Changelog
 ~~~~~~~~~
 
-- Add :func:`mne.channels.read_dig_eeglab` to read :class:`mne.channels.DigMontage` from EEGLAB ``.loc``, ``.locs``, and ``.eloc`` files by `Joan Massich`_ and `Alex Gramfort`_.
-
 - Add :func:`mne.cuda.set_cuda_device` and config variable ``MNE_CUDA_DEVICE`` to select among multiple GPUs (by numeric device ID) by `Daniel McCloy`_.
 
 - Add :func:`mne.channels.make_standard_montage` to create :class:`mne.channels.DigMontage` from templates by `Joan Massich`_ and `Alex Gramfort`_.
 
 - Add :func:`mne.channels.compute_dev_head_t` to compute Device-to-Head transformation from a montage by `Joan Massich`_ and `Alex Gramfort`_.
 
+- Add :func:`mne.channels.read_dig_fif` to read digitization coordinates from ``.fif`` files by `Joan Massich`_ and `Alex Gramfort`_.
+
+- Add :func:`mne.channels.read_dig_egi` to read digitization coordinates from EGI ``.xml`` files by `Joan Massich`_ and `Alex Gramfort`_.
+
 - Add :func:`mne.channels.read_dig_polhemus_isotrak` and :func:`mne.channels.read_polhemus_fastscan` to read Polhemus data by `Joan Massich`_
 
-- Add support for making epochs with duplicated events, by allowing three policies: "error" (default), "drop", or "merge" in :class:`mne.Epochs` by `Stefan Appelhoff`_
+- Add :func:`mne.channels.read_dig_captrack` to read BrainVision CapTrak (BVCT) digitization coordinate files by `Stefan Appelhoff`_ and `Joan Massich`_
 
 - Add :func:`mne.channels.make_dig_montage` to create :class:`mne.channels.DigMontage` objects out of np.arrays by `Joan Massich`_
 
-- Add support for reading in BrainVision CapTrak (BVCT) digitization coordinate files in :func:`mne.channels.read_dig_montage` by `Stefan Appelhoff`_
+- Add :func:`mne.channels.read_dig_eeglab` to read :class:`mne.channels.DigMontage` from EEGLAB ``.loc``, ``.locs``, and ``.eloc`` files by `Joan Massich`_ and `Alex Gramfort`_.
+
+- Add support for making epochs with duplicated events, by allowing three policies: "error" (default), "drop", or "merge" in :class:`mne.Epochs` by `Stefan Appelhoff`_
 
 - Allow :meth:`mne.Annotations.crop` to support negative ``tmin`` and ``tmax`` by `Joan Massich`_
 
@@ -180,7 +184,7 @@ Bug
 API
 ~~~
 
-- Deprecate ``mne.channels.Montage`` class and ``mne.channels.read_montage`` function by `Joan Massich`_.
+- Deprecate ``mne.channels.Montage`` class, ``mne.channels.read_montage`` and ``mne.channels.read_dig_montage`` function by `Joan Massich`_.
 
 - Deprecate passing ``Montage``, ``str`` as montage parameter in :meth:`mne.io.Raw.set_montage` by `Joan Massich`_.
 
@@ -197,10 +201,6 @@ API
   - pandas 0.19.2
 
 - New boolean parameter ``show_scrollbars`` for :meth:`mne.io.Raw.plot`, :meth:`mne.Epochs.plot`, and :meth:`mne.preprocessing.ICA.plot_sources` (and associated functions) that allows hiding the scrollbars and buttons for a "zen mode" data browsing experience. When the plot window has focus, zen mode can be toggled by pressing :kbd:`z`, by `Daniel McCloy`_.
-
-- Deprecate passing ``np.arrays`` as ``hsp``, ``hpi`` or ``elp`` parameters to ``mne.channels.read_dig_montage`` by `Joan Massich`_.
-
-- Deprecate ``fif`` and ``egi`` parameters in ``mne.channels.read_dig_montage`` by `Joan Massich`_.
 
 - Deprecate ``mne.evoked.grand_average`` in favor of :func:`mne.grand_average` (which works on both :class:`~mne.Evoked` and :class:`~mne.time_frequency.AverageTFR`) by `Daniel McCloy`_
 

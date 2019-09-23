@@ -592,7 +592,8 @@ def test_read_locs():
 def test_read_dig_montage():
     """Test read_dig_montage."""
     names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
-    montage = read_dig_montage(hsp, hpi, elp, names, transform=False)
+    with pytest.deprecated_call():
+        montage = read_dig_montage(hsp, hpi, elp, names, transform=False)
     elp_points = _read_dig_points(elp)
     hsp_points = _read_dig_points(hsp)
     hpi_points = read_mrk(hpi)
@@ -601,8 +602,9 @@ def test_read_dig_montage():
         assert_array_equal(montage.elp, elp_points)
         assert_array_equal(montage.hsp, hsp_points)
     assert (montage.dev_head_t is None)
-    montage = read_dig_montage(hsp, hpi, elp, names,
-                               transform=True, dev_head_t=True)
+    with pytest.deprecated_call():
+        montage = read_dig_montage(hsp, hpi, elp, names,
+                                   transform=True, dev_head_t=True)
     # check coordinate transformation
     # nasion
     with pytest.deprecated_call():
@@ -636,12 +638,14 @@ def test_read_dig_montage():
     tempdir = _TempDir()
     mat_hsp = op.join(tempdir, 'test.mat')
     savemat(mat_hsp, dict(Points=(1000 * hsp_points).T), oned_as='row')
-    montage_cm = read_dig_montage(mat_hsp, hpi, elp, names, unit='cm')
+    with pytest.deprecated_call():
+        montage_cm = read_dig_montage(mat_hsp, hpi, elp, names, unit='cm')
     with pytest.deprecated_call():
         assert_allclose(montage_cm.hsp, montage.hsp * 10.)
         assert_allclose(montage_cm.elp, montage.elp * 10.)
-    pytest.raises(ValueError, read_dig_montage, hsp, hpi, elp, names,
-                  unit='km')
+    with pytest.deprecated_call():
+        pytest.raises(ValueError, read_dig_montage, hsp, hpi, elp, names,
+                      unit='km')
     # extra columns
     extra_hsp = op.join(tempdir, 'test.txt')
     with open(hsp, 'rb') as fin:
@@ -952,8 +956,9 @@ def test_set_dig_montage_old():
     nasion, lpa, rpa = elp_points[:3]
     hsp_points = apply_trans(nm_trans, hsp_points)
 
-    montage = read_dig_montage(hsp, hpi, elp, names, transform=True,
-                               dev_head_t=True)
+    with pytest.deprecated_call():
+        montage = read_dig_montage(hsp, hpi, elp, names, transform=True,
+                                   dev_head_t=True)
     temp_dir = _TempDir()
     fname_temp = op.join(temp_dir, 'test.fif')
     montage.save(fname_temp)
@@ -1052,9 +1057,18 @@ def test_fif_dig_montage():
 
     # Roundtrip of non-FIF start
     names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
-    montage = read_dig_montage(hsp, hpi, elp, names, transform=False)
+    montage = make_dig_montage(hsp=read_polhemus_fastscan(hsp),
+                               hpi=read_mrk(hpi))
+    elp_points = read_polhemus_fastscan(elp)
+    ch_pos = {"EEG%03d" % (k + 1): pos for k, pos in enumerate(elp_points[8:])}
+    montage += make_dig_montage(nasion=elp_points[0],
+                                lpa=elp_points[1],
+                                rpa=elp_points[2],
+                                ch_pos=ch_pos)
+
     pytest.raises(RuntimeError, montage.save, fname_temp)  # must be head coord
-    montage = read_dig_montage(hsp, hpi, elp, names)
+
+    montage = transform_to_head(montage)
     _check_roundtrip(montage, fname_temp)
 
     # Test old way matches new way

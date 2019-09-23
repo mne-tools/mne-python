@@ -987,7 +987,8 @@ def _read_dig_montage_deprecation_warning_helper(**kwargs):
              ' Please use "make_dig_montage" instead.', DeprecationWarning)
         return
 
-    pass  # noqa  # XXX: will grow with issue-6461
+    warn('Using "read_dig_montage" is deprecated and will be removed in '
+         'v0.20.', DeprecationWarning)
 
 
 def read_dig_montage(hsp=None, hpi=None, elp=None,
@@ -1770,7 +1771,8 @@ def read_standard_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
         if head_size is None:
             raise(ValueError,
                   "``head_size`` cannot be None for '{}'".format(ext))
-        montage = _read_theta_phi_in_degrees(fname, head_size=head_size)
+        montage = _read_theta_phi_in_degrees(fname, head_size=head_size,
+                                             fid_names=('Nz', 'LPA', 'RPA'))
 
     elif ext in SUPPORTED_FILE_EXT['legacy mne-c']:
         VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)

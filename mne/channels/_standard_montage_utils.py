@@ -23,73 +23,53 @@ _str = 'U100'
 
 def _egi_256(head_size):
     fname = op.join(MONTAGE_PATH, 'EGI_256.csd')
-    # Label, Theta, Phi, Radius, X, Y, Z, off sphere surface
-    options = dict(comments='//',
-                   dtype=(_str, 'f4', 'f4', 'f4', 'f4', 'f4', 'f4', 'f4'))
-    ch_names, _, _, _, xs, ys, zs, _ = _safe_np_loadtxt(fname, **options)
-    pos = np.stack([xs, ys, zs], axis=-1)
-
-    # Fix pos to match Montage code
-    pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
+    montage = _read_csd(fname, head_size)
+    ch_pos = montage._get_ch_pos()
 
     # For this cap, the Nasion is the frontmost electrode,
     # LPA/RPA we approximate by putting 75% of the way (toward the front)
     # between the two electrodes that are halfway down the ear holes
-    nasion = pos[ch_names.index('E31')]
-    lpa = (0.75 * pos[ch_names.index('E67')] +
-           0.25 * pos[ch_names.index('E94')])
-    rpa = (0.75 * pos[ch_names.index('E219')] +
-           0.25 * pos[ch_names.index('E190')])
+    nasion = ch_pos['E31']
+    lpa = 0.75 * ch_pos['E67'] + 0.25 * ch_pos['E94']
+    rpa = 0.75 * ch_pos['E219'] + 0.25 * ch_pos['E190']
 
-    return make_dig_montage(
-        ch_pos=OrderedDict(zip(ch_names, pos)),
+    fids_montage = make_dig_montage(
         coord_frame='unknown', nasion=nasion, lpa=lpa, rpa=rpa,
     )
+
+    montage += fids_montage  # add fiducials to montage
+
+    return montage
 
 
 def _easycap(basename, head_size):
     fname = op.join(MONTAGE_PATH, basename)
-    options = dict(skip_header=1, dtype=(_str, 'i4', 'i4'))
-    ch_names, theta, phi = _safe_np_loadtxt(fname, **options)
+    # ignore existing fiducials to adjust to mne head coord frame
+    fid_names = None
+    montage = _read_theta_phi_in_degrees(fname, head_size, fid_names)
 
-    radii = np.full(len(phi), head_size)
-    pos = _sph_to_cart(np.stack(
-        [radii, np.deg2rad(phi), np.deg2rad(theta)],
-        axis=-1,
-    ))
-    nasion = np.concatenate([[0],  pos[ch_names.index('Fpz'), 1:]])
-    nasion *= head_size / np.linalg.norm(nasion)
-    lpa = np.mean([pos[ch_names.index('FT9')],
-                   pos[ch_names.index('TP9')]], axis=0)
+    ch_pos = montage._get_ch_pos()
+
+    nasion = np.concatenate([[0], ch_pos['Fpz'][1:]])
+    lpa = np.mean([ch_pos['FT9'],
+                   ch_pos['TP9']], axis=0)
     lpa *= head_size / np.linalg.norm(lpa)  # on sphere
-    rpa = np.mean([pos[ch_names.index('FT10')],
-                   pos[ch_names.index('TP10')]], axis=0)
+    rpa = np.mean([ch_pos['FT10'],
+                   ch_pos['TP10']], axis=0)
     rpa *= head_size / np.linalg.norm(rpa)
 
-    return make_dig_montage(
-        ch_pos=OrderedDict(zip(ch_names, pos)),
+    fids_montage = make_dig_montage(
         coord_frame='unknown', nasion=nasion, lpa=lpa, rpa=rpa,
     )
 
+    montage += fids_montage  # add fiducials to montage
+
+    return montage
+
 
 def _hydrocel(basename, head_size):
-    fid_names = ('FidNz', 'FidT9', 'FidT10')
     fname = op.join(MONTAGE_PATH, basename)
-    options = dict(dtype=(_str, 'f4', 'f4', 'f4'))
-    ch_names, xs, ys, zs = _safe_np_loadtxt(fname, **options)
-
-    pos = np.stack([xs, ys, zs], axis=-1)
-    ch_pos = OrderedDict(zip(ch_names, pos))
-    nasion, lpa, rpa = [ch_pos.pop(n) for n in fid_names]
-    scale = head_size / np.median(np.linalg.norm(pos, axis=-1))
-    for value in ch_pos.values():
-        value *= scale
-    nasion *= scale
-    lpa *= scale
-    rpa *= scale
-
-    return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
-                            nasion=nasion, rpa=rpa, lpa=lpa)
+    return _read_sfp(fname, head_size)
 
 
 def _str_names(ch_names):
@@ -104,22 +84,9 @@ def _safe_np_loadtxt(fname, **kwargs):
 
 
 def _biosemi(basename, head_size):
-    fid_names = ('Nz', 'LPA', 'RPA')
     fname = op.join(MONTAGE_PATH, basename)
-    options = dict(skip_header=1, dtype=(_str, 'i4', 'i4'))
-    ch_names, theta, phi = _safe_np_loadtxt(fname, **options)
-
-    radii = np.full(len(phi), head_size)
-    pos = _sph_to_cart(np.stack(
-        [radii, np.deg2rad(phi), np.deg2rad(theta)],
-        axis=-1,
-    ))
-
-    ch_pos = OrderedDict(zip(ch_names, pos))
-    nasion, lpa, rpa = [ch_pos.pop(n) for n in fid_names]
-
-    return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
-                            nasion=nasion, lpa=lpa, rpa=rpa)
+    fid_names = ('Nz', 'LPA', 'RPA')
+    return _read_theta_phi_in_degrees(fname, head_size, fid_names)
 
 
 def _mgh_or_standard(basename, head_size):
@@ -196,8 +163,9 @@ standard_montage_look_up_table = {
 }
 
 
-def _read_sfp(fname, head_size):  # XXX: hydrocel
-    # fname has been alreay checked
+def _read_sfp(fname, head_size):
+    """Read .sfp BESA/EGI files."""
+    # fname has been already checked
     fid_names = ('FidNz', 'FidT9', 'FidT10')
     options = dict(dtype=(_str, 'f4', 'f4', 'f4'))
     ch_names, xs, ys, zs = _safe_np_loadtxt(fname, **options)
@@ -240,7 +208,7 @@ def _read_elc(fname, head_size):
     Parameters
     ----------
     fname : str
-        File extension is expected to be '.loc', '.locs' or '.eloc'.
+        File extension is expected to be '.elc'.
     head_size : float | None
         The size of the head in [m]. If none, returns the values read from the
         file with no modification.
@@ -287,8 +255,7 @@ def _read_elc(fname, head_size):
                             nasion=nasion, lpa=lpa, rpa=rpa)
 
 
-def _read_theta_phi_in_degrees(fname, head_size):
-    fid_names = ('Nz', 'LPA', 'RPA')
+def _read_theta_phi_in_degrees(fname, head_size, fid_names):
     options = dict(skip_header=1, dtype=(_str, 'i4', 'i4'))
     ch_names, theta, phi = _safe_np_loadtxt(fname, **options)
 
@@ -298,8 +265,10 @@ def _read_theta_phi_in_degrees(fname, head_size):
         axis=-1,
     ))
 
-    ch_pos = OrderedDict(zip(ch_names, pos))
-    nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
+    nasion, lpa, rpa = None, None, None
+    if fid_names is not None:
+        ch_pos = OrderedDict(zip(ch_names, pos))
+        nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
 
     return make_dig_montage(ch_pos=ch_pos, coord_frame='unknown',
                             nasion=nasion, lpa=lpa, rpa=rpa)
