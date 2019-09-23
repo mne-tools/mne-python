@@ -92,17 +92,51 @@ Signal-Space Projection (SSP)
    :start-after: ssp-begin-content
 
 
+.. _bem-model:
+
+The Boundary Element Model (BEM)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. include:: ../_includes/bem_model.rst
+   :start-after: bem-begin-content
 
 
+.. _ch_forward:
 
-Mathematics and algorithms
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+The forward solution
+^^^^^^^^^^^^^^^^^^^^
 
-For more detailed information about mathematics and algorithms in MNE, see:
+.. include:: ../_includes/forward.rst
+   :start-after: forward-begin-content
 
-.. toctree::
 
-   algorithms/bem_model.rst
-   algorithms/forward.rst
-   algorithms/inverse.rst
-   algorithms/morph.rst
+.. _ch_mne:
+
+The minimum-norm current estimates
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. include:: ../_includes/inverse.rst
+   :start-after: inverse-begin-content
+   :end-before: inverse-end-content
+
+
+.. _ch_morph:
+
+Morphing and averaging source estimates
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. include:: ../_includes/morph.rst
+   :start-after: morph-begin-content
+
+
+References
+^^^^^^^^^^
+
+.. [1] Perrin, F., Pernier, J., Bertrand, O. and Echallier, JF. (1989).
+       Spherical splines for scalp potential and current density mapping.
+       *Electroencephalography Clinical Neurophysiology* 72(2), 184-187.
+       doi: 10.1016/0013-4694(89)90180-6
+
+.. [2] Dale AM, Fischl B, Sereno MI (1999). "Cortical surface-based analysis.
+       I. Segmentation and surface reconstruction." *Neuroimage* 9, 179-94.
+       doi: 10.1006/nimg.1998.0395

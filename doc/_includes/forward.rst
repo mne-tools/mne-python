@@ -1,4 +1,4 @@
-.. _ch_forward:
+:orphan:
 
 The forward solution
 ====================
@@ -11,11 +11,18 @@ solutions, and the associated low-level utilities.
    :local:
    :depth: 2
 
+.. NOTE: part of this file is included in doc/overview/implementation.rst.
+   Changes here are reflected there. If you want to link to this content, link
+   to :ref:`ch_forward` to link to that section of the implementation.rst page.
+   The next line is a target for :start-after: so we can omit the title from
+   the include:
+   forward-begin-content
+
 
 .. _coordinate_systems:
 
 MEG/EEG and MRI coordinate systems
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. sidebar:: Coordinate systems in MNE-Python
 
@@ -219,7 +226,7 @@ and
 .. _head_device_coords:
 
 The head and device coordinate systems
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. figure:: images/HeadCS.png
     :alt: Head coordinate system
@@ -258,13 +265,13 @@ to the :math:`xy` plane with positive direction up.
    all coordinate information to the MNE software head coordinate frame.
 
 Creating a surface-based source space
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The fif format source space files containing the dipole locations and
 orientations are created with :func:`mne.setup_source_space`.
 
 Creating a volumetric or discrete source space
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In addition to source spaces confined to a surface, the MNE software provides
 some support for three-dimensional source spaces bounded by a surface as well
@@ -273,12 +280,12 @@ as source spaces comprised of discrete, arbitrarily located source points. The
 spaces.
 
 Creating the BEM meshes
-^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~
 
-See :ref:`create_bem_model`.
+See :ref:`bem-model`.
 
 Topology checks
-~~~~~~~~~~~~~~~
+---------------
 
 The following topology checks are performed during the creation of BEM models:
 
@@ -308,7 +315,7 @@ The following topology checks are performed during the creation of BEM models:
 
 
 Computing the BEM geometry data
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The utility :func:`mne.make_bem_solution` computes the geometry information for
 BEM.
@@ -316,7 +323,7 @@ BEM.
 .. _coil_geometry_information:
 
 Coil geometry information
-^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This Section explains the presentation of MEG detection coil geometry
 information the approximations used for different detection coils in MNE
@@ -336,7 +343,7 @@ software. Two pieces of information are needed to characterize the detectors:
 
 
 The sensor coordinate system
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------
 
 The sensor coordinate system is completely characterized
 by the location of its origin and the direction cosines of three
@@ -371,7 +378,7 @@ where
 	        \end{bmatrix}\ .
 
 Calculation of the magnetic field
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------------
 
 The forward calculation in the MNE software computes the
 signals detected by each MEG sensor for three orthogonal dipoles
@@ -412,7 +419,7 @@ points is given in the next section.
 .. _implemented_coil_geometries:
 
 Implemented coil geometries
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------
 
 This section describes the coil geometries currently implemented
 in MNE. The coil types fall in two general categories:
@@ -582,7 +589,7 @@ The columns of the tables contain the following data:
 .. _coil_definition_file:
 
 The coil definition file
-~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------
 
 The coil geometry information is stored in the text file
 :file:`{$MNE_ROOT}/share/mne/coil_def.dat`. In this file, any lines starting
@@ -660,7 +667,7 @@ consisting of seven numbers:
     tilted with respect to each other.
 
 Creating the coil definition file
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------------
 
 The standard coil definition file $MNE_ROOT/share/mne/coil_def.dat
 is included with the MNE software package. The coil definition file
@@ -670,10 +677,10 @@ as follows:
 mne_list_coil_def --out $MNE_ROOT/share/mne/coil_def.dat
 
 Computing the forward solution
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Purpose
-~~~~~~~
+-------
 
 Examples on how to compute the forward solution in MNE-Python using
 :func:`mne.make_forward_solution` can be found
@@ -681,7 +688,7 @@ Examples on how to compute the forward solution in MNE-Python using
 :ref:`computing_the_forward_solution`.
 
 Implementation of software gradient compensation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------------------------
 
 Accounting for noise cancellation in MNE-Python is accomplished in
 :meth:`mne.io.Raw.apply_gradient_compensation`.
@@ -697,7 +704,7 @@ reference sensors in addition to the main MEG sensor array and computes a
 compensated forward solution`.
 
 The EEG sphere model definition file
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------------
 
 In MNE-Python, different sphere models can be specified through
 :func:`mne.make_sphere_model`. The default model has the following structure:
@@ -722,7 +729,7 @@ as :func:`mne.fit_dipole`, :func:`mne.viz.plot_alignment` or
 .. _eeg_sphere_model:
 
 EEG forward solution in the sphere model
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------------------
 
 .. sidebar:: Sphere-model examples in MNE-Python
 
@@ -754,7 +761,7 @@ those lying just inside the inner skull surface.
 .. _forward_field_derivatives:
 
 Field derivatives
-~~~~~~~~~~~~~~~~~
+-----------------
 
 If the ``--grad`` option is specified, mne_forward_solution includes the
 derivatives of the forward solution with respect to the dipole location
@@ -786,7 +793,7 @@ respectively. Both :math:`G` and :math:`D` can be read with the
 mne_read_forward_solution Matlab function, see Table 10.1.
 
 Averaging forward solutions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 One possibility to make a grand average over several runs of a experiment is to
 average the data across runs and average the forward solutions accordingly. For

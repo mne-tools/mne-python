@@ -1,4 +1,4 @@
-.. _ch_morph:
+:orphan:
 
 Morphing and averaging source estimates
 =======================================
@@ -15,8 +15,17 @@ compute averages of data computed with the MNE software across subjects.
    :local:
    :depth: 2
 
+
+.. NOTE: part of this file is included in doc/overview/implementation.rst.
+   Changes here are reflected there. If you want to link to this content, link
+   to :ref:`ch_morph` to link to that section of the implementation.rst page.
+   The next line is a target for :start-after: so we can omit the title from
+   the include:
+   morph-begin-content
+
+
 Why morphing?
-^^^^^^^^^^^^^
+~~~~~~~~~~~~~
 
 .. sidebar:: Morphing examples in MNE-Python
 
@@ -45,7 +54,7 @@ subject B (and vice-versa).
 .. _CHDJDHII:
 
 The morphing maps
-^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~
 
 The MNE software accomplishes morphing with help of morphing maps.
 The morphing is performed with help of the registered
@@ -83,7 +92,7 @@ even if
 .. _CHDEBAHH:
 
 About smoothing
-^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~
 
 The current estimates are normally defined only in a decimated grid which is a
 sparse subset of the vertices in the triangular tessellation of the cortical

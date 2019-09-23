@@ -1,19 +1,23 @@
+:orphan:
 
-.. _create_bem_model:
-
-=======================
 Creating the BEM meshes
 =======================
 
-.. contents:: Contents
+.. contents:: Page contents
    :local:
    :depth: 2
 
+.. NOTE: part of this file is included in doc/overview/implementation.rst.
+   Changes here are reflected there. If you want to link to this content, link
+   to :ref:`bem-model` to link to that section of the implementation.rst page.
+   The next line is a target for :start-after: so we can omit the title from
+   the include:
+   bem-begin-content
 
 .. _bem_watershed_algorithm:
 
 Using the watershed algorithm
-#############################
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The watershed algorithm [Segonne *et al.*,
 2004] is part of the FreeSurfer software.
@@ -49,7 +53,7 @@ converts the scalp surface to fif format and saves the result to
 .. _BABFCDJH:
 
 Using FLASH images
-##################
+~~~~~~~~~~~~~~~~~~
 
 This method depends on the availablily of MRI data acquired
 with a multi-echo FLASH sequence at two flip angles (5 and 30 degrees).
@@ -87,7 +91,7 @@ following steps:
 .. _BABEBJHI:
 
 Organizing MRI data into directories
-====================================
+------------------------------------
 
 Since all images comprising the multi-echo FLASH data are
 contained in a single series, it is necessary to organize the images
@@ -129,7 +133,7 @@ links pointing to the original image data.
 .. _BABGICFE:
 
 Creating the surface tessellations
-==================================
+----------------------------------
 
 The BEM surface segmentation and tessellation is automated
 with the script :ref:`gen_mne_flash_bem`.
@@ -198,7 +202,7 @@ echo times in 5-degree flip angle data.
 .. _BABHJBED:
 
 Inspecting the meshes
-=====================
+---------------------
 
 It is advisable to check the validity of the BEM meshes before
 using them. This can be done with help of ``tkmedit`` or ``freeview``

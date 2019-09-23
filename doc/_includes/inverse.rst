@@ -11,7 +11,15 @@ minimum-norm estimates needed in order to obtain the linear inverse operator.
    :depth: 2
 
 Overview
-^^^^^^^^
+~~~~~~~~
+
+.. NOTE: part of this file is included in doc/overview/implementation.rst.
+   Changes here are reflected there. If you want to link to this content, link
+   to :ref:`ch_mne` to link to that section of the implementation.rst page.
+   The next line is a target for :start-after: so we can omit the title from
+   the include:
+   inverse-begin-content
+
 
 Computing the inverse operator is accomplished
 using :func:`mne.minimum_norm.make_inverse_operator` and
@@ -24,7 +32,7 @@ The page starts with a mathematical description of the method.
 .. _minimum_norm_estimates:
 
 Minimum-norm estimates
-^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~
 
 This section describes the mathematical details of the calculation of
 minimum-norm estimates. In Bayesian sense, the ensuing current distribution is
@@ -41,7 +49,7 @@ the maximum a posteriori (MAP) estimate under the following assumptions:
   known covariance matrix. The noise is not correlated over time.
 
 The linear inverse operator
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------
 
 The measured data in the source estimation procedure consists of MEG and EEG
 data, recorded on a total of N channels. The task is to estimate a total of M
@@ -72,7 +80,7 @@ measured MEG and EEG data values at time *t*.
 .. _mne_regularization:
 
 Regularization
-~~~~~~~~~~~~~~
+--------------
 
 The a priori variance of the currents is, in practise, unknown. We can express
 this by writing :math:`R' = R/ \lambda^2`, which yields the inverse operator
@@ -99,7 +107,7 @@ discrepancy between the measured and predicted data is tolerable.
 .. _whitening_and_scaling:
 
 Whitening and scaling
-~~~~~~~~~~~~~~~~~~~~~
+---------------------
 
 The MNE software employs data whitening so that a 'whitened' inverse operator
 assumes the form
@@ -139,7 +147,7 @@ and whitening.
 .. _cov_regularization_math:
 
 Regularization of the noise-covariance matrix
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------------------------
 
 Since finite amount of data is usually available to compute an estimate of the
 noise-covariance matrix :math:`C`, the smallest eigenvalues of its estimate are
@@ -179,7 +187,7 @@ regularizing the channel covariance matrix.
 .. _mne_solution:
 
 Computation of the solution
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------
 
 The most straightforward approach to calculate the MNE is to employ expression
 for the original or whitened inverse operator directly. However, for
@@ -226,9 +234,9 @@ independent of  :math:`L` and, for fixed :math:`\lambda`, we see directly that
 .. _noise_normalization:
 
 Noise normalization
-~~~~~~~~~~~~~~~~~~~
+-------------------
 
-The noise-normalized linear estimates introduced by Dale et al. [1]_ require
+The noise-normalized linear estimates introduced by Dale et al. [2]_ require
 division of the expected current amplitude by its variance. Noise normalization
 serves three purposes:
 
@@ -270,7 +278,7 @@ correspondingly.
    to :math:`\sqrt{L}`.
 
 Predicted data
-~~~~~~~~~~~~~~
+--------------
 
 Under noiseless conditions the SNR is infinite and thus leads to
 :math:`\lambda^2 = 0` and the minimum-norm estimate explains the measured data
@@ -288,7 +296,7 @@ where the diagonal matrix :math:`\Pi` has elements :math:`\pi_k = \lambda_k
 'recolored eigenfields' in :math:`C^{^1/_2} U`.
 
 Cortical patch statistics
-~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------
 
 .. sidebar:: Cortical patch statistics in MNE-Python
 
@@ -319,7 +327,7 @@ source location :math:`d`:
 .. _inverse_orientation_constrains:
 
 The orientation constraints
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------
 
 .. sidebar:: Orientation constraints in MNE-Python
 
@@ -374,7 +382,7 @@ of the surface normal data:
   defined above.
 
 Depth weighting
-~~~~~~~~~~~~~~~
+---------------
 
 .. sidebar:: Adjusting depth weighting in MNE-Python
 
@@ -394,7 +402,7 @@ of :math:`G` corresponding to source location :math:`p` and :math:`\gamma` is
 the order of the depth weighting, which is specified via the ``depth`` option.
 
 Effective number of averages
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 It is often the case that the epoch to be analyzed is a linear combination over
 conditions rather than one of the original averages computed. As stated above,
@@ -441,9 +449,11 @@ Generalizing, for any combination of sums and differences, where :math:`w_i =
 
 .. math::    1 / L_{eff} = \sum_{i = 1}^n {1/{L_i}}
 
-References
-^^^^^^^^^^
+.. target for :end-before: inverse-end-content
 
-.. [1] Dale AM, Fischl B, Sereno MI (1999). "Cortical surface-based analysis.
+References
+~~~~~~~~~~
+
+.. [2] Dale AM, Fischl B, Sereno MI (1999). "Cortical surface-based analysis.
        I. Segmentation and surface reconstruction." *Neuroimage* 9, 179-94.
        doi: 10.1006/nimg.1998.0395
