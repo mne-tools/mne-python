@@ -55,8 +55,7 @@ same time with the MPRAGEs or at least with the same scanner. For easy
 co-registration, the images should have FOV, matrix, slice thickness, gap, and
 slice orientation as the MPRAGE data. For information on suitable pulse
 sequences, see reference [B. Fischl *et al.* and J. Jovicich *et al.*, 2006] in
-:ref:`CEGEGDEI`. At the Martinos Center, use of the 1.5-T Avanto scanner (Bay
-2) is recommended for best results.
+:ref:`CEGEGDEI`.
 
 Creation of the BEM meshes using this method involves the
 following steps:
