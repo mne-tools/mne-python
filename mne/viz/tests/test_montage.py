@@ -36,7 +36,8 @@ def test_plot_montage():
     plt.close('all')
     m.plot(kind='topomap', show_names=True)
     plt.close('all')
-    d = read_dig_montage(hsp, hpi, elp, point_names)
+    with pytest.deprecated_call():
+        d = read_dig_montage(hsp, hpi, elp, point_names)
     assert '0 channels' in repr(d)
     with pytest.raises(RuntimeError, match='No valid channel positions'):
         d.plot()
