@@ -1,3 +1,5 @@
+.. _data-formats:
+
 Reading data for different recording systems
 ============================================
 
