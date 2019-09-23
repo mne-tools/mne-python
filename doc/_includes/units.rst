@@ -1,4 +1,4 @@
-.. _units:
+:orphan:
 
 Internal representation (units)
 ===============================
