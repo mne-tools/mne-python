@@ -1,4 +1,4 @@
-.. _data-formats:
+.. _tut-data-formats:
 
 Reading data for different recording systems
 ============================================
