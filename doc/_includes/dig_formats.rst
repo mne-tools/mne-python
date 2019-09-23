@@ -20,24 +20,22 @@ function for more info on reading specific file types.
 .. cssclass:: table-bordered
 .. rst-class:: midvalign
 
-=============  =========  ==============================================
-Vendor         Extension  MNE-Python function
-=============  =========  ==============================================
-Neuromag       .fif       :func:`mne.channels.read_dig_fif`
+=================  ================  ==============================================
+Vendor             Extension(s)      MNE-Python function
+=================  ================  ==============================================
+Neuromag           .fif              :func:`mne.channels.read_dig_fif`
 
-Polhemus       .hsp       :func:`mne.channels.read_dig_polhemus_isotrak`
-ISOTRAK        .elp
-               .eeg
+Polhemus ISOTRAK   .hsp, .elp, .eeg  :func:`mne.channels.read_dig_polhemus_isotrak`
 
-EGI            .xml       :func:`mne.channels.read_dig_egi`
+EGI                .xml              :func:`mne.channels.read_dig_egi`
 
-MNE            .hpts       :func:`mne.channels.read_dig_hpts`
+MNE-C              .hpts             :func:`mne.channels.read_dig_hpts`
 
-Brain          .bvct      :func:`mne.channels.read_dig_captrack`
-Products
-=============  =========  ==============================================
+Brain Products     .bvct             :func:`mne.channels.read_dig_captrack`
+=================  ================  ==============================================
 
-It is also possible to make :class:`montage <mne.channels.DigMontage>`
-from arrays with :func:`montage <mne.channels.make_dig_montage>`.
-To load the Polhemus FastSCAN files you can use
+To load Polhemus FastSCAN files you can use
 :func:`montage <mne.channels.read_polhemus_fastscan>`.
+
+It is also possible to make a :class:`montage <mne.channels.DigMontage>`
+from arrays with :func:`mne.channels.make_dig_montage`.
