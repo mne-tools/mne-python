@@ -611,12 +611,6 @@ class DigMontage(object):
 
         .. versionadded:: 0.12
 
-    coord_frame : str
-        The coordinate frame of the points. Usually this is "unknown"
-        for native digitizer space.
-
-        .. versionadded:: 0.19
-
     dig : list of dict
         The object containing all the dig points.
     ch_names : list of str
@@ -639,7 +633,6 @@ class DigMontage(object):
         point_names=DEPRECATED_PARAM, nasion=DEPRECATED_PARAM,
         lpa=DEPRECATED_PARAM, rpa=DEPRECATED_PARAM,
         dev_head_t=None, dig_ch_pos=DEPRECATED_PARAM,
-        coord_frame=DEPRECATED_PARAM,
         dig=None, ch_names=None,
     ):  # noqa: D102
         # XXX: dev_head_t now is np.array, we should add dev_head_transform
@@ -649,7 +642,7 @@ class DigMontage(object):
             key for key, val in dict(
                 hsp=hsp, hpi=hpi, elp=elp, point_names=point_names,
                 nasion=nasion, lpa=lpa, rpa=rpa,
-                dig_ch_pos=dig_ch_pos, coord_frame=coord_frame,
+                dig_ch_pos=dig_ch_pos,
             ).items() if val is not DEPRECATED_PARAM
         ]
         if not _non_deprecated_kwargs:
@@ -686,8 +679,7 @@ class DigMontage(object):
             lpa = None if lpa is DEPRECATED_PARAM else lpa
             rpa = None if rpa is DEPRECATED_PARAM else rpa
             dig_ch_pos = None if dig_ch_pos is DEPRECATED_PARAM else dig_ch_pos
-            coord_frame = \
-                'unknown' if coord_frame is DEPRECATED_PARAM else coord_frame
+            coord_frame = 'unknown'
             point_names = \
                 None if point_names is DEPRECATED_PARAM else point_names
 

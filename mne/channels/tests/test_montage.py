@@ -1462,6 +1462,7 @@ def test_dig_dev_head_t_regression():
 
         data = _fix_data_fiducials(data)
         data = _transform_to_head_call(data)
+        del data['coord_frame']
         with pytest.deprecated_call():
             montage = DigMontage(**data)
 
