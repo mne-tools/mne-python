@@ -57,8 +57,7 @@ slice orientation as the MPRAGE data. For information on suitable pulse
 sequences, see reference [B. Fischl *et al.* and J. Jovicich *et al.*, 2006] in
 :ref:`CEGEGDEI`.
 
-Creation of the BEM meshes using this method involves the
-following steps:
+Creation of the BEM meshes using this method involves the following steps:
 
 - Creating a synthetic 5-degree flip angle FLASH volume, register
   it with the MPRAGE data, and run the segmentation and meshing program.
@@ -73,9 +72,6 @@ following steps:
           the case, ``outer_skin.surf`` can set to point to the corresponding
           watershed output file while the other surfaces can be picked from
           the FLASH segmentation data.
-
-.. note:: The following sections assume that you have run the appropriate
-          setup scripts to make both MNE and FreeSurfer software available.
 
 
 Organizing MRI data into directories
