@@ -63,7 +63,9 @@ def _to_const(cf):
     """Convert string or int coord frame into int."""
     if isinstance(cf, str):
         if cf not in _str_to_frame:
-            raise ValueError('Unknown cf %s' % cf)
+            raise ValueError('Unknown coordinate frame %s.'
+                             'Must be one of %s'
+                             % (cf, _verbose_frames.values()))
         cf = _str_to_frame[cf]
     else:
         cf = _ensure_int(cf, 'coordinate frame', 'a str or int')
@@ -77,8 +79,18 @@ class Transform(dict):
     ----------
     fro : str | int
         The starting coordinate frame.
+        Can be 'unknown', 'MEG device', 'isotrak', 'hpi', 'head',
+        'MRI (surface RAS)', 'MRI voxel', 'MRI slice', 'MRI display',
+        'CTF MEG device', 'CTF/4D/KIT head', 'RAS (non-zero origin)',
+        'MNI Talairach', 'Talairach (MNI z > 0)',
+        'Talairach (MNI z < 0)'
     to : str | int
         The ending coordinate frame.
+        Can be 'unknown', 'MEG device', 'isotrak', 'hpi', 'head',
+        'MRI (surface RAS)', 'MRI voxel', 'MRI slice', 'MRI display',
+        'CTF MEG device', 'CTF/4D/KIT head', 'RAS (non-zero origin)',
+        'MNI Talairach', 'Talairach (MNI z > 0)',
+        'Talairach (MNI z < 0)'
     trans : array-like, shape (4, 4) | None
         The transformation matrix. If None, an identity matrix will be
         used.
