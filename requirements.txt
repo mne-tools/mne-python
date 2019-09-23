@@ -29,5 +29,5 @@ neo
 xlrd
 pydocstyle
 flake8
-https://github.com/pyvista/pyvista/zipball/master
+pyvista>=0.22.2
 panel
