@@ -14,7 +14,7 @@ import os.path as path
 from mne import read_source_estimate
 from mne.datasets import testing
 from mne.viz._brain import _Brain
-from mne.viz._brain.colormap import _calculate_lut
+from mne.viz._brain.colormap import calculate_lut
 
 from matplotlib import cm
 
@@ -82,9 +82,9 @@ def test_brain_colormap():
     fmid = 0.5
     fmax = 1.0
     center = None
-    _calculate_lut(colormap, alpha=alpha, fmin=fmin,
-                   fmid=fmid, fmax=fmax, center=center)
+    calculate_lut(colormap, alpha=alpha, fmin=fmin,
+                  fmid=fmid, fmax=fmax, center=center)
     center = 0.0
     colormap = cm.get_cmap(colormap)
-    _calculate_lut(colormap, alpha=alpha, fmin=fmin,
-                   fmid=fmid, fmax=fmax, center=center)
+    calculate_lut(colormap, alpha=alpha, fmin=fmin,
+                  fmid=fmid, fmax=fmax, center=center)

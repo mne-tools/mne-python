@@ -9,6 +9,7 @@ import numpy as np
 
 
 def create_lut(cmap, n_colors=256, center=None):
+    """Return a colormap suitable for setting as a LUT."""
     from matplotlib import cm
     cmap = cm.get_cmap(cmap)
     lut = (cmap(np.linspace(0, 1, n_colors)) * 255.0).astype(np.int)
@@ -17,7 +18,6 @@ def create_lut(cmap, n_colors=256, center=None):
 
 def scale_sequential_lut(lut_table, fmin, fmid, fmax):
     """Scale a sequential colormap."""
-
     lut_table_new = lut_table.copy()
     n_colors = lut_table.shape[0]
     n_colors2 = n_colors // 2
@@ -40,6 +40,7 @@ def scale_sequential_lut(lut_table, fmin, fmid, fmax):
 
 
 def get_fill_colors(cols, n_fill):
+    """Get the fill colors for the middle of divergent colormaps."""
     steps = np.linalg.norm(np.diff(cols[:, :3].astype(float), axis=0),
                            axis=1)
 
