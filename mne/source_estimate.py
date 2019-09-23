@@ -20,7 +20,7 @@ from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject, SourceSpaces)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     _time_mask, warn as warn_, copy_function_doc_to_method_doc,
-                    fill_doc, _check_option, _validate_type)
+                    fill_doc, _check_option, _validate_type, _check_src_normal)
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
 from .io.base import ToDataFrameMixin, TimeMixin
@@ -1678,6 +1678,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             The source estimate only retaining the activity orthogonal to the
             cortex.
         """
+        _check_src_normal('normal', src)
         normals = np.vstack([s['nn'][v] for s, v in
                              zip(src, self._vertices_list)])
         data_norm = einsum('ijk,ij->ik', self.data, normals)

@@ -838,9 +838,11 @@ def test_mixed_stc(tmpdir):
     assert isinstance(stc_out, MixedSourceEstimate)
 
 
-@pytest.mark.parametrize('klass',
-                         (VectorSourceEstimate, VolVectorSourceEstimate))
-def test_vec_stc(klass):
+@pytest.mark.parametrize('klass, kind',
+                         ((VectorSourceEstimate, 'surf'),
+                          (VolVectorSourceEstimate, 'vol'),
+                          (VolVectorSourceEstimate, 'discrete')))
+def test_vec_stc(klass, kind):
     """Test (vol)vector source estimate."""
     nn = np.array([
         [1, 0, 0],
@@ -856,10 +858,11 @@ def test_vec_stc(klass):
         [1, 1, 1],
     ])[:, :, np.newaxis]
     if klass is VolVectorSourceEstimate:
-        src = [dict(nn=nn)]
+        src = SourceSpaces([dict(nn=nn, type=kind)])
         verts = np.arange(4)
     else:
-        src = [dict(nn=nn[:2]), dict(nn=nn[2:])]
+        src = SourceSpaces([dict(nn=nn[:2], type=kind),
+                            dict(nn=nn[2:], type=kind)])
         verts = [np.array([0, 1]), np.array([0, 1])]
     stc = klass(data, verts, 0, 1, 'foo')
 
@@ -867,6 +870,10 @@ def test_vec_stc(klass):
     assert_array_equal(stc.magnitude().data[:, 0], [1, 2, 3, np.sqrt(3)])
 
     # Vector components projected onto the vertex normals
+    if kind == 'vol':
+        with pytest.raises(RuntimeError, match='surface or discrete'):
+            stc.normal(src)
+        return
     normal = stc.normal(src)
     assert_array_equal(normal.data[:, 0], [1, 2, 0, np.sqrt(3)])
 

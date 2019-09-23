@@ -3,8 +3,8 @@
 Compute mixed source space connectivity and visualize it using a circular graph
 ===============================================================================
 
-This example computes the all-to-all connectivity between 75 regions in
-a mixed source space based on dSPM inverse solutions and a FreeSurfer cortical
+This example computes the all-to-all connectivity between 75 regions in a
+mixed source space based on dSPM inverse solutions and a FreeSurfer cortical
 parcellation. The connectivity is visualized using a circular graph which
 is ordered based on the locations of the regions in the axial plane.
 """
