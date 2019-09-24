@@ -138,16 +138,6 @@ def read_raw_cnt(input_fname, montage='deprecated', eog=(), misc=(), ecg=(),
     date_format : 'mm/dd/yy' | 'dd/mm/yy'
         Format of date in the header. Defaults to 'mm/dd/yy'.
     %(preload)s
-    stim_channel : bool | None
-        Add a stim channel from the events. Defaults to None to trigger a
-        future warning.
-
-        .. warning:: This defaults to True in 0.18 but will change to False in
-                     0.19 (when no stim channel synthesis will be allowed)
-                     and be removed in 0.20; migrate code to use
-                     :func:`mne.events_from_annotations` instead.
-
-        .. versionadded:: 0.18
     %(verbose)s
 
     Returns
