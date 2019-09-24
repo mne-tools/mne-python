@@ -11,14 +11,14 @@ from collections import namedtuple
 
 View = namedtuple('View', 'elev azim')
 
-views_dict = {'lateral': View(elev=5, azim=0),
-              'medial': View(elev=5, azim=180),
-              'rostral': View(elev=5, azim=90),
-              'caudal': View(elev=5, azim=-90),
-              'dorsal': View(elev=90, azim=0),
-              'ventral': View(elev=-90, azim=0),
-              'frontal': View(elev=5, azim=110),
-              'parietal': View(elev=5, azim=-110)}
+views_dict = {'lateral': View(azim=180., elev=90.),
+              'medial': View(azim=0., elev=90.0),
+              'rostral': View(azim=90., elev=90.),
+              'caudal': View(azim=270., elev=90.),
+              'dorsal': View(azim=180., elev=0.),
+              'ventral': View(azim=180., elev=180.),
+              'frontal': View(azim=120., elev=80.),
+              'parietal': View(azim=-120., elev=60.)}
 # add short-size version entries into the dict
 _views_dict = dict()
 for k, v in views_dict.items():

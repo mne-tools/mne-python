@@ -211,15 +211,13 @@ class _Brain(object):
                 if not (hemi in ['lh', 'rh'] and h != hemi):
                     ci = hi if hemi == 'split' else 0
                     self._renderer.subplot(ri, ci)
-                    self._renderer.set_camera(azimuth=views_dict[v].azim,
-                                              elevation=views_dict[v].elev,
-                                              distance=490.0)
-
                     self._renderer.mesh(x=self.geo[h].coords[:, 0],
                                         y=self.geo[h].coords[:, 1],
                                         z=self.geo[h].coords[:, 2],
                                         triangles=self.geo[h].faces,
                                         color=self.geo[h].grey_curv)
+                    self._renderer.set_camera(azimuth=views_dict[v].azim,
+                                              elevation=views_dict[v].elev)
         # Force rendering
         self._renderer.show()
 
@@ -447,6 +445,8 @@ class _Brain(object):
                                       text=time_label(time[time_idx]))
             self._renderer.scalarbar(source=mesh, n_labels=8,
                                      bgcolor=(0.5, 0.5, 0.5))
+            self._renderer.set_camera(azimuth=views_dict[v].azim,
+                                      elevation=views_dict[v].elev)
 
     def add_label(self, label, color=None, alpha=1, scalar_thresh=None,
                   borders=False, hemi=None, subdir=None):
@@ -561,6 +561,8 @@ class _Brain(object):
                                 color=None,
                                 colormap=ctable,
                                 backface_culling=False)
+            self._renderer.set_camera(azimuth=0.,
+                                      elevation=90.)
 
     def add_foci(self, coords, coords_as_verts=False, map_surface=None,
                  scale_factor=1, color="white", alpha=1, name=None,
@@ -620,6 +622,8 @@ class _Brain(object):
             self._renderer.sphere(center=coords, color=color,
                                   scale=(10. * scale_factor),
                                   opacity=alpha)
+            self._renderer.set_camera(azimuth=views_dict[v].azim,
+                                      elevation=views_dict[v].elev)
 
     def add_text(self, x, y, text, name, color=None, opacity=1.0,
                  row=-1, col=-1, font_size=None, justification=None):
@@ -708,7 +712,10 @@ class _Brain(object):
 
     def show_view(self, view=None, roll=None, distance=None):
         """Orient camera to display view."""
-        pass
+        if isinstance(view, str):
+            view = views_dict.get(view)
+        self._renderer.set_camera(azimuth=view.azim,
+                                  elevation=view.elev)
 
     def screenshot(self, mode='rgb'):
         """Generate a screenshot of current view.
