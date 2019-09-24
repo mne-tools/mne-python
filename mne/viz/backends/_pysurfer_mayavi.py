@@ -17,64 +17,10 @@ Actual implementation of _Renderer and _Projection classes.
 
 import warnings
 import numpy as np
-from mayavi.tools.mlab_scene_model import MlabSceneModel
-from mayavi.core.ui.api import SceneEditor
-from mayavi.core.ui.mayavi_scene import MayaviScene
-from traits.api import (HasTraits, Instance)
-from traitsui.api import View, Item, VGroup, HGroup
 from .base_renderer import _BaseRenderer
 from ...surface import _normalize_vectors
 from ...utils import (_import_mlab, _validate_type, SilenceStdout,
                       copy_base_doc_to_subclass_doc)
-
-
-class _MlabGenerator(HasTraits):
-    """TraitsUI mlab figure generator"""
-    view = Instance(View)
-
-    def __init__(self, n_row, n_col, width, height, bgcolor, title, **traits):
-        HasTraits.__init__(self, **traits)
-        self.mlab_names = []
-        self.n_row = n_row
-        self.n_col = n_col
-        self.width = width
-        self.height = height
-        self.bgcolor = bgcolor
-        for fi in range(n_row * n_col):
-            name = 'mlab_view%03g' % fi
-            self.mlab_names.append(name)
-            self.add_trait(name, Instance(MlabSceneModel, ()))
-        self.view = self._get_gen_view()
-        self._v = self.edit_traits(view=self.view)
-        self._v.title = title
-
-    def _get_figs_view(self):
-        figures = []
-        ind = 0
-        for ri in range(self.n_row):
-            rfigs = []
-            for ci in range(self.n_col):
-                x = getattr(self, self.mlab_names[ind])
-                x.scene.background = self.bgcolor
-                rfigs.append(x.mayavi_scene)
-                ind += 1
-            figures.append(rfigs)
-        return figures, self._v
-
-    def _get_gen_view(self):
-        ind = 0
-        va = []
-        for ri in range(self.n_row):
-            ha = []
-            for ci in range(self.n_col):
-                ha += [Item(name=self.mlab_names[ind], style='custom',
-                            resizable=True, show_label=False,
-                            editor=SceneEditor(scene_class=MayaviScene))]
-                ind += 1
-            va += [HGroup(*ha)]
-        view = View(VGroup(*va), resizable=True,
-                    height=self.height, width=self.width)
-        return view
 
 
 class _Projection(object):
@@ -117,28 +63,15 @@ class _Renderer(_BaseRenderer):
         self.window_size = size
         self.shape = shape
         if fig is None:
-            if shape[0] == 1 and shape[1] == 1:
-                self.fig = _mlab_figure(figure=name, bgcolor=bgcolor,
-                                        size=size)
-                _toggle_mlab_render(self.fig, show)
-            else:
-                self.window = _MlabGenerator(shape[0], shape[1],
-                                             size[0], size[1],
-                                             bgcolor=(0., 0., 0.),
-                                             title='TEST')
-                self.figs, _v = self.window._get_figs_view()
-                for ri in range(shape[0]):
-                    for ci in range(shape[1]):
-                        _toggle_mlab_render(self.figs[ri][ci], show)
+            self.fig = _mlab_figure(figure=name, bgcolor=bgcolor, size=size)
         elif isinstance(fig, int):
             self.fig = _mlab_figure(figure=fig, bgcolor=bgcolor, size=size)
-            _toggle_mlab_render(self.fig, show)
         else:
             self.fig = fig
-            _toggle_mlab_render(self.fig, show)
+        _toggle_mlab_render(self.fig, show)
 
     def subplot(self, x, y):
-        self.fig = self.figs[x][y]
+        pass
 
     def scene(self):
         return self.fig

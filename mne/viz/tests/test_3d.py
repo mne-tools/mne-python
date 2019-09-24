@@ -353,7 +353,7 @@ def test_limits_to_control_points(renderer):
     stc.plot(colormap='hot', clim='auto', **kwargs)
     stc.plot(colormap='mne', clim='auto', **kwargs)
     stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=99, **kwargs)
-    pytest.raises(TypeError, stc.plot, clim='auto', figure=[], **kwargs)
+    pytest.raises(TypeError, stc.plot, clim='auto', figure=[0], **kwargs)
 
     # Test for correct clim values
     with pytest.raises(ValueError, match='monotonically'):

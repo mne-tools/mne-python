@@ -1639,6 +1639,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         An instance of :class:`surfer.Brain` from PySurfer or
         matplotlib figure.
     """  # noqa: E501
+    from .backends.renderer import get_3d_backend
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
     _validate_type(stc, SourceEstimate, "stc", "Surface Source Estimate")
@@ -1666,8 +1667,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              time_unit=time_unit, background=background,
                              spacing=spacing, time_viewer=time_viewer,
                              colorbar=colorbar, transparent=transparent)
-    from ._brain import _Brain as Brain
-    from surfer import TimeViewer
+    if get_3d_backend() == "mayavi":
+        from surfer import Brain, TimeViewer
+    else:
+        from ._brain import _Brain as Brain
     _check_option('hemi', hemi, ['lh', 'rh', 'split', 'both'])
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
@@ -1694,14 +1697,26 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         data = getattr(stc, hemi + '_data')
         vertices = stc.vertices[hemi_idx]
         if len(data) > 0:
+            kwargs = {
+                "array": data, "colormap": colormap,
+                "vertices": vertices,
+                "smoothing_steps": smoothing_steps,
+                "time": times, "time_label": time_label,
+                "alpha": alpha, "hemi": hemi,
+                "colorbar": colorbar, "initial_time": initial_time,
+                "transparent": transparent, "center": center,
+                "verbose": False
+            }
+            if get_3d_backend() == "mayavi":
+                kwargs["min"] = scale_pts[0]
+                kwargs["mid"] = scale_pts[1]
+                kwargs["max"] = scale_pts[2]
+            else:
+                kwargs["fmin"] = scale_pts[0]
+                kwargs["fmid"] = scale_pts[1]
+                kwargs["fmax"] = scale_pts[2]
             with warnings.catch_warnings(record=True):  # traits warnings
-                brain.add_data(data, colormap=colormap, vertices=vertices,
-                               smoothing_steps=smoothing_steps, time=times,
-                               time_label=time_label, alpha=alpha, hemi=hemi,
-                               colorbar=colorbar, initial_time=initial_time,
-                               fmin=scale_pts[0], fmid=scale_pts[1],
-                               fmax=scale_pts[2], transparent=transparent,
-                               center=center, verbose=False)
+                brain.add_data(**kwargs)
     if time_viewer:
         TimeViewer(brain)
     return brain
