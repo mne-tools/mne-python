@@ -7,7 +7,7 @@
    - "Bug" for bug fixes
    - "API" for backward-incompatible changes
 
-.. _changes_0_20:
+.. _current:
 
 Current (0.20.dev0)
 -------------------
