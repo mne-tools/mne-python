@@ -45,7 +45,10 @@ def _check_load_mat(fname, uint16_codec):
             'mne-python developers for more information.')
     if 'EEG' not in eeg:
         raise ValueError('Could not find EEG array in the .set file.')
-    eeg = Bunch(**eeg['EEG'])
+    else:
+        eeg = eeg['EEG']
+    eeg = eeg.get('EEG', eeg)  # handle nested EEG structure
+    eeg = Bunch(**eeg)
     eeg.trials = int(eeg.trials)
     eeg.nbchan = int(eeg.nbchan)
     eeg.pnts = int(eeg.pnts)

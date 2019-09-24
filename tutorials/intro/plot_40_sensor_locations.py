@@ -1,9 +1,11 @@
 """
+.. _tut-sensor-locations:
+
 Working with sensor locations
 =============================
 
-This tutorial describes how to plot sensor locations, and how the physical
-location of sensors is handled in MNE-Python.
+This tutorial describes how to read and plot sensor locations, and how
+the physical location of sensors is handled in MNE-Python.
 
 .. contents:: Page contents
    :local:
@@ -34,9 +36,9 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
 # dimensions (defined by ``x``, ``y``, ``width``, and ``height`` values for
 # each sensor), and are primarily used for illustrative purposes (i.e., making
 # diagrams of approximate sensor positions in top-down diagrams of the head).
-# In contrast, :class:`montages <mne.channels.Montage>` give sensor positions
-# in 3D (``x``, ``y``, ``z``, in meters). Many layout and montage files are
-# included during MNE-Python installation, and are stored in your
+# In contrast, :class:`montages <mne.channels.DigMontage>` contain sensor
+# positions in 3D (``x``, ``y``, ``z``, in meters). Many layout and montage
+# files are included during MNE-Python installation, and are stored in your
 # ``mne-python`` directory, in the :file:`mne/channels/data/layouts` and
 # :file:`mne/channels/data/montages` folders, respectively:
 
@@ -70,7 +72,7 @@ for subfolder in ['layouts', 'montages']:
 # Examples of this can be seen in the following sections.
 #
 # If you have digitized the locations of EEG sensors on the scalp during your
-# recording session (e.g., with a Polhemous Fastrak digitizer), these can be
+# recording session (e.g., with a Polhemus Fastrak digitizer), these can be
 # loaded in MNE-Python as :class:`~mne.channels.DigMontage` objects; see
 # :ref:`reading-dig-montages` (below).
 #
@@ -169,22 +171,34 @@ ax3d.view_init(azim=70, elev=15)
 # It's probably evident from the 2D topomap above that there is some
 # irregularity in the EEG sensor positions in the :ref:`sample dataset
 # <sample-dataset>` — this is because the sensor positions in that dataset are
-# digitizations of the sensor positions on an actual subject's head. Sensor
-# digitizations are read with :func:`mne.channels.read_dig_montage` and added
+# digitizations of the sensor positions on an actual subject's head. Depending
+# on what system was used to scan the positions one can use different
+# reading functions (:func:`mne.channels.read_dig_captrack` for
+# a CapTrak Brain Products system, :func:`mne.channels.read_dig_egi`
+# for an EGI system, :func:`mne.channels.read_dig_polhemus_isotrak` for
+# Polhemus ISOTRAK, :func:`mne.channels.read_dig_fif` to read from
+# a `.fif` file or :func:`mne.channels.read_dig_hpts` to read MNE `.hpts`
+# files. The read :class:`montage <mne.channels.DigMontage>` can then be added
 # to :class:`~mne.io.Raw` objects with the :meth:`~mne.io.Raw.set_montage`
 # method; in the sample data this was done prior to saving the
 # :class:`~mne.io.Raw` object to disk, so the sensor positions are already
 # incorporated into the ``info`` attribute of the :class:`~mne.io.Raw` object.
-# See the documentation of :func:`~mne.channels.read_dig_montage` and
+# See the documentation of the reading functions and
 # :meth:`~mne.io.Raw.set_montage` for further details. Once loaded,
-# :class:`~mne.channels.DigMontage` objects work similarly to
-# :class:`~mne.channels.Montage` objects (e.g, they have similar
-# :meth:`~mne.channels.DigMontage.plot` and
-# :meth:`~mne.channels.DigMontage.save` methods).
+# locations can be plotted with :meth:`~mne.channels.DigMontage.plot` and
+# saved with :meth:`~mne.channels.DigMontage.save`, like when working
+# with a standard montage.
 #
-# .. TODO sample data doesn't have separate .hsp or .elp files, so can't demo
-#    this functionality
+# The possibilities to read in digitized montage files are summarized
+# in :ref:`dig-formats`.
 #
+# .. note::
+#
+#     When setting a montage with :meth:`~mne.io.Raw.set_montage`
+#     the measurement info is updated at two places (the `chs`
+#     and `dig` entries are updated). See :ref:`tut-info-class`.
+#     `dig` will potentially contain more than channel locations,
+#     such HPI, head shape points or fiducials 3D coordinates.
 #
 # Rendering sensor position with mayavi
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

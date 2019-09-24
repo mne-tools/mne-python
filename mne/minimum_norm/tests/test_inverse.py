@@ -673,6 +673,8 @@ def test_inverse_operator_volume(evoked):
     stc_vec = apply_inverse(evoked, inv_vol, lambda2, 'dSPM', 'vector')
     assert (repr(stc_vec))
     assert_allclose(np.linalg.norm(stc_vec.data, axis=1), stc.data)
+    with pytest.raises(RuntimeError, match='surface or discrete'):
+        apply_inverse(evoked, inv_vol, pick_ori='normal')
 
 
 @pytest.mark.slowtest

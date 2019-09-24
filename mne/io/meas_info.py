@@ -27,7 +27,7 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_coord_trans, write_ch_info, write_name_list,
                     write_julian, write_float_matrix, write_id, DATE_NONE)
 from .proc_history import _read_proc_history, _write_proc_history
-from ..transforms import invert_transform
+from ..transforms import invert_transform, Transform
 from ..utils import logger, verbose, warn, object_diff, _validate_type
 from .._digitization.base import _format_dig_points
 from .compensator import get_current_comp
@@ -1826,7 +1826,7 @@ def _empty_info(sfreq):
         'dev_ctf_t', 'dig', 'experimenter', 'utc_offset', 'device_info',
         'file_id', 'highpass', 'hpi_subsystem', 'kit_system_id', 'helium_info',
         'line_freq', 'lowpass', 'meas_date', 'meas_id', 'proj_id', 'proj_name',
-        'subject_info', 'xplotter_layout', 'gantry_angle', 'dev_head_t',
+        'subject_info', 'xplotter_layout', 'gantry_angle',
     )
     _list_keys = ('bads', 'chs', 'comps', 'events', 'hpi_meas', 'hpi_results',
                   'projs', 'proc_history')
@@ -1839,6 +1839,7 @@ def _empty_info(sfreq):
     info['highpass'] = 0.
     info['sfreq'] = float(sfreq)
     info['lowpass'] = info['sfreq'] / 2.
+    info['dev_head_t'] = Transform('meg', 'head')
     info._update_redundant()
     info._check_consistency()
     return info

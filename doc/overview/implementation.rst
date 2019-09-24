@@ -1,13 +1,13 @@
 .. _implementation:
 
-Implementation details
-======================
+Algorithms and other implementation details
+===========================================
 
 This page describes some of the technical details of MNE-Python implementation.
 
 .. contents:: Page contents
    :local:
-   :depth: 2
+   :depth: 1
 
 
 .. _units:
@@ -46,19 +46,97 @@ Supported data formats
    :start-after: data-formats-begin-content
 
 
-Mathematics and algorithms
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _dig-formats:
 
-For more detailed information about mathematics and algorithms in MNE, see:
+Supported formats for digitized 3D locations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. toctree::
+.. include:: ../_includes/dig_formats.rst
+   :start-after: dig-formats-begin-content
 
-   algorithms/channel_interpolation.rst
-   algorithms/time_frequency.rst
-   algorithms/maxwell.rst
-   algorithms/ssp.rst
-   algorithms/memory.rst
-   algorithms/bem_model.rst
-   algorithms/forward.rst
-   algorithms/inverse.rst
-   algorithms/morph.rst
+
+.. _memory:
+
+Memory-efficient I/O
+^^^^^^^^^^^^^^^^^^^^
+
+.. include:: ../_includes/memory.rst
+   :start-after: memory-begin-content
+
+
+.. _channel-interpolation:
+
+Bad channel repair via interpolation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. include:: ../_includes/channel_interpolation.rst
+   :start-after: channel-interpolation-begin-content
+   :end-before: channel-interpolation-end-content
+
+
+.. _maxwell:
+
+Maxwell filtering
+^^^^^^^^^^^^^^^^^
+
+MNE-Python's implementation of Maxwell filtering is described in the
+:ref:`tut-artifact-sss` tutorial.
+
+
+.. _ssp-method:
+
+Signal-Space Projection (SSP)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. include:: ../_includes/ssp.rst
+   :start-after: ssp-begin-content
+
+
+.. _bem-model:
+
+The Boundary Element Model (BEM)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. include:: ../_includes/bem_model.rst
+   :start-after: bem-begin-content
+
+
+.. _ch_forward:
+
+The forward solution
+^^^^^^^^^^^^^^^^^^^^
+
+.. include:: ../_includes/forward.rst
+   :start-after: forward-begin-content
+
+
+.. _ch_mne:
+
+The minimum-norm current estimates
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. include:: ../_includes/inverse.rst
+   :start-after: inverse-begin-content
+   :end-before: inverse-end-content
+
+
+.. _ch_morph:
+
+Morphing and averaging source estimates
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. include:: ../_includes/morph.rst
+   :start-after: morph-begin-content
+
+
+References
+^^^^^^^^^^
+
+.. [1] Perrin, F., Pernier, J., Bertrand, O. and Echallier, JF. (1989).
+       Spherical splines for scalp potential and current density mapping.
+       *Electroencephalography Clinical Neurophysiology* 72(2), 184-187.
+       doi: 10.1016/0013-4694(89)90180-6
+
+.. [2] Dale AM, Fischl B, Sereno MI (1999). "Cortical surface-based analysis.
+       I. Segmentation and surface reconstruction." *Neuroimage* 9, 179-94.
+       doi: 10.1006/nimg.1998.0395

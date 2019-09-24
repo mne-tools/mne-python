@@ -232,14 +232,14 @@ of the intracranial volume. For EEG, the standard model contains
 the intracranial space, the skull, and the scalp.
 
 At present, no bulletproof method exists for creating the
-triangulations. Feasible approaches are described in :ref:`create_bem_model`.
+triangulations. Feasible approaches are described in :ref:`bem-model`.
 
 .. _BABDBBFC:
 
 Setting up the head surface triangulation files
 ###############################################
 
-The segmentation algorithms described in :ref:`create_bem_model` produce
+The segmentation algorithms described in :ref:`bem-model` produce
 either FreeSurfer surfaces or triangulation
 data in text. Before proceeding to the creation of the boundary
 element model, standard files for FreeSurfer surfaces must be present:

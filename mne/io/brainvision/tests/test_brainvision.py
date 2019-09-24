@@ -482,8 +482,11 @@ def test_coodinates_extraction():
     assert raw.info['dig'] is not None
     diglist = raw.info['dig']
     coords = np.array([dig['r'] for dig in diglist])
-    assert coords.shape[0] == len(raw.ch_names)
-    assert coords.shape[1] == 3
+    EXPECTED_SHAPE = (
+        len(raw.ch_names) - 4,  # HL, HR, Vb, ReRef are not set in dig
+        3,
+    )
+    assert coords.shape == EXPECTED_SHAPE
 
     # Make sure the scaling seems right
     # a coordinate more than 20cm away from origin is implausible

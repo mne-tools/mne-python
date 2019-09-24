@@ -165,7 +165,7 @@ raw.copy().pick_types(meg=False, eeg=True).plot_psd_topo()
 # with the :meth:`~mne.io.Raw.plot_sensors` method. A brief example is shown
 # here; notice that channels in ``raw.info['bads']`` are plotted in red. More
 # details and additional examples are given in the tutorial
-# :doc:`../misc/plot_sensor_locations`.
+# :ref:`tut-sensor-locations`.
 
 raw.plot_sensors(ch_type='eeg')
 

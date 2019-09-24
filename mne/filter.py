@@ -2236,8 +2236,13 @@ def _filt_check_picks(info, picks, h_freq, l_freq):
     # This will pick *all* data channels
     picks = _picks_to_idx(info, picks, 'data_or_ica', exclude=())
     if h_freq is not None or l_freq is not None:
-        data_picks = _picks_to_idx(info, None, 'data_or_ica', exclude=())
-        if np.in1d(data_picks, picks).all():
+        data_picks = _picks_to_idx(info, None, 'data_or_ica', exclude=(),
+                                   allow_empty=True)
+        if len(data_picks) == 0:
+            logger.info('No data channels found. The highpass and '
+                        'lowpass values in the measurement info will not '
+                        'be updated.')
+        elif np.in1d(data_picks, picks).all():
             update_info = True
         else:
             logger.info('Filtering a subset of channels. The highpass and '

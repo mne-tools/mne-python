@@ -17,7 +17,7 @@ import os
 import os.path as op
 import re
 from copy import deepcopy
-from itertools import takewhile
+from itertools import takewhile, chain
 from functools import partial
 
 import numpy as np
@@ -112,6 +112,10 @@ def _check_ch_names_are_compatible(info_names, montage_names, raise_if_subset):
     return match_set
 
 
+@deprecated(
+    'Montage class is deprecated and will be removed in v0.20.'
+    ' Please use DigMontage instead.'
+)
 class Montage(object):
     """Montage for standard EEG electrode locations.
 
@@ -180,6 +184,14 @@ def get_builtin_montages():
     return _BUILT_IN_MONTAGES
 
 
+@deprecated(
+    '``read_montage`` is deprecated and will be removed in v0.20. Please use'
+    ' ``read_dig_fif``, ``read_dig_egi``, ``read_custom_montage``,'
+    ' or ``read_dig_captrack``'
+    ' to read a digitization based on your needs instead;'
+    ' or ``make_standard_montage`` to create ``DigMontage`` based on template;'
+    ' or ``make_dig_montage`` to create a ``DigMontage`` out of np.arrays'
+)
 def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     """Read a generic (built-in) montage.
 
@@ -501,11 +513,11 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
 
     See Also
     --------
-    Montage
-    read_montage
     DigMontage
-    read_dig_montage
-
+    read_dig_captrack
+    read_dig_egi
+    read_dig_fif
+    read_dig_polhemus_isotrak
     """
     if ch_pos is None:
         ch_names = None
@@ -599,12 +611,6 @@ class DigMontage(object):
 
         .. versionadded:: 0.12
 
-    coord_frame : str
-        The coordinate frame of the points. Usually this is "unknown"
-        for native digitizer space.
-
-        .. versionadded:: 0.19
-
     dig : list of dict
         The object containing all the dig points.
     ch_names : list of str
@@ -627,7 +633,6 @@ class DigMontage(object):
         point_names=DEPRECATED_PARAM, nasion=DEPRECATED_PARAM,
         lpa=DEPRECATED_PARAM, rpa=DEPRECATED_PARAM,
         dev_head_t=None, dig_ch_pos=DEPRECATED_PARAM,
-        coord_frame=DEPRECATED_PARAM,
         dig=None, ch_names=None,
     ):  # noqa: D102
         # XXX: dev_head_t now is np.array, we should add dev_head_transform
@@ -637,7 +642,7 @@ class DigMontage(object):
             key for key, val in dict(
                 hsp=hsp, hpi=hpi, elp=elp, point_names=point_names,
                 nasion=nasion, lpa=lpa, rpa=rpa,
-                dig_ch_pos=dig_ch_pos, coord_frame=coord_frame,
+                dig_ch_pos=dig_ch_pos,
             ).items() if val is not DEPRECATED_PARAM
         ]
         if not _non_deprecated_kwargs:
@@ -674,8 +679,7 @@ class DigMontage(object):
             lpa = None if lpa is DEPRECATED_PARAM else lpa
             rpa = None if rpa is DEPRECATED_PARAM else rpa
             dig_ch_pos = None if dig_ch_pos is DEPRECATED_PARAM else dig_ch_pos
-            coord_frame = \
-                'unknown' if coord_frame is DEPRECATED_PARAM else coord_frame
+            coord_frame = 'unknown'
             point_names = \
                 None if point_names is DEPRECATED_PARAM else point_names
 
@@ -960,14 +964,6 @@ def _read_dig_montage_deprecation_warning_helper(**kwargs):
              ' Please use read_dig_captrack instead.', DeprecationWarning)
         return
 
-    # XXX: for now we only have implemented the case where hsp, hpi and elp
-    #      are np.arrays. we need read_dig_polhemus for the str cases. Plus,
-    #      we need to make sure that we can handle a mix of arrays and str. The
-    #      mixed case is not in our code-base but there was nothing preventing
-    #      a user to do so.
-    #
-    #      we can assume that whatever is not None or np.array is path-like
-    #      therefore str.
     if [kk for kk in ('hsp', 'hpi', 'elp') if isinstance(kwargs[kk],
                                                          np.ndarray)]:
         warn('Passing "np.arrays" to "hsp", "hpi" or "elp" in'
@@ -975,7 +971,8 @@ def _read_dig_montage_deprecation_warning_helper(**kwargs):
              ' Please use "make_dig_montage" instead.', DeprecationWarning)
         return
 
-    pass  # noqa  # XXX: will grow with issue-6461
+    warn('Using "read_dig_montage" is deprecated and will be removed in '
+         'v0.20. Use read_dig_polhemus_isotrak.', DeprecationWarning)
 
 
 def read_dig_montage(hsp=None, hpi=None, elp=None,
@@ -1173,9 +1170,10 @@ def read_dig_fif(fname):
     See Also
     --------
     DigMontage
-    read_montage
     read_dig_egi
     read_dig_captrack
+    read_dig_polhemus_isotrak
+    read_dig_hpts
     make_dig_montage
     """
     _check_fname(fname, overwrite='read', must_exist=True)
@@ -1193,8 +1191,98 @@ def read_dig_fif(fname):
     return montage
 
 
+def read_dig_hpts(fname, unit='mm'):
+    """Read historical .hpts mne-c files.
+
+    Parameters
+    ----------
+    fname : str
+        The filepath of .hpts file.
+    unit : 'm' | 'cm' | 'mm'
+        Unit of the positions. Defaults to 'mm'.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+
+    See Also
+    --------
+    DigMontage
+    read_dig_captrack
+    read_dig_egi
+    read_dig_fif
+    read_dig_polhemus_isotrak
+    make_dig_montage
+
+    Notes
+    -----
+    The hpts format digitzer data file may contain comment lines starting
+    with the pound sign (#) and data lines of the form::
+
+         <*category*> <*identifier*> <*x/mm*> <*y/mm*> <*z/mm*>
+
+    where:
+
+    ``<*category*>``
+        defines the type of points. Allowed categories are: `hpi`,
+        `cardinal` (fiducial), `eeg`, and `extra` corresponding to
+        head-position indicator coil locations, cardinal landmarks, EEG
+        electrode locations, and additional head surface points,
+        respectively.
+
+    ``<*identifier*>``
+        identifies the point. The identifiers are usually sequential
+        numbers. For cardinal landmarks, 1 = left auricular point,
+        2 = nasion, and 3 = right auricular point. For EEG electrodes,
+        identifier = 0 signifies the reference electrode.
+
+    ``<*x/mm*> , <*y/mm*> , <*z/mm*>``
+        Location of the point, usually in the head coordinate system
+        in millimeters. If your points are in [m] then unit parameter can
+        be changed.
+
+    For example::
+
+        cardinal    nasion    -5.6729  -12.3873  -30.3671
+        cardinal    lpa    -37.6782  -10.4957   91.5228
+        cardinal    rpa    -131.3127    9.3976  -22.2363
+        hpi    1    -30.4493  -11.8450   83.3601
+        hpi    2    -122.5353    9.2232  -28.6828
+        hpi    3    -6.8518  -47.0697  -37.0829
+        hpi    4    7.3744  -50.6297  -12.1376
+        hpi    5    -33.4264  -43.7352  -57.7756
+        eeg    FP1  3.8676  -77.0439  -13.0212
+        eeg    FP2  -31.9297  -70.6852  -57.4881
+        eeg    F7  -6.1042  -68.2969   45.4939
+        ...
+
+    """
+    from ._standard_montage_utils import _str_names, _str
+    VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
+    _scale = _check_unit_and_get_scaling(unit, VALID_SCALES)
+
+    out = np.genfromtxt(fname, comments='#',
+                        dtype=(_str, _str, 'f8', 'f8', 'f8'))
+    kind, label = _str_names(out['f0']), _str_names(out['f1'])
+    xyz = np.array([out['f%d' % ii] for ii in range(2, 5)]).T
+    xyz *= _scale
+    del _scale
+    fid = {label[ii]: this_xyz
+           for ii, this_xyz in enumerate(xyz) if kind[ii] == 'cardinal'}
+    ch_pos = {label[ii]: this_xyz
+              for ii, this_xyz in enumerate(xyz) if kind[ii] == 'eeg'}
+    hpi = np.array([this_xyz for ii, this_xyz in enumerate(xyz)
+                    if kind[ii] == 'hpi'])
+    hpi.shape = (-1, 3)  # in case it's empty
+    hsp = np.array([this_xyz for ii, this_xyz in enumerate(xyz)
+                    if kind[ii] == 'extra'])
+    hsp.shape = (-1, 3)  # in case it's empty
+    return make_dig_montage(ch_pos=ch_pos, **fid, hpi=hpi, hsp=hsp)
+
+
 def read_dig_egi(fname):
-    r"""Read electrode locations from EGI system.
+    """Read electrode locations from EGI system.
 
     Parameters
     ----------
@@ -1209,9 +1297,10 @@ def read_dig_egi(fname):
     See Also
     --------
     DigMontage
-    read_montage
-    read_dig_fif
     read_dig_captrack
+    read_dig_fif
+    read_dig_hpts
+    read_dig_polhemus_isotrak
     make_dig_montage
     """
     _check_fname(fname, overwrite='read', must_exist=True)
@@ -1231,7 +1320,7 @@ def read_dig_egi(fname):
 
 
 def read_dig_captrack(fname):
-    r"""Read electrode locations from CapTrak Brain Products system.
+    """Read electrode locations from CapTrak Brain Products system.
 
     Parameters
     ----------
@@ -1247,9 +1336,10 @@ def read_dig_captrack(fname):
     See Also
     --------
     DigMontage
-    read_montage
     read_dig_egi
     read_dig_fif
+    read_dig_hpts
+    read_dig_polhemus_isotrak
     make_dig_montage
     """
     _check_fname(fname, overwrite='read', must_exist=True)
@@ -1271,9 +1361,8 @@ def _get_montage_in_head(montage):
         return transform_to_head(montage.copy())
 
 
-def _set_montage_deprecation_helper(
-        montage, update_ch_names, set_dig, raise_if_subset
-):
+def _set_montage_deprecation_helper(montage, update_ch_names, set_dig,
+                                    raise_if_subset):
     """Manage deprecation policy for _set_montage.
 
     montage : instance of DigMontage | 'kind' | None
@@ -1320,7 +1409,7 @@ def _set_montage_deprecation_helper(
             'Using str in montage different from the built in templates '
             ' (i.e. a path) is deprecated. Please choose the proper reader to'
             ' load your montage using: '
-            ' ``read_dig_fif``, ``read_dig_egi``, ``read_dig_eeglab``,'
+            ' ``read_dig_fif``, ``read_dig_egi``, ``read_custom_montage``,'
             ' or ``read_dig_captrack``'
         ), DeprecationWarning)
     elif not (isinstance(montage, str) or montage is None):  # Montage
@@ -1328,11 +1417,12 @@ def _set_montage_deprecation_helper(
             'Setting a montage using anything rather than DigMontage'
             ' is deprecated and will raise an error in v0.20.'
             ' Please use ``read_dig_fif``, ``read_dig_egi``,'
-            ' ``read_dig_eeglab``, or ``read_dig_captrack``'
-            ' to read a digitization based on your needs instead;'
-            ' or ``make_standard_montage`` to create ``DigMontage`` based on'
-            ' template; or ``make_dig_montage`` to create a ``DigMontage`` out'
-            ' of np.arrays.'
+            ' ``read_dig_polhemus_isotrak``, or ``read_dig_captrack``'
+            ' ``read_dig_hpts``, ``read_dig_captrack`` or'
+            ' ``read_custom_montage`` to read a digitization based on'
+            ' your needs instead; or ``make_standard_montage`` to create'
+            ' ``DigMontage`` based on template; or ``make_dig_montage``'
+            ' to create a ``DigMontage`` out of np.arrays.'
         ), DeprecationWarning)
 
     # This is unlikely to be trigger but it applies in all cases
@@ -1596,8 +1686,12 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
 
     See Also
     --------
+    DigMontage
     make_dig_montage
     read_polhemus_fastscan
+    read_dig_captrack
+    read_dig_egi
+    read_dig_fif
     """
     VALID_FILE_EXT = ('.hsp', '.elp', '.eeg')
     VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
@@ -1682,6 +1776,108 @@ def read_polhemus_fastscan(fname, unit='mm'):
     return points
 
 
+def _read_eeglab_locations(fname, unit):
+    ch_names = np.genfromtxt(fname, dtype=str, usecols=3).tolist()
+    topo = np.loadtxt(fname, dtype=float, usecols=[1, 2])
+    sph = _topo_to_sph(topo)
+    pos = _sph_to_cart(sph)
+    pos[:, [0, 1]] = pos[:, [1, 0]] * [-1, 1]
+
+    return ch_names, pos
+
+
+def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
+    """Read a montage from a file.
+
+    Parameters
+    ----------
+    fname : str
+        File extension is expected to be:
+        '.loc' or '.locs' or '.eloc' (for EEGLAB files),
+        '.sfp' (BESA/EGI files), '.csd',
+        ‘.elc’, ‘.txt’, ‘.csd’, ‘.elp’ (BESA spherical),
+        .bvef (BrainVision files).
+
+    head_size : float | None
+        The size of the head in [m]. If none, returns the values read from the
+        file with no modification. Defaults to 95mm.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+
+    Notes
+    -----
+    The function is a helper to read electrode positions you may have
+    in various formats. Most of these format are weakly specified
+    in terms of units, coordinate systems. It implies that setting
+    a montage using a DigMontage produced by this function may
+    be problematic. If you use a standard/template (eg. 10/20,
+    10/10 or 10/05) we recommend you use :func:`make_standard_montage`.
+    If you can have positions in memory you can also use
+    :func:`make_dig_montage` that takes arrays as input.
+
+    See Also
+    --------
+    make_dig_montage
+    make_standard_montage
+    """
+    from ._standard_montage_utils import (
+        _read_theta_phi_in_degrees, _read_sfp, _read_csd, _read_elc,
+        _read_elp_besa, _read_brainvision
+    )
+    SUPPORTED_FILE_EXT = {
+        'eeglab': ('.loc', '.locs', '.eloc', ),
+        'hydrocel': ('.sfp', ),
+        'matlab': ('.csd', ),
+        'asa electrode': ('.elc', ),
+        'generic (Theta-phi in degrees)': ('.txt', ),
+        'standard BESA spherical': ('.elp', ),  # XXX: not same as polhemus elp
+        'brainvision': ('.bvef', ),
+    }
+
+    _, ext = op.splitext(fname)
+    _check_option('fname', ext, list(chain(*SUPPORTED_FILE_EXT.values())))
+
+    if ext in SUPPORTED_FILE_EXT['eeglab']:
+        if head_size is None:
+            raise(ValueError,
+                  "``head_size`` cannot be None for '{}'".format(ext))
+        ch_names, pos = _read_eeglab_locations(fname, unit)
+        scale = head_size / np.median(np.linalg.norm(pos, axis=-1))
+        pos *= scale
+
+        montage = make_dig_montage(
+            ch_pos=dict(zip(ch_names, pos)),
+            coord_frame='head',
+        )
+
+    elif ext in SUPPORTED_FILE_EXT['hydrocel']:
+        montage = _read_sfp(fname, head_size=head_size)
+
+    elif ext in SUPPORTED_FILE_EXT['matlab']:
+        montage = _read_csd(fname, head_size=head_size)
+
+    elif ext in SUPPORTED_FILE_EXT['asa electrode']:
+        montage = _read_elc(fname, head_size=head_size)
+
+    elif ext in SUPPORTED_FILE_EXT['generic (Theta-phi in degrees)']:
+        if head_size is None:
+            raise(ValueError,
+                  "``head_size`` cannot be None for '{}'".format(ext))
+        montage = _read_theta_phi_in_degrees(fname, head_size=head_size,
+                                             fid_names=('Nz', 'LPA', 'RPA'))
+
+    elif ext in SUPPORTED_FILE_EXT['standard BESA spherical']:
+        montage = _read_elp_besa(fname, head_size)
+
+    elif ext in SUPPORTED_FILE_EXT['brainvision']:
+        montage = _read_brainvision(fname, head_size, unit)
+
+    return montage
+
+
 def compute_dev_head_t(montage):
     """Compute device to head transform from a DigMontage.
 
@@ -1725,16 +1921,13 @@ def compute_dev_head_t(montage):
 def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
     """Read a generic (built-in) montage.
 
-    Individualized (digitized) electrode positions should be read in using
-    :func:`read_dig_montage`.  # XXXX
-
     Parameters
     ----------
     kind : str
-        The name of the montage file without the file extension (e.g.
-        kind='easycap-M10' for 'easycap-M10.txt'). See notes for valid kinds.
+        The name of the montage to use. See notes for valid kinds.
     head_size : float
         The head size (in meters) to use for spherical montages.
+        Defaults to 95mm.
 
     Returns
     -------
@@ -1744,9 +1937,16 @@ def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
     See Also
     --------
     DigMontage
+    make_dig_montage
+    read_custom_montage
 
     Notes
     -----
+    Individualized (digitized) electrode positions should be read in using
+    :func:`read_dig_captrack`, :func:`read_dig_egi`, :func:`read_dig_fif`,
+    :func:`read_dig_polhemus_isotrak`, :func:`read_dig_hpts` or made with
+    :func:`make_dig_montage`.
+
     Valid ``kind`` arguments are:
 
     ===================   =====================================================

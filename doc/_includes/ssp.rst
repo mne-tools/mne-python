@@ -1,14 +1,22 @@
-.. _ssp-method:
+:orphan:
 
 The Signal-Space Projection (SSP) method
-########################################
+========================================
+
+.. NOTE: part of this file is included in doc/overview/implementation.rst.
+   Changes here are reflected there. If you want to link to this content, link
+   to :ref:`ssp-method` to link to that section of the implementation.rst
+   page. The next line is a target for :start-after: so we can omit the title
+   from the include:
+   ssp-begin-content
 
 The Signal-Space Projection (SSP) is one approach to rejection of external
 disturbances in software. The section presents some relevant details of this
-method.
+method. For practical examples of how to use SSP for artifact rejection, see
+:ref:`tut-artifact-ssp`.
 
 General concepts
-================
+~~~~~~~~~~~~~~~~
 
 Unlike many other noise-cancellation approaches, SSP does not require
 additional reference sensors to record the disturbance fields. Instead, SSP
@@ -75,18 +83,19 @@ For more information on SSP, please consult the references listed in
 :ref:`CEGIEEBB`.
 
 Estimation of the noise subspace
---------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 As described above, application of SSP requires the estimation of the signal
 vectors :math:`b_1 \dotso b_m` constituting the noise subspace. The most common
-approach, also implemented in mne_browse_raw is to compute a covariance matrix
+approach, also implemented in :func:`mne.compute_proj_raw`
+is to compute a covariance matrix
 of empty room data, compute its eigenvalue decomposition, and employ the
 eigenvectors corresponding to the highest eigenvalues as basis for the noise
 subspace. It is also customary to use a separate set of vectors for
 magnetometers and gradiometers in the Vectorview system.
 
 EEG average electrode reference
-===============================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The EEG average reference is the mean signal over all the sensors. It is
 typical in EEG analysis to subtract the average reference from all the sensor

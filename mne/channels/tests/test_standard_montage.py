@@ -63,8 +63,9 @@ def test_standard_montages_on_sphere(kind, tol, head_size):
 
 def test_standard_superset():
     """Test some properties that should hold for superset montages."""
-    o_1005 = read_montage('standard_1005')  # old montages
-    o_1020 = read_montage('standard_1020')
+    with pytest.deprecated_call():
+        o_1005 = read_montage('standard_1005')  # old montages
+        o_1020 = read_montage('standard_1020')
     # new montages, tweaked to end up at the same size as the others
     m_1005 = make_standard_montage('standard_1005', 0.0970)
     m_1020 = make_standard_montage('standard_1020', 0.0991)

@@ -301,7 +301,7 @@ trans = mne.read_trans(trans_fname)
 # solution are read from a file. Since the data only contains MEG channels, we
 # only need the inner skull surface for making the forward solution. For more
 # information: :ref:`CHDBBCEJ`, :func:`mne.setup_source_space`,
-# :ref:`create_bem_model`, :func:`mne.bem.make_watershed_bem`.
+# :ref:`bem-model`, :func:`mne.bem.make_watershed_bem`.
 if use_precomputed:
     fwd_fname = op.join(data_path, 'MEG', 'bst_auditory',
                         'bst_auditory-meg-oct-6-fwd.fif')

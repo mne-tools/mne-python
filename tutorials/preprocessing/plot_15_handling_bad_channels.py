@@ -197,7 +197,7 @@ epochs = mne.Epochs(raw2, events=events)['2'].average().plot()
 # spline method [1]_, which projects the sensor locations onto a unit sphere
 # and interpolates the signal at the bad sensor locations based on the signals
 # at the good locations. Mathematical details are presented in
-# :ref:`channel_interpolation`. Interpolation of MEG channels uses the field
+# :ref:`channel-interpolation`. Interpolation of MEG channels uses the field
 # mapping algorithms used in computing the :ref:`forward solution
 # <tut-forward>`.
 #

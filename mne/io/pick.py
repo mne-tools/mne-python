@@ -929,7 +929,7 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
         raise ValueError('picks must be 1D, got %sD' % (picks.ndim,))
     if picks.dtype.char in ('S', 'U'):
         picks = _picks_str_to_idx(info, picks, exclude, with_ref_meg,
-                                  return_kind, orig_repr)
+                                  return_kind, orig_repr, allow_empty)
         if return_kind:
             picked_ch_type_or_generic = picks[1]
             picks = picks[0]
@@ -957,7 +957,7 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
 
 
 def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
-                      orig_repr):
+                      orig_repr, allow_empty):
     """Turn a list of str into ndarray of int."""
     # special case for _picks_to_idx w/no info: shouldn't really happen
     if isinstance(info, int):
@@ -980,7 +980,8 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
                                                     with_ref_meg=with_ref_meg)
             elif picks[0] == 'data_or_ica':
                 picks_generic = _pick_data_or_ica(info, exclude=exclude)
-            if len(picks_generic) == 0 and orig_repr.startswith('None, '):
+            if len(picks_generic) == 0 and orig_repr.startswith('None, ') and \
+                    not allow_empty:
                 raise ValueError('picks (%s) yielded no channels, consider '
                                  'passing picks explicitly' % (orig_repr,))
 
@@ -1035,11 +1036,13 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
     all_picks = (picks_generic, picks_name, picks_type)
     any_found = [len(p) > 0 for p in all_picks]
     if sum(any_found) == 0:
-        raise ValueError(
-            'picks (%s) could not be interpreted as '
-            'channel names (no channel "%s"), channel types (no '
-            'type "%s"), or a generic type (just "all" or "data")'
-            % (orig_repr, bad_name, bad_type))
+        if not allow_empty:
+            raise ValueError(
+                'picks (%s) could not be interpreted as '
+                'channel names (no channel "%s"), channel types (no '
+                'type "%s"), or a generic type (just "all" or "data")'
+                % (orig_repr, bad_name, bad_type))
+        picks = np.array([], int)
     elif sum(any_found) > 1:
         raise RuntimeError('Some channel names are ambiguously equivalent to '
                            'channel types, cannot use string-based '

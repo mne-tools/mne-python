@@ -122,7 +122,10 @@ def _read_dig_montage_egi(
         elif kind == 1:
             dig_ch_pos['EEG %03d' %
                        (len(dig_ch_pos.keys()) + 1)] = coordinates
-            # XXX: we should do something with this (ref and eeg get mixed)
+            # XXX: The EGI reader needs to be fixed with this code here.
+            # As a reference channel it should be called EEG000 or
+            # REF to follow the conventions. I should be:
+            # dig_ch_pos['REF'] = coordinates
 
         # Fiducials
         elif kind == 2:
