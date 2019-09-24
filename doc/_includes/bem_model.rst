@@ -79,43 +79,10 @@ Organizing MRI data into directories
 
 Since all images comprising the multi-echo FLASH data are contained in a single
 series, it is necessary to organize the images according to the echoes before
-proceeding to the BEM surface reconstruction. This is accomplished by the
-``mne_organize_dicom`` script, which creates a directory tree with symbolic
-links to the original DICOM image files. To run ``mne_organize_dicom``, proceed
-as follows:
-
-- Copy all of your images or create symbolic links to them in a single
-  directory. The images must be in DICOM format. We will refer to this
-  directory as :file:`{<source>}`.
-
-- Create another directory to hold the output of ``mne_organize_dicom``. We
-  will refer to this directory as :file:`{<dest>}`.
-
-- Change the working directory to :file:`{<dest>}`.
-
-- Say ``mne_organize_dicom`` :file:`{<source>}`. Depending on the total number
-  of images in :file:`{<source>}` this script may take quite a while to run.
-  Progress is indicated by listing the number of images processed at 50-image
-  intervals.
-
-As a result, :file:`{<dest>}` will contain several directories named
-:file:`{<three-digit number>}_{<protocol_name>}` corresponding to the different
-series of images acquired. Spaces and parenthesis in protocol names will be
-replaced by underscores. Under each of these directories there are one or more
-directories named :file:`{<three-digit number>}` number corresponding to one or
-more subsets of images in this series (protocol). The only subset division
-scheme implemented in ``mne_organize_dicom`` is that according to different
-echoes, typically found in multi-echo FLASH data. These second level
-directories will contain symbolic links pointing to the original image data.
-
-.. note:: ``mne_organize_dicom`` was developed specifically for Siemens DICOM
-   data. Its correct behavior with DICOM files originating from other MRI
-   scanners has not been verified at this time.
-
-.. note:: Since ``mne_organize_dicom`` processes all images, not only the FLASH
-   data, it may be a useful preprocessing step before FreeSurfer reconstruction
-   process as well.
-
+proceeding to the BEM surface reconstruction. This can be accomplished by using
+`dcm2niix <https://www.nitrc.org/plugins/mwiki/index.php/dcm2nii:MainPage>`__
+or the MNE-C tool ``mne_organize_dicom`` if necessary, then use
+:func:`mne.bem.convert_flash_mris`.
 
 Creating the surface tessellations
 ----------------------------------
@@ -124,7 +91,7 @@ The BEM surface segmentation and tessellation is automated with the script
 :ref:`gen_mne_flash_bem`. It assumes that a FreeSurfer reconstruction for this
 subject is already in place.
 
-Before running ``mne flash_bem`` do the following:
+Before running :ref:`gen_mne_flash_bem` do the following:
 
 - Create symbolic links from the directories containing the 5-degree and
   30-degree flip angle FLASH series to ``flash05`` and ``flash30``,
@@ -141,13 +108,14 @@ Before running ``mne flash_bem`` do the following:
 
   - :samp:`cp {<FLASH 30 series dir>} flash30`
 
-- Set the ``SUBJECTS_DIR`` and ``SUBJECT`` environment variables
+- Set the ``SUBJECTS_DIR`` and ``SUBJECT`` environment variables or pass
+  the ``--subjects-dir`` and ``--subject`` options to ``mne flash_bem``
 
 .. note:: If ``mne flash_bem`` is run with the ``--noflash30`` option, the
    :file:`flash30` directory is not needed, *i.e.*, only the 5-degree flip
    angle flash data are employed.
 
-It may take a while for mne_flash_bem to complete. It uses the FreeSurfer
+It may take a while for ``mne flash_bem`` to complete. It uses the FreeSurfer
 directory structure under ``$SUBJECTS_DIR/$SUBJECT``. The script encapsulates
 the following processing steps:
 
@@ -155,7 +123,7 @@ the following processing steps:
   the FLASH directories in ``mri/flash``. The files will be called
   :file:`mef {<flip-angle>}_{<echo-number>}.mgz`.
 
-- If the ``--unwarp`` option is specified, run grad_unwarp and produce
+- If the ``unwarp=True`` option is specified, run grad_unwarp and produce
   files :file:`mef {<flip-angle>}_{<echo-number>}u.mgz`. These files will be
   then used in the following steps.
 
@@ -191,5 +159,8 @@ Inspecting the meshes
 ---------------------
 
 It is advisable to check the validity of the BEM meshes before
-using them. This can be done with help of ``tkmedit`` or ``freeview``
-in PySurfer, or using :func:`mne.viz.plot_bem`.
+using them. This can be done with:
+
+- the ``--view`` option of :ref:`gen_mne_flash_bem`
+- calling :func:`mne.viz.plot_bem` directly
+- Using FreeSurfer tools ``tkmedit`` or ``freeview``

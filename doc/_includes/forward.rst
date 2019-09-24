@@ -186,7 +186,7 @@ and
    coordinate corresponds to the location of the center of a voxel. Detailed
    information on the FreeSurfer MRI systems can be found at
    https://surfer.nmr.mgh.harvard.edu/fswiki/CoordinateSystems.
-
+   The symbols :math:`T_x` are defined in :ref:`coordinate_system_figure`.
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.3\linewidth}|p{0.5\linewidth}|
 .. table:: Coordinate transformations in FreeSurfer and MNE software packages.
@@ -215,12 +215,6 @@ and
     +------------------------------+-------------------------------+-------------------------------------------------+
     | :math:`T_+`                  | Hardcoded in software         | Hardcoded in software.                          |
     +------------------------------+-------------------------------+-------------------------------------------------+
-
-.. note::
-   The symbols :math:`T_x` are defined in :ref:`coordinate_system_figure`.
-   mne_make_cor_set /mne_setup_mri prior to release 2.6 did not include
-   transformations :math:`T_3`, :math:`T_4`, :math:`T_-`, and :math:`T_+` in
-   the fif files produced.
 
 .. _head_device_coords:
 
@@ -449,7 +443,7 @@ data:
   T/m.
 
 .. note:: The coil geometry information is stored in the file
-          :file:`{$MNE_ROOT}/share/mne/data/coil_def.dat`, which is
+          :file:`mne/data/coil_def.dat`, which is
           automatically created by the MNE-C utility ``mne_list_coil_def``.
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.1\linewidth}|p{0.25\linewidth}|p{0.2\linewidth}|
@@ -638,18 +632,6 @@ consisting of seven numbers:
   each integration points allows the implementation of curved coils and coils
   with the gradiometer loops tilted with respect to each other.
 
-Creating the coil definition file
----------------------------------
-
-The standard coil definition file :file:`{$MNE_ROOT}/share/mne/coil_def.dat`
-is included with the MNE software package. The coil definition file
-can be recreated with the MNE-C utility ``mne_list_coil_def``
-as follows:
-
-.. code-block:: console
-
-    $ mne_list_coil_def --out $MNE_ROOT/share/mne/coil_def.dat
-
 
 Computing the forward solution
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -717,9 +699,9 @@ EEG forward solution in the sphere model
 When the sphere model is employed, the computation of the EEG solution can be
 substantially accelerated by using approximation methods described by Mosher,
 Zhang, and Berg, see :ref:`CEGEGDEI` (Mosher *et al.* and references therein).
-``mne_forward_solution`` approximates the solution with three dipoles in a
-homogeneous sphere whose locations and amplitudes are determined by minimizing
-the cost function:
+:func:`mne.make_forward_solution` approximates the solution with three dipoles
+in a homogeneous sphere whose locations and amplitudes are determined by
+minimizing the cost function:
 
 .. math::
    S(r_1,\dotsc,r_m\ ,\ \mu_1,\dotsc,\mu_m) = \int_{scalp} {(V_{true} - V_{approx})}\,dS
@@ -731,40 +713,6 @@ approximative formulas, respectively. It can be shown that this integral can be
 expressed in closed form using an expansion of the potentials in spherical
 harmonics. The formula is evaluated for the most superficial dipoles, *i.e.*,
 those lying just inside the inner skull surface.
-
-.. _forward_field_derivatives:
-
-Field derivatives
------------------
-
-If the ``--grad`` option is specified, mne_forward_solution includes the
-derivatives of the forward solution with respect to the dipole location
-coordinates to the output file. Let
-
-.. math::    G_k = [g_{xk} g_{yk} g_{zk}]
-
-be the :math:`N_{chan} \times 3` matrix containing the signals produced by
-three orthogonal dipoles at location :math:`r_k` making up :math:`N_{chan}
-\times 3N_{source}` the gain matrix
-
-.. math::    G = [G_1 \dotso G_{N_{source}}]\ .
-
-With the ``--grad`` option, the output from mne_forward_solution also contains
-the :math:`N_{chan} \times 9N_{source}` derivative matrix
-
-.. math::    D = [D_1 \dotso D_{N_{source}}]\ ,
-
-where
-
-.. math::
-   D_k = [\frac{\delta g_{xk}}{\delta x_k} \frac{\delta g_{xk}}{\delta y_k} \frac{\delta g_{xk}}{\delta z_k} \frac{\delta g_{yk}}{\delta x_k} \frac{\delta g_{yk}}{\delta y_k} \frac{\delta g_{yk}}{\delta z_k} \frac{\delta g_{zk}}{\delta x_k} \frac{\delta g_{zk}}{\delta y_k} \frac{\delta g_{zk}}{\delta z_k}]\ ,
-
-where :math:`x_k`, :math:`y_k`, and :math:`z_k` are the location coordinates of
-the :math:`k^{th}` dipole. If the dipole orientations are to the cortical
-normal with the ``--fixed`` option, the dimensions of :math:`G` and :math:`D`
-are :math:`N_{chan} \times N_{source}` and :math:`N_{chan} \times 3N_{source}`,
-respectively. Both :math:`G` and :math:`D` can be read with the
-mne_read_forward_solution Matlab function, see Table 10.1.
 
 Averaging forward solutions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

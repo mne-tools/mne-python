@@ -1133,10 +1133,9 @@ The documented structures are:
     |                         | matrix      |                                                          |
     +-------------------------+-------------+----------------------------------------------------------+
     | sol_grad                | named       | The derivatives of the forward solution with respect to  |
-    |                         | matrix      | the dipole location coordinates, see                     |
-    |                         |             | :ref:`forward_field_derivatives`.                        |
+    |                         | matrix      | the dipole location coordinates.                         |
     |                         |             | This field is present only if the forward solution was   |
-    |                         |             | computed with the ``--grad`` option.                     |
+    |                         |             | computed with the ``--grad`` option in MNE-C.            |
     +-------------------------+-------------+----------------------------------------------------------+
     | mri_head_t              | trans       | Transformation from the MRI coordinate frame to the      |
     |                         |             | (Neuromag) head coordinate frame.                        |

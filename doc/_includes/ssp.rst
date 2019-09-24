@@ -87,7 +87,8 @@ Estimation of the noise subspace
 
 As described above, application of SSP requires the estimation of the signal
 vectors :math:`b_1 \dotso b_m` constituting the noise subspace. The most common
-approach, also implemented in mne_browse_raw is to compute a covariance matrix
+approach, also implemented in :func:`mne.compute_proj_raw`
+is to compute a covariance matrix
 of empty room data, compute its eigenvalue decomposition, and employ the
 eigenvectors corresponding to the highest eigenvalues as basis for the noise
 subspace. It is also customary to use a separate set of vectors for

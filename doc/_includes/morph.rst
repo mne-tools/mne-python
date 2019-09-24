@@ -6,10 +6,11 @@ Morphing and averaging source estimates
 The spherical morphing of BEM surfaces accomplished by FreeSurfer can be
 employed to bring data from different subjects into a common anatomical frame.
 This page describes utilities which make use of the spherical :term:`morphing`
-procedure. ``mne_morph_labels`` morphs label files between subjects allowing
-the definition of labels in a one brain and transforming them to anatomically
-analogous labels in another. ``mne_average_estimates`` offers the capability to
-compute averages of data computed with the MNE software across subjects.
+procedure. :func:`mne.morph_labels` morphs label files between subjects
+allowing the definition of labels in a one brain and transforming them to
+anatomically analogous labels in another. :meth:`mne.SourceMorph.apply` offers
+the capability to transform all subject data to the same space and,
+e.g., compute averages of data across subjects.
 
 .. contents:: Page contents
    :local:

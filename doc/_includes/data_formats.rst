@@ -34,11 +34,11 @@ Data type     File format                                   Extension  MNE-Pytho
 ============  ============================================  =========  ===================================
 MEG           :ref:`Artemis123 <import-artemis>`            .bin       :func:`mne.io.read_raw_artemis123`
 
-MEG           :ref:`4-D Neuroimaging / BTi <import-bti>`    .dir       :func:`mne.io.read_raw_bti`
+MEG           :ref:`4-D Neuroimaging / BTi <import-bti>`    <dir>      :func:`mne.io.read_raw_bti`
 
-MEG           :ref:`CTF <import-ctf>`                       .dir       :func:`mne.io.read_raw_ctf`
+MEG           :ref:`CTF <import-ctf>`                       <dir>      :func:`mne.io.read_raw_ctf`
 
-MEG           :ref:`Elekta Neuromag <import-neuromag>`      .fif       :func:`mne.io.read_raw_fif`
+MEG and EEG   :ref:`Elekta Neuromag <import-neuromag>`      .fif       :func:`mne.io.read_raw_fif`
 
 MEG           :ref:`KIT <import-kit>`                       .sqd       :func:`mne.io.read_raw_kit`,
                                                                        :func:`mne.read_epochs_kit`
