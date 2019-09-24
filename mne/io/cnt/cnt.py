@@ -12,7 +12,6 @@ from ...utils import warn, verbose, fill_doc, _check_option
 from ...channels.layout import _topo_to_sphere
 from ..constants import FIFF
 from ..utils import (_mult_cal_one, _find_channels, _create_chs, read_str,
-                     _deprecate_stim_channel, _synthesize_stim_channel,
                      _deprecate_montage)
 from ..meas_info import _empty_info
 from ..base import BaseRaw
@@ -96,7 +95,7 @@ def _read_annotations_cnt(fname, data_format='int16'):
 @fill_doc
 def read_raw_cnt(input_fname, montage='deprecated', eog=(), misc=(), ecg=(),
                  emg=(), data_format='auto', date_format='mm/dd/yy',
-                 preload=False, stim_channel=False, verbose=None):
+                 preload=False, verbose=None):
     """Read CNT data as raw object.
 
     .. Note::
@@ -166,14 +165,12 @@ def read_raw_cnt(input_fname, montage='deprecated', eog=(), misc=(), ecg=(),
     """
     return RawCNT(input_fname, montage=montage, eog=eog, misc=misc, ecg=ecg,
                   emg=emg, data_format=data_format, date_format=date_format,
-                  preload=preload, stim_channel=stim_channel, verbose=verbose)
+                  preload=preload, verbose=verbose)
 
 
-def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
-                  stim_channel_toggle):
+def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
     """Read the cnt header."""
     # XXX stim_channel_toggle is used because stim_channel was in use already
-    _deprecate_stim_channel(stim_channel_toggle, removed_in='0.20')
 
     data_offset = 900  # Size of the 'SETUP' header.
     cnt_info = dict()
@@ -287,16 +284,6 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
             cal = np.fromfile(fid, dtype='f4', count=1)
             cals.append(cal * sensitivity * 1e-6 / 204.8)
 
-        if stim_channel_toggle:
-            data_format = 'int32' if n_bytes == 4 else 'int16'
-            annot = _read_annotations_cnt(input_fname, data_format=data_format)
-            events = (np.stack((annot.onset * sfreq,
-                                annot.duration * sfreq,
-                                annot.description.astype(int)))
-                      .astype(int)
-                      .transpose())
-            stim_channel = _synthesize_stim_channel(events, n_samples)
-
     info = _empty_info(sfreq)
     if lowpass_toggle == 1:
         info['lowpass'] = highcutoff
@@ -321,18 +308,6 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
     locs[:, :3] = coords
     for ch, loc in zip(chs, locs):
         ch.update(loc=loc)
-
-    if stim_channel_toggle:
-        chan_info = {'cal': 1.0, 'logno': len(chs) + 1, 'scanno': len(chs) + 1,
-                     'range': 1.0, 'unit_mul': 0., 'ch_name': 'STI 014',
-                     'unit': FIFF.FIFF_UNIT_NONE,
-                     'coord_frame': FIFF.FIFFV_COORD_UNKNOWN,
-                     'loc': np.zeros(12),
-                     'coil_type': FIFF.FIFFV_COIL_NONE,
-                     'kind': FIFF.FIFFV_STIM_CH}
-        chs.append(chan_info)
-        baselines.append(0)  # For stim channel
-        cnt_info.update(stim_channel=stim_channel)
 
     cnt_info.update(baselines=np.array(baselines), n_samples=n_samples,
                     n_bytes=n_bytes)
@@ -411,8 +386,7 @@ class RawCNT(BaseRaw):
 
     def __init__(self, input_fname, montage='deprecated', eog=(), misc=(),
                  ecg=(), emg=(), data_format='auto', date_format='mm/dd/yy',
-                 preload=False, stim_channel=False,
-                 verbose=None):  # noqa: D102
+                 preload=False, verbose=None):  # noqa: D102
 
         _check_option('date_format', date_format, ['mm/dd/yy', 'dd/mm/yy'])
         if date_format == 'dd/mm/yy':
@@ -422,7 +396,7 @@ class RawCNT(BaseRaw):
 
         input_fname = path.abspath(input_fname)
         info, cnt_info = _get_cnt_info(input_fname, eog, ecg, emg, misc,
-                                       data_format, _date_format, stim_channel)
+                                       data_format, _date_format)
         last_samps = [cnt_info['n_samples'] - 1]
         super(RawCNT, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[cnt_info],
