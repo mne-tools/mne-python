@@ -1,6 +1,6 @@
 .. _implementation:
 
-Algorithms and Other Implementation details
+Algorithms and other implementation details
 ===========================================
 
 This page describes some of the technical details of MNE-Python implementation.
