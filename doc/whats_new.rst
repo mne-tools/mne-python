@@ -7,6 +7,7 @@ What's new
 
 .. currentmodule:: mne
 
+.. include:: changes/latest.inc
 .. include:: changes/0.19.inc
 .. include:: changes/0.18.inc
 .. include:: changes/0.17.inc
