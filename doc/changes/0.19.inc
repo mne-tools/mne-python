@@ -7,10 +7,10 @@
    - "Bug" for bug fixes
    - "API" for backward-incompatible changes
 
-.. _current:
+.. _changes_0_19:
 
-Current (0.19.dev0)
--------------------
+Version 0.19
+------------
 
 Changelog
 ~~~~~~~~~
