@@ -1,4 +1,4 @@
-.. _ch_morph:
+:orphan:
 
 Morphing and averaging source estimates
 =======================================
@@ -6,17 +6,27 @@ Morphing and averaging source estimates
 The spherical morphing of BEM surfaces accomplished by FreeSurfer can be
 employed to bring data from different subjects into a common anatomical frame.
 This page describes utilities which make use of the spherical :term:`morphing`
-procedure. ``mne_morph_labels`` morphs label files between subjects allowing
-the definition of labels in a one brain and transforming them to anatomically
-analogous labels in another. ``mne_average_estimates`` offers the capability to
-compute averages of data computed with the MNE software across subjects.
+procedure. :func:`mne.morph_labels` morphs label files between subjects
+allowing the definition of labels in a one brain and transforming them to
+anatomically analogous labels in another. :meth:`mne.SourceMorph.apply` offers
+the capability to transform all subject data to the same space and,
+e.g., compute averages of data across subjects.
 
 .. contents:: Page contents
    :local:
    :depth: 2
 
+
+.. NOTE: part of this file is included in doc/overview/implementation.rst.
+   Changes here are reflected there. If you want to link to this content, link
+   to :ref:`ch_morph` to link to that section of the implementation.rst page.
+   The next line is a target for :start-after: so we can omit the title from
+   the include:
+   morph-begin-content
+
+
 Why morphing?
-^^^^^^^^^^^^^
+~~~~~~~~~~~~~
 
 .. sidebar:: Morphing examples in MNE-Python
 
@@ -42,10 +52,9 @@ functional similar structures are represented at the same spatial location for
 tell us how the data produced by subject A would be represented on the brain of
 subject B (and vice-versa).
 
-.. _CHDJDHII:
 
 The morphing maps
-^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~
 
 The MNE software accomplishes morphing with help of morphing maps.
 The morphing is performed with help of the registered
@@ -80,10 +89,9 @@ even if
 
 *i.e.*, the mapping is *almost* a bijection.
 
-.. _CHDEBAHH:
 
 About smoothing
-^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~
 
 The current estimates are normally defined only in a decimated grid which is a
 sparse subset of the vertices in the triangular tessellation of the cortical

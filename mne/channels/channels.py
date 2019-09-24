@@ -1312,7 +1312,7 @@ def fix_mag_coil_types(info):
 
     .. note:: The effect of the difference between the coil sizes on the
               current estimates computed by the MNE software is very small.
-              Therefore the use of mne_fix_mag_coil_types is not mandatory.
+              Therefore the use of ``fix_mag_coil_types`` is not mandatory.
     """
     old_mag_inds = _get_T1T2_mag_inds(info)
 

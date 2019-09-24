@@ -2335,8 +2335,9 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=None):
     ----------
     src : instance of SourceSpaces
         The source space must have distances between vertices computed, such
-        that src['dist'] exists and is useful. This can be obtained using MNE
-        with a call to mne_add_patch_info with the --dist option.
+        that src['dist'] exists and is useful. This can be obtained
+        with a call to :func:`mne.setup_source_space` with the
+        ``add_dist=True`` option.
     n_times : int
         Number of time points
     dist : float
@@ -2354,8 +2355,8 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=None):
         during time 2, etc.
     """
     if src[0]['dist'] is None:
-        raise RuntimeError('src must have distances included, consider using\n'
-                           'mne_add_patch_info with --dist argument')
+        raise RuntimeError('src must have distances included, consider using '
+                           'setup_source_space with add_dist=True')
     edges = sparse_block_diag([s['dist'][s['vertno'], :][:, s['vertno']]
                                for s in src])
     edges.data[:] = np.less_equal(edges.data, dist)
@@ -2418,8 +2419,9 @@ def spatial_dist_connectivity(src, dist, verbose=None):
     ----------
     src : instance of SourceSpaces
         The source space must have distances between vertices computed, such
-        that src['dist'] exists and is useful. This can be obtained using MNE
-        with a call to mne_add_patch_info with the --dist option.
+        that src['dist'] exists and is useful. This can be obtained
+        with a call to :func:`mne.setup_source_space` with the
+        ``add_dist=True`` option.
     dist : float
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors.

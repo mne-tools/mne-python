@@ -3,10 +3,9 @@
 Supported data formats
 ======================
 
-.. NOTE: part of this file is included in doc/manual/io.rst and
-   doc/overview/implementation.rst. Changes here are reflected there. If you
-   want to link to this content, link to :ref:`manual-data-formats` for the
-   manual or :ref:`data-formats` for the implementation page. The next line is
+.. NOTE: part of this file is included in doc/overview/implementation.rst.
+   Changes here are reflected there. If you want to link to this content,
+   link to :ref:`data-formats`. The next line is
    a target for :start-after: so we can omit the title above:
    data-formats-begin-content
 
@@ -30,51 +29,45 @@ table).
 .. cssclass:: table-bordered
 .. rst-class:: midvalign
 
-============  =============  =========  ===================================
-Data type     File format    Extension  MNE-Python function
-============  =============  =========  ===================================
-MEG           Artemis123     .bin       :func:`mne.io.read_raw_artemis123`
+============  ============================================  =========  ===================================
+Data type     File format                                   Extension  MNE-Python function
+============  ============================================  =========  ===================================
+MEG           :ref:`Artemis123 <import-artemis>`            .bin       :func:`mne.io.read_raw_artemis123`
 
-MEG           4-D            .dir       :func:`mne.io.read_raw_bti`
-              Neuroimaging
-              / BTi
+MEG           :ref:`4-D Neuroimaging / BTi <import-bti>`    <dir>      :func:`mne.io.read_raw_bti`
 
-MEG           CTF            .dir       :func:`mne.io.read_raw_ctf`
+MEG           :ref:`CTF <import-ctf>`                       <dir>      :func:`mne.io.read_raw_ctf`
 
-MEG           Elekta         .fif       :func:`mne.io.read_raw_fif`
-              Neuromag
+MEG and EEG   :ref:`Elekta Neuromag <import-neuromag>`      .fif       :func:`mne.io.read_raw_fif`
 
-MEG           KIT            .sqd       :func:`mne.io.read_raw_kit`,
-                                        :func:`mne.read_epochs_kit`
+MEG           :ref:`KIT <import-kit>`                       .sqd       :func:`mne.io.read_raw_kit`,
+                                                                       :func:`mne.read_epochs_kit`
 
+MEG and EEG   :ref:`FieldTrip <import-fieldtrip>`           .mat       :func:`mne.io.read_raw_fieldtrip`,
+                                                                       :func:`mne.read_epochs_fieldtrip`,
+                                                                       :func:`mne.read_evoked_fieldtrip`
 
-MEG and EEG   FieldTrip      .mat       :func:`mne.io.read_raw_fieldtrip`,
-                                        :func:`mne.read_epochs_fieldtrip`,
-                                        :func:`mne.read_evoked_fieldtrip`
+EEG           :ref:`Brainvision <import-bv>`                .vhdr      :func:`mne.io.read_raw_brainvision`
 
-EEG           Brainvision    .vhdr      :func:`mne.io.read_raw_brainvision`
+EEG           :ref:`Biosemi data format <import-biosemi>`   .bdf       :func:`mne.io.read_raw_bdf`
 
-EEG           Biosemi data   .bdf       :func:`mne.io.read_raw_bdf`
-              format
+EEG           :ref:`Neuroscan CNT <import-cnt>`             .cnt       :func:`mne.io.read_raw_cnt`
 
-EEG           Neuroscan CNT  .cnt       :func:`mne.io.read_raw_cnt`
+EEG           :ref:`European data format <import-edf>`      .edf       :func:`mne.io.read_raw_edf`
 
-EEG           European data  .edf       :func:`mne.io.read_raw_edf`
-              format
+EEG           :ref:`EEGLAB <import-set>`                    .set       :func:`mne.io.read_raw_eeglab`,
+                                                                       :func:`mne.read_epochs_eeglab`
 
-EEG           EEGLAB         .set       :func:`mne.io.read_raw_eeglab`,
-                                        :func:`mne.read_epochs_eeglab`
+EEG           :ref:`EGI simple binary <import-egi>`         .egi       :func:`mne.io.read_raw_egi`
 
-EEG           EGI simple     .egi       :func:`mne.io.read_raw_egi`
-              binary
+EEG           :ref:`EGI MFF format <import-mff>`            .mff       :func:`mne.io.read_raw_egi`
 
-EEG           EGI MFF        .mff       :func:`mne.io.read_raw_egi`
-              format
+EEG           :ref:`eXimia <import-nxe>`                    .nxe       :func:`mne.io.read_raw_eximia`
 
-EEG           eXimia         .nxe       :func:`mne.io.read_raw_eximia`
+EEG           :ref:`General data format <import-gdf>`       .gdf       :func:`mne.io.read_raw_gdf`
 
-EEG           General data   .gdf       :func:`mne.io.read_raw_gdf`
-              format
+EEG           :ref:`Nicolet <import-nicolet>`               .data      :func:`mne.io.read_raw_nicolet`
+============  ============================================  =========  ===================================
 
-EEG           Nicolet        .data      :func:`mne.io.read_raw_nicolet`
-============  =============  =========  ===================================
+More details are provided in the tutorials in the :ref:`tut-data-formats`
+section.
