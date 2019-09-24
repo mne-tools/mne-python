@@ -1,12 +1,16 @@
+# Author: Eric Larson <larson.eric.d@gmail.com>
+#
+# License: BSD (3-clause)
+
 import sys
-from subprocess import Popen, PIPE
+from mne.utils import run_subprocess
 
 
 run_script = """
 import sys
 import mne
 
-out = []
+out = set()
 
 # check scipy
 ok_scipy_submodules = set(['scipy', 'numpy',  # these appear in old scipy
@@ -23,28 +27,18 @@ if len(bad) > 0:
 # check sklearn and others
 _sklearn = _pandas = _mayavi = _matplotlib = False
 for x in sys.modules.keys():
-    if x.startswith('sklearn') and not _sklearn:
-        out.append('sklearn')
-        _sklearn = True
-    if x.startswith('pandas') and not _pandas:
-        out.append('pandas')
-        _pandas = True
-    if x.startswith('mayavi') and not _mayavi:
-        out.append('mayavi')
-        _mayavi = True
-    if x.startswith('matplotlib') and not _matplotlib:
-        out.append('matplotlib')
-        _matplotlib = True
+    for key in ('sklearn', 'pandas', 'mayavi', 'pyvista', 'matplotlib',
+                'dipy', 'nibabel', 'cupy', 'picard'):
+        if x.startswith(key):
+            out |= {key}
 if len(out) > 0:
-    print('\\nFound un-nested imports for:\\n' + '\\n'.join(out), end='')
-    exit(1)
+    print('\\nFound un-nested import(s) for %s' % (sorted(out),), end='')
+exit(len(out))
 """
 
 
 def test_module_nesting():
     """Test that module imports are properly nested."""
-    proc = Popen([sys.executable, '-c', run_script], stdout=PIPE, stderr=PIPE)
-    stdout, stderr = proc.communicate()
-    stdout = stdout.decode('utf-8')
-    stderr = stderr.decode('utf-8')
-    assert not proc.returncode, stdout + stderr
+    stdout, stderr, code = run_subprocess([sys.executable, '-c', run_script],
+                                          return_code=True)
+    assert code == 0, stdout + stderr
