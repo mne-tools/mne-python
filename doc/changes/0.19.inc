@@ -9,7 +9,7 @@
 
 .. _changes_0_19:
 
-Version 0.18
+Version 0.19
 ------------
 
 Changelog
