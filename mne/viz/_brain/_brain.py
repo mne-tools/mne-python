@@ -12,7 +12,7 @@ import os
 from os.path import join as pjoin
 from ...label import read_label
 from .colormap import calculate_lut
-from .view import views_dict
+from .view import lh_views_dict, rh_views_dict
 from .surface import Surface
 from .utils import mesh_edges, smoothing_matrix
 from ..utils import _check_option, logger
@@ -208,6 +208,7 @@ class _Brain(object):
 
         for ri, v in enumerate(views):
             for hi, h in enumerate(['lh', 'rh']):
+                views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
                 if not (hemi in ['lh', 'rh'] and h != hemi):
                     ci = hi if hemi == 'split' else 0
                     self._renderer.subplot(ri, ci)
@@ -425,6 +426,7 @@ class _Brain(object):
         ctable = self.update_lut(transparent=transparent)
 
         for ri, v in enumerate(self._views):
+            views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
             if self._hemi != 'split':
                 ci = 0
             else:
@@ -614,6 +616,7 @@ class _Brain(object):
         if self._units == 'm':
             scale_factor = scale_factor / 1000.
         for ri, v in enumerate(self._views):
+            views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
             if self._hemi != 'split':
                 ci = 0
             else:
@@ -712,6 +715,7 @@ class _Brain(object):
 
     def show_view(self, view=None, roll=None, distance=None):
         """Orient camera to display view."""
+        views_dict = lh_views_dict if self._hemi == 'lh' else rh_views_dict
         if isinstance(view, str):
             view = views_dict.get(view)
         self._renderer.set_camera(azimuth=view.azim,
