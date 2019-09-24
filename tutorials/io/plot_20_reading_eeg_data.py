@@ -14,6 +14,8 @@ data and electrode locations.
    :depth: 2
 
 
+.. _import-bv:
+
 BrainVision (.vhdr, .vmrk, .eeg)
 ================================
 
@@ -44,6 +46,9 @@ with the .vhdr header file as an input.
              `example <https://mne-tools.github.io/mne-bids/auto_examples/rename_brainvision_files>`_
              for an instruction.
 
+
+.. _import-edf:
+
 European data format (.edf)
 ===========================
 
@@ -58,6 +63,9 @@ trigger information. These annotations are available in ``raw.annotations``.
 Saving EDF files is not supported natively yet. This
 `gist <https://gist.github.com/skjerns/bc660ef59dca0dbd53f00ed38c42f6be>`__
 can be used to save any mne.io.Raw into EDF/EDF+/BDF/BDF+.
+
+
+.. _import-biosemi:
 
 BioSemi data format (.bdf)
 ==========================
@@ -81,6 +89,9 @@ later after cleaning if desired.
              supported in the fif format these data will be changed to 4-byte
              integers in the conversion.
 
+
+.. _import-gdf:
+
 General data format (.gdf)
 ==========================
 
@@ -93,6 +104,9 @@ and uses an event table. An updated specification (GDF v2) was released in
 2011 and adds fields for additional subject-specific information (gender,
 age, etc.) and allows storing several physical units and other properties.
 Both specifications are supported in MNE.
+
+
+.. _import-cnt:
 
 Neuroscan CNT data format (.cnt)
 ================================
@@ -111,6 +125,9 @@ non-data channel does not fit to the sphere, it is assigned a z-value of 0.
     If you are not sure about the channel locations in the header, use of a
     montage is encouraged.
 
+
+.. _import-egi:
+
 EGI simple binary (.egi)
 ========================
 
@@ -118,9 +135,15 @@ EGI simple binary files can be read in using :func:`mne.io.read_raw_egi`.
 The EGI raw files are simple binary files with a header and can be exported
 from using the EGI Netstation acquisition software.
 
+
+.. _import-mff:
+
 EGI MFF (.mff)
 ==============
 These files can also be read with :func:`mne.io.read_raw_egi`.
+
+
+.. _import-set:
 
 EEGLAB set files (.set)
 =======================
@@ -128,9 +151,15 @@ EEGLAB set files (.set)
 EEGLAB .set files can be read in using :func:`mne.io.read_raw_eeglab`
 and :func:`mne.read_epochs_eeglab`.
 
+
+.. _import-nicolet:
+
 Nicolet (.data)
 ===============
 These files can be read with :func:`mne.io.read_raw_nicolet`.
+
+
+.. _import-nxe:
 
 eXimia EEG data (.nxe)
 ======================

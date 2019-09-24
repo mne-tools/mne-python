@@ -12,6 +12,9 @@ This section describes how to read data for various MEG manufacturers.
    :local:
    :depth: 2
 
+
+.. _import-neuromag:
+
 Elekta NeuroMag (.fif)
 ======================
 
@@ -21,10 +24,16 @@ If the data were recorded with MaxShield on and have not been processed
 with MaxFilter, they may need to be loaded with
 ``mne.io.read_raw_fif(..., allow_maxshield=True)``.
 
+
+.. _import-artemis:
+
 Artemis123 (.bin)
 =================
 MEG data from the Artemis123 system can be read with\
 :func:`mne.io.read_raw_artemis123`.
+
+
+.. _import-bti:
 
 4-D Neuroimaging / BTI data (dir)
 =================================
@@ -54,6 +63,9 @@ in the same folder.
           compensation. If the data are saved in the Magnes system are already
           compensated, there will be a small error in the forward calculations,
           whose significance has not been evaluated carefully at this time.
+
+
+.. _import-ctf:
 
 CTF data (dir)
 ==============
@@ -126,6 +138,9 @@ by another and apply the product to the data:
 .. math::    x_{(k)} = M_{(k)} M_{(p)}^{-1} x_{(p)}\ .
 
 This operation is performed by :meth:`mne.io.Raw.apply_gradient_compensation`.
+
+
+.. _import-kit:
 
 KIT MEG system data (.sqd)
 ==========================
@@ -207,6 +222,9 @@ from the input channel data d_p(k):
 
 The threshold value :math:`t` can
 be adjusted with the ``stimthresh`` parameter.
+
+
+.. _import-fieldtrip:
 
 FieldTrip MEG/EEG data (.mat)
 =============================
