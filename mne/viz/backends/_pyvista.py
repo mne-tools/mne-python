@@ -344,7 +344,8 @@ class _Renderer(_BaseRenderer):
                                       smooth_shading=self.figure.
                                       smooth_shading)
 
-    def text2d(self, x, y, text, size=14, color=(1.0, 1.0, 1.0)):
+    def text2d(self, x, y, text, size=14, color=(1.0, 1.0, 1.0),
+               justification=None):
         size = 14 if size is None else size
         position = (x * self.figure.store['window_size'][0],
                     y * self.figure.store['window_size'][1])
@@ -353,7 +354,17 @@ class _Renderer(_BaseRenderer):
             actor = self.plotter.add_text(text, position=position,
                                           font_size=size,
                                           color=color)
-            actor.GetTextProperty().SetJustificationToRight()
+            if isinstance(justification, str):
+                if justification == 'left':
+                    actor.GetTextProperty().SetJustificationToLeft()
+                elif justification == 'center':
+                    actor.GetTextProperty().SetJustificationToCentered()
+                elif justification == 'right':
+                    actor.GetTextProperty().SetJustificationToRight()
+                else:
+                    raise ValueError('Expected values for `justification`'
+                                     'are `left`, `center` or `right` but '
+                                     'got {} instead.'.format(justification))
 
     def text3d(self, x, y, z, text, scale, color=(1.0, 1.0, 1.0)):
         with warnings.catch_warnings():

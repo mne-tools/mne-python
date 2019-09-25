@@ -444,7 +444,8 @@ class _Brain(object):
             if array.ndim >= 2 and callable(time_label):
                 self._renderer.text2d(x=0.95, y=y_txt,
                                       size=time_label_size,
-                                      text=time_label(time[time_idx]))
+                                      text=time_label(time[time_idx]),
+                                      justification='right')
             self._renderer.scalarbar(source=mesh, n_labels=8,
                                      bgcolor=(0.5, 0.5, 0.5))
             self._renderer.set_camera(azimuth=views_dict[v].azim,
@@ -653,7 +654,8 @@ class _Brain(object):
         col : int
             Column index of which brain to use
         """
-        pass
+        self._renderer.text2d(x=x, y=y, text=text, color=color,
+                              size=font_size, justification=justification)
 
     def remove_labels(self, labels=None, hemi=None):
         """Remove one or more previously added labels from the image.
