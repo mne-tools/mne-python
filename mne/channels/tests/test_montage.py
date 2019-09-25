@@ -9,16 +9,14 @@ import os.path as op
 import pytest
 
 import numpy as np
-from scipy.io import savemat
 from copy import deepcopy
 from functools import partial
 from string import ascii_lowercase
 
-from numpy.testing import (assert_array_equal, assert_almost_equal,
-                           assert_allclose, assert_array_almost_equal,
-                           assert_array_less, assert_equal)
+from numpy.testing import (assert_array_equal,
+                           assert_allclose, assert_equal)
 
-from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
+from mne import __file__ as _mne_file, create_info, read_evokeds
 from mne.channels import (get_builtin_montages, DigMontage,
                           read_dig_egi, read_dig_captrack, read_dig_fif,
                           make_standard_montage, read_custom_montage,
@@ -26,17 +24,13 @@ from mne.channels import (get_builtin_montages, DigMontage,
                           read_dig_polhemus_isotrak,
                           read_polhemus_fastscan,
                           read_dig_hpts)
-from mne.channels.montage import (_set_montage, transform_to_head,
-                                  HEAD_SIZE_DEFAULT)
-from mne.channels._dig_montage_utils import _transform_to_head_call
-from mne.channels._dig_montage_utils import _fix_data_fiducials
+from mne.channels.montage import (_set_montage, transform_to_head)
 from mne.utils import (_TempDir, run_tests_if_main, assert_dig_allclose,
-                       object_diff, Bunch)
+                       object_diff)
 from mne.bem import _fit_sphere
-from mne.transforms import apply_trans, get_ras_to_neuromag_trans
 from mne.io.constants import FIFF
 from mne._digitization import Digitization
-from mne._digitization._utils import _read_dig_points, _format_dig_points
+from mne._digitization._utils import _format_dig_points
 from mne._digitization._utils import _get_fid_coords
 from mne._digitization.base import _get_dig_eeg, _count_points_by_type
 
@@ -979,122 +973,6 @@ def test_montage_when_reading_and_setting_more(read_raw, fname):
     loc = np.array([ch['loc'] for ch in raw_none_copy.info['chs']])
     assert_array_equal(loc, np.full_like(loc, np.NaN))
 
-# XXX: deprecated to remove in 0.20, we are testing DigMontages somewhere else
-#      plus the positions are off. They don't fit HEAD_SIZE_DEFAULT
-EXPECTED_DIG_RPR = [
-    '<DigPoint |        LPA : (-6.7, 0.0, -3.3) mm      : head frame>',  # FidT9 [-6.711765    0.04040288 -3.25160035]  # noqa
-    '<DigPoint |     Nasion : (0.0, 9.1, -2.4) mm       : head frame>',  # FidNz [ 0.          9.07158515 -2.35975445]  # noqa
-    '<DigPoint |        RPA : (6.7, 0.0, -3.3) mm       : head frame>',  # FidT10 [ 6.711765    0.04040288 -3.25160035] # noqa
-    '<DigPoint |     EEG #1 : (-2.7, 8.9, 1.1) mm       : head frame>',  # E1 [-2.69540556  8.88482032  1.08830814]     # noqa
-    '<DigPoint |     EEG #2 : (2.7, 8.9, 1.1) mm        : head frame>',  # E2 [2.69540556 8.88482032 1.08830814]        # noqa
-    '<DigPoint |     EEG #3 : (-4.5, 6.0, 4.4) mm       : head frame>',  # E3 [-4.45938719  6.02115996  4.36532148]     # noqa
-    '<DigPoint |     EEG #4 : (4.5, 6.0, 4.4) mm        : head frame>',  # E4 [4.45938719 6.02115996 4.36532148]        # noqa
-    '<DigPoint |     EEG #5 : (-5.5, 0.3, 6.4) mm       : head frame>',  # E5 [-5.47913021  0.28494865  6.38332782]     # noqa
-    '<DigPoint |     EEG #6 : (5.5, 0.3, 6.4) mm        : head frame>',  # E6 [5.47913021 0.28494865 6.38332782]        # noqa
-    '<DigPoint |     EEG #7 : (-5.8, -4.5, 5.0) mm      : head frame>',  # E7 [-5.8312415 -4.4948217  4.9553477]        # noqa
-    '<DigPoint |     EEG #8 : (5.8, -4.5, 5.0) mm       : head frame>',  # E8 [ 5.8312415 -4.4948217  4.9553477]        # noqa
-    '<DigPoint |     EEG #9 : (-2.7, -8.6, 0.2) mm      : head frame>',  # E9 [-2.73883802 -8.60796685  0.23936822]     # noqa
-    '<DigPoint |    EEG #10 : (2.7, -8.6, 0.2) mm       : head frame>',  # E10 [ 2.73883802 -8.60796685  0.23936822]    # noqa
-    '<DigPoint |    EEG #11 : (-6.4, 4.1, -0.4) mm      : head frame>',  # E11 [-6.3990872   4.12724888 -0.35685224]    # noqa
-    '<DigPoint |    EEG #12 : (6.4, 4.1, -0.4) mm       : head frame>',  # E12 [ 6.3990872   4.12724888 -0.35685224]    # noqa
-    '<DigPoint |    EEG #13 : (-7.3, -1.9, -0.6) mm     : head frame>',  # E13 [-7.3046251  -1.86623801 -0.62918201]    # noqa
-    '<DigPoint |    EEG #14 : (7.3, -1.9, -0.6) mm      : head frame>',  # E14 [ 7.3046251  -1.86623801 -0.62918201]    # noqa
-    '<DigPoint |    EEG #15 : (-6.0, -5.8, 0.1) mm      : head frame>',  # E15 [-6.03474684 -5.7557822   0.05184301]    # noqa
-    '<DigPoint |    EEG #16 : (6.0, -5.8, 0.1) mm       : head frame>',  # E16 [ 6.03474684 -5.7557822   0.05184301]    # noqa
-    '<DigPoint |    EEG #17 : (0.0, 8.0, 5.0) mm        : head frame>',  # E17 [0.         7.96264703 5.044718  ]       # noqa
-    '<DigPoint |    EEG #18 : (0.0, 9.3, -2.2) mm       : head frame>',  # E18 [ 0.          9.2711397  -2.21151643]    # noqa
-    '<DigPoint |    EEG #19 : (0.0, -6.7, 6.5) mm       : head frame>',  # E19 [ 0.         -6.67669403  6.46520826]    # noqa
-    '<DigPoint |    EEG #20 : (0.0, -9.0, 0.5) mm       : head frame>',  # E20 [ 0.         -8.9966865   0.48795205]    # noqa
-    '<DigPoint |    EEG #21 : (-6.5, 2.4, -5.3) mm      : head frame>',  # E21 [-6.51899513  2.4172994  -5.25363707]    # noqa
-    '<DigPoint |    EEG #22 : (6.5, 2.4, -5.3) mm       : head frame>',  # E22 [ 6.51899513  2.4172994  -5.25363707]    # noqa
-    '<DigPoint |    EEG #23 : (-6.2, -2.5, -5.6) mm     : head frame>',  # E23 [-6.17496939 -2.45813888 -5.637381  ]    # noqa
-    '<DigPoint |    EEG #24 : (6.2, -2.5, -5.6) mm      : head frame>',  # E24 [ 6.17496939 -2.45813888 -5.637381  ]    # noqa
-    '<DigPoint |    EEG #25 : (-3.8, -6.4, -5.3) mm     : head frame>',  # E25 [-3.78498391 -6.40101441 -5.26004069]    # noqa
-    '<DigPoint |    EEG #26 : (3.8, -6.4, -5.3) mm      : head frame>',  # E26 [ 3.78498391 -6.40101441 -5.26004069]    # noqa
-    '<DigPoint |    EEG #27 : (0.0, 9.1, 1.3) mm        : head frame>',  # E27 [0.         9.08744089 1.33334501]       # noqa
-    '<DigPoint |    EEG #28 : (0.0, 3.8, 7.9) mm        : head frame>',  # E28 [0.         3.80677022 7.89130496]       # noqa
-    '<DigPoint |    EEG #29 : (-3.7, 6.6, -6.5) mm      : head frame>',  # E29 [-3.74350495  6.64920491 -6.53024307]    # noqa
-    '<DigPoint |    EEG #30 : (3.7, 6.6, -6.5) mm       : head frame>',  # E30 [ 3.74350495  6.64920491 -6.53024307]    # noqa
-    '<DigPoint |    EEG #31 : (-6.1, 4.5, -4.4) mm      : head frame>',  # E31 [-6.11845814  4.52387011 -4.40917443]    # noqa
-    '<DigPoint |    EEG #32 : (6.1, 4.5, -4.4) mm       : head frame>',  # E32 [ 6.11845814  4.52387011 -4.40917443]    # noqa
-]
-
-
-# XXX : to remove in 0.20 (tested separately in test_montage_readers and
-# test_set_montage functions)
-def test_setting_hydrocel_montage():
-    """Test set_montage using GSN-HydroCel-32."""
-    with pytest.deprecated_call():
-        montage = read_montage('GSN-HydroCel-32')
-    ch_names = [name for name in montage.ch_names if name.startswith('E')]
-    montage.pos /= 1e3
-
-    raw = RawArray(
-        data=np.empty([len(ch_names), 1]),
-        info=create_info(ch_names=ch_names, sfreq=1, ch_types='eeg')
-    )
-    with pytest.deprecated_call():
-        raw.set_montage(montage)
-
-    # test info['chs']
-    _slice = [name.startswith('E') for name in montage.ch_names]
-    _slice = np.array(_slice, dtype=bool)
-    EXPECTED_CHS_POS = montage.pos[_slice, :]  # Shall this be in the same units as info['dig'] ??  # noqa
-    actual_pos = np.array([ch['loc'][:3] for ch in raw.info['chs']])
-    assert_array_equal(actual_pos, EXPECTED_CHS_POS)
-
-    # test info['dig']
-    for actual, expected in zip([str(d) for d in raw.info['dig']],
-                                EXPECTED_DIG_RPR):
-        assert actual == expected
-
-
-def test_dig_dev_head_t_regression():
-    """Test deprecated compute_dev_head_t behavior."""
-    def _read_dig_montage(
-        hsp=None, hpi=None, elp=None, point_names=None, unit='auto',
-        fif=None, egi=None, bvct=None, transform=True, dev_head_t=False,
-    ):
-        """Unfolds the `read_dig_montage` old behavior of the call below.
-
-        montage = read_dig_montage(hsp, hpi, elp, names,
-                                   transform=True, dev_head_t=False)
-        """
-        assert isinstance(hsp, str), 'original call hsp was string'
-        assert op.splitext(hpi)[-1] == '.sqd', 'original call hpi was .sqd'
-        assert isinstance(elp, str), 'original call elp was string'
-
-        hsp = _read_dig_points(hsp, unit=unit)
-        hpi = read_mrk(hpi)
-        elp = _read_dig_points(elp, unit=unit)
-
-        data = Bunch(nasion=None, lpa=None, rpa=None,
-                     hsp=hsp, hpi=hpi, elp=elp, coord_frame='unknown',
-                     point_names=point_names, dig_ch_pos=None)
-
-        data = _fix_data_fiducials(data)
-        data = _transform_to_head_call(data)
-        del data['coord_frame']
-        with pytest.deprecated_call():
-            montage = DigMontage(**data)
-
-        return montage
-
-    EXPECTED_DEV_HEAD_T = \
-        [[-3.72201691e-02, -9.98212167e-01, -4.67667497e-02, -7.31583414e-04],
-         [8.98064989e-01, -5.39382685e-02, 4.36543170e-01, 1.60134431e-02],
-         [-4.38285221e-01, -2.57513699e-02, 8.98466990e-01, 6.13035748e-02],
-         [0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
-
-    names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
-    montage = _read_dig_montage(
-        hsp, hpi, elp, names, transform=True, dev_head_t=False)
-
-    assert montage.dev_head_t is None
-    with pytest.deprecated_call():
-        montage.compute_dev_head_t()
-    assert_allclose(montage.dev_head_t, EXPECTED_DEV_HEAD_T, atol=1e-7)
-
 
 def test_digmontage_constructor_errors():
     """Test proper error messaging."""
@@ -1318,21 +1196,10 @@ def test_read_dig_hpts():
     )
 
 
-# XXX should be removed in 0.20
-@testing.requires_testing_data
-def test_read_custom_montage_vs_old_on_loc_eeglab():
-    """Test reading EEGLAB locations data."""
-    with pytest.deprecated_call():
-        old = read_montage(locs_montage_fname)
-    old.pos *= HEAD_SIZE_DEFAULT  # read_montage was not scaling for loc files
-
-    new = read_custom_montage(locs_montage_fname)
-
-    # compare montages
-    old_ch_pos = {kk: vv for kk, vv in zip(old.ch_names, old.pos)}
-    new_ch_pos = new._get_ch_pos()
-    for kk in old.ch_names:
-        assert_allclose(new_ch_pos[kk], old_ch_pos[kk])
+def test_get_builtin_montages():
+    """Test help function to obtain builtin montages."""
+    EXPECTED_NUM = 24
+    assert len(get_builtin_montages()) == EXPECTED_NUM
 
 
 run_tests_if_main()
