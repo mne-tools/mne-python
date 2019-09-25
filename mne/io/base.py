@@ -36,7 +36,7 @@ from ..filter import (FilterMixin, notch_filter, resample,
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_pandas_index_arguments, fill_doc, copy_doc,
-                     check_fname, _get_stim_channel, deprecated,
+                     check_fname, _get_stim_channel,
                      logger, verbose, _time_mask, warn, SizeMixin,
                      copy_function_doc_to_method_doc, _validate_type,
                      _check_preload, _get_argvalues, _check_option)
@@ -1597,85 +1597,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                  axis_facecolor=axis_facecolor, dB=dB,
                                  show=show, block=block, n_jobs=n_jobs,
                                  axes=axes, verbose=verbose)
-
-    @deprecated('raw.estimate_rank is deprecated and will be removed in 0.19, '
-                'use mne.compute_rank instead.')
-    @verbose
-    def estimate_rank(self, tstart=0.0, tstop=30.0, tol=1e-4,
-                      return_singular=False, picks=None, scalings='norm',
-                      verbose=None):
-        """Estimate rank of the raw data.
-
-        This function is meant to provide a reasonable estimate of the rank.
-        The true rank of the data depends on many factors, so use at your
-        own risk.
-
-        Parameters
-        ----------
-        tstart : float
-            Start time to use for rank estimation. Default is 0.0.
-        tstop : float | None
-            End time to use for rank estimation. Default is 30.0.
-            If None, the end time of the raw file is used.
-        tol : float
-            Tolerance for singular values to consider non-zero in
-            calculating the rank. The singular values are calculated
-            in this method such that independent data are expected to
-            have singular value around one.
-        return_singular : bool
-            If True, also return the singular values that were used
-            to determine the rank.
-        %(picks_good_data)s
-        scalings : dict | 'norm' | None
-            To achieve reliable rank estimation on multiple sensors,
-            sensors have to be rescaled. This parameter controls the
-            rescaling. If dict, it will update the
-            following dict of defaults:
-
-                dict(mag=1e11, grad=1e9, eeg=1e5)
-
-            If 'norm' data will be scaled by internally computed
-            channel-wise norms. None will perform no scaling.
-            Defaults to 'norm'.
-        %(verbose)s
-
-        Returns
-        -------
-        rank : int
-            Estimated rank of the data.
-        s : array
-            If return_singular is True, the singular values that were
-            thresholded to determine the rank are also returned.
-
-        Notes
-        -----
-        If data are not pre-loaded, the appropriate data will be loaded
-        by this function (can be memory intensive).
-
-        Projectors are not taken into account unless they have been applied
-        to the data using apply_proj(), since it is not always possible
-        to tell whether or not projectors have been applied previously.
-
-        Bad channels will be excluded from calculations.
-        """
-        from ..rank import _estimate_rank_meeg_signals
-
-        start = max(0, self.time_as_index(tstart)[0])
-        if tstop is None:
-            stop = self.n_times - 1
-        else:
-            stop = min(self.n_times - 1, self.time_as_index(tstop)[0])
-        tslice = slice(start, stop + 1)
-        picks = _picks_to_idx(self.info, picks, with_ref_meg=False)
-        # ensure we don't get a view of data
-        if len(picks) == 1:
-            return 1.0, 1.0
-        # this should already be a copy, so we can overwrite it
-        data = self[picks, tslice][0]
-        out = _estimate_rank_meeg_signals(
-            data, pick_info(self.info, picks),
-            scalings=scalings, tol=tol, return_singular=return_singular)
-        return out
 
     @property
     def ch_names(self):

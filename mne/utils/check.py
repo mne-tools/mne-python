@@ -421,30 +421,12 @@ def _check_channels_spatial_filter(ch_names, filters):
 
 
 def _check_rank(rank):
-    """Check rank parameter and deal with deprecation."""
-    err_msg = ('rank must be None, dict, "full", or int, '
-               'got %s (type %s)' % (rank, type(rank)))
+    """Check rank parameter."""
+    _validate_type(rank, (None, dict, str), 'rank')
     if isinstance(rank, str):
-        # XXX we can use rank='' to deprecate to get to None eventually:
-        # if rank == '':
-        #     warn('The rank parameter default in 0.18 of "full" will change '
-        #          'to None in 0.19, set it explicitly to avoid this warning',
-        #          DeprecationWarning)
-        #     rank = 'full'
         if rank not in ['full', 'info']:
             raise ValueError('rank, if str, must be "full" or "info", '
                              'got %s' % (rank,))
-    elif isinstance(rank, bool):
-        raise TypeError(err_msg)
-    elif rank is not None and not isinstance(rank, dict):
-        try:
-            rank = int(operator.index(rank))
-        except TypeError:
-            raise TypeError(err_msg)
-        else:
-            warn('rank as int is deprecated and will be removed in 0.19. '
-                 'use rank=dict(meg=...) instead.', DeprecationWarning)
-            rank = dict(meg=rank)
     return rank
 
 

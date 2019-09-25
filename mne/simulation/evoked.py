@@ -11,7 +11,7 @@ from ..cov import compute_whitener
 from ..io.pick import pick_info
 from ..forward import apply_forward
 from ..utils import (logger, verbose, check_random_state, _check_preload,
-                     deprecated, _validate_type)
+                     _validate_type)
 
 
 @verbose
@@ -79,36 +79,6 @@ def simulate_evoked(fwd, stc, info, cov, nave=30, iir_filter=None,
     if cov is not None and cov.get('projs', None):
         evoked.add_proj(cov['projs']).apply_proj()
     return evoked
-
-
-@deprecated('simulate_noise_evoked is deprecated in 0.18 and will be removed '
-            'in 0.19, use add_noise instead')
-def simulate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
-    """Create noise as a multivariate Gaussian.
-
-    The spatial covariance of the noise is given from the cov matrix.
-
-    Parameters
-    ----------
-    evoked : evoked object
-        an instance of evoked used as template
-    cov : Covariance object
-        The noise covariance
-    iir_filter : None | array
-        IIR filter coefficients (denominator)
-    random_state : None | int | ~numpy.random.RandomState
-        To specify the random generator state.
-
-    Returns
-    -------
-    noise : evoked object
-        an instance of evoked
-
-    Notes
-    -----
-    .. versionadded:: 0.10.0
-    """
-    return _simulate_noise_evoked(evoked, cov, iir_filter, random_state)
 
 
 def _simulate_noise_evoked(evoked, cov, iir_filter, random_state):
