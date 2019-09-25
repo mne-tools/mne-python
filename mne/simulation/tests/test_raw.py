@@ -82,7 +82,8 @@ def test_iterable():
     n_events = (len(raw.times) - 1) // 1000 + 1
     stc = VolSourceEstimate(data, vertices, 0, tstep)
     assert isinstance(stc.vertices, np.ndarray)
-    raw_sim = simulate_raw(raw.info, [stc] * 15, trans, src, sphere, None)
+    raw_sim = simulate_raw(raw.info, [stc] * 15, trans, src, sphere, None,
+                           first_samp=raw.first_samp)
     raw_sim.crop(0, raw.times[-1])
     assert_allclose(raw.times, raw_sim.times)
     events = find_events(raw_sim, initial_event=True)
@@ -99,7 +100,7 @@ def test_iterable():
     raw_new = simulate_raw(raw.info, [(stc, event_data)] * 15,
                            trans, src, sphere, None, first_samp=raw.first_samp)
     assert raw_new.n_times == 15000
-    raw_new.crop(0, raw_sim.times[-1])
+    raw_new.crop(0, raw.times[-1])
     _assert_iter_sim(raw_sim, raw_new, 3)
     with pytest.raises(ValueError, match='event data had shape .* but need'):
         simulate_raw(raw.info, [(stc, event_data[:-1])], trans, src, sphere,
@@ -113,10 +114,12 @@ def test_iterable():
         stim_data = np.zeros(len(stc.times), int)
         stim_data[0] = 4
         ii = 0
-        while ii < 100:
+        while ii < 15:
             ii += 1
             yield (stc, stim_data)
-    raw_new = simulate_raw(raw.info, stc_iter(), trans, src, sphere, None)
+    raw_new = simulate_raw(raw.info, stc_iter(), trans, src, sphere, None,
+                           first_samp=raw.first_samp)
+    raw_new.crop(0, raw.times[-1])
     _assert_iter_sim(raw_sim, raw_new, 4)
 
     def stc_iter_bad():
@@ -151,7 +154,7 @@ def test_iterable():
     bem = make_bem_solution(model)
     with pytest.warns(RuntimeWarning,
                       match='1 of 2 SourceEstimate vertices'):
-        simulate_raw(raw, stc, trans, src, bem, None)
+        simulate_raw(raw.info, stc, trans, src, bem, None)
 
 
 def _make_stc(raw, src):
@@ -220,7 +223,7 @@ def test_simulate_raw_sphere(raw_data, tmpdir):
     raw.info['bads'] = raw.ch_names[:1]
     sphere_norad = make_sphere_model('auto', None, raw.info)
     raw_meg = raw.copy().pick_types()
-    raw_sim = simulate_raw(raw_meg, stc, trans, src, sphere_norad,
+    raw_sim = simulate_raw(raw_meg.info, stc, trans, src, sphere_norad,
                            head_pos=head_pos_sim)
     # Test IO on processed data
     test_outname = op.join(tempdir, 'sim_test_raw.fif')
@@ -296,20 +299,16 @@ def test_degenerate(raw_data):
         simulate_raw(info, 'foo', trans, src, sphere)
     with pytest.raises(ValueError, match='stc must have at least three time'):
         simulate_raw(info, stc.copy().crop(0, 0), trans, src, sphere)
-    with pytest.raises(TypeError, match='must be an instance of Raw or Info'):
+    with pytest.raises(TypeError, match='must be an instance of Info'):
         simulate_raw(0, stc, trans, src, sphere)
     stc_bad = stc.copy()
     stc_bad.tstep += 0.1
     with pytest.raises(ValueError, match='same sample rate'):
         simulate_raw(info, stc_bad, trans, src, sphere)
-    with pytest.raises(RuntimeError, match='cHPI information not found'):
-        add_chpi(raw, head_pos=pos_fname)
     with pytest.raises(ValueError, match='interp must be one of'):
         simulate_raw(info, stc, trans, src, sphere, interp='foo')
     with pytest.raises(TypeError, match='unknown head_pos type'):
         simulate_raw(info, stc, trans, src, sphere, head_pos=1.)
-    with pytest.raises(RuntimeError, match='All position times'):
-        simulate_raw(raw.info, stc, trans, src, sphere, head_pos=pos_fname)
     head_pos_sim_err = _get_head_pos_sim(raw)
     head_pos_sim_err[-1.] = head_pos_sim_err[1.]  # negative time
     with pytest.raises(RuntimeError, match='All position times'):
@@ -317,8 +316,6 @@ def test_degenerate(raw_data):
                      head_pos=head_pos_sim_err)
     raw_bad = raw.copy()
     raw_bad.info['dig'] = None
-    with pytest.raises(RuntimeError, match='Cannot fit headshape'):
-        simulate_raw(raw_bad, stc, trans, src, sphere, blink=True)
     with pytest.raises(RuntimeError, match='Cannot fit headshape'):
         add_eog(raw_bad)
 
@@ -337,8 +334,9 @@ def test_simulate_raw_bem(raw_data):
     vertices = [s['vertno'] for s in src]
     stc = SourceEstimate(np.eye(sum(len(v) for v in vertices)), vertices,
                          0, 1. / raw.info['sfreq'])
-    raw_sim_sph = simulate_raw(raw.info, stc, trans, src, sphere)
-    raw_sim_bem = simulate_raw(raw.info, stc, trans, src, bem_fname, n_jobs=2)
+    stcs = [stc] * 15
+    raw_sim_sph = simulate_raw(raw.info, stcs, trans, src, sphere)
+    raw_sim_bem = simulate_raw(raw.info, stcs, trans, src, bem_fname, n_jobs=2)
     # some components (especially radial) might not match that well,
     # so just make sure that most components have high correlation
     assert_array_equal(raw_sim_sph.ch_names, raw_sim_bem.ch_names)
@@ -441,10 +439,11 @@ def test_simulate_raw_chpi():
     # make sparse spherical source space
     sphere_vol = tuple(sphere['r0'] * 1000.) + (sphere.radius * 1000.,)
     src = setup_volume_source_space(sphere=sphere_vol, pos=70.)
-    stc = _make_stc(raw, src)
+    stcs = [_make_stc(raw, src)] * 15
     # simulate data with cHPI on
-    raw_sim = simulate_raw(raw.info, stc, None, src, sphere,
-                           head_pos=pos_fname, interp='zero')
+    raw_sim = simulate_raw(raw.info, stcs, None, src, sphere,
+                           head_pos=pos_fname, interp='zero',
+                           first_samp=raw.first_samp)
     # need to trim extra samples off this one
     raw_chpi = add_chpi(raw_sim.copy(), head_pos=pos_fname, interp='zero')
     # test cHPI indication
