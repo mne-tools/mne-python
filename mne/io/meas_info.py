@@ -1756,6 +1756,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
     * Am: dipole
     * AU: misc
     """
+    from ..channels.montage import (DigMontage, _set_montage)
     try:
         ch_names = operator.index(ch_names)  # int-like
     except TypeError:
@@ -1764,6 +1765,8 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
         ch_names = list(np.arange(ch_names).astype(str))
     _validate_type(ch_names, (list, tuple), "ch_names",
                    ("list, tuple, or int"))
+    _validate_type(montage, types=(type(None), str, DigMontage),
+                   item_name='montage')
     sfreq = float(sfreq)
     if sfreq <= 0:
         raise ValueError('sfreq must be positive')
@@ -1792,18 +1795,9 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
                          unit=kind[2], coord_frame=coord_frame,
                          ch_name=str(name), scanno=ci + 1, logno=ci + 1)
         info['chs'].append(chan_info)
+
     info._update_redundant()
-    if montage is not None:
-        from ..channels.montage import (Montage, DigMontage, _set_montage)
-        if not isinstance(montage, list):
-            montage = [montage]
-        for montage_ in montage:
-            if isinstance(montage_, (str, Montage, DigMontage)):
-                _set_montage(info, montage_)
-            else:
-                raise TypeError('Montage must be an instance of Montage, '
-                                'DigMontage, a list of montages, or filepath, '
-                                'not %s.' % type(montage))
+    _set_montage(info, montage)
     info._check_consistency()
     return info
 
