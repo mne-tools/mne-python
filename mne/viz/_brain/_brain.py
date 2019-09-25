@@ -629,7 +629,7 @@ class _Brain(object):
             self._renderer.set_camera(azimuth=views_dict[v].azim,
                                       elevation=views_dict[v].elev)
 
-    def add_text(self, x, y, text, name, color=None, opacity=1.0,
+    def add_text(self, x, y, text, name=None, color=None, opacity=1.0,
                  row=-1, col=-1, font_size=None, justification=None):
         """Add a text to the visualization.
 
@@ -654,6 +654,9 @@ class _Brain(object):
         col : int
             Column index of which brain to use
         """
+        # those parameters are not supported yet, only None is allowed
+        _check_option('name', name, [None])
+
         self._renderer.text2d(x=x, y=y, text=text, color=color,
                               size=font_size, justification=justification)
 

@@ -22,6 +22,7 @@ data_path = testing.data_path(download=False)
 subject_id = 'sample'
 subjects_dir = path.join(data_path, 'subjects')
 fname_stc = path.join(data_path, 'MEG/sample/sample_audvis_trunc-meg')
+fname_label = path.join(data_path, 'MEG/sample/labels/Vis-lh.label')
 surf = 'inflated'
 
 
@@ -90,19 +91,29 @@ def test_brain_add_data(renderer):
 @testing.requires_testing_data
 def test_brain_add_label(renderer):
     """Test adding data in _Brain instance."""
-    pass
+    from mne.label import read_label
+    brain = _Brain(subject_id, hemi='lh', size=500,
+                   surf=surf, subjects_dir=subjects_dir)
+    label = read_label(fname_label)
+    brain.add_label(fname_label)
+    brain.add_label(label)
 
 
 @testing.requires_testing_data
 def test_brain_add_foci(renderer):
     """Test adding foci in _Brain instance."""
-    pass
+    brain = _Brain(subject_id, hemi='lh', size=500,
+                   surf=surf, subjects_dir=subjects_dir)
+    brain.add_foci([0], coords_as_verts=True,
+                   hemi='lh', color='blue')
 
 
 @testing.requires_testing_data
 def test_brain_add_text(renderer):
     """Test adding text in _Brain instance."""
-    pass
+    brain = _Brain(subject_id, hemi='lh', size=250,
+                   surf=surf, subjects_dir=subjects_dir)
+    brain.add_text(x=0, y=0, text='foo')
 
 
 def test_brain_colormap():
