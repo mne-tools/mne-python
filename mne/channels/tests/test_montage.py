@@ -19,8 +19,7 @@ from numpy.testing import (assert_array_equal, assert_almost_equal,
                            assert_array_less, assert_equal)
 
 from mne import create_info, EvokedArray, read_evokeds, __file__ as _mne_file
-from mne.channels import (read_montage, read_dig_montage,
-                          get_builtin_montages, DigMontage,
+from mne.channels import (get_builtin_montages, DigMontage,
                           read_dig_egi, read_dig_captrack, read_dig_fif,
                           make_standard_montage, read_custom_montage,
                           compute_dev_head_t, make_dig_montage,

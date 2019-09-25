@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 import matplotlib.pyplot as plt
 
-from mne.channels import (read_dig_montage, read_dig_fif,
+from mne.channels import (read_dig_fif,
                           make_dig_montage, make_standard_montage)
 
 p_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'kit', 'tests', 'data')

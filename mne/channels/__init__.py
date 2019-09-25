@@ -5,7 +5,7 @@ Can be used for setting of sensor locations used for processing and plotting.
 
 from .layout import (Layout, make_eeg_layout, make_grid_layout, read_layout,
                      find_layout, generate_2d_layout)
-from .montage import (read_montage, read_dig_montage, Montage, DigMontage,
+from .montage import (DigMontage,
                       get_builtin_montages, make_dig_montage,
                       read_dig_egi, read_dig_captrack, read_dig_fif,
                       read_dig_polhemus_isotrak, read_polhemus_fastscan,
