@@ -11,9 +11,7 @@ import numpy as np
 import pytest
 import matplotlib.pyplot as plt
 
-from mne.io.kit import read_mrk
 from mne.channels import (read_dig_fif, make_dig_montage,
-                          read_polhemus_fastscan,
                           make_standard_montage)
 
 p_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'kit', 'tests', 'data')
@@ -39,14 +37,11 @@ def test_plot_montage():
     m.plot(kind='topomap', show_names=True)
     plt.close('all')
 
-    montage = make_dig_montage(hsp=read_polhemus_fastscan(hsp),
-                               hpi=read_mrk(hpi))
-    elp_points = read_polhemus_fastscan(elp)
-    ch_pos = {"EEG%03d" % (k + 1): pos for k, pos in enumerate(elp_points[8:])}
-    montage += make_dig_montage(nasion=elp_points[0],
-                                lpa=elp_points[1],
-                                rpa=elp_points[2],
-                                ch_pos=ch_pos)
+    N_HSP, N_HPI = 2, 1
+    montage = make_dig_montage(nasion=[1, 1, 1], lpa=[2, 2, 2], rpa=[3, 3, 3],
+                               hsp=np.full((N_HSP, 3), 4),
+                               hpi=np.full((N_HPI, 3), 4),
+                               coord_frame='head')
     assert '0 channels' in repr(montage)
     with pytest.raises(RuntimeError, match='No valid channel positions'):
         montage.plot()
