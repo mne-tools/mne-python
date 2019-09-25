@@ -30,14 +30,17 @@ def test_brain_init(renderer):
     """Test initialization of the _Brain instance."""
     hemi = 'both'
 
+    with pytest.raises(ValueError, match='size'):
+        _Brain(subject_id=subject_id, hemi=hemi, surf=surf, size=0.5)
     with pytest.raises(TypeError, match='figure'):
         _Brain(subject_id=subject_id, hemi=hemi, surf=surf, figure='foo')
     with pytest.raises(ValueError, match='interaction'):
         _Brain(subject_id=subject_id, hemi=hemi, surf=surf, interaction=0)
     with pytest.raises(KeyError):
-        _Brain(subject_id=subject_id, hemi="foo", surf=surf)
+        _Brain(subject_id=subject_id, hemi='foo', surf=surf)
 
-    _Brain(subject_id, hemi, surf, subjects_dir=subjects_dir)
+    _Brain(subject_id, hemi, surf, size=(300, 300),
+           subjects_dir=subjects_dir)
 
 
 @testing.requires_testing_data
@@ -63,6 +66,16 @@ def test_brain_add_data(renderer):
     brain_data = _Brain(subject_id, hemi, surf, size=300,
                         subjects_dir=subjects_dir)
 
+    with pytest.raises(ValueError, match='thresh'):
+        brain_data.add_data(hemi_data, thresh=-1)
+    with pytest.raises(ValueError, match='remove_existing'):
+        brain_data.add_data(hemi_data, remove_existing=-1)
+    with pytest.raises(ValueError, match='time_label_size'):
+        brain_data.add_data(hemi_data, time_label_size=-1)
+    with pytest.raises(ValueError, match='scale_factor'):
+        brain_data.add_data(hemi_data, scale_factor=-1)
+    with pytest.raises(ValueError, match='vector_alpha'):
+        brain_data.add_data(hemi_data, vector_alpha=-1)
     with pytest.raises(ValueError):
         brain_data.add_data(array=np.array([0, 1, 2]))
     with pytest.raises(ValueError):
@@ -71,7 +84,25 @@ def test_brain_add_data(renderer):
 
     brain_data.add_data(hemi_data, fmin=fmin, hemi=hemi, fmax=fmax,
                         colormap='hot', vertices=hemi_vertices,
-                        colorbar=False)
+                        colorbar=False, time=None)
+
+
+@testing.requires_testing_data
+def test_brain_add_label(renderer):
+    """Test adding data in _Brain instance."""
+    pass
+
+
+@testing.requires_testing_data
+def test_brain_add_foci(renderer):
+    """Test adding foci in _Brain instance."""
+    pass
+
+
+@testing.requires_testing_data
+def test_brain_add_text(renderer):
+    """Test adding text in _Brain instance."""
+    pass
 
 
 def test_brain_colormap():

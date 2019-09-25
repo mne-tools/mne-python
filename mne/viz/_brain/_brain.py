@@ -140,11 +140,19 @@ class _Brain(object):
                  foreground=None, figure=None, subjects_dir=None,
                  views=['lateral'], offset=True, show_toolbar=False,
                  offscreen=False, interaction=None, units='mm'):
+        from ..backends.renderer import _Renderer, _check_figure
+        from matplotlib.colors import colorConverter
+
         if interaction is not None:
             raise ValueError('"interaction" parameter is not supported.')
 
-        from ..backends.renderer import _Renderer, _check_figure
-        from matplotlib.colors import colorConverter
+        if hemi in ('both', 'split'):
+            self._hemis = ('lh', 'rh')
+        elif hemi in ('lh', 'rh'):
+            self._hemis = (hemi, )
+        else:
+            raise KeyError('hemi has to be either "lh", "rh", "split", '
+                           'or "both"')
 
         if isinstance(background, str):
             background = colorConverter.to_rgb(background)
@@ -180,14 +188,6 @@ class _Brain(object):
 
         # load geometry for one or both hemispheres as necessary
         offset = None if (not offset or hemi != 'both') else 0.0
-
-        if hemi in ('both', 'split'):
-            self._hemis = ('lh', 'rh')
-        elif hemi in ('lh', 'rh'):
-            self._hemis = (hemi, )
-        else:
-            raise KeyError('hemi has to be either "lh", "rh", "split", '
-                           'or "both"')
 
         if figure is not None and not isinstance(figure, int):
             _check_figure(figure)
