@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 r"""
-.. _tut-imorting-fnirs-data:
+.. _tut-importing-fnirs-data:
 
 =================================
 Importing data from fNIRS devices
