@@ -1795,7 +1795,11 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
     info._update_redundant()
     if montage is not None:
         from ..channels.montage import (Montage, DigMontage, _set_montage)
-        if not isinstance(montage, list):
+        if isinstance(montage, list):
+            warn('Passing a list as a montage is deprecated and will be '
+                 ' removed in v0.20. Please use DigMontage and + operator.',
+                 DeprecationWarning)
+        else:
             montage = [montage]
         for montage_ in montage:
             if isinstance(montage_, (str, Montage, DigMontage)):
