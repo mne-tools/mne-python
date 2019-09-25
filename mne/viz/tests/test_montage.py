@@ -11,8 +11,10 @@ import numpy as np
 import pytest
 import matplotlib.pyplot as plt
 
-from mne.channels import (read_dig_fif,
-                          make_dig_montage, make_standard_montage)
+from mne.io.kit import read_mrk
+from mne.channels import (read_dig_fif, make_dig_montage,
+                          read_polhemus_fastscan,
+                          make_standard_montage)
 
 p_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'kit', 'tests', 'data')
 elp = op.join(p_dir, 'test_elp.txt')
@@ -36,11 +38,18 @@ def test_plot_montage():
     plt.close('all')
     m.plot(kind='topomap', show_names=True)
     plt.close('all')
-    with pytest.deprecated_call():
-        d = read_dig_montage(hsp, hpi, elp, point_names)
-    assert '0 channels' in repr(d)
+
+    montage = make_dig_montage(hsp=read_polhemus_fastscan(hsp),
+                               hpi=read_mrk(hpi))
+    elp_points = read_polhemus_fastscan(elp)
+    ch_pos = {"EEG%03d" % (k + 1): pos for k, pos in enumerate(elp_points[8:])}
+    montage += make_dig_montage(nasion=elp_points[0],
+                                lpa=elp_points[1],
+                                rpa=elp_points[2],
+                                ch_pos=ch_pos)
+    assert '0 channels' in repr(montage)
     with pytest.raises(RuntimeError, match='No valid channel positions'):
-        d.plot()
+        montage.plot()
     d = read_dig_fif(fname=fif_fname)
     assert '61 channels' in repr(d)
     # XXX this is broken; dm.point_names is used. Sometimes we say this should
