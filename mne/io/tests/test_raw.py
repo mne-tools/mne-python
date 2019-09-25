@@ -41,7 +41,8 @@ def test_orig_units():
         BaseRaw(info, last_samps=[1], orig_units=True)
 
 
-def _test_raw_reader(reader, test_preloading=True, test_kwargs=True, **kwargs):
+def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
+                     boundary_decimal=2, **kwargs):
     """Test reading, writing and slicing of raw classes.
 
     Parameters
@@ -51,6 +52,10 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True, **kwargs):
     test_preloading : bool
         Whether not preloading is implemented for the reader. If True, both
         cases and memory mapping to file are tested.
+    test_kwargs : dict
+        Test _init_kwargs support.
+    boundary_decimal : int
+        Number of decimals up to which the boundary should match.
     **kwargs :
         Arguments for the reader. Note: Do not use preload as kwarg.
         Use ``test_preloading`` instead.
@@ -140,7 +145,7 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True, **kwargs):
 
     assert_array_almost_equal(concat_raw.annotations.onset[idx],
                               expected_bad_boundary_onset,
-                              decimal=2)
+                              decimal=boundary_decimal)
 
     if raw.info['meas_id'] is not None:
         for key in ['secs', 'usecs', 'version']:

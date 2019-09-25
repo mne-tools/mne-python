@@ -595,7 +595,7 @@ numpydoc_xref_ignore = {
     'n_segments',
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
-    'RawBrainVision', 'RawCurry',
+    'RawBrainVision', 'RawCurry', 'RawNIRX',
     # sklearn subclasses
     'mapping', 'to', 'any',
     # unlinkable

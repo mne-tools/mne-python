@@ -331,7 +331,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     for t in ['grad', 'mag']:
         inds += [pick_types(info, meg=t, ref_meg=False, exclude=[])]
         types += [t] * len(inds[-1])
-    for t in ['hbo', 'hbr']:
+    for t in ['hbo', 'hbr', 'fnirs_raw']:
         inds += [pick_types(info, meg=False, ref_meg=False, fnirs=t,
                             exclude=[])]
         types += [t] * len(inds[-1])
@@ -1056,7 +1056,6 @@ def _setup_browser_selection(raw, kind, selector=True):
     topo_ax = plt.subplot2grid((6, 1), (0, 0), rowspan=2, colspan=1)
     keys = np.concatenate([keys, ['Custom']])
     order.update({'Custom': list()})  # custom selection with lasso
-
     plot_sensors(raw.info, kind='select', ch_type='all', axes=topo_ax,
                  ch_groups=kind, title='', show=False)
     fig_selection.radio = RadioButtons(rax, [key for key in keys

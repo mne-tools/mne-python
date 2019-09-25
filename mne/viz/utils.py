@@ -2950,16 +2950,17 @@ def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
 def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     """Set PSD plot params."""
     import matplotlib.pyplot as plt
-    _data_types = ('mag', 'grad', 'eeg', 'seeg', 'ecog')
+    _data_types = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'fnirs_raw')
     _check_option('area_mode', area_mode, [None, 'std', 'range'])
     picks = _picks_to_idx(info, picks)
 
     # XXX this could be refactored more with e.g., plot_evoked
     # XXX when it's refactored, Report._render_raw will need to be updated
-    megs = ['mag', 'grad', False, False, False]
-    eegs = [False, False, True, False, False]
-    seegs = [False, False, False, True, False]
-    ecogs = [False, False, False, False, True]
+    megs = ['mag', 'grad', False, False, False, False]
+    eegs = [False, False, True, False, False, False]
+    seegs = [False, False, False, True, False, False]
+    ecogs = [False, False, False, False, True, False]
+    fnirss = [False, False, False, False, False, 'fnirs_raw']
     titles = _handle_default('titles', None)
     units = _handle_default('units', None)
     scalings = _handle_default('scalings', None)
@@ -2967,10 +2968,10 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     titles_list = list()
     units_list = list()
     scalings_list = list()
-    for meg, eeg, seeg, ecog, name in zip(megs, eegs, seegs, ecogs,
-                                          _data_types):
+    for meg, eeg, seeg, ecog, fnirs, name in zip(megs, eegs, seegs, ecogs,
+                                                 fnirss, _data_types):
         these_picks = pick_types(info, meg=meg, eeg=eeg, seeg=seeg, ecog=ecog,
-                                 ref_meg=False, exclude=[])
+                                 ref_meg=False, fnirs=fnirs, exclude=[])
         these_picks = np.intersect1d(these_picks, picks)
         if len(these_picks) > 0:
             picks_list.append(these_picks)
@@ -3114,7 +3115,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
         info['chs'] = [inst.info['chs'][p] for p in picks]
         valid_channel_types = ['mag', 'grad', 'eeg', 'seeg', 'eog', 'ecg',
                                'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
-                               'hbr', 'misc']
+                               'hbr', 'misc', 'fnirs_raw', 'fnirs_od']
         ch_types_used = list()
         for this_type in valid_channel_types:
             if this_type in types:
