@@ -100,6 +100,7 @@ class _Renderer(_BaseRenderer):
 
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
                  name="PyVista Scene", show=False, shape=(1, 1)):
+        from pyvista import OFF_SCREEN
         from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
         if isinstance(fig, int):
             if _FIGURES.get(fig) is None:
@@ -119,15 +120,15 @@ class _Renderer(_BaseRenderer):
             self.figure = fig
 
         # Enable off_screen if sphinx-gallery or testing
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=FutureWarning)
-            from pyvista import Plotter, OFF_SCREEN
         if OFF_SCREEN or MNE_3D_BACKEND_TEST_DATA:
-            self.figure.plotter_class = Plotter
             self.figure.store['off_screen'] = True
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
+            if MNE_3D_BACKEND_TEST_DATA:
+                from pyvista import Plotter
+                self.figure.plotter_class = Plotter
+
             self.plotter = self.figure.build()
             self.plotter.hide_axes()
 

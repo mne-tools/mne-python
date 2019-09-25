@@ -12,7 +12,7 @@ import os
 from os.path import join as pjoin
 from ...label import read_label
 from .colormap import calculate_lut
-from .view import lh_views_dict, rh_views_dict
+from .view import lh_views_dict, rh_views_dict, View
 from .surface import Surface
 from .utils import mesh_edges, smoothing_matrix
 from ..utils import _check_option, logger
@@ -654,8 +654,9 @@ class _Brain(object):
         col : int
             Column index of which brain to use
         """
-        # those parameters are not supported yet, only None is allowed
-        _check_option('name', name, [None])
+        # XXX: support `name` should be added when update_text/remove_text
+        # are implemented
+        # _check_option('name', name, [None])
 
         self._renderer.text2d(x=x, y=y, text=text, color=color,
                               size=font_size, justification=justification)
@@ -723,6 +724,9 @@ class _Brain(object):
         views_dict = lh_views_dict if self._hemi == 'lh' else rh_views_dict
         if isinstance(view, str):
             view = views_dict.get(view)
+        elif isinstance(view, dict):
+            view = View(azim=view['azimuth'],
+                        elev=view['elevation'])
         self._renderer.set_camera(azimuth=view.azim,
                                   elevation=view.elev)
 
