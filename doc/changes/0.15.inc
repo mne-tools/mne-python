@@ -42,7 +42,7 @@ Changelog
 
 - Add support for GDF files in :func:`mne.io.read_raw_edf` by `Nicolas Barascud`_
 
-- Add :func:`mne.io.find_edf_events` for getting the events as they are in the EDF/GDF header by `Jaakko Leppakangas`_
+- Add ``mne.io.find_edf_events`` for getting the events as they are in the EDF/GDF header by `Jaakko Leppakangas`_
 
 - Speed up :meth:`mne.io.Raw.plot` and :meth:`mne.Epochs.plot` using (automatic) decimation based on low-passing with ``decim='auto'`` parameter by `Eric Larson`_ and `Jaakko Leppakangas`_
 

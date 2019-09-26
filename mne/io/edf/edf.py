@@ -23,52 +23,8 @@ from ..base import BaseRaw
 from ..meas_info import _empty_info, _unique_channel_names, DATE_NONE
 from ..constants import FIFF
 from ...filter import resample
-from ...utils import copy_function_doc_to_method_doc, deprecated, fill_doc
-from ...annotations import Annotations, events_from_annotations
-
-
-@deprecated('find_edf_events is deprecated in 0.18, and will be removed'
-            ' in 0.19. Please use `mne.events_from_annotations` instead')
-def find_edf_events(raw):
-    """Get original EDF events as read from the header.
-
-    For GDF, the values are returned in form
-    [n_events, pos, typ, chn, dur]
-    where:
-
-    ========  ===================================  =======
-    name      description                          type
-    ========  ===================================  =======
-    n_events  The number of all events             integer
-    pos       Beginning of the events in samples   array
-    typ       The event identifiers                array
-    chn       The associated channels (0 for all)  array
-    dur       The durations of the events          array
-    ========  ===================================  =======
-
-    For EDF+, the values are returned in form
-    n_events * [onset, dur, desc]
-    where:
-
-    ========  ===================================  =======
-    name      description                          type
-    ========  ===================================  =======
-    onset     Onset of the event in seconds        float
-    dur       Duration of the event in seconds     float
-    desc      Description of the event             str
-    ========  ===================================  =======
-
-    Parameters
-    ----------
-    raw : instance of RawEDF
-        The raw object for finding the events.
-
-    Returns
-    -------
-    events : ndarray
-        The events as they are in the file header.
-    """
-    return events_from_annotations(raw)
+from ...utils import fill_doc
+from ...annotations import Annotations
 
 
 @fill_doc
@@ -188,12 +144,6 @@ class RawEDF(BaseRaw):
                                   self._raw_extras[fi], self.info['chs'],
                                   self._filenames[fi])
 
-    @copy_function_doc_to_method_doc(find_edf_events)
-    @deprecated('find_edf_events is deprecated in 0.18, and will be removed'
-                ' in 0.19. Please use `mne.events_from_annotations` instead')
-    def find_edf_events(self):
-        return events_from_annotations(self)
-
 
 @fill_doc
 class RawGDF(BaseRaw):
@@ -267,12 +217,6 @@ class RawGDF(BaseRaw):
         return _read_segment_file(data, idx, fi, start, stop,
                                   self._raw_extras[fi], self.info['chs'],
                                   self._filenames[fi])
-
-    @copy_function_doc_to_method_doc(find_edf_events)
-    @deprecated('find_edf_events is deprecated in 0.18, and will be removed'
-                ' in 0.19. Please use `mne.events_from_annotations` instead')
-    def find_edf_events(self):
-        return events_from_annotations(self)
 
 
 def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):

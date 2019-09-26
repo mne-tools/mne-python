@@ -251,7 +251,7 @@ API
 
 - :class:`Annotations` are now kept sorted (by onset time) during instantiation and :meth:`~Annotations.append` operations, by `Eric Larson`_
 
-- Deprecate :func:`mne.io.find_edf_events` by `Joan Massich`_
+- Deprecate ``mne.io.find_edf_events`` by `Joan Massich`_
 
 - Deprecate ``limit_depth_chs`` in :func:`mne.minimum_norm.make_inverse_operator` in favor of ``depth=dict(limit_depth_chs=...)`` by `Eric Larson`_
 
