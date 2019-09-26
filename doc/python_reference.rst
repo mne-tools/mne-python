@@ -53,7 +53,6 @@ Reading raw data
    :toctree: generated/
 
    anonymize_info
-   find_edf_events
    read_raw_artemis123
    read_raw_bti
    read_raw_cnt
