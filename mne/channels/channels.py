@@ -448,8 +448,7 @@ class SetChannelsMixin(object):
 
     @verbose
     def set_montage(
-            self, montage, set_dig=DEPRECATED_PARAM,
-            raise_if_subset=DEPRECATED_PARAM, verbose=None
+        self, montage, raise_if_subset=DEPRECATED_PARAM, verbose=None
     ):
         """Set EEG sensor configuration and head digitization.
 
@@ -457,13 +456,6 @@ class SetChannelsMixin(object):
         ----------
         montage : instance of Montage | instance of DigMontage | str | None
             The montage to use (None removes any location information).
-        set_dig : bool
-            If True, update the digitization information (``info['dig']``)
-            in addition to the channel positions (``info['chs'][idx]['loc']``).
-
-            Deprecated. This parameter will be removed in 0.20.
-
-            .. versionadded: 0.15
         raise_if_subset: bool
             If True, ValueError will be raised when montage.ch_names is a
             subset of info['ch_names']. This parameter was introduced for
@@ -485,8 +477,7 @@ class SetChannelsMixin(object):
         # https://gist.github.com/massich/f6a9f4799f1fbeb8f5e8f8bc7b07d3df
 
         from .montage import _set_montage
-        _set_montage(self.info, montage, update_ch_names=DEPRECATED_PARAM,
-                     set_dig=set_dig, raise_if_subset=raise_if_subset)
+        _set_montage(self.info, montage, raise_if_subset=raise_if_subset)
         return self
 
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,
