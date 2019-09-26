@@ -369,14 +369,6 @@ class DigMontage(object):
         return _foo_get_data_from_dig(self.dig).nasion
 
 
-def _get_scaling(unit, scale):
-    if unit not in scale:
-        raise ValueError("Unit needs to be one of %s, not %r" %
-                         (sorted(scale.keys()), unit))
-    else:
-        return scale[unit]
-
-
 def _check_unit_and_get_scaling(unit, valid_scales):
     _check_option('unit', unit, list(valid_scales.keys()))
     return valid_scales[unit]
