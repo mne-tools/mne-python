@@ -22,8 +22,7 @@ import numpy as np
 
 from ..viz import plot_montage
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
-                          _topo_to_sph, _frame_to_str, _str_to_frame,
-                          Transform)
+                          _topo_to_sph, _frame_to_str, Transform)
 from .._digitization import Digitization
 from .._digitization.base import _count_points_by_type
 from .._digitization.base import _get_dig_eeg
@@ -33,10 +32,9 @@ from ..io.pick import pick_types
 from ..io.open import fiff_open
 from ..io.constants import FIFF
 from ..utils import (warn, logger, copy_function_doc_to_method_doc,
-                     _check_option, Bunch, _validate_type, _check_fname)
+                     _check_option, _validate_type, _check_fname)
 from .._digitization._utils import _get_fid_coords, _foo_get_data_from_dig
 
-from ._dig_montage_utils import _transform_to_head_call
 from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
 
@@ -171,43 +169,6 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     )
 
     return DigMontage(dig=dig, ch_names=ch_names)
-
-
-# XXX : should be kill one read_dig_montage is removed in 0.20
-def _make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
-                      hsp=None, hpi=None, hpi_dev=None, coord_frame='unknown',
-                      transform_to_head=False, compute_dev_head_t=False):
-    # XXX: hpi was historically elp
-    # XXX: hpi_dev was historically hpi
-    assert coord_frame in _str_to_frame
-    from ..coreg import fit_matched_points
-    data = Bunch(
-        nasion=nasion, lpa=lpa, rpa=rpa,
-        elp=hpi, dig_ch_pos=ch_pos, hsp=hsp,
-        coord_frame=coord_frame,
-    )
-    if transform_to_head:
-        data = _transform_to_head_call(data)
-
-    if compute_dev_head_t:
-        if data.elp is None or hpi_dev is None:
-            raise RuntimeError('must have both elp and hpi to compute the '
-                               'device to head transform')
-        else:
-            # here is hpi
-            dev_head_t = fit_matched_points(
-                tgt_pts=data.elp, src_pts=hpi_dev, out='trans'
-            )  # XXX: shall we make it a Transform? rather than np.array
-    else:
-        dev_head_t = None
-
-    ch_names = list() if ch_pos is None else list(sorted(ch_pos.keys()))
-    dig = _make_dig_points(
-        nasion=data.nasion, lpa=data.lpa, rpa=data.rpa, hpi=data.elp,
-        extra_points=data.hsp, dig_ch_pos=data.dig_ch_pos,
-        coord_frame=data.coord_frame,
-    )
-    return DigMontage(dig=dig, ch_names=ch_names, dev_head_t=dev_head_t)
 
 
 class DigMontage(object):
@@ -652,7 +613,7 @@ def read_dig_captrack(fname):
     make_dig_montage
     """
     _check_fname(fname, overwrite='read', must_exist=True)
-    data = _parse_brainvision_dig_montage(fname)
+    data = _parse_brainvision_dig_montage(fname, scale=1e-3)
 
     # XXX: to change to the new naming in v.0.20 (all this block should go)
     data.pop('point_names')
