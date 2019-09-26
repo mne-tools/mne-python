@@ -454,8 +454,7 @@ class SetChannelsMixin(object):
 
         Parameters
         ----------
-        montage : instance of Montage | instance of DigMontage | str | None
-            The montage to use (None removes any location information).
+        %(montage)s
         raise_if_subset: bool
             If True, ValueError will be raised when montage.ch_names is a
             subset of info['ch_names']. This parameter was introduced for

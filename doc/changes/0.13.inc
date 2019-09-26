@@ -113,7 +113,7 @@ BUG
 
 - Fixed bug with ``mne.realtime.FieldTripClient.get_data_as_epoch`` when ``picks=None`` which crashed the function by `Mainak Jas`_
 
-- Fixed reading of units in ``.elc`` montage files (from ``UnitsPosition`` field) so that :class:`mne.channels.Montage` objects are now returned with the ``pos`` attribute correctly in meters, by `Chris Mullins`_
+- Fixed reading of units in ``.elc`` montage files (from ``UnitsPosition`` field) so that ``mne.channels.Montage`` objects are now returned with the ``pos`` attribute correctly in meters, by `Chris Mullins`_
 
 - Fixed reading of BrainVision files by `Phillip Alday`_:
 

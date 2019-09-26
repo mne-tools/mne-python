@@ -32,7 +32,8 @@ from ..io.pick import pick_types
 from ..io.open import fiff_open
 from ..io.constants import FIFF
 from ..utils import (warn, logger, copy_function_doc_to_method_doc,
-                     _check_option, _validate_type, _check_fname)
+                     _check_option, _validate_type, _check_fname,
+                     fill_doc)
 from .._digitization._utils import _get_fid_coords, _foo_get_data_from_dig
 
 from ._dig_montage_utils import _read_dig_montage_egi
@@ -659,6 +660,7 @@ def _set_montage_deprecation_helper(montage, update_ch_names, set_dig,
             )
 
 
+@fill_doc
 def _set_montage(info, montage, raise_if_subset=DEPRECATED_PARAM):
     """Apply montage to data.
 
@@ -675,10 +677,7 @@ def _set_montage(info, montage, raise_if_subset=DEPRECATED_PARAM):
     ----------
     info : instance of Info
         The measurement info to update.
-    montage : instance of DigMontage | str | None
-        The montage to apply (None removes any location information). If
-        montage is a string, a builtin montage with that name will be used.
-
+    %(montage)s
     raise_if_subset: bool
         If True, ValueError will be raised when montage.ch_names is a
         subset of info['ch_names']. This parameter was introduced for

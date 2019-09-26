@@ -377,6 +377,14 @@ montage : str | None | instance of Montage
     DEPRECATED in version 0.19
     Use the `set_montage` method.
 """
+docdict["montage"] = """
+montage : None | str | DigMontage
+    A montage containing channel positions. If str or DigMontage is
+    specified, the channel info will be updated with the channel
+    positions. Default is None. See also the documentation of
+    :class:`mne.channels.DigMontage` and
+    :func:`mne.channels.read_standard_montage` for more information.
+"""
 
 # Brain plotting
 docdict["clim"] = """

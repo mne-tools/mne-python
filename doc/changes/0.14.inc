@@ -56,7 +56,7 @@ Changelog
 
 - Allow integer event codes in :func:`mne.read_epochs_eeglab` by `Jaakko Leppakangas`_
 
-- Add ability to match channel names in a case insensitive manner when applying a :class:`mne.channels.Montage` by `Marijn van Vliet`_
+- Add ability to match channel names in a case insensitive manner when applying a ``mne.channels.Montage`` by `Marijn van Vliet`_
 
 - Add ``yscale`` keyword argument to :meth:`mne.time_frequency.AverageTFR.plot` that allows specifying whether to present the frequency axis in linear (``'linear'``) or log (``'log'``) scale. The default value is ``'auto'`` which detects whether frequencies are log-spaced and sets yscale to log. Added by `Mikołaj Magnuski`_
 
@@ -117,7 +117,7 @@ BUG
 
 - Fix colormap selection in :func:`mne.viz.plot_evoked_topomap` when using positive vmin with negative data by `Jaakko Leppakangas`_
 
-- Fix channel name comparison in :func:`mne.channels.read_montage` so that if ``ch_names`` is provided, the returned montage will have channel names in the same letter case by `Jaakko Leppakangas`_
+- Fix channel name comparison in ``mne.channels.read_montage`` so that if ``ch_names`` is provided, the returned montage will have channel names in the same letter case by `Jaakko Leppakangas`_
 
 - Fix :meth:`inst.set_montage(montage) <mne.io.Raw.set_montage>` to only set ``inst.info['dev_head_t']`` if ``dev_head_t=True`` in :func:`mne.channels.read_dig_montage` by `Eric Larson`_
 
@@ -190,7 +190,7 @@ API
 
 - The measurement info :class:`Info` no longer contains a potentially misleading ``info['filename']`` entry. Use class properties like :attr:`mne.io.Raw.filenames` or :attr:`mne.Epochs.filename` instead by `Eric Larson`_
 
-- Default fiducial name change from 'nz' to 'nasion' in :func:`mne.channels.read_montage`, so that it is the same for both :class: `mne.channels.Montage` and :class: `mne.channels.DigMontage` by `Leonardo Barbosa`_
+- Default fiducial name change from 'nz' to 'nasion' in ``mne.channels.read_montage``, so that it is the same for both ``mne.channels.Montage`` and :class: `mne.channels.DigMontage` by `Leonardo Barbosa`_
 
 - MNE's additional files for the ``fsaverage`` head/brain model are now included in MNE-Python, and the now superfluous ``mne_root`` parameter to  :func:`create_default_subject` has been deprecated by `Christian Brodbeck`_
 
