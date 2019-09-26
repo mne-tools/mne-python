@@ -98,8 +98,8 @@ def get_builtin_montages():
     Returns
     -------
     montages : list
-        Names of all builtin montages that can be loaded with
-        :func:`read_montage`.
+        Names of all builtin montages that can be used by
+        :func:`make_standard_montage`.
     """
     return _BUILT_IN_MONTAGES
 
@@ -164,9 +164,9 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
 class DigMontage(object):
     """Montage for digitized electrode and headshape position data.
 
-    .. warning:: Montages are typically loaded from a file using
-                 :func:`read_dig_montage` instead of instantiating
-                 this class.
+    .. warning:: Montages are typically created using one of the helper
+                 functions in the ``See Also`` section below instead of
+                 instantiating this class directly.
 
     Parameters
     ----------
@@ -179,13 +179,16 @@ class DigMontage(object):
 
     See Also
     --------
-    read_dig_montage
-    read_montage
+    read_dig_captrack
+    read_dig_egi
+    read_dig_fif
+    read_dig_hpts
+    read_dig_polhemus_isotrak
+    make_dig_montage
 
     Notes
     -----
     .. versionadded:: 0.9.0
-
     """
 
     def __init__(self, dev_head_t=None, dig=None, ch_names=None):
