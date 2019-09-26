@@ -70,3 +70,7 @@ def test_standard_superset():
     assert len(set(m_1005.ch_names) - set(m_1020.ch_names)) > 0
     # XXX weird that this is not a proper superset...
     assert set(m_1020.ch_names) - set(m_1005.ch_names) == {'O10', 'O9'}
+    c_1005 = m_1005._get_ch_pos()
+    for key, value in m_1020._get_ch_pos().items():
+        if key not in ('O10', 'O9'):
+            assert_allclose(c_1005[key], value, atol=1e-4, err_msg=key)
