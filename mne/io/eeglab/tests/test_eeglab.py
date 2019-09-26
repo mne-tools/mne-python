@@ -353,9 +353,9 @@ def test_position_information(one_chanpos_fname):
 
     _msg = (
         'DigMontage is a only a subset of info. '
-        'Did not set 1 channel positions:\nunknown'
+        'There are 1 channel positions not present it the DigMontage'
     )
-    with pytest.warns(RuntimeWarning, match=_msg):
+    with pytest.raises(ValueError, match=_msg):
         raw.set_montage(montage, update_ch_names=False, raise_if_subset=False)
     _assert_array_allclose_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
                                EXPECTED_LOCATIONS_FROM_MONTAGE)

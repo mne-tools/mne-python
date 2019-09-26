@@ -1064,8 +1064,8 @@ def test_set_montage_with_mismatching_ch_names():
     montage = make_standard_montage('mgh60')
 
     # 'EEG 001' and 'EEG001' won't match
-    with pytest.warns(RuntimeWarning, match='not set 60 channel positions'):
-        raw.set_montage(montage, raise_if_subset=False)
+    with pytest.raises(ValueError, match='60 channel positions not present'):
+        raw.set_montage(montage)
 
     montage.ch_names = [  # modify the names in place
         name.replace('EEG', 'EEG ') for name in montage.ch_names
