@@ -18,7 +18,7 @@ import re
 import numpy as np
 
 from ...utils import verbose, logger, warn
-from ..utils import _blk_read_lims, _deprecate_montage
+from ..utils import _blk_read_lims
 from ..base import BaseRaw
 from ..meas_info import _empty_info, _unique_channel_names, DATE_NONE
 from ..constants import FIFF
@@ -79,7 +79,6 @@ class RawEDF(BaseRaw):
     ----------
     input_fname : str
         Path to the EDF, EDF+ or BDF file.
-    %(montage_deprecated)s
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
@@ -152,7 +151,7 @@ class RawEDF(BaseRaw):
     """
 
     @verbose
-    def __init__(self, input_fname, montage, eog=None, misc=None,
+    def __init__(self, input_fname, eog=None, misc=None,
                  stim_channel='auto', exclude=(), preload=False, verbose=None):
         logger.info('Extracting EDF parameters from {}...'.format(input_fname))
         input_fname = os.path.abspath(input_fname)
@@ -179,8 +178,6 @@ class RawEDF(BaseRaw):
         self.set_annotations(Annotations(onset=onset, duration=duration,
                                          description=desc, orig_time=None))
 
-        _deprecate_montage(self, "read_raw_edf", montage)
-
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
@@ -203,7 +200,6 @@ class RawGDF(BaseRaw):
     ----------
     input_fname : str
         Path to the GDF file.
-    %(montage_deprecated)s
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
@@ -236,7 +232,7 @@ class RawGDF(BaseRaw):
     """
 
     @verbose
-    def __init__(self, input_fname, montage, eog=None, misc=None,
+    def __init__(self, input_fname, eog=None, misc=None,
                  stim_channel='auto', exclude=(), preload=False, verbose=None):
         logger.info('Extracting EDF parameters from {}...'.format(input_fname))
         input_fname = os.path.abspath(input_fname)
@@ -258,8 +254,6 @@ class RawGDF(BaseRaw):
 
         self.set_annotations(Annotations(onset=onset, duration=duration,
                                          description=desc, orig_time=None))
-
-        _deprecate_montage(self, "read_raw_gdf", montage)
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
@@ -1149,7 +1143,7 @@ def _find_tal_idx(ch_names):
 
 
 @fill_doc
-def read_raw_edf(input_fname, montage='deprecated', eog=None, misc=None,
+def read_raw_edf(input_fname, eog=None, misc=None,
                  stim_channel='auto', exclude=(), preload=False, verbose=None):
     """Reader function for EDF or EDF+ files.
 
@@ -1157,7 +1151,6 @@ def read_raw_edf(input_fname, montage='deprecated', eog=None, misc=None,
     ----------
     input_fname : str
         Path to the EDF or EDF+ file.
-    %(montage_deprecated)s
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
@@ -1212,7 +1205,7 @@ def read_raw_edf(input_fname, montage='deprecated', eog=None, misc=None,
     if ext == 'gdf':
         warn('The use of read_raw_edf for GDF files is deprecated. Please use '
              'read_raw_gdf instead.', DeprecationWarning)
-        return RawGDF(input_fname=input_fname, montage=montage, eog=eog,
+        return RawGDF(input_fname=input_fname, eog=eog,
                       misc=misc, stim_channel=stim_channel, exclude=exclude,
                       preload=preload, verbose=verbose)
     elif ext == 'bdf':
@@ -1221,13 +1214,13 @@ def read_raw_edf(input_fname, montage='deprecated', eog=None, misc=None,
     elif ext not in ('edf', 'bdf'):
         raise NotImplementedError('Only EDF and BDF files are supported, got '
                                   '{}.'.format(ext))
-    return RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
+    return RawEDF(input_fname=input_fname, eog=eog, misc=misc,
                   stim_channel=stim_channel, exclude=exclude, preload=preload,
                   verbose=verbose)
 
 
 @fill_doc
-def read_raw_bdf(input_fname, montage='deprecated', eog=None, misc=None,
+def read_raw_bdf(input_fname, eog=None, misc=None,
                  stim_channel='auto', exclude=(), preload=False, verbose=None):
     """Reader function for BDF files.
 
@@ -1235,7 +1228,6 @@ def read_raw_bdf(input_fname, montage='deprecated', eog=None, misc=None,
     ----------
     input_fname : str
         Path to the BDF file.
-    %(montage_deprecated)s
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
@@ -1309,13 +1301,13 @@ def read_raw_bdf(input_fname, montage='deprecated', eog=None, misc=None,
     if ext != 'bdf':
         raise NotImplementedError('Only BDF files are supported, got '
                                   '{}.'.format(ext))
-    return RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
+    return RawEDF(input_fname=input_fname, eog=eog, misc=misc,
                   stim_channel=stim_channel, exclude=exclude, preload=preload,
                   verbose=verbose)
 
 
 @fill_doc
-def read_raw_gdf(input_fname, montage='deprecated', eog=None, misc=None,
+def read_raw_gdf(input_fname, eog=None, misc=None,
                  stim_channel='auto', exclude=(), preload=False, verbose=None):
     """Reader function for GDF files.
 
@@ -1323,10 +1315,6 @@ def read_raw_gdf(input_fname, montage='deprecated', eog=None, misc=None,
     ----------
     input_fname : str
         Path to the GDF file.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions. If None,
-        sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
     eog : list or tuple
         Names of channels or list of indices that should be designated EOG
         channels. Values should correspond to the electrodes in the file.
@@ -1362,7 +1350,7 @@ def read_raw_gdf(input_fname, montage='deprecated', eog=None, misc=None,
     if ext != 'gdf':
         raise NotImplementedError('Only GDF files are supported, got '
                                   '{}.'.format(ext))
-    return RawGDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
+    return RawGDF(input_fname=input_fname, eog=eog, misc=misc,
                   stim_channel=stim_channel, exclude=exclude, preload=preload,
                   verbose=verbose)
 
