@@ -309,7 +309,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
         start = offsets[fi - 1]
         stop = np.inf if fi == len(offsets) else offsets[fi]
         interper.n_samp = stop - start
-        logger.info('   Simulating data for forward operator %d/%d'
+        logger.info('    Simulating data for forward operator %d/%d'
                     % (fi, len(offsets) - 1))
 
         # To avoid a blowup of memory, process in chunk sizes equal to
@@ -318,7 +318,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
         this_start = start
         while this_start < stop:
             this_stop = min(this_start + stc_data.shape[1], stop)
-            logger.info('   Interval %0.3f-%0.3f sec'
+            logger.info('    Interval %0.3f-%0.3f sec'
                         % (this_start / info['sfreq'],
                            this_stop / info['sfreq']))
             n_doing = this_stop - this_start
