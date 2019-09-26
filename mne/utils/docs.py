@@ -369,13 +369,19 @@ spatial_colors : bool
 
 # Montage
 docdict["montage_deprecated"] = """
-montage : str | None | instance of Montage
+montage : str | None
     Path or instance of montage containing electrode positions.
-    If None, sensor locations are (0,0,0). See the documentation of
-    :func:`mne.channels.read_montage` for more information.
+    If None, sensor locations are (0,0,0).
 
     DEPRECATED in version 0.19
     Use the `set_montage` method.
+"""
+docdict["montage"] = """
+montage : None | str | DigMontage
+    A montage containing channel positions. If str or DigMontage is
+    specified, the channel info will be updated with the channel
+    positions. Default is None. See also the documentation of
+    :class:`mne.channels.DigMontage` for more information.
 """
 
 # Brain plotting

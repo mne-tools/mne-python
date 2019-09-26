@@ -31,10 +31,7 @@ def read_raw_nicolet(input_fname, ch_type, montage='deprecated', eog=(),
     ch_type : str
         Channel type to designate to the data channels. Supported data types
         include 'eeg', 'seeg'.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
+    %(montage_deprecated)s
     eog : list | tuple | 'auto'
         Names of channels or list of indices that should be designated
         EOG channels. If 'auto', the channel names beginning with

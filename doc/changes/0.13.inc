@@ -32,7 +32,7 @@ Changelog
 
 - Add support for the University of Maryland KIT system by `Christian Brodbeck`_
 
-- Add support for \*.elp and \*.hsp files to the KIT2FIFF converter and :func:`mne.channels.read_dig_montage` by `Teon Brooks`_ and `Christian Brodbeck`_
+- Add support for \*.elp and \*.hsp files to the KIT2FIFF converter and ``mne.channels.read_dig_montage`` by `Teon Brooks`_ and `Christian Brodbeck`_
 
 - Add option to preview events in the KIT2FIFF GUI by `Christian Brodbeck`_
 
@@ -113,7 +113,7 @@ BUG
 
 - Fixed bug with ``mne.realtime.FieldTripClient.get_data_as_epoch`` when ``picks=None`` which crashed the function by `Mainak Jas`_
 
-- Fixed reading of units in ``.elc`` montage files (from ``UnitsPosition`` field) so that :class:`mne.channels.Montage` objects are now returned with the ``pos`` attribute correctly in meters, by `Chris Mullins`_
+- Fixed reading of units in ``.elc`` montage files (from ``UnitsPosition`` field) so that ``mne.channels.Montage`` objects are now returned with the ``pos`` attribute correctly in meters, by `Chris Mullins`_
 
 - Fixed reading of BrainVision files by `Phillip Alday`_:
 

@@ -365,11 +365,7 @@ class RawCNT(BaseRaw):
     ----------
     input_fname : str
         Path to the CNT file.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions. If None,
-        xy sensor locations are read from the header (``x_coord`` and
-        ``y_coord`` in ``ELECTLOC``) and fit to a sphere. See the documentation
-        of :func:`mne.channels.make_standard_montage` for more information.
+    %(montage_deprecated)s
     eog : list | tuple
         Names of channels or list of indices that should be designated
         EOG channels. If 'auto', the channel names beginning with

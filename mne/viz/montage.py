@@ -12,7 +12,7 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
 
     Parameters
     ----------
-    montage : instance of Montage or DigMontage
+    montage : instance of DigMontage
         The montage to visualize.
     scale_factor : float
         Determines the size of the points.

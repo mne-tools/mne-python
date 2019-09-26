@@ -1724,13 +1724,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
         Currently supported fields are 'ecg', 'bio', 'stim', 'eog', 'misc',
         'seeg', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'emg', 'hbr' or 'hbo'.
         If str, then all channels are assumed to be of the same type.
-    montage : None | str | Montage | DigMontage | list
-        A montage containing channel positions. If str or Montage is
-        specified, the channel info will be updated with the channel
-        positions. Default is None. If DigMontage is specified, the
-        digitizer information will be updated. A list of unique montages,
-        can be specified and applied to the info. See also the documentation of
-        :func:`mne.channels.read_montage` for more information.
+    %(montage)s
     %(verbose)s
 
     Returns

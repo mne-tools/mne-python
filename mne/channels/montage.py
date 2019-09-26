@@ -119,10 +119,6 @@ def _check_ch_names_are_compatible(info_names, montage_names, raise_if_subset):
 class Montage(object):
     """Montage for standard EEG electrode locations.
 
-    .. warning:: Montages should typically be loaded from a file using
-                 :func:`mne.channels.read_montage` instead of
-                 instantiating this class directly.
-
     Parameters
     ----------
     pos : array, shape (n_channels, 3)
@@ -179,7 +175,7 @@ def get_builtin_montages():
     -------
     montages : list
         Names of all builtin montages that can be loaded with
-        :func:`read_montage`.
+        :func:`make_standard_montage`.
     """
     return _BUILT_IN_MONTAGES
 
@@ -238,8 +234,6 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     See Also
     --------
     DigMontage
-    Montage
-    read_dig_montage
 
     Notes
     -----
@@ -573,9 +567,9 @@ def _make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
 class DigMontage(object):
     """Montage for digitized electrode and headshape position data.
 
-    .. warning:: Montages are typically loaded from a file using
-                 :func:`read_dig_montage` instead of instantiating
-                 this class.
+    .. warning:: Montages are typically created using one of the helper
+                 functions in the ``See Also`` section below instead of
+                 instantiating this class directly.
 
     Parameters
     ----------
@@ -618,14 +612,16 @@ class DigMontage(object):
 
     See Also
     --------
-    Montage
-    read_dig_montage
-    read_montage
+    read_dig_captrack
+    read_dig_egi
+    read_dig_fif
+    read_dig_hpts
+    read_dig_polhemus_isotrak
+    make_dig_montage
 
     Notes
     -----
     .. versionadded:: 0.9.0
-
     """
 
     def __init__(self,
@@ -1051,8 +1047,6 @@ def read_dig_montage(hsp=None, hpi=None, elp=None,
     See Also
     --------
     DigMontage
-    Montage
-    read_montage
 
     Notes
     -----
