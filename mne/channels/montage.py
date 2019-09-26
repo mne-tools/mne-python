@@ -34,7 +34,7 @@ from ..io.constants import FIFF
 from ..utils import (warn, logger, copy_function_doc_to_method_doc,
                      _check_option, _validate_type, _check_fname,
                      fill_doc)
-from .._digitization._utils import _get_fid_coords, _foo_get_data_from_dig
+from .._digitization._utils import _get_fid_coords
 
 from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
@@ -300,12 +300,6 @@ class DigMontage(object):
         out += other
         return out
 
-    @property
-    def dig_ch_pos(self):
-        warn('"dig_ch_pos" attribute is deprecated and will be removed in '
-             'v0.20', DeprecationWarning)
-        return self._ch_pos()
-
     def _get_ch_pos(self):
         pos = [d['r'] for d in _get_dig_eeg(self.dig)]
         assert len(self.ch_names) == len(pos)
@@ -320,42 +314,6 @@ class DigMontage(object):
             dig_names[dig_idx] = self.ch_names[ch_name_idx]
 
         return dig_names
-
-    @property
-    def elp(self):
-        warn('"elp" attribute is deprecated and will be removed in v0.20',
-             DeprecationWarning)
-        return _foo_get_data_from_dig(self.dig).elp
-
-    @property
-    def hpi(self):
-        warn('"hpi" attribute is deprecated and will be removed in v0.20',
-             DeprecationWarning)
-        return getattr(self, '_hpi', None)
-
-    @property
-    def hsp(self):
-        warn('"hsp" attribute is deprecated and will be removed in v0.20',
-             DeprecationWarning)
-        return _foo_get_data_from_dig(self.dig).hsp
-
-    @property
-    def lpa(self):
-        warn('"lpa" attribute is deprecated and will be removed in v0.20',
-             DeprecationWarning)
-        return _foo_get_data_from_dig(self.dig).lpa
-
-    @property
-    def rpa(self):
-        warn('"rpa" attribute is deprecated and will be removed in v0.20',
-             DeprecationWarning)
-        return _foo_get_data_from_dig(self.dig).rpa
-
-    @property
-    def nasion(self):
-        warn('"nasion" attribute is deprecated and will be removed in v0.20',
-             DeprecationWarning)
-        return _foo_get_data_from_dig(self.dig).nasion
 
 
 def _check_unit_and_get_scaling(unit, valid_scales):

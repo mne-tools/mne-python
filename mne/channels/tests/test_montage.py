@@ -16,6 +16,7 @@ from numpy.testing import (assert_array_equal,
                            assert_allclose, assert_equal)
 
 from mne import __file__ as _mne_file, create_info, read_evokeds
+from mne.utils._testing import _dig_sort_key
 from mne.channels import (get_builtin_montages, DigMontage,
                           read_dig_egi, read_dig_captrack, read_dig_fif,
                           make_standard_montage, read_custom_montage,
@@ -811,12 +812,12 @@ def test_read_dig_captrack(tmpdir):
     montage = transform_to_head(montage)  # transform_to_head has to be tested
     _check_roundtrip(montage=montage, fname=str(tmpdir.join('bvct_test.fif')))
 
-    with pytest.deprecated_call():
-        assert_allclose(
-            actual=np.array([montage.nasion, montage.lpa, montage.rpa]),
-            desired=[[0, 0.11309, 0], [-0.09189, 0, 0], [0.09240, 0, 0]],
-            atol=1e-5,
-        )
+    fid, _ = _get_fid_coords(montage.dig)
+    assert_allclose(
+        actual=np.array([fid.nasion, fid.lpa, fid.rpa]),
+        desired=[[0, 0.11309, 0], [-0.09189, 0, 0], [0.09240, 0, 0]],
+        atol=1e-5,
+    )
 
     raw_bv = read_raw_brainvision(bv_raw_fname)
     raw_bv.set_channel_types({"HEOG": 'eog', "VEOG": 'eog', "ECG": 'ecg'})
@@ -853,16 +854,23 @@ def test_set_montage():
 # XXX: this does not check ch_names + it cannot work because of write_dig
 def _check_roundtrip(montage, fname):
     """Check roundtrip writing."""
-    assert_equal(_check_get_coord_frame(montage.dig), 'head')
     montage.save(fname)
     montage_read = read_dig_fif(fname=fname)
-    assert_equal(str(montage), str(montage_read))
-    with pytest.deprecated_call():
-        for kind in ('elp', 'hsp', 'nasion', 'lpa', 'rpa'):
-            if getattr(montage, kind, None) is not None:
-                assert_allclose(getattr(montage, kind),
-                                getattr(montage_read, kind), err_msg=kind)
+
+    assert_equal(repr(montage), repr(montage_read))
     assert_equal(_check_get_coord_frame(montage_read.dig), 'head')
+
+    # XXX:  it tests the same as assert_dig_all_close but without info
+    #       This is a possible refactor
+    dig_py = sorted(montage_read.dig, key=_dig_sort_key)
+    dig_bin = sorted(montage.dig, key=_dig_sort_key)
+    assert len(dig_py) == len(dig_bin)
+    for ii, (d_py, d_bin) in enumerate(zip(dig_py, dig_bin)):
+        for key in ('ident', 'kind', 'coord_frame'):
+            assert d_py[key] == d_bin[key]
+        assert_allclose(d_py['r'], d_bin['r'], rtol=1e-5, atol=1e-5,
+                        err_msg='Failure on %s:\n%s\n%s'
+                        % (ii, d_py['r'], d_bin['r']))
 
 
 def _fake_montage(ch_names):
