@@ -63,7 +63,7 @@ def _check_get_coord_frame(dig):
     return _frame_to_str[dig_coord_frames.pop()] if dig_coord_frames else None
 
 
-def _check_ch_names_are_compatible(info_names, montage_names, raise_if_subset):
+def _check_ch_names_are_compatible(info_names, montage_names):
     assert isinstance(info_names, set) and isinstance(montage_names, set)
 
     match_set = info_names & montage_names
@@ -71,22 +71,11 @@ def _check_ch_names_are_compatible(info_names, montage_names, raise_if_subset):
     not_in_info = montage_names - info_names
 
     if len(not_in_montage):  # Montage is subset of info
-        if raise_if_subset:
-            raise ValueError((
-                'DigMontage is a only a subset of info.'
-                ' There are {n_ch} channel positions not present it the'
-                ' DigMontage. The required channels are: {ch_names}.'
-
-                # XXX: the rest of the message is deprecated. to remove in 0.20
-                '\nYou can use `raise_if_subset=False` in `set_montage` to'
-                ' avoid this ValueError and get a DeprecationWarning instead.'
-            ).format(n_ch=len(not_in_montage), ch_names=not_in_montage))
-        else:
-            # XXX: deprecated. to remove in 0.20 (raise_if_subset, too)
-            warn('DigMontage is a only a subset of info.'
-                 ' Did not set %s channel positions:\n%s'
-                 % (len(not_in_montage), ', '.join(not_in_montage)),
-                 RuntimeWarning)
+        raise ValueError((
+            'DigMontage is a only a subset of info.'
+            ' There are {n_ch} channel positions not present it the'
+            ' DigMontage. The required channels are: {ch_names}.'
+        ).format(n_ch=len(not_in_montage), ch_names=not_in_montage))
     else:
         pass  # noqa
 
@@ -629,10 +618,11 @@ def _set_montage_deprecation_helper(montage, update_ch_names, set_dig,
 
     montage : instance of DigMontage | 'kind' | None
         The montage.
-    update_ch_names : bool
-        Whether to update or not ``ch_names`` in info.
+    update_ch_names : bool | None
+        Whether to update or not ``ch_names`` in info. None in 0.20
     set_dig : bool
-        Whether to copy or not ``montage.dig`` into ``info['dig']``
+        Whether to copy or not ``montage.dig`` into ``info['dig']``.
+        None in 0.20
     raise_if_subset: bool
         Flag to grant raise/warn backward compatibility.
 
@@ -651,57 +641,25 @@ def _set_montage_deprecation_helper(montage, update_ch_names, set_dig,
     v0.21:
        - remove raise_if_subset
     """
-    if isinstance(montage, (DigMontage, type(None))):
-        # only worry about the DigMontage case
-        if update_ch_names is not DEPRECATED_PARAM:
-            warn((
-                'Using ``update_ch_names`` to ``set_montage`` when using'
-                ' DigMontage is deprecated and ``update_ch_names`` will be'
-                ' removed in 0.20'
-            ), DeprecationWarning)
-        if set_dig is not DEPRECATED_PARAM:
-            warn((
-                'Using ``set_dig`` to ``set_montage`` when using'
-                ' DigMontage is deprecated and ``set_dig`` will be'
-                ' removed in 0.20'
-            ), DeprecationWarning)
-
-    elif isinstance(montage, str) and montage not in _BUILT_IN_MONTAGES:
-        warn((
-            'Using str in montage different from the built in templates '
-            ' (i.e. a path) is deprecated. Please choose the proper reader to'
-            ' load your montage using: '
-            ' ``read_dig_fif``, ``read_dig_egi``, ``read_custom_montage``,'
-            ' or ``read_dig_captrack``'
-        ), DeprecationWarning)
-    elif not (isinstance(montage, str) or montage is None):  # Montage
-        warn((
-            'Setting a montage using anything rather than DigMontage'
-            ' is deprecated and will raise an error in v0.20.'
-            ' Please use ``read_dig_fif``, ``read_dig_egi``,'
-            ' ``read_dig_polhemus_isotrak``, or ``read_dig_captrack``'
-            ' ``read_dig_hpts``, ``read_dig_captrack`` or'
-            ' ``read_custom_montage`` to read a digitization based on'
-            ' your needs instead; or ``make_standard_montage`` to create'
-            ' ``DigMontage`` based on template; or ``make_dig_montage``'
-            ' to create a ``DigMontage`` out of np.arrays.'
-        ), DeprecationWarning)
+    assert update_ch_names is None
+    assert set_dig is None
 
     # This is unlikely to be trigger but it applies in all cases
     if raise_if_subset is not DEPRECATED_PARAM:
-        # nothing to be done in 0.19
-        pass  # noqa
+        if raise_if_subset:
+            warn((
+                'Using ``raise_if_subset`` to ``set_montage``  is deprecated'
+                ' and ``set_dig`` will be  removed in 0.21'
+            ), DeprecationWarning)
+        else:
+            raise ValueError(
+                'Using ``raise_if_subset`` to ``set_montage``  is deprecated'
+                ' and since 0.20 its value can only be True.'
+                ' It will be  removed in 0.21'
+            )
 
-    # Return defaults
-    return (
-        False if update_ch_names is DEPRECATED_PARAM else update_ch_names,
-        True if set_dig is DEPRECATED_PARAM else set_dig,
-        True if raise_if_subset is DEPRECATED_PARAM else raise_if_subset,
-    )
 
-
-def _set_montage(info, montage, update_ch_names=DEPRECATED_PARAM,
-                 set_dig=DEPRECATED_PARAM, raise_if_subset=DEPRECATED_PARAM):
+def _set_montage(info, montage, raise_if_subset=DEPRECATED_PARAM):
     """Apply montage to data.
 
     With a Montage, this function will replace the EEG channel names and
@@ -717,16 +675,10 @@ def _set_montage(info, montage, update_ch_names=DEPRECATED_PARAM,
     ----------
     info : instance of Info
         The measurement info to update.
-    montage : instance of Montage | instance of DigMontage | str | None
+    montage : instance of DigMontage | str | None
         The montage to apply (None removes any location information). If
         montage is a string, a builtin montage with that name will be used.
 
-        Deprecated all types of montage but DigMontage in v0.19.
-    update_ch_names : bool
-        If True, overwrite the info channel names with the ones from montage.
-        Defaults to False.
-
-        Deprecated in v0.19 and will be removed in v0.20.
     raise_if_subset: bool
         If True, ValueError will be raised when montage.ch_names is a
         subset of info['ch_names']. This parameter was introduced for
@@ -740,9 +692,9 @@ def _set_montage(info, montage, update_ch_names=DEPRECATED_PARAM,
     -----
     This function will change the info variable in place.
     """
-    update_ch_names, set_dig, _raise = _set_montage_deprecation_helper(
-        montage, update_ch_names, set_dig, raise_if_subset
-    )
+    _validate_type(montage, types=(DigMontage, type(None), str),
+                   item_name='montage')
+    _set_montage_deprecation_helper(montage, None, None, raise_if_subset)
 
     if isinstance(montage, str):  # load builtin montage
         _check_option('montage', montage, _BUILT_IN_MONTAGES)
@@ -769,32 +721,25 @@ def _set_montage(info, montage, update_ch_names=DEPRECATED_PARAM,
         matched_ch_names = _check_ch_names_are_compatible(
             info_names=set([info['ch_names'][ii] for ii in _pick_chs(info)]),
             montage_names=set(ch_pos),
-            raise_if_subset=_raise,  # XXX: deprecated param to remove in 0.20
         )
 
         for name in matched_ch_names:
             _loc_view = info['chs'][info['ch_names'].index(name)]['loc']
             _loc_view[:6] = _backcompat_value(ch_pos[name], eeg_ref_pos)
 
-        if set_dig:  # XXX: in 0.20 it is safe to move the code out of the if.
-            _names = _mnt._get_dig_names()
-            info['dig'] = _format_dig_points([
-                _mnt.dig[ii] for ii, name in enumerate(_names)
-                if name in matched_ch_names.union({None, 'EEG000', 'REF'})
-            ])
+        _names = _mnt._get_dig_names()
+        info['dig'] = _format_dig_points([
+            _mnt.dig[ii] for ii, name in enumerate(_names)
+            if name in matched_ch_names.union({None, 'EEG000', 'REF'})
+        ])
 
         if _mnt.dev_head_t is not None:
             info['dev_head_t'] = Transform('meg', 'head', _mnt.dev_head_t)
 
-    elif montage is None:
+    else:  # None case
+        info['dig'] = None
         for ch in info['chs']:
             ch['loc'] = np.full(12, np.nan)
-        if set_dig:
-            info['dig'] = None
-    else:
-        # XXX: prefer _check_foo(isinstance..)
-        raise TypeError("Montage must be a 'Montage', 'DigMontage', 'str' or "
-                        "'None' instead of '%s'." % type(montage))
 
 
 def _read_isotrak_elp_points(fname):
