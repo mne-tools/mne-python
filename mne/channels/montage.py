@@ -842,7 +842,7 @@ def _set_montage(info, montage, update_ch_names=DEPRECATED_PARAM,
         _check_option('montage', montage, _BUILT_IN_MONTAGES)
         montage = make_standard_montage(montage)
 
-    elif isinstance(montage, DigMontage):
+    if isinstance(montage, DigMontage):
         _mnt = _get_montage_in_head(montage)
 
         def _backcompat_value(pos, ref_pos):
