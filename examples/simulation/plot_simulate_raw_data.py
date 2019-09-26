@@ -66,8 +66,7 @@ mne.viz.utils.plt_show()
 
 ##############################################################################
 # Simulate raw data
-raw_sim = simulate_raw(raw.info, [stc] * 10, forward=fwd, cov=None,
-                       verbose=True)
+raw_sim = simulate_raw(raw.info, [stc] * 10, forward=fwd, verbose=True)
 cov = make_ad_hoc_cov(raw_sim.info)
 add_noise(raw_sim, cov, iir_filter=[0.2, -0.2, 0.04], random_state=rng)
 add_ecg(raw_sim, random_state=rng)

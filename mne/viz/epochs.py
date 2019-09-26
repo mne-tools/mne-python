@@ -1,6 +1,6 @@
 """Functions to plot epochs data."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -18,19 +18,20 @@ from copy import deepcopy
 import numpy as np
 
 from ..defaults import _handle_default
-from ..utils import (verbose, get_config, set_config, logger, warn, fill_doc,
-                     check_version)
+from ..utils import (verbose, logger, warn, fill_doc, check_version,
+                     _validate_type)
 from ..io.meas_info import create_info
 from ..io.pick import (pick_types, channel_type, _get_channel_types,
                        _picks_to_idx, _DATA_CH_TYPES_SPLIT,
-                       _DATA_CH_TYPES_ORDER_DEFAULT)
+                       _DATA_CH_TYPES_ORDER_DEFAULT, _VALID_CHANNEL_TYPES)
 from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
-                    _layout_figure, _setup_vmin_vmax, _channels_changed,
+                    _prepare_mne_browse, _setup_vmin_vmax, _channels_changed,
                     _plot_raw_onscroll, _onclick_help, plt_show, _check_cov,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
                     _handle_decim, _setup_plot_projector, _set_ax_label_style,
-                    _set_title_multiple_electrodes, _make_combine_callable)
+                    _set_title_multiple_electrodes, _make_combine_callable,
+                    _get_figsize_from_config, _toggle_scrollbars)
 from .misc import _handle_event_colors
 
 
@@ -195,13 +196,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     from scipy.ndimage import gaussian_filter1d
     from .. import EpochsArray
 
-    # deprecations
-    if group_by == 'type':
-        warn('group_by="type" is no longer supported; combining by channel '
-             'type is now default behavior when "picks" is None or a (list '
-             'of) channel type string(s). Setting "group_by=None" instead.',
-             category=DeprecationWarning)
-        group_by = None
+    _validate_type(group_by, (dict, None), 'group_by')
 
     units = _handle_default('units', units)
     scalings = _handle_default('scalings', scalings)
@@ -364,7 +359,14 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
                 top_tick = func(yticks)
                 ax.spines['left'].set_bounds(top_tick, args[0])
     plt_show(show)
-    return [this_group_dict['fig'] for this_group_dict in group_by.values()]
+
+    # impose deterministic order of returned objects
+    return_order = np.array(sorted(group_by))
+    are_ch_types = np.in1d(return_order, _VALID_CHANNEL_TYPES)
+    if any(are_ch_types):
+        return_order = np.concatenate((return_order[are_ch_types],
+                                       return_order[~are_ch_types]))
+    return [group_by[group]['fig'] for group in return_order]
 
 
 def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar, clear=False):
@@ -720,7 +722,7 @@ def _epochs_axes_onclick(event, params):
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                 title=None, events=None, event_colors=None, order=None,
                 show=True, block=False, decim='auto', noise_cov=None,
-                butterfly=False):
+                butterfly=False, show_scrollbars=True):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
@@ -804,6 +806,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         Whether to directly call the butterfly view.
 
         .. versionadded:: 0.18.0
+    %(show_scrollbars)s
 
     Returns
     -------
@@ -836,13 +839,13 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     params = dict(epochs=epochs, info=epochs.info.copy(), t_start=0.,
                   bad_color=(0.8, 0.8, 0.8), histogram=None, decim=decim,
                   data_picks=data_picks, noise_cov=noise_cov,
-                  use_noise_cov=noise_cov is not None)
+                  use_noise_cov=noise_cov is not None,
+                  show_scrollbars=show_scrollbars)
     params['label_click_fun'] = partial(_pick_bad_channels, params=params)
     _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks, events=events, order=order,
                                event_colors=event_colors, butterfly=butterfly)
     _prepare_projectors(params)
-    _layout_figure(params)
 
     callback_close = partial(_close_event, params=params)
     params['fig'].canvas.mpl_connect('close_event', callback_close)
@@ -860,7 +863,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                     normalization='length', picks=None, ax=None, color='black',
                     xscale='linear', area_mode='std', area_alpha=0.33,
                     dB=True, estimate='auto', show=True, n_jobs=1,
-                    average=None, line_alpha=None, spatial_colors=None,
+                    average=False, line_alpha=None, spatial_colors=True,
                     verbose=None):
     """%(plot_psd_doc)s.
 
@@ -912,20 +915,6 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     fig : instance of Figure
         Figure with frequency spectra of the data channels.
     """
-    # this chunk should be removed for 0.2
-    if average is False and spatial_colors is None:
-        spatial_colors = True
-    if spatial_colors is None:
-        spatial_colors = False
-        warn('spatial_colors defaults to False in 0.19 but will change to True'
-             ' in 0.20. Set it explicitly to avoid this warning.',
-             DeprecationWarning)
-    if average is None:
-        average = True
-        warn('average defaults to True in 0.19 but will change to False'
-             ' in 0.20. Set it explicitly to avoid this warning.',
-             DeprecationWarning)
-
     from .utils import _set_psd_plot_params, _plot_psd
     fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
         make_label = _set_psd_plot_params(epochs.info, proj, picks, ax,
@@ -955,7 +944,6 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks, events=None, event_colors=None,
                                order=None, butterfly=False, info=None):
     """Set up the mne_browse_epochs window."""
-    import matplotlib.pyplot as plt
     import matplotlib as mpl
     from matplotlib.collections import LineCollection
     from matplotlib.colors import colorConverter
@@ -990,39 +978,34 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     ch_names = [params['info']['ch_names'][idx] for idx in inds]
 
     # set up plotting
-    size = get_config('MNE_BROWSE_RAW_SIZE')
     n_epochs = min(n_epochs, len(epochs_events))
     duration = len(orig_epoch_times) * n_epochs
     n_channels = min(n_channels, len(picks))
-    if size is not None:
-        size = size.split(',')
-        size = tuple(float(s) for s in size)
     if title is None:
         title = name
         if title is None or len(title) == 0:
             title = ''
-    fig = figure_nobar(facecolor='w', figsize=size, dpi=80)
-    fig.canvas.set_window_title(title or "Epochs")
-    ax = plt.subplot2grid((10, 15), (0, 1), colspan=13, rowspan=9)
     color = _handle_default('color', None)
 
-    ax.axis([0, duration, 0, 200])
+    figsize = _get_figsize_from_config()
+    params['fig'] = figure_nobar(facecolor='w', figsize=figsize, dpi=80)
+    params['fig'].canvas.set_window_title(title or 'Epochs')
+    _prepare_mne_browse(params, xlabel='Epochs')
+    ax = params['ax']
+    ax_hscroll = params['ax_hscroll']
+    ax_vscroll = params['ax_vscroll']
+
+    # add secondary x axis for annotations / event labels
     ax2 = ax.twiny()
     ax2.set_zorder(-1)
+    ax2.set_axes_locator(ax.get_axes_locator())
+    # set axis lims
+    ax.axis([0, duration, 0, 200])
     ax2.axis([0, duration, 0, 200])
-    ax_hscroll = plt.subplot2grid((10, 15), (9, 1), colspan=13)
-    ax_hscroll.get_yaxis().set_visible(False)
-    ax_hscroll.set_xlabel('Epochs')
-    ax_vscroll = plt.subplot2grid((10, 15), (0, 14), rowspan=9)
-    ax_vscroll.set_axis_off()
-    ax_vscroll.add_patch(mpl.patches.Rectangle((0, 0), 1, len(picks),
-                                               facecolor='w', zorder=3))
-
-    ax_help_button = plt.subplot2grid((10, 15), (9, 0), colspan=1)
-    help_button = mpl.widgets.Button(ax_help_button, 'Help')
-    help_button.on_clicked(partial(_onclick_help, params=params))
 
     # populate vertical and horizontal scrollbars
+    ax_vscroll.add_patch(mpl.patches.Rectangle((0, 0), 1, len(picks),
+                                               facecolor='w', zorder=3))
     for ci in range(len(picks)):
         if ch_names[ci] in params['info']['bads']:
             this_color = params['bad_color']
@@ -1109,8 +1092,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         for label in ax.xaxis.get_ticklabels():
             label.set_visible(False)
 
-    params.update({'fig': fig,
-                   'ax': ax,
+    params.update({'ax': ax,
                    'ax2': ax2,
                    'ax_hscroll': ax_hscroll,
                    'ax_vscroll': ax_vscroll,
@@ -1142,8 +1124,6 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'vertline_t': vertline_t,
                    'butterfly': butterfly,
                    'text': text,
-                   'ax_help_button': ax_help_button,  # needed for positioning
-                   'help_button': help_button,  # reference needed for clicks
                    'fig_options': None,
                    'settings': [True, True, epoch_nr, True],
                    'image_plot': None,
@@ -1159,36 +1139,32 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
 
     # callbacks
     callback_scroll = partial(_plot_onscroll, params=params)
-    fig.canvas.mpl_connect('scroll_event', callback_scroll)
+    params['fig'].canvas.mpl_connect('scroll_event', callback_scroll)
     callback_click = partial(_mouse_click, params=params)
-    fig.canvas.mpl_connect('button_press_event', callback_click)
+    params['fig'].canvas.mpl_connect('button_press_event', callback_click)
     callback_key = partial(_plot_onkey, params=params)
-    fig.canvas.mpl_connect('key_press_event', callback_key)
-    callback_resize = partial(_resize_event, params=params)
-    fig.canvas.mpl_connect('resize_event', callback_resize)
-    fig.canvas.mpl_connect('pick_event', partial(_onpick, params=params))
+    params['fig'].canvas.mpl_connect('key_press_event', callback_key)
+    params['fig'].canvas.mpl_connect('pick_event', partial(_onpick,
+                                                           params=params))
     params['callback_key'] = callback_key
-
     # Draw event lines for the first time.
     _plot_vert_lines(params)
-
-    # default key to close window
-    params['close_key'] = 'escape'
 
 
 def _prepare_projectors(params):
     """Set up the projectors for epochs browser."""
-    import matplotlib.pyplot as plt
     import matplotlib as mpl
     epochs = params['epochs']
     projs = params['projs']
     if len(projs) > 0 and not epochs.proj:
-        ax_button = plt.subplot2grid((10, 15), (9, 14))
+        # set up proj button
+        ax_button = params['fig'].add_axes(params['proj_button_pos'])
+        ax_button.set_axes_locator(params['proj_button_locator'])
         opt_button = mpl.widgets.Button(ax_button, 'Proj')
         callback_option = partial(_toggle_options, params=params)
         opt_button.on_clicked(callback_option)
         params['opt_button'] = opt_button
-        params['ax_button'] = ax_button
+        params['apply_proj'] = epochs.proj
 
     # As here code is shared with plot_evoked, some extra steps:
     # first the actual plot update function
@@ -1242,15 +1218,19 @@ def _plot_traces(params):
                                           set(_DATA_CH_TYPES_SPLIT),
                                           key=params['order'].index)
                 ylim = ax.get_ylim()[0]
-                ticks = np.arange(0, ylim, ylim / (4 * len(chan_types_split)))
+                ticks = np.arange(
+                    0, ylim, ylim / (4 * max(len(chan_types_split), 1)))
                 offset_pos = np.arange(2, len(chan_types_split) * 4, 4)
                 if ch_type in chan_types_split:
                     offset = ticks[offset_pos[chan_types_split.index(ch_type)]]
                 else:
                     lines[line_idx].set_segments(list())
+                    offset = None
             else:
                 tick_list += [params['ch_names'][ch_idx]]
                 offset = offsets[line_idx]
+            if offset is None:
+                continue
 
             if params['inds'][ch_idx] in params['data_picks']:
                 this_decim = params['decim']
@@ -1300,7 +1280,8 @@ def _plot_traces(params):
                                   set(_DATA_CH_TYPES_SPLIT),
                                   key=params['order'].index)
         ylim = ax.get_ylim()[0]
-        ticks = np.arange(0, ylim + 1, ylim / (4 * len(chan_types_split)))
+        ticks = np.arange(
+            0, ylim + 1, ylim / (4 * max(len(chan_types_split), 1)))
         offset_pos = np.arange(2, (len(chan_types_split) * 4) + 1, 4)
         ax.set_yticks(ticks)
         labels = [''] * 20
@@ -1686,6 +1667,9 @@ def _plot_onkey(event, params):
         _onclick_help(event, params)
     elif event.key == 'escape':
         plt.close(params['fig'])
+    elif event.key == 'z':
+        # zen mode: remove scrollbars and buttons
+        _toggle_scrollbars(params)
 
 
 def _prepare_butterfly(params):
@@ -1771,13 +1755,6 @@ def _close_event(event, params):
     params['epochs'].drop(params['bads'])
     params['epochs'].info['bads'] = params['info']['bads']
     logger.info('Channels marked as bad: %s' % params['epochs'].info['bads'])
-
-
-def _resize_event(event, params):
-    """Handle resize event."""
-    size = ','.join([str(s) for s in params['fig'].get_size_inches()])
-    set_config('MNE_BROWSE_RAW_SIZE', size, set_env=False)
-    _layout_figure(params)
 
 
 def _update_channels_epochs(event, params):

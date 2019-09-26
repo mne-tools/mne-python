@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
@@ -49,6 +49,10 @@ def get_channel_types():
                 dipole=dict(kind=FIFF.FIFFV_DIPOLE_WAVE),
                 gof=dict(kind=FIFF.FIFFV_GOODNESS_FIT),
                 ecog=dict(kind=FIFF.FIFFV_ECOG_CH),
+                fnirs_raw=dict(kind=FIFF.FIFFV_FNIRS_CH,
+                               coil_type=FIFF.FIFFV_COIL_FNIRS_RAW),
+                fnirs_od=dict(kind=FIFF.FIFFV_FNIRS_CH,
+                              coil_type=FIFF.FIFFV_COIL_FNIRS_OD),
                 hbo=dict(kind=FIFF.FIFFV_FNIRS_CH,
                          coil_type=FIFF.FIFFV_COIL_FNIRS_HBO),
                 hbr=dict(kind=FIFF.FIFFV_FNIRS_CH,
@@ -90,7 +94,10 @@ _second_rules = {
     'meg': ('unit', {FIFF.FIFF_UNIT_T_M: 'grad',
                      FIFF.FIFF_UNIT_T: 'mag'}),
     'fnirs': ('coil_type', {FIFF.FIFFV_COIL_FNIRS_HBO: 'hbo',
-                            FIFF.FIFFV_COIL_FNIRS_HBR: 'hbr'}),
+                            FIFF.FIFFV_COIL_FNIRS_HBR: 'hbr',
+                            FIFF.FIFFV_COIL_FNIRS_RAW: 'fnirs_raw',
+                            FIFF.FIFFV_COIL_FNIRS_OD: 'fnirs_od',
+                            }),
 }
 
 
@@ -254,6 +261,10 @@ def _triage_fnirs_pick(ch, fnirs):
         return True
     elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_HBR and fnirs == 'hbr':
         return True
+    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_RAW and fnirs == 'fnirs_raw':
+        return True
+    elif ch['coil_type'] == FIFF.FIFFV_COIL_FNIRS_OD and fnirs == 'fnirs_od':
+        return True
     return False
 
 
@@ -382,14 +393,15 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         for key in ('grad', 'mag'):
             param_dict[key] = meg
     if isinstance(fnirs, bool):
-        for key in ('hbo', 'hbr'):
+        for key in ('hbo', 'hbr', 'fnirs_raw', 'fnirs_od'):
             param_dict[key] = fnirs
     for k in range(nchan):
         ch_type = channel_type(info, k)
         try:
             pick[k] = param_dict[ch_type]
         except KeyError:  # not so simple
-            assert ch_type in ('grad', 'mag', 'hbo', 'hbr', 'ref_meg')
+            assert ch_type in ('grad', 'mag', 'hbo', 'hbr', 'ref_meg',
+                               'fnirs_raw', 'fnirs_od')
             if ch_type in ('grad', 'mag'):
                 pick[k] = _triage_meg_pick(info['chs'][k], meg)
             elif ch_type == 'ref_meg':
@@ -679,7 +691,8 @@ def channel_indices_by_type(info, picks=None):
     """
     idx_by_type = {key: list() for key in _PICK_TYPES_KEYS if
                    key not in ('meg', 'fnirs')}
-    idx_by_type.update(mag=list(), grad=list(), hbo=list(), hbr=list())
+    idx_by_type.update(mag=list(), grad=list(), hbo=list(), hbr=list(),
+                       fnirs_raw=list(), fnirs_od=list())
     picks = _picks_to_idx(info, picks,
                           none='all', exclude=(), allow_empty=True)
     for k in picks:
@@ -746,7 +759,7 @@ def _contains_ch_type(info, ch_type):
     _validate_type(ch_type, 'str', "ch_type")
 
     meg_extras = ['mag', 'grad', 'planar1', 'planar2']
-    fnirs_extras = ['hbo', 'hbr']
+    fnirs_extras = ['hbo', 'hbr', 'fnirs_raw', 'fnirs_od']
     valid_channel_types = sorted([key for key in _PICK_TYPES_KEYS
                                   if key != 'meg'] + meg_extras + fnirs_extras)
     _check_option('ch_type', ch_type, valid_channel_types)
@@ -850,19 +863,21 @@ _PICK_TYPES_DATA_DICT = dict(
     misc=False, resp=False, chpi=False, exci=False, ias=False, syst=False,
     seeg=True, dipole=False, gof=False, bio=False, ecog=True, fnirs=True)
 _PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT.keys()) + ['ref_meg'])
-_DATA_CH_TYPES_SPLIT = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr')
+_DATA_CH_TYPES_SPLIT = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr',
+                        'fnirs_raw', 'fnirs_od')
 _DATA_CH_TYPES_ORDER_DEFAULT = ('mag', 'grad', 'eeg', 'eog', 'ecg', 'emg',
                                 'ref_meg', 'misc', 'stim', 'resp',
                                 'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio',
-                                'ecog', 'hbo', 'hbr', 'whitened')
+                                'ecog', 'hbo', 'hbr', 'fnirs_raw', 'fnirs_od',
+                                'whitened')
 
 # Valid data types, ordered for consistency, used in viz/evoked.
 _VALID_CHANNEL_TYPES = ('eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg',
                         'dipole', 'gof', 'bio', 'ecog', 'hbo', 'hbr',
-                        'misc')
+                        'fnirs_raw', 'fnirs_od', 'misc')
 
 _MEG_CH_TYPES_SPLIT = ('mag', 'grad', 'planar1', 'planar2')
-_FNIRS_CH_TYPES_SPLIT = ('hbo', 'hbr')
+_FNIRS_CH_TYPES_SPLIT = ('hbo', 'hbr', 'fnirs_raw', 'fnirs_od')
 
 
 def _pick_data_channels(info, exclude='bads', with_ref_meg=True):
@@ -929,7 +944,7 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
         raise ValueError('picks must be 1D, got %sD' % (picks.ndim,))
     if picks.dtype.char in ('S', 'U'):
         picks = _picks_str_to_idx(info, picks, exclude, with_ref_meg,
-                                  return_kind, orig_repr)
+                                  return_kind, orig_repr, allow_empty)
         if return_kind:
             picked_ch_type_or_generic = picks[1]
             picks = picks[0]
@@ -957,7 +972,7 @@ def _picks_to_idx(info, picks, none='data', exclude='bads', allow_empty=False,
 
 
 def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
-                      orig_repr):
+                      orig_repr, allow_empty):
     """Turn a list of str into ndarray of int."""
     # special case for _picks_to_idx w/no info: shouldn't really happen
     if isinstance(info, int):
@@ -980,7 +995,8 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
                                                     with_ref_meg=with_ref_meg)
             elif picks[0] == 'data_or_ica':
                 picks_generic = _pick_data_or_ica(info, exclude=exclude)
-            if len(picks_generic) == 0 and orig_repr.startswith('None, '):
+            if len(picks_generic) == 0 and orig_repr.startswith('None, ') and \
+                    not allow_empty:
                 raise ValueError('picks (%s) yielded no channels, consider '
                                  'passing picks explicitly' % (orig_repr,))
 
@@ -1035,11 +1051,13 @@ def _picks_str_to_idx(info, picks, exclude, with_ref_meg, return_kind,
     all_picks = (picks_generic, picks_name, picks_type)
     any_found = [len(p) > 0 for p in all_picks]
     if sum(any_found) == 0:
-        raise ValueError(
-            'picks (%s) could not be interpreted as '
-            'channel names (no channel "%s"), channel types (no '
-            'type "%s"), or a generic type (just "all" or "data")'
-            % (orig_repr, bad_name, bad_type))
+        if not allow_empty:
+            raise ValueError(
+                'picks (%s) could not be interpreted as '
+                'channel names (no channel "%s"), channel types (no '
+                'type "%s"), or a generic type (just "all" or "data")'
+                % (orig_repr, bad_name, bad_type))
+        picks = np.array([], int)
     elif sum(any_found) > 1:
         raise RuntimeError('Some channel names are ambiguously equivalent to '
                            'channel types, cannot use string-based '

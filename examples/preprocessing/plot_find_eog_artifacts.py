@@ -6,7 +6,7 @@ Find EOG artifacts
 Locate peaks of EOG to spot blinks and general EOG artifacts.
 
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 

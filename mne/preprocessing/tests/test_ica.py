@@ -1,5 +1,5 @@
 # Author: Denis Engemann <denis.engemann@gmail.com>
-#         Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 
@@ -1012,7 +1012,6 @@ def test_ica_eeg():
     raw_fif = read_raw_fif(fif_fname, preload=True)
     raw_eeglab = read_raw_eeglab(input_fname=eeglab_fname,
                                  preload=True)
-    raw_eeglab.set_montage(eeglab_montage)
     for raw in [raw_fif, raw_eeglab]:
         events = make_fixed_length_events(raw, 99999, start=0, stop=0.3,
                                           duration=0.1)

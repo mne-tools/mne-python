@@ -20,6 +20,7 @@ import warnings
 
 import numpy as np
 from scipy import linalg
+from scipy.linalg import LinAlgError
 
 
 ###############################################################################
@@ -58,6 +59,16 @@ def _safe_svd(A, **kwargs):
             return linalg.svd(A, lapack_driver='gesvd', **kwargs)
         else:
             raise
+
+
+# SciPy 1.0+
+def _check_info(info, driver, positive='did not converge (LAPACK info=%d)'):
+    """Check info return value."""
+    if info < 0:
+        raise ValueError('illegal value in argument %d of internal %s'
+                         % (-info, driver))
+    if info > 0 and positive:
+        raise LinAlgError(("%s " + positive) % (driver, info,))
 
 
 ###############################################################################
@@ -152,7 +163,7 @@ def _get_logsumexp():
 
 
 ###############################################################################
-# Triaging scipy.signal.windows.compute_dpss
+# Triaging scipy.signal.windows.dpss (1.1)
 
 def tridisolve(d, e, b, overwrite_b=True):
     """Symmetric tridiagonal system solver, from Golub and Van Loan p157.
@@ -308,7 +319,7 @@ def _get_dpss():
 
 
 ###############################################################################
-# Triaging FFT functions to get fast pocketfft
+# Triaging FFT functions to get fast pocketfft (SciPy 1.4)
 
 try:
     from scipy.fft import fft, ifft, fftfreq, rfft, irfft, rfftfreq, ifftshift
@@ -317,7 +328,7 @@ except ImportError:
 
 
 ###############################################################################
-# NumPy Generator
+# NumPy Generator (NumPy 1.17)
 
 def rng_uniform(rng):
     """Get the unform/randint from the rng."""
@@ -325,79 +336,18 @@ def rng_uniform(rng):
     return getattr(rng, 'integers', getattr(rng, 'randint', None))
 
 
-###############################################################################
-# Backporting scipy.signal.sosfiltfilt (0.18)
-
-def _sosfiltfilt(sos, x, axis=-1, padtype='odd', padlen=None):
-    """Do SciPy sosfiltfilt."""
-    from scipy.signal import sosfilt, sosfilt_zi
+# SciPy 0.19
+def _sosfreqz(sos, worN=512, whole=False):
+    """Do sosfreqz from SciPy."""
+    from scipy.signal import freqz
     sos, n_sections = _validate_sos(sos)
-
-    # `method` is "pad"...
-    ntaps = 2 * n_sections + 1
-    ntaps -= min((sos[:, 2] == 0).sum(), (sos[:, 5] == 0).sum())
-    edge, ext = _validate_pad(padtype, padlen, x, axis,
-                              ntaps=ntaps)
-
-    # These steps follow the same form as filtfilt with modifications
-    zi = sosfilt_zi(sos)  # shape (n_sections, 2) --> (n_sections, ..., 2, ...)
-    zi_shape = [1] * x.ndim
-    zi_shape[axis] = 2
-    zi.shape = [n_sections] + zi_shape
-    x_0 = axis_slice(ext, stop=1, axis=axis)
-    (y, zf) = sosfilt(sos, ext, axis=axis, zi=zi * x_0)
-    y_0 = axis_slice(y, start=-1, axis=axis)
-    (y, zf) = sosfilt(sos, axis_reverse(y, axis=axis), axis=axis, zi=zi * y_0)
-    y = axis_reverse(y, axis=axis)
-    if edge > 0:
-        y = axis_slice(y, start=edge, stop=-edge, axis=axis)
-    return y
-
-
-def axis_slice(a, start=None, stop=None, step=None, axis=-1):
-    """Take a slice along axis 'axis' from 'a'"""
-    a_slice = [slice(None)] * a.ndim
-    a_slice[axis] = slice(start, stop, step)
-    b = a[a_slice]
-    return b
-
-
-def axis_reverse(a, axis=-1):
-    """Reverse the 1-d slices of `a` along axis `axis`."""
-    return axis_slice(a, step=-1, axis=axis)
-
-
-def _validate_pad(padtype, padlen, x, axis, ntaps):
-    """Helper to validate padding for filtfilt"""
-    from .utils import _check_option  # avoid circular import
-    _check_option('padtype', padtype, ['even', 'odd', 'constant', None])
-
-    if padtype is None:
-        padlen = 0
-
-    if padlen is None:
-        # Original padding; preserved for backwards compatibility.
-        edge = ntaps * 3
-    else:
-        edge = padlen
-
-    # x's 'axis' dimension must be bigger than edge.
-    if x.shape[axis] <= edge:
-        raise ValueError("The length of the input vector x must be at least "
-                         "padlen, which is %d." % edge)
-
-    if padtype is not None and edge > 0:
-        # Make an extension of length `edge` at each
-        # end of the input array.
-        if padtype == 'even':
-            ext = even_ext(x, edge, axis=axis)
-        elif padtype == 'odd':
-            ext = odd_ext(x, edge, axis=axis)
-        else:
-            ext = const_ext(x, edge, axis=axis)
-    else:
-        ext = x
-    return edge, ext
+    if n_sections == 0:
+        raise ValueError('Cannot compute frequencies with no sections')
+    h = 1.
+    for row in sos:
+        w, rowh = freqz(row[:3], row[3:], worN=worN, whole=whole)
+        h *= rowh
+    return w, h
 
 
 def _validate_sos(sos):
@@ -413,81 +363,7 @@ def _validate_sos(sos):
     return sos, n_sections
 
 
-def odd_ext(x, n, axis=-1):
-    """Generate a new ndarray by making an odd extension of x along an axis."""
-    if n < 1:
-        return x
-    if n > x.shape[axis] - 1:
-        raise ValueError(("The extension length n (%d) is too big. " +
-                         "It must not exceed x.shape[axis]-1, which is %d.")
-                         % (n, x.shape[axis] - 1))
-    left_end = axis_slice(x, start=0, stop=1, axis=axis)
-    left_ext = axis_slice(x, start=n, stop=0, step=-1, axis=axis)
-    right_end = axis_slice(x, start=-1, axis=axis)
-    right_ext = axis_slice(x, start=-2, stop=-(n + 2), step=-1, axis=axis)
-    ext = np.concatenate((2 * left_end - left_ext,
-                          x,
-                          2 * right_end - right_ext),
-                         axis=axis)
-    return ext
-
-
-def even_ext(x, n, axis=-1):
-    """Create an ndarray that is an even extension of x along an axis."""
-    if n < 1:
-        return x
-    if n > x.shape[axis] - 1:
-        raise ValueError(("The extension length n (%d) is too big. " +
-                         "It must not exceed x.shape[axis]-1, which is %d.")
-                         % (n, x.shape[axis] - 1))
-    left_ext = axis_slice(x, start=n, stop=0, step=-1, axis=axis)
-    right_ext = axis_slice(x, start=-2, stop=-(n + 2), step=-1, axis=axis)
-    ext = np.concatenate((left_ext,
-                          x,
-                          right_ext),
-                         axis=axis)
-    return ext
-
-
-def const_ext(x, n, axis=-1):
-    """Create an ndarray that is a constant extension of x along an axis"""
-    if n < 1:
-        return x
-    left_end = axis_slice(x, start=0, stop=1, axis=axis)
-    ones_shape = [1] * x.ndim
-    ones_shape[axis] = n
-    ones = np.ones(ones_shape, dtype=x.dtype)
-    left_ext = ones * left_end
-    right_end = axis_slice(x, start=-1, axis=axis)
-    right_ext = ones * right_end
-    ext = np.concatenate((left_ext,
-                          x,
-                          right_ext),
-                         axis=axis)
-    return ext
-
-
-def get_sosfiltfilt():
-    """Get sosfiltfilt from SciPy."""
-    try:
-        from scipy.signal import sosfiltfilt
-    except ImportError:
-        sosfiltfilt = _sosfiltfilt
-    return sosfiltfilt
-
-
-def _sosfreqz(sos, worN=512, whole=False):
-    """Do sosfreqz from SciPy."""
-    from scipy.signal import freqz
-    sos, n_sections = _validate_sos(sos)
-    if n_sections == 0:
-        raise ValueError('Cannot compute frequencies with no sections')
-    h = 1.
-    for row in sos:
-        w, rowh = freqz(row[:3], row[3:], worN=worN, whole=whole)
-        h *= rowh
-    return w, h
-
+# SciPy 0.19
 def minimum_phase(h):
     """Convert a linear-phase FIR filter to minimum phase.
 
@@ -544,10 +420,12 @@ def minimum_phase(h):
 ###############################################################################
 # Misc utilities
 
-def assert_true(expr, msg='False is not True'):
-    """Fake assert_true without message"""
-    if not expr:
-        raise AssertionError(msg)
+# Deal with nibabel 2.5 img.get_data() deprecation
+def _get_img_fdata(img):
+    try:
+        return img.get_fdata()
+    except AttributeError:
+        return img.get_data().astype(float)
 
 
 def _read_volume_info(fobj):

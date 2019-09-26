@@ -1,4 +1,4 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Daniel Strohmeier <daniel.strohmeier@gmail.com>
 #
 # License: Simplified BSD
@@ -13,7 +13,7 @@ from ..minimum_norm.inverse import (combine_xyz, _prepare_forward,
 from ..forward import is_fixed_orient
 from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
-from ..utils import logger, verbose, warn, _check_depth
+from ..utils import logger, verbose, _check_depth
 from ..dipole import Dipole
 
 from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver, _Phi,
@@ -235,7 +235,7 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
 
 @verbose
 def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
-               maxit=3000, tol=1e-4, active_set_size=10, pca=None,
+               maxit=3000, tol=1e-4, active_set_size=10,
                debias=True, time_pca=True, weights=None, weights_min=0.,
                solver='auto', n_mxne_iter=1, return_residual=False,
                return_as_dipoles=False, dgap_freq=10, rank=None,
@@ -270,8 +270,6 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         Tolerance parameter.
     active_set_size : int | None
         Size of active set increment. If None, no active set strategy is used.
-    pca : bool
-        If True the rank of the data is reduced to true dimension.
     debias : bool
         Remove coefficient amplitude bias due to L1 penalty.
     time_pca : bool or int
@@ -338,11 +336,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
         raise ValueError('dgap_freq must be a positive integer.'
                          ' Got dgap_freq = %s' % dgap_freq)
 
-    if pca is None:
-        pca = True
-    else:
-        warn('pca argument is deprecated and will be removed in 0.19, do '
-             'not set it. It should not affect results.', DeprecationWarning)
+    pca = True
     if not isinstance(evoked, list):
         evoked = [evoked]
 

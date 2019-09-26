@@ -71,10 +71,6 @@ def test_raw_rank_estimation(fname, ref_meg, scalings):
         expected_rank = _get_rank_sss(raw.info) + n_eeg
     got_rank = _estimate_rank_raw(raw, scalings=scalings, with_ref_meg=ref_meg)
     assert got_rank == expected_rank
-    if has_eeg:
-        with pytest.deprecated_call():
-            assert raw.estimate_rank(picks=picks_eeg,
-                                     scalings=scalings) == n_eeg
     if 'sss' in fname:
         raw.add_proj(compute_proj_raw(raw))
     raw.apply_proj()

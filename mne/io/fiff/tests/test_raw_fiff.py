@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
@@ -1194,7 +1194,9 @@ def test_add_channels():
     raw_arr = rng.randn(2, raw_eeg.n_times)
     raw_arr = RawArray(raw_arr, raw_arr_info)
     # This should error because of conflicts in Info
-    pytest.raises(ValueError, raw_meg.copy().add_channels, [raw_arr])
+    raw_arr.info['dev_head_t'] = orig_head_t
+    with pytest.raises(ValueError, match='mutually inconsistent dev_head_t'):
+        raw_meg.copy().add_channels([raw_arr])
     raw_meg.copy().add_channels([raw_arr], force_update_info=True)
     # Make sure that values didn't get overwritten
     assert_object_equal(raw_arr.info['dev_head_t'], orig_head_t)

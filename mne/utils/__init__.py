@@ -13,7 +13,8 @@ from .check import (check_fname, check_version, check_random_state,
                     _check_if_nan, _is_numeric, _ensure_int,  _check_preload,
                     _validate_type, _check_info_inv, _check_pylsl_installed,
                     _check_channels_spatial_filter, _check_one_ch_type,
-                    _check_rank, _check_option, _check_depth, _check_combine)
+                    _check_rank, _check_option, _check_depth, _check_combine,
+                    _check_path_like, _check_src_normal)
 from .config import (set_config, get_config, get_config_path, set_cache_dir,
                      set_memmap_min_size, get_subjects_dir, _get_stim_channel,
                      sys_info, _get_extra_data_path, _get_root_dir,
@@ -23,7 +24,7 @@ from .docs import (copy_function_doc_to_method_doc, copy_doc, linkcode_resolve,
 from .fetching import _fetch_file, _url_to_local_path
 from ._logging import (verbose, logger, set_log_level, set_log_file,
                        use_log_level, catch_logging, warn, filter_out_warnings,
-                       ETSContext)
+                       ETSContext, wrapped_stdout)
 from .misc import (run_subprocess, _pl, _clean_names, pformat, _file_like,
                    _explain_exception, _get_argvalues, sizeof_fmt,
                    running_subprocess, _DefaultEventParser)
@@ -41,7 +42,7 @@ from ._testing import (run_tests_if_main, run_command_if_main,
                        assert_and_remove_boundary_annot, _raw_annot,
                        assert_dig_allclose, assert_meg_snr, assert_snr,
                        modified_env)
-from .numerics import (hashfunc, md5sum, _compute_row_norms,
+from .numerics import (hashfunc, _compute_row_norms,
                        _reg_pinv, random_permutation, _reject_data_segments,
                        compute_corr, _get_inst_data, array_split_idx,
                        sum_squared, split_list, _gen_events, create_slices,

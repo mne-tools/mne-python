@@ -1,11 +1,13 @@
 :orphan:
 
-Installation — overview
+Installation — contents
 =======================
 
-The MNE software products are open-source tools for processing, analysis, and
+MNE-Python is an open-source Python module for processing, analysis, and
 visualization of functional neuroimaging data (EEG, MEG, sEEG, ECoG, and
-fNIRS). Pages describing the installation procedure are listed below.
+fNIRS). Pages describing the installation procedure are listed below. The
+:ref:`contributing guide <contributing>` has advanced installation instructions
+for (future) contributors to MNE-Python.
 
 .. toctree::
     :maxdepth: 2
@@ -13,6 +15,12 @@ fNIRS). Pages describing the installation procedure are listed below.
     pre_install
     mne_python
     freesurfer
-    mne_c
     advanced
-    contributing
+
+Installation instructions are also provided for MNE-C (the Unix command-line
+tools originally developed by Matti Hämäläinen).
+
+.. toctree::
+    :maxdepth: 2
+
+    mne_c

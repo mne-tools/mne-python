@@ -1,6 +1,6 @@
 """IO module for reading raw data."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
@@ -26,6 +26,7 @@ from . import egi
 from . import fiff
 from . import kit
 from . import nicolet
+from . import nirx
 from . import eeglab
 from . import pick
 
@@ -43,6 +44,7 @@ from .nicolet import read_raw_nicolet
 from .artemis123 import read_raw_artemis123
 from .eeglab import read_raw_eeglab, read_epochs_eeglab
 from .eximia import read_raw_eximia
+from .nirx import read_raw_nirx
 from .fieldtrip import (read_raw_fieldtrip, read_epochs_fieldtrip,
                         read_evoked_fieldtrip)
 
@@ -66,5 +68,5 @@ __all__ = [
     read_raw_curry, read_raw_edf, read_raw_eeglab, read_raw_egi,
     read_raw_eximia, read_raw_fieldtrip, read_raw_fif, read_raw_gdf,
     read_raw_kit, read_raw_nicolet, set_bipolar_reference, set_eeg_reference,
-    show_fiff, write_fiducials, write_info,
+    show_fiff, write_fiducials, write_info, read_raw_nirx,
 ]

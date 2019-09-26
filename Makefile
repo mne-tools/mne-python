@@ -17,7 +17,7 @@ clean-so:
 	find . -name "*.pyd" | xargs rm -f
 
 clean-build:
-	rm -rf _build
+	rm -rf build dist
 
 clean-ctags:
 	rm -f tags
@@ -30,6 +30,12 @@ clean: clean-build clean-pyc clean-so clean-ctags clean-cache
 in: inplace # just a shortcut
 inplace:
 	$(PYTHON) setup.py build_ext -i
+
+wheel:
+	$(PYTHON) setup.py sdist bdist_wheel
+
+wheel_quiet:
+	$(PYTHON) setup.py -q sdist bdist_wheel
 
 sample_data:
 	@python -c "import mne; mne.datasets.sample.data_path(verbose=True);"
@@ -115,8 +121,8 @@ docstring:
 check-manifest:
 	check-manifest --ignore .circleci*,doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data,.DS_Store
 
-check-readme:
-	python setup.py check --restructuredtext --strict
+check-readme: clean wheel_quiet
+	twine check dist/*
 
 nesting:
 	@echo "Running import nesting tests"

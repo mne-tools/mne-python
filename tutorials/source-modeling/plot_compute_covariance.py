@@ -8,7 +8,8 @@ Many methods in MNE, including source estimation and some classification
 algorithms, require covariance estimations from the recordings.
 In this tutorial we cover the basics of sensor covariance computations and
 construct a noise covariance matrix that can be used when computing the
-minimum-norm inverse solution. For more information, see :ref:`BABDEEEB`.
+minimum-norm inverse solution. For more information, see
+:ref:`minimum_norm_estimates`.
 """
 
 import os.path as op
@@ -20,7 +21,8 @@ from mne.datasets import sample
 # Source estimation method such as MNE require a noise estimations from the
 # recordings. In this tutorial we cover the basics of noise covariance and
 # construct a noise covariance matrix that can be used when computing the
-# inverse solution. For more information, see :ref:`BABDEEEB`.
+# inverse solution. For more information, see :ref:`minimum_norm_estimates`.
+
 data_path = sample.data_path()
 raw_empty_room_fname = op.join(
     data_path, 'MEG', 'sample', 'ernoise_raw.fif')
@@ -97,9 +99,9 @@ noise_cov_baseline.plot(epochs.info, proj=True)
 # unstable and tends to induce correlations between estimated source amplitudes
 # and the number of samples available. The MNE manual therefore suggests to
 # regularize the noise covariance matrix (see
-# :ref:`cov_regularization`), especially if only few samples are available.
-# Unfortunately it is not easy to tell the effective number of samples, hence,
-# to choose the appropriate regularization.
+# :ref:`cov_regularization_math`), especially if only few samples are
+# available. Unfortunately it is not easy to tell the effective number of
+# samples, hence, to choose the appropriate regularization.
 # In MNE-Python, regularization is done using advanced regularization methods
 # described in [1]_. For this the 'auto' option can be used. With this
 # option cross-validation will be used to learn the optimal regularization:

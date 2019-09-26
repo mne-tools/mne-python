@@ -10,6 +10,7 @@ from scipy.signal import resample as sp_resample, butter, freqz
 from mne import create_info
 from mne.fixes import _sosfreqz, fft, fftfreq
 from mne.io import RawArray, read_raw_fif
+from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.filter import (filter_data, resample, _resample_stim_channels,
                         construct_iir_filter, notch_filter, detrend,
                         _overlap_add_filter, _smart_pad, design_mne_c_filter,
@@ -720,6 +721,41 @@ def test_reporting_fir(phase, fir_window, btype):
     if phase != 'minimum':  # haven't worked out the math for this yet
         expected = 0.25 if phase == 'zero-double' else 0.5
         assert_allclose(h[mids], expected, atol=0.01)
+
+
+def test_filter_picks():
+    """Test filter picking."""
+    data = np.random.RandomState(0).randn(3, 1000)
+    fs = 1000.
+    kwargs = dict(l_freq=None, h_freq=40.)
+    filt = filter_data(data, fs, **kwargs)
+    # don't include seeg or stim in this list because they are in the one below
+    # to ensure default cases are treated properly
+    for kind in ('eeg', 'grad', 'emg', 'misc'):
+        for picks in (None, [-2], kind, 'k'):
+            # With always at least one data channel
+            info = create_info(['s', 'k', 't'], fs, ['seeg', kind, 'stim'])
+            raw = RawArray(data.copy(), info)
+            raw.filter(picks=picks, **kwargs)
+            if picks is None:
+                if kind in _DATA_CH_TYPES_SPLIT:  # should be included
+                    want = np.concatenate((filt[:2], data[2:]))
+                else:  # shouldn't
+                    want = np.concatenate((filt[:1], data[1:]))
+            else:  # just the kind of interest ([-2], kind, 'j' should be eq.)
+                want = np.concatenate((data[:1], filt[1:2], data[2:]))
+            assert_allclose(raw.get_data(), want)
+
+            # Now with sometimes no data channels
+            info = create_info(['k', 't'], fs, [kind, 'stim'])
+            raw = RawArray(data[1:].copy(), info.copy())
+            if picks is None and kind not in _DATA_CH_TYPES_SPLIT:
+                with pytest.raises(ValueError, match='yielded no channels'):
+                    raw.filter(picks=picks, **kwargs)
+            else:
+                raw.filter(picks=picks, **kwargs)
+                want = want[1:]
+                assert_allclose(raw.get_data(), want)
 
 
 run_tests_if_main()

@@ -9,8 +9,7 @@ from .annotations import _annotations_starts_stops
 from .io.pick import _picks_to_idx
 from .cuda import (_setup_cuda_fft_multiply_repeated, _fft_multiply_repeated,
                    _setup_cuda_fft_resample, _fft_resample, _smart_pad)
-from .fixes import (get_sosfiltfilt, minimum_phase, _sosfreqz, irfft,
-                    ifftshift, fftfreq)
+from .fixes import minimum_phase, _sosfreqz, irfft, ifftshift, fftfreq
 from .parallel import parallel_func, check_n_jobs
 from .time_frequency.multitaper import _mt_spectra, _compute_mt_params
 from .utils import (logger, verbose, sum_squared, check_version, warn, _pl,
@@ -423,12 +422,11 @@ def _check_coefficients(system):
 def _filtfilt(x, iir_params, picks, n_jobs, copy):
     """Call filtfilt."""
     # set up array for filtering, reshape to 2D, operate on last axis
-    from scipy.signal import filtfilt
+    from scipy.signal import filtfilt, sosfiltfilt
     padlen = min(iir_params['padlen'], x.shape[-1] - 1)
     n_jobs = check_n_jobs(n_jobs)
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
     if 'sos' in iir_params:
-        sosfiltfilt = get_sosfiltfilt()
         fun = partial(sosfiltfilt, sos=iir_params['sos'], padlen=padlen,
                       axis=-1)
         _check_coefficients(iir_params['sos'])
@@ -2238,8 +2236,13 @@ def _filt_check_picks(info, picks, h_freq, l_freq):
     # This will pick *all* data channels
     picks = _picks_to_idx(info, picks, 'data_or_ica', exclude=())
     if h_freq is not None or l_freq is not None:
-        data_picks = _picks_to_idx(info, None, 'data_or_ica', exclude=())
-        if np.in1d(data_picks, picks).all():
+        data_picks = _picks_to_idx(info, None, 'data_or_ica', exclude=(),
+                                   allow_empty=True)
+        if len(data_picks) == 0:
+            logger.info('No data channels found. The highpass and '
+                        'lowpass values in the measurement info will not '
+                        'be updated.')
+        elif np.in1d(data_picks, picks).all():
             update_info = True
         else:
             logger.info('Filtering a subset of channels. The highpass and '

@@ -1,6 +1,6 @@
 """Functions to plot M/EEG data on topo (one axes per channel)."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -19,7 +19,7 @@ from ..channels.layout import _merge_grad_data, _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, _get_color_list, _draw_proj_checkbox,
                     add_background_image, plt_show, _setup_vmin_vmax,
-                    DraggableColorbar, _set_ax_facecolor, _setup_ax_spines,
+                    DraggableColorbar, _setup_ax_spines,
                     _check_cov, _plot_masked_image)
 
 
@@ -212,7 +212,7 @@ def _plot_topo(info, times, show_func, click_func=None, layout=None,
     if axes is None:
         fig = plt.figure()
         axes = plt.axes([0.015, 0.025, 0.97, 0.95])
-        _set_ax_facecolor(axes, fig_facecolor)
+        axes.set_facecolor(fig_facecolor)
     else:
         fig = axes.figure
     if colorbar:
@@ -272,7 +272,7 @@ def _plot_topo_onpick(event, show_func):
         fig, ax = plt.subplots(1)
 
         plt.title(orig_ax._mne_ch_name)
-        _set_ax_facecolor(ax, face_color)
+        ax.set_facecolor(face_color)
 
         # allow custom function to override parameters
         show_func(ax, ch_idx)

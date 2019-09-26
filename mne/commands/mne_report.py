@@ -3,13 +3,67 @@ r"""Create mne report for a folder.
 
 Examples
 --------
-.. code-block:: console
+Before getting started with ``mne report``, make sure the files you want to
+render follow the filename conventions defined by MNE:
 
-    $ mne report -p MNE-sample-data/ \
-        -i MNE-sample-data/MEG/sample/sample_audvis-ave.fif \
-        -d MNE-sample-data/subjects/ \
-        -s sample
+.. highlight:: console
 
+.. cssclass:: table-bordered
+.. rst-class:: midvalign
+
+============ ==============================================================
+Data object  Filename convention (ends with)
+============ ==============================================================
+raw          -raw.fif(.gz), -raw_sss.fif(.gz), -raw_tsss.fif(.gz), _meg.fif
+events       -eve.fif(.gz)
+epochs       -epo.fif(.gz)
+evoked       -ave.fif(.gz)
+covariance   -cov.fif(.gz)
+trans        -trans.fif(.gz)
+forward      -fwd.fif(.gz)
+inverse      -inv.fif(.gz)
+============ ==============================================================
+
+To generate a barebones report from all the \*.fif files in the sample
+dataset, invoke the following command in a system (e.g., Bash) shell::
+
+    $ mne report --path MNE-sample-data/ --verbose
+
+On successful creation of the report, it will open the HTML in a new tab in
+the browser. To disable this, use the ``--no-browser`` option.
+
+TO generate a report for a single subject, give the ``SUBJECT`` name and
+the ``SUBJECTS_DIR`` and this will generate the MRI slices (with BEM
+contours overlaid on top if available)::
+
+    $ mne report --path MNE-sample-data/ --subject sample --subjects-dir \
+        MNE-sample-data/subjects --verbose
+
+To properly render ``trans`` and ``covariance`` files, add the measurement
+information::
+
+    $ mne report --path MNE-sample-data/ \
+        --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \
+        --subject sample --subjects-dir MNE-sample-data/subjects --verbose
+
+To render whitened ``evoked`` files with baseline correction, add the noise
+covariance file::
+
+    $ mne report --path MNE-sample-data/ \
+        --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \
+        --cov MNE-sample-data/MEG/sample/sample_audvis-cov.fif --bmax 0 \
+        --subject sample --subjects-dir MNE-sample-data/subjects --verbose
+
+To generate the report in parallel::
+
+    $ mne report --path MNE-sample-data/ \
+        --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \
+        --subject sample --subjects-dir MNE-sample-data/subjects \
+        --verbose --jobs 6
+
+For help on all the available options, do::
+
+    $ mne report --help
 """
 
 import sys
@@ -28,7 +82,7 @@ def log_elapsed(t, verbose=None):
 
 def run():
     """Run command."""
-    from mne.commands.utils import get_optparser
+    from mne.commands.utils import get_optparser, _add_verbose_flag
 
     parser = get_optparser(__file__)
 
@@ -62,8 +116,7 @@ def run():
     parser.add_option("--image-format", type="str", dest="image_format",
                       default='png', help="Image format to use "
                       "(can be 'png' or 'svg')")
-    parser.add_option("-v", "--verbose", dest="verbose",
-                      action='store_true', help="run in verbose mode")
+    _add_verbose_flag(parser)
 
     options, args = parser.parse_args()
     path = options.path

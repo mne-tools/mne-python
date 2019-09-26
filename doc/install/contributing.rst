@@ -1,3 +1,5 @@
+:orphan:
+
 .. _contributing:
 
 Contributing to MNE-Python
@@ -31,6 +33,14 @@ shared "upstream" version of the codebase.
 Users and contributors to MNE-Python are expected to follow our `code of
 conduct`_.
 
+.. collapse:: |rocket| Want an example to work through?
+   :class: success
+
+   A great way to learn to contribute is to work through an actual example
+   We recommend that you take a look at the `GitHub issues marked "easy"`_,
+   pick one that looks interesting, and work through it while reading this
+   guide!
+
 .. _`opening an issue`: https://github.com/mne-tools/mne-python/issues/new/choose
 .. _`MNE mailing list`: http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
 .. _`MNE gitter channel`: https://gitter.im/mne-tools/mne-python
@@ -41,7 +51,7 @@ conduct`_.
 .. _`pull request`: https://help.github.com/en/articles/creating-a-pull-request-from-a-fork
 
 .. _`code of conduct`: https://github.com/mne-tools/mne-python/blob/master/CODE_OF_CONDUCT.md
-
+.. _`GitHub issues marked "easy"`:
 
 Overview of contribution process
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -135,14 +145,21 @@ versions of MNE-Python (so you can, for example, use the same computer to
 analyze your data with the stable release, and also work with the latest
 development version to fix bugs or add new features). If you've already
 followed the :ref:`installation instructions <install-python>` for the stable
-version of MNE-Python, after this you'll end up with two environments: ``mne``
-(stable version) and ``mnedev`` (development version).
+version of MNE-Python, MNE-Python will be installed in the environment ``base``
+(unless you provided a custom environment name during installation). Before
+continuing, you should create a new, separate environment for MNE-Python
+development (here we'll call it ``mnedev``)::
 
-Once you have a working Python environment, the first step is to `clone`_ the
-MNE-Python repository from your remote fork, and also connect the local copy to
-the ``upstream`` version of the codebase, so you can stay up-to-date with
-changes from other contributors. First, edit these two variables for your
-situation::
+    $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
+    $ conda env create --file environment.yml --name mnedev
+    $ conda activate mnedev
+
+Now you'll have *two* MNE-Python environments: ``base`` (or whatever you called
+it) for the stable version and ``mnedev`` for the development version. Next
+`clone`_ the MNE-Python repository from your remote fork, and also connect the
+local copy to the ``upstream`` version of the codebase, so you can stay
+up-to-date with changes from other contributors. First, edit these two
+variables for your situation::
 
     $ INSTALL_LOCATION="/opt"
     $ GITHUB_USERNAME="new_mne_contributor"
@@ -171,11 +188,11 @@ Finally, set up a link between your local clone and the official repository
     $ git remote add upstream git://github.com/mne-tools/mne-python.git
     $ git fetch --all
 
-Next, set up your local development environment using the
-:ref:`standard instructions <standard_instructions>`. This will install all
-of the dependencies needed for running MNE-Python. The environment file installs the
-*stable* version of MNE-Python, so next we'll remove that and replace it with the *development*
-version (the clone we just created with git)::
+When you created the ``mnedev`` environment using the environment file, it
+installed the *stable* version of MNE-Python, so next we'll remove that and
+replace it with the *development* version (the clone we just created with git).
+Make sure you're in the correct environment first (:samp:`conda activate
+mnedev`), and then do::
 
     $ cd $INSTALL_LOCATION/mne-python    # make sure we're in the right folder
     $ pip uninstall -y mne
@@ -537,11 +554,7 @@ mentioned module, class, function, method, attribute, or documentation page.
 There are sphinx directives for all of these (``:mod:``, ``:class:``,
 ``:func:``, ``:meth:``, ``:attr:``, ``:doc:``) as well as a generic
 cross-reference directive (``:ref:``) for linking to specific sections of a
-documentation page. MNE-Python also uses Intersphinx_, so you can (and should)
-cross-reference to Python built-in classes and functions as well as API
-elements in :mod:`NumPy <numpy>`, :mod:`SciPy <scipy>`, etc. See the Sphinx
-configuration file (:file:`doc/conf.py`) for the list of Intersphinx projects
-we link to.
+documentation page.
 
 .. warning::
 
@@ -551,11 +564,14 @@ we link to.
     ``:func:`mne.set_config``` will work but ``:func:`mne.utils.set_config```
     will not).
 
-A list of external modules available for referencing using ``intersphinx`` can
-be found in ``doc/conf.py``, and thein inventories can be dumped to file and
-examined with commands like::
+MNE-Python also uses Intersphinx_, so you can (and should)
+cross-reference to Python built-in classes and functions as well as API
+elements in :mod:`NumPy <numpy>`, :mod:`SciPy <scipy>`, etc. See the Sphinx
+configuration file (:file:`doc/conf.py`) for the list of Intersphinx projects
+we link to. Their inventories can be examined using a tool like `sphobjinv`_ or
+dumped to file with commands like::
 
-    $ python -msphinx.ext.intersphinx https://docs.python.org/3/objects.inv > python.txt
+    $ python -m sphinx.ext.intersphinx https://docs.python.org/3/objects.inv > python.txt
 
 
 Other style guidance
@@ -854,6 +870,7 @@ it can serve as a useful example of what to expect from the PR review process.
 .. _sphinx-gallery: https://sphinx-gallery.github.io
 .. _reStructuredText: http://sphinx-doc.org/rest.html
 .. _intersphinx: http://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
+.. _sphobjinv: https://sphobjinv.readthedocs.io/en/latest/
 
 .. linting
 

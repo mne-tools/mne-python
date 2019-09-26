@@ -110,7 +110,7 @@ jobs:
               if [ "$CIRCLE_BRANCH" == "master" ] || [[ $(cat gitlog.txt) == *"[circle full]"* ]]; then
                 echo html_dev > build.txt;
                 python -c "import mne; mne.datasets._download_all_example_data()";
-              elif [ "$CIRCLE_BRANCH" == "maint/0.18" ]; then
+              elif [ "$CIRCLE_BRANCH" == "maint/0.19" ]; then
                 echo html_stable > build.txt;
                 python -c "import mne; mne.datasets._download_all_example_data()";
               else
@@ -137,7 +137,10 @@ jobs:
                       python -c "import mne; print(mne.datasets.somato.data_path(update_path=True))";
                     fi;
                     if [[ $(cat $FNAME | grep -x ".*datasets.*eegbci.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.eegbci.load_data(1, [6, 10, 14], update_path=True))";
+                      python -c "import mne; print(mne.datasets.eegbci.load_data(1, [3, 6, 10, 14], update_path=True))";
+                      python -c "import mne; print(mne.datasets.eegbci.load_data(2, [3], update_path=True))";
+                      python -c "import mne; print(mne.datasets.eegbci.load_data(3, [3], update_path=True))";
+                      python -c "import mne; print(mne.datasets.eegbci.load_data(4, [3], update_path=True))";
                     fi;
                     if [[ $(cat $FNAME | grep -x ".*datasets.*sleep_physionet.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.sleep_physionet.age.fetch_data([0, 1], recording=[1], update_path=True))";
@@ -234,7 +237,7 @@ jobs:
         - run:
             name: Reduce artifact upload time
             command: |
-              if grep -q html_dev build.txt; then
+              if grep -q html_dev-pattern build.txt || grep -q html_dev-noplot build.txt; then
                 tar czf doc/_build/html/_downloads.tgz doc/_build/html/_downloads
                 rm -Rf doc/_build/html/_downloads
               fi
@@ -359,7 +362,7 @@ jobs:
             name: Deploy docs
             command: |
               set -e;
-              if [ "${CIRCLE_BRANCH}" == "master" ] || [ "${CIRCLE_BRANCH}" == "maint/0.18" ]; then
+              if [ "${CIRCLE_BRANCH}" == "master" ] || [ "${CIRCLE_BRANCH}" == "maint/0.19" ]; then
                 git config --global user.email "circle@mne.com";
                 git config --global user.name "Circle CI";
                 cd ~/mne-tools.github.io;
@@ -403,7 +406,7 @@ workflows:
             branches:
               only:
                 - master
-                - maint/0.18
+                - maint/0.19
 
   weekly:
     jobs:

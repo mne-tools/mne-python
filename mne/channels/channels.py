@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Andrew Dykstra <andrew.r.dykstra@gmail.com>
@@ -21,6 +21,9 @@ from ..io.meas_info import anonymize_info, Info
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _contains_ch_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx)
+
+
+DEPRECATED_PARAM = object()
 
 
 def _get_meg_system(info):
@@ -179,6 +182,8 @@ _human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,
                'syst': FIFF.FIFFV_SYST_CH,
                'bio': FIFF.FIFFV_BIO_CH,
                'ecog': FIFF.FIFFV_ECOG_CH,
+               'fnirs_raw': FIFF.FIFFV_FNIRS_CH,
+               'fnirs_od': FIFF.FIFFV_FNIRS_CH,
                'hbo': FIFF.FIFFV_FNIRS_CH,
                'hbr': FIFF.FIFFV_FNIRS_CH}
 _human2unit = {'ecg': FIFF.FIFF_UNIT_V,
@@ -194,6 +199,8 @@ _human2unit = {'ecg': FIFF.FIFF_UNIT_V,
                'syst': FIFF.FIFF_UNIT_NONE,
                'bio': FIFF.FIFF_UNIT_V,
                'ecog': FIFF.FIFF_UNIT_V,
+               'fnirs_raw': FIFF.FIFF_UNIT_V,
+               'fnirs_od': FIFF.FIFF_UNIT_NONE,
                'hbo': FIFF.FIFF_UNIT_MOL,
                'hbr': FIFF.FIFF_UNIT_MOL}
 _unit2human = {FIFF.FIFF_UNIT_V: 'V',
@@ -420,6 +427,10 @@ class SetChannelsMixin(object):
                 coil_type = FIFF.FIFFV_COIL_FNIRS_HBO
             elif ch_type == 'hbr':
                 coil_type = FIFF.FIFFV_COIL_FNIRS_HBR
+            elif ch_type == 'fnirs_raw':
+                coil_type = FIFF.FIFFV_COIL_FNIRS_RAW
+            elif ch_type == 'fnirs_od':
+                coil_type = FIFF.FIFFV_COIL_FNIRS_OD
             else:
                 coil_type = FIFF.FIFFV_COIL_NONE
             self.info['chs'][c_ind]['coil_type'] = coil_type
@@ -444,7 +455,10 @@ class SetChannelsMixin(object):
         rename_channels(self.info, mapping)
 
     @verbose
-    def set_montage(self, montage, set_dig=True, verbose=None):
+    def set_montage(
+            self, montage, set_dig=DEPRECATED_PARAM,
+            raise_if_subset=DEPRECATED_PARAM, verbose=None
+    ):
         """Set EEG sensor configuration and head digitization.
 
         Parameters
@@ -455,7 +469,18 @@ class SetChannelsMixin(object):
             If True, update the digitization information (``info['dig']``)
             in addition to the channel positions (``info['chs'][idx]['loc']``).
 
+            Deprecated. This parameter will be removed in 0.20.
+
             .. versionadded: 0.15
+        raise_if_subset: bool
+            If True, ValueError will be raised when montage.ch_names is a
+            subset of info['ch_names']. This parameter was introduced for
+            backward compatibility when set to False.
+
+            Defaults to False in 0.19, it will change to default to True in
+            0.20, and will be removed in 0.21.
+
+            .. versionadded: 0.19
         %(verbose_meth)s
 
         Notes
@@ -464,9 +489,12 @@ class SetChannelsMixin(object):
 
         .. versionadded:: 0.9.0
         """
+        # How to set up a montage to old named fif file (walk through example)
+        # https://gist.github.com/massich/f6a9f4799f1fbeb8f5e8f8bc7b07d3df
+
         from .montage import _set_montage
-        _set_montage(self.info, montage, update_ch_names=False,
-                     set_dig=set_dig)
+        _set_montage(self.info, montage, update_ch_names=DEPRECATED_PARAM,
+                     set_dig=set_dig, raise_if_subset=raise_if_subset)
         return self
 
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,
@@ -1200,6 +1228,9 @@ def find_ch_connectivity(info, ch_type):
             conn_name = 'ctf275'
         else:
             conn_name = 'ctf151'
+    elif n_kit_grads > 0:
+        from ..io.kit.constants import KIT_NEIGHBORS
+        conn_name = KIT_NEIGHBORS.get(info['kit_system_id'])
 
     if conn_name is not None:
         logger.info('Reading connectivity matrix for %s.' % conn_name)
@@ -1289,7 +1320,7 @@ def fix_mag_coil_types(info):
 
     .. note:: The effect of the difference between the coil sizes on the
               current estimates computed by the MNE software is very small.
-              Therefore the use of mne_fix_mag_coil_types is not mandatory.
+              Therefore the use of ``fix_mag_coil_types`` is not mandatory.
     """
     old_mag_inds = _get_T1T2_mag_inds(info)
 

@@ -12,7 +12,7 @@ that does not show any evoked field.
 It is also demonstrated how to reorder the epochs using a 1D spectral
 embedding as described in [1]_.
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 

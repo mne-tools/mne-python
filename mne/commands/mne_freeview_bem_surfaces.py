@@ -8,7 +8,7 @@ Examples
     $ mne freeview_bem_surfaces -s sample
 
 """
-# Authors:  Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors:  Alexandre Gramfort <alexandre.gramfort@inria.fr>
 
 import sys
 import os

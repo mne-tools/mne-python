@@ -22,12 +22,12 @@ from .io import read_fiducials, write_fiducials, read_info
 from .io.constants import FIFF
 from .label import read_label, Label
 from .source_space import (add_source_space_distances, read_source_spaces,
-                           write_source_spaces, _get_mri_header)
+                           write_source_spaces, _get_mri_header, _read_talxfm)
 from .surface import read_surface, write_surface, _normalize_vectors
 from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          _read_fs_xfm, _write_fs_xfm, invert_transform,
-                         combine_transforms)
+                         combine_transforms, apply_trans)
 from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
                     warn, has_nibabel)
 from .viz._3d import _fiducial_coords
@@ -135,8 +135,8 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None,
     -----
     When no structural MRI is available for a subject, an average brain can be
     substituted. Freesurfer comes with such an average brain model, and MNE
-    comes with some auxiliary files which make coregistration easier (see
-    :ref:`CACGEAFI`). :py:func:`create_default_subject` copies the relevant
+    comes with some auxiliary files which make coregistration easier.
+    :py:func:`create_default_subject` copies the relevant
     files from Freesurfer into the current subjects_dir, and also adds the
     auxiliary files provided by MNE.
     """
@@ -1207,3 +1207,56 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
                 F_mri_ras, 'ras', 'ras'),
             F_ras_mni, 'ras', 'mni_tal')
     _write_fs_xfm(fname_to, T_ras_mni['trans'], kind)
+
+
+def get_mni_fiducials(subject, subjects_dir=None):
+    """Estimate fiducials for a subject.
+
+    Parameters
+    ----------
+    subject : str
+        Name of the mri subject
+    subjects_dir : None | str
+        Override the SUBJECTS_DIR environment variable
+        (sys.environ['SUBJECTS_DIR'])
+
+    Returns
+    -------
+    fids_mri : list
+        List of estimated fiducials (each point in a dict)
+
+    Notes
+    -----
+    This takes the ``fsaverage-fiducials.fif`` file included with MNE—which
+    contain the LPA, nasion, and RPA for the ``fsaverage`` subject—and
+    transforms them to the given FreeSurfer subject's MRI space.
+    The MRI of ``fsaverage`` is already in MNI Talairach space, so applying
+    the inverse of the given subject's MNI Talairach affine transformation
+    (``$SUBJECTS_DIR/$SUBJECT/mri/transforms/talairach.xfm``) is used
+    to estimate the subject's fiducial locations.
+
+    For more details about the coordinate systems and transformations involved,
+    see https://surfer.nmr.mgh.harvard.edu/fswiki/CoordinateSystems and
+    :ref:`plot_source_alignment`.
+    """
+    # Eventually we might want to allow using the MNI Talairach with-skull
+    # transformation rather than the standard brain-based MNI Talaranch
+    # transformation, and/or project the points onto the head surface
+    # (if available).
+    fname_fids_fs = os.path.join(os.path.dirname(__file__), 'data',
+                                 'fsaverage', 'fsaverage-fiducials.fif')
+
+    # Read fsaverage fiducials file and subject Talairach.
+    fids, coord_frame = read_fiducials(fname_fids_fs)
+    assert coord_frame == FIFF.FIFFV_COORD_MRI
+    mni_mri_t = invert_transform(_read_talxfm(subject, subjects_dir))
+
+    # Convert to mm since this is Freesurfer's unit.
+    lnr = np.array([f['r'] for f in fids]) * 1000.
+    assert lnr.shape == (3, 3)
+
+    # Apply transformation, to fsaverage (MNI) fiducials, convert back to m
+    lnr = apply_trans(mni_mri_t, lnr) / 1000.
+    for ii in range(3):
+        fids[ii]['r'] = lnr[ii]
+    return fids

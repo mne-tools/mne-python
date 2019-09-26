@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
@@ -136,7 +136,7 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
 def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
                     l_freq=5, h_freq=35, qrs_threshold='auto',
                     filter_length='10s', return_ecg=False,
-                    reject_by_annotation=None, verbose=None):
+                    reject_by_annotation=True, verbose=None):
     """Find ECG peaks.
 
     Parameters
@@ -186,12 +186,6 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     create_ecg_epochs
     compute_proj_ecg
     """
-    if reject_by_annotation is None:
-        if len(raw.annotations) > 0:
-            warn('reject_by_annotation in find_ecg_events defaults to False '
-                 'in 0.18 but will change to True in 0.19, set it explicitly '
-                 'to avoid this warning', DeprecationWarning)
-        reject_by_annotation = False
     skip_by_annotation = ('edge', 'bad') if reject_by_annotation else ()
     del reject_by_annotation
     idx_ecg = _get_ecg_channel_index(ch_name, raw)

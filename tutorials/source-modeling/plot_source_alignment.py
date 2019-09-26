@@ -219,7 +219,7 @@ mne.viz.plot_alignment(raw.info, trans=trans, subject='sample',
 # The surface alignments above are possible if you have the surfaces available
 # from Freesurfer. :func:`mne.viz.plot_alignment` automatically searches for
 # the correct surfaces from the provided ``subjects_dir``. Another option is
-# to use a :ref:`spherical conductor model <ch_forward_spherical_model>`. It is
+# to use a :ref:`spherical conductor model <eeg_sphere_model>`. It is
 # passed through ``bem`` parameter.
 
 sphere = mne.make_sphere_model(info=raw.info, r0='auto', head_radius='auto')

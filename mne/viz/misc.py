@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Functions to make simple plots with M/EEG data."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -22,20 +22,21 @@ import numpy as np
 from scipy import linalg
 
 from ..defaults import DEFAULTS
+from ..rank import compute_rank
 from ..surface import read_surface
 from ..io.proj import make_projector
-from ..io.pick import _DATA_CH_TYPES_SPLIT, pick_types
+from ..io.pick import (_DATA_CH_TYPES_SPLIT, pick_types, pick_info,
+                       pick_channels)
 from ..source_space import read_source_spaces, SourceSpaces
 from ..utils import (logger, verbose, get_subjects_dir, warn, _check_option,
                      _mask_to_onsets_offsets)
 from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
-from ..fixes import get_sosfiltfilt
 from .utils import tight_layout, _get_color_list, _prepare_trellis, plt_show
 
 
 @verbose
-def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
+def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
              show=True, verbose=None):
     """Plot Covariance data.
 
@@ -65,15 +66,34 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
         The covariance plot.
     fig_svd : instance of matplotlib.figure.Figure | None
         The SVD spectra plot of the covariance.
+
+    See Also
+    --------
+    mne.compute_rank
+
+    Notes
+    -----
+    For each channel type, the rank is estimated using
+    :func:`mne.compute_rank`.
+
+    .. versionchanged:: 0.19
+       Approximate ranks for each channel type are shown with red dashed lines.
     """
+    from ..cov import Covariance
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import Normalize
+
     if exclude == 'bads':
         exclude = info['bads']
+    info = pick_info(info, pick_channels(info['ch_names'], cov['names'],
+                                         exclude))
+    del exclude
     picks_list = \
         _picks_by_type(info, meg_combined=False, ref_meg=False,
-                       exclude=exclude)
+                       exclude=())
     picks_by_type = dict(picks_list)
 
-    ch_names = [n for n in cov.ch_names if n not in exclude]
+    ch_names = [n for n in cov.ch_names if n in info['ch_names']]
     ch_idx = [cov.ch_names.index(n) for n in ch_names]
 
     info_ch_names = info['ch_names']
@@ -81,15 +101,16 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     for ch_type, sel in picks_by_type.items():
         idx_by_type[ch_type] = [ch_names.index(info_ch_names[c])
                                 for c in sel if info_ch_names[c] in ch_names]
-
     idx_names = [(idx_by_type[key],
                   '%s covariance' % DEFAULTS['titles'][key],
                   DEFAULTS['units'][key],
-                  DEFAULTS['scalings'][key])
+                  DEFAULTS['scalings'][key],
+                  key)
                  for key in _DATA_CH_TYPES_SPLIT
                  if len(idx_by_type[key]) > 0]
     C = cov.data[ch_idx][:, ch_idx]
 
+    projs = []
     if proj:
         projs = copy.deepcopy(info['projs'])
 
@@ -106,12 +127,9 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
             logger.info('    The projection vectors do not apply to these '
                         'channels.')
 
-    import matplotlib.pyplot as plt
-    from matplotlib.colors import Normalize
-
     fig_cov, axes = plt.subplots(1, len(idx_names), squeeze=False,
                                  figsize=(3.8 * len(idx_names), 3.7))
-    for k, (idx, name, _, _) in enumerate(idx_names):
+    for k, (idx, name, _, _, _) in enumerate(idx_names):
         vlim = np.max(np.abs(C[idx][:, idx]))
         im = axes[0, k].imshow(C[idx][:, idx], interpolation="nearest",
                                norm=Normalize(vmin=-vlim, vmax=vlim),
@@ -131,14 +149,27 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     if show_svd:
         fig_svd, axes = plt.subplots(1, len(idx_names), squeeze=False,
                                      figsize=(3.8 * len(idx_names), 3.7))
-        for k, (idx, name, unit, scaling) in enumerate(idx_names):
-            s = linalg.svd(C[idx][:, idx], compute_uv=False)
+        for k, (idx, name, unit, scaling, key) in enumerate(idx_names):
+            this_C = C[idx][:, idx]
+            s = linalg.svd(this_C, compute_uv=False)
+            this_C = Covariance(this_C, [info['ch_names'][ii] for ii in idx],
+                                [], [], 0)
+            this_info = pick_info(info, idx)
+            this_info['projs'] = []
+            this_rank = compute_rank(this_C, info=this_info)
             # Protect against true zero singular values
             s[s <= 0] = 1e-10 * s[s > 0].min()
             s = np.sqrt(s) * scaling
-            axes[0, k].plot(s)
+            axes[0, k].plot(s, color='k', zorder=3)
+            this_rank = this_rank[key]
+            axes[0, k].axvline(this_rank - 1, ls='--', color='r',
+                               alpha=0.5, zorder=4, clip_on=False)
+            axes[0, k].text(this_rank - 1, axes[0, k].get_ylim()[1],
+                            'rank ≈ %d' % (this_rank,), ha='right', va='top',
+                            color='r', alpha=0.5, zorder=4)
             axes[0, k].set(ylabel=u'Noise σ (%s)' % unit, yscale='log',
-                           xlabel='Eigenvalue index', title=name)
+                           xlabel='Eigenvalue index', title=name,
+                           xlim=[0, len(s) - 1])
         tight_layout(fig=fig_svd)
 
     plt_show(show)
@@ -735,10 +766,10 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     -----
     .. versionadded:: 0.14
     """
-    from scipy.signal import freqz, group_delay, lfilter, filtfilt, sosfilt
+    from scipy.signal import (
+        freqz, group_delay, lfilter, filtfilt, sosfilt, sosfiltfilt)
     import matplotlib.pyplot as plt
     from matplotlib.ticker import FormatStrFormatter, NullFormatter
-    sosfiltfilt = get_sosfiltfilt()
     sfreq = float(sfreq)
     _check_option('fscale', fscale, ['log', 'linear'])
     flim = _get_flim(flim, fscale, freq, sfreq)

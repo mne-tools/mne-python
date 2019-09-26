@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Authors: Mainak Jas <mainak@neuro.hut.fi>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Romain Trachel <trachelr@gmail.com>
 #
 # License: BSD (3-clause)

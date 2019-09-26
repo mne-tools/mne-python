@@ -32,8 +32,8 @@ def test_find_ecg():
         _, times = raw[0, :]
         assert 55 < average_pulse < 60
         # with annotations
-        with pytest.deprecated_call():
-            average_pulse = find_ecg_events(raw_bad, ch_name=ch_name)[2]
+        average_pulse = find_ecg_events(raw_bad, ch_name=ch_name,
+                                        reject_by_annotation=False)[2]
         assert average_pulse < 1.
         average_pulse = find_ecg_events(raw_bad, ch_name=ch_name,
                                         reject_by_annotation=True)[2]

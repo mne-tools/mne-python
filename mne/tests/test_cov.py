@@ -1,4 +1,4 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
@@ -666,8 +666,9 @@ def test_low_rank_cov(raw_epochs_events):
     cov_full = compute_covariance(epochs_meg, method='oas',
                                   rank='full', verbose='error')
     assert _cov_rank(cov_full, epochs_meg.info) == 306
-    with pytest.deprecated_call(match='int is deprecated'):
-        cov_dict = compute_covariance(epochs_meg, method='oas', rank=306)
+    with pytest.warns(RuntimeWarning, match='few samples'):
+        cov_dict = compute_covariance(epochs_meg, method='oas',
+                                      rank=dict(meg=306))
     assert _cov_rank(cov_dict, epochs_meg.info) == 306
     assert_allclose(cov_full['data'], cov_dict['data'])
     cov_dict = compute_covariance(epochs_meg, method='oas',
@@ -694,7 +695,6 @@ def test_low_rank_cov(raw_epochs_events):
                                  verbose='error')
     assert _cov_rank(dia_cov, epochs.info) == rank
     assert_allclose(dia_cov['data'], reg_cov['data'])
-    # test our deprecation: can simply remove later
     epochs.pick_channels(epochs.ch_names[:103])
     # degenerate
     with pytest.raises(ValueError, match='can.*only be used with rank="full"'):

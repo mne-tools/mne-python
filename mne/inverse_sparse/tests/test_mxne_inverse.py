@@ -1,4 +1,4 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: Simplified BSD
@@ -85,8 +85,7 @@ def test_mxne_inverse_standard():
         stc_cd = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
                             depth=depth, maxit=300, tol=1e-8,
                             active_set_size=10, weights=stc_dspm,
-                            weights_min=weights_min, solver='cd',
-                            pca=False)  # pca=False deprecated, doesn't matter
+                            weights_min=weights_min, solver='cd')
     stc_bcd = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
                          depth=depth, maxit=300, tol=1e-8, active_set_size=10,
                          weights=stc_dspm, weights_min=weights_min,

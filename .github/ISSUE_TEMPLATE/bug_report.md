@@ -4,7 +4,7 @@ about: Create a report to help us improve.
 
 ---
 
-Detailed instructions on how to file a bug can be found in our [FAQ](https://martinos.org/mne/stable/faq.html#i-think-i-found-a-bug-what-do-i-do).
+Detailed instructions on how to file a bug can be found in our [FAQ](https://mne.tools/dev/overview/faq.html#i-think-i-found-a-bug-what-do-i-do).
 
 If your issue is a usage question, please consider asking on our [Gitter channel](https://gitter.im/mne-tools/mne-python) or on our [mailing list](https://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis) instead of opening an issue.
 

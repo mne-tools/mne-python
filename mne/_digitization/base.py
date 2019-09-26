@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Joan Massich <mailsik@gmail.com>
 #
 # License: BSD (3-clause)
 import numpy as np
 from copy import deepcopy
+from collections import Counter
 
 from ..transforms import _coord_frame_name
 from ..io.constants import FIFF
@@ -30,6 +31,21 @@ def _format_dig_points(dig):
     """Format the dig points nicely."""
     dig_points = [DigPoint(d) for d in dig] if dig is not None else dig
     return Digitization(dig_points)
+
+
+def _get_dig_eeg(dig):
+    return [d for d in dig if d['kind'] == FIFF.FIFFV_POINT_EEG]
+
+
+def _count_points_by_type(dig):
+    """Get the number of points of each type."""
+    occurrences = Counter([d['kind'] for d in dig])
+    return dict(
+        fid=occurrences[FIFF.FIFFV_POINT_CARDINAL],
+        hpi=occurrences[FIFF.FIFFV_POINT_HPI],
+        eeg=occurrences[FIFF.FIFFV_POINT_EEG],
+        extra=occurrences[FIFF.FIFFV_POINT_EXTRA],
+    )
 
 
 class DigPoint(dict):

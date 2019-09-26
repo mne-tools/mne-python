@@ -17,7 +17,7 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  spatial_src_connectivity, spatial_tris_connectivity,
                  SourceSpaces, VolVectorSourceEstimate)
 from mne.datasets import testing
-from mne.fixes import fft
+from mne.fixes import fft, _get_img_fdata
 from mne.source_estimate import grade_to_tris, _get_vol_mask
 from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs)
@@ -159,7 +159,7 @@ def test_stc_as_volume():
     assert isinstance(img, nib.Nifti1Image)
     assert img.shape[:3] == inverse_operator_vol['src'][0]['shape'][:3]
 
-    with pytest.raises(ValueError, match='invalid output'):
+    with pytest.raises(ValueError, match='Invalid value.*output.*'):
         stc_vol.as_volume(inverse_operator_vol['src'], format='42')
 
 
@@ -578,6 +578,27 @@ def test_extract_label_time_course():
     assert (x.size == 0)
 
 
+@testing.requires_testing_data
+def test_extract_label_time_course_equiv():
+    """Test extraction of label time courses from stc equivalences."""
+    label = read_labels_from_annot('sample', 'aparc', 'lh', regexp='transv',
+                                   subjects_dir=subjects_dir)
+    assert len(label) == 1
+    label = label[0]
+    inv = read_inverse_operator(fname_inv)
+    evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0].crop(0, 0.01)
+    stc = apply_inverse(evoked, inv, pick_ori='normal', label=label)
+    stc_full = apply_inverse(evoked, inv, pick_ori='normal')
+    stc_in_label = stc_full.in_label(label)
+    mean = stc.extract_label_time_course(label, inv['src'])
+    mean_2 = stc_in_label.extract_label_time_course(label, inv['src'])
+    assert_allclose(mean, mean_2)
+    inv['src'][0]['vertno'] = np.array([], int)
+    assert len(stc_in_label.vertices[0]) == 22
+    with pytest.raises(ValueError, match='22/22 left hemisphere.*missing'):
+        stc_in_label.extract_label_time_course(label, inv['src'])
+
+
 def _my_trans(data):
     """FFT that adds an additional dimension by repeating result."""
     data_t = fft(data)
@@ -817,9 +838,11 @@ def test_mixed_stc(tmpdir):
     assert isinstance(stc_out, MixedSourceEstimate)
 
 
-@pytest.mark.parametrize('klass',
-                         (VectorSourceEstimate, VolVectorSourceEstimate))
-def test_vec_stc(klass):
+@pytest.mark.parametrize('klass, kind',
+                         ((VectorSourceEstimate, 'surf'),
+                          (VolVectorSourceEstimate, 'vol'),
+                          (VolVectorSourceEstimate, 'discrete')))
+def test_vec_stc(klass, kind):
     """Test (vol)vector source estimate."""
     nn = np.array([
         [1, 0, 0],
@@ -835,10 +858,11 @@ def test_vec_stc(klass):
         [1, 1, 1],
     ])[:, :, np.newaxis]
     if klass is VolVectorSourceEstimate:
-        src = [dict(nn=nn)]
+        src = SourceSpaces([dict(nn=nn, type=kind)])
         verts = np.arange(4)
     else:
-        src = [dict(nn=nn[:2]), dict(nn=nn[2:])]
+        src = SourceSpaces([dict(nn=nn[:2], type=kind),
+                            dict(nn=nn[2:], type=kind)])
         verts = [np.array([0, 1]), np.array([0, 1])]
     stc = klass(data, verts, 0, 1, 'foo')
 
@@ -846,6 +870,10 @@ def test_vec_stc(klass):
     assert_array_equal(stc.magnitude().data[:, 0], [1, 2, 3, np.sqrt(3)])
 
     # Vector components projected onto the vertex normals
+    if kind == 'vol':
+        with pytest.raises(RuntimeError, match='surface or discrete'):
+            stc.normal(src)
+        return
     normal = stc.normal(src)
     assert_array_equal(normal.data[:, 0], [1, 2, 0, np.sqrt(3)])
 
@@ -948,7 +976,7 @@ def test_vol_mask():
     data = (1 + np.arange(n_vertices))[:, np.newaxis]
     stc_tmp = VolSourceEstimate(data, vertices, tmin=0., tstep=1.)
     img = stc_tmp.as_volume(src, mri_resolution=False)
-    img_data = img.get_data()[:, :, :, 0].T
+    img_data = _get_img_fdata(img)[:, :, :, 0].T
     mask_nib = (img_data != 0)
     assert_array_equal(img_data[mask_nib], data[:, 0])
     assert_array_equal(np.where(mask_nib.ravel())[0], src[0]['vertno'])

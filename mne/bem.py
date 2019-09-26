@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Lorenzo De Santis <lorenzo.de-santis@u-psud.fr>
@@ -26,7 +26,7 @@ from .io.open import fiff_open
 from .surface import (read_surface, write_surface, complete_surface_info,
                       _compute_nearest, _get_ico_surface, read_tri,
                       _fast_cross_nd_sum, _get_solids)
-from .transforms import _ensure_trans, apply_trans
+from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir)
 from .fixes import einsum
@@ -945,7 +945,10 @@ def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
     hsp = get_fitting_dig(info, dig_kinds)
     radius, origin_head = _fit_sphere(np.array(hsp), disp=False)
     # compute origin in device coordinates
-    head_to_dev = _ensure_trans(info['dev_head_t'], 'head', 'meg')
+    dev_head_t = info['dev_head_t']
+    if dev_head_t is None:
+        dev_head_t = Transform('meg', 'head')
+    head_to_dev = _ensure_trans(dev_head_t, 'head', 'meg')
     origin_device = apply_trans(head_to_dev, origin_head)
     logger.info('Fitted sphere radius:'.ljust(30) + '%0.1f mm'
                 % (radius * 1e3,))
@@ -1606,22 +1609,22 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
     Before running this script do the following:
     (unless convert=False is specified)
 
-        1. Copy all of your FLASH images in a single directory <source> and
-           create a directory <dest> to hold the output of mne_organize_dicom
-        2. cd to <dest> and run
-           $ mne_organize_dicom <source>
-           to create an appropriate directory structure
-        3. Create symbolic links to make flash05 and flash30 point to the
-           appropriate series:
-           $ ln -s <FLASH 5 series dir> flash05
-           $ ln -s <FLASH 30 series dir> flash30
-           Some partition formats (e.g. FAT32) do not support symbolic links.
-           In this case, copy the file to the appropriate series:
-           $ cp <FLASH 5 series dir> flash05
-           $ cp <FLASH 30 series dir> flash30
-        4. cd to the directory where flash05 and flash30 links are
-        5. Set SUBJECTS_DIR and SUBJECT environment variables appropriately
-        6. Run this script
+    1. Copy all of your FLASH images in a single directory <source> and
+        create a directory <dest> to hold the output of mne_organize_dicom
+    2. cd to <dest> and run
+        $ mne_organize_dicom <source>
+        to create an appropriate directory structure
+    3. Create symbolic links to make flash05 and flash30 point to the
+        appropriate series:
+        $ ln -s <FLASH 5 series dir> flash05
+        $ ln -s <FLASH 30 series dir> flash30
+        Some partition formats (e.g. FAT32) do not support symbolic links.
+        In this case, copy the file to the appropriate series:
+        $ cp <FLASH 5 series dir> flash05
+        $ cp <FLASH 30 series dir> flash30
+    4. cd to the directory where flash05 and flash30 links are
+    5. Set SUBJECTS_DIR and SUBJECT environment variables appropriately
+    6. Run this script
 
     This function assumes that the Freesurfer segmentation of the subject
     has been completed. In particular, the T1.mgz and brain.mgz MRI volumes

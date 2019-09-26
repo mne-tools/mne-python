@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Functions to plot evoked M/EEG data (besides topographies)."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -1883,11 +1883,11 @@ def _title_helper_pce(title, picked_types, picks, ch_names, combine):
 
 
 @fill_doc
-def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
+def plot_compare_evokeds(evokeds, picks=None, colors=None,
                          linestyles=None, styles=None, cmap=None,
                          vlines='auto', ci=True, truncate_yaxis='auto',
                          truncate_xaxis=True, ylim=None, invert_y=False,
-                         show_sensors=None, show_legend=None, legend=True,
+                         show_sensors=None, legend=True,
                          split_legend=None, axes=None, title=None, show=True,
                          combine=None):
     """Plot evoked time courses for one or more conditions and/or channels.
@@ -1914,10 +1914,6 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
         * If the selected channels are gradiometers, the signal from
           corresponding (gradiometer) pairs will be combined.
 
-    gfp : None
-        .. versionchanged:: 0.19
-            The ``gfp`` parameter is deprecated and will be removed in version
-            0.20. Use ``combine='gfp'`` instead.
     colors : list | dict | None
         Colors to use when plotting the ERP/F lines and confidence bands. If
         ``cmap`` is not ``None``, ``colors`` must be a :class:`list` or
@@ -2000,10 +1996,6 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
         treated as ``True`` if there is only one channel in ``picks``. If
         ``True``, location is upper or lower right corner, depending on data
         values. Defaults to ``None``.
-    show_legend : None
-        .. versionchanged:: 0.19
-            The ``show_legend`` parameter has been renamed to ``legend``, and
-            will be removed in version 0.20.
     legend : bool | int | str
         Whether to show a legend for the colors/linestyles of the conditions
         plotted. If :class:`int` or :class:`str`, indicates position of the
@@ -2102,19 +2094,6 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
     import matplotlib.pyplot as plt
     from ..evoked import Evoked, _check_evokeds_ch_names_times
 
-    # deprecations
-    if gfp is not None:
-        warn('"gfp" is deprecated and will be removed in version 0.20; please '
-             'use `combine="gfp"` instead.', DeprecationWarning)
-    if show_legend is not None:
-        warn('the "show_legend" parameter has been renamed to "legend", and '
-             'will be removed in version 0.20.', DeprecationWarning)
-    if truncate_yaxis == 'max_ticks':
-        warn('truncate_yaxis="max_ticks" changed to truncate_yaxis="auto" in '
-             'version 0.19; in version 0.20 passing "max_ticks" will result '
-             'in an error. Please update your code accordingly.',
-             DeprecationWarning)
-        truncate_yaxis = 'auto'
     # build up evokeds into a dict, if it's not already
     if isinstance(evokeds, Evoked):
         evokeds = [evokeds]
@@ -2205,7 +2184,7 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
             _title = _title_helper_pce(title, picked_types, picks=_picks,
                                        ch_names=_ch_names, combine=None)
             figs.extend(plot_compare_evokeds(
-                evokeds, picks=_picks, gfp=gfp, colors=colors, cmap=cmap,
+                evokeds, picks=_picks, colors=colors, cmap=cmap,
                 linestyles=linestyles, styles=styles, vlines=vlines, ci=ci,
                 truncate_yaxis=truncate_yaxis, ylim=ylim, invert_y=invert_y,
                 legend=legend, show_sensors=show_sensors,
@@ -2239,14 +2218,14 @@ def plot_compare_evokeds(evokeds, picks=None, gfp=None, colors=None,
         fig = plt.figure(figsize=(18, 14))
 
         def click_func(
-                ax_, pick_, evokeds=evokeds, gfp=gfp, colors=colors,
+                ax_, pick_, evokeds=evokeds, colors=colors,
                 linestyles=linestyles, styles=styles, cmap=cmap, vlines=vlines,
                 ci=ci, truncate_yaxis=truncate_yaxis,
                 truncate_xaxis=truncate_xaxis, ylim=ylim, invert_y=invert_y,
                 show_sensors=show_sensors, legend=legend,
                 split_legend=split_legend, picks=picks, combine=combine):
             plot_compare_evokeds(
-                evokeds=evokeds, gfp=gfp, colors=colors, linestyles=linestyles,
+                evokeds=evokeds, colors=colors, linestyles=linestyles,
                 styles=styles, cmap=cmap, vlines=vlines, ci=ci,
                 truncate_yaxis=truncate_yaxis, truncate_xaxis=truncate_xaxis,
                 ylim=ylim, invert_y=invert_y, show_sensors=show_sensors,

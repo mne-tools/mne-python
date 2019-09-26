@@ -69,9 +69,8 @@ speech = mne.filter.resample(speech, down=decim, npad='auto')
 raw = mne.filter.resample(raw, down=decim, npad='auto')
 
 # Read in channel positions and create our MNE objects from the raw data
-montage = mne.channels.read_montage('biosemi128')
-montage.selection = montage.selection[:128]
-info = mne.create_info(montage.ch_names[:128], sfreq, 'eeg', montage=montage)
+montage = mne.channels.make_standard_montage('biosemi128')
+info = mne.create_info(montage.ch_names, sfreq, 'eeg', montage=montage)
 raw = mne.io.RawArray(raw, info)
 n_channels = len(raw.ch_names)
 

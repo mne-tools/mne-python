@@ -149,20 +149,22 @@ def _check_fname(fname, overwrite=False, must_exist=False):
     return str(fname)
 
 
-def _check_subject(class_subject, input_subject, raise_error=True):
+def _check_subject(class_subject, input_subject, raise_error=True,
+                   kind='class subject attribute'):
     """Get subject name from class."""
     if input_subject is not None:
         _validate_type(input_subject, 'str', "subject input")
+        if class_subject is not None and input_subject != class_subject:
+            raise ValueError('%s (%r) did not match input subject (%r)'
+                             % (kind, class_subject, input_subject))
         return input_subject
     elif class_subject is not None:
         _validate_type(class_subject, 'str',
-                       "Either subject input or class subject attribute")
+                       "Either subject input or %s" % (kind,))
         return class_subject
-    else:
-        if raise_error is True:
-            raise ValueError('Neither subject input nor class subject '
-                             'attribute was a string')
-        return None
+    elif raise_error is True:
+        raise ValueError('Neither subject input nor %s was a string' % (kind,))
+    return None
 
 
 def _check_preload(inst, msg):
@@ -326,6 +328,26 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
                         % (item_name, type_name, type(item),))
 
 
+def _check_path_like(item):
+    """Validate that `item` is `path-like`.
+
+    Parameters
+    ----------
+    item : object
+        The thing to be checked.
+
+    Returns
+    -------
+    bool
+        ``True`` if `item` is a `path-like` object; ``False`` otherwise.
+    """
+    try:
+        _validate_type(item, types='path-like')
+        return True
+    except TypeError:
+        return False
+
+
 def _check_if_nan(data, msg=" to be plotted"):
     """Raise if any of the values are NaN."""
     if not np.isfinite(data).all():
@@ -399,30 +421,12 @@ def _check_channels_spatial_filter(ch_names, filters):
 
 
 def _check_rank(rank):
-    """Check rank parameter and deal with deprecation."""
-    err_msg = ('rank must be None, dict, "full", or int, '
-               'got %s (type %s)' % (rank, type(rank)))
+    """Check rank parameter."""
+    _validate_type(rank, (None, dict, str), 'rank')
     if isinstance(rank, str):
-        # XXX we can use rank='' to deprecate to get to None eventually:
-        # if rank == '':
-        #     warn('The rank parameter default in 0.18 of "full" will change '
-        #          'to None in 0.19, set it explicitly to avoid this warning',
-        #          DeprecationWarning)
-        #     rank = 'full'
         if rank not in ['full', 'info']:
             raise ValueError('rank, if str, must be "full" or "info", '
                              'got %s' % (rank,))
-    elif isinstance(rank, bool):
-        raise TypeError(err_msg)
-    elif rank is not None and not isinstance(rank, dict):
-        try:
-            rank = int(operator.index(rank))
-        except TypeError:
-            raise TypeError(err_msg)
-        else:
-            warn('rank as int is deprecated and will be removed in 0.19. '
-                 'use rank=dict(meg=...) instead.', DeprecationWarning)
-            rank = dict(meg=rank)
     return rank
 
 
@@ -524,3 +528,12 @@ def _check_combine(mode, valid=('mean', 'median', 'std')):
                          " or callable, got %s (type %s)." %
                          (mode, type(mode)))
     return fun
+
+
+def _check_src_normal(pick_ori, src):
+    from ..source_space import SourceSpaces
+    _validate_type(src, SourceSpaces, 'src')
+    if pick_ori == 'normal' and src.kind not in ('surface', 'discrete'):
+        raise RuntimeError('Normal source orientation is supported only for '
+                           'surface or discrete SourceSpaces, got type '
+                           '%s' % (src.kind,))

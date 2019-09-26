@@ -2,18 +2,14 @@
 
 .. _glossary:
 
-==========================
 Glossary
-==========================
-
-.. .. contents:: Contents
-..    :local:
-
+========
 
 .. currentmodule:: mne
 
-MNE-Python core terminology and general concepts
-================================================
+The Glossary provides short definitions of MNE-Python-specific vocabulary and
+general neuroimaging concepts. If you think a term is missing, please consider
+`creating a new issue`_ or `opening a pull request`_ to add it.
 
 .. glossary::
 
@@ -81,6 +77,11 @@ MNE-Python core terminology and general concepts
         See :class:`EvokedArray` for the API of the corresponding
         object class, and :ref:`tut-evoked-class` for a narrative overview.
 
+    fiducial point
+        There are three fiducial (a.k.a. cardinal) points: the left
+        preauricular point (LPA), the right preauricular point (RPA)
+        and the nasion.
+
     first_samp
         The :attr:`~mne.io.Raw.first_samp` attribute of :class:`~mne.io.Raw`
         objects is an integer representing the number of time samples that
@@ -137,15 +138,26 @@ MNE-Python core terminology and general concepts
         A :class:`Label` refers to a region in the cortex, also often called
         a region of interest (ROI) in the literature.
 
+    layout
+        A :class:`Layout <mne.channels.Layout>` gives sensor positions in 2
+        dimensions (defined by ``x``, ``y``, ``width``, and ``height`` values for
+        each sensor). It is primarily used for illustrative purposes (i.e., making
+        diagrams of approximate sensor positions in top-down diagrams of the head,
+        so-called topographies or topomaps).
+
     montage
         EEG channel names and the relative positions of the sensor w.r.t. the scalp.
-        See :class:`~channels.Montage` for the API of the corresponding object
+        While layout are 2D locations, montages give 3D locations. A montage
+        can also contain locations for HPI points, fiducial points, or
+        extra head shape points.
+        See :class:`~channels.DigMontage` for the API of the corresponding object
         class.
 
     morphing
         Morphing refers to the operation of transferring source estimates from
         one anatomy to another. It is commonly referred as realignment in fMRI
-        literature. This operation is necessary for group studies.
+        literature. This operation is necessary for group studies (to get the
+        data in a common space for statistical analysis).
         See :ref:`ch_morph` for more details.
 
     pick
@@ -209,3 +221,11 @@ MNE-Python core terminology and general concepts
     trans
         A coordinate frame affine transformation, usually between the Neuromag head
         coordinate frame and the MRI Surface RAS coordinate frame used by Freesurfer.
+
+
+.. LINKS
+
+.. _`creating a new issue`:
+   https://github.com/mne-tools/mne-python/issues/new?template=glossary.md
+.. _`opening a pull request`:
+   https://github.com/mne-tools/mne-python/pull/new/master

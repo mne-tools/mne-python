@@ -197,7 +197,7 @@ epochs = mne.Epochs(raw2, events=events)['2'].average().plot()
 # spline method [1]_, which projects the sensor locations onto a unit sphere
 # and interpolates the signal at the bad sensor locations based on the signals
 # at the good locations. Mathematical details are presented in
-# :ref:`channel_interpolation`. Interpolation of MEG channels uses the field
+# :ref:`channel-interpolation`. Interpolation of MEG channels uses the field
 # mapping algorithms used in computing the :ref:`forward solution
 # <tut-forward>`.
 #
@@ -226,8 +226,10 @@ raw.crop(tmin=0, tmax=3).load_data()
 eeg_data = raw.copy().pick_types(meg=False, eeg=True, exclude=[])
 eeg_data_interp = eeg_data.copy().interpolate_bads(reset_bads=False)
 
-for data in (eeg_data, eeg_data_interp):
-    data.plot(butterfly=True, color='#00000022', bad_color='r')
+for title, data in zip(['orig.', 'interp.'], [eeg_data, eeg_data_interp]):
+    fig = data.plot(butterfly=True, color='#00000022', bad_color='r')
+    fig.subplots_adjust(top=0.9)
+    fig.suptitle(title, size='xx-large', weight='bold')
 
 ###############################################################################
 # Note that we used the ``exclude=[]`` trick in the call to

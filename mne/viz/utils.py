@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 """Utility functions for plotting M/EEG data."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Mainak Jas <mainak@neuro.hut.fi>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #          Clemens Brunner <clemens.brunner@gmail.com>
+#          Daniel McCloy <dan.mccloy@gmail.com>
 #
 # License: Simplified BSD
 
@@ -36,8 +37,8 @@ from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
 from ..io.meas_info import create_info
 from ..rank import compute_rank
 from ..io.proj import setup_proj
-from ..utils import (verbose, set_config, warn, _check_ch_locs, _check_option,
-                     logger, fill_doc)
+from ..utils import (verbose, get_config, set_config, warn, _check_ch_locs,
+                     _check_option, logger, fill_doc)
 
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
@@ -338,30 +339,31 @@ def _get_help_text(params):
     is_mac = platform.system() == 'Darwin'
     text, text2 = list(), list()
 
-    text.append(u'(Shift +) ← : \n')
-    text.append(u'(Shift +) → : \n')
-    text.append(u'↓ : \n')
-    text.append(u'↑ : \n')
-    text.append(u'- : \n')
-    text.append(u'+ or = : \n')
+    text.append('(Shift +) ← : \n')
+    text.append('(Shift +) → : \n')
+    text.append('↓ : \n')
+    text.append('↑ : \n')
+    text.append('- : \n')
+    text.append('+ or = : \n')
     if is_mac:
-        text.append(u'fn + ← : \n')
-        text.append(u'fn + → : \n')
+        text.append('fn + ← : \n')
+        text.append('fn + → : \n')
         if 'fig_selection' not in params:
-            text.append(u'fn + ↓ : \n')
-            text.append(u'fn + ↑ : \n')
+            text.append('fn + ↓ : \n')
+            text.append('fn + ↑ : \n')
     else:
-        text.append(u'Home : \n')
-        text.append(u'End : \n')
+        text.append('Home : \n')
+        text.append('End : \n')
         if 'fig_selection' not in params:
-            text.append(u'Page down : \n')
-            text.append(u'Page up : \n')
+            text.append('Page down : \n')
+            text.append('Page up : \n')
 
-    text.append(u'F11 : \n')
-    text.append(u'? : \n')
-    text.append(u'Esc : \n\n')
-    text.append(u'Mouse controls\n')
-    text.append(u'click on data :\n')
+    text.append('z : \n')
+    text.append('F11 : \n')
+    text.append('? : \n')
+    text.append('Esc : \n\n')
+    text.append('Mouse controls\n')
+    text.append('click on data :\n')
 
     text2.append('Navigate left\n')
     text2.append('Navigate right\n')
@@ -369,15 +371,16 @@ def _get_help_text(params):
     text2.append('Scale down\n')
     text2.append('Scale up\n')
 
+    text2.append('Toggle scrollbars\n')
     text2.append('Toggle full screen mode\n')
     text2.append('Open help box\n')
     text2.append('Quit\n\n\n')
     if 'raw' in params:
         text2.insert(4, 'Reduce the time shown per view\n')
         text2.insert(5, 'Increase the time shown per view\n')
-        text.append(u'click elsewhere in the plot :\n')
+        text.append('click elsewhere in the plot :\n')
         if 'ica' in params:
-            text.append(u'click component name :\n')
+            text.append('click component name :\n')
             text2.insert(2, 'Navigate components down\n')
             text2.insert(3, 'Navigate components up\n')
             text2.insert(8, 'Reduce the number of components per view\n')
@@ -386,20 +389,20 @@ def _get_help_text(params):
             text2.append('Vertical line at a time instant\n')
             text2.append('Show topography for the component\n')
         else:
-            text.append(u'click channel name :\n')
+            text.append('click channel name :\n')
             text2.insert(2, 'Navigate channels down\n')
             text2.insert(3, 'Navigate channels up\n')
-            text.insert(6, u'a : \n')
+            text.insert(6, 'a : \n')
             text2.insert(6, 'Toggle annotation mode\n')
 
-            text.insert(7, u'p : \n')
+            text.insert(7, 'p : \n')
             text2.insert(7, 'Toggle snap to annotations on/off\n')
 
-            text.insert(8, u'b : \n')
+            text.insert(8, 'b : \n')
             text2.insert(8, 'Toggle butterfly plot on/off\n')
-            text.insert(9, u'd : \n')
+            text.insert(9, 'd : \n')
             text2.insert(9, 'Toggle remove DC on/off\n')
-            text.insert(10, u's : \n')
+            text.insert(10, 's : \n')
             text2.insert(10, 'Toggle scale bars\n')
             if 'fig_selection' not in params:
                 text2.insert(13, 'Reduce the number of channels per view\n')
@@ -409,11 +412,11 @@ def _get_help_text(params):
             text2.append('Mark bad channel\n')
 
     elif 'epochs' in params:
-        text.append(u'right click :\n')
+        text.append('right click :\n')
         text2.insert(4, 'Reduce the number of epochs per view\n')
         text2.insert(5, 'Increase the number of epochs per view\n')
         if 'ica' in params:
-            text.append(u'click component name :\n')
+            text.append('click component name :\n')
             text2.insert(2, 'Navigate components down\n')
             text2.insert(3, 'Navigate components up\n')
             text2.insert(8, 'Reduce the number of components per view\n')
@@ -422,23 +425,23 @@ def _get_help_text(params):
             text2.append('Vertical line at a time instant\n')
             text2.append('Show topography for the component\n')
         else:
-            text.append(u'click channel name :\n')
-            text.append(u'right click channel name :\n')
+            text.append('click channel name :\n')
+            text.append('right click channel name :\n')
             text2.insert(2, 'Navigate channels down\n')
             text2.insert(3, 'Navigate channels up\n')
             text2.insert(8, 'Reduce the number of channels per view\n')
             text2.insert(9, 'Increase the number of channels per view\n')
-            text.insert(10, u'b : \n')
+            text.insert(10, 'b : \n')
             text2.insert(10, 'Toggle butterfly plot on/off\n')
-            text.insert(11, u'h : \n')
+            text.insert(11, 'h : \n')
             text2.insert(11, 'Show histogram of peak-to-peak values\n')
             text2.append('Mark bad epoch\n')
             text2.append('Vertical line at a time instant\n')
             text2.append('Mark bad channel\n')
             text2.append('Plot ERP/ERF image\n')
-            text.append(u'middle click :\n')
+            text.append('middle click :\n')
             text2.append('Show channel name (butterfly plot)\n')
-        text.insert(11, u'o : \n')
+        text.insert(11, 'o : \n')
         text2.insert(11, 'View settings (orig. view only)\n')
 
     return ''.join(text), ''.join(text2)
@@ -522,63 +525,162 @@ def _simplify_float(label):
     return label
 
 
-def _layout_figure(params):
-    """Set figure layout. Shared with raw and epoch plots."""
-    size = params['fig'].get_size_inches() * params['fig'].dpi
+def _get_figsize_from_config():
+    """Get default / most recent figure size from config."""
+    figsize = get_config('MNE_BROWSE_RAW_SIZE')
+    if figsize is not None:
+        figsize = figsize.split(',')
+        figsize = tuple([float(s) for s in figsize])
+    return figsize
+
+
+def _get_figsize_px(fig):
+    """Get figure size in pixels."""
+    dpi_ratio = _get_dpi_ratio(fig)
+    size = fig.get_size_inches() * fig.dpi / dpi_ratio
+    return size
+
+
+def _get_dpi_ratio(fig):
+    """Get DPI ratio (to handle hi-DPI screens)."""
     dpi_ratio = 1.
     for key in ('_dpi_ratio', '_device_scale'):
-        dpi_ratio = getattr(params["fig"].canvas, key, dpi_ratio)
-    size /= dpi_ratio  # account for HiDPI resolutions
+        dpi_ratio = getattr(fig.canvas, key, dpi_ratio)
+    return dpi_ratio
 
-    scroll_width = 25
-    hscroll_dist = 25
-    vscroll_dist = 10
-    l_border = 100
-    r_border = 10
-    t_border = 35
-    b_border = 45
 
-    # only bother trying to reset layout if it's reasonable to do so
-    if size[0] < 2 * scroll_width or size[1] < 2 * scroll_width + hscroll_dist:
-        return
+def _inch_to_rel_dist(fig, dim_inches, horiz=True):
+    """Convert inches to figure-relative distances."""
+    fig_w_px, fig_h_px = _get_figsize_px(fig)
+    w_or_h = fig_w_px if horiz else fig_h_px
+    return dim_inches * fig.dpi / _get_dpi_ratio(fig) / w_or_h
 
-    # convert to relative units
-    scroll_width_x = scroll_width / size[0]
-    scroll_width_y = scroll_width / size[1]
-    vscroll_dist /= size[0]
-    hscroll_dist /= size[1]
-    l_border /= size[0]
-    r_border /= size[0]
-    t_border /= size[1]
-    b_border /= size[1]
-    # main axis (traces)
-    ax_width = 1.0 - scroll_width_x - l_border - r_border - vscroll_dist
-    ax_y = hscroll_dist + scroll_width_y + b_border
-    ax_height = 1.0 - ax_y - t_border
 
-    pos = [l_border, ax_y, ax_width, ax_height]
+def _update_borders(params, new_width, new_height):
+    """Update figure borders to maintain fixed size in inches/pixels."""
+    old_width, old_height = params['fig_size_px']
+    new_borders = dict()
+    sides = ('left', 'right', 'bottom', 'top')
+    for side in sides:
+        horiz = side in ('left', 'right')
+        ratio = (old_width / new_width) if horiz else (old_height / new_height)
+        rel_dim = getattr(params['fig'].subplotpars, side)
+        if side in ('right', 'top'):
+            rel_dim = (1 - rel_dim)
+        rel_dim = rel_dim * ratio
+        if side in ('right', 'top'):
+            rel_dim = (1 - rel_dim)
+        new_borders[side] = rel_dim
+    # zen mode adjustment
+    params['zen_w_delta'] *= old_width / new_width
+    params['zen_h_delta'] *= old_height / new_height
+    # update
+    params['fig'].subplots_adjust(**new_borders)
 
-    params['ax'].set_position(pos)
-    if 'ax2' in params:
-        params['ax2'].set_position(pos)
-    params['ax'].set_position(pos)
-    # vscroll (channels)
-    pos = [ax_width + l_border + vscroll_dist, ax_y,
-           scroll_width_x, ax_height]
-    params['ax_vscroll'].set_position(pos)
-    # hscroll (time)
-    pos = [l_border, b_border, ax_width, scroll_width_y]
-    params['ax_hscroll'].set_position(pos)
-    if 'ax_button' in params:
-        # options button
-        pos = [l_border + ax_width + vscroll_dist, b_border,
-               scroll_width_x, scroll_width_y]
-        params['ax_button'].set_position(pos)
-    if 'ax_help_button' in params:
-        pos = [l_border - vscroll_dist - scroll_width_x * 2, b_border,
-               scroll_width_x * 2, scroll_width_y]
-        params['ax_help_button'].set_position(pos)
-    params['fig'].canvas.draw()
+
+def _toggle_scrollbars(params):
+    """Show or hide scrollbars (AKA zen mode) in mne_browse-style plots."""
+    if params.get('show_scrollbars', None) is not None:
+        # grow/shrink main axes to take up space from/make room for scrollbars
+        # can't use ax.set_position() because axes are locatable, so we have to
+        # fake it with subplots_adjust
+        should_show = not params['show_scrollbars']
+        sides = ('left', 'bottom', 'right', 'top')
+        borders = {side: getattr(params['fig'].subplotpars, side)
+                   for side in sides}
+        # if should_show, bottom margin moves up; right margin moves left
+        borders['bottom'] += (1 if should_show else -1) * params['zen_h_delta']
+        borders['right'] += (-1 if should_show else 1) * params['zen_w_delta']
+        # squeeze a little more because we don't need space for "Time (s)" now
+        v_delta = _inch_to_rel_dist(params['fig'], 0.16, horiz=False)
+        borders['bottom'] += (1 if should_show else -1) * v_delta
+        params['fig'].subplots_adjust(**borders)
+        # show/hide
+        for element in ('ax_hscroll', 'ax_vscroll', 'ax_button', 'ax_help'):
+            if params.get('butterfly', False) and element == 'ax_vscroll':
+                continue
+            # sometimes we don't have a proj button (ax_button)
+            if params.get(element, None) is not None:
+                params[element].set_visible(should_show)
+        params['show_scrollbars'] = should_show
+        params['fig'].canvas.draw()
+
+
+def _prepare_mne_browse(params, xlabel):
+    """Set up axes for mne_browse_* style raw/epochs/ICA plots."""
+    import matplotlib as mpl
+    from mpl_toolkits.axes_grid1.axes_size import Fixed
+    from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+
+    fig = params['fig']
+    fig_w_px, fig_h_px = _get_figsize_px(fig)
+    params['fig_size_px'] = fig_w_px, fig_h_px  # store for on_resize callback
+    # default sizes (inches)
+    scroll_width = 0.25
+    hscroll_dist = 0.25
+    vscroll_dist = 0.1
+    l_border = 1.
+    r_border = 0.1
+    b_border = 0.45
+    t_border = 0.25
+    help_width = scroll_width * 2
+    # default borders (figure-relative coordinates)
+    fig.subplots_adjust(
+        left=_inch_to_rel_dist(fig, l_border - vscroll_dist - help_width),
+        right=1 - _inch_to_rel_dist(fig, r_border),
+        bottom=_inch_to_rel_dist(fig, b_border, horiz=False),
+        top=1 - _inch_to_rel_dist(fig, t_border, horiz=False)
+    )
+    # Main axes must be a `subplot` for `subplots_adjust` to work (so user can
+    # adjust margins). That's why we don't use the Divider class directly.
+    ax = fig.add_subplot(1, 1, 1)
+    div = make_axes_locatable(ax)
+    ax_hscroll = div.append_axes(position='bottom', size=Fixed(scroll_width),
+                                 pad=Fixed(hscroll_dist))
+    ax_vscroll = div.append_axes(position='right', size=Fixed(scroll_width),
+                                 pad=Fixed(vscroll_dist))
+    # proj button (optionally) added later, but easiest to compute position now
+    proj_button_pos = [
+        1 - _inch_to_rel_dist(fig, r_border + scroll_width),  # left
+        _inch_to_rel_dist(fig, b_border, horiz=False),        # bottom
+        _inch_to_rel_dist(fig, scroll_width),                 # width
+        _inch_to_rel_dist(fig, scroll_width, horiz=False)     # height
+    ]
+    params['proj_button_pos'] = proj_button_pos
+    params['proj_button_locator'] = div.new_locator(nx=2, ny=0)
+    # initialize help button axes in the wrong spot...
+    ax_help = div.append_axes(position='left', size=Fixed(help_width),
+                              pad=Fixed(vscroll_dist))
+    # ...then move it down by changing its locator, and make it a button.
+    loc = div.new_locator(nx=0, ny=0)
+    ax_help.set_axes_locator(loc)
+    help_button = mpl.widgets.Button(ax_help, 'Help')
+    help_button.on_clicked(partial(_onclick_help, params=params))
+    # style scrollbars
+    ax_hscroll.get_yaxis().set_visible(False)
+    ax_hscroll.set_xlabel(xlabel)
+    ax_vscroll.set_axis_off()
+    # store these so they can be modified elsewhere
+    params['ax'] = ax
+    params['ax_hscroll'] = ax_hscroll
+    params['ax_vscroll'] = ax_vscroll
+    params['ax_help'] = ax_help
+    params['help_button'] = help_button
+    # default key to close window
+    params['close_key'] = 'escape'
+    # add resize callback (it's the same for Raw/Epochs/ICA)
+    callback_resize = partial(_resize_event, params=params)
+    params['fig'].canvas.mpl_connect('resize_event', callback_resize)
+    # zen mode
+    fig.canvas.draw()  # otherwise the get_position() calls are inaccurate
+    params['zen_w_delta'] = (ax_vscroll.get_position().xmax -
+                             ax.get_position().xmax)
+    params['zen_h_delta'] = (ax.get_position().ymin -
+                             ax_hscroll.get_position().ymin)
+    if not params.get('show_scrollbars', True):
+        # change to True so toggle func will do the right thing
+        params['show_scrollbars'] = True
+        _toggle_scrollbars(params)
 
 
 @verbose
@@ -646,11 +748,13 @@ def figure_nobar(*args, **kwargs):
     return fig
 
 
-def _helper_raw_resize(event, params):
-    """Resize."""
+def _resize_event(event, params):
+    """Handle resize event for mne_browse-style plots (Raw/Epochs/ICA)."""
     size = ','.join([str(s) for s in params['fig'].get_size_inches()])
     set_config('MNE_BROWSE_RAW_SIZE', size, set_env=False)
-    _layout_figure(params)
+    new_width, new_height = _get_figsize_px(params['fig'])
+    _update_borders(params, new_width, new_height)
+    params['fig_size_px'] = (new_width, new_height)
 
 
 def _plot_raw_onscroll(event, params, len_channels=None):
@@ -738,12 +842,10 @@ def _radio_clicked(label, params):
     params['plot_fun']()
 
 
-def _get_active_radiobutton(radio):
+def _get_active_radio_idx(radio):
     """Find out active radio button."""
-    # XXX: In mpl 1.5 you can do: fig.radio.value_selected
-    colors = np.array([np.sum(circle.get_facecolor()) for circle
-                       in radio.circles])
-    return np.where(colors < 4.0)[0][0]  # return idx where color != white
+    labels = [label.get_text() for label in radio.labels]
+    return labels.index(radio.value_selected)
 
 
 def _set_annotation_radio_button(idx, params):
@@ -898,11 +1000,13 @@ def _plot_raw_onkey(event, params):
         if not params['snap_annotations']:
             _on_hover(None, params)
         params['plot_fun']()
+    elif event.key == 'z':
+        # zen mode: remove scrollbars and buttons
+        _toggle_scrollbars(params)
 
 
 def _setup_annotation_fig(params):
     """Initialize the annotation figure."""
-    from matplotlib import __version__
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RadioButtons, SpanSelector, Button
     if params['fig_annotation'] is not None:
@@ -962,11 +1066,6 @@ def _setup_annotation_fig(params):
     if len(labels) == 0:
         selector.active = False
     params['ax'].selector = selector
-    if LooseVersion(__version__) < LooseVersion('1.5'):
-        # XXX: Hover event messes up callback ids in old mpl.
-        warn('Modifying existing annotations is not possible for '
-             'matplotlib versions < 1.4. Upgrade matplotlib.')
-        return
     hover_callback = partial(_on_hover, params=params)
     params['hover_callback'] = params['fig'].canvas.mpl_connect(
         'motion_notify_event', hover_callback)
@@ -1283,10 +1382,7 @@ def _fake_click(fig, ax, point, xform='ax', button=1, kind='press'):
                        button=button)
     elif kind == 'motion':
         func = partial(fig.canvas.motion_notify_event, x=x, y=y)
-    try:
-        func(guiEvent=None)
-    except Exception:  # for old MPL
-        func()
+    func(guiEvent=None)
 
 
 def add_background_image(fig, im, set_ratios=None):
@@ -1978,7 +2074,7 @@ def _annotate_select(vmin, vmax, params):
     raw = params['raw']
     onset = _sync_onset(raw, vmin, True) - params['first_time']
     duration = vmax - vmin
-    active_idx = _get_active_radiobutton(params['fig_annotation'].radio)
+    active_idx = _get_active_radio_idx(params['fig_annotation'].radio)
     description = params['fig_annotation'].radio.labels[active_idx].get_text()
     _merge_annotations(onset, onset + duration, description,
                        raw.annotations)
@@ -2060,7 +2156,6 @@ def _setup_annotation_colors(params):
 
 def _annotations_closed(event, params):
     """Clean up on annotation dialog close."""
-    from matplotlib import __version__
     import matplotlib.pyplot as plt
     plt.close(params['fig_annotation'])
     if params['ax'].selector is not None:
@@ -2070,8 +2165,7 @@ def _annotations_closed(event, params):
     if params['segment_line'] is not None:
         params['segment_line'].remove()
         params['segment_line'] = None
-    if LooseVersion(__version__) >= LooseVersion('1.5'):
-        params['fig'].canvas.mpl_disconnect(params['hover_callback'])
+    params['fig'].canvas.mpl_disconnect(params['hover_callback'])
     params['fig_annotation'] = None
     params['fig'].canvas.draw()
 
@@ -2195,7 +2289,7 @@ def _change_annotation_description(event, params):
 
 def _annotation_radio_clicked(label, radio, selector):
     """Handle annotation radio buttons."""
-    idx = _get_active_radiobutton(radio)
+    idx = _get_active_radio_idx(radio)
     color = radio.circles[idx].get_edgecolor()
     selector.rect.set_color(color)
     selector.rectprops.update(dict(facecolor=color))
@@ -2272,7 +2366,7 @@ def _setup_butterfly(params):
         _setup_browser_offsets(params, max([params['n_channels'], 1]))
         if 'fig_selection' in params:
             radio = params['fig_selection'].radio
-            active_idx = _get_active_radiobutton(radio)
+            active_idx = _get_active_radio_idx(radio)
             _radio_clicked(radio.labels[active_idx]._text, params)
     # For now, italics only work in non-grouped mode
     _set_ax_label_style(ax, params, italicize=not butterfly)
@@ -2366,14 +2460,6 @@ class DraggableLine(object):
         self.line.figure.canvas.mpl_disconnect(self.cidrelease)
         self.line.figure.canvas.mpl_disconnect(self.cidmotion)
         self.line.figure.axes[0].lines.remove(self.line)
-
-
-def _set_ax_facecolor(ax, face_color):
-    """Fix call for old MPL."""
-    try:
-        ax.set_facecolor(face_color)
-    except AttributeError:
-        ax.set_axis_bgcolor(face_color)
 
 
 def _setup_ax_spines(axes, vlines, xmin, xmax, ymin, ymax, invert_y=False,
@@ -2656,7 +2742,7 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
                        mask_style="both", mask_alpha=.25, mask_cmap="Greys",
                        yscale="linear"):
     """Plot a potentially masked (evoked, TFR, ...) 2D image."""
-    from matplotlib import ticker, __version__ as v
+    from matplotlib import ticker, __version__ as mpl_version
 
     if mask_style is None and mask is not None:
         mask_style = "both"  # default
@@ -2713,7 +2799,7 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
             yscale = 'linear'
 
     # https://github.com/matplotlib/matplotlib/pull/9477
-    if yscale == "log" and v == "2.1.0":
+    if yscale == "log" and mpl_version == "2.1.0":
         warn("With matplotlib version 2.1.0, lines may not show up in "
              "`AverageTFR.plot_joint`. Upgrade to a more recent version.")
 
@@ -2864,16 +2950,17 @@ def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
 def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     """Set PSD plot params."""
     import matplotlib.pyplot as plt
-    _data_types = ('mag', 'grad', 'eeg', 'seeg', 'ecog')
+    _data_types = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'fnirs_raw')
     _check_option('area_mode', area_mode, [None, 'std', 'range'])
     picks = _picks_to_idx(info, picks)
 
     # XXX this could be refactored more with e.g., plot_evoked
     # XXX when it's refactored, Report._render_raw will need to be updated
-    megs = ['mag', 'grad', False, False, False]
-    eegs = [False, False, True, False, False]
-    seegs = [False, False, False, True, False]
-    ecogs = [False, False, False, False, True]
+    megs = ['mag', 'grad', False, False, False, False]
+    eegs = [False, False, True, False, False, False]
+    seegs = [False, False, False, True, False, False]
+    ecogs = [False, False, False, False, True, False]
+    fnirss = [False, False, False, False, False, 'fnirs_raw']
     titles = _handle_default('titles', None)
     units = _handle_default('units', None)
     scalings = _handle_default('scalings', None)
@@ -2881,10 +2968,10 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     titles_list = list()
     units_list = list()
     scalings_list = list()
-    for meg, eeg, seeg, ecog, name in zip(megs, eegs, seegs, ecogs,
-                                          _data_types):
+    for meg, eeg, seeg, ecog, fnirs, name in zip(megs, eegs, seegs, ecogs,
+                                                 fnirss, _data_types):
         these_picks = pick_types(info, meg=meg, eeg=eeg, seeg=seeg, ecog=ecog,
-                                 ref_meg=False, exclude=[])
+                                 ref_meg=False, fnirs=fnirs, exclude=[])
         these_picks = np.intersect1d(these_picks, picks)
         if len(these_picks) > 0:
             picks_list.append(these_picks)
@@ -3028,7 +3115,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
         info['chs'] = [inst.info['chs'][p] for p in picks]
         valid_channel_types = ['mag', 'grad', 'eeg', 'seeg', 'eog', 'ecg',
                                'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
-                               'hbr', 'misc']
+                               'hbr', 'misc', 'fnirs_raw', 'fnirs_od']
         ch_types_used = list()
         for this_type in valid_channel_types:
             if this_type in types:

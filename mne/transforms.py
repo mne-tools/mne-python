@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Helpers for various transformations."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD (3-clause)
@@ -19,7 +19,8 @@ from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
-from .utils import check_fname, logger, verbose, _ensure_int
+from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
+                    _check_path_like, get_subjects_dir)
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -173,14 +174,17 @@ def _coord_frame_name(cframe):
     return _verbose_frames.get(int(cframe), 'unknown')
 
 
-def _print_coord_trans(t, prefix='Coordinate transformation: '):
-    logger.info(prefix + '%s -> %s'
-                % (_coord_frame_name(t['from']), _coord_frame_name(t['to'])))
+def _print_coord_trans(t, prefix='Coordinate transformation: ', units='m',
+                       level='info'):
+    # Units gives the units of the transformation. This always prints in mm.
+    log_func = getattr(logger, level)
+    log_func(prefix + '%s -> %s'
+             % (_coord_frame_name(t['from']), _coord_frame_name(t['to'])))
     for ti, tt in enumerate(t['trans']):
-        scale = 1000. if ti != 3 else 1.
+        scale = 1000. if (ti != 3 and units != 'mm') else 1.
         text = ' mm' if ti != 3 else ''
-        logger.info('    % 8.6f % 8.6f % 8.6f    %7.2f%s' %
-                    (tt[0], tt[1], tt[2], scale * tt[3], text))
+        log_func('    % 8.6f % 8.6f % 8.6f    %7.2f%s' %
+                 (tt[0], tt[1], tt[2], scale * tt[3], text))
 
 
 def _find_trans(subject, subjects_dir=None):
@@ -432,7 +436,11 @@ def _ensure_trans(trans, fro='mri', to='head'):
 
 def _get_trans(trans, fro='mri', to='head'):
     """Get mri_head_t (from=mri, to=head) from mri filename."""
-    if isinstance(trans, str):
+    if _check_path_like(trans):
+        trans = str(trans)
+        if trans == 'fsaverage':
+            trans = op.join(op.dirname(__file__), 'data', 'fsaverage',
+                            'fsaverage-trans.fif')
         if not op.isfile(trans):
             raise IOError('trans file "%s" not found' % trans)
         if op.splitext(trans)[1] in ['.fif', '.gz']:
@@ -683,8 +691,9 @@ def _cart_to_sph(cart):
     cart = np.atleast_2d(cart)
     out = np.empty((len(cart), 3))
     out[:, 0] = np.sqrt(np.sum(cart * cart, axis=1))
+    norm = np.where(out[:, 0] > 0, out[:, 0], 1)  # protect against / 0
     out[:, 1] = np.arctan2(cart[:, 1], cart[:, 0])
-    out[:, 2] = np.arccos(cart[:, 2] / out[:, 0])
+    out[:, 2] = np.arccos(cart[:, 2] / norm)
     out = np.nan_to_num(out)
     return out
 
@@ -1291,6 +1300,19 @@ def _average_quats(quats, weights=None):
     return avg_quat
 
 
+def _read_ras_mni_t(subject, subjects_dir=None):
+    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
+                                    raise_error=True)
+    _validate_type(subject, 'str', 'subject')
+    fname = op.join(subjects_dir, subject, 'mri', 'transforms',
+                    'talairach.xfm')
+    if not op.isfile(fname):
+        raise FileNotFoundError(
+            'FreeSurfer Talairach transformation file not found: %s'
+            % (fname,))
+    return Transform('ras', 'mni_tal', _read_fs_xfm(fname)[0])
+
+
 def _read_fs_xfm(fname):
     """Read a Freesurfer transform from a .xfm file."""
     assert fname.endswith('.xfm')
@@ -1303,6 +1325,7 @@ def _read_fs_xfm(fname):
         for li, line in enumerate(fid):
             if li == 0:
                 kind = line.strip()
+                logger.debug('Found: %r' % (kind,))
             if line[:len(comp)] == comp:
                 # we have the right line, so don't read any more
                 break

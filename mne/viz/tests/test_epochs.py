@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -180,14 +180,11 @@ def test_plot_epochs_image():
     # test order=callable
     epochs.plot_image(picks=[0, 1],
                       order=lambda times, data: np.arange(len(data))[::-1])
-    # test deprecation
-    with pytest.warns(DeprecationWarning, match='group_by="type" is no longe'):
-        epochs.plot_image(group_by='type')
     # test warning
     with pytest.warns(RuntimeWarning, match='Only one channel in group'):
         epochs.plot_image(picks=[1], combine='mean')
     # group_by should be a dict
-    with pytest.raises(AttributeError, match="has no attribute 'items'"):
+    with pytest.raises(TypeError, match="dict or None"):
         epochs.plot_image(group_by='foo')
     # units and scalings keys must match
     with pytest.raises(ValueError, match='Scalings and units must have the'):

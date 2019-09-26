@@ -20,8 +20,8 @@
 .. |Zenodo| image:: https://zenodo.org/badge/5822/mne-tools/mne-python.svg
 .. _Zenodo: https://zenodo.org/badge/latestdoi/5822/mne-tools/mne-python
 
-.. |MNE| image:: https://martinos.org/mne/stable/_static/mne_logo.png
-.. _MNE: https://martinos.org/mne
+.. |MNE| image:: https://mne.tools/stable/_static/mne_logo.png
+.. _MNE: https://mne.tools/dev/
 
 MNE-Python
 ==========
@@ -48,10 +48,12 @@ To install the latest stable version of MNE-Python, you can use pip_ in a termin
 
     pip install -U mne
 
-**Note** that MNE-Python 0.17 will be the last release to support Python 2. From MNE-Python 0.18, only Python 3 will be supported.
+**Note** that MNE-Python 0.17 was the last release to support Python 2.
+MNE-Python 0.18 only works under Python 3, and MNE-Python 0.19 requires
+Python 3.5 or higher.
 
 For more complete instructions and more advanced installation methods (e.g. for
-the latest development version), see the `getting started page`_.
+the latest development version), see the `installation guide`_.
 
 
 Get the latest code
@@ -79,22 +81,21 @@ Dependencies
 The minimum required dependencies to run MNE-Python are:
 
 - Python >= 3.5
-- NumPy >= 1.11.3
-- SciPy >= 0.17.1
+- NumPy >= 1.12.1
+- SciPy >= 0.18.1
 
 For full functionality, some functions require:
 
-- Matplotlib >= 1.5
+- Matplotlib >= 2.0.2
 - Mayavi >= 4.6
 - PySurfer >= 0.8
-- Scikit-learn >= 0.18
+- Scikit-learn >= 0.18.2
 - Numba >= 0.40
 - NiBabel >= 2.1.0
-- Pandas >= 0.18
+- Pandas >= 0.19.2
 - Picard >= 0.3
 - CuPy >= 4.0 (for NVIDIA CUDA acceleration)
 - DIPY >= 0.10.1
-- PyLSL >= 1.12
 - PyVista >= 0.20.1
 
 Contributing to MNE-Python
@@ -102,7 +103,7 @@ Contributing to MNE-Python
 
 Please see the documentation on the MNE-Python homepage:
 
-https://martinos.org/mne/contributing.html
+https://mne.tools/dev/install/contributing.html
 
 
 Mailing list
@@ -150,7 +151,7 @@ MNE-Python is **BSD-licenced** (3 clause):
     damage.**
 
 
-.. _MNE-Python software: https://martinos.org/mne
-.. _MNE documentation: http://martinos.org/mne/documentation.html
-.. _getting started page: https://martinos.org/mne/getting_started.html
+.. _MNE-Python software: https://mne.tools/dev/
+.. _MNE documentation: https://mne.tools/dev/overview/index.html
+.. _installation guide: https://mne.tools/dev/install/index.html
 .. _pip: https://pip.pypa.io/en/stable/

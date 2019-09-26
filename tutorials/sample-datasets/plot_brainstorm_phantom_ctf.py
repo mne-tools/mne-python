@@ -92,7 +92,7 @@ evoked.crop(0., 0.)
 ###############################################################################
 # .. _plt_brainstorm_phantom_ctf_eeg_sphere_geometry:
 #
-# Let's use a :ref:`sphere head geometry model <ch_forward_spherical_model>`
+# Let's use a :ref:`sphere head geometry model <eeg_sphere_model>`
 # and let's see the coordinate alignment and the sphere location.
 sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=None)
 

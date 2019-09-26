@@ -99,17 +99,17 @@ mne.viz.plot_alignment(info, trans, subject=subject, dig=True,
 # The source space defines the position and orientation of the candidate source
 # locations. There are two types of source spaces:
 #
-# - **source-based** source space when the candidates are confined to a
+# - **surface-based** source space when the candidates are confined to a
 #   surface.
 #
 # - **volumetric or discrete** source space when the candidates are discrete,
 #   arbitrarily located source points bounded by the surface.
 #
-# **Source-based** source space is computed using
+# **Surface-based** source space is computed using
 # :func:`mne.setup_source_space`, while **volumetric** source space is computed
 # using :func:`mne.setup_volume_source_space`.
 #
-# We will now compute a source-based source space with an OCT-6 resolution.
+# We will now compute a surface-based source space with an OCT-6 resolution.
 # See :ref:`setting_up_source_space` for details on source space definition
 # and spacing parameter.
 

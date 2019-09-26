@@ -84,6 +84,11 @@ autodoc_default_options = {'inherited-members': None}
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
+# List of patterns, relative to source directory, that match files and
+# directories to ignore when looking for source files.
+# This pattern also affects html_static_path and html_extra_path.
+exclude_patterns = ['_includes']
+
 # The suffix of source filenames.
 source_suffix = '.rst'
 
@@ -172,11 +177,11 @@ html_theme_options = {
     'bootstrap_version': "3",  # default
     'navbar_links': [
         ("Install", "install/index"),
-        ("Documentation", "documentation"),
-        ("API", "python_reference"),
-        ("Glossary", "glossary"),
-        ("Examples", "auto_examples/index"),
+        ("Overview", "overview/index"),
         ("Tutorials", "auto_tutorials/index"),
+        ("Examples", "auto_examples/index"),
+        ("Glossary", "glossary"),
+        ("API", "python_reference"),
         ("Contribute", "install/contributing"),
     ],
 }
@@ -309,7 +314,10 @@ intersphinx_mapping = {
     'surfer': ('https://pysurfer.github.io/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
     'statsmodels': ('http://www.statsmodels.org/stable/', None),
-    'dipy': ('https://dipy.org/documentation/latest/', None),
+    # There are some problems with dipy's redirect:
+    # https://github.com/nipy/dipy/issues/1955
+    'dipy': ('https://dipy.org/documentation/latest',
+             'https://dipy.org/documentation/1.0.0./objects.inv/'),
     'mne_realtime': ('https://mne.tools/mne-realtime', None),
     'picard': ('https://pierreablin.github.io/picard/', None),
 }
@@ -471,6 +479,7 @@ sphinx_gallery_conf = {
                                        '../examples/realtime/',
                                        '../examples/datasets/',
                                        '../tutorials/intro/',
+                                       '../tutorials/io/',
                                        '../tutorials/raw/',
                                        '../tutorials/preprocessing/',
                                        '../tutorials/epochs/',
@@ -519,6 +528,7 @@ numpydoc_xref_aliases = {
     'Axes': 'matplotlib.axes.Axes',
     'Figure': 'matplotlib.figure.Figure',
     'Axes3D': 'mpl_toolkits.mplot3d.axes3d.Axes3D',
+    'ColorbarBase': 'matplotlib.colorbar.ColorbarBase',
     # Mayavi
     'mayavi.mlab.Figure': 'mayavi.core.api.Scene',
     'mlab.Figure': 'mayavi.core.api.Scene',
@@ -529,9 +539,11 @@ numpydoc_xref_aliases = {
     # nibabel
     'Nifti1Image': 'nibabel.nifti1.Nifti1Image',
     'Nifti2Image': 'nibabel.nifti2.Nifti2Image',
+    'SpatialImage': 'nibabel.spatialimages.SpatialImage',
     # MNE
     'Label': 'mne.Label', 'Forward': 'mne.Forward', 'Evoked': 'mne.Evoked',
     'Info': 'mne.Info', 'SourceSpaces': 'mne.SourceSpaces',
+    'SourceMorph': 'mne.SourceMorph',
     'Epochs': 'mne.Epochs', 'Layout': 'mne.channels.Layout',
     'EvokedArray': 'mne.EvokedArray', 'BiHemiLabel': 'mne.BiHemiLabel',
     'AverageTFR': 'mne.time_frequency.AverageTFR',
@@ -580,9 +592,10 @@ numpydoc_xref_ignore = {
     'n_splits', 'n_scores', 'n_outputs', 'n_trials', 'n_estimators', 'n_tasks',
     'nd_features', 'n_classes', 'n_targets', 'n_slices', 'n_hpi', 'n_fids',
     'n_elp', 'n_pts', 'n_tris', 'n_nodes', 'n_nonzero', 'n_events_out',
+    'n_segments',
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
-    'RawBrainVision', 'RawCurry',
+    'RawBrainVision', 'RawCurry', 'RawNIRX',
     # sklearn subclasses
     'mapping', 'to', 'any',
     # unlinkable

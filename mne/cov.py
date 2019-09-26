@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Denis A. Engemann <denis.engemann@gmail.com>
 #
@@ -1136,8 +1136,8 @@ class _RegCovariance(BaseEstimator):
     """Aux class."""
 
     def __init__(self, info, grad=0.1, mag=0.1, eeg=0.1, seeg=0.1, ecog=0.1,
-                 hbo=0.1, hbr=0.1, store_precision=False,
-                 assume_centered=False):
+                 hbo=0.1, hbr=0.1, fnirs_raw=0.1, fnirs_od=0.1,
+                 store_precision=False, assume_centered=False):
         self.info = info
         # For sklearn compat, these cannot (easily?) be combined into
         # a single dictionary
@@ -1148,6 +1148,8 @@ class _RegCovariance(BaseEstimator):
         self.ecog = ecog
         self.hbo = hbo
         self.hbr = hbr
+        self.fnirs_raw = fnirs_raw
+        self.fnirs_od = fnirs_od
         self.store_precision = store_precision
         self.assume_centered = assume_centered
 
@@ -1430,6 +1432,7 @@ def _smart_eigh(C, info, rank, scalings=None, projs=None,
 @verbose
 def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
                proj=True, seeg=0.1, ecog=0.1, hbo=0.1, hbr=0.1,
+               fnirs_raw=0.1, fnirs_od=0.1,
                rank=None, scalings=None, verbose=None):
     """Regularize noise covariance matrix.
 
@@ -1440,8 +1443,8 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     .. note:: This function is kept for reasons of backward-compatibility.
               Please consider explicitly using the ``method`` parameter in
               :func:`mne.compute_covariance` to directly combine estimation
-              with regularization in a data-driven fashion.
-              See the `faq <http://martinos.org/mne/dev/faq.html#how-should-i-regularize-the-covariance-matrix>`_
+              with regularization in a data-driven fashion. See the `faq
+              <http://mne.tools/dev/overview/faq.html#how-should-i-regularize-the-covariance-matrix>`_
               for more information.
 
     Parameters
@@ -1470,6 +1473,10 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         Regularization factor for HBO signals.
     hbr : float (default 0.1)
         Regularization factor for HBR signals.
+    fnirs_raw : float (default 0.1)
+        Regularization factor for fNIRS raw signals.
+    fnirs_od : float (default 0.1)
+        Regularization factor for fNIRS optical density signals.
     %(rank_None)s
 
         .. versionadded:: 0.17

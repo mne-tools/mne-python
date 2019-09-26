@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
@@ -7,6 +7,7 @@
 #
 # License: BSD (3-clause)
 
+from collections import OrderedDict
 import datetime
 import os.path as op
 import re
@@ -33,6 +34,7 @@ from ..transforms import _to_const
 from ..transforms import _str_to_frame
 
 from ..utils.check import _check_option
+from ..utils import Bunch
 from .. import __version__
 
 from .base import _format_dig_points
@@ -90,6 +92,77 @@ def write_dig(fname, pts, coord_frame=None):
         end_file(fid)
 
 
+_cardinal_ident_mapping = {
+    FIFF.FIFFV_POINT_NASION: 'nasion',
+    FIFF.FIFFV_POINT_LPA: 'lpa',
+    FIFF.FIFFV_POINT_RPA: 'rpa',
+}
+
+
+def _foo_get_data_from_dig(dig):
+    # XXXX:
+    # This does something really similar to _read_dig_montage_fif but:
+    #   - does not check coord_frame
+    #   - does not do any operation that implies assumptions with the names
+
+    # Split up the dig points by category
+    hsp, hpi, elp = list(), list(), list()
+    fids, dig_ch_pos_location = dict(), list()
+
+    for d in dig:
+        if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
+            fids[_cardinal_ident_mapping[d['ident']]] = d['r']
+        elif d['kind'] == FIFF.FIFFV_POINT_HPI:
+            hpi.append(d['r'])
+            elp.append(d['r'])
+            # XXX: point_names.append('HPI%03d' % d['ident'])
+        elif d['kind'] == FIFF.FIFFV_POINT_EXTRA:
+            hsp.append(d['r'])
+        elif d['kind'] == FIFF.FIFFV_POINT_EEG:
+            # XXX: dig_ch_pos['EEG%03d' % d['ident']] = d['r']
+            dig_ch_pos_location.append(d['r'])
+
+    dig_coord_frames = set([d['coord_frame'] for d in dig])
+    assert len(dig_coord_frames) == 1, 'Only single coordinate frame in dig is supported' # noqa # XXX
+
+    return Bunch(
+        nasion=fids.get('nasion', None),
+        lpa=fids.get('lpa', None),
+        rpa=fids.get('rpa', None),
+        hsp=np.array(hsp) if len(hsp) else None,
+        hpi=np.array(hpi) if len(hpi) else None,
+        elp=np.array(elp) if len(elp) else None,
+        dig_ch_pos_location=dig_ch_pos_location,
+        coord_frame=dig_coord_frames.pop(),
+    )
+
+
+def _get_fid_coords(dig):
+    fid_coords = Bunch(nasion=None, lpa=None, rpa=None)
+    fid_coord_frames = dict()
+
+    for d in dig:
+        if d['kind'] == FIFF.FIFFV_POINT_CARDINAL:
+            key = _cardinal_ident_mapping[d['ident']]
+            fid_coords[key] = d['r']
+            fid_coord_frames[key] = d['coord_frame']
+
+    if len(fid_coord_frames) > 0:
+        if set(fid_coord_frames.keys()) != set(['nasion', 'lpa', 'rpa']):
+            raise ValueError("Some fiducial points are missing (got %s)." %
+                             fid_coords.keys())
+
+        if len(set(fid_coord_frames.values())) > 1:
+            raise ValueError(
+                'All fiducial points must be in the same coordinate system '
+                '(got %s)' % len(fid_coord_frames)
+            )
+
+    coord_frame = fid_coord_frames.popitem()[1] if fid_coord_frames else None
+
+    return fid_coords, coord_frame
+
+
 def _read_dig_points(fname, comments='%', unit='auto'):
     """Read digitizer data from a file.
 
@@ -119,6 +192,10 @@ def _read_dig_points(fname, comments='%', unit='auto'):
 
     _, ext = op.splitext(fname)
     if ext == '.elp' or ext == '.hsp':
+        # XXX: This should be dead code, but is deeply buried in
+        #      read_dig_montage. To be deprecated
+        # raise RuntimeError('if you are reading isotrak files please use'
+        #                    ' read_dig_polhemus_isotrak')
         with open(fname) as fid:
             file_str = fid.read()
         value_pattern = r"\-?\d+\.?\d*e?\-?\d*"
@@ -141,8 +218,8 @@ def _read_dig_points(fname, comments='%', unit='auto'):
             dig_points = dig_points[:, :3]
 
     if dig_points.shape[-1] != 3:
-        err = 'Data must be (n, 3) instead of %s' % (dig_points.shape,)
-        raise ValueError(err)
+        raise ValueError(
+            'Data must be of shape (n, 3) instead of %s' % (dig_points.shape,))
 
     if unit == 'mm':
         dig_points /= 1000.
@@ -261,7 +338,9 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                         'kind': FIFF.FIFFV_POINT_EXTRA,
                         'coord_frame': coord_frame})
     if dig_ch_pos is not None:
-        keys = sorted(dig_ch_pos.keys())
+        keys = dig_ch_pos.keys()
+        if not isinstance(dig_ch_pos, OrderedDict):
+            keys = sorted(keys)
         try:  # use the last 3 as int if possible (e.g., EEG001->1)
             idents = []
             for key in keys:

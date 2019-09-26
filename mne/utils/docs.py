@@ -229,6 +229,15 @@ exclude_frontal : bool
     If True, exclude points that have both negative Z values
     (below the nasion) and positivy Y values (in front of the LPA/RPA).
 """
+docdict['trans'] = """
+trans : str | dict | instance of Transform | None
+    If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+    during coregistration. Can also be ``'fsaverage'`` to use the built-in
+    fsaverage transformation. If trans is None, an identity matrix is assumed.
+
+    .. versionchanged:: 0.19
+       Support for 'fsaverage' argument.
+"""
 
 
 # Simulation
@@ -257,20 +266,20 @@ n_jobs : int
 
 # Random state
 docdict['random_state'] = """
-random_state : None | int | instance of ~numpy.random.mtrand.RandomState
+random_state : None | int | instance of ~numpy.random.RandomState
     If ``random_state`` is an :class:`int`, it will be used as a seed for
-    :class:`~numpy.random.mtrand.RandomState`. If ``None``, the seed will be
+    :class:`~numpy.random.RandomState`. If ``None``, the seed will be
     obtained from the operating system (see
-    :class:`~numpy.random.mtrand.RandomState` for details). Default is
+    :class:`~numpy.random.RandomState` for details). Default is
     ``None``.
 """
 
 docdict['seed'] = """
-seed : None | int | instance of ~numpy.random.mtrand.RandomState
+seed : None | int | instance of ~numpy.random.RandomState
     If ``seed`` is an :class:`int`, it will be used as a seed for
-    :class:`~numpy.random.mtrand.RandomState`. If ``None``, the seed will be
+    :class:`~numpy.random.RandomState`. If ``None``, the seed will be
     obtained from the operating system (see
-    :class:`~numpy.random.mtrand.RandomState` for details). Default is
+    :class:`~numpy.random.RandomState` for details). Default is
     ``None``.
 """
 
@@ -280,6 +289,15 @@ combine : None | str | callable
     How to combine information across channels. If a :class:`str`, must be
     one of 'mean', 'median', 'std' (standard deviation) or 'gfp' (global
     field power).
+"""
+
+docdict['show_scrollbars'] = """
+show_scrollbars : bool
+    Whether to show scrollbars when the plot is initialized. Can be toggled
+    after initialization by pressing :kbd:`z` ("zen mode") while the plot
+    window is focused. Default is ``True``.
+
+    .. versionadded:: 0.19.0
 """
 
 # PSD plotting
@@ -358,6 +376,50 @@ montage : str | None | instance of Montage
 
     DEPRECATED in version 0.19
     Use the `set_montage` method.
+"""
+
+# Brain plotting
+docdict["clim"] = """
+clim : str | dict
+    Colorbar properties specification. If 'auto', set clim automatically
+    based on data percentiles. If dict, should contain:
+
+        ``kind`` : 'value' | 'percent'
+            Flag to specify type of limits.
+        ``lims`` : list | np.ndarray | tuple of float, 3 elements
+            Lower, middle, and upper bounds for colormap.
+        ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
+            Lower, middle, and upper bound for colormap. Positive values
+            will be mirrored directly across zero during colormap
+            construction to obtain negative control points.
+
+    .. note:: Only one of ``lims`` or ``pos_lims`` should be provided.
+              Only sequential colormaps should be used with ``lims``, and
+              only divergent colormaps should be used with ``pos_lims``.
+"""
+docdict["clim_onesided"] = """
+clim : str | dict
+    Colorbar properties specification. If 'auto', set clim automatically
+    based on data percentiles. If dict, should contain:
+
+        ``kind`` : 'value' | 'percent'
+            Flag to specify type of limits.
+        ``lims`` : list | np.ndarray | tuple of float, 3 elements
+            Lower, middle, and upper bound for colormap.
+
+    Unlike :meth:`stc.plot <mne.SourceEstimate.plot>`, it cannot use
+    ``pos_lims``, as the surface plot must show the magnitude.
+"""
+docdict["colormap"] = """
+colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
+    Name of colormap to use or a custom look up table. If array, must
+    be (n x 3) or (n x 4) array for with RGB or RGBA values between
+    0 and 255.
+"""
+docdict["transparent"] = """
+transparent : bool | None
+    If True, use a linear transparency between fmin and fmid.
+    None will choose automatically based on colormap type.
 """
 
 # Finalize
@@ -678,7 +740,7 @@ def open_docs(kind=None, version=None):
     if version is None:
         version = get_config('MNE_DOCS_VERSION', 'stable')
     _check_option('version', version, ['stable', 'dev'])
-    webbrowser.open_new_tab('https://martinos.org/mne/%s/%s' % (version, kind))
+    webbrowser.open_new_tab('https://mne.tools/%s/%s' % (version, kind))
 
 
 # Following deprecated class copied from scikit-learn

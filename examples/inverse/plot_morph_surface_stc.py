@@ -27,8 +27,7 @@ References
        A Surface-based Analysis of Language Lateralization and Cortical
        Asymmetry. Journal of Cognitive Neuroscience 25(9), 1477-1492, 2013.
 
-.. note:: For a tutorial about morphing see:
-          :ref:`ch_morph`.
+.. note:: For background information about morphing see :ref:`ch_morph`.
 """
 # Author: Tommy Clausner <tommy.clausner@gmail.com>
 #

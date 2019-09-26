@@ -16,7 +16,7 @@
 # Dev branch marker is: 'X.Y.devN' where N is an integer.
 #
 
-__version__ = '0.19.dev0'
+__version__ = '0.20.dev0'
 
 # have to import verbose first since it's needed by many things
 from .utils import (set_log_level, set_log_file, verbose, set_config,
@@ -64,7 +64,7 @@ from .surface import (read_surface, write_surface, decimate_surface, read_tri,
                       read_morph_map, get_head_surf, get_meg_helmet_surf,
                       dig_mri_distances)
 from .morph import (SourceMorph, read_source_morph, grade_to_vertices,
-                    compute_morph_matrix, compute_source_morph)
+                    compute_source_morph)
 from .source_space import (read_source_spaces, vertex_to_mni,
                            head_to_mni, head_to_mri,
                            write_source_spaces, setup_source_space,

@@ -1,6 +1,6 @@
 """Functions to plot on circle as for connectivity."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
@@ -12,7 +12,7 @@ from functools import partial
 
 import numpy as np
 
-from .utils import plt_show, _set_ax_facecolor
+from .utils import plt_show
 
 
 def circular_layout(node_names, node_order, start_pos=90, start_between=True,
@@ -281,7 +281,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     if not isinstance(subplot, tuple):
         subplot = (subplot,)
     axes = plt.subplot(*subplot, polar=True)
-    _set_ax_facecolor(axes, facecolor)
+    axes.set_facecolor(facecolor)
 
     # No ticks, we'll put our own
     plt.xticks([])

@@ -33,12 +33,12 @@ def what(fname):
     from ..forward import read_forward_solution
     from ..minimum_norm import read_inverse_operator
     from ..source_space import read_source_spaces
-    from ..bem import read_bem_solution
-    from ..bem import read_bem_surfaces
+    from ..bem import read_bem_solution, read_bem_surfaces
     from ..cov import read_cov
     from ..transforms import read_trans
     from ..event import read_events
     from ..proj import read_proj
+    from .meas_info import read_fiducials
     _check_fname(fname, overwrite='read', must_exist=True)
     checks = OrderedDict()
     checks['raw'] = read_raw_fif
@@ -54,6 +54,7 @@ def what(fname):
     checks['transform'] = read_trans
     checks['events'] = read_events
     checks['proj'] = read_proj
+    checks['fiducials'] = read_fiducials
     for what, func in checks.items():
         args = _get_args(func)
         kwargs = dict()

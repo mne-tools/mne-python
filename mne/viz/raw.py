@@ -2,6 +2,7 @@
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
+#          Daniel McCloy <dan.mccloy@gmail.com>
 #
 # License: Simplified BSD
 
@@ -14,15 +15,14 @@ from ..annotations import _annotations_starts_stops
 from ..filter import create_filter, _overlap_add_filter
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
                        _PICK_TYPES_KEYS, pick_channels)
-from ..utils import (verbose, get_config, _ensure_int, _validate_type,
-                     _check_option)
+from ..utils import verbose, _ensure_int, _validate_type, _check_option
 from ..time_frequency import psd_welch
 from ..defaults import _handle_default
 from .topo import _plot_topo, _plot_timeseries, _plot_timeseries_unified
-from .utils import (_toggle_options, _toggle_proj, _layout_figure,
+from .utils import (_toggle_options, _toggle_proj, _prepare_mne_browse,
                     _plot_raw_onkey, figure_nobar, plt_show,
                     _plot_raw_onscroll, _mouse_click, _find_channel_idx,
-                    _helper_raw_resize, _select_bads, _onclick_help,
+                    _select_bads, _get_figsize_from_config,
                     _setup_browser_offsets, _compute_scalings, plot_sensors,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
                     _change_channel_group, _plot_annotations, _setup_butterfly,
@@ -45,7 +45,6 @@ def _plot_update_raw_proj(params, bools):
 
 def _update_raw_data(params):
     """Deal with time or proj changed."""
-    from scipy.signal import filtfilt
     start = params['t_start']
     start -= params['first_time']
     stop = params['raw'].time_as_index(start + params['duration'])[0]
@@ -64,13 +63,14 @@ def _update_raw_data(params):
         starts = np.maximum(starts[mask], start) - start
         stops = np.minimum(stops[mask], stop) - start
         for start_, stop_ in zip(starts, stops):
-            if isinstance(params['ba'], np.ndarray):
+            if isinstance(params['ba'], np.ndarray):  # FIR
                 data[data_picks, start_:stop_] = _overlap_add_filter(
                     data[data_picks, start_:stop_], params['ba'], copy=False)
-            else:
-                data[data_picks, start_:stop_] = filtfilt(
-                    params['ba'][0], params['ba'][1],
-                    data[data_picks, start_:stop_], axis=1, padlen=0)
+            else:  # IIR
+                from scipy.signal import sosfiltfilt
+                data[data_picks, start_:stop_] = sosfiltfilt(
+                    params['ba']['sos'], data[data_picks, start_:stop_],
+                    axis=1, padlen=0)
     # scale
     for di in range(data.shape[0]):
         ch_name = params['info']['ch_names'][di]
@@ -97,13 +97,15 @@ def _pick_bad_channels(event, params):
     _plot_update_raw_proj(params, None)
 
 
+@verbose
 def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
              show_first_samp=False, proj=True, group_by='type',
-             butterfly=False, decim='auto', noise_cov=None, event_id=None):
+             butterfly=False, decim='auto', noise_cov=None, event_id=None,
+             show_scrollbars=True, verbose=None):
     """Plot raw data.
 
     Parameters
@@ -172,6 +174,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         Highpass to apply when displaying data.
     lowpass : float | None
         Lowpass to apply when displaying data.
+        If highpass > lowpass, a bandstop rather than bandpass filter
+        will be applied.
     filtorder : int
         Filtering order. 0 will use FIR filtering with MNE defaults.
         Other values will construct an IIR filter of the given order
@@ -231,6 +235,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         theh event numbers).
 
         .. versionadded:: 0.16.0
+    %(show_scrollbars)s
+    %(verbose)s
 
     Returns
     -------
@@ -242,9 +248,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     The arrow keys (up/down/left/right) can typically be used to navigate
     between channels and time ranges, but this depends on the backend
     matplotlib is configured to use (e.g., mpl.use('TkAgg') should work). The
-    left/right arrows will scroll by 25% of ``duration``, whereas
-    shift+left/shift+right will scroll by 100% of ``duration``. The scaling can
-    be adjusted with - and + (or =) keys. The viewport dimensions can be
+    left/right arrows will scroll by 25%% of ``duration``, whereas
+    shift+left/shift+right will scroll by 100%% of ``duration``. The scaling
+    can be adjusted with - and + (or =) keys. The viewport dimensions can be
     adjusted with page up/page down and home/end keys. Full screen mode can be
     toggled with the F11 key. To mark or un-mark a channel as bad, click on a
     channel label or a channel trace. The changes will be reflected immediately
@@ -261,9 +267,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     By default, the channel means are removed when ``remove_dc`` is set to
     ``True``. This flag can be toggled by pressing 'd'.
     """
-    import matplotlib.pyplot as plt
     import matplotlib as mpl
-    from scipy.signal import butter
     from ..io.base import BaseRaw
     color = _handle_default('color', color)
     scalings = _compute_scalings(scalings, raw, remove_dc=remove_dc,
@@ -275,33 +279,22 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # figure out the IIR filtering parameters
     sfreq = raw.info['sfreq']
-    nyq = sfreq / 2.
+    if highpass is not None and highpass <= 0:
+        raise ValueError('highpass must be > 0, got %s' % (highpass,))
     if highpass is None and lowpass is None:
         ba = filt_bounds = None
     else:
+
         filtorder = int(filtorder)
-        if highpass is not None and highpass <= 0:
-            raise ValueError('highpass must be > 0, not %s' % highpass)
-        if lowpass is not None and lowpass >= nyq:
-            raise ValueError('lowpass must be < Nyquist (%s), not %s'
-                             % (nyq, lowpass))
-        if highpass is not None and lowpass is not None and \
-                lowpass <= highpass:
-            raise ValueError('lowpass (%s) must be > highpass (%s)'
-                             % (lowpass, highpass))
         if filtorder == 0:
-            ba = create_filter(np.zeros((1, int(round(duration * sfreq)))),
-                               sfreq, highpass, lowpass)
-        elif filtorder < 0:
-            raise ValueError('filtorder (%s) must be >= 0' % filtorder)
+            method = 'fir'
+            iir_params = None
         else:
-            if highpass is None:
-                Wn, btype = lowpass / nyq, 'lowpass'
-            elif lowpass is None:
-                Wn, btype = highpass / nyq, 'highpass'
-            else:
-                Wn, btype = [highpass / nyq, lowpass / nyq], 'bandpass'
-            ba = butter(filtorder, Wn, btype, analog=False)
+            method = 'iir'
+            iir_params = dict(order=filtorder, output='sos', ftype='butter')
+        ba = create_filter(np.zeros((1, int(round(duration * sfreq)))),
+                           sfreq, highpass, lowpass, method=method,
+                           iir_params=iir_params)
         filt_bounds = _annotations_starts_stops(
             raw, ('edge', 'bad_acq_skip'), invert=True)
 
@@ -338,7 +331,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     for t in ['grad', 'mag']:
         inds += [pick_types(info, meg=t, ref_meg=False, exclude=[])]
         types += [t] * len(inds[-1])
-    for t in ['hbo', 'hbr']:
+    for t in ['hbo', 'hbr', 'fnirs_raw']:
         inds += [pick_types(info, meg=False, ref_meg=False, fnirs=t,
                             exclude=[])]
         types += [t] * len(inds[-1])
@@ -403,7 +396,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   data_picks=data_picks, event_id_rev=event_id_rev,
                   noise_cov=noise_cov, use_noise_cov=noise_cov is not None,
                   filt_bounds=filt_bounds, units=units, snap_annotations=False,
-                  unit_scalings=unit_scalings, use_scalebars=True)
+                  unit_scalings=unit_scalings, use_scalebars=True,
+                  show_scrollbars=show_scrollbars)
 
     if group_by in ['selection', 'position']:
         params['fig_selection'] = fig_selection
@@ -430,23 +424,23 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     params['pick_bads_fun'] = partial(_pick_bad_channels, params=params)
     params['label_click_fun'] = partial(_label_clicked, params=params)
     params['scale_factor'] = 1.0
-    # set up callbacks
+    # set up proj button
     opt_button = None
     if len(raw.info['projs']) > 0 and not raw.proj:
-        ax_button = plt.subplot2grid((10, 10), (9, 9))
+        ax_button = params['fig'].add_axes(params['proj_button_pos'])
+        ax_button.set_axes_locator(params['proj_button_locator'])
         params['ax_button'] = ax_button
         params['apply_proj'] = proj
         opt_button = mpl.widgets.Button(ax_button, 'Proj')
         callback_option = partial(_toggle_options, params=params)
         opt_button.on_clicked(callback_option)
+    # set up callbacks
     callback_key = partial(_plot_raw_onkey, params=params)
     params['fig'].canvas.mpl_connect('key_press_event', callback_key)
     callback_scroll = partial(_plot_raw_onscroll, params=params)
     params['fig'].canvas.mpl_connect('scroll_event', callback_scroll)
     callback_pick = partial(_mouse_click, params=params)
     params['fig'].canvas.mpl_connect('button_press_event', callback_pick)
-    callback_resize = partial(_helper_raw_resize, params=params)
-    params['fig'].canvas.mpl_connect('resize_event', callback_resize)
 
     # As here code is shared with plot_evoked, some extra steps:
     # first the actual plot update function
@@ -462,7 +456,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
     # do initial plots
     callback_proj('none')
-    _layout_figure(params)
 
     # deal with projectors
     if show_options:
@@ -649,32 +642,16 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
 def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                             n_channels):
     """Set up the mne_browse_raw window."""
-    import matplotlib.pyplot as plt
     import matplotlib as mpl
-    size = get_config('MNE_BROWSE_RAW_SIZE')
-    if size is not None:
-        size = size.split(',')
-        size = tuple([float(s) for s in size])
-        size = tuple([float(s) for s in size])
 
-    fig = figure_nobar(facecolor=bgcolor, figsize=size)
-    fig.canvas.set_window_title(title or "Raw")
-    ax = plt.subplot2grid((10, 10), (0, 1), colspan=8, rowspan=9)
-    ax_hscroll = plt.subplot2grid((10, 10), (9, 1), colspan=8)
-    ax_hscroll.get_yaxis().set_visible(False)
-    ax_hscroll.set_xlabel('Time (s)')
-    ax_vscroll = plt.subplot2grid((10, 10), (0, 9), rowspan=9)
-    ax_vscroll.set_axis_off()
-    ax_help_button = plt.subplot2grid((10, 10), (0, 0), colspan=1)
-    help_button = mpl.widgets.Button(ax_help_button, 'Help')
-    help_button.on_clicked(partial(_onclick_help, params=params))
-    # store these so they can be fixed on resize
-    params['fig'] = fig
-    params['ax'] = ax
-    params['ax_hscroll'] = ax_hscroll
-    params['ax_vscroll'] = ax_vscroll
-    params['ax_help_button'] = ax_help_button
-    params['help_button'] = help_button
+    figsize = _get_figsize_from_config()
+    params['fig'] = figure_nobar(facecolor=bgcolor, figsize=figsize)
+    params['fig'].canvas.set_window_title(title or "Raw")
+    # most of the axes setup is done in _prepare_mne_browse
+    _prepare_mne_browse(params, xlabel='Time (s)')
+    ax = params['ax']
+    ax_hscroll = params['ax_hscroll']
+    ax_vscroll = params['ax_vscroll']
 
     # populate vertical and horizontal scrollbars
     info = params['info']
@@ -743,9 +720,6 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     params['fig_annotation'] = None
     params['fig_help'] = None
     params['segment_line'] = None
-
-    # default key to close window
-    params['close_key'] = 'escape'
 
 
 def _plot_raw_traces(params, color, bad_color, event_lines=None,
@@ -1082,7 +1056,6 @@ def _setup_browser_selection(raw, kind, selector=True):
     topo_ax = plt.subplot2grid((6, 1), (0, 0), rowspan=2, colspan=1)
     keys = np.concatenate([keys, ['Custom']])
     order.update({'Custom': list()})  # custom selection with lasso
-
     plot_sensors(raw.info, kind='select', ch_type='all', axes=topo_ax,
                  ch_groups=kind, title='', show=False)
     fig_selection.radio = RadioButtons(rax, [key for key in keys

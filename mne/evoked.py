@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Andrew Dykstra <andrew.r.dykstra@gmail.com>
@@ -18,7 +18,7 @@ from .channels.layout import _merge_grad_data, _pair_grad_sensors
 from .filter import detrend, FilterMixin
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc, _validate_type,
-                    fill_doc, _check_option, deprecated)
+                    fill_doc, _check_option)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
@@ -568,7 +568,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             .. versionadded:: 0.16
         """  # noqa: E501
         supported = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'misc', 'hbo',
-                     'hbr', 'None')
+                     'hbr', 'None', 'fnirs_raw', 'fnirs_od')
         data_picks = _pick_data_channels(self.info, with_ref_meg=False)
         types_used = {channel_type(self.info, idx) for idx in data_picks}
 
@@ -602,7 +602,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             seeg = True
         elif ch_type == 'ecog':
             ecog = True
-        elif ch_type in ('hbo', 'hbr'):
+        elif ch_type in ('hbo', 'hbr', 'fnirs_raw', 'fnirs_od'):
             fnirs = ch_type
 
         if ch_type is not None:
@@ -768,7 +768,7 @@ def _get_aspect(evoked, allow_maxshield):
     aspect = dir_tree_find(evoked, FIFF.FIFFB_ASPECT)
     if len(aspect) == 0:
         _check_maxshield(allow_maxshield)
-        aspect = dir_tree_find(evoked, FIFF.FIFFB_SMSH_ASPECT)
+        aspect = dir_tree_find(evoked, FIFF.FIFFB_IAS_ASPECT)
         is_maxshield = True
     if len(aspect) > 1:
         logger.info('Multiple data aspects found. Taking first one.')
@@ -782,46 +782,6 @@ def _get_evoked_node(fname):
         _, meas = read_meas_info(fid, tree, verbose=False)
         evoked_node = dir_tree_find(meas, FIFF.FIFFB_EVOKED)
     return evoked_node
-
-
-@deprecated('mne.evoked.grand_average is deprecated and will be removed in '
-            'v0.20; use mne.grand_average instead.')
-def grand_average(all_evoked, interpolate_bads=True, drop_bads=False):
-    """Make grand average of a list evoked data.
-
-    The function interpolates bad channels based on `interpolate_bads`
-    parameter. If `interpolate_bads` is True, the grand average
-    file will contain good channels and the bad channels interpolated
-    from the good MEG/EEG channels.
-
-    The grand_average.nave attribute will be equal the number
-    of evoked datasets used to calculate the grand average.
-
-    Note: Grand average evoked shall not be used for source localization.
-
-    Parameters
-    ----------
-    all_evoked : list of Evoked data
-        The evoked datasets.
-    interpolate_bads : bool
-        If True, bad MEG and EEG channels are interpolated.
-    drop_bads : bool
-        If True, drop all bad channels marked as bad in any data set.
-        If neither interpolate_bads nor drop_bads is True, in the output file,
-        every channel marked as bad in at least one of the input files will be
-        marked as bad, but no interpolation or dropping will be performed.
-
-    Returns
-    -------
-    grand_average : Evoked
-        The grand average data.
-
-    Notes
-    -----
-    .. versionadded:: 0.9.0
-    """
-    from ..utils import grand_average
-    return grand_average(all_evoked, interpolate_bads, drop_bads)
 
 
 def _check_evokeds_ch_names_times(all_evoked):
@@ -1215,7 +1175,7 @@ def _write_evokeds(fname, evoked, check=True):
 
             # The epoch itself
             if e.info.get('maxshield'):
-                aspect = FIFF.FIFFB_SMSH_ASPECT
+                aspect = FIFF.FIFFB_IAS_ASPECT
             else:
                 aspect = FIFF.FIFFB_ASPECT
             start_block(fid, aspect)

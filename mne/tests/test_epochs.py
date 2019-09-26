@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Denis Engemann <denis.engemann@gmail.com>
+#         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
@@ -27,7 +28,8 @@ from mne.fixes import rfft, rfftfreq
 from mne.preprocessing import maxwell_filter
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
-    EpochsArray, concatenate_epochs, BaseEpochs, average_movements)
+    EpochsArray, concatenate_epochs, BaseEpochs, average_movements,
+    _handle_event_repeated)
 from mne.utils import (requires_pandas, run_tests_if_main, object_diff,
                        requires_version, catch_logging, _FakeNoPandas,
                        assert_meg_snr, check_version)
@@ -55,6 +57,64 @@ evoked_nf_name = op.join(base_dir, 'test-nf-ave.fif')
 event_id, tmin, tmax = 1, -0.2, 0.5
 event_id_2 = np.int64(2)  # to test non Python int types
 rng = np.random.RandomState(42)
+
+
+def test_handle_event_repeated():
+    """Test handling of repeated events."""
+    # A general test case
+    EVENT_ID = {'aud': 1, 'vis': 2, 'foo': 3}
+    EVENTS = np.array([[0, 0, 1], [0, 0, 2],
+                       [3, 0, 2], [3, 0, 1],
+                       [5, 0, 2], [5, 0, 1], [5, 0, 3],
+                       [7, 0, 1]])
+
+    with pytest.raises(RuntimeError, match='Event time samples were not uniq'):
+        _handle_event_repeated(EVENTS, EVENT_ID, event_repeated='error')
+
+    events, event_id = _handle_event_repeated(EVENTS, EVENT_ID, 'drop')
+    assert_array_equal(events, [[0, 0, 1], [3, 0, 2], [5, 0, 2], [7, 0, 1]])
+    assert event_id == {'aud': 1, 'vis': 2}
+
+    events, event_id = _handle_event_repeated(EVENTS, EVENT_ID, 'merge')
+    assert_array_equal(events[0][-1], events[1][-1])
+    assert_array_equal(events, [[0, 0, 4], [3, 0, 4], [5, 0, 5], [7, 0, 1]])
+    assert set(event_id.keys()) == set(['aud', 'aud/vis', 'aud/foo/vis'])
+    assert event_id['aud/vis'] == 4
+
+    # Test early return with no changes: no error for wrong event_repeated arg
+    fine_events = np.array([[0, 0, 1], [1, 0, 2]])
+    events, event_id = _handle_event_repeated(fine_events, EVENT_ID, 'no')
+    assert event_id == EVENT_ID
+    assert_array_equal(events, fine_events)
+    del fine_events
+
+    # Test falling back on 0 for heterogeneous "prior-to-event" codes
+    # order of third column does not determine new event_id key, we always
+    # take components, sort, and join on "/"
+    # should make new event_id value: 5 (because 1,2,3,4 are taken)
+    heterogeneous_events = np.array([[0, 3, 2], [0, 4, 1]])
+    events, event_id = _handle_event_repeated(heterogeneous_events,
+                                              EVENT_ID, 'merge')
+    assert set(event_id.keys()) == set(['aud/vis'])
+    assert event_id['aud/vis'] == 5
+    assert_array_equal(events, np.array([[0, 0, 5], ]))
+    del heterogeneous_events
+
+    # Test keeping a homogeneous "prior-to-event" code (=events[:, 1])
+    homogeneous_events = np.array([[0, 99, 1], [0, 99, 2],
+                                   [1, 0, 1], [2, 0, 2]])
+    events, event_id = _handle_event_repeated(homogeneous_events,
+                                              EVENT_ID, 'merge')
+    assert set(event_id.keys()) == set(['aud', 'vis', 'aud/vis'])
+    assert_array_equal(events, np.array([[0, 99, 4], [1, 0, 1], [2, 0, 2]]))
+    del homogeneous_events
+
+    # Test dropping instead of merging, if event_codes to be merged are equal
+    equal_events = np.array([[0, 0, 1], [0, 0, 1]])
+    events, event_id = _handle_event_repeated(equal_events,
+                                              EVENT_ID, 'merge')
+    assert_array_equal(events, np.array([[0, 0, 1], ]))
+    assert set(event_id.keys()) == set(['aud'])
 
 
 def _get_data(preload=False):
@@ -2514,22 +2574,13 @@ def test_save_overwrite(tmpdir):
     epochs.save(fname2, overwrite=True)
     # check that the file got written
     assert op.isfile(fname2)
+    with pytest.raises(IOError, match='exists'):
+        epochs.save(fname2)
 
     # scenario 4: overwrite=True and there is a file to overwrite
     # run function to be sure it doesn't throw an error
     # fname2 exists because of scenario 1 above
     epochs.save(fname2, overwrite=True)
-    # check that the file got written
-    assert op.isfile(fname2)
-
-    # test deprecation warning
-    fname3 = op.join(tempdir, 'test_v3-epo.fif')
-    # there is no file
-    with pytest.deprecated_call():
-        epochs.save(fname3)
-    # there is a file
-    with pytest.deprecated_call():
-        epochs.save(fname3)
 
 
 def test_save_complex_data(tmpdir):

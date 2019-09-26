@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
@@ -19,7 +19,7 @@ from .pick import channel_type
 from .constants import FIFF
 from .open import fiff_open
 from .tree import dir_tree_find
-from .tag import read_tag, find_tag
+from .tag import read_tag, find_tag, _coord_dict
 from .proj import _read_proj, _write_proj, _uniquify_projs, _normalize_proj
 from .ctf_comp import read_ctf_comp, write_ctf_comp
 from .write import (start_file, end_file, start_block, end_block,
@@ -27,7 +27,7 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_coord_trans, write_ch_info, write_name_list,
                     write_julian, write_float_matrix, write_id, DATE_NONE)
 from .proc_history import _read_proc_history, _write_proc_history
-from ..transforms import invert_transform
+from ..transforms import invert_transform, Transform
 from ..utils import logger, verbose, warn, object_diff, _validate_type
 from .._digitization.base import _format_dig_points
 from .compensator import get_current_comp
@@ -53,6 +53,10 @@ _kind_dict = dict(
     seeg=(FIFF.FIFFV_SEEG_CH, FIFF.FIFFV_COIL_EEG, FIFF.FIFF_UNIT_V),
     bio=(FIFF.FIFFV_BIO_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
     ecog=(FIFF.FIFFV_ECOG_CH, FIFF.FIFFV_COIL_EEG, FIFF.FIFF_UNIT_V),
+    fnirs_raw=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_RAW,
+               FIFF.FIFF_UNIT_V),
+    fnirs_od=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_OD,
+              FIFF.FIFF_UNIT_NONE),
     hbo=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_HBO, FIFF.FIFF_UNIT_MOL),
     hbr=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_HBR, FIFF.FIFF_UNIT_MOL)
 )
@@ -240,6 +244,10 @@ class Info(dict):
         1970-01-01 00:00:00) denoting the date and time at which the
         measurement was taken. The second element is the additional number of
         microseconds.
+    utc_offset : str
+        "UTC offset of related meas_date (sHH:MM).
+
+        .. versionadded:: 0.19
     meas_id : dict | None
         The ID assigned to this measurement by the acquisition system or
         during file conversion. Follows the same format as ``file_id``.
@@ -260,6 +268,14 @@ class Info(dict):
     subject_info : dict | None
         Information about the subject.
         See Notes for details.
+    device_info : dict | None
+        Information about the acquisition device. See Notes for details.
+
+        .. versionadded:: 0.19
+    helium_info : dict | None
+        Information about the device helium. See Notes for details.
+
+        .. versionadded:: 0.19
 
     See Also
     --------
@@ -456,6 +472,28 @@ class Info(dict):
             Subject sex (0=unknown, 1=male, 2=female).
         hand : int
             Handedness (1=right, 2=left).
+
+    * ``device_info`` dict:
+
+        type : str
+            Device type.
+        model : str
+            Device model.
+        serial : str
+            Device serial.
+        site : str
+            Device site.
+
+    * ``helium_info`` dict:
+
+        he_level_raw : float
+            Helium level (%) before position correction.
+        helium_level : float
+            Helium level (%) after position correction.
+        orig_file_guid : str
+            Original file GUID.
+        meas_date : tuple of int
+            The helium level meas date.
 
     """
 
@@ -782,6 +820,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     ctf_head_t = None
     dev_ctf_t = None
     meas_date = None
+    utc_offset = None
     highpass = None
     lowpass = None
     nchan = None
@@ -821,6 +860,9 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             meas_date = tuple(tag.data)
             if len(meas_date) == 1:  # can happen from old C conversions
                 meas_date = (meas_date[0], 0)
+        elif kind == FIFF.FIFF_UTC_OFFSET:
+            tag = read_tag(fid, pos)
+            utc_offset = str(tag.data)
         elif kind == FIFF.FIFF_COORD_TRANS:
             tag = read_tag(fid, pos)
             cand = tag.data
@@ -1022,6 +1064,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         hm['hpi_coils'] = hcs
         hms.append(hm)
     info['hpi_meas'] = hms
+    del hms
 
     subject_info = dir_tree_find(meas_info, FIFF.FIFFB_SUBJECT)
     si = None
@@ -1062,6 +1105,53 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 tag = read_tag(fid, pos)
                 si['height'] = tag.data
     info['subject_info'] = si
+    del si
+
+    device_info = dir_tree_find(meas_info, FIFF.FIFFB_DEVICE)
+    di = None
+    if len(device_info) == 1:
+        device_info = device_info[0]
+        di = dict()
+        for k in range(device_info['nent']):
+            kind = device_info['directory'][k].kind
+            pos = device_info['directory'][k].pos
+            if kind == FIFF.FIFF_DEVICE_TYPE:
+                tag = read_tag(fid, pos)
+                di['type'] = str(tag.data)
+            elif kind == FIFF.FIFF_DEVICE_MODEL:
+                tag = read_tag(fid, pos)
+                di['model'] = str(tag.data)
+            elif kind == FIFF.FIFF_DEVICE_SERIAL:
+                tag = read_tag(fid, pos)
+                di['serial'] = str(tag.data)
+            elif kind == FIFF.FIFF_DEVICE_SITE:
+                tag = read_tag(fid, pos)
+                di['site'] = str(tag.data)
+    info['device_info'] = di
+    del di
+
+    helium_info = dir_tree_find(meas_info, FIFF.FIFFB_HELIUM)
+    hi = None
+    if len(helium_info) == 1:
+        helium_info = helium_info[0]
+        hi = dict()
+        for k in range(helium_info['nent']):
+            kind = helium_info['directory'][k].kind
+            pos = helium_info['directory'][k].pos
+            if kind == FIFF.FIFF_HE_LEVEL_RAW:
+                tag = read_tag(fid, pos)
+                hi['he_level_raw'] = float(tag.data)
+            elif kind == FIFF.FIFF_HELIUM_LEVEL:
+                tag = read_tag(fid, pos)
+                hi['helium_level'] = float(tag.data)
+            elif kind == FIFF.FIFF_ORIG_FILE_GUID:
+                tag = read_tag(fid, pos)
+                hi['orig_file_guid'] = str(tag.data)
+            elif kind == FIFF.FIFF_MEAS_DATE:
+                tag = read_tag(fid, pos)
+                hi['meas_date'] = tuple(int(t) for t in tag.data)
+    info['helium_info'] = hi
+    del hi
 
     hpi_subsystem = dir_tree_find(meas_info, FIFF.FIFFB_HPI_SUBSYSTEM)
     hs = None
@@ -1117,6 +1207,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     if np.array_equal(meas_date, DATE_NONE):
         meas_date = None
     info['meas_date'] = meas_date
+    info['utc_offset'] = utc_offset
 
     info['sfreq'] = sfreq
     info['highpass'] = highpass if highpass is not None else 0.
@@ -1299,6 +1390,8 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         write_string(fid, FIFF.FIFF_PROJ_NAME, info['proj_name'])
     if info.get('meas_date') is not None:
         write_int(fid, FIFF.FIFF_MEAS_DATE, info['meas_date'])
+    if info.get('utc_offset') is not None:
+        write_string(fid, FIFF.FIFF_UTC_OFFSET, info['utc_offset'])
     write_int(fid, FIFF.FIFF_NCHAN, info['nchan'])
     write_float(fid, FIFF.FIFF_SFREQ, info['sfreq'])
     if info['lowpass'] is not None:
@@ -1351,6 +1444,31 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         if si.get('height') is not None:
             write_float(fid, FIFF.FIFF_SUBJ_HEIGHT, si['height'])
         end_block(fid, FIFF.FIFFB_SUBJECT)
+        del si
+
+    if info.get('device_info') is not None:
+        start_block(fid, FIFF.FIFFB_DEVICE)
+        di = info['device_info']
+        write_string(fid, FIFF.FIFF_DEVICE_TYPE, di['type'])
+        for key in ('model', 'serial', 'site'):
+            if di.get(key) is not None:
+                write_string(fid, getattr(FIFF, 'FIFF_DEVICE_' + key.upper()),
+                             di[key])
+        end_block(fid, FIFF.FIFFB_DEVICE)
+        del di
+
+    if info.get('helium_info') is not None:
+        start_block(fid, FIFF.FIFFB_HELIUM)
+        hi = info['helium_info']
+        if hi.get('he_level_raw') is not None:
+            write_float(fid, FIFF.FIFF_HE_LEVEL_RAW, hi['he_level_raw'])
+        if hi.get('helium_level') is not None:
+            write_float(fid, FIFF.FIFF_HELIUM_LEVEL, hi['helium_level'])
+        if hi.get('orig_file_guid') is not None:
+            write_string(fid, FIFF.FIFF_ORIG_FILE_GUID, hi['orig_file_guid'])
+        write_int(fid, FIFF.FIFF_MEAS_DATE, hi['meas_date'])
+        end_block(fid, FIFF.FIFFB_HELIUM)
+        del hi
 
     if info.get('hpi_subsystem') is not None:
         hs = info['hpi_subsystem']
@@ -1367,6 +1485,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
                               coil['event_bits'])
                 end_block(fid, FIFF.FIFFB_HPI_COIL)
         end_block(fid, FIFF.FIFFB_HPI_SUBSYSTEM)
+        del hs
 
     #   CTF compensation info
     write_ctf_comp(fid, info['comps'])
@@ -1580,8 +1699,8 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
     # other fields
     other_fields = ['acq_pars', 'acq_stim', 'bads',
                     'comps', 'custom_ref_applied', 'description',
-                    'experimenter', 'file_id', 'highpass',
-                    'hpi_subsystem', 'events',
+                    'experimenter', 'file_id', 'highpass', 'utc_offset',
+                    'hpi_subsystem', 'events', 'device_info', 'helium_info',
                     'line_freq', 'lowpass', 'meas_id',
                     'proj_id', 'proj_name', 'projs', 'sfreq', 'gantry_angle',
                     'subject_info', 'sfreq', 'xplotter_layout', 'proc_history']
@@ -1670,22 +1789,20 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
             raise KeyError('kind must be one of %s, not %s'
                            % (list(_kind_dict.keys()), kind))
         kind = _kind_dict[kind]
+        # mirror what tag.py does here
+        coord_frame = _coord_dict.get(kind[0], FIFF.FIFFV_COORD_UNKNOWN)
         chan_info = dict(loc=np.full(12, np.nan), unit_mul=0, range=1., cal=1.,
                          kind=kind[0], coil_type=kind[1],
-                         unit=kind[2], coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
-                         ch_name=name, scanno=ci + 1, logno=ci + 1)
+                         unit=kind[2], coord_frame=coord_frame,
+                         ch_name=str(name), scanno=ci + 1, logno=ci + 1)
         info['chs'].append(chan_info)
     info._update_redundant()
     if montage is not None:
-        from ..channels.montage import (Montage, DigMontage, _set_montage,
-                                        read_montage)
+        from ..channels.montage import (Montage, DigMontage, _set_montage)
         if not isinstance(montage, list):
             montage = [montage]
         for montage_ in montage:
-            if isinstance(montage_, (Montage, DigMontage)):
-                _set_montage(info, montage_)
-            elif isinstance(montage_, str):
-                montage_ = read_montage(montage_)
+            if isinstance(montage_, (str, Montage, DigMontage)):
                 _set_montage(info, montage_)
             else:
                 raise TypeError('Montage must be an instance of Montage, '
@@ -1698,8 +1815,8 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
 RAW_INFO_FIELDS = (
     'acq_pars', 'acq_stim', 'bads', 'ch_names', 'chs',
     'comps', 'ctf_head_t', 'custom_ref_applied', 'description', 'dev_ctf_t',
-    'dev_head_t', 'dig', 'experimenter', 'events',
-    'file_id', 'highpass', 'hpi_meas', 'hpi_results',
+    'dev_head_t', 'dig', 'experimenter', 'events', 'utc_offset', 'device_info',
+    'file_id', 'highpass', 'hpi_meas', 'hpi_results', 'helium_info',
     'hpi_subsystem', 'kit_system_id', 'line_freq', 'lowpass', 'meas_date',
     'meas_id', 'nchan', 'proj_id', 'proj_name', 'projs', 'sfreq',
     'subject_info', 'xplotter_layout', 'proc_history', 'gantry_angle',
@@ -1708,11 +1825,10 @@ RAW_INFO_FIELDS = (
 
 def _empty_info(sfreq):
     """Create an empty info dictionary."""
-    from ..transforms import Transform
     _none_keys = (
         'acq_pars', 'acq_stim', 'ctf_head_t', 'description',
-        'dev_ctf_t', 'dig', 'experimenter',
-        'file_id', 'highpass', 'hpi_subsystem', 'kit_system_id',
+        'dev_ctf_t', 'dig', 'experimenter', 'utc_offset', 'device_info',
+        'file_id', 'highpass', 'hpi_subsystem', 'kit_system_id', 'helium_info',
         'line_freq', 'lowpass', 'meas_date', 'meas_id', 'proj_id', 'proj_name',
         'subject_info', 'xplotter_layout', 'gantry_angle',
     )
@@ -1724,10 +1840,10 @@ def _empty_info(sfreq):
     for k in _list_keys:
         info[k] = list()
     info['custom_ref_applied'] = False
-    info['dev_head_t'] = Transform('meg', 'head')
     info['highpass'] = 0.
     info['sfreq'] = float(sfreq)
     info['lowpass'] = info['sfreq'] / 2.
+    info['dev_head_t'] = Transform('meg', 'head')
     info._update_redundant()
     info._check_consistency()
     return info

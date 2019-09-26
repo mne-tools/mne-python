@@ -1,8 +1,9 @@
 """Functions to plot ICA specific data (besides topographies)."""
 
 # Authors: Denis Engemann <denis.engemann@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Teon Brooks <teon.brooks@gmail.com>
+#          Daniel McCloy <dan.mccloy@gmail.com>
 #
 # License: Simplified BSD
 
@@ -11,9 +12,8 @@ from functools import partial
 import numpy as np
 
 from .utils import (tight_layout, _prepare_trellis, _select_bads,
-                    _layout_figure, _plot_raw_onscroll, _mouse_click,
-                    _helper_raw_resize, _plot_raw_onkey, plt_show,
-                    _convert_psds)
+                    _plot_raw_onscroll, _mouse_click,
+                    _plot_raw_onkey, plt_show, _convert_psds)
 from .topomap import (_prepare_topo_plot, plot_topomap, _hide_frame,
                       _plot_ica_topomap)
 from .raw import _prepare_mne_browse_raw, _plot_raw_traces
@@ -29,9 +29,9 @@ from ..utils import _reject_data_segments
 
 
 @fill_doc
-def plot_ica_sources(ica, inst, picks=None, exclude='deprecated', start=None,
+def plot_ica_sources(ica, inst, picks=None, start=None,
                      stop=None, title=None, show=True, block=False,
-                     show_first_samp=False):
+                     show_first_samp=False, show_scrollbars=True):
     """Plot estimated latent sources given the unmixing matrix.
 
     Typical usecases:
@@ -48,10 +48,6 @@ def plot_ica_sources(ica, inst, picks=None, exclude='deprecated', start=None,
     inst : instance of mne.io.Raw, mne.Epochs, mne.Evoked
         The object to plot the sources from.
     %(picks_base)s all sources in the order as fitted.
-    exclude : 'deprecated'
-        The ``exclude`` parameter is deprecated and will be removed in version
-        0.20; specify excluded components using the ``ICA.exclude`` attribute
-        instead.
     start : int
         X-axis start index. If None, from the beginning.
     stop : int
@@ -67,6 +63,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude='deprecated', start=None,
         plotter. For evoked, this parameter has no effect. Defaults to False.
     show_first_samp : bool
         If True, show time axis relative to the ``raw.first_samp``.
+    %(show_scrollbars)s
 
     Returns
     -------
@@ -85,22 +82,19 @@ def plot_ica_sources(ica, inst, picks=None, exclude='deprecated', start=None,
     from ..evoked import Evoked
     from ..epochs import BaseEpochs
 
-    if exclude != 'deprecated':
-        warn('The "exclude" parameter is deprecated and will be removed in '
-             'version 0.20; specify excluded components using the ICA.exclude '
-             'attribute instead. Provided value of {} will be ignored; falling'
-             ' back to ICA.exclude'.format(exclude), DeprecationWarning)
     exclude = ica.exclude
     picks = _picks_to_idx(ica.n_components_, picks, 'all')
 
     if isinstance(inst, BaseRaw):
         fig = _plot_sources_raw(ica, inst, picks, exclude, start=start,
                                 stop=stop, show=show, title=title,
-                                block=block, show_first_samp=show_first_samp)
+                                block=block, show_first_samp=show_first_samp,
+                                show_scrollbars=show_scrollbars)
     elif isinstance(inst, BaseEpochs):
         fig = _plot_sources_epochs(ica, inst, picks, exclude, start=start,
                                    stop=stop, show=show, title=title,
-                                   block=block)
+                                   block=block,
+                                   show_scrollbars=show_scrollbars)
     elif isinstance(inst, Evoked):
         if start is not None or stop is not None:
             inst = inst.copy().crop(start, stop)
@@ -183,8 +177,6 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     # compute percentage of dropped epochs
     var_percent = float(len(dropped_indices)) / float(len(epoch_var)) * 100.
 
-    var_ax.set_yticks([])
-
     # histogram & histogram
     _, counts, _ = hist_ax.hist(epoch_var, orientation="horizontal",
                                 color="k", alpha=.5)
@@ -206,7 +198,7 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     set_title_and_labels(image_ax, kind + ' image and ERP/ERF', [], kind)
 
     # erp
-    set_title_and_labels(erp_ax, [], 'Time (s)', 'AU\n')
+    set_title_and_labels(erp_ax, [], 'Time (s)', 'AU')
     erp_ax.spines["right"].set_color('k')
     erp_ax.set_xlim(epochs_src.times[[0, -1]])
     # remove half of yticks if more than 5
@@ -230,10 +222,8 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
     image_ax.axhline(0, color='k', linewidth=.5)
 
     # epoch variance
-    var_ax_title = 'Dropped segments : %.2f %%' % var_percent
-    set_title_and_labels(var_ax, var_ax_title,
-                         kind + ' (index)',
-                         'Variance (AU)')
+    var_ax_title = 'Dropped segments: %.2f %%' % var_percent
+    set_title_and_labels(var_ax, var_ax_title, kind, 'Variance (AU)')
 
     hist_ax.set_ylabel("")
     hist_ax.set_yticks([])
@@ -850,7 +840,7 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
 
 def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
-                      block, show_first_samp):
+                      block, show_first_samp, show_scrollbars):
     """Plot the ICA components as raw array."""
     color = _handle_default('color', (0., 0., 0.))
     orig_data = ica._transform_raw(raw, 0, len(raw.times)) * 0.2
@@ -904,7 +894,7 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
                   n_times=raw.n_times, bad_color=bad_color, picks=picks,
                   first_time=first_time, data_picks=[], decim=1,
                   noise_cov=None, whitened_ch_names=(), clipping=None,
-                  use_scalebars=False)
+                  use_scalebars=False, show_scrollbars=show_scrollbars)
     _prepare_mne_browse_raw(params, title, 'w', color, bad_color, inds,
                             n_channels)
     params['scale_factor'] = 1.0
@@ -913,7 +903,6 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
     params['update_fun'] = partial(_update_data, params)
     params['pick_bads_fun'] = partial(_pick_bads, params=params)
     params['label_click_fun'] = partial(_label_clicked, params=params)
-    _layout_figure(params)
     # callbacks
     callback_key = partial(_plot_raw_onkey, params=params)
     params['fig'].canvas.mpl_connect('key_press_event', callback_key)
@@ -921,8 +910,6 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
     params['fig'].canvas.mpl_connect('scroll_event', callback_scroll)
     callback_pick = partial(_mouse_click, params=params)
     params['fig'].canvas.mpl_connect('button_press_event', callback_pick)
-    callback_resize = partial(_helper_raw_resize, params=params)
-    params['fig'].canvas.mpl_connect('resize_event', callback_resize)
     callback_close = partial(_close_event, params=params)
     params['fig'].canvas.mpl_connect('close_event', callback_close)
     params['fig_proj'] = None
@@ -963,7 +950,7 @@ def _close_event(events, params):
 
 
 def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
-                         title, block):
+                         title, block, show_scrollbars):
     """Plot the components as epochs."""
     data = ica._transform_epochs(epochs, concatenate=True)
     eog_chs = pick_types(epochs.info, meg=False, eog=True, ref_meg=False)
@@ -1003,7 +990,7 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
                   bads=list(), bad_color=(1., 0., 0.),
                   t_start=start * len(epochs.times),
                   data_picks=list(), decim=1, whitened_ch_names=(),
-                  noise_cov=None)
+                  noise_cov=None, show_scrollbars=show_scrollbars)
     params['label_click_fun'] = partial(_label_clicked, params=params)
     # changing the order to 'misc' before 'eog' and 'ecg'
     order = list(_DATA_CH_TYPES_ORDER_DEFAULT)

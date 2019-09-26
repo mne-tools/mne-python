@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # Authors: Denis A. Engemann  <denis.engemann@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #
 #          simplified bsd-3 license
@@ -34,7 +34,7 @@ def _check_file(fname, overwrite):
 
 def run():
     """Run command."""
-    from mne.commands.utils import get_optparser
+    from mne.commands.utils import get_optparser, _add_verbose_flag
 
     parser = get_optparser(__file__)
     subjects_dir = mne.get_config('SUBJECTS_DIR')
@@ -46,13 +46,12 @@ def run():
                       help='The name of the subject', type='str')
     parser.add_option('-f', '--force', dest='force', action='store_true',
                       help='Force transformation of surface into bem.')
-    parser.add_option('-v', '--verbose', dest='verbose', action='store_true',
-                      help='Print the debug messages.')
     parser.add_option("-d", "--subjects-dir", dest="subjects_dir",
                       help="Subjects directory", default=subjects_dir)
     parser.add_option("-n", "--no-decimate", dest="no_decimate",
                       help="Disable medium and sparse decimations "
                       "(dense only)", action='store_true')
+    _add_verbose_flag(parser)
     options, args = parser.parse_args()
 
     subject = vars(options).get('subject', os.getenv('SUBJECT'))

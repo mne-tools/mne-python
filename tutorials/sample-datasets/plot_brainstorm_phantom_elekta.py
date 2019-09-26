@@ -81,7 +81,7 @@ epochs['1'].average().plot(time_unit='s')
 ###############################################################################
 # .. _plt_brainstorm_phantom_elekta_eeg_sphere_geometry:
 #
-# Let's use a :ref:`sphere head geometry model <ch_forward_spherical_model>`
+# Let's use a :ref:`sphere head geometry model <eeg_sphere_model>`
 # and let's see the coordinate alignment and the sphere location. The phantom
 # is properly modeled by a single-shell sphere with origin (0., 0., 0.).
 sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.08)

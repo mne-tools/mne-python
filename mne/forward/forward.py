@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
@@ -1051,11 +1051,9 @@ def _restrict_gain_matrix(G, info):
 
 
 @verbose
-def compute_depth_prior(forward, info, is_fixed_ori=None,
-                        exp=0.8, limit=10.0,
-                        patch_areas=None, limit_depth_chs=False,
-                        combine_xyz='spectral', noise_cov=None, rank=None,
-                        verbose=None):
+def compute_depth_prior(forward, info, exp=0.8, limit=10.0,
+                        limit_depth_chs=False, combine_xyz='spectral',
+                        noise_cov=None, rank=None, verbose=None):
     """Compute depth prior for depth weighting.
 
     Parameters
@@ -1064,15 +1062,11 @@ def compute_depth_prior(forward, info, is_fixed_ori=None,
         The forward solution.
     info : instance of Info
         The measurement info.
-    is_fixed_ori : bool | None
-        Deprecated, will be removed in 0.19.
     exp : float
         Exponent for the depth weighting, must be between 0 and 1.
     limit : float | None
         The upper bound on depth weighting.
         Can be None to be bounded by the largest finite prior.
-    patch_areas : ndarray | None
-        Deprecated, will be removed in 0.19.
     limit_depth_chs : bool | 'whiten'
         How to deal with multiple channel types in depth weighting.
         The default is True, which whitens based on the source sensitivity
@@ -1142,16 +1136,10 @@ def compute_depth_prior(forward, info, is_fixed_ori=None,
 
     """
     from ..cov import Covariance, compute_whitener
-    if isinstance(forward, Forward):
-        patch_areas = forward.get('patch_areas', None)
-        is_fixed_ori = is_fixed_orient(forward)
-        G = forward['sol']['data']
-    else:
-        warn('Parameters G, is_fixed_ori, and patch_areas are '
-             'deprecated and will be removed in 0.19, pass in the forward '
-             'solution directly.', DeprecationWarning)
-        G = forward
-    _validate_type(is_fixed_ori, bool, 'is_fixed_ori')
+    _validate_type(forward, Forward, 'forward')
+    patch_areas = forward.get('patch_areas', None)
+    is_fixed_ori = is_fixed_orient(forward)
+    G = forward['sol']['data']
     logger.info('Creating the depth weighting matrix...')
     _validate_type(noise_cov, (Covariance, None), 'noise_cov',
                    'Covariance or None')

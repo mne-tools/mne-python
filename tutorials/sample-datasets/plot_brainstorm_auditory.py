@@ -289,9 +289,7 @@ cov.plot(raw_erm.info)
 del raw_erm
 
 ###############################################################################
-# The transformation is read from a file. More information about coregistering
-# the data, see :ref:`c_legacy_ch_interactive_analysis` or
-# :func:`mne.gui.coregistration`.
+# The transformation is read from a file:
 trans_fname = op.join(data_path, 'MEG', 'bst_auditory',
                       'bst_auditory-trans.fif')
 trans = mne.read_trans(trans_fname)
@@ -303,7 +301,7 @@ trans = mne.read_trans(trans_fname)
 # solution are read from a file. Since the data only contains MEG channels, we
 # only need the inner skull surface for making the forward solution. For more
 # information: :ref:`CHDBBCEJ`, :func:`mne.setup_source_space`,
-# :ref:`create_bem_model`, :func:`mne.bem.make_watershed_bem`.
+# :ref:`bem-model`, :func:`mne.bem.make_watershed_bem`.
 if use_precomputed:
     fwd_fname = op.join(data_path, 'MEG', 'bst_auditory',
                         'bst_auditory-meg-oct-6-fwd.fif')

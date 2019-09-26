@@ -1,6 +1,6 @@
 """Functions shared between different beamformer types."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Roman Goj <roman.goj@gmail.com>
 #          Britta Westner <britta.wstnr@gmail.com>
 #
@@ -19,7 +19,7 @@ from ..source_space import label_src_vertno_sel
 from ..utils import (verbose, check_fname, _reg_pinv, _check_option, logger,
                      _pl, _svd_lwork, _repeated_svd, _repeated_pinv2,
                      _inv_lwork, _repeated_inv, _eig_lwork, _repeated_eig,
-                     LinAlgError)
+                     LinAlgError, _check_src_normal)
 from ..time_frequency.csd import CrossSpectralDensity
 
 from ..externals.h5io import read_hdf5, write_hdf5
@@ -85,10 +85,7 @@ def _prepare_beamformer_input(info, forward, label=None, pick_ori=None,
         raise ValueError('Normal orientation can only be picked when a '
                          'forward operator oriented in surface coordinates is '
                          'used.')
-    if pick_ori == 'normal' and not forward['src'].kind == 'surface':
-        raise ValueError('Normal orientation can only be picked when a '
-                         'forward operator with a surface-based source space '
-                         'is used.')
+    _check_src_normal(pick_ori, forward['src'])
     del forward, info
 
     # Undo the scaling that MNE prefers

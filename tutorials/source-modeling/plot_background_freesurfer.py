@@ -96,7 +96,7 @@ MNE-Python.
 
 See https://surfer.nmr.mgh.harvard.edu/fswiki/FsAverage for more
 information. Furthermore a copy of 'fsaverage' can be found in
-:ref:`ch_sample_data`.
+:ref:`sample-data`.
 
 When using ``'fsaverage'`` as value for the definition
 of a subject when calling a function, the corresponding data will be read (e.g.
