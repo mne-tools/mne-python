@@ -6,14 +6,13 @@ from ..io import BaseRaw
 from ..utils import _validate_type
 
 
-def optical_density(raw, verbose=None):
+def optical_density(raw):
     r"""Convert NIRS raw data to optical density.
 
     Parameters
     ----------
     raw : instance of Raw
         The raw data.
-    %(verbose)s
 
     Returns
     -------

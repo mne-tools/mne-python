@@ -292,6 +292,7 @@ Projections:
    compute_proj_raw
    read_proj
    write_proj
+   optical_density
 
 :py:mod:`mne.channels`:
 
