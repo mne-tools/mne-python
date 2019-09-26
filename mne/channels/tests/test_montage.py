@@ -1168,6 +1168,7 @@ def test_set_montage_coord_frame_in_head_vs_unknown():
 
 def test_set_dig_montage_parameters_deprecation():
     """Test parameter deprecation for set_montage."""
+    # XXX: This is testing deprecated behavior and should be removed in 0.21.
     N_CHANNELS = 3
     raw = _make_toy_raw(N_CHANNELS)
     montage = _make_toy_dig_montage(N_CHANNELS, coord_frame='head')
@@ -1176,9 +1177,17 @@ def test_set_dig_montage_parameters_deprecation():
     raw.set_montage(montage)
 
     with pytest.deprecated_call():
+        raw.set_montage(montage, raise_if_subset=True)
+
+    _msg = 'since 0.20 its value can only be True.'
+    with pytest.raises(ValueError, match=_msg):
+        raw.set_montage(montage, raise_if_subset=False)
+
+    # Already deleted parameters in 0.20, just for completeness
+    with pytest.raises(TypeError, match='unexpected keyword argument'):
         raw.set_montage(montage, set_dig=True)
 
-    with pytest.deprecated_call():
+    with pytest.raises(TypeError, match='unexpected keyword argument'):
         _set_montage(raw.info, montage, update_ch_names=False)
 
 
