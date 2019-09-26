@@ -18,7 +18,7 @@ from .channels import (equalize_channels, rename_channels, fix_mag_coil_types,
 
 __all__ = [
     # Data Structures
-    'DigMontage', 'Layout', 'Montage',
+    'DigMontage', 'Layout',
 
     # Factory Methods
     'make_dig_montage', 'make_eeg_layout', 'make_grid_layout',

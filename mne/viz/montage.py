@@ -12,7 +12,7 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
 
     Parameters
     ----------
-    montage : instance of Montage or DigMontage
+    montage : instance of DigMontage
         The montage to visualize.
     scale_factor : float
         Determines the size of the points.
@@ -36,7 +36,6 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
     _validate_type(montage, DigMontage, item_name='montage')
     ch_names = montage.ch_names
     title = None
-    # XXX: title = montage.kind we lost the ability to do this
 
     if len(ch_names) == 0:
         raise RuntimeError('No valid channel positions found.')

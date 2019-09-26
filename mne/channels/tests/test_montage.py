@@ -1078,18 +1078,18 @@ def test_set_montage_with_sub_super_set_of_ch_names():
     N_CHANNELS = len('abcdef')
     montage = _make_toy_dig_montage(N_CHANNELS, coord_frame='head')
 
-    # Montage and info match
+    # montage and info match
     _ = create_info(
         ch_names=list('abcdef'), sfreq=1, ch_types='eeg', montage=montage
     )
 
-    # Montage is a SUPERset of info
+    # montage is a SUPERset of info
     info = create_info(
         ch_names=list('abc'), sfreq=1, ch_types='eeg', montage=montage
     )
     assert len(info['dig']) == len(list('abc'))
 
-    # Montage is a SUBset of info
+    # montage is a SUBset of info
     _MSG = 'subset of info. There are 2 .* not present it the DigMontage'
     with pytest.raises(ValueError, match=_MSG):
         _ = create_info(

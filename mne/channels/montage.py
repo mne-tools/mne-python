@@ -71,7 +71,7 @@ def _check_ch_names_are_compatible(info_names, montage_names):
     not_in_montage = info_names - montage_names
     not_in_info = montage_names - info_names
 
-    if len(not_in_montage):  # Montage is subset of info
+    if len(not_in_montage):  # DigMontage is subset of info
         raise ValueError((
             'DigMontage is a only a subset of info.'
             ' There are {n_ch} channel positions not present it the'
@@ -80,7 +80,7 @@ def _check_ch_names_are_compatible(info_names, montage_names):
     else:
         pass  # noqa
 
-    if len(not_in_info):  # Montage is superset of info
+    if len(not_in_info):  # DigMontage is superset of info
         logger.info((
             'DigMontage is a superset of info. {n_ch} in DigMontage will be'
             ' ignored. The ignored channels are: {ch_names}'
@@ -179,7 +179,6 @@ class DigMontage(object):
 
     See Also
     --------
-    Montage
     read_dig_montage
     read_montage
 
@@ -663,9 +662,6 @@ def _set_montage_deprecation_helper(montage, update_ch_names, set_dig,
 @fill_doc
 def _set_montage(info, montage, raise_if_subset=DEPRECATED_PARAM):
     """Apply montage to data.
-
-    With a Montage, this function will replace the EEG channel names and
-    locations with the values specified for the particular montage.
 
     With a DigMontage, this function will replace the digitizer info with
     the values specified for the particular montage.
