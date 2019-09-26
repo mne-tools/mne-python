@@ -190,9 +190,8 @@ def test_plot_ica_sources():
     # also test mouse clicks
     data_ax = fig.axes[0]
     _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
-    # `exclude` parameter is deprecated
-    with pytest.deprecated_call():
-        ica.plot_sources(raw, exclude=[1])
+    ica.exclude = [1]
+    ica.plot_sources(raw)
 
     raw.info['bads'] = ['MEG 0113']
     with pytest.raises(RuntimeError, match="Raw doesn't match fitted data"):

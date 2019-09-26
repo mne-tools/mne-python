@@ -1040,7 +1040,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  normalization='length', picks=None, ax=None, color='black',
                  xscale='linear', area_mode='std', area_alpha=0.33,
                  dB=True, estimate='auto', show=True, n_jobs=1,
-                 average=None, line_alpha=None, spatial_colors=None,
+                 average=False, line_alpha=None, spatial_colors=True,
                  verbose=None):
         return plot_epochs_psd(self, fmin=fmin, fmax=fmax, tmin=tmin,
                                tmax=tmax, proj=proj, bandwidth=bandwidth,
@@ -1468,7 +1468,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return new
 
     @verbose
-    def save(self, fname, split_size='2GB', fmt='single', overwrite=None,
+    def save(self, fname, split_size='2GB', fmt='single', overwrite=False,
              verbose=True):
         """Save epochs in a fif file.
 
@@ -1511,13 +1511,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                       '_epo.fif', '_epo.fif.gz'))
 
         # check for file existence
-        # deprecation warning
-        if overwrite is None:
-            overwrite = True
-            warn('overwrite defaults to True in 0.18 but will change to False '
-                 'in 0.19, set it explicitly to avoid this warning',
-                 DeprecationWarning)
-
         _check_fname(fname, overwrite)
 
         split_size = _get_split_size(split_size)

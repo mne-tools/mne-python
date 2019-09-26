@@ -29,7 +29,7 @@ from ..utils import _reject_data_segments
 
 
 @fill_doc
-def plot_ica_sources(ica, inst, picks=None, exclude='deprecated', start=None,
+def plot_ica_sources(ica, inst, picks=None, start=None,
                      stop=None, title=None, show=True, block=False,
                      show_first_samp=False, show_scrollbars=True):
     """Plot estimated latent sources given the unmixing matrix.
@@ -48,10 +48,6 @@ def plot_ica_sources(ica, inst, picks=None, exclude='deprecated', start=None,
     inst : instance of mne.io.Raw, mne.Epochs, mne.Evoked
         The object to plot the sources from.
     %(picks_base)s all sources in the order as fitted.
-    exclude : 'deprecated'
-        The ``exclude`` parameter is deprecated and will be removed in version
-        0.20; specify excluded components using the ``ICA.exclude`` attribute
-        instead.
     start : int
         X-axis start index. If None, from the beginning.
     stop : int
@@ -86,11 +82,6 @@ def plot_ica_sources(ica, inst, picks=None, exclude='deprecated', start=None,
     from ..evoked import Evoked
     from ..epochs import BaseEpochs
 
-    if exclude != 'deprecated':
-        warn('The "exclude" parameter is deprecated and will be removed in '
-             'version 0.20; specify excluded components using the ICA.exclude '
-             'attribute instead. Provided value of {} will be ignored; falling'
-             ' back to ICA.exclude'.format(exclude), DeprecationWarning)
     exclude = ica.exclude
     picks = _picks_to_idx(ica.n_components_, picks, 'all')
 

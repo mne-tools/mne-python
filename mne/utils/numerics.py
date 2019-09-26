@@ -23,7 +23,7 @@ from ._logging import logger, warn, verbose
 from .check import check_random_state, _ensure_int, _validate_type
 from .linalg import _svd_lwork, _repeated_svd, dgemm, zgemm
 from ..fixes import _infer_dimension_, svd_flip, stable_cumsum, _safe_svd
-from .docs import deprecated, fill_doc
+from .docs import fill_doc
 
 
 def split_list(l, n, idx=False):
@@ -394,33 +394,6 @@ def _check_scaling_inputs(data, picks_list, scalings):
         raise NotImplementedError("No way! That's not a rescaling "
                                   'option: %s' % scalings)
     return scalings_
-
-
-@deprecated('mne.utils.md5sum will be deprecated in 0.19, please use '
-            'mne.utils.hashfunc(... , hash_type="md5") instead.')
-def md5sum(fname, block_size=1048576):  # 2 ** 20
-    """Calculate the md5sum for a file.
-
-    Parameters
-    ----------
-    fname : str
-        Filename.
-    block_size : int
-        Block size to use when reading.
-
-    Returns
-    -------
-    hash_ : str
-        The hexadecimal digest of the hash.
-    """
-    md5 = hashlib.md5()
-    with open(fname, 'rb') as fid:
-        while True:
-            data = fid.read(block_size)
-            if not data:
-                break
-            md5.update(data)
-    return md5.hexdigest()
 
 
 def hashfunc(fname, block_size=1048576, hash_type="md5"):  # 2 ** 20

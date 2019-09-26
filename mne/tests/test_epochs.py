@@ -2574,22 +2574,13 @@ def test_save_overwrite(tmpdir):
     epochs.save(fname2, overwrite=True)
     # check that the file got written
     assert op.isfile(fname2)
+    with pytest.raises(IOError, match='exists'):
+        epochs.save(fname2)
 
     # scenario 4: overwrite=True and there is a file to overwrite
     # run function to be sure it doesn't throw an error
     # fname2 exists because of scenario 1 above
     epochs.save(fname2, overwrite=True)
-    # check that the file got written
-    assert op.isfile(fname2)
-
-    # test deprecation warning
-    fname3 = op.join(tempdir, 'test_v3-epo.fif')
-    # there is no file
-    with pytest.deprecated_call():
-        epochs.save(fname3)
-    # there is a file
-    with pytest.deprecated_call():
-        epochs.save(fname3)
 
 
 def test_save_complex_data(tmpdir):
