@@ -24,7 +24,8 @@ from mne.channels import (get_builtin_montages, DigMontage,
                           read_dig_polhemus_isotrak,
                           read_polhemus_fastscan,
                           read_dig_hpts)
-from mne.channels.montage import (_set_montage, transform_to_head)
+from mne.channels.montage import (_set_montage, transform_to_head,
+                                  _check_get_coord_frame)
 from mne.utils import (_TempDir, run_tests_if_main, assert_dig_allclose,
                        object_diff)
 from mne.bem import _fit_sphere
@@ -855,8 +856,7 @@ def test_set_montage():
 # XXX: this does not check ch_names + it cannot work because of write_dig
 def _check_roundtrip(montage, fname):
     """Check roundtrip writing."""
-    with pytest.deprecated_call():
-        assert_equal(montage.coord_frame, 'head')
+    assert_equal(_check_get_coord_frame(montage.dig), 'head')
     montage.save(fname)
     montage_read = read_dig_fif(fname=fname)
     assert_equal(str(montage), str(montage_read))
@@ -865,8 +865,7 @@ def _check_roundtrip(montage, fname):
             if getattr(montage, kind, None) is not None:
                 assert_allclose(getattr(montage, kind),
                                 getattr(montage_read, kind), err_msg=kind)
-    with pytest.deprecated_call():
-        assert_equal(montage_read.coord_frame, 'head')
+    assert_equal(_check_get_coord_frame(montage_read.dig), 'head')
 
 
 def _fake_montage(ch_names):
@@ -1160,7 +1159,7 @@ def test_set_montage_coord_frame_in_head_vs_unknown():
     )
 
     # check no collateral effects from transforming montage
-    assert montage_in_unknown_with_fid._coord_frame == 'unknown'
+    assert _check_get_coord_frame(montage_in_unknown_with_fid.dig) == 'unknown'
     assert_array_equal(
         _get_dig_montage_pos(montage_in_unknown_with_fid),
         [[0, 1, 2], [3, 4, 5], [6, 7, 8]],

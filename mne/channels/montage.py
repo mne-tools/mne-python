@@ -12,8 +12,6 @@
 # License: Simplified BSD
 
 from collections import OrderedDict
-from collections.abc import Iterable
-import os
 import os.path as op
 import re
 from copy import deepcopy
@@ -21,31 +19,25 @@ from itertools import takewhile, chain
 from functools import partial
 
 import numpy as np
-import xml.etree.ElementTree as ElementTree
 
 from ..viz import plot_montage
-from .channels import _contains_ch_type
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _frame_to_str, _str_to_frame,
                           Transform)
 from .._digitization import Digitization
 from .._digitization.base import _count_points_by_type
 from .._digitization.base import _get_dig_eeg
-from .._digitization._utils import (_make_dig_points, _read_dig_points,
-                                    write_dig, _read_dig_fif,
+from .._digitization._utils import (_make_dig_points, write_dig, _read_dig_fif,
                                     _format_dig_points)
 from ..io.pick import pick_types
 from ..io.open import fiff_open
 from ..io.constants import FIFF
 from ..utils import (warn, logger, copy_function_doc_to_method_doc,
-                     _check_option, Bunch, deprecated, _validate_type,
-                     _check_fname)
+                     _check_option, Bunch, _validate_type, _check_fname)
 from .._digitization._utils import _get_fid_coords, _foo_get_data_from_dig
 
-from .layout import _pol_to_cart, _cart_to_sph
 from ._dig_montage_utils import _transform_to_head_call
-from ._dig_montage_utils import _read_dig_montage_egi, _read_dig_montage_bvct
-from ._dig_montage_utils import _fix_data_fiducials
+from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
 
 from .channels import DEPRECATED_PARAM
@@ -227,38 +219,8 @@ class DigMontage(object):
 
     Parameters
     ----------
-    hsp : array, shape (n_points, 3)
-        The positions of the headshape points in 3d.
-        These points are in the native digitizer space.
-        Deprecated, will be removed in 0.20.
-    hpi : array, shape (n_hpi, 3)
-        The positions of the head-position indicator coils in 3d.
-        These points are in the MEG device space.
-        Deprecated, will be removed in 0.20.
-    elp : array, shape (n_hpi, 3)
-        The positions of the head-position indicator coils in 3d.
-        This is typically in the native digitizer space.
-        Deprecated, will be removed in 0.20.
-    point_names : list, shape (n_elp)
-        The names of the digitized points for hpi and elp.
-        Deprecated, will be removed in 0.20.
-    nasion : array, shape (1, 3)
-        The position of the nasion fiducial point.
-        Deprecated, will be removed in 0.20.
-    lpa : array, shape (1, 3)
-        The position of the left periauricular fiducial point.
-        Deprecated, will be removed in 0.20.
-    rpa : array, shape (1, 3)
-        The position of the right periauricular fiducial point.
-        Deprecated, will be removed in 0.20.
     dev_head_t : array, shape (4, 4)
         A Device-to-Head transformation matrix.
-    dig_ch_pos : dict
-        Dictionary of channel positions given in meters.
-        Deprecated, will be removed in 0.20.
-
-        .. versionadded:: 0.12
-
     dig : list of dict
         The object containing all the dig points.
     ch_names : list of str
@@ -294,7 +256,6 @@ class DigMontage(object):
         self.dev_head_t = dev_head_t
         self.dig = dig
         self.ch_names = ch_names
-        self._coord_frame = _check_get_coord_frame(self.dig)
 
     def __repr__(self):
         """Return string representation."""
@@ -309,13 +270,6 @@ class DigMontage(object):
         return plot_montage(self, scale_factor=scale_factor,
                             show_names=show_names, kind=kind, show=show)
 
-    def transform_to_head(self):
-        """Transform digitizer points to Neuromag head coordinates."""
-        raise RuntimeError('The transform_to_head method has been removed to '
-                           'enforce that DigMontage are constructed already '
-                           'in the correct coordinate system. This method '
-                           'will disappear in version 0.20.')
-
     def save(self, fname):
         """Save digitization points to FIF.
 
@@ -324,7 +278,7 @@ class DigMontage(object):
         fname : str
             The filename to use. Should end in .fif or .fif.gz.
         """
-        if self._coord_frame != 'head':
+        if _check_get_coord_frame(self.dig) != 'head':
             raise RuntimeError('Can only write out digitization points in '
                                'head coordinates.')
         write_dig(fname, self.dig)
@@ -502,7 +456,6 @@ def transform_to_head(montage):
                 d['r'] = apply_trans(native_head_t, d['r'])
                 d['coord_frame'] = FIFF.FIFFV_COORD_HEAD
 
-    montage._coord_frame = 'head'  # XXX : should desappear in 0.20
     return montage
 
 
