@@ -64,6 +64,11 @@ class _Figure(object):
             self.plotter = plotter
         return self.plotter
 
+    def is_active(self):
+        if self.plotter is None:
+            return False
+        return hasattr(self.plotter, 'ren_win')
+
 
 class _Projection(object):
     """Class storing projection information.
@@ -102,20 +107,18 @@ class _Renderer(_BaseRenderer):
                  name="PyVista Scene", show=False, shape=(1, 1)):
         from pyvista import OFF_SCREEN
         from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
+        figure = _Figure(title=name, size=size, shape=shape,
+                         background_color=bgcolor, notebook=_check_notebook())
         if isinstance(fig, int):
-            if _FIGURES.get(fig) is None:
-                self.figure = _Figure(title=name, size=size,
-                                      shape=shape,
-                                      background_color=bgcolor,
-                                      notebook=_check_notebook())
-                _FIGURES[fig] = self.figure
+            saved_fig = _FIGURES.get(fig)
+            # Restore only active plotter
+            if saved_fig is not None and saved_fig.is_active():
+                self.figure = saved_fig
             else:
-                self.figure = _FIGURES.get(fig)
+                self.figure = figure
+                _FIGURES[fig] = self.figure
         elif fig is None:
-            self.figure = _Figure(title=name, size=size,
-                                  shape=shape,
-                                  background_color=bgcolor,
-                                  notebook=_check_notebook())
+            self.figure = figure
         else:
             self.figure = fig
 
