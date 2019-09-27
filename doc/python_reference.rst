@@ -292,7 +292,6 @@ Projections:
    compute_proj_raw
    read_proj
    write_proj
-   optical_density
 
 :py:mod:`mne.channels`:
 
@@ -360,6 +359,7 @@ Projections:
    read_ica
    run_ica
    corrmap
+   optical_density
 
 EEG referencing:
 
