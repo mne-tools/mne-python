@@ -7,8 +7,8 @@
 #
 # License: BSD (3-clause)
 
+import os.path as op
 import numpy as np
-from os.path import splitext
 
 
 from .utils import (check_fname, logger, verbose, _get_stim_channel, warn,
@@ -252,7 +252,7 @@ def read_events(filename, include=None, exclude=None, mask=None,
                                      '-annot.fif',  # MNE-C annot
                                      ))
 
-    ext = splitext(filename)[1].lower()
+    ext = op.splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
         fid, tree, _ = fiff_open(filename)
         with fid as f:
@@ -323,7 +323,7 @@ def write_events(filename, event_list):
                                      '-eve.lst', '-eve.txt', '_eve.fif',
                                      '_eve.fif.gz', '_eve.lst', '_eve.txt'))
 
-    ext = splitext(filename)[1].lower()
+    ext = op.splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
         #   Start writing...
         fid = start_file(filename)
