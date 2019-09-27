@@ -34,7 +34,7 @@ dependencies:
 - pip:
   - mne
   - vtk
-  - pyvista>=0.22.2
+  - https://github.com/pyvista/pyvista/zipball/sphinx-patch
   - mayavi
   - PySurfer[save_movie]
   - dipy --only-binary dipy

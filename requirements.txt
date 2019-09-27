@@ -29,5 +29,5 @@ neo
 xlrd
 pydocstyle
 flake8
-pyvista>=0.22.2
+https://github.com/pyvista/pyvista/zipball/sphinx-patch
 panel
