@@ -129,7 +129,7 @@ def test_io_events(tmpdir):
     assert_array_almost_equal(events, events2)
 
     # Test new format text file IO
-    fname_temp = tmpdir.join('events.eve')
+    fname_temp = str(tmpdir.join('events.eve'))
     write_events(fname_temp, events)
     events2 = read_events(fname_temp)
     assert_array_almost_equal(events, events2)
@@ -168,7 +168,7 @@ def test_io_events(tmpdir):
     assert_array_almost_equal(events, events2)
 
     # Test text file IO for 1 event
-    fname_temp = tmpdir.join('events.eve')
+    fname_temp = str(tmpdir.join('events.eve'))
     write_events(fname_temp, events)
     events2 = read_events(fname_temp)
     assert_array_almost_equal(events, events2)
