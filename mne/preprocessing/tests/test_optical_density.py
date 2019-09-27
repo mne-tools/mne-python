@@ -13,6 +13,7 @@ fname_nirx = op.join(data_path(download=False),
                      'NIRx', 'nirx_15_2_recording_w_short')
 
 
+@testing.requires_testing_data
 def test_optical_density():
     """Test fix stim artifact."""
     raw = read_raw_nirx(fname_nirx, preload=True)
