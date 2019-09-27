@@ -315,7 +315,7 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def screenshot(self, mode='rgb'):
+    def screenshot(self, mode='rgb', filename=None):
         """Take a screenshot of the scene.
 
         Parameters
@@ -323,6 +323,8 @@ class _BaseRenderer(metaclass=ABCMeta):
         mode: str
             Either 'rgb' or 'rgba' for values to return.
             Default is 'rgb'.
+        filename: str | None
+            If not None, save the figure to the disk.
         """
         pass
 

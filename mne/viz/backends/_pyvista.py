@@ -397,8 +397,9 @@ class _Renderer(_BaseRenderer):
         _set_3d_view(self.figure, azimuth=azimuth, elevation=elevation,
                      distance=distance, focalpoint=focalpoint)
 
-    def screenshot(self, mode='rgb'):
-        return self.plotter.screenshot(transparent_background=(mode == 'rgba'))
+    def screenshot(self, mode='rgb', filename=None):
+        return self.plotter.screenshot(transparent_background=(mode == 'rgba'),
+                                       filename=filename)
 
     def project(self, xyz, ch_names):
         xy = _3d_to_2d(self.plotter, xyz)

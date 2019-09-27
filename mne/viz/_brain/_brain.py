@@ -128,6 +128,8 @@ class _Brain(object):
        +---------------------------+--------------+-----------------------+
        | remove_labels             | ✓            | -                     |
        +---------------------------+--------------+-----------------------+
+       | save_image                | ✓            | ✓                     |
+       +---------------------------+--------------+-----------------------+
        | screenshot                | ✓            | ✓                     |
        +---------------------------+--------------+-----------------------+
        | show_view                 | ✓            | -                     |
@@ -729,6 +731,18 @@ class _Brain(object):
                         elev=view['elevation'])
         self._renderer.set_camera(azimuth=view.azim,
                                   elevation=view.elev)
+
+    def save_image(self, filename, mode='rgb'):
+        """Save view from all panels to disk.
+
+        Parameters
+        ----------
+        filename: string
+            path to new image file
+        mode : string
+            Either 'rgb' or 'rgba' for values to return.
+        """
+        self._renderer.screenshot(mode=mode, filename=filename)
 
     def screenshot(self, mode='rgb'):
         """Generate a screenshot of current view.

@@ -259,14 +259,17 @@ class _Renderer(_BaseRenderer):
                      elevation=elevation, distance=distance,
                      focalpoint=focalpoint)
 
-    def screenshot(self, mode='rgb'):
+    def screenshot(self, mode='rgb', filename=None):
         from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
         if MNE_3D_BACKEND_TEST_DATA:
             ndim = 3 if mode == 'rgb' else 4
             return np.zeros(tuple(self.window_size) + (ndim,), np.uint8)
         else:
             with warnings.catch_warnings(record=True):  # traits
-                return self.mlab.screenshot(self.fig, mode=mode)
+                img = self.mlab.screenshot(self.fig, mode=mode)
+                if isinstance(filename, str):
+                    _save_figure(img, filename)
+                return img
 
     def project(self, xyz, ch_names):
         xy = _3d_to_2d(self.fig, xyz)
@@ -411,3 +414,12 @@ def _check_figure(figure):
     from mayavi.core.scene import Scene
     if not isinstance(figure, Scene):
         raise TypeError('figure must be a mayavi scene')
+
+
+def _save_figure(img, filename):
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    from matplotlib.figure import Figure
+    fig = Figure(frameon=False)
+    FigureCanvasAgg(fig)
+    fig.figimage(img, resize=True)
+    fig.savefig(filename)
