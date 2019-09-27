@@ -17,6 +17,6 @@ fname_nirx = op.join(data_path(download=False),
 def test_optical_density():
     """Test fix stim artifact."""
     raw = read_raw_nirx(fname_nirx, preload=True)
-    od = optical_density(raw, verbose=None)
+    od = optical_density(raw)
     _validate_type(od, BaseRaw, 'raw')
     print(od)
