@@ -417,7 +417,7 @@ def _check_subject_from(subject_from, src):
     elif src is None:  # assume it's correct although dangerous but unlikely
         subject_check = subject_from
     else:
-        subject_check = src[0]['subject_his_id']
+        subject_check = src._subject
     if subject_from is None:
         subject_from = subject_check
     elif subject_check is not None and subject_from != subject_check:

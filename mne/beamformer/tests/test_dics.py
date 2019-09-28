@@ -167,7 +167,7 @@ def test_make_dics(tmpdir, _load_forward):
     assert_array_equal(filters['proj'], np.eye(n_channels))
     assert_array_equal(filters['vertices'][0], vertices)
     assert_array_equal(filters['vertices'][1], [])  # Label was on the LH
-    assert filters['subject'] == fwd_free['src'][0]['subject_his_id']
+    assert filters['subject'] == fwd_free['src']._subject
     assert filters['pick_ori'] is None
     assert filters['n_orient'] == n_orient
     assert filters['inversion'] == 'single'

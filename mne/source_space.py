@@ -178,7 +178,7 @@ class SourceSpaces(list):
         info = create_info(0, 1000., 'eeg')
 
         return plot_alignment(
-            info, trans=trans, subject=self[0]['subject_his_id'],
+            info, trans=trans, subject=self._subject,
             subjects_dir=subjects_dir, surfaces=surfaces,
             coord_frame=coord_frame, meg=(), eeg=False, dig=False, ecog=False,
             bem=bem, src=self
@@ -186,7 +186,8 @@ class SourceSpaces(list):
 
     def __repr__(self):  # noqa: D105
         ss_repr = []
-        for ss in self:
+        extra = []
+        for si, ss in enumerate(self):
             ss_type = ss['type']
             r = _src_kind_dict[ss_type]
             if ss_type == 'vol':
@@ -196,10 +197,20 @@ class SourceSpaces(list):
                     r += ", shape=%s" % (ss['shape'],)
             elif ss_type == 'surf':
                 r += (" (%s), n_vertices=%i" % (_get_hemi(ss)[0], ss['np']))
-            r += (', n_used=%i, coordinate_frame=%s'
-                  % (ss['nuse'], _coord_frame_name(int(ss['coord_frame']))))
+            r += ', n_used=%i' % (ss['nuse'],)
+            if si == 0:
+                extra += ['%s coords'
+                          % (_coord_frame_name(int(ss['coord_frame'])))]
             ss_repr.append('<%s>' % r)
-        return "<SourceSpaces: [%s]>" % ', '.join(ss_repr)
+        subj = self._subject
+        if subj is not None:
+            extra += ['subject %r' % (subj,)]
+        return "<SourceSpaces: [%s] %s>" % (
+            ', '.join(ss_repr), ', '.join(extra))
+
+    @property
+    def _subject(self):
+        return self[0].get('subject_his_id', None)
 
     @property
     def kind(self):
@@ -2342,7 +2353,7 @@ def _ensure_src(src, kind=None, extra='', verbose=None):
 
 
 def _ensure_src_subject(src, subject):
-    src_subject = src[0].get('subject_his_id', None)
+    src_subject = src._subject
     if subject is None:
         subject = src_subject
         if subject is None:
