@@ -7,7 +7,7 @@ from ..io.constants import FIFF
 from ..utils import _validate_type
 from ..io.pick import _picks_to_idx
 
-from numpy import mean, divide, log, ones, concatenate
+from numpy import mean, divide, log, ones
 
 
 def optical_density(raw):
@@ -29,7 +29,7 @@ def optical_density(raw):
     data_means = mean(raw.get_data(), 1)
     for ii in picks:
         data = -1.0 * log(divide(raw.get_data(ii).T,
-                           ones((len(raw), 1)) * data_means[ii]))
+                          ones((len(raw), 1)) * data_means[ii]))
         raw._data[ii, :] = data.T
         raw.info['chs'][ii]['coil_type'] = FIFF.FIFFV_COIL_FNIRS_OD
 
