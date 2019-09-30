@@ -366,7 +366,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         if events is not None:  # RtEpochs can have events=None
             events_type = type(events)
             events = np.asarray(events)
-            if events.dtype != np.int:
+            if not np.issubdtype(events.dtype, np.integer):
                 raise TypeError('events should be a NumPy array of integers, '
                                 'got {}'.format(events_type))
         event_id = _check_event_id(event_id, events)
@@ -374,10 +374,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         del event_id
 
         if events is not None:  # RtEpochs can have events=None
-            if events.dtype.kind not in ['i', 'u']:
-                raise ValueError('events must be an array of type int, got '
-                                 'type %s' % (events.dtype))
-            events = events.astype(int)
             if events.ndim != 2 or events.shape[1] != 3:
                 raise ValueError('events must be of shape (N, 3), got %s'
                                  % (events.shape,))
