@@ -389,7 +389,7 @@ class _Renderer(_BaseRenderer):
             self.plotter.add_scalar_bar(title=title, n_labels=n_labels,
                                         use_opacity=False, n_colors=256,
                                         position_x=0.15, width=0.7,
-                                        label_font_size=28,
+                                        label_font_size=22,
                                         font_family=self.font_family,
                                         background_color=bgcolor)
 
