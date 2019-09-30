@@ -20,4 +20,3 @@ def test_optical_density():
     raw = read_raw_nirx(fname_nirx, preload=True)
     od = optical_density(raw)
     _validate_type(od, BaseRaw, 'raw')
-    print(od)
