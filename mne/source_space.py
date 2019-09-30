@@ -1144,7 +1144,7 @@ def head_to_mri(pos, subject, mri_head_t, subjects_dir=None,
     Returns
     -------
     coordinates : array, shape (n_pos, 3)
-        The MNI coordinates (in mm) of pos
+        The MRI RAS coordinates (in mm) of pos
 
     Notes
     -----
