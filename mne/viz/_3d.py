@@ -580,6 +580,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         the subjects bem and bem/flash folders are searched. Defaults to None.
     seeg : bool
         If True (default), show sEEG electrodes.
+    fnirs : bool
+        If True (default), show fnirs channel locations.
     show_axes : bool
         If True (default False), coordinate frame axis indicators will be
         shown:
@@ -1014,7 +1016,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     if len(seeg_picks) > 0 and seeg:
         seeg_loc = np.array([info['chs'][pick]['loc'][:3]
                              for pick in seeg_picks])
-    if len(fnirs_picks) > 0 and seeg:
+    if len(fnirs_picks) > 0 and fnirs:
         fnirs_loc = np.array([info['chs'][pick]['loc'][:3]
                              for pick in fnirs_picks]) / 1000
     # initialize figure
