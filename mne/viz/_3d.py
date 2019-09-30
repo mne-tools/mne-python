@@ -515,7 +515,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 @verbose
 def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    surfaces='head', coord_frame='head',
-                   meg=None, eeg='original', fwd=None,
+                   meg=None, eeg='original', fwd=None, fnirs=True,
                    dig=False, ecog=True, src=None, mri_fiducials=False,
                    bem=None, seeg=True, show_axes=False, fig=None,
                    interaction='trackball', verbose=None):
@@ -703,6 +703,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
     ecog_picks = pick_types(info, meg=False, ecog=True, ref_meg=False)
     seeg_picks = pick_types(info, meg=False, seeg=True, ref_meg=False)
+    fnirs_picks = pick_types(info, meg=False, seeg=False, ref_meg=False, fnirs=True)
 
     if trans == 'auto':
         # let's try to do this in MRI coordinates so they're easy to plot
@@ -944,6 +945,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     meg_rrs, meg_tris = list(), list()
     ecog_loc = list()
     seeg_loc = list()
+    fnirs_loc = list()
     hpi_loc = list()
     ext_loc = list()
     car_loc = list()
@@ -1012,7 +1014,9 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     if len(seeg_picks) > 0 and seeg:
         seeg_loc = np.array([info['chs'][pick]['loc'][:3]
                              for pick in seeg_picks])
-
+    if len(fnirs_picks) > 0 and seeg:
+        fnirs_loc = np.array([info['chs'][pick]['loc'][:3]
+                             for pick in fnirs_picks]) / 1000
     # initialize figure
     renderer = _Renderer(fig, bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
     if interaction == 'terrain':
@@ -1054,20 +1058,22 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     defaults = DEFAULTS['coreg']
     datas = [eeg_loc,
              hpi_loc,
-             ext_loc, ecog_loc, seeg_loc]
+             ext_loc, ecog_loc, seeg_loc, fnirs_loc]
     colors = [defaults['eeg_color'],
               defaults['hpi_color'],
               defaults['extra_color'],
               defaults['ecog_color'],
-              defaults['seeg_color']]
+              defaults['seeg_color'],
+              defaults['fnirs_color']]
     alphas = [0.8,
               0.5,
-              0.25, 0.8, 0.8]
+              0.25, 0.8, 0.8, 0.8]
     scales = [defaults['eeg_scale'],
               defaults['hpi_scale'],
               defaults['extra_scale'],
               defaults['ecog_scale'],
-              defaults['seeg_scale']]
+              defaults['seeg_scale'],
+              defaults['fnirs_scale']]
     for kind, loc in (('dig', car_loc), ('mri', fid_loc)):
         if len(loc) > 0:
             datas.extend(loc[:, np.newaxis])
