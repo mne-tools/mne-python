@@ -9,7 +9,7 @@ Examples
 
 
  .. note : Only one of --ico, --oct or --spacing options can be set at the same
-           time. Default to spacing = 7mm.
+           time. Default to oct6.
 
 """
 
@@ -99,8 +99,8 @@ def run():
     if n_options > 1:
         raise ValueError('Only one spacing option can be set at the same time')
     elif n_options == 0:
-        # Use default value 7mm
-        use_spacing = 7
+        # Default to oct6
+        use_spacing = 'oct6'
     elif n_options == 1:
         if ico is not None:
             use_spacing = "ico" + str(ico)
