@@ -83,7 +83,7 @@ l_freq : float | None
 docdict['h_freq'] = """
 h_freq : float | None
     For FIR filters, the upper pass-band edge; for IIR filters, the upper
-    cutoff frequency. If None the data are only low-passed.
+    cutoff frequency. If None the data are only high-passed.
 """
 docdict['filter_length'] = """
 filter_length : str | int
