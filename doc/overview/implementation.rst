@@ -1,3 +1,5 @@
+.. include:: ../_includes/references.rst
+
 .. _implementation:
 
 Algorithms and other implementation details
@@ -132,11 +134,6 @@ Morphing and averaging source estimates
 References
 ^^^^^^^^^^
 
-.. [1] Perrin, F., Pernier, J., Bertrand, O. and Echallier, JF. (1989).
-       Spherical splines for scalp potential and current density mapping.
-       *Electroencephalography Clinical Neurophysiology* 72(2), 184-187.
-       doi: 10.1016/0013-4694(89)90180-6
+.. [#Pe89] |PerrinEtAl1989|
 
-.. [2] Dale AM, Fischl B, Sereno MI (1999). "Cortical surface-based analysis.
-       I. Segmentation and surface reconstruction." *Neuroimage* 9, 179-94.
-       doi: 10.1006/nimg.1998.0395
+.. [#De99] |DaleEtAl1999|

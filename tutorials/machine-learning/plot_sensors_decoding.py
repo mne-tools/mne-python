@@ -1,4 +1,6 @@
 r"""
+.. include:: ../../_includes/references.rst
+
 ===============
 Decoding (MVPA)
 ===============
@@ -16,7 +18,7 @@ learning API of the scikit-learn package.
 Each estimator implements ``fit``, ``transform``, ``fit_transform``, and
 (optionally) ``inverse_transform`` methods. For more details on this design,
 visit scikit-learn_. For additional theoretical insights into the decoding
-framework in MNE, see [1]_.
+framework in MNE, see [#Ki18]_.
 
 For ease of comprehension, we will denote instantiations of the class using
 the same name as the class but in small caps instead of camel cases.
@@ -146,7 +148,7 @@ print('Spatio-temporal: %0.1f%%' % (100 * score,))
 # ^^^^^^^^^^^^^^^^^^^^^^
 #
 # :class:`mne.decoding.CSP` is a technique to analyze multichannel data based
-# on recordings from two classes [2]_ (see also
+# on recordings from two classes [#Ko91]_ (see also
 # https://en.wikipedia.org/wiki/Common_spatial_pattern).
 #
 # Let :math:`X \in R^{C\times T}` be a segment of data with
@@ -204,7 +206,7 @@ print('CSP: %0.1f%%' % (100 * scores.mean(),))
 ###############################################################################
 # Source power comodulation (SPoC)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# Source Power Comodulation (:class:`mne.decoding.SPoC`) [3]_
+# Source Power Comodulation (:class:`mne.decoding.SPoC`) [#Da14]_
 # identifies the composition of
 # orthogonal spatial filters that maximally correlate with a continuous target.
 #
@@ -220,7 +222,7 @@ print('CSP: %0.1f%%' % (100 * scores.mean(),))
 # xDAWN
 # ^^^^^
 # :class:`mne.preprocessing.Xdawn` is a spatial filtering method designed to
-# improve the signal to signal + noise ratio (SSNR) of the ERP responses [4]_.
+# improve the signal to signal + noise ratio (SSNR) of the ERP responses [#Ri09]_.
 # Xdawn was originally
 # designed for P300 evoked potential by enhancing the target response with
 # respect to the non-target response. The implementation in MNE-Python is a
@@ -234,7 +236,7 @@ print('CSP: %0.1f%%' % (100 * scores.mean(),))
 # Effect-matched spatial filtering
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # The result of :class:`mne.decoding.EMS` is a spatial filter at each time
-# point and a corresponding time course [5]_.
+# point and a corresponding time course [#Sc13]_.
 # Intuitively, the result gives the similarity between the filter at
 # each time point and the data vector (sensors) at that time point.
 #
@@ -346,7 +348,7 @@ evoked.plot_joint(times=np.arange(0., .500, .100), title='patterns',
 # convenience, here, we refer to it as different tasks. If :math:`X`
 # corresponds to epochs data then the last dimension is time.
 #
-# This runs the analysis used in [6]_ and further detailed in [7]_:
+# This runs the analysis used in [#Ki14]_ and further detailed in [#KD14]_:
 
 # define the Temporal generalization object
 time_gen = GeneralizingEstimator(clf, n_jobs=1, scoring='roc_auc',
@@ -402,29 +404,10 @@ plt.colorbar(im, ax=ax)
 #
 # References
 # ==========
-# .. [1] Jean-Rémi King et al. (2018) "Encoding and Decoding Neuronal Dynamics:
-#        Methodological Framework to Uncover the Algorithms of Cognition",
-#        2018. The Cognitive Neurosciences VI.
-#        https://hal.archives-ouvertes.fr/hal-01848442/
-# .. [2] Zoltan J. Koles. The quantitative extraction and topographic mapping
-#        of the abnormal components in the clinical EEG. Electroencephalography
-#        and Clinical Neurophysiology, 79(6):440--447, December 1991.
-# .. [3] Dahne, S., Meinecke, F. C., Haufe, S., Hohne, J., Tangermann, M.,
-#        Muller, K. R., & Nikulin, V. V. (2014). SPoC: a novel framework for
-#        relating the amplitude of neuronal oscillations to behaviorally
-#        relevant parameters. NeuroImage, 86, 111-122.
-# .. [4] Rivet, B., Souloumiac, A., Attina, V., & Gibert, G. (2009). xDAWN
-#        algorithm to enhance evoked potentials: application to
-#        brain-computer interface. Biomedical Engineering, IEEE Transactions
-#        on, 56(8), 2035-2043.
-# .. [5] Aaron Schurger, Sebastien Marti, and Stanislas Dehaene, "Reducing
-#        multi-sensor data to a single time course that reveals experimental
-#        effects", BMC Neuroscience 2013, 14:122
-# .. [6] Jean-Remi King, Alexandre Gramfort, Aaron Schurger, Lionel Naccache
-#        and Stanislas Dehaene, "Two distinct dynamic modes subtend the
-#        detection of unexpected sounds", PLOS ONE, 2013,
-#        https://www.ncbi.nlm.nih.gov/pubmed/24475052
-# .. [7] King & Dehaene (2014) 'Characterizing the dynamics of mental
-#        representations: the temporal generalization method', Trends In
-#        Cognitive Sciences, 18(4), 203-210.
-#        https://www.ncbi.nlm.nih.gov/pubmed/24593982
+# .. [#Ki18] |KingEtAl2018|
+# .. [#Ko91] |Koles1991|
+# .. [#Da14] |DahneEtAl2014|
+# .. [#Ri09] |RivetEtAl2009|
+# .. [#Sc13] |SchurgerEtAl2013|
+# .. [#Ki14] |KingEtAl2014|
+# .. [#KD14] |KingDehaene2014|

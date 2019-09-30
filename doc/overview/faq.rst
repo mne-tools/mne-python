@@ -1,4 +1,5 @@
 .. include:: ../links.inc
+.. include:: ../_includes/references.rst
 
 .. _faq:
 
@@ -253,7 +254,7 @@ available. It is thus suggested to regularize the noise covariance
 matrix (see :ref:`cov_regularization_math`), especially if only few samples
 are available. Unfortunately it is not easy to tell the effective number of
 samples, hence, to choose the appropriate regularization. In MNE-Python,
-regularization is done using advanced regularization methods described in [1]_.
+regularization is done using advanced regularization methods described in [#En15]_.
 For this the 'auto' option can be used. With this option cross-validation will
 be used to learn the optimal regularization::
 
@@ -282,9 +283,9 @@ by which the squared sum across sensors is divided when computing the whitened
 :term:`GFP`. The whitened :term:`GFP` also helps detecting spurious late evoked
 components which can be the consequence of over- or under-regularization.
 
-Note that if data have been processed using signal space separation (SSS) [2]_,
-gradiometers and magnetometers will be displayed jointly because both are
-reconstructed from the same SSS basis vectors with the same numerical rank.
+Note that if data have been processed using signal space separation (SSS)
+[#Ta05]_, gradiometers and magnetometers will be displayed jointly because both
+are reconstructed from the same SSS basis vectors with the same numerical rank.
 This also implies that both sensor types are not any longer linearly
 independent.
 
@@ -305,9 +306,6 @@ This will plot the whitened evoked for the optimal estimator and display the
 References
 ----------
 
-.. [1] Engemann D. and Gramfort A. (2015) Automated model selection in
-       covariance estimation and spatial whitening of MEG and EEG signals,
-       vol. 108, 328-342, NeuroImage.
+.. [#En15] |EngemannGramfort2015|
 
-.. [2] Taulu, S., Simola, J., Kajola, M., 2005. Applications of the signal
-       space separation method. IEEE Trans. Signal Proc. 53, 3359–3372.
+.. [#Ta05] |TauluEtAl2005|

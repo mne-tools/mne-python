@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 r"""
+.. include:: ../../_includes/references.rst
+
 .. _disc-filtering:
 
 ===================================
@@ -9,9 +11,9 @@ Background information on filtering
 Here we give some background information on filtering in general,
 and how it is done in MNE-Python in particular.
 Recommended reading for practical applications of digital
-filter design can be found in Parks & Burrus (1987) [1]_ and
-Ifeachor & Jervis (2002) [2]_, and for filtering in an
-M/EEG context we recommend reading Widmann *et al.* (2015) [7]_.
+filter design can be found in Parks & Burrus (1987) [#PB87]_ and
+Ifeachor & Jervis (2002) [#IJ02]_, and for filtering in an
+M/EEG context we recommend reading Widmann *et al.* (2015) [#We15]_.
 To see how to use the default filters in MNE-Python on actual data, see
 the :ref:`tut-filter-resample` tutorial.
 
@@ -22,10 +24,10 @@ Problem statement
 =================
 
 Practical issues with filtering electrophysiological data are covered
-in Widmann *et al.* (2012) [6]_, where they conclude with this statement:
+in Widmann & Schröger (2012) [#WS12]_, where they conclude with this statement:
 
     Filtering can result in considerable distortions of the time course
-    (and amplitude) of a signal as demonstrated by VanRullen (2011) [[3]_].
+    (and amplitude) of a signal as demonstrated by VanRullen (2011) [[#VR11]_].
     Thus, filtering should not be used lightly. However, if effects of
     filtering are cautiously considered and filter artifacts are minimized,
     a valid interpretation of the temporal dynamics of filtered
@@ -36,6 +38,7 @@ In other words, filtering can increase signal-to-noise ratio (SNR), but if it
 is not used carefully, it can distort data. Here we hope to cover some
 filtering basics so users can better understand filtering trade-offs and why
 MNE-Python has chosen particular defaults.
+
 
 .. _tut_filtering_basics:
 
@@ -80,7 +83,7 @@ value of :math:`y(n)` depends only on the :math:`M` previous input values.
 IIR filters depend on the previous input and output values, and thus can have
 effectively infinite impulse responses.
 
-As outlined in Parks & Burrus (1987) [1]_, FIR and IIR have different
+As outlined in Parks & Burrus (1987) [#PB87]_, FIR and IIR have different
 trade-offs:
 
     * A causal FIR filter can be linear-phase -- i.e., the same time delay
@@ -92,11 +95,11 @@ trade-offs:
       accumulating error (due to its recursive calculations).
 
 In MNE-Python we default to using FIR filtering. As noted in Widmann *et al.*
-(2015) [7]_:
+(2015) [#We15]_:
 
     Despite IIR filters often being considered as computationally more
     efficient, they are recommended only when high throughput and sharp
-    cutoffs are required (Ifeachor and Jervis, 2002 [[2]_], p. 321)...
+    cutoffs are required (Ifeachor and Jervis, 2002 [[#IJ02]_], p. 321)...
     FIR filters are easier to control, are always stable, have a
     well-defined passband, can be corrected to zero-phase without
     additional computations, and can be converted to minimum-phase.
@@ -609,13 +612,13 @@ plt.show()
 #
 # Filters in general, especially those that are non-causal (zero-phase), can
 # make activity appear to occur earlier or later than it truly did. As
-# mentioned in VanRullen (2011) [3]_, investigations of commonly (at the time)
-# used low-pass filters created artifacts when they were applied to simulated
-# data. However, such deleterious effects were minimal in many real-world
-# examples in Rousselet (2012) [5]_.
+# mentioned in VanRullen (2011) [#VR11]_, investigations of commonly (at the
+# time) used low-pass filters created artifacts when they were applied to
+# simulated data. However, such deleterious effects were minimal in many
+# real-world examples in Rousselet (2012) [#Ro12]_.
 #
-# Perhaps more revealing, it was noted in Widmann & Schröger (2012) [6]_ that
-# the problematic low-pass filters from VanRullen (2011) [3]_:
+# Perhaps more revealing, it was noted in Widmann & Schröger (2012) [#WS12]_
+# that the problematic low-pass filters from VanRullen (2011) [#VR11]_:
 #
 #    1. Used a least-squares design (like :func:`scipy.signal.firls`) that
 #       included "do-not-care" transition regions, which can lead to
@@ -629,20 +632,21 @@ plt.show()
 # ------------------
 #
 # When it comes to high-pass filtering, using corner frequencies above 0.1 Hz
-# were found in Acunzo *et al.* (2012) [4]_ to:
+# were found in Acunzo *et al.* (2012) [#Ae12]_ to:
 #
 #    "... generate a systematic bias easily leading to misinterpretations of
 #    neural activity.”
 #
-# In a related paper, Widmann *et al.* (2015) [7]_ also came to suggest a
-# 0.1 Hz highpass. More evidence followed in Tanner *et al.* (2015) [8]_ of
+# In a related paper, Widmann *et al.* (2015) [#We15]_ also came to suggest a
+# 0.1 Hz highpass. More evidence followed in Tanner *et al.* (2015) [#Te15]_ of
 # such distortions. Using data from language ERP studies of semantic and
 # syntactic processing (i.e., N400 and P600), using a high-pass above 0.3 Hz
 # caused significant effects to be introduced implausibly early when compared
 # to the unfiltered data. From this, the authors suggested the optimal
 # high-pass value for language processing to be 0.1 Hz.
 #
-# We can recreate a problematic simulation from Tanner *et al.* (2015) [8]_:
+# We can recreate a problematic simulation from Tanner *et al.* (2015)
+# [#Te15]_:
 #
 #    "The simulated component is a single-cycle cosine wave with an amplitude
 #    of 5µV [sic], onset of 500 ms poststimulus, and duration of 800 ms. The
@@ -698,7 +702,7 @@ mne.viz.tight_layout()
 plt.show()
 
 ###############################################################################
-# Similarly, in a P300 paradigm reported by Kappenman & Luck (2010) [12]_,
+# Similarly, in a P300 paradigm reported by Kappenman & Luck (2010) [#KL10]_,
 # they found that applying a 1 Hz high-pass decreased the probability of
 # finding a significant difference in the N100 response, likely because
 # the P300 response was smeared (and inverted) in time by the high-pass
@@ -719,12 +723,12 @@ plt.show()
 # Baseline problems (or solutions?)
 # ---------------------------------
 #
-# In an evolving discussion, Tanner *et al.* (2015) [8]_ suggest using baseline
-# correction to remove slow drifts in data. However, Maess *et al.* (2016) [9]_
-# suggest that baseline correction, which is a form of high-passing, does
-# not offer substantial advantages over standard high-pass filtering.
-# Tanner *et al.* (2016) [10]_ rebutted that baseline correction can correct
-# for problems with filtering.
+# In an evolving discussion, Tanner *et al.* (2015) [#Te15]_ suggest using
+# baseline correction to remove slow drifts in data. However, Maess *et al.*
+# (2016) [#Me16]_ suggest that baseline correction, which is a form of
+# high-passing, does not offer substantial advantages over standard high-pass
+# filtering. Tanner *et al.* (2016) [#Te16]_ rebutted that baseline correction
+# can correct for problems with filtering.
 #
 # To see what they mean, consider again our old simulated signal ``x`` from
 # before:
@@ -757,10 +761,10 @@ def baseline_plot(x):
 baseline_plot(x)
 
 ###############################################################################
-# In response, Maess *et al.* (2016) [11]_ note that these simulations do not
-# address cases of pre-stimulus activity that is shared across conditions, as
-# applying baseline correction will effectively copy the topology outside the
-# baseline period. We can see this if we give our signal ``x`` with some
+# In response, Maess *et al.* (2016) [#Me16a]_ note that these simulations do
+# not address cases of pre-stimulus activity that is shared across conditions,
+# as applying baseline correction will effectively copy the topology outside
+# the baseline period. We can see this if we give our signal ``x`` with some
 # consistent pre-stimulus activity, which makes everything look bad.
 #
 # .. note:: An important thing to keep in mind with these plots is that they
@@ -804,7 +808,7 @@ baseline_plot(x)
 # and thus :func:`mne.io.Raw.filter` is used. This function under the hood
 # (among other things) calls :func:`mne.filter.filter_data` to actually
 # filter the data, which by default applies a zero-phase FIR filter designed
-# using :func:`scipy.signal.firwin`. In Widmann *et al.* (2015) [7]_, they
+# using :func:`scipy.signal.firwin`. In Widmann *et al.* (2015) [#We15]_, they
 # suggest a specific set of parameters to use for high-pass filtering,
 # including:
 #
@@ -853,23 +857,23 @@ baseline_plot(x)
 # argument for ``fir_design='firwin'``, and double these for
 # ``fir_design='firwin2'`` mode.
 #
-# .. note:: For ``fir_design='firwin2'``, the multiplicative factors are
-#           doubled compared to what is given in Ifeachor & Jervis (2002) [2]_
-#           (p. 357), as :func:`scipy.signal.firwin2` has a smearing effect
-#           on the frequency response, which we compensate for by
-#           increasing the filter length. This is why
-#           ``fir_desgin='firwin'`` is preferred to ``fir_design='firwin2'``.
+# .. note::
+#    For ``fir_design='firwin2'``, the multiplicative factors are doubled
+#    compared to what is given in Ifeachor & Jervis (2002) [#IJ02]_ (p. 357),
+#    as :func:`scipy.signal.firwin2` has a smearing effect on the frequency
+#    response, which we compensate for by increasing the filter length. This is
+#    why ``fir_desgin='firwin'`` is preferred to ``fir_design='firwin2'``.
 #
 # In 0.14, we default to using a Hamming window in filter design, as it
 # provides up to 53 dB of stop-band attenuation with small pass-band ripple.
 #
-# .. note:: In band-pass applications, often a low-pass filter can operate
-#           effectively with fewer samples than the high-pass filter, so
-#           it is advisable to apply the high-pass and low-pass separately
-#           when using ``fir_design='firwin2'``. For design mode
-#           ``fir_design='firwin'``, there is no need to separate the
-#           operations, as the lowpass and highpass elements are constructed
-#           separately to meet the transition band requirements.
+# .. note::
+#    In band-pass applications, often a low-pass filter can operate effectively
+#    with fewer samples than the high-pass filter, so it is advisable to apply
+#    the high-pass and low-pass separately when using ``fir_design='firwin2'``.
+#    For design mode ``fir_design='firwin'``, there is no need to separate the
+#    operations, as the lowpass and highpass elements are constructed
+#    separately to meet the transition band requirements.
 #
 # For more information on how to use the
 # MNE-Python filtering functions with real data, consult the preprocessing
@@ -899,7 +903,7 @@ baseline_plot(x)
 # Defaults in other software
 # --------------------------
 # A good but possibly outdated comparison of filtering in various software
-# packages is available in Widmann *et al.* (2015) [7]_. Briefly:
+# packages is available in Widmann *et al.* (2015) [#We15]_. Briefly:
 #
 # * EEGLAB
 #     MNE-Python 0.14 defaults to behavior very similar to that of EEGLAB
@@ -915,7 +919,7 @@ baseline_plot(x)
 #
 # Reporting Filters
 # =================
-# On page 45 in Widmann *et al.* (2015) [7]_, there is a convenient list of
+# On page 45 in Widmann *et al.* (2015) [#We15]_, there is a convenient list of
 # important filter parameters that should be reported with each publication:
 #
 # 1. Filter type (high-pass, low-pass, band-pass, band-stop, FIR, IIR)
@@ -985,7 +989,7 @@ filter_length = fir_coefs.shape[0]
 # When use standard :func:`scipy.signal.firwin` design (as for FIR filters in
 # MNE), the passband ripple and stopband attenuation are dependent upon the
 # window used in design. For standard windows the values are listed in this
-# table (see Ifeachor & Jervis (2002) [2]_, p. 357):
+# table (see Ifeachor & Jervis (2002) [#IJ02]_, p. 357):
 #
 # +-------------------------+-----------------+----------------------+
 # | Name of window function | Passband ripple | Stopband attenuation |
@@ -1024,47 +1028,22 @@ filter_length = fir_coefs.shape[0]
 # that can be tolerated, the better behaved the filter will be in the time
 # domain.
 #
+#
 # References
 # ==========
 #
-# .. [1] Parks TW, Burrus CS (1987). Digital Filter Design.
-#        New York: Wiley-Interscience.
-# .. [2] Ifeachor, E. C., & Jervis, B. W. (2002). Digital Signal Processing:
-#        A Practical Approach. Prentice Hall.
-# .. [3] Vanrullen, R. (2011). Four common conceptual fallacies in mapping
-#        the time course of recognition. Perception Science, 2, 365.
-# .. [4] Acunzo, D. J., MacKenzie, G., & van Rossum, M. C. W. (2012).
-#        Systematic biases in early ERP and ERF components as a result
-#        of high-pass filtering. Journal of Neuroscience Methods,
-#        209(1), 212–218. https://doi.org/10.1016/j.jneumeth.2012.06.011
-# .. [5] Rousselet, G. A. (2012). Does filtering preclude us from studying
-#        ERP time-courses? Frontiers in Psychology, 3(131)
-# .. [6] Widmann, A., & Schröger, E. (2012). Filter effects and filter
-#        artifacts in the analysis of electrophysiological data.
-#        Perception Science, 233.
-# .. [7] Widmann, A., Schröger, E., & Maess, B. (2015). Digital filter
-#        design for electrophysiological data – a practical approach.
-#        Journal of Neuroscience Methods, 250, 34–46.
-#        https://doi.org/10.1016/j.jneumeth.2014.08.002
-# .. [8] Tanner, D., Morgan-Short, K., & Luck, S. J. (2015).
-#        How inappropriate high-pass filters can produce artifactual effects
-#        and incorrect conclusions in ERP studies of language and cognition.
-#        Psychophysiology, 52(8), 997–1009. https://doi.org/10.1111/psyp.12437
-# .. [9] Maess, B., Schröger, E., & Widmann, A. (2016).
-#        High-pass filters and baseline correction in M/EEG analysis.
-#        Commentary on: “How inappropriate high-pass filters can produce
-#        artifacts and incorrect conclusions in ERP studies of language
-#        and cognition.” Journal of Neuroscience Methods, 266, 164–165.
-# .. [10] Tanner, D., Norton, J. J. S., Morgan-Short, K., & Luck, S. J. (2016).
-#        On high-pass filter artifacts (they’re real) and baseline correction
-#        (it’s a good idea) in ERP/ERMF analysis.
-# .. [11] Maess, B., Schröger, E., & Widmann, A. (2016).
-#        High-pass filters and baseline correction in M/EEG analysis-continued
-#        discussion. Journal of Neuroscience Methods, 266, 171–172.
-#        Journal of Neuroscience Methods, 266, 166–170.
-# .. [12] Kappenman E. & Luck, S. (2010). The effects of impedance on data
-#        quality and statistical significance in ERP recordings.
-#        Psychophysiology, 47, 888-904.
+# .. [#PB87] |ParksBurrus1987|
+# .. [#IJ02] |IfeachorJervis2002|
+# .. [#We15] |WidmannEtAl2015|
+# .. [#WS12] |WidmannSchroger2012|
+# .. [#VR11] |VanRullen2011|
+# .. [#Ae12] |AcunzoEtAl2012|
+# .. [#Ro12] |Rousselet2012|
+# .. [#Te15] |TannerEtAl2015|
+# .. [#Me16] |MaessEtAl2016|
+# .. [#Te16] |TannerEtAl2016|
+# .. [#Me16a] |MaessEtAl2016a|
+# .. [#KL10] |KappenmanLuck2010|
 #
 # .. _FIR: https://en.wikipedia.org/wiki/Finite_impulse_response
 # .. _IIR: https://en.wikipedia.org/wiki/Infinite_impulse_response

@@ -1,5 +1,8 @@
 :orphan:
 
+.. include:: references.rst
+
+
 Bad channel repair via interpolation
 ====================================
 
@@ -13,7 +16,7 @@ Spherical spline interpolation (EEG)
    can omit the title from the include:
    channel-interpolation-begin-content
 
-In short, data repair using spherical spline interpolation [1]_ consists of the following steps:
+In short, data repair using spherical spline interpolation [#Pe89]_ consists of the following steps:
 
 * Project the good and bad electrodes onto a unit sphere
 * Compute a mapping matrix that maps :math:`N` good channels to :math:`M` bad channels
@@ -74,6 +77,4 @@ and the bad channel will be fixed.
 References
 ~~~~~~~~~~
 
-.. [1] Perrin, F., Pernier, J., Bertrand, O. and Echallier, JF. (1989).
-       Spherical splines for scalp potential and current density mapping.
-       *Electroencephalography Clinical Neurophysiology* 72(2), 184-187.
+.. [#Pe89] |PerrinEtAl1989|
