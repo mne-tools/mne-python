@@ -181,6 +181,7 @@ class _Brain(object):
         self._subjects_dir = subjects_dir
         self._views = views
         self._n_times = None
+        self._scalarbar = False
         # for now only one color bar can be added
         # since it is the same for all figures
         self._colorbar_added = False
@@ -448,8 +449,10 @@ class _Brain(object):
                                       size=time_label_size,
                                       text=time_label(time[time_idx]),
                                       justification='right')
-            self._renderer.scalarbar(source=mesh, n_labels=8,
-                                     bgcolor=(0.5, 0.5, 0.5))
+            if not self._scalarbar:
+                self._renderer.scalarbar(source=mesh, n_labels=8,
+                                         bgcolor=(0.5, 0.5, 0.5))
+                self._scalarbar = True
             self._renderer.set_camera(azimuth=views_dict[v].azim,
                                       elevation=views_dict[v].elev)
 
