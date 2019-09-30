@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-.. include:: ../../_includes/references.rst
-.. include:: ../../links.inc
-
 .. _disc-stats:
 
 =====================
@@ -663,3 +660,7 @@ plt.show()
 # .. [#Ri12] |RidgwayEtAl2012|
 #
 # .. [#Sm09] |SmithNichols2009|
+#
+# .. include:: ../../_includes/references.rst
+#
+# .. include:: ../../links.inc
