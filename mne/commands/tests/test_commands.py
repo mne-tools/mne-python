@@ -287,7 +287,8 @@ def test_setup_source_space(tmpdir):
     use_fname = op.join(tmpdir, "sources-src.fif")
     # Test  command
     with ArgvSetter(('--src', use_fname, '-d', subjects_dir,
-                     '-s', 'sample', '--morph', 'sample', '--verbose')):
+                     '-s', 'sample', '--morph', 'sample',
+                     '--ico', '3', '--verbose')):
         mne_setup_source_space.run()
     src = read_source_spaces(use_fname)
     assert len(src) == 2
