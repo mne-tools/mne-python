@@ -616,11 +616,15 @@ def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
         # Make a list as we may have many inuse when using multiple sub-volumes
         inuse = [morph.src_data['inuse']]
 
-    shape3d = morph.src_data['src_shape']
+    # Here we operate in SAR (opposite order of `stc.vertices`) because
+    # that way masking, reshape, and ravel in C order will work,
+    # and at the end we'll transpose the axes order to get the correct RAS
+    # shape.
+    shape3d = morph.src_data['src_shape']  # SAR
 
     # setup volume parameters
     n_times = stc.data.shape[1]
-    shape = (n_times,) + shape3d
+    shape = (n_times,) + shape3d  # TSAR
     vols = np.zeros(shape)
 
     n_vertices_seen = 0
@@ -633,10 +637,11 @@ def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
             vol[mask3d] = stc.data[stc_slice, k]
 
         n_vertices_seen += n_vertices
+    del shape3d
 
     # use mri resolution as represented in src
     if mri_resolution:
-        mri_shape3d = morph.src_data['src_shape_full']
+        mri_shape3d = morph.src_data['src_shape_full']  # SAR
         mri_shape = (n_times,) + mri_shape3d
         mri_vol = np.zeros(mri_shape)
 
@@ -645,13 +650,16 @@ def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
         for k, vol in enumerate(vols):
             mri_vol[k] = (interpolator * vol.ravel()).reshape(mri_shape3d)
         vols = mri_vol
+        del mri_shape3d
 
+    # TSAR->RAST
     vols = vols.T
 
     # set correct space
-    affine = morph.src_data['src_affine_vox']
 
-    if not mri_resolution:
+    if mri_resolution:
+        affine = morph.src_data['src_affine_vox']
+    else:
         affine = morph.src_data['src_affine_src']
 
     if mri_space:
@@ -1054,6 +1062,31 @@ def _get_zooms_orig(morph):
             zip(morph.zooms, morph.shape, morph.src_data['src_shape_full'])]
 
 
+def _morph_one(stc_one, morph):
+    # prepare data to be morphed
+    # here we use mri_resolution=True, mri_space=True because
+    # we will slice afterward
+    from dipy.align.reslice import reslice
+    assert stc_one.data.shape[1] == 1
+    img_to = _interpolate_data(stc_one, morph, mri_resolution=True,
+                               mri_space=True, output='nifti1')
+
+    # reslice to match morph
+    img_to, img_to_affine = reslice(
+        _get_img_fdata(img_to), morph.affine, _get_zooms_orig(morph),
+        morph.zooms)
+
+    # morph data
+    img_to[:, :, :, 0] = morph.sdr_morph.transform(
+        morph.pre_affine.transform(img_to[:, :, :, 0]))
+
+    # reshape to nvoxel x nvol:
+    # in the MNE definition of volume source spaces,
+    # x varies fastest, then y, then z, so we need order='F' here
+    img_to = img_to.reshape(-1, order='F')
+    return img_to
+
+
 def _apply_morph_data(morph, stc_from):
     """Morph a source estimate from one subject to another."""
     if stc_from.subject is not None and stc_from.subject != morph.subject_from:
@@ -1067,39 +1100,14 @@ def _apply_morph_data(morph, stc_from):
         else:
             raise ValueError('stc_from was type %s but must be a volume '
                              'source estimate' % (type(stc_from),))
-        from dipy.align.reslice import reslice
-
-        n_times = np.prod(stc_from.data.shape[1:])
-
-        def _morph_one(stc_one):
-            # prepare data to be morphed
-            # here we use mri_resolution=True, mri_space=True because
-            # we will slice afterward
-            assert stc_one.data.shape[1] == 1
-            img_to = _interpolate_data(stc_one, morph, mri_resolution=True,
-                                       mri_space=True, output='nifti1')
-
-            # reslice to match morph
-            img_to, img_to_affine = reslice(
-                _get_img_fdata(img_to), morph.affine, _get_zooms_orig(morph),
-                morph.zooms)
-
-            # morph data
-            img_to[:, :, :, 0] = morph.sdr_morph.transform(
-                morph.pre_affine.transform(img_to[:, :, :, 0]))
-
-            # reshape to nvoxel x nvol:
-            # in the MNE definition of volume source spaces,
-            # x varies fastest, then y, then z, so we need order='F' here
-            img_to = img_to.reshape(-1, order='F')
-            return img_to
 
         # First get the vertices (vertices_to) you will need the values for
+        n_times = np.prod(stc_from.data.shape[1:])
         stc_ones = VolSourceEstimate(np.ones((stc_from.data.shape[0], 1),
                                              stc_from.data.dtype),
                                      stc_from.vertices,
                                      tmin=0., tstep=1.)
-        img_to = _morph_one(stc_ones)
+        img_to = _morph_one(stc_ones, morph)
         vertices_to = np.where(img_to)[0]
         data = np.empty((len(vertices_to), n_times))
         data_from = np.reshape(stc_from.data, (stc_from.data.shape[0], -1))
@@ -1107,7 +1115,7 @@ def _apply_morph_data(morph, stc_from):
         for k in range(n_times):
             this_stc = VolSourceEstimate(
                 data_from[:, k:k + 1], stc_from.vertices, tmin=0., tstep=1.)
-            this_img_to = _morph_one(this_stc)
+            this_img_to = _morph_one(this_stc, morph)
             data[:, k] = this_img_to[vertices_to]
         data.shape = (len(vertices_to),) + stc_from.data.shape[1:]
     else:
