@@ -197,9 +197,6 @@ class _Brain(object):
         self._renderer = _Renderer(size=fig_size, bgcolor=background,
                                    shape=(n_row, n_col), fig=figure)
 
-        # XXX: use the geo_ variables
-        # geo_kwargs, geo_reverse, geo_curv = \
-        #        self._get_geo_params(cortex, alpha)
         for h in self._hemis:
             # Initialize a Surface object as the geometry
             geo = Surface(subject_id, h, surf, subjects_dir, offset,
@@ -825,68 +822,6 @@ class _Brain(object):
             raise ValueError('hemi must be either "lh" or "rh"' +
                              extra + ", got " + str(hemi))
         return hemi
-
-    def _get_geo_params(self, cortex, alpha=1.0):
-        """Return kwargs and other parameters for surface rendering.
-
-        Parameters
-        ----------
-        cortex : str or None
-            The name of one of the preset cortex
-            styles ('classic', 'high_contrast', 'low_contrast', or
-            'bone') or a valid color name. If set to None,
-            color is set to (0.5, 0.5, 0.5).
-        alpha : float in [0, 1]
-            Alpha level to control opacity of the cortical surface.
-
-        Returns
-        -------
-        kwargs : dict
-            Dictionary with keyword arguments to be used for surface
-            rendering. For colormaps, keys are ['colormap', 'vmin',
-            'vmax', 'alpha'] to specify the name, minimum, maximum,
-            and alpha transparency of the colormap respectively. For
-            colors, keys are ['color', 'alpha'] to specify the name
-            and alpha transparency of the color respectively.
-        reverse : boolean
-            Boolean indicating whether a colormap should be
-            reversed. Set to False if a color (rather than a colormap)
-            is specified.
-        curv : boolean
-            Boolean indicating whether curv file is loaded and binary
-            curvature is displayed.
-
-        """
-        from matplotlib.colors import colorConverter
-        colormap_map = dict(classic=(dict(colormap="Greys",
-                                          vmin=-1, vmax=2,
-                                          opacity=alpha), False, True),
-                            high_contrast=(dict(colormap="Greys",
-                                                vmin=-.1, vmax=1.3,
-                                                opacity=alpha), False, True),
-                            low_contrast=(dict(colormap="Greys",
-                                               vmin=-5, vmax=5,
-                                               opacity=alpha), False, True),
-                            bone=(dict(colormap="bone",
-                                       vmin=-.2, vmax=2,
-                                       opacity=alpha), True, True))
-        if isinstance(cortex, str):
-            if cortex in colormap_map:
-                geo_params = colormap_map[cortex]
-            else:
-                try:
-                    color = colorConverter.to_rgb(cortex)
-                    geo_params = dict(color=color, opacity=alpha), False, False
-                except ValueError:
-                    geo_params = cortex, False, True
-        # check for None before checking len:
-        elif cortex is None:
-            geo_params = dict(color=(0.5, 0.5, 0.5),
-                              opacity=alpha), False, False
-        else:
-            raise TypeError("Expected type is `str` or `NoneType`, "
-                            "{} is given.".format(type(cortex)))
-        return geo_params
 
 
 def _update_limits(fmin, fmid, fmax, center, array):
