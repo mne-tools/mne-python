@@ -109,6 +109,7 @@ class _Renderer(_BaseRenderer):
         from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
         figure = _Figure(title=name, size=size, shape=shape,
                          background_color=bgcolor, notebook=_check_notebook())
+        self.font_family = "arial"
         if isinstance(fig, int):
             saved_fig = _FIGURES.get(fig)
             # Restore only active plotter
@@ -357,6 +358,7 @@ class _Renderer(_BaseRenderer):
             warnings.filterwarnings("ignore", category=FutureWarning)
             actor = self.plotter.add_text(text, position=position,
                                           font_size=size,
+                                          font=self.font_family,
                                           color=color)
             if isinstance(justification, str):
                 if justification == 'left':
@@ -377,6 +379,7 @@ class _Renderer(_BaseRenderer):
                                           labels=[text],
                                           point_size=scale,
                                           text_color=color,
+                                          font_family=self.font_family,
                                           name=text,
                                           shape_opacity=0)
 
@@ -386,6 +389,8 @@ class _Renderer(_BaseRenderer):
             self.plotter.add_scalar_bar(title=title, n_labels=n_labels,
                                         use_opacity=False, n_colors=256,
                                         position_x=0.15, width=0.7,
+                                        label_font_size=28,
+                                        font_family=self.font_family,
                                         background_color=bgcolor)
 
     def show(self):
