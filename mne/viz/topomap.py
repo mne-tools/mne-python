@@ -25,14 +25,13 @@ from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times, DraggableColorbar,
                     _validate_if_list_of_axes, _setup_cmap, _check_time_unit)
-from ..time_frequency import psd_multitaper
 from ..defaults import _handle_default
 from ..channels.layout import _find_topomap_coords
-from ..io.meas_info import Info
 
 
 def _prepare_topo_plot(inst, ch_type, layout):
     """Prepare topo plot."""
+    from ..io.meas_info import Info
     info = copy.deepcopy(inst if isinstance(inst, Info) else inst.info)
 
     if layout is None and ch_type != 'eeg':
@@ -253,6 +252,7 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                                    _pair_grad_sensors_ch_names_neuromag122,
                                    Layout, _merge_grad_data)
     from ..channels import _get_ch_type
+    from ..io.meas_info import Info
 
     is_layout_parameter_none = layout is None
     is_info_parameter_none = info is None
@@ -741,6 +741,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                   head_pos=None, onselect=None, extrapolate='box'):
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
+    from ..io.meas_info import Info
     data = np.asarray(data)
     logger.debug('Plotting topomap for data shape %s' % (data.shape,))
 
@@ -1988,6 +1989,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         Figure distributing one image per channel across sensor topography.
     """
     from ..channels import _get_ch_type
+    from ..time_frequency import psd_multitaper
     ch_type = _get_ch_type(epochs, ch_type)
 
     picks, pos, merge_grads, names, ch_type = _prepare_topo_plot(

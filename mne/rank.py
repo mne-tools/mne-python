@@ -8,7 +8,6 @@ import numpy as np
 from scipy import linalg
 
 from .defaults import _handle_default
-from .io.meas_info import _simplify_info
 from .io.pick import (_picks_by_type, pick_info, pick_channels_cov,
                       _picks_to_idx)
 from .io.proj import make_projector
@@ -324,6 +323,7 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
     from .io.base import BaseRaw
     from .epochs import BaseEpochs
     from . import Covariance
+    from .io.meas_info import _simplify_info
 
     rank = _check_rank(rank)
     scalings = _handle_default('scalings_cov_rank', scalings)

@@ -20,24 +20,22 @@ from functools import partial
 
 import numpy as np
 
-from ..viz import plot_montage
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _frame_to_str, Transform)
-from .._digitization import Digitization
-from .._digitization.base import _count_points_by_type
-from .._digitization.base import _get_dig_eeg
-from .._digitization._utils import (_make_dig_points, write_dig, _read_dig_fif,
-                                    _format_dig_points)
+from ._digitization import Digitization
+from ._digitization._utils import _get_fid_coords
+from ._dig_montage_utils import _read_dig_montage_egi
+from ._dig_montage_utils import _parse_brainvision_dig_montage
+from ._digitization.base import _count_points_by_type
+from ._digitization.base import _get_dig_eeg
+from ._digitization._utils import (_make_dig_points, write_dig, _read_dig_fif,
+                                   _format_dig_points)
 from ..io.pick import pick_types
 from ..io.open import fiff_open
 from ..io.constants import FIFF
 from ..utils import (warn, logger, copy_function_doc_to_method_doc,
                      _check_option, _validate_type, _check_fname,
                      fill_doc)
-from .._digitization._utils import _get_fid_coords
-
-from ._dig_montage_utils import _read_dig_montage_egi
-from ._dig_montage_utils import _parse_brainvision_dig_montage
 
 from .channels import DEPRECATED_PARAM
 
@@ -216,10 +214,11 @@ class DigMontage(object):
         return ('<DigMontage | {extra:d} extras (headshape), {hpi:d} HPIs,'
                 ' {fid:d} fiducials, {eeg:d} channels>').format(**n_points)
 
-    @copy_function_doc_to_method_doc(plot_montage)
+    # @copy_function_doc_to_method_doc(plot_montage)
     def plot(self, scale_factor=20, show_names=False, kind='3d', show=True):
         # XXX: plot_montage takes an empty info and sets 'self'
         #      Therefore it should not be a representation problem.
+        from ..viz import plot_montage
         return plot_montage(self, scale_factor=scale_factor,
                             show_names=show_names, kind=kind, show=show)
 

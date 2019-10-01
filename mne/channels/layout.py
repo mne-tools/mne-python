@@ -19,7 +19,6 @@ from ..transforms import _pol_to_cart, _cart_to_sph
 from ..bem import fit_sphere_to_headshape
 from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
-from ..io.meas_info import Info
 from ..utils import _clean_names, warn, _check_ch_locs, fill_doc, _check_option
 from .channels import _get_ch_info
 
@@ -382,6 +381,7 @@ def find_layout(info, ch_type=None, exclude='bads'):
     layout : Layout instance | None
         None if layout not found.
     """
+    from ..io.meas_info import Info
     _check_option('ch_type', ch_type, [None, 'mag', 'grad', 'meg', 'eeg'])
 
     (has_vv_mag, has_vv_grad, is_old_vv, has_4D_mag, ctf_other_types,

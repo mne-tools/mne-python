@@ -29,12 +29,11 @@ from ..channels.layout import _auto_topomap_coords
 from ..channels.channels import _contains_ch_type
 from ..defaults import _handle_default
 from ..fixes import _get_status
-from ..io import show_fiff, Info
+from ..io import show_fiff
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        _pick_data_channels, _DATA_CH_TYPES_SPLIT, pick_types,
                        pick_info, _picks_by_type, pick_channels_cov,
                        _picks_to_idx)
-from ..io.meas_info import create_info
 from ..rank import compute_rank
 from ..io.proj import setup_proj
 from ..utils import (verbose, get_config, set_config, warn, _check_ch_locs,
@@ -1560,6 +1559,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
 
     """
     from .evoked import _rgb
+    from ..io import Info
     _check_option('kind', kind, ['topomap', '3d', 'select'])
     if not isinstance(info, Info):
         raise TypeError('info must be an instance of Info not %s' % type(info))
@@ -3067,6 +3067,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
     # helper function for plot_raw_psd and plot_epochs_psd
     from matplotlib.ticker import ScalarFormatter
     from .evoked import _plot_lines
+    from ..io.meas_info import create_info
 
     for key, ls in zip(['lowpass', 'highpass', 'line_freq'],
                        ['--', '--', '-.']):

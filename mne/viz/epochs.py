@@ -24,7 +24,6 @@ from ..io.meas_info import create_info
 from ..io.pick import (pick_types, channel_type, _get_channel_types,
                        _picks_to_idx, _DATA_CH_TYPES_SPLIT,
                        _DATA_CH_TYPES_ORDER_DEFAULT, _VALID_CHANNEL_TYPES)
-from ..time_frequency import psd_multitaper
 from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _prepare_mne_browse, _setup_vmin_vmax, _channels_changed,
                     _plot_raw_onscroll, _onclick_help, plt_show, _check_cov,
@@ -916,6 +915,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         Figure with frequency spectra of the data channels.
     """
     from .utils import _set_psd_plot_params, _plot_psd
+    from ..time_frequency import psd_multitaper
     fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
         make_label = _set_psd_plot_params(epochs.info, proj, picks, ax,
                                           area_mode)

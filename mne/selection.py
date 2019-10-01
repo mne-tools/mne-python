@@ -8,7 +8,6 @@ from os import path
 
 import numpy as np
 
-from .io.meas_info import Info
 from .io.pick import _pick_data_channels, pick_types
 from .utils import logger, verbose, _get_stim_channel
 
@@ -63,6 +62,8 @@ def read_selection(name, fname=None, info=None, verbose=None):
     sel : list of string
         List with channel names in the selection.
     """
+    from .io.meas_info import Info
+
     # convert name to list of string
     if not isinstance(name, (list, tuple)):
         name = [name]

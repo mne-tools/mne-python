@@ -69,6 +69,7 @@ def _get_ch_type(inst, ch_type, allow_ref_meg=False):
     Usually used in plotting to plot a single datatype, e.g. look for mags,
     then grads, then ... to plot.
     """
+    from ..io.meas_info import Info
     if ch_type is None:
         allowed_types = ['mag', 'grad', 'planar1', 'planar2', 'eeg']
         allowed_types += ['ref_meg'] if allow_ref_meg else []
@@ -566,7 +567,7 @@ class SetChannelsMixin(object):
                             to_sphere=to_sphere, axes=axes, block=block,
                             show=show)
 
-    @copy_function_doc_to_method_doc(anonymize_info)
+    # @copy_function_doc_to_method_doc(anonymize_info)
     def anonymize(self):
         """
         .. versionadded:: 0.13.0
