@@ -25,7 +25,8 @@ from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
 from .io.base import ToDataFrameMixin, TimeMixin
 from .externals.h5io import read_hdf5, write_hdf5
-
+#from mne.forward import convert_forward_solution
+#from mne.minimum_norm.inverse import _prepare_forward
 
 def _read_stc(filename):
     """Aux Function."""
@@ -2744,3 +2745,80 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
         label_tc = label_tc[0]
 
     return label_tc
+
+
+@verbose
+def estimate_snr(self, info, fwd, cov, verbose=None):
+    """Compute time-varying SNR
+
+    This function should only be used with source estimates with units
+    nA (i.e., MNE-like solutions, *not* dSPM or sLORETA).
+
+    Reference:
+    Goldenholz, D. M., Ahlfors, S. P., Hämäläinen, M. S., Sharon, D.,
+    Ishitobi, M., Vaina, L. M., & Stufflebeam, S. M. (2009).
+    Mapping the Signal-To-Noise-Ratios of Cortical Sources in
+    Magnetoencephalography and Electroencephalography.
+    Human Brain Mapping, 30(4), 1077–1086. doi:10.1002/hbm.20571
+
+    Parameters
+    ----------
+    info : instance of io.meas_info.Info
+        The measurement info.
+    fwd : instance of Forward
+        The forward solution used to create the source estimate.
+    cov : instance of Covariance
+        The noise covariance used to estimate the resting cortical
+        activations. Should be an evoked covariance, not empty room.
+
+    Returns
+    -------
+    snr_stc : instance of SourceEstimate
+        The source estimate with the SNR computed.
+
+    Notes
+    -----
+    We define the SNR in decibels for each source location at each
+    time point as:
+
+    .. math::
+
+        {\\rm SNR} = 10\\log_10[\\frac{a^2}{N}\\sum_k\\frac{b_k^2}{s_k^2}]
+
+    where :math:`\\b_k` is the signal on sensor :math:`k` provided by the
+    forward model for a source with unit amplitude, :math:`a` is the
+    source amplitude, :math:`N` is the number of sensors, and
+    :math:`s_k^2` is the noise variance on sensor :math:`k`.
+    """
+    from .forward import convert_forward_solution
+    from .minimum_norm.inverse import _prepare_forward
+
+    fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True)
+    print("done convert forward solution\n")
+
+
+
+    #def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
+    #                     use_cps, exp, limit_depth_chs, combine_xyz,
+    #                     allow_fixed_depth, limit):
+
+#    return (forward, info_picked, gain, depth_prior, orient_prior, source_std,
+#            trace_GRGT, noise_cov, whitener)
+    
+    _, _, _, _, _, A, _, cov, _ = _prepare_forward(fwd, info, cov, fixed=True, loose=0, rank=None, pca=False,
+                                                   use_cps=True, exp=None, limit_depth_chs=False, combine_xyz='fro',
+                                                   allow_fixed_depth=True, limit=None)
+
+    print("done _prepare_forward\n")
+    N = cov['dim']
+    print ("N = %d sensors\n" % N)
+    b_k2 = (A * A).T
+    s_k2 = np.diag(cov['data'])
+    
+    print (np.shape(b_k2))
+    print (np.shape(s_k2))
+    scaling = (1. / N) * np.sum(b_k2 / s_k2, axis=1)[:, np.newaxis]
+#    print (np.shape(scaling))
+    
+    print("End of SNR Func\n")
+    
