@@ -3069,7 +3069,8 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
 
 
 @verbose
-def make_fixed_length_epochs(raw, segment_length=1., verbose=None):
+def make_fixed_length_epochs(raw, segment_length=1.,
+                             preload=False, verbose=None):
     """Divide continuous raw data into equal-sized consecutive epochs.
 
     Parameters
@@ -3080,9 +3081,7 @@ def make_fixed_length_epochs(raw, segment_length=1., verbose=None):
         Length of each segment in seconds. Defaults to 1.
     verbose: bool
         Whether to report what is being done by printing text.
-    **kwargs
-        Any additional keyword arguments are passed to ``Epochs`` constructor.
-
+    preload: bool
     Returns
     -------
     epochs : instance of ``Epochs``

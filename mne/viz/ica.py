@@ -383,12 +383,12 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
             inst_rejected = RawArray(data, inst.info)
 
         # break up continuous signal into segments
-        from ..epochs import _segment_raw
-        inst_rejected = _segment_raw(inst_rejected,
+        from ..epochs import make_fixed_length_epochs
+        inst_rejected = make_fixed_length_epochs(inst_rejected,
                                      segment_length=2.,
                                      verbose=False,
                                      preload=True)
-        inst = _segment_raw(inst, segment_length=2., verbose=False,
+        inst = make_fixed_length_epochs(inst, segment_length=2., verbose=False,
                             preload=True)
         kind = "Segment"
     else:
