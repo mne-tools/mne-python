@@ -3081,8 +3081,12 @@ def make_fixed_length_epochs(raw, segment_length=1.,
         Length of each segment in seconds. Defaults to 1.
     verbose: bool
         Whether to report what is being done by printing text.
-    preload: bool
+    %(preload)s
+    %(verbose)s
     Returns
+    Notes
+    -----
+    .. versionadded:: 0.20
     -------
     epochs : instance of ``Epochs``
         Segmented data.
