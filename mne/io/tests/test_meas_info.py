@@ -30,8 +30,9 @@ from mne.io import read_raw_ctf
 from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
 from mne.channels import make_standard_montage
 
+fiducials_fname = op.join(op.dirname(__file__), '..', '..', 'data',
+                          'fsaverage', 'fsaverage-fiducials.fif')
 base_dir = op.join(op.dirname(__file__), 'data')
-fiducials_fname = op.join(base_dir, 'fsaverage-fiducials.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 chpi_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 event_name = op.join(base_dir, 'test-eve.fif')

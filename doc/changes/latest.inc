@@ -18,9 +18,10 @@ Current (0.20.dev0)
 Changelog
 ~~~~~~~~~
 
+- Add the ability to ``return_event_id`` in :func:`mne.read_events` for use with MNE-C produced ``-annot.fif`` files, by `Eric Larson`_
+
 Bug
 ~~~
 
 API
 ~~~
-
