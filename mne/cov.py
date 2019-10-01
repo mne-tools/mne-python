@@ -456,11 +456,11 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         n_samples = 0
         mu = 0
         # Read data in chunks
-        for raw_segment in epochs:
-            raw_segment = raw_segment[pick_mask]
-            mu += raw_segment.sum(axis=1)
-            data += np.dot(raw_segment, raw_segment.T)
-            n_samples += raw_segment.shape[1]
+        for make_fixed_length_epochs in epochs:
+            make_fixed_length_epochs = make_fixed_length_epochs[pick_mask]
+            mu += make_fixed_length_epochs.sum(axis=1)
+            data += np.dot(make_fixed_length_epochs, make_fixed_length_epochs.T)
+            n_samples += make_fixed_length_epochs.shape[1]
         _check_n_samples(n_samples, len(picks))
         data -= mu[:, None] * (mu[None, :] / n_samples)
         data /= (n_samples - 1.0)
