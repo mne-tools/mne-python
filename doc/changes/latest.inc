@@ -14,6 +14,8 @@ Current (0.20.dev0)
 
 - Add reader for NIRx data in :func:`mne.io.read_raw_nirx` by `Robert Luke`_
 
+- Add keyboard functionality to interactive colorbar plotting TFRs by `Stefan Repplinger`_
+
 
 Changelog
 ~~~~~~~~~
