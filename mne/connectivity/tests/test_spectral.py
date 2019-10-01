@@ -26,8 +26,8 @@ def _stc_gen(data, sfreq, tmin, combo=False):
             yield (arr, stc)
 
 
-@pytest.mark.parametrize('method', ['coh', 'cohy', 'imcoh',
-                                    ['plv', 'ppc', 'pli', 'pli2_unbiased',
+@pytest.mark.parametrize('method', ['coh', 'cohy', 'imcoh', 'plv',
+                                    ['ciplv', 'ppc', 'pli', 'pli2_unbiased',
                                      'wpli', 'wpli2_debiased', 'coh']])
 @pytest.mark.parametrize('mode', ['multitaper', 'fourier', 'cwt_morlet'])
 def test_spectral_connectivity(method, mode):
