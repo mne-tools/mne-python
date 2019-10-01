@@ -49,6 +49,10 @@ kwargs = dict(initial_time=0.08, hemi='both', subjects_dir=subjects_dir,
               size=(600, 600))
 
 stc = abs(apply_inverse(evoked, inv, lambda2, 'MNE', verbose=True))
+stc.estimate_snr(evoked.info, fwd, cov)
+
+sdfsdfdsf
+
 brain = stc.plot(figure=1, **kwargs)
 brain.add_text(0.1, 0.9, 'MNE', 'title', font_size=14)
 
