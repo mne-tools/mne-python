@@ -188,7 +188,7 @@ for data, title in zip([raw, raw_downsampled], ['Original', 'Downsampled']):
 # - Performing resampling on :class:`~mne.io.Raw` data (*before* epoching) will
 #   negatively affect the temporal precision of Event arrays, by causing
 #   `jitter`_ in the event timing. This reduced temporal precision will
-#   propogate to subsequent epoching operations.
+#   propagate to subsequent epoching operations.
 #
 # - Performing resampling *after* epoching can introduce edge artifacts *on
 #   every epoch*, whereas filtering the :class:`~mne.io.Raw` object will only
