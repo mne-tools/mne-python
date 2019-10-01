@@ -38,8 +38,8 @@ fname_inv_vol = op.join(data_path, 'MEG', 'sample',
 rng = np.random.RandomState(0)
 
 fname_fwd = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis-meg-oct-6-fwd.fif')
-fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-shrunk-cov.fif')
+                    'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
 
 # get functions for resolution matrix, metrics etc.
 
