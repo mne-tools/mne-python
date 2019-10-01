@@ -6,10 +6,11 @@ import os.path as op
 
 from numpy.testing import assert_allclose, assert_array_equal
 
+from mne.datasets.testing import data_path, requires_testing_data
 from mne.io import read_raw_nirx
 from mne.io.tests.test_raw import _test_raw_reader
+from mne.transforms import apply_trans, _get_trans
 from mne.utils import run_tests_if_main
-from mne.datasets.testing import data_path, requires_testing_data
 
 fname_nirx = op.join(data_path(download=False),
                      'NIRx', 'nirx_15_2_recording_w_short')
@@ -67,34 +68,37 @@ def test_nirx():
     # 3d locations should be specified in meters, so that's what's tested below
     # Detector locations are stored in the third three loc values
     allowed_dist_error = 0.0002
+    locs = [ch['loc'][6:9] for ch in raw.info['chs']]
+    head_mri_t, _ = _get_trans('fsaverage', 'head', 'mri')
+    mni_locs = apply_trans(head_mri_t, locs)
 
     assert raw.info['ch_names'][0][3:5] == 'D1'
-    assert_allclose(raw.info['chs'][0]['loc'][6:9],
-                    [-0.0841, -0.0464, -0.0129], atol=allowed_dist_error)
+    assert_allclose(
+        mni_locs[0], [-0.0841, -0.0464, -0.0129], atol=allowed_dist_error)
 
     assert raw.info['ch_names'][4][3:5] == 'D3'
-    assert_allclose(raw.info['chs'][4]['loc'][6:9],
-                    [0.0846, -0.0142, -0.0156], atol=allowed_dist_error)
+    assert_allclose(
+        mni_locs[4], [0.0846, -0.0142, -0.0156], atol=allowed_dist_error)
 
     assert raw.info['ch_names'][8][3:5] == 'D2'
-    assert_allclose(raw.info['chs'][8]['loc'][6:9],
-                    [0.0207, -0.1062, 0.0484], atol=allowed_dist_error)
+    assert_allclose(
+        mni_locs[8], [0.0207, -0.1062, 0.0484], atol=allowed_dist_error)
 
     assert raw.info['ch_names'][12][3:5] == 'D4'
-    assert_allclose(raw.info['chs'][12]['loc'][6:9],
-                    [-0.0196, 0.0821, 0.0275], atol=allowed_dist_error)
+    assert_allclose(
+        mni_locs[12], [-0.0196, 0.0821, 0.0275], atol=allowed_dist_error)
 
     assert raw.info['ch_names'][16][3:5] == 'D5'
-    assert_allclose(raw.info['chs'][16]['loc'][6:9],
-                    [-0.0360, 0.0276, 0.0778], atol=allowed_dist_error)
+    assert_allclose(
+        mni_locs[16], [-0.0360, 0.0276, 0.0778], atol=allowed_dist_error)
 
     assert raw.info['ch_names'][19][3:5] == 'D6'
-    assert_allclose(raw.info['chs'][19]['loc'][6:9],
-                    [0.0352, 0.0283, 0.0780], atol=allowed_dist_error)
+    assert_allclose(
+        mni_locs[19], [0.0352, 0.0283, 0.0780], atol=allowed_dist_error)
 
     assert raw.info['ch_names'][21][3:5] == 'D7'
-    assert_allclose(raw.info['chs'][21]['loc'][6:9],
-                    [0.0388, -0.0477, 0.0932], atol=allowed_dist_error)
+    assert_allclose(
+        mni_locs[21], [0.0388, -0.0477, 0.0932], atol=allowed_dist_error)
 
 
 @requires_testing_data

@@ -14,6 +14,7 @@ Current (0.20.dev0)
 
 - Add reader for NIRx data in :func:`mne.io.read_raw_nirx` by `Robert Luke`_
 
+- Add support for plotting fNIRS channels in :func:`mne.viz.plot_alignment` by `Eric Larson`_
 
 Changelog
 ~~~~~~~~~
@@ -23,4 +24,3 @@ Bug
 
 API
 ~~~
-

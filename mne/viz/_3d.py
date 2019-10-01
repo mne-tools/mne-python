@@ -517,7 +517,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    surfaces='head', coord_frame='head',
                    meg=None, eeg='original', fwd=None,
                    dig=False, ecog=True, src=None, mri_fiducials=False,
-                   bem=None, seeg=True, show_axes=False, fig=None,
+                   bem=None, seeg=True, fnirs=True, show_axes=False, fig=None,
                    interaction='trackball', verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
@@ -580,6 +580,10 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         the subjects bem and bem/flash folders are searched. Defaults to None.
     seeg : bool
         If True (default), show sEEG electrodes.
+    fnirs : bool
+        If True (default), show fNIRS electrodes.
+
+        .. versionadded:: 0.20
     show_axes : bool
         If True (default False), coordinate frame axis indicators will be
         shown:
@@ -701,9 +705,11 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     ref_meg = 'ref' in meg
     meg_picks = pick_types(info, meg=True, ref_meg=ref_meg)
     eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
-    ecog_picks = pick_types(info, meg=False, ecog=True, ref_meg=False)
-    seeg_picks = pick_types(info, meg=False, seeg=True, ref_meg=False)
-
+    other_bools = dict(ecog=ecog, seeg=seeg, fnirs=fnirs)
+    del ecog, seeg, fnirs
+    other_keys = sorted(other_bools.keys())
+    other_picks = {key: pick_types(info, meg=False, ref_meg=False,
+                                   **{key: True}) for key in other_keys}
     if trans == 'auto':
         # let's try to do this in MRI coordinates so they're easy to plot
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
@@ -942,13 +948,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     # determine points
     meg_rrs, meg_tris = list(), list()
-    ecog_loc = list()
-    seeg_loc = list()
     hpi_loc = list()
     ext_loc = list()
     car_loc = list()
     eeg_loc = list()
     eegp_loc = list()
+    other_loc = {key: list() for key in other_keys}
     if len(eeg) > 0:
         eeg_loc = np.array([info['chs'][k]['loc'][:3] for k in eeg_picks])
         if len(eeg_loc) > 0:
@@ -1006,12 +1011,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         if len(car_loc) == len(ext_loc) == len(hpi_loc) == 0:
             warn('Digitization points not found. Cannot plot digitization.')
     del dig
-    if len(ecog_picks) > 0 and ecog:
-        ecog_loc = np.array([info['chs'][pick]['loc'][:3]
-                             for pick in ecog_picks])
-    if len(seeg_picks) > 0 and seeg:
-        seeg_loc = np.array([info['chs'][pick]['loc'][:3]
-                             for pick in seeg_picks])
+    for key, picks in other_picks.items():
+        if other_bools[key] and len(picks):
+            other_loc[key] = np.array([info['chs'][pick]['loc'][:3]
+                                       for pick in picks])
+            logger.info('Plotting %d %s location%s'
+                        % (len(other_loc[key]), key, _pl(other_loc[key])))
 
     # initialize figure
     renderer = _Renderer(fig, bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
@@ -1054,20 +1059,19 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     defaults = DEFAULTS['coreg']
     datas = [eeg_loc,
              hpi_loc,
-             ext_loc, ecog_loc, seeg_loc]
+             ext_loc] + list(other_loc[key] for key in other_keys)
     colors = [defaults['eeg_color'],
               defaults['hpi_color'],
-              defaults['extra_color'],
-              defaults['ecog_color'],
-              defaults['seeg_color']]
+              defaults['extra_color']
+              ] + [defaults[key + '_color'] for key in other_keys]
     alphas = [0.8,
               0.5,
-              0.25, 0.8, 0.8]
+              0.25] + [0.8] * len(other_keys)
     scales = [defaults['eeg_scale'],
               defaults['hpi_scale'],
-              defaults['extra_scale'],
-              defaults['ecog_scale'],
-              defaults['seeg_scale']]
+              defaults['extra_scale']
+              ] + [defaults[key + '_scale'] for key in other_keys]
+    assert len(datas) == len(colors) == len(alphas) == len(scales)
     for kind, loc in (('dig', car_loc), ('mri', fid_loc)):
         if len(loc) > 0:
             datas.extend(loc[:, np.newaxis])
