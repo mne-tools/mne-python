@@ -3077,6 +3077,14 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
     return ylabel
 
 
+def _check_psd_fmax(inst, fmax):
+    """Make sure requested fmax does not exceed Nyquist frequency."""
+    if np.isfinite(fmax) and (fmax > inst.info['sfreq'] / 2):
+        raise ValueError('Requested fmax ({} Hz) must be not exceed 2× the '
+                         'sampling frequency of the data ({}).'
+                         .format(fmax, 2 * inst.info['sfreq']))
+
+
 def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
               units_list, scalings_list, ax_list, make_label, color, area_mode,
               area_alpha, dB, estimate, average, spatial_colors, xscale,
