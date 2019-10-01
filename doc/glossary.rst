@@ -137,6 +137,14 @@ general neuroimaging concepts. If you think a term is missing, please consider
     label
         A :class:`Label` refers to a region in the cortex, also often called
         a region of interest (ROI) in the literature.
+        
+    minimum-norm estimation
+        Minimum-norm estimation (abbr. ''MNE'') can be used to generate a distributed 
+        map of activation on a :term:'source space', usually on a cortical surface. 
+        MNE uses a linear :term:'inverse operator' to project sensor measurements 
+        into the source space. The :term:'inverse operator' is computed from the 
+        :term:'forward solution' for a subject and an estimate of the noise covariance 
+        of sensor measurements.
 
     layout
         A :class:`Layout <mne.channels.Layout>` gives sensor positions in 2
