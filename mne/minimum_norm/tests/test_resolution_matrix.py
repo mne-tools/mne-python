@@ -1,9 +1,8 @@
 """
 Test the following properties of the resolution matrix.
 
-Resolution matrix is symmetrical for MNE.
-Resolution matrix has zero dipole localisation error for
-columns (PSFs).
+Resolution matrix is symmetrical for MNE (fixed and free source orientation).
+Resolution matrix has zero dipole localisation error for columns (PSFs).
 """
 
 import os.path as op
@@ -12,7 +11,7 @@ from numpy.testing import (assert_array_almost_equal, assert_equal)
 
 import mne
 from mne.datasets import testing
-from mne.minimum_norm import make_resolution_matrix
+from mne.minimum_norm.resolution_matrix import make_resolution_matrix
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -50,9 +49,9 @@ def test_resolution_matrix():
     # read forward solution
     forward = mne.read_forward_solution(fname_fwd)
 
-    # only use normal components in forward solution
-    forward = mne.convert_forward_solution(forward, surf_ori=True,
-                                           force_fixed=True)
+    # forward operator with fixed source orientations
+    forward_fxd = mne.convert_forward_solution(forward, surf_ori=True,
+                                               force_fixed=True)
 
     # noise covariance matrix
     noise_cov = mne.read_cov(fname_cov)
@@ -61,7 +60,12 @@ def test_resolution_matrix():
     evoked = mne.evoked.read_evokeds(fname_evoked, 0)
 
     # make inverse operator from forward solution
+    # free source orientation
     inverse_operator = mne.minimum_norm.make_inverse_operator(
+        info=evoked.info, forward=forward, noise_cov=noise_cov, loose=1.,
+        depth=None)
+    # fixed source orientation
+    inverse_operator_fxd = mne.minimum_norm.make_inverse_operator(
         info=evoked.info, forward=forward, noise_cov=noise_cov, loose=0.,
         depth=None, fixed=True)
 
@@ -69,12 +73,22 @@ def test_resolution_matrix():
     snr = 3.0
     lambda2 = 1.0 / snr ** 2
 
+    print('###\nComputing resolution matrices.\n###')
+
+    # resolution matrices for free source orientation
+
+    # compute resolution matrix for MNE with free source orientations
+    rm_mne_free = make_resolution_matrix(forward, inverse_operator,
+                                         method='MNE', lambda2=lambda2)
+
+    # resolution matrices for fixed source orientation
+
     # compute resolution matrix for MNE
-    rm_mne = make_resolution_matrix(forward, inverse_operator, method='MNE',
-                                    lambda2=lambda2)
+    rm_mne = make_resolution_matrix(forward_fxd, inverse_operator_fxd,
+                                    method='MNE', lambda2=lambda2)
 
     # compute resolution matrix for sLORETA
-    rm_lor = make_resolution_matrix(forward, inverse_operator,
+    rm_lor = make_resolution_matrix(forward_fxd, inverse_operator_fxd,
                                     method='sLORETA', lambda2=lambda2)
 
     # rectify resolution matrix for sLORETA before determining maxima
@@ -87,7 +101,13 @@ def test_resolution_matrix():
     goodidxs = np.arange(0, len(maxidxs), 1)
 
     # Tests
-    assert_array_almost_equal(rm_mne, rm_mne.T)
-
     # Does sLORETA have zero DLE for columns?
     assert_equal(maxidxs, goodidxs)
+
+    # MNE resolution matrices symmetric?
+    assert_array_almost_equal(rm_mne, rm_mne.T)
+    assert_array_almost_equal(rm_mne_free, rm_mne_free.T)
+
+    return rm_mne_free, rm_mne, rm_lor
+
+# rm_mne_free, rm_mne, rm_lor = test_resolution_matrix()

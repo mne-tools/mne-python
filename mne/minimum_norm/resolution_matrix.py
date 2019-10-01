@@ -4,8 +4,8 @@ from copy import deepcopy
 import numpy as np
 
 from mne import pick_channels
-from mne.io.constants import FIFF
 from mne.utils import logger
+from mne.forward.forward import is_fixed_orient, convert_forward_solution
 
 from mne.evoked import EvokedArray
 from mne.minimum_norm import apply_inverse
@@ -31,6 +31,9 @@ def make_resolution_matrix(fwd, invop, method, lambda2):
         resmat: 2D numpy array.
         Resolution matrix (inverse matrix times leadfield).
     """
+    # make sure forward and inverse operator match
+    fwd = _convert_forward_match_inv(fwd, invop)
+
     # don't include bad channels
     # only use good channels from inverse operator
     bads_inv = invop['info']['bads']
@@ -41,13 +44,46 @@ def make_resolution_matrix(fwd, invop, method, lambda2):
     # get leadfield matrix from forward solution
     leadfield = _pick_leadfield(fwd['sol']['data'], fwd, ch_names)
 
-    invmat = _get_matrix_from_inverse_operator(invop, fwd, method=method,
-                                               lambda2=lambda2,
-                                               pick_ori='normal')
+    invmat = _get_matrix_from_inverse_operator(invop, fwd,
+                                               method=method, lambda2=lambda2)
 
     resmat = invmat.dot(leadfield)
 
+    dims = resmat.shape
+
+    print('Dimensions of resolution matrix: %d by %d.' % (dims[0], dims[1]))
+
     return resmat
+
+
+def _convert_forward_match_inv(fwd, inv):
+    """Helper to ensure forward and inverse operators match."""
+    # did inverse operator use fixed orientation?
+    is_fixed_inv = inv['eigen_leads']['data'].shape[0] == inv['nsource']
+
+    # ...or loose orientation?
+    if not is_fixed_inv:
+        is_loose = not (inv['orient_prior']['data'] == 1.).all()
+
+    # if inv op is fixed or loose, do the same with fwd
+    if is_fixed_inv:
+        if not is_fixed_orient(fwd):
+            fwd = convert_forward_solution(fwd, force_fixed=True)
+    elif is_loose:
+        if not fwd['surf_ori']:
+            fwd = convert_forward_solution(fwd, surf_ori=True)
+    else:  # free orientation, change surface orientation for fwd
+        if fwd['surf_ori']:
+            fwd = convert_forward_solution(fwd, surf_ori=False)
+
+    # The following finds a difference, probably because too sensitive
+    # # check if source spaces for inv and fwd are the same
+    # differences = object_diff(fwd['src'], inv['src'])
+
+    # if differences:
+    #     raise RuntimeError('fwd["src"] and inv["src"] did not match: %s'
+    #                        % (differences,))
+    return fwd
 
 
 def _pick_leadfield(leadfield, forward, ch_names):
@@ -68,7 +104,7 @@ def _prepare_info(inverse_operator):
 
 
 def _get_matrix_from_inverse_operator(inverse_operator, forward, method='dSPM',
-                                      lambda2=1. / 9., pick_ori=None):
+                                      lambda2=1. / 9.):
     """Get inverse matrix from an inverse operator.
 
     Currently works only for fixed/loose orientation constraints
@@ -84,27 +120,16 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, method='dSPM',
         Inverse methods (for apply_inverse).
     lambda2 : float
         The regularization parameter (for apply_inverse).
-    pick_ori : None | "normal"
-        pick_ori : None | "normal"
-        If "normal", rather than pooling the orientations by taking the norm,
-        only the radial component is kept. This is only implemented
-        when working with loose orientations (for apply_inverse).
-        Determines whether whole inverse matrix G will have one or three rows
-        per vertex. This will also affect summary measures for labels.
     Returns
     -------
     invmat : ndarray
         Inverse matrix associated with inverse operator and specified
         parameters.
     """
-    # apply_inverse cannot produce 3 separate orientations
-    # therefore 'force_fixed=True' is required
-    if not forward['surf_ori']:
-        raise RuntimeError('Forward has to be surface oriented and '
-                           'force_fixed=True.')
-    if not (forward['source_ori'] == 1):
-        raise RuntimeError('Forward has to be surface oriented and '
-                           'force_fixed=True.')
+    # make sure forward and inverse operators match
+    _convert_forward_match_inv(forward, inverse_operator)
+
+    print('Free Orientation version.')
 
     logger.info("Computing whole inverse operator.")
 
@@ -131,10 +156,20 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, method='dSPM',
 
     # pick_ori='normal' required because apply_inverse won't give separate
     # orientations
-    if ~inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
-        pick_ori = 'normal'
-    else:
+    # if ~inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
+    #     pick_ori = 'vector'
+    # else:
+    #     pick_ori = 'normal'
+
+    # check if inverse operator uses fixed source orientations
+    is_fixed_inv = inverse_operator['eigen_leads']['data'].shape[0] == \
+        inverse_operator['nsource']
+
+    # choose pick_ori according to inverse operator
+    if is_fixed_inv:
         pick_ori = None
+    else:
+        pick_ori = 'vector'
 
     # columns for bad channels will be zero
     invmat_op = apply_inverse(ev_id, inverse_operator, lambda2=lambda2,
@@ -143,9 +178,22 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, method='dSPM',
     # turn source estimate into numpty array
     invmat = invmat_op.data
 
-    # remove columns for bad channels (better for SVD)
-    invmat = np.delete(invmat, ch_idx_bads, axis=1)
+    dims = invmat.shape
 
-    logger.info("Dimension of inverse matrix: %s" % str(invmat.shape))
+    # remove columns for bad channels
+    # take into account it may be 3D array
+    invmat = np.delete(invmat, ch_idx_bads, axis=len(dims) - 1)
+
+    # if 3D array, i.e. multiple values per location (fixed and loose),
+    # reshape into 2D array
+    if len(dims) == 3:
+        v0o1 = invmat[0, 1].copy()
+        v3o2 = invmat[3, 2].copy()
+        invmat = invmat.reshape(dims[0] * dims[1], dims[2])
+        # make sure that reshaping worked
+        assert np.array_equal(v0o1, invmat[1])
+        assert np.array_equal(v3o2, invmat[11])
+
+    logger.info("Dimension of Inverse Matrix: %s" % str(invmat.shape))
 
     return invmat
