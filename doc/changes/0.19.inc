@@ -9,6 +9,17 @@
 
 .. _changes_0_19:
 
+Version 0.19.1
+--------------
+
+Bug
+~~~
+
+- Fix handling of repeated events in :class:`mne.Epochs` by `Fahimeh Mamashli`_ and `Alex Gramfort`_
+
+Changelog
+~~~~~~~~~
+
 Version 0.19
 ------------
 
