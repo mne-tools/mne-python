@@ -14,6 +14,8 @@ Current (0.20.dev0)
 
 - Add reader for NIRx data in :func:`mne.io.read_raw_nirx` by `Robert Luke`_
 
+- Fix handling of repeated events in :class:`mne.Epochs` by `Fahimeh Mamashli`_ and `Alex Gramfort`_
+
 
 Changelog
 ~~~~~~~~~
