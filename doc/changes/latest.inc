@@ -12,11 +12,10 @@
 Current (0.20.dev0)
 -------------------
 
-- Add reader for NIRx data in :func:`mne.io.read_raw_nirx` by `Robert Luke`_
-
-
 Changelog
 ~~~~~~~~~
+
+- Add reader for NIRx data in :func:`mne.io.read_raw_nirx` by `Robert Luke`_
 
 - Add the ability to ``return_event_id`` in :func:`mne.read_events` for use with MNE-C produced ``-annot.fif`` files, by `Eric Larson`_
 
@@ -25,3 +24,4 @@ Bug
 
 API
 ~~~
+
