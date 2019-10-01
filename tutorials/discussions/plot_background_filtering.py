@@ -6,8 +6,8 @@ r"""
 Background information on filtering
 ===================================
 
-Here we give some background information on filtering in general,
-and how it is done in MNE-Python in particular.
+Here we give some background information on filtering in general, and
+how it is done in MNE-Python in particular.
 Recommended reading for practical applications of digital
 filter design can be found in Parks & Burrus (1987) [1]_ and
 Ifeachor & Jervis (2002) [2]_, and for filtering in an
