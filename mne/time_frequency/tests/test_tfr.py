@@ -493,6 +493,14 @@ def test_plot():
     fig.canvas.key_press_event('up')
     fig.canvas.key_press_event(' ')
     fig.canvas.key_press_event('down')
+    fig.canvas.key_press_event(' ')
+    fig.canvas.key_press_event('+')
+    fig.canvas.key_press_event(' ')
+    fig.canvas.key_press_event('-')
+    fig.canvas.key_press_event(' ')
+    fig.canvas.key_press_event('pageup')
+    fig.canvas.key_press_event(' ')
+    fig.canvas.key_press_event('pagedown')
 
     cbar = fig.get_axes()[0].CB  # Fake dragging with mouse.
     ax = cbar.cbar.ax
