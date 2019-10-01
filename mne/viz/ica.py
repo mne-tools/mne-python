@@ -385,11 +385,11 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
         # break up continuous signal into segments
         from ..epochs import make_fixed_length_epochs
         inst_rejected = make_fixed_length_epochs(inst_rejected,
-                                     segment_length=2.,
-                                     verbose=False,
-                                     preload=True)
-        inst = make_fixed_length_epochs(inst, segment_length=2., verbose=False,
-                            preload=True)
+                                                 duration=2.,
+                                                 verbose=False,
+                                                 preload=True)
+        inst = make_fixed_length_epochs(inst, duration=2., verbose=False,
+                                        preload=True)
         kind = "Segment"
     else:
         drop_inds = None
