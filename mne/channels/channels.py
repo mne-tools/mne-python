@@ -17,7 +17,6 @@ from ..utils import (verbose, logger, warn, copy_function_doc_to_method_doc,
                      _check_preload, _validate_type, fill_doc, _check_option)
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
-from ..io.meas_info import anonymize_info, Info
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _contains_ch_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx)
@@ -572,6 +571,7 @@ class SetChannelsMixin(object):
         """
         .. versionadded:: 0.13.0
         """
+        from ..io.meas_info import anonymize_info
         anonymize_info(self.info)
         if hasattr(self, 'annotations'):
             # XXX : anonymize should rather subtract a random date
