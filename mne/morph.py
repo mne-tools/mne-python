@@ -140,13 +140,12 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
     # VolSourceEstimate
-    shape = affine = pre_affine = sdr_morph = None
-    morph_mat = vertices_to = None
     if kind == 'volume':
         _check_dep(nibabel='2.1.0', dipy='0.10.1')
 
         logger.info('volume source space inferred...')
         import nibabel as nib
+        morph_mat = vertices_to = None
 
         # load moving MRI
         mri_subpath = op.join('mri', 'brain.mgz')
@@ -168,8 +167,12 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         # pre-compute non-linear morph
         shape, zooms, affine, pre_affine, sdr_morph = _compute_morph_sdr(
             mri_from, mri_to, niter_affine, niter_sdr, zooms)
+
+        # deal with `src_to` subsampling
+        # _validate_type(src_to, (SourceSpaces, None), 'src_to')
     elif kind == 'surface':
         logger.info('surface source space inferred...')
+        shape = affine = pre_affine = sdr_morph = None
         vertices_from = src_data['vertices_from']
         if sparse:
             if spacing is not None:
@@ -314,7 +317,6 @@ class SourceMorph(object):
         self.xhemi = xhemi
         # surf computed
         self.morph_mat = morph_mat
-        self.vertices_to = vertices_to
         # vol computed
         self.shape = shape
         self.affine = affine
@@ -323,6 +325,17 @@ class SourceMorph(object):
         # used by both
         self.src_data = src_data
         self.verbose = verbose
+        # compute vertices_to here (partly for backward compat and no src
+        # provided)
+        if vertices_to is None and kind == 'volume':
+            vertices_to = self._get_vertices_nz(np.where(src_data['inuse'])[0])
+        self.vertices_to = vertices_to
+
+    def _get_vertices_nz(self, vertices_from):
+        logger.info('Computing nonzero vertices after morph ...')
+        stc_ones = VolSourceEstimate(np.ones((len(vertices_from), 1)),
+                                     vertices_from, tmin=0., tstep=1.)
+        return np.where(self._morph_one_vol(stc_ones))[0]
 
     @verbose
     def apply(self, stc_from, output='stc', mri_resolution=False,
@@ -371,6 +384,30 @@ class SourceMorph(object):
                 self, out, mri_resolution=mri_resolution, mri_space=mri_space,
                 output=output)
         return out
+
+    def _morph_one_vol(self, stc_one):
+        # prepare data to be morphed
+        # here we use mri_resolution=True, mri_space=True because
+        # we will slice afterward
+        from dipy.align.reslice import reslice
+        assert stc_one.data.shape[1] == 1
+        img_to = _interpolate_data(stc_one, self, mri_resolution=True,
+                                   mri_space=True, output='nifti1')
+
+        # reslice to match morph
+        img_to, img_to_affine = reslice(
+            _get_img_fdata(img_to), self.affine, _get_zooms_orig(self),
+            self.zooms)
+
+        # morph data
+        img_to[:, :, :, 0] = self.sdr_morph.transform(
+            self.pre_affine.transform(img_to[:, :, :, 0]))
+
+        # reshape to nvoxel x nvol:
+        # in the MNE definition of volume source spaces,
+        # x varies fastest, then y, then z, so we need order='F' here
+        img_to = img_to.reshape(-1, order='F')
+        return img_to
 
     def __repr__(self):  # noqa: D105
         s = u"%s" % self.kind
@@ -1062,36 +1099,12 @@ def _get_zooms_orig(morph):
             zip(morph.zooms, morph.shape, morph.src_data['src_shape_full'])]
 
 
-def _morph_one(stc_one, morph):
-    # prepare data to be morphed
-    # here we use mri_resolution=True, mri_space=True because
-    # we will slice afterward
-    from dipy.align.reslice import reslice
-    assert stc_one.data.shape[1] == 1
-    img_to = _interpolate_data(stc_one, morph, mri_resolution=True,
-                               mri_space=True, output='nifti1')
-
-    # reslice to match morph
-    img_to, img_to_affine = reslice(
-        _get_img_fdata(img_to), morph.affine, _get_zooms_orig(morph),
-        morph.zooms)
-
-    # morph data
-    img_to[:, :, :, 0] = morph.sdr_morph.transform(
-        morph.pre_affine.transform(img_to[:, :, :, 0]))
-
-    # reshape to nvoxel x nvol:
-    # in the MNE definition of volume source spaces,
-    # x varies fastest, then y, then z, so we need order='F' here
-    img_to = img_to.reshape(-1, order='F')
-    return img_to
-
-
 def _apply_morph_data(morph, stc_from):
     """Morph a source estimate from one subject to another."""
     if stc_from.subject is not None and stc_from.subject != morph.subject_from:
         raise ValueError('stc.subject (%s) != morph.subject_from (%s)'
                          % (stc_from.subject, morph.subject_from))
+    vertices_to = morph.vertices_to
     if morph.kind == 'volume':
         if isinstance(stc_from, VolSourceEstimate):
             klass = VolSourceEstimate
@@ -1103,19 +1116,13 @@ def _apply_morph_data(morph, stc_from):
 
         # First get the vertices (vertices_to) you will need the values for
         n_times = np.prod(stc_from.data.shape[1:])
-        stc_ones = VolSourceEstimate(np.ones((stc_from.data.shape[0], 1),
-                                             stc_from.data.dtype),
-                                     stc_from.vertices,
-                                     tmin=0., tstep=1.)
-        img_to = _morph_one(stc_ones, morph)
-        vertices_to = np.where(img_to)[0]
         data = np.empty((len(vertices_to), n_times))
         data_from = np.reshape(stc_from.data, (stc_from.data.shape[0], -1))
         # Loop over time points to save memory
         for k in range(n_times):
             this_stc = VolSourceEstimate(
                 data_from[:, k:k + 1], stc_from.vertices, tmin=0., tstep=1.)
-            this_img_to = _morph_one(this_stc, morph)
+            this_img_to = morph._morph_one_vol(this_stc)
             data[:, k] = this_img_to[vertices_to]
         data.shape = (len(vertices_to),) + stc_from.data.shape[1:]
     else:
@@ -1124,7 +1131,6 @@ def _apply_morph_data(morph, stc_from):
             raise ValueError('stc_from was type %s but must be a surface '
                              'source estimate' % (type(stc_from),))
         morph_mat = morph.morph_mat
-        vertices_to = morph.vertices_to
         for hemi, v1, v2 in zip(('left', 'right'),
                                 morph.src_data['vertices_from'],
                                 stc_from.vertices):
