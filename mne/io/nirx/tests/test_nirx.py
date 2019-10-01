@@ -4,7 +4,7 @@
 
 import os.path as op
 
-import numpy as np
+from numpy.testing import assert_allclose, assert_array_equal
 
 from mne.io import read_raw_nirx
 from mne.io.tests.test_raw import _test_raw_reader
@@ -25,58 +25,37 @@ def test_nirx():
     assert raw.info['sfreq'] == 12.5
 
     # Test channel naming
-    assert raw.info['ch_names'][0] == "S1-D1 760"
-    assert raw.info['ch_names'][1] == "S1-D1 850"
-    assert raw.info['ch_names'][2] == "S1-D9 760"
-    assert raw.info['ch_names'][3] == "S1-D9 850"
-    assert raw.info['ch_names'][24] == "S5-D13 760"
-    assert raw.info['ch_names'][25] == "S5-D13 850"
+    assert raw.info['ch_names'][:4] == ["S1-D1 760", "S1-D1 850",
+                                        "S1-D9 760", "S1-D9 850"]
+    assert raw.info['ch_names'][24:26] == ["S5-D13 760", "S5-D13 850"]
 
     # Test info import
-    assert raw.info['subject_info']['sex'] == 1
-    assert raw.info['subject_info']['first_name'] == "MNE"
-    assert raw.info['subject_info']['middle_name'] == "Test"
-    assert raw.info['subject_info']['last_name'] == "Recording"
+    assert raw.info['subject_info'] == dict(sex=1, first_name="MNE",
+                                            middle_name="Test",
+                                            last_name="Recording")
 
     # Test distance between optodes matches values from
     # nirsite https://github.com/mne-tools/mne-testing-data/pull/51
     # step 4 figure 2
     allowed_distance_error = 0.0002
     distances = raw._probe_distances()
-    assert abs(distances[0] - 0.0304) < allowed_distance_error
-    assert abs(distances[2] - 0.0078) < allowed_distance_error
-    assert abs(distances[4] - 0.0310) < allowed_distance_error
-    assert abs(distances[6] - 0.0086) < allowed_distance_error
-    assert abs(distances[8] - 0.0416) < allowed_distance_error
-    assert abs(distances[10] - 0.0072) < allowed_distance_error
-    assert abs(distances[12] - 0.0389) < allowed_distance_error
-    assert abs(distances[14] - 0.0075) < allowed_distance_error
-    assert abs(distances[16] - 0.0558) < allowed_distance_error
-    assert abs(distances[18] - 0.0562) < allowed_distance_error
-    assert abs(distances[20] - 0.0561) < allowed_distance_error
-    assert abs(distances[22] - 0.0565) < allowed_distance_error
-    assert abs(distances[24] - 0.0077) < allowed_distance_error
+    assert_allclose(distances[::2], [
+        0.0304, 0.0078, 0.0310, 0.0086, 0.0416,
+        0.0072, 0.0389, 0.0075, 0.0558, 0.0562,
+        0.0561, 0.0565, 0.0077], atol=allowed_distance_error)
 
     # Test which channels are short
     # These are the ones marked as red at
     # https://github.com/mne-tools/mne-testing-data/pull/51 step 4 figure 2
     short_channels = raw._short_channels()
-    assert short_channels[0] is np.False_
-    assert short_channels[2] is np.True_
-    assert short_channels[4] is np.False_
-    assert short_channels[6] is np.True_
-    assert short_channels[8] is np.False_
+    assert_array_equal(short_channels[:9:2], [False, True, False, True, False])
     short_channels = raw._short_channels(threshold=0.003)
-    assert short_channels[0] is np.False_
-    assert short_channels[2] is np.False_
+    assert_array_equal(short_channels[:3:2], [False, False])
     short_channels = raw._short_channels(threshold=50)
-    assert short_channels[0] is np.True_
-    assert short_channels[2] is np.True_
+    assert_array_equal(short_channels[:3:2], [True, True])
 
     # Test trigger events
-    assert raw.annotations[0]['description'] == '3.0'
-    assert raw.annotations[1]['description'] == '2.0'
-    assert raw.annotations[2]['description'] == '1.0'
+    assert_array_equal(raw.annotations.description, ['3.0', '2.0', '1.0'])
 
     # Test location of detectors
     # The locations of detectors can be seen in the first
@@ -90,39 +69,32 @@ def test_nirx():
     allowed_dist_error = 0.0002
 
     assert raw.info['ch_names'][0][3:5] == 'D1'
-    assert abs(raw.info['chs'][0]['loc'][6] - -0.0841) < allowed_dist_error
-    assert abs(raw.info['chs'][0]['loc'][7] - -0.0464) < allowed_dist_error
-    assert abs(raw.info['chs'][0]['loc'][8] - -0.0129) < allowed_dist_error
-
-    assert raw.info['ch_names'][8][3:5] == 'D2'
-    assert abs(raw.info['chs'][8]['loc'][6] - 0.0207) < allowed_dist_error
-    assert abs(raw.info['chs'][8]['loc'][7] - -0.1062) < allowed_dist_error
-    assert abs(raw.info['chs'][8]['loc'][8] - 0.0484) < allowed_dist_error
+    assert_allclose(raw.info['chs'][0]['loc'][6:9],
+                    [-0.0841, -0.0464, -0.0129], atol=allowed_dist_error)
 
     assert raw.info['ch_names'][4][3:5] == 'D3'
-    assert abs(raw.info['chs'][4]['loc'][6] - 0.0846) < allowed_dist_error
-    assert abs(raw.info['chs'][4]['loc'][7] - -0.0142) < allowed_dist_error
-    assert abs(raw.info['chs'][4]['loc'][8] - -0.0156) < allowed_dist_error
+    assert_allclose(raw.info['chs'][4]['loc'][6:9],
+                    [0.0846, -0.0142, -0.0156], atol=allowed_dist_error)
+
+    assert raw.info['ch_names'][8][3:5] == 'D2'
+    assert_allclose(raw.info['chs'][8]['loc'][6:9],
+                    [0.0207, -0.1062, 0.0484], atol=allowed_dist_error)
 
     assert raw.info['ch_names'][12][3:5] == 'D4'
-    assert abs(raw.info['chs'][12]['loc'][6] - -0.0196) < allowed_dist_error
-    assert abs(raw.info['chs'][12]['loc'][7] - 0.0821) < allowed_dist_error
-    assert abs(raw.info['chs'][12]['loc'][8] - 0.0275) < allowed_dist_error
+    assert_allclose(raw.info['chs'][12]['loc'][6:9],
+                    [-0.0196, 0.0821, 0.0275], atol=allowed_dist_error)
 
     assert raw.info['ch_names'][16][3:5] == 'D5'
-    assert abs(raw.info['chs'][16]['loc'][6] - -0.0360) < allowed_dist_error
-    assert abs(raw.info['chs'][16]['loc'][7] - 0.0276) < allowed_dist_error
-    assert abs(raw.info['chs'][16]['loc'][8] - 0.0778) < allowed_dist_error
+    assert_allclose(raw.info['chs'][16]['loc'][6:9],
+                    [-0.0360, 0.0276, 0.0778], atol=allowed_dist_error)
 
     assert raw.info['ch_names'][19][3:5] == 'D6'
-    assert abs(raw.info['chs'][19]['loc'][6] - 0.0352) < allowed_dist_error
-    assert abs(raw.info['chs'][19]['loc'][7] - 0.0283) < allowed_dist_error
-    assert abs(raw.info['chs'][19]['loc'][8] - 0.0780) < allowed_dist_error
+    assert_allclose(raw.info['chs'][19]['loc'][6:9],
+                    [0.0352, 0.0283, 0.0780], atol=allowed_dist_error)
 
     assert raw.info['ch_names'][21][3:5] == 'D7'
-    assert abs(raw.info['chs'][21]['loc'][6] - 0.0388) < allowed_dist_error
-    assert abs(raw.info['chs'][21]['loc'][7] - -0.0477) < allowed_dist_error
-    assert abs(raw.info['chs'][21]['loc'][8] - 0.0932) < allowed_dist_error
+    assert_allclose(raw.info['chs'][21]['loc'][6:9],
+                    [0.0388, -0.0477, 0.0932], atol=allowed_dist_error)
 
 
 @requires_testing_data
