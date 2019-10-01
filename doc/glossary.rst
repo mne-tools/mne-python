@@ -25,7 +25,7 @@ general neuroimaging concepts. If you think a term is missing, please consider
         for a tutorial on how to manipulate such objects.
 
     Beamformer 
-        Beamformer is a popular source estimation approach that uses a set of spatial filters (beamformer weights) to compute time courses of sources which coordinates are predefined. Beamformer weight for a particular source is selected so it minimizes average reconstructed source power at a given location, subject to a unit gain constraint. See :class:`mne.beamformer.Beamformer’.
+        Beamformer is a popular source estimation approach that uses a set of spatial filters (beamformer weights) to compute time courses of sources which coordinates are predefined. See :class:`mne.beamformer.Beamformer`.
 
     BEM
         BEM is the acronym for boundary element method or boundary element
@@ -35,13 +35,16 @@ general neuroimaging concepts. If you think a term is missing, please consider
         outer skull and outer skin (a.k.a. scalp) that define compartments
         of tissues of the head. You can compute the BEM surfaces with
         :func:`mne.bem.make_watershed_bem` or :func:`mne.bem.make_flash_bem`.
-        See :ref:`tut-forward` for usage demo.
+        See :ref:`tut-forward` for usage demo. 
 
     channels
         Channels refer to MEG sensors, EEG electrodes or any extra electrode
         or sensor such as EOG, ECG or sEEG, ECoG etc. Channels usually have
         a type, such as gradiometer, and a unit, such as Tesla/Meter that
         is used in the code base, e.g. for plotting.
+
+    Digitization
+        Digitization is a procedure of recording the headshape of a subject and the fiducial coils and/or eeg electrodes locations on the subject’s head. They are represented as a set of points in a 3D space. See :ref:`reading-dig-montages` and :ref:`dig-formats`.  
 
     dipole
         See :term:`equivalent current dipole`.
