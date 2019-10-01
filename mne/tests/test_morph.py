@@ -364,7 +364,7 @@ def test_volume_source_morph():
         compute_source_morph(src=src, subject_from='42')
     with pytest.raises(ValueError, match='output'):
         source_morph_vol.apply(stc_vol, output='42')
-    with pytest.raises(TypeError, match='subject_to must'):
+    with pytest.raises(ValueError, match='subject_to cannot be None'):
         compute_source_morph(src, 'sample', None,
                              subjects_dir=subjects_dir)
     # Check if not morphed, but voxel size not boolean, raise ValueError.
@@ -441,7 +441,7 @@ def test_morph_stc_dense():
             subjects_dir=subjects_dir)
 
     # subject from mismatch
-    with pytest.raises(ValueError, match="does not match source space subj"):
+    with pytest.raises(ValueError, match="subject_from does not match"):
         compute_source_morph(stc_from, subject_from='foo',
                              subjects_dir=subjects_dir)
 

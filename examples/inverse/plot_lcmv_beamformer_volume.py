@@ -23,6 +23,8 @@ data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-vol-7-fwd.fif'
+fname_fs_bem = (subjects_dir + '/fsaverage/bem/'
+                'fsaverage-5120-5120-5120-bem-sol.fif')
 
 # Get epochs
 event_id, tmin, tmax = [1, 2], -0.2, 0.5
@@ -105,10 +107,12 @@ stc.plot(
 # argument to `mne.VolSourceEstimate.plot`. To save a bit of speed when
 # applying the morph, we will crop the STC:
 
+src_fs = mne.setup_volume_source_space(
+    'fsaverage', pos=5., bem=fname_fs_bem, subjects_dir=subjects_dir,
+    verbose=True)
 morph = mne.compute_source_morph(
-    forward['src'], 'sample', 'fsaverage', subjects_dir=subjects_dir,
-    zooms=7, verbose=True)
+    forward['src'], subject_from='sample', src_to=src_fs,
+    subjects_dir=subjects_dir, verbose=True)
 stc.copy().crop(0.05, 0.18).plot(
-    src=morph, subject='fsaverage', subjects_dir=subjects_dir,
-    mode='stat_map', clim=dict(kind='value', pos_lims=lims),
-    initial_time=0.1, verbose=True)
+    src=morph, mode='stat_map', initial_time=0.1, subjects_dir=subjects_dir,
+    clim=dict(kind='value', pos_lims=lims), verbose=True)
