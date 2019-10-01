@@ -67,15 +67,19 @@ def test_handle_event_repeated():
                        [3, 0, 2], [3, 0, 1],
                        [5, 0, 2], [5, 0, 1], [5, 0, 3],
                        [7, 0, 1]])
-
+    selection = np.arange(3)
+    drop_log = [[]] * 3 + [['MEG 2443']] * 4
     with pytest.raises(RuntimeError, match='Event time samples were not uniq'):
-        _handle_event_repeated(EVENTS, EVENT_ID, event_repeated='error')
+        _handle_event_repeated(EVENTS, EVENT_ID, event_repeated='error',
+                               selection, drop_log)
 
-    events, event_id = _handle_event_repeated(EVENTS, EVENT_ID, 'drop')
+    events, event_id, selection, drop_log = _handle_event_repeated(
+            EVENTS, EVENT_ID, 'drop', selection, drop_log)
     assert_array_equal(events, [[0, 0, 1], [3, 0, 2], [5, 0, 2], [7, 0, 1]])
     assert event_id == {'aud': 1, 'vis': 2}
 
-    events, event_id = _handle_event_repeated(EVENTS, EVENT_ID, 'merge')
+    events, event_id, selection, drop_log = _handle_event_repeated(
+            EVENTS, EVENT_ID, 'merge', selection, drop_log)
     assert_array_equal(events[0][-1], events[1][-1])
     assert_array_equal(events, [[0, 0, 4], [3, 0, 4], [5, 0, 5], [7, 0, 1]])
     assert set(event_id.keys()) == set(['aud', 'aud/vis', 'aud/foo/vis'])
@@ -83,7 +87,8 @@ def test_handle_event_repeated():
 
     # Test early return with no changes: no error for wrong event_repeated arg
     fine_events = np.array([[0, 0, 1], [1, 0, 2]])
-    events, event_id = _handle_event_repeated(fine_events, EVENT_ID, 'no')
+    events, event_id, selection, drop_log = _handle_event_repeated(
+            fine_events, EVENT_ID, 'no', selection, drop_log)
     assert event_id == EVENT_ID
     assert_array_equal(events, fine_events)
     del fine_events
@@ -93,8 +98,8 @@ def test_handle_event_repeated():
     # take components, sort, and join on "/"
     # should make new event_id value: 5 (because 1,2,3,4 are taken)
     heterogeneous_events = np.array([[0, 3, 2], [0, 4, 1]])
-    events, event_id = _handle_event_repeated(heterogeneous_events,
-                                              EVENT_ID, 'merge')
+    events, event_id, selection, drop_log = _handle_event_repeated(
+            heterogeneous_events, EVENT_ID, 'merge', selection, drop_log)
     assert set(event_id.keys()) == set(['aud/vis'])
     assert event_id['aud/vis'] == 5
     assert_array_equal(events, np.array([[0, 0, 5], ]))
@@ -103,16 +108,16 @@ def test_handle_event_repeated():
     # Test keeping a homogeneous "prior-to-event" code (=events[:, 1])
     homogeneous_events = np.array([[0, 99, 1], [0, 99, 2],
                                    [1, 0, 1], [2, 0, 2]])
-    events, event_id = _handle_event_repeated(homogeneous_events,
-                                              EVENT_ID, 'merge')
+    events, event_id, selection, drop_log = _handle_event_repeated(
+            homogeneous_events, EVENT_ID, 'merge', selection, drop_log)
     assert set(event_id.keys()) == set(['aud', 'vis', 'aud/vis'])
     assert_array_equal(events, np.array([[0, 99, 4], [1, 0, 1], [2, 0, 2]]))
     del homogeneous_events
 
     # Test dropping instead of merging, if event_codes to be merged are equal
     equal_events = np.array([[0, 0, 1], [0, 0, 1]])
-    events, event_id = _handle_event_repeated(equal_events,
-                                              EVENT_ID, 'merge')
+    events, event_id, selection, drop_log = _handle_event_repeated(
+            equal_events, EVENT_ID, 'merge', selection, drop_log)
     assert_array_equal(events, np.array([[0, 0, 1], ]))
     assert set(event_id.keys()) == set(['aud'])
 

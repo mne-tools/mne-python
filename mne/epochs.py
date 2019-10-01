@@ -245,7 +245,7 @@ def _merge_events(events, event_id):
     return new_events, event_id
 
 
-def _handle_event_repeated(events, event_id, event_repeated):
+def _handle_event_repeated(events, event_id, event_repeated, selection, drop_log):
     """Handle repeated events."""
     unique_events, u_ev_idxs = np.unique(events[:, 0], return_index=True)
 
@@ -263,7 +263,11 @@ def _handle_event_repeated(events, event_id, event_repeated):
         logger.info('Multiple event values for single event times found. '
                     'Keeping the first occurrence and dropping all others.')
         new_events = events[u_ev_idxs]
-
+        new_selection = selection[u_ev_idxs]
+        drop_ev_idxs = np.setdiff1d(selection, new_selection)
+        for idx in drop_ev_idxs:
+            drop_log[idx].append('DROP DUPLICATE')
+        selection = new_selection
     elif event_repeated == 'merge':
         logger.info('Multiple event values for single event times found. '
                     'Creating new event value to reflect simultaneous events.')
@@ -273,7 +277,7 @@ def _handle_event_repeated(events, event_id, event_repeated):
     keys = new_events[:, 1:].flatten()
     event_id = {k: v for k, v in event_id.items() if v in keys}
 
-    return new_events, event_id
+    return new_events, event_id, selection, drop_log
 
 
 @fill_doc
@@ -404,11 +408,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                                     max(self.selection) + 1))]
             else:
                 self.drop_log = drop_log
+
             events = events[selected]
 
-            events, self.event_id = _handle_event_repeated(events,
-                                                           self.event_id,
-                                                           event_repeated)
+            events, self.event_id, self.selection, self.drop_log = \
+                _handle_event_repeated(events, self.event_id, event_repeated,
+                                       self.selection, self.drop_log)
 
             n_events = len(events)
             if n_events > 1:
@@ -1930,7 +1935,7 @@ class Epochs(BaseEpochs):
             flat=flat, decim=decim, reject_tmin=reject_tmin,
             reject_tmax=reject_tmax, detrend=detrend,
             proj=proj, on_missing=on_missing, preload_at_end=preload,
-            verbose=verbose)
+            event_repeated=event_repeated, verbose=verbose)
 
     @verbose
     def _get_epoch_from_raw(self, idx, verbose=None):
