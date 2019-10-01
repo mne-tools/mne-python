@@ -49,13 +49,15 @@ kwargs = dict(initial_time=0.08, hemi='both', subjects_dir=subjects_dir,
               size=(600, 600))
 
 stc = abs(apply_inverse(evoked, inv, lambda2, 'MNE', verbose=True))
-stc_snr = stc.estimate_snr(evoked.info, fwd, cov)
+snr_stc = stc.estimate_snr(evoked.info, fwd, cov)
 
-stc_snr.plot(subjects_dir=subjects_dir)
+kwargs2 = dict(initial_time=0.29, hemi='both', subjects_dir=subjects_dir,
+              size=(600, 600),colormap='coolwarm',clim=dict(kind='value', lims=(-20,0,20)))
+snr_stc.plot(figure=1, **kwargs2)
 
 sdfsdfdsf
 
-brain = stc.plot(figure=1, **kwargs)
+brain = stc.plot(figure=3, **kwargs)
 brain.add_text(0.1, 0.9, 'MNE', 'title', font_size=14)
 
 
