@@ -151,6 +151,14 @@ general neuroimaging concepts. If you think a term is missing, please consider
         diagrams of approximate sensor positions in top-down diagrams of the head,
         so-called topographies or topomaps).
 
+    minimum-norm estimation
+        Minimum-norm estimation (abbr. ``MNE``) can be used to generate a distributed 
+        map of activation on a :term:`source space`, usually on a cortical surface. 
+        MNE uses a linear :term:`inverse operator` to project sensor measurements 
+        into the source space. The :term:`inverse operator` is computed from the 
+        :term:`forward solution` for a subject and an estimate of the noise covariance 
+        of sensor measurements.
+
     montage
         EEG channel names and the relative positions of the sensor w.r.t. the scalp.
         While layout are 2D locations, montages give 3D locations. A montage
