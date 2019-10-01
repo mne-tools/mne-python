@@ -188,6 +188,11 @@ general neuroimaging concepts. If you think a term is missing, please consider
         data in a common space for statistical analysis).
         See :ref:`ch_morph` for more details.
 
+    noise covariance
+        Noise covariance is an estimate of the correlation between each pair of
+        sensors calculated during a period when the signal is thought not to be
+        there. 
+
     pick
         An integer that is the index of a channel in the measurement info.
         It allows to obtain the information on a channel in the list of channels
