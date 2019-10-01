@@ -6,7 +6,6 @@
 import os.path as op
 
 from mne.io import show_fiff
-from mne.datasets import testing
 
 base_dir = op.join(op.dirname(__file__), 'data')
 fname_evoked = op.join(base_dir, 'test-ave.fif')
@@ -14,7 +13,6 @@ fname_raw = op.join(base_dir, 'test_raw.fif')
 fname_c_annot = op.join(base_dir, 'test_raw-annot.fif')
 
 
-@testing.requires_testing_data
 def test_show_fiff():
     """Test show_fiff."""
     # this is not exhaustive, but hopefully bugs will be found in use
