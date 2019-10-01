@@ -510,11 +510,17 @@ def test_base_epochs():
     epochs = BaseEpochs(raw.info, None, np.ones((1, 3), int),
                         event_id, tmin, tmax)
     pytest.raises(NotImplementedError, epochs.get_data)
-    # events with non integers
-    pytest.raises(ValueError, BaseEpochs, raw.info, None,
-                  np.ones((1, 3), float), event_id, tmin, tmax)
-    pytest.raises(ValueError, BaseEpochs, raw.info, None,
-                  np.ones((1, 3, 2), int), event_id, tmin, tmax)
+    # events have wrong dtype (float)
+    with pytest.raises(TypeError, match='events should be a NumPy array'):
+        BaseEpochs(raw.info, None, np.ones((1, 3), float), event_id, tmin,
+                   tmax)
+    # events have wrong shape
+    with pytest.raises(ValueError, match='events must be of shape'):
+        BaseEpochs(raw.info, None, np.ones((1, 3, 2), int), event_id, tmin,
+                   tmax)
+    # events are tuple (like returned by mne.events_from_annotations)
+    with pytest.raises(TypeError, match='events should be a NumPy array'):
+        BaseEpochs(raw.info, None, (np.ones((1, 3), int), {'foo': 1}))
 
 
 @requires_version('scipy', '0.14')
@@ -612,7 +618,7 @@ def test_events_type():
     raw, events = _get_data()[:2]
     events_id = {'A': 1, 'B': 2}
     events = (events, events_id)
-    with pytest.raises(ValueError, match='got type'):
+    with pytest.raises(TypeError, match='events should be a NumPy array'):
         Epochs(raw, events, event_id, tmin, tmax)
 
 
