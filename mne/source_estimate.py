@@ -1157,14 +1157,14 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
     #    return (forward, info_picked, gain, depth_prior, orient_prior, source_std,
     #            trace_GRGT, noise_cov, whitener)
         
-        _, _, _, _, _, A, _, cov, _ = _prepare_forward(fwd, info, cov, fixed=True, loose=0, rank=None, pca=False,
+        _, _, _, _, _, source_std, _, cov, _ = _prepare_forward(fwd, info, cov, fixed=True, loose=0, rank=None, pca=False,
                                                        use_cps=True, exp=None, limit_depth_chs=False, combine_xyz='fro',
                                                        allow_fixed_depth=True, limit=None)
 
         print("done _prepare_forward\n")
         N = cov['dim']
         print ("N = %d sensors\n" % N)
-        b_k2 = (A * A).T
+        b_k2 = (source_std * source_std).T
         s_k2 = np.diag(cov['data'])
         
         print (np.shape(b_k2))
