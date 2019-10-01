@@ -161,7 +161,7 @@ eog_evoked.plot_joint()
 # :func:`~mne.preprocessing.create_ecg_epochs`:
 
 ecg_evoked = create_ecg_epochs(raw).average()
-eog_evoked.apply_baseline(baseline=(None, -0.2))
+ecg_evoked.apply_baseline(baseline=(None, -0.2))
 ecg_evoked.plot_joint()
 
 ###############################################################################
