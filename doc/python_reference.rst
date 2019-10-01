@@ -434,6 +434,7 @@ Events
    find_events
    find_stim_steps
    make_fixed_length_events
+   make_fixed_length_epochs
    merge_events
    parse_config
    pick_events

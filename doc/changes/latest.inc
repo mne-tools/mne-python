@@ -18,6 +18,8 @@ Current (0.20.dev0)
 Changelog
 ~~~~~~~~~
 
+- Add reader for NIRx data in :func:`mne.make_fixed_length_epochs` by `Mohammad Daneshzand`_
+
 Bug
 ~~~
 
