@@ -3083,13 +3083,15 @@ def make_fixed_length_epochs(raw, duration=1.,
         Whether to report what is being done by printing text.
     %(preload)s
     %(verbose)s
+
     Returns
-    Notes
-    -----
-    .. versionadded:: 0.20
     -------
     epochs : instance of ``Epochs``
         Segmented data.
+
+    Notes
+    -----
+    .. versionadded:: 0.20
     """
     events = make_fixed_length_events(raw, 1, duration=duration)
     delta = 1. / raw.info['sfreq']
