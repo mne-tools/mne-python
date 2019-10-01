@@ -21,6 +21,8 @@ Changelog
 Bug
 ~~~
 
+- Fix TAL channel parsing (annotations) for EDF-D files by `Clemens Brunner`_
+
 API
 ~~~
 
