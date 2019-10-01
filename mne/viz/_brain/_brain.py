@@ -325,9 +325,6 @@ class _Brain(object):
         Due to a Mayavi (or VTK) alpha rendering bug, ``vector_alpha`` is
         clamped to be strictly < 1.
         """
-        if len(array.shape) == 3:
-            raise ValueError('Vector values in "array" are not supported.')
-
         _check_option('transparent', type(transparent), [bool])
         _check_option('verbose', type(verbose), [bool])
 
@@ -446,10 +443,10 @@ class _Brain(object):
                                       size=time_label_size,
                                       text=time_label(time[time_idx]),
                                       justification='right')
-            if not self._scalarbar:
+            if colorbar and not self._colorbar_added:
                 self._renderer.scalarbar(source=mesh, n_labels=8,
                                          bgcolor=(0.5, 0.5, 0.5))
-                self._scalarbar = True
+                self._colorbar_added = True
             self._renderer.set_camera(azimuth=views_dict[v].azim,
                                       elevation=views_dict[v].elev)
 

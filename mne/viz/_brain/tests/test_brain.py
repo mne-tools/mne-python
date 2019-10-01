@@ -85,7 +85,10 @@ def test_brain_add_data(renderer):
 
     brain_data.add_data(hemi_data, fmin=fmin, hemi=hemi, fmax=fmax,
                         colormap='hot', vertices=hemi_vertices,
-                        initial_time=0., colorbar=False, time=None)
+                        colorbar=False, time=None)
+    brain_data.add_data(hemi_data, fmin=fmin, hemi=hemi, fmax=fmax,
+                        colormap='hot', vertices=hemi_vertices,
+                        initial_time=0., colorbar=True, time=None)
 
 
 @testing.requires_testing_data
