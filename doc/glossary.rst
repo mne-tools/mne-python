@@ -24,6 +24,9 @@ general neuroimaging concepts. If you think a term is missing, please consider
         object class and :ref:`tut-annotations`
         for a tutorial on how to manipulate such objects.
 
+    Beamformer 
+        Beamformer is a popular source estimation approach that uses a set of spatial filters (beamformer weights) to compute time courses of sources which coordinates are predefined. Beamformer weight for a particular source is selected so it minimizes average reconstructed source power at a given location, subject to a unit gain constraint. See :class:`mne.beamformer.Beamformer’.
+
     BEM
         BEM is the acronym for boundary element method or boundary element
         model. Both are related to the forward model computation and more
