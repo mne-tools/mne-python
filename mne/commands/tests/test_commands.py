@@ -283,7 +283,7 @@ def test_setup_source_space(tmpdir):
     """Test mne setup_source_space."""
     check_usage(mne_setup_source_space, force_help=True)
     # Using the sample dataset
-    subjects_dir = op.join(sample.data_path(download=False), 'subjects')
+    subjects_dir = op.join(testing.data_path(download=False), 'subjects')
     use_fname = op.join(tmpdir, "sources-src.fif")
     # Test  command
     with ArgvSetter(('--src', use_fname, '-d', subjects_dir,
