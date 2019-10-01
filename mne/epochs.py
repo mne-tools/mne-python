@@ -3091,5 +3091,5 @@ def make_fixed_length_epochs(raw, segment_length=1., verbose=None):
     events = make_fixed_length_events(raw, 1, duration=segment_length)
     delta = 1. / raw.info['sfreq']
     return Epochs(raw, events, event_id=[1], tmin=0.,
-                  tmax=segment_length-delta,
+                  tmax=segment_length - delta,
                   verbose=verbose, baseline=None)
