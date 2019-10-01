@@ -59,6 +59,24 @@ event_id_2 = np.int64(2)  # to test non Python int types
 rng = np.random.RandomState(42)
 
 
+def test_event_repeated():
+    """Test epochs takes into account repeated events"""
+    n_samples = 100
+    n_channels = 2
+    ch_names = ['chan%i' % i for i in range(n_channels)]
+    info = mne.create_info(ch_names=ch_names, sfreq=1000.)
+    data = np.zeros((n_channels, n_samples))
+    raw = mne.io.RawArray(data, info)
+
+    events = np.array([[10, 0, 1], [10, 0, 2]])
+    epochs = mne.Epochs(raw, events, event_repeated='drop')
+    assert epochs.drop_log == [[], ['DROP DUPLICATE']]
+    assert_array_equal(epochs.selection, [0])
+    epochs = mne.Epochs(raw, events, event_repeated='merge')
+    assert epochs.drop_log == [[], ['MERGE DUPLICATE']]
+    assert_array_equal(epochs.selection, [0])
+
+
 def test_handle_event_repeated():
     """Test handling of repeated events."""
     # A general test case
@@ -67,29 +85,38 @@ def test_handle_event_repeated():
                        [3, 0, 2], [3, 0, 1],
                        [5, 0, 2], [5, 0, 1], [5, 0, 3],
                        [7, 0, 1]])
-    selection = np.arange(3)
-    drop_log = [[]] * 3 + [['MEG 2443']] * 4
+    SELECTION = np.arange(len(EVENTS))
+    DROP_LOG = [list() for _ in range(len(EVENTS))]
     with pytest.raises(RuntimeError, match='Event time samples were not uniq'):
         _handle_event_repeated(EVENTS, EVENT_ID, event_repeated='error',
-                               selection, drop_log)
+                               selection=SELECTION,
+                               drop_log=deepcopy(DROP_LOG))
 
     events, event_id, selection, drop_log = _handle_event_repeated(
-            EVENTS, EVENT_ID, 'drop', selection, drop_log)
+        EVENTS, EVENT_ID, 'drop', SELECTION, deepcopy(DROP_LOG))
     assert_array_equal(events, [[0, 0, 1], [3, 0, 2], [5, 0, 2], [7, 0, 1]])
+    assert_array_equal(events, EVENTS[selection])
+    unselection = np.setdiff1d(SELECTION, selection)
+    assert all(drop_log[k] == ['DROP DUPLICATE'] for k in unselection)
     assert event_id == {'aud': 1, 'vis': 2}
 
     events, event_id, selection, drop_log = _handle_event_repeated(
-            EVENTS, EVENT_ID, 'merge', selection, drop_log)
+        EVENTS, EVENT_ID, 'merge', SELECTION, deepcopy(DROP_LOG))
     assert_array_equal(events[0][-1], events[1][-1])
     assert_array_equal(events, [[0, 0, 4], [3, 0, 4], [5, 0, 5], [7, 0, 1]])
+    assert_array_equal(events[:, :2], EVENTS[selection][:, :2])
+    unselection = np.setdiff1d(SELECTION, selection)
+    assert all(drop_log[k] == ['MERGE DUPLICATE'] for k in unselection)
     assert set(event_id.keys()) == set(['aud', 'aud/vis', 'aud/foo/vis'])
     assert event_id['aud/vis'] == 4
 
     # Test early return with no changes: no error for wrong event_repeated arg
     fine_events = np.array([[0, 0, 1], [1, 0, 2]])
     events, event_id, selection, drop_log = _handle_event_repeated(
-            fine_events, EVENT_ID, 'no', selection, drop_log)
+        fine_events, EVENT_ID, 'no', [0, 2], deepcopy(DROP_LOG))
     assert event_id == EVENT_ID
+    assert_array_equal(selection, [0, 2])
+    assert drop_log == DROP_LOG
     assert_array_equal(events, fine_events)
     del fine_events
 
@@ -99,9 +126,11 @@ def test_handle_event_repeated():
     # should make new event_id value: 5 (because 1,2,3,4 are taken)
     heterogeneous_events = np.array([[0, 3, 2], [0, 4, 1]])
     events, event_id, selection, drop_log = _handle_event_repeated(
-            heterogeneous_events, EVENT_ID, 'merge', selection, drop_log)
+        heterogeneous_events, EVENT_ID, 'merge', [0, 1], deepcopy(DROP_LOG))
     assert set(event_id.keys()) == set(['aud/vis'])
     assert event_id['aud/vis'] == 5
+    assert_array_equal(selection, [0])
+    assert drop_log[1] == ['MERGE DUPLICATE']
     assert_array_equal(events, np.array([[0, 0, 5], ]))
     del heterogeneous_events
 
@@ -109,16 +138,21 @@ def test_handle_event_repeated():
     homogeneous_events = np.array([[0, 99, 1], [0, 99, 2],
                                    [1, 0, 1], [2, 0, 2]])
     events, event_id, selection, drop_log = _handle_event_repeated(
-            homogeneous_events, EVENT_ID, 'merge', selection, drop_log)
+        homogeneous_events, EVENT_ID, 'merge', [1, 3, 4, 7],
+        deepcopy(DROP_LOG))
     assert set(event_id.keys()) == set(['aud', 'vis', 'aud/vis'])
     assert_array_equal(events, np.array([[0, 99, 4], [1, 0, 1], [2, 0, 2]]))
+    assert_array_equal(selection, [1, 4, 7])
+    assert drop_log[3] == ['MERGE DUPLICATE']
     del homogeneous_events
 
     # Test dropping instead of merging, if event_codes to be merged are equal
     equal_events = np.array([[0, 0, 1], [0, 0, 1]])
     events, event_id, selection, drop_log = _handle_event_repeated(
-            equal_events, EVENT_ID, 'merge', selection, drop_log)
+        equal_events, EVENT_ID, 'merge', [3, 5], deepcopy(DROP_LOG))
     assert_array_equal(events, np.array([[0, 0, 1], ]))
+    assert_array_equal(selection, [3])
+    assert drop_log[5] == ['MERGE DUPLICATE']
     assert set(event_id.keys()) == set(['aud'])
 
 
