@@ -44,7 +44,8 @@ tmin, tmax = -0.5, 1
 event_id = dict(Median=257)
 events = mne.find_events(raw, stim_channel='STI101', mask=257, mask_type='and')
 picks = mne.pick_types(raw.info, meg=True, eeg=False)
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
+# we use verbose='error' to suppress warning about decimation causing aliasing
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, verbose='error',
                     reject=reject, picks=picks, proj=False, decim=4)
 evoked = epochs.average()
 evoked.plot()
