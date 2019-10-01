@@ -723,7 +723,8 @@ def _epochs_axes_onclick(event, params):
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                 title=None, events=None, event_colors=None, order=None,
                 show=True, block=False, decim='auto', noise_cov=None,
-                butterfly=False, show_scrollbars=True):
+                butterfly=False, show_scrollbars=True, bad_epochs_idx=None,
+                fix_log=None):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
@@ -808,6 +809,11 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
         .. versionadded:: 0.18.0
     %(show_scrollbars)s
+    bad_epochs_idx : array-like | None
+        Indices of bad epochs to show. No bad epochs to visualize if None.
+    fix_log : dataframe, shape (n_channels, n_epochs) | None
+        The bad segments to show in red and the interpolated segments
+        to show in green.
 
     Returns
     -------
@@ -830,6 +836,11 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
     .. versionadded:: 0.10.0
     """
+
+    bads = np.array(list(), dtype=int)
+    if bad_epochs_idx is not None:
+        bads = np.array(bad_epochs_idx).astype(int)
+
     epochs.drop_bad()
     scalings = _compute_scalings(scalings, epochs)
     scalings = _handle_default('scalings_plot_raw', scalings)
@@ -841,7 +852,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                   bad_color=(0.8, 0.8, 0.8), histogram=None, decim=decim,
                   data_picks=data_picks, noise_cov=noise_cov,
                   use_noise_cov=noise_cov is not None,
-                  show_scrollbars=show_scrollbars)
+                  show_scrollbars=show_scrollbars, bads: bads,
+                  fix_log: fix_log)
     params['label_click_fun'] = partial(_pick_bad_channels, params=params)
     _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks, events=events, order=order,
@@ -1151,6 +1163,34 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     params['callback_key'] = callback_key
     # Draw event lines for the first time.
     _plot_vert_lines(params)
+
+    # Plot bad epochs
+    for epoch_idx in params['bads']:
+        params['ax_hscroll'].patches[epoch_idx].set_color((1., 0., 0., 1.))
+        params['ax_hscroll'].patches[epoch_idx].set_zorder(3)
+        params['ax_hscroll'].patches[epoch_idx].set_edgecolor('w')
+        for ch_idx in range(len(params['ch_names'])):
+            params['colors'][ch_idx][epoch_idx] = (1., 0., 0., 1.)
+
+    assert params['fix_log'].shape == (len(params['ch_names']),
+                                       len(epochs.events))
+    # Plot bad segments
+    if params['fix_log'] is not None:
+        for ch_idx in range(len(params['ch_names'])):
+            ch_name = params['ch_names'][ch_idx]
+            for epoch_idx in range(len(epochs.events)):
+                this_log = params['fix_log'][ch_name][epoch_idx]
+                if epoch_idx in params['bads']:
+                    pass
+                else:
+                    if this_log == 1:
+                        params['colors'][ch_idx][epoch_idx] = (1., 0., 0., 1.)
+                    elif this_log == 2:
+                        params['colors'][ch_idx][epoch_idx] = (0., 0., 1., 1.)
+
+    params['plot_fun']()
+
+
 
 
 def _prepare_projectors(params):
@@ -1754,9 +1794,7 @@ def _onpick(event, params):
 
 def _close_event(event, params):
     """Drop selected bad epochs (called on closing of the plot)."""
-    params['epochs'].drop(params['bads'])
-    params['epochs'].info['bads'] = params['info']['bads']
-    logger.info('Channels marked as bad: %s' % params['epochs'].info['bads'])
+    pass
 
 
 def _update_channels_epochs(event, params):
