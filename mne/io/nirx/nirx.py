@@ -149,9 +149,9 @@ class RawNIRX(BaseRaw):
         #   Channels are defined as the midpoint between source and detector
         mat_data = read_mat(files['probeInfo.mat'], uint16_codec=None)
         requested_channels = mat_data['probeInfo']['probes']['index_c']
-        src_locs = mat_data['probeInfo']['probes']['coords_s3'] * 10
-        det_locs = mat_data['probeInfo']['probes']['coords_d3'] * 10
-        ch_locs = mat_data['probeInfo']['probes']['coords_c3'] * 10
+        src_locs = mat_data['probeInfo']['probes']['coords_s3'] / 100.
+        det_locs = mat_data['probeInfo']['probes']['coords_d3'] / 100.
+        ch_locs = mat_data['probeInfo']['probes']['coords_c3'] / 100.
 
         # Determine requested channel indices
         # The wl1 and wl2 files include all possible source - detector pairs.
@@ -258,7 +258,7 @@ class RawNIRX(BaseRaw):
                 for ch in self.info['chs']]
         return np.array(dist, float)
 
-    def _short_channels(self, threshold=10.0):
+    def _short_channels(self, threshold=0.01):
         """Return a vector indicating which channels are short.
 
         Channels with distance less than `threshold` are reported as short.

@@ -41,21 +41,21 @@ def test_nirx():
     # Test distance between optodes matches values from
     # nirsite https://github.com/mne-tools/mne-testing-data/pull/51
     # step 4 figure 2
-    allowed_distance_error = 0.2
+    allowed_distance_error = 0.0002
     distances = raw._probe_distances()
-    assert abs(distances[0] - 30.4) < allowed_distance_error
-    assert abs(distances[2] - 7.8) < allowed_distance_error
-    assert abs(distances[4] - 31.0) < allowed_distance_error
-    assert abs(distances[6] - 8.6) < allowed_distance_error
-    assert abs(distances[8] - 41.6) < allowed_distance_error
-    assert abs(distances[10] - 7.2) < allowed_distance_error
-    assert abs(distances[12] - 38.9) < allowed_distance_error
-    assert abs(distances[14] - 7.5) < allowed_distance_error
-    assert abs(distances[16] - 55.8) < allowed_distance_error
-    assert abs(distances[18] - 56.2) < allowed_distance_error
-    assert abs(distances[20] - 56.1) < allowed_distance_error
-    assert abs(distances[22] - 56.5) < allowed_distance_error
-    assert abs(distances[24] - 7.7) < allowed_distance_error
+    assert abs(distances[0] - 0.0304) < allowed_distance_error
+    assert abs(distances[2] - 0.0078) < allowed_distance_error
+    assert abs(distances[4] - 0.0310) < allowed_distance_error
+    assert abs(distances[6] - 0.0086) < allowed_distance_error
+    assert abs(distances[8] - 0.0416) < allowed_distance_error
+    assert abs(distances[10] - 0.0072) < allowed_distance_error
+    assert abs(distances[12] - 0.0389) < allowed_distance_error
+    assert abs(distances[14] - 0.0075) < allowed_distance_error
+    assert abs(distances[16] - 0.0558) < allowed_distance_error
+    assert abs(distances[18] - 0.0562) < allowed_distance_error
+    assert abs(distances[20] - 0.0561) < allowed_distance_error
+    assert abs(distances[22] - 0.0565) < allowed_distance_error
+    assert abs(distances[24] - 0.0077) < allowed_distance_error
 
     # Test which channels are short
     # These are the ones marked as red at
@@ -66,7 +66,7 @@ def test_nirx():
     assert short_channels[4] is np.False_
     assert short_channels[6] is np.True_
     assert short_channels[8] is np.False_
-    short_channels = raw._short_channels(threshold=3)
+    short_channels = raw._short_channels(threshold=0.003)
     assert short_channels[0] is np.False_
     assert short_channels[2] is np.False_
     short_channels = raw._short_channels(threshold=50)
@@ -77,6 +77,52 @@ def test_nirx():
     assert raw.annotations[0]['description'] == '3.0'
     assert raw.annotations[1]['description'] == '2.0'
     assert raw.annotations[2]['description'] == '1.0'
+
+    # Test location of detectors
+    # The locations of detectors can be seen in the first
+    # figure on this page...
+    # https://github.com/mne-tools/mne-testing-data/pull/51
+    # And have been manually copied below
+    # These values were reported in mm, but according to this page...
+    # https://mne.tools/stable/auto_tutorials/intro/plot_40_sensor_locations.html
+    # 3d locations should be specified in meters, so that's what's tested below
+    # Detector locations are stored in the third three loc values
+    allowed_dist_error = 0.0002
+
+    assert raw.info['ch_names'][0][3:5] == 'D1'
+    assert abs(raw.info['chs'][0]['loc'][6] - -0.0841) < allowed_dist_error
+    assert abs(raw.info['chs'][0]['loc'][7] - -0.0464) < allowed_dist_error
+    assert abs(raw.info['chs'][0]['loc'][8] - -0.0129) < allowed_dist_error
+
+    assert raw.info['ch_names'][8][3:5] == 'D2'
+    assert abs(raw.info['chs'][8]['loc'][6] - 0.0207) < allowed_dist_error
+    assert abs(raw.info['chs'][8]['loc'][7] - -0.1062) < allowed_dist_error
+    assert abs(raw.info['chs'][8]['loc'][8] - 0.0484) < allowed_dist_error
+
+    assert raw.info['ch_names'][4][3:5] == 'D3'
+    assert abs(raw.info['chs'][4]['loc'][6] - 0.0846) < allowed_dist_error
+    assert abs(raw.info['chs'][4]['loc'][7] - -0.0142) < allowed_dist_error
+    assert abs(raw.info['chs'][4]['loc'][8] - -0.0156) < allowed_dist_error
+
+    assert raw.info['ch_names'][12][3:5] == 'D4'
+    assert abs(raw.info['chs'][12]['loc'][6] - -0.0196) < allowed_dist_error
+    assert abs(raw.info['chs'][12]['loc'][7] - 0.0821) < allowed_dist_error
+    assert abs(raw.info['chs'][12]['loc'][8] - 0.0275) < allowed_dist_error
+
+    assert raw.info['ch_names'][16][3:5] == 'D5'
+    assert abs(raw.info['chs'][16]['loc'][6] - -0.0360) < allowed_dist_error
+    assert abs(raw.info['chs'][16]['loc'][7] - 0.0276) < allowed_dist_error
+    assert abs(raw.info['chs'][16]['loc'][8] - 0.0778) < allowed_dist_error
+
+    assert raw.info['ch_names'][19][3:5] == 'D6'
+    assert abs(raw.info['chs'][19]['loc'][6] - 0.0352) < allowed_dist_error
+    assert abs(raw.info['chs'][19]['loc'][7] - 0.0283) < allowed_dist_error
+    assert abs(raw.info['chs'][19]['loc'][8] - 0.0780) < allowed_dist_error
+
+    assert raw.info['ch_names'][21][3:5] == 'D7'
+    assert abs(raw.info['chs'][21]['loc'][6] - 0.0388) < allowed_dist_error
+    assert abs(raw.info['chs'][21]['loc'][7] - -0.0477) < allowed_dist_error
+    assert abs(raw.info['chs'][21]['loc'][8] - 0.0932) < allowed_dist_error
 
 
 @requires_testing_data
