@@ -17,6 +17,8 @@ Bug
 
 - Fix handling of repeated events in :class:`mne.Epochs` by `Fahimeh Mamashli`_ and `Alex Gramfort`_
 
+- Fix TAL channel parsing (annotations) for EDF-D files by `Clemens Brunner`_
+
 Changelog
 ~~~~~~~~~
 
