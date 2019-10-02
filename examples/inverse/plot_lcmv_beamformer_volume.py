@@ -113,7 +113,9 @@ src_fs = mne.setup_volume_source_space(
     verbose=True)
 morph = mne.compute_source_morph(
     forward['src'], subject_from='sample', src_to=src_fs,
-    subjects_dir=subjects_dir, verbose=True)
+    subjects_dir=subjects_dir,
+    n_iter_sdr=[10, 10, 5], n_iter_affine=[10, 10, 5],  # just for speed
+    verbose=True)
 stc.copy().crop(0.05, 0.18).plot(
     src=morph, mode='stat_map', initial_time=0.1, subjects_dir=subjects_dir,
     clim=dict(kind='value', pos_lims=lims), verbose=True)

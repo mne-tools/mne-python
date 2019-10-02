@@ -93,6 +93,7 @@ src_fs = mne.setup_volume_source_space(
     verbose=True)
 morph = mne.compute_source_morph(
     inverse_operator['src'], subject_from='sample', subjects_dir=subjects_dir,
+    n_iter_affine=[10, 10, 5], n_iter_sdr=[10, 10, 5],  # just for speed
     verbose=True)
 
 ###############################################################################
