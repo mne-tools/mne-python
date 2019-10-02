@@ -32,7 +32,7 @@ raw.crop(0, 60).load_data()  # use just 60 seconds of data, to save memory
 # Background on filtering
 # ^^^^^^^^^^^^^^^^^^^^^^^
 #
-# A filter removes or suppresses parts of a signal. Usually, filters act on
+# A filter removes or attenuates parts of a signal. Usually, filters act on
 # specific *frequency ranges* of a signal — for example, suppressing all
 # frequency components above or below a certain cutoff value. There are *many*
 # ways of designing digital filters; see :ref:`disc-filtering` for a longer
@@ -43,7 +43,7 @@ raw.crop(0, 60).load_data()  # use just 60 seconds of data, to save memory
 # Repairing artifacts by filtering
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# Artifacts that are restricted to a narrow range of frequencies can sometimes
+# Artifacts that are restricted to a narrow frequency range can sometimes
 # be repaired by filtering the data. Two examples of frequency-restricted
 # artifacts are slow drifts and power line noise. Here we illustrate how each
 # of these can be repaired by filtering.
@@ -129,7 +129,8 @@ add_arrows(fig.axes[:2])
 
 ###############################################################################
 # It should be evident that MEG channels are more susceptible to this kind of
-# interference. Removing power-line noise can be done with a notch filter,
+# interference than EEG that is recorded in the margetically shielded room.
+# Removing power-line noise can be done with a notch filter,
 # applied directly to the :class:`~mne.io.Raw` object, specifying an array of
 # frequencies to be attenuated. Since the EEG channels are relatively
 # unaffected by the power line noise, we'll also specify a ``picks`` argument
@@ -167,7 +168,7 @@ for title, data in zip(['Un', 'Notch '], [raw, raw_notch]):
 # yourself before using the :meth:`~mne.io.Raw.resample` method. The effect is
 # most clearly seen in the PSD plot, where a dashed vertical line indicates the
 # filter cutoff; the original data had an existing lowpass at around 172 Hz
-# (see ``raw.info['lowpass']``), and the data resampled to 200 Hz gets
+# (see ``raw.info['lowpass']``), and the data resampled from 600 Hz to 200 Hz gets
 # automatically lowpass filtered at 100 Hz:
 
 raw_downsampled = raw.copy().resample(sfreq=200)
