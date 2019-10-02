@@ -25,8 +25,6 @@ from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
 from .io.base import ToDataFrameMixin, TimeMixin
 from .externals.h5io import read_hdf5, write_hdf5
-#from mne.forward import convert_forward_solution
-#from mne.minimum_norm.inverse import _prepare_forward
 
 def _read_stc(filename):
     """Aux Function."""
@@ -1101,7 +1099,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
 
     @verbose
     def estimate_snr(self, info, fwd, cov, verbose=None):
-        """Compute time-varying SNR
+        """Compute time-varying SNR in the source space
 
         This function should only be used with source estimates with units
         nA (i.e., MNE-like solutions, *not* dSPM or sLORETA).
@@ -1144,32 +1142,34 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         """
         from .forward import convert_forward_solution
         from .minimum_norm.inverse import _prepare_forward
-
-        snr_stc = self.copy()
+        from mne import SourceEstimate
+        
+        M = np.shape(self.data)[0]
+        T = np.shape(self.data)[1]
+        snr_stc = SourceEstimate(np.zeros((M, T)), self.vertices, self.tmin, 
+                                 self.tstep, self.subject)
+        
         fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True)
+        
+        # G is gain matrix [ch x src], cov is noise covariance [ch x ch]
+        _, _, G, _, _, _, _, cov, _ = _prepare_forward(fwd, info, cov,
+                                                                fixed=True, 
+                                                                loose=0, 
+                                                                rank=None, 
+                                                                pca=False,
+                                                                use_cps=True, 
+                                                                exp=None, 
+                                                                limit_depth_chs=False, 
+                                                                combine_xyz='fro',
+                                                                allow_fixed_depth=True, 
+                                                                limit=None)
 
-    #    return (forward, info_picked, gain, depth_prior, orient_prior, source_std,
-    #            trace_GRGT, noise_cov, whitener)
-        
-        _, _, G, _, _, source_std, _, cov, _ = _prepare_forward(fwd, info, cov, fixed=True, loose=0, rank=None, pca=False,
-                                                       use_cps=True, exp=None, limit_depth_chs=False, combine_xyz='fro',
-                                                       allow_fixed_depth=True, limit=None)
-        nTimes = np.shape(snr_stc.data)[1]
-        
-        N = cov['dim'] # number of sensors/channels
-        # G is gain matrix [channels x sources]
-        M = np.shape(snr_stc.data)[0] # number of sources
-        s_k2 = np.diag(cov['data'])
-        
-        for t in np.arange(0,nTimes): # for each time pt of the data
-            print ('t = %d\n' % t)
-            for i in np.arange(0,M): # loop over sources            
-                b_k2 = G[:,i]*G[:,i] #ith source
-                scaling = (1 / N) * np.sum(b_k2 / s_k2) # scalar #, axis=1)[:, np.newaxis]
-                a_it = snr_stc.data[i,t]*snr_stc.data[i,t]
-                snr_stc.data[i,t] = 10*np.log10(a_it * scaling)
-                
-        print("End of SNR Func\n")
+        N = cov['dim'] # number of sensors/channels    
+        b_k2 = (G * G).T
+        s_k2 = np.diag(cov['data'])                
+        scaling = (1/N) * np.sum(b_k2 /s_k2, axis=1)[:, np.newaxis]  
+        snr_stc.data = 10*np.log10((self.data * self.data) * scaling)
+                        
         return snr_stc
 
 
