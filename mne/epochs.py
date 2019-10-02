@@ -3096,8 +3096,6 @@ def make_fixed_length_epochs(raw, duration=1.,
         Raw data to divide into segments.
     duration : float
         Duration of each epoch in seconds. Defaults to 1.
-    verbose: bool
-        Whether to report what is being done by printing text.
     %(preload)s
     %(verbose)s
 
