@@ -138,9 +138,6 @@ def _set_montage_coreg_path(subjects_dir=None):
     """
     subjects_dir = _get_create_subjects_dir(subjects_dir)
     old_subjects_dir = get_subjects_dir(None, raise_error=False)
-    if old_subjects_dir is not None and old_subjects_dir != subjects_dir:
-        raise ValueError('The subjects dir is already set to %r, which does '
-                         'not match the provided subjects_dir=%r'
-                         % (old_subjects_dir, subjects_dir))
-    set_config('SUBJECTS_DIR', subjects_dir)
+    if old_subjects_dir is None:
+        set_config('SUBJECTS_DIR', subjects_dir)
     return subjects_dir

@@ -33,7 +33,7 @@ import os
 
 import nibabel as nib
 import mne
-from mne.datasets import sample
+from mne.datasets import sample, fetch_fsaverage
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from nilearn.plotting import plot_glass_brain
 
@@ -50,6 +50,7 @@ fname_inv = os.path.join(sample_dir, 'sample_audvis-meg-vol-7-meg-inv.fif')
 
 fname_t1_fsaverage = os.path.join(subjects_dir, 'fsaverage', 'mri',
                                   'brain.mgz')
+fetch_fsaverage(subjects_dir, verbose=False)  # ensure BEM exists
 fname_bem_fsaverage = (subjects_dir + '/fsaverage/bem/'
                        'fsaverage-5120-5120-5120-bem-sol.fif')
 

@@ -11,7 +11,7 @@ and show activation on ``fsaverage``.
 # License: BSD (3-clause)
 
 import mne
-from mne.datasets import sample
+from mne.datasets import sample, fetch_fsaverage
 from mne.beamformer import make_lcmv, apply_lcmv
 
 print(__doc__)
@@ -23,6 +23,7 @@ data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-vol-7-fwd.fif'
+fetch_fsaverage(subjects_dir, verbose=False)  # ensure BEM exists
 fname_fs_bem = (subjects_dir + '/fsaverage/bem/'
                 'fsaverage-5120-5120-5120-bem-sol.fif')
 
