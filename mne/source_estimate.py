@@ -1142,7 +1142,6 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         """
         from .forward import convert_forward_solution
         from .minimum_norm.inverse import _prepare_forward
-        from mne import SourceEstimate
         
         M = np.shape(self.data)[0]
         T = np.shape(self.data)[1]
@@ -1158,11 +1157,11 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
                                 combine_xyz='fro', allow_fixed_depth=True,
                                 limit=None)
 
-        N = cov['dim'] # number of sensors/channels    
+        N = info.cov['dim'] # number of sensors/channels    
         b_k2 = (G * G).T
         s_k2 = np.diag(cov['data'])                
-        scaling = (1/N) * np.sum(b_k2 /s_k2, axis=1)[:, np.newaxis]  
-        snr_stc.data = 10*np.log10((self.data * self.data) * scaling)
+        scaling = (1 / N) * np.sum(b_k2 / s_k2, axis=1)[:, np.newaxis]  
+        snr_stc.data = 10 * np.log10((self.data * self.data) * scaling)
                         
         return snr_stc
 
