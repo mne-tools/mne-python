@@ -1861,7 +1861,7 @@ def _force_update_info(info_base, info_target):
             i_targ[key] = val
 
 
-def anonymize_info(info):
+def anonymize_info(info, timeshift=None, keep_his=False):
     """Anonymize measurement information in place.
 
     Reset 'subject_info', 'meas_date', 'file_id', and 'meas_id' keys if they
@@ -1871,6 +1871,9 @@ def anonymize_info(info):
     ----------
     info : dict, instance of Info
         Measurement information for the dataset.
+    timeshift : int,
+        Number of days to subtract from all dates.
+        if None timeshift moves date of service to Jan 1 2000
 
     Returns
     -------
@@ -1882,15 +1885,90 @@ def anonymize_info(info):
     Operates in place.
     """
     _validate_type(info, 'info', "self")
-    if info.get('subject_info') is not None:
-        del info['subject_info']
-    info['meas_date'] = None
+
+    default_anon_dos = datetime.datetime(2000, 1, 1, 0, 0, 0)
+    default_str = "mne_anonymize"
+    default_subject_id = 0
+    default_desc = ("Anonymized using a time shift" +
+                    " to preserve age at acquisition")
+
+    if timeshift is None:
+        tmp = (info['meas_date'][0] -
+               datetime.datetime.timestamp(default_anon_dos))
+        delta_t = datetime.timedelta(seconds=tmp)
+    else:
+        delta_t = datetime.timedelta(days=timeshift)
+
+    # adjust meas_date
+    info['meas_date'] = \
+        (int(info['meas_date'][0] - delta_t.total_seconds()), 0)
+
+    # file_id and meas_id
     for key in ('file_id', 'meas_id'):
         value = info.get(key)
         if value is not None:
             assert 'msecs' not in value
-            value['secs'] = DATE_NONE[0]
-            value['usecs'] = DATE_NONE[1]
+            value['secs'] = info['meas_date'][0]
+            value['usecs'] = info['meas_date'][1]
+            value['machid'][:] = -1
+
+    # subject info
+    if info.get('subject_info') is not None:
+        subj_info = info.get('subject_info')
+        if subj_info.get('id') is not None:
+            subj_info['id'] = default_subject_id
+        if keep_his:
+            logger.warning('Not fully anonymizing info - keeping \'his_id\'')
+        elif subj_info.get('his_id') is not None:
+            subj_info['his_id'] = str(default_subject_id)
+
+        for key in ('last_name', 'first_name', 'middle_name'):
+            if subj_info.get(key) is not None:
+                subj_info[key] = default_str
+
+        if subj_info.get('birthday') is not None:
+            dob = datetime.datetime(subj_info['birthday'][0],
+                                    subj_info['birthday'][1],
+                                    subj_info['birthday'][2])
+            dob -= delta_t
+            subj_info['birthday'] = dob.year, dob.month, dob.day
+
+        for key in ('weight', 'height'):
+            if subj_info.get(key) is not None:
+                subj_info[key] = 0
+
+    info['experimenter'] = default_str
+    info['description'] = default_desc
+
+    if info['proj_id'] is not None:
+        info['proj_id'][:] = 0
+    if info['proj_name'] is not None:
+        info['proj_name'] = default_str
+    if info['utc_offset'] is not None:
+        info['utc_offset'] = None
+
+    if info.get('proc_history') is not None:
+        for record in info.get('proc_history'):
+            record['block_id']['secs'] = info['meas_date'][0]
+            record['block_id']['usecs'] = info['meas_date'][1]
+            record['block_id']['machid'][:] = -1
+            record['date'] = info['meas_date']
+            record['experimenter'] = default_str
+
+    if info.get('helium_info') is not None:
+        hi = info.get('helium_info')
+        if hi.get('orig_file_guid') is not None:
+            hi['orig_file_guid'] = default_str
+        if hi.get('meas_date') is not None:
+            hi['meas_date'] = [info['meas_date'][0],
+                               info['meas_date'][1]]
+
+    if info.get('device_info') is not None:
+        di = info.get('device_info')
+        for k in ('serial', 'site'):
+            if di.get(k) is not None:
+                di[k] = default_str
+
     return info
 
 

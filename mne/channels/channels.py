@@ -573,11 +573,11 @@ class SetChannelsMixin(object):
                             show=show)
 
     @copy_function_doc_to_method_doc(anonymize_info)
-    def anonymize(self):
+    def anonymize(self, timeshift=None, keep_his=False):
         """
         .. versionadded:: 0.13.0
         """
-        anonymize_info(self.info)
+        anonymize_info(self.info, timeshift=timeshift, keep_his=keep_his)
         if hasattr(self, 'annotations'):
             # XXX : anonymize should rather subtract a random date
             # rather than setting it to None
