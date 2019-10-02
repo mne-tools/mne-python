@@ -647,7 +647,7 @@ def _check_decim(info, decim, offset):
              'filtered. The decim=%i parameter will result in a sampling '
              'frequency of %g Hz, which can cause aliasing artifacts.'
              % (decim, new_sfreq))
-    elif decim > 1 and new_sfreq < 2.5 * lowpass:
+    elif decim > 1 and new_sfreq < 3 * lowpass:
         warn('The measurement information indicates a low-pass frequency '
              'of %g Hz. The decim=%i parameter will result in a sampling '
              'frequency of %g Hz, which can cause aliasing artifacts.'

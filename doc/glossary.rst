@@ -24,6 +24,9 @@ general neuroimaging concepts. If you think a term is missing, please consider
         object class and :ref:`tut-annotations`
         for a tutorial on how to manipulate such objects.
 
+    Beamformer 
+        Beamformer is a popular source estimation approach that uses a set of spatial filters (beamformer weights) to compute time courses of sources which coordinates are predefined. See :class:`mne.beamformer.Beamformer`.
+
     BEM
         BEM is the acronym for boundary element method or boundary element
         model. Both are related to the forward model computation and more
@@ -32,13 +35,16 @@ general neuroimaging concepts. If you think a term is missing, please consider
         outer skull and outer skin (a.k.a. scalp) that define compartments
         of tissues of the head. You can compute the BEM surfaces with
         :func:`mne.bem.make_watershed_bem` or :func:`mne.bem.make_flash_bem`.
-        See :ref:`tut-forward` for usage demo.
+        See :ref:`tut-forward` for usage demo. 
 
     channels
         Channels refer to MEG sensors, EEG electrodes or any extra electrode
         or sensor such as EOG, ECG or sEEG, ECoG etc. Channels usually have
         a type, such as gradiometer, and a unit, such as Tesla/Meter that
         is used in the code base, e.g. for plotting.
+
+    Digitization
+        Digitization is a procedure of recording the headshape of a subject and the fiducial coils and/or eeg electrodes locations on the subject’s head. They are represented as a set of points in a 3D space. See :ref:`reading-dig-montages` and :ref:`dig-formats`.  
 
     dipole
         See :term:`equivalent current dipole`.
@@ -144,6 +150,14 @@ general neuroimaging concepts. If you think a term is missing, please consider
         each sensor). It is primarily used for illustrative purposes (i.e., making
         diagrams of approximate sensor positions in top-down diagrams of the head,
         so-called topographies or topomaps).
+
+    minimum-norm estimation
+        Minimum-norm estimation (abbr. ``MNE``) can be used to generate a distributed 
+        map of activation on a :term:`source space`, usually on a cortical surface. 
+        MNE uses a linear :term:`inverse operator` to project sensor measurements 
+        into the source space. The :term:`inverse operator` is computed from the 
+        :term:`forward solution` for a subject and an estimate of the noise covariance 
+        of sensor measurements.
 
     montage
         EEG channel names and the relative positions of the sensor w.r.t. the scalp.

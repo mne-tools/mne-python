@@ -480,7 +480,7 @@ _call_dict_names = {
 
 #  Append the simple types
 _simple_dict = {
-    FIFF.FIFFT_BYTE: '>B1',
+    FIFF.FIFFT_BYTE: '>B',
     FIFF.FIFFT_SHORT: '>i2',
     FIFF.FIFFT_INT: '>i4',
     FIFF.FIFFT_USHORT: '>u2',

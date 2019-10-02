@@ -9,10 +9,11 @@ import re as re
 import numpy as np
 
 from ..base import BaseRaw
-from ..meas_info import create_info
-from ...utils import logger, verbose, fill_doc
 from ..constants import FIFF
+from ..meas_info import create_info, _format_dig_points
 from ...annotations import Annotations
+from ...transforms import apply_trans, _get_trans
+from ...utils import logger, verbose, fill_doc
 
 
 @fill_doc
@@ -57,6 +58,7 @@ class RawNIRX(BaseRaw):
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
         from ...externals.pymatreader import read_mat
+        from ...coreg import get_mni_fiducials  # avoid circular import prob
         logger.info('Loading %s' % fname)
 
         # Check if required files exist and store names for later use
@@ -149,9 +151,31 @@ class RawNIRX(BaseRaw):
         #   Channels are defined as the midpoint between source and detector
         mat_data = read_mat(files['probeInfo.mat'], uint16_codec=None)
         requested_channels = mat_data['probeInfo']['probes']['index_c']
-        src_locs = mat_data['probeInfo']['probes']['coords_s3'] * 10
-        det_locs = mat_data['probeInfo']['probes']['coords_d3'] * 10
-        ch_locs = mat_data['probeInfo']['probes']['coords_c3'] * 10
+        src_locs = mat_data['probeInfo']['probes']['coords_s3'] / 100.
+        det_locs = mat_data['probeInfo']['probes']['coords_d3'] / 100.
+        ch_locs = mat_data['probeInfo']['probes']['coords_c3'] / 100.
+
+        # These are all in MNI coordinates, so let's transform them to
+        # the Neuromag head coordinate frame
+        mri_head_t, _ = _get_trans('fsaverage', 'mri', 'head')
+        src_locs = apply_trans(mri_head_t, src_locs)
+        det_locs = apply_trans(mri_head_t, det_locs)
+        ch_locs = apply_trans(mri_head_t, ch_locs)
+
+        # Set up digitization
+        dig = get_mni_fiducials('fsaverage', verbose=False)
+        for fid in dig:
+            fid['r'] = apply_trans(mri_head_t, fid['r'])
+            fid['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+        for ii, ch_loc in enumerate(ch_locs, 1):
+            dig.append(dict(
+                kind=FIFF.FIFFV_POINT_EEG,  # misnomer but probably okay
+                r=ch_loc,
+                ident=ii,
+                coord_frame=FIFF.FIFFV_COORD_HEAD,
+            ))
+        dig = _format_dig_points(dig)
+        del mri_head_t
 
         # Determine requested channel indices
         # The wl1 and wl2 files include all possible source - detector pairs.
@@ -180,7 +204,7 @@ class RawNIRX(BaseRaw):
         info = create_info(chnames,
                            samplingrate,
                            ch_types='fnirs_raw')
-        info.update({'subject_info': subject_info})
+        info.update(subject_info=subject_info, dig=dig)
 
         # Store channel, source, and detector locations
         # The channel location is stored in the first 3 entries of loc.
@@ -258,7 +282,7 @@ class RawNIRX(BaseRaw):
                 for ch in self.info['chs']]
         return np.array(dist, float)
 
-    def _short_channels(self, threshold=10.0):
+    def _short_channels(self, threshold=0.01):
         """Return a vector indicating which channels are short.
 
         Channels with distance less than `threshold` are reported as short.
