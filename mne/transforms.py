@@ -82,6 +82,11 @@ class Transform(dict):
     trans : array-like, shape (4, 4) | None
         The transformation matrix. If None, an identity matrix will be
         used.
+    Notes
+    ------
+    Valid coordinate systems are 'meg','mri','mri_voxel','head','mri_tal','ras'
+    'fs_tal','ctf_head','ctf_meg','unknown'
+    
     """
 
     def __init__(self, fro, to, trans=None):  # noqa: D102
