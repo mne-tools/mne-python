@@ -769,7 +769,6 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     from scipy.signal import (
         freqz, group_delay, lfilter, filtfilt, sosfilt, sosfiltfilt)
     import matplotlib.pyplot as plt
-    from matplotlib.ticker import FormatStrFormatter, NullFormatter
     sfreq = float(sfreq)
     _check_option('fscale', fscale, ['log', 'linear'])
     flim = _get_flim(flim, fscale, freq, sfreq)
