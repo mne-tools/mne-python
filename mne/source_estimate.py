@@ -1099,10 +1099,10 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
 
     @verbose
     def estimate_snr(self, info, fwd, cov, verbose=None):
-        """Compute time-varying SNR in the source space
+        """Compute time-varying SNR in the source space.
 
         This function should only be used with source estimates with units
-        nA (i.e., MNE-like solutions, *not* dSPM or sLORETA).
+        nanoAmperes (i.e., MNE-like solutions, *not* dSPM or sLORETA).
 
         Reference:
         Goldenholz, D. M., Ahlfors, S. P., Hämäläinen, M. S., Sharon, D.,
