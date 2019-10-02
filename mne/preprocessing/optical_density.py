@@ -30,7 +30,8 @@ def optical_density(raw):
     for ii in picks:
         data = -1.0 * log(divide(raw.get_data(ii).T,
                           ones((len(raw), 1)) * data_means[ii]))
-        raw._data[ii, :] = data.T
+        raw._data[ii] /= means[ii]
+        np.log(raw._data[ii], out=raw._data[ii])
         raw.info['chs'][ii]['coil_type'] = FIFF.FIFFV_COIL_FNIRS_OD
 
     return raw
