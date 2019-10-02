@@ -21,4 +21,4 @@ from .infomax_ import infomax
 from .stim import fix_stim_artifact
 from .maxwell import maxwell_filter
 from .xdawn import Xdawn
-from .optical_density import optical_density
+from ._optical_density import optical_density
