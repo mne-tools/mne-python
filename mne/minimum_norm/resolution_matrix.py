@@ -4,6 +4,7 @@ from copy import deepcopy
 import numpy as np
 
 from mne import pick_channels_forward, EvokedArray
+from mne.io.constants import FIFF
 from mne.utils import logger
 from mne.forward.forward import is_fixed_orient, convert_forward_solution
 
@@ -27,7 +28,7 @@ def make_resolution_matrix(forward, inverse_operator, method='dSPM',
 
     Returns
     -------
-    resmat: numpy array, shape (n_dipoles, n_dipoles)
+    resmat: array, shape (n_dipoles, n_dipoles)
         Resolution matrix (inverse operator times forward operator).
     """
     # make sure forward and inverse operator match
@@ -51,10 +52,7 @@ def make_resolution_matrix(forward, inverse_operator, method='dSPM',
 
     resmat = invmat.dot(leadfield)
 
-    dims = resmat.shape
-
-    logger.info('Dimensions of resolution matrix: %d by %d.' % (dims[0],
-                dims[1]))
+    logger.info('Dimensions of resolution matrix: %d by %d.' % resmat.shape)
 
     return resmat
 
@@ -142,8 +140,7 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, method='dSPM',
     # combine components
 
     # check if inverse operator uses fixed source orientations
-    is_fixed_inv = inverse_operator['eigen_leads']['data'].shape[0] == \
-        inverse_operator['nsource']
+    is_fixed_inv = inverse_operator['source_ori'] != FIFF.FIFFV_MNE_FREE_ORI
 
     # choose pick_ori according to inverse operator
     if is_fixed_inv:
@@ -158,18 +155,17 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, method='dSPM',
     # turn source estimate into numpty array
     invmat = invmat_op.data
 
-    dims = invmat.shape
-
     # remove columns for bad channels
     # take into account it may be 3D array
-    invmat = np.delete(invmat, ch_idx_bads, axis=len(dims) - 1)
+    invmat = np.delete(invmat, ch_idx_bads, axis=invmat.ndim - 1)
 
     # if 3D array, i.e. multiple values per location (fixed and loose),
     # reshape into 2D array
-    if len(dims) == 3:
+    if invmat.ndim == 3:
         v0o1 = invmat[0, 1].copy()
         v3o2 = invmat[3, 2].copy()
-        invmat = invmat.reshape(dims[0] * dims[1], dims[2])
+        shape = invmat.shape
+        invmat = invmat.reshape(shape[0] * shape[1], shape[2])
         # make sure that reshaping worked
         assert np.array_equal(v0o1, invmat[1])
         assert np.array_equal(v3o2, invmat[11])

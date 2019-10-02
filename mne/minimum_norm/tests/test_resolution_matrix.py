@@ -7,7 +7,7 @@ Resolution matrix has zero dipole localisation error for columns (PSFs).
 
 import os.path as op
 import numpy as np
-from numpy.testing import (assert_array_almost_equal, assert_equal)
+from numpy.testing import (assert_array_almost_equal, assert_array_equal)
 
 import mne
 from mne.datasets import testing
@@ -99,13 +99,9 @@ def test_resolution_matrix():
     goodidxs = np.arange(0, len(maxidxs), 1)
 
     # Tests
-    # Does sLORETA have zero DLE for columns?
-    assert_equal(maxidxs, goodidxs)
+    # Does sLORETA have zero dipole localization error for columns/PSFs?
+    assert_array_equal(maxidxs, goodidxs)
 
     # MNE resolution matrices symmetric?
     assert_array_almost_equal(rm_mne, rm_mne.T)
     assert_array_almost_equal(rm_mne_free, rm_mne_free.T)
-
-#    return rm_mne_free, rm_mne, rm_lor, resmat_lcmv, filters
-
-# rm_mne_free, rm_mne, rm_lor, resmat_lcmv, filters = test_resolution_matrix()
