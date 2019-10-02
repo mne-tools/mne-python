@@ -19,6 +19,8 @@ Bug
 
 - Fix TAL channel parsing (annotations) for EDF-D files by `Clemens Brunner`_
 
+- Fix IO of TFRs when event_id contain a / in one of the keys by `Alex Gramfort`_
+
 Changelog
 ~~~~~~~~~
 
