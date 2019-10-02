@@ -58,8 +58,9 @@ general neuroimaging concepts. If you think a term is missing, please consider
         eLORETA and sLORETA (exact and standardized low resolution brain
         electromagnetic tomography) are linear source estimation techniques,
         as are dSPM or MNE (:term:`minimum-norm estimation`). sLORETA outputs
-        standardized values such as dSPM, while eLORETA outputs current density
-        estimates like MNE. See :func:`mne.minimum_norm.apply_inverse`.
+        standardized values such as dSPM, while eLORETA outputs normalized current 
+        estimates. 
+        See :func:`mne.minimum_norm.apply_inverse` and :ref:`example-sLORETA`.
 
     epochs
         Epochs (sometimes called "trials" in other software packages) are
