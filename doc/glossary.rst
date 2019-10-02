@@ -44,10 +44,13 @@ general neuroimaging concepts. If you think a term is missing, please consider
         is used in the code base, e.g. for plotting.
 
     Digitization
-        Digitization is a procedure of recording the headshape of a subject and the fiducial coils and/or eeg electrodes locations on the subject’s head. They are represented as a set of points in a 3D space. See :ref:`reading-dig-montages` and :ref:`dig-formats`.  
+        Digitization is a procedure of recording the headshape of a subject and the fiducial coils (or :term:`HPI`) and/or eeg electrodes locations on the subject’s head. They are represented as a set of points in a 3D space. See :ref:`reading-dig-montages` and :ref:`dig-formats`.  
 
     dipole
         See :term:`equivalent current dipole`.
+
+    eLORETA and sLORETA
+        eLORETA and sLORETA (exact and standardized low resolution brain electromagnetic tomography) are versions of LORETA source estimation technique. It is based on computing the distribution of the current source density throughout full brain volume. See :func:`mne.minimum_norm.apply_inverse`.
 
     epochs
         Epochs (sometimes called "trials" in other software packages) are
@@ -124,7 +127,7 @@ general neuroimaging concepts. If you think a term is missing, please consider
         and can be used to infer the head position. With cHPI, the sinusoidal
         signals are typically set at frequencies above any neural signal of
         interest, and thus can be removed after head position correction via
-        low-pass filtering.
+        low-pass filtering. See :ref:`example-head-pos`
 
     info
         Also called ``measurement info``, it is a collection of metadata regarding
@@ -138,7 +141,7 @@ general neuroimaging concepts. If you think a term is missing, please consider
         locations by :math:`N` sensors) that, when applied to the sensor
         signals, yields estimates of the brain activity that gave rise to the
         observed sensor signals. Inverse operators are available for the linear
-        inverse methods MNE, dSPM, sLORETA and eLORETA.
+        inverse methods MNE, dSPM, sLORETA and eLORETA. See :func:`mne.minimum_norm.apply_inverse`
 
     label
         A :class:`Label` refers to a region in the cortex, also often called
