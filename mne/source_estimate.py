@@ -1157,10 +1157,10 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
                                 combine_xyz='fro', allow_fixed_depth=True,
                                 limit=None)
 
-        N = cov['dim'] # number of sensors/channels    
+        n_channels = cov['dim'] # number of sensors/channels    
         b_k2 = (G * G).T
         s_k2 = np.diag(cov['data'])                
-        scaling = (1 / N) * np.sum(b_k2 / s_k2, axis=1)[:, np.newaxis]  
+        scaling = (1 / n_channels) * np.sum(b_k2 / s_k2, axis=1)[:, np.newaxis]  
         snr_stc.data = 10 * np.log10((self.data * self.data) * scaling)
                         
         return snr_stc
