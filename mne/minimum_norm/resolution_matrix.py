@@ -3,48 +3,48 @@ from copy import deepcopy
 
 import numpy as np
 
-from mne import pick_channels
+from mne import pick_channels, EvokedArray
 from mne.utils import logger
 from mne.forward.forward import is_fixed_orient, convert_forward_solution
 
-from mne.evoked import EvokedArray
 from mne.minimum_norm import apply_inverse
+from mne.beamformer import make_lcmv
 
 
-def make_resolution_matrix(fwd, invop, method, lambda2):
+def make_resolution_matrix(forward, inverse_operator, method, lambda2):
     """Compute resolution matrix for linear inverse operator.
 
     Parameters
     ----------
-    fwd: forward solution
-        Used to get leadfield matrix.
-    invop: inverse operator
-        Inverse operator to get inverse matrix.
-        pick_ori='normal' will be selected.
-    method: string
+    forward: dict
+        Forward Operator.
+    inverse_operator: Instance of InverseOperator
+        Inverse operator.
+    method: str
         Inverse method to use (MNE, dSPM, sLORETA).
     lambda2: float
         The regularisation parameter.
 
     Returns
     -------
-        resmat: 2D numpy array.
-        Resolution matrix (inverse matrix times leadfield).
+        resmat: numpy array, shape (n_dipoles, n_dipoles)
+        Resolution matrix (inverse operator times forward operator).
     """
     # make sure forward and inverse operator match
-    fwd = _convert_forward_match_inv(fwd, invop)
+    inv = inverse_operator
+    fwd = _convert_forward_match_inv(forward, inv)
 
     # don't include bad channels
     # only use good channels from inverse operator
-    bads_inv = invop['info']['bads']
+    bads_inv = inv['info']['bads']
 
     # good channels
-    ch_names = [c for c in invop['info']['ch_names'] if (c not in bads_inv)]
+    ch_names = [c for c in inv['info']['ch_names'] if (c not in bads_inv)]
 
     # get leadfield matrix from forward solution
     leadfield = _pick_leadfield(fwd['sol']['data'], fwd, ch_names)
 
-    invmat = _get_matrix_from_inverse_operator(invop, fwd,
+    invmat = _get_matrix_from_inverse_operator(inv, fwd,
                                                method=method, lambda2=lambda2)
 
     resmat = invmat.dot(leadfield)
@@ -122,16 +122,12 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, method='dSPM',
         The regularization parameter (for apply_inverse).
     Returns
     -------
-    invmat : ndarray
+    invmat : array, shape (n_dipoles, n_channels)
         Inverse matrix associated with inverse operator and specified
         parameters.
     """
     # make sure forward and inverse operators match
     _convert_forward_match_inv(forward, inverse_operator)
-
-    print('Free Orientation version.')
-
-    logger.info("Computing whole inverse operator.")
 
     info_inv = _prepare_info(inverse_operator)
 
@@ -153,13 +149,6 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, method='dSPM',
     # apply inverse operator to identity matrix in order to get inverse matrix
     # free orientation constraint not possible because apply_inverse would
     # combine components
-
-    # pick_ori='normal' required because apply_inverse won't give separate
-    # orientations
-    # if ~inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
-    #     pick_ori = 'vector'
-    # else:
-    #     pick_ori = 'normal'
 
     # check if inverse operator uses fixed source orientations
     is_fixed_inv = inverse_operator['eigen_leads']['data'].shape[0] == \
@@ -195,5 +184,46 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, method='dSPM',
         assert np.array_equal(v3o2, invmat[11])
 
     logger.info("Dimension of Inverse Matrix: %s" % str(invmat.shape))
+
+    return invmat
+
+
+def _get_matrix_from_lcmv_beamformer(forward, info, noise_cov, data_cov):
+    """Get inverse matrix for LCMV beamformer.
+
+    Parameters
+    ----------
+    forward : dict
+        The forward operator.
+    info: instance of Info
+        Should contain measurement information, e.g. sfreq.
+    noise_cov: noise covariance matrix
+        Used to compute whitener. Should be regularised.
+    data_cov: data covariance matrix
+        Used to compute LCMV beamformer. Should be regularised.
+
+    Returns
+    -------
+    invmat : ndarray
+        Inverse matrix associated with LCMV beamformer.
+    """
+    # based on _get_matrix_from_inverse_operator() from psf_ctf module.
+
+    # number of channels for identity matrix
+    n_chs = len(info['ch_names'])
+
+    # create identity matrix as input for inverse operator
+    # set elements to zero for non-selected channels
+    id_mat = np.eye(n_chs)
+
+    # convert identity matrix to evoked data type (pretending it's an epoch)
+    evo_ident = EvokedArray(id_mat, info=info, tmin=0.)
+
+    # apply beamformer to identity matrix
+    stc_lcmv = make_lcmv(evo_ident, forward, noise_cov, data_cov,
+                         max_ori_out='signed')
+
+    # turn source estimate into numpsy array
+    invmat = stc_lcmv.data
 
     return invmat

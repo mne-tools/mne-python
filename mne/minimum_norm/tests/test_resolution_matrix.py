@@ -57,7 +57,7 @@ def test_resolution_matrix():
     noise_cov = mne.read_cov(fname_cov)
 
     # evoked data for info
-    evoked = mne.evoked.read_evokeds(fname_evoked, 0)
+    evoked = mne.read_evokeds(fname_evoked, 0)
 
     # make inverse operator from forward solution
     # free source orientation
@@ -72,8 +72,6 @@ def test_resolution_matrix():
     # regularisation parameter based on SNR
     snr = 3.0
     lambda2 = 1.0 / snr ** 2
-
-    print('###\nComputing resolution matrices.\n###')
 
     # resolution matrices for free source orientation
 
@@ -109,5 +107,3 @@ def test_resolution_matrix():
     assert_array_almost_equal(rm_mne_free, rm_mne_free.T)
 
     return rm_mne_free, rm_mne, rm_lor
-
-# rm_mne_free, rm_mne, rm_lor = test_resolution_matrix()
