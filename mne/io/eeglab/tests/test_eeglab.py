@@ -329,9 +329,9 @@ def test_position_information(one_chanpos_fname):
     ])
 
     EXPECTED_LOCATIONS_FROM_MONTAGE = np.array([
-        [-0.56705965, 0.67706631, 0.46906776, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
-        [0, 0.99977915, -0.02101571, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
+        [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
     ])
 
     montage = _read_eeglab_montage(montage_path)
@@ -348,15 +348,12 @@ def test_position_information(one_chanpos_fname):
         preload=True,
     ).set_montage(None)  # Flush the montage builtin within input_fname
 
+    _assert_array_allclose_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
+                               EXPECTED_LOCATIONS_FROM_MONTAGE)
+
     with pytest.raises(ValueError):
         raw.set_montage(montage, update_ch_names=False)
 
-    _msg = (
-        'DigMontage is a only a subset of info. '
-        'Did not set 1 channel positions:\nunknown'
-    )
-    with pytest.warns(RuntimeWarning, match=_msg):
-        raw.set_montage(montage, update_ch_names=False, raise_if_subset=False)
     _assert_array_allclose_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
                                EXPECTED_LOCATIONS_FROM_MONTAGE)
 

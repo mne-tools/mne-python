@@ -18,7 +18,7 @@ from .channels.layout import _merge_grad_data, _pair_grad_sensors
 from .filter import detrend, FilterMixin
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc, _validate_type,
-                    fill_doc, _check_option, deprecated)
+                    fill_doc, _check_option)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
@@ -647,7 +647,7 @@ def _check_decim(info, decim, offset):
              'filtered. The decim=%i parameter will result in a sampling '
              'frequency of %g Hz, which can cause aliasing artifacts.'
              % (decim, new_sfreq))
-    elif decim > 1 and new_sfreq < 2.5 * lowpass:
+    elif decim > 1 and new_sfreq < 3 * lowpass:
         warn('The measurement information indicates a low-pass frequency '
              'of %g Hz. The decim=%i parameter will result in a sampling '
              'frequency of %g Hz, which can cause aliasing artifacts.'
@@ -782,46 +782,6 @@ def _get_evoked_node(fname):
         _, meas = read_meas_info(fid, tree, verbose=False)
         evoked_node = dir_tree_find(meas, FIFF.FIFFB_EVOKED)
     return evoked_node
-
-
-@deprecated('mne.evoked.grand_average is deprecated and will be removed in '
-            'v0.20; use mne.grand_average instead.')
-def grand_average(all_evoked, interpolate_bads=True, drop_bads=False):
-    """Make grand average of a list evoked data.
-
-    The function interpolates bad channels based on `interpolate_bads`
-    parameter. If `interpolate_bads` is True, the grand average
-    file will contain good channels and the bad channels interpolated
-    from the good MEG/EEG channels.
-
-    The grand_average.nave attribute will be equal the number
-    of evoked datasets used to calculate the grand average.
-
-    Note: Grand average evoked shall not be used for source localization.
-
-    Parameters
-    ----------
-    all_evoked : list of Evoked data
-        The evoked datasets.
-    interpolate_bads : bool
-        If True, bad MEG and EEG channels are interpolated.
-    drop_bads : bool
-        If True, drop all bad channels marked as bad in any data set.
-        If neither interpolate_bads nor drop_bads is True, in the output file,
-        every channel marked as bad in at least one of the input files will be
-        marked as bad, but no interpolation or dropping will be performed.
-
-    Returns
-    -------
-    grand_average : Evoked
-        The grand average data.
-
-    Notes
-    -----
-    .. versionadded:: 0.9.0
-    """
-    from ..utils import grand_average
-    return grand_average(all_evoked, interpolate_bads, drop_bads)
 
 
 def _check_evokeds_ch_names_times(all_evoked):

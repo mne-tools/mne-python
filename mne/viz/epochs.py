@@ -18,7 +18,8 @@ from copy import deepcopy
 import numpy as np
 
 from ..defaults import _handle_default
-from ..utils import verbose, logger, warn, fill_doc, check_version
+from ..utils import (verbose, logger, warn, fill_doc, check_version,
+                     _validate_type)
 from ..io.meas_info import create_info
 from ..io.pick import (pick_types, channel_type, _get_channel_types,
                        _picks_to_idx, _DATA_CH_TYPES_SPLIT,
@@ -195,13 +196,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     from scipy.ndimage import gaussian_filter1d
     from .. import EpochsArray
 
-    # deprecations
-    if group_by == 'type':
-        warn('group_by="type" is no longer supported; combining by channel '
-             'type is now default behavior when "picks" is None or a (list '
-             'of) channel type string(s). Setting "group_by=None" instead.',
-             category=DeprecationWarning)
-        group_by = None
+    _validate_type(group_by, (dict, None), 'group_by')
 
     units = _handle_default('units', units)
     scalings = _handle_default('scalings', scalings)
@@ -868,7 +863,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                     normalization='length', picks=None, ax=None, color='black',
                     xscale='linear', area_mode='std', area_alpha=0.33,
                     dB=True, estimate='auto', show=True, n_jobs=1,
-                    average=None, line_alpha=None, spatial_colors=None,
+                    average=False, line_alpha=None, spatial_colors=True,
                     verbose=None):
     """%(plot_psd_doc)s.
 
@@ -920,20 +915,6 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     fig : instance of Figure
         Figure with frequency spectra of the data channels.
     """
-    # this chunk should be removed for 0.2
-    if average is False and spatial_colors is None:
-        spatial_colors = True
-    if spatial_colors is None:
-        spatial_colors = False
-        warn('spatial_colors defaults to False in 0.19 but will change to True'
-             ' in 0.20. Set it explicitly to avoid this warning.',
-             DeprecationWarning)
-    if average is None:
-        average = True
-        warn('average defaults to True in 0.19 but will change to False'
-             ' in 0.20. Set it explicitly to avoid this warning.',
-             DeprecationWarning)
-
     from .utils import _set_psd_plot_params, _plot_psd
     fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
         make_label = _set_psd_plot_params(epochs.info, proj, picks, ax,

@@ -12,15 +12,19 @@
 Current (0.20.dev0)
 -------------------
 
-- Add reader for NIRx data in :func:`mne.io.read_raw_nirx` by `Robert Luke`_
-
-- Add support for plotting fNIRS channels in :func:`mne.viz.plot_alignment` by `Eric Larson`_
-
 Changelog
 ~~~~~~~~~
 
+- Add support for plotting fNIRS channels in :func:`mne.viz.plot_alignment` by `Eric Larson`_
+                              
+- Add the ability to ``return_event_id`` in :func:`mne.read_events` for use with MNE-C produced ``-annot.fif`` files, by `Eric Larson`_
+
+- Add reader for NIRx data in :func:`mne.io.read_raw_nirx` by `Robert Luke`_
+
 Bug
 ~~~
+
+- Fix handling of repeated events in :class:`mne.Epochs` by `Fahimeh Mamashli`_ and `Alex Gramfort`_
 
 API
 ~~~

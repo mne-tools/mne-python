@@ -210,7 +210,12 @@ html_static_path = ['_static', '_images']
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
 # directly to the root of the documentation.
-#html_extra_path = []
+html_extra_path = [
+    'contributing.html',
+    'documentation.html',
+    'getting_started.html',
+    'install_mne_python.html',
+]
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -550,7 +555,6 @@ numpydoc_xref_aliases = {
     'EpochsTFR': 'mne.time_frequency.EpochsTFR',
     'Raw': 'mne.io.Raw', 'ICA': 'mne.preprocessing.ICA',
     'Covariance': 'mne.Covariance', 'Annotations': 'mne.Annotations',
-    'Montage': 'mne.channels.Montage',
     'DigMontage': 'mne.channels.DigMontage',
     'VectorSourceEstimate': 'mne.VectorSourceEstimate',
     'VolSourceEstimate': 'mne.VolSourceEstimate',

@@ -11,8 +11,8 @@ import numpy as np
 import pytest
 import matplotlib.pyplot as plt
 
-from mne.channels import (read_dig_montage, read_dig_fif,
-                          make_dig_montage, make_standard_montage)
+from mne.channels import (read_dig_fif, make_dig_montage,
+                          make_standard_montage)
 
 p_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'kit', 'tests', 'data')
 elp = op.join(p_dir, 'test_elp.txt')
@@ -36,11 +36,15 @@ def test_plot_montage():
     plt.close('all')
     m.plot(kind='topomap', show_names=True)
     plt.close('all')
-    with pytest.deprecated_call():
-        d = read_dig_montage(hsp, hpi, elp, point_names)
-    assert '0 channels' in repr(d)
+
+    N_HSP, N_HPI = 2, 1
+    montage = make_dig_montage(nasion=[1, 1, 1], lpa=[2, 2, 2], rpa=[3, 3, 3],
+                               hsp=np.full((N_HSP, 3), 4),
+                               hpi=np.full((N_HPI, 3), 4),
+                               coord_frame='head')
+    assert '0 channels' in repr(montage)
     with pytest.raises(RuntimeError, match='No valid channel positions'):
-        d.plot()
+        montage.plot()
     d = read_dig_fif(fname=fif_fname)
     assert '61 channels' in repr(d)
     # XXX this is broken; dm.point_names is used. Sometimes we say this should

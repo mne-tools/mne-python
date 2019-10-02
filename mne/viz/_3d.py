@@ -682,7 +682,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     _check_option('coord_frame', coord_frame, ['head', 'meg', 'mri'])
     if src is not None:
         src = _ensure_src(src)
-        src_subject = src[0].get('subject_his_id', None)
+        src_subject = src._subject
         subject = src_subject if subject is None else subject
         if src_subject is not None and subject != src_subject:
             raise ValueError('subject ("%s") did not match the subject name '
@@ -1863,7 +1863,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     else:
         src = _ensure_src(src, kind='volume', extra=' or SourceMorph')
         img = stc.as_volume(src, mri_resolution=False)
-        kind, src_subject = 'src subject', src[0].get('subject_his_id', None)
+        kind, src_subject = 'src subject', src._subject
     _print_coord_trans(Transform('mri_voxel', 'ras', img.affine),
                        prefix='Image affine ', units='mm', level='debug')
     subject = _check_subject(src_subject, subject, True, kind=kind)

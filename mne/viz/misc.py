@@ -870,8 +870,6 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
         if xticks is not None:
             ax.set(xticks=xticks)
             ax.set(xticklabels=xticklabels)
-        ax.xaxis.set_major_formatter(FormatStrFormatter('%0.1f'))
-        ax.xaxis.set_minor_formatter(NullFormatter())
         ax.set(xlim=flim, ylim=ylim, xlabel='Frequency (Hz)', ylabel=ylabel)
     adjust_axes([ax_time, ax_freq, ax_delay])
     tight_layout()

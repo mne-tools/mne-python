@@ -81,7 +81,7 @@ BUG
 
 - Fix bug where :func:`mne.preprocessing.maxwell_filter` ``destination`` parameter did not properly set device-to-head transform by `Eric Larson`_
 
-- Fix bug in rank calculation of ``mne.utils.estimate_rank``, :func:`mne.io.Raw.estimate_rank`, and covariance functions where the tolerance was set to slightly too small a value, new 'auto' mode uses values from ``scipy.linalg.orth`` by `Eric Larson`_.
+- Fix bug in rank calculation of ``mne.utils.estimate_rank``, ``mne.io.Raw.estimate_rank``, and covariance functions where the tolerance was set to slightly too small a value, new 'auto' mode uses values from ``scipy.linalg.orth`` by `Eric Larson`_.
 
 - Fix bug when specifying irregular ``train_times['slices']`` in ``mne.decoding.GeneralizationAcrossTime``, by `Jean-Remi King`_
 

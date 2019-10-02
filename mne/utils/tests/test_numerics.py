@@ -13,7 +13,7 @@ from mne.io.pick import _picks_by_type
 from mne.epochs import _segment_raw
 from mne.io import read_raw_fif
 from mne.time_frequency import tfr_morlet
-from mne.utils import (_get_inst_data, md5sum, hashfunc,
+from mne.utils import (_get_inst_data, hashfunc,
                        sum_squared, compute_corr, create_slices, _time_mask,
                        _freq_mask, random_permutation, _reg_pinv, object_size,
                        object_hash, object_diff, _apply_scaling_cov,
@@ -49,22 +49,6 @@ def test_get_inst_data():
     assert_array_equal(_get_inst_data(tfr), tfr.data)
 
     pytest.raises(TypeError, _get_inst_data, 'foo')
-
-
-def test_md5sum(tmpdir):
-    """Test md5sum calculation."""
-    tempdir = str(tmpdir)
-    fname1 = op.join(tempdir, 'foo')
-    fname2 = op.join(tempdir, 'bar')
-    with open(fname1, 'wb') as fid:
-        fid.write(b'abcd')
-    with open(fname2, 'wb') as fid:
-        fid.write(b'efgh')
-
-    with pytest.deprecated_call(match="please use .*hashfunc"):
-        assert md5sum(fname1) == md5sum(fname1, 1)
-        assert md5sum(fname2) == md5sum(fname2, 1024)
-        assert (md5sum(fname1) != md5sum(fname2))
 
 
 def test_hashfunc(tmpdir):

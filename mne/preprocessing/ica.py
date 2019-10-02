@@ -321,13 +321,7 @@ class ICA(ContainsMixin):
                  n_pca_components=None, noise_cov=None, random_state=None,
                  method='fastica', fit_params=None, max_iter=200,
                  allow_ref_meg=False, verbose=None):  # noqa: D102
-        _check_option('method', method,
-                      ['fastica', 'infomax', 'extended-infomax', 'picard'])
-        if method == 'extended-infomax':
-            warn("method='extended-infomax' is deprecated and will be removed "
-                 "in 0.19. If you want to use Extended Infomax, specify "
-                 "method='infomax' together with "
-                 "fit_params=dict(extended=True).", DeprecationWarning)
+        _check_option('method', method, ['fastica', 'infomax', 'picard'])
         if method == 'fastica' and not check_version('sklearn', '0.15'):
             raise RuntimeError('The scikit-learn package (version >= 0.15) '
                                'is required for FastICA.')
@@ -1590,10 +1584,10 @@ class ICA(ContainsMixin):
                                    figsize=figsize, show=show, reject=reject)
 
     @copy_function_doc_to_method_doc(plot_ica_sources)
-    def plot_sources(self, inst, picks=None, exclude='deprecated', start=None,
+    def plot_sources(self, inst, picks=None, start=None,
                      stop=None, title=None, show=True, block=False,
                      show_first_samp=False, show_scrollbars=True):
-        return plot_ica_sources(self, inst=inst, picks=picks, exclude=exclude,
+        return plot_ica_sources(self, inst=inst, picks=picks,
                                 start=start, stop=stop, title=title, show=show,
                                 block=block, show_first_samp=show_first_samp,
                                 show_scrollbars=show_scrollbars)

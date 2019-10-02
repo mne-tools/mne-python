@@ -755,7 +755,7 @@ def _check_reference(inst, ch_names=None):
 
 def _subject_from_inverse(inverse_operator):
     """Get subject id from inverse operator."""
-    return inverse_operator['src'][0].get('subject_his_id', None)
+    return inverse_operator['src']._subject
 
 
 @verbose
@@ -1404,8 +1404,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
 
 @verbose
 def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
-                          fixed='auto', limit_depth_chs=None, rank=None,
-                          use_cps=True, verbose=None):
+                          fixed='auto', rank=None, use_cps=True, verbose=None):
     """Assemble inverse operator.
 
     Parameters
@@ -1431,9 +1430,6 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
         Use fixed source orientations normal to the cortical mantle. If True,
         the loose parameter must be "auto" or 0. If 'auto', the loose value
         is used.
-    limit_depth_chs : bool
-        Deprecated and will be removed in 0.19.
-        Use ``depth=dict(limit_depth_chs=...)``.
     %(rank_None)s
     use_cps : None | bool (default True)
         Whether to use cortical patch statistics to define normal
@@ -1484,16 +1480,11 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     # For now we always have pca='white'. It does not seem to affect
     # calculations and is also backward-compatible with MNE-C
     depth = _check_depth(depth, 'depth_mne')
-    if limit_depth_chs is not None:
-        warn('limit_depth_chs is deprecated and will be removed in 0.19, '
-             'use depth=dict(limit_depth_chs=...) instead.',
-             DeprecationWarning)
-        depth['limit_depth_chs'] = limit_depth_chs
     forward, gain_info, gain, depth_prior, orient_prior, source_std, \
         trace_GRGT, noise_cov, _ = _prepare_forward(
             forward, info, noise_cov, fixed, loose, rank, pca='white',
             use_cps=use_cps, **depth)
-    del fixed, loose, depth, use_cps, limit_depth_chs
+    del fixed, loose, depth, use_cps
 
     # Decompose the combined matrix
     logger.info('Computing SVD of whitened and weighted lead field '
