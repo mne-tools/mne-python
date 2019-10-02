@@ -3101,7 +3101,7 @@ def make_fixed_length_epochs(raw, duration=1.,
 
     Returns
     -------
-    epochs : instance of ``Epochs``
+    epochs : instance of Epochs
         Segmented data.
 
     Notes
