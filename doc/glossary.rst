@@ -43,14 +43,14 @@ general neuroimaging concepts. If you think a term is missing, please consider
         a type, such as gradiometer, and a unit, such as Tesla/Meter that
         is used in the code base, e.g. for plotting.
 
-    Digitization
+    digitization
         Digitization is a procedure of recording the headshape of a subject and the fiducial coils (or :term:`HPI`) and/or eeg electrodes locations on the subject’s head. They are represented as a set of points in a 3D space. See :ref:`reading-dig-montages` and :ref:`dig-formats`.  
 
     dipole
         See :term:`equivalent current dipole`.
 
     eLORETA and sLORETA
-        eLORETA and sLORETA (exact and standardized low resolution brain electromagnetic tomography) are versions of LORETA source estimation technique. It is based on computing the distribution of the current source density throughout full brain volume. See :func:`mne.minimum_norm.apply_inverse`.
+        eLORETA and sLORETA (exact and standardized low resolution brain electromagnetic tomography) are linear source estimation techniques, as are dSPM or MNE (:term:`minimum-norm estimation`). sLORETA outputs standardized values such as dSPM, while eLORETA outputs current density estimates like MNE. See :func:`mne.minimum_norm.apply_inverse`.
 
     epochs
         Epochs (sometimes called "trials" in other software packages) are
