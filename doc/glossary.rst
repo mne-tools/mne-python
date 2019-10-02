@@ -136,7 +136,7 @@ general neuroimaging concepts. If you think a term is missing, please consider
         and can be used to infer the head position. With cHPI, the sinusoidal
         signals are typically set at frequencies above any neural signal of
         interest, and thus can be removed after head position correction via
-        low-pass filtering. See :ref:`example-head-pos`
+        low-pass filtering. See :ref:`example-head-pos`.
 
     info
         Also called ``measurement info``, it is a collection of metadata regarding
