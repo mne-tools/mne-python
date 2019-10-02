@@ -3080,7 +3080,7 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
 def _check_psd_fmax(inst, fmax):
     """Make sure requested fmax does not exceed Nyquist frequency."""
     if np.isfinite(fmax) and (fmax > inst.info['sfreq'] / 2):
-        raise ValueError('Requested fmax ({} Hz) must be not exceed one half '
+        raise ValueError('Requested fmax ({} Hz) must not exceed one half '
                          'the sampling frequency of the data ({}).'
                          .format(fmax, 0.5 * inst.info['sfreq']))
 
