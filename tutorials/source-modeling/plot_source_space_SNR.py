@@ -9,7 +9,8 @@ Computing source space SNR
 This example shows example fixed- and free-orientation source localizations
 produced by MNE, dSPM, sLORETA, and eLORETA.
 """
-# Author: Eric Larson <larson.eric.d@gmail.com>
+# Author: Padma Sundaram <tottochan@gmail.com>
+#	  Kaisu Lankinen <klankinen@mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
