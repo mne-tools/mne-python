@@ -170,8 +170,8 @@ general neuroimaging concepts. If you think a term is missing, please consider
         map of activation on a :term:`source space`, usually on a cortical surface.
         MNE uses a linear :term:`inverse operator` to project sensor measurements
         into the source space. The :term:`inverse operator` is computed from the
-        :term:`forward solution` for a subject and an estimate of the noise covariance
-        of sensor measurements.
+        :term:`forward solution` for a subject and an estimate of the 
+	:term:`noise covariance` of sensor measurements.
 
     montage
         EEG channel names and the relative positions of the sensor w.r.t. the scalp.
