@@ -2386,7 +2386,7 @@ def _setup_butterfly(params):
             active_idx = _get_active_radio_idx(radio)
             _radio_clicked(radio.labels[active_idx]._text, params)
     # For now, italics only work in non-grouped mode
-    _set_ax_label_style(ax, params, italicize=not butterfly)
+    # _set_ax_label_style(ax, params, italicize=not butterfly)
     params['ax_vscroll'].set_visible(not butterfly)
     params['plot_fun']()
 
