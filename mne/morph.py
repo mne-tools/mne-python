@@ -19,7 +19,7 @@ from .source_space import SourceSpaces, _ensure_src
 from .surface import read_morph_map, mesh_edges, read_surface, _compute_nearest
 from .utils import (logger, verbose, check_version, get_subjects_dir,
                     warn as warn_, fill_doc, _check_option, _validate_type,
-                    BunchConst, wrapped_stdout)
+                    BunchConst, wrapped_stdout, _check_fname)
 from .externals.h5io import read_hdf5, write_hdf5
 
 
@@ -480,6 +480,7 @@ class SourceMorph(object):
             If True, overwrite existing file.
         %(verbose_meth)s
         """
+        fname = _check_fname(fname, overwrite=overwrite, must_exist=False)
         if not fname.endswith('.h5'):
             fname = '%s-morph.h5' % fname
 
