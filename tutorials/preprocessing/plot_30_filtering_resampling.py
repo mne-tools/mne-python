@@ -73,7 +73,7 @@ for cutoff in (0.1, 0.2):
     raw_highpass = raw.copy().filter(l_freq=cutoff, h_freq=None)
     fig = raw_highpass.plot(duration=60, order=mag_channels, proj=False,
                             n_channels=len(mag_channels), remove_dc=False)
-    fig.subplots_adjust(top=0.95)
+    fig.subplots_adjust(top=0.9)
     fig.suptitle('High-pass filtered at {} Hz'.format(cutoff), size='xx-large',
                  weight='bold')
 
