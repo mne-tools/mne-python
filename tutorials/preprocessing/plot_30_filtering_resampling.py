@@ -129,7 +129,7 @@ add_arrows(fig.axes[:2])
 
 ###############################################################################
 # It should be evident that MEG channels are more susceptible to this kind of
-# interference than EEG that is recorded in the margetically shielded room.
+# interference than EEG that is recorded in the magnetically shielded room.
 # Removing power-line noise can be done with a notch filter,
 # applied directly to the :class:`~mne.io.Raw` object, specifying an array of
 # frequencies to be attenuated. Since the EEG channels are relatively
@@ -168,8 +168,8 @@ for title, data in zip(['Un', 'Notch '], [raw, raw_notch]):
 # yourself before using the :meth:`~mne.io.Raw.resample` method. The effect is
 # most clearly seen in the PSD plot, where a dashed vertical line indicates the
 # filter cutoff; the original data had an existing lowpass at around 172 Hz
-# (see ``raw.info['lowpass']``), and the data resampled from 600 Hz to 200 Hz gets
-# automatically lowpass filtered at 100 Hz:
+# (see ``raw.info['lowpass']``), and the data resampled from 600 Hz to 200 Hz
+# gets automatically lowpass filtered at 100 Hz:
 
 raw_downsampled = raw.copy().resample(sfreq=200)
 
