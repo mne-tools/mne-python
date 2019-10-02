@@ -78,8 +78,8 @@ def fetch_fsaverage(subjects_dir=None, verbose=None):
             destination=op.join(subjects_dir),
         ),
         'bem.zip': dict(
-            url='https://osf.io/7ve8g/download?revision=2',
-            hash_='608c438af6a15a19b66232323088b32d',
+            url='https://osf.io/7ve8g/download?revision=4',
+            hash_='b31509cdcf7908af6a83dc5ee8f49fb1',
             manifest=op.join(FSAVERAGE_MANIFEST_PATH, 'bem.txt'),
             destination=op.join(subjects_dir, 'fsaverage'),
         ),

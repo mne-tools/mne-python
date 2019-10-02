@@ -50,9 +50,8 @@ fname_inv = os.path.join(sample_dir, 'sample_audvis-meg-vol-7-meg-inv.fif')
 
 fname_t1_fsaverage = os.path.join(subjects_dir, 'fsaverage', 'mri',
                                   'brain.mgz')
-fetch_fsaverage(subjects_dir, verbose=False)  # ensure BEM exists
-fname_bem_fsaverage = (subjects_dir + '/fsaverage/bem/'
-                       'fsaverage-5120-5120-5120-bem-sol.fif')
+fetch_fsaverage(subjects_dir)  # ensure fsaverage src exists
+fname_src_fsaverage = subjects_dir + '/fsaverage/bem/fsaverage-vol-5-src.fif'
 
 ###############################################################################
 # Compute example data. For reference see
@@ -88,12 +87,10 @@ stc.crop(0.09, 0.09)
 # space so that different ``subject_from`` morphs will go to the same space.`
 # A standard usage for volumetric data reads:
 
-src_fs = mne.setup_volume_source_space(
-    'fsaverage', pos=5., bem=fname_bem_fsaverage, subjects_dir=subjects_dir,
-    verbose=True)
+src_fs = mne.read_source_spaces(fname_src_fsaverage)
 morph = mne.compute_source_morph(
     inverse_operator['src'], subject_from='sample', subjects_dir=subjects_dir,
-    n_iter_affine=[10, 10, 5], n_iter_sdr=[10, 10, 5],  # just for speed
+    niter_affine=[10, 10, 5], niter_sdr=[10, 10, 5],  # just for speed
     verbose=True)
 
 ###############################################################################
