@@ -1891,6 +1891,7 @@ class DraggableColorbar(object):
         self.press = None
         self.cycle = sorted([i for i in dir(plt.cm) if
                              hasattr(getattr(plt.cm, i), 'N')])
+        self.cycle += [mappable.get_cmap().name]
         self.index = self.cycle.index(mappable.get_cmap().name)
         self.lims = (self.cbar.norm.vmin, self.cbar.norm.vmax)
         self.connect()
@@ -1916,6 +1917,9 @@ class DraggableColorbar(object):
 
     def key_press(self, event):
         """Handle key press."""
+        # print(event.key)
+        scale = self.cbar.norm.vmax - self.cbar.norm.vmin
+        perc = 0.03
         if event.key == 'down':
             self.index += 1
         elif event.key == 'up':
@@ -1923,6 +1927,18 @@ class DraggableColorbar(object):
         elif event.key == ' ':  # space key resets scale
             self.cbar.norm.vmin = self.lims[0]
             self.cbar.norm.vmax = self.lims[1]
+        elif event.key == '+':
+            self.cbar.norm.vmin -= (perc * scale) * -1
+            self.cbar.norm.vmax += (perc * scale) * -1
+        elif event.key == '-':
+            self.cbar.norm.vmin -= (perc * scale) * 1
+            self.cbar.norm.vmax += (perc * scale) * 1
+        elif event.key == 'pageup':
+            self.cbar.norm.vmin -= (perc * scale) * 1
+            self.cbar.norm.vmax -= (perc * scale) * 1
+        elif event.key == 'pagedown':
+            self.cbar.norm.vmin -= (perc * scale) * -1
+            self.cbar.norm.vmax -= (perc * scale) * -1
         else:
             return
         if self.index < 0:
@@ -1933,6 +1949,7 @@ class DraggableColorbar(object):
         self.cbar.set_cmap(cmap)
         self.cbar.draw_all()
         self.mappable.set_cmap(cmap)
+        self.mappable.set_norm(self.cbar.norm)
         self.cbar.patch.figure.canvas.draw()
 
     def on_motion(self, event):

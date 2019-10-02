@@ -21,7 +21,8 @@ from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  setup_volume_source_space, read_forward_solution,
                  VolVectorSourceEstimate, convert_forward_solution,
                  compute_source_morph)
-from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
+from mne.io import (read_raw_ctf, read_raw_bti, read_raw_kit, read_info,
+                    read_raw_nirx)
 from mne._digitization._utils import write_dig
 from mne.io.pick import pick_info
 from mne.io.constants import FIFF
@@ -46,6 +47,7 @@ src_fname = op.join(data_dir, 'subjects', 'sample', 'bem',
                     'sample-oct-6-src.fif')
 dip_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_trunc_set1.dip')
 ctf_fname = op.join(data_dir, 'CTF', 'testdata_ctf.ds')
+nirx_fname = op.join(data_dir, 'NIRx', 'nirx_15_2_recording_w_short')
 
 io_dir = op.join(op.abspath(op.dirname(__file__)), '..', '..', 'io')
 base_dir = op.join(io_dir, 'tests', 'data')
@@ -327,6 +329,13 @@ def test_plot_alignment(tmpdir, renderer):
     plot_alignment(subject='sample', subjects_dir=subjects_dir,
                    trans=trans_fname, fwd=fwd,
                    surfaces='white', coord_frame='head')
+
+    # fNIRS
+    info = read_raw_nirx(nirx_fname).info
+    with catch_logging() as log:
+        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True)
+    log = log.getvalue()
+    assert '26 fnirs locations' in log
 
     renderer._close_all()
 

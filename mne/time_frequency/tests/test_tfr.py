@@ -452,7 +452,7 @@ def test_io():
     events = np.zeros([n_events, 3])
     events[:, 0] = np.arange(n_events)
     events[:, 2] = np.ones(n_events)
-    event_id = dict(a=1)
+    event_id = {'a/b': 1}
 
     tfr = EpochsTFR(info, data=data, times=times, freqs=freqs,
                     comment='test', method='crazy-tfr', events=events,
@@ -462,7 +462,7 @@ def test_io():
     assert_array_equal(tfr.data, read_tfr.data)
     assert_metadata_equal(tfr.metadata, read_tfr.metadata)
     assert_array_equal(tfr.events, read_tfr.events)
-    assert_equal(tfr.event_id, read_tfr.event_id)
+    assert tfr.event_id == read_tfr.event_id
 
 
 def test_plot():
@@ -493,6 +493,14 @@ def test_plot():
     fig.canvas.key_press_event('up')
     fig.canvas.key_press_event(' ')
     fig.canvas.key_press_event('down')
+    fig.canvas.key_press_event(' ')
+    fig.canvas.key_press_event('+')
+    fig.canvas.key_press_event(' ')
+    fig.canvas.key_press_event('-')
+    fig.canvas.key_press_event(' ')
+    fig.canvas.key_press_event('pageup')
+    fig.canvas.key_press_event(' ')
+    fig.canvas.key_press_event('pagedown')
 
     cbar = fig.get_axes()[0].CB  # Fake dragging with mouse.
     ax = cbar.cbar.ax

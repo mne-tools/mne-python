@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#         Eric Larson <larson.eric.d@gmail.com>
+#
+# License: BSD (3-clause)
 import os.path as op
 import os
 
@@ -11,17 +16,19 @@ from mne import (read_events, write_events, make_fixed_length_events,
                  read_evokeds, Epochs, create_info, compute_raw_covariance,
                  Annotations)
 from mne.io import read_raw_fif, RawArray
-from mne.utils import _TempDir, run_tests_if_main
+from mne.utils import run_tests_if_main
 from mne.event import (define_target_events, merge_events, AcqParserFIF,
                        shift_time_events)
 from mne.datasets import testing
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname = op.join(base_dir, 'test-eve.fif')
+fname_raw = op.join(base_dir, 'test_raw.fif')
 fname_gz = op.join(base_dir, 'test-eve.fif.gz')
 fname_1 = op.join(base_dir, 'test-1-eve.fif')
 fname_txt = op.join(base_dir, 'test-eve.eve')
 fname_txt_1 = op.join(base_dir, 'test-eve-1.eve')
+fname_c_annot = op.join(base_dir, 'test_raw-annot.fif')
 
 # for testing Elekta averager
 elekta_base_dir = op.join(testing.data_path(download=False), 'misc')
@@ -104,25 +111,27 @@ def test_merge_events():
         assert_array_equal(events, events_good)
 
 
-def test_io_events():
+def test_io_events(tmpdir):
     """Test IO for events."""
-    tempdir = _TempDir()
     # Test binary fif IO
     events = read_events(fname)  # Use as the gold standard
-    write_events(op.join(tempdir, 'events-eve.fif'), events)
-    events2 = read_events(op.join(tempdir, 'events-eve.fif'))
+    fname_temp = tmpdir.join('events-eve.fif')
+    write_events(fname_temp, events)
+    events2 = read_events(fname_temp)
     assert_array_almost_equal(events, events2)
 
     # Test binary fif.gz IO
     events2 = read_events(fname_gz)  # Use as the gold standard
     assert_array_almost_equal(events, events2)
-    write_events(op.join(tempdir, 'events-eve.fif.gz'), events2)
-    events2 = read_events(op.join(tempdir, 'events-eve.fif.gz'))
+    fname_temp += '.gz'
+    write_events(fname_temp, events2)
+    events2 = read_events(fname_temp)
     assert_array_almost_equal(events, events2)
 
     # Test new format text file IO
-    write_events(op.join(tempdir, 'events.eve'), events)
-    events2 = read_events(op.join(tempdir, 'events.eve'))
+    fname_temp = str(tmpdir.join('events.eve'))
+    write_events(fname_temp, events)
+    events2 = read_events(fname_temp)
     assert_array_almost_equal(events, events2)
     with pytest.warns(RuntimeWarning, match='first row of'):
         events2 = read_events(fname_txt_mpr, mask=0, mask_type='not_and')
@@ -131,17 +140,16 @@ def test_io_events():
     # Test old format text file IO
     events2 = read_events(fname_old_txt)
     assert_array_almost_equal(events, events2)
-    write_events(op.join(tempdir, 'events.eve'), events)
-    events2 = read_events(op.join(tempdir, 'events.eve'))
+    write_events(fname_temp, events)
+    events2 = read_events(fname_temp)
     assert_array_almost_equal(events, events2)
 
     # Test event selection
-    a = read_events(op.join(tempdir, 'events-eve.fif'), include=1)
-    b = read_events(op.join(tempdir, 'events-eve.fif'), include=[1])
-    c = read_events(op.join(tempdir, 'events-eve.fif'),
-                    exclude=[2, 3, 4, 5, 32])
-    d = read_events(op.join(tempdir, 'events-eve.fif'), include=1,
-                    exclude=[2, 3])
+    fname_temp = tmpdir.join('events-eve.fif')
+    a = read_events(fname_temp, include=1)
+    b = read_events(fname_temp, include=[1])
+    c = read_events(fname_temp, exclude=[2, 3, 4, 5, 32])
+    d = read_events(fname_temp, include=1, exclude=[2, 3])
     assert_array_equal(a, b)
     assert_array_equal(a, c)
     assert_array_equal(a, d)
@@ -149,27 +157,45 @@ def test_io_events():
     # test reading file with mask=None
     events2 = events.copy()
     events2[:, -1] = range(events2.shape[0])
-    write_events(op.join(tempdir, 'events-eve.fif'), events2)
-    events3 = read_events(op.join(tempdir, 'events-eve.fif'), mask=None)
+    write_events(fname_temp, events2)
+    events3 = read_events(fname_temp, mask=None)
     assert_array_almost_equal(events2, events3)
 
     # Test binary file IO for 1 event
     events = read_events(fname_1)  # Use as the new gold standard
-    write_events(op.join(tempdir, 'events-eve.fif'), events)
-    events2 = read_events(op.join(tempdir, 'events-eve.fif'))
+    write_events(fname_temp, events)
+    events2 = read_events(fname_temp)
     assert_array_almost_equal(events, events2)
 
     # Test text file IO for 1 event
-    write_events(op.join(tempdir, 'events.eve'), events)
-    events2 = read_events(op.join(tempdir, 'events.eve'))
+    fname_temp = str(tmpdir.join('events.eve'))
+    write_events(fname_temp, events)
+    events2 = read_events(fname_temp)
     assert_array_almost_equal(events, events2)
 
     # test warnings on bad filenames
-    fname2 = op.join(tempdir, 'test-bad-name.fif')
+    fname2 = tmpdir.join('test-bad-name.fif')
     with pytest.warns(RuntimeWarning, match='-eve.fif'):
         write_events(fname2, events)
     with pytest.warns(RuntimeWarning, match='-eve.fif'):
         read_events(fname2)
+
+    # No event_id
+    with pytest.raises(RuntimeError, match='No event_id'):
+        read_events(fname, return_event_id=True)
+
+
+def test_io_c_annot():
+    """Test I/O of MNE-C -annot.fif files."""
+    raw = read_raw_fif(fname_raw)
+    sfreq, first_samp = raw.info['sfreq'], raw.first_samp
+    events = read_events(fname_c_annot)
+    events_2, event_id = read_events(fname_c_annot, return_event_id=True)
+    assert_array_equal(events_2, events)
+    expected = np.arange(2, 5) * sfreq + first_samp
+    assert_allclose(events[:, 0], expected, atol=3)  # clicking accuracy (samp)
+    expected = {'Two sec': 1001, 'Three and four sec': 1002}
+    assert event_id == expected
 
 
 def test_find_events():
