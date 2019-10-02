@@ -11,7 +11,8 @@ from numpy.testing import (assert_array_almost_equal, assert_equal)
 
 import mne
 from mne.datasets import testing
-from mne.minimum_norm.resolution_matrix import make_resolution_matrix
+from mne.minimum_norm.resolution_matrix import make_resolution_matrix, \
+                                        _get_matrix_from_lcmv_beamformer
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -106,4 +107,15 @@ def test_resolution_matrix():
     assert_array_almost_equal(rm_mne, rm_mne.T)
     assert_array_almost_equal(rm_mne_free, rm_mne_free.T)
 
-    return rm_mne_free, rm_mne, rm_lor
+    # Resolution matrix for Beamformer
+
+    data_cov = noise_cov  # to test a property of LCMV
+
+    info = evoked.info
+    filtmat =_get_matrix_from_lcmv_beamformer(info, forward, data_cov,
+                                              noise_cov=noise_cov,
+                                              rank='info')
+
+    return rm_mne_free, rm_mne, rm_lor, filtmat
+
+rm_mne_free, rm_mne, rm_lor, filtmat = test_resolution_matrix()

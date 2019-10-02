@@ -188,42 +188,72 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, method='dSPM',
     return invmat
 
 
-def _get_matrix_from_lcmv_beamformer(forward, info, noise_cov, data_cov):
-    """Get inverse matrix for LCMV beamformer.
+def _get_matrix_from_lcmv_beamformer(info, forward, data_cov, reg=0.05,
+                                     noise_cov=None,
+                                     pick_ori=None, rank='info',
+                                     weight_norm='unit-noise-gain',
+                                     reduce_rank=False, depth=None,
+                                     verbose=None):
+    """Compute matrix for LCMV spatial filter.
 
     Parameters
     ----------
+    info : dict
+        The measurement info to specify the channels to include.
+        Bad channels in info['bads'] are not used.
     forward : dict
-        The forward operator.
-    info: instance of Info
-        Should contain measurement information, e.g. sfreq.
-    noise_cov: noise covariance matrix
-        Used to compute whitener. Should be regularised.
-    data_cov: data covariance matrix
-        Used to compute LCMV beamformer. Should be regularised.
+        Forward operator.
+    data_cov : instance of Covariance
+        The data covariance.
+    reg : float
+        The regularization for the whitened data covariance.
+    noise_cov : instance of Covariance
+        The noise covariance. If provided, whitening will be done. Providing a
+        noise covariance is mandatory if you mix sensor types, e.g.
+        gradiometers with magnetometers or EEG with MEG.
+    pick_ori : None | 'normal' | 'max-power' | 'vector'
+        For forward solutions with fixed orientation, None (default) must be
+        used and a scalar beamformer is computed. For free-orientation forward
+        solutions, a vector beamformer is computed and:
+
+            None
+                Pools the orientations by taking the norm.
+            'normal'
+                Keeps only the radial component.
+            'max-power'
+                Selects orientations that maximize output source power at
+                each location.
+            'vector'
+                Keeps the currents for each direction separate
+
+    %(rank_info)s
+    weight_norm : 'unit-noise-gain' | 'nai' | None
+        If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
+        will be computed (Borgiotti-Kaplan beamformer) [2]_,
+        if 'nai', the Neural Activity Index [1]_ will be computed,
+        if None, the unit-gain LCMV beamformer [2]_ will be computed.
+    reduce_rank : bool
+        If True, the rank of the leadfield will be reduced by 1 for each
+        spatial location. Setting reduce_rank to True is typically necessary
+        if you use a single sphere model for MEG.
+    %(depth)s
+
+        .. versionadded:: 0.18
+    %(verbose)s
 
     Returns
     -------
-    invmat : ndarray
-        Inverse matrix associated with LCMV beamformer.
+    filtmat: array, (n_dipoles, n_channels)
+    The beamformer filters as matrix.
     """
-    # based on _get_matrix_from_inverse_operator() from psf_ctf module.
 
-    # number of channels for identity matrix
-    n_chs = len(info['ch_names'])
+    # compute beamformer filters
+    filters = make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=noise_cov,
+                        pick_ori=pick_ori, rank=rank,
+                        weight_norm=weight_norm,
+                        reduce_rank=reduce_rank, depth=depth,
+                        verbose=verbose)
 
-    # create identity matrix as input for inverse operator
-    # set elements to zero for non-selected channels
-    id_mat = np.eye(n_chs)
+    filtmat = filters['weights']
 
-    # convert identity matrix to evoked data type (pretending it's an epoch)
-    evo_ident = EvokedArray(id_mat, info=info, tmin=0.)
-
-    # apply beamformer to identity matrix
-    stc_lcmv = make_lcmv(evo_ident, forward, noise_cov, data_cov,
-                         max_ori_out='signed')
-
-    # turn source estimate into numpsy array
-    invmat = stc_lcmv.data
-
-    return invmat
+    return filtmat
