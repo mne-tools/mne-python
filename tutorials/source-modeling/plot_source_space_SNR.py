@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-.. _tut-mne-fixed-free:
+.. _tut-mne-sourcespace-snr:
 
 ===============================
 Computing source space SNR
 ===============================
 
-This example shows example fixed- and free-orientation source localizations
-produced by MNE, dSPM, sLORETA, and eLORETA.
+This example shows how to compute and plot source space SNR.
 """
 # Author: Padma Sundaram <tottochan@gmail.com>
 #	  Kaisu Lankinen <klankinen@mgh.harvard.edu>

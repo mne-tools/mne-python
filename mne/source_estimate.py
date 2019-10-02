@@ -1099,17 +1099,10 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
 
     @verbose
     def estimate_snr(self, info, fwd, cov, verbose=None):
-        """Compute time-varying SNR in the source space.
+        r"""Compute time-varying SNR in the source space.
 
         This function should only be used with source estimates with units
         nanoAmperes (i.e., MNE-like solutions, *not* dSPM or sLORETA).
-
-        Reference:
-        Goldenholz, D. M., Ahlfors, S. P., Hämäläinen, M. S., Sharon, D.,
-        Ishitobi, M., Vaina, L. M., & Stufflebeam, S. M. (2009).
-        Mapping the Signal-To-Noise-Ratios of Cortical Sources in
-        Magnetoencephalography and Electroencephalography.
-        Human Brain Mapping, 30(4), 1077–1086. doi:10.1002/hbm.20571
 
         Parameters
         ----------
@@ -1133,12 +1126,19 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
 
         .. math::
 
-            {\\rm SNR} = 10\\log_10[\\frac{a^2}{N}\\sum_k\\frac{b_k^2}{s_k^2}]
+            {\rm SNR} = 10\log_10[\frac{a^2}{N}\sum_k\frac{b_k^2}{s_k^2}]
 
         where :math:`\\b_k` is the signal on sensor :math:`k` provided by the
         forward model for a source with unit amplitude, :math:`a` is the
         source amplitude, :math:`N` is the number of sensors, and
         :math:`s_k^2` is the noise variance on sensor :math:`k`.
+        
+        Reference:
+        Goldenholz, D. M., Ahlfors, S. P., Hämäläinen, M. S., Sharon, D.,
+        Ishitobi, M., Vaina, L. M., & Stufflebeam, S. M. (2009).
+        Mapping the Signal-To-Noise-Ratios of Cortical Sources in
+        Magnetoencephalography and Electroencephalography.
+        Human Brain Mapping, 30(4), 1077–1086. doi:10.1002/hbm.20571
         """
         from .forward import convert_forward_solution
         from .minimum_norm.inverse import _prepare_forward
@@ -1153,16 +1153,10 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         
         # G is gain matrix [ch x src], cov is noise covariance [ch x ch]
         _, _, G, _, _, _, _, cov, _ = _prepare_forward(fwd, info, cov,
-                                                                fixed=True, 
-                                                                loose=0, 
-                                                                rank=None, 
-                                                                pca=False,
-                                                                use_cps=True, 
-                                                                exp=None, 
-                                                                limit_depth_chs=False, 
-                                                                combine_xyz='fro',
-                                                                allow_fixed_depth=True, 
-                                                                limit=None)
+                                fixed=True, loose=0, rank=None, pca=False,
+                                use_cps=True, exp=None, limit_depth_chs=False,
+                                combine_xyz='fro', allow_fixed_depth=True,
+                                limit=None)
 
         N = cov['dim'] # number of sensors/channels    
         b_k2 = (G * G).T
