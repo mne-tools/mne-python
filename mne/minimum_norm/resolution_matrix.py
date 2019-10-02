@@ -1,17 +1,17 @@
-"""Coompute resolution matrix for linear estimators."""
+"""Compute resolution matrix for linear estimators."""
 from copy import deepcopy
 
 import numpy as np
 
-from mne import pick_channels, EvokedArray
+from mne import pick_channels_forward, EvokedArray
 from mne.utils import logger
 from mne.forward.forward import is_fixed_orient, convert_forward_solution
 
 from mne.minimum_norm import apply_inverse
-from mne.beamformer import make_lcmv
 
 
-def make_resolution_matrix(forward, inverse_operator, method, lambda2):
+def make_resolution_matrix(forward, inverse_operator, method='dSPM',
+                           lambda2=1. / 9.):
     """Compute resolution matrix for linear inverse operator.
 
     Parameters
@@ -27,7 +27,7 @@ def make_resolution_matrix(forward, inverse_operator, method, lambda2):
 
     Returns
     -------
-        resmat: numpy array, shape (n_dipoles, n_dipoles)
+    resmat: numpy array, shape (n_dipoles, n_dipoles)
         Resolution matrix (inverse operator times forward operator).
     """
     # make sure forward and inverse operator match
@@ -41,8 +41,10 @@ def make_resolution_matrix(forward, inverse_operator, method, lambda2):
     # good channels
     ch_names = [c for c in inv['info']['ch_names'] if (c not in bads_inv)]
 
+    fwd = pick_channels_forward(fwd, ch_names, ordered=True)
+
     # get leadfield matrix from forward solution
-    leadfield = _pick_leadfield(fwd['sol']['data'], fwd, ch_names)
+    leadfield = fwd['sol']['data']
 
     invmat = _get_matrix_from_inverse_operator(inv, fwd,
                                                method=method, lambda2=lambda2)
@@ -51,7 +53,8 @@ def make_resolution_matrix(forward, inverse_operator, method, lambda2):
 
     dims = resmat.shape
 
-    print('Dimensions of resolution matrix: %d by %d.' % (dims[0], dims[1]))
+    logger.info('Dimensions of resolution matrix: %d by %d.' % (dims[0],
+                dims[1]))
 
     return resmat
 
@@ -72,24 +75,10 @@ def _convert_forward_match_inv(fwd, inv):
     elif is_loose:
         if not fwd['surf_ori']:
             fwd = convert_forward_solution(fwd, surf_ori=True)
-    else:  # free orientation, change surface orientation for fwd
-        if fwd['surf_ori']:
-            fwd = convert_forward_solution(fwd, surf_ori=False)
+    elif fwd['surf_ori']:  # free orientation, change fwd surface orientation
+        fwd = convert_forward_solution(fwd, surf_ori=False)
 
-    # The following finds a difference, probably because too sensitive
-    # # check if source spaces for inv and fwd are the same
-    # differences = object_diff(fwd['src'], inv['src'])
-
-    # if differences:
-    #     raise RuntimeError('fwd["src"] and inv["src"] did not match: %s'
-    #                        % (differences,))
     return fwd
-
-
-def _pick_leadfield(leadfield, forward, ch_names):
-    """Helper to pick out correct lead field components."""
-    picks_fwd = pick_channels(forward['info']['ch_names'], ch_names)
-    return leadfield[picks_fwd]
 
 
 def _prepare_info(inverse_operator):
@@ -110,6 +99,7 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, method='dSPM',
     Currently works only for fixed/loose orientation constraints
     For loose orientation constraint, the CTFs are computed for the normal
     component (pick_ori='normal').
+
     Parameters
     ----------
     inverse_operator : instance of InverseOperator
@@ -120,6 +110,7 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, method='dSPM',
         Inverse methods (for apply_inverse).
     lambda2 : float
         The regularization parameter (for apply_inverse).
+
     Returns
     -------
     invmat : array, shape (n_dipoles, n_channels)
@@ -186,74 +177,3 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, method='dSPM',
     logger.info("Dimension of Inverse Matrix: %s" % str(invmat.shape))
 
     return invmat
-
-
-def _get_matrix_from_lcmv_beamformer(info, forward, data_cov, reg=0.05,
-                                     noise_cov=None,
-                                     pick_ori=None, rank='info',
-                                     weight_norm='unit-noise-gain',
-                                     reduce_rank=False, depth=None,
-                                     verbose=None):
-    """Compute matrix for LCMV spatial filter.
-
-    Parameters
-    ----------
-    info : dict
-        The measurement info to specify the channels to include.
-        Bad channels in info['bads'] are not used.
-    forward : dict
-        Forward operator.
-    data_cov : instance of Covariance
-        The data covariance.
-    reg : float
-        The regularization for the whitened data covariance.
-    noise_cov : instance of Covariance
-        The noise covariance. If provided, whitening will be done. Providing a
-        noise covariance is mandatory if you mix sensor types, e.g.
-        gradiometers with magnetometers or EEG with MEG.
-    pick_ori : None | 'normal' | 'max-power' | 'vector'
-        For forward solutions with fixed orientation, None (default) must be
-        used and a scalar beamformer is computed. For free-orientation forward
-        solutions, a vector beamformer is computed and:
-
-            None
-                Pools the orientations by taking the norm.
-            'normal'
-                Keeps only the radial component.
-            'max-power'
-                Selects orientations that maximize output source power at
-                each location.
-            'vector'
-                Keeps the currents for each direction separate
-
-    %(rank_info)s
-    weight_norm : 'unit-noise-gain' | 'nai' | None
-        If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
-        will be computed (Borgiotti-Kaplan beamformer) [2]_,
-        if 'nai', the Neural Activity Index [1]_ will be computed,
-        if None, the unit-gain LCMV beamformer [2]_ will be computed.
-    reduce_rank : bool
-        If True, the rank of the leadfield will be reduced by 1 for each
-        spatial location. Setting reduce_rank to True is typically necessary
-        if you use a single sphere model for MEG.
-    %(depth)s
-
-        .. versionadded:: 0.18
-    %(verbose)s
-
-    Returns
-    -------
-    filtmat: array, (n_dipoles, n_channels)
-    The beamformer filters as matrix.
-    """
-
-    # compute beamformer filters
-    filters = make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=noise_cov,
-                        pick_ori=pick_ori, rank=rank,
-                        weight_norm=weight_norm,
-                        reduce_rank=reduce_rank, depth=depth,
-                        verbose=verbose)
-
-    filtmat = filters['weights']
-
-    return filtmat
