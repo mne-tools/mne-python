@@ -141,7 +141,7 @@ general neuroimaging concepts. If you think a term is missing, please consider
         locations by :math:`N` sensors) that, when applied to the sensor
         signals, yields estimates of the brain activity that gave rise to the
         observed sensor signals. Inverse operators are available for the linear
-        inverse methods MNE, dSPM, sLORETA and eLORETA. See :func:`mne.minimum_norm.apply_inverse`
+        inverse methods MNE, dSPM, sLORETA and eLORETA. See :func:`mne.minimum_norm.apply_inverse`.
 
     label
         A :class:`Label` refers to a region in the cortex, also often called
