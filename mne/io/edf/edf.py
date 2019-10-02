@@ -340,6 +340,9 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, chs, filenames):
                               2**17 - 1)
         data[stim_channel_idx, :] = stim
 
+    if len(tal_data) > 1:
+        tal_data = np.concatenate([tal.ravel() for tal in tal_data])
+        tal_data = tal_data[np.newaxis, :]
     return tal_data
 
 
