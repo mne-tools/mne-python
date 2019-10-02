@@ -34,7 +34,5 @@ Bug
 
 - Fix IO of TFRs when event_id contain a / in one of the keys by `Alex Gramfort`_
 
-- Fix threshold setting in :func:`mne.preprocessing.ica.corrmap` by `Fahimeh Mamashli`_ and `Eric Larson`_
-
 API
 ~~~
