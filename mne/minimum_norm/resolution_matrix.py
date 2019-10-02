@@ -60,7 +60,7 @@ def make_resolution_matrix(forward, inverse_operator, method='dSPM',
 def _convert_forward_match_inv(fwd, inv):
     """Helper to ensure forward and inverse operators match."""
     # did inverse operator use fixed orientation?
-    is_fixed_inv = inv['eigen_leads']['data'].shape[0] == inv['nsource']
+    is_fixed_inv = _check_inv_fixed_ori(inv)
 
     # ...or loose orientation?
     if not is_fixed_inv:
@@ -140,7 +140,7 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, method='dSPM',
     # combine components
 
     # check if inverse operator uses fixed source orientations
-    is_fixed_inv = inverse_operator['source_ori'] != FIFF.FIFFV_MNE_FREE_ORI
+    is_fixed_inv = _check_inv_fixed_ori(inverse_operator)
 
     # choose pick_ori according to inverse operator
     if is_fixed_inv:
@@ -152,7 +152,7 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, method='dSPM',
     invmat_op = apply_inverse(ev_id, inverse_operator, lambda2=lambda2,
                               method=method, pick_ori=pick_ori)
 
-    # turn source estimate into numpty array
+    # turn source estimate into numpy array
     invmat = invmat_op.data
 
     # remove columns for bad channels
@@ -173,3 +173,9 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, method='dSPM',
     logger.info("Dimension of Inverse Matrix: %s" % str(invmat.shape))
 
     return invmat
+
+
+def _check_inv_fixed_ori(inverse_operator):
+    """Check if inverse operator compuated for fixed source orientations."""
+    is_fixed_inv = inverse_operator['source_ori'] != FIFF.FIFFV_MNE_FREE_ORI
+    return is_fixed_inv

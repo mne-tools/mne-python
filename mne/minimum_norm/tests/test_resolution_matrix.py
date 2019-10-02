@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+# Author: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
+#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#         Eric Larson <larson.eric.d@gmail.com>
+#
+# License: BSD (3-clause)
 """
 Test the following properties of the resolution matrix.
 
@@ -45,7 +51,7 @@ fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
 
 @testing.requires_testing_data
 def test_resolution_matrix():
-    """Test whether MNE's resolution matrix is symmetric."""
+    """Test make_resolution_matrix() function."""
     # read forward solution
     forward = mne.read_forward_solution(fname_fwd)
 
