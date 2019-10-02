@@ -25,7 +25,9 @@ general neuroimaging concepts. If you think a term is missing, please consider
         for a tutorial on how to manipulate such objects.
 
     Beamformer 
-        Beamformer is a popular source estimation approach that uses a set of spatial filters (beamformer weights) to compute time courses of sources which coordinates are predefined. See :class:`mne.beamformer.Beamformer`.
+        Beamformer is a popular source estimation approach that uses a set of
+        spatial filters (beamformer weights) to compute time courses of sources
+        which coordinates are predefined. See :class:`mne.beamformer.Beamformer`.
 
     BEM
         BEM is the acronym for boundary element method or boundary element
@@ -43,11 +45,22 @@ general neuroimaging concepts. If you think a term is missing, please consider
         a type, such as gradiometer, and a unit, such as Tesla/Meter that
         is used in the code base, e.g. for plotting.
 
-    Digitization
-        Digitization is a procedure of recording the headshape of a subject and the fiducial coils and/or eeg electrodes locations on the subject’s head. They are represented as a set of points in a 3D space. See :ref:`reading-dig-montages` and :ref:`dig-formats`.  
+    digitization
+        Digitization is a procedure of recording the headshape of a subject and
+        the fiducial coils (or :term:`HPI`) and/or eeg electrodes locations on
+        the subject’s head. They are represented as a set of points in a 3D space.
+        See :ref:`reading-dig-montages` and :ref:`dig-formats`.  
 
     dipole
         See :term:`equivalent current dipole`.
+
+    eLORETA and sLORETA
+        eLORETA and sLORETA (exact and standardized low resolution brain
+        electromagnetic tomography) are linear source estimation techniques,
+        as are dSPM or MNE (:term:`minimum-norm estimation`). sLORETA outputs
+        standardized values such as dSPM, while eLORETA outputs normalized current 
+        estimates. 
+        See :func:`mne.minimum_norm.apply_inverse` and :ref:`example-sLORETA`.
 
     epochs
         Epochs (sometimes called "trials" in other software packages) are
@@ -124,7 +137,7 @@ general neuroimaging concepts. If you think a term is missing, please consider
         and can be used to infer the head position. With cHPI, the sinusoidal
         signals are typically set at frequencies above any neural signal of
         interest, and thus can be removed after head position correction via
-        low-pass filtering.
+        low-pass filtering. See :ref:`example-head-pos`.
 
     info
         Also called ``measurement info``, it is a collection of metadata regarding
@@ -139,6 +152,7 @@ general neuroimaging concepts. If you think a term is missing, please consider
         signals, yields estimates of the brain activity that gave rise to the
         observed sensor signals. Inverse operators are available for the linear
         inverse methods MNE, dSPM, sLORETA and eLORETA.
+        See :func:`mne.minimum_norm.apply_inverse`.
 
     label
         A :class:`Label` refers to a region in the cortex, also often called
