@@ -14,7 +14,7 @@ from ..constants import FIFF
 from ..meas_info import create_info
 from ..base import BaseRaw
 from ...utils import logger, verbose, warn, fill_doc, Bunch
-from ...channels import make_dig_montage, DigMontage, make_standard_montage
+from ...channels import make_dig_montage, make_standard_montage
 from ...channels.channels import DEPRECATED_PARAM
 from ...epochs import BaseEpochs
 from ...event import read_events
@@ -145,7 +145,7 @@ def _get_info(eeg, eog=()):
 
 
 @fill_doc
-def read_raw_eeglab(input_fname, montage='deprecated', eog=(), preload=False,
+def read_raw_eeglab(input_fname, eog=(), preload=False,
                     uint16_codec=None, verbose=None):
     r"""Read an EEGLAB .set file.
 
@@ -154,10 +154,6 @@ def read_raw_eeglab(input_fname, montage='deprecated', eog=(), preload=False,
     input_fname : str
         Path to the .set file. If the data is stored in a separate .fdt file,
         it is expected to be in the same folder as the .set file.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
     eog : list | tuple | 'auto'
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
@@ -186,14 +182,13 @@ def read_raw_eeglab(input_fname, montage='deprecated', eog=(), preload=False,
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    return RawEEGLAB(input_fname=input_fname, montage=montage, preload=preload,
+    return RawEEGLAB(input_fname=input_fname, preload=preload,
                      eog=eog, verbose=verbose, uint16_codec=uint16_codec)
 
 
 @fill_doc
 def read_epochs_eeglab(input_fname, events=None, event_id=None,
-                       montage='deprecated', eog=(), verbose=None,
-                       uint16_codec=None):
+                       eog=(), verbose=None, uint16_codec=None):
     r"""Reader function for EEGLAB epochs files.
 
     Parameters
@@ -218,10 +213,6 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None,
         the id as string. If a list, all events with the IDs specified
         in the list are used. If None, the event_id is constructed from the
         EEGLAB (.set) file with each descriptions copied from `eventtype`.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
     eog : list | tuple | 'auto'
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
@@ -249,7 +240,7 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None,
     mne.Epochs : Documentation of attribute and methods.
     """
     epochs = EpochsEEGLAB(input_fname=input_fname, events=events, eog=eog,
-                          event_id=event_id, montage=montage, verbose=verbose,
+                          event_id=event_id, verbose=verbose,
                           uint16_codec=uint16_codec)
     return epochs
 
@@ -263,10 +254,6 @@ class RawEEGLAB(BaseRaw):
     input_fname : str
         Path to the .set file. If the data is stored in a separate .fdt file,
         it is expected to be in the same folder as the .set file.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions. If None,
-        sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
     eog : list | tuple | 'auto'
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
@@ -292,7 +279,7 @@ class RawEEGLAB(BaseRaw):
     """
 
     @verbose
-    def __init__(self, input_fname, montage='deprecated', eog=(),
+    def __init__(self, input_fname, eog=(),
                  preload=False, uint16_codec=None, verbose=None):  # noqa: D102
         basedir = op.dirname(input_fname)
         eeg = _check_load_mat(input_fname, uint16_codec)
@@ -336,11 +323,7 @@ class RawEEGLAB(BaseRaw):
         self.set_annotations(annot)
         _check_boundary(annot, None)
 
-        if montage != 'deprecated':
-            _deprecate_montage(self, "read_raw_eeglab", montage,
-                               update_ch_names=True)
-        else:
-            self._set_dig_montage_in_init(eeg_montage)
+        self._set_dig_montage_in_init(eeg_montage)
 
         latencies = np.round(annot.onset * self.info['sfreq'])
         _check_latencies(latencies)
@@ -370,14 +353,14 @@ class RawEEGLAB(BaseRaw):
 
     # XXX: to be removed when deprecating montage
 
-    def set_montage(self, montage, set_dig=DEPRECATED_PARAM,
-                    update_ch_names=True, raise_if_subset=DEPRECATED_PARAM,
+    def set_montage(self, montage, update_ch_names=True,
+                    raise_if_subset=DEPRECATED_PARAM,
                     verbose=None):
         """Set EEG sensor configuration and head digitization.
 
         Parameters
         ----------
-        montage : instance of Montage | instance of DigMontage | str | None
+        montage : instance of DigMontage | str | None
             The montage to use (None removes any location information).
         set_dig : bool
             If True, update the digitization information (``info['dig']``)
@@ -396,13 +379,7 @@ class RawEEGLAB(BaseRaw):
         if isinstance(montage, str) and montage in _BUILT_IN_MONTAGES:
             montage = make_standard_montage(montage)
 
-        if isinstance(montage, (DigMontage, type(None))):
-            _set_montage(self.info, montage, set_dig=set_dig,
-                         raise_if_subset=raise_if_subset)
-
-        else:
-            _set_montage(self.info, montage, update_ch_names=update_ch_names,
-                         set_dig=set_dig)
+        _set_montage(self.info, montage)
 
         # Revert update_ch_names modifications in cal and coord_frame
         if update_ch_names:

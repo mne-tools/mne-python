@@ -53,7 +53,6 @@ Reading raw data
    :toctree: generated/
 
    anonymize_info
-   find_edf_events
    read_raw_artemis123
    read_raw_bti
    read_raw_cnt
@@ -306,13 +305,10 @@ Projections:
    :toctree: generated/
 
    Layout
-   Montage
    DigMontage
    fix_mag_coil_types
-   read_montage
    read_polhemus_fastscan
    get_builtin_montages
-   read_dig_montage
    make_dig_montage
    read_dig_polhemus_isotrak
    read_dig_captrack

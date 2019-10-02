@@ -12,17 +12,23 @@
 Current (0.20.dev0)
 -------------------
 
-- Add reader for NIRx data in :func:`mne.io.read_raw_nirx` by `Robert Luke`_
+Changelog
+~~~~~~~~~
+
+- Add support for plotting fNIRS channels in :func:`mne.viz.plot_alignment` by `Eric Larson`_
 
 - Add keyboard functionality to interactive colorbar plotting TFRs by `Stefan Repplinger`_
 
+- Add the ability to ``return_event_id`` in :func:`mne.read_events` for use with MNE-C produced ``-annot.fif`` files, by `Eric Larson`_
 
-Changelog
-~~~~~~~~~
+- Add reader for NIRx data in :func:`mne.io.read_raw_nirx` by `Robert Luke`_
 
 Bug
 ~~~
 
+- Fix handling of repeated events in :class:`mne.Epochs` by `Fahimeh Mamashli`_ and `Alex Gramfort`_
+
+- Fix IO of TFRs when event_id contain a / in one of the keys by `Alex Gramfort`_
+
 API
 ~~~
-

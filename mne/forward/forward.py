@@ -340,7 +340,7 @@ def _read_forward_meas_info(tree, fid):
 
 def _subject_from_forward(forward):
     """Get subject id from inverse operator."""
-    return forward['src'][0].get('subject_his_id', None)
+    return forward['src']._subject
 
 
 @verbose

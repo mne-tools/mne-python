@@ -83,7 +83,7 @@ l_freq : float | None
 docdict['h_freq'] = """
 h_freq : float | None
     For FIR filters, the upper pass-band edge; for IIR filters, the upper
-    cutoff frequency. If None the data are only low-passed.
+    cutoff frequency. If None the data are only high-passed.
 """
 docdict['filter_length'] = """
 filter_length : str | int
@@ -376,6 +376,13 @@ montage : str | None | instance of Montage
 
     DEPRECATED in version 0.19
     Use the `set_montage` method.
+"""
+docdict["montage"] = """
+montage : None | str | DigMontage
+    A montage containing channel positions. If str or DigMontage is
+    specified, the channel info will be updated with the channel
+    positions. Default is None. See also the documentation of
+    :class:`mne.channels.DigMontage` for more information.
 """
 
 # Brain plotting

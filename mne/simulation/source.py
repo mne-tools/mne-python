@@ -161,7 +161,7 @@ def simulate_sparse_stc(src, n_dipoles, times,
     """
     rng = check_random_state(random_state)
     src = _ensure_src(src, verbose=False)
-    subject_src = src[0].get('subject_his_id')
+    subject_src = src._subject
     if subject is None:
         subject = subject_src
     elif subject_src is not None and subject != subject_src:
@@ -322,9 +322,8 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None,
             data.append(stc_data_extended[i][idx])
             vertno[i] = vertno[i][idx]
 
-    subject = src[0].get('subject_his_id')
     stc = SourceEstimate(np.concatenate(data), vertices=vertno, tmin=tmin,
-                         tstep=tstep, subject=subject)
+                         tstep=tstep, subject=src._subject)
     return stc
 
 

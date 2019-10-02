@@ -134,9 +134,9 @@ layout_from_raw.plot()
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # Built-in montages are loaded and plotted in a very similar way to layouts.
-# However, the :meth:`~mne.channels.Montage.plot` method of
-# :class:`~mne.channels.Montage` objects has some additional parameters, such
-# as whether to display channel names or just points (the ``show_names``
+# However, the :meth:`~mne.channels.DigMontage.plot` method of
+# :class:`~mne.channels.DigMontage` objects has some additional parameters,
+# such as whether to display channel names or just points (the ``show_names``
 # parameter) and whether to display sensor positions in 3D or as a 2D topomap
 # (the ``kind`` parameter):
 

@@ -1209,7 +1209,8 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
     _write_fs_xfm(fname_to, T_ras_mni['trans'], kind)
 
 
-def get_mni_fiducials(subject, subjects_dir=None):
+@verbose
+def get_mni_fiducials(subject, subjects_dir=None, verbose=None):
     """Estimate fiducials for a subject.
 
     Parameters
@@ -1219,6 +1220,7 @@ def get_mni_fiducials(subject, subjects_dir=None):
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable
         (sys.environ['SUBJECTS_DIR'])
+    %(verbose)s
 
     Returns
     -------
@@ -1249,6 +1251,8 @@ def get_mni_fiducials(subject, subjects_dir=None):
     # Read fsaverage fiducials file and subject Talairach.
     fids, coord_frame = read_fiducials(fname_fids_fs)
     assert coord_frame == FIFF.FIFFV_COORD_MRI
+    if subject == 'fsaverage':
+        return fids  # special short-circuit for fsaverage
     mni_mri_t = invert_transform(_read_talxfm(subject, subjects_dir))
 
     # Convert to mm since this is Freesurfer's unit.

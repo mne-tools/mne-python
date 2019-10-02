@@ -241,7 +241,7 @@ def test_volume_source_morph():
     # inverse_operator_vol['src'][0]['subject_his_id'] nor subject_from is set,
     # but attempting to perform a volume morph
     src = inverse_operator_vol['src']
-    assert src[0]['subject_his_id'] is None  # already None on disk (old!)
+    assert src._subject is None  # already None on disk (old!)
 
     with pytest.raises(ValueError, match='subject_from could not be inferred'):
         compute_source_morph(src=src, subjects_dir=subjects_dir)

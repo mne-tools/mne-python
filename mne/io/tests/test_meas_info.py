@@ -30,8 +30,9 @@ from mne.io import read_raw_ctf
 from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
 from mne.channels import make_standard_montage
 
+fiducials_fname = op.join(op.dirname(__file__), '..', '..', 'data',
+                          'fsaverage', 'fsaverage-fiducials.fif')
 base_dir = op.join(op.dirname(__file__), 'data')
-fiducials_fname = op.join(base_dir, 'fsaverage-fiducials.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 chpi_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
@@ -95,11 +96,6 @@ def test_make_info():
     # transform to head
     ch_pos_mon += (0., 0., 0.04014)
     assert_allclose(ch_pos, ch_pos_mon, atol=1e-5)
-
-    # XXX: this is a valid call (wrong, but valid).
-    #      Needs to be deprecated in #gh-6764
-    info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
-                       montage=[m, m, m, m, m, m, m])
 
 
 def test_duplicate_name_correction():
