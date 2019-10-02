@@ -15,6 +15,8 @@ Current (0.20.dev0)
 Changelog
 ~~~~~~~~~
 
+- Add function :func:`mne.make_fixed_length_epochs` to segment raw into fixed length epochs by `Mohammad Daneshzand`_
+
 - Add support for plotting fNIRS channels in :func:`mne.viz.plot_alignment` by `Eric Larson`_
 
 - Add keyboard functionality to interactive colorbar plotting TFRs by `Stefan Repplinger`_

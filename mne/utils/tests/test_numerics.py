@@ -10,7 +10,7 @@ from scipy import sparse
 
 from mne import read_evokeds, read_cov, pick_types
 from mne.io.pick import _picks_by_type
-from mne.epochs import _segment_raw
+from mne.epochs import make_fixed_length_epochs
 from mne.io import read_raw_fif
 from mne.time_frequency import tfr_morlet
 from mne.utils import (_get_inst_data, hashfunc,
@@ -35,7 +35,7 @@ def test_get_inst_data():
     assert_array_equal(_get_inst_data(raw), raw._data)
     raw.pick_channels(raw.ch_names[:2])
 
-    epochs = _segment_raw(raw, 0.5)
+    epochs = make_fixed_length_epochs(raw, 0.5)
     assert_array_equal(_get_inst_data(epochs), epochs._data)
 
     evoked = epochs.average()
