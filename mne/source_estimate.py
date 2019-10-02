@@ -1132,10 +1132,11 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         forward model for a source with unit amplitude, :math:`a` is the
         source amplitude, :math:`N` is the number of sensors, and
         :math:`s_k^2` is the noise variance on sensor :math:`k`.
-        
-        Reference:
-        Goldenholz, D. M., Ahlfors, S. P., Hämäläinen, M. S., Sharon, D.,
-        Ishitobi, M., Vaina, L. M., & Stufflebeam, S. M. (2009).
+               
+        References:
+        ----------
+        .. [1] Goldenholz, D. M., Ahlfors, S. P., Hämäläinen, M. S., Sharon, 
+        D., Ishitobi, M., Vaina, L. M., & Stufflebeam, S. M. (2009).
         Mapping the Signal-To-Noise-Ratios of Cortical Sources in
         Magnetoencephalography and Electroencephalography.
         Human Brain Mapping, 30(4), 1077–1086. doi:10.1002/hbm.20571
