@@ -1143,10 +1143,6 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         """
         from .forward import convert_forward_solution
         from .minimum_norm.inverse import _prepare_forward
-
-        n_src, n_times = self.data.shape
-        snr_stc = SourceEstimate(np.zeros((n_src, n_times)), self.vertices, self.tmin, 
-                                 self.tstep, self.subject)
         
         fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True)
         
@@ -1161,7 +1157,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         b_k2 = (G * G).T
         s_k2 = np.diag(cov['data'])                
         scaling = (1 / n_channels) * np.sum(b_k2 / s_k2, axis=1)[:, np.newaxis]  
-        snr_stc.data = 10 * np.log10((self.data * self.data) * scaling)
+        snr_stc = SourceEstimate(10 * np.log10((self.data * self.data) * scaling), 
+                                 self.vertices, self.tmin, self.tstep, self.subject)
                         
         return snr_stc
 
