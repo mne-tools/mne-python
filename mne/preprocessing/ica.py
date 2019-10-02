@@ -2572,7 +2572,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
                         ' Consider using threshold="auto"')
             return icas
         nt, mt, s, mx = _find_max_corrs(all_maps, target, threshold)
-    elif len(threshold) > 1:
+    else:
         paths = [_find_max_corrs(all_maps, target, t) for t in threshold]
         # find iteration with highest avg correlation with target
         nt, mt, s, mx = paths[np.argmax([path[2] for path in paths])]
