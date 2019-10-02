@@ -23,8 +23,8 @@ from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     fill_doc, _check_option, _validate_type, _check_src_normal)
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
-from .io.base import ToDataFrameMixin, TimeMixin
-from .externals.h5io import read_hdf5, write_hdf5
+from .io.base import (ToDataFrameMixin, TimeMixin)
+from .externals.h5io import (read_hdf5, write_hdf5)
 
 def _read_stc(filename):
     """Aux Function."""
@@ -1136,10 +1136,10 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         References:
         ----------
         .. [1] Goldenholz, D. M., Ahlfors, S. P., Hämäläinen, M. S., Sharon, 
-        D., Ishitobi, M., Vaina, L. M., & Stufflebeam, S. M. (2009).
-        Mapping the Signal-To-Noise-Ratios of Cortical Sources in
-        Magnetoencephalography and Electroencephalography.
-        Human Brain Mapping, 30(4), 1077–1086. doi:10.1002/hbm.20571
+               D., Ishitobi, M., Vaina, L. M., & Stufflebeam, S. M. (2009).
+               Mapping the Signal-To-Noise-Ratios of Cortical Sources in
+               Magnetoencephalography and Electroencephalography.
+               Human Brain Mapping, 30(4), 1077–1086. doi:10.1002/hbm.20571
         """
         from .forward import convert_forward_solution
         from .minimum_norm.inverse import _prepare_forward
