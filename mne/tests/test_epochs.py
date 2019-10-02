@@ -60,7 +60,7 @@ rng = np.random.RandomState(42)
 
 
 def test_event_repeated():
-    """Test epochs takes into account repeated events"""
+    """Test epochs takes into account repeated events."""
     n_samples = 100
     n_channels = 2
     ch_names = ['chan%i' % i for i in range(n_channels)]
