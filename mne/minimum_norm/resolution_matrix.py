@@ -3,7 +3,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from mne import pick_channels_forward, EvokedArray
+from mne import pick_channels_forward, EvokedArray, SourceEstimate
 from mne.io.constants import FIFF
 from mne.utils import logger
 from mne.forward.forward import is_fixed_orient, convert_forward_solution
@@ -55,6 +55,50 @@ def make_resolution_matrix(forward, inverse_operator, method='dSPM',
     logger.info('Dimensions of resolution matrix: %d by %d.' % resmat.shape)
 
     return resmat
+
+
+def get_psf_ctf_vertex(resmat, src, idx, func, norm=False):
+    """Get point-spread (PSFs) or cross-talk (CTFs) functions for vertices.
+
+    Parameters
+        ----------
+        resmat: array, shape (n_dipoles, n_dipoles)
+            Forward Operator.
+        src: Source Space
+            Source space used to compute resolution matrix.
+        idx: list of int
+            Vertex indices for which PSFs or CTFs to produce.
+        func: str ('psf' | 'ctf')
+            Whether to produce PSFs or CTFs.
+        norm: Bool
+            Whether to normalise to maximum across all PSFs and CTFs (default:
+            False)
+
+    Returns
+        -------
+        stc: STC object
+            PSFs or CTFs as stc object.
+    """
+    # vertices used in forward and inverse operator
+    vertno_lh = src[0]['vertno']
+    vertno_rh = src[1]['vertno']
+    vertno = [vertno_lh, vertno_rh]
+
+    # in everything below indices refer to columns
+    if func == 'ctf':
+        resmat = resmat.T
+
+    # column of resolution matrix
+    funcs = resmat[:, idx]
+
+    if norm:
+        maxval = np.abs(funcs).max()
+        funcs = funcs / maxval
+
+    # convert to source estimate
+    stc = SourceEstimate(funcs, vertno, tmin=0., tstep=1.)
+
+    return stc
 
 
 def _convert_forward_match_inv(fwd, inv):

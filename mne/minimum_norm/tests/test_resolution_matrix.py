@@ -17,7 +17,8 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal)
 
 import mne
 from mne.datasets import testing
-from mne.minimum_norm.resolution_matrix import make_resolution_matrix
+from mne.minimum_norm.resolution_matrix import (make_resolution_matrix,
+                                                get_psf_ctf_vertex)
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -111,3 +112,13 @@ def test_resolution_matrix():
     # MNE resolution matrices symmetric?
     assert_array_almost_equal(rm_mne, rm_mne.T)
     assert_array_almost_equal(rm_mne_free, rm_mne_free.T)
+
+    # Test conversion to STC
+    psfverts = [1, 100, 400]
+    stc_psf = get_psf_ctf_vertex(rm_mne, forward_fxd['src'], psfverts, 'psf',
+                                 norm=True)
+
+    stc_ctf = get_psf_ctf_vertex(rm_mne, forward_fxd['src'], psfverts, 'ctf',
+                                 norm=True)
+
+    assert_array_almost_equal(stc_psf.data, stc_ctf.data)
