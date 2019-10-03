@@ -32,7 +32,7 @@ raw.crop(0, 60).load_data()  # use just 60 seconds of data, to save memory
 # Background on filtering
 # ^^^^^^^^^^^^^^^^^^^^^^^
 #
-# A filter removes or suppresses parts of a signal. Usually, filters act on
+# A filter removes or attenuates parts of a signal. Usually, filters act on
 # specific *frequency ranges* of a signal — for example, suppressing all
 # frequency components above or below a certain cutoff value. There are *many*
 # ways of designing digital filters; see :ref:`disc-filtering` for a longer
@@ -43,7 +43,7 @@ raw.crop(0, 60).load_data()  # use just 60 seconds of data, to save memory
 # Repairing artifacts by filtering
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# Artifacts that are restricted to a narrow range of frequencies can sometimes
+# Artifacts that are restricted to a narrow frequency range can sometimes
 # be repaired by filtering the data. Two examples of frequency-restricted
 # artifacts are slow drifts and power line noise. Here we illustrate how each
 # of these can be repaired by filtering.
@@ -73,7 +73,7 @@ for cutoff in (0.1, 0.2):
     raw_highpass = raw.copy().filter(l_freq=cutoff, h_freq=None)
     fig = raw_highpass.plot(duration=60, order=mag_channels, proj=False,
                             n_channels=len(mag_channels), remove_dc=False)
-    fig.subplots_adjust(top=0.95)
+    fig.subplots_adjust(top=0.9)
     fig.suptitle('High-pass filtered at {} Hz'.format(cutoff), size='xx-large',
                  weight='bold')
 
@@ -129,7 +129,8 @@ add_arrows(fig.axes[:2])
 
 ###############################################################################
 # It should be evident that MEG channels are more susceptible to this kind of
-# interference. Removing power-line noise can be done with a notch filter,
+# interference than EEG that is recorded in the magnetically shielded room.
+# Removing power-line noise can be done with a notch filter,
 # applied directly to the :class:`~mne.io.Raw` object, specifying an array of
 # frequencies to be attenuated. Since the EEG channels are relatively
 # unaffected by the power line noise, we'll also specify a ``picks`` argument
@@ -162,13 +163,20 @@ for title, data in zip(['Un', 'Notch '], [raw, raw_notch]):
 # ECG projectors on a long recording), downsampling the signal can be a useful
 # time-saver.
 #
-# In MNE-Python, downsampling effectively applies a low-pass filter to the
-# signal to avoid `aliasing`_, so you don't need to explicitly filter it
-# yourself before using the :meth:`~mne.io.Raw.resample` method. The effect is
-# most clearly seen in the PSD plot, where a dashed vertical line indicates the
-# filter cutoff; the original data had an existing lowpass at around 172 Hz
-# (see ``raw.info['lowpass']``), and the data resampled to 200 Hz gets
-# automatically lowpass filtered at 100 Hz:
+# In MNE-Python, the resampling methods (:meth:`raw.resample()
+# <mne.io.Raw.resample>`, :meth:`epochs.resample() <mne.Epochs.resample>` and
+# :meth:`evoked.resample() <mne.Evoked.resample>`) apply a low-pass filter to
+# the signal to avoid `aliasing`_, so you don't need to explicitly filter it
+# yourself first. This built-in filtering that happens when using
+# :meth:`raw.resample() <mne.io.Raw.resample>`, :meth:`epochs.resample()
+# <mne.Epochs.resample>`, or :meth:`evoked.resample() <mne.Evoked.resample>` is
+# a brick-wall filter applied in the frequency domain at the `Nyquist
+# frequency`_ of the desired new sampling rate. This can be clearly seen in the
+# PSD plot, where a dashed vertical line indicates the filter cutoff; the
+# original data had an existing lowpass at around 172 Hz (see
+# ``raw.info['lowpass']``), and the data resampled from 600 Hz to 200 Hz gets
+# automatically lowpass filtered at 100 Hz (the `Nyquist frequency`_ for a
+# target rate of 200 Hz):
 
 raw_downsampled = raw.copy().resample(sfreq=200)
 
@@ -179,11 +187,8 @@ for data, title in zip([raw, raw_downsampled], ['Original', 'Downsampled']):
     plt.setp(fig.axes, xlim=(0, 300))
 
 ###############################################################################
-# In addition to :meth:`raw.resample() <mne.io.Raw.resample>` there are also
-# methods :meth:`epochs.resample() <mne.Epochs.resample>` and
-# :meth:`evoked.resample() <mne.Evoked.resample>`. However, because resampling
-# involves filtering, there are some pitfalls to resampling at different points
-# in the analysis stream:
+# Because resampling involves filtering, there are some pitfalls to resampling
+# at different points in the analysis stream:
 #
 # - Performing resampling on :class:`~mne.io.Raw` data (*before* epoching) will
 #   negatively affect the temporal precision of Event arrays, by causing
@@ -216,10 +221,28 @@ for data, title in zip([raw, raw_downsampled], ['Original', 'Downsampled']):
 #    :meth:`~mne.Epochs.decimate` method after the :class:`~mne.Epochs` have
 #    been created.
 #
-# Note that this method is exact only when the original sampling frequency is
-# an integer multiple of the desired new sampling frequency. Since the sampling
-# frequency of our example data is 600.614990234375 Hz, ending up with a
-# specific sampling frequency like (say) 90 Hz will not be possible:
+# .. warning::
+#    The recommendation for setting the low-pass corner frequency at
+#    :math:`\frac{1}{3}` of the desired sample rate is a fairly safe rule of
+#    thumb based on the default settings in :meth:`raw.filter()
+#    <mne.io.Raw.filter>` (which are different from the filter settings used
+#    inside the :meth:`raw.resample() <mne.io.Raw.resample>` method). If you
+#    use a customized lowpass filter (specifically, if your transition
+#    bandwidth is wider than 0.5× the lowpass cutoff), downsampling to 3× the
+#    lowpass cutoff may still not be enough to avoid `aliasing`_, and
+#    MNE-Python will not warn you about it (because the :class:`raw.info
+#    <mne.Info>` object only keeps track of the lowpass cutoff, not the
+#    transition bandwidth). Conversely, if you use a steeper filter, the
+#    warning may be too sensitive. If you are unsure, plot the PSD of your
+#    filtered data *before decimating* and ensure that there is no content in
+#    the frequencies above the `Nyquist frequency`_ of the sample rate you'll
+#    end up with *after* decimation.
+#
+# Note that this method of manually filtering and decimating is exact only when
+# the original sampling frequency is an integer multiple of the desired new
+# sampling frequency. Since the sampling frequency of our example data is
+# 600.614990234375 Hz, ending up with a specific sampling frequency like (say)
+# 90 Hz will not be possible:
 
 current_sfreq = raw.info['sfreq']
 desired_sfreq = 90  # Hz
@@ -236,17 +259,6 @@ print('desired sampling frequency was {} Hz; decim factor of {} yielded an '
       .format(desired_sfreq, decim, epochs.info['sfreq']))
 
 ###############################################################################
-# .. warning::
-#    The relationship :math:`\mathrm{lowpass~cutoff} \leq \frac{1}{3}~
-#    \mathrm{new~sampling~frequency}` is a fairly safe rule of thumb based on
-#    MNE-Python's default lowpass filter settings. If you use a customized
-#    lowpass filter (specifically, if your transition bandwidth is wider than
-#    0.5× the lowpass cutoff), downsampling to 3× the lowpass cutoff may still
-#    not be enough to avoid `aliasing`_, and MNE-Python will not warn you about
-#    it (because the :class:`raw.info <mne.Info>` object only keeps track of
-#    the lowpass cutoff, not the transition bandwidth).
-#
-#
 # If for some reason you cannot follow the above-recommended best practices,
 # you should at the very least either:
 #
@@ -266,3 +278,4 @@ print('desired sampling frequency was {} Hz; decim factor of {} yielded an '
 #    https://en.wikipedia.org/wiki/Mains_electricity
 # .. _`aliasing`: https://en.wikipedia.org/wiki/Anti-aliasing_filter
 # .. _`jitter`: https://en.wikipedia.org/wiki/Jitter
+# .. _`Nyquist frequency`: https://en.wikipedia.org/wiki/Nyquist_frequency
