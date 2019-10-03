@@ -120,6 +120,6 @@ def test_resolution_metrics():
 
     assert_array_equal(r2, np.sqrt(2) * np.ones([4, 4]))
 
-    return r1, r2
+#     return r1, r2
 
-r1, r2 = test_resolution_metrics()
+# r1, r2 = test_resolution_metrics()

@@ -58,9 +58,9 @@ rm_lor = make_resolution_matrix(forward, inverse_operator,
                                 method='sLORETA', lambda2=lambda2)
 
 locerr_psf = localisation_error(rm_lor, inverse_operator['src'], type='psf',
-                            metric='peak')
+                                metric='peak')
 locerr_ctf = localisation_error(rm_lor, inverse_operator['src'], type='ctf',
-                            metric='peak')
+                                metric='peak')
 
 # get PSF and CTF for sLORETA at one vertex
 sources = [1000]
@@ -72,17 +72,12 @@ stc_ctf = get_psf_ctf_vertex(rm_lor, forward['src'], sources, 'ctf',
                              norm=True)
 
 # Visualise
-from mayavi import mlab
 
-txt = 'PLE: %.2f cm' # localisation error for display
+txt = 'PLE: %.2f cm'  # localisation error for display
 
 # Which vertex corresponds to selected source
 vertno_lh = forward['src'][0]['vertno']
 verttrue = [vertno_lh[sources[0]]]  # just one vertex
-
-# # maximum value for scaling
-# mp = np.abs(stc_psf.data).max()
-# mc = np.abs(stc_ctf.data).max()
 
 # find vertices with maxima in PSF and CTF
 vert_max_psf = vertno_lh[stc_psf.data.argmax()]
@@ -90,8 +85,6 @@ vert_max_ctf = vertno_lh[stc_ctf.data.argmax()]
 
 brain_psf = stc_psf.plot('sample', 'inflated', 'lh', subjects_dir=subjects_dir,
                          figure=1, title='PSF')
-mlab.title('sLORETA PSF')
-mlab.text(.25, .15, txt % (100.*locerr_psf[sources[0]]))
 
 brain_psf.show_view('ventral')
 
@@ -105,8 +98,6 @@ brain_psf.add_foci(vert_max_psf, coords_as_verts=True, scale_factor=1.,
 
 brain_ctf = stc_ctf.plot('sample', 'inflated', 'lh', subjects_dir=subjects_dir,
                          figure=2)
-mlab.title('sLORETA CTF')
-mlab.text(.25, .15, txt % (100.*locerr_ctf[sources[0]]))
 
 brain_ctf.show_view('ventral')
 
@@ -119,3 +110,7 @@ brain_ctf.add_foci(vert_max_ctf, coords_as_verts=True, scale_factor=1.,
 
 print('The green spheres indicate the true source location, and the black \
       spheres the maximum of the distribution.')
+print('Peak localisation error for PSF: %.2f cm.' % (100. *
+      locerr_psf[sources[0]]))
+print('Peak localisation error for CTF: %.2f cm.' % (100. *
+      locerr_ctf[sources[0]]))
