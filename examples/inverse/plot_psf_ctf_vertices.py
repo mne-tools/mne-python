@@ -12,7 +12,8 @@ Visualise PSF and CTF at one vertex for sLORETA.
 
 import mne
 from mne.datasets import sample
-from mne.minimum_norm import make_resolution_matrix, get_psf_ctf_vertex
+from mne.minimum_norm import (make_resolution_matrix, get_cross_talk,
+                              get_point_spread)
 
 print(__doc__)
 
@@ -52,11 +53,9 @@ rm_lor = make_resolution_matrix(forward, inverse_operator,
 # get PSF and CTF for sLORETA at one vertex
 sources = [1000]
 
-stc_psf = get_psf_ctf_vertex(rm_lor, forward['src'], sources, 'psf',
-                             norm=True)
+stc_psf = get_point_spread(rm_lor, forward['src'], sources, norm=True)
 
-stc_ctf = get_psf_ctf_vertex(rm_lor, forward['src'], sources, 'ctf',
-                             norm=True)
+stc_ctf = get_cross_talk(rm_lor, forward['src'], sources, norm=True)
 
 ##############################################################################
 # Visualise

@@ -115,7 +115,7 @@ def get_point_spread(resmat, src, idx, norm=False):
     ----------
     resmat : array, shape (n_dipoles, n_dipoles)
         Forward Operator.
-    src : Source Space
+    src : instance of SourceSpaces
         Source space used to compute resolution matrix.
     idx : list of int
         Vertex indices for which PSFs or CTFs to produce.
@@ -137,7 +137,7 @@ def get_cross_talk(resmat, src, idx, norm=False):
     ----------
     resmat : array, shape (n_dipoles, n_dipoles)
         Forward Operator.
-    src : Source Space
+    src : instance of SourceSpaces
         Source space used to compute resolution matrix.
     idx : list of int
         Vertex indices for which PSFs or CTFs to produce.
