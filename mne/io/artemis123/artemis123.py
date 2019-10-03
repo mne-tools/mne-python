@@ -12,7 +12,7 @@ from ...utils import logger, warn, verbose
 from ..utils import _read_segments_file
 from ..base import BaseRaw
 from ..meas_info import _empty_info
-from ..._digitization._utils import _make_dig_points
+from .._digitization import _make_dig_points
 from ..constants import FIFF
 from ...chpi import _fit_device_hpi_positions, _fit_coil_order_dev_head_trans
 from ...transforms import get_ras_to_neuromag_trans, apply_trans, Transform

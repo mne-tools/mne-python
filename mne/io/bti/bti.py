@@ -17,6 +17,7 @@ import numpy as np
 from ...utils import logger, verbose
 from ...transforms import (combine_transforms, invert_transform,
                            Transform)
+from .._digitization import _make_bti_dig_points
 from ..constants import FIFF
 from .. import BaseRaw, _coil_trans_to_loc, _loc_to_coil_trans, _empty_info
 from ..utils import _mult_cal_one, read_str
@@ -992,9 +993,6 @@ class RawBTi(BaseRaw):
 
 def _make_bti_digitization(
         info, head_shape_fname, convert, use_hpi, bti_dev_t, dev_ctf_t):
-
-    from ..._digitization._utils import _make_bti_dig_points
-
     if head_shape_fname:
         logger.info('... Reading digitization points from %s' %
                     head_shape_fname)
