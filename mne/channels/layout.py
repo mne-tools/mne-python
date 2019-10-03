@@ -694,6 +694,9 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
         eeg_ch_locs = dict(zip(eeg_ch_names, locs3d))
         locs3d = np.array([eeg_ch_locs[ch['ch_name']] for ch in chs])
 
+    # Sometimes we can get nans
+    locs3d[~np.isfinite(locs3d)] = 0.
+
     # Duplicate points cause all kinds of trouble during visualization
     dist = pdist(locs3d)
     if len(locs3d) > 1 and np.min(dist) < 1e-10 and not ignore_overlap:
@@ -709,6 +712,7 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
     if to_sphere:
         # use spherical (theta, pol) as (r, theta) for polar->cartesian
         return _pol_to_cart(_cart_to_sph(locs3d)[:, 1:][:, ::-1])
+
     return _pol_to_cart(_cart_to_sph(locs3d))
 
 
