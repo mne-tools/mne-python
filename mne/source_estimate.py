@@ -1098,71 +1098,6 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
 
         return stcs
 
-    @verbose
-    def estimate_snr(self, info, fwd, cov, verbose=None):
-        r"""Compute time-varying SNR in the source space.
-
-        This function should only be used with source estimates with units
-        nanoAmperes (i.e., MNE-like solutions, *not* dSPM or sLORETA).
-
-        Parameters
-        ----------
-        info : instance of io.meas_info.Info
-            The measurement info.
-        fwd : instance of Forward
-            The forward solution used to create the source estimate.
-        cov : instance of Covariance
-            The noise covariance used to estimate the resting cortical
-            activations. Should be an evoked covariance, not empty room.
-
-        Returns
-        -------
-        snr_stc : instance of SourceEstimate
-            The source estimate with the SNR computed.
-
-        Notes
-        -----
-        We define the SNR in decibels for each source location at each
-        time point as:
-
-        .. math::
-
-            {\rm SNR} = 10\log_10[\frac{a^2}{N}\sum_k\frac{b_k^2}{s_k^2}]
-
-        where :math:`\\b_k` is the signal on sensor :math:`k` provided by the
-        forward model for a source with unit amplitude, :math:`a` is the
-        source amplitude, :math:`N` is the number of sensors, and
-        :math:`s_k^2` is the noise variance on sensor :math:`k`.
-               
-        References
-        ----------
-        .. [1] Goldenholz, D. M., Ahlfors, S. P., Hämäläinen, M. S., Sharon, 
-               D., Ishitobi, M., Vaina, L. M., & Stufflebeam, S. M. (2009).
-               Mapping the Signal-To-Noise-Ratios of Cortical Sources in
-               Magnetoencephalography and Electroencephalography.
-               Human Brain Mapping, 30(4), 1077–1086. doi:10.1002/hbm.20571
-        """
-        from .forward import convert_forward_solution
-        from .minimum_norm.inverse import _prepare_forward
-        
-        fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True)
-        
-        # G is gain matrix [ch x src], cov is noise covariance [ch x ch]
-        _, _, G, _, _, _, _, cov, _ = _prepare_forward(fwd, info, cov,
-                                fixed=True, loose=0, rank=None, pca=False,
-                                use_cps=True, exp=None, limit_depth_chs=False,
-                                combine_xyz='fro', allow_fixed_depth=True,
-                                limit=None)
-
-        n_channels = cov['dim'] # number of sensors/channels    
-        b_k2 = (G * G).T
-        s_k2 = np.diag(cov['data'])                
-        scaling = (1 / n_channels) * np.sum(b_k2 / s_k2, axis=1)[:, np.newaxis]  
-        snr_stc = SourceEstimate(10 * np.log10((self.data * self.data) * scaling), 
-                                 self.vertices, self.tmin, self.tstep, self.subject)
-                        
-        return snr_stc
-
 
 def _center_of_mass(vertices, values, hemi, surf, subject, subjects_dir,
                     restrict_vertices):
@@ -1570,6 +1505,81 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         return label_tc
 
+
+    @verbose
+    def estimate_snr(self, info, fwd, cov, verbose=None):
+        r"""Compute time-varying SNR in the source space.
+
+        This function should only be used with source estimates with units
+        nanoAmperes (i.e., MNE-like solutions, *not* dSPM or sLORETA).
+
+        .. warning:: This function currently only works properly for fixed
+                     orientation...
+                     
+        Parameters
+        ----------
+        info : instance of io.meas_info.Info
+            The measurement info.
+        fwd : instance of Forward
+            The forward solution used to create the source estimate.
+        cov : instance of Covariance
+            The noise covariance used to estimate the resting cortical
+            activations. Should be an evoked covariance, not empty room.
+
+        Returns
+        -------
+        snr_stc : instance of SourceEstimate
+            The source estimate with the SNR computed.
+
+        Notes
+        -----
+        We define the SNR in decibels for each source location at each
+        time point as:
+
+        .. math::
+
+            {\rm SNR} = 10\log_10[\frac{a^2}{N}\sum_k\frac{b_k^2}{s_k^2}]
+
+        where :math:`\\b_k` is the signal on sensor :math:`k` provided by the
+        forward model for a source with unit amplitude, :math:`a` is the
+        source amplitude, :math:`N` is the number of sensors, and
+        :math:`s_k^2` is the noise variance on sensor :math:`k`.
+               
+        References
+        ----------
+        .. [1] Goldenholz, D. M., Ahlfors, S. P., Hämäläinen, M. S., Sharon, 
+               D., Ishitobi, M., Vaina, L. M., & Stufflebeam, S. M. (2009).
+               Mapping the Signal-To-Noise-Ratios of Cortical Sources in
+               Magnetoencephalography and Electroencephalography.
+               Human Brain Mapping, 30(4), 1077–1086. doi:10.1002/hbm.20571
+        """
+        from .forward import convert_forward_solution
+        from .minimum_norm.inverse import _prepare_forward
+        
+        if (self.data >= 0).all():
+            warn_('This STC appears to be from free orientation, currently SNR '
+                 'function is valid only for fixed orientation')
+            
+        fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True)
+        
+        # G is gain matrix [ch x src], cov is noise covariance [ch x ch]
+        G, _, _, _, _, _, _, cov, _ = _prepare_forward(fwd, info, cov,
+                                fixed=True, loose=0, rank=None, pca=False,
+                                use_cps=True, exp=None, limit_depth_chs=False,
+                                combine_xyz='fro', allow_fixed_depth=True,
+                                limit=None)
+        G = G['sol']['data']
+        n_channels = cov['dim'] # number of sensors/channels  
+        print('Number of channels in calculating SNR: %d' % n_channels)
+        b_k2 = (G * G).T
+        s_k2 = np.diag(cov['data'])                
+        scaling = (1 / n_channels) * np.sum(b_k2 / s_k2, axis=1, keepdims=True)
+        snr_stc = SourceEstimate(10 * np.log10((self.data * self.data) * scaling), 
+                                 self.vertices, self.tmin, self.tstep, self.subject)
+                        
+        return snr_stc
+
+
     def get_peak(self, hemi=None, tmin=None, tmax=None, mode='abs',
                  vert_as_index=False, time_as_index=False):
         """Get location and latency of peak amplitude.
@@ -1701,6 +1711,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         t_ind = np.sum(masses * np.arange(self.shape[1])) / np.sum(masses)
         t = self.tmin + self.tstep * t_ind
         return vertex, hemi, t
+
 
 
 class _BaseVectorSourceEstimate(_BaseSourceEstimate):

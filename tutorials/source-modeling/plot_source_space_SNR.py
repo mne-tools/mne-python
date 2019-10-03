@@ -7,6 +7,13 @@ Computing source space SNR
 ===============================
 
 This example shows how to compute and plot source space SNR.
+
+Reference:
+Goldenholz, D. M., Ahlfors, S. P., Hämäläinen, M. S., Sharon, D., Ishitobi, M.,
+Vaina, L. M., & Stufflebeam, S. M. (2009). Mapping the Signal-To-Noise-Ratios
+of Cortical Sources in Magnetoencephalography and Electroencephalography.
+Human Brain Mapping, 30(4), 1077–1086. doi:10.1002/hbm.20571
+
 """
 # Author: Padma Sundaram <tottochan@gmail.com>
 #         Kaisu Lankinen <klankinen@mgh.harvard.edu>
@@ -15,7 +22,9 @@ This example shows how to compute and plot source space SNR.
 
 import mne
 from mne.datasets import sample
-from mne.minimum_norm import make_inverse_operator, apply_inverse
+from mne.minimum_norm import make_inverse_operator, apply_inverse, read_inverse_operator
+import numpy as np
+import matplotlib.pyplot as plt
 
 print(__doc__)
 
@@ -32,24 +41,90 @@ fwd = mne.read_forward_solution(fname_fwd)
 cov = mne.read_cov(fname_cov)
 
 ###############################################################################
-# Fixed orientation
-# -----------------
-# First let's create a fixed-orientation inverse, with the default weighting.
+# MEG-EEG:
 
-inv = make_inverse_operator(evoked.info, fwd, cov, loose=0., depth=0.8,
-                            verbose=True)
+# Read inverse operator:
+inv_op = make_inverse_operator(evoked.info, fwd, cov, fixed=True, verbose=True)
 
-###############################################################################
-# Let's look at the current estimates using MNE. We'll take the absolute
-# value of the source estimates to simplify the visualization.
-
+# Calculate MNE:
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
+stc = apply_inverse(evoked, inv_op, lambda2, 'MNE', verbose=True)
 
-stc = apply_inverse(evoked, inv, lambda2, 'MNE', verbose=True)
+# Calculate SNR in source space:
 snr_stc = stc.estimate_snr(evoked.info, fwd, cov)
 
-kwargs = dict(initial_time=0.29, hemi='both', subjects_dir=subjects_dir,
-              size=(600, 600), colormap='viridis',
-              clim=dict(kind='value', lims=(-20, 0, 20)))
+# Plot an average SNR across source points over time:
+ave = np.mean(snr_stc.data, axis=0)
+
+fig, ax = plt.subplots()
+ax.plot(evoked.times, ave)
+ax.set(xlabel='Time (sec)', ylabel='SNR MEG-EEG')
+fig.tight_layout()
+
+# Find time point of maximum SNR:
+maxidx = np.argmax(ave)
+
+# Plot SNR on source space at the time point of maximum SNR:
+kwargs = dict(initial_time=evoked.times[maxidx], hemi='both',
+              subjects_dir=subjects_dir, size=(600, 600), colormap='viridis',
+              clim=dict(kind='value', lims=(-100, -75, -50)))
 snr_stc.plot(figure=1, **kwargs)
+
+###############################################################################
+# EEG:
+
+evoked_eeg = evoked.copy().pick_types(eeg=True, meg=False)
+
+# Make inverse oparator:
+inv_op_eeg = make_inverse_operator(evoked_eeg.info, fwd, cov, fixed=True,
+                                   verbose=True)
+
+# Calculate MNE:
+stc_eeg = apply_inverse(evoked_eeg, inv_op_eeg, lambda2, 'MNE', verbose=True)
+
+# Calculate SNR in source space:
+snr_stc_eeg = stc_eeg.estimate_snr(evoked_eeg.info, fwd, cov)
+
+# Plot an average SNR across source points over time:
+ave_eeg = np.mean(snr_stc_eeg.data, axis=0)
+fig, ax = plt.subplots()
+ax.plot(evoked_eeg.times, ave_eeg)
+ax.set(xlabel='Time (sec)', ylabel='SNR EEG')
+fig.tight_layout()
+
+# Plot SNR on source space at the time point of maximum SNR (same time point as
+# for MEG-EEG)
+kwargs = dict(initial_time=evoked.times[maxidx], hemi='both',
+              subjects_dir=subjects_dir, size=(600, 600), colormap='viridis',
+              clim=dict(kind='value', lims=(-100, -75, -50)))
+snr_stc_eeg.plot(figure=2, **kwargs)
+
+###############################################################################
+# MEG:
+
+evoked_meg = evoked.copy().pick_types(eeg=False, meg=True)
+
+# Make inverse oparator:
+inv_op_meg = make_inverse_operator(evoked_meg.info, fwd, cov, fixed=True,
+                                   verbose=True)
+
+# Calculate MNE:
+stc_meg = apply_inverse(evoked_meg, inv_op_meg, lambda2, 'MNE', verbose=True)
+
+# Calculate SNR in source space:
+snr_stc_meg = stc_meg.estimate_snr(evoked_meg.info, fwd, cov)
+
+# Plot an average SNR across source points over time:
+ave_meg = np.mean(snr_stc_meg.data, axis=0)
+fig, ax = plt.subplots()
+ax.plot(evoked_meg.times, ave_meg)
+ax.set(xlabel='Time (sec)', ylabel='SNR MEG')
+fig.tight_layout()
+
+# Plot SNR on source space at the time point of maximum SNR (same time point as
+# for MEG-EEG)
+kwargs = dict(initial_time=evoked.times[maxidx], hemi='both',
+              subjects_dir=subjects_dir, size=(600, 600), colormap='viridis',
+              clim=dict(kind='value', lims=(-100, -75, -50)))
+snr_stc_meg.plot(figure=3, **kwargs)
