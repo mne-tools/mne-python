@@ -412,7 +412,7 @@ def test_plot_raw_psd():
     raw.plot_psd(reject_by_annotation=False)
 
     # test fmax value checking
-    with pytest.raises(ValueError, match='must not exceed one half the sampling'):
+    with pytest.raises(ValueError, match='not exceed one half the sampling'):
         raw.plot_psd(fmax=50000)
 
     # gh-5046
