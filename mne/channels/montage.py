@@ -456,9 +456,9 @@ def read_dig_hpts(fname, unit='mm'):
 
     For example::
 
-        cardinal    nasion    -5.6729  -12.3873  -30.3671
-        cardinal    lpa    -37.6782  -10.4957   91.5228
-        cardinal    rpa    -131.3127    9.3976  -22.2363
+        cardinal    2    -5.6729  -12.3873  -30.3671
+        cardinal    1    -37.6782  -10.4957   91.5228
+        cardinal    3    -131.3127    9.3976  -22.2363
         hpi    1    -30.4493  -11.8450   83.3601
         hpi    2    -122.5353    9.2232  -28.6828
         hpi    3    -6.8518  -47.0697  -37.0829
@@ -480,7 +480,8 @@ def read_dig_hpts(fname, unit='mm'):
     xyz = np.array([out['f%d' % ii] for ii in range(2, 5)]).T
     xyz *= _scale
     del _scale
-    fid = {label[ii]: this_xyz
+    fid_idx_to_label = {'1': 'lpa', '2': 'nasion', '3': 'rpa'}
+    fid = {fid_idx_to_label[label[ii]]: this_xyz
            for ii, this_xyz in enumerate(xyz) if kind[ii] == 'cardinal'}
     ch_pos = {label[ii]: this_xyz
               for ii, this_xyz in enumerate(xyz) if kind[ii] == 'eeg'}
