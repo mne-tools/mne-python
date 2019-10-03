@@ -2530,8 +2530,10 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
                          "montage. Consider interpolating bad channels before "
                          "running ICA.")
 
+    threshold_extra = ''
     if threshold == 'auto':
         threshold = np.arange(60, 95, dtype=np.float64) / 100.
+        threshold_extra = ' ("auto")'
 
     all_maps = [ica.get_components().T for ica in icas]
 
@@ -2564,29 +2566,22 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         template_fig.canvas.draw()
 
     # first run: use user-selected map
-    if isinstance(threshold, (int, float)):
-        if len(all_maps) == 0:
-            logger.info('No component detected using find_outliers.'
-                        ' Consider using threshold="auto"')
-            return icas
-        nt, mt, s, mx = _find_max_corrs(all_maps, target, threshold)
-    else:
-        paths = [_find_max_corrs(all_maps, target, t) for t in threshold]
-        # find iteration with highest avg correlation with target
-        nt, mt, s, mx = paths[np.argmax([path[2] for path in paths])]
+    threshold = np.atleast_1d(np.array(threshold, float)).ravel()
+    threshold_err = ('No component detected using find_outliers when '
+                     'using threshold%s %s, consider using a more lenient '
+                     'threshold' % (threshold_extra, threshold))
+    if len(all_maps) == 0:
+        raise RuntimeError(threshold_err)
+    paths = [_find_max_corrs(all_maps, target, t) for t in threshold]
+    # find iteration with highest avg correlation with target
+    nt, mt, s, mx = paths[np.argmax([path[2] for path in paths])]
 
     # second run: use output from first run
-    if isinstance(threshold, (int, float)):
-        if len(all_maps) == 0 or len(nt) == 0:
-            if threshold > 1:
-                logger.info('No component detected using find_outliers. '
-                            'Consider using threshold="auto"')
-            return icas
-        nt, mt, s, mx = _find_max_corrs(all_maps, nt, threshold)
-    elif len(threshold) > 1:
-        paths = [_find_max_corrs(all_maps, nt, t) for t in threshold]
-        # find iteration with highest avg correlation with target
-        nt, mt, s, mx = paths[np.argmax([path[1] for path in paths])]
+    if len(all_maps) == 0 or len(nt) == 0:
+        raise RuntimeError(threshold_err)
+    paths = [_find_max_corrs(all_maps, nt, t) for t in threshold]
+    # find iteration with highest avg correlation with target
+    nt, mt, s, mx = paths[np.argmax([path[1] for path in paths])]
 
     allmaps, indices, subjs, nones = [list() for _ in range(4)]
     logger.info('Median correlation with constructed map: %0.3f' % mt)

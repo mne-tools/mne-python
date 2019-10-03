@@ -386,7 +386,9 @@ def test_ica_additional(method):
     ica3 = ica.copy()
     corrmap([ica, ica2], (0, 0), threshold='auto', label='blinks', plot=True,
             ch_type="mag")
-    corrmap([ica, ica2], (0, 0), threshold=2, plot=False, show=False)
+    with pytest.raises(RuntimeError, match='No component detected'):
+        corrmap([ica, ica2], (0, 0), threshold=2, plot=False, show=False,)
+    corrmap([ica, ica2], (0, 0), threshold=0.5, plot=False, show=False)
     assert (ica.labels_["blinks"] == ica2.labels_["blinks"])
     assert (0 in ica.labels_["blinks"])
     # test retrieval of component maps as arrays
