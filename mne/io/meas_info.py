@@ -1871,9 +1871,12 @@ def anonymize_info(info, timeshift=None, keep_his=False):
     ----------
     info : dict, instance of Info
         Measurement information for the dataset.
-    timeshift : int,
+    timeshift : int | None
         Number of days to subtract from all dates.
-        if None timeshift moves date of service to Jan 1 2000
+        If None timeshift moves date of service to Jan 1 2000
+    keep_his : bool
+        If True his_id of subject_info will NOT be overwritten.
+        defaults to False
 
     Returns
     -------
@@ -1889,7 +1892,7 @@ def anonymize_info(info, timeshift=None, keep_his=False):
     default_anon_dos = datetime.datetime(2000, 1, 1, 0, 0, 0)
     default_str = "mne_anonymize"
     default_subject_id = 0
-    default_desc = ("Anonymized using a time shift" +
+    default_desc = ("Anonymized using a time shift"
                     " to preserve age at acquisition")
 
     if timeshift is None:

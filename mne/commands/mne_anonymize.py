@@ -1,46 +1,61 @@
 #!/usr/bin/env python
-"""Anonymize .fif file.
-You can do for example:
-$ mne anonymize -f sample_audvis_raw.fif
-"""
-
 # Authors : Dominik Krzeminski
 #           Luke Bloy <luke.bloy@gmail.com>
 
+"""Anonymize .fif file.
+
+Examples
+--------
+.. code-block:: console
+
+    $ mne anonymize -f sample_audvis_raw.fif
+
+"""
+
 import sys
 import mne
-import os
+import os.path as op
 
 ANONYMIZE_FILE_PREFIX = 'anon'
 
 
 def mne_anonymize(fif_fname, out_fname, dateback, keep_his, overwrite):
     """Call *anonymize_info* on fif file and save.
+
     Parameters
     ----------
     fif_fname : str
         Raw fif File
-    out_fname : str
+    out_fname : str | None
         Output file name
+        relative paths are saved relative to parent dir of fif_fname
+        None will save to parent dir of fif_fname with default prefix
+    dateback : int | None
+        Number of days to subtract from all dates.
+        If None will default to move date of service to Jan 1 2000
+    keep_his : bool
+        If True his_id of subject_info will NOT be overwritten.
+        defaults to False
     overwrite : bool
         Overwrite output file if it already exists
     """
-    dir_name = os.path.split(fif_fname)[0]
-    fif_fname = os.path.basename(fif_fname)
-
     try:
-        raw = mne.io.read_raw_fif(os.path.join(dir_name, fif_fname),
-                                  allow_maxshield=True)
+        raw = mne.io.read_raw_fif(fif_fname, allow_maxshield=True)
     except Exception:
         print("Error not a raw fif file")
         return
     raw.anonymize(timeshift=dateback, keep_his=keep_his)
 
-    if out_fname is not None:
-        out = out_fname
-    else:
-        out = "{}-{}".format(ANONYMIZE_FILE_PREFIX, fif_fname)
-    raw.save(os.path.join(dir_name, out), overwrite=overwrite)
+    # determine out_fname
+    dir_name = op.split(fif_fname)[0]
+    if out_fname is None:
+        fif_bname = op.basename(fif_fname)
+        out_fname = op.join(dir_name,
+                            "{}-{}".format(ANONYMIZE_FILE_PREFIX, fif_bname))
+    elif not op.isabs(out_fname):
+        out_fname = op.join(dir_name, out_fname)
+
+    raw.save(out_fname, overwrite=overwrite)
 
 
 def run():
