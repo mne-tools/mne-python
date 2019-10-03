@@ -343,20 +343,13 @@ def transform_to_head(montage):
         coordinate system.
     """
     # Get fiducial points and their coord_frame
-    fid_coords, coord_frame = _get_fid_coords(montage.dig)
-
-    montage = deepcopy(montage)  # to avoid inplace modification
-
-    if coord_frame != FIFF.FIFFV_COORD_HEAD:
-        nasion, lpa, rpa = \
-            fid_coords['nasion'], fid_coords['lpa'], fid_coords['rpa']
-        native_head_t = get_ras_to_neuromag_trans(nasion, lpa, rpa)
-
+    native_head_t = compute_native_head_t(montage)
+    montage = montage.copy()  # to avoid inplace modification
+    if native_head_t['from'] != FIFF.FIFFV_COORD_HEAD:
         for d in montage.dig:
-            if d['coord_frame'] == coord_frame:
+            if d['coord_frame'] == native_head_t['from']:
                 d['r'] = apply_trans(native_head_t, d['r'])
                 d['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-
     return montage
 
 
@@ -1089,6 +1082,33 @@ def compute_dev_head_t(montage):
 
     trans = fit_matched_points(tgt_pts=hpi_head, src_pts=hpi_dev, out='trans')
     return Transform(fro='meg', to='head', trans=trans)
+
+
+def compute_native_head_t(montage):
+    """Compute the native-to-head transformation for a montage.
+
+    This uses the fiducials in the native space to transform to compute the
+    transform to the head coordinate frame.
+
+    Parameters
+    ----------
+    montage : instance of DigMontage
+        The montage.
+
+    Returns
+    -------
+    native_head_t : instance of Transform
+        A native-to-head transformation matrix.
+    """
+    # Get fiducial points and their coord_frame
+    fid_coords, coord_frame = _get_fid_coords(montage.dig)
+    if coord_frame == FIFF.FIFFV_COORD_HEAD:
+        native_head_t = np.eye(3)
+    else:
+        nasion, lpa, rpa = \
+            fid_coords['nasion'], fid_coords['lpa'], fid_coords['rpa']
+        native_head_t = get_ras_to_neuromag_trans(nasion, lpa, rpa)
+    return Transform(coord_frame, 'head', native_head_t)
 
 
 def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
