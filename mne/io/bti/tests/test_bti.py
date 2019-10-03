@@ -14,7 +14,7 @@ import pytest
 
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_bti
-from mne._digitization._utils import _make_bti_dig_points
+from mne.io._digitization import _make_bti_dig_points
 from mne.io.bti.bti import (_read_config,
                             _read_bti_header, _get_bti_dev_t,
                             _correct_trans, _get_bti_info,

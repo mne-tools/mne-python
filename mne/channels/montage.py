@@ -23,18 +23,16 @@ import numpy as np
 from ..viz import plot_montage
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _frame_to_str, Transform)
-from .._digitization import Digitization
-from .._digitization.base import _count_points_by_type
-from .._digitization.base import _get_dig_eeg
-from .._digitization._utils import (_make_dig_points, write_dig, _read_dig_fif,
-                                    _format_dig_points)
+from ..io._digitization import (Digitization, _count_points_by_type,
+                                _get_dig_eeg, _make_dig_points, write_dig,
+                                _read_dig_fif, _format_dig_points,
+                                _get_fid_coords)
 from ..io.pick import pick_types
 from ..io.open import fiff_open
 from ..io.constants import FIFF
 from ..utils import (warn, logger, copy_function_doc_to_method_doc,
                      _check_option, _validate_type, _check_fname,
                      fill_doc)
-from .._digitization._utils import _get_fid_coords
 
 from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage

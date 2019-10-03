@@ -3,7 +3,7 @@ from copy import deepcopy
 import numpy as np
 from ..utils import check_version, logger, _check_option, _validate_type
 from . import plot_sensors
-from .._digitization._utils import _get_fid_coords
+from ..io._digitization import _get_fid_coords
 
 
 def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
