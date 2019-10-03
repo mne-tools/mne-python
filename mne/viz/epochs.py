@@ -723,8 +723,7 @@ def _epochs_axes_onclick(event, params):
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                 title=None, events=None, event_colors=None, order=None,
                 show=True, block=False, decim='auto', noise_cov=None,
-                butterfly=False, show_scrollbars=True, bad_epochs_idx=None,
-                log_labels=None):
+                butterfly=False, show_scrollbars=True, epoch_colors=None):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
@@ -809,11 +808,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
         .. versionadded:: 0.18.0
     %(show_scrollbars)s
-    bad_epochs_idx : array-like | None
-        Indices of bad epochs to show. No bad epochs to visualize if None.
-    log_labels : dataframe, shape (n_channels, n_epochs) | None
-        The bad segments to show in red and the interpolated segments
-        to show in green.
+    epoch_colors : list (of n_epochs) of list (of n_channels) | None
+        Colors to use for individual epochs. If None, use default colors
 
     Returns
     -------
@@ -836,11 +832,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
     .. versionadded:: 0.10.0
     """
-
-    bads = np.array(list(), dtype=int)
-    if bad_epochs_idx is not None:
-        bads = np.array(bad_epochs_idx).astype(int)
-
     epochs.drop_bad()
     scalings = _compute_scalings(scalings, epochs)
     scalings = _handle_default('scalings_plot_raw', scalings)
@@ -852,8 +843,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                   bad_color=(0.8, 0.8, 0.8), histogram=None, decim=decim,
                   data_picks=data_picks, noise_cov=noise_cov,
                   use_noise_cov=noise_cov is not None,
-                  show_scrollbars=show_scrollbars, bads=bads,
-                  log_labels=log_labels)
+                  show_scrollbars=show_scrollbars,
+                  epoch_colors=epoch_colors)
     params['label_click_fun'] = partial(_pick_bad_channels, params=params)
     _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks, events=events, order=order,
@@ -990,8 +981,9 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         raise RuntimeError('Some channels not classified. Please'
                            ' check your picks')
     ch_names = [params['info']['ch_names'][idx] for idx in inds]
-    if params['log_labels'] is not None:
-        params['log_labels'] = params['log_labels'][:, inds]
+    if params['epoch_colors'] is not None:
+        for epoch_color in params['epoch_colors']:
+            epoch_color = [epoch_color[idx] for idx in inds]
 
     # set up plotting
     n_epochs = min(n_epochs, len(epochs_events))
@@ -1125,7 +1117,6 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'colors': colors,
                    'def_colors': type_colors,  # don't change at runtime
                    'picks': picks,
-                   'bads': np.array(list(), dtype=int),
                    'data': data,
                    'times': times,
                    'epoch_times': epoch_times,
@@ -1166,42 +1157,19 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     # Draw event lines for the first time.
     _plot_vert_lines(params)
 
-    # Plot bad epochs
-    if len(params['bads']) > 0:
-        if params['bads'].max() > len(params['epochs'].events):
-            raise ValueError('You had a bad_epoch with index'
-                             '%d but there are only %d epochs. Make sure'
-                             ' to provide the epochs *before* running'
-                             'autoreject.'
-                             % (params['bads'].max(), len(params['epochs'].events)))
-    for epoch_idx in params['bads']:
-        params['ax_hscroll'].patches[epoch_idx].set_color((1., 0., 0., 1.))
-        params['ax_hscroll'].patches[epoch_idx].set_zorder(3)
-        params['ax_hscroll'].patches[epoch_idx].set_edgecolor('w')
-        for ch_idx in range(len(params['ch_names'])):
-            params['colors'][ch_idx][epoch_idx] = (1., 0., 0., 1.)
+    # for epoch_idx in params['epoch_colors']:
+    #     params['ax_hscroll'].patches[epoch_idx].set_color((1., 0., 0., 1.))
+    #     params['ax_hscroll'].patches[epoch_idx].set_zorder(3)
+    #     params['ax_hscroll'].patches[epoch_idx].set_edgecolor('w')
+    #     for ch_idx in range(len(params['ch_names'])):
+    #         params['colors'][ch_idx][epoch_idx] = (1., 0., 0., 1.)
 
     # Plot bad segments
-    if params['log_labels'] is not None:
-        if not params['log_labels'].shape[0] == len(params['epochs'].events):
-            raise ValueError('The number of epochs should match the number of'
-                             'epochs *before* autoreject. Please provide'
-                             'the epochs object before running autoreject')
-        if not params['log_labels'].shape[1] == len(params['ch_names']):
-            raise ValueError('The number of channels should match the number'
-                             ' of channels before running autoreject.')
-
+    if params['epoch_colors'] is not None:
         for ch_idx in range(len(params['ch_names'])):
             for epoch_idx in range(len(params['epochs'].events)):
-                this_log = params['log_labels'][epoch_idx, ch_idx]
-                if epoch_idx in params['bads']:
-                    pass
-                else:
-                    if this_log == 1:
-                        params['colors'][ch_idx][epoch_idx] = (1., 0., 0., 1.)
-                    elif this_log == 2:
-                        params['colors'][ch_idx][epoch_idx] = (0.6, 0.6, 0.6,
-                                                               1.)
+                if params['epoch_colors'][epoch_idx][ch_idx] is not None:
+                    params['colors'][ch_idx][epoch_idx] = params['epoch_colors'][epoch_idx][ch_idx]
 
     params['plot_fun']()
 
