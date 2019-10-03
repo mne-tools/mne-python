@@ -30,8 +30,13 @@ def make_resolution_matrix(forward, inverse_operator, method='dSPM',
 
     Returns
     -------
-    resmat: array, shape (n_dipoles, n_dipoles)
+    resmat: array, shape (n_comp_inv * n_dipoles, n_comp_fwd * n_dipoles)
         Resolution matrix (inverse operator times forward operator).
+        The result of applying the inverse operator to the forward operator.
+        If source orientations are not fixed, all source components will be
+        computed (i.e. for n_comps_inv > 1 or n_comps_fwd > 1).
+        The columns of the resolution matrix are the point-spread functions
+        (PSFs) and the rows are the cross-talk functions (CTFs).
     """
     # make sure forward and inverse operator match
     inv = inverse_operator
