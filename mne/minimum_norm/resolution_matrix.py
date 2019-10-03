@@ -6,7 +6,7 @@ import numpy as np
 from mne import pick_channels_forward, EvokedArray, SourceEstimate
 from mne.io.constants import FIFF
 from mne.utils import logger
-from mne.forward.forward import is_fixed_orient, convert_forward_solution
+from mne.forward.forward import convert_forward_solution
 
 from mne.minimum_norm import apply_inverse
 
@@ -102,23 +102,30 @@ def get_psf_ctf_vertex(resmat, src, idx, func, norm=False):
 
 
 def _convert_forward_match_inv(fwd, inv):
-    """Helper to ensure forward and inverse operators match."""
+    """
+    Helper to ensure forward and inverse operators match.
+
+    Inverse operator and forward operator must have same surface orientations,
+    but can have different source orientation constraints.
+
+    """
     # did inverse operator use fixed orientation?
     is_fixed_inv = _check_inv_fixed_ori(inv)
 
-    # ...or loose orientation?
-    if not is_fixed_inv:
-        is_loose = not (inv['orient_prior']['data'] == 1.).all()
+    # did forward operator use fixed orientation?
+    is_fixed_fwd = _check_inv_fixed_ori(fwd)
 
-    # if inv op is fixed or loose, do the same with fwd
-    if is_fixed_inv:
-        if not is_fixed_orient(fwd):
-            fwd = convert_forward_solution(fwd, force_fixed=True)
-    elif is_loose:
-        if not fwd['surf_ori']:
-            fwd = convert_forward_solution(fwd, surf_ori=True)
-    elif fwd['surf_ori']:  # free orientation, change fwd surface orientation
-        fwd = convert_forward_solution(fwd, surf_ori=False)
+    # if inv or fwd fixed: do nothing
+    # if inv loose: surf_ori must be True
+    # if inv free: surf_ori must be False
+    if not is_fixed_inv and not is_fixed_fwd:
+        is_loose_inv = not (inv['orient_prior']['data'] == 1.).all()
+
+        if is_loose_inv:
+            if not fwd['surf_ori']:
+                fwd = convert_forward_solution(fwd, surf_ori=True)
+        elif fwd['surf_ori']:  # free orientation, change fwd
+            fwd = convert_forward_solution(fwd, surf_ori=False)
 
     return fwd
 
@@ -159,7 +166,8 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, method='dSPM',
         Inverse matrix associated with inverse operator and specified
         parameters.
     """
-    # make sure forward and inverse operators match
+    # make sure forward and inverse operators match with respect to
+    # surface orientation
     _convert_forward_match_inv(forward, inverse_operator)
 
     info_inv = _prepare_info(inverse_operator)
@@ -223,3 +231,8 @@ def _check_inv_fixed_ori(inverse_operator):
     """Check if inverse operator compuated for fixed source orientations."""
     is_fixed_inv = inverse_operator['source_ori'] != FIFF.FIFFV_MNE_FREE_ORI
     return is_fixed_inv
+
+def _check_fwd_fixed_ori(forward):
+    """Check if forward operator compuated for fixed source orientations."""
+    is_fixed_fwd = forward['source_ori'] != FIFF.FIFFV_MNE_FREE_ORI
+    return is_fixed_fwd

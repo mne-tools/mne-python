@@ -13,7 +13,8 @@ Resolution matrix has zero dipole localisation error for columns (PSFs).
 
 import os.path as op
 import numpy as np
-from numpy.testing import (assert_array_almost_equal, assert_array_equal)
+from numpy.testing import (assert_equal, assert_array_almost_equal,
+                           assert_array_equal)
 
 import mne
 from mne.datasets import testing
@@ -86,6 +87,10 @@ def test_resolution_matrix():
     rm_mne_free = make_resolution_matrix(forward, inverse_operator,
                                          method='MNE', lambda2=lambda2)
 
+    # compute resolution matrix for MNE, fwd fixed and inv free
+    rm_mne_fxdfree = make_resolution_matrix(forward_fxd, inverse_operator,
+                                            method='MNE', lambda2=lambda2)
+
     # resolution matrices for fixed source orientation
 
     # compute resolution matrix for MNE
@@ -106,6 +111,7 @@ def test_resolution_matrix():
     goodidxs = np.arange(0, len(maxidxs), 1)
 
     # Tests
+
     # Does sLORETA have zero dipole localization error for columns/PSFs?
     assert_array_equal(maxidxs, goodidxs)
 
@@ -122,3 +128,7 @@ def test_resolution_matrix():
                                  norm=True)
 
     assert_array_almost_equal(stc_psf.data, stc_ctf.data)
+
+    # Test application of free inv to fixed fwd
+    assert_equal(rm_mne_fxdfree.shape, (3 * rm_mne.shape[0],
+                 rm_mne.shape[0]))
