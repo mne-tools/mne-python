@@ -983,7 +983,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     ch_names = [params['info']['ch_names'][idx] for idx in inds]
     if params['epoch_colors'] is not None:
         for epoch_idx in range(len(params['epoch_colors'])):
-            params['epoch_colors'][epoch_idx] = [params['epoch_colors'][epoch_idx][idx] for idx in inds]
+            params['epoch_colors'][epoch_idx] = \
+                [params['epoch_colors'][epoch_idx][idx] for idx in inds]
 
     # set up plotting
     n_epochs = min(n_epochs, len(epochs_events))
@@ -1145,6 +1146,20 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
 
     params['plot_fun'] = partial(_plot_traces, params=params)
 
+    # Plot epoch_colors
+    if params['epoch_colors'] is not None:
+        for epoch_idx, epoch_color in enumerate(params['epoch_colors']):
+            for ch_idx in range(len(params['ch_names'])):
+                if epoch_color[ch_idx] is not None:
+                    params['colors'][ch_idx][epoch_idx] = epoch_color[ch_idx]
+
+            # plot on horizontal patch if all colors are same
+            if epoch_color.count(epoch_color[0]) == len(epoch_color):
+                params['ax_hscroll'].patches[epoch_idx].set_color(
+                    epoch_color[0])
+                params['ax_hscroll'].patches[epoch_idx].set_zorder(3)
+                params['ax_hscroll'].patches[epoch_idx].set_edgecolor('w')
+
     # callbacks
     callback_scroll = partial(_plot_onscroll, params=params)
     params['fig'].canvas.mpl_connect('scroll_event', callback_scroll)
@@ -1157,23 +1172,6 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     params['callback_key'] = callback_key
     # Draw event lines for the first time.
     _plot_vert_lines(params)
-
-    # Plot epoch_colors
-    if params['epoch_colors'] is not None:
-        for epoch_idx, epoch_color in enumerate(params['epoch_colors']):
-            for ch_idx in range(len(params['ch_names'])):
-                if epoch_color[ch_idx] is not None:
-                    params['colors'][ch_idx][epoch_idx] = epoch_color[ch_idx]
-
-            # plot on horizontal patch if all colors are same
-            if epoch_color.count(epoch_color[0]) == len(epoch_color):
-                params['ax_hscroll'].patches[epoch_idx].set_color(epoch_color[0])
-                params['ax_hscroll'].patches[epoch_idx].set_zorder(3)
-                params['ax_hscroll'].patches[epoch_idx].set_edgecolor('w')
-
-    params['plot_fun']()
-
-
 
 
 def _prepare_projectors(params):
@@ -1327,7 +1325,7 @@ def _plot_traces(params):
         ax.set_yticklabels(labels, fontsize=12, color='black')
     else:
         ax.set_yticklabels(tick_list, fontsize=12)
-        # _set_ax_label_style(ax, params)
+        _set_ax_label_style(ax, params)
 
     if params['events'] is not None:  # vertical lines for events.
         _draw_event_lines(params)
@@ -1777,7 +1775,9 @@ def _onpick(event, params):
 
 def _close_event(event, params):
     """Drop selected bad epochs (called on closing of the plot)."""
-    pass
+    params['epochs'].drop(params['bads'])
+    params['epochs'].info['bads'] = params['info']['bads']
+    logger.info('Channels marked as bad: %s' % params['epochs'].info['bads'])
 
 
 def _update_channels_epochs(event, params):
