@@ -70,8 +70,9 @@ vert_max_psf = vertno_lh[stc_psf.data.argmax()]
 vert_max_ctf = vertno_lh[stc_ctf.data.argmax()]
 
 brain_psf = stc_psf.plot('sample', 'inflated', 'lh', subjects_dir=subjects_dir,
-                         figure=1, title='sLORETA PSF')
+                         figure=1)
 brain_psf.show_view('ventral')
+brain_psf.add_text(0.1, 0.9, 'sLORETA PSF', 'title', font_size=16)
 
 # True source location for PSF
 brain_psf.add_foci(verttrue, coords_as_verts=True, scale_factor=1., hemi='lh',
@@ -82,7 +83,8 @@ brain_psf.add_foci(vert_max_psf, coords_as_verts=True, scale_factor=1.,
                    hemi='lh', color='black')
 
 brain_ctf = stc_ctf.plot('sample', 'inflated', 'lh', subjects_dir=subjects_dir,
-                         figure=2, title='sLORETA CTF')
+                         figure=2)
+brain_ctf.add_text(0.1, 0.9, 'sLORETA CTF', 'title', font_size=16)
 brain_ctf.show_view('ventral')
 brain_ctf.add_foci(verttrue, coords_as_verts=True, scale_factor=1., hemi='lh',
                    color='green')
