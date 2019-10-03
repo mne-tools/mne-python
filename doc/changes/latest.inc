@@ -17,6 +17,8 @@ Changelog
 
 - Add function :func:`mne.make_fixed_length_epochs` to segment raw into fixed length epochs by `Mohammad Daneshzand`_
 
+- Add support for passing a destination source space ``src_to`` in :func:`mne.compute_source_morph` to ensure morphing for multiple subjects results in consistent STCs, by `Eric Larson`_
+
 - Add support for plotting fNIRS channels in :func:`mne.viz.plot_alignment` by `Eric Larson`_
 
 - Add keyboard functionality to interactive colorbar plotting TFRs by `Stefan Repplinger`_

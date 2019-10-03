@@ -1900,7 +1900,7 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
                         % (c, 1000 * mi * grid, 1000 * ma * grid))
 
     # Now make the initial grid
-    ns = maxn - minn + 1
+    ns = tuple(maxn - minn + 1)
     npts = np.prod(ns)
     nrow = ns[0]
     ncol = ns[1]
