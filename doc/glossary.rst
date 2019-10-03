@@ -24,7 +24,7 @@ general neuroimaging concepts. If you think a term is missing, please consider
         object class and :ref:`tut-annotations`
         for a tutorial on how to manipulate such objects.
 
-    Beamformer 
+    Beamformer
         Beamformer is a popular source estimation approach that uses a set of
         spatial filters (beamformer weights) to compute time courses of sources
         which coordinates are predefined. See :class:`mne.beamformer.Beamformer`.
@@ -37,7 +37,7 @@ general neuroimaging concepts. If you think a term is missing, please consider
         outer skull and outer skin (a.k.a. scalp) that define compartments
         of tissues of the head. You can compute the BEM surfaces with
         :func:`mne.bem.make_watershed_bem` or :func:`mne.bem.make_flash_bem`.
-        See :ref:`tut-forward` for usage demo. 
+        See :ref:`tut-forward` for usage demo.
 
     channels
         Channels refer to MEG sensors, EEG electrodes or any extra electrode
@@ -49,7 +49,7 @@ general neuroimaging concepts. If you think a term is missing, please consider
         Digitization is a procedure of recording the headshape of a subject and
         the fiducial coils (or :term:`HPI`) and/or eeg electrodes locations on
         the subject’s head. They are represented as a set of points in a 3D space.
-        See :ref:`reading-dig-montages` and :ref:`dig-formats`.  
+        See :ref:`reading-dig-montages` and :ref:`dig-formats`.
 
     dipole
         See :term:`equivalent current dipole`.
@@ -57,10 +57,10 @@ general neuroimaging concepts. If you think a term is missing, please consider
     eLORETA and sLORETA
         eLORETA and sLORETA (exact and standardized low resolution brain
         electromagnetic tomography) are linear source estimation techniques,
-        as are dSPM or MNE (:term:`minimum-norm estimation`). sLORETA outputs
-        standardized values such as dSPM, while eLORETA outputs normalized current 
-        estimates. 
-        See :func:`mne.minimum_norm.apply_inverse` and :ref:`example-sLORETA`.
+        as are dSPM or :term:`MNE <minimum-norm estimation>`. sLORETA outputs
+        standardized values (like dSPM does), while eLORETA outputs normalized
+        current estimates. See :func:`mne.minimum_norm.apply_inverse`,
+        :ref:`tut-inverse-methods`, and :ref:`example-sLORETA`.
 
     epochs
         Epochs (sometimes called "trials" in other software packages) are
@@ -166,11 +166,11 @@ general neuroimaging concepts. If you think a term is missing, please consider
         so-called topographies or topomaps).
 
     minimum-norm estimation
-        Minimum-norm estimation (abbr. ``MNE``) can be used to generate a distributed 
-        map of activation on a :term:`source space`, usually on a cortical surface. 
-        MNE uses a linear :term:`inverse operator` to project sensor measurements 
-        into the source space. The :term:`inverse operator` is computed from the 
-        :term:`forward solution` for a subject and an estimate of the noise covariance 
+        Minimum-norm estimation (abbr. ``MNE``) can be used to generate a distributed
+        map of activation on a :term:`source space`, usually on a cortical surface.
+        MNE uses a linear :term:`inverse operator` to project sensor measurements
+        into the source space. The :term:`inverse operator` is computed from the
+        :term:`forward solution` for a subject and an estimate of the noise covariance
         of sensor measurements.
 
     montage
