@@ -5,8 +5,8 @@
 Repairing artifacts with SSP
 ============================
 
-This tutorial covers the basics of signal-space projection (SSP) and
-shows how SSP can be used for artifact repair; extended examples illustrate use
+This tutorial covers the basics of signal-space projection (SSP) and shows
+how SSP can be used for artifact repair; extended examples illustrate use
 of SSP for environmental noise reduction, and for repair of ocular and
 heartbeat artifacts.
 
