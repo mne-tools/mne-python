@@ -808,7 +808,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
         .. versionadded:: 0.18.0
     %(show_scrollbars)s
-    epoch_colors : list (of n_epochs) of list (of n_channels) | None
+    epoch_colors : list of (n_epochs) list (of n_channels) | None
         Colors to use for individual epochs. If None, use default colors
 
     Returns
@@ -982,8 +982,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                            ' check your picks')
     ch_names = [params['info']['ch_names'][idx] for idx in inds]
     if params['epoch_colors'] is not None:
-        for epoch_color in params['epoch_colors']:
-            epoch_color = [epoch_color[idx] for idx in inds]
+        for epoch_idx in range(len(params['epoch_colors'])):
+            params['epoch_colors'][epoch_idx] = [params['epoch_colors'][epoch_idx][idx] for idx in inds]
 
     # set up plotting
     n_epochs = min(n_epochs, len(epochs_events))
@@ -1117,6 +1117,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'colors': colors,
                    'def_colors': type_colors,  # don't change at runtime
                    'picks': picks,
+                   'bads': np.array(list(), dtype=int),
                    'data': data,
                    'times': times,
                    'epoch_times': epoch_times,
