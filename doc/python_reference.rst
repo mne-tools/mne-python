@@ -632,8 +632,6 @@ Inverse Solutions
    source_band_induced_power
    source_induced_power
    write_inverse_operator
-   point_spread_function
-   cross_talk_function
    make_resolution_matrix
    get_cross_talk
    get_point_spread
