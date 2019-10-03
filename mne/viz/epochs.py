@@ -31,7 +31,8 @@ from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
                     _handle_decim, _setup_plot_projector, _set_ax_label_style,
                     _set_title_multiple_electrodes, _make_combine_callable,
-                    _get_figsize_from_config, _toggle_scrollbars)
+                    _get_figsize_from_config, _toggle_scrollbars,
+                    _check_psd_fmax)
 from .misc import _handle_event_colors
 
 
@@ -919,6 +920,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
         make_label = _set_psd_plot_params(epochs.info, proj, picks, ax,
                                           area_mode)
+    _check_psd_fmax(epochs, fmax)
     del ax
     psd_list = list()
     for picks in picks_list:
