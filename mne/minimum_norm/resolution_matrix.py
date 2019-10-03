@@ -5,26 +5,28 @@ import numpy as np
 
 from mne import pick_channels_forward, EvokedArray, SourceEstimate
 from mne.io.constants import FIFF
-from mne.utils import logger
+from mne.utils import logger, verbose
 from mne.forward.forward import convert_forward_solution
 
 from mne.minimum_norm import apply_inverse
 
 
+@verbose
 def make_resolution_matrix(forward, inverse_operator, method='dSPM',
-                           lambda2=1. / 9.):
+                           lambda2=1. / 9., verbose=None):
     """Compute resolution matrix for linear inverse operator.
 
     Parameters
     ----------
-    forward: dict
+    forward : instance of Forward
         Forward Operator.
-    inverse_operator: Instance of InverseOperator
+    inverse_operator : Instance of InverseOperator
         Inverse operator.
-    method: str
+    method : 'MNE' | 'dSPM' | 'sLORETA'
         Inverse method to use (MNE, dSPM, sLORETA).
-    lambda2: float
+    lambda2 : float
         The regularisation parameter.
+    %(verbose)s
 
     Returns
     -------
@@ -57,27 +59,27 @@ def make_resolution_matrix(forward, inverse_operator, method='dSPM',
     return resmat
 
 
-def get_psf_ctf_vertex(resmat, src, idx, func, norm=False):
+def get_psf_ctf_vertex(resmat, src, idx, func='psf', norm=False):
     """Get point-spread (PSFs) or cross-talk (CTFs) functions for vertices.
 
     Parameters
-        ----------
-        resmat: array, shape (n_dipoles, n_dipoles)
-            Forward Operator.
-        src: Source Space
-            Source space used to compute resolution matrix.
-        idx: list of int
-            Vertex indices for which PSFs or CTFs to produce.
-        func: str ('psf' | 'ctf')
-            Whether to produce PSFs or CTFs.
-        norm: Bool
-            Whether to normalise to maximum across all PSFs and CTFs (default:
-            False)
+    ----------
+    resmat : array, shape (n_dipoles, n_dipoles)
+        Forward Operator.
+    src : Source Space
+        Source space used to compute resolution matrix.
+    idx : list of int
+        Vertex indices for which PSFs or CTFs to produce.
+    func : str ('psf' | 'ctf')
+        Whether to produce PSFs or CTFs. Defaults to psf.
+    norm : bool
+        Whether to normalise to maximum across all PSFs and CTFs (default:
+        False)
 
     Returns
-        -------
-        stc: STC object
-            PSFs or CTFs as stc object.
+    -------
+    stc: instance of SourceEstimate
+        PSFs or CTFs as an stc object.
     """
     # vertices used in forward and inverse operator
     vertno_lh = src[0]['vertno']
@@ -110,10 +112,10 @@ def _convert_forward_match_inv(fwd, inv):
 
     """
     # did inverse operator use fixed orientation?
-    is_fixed_inv = _check_inv_fixed_ori(inv)
+    is_fixed_inv = _check_fixed_ori(inv)
 
     # did forward operator use fixed orientation?
-    is_fixed_fwd = _check_inv_fixed_ori(fwd)
+    is_fixed_fwd = _check_fixed_ori(fwd)
 
     # if inv or fwd fixed: do nothing
     # if inv loose: surf_ori must be True
@@ -153,7 +155,7 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, method='dSPM',
     ----------
     inverse_operator : instance of InverseOperator
         The inverse operator.
-    forward : dict
+    forward : instance of Forward
         The forward operator.
     method : 'MNE' | 'dSPM' | 'sLORETA'
         Inverse methods (for apply_inverse).
@@ -192,7 +194,7 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, method='dSPM',
     # combine components
 
     # check if inverse operator uses fixed source orientations
-    is_fixed_inv = _check_inv_fixed_ori(inverse_operator)
+    is_fixed_inv = _check_fixed_ori(inverse_operator)
 
     # choose pick_ori according to inverse operator
     if is_fixed_inv:
@@ -227,12 +229,7 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, method='dSPM',
     return invmat
 
 
-def _check_inv_fixed_ori(inverse_operator):
-    """Check if inverse operator compuated for fixed source orientations."""
-    is_fixed_inv = inverse_operator['source_ori'] != FIFF.FIFFV_MNE_FREE_ORI
-    return is_fixed_inv
-
-def _check_fwd_fixed_ori(forward):
-    """Check if forward operator compuated for fixed source orientations."""
-    is_fixed_fwd = forward['source_ori'] != FIFF.FIFFV_MNE_FREE_ORI
-    return is_fixed_fwd
+def _check_fixed_ori(inst):
+    """Check if inverse or forward was computed for fixed orientations."""
+    is_fixed = inst['source_ori'] != FIFF.FIFFV_MNE_FREE_ORI
+    return is_fixed

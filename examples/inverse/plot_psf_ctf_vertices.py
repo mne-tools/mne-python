@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
+"""
+Plot point-spread functions (PSFs) and cross-talk functions (CTFs)
+==================================================================
+
+Visualise PSF and CTF at one vertex for sLORETA.
+"""
 # Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
-"""
-Plot point-spread functions (PSFs) and cross-talk functions (CTFs).
-
-Visualise PSF and CTF at one vertex for sLORETA.
-"""
 
 import mne
 from mne.datasets import sample
@@ -57,25 +58,20 @@ stc_psf = get_psf_ctf_vertex(rm_lor, forward['src'], sources, 'psf',
 stc_ctf = get_psf_ctf_vertex(rm_lor, forward['src'], sources, 'ctf',
                              norm=True)
 
+##############################################################################
 # Visualise
-from mayavi import mlab
+# ---------
 
 # Which vertex corresponds to selected source
 vertno_lh = forward['src'][0]['vertno']
 verttrue = [vertno_lh[sources[0]]]  # just one vertex
-
-# # maximum value for scaling
-# mp = np.abs(stc_psf.data).max()
-# mc = np.abs(stc_ctf.data).max()
 
 # find vertices with maxima in PSF and CTF
 vert_max_psf = vertno_lh[stc_psf.data.argmax()]
 vert_max_ctf = vertno_lh[stc_ctf.data.argmax()]
 
 brain_psf = stc_psf.plot('sample', 'inflated', 'lh', subjects_dir=subjects_dir,
-                         figure=1, title='PSF')
-mlab.title('sLORETA PSF')
-
+                         figure=1, title='sLORETA PSF')
 brain_psf.show_view('ventral')
 
 # True source location for PSF
@@ -87,11 +83,8 @@ brain_psf.add_foci(vert_max_psf, coords_as_verts=True, scale_factor=1.,
                    hemi='lh', color='black')
 
 brain_ctf = stc_ctf.plot('sample', 'inflated', 'lh', subjects_dir=subjects_dir,
-                         figure=2)
-mlab.title('sLORETA CTF')
-
+                         figure=2, title='sLORETA CTF')
 brain_ctf.show_view('ventral')
-
 brain_ctf.add_foci(verttrue, coords_as_verts=True, scale_factor=1., hemi='lh',
                    color='green')
 
@@ -99,5 +92,5 @@ brain_ctf.add_foci(verttrue, coords_as_verts=True, scale_factor=1., hemi='lh',
 brain_ctf.add_foci(vert_max_ctf, coords_as_verts=True, scale_factor=1.,
                    hemi='lh', color='black')
 
-print('The green spheres indicate the true source location, and the black \
-      spheres the maximum of the distribution.')
+print('The green spheres indicate the true source location, and the black '
+      'spheres the maximum of the distribution.')

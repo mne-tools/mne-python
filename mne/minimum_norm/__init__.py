@@ -9,4 +9,4 @@ from .psf_ctf import point_spread_function, cross_talk_function
 from .time_frequency import (source_band_induced_power, source_induced_power,
                              compute_source_psd, compute_source_psd_epochs)
 
-from .resolution_matrix import make_resolution_matrix
+from .resolution_matrix import make_resolution_matrix, get_psf_ctf_vertex

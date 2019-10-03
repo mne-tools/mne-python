@@ -4,12 +4,6 @@
 #         Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
-"""
-Test the following properties of the resolution matrix.
-
-Resolution matrix is symmetrical for MNE (fixed and free source orientation).
-Resolution matrix has zero dipole localisation error for columns (PSFs).
-"""
 
 import os.path as op
 import numpy as np
@@ -47,8 +41,6 @@ rng = np.random.RandomState(0)
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
-
-# get functions for resolution matrix, metrics etc.
 
 
 @testing.requires_testing_data
