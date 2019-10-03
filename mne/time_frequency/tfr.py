@@ -644,6 +644,7 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
         out = EpochsTFR(info, power, times, freqs, method='%s-power' % method,
                         events=evs, event_id=ev_id, metadata=meta)
 
+    out.info['sfreq'] = out.info['sfreq'] / float(decim.step)
     return out
 
 
