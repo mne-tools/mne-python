@@ -1134,7 +1134,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         source amplitude, :math:`N` is the number of sensors, and
         :math:`s_k^2` is the noise variance on sensor :math:`k`.
                
-        References:
+        References
         ----------
         .. [1] Goldenholz, D. M., Ahlfors, S. P., Hämäläinen, M. S., Sharon, 
                D., Ishitobi, M., Vaina, L. M., & Stufflebeam, S. M. (2009).
