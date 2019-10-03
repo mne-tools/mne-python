@@ -362,6 +362,49 @@ def transform_to_head(montage):
     return montage
 
 
+def read_dig_dat(fname):
+    r"""Read electrode positions from .dat file
+
+    Parameters
+    ----------
+    fname : path-like
+        File from which to read electrode locations.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+    """
+    fname = _check_fname(fname, overwrite='read', must_exist=True)
+
+    with open(fname, 'r') as fid:
+        lines = fid.readlines()
+
+    electrodes = {}
+    nasion = lpa = rpa = None
+    for i, line in enumerate(lines):
+        items = line.split()
+        if not items:
+            continue
+        elif len(items) != 5:
+            raise ValueError(
+                f"Error reading {fname}, line {i} has unexpected number of "
+                f"entries:\n{line.rstrip()}")
+        num = items[1]
+        if num == '67':
+            continue  # centroid
+        pos = np.array([float(item) for item in items[2:]])
+        if num == '78':
+            nasion = pos
+        elif num == '76':
+            lpa = pos
+        elif num == '82':
+            rpa = pos
+        else:
+            electrodes[items[0]] = pos
+    return make_dig_montage(electrodes, nasion, lpa, rpa)
+
+
 def read_dig_fif(fname):
     r"""Read digitized points from a .fif file.
 
