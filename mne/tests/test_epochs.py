@@ -2672,6 +2672,7 @@ def test_readonly_times():
 
 
 def test_channel_types_mixin():
+    """Test channel types mixin."""
     raw, events = _get_data()[:2]
     epochs = Epochs(raw, events[:1], preload=True)
     ch_types = epochs.get_channel_types()
