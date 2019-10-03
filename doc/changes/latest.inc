@@ -22,6 +22,8 @@ Changelog
 
 - Add support for plotting fNIRS channels in :func:`mne.viz.plot_alignment` by `Eric Larson`_
 
+- Add support for computing resolution matrix to get point spread functions (PSF) and cross-talk functions (CTF) in :func:`mne.minimum_norm.make_resolution_matrix`, :func:`mne.minimum_norm.get_cross_talk`, :func:`mne.minimum_norm.get_point_spread` by `Olaf Hauk`_
+
 - Add keyboard functionality to interactive colorbar plotting TFRs by `Stefan Repplinger`_
 
 - Add the ability to ``return_event_id`` in :func:`mne.read_events` for use with MNE-C produced ``-annot.fif`` files, by `Eric Larson`_
@@ -49,3 +51,5 @@ API
 - :func:`mne.viz.plot_projs_topomap` now accepts both :class:`~mne.channels.Layout` and :class:`~mne.Info` (previously one or the other), and will ignore :class:`~mne.Info` if :class:`~mne.channels.Layout` is provided `Daniel McCloy`_.
 
 - New methods :meth:`mne.io.Raw.get_channel_types`, :meth:`mne.Epochs.get_channel_types`, :meth:`mne.Evoked.get_channel_types` by `Daniel McCloy`_.
+
+- Deprecate ``mne.minimum_norm.point_spread_function`` and ``mne.minimum_norm.cross_talk_function`` by `Alex Gramfort`_
