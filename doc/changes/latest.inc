@@ -40,3 +40,5 @@ Bug
 
 API
 ~~~
+
+- New methods :meth:`mne.io.Raw.get_channel_types`, :meth:`mne.Epochs.get_channel_types`, :meth:`mne.Evoked.get_channel_types` by `Daniel McCloy`_.

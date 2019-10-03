@@ -2671,6 +2671,15 @@ def test_readonly_times():
         epochs.times[:] = 0.
 
 
+def test_channel_types_mixin():
+    """Test channel types mixin."""
+    raw, events = _get_data()[:2]
+    epochs = Epochs(raw, events[:1], preload=True)
+    ch_types = epochs.get_channel_types()
+    assert len(ch_types) == len(epochs.ch_names)
+    assert all(np.in1d(ch_types, ['mag', 'grad', 'eeg', 'eog', 'stim']))
+
+
 def test_average_methods():
     """Test average methods."""
     n_epochs, n_channels, n_times = 5, 10, 20
