@@ -119,7 +119,3 @@ def test_resolution_metrics():
     r2 = _rectify_resolution_matrix(r1)
 
     assert_array_equal(r2, np.sqrt(2) * np.ones([4, 4]))
-
-#     return r1, r2
-
-# r1, r2 = test_resolution_metrics()

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
-#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 """
@@ -9,8 +8,6 @@ Plot PSFs and CTFs with corresponding resolution metrics.
 Compare metrics localisation error and spatial extent with the
 corresponding PSFs and CTFs.
 """
-
-# WIP
 
 import mne
 from mne.datasets import sample
@@ -47,7 +44,7 @@ inverse_operator = mne.minimum_norm.make_inverse_operator(
 # regularisation parameter
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
-method = 'MNE'  # can be 'MNE' or 'sLORETA'
+method = 'MNE'  # can be 'MNE', 'sLORETA' or 'eLORETA'
 
 # compute resolution matrix for sLORETA
 rm_lor = make_resolution_matrix(forward, inverse_operator,
@@ -57,6 +54,7 @@ rm_lor = make_resolution_matrix(forward, inverse_operator,
 rm_lor = make_resolution_matrix(forward, inverse_operator,
                                 method='sLORETA', lambda2=lambda2)
 
+# Compute peak localisation error for PSFs and CTFs, respectively
 locerr_psf = localisation_error(rm_lor, inverse_operator['src'], type='psf',
                                 metric='peak')
 locerr_ctf = localisation_error(rm_lor, inverse_operator['src'], type='ctf',
@@ -79,7 +77,7 @@ txt = 'PLE: %.2f cm'  # localisation error for display
 vertno_lh = forward['src'][0]['vertno']
 verttrue = [vertno_lh[sources[0]]]  # just one vertex
 
-# find vertices with maxima in PSF and CTF
+# Find vertices with maxima in PSF and CTF
 vert_max_psf = vertno_lh[stc_psf.data.argmax()]
 vert_max_ctf = vertno_lh[stc_ctf.data.argmax()]
 
@@ -88,11 +86,11 @@ brain_psf = stc_psf.plot('sample', 'inflated', 'lh', subjects_dir=subjects_dir,
 
 brain_psf.show_view('ventral')
 
-# True source location for PSF
+# Indicate true source location for PSF
 brain_psf.add_foci(verttrue, coords_as_verts=True, scale_factor=1., hemi='lh',
                    color='green')
 
-# Maximum of PSF
+# Indicate location of maximum of PSF
 brain_psf.add_foci(vert_max_psf, coords_as_verts=True, scale_factor=1.,
                    hemi='lh', color='black')
 
@@ -101,10 +99,11 @@ brain_ctf = stc_ctf.plot('sample', 'inflated', 'lh', subjects_dir=subjects_dir,
 
 brain_ctf.show_view('ventral')
 
+# Indicate location of maximum of PSF
 brain_ctf.add_foci(verttrue, coords_as_verts=True, scale_factor=1., hemi='lh',
                    color='green')
 
-# Maximum of CTF
+# Indicate location of maximum of PSF
 brain_ctf.add_foci(vert_max_ctf, coords_as_verts=True, scale_factor=1.,
                    hemi='lh', color='black')
 
