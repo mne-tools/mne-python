@@ -14,6 +14,7 @@ Current (0.20.dev0)
 
 Changelog
 ~~~~~~~~~
+- Add command ``mne setup_source_space`` to quickly set up bilateral hemisphere surface-based source space with subsampling by `Victor Ferat`_.
 
 - Add function :func:`mne.make_fixed_length_epochs` to segment raw into fixed length epochs by `Mohammad Daneshzand`_
 
