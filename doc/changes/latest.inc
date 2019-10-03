@@ -30,6 +30,8 @@ Changelog
 
 - Add reader for NIRx data in :func:`mne.io.read_raw_nirx` by `Robert Luke`_
 
+- For KIT systems without built-in layout, :func:`find_layout` now falls back on an automatically generated layout, by `Christian Brodbeck`_
+
 Bug
 ~~~
 
