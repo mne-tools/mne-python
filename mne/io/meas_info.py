@@ -1861,19 +1861,28 @@ def _force_update_info(info_base, info_target):
             i_targ[key] = val
 
 
-def anonymize_info(info, timeshift=None, keep_his=False):
-    """Anonymize measurement information in place.
+def _meas_date_to_datetime(meas_date):
+    """Convert meas_date to datatime object."""
+    out_date = datetime.datetime.fromtimestamp(int(meas_date[0]))
+    out_date += datetime.timedelta(microseconds=int(meas_date[1]))
+    return out_date
 
-    Reset 'subject_info', 'meas_date', 'file_id', and 'meas_id' keys if they
-    exist in ``info``.
+
+def _datetime_to_meas_date(inp_date):
+    """Convert a datetime object to a meas_date."""
+    return int(inp_date.timestamp() // 1), inp_date.microsecond
+
+
+def anonymize_info(info, daysback=None, keep_his=False):
+    """Anonymize measurement information in place.
 
     Parameters
     ----------
     info : dict, instance of Info
         Measurement information for the dataset.
-    timeshift : int | None
+    daysback : int | None
         Number of days to subtract from all dates.
-        If None timeshift moves date of service to Jan 1 2000
+        If None daysback moves date of service to Jan 1 2000
     keep_his : bool
         If True his_id of subject_info will NOT be overwritten.
         defaults to False
@@ -1895,16 +1904,16 @@ def anonymize_info(info, timeshift=None, keep_his=False):
     default_desc = ("Anonymized using a time shift"
                     " to preserve age at acquisition")
 
-    if timeshift is None:
-        tmp = (info['meas_date'][0] -
-               datetime.datetime.timestamp(default_anon_dos))
-        delta_t = datetime.timedelta(seconds=tmp)
+    # datetime object representing meas_date
+    meas_date_datetime = _meas_date_to_datetime(info['meas_date'])
+
+    if daysback is None:
+        delta_t = meas_date_datetime - default_anon_dos
     else:
-        delta_t = datetime.timedelta(days=timeshift)
+        delta_t = datetime.timedelta(days=daysback)
 
     # adjust meas_date
-    info['meas_date'] = \
-        (int(info['meas_date'][0] - delta_t.total_seconds()), 0)
+    info['meas_date'] = _datetime_to_meas_date(meas_date_datetime - delta_t)
 
     # file_id and meas_id
     for key in ('file_id', 'meas_id'):
@@ -1913,32 +1922,32 @@ def anonymize_info(info, timeshift=None, keep_his=False):
             assert 'msecs' not in value
             value['secs'] = info['meas_date'][0]
             value['usecs'] = info['meas_date'][1]
-            value['machid'][:] = -1
+            value['machid'][:] = 0
 
     # subject info
-    if info.get('subject_info') is not None:
-        subj_info = info.get('subject_info')
-        if subj_info.get('id') is not None:
-            subj_info['id'] = default_subject_id
+    subject_info = info.get('subject_info')
+    if subject_info is not None:
+        if subject_info.get('id') is not None:
+            subject_info['id'] = default_subject_id
         if keep_his:
             logger.warning('Not fully anonymizing info - keeping \'his_id\'')
-        elif subj_info.get('his_id') is not None:
-            subj_info['his_id'] = str(default_subject_id)
+        elif subject_info.get('his_id') is not None:
+            subject_info['his_id'] = str(default_subject_id)
 
         for key in ('last_name', 'first_name', 'middle_name'):
-            if subj_info.get(key) is not None:
-                subj_info[key] = default_str
+            if subject_info.get(key) is not None:
+                subject_info[key] = default_str
 
-        if subj_info.get('birthday') is not None:
-            dob = datetime.datetime(subj_info['birthday'][0],
-                                    subj_info['birthday'][1],
-                                    subj_info['birthday'][2])
+        if subject_info.get('birthday') is not None:
+            dob = datetime.datetime(subject_info['birthday'][0],
+                                    subject_info['birthday'][1],
+                                    subject_info['birthday'][2])
             dob -= delta_t
-            subj_info['birthday'] = dob.year, dob.month, dob.day
+            subject_info['birthday'] = dob.year, dob.month, dob.day
 
         for key in ('weight', 'height'):
-            if subj_info.get(key) is not None:
-                subj_info[key] = 0
+            if subject_info.get(key) is not None:
+                subject_info[key] = 0
 
     info['experimenter'] = default_str
     info['description'] = default_desc
@@ -1950,24 +1959,25 @@ def anonymize_info(info, timeshift=None, keep_his=False):
     if info['utc_offset'] is not None:
         info['utc_offset'] = None
 
-    if info.get('proc_history') is not None:
-        for record in info.get('proc_history'):
+    proc_hist = info.get('proc_history')
+    if proc_hist is not None:
+        for record in proc_hist:
             record['block_id']['secs'] = info['meas_date'][0]
             record['block_id']['usecs'] = info['meas_date'][1]
-            record['block_id']['machid'][:] = -1
+            record['block_id']['machid'][:] = 0
             record['date'] = info['meas_date']
             record['experimenter'] = default_str
 
-    if info.get('helium_info') is not None:
-        hi = info.get('helium_info')
+    hi = info.get('helium_info')
+    if hi is not None:
         if hi.get('orig_file_guid') is not None:
             hi['orig_file_guid'] = default_str
         if hi.get('meas_date') is not None:
             hi['meas_date'] = [info['meas_date'][0],
                                info['meas_date'][1]]
 
-    if info.get('device_info') is not None:
-        di = info.get('device_info')
+    di = info.get('device_info')
+    if di is not None:
         for k in ('serial', 'site'):
             if di.get(k) is not None:
                 di[k] = default_str

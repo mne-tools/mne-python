@@ -22,10 +22,10 @@ from mne.io.constants import FIFF
 from mne.io.write import _generate_meas_id
 from mne.io.meas_info import (Info, create_info, _merge_info,
                               _force_update_info, RAW_INFO_FIELDS,
-                              _bad_chans_comp, _get_valid_units,
-                              anonymize_info)
-from mne.io._digitization import (_write_dig_points, _read_dig_points,
-                                  _make_dig_points,)
+                              _bad_chans_comp, _get_valid_units, anonymize_info,
+                              _datetime_to_meas_date, _meas_date_to_datetime)
+from mne._digitization._utils import (_write_dig_points, _read_dig_points,
+                                      _make_dig_points,)
 from mne.io import read_raw_ctf
 from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
 from mne.channels import make_standard_montage
@@ -473,13 +473,13 @@ def _test_anonymize_info(base_info):
             assert 'msecs' not in value
             value['secs'] = exp_info['meas_date'][0]
             value['usecs'] = exp_info['meas_date'][1]
-            value['machid'][:] = -1
+            value['machid'][:] = 0
 
     # exp 2 tests the keep_his option
     exp_info_2 = exp_info.copy()
     exp_info_2['subject_info']['his_id'] = 'foobar'
 
-    # exp 3 tests is a supplied timeshift
+    # exp 3 tests is a supplied daysback
     dt = timedelta(days=43)
     exp_info_3 = exp_info.copy()
     exp_info_3['subject_info']['birthday'] = (1987, 2, 24)
@@ -490,8 +490,7 @@ def _test_anonymize_info(base_info):
             assert 'msecs' not in value
             value['secs'] = exp_info_3['meas_date'][0]
             value['usecs'] = exp_info_3['meas_date'][1]
-            value['machid'][:] = -1
-            print(value)
+            value['machid'][:] = 0
 
     new_info = anonymize_info(base_info.copy())
     assert_object_equal(new_info, exp_info)
@@ -499,8 +498,17 @@ def _test_anonymize_info(base_info):
     new_info = anonymize_info(base_info.copy(), keep_his=True)
     assert_object_equal(new_info, exp_info_2)
 
-    new_info = anonymize_info(base_info.copy(), timeshift=dt.days)
+    new_info = anonymize_info(base_info.copy(), daysback=dt.days)
     assert_object_equal(new_info, exp_info_3)
+
+
+def test_meas_date_convert(tmpdir):
+    """Test conversions of meas_date to datetime objects."""
+    meas_date = (1346981585, 835782)
+    meas_datetime = _meas_date_to_datetime(meas_date)
+    meas_date2 = _datetime_to_meas_date(meas_datetime)
+    assert(meas_date == meas_date2)
+    assert(meas_datetime == datetime(2012, 9, 6, 21, 33, 5, 835782))
 
 
 def test_anonymize(tmpdir):
@@ -523,8 +531,7 @@ def test_anonymize(tmpdir):
 
     # test that annotations are correctly zeroed
     raw.anonymize()
-    assert(hasattr(raw, 'annotations') and
-           raw.annotations.orig_time is None)
+    assert(raw.annotations.orig_time is raw.info['meas_date'])
 
 
 @testing.requires_testing_data

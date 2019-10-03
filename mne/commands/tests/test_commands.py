@@ -18,7 +18,7 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_show_info, mne_what, mne_setup_source_space,
                           mne_anonymize)
 from mne.datasets import testing, sample
-from mne.io import read_raw_fif
+from mne.io import read_raw_fif, read_info
 from mne.utils import (run_tests_if_main, requires_mne,
                        requires_mayavi, requires_tvtk, requires_freesurfer,
                        traits_test, ArgvSetter, modified_env)
@@ -315,11 +315,14 @@ def test_show_info():
         mne_show_info.run()
 
 
-def test_anonymize():
+def test_anonymize(tmpdir):
     """Test mne anonymize."""
     check_usage(mne_anonymize)
-    with ArgvSetter(('-f', raw_fname)):
+    out_fname = op.join(tmpdir, 'anon_test_raw.fif')
+    with ArgvSetter(('-f', raw_fname, '-o', out_fname)):
         mne_anonymize.run()
-
+    info = read_info(out_fname)
+    assert(op.exists(out_fname))
+    assert_equal((946702800, 0), info['meas_date'], )
 
 run_tests_if_main()
