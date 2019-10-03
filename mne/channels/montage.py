@@ -180,6 +180,7 @@ class DigMontage(object):
     See Also
     --------
     read_dig_captrack
+    read_dig_dat
     read_dig_egi
     read_dig_fif
     read_dig_hpts
