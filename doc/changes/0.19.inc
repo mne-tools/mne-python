@@ -17,6 +17,8 @@ Bug
 
 - Fix handling of repeated events in :class:`mne.Epochs` by `Fahimeh Mamashli`_ and `Alex Gramfort`_
 
+- Fix reading of cardinals in .htps files (identifier are int not strings) by `Alex Gramfort`_
+
 - Fix TAL channel parsing (annotations) for EDF-D files by `Clemens Brunner`_
 
 - Fix IO of TFRs when event_id contain a / in one of the keys by `Alex Gramfort`_
