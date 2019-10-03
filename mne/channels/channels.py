@@ -3,6 +3,7 @@
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Andrew Dykstra <andrew.r.dykstra@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
+#          Daniel McCloy <dan.mccloy@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -167,6 +168,10 @@ class ContainsMixin(object):
         """The current gradient compensation grade."""
         return get_current_comp(self.info)
 
+    def get_channel_types(self):
+        """Get a list of channel type for each channel."""
+        return [channel_type(self.info, n)
+                for n in range(len(self.info['ch_names']))]
 
 # XXX Eventually de-duplicate with _kind_dict of mne/io/meas_info.py
 _human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,
