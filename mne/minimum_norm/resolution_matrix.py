@@ -59,7 +59,7 @@ def make_resolution_matrix(forward, inverse_operator, method='dSPM',
     return resmat
 
 
-def get_psf_ctf_vertex(resmat, src, idx, func='psf', norm=False):
+def _get_psf_ctf(resmat, src, idx, func='psf', norm=False):
     """Get point-spread (PSFs) or cross-talk (CTFs) functions for vertices.
 
     Parameters
@@ -101,6 +101,50 @@ def get_psf_ctf_vertex(resmat, src, idx, func='psf', norm=False):
     stc = SourceEstimate(funcs, vertno, tmin=0., tstep=1.)
 
     return stc
+
+
+def get_point_spread(resmat, src, idx, norm=False):
+    """Get point-spread (PSFs) functions for vertices.
+
+    Parameters
+    ----------
+    resmat : array, shape (n_dipoles, n_dipoles)
+        Forward Operator.
+    src : Source Space
+        Source space used to compute resolution matrix.
+    idx : list of int
+        Vertex indices for which PSFs or CTFs to produce.
+    norm : bool
+        Whether to normalise to maximum across all PSFs (default: False)
+
+    Returns
+    -------
+    stc: instance of SourceEstimate
+        PSFs as an stc object.
+    """
+    return _get_psf_ctf(resmat, src, idx, func='psf', norm=norm)
+
+
+def get_cross_talk(resmat, src, idx, norm=False):
+    """Get cross-talk (CTFs) function for vertices.
+
+    Parameters
+    ----------
+    resmat : array, shape (n_dipoles, n_dipoles)
+        Forward Operator.
+    src : Source Space
+        Source space used to compute resolution matrix.
+    idx : list of int
+        Vertex indices for which PSFs or CTFs to produce.
+    norm : bool
+        Whether to normalise to maximum across all CTFs (default: False)
+
+    Returns
+    -------
+    stc: instance of SourceEstimate
+        CTFs as an stc object.
+    """
+    return _get_psf_ctf(resmat, src, idx, func='ctf', norm=norm)
 
 
 def _convert_forward_match_inv(fwd, inv):

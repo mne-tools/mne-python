@@ -22,6 +22,8 @@ Changelog
 
 - Add support for plotting fNIRS channels in :func:`mne.viz.plot_alignment` by `Eric Larson`_
 
+- Add support for computing resolution matrix to get point spread functions (PSF) and cross-talk functions (CTF) in :func:`mne.minimum_norm.make_resolution_matrix`, :func:`mne.minimum_norm.make_resolution_matrix`, :func:`mne.minimum_norm.make_resolution_matrix` by `Olaf Hauk`_
+
 - Add keyboard functionality to interactive colorbar plotting TFRs by `Stefan Repplinger`_
 
 - Add the ability to ``return_event_id`` in :func:`mne.read_events` for use with MNE-C produced ``-annot.fif`` files, by `Eric Larson`_
