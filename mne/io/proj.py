@@ -300,7 +300,6 @@ class ProjMixin(object):
         fig : instance of Figure
             Figure distributing one image per channel across sensor topography.
         """
-
         if self.info['projs'] is not None or len(self.info['projs']) != 0:
             from ..viz.topomap import plot_projs_topomap
             fig = plot_projs_topomap(self.info['projs'], layout=layout,
