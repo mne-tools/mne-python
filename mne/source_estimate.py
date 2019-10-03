@@ -23,8 +23,9 @@ from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     fill_doc, _check_option, _validate_type, _check_src_normal)
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
-from .io.base import (ToDataFrameMixin, TimeMixin)
-from .externals.h5io import (read_hdf5, write_hdf5)
+from .io.base import ToDataFrameMixin, TimeMixin
+from .externals.h5io import read_hdf5, write_hdf5
+
 
 def _read_stc(filename):
     """Aux Function."""

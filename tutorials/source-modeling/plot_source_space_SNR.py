@@ -45,12 +45,11 @@ inv = make_inverse_operator(evoked.info, fwd, cov, loose=0., depth=0.8,
 
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
-kwargs = dict(initial_time=0.08, hemi='both', subjects_dir=subjects_dir,
-              size=(600, 600))
 
-stc = abs(apply_inverse(evoked, inv, lambda2, 'MNE', verbose=True))
+stc = apply_inverse(evoked, inv, lambda2, 'MNE', verbose=True)
 snr_stc = stc.estimate_snr(evoked.info, fwd, cov)
 
-kwargs2 = dict(initial_time=0.29, hemi='both', subjects_dir=subjects_dir,
-              size=(600, 600),colormap='coolwarm',clim=dict(kind='value', lims=(-20,0,20)))
-snr_stc.plot(figure=1, **kwargs2)
+kwargs = dict(initial_time=0.29, hemi='both', subjects_dir=subjects_dir,
+              size=(600, 600), colormap='viridis',
+              clim=dict(kind='value', lims=(-20, 0, 20)))
+snr_stc.plot(figure=1, **kwargs)
