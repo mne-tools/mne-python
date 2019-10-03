@@ -1,4 +1,4 @@
-from ..utils import logger
+from ..utils import logger, verbose
 import numpy as np
 from scipy import sparse
 
@@ -8,7 +8,7 @@ def mesh_edges(faces):
 
     Parameters
     ----------
-    faces : array of shape [n_triangles x 3]
+    faces : array, shape (n_triangles, 3)
         The mesh faces
 
     Returns
@@ -30,16 +30,17 @@ def mesh_edges(faces):
     return edges
 
 
+@verbose
 def smoothing_matrix(vertices, adj_mat, smoothing_steps=20, verbose=None):
     """Create a smoothing matrix.
 
-       This smoothing matrix can be used to interpolate data defined
-       for a subset of vertices onto mesh with an adjancency matrix given by
-       adj_mat.
+    This smoothing matrix can be used to interpolate data defined
+    for a subset of vertices onto mesh with an adjancency matrix given by
+    adj_mat.
 
-       If smoothing_steps is None, as many smoothing steps are applied until
-       the whole mesh is filled with with non-zeros. Only use this option if
-       the vertices correspond to a subsampled version of the mesh.
+    If smoothing_steps is None, as many smoothing steps are applied until
+    the whole mesh is filled with with non-zeros. Only use this option if
+    the vertices correspond to a subsampled version of the mesh.
 
     Parameters
     ----------
@@ -49,8 +50,7 @@ def smoothing_matrix(vertices, adj_mat, smoothing_steps=20, verbose=None):
         N x N adjacency matrix of the full mesh
     smoothing_steps : int or None
         number of smoothing steps (Default: 20)
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see surfer.verbose).
+    %(verbose)s
 
     Returns
     -------
