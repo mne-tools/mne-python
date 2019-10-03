@@ -13,6 +13,25 @@ from ..surface import _normalize_vectors
 from ..forward import _map_meg_channels
 
 
+def _calc_h(cosang, stiffness=4, num_lterms=50):
+    """Calculate spherical spline h function between points on a sphere.
+
+    Parameters
+    ----------
+    cosang : array-like | float
+        cosine of angles between pairs of points on a spherical surface. This
+        is equivalent to the dot product of unit vectors.
+    stiffness : float
+        stiffnes of the spline. Also referred to as `m`.
+    num_lterms : int
+        number of Legendre terms to evaluate.
+    """
+    factors = [(2 * n + 1) /
+               (n ** (stiffness - 1) * (n + 1) ** (stiffness - 1) * 4 * np.pi)
+               for n in range(1, num_lterms + 1)]
+    return legval(cosang, [0] + factors)
+
+
 def _calc_g(cosang, stiffness=4, num_lterms=50):
     """Calculate spherical spline g function between points on a sphere.
 
