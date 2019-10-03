@@ -15,7 +15,7 @@ from .colormap import calculate_lut
 from .view import lh_views_dict, rh_views_dict, View
 from .surface import Surface
 from .utils import mesh_edges, smoothing_matrix
-from ..utils import _check_option, logger
+from ..utils import _check_option, logger, verbose
 
 
 class _Brain(object):
@@ -222,13 +222,14 @@ class _Brain(object):
         # Force rendering
         self._renderer.show()
 
+    @verbose
     def add_data(self, array, fmin=None, fmid=None, fmax=None,
                  thresh=None, center=None, transparent=False, colormap="auto",
                  alpha=1, vertices=None, smoothing_steps=None, time=None,
                  time_label="time index=%d", colorbar=True,
                  hemi=None, remove_existing=None, time_label_size=None,
                  initial_time=None, scale_factor=None, vector_alpha=None,
-                 verbose=False):
+                 verbose=None):
         u"""Display data from a numpy array on the surface.
 
         This provides a similar interface to
@@ -310,8 +311,7 @@ class _Brain(object):
             Not supported yet.
             alpha level to control opacity of the arrows. Only used for
             vector-valued data. If None (default), ``alpha`` is used.
-        verbose : bool
-            Set the default verbose level.
+        %(verbose)s
 
         Notes
         -----
@@ -326,7 +326,6 @@ class _Brain(object):
         clamped to be strictly < 1.
         """
         _check_option('transparent', type(transparent), [bool])
-        _check_option('verbose', type(verbose), [bool])
 
         # those parameters are not supported yet, only None is allowed
         _check_option('thresh', thresh, [None])
@@ -660,7 +659,7 @@ class _Brain(object):
         self._renderer.text2d(x=x, y=y, text=text, color=color,
                               size=font_size, justification=justification)
 
-    def remove_labels(self, labels=None, hemi=None):
+    def remove_labels(self, labels=None):
         """Remove one or more previously added labels from the image.
 
         Parameters
@@ -669,8 +668,6 @@ class _Brain(object):
             Labels to remove. Can be a string naming a single label, or None to
             remove all labels. Possible names can be found in the Brain.labels
             attribute.
-        hemi : None
-            Deprecated parameter, do not use.
         """
         pass
 
