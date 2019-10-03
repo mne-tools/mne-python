@@ -1158,19 +1158,18 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     # Draw event lines for the first time.
     _plot_vert_lines(params)
 
-    # for epoch_idx in params['epoch_colors']:
-    #     params['ax_hscroll'].patches[epoch_idx].set_color((1., 0., 0., 1.))
-    #     params['ax_hscroll'].patches[epoch_idx].set_zorder(3)
-    #     params['ax_hscroll'].patches[epoch_idx].set_edgecolor('w')
-    #     for ch_idx in range(len(params['ch_names'])):
-    #         params['colors'][ch_idx][epoch_idx] = (1., 0., 0., 1.)
-
-    # Plot bad segments
+    # Plot epoch_colors
     if params['epoch_colors'] is not None:
-        for ch_idx in range(len(params['ch_names'])):
-            for epoch_idx in range(len(params['epochs'].events)):
-                if params['epoch_colors'][epoch_idx][ch_idx] is not None:
-                    params['colors'][ch_idx][epoch_idx] = params['epoch_colors'][epoch_idx][ch_idx]
+        for epoch_idx, epoch_color in enumerate(params['epoch_colors']):
+            for ch_idx in range(len(params['ch_names'])):
+                if epoch_color[ch_idx] is not None:
+                    params['colors'][ch_idx][epoch_idx] = epoch_color[ch_idx]
+
+            # plot on horizontal patch if all colors are same
+            if epoch_color.count(epoch_color[0]) == len(epoch_color):
+                params['ax_hscroll'].patches[epoch_idx].set_color(epoch_color[0])
+                params['ax_hscroll'].patches[epoch_idx].set_zorder(3)
+                params['ax_hscroll'].patches[epoch_idx].set_edgecolor('w')
 
     params['plot_fun']()
 
