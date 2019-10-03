@@ -19,7 +19,7 @@ from .constants import FIFF
 from .pick import pick_types
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
-from ..utils import logger, verbose, warn
+from ..utils import logger, verbose, warn, fill_doc
 
 
 class Projection(dict):
@@ -279,7 +279,11 @@ class ProjMixin(object):
         self.info['projs'] = [p for p, k in zip(self.info['projs'], keep) if k]
         return self
 
-    def plot_projs_topomap(self, ch_type=None, layout=None, axes=None):
+    @fill_doc
+    def plot_projs_topomap(self, ch_type=None, layout=None, cmap=None,
+                           sensors=True, colorbar=False, res=64, size=1,
+                           show=True, outlines='head', contours=6,
+                           image_interp='bilinear', axes=None):
         """Plot SSP vector.
 
         Parameters
@@ -289,17 +293,7 @@ class ProjMixin(object):
             ted in pairs and the RMS for each pair is plotted. If None
             (default), it will return all channel types present. If a list of
             ch_types is provided, it will return multiple figures.
-        layout : None | Layout | list of Layout
-            Layout instance specifying sensor positions (does not need to
-            be specified for Neuromag data). If possible, the correct
-            layout file is inferred from the data; if no appropriate layout
-            file was found, the layout is automatically generated from the
-            sensor locations. Or a list of Layout if projections
-            are from different sensor types.
-        axes : instance of Axes | list | None
-            The axes to plot to. If list, the list must be a list of Axes of
-            the same length as the number of projectors. If instance of Axes,
-            there must be only one projector. Defaults to None.
+        %(proj_topomap_kwargs)s
 
         Returns
         -------
@@ -308,22 +302,15 @@ class ProjMixin(object):
         """
         if self.info['projs'] is not None or len(self.info['projs']) != 0:
             from ..viz.topomap import plot_projs_topomap
-            from ..channels.layout import find_layout
-            if layout is None:
-                layout = []
-                if ch_type is None:
-                    ch_type = [ch for ch in ['meg', 'eeg'] if ch in self]
-                elif isinstance(ch_type, str):
-                    ch_type = [ch_type]
-                for ch in ch_type:
-                    if ch in self:
-                        layout.append(find_layout(self.info, ch, exclude=[]))
-                    else:
-                        warn('Channel type %s is not found in info.' % ch)
-            fig = plot_projs_topomap(self.info['projs'], layout, axes=axes)
+            fig = plot_projs_topomap(self.info['projs'], layout=layout,
+                                     cmap=cmap, sensors=sensors,
+                                     colorbar=colorbar, res=res, size=size,
+                                     show=show, outlines=outlines,
+                                     contours=contours,
+                                     image_interp=image_interp, axes=axes,
+                                     info=self.info)
         else:
             raise ValueError("Info is missing projs. Nothing to plot.")
-
         return fig
 
 
