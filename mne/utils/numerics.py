@@ -902,7 +902,7 @@ def julian_to_datetime(jd):
 
     """
     # https://aa.usno.navy.mil/data/docs/JulianDate.php
-    # Thursday, A.D. 1970 Jan 1	12:00:00.0	2440588.000000
+    # Thursday, A.D. 1970 Jan 1 12:00:00.0  2440588.000000
     jd_t0 = 2440588
     datetime_t0 = datetime(1970, 1, 1, 12, 0, 0, 0)
 
@@ -928,7 +928,7 @@ def datetime_to_julian(jd_date):
 
     """
     # https://aa.usno.navy.mil/data/docs/JulianDate.php
-    # Thursday, A.D. 1970 Jan 1	12:00:00.0	2440588.000000
+    # Thursday, A.D. 1970 Jan 1 12:00:00.0  2440588.000000
     jd_t0 = 2440588
     datetime_t0 = datetime(1970, 1, 1, 12, 0, 0, 0)
 

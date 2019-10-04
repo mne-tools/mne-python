@@ -450,8 +450,8 @@ def test_array_equal_nan():
 def test_julian_conversions():
     """Test julian calendar conversions."""
     # https://aa.usno.navy.mil/data/docs/JulianDate.php
-    # A.D. 1922 Jun 13	12:00:00.0	2423219.000000
-    # A.D. 2018 Oct 3	12:00:00.0	2458395.000000
+    # A.D. 1922 Jun 13  12:00:00.0  2423219.000000
+    # A.D. 2018 Oct 3   12:00:00.0  2458395.000000
 
     jds = [2423219, 2458395]
     dds = [datetime(1922, 6, 13, 12, 0, 0),
