@@ -1505,7 +1505,6 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         return label_tc
 
-
     @verbose
     def estimate_snr(self, info, fwd, cov, verbose=None):
         r"""Compute time-varying SNR in the source space.
@@ -1515,7 +1514,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         .. warning:: This function currently only works properly for fixed
                      orientation.
-                     
+
         Parameters
         ----------
         info : instance Info
@@ -1545,10 +1544,10 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         forward model for a source with unit amplitude, :math:`a` is the
         source amplitude, :math:`N` is the number of sensors, and
         :math:`s_k^2` is the noise variance on sensor :math:`k`.
-               
+
         References
         ----------
-        .. [1] Goldenholz, D. M., Ahlfors, S. P., Hämäläinen, M. S., Sharon, 
+        .. [1] Goldenholz, D. M., Ahlfors, S. P., Hämäläinen, M. S., Sharon,
                D., Ishitobi, M., Vaina, L. M., & Stufflebeam, S. M. (2009).
                Mapping the Signal-To-Noise-Ratios of Cortical Sources in
                Magnetoencephalography and Electroencephalography.
@@ -1556,28 +1555,25 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         """
         from .forward import convert_forward_solution
         from .minimum_norm.inverse import _prepare_forward
-        
+
         if (self.data >= 0).all():
-            warn_('This STC appears to be from free orientation, currently SNR '
-                 'function is valid only for fixed orientation')
-            
-        fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True)
-        
+            warn_('This STC appears to be from free orientation, currently SNR'
+                  ' function is valid only for fixed orientation')
+
+        fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=False)
+
         # G is gain matrix [ch x src], cov is noise covariance [ch x ch]
-        G, _, _, _, _, _, _, cov, _ = _prepare_forward(fwd, info, cov,
-                                fixed=True, loose=0, rank=None, pca=False,
-                                use_cps=True, exp=None, limit_depth_chs=False,
-                                combine_xyz='fro', allow_fixed_depth=True,
-                                limit=None)
+        G, _, _, _, _, _, _, cov, _ = _prepare_forward(
+            fwd, info, cov, fixed=True, loose=0, rank=None, pca=False,
+            use_cps=True, exp=None, limit_depth_chs=False, combine_xyz='fro',
+            allow_fixed_depth=False, limit=None)
         G = G['sol']['data']
-        n_channels = cov['dim'] # number of sensors/channels  
-        print('Number of channels in calculating SNR: %d' % n_channels)
+        n_channels = cov['dim'] # number of sensors/channels
         b_k2 = (G * G).T
-        s_k2 = np.diag(cov['data'])                
+        s_k2 = np.diag(cov['data'])
         scaling = (1 / n_channels) * np.sum(b_k2 / s_k2, axis=1, keepdims=True)
-        snr_stc = SourceEstimate(10 * np.log10((self.data * self.data) * scaling), 
-                                 self.vertices, self.tmin, self.tstep, self.subject)
-                        
+        snr_stc = self.copy()
+        snr_stc._data[:] = 10 * np.log10((self.data * self.data) * scaling)
         return snr_stc
 
 
@@ -1712,7 +1708,6 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         t_ind = np.sum(masses * np.arange(self.shape[1])) / np.sum(masses)
         t = self.tmin + self.tstep * t_ind
         return vertex, hemi, t
-
 
 
 class _BaseVectorSourceEstimate(_BaseSourceEstimate):

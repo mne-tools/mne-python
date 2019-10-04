@@ -1,19 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-.. _tut-mne-sourcespace-snr:
+.. ex-mne-sourcespace-snr:
 
 ===============================
 Computing source space SNR
 ===============================
 
-This example shows how to compute and plot source space SNR.
-
-Reference:
-Goldenholz, D. M., Ahlfors, S. P., Hämäläinen, M. S., Sharon, D., Ishitobi, M.,
-Vaina, L. M., & Stufflebeam, S. M. (2009). Mapping the Signal-To-Noise-Ratios
-of Cortical Sources in Magnetoencephalography and Electroencephalography.
-Human Brain Mapping, 30(4), 1077–1086. doi:10.1002/hbm.20571
-
+This example shows how to compute and plot source space SNR as in [1]_.
 """
 # Author: Padma Sundaram <tottochan@gmail.com>
 #         Kaisu Lankinen <klankinen@mgh.harvard.edu>
@@ -24,7 +17,7 @@ Human Brain Mapping, 30(4), 1077–1086. doi:10.1002/hbm.20571
 
 import mne
 from mne.datasets import sample
-from mne.minimum_norm import make_inverse_operator, apply_inverse, read_inverse_operator
+from mne.minimum_norm import make_inverse_operator, apply_inverse
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -43,7 +36,8 @@ fwd = mne.read_forward_solution(fname_fwd)
 cov = mne.read_cov(fname_cov)
 
 ###############################################################################
-# MEG-EEG:
+# MEG-EEG
+# -------
 
 # Read inverse operator:
 inv_op = make_inverse_operator(evoked.info, fwd, cov, fixed=True, verbose=True)
@@ -68,65 +62,41 @@ fig.tight_layout()
 maxidx = np.argmax(ave)
 
 # Plot SNR on source space at the time point of maximum SNR:
-kwargs = dict(initial_time=evoked.times[maxidx], hemi='both',
-              subjects_dir=subjects_dir, size=(600, 600), colormap='viridis',
-              clim=dict(kind='value', lims=(-100, -75, -50)))
-snr_stc.plot(figure=1, **kwargs)
+kwargs = dict(initial_time=evoked.times[maxidx], hemi='split',
+              views=['lat', 'med'], subjects_dir=subjects_dir, size=(600, 600),
+              clim=dict(kind='value', lims=(-100, -70, -40)),
+              transparent=True, colormap='viridis')
+snr_stc.plot(**kwargs)
 
 ###############################################################################
-# EEG:
+# EEG
+# ---
+# Next we do the same for EEG and plot the result on the cortex:
 
 evoked_eeg = evoked.copy().pick_types(eeg=True, meg=False)
-
-# Make inverse oparator:
 inv_op_eeg = make_inverse_operator(evoked_eeg.info, fwd, cov, fixed=True,
                                    verbose=True)
-
-# Calculate MNE:
 stc_eeg = apply_inverse(evoked_eeg, inv_op_eeg, lambda2, 'MNE', verbose=True)
-
-# Calculate SNR in source space:
 snr_stc_eeg = stc_eeg.estimate_snr(evoked_eeg.info, fwd, cov)
-
-# Plot an average SNR across source points over time:
-ave_eeg = np.mean(snr_stc_eeg.data, axis=0)
-fig, ax = plt.subplots()
-ax.plot(evoked_eeg.times, ave_eeg)
-ax.set(xlabel='Time (sec)', ylabel='SNR EEG')
-fig.tight_layout()
-
-# Plot SNR on source space at the time point of maximum SNR (same time point as
-# for MEG-EEG)
-kwargs = dict(initial_time=evoked.times[maxidx], hemi='both',
-              subjects_dir=subjects_dir, size=(600, 600), colormap='viridis',
-              clim=dict(kind='value', lims=(-100, -75, -50)))
-snr_stc_eeg.plot(figure=2, **kwargs)
+snr_stc_eeg.plot(**kwargs)
 
 ###############################################################################
-# MEG:
+# MEG
+# ---
+# Finally we do this for MEG:
 
 evoked_meg = evoked.copy().pick_types(eeg=False, meg=True)
-
-# Make inverse oparator:
 inv_op_meg = make_inverse_operator(evoked_meg.info, fwd, cov, fixed=True,
                                    verbose=True)
-
-# Calculate MNE:
 stc_meg = apply_inverse(evoked_meg, inv_op_meg, lambda2, 'MNE', verbose=True)
-
-# Calculate SNR in source space:
 snr_stc_meg = stc_meg.estimate_snr(evoked_meg.info, fwd, cov)
+snr_stc_meg.plot(**kwargs)
 
-# Plot an average SNR across source points over time:
-ave_meg = np.mean(snr_stc_meg.data, axis=0)
-fig, ax = plt.subplots()
-ax.plot(evoked_meg.times, ave_meg)
-ax.set(xlabel='Time (sec)', ylabel='SNR MEG')
-fig.tight_layout()
-
-# Plot SNR on source space at the time point of maximum SNR (same time point as
-# for MEG-EEG)
-kwargs = dict(initial_time=evoked.times[maxidx], hemi='both',
-              subjects_dir=subjects_dir, size=(600, 600), colormap='viridis',
-              clim=dict(kind='value', lims=(-100, -75, -50)))
-snr_stc_meg.plot(figure=3, **kwargs)
+##############################################################################
+# References
+# ----------
+# .. [1] Goldenholz, D. M., Ahlfors, S. P., Hämäläinen, M. S., Sharon, D.,
+#        Ishitobi, M., Vaina, L. M., & Stufflebeam, S. M. (2009). Mapping the
+#        Signal-To-Noise-Ratios of Cortical Sources in Magnetoencephalography
+#        and Electroencephalography. Human Brain Mapping, 30(4), 1077–1086.
+#        doi:10.1002/hbm.20571
