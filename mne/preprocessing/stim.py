@@ -79,8 +79,8 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
     _check_option('mode', mode, ['linear', 'window', 'constant'])
     s_start = int(np.ceil(inst.info['sfreq'] * tmin))
     s_end = int(np.ceil(inst.info['sfreq'] * tmax))
-    if (mode == "constant") and (baseline is None):
-        raise ValueError('Please provide the baseline')
+    if mode == "constant" and baseline is None:
+        raise ValueError('Please provide the baseline for mode="constant"')
     if mode == 'constant':
         b_start = int(np.ceil(inst.info['sfreq'] * baseline[0]))
         b_end = int(np.ceil(inst.info['sfreq'] * baseline[1]))
