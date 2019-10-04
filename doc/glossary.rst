@@ -54,6 +54,12 @@ general neuroimaging concepts. If you think a term is missing, please consider
     dipole
         See :term:`equivalent current dipole`.
 
+    dSPM
+        Dynamic statistical parametric mapping (abbr. ``dSPM``) gives a noise-
+        normalized minimum-norm estimate at a given source location. dSPM is 
+        calculated by dividing the activity estimate at each source location by 
+        the baseline standard deviation of the noise.
+
     eLORETA and sLORETA
         eLORETA and sLORETA (exact and standardized low resolution brain
         electromagnetic tomography) are linear source estimation techniques,
@@ -170,8 +176,8 @@ general neuroimaging concepts. If you think a term is missing, please consider
         map of activation on a :term:`source space`, usually on a cortical surface.
         MNE uses a linear :term:`inverse operator` to project sensor measurements
         into the source space. The :term:`inverse operator` is computed from the
-        :term:`forward solution` for a subject and an estimate of the noise covariance
-        of sensor measurements.
+        :term:`forward solution` for a subject and an estimate of the
+        :term:`noise covariance` of sensor measurements.
 
     montage
         EEG channel names and the relative positions of the sensor w.r.t. the scalp.
@@ -187,6 +193,15 @@ general neuroimaging concepts. If you think a term is missing, please consider
         literature. This operation is necessary for group studies (to get the
         data in a common space for statistical analysis).
         See :ref:`ch_morph` for more details.
+
+    noise covariance
+        Noise covariance is a matrix that contains the covariance between data
+        channels. It is a square matrix with shape ``n_channels`` :math:`\times`
+        ``n_channels``. It is especially useful when working with multiple sensor
+        types (e.g. EEG and MEG). It is in
+        practice estimated from baseline periods or empty room measurements.
+        The matrix also provides a noise model that can be used for subsequent analysis
+        like source imaging.
 
     pick
         An integer that is the index of a channel in the measurement info.

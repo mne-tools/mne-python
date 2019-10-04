@@ -254,6 +254,10 @@ def test_find_layout():
     raw_kit.info['bads'] = ['MEG  13', 'MEG  14', 'MEG  15', 'MEG  16']
     lout = find_layout(raw_kit.info)
     assert_equal(lout.kind, 'KIT-157')
+    # fallback for missing IDs
+    raw_kit.info['kit_system_id'] = 35
+    lout = find_layout(raw_kit.info)
+    assert lout.kind == 'custom'
 
     raw_umd = read_raw_kit(fname_kit_umd)
     lout = find_layout(raw_umd.info)

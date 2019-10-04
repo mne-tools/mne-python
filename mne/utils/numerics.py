@@ -15,6 +15,7 @@ import os.path as op
 from math import ceil
 import shutil
 import sys
+from datetime import datetime, timedelta, timezone
 
 import numpy as np
 from scipy import sparse
@@ -881,3 +882,98 @@ def _mask_to_onsets_offsets(mask):
         offsets = np.concatenate([offsets, [len(mask)]])
     assert len(onsets) == len(offsets)
     return onsets, offsets
+
+
+def _julian_to_dt(jd):
+    """Convert Julian integer to a datetime object.
+
+    Parameters
+    ----------
+    jd : int
+        Julian date - number of days since julian day 0
+        Julian day number 0 assigned to the day starting at
+        noon on January 1, 4713 BC, proleptic Julian calendar
+        November 24, 4714 BC, in the proleptic Gregorian calendar
+
+    Returns
+    -------
+    jd_date : datetime
+        Datetime representation of jd
+
+    """
+    # https://aa.usno.navy.mil/data/docs/JulianDate.php
+    # Thursday, A.D. 1970 Jan 1 12:00:00.0  2440588.000000
+    jd_t0 = 2440588
+    datetime_t0 = datetime(1970, 1, 1, 12, 0, 0, 0, tzinfo=timezone.utc)
+
+    dt = timedelta(days=(jd - jd_t0))
+    return datetime_t0 + dt
+
+
+def _dt_to_julian(jd_date):
+    """Convert datetime object to a Julian integer.
+
+    Parameters
+    ----------
+    jd_date : datetime
+
+    Returns
+    -------
+    jd : float
+        Julian date corresponding to jd_date
+        - number of days since julian day 0
+        Julian day number 0 assigned to the day starting at
+        noon on January 1, 4713 BC, proleptic Julian calendar
+        November 24, 4714 BC, in the proleptic Gregorian calendar
+
+    """
+    # https://aa.usno.navy.mil/data/docs/JulianDate.php
+    # Thursday, A.D. 1970 Jan 1 12:00:00.0  2440588.000000
+    jd_t0 = 2440588
+    datetime_t0 = datetime(1970, 1, 1, 12, 0, 0, 0, tzinfo=timezone.utc)
+
+    dt = jd_date - datetime_t0
+    return jd_t0 + dt.days
+
+
+def _cal_to_julian(year, month, day):
+    """Convert calendar date (year, month, day) to a Julian integer.
+
+    Parameters
+    ----------
+    year : int
+        Year as an integer.
+    month : int
+        Month as an integer.
+    day : int
+        Day as an integer.
+
+    Returns
+    -------
+    jd: int
+        Julian date.
+    """
+    return int(_dt_to_julian(datetime(year, month, day, 12, 0, 0,
+                                      tzinfo=timezone.utc)))
+
+
+def _julian_to_cal(jd):
+    """Convert calendar date (year, month, day) to a Julian integer.
+
+    Parameters
+    ----------
+    jd: int, float
+        Julian date.
+
+    Returns
+    -------
+    year : int
+        Year as an integer.
+    month : int
+        Month as an integer.
+    day : int
+        Day as an integer.
+
+    """
+    tmp_date = _julian_to_dt(jd)
+    return tmp_date.year, tmp_date.month, tmp_date.day

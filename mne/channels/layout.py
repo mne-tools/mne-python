@@ -397,6 +397,7 @@ def find_layout(info, ch_type=None, exclude='bads'):
     if ch_type == "eeg" and not has_eeg_coils:
         raise RuntimeError('No EEG channels present. Cannot find EEG layout.')
 
+    layout_name = None
     if ((has_vv_meg and ch_type is None) or
             (any([has_vv_mag, has_vv_grad]) and ch_type == 'meg')):
         layout_name = 'Vectorview-all'
@@ -421,7 +422,9 @@ def find_layout(info, ch_type=None, exclude='bads'):
         layout_name = 'CTF-275'
     elif n_kit_grads > 0:
         layout_name = _find_kit_layout(info, n_kit_grads)
-    else:
+
+    # If no known layout is found, fall back on automatic layout
+    if layout_name is None:
         xy = _auto_topomap_coords(info, picks=range(info['nchan']),
                                   ignore_overlap=True, to_sphere=False)
         return generate_2d_layout(xy, ch_names=info['ch_names'], name='custom',
@@ -456,26 +459,17 @@ def _find_kit_layout(info, n_grads):
 
     Returns
     -------
-    kit_layout : str
-        One of 'KIT-AD', 'KIT-157', 'KIT-160', or 'KIT-UMD'.
+    kit_layout : str | None
+        String naming the detected KIT layout or ``None`` if layout is missing.
     """
     if info['kit_system_id'] is not None:
         # avoid circular import
         from ..io.kit.constants import KIT_LAYOUT
-
-        if info['kit_system_id'] in KIT_LAYOUT:
-            kit_layout = KIT_LAYOUT[info['kit_system_id']]
-            if kit_layout is not None:
-                return kit_layout
-        raise NotImplementedError("The layout for the KIT system with ID %i "
-                                  "is missing. Please contact the developers "
-                                  "about adding it." % info['kit_system_id'])
+        return KIT_LAYOUT.get(info['kit_system_id'])
     elif n_grads == 160:
         return 'KIT-160'
-
     elif n_grads == 125:
         return 'KIT-125'
-
     elif n_grads > 157:
         return 'KIT-AD'
 
@@ -700,6 +694,9 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
         eeg_ch_locs = dict(zip(eeg_ch_names, locs3d))
         locs3d = np.array([eeg_ch_locs[ch['ch_name']] for ch in chs])
 
+    # Sometimes we can get nans
+    locs3d[~np.isfinite(locs3d)] = 0.
+
     # Duplicate points cause all kinds of trouble during visualization
     dist = pdist(locs3d)
     if len(locs3d) > 1 and np.min(dist) < 1e-10 and not ignore_overlap:
@@ -715,6 +712,7 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
     if to_sphere:
         # use spherical (theta, pol) as (r, theta) for polar->cartesian
         return _pol_to_cart(_cart_to_sph(locs3d)[:, 1:][:, ::-1])
+
     return _pol_to_cart(_cart_to_sph(locs3d))
 
 

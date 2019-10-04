@@ -11,8 +11,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 
 from mne.channels import make_standard_montage
-from mne._digitization.base import _get_dig_eeg
-from mne._digitization._utils import _get_fid_coords
+from mne.io._digitization import _get_dig_eeg, _get_fid_coords
 from mne.channels.montage import get_builtin_montages, HEAD_SIZE_DEFAULT
 from mne.io.constants import FIFF
 

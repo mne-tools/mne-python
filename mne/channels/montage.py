@@ -23,18 +23,16 @@ import numpy as np
 from ..viz import plot_montage
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _frame_to_str, Transform)
-from .._digitization import Digitization
-from .._digitization.base import _count_points_by_type
-from .._digitization.base import _get_dig_eeg
-from .._digitization._utils import (_make_dig_points, write_dig, _read_dig_fif,
-                                    _format_dig_points)
+from ..io._digitization import (_count_points_by_type,
+                                _get_dig_eeg, _make_dig_points, write_dig,
+                                _read_dig_fif, _format_dig_points,
+                                _get_fid_coords)
 from ..io.pick import pick_types
 from ..io.open import fiff_open
 from ..io.constants import FIFF
 from ..utils import (warn, logger, copy_function_doc_to_method_doc,
                      _check_option, _validate_type, _check_fname,
                      fill_doc)
-from .._digitization._utils import _get_fid_coords
 
 from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
@@ -196,9 +194,8 @@ class DigMontage(object):
         # XXX: dev_head_t now is np.array, we should add dev_head_transform
         #      (being instance of Transformation) and move the parameter to the
         #      end of the call.
-        dig = Digitization() if dig is None else dig
-        _validate_type(item=dig, types=Digitization,
-                       item_name='dig', type_name='Digitization')
+        dig = list() if dig is None else dig
+        _validate_type(item=dig, types=list, item_name='dig')
         ch_names = list() if ch_names is None else ch_names
         n_eeg = sum([1 for d in dig if d['kind'] == FIFF.FIFFV_POINT_EEG])
         if n_eeg != len(ch_names):

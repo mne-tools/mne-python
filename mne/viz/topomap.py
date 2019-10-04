@@ -174,6 +174,7 @@ def _eliminate_zeros(proj):
     return proj
 
 
+@fill_doc
 def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                        colorbar=False, res=64, size=1, show=True,
                        outlines='head', contours=6, image_interp='bilinear',
@@ -184,60 +185,10 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
     ----------
     projs : list of Projection
         The projections
-    layout : None | Layout | list of Layout
-        Layout instance specifying sensor positions (does not need to be
-        specified for Neuromag data). Or a list of Layout if projections
-        are from different sensor types.
-    cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
-        Colormap to use. If tuple, the first value indicates the colormap to
-        use and the second value is a boolean defining interactivity. In
-        interactive mode (only works if ``colorbar=True``) the colors are
-        adjustable by clicking and dragging the colorbar with left and right
-        mouse button. Left mouse button moves the scale up and down and right
-        mouse button adjusts the range. Hitting space bar resets the range. Up
-        and down arrows can be used to change the colormap. If None (default),
-        'Reds' is used for all positive data, otherwise defaults to 'RdBu_r'.
-        If 'interactive', translates to (None, True).
-    sensors : bool | str
-        Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses). If True, a circle will be
-        used (via .add_artist). Defaults to True.
-    colorbar : bool
-        Plot a colorbar.
-    res : int
-        The resolution of the topomap image (n pixels along each side).
-    size : scalar
-        Side length of the topomaps in inches (only applies when plotting
-        multiple topomaps at a time).
-    show : bool
-        Show figure if True.
-    outlines : 'head' | 'skirt' | dict | None
-        The outlines to be drawn. If 'head', the default head scheme will be
-        drawn. If 'skirt' the head scheme will be drawn, but sensors are
-        allowed to be plotted outside of the head circle. If dict, each key
-        refers to a tuple of x and y positions, the values in 'mask_pos' will
-        serve as image mask, and the 'autoshrink' (bool) field will trigger
-        automated shrinking of the positions due to points outside the outline.
-        Alternatively, a matplotlib patch object can be passed for advanced
-        masking options, either directly or as a function that returns patches
-        (required for multi-axis plots). If None, nothing will be drawn.
-        Defaults to 'head'.
-    contours : int | array of float
-        The number of contour lines to draw. If 0, no contours will be drawn.
-        When an integer, matplotlib ticker locator is used to find suitable
-        values for the contour thresholds (may sometimes be inaccurate, use
-        array for accuracy). If an array, the values represent the levels for
-        the contours. Defaults to 6.
-    image_interp : str
-        The image interpolation to be used. All matplotlib options are
-        accepted.
-    axes : instance of Axes | list | None
-        The axes to plot to. If list, the list must be a list of Axes of
-        the same length as the number of projectors. If instance of Axes,
-        there must be only one projector. Defaults to None.
+    %(proj_topomap_kwargs)s
     info : instance of Info | None
-        The measurement information to use to determine the layout.
-        If not None, ``layout`` must be None.
+        The measurement information to use to determine the layout. If both
+        ``info`` and ``layout`` are provided, the layout will take precedence.
 
     Returns
     -------
@@ -261,8 +212,6 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
         if not isinstance(info, Info):
             raise TypeError('info must be an instance of Info, got %s'
                             % (type(info),))
-        if layout is not None:
-            raise ValueError('layout must be None if info is provided')
     else:
         if layout is None:
             from ..channels import read_layout
@@ -299,16 +248,7 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
         ch_names = _clean_names(proj['data']['col_names'],
                                 remove_whitespace=True)
         data = proj['data']['data'].ravel()
-        if info is not None:
-            info_names = _clean_names(info['ch_names'],
-                                      remove_whitespace=True)
-            use_info = pick_info(info, pick_channels(info_names, ch_names))
-            data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(
-                use_info, _get_ch_type(use_info, None), None)
-            data = data[data_picks]
-            if merge_grads:
-                data = _merge_grad_data(data).ravel()
-        else:  # list of layouts
+        if layout is not None:  # list of layouts
             idx = []
             for l in layout:
                 is_vv = l.kind.startswith('Vectorview')
@@ -359,6 +299,15 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                                        'projection %s, consider explicitly '
                                        'passing a Layout or Info as the layout'
                                        ' parameter.' % proj['desc'])
+        elif info is not None:
+            info_names = _clean_names(info['ch_names'],
+                                      remove_whitespace=True)
+            use_info = pick_info(info, pick_channels(info_names, ch_names))
+            data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(
+                use_info, _get_ch_type(use_info, None), None)
+            data = data[data_picks]
+            if merge_grads:
+                data = _merge_grad_data(data).ravel()
 
         im = plot_topomap(data, pos[:, :2], vmax=None, cmap=cmap,
                           sensors=sensors, res=res, axes=axes[proj_idx],
@@ -368,9 +317,10 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
         if colorbar:
             _add_colorbar(axes[proj_idx], im, cmap)
 
-    tight_layout(fig=axes[0].get_figure())
+    fig = axes[0].get_figure()
+    tight_layout(fig=fig)
     plt_show(show)
-    return axes[0].get_figure()
+    return fig
 
 
 def _check_outlines(pos, outlines, head_pos=None):
