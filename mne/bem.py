@@ -1,9 +1,12 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Lorenzo De Santis <lorenzo.de-santis@u-psud.fr>
 #
 # License: BSD (3-clause)
+
+# The computations in this code were primarily derived from Matti Hamalainen's
+# C code.
 
 from functools import partial
 import glob
