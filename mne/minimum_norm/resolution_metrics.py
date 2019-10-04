@@ -8,206 +8,133 @@ Resolution metrics: localisation error, spatial extent, relative amplitude.
 Metrics can be computed for point-spread and cross-talk functions (PSFs/CTFs).
 """
 import numpy as np
+
+from mne import SourceEstimate
 from mne.utils import logger, verbose
 
 
 @verbose
-def localisation_error_psf(resmat, src, metric='peak'):
-    """Compute localisation error metrics for point-spread functions (PSFs).
+def resolution_metrics(resmat, src, function, kind, metric):
+    """Compute spatial resolution metrics for linear solvers.
 
     Parameters
     ----------
-    resmat: array, shape (n_comps*n_locations, n_locations)
+    resmat : array, shape (n_orient*n_locations, n_locations)
         The resolution matrix.
         If not a square matrix and if the number of rows is a multiple of
         number of columns (e.g. free or loose orientations), then the Euclidean
         length per source location is computed (e.g. if inverse operator with
         free orientations was applied to foward solution with fixed
         orientations).
-    src: Source Space
+    src : instance of SourceSpaces
         Source space object from forward or inverse operator.
-    metric: str
-        What type of localisation error to compute.
-        'peak': Peak localisation error (PLE), Euclidean distance between peak
-                and true source location.
-        'cog': Centre-of-gravity localisation error (CoG), Euclidean distance
-               between CoG and true source location.
+    function: str
+        'psf'|'ctf'
+        Whether to compute metrics for columns (point-spread functions, PSFs)
+        or rows (cross-talk functions, CTFs) of the resolution matrix.
+    kind : str
+        What kind of resolution feature to consider.
+        Options are 'localization_error' | 'spatial_extent' | 'amplitude'.
+    metric : str
+        The exact resolution metric for the kind of resolution feature.
+        This must match with 'kind'. The allowed options are:
+        kind='localization_error':
+            'peak': Peak localization error (PLE), Euclidean distance between
+                    peak
+                    and true source location.
+            'cog': Centre-of-gravity localisation error (CoG), Euclidean
+                   distance between CoG and true source location.
+        kind='spatial_extent':
+            'sd': spatial deviation (e.g. Molins et al.).
+            'maxrad': maximum radius to 50% of max amplitude.
+        kind='relative_amplitude':
+            'peak': Ratio between absolute maximum amplitudes of peaks per
+                    location and maximum peak across locations.
+            'sum': Ratio between sums of absolute amplitudes.
 
     Returns
     -------
-        locerr: array, shape (n_locations,)
-        Localisation error per location (m).
+    resolution_metric : instance of SourceEstimate
+        The source estimate contains the resolution metric as an array with
+        shape (n_locations,)
     """
-    return _localisation_error_psf_ctf(resmat, src, type='psf', metric=metric)
+    # Check if input options are valid
+    if kind == 'localization_error':
+        if metric not in ['peak', 'cog']:
+            print('Not an allowed metric for localization_error: %s' % metric)
+
+    elif kind == 'spatial_extent':
+        if metric not in ['sd', 'maxrad']:
+            print('Not an allowed metric for spatial_extent: %s' % metric)
+
+    elif kind == 'relative_amplitude':
+        if metric not in ['peak', 'sum']:
+            print('Not an allowed metric for amplitude: %s' % metric)
+
+    else:
+        print('Not a recognised kind of resolution feature: %s.' % kind)
+
+        return
+
+    if function not in ['psf', 'ctf']:
+        print('Not a recognised resolution function: %s.' % function)
+        return
+
+    if kind == 'localization_error':
+
+        resolution_metric = _localisation_error(resmat, src, function=function,
+                                                metric=metric)
+
+    elif kind == 'spatial_extent':
+
+        resolution_metric = _spatial_extent(resmat, src, function=function,
+                                            metric=metric)
+
+    elif kind == 'relative_amplitude':
+
+        resolution_metric = _relative_amplitude(resmat, src, function=function,
+                                                metric=metric)
+
+    # get vertices from source space
+    vertno_lh = src[0]['vertno']
+    vertno_rh = src[1]['vertno']
+    vertno = [vertno_lh, vertno_rh]
+
+    # Convert array to source estimate
+    resolution_metric = SourceEstimate(resolution_metric, vertno, tmin=0.,
+                                       tstep=1.)
+
+    return resolution_metric
 
 
-def localisation_error_ctf(resmat, src, metric='peak'):
-    """Compute localisation error metrics for cross-talk functions (CTFs).
-
-    Parameters
-    ----------
-    resmat: array, shape (n_comps*n_locations, n_locations)
-        The resolution matrix.
-        If not a square matrix and if the number of rows is a multiple of
-        number of columns (e.g. free or loose orientations), then the Euclidean
-        length per source location is computed (e.g. if inverse operator with
-        free orientations was applied to foward solution with fixed
-        orientations).
-    src: Source Space
-        Source space object from forward or inverse operator.
-    metric: str
-        What type of localisation error to compute.
-        'peak': Peak localisation error (PLE), Euclidean distance between peak
-                and true source location.
-        'cog': Centre-of-gravity localisation error (CoG), Euclidean distance
-               between CoG and true source location.
-
-    Returns
-    -------
-        locerr: array, shape (n_locations,)
-        Localisation error per location (m).
-    """
-    return _localisation_error_psf_ctf(resmat, src, type='ctf', metric=metric)
-
-
-def spatial_width_psf(resmat, src, metric='sd'):
-    """Compute spatial width metrics for point-spread functions (CTFs).
-
-    Parameters
-    ----------
-    resmat: array, shape (n_comps*n_locations, n_locations)
-        The resolution matrix.
-        If not a square matrix and if the number of rows is a multiple of
-        number of columns (e.g. free or loose orientations), then the Euclidean
-        length per source location is computed (e.g. if inverse operator with
-        free orientations was applied to foward solution with fixed
-        orientations).
-    src: Source Space
-        Source space object from forward or inverse operator.
-    metric: string ('sd' | 'rad')
-        What type of width metric to compute.
-        'sd': spatial deviation (e.g. Molins et al.).
-        'maxrad': maximum radius to 50% of max amplitude.
-
-    Returns
-    -------
-        width: array, shape (n_locations,)
-        Spatial width metric per location.
-    """
-    return _spatial_width_psf_ctf(resmat, src, type='psf', metric=metric)
-
-
-def spatial_width_ctf(resmat, src, metric='sd'):
-    """Compute spatial width metrics for cross-talk functions (CTFs).
-
-    Parameters
-    ----------
-    resmat: array, shape (n_comps*n_locations, n_locations)
-        The resolution matrix.
-        If not a square matrix and if the number of rows is a multiple of
-        number of columns (e.g. free or loose orientations), then the Euclidean
-        length per source location is computed (e.g. if inverse operator with
-        free orientations was applied to foward solution with fixed
-        orientations).
-    src: Source Space
-        Source space object from forward or inverse operator.
-    metric: string ('sd' | 'rad')
-        What type of width metric to compute.
-        'sd': spatial deviation (e.g. Molins et al.).
-        'maxrad': maximum radius to 50% of max amplitude.
-
-    Returns
-    -------
-        width: array, shape (n_locations,)
-        Spatial width metric per location.
-    """
-    return _spatial_width_psf_ctf(resmat, src, type='ctf', metric=metric)
-
-
-def relative_amplitude_psf(resmat, src, metric='peak'):
-    """Compute relative amplitude metrics for point-spread functions (PSFs).
-
-    Parameters
-    ----------
-    resmat: array, shape (n_comps*n_locations, n_locations)
-        The resolution matrix.
-        If not a square matrix and if the number of rows is a multiple of
-        number of columns (e.g. free or loose orientations), then the Euclidean
-        length per source location is computed (e.g. if inverse operator with
-        free orientations was applied to foward solution with fixed
-        orientations).
-    src: Source Space
-        Source space object from forward or inverse operator.
-    metric: str
-        Which amplitudes to use.
-        'peak': Ratio between absolute maximum amplitudes of peaks per location
-                and maximum peak across locations.
-        'sum': Ratio between sums of absolute amplitudes.
-
-    Returns
-    -------
-        relamp: array, shape (n_locations,)
-        Relative amplitude metric per location.
-    """
-    return _relative_amplitude_psf_ctf(resmat, src, type='psf', metric=metric)
-
-
-def relative_amplitude_ctf(resmat, src, metric='peak'):
-    """Compute relative amplitude metrics for cross-talk functions (CTFs).
-
-    Parameters
-    ----------
-    resmat: array, shape (n_comps*n_locations, n_locations)
-        The resolution matrix.
-        If not a square matrix and if the number of rows is a multiple of
-        number of columns (e.g. free or loose orientations), then the Euclidean
-        length per source location is computed (e.g. if inverse operator with
-        free orientations was applied to foward solution with fixed
-        orientations).
-    src: Source Space
-        Source space object from forward or inverse operator.
-    metric: str
-        Which amplitudes to use.
-        'peak': Ratio between absolute maximum amplitudes of peaks per location
-                and maximum peak across locations.
-        'sum': Ratio between sums of absolute amplitudes.
-
-    Returns
-    -------
-        relamp: array, shape (n_locations,)
-        Relative amplitude metric per location.
-    """
-    return _relative_amplitude_psf_ctf(resmat, src, type='ctf', metric=metric)
-
-
-def _localisation_error_psf_ctf(resmat, src, type='psf', metric='peak'):
+def _localisation_error(resmat, src, function, metric):
     """Compute localisation error metrics for resolution matrix.
 
     Parameters
     ----------
-    resmat: array, shape (n_comps*n_locations, n_locations)
+    resmat: array, shape (n_orient*n_locations, n_locations)
         The resolution matrix.
         If not a square matrix and if the number of rows is a multiple of
-        number of columns (i.e. n_comps>1), then the Euclidean length per
+        number of columns (i.e. n_orient>1), then the Euclidean length per
         source location is computed (e.g. if inverse operator with free
         orientations was applied to foward solution with fixed orientations).
     src: Source Space
         Source space object from forward or inverse operator.
-    type: str
+    function: str
         'psf'|'ctf'
         Whether to compute metrics for columns (point-spread functions, PSFs)
         or rows (cross-talk functions, CTFs).
     metric: str
         What type of localisation error to compute.
         'peak': Peak localisation error (PLE), Euclidean distance between peak
-                and true source location.
+                and true source location, in centimeters.
         'cog': Centre-of-gravity localisation error (CoG), Euclidean distance
-               between CoG and true source location.
+               between CoG and true source location, in centimeters.
 
     Returns
     -------
         locerr: array, shape (n_locations,)
-        Localisation error per location (m).
+        Localisation error per location (in cm).
     """
     # ensure resolution matrix is square
     # combine rows (Euclidean length) if necessary
@@ -216,11 +143,14 @@ def _localisation_error_psf_ctf(resmat, src, type='psf', metric='peak'):
     # locations used in forward and inverse operator
     locations = _get_src_locations(src)
 
+    # convert to cm (more common)
+    locations = 100. * locations
+
     # only use absolute values
     resmat = np.absolute(resmat)
 
     # The below will operate on columns
-    if type == 'ctf':
+    if function == 'ctf':
 
         resmat = resmat.T
 
@@ -263,40 +193,43 @@ def _localisation_error_psf_ctf(resmat, src, type='psf', metric='peak'):
     return locerr
 
 
-def _spatial_width_psf_ctf(resmat, src, type, metric='sd'):
+def _spatial_extent(resmat, src, function, metric):
     """Compute spatial width metrics for resolution matrix.
 
     Parameters
     ----------
-    resmat: array, shape (n_comps*n_dipoles, n_dipoles)
+    resmat : array, shape (n_orient*n_dipoles, n_dipoles)
         The resolution matrix.
         If not a square matrix and if the number of rows is a multiple of
-        number of columns (i.e. n_comps>1), then the Euclidean length per
+        number of columns (i.e. n_orient>1), then the Euclidean length per
         source location is computed (e.g. if inverse operator with free
         orientations was applied to foward solution with fixed orientations).
-    src: Source Space
+    src : Source Space
         Source space object from forward or inverse operator.
-    type: str
+    function : str
         'psf'|'ctf'
         Whether to compute metrics for columns (PSFs) or rows (CTFs).
-    metric: string ('sd' | 'rad')
+    metric : string ('sd' | 'rad')
         What type of width metric to compute.
-        'sd': spatial deviation (e.g. Molins et al.).
-        'maxrad': maximum radius to 50% of max amplitude.
+        'sd': spatial deviation (e.g. Molins et al.), in centimeters.
+        'maxrad': maximum radius to 50% of max amplitude, in centimeters.
 
     Returns
     -------
-        width: array, shape (n_dipoles,)
+    width : array, shape (n_dipoles,)
         Spatial width metric per location.
     """
     # locations used in forward and inverse operator
     locations = _get_src_locations(src)
 
+    # convert to cm (more common)
+    locations = 100. * locations
+
     # only use absolute values
     resmat = np.absolute(resmat)
 
     # The below will operate on columns
-    if type == 'ctf':
+    if function == 'ctf':
 
         resmat = resmat.T
 
@@ -351,23 +284,23 @@ def _spatial_width_psf_ctf(resmat, src, type, metric='sd'):
     return width
 
 
-def _relative_amplitude_psf_ctf(resmat, src, type, metric='peak'):
+def _relative_amplitude(resmat, src, function, metric):
     """Compute relative amplitude metrics for resolution matrix.
 
     Parameters
     ----------
-    resmat: array, shape (n_comps*n_dipoles, n_dipoles)
+    resmat : array, shape (n_orient*n_dipoles, n_dipoles)
         The resolution matrix.
         If not a square matrix and if the number of rows is a multiple of
-        number of columns (i.e. n_comps>1), then the Euclidean length per
+        number of columns (i.e. n_orient>1), then the Euclidean length per
         source location is computed (e.g. if inverse operator with free
         orientations was applied to foward solution with fixed orientations).
-    src: Source Space
+    src : Source Space
         Source space object from forward or inverse operator.
-    type: str
+    function : str
         'psf'|'ctf'
         Whether to compute metrics for columns (PSFs) or rows (CTFs).
-    metric: str
+    metric : str
         Which amplitudes to use.
         'peak': Ratio between absolute maximum amplitudes of peaks per location
                 and maximum peak across locations.
@@ -375,11 +308,11 @@ def _relative_amplitude_psf_ctf(resmat, src, type, metric='peak'):
 
     Returns
     -------
-        relamp: array, shape (n_dipoles,)
+    relamp: array, shape (n_dipoles,)
         Relative amplitude metric per location.
     """
     # The below will operate on columns
-    if type == 'ctf':
+    if function == 'ctf':
 
         resmat = resmat.T
 
@@ -389,8 +322,8 @@ def _relative_amplitude_psf_ctf(resmat, src, type, metric='peak'):
     # Ratio between amplitude at peak and global peak maximum
     if metric.lower() == 'peak':
 
-        # maximum amplitudes along specified axis
-        maxamps = resmat.max()
+        # maximum amplitudes per column
+        maxamps = resmat.max(axis=0)
 
         # global absolute maximum
         maxmaxamps = maxamps.max()
@@ -400,8 +333,8 @@ def _relative_amplitude_psf_ctf(resmat, src, type, metric='peak'):
     # ratio between sums of absolute amplitudes
     elif metric.lower() == 'sum':
 
-        # sum of amplitudes per location
-        sumamps = np.sum(resmat)
+        # sum of amplitudes per column
+        sumamps = np.sum(resmat, axis=0)
 
         # maximum of summed amplitudes
         sumampsmax = sumamps.max()

@@ -18,12 +18,7 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
 import mne
 from mne.datasets import testing
 from mne.minimum_norm.resolution_matrix import make_resolution_matrix
-from mne.minimum_norm.resolution_metrics import (localisation_error_psf,
-                                                 localisation_error_ctf,
-                                                 spatial_width_psf,
-                                                 spatial_width_ctf,
-                                                 relative_amplitude_psf,
-                                                 relative_amplitude_ctf,
+from mne.minimum_norm.resolution_metrics import (resolution_metrics,
                                                  _rectify_resolution_matrix)
 
 data_path = testing.data_path(download=False)
@@ -68,13 +63,7 @@ def test_resolution_metrics():
     noise_cov = mne.read_cov(fname_cov)
 
     # evoked data for info
-    evoked = mne.evoked.read_evokeds(fname_evoked, 0)
-
-    # make inverse operator from forward solution
-    # free source orientation
-    # inverse_operator = mne.minimum_norm.make_inverse_operator(
-    #     info=evoked.info, forward=forward, noise_cov=noise_cov, loose=1.,
-    #     depth=None)
+    evoked = mne.read_evokeds(fname_evoked, 0)
 
     # fixed source orientation
     inv = mne.minimum_norm.make_inverse_operator(
@@ -97,32 +86,40 @@ def test_resolution_metrics():
     rm_lor = make_resolution_matrix(fwd, inv,
                                     method='sLORETA', lambda2=lambda2)
 
-    # Compute localisation error
-    le_mne_psf = localisation_error_psf(rm_mne, fwd['src'], metric='peak')
-    le_mne_ctf = localisation_error_ctf(rm_mne, fwd['src'], metric='peak')
-    le_lor_psf = localisation_error_psf(rm_lor, fwd['src'], metric='peak')
+    # Compute localisation error (STCs)
+    le_mne_psf = resolution_metrics(rm_mne, fwd['src'], function='psf',
+                                    kind='localization_error', metric='peak')
+    le_mne_ctf = resolution_metrics(rm_mne, fwd['src'], function='ctf',
+                                    kind='localization_error', metric='peak')
+    le_lor_psf = resolution_metrics(rm_lor, fwd['src'], function='psf',
+                                    kind='localization_error', metric='peak')
 
-    # Compute spatial spread
-    sd_mne_psf = spatial_width_psf(rm_mne, fwd['src'], metric='sd')
-    sd_mne_ctf = spatial_width_ctf(rm_mne, fwd['src'], metric='sd')
-    sd_lor_ctf = spatial_width_ctf(rm_lor, fwd['src'], metric='sd')
+    # Compute spatial spread (STCs)
+    sd_mne_psf = resolution_metrics(rm_mne, fwd['src'], function='psf',
+                                    kind='spatial_extent', metric='sd')
+    sd_mne_ctf = resolution_metrics(rm_mne, fwd['src'], function='ctf',
+                                    kind='spatial_extent', metric='sd')
+    sd_lor_ctf = resolution_metrics(rm_lor, fwd['src'], function='ctf',
+                                    kind='spatial_extent', metric='sd')
 
-    # Compute relative amplitude
-    ra_mne_psf = relative_amplitude_psf(rm_mne, fwd['src'], metric='peak')
-    ra_mne_ctf = relative_amplitude_ctf(rm_mne, fwd['src'], metric='peak')
+    # Compute relative amplitude (STCs)
+    ra_mne_psf = resolution_metrics(rm_mne, fwd['src'], function='psf',
+                                    kind='relative_amplitude', metric='peak')
+    ra_mne_ctf = resolution_metrics(rm_mne, fwd['src'], function='ctf',
+                                    kind='relative_amplitude', metric='peak')
 
     # # Tests
 
     # For MNE: PLE for PSF and CTF equal?
-    assert_array_almost_equal(le_mne_psf, le_mne_ctf)
+    assert_array_almost_equal(le_mne_psf.data, le_mne_ctf.data)
     # For MNE: SD for PSF and CTF equal?
-    assert_array_almost_equal(sd_mne_psf, sd_mne_ctf)
+    assert_array_almost_equal(sd_mne_psf.data, sd_mne_ctf.data)
     # For MNE: RA for PSF and CTF equal?
-    assert_array_almost_equal(ra_mne_psf, ra_mne_ctf)
+    assert_array_almost_equal(ra_mne_psf.data, ra_mne_ctf.data)
     # Zero PLE for sLORETA?
-    assert_equal((le_lor_psf == 0.).all(), True)
+    assert_equal((le_lor_psf.data == 0.).all(), True)
     # Spatial deviation of CTFs for MNE and sLORETA equal?
-    assert_array_almost_equal(sd_mne_ctf, sd_lor_ctf)
+    assert_array_almost_equal(sd_mne_ctf.data, sd_lor_ctf.data)
 
     # test "rectification" of resolution matrix
     r1 = np.ones([8, 4])
