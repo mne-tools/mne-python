@@ -153,12 +153,10 @@ def get_cross_talk(resmat, src, idx, norm=False):
 
 
 def _convert_forward_match_inv(fwd, inv):
-    """
-    Helper to ensure forward and inverse operators match.
+    """Ensure forward and inverse operators match.
 
     Inverse operator and forward operator must have same surface orientations,
     but can have different source orientation constraints.
-
     """
     # did inverse operator use fixed orientation?
     is_fixed_inv = _check_fixed_ori(inv)
@@ -182,7 +180,7 @@ def _convert_forward_match_inv(fwd, inv):
 
 
 def _prepare_info(inverse_operator):
-    """Helper to get a usable dict."""
+    """Get a usable dict."""
     # in order to convert sub-leadfield matrix to evoked data type (pretending
     # it's an epoch, see in loop below), uses 'info' from inverse solution
     # because this has all the correct projector information
