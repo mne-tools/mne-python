@@ -24,7 +24,8 @@ from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
                      sizeof_fmt, GetEpochsMixin, _prepare_read_metadata,
                      fill_doc, _prepare_write_metadata, _check_event_id,
-                     _gen_events, SizeMixin, _is_numeric, _check_option)
+                     _gen_events, SizeMixin, _is_numeric, _check_option,
+                     _validate_type)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
 from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
@@ -344,8 +345,7 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
                          time_bandwidth, use_fft, decim, output)
 
     decim = _check_decim(decim)
-    if decim.step is not None:
-        sfreq /= decim.step
+    sfreq /= decim.step
     if (freqs > sfreq / 2.).any():
         raise ValueError('Cannot compute freq above Nyquist freq '
                          'after decimation')
@@ -2227,11 +2227,12 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
 
 def _check_decim(decim):
     """Aux function checking the decim parameter."""
-    if isinstance(decim, int):
-        decim = slice(None, None, decim)
-    elif not isinstance(decim, slice):
-        raise ValueError('`decim` must be int or slice, got %s instead'
-                         % type(decim))
+    _validate_type(decim, ('int-like', slice), 'decim')
+    if not isinstance(decim, slice):
+        decim = slice(None, None, int(decim))
+    # ensure that we can actually use `decim.step`
+    if decim.step is None:
+        decim = slice(decim.start, decim.stop, 1)
     return decim
 
 
