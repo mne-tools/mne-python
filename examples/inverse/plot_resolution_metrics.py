@@ -10,10 +10,13 @@ corresponding PSFs and CTFs.
 """
 
 import mne
+from mne import SourceEstimate
 from mne.datasets import sample
 from mne.minimum_norm.resolution_matrix import (make_resolution_matrix,
-                                                get_psf_ctf_vertex)
-from mne.minimum_norm.resolution_metrics import localisation_error
+                                                get_point_spread,
+                                                get_cross_talk)
+from mne.minimum_norm.resolution_metrics import (localisation_error_psf,
+                                                 localisation_error_ctf)
 
 print(__doc__)
 
@@ -44,37 +47,37 @@ inverse_operator = mne.minimum_norm.make_inverse_operator(
 # regularisation parameter
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
-method = 'MNE'  # can be 'MNE', 'sLORETA' or 'eLORETA'
+method = 'sLORETA'  # can be 'MNE', 'sLORETA' or 'eLORETA'
 
 # compute resolution matrix for sLORETA
 rm_lor = make_resolution_matrix(forward, inverse_operator,
-                                method='sLORETA', lambda2=lambda2)
+                                method=method, lambda2=lambda2)
 
 # compute resolution matrix for sLORETA
 rm_lor = make_resolution_matrix(forward, inverse_operator,
-                                method='sLORETA', lambda2=lambda2)
+                                method=method, lambda2=lambda2)
 
 # Compute peak localisation error for PSFs and CTFs, respectively
-locerr_psf = localisation_error(rm_lor, inverse_operator['src'], type='psf',
-                                metric='peak')
-locerr_ctf = localisation_error(rm_lor, inverse_operator['src'], type='ctf',
-                                metric='peak')
+locerr_psf = localisation_error_psf(rm_lor, inverse_operator['src'],
+                                    metric='peak')
+locerr_ctf = localisation_error_ctf(rm_lor, inverse_operator['src'],
+                                    metric='peak')
 
 # get PSF and CTF for sLORETA at one vertex
 sources = [1000]
 
-stc_psf = get_psf_ctf_vertex(rm_lor, forward['src'], sources, 'psf',
-                             norm=True)
+stc_psf = get_point_spread(rm_lor, forward['src'], sources, norm=True)
 
-stc_ctf = get_psf_ctf_vertex(rm_lor, forward['src'], sources, 'ctf',
-                             norm=True)
+stc_ctf = get_cross_talk(rm_lor, forward['src'], sources, norm=True)
 
-# Visualise
+# Visualise individual PSF and CTF
 
-txt = 'PLE: %.2f cm'  # localisation error for display
+# get vertices from source space
+vertno_lh = forward['src'][0]['vertno']
+vertno_rh = forward['src'][1]['vertno']
+vertno = [vertno_lh, vertno_rh]
 
 # Which vertex corresponds to selected source
-vertno_lh = forward['src'][0]['vertno']
 verttrue = [vertno_lh[sources[0]]]  # just one vertex
 
 # Find vertices with maxima in PSF and CTF
@@ -113,3 +116,20 @@ print('Peak localisation error for PSF: %.2f cm.' % (100. *
       locerr_psf[sources[0]]))
 print('Peak localisation error for CTF: %.2f cm.' % (100. *
       locerr_ctf[sources[0]]))
+
+# Visualise localisation error across the whole cortex for PSF and CTF
+
+# First convert metric distributions to source estimate
+# and convert localisation error from meter to centimetre
+stc_le_psf = SourceEstimate(100. * locerr_psf, vertno, tmin=0., tstep=1.)
+stc_le_ctf = SourceEstimate(100. * locerr_ctf, vertno, tmin=0., tstep=1.)
+
+brain_le_psf = stc_le_psf.plot('sample', 'inflated', 'lh',
+                               subjects_dir=subjects_dir, figure=3,
+                               clim=dict(kind='value', lims=(0, 2, 4)),
+                               title='PLE PSF')
+
+brain_le_ctf = stc_le_ctf.plot('sample', 'inflated', 'lh',
+                               subjects_dir=subjects_dir, figure=4,
+                               clim=dict(kind='value', lims=(0, 2, 4)),
+                               title='PLE CTF')

@@ -18,8 +18,12 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
 import mne
 from mne.datasets import testing
 from mne.minimum_norm.resolution_matrix import make_resolution_matrix
-from mne.minimum_norm.resolution_metrics import (localisation_error,
-                                                 spatial_width,
+from mne.minimum_norm.resolution_metrics import (localisation_error_psf,
+                                                 localisation_error_ctf,
+                                                 spatial_width_psf,
+                                                 spatial_width_ctf,
+                                                 relative_amplitude_psf,
+                                                 relative_amplitude_ctf,
                                                  _rectify_resolution_matrix)
 
 data_path = testing.data_path(download=False)
@@ -94,21 +98,27 @@ def test_resolution_metrics():
                                     method='sLORETA', lambda2=lambda2)
 
     # Compute localisation error
-    le_mne_psf = localisation_error(rm_mne, fwd['src'], type='psf',
-                                    metric='peak')
-    le_mne_ctf = localisation_error(rm_mne, fwd['src'], type='ctf',
-                                    metric='peak')
-    le_lor_psf = localisation_error(rm_lor, fwd['src'], type='psf',
-                                    metric='peak')
+    le_mne_psf = localisation_error_psf(rm_mne, fwd['src'], metric='peak')
+    le_mne_ctf = localisation_error_ctf(rm_mne, fwd['src'], metric='peak')
+    le_lor_psf = localisation_error_psf(rm_lor, fwd['src'], metric='peak')
 
     # Compute spatial spread
-    sd_mne_ctf = spatial_width(rm_mne, fwd['src'], type='ctf', metric='sd')
-    sd_lor_ctf = spatial_width(rm_lor, fwd['src'], type='ctf', metric='sd')
+    sd_mne_psf = spatial_width_psf(rm_mne, fwd['src'], metric='sd')
+    sd_mne_ctf = spatial_width_ctf(rm_mne, fwd['src'], metric='sd')
+    sd_lor_ctf = spatial_width_ctf(rm_lor, fwd['src'], metric='sd')
+
+    # Compute relative amplitude
+    ra_mne_psf = relative_amplitude_psf(rm_mne, fwd['src'], metric='peak')
+    ra_mne_ctf = relative_amplitude_ctf(rm_mne, fwd['src'], metric='peak')
 
     # # Tests
 
     # For MNE: PLE for PSF and CTF equal?
     assert_array_almost_equal(le_mne_psf, le_mne_ctf)
+    # For MNE: SD for PSF and CTF equal?
+    assert_array_almost_equal(sd_mne_psf, sd_mne_ctf)
+    # For MNE: RA for PSF and CTF equal?
+    assert_array_almost_equal(ra_mne_psf, ra_mne_ctf)
     # Zero PLE for sLORETA?
     assert_equal((le_lor_psf == 0.).all(), True)
     # Spatial deviation of CTFs for MNE and sLORETA equal?

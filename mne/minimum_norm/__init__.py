@@ -11,3 +11,6 @@ from .time_frequency import (source_band_induced_power, source_induced_power,
 
 from .resolution_matrix import (make_resolution_matrix, get_point_spread,
                                 get_cross_talk)
+from .resolution_metrics import (localisation_error_psf, localisation_error_ctf,
+                                spatial_width_psf, spatial_width_ctf,
+                                relative_amplitude_psf, relative_amplitude_ctf)
