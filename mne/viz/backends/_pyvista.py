@@ -358,7 +358,8 @@ class _Renderer(_BaseRenderer):
             actor = self.plotter.add_text(text, position=position,
                                           font_size=size,
                                           font=self.font_family,
-                                          color=color)
+                                          color=color,
+                                          viewport=True)
             if isinstance(justification, str):
                 if justification == 'left':
                     actor.GetTextProperty().SetJustificationToLeft()

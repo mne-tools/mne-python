@@ -34,7 +34,7 @@ dependencies:
 - pip:
   - mne
   - vtk
-  - https://github.com/pyvista/pyvista/zipball/master
+  - https://github.com/pyvista/pyvista/zipball/add_text_normalized_viewport
   - mayavi
   - PySurfer[save_movie]
   - dipy --only-binary dipy
