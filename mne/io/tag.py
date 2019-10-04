@@ -12,7 +12,7 @@ import numpy as np
 from scipy import sparse
 
 from .constants import FIFF
-from ..externals.jdcal import jd2jcal
+from ..utils.numerics import _julian_to_cal
 
 
 ##############################################################################
@@ -448,7 +448,7 @@ def _read_dir_entry_struct(fid, tag, shape, rlims):
 
 def _read_julian(fid, tag, shape, rlims):
     """Read julian tag."""
-    return jd2jcal(int(np.frombuffer(fid.read(4), dtype=">i4")))
+    return _julian_to_cal(int(np.frombuffer(fid.read(4), dtype=">i4")))
 
 
 # Read types call dict
