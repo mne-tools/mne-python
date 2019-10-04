@@ -352,8 +352,7 @@ class _Renderer(_BaseRenderer):
     def text2d(self, x, y, text, size=14, color=(1.0, 1.0, 1.0),
                justification=None):
         size = 14 if size is None else size
-        position = (x * self.figure.store['window_size'][0],
-                    y * self.figure.store['window_size'][1])
+        position = (x, y)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             actor = self.plotter.add_text(text, position=position,
