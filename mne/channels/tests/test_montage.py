@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+from itertools import chain
 import os
 import os.path as op
 
@@ -345,6 +346,46 @@ def test_read_locs():
                  [0., 0.067885, 0.066458]],
         atol=1e-6
     )
+
+
+def test_read_dig_dat():
+    rows = [
+        ['Nasion', 78, 0.00, 1.00, 0.00],
+        ['Left', 76, -1.00, 0.00, 0.00],
+        ['Right', 82, 1.00, -0.00, 0.00],
+        ['O2', 69, -0.50, -0.90, 0.05],
+        ['Centroid', 67, 0.00, 0.00, 0.00],
+    ]
+    # write mock test.dat file
+    temp_dir = _TempDir()
+    fname_temp = op.join(temp_dir, 'test.dat')
+    with open(fname_temp, 'w') as fid:
+        for row in rows:
+            name = row[0].rjust(10)
+            data = '\t'.join(map(str, row[1:]))
+            fid.write(f"{name}\t{data}\n")
+    # construct expected value
+    idents = {
+        78: FIFF.FIFFV_POINT_NASION,
+        76: FIFF.FIFFV_POINT_LPA,
+        82: FIFF.FIFFV_POINT_RPA,
+        69: 1,
+    }
+    kinds = {
+        78: FIFF.FIFFV_POINT_CARDINAL,
+        76: FIFF.FIFFV_POINT_CARDINAL,
+        82: FIFF.FIFFV_POINT_CARDINAL,
+        69: FIFF.FIFFV_POINT_EEG,
+    }
+    target = {row[0]: {'r': row[2:], 'ident': idents[row[1]],
+                       'kind': kinds[row[1]], 'coord_frame': 0}
+              for row in rows[:-1]}
+    # read it
+    dig = read_dig_dat(fname_temp)
+    assert set(dig.ch_names) == {'O2'}
+    keys = chain(['Left', 'Nasion', 'Right'], dig.ch_names)
+    target = [target[k] for k in keys]
+    assert dig.dig == target
 
 
 def test_read_dig_montage_using_polhemus_fastscan():
