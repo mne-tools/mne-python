@@ -54,6 +54,12 @@ general neuroimaging concepts. If you think a term is missing, please consider
     dipole
         See :term:`equivalent current dipole`.
 
+    dSPM
+        Dynamic statistical parametric mapping (abbr. ``dSPM``) gives a noise-
+        normalized :term:`source estimate` at a given source location. dSPM 
+        can be obtained by applying the inverse operator to the :term:`signal 
+        covariance` matrix. 
+
     eLORETA and sLORETA
         eLORETA and sLORETA (exact and standardized low resolution brain
         electromagnetic tomography) are linear source estimation techniques,
