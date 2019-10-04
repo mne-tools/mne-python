@@ -1,4 +1,5 @@
 # Authors: Robert Luke <mail@robertluke.net>
+#          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -23,8 +24,8 @@ def test_optical_density():
     raw = read_raw_nirx(fname_nirx, preload=True)
     assert 'fnirs_raw' in raw
     assert 'fnirs_od' not in raw
-    od = optical_density(raw)
-    _validate_type(od, BaseRaw, 'raw')
+    raw = optical_density(raw)
+    _validate_type(raw, BaseRaw, 'raw')
     assert 'fnirs_raw' not in raw
     assert 'fnirs_od' in raw
 
@@ -35,4 +36,23 @@ def test_optical_density_zeromean():
     raw = read_raw_nirx(fname_nirx, preload=True)
     raw._data[4] -= np.mean(raw._data[4])
     with pytest.warns(RuntimeWarning, match='Negative'):
-        od = optical_density(raw)
+        raw = optical_density(raw)
+    assert 'fnirs_od' in raw
+
+
+@testing.requires_testing_data
+def test_optical_density_manual():
+    """Test optical density on known values"""
+    test_tol = 0.01
+    raw = read_raw_nirx(fname_nirx, preload=True)
+    # log(1) = 0
+    raw._data[4] = np.ones((145))
+    # log(0.5)/-1 = 0.69
+    # log(1.5)/-1 = -0.40
+    test_data = np.tile([0.5, 1.5], 73)[:145]
+    raw._data[5] = test_data
+
+    od = optical_density(raw)
+    assert np.sum(od.get_data()[4] - np.zeros(145)) == 0
+    assert np.abs(od.get_data()[5][0] - 0.69) < test_tol
+    assert np.abs(od.get_data()[5][1] - -0.40) < test_tol
