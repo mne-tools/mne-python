@@ -657,7 +657,7 @@ def test_compute_tfr():
         pytest.raises(ValueError, _compute_tfr, data, _freqs, sfreq)
     for _sfreq in (None, 'foo'):
         pytest.raises(ValueError, _compute_tfr, data, freqs, _sfreq)
-    for key in ('output', 'method', 'use_fft', 'n_jobs'):
+    for key in ('output', 'method', 'use_fft', 'decim', 'n_jobs'):
         for value in (None, 'foo'):
             kwargs = {key: value}  # FIXME pep8
             pytest.raises(ValueError, _compute_tfr, data, freqs, sfreq,
