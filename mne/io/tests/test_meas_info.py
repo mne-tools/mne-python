@@ -6,7 +6,7 @@
 
 import hashlib
 import os.path as op
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 import numpy as np
@@ -22,8 +22,8 @@ from mne.io.constants import FIFF
 from mne.io.write import _generate_meas_id
 from mne.io.meas_info import (Info, create_info, _merge_info,
                               _force_update_info, RAW_INFO_FIELDS,
-                              _bad_chans_comp, _get_valid_units, anonymize_info,
-                              _datetime_to_meas_date, _meas_date_to_datetime)
+                              _bad_chans_comp, _get_valid_units,
+                              anonymize_info, _stamp_to_dt, _dt_to_stamp)
 from mne.io._digitization import (_write_dig_points, _read_dig_points,
                                   _make_dig_points,)
 from mne.io import read_raw_ctf
@@ -431,7 +431,7 @@ def _test_anonymize_info(base_info):
     """Test that sensitive information can be anonymized."""
     pytest.raises(TypeError, anonymize_info, 'foo')
 
-    default_anon_dos = datetime(2000, 1, 1, 0, 0, 0)
+    default_anon_dos = datetime(2000, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
     default_str = "mne_anonymize"
     default_subject_id = 0
     default_desc = ("Anonymized using a time shift" +
@@ -443,8 +443,8 @@ def _test_anonymize_info(base_info):
     anonymize_info(info)
 
     # Fake some subject data
-    meas_date = datetime(2010, 1, 1, 0, 0, 0)
-    base_info['meas_date'] = (int(datetime.timestamp(meas_date)), 0)
+    meas_date = datetime(2010, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    base_info['meas_date'] = _dt_to_stamp(meas_date)
 
     base_info['subject_info'] = dict(id=1, his_id='foobar', last_name='bar',
                                      first_name='bar', birthday=(1987, 4, 8),
@@ -466,7 +466,7 @@ def _test_anonymize_info(base_info):
     # different number of leap days between 1987 and 1977 than between
     # 2010 and 2000.
     exp_info['subject_info']['birthday'] = (1977, 4, 7)
-    exp_info['meas_date'] = (int(datetime.timestamp(default_anon_dos)), 0)
+    exp_info['meas_date'] = _dt_to_stamp(default_anon_dos)
     for key in ('file_id', 'meas_id'):
         value = exp_info.get(key)
         if value is not None:
@@ -483,7 +483,7 @@ def _test_anonymize_info(base_info):
     dt = timedelta(days=43)
     exp_info_3 = exp_info.copy()
     exp_info_3['subject_info']['birthday'] = (1987, 2, 24)
-    exp_info_3['meas_date'] = (int(datetime.timestamp(meas_date - dt)), 0)
+    exp_info_3['meas_date'] = _dt_to_stamp(meas_date - dt)
     for key in ('file_id', 'meas_id'):
         value = exp_info_3.get(key)
         if value is not None:
@@ -505,10 +505,11 @@ def _test_anonymize_info(base_info):
 def test_meas_date_convert(tmpdir):
     """Test conversions of meas_date to datetime objects."""
     meas_date = (1346981585, 835782)
-    meas_datetime = _meas_date_to_datetime(meas_date)
-    meas_date2 = _datetime_to_meas_date(meas_datetime)
+    meas_datetime = _stamp_to_dt(meas_date)
+    meas_date2 = _dt_to_stamp(meas_datetime)
     assert(meas_date == meas_date2)
-    assert(meas_datetime == datetime(2012, 9, 6, 21, 33, 5, 835782))
+    assert(meas_datetime == datetime(2012, 9, 7, 1, 33, 5, 835782,
+                                     tzinfo=timezone.utc))
 
 
 def test_anonymize(tmpdir):

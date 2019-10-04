@@ -119,13 +119,19 @@ def _summarize_str(st):
     return st[:56][::-1].split(',', 1)[-1][::-1] + ', ...'
 
 
-def _stamp_to_dt(stamp):
+def _dt_to_stamp(inp_date):
+    """Convert a datetime object to a meas_date."""
+    return int(inp_date.timestamp() // 1), inp_date.microsecond
+
+
+def _stamp_to_dt(utc_stamp):
     """Convert timestamp to datetime object in Windows-friendly way."""
     # The min on windows is 86400
-    stamp = [int(s) for s in stamp]
+    stamp = [int(s) for s in utc_stamp]
     if len(stamp) == 1:  # In case there is no microseconds information
         stamp.append(0)
-    return (datetime.datetime.utcfromtimestamp(stamp[0]) +
+    return (datetime.datetime.fromtimestamp(stamp[0],
+                                            tz=datetime.timezone.utc) +
             datetime.timedelta(0, 0, stamp[1]))  # day, sec, μs
 
 
@@ -1861,18 +1867,6 @@ def _force_update_info(info_base, info_target):
             i_targ[key] = val
 
 
-def _meas_date_to_datetime(meas_date):
-    """Convert meas_date to datatime object."""
-    out_date = datetime.datetime.fromtimestamp(int(meas_date[0]))
-    out_date += datetime.timedelta(microseconds=int(meas_date[1]))
-    return out_date
-
-
-def _datetime_to_meas_date(inp_date):
-    """Convert a datetime object to a meas_date."""
-    return int(inp_date.timestamp() // 1), inp_date.microsecond
-
-
 def anonymize_info(info, daysback=None, keep_his=False):
     """Anonymize measurement information in place.
 
@@ -1898,14 +1892,15 @@ def anonymize_info(info, daysback=None, keep_his=False):
     """
     _validate_type(info, 'info', "self")
 
-    default_anon_dos = datetime.datetime(2000, 1, 1, 0, 0, 0)
+    default_anon_dos = datetime.datetime(2000, 1, 1, 0, 0, 0,
+                                         tzinfo=datetime.timezone.utc)
     default_str = "mne_anonymize"
     default_subject_id = 0
     default_desc = ("Anonymized using a time shift"
                     " to preserve age at acquisition")
 
     # datetime object representing meas_date
-    meas_date_datetime = _meas_date_to_datetime(info['meas_date'])
+    meas_date_datetime = _stamp_to_dt(info['meas_date'])
 
     if daysback is None:
         delta_t = meas_date_datetime - default_anon_dos
@@ -1913,7 +1908,7 @@ def anonymize_info(info, daysback=None, keep_his=False):
         delta_t = datetime.timedelta(days=daysback)
 
     # adjust meas_date
-    info['meas_date'] = _datetime_to_meas_date(meas_date_datetime - delta_t)
+    info['meas_date'] = _dt_to_stamp(meas_date_datetime - delta_t)
 
     # file_id and meas_id
     for key in ('file_id', 'meas_id'):

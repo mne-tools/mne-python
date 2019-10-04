@@ -323,6 +323,6 @@ def test_anonymize(tmpdir):
         mne_anonymize.run()
     info = read_info(out_fname)
     assert(op.exists(out_fname))
-    assert_equal((946702800, 0), info['meas_date'], )
+    assert_equal(info['meas_date'], (946684800, 0))
 
 run_tests_if_main()
