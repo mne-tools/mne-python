@@ -50,6 +50,11 @@ def test_fix_stim_artifact():
     # XXX This is a very weird check...
     assert np.all(data_from_epochs_fix) == 0.
 
+    epochs = fix_stim_artifact(epochs, tmin=tmin, tmax=tmax,
+                               baseline=(-0.1, -0.05), mode='constant')
+    data = epochs.get_data()[:, :, tmin_samp:tmax_samp]
+    assert np.all(np.diff(data[0][0])) == 0.
+
     # use window before stimulus in raw
     event_idx = np.where(events[:, 2] == 1)[0][0]
     tmin, tmax = -0.045, -0.015
@@ -68,7 +73,13 @@ def test_fix_stim_artifact():
     raw = fix_stim_artifact(raw, events, event_id=1, tmin=tmin,
                             tmax=tmax, mode='window')
     data, times = raw[:, (tidx + tmin_samp):(tidx + tmax_samp)]
+
     assert np.all(data) == 0.
+
+    raw = fix_stim_artifact(raw, events, event_id=1, tmin=tmin, tmax=tmax,
+                            baseline=(-0.1, -0.05), mode='constant')
+    data, times = raw[:, (tidx + tmin_samp):(tidx + tmax_samp)]
+    assert np.all(np.diff(data[0])) == 0.
 
     # get epochs from raw with fixed data
     tmin, tmax, event_id = -0.2, 0.5, 1
@@ -95,3 +106,8 @@ def test_fix_stim_artifact():
     evoked = fix_stim_artifact(evoked, tmin=tmin, tmax=tmax, mode='window')
     data = evoked.data[:, tmin_samp:tmax_samp]
     assert np.all(data) == 0.
+
+    evoked = fix_stim_artifact(evoked, tmin=tmin, tmax=tmax,
+                               baseline=(-0.1, -0.05), mode='constant')
+    data = evoked.data[:, tmin_samp:tmax_samp]
+    assert np.all(np.diff(data[0])) == 0
