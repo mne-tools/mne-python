@@ -83,6 +83,18 @@ def test_plot_epochs_basic(capsys):
     with pytest.warns(RuntimeWarning, match='projection'):
         epochs.plot(noise_cov=cov)
     plt.close('all')
+    # check the epochs color plotting
+    epoch_colors = [['r'] * len(epochs.ch_names) for _ in
+                    range(len(epochs.events))]
+    epochs.plot(epoch_colors=epoch_colors)
+    pytest.raises(TypeError, epochs.plot, epoch_colors='r')
+    pytest.raises(ValueError, epochs.plot,
+                  epoch_colors=['r'] * len(epochs.ch_names))
+    epoch_colors[0] = None
+    pytest.raises(TypeError, epochs.plot,
+                  epoch_colors=epoch_colors)
+    epoch_colors[0] = ['r'] * 5
+    pytest.raises(ValueError, epochs.plot, epoch_colors=epoch_colors)
     # other options
     fig = epochs[0].plot(picks=[0, 2, 3], scalings=None)
     fig.canvas.key_press_event('escape')

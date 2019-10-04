@@ -18,9 +18,10 @@ from copy import deepcopy
 import numpy as np
 
 from ..defaults import _handle_default
-from ..utils import (verbose, logger, warn, fill_doc, check_version,
-                     _validate_type)
-from ..io.meas_info import create_info
+
+from ..utils import verbose, logger, warn, fill_doc, check_version
+from ..io.meas_info import create_info, _validate_type
+
 from ..io.pick import (pick_types, channel_type, _get_channel_types,
                        _picks_to_idx, _DATA_CH_TYPES_SPLIT,
                        _DATA_CH_TYPES_ORDER_DEFAULT, _VALID_CHANNEL_TYPES)
@@ -981,10 +982,22 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         raise RuntimeError('Some channels not classified. Please'
                            ' check your picks')
     ch_names = [params['info']['ch_names'][idx] for idx in inds]
+    _validate_type(params['epoch_colors'], (list, None), 'epoch_colors')
     if params['epoch_colors'] is not None:
+        if len(params['epoch_colors']) != len(params['epochs'].events):
+            raise ValueError('epoch_colors must be list of len(epochs.events)'
+                             'Got %s' % len(params['epoch_colors']))
         for epoch_idx in range(len(params['epoch_colors'])):
+            these_colors = params['epoch_colors'][epoch_idx]
+            _validate_type(these_colors, list,
+                           'epoch_colors[%s]' % (epoch_idx,))
+            if len(these_colors) != n_channels:
+                raise ValueError('epoch_colors for the %dth epoch'
+                                 'has length %d, expected %d'
+                                 % (epoch_idx, len(these_colors), n_channels))
+            these_colors = [colorConverter.to_rgba(c) for c in these_colors]
             params['epoch_colors'][epoch_idx] = \
-                [params['epoch_colors'][epoch_idx][idx] for idx in inds]
+                [these_colors[idx] for idx in inds]
 
     # set up plotting
     n_epochs = min(n_epochs, len(epochs_events))
