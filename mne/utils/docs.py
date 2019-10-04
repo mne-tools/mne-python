@@ -420,6 +420,15 @@ docdict["proj_topomap_kwargs"] = """
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of projectors. If instance of Axes,
         there must be only one projector. Defaults to None.
+    vlim : tuple of length 2 | 'joint'
+        Colormap limits to use. If :class:`tuple`, specifies the lower and
+        upper bounds of the colormap (in that order); providing ``None`` for
+        either of these will set the corresponding boundary at the min/max of
+        the data (separately for each projector). The keyword value ``'joint'``
+        will compute the colormap limits jointly across all provided
+        projectors of the same channel type, using the min/max of the projector
+        data. If vlim is ``'joint'``, ``info`` must not be ``None``. Defaults
+        to ``(None, None)``.
 """
 
 # Montage
