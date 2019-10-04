@@ -29,7 +29,7 @@ from mne.channels.montage import (_set_montage, transform_to_head,
 from mne.utils import _TempDir, run_tests_if_main, assert_dig_allclose
 from mne.bem import _fit_sphere
 from mne.io.constants import FIFF
-from mne.io._digitization import (Digitization, _format_dig_points,
+from mne.io._digitization import (_format_dig_points,
                                   _get_fid_coords, _get_dig_eeg,
                                   _count_points_by_type)
 
@@ -891,7 +891,7 @@ cnt_ignore_warns = [
 def test_digmontage_constructor_errors():
     """Test proper error messaging."""
     with pytest.raises(ValueError, match='does not match the number'):
-        _ = DigMontage(ch_names=['foo', 'bar'], dig=Digitization())
+        _ = DigMontage(ch_names=['foo', 'bar'], dig=list())
 
 
 def test_transform_to_head_and_compute_dev_head_t():

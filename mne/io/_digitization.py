@@ -8,7 +8,6 @@
 # License: BSD (3-clause)
 
 from collections import OrderedDict, Counter
-from copy import deepcopy
 
 import datetime
 import os.path as op
@@ -50,8 +49,7 @@ _cardinal_kind_rev = {1: 'LPA', 2: 'Nasion', 3: 'RPA', 4: 'Inion'}
 
 def _format_dig_points(dig):
     """Format the dig points nicely."""
-    dig_points = [DigPoint(d) for d in dig] if dig is not None else dig
-    return Digitization(dig_points)
+    return [DigPoint(d) for d in dig] if dig is not None else dig
 
 
 def _get_dig_eeg(dig):
@@ -116,33 +114,6 @@ class DigPoint(dict):
             return False
         else:
             return np.allclose(self['r'], other['r'])
-
-
-class Digitization(list):
-    """Represent a list of DigPoint objects.
-
-    Parameters
-    ----------
-    elements : list | None
-        A list of DigPoint objects.
-    """
-
-    def __init__(self, elements=None):
-
-        elements = list() if elements is None else elements
-
-        if not all([isinstance(_, DigPoint) for _ in elements]):
-            _msg = 'Digitization expected a iterable of DigPoint objects.'
-            raise ValueError(_msg)
-        else:
-            super(Digitization, self).__init__(deepcopy(elements))
-
-    def __eq__(self, other):  # noqa: D105
-        if not isinstance(other, (Digitization, list)) or \
-           len(self) != len(other):
-            return False
-        else:
-            return all([ss == oo for ss, oo in zip(self, other)])
 
 
 def _read_dig_fif(fid, meas_info):
