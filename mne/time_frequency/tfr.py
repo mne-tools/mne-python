@@ -604,7 +604,7 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
     """Help reduce redundancy between tfr_morlet and tfr_multitaper."""
     decim = _check_decim(decim)
     data = _get_data(inst, return_itc)
-    info = inst.info
+    info = inst.info.copy()  # make a copy as sfreq can be altered
 
     info, data = _prepare_picks(info, data, picks, axis=1)
     del picks
@@ -625,6 +625,7 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
     out = _compute_tfr(data, freqs, info['sfreq'], method=method,
                        output=output, decim=decim, **tfr_params)
     times = inst.times[decim].copy()
+    info['sfreq'] /= decim.step
 
     if average:
         if return_itc:
