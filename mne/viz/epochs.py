@@ -810,7 +810,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         .. versionadded:: 0.18.0
     %(show_scrollbars)s
     epoch_colors : list of (n_epochs) list (of n_channels) | None
-        Colors to use for individual epochs. If None, use default colors
+        Colors to use for individual epochs. If None, use default colors.
 
     Returns
     -------
@@ -985,15 +985,15 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     _validate_type(params['epoch_colors'], (list, None), 'epoch_colors')
     if params['epoch_colors'] is not None:
         if len(params['epoch_colors']) != len(params['epochs'].events):
-            raise ValueError('epoch_colors must be list of len(epochs.events)'
-                             'Got %s' % len(params['epoch_colors']))
+            raise ValueError('epoch_colors must be list of len(epochs.events).'
+                             ' Got %s' % len(params['epoch_colors']))
         for epoch_idx in range(len(params['epoch_colors'])):
             these_colors = params['epoch_colors'][epoch_idx]
             _validate_type(these_colors, list,
                            'epoch_colors[%s]' % (epoch_idx,))
             if len(these_colors) != n_channels:
-                raise ValueError('epoch_colors for the %dth epoch'
-                                 'has length %d, expected %d'
+                raise ValueError('epoch_colors for the %dth epoch '
+                                 'has length %d, expected %d.'
                                  % (epoch_idx, len(these_colors), n_channels))
             these_colors = [colorConverter.to_rgba(c) for c in these_colors]
             params['epoch_colors'][epoch_idx] = \
