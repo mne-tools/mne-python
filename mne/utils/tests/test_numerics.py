@@ -2,6 +2,7 @@ from copy import deepcopy
 from distutils.version import LooseVersion
 from io import StringIO
 import os.path as op
+from datetime import datetime
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
@@ -19,7 +20,8 @@ from mne.utils import (_get_inst_data, hashfunc,
                        object_hash, object_diff, _apply_scaling_cov,
                        _undo_scaling_cov, _apply_scaling_array,
                        _undo_scaling_array, _PCA, requires_sklearn,
-                       _array_equal_nan)
+                       _array_equal_nan, julian_to_cal, cal_to_julian,
+                       datetime_to_julian, julian_to_datetime)
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -443,3 +445,22 @@ def test_array_equal_nan():
     assert not _array_equal_nan(a, b)
     a = b = [np.nan] * 2
     assert _array_equal_nan(a, b)
+
+
+def test_julian_conversions():
+    """Test julian calendar conversions."""
+    # https://aa.usno.navy.mil/data/docs/JulianDate.php
+    # A.D. 1922 Jun 13	12:00:00.0	2423219.000000
+    # A.D. 2018 Oct 3	12:00:00.0	2458395.000000
+
+    jds = [2423219, 2458395]
+    dds = [datetime(1922, 6, 13, 12, 0, 0),
+           datetime(2018, 10, 3, 12, 0, 0)]
+    cals = [(1922, 6, 13), (2018, 10, 3)]
+
+    for dd, cal, jd in zip(dds, cals, jds):
+        assert (dd == julian_to_datetime(jd))
+        assert (cal == julian_to_cal(jd))
+
+        assert (jd == datetime_to_julian(dd))
+        assert (jd == cal_to_julian(cal[0], cal[1], cal[2]))

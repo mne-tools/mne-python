@@ -50,7 +50,9 @@ from .numerics import (hashfunc, _compute_row_norms,
                        object_hash, object_size, _apply_scaling_cov,
                        _undo_scaling_cov, _apply_scaling_array,
                        _undo_scaling_array, _scaled_array, _replace_md5, _PCA,
-                       _mask_to_onsets_offsets, _array_equal_nan)
+                       _mask_to_onsets_offsets, _array_equal_nan,
+                       julian_to_cal, cal_to_julian, datetime_to_julian,
+                       julian_to_datetime)
 from .mixin import (SizeMixin, GetEpochsMixin, _prepare_read_metadata,
                     _prepare_write_metadata, _FakeNoPandas)
 from .linalg import (_svd_lwork, _repeated_svd, _repeated_pinv2,
