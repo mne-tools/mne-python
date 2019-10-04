@@ -1,6 +1,7 @@
 """Conversion tool from CTF to FIF."""
 
-# Author: Eric Larson <larson.eric.d<gmail.com>
+# Authors: Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Eric Larson <larsoner@uw.edu>
 #
 # License: BSD (3-clause)
 
