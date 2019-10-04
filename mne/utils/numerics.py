@@ -15,7 +15,7 @@ import os.path as op
 from math import ceil
 import shutil
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import numpy as np
 from scipy import sparse
@@ -884,7 +884,7 @@ def _mask_to_onsets_offsets(mask):
     return onsets, offsets
 
 
-def julian_to_datetime(jd):
+def _julian_to_dt(jd):
     """Convert Julian integer to a datetime object.
 
     Parameters
@@ -904,13 +904,13 @@ def julian_to_datetime(jd):
     # https://aa.usno.navy.mil/data/docs/JulianDate.php
     # Thursday, A.D. 1970 Jan 1 12:00:00.0  2440588.000000
     jd_t0 = 2440588
-    datetime_t0 = datetime(1970, 1, 1, 12, 0, 0, 0)
+    datetime_t0 = datetime(1970, 1, 1, 12, 0, 0, 0, tzinfo=timezone.utc)
 
     dt = timedelta(days=(jd - jd_t0))
     return datetime_t0 + dt
 
 
-def datetime_to_julian(jd_date):
+def _dt_to_julian(jd_date):
     """Convert datetime object to a Julian integer.
 
     Parameters
@@ -930,13 +930,13 @@ def datetime_to_julian(jd_date):
     # https://aa.usno.navy.mil/data/docs/JulianDate.php
     # Thursday, A.D. 1970 Jan 1 12:00:00.0  2440588.000000
     jd_t0 = 2440588
-    datetime_t0 = datetime(1970, 1, 1, 12, 0, 0, 0)
+    datetime_t0 = datetime(1970, 1, 1, 12, 0, 0, 0, tzinfo=timezone.utc)
 
     dt = jd_date - datetime_t0
     return jd_t0 + dt.days
 
 
-def cal_to_julian(year, month, day):
+def _cal_to_julian(year, month, day):
     """Convert calendar date (year, month, day) to a Julian integer.
 
     Parameters
@@ -953,10 +953,11 @@ def cal_to_julian(year, month, day):
     jd: int
         Julian date.
     """
-    return int(datetime_to_julian(datetime(year, month, day, 12, 0, 0)))
+    return int(_dt_to_julian(datetime(year, month, day, 12, 0, 0,
+                                      tzinfo=timezone.utc)))
 
 
-def julian_to_cal(jd):
+def _julian_to_cal(jd):
     """Convert calendar date (year, month, day) to a Julian integer.
 
     Parameters
@@ -974,5 +975,5 @@ def julian_to_cal(jd):
         Day as an integer.
 
     """
-    tmp_date = julian_to_datetime(jd)
+    tmp_date = _julian_to_dt(jd)
     return tmp_date.year, tmp_date.month, tmp_date.day

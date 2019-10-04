@@ -2,7 +2,7 @@ from copy import deepcopy
 from distutils.version import LooseVersion
 from io import StringIO
 import os.path as op
-from datetime import datetime
+from datetime import datetime, timezone
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
@@ -20,8 +20,8 @@ from mne.utils import (_get_inst_data, hashfunc,
                        object_hash, object_diff, _apply_scaling_cov,
                        _undo_scaling_cov, _apply_scaling_array,
                        _undo_scaling_array, _PCA, requires_sklearn,
-                       _array_equal_nan, julian_to_cal, cal_to_julian,
-                       datetime_to_julian, julian_to_datetime)
+                       _array_equal_nan, _julian_to_cal, _cal_to_julian,
+                       _dt_to_julian, _julian_to_dt)
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -453,14 +453,15 @@ def test_julian_conversions():
     # A.D. 1922 Jun 13  12:00:00.0  2423219.000000
     # A.D. 2018 Oct 3   12:00:00.0  2458395.000000
 
-    jds = [2423219, 2458395]
-    dds = [datetime(1922, 6, 13, 12, 0, 0),
-           datetime(2018, 10, 3, 12, 0, 0)]
-    cals = [(1922, 6, 13), (2018, 10, 3)]
+    jds = [2423219, 2458395, 2445701]
+    dds = [datetime(1922, 6, 13, 12, 0, 0, tzinfo=timezone.utc),
+           datetime(2018, 10, 3, 12, 0, 0, tzinfo=timezone.utc),
+           datetime(1984, 1, 1, 12, 0, 0, tzinfo=timezone.utc)]
+    cals = [(1922, 6, 13), (2018, 10, 3), (1984, 1, 1)]
 
     for dd, cal, jd in zip(dds, cals, jds):
-        assert (dd == julian_to_datetime(jd))
-        assert (cal == julian_to_cal(jd))
+        assert (dd == _julian_to_dt(jd))
+        assert (cal == _julian_to_cal(jd))
 
-        assert (jd == datetime_to_julian(dd))
-        assert (jd == cal_to_julian(cal[0], cal[1], cal[2]))
+        assert (jd == _dt_to_julian(dd))
+        assert (jd == _cal_to_julian(cal[0], cal[1], cal[2]))
