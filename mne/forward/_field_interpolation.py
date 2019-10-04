@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larsoner@uw.edu>
+
+# The computations in this code were primarily derived from Matti Hamalainen's
+# C code.
 
 from copy import deepcopy
 

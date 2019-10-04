@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larsoner@uw.edu>
 #          Mark Wronkiewicz <wronk@uw.edu>
 #
 # License: BSD (3-clause)
+
+# The computations in this code were primarily derived from Matti Hamalainen's
+# C code.
 #
 # Many of the idealized equations behind these calculations can be found in:
 # 1) Realistic conductivity geometry model of the human head for interpretation
