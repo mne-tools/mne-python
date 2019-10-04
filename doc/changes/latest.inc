@@ -34,6 +34,8 @@ Changelog
 
 - For KIT systems without built-in layout, :func:`mne.channels.find_layout` now falls back on an automatically generated layout, by `Christian Brodbeck`_
 
+- :meth:`mne.Epochs.plot` now takes a ``epochs_colors`` parameter to color specific epoch segments by `Mainak Jas`_
+
 Bug
 ~~~
 
