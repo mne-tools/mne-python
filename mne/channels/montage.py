@@ -364,7 +364,14 @@ def transform_to_head(montage):
 
 
 def read_dig_dat(fname):
-    r"""Read electrode positions from .dat file
+    r"""Read electrode positions from a ``*.dat`` file.
+
+    .. Warning::
+        This function was implemented based on ``*.dat`` files available from
+        `Compumedics <https://compumedicsneuroscan.com/scan-acquire-
+        configuration-files/>`_ and might not work as expected with novel
+        files. If it does not read your files correctly please contact the
+        mne-python developers.
 
     Parameters
     ----------
@@ -373,8 +380,23 @@ def read_dig_dat(fname):
 
     Returns
     -------
-    montage : instance of DigMontage
+    montage : DigMontage
         The montage.
+
+    See Also
+    --------
+    read_dig_captrack
+    read_dig_dat
+    read_dig_egi
+    read_dig_fif
+    read_dig_hpts
+    read_dig_polhemus_isotrak
+    make_dig_montage
+
+    Notes
+    -----
+    ``*.dat`` files are plain text files and can be inspected and amended with
+    a plain text editor.
     """
     fname = _check_fname(fname, overwrite='read', must_exist=True)
 
@@ -426,6 +448,7 @@ def read_dig_fif(fname):
     See Also
     --------
     DigMontage
+    read_dig_dat
     read_dig_egi
     read_dig_captrack
     read_dig_polhemus_isotrak
@@ -466,6 +489,7 @@ def read_dig_hpts(fname, unit='mm'):
     --------
     DigMontage
     read_dig_captrack
+    read_dig_dat
     read_dig_egi
     read_dig_fif
     read_dig_polhemus_isotrak
@@ -555,6 +579,7 @@ def read_dig_egi(fname):
     --------
     DigMontage
     read_dig_captrack
+    read_dig_dat
     read_dig_fif
     read_dig_hpts
     read_dig_polhemus_isotrak
@@ -593,6 +618,7 @@ def read_dig_captrack(fname):
     See Also
     --------
     DigMontage
+    read_dig_dat
     read_dig_egi
     read_dig_fif
     read_dig_hpts
@@ -839,6 +865,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
     make_dig_montage
     read_polhemus_fastscan
     read_dig_captrack
+    read_dig_dat
     read_dig_egi
     read_dig_fif
     """
@@ -1092,9 +1119,9 @@ def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
     Notes
     -----
     Individualized (digitized) electrode positions should be read in using
-    :func:`read_dig_captrack`, :func:`read_dig_egi`, :func:`read_dig_fif`,
-    :func:`read_dig_polhemus_isotrak`, :func:`read_dig_hpts` or made with
-    :func:`make_dig_montage`.
+    :func:`read_dig_captrack`, :func:`read_dig_dat`, :func:`read_dig_egi`,
+    :func:`read_dig_fif`, :func:`read_dig_polhemus_isotrak`,
+    :func:`read_dig_hpts` or made with :func:`make_dig_montage`.
 
     Valid ``kind`` arguments are:
 

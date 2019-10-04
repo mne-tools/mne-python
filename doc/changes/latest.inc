@@ -30,6 +30,8 @@ Changelog
 
 - Add reader for NIRx data in :func:`mne.io.read_raw_nirx` by `Robert Luke`_
 
+- Add reader for ``*.dat`` electrode position files :func:`mne.channels.read_dig_dat` by `Christian Brodbeck`_
+
 Bug
 ~~~
 

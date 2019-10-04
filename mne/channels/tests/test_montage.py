@@ -17,7 +17,7 @@ from numpy.testing import (assert_array_equal,
 
 from mne import __file__ as _mne_file, create_info, read_evokeds
 from mne.utils._testing import _dig_sort_key
-from mne.channels import (get_builtin_montages, DigMontage,
+from mne.channels import (get_builtin_montages, DigMontage, read_dig_dat,
                           read_dig_egi, read_dig_captrack, read_dig_fif,
                           make_standard_montage, read_custom_montage,
                           compute_dev_head_t, make_dig_montage,

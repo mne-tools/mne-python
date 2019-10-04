@@ -98,16 +98,23 @@ def read_raw_cnt(input_fname, eog=(), misc=(), ecg=(),
     """Read CNT data as raw object.
 
     .. Note::
-        If montage is not provided, the x and y coordinates are read from the
-        file header. Channels that are not assigned with keywords ``eog``,
-        ``ecg``, ``emg`` and ``misc`` are assigned as eeg channels. All the eeg
-        channel locations are fit to a sphere when computing the z-coordinates
-        for the channels. If channels assigned as eeg channels have locations
+        2d spatial coordinates (x, y) for EEG channels are read from the file
+        header and fit to a sphere to compute corresponding z-coordinates.
+        If channels assigned as EEG channels have locations
         far away from the head (i.e. x and y coordinates don't fit to a
-        sphere), all the channel locations will be distorted. If you are not
+        sphere), all the channel locations will be distorted
+        (all channels that are not assigned with keywords ``eog``, ``ecg``,
+        ``emg`` and ``misc`` are assigned as EEG channels). If you are not
         sure that the channel locations in the header are correct, it is
-        probably safer to use a (standard) montage. See
-        :func:`mne.channels.make_standard_montage`
+        probably safer to replace them with :meth:`mne.Raw.set_montage`.
+        Montages can be created/imported with:
+
+        - Standard montages with :func:`mne.channels.make_standard_montage`
+        - Montages for `Compumedics systems <https://compumedicsneuroscan.com/
+          scan-acquire-configuration-files/>`_ with
+          :func:`mne.channels.read_dig_dat`
+        - Other reader functions are listed under *See Also* at
+          :class:`mne.channels.DigMontage`
 
     Parameters
     ----------
