@@ -44,7 +44,7 @@ def test_optical_density_zeromean():
 
 @testing.requires_testing_data
 def test_optical_density_manual():
-    """Test optical density on known values"""
+    """Test optical density on known values."""
     test_tol = 0.01
     raw = read_raw_nirx(fname_nirx, preload=True)
     # log(1) = 0
