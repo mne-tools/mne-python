@@ -27,7 +27,7 @@ def optical_density(raw):
     """
     _validate_type(raw, BaseRaw, 'raw')
     picks = _picks_to_idx(raw.info, 'fnirs_raw')
-    data_means = np.mean(raw.get_data(), 1)
+    data_means = np.mean(raw.get_data(), axis=1)
 
     # The devices measure light intensity. Negative light intensities should
     # not occur. If they do it is likely due to hardware or movement issues.
