@@ -11,8 +11,10 @@ from mne.preprocessing import optical_density
 from mne.utils import _validate_type
 from mne.datasets import testing
 
-import numpy as np
 import pytest as pytest
+import numpy as np
+from numpy.testing import assert_allclose
+
 
 fname_nirx = op.join(data_path(download=False),
                      'NIRx', 'nirx_15_2_recording_w_short')
@@ -53,6 +55,5 @@ def test_optical_density_manual():
     raw._data[5] = test_data
 
     od = optical_density(raw)
-    assert np.sum(od.get_data()[4] - np.zeros(145)) == 0
-    assert np.abs(od.get_data()[5][0] - 0.69) < test_tol
-    assert np.abs(od.get_data()[5][1] - -0.40) < test_tol
+    assert_allclose(od.get_data([4]), 0.)
+    assert_allclose(od.get_data([5])[0, :2], [0.69, -0.4], atol=test_tol)
