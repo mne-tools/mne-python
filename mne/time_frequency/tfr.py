@@ -358,7 +358,6 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
                          'signal. Use a longer signal or shorter wavelets.')
 
     # Initialize output
-    decim = _check_decim(decim)
     n_freqs = len(freqs)
     n_epochs, n_chans, n_times = epoch_data[:, :, decim].shape
     if output in ('power', 'phase', 'avg_power', 'itc'):
@@ -408,6 +407,13 @@ def _check_tfr_param(freqs, sfreq, method, zero_mean, n_cycles,
         raise ValueError('sfreq must be a float or an int, got %s '
                          'instead.' % type(sfreq))
     sfreq = float(sfreq)
+
+    decim = _check_decim(decim)
+    if decim.step is not None:
+        sfreq /= decim.step
+    if (freqs > sfreq / 2.).any():
+        raise ValueError('Cannot compute freq above Nyquist freq '
+                         'after decimation')
 
     # Default zero_mean = True if multitaper else False
     zero_mean = method == 'multitaper' if zero_mean is None else zero_mean
@@ -644,7 +650,6 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
         out = EpochsTFR(info, power, times, freqs, method='%s-power' % method,
                         events=evs, event_id=ev_id, metadata=meta)
 
-    out.info['sfreq'] = out.info['sfreq'] / float(decim.step)
     return out
 
 

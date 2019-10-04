@@ -45,6 +45,8 @@ Bug
 
 - Fix IO of TFRs when event_id contain a / in one of the keys by `Alex Gramfort`_
 
+- Fix sfreq info when decimating in :func:`mne.time_frequency.tfr_multitaper` by `Adonay Nunes`_
+
 API
 ~~~
 
