@@ -29,5 +29,5 @@ neo
 xlrd
 pydocstyle
 flake8
-https://github.com/pyvista/pyvista/zipball/add_text_normalized_viewport
+https://github.com/pyvista/pyvista/zipball/master
 panel
