@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-# Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
-#
-# License: BSD (3-clause)
 """
 Test the following properties for resolution metrics.
 
@@ -12,8 +8,8 @@ Currently only for fixed source orientations.
 
 import os.path as op
 import numpy as np
-from numpy.testing import (assert_array_almost_equal, assert_equal,
-                           assert_array_equal)
+from numpy.testing import (assert_array_almost_equal, assert_array_equal,
+                           assert_)
 
 import mne
 from mne.datasets import testing
@@ -27,23 +23,6 @@ fname_inv = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
 fname_evoked = op.join(data_path, 'MEG', 'sample',
                        'sample_audvis_trunc-ave.fif')
-fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
-fname_t1 = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
-fname_src = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
-fname_src_fs = op.join(data_path, 'subjects', 'fsaverage', 'bem',
-                       'fsaverage-ico-5-src.fif')
-fname_src_3 = op.join(data_path, 'subjects', 'sample', 'bem',
-                      'sample-oct-4-src.fif')
-fname_stc = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-meg')
-fname_vol = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
-fname_vsrc = op.join(data_path, 'MEG', 'sample',
-                     'sample_audvis_trunc-meg-vol-7-fwd.fif')
-fname_inv_vol = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis_trunc-meg-vol-7-meg-inv.fif')
-rng = np.random.RandomState(0)
-
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
@@ -117,7 +96,7 @@ def test_resolution_metrics():
     # For MNE: RA for PSF and CTF equal?
     assert_array_almost_equal(ra_mne_psf.data, ra_mne_ctf.data)
     # Zero PLE for sLORETA?
-    assert_equal((le_lor_psf.data == 0.).all(), True)
+    assert_((le_lor_psf.data == 0.).all())
     # Spatial deviation of CTFs for MNE and sLORETA equal?
     assert_array_almost_equal(sd_mne_ctf.data, sd_lor_ctf.data)
 
@@ -125,4 +104,4 @@ def test_resolution_metrics():
     r1 = np.ones([8, 4])
     r2 = _rectify_resolution_matrix(r1)
 
-    assert_array_equal(r2, np.sqrt(2) * np.ones([4, 4]))
+    assert_array_equal(r2, np.sqrt(2) * np.ones((4, 4)))

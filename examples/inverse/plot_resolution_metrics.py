@@ -1,22 +1,19 @@
-# -*- coding: utf-8 -*-
-# Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
+"""
+==============================================================
+Compute spatial resolution metrics in source space.
+==============================================================
+
+Compute peak localisation error and spatial deviation for the point-spread
+functions of dSPM and MNE.
+"""
+# Author: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #
 # License: BSD (3-clause)
-"""
-Plot PSFs and CTFs with corresponding resolution metrics.
-
-Compare metrics localisation error and spatial extent with the
-corresponding PSFs and CTFs.
-"""
 
 import mne
-from mne import SourceEstimate
 from mne.datasets import sample
-from mne.minimum_norm.resolution_matrix import (make_resolution_matrix,
-                                                get_point_spread,
-                                                get_cross_talk)
-from mne.minimum_norm.resolution_metrics import (localisation_error_psf,
-                                                 localisation_error_ctf)
+from mne.minimum_norm.resolution_matrix import make_resolution_matrix
+from mne.minimum_norm.resolution_metrics import resolution_metrics
 
 print(__doc__)
 
@@ -47,89 +44,74 @@ inverse_operator = mne.minimum_norm.make_inverse_operator(
 # regularisation parameter
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
-method = 'sLORETA'  # can be 'MNE', 'sLORETA' or 'eLORETA'
+
+# compute resolution matrix for MNE
+rm_mne = make_resolution_matrix(forward, inverse_operator,
+                                method='MNE', lambda2=lambda2)
 
 # compute resolution matrix for sLORETA
-rm_lor = make_resolution_matrix(forward, inverse_operator,
-                                method=method, lambda2=lambda2)
+rm_spm = make_resolution_matrix(forward, inverse_operator,
+                                method='dSPM', lambda2=lambda2)
 
-# compute resolution matrix for sLORETA
-rm_lor = make_resolution_matrix(forward, inverse_operator,
-                                method=method, lambda2=lambda2)
+# Compute peak localisation error for PSFs
+ple_mne_psf = resolution_metrics(rm_mne, inverse_operator['src'],
+                                 function='psf',
+                                 kind='localization_error', metric='peak')
+ple_spm_psf = resolution_metrics(rm_spm, inverse_operator['src'],
+                                 function='psf',
+                                 kind='localization_error', metric='peak')
 
-# Compute peak localisation error for PSFs and CTFs, respectively
-locerr_psf = localisation_error_psf(rm_lor, inverse_operator['src'],
-                                    metric='peak')
-locerr_ctf = localisation_error_ctf(rm_lor, inverse_operator['src'],
-                                    metric='peak')
+# Compute spatial deviation for PSFs
+sd_mne_psf = resolution_metrics(rm_mne, inverse_operator['src'],
+                                function='psf',
+                                kind='spatial_extent', metric='sd')
+sd_spm_psf = resolution_metrics(rm_spm, inverse_operator['src'],
+                                function='psf',
+                                kind='spatial_extent', metric='sd')
 
-# get PSF and CTF for sLORETA at one vertex
-sources = [1000]
+# Visualise peak localisation error (PLE) across the whole cortex for PSF
 
-stc_psf = get_point_spread(rm_lor, forward['src'], sources, norm=True)
+brain_le_mne = ple_mne_psf.plot('sample', 'inflated', 'lh',
+                                subjects_dir=subjects_dir, figure=1,
+                                clim=dict(kind='value', lims=(0, 2, 4)),
+                                title='PLE MNE')
 
-stc_ctf = get_cross_talk(rm_lor, forward['src'], sources, norm=True)
+brain_le_spm = ple_spm_psf.plot('sample', 'inflated', 'lh',
+                                subjects_dir=subjects_dir, figure=2,
+                                clim=dict(kind='value', lims=(0, 2, 4)),
+                                title='PLE dSPM')
 
-# Visualise individual PSF and CTF
+# Subtract the two distributions and plot this difference
+diff_ple = ple_mne_psf - ple_spm_psf
 
-# get vertices from source space
-vertno_lh = forward['src'][0]['vertno']
-vertno_rh = forward['src'][1]['vertno']
-vertno = [vertno_lh, vertno_rh]
+brain_le_diff = diff_ple.plot('sample', 'inflated', 'lh',
+                              subjects_dir=subjects_dir, figure=3,
+                              clim=dict(kind='value', pos_lims=(0., 1., 2.)),
+                              title='PLE MNE-dSPM')
 
-# Which vertex corresponds to selected source
-verttrue = [vertno_lh[sources[0]]]  # just one vertex
+print('dSPM has generally lower peak localization error than MNE in deeper \
+       brain areas (red color), but higher error (blue color) in more \
+       superficial areas.')
 
-# Find vertices with maxima in PSF and CTF
-vert_max_psf = vertno_lh[stc_psf.data.argmax()]
-vert_max_ctf = vertno_lh[stc_ctf.data.argmax()]
+# Visualise spatial deviation (SD) across the whole cortex for PSF
 
-brain_psf = stc_psf.plot('sample', 'inflated', 'lh', subjects_dir=subjects_dir,
-                         figure=1, title='PSF')
-
-brain_psf.show_view('ventral')
-
-# Indicate true source location for PSF
-brain_psf.add_foci(verttrue, coords_as_verts=True, scale_factor=1., hemi='lh',
-                   color='green')
-
-# Indicate location of maximum of PSF
-brain_psf.add_foci(vert_max_psf, coords_as_verts=True, scale_factor=1.,
-                   hemi='lh', color='black')
-
-brain_ctf = stc_ctf.plot('sample', 'inflated', 'lh', subjects_dir=subjects_dir,
-                         figure=2)
-
-brain_ctf.show_view('ventral')
-
-# Indicate location of maximum of PSF
-brain_ctf.add_foci(verttrue, coords_as_verts=True, scale_factor=1., hemi='lh',
-                   color='green')
-
-# Indicate location of maximum of PSF
-brain_ctf.add_foci(vert_max_ctf, coords_as_verts=True, scale_factor=1.,
-                   hemi='lh', color='black')
-
-print('The green spheres indicate the true source location, and the black \
-      spheres the maximum of the distribution.')
-print('Peak localisation error for PSF: %.2f cm.' % (100. *
-      locerr_psf[sources[0]]))
-print('Peak localisation error for CTF: %.2f cm.' % (100. *
-      locerr_ctf[sources[0]]))
-
-# Visualise localisation error across the whole cortex for PSF and CTF
-
-# First convert metric distributions to source estimate
-# and convert localisation error from meter to centimetre
-stc_le_psf = SourceEstimate(100. * locerr_psf, vertno, tmin=0., tstep=1.)
-stc_le_ctf = SourceEstimate(100. * locerr_ctf, vertno, tmin=0., tstep=1.)
-
-brain_le_psf = stc_le_psf.plot('sample', 'inflated', 'lh',
-                               subjects_dir=subjects_dir, figure=3,
-                               clim=dict(kind='value', lims=(0, 2, 4)),
-                               title='PLE PSF')
-
-brain_le_ctf = stc_le_ctf.plot('sample', 'inflated', 'lh',
+brain_le_mne = sd_mne_psf.plot('sample', 'inflated', 'lh',
                                subjects_dir=subjects_dir, figure=4,
                                clim=dict(kind='value', lims=(0, 2, 4)),
-                               title='PLE CTF')
+                               title='SD MNE')
+
+brain_le_spm = sd_spm_psf.plot('sample', 'inflated', 'lh',
+                               subjects_dir=subjects_dir, figure=5,
+                               clim=dict(kind='value', lims=(0, 2, 4)),
+                               title='SD dSPM')
+
+# Subtract the two distributions and plot this difference
+diff_sd = sd_mne_psf - sd_spm_psf
+
+brain_sd_diff = diff_sd.plot('sample', 'inflated', 'lh',
+                             subjects_dir=subjects_dir, figure=6,
+                             clim=dict(kind='value', pos_lims=(0., 1., 2.)),
+                             title='SD MNE-dSPM')
+
+print('dSPM has generally higher spatial deviation than MNE (blue color), i.e. \
+      worse performance to distinguish different sources.')
