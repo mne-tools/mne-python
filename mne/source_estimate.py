@@ -1514,17 +1514,18 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         nanoAmperes (i.e., MNE-like solutions, *not* dSPM or sLORETA).
 
         .. warning:: This function currently only works properly for fixed
-                     orientation...
+                     orientation.
                      
         Parameters
         ----------
-        info : instance of io.meas_info.Info
+        info : instance Info
             The measurement info.
         fwd : instance of Forward
             The forward solution used to create the source estimate.
         cov : instance of Covariance
             The noise covariance used to estimate the resting cortical
             activations. Should be an evoked covariance, not empty room.
+        %(verbose)s
 
         Returns
         -------

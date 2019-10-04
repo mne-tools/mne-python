@@ -20,6 +20,8 @@ Human Brain Mapping, 30(4), 1077–1086. doi:10.1002/hbm.20571
 #
 # License: BSD (3-clause)
 
+# sphinx_gallery_thumbnail_number = 2
+
 import mne
 from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse, read_inverse_operator
