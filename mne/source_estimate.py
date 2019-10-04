@@ -1568,14 +1568,13 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             use_cps=True, exp=None, limit_depth_chs=False, combine_xyz='fro',
             allow_fixed_depth=False, limit=None)
         G = G['sol']['data']
-        n_channels = cov['dim'] # number of sensors/channels
+        n_channels = cov['dim']  # number of sensors/channels
         b_k2 = (G * G).T
         s_k2 = np.diag(cov['data'])
         scaling = (1 / n_channels) * np.sum(b_k2 / s_k2, axis=1, keepdims=True)
         snr_stc = self.copy()
         snr_stc._data[:] = 10 * np.log10((self.data * self.data) * scaling)
         return snr_stc
-
 
     def get_peak(self, hemi=None, tmin=None, tmax=None, mode='abs',
                  vert_as_index=False, time_as_index=False):

@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-.. ex-mne-sourcespace-snr:
-
 ===============================
 Computing source space SNR
 ===============================
