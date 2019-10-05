@@ -10,7 +10,7 @@ of the L0.5/L2 mixed norm penalty.
 
 References
 ----------
-.. [1] Gramfort A., Kowalski M. and Hamalainen, M.
+.. [1] Gramfort A., Kowalski M. and Hämäläinen, M.
    "Mixed-norm estimates for the M/EEG inverse problem using accelerated
    gradient methods", Physics in Medicine and Biology, 2012.
    https://doi.org/10.1088/0031-9155/57/7/1937.

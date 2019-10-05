@@ -23,7 +23,7 @@ Examples
 # Authors: Denis A. Engemann  <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Yuval Harpaz <yuvharpaz@gmail.com>
 #
 #          simplified bsd-3 license

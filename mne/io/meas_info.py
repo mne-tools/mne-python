@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #

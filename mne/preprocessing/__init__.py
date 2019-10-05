@@ -1,7 +1,7 @@
 """Preprocessing with artifact detection, SSP, and ICA."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #
