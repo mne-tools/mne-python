@@ -408,8 +408,8 @@ def read_dig_dat(fname):
             continue
         elif len(items) != 5:
             raise ValueError(
-                f"Error reading {fname}, line {i} has unexpected number of "
-                f"entries:\n{line.rstrip()}")
+                "Error reading %s, line %s has unexpected number of entries:\n"
+                "%s" % (fname, i, line.rstrip()))
         num = items[1]
         if num == '67':
             continue  # centroid

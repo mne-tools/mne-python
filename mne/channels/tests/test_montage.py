@@ -348,6 +348,7 @@ def test_read_locs():
 
 
 def test_read_dig_dat():
+    """Test reading *.dat electrode locations."""
     rows = [
         ['Nasion', 78, 0.00, 1.00, 0.00],
         ['Left', 76, -1.00, 0.00, 0.00],
