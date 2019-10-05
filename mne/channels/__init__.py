@@ -6,7 +6,7 @@ Can be used for setting of sensor locations used for processing and plotting.
 from .layout import (Layout, make_eeg_layout, make_grid_layout, read_layout,
                      find_layout, generate_2d_layout)
 from .montage import (DigMontage,
-                      get_builtin_montages, make_dig_montage,
+                      get_builtin_montages, make_dig_montage, read_dig_dat,
                       read_dig_egi, read_dig_captrack, read_dig_fif,
                       read_dig_polhemus_isotrak, read_polhemus_fastscan,
                       compute_dev_head_t, make_standard_montage,
@@ -25,10 +25,10 @@ __all__ = [
     'make_standard_montage',
 
     # Readers
-    'read_ch_connectivity', 'read_dig_captrack', 'read_dig_egi',
-    'read_dig_fif', 'read_dig_montage', 'read_dig_polhemus_isotrak',
-    'read_layout', 'read_montage', 'read_polhemus_fastscan',
-    'read_custom_montage', 'read_dig_hpts',
+    'read_ch_connectivity', 'read_dig_captrack', 'read_dig_dat',
+    'read_dig_egi', 'read_dig_fif', 'read_dig_montage',
+    'read_dig_polhemus_isotrak', 'read_layout', 'read_montage',
+    'read_polhemus_fastscan', 'read_custom_montage', 'read_dig_hpts',
 
     # Helpers
     'rename_channels', 'make_1020_channel_selections',
