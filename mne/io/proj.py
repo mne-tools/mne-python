@@ -44,6 +44,10 @@ class Projection(dict):
         Parameters
         ----------
         %(proj_topomap_kwargs)s
+        info : instance of Info | None
+            The measurement information to use to determine the layout. If both
+            ``info`` and ``layout`` are provided, the layout will take
+            precedence.
 
         Returns
         -------
