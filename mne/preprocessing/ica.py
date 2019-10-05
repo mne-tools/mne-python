@@ -357,12 +357,10 @@ class ICA(ContainsMixin):
             fit_params.update({k: v for k, v in update.items() if k
                                not in fit_params})
         elif method == 'infomax':
-            fit_params.update({'extended': False})
-        elif method == 'extended-infomax':
-            fit_params.update({'extended': True})
-            method = 'infomax'
-        if 'max_iter' not in fit_params:
-            fit_params['max_iter'] = max_iter
+            # extended=True is default in underlying function, but we want
+            # default False here unless user specified True:
+            fit_params.setdefault('extended', False)
+        fit_params.setdefault('max_iter', max_iter)
         self.max_iter = max_iter
         self.fit_params = fit_params
 
