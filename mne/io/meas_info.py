@@ -1888,6 +1888,17 @@ def anonymize_info(info, daysback=None, keep_his=False):
 
     Notes
     -----
+    Removes potentially identifying information if it exist in ``info``.
+    Specifically:
+    - Reset 'meas_date', 'file_id', 'meas_id' to default value or as specified
+        by `daysback` parameter.
+    - Reset elements of 'subject_info' to default values.
+        Except for 'birthday' which is adjusted to maintain subject age.
+    - Reset meta info: 'experimenter', 'proj_id', 'proj_name' and
+        'description'.
+    - Reset dates and experimenter in 'proc_history' structure.
+    - Reset dates and meta info in 'helium_info' and 'device_info'
+
     Operates in place.
     """
     _validate_type(info, 'info', "self")
