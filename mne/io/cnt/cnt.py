@@ -106,7 +106,7 @@ def read_raw_cnt(input_fname, eog=(), misc=(), ecg=(),
         (all channels that are not assigned with keywords ``eog``, ``ecg``,
         ``emg`` and ``misc`` are assigned as EEG channels). If you are not
         sure that the channel locations in the header are correct, it is
-        probably safer to replace them with :meth:`mne.Raw.set_montage`.
+        probably safer to replace them with :meth:`mne.io.Raw.set_montage`.
         Montages can be created/imported with:
 
         - Standard montages with :func:`mne.channels.make_standard_montage`
