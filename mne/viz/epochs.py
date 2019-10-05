@@ -991,11 +991,11 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
             these_colors = params['epoch_colors'][epoch_idx]
             _validate_type(these_colors, list,
                            'epoch_colors[%s]' % (epoch_idx,))
-            if len(these_colors) != n_channels:
+            if len(these_colors) != len(params['epochs'].ch_names):
                 raise ValueError('epoch_colors for the %dth epoch '
                                  'has length %d, expected %d.'
-                                 % (epoch_idx, len(these_colors), n_channels))
-            these_colors = [colorConverter.to_rgba(c) for c in these_colors]
+                                 % (epoch_idx, len(these_colors),
+                                    len(params['epochs'].ch_names)))
             params['epoch_colors'][epoch_idx] = \
                 [these_colors[idx] for idx in inds]
 
@@ -1164,7 +1164,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         for epoch_idx, epoch_color in enumerate(params['epoch_colors']):
             for ch_idx in range(len(params['ch_names'])):
                 if epoch_color[ch_idx] is not None:
-                    params['colors'][ch_idx][epoch_idx] = epoch_color[ch_idx]
+                    params['colors'][ch_idx][epoch_idx] = \
+                        colorConverter.to_rgba(epoch_color[ch_idx])
 
             # plot on horizontal patch if all colors are same
             if epoch_color.count(epoch_color[0]) == len(epoch_color):
