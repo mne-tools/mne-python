@@ -27,7 +27,8 @@ from ..io import _loc_to_coil_trans
 from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials, create_info
-from ..source_space import _ensure_src, _create_surf_spacing, _check_spacing
+from ..source_space import (_ensure_src, _create_surf_spacing, _check_spacing,
+                            _read_mri_info)
 
 from ..surface import (get_meg_helmet_surf, read_surface, _DistanceQuery,
                        transform_surface_to, _project_onto_surface,
@@ -2819,12 +2820,14 @@ def _get_dipole_loc(dipole, trans, subject, subjects_dir=None,
                                     raise_error=True)
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
     t1 = nib.load(t1_fname)
-    vox2ras = t1.header.get_vox2ras_tkr()
-    ras2vox = linalg.inv(vox2ras)
-    trans = _get_trans(trans, fro='head', to='mri')[0]
-    zooms = t1.header.get_zooms()
+    _, vox_mri_t, _, _, zooms = _read_mri_info(t1_fname, units='mm')
+    mri_vox_t = invert_transform(vox_mri_t)
+    del vox_mri_t
+    head_mri_t = _get_trans(trans, fro='head', to='mri')[0]
+    del trans
+    # XXX this can almost certainly be simplified
     if coord_frame == 'head':
-        affine_to = trans['trans'].copy()
+        affine_to = head_mri_t['trans'].copy()
         affine_to[:3, 3] *= 1000  # to mm
         aff = t1.affine.copy()
 
@@ -2832,13 +2835,13 @@ def _get_dipole_loc(dipole, trans, subject, subjects_dir=None,
         affine_to = np.dot(affine_to, aff)
         t1 = resample_from_to(t1, ([int(t1.shape[i] * zooms[i]) for i
                                     in range(3)], affine_to))
-        dipole_locs = apply_trans(ras2vox, dipole.pos * 1e3) * zooms
+        dipole_locs = apply_trans(mri_vox_t, dipole.pos * 1e3) * zooms
         dipole_oris = dipole.ori
         scatter_points = dipole.pos * 1e3
     else:
-        scatter_points = apply_trans(trans['trans'], dipole.pos) * 1e3
-        dipole_oris = apply_trans(trans['trans'], dipole.ori, move=False)
-        dipole_locs = apply_trans(ras2vox, scatter_points)
+        scatter_points = apply_trans(head_mri_t, dipole.pos) * 1e3
+        dipole_oris = apply_trans(head_mri_t, dipole.ori, move=False)
+        dipole_locs = apply_trans(mri_vox_t, scatter_points)
     return dipole_locs, dipole_oris, scatter_points, t1
 
 
