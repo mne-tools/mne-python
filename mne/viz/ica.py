@@ -990,7 +990,8 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
                   bads=list(), bad_color=(1., 0., 0.),
                   t_start=start * len(epochs.times),
                   data_picks=list(), decim=1, whitened_ch_names=(),
-                  noise_cov=None, show_scrollbars=show_scrollbars)
+                  noise_cov=None, show_scrollbars=show_scrollbars,
+                  epoch_colors=None)
     params['label_click_fun'] = partial(_label_clicked, params=params)
     # changing the order to 'misc' before 'eog' and 'ecg'
     order = list(_DATA_CH_TYPES_ORDER_DEFAULT)
