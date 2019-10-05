@@ -1,10 +1,10 @@
-# Authors: Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Eric Larson <larsoner@uw.edu>
 #          Mainak Jas <mainak.jas@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-# The computations in this code were primarily derived from Matti Hamalainen's
+# The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.
 
 import os

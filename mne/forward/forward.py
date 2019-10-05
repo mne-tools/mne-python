@@ -1,10 +1,10 @@
-# Authors: Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
-# The computations in this code were primarily derived from Matti Hamalainen's
+# The computations in this code were primarily derived from Matti Hämäläinen's
 # C code.
 
 from time import time
