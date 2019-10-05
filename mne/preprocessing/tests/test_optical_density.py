@@ -23,7 +23,7 @@ fname_nirx = op.join(data_path(download=False),
 @testing.requires_testing_data
 def test_optical_density():
     """Test return type for optical density."""
-    raw = read_raw_nirx(fname_nirx, preload=True)
+    raw = read_raw_nirx(fname_nirx, preload=False)
     assert 'fnirs_raw' in raw
     assert 'fnirs_od' not in raw
     raw = optical_density(raw)

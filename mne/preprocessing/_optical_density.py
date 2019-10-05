@@ -25,7 +25,7 @@ def optical_density(raw):
         The modified raw instance.
 
     """
-    raw = raw.copy()
+    raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, 'raw')
     picks = _picks_to_idx(raw.info, 'fnirs_raw')
     data_means = np.mean(raw.get_data(), axis=1)
