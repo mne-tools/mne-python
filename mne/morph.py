@@ -739,7 +739,7 @@ def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
 
     n_times = stc.data.shape[1]
     shape = morph.src_data['src_shape'][::-1] + (n_times,)  # SAR->RAST
-    vols = np.zeros((np.prod(shape[:3]), shape[3]), order='F')  # flatten spatial axes
+    vols = np.zeros((np.prod(shape[:3]), shape[3]), order='F')  # flatten
     n_vertices_seen = 0
     for this_inuse in inuse:
         this_inuse = this_inuse.astype(np.bool)
