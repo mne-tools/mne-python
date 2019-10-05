@@ -15,6 +15,8 @@ Version 0.19.1
 Bug
 ~~~
 
+- Fix bug in :class:`~mne.preprocessing.ICA` where requesting extended infomax via ``fit_params={'extended': True}`` was overridden, by `Daniel McCloy`_.
+
 - Fix handling of repeated events in :class:`mne.Epochs` by `Fahimeh Mamashli`_ and `Alex Gramfort`_
 
 - Fix reading of cardinals in .htps files (identifier are int not strings) by `Alex Gramfort`_
