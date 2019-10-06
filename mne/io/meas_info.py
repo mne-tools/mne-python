@@ -1876,10 +1876,10 @@ def anonymize_info(info, daysback=None, keep_his=False):
         Measurement information for the dataset.
     daysback : int | None
         Number of days to subtract from all dates.
-        If None daysback moves date of service to Jan 1 2000
+        If None (default) the date of service will be set to Jan 1ˢᵗ 2000.
     keep_his : bool
         If True his_id of subject_info will NOT be overwritten.
-        defaults to False
+        Defaults to False.
 
     Returns
     -------
@@ -1889,14 +1889,23 @@ def anonymize_info(info, daysback=None, keep_his=False):
     Notes
     -----
     Removes potentially identifying information if it exist in ``info``.
-    Specifically:
-    Reset 'meas_date', 'file_id', 'meas_id' to default value or as specified
-    by `daysback` parameter.
-    Reset elements of 'subject_info' to default values.
-    Except for 'birthday' which is adjusted to maintain subject age.
-    Reset meta info: 'experimenter', 'proj_id', 'proj_name' and 'description'.
-    Reset dates and experimenter in 'proc_history' structure.
-    Reset dates and meta info in 'helium_info' and 'device_info'
+    Specifically for each of the following we use:
+
+    - meas_date, file_id, meas_id
+          A default value, or as specified by ``daysback``.
+    - subject_info
+          Default values, except for 'birthday' which is adjusted
+          to maintain the subject age.
+    - experimenter, proj_name, description
+          Default strings.
+    - utc_offset
+          ``None``.
+    - proj_id
+          Zeros.
+    - proc_history
+          Dates use the meas_date logic, and experimenter a default string.
+    - helium_info, device_info
+          Dates use the meas_date logic, meta info uses defaults.
 
     Operates in place.
     """
