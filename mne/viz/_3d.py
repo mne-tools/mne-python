@@ -2816,7 +2816,7 @@ def _get_dipole_loc(dipole, trans, subject, subjects_dir, coord_frame):
                                     raise_error=True)
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
     t1 = nib.load(t1_fname)
-    # Do everthing in mm here to make life slightly easier
+    # Do everything in mm here to make life slightly easier
     vox_ras_t, _, mri_ras_t, _, _ = _read_mri_info(
         t1_fname, units='mm')
     head_mri_t = _get_trans(trans, fro='head', to='mri')[0].copy()
@@ -2911,9 +2911,11 @@ def _plot_dipole(ax, data, vox, idx, dipole, gridx, gridy, ori, coord_frame,
     ax.contourf(gridx, gridy, zslice, offset=offset, zdir='z',
                 cmap='gray', zorder=0, alpha=.5)
 
-    plt.suptitle('Dipole #%s / %s @ %.3fs, GOF: %.1f%%, %.1fnAm\n' % (
+    # These are the only two options
+    coord_frame_name = 'Head' if coord_frame == 'head' else 'MRI'
+    plt.suptitle('Dipole #%s / %s @ %.3fs, GOF: %.1f%%, %.1fnAm\n%s ' % (
         idx + 1, len(dipole.times), dipole.times[idx], dipole.gof[idx],
-        dipole.amplitude[idx] * 1e9) +
+        dipole.amplitude[idx] * 1e9, coord_frame_name) +
         '(%0.1f, %0.1f, %0.1f) mm' % tuple(xyz[idx]))
     ax.set_xlabel('x')
     ax.set_ylabel('y')
