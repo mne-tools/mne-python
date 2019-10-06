@@ -22,6 +22,10 @@ Changelog
 
 - Add support for plotting fNIRS channels in :func:`mne.viz.plot_alignment` by `Eric Larson`_
 
+- Add command line tool :ref:`gen_mne_anonymize` for anonymizing raw fiff files by `Luke Bloy`_
+
+- Add support to :func:`mne.io.anonymize_info` to allow time offset to be applied to dates by `Luke Bloy`_
+
 - Add support for computing resolution matrix to get point spread functions (PSF) and cross-talk functions (CTF) in :func:`mne.minimum_norm.make_resolution_matrix`, :func:`mne.minimum_norm.get_cross_talk`, :func:`mne.minimum_norm.get_point_spread` by `Olaf Hauk`_
 
 - Add keyboard functionality to interactive colorbar plotting TFRs by `Stefan Repplinger`_
@@ -46,6 +50,8 @@ Bug
 - Fix TAL channel parsing (annotations) for EDF-D files by `Clemens Brunner`_
 
 - Fix handling of repeated events in :class:`mne.Epochs` by `Fahimeh Mamashli`_ and `Alex Gramfort`_
+
+- Fix :func:`mne.io.anonymize_info` to allow shifting dates of service and to match anticipated changes in mne-cpp by `Luke Bloy`_
 
 - Fix reading of cardinals in .htps files (identifier are int not strings) by `Alex Gramfort`_
 

@@ -119,13 +119,19 @@ def _summarize_str(st):
     return st[:56][::-1].split(',', 1)[-1][::-1] + ', ...'
 
 
-def _stamp_to_dt(stamp):
+def _dt_to_stamp(inp_date):
+    """Convert a datetime object to a meas_date."""
+    return int(inp_date.timestamp() // 1), inp_date.microsecond
+
+
+def _stamp_to_dt(utc_stamp):
     """Convert timestamp to datetime object in Windows-friendly way."""
     # The min on windows is 86400
-    stamp = [int(s) for s in stamp]
+    stamp = [int(s) for s in utc_stamp]
     if len(stamp) == 1:  # In case there is no microseconds information
         stamp.append(0)
-    return (datetime.datetime.utcfromtimestamp(stamp[0]) +
+    return (datetime.datetime.fromtimestamp(stamp[0],
+                                            tz=datetime.timezone.utc) +
             datetime.timedelta(0, 0, stamp[1]))  # day, sec, μs
 
 
@@ -1861,16 +1867,19 @@ def _force_update_info(info_base, info_target):
             i_targ[key] = val
 
 
-def anonymize_info(info):
+def anonymize_info(info, daysback=None, keep_his=False):
     """Anonymize measurement information in place.
-
-    Reset 'subject_info', 'meas_date', 'file_id', and 'meas_id' keys if they
-    exist in ``info``.
 
     Parameters
     ----------
     info : dict, instance of Info
         Measurement information for the dataset.
+    daysback : int | None
+        Number of days to subtract from all dates.
+        If None (default) the date of service will be set to Jan 1ˢᵗ 2000.
+    keep_his : bool
+        If True his_id of subject_info will NOT be overwritten.
+        Defaults to False.
 
     Returns
     -------
@@ -1879,18 +1888,114 @@ def anonymize_info(info):
 
     Notes
     -----
+    Removes potentially identifying information if it exist in ``info``.
+    Specifically for each of the following we use:
+
+    - meas_date, file_id, meas_id
+          A default value, or as specified by ``daysback``.
+    - subject_info
+          Default values, except for 'birthday' which is adjusted
+          to maintain the subject age.
+    - experimenter, proj_name, description
+          Default strings.
+    - utc_offset
+          ``None``.
+    - proj_id
+          Zeros.
+    - proc_history
+          Dates use the meas_date logic, and experimenter a default string.
+    - helium_info, device_info
+          Dates use the meas_date logic, meta info uses defaults.
+
     Operates in place.
     """
     _validate_type(info, 'info', "self")
-    if info.get('subject_info') is not None:
-        del info['subject_info']
-    info['meas_date'] = None
+
+    default_anon_dos = datetime.datetime(2000, 1, 1, 0, 0, 0,
+                                         tzinfo=datetime.timezone.utc)
+    default_str = "mne_anonymize"
+    default_subject_id = 0
+    default_desc = ("Anonymized using a time shift"
+                    " to preserve age at acquisition")
+
+    # datetime object representing meas_date
+    meas_date_datetime = _stamp_to_dt(info['meas_date'])
+
+    if daysback is None:
+        delta_t = meas_date_datetime - default_anon_dos
+    else:
+        delta_t = datetime.timedelta(days=daysback)
+
+    # adjust meas_date
+    info['meas_date'] = _dt_to_stamp(meas_date_datetime - delta_t)
+
+    # file_id and meas_id
     for key in ('file_id', 'meas_id'):
         value = info.get(key)
         if value is not None:
             assert 'msecs' not in value
-            value['secs'] = DATE_NONE[0]
-            value['usecs'] = DATE_NONE[1]
+            value['secs'] = info['meas_date'][0]
+            value['usecs'] = info['meas_date'][1]
+            value['machid'][:] = 0
+
+    # subject info
+    subject_info = info.get('subject_info')
+    if subject_info is not None:
+        if subject_info.get('id') is not None:
+            subject_info['id'] = default_subject_id
+        if keep_his:
+            logger.warning('Not fully anonymizing info - keeping \'his_id\'')
+        elif subject_info.get('his_id') is not None:
+            subject_info['his_id'] = str(default_subject_id)
+
+        for key in ('last_name', 'first_name', 'middle_name'):
+            if subject_info.get(key) is not None:
+                subject_info[key] = default_str
+
+        if subject_info.get('birthday') is not None:
+            dob = datetime.datetime(subject_info['birthday'][0],
+                                    subject_info['birthday'][1],
+                                    subject_info['birthday'][2])
+            dob -= delta_t
+            subject_info['birthday'] = dob.year, dob.month, dob.day
+
+        for key in ('weight', 'height'):
+            if subject_info.get(key) is not None:
+                subject_info[key] = 0
+
+    info['experimenter'] = default_str
+    info['description'] = default_desc
+
+    if info['proj_id'] is not None:
+        info['proj_id'][:] = 0
+    if info['proj_name'] is not None:
+        info['proj_name'] = default_str
+    if info['utc_offset'] is not None:
+        info['utc_offset'] = None
+
+    proc_hist = info.get('proc_history')
+    if proc_hist is not None:
+        for record in proc_hist:
+            record['block_id']['secs'] = info['meas_date'][0]
+            record['block_id']['usecs'] = info['meas_date'][1]
+            record['block_id']['machid'][:] = 0
+            record['date'] = info['meas_date']
+            record['experimenter'] = default_str
+
+    hi = info.get('helium_info')
+    if hi is not None:
+        if hi.get('orig_file_guid') is not None:
+            hi['orig_file_guid'] = default_str
+        if hi.get('meas_date') is not None:
+            hi['meas_date'] = [info['meas_date'][0],
+                               info['meas_date'][1]]
+
+    di = info.get('device_info')
+    if di is not None:
+        for k in ('serial', 'site'):
+            if di.get(k) is not None:
+                di[k] = default_str
+
     return info
 
 
