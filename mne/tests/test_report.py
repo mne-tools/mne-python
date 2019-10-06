@@ -166,9 +166,17 @@ def test_report_raw_psd_and_date():
     assert 'PSD' in ''.join(report.html)
     assert 'GMT' in ''.join(report.html)
 
+    # test new anonymize functionality
+    report = Report()
+    raw.anonymize()
+    raw.save(raw_fname_new, overwrite=True)
+    report.parse_folder(data_path=tempdir, render_bem=False,
+                        on_error='raise')
+    assert isinstance(report.html, list)
+    assert 'GMT' in ''.join(report.html)
+
     # DATE_NONE functionality
     report = Report()
-
     # old style (pre 0.20) date anonymization
     raw.info['meas_date'] = None
     for key in ('file_id', 'meas_id'):
@@ -177,7 +185,6 @@ def test_report_raw_psd_and_date():
             assert 'msecs' not in value
             value['secs'] = DATE_NONE[0]
             value['usecs'] = DATE_NONE[1]
-
     raw.save(raw_fname_new, overwrite=True)
     report.parse_folder(data_path=tempdir, render_bem=False,
                         on_error='raise')
