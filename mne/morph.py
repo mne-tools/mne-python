@@ -655,11 +655,11 @@ def _get_src_data(src):
     # extract all relevant data for volume operations
     if src_kind == 'volume':
         shape = src_t[0]['shape']
-        src_data.update({'src_shape': (shape[2], shape[1], shape[0]),
+        src_data.update({'src_shape': (shape[2], shape[1], shape[0]),  # SAR
                          'src_affine_vox': src_t[0]['vox_mri_t']['trans'],
                          'src_affine_src': src_t[0]['src_mri_t']['trans'],
                          'src_affine_ras': src_t[0]['mri_ras_t']['trans'],
-                         'src_shape_full': (
+                         'src_shape_full': (  # SAR
                              src_t[0]['mri_height'], src_t[0]['mri_depth'],
                              src_t[0]['mri_width']),
                          'interpolator': src_t[0]['interpolator'],
@@ -684,6 +684,18 @@ def _triage_output(output):
         from nibabel import (Nifti2Image as NiftiImage,
                              Nifti2Header as NiftiHeader)
     return NiftiImage, NiftiHeader
+
+
+def _csr_dot(csr, other, result):
+    # Adapted from SciPy to allow "out" specification
+    assert isinstance(csr, sparse.csr_matrix)
+    M, N = csr.shape
+    n_vecs = other.shape[1]  # number of column vectors
+    assert result.shape == (M, n_vecs)
+    sparse._sparsetools.csr_matvecs(
+        M, N, n_vecs, csr.indptr, csr.indices, csr.data,
+        other.ravel(), result.ravel())
+    return result
 
 
 def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
@@ -725,47 +737,28 @@ def _interpolate_data(stc, morph, mri_resolution, mri_space, output):
         # Make a list as we may have many inuse when using multiple sub-volumes
         inuse = [morph.src_data['inuse']]
 
-    # Here we operate in SAR (opposite order of `stc.vertices`) because
-    # that way masking, reshape, and ravel in C order will work,
-    # and at the end we'll transpose the axes order to get the correct RAS
-    # shape.
-    shape3d = morph.src_data['src_shape']  # SAR
-
-    # setup volume parameters
     n_times = stc.data.shape[1]
-    shape = (n_times,) + shape3d  # TSAR
-    vols = np.zeros(shape)
-
+    shape = morph.src_data['src_shape'][::-1] + (n_times,)  # SAR->RAST
+    vols = np.zeros((np.prod(shape[:3]), shape[3]), order='F')  # flatten
     n_vertices_seen = 0
     for this_inuse in inuse:
-        mask3d = this_inuse.reshape(shape3d).astype(np.bool)
-        n_vertices = np.sum(mask3d)
+        this_inuse = this_inuse.astype(np.bool)
+        n_vertices = np.sum(this_inuse)
         stc_slice = slice(n_vertices_seen, n_vertices_seen + n_vertices)
-
-        for k, vol in enumerate(vols):  # loop over time instants
-            vol[mask3d] = stc.data[stc_slice, k]
-
+        vols[this_inuse] = stc.data[stc_slice]
         n_vertices_seen += n_vertices
-    del shape3d
 
     # use mri resolution as represented in src
     if mri_resolution:
-        mri_shape3d = morph.src_data['src_shape_full']  # SAR
-        mri_shape = (n_times,) + mri_shape3d
-        mri_vol = np.zeros(mri_shape)
+        shape = morph.src_data['src_shape_full'][::-1] + (n_times,)
+        vols = _csr_dot(
+            morph.src_data['interpolator'], vols,
+            np.zeros((np.prod(shape[:3]), shape[3]), order='F'))
 
-        interpolator = morph.src_data['interpolator']
-
-        for k, vol in enumerate(vols):
-            mri_vol[k] = (interpolator * vol.ravel()).reshape(mri_shape3d)
-        vols = mri_vol
-        del mri_shape3d
-
-    # TSAR->RAST
-    vols = vols.T
+    # reshape back to proper shape
+    vols = np.reshape(vols, shape, order='F')
 
     # set correct space
-
     if mri_resolution:
         affine = morph.src_data['src_affine_vox']
     else:
