@@ -66,6 +66,7 @@ class _TempDir(str):
 
 
 def requires_nibabel():
+    """Wrap to requires_module with a function call (fewer lines to cahnge)."""
     return partial(requires_module, name='nibabel')
 
 
