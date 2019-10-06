@@ -1313,17 +1313,17 @@ def _read_mri_info(path, units='m'):
     vox_mri_t = Transform('mri_voxel', 'mri', t_orig)
 
     # construct the MRI to RAS (non-zero origin) transform
-    mri_ras_t = combine_transforms(invert_transform(vox_mri_t), vox_ras_t,
-                                   'mri', 'ras')
+    mri_ras_t = combine_transforms(
+        invert_transform(vox_mri_t), vox_ras_t, 'mri', 'ras')
 
     assert units in ('m', 'mm')
     if units == 'm':
-        conv = np.array([[1e3, 1e3, 1e3, 1]]).T
+        conv = np.array([[1e-3, 1e-3, 1e-3, 1]]).T
         # scaling and translation terms
-        vox_ras_t['trans'] /= conv
-        vox_mri_t['trans'] /= conv
+        vox_ras_t['trans'] *= conv
+        vox_mri_t['trans'] *= conv
         # just the translation term
-        mri_ras_t['trans'][:, 3:4] /= conv
+        mri_ras_t['trans'][:, 3:4] *= conv
 
     return vox_ras_t, vox_mri_t, mri_ras_t, dims, zooms
 
@@ -1833,8 +1833,7 @@ def _get_volume_label_mask(mri, volume_label, rr):
     # Get the 3 dimensional indices in voxel space
     vox_ijk = np.array(np.where(vox_bool)).T
 
-    # Transform to RAS coordinates
-    # (use tkr normalization or volume won't align with surface sources)
+    # Transform to MRI coordinates (where our surfaces live)
     _, vox_mri_t, _, _, _ = _read_mri_info(mri)
     rr_voi = apply_trans(vox_mri_t, vox_ijk)  # mri voxels -> MRI surface RAS
     # Filter out points too far from volume region voxels
@@ -2090,6 +2089,7 @@ def _add_interpolator(s, mri_name, add_interpolator, first=True,
     # extract transformation information from mri
     if first:
         logger.info('Reading %s...' % mri_name)
+
     _, s['vox_mri_t'], s['mri_ras_t'], dims, _ = _read_mri_info(mri_name)
     mri_width, mri_height, mri_depth = dims
     del dims
