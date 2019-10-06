@@ -4,16 +4,15 @@
 # License: BSD (3-clause)
 
 import os.path as op
+import pytest as pytest
+import numpy as np
+from numpy.testing import assert_allclose
 
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx, BaseRaw
 from mne.preprocessing import optical_density
 from mne.utils import _validate_type
 from mne.datasets import testing
-
-import pytest as pytest
-import numpy as np
-from numpy.testing import assert_allclose
 
 
 fname_nirx = op.join(data_path(download=False),

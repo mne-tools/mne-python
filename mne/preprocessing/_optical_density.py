@@ -3,12 +3,12 @@
 #
 # License: BSD (3-clause)
 
+import numpy as np
+
 from ..io import BaseRaw
 from ..io.constants import FIFF
 from ..utils import _validate_type, warn
 from ..io.pick import _picks_to_idx
-
-import numpy as np
 
 
 def optical_density(raw):
@@ -34,7 +34,7 @@ def optical_density(raw):
     # not occur. If they do it is likely due to hardware or movement issues.
     # Set all negative values to abs(x), this also has the benefit of ensuring
     # that the means are all greater than zero for the division below.
-    if len(np.where(raw._data[picks] <= 0)[0]) > 0:
+    if np.any(raw._data[picks] <= 0):
         warn("Negative intensities encountered. Setting to abs(x)")
         raw._data[picks] = np.abs(raw._data[picks])
 
