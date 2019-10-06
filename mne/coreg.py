@@ -22,7 +22,7 @@ from .io import read_fiducials, write_fiducials, read_info
 from .io.constants import FIFF
 from .label import read_label, Label
 from .source_space import (add_source_space_distances, read_source_spaces,
-                           write_source_spaces, _get_mri_header, _read_talxfm)
+                           write_source_spaces, _read_talxfm, _read_mri_info)
 from .surface import read_surface, write_surface, _normalize_vectors
 from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import (rotation, rotation3d, scaling, translation, Transform,
@@ -1174,25 +1174,18 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
     #
     xfm, kind = _read_fs_xfm(fname_from)
     assert kind == 'MNI Transform File', kind
+    _, _, F_mri_ras, _, _ = _read_mri_info(mri_name, units='mm')
     F_ras_mni = Transform('ras', 'mni_tal', xfm)
-    hdr = _get_mri_header(mri_name)
-    F_vox_ras = Transform('mri_voxel', 'ras', hdr.get_vox2ras())
-    F_vox_mri = Transform('mri_voxel', 'mri', hdr.get_vox2ras_tkr())
-    F_mri_ras = combine_transforms(
-        invert_transform(F_vox_mri), F_vox_ras, 'mri', 'ras')
-    del F_vox_ras, F_vox_mri, hdr, xfm
+    del xfm
 
     #
     # Get the necessary transforms of the "to" subject
     #
     mri_name = op.join(mri_dirname.format(
         subjects_dir=subjects_dir, subject=subject_to), op.basename(mri_name))
-    hdr = _get_mri_header(mri_name)
-    T_vox_ras = Transform('mri_voxel', 'ras', hdr.get_vox2ras())
-    T_vox_mri = Transform('mri_voxel', 'mri', hdr.get_vox2ras_tkr())
-    T_ras_mri = combine_transforms(
-        invert_transform(T_vox_ras), T_vox_mri, 'ras', 'mri')
-    del mri_name, hdr, T_vox_ras, T_vox_mri
+    _, _, T_mri_ras, _, _ = _read_mri_info(mri_name, units='mm')
+    T_ras_mri = invert_transform(T_mri_ras)
+    del mri_name, T_mri_ras
 
     # Finally we construct as above:
     #
