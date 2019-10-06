@@ -70,13 +70,13 @@ plot_dipole_amplitudes(dipoles)
 idx = np.argmax([np.max(np.abs(dip.amplitude)) for dip in dipoles])
 plot_dipole_locations(dipoles[idx], forward['mri_head_t'], 'sample',
                       subjects_dir=subjects_dir, mode='orthoview',
-                      idx='amplitude', coord_frame='head')
+                      idx='amplitude')
 
 # Plot dipole locations of all dipoles with MRI slices
 for dip in dipoles:
     plot_dipole_locations(dip, forward['mri_head_t'], 'sample',
                           subjects_dir=subjects_dir, mode='orthoview',
-                          idx='amplitude', coord_frame='head')
+                          idx='amplitude')
 
 ###############################################################################
 # Plot residual
