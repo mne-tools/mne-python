@@ -1183,7 +1183,7 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
     #
     mri_name = op.join(mri_dirname.format(
         subjects_dir=subjects_dir, subject=subject_to), op.basename(mri_name))
-    _, _, T_mri_ras, _ = _read_mri_info(mri_name)
+    _, _, T_mri_ras, _, _ = _read_mri_info(mri_name)
     T_ras_mri = invert_transform(T_mri_ras)
     del mri_name, T_mri_ras
 

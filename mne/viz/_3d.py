@@ -2771,16 +2771,11 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     else:
         idx = _ensure_int(idx, 'idx', 'an int or one of ["gof", "amplitude"]')
 
-    dipole_locs, ori, scatter_points, t1 = \
-        _get_dipole_loc(dipole, trans, subject,
-                        subjects_dir=subjects_dir,
-                        coord_frame=coord_frame)
+    vox, ori, pos, data = _get_dipole_loc(
+        dipole, trans, subject, subjects_dir, coord_frame)
 
-    zooms = t1.header.get_zooms()
-    data = _get_img_fdata(t1)
     dims = len(data)  # Symmetric size assumed.
-    dd = dims / 2.
-    dd *= t1.header.get_zooms()[0]
+    dd = dims // 2
     if ax is None:
         fig = plt.figure()
         ax = Axes3D(fig)
@@ -2789,16 +2784,13 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
         fig = ax.get_figure()
 
     gridx, gridy = np.meshgrid(np.linspace(-dd, dd, dims),
-                               np.linspace(-dd, dd, dims))
-
-    _plot_dipole(ax, data, dipole_locs, idx, dipole, gridx, gridy, ori,
-                 coord_frame, zooms, show_all, scatter_points, color,
-                 highlight_color)
+                               np.linspace(-dd, dd, dims), indexing='ij')
     params = {'ax': ax, 'data': data, 'idx': idx, 'dipole': dipole,
-              'dipole_locs': dipole_locs, 'gridx': gridx, 'gridy': gridy,
-              'ori': ori, 'coord_frame': coord_frame, 'zooms': zooms,
-              'show_all': show_all, 'scatter_points': scatter_points,
+              'vox': vox, 'gridx': gridx, 'gridy': gridy,
+              'ori': ori, 'coord_frame': coord_frame,
+              'show_all': show_all, 'pos': pos,
               'color': color, 'highlight_color': highlight_color}
+    _plot_dipole(**params)
     ax.view_init(elev=30, azim=-140)
 
     callback_func = partial(_dipole_changed, params=params)
@@ -2809,8 +2801,12 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     return fig
 
 
-def _get_dipole_loc(dipole, trans, subject, subjects_dir=None,
-                    coord_frame='head'):
+RAS_AFFINE = np.eye(4)
+RAS_AFFINE[:3, 3] = [-128] * 3
+RAS_SHAPE = (256, 256, 256)
+
+
+def _get_dipole_loc(dipole, trans, subject, subjects_dir, coord_frame):
     """Get the dipole locations and orientations."""
     import nibabel as nib
     from nibabel.processing import resample_from_to
@@ -2820,48 +2816,56 @@ def _get_dipole_loc(dipole, trans, subject, subjects_dir=None,
                                     raise_error=True)
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
     t1 = nib.load(t1_fname)
-    _, vox_mri_t, _, _, zooms = _read_mri_info(t1_fname, units='mm')
-    mri_vox_t = invert_transform(vox_mri_t)
-    del vox_mri_t
-    head_mri_t = _get_trans(trans, fro='head', to='mri')[0]
+    # Do everthing in mm here to make life slightly easier
+    vox_ras_t, _, mri_ras_t, _, _ = _read_mri_info(
+        t1_fname, units='mm')
+    head_mri_t = _get_trans(trans, fro='head', to='mri')[0].copy()
+    head_mri_t['trans'][:3, 3] *= 1000  # m→mm
     del trans
-    # XXX this can almost certainly be simplified
+    pos = dipole.pos * 1e3  # m→mm
+    ori = dipole.ori
+    # Figure out how to always resample to an identity, 256x256x256 RAS:
+    #
+    # 1. Resample to head or MRI surface RAS (the conditional), but also
+    # 2. Resample to what will work for the standard 1mm** RAS_AFFINE (resamp)
+    #
+    # We could do this with two resample_from_to calls, but it's cleaner,
+    # faster, and we get fewer boundary artifacts if we do it in one shot.
+    # So first olve usamp s.t. ``upsamp @ vox_ras_t == RAS_AFFINE``` (2):
+    upsamp = np.linalg.solve(vox_ras_t['trans'].T, RAS_AFFINE.T).T
+    # Now figure out how we would resample from RAS to head or MRI coords:
     if coord_frame == 'head':
-        affine_to = head_mri_t['trans'].copy()
-        affine_to[:3, 3] *= 1000  # to mm
-        aff = t1.affine.copy()
-
-        aff[:3, :3] /= zooms
-        affine_to = np.dot(affine_to, aff)
-        t1 = resample_from_to(t1, ([int(t1.shape[i] * zooms[i]) for i
-                                    in range(3)], affine_to))
-        dipole_locs = apply_trans(mri_vox_t, dipole.pos * 1e3) * zooms
-        dipole_oris = dipole.ori
-        scatter_points = dipole.pos * 1e3
+        dest_ras_t = combine_transforms(
+            head_mri_t, mri_ras_t, 'head', 'ras')['trans']
     else:
-        scatter_points = apply_trans(head_mri_t, dipole.pos) * 1e3
-        dipole_oris = apply_trans(head_mri_t, dipole.ori, move=False)
-        dipole_locs = apply_trans(mri_vox_t, scatter_points)
-    return dipole_locs, dipole_oris, scatter_points, t1
+        pos = apply_trans(head_mri_t, pos)
+        ori = apply_trans(head_mri_t, dipole.ori, move=False)
+        dest_ras_t = mri_ras_t['trans']
+    # The order here is wacky because we need `resample_from_to` to operate
+    # in a reverse order
+    affine = np.dot(np.dot(dest_ras_t, upsamp), vox_ras_t['trans'])
+    t1 = resample_from_to(t1, (RAS_SHAPE, affine), order=0)
+    # Now we could do:
+    #
+    #    t1 = SpatialImage(t1.dataobj, RAS_AFFINE)
+    #
+    # And t1 would be in our destination (mri or head) space. But we don't
+    # need to construct the image -- let's just get our voxel coords and data:
+    vox = apply_trans(np.linalg.inv(RAS_AFFINE), pos)
+    t1_data = _get_img_fdata(t1)
+    return vox, ori, pos, t1_data
 
 
-def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
-                 zooms, show_all, scatter_points, color, highlight_color):
+def _plot_dipole(ax, data, vox, idx, dipole, gridx, gridy, ori, coord_frame,
+                 show_all, pos, color, highlight_color):
     """Plot dipoles."""
     import matplotlib.pyplot as plt
     from matplotlib.colors import ColorConverter
     color_converter = ColorConverter()
-    point = points[idx]
-    xidx, yidx, zidx = np.round(point).astype(int)
-    xslice = data[xidx][::-1]
-    yslice = data[:, yidx][::-1].T
-    zslice = data[:, :, zidx][::-1].T[::-1]
-    if coord_frame == 'head':
-        zooms = (1., 1., 1.)
-    else:
-        point = points[idx] * zooms
-        xidx, yidx, zidx = np.round(point).astype(int)
-    xyz = scatter_points
+    xidx, yidx, zidx = np.round(vox[idx]).astype(int)
+    xslice = data[xidx]
+    yslice = data[:, yidx]
+    zslice = data[:, :, zidx]
 
     ori = ori[idx]
     if color is None:
@@ -2869,17 +2873,18 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
     color = np.array(color_converter.to_rgba(color))
     highlight_color = np.array(color_converter.to_rgba(highlight_color))
     if show_all:
-        colors = np.repeat(color[np.newaxis], len(points), axis=0)
+        colors = np.repeat(color[np.newaxis], len(vox), axis=0)
         colors[idx] = highlight_color
-        size = np.repeat(5, len(points))
+        size = np.repeat(5, len(vox))
         size[idx] = 20
-        visible = np.arange(len(points))
+        visible = np.arange(len(vox))
     else:
         colors = color
         size = 20
         visible = idx
 
     offset = np.min(gridx)
+    xyz = pos
     ax.scatter(xs=xyz[visible, 0], ys=xyz[visible, 1],
                zs=xyz[visible, 2], zorder=2, s=size, facecolor=colors)
     xx = np.linspace(offset, xyz[idx, 0], xidx)
@@ -2896,17 +2901,15 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
               ori[2], length=50, color=highlight_color,
               pivot='tail')
     dims = np.array([(len(data) / -2.), (len(data) / 2.)])
-    ax.set_xlim(-1 * dims * zooms[:2])  # Set axis lims to RAS coordinates.
-    ax.set_ylim(-1 * dims * zooms[:2])
-    ax.set_zlim(dims * zooms[:2])
+    ax.set(xlim=-dims, ylim=-dims, zlim=dims)
 
     # Plot slices.
     ax.contourf(xslice, gridx, gridy, offset=offset, zdir='x',
                 cmap='gray', zorder=0, alpha=.5)
-    ax.contourf(gridx, gridy, yslice, offset=offset, zdir='z',
+    ax.contourf(gridx, yslice, gridy, offset=offset, zdir='y',
                 cmap='gray', zorder=0, alpha=.5)
-    ax.contourf(gridx, zslice, gridy, offset=offset,
-                zdir='y', cmap='gray', zorder=0, alpha=.5)
+    ax.contourf(gridx, gridy, zslice, offset=offset, zdir='z',
+                cmap='gray', zorder=0, alpha=.5)
 
     plt.suptitle('Dipole #%s / %s @ %.3fs, GOF: %.1f%%, %.1fnAm\n' % (
         idx + 1, len(dipole.times), dipole.times[idx], dipole.gof[idx],
@@ -2934,11 +2937,7 @@ def _dipole_changed(event, params):
         params['idx'] -= 1
     params['idx'] = min(max(0, params['idx']), len(params['dipole'].pos) - 1)
     params['ax'].clear()
-    _plot_dipole(params['ax'], params['data'], params['dipole_locs'],
-                 params['idx'], params['dipole'], params['gridx'],
-                 params['gridy'], params['ori'], params['coord_frame'],
-                 params['zooms'], params['show_all'], params['scatter_points'],
-                 params['color'], params['highlight_color'])
+    _plot_dipole(**params)
 
 
 def _update_coord_frame(obj, rr, nn, mri_trans, head_trans):

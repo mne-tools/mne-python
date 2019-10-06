@@ -45,6 +45,8 @@ Bug
 
 - Fix TAL channel parsing (annotations) for EDF-D files by `Clemens Brunner`_
 
+- Fix bug with :func:`mne.viz.plot_dipole_locations` when plotting in head coordinates by `Eric Larson`_
+
 - Fix handling of repeated events in :class:`mne.Epochs` by `Fahimeh Mamashli`_ and `Alex Gramfort`_
 
 - Fix reading of cardinals in .htps files (identifier are int not strings) by `Alex Gramfort`_
