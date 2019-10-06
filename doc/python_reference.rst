@@ -360,6 +360,7 @@ Projections:
    read_ica
    run_ica
    corrmap
+   optical_density
 
 EEG referencing:
 
