@@ -182,7 +182,7 @@
 .. _pep8: https://pypi.org/project/pep8/
 .. _pyflakes: https://pypi.org/project/pyflakes
 .. _coverage: https://pypi.python.org/pypi/coverage
-.. _mayavi: https//docs.enthought.com/mayavi/mayavi/
+.. _mayavi: https://docs.enthought.com/mayavi/mayavi/
 .. _nitime: http://nipy.org/nitime/
 .. _joblib: https://pypi.python.org/pypi/joblib
 .. _scikit-learn: https://scikit-learn.org/stable/
