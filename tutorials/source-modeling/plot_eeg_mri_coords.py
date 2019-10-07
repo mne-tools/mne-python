@@ -25,136 +25,121 @@ from nilearn.plotting import plot_glass_brain
 import numpy as np
 
 import mne
-from mne.channels import make_dig_montage, compute_native_head_t
-from mne.io.constants import FIFF
-from mne.transforms import apply_trans
+from mne.channels import compute_native_head_t, read_custom_montage
 from mne.viz import plot_alignment
+
+##############################################################################
+# Prerequisites
+# -------------
+# For this we will assume that you have:
+#
+# - raw EEG data
+# - your subject's MRI reconstrcted using FreeSurfer
+# - an appropriate boundary element model (BEM)
+# - an appropriate source space (src)
+# - your EEG electrodes in Freesurfer surface RAS coordinates, stored
+#   in one of the formats :func:`mne.channels.read_custom_montage` supports
+#
+# Let's set the paths to these files for the ``sample`` dataset, including
+# a modified ``sample`` MRI showing the electrode locations plus a ``.elc``
+# file corresponding to the points in MRI coords (these were `synthesized
+# <https://gist.github.com/larsoner/0ac6fad57e31cb2d9caa77350a9ff366>`__,
+# and thus are stored as part of the ``misc`` dataset).
 
 data_path = mne.datasets.sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')
-fname_T1 = op.join(subjects_dir, 'sample', 'mri', 'T1.mgz')
-
-##############################################################################
-# Faking an appropriate EEG-MRI dataset
-# -------------------------------------
-# Let's first manipulate ``sample`` to give us:
-#
-# - ``eeg_vox``: EEG electrodes in RAS voxel coordinates
-# - ``fid_vox``: fiducial (LPA, nasion, RPA) locations in RAS voxel coordinates
-# - ``raw``: a Raw instance with only EEG channels.
-#
-# This is just so we have data to work with -- hopefully with real EEG+MRI
-# datasets, these values are obtainable.
-
-trans = mne.read_trans(
-    op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-trans.fif'))
-raw = mne.io.read_raw_fif(
-    op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif'))
-# Get fiducials and EEG locations in MRI voxel coords
-trans_mm = trans['trans'].copy()
-trans_mm[:3, 3] *= 1e3
-img = nibabel.load(fname_T1)
-vox2mri = img.header.get_vox2ras_tkr()
-head_to_vox = np.dot(np.linalg.inv(vox2mri), trans_mm)
-fid_vox = apply_trans(head_to_vox, 1000 * np.array([d['r'] for d in sorted(
-    [d for d in raw.info['dig'] if d['kind'] == FIFF.FIFFV_POINT_CARDINAL],
-    key=lambda d: d['ident'])]))
-eeg_vox = apply_trans(head_to_vox, 1000 * np.array(
-    [d['r'] for d in raw.info['dig'] if d['kind'] == FIFF.FIFFV_POINT_EEG and
-     d['ident'] > 0]))
-img, affine = img.get_data().astype(float), img.affine
-# Mark them in the MRI with 5x5x5mm cubes
-for coord in np.round(np.concatenate([fid_vox, eeg_vox])).astype(int):
-    img[tuple(slice(c - 2, c + 2) for c in coord)] = 250
-# change "raw" to be more like what you'd acquire: no dig, no channel locations
-raw.load_data().pick_types(meg=False, eeg=True, exclude=(), stim=True)
-raw.info['dig'] = []
-for ch in raw.info['chs']:
-    ch['loc'].fill(0.)
-del head_to_vox, trans
-
-##############################################################################
-# Visualizing the MRI
-# -------------------
-# Let's take our MRI-with-eeg-locations and adjust the
-# affine to MNI space, and plot using nilearn's plot_glass_brain,
-# which does a maximum intensity projection (easy to see the fake electrodes).
-
-ras_mni_t = mne.transforms.read_ras_mni_t('sample', subjects_dir)
-img_mni = nibabel.Nifti1Image(img, np.dot(ras_mni_t['trans'], affine))
-plot_glass_brain(img_mni, cmap='hot_black_bone', threshold=0., black_bg=True,
-                 resampling_interpolation='nearest', colorbar=True)
-del img, affine, ras_mni_t, img_mni
-
-##########################################################################
-# Getting our MRI voxel EEG locations to head (and MRI surface RAS) coords
-# ------------------------------------------------------------------------
-# For this we will assume that, in addition to ``eeg_vox``, ``fid_vox``, and
-# ``raw``, you also have:
-#
-# - reconstructed your subject using FreeSurfer
-# - created an appropriate boundary element model, and
-# - created an appropriate source space
-
+fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
 bem_dir = op.join(subjects_dir, 'sample', 'bem')
 fname_bem = op.join(bem_dir, 'sample-5120-5120-5120-bem-sol.fif')
 fname_src = op.join(bem_dir, 'sample-oct-6-src.fif')
 
-##############################################################################
-# Let's get our MRI channel locations first into RAS space, in meters.
-# To do this, we need to use nibabel's header reading functions.
-# In MNE the "mri" coordinate frame is the FreeSurfer surface RAS coordinate
-# frame, and nibabel calls this coordinate frame "ras_tkr":
-
-img = nibabel.load(fname_T1)
-vox2mri = img.header.get_vox2ras_tkr()  # MRI voxel -> FreeSurfer RAS (mm)
-vox2mri[:3] /= 1000.  # mm -> m
-fid_mri = apply_trans(vox2mri, fid_vox)
-eeg_mri = apply_trans(vox2mri, eeg_vox)
+misc_path = mne.datasets.misc.data_path()
+fname_T1_electrodes = op.join(misc_path, 'sample_eeg_mri', 'T1_electrodes.mgz')
+fname_mon = op.join(misc_path, 'sample_eeg_mri', 'sample_mri_montage.elc')
 
 ##############################################################################
-# Now that things are in MRI coordinates, let's make our digitization object
-# that will contain the EEG locations, fiducial locations, and coordinate
-# frame:
+# Visualizing the MRI
+# -------------------
+# Let's take our MRI-with-eeg-locations and adjust the affine to put the data
+# in MNI space, and plot using :func:`nilearn.plotting.plot_glass_brain`,
+# which does a maximum intensity projection (easy to see the fake electrodes).
+# This plotting function requires data to be in MNI space.
+# Because ``img.affine``` gives the voxel-to-world (RAS) mapping, if we apply a
+# RAS-to-MRI transform to it, it becomes the voxel-to-MNI transformation we
+# need. Thus we create a "new" MRI image in MNI coordinates and plot it as:
 
-eeg_names = [raw.ch_names[pick] for pick in mne.pick_types(
-    raw.info, meg=False, eeg=True, exclude=())]
-ch_pos = {ch_name: pos for ch_name, pos in zip(eeg_names, eeg_mri)}
-lpa, nasion, rpa = fid_mri
-dig_montage = make_dig_montage(ch_pos, nasion, lpa, rpa, coord_frame='mri')
+img = nibabel.load(fname_T1_electrodes)  # original subject MRI w/EEG
+ras_mni_t = mne.transforms.read_ras_mni_t('sample', subjects_dir)  # from FS
+mni_affine = np.dot(ras_mni_t['trans'], img.affine)  # vox->ras->MNI
+img_mni = nibabel.Nifti1Image(img.dataobj, mni_affine)  # now in MNI coords!
+plot_glass_brain(img_mni, cmap='hot_black_bone', threshold=0., black_bg=True,
+                 resampling_interpolation='nearest', colorbar=True)
+
+##########################################################################
+# Getting our MRI voxel EEG locations to head (and MRI surface RAS) coords
+# ------------------------------------------------------------------------
+# Let's load our :class:`~mne.channels.DigMontage` using
+# :func:`mne.channels.read_custom_montage`, making note of the fact that
+# we stored our locations in Freesurfer surface RAS (MRI) coordinates.
+#
+# .. collapse:: |question| What if my electrodes are in MRI voxels?
+#     :class: info
+#
+#     If you have voxel coordinates in MRI voxels, you can transform these to
+#     FreeSurfer surface RAS (called "mri" in MNE) coordinates using the
+#     transformations that FreeSurfer computes during reconstruction.
+#     ``nibabel`` calls this transformation the ``vox2ras_tkr`` transform
+#     and operates in millimeters, so we can load it, convert it to meters,
+#     and then apply it::
+#
+#         >>> pos_vox = ...  # loaded from a file somehow
+#         >>> img = nibabel.load(fname_T1)
+#         >>> vox2mri = img.header.get_vox2ras_tkr()  # voxel -> mri
+#         >>> vox2mri[:3] /= 1000.  # mm -> m
+#         >>> pos_mri = mne.transforms.apply_trans(vox2mri, pos_vox)
+#
+#     You can also verify that these are correct (or manually convert voxels
+#     to MRI coords) by looking at the points in Freeview or tkmedit.
+
+dig_montage = read_custom_montage(fname_mon, head_size=None, coord_frame='mri')
 dig_montage.plot()
 
 ##############################################################################
 # We can then get our transformation from the MRI coordinate frame (where our
-# points are defined) to the head coordinate frame from the object:
+# points are defined) to the head coordinate frame from the object.
 
 trans = compute_native_head_t(dig_montage)
 print(trans)  # should be mri->head, as the "native" space here is MRI
 
 ##############################################################################
-# Finally, let's apply this digitization to our dataset:
+# Let's apply this digitization to our dataset, and in the process
+# automatically convert our locations to the head coordinate frame, as
+# shown by :meth:`~mne.io.Raw.plot_sensors`.
 
+raw = mne.io.read_raw_fif(fname_raw)
+raw.load_data().pick_types(meg=False, eeg=True, stim=True, exclude=())
 raw.set_montage(dig_montage)
 raw.plot_sensors(show_names=True)
 
 ##############################################################################
-# Now we can do things like make joint plots of evoked data:
+# Now we can do standard sensor-space operations like make joint plots of
+# evoked data.
 
 raw.set_eeg_reference(projection=True)
 events = mne.find_events(raw)
-epochs = mne.Epochs(raw, events, event_id=1)
+epochs = mne.Epochs(raw, events)
 cov = mne.compute_covariance(epochs, tmax=0.)
-evoked = epochs.average()
+evoked = epochs['1'].average()  # trigger 1 in auditory/left
 evoked.plot_joint()
 
 ##############################################################################
 # Getting a source estimate
 # -------------------------
 # New we have all of the components we need to compute a forward solution,
-# but first we should sanity check things:
+# but first we should sanity check that everything is well aligned:
 
-plot_alignment(evoked.info, trans=trans, subject='sample',
-               subjects_dir=subjects_dir, show_axes=True)
+plot_alignment(evoked.info, trans=trans, show_axes=True, surfaces='head-dense',
+               subject='sample', subjects_dir=subjects_dir)
 
 ##############################################################################
 # Now we can actually compute the forward:

@@ -334,6 +334,13 @@ def _write_dig_points(fname, dig_points):
         raise ValueError(msg)
 
 
+def _coord_frame_const(coord_frame):
+    if not isinstance(coord_frame, str) or coord_frame not in _str_to_frame:
+        raise ValueError('coord_frame must be one of %s, got %s'
+                         % (sorted(_str_to_frame.keys()), coord_frame))
+    return _str_to_frame[coord_frame]
+
+
 def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                      extra_points=None, dig_ch_pos=None,
                      coord_frame='head'):
@@ -362,11 +369,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
     dig : list of dicts
         A container of DigPoints to be added to the info['dig'].
     """
-    if not isinstance(coord_frame, str) or coord_frame not in _str_to_frame:
-        raise ValueError('coord_frame must be one of %s, got %s'
-                         % (sorted(_str_to_frame.keys()), coord_frame))
-    else:
-        coord_frame = _str_to_frame[coord_frame]
+    coord_frame = _coord_frame_const(coord_frame)
 
     dig = []
     if lpa is not None:

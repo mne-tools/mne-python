@@ -26,7 +26,7 @@ from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
 from ..io._digitization import (_count_points_by_type,
                                 _get_dig_eeg, _make_dig_points, write_dig,
                                 _read_dig_fif, _format_dig_points,
-                                _get_fid_coords)
+                                _get_fid_coords, _coord_frame_const)
 from ..io.pick import pick_types
 from ..io.open import fiff_open
 from ..io.constants import FIFF
@@ -952,7 +952,8 @@ def _read_eeglab_locations(fname, unit):
     return ch_names, pos
 
 
-def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
+def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m',
+                        coord_frame=None):
     """Read a montage from a file.
 
     Parameters
@@ -967,6 +968,12 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
     head_size : float | None
         The size of the head in [m]. If none, returns the values read from the
         file with no modification. Defaults to 95mm.
+    coord_frame : str | None
+        The coordinate frame of the points. Usually this is "unknown"
+        for native digitizer space. Defaults to None, which is "unknown" for
+        most readers but "head" for EEGLAB.
+
+        .. versionadded:: 0.20
 
     Returns
     -------
@@ -1040,6 +1047,11 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
 
     elif ext in SUPPORTED_FILE_EXT['brainvision']:
         montage = _read_brainvision(fname, head_size, unit)
+
+    if coord_frame is not None:
+        coord_frame = _coord_frame_const(coord_frame)
+        for d in montage.dig:
+            d['coord_frame'] = coord_frame
 
     return montage
 

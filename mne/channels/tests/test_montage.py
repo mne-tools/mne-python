@@ -175,12 +175,13 @@ def test_documented():
                 'FPz': [0., 0.99977915, -0.02101571],
                 'Fz': [0., 0.71457525, 0.69955859],
             },
-            nasion=None, lpa=None, rpa=None,
+            nasion=None, lpa=None, rpa=None, coord_frame='head',
         ),
         'loc', id='EEGLAB'),
 
     pytest.param(
-        partial(read_custom_montage, head_size=None, unit='m'),
+        partial(read_custom_montage, head_size=None, unit='m',
+                coord_frame='mri'),
         ('// MatLab   Sphere coordinates [degrees]         Cartesian coordinates\n'  # noqa: E501
          '// Label       Theta       Phi    Radius         X         Y         Z       off sphere surface\n'  # noqa: E501
          'E1      37.700     -14.000       1.000    0.7677    0.5934   -0.2419  -0.00000000000000011\n'  # noqa: E501
@@ -194,7 +195,7 @@ def test_documented():
                 'E31': [0., 0.9816, -0.1908],
                 'E61': [-0.8857, 0.3579, -0.2957],
             },
-            nasion=None, lpa=None, rpa=None,
+            nasion=None, lpa=None, rpa=None, coord_frame='mri',
         ),
         'csd', id='matlab'),
 
@@ -329,6 +330,8 @@ def test_montage_readers(
     expected_ch_pos = expected_dig._get_ch_pos()
     for kk in actual_ch_pos:
         assert_allclose(actual_ch_pos[kk], expected_ch_pos[kk], atol=1e-5)
+    for d1, d2 in zip(dig_montage.dig, expected_dig.dig):
+        assert d1['coord_frame'] == d2['coord_frame']
 
 
 @testing.requires_testing_data
