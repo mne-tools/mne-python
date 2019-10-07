@@ -244,8 +244,6 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
             # each projector should have only one channel type
             assert len(these_ch_types) == 1
             types.append(list(these_ch_types)[0])
-        else:
-            types.append(None)
         data = proj['data']['data'].ravel()
         # check layout
         if layout is not None:
