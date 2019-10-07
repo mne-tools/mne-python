@@ -64,7 +64,7 @@ fname_mon = op.join(misc_path, 'sample_eeg_mri', 'sample_mri_montage.elc')
 # in MNI space, and plot using :func:`nilearn.plotting.plot_glass_brain`,
 # which does a maximum intensity projection (easy to see the fake electrodes).
 # This plotting function requires data to be in MNI space.
-# Because ``img.affine``` gives the voxel-to-world (RAS) mapping, if we apply a
+# Because ``img.affine`` gives the voxel-to-world (RAS) mapping, if we apply a
 # RAS-to-MRI transform to it, it becomes the voxel-to-MNI transformation we
 # need. Thus we create a "new" MRI image in MNI coordinates and plot it as:
 
