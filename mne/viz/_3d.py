@@ -36,7 +36,7 @@ from ..surface import (get_meg_helmet_surf, read_surface, _DistanceQuery,
 from ..transforms import (_find_trans, apply_trans, rot_to_quat,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform,
-                          _read_ras_mni_t, _print_coord_trans)
+                          read_ras_mni_t, _print_coord_trans)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      has_nibabel, check_version, fill_doc, _pl,
                      _ensure_int, _validate_type, _check_option)
@@ -531,9 +531,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     subject : str | None
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT. Can be omitted if ``src`` is provided.
-    subjects_dir : str | None
-        The path to the freesurfer subjects reconstructions.
-        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    %(subjects_dir)s
     surfaces : str | list
         Surfaces to plot. Supported values:
 
@@ -1581,9 +1579,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         backend.
     time_viewer : bool
         Display time viewer GUI.
-    subjects_dir : str
-        The path to the freesurfer subjects reconstructions.
-        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    %(subjects_dir)s
     figure : instance of mayavi.core.api.Scene | instance of matplotlib.figure.Figure | list | int | None
         If None, a new figure will be created. If multiple views or a
         split view is requested, this must be a list of the appropriate
@@ -1779,9 +1775,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT. If None stc.subject will be used. If that
         is None, the environment will be used.
-    subjects_dir : str
-        The path to the freesurfer subjects reconstructions.
-        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    %(subjects_dir)s
     mode : str
         The plotting mode to use. Either 'stat_map' (default) or 'glass_brain'.
         For "glass_brain", activation absolute values are displayed
@@ -1999,7 +1993,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
     if mode == 'glass_brain':
         subject = _check_subject(stc.subject, subject, True)
-        ras_mni_t = _read_ras_mni_t(subject, subjects_dir)
+        ras_mni_t = read_ras_mni_t(subject, subjects_dir)
         if not np.allclose(ras_mni_t['trans'], np.eye(4)):
             _print_coord_trans(
                 ras_mni_t, prefix='Transforming subject ', units='mm')

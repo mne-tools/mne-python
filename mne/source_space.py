@@ -38,7 +38,7 @@ from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
                          _coord_frame_name, Transform, _str_to_frame,
-                         _ensure_trans, _read_ras_mni_t)
+                         _ensure_trans, read_ras_mni_t)
 
 
 def _get_lut():
@@ -1273,7 +1273,7 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
     if mode is not None:
         warn('mode is deprecated and will be removed in 0.21, do not set it')
     # Setup the RAS to MNI transform
-    ras_mni_t = _read_ras_mni_t(subject, subjects_dir)
+    ras_mni_t = read_ras_mni_t(subject, subjects_dir)
 
     # We want to get from Freesurfer surface RAS ('mri') to MNI ('mni_tal').
     # This file only gives us RAS (non-zero origin) ('ras') to MNI ('mni_tal').

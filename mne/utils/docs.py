@@ -238,7 +238,11 @@ trans : str | dict | instance of Transform | None
     .. versionchanged:: 0.19
        Support for 'fsaverage' argument.
 """
-
+docdict['subjects_dir'] = """
+subjects_dir : str | None
+    The path to the freesurfer subjects reconstructions.
+    It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+"""
 
 # Simulation
 docdict['interp'] = """
