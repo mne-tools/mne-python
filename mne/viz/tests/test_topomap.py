@@ -120,6 +120,10 @@ def test_plot_projs_topomap():
     pytest.raises(RuntimeError, eeg_avg.plot_topomap)  # no layout
     eeg_avg.plot_topomap(info=info, **fast_test)
     plt.close('all')
+    # test vlims
+    for vlim in ('joint', (-1, 1), (None, 0.5), (0.5, None), (None, None)):
+        plot_projs_topomap(projs[:-1], vlim=vlim, info=info, colorbar=True)
+    plt.close('all')
 
 
 @pytest.mark.slowtest
