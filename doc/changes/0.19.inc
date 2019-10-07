@@ -22,7 +22,7 @@ Bug
 - Fix reading of cardinals in .htps files (identifier are int not strings) by `Alex Gramfort`_
 
 - Fix bug in :func:`mne.write_evokeds` where ``evoked.nave`` was not saved properly when multiple :class:`~mne.Evoked` instances were written to a single file, by `Eric Larson`_
-￼
+
 - Fix TAL channel parsing (annotations) for EDF-D files by `Clemens Brunner`_
 
 - Fix IO of TFRs when event_id contain a / in one of the keys by `Alex Gramfort`_
