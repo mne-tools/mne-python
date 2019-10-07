@@ -143,13 +143,16 @@ def test_evoked_aspects(aspect_kind, tmpdir):
 
 
 @pytest.mark.slowtest
-def test_io_evoked():
+def test_io_evoked(tmpdir):
     """Test IO for evoked data (fif + gz) with integer and str args."""
-    tempdir = _TempDir()
     ave = read_evokeds(fname, 0)
+    ave_double = ave.copy()
+    ave_double.comment = ave.comment + ' doubled nave'
+    ave_double.nave = ave.nave * 2
 
-    write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
-    ave2 = read_evokeds(op.join(tempdir, 'evoked-ave.fif'))[0]
+    write_evokeds(tmpdir.join('evoked-ave.fif'), [ave, ave_double])
+    ave2, ave_double = read_evokeds(op.join(tmpdir, 'evoked-ave.fif'))
+    assert ave2.nave * 2 == ave_double.nave
 
     # This not being assert_array_equal due to windows rounding
     assert (np.allclose(ave.data, ave2.data, atol=1e-16, rtol=1e-3))
@@ -177,8 +180,8 @@ def test_io_evoked():
     aves1 = read_evokeds(fname)[1::2]
     aves2 = read_evokeds(fname, [1, 3])
     aves3 = read_evokeds(fname, ['Right Auditory', 'Right visual'])
-    write_evokeds(op.join(tempdir, 'evoked-ave.fif'), aves1)
-    aves4 = read_evokeds(op.join(tempdir, 'evoked-ave.fif'))
+    write_evokeds(tmpdir.join('evoked-ave.fif'), aves1)
+    aves4 = read_evokeds(tmpdir.join('evoked-ave.fif'))
     for aves in [aves2, aves3, aves4]:
         for [av1, av2] in zip(aves1, aves):
             assert_array_almost_equal(av1.data, av2.data)
@@ -191,7 +194,7 @@ def test_io_evoked():
             assert_equal(av1.comment, av2.comment)
 
     # test warnings on bad filenames
-    fname2 = op.join(tempdir, 'test-bad-name.fif')
+    fname2 = tmpdir.join('test-bad-name.fif')
     with pytest.warns(RuntimeWarning, match='-ave.fif'):
         write_evokeds(fname2, ave)
     with pytest.warns(RuntimeWarning, match='-ave.fif'):
@@ -201,7 +204,7 @@ def test_io_evoked():
     pytest.raises(TypeError, Evoked, fname)
 
     # MaxShield
-    fname_ms = op.join(tempdir, 'test-ave.fif')
+    fname_ms = tmpdir.join('test-ave.fif')
     assert (ave.info['maxshield'] is False)
     ave.info['maxshield'] = True
     ave.save(fname_ms)
