@@ -34,6 +34,8 @@ Changelog
 
 - Add option to :func:`mne.connectivity.spectral_connectivity` to compute corrected imaginary PLV by `Adonay Nunes`_
 
+- Add :func:`mne.SourceEstimate.estimate_snr` to estimate source-space SNR, by `Kaisu Lankinen`_ and `Padma Sundaram`_
+
 - Add option to specify the coordinate frame in :func:`mne.channels.read_custom_montage` by `Eric Larson`_
 
 - Add reader for NIRx data in :func:`mne.io.read_raw_nirx` by `Robert Luke`_
