@@ -50,10 +50,16 @@ def test_fix_stim_artifact():
     # XXX This is a very weird check...
     assert np.all(data_from_epochs_fix) == 0.
 
+    baseline = (-0.1, -0.05)
     epochs = fix_stim_artifact(epochs, tmin=tmin, tmax=tmax,
-                               baseline=(-0.1, -0.05), mode='constant')
+                               baseline=baseline, mode='constant')
+    b_start = int(np.ceil(epochs.info['sfreq'] * baseline[0]))
+    b_end = int(np.ceil(epochs.info['sfreq'] * baseline[1]))
+    base_t1 = b_start - e_start
+    base_t2 = b_end - e_start
+    base_data = epochs.get_data()[:, :, base_t1:base_t2].mean(axis=2)[0][0]
     data = epochs.get_data()[:, :, tmin_samp:tmax_samp]
-    assert np.all(np.diff(data[0][0])) == 0.
+    assert data[0][0][0] == base_data
 
     # use window before stimulus in raw
     event_idx = np.where(events[:, 2] == 1)[0][0]
@@ -77,9 +83,10 @@ def test_fix_stim_artifact():
     assert np.all(data) == 0.
 
     raw = fix_stim_artifact(raw, events, event_id=1, tmin=tmin, tmax=tmax,
-                            baseline=(-0.1, -0.05), mode='constant')
+                            baseline=baseline, mode='constant')
     data, times = raw[:, (tidx + tmin_samp):(tidx + tmax_samp)]
-    assert np.all(np.diff(data[0])) == 0.
+    data_base, times = raw[:, (tidx + b_start):(tidx + b_end)]
+    assert data_base.mean(axis=1)[0] == data[0][0]
 
     # get epochs from raw with fixed data
     tmin, tmax, event_id = -0.2, 0.5, 1
@@ -108,6 +115,9 @@ def test_fix_stim_artifact():
     assert np.all(data) == 0.
 
     evoked = fix_stim_artifact(evoked, tmin=tmin, tmax=tmax,
-                               baseline=(-0.1, -0.05), mode='constant')
+                               baseline=baseline, mode='constant')
+    base_t1 = int(baseline[0] * evoked.info['sfreq']) - evoked.first
+    base_t2 = int(baseline[1] * evoked.info['sfreq']) - evoked.first
     data = evoked.data[:, tmin_samp:tmax_samp]
-    assert np.all(np.diff(data[0])) == 0
+    data_base = evoked.data[:, base_t1:base_t2].mean(axis=1)[0]
+    assert data[0][0] == data_base

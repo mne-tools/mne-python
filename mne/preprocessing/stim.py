@@ -122,8 +122,8 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
         first_samp = s_start - e_start
         last_samp = s_end - e_start
         data = inst._data
-        base_t1 = e_start + b_start
-        base_t2 = e_start + b_end
+        base_t1 = b_start - e_start
+        base_t2 = b_end - e_start
         for epoch in data:
             _fix_artifact(epoch, window, picks, first_samp, last_samp, base_t1,
                           base_t2, mode)
