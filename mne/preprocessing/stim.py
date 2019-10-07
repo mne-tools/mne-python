@@ -67,7 +67,7 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
         Way to fill the artifacted time interval.
         'linear' does linear interpolation
         'window' applies a (1 - hanning) window.
-        'constant' use baseline avergae
+        'constant' uses baseline average. baseline parameter must be provided.
     stim_channel : str | None
         Stim channel to use.
 
