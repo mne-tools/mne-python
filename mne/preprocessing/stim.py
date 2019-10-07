@@ -1,6 +1,7 @@
 # Authors: Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #          Fahimeh Mamashli <fmamashli@mgh.harvard.edu>
 #          Padma Sundaram <tottochan@gmail.com>
+#
 # License: BSD (3-clause)
 
 import numpy as np
