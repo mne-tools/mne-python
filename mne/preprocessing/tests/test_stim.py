@@ -57,7 +57,7 @@ def test_fix_stim_artifact():
     b_end = int(np.ceil(epochs.info['sfreq'] * baseline[1]))
     base_t1 = b_start - e_start
     base_t2 = b_end - e_start
-    base_data = epochs.get_data()[:, :, base_t1:base_t2].mean(axis=2)[0][0]
+    baseline_mean = epochs.get_data()[:, :, base_t1:base_t2].mean(axis=2)[0][0]
     data = epochs.get_data()[:, :, tmin_samp:tmax_samp]
     assert data[0][0][0] == base_data
 
