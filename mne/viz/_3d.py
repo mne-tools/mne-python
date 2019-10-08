@@ -391,7 +391,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
     if '%' in time_label:
         time_label %= (1e3 * evoked.times[time_idx])
-    renderer.text2d(x=0.01, y=0.01, text=time_label, width=0.4)
+    renderer.text2d(x=0.01, y=0.01, text=time_label)
     renderer.set_camera(azimuth=10, elevation=60)
     renderer.show()
     return renderer.scene()
@@ -1640,6 +1640,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         An instance of :class:`surfer.Brain` from PySurfer or
         matplotlib figure.
     """  # noqa: E501
+    from .backends.renderer import get_3d_backend
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
     _validate_type(stc, SourceEstimate, "stc", "Surface Source Estimate")
@@ -1667,7 +1668,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              time_unit=time_unit, background=background,
                              spacing=spacing, time_viewer=time_viewer,
                              colorbar=colorbar, transparent=transparent)
-    from surfer import Brain, TimeViewer
+    if get_3d_backend() == "mayavi":
+        from surfer import Brain, TimeViewer
+    else:
+        from ._brain import _Brain as Brain
     _check_option('hemi', hemi, ['lh', 'rh', 'split', 'both'])
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
@@ -1688,24 +1692,32 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                       background=background, foreground=foreground,
                       figure=figure, subjects_dir=subjects_dir,
                       views=views)
-
-    ad_kwargs, sd_kwargs = _get_ps_kwargs(
-        initial_time, diverging, scale_pts[1], transparent)
-    del initial_time, transparent
+    center = 0. if diverging else None
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
         data = getattr(stc, hemi + '_data')
         vertices = stc.vertices[hemi_idx]
         if len(data) > 0:
+            kwargs = {
+                "array": data, "colormap": colormap,
+                "vertices": vertices,
+                "smoothing_steps": smoothing_steps,
+                "time": times, "time_label": time_label,
+                "alpha": alpha, "hemi": hemi,
+                "colorbar": colorbar, "initial_time": initial_time,
+                "transparent": transparent, "center": center,
+                "verbose": False
+            }
+            if get_3d_backend() == "mayavi":
+                kwargs["min"] = scale_pts[0]
+                kwargs["mid"] = scale_pts[1]
+                kwargs["max"] = scale_pts[2]
+            else:
+                kwargs["fmin"] = scale_pts[0]
+                kwargs["fmid"] = scale_pts[1]
+                kwargs["fmax"] = scale_pts[2]
             with warnings.catch_warnings(record=True):  # traits warnings
-                brain.add_data(data, colormap=colormap, vertices=vertices,
-                               smoothing_steps=smoothing_steps, time=times,
-                               time_label=time_label, alpha=alpha, hemi=hemi,
-                               colorbar=colorbar,
-                               min=scale_pts[0], max=scale_pts[2], **ad_kwargs)
-    if 'mid' not in ad_kwargs:  # PySurfer < 0.9
-        brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
-                                  fmax=scale_pts[2], **sd_kwargs)
+                brain.add_data(**kwargs)
     if time_viewer:
         TimeViewer(brain)
     return brain

@@ -44,6 +44,15 @@ def test_backend_environment_setup(backend, backend_mocker, monkeypatch):
     assert get_3d_backend() == backend
 
 
+def test_3d_functions(renderer):
+    """Test figure management functions."""
+    fig = renderer.create_3d_figure((300, 300))
+    renderer._check_figure(fig)
+    renderer.set_3d_view(figure=fig)
+    renderer.set_3d_title(figure=fig, title='foo')
+    renderer._close_all()
+
+
 def test_3d_backend(renderer):
     """Test default plot."""
     # set data
@@ -86,7 +95,7 @@ def test_3d_backend(renderer):
     txt_x = 0.0
     txt_y = 0.0
     txt_text = "renderer"
-    txt_width = 1.0
+    txt_size = 14
 
     cam_distance = 5 * tet_size
 
@@ -131,7 +140,8 @@ def test_3d_backend(renderer):
     rend.scalarbar(source=tube, title="Scalar Bar")
 
     # use text
-    rend.text2d(x=txt_x, y=txt_y, text=txt_text, width=txt_width)
+    rend.text2d(x=txt_x, y=txt_y, text=txt_text,
+                size=txt_size, justification='right')
     rend.text3d(x=0, y=0, z=0, text=txt_text, scale=1.0)
     rend.set_camera(azimuth=180.0, elevation=90.0,
                     distance=cam_distance,

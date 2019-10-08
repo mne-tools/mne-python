@@ -16,6 +16,7 @@ jobs:
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
               export MNE_ROOT=${PWD}/minimal_cmds
               echo "export MNE_ROOT=${PWD}/minimal_cmds" >> $BASH_ENV
+              echo "export MNE_3D_BACKEND=pyvista" >> $BASH_ENV
               echo "export PATH=~/.local/bin/:${MNE_ROOT}/bin:$PATH" >> $BASH_ENV
               curl https://staff.washington.edu/larsoner/minimal_cmds.tar.gz | tar xz
               echo "export LD_LIBRARY_PATH=${MNE_ROOT}/lib:$LD_LIBRARY_PATH" >> $BASH_ENV
