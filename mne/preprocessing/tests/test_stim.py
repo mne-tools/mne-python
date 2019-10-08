@@ -85,7 +85,7 @@ def test_fix_stim_artifact():
     raw = fix_stim_artifact(raw, events, event_id=1, tmin=tmin, tmax=tmax,
                             baseline=baseline, mode='constant')
     data, times = raw[:, (tidx + tmin_samp):(tidx + tmax_samp)]
-    data_base, times = raw[:, (tidx + b_start):(tidx + b_end)]
+    baseline_mean, _ = raw[:, (tidx + b_start):(tidx + b_end)]
     assert data_base.mean(axis=1)[0] == data[0][0]
 
     # get epochs from raw with fixed data
