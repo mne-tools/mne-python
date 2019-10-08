@@ -1,6 +1,12 @@
-from ..utils import logger, verbose
+# Authors: Guillaume Favelier <guillaume.favelier@gmail.com>
+#
+# License: Simplified BSD
+
+
 import numpy as np
 from scipy import sparse
+
+from ..utils import logger, verbose
 
 
 def mesh_edges(faces):
