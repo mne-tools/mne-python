@@ -12,18 +12,21 @@ import numpy as np
 from scipy import linalg, sparse
 from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
 
+from .cov import Covariance
+from .evoked import _get_peak
 from .filter import resample
 from .fixes import einsum
-from .evoked import _get_peak
 from .surface import read_surface, _get_ico_surface, mesh_edges
 from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject, SourceSpaces)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     _time_mask, warn as warn_, copy_function_doc_to_method_doc,
-                    fill_doc, _check_option, _validate_type, _check_src_normal)
+                    fill_doc, _check_option, _validate_type, _check_src_normal,
+                    _check_stc_units)
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
 from .io.base import ToDataFrameMixin, TimeMixin
+from .io.meas_info import Info
 from .externals.h5io import read_hdf5, write_hdf5
 
 
@@ -1553,9 +1556,12 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
                Magnetoencephalography and Electroencephalography.
                Human Brain Mapping, 30(4), 1077–1086. doi:10.1002/hbm.20571
         """
-        from .forward import convert_forward_solution
+        from .forward import convert_forward_solution, Forward
         from .minimum_norm.inverse import _prepare_forward
-
+        _validate_type(fwd, Forward, 'fwd')
+        _validate_type(info, Info, 'info')
+        _validate_type(cov, Covariance, 'cov')
+        _check_stc_units(self)
         if (self.data >= 0).all():
             warn_('This STC appears to be from free orientation, currently SNR'
                   ' function is valid only for fixed orientation')

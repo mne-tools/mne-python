@@ -260,6 +260,10 @@
 
 .. _Abram Hindle: http://softwareprocess.es
 
+.. _Kaisu Lankinen: http://bishoplab.berkeley.edu/Kaisu.html
+
+.. _Padma Sundaram: https://www.nmr.mgh.harvard.edu/user/8071
+
 .. _Robert Luke: https://github.com/rob-luke
 
 .. _Mohammad Daneshzand: https://github.com/mdaneshzand

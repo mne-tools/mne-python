@@ -272,10 +272,24 @@ def _is_numeric(n):
     return isinstance(n, (np.integer, np.floating, int, float))
 
 
+class _IntLike(object):
+    @classmethod
+    def __instancecheck__(cls, other):
+        try:
+            _ensure_int(other)
+        except TypeError:
+            return False
+        else:
+            return True
+
+int_like = _IntLike()
+
+
 _multi = {
     'str': (str,),
-    'numeric': (np.integer, np.floating, int, float),
+    'numeric': (np.floating, float, int_like),
     'path-like': (str, Path),
+    'int-like': (int_like,)
 }
 try:
     _multi['path-like'] += (os.PathLike,)
@@ -537,3 +551,13 @@ def _check_src_normal(pick_ori, src):
         raise RuntimeError('Normal source orientation is supported only for '
                            'surface or discrete SourceSpaces, got type '
                            '%s' % (src.kind,))
+
+
+def _check_stc_units(stc, threshold=1e-7):  # 100 nAm threshold for warning
+    max_cur = np.max(np.abs(stc.data))
+    if max_cur > threshold:
+        warn('The maximum current magnitude is %0.1f nAm, which is very large.'
+             ' Are you trying to apply the forward model to noise-normalized '
+             '(dSPM, sLORETA, or eLORETA) values? The result will only be '
+             'correct if currents (in units of Am) are used.'
+             % (1e9 * max_cur))
