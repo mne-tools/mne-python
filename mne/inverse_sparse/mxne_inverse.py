@@ -228,7 +228,7 @@ def make_stc_from_dipoles(dipoles, src, verbose=None):
     vertices = [np.array(lh_vertno).astype(int),
                 np.array(rh_vertno).astype(int)]
     stc = SourceEstimate(X, vertices=vertices, tmin=tmin, tstep=tstep,
-                         subject=src[0]['subject_his_id'])
+                         subject=src._subject)
     logger.info('[done]')
     return stc
 
@@ -316,7 +316,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
 
     References
     ----------
-    .. [1] A. Gramfort, M. Kowalski, M. Hamalainen,
+    .. [1] A. Gramfort, M. Kowalski, M. Hämäläinen,
        "Mixed-norm estimates for the M/EEG inverse problem using accelerated
        gradient methods", Physics in Medicine and Biology, 2012.
        https://doi.org/10.1088/0031-9155/57/7/1937
@@ -551,13 +551,13 @@ def tf_mixed_norm(evoked, forward, noise_cov,
 
     References
     ----------
-    .. [1] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
+    .. [1] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hämäläinen, M. Kowalski
        "Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
        non-stationary source activations",
        Neuroimage, Volume 70, pp. 410-422, 15 April 2013.
        DOI: 10.1016/j.neuroimage.2012.12.051
 
-    .. [2] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
+    .. [2] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hämäläinen, M. Kowalski
        "Functional Brain Imaging with M/EEG Using Structured Sparsity in
        Time-Frequency Dictionaries",
        Proceedings Information Processing in Medical Imaging

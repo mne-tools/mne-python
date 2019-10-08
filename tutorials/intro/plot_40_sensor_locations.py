@@ -134,9 +134,9 @@ layout_from_raw.plot()
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # Built-in montages are loaded and plotted in a very similar way to layouts.
-# However, the :meth:`~mne.channels.Montage.plot` method of
-# :class:`~mne.channels.Montage` objects has some additional parameters, such
-# as whether to display channel names or just points (the ``show_names``
+# However, the :meth:`~mne.channels.DigMontage.plot` method of
+# :class:`~mne.channels.DigMontage` objects has some additional parameters,
+# such as whether to display channel names or just points (the ``show_names``
 # parameter) and whether to display sensor positions in 3D or as a 2D topomap
 # (the ``kind`` parameter):
 
@@ -173,12 +173,8 @@ ax3d.view_init(azim=70, elev=15)
 # <sample-dataset>` — this is because the sensor positions in that dataset are
 # digitizations of the sensor positions on an actual subject's head. Depending
 # on what system was used to scan the positions one can use different
-# reading functions (:func:`mne.channels.read_dig_captrack` for
-# a CapTrak Brain Products system, :func:`mne.channels.read_dig_egi`
-# for an EGI system, :func:`mne.channels.read_dig_polhemus_isotrak` for
-# Polhemus ISOTRAK, :func:`mne.channels.read_dig_fif` to read from
-# a `.fif` file or :func:`mne.channels.read_dig_hpts` to read MNE `.hpts`
-# files. The read :class:`montage <mne.channels.DigMontage>` can then be added
+# reading functions (see :ref:`dig-formats`).
+# The read :class:`montage <mne.channels.DigMontage>` can then be added
 # to :class:`~mne.io.Raw` objects with the :meth:`~mne.io.Raw.set_montage`
 # method; in the sample data this was done prior to saving the
 # :class:`~mne.io.Raw` object to disk, so the sensor positions are already

@@ -26,7 +26,7 @@ Changelog
 
 - Remove MNE-C requirement for :ref:`mne make_scalp_surfaces <gen_mne_make_scalp_surfaces>` by `Eric Larson`_
 
-- Add support for FastTrack Polhemus ``.mat`` file outputs in ``hsp`` argument of :func:`mne.channels.read_dig_montage` by `Eric Larson`_
+- Add support for FastTrack Polhemus ``.mat`` file outputs in ``hsp`` argument of ``mne.channels.read_dig_montage`` by `Eric Larson`_
 
 - Add option to convert 3d electrode plots to a snapshot with 2d electrode positions with :func:`mne.viz.snapshot_brain_montage` by `Chris Holdgraf`_
 
@@ -56,7 +56,7 @@ Changelog
 
 - Allow integer event codes in :func:`mne.read_epochs_eeglab` by `Jaakko Leppakangas`_
 
-- Add ability to match channel names in a case insensitive manner when applying a :class:`mne.channels.Montage` by `Marijn van Vliet`_
+- Add ability to match channel names in a case insensitive manner when applying a ``mne.channels.Montage`` by `Marijn van Vliet`_
 
 - Add ``yscale`` keyword argument to :meth:`mne.time_frequency.AverageTFR.plot` that allows specifying whether to present the frequency axis in linear (``'linear'``) or log (``'log'``) scale. The default value is ``'auto'`` which detects whether frequencies are log-spaced and sets yscale to log. Added by `Mikołaj Magnuski`_
 
@@ -72,7 +72,7 @@ Changelog
 
 - Add :func:`mne.decoding.get_coef` to retrieve and inverse the coefficients of a linear model - typically a spatial filter or pattern, by `Jean-Remi King`_
 
-- Add support for reading in EGI MFF digitization coordinate files in :func:`mne.channels.read_dig_montage` by `Matt Boggess`_
+- Add support for reading in EGI MFF digitization coordinate files in ``mne.channels.read_dig_montage`` by `Matt Boggess`_
 
 - Add ``n_per_seg`` keyword argument to :func:`mne.time_frequency.psd_welch` and :func:`mne.time_frequency.psd_array_welch` that allows to control segment length independently of ``n_fft`` and use zero-padding when ``n_fft > n_per_seg`` by `Mikołaj Magnuski`_
 
@@ -117,9 +117,9 @@ BUG
 
 - Fix colormap selection in :func:`mne.viz.plot_evoked_topomap` when using positive vmin with negative data by `Jaakko Leppakangas`_
 
-- Fix channel name comparison in :func:`mne.channels.read_montage` so that if ``ch_names`` is provided, the returned montage will have channel names in the same letter case by `Jaakko Leppakangas`_
+- Fix channel name comparison in ``mne.channels.read_montage`` so that if ``ch_names`` is provided, the returned montage will have channel names in the same letter case by `Jaakko Leppakangas`_
 
-- Fix :meth:`inst.set_montage(montage) <mne.io.Raw.set_montage>` to only set ``inst.info['dev_head_t']`` if ``dev_head_t=True`` in :func:`mne.channels.read_dig_montage` by `Eric Larson`_
+- Fix :meth:`inst.set_montage(montage) <mne.io.Raw.set_montage>` to only set ``inst.info['dev_head_t']`` if ``dev_head_t=True`` in ``mne.channels.read_dig_montage`` by `Eric Larson`_
 
 - Fix handling of events in ``mne.realtime.RtEpochs`` when the triggers were split between two buffers resulting in missing and/or duplicate epochs by `Mainak Jas`_ and `Antti Rantala`_
 
@@ -190,7 +190,7 @@ API
 
 - The measurement info :class:`Info` no longer contains a potentially misleading ``info['filename']`` entry. Use class properties like :attr:`mne.io.Raw.filenames` or :attr:`mne.Epochs.filename` instead by `Eric Larson`_
 
-- Default fiducial name change from 'nz' to 'nasion' in :func:`mne.channels.read_montage`, so that it is the same for both :class: `mne.channels.Montage` and :class: `mne.channels.DigMontage` by `Leonardo Barbosa`_
+- Default fiducial name change from 'nz' to 'nasion' in ``mne.channels.read_montage``, so that it is the same for both ``mne.channels.Montage`` and :class: `mne.channels.DigMontage` by `Leonardo Barbosa`_
 
 - MNE's additional files for the ``fsaverage`` head/brain model are now included in MNE-Python, and the now superfluous ``mne_root`` parameter to  :func:`create_default_subject` has been deprecated by `Christian Brodbeck`_
 

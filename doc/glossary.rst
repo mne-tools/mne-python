@@ -24,6 +24,11 @@ general neuroimaging concepts. If you think a term is missing, please consider
         object class and :ref:`tut-annotations`
         for a tutorial on how to manipulate such objects.
 
+    Beamformer
+        Beamformer is a popular source estimation approach that uses a set of
+        spatial filters (beamformer weights) to compute time courses of sources
+        which coordinates are predefined. See :class:`mne.beamformer.Beamformer`.
+
     BEM
         BEM is the acronym for boundary element method or boundary element
         model. Both are related to the forward model computation and more
@@ -40,8 +45,28 @@ general neuroimaging concepts. If you think a term is missing, please consider
         a type, such as gradiometer, and a unit, such as Tesla/Meter that
         is used in the code base, e.g. for plotting.
 
+    digitization
+        Digitization is a procedure of recording the headshape of a subject and
+        the fiducial coils (or :term:`HPI`) and/or eeg electrodes locations on
+        the subject’s head. They are represented as a set of points in a 3D space.
+        See :ref:`reading-dig-montages` and :ref:`dig-formats`.
+
     dipole
         See :term:`equivalent current dipole`.
+
+    dSPM
+        Dynamic statistical parametric mapping (abbr. ``dSPM``) gives a noise-
+        normalized minimum-norm estimate at a given source location. dSPM is 
+        calculated by dividing the activity estimate at each source location by 
+        the baseline standard deviation of the noise.
+
+    eLORETA and sLORETA
+        eLORETA and sLORETA (exact and standardized low resolution brain
+        electromagnetic tomography) are linear source estimation techniques,
+        as are dSPM or :term:`MNE <minimum-norm estimation>`. sLORETA outputs
+        standardized values (like dSPM does), while eLORETA outputs normalized
+        current estimates. See :func:`mne.minimum_norm.apply_inverse`,
+        :ref:`tut-inverse-methods`, and :ref:`example-sLORETA`.
 
     epochs
         Epochs (sometimes called "trials" in other software packages) are
@@ -118,7 +143,7 @@ general neuroimaging concepts. If you think a term is missing, please consider
         and can be used to infer the head position. With cHPI, the sinusoidal
         signals are typically set at frequencies above any neural signal of
         interest, and thus can be removed after head position correction via
-        low-pass filtering.
+        low-pass filtering. See :ref:`example-head-pos`.
 
     info
         Also called ``measurement info``, it is a collection of metadata regarding
@@ -133,6 +158,7 @@ general neuroimaging concepts. If you think a term is missing, please consider
         signals, yields estimates of the brain activity that gave rise to the
         observed sensor signals. Inverse operators are available for the linear
         inverse methods MNE, dSPM, sLORETA and eLORETA.
+        See :func:`mne.minimum_norm.apply_inverse`.
 
     label
         A :class:`Label` refers to a region in the cortex, also often called
@@ -144,6 +170,14 @@ general neuroimaging concepts. If you think a term is missing, please consider
         each sensor). It is primarily used for illustrative purposes (i.e., making
         diagrams of approximate sensor positions in top-down diagrams of the head,
         so-called topographies or topomaps).
+
+    minimum-norm estimation
+        Minimum-norm estimation (abbr. ``MNE``) can be used to generate a distributed
+        map of activation on a :term:`source space`, usually on a cortical surface.
+        MNE uses a linear :term:`inverse operator` to project sensor measurements
+        into the source space. The :term:`inverse operator` is computed from the
+        :term:`forward solution` for a subject and an estimate of the
+        :term:`noise covariance` of sensor measurements.
 
     montage
         EEG channel names and the relative positions of the sensor w.r.t. the scalp.
@@ -159,6 +193,15 @@ general neuroimaging concepts. If you think a term is missing, please consider
         literature. This operation is necessary for group studies (to get the
         data in a common space for statistical analysis).
         See :ref:`ch_morph` for more details.
+
+    noise covariance
+        Noise covariance is a matrix that contains the covariance between data
+        channels. It is a square matrix with shape ``n_channels`` :math:`\times`
+        ``n_channels``. It is especially useful when working with multiple sensor
+        types (e.g. EEG and MEG). It is in
+        practice estimated from baseline periods or empty room measurements.
+        The matrix also provides a noise model that can be used for subsequent analysis
+        like source imaging.
 
     pick
         An integer that is the index of a channel in the measurement info.

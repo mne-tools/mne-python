@@ -1,45 +1,119 @@
 # -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #          Joan Massich <mailsik@gmail.com>
 #
 # License: BSD (3-clause)
 
-from collections import OrderedDict
+from collections import OrderedDict, Counter
+
 import datetime
 import os.path as op
 import re
 
 import numpy as np
 
-from ..utils import logger
-from ..utils import warn
+from ..utils import logger, warn, _check_option, Bunch
 
-from ..io.constants import FIFF
-from ..io.tree import dir_tree_find
-from ..io.tag import read_tag
-from ..io.write import start_file
-from ..io.write import end_file
-from ..io.write import write_dig_points
+from .constants import FIFF
+from .tree import dir_tree_find
+from .tag import read_tag
+from .write import (start_file, end_file, write_dig_points)
 
-from ..transforms import apply_trans
-from ..transforms import als_ras_trans
-from ..transforms import get_ras_to_neuromag_trans
-from ..transforms import Transform
-from ..transforms import combine_transforms
-from ..transforms import invert_transform
-from ..transforms import _to_const
-from ..transforms import _str_to_frame
+from ..transforms import (apply_trans, als_ras_trans, Transform,
+                          get_ras_to_neuromag_trans, combine_transforms,
+                          invert_transform, _to_const, _str_to_frame,
+                          _coord_frame_name)
 
-from ..utils.check import _check_option
-from ..utils import Bunch
 from .. import __version__
 
-from .base import _format_dig_points
-
 b = bytes  # alias
+
+_dig_kind_dict = {
+    'cardinal': FIFF.FIFFV_POINT_CARDINAL,
+    'hpi': FIFF.FIFFV_POINT_HPI,
+    'eeg': FIFF.FIFFV_POINT_EEG,
+    'extra': FIFF.FIFFV_POINT_EXTRA,
+}
+_dig_kind_ints = tuple(sorted(_dig_kind_dict.values()))
+_dig_kind_proper = {'cardinal': 'Cardinal',
+                    'hpi': 'HPI',
+                    'eeg': 'EEG',
+                    'extra': 'Extra',
+                    'unknown': 'Unknown'}
+_dig_kind_rev = {val: key for key, val in _dig_kind_dict.items()}
+_cardinal_kind_rev = {1: 'LPA', 2: 'Nasion', 3: 'RPA', 4: 'Inion'}
+
+
+def _format_dig_points(dig):
+    """Format the dig points nicely."""
+    return [DigPoint(d) for d in dig] if dig is not None else dig
+
+
+def _get_dig_eeg(dig):
+    return [d for d in dig if d['kind'] == FIFF.FIFFV_POINT_EEG]
+
+
+def _count_points_by_type(dig):
+    """Get the number of points of each type."""
+    occurrences = Counter([d['kind'] for d in dig])
+    return dict(
+        fid=occurrences[FIFF.FIFFV_POINT_CARDINAL],
+        hpi=occurrences[FIFF.FIFFV_POINT_HPI],
+        eeg=occurrences[FIFF.FIFFV_POINT_EEG],
+        extra=occurrences[FIFF.FIFFV_POINT_EXTRA],
+    )
+
+
+class DigPoint(dict):
+    """Container for a digitization point.
+
+    This is a simple subclass of the standard dict type designed to provide
+    a readable string representation.
+
+    Parameters
+    ----------
+    kind : int
+        The kind of channel,
+        e.g. ``FIFFV_POINT_EEG``, ``FIFFV_POINT_CARDINAL``.
+    r : array, shape (3,)
+        3D position in m. and coord_frame.
+    ident : int
+        Number specifying the identity of the point.
+        e.g.  ``FIFFV_POINT_NASION`` if kind is ``FIFFV_POINT_CARDINAL``,
+        or 42 if kind is ``FIFFV_POINT_EEG``.
+    coord_frame : int
+        The coordinate frame used, e.g. ``FIFFV_COORD_HEAD``.
+    """
+
+    def __repr__(self):  # noqa: D105
+        if self['kind'] == FIFF.FIFFV_POINT_CARDINAL:
+            id_ = _cardinal_kind_rev.get(
+                self.get('ident', -1), 'Unknown cardinal')
+        else:
+            id_ = _dig_kind_proper[
+                _dig_kind_rev.get(self.get('kind', -1), 'unknown')]
+            id_ = ('%s #%s' % (id_, self.get('ident', -1)))
+        id_ = id_.rjust(10)
+        cf = _coord_frame_name(self['coord_frame'])
+        pos = ('(%0.1f, %0.1f, %0.1f) mm' % tuple(1000 * self['r'])).ljust(25)
+        return ('<DigPoint | %s : %s : %s frame>' % (id_, pos, cf))
+
+    def __eq__(self, other):  # noqa: D105
+        """Compare two DigPoints.
+
+        Two digpoints are equal if they are the same kind, share the same
+        coordinate frame and position.
+        """
+        my_keys = ['kind', 'ident', 'coord_frame']
+        if sorted(self.keys()) != sorted(other.keys()):
+            return False
+        elif any([self[_] != other[_] for _ in my_keys]):
+            return False
+        else:
+            return np.allclose(self['r'], other['r'])
 
 
 def _read_dig_fif(fid, meas_info):
@@ -260,6 +334,13 @@ def _write_dig_points(fname, dig_points):
         raise ValueError(msg)
 
 
+def _coord_frame_const(coord_frame):
+    if not isinstance(coord_frame, str) or coord_frame not in _str_to_frame:
+        raise ValueError('coord_frame must be one of %s, got %s'
+                         % (sorted(_str_to_frame.keys()), coord_frame))
+    return _str_to_frame[coord_frame]
+
+
 def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                      extra_points=None, dig_ch_pos=None,
                      coord_frame='head'):
@@ -288,11 +369,7 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
     dig : list of dicts
         A container of DigPoints to be added to the info['dig'].
     """
-    if not isinstance(coord_frame, str) or coord_frame not in _str_to_frame:
-        raise ValueError('coord_frame must be one of %s, got %s'
-                         % (sorted(_str_to_frame.keys()), coord_frame))
-    else:
-        coord_frame = _str_to_frame[coord_frame]
+    coord_frame = _coord_frame_const(coord_frame)
 
     dig = []
     if lpa is not None:

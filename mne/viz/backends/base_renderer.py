@@ -13,8 +13,13 @@ from abc import ABCMeta, abstractclassmethod
 class _BaseRenderer(metaclass=ABCMeta):
     @abstractclassmethod
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
-                 name=None, show=False):
+                 name=None, show=False, shape=(1, 1)):
         """Set up the scene."""
+        pass
+
+    @abstractclassmethod
+    def subplot(self, x, y):
+        """Set the active subplot."""
         pass
 
     @abstractclassmethod
@@ -227,7 +232,7 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def text2d(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
+    def text2d(self, x, y, text, size=14, color=(1.0, 1.0, 1.0)):
         """Add 2d text in the scene.
 
         Parameters
@@ -238,8 +243,8 @@ class _BaseRenderer(metaclass=ABCMeta):
             The Y component to use as position of the text.
         text: str
             The content of the text.
-        width: float
-            The width of the text.
+        size: int
+            The size of the font.
         color: tuple
             The color of the text.
         """
@@ -310,8 +315,17 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def screenshot(self):
-        """Take a screenshot of the scene."""
+    def screenshot(self, mode='rgb', filename=None):
+        """Take a screenshot of the scene.
+
+        Parameters
+        ----------
+        mode: str
+            Either 'rgb' or 'rgba' for values to return.
+            Default is 'rgb'.
+        filename: str | None
+            If not None, save the figure to the disk.
+        """
         pass
 
     @abstractclassmethod

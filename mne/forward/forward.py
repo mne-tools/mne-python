@@ -1,8 +1,11 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
+
+# The computations in this code were primarily derived from Matti Hämäläinen's
+# C code.
 
 from time import time
 from copy import deepcopy
@@ -340,7 +343,7 @@ def _read_forward_meas_info(tree, fid):
 
 def _subject_from_forward(forward):
     """Get subject id from inverse operator."""
-    return forward['src'][0].get('subject_his_id', None)
+    return forward['src']._subject
 
 
 @verbose

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
@@ -755,7 +755,7 @@ def _check_reference(inst, ch_names=None):
 
 def _subject_from_inverse(inverse_operator):
     """Get subject id from inverse operator."""
-    return inverse_operator['src'][0].get('subject_his_id', None)
+    return inverse_operator['src']._subject
 
 
 @verbose
@@ -853,7 +853,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
 
     References
     ----------
-    .. [1] Hamalainen M S and Ilmoniemi R. Interpreting magnetic fields of
+    .. [1] Hämäläinen M S and Ilmoniemi R. Interpreting magnetic fields of
            the brain: minimum norm estimates. Medical & Biological Engineering
            & Computing, 32(1):35-42, 1994.
     .. [2] Dale A, Liu A, Fischl B, Buckner R. (2000) Dynamic statistical

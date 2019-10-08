@@ -5,8 +5,8 @@
 Repairing artifacts with SSP
 ============================
 
-This tutorial covers the basics of signal-space projection (SSP) and
-shows how SSP can be used for artifact repair; extended examples illustrate use
+This tutorial covers the basics of signal-space projection (SSP) and shows
+how SSP can be used for artifact repair; extended examples illustrate use
 of SSP for environmental noise reduction, and for repair of ocular and
 heartbeat artifacts.
 
@@ -111,11 +111,16 @@ for average in (False, True):
 # We create the SSP vectors using :func:`~mne.compute_proj_raw`, and control
 # the number of projectors with parameters ``n_grad`` and ``n_mag``. Once
 # created, the field pattern of the projectors can be easily visualized with
-# :func:`~mne.viz.plot_projs_topomap`.
+# :func:`~mne.viz.plot_projs_topomap`. We include the parameter
+# ``vlim='joint'`` so that the colormap is computed jointly for all projectors
+# of a given channel type; this makes it easier to compare their relative
+# smoothness. Note that for the function to know the types of channels in a
+# projector, you must also provide the corresponding :class:`~mne.Info` object:
 
 # sphinx_gallery_thumbnail_number = 3
 empty_room_projs = mne.compute_proj_raw(empty_room_raw, n_grad=3, n_mag=3)
-mne.viz.plot_projs_topomap(empty_room_projs, colorbar=True)
+mne.viz.plot_projs_topomap(empty_room_projs, colorbar=True, vlim='joint',
+                           info=empty_room_raw.info)
 
 ###############################################################################
 # Notice that the gradiometer-based projectors seem to reflect problems with
@@ -128,8 +133,9 @@ mne.viz.plot_projs_topomap(empty_room_projs, colorbar=True)
 # polarity.
 
 fig, axs = plt.subplots(2, 3)
-mne.viz.plot_projs_topomap(system_projs, axes=axs[0], colorbar=True)
-mne.viz.plot_projs_topomap(empty_room_projs[3:], axes=axs[1], colorbar=True)
+for idx, _projs in enumerate([system_projs, empty_room_projs[3:]]):
+    mne.viz.plot_projs_topomap(_projs, axes=axs[idx], colorbar=True,
+                               vlim='joint', info=empty_room_raw.info)
 
 ###############################################################################
 # Visualizing how projectors affect the signal

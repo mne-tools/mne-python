@@ -1,7 +1,7 @@
 """IO module for reading raw data."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
@@ -36,7 +36,7 @@ from .bti import read_raw_bti
 from .cnt import read_raw_cnt
 from .ctf import read_raw_ctf
 from .curry import read_raw_curry
-from .edf import read_raw_edf, read_raw_bdf, read_raw_gdf, find_edf_events
+from .edf import read_raw_edf, read_raw_bdf, read_raw_gdf
 from .egi import read_raw_egi
 from .kit import read_raw_kit, read_epochs_kit
 from .fiff import read_raw_fif
@@ -60,7 +60,7 @@ __all__ = [
     _loc_to_coil_trans, _loc_to_eeg_loc, _merge_info, _stamp_to_dt,
     BaseRaw, Info, Projection, Raw, RawArray, RawFIF, add_reference_channels,
     anonymize_info, array, base, brainvision, bti, cnt, concatenate_raws,
-    constants, ctf, edf, eeglab, egi, fiff, fiff_open, find_edf_events, kit,
+    constants, ctf, edf, eeglab, egi, fiff, fiff_open, kit,
     make_eeg_average_ref_proj, nicolet, pick, read_epochs_eeglab,
     read_epochs_fieldtrip, read_epochs_kit, read_evoked_fieldtrip,
     read_fiducials, read_info, read_raw_artemis123, read_raw_bdf,

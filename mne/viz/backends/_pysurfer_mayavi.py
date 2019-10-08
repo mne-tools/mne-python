@@ -58,14 +58,20 @@ class _Renderer(_BaseRenderer):
     """
 
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
-                 name=None, show=False):
+                 name=None, show=False, shape=(1, 1)):
         self.mlab = _import_mlab()
+        self.window_size = size
+        self.shape = shape
         if fig is None:
             self.fig = _mlab_figure(figure=name, bgcolor=bgcolor, size=size)
+        elif isinstance(fig, int):
+            self.fig = _mlab_figure(figure=fig, bgcolor=bgcolor, size=size)
         else:
             self.fig = fig
-        if show is False:
-            _toggle_mlab_render(self.fig, False)
+        _toggle_mlab_render(self.fig, show)
+
+    def subplot(self, x, y):
+        pass
 
     def scene(self):
         return self.fig
@@ -77,8 +83,10 @@ class _Renderer(_BaseRenderer):
                 tvtk.InteractorStyleTerrain()
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
-             backface_culling=False, **kwargs):
-        if isinstance(color, np.ndarray) and color.ndim > 1:
+             backface_culling=False, scalars=None, colormap=None,
+             vmin=None, vmax=None, **kwargs):
+        if color is not None and isinstance(color, np.ndarray) \
+           and color.ndim > 1:
             if color.shape[1] == 3:
                 vertex_color = np.c_[color, np.ones(len(color))] * 255.0
             else:
@@ -87,7 +95,6 @@ class _Renderer(_BaseRenderer):
             scalars = np.arange(len(color))
             color = None
         else:
-            scalars = None
             vertex_color = None
         with warnings.catch_warnings(record=True):  # traits
             surface = self.mlab.triangular_mesh(x, y, z, triangles,
@@ -95,10 +102,22 @@ class _Renderer(_BaseRenderer):
                                                 scalars=scalars,
                                                 opacity=opacity,
                                                 figure=self.fig,
+                                                vmin=vmin,
+                                                vmax=vmax,
                                                 **kwargs)
             if vertex_color is not None:
                 surface.module_manager.scalar_lut_manager.lut.table = \
                     vertex_color
+            elif isinstance(colormap, np.ndarray):
+                l_m = surface.module_manager.scalar_lut_manager
+                if colormap.dtype == np.uint8:
+                    l_m.lut.table = colormap
+                elif colormap.dtype == np.float:
+                    l_m.load_lut_from_list(colormap)
+                else:
+                    raise TypeError('Expected type for colormap values are'
+                                    ' np.float or np.uint8: '
+                                    '{} was given'.format(colormap.dtype))
             surface.actor.property.shading = shading
             surface.actor.property.backface_culling = backface_culling
         return surface
@@ -193,19 +212,39 @@ class _Renderer(_BaseRenderer):
                     glyph_resolution
                 quiv.actor.property.backface_culling = backface_culling
 
-    def text2d(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
+    def text2d(self, x, y, text, size=14, color=(1.0, 1.0, 1.0),
+               justification=None):
+        size = 14 if size is None else size
         with warnings.catch_warnings(record=True):  # traits
-            self.mlab.text(x, y, text, width=width, color=color,
-                           figure=self.fig)
+            text = self.mlab.text(x, y, text, color=color, figure=self.fig)
+            text.property.font_size = size
+            text.actor.text_scale_mode = 'viewport'
+            if isinstance(justification, str):
+                text.property.justification = justification
 
     def text3d(self, x, y, z, text, scale, color=(1.0, 1.0, 1.0)):
         with warnings.catch_warnings(record=True):  # traits
             self.mlab.text3d(x, y, z, text, scale=scale, color=color,
                              figure=self.fig)
 
-    def scalarbar(self, source, title=None, n_labels=4):
+    def scalarbar(self, source, title=None, n_labels=4, bgcolor=None):
         with warnings.catch_warnings(record=True):  # traits
             self.mlab.scalarbar(source, title=title, nb_labels=n_labels)
+        if bgcolor is not None:
+            from tvtk.api import tvtk
+            bgcolor = np.asarray(bgcolor)
+            bgcolor = np.append(bgcolor, 1.0) * 255.
+            cmap = source.module_manager.scalar_lut_manager
+            lut = cmap.lut
+            ctable = lut.table.to_array()
+            cbar_lut = tvtk.LookupTable()
+            cbar_lut.deep_copy(lut)
+            alphas = ctable[:, -1][:, np.newaxis] / 255.
+            use_lut = ctable.copy()
+            use_lut[:, -1] = 255.
+            vals = (use_lut * alphas) + bgcolor * (1 - alphas)
+            cbar_lut.table.from_array(vals)
+            cmap.scalar_bar.lookup_table = cbar_lut
 
     def show(self):
         if self.fig is not None:
@@ -220,9 +259,17 @@ class _Renderer(_BaseRenderer):
                      elevation=elevation, distance=distance,
                      focalpoint=focalpoint)
 
-    def screenshot(self):
-        with warnings.catch_warnings(record=True):  # traits
-            return self.mlab.screenshot(self.fig)
+    def screenshot(self, mode='rgb', filename=None):
+        from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
+        if MNE_3D_BACKEND_TEST_DATA:
+            ndim = 3 if mode == 'rgb' else 4
+            return np.zeros(tuple(self.window_size) + (ndim,), np.uint8)
+        else:
+            with warnings.catch_warnings(record=True):  # traits
+                img = self.mlab.screenshot(self.fig, mode=mode)
+                if isinstance(filename, str):
+                    _save_figure(img, filename)
+                return img
 
     def project(self, xyz, ch_names):
         xy = _3d_to_2d(self.fig, xyz)
@@ -361,3 +408,18 @@ def _set_3d_title(figure, title, size=40):
     text.property.vertical_justification = 'top'
     text.property.font_size = size
     mlab.draw(figure)
+
+
+def _check_figure(figure):
+    from mayavi.core.scene import Scene
+    if not isinstance(figure, Scene):
+        raise TypeError('figure must be a mayavi scene')
+
+
+def _save_figure(img, filename):
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    from matplotlib.figure import Figure
+    fig = Figure(frameon=False)
+    FigureCanvasAgg(fig)
+    fig.figimage(img, resize=True)
+    fig.savefig(filename)

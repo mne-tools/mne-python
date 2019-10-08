@@ -1,14 +1,14 @@
 """IO with fif files containing events."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Clement Moutard <clement.moutard@polytechnique.org>
 #
 # License: BSD (3-clause)
 
+import os.path as op
 import numpy as np
-from os.path import splitext
 
 
 from .utils import (check_fname, logger, verbose, _get_stim_channel, warn,
@@ -156,41 +156,41 @@ def _read_events_fif(fid, tree):
         raise ValueError('Could not find event data')
 
     events = events[0]
-
+    event_list = None
+    event_id = None
     for d in events['directory']:
         kind = d.kind
         pos = d.pos
         if kind == FIFF.FIFF_MNE_EVENT_LIST:
             tag = read_tag(fid, pos)
             event_list = tag.data
+            event_list.shape = (-1, 3)
             break
-    else:
+    if event_list is None:
         raise ValueError('Could not find any events')
-
-    mappings = dir_tree_find(tree, FIFF.FIFFB_MNE_EVENTS)
-    mappings = mappings[0]
-
-    for d in mappings['directory']:
+    for d in events['directory']:
         kind = d.kind
         pos = d.pos
         if kind == FIFF.FIFF_DESCRIPTION:
             tag = read_tag(fid, pos)
-            mappings = tag.data
+            event_id = tag.data
+            m_ = [[s[::-1] for s in m[::-1].split(':', 1)]
+                  for m in event_id.split(';')]
+            event_id = {k: int(v) for v, k in m_}
             break
-    else:
-        mappings = None
-
-    if mappings is not None:  # deal with ':' in keys
-        m_ = [[s[::-1] for s in m[::-1].split(':', 1)]
-              for m in mappings.split(';')]
-        mappings = {k: int(v) for v, k in m_}
-    event_list = event_list.reshape(len(event_list) // 3, 3)
-    return event_list, mappings
+        elif kind == FIFF.FIFF_MNE_EVENT_COMMENTS:
+            tag = read_tag(fid, pos)
+            event_id = tag.data
+            event_id = event_id.tostring().decode('latin-1').split('\x00')[:-1]
+            assert len(event_id) == len(event_list)
+            event_id = {k: v[2] for k, v in zip(event_id, event_list)}
+            break
+    return event_list, event_id
 
 
 @verbose
 def read_events(filename, include=None, exclude=None, mask=None,
-                mask_type='and', verbose=None):
+                mask_type='and', return_event_id=False, verbose=None):
     """Read events from fif or text file.
 
     See :ref:`tut_epoching_and_averaging` as well as :ref:`ex-read-events`
@@ -220,12 +220,19 @@ def read_events(filename, include=None, exclude=None, mask=None,
         Choose 'and' (default) for MNE-C masking behavior.
 
         .. versionadded:: 0.13
+    return_event_id : bool
+        If True, ``event_id`` will be returned. This is only possible for
+        ``-annot.fif`` files produced with MNE-C ``mne_browse_raw``.
+
+        .. versionadded:: 0.20
     %(verbose)s
 
     Returns
     -------
     events: array, shape (n_events, 3)
         The list of events
+    event_id : dict
+        Dictionary of ``{str: int}`` mappings of event IDs.
 
     See Also
     --------
@@ -241,13 +248,15 @@ def read_events(filename, include=None, exclude=None, mask=None,
     """
     check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
                                      '-eve.lst', '-eve.txt', '_eve.fif',
-                                     '_eve.fif.gz', '_eve.lst', '_eve.txt'))
+                                     '_eve.fif.gz', '_eve.lst', '_eve.txt',
+                                     '-annot.fif',  # MNE-C annot
+                                     ))
 
-    ext = splitext(filename)[1].lower()
+    ext = op.splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
         fid, tree, _ = fiff_open(filename)
         with fid as f:
-            event_list, _ = _read_events_fif(f, tree)
+            event_list, event_id = _read_events_fif(f, tree)
         # hack fix for windows to avoid bincount problems
         event_list = event_list.astype(int)
     else:
@@ -272,6 +281,7 @@ def read_events(filename, include=None, exclude=None, mask=None,
                 event_list[0, 2] == 0):
             event_list = event_list[1:]
             warn('first row of event file discarded (zero-valued)')
+        event_id = None
 
     event_list = pick_events(event_list, include, exclude)
     unmasked_len = event_list.shape[0]
@@ -281,7 +291,12 @@ def read_events(filename, include=None, exclude=None, mask=None,
         if masked_len < unmasked_len:
             warn('{} of {} events masked'.format(unmasked_len - masked_len,
                                                  unmasked_len))
-    return event_list
+    out = event_list
+    if return_event_id:
+        if event_id is None:
+            raise RuntimeError('No event_id found in the file')
+        out = (out, event_id)
+    return out
 
 
 def write_events(filename, event_list):
@@ -308,7 +323,7 @@ def write_events(filename, event_list):
                                      '-eve.lst', '-eve.txt', '_eve.fif',
                                      '_eve.fif.gz', '_eve.lst', '_eve.txt'))
 
-    ext = splitext(filename)[1].lower()
+    ext = op.splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
         #   Start writing...
         fid = start_file(filename)

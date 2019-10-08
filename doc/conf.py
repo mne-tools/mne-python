@@ -210,7 +210,12 @@ html_static_path = ['_static', '_images']
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
 # directly to the root of the documentation.
-#html_extra_path = []
+html_extra_path = [
+    'contributing.html',
+    'documentation.html',
+    'getting_started.html',
+    'install_mne_python.html',
+]
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -443,6 +448,7 @@ def reset_warnings(gallery_conf, fname):
                 "DocumenterBridge requires a state object",  # sphinx dev
                 "'U' mode is deprecated",  # sphinx io
                 r"joblib is deprecated in 0\.21",  # nilearn
+                'The usage of `cmp` is deprecated and will',  # sklearn/pytest
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
@@ -550,7 +556,6 @@ numpydoc_xref_aliases = {
     'EpochsTFR': 'mne.time_frequency.EpochsTFR',
     'Raw': 'mne.io.Raw', 'ICA': 'mne.preprocessing.ICA',
     'Covariance': 'mne.Covariance', 'Annotations': 'mne.Annotations',
-    'Montage': 'mne.channels.Montage',
     'DigMontage': 'mne.channels.DigMontage',
     'VectorSourceEstimate': 'mne.VectorSourceEstimate',
     'VolSourceEstimate': 'mne.VolSourceEstimate',
@@ -592,7 +597,7 @@ numpydoc_xref_ignore = {
     'n_splits', 'n_scores', 'n_outputs', 'n_trials', 'n_estimators', 'n_tasks',
     'nd_features', 'n_classes', 'n_targets', 'n_slices', 'n_hpi', 'n_fids',
     'n_elp', 'n_pts', 'n_tris', 'n_nodes', 'n_nonzero', 'n_events_out',
-    'n_segments',
+    'n_segments', 'n_orient_inv', 'n_orient_fwd',
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
     'RawBrainVision', 'RawCurry', 'RawNIRX',

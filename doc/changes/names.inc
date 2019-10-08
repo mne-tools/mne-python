@@ -262,4 +262,10 @@
 
 .. _Robert Luke: https://github.com/rob-luke
 
+.. _Mohammad Daneshzand: https://github.com/mdaneshzand
 
+.. _Fahimeh Mamashli: https://github.com/fmamashli
+
+.. _Adonay Nunes: https://github.com/AdoNunes
+
+.. _Victor Ferat: https://github.com/vferat

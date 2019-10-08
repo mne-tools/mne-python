@@ -18,9 +18,10 @@ from copy import deepcopy
 import numpy as np
 
 from ..defaults import _handle_default
-from ..utils import (verbose, logger, warn, fill_doc, check_version,
-                     _validate_type)
-from ..io.meas_info import create_info
+
+from ..utils import verbose, logger, warn, fill_doc, check_version
+from ..io.meas_info import create_info, _validate_type
+
 from ..io.pick import (pick_types, channel_type, _get_channel_types,
                        _picks_to_idx, _DATA_CH_TYPES_SPLIT,
                        _DATA_CH_TYPES_ORDER_DEFAULT, _VALID_CHANNEL_TYPES)
@@ -31,7 +32,8 @@ from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
                     _handle_decim, _setup_plot_projector, _set_ax_label_style,
                     _set_title_multiple_electrodes, _make_combine_callable,
-                    _get_figsize_from_config, _toggle_scrollbars)
+                    _get_figsize_from_config, _toggle_scrollbars,
+                    _check_psd_fmax)
 from .misc import _handle_event_colors
 
 
@@ -722,7 +724,7 @@ def _epochs_axes_onclick(event, params):
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                 title=None, events=None, event_colors=None, order=None,
                 show=True, block=False, decim='auto', noise_cov=None,
-                butterfly=False, show_scrollbars=True):
+                butterfly=False, show_scrollbars=True, epoch_colors=None):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
@@ -807,6 +809,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
         .. versionadded:: 0.18.0
     %(show_scrollbars)s
+    epoch_colors : list of (n_epochs) list (of n_channels) | None
+        Colors to use for individual epochs. If None, use default colors.
 
     Returns
     -------
@@ -840,7 +844,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                   bad_color=(0.8, 0.8, 0.8), histogram=None, decim=decim,
                   data_picks=data_picks, noise_cov=noise_cov,
                   use_noise_cov=noise_cov is not None,
-                  show_scrollbars=show_scrollbars)
+                  show_scrollbars=show_scrollbars,
+                  epoch_colors=epoch_colors)
     params['label_click_fun'] = partial(_pick_bad_channels, params=params)
     _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks, events=events, order=order,
@@ -919,6 +924,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
         make_label = _set_psd_plot_params(epochs.info, proj, picks, ax,
                                           area_mode)
+    _check_psd_fmax(epochs, fmax)
     del ax
     psd_list = list()
     for picks in picks_list:
@@ -976,6 +982,22 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         raise RuntimeError('Some channels not classified. Please'
                            ' check your picks')
     ch_names = [params['info']['ch_names'][idx] for idx in inds]
+    _validate_type(params['epoch_colors'], (list, None), 'epoch_colors')
+    if params['epoch_colors'] is not None:
+        if len(params['epoch_colors']) != len(params['epochs'].events):
+            raise ValueError('epoch_colors must be list of len(epochs.events).'
+                             ' Got %s' % len(params['epoch_colors']))
+        for epoch_idx in range(len(params['epoch_colors'])):
+            these_colors = params['epoch_colors'][epoch_idx]
+            _validate_type(these_colors, list,
+                           'epoch_colors[%s]' % (epoch_idx,))
+            if len(these_colors) != len(params['epochs'].ch_names):
+                raise ValueError('epoch_colors for the %dth epoch '
+                                 'has length %d, expected %d.'
+                                 % (epoch_idx, len(these_colors),
+                                    len(params['epochs'].ch_names)))
+            params['epoch_colors'][epoch_idx] = \
+                [these_colors[idx] for idx in inds]
 
     # set up plotting
     n_epochs = min(n_epochs, len(epochs_events))
@@ -1136,6 +1158,21 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'ch_types': ch_types})
 
     params['plot_fun'] = partial(_plot_traces, params=params)
+
+    # Plot epoch_colors
+    if params['epoch_colors'] is not None:
+        for epoch_idx, epoch_color in enumerate(params['epoch_colors']):
+            for ch_idx in range(len(params['ch_names'])):
+                if epoch_color[ch_idx] is not None:
+                    params['colors'][ch_idx][epoch_idx] = \
+                        colorConverter.to_rgba(epoch_color[ch_idx])
+
+            # plot on horizontal patch if all colors are same
+            if epoch_color.count(epoch_color[0]) == len(epoch_color):
+                params['ax_hscroll'].patches[epoch_idx].set_color(
+                    epoch_color[0])
+                params['ax_hscroll'].patches[epoch_idx].set_zorder(3)
+                params['ax_hscroll'].patches[epoch_idx].set_edgecolor('w')
 
     # callbacks
     callback_scroll = partial(_plot_onscroll, params=params)

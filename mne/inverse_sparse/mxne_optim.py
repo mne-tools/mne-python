@@ -133,7 +133,7 @@ def prox_l1(Y, alpha, n_orient):
 
     References
     ----------
-    .. [1] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
+    .. [1] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hämäläinen, M. Kowalski
        "Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
        non-stationary source activations",
        Neuroimage, Volume 70, pp. 410-422, 15 April 2013.
@@ -202,7 +202,7 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
 
     References
     ----------
-    .. [1] A. Gramfort, M. Kowalski, M. Hamalainen,
+    .. [1] A. Gramfort, M. Kowalski, M. Hämäläinen,
        "Mixed-norm estimates for the M/EEG inverse problem using accelerated
        gradient methods", Physics in Medicine and Biology, 2012.
        https://doi.org/10.1088/0031-9155/57/7/1937
@@ -480,7 +480,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 
     References
     ----------
-    .. [1] A. Gramfort, M. Kowalski, M. Hamalainen,
+    .. [1] A. Gramfort, M. Kowalski, M. Hämäläinen,
        "Mixed-norm estimates for the M/EEG inverse problem using accelerated
        gradient methods", Physics in Medicine and Biology, 2012.
        https://doi.org/10.1088/0031-9155/57/7/1937
@@ -1025,7 +1025,7 @@ def dgap_l21l1(M, G, Z, active_set, alpha_space, alpha_time, phi, phiT,
 
     References
     ----------
-    .. [1] A. Gramfort, M. Kowalski, M. Hamalainen,
+    .. [1] A. Gramfort, M. Kowalski, M. Hämäläinen,
        "Mixed-norm estimates for the M/EEG inverse problem using accelerated
        gradient methods", Physics in Medicine and Biology, 2012.
        https://doi.org/10.1088/0031-9155/57/7/1937
@@ -1300,13 +1300,13 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
 
     References
     ----------
-    .. [1] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
+    .. [1] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hämäläinen, M. Kowalski
        "Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
        non-stationary source activations",
        Neuroimage, Volume 70, pp. 410-422, 15 April 2013.
        DOI: 10.1016/j.neuroimage.2012.12.051
 
-    .. [2] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
+    .. [2] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hämäläinen, M. Kowalski
        "Functional Brain Imaging with M/EEG Using Structured Sparsity in
        Time-Frequency Dictionaries",
        Proceedings Information Processing in Medical Imaging

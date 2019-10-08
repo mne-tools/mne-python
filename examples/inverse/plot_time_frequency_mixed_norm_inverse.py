@@ -18,13 +18,13 @@ that promotes focal (sparse) sources (such as dipole fitting techniques)
 
 References
 ----------
-.. [1] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
+.. [1] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hämäläinen, M. Kowalski
    "Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
    non-stationary source activations",
    Neuroimage, Volume 70, pp. 410-422, 15 April 2013.
    DOI: 10.1016/j.neuroimage.2012.12.051
 
-.. [2] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
+.. [2] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hämäläinen, M. Kowalski
    "Functional Brain Imaging with M/EEG Using Structured Sparsity in
    Time-Frequency Dictionaries",
    Proceedings Information Processing in Medical Imaging

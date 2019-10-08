@@ -20,7 +20,7 @@ from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
 from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
-                    _check_path_like, get_subjects_dir)
+                    _check_path_like, get_subjects_dir, fill_doc, _check_fname)
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -1300,16 +1300,28 @@ def _average_quats(quats, weights=None):
     return avg_quat
 
 
-def _read_ras_mni_t(subject, subjects_dir=None):
+@fill_doc
+def read_ras_mni_t(subject, subjects_dir=None):
+    """Read a subject's RAS to MNI transform.
+
+    Parameters
+    ----------
+    subject : str
+        The subject.
+    %(subjects_dir)s
+
+    Returns
+    -------
+    ras_mni_t : instance of Transform
+        The transform from RAS to MNI.
+    """
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     _validate_type(subject, 'str', 'subject')
     fname = op.join(subjects_dir, subject, 'mri', 'transforms',
                     'talairach.xfm')
-    if not op.isfile(fname):
-        raise FileNotFoundError(
-            'FreeSurfer Talairach transformation file not found: %s'
-            % (fname,))
+    fname = _check_fname(
+        fname, 'read', True, 'FreeSurfer Talairach transformation file')
     return Transform('ras', 'mni_tal', _read_fs_xfm(fname)[0])
 
 

@@ -1,8 +1,9 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Andrew Dykstra <andrew.r.dykstra@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
+#          Daniel McCloy <dan.mccloy@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -167,6 +168,10 @@ class ContainsMixin(object):
         """The current gradient compensation grade."""
         return get_current_comp(self.info)
 
+    def get_channel_types(self):
+        """Get a list of channel type for each channel."""
+        return [channel_type(self.info, n)
+                for n in range(len(self.info['ch_names']))]
 
 # XXX Eventually de-duplicate with _kind_dict of mne/io/meas_info.py
 _human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,
@@ -456,22 +461,13 @@ class SetChannelsMixin(object):
 
     @verbose
     def set_montage(
-            self, montage, set_dig=DEPRECATED_PARAM,
-            raise_if_subset=DEPRECATED_PARAM, verbose=None
+        self, montage, raise_if_subset=DEPRECATED_PARAM, verbose=None
     ):
         """Set EEG sensor configuration and head digitization.
 
         Parameters
         ----------
-        montage : instance of Montage | instance of DigMontage | str | None
-            The montage to use (None removes any location information).
-        set_dig : bool
-            If True, update the digitization information (``info['dig']``)
-            in addition to the channel positions (``info['chs'][idx]['loc']``).
-
-            Deprecated. This parameter will be removed in 0.20.
-
-            .. versionadded: 0.15
+        %(montage)s
         raise_if_subset: bool
             If True, ValueError will be raised when montage.ch_names is a
             subset of info['ch_names']. This parameter was introduced for
@@ -493,8 +489,7 @@ class SetChannelsMixin(object):
         # https://gist.github.com/massich/f6a9f4799f1fbeb8f5e8f8bc7b07d3df
 
         from .montage import _set_montage
-        _set_montage(self.info, montage, update_ch_names=DEPRECATED_PARAM,
-                     set_dig=set_dig, raise_if_subset=raise_if_subset)
+        _set_montage(self.info, montage, raise_if_subset=raise_if_subset)
         return self
 
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,
@@ -578,17 +573,14 @@ class SetChannelsMixin(object):
                             show=show)
 
     @copy_function_doc_to_method_doc(anonymize_info)
-    def anonymize(self):
+    def anonymize(self, daysback=None, keep_his=False):
         """
         .. versionadded:: 0.13.0
         """
-        anonymize_info(self.info)
+        anonymize_info(self.info, daysback=daysback, keep_his=keep_his)
         if hasattr(self, 'annotations'):
-            # XXX : anonymize should rather subtract a random date
-            # rather than setting it to None
-            self.annotations.orig_time = None
+            self.annotations.orig_time = self.info['meas_date']
             self.annotations.onset -= self._first_time
-
         return self
 
 

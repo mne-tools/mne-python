@@ -24,7 +24,7 @@ from ...utils import verbose, logger, warn, fill_doc, _DefaultEventParser
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import BaseRaw
-from ..utils import _read_segments_file, _mult_cal_one, _deprecate_montage
+from ..utils import _read_segments_file, _mult_cal_one
 from ...annotations import Annotations, read_annotations
 from ...channels import make_dig_montage
 
@@ -37,7 +37,6 @@ class RawBrainVision(BaseRaw):
     ----------
     vhdr_fname : str
         Path to the EEG header file.
-    %(montage_deprecated)s
     eog : list or tuple
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the vhdr file.
@@ -59,14 +58,14 @@ class RawBrainVision(BaseRaw):
     """
 
     @verbose
-    def __init__(self, vhdr_fname, montage='deprecated',
+    def __init__(self, vhdr_fname,
                  eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
                  scale=1., preload=False, verbose=None):  # noqa: D107
         # Channel info and events
         logger.info('Extracting parameters from %s...' % vhdr_fname)
         vhdr_fname = op.abspath(vhdr_fname)
         (info, data_fname, fmt, order, n_samples, mrk_fname, montage,
-         orig_units) = _get_vhdr_info(vhdr_fname, eog, misc, scale, montage)
+         orig_units) = _get_vhdr_info(vhdr_fname, eog, misc, scale)
         self._order = order
         self._n_samples = n_samples
 
@@ -93,11 +92,11 @@ class RawBrainVision(BaseRaw):
             orig_format=fmt, preload=preload, verbose=verbose,
             raw_extras=[offsets], orig_units=orig_units)
 
+        self.set_montage(montage)
+
         # Get annotations from vmrk file
         annots = read_annotations(mrk_fname, info['sfreq'])
         self.set_annotations(annots)
-
-        _deprecate_montage(self, "read_raw_brainvision", montage)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
@@ -387,7 +386,7 @@ def _aux_vhdr_info(vhdr_fname):
     return settings, cfg, cinfostr, info
 
 
-def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
+def _get_vhdr_info(vhdr_fname, eog, misc, scale):
     """Extract all the information from the header file.
 
     Parameters
@@ -405,11 +404,6 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     scale : float
         The scaling factor for EEG data. Unless specified otherwise by
         header file, units are in microvolts. Default scale factor is 1.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions. If None,
-        read sensor locations from header file if present, otherwise (0, 0, 0).
-        See the documentation of :func:`mne.channels.read_dig_captrack` for
-        more information.
 
     Returns
     -------
@@ -425,7 +419,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
         Number of data points in the binary data file.
     mrk_fname : str
         Path to the marker file.
-    montage : Montage
+    montage : DigMontage
         Coordinates of the channels, if present in the header file.
     orig_units : dict
         Dictionary mapping channel names to their units as specified in
@@ -533,7 +527,8 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
     # coordinate system: Defined between standard electrode positions: X-axis
     # from T7 to T8, Y-axis from Oz to Fpz, Z-axis orthogonal from XY-plane
     # through Cz, fit to a sphere if idealized (when radius=1), specified in mm
-    if cfg.has_section('Coordinates') and montage in (None, 'deprecated'):
+    montage = None
+    if cfg.has_section('Coordinates'):
         from ...transforms import _sph_to_cart
         montage_pos = list()
         montage_names = list()
@@ -785,7 +780,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale, montage):
 
 
 @fill_doc
-def read_raw_brainvision(vhdr_fname, montage='deprecated',
+def read_raw_brainvision(vhdr_fname,
                          eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto',
                          scale=1., preload=False, verbose=None):
     """Reader for Brain Vision EEG file.
@@ -794,7 +789,6 @@ def read_raw_brainvision(vhdr_fname, montage='deprecated',
     ----------
     vhdr_fname : str
         Path to the EEG header file.
-    %(montage_deprecated)s
     eog : list or tuple of str
         Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the vhdr file
@@ -820,7 +814,7 @@ def read_raw_brainvision(vhdr_fname, montage='deprecated',
     mne.io.Raw : Documentation of attribute and methods.
 
     """
-    return RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
+    return RawBrainVision(vhdr_fname=vhdr_fname, eog=eog,
                           misc=misc, scale=scale, preload=preload,
                           verbose=verbose)
 

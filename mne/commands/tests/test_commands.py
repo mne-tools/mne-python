@@ -7,16 +7,18 @@ import glob
 import pytest
 from numpy.testing import assert_equal, assert_allclose
 
-from mne import concatenate_raws, read_bem_surfaces, read_surface
+from mne import (concatenate_raws, read_bem_surfaces, read_surface,
+                 read_source_spaces)
 from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_compute_proj_ecg, mne_compute_proj_eog,
                           mne_coreg, mne_kit2fiff,
                           mne_make_scalp_surfaces, mne_maxfilter,
                           mne_report, mne_surf2bem, mne_watershed_bem,
                           mne_compare_fiff, mne_flash_bem, mne_show_fiff,
-                          mne_show_info, mne_what)
+                          mne_show_info, mne_what, mne_setup_source_space,
+                          mne_anonymize)
 from mne.datasets import testing, sample
-from mne.io import read_raw_fif
+from mne.io import read_raw_fif, read_info
 from mne.utils import (run_tests_if_main, requires_mne,
                        requires_mayavi, requires_tvtk, requires_freesurfer,
                        traits_test, ArgvSetter, modified_env)
@@ -276,11 +278,51 @@ def test_flash_bem(tmpdir):
         assert len(tris) == 5120
 
 
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_setup_source_space(tmpdir):
+    """Test mne setup_source_space."""
+    check_usage(mne_setup_source_space, force_help=True)
+    # Using the sample dataset
+    subjects_dir = op.join(testing.data_path(download=False), 'subjects')
+    use_fname = op.join(tmpdir, "sources-src.fif")
+    # Test  command
+    with ArgvSetter(('--src', use_fname, '-d', subjects_dir,
+                     '-s', 'sample', '--morph', 'sample',
+                     '--ico', '3', '--verbose')):
+        mne_setup_source_space.run()
+    src = read_source_spaces(use_fname)
+    assert len(src) == 2
+    with pytest.raises(Exception):
+        with ArgvSetter(('--src', use_fname, '-d', subjects_dir,
+                         '-s', 'sample', '--ico', '3', '--oct', '3')):
+            assert mne_setup_source_space.run()
+    with pytest.raises(Exception):
+        with ArgvSetter(('--src', use_fname, '-d', subjects_dir,
+                         '-s', 'sample', '--ico', '3', '--spacing', '10')):
+            assert mne_setup_source_space.run()
+    with pytest.raises(Exception):
+        with ArgvSetter(('--src', use_fname, '-d', subjects_dir,
+                         '-s', 'sample', '--ico', '3', '--spacing', '10',
+                         '--oct', '3')):
+            assert mne_setup_source_space.run()
+
+
 def test_show_info():
     """Test mne show_info."""
     check_usage(mne_show_info)
     with ArgvSetter((raw_fname,)):
         mne_show_info.run()
 
+
+def test_anonymize(tmpdir):
+    """Test mne anonymize."""
+    check_usage(mne_anonymize)
+    out_fname = op.join(tmpdir, 'anon_test_raw.fif')
+    with ArgvSetter(('-f', raw_fname, '-o', out_fname)):
+        mne_anonymize.run()
+    info = read_info(out_fname)
+    assert(op.exists(out_fname))
+    assert_equal(info['meas_date'], (946684800, 0))
 
 run_tests_if_main()

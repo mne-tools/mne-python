@@ -2,7 +2,7 @@
 
 # Authors: Denis A. Engemann  <denis.engemann@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
 #          simplified bsd-3 license
 

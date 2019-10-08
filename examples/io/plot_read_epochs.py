@@ -9,7 +9,7 @@ for both MEG and EEG data by averaging all the epochs.
 
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 

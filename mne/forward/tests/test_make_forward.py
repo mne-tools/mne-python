@@ -290,7 +290,7 @@ def test_make_forward_solution_sphere(tmpdir):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_nibabel(False)
+@requires_nibabel()
 def test_forward_mixed_source_space(tmpdir):
     """Test making the forward solution for a mixed source space."""
     # get the surface source space
