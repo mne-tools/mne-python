@@ -84,7 +84,7 @@ def _check_ch_names_are_compatible(info_names, montage_names, raise_if_subset):
         if raise_if_subset:
             raise ValueError((
                 'DigMontage is a only a subset of info.'
-                ' There are {n_ch} channel positions not present it the'
+                ' There are {n_ch} channel positions not present in the'
                 ' DigMontage. The required channels are: {ch_names}.'
 
                 # XXX: the rest of the message is deprecated. to remove in 0.20
