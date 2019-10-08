@@ -1,4 +1,7 @@
 # Authors: Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
+#          Fahimeh Mamashli <fmamashli@mgh.harvard.edu>
+#          Padma Sundaram <tottochan@gmail.com>
+#          Mohammad Daneshzand <mdaneshzand@mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
@@ -59,7 +62,7 @@ def test_fix_stim_artifact():
     base_t2 = b_end - e_start
     baseline_mean = epochs.get_data()[:, :, base_t1:base_t2].mean(axis=2)[0][0]
     data = epochs.get_data()[:, :, tmin_samp:tmax_samp]
-    assert data[0][0][0] == base_data
+    assert data[0][0][0] == baseline_mean
 
     # use window before stimulus in raw
     event_idx = np.where(events[:, 2] == 1)[0][0]
@@ -86,7 +89,7 @@ def test_fix_stim_artifact():
                             baseline=baseline, mode='constant')
     data, times = raw[:, (tidx + tmin_samp):(tidx + tmax_samp)]
     baseline_mean, _ = raw[:, (tidx + b_start):(tidx + b_end)]
-    assert data_base.mean(axis=1)[0] == data[0][0]
+    assert baseline_mean.mean(axis=1)[0] == data[0][0]
 
     # get epochs from raw with fixed data
     tmin, tmax, event_id = -0.2, 0.5, 1
@@ -120,4 +123,4 @@ def test_fix_stim_artifact():
     base_t2 = int(baseline[1] * evoked.info['sfreq']) - evoked.first
     data = evoked.data[:, tmin_samp:tmax_samp]
     baseline_mean = evoked.data[:, base_t1:base_t2].mean(axis=1)[0]
-    assert data[0][0] == data_base
+    assert data[0][0] == baseline_mean
