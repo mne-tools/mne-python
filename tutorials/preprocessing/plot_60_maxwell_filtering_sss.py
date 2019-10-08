@@ -28,7 +28,8 @@ raw.crop(tmax=60).load_data()
 # Background on SSS and Maxwell filtering
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# Signal-space separation (SSS) [1]_ [2]_ is a technique based on the physics
+# Signal-space separation (SSS) :cite:`c-TauluKajola2005,c-TauluSimola2006`
+# is a technique based on the physics
 # of electromagnetic fields. SSS separates the measured signal into components
 # attributable to sources *inside* the measurement volume of the sensor array
 # (the *internal components*), and components attributable to sources *outside*
@@ -219,15 +220,10 @@ mne.viz.plot_head_positions(head_pos, mode='traces')
 # References
 # ^^^^^^^^^^
 #
-# .. [1] Taulu S and Kajola M. (2005). Presentation of electromagnetic
-#        multichannel data: The signal space separation method. *J Appl Phys*
-#        97, 124905 1-10. https://doi.org/10.1063/1.1935742
-#
-# .. [2] Taulu S and Simola J. (2006). Spatiotemporal signal space separation
-#        method for rejecting nearby interference in MEG measurements. *Phys
-#        Med Biol* 51, 1759-1768.
-#        https://doi.org/10.1088/0031-9155/51/7/008
-#
+# .. bibliography:: ../../references.bib
+#    :style: unsrt
+#    :labelprefix: C
+#    :keyprefix: c-
 #
 # .. LINKS
 #
