@@ -2878,7 +2878,9 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
                        linewidths=[.75], corner_mask=False,
                        antialiased=False, levels=[.5])
         time_lims = times[[0, -1]]
-        ylim = yvals[0], yvals[-1]
+        time_lims = [extent[0], extent[1]]
+        if ylim is None:
+            ylim = [extent[2], extent[3]]
 
     ax.set_xlim(time_lims[0], time_lims[-1])
     ax.set_ylim(ylim)
