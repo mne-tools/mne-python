@@ -17,8 +17,8 @@ that it exposes a strong induced response. We will then visualize
 each effect by creating a corresponding mass-univariate effect
 image. We conclude with accounting for multiple comparisons by
 performing a permutation clustering test using the ANOVA as
-clustering function. The results final will be compared to
-multiple comparisons using False Discovery Rate correction.
+clustering function. The results final will be compared to multiple
+comparisons using False Discovery Rate correction.
 """
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
