@@ -63,6 +63,8 @@ Bug
 
 - Fix IO of TFRs when event_id contain a / in one of the keys by `Alex Gramfort`_
 
+- Fix plotting of TFRs with linear y-scale (misaligned frequency bins), by `Stefan Repplinger`_ and `Eric Larson`_
+
 API
 ~~~
 
