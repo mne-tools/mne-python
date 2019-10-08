@@ -308,7 +308,6 @@ print(first_projector['active'])
 # Computing projectors
 # ~~~~~~~~~~~~~~~~~~~~
 #
-
 # In MNE-Python, SSP vectors can be computed using general purpose functions
 # :func:`mne.compute_proj_raw`, :func:`mne.compute_proj_epochs`, and
 # :func:`mne.compute_proj_evoked`. The general assumption these functions make

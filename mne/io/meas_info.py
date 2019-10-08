@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
@@ -29,13 +29,10 @@ from .write import (start_file, end_file, start_block, end_block,
 from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import invert_transform, Transform
 from ..utils import logger, verbose, warn, object_diff, _validate_type
-from .._digitization.base import _format_dig_points
+from ._digitization import (_format_dig_points, _dig_kind_proper,
+                            _dig_kind_rev, _dig_kind_ints, _read_dig_fif)
+from ._digitization import write_dig as _dig_write_dig
 from .compensator import get_current_comp
-
-# XXX: most probably the functions needing this, should go somewhere else
-from .._digitization.base import _dig_kind_proper, _dig_kind_rev
-from .._digitization.base import _dig_kind_ints
-from .._digitization._utils import _read_dig_fif
 
 b = bytes  # alias
 
@@ -122,13 +119,19 @@ def _summarize_str(st):
     return st[:56][::-1].split(',', 1)[-1][::-1] + ', ...'
 
 
-def _stamp_to_dt(stamp):
+def _dt_to_stamp(inp_date):
+    """Convert a datetime object to a meas_date."""
+    return int(inp_date.timestamp() // 1), inp_date.microsecond
+
+
+def _stamp_to_dt(utc_stamp):
     """Convert timestamp to datetime object in Windows-friendly way."""
     # The min on windows is 86400
-    stamp = [int(s) for s in stamp]
+    stamp = [int(s) for s in utc_stamp]
     if len(stamp) == 1:  # In case there is no microseconds information
         stamp.append(0)
-    return (datetime.datetime.utcfromtimestamp(stamp[0]) +
+    return (datetime.datetime.fromtimestamp(stamp[0],
+                                            tz=datetime.timezone.utc) +
             datetime.timedelta(0, 0, stamp[1]))  # day, sec, μs
 
 
@@ -706,8 +709,7 @@ def write_fiducials(fname, pts, coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
         mne.io.constants.FIFF.FIFFV_COORD_...).
     %(verbose)s
     """
-    from .._digitization._utils import write_dig as ff
-    ff(fname, pts, coord_frame)
+    _dig_write_dig(fname, pts, coord_frame)
 
 
 def write_dig(fname, pts, coord_frame=None):
@@ -725,8 +727,7 @@ def write_dig(fname, pts, coord_frame=None):
         here. Can be None (default) if the points could have varying
         coordinate frames.
     """
-    from .._digitization._utils import write_dig as ff
-    return ff(fname, pts, coord_frame=None)
+    return _dig_write_dig(fname, pts, coord_frame=None)
 
 
 @verbose
@@ -1728,13 +1729,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
         Currently supported fields are 'ecg', 'bio', 'stim', 'eog', 'misc',
         'seeg', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'emg', 'hbr' or 'hbo'.
         If str, then all channels are assumed to be of the same type.
-    montage : None | str | Montage | DigMontage | list
-        A montage containing channel positions. If str or Montage is
-        specified, the channel info will be updated with the channel
-        positions. Default is None. If DigMontage is specified, the
-        digitizer information will be updated. A list of unique montages,
-        can be specified and applied to the info. See also the documentation of
-        :func:`mne.channels.read_montage` for more information.
+    %(montage)s
     %(verbose)s
 
     Returns
@@ -1760,6 +1755,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
     * Am: dipole
     * AU: misc
     """
+    from ..channels.montage import (DigMontage, _set_montage)
     try:
         ch_names = operator.index(ch_names)  # int-like
     except TypeError:
@@ -1768,6 +1764,8 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
         ch_names = list(np.arange(ch_names).astype(str))
     _validate_type(ch_names, (list, tuple), "ch_names",
                    ("list, tuple, or int"))
+    _validate_type(montage, types=(type(None), str, DigMontage),
+                   item_name='montage')
     sfreq = float(sfreq)
     if sfreq <= 0:
         raise ValueError('sfreq must be positive')
@@ -1796,18 +1794,9 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
                          unit=kind[2], coord_frame=coord_frame,
                          ch_name=str(name), scanno=ci + 1, logno=ci + 1)
         info['chs'].append(chan_info)
+
     info._update_redundant()
-    if montage is not None:
-        from ..channels.montage import (Montage, DigMontage, _set_montage)
-        if not isinstance(montage, list):
-            montage = [montage]
-        for montage_ in montage:
-            if isinstance(montage_, (str, Montage, DigMontage)):
-                _set_montage(info, montage_)
-            else:
-                raise TypeError('Montage must be an instance of Montage, '
-                                'DigMontage, a list of montages, or filepath, '
-                                'not %s.' % type(montage))
+    _set_montage(info, montage)
     info._check_consistency()
     return info
 
@@ -1878,16 +1867,19 @@ def _force_update_info(info_base, info_target):
             i_targ[key] = val
 
 
-def anonymize_info(info):
+def anonymize_info(info, daysback=None, keep_his=False):
     """Anonymize measurement information in place.
-
-    Reset 'subject_info', 'meas_date', 'file_id', and 'meas_id' keys if they
-    exist in ``info``.
 
     Parameters
     ----------
     info : dict, instance of Info
         Measurement information for the dataset.
+    daysback : int | None
+        Number of days to subtract from all dates.
+        If None (default) the date of service will be set to Jan 1ˢᵗ 2000.
+    keep_his : bool
+        If True his_id of subject_info will NOT be overwritten.
+        Defaults to False.
 
     Returns
     -------
@@ -1896,18 +1888,114 @@ def anonymize_info(info):
 
     Notes
     -----
+    Removes potentially identifying information if it exist in ``info``.
+    Specifically for each of the following we use:
+
+    - meas_date, file_id, meas_id
+          A default value, or as specified by ``daysback``.
+    - subject_info
+          Default values, except for 'birthday' which is adjusted
+          to maintain the subject age.
+    - experimenter, proj_name, description
+          Default strings.
+    - utc_offset
+          ``None``.
+    - proj_id
+          Zeros.
+    - proc_history
+          Dates use the meas_date logic, and experimenter a default string.
+    - helium_info, device_info
+          Dates use the meas_date logic, meta info uses defaults.
+
     Operates in place.
     """
     _validate_type(info, 'info', "self")
-    if info.get('subject_info') is not None:
-        del info['subject_info']
-    info['meas_date'] = None
+
+    default_anon_dos = datetime.datetime(2000, 1, 1, 0, 0, 0,
+                                         tzinfo=datetime.timezone.utc)
+    default_str = "mne_anonymize"
+    default_subject_id = 0
+    default_desc = ("Anonymized using a time shift"
+                    " to preserve age at acquisition")
+
+    # datetime object representing meas_date
+    meas_date_datetime = _stamp_to_dt(info['meas_date'])
+
+    if daysback is None:
+        delta_t = meas_date_datetime - default_anon_dos
+    else:
+        delta_t = datetime.timedelta(days=daysback)
+
+    # adjust meas_date
+    info['meas_date'] = _dt_to_stamp(meas_date_datetime - delta_t)
+
+    # file_id and meas_id
     for key in ('file_id', 'meas_id'):
         value = info.get(key)
         if value is not None:
             assert 'msecs' not in value
-            value['secs'] = DATE_NONE[0]
-            value['usecs'] = DATE_NONE[1]
+            value['secs'] = info['meas_date'][0]
+            value['usecs'] = info['meas_date'][1]
+            value['machid'][:] = 0
+
+    # subject info
+    subject_info = info.get('subject_info')
+    if subject_info is not None:
+        if subject_info.get('id') is not None:
+            subject_info['id'] = default_subject_id
+        if keep_his:
+            logger.warning('Not fully anonymizing info - keeping \'his_id\'')
+        elif subject_info.get('his_id') is not None:
+            subject_info['his_id'] = str(default_subject_id)
+
+        for key in ('last_name', 'first_name', 'middle_name'):
+            if subject_info.get(key) is not None:
+                subject_info[key] = default_str
+
+        if subject_info.get('birthday') is not None:
+            dob = datetime.datetime(subject_info['birthday'][0],
+                                    subject_info['birthday'][1],
+                                    subject_info['birthday'][2])
+            dob -= delta_t
+            subject_info['birthday'] = dob.year, dob.month, dob.day
+
+        for key in ('weight', 'height'):
+            if subject_info.get(key) is not None:
+                subject_info[key] = 0
+
+    info['experimenter'] = default_str
+    info['description'] = default_desc
+
+    if info['proj_id'] is not None:
+        info['proj_id'][:] = 0
+    if info['proj_name'] is not None:
+        info['proj_name'] = default_str
+    if info['utc_offset'] is not None:
+        info['utc_offset'] = None
+
+    proc_hist = info.get('proc_history')
+    if proc_hist is not None:
+        for record in proc_hist:
+            record['block_id']['secs'] = info['meas_date'][0]
+            record['block_id']['usecs'] = info['meas_date'][1]
+            record['block_id']['machid'][:] = 0
+            record['date'] = info['meas_date']
+            record['experimenter'] = default_str
+
+    hi = info.get('helium_info')
+    if hi is not None:
+        if hi.get('orig_file_guid') is not None:
+            hi['orig_file_guid'] = default_str
+        if hi.get('meas_date') is not None:
+            hi['meas_date'] = [info['meas_date'][0],
+                               info['meas_date'][1]]
+
+    di = info.get('device_info')
+    if di is not None:
+        for k in ('serial', 'site'):
+            if di.get(k) is not None:
+                di[k] = default_str
+
     return info
 
 

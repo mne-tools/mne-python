@@ -452,7 +452,7 @@ def test_io():
     events = np.zeros([n_events, 3])
     events[:, 0] = np.arange(n_events)
     events[:, 2] = np.ones(n_events)
-    event_id = dict(a=1)
+    event_id = {'a/b': 1}
 
     tfr = EpochsTFR(info, data=data, times=times, freqs=freqs,
                     comment='test', method='crazy-tfr', events=events,
@@ -462,7 +462,7 @@ def test_io():
     assert_array_equal(tfr.data, read_tfr.data)
     assert_metadata_equal(tfr.metadata, read_tfr.metadata)
     assert_array_equal(tfr.events, read_tfr.events)
-    assert_equal(tfr.event_id, read_tfr.event_id)
+    assert tfr.event_id == read_tfr.event_id
 
 
 def test_plot():
@@ -493,6 +493,14 @@ def test_plot():
     fig.canvas.key_press_event('up')
     fig.canvas.key_press_event(' ')
     fig.canvas.key_press_event('down')
+    fig.canvas.key_press_event(' ')
+    fig.canvas.key_press_event('+')
+    fig.canvas.key_press_event(' ')
+    fig.canvas.key_press_event('-')
+    fig.canvas.key_press_event(' ')
+    fig.canvas.key_press_event('pageup')
+    fig.canvas.key_press_event(' ')
+    fig.canvas.key_press_event('pagedown')
 
     cbar = fig.get_axes()[0].CB  # Fake dragging with mouse.
     ax = cbar.cbar.ax
@@ -654,6 +662,8 @@ def test_compute_tfr():
             kwargs = {key: value}  # FIXME pep8
             pytest.raises(ValueError, _compute_tfr, data, freqs, sfreq,
                           **kwargs)
+    with pytest.raises(ValueError, match='above Nyquist'):
+        _compute_tfr(data, [sfreq], sfreq)
 
     # No time_bandwidth param in morlet
     pytest.raises(ValueError, _compute_tfr, data, freqs, sfreq,
@@ -711,9 +721,14 @@ def test_getitem_epochsTFR():
 
     # Choose time x (full) bandwidth product
     time_bandwidth = 4.0  # With 0.5 s time windows, this gives 8 Hz smoothing
-    power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
-                           use_fft=True, time_bandwidth=time_bandwidth,
-                           return_itc=False, average=False, n_jobs=1)
+    kwargs = dict(freqs=freqs, n_cycles=n_cycles, use_fft=True,
+                  time_bandwidth=time_bandwidth, return_itc=False,
+                  average=False, n_jobs=1)
+    power = tfr_multitaper(epochs, **kwargs)
+
+    # Check decim affects sfreq
+    power_decim = tfr_multitaper(epochs, decim=2, **kwargs)
+    assert power.info['sfreq'] / 2. == power_decim.info['sfreq']
 
     # Check that power and epochs metadata is the same
     assert_metadata_equal(epochs.metadata, power.metadata)

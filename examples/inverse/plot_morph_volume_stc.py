@@ -33,7 +33,7 @@ import os
 
 import nibabel as nib
 import mne
-from mne.datasets import sample
+from mne.datasets import sample, fetch_fsaverage
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from nilearn.plotting import plot_glass_brain
 
@@ -50,6 +50,8 @@ fname_inv = os.path.join(sample_dir, 'sample_audvis-meg-vol-7-meg-inv.fif')
 
 fname_t1_fsaverage = os.path.join(subjects_dir, 'fsaverage', 'mri',
                                   'brain.mgz')
+fetch_fsaverage(subjects_dir)  # ensure fsaverage src exists
+fname_src_fsaverage = subjects_dir + '/fsaverage/bem/fsaverage-vol-5-src.fif'
 
 ###############################################################################
 # Compute example data. For reference see
@@ -76,16 +78,20 @@ stc.crop(0.09, 0.09)
 # taking ``src`` as only argument. See :class:`mne.SourceMorph` for more
 # details.
 #
-# The default parameter setting for *spacing* will cause the reference volumes
+# The default parameter setting for *zooms* will cause the reference volumes
 # to be resliced before computing the transform. A value of '5' would cause
 # the function to reslice to an isotropic voxel size of 5 mm. The higher this
 # value the less accurate but faster the computation will be.
 #
+# The recommended way to use this is to morph to a specific destination source
+# space so that different ``subject_from`` morphs will go to the same space.`
 # A standard usage for volumetric data reads:
 
-morph = mne.compute_source_morph(inverse_operator['src'],
-                                 subject_from='sample', subject_to='fsaverage',
-                                 subjects_dir=subjects_dir)
+src_fs = mne.read_source_spaces(fname_src_fsaverage)
+morph = mne.compute_source_morph(
+    inverse_operator['src'], subject_from='sample', subjects_dir=subjects_dir,
+    niter_affine=[10, 10, 5], niter_sdr=[10, 10, 5],  # just for speed
+    src_to=src_fs, verbose=True)
 
 ###############################################################################
 # Apply morph to VolSourceEstimate
@@ -143,13 +149,7 @@ display.add_overlay(img_fsaverage, alpha=0.75)
 #
 # Once the environment is set up correctly, no information such as
 # ``subject_from`` or ``subjects_dir`` must be provided, since it can be
-# inferred from the data and used morph to 'fsaverage' by default. SourceMorph
-# can further be used without creating an instance and assigning it to a
-# variable. Instead :func:`mne.compute_source_morph` and
-# :meth:`mne.SourceMorph.apply` can be
-# easily chained into a handy one-liner. Taking this together the shortest
-# possible way to morph data directly would be:
-
-stc_fsaverage_new = mne.compute_source_morph(
-    inverse_operator['src'], subject_from='sample',
-    subjects_dir=subjects_dir).apply(stc)
+# inferred from the data and used morph to 'fsaverage' by default, e.g.::
+#
+#     >>> morph.apply(stc)
+#

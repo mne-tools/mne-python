@@ -10,9 +10,8 @@ import numpy as np
 
 from numpy.testing import assert_allclose
 
-from mne.channels import make_standard_montage, read_montage
-from mne._digitization.base import _get_dig_eeg
-from mne._digitization._utils import _get_fid_coords
+from mne.channels import make_standard_montage
+from mne.io._digitization import _get_dig_eeg, _get_fid_coords
 from mne.channels.montage import get_builtin_montages, HEAD_SIZE_DEFAULT
 from mne.io.constants import FIFF
 
@@ -30,7 +29,8 @@ def test_standard_montages_have_fids(kind):
 
 def test_standard_montage_errors():
     """Test error handling for wrong keys."""
-    with pytest.raises(ValueError, match='Could not find the montage'):
+    _msg = "Invalid value for the 'kind' parameter..*but got.*not-here"
+    with pytest.raises(ValueError, match=_msg):
         _ = make_standard_montage('not-here')
 
 
@@ -63,9 +63,6 @@ def test_standard_montages_on_sphere(kind, tol, head_size):
 
 def test_standard_superset():
     """Test some properties that should hold for superset montages."""
-    with pytest.deprecated_call():
-        o_1005 = read_montage('standard_1005')  # old montages
-        o_1020 = read_montage('standard_1020')
     # new montages, tweaked to end up at the same size as the others
     m_1005 = make_standard_montage('standard_1005', 0.0970)
     m_1020 = make_standard_montage('standard_1020', 0.0991)
@@ -74,9 +71,5 @@ def test_standard_superset():
     assert set(m_1020.ch_names) - set(m_1005.ch_names) == {'O10', 'O9'}
     c_1005 = m_1005._get_ch_pos()
     for key, value in m_1020._get_ch_pos().items():
-        want = o_1020.pos[o_1020.ch_names.index(key)]
-        assert_allclose(value, want, err_msg=key, atol=1e-4)
         if key not in ('O10', 'O9'):
-            assert_allclose(o_1005.pos[o_1005.ch_names.index(key)], want,
-                            err_msg=key, atol=1e-4)
             assert_allclose(c_1005[key], value, atol=1e-4, err_msg=key)

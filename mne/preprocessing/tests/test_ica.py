@@ -400,6 +400,10 @@ def test_ica_additional(method):
 
     plt.close('all')
 
+    # make sure a single threshold in a list works
+    corrmap([ica, ica3], template, threshold=[0.5], label='blinks', plot=True,
+            ch_type="mag")
+
     ica_different_channels = ICA(n_components=2, random_state=0).fit(
         raw, picks=[2, 3, 4, 5])
     pytest.raises(ValueError, corrmap, [ica_different_channels, ica], (0, 0))

@@ -18,6 +18,8 @@ from .base_renderer import _BaseRenderer
 from ._utils import _get_colormap_from_array
 from ...utils import copy_base_doc_to_subclass_doc
 
+_FIGURES = dict()
+
 
 class _Figure(object):
     def __init__(self, plotter=None,
@@ -25,6 +27,7 @@ class _Figure(object):
                  display=None,
                  title='PyVista Scene',
                  size=(600, 600),
+                 shape=(1, 1),
                  background_color=(0., 0., 0.),
                  smooth_shading=True,
                  off_screen=False,
@@ -39,6 +42,7 @@ class _Figure(object):
         self.store = dict()
         self.store['title'] = title
         self.store['window_size'] = size
+        self.store['shape'] = shape
         self.store['off_screen'] = off_screen
 
     def build(self):
@@ -53,14 +57,17 @@ class _Figure(object):
 
         if self.plotter_class == Plotter:
             self.store.pop('title', None)
-        elif self.plotter_class == BackgroundPlotter:
-            self.store.pop('off_screen', None)
 
         if self.plotter is None:
             plotter = self.plotter_class(**self.store)
             plotter.background_color = self.background_color
             self.plotter = plotter
         return self.plotter
+
+    def is_active(self):
+        if self.plotter is None:
+            return False
+        return hasattr(self.plotter, 'ren_win')
 
 
 class _Projection(object):
@@ -97,24 +104,42 @@ class _Renderer(_BaseRenderer):
     """
 
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
-                 name="PyVista Scene", show=False):
+                 name="PyVista Scene", show=False, shape=(1, 1)):
+        from pyvista import OFF_SCREEN
         from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
-        if fig is None:
-            self.figure = _Figure(title=name, size=size,
-                                  background_color=bgcolor,
-                                  notebook=_check_notebook())
+        figure = _Figure(title=name, size=size, shape=shape,
+                         background_color=bgcolor, notebook=_check_notebook())
+        self.font_family = "arial"
+        if isinstance(fig, int):
+            saved_fig = _FIGURES.get(fig)
+            # Restore only active plotter
+            if saved_fig is not None and saved_fig.is_active():
+                self.figure = saved_fig
+            else:
+                self.figure = figure
+                _FIGURES[fig] = self.figure
+        elif fig is None:
+            self.figure = figure
         else:
             self.figure = fig
 
-        if MNE_3D_BACKEND_TEST_DATA:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=DeprecationWarning)
-                from pyvista import Plotter
-            self.figure.plotter_class = Plotter
+        # Enable off_screen if sphinx-gallery or testing
+        if OFF_SCREEN or MNE_3D_BACKEND_TEST_DATA:
             self.figure.store['off_screen'] = True
 
-        self.plotter = self.figure.build()
-        self.plotter.hide_axes()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=FutureWarning)
+            if MNE_3D_BACKEND_TEST_DATA:
+                from pyvista import Plotter
+                self.figure.plotter_class = Plotter
+
+            self.plotter = self.figure.build()
+            self.plotter.hide_axes()
+
+    def subplot(self, x, y):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=FutureWarning)
+            self.plotter.subplot(x, y)
 
     def scene(self):
         return self.figure
@@ -123,7 +148,8 @@ class _Renderer(_BaseRenderer):
         self.plotter.enable_terrain_style()
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
-             backface_culling=False, **kwargs):
+             backface_culling=False, scalars=None, colormap=None,
+             vmin=None, vmax=None, **kwargs):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             from pyvista import PolyData
@@ -132,7 +158,8 @@ class _Renderer(_BaseRenderer):
             n_vertices = len(vertices)
             triangles = np.c_[np.full(len(triangles), 3), triangles]
             pd = PolyData(vertices, triangles)
-            if len(color) == n_vertices:
+            rgba = False
+            if color is not None and len(color) == n_vertices:
                 if color.shape[1] == 3:
                     scalars = np.c_[color, np.ones(n_vertices)]
                 else:
@@ -144,13 +171,16 @@ class _Renderer(_BaseRenderer):
                 # https://github.com/pyvista/pyvista-support/issues/15
                 smooth_shading = False
                 rgba = True
-            else:
-                scalars = None
-                rgba = False
+            if isinstance(colormap, np.ndarray):
+                if colormap.dtype == np.uint8:
+                    colormap = colormap.astype(np.float) / 255.
+                from matplotlib.colors import ListedColormap
+                colormap = ListedColormap(colormap)
 
             self.plotter.add_mesh(mesh=pd, color=color, scalars=scalars,
-                                  rgba=rgba, opacity=opacity,
+                                  rgba=rgba, opacity=opacity, cmap=colormap,
                                   backface_culling=backface_culling,
+                                  rng=[vmin, vmax], show_scalar_bar=False,
                                   smooth_shading=smooth_shading)
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
@@ -295,7 +325,7 @@ class _Renderer(_BaseRenderer):
             elif mode == "cylinder":
                 cylinder = vtk.vtkCylinderSource()
                 cylinder.SetHeight(glyph_height)
-                cylinder.SetRadius(glyph_height)
+                cylinder.SetRadius(0.15)
                 cylinder.SetCenter(glyph_center)
                 cylinder.SetResolution(glyph_resolution)
                 cylinder.Update()
@@ -319,12 +349,28 @@ class _Renderer(_BaseRenderer):
                                       smooth_shading=self.figure.
                                       smooth_shading)
 
-    def text2d(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
+    def text2d(self, x, y, text, size=14, color=(1.0, 1.0, 1.0),
+               justification=None):
+        size = 14 if size is None else size
+        position = (x, y)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            self.plotter.add_text(text, position=(x, y),
-                                  font_size=int(width * 100),
-                                  color=color)
+            actor = self.plotter.add_text(text, position=position,
+                                          font_size=size,
+                                          font=self.font_family,
+                                          color=color,
+                                          viewport=True)
+            if isinstance(justification, str):
+                if justification == 'left':
+                    actor.GetTextProperty().SetJustificationToLeft()
+                elif justification == 'center':
+                    actor.GetTextProperty().SetJustificationToCentered()
+                elif justification == 'right':
+                    actor.GetTextProperty().SetJustificationToRight()
+                else:
+                    raise ValueError('Expected values for `justification`'
+                                     'are `left`, `center` or `right` but '
+                                     'got {} instead.'.format(justification))
 
     def text3d(self, x, y, z, text, scale, color=(1.0, 1.0, 1.0)):
         with warnings.catch_warnings():
@@ -333,14 +379,19 @@ class _Renderer(_BaseRenderer):
                                           labels=[text],
                                           point_size=scale,
                                           text_color=color,
+                                          font_family=self.font_family,
                                           name=text,
                                           shape_opacity=0)
 
-    def scalarbar(self, source, title=None, n_labels=4):
+    def scalarbar(self, source, title=None, n_labels=4, bgcolor=None):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             self.plotter.add_scalar_bar(title=title, n_labels=n_labels,
-                                        position_x=0.15, width=0.7)
+                                        use_opacity=False, n_colors=256,
+                                        position_x=0.15, width=0.7,
+                                        label_font_size=22,
+                                        font_family=self.font_family,
+                                        background_color=bgcolor)
 
     def show(self):
         self.figure.display = self.plotter.show()
@@ -354,8 +405,9 @@ class _Renderer(_BaseRenderer):
         _set_3d_view(self.figure, azimuth=azimuth, elevation=elevation,
                      distance=distance, focalpoint=focalpoint)
 
-    def screenshot(self):
-        return self.plotter.screenshot()
+    def screenshot(self, mode='rgb', filename=None):
+        return self.plotter.screenshot(transparent_background=(mode == 'rgba'),
+                                       filename=filename)
 
     def project(self, xyz, ch_names):
         xy = _3d_to_2d(self.plotter, xyz)
@@ -487,3 +539,8 @@ def _set_3d_title(figure, title, size=40):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
         figure.plotter.add_text(title, font_size=32, color=(1.0, 1.0, 1.0))
+
+
+def _check_figure(figure):
+    if not isinstance(figure, _Figure):
+        raise TypeError('figure must be an instance of _Figure')

@@ -21,8 +21,9 @@ from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  setup_volume_source_space, read_forward_solution,
                  VolVectorSourceEstimate, convert_forward_solution,
                  compute_source_morph)
-from mne.io import read_raw_ctf, read_raw_bti, read_raw_kit, read_info
-from mne._digitization._utils import write_dig
+from mne.io import (read_raw_ctf, read_raw_bti, read_raw_kit, read_info,
+                    read_raw_nirx)
+from mne.io._digitization import write_dig
 from mne.io.pick import pick_info
 from mne.io.constants import FIFF
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
@@ -31,7 +32,7 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_sensors_connectivity, plot_brain_colorbar)
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
-                       _import_mlab, requires_nibabel, check_version,
+                       requires_nibabel, check_version,
                        traits_test, requires_version, catch_logging)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
@@ -46,6 +47,7 @@ src_fname = op.join(data_dir, 'subjects', 'sample', 'bem',
                     'sample-oct-6-src.fif')
 dip_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_trunc_set1.dip')
 ctf_fname = op.join(data_dir, 'CTF', 'testdata_ctf.ds')
+nirx_fname = op.join(data_dir, 'NIRx', 'nirx_15_2_recording_w_short')
 
 io_dir = op.join(op.abspath(op.dirname(__file__)), '..', '..', 'io')
 base_dir = op.join(io_dir, 'tests', 'data')
@@ -328,6 +330,13 @@ def test_plot_alignment(tmpdir, renderer):
                    trans=trans_fname, fwd=fwd,
                    surfaces='white', coord_frame='head')
 
+    # fNIRS
+    info = read_raw_nirx(nirx_fname).info
+    with catch_logging() as log:
+        plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True)
+    log = log.getvalue()
+    assert '26 fnirs locations' in log
+
     renderer._close_all()
 
 
@@ -335,7 +344,7 @@ def test_plot_alignment(tmpdir, renderer):
 @requires_pysurfer
 @requires_mayavi
 @traits_test
-def test_limits_to_control_points():
+def test_limits_to_control_points(renderer):
     """Test functionality for determining control points."""
     sample_src = read_source_spaces(src_fname)
     kwargs = dict(subjects_dir=subjects_dir, smoothing_steps=1)
@@ -348,14 +357,12 @@ def test_limits_to_control_points():
     stc = SourceEstimate(stc_data, vertices, 1, 1, 'sample')
 
     # Test for simple use cases
-    mlab = _import_mlab()
     stc.plot(**kwargs)
     stc.plot(clim=dict(pos_lims=(10, 50, 90)), **kwargs)
     stc.plot(colormap='hot', clim='auto', **kwargs)
     stc.plot(colormap='mne', clim='auto', **kwargs)
-    figs = [mlab.figure(), mlab.figure()]
     stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=99, **kwargs)
-    pytest.raises(ValueError, stc.plot, clim='auto', figure=figs, **kwargs)
+    pytest.raises(TypeError, stc.plot, clim='auto', figure=[0], **kwargs)
 
     # Test for correct clim values
     with pytest.raises(ValueError, match='monotonically'):
@@ -378,7 +385,7 @@ def test_limits_to_control_points():
     stc._data.fill(0.)
     with pytest.warns(RuntimeWarning, match='All data were zero'):
         plot_source_estimates(stc, **kwargs)
-    mlab.close(all=True)
+    renderer._close_all()
 
 
 @testing.requires_testing_data

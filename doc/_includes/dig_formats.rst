@@ -1,4 +1,5 @@
 :orphan:
+.. _dig-formats:
 
 Supported formats for digitized 3D locations
 ============================================
@@ -32,6 +33,8 @@ EGI                .xml              :func:`mne.channels.read_dig_egi`
 MNE-C              .hpts             :func:`mne.channels.read_dig_hpts`
 
 Brain Products     .bvct             :func:`mne.channels.read_dig_captrack`
+
+Compumedics        .dat              :func:`mne.channels.read_dig_dat`
 =================  ================  ==============================================
 
 To load Polhemus FastSCAN files you can use

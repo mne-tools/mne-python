@@ -13,9 +13,6 @@ import numpy as np
 from scipy.linalg import inv
 from threading import Thread
 
-from .._digitization._utils import _read_dig_points, _make_dig_points
-from ..utils import get_config, set_config, logger, warn
-
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from mayavi.tools.mlab_scene_model import MlabSceneModel
 from pyface.api import (confirm, error, FileDialog, OK, YES, information,
@@ -30,17 +27,18 @@ from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
 from ..io.constants import FIFF
+from ..io._digitization import _read_dig_points, _make_dig_points
 from ..io.kit.kit import (RawKIT, KIT, _make_stim_channel, _default_stim_chs,
                           UnsupportedKITFormat)
 from ..transforms import (apply_trans, als_ras_trans,
                           get_ras_to_neuromag_trans, Transform)
 from ..coreg import _decimate_points, fit_matched_points
+from ..utils import get_config, set_config, logger, warn
 from ._backend import _check_pyface_backend
 from ..event import _find_events
 from ._marker_gui import CombineMarkersPanel, CombineMarkersModel
 from ._help import read_tooltips
 from ._viewer import HeadViewController, PointObject
-
 
 use_editor = CheckListEditor(cols=5, values=[(i, str(i)) for i in range(5)])
 

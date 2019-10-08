@@ -27,7 +27,8 @@ from ..io import _loc_to_coil_trans
 from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials, create_info
-from ..source_space import _ensure_src, _create_surf_spacing, _check_spacing
+from ..source_space import (_ensure_src, _create_surf_spacing, _check_spacing,
+                            _read_mri_info)
 
 from ..surface import (get_meg_helmet_surf, read_surface, _DistanceQuery,
                        transform_surface_to, _project_onto_surface,
@@ -35,7 +36,7 @@ from ..surface import (get_meg_helmet_surf, read_surface, _DistanceQuery,
 from ..transforms import (_find_trans, apply_trans, rot_to_quat,
                           combine_transforms, _get_trans, _ensure_trans,
                           invert_transform, Transform,
-                          _read_ras_mni_t, _print_coord_trans)
+                          read_ras_mni_t, _print_coord_trans)
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      has_nibabel, check_version, fill_doc, _pl,
                      _ensure_int, _validate_type, _check_option)
@@ -390,7 +391,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
     if '%' in time_label:
         time_label %= (1e3 * evoked.times[time_idx])
-    renderer.text2d(x=0.01, y=0.01, text=time_label, width=0.4)
+    renderer.text2d(x=0.01, y=0.01, text=time_label)
     renderer.set_camera(azimuth=10, elevation=60)
     renderer.show()
     return renderer.scene()
@@ -517,7 +518,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                    surfaces='head', coord_frame='head',
                    meg=None, eeg='original', fwd=None,
                    dig=False, ecog=True, src=None, mri_fiducials=False,
-                   bem=None, seeg=True, show_axes=False, fig=None,
+                   bem=None, seeg=True, fnirs=True, show_axes=False, fig=None,
                    interaction='trackball', verbose=None):
     """Plot head, sensor, and source space alignment in 3D.
 
@@ -530,9 +531,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     subject : str | None
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT. Can be omitted if ``src`` is provided.
-    subjects_dir : str | None
-        The path to the freesurfer subjects reconstructions.
-        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    %(subjects_dir)s
     surfaces : str | list
         Surfaces to plot. Supported values:
 
@@ -580,6 +579,10 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         the subjects bem and bem/flash folders are searched. Defaults to None.
     seeg : bool
         If True (default), show sEEG electrodes.
+    fnirs : bool
+        If True (default), show fNIRS electrodes.
+
+        .. versionadded:: 0.20
     show_axes : bool
         If True (default False), coordinate frame axis indicators will be
         shown:
@@ -678,7 +681,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     _check_option('coord_frame', coord_frame, ['head', 'meg', 'mri'])
     if src is not None:
         src = _ensure_src(src)
-        src_subject = src[0].get('subject_his_id', None)
+        src_subject = src._subject
         subject = src_subject if subject is None else subject
         if src_subject is not None and subject != src_subject:
             raise ValueError('subject ("%s") did not match the subject name '
@@ -701,9 +704,11 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     ref_meg = 'ref' in meg
     meg_picks = pick_types(info, meg=True, ref_meg=ref_meg)
     eeg_picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
-    ecog_picks = pick_types(info, meg=False, ecog=True, ref_meg=False)
-    seeg_picks = pick_types(info, meg=False, seeg=True, ref_meg=False)
-
+    other_bools = dict(ecog=ecog, seeg=seeg, fnirs=fnirs)
+    del ecog, seeg, fnirs
+    other_keys = sorted(other_bools.keys())
+    other_picks = {key: pick_types(info, meg=False, ref_meg=False,
+                                   **{key: True}) for key in other_keys}
     if trans == 'auto':
         # let's try to do this in MRI coordinates so they're easy to plot
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
@@ -942,13 +947,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
 
     # determine points
     meg_rrs, meg_tris = list(), list()
-    ecog_loc = list()
-    seeg_loc = list()
     hpi_loc = list()
     ext_loc = list()
     car_loc = list()
     eeg_loc = list()
     eegp_loc = list()
+    other_loc = {key: list() for key in other_keys}
     if len(eeg) > 0:
         eeg_loc = np.array([info['chs'][k]['loc'][:3] for k in eeg_picks])
         if len(eeg_loc) > 0:
@@ -1006,12 +1010,12 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         if len(car_loc) == len(ext_loc) == len(hpi_loc) == 0:
             warn('Digitization points not found. Cannot plot digitization.')
     del dig
-    if len(ecog_picks) > 0 and ecog:
-        ecog_loc = np.array([info['chs'][pick]['loc'][:3]
-                             for pick in ecog_picks])
-    if len(seeg_picks) > 0 and seeg:
-        seeg_loc = np.array([info['chs'][pick]['loc'][:3]
-                             for pick in seeg_picks])
+    for key, picks in other_picks.items():
+        if other_bools[key] and len(picks):
+            other_loc[key] = np.array([info['chs'][pick]['loc'][:3]
+                                       for pick in picks])
+            logger.info('Plotting %d %s location%s'
+                        % (len(other_loc[key]), key, _pl(other_loc[key])))
 
     # initialize figure
     renderer = _Renderer(fig, bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
@@ -1054,20 +1058,19 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     defaults = DEFAULTS['coreg']
     datas = [eeg_loc,
              hpi_loc,
-             ext_loc, ecog_loc, seeg_loc]
+             ext_loc] + list(other_loc[key] for key in other_keys)
     colors = [defaults['eeg_color'],
               defaults['hpi_color'],
-              defaults['extra_color'],
-              defaults['ecog_color'],
-              defaults['seeg_color']]
+              defaults['extra_color']
+              ] + [defaults[key + '_color'] for key in other_keys]
     alphas = [0.8,
               0.5,
-              0.25, 0.8, 0.8]
+              0.25] + [0.8] * len(other_keys)
     scales = [defaults['eeg_scale'],
               defaults['hpi_scale'],
-              defaults['extra_scale'],
-              defaults['ecog_scale'],
-              defaults['seeg_scale']]
+              defaults['extra_scale']
+              ] + [defaults[key + '_scale'] for key in other_keys]
+    assert len(datas) == len(colors) == len(alphas) == len(scales)
     for kind, loc in (('dig', car_loc), ('mri', fid_loc)):
         if len(loc) > 0:
             datas.extend(loc[:, np.newaxis])
@@ -1576,9 +1579,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         backend.
     time_viewer : bool
         Display time viewer GUI.
-    subjects_dir : str
-        The path to the freesurfer subjects reconstructions.
-        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    %(subjects_dir)s
     figure : instance of mayavi.core.api.Scene | instance of matplotlib.figure.Figure | list | int | None
         If None, a new figure will be created. If multiple views or a
         split view is requested, this must be a list of the appropriate
@@ -1639,6 +1640,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         An instance of :class:`surfer.Brain` from PySurfer or
         matplotlib figure.
     """  # noqa: E501
+    from .backends.renderer import get_3d_backend
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
     _validate_type(stc, SourceEstimate, "stc", "Surface Source Estimate")
@@ -1666,7 +1668,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              time_unit=time_unit, background=background,
                              spacing=spacing, time_viewer=time_viewer,
                              colorbar=colorbar, transparent=transparent)
-    from surfer import Brain, TimeViewer
+    if get_3d_backend() == "mayavi":
+        from surfer import Brain, TimeViewer
+    else:
+        from ._brain import _Brain as Brain
     _check_option('hemi', hemi, ['lh', 'rh', 'split', 'both'])
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
@@ -1687,24 +1692,32 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                       background=background, foreground=foreground,
                       figure=figure, subjects_dir=subjects_dir,
                       views=views)
-
-    ad_kwargs, sd_kwargs = _get_ps_kwargs(
-        initial_time, diverging, scale_pts[1], transparent)
-    del initial_time, transparent
+    center = 0. if diverging else None
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
         data = getattr(stc, hemi + '_data')
         vertices = stc.vertices[hemi_idx]
         if len(data) > 0:
+            kwargs = {
+                "array": data, "colormap": colormap,
+                "vertices": vertices,
+                "smoothing_steps": smoothing_steps,
+                "time": times, "time_label": time_label,
+                "alpha": alpha, "hemi": hemi,
+                "colorbar": colorbar, "initial_time": initial_time,
+                "transparent": transparent, "center": center,
+                "verbose": False
+            }
+            if get_3d_backend() == "mayavi":
+                kwargs["min"] = scale_pts[0]
+                kwargs["mid"] = scale_pts[1]
+                kwargs["max"] = scale_pts[2]
+            else:
+                kwargs["fmin"] = scale_pts[0]
+                kwargs["fmid"] = scale_pts[1]
+                kwargs["fmax"] = scale_pts[2]
             with warnings.catch_warnings(record=True):  # traits warnings
-                brain.add_data(data, colormap=colormap, vertices=vertices,
-                               smoothing_steps=smoothing_steps, time=times,
-                               time_label=time_label, alpha=alpha, hemi=hemi,
-                               colorbar=colorbar,
-                               min=scale_pts[0], max=scale_pts[2], **ad_kwargs)
-    if 'mid' not in ad_kwargs:  # PySurfer < 0.9
-        brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
-                                  fmax=scale_pts[2], **sd_kwargs)
+                brain.add_data(**kwargs)
     if time_viewer:
         TimeViewer(brain)
     return brain
@@ -1774,9 +1787,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT. If None stc.subject will be used. If that
         is None, the environment will be used.
-    subjects_dir : str
-        The path to the freesurfer subjects reconstructions.
-        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    %(subjects_dir)s
     mode : str
         The plotting mode to use. Either 'stat_map' (default) or 'glass_brain'.
         For "glass_brain", activation absolute values are displayed
@@ -1859,7 +1870,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     else:
         src = _ensure_src(src, kind='volume', extra=' or SourceMorph')
         img = stc.as_volume(src, mri_resolution=False)
-        kind, src_subject = 'src subject', src[0].get('subject_his_id', None)
+        kind, src_subject = 'src subject', src._subject
     _print_coord_trans(Transform('mri_voxel', 'ras', img.affine),
                        prefix='Image affine ', units='mm', level='debug')
     subject = _check_subject(src_subject, subject, True, kind=kind)
@@ -1994,7 +2005,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
     if mode == 'glass_brain':
         subject = _check_subject(stc.subject, subject, True)
-        ras_mni_t = _read_ras_mni_t(subject, subjects_dir)
+        ras_mni_t = read_ras_mni_t(subject, subjects_dir)
         if not np.allclose(ras_mni_t['trans'], np.eye(4)):
             _print_coord_trans(
                 ras_mni_t, prefix='Transforming subject ', units='mm')
@@ -2766,16 +2777,11 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     else:
         idx = _ensure_int(idx, 'idx', 'an int or one of ["gof", "amplitude"]')
 
-    dipole_locs, ori, scatter_points, t1 = \
-        _get_dipole_loc(dipole, trans, subject,
-                        subjects_dir=subjects_dir,
-                        coord_frame=coord_frame)
+    vox, ori, pos, data = _get_dipole_loc(
+        dipole, trans, subject, subjects_dir, coord_frame)
 
-    zooms = t1.header.get_zooms()
-    data = _get_img_fdata(t1)
     dims = len(data)  # Symmetric size assumed.
-    dd = dims / 2.
-    dd *= t1.header.get_zooms()[0]
+    dd = dims // 2
     if ax is None:
         fig = plt.figure()
         ax = Axes3D(fig)
@@ -2784,16 +2790,13 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
         fig = ax.get_figure()
 
     gridx, gridy = np.meshgrid(np.linspace(-dd, dd, dims),
-                               np.linspace(-dd, dd, dims))
-
-    _plot_dipole(ax, data, dipole_locs, idx, dipole, gridx, gridy, ori,
-                 coord_frame, zooms, show_all, scatter_points, color,
-                 highlight_color)
+                               np.linspace(-dd, dd, dims), indexing='ij')
     params = {'ax': ax, 'data': data, 'idx': idx, 'dipole': dipole,
-              'dipole_locs': dipole_locs, 'gridx': gridx, 'gridy': gridy,
-              'ori': ori, 'coord_frame': coord_frame, 'zooms': zooms,
-              'show_all': show_all, 'scatter_points': scatter_points,
+              'vox': vox, 'gridx': gridx, 'gridy': gridy,
+              'ori': ori, 'coord_frame': coord_frame,
+              'show_all': show_all, 'pos': pos,
               'color': color, 'highlight_color': highlight_color}
+    _plot_dipole(**params)
     ax.view_init(elev=30, azim=-140)
 
     callback_func = partial(_dipole_changed, params=params)
@@ -2804,8 +2807,12 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
     return fig
 
 
-def _get_dipole_loc(dipole, trans, subject, subjects_dir=None,
-                    coord_frame='head'):
+RAS_AFFINE = np.eye(4)
+RAS_AFFINE[:3, 3] = [-128] * 3
+RAS_SHAPE = (256, 256, 256)
+
+
+def _get_dipole_loc(dipole, trans, subject, subjects_dir, coord_frame):
     """Get the dipole locations and orientations."""
     import nibabel as nib
     from nibabel.processing import resample_from_to
@@ -2815,46 +2822,56 @@ def _get_dipole_loc(dipole, trans, subject, subjects_dir=None,
                                     raise_error=True)
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
     t1 = nib.load(t1_fname)
-    vox2ras = t1.header.get_vox2ras_tkr()
-    ras2vox = linalg.inv(vox2ras)
-    trans = _get_trans(trans, fro='head', to='mri')[0]
-    zooms = t1.header.get_zooms()
+    # Do everything in mm here to make life slightly easier
+    vox_ras_t, _, mri_ras_t, _, _ = _read_mri_info(
+        t1_fname, units='mm')
+    head_mri_t = _get_trans(trans, fro='head', to='mri')[0].copy()
+    head_mri_t['trans'][:3, 3] *= 1000  # m→mm
+    del trans
+    pos = dipole.pos * 1e3  # m→mm
+    ori = dipole.ori
+    # Figure out how to always resample to an identity, 256x256x256 RAS:
+    #
+    # 1. Resample to head or MRI surface RAS (the conditional), but also
+    # 2. Resample to what will work for the standard 1mm** RAS_AFFINE (resamp)
+    #
+    # We could do this with two resample_from_to calls, but it's cleaner,
+    # faster, and we get fewer boundary artifacts if we do it in one shot.
+    # So first olve usamp s.t. ``upsamp @ vox_ras_t == RAS_AFFINE``` (2):
+    upsamp = np.linalg.solve(vox_ras_t['trans'].T, RAS_AFFINE.T).T
+    # Now figure out how we would resample from RAS to head or MRI coords:
     if coord_frame == 'head':
-        affine_to = trans['trans'].copy()
-        affine_to[:3, 3] *= 1000  # to mm
-        aff = t1.affine.copy()
-
-        aff[:3, :3] /= zooms
-        affine_to = np.dot(affine_to, aff)
-        t1 = resample_from_to(t1, ([int(t1.shape[i] * zooms[i]) for i
-                                    in range(3)], affine_to))
-        dipole_locs = apply_trans(ras2vox, dipole.pos * 1e3) * zooms
-        dipole_oris = dipole.ori
-        scatter_points = dipole.pos * 1e3
+        dest_ras_t = combine_transforms(
+            head_mri_t, mri_ras_t, 'head', 'ras')['trans']
     else:
-        scatter_points = apply_trans(trans['trans'], dipole.pos) * 1e3
-        dipole_oris = apply_trans(trans['trans'], dipole.ori, move=False)
-        dipole_locs = apply_trans(ras2vox, scatter_points)
-    return dipole_locs, dipole_oris, scatter_points, t1
+        pos = apply_trans(head_mri_t, pos)
+        ori = apply_trans(head_mri_t, dipole.ori, move=False)
+        dest_ras_t = mri_ras_t['trans']
+    # The order here is wacky because we need `resample_from_to` to operate
+    # in a reverse order
+    affine = np.dot(np.dot(dest_ras_t, upsamp), vox_ras_t['trans'])
+    t1 = resample_from_to(t1, (RAS_SHAPE, affine), order=0)
+    # Now we could do:
+    #
+    #    t1 = SpatialImage(t1.dataobj, RAS_AFFINE)
+    #
+    # And t1 would be in our destination (mri or head) space. But we don't
+    # need to construct the image -- let's just get our voxel coords and data:
+    vox = apply_trans(np.linalg.inv(RAS_AFFINE), pos)
+    t1_data = _get_img_fdata(t1)
+    return vox, ori, pos, t1_data
 
 
-def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
-                 zooms, show_all, scatter_points, color, highlight_color):
+def _plot_dipole(ax, data, vox, idx, dipole, gridx, gridy, ori, coord_frame,
+                 show_all, pos, color, highlight_color):
     """Plot dipoles."""
     import matplotlib.pyplot as plt
     from matplotlib.colors import ColorConverter
     color_converter = ColorConverter()
-    point = points[idx]
-    xidx, yidx, zidx = np.round(point).astype(int)
-    xslice = data[xidx][::-1]
-    yslice = data[:, yidx][::-1].T
-    zslice = data[:, :, zidx][::-1].T[::-1]
-    if coord_frame == 'head':
-        zooms = (1., 1., 1.)
-    else:
-        point = points[idx] * zooms
-        xidx, yidx, zidx = np.round(point).astype(int)
-    xyz = scatter_points
+    xidx, yidx, zidx = np.round(vox[idx]).astype(int)
+    xslice = data[xidx]
+    yslice = data[:, yidx]
+    zslice = data[:, :, zidx]
 
     ori = ori[idx]
     if color is None:
@@ -2862,17 +2879,18 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
     color = np.array(color_converter.to_rgba(color))
     highlight_color = np.array(color_converter.to_rgba(highlight_color))
     if show_all:
-        colors = np.repeat(color[np.newaxis], len(points), axis=0)
+        colors = np.repeat(color[np.newaxis], len(vox), axis=0)
         colors[idx] = highlight_color
-        size = np.repeat(5, len(points))
+        size = np.repeat(5, len(vox))
         size[idx] = 20
-        visible = np.arange(len(points))
+        visible = np.arange(len(vox))
     else:
         colors = color
         size = 20
         visible = idx
 
     offset = np.min(gridx)
+    xyz = pos
     ax.scatter(xs=xyz[visible, 0], ys=xyz[visible, 1],
                zs=xyz[visible, 2], zorder=2, s=size, facecolor=colors)
     xx = np.linspace(offset, xyz[idx, 0], xidx)
@@ -2889,21 +2907,21 @@ def _plot_dipole(ax, data, points, idx, dipole, gridx, gridy, ori, coord_frame,
               ori[2], length=50, color=highlight_color,
               pivot='tail')
     dims = np.array([(len(data) / -2.), (len(data) / 2.)])
-    ax.set_xlim(-1 * dims * zooms[:2])  # Set axis lims to RAS coordinates.
-    ax.set_ylim(-1 * dims * zooms[:2])
-    ax.set_zlim(dims * zooms[:2])
+    ax.set(xlim=-dims, ylim=-dims, zlim=dims)
 
     # Plot slices.
     ax.contourf(xslice, gridx, gridy, offset=offset, zdir='x',
                 cmap='gray', zorder=0, alpha=.5)
-    ax.contourf(gridx, gridy, yslice, offset=offset, zdir='z',
+    ax.contourf(gridx, yslice, gridy, offset=offset, zdir='y',
                 cmap='gray', zorder=0, alpha=.5)
-    ax.contourf(gridx, zslice, gridy, offset=offset,
-                zdir='y', cmap='gray', zorder=0, alpha=.5)
+    ax.contourf(gridx, gridy, zslice, offset=offset, zdir='z',
+                cmap='gray', zorder=0, alpha=.5)
 
-    plt.suptitle('Dipole #%s / %s @ %.3fs, GOF: %.1f%%, %.1fnAm\n' % (
+    # These are the only two options
+    coord_frame_name = 'Head' if coord_frame == 'head' else 'MRI'
+    plt.suptitle('Dipole #%s / %s @ %.3fs, GOF: %.1f%%, %.1fnAm\n%s: ' % (
         idx + 1, len(dipole.times), dipole.times[idx], dipole.gof[idx],
-        dipole.amplitude[idx] * 1e9) +
+        dipole.amplitude[idx] * 1e9, coord_frame_name) +
         '(%0.1f, %0.1f, %0.1f) mm' % tuple(xyz[idx]))
     ax.set_xlabel('x')
     ax.set_ylabel('y')
@@ -2927,11 +2945,7 @@ def _dipole_changed(event, params):
         params['idx'] -= 1
     params['idx'] = min(max(0, params['idx']), len(params['dipole'].pos) - 1)
     params['ax'].clear()
-    _plot_dipole(params['ax'], params['data'], params['dipole_locs'],
-                 params['idx'], params['dipole'], params['gridx'],
-                 params['gridy'], params['ori'], params['coord_frame'],
-                 params['zooms'], params['show_all'], params['scatter_points'],
-                 params['color'], params['highlight_color'])
+    _plot_dipole(**params)
 
 
 def _update_coord_frame(obj, rr, nn, mri_trans, head_trans):

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Authors: Eric Larson <larson.eric.d@gmail.com>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 

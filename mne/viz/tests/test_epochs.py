@@ -83,6 +83,21 @@ def test_plot_epochs_basic(capsys):
     with pytest.warns(RuntimeWarning, match='projection'):
         epochs.plot(noise_cov=cov)
     plt.close('all')
+    # check the epochs color plotting
+    epoch_colors = [['r'] * len(epochs.ch_names) for _ in
+                    range(len(epochs.events))]
+    epochs.plot(epoch_colors=epoch_colors)
+    with pytest.raises(TypeError, match='must be an instance of'):
+        epochs.plot(epoch_colors='r')
+    with pytest.raises(ValueError, match='must be list of len'):
+        epochs.plot(epoch_colors=['r'] * len(epochs.ch_names))
+    epoch_colors[0] = None
+    with pytest.raises(TypeError, match='must be an instance of'):
+        epochs.plot(epoch_colors=epoch_colors)
+    epoch_colors[0] = ['r'] * 5
+    with pytest.raises(ValueError, match='epoch_colors for the 0th epoch has'
+                       ' length'):
+        epochs.plot(epoch_colors=epoch_colors)
     # other options
     fig = epochs[0].plot(picks=[0, 2, 3], scalings=None)
     fig.canvas.key_press_event('escape')

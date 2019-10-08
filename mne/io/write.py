@@ -1,5 +1,5 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
@@ -15,8 +15,7 @@ from scipy import linalg, sparse
 from .constants import FIFF
 from ..fixes import _fn35
 from ..utils import logger, _file_like
-from ..externals.jdcal import jcal2jd
-
+from ..utils.numerics import _cal_to_julian
 
 # We choose a "magic" date to store (because meas_date is obligatory)
 # to treat as meas_date=None. This one should be impossible for systems
@@ -109,7 +108,7 @@ def write_julian(fid, kind, data):
     """Write a Julian-formatted date to a FIF file."""
     assert len(data) == 3
     data_size = 4
-    jd = np.sum(jcal2jd(*data))
+    jd = np.sum(_cal_to_julian(*data))
     data = np.array(jd, dtype='>i4')
     _write(fid, data, kind, data_size, FIFF.FIFFT_JULIAN, '>i4')
 

@@ -60,7 +60,7 @@ print(raw_hilb[0][0].dtype)
 # what you want. Here we will use this to take the amplitude and phase of
 # the hilbert transformed data.
 #
-# .. note:: You can also use ``amplitude=True`` in the call to
+# .. note:: You can also use ``envelope=True`` in the call to
 #           :meth:`mne.io.Raw.apply_hilbert` to do this automatically.
 #
 

@@ -3,7 +3,7 @@
 """Tools for working with epoched data."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Mainak Jas <mainak@neuro.hut.fi>
@@ -184,7 +184,7 @@ def _save_split(epochs, fname, part_idx, n_parts, fmt):
     end_file(fid)
 
 
-def _merge_events(events, event_id):
+def _merge_events(events, event_id, selection):
     """Merge repeated events."""
     event_id = event_id.copy()
     new_events = events.copy()
@@ -241,17 +241,25 @@ def _merge_events(events, event_id):
 
     # Delete duplicate event idxs
     new_events = np.delete(new_events, event_idxs_to_delete, 0)
+    new_selection = np.delete(selection, event_idxs_to_delete, 0)
 
-    return new_events, event_id
+    return new_events, event_id, new_selection
 
 
-def _handle_event_repeated(events, event_id, event_repeated):
-    """Handle repeated events."""
+def _handle_event_repeated(events, event_id, event_repeated, selection,
+                           drop_log):
+    """Handle repeated events.
+
+    Note that drop_log will be modified inplace
+    """
+    assert len(events) == len(selection)
+    selection = np.asarray(selection)
+
     unique_events, u_ev_idxs = np.unique(events[:, 0], return_index=True)
 
     # Return early if no duplicates
     if len(unique_events) == len(events):
-        return events, event_id
+        return events, event_id, selection, drop_log
 
     # Else, we have duplicates. Triage ...
     _check_option('event_repeated', event_repeated, ['error', 'drop', 'merge'])
@@ -263,17 +271,26 @@ def _handle_event_repeated(events, event_id, event_repeated):
         logger.info('Multiple event values for single event times found. '
                     'Keeping the first occurrence and dropping all others.')
         new_events = events[u_ev_idxs]
-
+        new_selection = selection[u_ev_idxs]
+        drop_ev_idxs = np.setdiff1d(selection, new_selection)
+        for idx in drop_ev_idxs:
+            drop_log[idx].append('DROP DUPLICATE')
+        selection = new_selection
     elif event_repeated == 'merge':
         logger.info('Multiple event values for single event times found. '
                     'Creating new event value to reflect simultaneous events.')
-        new_events, event_id = _merge_events(events, event_id)
+        new_events, event_id, new_selection = \
+            _merge_events(events, event_id, selection)
+        drop_ev_idxs = np.setdiff1d(selection, new_selection)
+        for idx in drop_ev_idxs:
+            drop_log[idx].append('MERGE DUPLICATE')
+        selection = new_selection
 
     # Remove obsolete kv-pairs from event_id after handling
     keys = new_events[:, 1:].flatten()
     event_id = {k: v for k, v in event_id.items() if v in keys}
 
-    return new_events, event_id
+    return new_events, event_id, selection, drop_log
 
 
 @fill_doc
@@ -364,17 +381,16 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         _check_option('on_missing', on_missing, ['error', 'warning', 'ignore'])
 
         if events is not None:  # RtEpochs can have events=None
+            events_type = type(events)
             events = np.asarray(events)
-
+            if not np.issubdtype(events.dtype, np.integer):
+                raise TypeError('events should be a NumPy array of integers, '
+                                'got {}'.format(events_type))
         event_id = _check_event_id(event_id, events)
         self.event_id = event_id
         del event_id
 
         if events is not None:  # RtEpochs can have events=None
-            if events.dtype.kind not in ['i', 'u']:
-                raise ValueError('events must be an array of type int, got '
-                                 'type %s' % (events.dtype))
-            events = events.astype(int)
             if events.ndim != 2 or events.shape[1] != 3:
                 raise ValueError('events must be of shape (N, 3), got %s'
                                  % (events.shape,))
@@ -405,11 +421,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                                     max(self.selection) + 1))]
             else:
                 self.drop_log = drop_log
+
             events = events[selected]
 
-            events, self.event_id = _handle_event_repeated(events,
-                                                           self.event_id,
-                                                           event_repeated)
+            events, self.event_id, self.selection, self.drop_log = \
+                _handle_event_repeated(events, self.event_id, event_repeated,
+                                       self.selection, self.drop_log)
 
             n_events = len(events)
             if n_events > 1:
@@ -1025,14 +1042,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def plot(self, picks=None, scalings=None, n_epochs=20, n_channels=20,
              title=None, events=None, event_colors=None, order=None,
              show=True, block=False, decim='auto', noise_cov=None,
-             butterfly=False, show_scrollbars=True):
+             butterfly=False, show_scrollbars=True, epoch_colors=None):
         return plot_epochs(self, picks=picks, scalings=scalings,
                            n_epochs=n_epochs, n_channels=n_channels,
                            title=title, events=events,
                            event_colors=event_colors, order=order,
                            show=show, block=block, decim=decim,
                            noise_cov=noise_cov, butterfly=butterfly,
-                           show_scrollbars=show_scrollbars)
+                           show_scrollbars=show_scrollbars,
+                           epoch_colors=epoch_colors)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd)
     def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None,
@@ -1931,7 +1949,7 @@ class Epochs(BaseEpochs):
             flat=flat, decim=decim, reject_tmin=reject_tmin,
             reject_tmax=reject_tmax, detrend=detrend,
             proj=proj, on_missing=on_missing, preload_at_end=preload,
-            verbose=verbose)
+            event_repeated=event_repeated, verbose=verbose)
 
     @verbose
     def _get_epoch_from_raw(self, idx, verbose=None):
@@ -3069,25 +3087,30 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
 
 
 @verbose
-def _segment_raw(raw, segment_length=1., verbose=None, **kwargs):
+def make_fixed_length_epochs(raw, duration=1.,
+                             preload=False, verbose=None):
     """Divide continuous raw data into equal-sized consecutive epochs.
 
     Parameters
     ----------
     raw : instance of Raw
         Raw data to divide into segments.
-    segment_length : float
-        Length of each segment in seconds. Defaults to 1.
-    verbose: bool
-        Whether to report what is being done by printing text.
-    **kwargs
-        Any additional keyword arguments are passed to ``Epochs`` constructor.
+    duration : float
+        Duration of each epoch in seconds. Defaults to 1.
+    %(preload)s
+    %(verbose)s
 
     Returns
     -------
-    epochs : instance of ``Epochs``
+    epochs : instance of Epochs
         Segmented data.
+
+    Notes
+    -----
+    .. versionadded:: 0.20
     """
-    events = make_fixed_length_events(raw, 1, duration=segment_length)
-    return Epochs(raw, events, event_id=[1], tmin=0., tmax=segment_length,
-                  verbose=verbose, baseline=None, **kwargs)
+    events = make_fixed_length_events(raw, 1, duration=duration)
+    delta = 1. / raw.info['sfreq']
+    return Epochs(raw, events, event_id=[1], tmin=0.,
+                  tmax=duration - delta,
+                  verbose=verbose, baseline=None)

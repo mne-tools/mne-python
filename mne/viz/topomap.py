@@ -29,6 +29,7 @@ from ..time_frequency import psd_multitaper
 from ..defaults import _handle_default
 from ..channels.layout import _find_topomap_coords
 from ..io.meas_info import Info
+from ..io.proj import Projection
 
 
 def _prepare_topo_plot(inst, ch_type, layout):
@@ -174,70 +175,21 @@ def _eliminate_zeros(proj):
     return proj
 
 
+@fill_doc
 def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                        colorbar=False, res=64, size=1, show=True,
                        outlines='head', contours=6, image_interp='bilinear',
-                       axes=None, info=None):
+                       axes=None, vlim=(None, None), info=None):
     """Plot topographic maps of SSP projections.
 
     Parameters
     ----------
     projs : list of Projection
         The projections
-    layout : None | Layout | list of Layout
-        Layout instance specifying sensor positions (does not need to be
-        specified for Neuromag data). Or a list of Layout if projections
-        are from different sensor types.
-    cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
-        Colormap to use. If tuple, the first value indicates the colormap to
-        use and the second value is a boolean defining interactivity. In
-        interactive mode (only works if ``colorbar=True``) the colors are
-        adjustable by clicking and dragging the colorbar with left and right
-        mouse button. Left mouse button moves the scale up and down and right
-        mouse button adjusts the range. Hitting space bar resets the range. Up
-        and down arrows can be used to change the colormap. If None (default),
-        'Reds' is used for all positive data, otherwise defaults to 'RdBu_r'.
-        If 'interactive', translates to (None, True).
-    sensors : bool | str
-        Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses). If True, a circle will be
-        used (via .add_artist). Defaults to True.
-    colorbar : bool
-        Plot a colorbar.
-    res : int
-        The resolution of the topomap image (n pixels along each side).
-    size : scalar
-        Side length of the topomaps in inches (only applies when plotting
-        multiple topomaps at a time).
-    show : bool
-        Show figure if True.
-    outlines : 'head' | 'skirt' | dict | None
-        The outlines to be drawn. If 'head', the default head scheme will be
-        drawn. If 'skirt' the head scheme will be drawn, but sensors are
-        allowed to be plotted outside of the head circle. If dict, each key
-        refers to a tuple of x and y positions, the values in 'mask_pos' will
-        serve as image mask, and the 'autoshrink' (bool) field will trigger
-        automated shrinking of the positions due to points outside the outline.
-        Alternatively, a matplotlib patch object can be passed for advanced
-        masking options, either directly or as a function that returns patches
-        (required for multi-axis plots). If None, nothing will be drawn.
-        Defaults to 'head'.
-    contours : int | array of float
-        The number of contour lines to draw. If 0, no contours will be drawn.
-        When an integer, matplotlib ticker locator is used to find suitable
-        values for the contour thresholds (may sometimes be inaccurate, use
-        array for accuracy). If an array, the values represent the levels for
-        the contours. Defaults to 6.
-    image_interp : str
-        The image interpolation to be used. All matplotlib options are
-        accepted.
-    axes : instance of Axes | list | None
-        The axes to plot to. If list, the list must be a list of Axes of
-        the same length as the number of projectors. If instance of Axes,
-        there must be only one projector. Defaults to None.
+    %(proj_topomap_kwargs)s
     info : instance of Info | None
-        The measurement information to use to determine the layout.
-        If not None, ``layout`` must be None.
+        The measurement information to use to determine the layout. If both
+        ``info`` and ``layout`` are provided, the layout will take precedence.
 
     Returns
     -------
@@ -252,54 +204,102 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
     from ..channels.layout import (_pair_grad_sensors_ch_names_vectorview,
                                    _pair_grad_sensors_ch_names_neuromag122,
                                    Layout, _merge_grad_data)
-    from ..channels import _get_ch_type
+    from ..channels import _get_ch_type, read_layout
 
-    is_layout_parameter_none = layout is None
-    is_info_parameter_none = info is None
+    # be forgiving if `projs` isn't a list
+    if isinstance(projs, Projection):
+        projs = [projs]
 
-    if info is not None:
-        if not isinstance(info, Info):
-            raise TypeError('info must be an instance of Info, got %s'
-                            % (type(info),))
-        if layout is not None:
-            raise ValueError('layout must be None if info is provided')
-    else:
-        if layout is None:
-            from ..channels import read_layout
-            layout = read_layout('Vectorview-all')
-        if not isinstance(layout, (list, tuple)):
-            layout = [layout]
+    # argument checking
+    if info is None and vlim == 'joint':
+        raise ValueError("If vlim is 'joint', info must not be None.")
+    if info is not None and not isinstance(info, Info):
+        raise TypeError('info must be an instance of Info, got {}'
+                        .format(type(info)))
+    if info is None and layout is None:
+        layout = read_layout('Vectorview-all')
+    if isinstance(layout, Layout):
+        layout = [layout]
+    if layout is not None:
         if not isinstance(layout, (list, tuple)):
             raise TypeError('layout must be an instance of Layout, list, '
-                            'or None, got %s' % (type(layout),))
+                            'or None, got {}'.format(type(layout)))
         for l in layout:
             if not isinstance(l, Layout):
                 raise TypeError('All entries in layout list must be of type '
-                                'Layout, got type %s' % (type(l),))
+                                'Layout, got type {}'.format(type(l)))
 
-    n_projs = len(projs)
-    nrows = math.floor(math.sqrt(n_projs))
-    ncols = math.ceil(n_projs / nrows)
-
-    if axes is None:
-        plt.figure()
-        axes = list()
-        for idx in range(len(projs)):
-            ax = plt.subplot(nrows, ncols, idx + 1)
-            axes.append(ax)
-    elif isinstance(axes, plt.Axes):
-        axes = [axes]
-    if len(axes) != len(projs):
-        raise RuntimeError('There must be an axes for each picked projector.')
-    for proj_idx, proj in enumerate(projs):
-        title = proj['desc']
-        title = '\n'.join(title[ii:ii + 22] for ii in range(0, len(title), 22))
-        axes[proj_idx].set_title(title, fontsize=10)
+    types = []
+    datas = []
+    poses = []
+    for proj in projs:
+        # get ch_names, ch_types, data
         proj = _eliminate_zeros(proj)  # gh 5641
         ch_names = _clean_names(proj['data']['col_names'],
                                 remove_whitespace=True)
+        if vlim == 'joint':
+            ch_idxs = np.where(np.in1d(info['ch_names'],
+                                       proj['data']['col_names']))[0]
+            these_ch_types = set([channel_type(info, n) for n in ch_idxs])
+            # each projector should have only one channel type
+            assert len(these_ch_types) == 1
+            types.append(list(these_ch_types)[0])
         data = proj['data']['data'].ravel()
-        if info is not None:
+        # check layout
+        if layout is not None:
+            idx = []
+            for l in layout:
+                grad_pairs = None
+                # vectorview
+                if l.kind.startswith('Vectorview'):
+                    grad_pairs = \
+                        _pair_grad_sensors_ch_names_vectorview(ch_names)
+                    if grad_pairs:
+                        ch_names = [ch_names[i] for i in grad_pairs]
+                # neuromag 122
+                if l.kind.startswith('Neuromag_122'):
+                    grad_pairs = \
+                        _pair_grad_sensors_ch_names_neuromag122(ch_names)
+                    if grad_pairs:
+                        ch_names = [ch_names[i] for i in grad_pairs]
+                # make sure this layout has the channels in the current proj
+                l_names = _clean_names(l.names, remove_whitespace=True)
+                idx = [l_names.index(c) for c in ch_names if c in l_names]
+                if len(idx) == 0:
+                    continue
+                # handle grad pairs (if present)
+                pos = l.pos[idx]
+                if grad_pairs:
+                    shape = (len(idx) // 2, 2, -1)
+                    pos = pos.reshape(shape).mean(axis=1)
+                    data = _merge_grad_data(data[grad_pairs]).ravel()
+                break
+            # if we didn't find any matching layouts...
+            if len(idx) == 0:
+                if ch_names[0].startswith('EEG'):
+                    msg = ('Cannot find a proper layout for projection {}.'
+                           ' The proper layout of an EEG topomap cannot be'
+                           ' inferred from the data. '.format(proj['desc']))
+                    if layout is None and info is None:
+                        msg += (' For EEG data, valid `layout` or `info` is'
+                                ' required. None was provided, please consider'
+                                ' passing one of them.')
+                    elif info is None:
+                        msg += (' A `layout` was provided but could not be'
+                                ' used for display. Please review the `layout`'
+                                ' parameter.')
+                    else:  # layout is none, but we have info
+                        msg += (' The `info` parameter was provided but could'
+                                ' not be used for display. Please review the'
+                                ' `info` parameter.')
+                    raise RuntimeError(msg)
+                else:
+                    raise RuntimeError('Cannot find a proper layout for '
+                                       'projection {}, consider explicitly '
+                                       'passing a Layout or Info as the layout'
+                                       ' parameter.'.format(proj['desc']))
+        # get data / pos from info
+        elif info is not None:
             info_names = _clean_names(info['ch_names'],
                                       remove_whitespace=True)
             use_info = pick_info(info, pick_channels(info_names, ch_names))
@@ -308,69 +308,60 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
             data = data[data_picks]
             if merge_grads:
                 data = _merge_grad_data(data).ravel()
-        else:  # list of layouts
-            idx = []
-            for l in layout:
-                is_vv = l.kind.startswith('Vectorview')
-                grad_pairs = None
-                if is_vv:
-                    grad_pairs = \
-                        _pair_grad_sensors_ch_names_vectorview(ch_names)
-                    if grad_pairs:
-                        ch_names = [ch_names[i] for i in grad_pairs]
+        # populate containers
+        datas.append(data)
+        poses.append(pos)
 
-                is_neuromag122 = l.kind.startswith('Neuromag_122')
-                if is_neuromag122:
-                    grad_pairs = \
-                        _pair_grad_sensors_ch_names_neuromag122(ch_names)
-                    if grad_pairs:
-                        ch_names = [ch_names[i] for i in grad_pairs]
+    # setup axes
+    n_projs = len(projs)
+    nrows = math.floor(math.sqrt(n_projs))
+    ncols = math.ceil(n_projs / nrows)
+    if axes is None:
+        _, axes = plt.subplots(nrows, ncols, squeeze=False)
+        axes = axes.ravel()
+        if len(axes[n_projs:]):
+            [ax.remove() for ax in axes[n_projs:]]
+            axes = axes[:n_projs]
+    elif isinstance(axes, plt.Axes):
+        axes = [axes]
+    if len(axes) != len(projs):
+        raise RuntimeError('There must be an axes for each picked projector.')
 
-                l_names = _clean_names(l.names, remove_whitespace=True)
-                idx = [l_names.index(c) for c in ch_names if c in l_names]
-                if len(idx) == 0:
-                    continue
-                pos = l.pos[idx]
-                if grad_pairs:
-                    shape = (len(idx) // 2, 2, -1)
-                    pos = pos.reshape(shape).mean(axis=1)
-                    data = _merge_grad_data(data[grad_pairs]).ravel()
-                break
-            if len(idx) == 0:
-                if ch_names[0].startswith('EEG'):
-                    msg = ('Cannot find a proper layout for projection {}.'
-                           ' The proper layout of an EEG topomap cannot be'
-                           ' inferred from the data. '.format(proj['desc']))
-                    if is_layout_parameter_none and is_info_parameter_none:
-                        msg += (' For EEG data, valid `layout` or `info` is'
-                                ' required. None was provided, please consider'
-                                ' passing one of them.')
-                    elif not is_layout_parameter_none:
-                        msg += (' A `layout` was provided but could not be'
-                                ' used for display. Please review the `layout`'
-                                ' parameter.')
-                    else:  # layout is none, but we have info
-                        msg += (' The `info` parameter was provided but could'
-                                ' not be for display. Please review the `info`'
-                                ' parameter.')
-                    raise RuntimeError(msg)
-                else:
-                    raise RuntimeError('Cannot find a proper layout for '
-                                       'projection %s, consider explicitly '
-                                       'passing a Layout or Info as the layout'
-                                       ' parameter.' % proj['desc'])
+    # handle vmin/vmax
+    vlims = [None for _ in range(len(datas))]
+    if vlim == 'joint':
+        for _ch_type in set(types):
+            idx = np.where(np.in1d(types, _ch_type))[0]
+            these_data = np.concatenate(np.array(datas)[idx])
+            norm = all(these_data >= 0)
+            _vl = _setup_vmin_vmax(these_data, vmin=None, vmax=None, norm=norm)
+            for _idx in idx:
+                vlims[_idx] = _vl
+        # make sure we got a vlim for all projs
+        assert all([vl is not None for vl in vlims])
+    else:
+        vlims = [vlim for _ in range(len(datas))]
 
-        im = plot_topomap(data, pos[:, :2], vmax=None, cmap=cmap,
-                          sensors=sensors, res=res, axes=axes[proj_idx],
+    # plot
+    for proj, ax, _data, _pos, _vlim in zip(projs, axes, datas, poses, vlims):
+        # title
+        title = proj['desc']
+        title = '\n'.join(title[ii:ii + 22] for ii in range(0, len(title), 22))
+        ax.set_title(title, fontsize=10)
+        # plot
+        vmin, vmax = _vlim
+        im = plot_topomap(_data, _pos[:, :2], vmin=vmin, vmax=vmax, cmap=cmap,
+                          sensors=sensors, res=res, axes=ax,
                           outlines=outlines, contours=contours,
                           image_interp=image_interp, show=False)[0]
 
         if colorbar:
-            _add_colorbar(axes[proj_idx], im, cmap)
+            _add_colorbar(ax, im, cmap)
 
-    tight_layout(fig=axes[0].get_figure())
+    fig = ax.get_figure()
+    tight_layout(fig=fig)
     plt_show(show)
-    return axes[0].get_figure()
+    return fig
 
 
 def _check_outlines(pos, outlines, head_pos=None):

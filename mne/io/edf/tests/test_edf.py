@@ -26,7 +26,6 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.edf.edf import _get_edf_default_event_id
 from mne.io.edf.edf import _read_annotations_edf
 from mne.io.edf.edf import _read_ch
-from mne.io.edf.edf import find_edf_events
 from mne.io.pick import channel_indices_by_type
 from mne.annotations import events_from_annotations, read_annotations
 from mne.io.meas_info import _kind_dict as _KIND_DICT
@@ -208,16 +207,6 @@ def test_to_data_frame(fname):
     df = raw.to_data_frame(index=None, scalings={'eeg': 1e13})
     assert 'time' in df.index.names
     assert_array_equal(df.values[:, 0], raw._data[0] * 1e13)
-
-
-def test_find_edf_events_deprecation():
-    """Test find_edf_events deprecation."""
-    raw = read_raw_edf(edf_path)
-    with pytest.deprecated_call(match="find_edf_events"):
-        raw.find_edf_events()
-
-    with pytest.deprecated_call(match="find_edf_events"):
-        find_edf_events(raw)
 
 
 def test_read_raw_edf_stim_channel_input_parameters():

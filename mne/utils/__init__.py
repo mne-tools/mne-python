@@ -14,7 +14,7 @@ from .check import (check_fname, check_version, check_random_state,
                     _validate_type, _check_info_inv, _check_pylsl_installed,
                     _check_channels_spatial_filter, _check_one_ch_type,
                     _check_rank, _check_option, _check_depth, _check_combine,
-                    _check_path_like, _check_src_normal)
+                    _check_path_like, _check_src_normal, _check_stc_units)
 from .config import (set_config, get_config, get_config_path, set_cache_dir,
                      set_memmap_min_size, get_subjects_dir, _get_stim_channel,
                      sys_info, _get_extra_data_path, _get_root_dir,
@@ -37,7 +37,7 @@ from ._testing import (run_tests_if_main, run_command_if_main,
                        ArgvSetter, SilenceStdout, has_freesurfer, has_mne_c,
                        _TempDir, has_nibabel, _import_mlab, buggy_mkl_svd,
                        requires_numpydoc, requires_tvtk, requires_freesurfer,
-                       requires_nitime, requires_fs_or_nibabel, requires_dipy,
+                       requires_nitime, requires_dipy,
                        requires_neuromag2ft, requires_pylsl, assert_object_equal,
                        assert_and_remove_boundary_annot, _raw_annot,
                        assert_dig_allclose, assert_meg_snr, assert_snr,
@@ -50,7 +50,9 @@ from .numerics import (hashfunc, _compute_row_norms,
                        object_hash, object_size, _apply_scaling_cov,
                        _undo_scaling_cov, _apply_scaling_array,
                        _undo_scaling_array, _scaled_array, _replace_md5, _PCA,
-                       _mask_to_onsets_offsets, _array_equal_nan)
+                       _mask_to_onsets_offsets, _array_equal_nan,
+                       _julian_to_cal, _cal_to_julian, _dt_to_julian,
+                       _julian_to_dt)
 from .mixin import (SizeMixin, GetEpochsMixin, _prepare_read_metadata,
                     _prepare_write_metadata, _FakeNoPandas)
 from .linalg import (_svd_lwork, _repeated_svd, _repeated_pinv2,

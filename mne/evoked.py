@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Andrew Dykstra <andrew.r.dykstra@gmail.com>
 #          Mads Jensen <mje.mads@gmail.com>
@@ -647,7 +647,7 @@ def _check_decim(info, decim, offset):
              'filtered. The decim=%i parameter will result in a sampling '
              'frequency of %g Hz, which can cause aliasing artifacts.'
              % (decim, new_sfreq))
-    elif decim > 1 and new_sfreq < 2.5 * lowpass:
+    elif decim > 1 and new_sfreq < 3 * lowpass:
         warn('The measurement information indicates a low-pass frequency '
              'of %g Hz. The decim=%i parameter will result in a sampling '
              'frequency of %g Hz, which can cause aliasing artifacts.'
@@ -1142,13 +1142,7 @@ def _write_evokeds(fname, evoked, check=True):
     if not isinstance(evoked, list):
         evoked = [evoked]
 
-    # convert nave to integer to comply with FIFF spec
-    nave_int = round(evoked[0].nave)
-    if nave_int != evoked[0].nave:
-        warn('converting "nave" to integer before saving evoked; this can '
-             'have a minor effect on the scale of source estimates that are '
-             'computed using "nave".')
-
+    warned = False
     # Create the file and save the essentials
     with start_file(fname) as fid:
 
@@ -1181,7 +1175,15 @@ def _write_evokeds(fname, evoked, check=True):
             start_block(fid, aspect)
 
             write_int(fid, FIFF.FIFF_ASPECT_KIND, e._aspect_kind)
+            # convert nave to integer to comply with FIFF spec
+            nave_int = int(round(e.nave))
+            if nave_int != e.nave and not warned:
+                warn('converting "nave" to integer before saving evoked; this '
+                     'can have a minor effect on the scale of source '
+                     'estimates that are computed using "nave".')
+                warned = True
             write_int(fid, FIFF.FIFF_NAVE, nave_int)
+            del nave_int
 
             decal = np.zeros((e.info['nchan'], 1))
             for k in range(e.info['nchan']):
