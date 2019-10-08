@@ -246,16 +246,13 @@ def _fake_vec_stc(n_time=10):
                                 'foo')
 
 
+@testing.requires_testing_data
 def test_stc_snr():
     """Test computing SNR from a STC."""
-    inv = read_inverse_operator(fname_inv)
+    inv = read_inverse_operator(fname_inv_fixed)
     fwd = read_forward_solution(fname_fwd)
     cov = read_cov(fname_cov)
     evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0].crop(0, 0.01)
-    stc = apply_inverse(evoked, inv, pick_ori='vector')
-    assert not hasattr(stc, 'estimate_snr')  # not supported yet
-
-    inv = read_inverse_operator(fname_inv_fixed)
     stc = apply_inverse(evoked, inv)
     assert (stc.data < 0).any()
     with pytest.warns(RuntimeWarning, match='nAm'):
