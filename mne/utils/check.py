@@ -272,10 +272,24 @@ def _is_numeric(n):
     return isinstance(n, (np.integer, np.floating, int, float))
 
 
+class _IntLike(object):
+    @classmethod
+    def __instancecheck__(cls, other):
+        try:
+            _ensure_int(other)
+        except TypeError:
+            return False
+        else:
+            return True
+
+int_like = _IntLike()
+
+
 _multi = {
     'str': (str,),
-    'numeric': (np.integer, np.floating, int, float),
+    'numeric': (np.floating, float, int_like),
     'path-like': (str, Path),
+    'int-like': (int_like,)
 }
 try:
     _multi['path-like'] += (os.PathLike,)

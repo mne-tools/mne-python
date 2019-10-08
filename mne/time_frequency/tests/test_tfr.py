@@ -662,6 +662,8 @@ def test_compute_tfr():
             kwargs = {key: value}  # FIXME pep8
             pytest.raises(ValueError, _compute_tfr, data, freqs, sfreq,
                           **kwargs)
+    with pytest.raises(ValueError, match='above Nyquist'):
+        _compute_tfr(data, [sfreq], sfreq)
 
     # No time_bandwidth param in morlet
     pytest.raises(ValueError, _compute_tfr, data, freqs, sfreq,
@@ -719,9 +721,14 @@ def test_getitem_epochsTFR():
 
     # Choose time x (full) bandwidth product
     time_bandwidth = 4.0  # With 0.5 s time windows, this gives 8 Hz smoothing
-    power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
-                           use_fft=True, time_bandwidth=time_bandwidth,
-                           return_itc=False, average=False, n_jobs=1)
+    kwargs = dict(freqs=freqs, n_cycles=n_cycles, use_fft=True,
+                  time_bandwidth=time_bandwidth, return_itc=False,
+                  average=False, n_jobs=1)
+    power = tfr_multitaper(epochs, **kwargs)
+
+    # Check decim affects sfreq
+    power_decim = tfr_multitaper(epochs, decim=2, **kwargs)
+    assert power.info['sfreq'] / 2. == power_decim.info['sfreq']
 
     # Check that power and epochs metadata is the same
     assert_metadata_equal(epochs.metadata, power.metadata)

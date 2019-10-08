@@ -65,6 +65,8 @@ Bug
 
 - Fix IO of TFRs when event_id contain a / in one of the keys by `Alex Gramfort`_
 
+- Fix ``info['sfreq']`` when decimating in :func:`mne.time_frequency.tfr_multitaper` and :func:`mne.time_frequency.tfr_morlet` and make sure an error is raised when exceed Nyquist frequency by `Adonay Nunes`_
+
 API
 ~~~
 
