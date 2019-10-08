@@ -84,7 +84,7 @@ class Transform(dict):
         used.
 
     Notes
-    ------
+    -----
     Valid coordinate frames are 'meg','mri','mri_voxel','head','mri_tal','ras'
     'fs_tal','ctf_head','ctf_meg','unknown'
     """
