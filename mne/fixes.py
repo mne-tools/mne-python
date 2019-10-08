@@ -200,11 +200,20 @@ def tridisolve(d, e, b, overwrite_b=True):
         t = ew[k - 1]
         ew[k - 1] = t / dw[k - 1]
         dw[k] = dw[k] - t * ew[k - 1]
-    for k in range(1, N):
-        x[k] = x[k] - ew[k - 1] * x[k - 1]
-    x[N - 1] = x[N - 1] / dw[N - 1]
-    for k in range(N - 2, -1, -1):
-        x[k] = x[k] / dw[k] - ew[k] * x[k + 1]
+    # This iterative solver can fail sometimes. There is probably a
+    # graceful way to solve this, but it should only be a problem
+    # in very rare cases. Users of SciPy 1.1+ will never hit this anyway,
+    # so not worth spending more time figuring out how to do it faster.
+    if dw[N - 1] == 0:
+        a = np.diag(d) + np.diag(e[:-1], -1) + np.diag(e[:-1], 1)
+        x[:] = linalg.solve(a, b)
+    else:
+        for k in range(1, N):
+            x[k] = x[k] - ew[k - 1] * x[k - 1]
+        if dw[N - 1] != 0:
+            x[N - 1] = x[N - 1] / dw[N - 1]
+        for k in range(N - 2, -1, -1):
+            x[k] = x[k] / dw[k] - ew[k] * x[k + 1]
 
     if not overwrite_b:
         return x

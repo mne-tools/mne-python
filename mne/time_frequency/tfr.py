@@ -119,7 +119,6 @@ def _make_dpss(sfreq, freqs, n_cycles=7., time_bandwidth=4.0, zero_mean=False):
     zero_mean : bool | None, , default False
         Make sure the wavelet has a mean of zero.
 
-
     Returns
     -------
     Ws : list of array
