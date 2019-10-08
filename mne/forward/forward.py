@@ -43,7 +43,8 @@ from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      run_subprocess, check_fname, logger, verbose, fill_doc,
-                     _validate_type, _check_compensation_grade, _check_option)
+                     _validate_type, _check_compensation_grade, _check_option,
+                     _check_stc_units)
 from ..label import Label
 from ..fixes import einsum
 
@@ -1303,13 +1304,7 @@ def _apply_forward(fwd, stc, start=None, stop=None, on_missing='raise',
              'Use pick_ori="normal" when computing the inverse to compute '
              'currents not current magnitudes.')
 
-    max_cur = np.max(np.abs(stc.data))
-    if max_cur > 1e-7:  # 100 nAm threshold for warning
-        warn('The maximum current magnitude is %0.1f nAm, which is very large.'
-             ' Are you trying to apply the forward model to noise-normalized '
-             '(dSPM, sLORETA, or eLORETA) values? The result will only be '
-             'correct if currents (in units of Am) are used.'
-             % (1e9 * max_cur))
+    _check_stc_units(stc)
 
     src_sel, stc_sel, _ = _stc_src_sel(fwd['src'], stc, on_missing=on_missing)
     gain = fwd['sol']['data'][:, src_sel]

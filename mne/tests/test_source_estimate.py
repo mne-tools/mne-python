@@ -12,8 +12,8 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  read_evokeds, MixedSourceEstimate, find_events, Epochs,
                  read_source_estimate, extract_label_time_course,
                  spatio_temporal_tris_connectivity,
-                 spatio_temporal_src_connectivity,
-                 spatial_inter_hemi_connectivity,
+                 spatio_temporal_src_connectivity, read_cov,
+                 spatial_inter_hemi_connectivity, read_forward_solution,
                  spatial_src_connectivity, spatial_tris_connectivity,
                  SourceSpaces, VolVectorSourceEstimate)
 from mne.datasets import testing
@@ -30,6 +30,13 @@ data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 fname_inv = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
+fname_inv_fixed = op.join(
+    data_path, 'MEG', 'sample',
+    'sample_audvis_trunc-meg-eeg-oct-4-meg-fixed-inv.fif')
+fname_fwd = op.join(
+    data_path, 'MEG', 'sample', 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+fname_cov = op.join(
+    data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
 fname_evoked = op.join(data_path, 'MEG', 'sample',
                        'sample_audvis_trunc-ave.fif')
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
@@ -239,17 +246,25 @@ def _fake_vec_stc(n_time=10):
                                 'foo')
 
 
-def _real_vec_stc():
-    inv = read_inverse_operator(fname_inv)
+@testing.requires_testing_data
+def test_stc_snr():
+    """Test computing SNR from a STC."""
+    inv = read_inverse_operator(fname_inv_fixed)
+    fwd = read_forward_solution(fname_fwd)
+    cov = read_cov(fname_cov)
     evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0].crop(0, 0.01)
-    return apply_inverse(evoked, inv, pick_ori='vector')
-
-
-def _test_stc_integrety(stc):
-    """Test consistency of tmin, tstep, data.shape[-1] and times."""
-    n_times = len(stc.times)
-    assert_equal(stc._data.shape[-1], n_times)
-    assert_array_equal(stc.times, stc.tmin + np.arange(n_times) * stc.tstep)
+    stc = apply_inverse(evoked, inv)
+    assert (stc.data < 0).any()
+    with pytest.warns(RuntimeWarning, match='nAm'):
+        stc.estimate_snr(evoked.info, fwd, cov)  # dSPM
+    with pytest.warns(RuntimeWarning, match='free ori'):
+        abs(stc).estimate_snr(evoked.info, fwd, cov)
+    stc = apply_inverse(evoked, inv, method='MNE')
+    snr = stc.estimate_snr(evoked.info, fwd, cov)
+    assert_allclose(snr.times, evoked.times)
+    snr = snr.data
+    assert snr.max() < -10
+    assert snr.min() > -120
 
 
 def test_stc_attributes():
@@ -257,7 +272,9 @@ def test_stc_attributes():
     stc = _fake_stc(n_time=10)
     vec_stc = _fake_vec_stc(n_time=10)
 
-    _test_stc_integrety(stc)
+    n_times = len(stc.times)
+    assert_equal(stc._data.shape[-1], n_times)
+    assert_array_equal(stc.times, stc.tmin + np.arange(n_times) * stc.tstep)
     assert_array_almost_equal(
         stc.times, [0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
 
