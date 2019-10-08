@@ -119,5 +119,5 @@ def test_fix_stim_artifact():
     base_t1 = int(baseline[0] * evoked.info['sfreq']) - evoked.first
     base_t2 = int(baseline[1] * evoked.info['sfreq']) - evoked.first
     data = evoked.data[:, tmin_samp:tmax_samp]
-    data_base = evoked.data[:, base_t1:base_t2].mean(axis=1)[0]
+    baseline_mean = evoked.data[:, base_t1:base_t2].mean(axis=1)[0]
     assert data[0][0] == data_base
