@@ -185,8 +185,7 @@ itc.plot_topo(title='Inter-Trial coherence', vmin=0., vmax=1., cmap='Reds')
 #     Baseline correction can be applied to power or done in plots.
 #     To illustrate the baseline correction in plots, the next line is
 #     commented power.apply_baseline(baseline=(-0.5, 0), mode='logratio')
-
-###############################################################################
+#
 # Exercise
 # --------
 #

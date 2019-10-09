@@ -269,7 +269,6 @@ aud_epochs.plot_image(picks=['MEG 1332', 'EEG 021'])
 #     :class:`~mne.io.Raw` and ``(n_epochs, n_channels, n_times)`` for
 #     :class:`~mne.Epochs`.
 #
-#
 # Time-frequency analysis
 # ^^^^^^^^^^^^^^^^^^^^^^^
 #
