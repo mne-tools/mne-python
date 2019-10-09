@@ -72,7 +72,7 @@ def _check_ch_names_are_compatible(info_names, montage_names):
     if len(not_in_montage):  # DigMontage is subset of info
         raise ValueError((
             'DigMontage is a only a subset of info.'
-            ' There are {n_ch} channel positions not present it the'
+            ' There are {n_ch} channel positions not present in the'
             ' DigMontage. The required channels are: {ch_names}.'
         ).format(n_ch=len(not_in_montage), ch_names=not_in_montage))
     else:
