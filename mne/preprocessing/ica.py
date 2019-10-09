@@ -61,7 +61,7 @@ from .ctps_ import ctps
 from ..io.pick import channel_type, pick_channels_regexp
 
 __all__ = ('ICA', 'ica_find_ecg_events', 'ica_find_eog_events',
-           'get_score_funcs', 'read_ica', 'run_ica', 'read_eeglab_ica')
+           'get_score_funcs', 'read_ica', 'run_ica', 'read_ica_eeglab')
 
 
 def _make_xy_sfunc(func, ndim_output=False):
@@ -2638,23 +2638,23 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         return None
 
 
-def read_eeglab_ica(file_name):
+def read_ica_eeglab(file_name):
     """Load ICA information saved in an EEGLAB .set file.
 
     Parameters
     ----------
-    file_name : Complete path to a .set EEGLAB file that contains an ica.
+    file_name : str
+        Complete path to a .set EEGLAB file that contains an ICA.
 
     Returns
     -------
-    ica : A mne.preprocessing.ICA object based on the information
-          contained in file file_name.
+    ica : mne.preprocessing.ICA object
+        An ICA object based on the information contained in file file_name.
     """
     eeg = _check_load_mat(file_name, None)
     info, _, _ = _get_info(eeg)
 
     n_components = eeg.icaweights.shape[0]
-    n_chans = len(info["ch_names"])
 
     ica = ICA(method='imported_eeglab', n_components=n_components)
 
@@ -2664,8 +2664,8 @@ def read_eeglab_ica(file_name):
     ica.max_pca_components = n_components
     ica.n_components_ = n_components
 
-    ica.pre_whitener_ = np.ones((n_chans, 1))
-    ica.pca_mean_ = np.zeros(n_chans)
+    ica.pre_whitener_ = np.ones((len(eeg.icachansind), 1))
+    ica.pca_mean_ = np.zeros(len(eeg.icachansind))
 
     ica.unmixing_matrix_ = eeg.icaweights
     ica.pca_components_ = eeg.icasphere

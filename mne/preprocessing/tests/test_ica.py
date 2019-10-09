@@ -21,7 +21,7 @@ from mne.cov import read_cov
 from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
 from mne.preprocessing.ica import (get_score_funcs, corrmap, _sort_components,
-                                   _ica_explained_variance, read_eeglab_ica)
+                                   _ica_explained_variance, read_ica_eeglab)
 from mne.io import read_raw_fif, Info, RawArray, read_raw_ctf, read_raw_eeglab
 from mne.io.meas_info import _kind_dict
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
@@ -1084,8 +1084,8 @@ def test_ica_eeg():
 
 
 @testing.requires_testing_data
-def test_read_eeglab_ica():
-    """Test read_eeglab_ica function."""
+def test_read_ica_eeglab():
+    """Test read_ica_eeglab function."""
     file_name = op.join(test_base_dir, "EEGLAB", "test_raw.set")
     file_name_cleaned_matlab = op.join(test_base_dir, "EEGLAB",
                                        "test_raw.cleaned.set")
@@ -1107,11 +1107,10 @@ def test_read_eeglab_ica():
     else:
         ind_comp_to_drop = np.where(comp_info["flags"])[0]
 
-    ica = read_eeglab_ica(file_name)
+    ica = read_ica_eeglab(file_name)
     raw_cleaned = ica.apply(raw.copy(), exclude=ind_comp_to_drop)
 
-    assert(np.all(np.isclose(raw_cleaned_matlab.get_data(),
-                             raw_cleaned.get_data())))
+    assert np.allclose(raw_cleaned_matlab.get_data(), raw_cleaned.get_data())
 
 
 run_tests_if_main()
