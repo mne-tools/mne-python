@@ -590,10 +590,14 @@ def _read_edf_header(fname, exclude):
                                 for ch in channels])[sel]
         prefiltering = [fid.read(80).decode().strip(' \x00')
                         for ch in channels][:-1]
-        highpass = np.ravel([re.findall(r'HP:\s+(\w+)', filt)
-                             for filt in prefiltering])
-        lowpass = np.ravel([re.findall(r'LP:\s+(\w+)', filt)
-                            for filt in prefiltering])
+        highpass = np.array(
+            [v for hp in [re.findall(r'HP:\s*([0-9]+[.]*[0-9]*)', filt)
+                          for filt in prefiltering] for v in hp]
+        )
+        lowpass = np.array(
+            [v for hp in [re.findall(r'LP:\s*([0-9]+[.]*[0-9]*)', filt)
+                          for filt in prefiltering] for v in hp]
+        )
 
         # number of samples per record
         n_samps = np.array([int(fid.read(8).decode()) for ch
@@ -728,10 +732,14 @@ def _read_gdf_header(fname, exclude):
             digital_max = np.fromfile(fid, np.int64, len(channels))
             prefiltering = [fid.read(80).decode().strip(' \x00')
                             for ch in channels][:-1]
-            highpass = np.ravel([re.findall(r'HP:\s+(\w+)', filt)
-                                 for filt in prefiltering])
-            lowpass = np.ravel([re.findall('LP:\\s+(\\w+)', filt)
-                                for filt in prefiltering])
+            highpass = np.array(
+                [v for hp in [re.findall(r'HP:\s*([0-9]+[.]*[0-9]*)', filt)
+                              for filt in prefiltering] for v in hp]
+            )
+            lowpass = np.array(
+                [v for hp in [re.findall(r'LP:\s*([0-9]+[.]*[0-9]*)', filt)
+                              for filt in prefiltering] for v in hp]
+            )
 
             # n samples per record
             n_samps = np.fromfile(fid, np.int32, len(channels))

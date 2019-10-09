@@ -67,6 +67,8 @@ Bug
 
 - Fix ``info['sfreq']`` when decimating in :func:`mne.time_frequency.tfr_multitaper` and :func:`mne.time_frequency.tfr_morlet` and make sure an error is raised when exceed Nyquist frequency by `Adonay Nunes`_
 
+- Fix bug in edf loading, filter values ignored by insufficient regex, by `Demetres Kostas`_
+
 API
 ~~~
 
