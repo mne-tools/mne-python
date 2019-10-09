@@ -4,6 +4,7 @@
 
 import numpy as np
 
+from ..annotations import _annotations_starts_stops
 from ..io import BaseRaw
 from ..io.pick import _picks_to_idx
 from ..utils import (_validate_type, verbose, logger, _pl,
@@ -61,10 +62,15 @@ def mark_flat(raw, bad_percent=5., min_duration=0.005, picks=None,
     any_flat = np.zeros(len(raw.times), bool)
     bads = list()
     time_thresh = int(np.round(min_duration * raw.info['sfreq']))
+    onsets, ends = _annotations_starts_stops(
+        raw, 'bad_acq_skip', 'skip_by_annotation', invert=True)
+    idx = np.concatenate([np.arange(onset, end)
+                          for onset, end in zip(onsets, ends)])
     with ProgressBar(picks, mesg='Finding flat segments', spinner=True,
                      verbose_bool='auto') as pb:
         for pick in pb:
-            data = raw[pick][0][0]
+            data = np.concatenate([raw[pick, onset:end][0][0]
+                                   for onset, end in zip(onsets, ends)])
             flat = np.diff(data) == 0
             flat = np.concatenate(
                 [flat[[0]], flat[1:] | flat[:-1], flat[[-1]]])
@@ -80,14 +86,14 @@ def mark_flat(raw, bad_percent=5., min_duration=0.005, picks=None,
                     bads.append(raw.ch_names[pick])
                 else:
                     kind, comp = 'BAD_', '≤'
-                    any_flat |= flat
+                    any_flat[idx] |= flat
                 logger.debug('%s: %s (%s %s %s)'
                              % (kind, raw.ch_names[pick],
                                 flat_mean, comp, bad_percent))
     starts, stops = _mask_to_onsets_offsets(any_flat)
     logger.info('Marking %0.2f%% of time points (%d segment%s) and '
                 '%d/%d channel%s bad: %s'
-                % (100 * any_flat.mean(), len(starts), _pl(starts),
+                % (100 * any_flat[idx].mean(), len(starts), _pl(starts),
                    len(bads), len(picks), _pl(bads), bads))
     add_bads = [bad for bad in bads if bad not in raw.info['bads']]
     raw.info['bads'] = list(raw.info['bads']) + add_bads
