@@ -21,10 +21,11 @@ from mne.cov import read_cov
 from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
 from mne.preprocessing.ica import (get_score_funcs, corrmap, _sort_components,
-                                   _ica_explained_variance)
+                                   _ica_explained_variance, read_eeglab_ica)
 from mne.io import read_raw_fif, Info, RawArray, read_raw_ctf, read_raw_eeglab
 from mne.io.meas_info import _kind_dict
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
+from mne.io.eeglab.eeglab import _check_load_mat
 from mne.rank import _compute_rank_int
 from mne.utils import (catch_logging, _TempDir, requires_sklearn,
                        run_tests_if_main)
@@ -1080,6 +1081,37 @@ def test_ica_eeg():
             for inst in [raw, epochs, evoked]:
                 ica.apply(inst)
                 ica.get_sources(inst)
+
+
+@testing.requires_testing_data
+def test_read_eeglab_ica():
+    """Test read_eeglab_ica function."""
+    file_name = op.join(test_base_dir, "EEGLAB", "test_raw.set")
+    file_name_cleaned_matlab = op.join(test_base_dir, "EEGLAB",
+                                       "test_raw.cleaned.set")
+
+    raw = read_raw_eeglab(file_name, preload=True)
+    raw_eeg = _check_load_mat(file_name, None)
+    raw_cleaned_matlab = read_raw_eeglab(file_name_cleaned_matlab,
+                                         preload=True)
+
+    mark_to_remove = ["manual"]
+    comp_info = raw_eeg.marks["comp_info"]
+
+    if len(comp_info["flags"].shape) > 1:
+        ind_comp_to_drop = [np.where(flags)[0]
+                            for flags, label in zip(comp_info["flags"],
+                                                    comp_info["label"])
+                            if label in mark_to_remove]
+        ind_comp_to_drop = np.unique(np.concatenate(ind_comp_to_drop))
+    else:
+        ind_comp_to_drop = np.where(comp_info["flags"])[0]
+
+    ica = read_eeglab_ica(file_name)
+    raw_cleaned = ica.apply(raw.copy(), exclude=ind_comp_to_drop)
+
+    assert(np.all(np.isclose(raw_cleaned_matlab.get_data(),
+                             raw_cleaned.get_data())))
 
 
 run_tests_if_main()

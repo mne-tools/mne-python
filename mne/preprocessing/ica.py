@@ -36,6 +36,8 @@ from ..io.tag import read_tag
 from ..io.meas_info import write_meas_info, read_meas_info
 from ..io.constants import FIFF
 from ..io.base import BaseRaw
+from ..io.eeglab.eeglab import _get_info, _check_load_mat
+
 from ..epochs import BaseEpochs
 from ..viz import (plot_ica_components, plot_ica_scores,
                    plot_ica_sources, plot_ica_overlay)
@@ -58,9 +60,8 @@ from .bads import find_outliers
 from .ctps_ import ctps
 from ..io.pick import channel_type, pick_channels_regexp
 
-
 __all__ = ('ICA', 'ica_find_ecg_events', 'ica_find_eog_events',
-           'get_score_funcs', 'read_ica', 'run_ica')
+           'get_score_funcs', 'read_ica', 'run_ica', 'read_eeglab_ica')
 
 
 def _make_xy_sfunc(func, ndim_output=False):
@@ -326,7 +327,8 @@ class ICA(ContainsMixin):
                  n_pca_components=None, noise_cov=None, random_state=None,
                  method='fastica', fit_params=None, max_iter=200,
                  allow_ref_meg=False, verbose=None):  # noqa: D102
-        _check_option('method', method, ['fastica', 'infomax', 'picard'])
+        _check_option('method', method, ['fastica', 'infomax',
+                                         'picard', 'imported_eeglab'])
         if method == 'fastica' and not check_version('sklearn', '0.15'):
             raise RuntimeError('The scikit-learn package (version >= 0.15) '
                                'is required for FastICA.')
@@ -1487,21 +1489,33 @@ class ICA(ContainsMixin):
         logger.info('Zeroing out %i ICA components'
                     % (n_components - len(sel_keep)))
 
-        unmixing = np.eye(_n_pca_comp)
-        unmixing[:n_components, :n_components] = self.unmixing_matrix_
-        unmixing = np.dot(unmixing, self.pca_components_[:_n_pca_comp])
+        if (self.method == 'imported_eeglab' and
+           np.diff(self.unmixing_matrix_.shape)[0]):
+            # When \PCA reduction is used in EEGLAB, runica returns
+            # weights= weights*sphere*eigenvectors(:,1:ncomps)';
+            # sphere = eye(urchans);
+            # such that we cannot separate the unmixing matrix and
+            # the PCA components. For that reason, the composite
+            # unmixing matrix takes a rectangular shape.
+            unmixing = self.unmixing_matrix_
+            mixing = self.mixing_matrix_
 
-        mixing = np.eye(_n_pca_comp)
-        mixing[:n_components, :n_components] = self.mixing_matrix_
-        mixing = np.dot(self.pca_components_[:_n_pca_comp].T, mixing)
+        else:
+            unmixing = np.eye(_n_pca_comp)
+            unmixing[:n_components, :n_components] = self.unmixing_matrix_
+            unmixing = unmixing @ self.pca_components_[:_n_pca_comp]
+
+            mixing = np.eye(_n_pca_comp)
+            mixing[:n_components, :n_components] = self.mixing_matrix_
+            mixing = self.pca_components_[:_n_pca_comp].T @ mixing
 
         if _n_pca_comp > n_components:
             sel_keep = np.concatenate(
                 (sel_keep, range(n_components, _n_pca_comp)))
 
-        proj_mat = np.dot(mixing[:, sel_keep], unmixing[sel_keep, :])
+        proj_mat = mixing[:, sel_keep] @ unmixing[sel_keep, :]
 
-        data = np.dot(proj_mat, data)
+        data = proj_mat @ data
 
         if self.pca_mean_ is not None:
             data += self.pca_mean_[:, None]
@@ -2622,3 +2636,39 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         return template_fig, labelled_ics
     else:
         return None
+
+
+def read_eeglab_ica(file_name):
+    """Load ica information saved in an EEGLAB .set file.
+
+    Parameters
+    ----------
+    file_name : Complete path to a .set EEGLAB file that contains an ica.
+
+    Returns
+    -------
+    ica : A mne.preprocessing.ICA object based on the information
+          contained in file file_name.
+    """
+    eeg = _check_load_mat(file_name, None)
+    info, _, _ = _get_info(eeg)
+
+    n_components = eeg.icaweights.shape[0]
+    n_chans = len(info["ch_names"])
+
+    ica = ICA(method='imported_eeglab', n_components=n_components)
+
+    ica.current_fit = "eeglab"
+    ica.ch_names = info["ch_names"]
+    ica.n_pca_components = None
+    ica.max_pca_components = n_components
+    ica.n_components_ = n_components
+
+    ica.pre_whitener_ = np.ones((n_chans, 1))
+    ica.pca_mean_ = np.zeros(n_chans)
+
+    ica.unmixing_matrix_ = eeg.icaweights
+    ica.pca_components_ = eeg.icasphere
+    ica.mixing_matrix_ = np.linalg.pinv(ica.pca_components_) @ eeg.icawinv
+
+    return ica
