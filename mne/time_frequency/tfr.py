@@ -335,8 +335,8 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
     # Check data
     epoch_data = np.asarray(epoch_data)
     if epoch_data.ndim != 3:
-        raise ValueError('epoch_data must be of shape '
-                         '(n_epochs, n_chans, n_times)')
+        raise ValueError('epoch_data must be of shape (n_epochs, n_chans, '
+                         'n_times), got %s' % (epoch_data.shape,))
 
     # Check params
     freqs, sfreq, zero_mean, n_cycles, time_bandwidth, decim = \
@@ -344,12 +344,13 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
                          time_bandwidth, use_fft, decim, output)
 
     decim = _check_decim(decim)
-    sfreq /= decim.step
     if (freqs > sfreq / 2.).any():
-        raise ValueError('Cannot compute freq above Nyquist freq '
-                         'after decimation')
+        raise ValueError('Cannot compute freq above Nyquist freq of the data '
+                         '(%0.1f Hz), got %0.1f Hz'
+                         % (sfreq / 2., freqs.max()))
 
-    # Setup wavelet
+    # We decimate *after* decomposition, so we need to create our kernels
+    # for the original sfreq
     if method == 'morlet':
         W = morlet(sfreq, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
         Ws = [W]  # to have same dimensionality as the 'multitaper' case
