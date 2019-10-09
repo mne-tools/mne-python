@@ -15,6 +15,8 @@ Version 0.19.1
 Bug
 ~~~
 
+- Fix plotting of TFRs with linear y-scale (misaligned frequency bins), by `Stefan Repplinger`_ and `Eric Larson`_
+
 - Fix bug in :class:`~mne.preprocessing.ICA` where requesting extended infomax via ``fit_params={'extended': True}`` was overridden, by `Daniel McCloy`_.
 
 - Fix handling of repeated events in :class:`mne.Epochs` by `Fahimeh Mamashli`_ and `Alex Gramfort`_
