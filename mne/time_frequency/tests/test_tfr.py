@@ -697,6 +697,23 @@ def test_compute_tfr():
             assert_array_equal(shape[1:], out.shape)
 
 
+@pytest.mark.parametrize('method', ('multitaper', 'morlet'))
+@pytest.mark.parametrize('decim', (1, slice(1, None, 2), 3))
+def test_compute_tfr_correct(method, decim):
+    """Test that TFR actually gets us our freq back."""
+    sfreq = 1000.
+    t = np.arange(1000) / sfreq
+    f = 50.
+    data = np.sin(2 * np.pi * 50. * t)
+    data *= np.hanning(data.size)
+    data = data[np.newaxis, np.newaxis]
+    freqs = np.arange(10, 111, 10)
+    assert f in freqs
+    tfr = _compute_tfr(data, freqs, sfreq, method=method, decim=decim,
+                       n_cycles=2)[0, 0]
+    assert freqs[np.argmax(np.abs(tfr).mean(-1))] == f
+
+
 @requires_pandas
 def test_getitem_epochsTFR():
     """Test GetEpochsMixin in the context of EpochsTFR."""
