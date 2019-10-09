@@ -1050,7 +1050,7 @@ def test_set_montage_with_sub_super_set_of_ch_names():
     assert len(info['dig']) == len(list('abc'))
 
     # montage is a SUBset of info
-    _MSG = 'subset of info. There are 2 .* not present it the DigMontage'
+    _MSG = 'subset of info. There are 2 .* not present in the DigMontage'
     with pytest.raises(ValueError, match=_MSG):
         _ = create_info(
             ch_names=list('abcdfgh'), sfreq=1, ch_types='eeg', montage=montage
