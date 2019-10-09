@@ -9,6 +9,7 @@ Frequently Asked Questions (FAQ)
 .. contents:: Page contents
    :local:
 
+.. highlight:: python
 
 General MNE-Python issues
 =========================
@@ -34,7 +35,7 @@ If Mayavi plotting in Jupyter Notebooks doesn't work well, using the IPython
 magic ``%gui qt`` after importing MNE/Mayavi/PySurfer should `help
 <https://github.com/ipython/ipython/issues/10384>`_.
 
-.. code:: ipython
+.. code-block:: ipython
 
    from mayavi import mlab
    %gui qt
@@ -43,26 +44,22 @@ Python runs on macOS extremely slow even on simple commands!
 ------------------------------------------------------------
 
 Python uses some backends that interfere with the macOS energy saver when 
-using an IDE such as Spyder or PyCharm. To test it, import ``time`` and run:
+using an IDE such as Spyder or PyCharm. To test it, import ``time`` and run::
 
-.. code:: ipython
-
-   start = time.time(); time.sleep(0.0005); print(time.time() - start)
+    start = time.time(); time.sleep(0.0005); print(time.time() - start)
 
 If it takes several seconds you can either:
 
-- Install the module ``appnope`` and run in your script:
+- Install the module ``appnope`` and run in your script::
 
-.. code:: ipython
-
-   import appnope
-   appnope.nope()
+      import appnope
+      appnope.nope()
 
 - Change the configuration defaults by running in your terminal:
 
-.. code-block:: console
+  .. code-block:: console
 
-  $ defaults write org.python.python NSAppSleepDisabled -bool YES
+      $ defaults write org.python.python NSAppSleepDisabled -bool YES
 
 
 How do I cite MNE?
