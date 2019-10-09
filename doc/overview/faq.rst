@@ -39,6 +39,29 @@ magic ``%gui qt`` after importing MNE/Mayavi/PySurfer should `help
    from mayavi import mlab
    %gui qt
 
+Python runs on MAC extremely slow even on simple commands!
+---------------------------------------------------------
+
+Python uses some backends that interfere with the macOS energy saver when 
+using an IDE such as Spyder or PyCharm. To test it, import ``time`` and run:
+
+.. code:: ipython
+
+   start = time.time(); time.sleep(0.0005); print(time.time() - start)
+
+If it takes several seconds you can either:
+
+- Install the module ``appnope`` and run in your script:
+.. code:: ipython
+
+   import appnope
+   appnope.nope()
+
+- Change the configuration defaults by running in your terminal:
+.. code-block:: console
+
+  $ defaults write org.python.python NSAppSleepDisabled -bool YES
+
 
 How do I cite MNE?
 ------------------
