@@ -39,7 +39,7 @@ from mne.preprocessing import (create_eog_epochs, create_ecg_epochs,
 # What is SSP?
 # ^^^^^^^^^^^^
 #
-# Signal-space projection (SSP) :cite:`b-UusitaloIlmoniemi1997` is a technique
+# Signal-space projection (SSP) :fncite:`UusitaloIlmoniemi1997` is a technique
 # for removing noise from EEG
 # and MEG signals by :term:`projecting <projector>` the signal onto a
 # lower-dimensional subspace. The subspace is chosen by calculating the average
@@ -406,7 +406,4 @@ for title in ('Without', 'With'):
 # References
 # ^^^^^^^^^^
 #
-# .. bibliography:: ../../references.bib
-#    :style: unsrt
-#    :labelprefix: B
-#    :keyprefix: b-
+# .. fnbibliography:: ../../references.bib
