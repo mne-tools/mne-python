@@ -359,6 +359,7 @@ Projections:
    ica_find_eog_events
    infomax
    mark_flat
+   maxwell_autobad
    maxwell_filter
    oversampled_temporal_projection
    peak_finder
