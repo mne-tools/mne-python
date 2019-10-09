@@ -2858,10 +2858,10 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
     else:
         # imshow for linear because the y ticks are nicer
         # and the masked areas look better
-        ds = np.array([np.median(np.diff(times)),
-                       np.median(np.diff(yvals))]) / 2.
-        extent = [times[0] - ds[0], times[-1] + ds[0],
-                  yvals[0] - ds[1], yvals[-1] + ds[1]]
+        dt = np.median(np.diff(times)) / 2. if len(times) > 1 else 0.1
+        dy = np.median(np.diff(yvals)) / 2. if len(yvals) > 1 else 0.5
+        extent = [times[0] - dt, times[-1] + dt,
+                  yvals[0] - dy, yvals[-1] + dy]
         im_args = dict(interpolation='nearest', origin='lower',
                        extent=extent, aspect='auto', vmin=vmin, vmax=vmax)
 
