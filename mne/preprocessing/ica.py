@@ -2639,7 +2639,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
 
 
 def read_eeglab_ica(file_name):
-    """Load ica information saved in an EEGLAB .set file.
+    """Load ICA information saved in an EEGLAB .set file.
 
     Parameters
     ----------
