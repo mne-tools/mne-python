@@ -601,17 +601,15 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
     ax.set(ylabel=ylabel, xlabel='Time (%s)' % (time_unit,), title=t)
     _add_nave(ax, nave)
 
-    if show_names is not False:
+    if show_names:
         if show_names == "all":
             yticks = np.arange(len(picks)).astype(int)
             yticklabels = np.array(ch_names)[picks]
         else:
-            max_tick = len(picks)
-            yticks = [tick for tick in ax.get_yticks() if tick < max_tick]
-            yticks = np.array(yticks).astype(int)
-            # these should only ever be ints right?
+            yticks = np.round(ax.get_yticks()).astype(int)
+            yticks = np.intersect1d(yticks, np.arange(len(picks), dtype=int))
             yticklabels = np.array(ch_names)[picks][yticks]
-        ax.set(yticks=yticks + .5, yticklabels=yticklabels)
+        ax.set(yticks=yticks, yticklabels=yticklabels)
 
 
 @verbose
@@ -939,14 +937,13 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
         The units for the time axis, can be "ms" or "s" (default).
 
         .. versionadded:: 0.16
-    show_names : bool | str
+    show_names : bool | 'auto' | 'all'
         Determines if channel names should be plotted on the y axis. If False,
-        no names are shown. If True, ticks are set automatically and the
-        corresponding channel names are shown. If str, must be "auto" or "all".
-        If "all", all channel names are shown.
-        If "auto", is set to False if `picks` is ``None``; to ``True`` if
-        `picks` is not ``None`` and fewer than 25 picks are shown; to "all"
-        if `picks` is not ``None`` and contains fewer than 25 entries.
+        no names are shown. If True, ticks are set automatically by matplotlib
+        and the corresponding channel names are shown. If "all", all channel
+        names are shown. If "auto", is set to False if `picks` is ``None``,
+        to ``True`` if ``picks`` contains 25 or more entries, or to "all"
+        if ``picks`` contains fewer than 25 entries.
     group_by : None | dict
         If a dict, the values must be picks, and `axes` must also be a dict
         with matching keys, or None. If `axes` is None, one figure and one axis
