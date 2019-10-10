@@ -67,8 +67,8 @@ raw.crop(tmax=60).load_data()
 # - Raw movement compensation (using head positions estimated by MaxFilter)
 # - cHPI subtraction (see :func:`mne.chpi.filter_chpi`)
 # - Handling of 3D (in addition to 1D) fine calibration files
-# - Epoch-based movement compensation as described in :footcite:`TauluKajola2005`
-#   through :func:`mne.epochs.average_movements`
+# - Epoch-based movement compensation as described in
+#   :footcite:`TauluKajola2005` through :func:`mne.epochs.average_movements`
 # - **Experimental** processing of data from (un-compensated) non-Elekta
 #   systems
 #

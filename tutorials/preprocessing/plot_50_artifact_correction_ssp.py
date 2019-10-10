@@ -39,8 +39,8 @@ from mne.preprocessing import (create_eog_epochs, create_ecg_epochs,
 # What is SSP?
 # ^^^^^^^^^^^^
 #
-# Signal-space projection (SSP) :footcite:`UusitaloIlmoniemi1997` is a technique
-# for removing noise from EEG
+# Signal-space projection (SSP) :footcite:`UusitaloIlmoniemi1997` is a
+# technique for removing noise from EEG
 # and MEG signals by :term:`projecting <projector>` the signal onto a
 # lower-dimensional subspace. The subspace is chosen by calculating the average
 # pattern across sensors when the noise is present, treating that pattern as
