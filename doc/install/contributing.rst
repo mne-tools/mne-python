@@ -19,19 +19,16 @@ Contributing to MNE-Python
 MNE-Python is maintained by a community of scientists and research labs, and
 accepts contributions in the form of bug reports, fixes, feature additions, and
 documentation improvements (even just typo corrections). The best way to start
-contributing is by `opening an issue`_ on our GitHub page to tell us about
-errors you are encountering or to discuss your ideas for changes. For general
-troubleshooting, you can also write to the `MNE mailing list`_ or chat with
-developers on the `MNE gitter channel`_.
+contributing is by `opening an issue`_ on our GitHub page to discuss your ideas
+for changes or enhancements, or to tell us about behavior that you think might
+be a bug in MNE-Python. *For general troubleshooting of scripts that use
+MNE-Python*, you should instead write to the `MNE mailing list`_ or chat with
+developers on the `MNE gitter channel`_. Users and contributors to MNE-Python
+are expected to follow our `code of conduct`_.
 
-Changes are typically made by `forking`_ the MNE-Python repository, making
-changes to your fork (usually by `cloning`_ it to your personal computer,
-making the changes, and then `pushing`_ the local changes up to your fork), and
-finally creating a `pull request`_ to incorporate your changes back into the
-shared "upstream" version of the codebase.
-
-Users and contributors to MNE-Python are expected to follow our `code of
-conduct`_.
+The `contributing guide`_ has details on the preferred contribution workflow
+and how best to configure your system for a smooth experience contributing to
+MNE-Python.
 
 .. collapse:: |rocket| Want an example to work through?
    :class: success
@@ -45,16 +42,17 @@ conduct`_.
 .. _`MNE mailing list`: http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
 .. _`MNE gitter channel`: https://gitter.im/mne-tools/mne-python
 
-.. _`forking`: https://help.github.com/en/articles/fork-a-repo
-.. _`cloning`: https://help.github.com/en/articles/cloning-a-repository
-.. _`pushing`: https://help.github.com/en/articles/pushing-to-a-remote
-.. _`pull request`: https://help.github.com/en/articles/creating-a-pull-request-from-a-fork
-
 .. _`code of conduct`: https://github.com/mne-tools/mne-python/blob/master/CODE_OF_CONDUCT.md
-.. _`GitHub issues marked "easy"`:
+.. _`GitHub issues marked "easy"`: https://github.com/mne-tools/mne-python/issues?q=is%3Aissue+is%3Aopen+label%3AEASY
 
 Overview of contribution process
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Changes to MNE-Python are typically made by `forking`_ the MNE-Python
+repository, making changes to your fork (usually by `cloning`_ it to your
+personal computer, making the changes, and then `pushing`_ the local changes up
+to your fork), and finally creating a `pull request`_ to incorporate your
+changes back into the shared "upstream" version of the codebase.
 
 In general you'll be working with three different copies of the MNE-Python
 codebase: the official remote copy at https://github.com/mne-tools/mne-python
@@ -120,9 +118,17 @@ when writing commit messages, so you might as well configure that now too::
    $ git config --global core.editor emacs    # or vim, or nano, or subl, or...
 
 There are many other ways to customize git's behavior; see `configuring git`_
-for more information. Once you have git installed and configured, and before
-creating your local copy of the codebase, go to the `MNE-Python GitHub`_ page
-and create a `fork`_ into your GitHub user account.
+for more information.
+
+
+Forking the MNE-Python repository
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Once you have git installed and configured, and before creating your local copy
+of the codebase, go to the `MNE-Python GitHub`_ page and create a `fork`_ into
+your GitHub user account.
+
+.. image:: https://help.github.com/assets/images/help/repository/fork_button.jpg
 
 
 Setting up the development environment
@@ -843,6 +849,9 @@ it can serve as a useful example of what to expect from the PR review process.
 .. _fork: https://help.github.com/en/articles/fork-a-repo
 .. _clone: https://help.github.com/en/articles/cloning-a-repository
 .. _push: https://help.github.com/en/articles/pushing-to-a-remote
+.. _forking: https://help.github.com/en/articles/fork-a-repo
+.. _cloning: https://help.github.com/en/articles/cloning-a-repository
+.. _pushing: https://help.github.com/en/articles/pushing-to-a-remote
 .. _branches: https://help.github.com/en/articles/about-branches
 .. _several help pages: https://help.github.com/en/articles/connecting-to-github-with-ssh
 .. _draft PRs: https://help.github.com/en/articles/about-pull-requests#draft-pull-requests
