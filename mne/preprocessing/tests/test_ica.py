@@ -1086,13 +1086,13 @@ def test_ica_eeg():
 @testing.requires_testing_data
 def test_read_ica_eeglab():
     """Test read_ica_eeglab function."""
-    file_name = op.join(test_base_dir, "EEGLAB", "test_raw.set")
-    file_name_cleaned_matlab = op.join(test_base_dir, "EEGLAB",
-                                       "test_raw.cleaned.set")
+    fname = op.join(test_base_dir, "EEGLAB", "test_raw.set")
+    fname_cleaned_matlab = op.join(test_base_dir, "EEGLAB",
+                                   "test_raw.cleaned.set")
 
-    raw = read_raw_eeglab(file_name, preload=True)
-    raw_eeg = _check_load_mat(file_name, None)
-    raw_cleaned_matlab = read_raw_eeglab(file_name_cleaned_matlab,
+    raw = read_raw_eeglab(fname, preload=True)
+    raw_eeg = _check_load_mat(fname, None)
+    raw_cleaned_matlab = read_raw_eeglab(fname_cleaned_matlab,
                                          preload=True)
 
     mark_to_remove = ["manual"]
@@ -1107,10 +1107,11 @@ def test_read_ica_eeglab():
     else:
         ind_comp_to_drop = np.where(comp_info["flags"])[0]
 
-    ica = read_ica_eeglab(file_name)
+    ica = read_ica_eeglab(fname)
     raw_cleaned = ica.apply(raw.copy(), exclude=ind_comp_to_drop)
 
-    assert np.allclose(raw_cleaned_matlab.get_data(), raw_cleaned.get_data())
+    assert_allclose(raw_cleaned_matlab.get_data(), raw_cleaned.get_data(),
+                    rtol=1e-05, atol=1e-08)
 
 
 run_tests_if_main()

@@ -2638,12 +2638,12 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         return None
 
 
-def read_ica_eeglab(file_name):
+def read_ica_eeglab(fname):
     """Load ICA information saved in an EEGLAB .set file.
 
     Parameters
     ----------
-    file_name : str
+    fname : str
         Complete path to a .set EEGLAB file that contains an ICA.
 
     Returns
@@ -2651,7 +2651,7 @@ def read_ica_eeglab(file_name):
     ica : instance of ICA
         An ICA object based on the information contained in the input file.
     """
-    eeg = _check_load_mat(file_name, None)
+    eeg = _check_load_mat(fname, None)
     info, _, _ = _get_info(eeg)
 
     n_components = eeg.icaweights.shape[0]

@@ -363,6 +363,7 @@ Projections:
    read_ica
    run_ica
    corrmap
+   read_ica_eeglab
 
 :py:mod:`mne.preprocessing.nirs`:
 
