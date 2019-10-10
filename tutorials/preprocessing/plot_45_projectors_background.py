@@ -230,7 +230,7 @@ ax.quiver3D(*arrow_coords, length=0.96, arrow_length_ratio=0.1,
 #
 # We mentioned above that the projection matrix will vary depending on what
 # kind of noise you are trying to project away. Signal-space projection (SSP)
-# :fncite:`UusitaloIlmoniemi1997` is a way of estimating what that projection
+# :footcite:`UusitaloIlmoniemi1997` is a way of estimating what that projection
 # matrix should be, by
 # comparing measurements with and without the signal of interest. For example,
 # you can take additional "empty room" measurements that record activity at the
@@ -473,7 +473,7 @@ for data, title in zip([mags, mags_ecg], ['Without', 'With']):
 # References
 # ^^^^^^^^^^
 #
-# .. fnbibliography:: ../../references.bib
+# .. footbibliography:: ../../references.bib
 #
 #
 # .. LINKS

@@ -29,5 +29,5 @@ neo
 xlrd
 pydocstyle
 flake8
-https://github.com/mcmtroffaes/sphinxcontrib-bibtex/zipball/feature/footnotes
+https://github.com/mcmtroffaes/sphinxcontrib-bibtex/zipball/develop
 https://github.com/pyvista/pyvista/zipball/master
