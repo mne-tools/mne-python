@@ -601,15 +601,17 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
     ax.set(ylabel=ylabel, xlabel='Time (%s)' % (time_unit,), title=t)
     _add_nave(ax, nave)
 
-    if show_names:
-        if show_names == "all":
-            yticks = np.arange(len(picks)).astype(int)
-            yticklabels = np.array(ch_names)[picks]
-        else:
-            yticks = np.round(ax.get_yticks()).astype(int)
-            yticks = np.intersect1d(yticks, np.arange(len(picks), dtype=int))
+    if show_names == "all":
+        yticks = np.arange(len(picks)).astype(int)
+        yticklabels = np.array(ch_names)[picks]
+    else:
+        yticks = np.round(ax.get_yticks()).astype(int)
+        yticks = np.intersect1d(yticks, np.arange(len(picks), dtype=int))
+        if show_names:
             yticklabels = np.array(ch_names)[picks][yticks]
-        ax.set(yticks=yticks, yticklabels=yticklabels)
+        else:
+            yticklabels = np.array(picks)[yticks]
+    ax.set(yticks=yticks, yticklabels=yticklabels)
 
 
 @verbose
