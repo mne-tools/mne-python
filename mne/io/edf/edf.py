@@ -506,6 +506,20 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     return info, edf_info, orig_units
 
 
+def _parse_prefilter_string(prefiltering: str):
+    """Parses prefilter string from EDF+ and BDF headers for highpass
+       and lowpass filters"""
+    highpass = np.array(
+        [v for hp in [re.findall(r'HP:\s*([0-9]+[.]*[0-9]*)', filt)
+                      for filt in prefiltering] for v in hp]
+    )
+    lowpass = np.array(
+        [v for hp in [re.findall(r'LP:\s*([0-9]+[.]*[0-9]*)', filt)
+                      for filt in prefiltering] for v in hp]
+    )
+    return highpass, lowpass
+
+
 def _read_edf_header(fname, exclude):
     """Read header information from EDF+ or BDF file."""
     edf_info = {'events': []}
@@ -590,14 +604,7 @@ def _read_edf_header(fname, exclude):
                                 for ch in channels])[sel]
         prefiltering = [fid.read(80).decode().strip(' \x00')
                         for ch in channels][:-1]
-        highpass = np.array(
-            [v for hp in [re.findall(r'HP:\s*([0-9]+[.]*[0-9]*)', filt)
-                          for filt in prefiltering] for v in hp]
-        )
-        lowpass = np.array(
-            [v for hp in [re.findall(r'LP:\s*([0-9]+[.]*[0-9]*)', filt)
-                          for filt in prefiltering] for v in hp]
-        )
+        highpass, lowpass = _parse_prefilter_string(prefiltering)
 
         # number of samples per record
         n_samps = np.array([int(fid.read(8).decode()) for ch
@@ -732,14 +739,7 @@ def _read_gdf_header(fname, exclude):
             digital_max = np.fromfile(fid, np.int64, len(channels))
             prefiltering = [fid.read(80).decode().strip(' \x00')
                             for ch in channels][:-1]
-            highpass = np.array(
-                [v for hp in [re.findall(r'HP:\s*([0-9]+[.]*[0-9]*)', filt)
-                              for filt in prefiltering] for v in hp]
-            )
-            lowpass = np.array(
-                [v for hp in [re.findall(r'LP:\s*([0-9]+[.]*[0-9]*)', filt)
-                              for filt in prefiltering] for v in hp]
-            )
+            highpass, lowpass = _parse_prefilter_string(prefiltering)
 
             # n samples per record
             n_samps = np.fromfile(fid, np.int32, len(channels))
