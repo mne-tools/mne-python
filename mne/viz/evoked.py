@@ -585,9 +585,9 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
         vmin=vmin, vmax=vmax, mask_style=mask_style, mask_alpha=mask_alpha,
         mask_cmap=mask_cmap)
 
+    # ignore xlim='tight'; happens automatically with `extent` in imshow
+    xlim = None if xlim == 'tight' else xlim
     if xlim is not None:
-        if xlim == 'tight':
-            xlim = (times[0], times[-1])
         ax.set_xlim(xlim)
 
     if colorbar:
