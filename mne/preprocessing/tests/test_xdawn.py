@@ -15,7 +15,6 @@ from mne import (Epochs, read_events, pick_types, compute_raw_covariance,
 from mne.io import read_raw_fif
 from mne.utils import (requires_sklearn, run_tests_if_main, check_version,
                        _get_numpy_libs)
-from mne.preprocessing import maxwell_filter
 from mne.preprocessing.xdawn import Xdawn, _XdawnTransformer
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
