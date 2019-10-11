@@ -2652,7 +2652,7 @@ def read_ica_eeglab(fname):
         An ICA object based on the information contained in the input file.
     """
     eeg = _check_load_mat(fname, None)
-    info, _, _ = _get_info(eeg)
+    info = _get_info(eeg)[0]
 
     n_components = eeg.icaweights.shape[0]
 
