@@ -2615,9 +2615,9 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     if len(nones) == 0:
         logger.info('At least 1 IC detected for each subject.')
     else:
-        logger.info('No maps selected for subject%s, '
-                    ', consider a more liberal threshold.'
-                    % ([str(x) for x in nones], _pl(nones)))
+        logger.info('No maps selected for subject%s %s, '
+                    'consider a more liberal threshold.'
+                    % (_pl(nones), nones))
 
     if plot is True:
         labelled_ics = _plot_corrmap(allmaps, subjs, indices, ch_type, ica,

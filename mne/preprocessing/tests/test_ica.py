@@ -402,6 +402,20 @@ def test_ica_additional(method):
 
     plt.close('all')
 
+    # No match
+    bad_ica = ica2.copy()
+    bad_ica.mixing_matrix_[:] = 0.
+    with pytest.warns(RuntimeWarning, match='divide'):
+        with catch_logging() as log:
+            corrmap([ica, bad_ica], (0, 0), threshold=0.5, plot=False,
+                    show=False, verbose=True)
+    log = log.getvalue()
+    assert 'No maps selected' in log
+
+    # make sure a single threshold in a list works
+    corrmap([ica, ica3], template, threshold=[0.5], label='blinks', plot=True,
+            ch_type="mag")
+
     ica_different_channels = ICA(n_components=2, random_state=0).fit(
         raw, picks=[2, 3, 4, 5])
     pytest.raises(ValueError, corrmap, [ica_different_channels, ica], (0, 0))
