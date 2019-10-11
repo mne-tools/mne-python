@@ -40,7 +40,6 @@ raw.crop(tmax=60.)
 #     See :ref:`tut-artifact-overview` for guidance on detecting and
 #     visualizing various types of artifact.
 #
-#
 # What is ICA?
 # ^^^^^^^^^^^^
 #
