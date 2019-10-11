@@ -108,10 +108,9 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
     chs = list({channel_type(info, j) for j in picks})
     check = all([ch in types for ch in chs])
     if not check:
-        raise ValueError('Invalid channel type(s) passed for ICA.\n'
-                         'Only the following channels are supported {}\n'
-                         'Following types were passed {}\n'
-                         .format(types, chs))
+        raise ValueError('Invalid channel type%s passed for ICA: %s.'
+                         'Only the following types are supported: %s'
+                         .format(_pl(chs), chs, types))
 
 
 @fill_doc
@@ -2574,21 +2573,24 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         raise RuntimeError(threshold_err)
     paths = [_find_max_corrs(all_maps, target, t) for t in threshold]
     # find iteration with highest avg correlation with target
-    nt, mt, s, mx = paths[np.argmax([path[2] for path in paths])]
+    new_target, _, _, _ = paths[np.argmax([path[2] for path in paths])]
 
     # second run: use output from first run
-    if len(all_maps) == 0 or len(nt) == 0:
+    if len(all_maps) == 0 or len(new_target) == 0:
         raise RuntimeError(threshold_err)
-    paths = [_find_max_corrs(all_maps, nt, t) for t in threshold]
+    paths = [_find_max_corrs(all_maps, new_target, t) for t in threshold]
+    del new_target
     # find iteration with highest avg correlation with target
-    nt, mt, s, mx = paths[np.argmax([path[1] for path in paths])]
+    _, median_corr, _, max_corrs = paths[
+        np.argmax([path[1] for path in paths])]
 
     allmaps, indices, subjs, nones = [list() for _ in range(4)]
-    logger.info('Median correlation with constructed map: %0.3f' % mt)
+    logger.info('Median correlation with constructed map: %0.3f' % median_corr)
+    del median_corr
     if plot is True:
         logger.info('Displaying selected ICs per subject.')
 
-    for ii, (ica, max_corr) in enumerate(zip(icas, mx)):
+    for ii, (ica, max_corr) in enumerate(zip(icas, max_corrs)):
         if len(max_corr) > 0:
             if isinstance(max_corr[0], np.ndarray):
                 max_corr = max_corr[0]
@@ -2607,9 +2609,9 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     if len(nones) == 0:
         logger.info('At least 1 IC detected for each subject.')
     else:
-        logger.info('No maps selected for subject(s) ' +
-                    ', '.join([str(x) for x in nones]) +
-                    ', consider a more liberal threshold.')
+        logger.info('No maps selected for subject%s, '
+                    ', consider a more liberal threshold.'
+                    % ([str(x) for x in nones], _pl(nones)))
 
     if plot is True:
         labelled_ics = _plot_corrmap(allmaps, subjs, indices, ch_type, ica,
