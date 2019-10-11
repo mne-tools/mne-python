@@ -273,3 +273,5 @@
 .. _Adonay Nunes: https://github.com/AdoNunes
 
 .. _Victor Ferat: https://github.com/vferat
+
+.. _Demetres Kostas: https://github.com/kostasde

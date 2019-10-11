@@ -26,6 +26,7 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.io.edf.edf import _get_edf_default_event_id
 from mne.io.edf.edf import _read_annotations_edf
 from mne.io.edf.edf import _read_ch
+from mne.io.edf.edf import _parse_prefilter_string
 from mne.io.pick import channel_indices_by_type
 from mne.annotations import events_from_annotations, read_annotations
 from mne.io.meas_info import _kind_dict as _KIND_DICT
@@ -273,6 +274,29 @@ def test_read_annotations(fname, recwarn):
     """Test IO of annotations from edf and bdf files via regexp."""
     annot = read_annotations(fname)
     assert len(annot.onset) == 2
+
+
+def test_edf_prefilter_parse():
+    """Test prefilter strings from header are parsed correctly."""
+    prefilter_basic = ["HP: 0Hz LP: 0Hz"]
+    highpass, lowpass = _parse_prefilter_string(prefilter_basic)
+    assert_array_equal(highpass, ["0"])
+    assert_array_equal(lowpass, ["0"])
+
+    prefilter_normal_multi_ch = ["HP: 1Hz LP: 30Hz"] * 10
+    highpass, lowpass = _parse_prefilter_string(prefilter_normal_multi_ch)
+    assert_array_equal(highpass, ["1"] * 10)
+    assert_array_equal(lowpass, ["30"] * 10)
+
+    prefilter_unfiltered_ch = prefilter_normal_multi_ch + [""]
+    highpass, lowpass = _parse_prefilter_string(prefilter_unfiltered_ch)
+    assert_array_equal(highpass, ["1"] * 10)
+    assert_array_equal(lowpass, ["30"] * 10)
+
+    prefilter_edf_specs_doc = ["HP:0.1Hz LP:75Hz N:50Hz"]
+    highpass, lowpass = _parse_prefilter_string(prefilter_edf_specs_doc)
+    assert_array_equal(highpass, ["0.1"])
+    assert_array_equal(lowpass, ["75"])
 
 
 @testing.requires_testing_data
