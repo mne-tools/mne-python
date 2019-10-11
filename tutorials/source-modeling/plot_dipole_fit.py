@@ -101,3 +101,10 @@ plt.suptitle('Comparison of measured and predicted fields '
 dip_fixed = mne.fit_dipole(evoked_full, fname_cov, fname_bem, fname_trans,
                            pos=dip.pos[best_idx], ori=dip.ori[best_idx])[0]
 dip_fixed.plot(time_unit='s')
+
+##############################################################################
+# References
+# ----------
+# .. [1] Sarvas, J. (1987). Basic mathematical and electromagnetic concepts of
+#        the biomagnetic inverse problem.
+#        Physics in Medicine & Biology, 32(1), 11.
