@@ -285,20 +285,20 @@ def test_edf_prefilter_parse():
 
     prefilter_normal_multi_ch = ["HP: 1Hz LP: 30Hz"] * 10
     highpass, lowpass = _parse_prefilter_string(prefilter_normal_multi_ch)
-    assert_array_equal(highpass, ["1"]*10)
-    assert_array_equal(lowpass, ["30"]*10)
+    assert_array_equal(highpass, ["1"] * 10)
+    assert_array_equal(lowpass, ["30"] * 10)
 
     prefilter_unfiltered_ch = prefilter_normal_multi_ch + [""]
     highpass, lowpass = _parse_prefilter_string(prefilter_unfiltered_ch)
-    assert_array_equal(highpass, ["1"]*10)
-    assert_array_equal(lowpass, ["30"]*10)
-    
+    assert_array_equal(highpass, ["1"] * 10)
+    assert_array_equal(lowpass, ["30"] * 10)
+
     prefilter_edf_specs_doc = ["HP:0.1Hz LP:75Hz N:50Hz"]
     highpass, lowpass = _parse_prefilter_string(prefilter_edf_specs_doc)
     assert_array_equal(highpass, ["0.1"])
     assert_array_equal(lowpass, ["75"])
 
-    
+
 @testing.requires_testing_data
 @pytest.mark.parametrize('fname', [test_generator_edf, test_generator_bdf])
 def test_load_generator(fname, recwarn):
