@@ -596,22 +596,16 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
         if cmap[1]:
             ax.CB = DraggableColorbar(cbar, im)
 
-    ylabel = "Channels" if show_names else 'Channel (index)'
+    ylabel = 'Channels' if show_names else 'Channel (index)'
     t = titles[this_type] + ' (%d channel%s' % (len(data), _pl(data)) + t_end
     ax.set(ylabel=ylabel, xlabel='Time (%s)' % (time_unit,), title=t)
     _add_nave(ax, nave)
 
-    if show_names == "all":
-        yticks = np.arange(len(picks)).astype(int)
-        yticklabels = np.array(ch_names)[picks]
-    else:
-        yticks = np.round(ax.get_yticks()).astype(int)
-        yticks = np.intersect1d(yticks, np.arange(len(picks), dtype=int))
-        if show_names:
-            yticklabels = np.array(ch_names)[picks][yticks]
-        else:
-            yticklabels = np.array(picks)[yticks]
-    ax.set(yticks=yticks, yticklabels=yticklabels)
+    yticks = np.arange(len(picks))
+    if show_names != 'all':
+        yticks = np.intersect1d(np.round(ax.get_yticks()).astype(int), yticks)
+    yticklabels = np.array(ch_names)[picks] if show_names else np.array(picks)
+    ax.set(yticks=yticks, yticklabels=yticklabels[yticks])
 
 
 @verbose
