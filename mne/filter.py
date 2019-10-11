@@ -1811,6 +1811,7 @@ class FilterMixin(object):
         References
         ----------
         .. footbibliography:: ../references.bib
+
         Examples
         --------
         >>> import mne
