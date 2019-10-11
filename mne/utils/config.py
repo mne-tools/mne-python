@@ -7,7 +7,6 @@
 import atexit
 from functools import partial
 import inspect
-from io import StringIO
 import json
 import os
 import os.path as op
@@ -415,6 +414,28 @@ def _get_root_dir():
     return root_dir
 
 
+def _get_numpy_libs():
+    from ._testing import SilenceStdout
+    with SilenceStdout() as capture:
+        np.show_config()
+    lines = capture.getvalue().split('\n')
+    libs = []
+    for li, line in enumerate(lines):
+        for key in ('lapack', 'blas'):
+            if line.startswith('%s_opt_info' % key):
+                lib = lines[li + 1]
+                if 'NOT AVAILABLE' in lib:
+                    lib = 'unknown'
+                else:
+                    try:
+                        lib = lib.split('[')[1].split("'")[1]
+                    except IndexError:
+                        pass  # keep whatever it was
+                libs += ['%s=%s' % (key, lib)]
+    libs = ', '.join(libs)
+    return libs
+
+
 def sys_info(fid=None, show_paths=False):
     """Print the system information for debugging.
 
@@ -473,28 +494,7 @@ def sys_info(fid=None, show_paths=False):
     else:
         out += '%0.1f GB\n' % (psutil.virtual_memory().total / float(2 ** 30),)
     out += '\n'
-    old_stdout = sys.stdout
-    capture = StringIO()
-    try:
-        sys.stdout = capture
-        np.show_config()
-    finally:
-        sys.stdout = old_stdout
-    lines = capture.getvalue().split('\n')
-    libs = []
-    for li, line in enumerate(lines):
-        for key in ('lapack', 'blas'):
-            if line.startswith('%s_opt_info' % key):
-                lib = lines[li + 1]
-                if 'NOT AVAILABLE' in lib:
-                    lib = 'unknown'
-                else:
-                    try:
-                        lib = lib.split('[')[1].split("'")[1]
-                    except IndexError:
-                        pass  # keep whatever it was
-                libs += ['%s=%s' % (key, lib)]
-    libs = ', '.join(libs)
+    libs = _get_numpy_libs()
     for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
                      'numba', 'nibabel', 'cupy', 'pandas', 'dipy',
                      'mayavi', 'pyvista', 'vtk'):

@@ -5,6 +5,7 @@
 
 import numpy as np
 import os.path as op
+import sys
 
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 import pytest
@@ -12,7 +13,8 @@ import pytest
 from mne import (Epochs, read_events, pick_types, compute_raw_covariance,
                  create_info, EpochsArray)
 from mne.io import read_raw_fif
-from mne.utils import requires_sklearn, run_tests_if_main
+from mne.utils import (requires_sklearn, run_tests_if_main, has_version,
+                       _get_numpy_libs)
 from mne.preprocessing import maxwell_filter
 from mne.preprocessing.xdawn import Xdawn, _XdawnTransformer
 
@@ -186,12 +188,17 @@ def test_xdawn_regularization():
     xd = Xdawn(correct_overlap=False, reg=None)
     # this is a bit wacky because `epochs` has projectors on from the old raw
     # but it works as a rank-deficient test case
-    with pytest.raises(ValueError, match='Could not compute eigenvalues'):
-        xd.fit(epochs)
     xd = Xdawn(correct_overlap=False, reg=0.5)
     xd.fit(epochs)
     xd = Xdawn(correct_overlap=False, reg='diagonal_fixed')
     xd.fit(epochs)
+    bad_eig = (sys.platform.startswith('win') and
+               has_version('numpy', '1.16.5') and
+               'mkl_rt' in _get_numpy_libs())  # some problem with MKL on Win
+    if bad_eig:
+        pytest.skip('Unknown MKL+Windows error fails for eig check')
+    with pytest.raises(ValueError, match='Could not compute eigenvalues'):
+        xd.fit(epochs)
 
 
 @requires_sklearn

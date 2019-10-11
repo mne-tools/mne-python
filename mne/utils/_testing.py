@@ -289,7 +289,7 @@ class SilenceStdout(object):
     def __enter__(self):  # noqa: D105
         self.stdout = sys.stdout
         sys.stdout = StringIO()
-        return self
+        return sys.stdout
 
     def __exit__(self, *args):  # noqa: D105
         sys.stdout = self.stdout
