@@ -277,7 +277,7 @@ def test_read_annotations(fname, recwarn):
 
 
 def test_edf_prefilter_parse():
-    """Test prefilter strings from header are parsed correctly"""
+    """Test prefilter strings from header are parsed correctly."""
     prefilter_basic = ["HP: 0Hz LP: 0Hz"]
     highpass, lowpass = _parse_prefilter_string(prefilter_basic)
     assert_array_equal(highpass, ["0"])
