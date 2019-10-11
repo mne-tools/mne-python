@@ -506,9 +506,8 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     return info, edf_info, orig_units
 
 
-def _parse_prefilter_string(prefiltering: str):
-    """Parses prefilter string from EDF+ and BDF headers for highpass
-       and lowpass filters"""
+def _parse_prefilter_string(prefiltering):
+    """Parse prefilter string from EDF+ and BDF headers."""
     highpass = np.array(
         [v for hp in [re.findall(r'HP:\s*([0-9]+[.]*[0-9]*)', filt)
                       for filt in prefiltering] for v in hp]
