@@ -77,10 +77,9 @@ def check_version(library, min_version):
     except ImportError:
         ok = False
     else:
-        if min_version:
-            this_version = LooseVersion(library.__version__)
-            if this_version < min_version:
-                ok = False
+        if min_version and \
+                LooseVersion(library.__version__) < LooseVersion(min_version):
+            ok = False
     return ok
 
 
