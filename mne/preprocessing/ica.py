@@ -203,24 +203,37 @@ class ICA(ContainsMixin):
         If fit, the mean vector used to center the data before doing the PCA.
     pca_explained_variance_ : ndarray, shape (`max_pca_components`,)
         If fit, the variance explained by each PCA component.
-    mixing_matrix_ : ndarray, shape (`n_components_`, `n_components_`)
+    mixing_matrix_ : ndarray
         If fit, the whitened mixing matrix to go back from ICA space to PCA
-        space.
-        It is, in combination with the `pca_components_`, used by
-        :meth:`ICA.apply` and :meth:`ICA.get_components` to re-mix/project
-        a subset of the ICA components into the observed channel space.
-        The former method also removes the pre-whitening (z-scaling) and the
-        de-meaning.
-    unmixing_matrix_ : ndarray, shape (`n_components_`, `n_components_`)
+        space and has a square shape with dimension (`n_components_`,
+        `n_components_`).
+        If imported from EEGLAB and if PCA reduction has been used in
+        EEGLAB, the mixing/unmixing matrices are including this data
+        reduction step, such that they take rectangular shapes.
+        The `mixing_matrix` is, in combination with the `pca_components_`,
+        used by :meth:`ICA.apply` and :meth:`ICA.get_components` to
+        re-mix/project a subset of the ICA components into the observed
+        channel space. The former method also removes the pre-whitening
+        (z-scaling) and the de-meaning.
+    unmixing_matrix_ : ndarray
         If fit, the whitened matrix to go from PCA space to ICA space.
         Used, in combination with the `pca_components_`, by the methods
         :meth:`ICA.get_sources` and :meth:`ICA.apply` to unmix the observed data.
+        In this case, this matrix has a square shape with dimension
+        (`n_components_`, `n_components_`).
+        If imported from EEGLAB and if PCA reduction has been used in
+        EEGLAB, runica returns
+            weights= weights*sphere*eigenvectors(:,1:ncomps)';
+            sphere = eye(urchans);
+        such that the unmixing matrix and the PCA components cannot be
+        separated when imported in MNE. For that reason, the unmixing matrix
+        is a composite that can takes a rectangular shape.
     exclude : array-like of int
         List or np.array of sources indices to exclude when re-mixing the data
         in the :meth:`ICA.apply` method, i.e. artifactual ICA components.
         The components identified manually and by the various automatic
         artifact detection methods should be (manually) appended
-        (e.g. ``ica.exclude.extend(eog_inds)``).
+        (e.g. `ica.exclude.extend(eog_inds)`).
         (There is also an `exclude` parameter in the :meth:`ICA.apply` method.)
         To scrap all marked components, set this attribute to an empty list.
     info : None | instance of Info
@@ -1491,7 +1504,7 @@ class ICA(ContainsMixin):
 
         if (self.method == 'imported_eeglab' and
            np.diff(self.unmixing_matrix_.shape)[0]):
-            # When \PCA reduction is used in EEGLAB, runica returns
+            # When PCA reduction is used in EEGLAB, runica returns
             # weights= weights*sphere*eigenvectors(:,1:ncomps)';
             # sphere = eye(urchans);
             # such that we cannot separate the unmixing matrix and
@@ -2644,7 +2657,7 @@ def read_ica_eeglab(fname):
     Parameters
     ----------
     fname : str
-        Complete path to a .set EEGLAB file that contains an ICA.
+        Complete path to a .set EEGLAB file that contains an ICA object.
 
     Returns
     -------
