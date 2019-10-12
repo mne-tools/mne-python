@@ -202,6 +202,7 @@ Datasets
    spm_face.data_path
    visual_92_categories.data_path
    phantom_4dbti.data_path
+   limo.load_data
 
 
 Visualization
