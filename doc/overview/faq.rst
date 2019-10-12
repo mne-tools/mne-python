@@ -352,3 +352,4 @@ This will plot the whitened evoked for the optimal estimator and display the
 References
 ----------
 .. footbibliography:: ../references.bib
+   :style: unsrt

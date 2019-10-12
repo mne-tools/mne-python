@@ -446,3 +446,4 @@ Generalizing, for any combination of sums and differences, where :math:`w_i =
 References
 ~~~~~~~~~~
 .. footbibliography:: ../references.bib
+   :style: unsrt

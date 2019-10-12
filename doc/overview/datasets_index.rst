@@ -398,6 +398,7 @@ discriminate.
 References
 ==========
 .. footbibliography:: ../references.bib
+   :style: unsrt
 
 
 .. LINKS
