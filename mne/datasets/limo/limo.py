@@ -158,7 +158,8 @@ def load_data(subject, path=None, force_update=False, update_path=None,
 
     Returns
     -------
-    epochs : Epochs
+    epochs : instance of Epochs
+        The epochs.
     """  # noqa: E501
     pd = _check_pandas_installed()
     from scipy.io import loadmat
