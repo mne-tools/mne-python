@@ -30,7 +30,8 @@ jobs:
         - run:
             name: update pip
             command: |
-              pip install --upgrade pip
+              sudo apt-get update
+              sudo apt-get install python-pip
         - run:
             name: Merge with upstream
             command: |
