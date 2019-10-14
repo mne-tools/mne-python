@@ -345,6 +345,8 @@ functions in MNE and does not contain useful metadata for analysis.
       how to project a 3D electrode location onto a 2D image, a common procedure
       in electrocorticography.
 
+.. _limo-dataset:
+
 LIMO Dataset
 ^^^^^^^^^^^^
 :func:`mne.datasets.limo.load_data`.
