@@ -193,7 +193,7 @@ jobs:
                       python -c "import mne; print(mne.datasets.phantom_4dbti.data_path(update_path=True))";
                     fi;
                     if [[ $(cat $FNAME | grep -x ".*datasets.*limo.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.limo.data_path(subject=2, update_path=True))";
+                      python -c "import mne; print(mne.datasets.limo.data_path(subject=1, update_path=True))";
                     fi;
                   fi;
                 done;
