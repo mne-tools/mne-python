@@ -27,7 +27,10 @@ jobs:
             name: check neuromag2ft
             command: |
               neuromag2ft --version
-
+        - run:
+            name: update pip
+            command: |
+              pip install --upgrade pip
         - run:
             name: Merge with upstream
             command: |
