@@ -13,19 +13,19 @@ to interface with EEGLAB_.
 
 In summary, the code allows to:
 
-Fetch epoched data from single subject files of the LIMO dataset [1]_.
-If the LIMO files are not found on disk, the
-fetcher :func:`mne.datasets.limo.load_data()` will automatically download
- the files from a remote repository.
+- Fetch epoched data from single subject files of the LIMO dataset [1]_.
+  If the LIMO files are not found on disk, the
+  fetcher :func:`mne.datasets.limo.load_data()` will automatically download
+  the files from a remote repository.
 
-During import, the epochs information (i.e., sampling rate, number of epochs
-per condition, number and name of EEG channels per subject, etc.) is extracted
-from the LIMO .mat-files stored on disk and added to the epochs structure as
-metadata.
+- During import, the epochs information (i.e., sampling rate, number of epochs
+  per condition, number and name of EEG channels per subject, etc.) is
+  extracted from the LIMO .mat-files stored on disk and added to the epochs
+  structure as metadata.
 
-In addition, the code shows how to to fit linear models on single subject data
-and derive inferential measures to evaluate the significance of the estimated
-effects using bootstrap and spatio-temporal clustering techniques.
+- In addition, the code shows how to to fit linear models on single subject
+  data and derive inferential measures to evaluate the significance of the
+  estimated effects using bootstrap and spatio-temporal clustering techniques.
 
 References
 ----------
