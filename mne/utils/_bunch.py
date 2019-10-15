@@ -61,7 +61,7 @@ class _Named(object):
         return out
 
     def __str__(self):  # noqa: D105
-        return '%s (%s)' % (super().__str__(), self._name)
+        return '%s (%s)' % (str(self.__class__.mro()[-2](self)), self._name)
 
     __repr__ = __str__
 

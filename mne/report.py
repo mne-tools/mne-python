@@ -21,6 +21,7 @@ import webbrowser
 import numpy as np
 
 from . import read_evokeds, read_events, pick_types, read_cov
+from .fixes import _get_img_fdata
 from .io import read_raw_fif, read_info, _stamp_to_dt
 from .utils import (logger, verbose, get_subjects_dir, warn, _import_mlab,
                     fill_doc, _check_option)
@@ -1778,7 +1779,7 @@ class Report(object):
             self._sectionvars['mri'] = 'mri'
 
         nim = nib.load(image)
-        data = nim.get_data()
+        data = _get_img_fdata(nim)
         shape = data.shape
         limits = {'sagittal': range(0, shape[0], 2),
                   'axial': range(0, shape[1], 2),
@@ -2015,7 +2016,7 @@ class Report(object):
                                           n_jobs=n_jobs)
         # XXX : find a better way to get max range of slices
         nim = nib.load(mri_fname)
-        data = nim.get_data()
+        data = _get_img_fdata(nim)
         shape = data.shape
         del data  # free up memory
 
