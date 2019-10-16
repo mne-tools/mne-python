@@ -108,7 +108,7 @@ The forward solution
 
 .. include:: ../_includes/forward.rst
    :start-after: forward-begin-content
-
+   :end-before: forward-end-content
 
 .. _ch_mne:
 
