@@ -66,7 +66,7 @@ before_install:
         git clone https://github.com/astropy/ci-helpers.git;
         source ci-helpers/travis/setup_conda.sh;
         if [ ! -z "$CONDA_ENV" ]; then
-          source deactivate;
+          conda activate base;
           conda env update --file $CONDA_ENV;
           pip uninstall -yq mne;
           pip install codecov nitime;
