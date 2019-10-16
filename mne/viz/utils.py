@@ -1017,9 +1017,10 @@ def _setup_annotation_fig(params):
     fig = figure_nobar(figsize=(4.5, 2.75 + len(labels) * 0.75))
     fig.patch.set_facecolor('white')
     len_labels = max(len(labels), 1)
+    # can't pass fig=fig here on matplotlib 2.0.2, need to wait for an update
     ax = plt.subplot2grid((len_labels + 2, 2), (0, 0),
                           rowspan=len_labels,
-                          colspan=2, frameon=False, fig=fig)
+                          colspan=2, frameon=False)
     ax.set_title('Labels')
     ax.set_aspect('equal')
     button_ax = plt.subplot2grid((len_labels + 2, 2), (len_labels, 1),
