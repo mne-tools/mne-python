@@ -1635,7 +1635,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """Mark channels as bad from a text file.
 
         This function operates mostly in the style of the C function
-        ``mne_mark_bad_channels``.
+        ``mne_mark_bad_channels``. Each line in the text file will be
+        interpreted as a name of a bad channel.
 
         Parameters
         ----------
