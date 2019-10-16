@@ -65,10 +65,12 @@ def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
     """Test reading CURRY files."""
     with pytest.warns(None) as wrn:
         raw = read_raw_curry(fname, preload=preload)
-    if check_version('numpy', '1.16') or not preload:
-        assert len(wrn) == 0
-    else:
+
+    if not check_version('numpy', '1.16') and preload and fname.endswith(
+            'ASCII.dat'):
         assert len(wrn) > 0
+    else:
+        assert len(wrn) == 0
 
     assert hasattr(raw, '_data') == preload
     assert raw.n_times == bdf_curry_ref.n_times
