@@ -16,8 +16,8 @@ matrix:
         # No data + style testing
         - os: linux
           env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
-               CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx pytest pytest-timeout pytest-cov pytest-mock"
-               PIP_DEPENDENCIES="codecov flake8 numpydoc codespell pydocstyle codecov check-manifest pytest-sugar pytest-faulthandler twine"
+               CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx"
+               PIP_DEPENDENCIES="codecov flake8 numpydoc codespell pydocstyle codecov check-manifest twine"
 
         # Linux
         # As of 2019/09/19 there is a mysterious joblib bug, so temporarily work around it with MNE_FORCE_SERIAL
@@ -41,15 +41,15 @@ matrix:
         # Old dependencies
         - os: linux
           env: PYTHON_VERSION=3.5
-               CONDA_DEPENDENCIES="numpy=1.12 scipy=0.18 matplotlib=2.0 pandas=0.19 scikit-learn=0.18 pytest pytest-cov pytest-mock pytest-timeout"
+               CONDA_DEPENDENCIES="numpy=1.12 scipy=0.18 matplotlib=2.0 pandas=0.19 scikit-learn=0.18"
                PIP_DEPENDENCIES="codecov nitime"
                CONDA_CHANNELS="conda-forge"
 
         # Minimal
         - os: linux
           env: DEPS=minimial
-               CONDA_DEPENDENCIES="numpy scipy matplotlib pytest pytest-cov pytest-mock pytest-timeout"
-               PIP_DEPENDENCIES="pytest-faulthandler pytest-sugar codecov"
+               CONDA_DEPENDENCIES="numpy scipy matplotlib"
+               PIP_DEPENDENCIES="codecov"
 
 # Setup anaconda
 before_install:
@@ -66,7 +66,7 @@ before_install:
         git clone https://github.com/astropy/ci-helpers.git;
         source ci-helpers/travis/setup_conda.sh;
         if [ ! -z "$CONDA_ENV" ]; then
-          source deactivate;
+          conda activate base;
           conda env update --file $CONDA_ENV;
           pip uninstall -yq mne;
           pip install codecov nitime;
@@ -75,6 +75,8 @@ before_install:
           fi;
         fi;
       fi
+    # Always install these via pip so we get the latest possible versions (testing bugfixes)
+    - pip install --upgrade pytest pytest-sugar pytest-cov pytest-mock pytest-timeout
     # Don't source mne_setup_sh here because changing PATH etc. can't be done in a script
     - if [ "${DEPS}" == "" ]; then
         export MNE_ROOT="${PWD}/minimal_cmds";
