@@ -336,7 +336,6 @@ class RawCurry(BaseRaw):
                                    skiprows=start,
                                    usecols=ch_idx[idx]).T
                 block = block[:, :stop - start]
-
             data_view = data[:, :block.shape[1]]
             _mult_cal_one(data_view, block, idx, cals, mult)
 
