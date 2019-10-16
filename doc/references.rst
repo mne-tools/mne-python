@@ -9,6 +9,8 @@ Related publications
 General MEG reviews
 ###################
 
+.. HamalainenEtAl1993,BailletEtAl2001,HamalainenHari2002
+
 M. Hämäläinen, R. Hari, R. Ilmoniemi,
 J. Knuutila, and O. V. Lounasmaa, "Magnetoencephalography - theory,
 instrumentation, and applications to noninvasive studies of the
@@ -28,6 +30,8 @@ Boston: Academic Press, 2002.
 Cortical surface reconstruction and morphing
 ############################################
 
+.. DaleEtAl1999,FischlEtAl1999,FischlEtAl1999a
+
 A. M. Dale, B. Fischl, and M. I. Sereno, "Cortical surface-based
 analysis. I. Segmentation and surface reconstruction," Neuroimage,
 vol. 9, pp. 179-94., 1999.
@@ -44,6 +48,8 @@ Brain Mapping, vol. 8, pp. 272-84, 1999.
 
 Forward modeling
 ################
+
+.. HamalainenSarvas1989,FischlEtAl2004,SegonneEtAl2004,JovicichEtAl2006,MosherEtAl1999
 
 M. S. Hämäläinen and J. Sarvas,
 "Realistic conductivity geometry model of the human head for interpretation
@@ -74,6 +80,8 @@ forward solutions for inverse methods," IEEE Trans Biomed Eng, vol.
 Signal-space projections
 ########################
 
+.. TescheEtAl1995,UusitaloIlmoniemi1997
+
 C. D. Tesche, M. A. Uusitalo, R. J. Ilmoniemi, M. Huotilainen,
 M. Kajola, and O. Salonen, "Signal-space projections of MEG data
 characterize both distributed and well-localized neuronal sources,"
@@ -85,6 +93,9 @@ Comput, vol. 35, pp. 135-40, 1997.
 
 Minimum-norm estimates
 ######################
+
+.. HamalainenIlmoniemi1984,DaleSereno1993,HamalainenIlmoniemi1994,DaleEtAl2000,
+   LiuEtAl2002,LinEtAl2006,OostendorpEtAl2000,GoncalvesEtAl2003,LewEtAl2009
 
 M. Hämäläinen and R. Ilmoniemi,
 "Interpreting  magnetic fields of the brain: minimum norm estimates,"
@@ -128,6 +139,8 @@ Brain Mapping, vol. 30, pp. 2862-78, 2009.
 
 fMRI-weighted estimates
 #######################
+
+.. DaleEtAl2000,LiuEtAl1998,LinEtAl2004
 
 A. M. Dale, A. K. Liu, B. R. Fischl, R. L. Buckner, J. W.
 Belliveau, J. D. Lewine, and E. Halgren, "Dynamic statistical parametric
