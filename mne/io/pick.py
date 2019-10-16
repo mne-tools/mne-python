@@ -139,7 +139,7 @@ def channel_type(info, idx):
 def pick_channels(ch_names, include, exclude=[], ordered=False):
     """Pick channels by names.
 
-    Returns the indices of the good channels in ch_names.
+    Returns the indices of the channels in ch_names and not in "info['bads']".
 
     Parameters
     ----------
