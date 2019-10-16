@@ -41,8 +41,8 @@ matrix:
         # Old dependencies
         - os: linux
           env: PYTHON_VERSION=3.5
-               CONDA_DEPENDENCIES="numpy=1.12 scipy=0.18 matplotlib=2.0 pandas=0.19 scikit-learn=0.18 pytest pytest-cov pytest-mock pytest-timeout"
-               PIP_DEPENDENCIES="codecov nitime"
+               CONDA_DEPENDENCIES="numpy=1.12 scipy=0.18 matplotlib=2.0 pandas=0.19 scikit-learn=0.18"
+               PIP_DEPENDENCIES="codecov nitime pytest pytest-cov pytest-mock pytest-timeout"
                CONDA_CHANNELS="conda-forge"
 
         # Minimal
