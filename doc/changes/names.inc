@@ -261,3 +261,5 @@
 .. _Abram Hindle: http://softwareprocess.es
 
 .. _Fahimeh Mamashli: https://github.com/fmamashli
+
+.. _Adonay Nunes: https://github.com/AdoNunes
