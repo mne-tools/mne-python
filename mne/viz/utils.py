@@ -1016,17 +1016,19 @@ def _setup_annotation_fig(params):
     labels = np.union1d(labels, params['added_label'])
     fig = figure_nobar(figsize=(4.5, 2.75 + len(labels) * 0.75))
     fig.patch.set_facecolor('white')
-    ax = plt.subplot2grid((len(labels) + 2, 2), (0, 0),
-                          rowspan=max(len(labels), 1),
+    len_labels = max(len(labels), 1)
+    # can't pass fig=fig here on matplotlib 2.0.2, need to wait for an update
+    ax = plt.subplot2grid((len_labels + 2, 2), (0, 0),
+                          rowspan=len_labels,
                           colspan=2, frameon=False)
     ax.set_title('Labels')
     ax.set_aspect('equal')
-    button_ax = plt.subplot2grid((len(labels) + 2, 2), (len(labels), 1),
+    button_ax = plt.subplot2grid((len_labels + 2, 2), (len_labels, 1),
                                  rowspan=1, colspan=1)
-    label_ax = plt.subplot2grid((len(labels) + 2, 2), (len(labels), 0),
+    label_ax = plt.subplot2grid((len_labels + 2, 2), (len_labels, 0),
                                 rowspan=1, colspan=1)
     plt.axis('off')
-    text_ax = plt.subplot2grid((len(labels) + 2, 2), (len(labels) + 1, 0),
+    text_ax = plt.subplot2grid((len_labels + 2, 2), (len_labels + 1, 0),
                                rowspan=1, colspan=2)
     text_ax.text(0.5, 0.9, 'Left click & drag - Create/modify annotation\n'
                            'Right click - Delete annotation\n'
