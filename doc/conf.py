@@ -513,6 +513,7 @@ sphinx_gallery_conf = {
     'show_memory': True,
     'line_numbers': False,  # XXX currently (0.3.dev0) messes with style
     'within_subsection_order': FileNameSortKey,
+    'capture_repr': (),
     'junit': op.join('..', 'test-results', 'sphinx-gallery', 'junit.xml'),
 }
 
@@ -522,7 +523,7 @@ sphinx_gallery_conf = {
 # XXX This hack defines what extra methods numpydoc will document
 docscrape.ClassDoc.extra_public_methods = mne.utils._doc_special_members
 numpydoc_class_members_toctree = False
-numpydoc_attributes_as_param_list = False
+numpydoc_attributes_as_param_list = True
 numpydoc_xref_param_type = True
 numpydoc_xref_aliases = {
     'Popen': 'python:subprocess.Popen',
