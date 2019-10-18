@@ -27,9 +27,26 @@ p code {
 code.xref, a code {
     font-weight: 600;
 }
+/* .. unless in a param list */
+span.classifier a.reference code.literal {
+    font-weight: bold;
+}
 /* use semibold weight for version dropdown */
 .btn {
     font-weight: 600;
+}
+/* Modify our definition lists to be more like sklearn */
+dl.field-list dt.field-odd, dt.field-even {
+    border-right-style: solid;
+    border-width: 1px;
+    border-color: var(--a-color-lighter);
+}
+dl.field-list dd dl dd {
+    padding-left: 30px;
+}
+dl.field-list dt, dd {
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
 
 .navbar-version {
