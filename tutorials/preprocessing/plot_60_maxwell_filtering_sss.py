@@ -226,7 +226,7 @@ mne.viz.plot_head_positions(head_pos, mode='traces')
 # .. [2] Taulu S and Simola J. (2006). Spatiotemporal signal space separation
 #        method for rejecting nearby interference in MEG measurements. *Phys
 #        Med Biol* 51, 1759-1768.
-#        https://iopscience.iop.org/article/10.1088/0031-9155/51/7/008
+#        https://doi.org/10.1088/0031-9155/51/7/008
 #
 #
 # .. LINKS
