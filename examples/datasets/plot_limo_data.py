@@ -195,7 +195,7 @@ for condition in conditions:
 pick = evoked_dict["Face/A"].ch_names.index('B11')
 
 # compare evoked responses
-plot_compare_evokeds(evoked_dict, picks=pick, ylim=dict(eeg=[-15, 5]))
+plot_compare_evokeds(evoked_dict, picks=pick, ylim=dict(eeg=(-15, 5)))
 
 ###############################################################################
 # As expected, the difference between Face A and Face B are very small.
@@ -216,7 +216,7 @@ plot_compare_evokeds(evoked_dict, picks=pick, ylim=dict(eeg=[-15, 5]))
 # **Note:** We'll only do this for visualization purposes,
 
 name = "phase-coherence"
-factor = 'factor-' + name
+factor = 'factor_' + name
 
 # create phase-coherence percentiles
 df = limo_epochs.metadata
@@ -227,7 +227,7 @@ limo_epochs.metadata = df
 # color scheme for percentile plot
 colors = {str(val): val for val in np.sort(df[factor].unique())}
 # compute evoked for each phase-coherence percentile
-evokeds = {str(val): limo_epochs[limo_epochs.metadata[factor] == val].average()
+evokeds = {str(val): limo_epochs[factor + ' == ' str(val)].average()
            for val in colors.values()}
 
 # pick channel to plot
@@ -237,7 +237,7 @@ for electrode in electrodes:
     fig, ax = plt.subplots(figsize=(8, 4))
     plot_compare_evokeds(evokeds,
                          axes=ax,
-                         ylim=dict(eeg=[-20, 20]),
+                         ylim=dict(eeg=(-20, 20)),
                          colors=colors,
                          split_legend=True,
                          picks=electrode,
@@ -283,7 +283,7 @@ predictor_vars = ['face a - face b', 'phase-coherence', 'intercept']
 # create design matrix
 design = limo_epochs.metadata[['phase-coherence', 'face']]
 design['face a - face b'] = np.where(design['face'] == 'A', 1, -1)
-design = design.assign(intercept=1)  # add intercept
+design['intercept'] = 1
 design = design[predictor_vars]
 
 ###############################################################################

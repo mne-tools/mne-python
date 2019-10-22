@@ -354,7 +354,7 @@ LIMO Dataset
 In the original LIMO experiment (see [9]_), participants performed a
 two-alternative forced choice task, discriminating between two face stimuli.
 Subjects discriminated the same two faces during the whole experiment.
-The critical manipulation consisted in the level of noise added to the
+The critical manipulation consisted of the level of noise added to the
 face-stimuli during the task, making the faces more or less discernible to the
 observer.
 
