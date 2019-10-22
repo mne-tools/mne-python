@@ -69,6 +69,7 @@ brain.close()
 # 255, 255)`` encodes a white pixel, so we'll detect any pixels that differ
 # from that:
 
+screenshot[(screenshot == 0)] = 255
 nonwhite_pix = (screenshot != 255).any(-1)
 nonwhite_row = nonwhite_pix.any(1)
 nonwhite_col = nonwhite_pix.any(0)
