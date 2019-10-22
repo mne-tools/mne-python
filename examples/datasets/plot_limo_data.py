@@ -187,15 +187,14 @@ difference_wave.plot_joint(times=[.15], title='Difference Face A - Face B')
 
 # Create a dictionary containing the evoked responses
 conditions = ["Face/A", "Face/B"]
-evoked_dict = dict()
-for condition in conditions:
-    evoked_dict[condition] = limo_epochs[condition].average()
+evokeds = {condition: limo_epochs[condition].average()
+           for condition in conditions}
 
 # concentrate analysis an occipital electrodes (e.g. B11)
-pick = evoked_dict["Face/A"].ch_names.index('B11')
+pick = evokeds["Face/A"].ch_names.index('B11')
 
 # compare evoked responses
-plot_compare_evokeds(evoked_dict, picks=pick, ylim=dict(eeg=(-15, 5)))
+plot_compare_evokeds(evokeds, picks=pick, ylim=dict(eeg=(-15, 5)))
 
 ###############################################################################
 # As expected, the difference between Face A and Face B are very small.
@@ -218,16 +217,15 @@ plot_compare_evokeds(evoked_dict, picks=pick, ylim=dict(eeg=(-15, 5)))
 name = "phase-coherence"
 factor = 'factor_' + name
 
-# create phase-coherence percentiles
-df = limo_epochs.metadata
-df[factor] = pd.cut(df[name], 11, labels=False) / 10
-# overwrite metadata
-limo_epochs.metadata = df
+# color scheme for percentile plot
+limo_epochs.metadata[factor] = pd.cut(limo_epochs.metadata[name], 11,
+                                      labels=False) / 10
 
 # color scheme for percentile plot
-colors = {str(val): val for val in np.sort(df[factor].unique())}
+colors = {str(val): val
+          for val in np.sort(limo_epochs.metadata[factor].unique())}
 # compute evoked for each phase-coherence percentile
-evokeds = {str(val): limo_epochs[factor + ' == ' str(val)].average()
+evokeds = {str(val): limo_epochs[limo_epochs.metadata[factor] == val].average()
            for val in colors.values()}
 
 # pick channel to plot
@@ -351,7 +349,7 @@ class STLinearRegression(LinearRegression):
     def compute_predictions(self):
         # compute predicted values
         predictions = self.predict(X=self.design)
-        # return beta predictions
+        # return beta coefficients
         return predictions
 
 
