@@ -1354,8 +1354,10 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         left hemisphere is stored in data[:vertices[0]] and the right
         hemisphere is stored in data[:-vertices[1]].
         When data is a tuple, it contains two arrays:
+
         - "kernel" shape (n_vertices, n_sensors) and
         - "sens_data" shape (n_sensors, n_times).
+
         In this case, the source space data corresponds to
         "numpy.dot(kernel, sens_data)".
     vertices : list of shape (2,)
