@@ -111,7 +111,7 @@ def _handle_hdf5_dataset(hdf5_object):
         data = [hdf5_object.file[cur_data] for cur_data in data.flatten()]
         if len(data) == 1 and hdf5_object.attrs['MATLAB_class'] == b'cell':
             data = data[0]
-            data = data.value
+            data = data[()]
             return _assign_types(data)
 
         data = _hdf5todict(data)
@@ -143,7 +143,7 @@ def _assign_types(values):
 def _handle_ndarray(values):
     """Handle conversion of ndarrays."""
     values = numpy.squeeze(values).T
-    if values.dtype in ("uint8", "uint16", "uint32", "uint64"):
+    if values.dtype in ("uint8", "uint16", "uint32"):
         values = _handle_hdf5_strings(values)
 
     if isinstance(values, numpy.ndarray) and \

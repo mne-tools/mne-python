@@ -1,4 +1,6 @@
 """
+.. _ex-decoding-csp-eeg:
+
 ===========================================================================
 Motor imagery decoding from EEG data using the Common Spatial Pattern (CSP)
 ===========================================================================
@@ -61,7 +63,7 @@ raw.rename_channels(lambda x: x.strip('.'))
 # Apply band-pass filter
 raw.filter(7., 30., fir_design='firwin', skip_by_annotation='edge')
 
-events, _ = events_from_annotations(raw)
+events, _ = events_from_annotations(raw, event_id=dict(T1=2, T2=3))
 
 picks = pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
                    exclude='bads')

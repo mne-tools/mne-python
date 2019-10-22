@@ -1,9 +1,10 @@
 """
-=======================================================================
+===================================================================
 Compute MNE inverse solution on evoked data in a mixed source space
-=======================================================================
+===================================================================
 
-Create a mixed source space and compute MNE inverse solution on evoked dataset.
+Create a mixed source space and compute MNE inverse solution on an
+evoked dataset.
 """
 # Author: Annalisa Pascarella <a.pascarella@iac.cnr.it>
 #
@@ -135,8 +136,7 @@ label_ts = mne.extract_label_time_course(
 # plot the times series of 2 labels
 fig, axes = plt.subplots(1)
 axes.plot(1e3 * stc.times, label_ts[0][0, :], 'k', label='bankssts-lh')
-axes.plot(1e3 * stc.times, label_ts[0][71, :].T, 'r',
-          label='Brain-stem')
+axes.plot(1e3 * stc.times, label_ts[0][71, :].T, 'r', label='Brain-stem')
 axes.set(xlabel='Time (ms)', ylabel='MNE current (nAm)')
 axes.legend()
 mne.viz.tight_layout()

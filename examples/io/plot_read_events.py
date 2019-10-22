@@ -1,5 +1,5 @@
 """
-.. _ex_read_events:
+.. _ex-read-events:
 
 =====================
 Reading an event file
@@ -8,7 +8,7 @@ Reading an event file
 Read events from a file. For a more detailed guide on how to read events
 using MNE-Python, see :ref:`tut_epoching_and_averaging`.
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Chris Holdgraf <choldgraf@berkeley.edu>
 #
 # License: BSD (3-clause)

@@ -11,7 +11,8 @@ from .utils import _load_mne_locs, _read_pos
 from ...utils import logger, warn, verbose
 from ..utils import _read_segments_file
 from ..base import BaseRaw
-from ..meas_info import _empty_info, _make_dig_points
+from ..meas_info import _empty_info
+from .._digitization import _make_dig_points
 from ..constants import FIFF
 from ...chpi import _fit_device_hpi_positions, _fit_coil_order_dev_head_trans
 from ...transforms import get_ras_to_neuromag_trans, apply_trans, Transform
@@ -28,14 +29,8 @@ def read_raw_artemis123(input_fname, preload=False, verbose=None,
         Path to the data file (extension ``.bin``). The header file with the
         same file name stem and an extension ``.txt`` is expected to be found
         in the same directory.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+    %(preload)s
+    %(verbose)s
     pos_fname : str or None (default None)
         If not None, load digitized head points from this file
     add_head_trans : bool (default True)
@@ -46,7 +41,7 @@ def read_raw_artemis123(input_fname, preload=False, verbose=None,
 
     Returns
     -------
-    raw : Instance of Raw
+    raw : instance of Raw
         A Raw object containing the data.
 
     See Also
@@ -300,14 +295,8 @@ class RawArtemis123(BaseRaw):
     ----------
     input_fname : str
         Path to the Artemis123 data file (ending in ``'.bin'``).
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+    %(preload)s
+    %(verbose)s
 
     See Also
     --------

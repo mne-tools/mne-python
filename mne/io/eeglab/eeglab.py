@@ -8,13 +8,14 @@ import os.path as op
 
 import numpy as np
 
-from ..utils import (_read_segments_file, _find_channels,
-                     _deprecate_stim_channel)
-from ..constants import FIFF, Bunch
-from ..meas_info import _empty_info, create_info
-from ..base import BaseRaw, _check_update_montage
-from ...utils import logger, verbose, warn
-from ...channels.montage import Montage
+from ..utils import _read_segments_file, _find_channels
+from ..utils import _deprecate_montage
+from ..constants import FIFF
+from ..meas_info import create_info
+from ..base import BaseRaw
+from ...utils import logger, verbose, warn, fill_doc, Bunch
+from ...channels import make_dig_montage, make_standard_montage
+from ...channels.channels import DEPRECATED_PARAM
 from ...epochs import BaseEpochs
 from ...event import read_events
 from ...annotations import Annotations, read_annotations
@@ -44,7 +45,10 @@ def _check_load_mat(fname, uint16_codec):
             'mne-python developers for more information.')
     if 'EEG' not in eeg:
         raise ValueError('Could not find EEG array in the .set file.')
-    eeg = Bunch(**eeg['EEG'])
+    else:
+        eeg = eeg['EEG']
+    eeg = eeg.get('EEG', eeg)  # handle nested EEG structure
+    eeg = Bunch(**eeg)
     eeg.trials = int(eeg.trials)
     eeg.nbchan = int(eeg.nbchan)
     eeg.pnts = int(eeg.pnts)
@@ -59,23 +63,12 @@ def _to_loc(ll):
         return np.nan
 
 
-def _get_info(eeg, montage, eog=()):
-    """Get measurement info."""
+def _eeg_has_montage_information(eeg):
     from scipy import io
-    info = _empty_info(sfreq=eeg.srate)
-    update_ch_names = True
 
-    # add the ch_names and info['chs'][idx]['loc']
-    path = None
-    if not isinstance(eeg.chanlocs, np.ndarray) and eeg.nbchan == 1:
-        eeg.chanlocs = [eeg.chanlocs]
-
-    if isinstance(eeg.chanlocs, dict):
-        eeg.chanlocs = _dol_to_lod(eeg.chanlocs)
-
-    good = len(eeg.chanlocs) > 0
-
-    if good:
+    if not len(eeg.chanlocs):
+        has_pos = False
+    else:
         pos_fields = ['X', 'Y', 'Z']
         if isinstance(eeg.chanlocs[0], io.matlab.mio5_params.mat_struct):
             has_pos = all(hasattr(eeg.chanlocs[0], fld)
@@ -88,54 +81,72 @@ def _get_info(eeg, montage, eog=()):
             # new files
             has_pos = all(fld in eeg.chanlocs[0] for fld in pos_fields)
         else:
-            good = False
             has_pos = False  # unknown (sometimes we get [0, 0])
 
-    if good:
-        get_pos = has_pos and montage is None
-        pos_ch_names, ch_names, pos = list(), list(), list()
-        kind = 'user_defined'
+    return has_pos
+
+
+def _get_eeg_montage_information(eeg, get_pos):
+
+    pos_ch_names, ch_names, pos = list(), list(), list()
+    for chanloc in eeg.chanlocs:
+        ch_names.append(chanloc['labels'])
+        if get_pos:
+            loc_x = _to_loc(chanloc['X'])
+            loc_y = _to_loc(chanloc['Y'])
+            loc_z = _to_loc(chanloc['Z'])
+            locs = np.r_[-loc_y, loc_x, loc_z]
+            if not np.any(np.isnan(locs)):
+                pos_ch_names.append(chanloc['labels'])
+                pos.append(locs)
+
+    if pos_ch_names:
+        montage = make_dig_montage(
+            ch_pos=dict(zip(ch_names, np.array(pos))),
+            coord_frame='head',
+        )
+    else:
+        montage = None
+
+    return ch_names, montage
+
+
+def _get_info(eeg, eog=()):
+    """Get measurement info."""
+    # add the ch_names and info['chs'][idx]['loc']
+    if not isinstance(eeg.chanlocs, np.ndarray) and eeg.nbchan == 1:
+        eeg.chanlocs = [eeg.chanlocs]
+
+    if isinstance(eeg.chanlocs, dict):
+        eeg.chanlocs = _dol_to_lod(eeg.chanlocs)
+
+    eeg_has_ch_names_info = len(eeg.chanlocs) > 0
+
+    if eeg_has_ch_names_info:
+        has_pos = _eeg_has_montage_information(eeg)
+        ch_names, eeg_montage = _get_eeg_montage_information(eeg, has_pos)
         update_ch_names = False
-        for chanloc in eeg.chanlocs:
-            ch_names.append(chanloc['labels'])
-            if get_pos:
-                loc_x = _to_loc(chanloc['X'])
-                loc_y = _to_loc(chanloc['Y'])
-                loc_z = _to_loc(chanloc['Z'])
-                locs = np.r_[-loc_y, loc_x, loc_z]
-                if not np.any(np.isnan(locs)):
-                    pos_ch_names.append(chanloc['labels'])
-                    pos.append(locs)
-        n_channels_with_pos = len(pos_ch_names)
-        info = create_info(ch_names, eeg.srate, ch_types='eeg')
-        if n_channels_with_pos > 0:
-            selection = np.arange(n_channels_with_pos)
-            montage = Montage(np.array(pos), pos_ch_names, kind, selection)
-    elif isinstance(montage, str):
-        path = op.dirname(montage)
+
     else:  # if eeg.chanlocs is empty, we still need default chan names
         ch_names = ["EEG %03d" % ii for ii in range(eeg.nbchan)]
+        eeg_montage = None
+        update_ch_names = True
 
-    if montage is None:
-        info = create_info(ch_names, eeg.srate, ch_types='eeg')
-    else:
-        _check_update_montage(
-            info, montage, path=path, update_ch_names=update_ch_names,
-            raise_missing=False)
+    info = create_info(ch_names, sfreq=eeg.srate, ch_types='eeg')
 
-    if eog == 'auto':
-        eog = _find_channels(ch_names)
-
+    eog = _find_channels(ch_names, ch_type='EOG') if eog == 'auto' else eog
     for idx, ch in enumerate(info['chs']):
         ch['cal'] = CAL
         if ch['ch_name'] in eog or idx in eog:
             ch['coil_type'] = FIFF.FIFFV_COIL_NONE
             ch['kind'] = FIFF.FIFFV_EOG_CH
-    return info
+
+    return info, eeg_montage, update_ch_names
 
 
-def read_raw_eeglab(input_fname, montage=None, eog=(), preload=False,
-                    uint16_codec=None, stim_channel=False, verbose=None):
+@fill_doc
+def read_raw_eeglab(input_fname, eog=(), preload=False,
+                    uint16_codec=None, verbose=None):
     r"""Read an EEGLAB .set file.
 
     Parameters
@@ -143,40 +154,24 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), preload=False,
     input_fname : str
         Path to the .set file. If the data is stored in a separate .fdt file,
         it is expected to be in the same folder as the .set file.
-    montage : str | None | instance of montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
     eog : list | tuple | 'auto'
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory). Note that
-        preload=False will be effective only if the data is stored in a
-        separate binary file.
+    %(preload)s
+        Note that preload=False will be effective only if the data is stored
+        in a separate binary file.
     uint16_codec : str | None
         If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is
         too small". ``uint16_codec`` allows to specify what codec (for example:
         'latin1' or 'utf-8') should be used when reading character arrays and
         can therefore help you solve this problem.
-    stim_channel : False
-        Deprecated, will be removed in 0.19; migrate code to use
-        :func:`mne.events_from_annotations` instead.
-
-        .. versionadded:: 0.17
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
-    raw : Instance of RawEEGLAB
+    raw : instance of RawEEGLAB
         A Raw object containing EEGLAB .set data.
 
     Notes
@@ -187,12 +182,12 @@ def read_raw_eeglab(input_fname, montage=None, eog=(), preload=False,
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    return RawEEGLAB(input_fname=input_fname, montage=montage, preload=preload,
-                     eog=eog, verbose=verbose, uint16_codec=uint16_codec,
-                     stim_channel=stim_channel)
+    return RawEEGLAB(input_fname=input_fname, preload=preload,
+                     eog=eog, verbose=verbose, uint16_codec=uint16_codec)
 
 
-def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
+@fill_doc
+def read_epochs_eeglab(input_fname, events=None, event_id=None,
                        eog=(), verbose=None, uint16_codec=None):
     r"""Reader function for EEGLAB epochs files.
 
@@ -218,17 +213,11 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
         the id as string. If a list, all events with the IDs specified
         in the list are used. If None, the event_id is constructed from the
         EEGLAB (.set) file with each descriptions copied from `eventtype`.
-    montage : str | None | instance of montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
     eog : list | tuple | 'auto'
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     uint16_codec : str | None
         If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is
@@ -251,11 +240,12 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None, montage=None,
     mne.Epochs : Documentation of attribute and methods.
     """
     epochs = EpochsEEGLAB(input_fname=input_fname, events=events, eog=eog,
-                          event_id=event_id, montage=montage, verbose=verbose,
+                          event_id=event_id, verbose=verbose,
                           uint16_codec=uint16_codec)
     return epochs
 
 
+@fill_doc
 class RawEEGLAB(BaseRaw):
     r"""Raw object from EEGLAB .set file.
 
@@ -264,39 +254,20 @@ class RawEEGLAB(BaseRaw):
     input_fname : str
         Path to the .set file. If the data is stored in a separate .fdt file,
         it is expected to be in the same folder as the .set file.
-    montage : str | None | instance of montage
-        Path or instance of montage containing electrode positions. If None,
-        sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
     eog : list | tuple | 'auto'
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires large
-        amount of memory). If preload is a string, preload is the file name of
-        a memory-mapped file which is used to store the data on the hard
-        drive (slower, requires less memory).
+    %(preload)s
+        Note that preload=False will be effective only if the data is stored
+        in a separate binary file.
     uint16_codec : str | None
         If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is
         too small". ``uint16_codec`` allows to specify what codec (for example:
         'latin1' or 'utf-8') should be used when reading character arrays and
         can therefore help you solve this problem.
-    stim_channel : False
-        Deprecated, will be removed in 0.19; migrate code to use
-        :func:`mne.events_from_annotations` instead.
-
-        .. versionadded:: 0.17
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-
-    Returns
-    -------
-    raw : Instance of RawEEGLAB
-        A Raw object containing EEGLAB .set data.
+    %(verbose)s
 
     Notes
     -----
@@ -308,10 +279,8 @@ class RawEEGLAB(BaseRaw):
     """
 
     @verbose
-    def __init__(self, input_fname, montage, eog=(), preload=False,
-                 uint16_codec=None, stim_channel=False,
-                 verbose=None):  # noqa: D102
-        _deprecate_stim_channel(stim_channel)
+    def __init__(self, input_fname, eog=(),
+                 preload=False, uint16_codec=None, verbose=None):  # noqa: D102
         basedir = op.dirname(input_fname)
         eeg = _check_load_mat(input_fname, uint16_codec)
         if eeg.trials != 1:
@@ -320,7 +289,7 @@ class RawEEGLAB(BaseRaw):
                             ' the .set file contains epochs.' % eeg.trials)
 
         last_samps = [eeg.pnts - 1]
-        info = _get_info(eeg, montage, eog=eog)
+        info, eeg_montage, update_ch_names = _get_info(eeg, eog=eog)
 
         # read the data
         if isinstance(eeg.data, str):
@@ -352,8 +321,9 @@ class RawEEGLAB(BaseRaw):
         # create event_ch from annotations
         annot = read_annotations(input_fname)
         self.set_annotations(annot)
-
         _check_boundary(annot, None)
+
+        self._set_dig_montage_in_init(eeg_montage)
 
         latencies = np.round(annot.onset * self.info['sfreq'])
         _check_latencies(latencies)
@@ -362,6 +332,69 @@ class RawEEGLAB(BaseRaw):
         """Read a chunk of raw data."""
         _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
                             dtype=np.float32, n_channels=self.info['nchan'])
+
+    def _set_dig_montage_in_init(self, montage):
+        """Set EEG sensor configuration and head digitization from when init.
+
+        This is done from the information within fname when
+        read_raw_eeglab(fname).
+        """
+        if montage is None:
+            self.set_montage(None)
+        else:
+            missing_channels = set(self.ch_names) - set(montage.ch_names)
+            ch_pos = dict(zip(
+                list(missing_channels),
+                np.full((len(missing_channels), 3), np.nan)
+            ))
+            self.set_montage(
+                montage + make_dig_montage(ch_pos=ch_pos, coord_frame='head')
+            )
+
+    # XXX: to be removed when deprecating montage
+
+    def set_montage(self, montage, update_ch_names=True,
+                    raise_if_subset=DEPRECATED_PARAM,
+                    verbose=None):
+        """Set EEG sensor configuration and head digitization.
+
+        Parameters
+        ----------
+        montage : instance of DigMontage | str | None
+            The montage to use (None removes any location information).
+        set_dig : bool
+            If True, update the digitization information (``info['dig']``)
+            in addition to the channel positions (``info['chs'][idx]['loc']``).
+
+            .. versionadded: 0.15
+        update_ch_names : bool
+            If True, overwrite the info channel names with the ones from
+            montage. Defaults to False.
+        %(verbose_meth)s
+        """
+        from ...channels.montage import _set_montage, _BUILT_IN_MONTAGES
+
+        cal = set([ch['cal'] for ch in self.info['chs']]).pop()
+
+        if isinstance(montage, str) and montage in _BUILT_IN_MONTAGES:
+            montage = make_standard_montage(montage)
+
+        _set_montage(self.info, montage)
+
+        # Revert update_ch_names modifications in cal and coord_frame
+        if update_ch_names:
+            for ch in self.info['chs']:
+                ch['cal'] = cal
+
+        # backcompat set the tail to 0 not to nan
+        _chs_to_fix = [
+            ch for ch in self.info['chs']
+            if not np.isnan(ch['loc'][0]) and np.isnan(ch['loc'][-1])
+        ]
+        for ch in _chs_to_fix:
+            ch['loc'][-6:] = 0
+
+        return self
 
 
 class EpochsEEGLAB(BaseEpochs):
@@ -418,17 +451,12 @@ class EpochsEEGLAB(BaseEpochs):
     reject_tmax : scalar | None
         End of the time window used to reject epochs (with the default None,
         the window will end with tmax).
-    montage : str | None | instance of montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
+    %(montage_deprecated)s
     eog : list | tuple | 'auto'
         Names or indices of channels that should be designated EOG channels.
         If 'auto', the channel names containing ``EOG`` or ``EYE`` are used.
         Defaults to empty tuple.
-    verbose : bool | str | int | None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     uint16_codec : str | None
         If your \*.set file contains non-ascii characters, sometimes reading
         it may fail and give rise to error message stating that "buffer is
@@ -448,7 +476,7 @@ class EpochsEEGLAB(BaseEpochs):
     @verbose
     def __init__(self, input_fname, events=None, event_id=None, tmin=0,
                  baseline=None, reject=None, flat=None, reject_tmin=None,
-                 reject_tmax=None, montage=None, eog=(), verbose=None,
+                 reject_tmax=None, montage='deprecated', eog=(), verbose=None,
                  uint16_codec=None):  # noqa: D102
         eeg = _check_load_mat(input_fname, uint16_codec)
 
@@ -465,7 +493,7 @@ class EpochsEEGLAB(BaseEpochs):
             epochs = _bunchify(eeg.epoch)
             events = _bunchify(eeg.event)
             for ep in epochs:
-                if isinstance(ep.eventtype, int):
+                if isinstance(ep.eventtype, (int, float)):
                     ep.eventtype = str(ep.eventtype)
                 if not isinstance(ep.eventtype, str):
                     event_type = '/'.join([str(et) for et in ep.eventtype])
@@ -484,8 +512,7 @@ class EpochsEEGLAB(BaseEpochs):
                     unique_ev.append(event_type)
 
                 # invent event dict but use id > 0 so you know its a trigger
-                event_id = dict((ev, idx + 1) for idx, ev
-                                in enumerate(unique_ev))
+                event_id = {ev: idx + 1 for idx, ev in enumerate(unique_ev)}
 
             # warn about multiple events in epoch if necessary
             if warn_multiple_events:
@@ -508,8 +535,9 @@ class EpochsEEGLAB(BaseEpochs):
 
         logger.info('Extracting parameters from %s...' % input_fname)
         input_fname = op.abspath(input_fname)
-        info = _get_info(eeg, montage, eog=eog)
-
+        info, eeg_montage, _ = _get_info(eeg, eog=eog)
+        montage = eeg_montage if montage is None else montage
+        del eeg_montage
         for key, val in event_id.items():
             if val not in events[:, 2]:
                 raise ValueError('No matching events found for %s '
@@ -540,6 +568,8 @@ class EpochsEEGLAB(BaseEpochs):
 
         # data are preloaded but _bad_dropped is not set so we do it here:
         self._bad_dropped = True
+
+        _deprecate_montage(self, "read_epochs_eeglab", montage)
         logger.info('Ready.')
 
 
@@ -615,12 +645,12 @@ def _read_annotations_eeglab(eeg, uint16_codec=None):
         duration[:] = [event.duration for event in events]
 
     return Annotations(onset=np.array(onset) / eeg.srate,
-                       duration=duration,
+                       duration=duration / eeg.srate,
                        description=description,
                        orig_time=None)
 
 
 def _dol_to_lod(dol):
     """Convert a dict of lists to a list of dicts."""
-    return [dict((key, dol[key][ii]) for key in dol.keys())
+    return [{key: dol[key][ii] for key in dol.keys()}
             for ii in range(len(dol[list(dol.keys())[0]]))]

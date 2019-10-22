@@ -3,12 +3,15 @@
 #          Dirk Gütlin <dirk.guetlin@stud.sbg.ac.at>
 #
 # License: BSD (3-clause)
-import types
-import numpy as np
+from functools import partial
 import os
+import types
+
+import numpy as np
+import pytest
+
 import mne
 
-from functools import partial
 
 info_ignored_fields = ('file_id', 'hpi_results', 'hpi_meas', 'meas_id',
                        'meas_date', 'highpass', 'lowpass', 'subject_info',
@@ -23,7 +26,7 @@ ch_ignore_fields = ('logno', 'cal', 'range', 'scanno', 'coil_type', 'kind',
 info_long_fields = ('hpi_meas', )
 
 system_to_reader_fn_dict = {'neuromag306': mne.io.read_raw_fif,
-                            'CNT': partial(mne.io.read_raw_cnt, montage=None),
+                            'CNT': partial(mne.io.read_raw_cnt),
                             'CTF': partial(mne.io.read_raw_ctf,
                                            clean_names=True),
                             'BTI': partial(mne.io.read_raw_bti,
@@ -106,7 +109,7 @@ def get_raw_info(system):
     return info
 
 
-def get_raw_data(system, drop_sti_cnt=True, drop_extra_chs=False):
+def get_raw_data(system, drop_extra_chs=False):
     """Find, load and process the raw data."""
     cfg_local = get_cfg_local(system)
 
@@ -119,16 +122,20 @@ def get_raw_data(system, drop_sti_cnt=True, drop_extra_chs=False):
     if system == 'eximia':
         crop -= 0.5 * (1.0 / raw_data.info['sfreq'])
     raw_data.crop(0, crop)
-    raw_data.set_eeg_reference([])
+    if any([type_ in raw_data for type_ in ['eeg', 'ecog', 'seeg']]):
+        raw_data.set_eeg_reference([])
+    else:
+        with pytest.raises(ValueError, match='No EEG, ECoG or sEEG channels'):
+            raw_data.set_eeg_reference([])
     raw_data.del_proj('all')
     raw_data.info['comps'] = []
     raw_data.drop_channels(cfg_local['removed_chan_names'])
 
-    if system in ['CNT', 'EGI']:
+    if system in ['EGI']:
         raw_data._data[0:-1, :] = raw_data._data[0:-1, :] * 1e6
 
-    if system == 'CNT' and drop_sti_cnt:
-        raw_data.drop_channels(['STI 014'])
+    if system in ['CNT']:
+        raw_data._data = raw_data._data * 1e6
 
     if system in ignore_channels_dict:
         raw_data.drop_channels(ignore_channels_dict[system])
@@ -142,26 +149,26 @@ def get_raw_data(system, drop_sti_cnt=True, drop_extra_chs=False):
 def get_epochs(system):
     """Find, load and process the epoched data."""
     cfg_local = get_cfg_local(system)
-    raw_data = get_raw_data(system, drop_sti_cnt=False)
+    raw_data = get_raw_data(system)
 
     if cfg_local['eventtype'] in raw_data.ch_names:
         stim_channel = cfg_local['eventtype']
     else:
         stim_channel = 'STI 014'
 
-    events = mne.find_events(raw_data, stim_channel=stim_channel,
-                             shortest_event=1)
-
     if system == 'CNT':
-        raw_data.drop_channels(['STI 014'])
+        events, event_id = mne.events_from_annotations(raw_data)
         events[:, 0] = events[:, 0] + 1
-
-    if isinstance(cfg_local['eventvalue'], np.ndarray):
-        event_id = list(cfg_local['eventvalue'].astype('int'))
     else:
-        event_id = [int(cfg_local['eventvalue'])]
+        events = mne.find_events(raw_data, stim_channel=stim_channel,
+                                 shortest_event=1)
 
-    event_id = [id for id in event_id if id in events[:, 2]]
+        if isinstance(cfg_local['eventvalue'], np.ndarray):
+            event_id = list(cfg_local['eventvalue'].astype('int'))
+        else:
+            event_id = [int(cfg_local['eventvalue'])]
+
+        event_id = [id for id in event_id if id in events[:, 2]]
 
     epochs = mne.Epochs(raw_data, events=events,
                         event_id=event_id,

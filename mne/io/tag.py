@@ -1,10 +1,10 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
-import gzip
 from functools import partial
+import gzip
 import os
 import struct
 
@@ -12,7 +12,7 @@ import numpy as np
 from scipy import sparse
 
 from .constants import FIFF
-from ..externals.jdcal import jd2jcal
+from ..utils.numerics import _julian_to_cal
 
 
 ##############################################################################
@@ -109,9 +109,12 @@ def read_big(fid, size=None):
     # buf_size is chosen as a largest working power of 2 (16 MB):
     buf_size = 16777216
     if size is None:
-        # it's not possible to get .gz uncompressed file size
+        # it's not possible to get .gz uncompressed or file-like file size
         if not isinstance(fid, gzip.GzipFile):
-            size = os.fstat(fid.fileno()).st_size - fid.tell()
+            try:
+                size = os.fstat(fid.fileno()).st_size - fid.tell()
+            except Exception:  # e.g., io.UnsupportedOperation: fileno
+                pass
 
     if size is not None:
         # Use pre-buffering method
@@ -445,7 +448,7 @@ def _read_dir_entry_struct(fid, tag, shape, rlims):
 
 def _read_julian(fid, tag, shape, rlims):
     """Read julian tag."""
-    return jd2jcal(int(np.frombuffer(fid.read(4), dtype=">i4")))
+    return _julian_to_cal(int(np.frombuffer(fid.read(4), dtype=">i4")))
 
 
 # Read types call dict
@@ -477,7 +480,7 @@ _call_dict_names = {
 
 #  Append the simple types
 _simple_dict = {
-    FIFF.FIFFT_BYTE: '>B1',
+    FIFF.FIFFT_BYTE: '>B',
     FIFF.FIFFT_SHORT: '>i2',
     FIFF.FIFFT_INT: '>i4',
     FIFF.FIFFT_USHORT: '>u2',

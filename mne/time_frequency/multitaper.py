@@ -6,9 +6,9 @@
 import operator
 import numpy as np
 
-from ..fixes import _get_dpss
+from ..fixes import _get_dpss, rfft, irfft, rfftfreq
 from ..parallel import parallel_func
-from ..utils import sum_squared, warn, verbose, logger
+from ..utils import sum_squared, warn, verbose, logger, _check_option
 
 
 def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
@@ -24,12 +24,12 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     ----------
     N : int
         Sequence length
-    half_nbw : float, unitless
+    half_nbw : float
         Standardized half bandwidth corresponding to 2 * half_bw = BW*f0
-        = BW*N/dt but with dt taken as 1
+        = BW*N/dt but with dt taken as 1.
     Kmax : int
         Number of DPSS windows to return is Kmax (orders 0 through Kmax-1)
-    low_bias : Bool
+    low_bias : bool
         Keep only tapers with eigenvalues > 0.9
     interp_from : int (optional)
         The dpss can be calculated using interpolation from a set of dpss
@@ -101,8 +101,8 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     # compute autocorr using FFT (same as nitime.utils.autocorr(dpss) * N)
     rxx_size = 2 * N - 1
     n_fft = next_fast_len(rxx_size)
-    dpss_fft = np.fft.rfft(dpss, n_fft)
-    dpss_rxx = np.fft.irfft(dpss_fft * dpss_fft.conj(), n_fft)
+    dpss_fft = rfft(dpss, n_fft)
+    dpss_rxx = irfft(dpss_fft * dpss_fft.conj(), n_fft)
     dpss_rxx = dpss_rxx[:, :N]
 
     r = 4 * W * np.sinc(2 * W * nidx)
@@ -306,7 +306,7 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
     x = x - np.mean(x, axis=-1, keepdims=True)
 
     # only keep positive frequencies
-    freqs = np.fft.rfftfreq(n_fft, 1. / sfreq)
+    freqs = rfftfreq(n_fft, 1. / sfreq)
 
     # The following is equivalent to this, but uses less memory:
     # x_mt = fftpack.fft(x[:, np.newaxis, :] * dpss, n=n_fft)
@@ -314,7 +314,7 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
     x_mt = np.zeros(x.shape[:-1] + (n_tapers, len(freqs)),
                     dtype=np.complex128)
     for idx, sig in enumerate(x):
-        x_mt[idx] = np.fft.rfft(sig[..., np.newaxis, :] * dpss, n=n_fft)
+        x_mt[idx] = rfft(sig[..., np.newaxis, :] * dpss, n=n_fft)
     # Adjust DC and maybe Nyquist, depending on one-sided transform
     x_mt[:, :, 0] /= np.sqrt(2.)
     if x.shape[1] % 2 == 0:
@@ -364,7 +364,7 @@ def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive,
 def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
                          adaptive=False, low_bias=True, normalization='length',
                          n_jobs=1, verbose=None):
-    """Compute power spectrum density (PSD) using a multi-taper method.
+    """Compute power spectral density (PSD) using a multi-taper method.
 
     Parameters
     ----------
@@ -382,17 +382,14 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).
     low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     normalization : str
         Either "full" or "length" (default). If "full", the PSD will
         be normalized by the sampling rate as well as the length of
         the signal (as in nitime).
-    n_jobs : int
-        Number of parallel jobs to use (only used if adaptive=True).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(n_jobs)s
+    %(verbose)s
 
     Returns
     -------
@@ -413,9 +410,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
     -----
     .. versionadded:: 0.14.0
     """
-    if normalization not in ('length', 'full'):
-        raise ValueError('Normalization must be "length" or "full", not %s'
-                         % normalization)
+    _check_option('normalization', normalization, ['length', 'full'])
 
     # Reshape data so its 2-D for parallelization
     ndim_in = x.ndim
@@ -428,7 +423,7 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
         n_times, sfreq, bandwidth, low_bias, adaptive)
 
     # decide which frequencies to keep
-    freqs = np.fft.rfftfreq(n_times, 1. / sfreq)
+    freqs = rfftfreq(n_times, 1. / sfreq)
     freq_mask = (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[freq_mask]
 
@@ -474,7 +469,7 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
         The epochs.
     sfreq : float | int
         Sampling frequency of the data.
-    freqs : array-like of floats, shape (n_freqs)
+    freqs : array-like of float, shape (n_freqs,)
         The frequencies.
     n_cycles : float | array of float
         Number of cycles  in the Morlet wavelet. Fixed number or one per
@@ -497,7 +492,7 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
             Decimation may create aliasing artifacts, yet decimation
             is done after the convolutions.
 
-    output : str, defaults to 'complex'
+    output : str, default 'complex'
 
         * 'complex' : single trial complex.
         * 'power' : single trial power.
@@ -507,12 +502,10 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
         * 'avg_power_itc' : average of single trial power and inter-trial
           coherence across trials.
 
-    n_jobs : int
+    %(n_jobs)s
         The number of epochs to process at the same time. The parallelization
         is implemented across channels. Defaults to 1.
-    verbose : bool, str, int, or None, defaults to None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

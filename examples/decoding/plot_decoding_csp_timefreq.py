@@ -3,7 +3,6 @@
 Decoding in time-frequency space data using the Common Spatial Pattern (CSP)
 ============================================================================
 
-
 The time-frequency decomposition is estimated by iterating over raw data that
 has been band-passed at different frequencies. This is used to compute a
 covariance matrix over each epoch or a rolling time-window and extract the CSP
@@ -13,7 +12,7 @@ signals.
 # Authors: Laura Gwilliams <laura.gwilliams@nyu.edu>
 #          Jean-Remi King <jeanremi.king@gmail.com>
 #          Alex Barachant <alexandre.barachant@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 
@@ -41,7 +40,7 @@ raw = concatenate_raws([read_raw_edf(f, preload=True) for f in raw_fnames])
 
 # Extract information from the raw file
 sfreq = raw.info['sfreq']
-events, _ = events_from_annotations(raw)
+events, _ = events_from_annotations(raw, event_id=dict(T1=2, T2=3))
 raw.pick_types(meg=False, eeg=True, stim=False, eog=False, exclude='bads')
 
 # Assemble the classifier using scikit-learn pipeline

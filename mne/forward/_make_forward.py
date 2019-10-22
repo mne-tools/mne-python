@@ -1,14 +1,17 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larsoner@uw.edu>
 #
 # License: BSD (3-clause)
 
+# The computations in this code were primarily derived from Matti Hämäläinen's
+# C code.
+
 from copy import deepcopy
-import contextlib
+from contextlib import contextmanager
 import os
-from os import path as op
+import os.path as op
 
 import numpy as np
 
@@ -41,9 +44,7 @@ def _read_coil_defs(verbose=None):
 
     Parameters
     ----------
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -81,43 +82,45 @@ def _read_coil_def_file(fname, use_registry=True):
             lines = fid.readlines()
         lines = lines[::-1]
         while len(lines) > 0:
-            line = lines.pop()
-            if line[0] != '#':
-                vals = np.fromstring(line, sep=' ')
-                assert len(vals) in (6, 7)  # newer numpy can truncate comment
-                start = line.find('"')
-                end = len(line.strip()) - 1
-                assert line.strip()[end] == '"'
-                desc = line[start:end]
-                npts = int(vals[3])
-                coil = dict(coil_type=vals[1], coil_class=vals[0], desc=desc,
-                            accuracy=vals[2], size=vals[4], base=vals[5])
-                # get parameters of each component
-                rmag = list()
-                cosmag = list()
-                w = list()
-                for p in range(npts):
-                    # get next non-comment line
+            line = lines.pop().strip()
+            if line[0] == '#' and len(line) > 0:
+                continue
+            desc_start = line.find('"')
+            desc_end = len(line) - 1
+            assert line.strip()[desc_end] == '"'
+            desc = line[desc_start:desc_end]
+            vals = np.fromstring(line[:desc_start].strip(),
+                                 dtype=float, sep=' ')
+            assert len(vals) == 6
+            npts = int(vals[3])
+            coil = dict(coil_type=vals[1], coil_class=vals[0], desc=desc,
+                        accuracy=vals[2], size=vals[4], base=vals[5])
+            # get parameters of each component
+            rmag = list()
+            cosmag = list()
+            w = list()
+            for p in range(npts):
+                # get next non-comment line
+                line = lines.pop()
+                while(line[0] == '#'):
                     line = lines.pop()
-                    while(line[0] == '#'):
-                        line = lines.pop()
-                    vals = np.fromstring(line, sep=' ')
-                    assert len(vals) == 7
-                    # Read and verify data for each integration point
-                    w.append(vals[0])
-                    rmag.append(vals[[1, 2, 3]])
-                    cosmag.append(vals[[4, 5, 6]])
-                w = np.array(w)
-                rmag = np.array(rmag)
-                cosmag = np.array(cosmag)
-                size = np.sqrt(np.sum(cosmag ** 2, axis=1))
-                if np.any(np.sqrt(np.sum(rmag ** 2, axis=1)) > big_val):
-                    raise RuntimeError('Unreasonable integration point')
-                if np.any(size <= 0):
-                    raise RuntimeError('Unreasonable normal')
-                cosmag /= size[:, np.newaxis]
-                coil.update(dict(w=w, cosmag=cosmag, rmag=rmag))
-                coils.append(coil)
+                vals = np.fromstring(line, sep=' ')
+                assert len(vals) == 7
+                # Read and verify data for each integration point
+                w.append(vals[0])
+                rmag.append(vals[[1, 2, 3]])
+                cosmag.append(vals[[4, 5, 6]])
+            w = np.array(w)
+            rmag = np.array(rmag)
+            cosmag = np.array(cosmag)
+            size = np.sqrt(np.sum(cosmag ** 2, axis=1))
+            if np.any(np.sqrt(np.sum(rmag ** 2, axis=1)) > big_val):
+                raise RuntimeError('Unreasonable integration point')
+            if np.any(size <= 0):
+                raise RuntimeError('Unreasonable normal')
+            cosmag /= size[:, np.newaxis]
+            coil.update(dict(w=w, cosmag=cosmag, rmag=rmag))
+            coils.append(coil)
         if use_registry:
             _coil_registry[fname] = coils
     if use_registry:
@@ -247,8 +250,9 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t, allow_none=False,
                 'BEM is in %s coordinates, should be in MRI'
                 % (_coord_frame_name(bem['surfs'][0]['coord_frame']),))
         if neeg > 0 and len(bem['surfs']) == 1:
-            raise RuntimeError('Cannot use a homogeneous model in EEG '
-                               'calculations')
+            raise RuntimeError('Cannot use a homogeneous (1-layer BEM) model '
+                               'for EEG forward calculations, consider '
+                               'using a 3-layer BEM instead')
         logger.info('Employing the head->MRI coordinate transform with the '
                     'BEM model.')
         # fwd_bem_set_head_mri_t: Set the coordinate transformation
@@ -282,9 +286,7 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
         If True, compute and store ex, ey, ez, and r0_exey.
     do_picking : bool
         If True, pick info and return it.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -366,7 +368,7 @@ def _prep_meg_channels(info, accurate=True, exclude=(), ignore_ref=False,
 
     out = (megcoils, compcoils, megnames)
     if do_picking:
-        out = out + (pick_info(info, picks) if nmeg > 0 else None,)
+        out = out + (pick_info(info, picks),)
     return out
 
 
@@ -381,9 +383,7 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
     exclude : list of str | str
         List of channels to exclude. If 'bads', exclude channels in
         info['bads']
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -392,7 +392,6 @@ def _prep_eeg_channels(info, exclude=(), verbose=None):
     eegnames : list of str
         Name of each prepped EEG electrode
     """
-    eegnames, eegels = [], []
     info_extra = 'info'
 
     # Find EEG electrodes
@@ -516,13 +515,7 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
         If str, then it should be a filename to a Raw, Epochs, or Evoked
         file with measurement information. If dict, should be an info
         dict (such as one from Raw, Epochs, or Evoked).
-    trans : dict | str | None
-        Either a transformation filename (usually made using mne_analyze)
-        or an info dict (usually opened using read_trans()).
-        If string, an ending of `.fif` or `.fif.gz` will be assumed to
-        be in FIF format, any other ending will be assumed to be a text
-        file with a 4x4 transformation matrix (like the `--trans` MNE-C
-        option). Can be None to use the identity transform.
+    %(trans)s
     src : str | instance of SourceSpaces
         If string, should be a source space filename. Can also be an
         instance of loaded or generated SourceSpaces.
@@ -539,11 +532,8 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
         If True, do not include reference channels in compensation. This
         option should be True for KIT files, since forward computation
         with reference channels is not currently supported.
-    n_jobs : int
-        Number of jobs to run in parallel.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(n_jobs)s
+    %(verbose)s
 
     Returns
     -------
@@ -627,6 +617,7 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
     return fwd
 
 
+@verbose
 def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
     """Convert dipole object to source estimate and calculate forward operator.
 
@@ -655,11 +646,8 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
     trans : str | None
         The head<->MRI transform filename. Must be provided unless BEM
         is a sphere model.
-    n_jobs : int
-        Number of jobs to run in parallel (used in making forward solution).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(n_jobs)s
+    %(verbose)s
 
     Returns
     -------
@@ -774,7 +762,7 @@ def _to_forward_dict(fwd, names, fwd_grad=None,
     return fwd
 
 
-@contextlib.contextmanager
+@contextmanager
 def use_coil_def(fname):
     """Use a custom coil definition file.
 
@@ -785,7 +773,7 @@ def use_coil_def(fname):
 
     Returns
     -------
-    context : context manager
+    context : contextmanager
         The context for using the coil definition.
 
     Notes

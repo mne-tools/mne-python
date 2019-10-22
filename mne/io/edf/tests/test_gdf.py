@@ -5,34 +5,42 @@
 
 import os.path as op
 
+import pytest
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal)
 import numpy as np
 import scipy.io as sio
 
 from mne.datasets import testing
-from mne.io import read_raw_edf
+from mne.io import read_raw_gdf
 from mne.io.meas_info import DATE_NONE
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import run_tests_if_main
-from mne import pick_types, find_events
+from mne import pick_types, find_events, events_from_annotations
 
 data_path = testing.data_path(download=False)
 gdf1_path = op.join(data_path, 'GDF', 'test_gdf_1.25')
 gdf2_path = op.join(data_path, 'GDF', 'test_gdf_2.20')
+gdf_1ch_path = op.join(data_path, 'GDF', 'test_1ch.gdf')
 
 
 @testing.requires_testing_data
 def test_gdf_data():
     """Test reading raw GDF 1.x files."""
-    raw = read_raw_edf(gdf1_path + '.gdf', eog=None, misc=None, preload=True)
+    raw = read_raw_gdf(gdf1_path + '.gdf', eog=None, misc=None, preload=True)
     picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
     data, _ = raw[picks]
 
     # Test Status is added as event
-    EXPECTED_EVS_ONSETS = raw._raw_extras[0]['events'][1][::2]
-    evs = raw.find_edf_events()
-    assert_array_equal(evs[1][::2], EXPECTED_EVS_ONSETS)
+    EXPECTED_EVS_ONSETS = raw._raw_extras[0]['events'][1]
+    EXPECTED_EVS_ID = {
+        '{}'.format(evs): i for i, evs in enumerate(
+            [32769, 32770, 33024, 33025, 33026, 33027, 33028, 33029, 33040,
+             33041, 33042, 33043, 33044, 33045, 33285, 33286], 1)
+    }
+    evs, evs_id = events_from_annotations(raw)
+    assert_array_equal(evs[:, 0], EXPECTED_EVS_ONSETS)
+    assert evs_id == EXPECTED_EVS_ID
 
     # this .npy was generated using the official biosig python package
     raw_biosig = np.load(gdf1_path + '_biosig.npy')
@@ -52,7 +60,7 @@ def test_gdf_data():
 @testing.requires_testing_data
 def test_gdf2_data():
     """Test reading raw GDF 2.x files."""
-    raw = read_raw_edf(gdf2_path + '.gdf', eog=None, misc=None, preload=True)
+    raw = read_raw_gdf(gdf2_path + '.gdf', eog=None, misc=None, preload=True)
 
     picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
     data, _ = raw[picks]
@@ -73,8 +81,17 @@ def test_gdf2_data():
 
     # gh-5604
     assert raw.info['meas_date'] == DATE_NONE
-    _test_raw_reader(read_raw_edf, input_fname=gdf2_path + '.gdf',
+    _test_raw_reader(read_raw_gdf, input_fname=gdf2_path + '.gdf',
                      eog=None, misc=None)
+
+
+@testing.requires_testing_data
+def test_one_channel_gdf():
+    """Test a one-channel GDF file."""
+    with pytest.warns(RuntimeWarning, match='different highpass'):
+        ecg = read_raw_gdf(gdf_1ch_path, preload=True)
+    assert ecg['ECG'][0].shape == (1, 4500)
+    assert 150.0 == ecg.info['sfreq']
 
 
 run_tests_if_main()

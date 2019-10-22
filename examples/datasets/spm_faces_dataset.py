@@ -1,4 +1,6 @@
 """
+.. _ex-spm-faces:
+
 ==========================================
 From raw data to dSPM on SPM Faces dataset
 ==========================================
@@ -13,7 +15,7 @@ Runs a full pipeline using MNE-Python:
 .. note:: This example does quite a bit of processing, so even on a
           fast machine it can take several minutes to complete.
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)

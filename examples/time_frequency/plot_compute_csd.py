@@ -47,7 +47,7 @@ events = mne.read_events(fname_event)
 picks = mne.pick_types(raw.info, meg='grad')
 
 # Make some epochs, based on events with trigger code 1
-epochs = mne.Epochs(raw, events, event_id=1, tmin=0, tmax=1,
+epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=1,
                     picks=picks, baseline=(None, 0),
                     reject=dict(grad=4000e-13), preload=True)
 

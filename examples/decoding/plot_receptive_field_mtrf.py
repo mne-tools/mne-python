@@ -1,4 +1,6 @@
 """
+.. _ex-receptive-field-mtrf:
+
 =========================================
 Receptive Field Estimation and Prediction
 =========================================
@@ -8,7 +10,7 @@ matlab [1]_. We will show how the :class:`mne.decoding.ReceptiveField` class
 can perform a similar function along with scikit-learn. We will first fit a
 linear encoding model using the continuously-varying speech envelope to predict
 activity of a 128 channel EEG system. Then, we will take the reverse approach
-and try to predict the speech envelope from the EEG (known in the litterature
+and try to predict the speech envelope from the EEG (known in the literature
 as a decoding model, or simply stimulus reconstruction).
 
 References
@@ -67,9 +69,8 @@ speech = mne.filter.resample(speech, down=decim, npad='auto')
 raw = mne.filter.resample(raw, down=decim, npad='auto')
 
 # Read in channel positions and create our MNE objects from the raw data
-montage = mne.channels.read_montage('biosemi128')
-montage.selection = montage.selection[:128]
-info = mne.create_info(montage.ch_names[:128], sfreq, 'eeg', montage=montage)
+montage = mne.channels.make_standard_montage('biosemi128')
+info = mne.create_info(montage.ch_names, sfreq, 'eeg', montage=montage)
 raw = mne.io.RawArray(raw, info)
 n_channels = len(raw.ch_names)
 

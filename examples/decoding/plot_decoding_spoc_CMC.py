@@ -9,8 +9,8 @@ orthogonal spatial filters that maximally correlate with a continuous target.
 SPoC can be seen as an extension of the CSP for continuous variables.
 
 Here, SPoC is applied to decode the (continuous) fluctuation of an
-electromyogram from MEG beta activity using data from `Cortico-Muscular
-Coherence example of fieldtrip
+electromyogram from MEG beta activity using data from
+`Cortico-Muscular Coherence example of FieldTrip
 <http://www.fieldtriptoolbox.org/tutorial/coherence>`_
 
 References

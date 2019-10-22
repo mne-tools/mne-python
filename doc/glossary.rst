@@ -1,21 +1,15 @@
 :orphan:
 
-.. include:: links.inc
-
 .. _glossary:
 
-==========================
 Glossary
-==========================
-
-.. .. contents:: Contents
-..    :local:
-
+========
 
 .. currentmodule:: mne
 
-MNE-Python core terminology and general concepts
-================================================
+The Glossary provides short definitions of MNE-Python-specific vocabulary and
+general neuroimaging concepts. If you think a term is missing, please consider
+`creating a new issue`_ or `opening a pull request`_ to add it.
 
 .. glossary::
 
@@ -27,29 +21,72 @@ MNE-Python core terminology and general concepts
         sleep scores, sleep events (spindles, K-complex) etc.
         An :class:`Annotations` object is a container of multiple annotations.
         See :class:`Annotations` page for the API of the corresponding
-        object class and :ref:`sphx_glr_auto_tutorials_plot_object_annotations.py`
+        object class and :ref:`tut-annotations`
         for a tutorial on how to manipulate such objects.
+
+    Beamformer
+        Beamformer is a popular source estimation approach that uses a set of
+        spatial filters (beamformer weights) to compute time courses of sources
+        which coordinates are predefined. See :class:`mne.beamformer.Beamformer`.
+
+    BEM
+        BEM is the acronym for boundary element method or boundary element
+        model. Both are related to the forward model computation and more
+        specifically the definion of the conductor model. The
+        boundary element model consists of surfaces such as the inner skull,
+        outer skull and outer skin (a.k.a. scalp) that define compartments
+        of tissues of the head. You can compute the BEM surfaces with
+        :func:`mne.bem.make_watershed_bem` or :func:`mne.bem.make_flash_bem`.
+        See :ref:`tut-forward` for usage demo.
 
     channels
         Channels refer to MEG sensors, EEG electrodes or any extra electrode
-        or sensor such as EOG, ECG or sEEG, ECoG etc. Channels have typically
+        or sensor such as EOG, ECG or sEEG, ECoG etc. Channels usually have
         a type, such as gradiometer, and a unit, such as Tesla/Meter that
         is used in the code base, e.g. for plotting.
 
-    epochs
-        Epochs are chunks of data extracted from raw continuous data. Typically,
-        they correspond to the trials of an experimental design.
-        See :class:`Epochs` for the API of the corresponding
-        object class, and :ref:`sphx_glr_auto_tutorials_plot_object_epochs.py` for a
-        narrative overview.
+    digitization
+        Digitization is a procedure of recording the headshape of a subject and
+        the fiducial coils (or :term:`HPI`) and/or eeg electrodes locations on
+        the subject’s head. They are represented as a set of points in a 3D space.
+        See :ref:`reading-dig-montages` and :ref:`dig-formats`.
 
-    evoked
-        Evoked data are obtained by averaging epochs. Typically, an evoked object
-        is constructed for each subject and each condition, but it can also be
-        obtained by averaging a list of evoked over different subjects.
-        See :class:`EvokedArray` for the API of the corresponding
-        object class, and :ref:`sphx_glr_auto_tutorials_plot_object_evoked.py`
-        for a narrative overview.
+    dipole
+        See :term:`equivalent current dipole`.
+
+    dSPM
+        Dynamic statistical parametric mapping (abbr. ``dSPM``) gives a noise-
+        normalized minimum-norm estimate at a given source location. dSPM is 
+        calculated by dividing the activity estimate at each source location by 
+        the baseline standard deviation of the noise.
+
+    eLORETA and sLORETA
+        eLORETA and sLORETA (exact and standardized low resolution brain
+        electromagnetic tomography) are linear source estimation techniques,
+        as are dSPM or :term:`MNE <minimum-norm estimation>`. sLORETA outputs
+        standardized values (like dSPM does), while eLORETA outputs normalized
+        current estimates. See :func:`mne.minimum_norm.apply_inverse`,
+        :ref:`tut-inverse-methods`, and :ref:`example-sLORETA`.
+
+    epochs
+        Epochs (sometimes called "trials" in other software packages) are
+        equal-length spans of data extracted from raw continuous data. Usually,
+        epochs are extracted around stimulus events or subject responses,
+        though sometimes sequential or overlapping epochs are extracted (e.g.,
+        for analysis of resting-state activity). See :class:`Epochs` for the
+        API of the corresponding object class, and :ref:`tut-epochs-class` for
+        a narrative overview.
+
+    equivalent current dipole
+        An equivalent current dipole (ECD) is an approximate representation of
+        post-synaptic activity in a small region of cortex. The intracellular
+        currents that give rise to measurable EEG/MEG signals are thought to
+        originate in populations of cortical pyramidal neurons aligned
+        perpendicularly to the cortical surface. Because the length of such
+        current sources is very small relative to the distance between the
+        cortex and the EEG/MEG sensors, the fields measured by the techniques
+        are well-approximated by (i.e., "equivalent" to) fields generated by
+        idealized point sources (dipoles) located on the cortical surface.
 
     events
         Events correspond to specific time points in raw data; e.g.,
@@ -58,46 +95,122 @@ MNE-Python core terminology and general concepts
         are classically obtained from a trigger channel, also referred to as
         stim channel.
 
+    evoked
+        Evoked data are obtained by averaging epochs. Typically, an evoked object
+        is constructed for each subject and each condition, but it can also be
+        obtained by averaging a list of evoked over different subjects.
+        See :class:`EvokedArray` for the API of the corresponding
+        object class, and :ref:`tut-evoked-class` for a narrative overview.
+
+    fiducial point
+        There are three fiducial (a.k.a. cardinal) points: the left
+        preauricular point (LPA), the right preauricular point (RPA)
+        and the nasion.
+
     first_samp
-        The attribute of raw objects called ``first_samp`` is an integer that
-        refers to the number of time samples passed between the onset of the
-        acquisition system and the time when data started to be written
-        on disk. This is a specificity of the Vectorview MEG systems (fif files)
-        but for consistency it is available for all file formats in MNE.
-        One benefit of this system is that croppping data only boils
-        down to a change of the ``first_samp`` attribute to know when cropped data
-        was acquired.
+        The :attr:`~mne.io.Raw.first_samp` attribute of :class:`~mne.io.Raw`
+        objects is an integer representing the number of time samples that
+        passed between the onset of the hardware acquisition system and the
+        time when data started to be recorded to disk. This approach to sample
+        numbering is a peculiarity of VectorView MEG systems, but for
+        consistency it is present in all :class:`~mne.io.Raw` objects
+        regardless of the source of the data. In other words,
+        :attr:`~mne.io.Raw.first_samp` will be ``0`` in :class:`~mne.io.Raw`
+        objects loaded from non-VectorView data files.
+
+    forward solution
+        The forward solution (abbr. ``fwd``) is a linear operator capturing the
+        relationship between each dipole location in the :term:`source space`
+        and the corresponding field distribution measured by the sensors (AKA,
+        the "lead field matrix"). Calculating a forward solution requires a
+        conductivity model of the head, encapsulating the geometry and
+        electrical conductivity of the different tissue compartments (see
+        :term:`boundary element model <BEM>` and
+        :class:`mne.bem.ConductorModel`).
+
+    GFP
+        Global Field Power (abbr. ``GFP``) is a measure of the (non-)uniformity
+        of the electromagnetic field at the sensors. It is typically calculated
+        as the standard deviation of the sensor values at each time point; thus
+        it is a one-dimensional time series capturing the spatial variability
+        of the signal across sensor locations.
+
+    HPI
+        Head position indicators (abbr. ``HPI``, or sometimes ``cHPI`` for
+        *continuous* head position indicators) are small coils attached to a
+        subject's head during MEG acquisition. Each coil emits a sinusoidal
+        signal of a different frequency, which is picked up by the MEG sensors
+        and can be used to infer the head position. With cHPI, the sinusoidal
+        signals are typically set at frequencies above any neural signal of
+        interest, and thus can be removed after head position correction via
+        low-pass filtering. See :ref:`example-head-pos`.
 
     info
         Also called ``measurement info``, it is a collection of metadata regarding
         a Raw, Epochs or Evoked object; e.g.,
         channel locations and types, sampling frequency,
         preprocessing history such as filters ...
-        See :ref:`sphx_glr_auto_tutorials_plot_info.py` for a narrative
-        overview.
+        See :ref:`tut-info-class` for a narrative overview.
+
+    inverse operator
+        The inverse operator is an :math:`M \times N` matrix (:math:`M` source
+        locations by :math:`N` sensors) that, when applied to the sensor
+        signals, yields estimates of the brain activity that gave rise to the
+        observed sensor signals. Inverse operators are available for the linear
+        inverse methods MNE, dSPM, sLORETA and eLORETA.
+        See :func:`mne.minimum_norm.apply_inverse`.
 
     label
         A :class:`Label` refers to a region in the cortex, also often called
         a region of interest (ROI) in the literature.
 
+    layout
+        A :class:`Layout <mne.channels.Layout>` gives sensor positions in 2
+        dimensions (defined by ``x``, ``y``, ``width``, and ``height`` values for
+        each sensor). It is primarily used for illustrative purposes (i.e., making
+        diagrams of approximate sensor positions in top-down diagrams of the head,
+        so-called topographies or topomaps).
+
+    minimum-norm estimation
+        Minimum-norm estimation (abbr. ``MNE``) can be used to generate a distributed
+        map of activation on a :term:`source space`, usually on a cortical surface.
+        MNE uses a linear :term:`inverse operator` to project sensor measurements
+        into the source space. The :term:`inverse operator` is computed from the
+        :term:`forward solution` for a subject and an estimate of the
+        :term:`noise covariance` of sensor measurements.
+
     montage
         EEG channel names and the relative positions of the sensor w.r.t. the scalp.
-        See :class:`~channels.Montage` for the API of the corresponding object
+        While layout are 2D locations, montages give 3D locations. A montage
+        can also contain locations for HPI points, fiducial points, or
+        extra head shape points.
+        See :class:`~channels.DigMontage` for the API of the corresponding object
         class.
 
     morphing
         Morphing refers to the operation of transferring source estimates from
         one anatomy to another. It is commonly referred as realignment in fMRI
-        literature. This operation is necessary for group studies.
+        literature. This operation is necessary for group studies (to get the
+        data in a common space for statistical analysis).
         See :ref:`ch_morph` for more details.
+
+    noise covariance
+        Noise covariance is a matrix that contains the covariance between data
+        channels. It is a square matrix with shape ``n_channels`` :math:`\times`
+        ``n_channels``. It is especially useful when working with multiple sensor
+        types (e.g. EEG and MEG). It is in
+        practice estimated from baseline periods or empty room measurements.
+        The matrix also provides a noise model that can be used for subsequent analysis
+        like source imaging.
 
     pick
         An integer that is the index of a channel in the measurement info.
         It allows to obtain the information on a channel in the list of channels
         available in ``info['chs']``.
 
-    projector, (abbr. ``proj``)
-        A projector, also referred to a Signal Suspace Projection (SSP), defines
+    projector
+        A projector (abbr. ``proj``), also referred to as Signal Space
+        Projection (SSP), defines
         a linear operation applied spatially to EEG or MEG data. You can see
         this as a matrix multiplication that reduces the rank of the data by
         projecting it to a lower dimensional subspace. Such a projection
@@ -110,19 +223,10 @@ MNE-Python core terminology and general concepts
         It corresponds to continuous data (preprocessed or not). One typically
         manipulates raw data when reading recordings in a file on disk.
         See :class:`~io.RawArray` for the API of the corresponding
-        object class, and :ref:`sphx_glr_auto_tutorials_plot_object_raw.py` for a
-        narrative overview.
+        object class, and :ref:`tut-raw-class` for a narrative overview.
 
-    source space (abbr. ``src``)
-        A source space specifies where in the brain one wants to estimate the
-        source amplitudes. It corresponds to locations of a set of
-        candidate equivalent current dipoles (ECD). MNE mostly works
-        with source spaces defined on the cortical surfaces estimated
-        by FreeSurfer from a T1-weighted MRI image. See
-        :ref:`sphx_glr_auto_tutorials_plot_forward.py` to read on
-        how to compute a forward operator on a source space.
-        See :class:`SourceSpaces` for the API of the corresponding
-        object class.
+    selection (abbr. sel)
+        A set of picks. E.g., all sensors included in a Region of Interest.
 
     source estimates (abbr. ``stc``)
         Source estimates, commonly referred to as STC (Source Time Courses),
@@ -137,16 +241,34 @@ MNE-Python core terminology and general concepts
         :class:`VectorSourceEstimate`, :class:`MixedSourceEstimate`,
         for the API of the corresponding object classes.
 
-    selection (abbr. sel)
-        A set of picks. E.g., all sensors included in a Region of Interest.
+    source space
+        A source space (abbr. ``src``) specifies where in the brain one wants
+        to estimate the
+        source amplitudes. It corresponds to locations of a set of
+        candidate equivalent current dipoles (ECD). MNE mostly works
+        with source spaces defined on the cortical surfaces estimated
+        by FreeSurfer from a T1-weighted MRI image. See
+        :ref:`tut-forward` to read on
+        how to compute a forward operator on a source space.
+        See :class:`SourceSpaces` for the API of the corresponding
+        object class.
 
     stim channel
-        A stim channel, a.k.a. trigger channel, is a channel that encodes events
-        during the recording. It is typically a channel that is always zero and that
-        takes positive values when something happens such as the onset of a stimulus.
-        Classical names for stim channels is ``STI 014`` or ``STI 101``.
-        So-called events arrays are obtained from stim channels.
+        A stim channel, a.k.a. trigger channel, is a channel that encodes
+        events during the recording. It is typically a channel that is usually
+        zero and takes positive values when something happens (such as the
+        onset of a stimulus, or a subject response). Stim channels are often
+        prefixed with ``STI`` to distinguish them from other channel types. See
+        :ref:`stim-channel-defined` for more details.
 
     trans
         A coordinate frame affine transformation, usually between the Neuromag head
         coordinate frame and the MRI Surface RAS coordinate frame used by Freesurfer.
+
+
+.. LINKS
+
+.. _`creating a new issue`:
+   https://github.com/mne-tools/mne-python/issues/new?template=glossary.md
+.. _`opening a pull request`:
+   https://github.com/mne-tools/mne-python/pull/new/master

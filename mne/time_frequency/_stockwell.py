@@ -1,5 +1,5 @@
 # Authors : Denis A. Engemann <denis.engemann@gmail.com>
-#           Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#           Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License : BSD 3-clause
 
@@ -10,7 +10,7 @@ from scipy import fftpack
 # XXX explore cuda optimization at some point.
 
 from ..io.pick import _pick_data_channels, pick_info
-from ..utils import verbose, warn
+from ..utils import verbose, warn, fill_doc
 from ..parallel import parallel_func, check_n_jobs
 from .tfr import AverageTFR, _get_data
 
@@ -30,7 +30,7 @@ def _check_input_st(x_in, n_fft):
         raise ValueError("n_fft cannot be smaller than signal size. "
                          "Got %s < %s." % (n_fft, n_times))
     if n_times < n_fft:
-        warn('The input signal is shorter ({0}) than "n_fft" ({1}). '
+        warn('The input signal is shorter ({}) than "n_fft" ({}). '
              'Applying zero padding.'.format(x_in.shape[-1], n_fft))
         zero_pad = n_fft - n_times
         pad_array = np.zeros(x_in.shape[:-1] + (zero_pad,), x_in.dtype)
@@ -98,6 +98,7 @@ def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
     return psd, itc
 
 
+@fill_doc
 def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
                         width=1.0, decim=1, return_itc=False, n_jobs=1):
     """Compute power and intertrial coherence using Stockwell (S) transform.
@@ -127,8 +128,7 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
         The decimation factor on the time axis. To reduce memory usage.
     return_itc : bool
         Return intertrial coherence (ITC) as well as averaged power.
-    n_jobs : int
-        Number of parallel jobs to use.
+    %(n_jobs)s
 
     Returns
     -------
@@ -227,9 +227,7 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
         Return intertrial coherence (ITC) as well as averaged power.
     n_jobs : int
         The number of jobs to run in parallel (over channels).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

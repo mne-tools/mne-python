@@ -7,9 +7,8 @@ import os.path as op
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from mne.io import read_info, read_raw_fif
+from mne.io import read_info
 from mne.io.constants import FIFF
-from mne.io.proc_history import _get_rank_sss
 
 base_dir = op.join(op.dirname(__file__), 'data')
 raw_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
@@ -37,12 +36,3 @@ def test_maxfilter_io():
     assert mf['sss_cal']['cal_chans'].shape == (306, 2)
     vv_coils = [v for k, v in FIFF.items() if 'FIFFV_COIL_VV' in k]
     assert all(k in vv_coils for k in set(mf['sss_cal']['cal_chans'][:, 1]))
-
-
-def test_maxfilter_get_rank():
-    """Test maxfilter rank lookup."""
-    raw = read_raw_fif(raw_fname)
-    mf = raw.info['proc_history'][0]['max_info']
-    rank1 = mf['sss_info']['nfree']
-    rank2 = _get_rank_sss(raw)
-    assert rank1 == rank2

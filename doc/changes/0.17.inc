@@ -1,0 +1,317 @@
+.. _changes_0_17:
+
+Version 0.17
+------------
+
+Changelog
+~~~~~~~~~
+
+- Add new tutorial for :class:`mne.Annotations` and ``events`` by `Joan Massich`_ and  `Alex Gramfort`_
+
+- Add support for saving :class:`mne.Annotations` as CSV and TXT files by `Joan Massich`_ and `Alex Gramfort`_
+
+- Add :meth:`mne.Epochs.shift_time` that shifts the time axis of :class:`mne.Epochs` by `Thomas Hartmann`_
+
+- Add :func:`mne.viz.plot_arrowmap` computes arrowmaps using Hosaka-Cohen transformation from magnetometer or gradiometer data, these arrows represents an estimation of the current flow underneath the MEG sensors by `Sheraz Khan`_
+
+- Add :func:`mne.io.read_raw_fieldtrip`, :func:`mne.read_epochs_fieldtrip` and :func:`mne.read_evoked_fieldtrip` to import FieldTrip data. By `Thomas Hartmann`_ and `Dirk Gütlin`_.
+
+- Add ``rank`` parameter to :func:`mne.compute_covariance`, :func:`mne.cov.regularize` and related functions to preserve data rank and speed up computation using low-rank computations during regularization by `Eric Larson`_ and `Denis Engemann`_
+
+- Add new function :func:`mne.read_annotations` that can read annotations in EEGLAB, BrainVision, EDF and Brainstorm formats by `Joan Massich`_ and `Alex Gramfort`_.
+
+- Add capability to read and save Epochs containing complex data (e.g. after Hilbert-transform) using :meth:`mne.Epochs.save` and :func:`mne.read_epochs`, by `Stefan Repplinger`_, `Eric Larson`_ and `Alex Gramfort`_
+
+- Add optically pumped magnetometer dataset and example by `Rasmus Zetter`_ and `Eric Larson`_
+
+- Add ``orgin`` parameter to :meth:`mne.io.Raw.time_as_index` to allow ``times`` to be relative to this ``origin`` by `Joan Massich`_
+
+- Add ``title`` argument to :meth:`mne.SourceEstimate.plot` by `Eric Larson`_
+
+- :func:`mne.io.Raw.set_annotations` now changes ``orig_time`` to match ``meas_date`` and shift ``self.annotations.onset`` accordingly. Previous behavior is deprecated and would be removed in 0.18. Work by `Joan Massich`_
+
+- Add :func:`mne.compute_source_morph` which creates a :class:`mne.SourceMorph` object to unify morphing any type of source estimates (surface or volume) from one subject to another for group studies. It is now possible to do group studies when working on the volume with MNE. Work by `Tommy Clausner`_ during GSOC 2018 with the help of `Alex Gramfort`_ and `Eric Larson`_.
+
+- Add ability to pass threshold for EOG to :func:`mne.preprocessing.find_eog_events` and :func:`mne.preprocessing.create_eog_epochs` by `Peter Molfese`_
+
+- Add possibility to save :class:`mne.VolSourceEstimate` and :class:`mne.MixedSourceEstimate` to HDF5 format (file extension .h5) with :meth:`mne.VolSourceEstimate.save` and :meth:`mne.MixedSourceEstimate.save` by `Alex Gramfort`_
+
+- Add `replace` parameter to :meth:`mne.io.Raw.add_events` to allow adding events while removing the old ones on the stim channel by `Alex Gramfort`_
+
+- Add ability to pass ``axes`` to ``ts_args`` and ``topomap_args`` of :meth:`mne.viz.plot_evoked_joint` by `Jona Sassenhagen`_
+
+- Add ability to pass a precomputed forward solution to :func:`mne.simulation.simulate_raw` by `Eric Larson`_
+
+- Add ability to read and write beamformers with :func:`mne.beamformer.read_beamformer` and :class:`mne.beamformer.Beamformer.save` by `Eric Larson`_
+
+- Add resting-state source power spectral estimation example ``sphx_glr_auto_examples_datasets_plot_opm_rest_data.py`` by `Eric Larson`_, `Denis Engemann`_, and `Luke Bloy`_
+
+- Add :func:`mne.channels.make_1020_channel_selections` to group 10/20-named EEG channels by location, by `Jona Sassenhagen`_
+
+- Add helmet for Artemis123 for :func:`mne.viz.plot_alignment` by `Eric Larson`_
+
+- Add support for reading MATLAB ``v7.3+`` files in :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` via `pymatreader`_ by `Steven Gutstein`_, `Eric Larson`_, and `Thomas Hartmann`_
+
+- Add support for raw PSD plots in :meth:`mne.Report.parse_folder` via ``raw_psd`` argument of :class:`mne.Report` by `Eric Larson`_
+
+- Add `trig_shift_by_type` parameter in :func:`mne.io.read_raw_brainvision` to allow to specify offsets for arbitrary marker types by `Henrich Kolkhorst`_
+
+- Add progress bar support to :class:`mne.decoding.SlidingEstimator` and :class:`mne.decoding.GeneralizingEstimator` by `Eric Larson`_
+
+- Add interactive visualization of volume source estimates using :func:`mne.viz.plot_volume_source_estimates` by `Mainak Jas`_
+
+- Add :func:`mne.head_to_mri` to convert positions from head coordinates to MRI RAS coordinates, by `Joan Massich`_ and `Alex Gramfort`_
+
+- Add improved CTF helmet for :func:`mne.viz.plot_alignment` by `Eric Larson`_
+
+- Add handling in :func:`mne.combine_evoked` and :func:`mne.grand_average` for input with the same channels in different orders, if required, by `Jona Sassenhagen`_
+
+- Add `split_naming` parameter to the `Raw.save` method to allow for BIDS-compatible raw file name construction by `Teon Brooks`_
+
+- Add ``origin`` parameter to :meth:`mne.Evoked.interpolate_bads` and related methods by `Eric Larson`_
+
+- Add automated MEG helmet shape approximation to :func:`mne.viz.plot_alignment` by `Eric Larson`_
+
+- Add capability to save a :class:`mne.Report` to an HDF5 file to :meth:`mne.Report.save` by `Marijn van Vliet`_
+
+- Add :func:`mne.open_report` to read back a :class:`mne.Report` object that was saved to an HDF5 file by `Marijn van Vliet`_
+
+- Add multi-taper estimation to :func:`mne.minimum_norm.compute_source_psd` by `Eric Larson`_
+
+- Add support for custom, e.g. robust, averaging methods in :meth:`mne.Epochs.average` by `Jona Sassenhagen`_
+
+- Add support for Neuromag 122 system by `Alex Gramfort`_
+
+- Add function ``mne.io.read_annotations_brainvision`` for reading directly Brainvision marker files by `Alex Gramfort`_
+
+- Add :meth:`mne.Report.remove` method to remove existing figures from a report, by `Marijn van Vliet`_
+
+- Add sign to output of max-power orientation for :func:`mne.beamformer.make_dics` by `Eric Larson`_
+
+- Add support for ``pick_ori='max-power'`` when ``weight_norm=None`` in :func:`mne.beamformer.make_lcmv` by `Marijn van Vliet`_
+
+- Add support for ``weight_norm='nai'`` for all ``pick_ori`` options in :func:`mne.beamformer.make_lcmv` by `Marijn van Vliet`_
+
+- Add support for ``weight_norm='nai'`` to :func:`mne.beamformer.make_dics` by `Marijn van Vliet`_
+
+- Add parameter ``rank=None`` to :func:`mne.beamformer.make_dics` by `Marijn van Vliet`_
+
+- Add parameter ``rank='full'`` to :func:`mne.beamformer.make_lcmv`, which can be set to ``None`` to auto-compute the rank of the covariance matrix before regularization by `Marijn van Vliet`_
+
+- Handle different time vectors in topography plots using :func:`mne.viz.plot_evoked_topo` by `Jussi Nurminen`_
+
+- Speed up :func:`mne.inverse_sparse.mixed_norm` if the :solver: parameter is set to `bcd` using :func:`scipy.linalg.get_blas_funcs` by `Quentin Bertrand`_
+
+Bug
+~~~
+
+- Fix bug with scaling of data in ``mne.cov._compute_covariance_auto`` that was affecting the :class:`mne.decoding.SPoC` estimator by `David Sabbagh`_
+
+- Fix :func:`mne.io.Raw.plot_projs_topomap` by `Joan Massich`_
+
+- Fix bug in :func:`mne.minimum_norm.compute_source_psd` where the ``stc.times`` output was scaled by 1000, by `Eric Larson`_
+
+- Fix default values for ``'diagonal_fixed'`` estimation method of :func:`mne.compute_covariance` to be ``0.1`` for all channel types, as in :func:`mne.cov.regularize` by `Eric Larson`_
+
+- Fix reading edf file annotations by `Joan Massich`_
+
+- Fix bug with reading events from BrainVision files by `Stefan Appelhoff`_
+
+- Fix bug where :func:`mne.io.read_raw_eeglab` would warn when the stim channel is populated with an array of zeros by `Joan Massich`_
+
+- Fix 2nd column of events in BrainVision to no longer store duration but rather be contained by ``raw.annotations`` by `Alex Gramfort`_
+
+- Fix checking of the correctness of the ``prepared=True`` argument in :func:`mne.minimum_norm.apply_inverse` and related functions by `Eric Larson`_
+
+- Fix bug of not showing ERD's in baseline rescaled tfr topomaps if grads are combined by `Erkka Heinila`_
+
+- Fix bug with FIF I/O where strings were written in UTF-8 format instead of Latin-1 by `Eric Larson`_
+
+- Fix bug with reading measurement dates from BrainVision files by `Stefan Appelhoff`_
+
+- Fix bug with `mne.fit_dipole` where the residual was returned as ``ndarray`` instead of :class:`mne.Evoked` instance, by `Eric Larson`_
+
+- Fix bug with ``mne flash_bem`` when ``flash30`` is not used by `Eric Larson`_
+
+- Fix bug with :func:`mne.stats.permutation_cluster_test` and :func:`mne.stats.spatio_temporal_cluster_test` where ``threshold=None`` was not calculated properly for a f-oneway test by `Daniel McCloy`_ and `Eric Larson`_
+
+- Fix bug with channel names in ``mgh70`` montage in ``mne.channels.read_montage`` by `Eric Larson`_
+
+- Fix duplication of ``info['hpi_meas']`` and ``info['hpi_results']`` by `Sara Sommariva`_
+
+- Fix bug in :func:`mne.io.read_raw_edf` when reading large files on Windows by `Marcin Koculak`_
+
+- Fix check in :func:`mne.viz.plot_sensors` for invalid channel locations by `Eric Larson`_
+
+- Fix bug in :func:`mne.io.read_raw_edf` where GDF files had ``info['highpass']`` and ``info['lowpass']`` set to NaN and ``info['meas_date']`` set incorrectly, by `Eric Larson`_
+
+- Fix bug in :func:`mne.preprocessing.ICA.apply` to handle arrays as `exclude` property by `Joan Massich`_
+
+- Fix bug in ``method='eLORETA'`` for :func:`mne.minimum_norm.apply_inverse` when using a sphere model and saved ``inv`` by `Eric Larson`_
+
+- Fix bug in :class:`mne.io.Raw` where warnings were emitted when objects were deleted by `Eric Larson`_
+
+- Fix vector data support for :class:`mne.VolSourceEstimate` by `Christian Brodbeck`_
+
+- Fix bug with IIR filtering axis in :func:`mne.filter.filter_data` by `Eric Larson`_
+
+- Fix bug with non-boxcar windows in :meth:`mne.io.Raw.resample` and :func:`mne.filter.resample` by `Eric Larson`_
+
+- Fix bug in :func:`mne.minimum_norm.apply_inverse` where applying an MEG-only inverse would raise an error about needing an average EEG reference by `Eric Larson`_
+
+- Fix bug in ``inst.apply_proj()`` where an average EEG reference was always added by `Eric Larson`_
+
+- Fix bug in :func:`mne.time_frequency.tfr_morlet`, :func:`mne.time_frequency.tfr_multitaper`, and :func:`mne.time_frequency.tfr_stockwell` where not all data channels were picked by `Eric Larson`_
+
+- Fix bug in :meth:`mne.preprocessing.ICA.plot_overlay` and :func:`mne.make_field_map` for CTF data with compensation by `Eric Larson`_
+
+- Fix bug in :func:`mne.create_info` passing ``int`` as ``ch_names`` on Windows by `Eric Larson`_
+
+- Fix bug in ``mne.realtime.RtEpochs`` where events during the buildup of the buffer were not correctly processed when incoming data buffers are smaller than the epochs by `Henrich Kolkhorst`_
+
+- Fix bug in :func:`mne.io.read_raw_brainvision` where 1-indexed BrainVision events were not being converted into 0-indexed mne events by `Steven Bethard`_
+
+- Fix bug in :func:`mne.viz.plot_snr_estimate` and :func:`mne.minimum_norm.estimate_snr` where the inverse rank was not properly utilized (especially affecting SSS'ed MEG data) by `Eric Larson`_
+
+- Fix error when saving stc as nifti image when using volume source space formed by more than one label by `Alex Gramfort`_
+
+- Fix error when interpolating MEG channels with compensation using reference channels (like for CTF data) by `Alex Gramfort`_
+
+- Fix bug in :func:`mne.make_sphere_model` where EEG sphere model coefficients were not optimized properly by `Eric Larson`_
+
+- Fix bug in :func:`mne.io.read_raw_ctf` to read bad channels and segments from CTF ds files by `Luke Bloy`_
+
+- Fix problem with :meth:`mne.io.Raw.add_channels` where ``raw.info['bads']`` was replicated by `Eric Larson`_
+
+- Fix bug with :class:`mne.Epochs` where an error was thrown when resizing data (e.g., during :meth:`mne.Epochs.drop_bad`) by `Eric Larson`_
+
+- Fix naming of ``raw.info['buffer_size_sec']`` to be ``raw.buffer_size_sec`` as it is a writing parameter rather than a measurement parameter by `Eric Larson`_
+
+- Fix EGI-MFF parser not to require ``dateutil`` package by `Eric Larson`_
+
+- Fix error when running LCMV on MEG channels with compensation using reference channels (like for CTF data) by `Alex Gramfort`_
+
+- Fix the use of :func:`sklearn.model_selection.cross_val_predict` with :class:`mne.decoding.SlidingEstimator` by `Alex Gramfort`_
+
+- Fix event sample number increase when combining many Epochs objects with :func:`mne.concatenate_epochs` with  by `Jasper van den Bosch`_
+
+- Fix title of custom slider images to :class:`mne.Report` by `Marijn van Vliet`_
+
+- Fix missing initialization of ``self._current`` in :class:`mne.Epochs` by `Henrich Kolkhorst`_
+
+- Fix processing of data with bad segments and acquisition skips with new ``skip_by_annotation`` parameter in :func:`mne.preprocessing.maxwell_filter` by `Eric Larson`_
+
+- Fix symlinking to use relative paths in ``mne flash_bem` and ``mne watershed_bem`` by `Eric Larson`_
+
+- Fix error in mne coreg when saving with scaled MRI if fiducials haven't been saved by `Ezequiel Mikulan`_
+
+- Fix normalization error in :func:`mne.beamformer.make_lcmv` when ``pick_ori='normal', weight_norm='unit_noise_gain'`` by `Marijn van Vliet`_
+
+- Fix MNE-C installation instructions by `buildqa`_
+
+- Fix computation of max-power orientation in :func:`mne.beamformer.make_dics` when ``pick_ori='max-power', weight_norm='unit_noise_gain'`` by `Marijn van Vliet`_
+
+API
+~~~
+
+- Deprecated separate reading of annotations and synthesis of STI014 channels in readers by `Joan Massich`_:
+
+  - Deprecated ``mne.io.read_annotations_eeglab``
+  - Deprecated ``annot`` and ``annotmap`` parameters in :meth:`~mne.io.read_raw_edf`
+  - Deprecated ``stim_channel`` parameters in :func:`~mne.io.read_raw_edf`, :func:`~mne.io.read_raw_brainvision`, and :func:`~mne.io.read_raw_eeglab`
+
+  Annotations are now added to ``raw`` instances directly upon reading as :attr:`raw.annotations <mne.io.Raw.annotations>`.
+  They can also be read separately with :func:`mne.read_annotations` for EEGLAB, BrainVision, EDF, and Brainstorm formats.
+  Use :func:`mne.events_from_annotations(raw.annotations) <mne.events_from_annotations>`
+  to convert these to events instead of the old way (using STI014 channel synthesis followed by :func:`mne.find_events(raw) <mne.find_events>`).
+
+  In 0.17 (this release)
+    Use ``read_raw_...(stim_channel=False)`` to disable warnings (and stim channel synthesis), but other arguments for ``stim_channel`` will still be supported.
+
+  In 0.18
+    The only supported option will be ``read_raw_...(stim_channel=False)``, and all stim-channel-synthesis arguments will be removed. At this point, ``stim_channel`` should be removed from scripts for future compatibility, but ``stim_channel=False`` will still be acceptable for backward compatibility.
+
+  In 0.19
+    The ``stim_channel`` keyword arguments will be removed from ``read_raw_...`` functions.
+
+- Calling :meth:``mne.io.pick.pick_info`` removing channels that are needed by compensation matrices (``info['comps']``) no longer raises ``RuntimeException`` but instead logs an info level message. By `Luke Bloy`_
+
+- :meth:`mne.Epochs.save` now has the parameter `fmt` to specify the desired format (precision) saving epoched data, by `Stefan Repplinger`_, `Eric Larson`_ and `Alex Gramfort`_
+
+- Deprecated ``mne.SourceEstimate.morph_precomputed``, ``mne.SourceEstimate.morph``, ``mne.compute_morph_matrix``, ``mne.morph_data_precomputed`` and ``mne.morph_data`` in favor of :func:`mne.compute_source_morph`, by `Tommy Clausner`_
+
+- Prepare transition to Python 3. This release will be the last release compatible with Python 2. The next version will be Python 3 only.
+
+- CUDA support now relies on CuPy_ instead of ``PyCUDA`` and ``scikits-cuda``. It can be installed using ``conda install cupy``. By `Eric Larson`_
+
+- Functions requiring a color cycle will now default to Matplotlib rcParams colors, by `Stefan Appelhoff`_
+
+- :meth:`mne.Evoked.plot_image` has gained the ability to ``show_names``, and if a selection is provided to ``group_by``, ``axes`` can now receive a `dict`, by `Jona Sassenhagen`_
+
+- Calling :meth:`mne.Epochs.decimate` with ``decim=1`` no longer copies the data by `Henrich Kolkhorst`_
+
+- Removed blocking (waiting for new epochs) in ``mne.realtime.RtEpochs.get_data()`` by `Henrich Kolkhorst`_
+
+- Warning messages are now only emitted as :func:`warnings.warn_explicit` rather than also being emitted as ``logging`` messages (unless a logging file is being used) to avoid duplicate warning messages, by `Eric Larson`_
+
+- Deprecated save_stc_as_volume function in favor of :meth:`mne.VolSourceEstimate.as_volume` and :meth:`mne.VolSourceEstimate.save_as_volume` by `Alex Gramfort`_
+
+- `src.kind` now equals to `'mixed'` (and not `'combined'`) for a mixed source space (made of surfaces and volume grids) by `Alex Gramfort`_
+
+- Deprecation of :attr:`mne.io.Raw.annotations` property in favor of :meth:`mne.io.Raw.set_annotations` by `Joan Massich`_
+
+- The default value of ``stop_receive_thread`` in ``mne.realtime.RtEpochs.stop`` has been changed to ``True`` by `Henrich Kolkhorst`_
+
+- Using the :meth:`mne.io.Raw.add_channels` on an instance with memmapped data will now resize the memmap file to append the new channels on Windows and Linux, by `Eric Larson`_
+
+- :attr:`mne.io.Raw.annotations` when missing is set to an empty :class:`mne.Annotations` rather than ``None`` by `Joan Massich`_ and `Alex Gramfort`_
+
+- Mismatches in CTF compensation grade are now checked in inverse computation by `Eric Larson`_
+
+
+Authors
+~~~~~~~
+
+People who contributed to this release  (in alphabetical order):
+
+* 	Alexandre Gramfort
+* 	Antoine Gauthier
+* 	Britta Westner
+* 	Christian Brodbeck
+* 	Clemens Brunner
+* 	Daniel McCloy
+* 	David Sabbagh
+* 	Denis A. Engemann
+* 	Eric Larson
+* 	Ezequiel Mikulan
+* 	Henrich Kolkhorst
+* 	Hubert Banville
+* 	Jasper J.F. van den Bosch
+* 	Jen Evans
+* 	Joan Massich
+* 	Johan van der Meer
+* 	Jona Sassenhagen
+* 	Kambiz Tavabi
+* 	Lorenz Esch
+* 	Luke Bloy
+* 	Mainak Jas
+* 	Manu Sutela
+* 	Marcin Koculak
+* 	Marijn van Vliet
+* 	Mikolaj Magnuski
+* 	Peter J. Molfese
+* 	Sam Perry
+* 	Sara Sommariva
+* 	Sergey Antopolskiy
+* 	Sheraz Khan
+* 	Stefan Appelhoff
+* 	Stefan Repplinger
+* 	Steven Bethard
+* 	Teekuningas
+* 	Teon Brooks
+* 	Thomas Hartmann
+* 	Thomas Jochmann
+* 	Tom Dupré la Tour
+* 	Tristan Stenner
+* 	buildqa
+* 	jeythekey

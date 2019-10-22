@@ -80,7 +80,7 @@ def test_scaler():
     pytest.raises(ValueError, Scaler, None, None)
     pytest.raises(ValueError, scaler.fit, epochs, y)
     pytest.raises(ValueError, scaler.transform, epochs)
-    epochs_bad = Epochs(raw, events, event_id, 0, 0.01,
+    epochs_bad = Epochs(raw, events, event_id, 0, 0.01, baseline=None,
                         picks=np.arange(len(raw.ch_names)))  # non-data chs
     scaler = Scaler(epochs_bad.info, None)
     pytest.raises(ValueError, scaler.fit, epochs_bad.get_data(), y)
@@ -227,8 +227,8 @@ def test_temporal_filter():
         assert (X.shape == Xt.shape)
 
     # Test fit and transform numpy type check
-    with pytest.warns(RuntimeWarning, match='longer than the signal'):
-        pytest.raises(TypeError, filt.transform, [1, 2])
+    with pytest.raises(ValueError, match='Data to be filtered must be'):
+        filt.transform([1, 2])
 
     # Test with 2 dimensional data array
     X = np.random.rand(101, 500)

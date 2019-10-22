@@ -1,5 +1,5 @@
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
@@ -219,9 +219,17 @@ def test_set_eeg_reference():
                                         projection=False)
     _test_reference(raw, reref, ref_data, eeg_chans)
 
-    # projection=True only works for ref_channels='average'
-    pytest.raises(ValueError, set_eeg_reference, raw, [], True, True)
-    pytest.raises(ValueError, set_eeg_reference, raw, ['EEG 001'], True, True)
+    with pytest.raises(ValueError, match='supported for ref_channels="averag'):
+        set_eeg_reference(raw, [], True, True)
+    with pytest.raises(ValueError, match='supported for ref_channels="averag'):
+        set_eeg_reference(raw, ['EEG 001'], True, True)
+
+    # gh-6454
+    rng = np.random.RandomState(0)
+    data = rng.randn(3, 1000)
+    raw = RawArray(data, create_info(3, 1000., ['ecog'] * 2 + ['misc']))
+    reref, ref_data = set_eeg_reference(raw.copy())
+    _test_reference(raw, reref, ref_data, ['0', '1'])
 
 
 @testing.requires_testing_data

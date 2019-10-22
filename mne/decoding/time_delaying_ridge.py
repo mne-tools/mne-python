@@ -9,12 +9,27 @@ import numpy as np
 from scipy import linalg
 
 from .base import BaseEstimator
+from ..cuda import _setup_cuda_fft_multiply_repeated
 from ..filter import next_fast_len
-from ..utils import warn
+from ..parallel import check_n_jobs
+from ..utils import warn, ProgressBar
 
 
-def _compute_corrs(X, y, smin, smax):
+def _compute_corrs(X, y, smin, smax, n_jobs=1, fit_intercept=False,
+                   edge_correction=True):
     """Compute auto- and cross-correlations."""
+    if fit_intercept:
+        # We could do this in the Fourier domain, too, but it should
+        # be a bit cleaner numerically to do it here.
+        X_offset = np.mean(X, axis=0)
+        y_offset = np.mean(y, axis=0)
+        if X.ndim == 3:
+            X_offset = X_offset.mean(axis=0)
+            y_offset = np.mean(y_offset, axis=0)
+        X = X - X_offset
+        y = y - y_offset
+    else:
+        X_offset = y_offset = 0.
     if X.ndim == 2:
         assert y.ndim == 2
         X = X[:, np.newaxis, :]
@@ -25,106 +40,100 @@ def _compute_corrs(X, y, smin, smax):
     len_y, n_epcohs, n_ch_y = y.shape
     assert len_x == len_y
 
-    n_fft = next_fast_len(X.shape[0] + max(smax, 0) - min(smin, 0) - 1)
+    n_fft = next_fast_len(2 * X.shape[0] - 1)
+
+    n_jobs, cuda_dict = _setup_cuda_fft_multiply_repeated(
+        n_jobs, [1.], n_fft, 'correlation calculations')
+
+    # create our Toeplitz indexer
+    ij = np.empty((len_trf, len_trf), int)
+    for ii in range(len_trf):
+        ij[ii, ii:] = np.arange(len_trf - ii)
+        x = np.arange(n_fft - 1, n_fft - len_trf + ii, -1)
+        ij[ii + 1:, ii] = x
 
     x_xt = np.zeros([n_ch_x * len_trf] * 2)
     x_y = np.zeros((len_trf, n_ch_x, n_ch_y), order='F')
+    pb = ProgressBar(n_epochs * (n_ch_x * (n_ch_x + 1) // 2 + n_ch_x),
+                     mesg='Fit %d epochs, %d channels' % (n_epochs, n_ch_x),
+                     spinner=True, verbose_bool='auto')
+    count = 0
+    pb.update(count)
     for ei in range(n_epochs):
         this_X = X[:, ei, :]
-        X_fft = np.fft.rfft(this_X, n_fft, axis=0)
-        y_fft = np.fft.rfft(y[:, ei, :], n_fft, axis=0)
+        # XXX maybe this is what we should parallelize over CPUs at some point
+        X_fft = cuda_dict['rfft'](this_X, n=n_fft, axis=0)
+        X_fft_conj = X_fft.conj()
+        y_fft = cuda_dict['rfft'](y[:, ei, :], n=n_fft, axis=0)
 
-        # compute the autocorrelations
         for ch0 in range(n_ch_x):
-            other_sl = slice(ch0, n_ch_x)
-            ac_temp = np.fft.irfft(X_fft[:, ch0][:, np.newaxis] *
-                                   X_fft[:, other_sl].conj(), n_fft, axis=0)
-            n_other = ac_temp.shape[1]
-            row = ac_temp[:len_trf]  # zero and positive lags
-            col = ac_temp[-1:-len_trf:-1]  # negative lags
-            # Our autocorrelation structure is a Toeplitz matrix, but
-            # it's faster to create the Toeplitz ourselves.
-            x_xt_temp = np.zeros((len_trf, len_trf, n_other))
-            for ii in range(len_trf):
-                x_xt_temp[ii, ii:] = row[:len_trf - ii]
-                x_xt_temp[ii + 1:, ii] = col[:len_trf - ii - 1]
-            row_adjust = np.zeros((len_trf, n_other))
-            col_adjust = np.zeros((len_trf, n_other))
+            for oi, ch1 in enumerate(range(ch0, n_ch_x)):
+                this_result = cuda_dict['irfft'](
+                    X_fft[:, ch0] * X_fft_conj[:, ch1], n=n_fft, axis=0)
+                # Our autocorrelation structure is a Toeplitz matrix, but
+                # it's faster to create the Toeplitz ourselves than use
+                # linalg.toeplitz.
+                this_result = this_result[ij]
+                # However, we need to adjust for coeffs that are cut off,
+                # i.e. the non-zero delays should not have the same AC value
+                # as the zero-delay ones (because they actually have fewer
+                # coefficients).
+                #
+                # These adjustments also follow a Toeplitz structure, so we
+                # construct a matrix of what has been left off, compute their
+                # inner products, and remove them.
+                if edge_correction and smax > 0:
+                    tail = _toeplitz_dot(this_X[-1:-smax:-1, ch0],
+                                         this_X[-1:-smax:-1, ch1])
+                    if smin > 0:
+                        tail = tail[smin - 1:, smin - 1:]
+                    this_result[max(-smin + 1, 0):, max(-smin + 1, 0):] -= tail
+                if edge_correction and smin < 0:
+                    head = _toeplitz_dot(this_X[:-smin, ch0],
+                                         this_X[:-smin, ch1])[::-1, ::-1]
+                    if smax < 0:
+                        head = head[:smax, :smax]
+                    this_result[:-smin, :-smin] -= head
 
-            # However, we need to adjust for coeffs that are cut off by
-            # the mode="same"-like behavior of the algorithm,
-            # i.e. the non-zero delays should not have the same AC value
-            # as the zero-delay ones (because they actually have fewer
-            # coefficients).
-            #
-            # These adjustments also follow a Toeplitz structure, but it's
-            # computationally more efficient to manually accumulate and
-            # subtract from each row and col, rather than accumulate a single
-            # adjustment matrix using Toeplitz repetitions then subtract
-
-            # Adjust positive lags where the tail gets cut off
-            for idx in range(1, smax):
-                ii = idx - smin
-                end_sl = slice(X.shape[0] - idx, -smax - min(ii, 0), -1)
-                c = (this_X[-idx, other_sl][np.newaxis] *
-                     this_X[end_sl, ch0][:, np.newaxis])
-                r = this_X[-idx, ch0] * this_X[end_sl, other_sl]
-                if ii <= 0:
-                    col_adjust += c
-                    row_adjust += r
-                    if ii == 0:
-                        x_xt_temp[0, :] = row - row_adjust
-                        x_xt_temp[1:, 0] = col - col_adjust[1:]
-                else:
-                    col_adjust[:-ii] += c
-                    row_adjust[:-ii] += r
-                    x_xt_temp[ii, ii:] = row[:-ii] - row_adjust[:-ii]
-                    x_xt_temp[ii + 1:, ii] = col[:-ii] - col_adjust[1:-ii]
-
-            # Adjust negative lags where the head gets cut off
-            x_xt_temp = x_xt_temp[::-1][:, ::-1]
-            row_adjust.fill(0.)
-            col_adjust.fill(0.)
-            for idx in range(0, -smin):
-                ii = idx + smax
-                start_sl = slice(idx, -smin + min(ii, 0))
-                c = (this_X[idx, other_sl][np.newaxis] *
-                     this_X[start_sl, ch0][:, np.newaxis])
-                r = this_X[idx, ch0] * this_X[start_sl, other_sl]
-                if ii <= 0:
-                    col_adjust += c
-                    row_adjust += r
-                    if ii == 0:
-                        x_xt_temp[0, :] -= row_adjust
-                        x_xt_temp[1:, 0] -= col_adjust[1:]
-                else:
-                    col_adjust[:-ii] += c
-                    row_adjust[:-ii] += r
-                    x_xt_temp[ii, ii:] -= row_adjust[:-ii]
-                    x_xt_temp[ii + 1:, ii] -= col_adjust[1:-ii]
-
-            x_xt_temp = x_xt_temp[::-1][:, ::-1]
-            for oi in range(n_other):
-                ch1 = oi + ch0
-                # Store the result
-                this_result = x_xt_temp[:, :, oi]
+                # Store the results in our output matrix
                 x_xt[ch0 * len_trf:(ch0 + 1) * len_trf,
                      ch1 * len_trf:(ch1 + 1) * len_trf] += this_result
                 if ch0 != ch1:
                     x_xt[ch1 * len_trf:(ch1 + 1) * len_trf,
                          ch0 * len_trf:(ch0 + 1) * len_trf] += this_result.T
+                count += 1
+                pb.update(count)
 
             # compute the crosscorrelations
-            cc_temp = np.fft.irfft(
-                y_fft * X_fft[:, ch0][:, np.newaxis].conj(), n_fft, axis=0)
+            cc_temp = cuda_dict['irfft'](
+                y_fft * X_fft_conj[:, slice(ch0, ch0 + 1)], n=n_fft, axis=0)
             if smin < 0 and smax >= 0:
                 x_y[:-smin, ch0] += cc_temp[smin:]
                 x_y[len_trf - smax:, ch0] += cc_temp[:smax]
             else:
                 x_y[:, ch0] += cc_temp[smin:smax]
+            count += 1
+            pb.update(count)
+    pb.done()
 
     x_y = np.reshape(x_y, (n_ch_x * len_trf, n_ch_y), order='F')
-    return x_xt, x_y, n_ch_x
+    return x_xt, x_y, n_ch_x, X_offset, y_offset
+
+
+def _toeplitz_dot(a, b):
+    """Create upper triangular Toeplitz matrices & compute the dot product."""
+    # This is equivalent to:
+    # a = linalg.toeplitz(a)
+    # b = linalg.toeplitz(b)
+    # a[np.triu_indices(len(a), 1)] = 0
+    # b[np.triu_indices(len(a), 1)] = 0
+    # out = np.dot(a.T, b)
+    assert a.shape == b.shape and a.ndim == 1
+    out = np.outer(a, b)
+    for ii in range(1, len(a)):
+        out[ii, ii:] += out[ii - 1, ii - 1:-1]
+        out[ii + 1:, ii] += out[ii:-1, ii - 1]
+    return out
 
 
 def _compute_reg_neighbors(n_ch_x, n_delays, reg_type, method='direct',
@@ -226,6 +235,18 @@ class TimeDelayingRidge(BaseEstimator):
         and across adjacent features.
     fit_intercept : bool
         If True (default), the sample mean is removed before fitting.
+    n_jobs : int | str
+        The number of jobs to use. Can be an int (default 1) or ``'cuda'``.
+
+        .. versionadded:: 0.18
+    edge_correction : bool
+        If True (default), correct the autocorrelation coefficients for
+        non-zero delays for the fact that fewer samples are available.
+        Disabling this speeds up performance at the cost of accuracy
+        depending on the relationship between epoch length and model
+        duration. Only used if ``estimator`` is float or None.
+
+        .. versionadded:: 0.18
 
     Notes
     -----
@@ -243,7 +264,7 @@ class TimeDelayingRidge(BaseEstimator):
     _estimator_type = "regressor"
 
     def __init__(self, tmin, tmax, sfreq, alpha=0., reg_type='ridge',
-                 fit_intercept=True):  # noqa: D102
+                 fit_intercept=True, n_jobs=1, edge_correction=True):
         if tmin > tmax:
             raise ValueError('tmin must be <= tmax, got %s and %s'
                              % (tmin, tmax))
@@ -253,6 +274,8 @@ class TimeDelayingRidge(BaseEstimator):
         self.alpha = float(alpha)
         self.reg_type = reg_type
         self.fit_intercept = fit_intercept
+        self.edge_correction = edge_correction
+        self.n_jobs = n_jobs
 
     @property
     def _smin(self):
@@ -283,22 +306,13 @@ class TimeDelayingRidge(BaseEstimator):
         else:
             assert X.ndim == 2 and y.ndim == 2
             assert X.shape[0] == y.shape[0]
+        n_jobs = check_n_jobs(self.n_jobs, allow_cuda=True)
         # These are split into two functions because it's possible that we
         # might want to allow people to do them separately (e.g., to test
         # different regularization parameters).
-        if self.fit_intercept:
-            # We could do this in the Fourier domain, too, but it should
-            # be a bit cleaner numerically to do it here.
-            X_offset = np.mean(X, axis=0)
-            y_offset = np.mean(y, axis=0)
-            if X.ndim == 3:
-                X_offset = X_offset.mean(axis=0)
-                y_offset = np.mean(y_offset, axis=0)
-            X = X - X_offset
-            y = y - y_offset
-        else:
-            X_offset = y_offset = 0.
-        self.cov_, x_y_, n_ch_x = _compute_corrs(X, y, self._smin, self._smax)
+        self.cov_, x_y_, n_ch_x, X_offset, y_offset = _compute_corrs(
+            X, y, self._smin, self._smax, n_jobs, self.fit_intercept,
+            self.edge_correction)
         self.coef_ = _fit_corrs(self.cov_, x_y_, n_ch_x,
                                 self.reg_type, self.alpha, n_ch_x)
         # This is the sklearn formula from LinearModel (will be 0. for no fit)

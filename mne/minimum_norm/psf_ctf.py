@@ -1,5 +1,5 @@
 # Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 
@@ -10,7 +10,7 @@ from scipy import linalg
 
 from ..io.constants import FIFF
 from ..io.pick import pick_channels
-from ..utils import logger, verbose
+from ..utils import logger, verbose, _check_option, deprecated
 from ..forward import convert_forward_solution
 from ..evoked import EvokedArray
 from ..source_estimate import SourceEstimate
@@ -37,6 +37,8 @@ def _pick_leadfield(leadfield, forward, ch_names):
     return leadfield[picks_fwd]
 
 
+@deprecated('point_spread_function is deprecated and will be removed in 0.21;'
+            'please get_point_spread instead.')
 @verbose
 def point_spread_function(inverse_operator, forward, labels, method='dSPM',
                           lambda2=1 / 9., pick_ori=None, mode='mean',
@@ -56,7 +58,7 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
         solution will not be used in PSF computation.
     labels : list of Label
         Labels for which PSFs shall be computed.
-    method : 'MNE' | 'dSPM' | 'sLORETA' | eLORETA
+    method : 'MNE' | 'dSPM' | 'sLORETA' | 'eLORETA'
         Inverse method for which PSFs shall be computed
         (for :func:`apply_inverse`).
     lambda2 : float
@@ -75,16 +77,14 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
         assumed to be more variable.
         "sub-leadfields" are the parts of the forward solutions that belong to
         vertices within individual labels.
-    n_svd_comp : integer
+    n_svd_comp : int
         Number of SVD components for which PSFs will be computed and output
         (irrelevant for 'sum' and 'mean'). Explained variances within
         sub-leadfields are shown in screen output.
     use_cps : None | bool (default True)
         Whether to use cortical patch statistics to define normal
         orientations. Only used when surf_ori and/or force_fixed are True.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -103,9 +103,7 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
         (sum is taken across summary measures).
     """
     mode = mode.lower()
-    if mode not in ['mean', 'sum', 'svd']:
-        raise ValueError("mode must be 'svd', 'mean' or 'sum'. Got %s."
-                         % mode)
+    _check_option('mode', mode, ['mean', 'sum', 'svd'])
 
     logger.info("About to process %d labels" % len(labels))
 
@@ -322,6 +320,8 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
     return invmat, label_singvals
 
 
+@deprecated('cross_talk_function is deprecated and will be removed in 0.21;'
+            'please get_cross_talk instead.')
 @verbose
 def cross_talk_function(inverse_operator, forward, labels,
                         method='dSPM', lambda2=1 / 9., signed=False,
@@ -364,9 +364,7 @@ def cross_talk_function(inverse_operator, forward, labels,
     use_cps : None | bool (default True)
         Whether to use cortical patch statistics to define normal
         orientations. Only used when surf_ori and/or force_fixed are True.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

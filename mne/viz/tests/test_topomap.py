@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -120,6 +120,10 @@ def test_plot_projs_topomap():
     pytest.raises(RuntimeError, eeg_avg.plot_topomap)  # no layout
     eeg_avg.plot_topomap(info=info, **fast_test)
     plt.close('all')
+    # test vlims
+    for vlim in ('joint', (-1, 1), (None, 0.5), (0.5, None), (None, None)):
+        plot_projs_topomap(projs[:-1], vlim=vlim, info=info, colorbar=True)
+    plt.close('all')
 
 
 @pytest.mark.slowtest
@@ -210,9 +214,11 @@ def test_plot_topomap():
     subplot = [x for x in p.get_children() if 'Subplot' in str(type(x))]
     assert len(subplot) >= 1, [type(x) for x in p.get_children()]
     subplot = subplot[0]
-    assert (all('MEG' not in x.get_text()
-                for x in subplot.get_children()
-                if isinstance(x, matplotlib.text.Text)))
+
+    have_all = all('MEG' not in x.get_text()
+                   for x in subplot.get_children()
+                   if isinstance(x, matplotlib.text.Text))
+    assert have_all
 
     # Plot array
     for ch_type in ('mag', 'grad'):
@@ -434,6 +440,7 @@ def test_ctf_plotting():
     evoked.plot_topomap()
 
 
+@pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 def test_plot_arrowmap():
     """Test arrowmap plotting."""

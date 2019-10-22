@@ -1,21 +1,27 @@
-import os
+# -*- coding: utf-8 -*-
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Eric Larson <larson.eric.d@gmail.com>
+#
+# License: BSD (3-clause)
+
 import os.path as op
-from unittest import SkipTest
+from shutil import copytree
 
 import pytest
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 from mne.datasets import testing
+import mne
 from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  setup_source_space, setup_volume_source_space,
                  add_source_space_distances, read_bem_surfaces,
                  morph_source_spaces, SourceEstimate, make_sphere_model,
-                 head_to_mni, read_trans, compute_source_morph)
-from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
-                       requires_freesurfer, run_subprocess,
-                       requires_mne, requires_version, run_tests_if_main)
+                 head_to_mni, read_trans, compute_source_morph,
+                 read_bem_solution)
+from mne.utils import (requires_nibabel, requires_freesurfer, run_subprocess,
+                       modified_env, requires_mne, run_tests_if_main)
 from mne.surface import _accumulate_normals, _triangle_neighbors
-from mne.source_space import _get_mri_header, _get_mgz_header, _read_talxfm
+from mne.source_space import _get_mgz_header, _read_talxfm
 from mne.source_estimate import _get_src_type
 from mne.transforms import apply_trans, invert_transform
 from mne.source_space import (get_volume_labels_from_aseg, SourceSpaces,
@@ -31,6 +37,12 @@ fname_vol = op.join(subjects_dir, 'sample', 'bem',
                     'sample-volume-7mm-src.fif')
 fname_bem = op.join(data_path, 'subjects', 'sample', 'bem',
                     'sample-1280-bem.fif')
+fname_bem_sol = op.join(data_path, 'subjects', 'sample', 'bem',
+                        'sample-1280-bem-sol.fif')
+fname_bem_3 = op.join(data_path, 'subjects', 'sample', 'bem',
+                      'sample-1280-1280-1280-bem.fif')
+fname_bem_3_sol = op.join(data_path, 'subjects', 'sample', 'bem',
+                          'sample-1280-1280-1280-bem-sol.fif')
 fname_fs = op.join(subjects_dir, 'fsaverage', 'bem', 'fsaverage-ico-5-src.fif')
 fname_morph = op.join(subjects_dir, 'sample', 'bem',
                       'sample-fsaverage-ico-5-src.fif')
@@ -43,18 +55,18 @@ rng = np.random.RandomState(0)
 
 
 @testing.requires_testing_data
-@requires_nibabel(vox2ras_tkr=True)
+@requires_nibabel()
 def test_mgz_header():
     """Test MGZ header reading."""
+    import nibabel
     header = _get_mgz_header(fname_mri)
-    mri_hdr = _get_mri_header(fname_mri)
+    mri_hdr = nibabel.load(fname_mri).header
     assert_allclose(mri_hdr.get_data_shape(), header['dims'])
     assert_allclose(mri_hdr.get_vox2ras_tkr(), header['vox2ras_tkr'])
-    assert_allclose(mri_hdr.get_ras2vox(), header['ras2vox'])
+    assert_allclose(mri_hdr.get_ras2vox(), np.linalg.inv(header['vox2ras']))
 
 
-@requires_version('scipy', '0.11')
-def test_add_patch_info():
+def test_add_patch_info(monkeypatch):
     """Test adding patch info to source space."""
     # let's setup a small source space
     src = read_source_spaces(fname_small)
@@ -65,17 +77,15 @@ def test_add_patch_info():
         s['pinfo'] = None
 
     # test that no patch info is added for small dist_limit
-    try:
-        add_source_space_distances(src_new, dist_limit=0.00001)
-    except RuntimeError:  # what we throw when scipy version is wrong
-        pass
-    else:
-        assert all(s['nearest'] is None for s in src_new)
-        assert all(s['nearest_dist'] is None for s in src_new)
-        assert all(s['pinfo'] is None for s in src_new)
+    add_source_space_distances(src_new, dist_limit=0.00001)
+    assert all(s['nearest'] is None for s in src_new)
+    assert all(s['nearest_dist'] is None for s in src_new)
+    assert all(s['pinfo'] is None for s in src_new)
 
-    # now let's use one that works
-    add_source_space_distances(src_new)
+    # now let's use one that works (and test our warning-throwing)
+    monkeypatch.setattr(mne.source_space, '_DIST_WARN_LIMIT', 1)
+    with pytest.warns(RuntimeWarning, match='Computing distances for 258'):
+        add_source_space_distances(src_new)
 
     for s1, s2 in zip(src, src_new):
         assert_array_equal(s1['nearest'], s2['nearest'])
@@ -86,10 +96,8 @@ def test_add_patch_info():
 
 
 @testing.requires_testing_data
-@requires_version('scipy', '0.11')
-def test_add_source_space_distances_limited():
+def test_add_source_space_distances_limited(tmpdir):
     """Test adding distances to source space with a dist_limit."""
-    tempdir = _TempDir()
     src = read_source_spaces(fname)
     src_new = read_source_spaces(fname)
     del src_new[0]['dist']
@@ -97,11 +105,8 @@ def test_add_source_space_distances_limited():
     n_do = 200  # limit this for speed
     src_new[0]['vertno'] = src_new[0]['vertno'][:n_do].copy()
     src_new[1]['vertno'] = src_new[1]['vertno'][:n_do].copy()
-    out_name = op.join(tempdir, 'temp-src.fif')
-    try:
-        add_source_space_distances(src_new, dist_limit=0.007)
-    except RuntimeError:  # what we throw when scipy version is wrong
-        raise SkipTest('dist_limit requires scipy > 0.13')
+    out_name = tmpdir.join('temp-src.fif')
+    add_source_space_distances(src_new, dist_limit=0.007)
     write_source_spaces(out_name, src_new)
     src_new = read_source_spaces(out_name)
 
@@ -125,10 +130,8 @@ def test_add_source_space_distances_limited():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_version('scipy', '0.11')
-def test_add_source_space_distances():
+def test_add_source_space_distances(tmpdir):
     """Test adding distances to source space."""
-    tempdir = _TempDir()
     src = read_source_spaces(fname)
     src_new = read_source_spaces(fname)
     del src_new[0]['dist']
@@ -136,7 +139,7 @@ def test_add_source_space_distances():
     n_do = 19  # limit this for speed
     src_new[0]['vertno'] = src_new[0]['vertno'][:n_do].copy()
     src_new[1]['vertno'] = src_new[1]['vertno'][:n_do].copy()
-    out_name = op.join(tempdir, 'temp-src.fif')
+    out_name = tmpdir.join('temp-src.fif')
     n_jobs = 2
     assert n_do % n_jobs != 0
     add_source_space_distances(src_new, n_jobs=n_jobs)
@@ -169,36 +172,32 @@ def test_add_source_space_distances():
 
 @testing.requires_testing_data
 @requires_mne
-def test_discrete_source_space():
+def test_discrete_source_space(tmpdir):
     """Test setting up (and reading/writing) discrete source spaces."""
-    tempdir = _TempDir()
     src = read_source_spaces(fname)
     v = src[0]['vertno']
 
     # let's make a discrete version with the C code, and with ours
-    temp_name = op.join(tempdir, 'temp-src.fif')
-    try:
-        # save
-        temp_pos = op.join(tempdir, 'temp-pos.txt')
-        np.savetxt(temp_pos, np.c_[src[0]['rr'][v], src[0]['nn'][v]])
-        # let's try the spherical one (no bem or surf supplied)
-        run_subprocess(['mne_volume_source_space', '--meters',
-                        '--pos', temp_pos, '--src', temp_name])
-        src_c = read_source_spaces(temp_name)
-        pos_dict = dict(rr=src[0]['rr'][v], nn=src[0]['nn'][v])
-        src_new = setup_volume_source_space(None, pos=pos_dict)
-        _compare_source_spaces(src_c, src_new, mode='approx')
-        assert_allclose(src[0]['rr'][v], src_new[0]['rr'],
-                        rtol=1e-3, atol=1e-6)
-        assert_allclose(src[0]['nn'][v], src_new[0]['nn'],
-                        rtol=1e-3, atol=1e-6)
+    temp_name = tmpdir.join('temp-src.fif')
+    # save
+    temp_pos = tmpdir.join('temp-pos.txt')
+    np.savetxt(str(temp_pos), np.c_[src[0]['rr'][v], src[0]['nn'][v]])
+    # let's try the spherical one (no bem or surf supplied)
+    run_subprocess(['mne_volume_source_space', '--meters',
+                    '--pos', temp_pos, '--src', temp_name])
+    src_c = read_source_spaces(temp_name)
+    pos_dict = dict(rr=src[0]['rr'][v], nn=src[0]['nn'][v])
+    src_new = setup_volume_source_space(pos=pos_dict)
+    assert src_new.kind == 'discrete'
+    _compare_source_spaces(src_c, src_new, mode='approx')
+    assert_allclose(src[0]['rr'][v], src_new[0]['rr'],
+                    rtol=1e-3, atol=1e-6)
+    assert_allclose(src[0]['nn'][v], src_new[0]['nn'],
+                    rtol=1e-3, atol=1e-6)
 
-        # now do writing
-        write_source_spaces(temp_name, src_c, overwrite=True)
-        src_c2 = read_source_spaces(temp_name)
-    finally:
-        if op.isfile(temp_name):
-            os.remove(temp_name)
+    # now do writing
+    write_source_spaces(temp_name, src_c, overwrite=True)
+    src_c2 = read_source_spaces(temp_name)
     _compare_source_spaces(src_c, src_c2)
 
     # now do MRI
@@ -211,17 +210,20 @@ def test_discrete_source_space():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_volume_source_space():
+def test_volume_source_space(tmpdir):
     """Test setting up volume source spaces."""
-    tempdir = _TempDir()
     src = read_source_spaces(fname_vol)
-    temp_name = op.join(tempdir, 'temp-src.fif')
+    temp_name = tmpdir.join('temp-src.fif')
     surf = read_bem_surfaces(fname_bem, s_id=FIFF.FIFFV_BEM_SURF_ID_BRAIN)
     surf['rr'] *= 1e3  # convert to mm
+    bem_sol = read_bem_solution(fname_bem_3_sol)
+    bem = read_bem_solution(fname_bem_sol)
     # The one in the testing dataset (uses bem as bounds)
-    for bem, surf in zip((fname_bem, None), (None, surf)):
+    for this_bem, this_surf in zip(
+            (bem, fname_bem, fname_bem_3, bem_sol, fname_bem_3_sol, None),
+            (None, None, None, None, None, surf)):
         src_new = setup_volume_source_space(
-            'sample', pos=7.0, bem=bem, surface=surf, mri='T1.mgz',
+            'sample', pos=7.0, bem=this_bem, surface=this_surf,
             subjects_dir=subjects_dir)
         write_source_spaces(temp_name, src_new, overwrite=True)
         src[0]['subject_his_id'] = 'sample'  # XXX: to make comparison pass
@@ -229,9 +231,18 @@ def test_volume_source_space():
         del src_new
         src_new = read_source_spaces(temp_name)
         _compare_source_spaces(src, src_new, mode='approx')
-    pytest.raises(IOError, setup_volume_source_space, 'sample',
-                  pos=7.0, bem=None, surface='foo',  # bad surf
-                  mri=fname_mri, subjects_dir=subjects_dir)
+    with pytest.raises(IOError, match='surface file.*not found'):
+        setup_volume_source_space(
+            'sample', surface='foo', mri=fname_mri, subjects_dir=subjects_dir)
+    bem['surfs'][-1]['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+    with pytest.raises(ValueError, match='BEM is not in MRI coord.* got head'):
+        setup_volume_source_space(
+            'sample', bem=bem, mri=fname_mri, subjects_dir=subjects_dir)
+    bem['surfs'] = bem['surfs'][:-1]  # no inner skull surf
+    with pytest.raises(ValueError, match='Could not get inner skul.*from BEM'):
+        setup_volume_source_space(
+            'sample', bem=bem, mri=fname_mri, subjects_dir=subjects_dir)
+    del bem
     assert repr(src) == repr(src_new)
     assert src.kind == 'volume'
     # Spheres
@@ -240,22 +251,23 @@ def test_volume_source_space():
     src = setup_volume_source_space(pos=10)
     src_new = setup_volume_source_space(pos=10, sphere=sphere)
     _compare_source_spaces(src, src_new, mode='exact')
-    pytest.raises(ValueError, setup_volume_source_space, sphere='foo')
+    with pytest.raises(ValueError, match='could not convert string to float'):
+        setup_volume_source_space(sphere='foo')
     # Need a radius
     sphere = make_sphere_model(head_radius=None)
-    pytest.raises(ValueError, setup_volume_source_space, sphere=sphere)
+    with pytest.raises(ValueError, match='be spherical with multiple layers'):
+        setup_volume_source_space(sphere=sphere)
 
 
 @testing.requires_testing_data
 @requires_mne
-def test_other_volume_source_spaces():
+def test_other_volume_source_spaces(tmpdir):
     """Test setting up other volume source spaces."""
     # these are split off because they require the MNE tools, and
     # Travis doesn't seem to like them
 
     # let's try the spherical one (no bem or surf supplied)
-    tempdir = _TempDir()
-    temp_name = op.join(tempdir, 'temp-src.fif')
+    temp_name = tmpdir.join('temp-src.fif')
     run_subprocess(['mne_volume_source_space',
                     '--grid', '7.0',
                     '--src', temp_name,
@@ -337,22 +349,28 @@ def test_accumulate_normals():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_setup_source_space():
+def test_setup_source_space(tmpdir):
     """Test setting up ico, oct, and all source spaces."""
-    tempdir = _TempDir()
     fname_ico = op.join(data_path, 'subjects', 'fsaverage', 'bem',
                         'fsaverage-ico-5-src.fif')
     # first lets test some input params
-    pytest.raises(ValueError, setup_source_space, 'sample', spacing='oct',
-                  add_dist=False, subjects_dir=subjects_dir)
-    pytest.raises(ValueError, setup_source_space, 'sample', spacing='octo',
-                  add_dist=False, subjects_dir=subjects_dir)
-    pytest.raises(ValueError, setup_source_space, 'sample', spacing='oct6e',
-                  add_dist=False, subjects_dir=subjects_dir)
-    pytest.raises(ValueError, setup_source_space, 'sample', spacing='7emm',
-                  add_dist=False, subjects_dir=subjects_dir)
-    pytest.raises(ValueError, setup_source_space, 'sample', spacing='alls',
-                  add_dist=False, subjects_dir=subjects_dir)
+    for spacing in ('oct', 'oct6e'):
+        with pytest.raises(ValueError, match='subdivision must be an integer'):
+            setup_source_space('sample', spacing=spacing,
+                               add_dist=False, subjects_dir=subjects_dir)
+    for spacing in ('oct0', 'oct-4'):
+        with pytest.raises(ValueError, match='oct subdivision must be >= 1'):
+            setup_source_space('sample', spacing=spacing,
+                               add_dist=False, subjects_dir=subjects_dir)
+    with pytest.raises(ValueError, match='ico subdivision must be >= 0'):
+        setup_source_space('sample', spacing='ico-4',
+                           add_dist=False, subjects_dir=subjects_dir)
+    with pytest.raises(ValueError, match='must be a string with values'):
+        setup_source_space('sample', spacing='7emm',
+                           add_dist=False, subjects_dir=subjects_dir)
+    with pytest.raises(ValueError, match='must be a string with values'):
+        setup_source_space('sample', spacing='alls',
+                           add_dist=False, subjects_dir=subjects_dir)
 
     # ico 5 (fsaverage) - write to temp file
     src = read_source_spaces(fname_ico)
@@ -367,7 +385,7 @@ def test_setup_source_space():
 
     # oct-6 (sample) - auto filename + IO
     src = read_source_spaces(fname)
-    temp_name = op.join(tempdir, 'temp-src.fif')
+    temp_name = tmpdir.join('temp-src.fif')
     with pytest.warns(None):  # sklearn equiv neighbors
         src_new = setup_source_space('sample', spacing='oct6',
                                      subjects_dir=subjects_dir, add_dist=False)
@@ -386,6 +404,29 @@ def test_setup_source_space():
     # dense source space to hit surf['inuse'] lines of _create_surf_spacing
     pytest.raises(RuntimeError, setup_source_space, 'sample',
                   spacing='ico6', subjects_dir=subjects_dir, add_dist=False)
+
+
+@testing.requires_testing_data
+@requires_mne
+@pytest.mark.slowtest
+@pytest.mark.timeout(60)
+@pytest.mark.parametrize('spacing', [2, 7])
+def test_setup_source_space_spacing(tmpdir, spacing):
+    """Test setting up surface source spaces using a given spacing."""
+    copytree(op.join(subjects_dir, 'sample'), str(tmpdir.join('sample')))
+    args = [] if spacing == 7 else ['--spacing', str(spacing)]
+    with modified_env(SUBJECTS_DIR=str(tmpdir), SUBJECT='sample'):
+        run_subprocess(['mne_setup_source_space'] + args)
+    src = read_source_spaces(tmpdir.join('sample', 'bem',
+                                         'sample-%d-src.fif' % spacing))
+    src_new = setup_source_space('sample', spacing=spacing, add_dist=False,
+                                 subjects_dir=subjects_dir)
+    _compare_source_spaces(src, src_new, mode='approx', nearest=True)
+    # Degenerate conditions
+    with pytest.raises(TypeError, match='spacing must be.*got.*float.*'):
+        setup_source_space('sample', 7., subjects_dir=subjects_dir)
+    with pytest.raises(ValueError, match='spacing must be >= 2, got 1'):
+        setup_source_space('sample', 1, subjects_dir=subjects_dir)
 
 
 @testing.requires_testing_data
@@ -412,17 +453,16 @@ def test_read_source_spaces():
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_write_source_space():
+def test_write_source_space(tmpdir):
     """Test reading and writing of source spaces."""
-    tempdir = _TempDir()
     src0 = read_source_spaces(fname, patch_stats=False)
-    write_source_spaces(op.join(tempdir, 'tmp-src.fif'), src0)
-    src1 = read_source_spaces(op.join(tempdir, 'tmp-src.fif'),
-                              patch_stats=False)
+    temp_fname = tmpdir.join('tmp-src.fif')
+    write_source_spaces(temp_fname, src0)
+    src1 = read_source_spaces(temp_fname, patch_stats=False)
     _compare_source_spaces(src0, src1)
 
     # test warnings on bad filenames
-    src_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+    src_badname = tmpdir.join('test-bad-name.fif.gz')
     with pytest.warns(RuntimeWarning, match='-src.fif'):
         write_source_spaces(src_badname, src0)
     with pytest.warns(RuntimeWarning, match='-src.fif'):
@@ -430,7 +470,6 @@ def test_write_source_space():
 
 
 @testing.requires_testing_data
-@requires_fs_or_nibabel
 def test_vertex_to_mni():
     """Test conversion of vertices to MNI coordinates."""
     # obtained using "tksurfer (sample) (l/r)h white"
@@ -444,7 +483,6 @@ def test_vertex_to_mni():
 
 
 @testing.requires_testing_data
-@requires_fs_or_nibabel
 def test_head_to_mni():
     """Test conversion of aseg vertices to MNI coordinates."""
     # obtained using freeview
@@ -469,18 +507,15 @@ def test_head_to_mni():
 
 
 @testing.requires_testing_data
-@requires_freesurfer
-@requires_nibabel()
-def test_vertex_to_mni_fs_nibabel():
+def test_vertex_to_mni_fs_nibabel(monkeypatch):
     """Test equivalence of vert_to_mni for nibabel and freesurfer."""
     n_check = 1000
     subject = 'sample'
     vertices = rng.randint(0, 100000, n_check)
     hemis = rng.randint(0, 1, n_check)
-    coords = vertex_to_mni(vertices, hemis, subject, subjects_dir,
-                           'nibabel')
-    coords_2 = vertex_to_mni(vertices, hemis, subject, subjects_dir,
-                             'freesurfer')
+    coords = vertex_to_mni(vertices, hemis, subject, subjects_dir)
+    monkeypatch.setattr(mne.source_space, 'has_nibabel', lambda: False)
+    coords_2 = vertex_to_mni(vertices, hemis, subject, subjects_dir)
     # less than 0.1 mm error
     assert_allclose(coords, coords_2, atol=0.1)
 
@@ -501,9 +536,8 @@ def test_get_volume_label_names():
 @testing.requires_testing_data
 @requires_freesurfer
 @requires_nibabel()
-def test_source_space_from_label():
+def test_source_space_from_label(tmpdir):
     """Test generating a source space from volume label."""
-    tempdir = _TempDir()
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
     label_names = get_volume_labels_from_aseg(aseg_fname)
     volume_label = label_names[int(np.random.rand() * len(label_names))]
@@ -527,7 +561,7 @@ def test_source_space_from_label():
     assert_equal(volume_label, src[0]['seg_name'])
 
     # test reading and writing
-    out_name = op.join(tempdir, 'temp-src.fif')
+    out_name = tmpdir.join('temp-src.fif')
     write_source_spaces(out_name, src)
     src_from_file = read_source_spaces(out_name)
     _compare_source_spaces(src, src_from_file, mode='approx')
@@ -569,9 +603,8 @@ def test_read_volume_from_src():
 @testing.requires_testing_data
 @requires_freesurfer
 @requires_nibabel()
-def test_combine_source_spaces():
+def test_combine_source_spaces(tmpdir):
     """Test combining source spaces."""
-    tempdir = _TempDir()
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
     label_names = get_volume_labels_from_aseg(aseg_fname)
     volume_labels = [label_names[int(np.random.rand() * len(label_names))]
@@ -601,7 +634,7 @@ def test_combine_source_spaces():
     assert_equal(len(src), 4)
 
     # test reading and writing
-    src_out_name = op.join(tempdir, 'temp-src.fif')
+    src_out_name = tmpdir.join('temp-src.fif')
     src.save(src_out_name)
     src_from_file = read_source_spaces(src_out_name)
     _compare_source_spaces(src, src_from_file, mode='approx')
@@ -613,7 +646,7 @@ def test_combine_source_spaces():
     assert (coord_frames == FIFF.FIFFV_COORD_MRI).all()
 
     # test errors for export_volume
-    image_fname = op.join(tempdir, 'temp-image.mgz')
+    image_fname = tmpdir.join('temp-image.mgz')
 
     # source spaces with no volume
     pytest.raises(ValueError, srf.export_volume, image_fname, verbose='error')
@@ -626,7 +659,7 @@ def test_combine_source_spaces():
                   verbose='error')
 
     # unrecognized file type
-    bad_image_fname = op.join(tempdir, 'temp-image.png')
+    bad_image_fname = tmpdir.join('temp-image.png')
     # vertices outside vol space warning
     pytest.raises(ValueError, src.export_volume, bad_image_fname,
                   verbose='error')

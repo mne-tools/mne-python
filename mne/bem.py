@@ -1,9 +1,12 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Lorenzo De Santis <lorenzo.de-santis@u-psud.fr>
 #
 # License: BSD (3-clause)
+
+# The computations in this code were primarily derived from Matti Hämäläinen's
+# C code.
 
 from functools import partial
 import glob
@@ -16,6 +19,7 @@ import numpy as np
 from scipy import linalg
 
 from .io.constants import FIFF, FWD
+from .io._digitization import _dig_kind_dict, _dig_kind_rev, _dig_kind_ints
 from .io.write import (start_file, start_block, write_float, write_int,
                        write_float_matrix, write_int_matrix, end_block,
                        end_file)
@@ -25,7 +29,7 @@ from .io.open import fiff_open
 from .surface import (read_surface, write_surface, complete_surface_info,
                       _compute_nearest, _get_ico_surface, read_tri,
                       _fast_cross_nd_sum, _get_solids)
-from .transforms import _ensure_trans, apply_trans
+from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir)
 from .fixes import einsum
@@ -144,6 +148,7 @@ def _correct_auto_elements(surf, mat):
     for j, miss in enumerate(misses):
         # How much is missing?
         n_memb = len(surf['neighbor_tri'][j])
+        assert n_memb > 0  # should be guaranteed by our surface checks
         # The node itself receives one half
         mat[j, j] = miss / 2.0
         # The rest is divided evenly among the member nodes...
@@ -170,8 +175,8 @@ def _fwd_bem_lin_pot_coeff(surfs):
         rr_ord = np.arange(nps[si_1])
         for si_2, surf2 in enumerate(surfs):
             logger.info("        %s (%d) -> %s (%d) ..." %
-                        (_bem_explain_surface(surf1['id']), nps[si_1],
-                         _bem_explain_surface(surf2['id']), nps[si_2]))
+                        (_surf_name[surf1['id']], nps[si_1],
+                         _surf_name[surf2['id']], nps[si_2]))
             tri_rr = surf2['rr'][surf2['tris']]
             tri_nn = surf2['tri_nn']
             tri_area = surf2['tri_area']
@@ -251,11 +256,26 @@ def _fwd_bem_ip_modify_solution(solution, ip_solution, ip_mult, n_tri):
     return
 
 
+def _check_complete_surface(surf, copy=False, incomplete='raise', extra=''):
+    surf = complete_surface_info(surf, copy=copy, verbose=False)
+    fewer = np.where([len(t) < 3 for t in surf['neighbor_tri']])[0]
+    if len(fewer) > 0:
+        msg = ('Surface {} has topological defects: {:.0f} / {:.0f} vertices '
+               'have fewer than three neighboring triangles [{}]{}'
+               .format(_surf_name[surf['id']], len(fewer), surf['ntri'],
+                       ', '.join(str(f) for f in fewer), extra))
+        if incomplete == 'raise':
+            raise RuntimeError(msg)
+        else:
+            warn(msg)
+    return surf
+
+
 def _fwd_bem_linear_collocation_solution(m):
     """Compute the linear collocation potential solution."""
     # first, add surface geometries
     for surf in m['surfs']:
-        complete_surface_info(surf, copy=False, verbose=False)
+        _check_complete_surface(surf)
 
     logger.info('Computing the linear collocation solution...')
     logger.info('    Matrix coefficients...')
@@ -289,9 +309,7 @@ def make_bem_solution(surfs, verbose=None):
     ----------
     surfs : list of dict
         The BEM surfaces to use (`from make_bem_model`)
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -335,9 +353,11 @@ def make_bem_solution(surfs, verbose=None):
 def _ico_downsample(surf, dest_grade):
     """Downsample the surface if isomorphic to a subdivided icosahedron."""
     n_tri = len(surf['tris'])
-    found = -1
-    bad_msg = ("A surface with %d triangles cannot be isomorphic with a "
-               "subdivided icosahedron." % n_tri)
+    bad_msg = ("Cannot decimate to requested ico grade %d. The provided "
+               "BEM surface has %d triangles, which cannot be isomorphic with "
+               "a subdivided icosahedron. Consider manually decimating the "
+               "surface to a suitable density and then use ico=None in "
+               "make_bem_model." % (dest_grade, n_tri))
     if n_tri % 20 != 0:
         raise RuntimeError(bad_msg)
     n_tri = n_tri // 20
@@ -396,7 +416,6 @@ def _order_surfaces(surfs):
 def _assert_complete_surface(surf, incomplete='raise'):
     """Check the sum of solid angles as seen from inside."""
     # from surface_checks.c
-    tot_angle = 0.
     # Center of mass....
     cm = surf['rr'].mean(axis=0)
     logger.info('%s CM is %6.2f %6.2f %6.2f mm' %
@@ -467,7 +486,7 @@ def _check_thicknesses(surfs):
 
 
 def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True,
-                     incomplete='raise'):
+                     incomplete='raise', extra=''):
     """Convert surfaces to a BEM."""
     # equivalent of mne_surf2bem
     # surfs can be strings (filenames) or surface dicts
@@ -475,7 +494,6 @@ def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True,
                                         len(sigmas)):
         raise ValueError('surfs, ids, and sigmas must all have the same '
                          'number of elements (1 or 3)')
-    surf = list(surfs)
     for si, surf in enumerate(surfs):
         if isinstance(surf, str):
             surfs[si] = read_surface(surf, return_dict=True)[-1]
@@ -484,7 +502,10 @@ def _surfaces_to_bem(surfs, ids, sigmas, ico=None, rescale=True,
         for si, surf in enumerate(surfs):
             surfs[si] = _ico_downsample(surf, ico)
     for surf, id_ in zip(surfs, ids):
+        # Do topology checks (but don't save data) to fail early
         surf['id'] = id_
+        _check_complete_surface(surf, copy=True, incomplete=incomplete,
+                                extra=extra)
         surf['coord_frame'] = surf.get('coord_frame', FIFF.FIFFV_COORD_MRI)
         surf.update(np=len(surf['rr']), ntri=len(surf['tris']))
         if rescale:
@@ -529,9 +550,7 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
         single-layer model would be ``[0.3]``.
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -632,7 +651,6 @@ def _compute_linear_parameters(mu, u):
     y, uu, sing, vv = _compose_linear_fitting_data(mu, u)
 
     # Compute the residuals
-    resi = y.copy()
     vec = np.dot(y, uu)
     resi = y - np.dot(uu, vec)
     vec /= sing
@@ -678,7 +696,11 @@ def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
     mu_0 = np.zeros(3)
     fun = partial(_one_step, u=u)
     max_ = 1. - 2e-4  # adjust for fmin_cobyla "catol" that not all scipy have
-    cons = [(lambda x: max_ - np.abs(x[ii])) for ii in range(nfit)]
+    cons = list()
+    for ii in range(nfit):
+        def mycon(x, ii=ii):
+            return max_ - np.abs(x[ii])
+        cons.append(mycon)
     mu = fmin_cobyla(fun, mu_0, cons, rhobeg=0.5, rhoend=1e-5, disp=0)
 
     # (6) Do the final step: calculation of the linear parameters
@@ -715,9 +737,7 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
         Relative radii for the spherical shells.
     sigmas : array-like
         Sigma values for the spherical shells.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -803,16 +823,6 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
 # #############################################################################
 # Sphere fitting
 
-_dig_kind_dict = {
-    'cardinal': FIFF.FIFFV_POINT_CARDINAL,
-    'hpi': FIFF.FIFFV_POINT_HPI,
-    'eeg': FIFF.FIFFV_POINT_EEG,
-    'extra': FIFF.FIFFV_POINT_EXTRA,
-}
-_dig_kind_rev = dict((val, key) for key, val in _dig_kind_dict.items())
-_dig_kind_ints = tuple(_dig_kind_dict.values())
-
-
 @verbose
 def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
     """Fit a sphere to the headshape points to determine head center.
@@ -832,9 +842,7 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
 
         .. versionadded:: 0.12
 
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -862,21 +870,20 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
 
 
 @verbose
-def get_fitting_dig(info, dig_kinds='auto', verbose=None):
+def get_fitting_dig(info, dig_kinds='auto', exclude_frontal=True,
+                    verbose=None):
     """Get digitization points suitable for sphere fitting.
 
     Parameters
     ----------
     info : instance of Info
         The measurement info.
-    dig_kinds : list of str | str
-        Kind of digitization points to use in the fitting. These can be any
-        combination of ('cardinal', 'hpi', 'eeg', 'extra'). Can also
-        be 'auto' (default), which will use only the 'extra' points if
-        enough (more than 10) are available, and if not, uses 'extra' and
-        'eeg' points.
-    verbose : bool, str or None
-        If not None, override default verbose level
+    %(dig_kinds)s
+    %(exclude_frontal)s
+        Default is True.
+
+        .. versionadded:: 0.19
+    %(verbose)s
 
     Returns
     -------
@@ -919,7 +926,9 @@ def get_fitting_dig(info, dig_kinds='auto', verbose=None):
                            'contact mne-python developers')
 
     # exclude some frontal points (nose etc.)
-    hsp = np.array([p for p in hsp if not (p[2] < -1e-6 and p[1] > 1e-6)])
+    if exclude_frontal:
+        hsp = [p for p in hsp if not (p[2] < -1e-6 and p[1] > 1e-6)]
+    hsp = np.array(hsp)
 
     if len(hsp) <= 10:
         kinds_str = ', '.join(['"%s"' % _dig_kind_rev[d]
@@ -939,7 +948,10 @@ def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
     hsp = get_fitting_dig(info, dig_kinds)
     radius, origin_head = _fit_sphere(np.array(hsp), disp=False)
     # compute origin in device coordinates
-    head_to_dev = _ensure_trans(info['dev_head_t'], 'head', 'meg')
+    dev_head_t = info['dev_head_t']
+    if dev_head_t is None:
+        dev_head_t = Transform('meg', 'head')
+    head_to_dev = _ensure_trans(dev_head_t, 'head', 'meg')
     origin_device = apply_trans(head_to_dev, origin_head)
     logger.info('Fitted sphere radius:'.ljust(30) + '%0.1f mm'
                 % (radius * 1e3,))
@@ -1024,24 +1036,23 @@ def _check_origin(origin, info, coord_frame='head', disp=False):
 @verbose
 def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                        volume='T1', atlas=False, gcaatlas=False, preflood=None,
-                       show=False, verbose=None):
+                       show=False, copy=False, T1=None, brainmask='ws',
+                       verbose=None):
     """Create BEM surfaces using the FreeSurfer watershed algorithm.
 
     Parameters
     ----------
     subject : str
-        Subject name (required)
-    subjects_dir : str
-        Directory containing subjects data. If None use
-        the Freesurfer SUBJECTS_DIR environment variable.
+        Subject name.
+    $(subjects_dir)s
     overwrite : bool
-        Write over existing files
+        Write over existing files.
     volume : str
-        Defaults to T1
+        Defaults to T1.
     atlas : bool
-        Specify the --atlas option for mri_watershed
+        Specify the --atlas option for mri_watershed.
     gcaatlas : bool
-        Use the subcortical atlas
+        Specify the --brain_atlas option for mri_watershed.
     preflood : int
         Change the preflood height
     show : bool
@@ -1049,8 +1060,24 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
 
         .. versionadded:: 0.12
 
-    verbose : bool, str or None
-        If not None, override default verbose level
+    copy : bool
+        If True (default False), use copies instead of symlinks for surfaces
+        (if they do not already exist).
+
+        .. versionadded:: 0.18
+    T1 : bool | None
+        If True, pass the ``-T1`` flag.
+        By default (None), this takes the same value as ``gcaatlas``.
+
+        .. versionadded:: 0.19
+    brainmask : str
+        The filename for the brainmask output file relative to the
+        ``$SUBJECTS_DIR/$SUBJECT/bem/watershed/`` directory.
+        Can be for example ``"../../mri/brainmask.mgz"`` to overwrite
+        the brainmask obtained via ``recon-all -autorecon1``.
+
+        .. versionadded:: 0.19
+    %(verbose)s
 
     Notes
     -----
@@ -1067,13 +1094,16 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     subject_dir = op.join(subjects_dir, subject)
     mri_dir = op.join(subject_dir, 'mri')
     T1_dir = op.join(mri_dir, volume)
-    T1_mgz = op.join(mri_dir, volume + '.mgz')
+    T1_mgz = T1_dir
+    if not T1_dir.endswith('.mgz'):
+        T1_mgz += '.mgz'
     bem_dir = op.join(subject_dir, 'bem')
     ws_dir = op.join(subject_dir, 'bem', 'watershed')
     if not op.isdir(bem_dir):
         os.makedirs(bem_dir)
     if not op.isdir(T1_dir) and not op.isfile(T1_mgz):
-        raise RuntimeError('Could not find the MRI data')
+        raise RuntimeError('Could not find the MRI data:\n%s\nor\n%s'
+                           % (T1_dir, T1_mgz))
     if op.isdir(ws_dir):
         if not overwrite:
             raise RuntimeError('%s already exists. Use the --overwrite option'
@@ -1085,27 +1115,31 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     if preflood:
         cmd += ["-h", "%s" % int(preflood)]
 
+    if T1 is None:
+        T1 = gcaatlas
+    if T1:
+        cmd += ['-T1']
     if gcaatlas:
-        cmd += ['-atlas', '-T1', '-brain_atlas', env['FREESURFER_HOME'] +
-                '/average/RB_all_withskull_2007-08-08.gca',
+        fname = op.join(env['FREESURFER_HOME'], 'average',
+                        'RB_all_withskull_*.gca')
+        fname = sorted(glob.glob(fname))[::-1][0]
+        logger.info('Using GCA atlas: %s' % (fname,))
+        cmd += ['-atlas', '-brain_atlas', fname,
                 subject_dir + '/mri/transforms/talairach_with_skull.lta']
     elif atlas:
         cmd += ['-atlas']
     if op.exists(T1_mgz):
         cmd += ['-useSRAS', '-surf', op.join(ws_dir, subject), T1_mgz,
-                op.join(ws_dir, 'ws')]
+                op.join(ws_dir, brainmask)]
     else:
         cmd += ['-useSRAS', '-surf', op.join(ws_dir, subject), T1_dir,
-                op.join(ws_dir, 'ws')]
+                op.join(ws_dir, brainmask)]
     # report and run
     logger.info('\nRunning mri_watershed for BEM segmentation with the '
-                'following parameters:\n\n'
-                'SUBJECTS_DIR = %s\n'
-                'SUBJECT = %s\n'
-                'Results dir = %s\n' % (subjects_dir, subject, ws_dir))
-    os.makedirs(op.join(ws_dir, 'ws'))
+                'following parameters:\n\nResults dir = %s\nCommand = %s\n'
+                % (ws_dir, ' '.join(cmd)))
+    os.makedirs(op.join(ws_dir))
     run_subprocess_env(cmd)
-
     if op.isfile(T1_mgz):
         new_info = _extract_volume_info(T1_mgz)
         if new_info is None:
@@ -1128,7 +1162,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
             else:
                 if op.exists(surf_out):
                     os.remove(surf_out)
-                _symlink(surf_ws_out, surf_out)
+                _symlink(surf_ws_out, surf_out, copy)
                 skip_symlink = False
 
         if skip_symlink:
@@ -1199,9 +1233,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
         If int, only read and return the surface with the given s_id.
         An error will be raised if it doesn't exist. If None, all
         surfaces are read and returned.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1251,7 +1283,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
             logger.info('    %d BEM surfaces read' % len(surf))
         for this in surf:
             if patch_stats or this['nn'] is None:
-                complete_surface_info(this, copy=False)
+                _check_complete_surface(this)
     return surf[0] if s_id is not None else surf
 
 
@@ -1332,9 +1364,7 @@ def read_bem_solution(fname, verbose=None):
     ----------
     fname : string
         The file containing the BEM solution.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1343,8 +1373,10 @@ def read_bem_solution(fname, verbose=None):
 
     See Also
     --------
-    write_bem_solution, read_bem_surfaces, write_bem_surfaces,
+    read_bem_surfaces
+    write_bem_surfaces
     make_bem_solution
+    write_bem_solution
     """
     # mirrors fwd_bem_load_surfaces from fwd_bem_model.c
     logger.info('Loading surfaces...')
@@ -1444,18 +1476,12 @@ def _bem_find_surface(bem, id_):
         name = id_
         id_ = _surf_dict[id_]
     else:
-        name = _bem_explain_surface(id_)
+        name = _surf_name[id_]
     idx = np.where(np.array([s['id'] for s in bem['surfs']]) == id_)[0]
     if len(idx) != 1:
         raise RuntimeError('BEM model does not have the %s triangulation'
                            % name.replace('_', ' '))
     return bem['surfs'][idx[0]]
-
-
-def _bem_explain_surface(id_):
-    """Return a string corresponding to the given surface ID."""
-    _rev_dict = dict((val, key) for key, val in _surf_dict.items())
-    return _rev_dict[id_]
 
 
 # ############################################################################
@@ -1579,31 +1605,29 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
         installed.
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
     Before running this script do the following:
     (unless convert=False is specified)
 
-        1. Copy all of your FLASH images in a single directory <source> and
-           create a directory <dest> to hold the output of mne_organize_dicom
-        2. cd to <dest> and run
-           $ mne_organize_dicom <source>
-           to create an appropriate directory structure
-        3. Create symbolic links to make flash05 and flash30 point to the
-           appropriate series:
-           $ ln -s <FLASH 5 series dir> flash05
-           $ ln -s <FLASH 30 series dir> flash30
-           Some partition formats (e.g. FAT32) do not support symbolic links.
-           In this case, copy the file to the appropriate series:
-           $ cp <FLASH 5 series dir> flash05
-           $ cp <FLASH 30 series dir> flash30
-        4. cd to the directory where flash05 and flash30 links are
-        5. Set SUBJECTS_DIR and SUBJECT environment variables appropriately
-        6. Run this script
+    1. Copy all of your FLASH images in a single directory <source> and
+        create a directory <dest> to hold the output of mne_organize_dicom
+    2. cd to <dest> and run
+        $ mne_organize_dicom <source>
+        to create an appropriate directory structure
+    3. Create symbolic links to make flash05 and flash30 point to the
+        appropriate series:
+        $ ln -s <FLASH 5 series dir> flash05
+        $ ln -s <FLASH 30 series dir> flash30
+        Some partition formats (e.g. FAT32) do not support symbolic links.
+        In this case, copy the file to the appropriate series:
+        $ cp <FLASH 5 series dir> flash05
+        $ cp <FLASH 30 series dir> flash30
+    4. cd to the directory where flash05 and flash30 links are
+    5. Set SUBJECTS_DIR and SUBJECT environment variables appropriately
+    6. Run this script
 
     This function assumes that the Freesurfer segmentation of the subject
     has been completed. In particular, the T1.mgz and brain.mgz MRI volumes
@@ -1622,9 +1646,9 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
         logger.info("\n---- Converting Flash images ----")
         echos = ['001', '002', '003', '004', '005', '006', '007', '008']
         if flash30:
-            flashes = ['05']
-        else:
             flashes = ['05', '30']
+        else:
+            flashes = ['05']
         #
         missing = False
         for flash in flashes:
@@ -1717,7 +1741,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
 
 @verbose
 def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
-                   flash_path=None, verbose=None):
+                   flash_path=None, copy=False, verbose=None):
     """Create 3-Layer BEM model from prepared flash MRI images.
 
     Parameters
@@ -1735,9 +1759,12 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         within the subject reconstruction is used.
 
         .. versionadded:: 0.13.0
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    copy : bool
+        If True (default False), use copies instead of symlinks for surfaces
+        (if they do not already exist).
+
+        .. versionadded:: 0.18
+    %(verbose)s
 
     Notes
     -----
@@ -1841,14 +1868,10 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         out_fname = op.join(flash_bem_dir, surf + '.tri')
         shutil.move(op.join(bem_dir, surf + '.tri'), out_fname)
         nodes, tris = read_tri(out_fname, swap=True)
-        vol_info = _extract_volume_info(flash5_reg)
-        if vol_info is None:
-            warn('nibabel is required to update the volume info. Volume info '
-                 'omitted from the written surface.')
-        else:
-            vol_info['head'] = np.array([20])
+        # Do not write volume info here because the tris are already in
+        # standard Freesurfer coords
         write_surface(op.splitext(out_fname)[0] + '.surf', nodes, tris,
-                      volume_info=vol_info)
+                      overwrite=True)
 
     # Cleanup section
     logger.info("\n---- Cleaning up ----")
@@ -1872,7 +1895,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         else:
             if op.exists(surf):
                 os.remove(surf)
-            _symlink(op.join(flash_bem_dir, op.basename(surf)), surf)
+            _symlink(op.join(flash_bem_dir, op.basename(surf)), surf, copy)
             skip_symlink = False
     if skip_symlink:
         logger.info("Unable to create all symbolic links to .surf files "
@@ -1899,12 +1922,16 @@ def _check_bem_size(surfs):
              surfs[0]['np'])
 
 
-def _symlink(src, dest):
-    """Create a relative symlink."""
-    src = op.relpath(src, op.dirname(dest))
-    try:
-        os.symlink(src, dest)
-    except OSError:
-        warn('Could not create symbolic link %s. Check that your partition '
-             'handles symbolic links. The file will be copied instead.' % dest)
+def _symlink(src, dest, copy=False):
+    """Create a relative symlink (or just copy)."""
+    if not copy:
+        src_link = op.relpath(src, op.dirname(dest))
+        try:
+            os.symlink(src_link, dest)
+        except OSError:
+            warn('Could not create symbolic link %s. Check that your '
+                 'partition handles symbolic links. The file will be copied '
+                 'instead.' % dest)
+            copy = True
+    if copy:
         shutil.copy(src, dest)

@@ -47,7 +47,9 @@ from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
 from .cov import make_ad_hoc_cov, compute_whitener
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat)
-from .utils import verbose, logger, use_log_level, _check_fname, warn
+from .utils import (verbose, logger, use_log_level, _check_fname, warn,
+                    _check_option, _svd_lwork, _repeated_svd,
+                    ddot, dgemm, dgemv)
 
 # Eventually we should add:
 #   hpicons
@@ -178,13 +180,13 @@ def _calculate_head_pos_ctf(raw, gof_limit=0.98):
     -----
     CTF continuous head monitoring stores the x,y,z location (m) of each chpi
     coil as separate channels in the dataset.
-    HLC001[123]-\\* - nasion
-    HLC002[123]-\\* - lpa
-    HLC003[123]-\\* - rpa
+    HLC001[123]\\* - nasion
+    HLC002[123]\\* - lpa
+    HLC003[123]\\* - rpa
     """
     # Pick channels cooresponding to the cHPI positions
     hpi_picks = pick_channels_regexp(raw.info['ch_names'],
-                                     'HLC00[123][123]-.*')
+                                     'HLC00[123][123].*')
 
     # make sure we get 9 channels
     if len(hpi_picks) != 9:
@@ -258,6 +260,7 @@ def _calculate_head_pos_ctf(raw, gof_limit=0.98):
 
     quats = np.array(quats, np.float64)
     quats = np.zeros((0, 10)) if quats.size == 0 else quats
+    quats[:, 0] += raw._first_time
     return quats
 
 
@@ -370,7 +373,8 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
     return hpi_rrs
 
 
-def _magnetic_dipole_objective(x, B, B2, coils, scale, method, too_close):
+def _magnetic_dipole_objective(x, B, B2, coils, scale, method, too_close,
+                               lwork):
     """Project data onto right eigenvectors of whitened forward."""
     if method == 'forward':
         fwd = _magnetic_dipole_field_vec(x[np.newaxis, :], coils, too_close)
@@ -379,21 +383,23 @@ def _magnetic_dipole_objective(x, B, B2, coils, scale, method, too_close):
         # Eventually we can try incorporating external bases here, which
         # is why the :3 is on the SVD below
         fwd = _sss_basis(dict(origin=x, int_order=1, ext_order=0), coils).T
-    fwd = np.dot(fwd, scale.T)
-    one = np.dot(linalg.svd(fwd, full_matrices=False)[2][:3], B)
-    one *= one
-    Bm2 = one.sum()
+    # Here we use .T to get scale to Fortran order, which speeds things up
+    fwd = dgemm(alpha=1., a=fwd, b=scale.T)  # np.dot(fwd, scale.T)
+    one = _repeated_svd(fwd, lwork, overwrite_a=True)[2]
+    one = dgemv(alpha=1, a=one, x=B)
+    Bm2 = ddot(one, one)
     return B2 - Bm2
 
 
 def _fit_magnetic_dipole(B_orig, x0, coils, scale, method, too_close):
     """Fit a single bit of data (x0 = pos)."""
     from scipy.optimize import fmin_cobyla
-    B = np.dot(scale, B_orig)
-    B2 = np.dot(B, B)
+    B = dgemv(alpha=1, a=scale, x=B_orig)  # np.dot(scale, B_orig)
+    B2 = ddot(B, B)  # np.dot(B, B)
+    lwork = _svd_lwork((3, B_orig.shape[0]))
     objective = partial(_magnetic_dipole_objective, B=B, B2=B2,
                         coils=coils, scale=scale, method=method,
-                        too_close=too_close)
+                        too_close=too_close, lwork=lwork)
     x = fmin_cobyla(objective, x0, (), rhobeg=1e-4, rhoend=1e-5, disp=False)
     return x, 1. - objective(x) / B2
 
@@ -625,16 +631,14 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
     too_close : str
         How to handle HPI positions too close to the sensors,
         can be 'raise', 'warning', or 'info'.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
     coil_dev_rrs : ndarray, shape (n_CHPI, 3)
         Fit locations of each cHPI coil in device coordinates
     """
-    _check_too_close(too_close)
+    _check_option('too_close', too_close, ['raise', 'warning', 'info'])
     # 0. determine samples to fit.
     if t_win is None:  # use the whole window
         i_win = [0, len(raw.times)]
@@ -673,13 +677,6 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
     return coil_dev_rrs, coil_g
 
 
-def _check_too_close(too_close):
-    if not isinstance(too_close, str) or \
-            too_close not in ('raise', 'warning', 'info'):
-        raise ValueError('too_close must be "raise", "warning", or "info", '
-                         'got %s (type %s)' % (too_close, type(too_close)))
-
-
 @verbose
 def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
                               t_window=0.2, dist_limit=0.005, gof_limit=0.98,
@@ -707,9 +704,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
     too_close : str
         How to handle HPI positions too close to the sensors,
         can be 'raise', 'warning', or 'info'.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -729,7 +724,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
     from scipy.spatial.distance import cdist
     # extract initial geometry from info['hpi_results']
     hpi_dig_head_rrs = _get_hpi_initial_fit(raw.info)
-    _check_too_close(too_close)
+    _check_option('too_close', too_close, ['raise', 'warning', 'info'])
 
     # extract hpi system information
     hpi = _setup_hpi_struct(raw.info, int(round(t_window * raw.info['sfreq'])))
@@ -935,9 +930,7 @@ def _calculate_chpi_coil_locs(raw, t_step_min=0.1, t_step_max=10.,
     too_close : str
         How to handle HPI positions too close to the sensors,
         can be 'raise', 'warning', or 'info'.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -957,7 +950,7 @@ def _calculate_chpi_coil_locs(raw, t_step_min=0.1, t_step_max=10.,
     read_head_pos
     write_head_pos
     """
-    _check_too_close(too_close)
+    _check_option('too_close', too_close, ['raise', 'warning', 'info'])
 
     # extract initial geometry from info['hpi_results']
     hpi_dig_head_rrs = _get_hpi_initial_fit(raw.info)
@@ -1062,9 +1055,7 @@ def filter_chpi(raw, include_line=True, t_step=0.01, t_window=0.2,
     t_window : float
         Time window to use to estimate the amplitudes, default is
         0.2 (200 ms).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

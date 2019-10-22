@@ -1,4 +1,6 @@
 """
+.. _ex-electrode-pos-2d:
+
 ====================================================
 How to convert 3D electrode positions to a 2D image.
 ====================================================
@@ -20,13 +22,13 @@ on the image.
 # License: BSD (3-clause)
 from scipy.io import loadmat
 import numpy as np
-from mayavi import mlab
 from matplotlib import pyplot as plt
 from os import path as op
 
 import mne
 from mne.viz import ClickableImage  # noqa
-from mne.viz import plot_alignment, snapshot_brain_montage
+from mne.viz import (plot_alignment, snapshot_brain_montage,
+                     set_3d_view)
 
 
 print(__doc__)
@@ -48,9 +50,13 @@ layout_name = 'custom_layout.lout'
 mat = loadmat(path_data)
 ch_names = mat['ch_names'].tolist()
 elec = mat['elec']  # electrode coordinates in meters
-dig_ch_pos = dict(zip(ch_names, elec))
-mon = mne.channels.DigMontage(dig_ch_pos=dig_ch_pos)
-info = mne.create_info(ch_names, 1000., 'ecog', montage=mon)
+# Now we make a montage stating that the sEEG contacts are in head
+# coordinate system (although they are in MRI). This is compensated
+# by the fact that below we do not specicty a trans file so the Head<->MRI
+# transform is the identity.
+montage = mne.channels.make_dig_montage(ch_pos=dict(zip(ch_names, elec)),
+                                        coord_frame='head')
+info = mne.create_info(ch_names, 1000., 'ecog', montage=montage)
 print('Created %s channel positions' % len(ch_names))
 
 ###############################################################################
@@ -64,11 +70,11 @@ print('Created %s channel positions' % len(ch_names))
 
 fig = plot_alignment(info, subject='sample', subjects_dir=subjects_dir,
                      surfaces=['pial'], meg=False)
-mlab.view(200, 70)
-xy, im = snapshot_brain_montage(fig, mon)
+set_3d_view(figure=fig, azimuth=200, elevation=70)
+xy, im = snapshot_brain_montage(fig, montage)
 
 # Convert from a dictionary to array to plot
-xy_pts = np.vstack(xy[ch] for ch in info['ch_names'])
+xy_pts = np.vstack([xy[ch] for ch in info['ch_names']])
 
 # Define an arbitrary "activity" pattern for viz
 activity = np.linspace(100, 200, xy_pts.shape[0])

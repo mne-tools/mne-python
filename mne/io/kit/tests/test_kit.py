@@ -2,7 +2,6 @@
 #
 # License: BSD (3-clause)
 
-import inspect
 import os.path as op
 
 import numpy as np
@@ -16,18 +15,16 @@ import mne
 from mne import pick_types, Epochs, find_events, read_events
 from mne.datasets.testing import requires_testing_data
 from mne.transforms import apply_trans
-from mne.tests.common import assert_dig_allclose
-from mne.utils import run_tests_if_main, _TempDir
+from mne.utils import run_tests_if_main, assert_dig_allclose
 from mne.io import read_raw_fif, read_raw_kit, read_epochs_kit
 from mne.io.constants import FIFF
 from mne.io.kit.coreg import read_sns
 from mne.io.kit.constants import KIT
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.surface import _get_ico_surface
+from mne.io.kit import __file__ as _KIT_INIT_FILE
 
-FILE = inspect.getfile(inspect.currentframe())
-parent_dir = op.dirname(op.abspath(FILE))
-data_dir = op.join(parent_dir, 'data')
+data_dir = op.join(op.dirname(_KIT_INIT_FILE), 'tests', 'data')
 sqd_path = op.join(data_dir, 'test.sqd')
 sqd_umd_path = op.join(data_dir, 'test_umd-raw.sqd')
 epochs_path = op.join(data_dir, 'test-epoch.raw')
@@ -224,14 +221,14 @@ def test_hsp_elp():
     assert_array_almost_equal(pts_elp_in_dev, pts_txt_in_dev, decimal=5)
 
 
-def test_decimate():
+def test_decimate(tmpdir):
     """Test decimation of digitizer headshapes with too many points."""
     # load headshape and convert to meters
     hsp_mm = _get_ico_surface(5)['rr'] * 100
     hsp_m = hsp_mm / 1000.
 
     # save headshape to a file in mm in temporary directory
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     sphere_hsp_path = op.join(tempdir, 'test_sphere.txt')
     np.savetxt(sphere_hsp_path, hsp_mm)
 

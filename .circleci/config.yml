@@ -4,18 +4,30 @@ version: 2
 jobs:
     build_docs:
       docker:
-        # 3.6-jessie is too new for conda
-        - image: circleci/python:3.6-jessie
+        - image: circleci/python:3.7-stretch
       steps:
         - checkout
         - run:
             name: Set BASH_ENV
             command: |
-              echo "set -e" >> $BASH_ENV;
-              echo "export SUBJECTS_DIR=~/mne_data/MNE-sample-data/subjects" >> $BASH_ENV;
-              echo "export DISPLAY=:99" >> $BASH_ENV;
-              echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV;
-              echo "export PATH=~/miniconda/bin:$PATH" >> $BASH_ENV;
+              echo "set -e" >> $BASH_ENV
+              echo "export SUBJECTS_DIR=~/mne_data/MNE-sample-data/subjects" >> $BASH_ENV
+              echo "export DISPLAY=:99" >> $BASH_ENV
+              echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
+              export MNE_ROOT=${PWD}/minimal_cmds
+              echo "export MNE_ROOT=${PWD}/minimal_cmds" >> $BASH_ENV
+              echo "export MNE_3D_BACKEND=pyvista" >> $BASH_ENV
+              echo "export PATH=~/.local/bin/:${MNE_ROOT}/bin:$PATH" >> $BASH_ENV
+              curl https://staff.washington.edu/larsoner/minimal_cmds.tar.gz | tar xz
+              echo "export LD_LIBRARY_PATH=${MNE_ROOT}/lib:$LD_LIBRARY_PATH" >> $BASH_ENV
+              echo "export NEUROMAG2FT_ROOT=${PWD}/minimal_cmds/bin" >> $BASH_ENV
+              echo "BASH_ENV:"
+              cat $BASH_ENV
+        - run:
+            name: check neuromag2ft
+            command: |
+              neuromag2ft --version
+
         - run:
             name: Merge with upstream
             command: |
@@ -52,34 +64,24 @@ jobs:
         - run:
             name: Fix libgcc_s.so.1 pthread_cancel bug
             command: |
-              sudo apt-get install libgl1-mesa-glx libegl1-mesa libxrandr2 libxrandr2 libxss1 libxcursor1 libxcomposite1 libasound2 libxi6 libxtst6 qt5-default
+              sudo apt-get install qt5-default
 
         - run:
-            name: Get Anaconda running
+            name: Install graphviz and fonts needed for diagrams
             command: |
-              wget -q http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh;
-              chmod +x ~/miniconda.sh;
-              ~/miniconda.sh -b -p ~/miniconda;
-              export export PATH=~/miniconda/bin:$PATH;
-              conda update --yes --quiet conda;
-              conda env create --quiet -f environment.yml;
-              source activate mne;
-              conda install sphinx;
-              pip install --progress-bar off sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler
-              pip uninstall --yes mne;
-              echo "source activate mne" >> $BASH_ENV;
+              sudo apt-get install graphviz
+              mkdir -p $HOME/.fonts
+              curl https://codeload.github.com/adobe-fonts/source-code-pro/tar.gz/2.030R-ro/1.050R-it | tar xz -C $HOME/.fonts
+              curl https://codeload.github.com/adobe-fonts/source-sans-pro/tar.gz/2.045R-ro/1.095R-it | tar xz -C $HOME/.fonts
+              fc-cache -f
 
-        # The conda-provided PyQt5 does not work on CircleCI for some reason,
-        # possibly because the libGL expects a sufficiently modern libgcc
-        # and conda rolls their own (libgcc-ng package).
         - run:
-            name: Patch Qt
+            name: Get Python running
             command: |
-              conda remove --yes qt pyqt matplotlib sip libxcb icu vtk
-              pip uninstall --yes mayavi vtk
-              pip install vtk mayavi PyQt5 PyQt5-sip sip matplotlib
-              echo "export LD_PRELOAD=~/miniconda/envs/mne/lib/libgobject-2.0.so.0" >> $BASH_ENV
-              pip install --upgrade "https://api.github.com/repos/nipy/PySurfer/zipball/master"
+              python -m pip install --user --upgrade --progress-bar off pip numpy vtk
+              python -m pip install --user --upgrade --progress-bar off -r requirements.txt
+              python -m pip install --user --upgrade --progress-bar off ipython sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler "https://api.github.com/repos/nipy/PySurfer/zipball/master"
+
         - save_cache:
             key: pip-cache
             paths:
@@ -92,6 +94,7 @@ jobs:
                which python
                python -c "import mne; mne.sys_info()"
                LIBGL_DEBUG=verbose python -c "from mayavi import mlab; import matplotlib.pyplot as plt; mlab.figure(); plt.figure()"
+               python -c "import mne; mne.set_config('MNE_USE_CUDA', 'false')"  # this is needed for the config tutorial
                python -c "import mne; mne.set_config('MNE_LOGGING_LEVEL', 'info')"
                python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
 
@@ -99,7 +102,7 @@ jobs:
         - run:
             name: Get data
             command: |
-              python setup.py develop
+              python setup.py develop --user
               if ! git remote -v | grep upstream ; then git remote add upstream git://github.com/mne-tools/mne-python.git; fi
               git fetch upstream
               git branch -a
@@ -108,11 +111,11 @@ jobs:
               if [ "$CIRCLE_BRANCH" == "master" ] || [[ $(cat gitlog.txt) == *"[circle full]"* ]]; then
                 echo html_dev > build.txt;
                 python -c "import mne; mne.datasets._download_all_example_data()";
-              elif [ "$CIRCLE_BRANCH" == "maint/0.17" ]; then
+              elif [ "$CIRCLE_BRANCH" == "maint/0.19" ]; then
                 echo html_stable > build.txt;
                 python -c "import mne; mne.datasets._download_all_example_data()";
               else
-                FNAMES=$(git diff --name-only $CIRCLE_BRANCH $(git merge-base $CIRCLE_BRANCH upstream/master));
+                FNAMES=$(git diff --name-only $(git merge-base $CIRCLE_BRANCH upstream/master) $CIRCLE_BRANCH);
                 if [[ $(cat gitlog.txt) == *"[circle front]"* ]]; then
                   FNAMES="tutorials/plot_mne_dspm_source_localization.py tutorials/plot_receptive_field.py examples/connectivity/plot_mne_inverse_label_connectivity.py tutorials/plot_sensors_decoding.py tutorials/plot_stats_cluster_spatio_temporal.py tutorials/plot_visualize_evoked.py "${FNAMES};
                   python -c "import mne; print(mne.datasets.testing.data_path(update_path=True))";
@@ -125,6 +128,9 @@ jobs:
                     if [[ $(cat $FNAME | grep -x ".*datasets.*sample.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
                     fi;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*fetch_fsaverage.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.fetch_fsaverage(verbose=True))";
+                    fi;
                     if [[ $(cat $FNAME | grep -x ".*datasets.*spm_face.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.spm_face.data_path(update_path=True))";
                     fi;
@@ -132,13 +138,22 @@ jobs:
                       python -c "import mne; print(mne.datasets.somato.data_path(update_path=True))";
                     fi;
                     if [[ $(cat $FNAME | grep -x ".*datasets.*eegbci.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.eegbci.load_data(1, [6, 10, 14], update_path=True))";
+                      python -c "import mne; print(mne.datasets.eegbci.load_data(1, [3, 6, 10, 14], update_path=True))";
+                      python -c "import mne; print(mne.datasets.eegbci.load_data(2, [3], update_path=True))";
+                      python -c "import mne; print(mne.datasets.eegbci.load_data(3, [3], update_path=True))";
+                      python -c "import mne; print(mne.datasets.eegbci.load_data(4, [3], update_path=True))";
+                    fi;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*sleep_physionet.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.sleep_physionet.age.fetch_data([0, 1], recording=[1], update_path=True))";
                     fi;
                     if [[ $(cat $FNAME | grep -x ".*datasets.*hf_sef.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.hf_sef.data_path(update_path=True))";
                     fi;
                     if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_auditory.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.brainstorm.bst_auditory.data_path(update_path=True))" --accept-brainstorm-license;
+                    fi;
+                    if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_resting.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.brainstorm.bst_resting.data_path(update_path=True))" --accept-brainstorm-license;
                     fi;
                     if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_raw.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.brainstorm.bst_raw.data_path(update_path=True))" --accept-brainstorm-license;
@@ -148,10 +163,6 @@ jobs:
                     fi;
                     if [[ $(cat $FNAME | grep -x ".*brainstorm.*bst_phantom_elekta.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.brainstorm.bst_phantom_elekta.data_path(update_path=True))" --accept-brainstorm-license;
-                    fi;
-                    if [[ $(cat $FNAME | grep -x ".*datasets.*megsim.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.megsim.load_data(condition='visual', data_format='single-trial', data_type='simulation', update_path=True))";
-                      python -c "import mne; print(mne.datasets.megsim.load_data(condition='visual', data_format='raw', data_type='experimental', update_path=True))";
                     fi;
                     if [[ $(cat $FNAME | grep -x ".*datasets.*hcp_mmp_parcellation.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.sample.data_path(update_path=True))";
@@ -181,6 +192,9 @@ jobs:
                     if [[ $(cat $FNAME | grep -x ".*datasets.*phantom_4dbti.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.phantom_4dbti.data_path(update_path=True))";
                     fi;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*limo.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.limo.data_path(subject=2, update_path=True))";
+                    fi;
                   fi;
                 done;
                 echo PATTERN="$PATTERN";
@@ -206,6 +220,8 @@ jobs:
             command: |
               if [[ $(cat gitlog.txt) == *"[circle front]"* ]] || [[ $(cat build.txt) == "html_dev" ]] || [[ $(cat build.txt) == "html_stable" ]]; then
                 make test-doc;
+                mkdir -p doc/_build/test-results/test-doc;
+                cp junit-results.xml doc/_build/test-results/test-doc/junit.xml;
               fi;
         # Build docs
         - run:
@@ -218,6 +234,21 @@ jobs:
             command: |
               python -c "import mne; level = mne.get_config('MNE_LOGGING_LEVEL'); assert level.lower() == 'info', repr(level)"
 
+        # Reduce upload time of artifacts we will (almost) never look at
+        - run:
+            name: Reduce artifact upload time
+            command: |
+              if grep -q html_dev-pattern build.txt || grep -q html_dev-noplot build.txt; then
+                tar czf doc/_build/html/_downloads.tgz doc/_build/html/_downloads
+                rm -Rf doc/_build/html/_downloads
+              fi
+
+        # Save the JUnit file
+        - store_test_results:
+            path: doc/_build/test-results
+        - store_artifacts:
+            path: doc/_build/test-results
+            destination: test-results
         # Save the outputs
         - store_artifacts:
             path: doc/_build/html/
@@ -276,6 +307,7 @@ jobs:
             key: data-cache-8
             paths:
               - ~/mne_data/MNE-visual_92_categories-data
+              - ~/mne_data/MNE-limo-data
 
 
     linkcheck:
@@ -288,9 +320,9 @@ jobs:
             name: pip install dependencies
             command: |
                set -e;
-               pip install --user --progress-bar off numpy scipy matplotlib pillow
-               pip install --user --progress-bar off sphinx numpydoc sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler
-               pip install --user -e .
+               python -m pip install --user --progress-bar off numpy scipy matplotlib pillow
+               python -m pip install --user --progress-bar off sphinx numpydoc sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler
+               python -m pip install --user -e .
         - run:
             name: make linkcheck
             command: |
@@ -331,7 +363,7 @@ jobs:
             name: Deploy docs
             command: |
               set -e;
-              if [ "${CIRCLE_BRANCH}" == "master" ] || [ "${CIRCLE_BRANCH}" == "maint/0.17" ]; then
+              if [ "${CIRCLE_BRANCH}" == "master" ] || [ "${CIRCLE_BRANCH}" == "maint/0.19" ]; then
                 git config --global user.email "circle@mne.com";
                 git config --global user.name "Circle CI";
                 cd ~/mne-tools.github.io;
@@ -375,7 +407,7 @@ workflows:
             branches:
               only:
                 - master
-                - maint/0.17
+                - maint/0.19
 
   weekly:
     jobs:

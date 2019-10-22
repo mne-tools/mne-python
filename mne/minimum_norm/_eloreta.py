@@ -4,11 +4,10 @@
 
 import numpy as np
 
-from scipy import linalg
-
 from ..defaults import _handle_default
 from ..fixes import _safe_svd
-from ..utils import warn, logger
+from ..utils import (warn, logger, _svd_lwork, _repeated_svd, _repeated_pinv2,
+                     eigh)
 
 
 # For the reference implementation of eLORETA (force_equal=False),
@@ -48,6 +47,10 @@ def _compute_eloreta(inv, lambda2, options):
     if n_orient == 3:
         logger.info('        Using %s orientation weights'
                     % ('uniform' if force_equal else 'independent',))
+        # src, sens, 3
+        G_3 = np.ascontiguousarray(G.reshape(-1, n_src, 3).transpose(1, 0, 2))
+    else:
+        G_3 = None
 
     # The following was adapted under BSD license by permission of Guido Nolte
     shape = (n_src,)
@@ -59,10 +62,12 @@ def _compute_eloreta(inv, lambda2, options):
     extra = ' (this make take a while)' if n_orient == 3 else ''
     logger.info('        Fitting up to %d iterations%s...'
                 % (max_iter, extra))
+    pinv2_lwork = _svd_lwork((3, 3))
+    svd_lwork = _svd_lwork((G.shape[0], G.shape[0]))
     for kk in range(max_iter):
         # Compute inverse of the weights (stabilized) and corresponding M
-        M, _ = _compute_eloreta_inv(G, W, n_orient, n_nzero, lambda2,
-                                    force_equal)
+        M, _ = _compute_eloreta_inv(G, G_3, W, n_orient, n_nzero, lambda2,
+                                    force_equal, pinv2_lwork, svd_lwork)
 
         # Update the weights
         W_last = W.copy()
@@ -72,16 +77,16 @@ def _compute_eloreta(inv, lambda2, options):
         else:
             norm = 0.
             for ii in range(n_src):
-                sl = slice(n_orient * ii, n_orient * (ii + 1))
                 this_w, this_s = _sqrtm_sym(
-                    np.dot(np.dot(G[:, sl].T, M), G[:, sl]))
+                    np.dot(np.dot(G_3[ii].T, M), G_3[ii]),
+                    overwrite_a=True, check_finite=False)
                 W[ii] = np.mean(this_s) if force_equal else this_w
                 norm += np.mean(this_s)
             W /= norm / n_src
 
         # Check for weight convergence
-        delta = (linalg.norm(W.ravel() - W_last.ravel()) /
-                 linalg.norm(W_last.ravel()))
+        delta = (np.linalg.norm(W.ravel() - W_last.ravel()) /
+                 np.linalg.norm(W_last.ravel()))
         logger.debug('            Iteration %s / %s ...%s'
                      % (kk + 1, max_iter, extra))
         if delta < eps:
@@ -91,8 +96,8 @@ def _compute_eloreta(inv, lambda2, options):
     else:
         warn('eLORETA weight fitting did not converge (>= %s)' % eps)
     logger.info('        Assembling eLORETA kernel and modifying inverse')
-    M, W_inv = _compute_eloreta_inv(G, W, n_orient, n_nzero, lambda2,
-                                    force_equal)
+    M, W_inv = _compute_eloreta_inv(G, G_3, W, n_orient, n_nzero, lambda2,
+                                    force_equal, pinv2_lwork, svd_lwork)
     K = np.zeros((n_src * n_orient, n_chan))
     for ii in range(n_src):
         sl = slice(n_orient * ii, n_orient * (ii + 1))
@@ -109,9 +114,10 @@ def _compute_eloreta(inv, lambda2, options):
     return W
 
 
-def _compute_eloreta_inv(G, W, n_orient, n_nzero, lambda2, force_equal):
+def _compute_eloreta_inv(G, G_3, W, n_orient, n_nzero, lambda2, force_equal,
+                         pinv2_lwork, svd_lwork):
     """Invert weights and compute M."""
-    W_inv = np.empty_like(W)
+    W_inv = np.empty(W.shape)
     n_src = W_inv.shape[0]
     if n_orient == 1 or force_equal:
         W_inv[:] = 1. / W
@@ -120,28 +126,35 @@ def _compute_eloreta_inv(G, W, n_orient, n_nzero, lambda2, force_equal):
             # Here we use a single-precision-suitable `rcond` (given our
             # 3x3 matrix size) because the inv could be saved in single
             # precision.
-            W_inv[ii] = linalg.pinv2(W[ii], rcond=1e-7)
+            W_inv[ii] = _repeated_pinv2(W[ii], rcond=1e-7, lwork=pinv2_lwork)
 
     # Weight the gain matrix
-    W_inv_Gt = np.empty_like(G).T
-    for ii in range(n_src):
-        sl = slice(n_orient * ii, n_orient * (ii + 1))
-        W_inv_Gt[sl, :] = np.dot(W_inv[ii], G[:, sl].T)
+    if n_orient == 1 or force_equal:
+        if n_orient == 3:
+            W_inv_rep = np.repeat(W_inv, 3)
+        else:
+            W_inv_rep = W_inv
+        W_inv_Gt = G.T * W_inv_rep[:, np.newaxis]
+    else:
+        W_inv_Gt = np.empty((n_src, 3, G.shape[0]))
+        for ii in range(n_src):
+            W_inv_Gt[ii] = np.dot(W_inv[ii], G_3[ii].T)
+        W_inv_Gt.shape = (n_src * 3, -1)
 
     # Compute the inverse, normalizing by the trace
     G_W_inv_Gt = np.dot(G, W_inv_Gt)
     G_W_inv_Gt *= n_nzero / np.trace(G_W_inv_Gt)
-    u, s, v = linalg.svd(G_W_inv_Gt)
+    u, s, v = _repeated_svd(G_W_inv_Gt, lwork=svd_lwork)
     s = s / (s ** 2 + lambda2)
     M = np.dot(v.T[:, :n_nzero] * s[:n_nzero], u.T[:n_nzero])
     return M, W_inv
 
 
-def _sqrtm_sym(C):
+def _sqrtm_sym(C, overwrite_a=False, check_finite=True):
     """Compute the square root of a symmetric matrix."""
     # Same as linalg.sqrtm(C) but faster, also yields the eigenvalues
-    s, u = linalg.eigh(C)
-    mask = s > s.max() * 1e-7
+    s, u = eigh(C, overwrite_a=overwrite_a, check_finite=check_finite)
+    mask = s > s[-1] * 1e-7
     u = u[:, mask]
     s = np.sqrt(s[mask])
     a = np.dot(s * u, u.T)

@@ -16,7 +16,7 @@ References
        Cognitive Sciences, 18(4), 203-210. doi: 10.1016/j.tics.2014.01.002.
 """
 # Authors: Jean-Remi King <jeanremi.king@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
@@ -46,10 +46,12 @@ event_id = {'Auditory/Left': 1, 'Auditory/Right': 2,
             'Visual/Left': 3, 'Visual/Right': 4}
 tmin = -0.050
 tmax = 0.400
-decim = 2  # decimate to make the example faster to run
+# decimate to make the example faster to run, but then use verbose='error' in
+# the Epochs constructor to suppress warning about decimation causing aliasing
+decim = 2
 epochs = mne.Epochs(raw, events, event_id=event_id, tmin=tmin, tmax=tmax,
                     proj=True, picks=picks, baseline=None, preload=True,
-                    reject=dict(mag=5e-12), decim=decim)
+                    reject=dict(mag=5e-12), decim=decim, verbose='error')
 
 ###############################################################################
 # We will train the classifier on all left visual vs auditory trials

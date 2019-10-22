@@ -18,10 +18,11 @@ from matplotlib import pyplot as plt
 from mne import Epochs, read_events, read_evokeds
 from mne.io import read_raw_fif
 from mne.datasets import testing
-from mne.report import Report, open_report
-from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
+from mne.report import Report, open_report, _ReportScraper
+from mne.utils import (_TempDir, requires_mayavi, requires_nibabel, Bunch,
                        run_tests_if_main, traits_test, requires_h5py)
 from mne.viz import plot_alignment
+from mne.io.write import DATE_NONE
 
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
@@ -75,7 +76,7 @@ def test_render_report():
     raw.pick_channels(['MEG 0111', 'MEG 0121'])
     raw.del_proj()
     epochs = Epochs(raw, read_events(event_fname), 1, -0.2, 0.2)
-    epochs.save(epochs_fname)
+    epochs.save(epochs_fname, overwrite=True)
     # This can take forever (stall Travis), so let's make it fast
     # Also, make sure crop range is wide enough to avoid rendering bug
     epochs.average().crop(0.1, 0.2).save(evoked_fname)
@@ -142,6 +143,11 @@ def test_render_report():
     # ndarray support smoke test
     report.add_figs_to_section(np.zeros((2, 3, 3)), 'caption', 'section')
 
+    with pytest.raises(TypeError, match='Each fig must be a'):
+        report.add_figs_to_section('foo', 'caption', 'section')
+    with pytest.raises(TypeError, match='Each fig must be a'):
+        report.add_figs_to_section(['foo'], 'caption', 'section')
+
 
 @testing.requires_testing_data
 def test_report_raw_psd_and_date():
@@ -160,9 +166,25 @@ def test_report_raw_psd_and_date():
     assert 'PSD' in ''.join(report.html)
     assert 'GMT' in ''.join(report.html)
 
-    # DATE_NONE functionality
+    # test new anonymize functionality
     report = Report()
     raw.anonymize()
+    raw.save(raw_fname_new, overwrite=True)
+    report.parse_folder(data_path=tempdir, render_bem=False,
+                        on_error='raise')
+    assert isinstance(report.html, list)
+    assert 'GMT' in ''.join(report.html)
+
+    # DATE_NONE functionality
+    report = Report()
+    # old style (pre 0.20) date anonymization
+    raw.info['meas_date'] = None
+    for key in ('file_id', 'meas_id'):
+        value = raw.info.get(key)
+        if value is not None:
+            assert 'msecs' not in value
+            value['secs'] = DATE_NONE[0]
+            value['usecs'] = DATE_NONE[1]
     raw.save(raw_fname_new, overwrite=True)
     report.parse_folder(data_path=tempdir, render_bem=False,
                         on_error='raise')
@@ -274,7 +296,8 @@ def test_add_slider_to_section():
                     subject='sample', subjects_dir=subjects_dir)
     section = 'slider_section'
     figs = _get_example_figures()
-    report.add_slider_to_section(figs, section=section)
+    report.add_slider_to_section(figs, section=section, title='my title')
+    assert report.fnames[0] == 'my title-#-report_slider_section-#-custom'
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
     pytest.raises(NotImplementedError, report.add_slider_to_section,
@@ -324,7 +347,7 @@ def test_open_report():
     # Exiting the context block should have triggered saving to HDF5
     assert op.exists(hdf5)
 
-    # Load the HDF5 version of the report and check equivalency
+    # Load the HDF5 version of the report and check equivalence
     report2 = open_report(hdf5)
     assert report2._fname == hdf5
     assert report2.subjects_dir == report.subjects_dir
@@ -337,13 +360,19 @@ def test_open_report():
     pytest.raises(ValueError, open_report, hdf5, subjects_dir='foo')
     open_report(hdf5, subjects_dir=subjects_dir)  # This should work
 
+    # Check that the context manager doesn't swallow exceptions
+    with pytest.raises(ZeroDivisionError):
+        with open_report(hdf5, subjects_dir=subjects_dir) as report:
+            1 / 0
+
 
 def test_remove():
     """Test removing figures from a report."""
     r = Report()
     fig1, fig2 = _get_example_figures()
     r.add_figs_to_section(fig1, 'figure1', 'mysection')
-    r.add_figs_to_section(fig1, 'figure1', 'othersection')
+    r.add_slider_to_section([fig1, fig2], title='figure1',
+                            section='othersection')
     r.add_figs_to_section(fig2, 'figure1', 'mysection')
     r.add_figs_to_section(fig2, 'figure2', 'mysection')
 
@@ -394,6 +423,47 @@ def test_add_or_replace():
     assert r.html[0] == old_r.html[0]
     assert r.html[2] == old_r.html[2]
     assert r.html[3] == old_r.html[3]
+
+
+def test_scraper(tmpdir):
+    """Test report scraping."""
+    r = Report()
+    fig1, fig2 = _get_example_figures()
+    r.add_figs_to_section(fig1, 'a', 'mysection')
+    r.add_figs_to_section(fig2, 'b', 'mysection')
+    # Mock a Sphinx + sphinx_gallery config
+    app = Bunch(builder=Bunch(srcdir=str(tmpdir),
+                              outdir=op.join(str(tmpdir), '_build', 'html')))
+    scraper = _ReportScraper()
+    scraper.app = app
+    gallery_conf = dict(src_dir=app.builder.srcdir, builder_name='html')
+    img_fname = op.join(app.builder.srcdir, 'auto_examples', 'images',
+                        'sg_img.png')
+    target_file = op.join(app.builder.srcdir, 'auto_examples', 'sg.py')
+    os.makedirs(op.dirname(img_fname))
+    os.makedirs(app.builder.outdir)
+    block_vars = dict(image_path_iterator=(img for img in [img_fname]),
+                      example_globals=dict(a=1), target_file=target_file)
+    # Nothing yet
+    block = None
+    rst = scraper(block, block_vars, gallery_conf)
+    assert rst == ''
+    # Still nothing
+    block_vars['example_globals']['r'] = r
+    rst = scraper(block, block_vars, gallery_conf)
+    # Once it's saved, add it
+    assert rst == ''
+    fname = op.join(str(tmpdir), 'my_html.html')
+    r.save(fname, open_browser=False)
+    rst = scraper(block, block_vars, gallery_conf)
+    out_html = op.join(app.builder.outdir, 'auto_examples', 'my_html.html')
+    assert not op.isfile(out_html)
+    os.makedirs(op.join(app.builder.outdir, 'auto_examples'))
+    scraper.copyfiles()
+    assert op.isfile(out_html)
+    assert rst.count('"') == 6
+    assert "<iframe" in rst
+    assert op.isfile(img_fname.replace('png', 'svg'))
 
 
 run_tests_if_main()

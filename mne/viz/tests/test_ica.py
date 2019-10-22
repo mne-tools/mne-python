@@ -1,10 +1,11 @@
 # Authors: Denis Engemann <denis.engemann@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: Simplified BSD
 
 import os.path as op
 
+import numpy as np
 from numpy.testing import assert_equal, assert_array_equal
 import pytest
 import matplotlib.pyplot as plt
@@ -100,8 +101,8 @@ def test_plot_ica_components():
     assert (lbl == title)
 
     ica.info = None
-    pytest.raises(ValueError, ica.plot_components, 1)
-    pytest.raises(RuntimeError, ica.plot_components, 1, ch_type='mag')
+    with pytest.raises(RuntimeError, match='fit the ICA'):
+        ica.plot_components(1, ch_type='mag')
     plt.close('all')
 
 
@@ -115,6 +116,7 @@ def test_plot_ica_properties():
     picks = _get_picks(raw)[:6]
     pick_names = [raw.ch_names[k] for k in picks]
     raw.pick_channels(pick_names)
+    reject = dict(grad=4000e-13, mag=4e-12)
 
     epochs = Epochs(raw, events[:10], event_id, tmin, tmax,
                     baseline=(None, 0), preload=True)
@@ -134,7 +136,7 @@ def test_plot_ica_properties():
     ica.plot_properties(epochs, picks=1, image_args={'sigma': 1.5},
                         topomap_args={'res': 10, 'colorbar': True},
                         psd_args={'fmax': 65.}, plot_std=False,
-                        figsize=[4.5, 4.5])
+                        figsize=[4.5, 4.5], reject=reject)
     plt.close('all')
 
     pytest.raises(TypeError, ica.plot_properties, epochs, dB=list('abc'))
@@ -180,17 +182,24 @@ def test_plot_ica_sources():
     fig.canvas.key_press_event('escape')
     # Sadly close_event isn't called on Agg backend and the test always passes.
     assert_array_equal(ica.exclude, [1])
+    plt.close('all')
 
-    fig = ica.plot_sources(raw, [1])
-    # test mouse clicks
+    # dtype can change int->np.int after load, test it explicitly
+    ica.n_components_ = np.int64(ica.n_components_)
+    fig = ica.plot_sources(raw)
+    # also test mouse clicks
     data_ax = fig.axes[0]
     _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
+    ica.exclude = [1]
+    ica.plot_sources(raw)
 
     raw.info['bads'] = ['MEG 0113']
-    pytest.raises(RuntimeError, ica.plot_sources, inst=raw)
+    with pytest.raises(RuntimeError, match="Raw doesn't match fitted data"):
+        ica.plot_sources(inst=raw)
     ica.plot_sources(epochs)
     epochs.info['bads'] = ['MEG 0113']
-    pytest.raises(RuntimeError, ica.plot_sources, inst=epochs)
+    with pytest.raises(RuntimeError, match="Epochs don't match fitted data"):
+        ica.plot_sources(inst=epochs)
     epochs.info['bads'] = []
     ica.plot_sources(epochs.average())
     evoked = epochs.average()
@@ -203,13 +212,13 @@ def test_plot_ica_sources():
     _fake_click(fig, ax,
                 [ax.get_xlim()[0], ax.get_ylim()[1]], 'data')
     # plot with bad channels excluded
-    ica.plot_sources(evoked, exclude=[0])
     ica.exclude = [0]
-    ica.plot_sources(evoked)  # does the same thing
+    ica.plot_sources(evoked)
     ica.labels_ = dict(eog=[0])
     ica.labels_['eog/0/crazy-channel'] = [0]
     ica.plot_sources(evoked)  # now with labels
-    pytest.raises(ValueError, ica.plot_sources, 'meeow')
+    with pytest.raises(ValueError, match='must be of Raw or Epochs type'):
+        ica.plot_sources('meeow')
     plt.close('all')
 
 
@@ -282,7 +291,8 @@ def test_plot_instance_components():
               max_pca_components=3, n_pca_components=3)
     with pytest.warns(RuntimeWarning, match='projection'):
         ica.fit(raw, picks=picks)
-    fig = ica.plot_sources(raw, exclude=[0], title='Components')
+    ica.exclude = [0]
+    fig = ica.plot_sources(raw, title='Components')
     for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=', 'pageup',
                 'pagedown', 'home', 'end', 'f11', 'b']:
         fig.canvas.key_press_event(key)
@@ -294,7 +304,7 @@ def test_plot_instance_components():
     fig.canvas.key_press_event('escape')
     plt.close('all')
     epochs = _get_epochs()
-    fig = ica.plot_sources(epochs, exclude=[0], title='Components')
+    fig = ica.plot_sources(epochs, title='Components')
     for key in ['down', 'up', 'right', 'left', 'o', '-', '+', '=', 'pageup',
                 'pagedown', 'home', 'end', 'f11', 'b']:
         fig.canvas.key_press_event(key)

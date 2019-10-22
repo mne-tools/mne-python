@@ -1,5 +1,5 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
@@ -13,9 +13,9 @@ import numpy as np
 from scipy import linalg, sparse
 
 from .constants import FIFF
-from ..utils import logger
-from ..externals.jdcal import jcal2jd
-
+from ..fixes import _fn35
+from ..utils import logger, _file_like
+from ..utils.numerics import _cal_to_julian
 
 # We choose a "magic" date to store (because meas_date is obligatory)
 # to treat as meas_date=None. This one should be impossible for systems
@@ -108,7 +108,7 @@ def write_julian(fid, kind, data):
     """Write a Julian-formatted date to a FIF file."""
     assert len(data) == 3
     data_size = 4
-    jd = np.sum(jcal2jd(*data))
+    jd = np.sum(_cal_to_julian(*data))
     data = np.array(jd, dtype='>i4')
     _write(fid, data, kind, data_size, FIFF.FIFFT_JULIAN, '>i4')
 
@@ -299,7 +299,12 @@ def start_file(fname, id_=None):
     id_ : dict | None
         ID to use for the FIFF_FILE_ID.
     """
-    if isinstance(fname, str):
+    if _file_like(fname):
+        logger.debug('Writing using %s I/O' % type(fname))
+        fid = fname
+        fid.seek(0)
+    else:
+        fname = _fn35(fname)
         if op.splitext(fname)[1].lower() == '.gz':
             logger.debug('Writing using gzip')
             # defaults to compression level 9, which is barely smaller but much
@@ -308,10 +313,6 @@ def start_file(fname, id_=None):
         else:
             logger.debug('Writing using normal I/O')
             fid = open(fname, "wb")
-    else:
-        logger.debug('Writing using %s I/O' % type(fname))
-        fid = fname
-        fid.seek(0)
     #   Write the compulsory items
     write_id(fid, FIFF.FIFF_FILE_ID, id_)
     write_int(fid, FIFF.FIFF_DIR_POINTER, -1)

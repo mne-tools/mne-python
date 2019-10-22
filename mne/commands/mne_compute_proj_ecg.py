@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 r"""Compute SSP/PCA projections for ECG artifacts.
 
-You can do for example:
+Examples
+--------
+.. code-block:: console
 
-$ mne compute_proj_ecg -i sample_audvis_raw.fif -c "MEG 1531" \
-                       --l-freq 1 --h-freq 100 \
-                       --rej-grad 3000 --rej-mag 4000 --rej-eeg 100
+    $ mne compute_proj_ecg -i sample_audvis_raw.fif -c "MEG 1531" \
+                           --l-freq 1 --h-freq 100 \
+                           --rej-grad 3000 --rej-mag 4000 --rej-eeg 100
+
 """
 # Authors : Alexandre Gramfort, Ph.D.
 #           Martin Luessi, Ph.D.
@@ -205,6 +208,4 @@ def run():
     print("Writing ECG events in %s" % ecg_event_fname)
     mne.write_events(ecg_event_fname, events)
 
-is_main = (__name__ == '__main__')
-if is_main:
-    run()
+mne.utils.run_command_if_main()

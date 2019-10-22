@@ -7,7 +7,7 @@ import numpy as np
 
 from ..meas_info import create_info
 from ...transforms import rotation3d_align_z_axis
-from ...channels import DigMontage
+from ...channels import make_dig_montage
 from ..constants import FIFF
 from ...utils import warn, _check_pandas_installed
 from ..pick import pick_info
@@ -148,8 +148,11 @@ def _create_montage(ft_struct):
 
     if (len(montage_ch_names) > 0 and len(montage_pos) > 0 and
             len(montage_ch_names) == len(montage_pos)):
-        montage = DigMontage(
-            dig_ch_pos=dict(zip(montage_ch_names, montage_pos)))
+        montage = make_dig_montage(
+            ch_pos=dict(zip(montage_ch_names, montage_pos)),
+            # XXX: who grants 'head'?? this is BACKCOMPAT but seems a BUG
+            coord_frame='head',
+        )
     return montage
 
 

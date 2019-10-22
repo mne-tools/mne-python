@@ -1,4 +1,4 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: Simplified BSD
@@ -41,10 +41,10 @@ def _check_stcs(stc1, stc2):
     assert_allclose(stc1.tstep, stc2.tstep)
 
 
-@pytest.mark.timeout(60)  # ~30 sec on AppVeyor and Travis Linux
+@pytest.mark.timeout(120)  # ~30 sec on AppVeyor and Travis Linux
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_mxne_inverse():
+def test_mxne_inverse_standard():
     """Test (TF-)MxNE inverse computation."""
     # Read noise covariance matrix
     cov = read_cov(fname_cov)
@@ -59,6 +59,7 @@ def test_mxne_inverse():
     evoked_l21 = evoked.copy()
     evoked_l21.crop(tmin=0.081, tmax=0.1)
     label = read_label(fname_label)
+    assert label.hemi == 'rh'
 
     forward = read_forward_solution(fname_fwd)
     forward = convert_forward_solution(forward, surf_ori=True)
@@ -112,6 +113,7 @@ def test_mxne_inverse():
     with pytest.warns(None):  # CD
         stc, _ = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
                             depth=depth, maxit=300, tol=1e-8,
+                            weights=stc_dspm,  # gh-6382
                             active_set_size=10, return_residual=True,
                             solver='cd')
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
@@ -200,6 +202,8 @@ def test_mxne_vol_sphere():
 
     dip_fit = mne.fit_dipole(evoked_dip, cov, sphere)[0]
     assert np.abs(np.dot(dip_fit.ori[0], dip_mxne.ori[0])) > 0.99
+    dist = 1000 * np.linalg.norm(dip_fit.pos[0] - dip_mxne.pos[0])
+    assert dist < 4.  # within 4 mm
 
     # Do with TF-MxNE for test memory savings
     alpha = 60.  # overall regularization parameter

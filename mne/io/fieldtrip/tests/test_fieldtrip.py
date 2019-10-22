@@ -35,7 +35,7 @@ all_test_params_epochs = list(itertools.product(all_systems_epochs,
                                                 use_info))
 
 no_info_warning = {'expected_warning': RuntimeWarning,
-                   'message': NOINFO_WARNING}
+                   'match': NOINFO_WARNING}
 
 
 @testing.requires_testing_data
@@ -78,6 +78,11 @@ def test_read_evoked(cur_system, version, use_info):
 @pytest.mark.filterwarnings('ignore::RuntimeWarning')
 @pytest.mark.parametrize('cur_system, version, use_info',
                          all_test_params_epochs)
+# Strange, non-deterministic Pandas errors:
+# "ValueError: cannot expose native-only dtype 'g' in non-native
+# byte order '<' via buffer interface"
+@pytest.mark.skipif(os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true',
+                    reason='Pandas problem on Azure CI')
 def test_read_epochs(cur_system, version, use_info):
     """Test comparing reading an Epochs object and the FieldTrip version."""
     pandas = _check_pandas_installed(strict=False)
@@ -111,7 +116,7 @@ def test_read_epochs(cur_system, version, use_info):
             assert epoched_ft.metadata is None
             assert_warning_in_record(pandas_not_found_warning_msg, warn_record)
             if pytestwarning['expected_warning'] is not None:
-                assert_warning_in_record(pytestwarning['message'], warn_record)
+                assert_warning_in_record(pytestwarning['match'], warn_record)
 
     mne_data = mne_epoched.get_data()[:, :, :-1]
     ft_data = epoched_ft.get_data()

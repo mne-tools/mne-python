@@ -10,7 +10,7 @@ import numpy as np
 from .events import _read_events, _combine_triggers
 from .general import (_get_signalfname, _get_ep_info, _extract, _get_blocks,
                       _get_gains, _block_r)
-from ..base import BaseRaw, _check_update_montage
+from ..base import BaseRaw
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..utils import _create_chs
@@ -82,7 +82,8 @@ def _read_mff_header(filepath):
         pns_types = []
         pns_units = []
         for sensor in sensors:
-            sn = sensor.getElementsByTagName('number')[0].firstChild.data
+            # sensor number:
+            # sensor.getElementsByTagName('number')[0].firstChild.data
             name = sensor.getElementsByTagName('name')[0].firstChild.data
             unit_elem = sensor.getElementsByTagName('unit')[0].firstChild
             unit = ''
@@ -212,7 +213,7 @@ def _read_locs(filepath, chs, egi_info):
 
 
 @verbose
-def _read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
+def _read_raw_egi_mff(input_fname, eog=None, misc=None,
                       include=None, exclude=None, preload=False,
                       channel_naming='E%d', verbose=None):
     """Read EGI mff binary as raw object.
@@ -224,10 +225,6 @@ def _read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
     ----------
     input_fname : str
         Path to the raw file.
-    montage : str | None | instance of montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
     eog : list or tuple
         Names of channels or list of indices that should be designated
         EOG channels. Default is None.
@@ -243,22 +240,16 @@ def _read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
        trigger. Defaults to None. If None, channels that have more than
        one event and the ``sync`` and ``TREV`` channels will be
        ignored.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
     channel_naming : str
         Channel naming convention for the data channels. Defaults to 'E%d'
         (resulting in channel names 'E1', 'E2', 'E3'...). The effective default
         prior to 0.14.0 was 'EEG %03d'.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+    %(verbose)s
 
     Returns
     -------
-    raw : Instance of RawMff
+    raw : instance of RawMff
         A Raw object containing EGI mff data.
 
     Notes
@@ -280,9 +271,9 @@ def _read_raw_egi_mff(input_fname, montage=None, eog=None, misc=None,
     --------
     mne.io.Raw : Documentation of attribute and methods.
 
-    ..versionadded:: 0.15.0
+    .. versionadded:: 0.15.0
     """
-    return RawMff(input_fname, montage, eog, misc, include, exclude,
+    return RawMff(input_fname, eog, misc, include, exclude,
                   preload, channel_naming, verbose)
 
 
@@ -290,7 +281,7 @@ class RawMff(BaseRaw):
     """RawMff class."""
 
     @verbose
-    def __init__(self, input_fname, montage=None, eog=None, misc=None,
+    def __init__(self, input_fname, eog=None, misc=None,
                  include=None, exclude=None, preload=False,
                  channel_naming='E%d', verbose=None):
         """Init the RawMff class."""
@@ -414,7 +405,6 @@ class RawMff(BaseRaw):
 
         info['chs'] = chs
         info._update_redundant()
-        _check_update_montage(info, montage)
         file_bin = op.join(input_fname, egi_info['eeg_fname'])
         egi_info['egi_events'] = egi_events
 
@@ -522,6 +512,7 @@ class RawMff(BaseRaw):
                     # First block read, skip to the offset:
                     block_data = block_data[:, offset_samples:]
                     samples_read = samples_read - offset_samples
+                    offset_samples = 0
                 if samples_to_read < samples_read:
                     # Last block to read, skip the last samples
                     block_data = block_data[:, :samples_to_read]
@@ -532,7 +523,7 @@ class RawMff(BaseRaw):
 
                 # take into account events
                 if len(egi_events) > 0:
-                    e_chs = egi_events[:, s_start:s_end]
+                    e_chs = egi_events[:, start + s_start:start + s_end]
                     block_data = np.vstack([block_data, e_chs])
 
                 data_view = data[:n_data1_channels, s_start:s_end]
@@ -578,7 +569,7 @@ class RawMff(BaseRaw):
                     if samples_to_read == 1 and fid.tell() == file_size:
                         # We are in the presence of the EEG bug
                         # fill with zeros and break the loop
-                        data_view = data[n_data1_channels:, -1] = 0
+                        data[n_data1_channels:, -1] = 0
                         warn('This file has the EGI PSG sample bug')
                         an_start = current_data_sample
                         # XXX : use of _sync_onset should live in annotations
@@ -602,6 +593,7 @@ class RawMff(BaseRaw):
                         # First block read, skip to the offset:
                         block_data = block_data[:, offset_samples:]
                         samples_read = samples_read - offset_samples
+                        offset_samples = 0
 
                     if samples_to_read < samples_read:
                         # Last block to read, skip the last samples
@@ -615,5 +607,6 @@ class RawMff(BaseRaw):
                     _mult_cal_one(data_view, block_data[:n_pns_channels],
                                   pns_idx,
                                   cals[n_data1_channels:], mult)
+                    del data_view
                     samples_to_read = samples_to_read - samples_read
                     current_data_sample = current_data_sample + samples_read

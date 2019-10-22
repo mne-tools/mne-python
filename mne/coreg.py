@@ -17,18 +17,17 @@ import shutil
 from functools import reduce
 
 import numpy as np
-from numpy import dot
 
 from .io import read_fiducials, write_fiducials, read_info
 from .io.constants import FIFF
 from .label import read_label, Label
 from .source_space import (add_source_space_distances, read_source_spaces,
-                           write_source_spaces, _get_mri_header)
+                           write_source_spaces, _read_talxfm, _read_mri_info)
 from .surface import read_surface, write_surface, _normalize_vectors
 from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import (rotation, rotation3d, scaling, translation, Transform,
                          _read_fs_xfm, _write_fs_xfm, invert_transform,
-                         combine_transforms)
+                         combine_transforms, apply_trans)
 from .utils import (get_config, get_subjects_dir, logger, pformat, verbose,
                     warn, has_nibabel)
 from .viz._3d import _fiducial_coords
@@ -130,16 +129,14 @@ def create_default_subject(fs_home=None, update=False, subjects_dir=None,
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable
         (os.environ['SUBJECTS_DIR']) as destination for the new subject.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
     When no structural MRI is available for a subject, an average brain can be
     substituted. Freesurfer comes with such an average brain model, and MNE
-    comes with some auxiliary files which make coregistration easier (see
-    :ref:`CACGEAFI`). :py:func:`create_default_subject` copies the relevant
+    comes with some auxiliary files which make coregistration easier.
+    :py:func:`create_default_subject` copies the relevant
     files from Freesurfer into the current subjects_dir, and also adds the
     auxiliary files provided by MNE.
     """
@@ -288,10 +285,11 @@ def _trans_from_params(param_info, params):
         x, y, z = params[i:i + 3]
         trans.append(scaling(x, y, z))
 
-    trans = reduce(dot, trans)
+    trans = reduce(np.dot, trans)
     return trans
 
 
+# XXX this function should be moved out of coreg as used elsewhere
 def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
                        scale=False, tol=None, x0=None, out='trans',
                        weights=None):
@@ -343,7 +341,7 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
     tgt_pts = np.atleast_2d(tgt_pts)
     if src_pts.shape != tgt_pts.shape:
         raise ValueError("src_pts and tgt_pts must have same shape (got "
-                         "{0}, {1})".format(src_pts.shape, tgt_pts.shape))
+                         "{}, {})".format(src_pts.shape, tgt_pts.shape))
     if weights is not None:
         weights = np.array(weights, float)
         if weights.ndim != 1 or weights.size not in (src_pts.shape[0], 1):
@@ -362,7 +360,7 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
         def error(x):
             rx, ry, rz = x
             trans = rotation3d(rx, ry, rz)
-            est = dot(src_pts, trans.T)
+            est = np.dot(src_pts, trans.T)
             d = tgt_pts - est
             if weights is not None:
                 d *= weights
@@ -372,8 +370,8 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
     elif param_info == (True, True, 0):
         def error(x):
             rx, ry, rz, tx, ty, tz = x
-            trans = dot(translation(tx, ty, tz), rotation(rx, ry, rz))
-            est = dot(src_pts, trans.T)[:, :3]
+            trans = np.dot(translation(tx, ty, tz), rotation(rx, ry, rz))
+            est = np.dot(src_pts, trans.T)[:, :3]
             d = tgt_pts - est
             if weights is not None:
                 d *= weights
@@ -383,9 +381,10 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
     elif param_info == (True, True, 1):
         def error(x):
             rx, ry, rz, tx, ty, tz, s = x
-            trans = reduce(dot, (translation(tx, ty, tz), rotation(rx, ry, rz),
-                                 scaling(s, s, s)))
-            est = dot(src_pts, trans.T)[:, :3]
+            trans = reduce(np.dot, (translation(tx, ty, tz),
+                                    rotation(rx, ry, rz),
+                                    scaling(s, s, s)))
+            est = np.dot(src_pts, trans.T)[:, :3]
             d = tgt_pts - est
             if weights is not None:
                 d *= weights
@@ -395,9 +394,10 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
     elif param_info == (True, True, 3):
         def error(x):
             rx, ry, rz, tx, ty, tz, sx, sy, sz = x
-            trans = reduce(dot, (translation(tx, ty, tz), rotation(rx, ry, rz),
-                                 scaling(sx, sy, sz)))
-            est = dot(src_pts, trans.T)[:, :3]
+            trans = reduce(np.dot, (translation(tx, ty, tz),
+                                    rotation(rx, ry, rz),
+                                    scaling(sx, sy, sz)))
+            est = np.dot(src_pts, trans.T)[:, :3]
             d = tgt_pts - est
             if weights is not None:
                 d *= weights
@@ -419,7 +419,7 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
     if tol is not None:
         if not translate:
             src_pts = np.hstack((src_pts, np.ones((len(src_pts), 1))))
-        est_pts = dot(src_pts, trans.T)[:, :3]
+        est_pts = np.dot(src_pts, trans.T)[:, :3]
         err = np.sqrt(np.sum((est_pts - tgt_pts) ** 2, axis=1))
         if np.any(err > tol):
             raise RuntimeError("Error exceeds tolerance. Error = %r" % err)
@@ -497,7 +497,7 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
     paths['dirs'] = [bem_dirname, surf_dirname]
 
     # surf/ files
-    paths['surf'] = surf = []
+    paths['surf'] = []
     surf_fname = os.path.join(surf_dirname, '{name}')
     surf_names = ('inflated', 'white', 'orig', 'orig_avg', 'inflated_avg',
                   'inflated_pre', 'pial', 'pial_avg', 'smoothwm', 'white_avg',
@@ -510,15 +510,15 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
             path = surf_fname.format(subjects_dir=subjects_dir,
                                      subject=subject, name=name)
             if os.path.exists(path):
-                surf.append(pformat(surf_fname, name=name))
+                paths['surf'].append(pformat(surf_fname, name=name))
     surf_fname = os.path.join(bem_dirname, '{name}')
     surf_names = ('inner_skull.surf', 'outer_skull.surf', 'outer_skin.surf')
     for surf_name in surf_names:
         path = surf_fname.format(subjects_dir=subjects_dir,
                                  subject=subject, name=surf_name)
         if os.path.exists(path):
-            surf.append(pformat(surf_fname, name=surf_name))
-    del surf_names, surf_name, path, surf, hemi
+            paths['surf'].append(pformat(surf_fname, name=surf_name))
+    del surf_names, surf_name, path, hemi
 
     # BEM files
     paths['bem'] = bem = []
@@ -549,22 +549,18 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
                           "skip_fiducials=True." % subject)
 
     # duplicate files (curvature and some surfaces)
-    paths['duplicate'] = dup = []
+    paths['duplicate'] = []
     path = os.path.join(surf_dirname, '{name}')
     surf_fname = os.path.join(surf_dirname, '{name}')
-    for name in ['lh.curv', 'rh.curv']:
-        fname = pformat(path, name=name)
-        dup.append(fname)
-    del path, name, fname
-    surf_dup_names = ('sphere', 'sphere.reg', 'sphere.reg.avg')
+    surf_dup_names = ('curv', 'sphere', 'sphere.reg', 'sphere.reg.avg')
     for surf_dup_name in surf_dup_names:
         for hemi in ('lh.', 'rh.'):
             name = hemi + surf_dup_name
             path = surf_fname.format(subjects_dir=subjects_dir,
                                      subject=subject, name=name)
             if os.path.exists(path):
-                dup.append(pformat(surf_fname, name=name))
-    del surf_dup_name, name, path, dup, hemi
+                paths['duplicate'].append(pformat(surf_fname, name=name))
+    del surf_dup_name, name, path, hemi
 
     # transform files (talairach)
     paths['transforms'] = []
@@ -573,14 +569,6 @@ def _find_mri_paths(subject, skip_fiducials, subjects_dir):
     if os.path.exists(path):
         paths['transforms'].append(transform_fname)
     del transform_fname, path
-
-    # check presence of required files
-    for ftype in ['surf', 'duplicate']:
-        for fname in paths[ftype]:
-            path = fname.format(subjects_dir=subjects_dir, subject=subject)
-            path = os.path.realpath(path)
-            if not os.path.exists(path):
-                raise IOError("Required file not found: %r" % path)
 
     # find source space files
     paths['src'] = src = []
@@ -813,9 +801,7 @@ def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
         otherwise it is read from subject_to's config file.
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     """
     subjects_dir, subject_from, scale, uniform = \
         _scale_params(subject_to, subject_from, scale, subjects_dir)
@@ -918,9 +904,7 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
         Also scale all labels (default True).
     annot : bool
         Copy ``*.annot`` files to the new location (default False).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     See Also
     --------
@@ -1051,9 +1035,7 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
         Number of jobs to run in parallel if recomputing distances (only
         applies if scale is an array of length 3, and will not use more cores
         than there are source spaces).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Notes
     -----
@@ -1192,25 +1174,18 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
     #
     xfm, kind = _read_fs_xfm(fname_from)
     assert kind == 'MNI Transform File', kind
+    _, _, F_mri_ras, _, _ = _read_mri_info(mri_name, units='mm')
     F_ras_mni = Transform('ras', 'mni_tal', xfm)
-    hdr = _get_mri_header(mri_name)
-    F_vox_ras = Transform('mri_voxel', 'ras', hdr.get_vox2ras())
-    F_vox_mri = Transform('mri_voxel', 'mri', hdr.get_vox2ras_tkr())
-    F_mri_ras = combine_transforms(
-        invert_transform(F_vox_mri), F_vox_ras, 'mri', 'ras')
-    del F_vox_ras, F_vox_mri, hdr, xfm
+    del xfm
 
     #
     # Get the necessary transforms of the "to" subject
     #
     mri_name = op.join(mri_dirname.format(
         subjects_dir=subjects_dir, subject=subject_to), op.basename(mri_name))
-    hdr = _get_mri_header(mri_name)
-    T_vox_ras = Transform('mri_voxel', 'ras', hdr.get_vox2ras())
-    T_vox_mri = Transform('mri_voxel', 'mri', hdr.get_vox2ras_tkr())
-    T_ras_mri = combine_transforms(
-        invert_transform(T_vox_ras), T_vox_mri, 'ras', 'mri')
-    del mri_name, hdr, T_vox_ras, T_vox_mri
+    _, _, T_mri_ras, _, _ = _read_mri_info(mri_name, units='mm')
+    T_ras_mri = invert_transform(T_mri_ras)
+    del mri_name, T_mri_ras
 
     # Finally we construct as above:
     #
@@ -1225,3 +1200,60 @@ def _scale_xfm(subject_to, xfm_fname, mri_name, subject_from, scale,
                 F_mri_ras, 'ras', 'ras'),
             F_ras_mni, 'ras', 'mni_tal')
     _write_fs_xfm(fname_to, T_ras_mni['trans'], kind)
+
+
+@verbose
+def get_mni_fiducials(subject, subjects_dir=None, verbose=None):
+    """Estimate fiducials for a subject.
+
+    Parameters
+    ----------
+    subject : str
+        Name of the mri subject
+    subjects_dir : None | str
+        Override the SUBJECTS_DIR environment variable
+        (sys.environ['SUBJECTS_DIR'])
+    %(verbose)s
+
+    Returns
+    -------
+    fids_mri : list
+        List of estimated fiducials (each point in a dict)
+
+    Notes
+    -----
+    This takes the ``fsaverage-fiducials.fif`` file included with MNE—which
+    contain the LPA, nasion, and RPA for the ``fsaverage`` subject—and
+    transforms them to the given FreeSurfer subject's MRI space.
+    The MRI of ``fsaverage`` is already in MNI Talairach space, so applying
+    the inverse of the given subject's MNI Talairach affine transformation
+    (``$SUBJECTS_DIR/$SUBJECT/mri/transforms/talairach.xfm``) is used
+    to estimate the subject's fiducial locations.
+
+    For more details about the coordinate systems and transformations involved,
+    see https://surfer.nmr.mgh.harvard.edu/fswiki/CoordinateSystems and
+    :ref:`plot_source_alignment`.
+    """
+    # Eventually we might want to allow using the MNI Talairach with-skull
+    # transformation rather than the standard brain-based MNI Talaranch
+    # transformation, and/or project the points onto the head surface
+    # (if available).
+    fname_fids_fs = os.path.join(os.path.dirname(__file__), 'data',
+                                 'fsaverage', 'fsaverage-fiducials.fif')
+
+    # Read fsaverage fiducials file and subject Talairach.
+    fids, coord_frame = read_fiducials(fname_fids_fs)
+    assert coord_frame == FIFF.FIFFV_COORD_MRI
+    if subject == 'fsaverage':
+        return fids  # special short-circuit for fsaverage
+    mni_mri_t = invert_transform(_read_talxfm(subject, subjects_dir))
+
+    # Convert to mm since this is Freesurfer's unit.
+    lnr = np.array([f['r'] for f in fids]) * 1000.
+    assert lnr.shape == (3, 3)
+
+    # Apply transformation, to fsaverage (MNI) fiducials, convert back to m
+    lnr = apply_trans(mni_mri_t, lnr) / 1000.
+    for ii in range(3):
+        fids[ii]['r'] = lnr[ii]
+    return fids

@@ -1,6 +1,6 @@
 """Functions to plot M/EEG data e.g. topographies."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -19,8 +19,8 @@ import numpy as np
 from ..baseline import rescale
 from ..fixes import _remove_duplicate_rows
 from ..io.pick import (pick_types, _picks_by_type, channel_type, pick_info,
-                       _pick_data_channels, pick_channels)
-from ..utils import _clean_names, _time_mask, verbose, logger, warn
+                       _pick_data_channels, pick_channels, _picks_to_idx)
+from ..utils import _clean_names, _time_mask, verbose, logger, warn, fill_doc
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times, DraggableColorbar,
@@ -29,13 +29,14 @@ from ..time_frequency import psd_multitaper
 from ..defaults import _handle_default
 from ..channels.layout import _find_topomap_coords
 from ..io.meas_info import Info
+from ..io.proj import Projection
 
 
 def _prepare_topo_plot(inst, ch_type, layout):
     """Prepare topo plot."""
     info = copy.deepcopy(inst if isinstance(inst, Info) else inst.info)
 
-    if layout is None and ch_type is not 'eeg':
+    if layout is None and ch_type != 'eeg':
         from ..channels import find_layout
         layout = find_layout(info)  # XXX : why not passing ch_type???
     elif layout == 'auto':
@@ -174,74 +175,25 @@ def _eliminate_zeros(proj):
     return proj
 
 
+@fill_doc
 def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                        colorbar=False, res=64, size=1, show=True,
                        outlines='head', contours=6, image_interp='bilinear',
-                       axes=None, info=None):
+                       axes=None, vlim=(None, None), info=None):
     """Plot topographic maps of SSP projections.
 
     Parameters
     ----------
     projs : list of Projection
         The projections
-    layout : None | Layout | list of Layout
-        Layout instance specifying sensor positions (does not need to be
-        specified for Neuromag data). Or a list of Layout if projections
-        are from different sensor types.
-    cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
-        Colormap to use. If tuple, the first value indicates the colormap to
-        use and the second value is a boolean defining interactivity. In
-        interactive mode (only works if ``colorbar=True``) the colors are
-        adjustable by clicking and dragging the colorbar with left and right
-        mouse button. Left mouse button moves the scale up and down and right
-        mouse button adjusts the range. Hitting space bar resets the range. Up
-        and down arrows can be used to change the colormap. If None (default),
-        'Reds' is used for all positive data, otherwise defaults to 'RdBu_r'.
-        If 'interactive', translates to (None, True).
-    sensors : bool | str
-        Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses). If True, a circle will be
-        used (via .add_artist). Defaults to True.
-    colorbar : bool
-        Plot a colorbar.
-    res : int
-        The resolution of the topomap image (n pixels along each side).
-    size : scalar
-        Side length of the topomaps in inches (only applies when plotting
-        multiple topomaps at a time).
-    show : bool
-        Show figure if True.
-    outlines : 'head' | 'skirt' | dict | None
-        The outlines to be drawn. If 'head', the default head scheme will be
-        drawn. If 'skirt' the head scheme will be drawn, but sensors are
-        allowed to be plotted outside of the head circle. If dict, each key
-        refers to a tuple of x and y positions, the values in 'mask_pos' will
-        serve as image mask, and the 'autoshrink' (bool) field will trigger
-        automated shrinking of the positions due to points outside the outline.
-        Alternatively, a matplotlib patch object can be passed for advanced
-        masking options, either directly or as a function that returns patches
-        (required for multi-axis plots). If None, nothing will be drawn.
-        Defaults to 'head'.
-    contours : int | array of float
-        The number of contour lines to draw. If 0, no contours will be drawn.
-        When an integer, matplotlib ticker locator is used to find suitable
-        values for the contour thresholds (may sometimes be inaccurate, use
-        array for accuracy). If an array, the values represent the levels for
-        the contours. Defaults to 6.
-    image_interp : str
-        The image interpolation to be used. All matplotlib options are
-        accepted.
-    axes : instance of Axes | list | None
-        The axes to plot to. If list, the list must be a list of Axes of
-        the same length as the number of projectors. If instance of Axes,
-        there must be only one projector. Defaults to None.
+    %(proj_topomap_kwargs)s
     info : instance of Info | None
-        The measurement information to use to determine the layout.
-        If not None, ``layout`` must be None.
+        The measurement information to use to determine the layout. If both
+        ``info`` and ``layout`` are provided, the layout will take precedence.
 
     Returns
     -------
-    fig : instance of matplotlib figure
+    fig : instance of matplotlib.figure.Figure
         Figure distributing one image per channel across sensor topography.
 
     Notes
@@ -252,54 +204,102 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
     from ..channels.layout import (_pair_grad_sensors_ch_names_vectorview,
                                    _pair_grad_sensors_ch_names_neuromag122,
                                    Layout, _merge_grad_data)
-    from ..channels import _get_ch_type
+    from ..channels import _get_ch_type, read_layout
 
-    is_layout_parameter_none = layout is None
-    is_info_parameter_none = info is None
+    # be forgiving if `projs` isn't a list
+    if isinstance(projs, Projection):
+        projs = [projs]
 
-    if info is not None:
-        if not isinstance(info, Info):
-            raise TypeError('info must be an instance of Info, got %s'
-                            % (type(info),))
-        if layout is not None:
-            raise ValueError('layout must be None if info is provided')
-    else:
-        if layout is None:
-            from ..channels import read_layout
-            layout = read_layout('Vectorview-all')
-        if not isinstance(layout, (list, tuple)):
-            layout = [layout]
+    # argument checking
+    if info is None and vlim == 'joint':
+        raise ValueError("If vlim is 'joint', info must not be None.")
+    if info is not None and not isinstance(info, Info):
+        raise TypeError('info must be an instance of Info, got {}'
+                        .format(type(info)))
+    if info is None and layout is None:
+        layout = read_layout('Vectorview-all')
+    if isinstance(layout, Layout):
+        layout = [layout]
+    if layout is not None:
         if not isinstance(layout, (list, tuple)):
             raise TypeError('layout must be an instance of Layout, list, '
-                            'or None, got %s' % (type(layout),))
+                            'or None, got {}'.format(type(layout)))
         for l in layout:
             if not isinstance(l, Layout):
                 raise TypeError('All entries in layout list must be of type '
-                                'Layout, got type %s' % (type(l),))
+                                'Layout, got type {}'.format(type(l)))
 
-    n_projs = len(projs)
-    nrows = math.floor(math.sqrt(n_projs))
-    ncols = math.ceil(n_projs / nrows)
-
-    if axes is None:
-        plt.figure()
-        axes = list()
-        for idx in range(len(projs)):
-            ax = plt.subplot(nrows, ncols, idx + 1)
-            axes.append(ax)
-    elif isinstance(axes, plt.Axes):
-        axes = [axes]
-    if len(axes) != len(projs):
-        raise RuntimeError('There must be an axes for each picked projector.')
-    for proj_idx, proj in enumerate(projs):
-        title = proj['desc']
-        title = '\n'.join(title[ii:ii + 22] for ii in range(0, len(title), 22))
-        axes[proj_idx].set_title(title, fontsize=10)
+    types = []
+    datas = []
+    poses = []
+    for proj in projs:
+        # get ch_names, ch_types, data
         proj = _eliminate_zeros(proj)  # gh 5641
         ch_names = _clean_names(proj['data']['col_names'],
                                 remove_whitespace=True)
+        if vlim == 'joint':
+            ch_idxs = np.where(np.in1d(info['ch_names'],
+                                       proj['data']['col_names']))[0]
+            these_ch_types = set([channel_type(info, n) for n in ch_idxs])
+            # each projector should have only one channel type
+            assert len(these_ch_types) == 1
+            types.append(list(these_ch_types)[0])
         data = proj['data']['data'].ravel()
-        if info is not None:
+        # check layout
+        if layout is not None:
+            idx = []
+            for l in layout:
+                grad_pairs = None
+                # vectorview
+                if l.kind.startswith('Vectorview'):
+                    grad_pairs = \
+                        _pair_grad_sensors_ch_names_vectorview(ch_names)
+                    if grad_pairs:
+                        ch_names = [ch_names[i] for i in grad_pairs]
+                # neuromag 122
+                if l.kind.startswith('Neuromag_122'):
+                    grad_pairs = \
+                        _pair_grad_sensors_ch_names_neuromag122(ch_names)
+                    if grad_pairs:
+                        ch_names = [ch_names[i] for i in grad_pairs]
+                # make sure this layout has the channels in the current proj
+                l_names = _clean_names(l.names, remove_whitespace=True)
+                idx = [l_names.index(c) for c in ch_names if c in l_names]
+                if len(idx) == 0:
+                    continue
+                # handle grad pairs (if present)
+                pos = l.pos[idx]
+                if grad_pairs:
+                    shape = (len(idx) // 2, 2, -1)
+                    pos = pos.reshape(shape).mean(axis=1)
+                    data = _merge_grad_data(data[grad_pairs]).ravel()
+                break
+            # if we didn't find any matching layouts...
+            if len(idx) == 0:
+                if ch_names[0].startswith('EEG'):
+                    msg = ('Cannot find a proper layout for projection {}.'
+                           ' The proper layout of an EEG topomap cannot be'
+                           ' inferred from the data. '.format(proj['desc']))
+                    if layout is None and info is None:
+                        msg += (' For EEG data, valid `layout` or `info` is'
+                                ' required. None was provided, please consider'
+                                ' passing one of them.')
+                    elif info is None:
+                        msg += (' A `layout` was provided but could not be'
+                                ' used for display. Please review the `layout`'
+                                ' parameter.')
+                    else:  # layout is none, but we have info
+                        msg += (' The `info` parameter was provided but could'
+                                ' not be used for display. Please review the'
+                                ' `info` parameter.')
+                    raise RuntimeError(msg)
+                else:
+                    raise RuntimeError('Cannot find a proper layout for '
+                                       'projection {}, consider explicitly '
+                                       'passing a Layout or Info as the layout'
+                                       ' parameter.'.format(proj['desc']))
+        # get data / pos from info
+        elif info is not None:
             info_names = _clean_names(info['ch_names'],
                                       remove_whitespace=True)
             use_info = pick_info(info, pick_channels(info_names, ch_names))
@@ -308,69 +308,60 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
             data = data[data_picks]
             if merge_grads:
                 data = _merge_grad_data(data).ravel()
-        else:  # list of layouts
-            idx = []
-            for l in layout:
-                is_vv = l.kind.startswith('Vectorview')
-                grad_pairs = None
-                if is_vv:
-                    grad_pairs = \
-                        _pair_grad_sensors_ch_names_vectorview(ch_names)
-                    if grad_pairs:
-                        ch_names = [ch_names[i] for i in grad_pairs]
+        # populate containers
+        datas.append(data)
+        poses.append(pos)
 
-                is_neuromag122 = l.kind.startswith('Neuromag_122')
-                if is_neuromag122:
-                    grad_pairs = \
-                        _pair_grad_sensors_ch_names_neuromag122(ch_names)
-                    if grad_pairs:
-                        ch_names = [ch_names[i] for i in grad_pairs]
+    # setup axes
+    n_projs = len(projs)
+    nrows = math.floor(math.sqrt(n_projs))
+    ncols = math.ceil(n_projs / nrows)
+    if axes is None:
+        _, axes = plt.subplots(nrows, ncols, squeeze=False)
+        axes = axes.ravel()
+        if len(axes[n_projs:]):
+            [ax.remove() for ax in axes[n_projs:]]
+            axes = axes[:n_projs]
+    elif isinstance(axes, plt.Axes):
+        axes = [axes]
+    if len(axes) != len(projs):
+        raise RuntimeError('There must be an axes for each picked projector.')
 
-                l_names = _clean_names(l.names, remove_whitespace=True)
-                idx = [l_names.index(c) for c in ch_names if c in l_names]
-                if len(idx) == 0:
-                    continue
-                pos = l.pos[idx]
-                if grad_pairs:
-                    shape = (len(idx) // 2, 2, -1)
-                    pos = pos.reshape(shape).mean(axis=1)
-                    data = _merge_grad_data(data[grad_pairs]).ravel()
-                break
-            if len(idx) == 0:
-                if ch_names[0].startswith('EEG'):
-                    msg = ('Cannot find a proper layout for projection {0}.'
-                           ' The proper layout of an EEG topomap cannot be'
-                           ' inferred from the data. '.format(proj['desc']))
-                    if is_layout_parameter_none and is_info_parameter_none:
-                        msg += (' For EEG data, valid `layout` or `info` is'
-                                ' required. None was provided, please consider'
-                                ' passing one of them.')
-                    elif not is_layout_parameter_none:
-                        msg += (' A `layout` was provided but could not be'
-                                ' used for display. Please review the `layout`'
-                                ' parameter.')
-                    else:  # layout is none, but we have info
-                        msg += (' The `info` parameter was provided but could'
-                                ' not be for display. Please review the `info`'
-                                ' parameter.')
-                    raise RuntimeError(msg)
-                else:
-                    raise RuntimeError('Cannot find a proper layout for '
-                                       'projection %s, consider explicitly '
-                                       'passing a Layout or Info as the layout'
-                                       ' parameter.' % proj['desc'])
+    # handle vmin/vmax
+    vlims = [None for _ in range(len(datas))]
+    if vlim == 'joint':
+        for _ch_type in set(types):
+            idx = np.where(np.in1d(types, _ch_type))[0]
+            these_data = np.concatenate(np.array(datas)[idx])
+            norm = all(these_data >= 0)
+            _vl = _setup_vmin_vmax(these_data, vmin=None, vmax=None, norm=norm)
+            for _idx in idx:
+                vlims[_idx] = _vl
+        # make sure we got a vlim for all projs
+        assert all([vl is not None for vl in vlims])
+    else:
+        vlims = [vlim for _ in range(len(datas))]
 
-        im = plot_topomap(data, pos[:, :2], vmax=None, cmap=cmap,
-                          sensors=sensors, res=res, axes=axes[proj_idx],
+    # plot
+    for proj, ax, _data, _pos, _vlim in zip(projs, axes, datas, poses, vlims):
+        # title
+        title = proj['desc']
+        title = '\n'.join(title[ii:ii + 22] for ii in range(0, len(title), 22))
+        ax.set_title(title, fontsize=10)
+        # plot
+        vmin, vmax = _vlim
+        im = plot_topomap(_data, _pos[:, :2], vmin=vmin, vmax=vmax, cmap=cmap,
+                          sensors=sensors, res=res, axes=ax,
                           outlines=outlines, contours=contours,
                           image_interp=image_interp, show=False)[0]
 
         if colorbar:
-            _add_colorbar(axes[proj_idx], im, cmap)
+            _add_colorbar(ax, im, cmap)
 
-    tight_layout(fig=axes[0].get_figure())
+    fig = ax.get_figure()
+    tight_layout(fig=fig)
     plt_show(show)
-    return axes[0].get_figure()
+    return fig
 
 
 def _check_outlines(pos, outlines, head_pos=None):
@@ -462,8 +453,8 @@ def _check_outlines(pos, outlines, head_pos=None):
 
 def _draw_outlines(ax, outlines):
     """Draw the outlines for a topomap."""
-    outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
-                      ['patch', 'autoshrink']])
+    outlines_ = {k: v for k, v in outlines.items()
+                 if k not in ['patch', 'autoshrink']}
     for key, (x_coord, y_coord) in outlines_.items():
         if 'mask' in key:
             continue
@@ -749,8 +740,8 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         pos = pick_info(pos, picks)
 
         # check if there is only 1 channel type, and n_chans matches the data
-        ch_type = set(channel_type(pos, idx)
-                      for idx, _ in enumerate(pos["chs"]))
+        ch_type = {channel_type(pos, idx)
+                   for idx, _ in enumerate(pos["chs"])}
         info_help = ("Pick Info with e.g. mne.pick_info and "
                      "mne.io.pick.channel_indices_by_type.")
         if len(ch_type) > 1:
@@ -815,7 +806,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
     if _use_default_outlines:
         # prepare masking
-        pos = _autoshrink(outlines, pos, res)
+        _autoshrink(outlines, pos, res)
 
     mask_params = _handle_default('mask_params', mask_params)
 
@@ -927,7 +918,10 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
 
 def _autoshrink(outlines, pos, res):
-    """Shrink channel positions until all are within the mask contour."""
+    """Shrink channel positions until all are within the mask contour.
+
+    Operates on `pos` inplace.
+    """
     if outlines.get('autoshrink', False):
         mask_ = np.c_[outlines['mask_pos']]
         inside = _inside_contour(pos, mask_)
@@ -938,7 +932,6 @@ def _autoshrink(outlines, pos, res):
             inside = _inside_contour(pos, mask_)
             outside = np.invert(inside)
             outlier_points = pos[outside]
-    return pos
 
 
 def _inside_contour(pos, contour):
@@ -963,18 +956,21 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
                       vmin=None, vmax=None, cmap='RdBu_r', colorbar=False,
                       title=None, show=True, outlines='head', contours=6,
                       image_interp='bilinear', head_pos=None, axes=None,
-                      sensors=True):
+                      sensors=True, allow_ref_meg=False, extrapolate='box'):
     """Plot single ica map to axes."""
-    import matplotlib as mpl
+    from matplotlib.axes import Axes
     from ..channels import _get_ch_type
 
     if ica.info is None:
         raise RuntimeError('The ICA\'s measurement info is missing. Please '
                            'fit the ICA or add the corresponding info object.')
-    if not isinstance(axes, mpl.axes.Axes):
+    if not isinstance(axes, Axes):
         raise ValueError('axis has to be an instance of matplotlib Axes, '
                          'got %s instead.' % type(axes))
-    ch_type = _get_ch_type(ica, ch_type)
+    ch_type = _get_ch_type(ica, ch_type, allow_ref_meg=ica.allow_ref_meg)
+    if ch_type == "ref_meg":
+        logger.info("Cannot produce topographies for MEG reference channels.")
+        return
 
     data = ica.get_components()[:, idx]
     data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(
@@ -982,7 +978,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
     pos, outlines = _check_outlines(pos, outlines, head_pos)
     assert outlines is not None
     if outlines != 'head':
-        pos = _autoshrink(outlines, pos, res)
+        _autoshrink(outlines, pos, res)
 
     data = data[data_picks]
 
@@ -994,7 +990,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
     im = plot_topomap(
         data.ravel(), pos, vmin=vmin_, vmax=vmax_, res=res, axes=axes,
         cmap=cmap, outlines=outlines, contours=contours, sensors=sensors,
-        image_interp=image_interp, show=show)[0]
+        image_interp=image_interp, show=show, extrapolate=extrapolate)[0]
     if colorbar:
         cbar, cax = _add_colorbar(axes, im, cmap, pad=.05, title="AU",
                                   format='%3.2f')
@@ -1003,20 +999,21 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
     _hide_frame(axes)
 
 
+@fill_doc
 def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                         layout=None, vmin=None, vmax=None, cmap='RdBu_r',
                         sensors=True, colorbar=False, title=None,
                         show=True, outlines='head', contours=6,
                         image_interp='bilinear', head_pos=None,
-                        inst=None):
+                        inst=None, plot_std=True, topomap_args=None,
+                        image_args=None, psd_args=None, reject='auto'):
     """Project unmixing matrix on interpolated sensor topography.
 
     Parameters
     ----------
     ica : instance of mne.preprocessing.ICA
         The ICA solution.
-    picks : int | array-like | None
-        The indices of the sources to be plotted.
+    %(picks_all)s
         If None all are plotted in batches of 20.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are
@@ -1090,10 +1087,31 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         topomap you need to pass relevant data - instances of Raw or Epochs
         (for example the data that ICA was trained on). This takes effect
         only when running matplotlib in interactive mode.
+    plot_std: bool | float
+        Whether to plot standard deviation in ERP/ERF and spectrum plots.
+        Defaults to True, which plots one standard deviation above/below.
+        If set to float allows to control how many standard deviations are
+        plotted. For example 2.5 will plot 2.5 standard deviation above/below.
+    topomap_args : dict | None
+        Dictionary of arguments to ``plot_topomap``. If None, doesn't pass any
+        additional arguments. Defaults to None.
+    image_args : dict | None
+        Dictionary of arguments to ``plot_epochs_image``. If None, doesn't pass
+        any additional arguments. Defaults to None.
+    psd_args : dict | None
+        Dictionary of arguments to ``psd_multitaper``. If None, doesn't pass
+        any additional arguments. Defaults to None.
+    reject : 'auto' | dict | None
+        Allows to specify rejection parameters used to drop epochs
+        (or segments if continuous signal is passed as inst).
+        If None, no rejection is applied. The default is 'auto',
+        which applies the rejection parameters used when fitting
+        the ICA object.
+
 
     Returns
     -------
-    fig : instance of matplotlib.pyplot.Figure or list
+    fig : instance of matplotlib.figure.Figure or list
         The figure object(s).
 
     Notes
@@ -1109,6 +1127,10 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     from ..epochs import BaseEpochs
     from ..channels import _get_ch_type
 
+    if ica.info is None:
+        raise RuntimeError('The ICA\'s measurement info is missing. Please '
+                           'fit the ICA or add the corresponding info object.')
+
     if picks is None:  # plot components by sets of 20
         ch_type = _get_ch_type(ica, ch_type)
         n_components = ica.mixing_matrix_.shape[1]
@@ -1123,26 +1145,26 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                                       show=show, outlines=outlines,
                                       contours=contours,
                                       image_interp=image_interp,
-                                      head_pos=head_pos, inst=inst)
+                                      head_pos=head_pos, inst=inst,
+                                      plot_std=plot_std,
+                                      topomap_args=topomap_args,
+                                      image_args=image_args,
+                                      psd_args=psd_args, reject=reject)
             figs.append(fig)
         return figs
-    elif np.isscalar(picks):
-        picks = [picks]
+    else:
+        picks = _picks_to_idx(ica.info, picks)
     ch_type = _get_ch_type(ica, ch_type)
 
     cmap = _setup_cmap(cmap, n_axes=len(picks))
     data = np.dot(ica.mixing_matrix_[:, picks].T,
                   ica.pca_components_[:ica.n_components_])
 
-    if ica.info is None:
-        raise RuntimeError('The ICA\'s measurement info is missing. Please '
-                           'fit the ICA or add the corresponding info object.')
-
-    data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(ica, ch_type,
-                                                                layout)
+    data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(
+        ica, ch_type, layout)
     pos, outlines = _check_outlines(pos, outlines, head_pos)
     if outlines == 'head':
-        pos = _autoshrink(outlines, pos, res)
+        _autoshrink(outlines, pos, res)
 
     data = np.atleast_2d(data)
     data = data[:, data_picks]
@@ -1206,7 +1228,11 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                 label = event.inaxes.get_label()
                 if label.startswith('ICA'):
                     ic = int(label[-3:])
-                    ica.plot_properties(inst, picks=ic, show=True)
+                    ica.plot_properties(inst, picks=ic, show=True,
+                                        plot_std=plot_std,
+                                        topomap_args=topomap_args,
+                                        image_args=image_args,
+                                        psd_args=psd_args, reject=reject)
         fig.canvas.mpl_connect('button_press_event', onclick_topo)
 
     plt_show(show)
@@ -1308,7 +1334,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         significant sensors will be shown.
     title : str | None
         Plot title. If None (default), no title is displayed.
-    axes : instance of Axis | None
+    axes : instance of Axes | None
         The axes to plot to. If None the axes is defined automatically.
     show : bool
         Show figure if True.
@@ -1442,7 +1468,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     ----------
     evoked : Evoked
         The Evoked object.
-    times : float | array of floats | "auto" | "peaks" | "interactive"
+    times : float | array of float | "auto" | "peaks" | "interactive"
         The time point(s) to plot. If "auto", the number of ``axes`` determines
         the amount of time point(s). If ``axes`` is also None, at most 10
         topographies will be shown with a regular time spacing between the
@@ -1636,8 +1662,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     space = 1 / (2. * evoked.info['sfreq'])
     if (max(times) > max(evoked.times) + space or
             min(times) < min(evoked.times) - space):
-        raise ValueError('Times should be between {0:0.3f} and '
-                         '{1:0.3f}.'.format(evoked.times[0], evoked.times[-1]))
+        raise ValueError('Times should be between {:0.3f} and '
+                         '{:0.3f}.'.format(evoked.times[0], evoked.times[-1]))
     n_times = len(times)
     nax = n_times + bool(colorbar)
     width = size * nax
@@ -1723,7 +1749,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
 
     pos, outlines = _check_outlines(pos, outlines, head_pos)
     assert outlines is not None
-    pos = _autoshrink(outlines, pos, res)
+    _autoshrink(outlines, pos, res)
 
     vlims = [_setup_vmin_vmax(data[:, i], vmin, vmax, norm=merge_grads)
              for i in range(len(times))]
@@ -1889,7 +1915,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).
     low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     normalization : str
         Either "full" or "length" (default). If "full", the PSD will
@@ -1923,13 +1949,12 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         If True, transform data to decibels (with ``10 * np.log10(data)``)
         following the application of `agg_fun`. Only valid if normalize is
         False.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    %(n_jobs)s
     normalize : bool
         If True, each band will be divided by the total power. Defaults to
         False.
     cbar_fmt : str
-        The colorbar format. Defaults to '%0.3f'.
+        The colorbar format. Defaults to '%%0.3f'.
     outlines : 'head' | 'skirt' | dict | None
         The outlines to be drawn. If 'head', the default head scheme will be
         drawn. If 'skirt' the head scheme will be drawn, but sensors are
@@ -1941,18 +1966,16 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         masking options, either directly or as a function that returns patches
         (required for multi-axis plots). If None, nothing will be drawn.
         Defaults to 'head'.
-    axes : list of axes | None
+    axes : list of Axes | None
         List of axes to plot consecutive topographies to. If None the axes
         will be created automatically. Defaults to None.
     show : bool
         Show figure if True.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
-    fig : instance of matplotlib figure
+    fig : instance of Figure
         Figure distributing one image per channel across sensor topography.
     """
     from ..channels import _get_ch_type
@@ -2048,7 +2071,7 @@ def plot_psds_topomap(
 
     Returns
     -------
-    fig : instance of matplotlib figure
+    fig : instance of matplotlib.figure.Figure
         Figure distributing one image per channel across sensor topography.
     """
     import matplotlib.pyplot as plt
@@ -2094,6 +2117,7 @@ def plot_psds_topomap(
     return fig
 
 
+@fill_doc
 def plot_layout(layout, picks=None, show=True):
     """Plot the sensor positions.
 
@@ -2101,15 +2125,13 @@ def plot_layout(layout, picks=None, show=True):
     ----------
     layout : None | Layout
         Layout instance specifying sensor positions.
-    picks : array-like
-        Indices of the channels to show. If None (default), all the channels
-        are shown.
+    %(picks_nostr)s
     show : bool
         Show figure if True. Defaults to True.
 
     Returns
     -------
-    fig : instance of matplotlib figure
+    fig : instance of Figure
         Figure containing the sensor topography.
 
     Notes
@@ -2125,11 +2147,9 @@ def plot_layout(layout, picks=None, show=True):
     pos = [(p[0] + p[2] / 2., p[1] + p[3] / 2.) for p in layout.pos]
     pos, outlines = _check_outlines(pos, 'head')
     _draw_outlines(ax, outlines)
-    if picks is None:
-        names = layout.names
-    else:
-        pos = pos[picks]
-        names = np.array(layout.names)[picks]
+    picks = _picks_to_idx(len(layout.names), picks)
+    pos = pos[picks]
+    names = np.array(layout.names)[picks]
     for ii, (this_pos, ch_id) in enumerate(zip(pos, names)):
         ax.annotate(ch_id, xy=this_pos[:2], horizontalalignment='center',
                     verticalalignment='center', size='x-small')
@@ -2276,7 +2296,7 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads):
     zi_min = np.nanmin(params['Zis'])
     zi_max = np.nanmax(params['Zis'])
     cont_lims = np.linspace(zi_min, zi_max, 7, endpoint=False)[1:]
-    pos = _autoshrink(outlines, pos, res)
+    _autoshrink(outlines, pos, res)
     params.update({'vmin': vmin, 'vmax': vmax, 'Xi': Xi, 'Yi': Yi, 'Zi': Zi,
                    'extent': (xmin, xmax, ymin, ymax), 'cmap': cmap,
                    'cont_lims': cont_lims})
@@ -2392,7 +2412,7 @@ def _topomap_animation(evoked, ch_type='mag', times=None, frame_rate=None,
         Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg'.
         If None, first available channel type from ('mag', 'grad', 'eeg') is
         used. Defaults to None.
-    times : array of floats | None
+    times : array of float | None
         The time points to plot. If None, 10 evenly spaced samples are
         calculated over the evoked time series. Defaults to None.
     frame_rate : int | None
@@ -2535,8 +2555,10 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
         from ..channels.layout import _merge_grad_data
     for ii, data_, ax, subject, idx in zip(picks, data, axes, subjs, indices):
         if template:
-            ttl = 'Subj. {0}, {1}'.format(subject, ica._ica_names[idx])
+            ttl = 'Subj. {}, {}'.format(subject, ica._ica_names[idx])
             ax.set_title(ttl, fontsize=12)
+        else:
+            ax.set_title('Subj. {}'.format(subject))
         data_ = _merge_grad_data(data_) if merge_grads else data_
         vmin_, vmax_ = _setup_vmin_vmax(data_, None, None)
         plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,

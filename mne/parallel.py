@@ -1,6 +1,6 @@
 """Parallel util function."""
 
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: Simplified BSD
 
@@ -18,8 +18,8 @@ else:
 
 
 @verbose
-def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
-                  total=None, verbose=None):
+def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='n_jobs',
+                  total=None, prefer=None, verbose=None):
     """Return parallel instance with delayed function.
 
     Util function to use joblib only if available
@@ -43,9 +43,12 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
         jobs. This should only be used when directly iterating, not when
         using ``split_list`` or :func:`np.array_split`.
         If None (default), do not add a progress bar.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more). INFO or DEBUG
+    prefer : str | None
+        If str, can be "processes" or "threads". See :class:`joblib.Parallel`.
+        Ignored if the joblib version is too old to support this.
+
+        .. versionadded:: 0.18
+    %(verbose)s INFO or DEBUG
         will print parallel status, others will not.
 
     Returns
@@ -96,6 +99,8 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
         # create keyword arguments for Parallel
         kwargs = {'verbose': 5 if should_print and total is None else 0}
         kwargs['pre_dispatch'] = pre_dispatch
+        if 'prefer' in p_args:
+            kwargs['prefer'] = prefer
 
         if joblib_mmap:
             if cache_dir is None:
@@ -104,7 +109,7 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
             kwargs['max_nbytes'] = max_nbytes
 
         n_jobs = check_n_jobs(n_jobs)
-        parallel = Parallel(n_jobs, **kwargs)
+        parallel = _check_wrapper(Parallel(n_jobs, **kwargs))
         my_func = delayed(func)
 
     if total is not None:
@@ -115,6 +120,22 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='2 * n_jobs',
     else:
         parallel_out = parallel
     return parallel_out, my_func, n_jobs
+
+
+def _check_wrapper(fun):
+    def run(*args, **kwargs):
+        try:
+            return fun(*args, **kwargs)
+        except RuntimeError as err:
+            msg = str(err.args[0]) if err.args else ''
+            if msg.startswith('The task could not be sent to the workers'):
+                raise RuntimeError(
+                    msg + ' Consider using joblib memmap caching to get '
+                    'around this problem. See mne.set_mmap_min_size, '
+                    'mne.set_cache_dir, and buffer_size parallel function '
+                    'arguments (if applicable).')
+            raise
+    return run
 
 
 def check_n_jobs(n_jobs, allow_cuda=False):

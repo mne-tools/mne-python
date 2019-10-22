@@ -18,13 +18,14 @@ from traitsui.api import HGroup, Item, VGroup, View, Handler, ArrayEditor
 from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
-from ..coreg import fid_fname, _find_fiducials_files, _find_head_bem
+from ..coreg import (fid_fname, _find_fiducials_files, _find_head_bem,
+                     get_mni_fiducials)
 from ..defaults import DEFAULTS
 from ..io import write_fiducials
 from ..io.constants import FIFF
 from ..surface import complete_surface_info, decimate_surface
 from ..utils import get_subjects_dir, logger, warn
-from ..viz._3d import _toggle_mlab_render
+from ..viz.backends._pysurfer_mayavi import _toggle_mlab_render
 from ._file_traits import (SurfaceSource, fid_wildcard, FiducialsSource,
                            MRISubjectSource, SubjectSelectorPanel,
                            Surf)
@@ -197,6 +198,14 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
                                          nn=surf['nn'])
         else:
             self.bem_low_res.file = low_res_path
+
+        # Set MNI points
+        try:
+            fids = get_mni_fiducials(subject, subjects_dir)
+        except Exception:  # some problem, leave at origin
+            self.fid.mni_points = None
+        else:
+            self.fid.mni_points = np.array([f['r'] for f in fids], float)
 
         # find fiducials file
         fid_files = _find_fiducials_files(subject, subjects_dir)
@@ -389,7 +398,7 @@ class FiducialsPanel(HasPrivateTraits):
             elif i in idxs:
                 line += " (<- also MRI mesh)"
             msg.append(line)
-        logger.debug(os.linesep.join(msg))
+        logger.debug('\n'.join(msg))
 
         if self.set == 'Nasion':
             self.nasion = pt

@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
 import os.path as op
-from io import BytesIO
+from io import BytesIO, SEEK_SET
 from gzip import GzipFile
 
 import numpy as np
@@ -14,21 +14,41 @@ from scipy import sparse
 from .tag import read_tag_info, read_tag, read_big, Tag, _call_dict_names
 from .tree import make_dir_tree, dir_tree_find
 from .constants import FIFF
-from ..utils import logger, verbose
+from ..utils import logger, verbose, _file_like
+
+
+class _NoCloseRead(object):
+    """Create a wrapper that will not close when used as a context manager."""
+
+    def __init__(self, fid):
+        self.fid = fid
+
+    def __enter__(self):
+        return self.fid
+
+    def __exit__(self, type_, value, traceback):
+        return
+
+    def seek(self, offset, whence=SEEK_SET):
+        return self.fid.seek(offset, whence)
+
+    def read(self, size=-1):
+        return self.fid.read(size)
 
 
 def _fiff_get_fid(fname):
     """Open a FIF file with no additional parsing."""
-    if isinstance(fname, str):
+    if _file_like(fname):
+        fid = _NoCloseRead(fname)
+        fid.seek(0)
+    else:
+        fname = str(fname)
         if op.splitext(fname)[1].lower() == '.gz':
             logger.debug('Using gzip')
             fid = GzipFile(fname, "rb")  # Open in binary mode
         else:
             logger.debug('Using normal I/O')
             fid = open(fname, "rb")  # Open in binary mode
-    else:
-        fid = fname
-        fid.seek(0)
     return fid
 
 
@@ -85,9 +105,7 @@ def fiff_open(fname, preload=False, verbose=None):
         If True, all data from the file is read into a memory buffer. This
         requires more memory, but can be faster for I/O operations that require
         frequent seeks.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -104,9 +122,8 @@ def fiff_open(fname, preload=False, verbose=None):
     if preload:
         # note that StringIO objects instantiated this way are read-only,
         # but that's okay here since we are using mode "rb" anyway
-        fid_old = fid
-        fid = BytesIO(read_big(fid_old))
-        fid_old.close()
+        with fid as fid_old:
+            fid = BytesIO(read_big(fid_old))
 
     tag = read_tag_info(fid)
 
@@ -154,6 +171,7 @@ def fiff_open(fname, preload=False, verbose=None):
     return fid, tree, directory
 
 
+@verbose
 def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
               output=str, tag=None, verbose=None):
     """Show FIFF information.
@@ -177,9 +195,7 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
     tag : int | None
         Provide information about this tag. If None (default), all information
         is shown.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     """
     if output not in [list, str]:
         raise ValueError('output must be list or str')

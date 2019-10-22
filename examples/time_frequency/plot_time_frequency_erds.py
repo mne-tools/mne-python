@@ -61,7 +61,7 @@ raw = concatenate_raws(raws)
 
 raw.rename_channels(lambda x: x.strip('.'))  # remove dots from channel names
 
-events, _ = mne.events_from_annotations(raw)
+events, _ = mne.events_from_annotations(raw, event_id=dict(T1=2, T2=3))
 
 picks = mne.pick_channels(raw.info["ch_names"], ["C3", "Cz", "C4"])
 

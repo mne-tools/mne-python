@@ -7,15 +7,16 @@ from os import path
 import datetime
 import calendar
 
-from ...utils import logger
+from ...utils import logger, fill_doc
 from ..utils import _read_segments_file, _find_channels, _create_chs
-from ..base import BaseRaw, _check_update_montage
+from ..base import BaseRaw
 from ..meas_info import _empty_info
 from ..constants import FIFF
 
 
-def read_raw_nicolet(input_fname, ch_type, montage=None, eog=(), ecg=(),
-                     emg=(), misc=(), preload=False, verbose=None):
+@fill_doc
+def read_raw_nicolet(input_fname, ch_type, eog=(),
+                     ecg=(), emg=(), misc=(), preload=False, verbose=None):
     """Read Nicolet data as raw object.
 
     Note: This reader takes data files with the extension ``.data`` as an
@@ -29,10 +30,6 @@ def read_raw_nicolet(input_fname, ch_type, montage=None, eog=(), ecg=(),
     ch_type : str
         Channel type to designate to the data channels. Supported data types
         include 'eeg', 'seeg'.
-    montage : str | None | instance of montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
     eog : list | tuple | 'auto'
         Names of channels or list of indices that should be designated
         EOG channels. If 'auto', the channel names beginning with
@@ -48,26 +45,19 @@ def read_raw_nicolet(input_fname, ch_type, montage=None, eog=(), ecg=(),
     misc : list or tuple
         Names of channels or list of indices that should be designated
         MISC channels. Defaults to empty tuple.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(preload)s
+    %(verbose)s
 
     Returns
     -------
-    raw : Instance of Raw
+    raw : instance of Raw
         A Raw object containing the data.
 
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    return RawNicolet(input_fname, ch_type, montage=montage, eog=eog, ecg=ecg,
+    return RawNicolet(input_fname, ch_type, eog=eog, ecg=ecg,
                       emg=emg, misc=misc, preload=preload, verbose=verbose)
 
 
@@ -134,10 +124,6 @@ class RawNicolet(BaseRaw):
     ch_type : str
         Channel type to designate to the data channels. Supported data types
         include 'eeg', 'seeg'.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions.
-        If None, sensor locations are (0,0,0). See the documentation of
-        :func:`mne.channels.read_montage` for more information.
     eog : list | tuple | 'auto'
         Names of channels or list of indices that should be designated
         EOG channels. If 'auto', the channel names beginning with
@@ -153,28 +139,21 @@ class RawNicolet(BaseRaw):
     misc : list or tuple
         Names of channels or list of indices that should be designated
         MISC channels. Defaults to empty tuple.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(preload)s
+    %(verbose)s
 
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
 
-    def __init__(self, input_fname, ch_type, montage=None, eog=(), ecg=(),
-                 emg=(), misc=(), preload=False, verbose=None):  # noqa: D102
+    def __init__(self, input_fname, ch_type, eog=(),
+                 ecg=(), emg=(), misc=(), preload=False,
+                 verbose=None):  # noqa: D102
         input_fname = path.abspath(input_fname)
         info, header_info = _get_nicolet_info(input_fname, ch_type, eog, ecg,
                                               emg, misc)
         last_samps = [header_info['num_samples'] - 1]
-        _check_update_montage(info, montage)
         super(RawNicolet, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[header_info],
             last_samps=last_samps, orig_format='int',

@@ -15,10 +15,20 @@ from mne.transforms import (Transform, apply_trans, rotation, translation,
                             scaling)
 from mne.coreg import (fit_matched_points, create_default_subject, scale_mri,
                        _is_mri_subject, scale_labels, scale_source_space,
-                       coregister_fiducials)
+                       coregister_fiducials, get_mni_fiducials)
+from mne.io import read_fiducials
 from mne.io.constants import FIFF
-from mne.utils import _TempDir, run_tests_if_main, requires_nibabel
+from mne.utils import run_tests_if_main, requires_nibabel, modified_env
 from mne.source_space import write_source_spaces
+
+data_path = testing.data_path(download=False)
+
+
+@pytest.yield_fixture
+def few_surfaces():
+    """Set the _MNE_FEW_SURFACES env var."""
+    with modified_env(_MNE_FEW_SURFACES='true'):
+        yield
 
 
 def test_coregister_fiducials():
@@ -46,13 +56,13 @@ def test_coregister_fiducials():
     assert_array_almost_equal(trans_est['trans'], trans['trans'])
 
 
-@pytest.mark.timeout(90)  # can take longer than 30 sec on Travis
+@pytest.mark.slowtest  # can take forever on OSX Travis
 @testing.requires_testing_data
-def test_scale_mri():
+def test_scale_mri(tmpdir, few_surfaces):
     """Test creating fsaverage and scaling it."""
     # create fsaverage using the testing "fsaverage" instead of the FreeSurfer
     # one
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     fake_home = testing.data_path()
     create_default_subject(subjects_dir=tempdir, fs_home=fake_home,
                            verbose=True)
@@ -92,11 +102,9 @@ def test_scale_mri():
     # scale fsaverage
     for scale in (.9, [1, .2, .8]):
         write_source_spaces(path % 'ico-0', src, overwrite=True)
-        os.environ['_MNE_FEW_SURFACES'] = 'true'
         with pytest.warns(None):  # sometimes missing nibabel
             scale_mri('fsaverage', 'flachkopf', scale, True,
                       subjects_dir=tempdir, verbose='debug')
-        del os.environ['_MNE_FEW_SURFACES']
         assert _is_mri_subject('flachkopf', tempdir), "Scaling failed"
         spath = op.join(tempdir, 'flachkopf', 'bem', 'flachkopf-%s-src.fif')
 
@@ -129,15 +137,13 @@ def test_scale_mri():
         assert ssrc[0]['dist'] is not None
 
 
-@pytest.mark.slowtest
-@pytest.mark.timeout(60)  # >30 sec on Travis
+@pytest.mark.slowtest  # can take forever on OSX Travis
 @testing.requires_testing_data
 @requires_nibabel()
-def test_scale_mri_xfm():
+def test_scale_mri_xfm(tmpdir, few_surfaces):
     """Test scale_mri transforms and MRI scaling."""
     # scale fsaverage
-    tempdir = _TempDir()
-    os.environ['_MNE_FEW_SURFACES'] = 'true'
+    tempdir = str(tmpdir)
     fake_home = testing.data_path()
     # add fsaverage
     create_default_subject(subjects_dir=tempdir, fs_home=fake_home,
@@ -161,7 +167,6 @@ def test_scale_mri_xfm():
         src_from = mne.setup_source_space(
             subject_from, spacing, subjects_dir=tempdir, add_dist=False)
         write_source_spaces(src_from_fname, src_from)
-        print(src_from_fname)
         vertices_from = np.concatenate([s['vertno'] for s in src_from])
         assert len(vertices_from) == 36
         hemis = ([0] * len(src_from[0]['vertno']) +
@@ -183,6 +188,8 @@ def test_scale_mri_xfm():
                 scale_mri(subject_from, subject_to,  scale,
                           subjects_dir=tempdir, skip_fiducials=skip_fiducials)
             overwrite = True
+        if subject_from == 'sample':  # support for not needing all surf files
+            os.remove(op.join(sample_dir, 'surf', 'lh.curv'))
         scale_mri(subject_from, subject_to, scale, subjects_dir=tempdir,
                   verbose='debug', overwrite=overwrite,
                   skip_fiducials=skip_fiducials)
@@ -201,7 +208,6 @@ def test_scale_mri_xfm():
         mni = mne.vertex_to_mni(vertices, hemis, subject_to,
                                 subjects_dir=tempdir)
         assert_allclose(mni, mni_from, atol=1e-3)  # 0.001 mm
-    del os.environ['_MNE_FEW_SURFACES']
 
 
 def test_fit_matched_points():
@@ -237,6 +243,23 @@ def test_fit_matched_points():
     # test exceeding tolerance
     tgt_pts[0, :] += 20
     pytest.raises(RuntimeError, fit_matched_points, tgt_pts, src_pts, tol=10)
+
+
+@testing.requires_testing_data
+@requires_nibabel()
+def test_get_mni_fiducials():
+    """Test get_mni_fiducials."""
+    subjects_dir = op.join(data_path, 'subjects')
+    fid_fname = op.join(subjects_dir, 'sample', 'bem',
+                        'sample-fiducials.fif')
+    fids, coord_frame = read_fiducials(fid_fname)
+    assert coord_frame == FIFF.FIFFV_COORD_MRI
+    assert [f['ident'] for f in fids] == list(range(1, 4))
+    fids = np.array([f['r'] for f in fids])
+    fids_est = get_mni_fiducials('sample', subjects_dir)
+    fids_est = np.array([f['r'] for f in fids_est])
+    dists = np.linalg.norm(fids - fids_est, axis=-1) * 1000
+    assert (dists < 8).all(), dists
 
 
 run_tests_if_main()

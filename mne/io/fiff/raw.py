@@ -1,5 +1,5 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
@@ -21,38 +21,35 @@ from ..base import (BaseRaw, _RawShell, _check_raw_compatibility,
                     _check_maxshield)
 from ..utils import _mult_cal_one
 
-from ...annotations import (Annotations, _combine_annotations,
-                            _read_annotations_fif)
+from ...annotations import Annotations, _read_annotations_fif
 
 from ...event import AcqParserFIF
-from ...utils import check_fname, logger, verbose, warn
+from ...utils import check_fname, logger, verbose, warn, fill_doc, _file_like
 
 
+@fill_doc
 class Raw(BaseRaw):
     """Raw data in FIF format.
 
     Parameters
     ----------
-    fname : str
-        The raw file to load. For files that have automatically been split,
+    fname : str | file-like
+        The raw filename to load. For files that have automatically been split,
         the split part will be automatically loaded. Filenames should end
-        with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz,
-        raw_tsss.fif or raw_tsss.fif.gz.
+        with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif,
+        raw_tsss.fif.gz, or _meg.fif. If a file-like object is provided,
+        preloading must be used.
+
+        .. versionchanged:: 0.18
+           Support for file-like objects.
     allow_maxshield : bool | str (default False)
         If True, allow loading of data that has been recorded with internal
         active compensation (MaxShield). Data recorded with MaxShield should
         generally not be loaded directly, but should first be processed using
         SSS/tSSS to remove the compensation signals that may also affect brain
         activity. Can also be "yes" to load without eliciting a warning.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(preload)s
+    %(verbose)s
 
     Attributes
     ----------
@@ -68,32 +65,29 @@ class Raw(BaseRaw):
         inverse of the sampling frequency.
     preload : bool
         Indicates whether raw data are in memory.
-    verbose : bool, str, int, or None
-        See above.
-
+    %(verbose)s
     """
 
     @verbose
     def __init__(self, fname, allow_maxshield=False, preload=False,
                  verbose=None):  # noqa: D102
-        fnames = [op.realpath(fname)]
-        split_fnames = []
-
         raws = []
-        for ii, this_fname in enumerate(fnames):
-            do_check_fname = this_fname not in split_fnames
+        do_check_fname = not _file_like(fname)
+        next_fname = fname
+        while next_fname is not None:
             raw, next_fname, buffer_size_sec = \
-                self._read_raw_file(this_fname, allow_maxshield,
+                self._read_raw_file(next_fname, allow_maxshield,
                                     preload, do_check_fname)
+            do_check_fname = False
             raws.append(raw)
             if next_fname is not None:
                 if not op.exists(next_fname):
                     warn('Split raw file detected but next file %s does not '
                          'exist.' % next_fname)
-                    continue
-                # process this file next
-                fnames.insert(ii + 1, next_fname)
-                split_fnames.append(next_fname)
+                    break
+        if _file_like(fname):
+            # avoid serialization error when copying file-like
+            fname = None  # noqa
 
         _check_raw_compatibility(raws)
         super(Raw, self).__init__(
@@ -104,16 +98,7 @@ class Raw(BaseRaw):
             verbose=verbose)
 
         # combine annotations
-        self.set_annotations(raws[0].annotations, False)
-        if any([r.annotations for r in raws[1:]]):
-            n_samples = np.sum(self._last_samps - self._first_samps + 1)
-            for r in raws:
-                annotations = _combine_annotations(
-                    self.annotations, r.annotations,
-                    n_samples, self.first_samp, r.first_samp,
-                    r.info['sfreq'], self.info['meas_date'])
-                self.set_annotations(annotations, False)
-                n_samples += r.last_samp - r.first_samp + 1
+        self.set_annotations(raws[0].annotations, emit_warning=False)
 
         # Add annotations for in-data skips
         for extra in self._raw_extras:
@@ -132,6 +117,9 @@ class Raw(BaseRaw):
             self._preload_data(preload)
         else:
             self.preload = False
+        # If using a file-like object, fix the filenames to be representative
+        # strings now instead of the file-like objects
+        self._filenames = [_get_fname_rep(fname) for fname in self._filenames]
 
     @verbose
     def _read_raw_file(self, fname, allow_maxshield, preload,
@@ -139,14 +127,23 @@ class Raw(BaseRaw):
         """Read in header information from a raw file."""
         logger.info('Opening raw data file %s...' % fname)
 
-        if do_check_fname:
-            check_fname(fname, 'raw', ('raw.fif', 'raw_sss.fif',
-                                       'raw_tsss.fif', 'raw.fif.gz',
-                                       'raw_sss.fif.gz', 'raw_tsss.fif.gz'))
-
         #   Read in the whole file if preload is on and .fif.gz (saves time)
-        ext = os.path.splitext(fname)[1].lower()
-        whole_file = preload if '.gz' in ext else False
+        if not _file_like(fname):
+            if do_check_fname:
+                check_fname(fname, 'raw', (
+                    'raw.fif', 'raw_sss.fif', 'raw_tsss.fif', 'raw.fif.gz',
+                    'raw_sss.fif.gz', 'raw_tsss.fif.gz', '_meg.fif'))
+            # filename
+            fname = op.realpath(fname)
+            ext = os.path.splitext(fname)[1].lower()
+            whole_file = preload if '.gz' in ext else False
+            del ext
+        else:
+            # file-like
+            if not preload:
+                raise ValueError('preload must be used with file-like objects')
+            whole_file = True
+        fname_rep = _get_fname_rep(fname)
         ff, tree, _ = fiff_open(fname, preload=whole_file)
         with ff as fid:
             #   Read the measurement info
@@ -159,9 +156,9 @@ class Raw(BaseRaw):
             if len(raw_node) == 0:
                 raw_node = dir_tree_find(meas, FIFF.FIFFB_CONTINUOUS_DATA)
                 if (len(raw_node) == 0):
-                    raw_node = dir_tree_find(meas, FIFF.FIFFB_SMSH_RAW_DATA)
+                    raw_node = dir_tree_find(meas, FIFF.FIFFB_IAS_RAW_DATA)
                     if (len(raw_node) == 0):
-                        raise ValueError('No raw data in %s' % fname)
+                        raise ValueError('No raw data in %s' % fname_rep)
                     _check_maxshield(allow_maxshield)
                     info['maxshield'] = True
 
@@ -263,7 +260,7 @@ class Raw(BaseRaw):
                                            nsamp=nsamp))
                     first_samp += nsamp
 
-            next_fname = _get_next_fname(fid, fname, tree)
+            next_fname = _get_next_fname(fid, fname_rep, tree)
 
         raw.last_samp = first_samp - 1
         raw.orig_format = orig_format
@@ -412,37 +409,42 @@ class Raw(BaseRaw):
         return self._acqparser
 
 
+def _get_fname_rep(fname):
+    if not _file_like(fname):
+        return fname
+    else:
+        return 'File-like %r' % (fname,)
+
+
 def _check_entry(first, nent):
     """Sanity check entries."""
     if first >= nent:
         raise IOError('Could not read data, perhaps this is a corrupt file')
 
 
+@fill_doc
 def read_raw_fif(fname, allow_maxshield=False, preload=False, verbose=None):
     """Reader function for Raw FIF data.
 
     Parameters
     ----------
-    fname : str
-        The raw file to load. For files that have automatically been split,
+    fname : str | file-like
+        The raw filename to load. For files that have automatically been split,
         the split part will be automatically loaded. Filenames should end
-        with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz,
-        raw_tsss.fif or raw_tsss.fif.gz.
+        with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif,
+        raw_tsss.fif.gz, or _meg.fif. If a file-like object is provided,
+        preloading must be used.
+
+        .. versionchanged:: 0.18
+           Support for file-like objects.
     allow_maxshield : bool | str (default False)
         If True, allow loading of data that has been recorded with internal
         active compensation (MaxShield). Data recorded with MaxShield should
         generally not be loaded directly, but should first be processed using
         SSS/tSSS to remove the compensation signals that may also affect brain
         activity. Can also be "yes" to load without eliciting a warning.
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(preload)s
+    %(verbose)s
 
     Returns
     -------

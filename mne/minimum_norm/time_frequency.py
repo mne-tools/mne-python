@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
@@ -16,10 +16,10 @@ from ..time_frequency.multitaper import (_psd_from_mt, _compute_mt_params,
                                          _psd_from_mt_adaptive, _mt_spectra)
 from ..baseline import rescale, _log_rescale
 from .inverse import (combine_xyz, _check_or_prepare, _assemble_kernel,
-                      _pick_channels_inverse_operator, _check_method,
+                      _pick_channels_inverse_operator, INVERSE_METHODS,
                       _check_ori, _subject_from_inverse)
 from ..parallel import parallel_func
-from ..utils import logger, verbose, ProgressBar
+from ..utils import logger, verbose, ProgressBar, _check_option
 
 
 def _prepare_source_params(inst, inverse_operator, label=None,
@@ -71,7 +71,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     ----------
     epochs : instance of Epochs
         The epochs.
-    inverse_operator : instance of inverse operator
+    inverse_operator : instance of InverseOperator
         The inverse operator.
     bands : dict
         Example : bands = dict(alpha=[8, 9]).
@@ -91,7 +91,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         Do convolutions in time or frequency domain with FFT.
     decim : int
         Temporal decimation factor.
-    baseline : None (default) or tuple of length 2
+    baseline : None (default) or tuple, shape (2,)
         The time interval to apply baseline correction. If None do not apply
         it. If baseline is (a, b) the interval is between "a (s)" and "b (s)".
         If a is None the beginning of the data is used and if b is None then b
@@ -116,24 +116,21 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         If True, the true dimension of data is estimated before running
         the time-frequency transforms. It reduces the computation times
         e.g. with a dataset that was maxfiltered (true dim is 64).
-    n_jobs : int
-        Number of jobs to run in parallel.
+    %(n_jobs)s
     prepared : bool
         If True, do not call :func:`prepare_inverse_operator`.
     method_params : dict | None
         Additional options for eLORETA. See Notes of :func:`apply_inverse`.
 
         .. versionadded:: 0.16
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
-    stcs : dict with a SourceEstimate (or VolSourceEstimate) for each band
+    stcs : dict of SourceEstimate (or VolSourceEstimate)
         The estimated source space induced power estimates.
     """  # noqa: E501
-    _check_method(method)
+    _check_option('method', method, INVERSE_METHODS)
 
     freqs = np.concatenate([np.arange(band[0], band[1] + df / 2.0, df)
                             for _, band in bands.items()])
@@ -189,7 +186,6 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh,
                      with_power, with_plv, pick_ori, decim, verbose=None):
     """Aux function for induced power and PLV."""
     shape, is_free_ori = _prepare_tfr(data, decim, pick_ori, Ws, K, source_ori)
-    n_sources, n_times = shape[:2]
     power = np.zeros(shape, dtype=np.float)  # power or raw TFR
     # phase lock
     plv = np.zeros(shape, dtype=np.complex) if with_plv else None
@@ -369,26 +365,25 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
         If True, the true dimension of data is estimated before running
         the time-frequency transforms. It reduces the computation times
         e.g. with a dataset that was maxfiltered (true dim is 64).
-    n_jobs : int
-        Number of jobs to run in parallel.
+    %(n_jobs)s
     zero_mean : bool
         Make sure the wavelets are zero mean.
     prepared : bool
         If True, do not call :func:`prepare_inverse_operator`.
     method_params : dict | None
         Additional options for eLORETA. See Notes of :func:`apply_inverse`.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
     """  # noqa: E501
-    _check_method(method)
-    _check_ori(pick_ori, inverse_operator['source_ori'])
+    _check_option('method', method, INVERSE_METHODS)
+    _check_ori(pick_ori, inverse_operator['source_ori'],
+               inverse_operator['src'])
 
     power, plv, vertno = _source_induced_power(
         epochs, inverse_operator, freqs, label=label, lambda2=lambda2,
         method=method, nave=nave, n_cycles=n_cycles, decim=decim,
         use_fft=use_fft, pick_ori=pick_ori, pca=pca, n_jobs=n_jobs,
-        prepared=False, method_params=method_params)
+        method_params=method_params, zero_mean=zero_mean,
+        prepared=prepared)
 
     # Run baseline correction
     power = rescale(power, epochs.times[::decim], baseline, baseline_mode,
@@ -404,7 +399,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
                        inv_split=None, bandwidth='hann', adaptive=False,
                        low_bias=False, n_jobs=1, return_sensor=False, dB=False,
                        verbose=None):
-    """Compute source power spectrum density (PSD).
+    """Compute source power spectral density (PSD).
 
     Parameters
     ----------
@@ -466,12 +461,12 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
 
         .. versionadded:: 0.17
     low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth.
 
         .. versionadded:: 0.17
-    n_jobs : int
-        Number of parallel jobs to use (only used if adaptive=True).
+    %(n_jobs)s
+        It is only used if adaptive=True.
 
         .. versionadded:: 0.17
     return_sensor : bool
@@ -482,9 +477,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         If True (default False), return output it decibels.
 
         .. versionadded:: 0.17
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -518,7 +511,8 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     n_fft = int(n_fft)
     duration = ((1. - overlap) * n_fft) / raw.info['sfreq']
     events = make_fixed_length_events(raw, 1, tmin, tmax, duration)
-    epochs = Epochs(raw, events, 1, 0, (n_fft - 1) / raw.info['sfreq'])
+    epochs = Epochs(raw, events, 1, 0, (n_fft - 1) / raw.info['sfreq'],
+                    baseline=None)
     out = compute_source_psd_epochs(
         epochs, inverse_operator, lambda2, method, fmin, fmax,
         pick_ori, label, nave, pca, inv_split, bandwidth, adaptive, low_bias,
@@ -690,7 +684,7 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                               return_generator=False, n_jobs=1,
                               prepared=False, method_params=None,
                               return_sensor=False, verbose=None):
-    """Compute source power spectrum density (PSD) from Epochs.
+    """Compute source power spectral density (PSD) from Epochs.
 
     This uses the multi-taper method to compute the PSD for each epoch.
 
@@ -729,13 +723,13 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).
     low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     return_generator : bool
         Return a generator object instead of a list. This allows iterating
         over the stcs without having to keep them all in memory.
-    n_jobs : int
-        Number of parallel jobs to use (only used if adaptive=True).
+    %(n_jobs)s
+        It is only used if adaptive=True.
     prepared : bool
         If True, do not call :func:`prepare_inverse_operator`.
     method_params : dict | None
@@ -746,9 +740,7 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         If True, also return the sensor PSD for each epoch as an EvokedArray.
 
         .. versionadded:: 0.17
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

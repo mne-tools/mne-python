@@ -1,18 +1,21 @@
-# Authors: Eric Larson <larsoner@uw.edu>
+# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
+#          Eric Larson <larsoner@uw.edu>
 #          Mainak Jas <mainak.jas@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
+# The computations in this code were primarily derived from Matti Hämäläinen's
+# C code.
+
 import os
-from os import path as op
+import os.path as op
 
 import numpy as np
 from numpy.polynomial import legendre
 
 from ..fixes import einsum
 from ..parallel import parallel_func
-from ..utils import logger, verbose, _get_extra_data_path
+from ..utils import logger, verbose, _get_extra_data_path, fill_doc
 
 
 ##############################################################################
@@ -21,12 +24,11 @@ from ..utils import logger, verbose, _get_extra_data_path
 def _next_legen_der(n, x, p0, p01, p0d, p0dd):
     """Compute the next Legendre polynomial and its derivatives."""
     # only good for n > 1 !
-    help_ = p0
-    helpd = p0d
-    p0 = ((2 * n - 1) * x * help_ - (n - 1) * p01) / n
-    p0d = n * help_ + x * helpd
-    p0dd = (n + 1) * helpd + x * p0dd
-    p01 = help_
+    old_p0 = p0
+    old_p0d = p0d
+    p0 = ((2 * n - 1) * x * old_p0 - (n - 1) * p01) / n
+    p0d = n * old_p0 + x * old_p0d
+    p0dd = (n + 1) * old_p0d + x * p0dd
     return p0, p0d, p0dd
 
 
@@ -57,7 +59,7 @@ def _get_legen_table(ch_type, volume_integral=False, n_coeff=100,
         raise RuntimeError('n_interp must be even')
     fname = op.join(_get_extra_data_path(), 'tables')
     if not op.isdir(fname):
-        # Updated due to API chang (GH 1167)
+        # Updated due to API change (GH 1167)
         os.makedirs(fname)
     if ch_type == 'meg':
         fname = op.join(fname, 'legder_%s_%s.bin' % (n_coeff, n_interp))
@@ -285,6 +287,7 @@ def _fast_sphere_dot_r0(r, rr1_orig, rr2s, lr1, lr2s, cosmags1, cosmags2s,
     return out
 
 
+@fill_doc
 def _do_self_dots(intrad, volume, coils, r0, ch_type, lut, n_fact, n_jobs):
     """Perform the lead field dot product integrations.
 
@@ -305,8 +308,7 @@ def _do_self_dots(intrad, volume, coils, r0, ch_type, lut, n_fact, n_jobs):
         Look-up table for evaluating Legendre polynomials.
     n_fact : array
         Coefficients in the integration sum.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    %(n_jobs)s
 
     Returns
     -------
@@ -401,6 +403,7 @@ def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type,
     return products
 
 
+@fill_doc
 def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ch_type,
                      lut, n_fact, n_jobs):
     """Compute the map construction products.
@@ -426,8 +429,7 @@ def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ch_type,
         Look-up table for Legendre polynomials.
     n_fact : array
         Coefficients in the integration sum.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    %(n_jobs)s
 
     Returns
     -------

@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
@@ -6,7 +6,7 @@
 
 import numpy as np
 
-from .peak_finder import peak_finder
+from ._peak_finder import peak_finder
 from .. import pick_types, pick_channels
 from ..utils import logger, verbose, _pl
 from ..filter import filter_data
@@ -39,9 +39,7 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
         Whether to omit data that is annotated as bad.
     thresh : float
         Threshold to trigger EOG event.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -69,25 +67,30 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
                                   sampling_rate=raw.info['sfreq'],
                                   first_samp=raw.first_samp,
                                   filter_length=filter_length,
-                                  tstart=tstart, thresh=thresh)
+                                  tstart=tstart, thresh=thresh,
+                                  verbose=verbose)
     # Map times to corresponding samples.
     eog_events[:, 0] = np.round(times[eog_events[:, 0] -
                                       raw.first_samp]).astype(int)
     return eog_events
 
 
+@verbose
 def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
-                     filter_length='10s', tstart=0., thresh=None):
+                     filter_length='10s', tstart=0., thresh=None,
+                     verbose=None):
     """Find EOG events."""
     logger.info('Filtering the data to remove DC offset to help '
                 'distinguish blinks from saccades')
 
     # filtering to remove dc offset so that we know which is blink and saccades
+    # hardcode verbose=False to suppress filter param messages (since this
+    # filter is not under user control)
     fmax = np.minimum(45, sampling_rate / 2.0 - 0.75)  # protect Nyquist
     filteog = np.array([filter_data(
         x, sampling_rate, 2, fmax, None, filter_length, 0.5, 0.5,
-        phase='zero-double', fir_window='hann', fir_design='firwin2')
-        for x in eog])
+        phase='zero-double', fir_window='hann', fir_design='firwin2',
+        verbose=False) for x in eog])
     temp = np.sqrt(np.sum(filteog ** 2, axis=1))
 
     indexmax = np.argmax(temp)
@@ -172,9 +175,7 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
         The argument is mandatory if the dataset contains no EOG channels.
     event_id : int
         The index to assign to found events
-    picks : array-like of int | None (default)
-        Indices of channels to include (if None, all channels
-        are used).
+    %(picks_all)s
     tmin : float
         Start time before event.
     tmax : float
@@ -218,9 +219,7 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
         .. versionadded:: 0.14.0
     thresh : float
         Threshold to trigger EOG event.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

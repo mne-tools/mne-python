@@ -1,12 +1,12 @@
 """
-=========================================================
-Compute power spectrum densities of the sources with dSPM
-=========================================================
+======================================================
+Compute source power spectral density (PSD) in a label
+======================================================
 
-Returns an STC file containing the PSD (in dB) of each of the sources.
-
+Returns an STC file containing the PSD (in dB) of each of the sources
+within a label.
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 

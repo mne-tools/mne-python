@@ -46,7 +46,7 @@ raw_clean.plot(order=order, n_channels=10)
 
 ###############################################################################
 # We can also look at the effect on single-trial phantom localization.
-# See the :ref:`sphx_glr_auto_tutorials_plot_brainstorm_phantom_elekta.py`
+# See the :ref:`tut-brainstorm-elekta-phantom`
 # for more information. Here we use a version that does single-trial
 # localization across the 17 trials are in our 10-second window:
 

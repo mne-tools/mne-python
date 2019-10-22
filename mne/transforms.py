@@ -1,18 +1,17 @@
 # -*- coding: utf-8 -*-
 """Helpers for various transformations."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD (3-clause)
 
 import os
-from os import path as op
+import os.path as op
 import glob
 
 import numpy as np
 from copy import deepcopy
-from numpy import sin, cos
 from scipy import linalg
 
 from .fixes import einsum
@@ -20,7 +19,8 @@ from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
-from .utils import check_fname, logger, verbose, _ensure_int
+from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
+                    _check_path_like, get_subjects_dir, fill_doc, _check_fname)
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -39,7 +39,7 @@ _str_to_frame = dict(meg=FIFF.FIFFV_COORD_DEVICE,
                      ctf_head=FIFF.FIFFV_MNE_COORD_CTF_HEAD,
                      ctf_meg=FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
                      unknown=FIFF.FIFFV_COORD_UNKNOWN)
-_frame_to_str = dict((val, key) for key, val in _str_to_frame.items())
+_frame_to_str = {val: key for key, val in _str_to_frame.items()}
 
 _verbose_frames = {FIFF.FIFFV_COORD_UNKNOWN: 'unknown',
                    FIFF.FIFFV_COORD_DEVICE: 'MEG device',
@@ -76,12 +76,17 @@ class Transform(dict):
     Parameters
     ----------
     fro : str | int
-        The starting coordinate frame.
+        The starting coordinate frame. See notes for valid coordinate frames.
     to : str | int
-        The ending coordinate frame.
+        The ending coordinate frame. See notes for valid coordinate frames.
     trans : array-like, shape (4, 4) | None
         The transformation matrix. If None, an identity matrix will be
         used.
+
+    Notes
+    -----
+    Valid coordinate frames are 'meg','mri','mri_voxel','head','mri_tal','ras'
+    'fs_tal','ctf_head','ctf_meg','unknown'
     """
 
     def __init__(self, fro, to, trans=None):  # noqa: D102
@@ -174,14 +179,17 @@ def _coord_frame_name(cframe):
     return _verbose_frames.get(int(cframe), 'unknown')
 
 
-def _print_coord_trans(t, prefix='Coordinate transformation: '):
-    logger.info(prefix + '%s -> %s'
-                % (_coord_frame_name(t['from']), _coord_frame_name(t['to'])))
+def _print_coord_trans(t, prefix='Coordinate transformation: ', units='m',
+                       level='info'):
+    # Units gives the units of the transformation. This always prints in mm.
+    log_func = getattr(logger, level)
+    log_func(prefix + '%s -> %s'
+             % (_coord_frame_name(t['from']), _coord_frame_name(t['to'])))
     for ti, tt in enumerate(t['trans']):
-        scale = 1000. if ti != 3 else 1.
+        scale = 1000. if (ti != 3 and units != 'mm') else 1.
         text = ' mm' if ti != 3 else ''
-        logger.info('    % 8.6f % 8.6f % 8.6f    %7.2f%s' %
-                    (tt[0], tt[1], tt[2], scale * tt[3], text))
+        log_func('    % 8.6f % 8.6f % 8.6f    %7.2f%s' %
+                 (tt[0], tt[1], tt[2], scale * tt[3], text))
 
 
 def _find_trans(subject, subjects_dir=None):
@@ -191,8 +199,7 @@ def _find_trans(subject, subjects_dir=None):
         else:
             raise ValueError('SUBJECT environment variable not set')
 
-    trans_fnames = glob.glob(os.path.join(subjects_dir, subject,
-                                          '*-trans.fif'))
+    trans_fnames = glob.glob(op.join(subjects_dir, subject, '*-trans.fif'))
     if len(trans_fnames) < 1:
         raise RuntimeError('Could not find the transformation for '
                            '{subject}'.format(subject=subject))
@@ -247,12 +254,12 @@ def rotation(x=0, y=0, z=0):
     r : array, shape = (4, 4)
         The rotation matrix.
     """
-    cos_x = cos(x)
-    cos_y = cos(y)
-    cos_z = cos(z)
-    sin_x = sin(x)
-    sin_y = sin(y)
-    sin_z = sin(z)
+    cos_x = np.cos(x)
+    cos_y = np.cos(y)
+    cos_z = np.cos(z)
+    sin_x = np.sin(x)
+    sin_y = np.sin(y)
+    sin_z = np.sin(z)
     r = np.array([[cos_y * cos_z, -cos_x * sin_z + sin_x * sin_y * cos_z,
                    sin_x * sin_z + cos_x * sin_y * cos_z, 0],
                   [cos_y * sin_z, cos_x * cos_z + sin_x * sin_y * sin_z,
@@ -275,12 +282,12 @@ def rotation3d(x=0, y=0, z=0):
     r : array, shape = (3, 3)
         The rotation matrix.
     """
-    cos_x = cos(x)
-    cos_y = cos(y)
-    cos_z = cos(z)
-    sin_x = sin(x)
-    sin_y = sin(y)
-    sin_z = sin(z)
+    cos_x = np.cos(x)
+    cos_y = np.cos(y)
+    cos_z = np.cos(z)
+    sin_x = np.sin(x)
+    sin_y = np.sin(y)
+    sin_z = np.sin(z)
     r = np.array([[cos_y * cos_z, -cos_x * sin_z + sin_x * sin_y * cos_z,
                    sin_x * sin_z + cos_x * sin_y * cos_z],
                   [cos_y * sin_z, cos_x * cos_z + sin_x * sin_y * sin_z,
@@ -414,15 +421,16 @@ def _ensure_trans(trans, fro='mri', to='head'):
         trans = [trans]
     # Ensure that we have exactly one match
     idx = list()
+    misses = list()
     for ti, this_trans in enumerate(trans):
         if not isinstance(this_trans, Transform):
             raise ValueError('%s None' % err_str)
-        if set([this_trans['from'],
-                this_trans['to']]) == set([from_const, to_const]):
+        if {this_trans['from'],
+                this_trans['to']} == {from_const, to_const}:
             idx.append(ti)
         else:
-            misses = '%s->%s' % (_frame_to_str[this_trans['from']],
-                                 _frame_to_str[this_trans['to']])
+            misses += ['%s->%s' % (_frame_to_str[this_trans['from']],
+                                   _frame_to_str[this_trans['to']])]
     if len(idx) != 1:
         raise ValueError('%s %s' % (err_str, ', '.join(misses)))
     trans = trans[idx[0]]
@@ -433,7 +441,11 @@ def _ensure_trans(trans, fro='mri', to='head'):
 
 def _get_trans(trans, fro='mri', to='head'):
     """Get mri_head_t (from=mri, to=head) from mri filename."""
-    if isinstance(trans, str):
+    if _check_path_like(trans):
+        trans = str(trans)
+        if trans == 'fsaverage':
+            trans = op.join(op.dirname(__file__), 'data', 'fsaverage',
+                            'fsaverage-trans.fif')
         if not op.isfile(trans):
             raise IOError('trans file "%s" not found' % trans)
         if op.splitext(trans)[1] in ['.fif', '.gz']:
@@ -684,22 +696,35 @@ def _cart_to_sph(cart):
     cart = np.atleast_2d(cart)
     out = np.empty((len(cart), 3))
     out[:, 0] = np.sqrt(np.sum(cart * cart, axis=1))
+    norm = np.where(out[:, 0] > 0, out[:, 0], 1)  # protect against / 0
     out[:, 1] = np.arctan2(cart[:, 1], cart[:, 0])
-    out[:, 2] = np.arccos(cart[:, 2] / out[:, 0])
+    out[:, 2] = np.arccos(cart[:, 2] / norm)
     out = np.nan_to_num(out)
     return out
 
 
-def _sph_to_cart(sph):
-    """Convert spherical coordinates to Cartesion coordinates."""
-    assert sph.ndim == 2 and sph.shape[1] == 3
-    sph = np.atleast_2d(sph)
-    out = np.empty((len(sph), 3))
-    out[:, 2] = sph[:, 0] * np.cos(sph[:, 2])
-    xy = sph[:, 0] * np.sin(sph[:, 2])
-    out[:, 0] = xy * np.cos(sph[:, 1])
-    out[:, 1] = xy * np.sin(sph[:, 1])
-    return out
+def _sph_to_cart(sph_pts):
+    """Convert spherical coordinates to Cartesion coordinates.
+
+    Parameters
+    ----------
+    sph_pts : ndarray, shape (n_points, 3)
+        Array containing points in spherical coordinates (rad, azimuth, polar)
+
+    Returns
+    -------
+    cart_pts : ndarray, shape (n_points, 3)
+        Array containing points in Cartesian coordinates (x, y, z)
+
+    """
+    assert sph_pts.ndim == 2 and sph_pts.shape[1] == 3
+    sph_pts = np.atleast_2d(sph_pts)
+    cart_pts = np.empty((len(sph_pts), 3))
+    cart_pts[:, 2] = sph_pts[:, 0] * np.cos(sph_pts[:, 2])
+    xy = sph_pts[:, 0] * np.sin(sph_pts[:, 2])
+    cart_pts[:, 0] = xy * np.cos(sph_pts[:, 1])
+    cart_pts[:, 1] = xy * np.sin(sph_pts[:, 1])
+    return cart_pts
 
 
 def _get_n_moments(order):
@@ -749,7 +774,6 @@ def _sph_to_cart_partials(az, pol, g_rad, g_az, g_pol):
         Array containing partial derivatives in Cartesian coordinates (x, y, z)
     """
     sph_grads = np.c_[g_rad, g_az, g_pol]
-    cart_grads = np.zeros_like(sph_grads)
     c_as, s_as = np.cos(az), np.sin(az)
     c_ps, s_ps = np.cos(pol), np.sin(pol)
     trans = np.array([[c_as * s_ps, -s_as, c_as * c_ps],
@@ -1005,10 +1029,7 @@ class _SphericalSurfaceWarp(object):
             The uniformly-spaced points to match on the two surfaces.
             Can be "ico#" or "oct#" where "#" is an integer.
             The default is "oct5".
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose)s
 
         Returns
         -------
@@ -1083,10 +1104,7 @@ class _SphericalSurfaceWarp(object):
             points that were used to generate the model, although ideally
             they will be inside the convex hull formed by the original
             source points.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose)s
 
         Returns
         -------
@@ -1287,6 +1305,31 @@ def _average_quats(quats, weights=None):
     return avg_quat
 
 
+@fill_doc
+def read_ras_mni_t(subject, subjects_dir=None):
+    """Read a subject's RAS to MNI transform.
+
+    Parameters
+    ----------
+    subject : str
+        The subject.
+    %(subjects_dir)s
+
+    Returns
+    -------
+    ras_mni_t : instance of Transform
+        The transform from RAS to MNI.
+    """
+    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
+                                    raise_error=True)
+    _validate_type(subject, 'str', 'subject')
+    fname = op.join(subjects_dir, subject, 'mri', 'transforms',
+                    'talairach.xfm')
+    fname = _check_fname(
+        fname, 'read', True, 'FreeSurfer Talairach transformation file')
+    return Transform('ras', 'mni_tal', _read_fs_xfm(fname)[0])
+
+
 def _read_fs_xfm(fname):
     """Read a Freesurfer transform from a .xfm file."""
     assert fname.endswith('.xfm')
@@ -1299,6 +1342,7 @@ def _read_fs_xfm(fname):
         for li, line in enumerate(fid):
             if li == 0:
                 kind = line.strip()
+                logger.debug('Found: %r' % (kind,))
             if line[:len(comp)] == comp:
                 # we have the right line, so don't read any more
                 break

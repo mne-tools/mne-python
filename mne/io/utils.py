@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
@@ -15,12 +15,21 @@ import os
 
 from .constants import FIFF
 from .meas_info import _get_valid_units
+from ..utils import warn
 
 
-def _deprecate_stim_channel(stim_channel):
-    if stim_channel is not False:
-        raise ValueError('stim_channel must be False or omitted; it will be '
-                         'removed in 0.19', DeprecationWarning)
+def _deprecate_montage(raw, raw_type, montage, **kwargs):
+    _MSG = (
+        'The `montage` parameter from `%s` is deprecated and will be removed '
+        ' in version 0.20. Use '
+        ' raw.set_montage(montage) instead.' % raw_type)
+    if montage == 'deprecated':
+        return
+    elif montage is None:
+        warn(_MSG, DeprecationWarning)
+    else:
+        raw.set_montage(montage, **kwargs)
+        warn(_MSG, DeprecationWarning)
 
 
 def _check_orig_units(orig_units):
@@ -292,7 +301,6 @@ def _synthesize_stim_channel(events, n_samples):
         An array containing the whole recording's event marking.
     """
     # select events overlapping buffer
-    onset = events[:, 0]
     events = events.copy()
     events[events[:, 1] < 1, 1] = 1
     # create output buffer

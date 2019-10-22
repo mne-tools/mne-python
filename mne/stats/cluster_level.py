@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Authors: Thorsten Kranz <thorstenkranz@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Denis Engemann <denis.engemann@gmail.com>
@@ -15,9 +15,99 @@ from scipy import sparse
 
 from .parametric import f_oneway, ttest_1samp_no_p
 from ..parallel import parallel_func, check_n_jobs
+from ..fixes import jit, has_numba
 from ..utils import (split_list, logger, verbose, ProgressBar, warn, _pl,
-                     check_random_state)
+                     check_random_state, _check_option)
 from ..source_estimate import SourceEstimate
+
+
+def _get_buddies_fallback(r, s, neighbors, indices=None):
+    if indices is None:
+        buddies = np.where(r)[0]
+    else:
+        buddies = indices[r[indices]]
+    buddies = buddies[np.in1d(s[buddies], neighbors, assume_unique=True)]
+    r[buddies] = False
+    return buddies.tolist()
+
+
+def _get_selves_fallback(r, s, ind, inds, t, t_border, max_step):
+    start = t_border[max(t[ind] - max_step, 0)]
+    stop = t_border[min(t[ind] + max_step + 1, len(t_border) - 1)]
+    indices = inds[start:stop]
+    selves = indices[r[indices]]
+    selves = selves[s[ind] == s[selves]]
+    r[selves] = False
+    return selves.tolist()
+
+
+def _where_first_fallback(x):
+    # this is equivalent to np.where(r)[0] for these purposes, but it's
+    # a little bit faster. Unfortunately there's no way to tell numpy
+    # just to find the first instance (to save checking every one):
+    next_ind = int(np.argmax(x))
+    if next_ind == 0:
+        next_ind = -1
+    return next_ind
+
+
+if has_numba:  # pragma: no cover
+    @jit()
+    def _get_buddies(r, s, neighbors, indices=None):
+        buddies = list()
+        # At some point we might be able to use the sorted-ness of s or
+        # neighbors to further speed this up
+        if indices is None:
+            n_check = len(r)
+        else:
+            n_check = len(indices)
+        for ii in range(n_check):
+            if indices is None:
+                this_idx = ii
+            else:
+                this_idx = indices[ii]
+            if r[this_idx]:
+                this_s = s[this_idx]
+                for ni in range(len(neighbors)):
+                    if this_s == neighbors[ni]:
+                        buddies.append(this_idx)
+                        r[this_idx] = False
+                        break
+        return buddies
+
+    @jit()
+    def _get_selves(r, s, ind, inds, t, t_border, max_step):
+        selves = list()
+        start = t_border[max(t[ind] - max_step, 0)]
+        stop = t_border[min(t[ind] + max_step + 1, len(t_border) - 1)]
+        for ii in range(start, stop):
+            this_idx = inds[ii]
+            if r[this_idx] and s[ind] == s[this_idx]:
+                selves.append(this_idx)
+                r[this_idx] = False
+        return selves
+
+    @jit()
+    def _where_first(x):
+        for ii in range(len(x)):
+            if x[ii]:
+                return ii
+        return -1
+else:  # pragma: no cover
+    # fastest ways we've found with NumPy
+    _get_buddies = _get_buddies_fallback
+    _get_selves = _get_selves_fallback
+    _where_first = _where_first_fallback
+
+
+@jit()
+def _masked_sum(x, c):
+    return np.sum(x[c])
+
+
+@jit()
+def _masked_sum_power(x, c, t_power):
+    return np.sum(np.sign(x[c]) * np.abs(x[c]) ** t_power)
 
 
 def _get_clusters_spatial(s, neighbors):
@@ -29,29 +119,21 @@ def _get_clusters_spatial(s, neighbors):
     # s is a vector of spatial indices that are significant, like:
     #     s = np.where(x_in)[0]
     # for x_in representing a single time-instant
-    r = np.ones(s.shape, dtype=bool)
+    r = np.ones(s.shape, np.bool)
     clusters = list()
-    next_ind = 0 if s.size > 0 else None
-    while next_ind is not None:
+    next_ind = 0 if s.size > 0 else -1
+    while next_ind >= 0:
         # put first point in a cluster, adjust remaining
         t_inds = [next_ind]
-        r[next_ind] = False
+        r[next_ind] = 0
         icount = 1  # count of nodes in the current cluster
         while icount <= len(t_inds):
             ind = t_inds[icount - 1]
             # look across other vertices
-            buddies = np.where(r)[0]
-            buddies = buddies[np.in1d(s[buddies], neighbors[s[ind]],
-                                      assume_unique=True)]
-            t_inds += buddies.tolist()
-            r[buddies] = False
+            buddies = _get_buddies(r, s, neighbors[s[ind]])
+            t_inds.extend(buddies)
             icount += 1
-        # this is equivalent to np.where(r)[0] for these purposes, but it's
-        # a little bit faster. Unfortunately there's no way to tell numpy
-        # just to find the first instance (to save checking every one):
-        next_ind = np.argmax(r)
-        if next_ind == 0:
-            next_ind = None
+        next_ind = _where_first(r)
         clusters.append(s[t_inds])
     return clusters
 
@@ -137,39 +219,27 @@ def _get_clusters_st_multistep(keepers, neighbors, max_step=1):
 
     r = np.ones(t.shape, dtype=bool)
     clusters = list()
-    next_ind = 0
     inds = np.arange(t_border[0], t_border[n_times])
-    if s.size > 0:
-        while next_ind is not None:
-            # put first point in a cluster, adjust remaining
-            t_inds = [next_ind]
-            r[next_ind] = False
-            icount = 1  # count of nodes in the current cluster
-            # look for significant values at the next time point,
-            # same sensor, not placed yet, and add those
-            while icount <= len(t_inds):
-                ind = t_inds[icount - 1]
-                selves = inds[t_border[max(t[ind] - max_step, 0)]:
-                              t_border[min(t[ind] + max_step + 1, n_times)]]
-                selves = selves[r[selves]]
-                selves = selves[s[ind] == s[selves]]
+    next_ind = 0 if s.size > 0 else -1
+    while next_ind >= 0:
+        # put first point in a cluster, adjust remaining
+        t_inds = [next_ind]
+        r[next_ind] = False
+        icount = 1  # count of nodes in the current cluster
+        # look for significant values at the next time point,
+        # same sensor, not placed yet, and add those
+        while icount <= len(t_inds):
+            ind = t_inds[icount - 1]
+            selves = _get_selves(r, s, ind, inds, t, t_border, max_step)
 
-                # look at current time point across other vertices
-                buddies = inds[t_border[t[ind]]:t_border[t[ind] + 1]]
-                buddies = buddies[r[buddies]]
-                buddies = buddies[np.in1d(s[buddies], neighbors[s[ind]],
-                                          assume_unique=True)]
-                buddies = np.concatenate((selves, buddies))
-                t_inds += buddies.tolist()
-                r[buddies] = False
-                icount += 1
-            # this is equivalent to np.where(r)[0] for these purposes, but it's
-            # a little bit faster. Unfortunately there's no way to tell numpy
-            # just to find the first instance (to save checking every one):
-            next_ind = np.argmax(r)
-            if next_ind == 0:
-                next_ind = None
-            clusters.append(v[t_inds])
+            # look at current time point across other vertices
+            these_inds = inds[t_border[t[ind]]:t_border[t[ind] + 1]]
+            buddies = _get_buddies(r, s, neighbors[s[ind]], these_inds)
+
+            t_inds += buddies + selves
+            icount += 1
+        next_ind = _where_first(r)
+        clusters.append(v[t_inds])
 
     return clusters
 
@@ -252,7 +322,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
         threshold-free cluster enhancement.
     tail : -1 | 0 | 1
         Type of comparison
-    connectivity : sparse matrix in COO format, None, or list
+    connectivity : scipy.sparse.coo_matrix, None, or list
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         If connectivity is a list, it is assumed that each entry stores the
@@ -287,8 +357,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
         Sum of x values in clusters.
     """
     from scipy import ndimage
-    if tail not in [-1, 0, 1]:
-        raise ValueError('invalid tail parameter')
+    _check_option('tail', tail, [-1, 0, 1])
 
     x = np.asanyarray(x)
 
@@ -459,10 +528,9 @@ def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power, ndimage):
         else:
             raise ValueError('Connectivity must be a sparse matrix or list')
         if t_power == 1:
-            sums = np.array([np.sum(x[c]) for c in clusters])
+            sums = [_masked_sum(x, c) for c in clusters]
         else:
-            sums = np.array([np.sum(np.sign(x[c]) * np.abs(x[c]) ** t_power)
-                             for c in clusters])
+            sums = [_masked_sum_power(x, c, t_power) for c in clusters]
 
     return clusters, np.atleast_1d(sums)
 
@@ -489,8 +557,7 @@ def _pval_from_histogram(T, H0, tail):
     For each stat compute a p-value as percentile of its statistics
     within all statistics in surrogate data
     """
-    if tail not in [-1, 0, 1]:
-        raise ValueError('invalid tail parameter')
+    _check_option('tail', tail, [-1, 0, 1])
 
     # from pct to fraction
     if tail == -1:  # up tail
@@ -503,16 +570,22 @@ def _pval_from_histogram(T, H0, tail):
     return pval
 
 
-def _setup_connectivity(connectivity, n_vertices, n_times):
+def _setup_connectivity(connectivity, n_tests, n_times):
     if not sparse.issparse(connectivity):
-        raise ValueError("If connectivity matrix is given, it must be a"
-                         "scipy sparse matrix.")
-    if connectivity.shape[0] == n_vertices:  # use global algorithm
+        raise ValueError("If connectivity matrix is given, it must be a "
+                         "SciPy sparse matrix.")
+    if connectivity.shape[0] == n_tests:  # use global algorithm
         connectivity = connectivity.tocoo()
-        n_times = None
     else:  # use temporal adjacency algorithm
-        if not round(n_vertices / float(connectivity.shape[0])) == n_times:
-            raise ValueError('connectivity must be of the correct size')
+        got_times, mod = divmod(n_tests, connectivity.shape[0])
+        if got_times != n_times or mod != 0:
+            raise ValueError(
+                'connectivity (len %d) must be of the correct size, i.e. be '
+                'equal to or evenly divide the number of tests (%d).\n\n'
+                'If connectivity was computed for a source space, try using '
+                'the fwd["src"] or inv["src"] as some original source space '
+                'vertices can be excluded during forward computation'
+                % (connectivity.shape[0], n_tests))
         # we claim to only use upper triangular part... not true here
         connectivity = (connectivity + connectivity.transpose()).tocsr()
         connectivity = [connectivity.indices[connectivity.indptr[i]:
@@ -719,10 +792,10 @@ def _get_1samp_orders(n_samples, n_permutations, tail, rng):
         # to prevent positive/negative equivalent collisions
         use_samples = n_samples - (tail == 0)
         while ii < n_permutations - 1:
-            signs = tuple((rng.rand(use_samples) < 0.5).astype(int))
+            signs = tuple((rng.uniform(size=use_samples) < 0.5).astype(int))
             if signs not in hashes:
                 orders[ii, :use_samples] = signs
-                if tail == 0 and rng.rand() < 0.5:
+                if tail == 0 and rng.uniform() < 0.5:
                     # To undo the non-flipping of the last subject in the
                     # tail == 0 case, half the time we use the positive
                     # last subject, half the time negative last subject
@@ -743,13 +816,13 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     either a 1 sample t-test or an F test / more sample permutation scheme
     is elicited.
     """
-    if out_type not in ['mask', 'indices']:
-        raise ValueError('out_type must be either \'mask\' or \'indices\'')
-    if not isinstance(threshold, dict) and (tail < 0 and threshold > 0 or
-                                            tail > 0 and threshold < 0 or
-                                            tail == 0 and threshold < 0):
-        raise ValueError('incompatible tail and threshold signs, got %s and %s'
-                         % (tail, threshold))
+    _check_option('out_type', out_type, ['mask', 'indices'])
+    if not isinstance(threshold, dict):
+        threshold = float(threshold)
+        if (tail < 0 and threshold > 0 or tail > 0 and threshold < 0 or
+                tail == 0 and threshold < 0):
+            raise ValueError('incompatible tail and threshold signs, got '
+                             '%s and %s' % (tail, threshold))
 
     # check dimensions for each group in X (a list at this stage).
     X = [x[:, np.newaxis] if x.ndim == 1 else x for x in X]
@@ -994,15 +1067,13 @@ def permutation_cluster_test(
     stat_fun : callable | None
         Function called to calculate statistics, must accept 1d-arrays as
         arguments (default None uses :func:`mne.stats.f_oneway`).
-    connectivity : sparse matrix.
+    connectivity : scipy.sparse.spmatrix
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         Default is None, i.e, a regular lattice connectivity.
         Can also be False to assume no connectivity.
-    n_jobs : int
-        Number of permutations to run in parallel (requires joblib package).
-    seed : int | instance of RandomState | None
-        Seed the random number generator for results reproducibility.
+    %(n_jobs)s
+    %(seed)s
     max_step : int
         When connectivity is a n_vertices x n_vertices matrix, specify the
         maximum number of steps between vertices along the second dimension
@@ -1041,9 +1112,7 @@ def permutation_cluster_test(
         processes is enabled (see set_cache_dir()), as X will be shared
         between processes and each process only needs to allocate space
         for a small block of variables.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1104,21 +1173,17 @@ def permutation_cluster_1samp_test(
     stat_fun : callable | None
         Function used to compute the statistical map (default None will use
         :func:`mne.stats.ttest_1samp_no_p`).
-    connectivity : sparse matrix | None | False
+    connectivity : scipy.sparse.spmatrix | None | False
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         This matrix must be square with dimension (n_vertices * n_times) or
         (n_vertices). Default is None, i.e, a regular lattice connectivity.
         Use square n_vertices matrix for datasets with a large temporal
         extent to save on memory and computation time. Can also be False
-        to assume no connectivity. Can also be False to assume no connectivity.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-    n_jobs : int
-        Number of permutations to run in parallel (requires joblib package).
-    seed : int | instance of RandomState | None
-        Seed the random number generator for results reproducibility.
+        to assume no connectivity.
+    %(verbose)s
+    %(n_jobs)s
+    %(seed)s
     max_step : int
         When connectivity is a n_vertices x n_vertices matrix, specify the
         maximum number of steps between vertices along the second dimension
@@ -1182,8 +1247,7 @@ def permutation_cluster_1samp_test(
     mathematically equivalent to a paired t-test, internally this function
     computes a 1-sample t-test (by default) and uses sign flipping (always)
     to perform permutations. This might not be suitable for the case where
-    there is truly a single observation under test; see
-    :ref:`sphx_glr_auto_tutorials_plot_background_statistics.py`.
+    there is truly a single observation under test; see :ref:`disc-stats`.
 
     If ``n_permutations >= 2 ** (n_samples - (tail == 0))``,
     ``n_permutations`` and ``seed`` will be ignored since an exact test
@@ -1244,17 +1308,15 @@ def spatio_temporal_cluster_1samp_test(
     stat_fun : callable | None
         Function used to compute the statistical map (default None will use
         :func:`mne.stats.ttest_1samp_no_p`).
-    connectivity : sparse matrix or None
+    connectivity : scipy.sparse.spmatrix or None
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         This matrix must be square with dimension (n_vertices * n_times) or
         (n_vertices). Default is None, i.e, a regular lattice connectivity.
         Use square n_vertices matrix for datasets with a large temporal
         extent to save on memory and computation time.
-    n_jobs : int
-        Number of permutations to run in parallel (requires joblib package).
-    seed : int | instance of RandomState | None
-        Seed the random number generator for results reproducibility.
+    %(n_jobs)s
+    %(seed)s
     max_step : int
         When connectivity is a n_vertices x n_vertices matrix, specify the
         maximum number of steps between vertices along the second dimension
@@ -1291,9 +1353,7 @@ def spatio_temporal_cluster_1samp_test(
         processes is enabled (see set_cache_dir()), as X will be shared
         between processes and each process only needs to allocate space
         for a small block of variables.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -1361,17 +1421,13 @@ def spatio_temporal_cluster_test(
     stat_fun : callable | None
         Function called to calculate statistics, must accept 1d-arrays as
         arguments (default None uses :func:`mne.stats.f_oneway`).
-    connectivity : sparse matrix or None
+    connectivity : scipy.sparse.spmatrix or None
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         Default is None, i.e, a regular lattice connectivity.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-    n_jobs : int
-        Number of permutations to run in parallel (requires joblib package).
-    seed : int | instance of RandomState | None
-        Seed the random number generator for results reproducibility.
+    %(verbose)s
+    %(n_jobs)s
+    %(seed)s
     max_step : int
         When connectivity is a n_vertices x n_vertices matrix, specify the
         maximum number of steps between vertices along the second dimension
@@ -1533,7 +1589,7 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
         The time of the first sample.
     subject : str
         The name of the subject.
-    vertices : list of arrays | None
+    vertices : list of array | None
         The vertex numbers associated with the source space locations. Defaults
         to None. If None, equals ```[np.arange(10242), np.arange(10242)]```.
 

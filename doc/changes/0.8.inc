@@ -1,0 +1,194 @@
+.. _changes_0_8:
+
+Version 0.8
+-----------
+
+Changelog
+~~~~~~~~~
+
+- Add Python3 support by `Nick Ward`_, `Alex Gramfort`_, `Denis Engemann`_, and `Eric Larson`_
+
+- Add ``get_peak`` method for evoked and stc objects by  `Denis Engemann`_
+
+- Add ``iter_topography`` function for radically simplified custom sensor topography plotting by `Denis Engemann`_
+
+- Add field line interpolation by `Eric Larson`_
+
+- Add full provenance tacking for epochs and improve ``drop_log`` by `Tal Linzen`_, `Alex Gramfort`_ and `Denis Engemann`_
+
+- Add systematic contains method to ``Raw``, ``Epochs`` and ``Evoked`` for channel type membership testing by `Denis Engemann`_
+
+- Add fiff unicode writing and reading support by `Denis Engemann`_
+
+- Add 3D MEG/EEG field plotting function and evoked method by `Denis Engemann`_ and  `Alex Gramfort`_
+
+- Add consistent channel-dropping methods to ``Raw``, ``Epochs`` and ``Evoked`` by `Denis Engemann`_ and  `Alex Gramfort`_
+
+- Add ``equalize_channnels`` function to set common channels for a list of ``Raw``, ``Epochs``, or ``Evoked`` objects by `Denis Engemann`_
+
+- Add ``plot_events`` function to visually display paradigm by `Alex Gramfort`_
+
+- Improved connectivity circle plot by `Martin Luessi`_
+
+- Add ability to anonymize measurement info by `Eric Larson`_
+
+- Add callback to connectivity circle plot to isolate connections to clicked nodes `Roan LaPlante`_
+
+- Add ability to add patch information to source spaces by `Eric Larson`_
+
+- Add ``split_label`` function to divide labels into multiple parts by `Christian Brodbeck`_
+
+- Add ``color`` attribute to ``Label`` objects by `Christian Brodbeck`_
+
+- Add ``max`` mode for ``extract_label_time_course`` by `Mads Jensen`_
+
+- Add ``rename_channels`` function to change channel names and types in info object by `Dan Wakeman`_ and `Denis Engemann`_
+
+- Add  ``compute_ems`` function to extract the time course of experimental effects by `Denis Engemann`_, `Sébastien Marti`_ and `Alex Gramfort`_
+
+- Add option to expand Labels defined in a source space to the original surface (``Label.fill()``) by `Christian Brodbeck`_
+
+- GUIs can be invoked form the command line using `$ mne coreg` and `$ mne kit2fiff` by `Christian Brodbeck`_
+
+- Add ``add_channels_epochs`` function to combine different recordings at the Epochs level by `Christian Brodbeck`_ and `Denis Engemann`_
+
+- Add support for EGI Netstation simple binary files by `Denis Engemann`_
+
+- Add support for treating arbitrary data (numpy ndarray) as a Raw instance by `Eric Larson`_
+
+- Support for parsing the EDF+ annotation channel by `Martin Billinger`_
+
+- Add EpochsArray constructor for creating epochs from numpy arrays by `Denis Engemann`_ and `Federico Raimondo`_
+
+- Add connector to FieldTrip realtime client by `Mainak Jas`_
+
+- Add color and event_id with legend options in plot_events in viz.py by `Cathy Nangini`_
+
+- Add ``events_list`` parameter to ``mne.concatenate_raws`` to concatenate events corresponding to runs by `Denis Engemann`_
+
+- Add ``read_ch_connectivity`` function to read FieldTrip neighbor template .mat files and obtain sensor adjacency matrices by `Denis Engemann`_
+
+- Add display of head in helmet from -trans.fif file to check coregistration quality by `Mainak Jas`_
+
+- Add ``raw.add_events`` to allow adding events to a raw file by `Eric Larson`_
+
+- Add ``plot_image`` method to Evoked object to display data as images by `Jean-Remi King`_ and `Alex Gramfort`_ and `Denis Engemann`_
+
+- Add BCI demo with CSP on motor imagery by `Martin Billinger`_
+
+- New ICA API with unified methods for processing ``Raw``, ``Epochs`` and ``Evoked`` objects by `Denis Engemann`_
+
+- Apply ICA at the evoked stage by `Denis Engemann`_
+
+- New ICA methods for visualizing unmixing quality, artifact detection and rejection by `Denis Engemann`_
+
+- Add ``pick_channels`` and ``drop_channels`` mixin class to pick and drop channels from ``Raw``, ``Epochs``, and ``Evoked`` objects by `Andrew Dykstra`_ and `Denis Engemann`_
+
+- Add ``EvokedArray`` class to create an Evoked object from an array by `Andrew Dykstra`_
+
+- Add ``plot_bem`` method to visualize BEM contours on MRI anatomical images by `Mainak Jas`_ and `Alex Gramfort`_
+
+- Add automated ECG detection using cross-trial phase statistics by `Denis Engemann`_ and `Juergen Dammers`_
+
+- Add Forward class to succintly display gain matrix info by `Andrew Dykstra`_
+
+- Add reading and writing of split raw files by `Martin Luessi`_
+
+- Add OLS regression function by `Tal Linzen`_, `Teon Brooks`_ and `Denis Engemann`_
+
+- Add computation of point spread and cross-talk functions for MNE type solutions by `Alex Gramfort`_ and `Olaf Hauk`_
+
+- Add mask parameter to `plot_evoked_topomap` and ``evoked.plot_topomap`` by `Denis Engemann`_ and `Alex Gramfort`_
+
+- Add infomax and extended infomax ICA by `Denis Engemann`_, `Juergen Dammers`_ and `Lukas Breuer`_ and `Federico Raimondo`_
+
+- Aesthetically redesign interpolated topography plots by `Denis Engemann`_ and `Alex Gramfort`_
+
+- Simplify sensor space time-frequency analysis API with ``tfr_morlet`` function by `Alex Gramfort`_ and `Denis Engemann`_
+
+- Add new somatosensory MEG dataset with nice time-frequency content by `Alex Gramfort`_
+
+- Add HDF5 write/read support for SourceEstimates by `Eric Larson`_
+
+- Add InverseOperator class to display inverse operator info by `Mainak Jas`_
+
+- Add `$ mne report` command to generate html reports of MEG/EEG data analysis pipelines by `Mainak Jas`_, `Alex Gramfort`_ and `Denis Engemann`_
+
+- Improve ICA verbosity with regard to rank reduction by `Denis Engemann`_
+
+BUG
+~~~
+
+- Fix incorrect ``times`` attribute when stc was computed using ``apply_inverse`` after decimation at epochs stage for certain, arbitrary sample frequencies by `Denis Engemann`_
+
+- Fix corner case error for step-down-in-jumps permutation test (when step-down threshold was high enough to include all clusters) by `Eric Larson`_
+
+- Fix selection of total number of components via float when picking ICA sources by `Denis Engemann`_ and `Qunxi Dong`_
+
+- Fix writing and reading transforms after modification in measurement info by `Denis Engemann`_ and `Martin Luessi`_ and `Eric Larson`_
+
+- Fix pre-whitening / rescaling when estimating ICA on multiple channels without covariance by `Denis Engemann`_
+
+- Fix ICA pre-whitening, avoid recomputation when applying ICA to new data by `Denis Engemann`_
+
+API
+~~~
+
+- The minimum numpy version has been increased to 1.6 from 1.4.
+
+- Epochs object now has a selection attribute to track provenance of selected Epochs. The length of the drop_log attribute is now the same as the length of the original events passed to Epochs. In earlier versions it had the length of the events filtered by event_id. Epochs has also now a plot_drop_log method.
+
+- Deprecate Epochs.drop_picks in favor of a new method called drop_channels
+
+- Deprecate ``labels_from_parc`` and ``parc_from_labels`` in favor of ``read_labels_from_annot`` and ``write_labels_to_annot``
+
+- The default of the new add_dist option of ``setup_source_space`` to add patch information will change from False to True in MNE-Python 0.9
+
+- Deprecate ``read_evoked`` and ``write_evoked`` in favor of ``read_evokeds`` and ``write_evokeds``. read_evokeds will return all `Evoked` instances in a file by default.
+
+- Deprecate ``setno`` in favor of ``condition`` in the initialization of an Evoked instance. This affects ``mne.fiff.Evoked`` and ``read_evokeds``, but not ``read_evoked``.
+
+- Deprecate ``mne.fiff`` module, use ``mne.io`` instead e.g. ``mne.io.Raw`` instead of ``mne.fiff.Raw``.
+
+- Pick functions (e.g., ``pick_types``) are now in the mne namespace (e.g. use ``mne.pick_types``).
+
+- Deprecated ICA methods specific to one container type. Use ICA.fit, ICA.get_sources ICA.apply and ``ICA.plot_*`` for processing Raw, Epochs and Evoked objects.
+
+- The default smoothing method for ``mne.stc_to_label`` will change in v0.9, and the old method is deprecated.
+
+- As default, for ICA the maximum number of PCA components equals the number of channels passed. The number of PCA components used to reconstruct the sensor space signals now defaults to the maximum number of PCA components estimated.
+
+Authors
+~~~~~~~
+
+The committer list for this release is the following (preceded by number of commits):
+
+* 418  Denis A. Engemann
+* 284  Alexandre Gramfort
+* 242  Eric Larson
+* 155  Christian Brodbeck
+* 144  Mainak Jas
+* 49  Martin Billinger
+* 49  Andrew Dykstra
+* 44  Tal Linzen
+* 37  Dan G. Wakeman
+* 36  Martin Luessi
+* 26  Teon Brooks
+* 20  Cathy Nangini
+* 15  Hari Bharadwaj
+* 15  Roman Goj
+* 10  Ross Maddox
+* 9  Marmaduke Woodman
+* 8  Praveen Sripad
+* 8  Tanay
+* 8  Roan LaPlante
+* 5  Saket Choudhary
+* 4  Nick Ward
+* 4  Mads Jensen
+* 3  Olaf Hauk
+* 3  Brad Buran
+* 2  Daniel Strohmeier
+* 2  Federico Raimondo
+* 2  Alan Leggitt
+* 1  Jean-Remi King
+* 1  Matti Hämäläinen
