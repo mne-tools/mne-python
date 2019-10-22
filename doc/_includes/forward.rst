@@ -729,5 +729,5 @@ the electrode locations do not change.
 
 References
 ~~~~~~~~~~
-.. footbibliography:: ../references.bib
-   :style: unsrt
+
+.. footbibliography::

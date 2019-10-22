@@ -73,5 +73,5 @@ and the bad channel will be fixed.
 
 References
 ~~~~~~~~~~
-.. footbibliography:: ../references.bib
-   :style: unsrt
+
+.. footbibliography::

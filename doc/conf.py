@@ -68,7 +68,7 @@ extensions = [
     'sphinx_bootstrap_theme',
     'sphinx_bootstrap_divs',
     'sphinxcontrib.bibtex',
-    'sphinxcontrib.footbib',
+    'sphinxcontrib.bibtex2',
 ]
 
 linkcheck_ignore = [
@@ -329,6 +329,14 @@ intersphinx_mapping = {
     'mne_realtime': ('https://mne.tools/mne-realtime', None),
     'picard': ('https://pierreablin.github.io/picard/', None),
 }
+
+
+##############################################################################
+# sphinxcontrib-bibtex
+
+bibtex_bibfiles = ['./references.bib']
+bibtex_style = 'unsrt'
+bibtex_footbibliography_header = ''
 
 ##############################################################################
 # sphinx-gallery

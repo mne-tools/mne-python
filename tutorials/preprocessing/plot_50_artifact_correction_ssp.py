@@ -406,5 +406,4 @@ for title in ('Without', 'With'):
 # References
 # ^^^^^^^^^^
 #
-# .. footbibliography:: ../../references.bib
-#    :style: unsrt
+# .. footbibliography::

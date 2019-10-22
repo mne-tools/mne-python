@@ -473,8 +473,7 @@ for data, title in zip([mags, mags_ecg], ['Without', 'With']):
 # References
 # ^^^^^^^^^^
 #
-# .. footbibliography:: ../../references.bib
-#    :style: unsrt
+# .. footbibliography::
 #
 #
 # .. LINKS

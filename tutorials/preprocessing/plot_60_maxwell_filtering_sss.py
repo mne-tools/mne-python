@@ -221,8 +221,8 @@ mne.viz.plot_head_positions(head_pos, mode='traces')
 # References
 # ^^^^^^^^^^
 #
-# .. footbibliography:: ../../references.bib
-#    :style: unsrt
+# .. footbibliography::
+#
 #
 # .. LINKS
 #

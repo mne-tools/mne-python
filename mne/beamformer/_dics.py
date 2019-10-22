@@ -168,7 +168,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
 
     References
     ----------
-    .. footbibliography:: ../references.bib
+    .. footbibliography::
     """  # noqa: E501
     rank = _check_rank(rank)
     _check_option('pick_ori', pick_ori, [None, 'normal', 'max-power'])
@@ -444,7 +444,7 @@ def apply_dics_csd(csd, filters, verbose=None):
 
     References
     ----------
-    .. footbibliography:: ../references.bib
+    .. footbibliography::
     """  # noqa: E501
     ch_names = filters['ch_names']
     vertices = filters['vertices']
@@ -639,7 +639,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
 
     References
     ----------
-    .. footbibliography:: ../references.bib
+    .. footbibliography::
     """
     _check_reference(epochs)
     rank = _check_rank(rank)

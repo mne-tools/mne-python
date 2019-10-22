@@ -131,5 +131,4 @@ Morphing and averaging source estimates
 
 References
 ^^^^^^^^^^
-.. footbibliography:: ../references.bib
-   :style: unsrt
+.. footbibliography::

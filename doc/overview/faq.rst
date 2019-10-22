@@ -349,7 +349,8 @@ compared::
 This will plot the whitened evoked for the optimal estimator and display the
 :term:`GFPs <GFP>` for all estimators as separate lines in the related panel.
 
+
 References
 ----------
-.. footbibliography:: ../references.bib
-   :style: unsrt
+
+.. footbibliography::
