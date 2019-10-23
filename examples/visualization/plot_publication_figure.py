@@ -49,7 +49,7 @@ stc.plot(views='lat', hemi='split', size=(800, 400), subject='sample',
 ###############################################################################
 # To make a publication-ready figure, first we'll re-plot the brain on a white
 # background, take a screenshot of it, and then crop out the white margins.
-# While we're at it, let's change the colormap, set custom colormap limits, and
+# While we're at it, let's change the colormap, set custom colormap limits and
 # remove the default colorbar (so we can add a smaller, vertical one later):
 
 colormap = 'viridis'
