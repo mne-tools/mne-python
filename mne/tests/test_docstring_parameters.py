@@ -43,14 +43,12 @@ public_modules = [
 ]
 
 
-def get_name(func, cls=None):
+def get_name(func):
     """Get the name."""
     parts = []
     module = inspect.getmodule(func)
     if module:
         parts.append(module.__name__)
-    if cls is not None:
-        parts.append(cls.__name__)
     parts.append(func.__name__)
     return '.'.join(parts)
 
@@ -84,10 +82,10 @@ error_ignores = (
 )
 
 
-def check_parameters_match(func, doc=None, cls=None):
+def check_parameters_match(func):
     """Check docstring, return list of incorrect results."""
     from numpydoc.validate import validate
-    name_ = get_name(func, cls=cls)
+    name_ = get_name(func)
     skip = (not name_.startswith('mne.') or
             any(re.match(d, name_) for d in docstring_ignores) or
             'deprecation_wrapped' in getattr(
