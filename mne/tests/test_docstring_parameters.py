@@ -73,7 +73,6 @@ error_ignores = (
     'SA01',  # no see also
     'YD01',  # no yields section
     'SA04',  # no description in See Also
-    'GL02',  # Closing quotes should be placed in the line after (NumpyDoc bug)
     'PR04',  # Parameter "shape (n_channels" has no type
     'RT02',  # The first line of the Returns section should contain only the type, unless multiple values are being returned  # noqa
     # XXX but these we should fix eventually:
