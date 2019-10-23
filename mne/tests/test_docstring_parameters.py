@@ -72,14 +72,13 @@ error_ignores = (
     'ES01',  # no extended summary
     'SA01',  # no see also
     'YD01',  # no yields section
-    'SA02',  # missing period at the end of See Also description
     'SA04',  # no description in See Also
     'SS02',  # Summary does not start with a capital letter (NumpyDoc bug)
     'GL02',  # Closing quotes should be placed in the line after (NumpyDoc bug)
     'PR04',  # Parameter "shape (n_channels" has no type
     'RT02',  # The first line of the Returns section should contain only the type, unless multiple values are being returned  # noqa
     # XXX but these we should fix eventually:
-    'PR06',  # Parameter "subject" type should use "str" instead of "string"
+    'PR06',  # Parameter type should use "str" instead of "string"
     'PR08',  # Parameter description should start with a capital letter
     'PR09',  # Parameter description should finish with "."
     'RT04',  # Return value description should start with a capital letter

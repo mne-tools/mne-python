@@ -992,7 +992,7 @@ class AcqParserFIF(object):
 
     See Also
     --------
-    mne.io.Raw.acqparser : Access the parser through a Raw attribute
+    mne.io.Raw.acqparser : Access the parser through a Raw attribute.
 
     Notes
     -----

@@ -494,7 +494,7 @@ def read_csd(fname):
 
     See Also
     --------
-    CrossSpectralDensity.save : For saving CSD objects
+    CrossSpectralDensity.save : For saving CSD objects.
     """
     if not fname.endswith('.h5'):
         fname += '.h5'
@@ -1251,7 +1251,7 @@ def _csd_morlet(data, sfreq, wavelets, tslice=None, use_fft=True, decim=1):
 
     See Also
     --------
-    _vector_to_sym_mat : For converting the CSD to a full matrix
+    _vector_to_sym_mat : For converting the CSD to a full matrix.
     """
     # Compute PSD
     psds = cwt(data, wavelets, use_fft=use_fft, decim=decim)

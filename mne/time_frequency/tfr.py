@@ -584,7 +584,7 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
     See Also
     --------
     mne.time_frequency.tfr_morlet : Compute time-frequency decomposition
-                                    with Morlet wavelets
+                                    with Morlet wavelets.
     """
     decim = _check_decim(decim)
     n_signals, n_times = X[:, decim].shape

@@ -810,8 +810,8 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
 
     See Also
     --------
-    apply_inverse_raw : Apply inverse operator to raw object
-    apply_inverse_epochs : Apply inverse operator to epochs object
+    apply_inverse_raw : Apply inverse operator to raw object.
+    apply_inverse_epochs : Apply inverse operator to epochs object.
 
     Notes
     -----
@@ -994,8 +994,8 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
     See Also
     --------
-    apply_inverse_epochs : Apply inverse operator to epochs object
-    apply_inverse : Apply inverse operator to evoked object
+    apply_inverse_epochs : Apply inverse operator to epochs object.
+    apply_inverse : Apply inverse operator to evoked object.
     """
     _check_reference(raw, inverse_operator['info']['ch_names'])
     _check_option('method', method, INVERSE_METHODS)
@@ -1192,8 +1192,8 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
 
     See Also
     --------
-    apply_inverse_raw : Apply inverse operator to raw object
-    apply_inverse : Apply inverse operator to evoked object
+    apply_inverse_raw : Apply inverse operator to raw object.
+    apply_inverse : Apply inverse operator to evoked object.
     """
     stcs = _apply_inverse_epochs_gen(
         epochs, inverse_operator, lambda2, method=method, label=label,

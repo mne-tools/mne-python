@@ -410,7 +410,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
 
     See Also
     --------
-    compute_covariance : Estimate noise covariance matrix from epochs
+    compute_covariance : Estimate noise covariance matrix from epochs.
 
     Notes
     -----
@@ -656,7 +656,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     See Also
     --------
-    compute_raw_covariance : Estimate noise covariance from raw data
+    compute_raw_covariance : Estimate noise covariance from raw data.
 
     Notes
     -----
