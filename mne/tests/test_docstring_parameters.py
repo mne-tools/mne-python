@@ -73,6 +73,8 @@ error_ignores = (
     'PR09',  # Parameter description should finish with "."
     'RT04',  # Return value description should start with a capital letter
     'RT05',  # Return value description should finish with "."
+    # XXX should also verify that | is used rather than , to separate params
+    # XXX should maybe also restore the parameter-desc-length < 800 char check
 )
 
 
