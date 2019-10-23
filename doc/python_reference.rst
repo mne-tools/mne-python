@@ -361,6 +361,7 @@ Projections:
    run_ica
    corrmap
    optical_density
+   beer_lambert_law
 
 EEG referencing:
 

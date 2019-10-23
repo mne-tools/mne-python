@@ -40,6 +40,10 @@ Changelog
 
 - Add reader for NIRx data in :func:`mne.io.read_raw_nirx` by `Robert Luke`_
 
+- Add function to convert NIRS data to optical density :func:`mne.preprocessing.optical_density` by `Robert Luke`_
+
+- Add function to convert NIRS data to haemoglobin concentration :func:`mne.preprocessing.beer_lambert_law` by `Robert Luke`_
+
 - Add reader for ``*.dat`` electrode position files :func:`mne.channels.read_dig_dat` by `Christian Brodbeck`_
 
 - Improved :ref:`limo-dataset` usage and :ref:`example <ex-limo-data>` for usage of :func:`mne.stats.linear_regression` by `Jose Alanis`_
