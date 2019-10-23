@@ -13,7 +13,7 @@ from mne.inverse_sparse.mxne_optim import (mixed_norm_solver,
                                            iterative_mixed_norm_solver,
                                            norm_epsilon_inf, norm_epsilon,
                                            _Phi, _PhiT, dgap_l21l1)
-from mne.time_frequency.stft import stft_norm2
+from mne.time_frequency._stft import stft_norm2
 
 
 def _generate_tf_data():
