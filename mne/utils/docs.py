@@ -100,7 +100,6 @@ filter_length : str | int
       ``phase="zero-double"``.
     * **int**: Specified length in samples. For fir_design="firwin",
       this should not be used.
-
 """
 docdict['l_trans_bandwidth'] = """
 l_trans_bandwidth : float | str
@@ -571,6 +570,12 @@ def copy_function_doc_to_method_doc(source):
     wrapper : function
         The decorated method
 
+    Notes
+    -----
+    The parsing performed is very basic and will break easily on docstrings
+    that are not formatted exactly according to the ``numpydoc`` standard.
+    Always inspect the resulting docstring when using this decorator.
+
     Examples
     --------
     >>> def plot_function(object, a, b):
@@ -610,12 +615,6 @@ def copy_function_doc_to_method_doc(source):
             -----
             .. versionadded:: 0.13.0
     <BLANKLINE>
-
-    Notes
-    -----
-    The parsing performed is very basic and will break easily on docstrings
-    that are not formatted exactly according to the ``numpydoc`` standard.
-    Always inspect the resulting docstring when using this decorator.
     """
     def wrapper(func):
         doc = source.__doc__.split('\n')

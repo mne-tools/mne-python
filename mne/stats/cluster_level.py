@@ -1105,7 +1105,7 @@ def permutation_cluster_test(
         determine of it can be separated into disjoint sets. In some cases
         (usually with connectivity as a list and many "time" points), this
         can lead to faster clustering, but results should be identical.
-    buffer_size: int or None
+    buffer_size : int or None
         The statistics will be computed for blocks of variables of size
         "buffer_size" at a time. This is option significantly reduces the
         memory requirements when n_jobs > 1 and memory sharing between
@@ -1215,7 +1215,7 @@ def permutation_cluster_1samp_test(
         determine of it can be separated into disjoint sets. In some cases
         (usually with connectivity as a list and many "time" points), this
         can lead to faster clustering, but results should be identical.
-    buffer_size: int or None
+    buffer_size : int or None
         The statistics will be computed for blocks of variables of size
         "buffer_size" at a time. This is option significantly reduces the
         memory requirements when n_jobs > 1 and memory sharing between
@@ -1346,7 +1346,7 @@ def spatio_temporal_cluster_1samp_test(
         determine of it can be separated into disjoint sets. In some cases
         (usually with connectivity as a list and many "time" points), this
         can lead to faster clustering, but results should be identical.
-    buffer_size: int or None
+    buffer_size : int or None
         The statistics will be computed for blocks of variables of size
         "buffer_size" at a time. This is option significantly reduces the
         memory requirements when n_jobs > 1 and memory sharing between
@@ -1404,7 +1404,7 @@ def spatio_temporal_cluster_test(
 
     Parameters
     ----------
-    X: list of arrays
+    X : list of array
         List of data arrays, shape ``(n_observations, n_times, n_vertices)``
         in each group.
     threshold : float | dict | None
@@ -1414,7 +1414,7 @@ def spatio_temporal_cluster_test(
         cluster enhancement (TFCE) will be used, and it must have keys
         ``'start'`` and ``'step'`` to specify the integration parameters,
         see the :ref:`TFCE example <tfce_example>`.
-    n_permutations: int
+    n_permutations : int
         See permutation_cluster_test.
     tail : -1 or 0 or 1 (default = 0)
         See permutation_cluster_test.
@@ -1457,7 +1457,7 @@ def spatio_temporal_cluster_test(
         determine of it can be separated into disjoint sets. In some cases
         (usually with connectivity as a list and many "time" points), this
         can lead to faster clustering, but results should be identical.
-    buffer_size: int or None
+    buffer_size : int or None
         The statistics will be computed for blocks of variables of size
         "buffer_size" at a time. This is option significantly reduces the
         memory requirements when n_jobs > 1 and memory sharing between

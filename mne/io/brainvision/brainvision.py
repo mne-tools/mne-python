@@ -812,7 +812,6 @@ def read_raw_brainvision(vhdr_fname,
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
-
     """
     return RawBrainVision(vhdr_fname=vhdr_fname, eog=eog,
                           misc=misc, scale=scale, preload=preload,

@@ -62,6 +62,12 @@ class RawEDF(BaseRaw):
     %(preload)s
     %(verbose)s
 
+    See Also
+    --------
+    mne.io.Raw : Documentation of attributes and methods.
+    mne.io.read_raw_edf : Recommended way to read EDF/EDF+ files.
+    mne.io.read_raw_bdf : Recommended way to read BDF files.
+
     Notes
     -----
     Biosemi devices trigger codes are encoded in 16-bit format, whereas system
@@ -98,12 +104,6 @@ class RawEDF(BaseRaw):
     If channels named 'status' or 'trigger' are present, they are considered as
     STIM channels by default. Use func:`mne.find_events` to parse events
     encoded in such analog stim channels.
-
-    See Also
-    --------
-    mne.io.Raw : Documentation of attributes and methods.
-    mne.io.read_raw_edf : Recommended way to read EDF/EDF+ files.
-    mne.io.read_raw_bdf : Recommended way to read BDF files.
     """
 
     @verbose
@@ -169,16 +169,16 @@ class RawGDF(BaseRaw):
     %(preload)s
     %(verbose)s
 
+    See Also
+    --------
+    mne.io.Raw : Documentation of attributes and methods.
+    mne.io.read_raw_gdf : Recommended way to read GDF files.
+
     Notes
     -----
     If channels named 'status' or 'trigger' are present, they are considered as
     STIM channels by default. Use func:`mne.find_events` to parse events
     encoded in such analog stim channels.
-
-    See Also
-    --------
-    mne.io.Raw : Documentation of attributes and methods.
-    mne.io.read_raw_gdf : Recommended way to read GDF files.
     """
 
     @verbose
@@ -1132,6 +1132,16 @@ def read_raw_edf(input_fname, eog=None, misc=None,
     %(preload)s
     %(verbose)s
 
+    Returns
+    -------
+    raw : instance of RawEDF
+        The raw instance.
+
+    See Also
+    --------
+    mne.io.read_raw_bdf : Reader function for BDF files.
+    mne.io.read_raw_gdf : Reader function for GDF files.
+
     Notes
     -----
     It is worth noting that in some special cases, it may be necessary to shift
@@ -1148,11 +1158,6 @@ def read_raw_edf(input_fname, eog=None, misc=None,
     If channels named 'status' or 'trigger' are present, they are considered as
     STIM channels by default. Use func:`mne.find_events` to parse events
     encoded in such analog stim channels.
-
-    See Also
-    --------
-    mne.io.read_raw_bdf : Reader function for BDF files.
-    mne.io.read_raw_gdf : Reader function for GDF files.
     """
     input_fname = os.path.abspath(input_fname)
     ext = os.path.splitext(input_fname)[1][1:].lower()
@@ -1209,6 +1214,16 @@ def read_raw_bdf(input_fname, eog=None, misc=None,
     %(preload)s
     %(verbose)s
 
+    Returns
+    -------
+    raw : instance of RawEDF
+        The raw instance.
+
+    See Also
+    --------
+    mne.io.read_raw_edf : Reader function for EDF and EDF+ files.
+    mne.io.read_raw_gdf : Reader function for GDF files.
+
     Notes
     -----
     Biosemi devices trigger codes are encoded in 16-bit format, whereas system
@@ -1244,11 +1259,6 @@ def read_raw_bdf(input_fname, eog=None, misc=None,
     If channels named 'status' or 'trigger' are present, they are considered as
     STIM channels by default. Use func:`mne.find_events` to parse events
     encoded in such analog stim channels.
-
-    See Also
-    --------
-    mne.io.read_raw_edf : Reader function for EDF and EDF+ files.
-    mne.io.read_raw_gdf : Reader function for GDF files.
     """
     input_fname = os.path.abspath(input_fname)
     ext = os.path.splitext(input_fname)[1][1:].lower()
@@ -1288,16 +1298,21 @@ def read_raw_gdf(input_fname, eog=None, misc=None,
     %(preload)s
     %(verbose)s
 
-    Notes
-    -----
-    If channels named 'status' or 'trigger' are present, they are considered as
-    STIM channels by default. Use func:`mne.find_events` to parse events
-    encoded in such analog stim channels.
+    Returns
+    -------
+    raw : instance of RawGDF
+        The raw instance.
 
     See Also
     --------
     mne.io.read_raw_edf : Reader function for EDF and EDF+ files.
     mne.io.read_raw_bdf : Reader function for BDF files.
+
+    Notes
+    -----
+    If channels named 'status' or 'trigger' are present, they are considered as
+    STIM channels by default. Use func:`mne.find_events` to parse events
+    encoded in such analog stim channels.
     """
     input_fname = os.path.abspath(input_fname)
     ext = os.path.splitext(input_fname)[1][1:].lower()

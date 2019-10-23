@@ -26,9 +26,9 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='n_jobs',
 
     Parameters
     ----------
-    func: callable
+    func : callable
         A function
-    n_jobs: int
+    n_jobs : int
         Number of jobs to run in parallel
     max_nbytes : int, str, or None
         Threshold on the minimum size of arrays passed to the workers that

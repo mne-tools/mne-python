@@ -836,7 +836,7 @@ def csd_morlet(epochs, frequencies, tmin=None, tmax=None, picks=None,
         Maximum time instant to consider, in seconds. If ``None`` end at last
         sample.
     %(picks_good_data_noref)s
-    n_cycles: float | list of float | None
+    n_cycles : float | list of float | None
         Number of cycles to use when constructing Morlet wavelets. Fixed number
         or one per frequency. Defaults to 7.
     use_fft : bool
@@ -903,7 +903,7 @@ def csd_array_morlet(X, sfreq, frequencies, t0=0, tmin=None, tmax=None,
     ch_names : list of str | None
         A name for each time series. If ``None`` (the default), the series will
         be named 'SERIES###'.
-    n_cycles: float | list of float | None
+    n_cycles : float | list of float | None
         Number of cycles to use when constructing Morlet wavelets. Fixed number
         or one per frequency. Defaults to 7.
     use_fft : bool

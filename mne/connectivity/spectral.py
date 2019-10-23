@@ -615,7 +615,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         bandwidth. Only used in 'multitaper' mode.
     cwt_freqs : array
         Array of frequencies of interest. Only used in 'cwt_morlet' mode.
-    cwt_n_cycles: float | array of float
+    cwt_n_cycles : float | array of float
         Number of cycles. Fixed number or one per frequency. Only used in
         'cwt_morlet' mode.
     block_size : int
@@ -720,7 +720,6 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                       E[|Im(Sxy)|]
 
         'wpli2_debiased' : Debiased estimator of squared WPLI [6]_.
-
 
     References
     ----------

@@ -81,7 +81,7 @@ class Scaler(TransformerMixin, BaseEstimator):
     info : instance of Info | None
         The measurement info. Only necessary if ``scalings`` is a dict or
         None.
-    scalings : dict, string, default None.
+    scalings : dict, string, default None
         Scaling method to be applied to data channel wise.
 
         * if scalings is None (default), scales mag by 1e15, grad by 1e13,
@@ -224,15 +224,15 @@ class Vectorizer(TransformerMixin):
     This class reshapes an n-dimensional array into an n_samples * n_features
     array, usable by the estimators and transformers of scikit-learn.
 
-    Examples
-    --------
-    clf = make_pipeline(SpatialFilter(), _XdawnTransformer(), Vectorizer(),
-                        LogisticRegression())
-
     Attributes
     ----------
     features_shape_ : tuple
          Stores the original shape of data.
+
+    Examples
+    --------
+    clf = make_pipeline(SpatialFilter(), _XdawnTransformer(), Vectorizer(),
+                        LogisticRegression())
     """
 
     def fit(self, X, y=None):

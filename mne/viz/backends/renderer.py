@@ -92,7 +92,6 @@ def set_3d_backend(backend_name):
        +--------------------------------------+--------+---------+
        | Exports to movie/GIF                 |        |         |
        +--------------------------------------+--------+---------+
-
     """
     _check_option('backend_name', backend_name, VALID_3D_BACKENDS)
     global MNE_3D_BACKEND
@@ -149,15 +148,15 @@ def set_3d_view(figure, azimuth=None, elevation=None,
 
     Parameters
     ----------
-    figure:
+    figure : object
         The scene which is modified.
-    azimuth: float
+    azimuth : float
         The azimuthal angle of the view.
-    elevation: float
+    elevation : float
         The zenith angle of the view.
-    focalpoint: tuple, shape (3,)
+    focalpoint : tuple, shape (3,)
         The focal point of the view: (x, y, z).
-    distance: float
+    distance : float
         The distance to the focal point.
     """
     _mod._set_3d_view(figure=figure, azimuth=azimuth,
@@ -170,11 +169,11 @@ def set_3d_title(figure, title, size=40):
 
     Parameters
     ----------
-    figure:
+    figure : object
         The scene which is modified.
-    title:
+    title : str
         The title of the scene.
-    size: int
+    size : int
         The size of the title.
     """
     _mod._set_3d_title(figure=figure, title=title, size=size)
@@ -185,16 +184,16 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), handle=None):
 
     Parameters
     ----------
-    size: tuple
+    size : tuple
         The dimensions of the 3d figure (width, height).
-    bgcolor: tuple
+    bgcolor : tuple
         The color of the background.
-    handle: int | None
+    handle : int | None
         The figure identifier.
 
     Returns
     -------
-    figure:
+    figure : object
         The requested empty scene.
     """
     renderer = _mod._Renderer(fig=handle, size=size, bgcolor=bgcolor)

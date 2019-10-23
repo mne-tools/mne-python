@@ -10,7 +10,7 @@ from scipy import linalg
 
 from .mxne_debiasing import compute_bias
 from ..utils import logger, verbose, sum_squared, warn, dgemm
-from ..time_frequency.stft import stft_norm1, stft_norm2, stft, istft
+from ..time_frequency._stft import stft_norm1, stft_norm2, stft, istft
 
 
 def groups_norm2(A, n_orient):

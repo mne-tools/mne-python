@@ -891,7 +891,6 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
         * Fs1 = Fp1 - l_trans_bandwidth in Hz
         * Fs2 = Fp2 + h_trans_bandwidth in Hz
 
-
     **Band-stop filter**
 
     The frequency response is (approximately) given by::

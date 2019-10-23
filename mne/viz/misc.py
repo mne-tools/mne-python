@@ -44,7 +44,7 @@ def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
     ----------
     cov : instance of Covariance
         The covariance matrix.
-    info: dict
+    info : dict
         Measurement info.
     exclude : list of string | str
         List of channels to exclude. If empty do not exclude any channel.
@@ -199,6 +199,11 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
         If true, a colorbar will be added to the plot.
     show : bool
         Show figure if True.
+
+    Returns
+    -------
+    fig : instance of Figure
+        The figure.
     """
     import matplotlib.pyplot as plt
 
@@ -612,7 +617,7 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True):
     ----------
     dipoles : list of instance of Dipole
         The dipoles whose amplitudes should be shown.
-    colors: list of color | None
+    colors : list of color | None
         Color to plot with each dipole. If None default colors are used.
     show : bool
         Show figure if True.
@@ -929,7 +934,6 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
         >>> gain = [0, 1, 1, 0]
         >>> plot_ideal_filter(freq, gain, flim=(0.1, 100))  #doctest: +ELLIPSIS
         <...Figure...>
-
     """
     import matplotlib.pyplot as plt
     my_freq, my_gain = list(), list()
@@ -1009,7 +1013,7 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
     ----------
     csd : instance of CrossSpectralDensity
         The CSD matrix to plot.
-    info: instance of Info | None
+    info : instance of Info | None
         To split the figure by channel-type, provide the measurement info.
         By default, the CSD matrix is plotted as a whole.
     mode : 'csd' | 'coh'

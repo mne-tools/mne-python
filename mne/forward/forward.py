@@ -1137,7 +1137,6 @@ def compute_depth_prior(forward, info, exp=0.8, limit=10.0,
           Use all channels. Not recommended since the depth weighting will be
           biased toward whichever channel type has the largest values in
           SI units (such as EEG being orders of magnitude larger than MEG).
-
     """
     from ..cov import Covariance, compute_whitener
     _validate_type(forward, Forward, 'forward')
@@ -1333,7 +1332,6 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
     evoked_template. The evoked_template should be from the same MEG system on
     which the original data was acquired. An exception will be raised if the
     forward operator contains channels that are not present in the template.
-
 
     Parameters
     ----------

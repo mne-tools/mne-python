@@ -1329,7 +1329,6 @@ def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
         If dict, it will override the following dict (default if None)::
 
             dict(mag=1e12, grad=1e11, eeg=1e5)
-
     %(verbose)s
 
     Returns
@@ -1770,7 +1769,6 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
         following default dict (default if None):
 
             dict(mag=1e12, grad=1e11, eeg=1e5)
-
     %(verbose)s
 
     Returns

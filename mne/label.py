@@ -149,7 +149,6 @@ class Label(object):
           is raised.
         * Values of duplicate vertices are summed.
 
-
     Parameters
     ----------
     vertices : array, shape (N,)
@@ -780,7 +779,6 @@ class BiHemiLabel(object):
         A name for the label. It is OK to change that attribute manually.
     subject : str | None
         Subject the label is from.
-
     """
 
     def __init__(self, lh, rh, name=None, color=None):  # noqa: D102
@@ -936,14 +934,14 @@ def write_label(filename, label, verbose=None):
         The label object to save.
     %(verbose)s
 
+    See Also
+    --------
+    write_labels_to_annot
+
     Notes
     -----
     Note that due to file specification limitations, the Label's subject and
     color attributes are not saved to disk.
-
-    See Also
-    --------
-    write_labels_to_annot
     """
     hemi = label.hemi
     path_head, name = op.split(filename)
@@ -965,7 +963,6 @@ def write_label(filename, label, verbose=None):
         fid.write(b'%d\n' % n_vertices)
         for d in data:
             fid.write(b'%d %f %f %f %f\n' % tuple(d))
-    return label
 
 
 def _prep_label_split(label, subject=None, subjects_dir=None):

@@ -196,6 +196,11 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
         Provide information about this tag. If None (default), all information
         is shown.
     %(verbose)s
+
+    Returns
+    -------
+    contents : str
+        The contents of the file.
     """
     if output not in [list, str]:
         raise ValueError('output must be list or str')

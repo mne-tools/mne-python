@@ -46,7 +46,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
         The sampling Frequency.
     freqs : array
         frequency range of interest (1 x Frequencies)
-    n_cycles: float | array of float, default 7.0
+    n_cycles : float | array of float, default 7.0
         Number of cycles. Fixed number or one per frequency.
     sigma : float, default None
         It controls the width of the wavelet ie its temporal
@@ -680,7 +680,6 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
         If `slice`, returns tfr[..., decim].
 
         .. note:: Decimation may create aliasing artifacts.
-
     %(n_jobs)s
     picks : array-like of int | None, default None
         The indices of the channels to decompose. If None, all available
@@ -754,7 +753,6 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
         .. note::
             Decimation may create aliasing artifacts, yet decimation
             is done after the convolutions.
-
     output : str, default 'complex'
 
         * 'complex' : single trial complex.
@@ -764,7 +762,6 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
         * 'itc' : inter-trial coherence.
         * 'avg_power_itc' : average of single trial power and inter-trial
           coherence across trials.
-
     %(n_jobs)s
         The number of epochs to process at the same time. The parallelization
         is implemented across channels. default 1
@@ -813,7 +810,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     n_cycles : float | ndarray, shape (n_freqs,)
         The number of cycles globally or for each frequency.
         The time-window length is thus T = n_cycles / freq.
-    time_bandwidth : float, (optional), default 4.0 (n_tapers=3).
+    time_bandwidth : float, (optional), default 4.0 (n_tapers=3)
         Time x (Full) Bandwidth product. Should be >= 2.0.
         Choose this along with n_cycles to get desired frequency resolution.
         The number of good tapers (least leakage from far away frequencies)
@@ -832,7 +829,6 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
         If `slice`, returns tfr[..., decim].
 
         .. note:: Decimation may create aliasing artifacts.
-
     %(n_jobs)s
     %(picks_good_data)s
     average : bool, default True
@@ -1034,7 +1030,6 @@ class AverageTFR(_BaseTFR):
         Comment on dataset. Can be the condition.
     method : str | None, default None
         Comment on the method used to compute the data, e.g., morlet wavelet.
-
     """
 
     @verbose
@@ -2295,15 +2290,15 @@ def read_tfrs(fname, condition=None):
         The condition to load. If None, all conditions will be returned.
         Defaults to None.
 
-    See Also
-    --------
-    write_tfrs
-
     Returns
     -------
     tfrs : list of instances of AverageTFR | instance of AverageTFR
         Depending on `condition` either the TFR object or a list of multiple
         TFR objects.
+
+    See Also
+    --------
+    write_tfrs
 
     Notes
     -----

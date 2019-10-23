@@ -23,7 +23,7 @@ dependencies:
 - pytest-timeout
 - joblib
 - psutil
-- numpydoc
+- https://api.github.com/repos/datapythonista/numpydoc/zipball/validation
 - flake8
 - spyder
 - numexpr

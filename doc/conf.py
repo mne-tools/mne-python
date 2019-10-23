@@ -602,9 +602,10 @@ numpydoc_xref_ignore = {
     'n_segments', 'n_orient_inv', 'n_orient_fwd',
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
-    'RawBrainVision', 'RawCurry', 'RawNIRX',
+    'RawBrainVision', 'RawCurry', 'RawNIRX', 'RawGDF',
     # sklearn subclasses
     'mapping', 'to', 'any',
     # unlinkable
     'mayavi.mlab.pipeline.surface',
+    'CoregFrame', 'Kit2FiffFrame', 'FiducialsFrame',
 }

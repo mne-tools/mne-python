@@ -36,15 +36,15 @@ class LinearModel(BaseEstimator):
     patterns_ : ndarray, shape ([n_targets], n_features)
         If fit, the patterns used to restore M/EEG signals.
 
-    Notes
-    -----
-    .. versionadded:: 0.10
-
     See Also
     --------
     CSP
     mne.preprocessing.ICA
     mne.preprocessing.Xdawn
+
+    Notes
+    -----
+    .. versionadded:: 0.10
 
     References
     ----------

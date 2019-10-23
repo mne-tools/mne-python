@@ -1439,14 +1439,14 @@ def read_tri(fname_in, swap=False, verbose=None):
         Triangulation (each line contains indices for three points which
         together form a face).
 
-    Notes
-    -----
-    .. versionadded:: 0.13.0
-
     See Also
     --------
     read_surface
     write_surface
+
+    Notes
+    -----
+    .. versionadded:: 0.13.0
     """
     with open(fname_in, "r") as fid:
         lines = fid.readlines()

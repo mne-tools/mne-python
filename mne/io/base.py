@@ -307,6 +307,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         .. versionadded:: 0.17
     %(verbose)s
 
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
+
     Notes
     -----
     This class is public to allow for stable type-checking in user
@@ -318,10 +322,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         * _read_segment_file(self, data, idx, fi, start, stop, cals, mult)
           (only needed for types that support on-demand disk reads)
-
-    See Also
-    --------
-    mne.io.Raw : Documentation of attribute and methods.
     """
 
     @verbose

@@ -1030,7 +1030,6 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         the position is fixed during fitting.
 
         .. versionadded:: 0.12
-
     ori : ndarray, shape (3,) | None
         Orientation of the dipole to use. If None (default), the
         orientation is free to change as a function of time. If an
@@ -1040,7 +1039,6 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         for each time instant.
 
         .. versionadded:: 0.12
-
     %(verbose)s
 
     Returns

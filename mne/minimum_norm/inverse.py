@@ -768,7 +768,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     ----------
     evoked : Evoked object
         Evoked data.
-    inverse_operator: instance of InverseOperator
+    inverse_operator : instance of InverseOperator
         Inverse operator.
     lambda2 : float
         The regularization parameter.
