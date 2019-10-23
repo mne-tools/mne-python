@@ -63,15 +63,6 @@ screenshot = brain.screenshot()
 brain.close()
 
 ###############################################################################
-# Here we remove the black borders introduced by the screenshot by selecting
-# the two important parts of the image and concatenating those parts together:
-
-n_rows, n_cols, _ = screenshot.shape
-shot1 = screenshot[1:-1, 1:n_cols // 2 - 1, :]
-shot2 = screenshot[1:-1, n_cols // 2:-1, :]
-screenshot = np.concatenate((shot1, shot2), axis=1)
-
-###############################################################################
 # Now let's crop out the white margins and the white gap between hemispheres.
 # The screenshot has dimensions ``(h, w, 3)``, with the last axis being R, G, B
 # values for each pixel, encoded as integers between ``0`` and ``255``. ``(255,

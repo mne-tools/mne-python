@@ -44,6 +44,7 @@ class _Figure(object):
         self.store['window_size'] = size
         self.store['shape'] = shape
         self.store['off_screen'] = off_screen
+        self.store['border'] = False
 
     def build(self):
         with warnings.catch_warnings():
