@@ -43,14 +43,8 @@ public_modules = [
 ]
 
 
-def get_name(func):
-    """Get the name."""
-    parts = []
-    module = inspect.getmodule(func)
-    if module:
-        parts.append(module.__name__)
-    parts.append(func.__name__)
-    return '.'.join(parts)
+def _func_name(func):
+    return '%s.%s' % (inspect.getmodule(func).__name__, func.__name__)
 
 
 # functions to ignore args / docstring of
@@ -85,15 +79,15 @@ error_ignores = (
 def check_parameters_match(func):
     """Check docstring, return list of incorrect results."""
     from numpydoc.validate import validate
-    name_ = get_name(func)
-    skip = (not name_.startswith('mne.') or
-            any(re.match(d, name_) for d in docstring_ignores) or
+    name = _func_name(func)
+    skip = (not name.startswith('mne.') or
+            any(re.match(d, name) for d in docstring_ignores) or
             'deprecation_wrapped' in getattr(
                 getattr(func, '__code__', None), 'co_name', ''))
     if skip:
         return list()
-    incorrect = ['%s : %s : %s' % (err[0], name_, err[1])
-                 for err in validate(name_)['errors']
+    incorrect = ['%s : %s : %s' % (err[0], name, err[1])
+                 for err in validate(name)['errors']
                  if err[0] not in error_ignores]
     return incorrect
 
