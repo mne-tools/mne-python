@@ -234,7 +234,7 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
 
 def _get_psd_label_and_std(this_psd, dB, ica, num_std):
     """Handle setting up PSD for one component, for plot_ica_properties."""
-    psd_ylabel = _convert_psds(this_psd[:, :], dB, estimate='auto', scaling=1.,
+    psd_ylabel = _convert_psds(this_psd, dB, estimate='auto', scaling=1.,
                                unit='AU', first_dim='epoch')
     psds_mean = this_psd.mean(axis=0)
     diffs = this_psd - psds_mean
