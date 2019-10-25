@@ -378,12 +378,39 @@ class _Brain(object):
             self._data["time_idx"] = 0
             y_txt = 0.05 + 0.1 * bool(colorbar)
 
+        magnitude = None
+        magnitude_max = None
+        if array.ndim == 3:
+            if array.shape[1] != 3:
+                raise ValueError('If array has 3 dimensions, array.shape[1] '
+                                 'must equal 3, got %s' % (array.shape[1],))
+            magnitude = np.linalg.norm(array, axis=1)
+            if scale_factor is None:
+                distance = np.sum([array[:, dim, :].ptp(axis=0).max() ** 2
+                                   for dim in range(3)])
+                if distance == 0:
+                    scale_factor = 1
+                else:
+                    scale_factor = (0.4 * distance /
+                                    (4 * array.shape[0] ** (0.33)))
+            if self._units == 'm':
+                scale_factor = scale_factor / 1000.
+            magnitude_max = magnitude.max()
+
         if time is not None and len(array.shape) == 2:
             # we have scalar_data with time dimension
             act_data = array[:, time_idx]
         else:
-            # we have scalar data without time
-            act_data = array
+            # Calculate initial data to plot
+            if array.ndim == 1:
+                act_data = array
+            elif array.ndim == 2:
+                act_data = array[:, 0]
+            elif array.ndim == 3:
+                assert array.shape[1] == 3  # should always be true
+                assert magnitude is not None
+                assert scale_factor is not None
+                act_data = magnitude[:, 0]
 
         fmin, fmid, fmax = _update_limits(
             fmin, fmid, fmax, center, array
