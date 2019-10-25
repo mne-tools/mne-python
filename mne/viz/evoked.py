@@ -1778,6 +1778,10 @@ def _draw_axes_pce(ax, ymin, ymax, truncate_yaxis, truncate_xaxis, invert_y,
     if tmin == tmax:
         tmax += 1e-9
     ax.set_xlim(tmin, tmax)
+    # for dark backgrounds:
+    ax.patch.set_alpha(0)
+    if not np.isfinite([ymin, ymax]).all():  # nothing plotted
+        return
     ax.set_ylim(ymin, ymax)
     ybounds = (ymin, ymax)
     # determine ymin/ymax for spine truncation
@@ -1798,8 +1802,6 @@ def _draw_axes_pce(ax, ymin, ymax, truncate_yaxis, truncate_xaxis, invert_y,
                              '"auto", got {}'.format(truncate_yaxis))
     _setup_ax_spines(ax, vlines, tmin, tmax, ybounds[0], ybounds[1], invert_y,
                      unit, truncate_xaxis, trunc_y, skip_axlabel)
-    # for dark backgrounds:
-    ax.patch.set_alpha(0)
 
 
 def _get_data_and_ci(evoked, combine, combine_func, picks, scaling=1,

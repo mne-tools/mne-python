@@ -38,7 +38,7 @@ from ..io.meas_info import create_info
 from ..rank import compute_rank
 from ..io.proj import setup_proj
 from ..utils import (verbose, get_config, set_config, warn, _check_ch_locs,
-                     _check_option, logger, fill_doc)
+                     _check_option, logger, fill_doc, _pl)
 
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
@@ -3073,11 +3073,10 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names=None,
         else:
             bads = ', '.join(str(ii) for ii in where)
 
-        msg = "{bad_value} value in PSD for {first_dim}(s) {bads}.".format(
-            bad_value=bad_value, first_dim=first_dim, bads=bads)
+        msg = "{bad_value} value in PSD for {first_dim}{pl} {bads}.".format(
+            bad_value=bad_value, first_dim=first_dim, bads=bads, pl=_pl(bads))
         if first_dim == 'channel':
             msg += '\nThese channels might be dead.'
-
         warn(msg, UserWarning)
 
     if estimate == 'auto':
