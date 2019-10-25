@@ -168,7 +168,6 @@ def istft(X, tstep=None, Tx=None):
         # Overlap-add
         x[:, t * tstep: t * tstep + wsize] += np.real(np.conj(frame) * wwin)
 
-
     # Truncation
     x = x[:, (wsize - tstep) // 2: (wsize - tstep) // 2 + T + 1][:, :Tx].copy()
     return x
