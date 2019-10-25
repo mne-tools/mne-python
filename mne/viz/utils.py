@@ -3038,7 +3038,8 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
             ax_list, make_label)
 
 
-def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
+def _convert_psds(psds, dB, estimate, scaling, unit, ch_names=None,
+                  first_dim='channel'):
     """Convert PSDs to dB (if necessary) and appropriate units.
 
     The following table summarizes the relationship between the value of
@@ -3057,15 +3058,26 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
     where amp are the units corresponding to the variable, as specified by
     ``unit``.
     """
+    _check_option('first_dim', first_dim, ['channel', 'epoch'])
     where = np.where(psds.min(1) <= 0)[0]
-    dead_ch = ', '.join(ch_names[ii] for ii in where)
     if len(where) > 0:
+        # Construct a helpful error message, depending on whether the first
+        # dimension of `psds` are channels or epochs.
         if dB:
-            msg = "Infinite value in PSD for channel(s) %s. " \
-                  "These channels might be dead." % dead_ch
+            bad_value = 'Infinite'
         else:
-            msg = "Zero value in PSD for channel(s) %s. " \
-                  "These channels might be dead." % dead_ch
+            bad_value = 'Zero'
+
+        if first_dim == 'channel':
+            bads = ', '.join(ch_names[ii] for ii in where)
+        else:
+            bads = ', '.join(str(ii) for ii in where)
+
+        msg = "{bad_value} value in PSD for {first_dim}(s) {bads}.".format(
+            bad_value=bad_value, first_dim=first_dim, bads=bads)
+        if first_dim == 'channel':
+            msg += '\nThese channels might be dead.'
+
         warn(msg, UserWarning)
 
     if estimate == 'auto':
