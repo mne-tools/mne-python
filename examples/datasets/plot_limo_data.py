@@ -7,25 +7,25 @@ Single trial linear regression analysis with the LIMO dataset
 
 Here we explore the structure of the data contained in the
 `LIMO dataset`_.
-Furthermore, the code replicates and extends some of the main analysis
+This example replicates and extends some of the main analysis
 and tools integrated in `LIMO MEEG`_, a MATLAB toolbox originally designed
 to interface with EEGLAB_.
 
-In summary, the code allows to:
+In summary, the example:
 
-- Fetch epoched data from single subject files of the LIMO dataset [1]_.
+- Fetches epoched data files for a single subject of the LIMO dataset [1]_.
   If the LIMO files are not found on disk, the
   fetcher :func:`mne.datasets.limo.load_data()` will automatically download
   the files from a remote repository.
 
-- During import, the epochs information (i.e., sampling rate, number of epochs
-  per condition, number and name of EEG channels per subject, etc.) is
-  extracted from the LIMO .mat-files stored on disk and added to the epochs
-  structure as metadata.
+- During import, information about the data (i.e., sampling rate, number of
+  epochs per condition, number and name of EEG channels per subject, etc.) is
+  extracted from the LIMO :file:`.mat` files stored on disk and added to the
+  epochs structure as metadata.
 
-- In addition, the code shows how to to fit linear models on single subject
-  data and derive inferential measures to evaluate the significance of the
-  estimated effects using bootstrap and spatio-temporal clustering techniques.
+- Fits linear models on the single subject's data and derives inferential
+  measures to evaluate the significance of the estimated effects using
+  bootstrapping and spatio-temporal clustering techniques.
 
 References
 ----------
@@ -51,7 +51,6 @@ References
 # License: BSD (3-clause)
 
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 
 from sklearn.linear_model import LinearRegression
@@ -75,9 +74,8 @@ subj = 1
 #
 # In the original LIMO experiment (see [2]_), participants performed a
 # two-alternative forced choice task, discriminating between two face stimuli.
-# Subjects discriminated the same two faces during the whole experiment.
-# However, the critical manipulation consisted in the level of noise
-# added to the face-stimuli during the task, making the faces more or less
+# The same two faces were used during the whole experiment,
+# with varying levels of noise added, making the faces more or less
 # discernible to the observer (see `Fig 1`_ in [3]_ for instance).
 #
 # The presented faces varied across a noise-signal (or phase-coherence)
@@ -85,8 +83,8 @@ subj = 1
 # In other words, faces with high phase-coherence (e.g., 90%) were easy to
 # identify, while faces with low phase-coherence (e.g., 10%) were hard to
 # identify and by extension very hard to discriminate.
-
-###############################################################################
+#
+#
 # Load the data
 # -------------
 #
@@ -108,15 +106,11 @@ print(limo_epochs)
 # ----------------
 #
 # We can visualise the distribution of the face events contained in the
-# ``limo_epochs`` structure. Events should appear clearly grouped, as they
-# were ordered during the import process.
+# ``limo_epochs`` structure. Events should appear clearly grouped, as the
+# epochs are ordered by condition.
 
-fig, ax = plt.subplots(figsize=(7, 4))
-plot_events(limo_epochs.events, event_id=limo_epochs.event_id, axes=ax)
-ax.set(title="Distribution of events in LIMO epochs")
-plt.legend(loc='lower left', borderaxespad=1.)
-plt.tight_layout()
-plt.show()
+fig = plot_events(limo_epochs.events, event_id=limo_epochs.event_id)
+fig.suptitle("Distribution of events in LIMO epochs")
 
 ###############################################################################
 # As it can be seen above, conditions are coded as ``Face/A`` and ``Face/B``.
@@ -146,22 +140,22 @@ print(epochs_summary)
 # phase-coherence variable range from -1.619 to 1.642. This is because the
 # phase-coherence values are provided as a z-scored variable in the LIMO
 # dataset. Note that they have a mean of zero and a standard deviation of 1.
-
-###############################################################################
+#
+#
 # Visualize condition ERPs
 # ------------------------
 #
 # We can go ahead and plot the ERPs evoked by Face A and Face B
 
 # only show -250 to 500 ms
-ts_args = dict(xlim=(-.25, 0.5))
+ts_args = dict(xlim=(-0.25, 0.5))
 
 # plot evoked response for face A
-limo_epochs['Face/A'].average().plot_joint(times=[.15],
+limo_epochs['Face/A'].average().plot_joint(times=[0.15],
                                            title='Evoked response: Face A',
                                            ts_args=ts_args)
 # and face B
-limo_epochs['Face/B'].average().plot_joint(times=[.15],
+limo_epochs['Face/B'].average().plot_joint(times=[0.15],
                                            title='Evoked response: Face B',
                                            ts_args=ts_args)
 
@@ -176,10 +170,10 @@ difference_wave = combine_evoked([limo_epochs['Face/A'].average(),
                                  weights='equal')
 
 # plot difference wave
-difference_wave.plot_joint(times=[.15], title='Difference Face A - Face B')
+difference_wave.plot_joint(times=[0.15], title='Difference Face A - Face B')
 
 ###############################################################################
-# As expected, no see clear differential pattern appears when contrasting
+# As expected, no see clear pattern appears when contrasting
 # Face A and Face B. However, we could narrow our search a little bit more.
 # Since this is a "visual paradigm" it might be best to look at electrodes
 # located over the occipital lobe, as differences between stimuli (if any)
@@ -198,35 +192,20 @@ plot_compare_evokeds(evokeds, picks=pick, ylim=dict(eeg=(-15, 5)))
 
 ###############################################################################
 # As expected, the difference between Face A and Face B are very small.
-
-###############################################################################
+#
+#
 # Visualize effect of stimulus phase-coherence
 # --------------------------------------------
 #
-# For visualization purposes, we can transform the phase-coherence
-# variable back to fit roughly to it's original scale. Phase-coherence
-# determined whether a face stimulus could be identified as such. Thus,
+# Since phase-coherence
+# determined whether a face stimulus could be easily identified,
 # one could expect that faces with high phase-coherence should evoke stronger
 # activation patterns along occipital electrodes.
-#
-# As phase-coherence variable is a continuous variable, we'll need to
-# split the values of face coherence to percentiles to match roughly their
-# original scale (i.e, 0 to 100 % signal-to-noise ratio in 10% steps).
-# **Note:** We'll only do this for visualization purposes,
 
-name = "phase-coherence"
-factor = 'factor_' + name
-
-# color scheme for percentile plot
-limo_epochs.metadata[factor] = pd.cut(limo_epochs.metadata[name], 11,
-                                      labels=False) / 10
-
-# color scheme for percentile plot
-colors = {str(val): val
-          for val in np.sort(limo_epochs.metadata[factor].unique())}
-# compute evoked for each phase-coherence percentile
-evokeds = {str(val): limo_epochs[limo_epochs.metadata[factor] == val].average()
-           for val in colors.values()}
+phase_coh = limo_epochs.metadata['phase-coherence']
+levels = sorted(phase_coh.unique())
+evokeds = {str(round(level, 2)): limo_epochs[phase_coh == level].average()
+           for level in levels}
 
 # pick channel to plot
 electrodes = ['C22', 'B11']
@@ -236,63 +215,52 @@ for electrode in electrodes:
     plot_compare_evokeds(evokeds,
                          axes=ax,
                          ylim=dict(eeg=(-20, 20)),
-                         colors=colors,
-                         split_legend=True,
                          picks=electrode,
-                         cmap=(name + " Percentile", "magma"))
-    fig.show()
+                         cmap=("Standardized phase coherence", "magma"))
 
 ###############################################################################
 # As shown above, there are some considerable differences between the
-# activation patterns evoked by stimuli with low vs. high phase-coherence.
+# activation patterns evoked by stimuli with low vs. high phase-coherence at
+# the chosen electrodes.
 #
-# In particular, differences appear to be most pronounced along fronto-central
-# and occipital electrodes.
-
-###############################################################################
+#
 # Prepare data for linear regression analysis
 # --------------------------------------------
 #
-# Next, we can test the significance of these differences using linear
-# regression.But before we go on, we'll start by interpolating any missing
-# channels in the LIMO epochs structure. Some subjects in the datasets contain
-# missing channels (stored in ``limo_epochs.info[‘bads’]``) as these were
+# Before we test the significance of these differences using linear
+# regression, we'll interpolate missing channels that were
 # dropped during preprocessing of the data.
+# Furthermore, we'll drop the EOG channels (marked by the "EXG" prefix)
+# present in the data:
 
 limo_epochs.interpolate_bads(reset_bads=True)
 
-# Furthermore, we'll drop the EOG channels (marked by the "EXG" prefix)
-# present in the LIMO epochs structure.
 limo_epochs.drop_channels(['EXG1', 'EXG2', 'EXG3', 'EXG4'])
 
 ###############################################################################
 # Define predictor variables and design matrix
 # --------------------------------------------
 #
-# First, we need to create a design matrix containing information about the
+# To run the regression analysis,
+# we need to create a design matrix containing information about the
 # variables (i.e., predictors) we want to use for prediction of brain
-# activity patterns. For this purpose, we'll use the information contained in
-# the ``limo_epochs.metadata``. Here, we'll explore the effect of
-# phase-coherence as well as the effect of Face A vs. Face B.
+# activity patterns. For this purpose, we'll use the information we have in
+# ``limo_epochs.metadata``: phase-coherence and Face A vs. Face B.
 
 # name of predictors + intercept
 predictor_vars = ['face a - face b', 'phase-coherence', 'intercept']
 
 # create design matrix
-design = limo_epochs.metadata[['phase-coherence', 'face']]
+design = limo_epochs.metadata[['phase-coherence', 'face']].copy()
 design['face a - face b'] = np.where(design['face'] == 'A', 1, -1)
 design['intercept'] = 1
 design = design[predictor_vars]
 
 ###############################################################################
 # Now we can set up the linear model to be used in the analysis.
-# For the purpose of demonstration, we'll use scikit-learn's LinearRegression
-# (see :class:`sklearn.linear_model.LinearRegression`) in this example.
-#
-# Basically, we're creating a wrapper, ``STLinearRegression``, for
-# sklearn's ``LinearRegression``, which computes a
-# `least squares`_ solution for our data given the provided design matrix. The
-# and results are stored within ``LinearRegression`` object for convenience.
+# We'll use :class:`sklearn.linear_model.LinearRegression`, and create a
+# wrapper ``STLinearRegression`` that computes a
+# `least squares`_ solution for our data given the provided design matrix.
 
 
 class STLinearRegression(LinearRegression):
@@ -341,8 +309,6 @@ class STLinearRegression(LinearRegression):
         else:
             # return raw values
             betas = beta_coefs[:, pred_col]
-
-        # return beta coefficients
         return betas
 
     # compute model predictions
@@ -387,12 +353,9 @@ face_betas = linear_model.compute_beta_coefs(predictor='face a - face b')
 # the activity measured at occipital electrodes around 200 to 250 ms following
 # stimulus onset.
 
-# only show -250 to 500 ms
-ts_args = dict(xlim=(-.25, 0.5))
-
 pc_betas.plot_joint(ts_args=ts_args,
                     title='Phase-coherence - sklearn betas',
-                    times=[.23])
+                    times=[0.23])
 
 ###############################################################################
 # Conversely, there appears to be no (or very small) systematic effects when
@@ -401,7 +364,7 @@ pc_betas.plot_joint(ts_args=ts_args,
 
 face_betas.plot_joint(title='Face A - Face B - sklearn betas',
                       ts_args=ts_args,
-                      times=[.15])
+                      times=[0.15])
 
 ###############################################################################
 # Finally we can compare the output to MNE's linear_regression function
@@ -413,4 +376,4 @@ mne_reg = linear_regression(limo_epochs,
 
 mne_reg['phase-coherence'].beta.plot_joint(ts_args=ts_args,
                                            title='Phase-coherence - MNE',
-                                           times=[.23])
+                                           times=[0.23])
