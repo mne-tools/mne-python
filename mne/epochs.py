@@ -1801,7 +1801,6 @@ class Epochs(BaseEpochs):
                           eeg=40e-6, # V (EEG channels)
                           eog=250e-6 # V (EOG channels)
                           )
-
     flat : dict | None
         Rejection parameters based on flatness of signal.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
@@ -1923,7 +1922,6 @@ class Epochs(BaseEpochs):
     For example with the event_id {'aud': 1, 'vis': 2} and the events
     [[0, 0, 1], [0, 0, 2]], the "merge" behavior will update both event_id and
     events to be: {'aud/vis': 3} and [[0, 0, 3], ] respectively.
-
     """
 
     @verbose
@@ -2053,6 +2051,12 @@ class EpochsArray(BaseEpochs):
         .. versionadded:: 0.16
     %(verbose)s
 
+    See Also
+    --------
+    create_info
+    EvokedArray
+    io.RawArray
+
     Notes
     -----
     Proper units of measure:
@@ -2063,12 +2067,6 @@ class EpochsArray(BaseEpochs):
     * M: hbo, hbr
     * Am: dipole
     * AU: misc
-
-    See Also
-    --------
-    create_info
-    EvokedArray
-    io.RawArray
     """
 
     @verbose

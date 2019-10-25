@@ -33,7 +33,7 @@ def set_cache_dir(cache_dir):
 
     Parameters
     ----------
-    cache_dir: str or None
+    cache_dir : str or None
         Directory to use for temporary file storage. None disables
         temporary file storage.
     """
@@ -48,7 +48,7 @@ def set_memmap_min_size(memmap_min_size):
 
     Parameters
     ----------
-    memmap_min_size: str or None
+    memmap_min_size : str or None
         Threshold on the minimum size of arrays that triggers automated memory
         mapping for parallel processing, e.g., '1M' for 1 megabyte.
         Use None to disable memmaping of large arrays.
@@ -472,7 +472,6 @@ def sys_info(fid=None, show_paths=False):
         cupy:          4.1.0
         pandas:        0.17.1+25.g547750a
         dipy:          0.14.0
-
     """  # noqa: E501
     ljust = 15
     out = 'Platform:'.ljust(ljust) + platform.platform() + '\n'

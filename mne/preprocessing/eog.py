@@ -31,7 +31,7 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
         High cut-off frequency to apply to the EOG channel in Hz.
     filter_length : str | int | None
         Number of taps to use for filtering.
-    ch_name: str | None
+    ch_name : str | None
         If not None, use specified channel(s) for EOG
     tstart : float
         Start detection after tstart seconds.

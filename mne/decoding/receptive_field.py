@@ -70,7 +70,6 @@ class ReceptiveField(BaseEstimator):
         :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
         for more).
 
-
     Attributes
     ----------
     coef_ : array, shape ([n_outputs, ]n_features, n_delays)

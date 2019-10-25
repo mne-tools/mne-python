@@ -35,7 +35,6 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
 
         $ mne coreg
 
-
     Parameters
     ----------
     tabbed : bool
@@ -112,6 +111,11 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
 
         .. versionadded:: 0.18
     %(verbose)s
+
+    Returns
+    -------
+    frame : instance of CoregFrame
+        The coregistration frame.
 
     Notes
     -----
@@ -191,6 +195,11 @@ def fiducials(subject=None, fid_file=None, subjects_dir=None):
     subjects_dir : None | str
         Overrule the subjects_dir environment variable.
 
+    Returns
+    -------
+    frame : instance of FiducialsFrame
+        The GUI frame.
+
     Notes
     -----
     All parameters are optional, since they can be set through the GUI.
@@ -211,6 +220,10 @@ def kit2fiff():
 
         $ mne kit2fiff
 
+    Returns
+    -------
+    frame : instance of Kit2FiffFrame
+        The GUI frame.
     """
     _check_mayavi_version()
     from ._backend import _check_backend

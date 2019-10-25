@@ -489,23 +489,23 @@ def tf_mixed_norm(evoked, forward, noise_cov,
         Maximum number of iterations.
     tol : float
         Tolerance parameter.
-    weights: None | array | SourceEstimate
+    weights : None | array | SourceEstimate
         Weight for penalty in mixed_norm. Can be None or
         1d array of length n_sources or a SourceEstimate e.g. obtained
         with wMNE or dSPM or fMRI.
-    weights_min: float
+    weights_min : float
         Do not consider in the estimation sources for which weights
         is less than weights_min.
-    pca: bool
+    pca : bool
         If True the rank of the data is reduced to true dimension.
-    debias: bool
+    debias : bool
         Remove coefficient amplitude bias due to L1 penalty.
-    wsize: int or array-like
+    wsize : int or array-like
         Length of the STFT window in samples (must be a multiple of 4).
         If an array is passed, multiple TF dictionaries are used (each having
         its own wsize and tstep) and each entry of wsize must be a multiple
         of 4. See [3]_.
-    tstep: int or array-like
+    tstep : int or array-like
         Step between successive windows in samples (must be a multiple of 2,
         a divider of wsize and smaller than wsize/2) (default: wsize/2).
         If an array is passed, multiple TF dictionaries are used (each having
@@ -535,7 +535,6 @@ def tf_mixed_norm(evoked, forward, noise_cov,
 
         .. versionadded:: 0.18
     %(verbose)s
-
 
     Returns
     -------

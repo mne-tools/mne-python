@@ -45,7 +45,6 @@ def read_selection(name, fname=None, info=None, verbose=None):
         * ``'Left-frontal'``
         * ``'Right-frontal'``
 
-
     Parameters
     ----------
     name : str or list of str

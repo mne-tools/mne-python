@@ -316,10 +316,6 @@ def make_bem_solution(surfs, verbose=None):
     bem : instance of ConductorModel
         The BEM solution.
 
-    Notes
-    -----
-    .. versionadded:: 0.10.0
-
     See Also
     --------
     make_bem_model
@@ -327,6 +323,10 @@ def make_bem_solution(surfs, verbose=None):
     write_bem_surfaces
     read_bem_solution
     write_bem_solution
+
+    Notes
+    -----
+    .. versionadded:: 0.10.0
     """
     logger.info('Approximation method : Linear collocation\n')
     if isinstance(surfs, str):
@@ -558,16 +558,16 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
         The BEM surfaces. Use `make_bem_solution` to turn these into a
         `ConductorModel` suitable for forward calculation.
 
-    Notes
-    -----
-    .. versionadded:: 0.10.0
-
     See Also
     --------
     make_bem_solution
     make_sphere_model
     read_bem_surfaces
     write_bem_surfaces
+
+    Notes
+    -----
+    .. versionadded:: 0.10.0
     """
     conductivity = np.array(conductivity, float)
     if conductivity.ndim != 1 or conductivity.size not in (1, 3):
@@ -744,14 +744,14 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
     sphere : instance of ConductorModel
         The resulting spherical conductor model.
 
-    Notes
-    -----
-    .. versionadded:: 0.9.0
-
     See Also
     --------
     make_bem_model
     make_bem_solution
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     for name in ('r0', 'head_radius'):
         param = locals()[name]

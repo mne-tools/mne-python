@@ -24,7 +24,6 @@ def optical_density(raw):
     -------
     raw : instance of Raw
         The modified raw instance.
-
     """
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, 'raw')

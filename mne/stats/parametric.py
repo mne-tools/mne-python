@@ -106,7 +106,6 @@ def f_oneway(*args):
     .. [1] Lowry, Richard.  "Concepts and Applications of Inferential
            Statistics". Chapter 14.
     .. [2] Heiman, G.W.  Research Methods in Statistics. 2002.
-
     """
     n_classes = len(args)
     n_samples_per_class = np.array([len(a) for a in args])

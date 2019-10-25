@@ -278,30 +278,6 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     data according to the desired reference and prevent MNE-Python from
     automatically adding an average reference projection.
 
-    Some common referencing schemes and the corresponding value for the
-    ``ref_channels`` parameter:
-
-    No re-referencing:
-        If the EEG data is already using the proper reference, set
-        ``ref_channels=[]``. This will prevent MNE-Python from automatically
-        adding an average reference projection.
-
-    Average reference:
-        A new virtual reference electrode is created by averaging the current
-        EEG signal by setting ``ref_channels='average'``. Bad EEG channels are
-        automatically excluded if they are properly set in ``info['bads']``.
-
-    A single electrode:
-        Set ``ref_channels`` to a list containing the name of the channel that
-        will act as the new reference, for example ``ref_channels=['Cz']``.
-
-    The mean of multiple electrodes:
-        A new virtual reference electrode is created by computing the average
-        of the current EEG signal recorded from two or more selected channels.
-        Set ``ref_channels`` to a list of channel names, indicating which
-        channels to use. For example, to apply an average mastoid reference,
-        when using the 10-20 naming scheme, set ``ref_channels=['M1', 'M2']``.
-
     Parameters
     ----------
     inst : instance of Raw | Epochs | Evoked
@@ -342,8 +318,37 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
         Array of reference data subtracted from EEG channels. This will be
         ``None`` if ``ref_channels='average'`` and ``projection=True``.
 
+    See Also
+    --------
+    set_bipolar_reference : Convenience function for creating bipolar
+                            references.
+
     Notes
     -----
+    Some common referencing schemes and the corresponding value for the
+    ``ref_channels`` parameter:
+
+    No re-referencing:
+        If the EEG data is already using the proper reference, set
+        ``ref_channels=[]``. This will prevent MNE-Python from automatically
+        adding an average reference projection.
+
+    Average reference:
+        A new virtual reference electrode is created by averaging the current
+        EEG signal by setting ``ref_channels='average'``. Bad EEG channels are
+        automatically excluded if they are properly set in ``info['bads']``.
+
+    A single electrode:
+        Set ``ref_channels`` to a list containing the name of the channel that
+        will act as the new reference, for example ``ref_channels=['Cz']``.
+
+    The mean of multiple electrodes:
+        A new virtual reference electrode is created by computing the average
+        of the current EEG signal recorded from two or more selected channels.
+        Set ``ref_channels`` to a list of channel names, indicating which
+        channels to use. For example, to apply an average mastoid reference,
+        when using the 10-20 naming scheme, set ``ref_channels=['M1', 'M2']``.
+
     1. If a reference is requested that is not the average reference, this
        function removes any pre-existing average reference projections.
 
@@ -357,11 +362,6 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
        they are properly set in ``info['bads']``.
 
     .. versionadded:: 0.9.0
-
-    See Also
-    --------
-    set_bipolar_reference : Convenience function for creating bipolar
-                            references.
     """
     _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), "Instance")
 
@@ -476,6 +476,10 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     inst : instance of Raw | Epochs | Evoked
         Data with the specified channels re-referenced.
 
+    See Also
+    --------
+    set_eeg_reference : Convenience function for creating an EEG reference.
+
     Notes
     -----
     1. If the anodes contain any EEG channels, this function removes
@@ -487,10 +491,6 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     3. The data must be preloaded.
 
     .. versionadded:: 0.9.0
-
-    See Also
-    --------
-    set_eeg_reference : Convenience function for creating an EEG reference.
     """
     if not isinstance(anode, list):
         anode = [anode]

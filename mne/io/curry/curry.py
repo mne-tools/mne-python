@@ -269,7 +269,6 @@ def read_raw_curry(fname, preload=False, verbose=None):
     -------
     raw : instance of RawCurry
         A Raw object containing Curry data.
-
     """
     return RawCurry(fname, preload, verbose)
 

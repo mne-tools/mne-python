@@ -305,16 +305,6 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     freqs : ndarray, shape (n_freqs,)
         The frequencies.
 
-    References
-    ----------
-    .. [1] Slepian, D. "Prolate spheroidal wave functions, Fourier analysis,
-           and uncertainty V: The discrete case." Bell System Technical
-           Journal, vol. 57, 1978.
-
-    .. [2] Percival D.B. and Walden A.T. "Spectral Analysis for Physical
-           Applications: Multitaper and Conventional Univariate Techniques."
-           Cambridge University Press, 1993.
-
     See Also
     --------
     mne.io.Raw.plot_psd
@@ -326,6 +316,16 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     Notes
     -----
     .. versionadded:: 0.12.0
+
+    References
+    ----------
+    .. [1] Slepian, D. "Prolate spheroidal wave functions, Fourier analysis,
+           and uncertainty V: The discrete case." Bell System Technical
+           Journal, vol. 57, 1978.
+
+    .. [2] Percival D.B. and Walden A.T. "Spectral Analysis for Physical
+           Applications: Multitaper and Conventional Univariate Techniques."
+           Cambridge University Press, 1993.
     """
     # Prep data
     data, sfreq = _check_psd_data(inst, tmin, tmax, picks, proj)

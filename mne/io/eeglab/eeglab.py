@@ -174,13 +174,13 @@ def read_raw_eeglab(input_fname, eog=(), preload=False,
     raw : instance of RawEEGLAB
         A Raw object containing EEGLAB .set data.
 
-    Notes
-    -----
-    .. versionadded:: 0.11.0
-
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
+
+    Notes
+    -----
+    .. versionadded:: 0.11.0
     """
     return RawEEGLAB(input_fname=input_fname, preload=preload,
                      eog=eog, verbose=verbose, uint16_codec=uint16_codec)
@@ -230,14 +230,13 @@ def read_epochs_eeglab(input_fname, events=None, event_id=None,
     epochs : instance of Epochs
         The epochs.
 
-    Notes
-    -----
-    .. versionadded:: 0.11.0
-
-
     See Also
     --------
     mne.Epochs : Documentation of attribute and methods.
+
+    Notes
+    -----
+    .. versionadded:: 0.11.0
     """
     epochs = EpochsEEGLAB(input_fname=input_fname, events=events, eog=eog,
                           event_id=event_id, verbose=verbose,
@@ -269,13 +268,13 @@ class RawEEGLAB(BaseRaw):
         can therefore help you solve this problem.
     %(verbose)s
 
-    Notes
-    -----
-    .. versionadded:: 0.11.0
-
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
+
+    Notes
+    -----
+    .. versionadded:: 0.11.0
     """
 
     @verbose
@@ -464,13 +463,13 @@ class EpochsEEGLAB(BaseEpochs):
         'latin1' or 'utf-8') should be used when reading character arrays and
         can therefore help you solve this problem.
 
-    Notes
-    -----
-    .. versionadded:: 0.11.0
-
     See Also
     --------
     mne.Epochs : Documentation of attribute and methods.
+
+    Notes
+    -----
+    .. versionadded:: 0.11.0
     """
 
     @verbose

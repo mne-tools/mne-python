@@ -212,13 +212,12 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
 
     Examples
     --------
-    The following code will plot a STC using standard MNE limits:
+    The following code will plot a STC using standard MNE limits::
 
-        colormap = mne.viz.mne_analyze_colormap(limits=[5, 10, 15])
-        brain = stc.plot('fsaverage', 'inflated', 'rh', colormap)
-        brain.scale_data_colormap(fmin=-15, fmid=0, fmax=15, transparent=False)
-
-    """
+        >>> colormap = mne.viz.mne_analyze_colormap(limits=[5, 10, 15])  # doctest: +SKIP
+        >>> brain = stc.plot('fsaverage', 'inflated', 'rh', colormap)  # doctest: +SKIP
+        >>> brain.scale_data_colormap(fmin=-15, fmid=0, fmax=15, transparent=False)  # doctest: +SKIP
+    """  # noqa: E501
     # Ensure limits is an array
     limits = np.asarray(limits, dtype='float')
 
@@ -733,7 +732,20 @@ def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
 
 
 def figure_nobar(*args, **kwargs):
-    """Make matplotlib figure with no toolbar."""
+    """Make matplotlib figure with no toolbar.
+
+    Parameters
+    ----------
+    *args : list
+        Arguments to pass to :func:`matplotlib.pyplot.figure`.
+    **kwargs : dict
+        Keyword arguments to pass to :func:`matplotlib.pyplot.figure`.
+
+    Returns
+    -------
+    fig : instance of Figure
+        The figure.
+    """
     from matplotlib import rcParams, pyplot as plt
     old_val = rcParams['toolbar']
     try:
@@ -1298,7 +1310,6 @@ class ClickableImage(object):
     Notes
     -----
     .. versionadded:: 0.9.0
-
     """
 
     def __init__(self, imdata, **kwargs):
@@ -1417,7 +1428,6 @@ def add_background_image(fig, im, set_ratios=None):
     Notes
     -----
     .. versionadded:: 0.9.0
-
     """
     if im is None:
         # Don't do anything and return nothing
@@ -1518,26 +1528,22 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         array, the channels are divided by picks given in the array.
 
         .. versionadded:: 0.13.0
-
     to_sphere : bool
         Whether to project the 3d locations to a sphere. When False, the
         sensor array appears similar as to looking downwards straight above the
         subject's head. Has no effect when kind='3d'. Defaults to True.
 
         .. versionadded:: 0.14.0
-
     axes : instance of Axes | instance of Axes3D | None
         Axes to draw the sensors to. If ``kind='3d'``, axes must be an instance
         of Axes3D. If None (default), a new axes will be created.
 
         .. versionadded:: 0.13.0
-
     block : bool
         Whether to halt program execution until the figure is closed. Defaults
         to False.
 
         .. versionadded:: 0.13.0
-
     show : bool
         Show figure if True. Defaults to True.
 
@@ -1559,7 +1565,6 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     :func:`mne.viz.plot_alignment`.
 
     .. versionadded:: 0.12.0
-
     """
     from .evoked import _rgb
     _check_option('kind', kind, ['topomap', '3d', 'select'])

@@ -680,6 +680,10 @@ class EvokedArray(Evoked):
         Type of data, either average or standard_error. Defaults to 'average'.
     %(verbose)s
 
+    See Also
+    --------
+    EpochsArray, io.RawArray, create_info
+
     Notes
     -----
     Proper units of measure:
@@ -689,10 +693,6 @@ class EvokedArray(Evoked):
     * M: hbo, hbr
     * Am: dipole
     * AU: misc
-
-    See Also
-    --------
-    EpochsArray, io.RawArray, create_info
     """
 
     @verbose

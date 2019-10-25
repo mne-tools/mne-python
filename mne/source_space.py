@@ -1148,7 +1148,7 @@ def head_to_mri(pos, subject, mri_head_t, subjects_dir=None,
         The  coordinates (in m) in head coordinate system
     subject : string
         Name of the subject.
-    mri_head_t: instance of Transform
+    mri_head_t : instance of Transform
         MRI<->Head coordinate transformation
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
@@ -1236,7 +1236,7 @@ def head_to_mni(pos, subject, mri_head_t, subjects_dir=None,
         The  coordinates (in m) in head coordinate system
     subject : string
         Name of the subject.
-    mri_head_t: instance of Transform
+    mri_head_t : instance of Transform
         MRI<->Head coordinate transformation
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
@@ -2517,16 +2517,15 @@ def get_volume_labels_from_src(src, subject, subjects_dir):
     ----------
     src : instance of SourceSpaces
         The source space containing the volume regions
-    subject: str
+    subject : str
         Subject name
-    subjects_dir: str
+    subjects_dir : str
         Freesurfer folder of the subjects
 
     Returns
     -------
     labels_aseg : list of Label
         List of Label of segmented volumes included in src space.
-
     """
     from . import Label
     from . import get_volume_labels_from_aseg

@@ -29,11 +29,6 @@ def stft(x, wsize, tstep=None, verbose=None):
         STFT coefficients for positive frequencies with
         n_step = ceil(T / tstep)
 
-    Examples
-    --------
-    X = stft(x, wsize)
-    X = stft(x, wsize, tstep)
-
     See Also
     --------
     istft
@@ -119,11 +114,6 @@ def istft(X, tstep=None, Tx=None):
     x : array, shape (Tx,)
         vector containing the inverse STFT signal
 
-    Examples
-    --------
-    x = istft(X)
-    x = istft(X, tstep)
-
     See Also
     --------
     stft
@@ -184,7 +174,7 @@ def istft(X, tstep=None, Tx=None):
 
 
 def stftfreq(wsize, sfreq=None):  # noqa: D401
-    """Frequencies of stft transformation.
+    """Compute frequencies of stft transformation.
 
     Parameters
     ----------

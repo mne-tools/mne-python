@@ -1663,11 +1663,6 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             of mass on the spherical surface to help avoid potential issues
             with cortical folding.
 
-        See Also
-        --------
-        mne.Label.center_of_mass
-        mne.vertex_to_mni
-
         Returns
         -------
         vertex : int
@@ -1680,6 +1675,11 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         t : float
             Time of the temporal center of mass (weighted by the sum across
             source vertices).
+
+        See Also
+        --------
+        mne.Label.center_of_mass
+        mne.vertex_to_mni
 
         References
         ----------
@@ -1939,16 +1939,16 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
     shape : tuple
         The shape of the data. A tuple of int (n_dipoles, n_times).
 
-    Notes
-    -----
-    .. versionadded:: 0.9.0
-
     See Also
     --------
     SourceEstimate : A container for surface source estimates.
     VolVectorSourceEstimate : A container for volume vector source estimates.
     MixedSourceEstimate : A container for mixed surface + volume source
                           estimates.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
 
     @verbose
@@ -2018,16 +2018,16 @@ class VolVectorSourceEstimate(_BaseVectorSourceEstimate,
     shape : tuple
         The shape of the data. A tuple of int (n_dipoles, n_times).
 
-    Notes
-    -----
-    .. versionadded:: 0.9.0
-
     See Also
     --------
     SourceEstimate : A container for surface source estimates.
     VectorSourceEstimate : A container for vector source estimates.
     MixedSourceEstimate : A container for mixed surface + volume source
                           estimates.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
 
     _data_ndim = 3
@@ -2067,16 +2067,16 @@ class VectorSourceEstimate(_BaseVectorSourceEstimate,
     shape : tuple
         The shape of the data. A tuple of int (n_dipoles, n_times).
 
-    Notes
-    -----
-    .. versionadded:: 0.15
-
     See Also
     --------
     SourceEstimate : A container for surface source estimates.
     VolSourceEstimate : A container for volume source estimates.
     MixedSourceEstimate : A container for mixed surface + volume source
                           estimates.
+
+    Notes
+    -----
+    .. versionadded:: 0.15
     """
 
     _data_ndim = 3
@@ -2139,16 +2139,16 @@ class MixedSourceEstimate(_BaseSourceEstimate):
     shape : tuple
         The shape of the data. A tuple of int (n_dipoles, n_times).
 
-    Notes
-    -----
-    .. versionadded:: 0.9.0
-
     See Also
     --------
     SourceEstimate : A container for surface source estimates.
     VectorSourceEstimate : A container for vector source estimates.
     VolSourceEstimate : A container for volume source estimates.
     VolVectorSourceEstimate : A container for Volume vector source estimates.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
 
     _data_ndim = 2
