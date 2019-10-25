@@ -23,9 +23,8 @@ In summary, the example:
   extracted from the LIMO :file:`.mat` files stored on disk and added to the
   epochs structure as metadata.
 
-- Fits linear models on the single subject's data and derives inferential
-  measures to evaluate the significance of the estimated effects using
-  bootstrapping and spatio-temporal clustering techniques.
+- Fits linear models on the single subject's data and visualizes inferential
+  measures to evaluate the significance of the estimated effects.
 
 References
 ----------
@@ -53,11 +52,7 @@ References
 import numpy as np
 import matplotlib.pyplot as plt
 
-from sklearn.linear_model import LinearRegression
-
 from mne.datasets.limo import load_data
-from mne.decoding import Vectorizer, get_coef
-from mne.evoked import EvokedArray
 from mne.stats import linear_regression
 from mne.viz import plot_events, plot_compare_evokeds
 from mne import combine_evoked
@@ -76,12 +71,12 @@ subj = 1
 # two-alternative forced choice task, discriminating between two face stimuli.
 # The same two faces were used during the whole experiment,
 # with varying levels of noise added, making the faces more or less
-# discernible to the observer (see `Fig 1`_ in [3]_ for instance).
+# discernible to the observer (see `Fig 1`_ in [3]_ for a similar approach).
 #
 # The presented faces varied across a noise-signal (or phase-coherence)
-# continuum spanning from 0 to 100% in increasing steps of 10%.
-# In other words, faces with high phase-coherence (e.g., 90%) were easy to
-# identify, while faces with low phase-coherence (e.g., 10%) were hard to
+# continuum spanning from 0 to 85% in increasing steps of 5%.
+# In other words, faces with high phase-coherence (e.g., 85%) were easy to
+# identify, while faces with low phase-coherence (e.g., 5%) were hard to
 # identify and by extension very hard to discriminate.
 #
 #
@@ -188,7 +183,7 @@ evokeds = {condition: limo_epochs[condition].average()
 pick = evokeds["Face/A"].ch_names.index('B11')
 
 # compare evoked responses
-plot_compare_evokeds(evokeds, picks=pick, ylim=dict(eeg=(-15, 5)))
+plot_compare_evokeds(evokeds, picks=pick, ylim=dict(eeg=(-15, 7.5)))
 
 ###############################################################################
 # As expected, the difference between Face A and Face B are very small.
@@ -203,9 +198,14 @@ plot_compare_evokeds(evokeds, picks=pick, ylim=dict(eeg=(-15, 5)))
 # activation patterns along occipital electrodes.
 
 phase_coh = limo_epochs.metadata['phase-coherence']
+# get levels of phase coherence
 levels = sorted(phase_coh.unique())
-evokeds = {str(round(level, 2)): limo_epochs[phase_coh == level].average()
-           for level in levels}
+# create labels for levels of phase coherence (i.e., 0 - 85%)
+labels = ["{0:.2f}".format(i) for i in np.arange(0., .90, .05)]
+
+# create dict of evokeds for each level of phase-coherence
+evokeds = {label: limo_epochs[phase_coh == level].average()
+           for level, label in zip(levels, labels)}
 
 # pick channel to plot
 electrodes = ['C22', 'B11']
@@ -214,9 +214,9 @@ for electrode in electrodes:
     fig, ax = plt.subplots(figsize=(8, 4))
     plot_compare_evokeds(evokeds,
                          axes=ax,
-                         ylim=dict(eeg=(-20, 20)),
+                         ylim=dict(eeg=(-15, 15)),
                          picks=electrode,
-                         cmap=("Standardized phase coherence", "magma"))
+                         cmap=("Phase coherence", "magma"))
 
 ###############################################################################
 # As shown above, there are some considerable differences between the
@@ -257,123 +257,60 @@ design['intercept'] = 1
 design = design[predictor_vars]
 
 ###############################################################################
-# Now we can set up the linear model to be used in the analysis.
-# We'll use :class:`sklearn.linear_model.LinearRegression`, and create a
-# wrapper ``STLinearRegression`` that computes a
-# `least squares`_ solution for our data given the provided design matrix.
+# Now we can set up the linear model to be used in the analysis using
+# MNE's linear_regression function (see func:`mne.stats.linear_regression`).
 
-
-class STLinearRegression(LinearRegression):
-    """
-    Create linear model object.
-
-    Notes
-    -----
-    Currently, the input data has to have  a shape of samples by channels by
-    time points. The data will be automatically vectorized for easier / faster
-    handling. Thus the vectorized data (Y) within STLinearRegression
-    has shape of samples by channels * time points.
-    """
-    def __init__(self, predictors, design_matrix, data, weights=None,
-                 fit_intercept=True, normalize=False,
-                 n_jobs=None):
-
-        # store model parameters
-        super().__init__(fit_intercept=fit_intercept, normalize=normalize,
-                         n_jobs=n_jobs)
-        self.predictors = predictors
-        self.design = design_matrix
-        self.orig_shape = data.shape[1:]
-        self.Y = Vectorizer().fit_transform(data)
-        self.weights = weights
-
-        # automatically fit the linear model
-        self.fit(X=self.design, y=self.Y, sample_weight=self.weights)
-
-    # compute beta coefficients
-    def compute_beta_coefs(self, predictor, output='evoked'):
-        # extract coefficients from linear model estimator
-        beta_coefs = get_coef(self, 'coef_')
-        # select predictor in question
-        pred_col = predictor_vars.index(predictor)
-
-        if output == 'evoked':
-            # coefficients are projected back to a channels x time points
-            betas = beta_coefs[:, pred_col]
-            betas = betas.reshape(self.orig_shape)
-            # create evoked object containing the back projected coefficients
-            betas = EvokedArray(betas,
-                                comment=predictor,
-                                info=limo_epochs.info,
-                                tmin=limo_epochs.tmin)
-        else:
-            # return raw values
-            betas = beta_coefs[:, pred_col]
-        return betas
-
-    # compute model predictions
-    def compute_predictions(self):
-        # compute predicted values
-        predictions = self.predict(X=self.design)
-        # return beta coefficients
-        return predictions
-
-
-###############################################################################
-# Set up the model
-# ----------------
-#
-# We already have an intercept column in the design matrix,
-# thus we'll call STLinearRegression with fit_intercept=False
-
-linear_model = STLinearRegression(fit_intercept=False,
-                                  predictors=predictor_vars,
-                                  design_matrix=design,
-                                  data=limo_epochs.get_data())
+reg = linear_regression(limo_epochs,
+                        design_matrix=design,
+                        names=predictor_vars)
 
 ###############################################################################
 # Extract regression coefficients
 # -------------------------------
 #
-# As described above, the results stored within the object ``linear_model``.
-# We can extract the coefficients (i.e., the betas) from the
-# linear model estimator by calling ``linear_model.compute_beta_coefs()``.
-# This will automatically create an evoked object that can used later
+# The results stored within the object ``reg``.
+# It basically consists of a dictionary of evoked objects containing
+# multiple inferential measures for each predictor in the design matrix.
 
-pc_betas = linear_model.compute_beta_coefs(predictor='phase-coherence')
-face_betas = linear_model.compute_beta_coefs(predictor='face a - face b')
+print('predictors are:', [key for key in reg.keys()])
+print('fields are:', [field for field in getattr(reg['intercept'], '_fields')])
 
 ###############################################################################
 # Plot model results
 # ------------------
 #
-# Now we can plot results of the linear regression analysis.
+# Now we can access and plot the results of the linear regression analysis by
+# calling `reg['<name of predictor>'].<measure of interest>` and using the
+# `.plot_joint()` method just as we would do with any other evoked object.
 # Below we can see a clear effect of phase-coherence, with higher
 # phase-coherence (i.e., better "face visibility") having a negative effect on
 # the activity measured at occipital electrodes around 200 to 250 ms following
 # stimulus onset.
 
-pc_betas.plot_joint(ts_args=ts_args,
-                    title='Phase-coherence - sklearn betas',
-                    times=[0.23])
+reg['phase-coherence'].beta.plot_joint(ts_args=ts_args,
+                                       title='Effect of Phase-coherence',
+                                       times=[0.23])
+
+###############################################################################
+# We can also plot the corresponding T values.
+
+# use unit=False and scale=1 to avoid conversion keep values at their original
+# scale (i.e., avoid conversion to micro-volt).
+ts_args = dict(xlim=(-0.25, 0.5),
+               unit=False)
+topomap_args = dict(scalings=dict(eeg=1),
+                    average=0.05)
+
+fig = reg['phase-coherence'].t_val.plot_joint(ts_args=ts_args,
+                                              topomap_args=topomap_args,
+                                              times=[0.23])
+fig.axes[0].set_ylabel('T-value')
 
 ###############################################################################
 # Conversely, there appears to be no (or very small) systematic effects when
 # constraining Face A and Face B stimuli. This is largely consistent with the
 # difference wave approach presented above.
 
-face_betas.plot_joint(title='Face A - Face B - sklearn betas',
-                      ts_args=ts_args,
-                      times=[0.15])
-
-###############################################################################
-# Finally we can compare the output to MNE's linear_regression function
-# see func:`mne.stats.linear_regression`.
-
-mne_reg = linear_regression(limo_epochs,
-                            design_matrix=design,
-                            names=predictor_vars)
-
-mne_reg['phase-coherence'].beta.plot_joint(ts_args=ts_args,
-                                           title='Phase-coherence - MNE',
-                                           times=[0.23])
+reg['face a - face b'].beta.plot_joint(ts_args=ts_args,
+                                       title='Effect of Face A vs. Face B',
+                                       times=[0.23])
