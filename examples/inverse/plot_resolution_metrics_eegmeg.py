@@ -4,7 +4,7 @@ Compute spatial resolution metrics to compare MEG with EEGMEG.
 ==============================================================
 
 Compute peak localisation error and spatial deviation for the point-spread
-functions of dSPM and MNE. Plot their distributions and difference
+functions of dSPM and MNE. Plot their distributions and difference of
 distributions.
 This example mimics some results from [1]_, namely Figure 3 (peak localisation
 error for PSFs, L2-MNE vs dSPM) and Figure 4 (spatial deviation for PSFs,
@@ -12,9 +12,9 @@ L2-MNE vs dSPM).
 
 References
 ----------
-.. [1] Hauk et al. "Towards an Objective Evaluation of EEG/MEG Source
-Estimation Methods: The Linear Tool Kit", bioRxiv 2019,
-doi: https://doi.org/10.1101/672956.
+.. [1] Hauk O, Stenroos M, Treder M (2019). "Towards an Objective Evaluation of
+       EEG/MEG Source Estimation Methods: The Linear Tool Kit", bioRxiv,
+       doi: https://doi.org/10.1101/672956.
 """
 # Author: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #

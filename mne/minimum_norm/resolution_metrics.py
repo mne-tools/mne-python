@@ -40,12 +40,11 @@ def resolution_metrics(resmat, src, function, kind, metric):
         This must match with 'kind'. The allowed options are:
         kind='localization_error':
             'peak': Peak localization error (PLE), Euclidean distance between
-                    peak
-                    and true source location.
+                    peak and true source location.
             'cog': Centre-of-gravity localisation error (CoG), Euclidean
                    distance between CoG and true source location.
         kind='spatial_extent':
-            'sd': spatial deviation (e.g. Molins et al.).
+            'sd': spatial deviation (e.g. [1,2]_).
             'maxrad': maximum radius to 50% of max amplitude.
         kind='relative_amplitude':
             'peak': Ratio between absolute maximum amplitudes of peaks per
@@ -57,28 +56,39 @@ def resolution_metrics(resmat, src, function, kind, metric):
     resolution_metric : instance of SourceEstimate
         The source estimate contains the resolution metric as an array with
         shape (n_locations,)
+
+    References
+    ----------
+    .. [1] Molins A, Stufflebeam S M, Brown E N, Hämäläinen M S (2008).
+           Quantification of the benefit from integrating MEG and EEG data in
+           minimum l2-norm estimation. Neuroimage, 42(3):1069-77.
+    .. [2] Hauk O, Stenroos M, Treder M (2019). "Towards an Objective
+           Evaluation of EEG/MEG Source Estimation Methods: The Linear Tool
+           Kit", bioRxiv, doi: https://doi.org/10.1101/672956.
     """
     # Check if input options are valid
     if kind == 'localization_error':
         if metric not in ['peak', 'cog']:
-            print('Not an allowed metric for localization_error: %s' % metric)
+            raise ValueError('Not an allowed metric for localization_error: %s'
+                             % metric)
 
     elif kind == 'spatial_extent':
         if metric not in ['sd', 'maxrad']:
-            print('Not an allowed metric for spatial_extent: %s' % metric)
+            raise ValueError('Not an allowed metric for spatial_extent: %s'
+                             % metric)
 
     elif kind == 'relative_amplitude':
         if metric not in ['peak', 'sum']:
-            print('Not an allowed metric for amplitude: %s' % metric)
+            raise ValueError('Not an allowed metric for amplitude: %s'
+                             % metric)
 
     else:
-        print('Not a recognised kind of resolution feature: %s.' % kind)
-
-        return
+        raise ValueError('Not a recognised kind of resolution feature: %s.'
+                         % kind)
 
     if function not in ['psf', 'ctf']:
-        print('Not a recognised resolution function: %s.' % function)
-        return
+        raise ValueError('Not a recognised resolution function: %s.'
+                         % function)
 
     if kind == 'localization_error':
 
@@ -133,7 +143,7 @@ def _localisation_error(resmat, src, function, metric):
 
     Returns
     -------
-        locerr: array, shape (n_locations,)
+    locerr: array, shape (n_locations,)
         Localisation error per location (in cm).
     """
     # ensure resolution matrix is square
@@ -155,7 +165,7 @@ def _localisation_error(resmat, src, function, metric):
         resmat = resmat.T
 
     # Euclidean distance between true location and maximum
-    if metric.lower() == 'peak':
+    if metric == 'peak':
 
         # find indices of maxima along columns
         resmax = resmat.argmax(axis=0)
@@ -167,15 +177,15 @@ def _localisation_error(resmat, src, function, metric):
         diffloc = locations - maxloc
 
         # Euclidean distance
-        locerr = np.sqrt(np.sum(diffloc**2, 1))
+        locerr = np.sqrt(np.sum(diffloc ** 2, 1))
 
     # centre of gravity
-    elif metric.lower() == 'cog':
+    elif metric == 'cog':
 
         # initialise result array
         locerr = np.empty(locations.shape[0])
 
-        for (ii, rr) in enumerate(locations):
+        for ii, rr in enumerate(locations):
 
             # corresponding column of resmat
             resvec = resmat[:, ii].T
@@ -184,11 +194,12 @@ def _localisation_error(resmat, src, function, metric):
             cog = resvec.dot(locations) / np.sum(resvec)
 
             # centre of gravity
-            locerr[ii] = np.sqrt(np.sum((rr - cog)**2))
+            locerr[ii] = np.sqrt(np.sum((rr - cog) ** 2))
 
     else:
 
-        print('Not a valid metric for localisation error: %s.' % metric)
+        raise ValueError('Not a valid metric for localisation error: %s.'
+                         % metric)
 
     return locerr
 
@@ -240,9 +251,9 @@ def _spatial_extent(resmat, src, function, metric):
     width = np.empty(len(resmax))
 
     # spatial deviation as in Molins et al.
-    if metric.lower() == 'sd':
+    if metric == 'sd':
 
-        for ii in range(0, locations.shape[0]):
+        for ii in range(locations.shape[0]):
 
             # locations relative to true source
             diffloc = locations - locations[ii, :]
@@ -258,12 +269,12 @@ def _spatial_extent(resmat, src, function, metric):
                                 np.sum(resvec))
 
     # maximum radius to 50% of max amplitude
-    elif metric.lower() == 'maxrad':
+    elif metric == 'maxrad':
 
         # peak amplitudes per location across columns
         maxamp = resmat.max(axis=0)
 
-        for (ii, aa) in enumerate(maxamp):  # for all locations
+        for ii, aa in enumerate(maxamp):  # for all locations
 
             # pick current column
             resvec = resmat[:, ii]
@@ -279,7 +290,7 @@ def _spatial_extent(resmat, src, function, metric):
 
     else:
 
-        print('Not a valid metric for spatial width: %s.' % metric)
+        raise ValueError('Not a valid metric for spatial width: %s.' % metric)
 
     return width
 
@@ -320,7 +331,7 @@ def _relative_amplitude(resmat, src, function, metric):
     resmat = np.absolute(resmat)
 
     # Ratio between amplitude at peak and global peak maximum
-    if metric.lower() == 'peak':
+    if metric == 'peak':
 
         # maximum amplitudes per column
         maxamps = resmat.max(axis=0)
@@ -331,7 +342,7 @@ def _relative_amplitude(resmat, src, function, metric):
         relamp = maxamps / maxmaxamps
 
     # ratio between sums of absolute amplitudes
-    elif metric.lower() == 'sum':
+    elif metric == 'sum':
 
         # sum of amplitudes per column
         sumamps = np.sum(resmat, axis=0)
@@ -343,7 +354,8 @@ def _relative_amplitude(resmat, src, function, metric):
 
     else:
 
-        print('Not a valid metric for relative amplitude: %s.' % metric)
+        raise ValueError('Not a valid metric for relative amplitude: %s.'
+                         % metric)
 
     return relamp
 
