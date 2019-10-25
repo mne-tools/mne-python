@@ -2254,8 +2254,12 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     If the current magnitude overlay is not desired, set ``overlay_alpha=0``
     and ``smoothing_steps=1``.
     """
+    from .backends.renderer import get_3d_backend
     # Import here to avoid circular imports
-    from surfer import Brain, TimeViewer
+    if get_3d_backend() == "mayavi":
+        from surfer import Brain, TimeViewer
+    else:
+        from ._brain import _Brain as Brain
     from ..source_estimate import VectorSourceEstimate
 
     _validate_type(stc, VectorSourceEstimate, "stc", "Vector Source Estimate")
@@ -2295,17 +2299,28 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         data = getattr(stc, hemi + '_data')
         vertices = stc.vertices[hemi_idx]
         if len(data) > 0:
+            kwargs = {
+                "array": data, "colormap": colormap,
+                "vertices": vertices,
+                "smoothing_steps": smoothing_steps,
+                "time": times, "time_label": time_label,
+                "alpha": overlay_alpha, "hemi": hemi,
+                "colorbar": colorbar,
+                "vector_alpha": vector_alpha,
+                "scale_factor": scale_factor,
+            }
+            print(ad_kwargs)
+            # kwargs.update(ad_kwargs)
+            if get_3d_backend() == "mayavi":
+                kwargs["min"] = scale_pts[0]
+                kwargs["mid"] = scale_pts[1]
+                kwargs["max"] = scale_pts[2]
+            else:
+                kwargs["fmin"] = scale_pts[0]
+                kwargs["fmid"] = scale_pts[1]
+                kwargs["fmax"] = scale_pts[2]
             with warnings.catch_warnings(record=True):  # traits warnings
-                brain.add_data(data, colormap=colormap, vertices=vertices,
-                               smoothing_steps=smoothing_steps, time=times,
-                               time_label=time_label, alpha=overlay_alpha,
-                               hemi=hemi, colorbar=colorbar,
-                               vector_alpha=vector_alpha,
-                               scale_factor=scale_factor,
-                               min=scale_pts[0], max=scale_pts[2],
-                               **ad_kwargs)
-        brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
-                                  fmax=scale_pts[2], **sd_kwargs)
+                brain.add_data(**kwargs)
 
     if time_viewer:
         TimeViewer(brain)
