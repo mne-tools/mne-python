@@ -345,6 +345,32 @@ functions in MNE and does not contain useful metadata for analysis.
       how to project a 3D electrode location onto a 2D image, a common procedure
       in electrocorticography.
 
+.. _limo-dataset:
+
+LIMO Dataset
+^^^^^^^^^^^^
+:func:`mne.datasets.limo.load_data`.
+
+In the original LIMO experiment (see [9]_), participants performed a
+two-alternative forced choice task, discriminating between two face stimuli.
+Subjects discriminated the same two faces during the whole experiment.
+The critical manipulation consisted of the level of noise added to the
+face-stimuli during the task, making the faces more or less discernible to the
+observer.
+
+The presented faces varied across a noise-signal (or phase-coherence) continuum
+spanning from 0 to 100% in increasing steps of 10%. In other words, faces with
+high phase-coherence (e.g., 90%) were easy to identify, while faces with low
+phase-coherence (e.g., 10%) were hard to identify and by extension hard to
+discriminate.
+
+.. topic:: Examples
+
+    * :ref:`Single trial linear regression analysis with the LIMO dataset
+      <ex-limo-data>`: Explores data from a single subject of the LIMO dataset
+      and demonstrates how to fit a single trial linear regression using the
+      information contained in the metadata of the individual datasets.
+
 References
 ==========
 
@@ -362,6 +388,7 @@ References
 
 .. [8] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. PhysioBank, PhysioToolkit, and PhysioNet: Components of a New Research Resource for Complex Physiologic Signals. Circulation 101(23):e215-e220 [Circulation Electronic Pages; http://circ.ahajournals.org/cgi/content/full/101/23/e215]; 2000 (June 13).
 
+.. [9] Rousselet, G. A., Gaspar, C. M., Pernet, C. R., Husk, J. S., Bennett, P. J., & Sekuler, A. B. (2010). Healthy aging delays scalp EEG sensitivity to noise in a face discrimination task. Frontiers in psychology, 1, 19. https://doi.org/10.3389/fpsyg.2010.00019
 
 .. _auditory dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetAuditory
 .. _resting state dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetResting

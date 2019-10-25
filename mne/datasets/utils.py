@@ -231,7 +231,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         'kiloword': 'MNE_DATASETS_KILOWORD_PATH',
         'mtrf': 'MNE_DATASETS_MTRF_PATH',
         'fieldtrip_cmc': 'MNE_DATASETS_FIELDTRIP_CMC_PATH',
-        'phantom_4dbti': 'MNE_DATASETS_PHANTOM_4DBTI_PATH'
+        'phantom_4dbti': 'MNE_DATASETS_PHANTOM_4DBTI_PATH',
+        'limo': 'MNE_DATASETS_LIMO_PATH',
     }[name]
 
     path = _get_path(path, key, name)
@@ -598,7 +599,7 @@ def _download_all_example_data(verbose=True):
         fetch_hcp_mmp_parcellation()
     finally:
         sys.argv.pop(-1)
-    limo.load_data(subject=2, update_path=True)
+    limo.load_data(subject=1, update_path=True)
 
 
 @verbose

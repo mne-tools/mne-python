@@ -270,6 +270,8 @@
 
 .. _Fahimeh Mamashli: https://github.com/fmamashli
 
+.. _Jose Alanis: https://github.com/JoseAlanis
+
 .. _Adonay Nunes: https://github.com/AdoNunes
 
 .. _Victor Ferat: https://github.com/vferat
