@@ -117,7 +117,7 @@ fig.suptitle("Distribution of events in LIMO epochs")
 print(limo_epochs.metadata.head())
 
 ###############################################################################
-# Now we can take a closer look at the information entailed in the epochs
+# Now let's take a closer look at the information in the epochs
 # metadata.
 
 # We want include all columns in the summary table
@@ -126,7 +126,7 @@ print(epochs_summary)
 
 ###############################################################################
 # The first column of the summary table above provides more or less the same
-# information as the ``print(limo.epochs)`` command we ran before. There are
+# information as the ``print(limo_epochs)`` command we ran before. There are
 # 1055 faces (i.e., epochs), subdivided in 2 conditions (i.e., Face A and
 # Face B) and, for this particular subject, there are more epochs for the
 # condition Face B.
@@ -140,7 +140,7 @@ print(epochs_summary)
 # Visualize condition ERPs
 # ------------------------
 #
-# We can go ahead and plot the ERPs evoked by Face A and Face B
+# Let's plot the ERPs evoked by Face A and Face B, to see how similar they are.
 
 # only show -250 to 500 ms
 ts_args = dict(xlim=(-0.25, 0.5))
@@ -168,7 +168,7 @@ difference_wave = combine_evoked([limo_epochs['Face/A'].average(),
 difference_wave.plot_joint(times=[0.15], title='Difference Face A - Face B')
 
 ###############################################################################
-# As expected, no see clear pattern appears when contrasting
+# As expected, no clear pattern appears when contrasting
 # Face A and Face B. However, we could narrow our search a little bit more.
 # Since this is a "visual paradigm" it might be best to look at electrodes
 # located over the occipital lobe, as differences between stimuli (if any)
@@ -186,7 +186,7 @@ pick = evokeds["Face/A"].ch_names.index('B11')
 plot_compare_evokeds(evokeds, picks=pick, ylim=dict(eeg=(-15, 7.5)))
 
 ###############################################################################
-# As expected, the difference between Face A and Face B are very small.
+# We do see a difference between Face A and B, but it is pretty small.
 #
 #
 # Visualize effect of stimulus phase-coherence
@@ -201,7 +201,7 @@ phase_coh = limo_epochs.metadata['phase-coherence']
 # get levels of phase coherence
 levels = sorted(phase_coh.unique())
 # create labels for levels of phase coherence (i.e., 0 - 85%)
-labels = ["{0:.2f}".format(i) for i in np.arange(0., .90, .05)]
+labels = ["{0:.2f}".format(i) for i in np.arange(0., 0.90, 0.05)]
 
 # create dict of evokeds for each level of phase-coherence
 evokeds = {label: limo_epochs[phase_coh == level].average()
@@ -214,7 +214,7 @@ for electrode in electrodes:
     fig, ax = plt.subplots(figsize=(8, 4))
     plot_compare_evokeds(evokeds,
                          axes=ax,
-                         ylim=dict(eeg=(-15, 15)),
+                         ylim=dict(eeg=(-20, 15)),
                          picks=electrode,
                          cmap=("Phase coherence", "magma"))
 
@@ -234,7 +234,6 @@ for electrode in electrodes:
 # present in the data:
 
 limo_epochs.interpolate_bads(reset_bads=True)
-
 limo_epochs.drop_channels(['EXG1', 'EXG2', 'EXG3', 'EXG4'])
 
 ###############################################################################
@@ -258,7 +257,7 @@ design = design[predictor_vars]
 
 ###############################################################################
 # Now we can set up the linear model to be used in the analysis using
-# MNE's linear_regression function (see func:`mne.stats.linear_regression`).
+# MNE-Python's func:`~mne.stats.linear_regression` function.
 
 reg = linear_regression(limo_epochs,
                         design_matrix=design,
@@ -268,11 +267,11 @@ reg = linear_regression(limo_epochs,
 # Extract regression coefficients
 # -------------------------------
 #
-# The results stored within the object ``reg``.
-# It basically consists of a dictionary of evoked objects containing
+# The results are stored within the object ``reg``,
+# which is a dictionary of evoked objects containing
 # multiple inferential measures for each predictor in the design matrix.
 
-print('predictors are:', [key for key in reg.keys()])
+print('predictors are:', list(reg))
 print('fields are:', [field for field in getattr(reg['intercept'], '_fields')])
 
 ###############################################################################
@@ -280,8 +279,10 @@ print('fields are:', [field for field in getattr(reg['intercept'], '_fields')])
 # ------------------
 #
 # Now we can access and plot the results of the linear regression analysis by
-# calling `reg['<name of predictor>'].<measure of interest>` and using the
-# `.plot_joint()` method just as we would do with any other evoked object.
+# calling :samp:`reg['{<name of predictor>}'].{<measure of interest>}` and
+# using the
+# :meth:`~mne.Evoked.plot_joint` method just as we would do with any other
+# evoked object.
 # Below we can see a clear effect of phase-coherence, with higher
 # phase-coherence (i.e., better "face visibility") having a negative effect on
 # the activity measured at occipital electrodes around 200 to 250 ms following
@@ -294,13 +295,14 @@ reg['phase-coherence'].beta.plot_joint(ts_args=ts_args,
 ###############################################################################
 # We can also plot the corresponding T values.
 
-# use unit=False and scale=1 to avoid conversion keep values at their original
+# use unit=False and scale=1 to keep values at their original
 # scale (i.e., avoid conversion to micro-volt).
 ts_args = dict(xlim=(-0.25, 0.5),
                unit=False)
 topomap_args = dict(scalings=dict(eeg=1),
                     average=0.05)
 
+# sphinx_gallery_thumbnail_number = 9
 fig = reg['phase-coherence'].t_val.plot_joint(ts_args=ts_args,
                                               topomap_args=topomap_args,
                                               times=[0.23])
@@ -308,8 +310,9 @@ fig.axes[0].set_ylabel('T-value')
 
 ###############################################################################
 # Conversely, there appears to be no (or very small) systematic effects when
-# constraining Face A and Face B stimuli. This is largely consistent with the
+# comparing Face A and Face B stimuli. This is largely consistent with the
 # difference wave approach presented above.
+ts_args = dict(xlim=(-0.25, 0.5))
 
 reg['face a - face b'].beta.plot_joint(ts_args=ts_args,
                                        title='Effect of Face A vs. Face B',
