@@ -78,7 +78,13 @@ def _make_xy_sfunc(func, ndim_output=False):
 
 # makes score funcs attr accessible for users
 def get_score_funcs():
-    """Get the score functions."""
+    """Get the score functions.
+
+    Returns
+    -------
+    score_funcs : dict
+        The score functions.
+    """
     from scipy import stats
     from scipy.spatial import distance
     score_funcs = Bunch()

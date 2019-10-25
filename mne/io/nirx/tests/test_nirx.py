@@ -12,14 +12,16 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.transforms import apply_trans, _get_trans
 from mne.utils import run_tests_if_main
 
-fname_nirx = op.join(data_path(download=False),
-                     'NIRx', 'nirx_15_2_recording_w_short')
+fname_nirx_15_2 = op.join(data_path(download=False),
+                          'NIRx', 'nirx_15_2_recording')
+fname_nirx_15_2_short = op.join(data_path(download=False),
+                                'NIRx', 'nirx_15_2_recording_w_short')
 
 
 @requires_testing_data
-def test_nirx():
+def test_nirx_15_2_short():
     """Test reading NIRX files."""
-    raw = read_raw_nirx(fname_nirx, preload=True)
+    raw = read_raw_nirx(fname_nirx_15_2_short, preload=True)
 
     # Test data import
     assert raw._data.shape == (26, 145)
@@ -102,9 +104,43 @@ def test_nirx():
 
 
 @requires_testing_data
+def test_nirx_15_2():
+    """Test reading NIRX files."""
+    raw = read_raw_nirx(fname_nirx_15_2, preload=True)
+
+    # Test data import
+    assert raw._data.shape == (64, 67)
+    assert raw.info['sfreq'] == 3.90625
+
+    # Test channel naming
+    assert raw.info['ch_names'][:4] == ["S1-D1 760", "S1-D1 850",
+                                        "S1-D10 760", "S1-D10 850"]
+
+    # Test info import
+    assert raw.info['subject_info'] == dict(sex=1, first_name="TestRecording")
+
+    # Test trigger events
+    assert_array_equal(raw.annotations.description, ['4.0', '6.0', '2.0'])
+
+    # Test location of detectors
+    allowed_dist_error = 0.0002
+    locs = [ch['loc'][6:9] for ch in raw.info['chs']]
+    head_mri_t, _ = _get_trans('fsaverage', 'head', 'mri')
+    mni_locs = apply_trans(head_mri_t, locs)
+
+    assert raw.info['ch_names'][0][3:5] == 'D1'
+    assert_allclose(
+        mni_locs[0], [-0.0292, 0.0852, -0.0142], atol=allowed_dist_error)
+
+    assert raw.info['ch_names'][15][3:5] == 'D4'
+    assert_allclose(
+        mni_locs[15], [-0.0739, -0.0756, -0.0075], atol=allowed_dist_error)
+
+
+@requires_testing_data
 def test_nirx_standard():
     """Test standard operations."""
-    _test_raw_reader(read_raw_nirx, fname=fname_nirx,
+    _test_raw_reader(read_raw_nirx, fname=fname_nirx_15_2_short,
                      boundary_decimal=1)  # low fs
 
 

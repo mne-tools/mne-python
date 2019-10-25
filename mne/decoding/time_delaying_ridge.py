@@ -248,6 +248,10 @@ class TimeDelayingRidge(BaseEstimator):
 
         .. versionadded:: 0.18
 
+    See Also
+    --------
+    mne.decoding.ReceptiveField
+
     Notes
     -----
     This class is meant to be used with :class:`mne.decoding.ReceptiveField`
@@ -255,10 +259,6 @@ class TimeDelayingRidge(BaseEstimator):
     field and input signal sizes, it should be more CPU and memory
     efficient by using frequency-domain methods (FFTs) to compute the
     auto- and cross-correlations.
-
-    See Also
-    --------
-    mne.decoding.ReceptiveField
     """
 
     _estimator_type = "regressor"

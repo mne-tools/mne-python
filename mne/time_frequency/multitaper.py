@@ -45,7 +45,6 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
         'zero', 'slinear', 'quadratic, 'cubic') or as an integer specifying the
         order of the spline interpolator to use.
 
-
     Returns
     -------
     v, e : tuple,
@@ -491,7 +490,6 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
         .. note::
             Decimation may create aliasing artifacts, yet decimation
             is done after the convolutions.
-
     output : str, default 'complex'
 
         * 'complex' : single trial complex.
@@ -501,7 +499,6 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
         * 'itc' : inter-trial coherence.
         * 'avg_power_itc' : average of single trial power and inter-trial
           coherence across trials.
-
     %(n_jobs)s
         The number of epochs to process at the same time. The parallelization
         is implemented across channels. Defaults to 1.

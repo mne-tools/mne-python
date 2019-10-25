@@ -1015,8 +1015,8 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m',
 
     if ext in SUPPORTED_FILE_EXT['eeglab']:
         if head_size is None:
-            raise(ValueError,
-                  "``head_size`` cannot be None for '{}'".format(ext))
+            raise ValueError(
+                "``head_size`` cannot be None for '{}'".format(ext))
         ch_names, pos = _read_eeglab_locations(fname, unit)
         scale = head_size / np.median(np.linalg.norm(pos, axis=-1))
         pos *= scale
@@ -1037,8 +1037,8 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m',
 
     elif ext in SUPPORTED_FILE_EXT['generic (Theta-phi in degrees)']:
         if head_size is None:
-            raise(ValueError,
-                  "``head_size`` cannot be None for '{}'".format(ext))
+            raise ValueError(
+                "``head_size`` cannot be None for '{}'".format(ext))
         montage = _read_theta_phi_in_degrees(fname, head_size=head_size,
                                              fid_names=('Nz', 'LPA', 'RPA'))
 

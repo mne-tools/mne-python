@@ -908,8 +908,8 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
 
     See Also
     --------
-    scale_labels : add labels to a scaled MRI
-    scale_source_space : add a source space to a scaled MRI
+    scale_labels : Add labels to a scaled MRI.
+    scale_source_space : Add a source space to a scaled MRI.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     paths = _find_mri_paths(subject_from, skip_fiducials, subjects_dir)

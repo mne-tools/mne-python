@@ -178,7 +178,7 @@ class Info(dict):
     ``info['bads']`` and ``info['description']``. All other entries should
     be considered read-only, or should be modified by functions or methods.
 
-    Parameters
+    Attributes
     ----------
     acq_pars : str | None
         MEG system acquition parameters.
@@ -497,7 +497,6 @@ class Info(dict):
             Original file GUID.
         meas_date : tuple of int
             The helium level meas date.
-
     """
 
     def copy(self):

@@ -93,7 +93,6 @@ def bonferroni_correction(pval, alpha=0.05):
         True if a hypothesis is rejected, False if not
     pval_corrected : array
         pvalues adjusted for multiple hypothesis testing to limit FDR
-
     """
     pval = np.asarray(pval)
     pval_corrected = pval * float(pval.size)

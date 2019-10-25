@@ -744,7 +744,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         Layout instance specifying sensor positions (does not need to
         be specified for Neuromag data). If possible, the correct layout is
         inferred from the data.
-    layout_scale: float
+    layout_scale : float
         Scaling factor for adjusting the relative size of the layout
         on the canvas
     color : list of color | color | None
@@ -909,7 +909,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
         significance.
 
         .. versionadded:: 0.16
-    mask_style: None | 'both' | 'contour' | 'mask'
+    mask_style : None | 'both' | 'contour' | 'mask'
         If `mask` is not None: if 'contour', a contour line is drawn around
         the masked areas (``True`` in `mask`). If 'mask', entries not
         ``True`` in `mask` are shown transparently. If 'both', both a contour

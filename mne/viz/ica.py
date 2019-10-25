@@ -40,7 +40,6 @@ def plot_ica_sources(ica, inst, picks=None, start=None,
     2. plot latent source around event related time windows (Epochs input)
     3. plot time-locking in ICA space (Evoked input)
 
-
     Parameters
     ----------
     ica : instance of mne.preprocessing.ICA
@@ -235,7 +234,7 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
 def _get_psd_label_and_std(this_psd, dB, ica, num_std):
     """Handle setting up PSD for one component, for plot_ica_properties."""
     psd_ylabel = _convert_psds(this_psd, dB, estimate='auto', scaling=1.,
-                               unit='AU', ch_names=ica.ch_names)
+                               unit='AU', first_dim='epoch')
     psds_mean = this_psd.mean(axis=0)
     diffs = this_psd - psds_mean
     # the distribution of power for each frequency bin is highly
@@ -262,18 +261,18 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     ----------
     ica : instance of mne.preprocessing.ICA
         The ICA solution.
-    inst: instance of Epochs or Raw
+    inst : instance of Epochs or Raw
         The data to use in plotting properties.
     %(picks_base)s the first five sources.
         If more than one components were chosen in the picks,
         each one will be plotted in a separate figure.
-    axes: list of matplotlib axes | None
+    axes : list of Axes | None
         List of five matplotlib axes to use in plotting: [topomap_axis,
         image_axis, erp_axis, spectrum_axis, variance_axis]. If None a new
         figure with relevant axes is created. Defaults to None.
-    dB: bool
+    dB : bool
         Whether to plot spectrum in dB. Defaults to True.
-    plot_std: bool | float
+    plot_std : bool | float
         Whether to plot standard deviation/confidence intervals in ERP/ERF and
         spectrum plots.
         Defaults to True, which plots one standard deviation above/below for

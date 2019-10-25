@@ -119,7 +119,6 @@ def channel_type(info, idx):
             {'grad', 'mag', 'eeg', 'stim', 'eog', 'emg', 'ecg', 'ref_meg',
              'resp', 'exci', 'ias', 'syst', 'misc', 'seeg', 'bio', 'chpi',
              'dipole', 'gof', 'ecog', 'hbo', 'hbr'}
-
     """
     # This is faster than the original _channel_type_old now in test_pick.py
     # because it uses (at most!) two dict lookups plus one conditional
@@ -161,14 +160,14 @@ def pick_channels(ch_names, include, exclude=[], ordered=False):
 
         .. versionadded:: 0.18
 
-    See Also
-    --------
-    pick_channels_regexp, pick_types
-
     Returns
     -------
     sel : array of int
         Indices of good channels.
+
+    See Also
+    --------
+    pick_channels_regexp, pick_types
     """
     if len(np.unique(ch_names)) != len(ch_names):
         raise RuntimeError('ch_names is not a unique list, picking is unsafe')

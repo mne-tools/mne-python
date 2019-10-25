@@ -101,6 +101,11 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         .. versionadded:: 0.20
     %(verbose)s
 
+    Returns
+    -------
+    morph : instance of SourceMorph
+        The :class:`mne.SourceMorph` object.
+
     Notes
     -----
     This function can be used to morph data between hemispheres by setting

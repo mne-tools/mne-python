@@ -33,6 +33,12 @@ class RawArray(BaseRaw):
         .. versionadded:: 0.18
     %(verbose)s
 
+    See Also
+    --------
+    mne.EpochsArray
+    mne.EvokedArray
+    mne.create_info
+
     Notes
     -----
     Proper units of measure:
@@ -42,12 +48,6 @@ class RawArray(BaseRaw):
     * M: hbo, hbr
     * Am: dipole
     * AU: misc
-
-    See Also
-    --------
-    mne.EpochsArray
-    mne.EvokedArray
-    mne.create_info
     """
 
     @verbose

@@ -1045,8 +1045,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         (None, True). Defaults to 'RdBu_r'.
 
         .. warning::  Interactive mode works smoothly only for a small amount
-            of topomaps.
-
+                      of topomaps.
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib
         plot format string (e.g., 'r+' for red plusses). If True (default),
@@ -1087,7 +1086,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         topomap you need to pass relevant data - instances of Raw or Epochs
         (for example the data that ICA was trained on). This takes effect
         only when running matplotlib in interactive mode.
-    plot_std: bool | float
+    plot_std : bool | float
         Whether to plot standard deviation in ERP/ERF and spectrum plots.
         Defaults to True, which plots one standard deviation above/below.
         If set to float allows to control how many standard deviations are
@@ -1107,7 +1106,6 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         If None, no rejection is applied. The default is 'auto',
         which applies the rejection parameters used when fitting
         the ICA object.
-
 
     Returns
     -------

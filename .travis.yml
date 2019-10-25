@@ -17,7 +17,7 @@ matrix:
         - os: linux
           env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
                CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx"
-               PIP_DEPENDENCIES="codecov flake8 numpydoc codespell pydocstyle codecov check-manifest twine"
+               PIP_DEPENDENCIES="codecov flake8 https://api.github.com/repos/numpy/numpydoc/zipball/master codespell pydocstyle codecov check-manifest twine"
 
         # Linux
         # As of 2019/09/19 there is a mysterious joblib bug, so temporarily work around it with MNE_FORCE_SERIAL

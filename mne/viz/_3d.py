@@ -1819,6 +1819,11 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         .. versionadded:: 0.19
     %(verbose)s
 
+    Returns
+    -------
+    fig : instance of Figure
+        The figure.
+
     Notes
     -----
     Click on any of the anatomical slices to explore the time series.
@@ -1845,7 +1850,6 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
 
     >>> morph = mne.compute_source_morph(src_sample, subject_to='fsaverage')  # doctest: +SKIP
     >>> fig = stc_vol_sample.plot(morph)  # doctest: +SKIP
-
     """  # noqa: E501
     from matplotlib import pyplot as plt, colors
     from matplotlib.cbook import mplDeprecation
@@ -2563,7 +2567,7 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
     show : bool
         Show figure if True. Defaults to True.
         Only used if mode equals 'orthoview'.
-    scale: float
+    scale : float
         The scale of the dipoles if ``mode`` is 'arrow' or 'sphere'.
     color : tuple
         The color of the dipoles.
@@ -2693,7 +2697,7 @@ def plot_sensors_connectivity(info, con, picks=None):
     ----------
     info : dict | None
         The measurement info.
-    con: array, shape (n_channels, n_channels)
+    con : array, shape (n_channels, n_channels)
         The computed connectivity measure(s).
     %(picks_good_data)s
         Indices of selected channels.

@@ -55,23 +55,23 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
     axis_spinecolor : color
         The axis spine color. Defaults to black. In other words,
         the color of the axis' edge lines.
-    layout_scale: float | None
+    layout_scale : float | None
         Scaling factor for adjusting the relative size of the layout
         on the canvas. If None, nothing will be scaled.
-    legend: bool
+    legend : bool
         If True, an additional axis is created in the bottom right corner
         that can be used to, e.g., construct a legend. The index of this
         axis will be -1.
 
     Returns
     -------
-    A generator that can be unpacked into:
+    gen : generator
+        A generator that can be unpacked into:
 
         ax : matplotlib.axis.Axis
             The current axis of the topo plot.
         ch_dx : int
             The related channel index.
-
     """
     return _iter_topography(info, layout, on_pick, fig, fig_facecolor,
                             axis_facecolor, axis_spinecolor, layout_scale,
@@ -582,7 +582,7 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         Layout instance specifying sensor positions (does not need to
         be specified for Neuromag data). If possible, the correct layout is
         inferred from the data.
-    layout_scale: float
+    layout_scale : float
         Scaling factor for adjusting the relative size of the layout
         on the canvas
     color : list of color objects | color object | None
@@ -834,7 +834,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     ----------
     epochs : instance of :class:`~mne.Epochs`
         The epochs.
-    layout: instance of Layout
+    layout : instance of Layout
         System specific sensor positions.
     sigma : float
         The standard deviation of the Gaussian smoothing to apply along
@@ -856,7 +856,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
         (data.shape[1] == len(times)).
     cmap : colormap
         Colors to be mapped to the values.
-    layout_scale: float
+    layout_scale : float
         scaling factor for adjusting the relative size of the layout
         on the canvas.
     title : str
