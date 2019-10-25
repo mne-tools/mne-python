@@ -735,7 +735,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     Parameters
     ----------
     epochs : instance of Epochs
-        The epochs object
+        The epochs object.
     %(picks_good_data)s
     scalings : dict | 'auto' | None
         Scaling factors for the traces. If any fields in scalings are 'auto',
@@ -778,7 +778,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
         .. versionadded:: 0.18.0
     show : bool
-        Show figure if True. Defaults to True
+        Show figure if True. Defaults to True.
     block : bool
         Whether to halt program execution until the figure is closed.
         Useful for rejecting bad trials on the fly by clicking on an epoch.
@@ -875,7 +875,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     Parameters
     ----------
     epochs : instance of Epochs
-        The epochs object
+        The epochs object.
     fmin : float
         Start frequency to consider.
     fmax : float

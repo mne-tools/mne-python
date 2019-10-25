@@ -45,7 +45,7 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     sfreq : float
         The sampling Frequency.
     freqs : array
-        frequency range of interest (1 x Frequencies)
+        Frequency range of interest (1 x Frequencies).
     n_cycles : float | array of float, default 7.0
         Number of cycles. Fixed number or one per frequency.
     sigma : float, default None
@@ -764,7 +764,7 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
           coherence across trials.
     %(n_jobs)s
         The number of epochs to process at the same time. The parallelization
-        is implemented across channels. default 1
+        is implemented across channels. Default 1.
     %(verbose)s
 
     Returns
@@ -774,7 +774,7 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
         'phase', 'power'], then shape of out is (n_epochs, n_chans, n_freqs,
         n_times), else it is (n_chans, n_freqs, n_times). If output is
         'avg_power_itc', the real values code for 'avg_power' and the
-        imaginary values code for the 'itc': out = avg_power + i * itc
+        imaginary values code for the 'itc': out = avg_power + i * itc.
 
     See Also
     --------
@@ -980,9 +980,9 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         Parameters
         ----------
         fname : str
-            The file name, which should end with -tfr.h5 .
+            The file name, which should end with ``-tfr.h5``.
         overwrite : bool
-            If True, overwrite file (if it exists). Defaults to False
+            If True, overwrite file (if it exists). Defaults to False.
         """
         write_tfrs(fname, self, overwrite=overwrite)
 
@@ -1993,7 +1993,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         integers.
     metadata : instance of pandas.DataFrame | None
         A :class:`pandas.DataFrame` containing pertinent information for each
-        trial. See :class:`mne.Epochs` for further details
+        trial. See :class:`mne.Epochs` for further details.
     %(verbose)s
 
     Attributes
@@ -2239,12 +2239,12 @@ def write_tfrs(fname, tfr, overwrite=False):
 
     Parameters
     ----------
-    fname : string
-        The file name, which should end with -tfr.h5
+    fname : str
+        The file name, which should end with ``-tfr.h5``.
     tfr : AverageTFR instance, or list of AverageTFR instances
         The TFR dataset, or list of TFR datasets, to save in one file.
         Note. If .comment is not None, a name will be generated on the fly,
-        based on the order in which the TFR objects are passed
+        based on the order in which the TFR objects are passed.
     overwrite : bool
         If True, overwrite file (if it exists). Defaults to False.
 
@@ -2284,7 +2284,7 @@ def read_tfrs(fname, condition=None):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The file name, which should end with -tfr.h5 .
     condition : int or str | list of int or str | None
         The condition to load. If None, all conditions will be returned.

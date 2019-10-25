@@ -183,15 +183,15 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     Parameters
     ----------
     inst : instance of Epochs or Raw or Evoked
-        The data for PSD calculation
+        The data for PSD calculation.
     fmin : float
-        Min frequency of interest
+        Min frequency of interest.
     fmax : float
-        Max frequency of interest
+        Max frequency of interest.
     tmin : float | None
-        Min time of interest
+        Min time of interest.
     tmax : float | None
-        Max time of interest
+        Max time of interest.
     n_fft : int
         The length of FFT used, must be ``>= n_per_seg`` (default: 256).
         The segments will be zero-padded if ``n_fft > n_per_seg``.
@@ -270,13 +270,13 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     inst : instance of Epochs or Raw or Evoked
         The data for PSD calculation.
     fmin : float
-        Min frequency of interest
+        Min frequency of interest.
     fmax : float
-        Max frequency of interest
+        Max frequency of interest.
     tmin : float | None
-        Min time of interest
+        Min time of interest.
     tmax : float | None
-        Max time of interest
+        Max time of interest.
     bandwidth : float
         The bandwidth of the multi taper windowing function in Hz. The default
         value is a window half-bandwidth of 4.

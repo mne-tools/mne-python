@@ -587,9 +587,9 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         If True (default False), coordinate frame axis indicators will be
         shown:
 
-        * head in pink
-        * MRI in gray (if ``trans is not None``)
-        * MEG in blue (if MEG sensors are present)
+        * head in pink.
+        * MRI in gray (if ``trans is not None``).
+        * MEG in blue (if MEG sensors are present).
 
         .. versionadded:: 0.16
     fig : mayavi.mlab.Figure | None
@@ -1572,7 +1572,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         floating point time values to strings, or None for no label). The
         default is ``time=%%0.2f ms``.
     smoothing_steps : int
-        The amount of smoothing
+        The amount of smoothing.
     %(transparent)s
     alpha : float
         Alpha value to apply globally to the overlay. Has no effect with mpl
@@ -1796,7 +1796,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         The background image used in the nilearn plotting function.
         If None, it is the T1.mgz file that is found in the subjects_dir.
         Not used in "glass brain" plotting.
-    colorbar : boolean, optional
+    colorbar : bool, optional
         If True, display a colorbar on the right of the plots.
     %(colormap)s
     %(clim)s
@@ -2199,7 +2199,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         floating point time values to strings, or None for no label). The
         default is ``time=%%0.2f ms``.
     smoothing_steps : int
-        The amount of smoothing
+        The amount of smoothing.
     %(transparent)s
     brain_alpha : float
         Alpha value to apply globally to the surface meshes. Defaults to 0.4.
@@ -2227,7 +2227,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         If True, display colorbar on scene.
     %(clim_onesided)s
     cortex : str or tuple
-        specifies how binarized curvature values are rendered.
+        Specifies how binarized curvature values are rendered.
         either the name of a preset PySurfer cortex colorscheme (one of
         'classic', 'bone', 'low_contrast', or 'high_contrast'), or the
         name of mayavi colormap, or a tuple with values (colormap, min,
@@ -2339,7 +2339,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     stcs : instance of SourceEstimate or list of instances of SourceEstimate
         The source estimates (up to 3).
     colors : list
-        List of colors
+        List of colors.
     linewidth : int
         Line width in 2D plot.
     fontsize : int
@@ -2638,7 +2638,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     xy : array, shape (n_channels, 2)
         The 2d location of each channel on the image of the current scene view.
     im : array, shape (m, n, 3)
-        The screenshot of the current scene view
+        The screenshot of the current scene view.
     """
     from ..channels import DigMontage
     from .. import Info

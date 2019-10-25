@@ -94,7 +94,7 @@ class Covariance(dict):
     ----------
     data : array of shape (n_channels, n_channels)
         The covariance.
-    ch_names : list of string
+    ch_names : list of str
         List of channels' names.
     nfree : int
         Number of degrees of freedom i.e. number of time points used.
@@ -241,7 +241,7 @@ def read_cov(fname, verbose=None):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The name of file containing the covariance matrix. It should end with
         -cov.fif or -cov.fif.gz.
     %(verbose)s
@@ -328,7 +328,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
     Parameters
     ----------
     raw : instance of Raw
-        Raw data
+        Raw data.
     tmin : float
         Beginning of time interval in seconds. Defaults to 0.
     tmax : float | None (default None)
@@ -383,7 +383,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         .. versionadded:: 0.12
     return_estimators : bool (default False)
         Whether to return all estimators or the best. Only considered if
-        method equals 'auto' or is a list of str. Defaults to False
+        method equals 'auto' or is a list of str. Defaults to False.
 
         .. versionadded:: 0.12
     reject_by_annotation : bool
@@ -629,7 +629,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     %(n_jobs)s
     return_estimators : bool (default False)
         Whether to return all estimators or the best. Only considered if
-        method equals 'auto' or is a list of str. Defaults to False
+        method equals 'auto' or is a list of str. Defaults to False.
     on_mismatch : str
         What to do when the MEG<->Head transformations do not match between
         epochs. If "raise" (default) an error is raised, if "warn" then a
@@ -1263,10 +1263,10 @@ def write_cov(fname, cov):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The name of the file. It should end with -cov.fif or -cov.fif.gz.
     cov : Covariance
-        The noise covariance matrix
+        The noise covariance matrix.
 
     See Also
     --------
@@ -1752,9 +1752,9 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
     Parameters
     ----------
     evoked : instance of Evoked
-        The evoked data
+        The evoked data.
     noise_cov : instance of Covariance
-        The noise covariance
+        The noise covariance.
     %(picks_good_data)s
     diag : bool (default False)
         If True, whiten using only the diagonal of the covariance.

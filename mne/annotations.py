@@ -880,7 +880,7 @@ def events_from_annotations(raw, event_id="auto",
 
         .. versionchanged:: 0.18
            Default ignores bad and edge descriptions.
-    use_rounding : boolean
+    use_rounding : bool
         If True, use rounding (instead of truncation) when converting
         times to indices. This can help avoid non-unique indices.
     chunk_duration : float | None

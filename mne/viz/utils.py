@@ -119,7 +119,7 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
     Parameters
     ----------
     pad : float
-        padding between the figure edge and the edges of subplots, as a
+        Padding between the figure edge and the edges of subplots, as a
         fraction of the font-size.
     h_pad : float
         Padding height between edges of adjacent subplots.

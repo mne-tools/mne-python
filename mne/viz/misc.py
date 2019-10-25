@@ -46,7 +46,7 @@ def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
         The covariance matrix.
     info : dict
         Measurement info.
-    exclude : list of string | str
+    exclude : list of str | str
         List of channels to exclude. If empty do not exclude any channel.
         If 'bads', exclude info['bads'].
     colorbar : bool

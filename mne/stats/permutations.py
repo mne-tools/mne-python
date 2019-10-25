@@ -56,11 +56,9 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1,
     Returns
     -------
     T_obs : array of shape [n_tests]
-        T-statistic observed for all variables
-
+        T-statistic observed for all variables.
     p_values : array of shape [n_tests]
-        P-values for all the tests (aka variables)
-
+        P-values for all the tests (aka variables).
     H0 : array of shape [n_permutations]
         T-statistic obtained by permutations and t-max trick for multiple
         comparison.
@@ -113,7 +111,7 @@ def bootstrap_confidence_interval(arr, ci=.95, n_bootstraps=2000,
     ci : float
         Level of the confidence interval between 0 and 1.
     n_bootstraps : int
-        Number of bootstraps
+        Number of bootstraps.
     stat_fun : str | callable
         Can be "mean", "median", or a callable operating along `axis=0`.
     random_state : int | float | array_like | None

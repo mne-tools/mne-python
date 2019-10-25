@@ -1148,7 +1148,7 @@ def quat_to_rot(quat):
     Parameters
     ----------
     quat : array, shape (..., 3)
-        q1, q2, and q3 (x, y, z) parameters of a unit quaternion.
+        The q1, q2, and q3 (x, y, z) parameters of a unit quaternion.
 
     Returns
     -------

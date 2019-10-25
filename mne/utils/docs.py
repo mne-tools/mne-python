@@ -563,12 +563,12 @@ def copy_function_doc_to_method_doc(source):
     Parameters
     ----------
     source : function
-        Function to copy the docstring from
+        Function to copy the docstring from.
 
     Returns
     -------
     wrapper : function
-        The decorated method
+        The decorated method.
 
     Notes
     -----

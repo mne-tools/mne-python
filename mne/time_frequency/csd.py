@@ -34,7 +34,7 @@ class CrossSpectralDensity(object):
     ----------
     data : ndarray, shape ((n_channels**2 + n_channels) / 2, n_frequencies)
         For each frequency, the cross-spectral density matrix in vector format.
-    ch_names : list of string
+    ch_names : list of str
         List of string names for each channel.
     frequencies : float | list of float | list of list of float
         Frequency or frequencies for which the CSD matrix was calculated. When
@@ -510,9 +510,9 @@ def pick_channels_csd(csd, include=[], exclude=[]):
     ----------
     csd : instance of CrossSpectralDensity
         The CSD object to select the channels from.
-    include : list of string
+    include : list of str
         List of channels to include (if empty, include all available).
-    exclude : list of string
+    exclude : list of str
         Channels to exclude (if empty, do not exclude any).
 
     Returns

@@ -178,7 +178,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
     filter_length : str | int | None
         Number of taps to use for filtering.
     %(n_jobs)s
-    ch_name : string (or None)
+    ch_name : str | None
         Channel to use for ECG detection (Required if no ECG found).
     reject : dict | None
         Epoch rejection configuration (see Epochs).

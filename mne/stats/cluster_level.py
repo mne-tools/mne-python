@@ -353,7 +353,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
     clusters : list of slices or list of arrays (boolean masks)
         We use slices for 1D signals and mask to multidimensional
         arrays.
-    sums: array
+    sums : array
         Sum of x values in clusters.
     """
     from scipy import ndimage
@@ -1079,7 +1079,7 @@ def permutation_cluster_test(
         maximum number of steps between vertices along the second dimension
         (typically time) to be considered connected. This is not used for full
         or None connectivity matrices.
-    exclude : boolean array or None
+    exclude : bool array or None
         Mask to apply to the data to exclude certain points from clustering
         (e.g., medial wall vertices). Should be the same shape as X. If None,
         no points are excluded.
@@ -1121,7 +1121,7 @@ def permutation_cluster_test(
     clusters : list
         List type defined by out_type above.
     cluster_pv : array
-        P-value for each cluster
+        P-value for each cluster.
     H0 : array, shape (n_permutations,)
         Max cluster level stats observed under permutation.
 
@@ -1189,7 +1189,7 @@ def permutation_cluster_1samp_test(
         maximum number of steps between vertices along the second dimension
         (typically time) to be considered connected. This is not used for full
         or None connectivity matrices.
-    exclude : boolean array or None
+    exclude : bool array or None
         Mask to apply to the data to exclude certain points from clustering
         (e.g., medial wall vertices). Should be the same shape as X. If None,
         no points are excluded.
@@ -1226,11 +1226,11 @@ def permutation_cluster_1samp_test(
     Returns
     -------
     t_obs : array, shape (n_tests,)
-        t-statistic observed for all variables
+        T-statistic observed for all variables.
     clusters : list
         List type defined by out_type above.
     cluster_pv : array
-        P-value for each cluster
+        P-value for each cluster.
     H0 : array, shape (n_permutations,)
         Max cluster level stats observed under permutation.
 
@@ -1358,11 +1358,11 @@ def spatio_temporal_cluster_1samp_test(
     Returns
     -------
     t_obs : array, shape (n_times * n_vertices,)
-        t-statistic observed for all variables.
+        T-statistic observed for all variables.
     clusters : list
         List type defined by out_type above.
-    cluster_pv: array
-        P-value for each cluster
+    cluster_pv : array
+        P-value for each cluster.
     H0 : array, shape (n_permutations,)
         Max cluster level stats observed under permutation.
 
@@ -1468,11 +1468,11 @@ def spatio_temporal_cluster_test(
     Returns
     -------
     t_obs : array, shape (n_times * n_vertices,)
-        Statistic (t by default) observed for all variables
+        Statistic (t by default) observed for all variables.
     clusters : list
         List type defined by out_type above.
     cluster_pv: array
-        P-value for each cluster
+        P-value for each cluster.
     H0 : array, shape (n_permutations,)
         Max cluster level stats observed under permutation.
 
@@ -1580,7 +1580,7 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
     Parameters
     ----------
     clu : tuple
-        the output from clustering permutation tests.
+        The output from clustering permutation tests.
     p_thresh : float
         The significance threshold for inclusion of clusters.
     tstep : float

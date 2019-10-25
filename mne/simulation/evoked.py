@@ -27,8 +27,8 @@ def simulate_evoked(fwd, stc, info, cov, nave=30, iir_filter=None,
 
     Parameters
     ----------
-    fwd : Forward
-        a forward solution.
+    fwd : instance of Forward
+        A forward solution.
     stc : SourceEstimate object
         The source time courses.
     info : dict
@@ -52,7 +52,7 @@ def simulate_evoked(fwd, stc, info, cov, nave=30, iir_filter=None,
     Returns
     -------
     evoked : Evoked object
-        The simulated evoked data
+        The simulated evoked data.
 
     See Also
     --------

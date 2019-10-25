@@ -32,7 +32,7 @@ def read_raw_artemis123(input_fname, preload=False, verbose=None,
     %(preload)s
     %(verbose)s
     pos_fname : str or None (default None)
-        If not None, load digitized head points from this file
+        If not None, load digitized head points from this file.
     add_head_trans : bool (default True)
         If True attempt to perform initial head localization. Compute initial
         device to head coordinate transform using HPI coils. If no

@@ -308,7 +308,7 @@ def make_bem_solution(surfs, verbose=None):
     Parameters
     ----------
     surfs : list of dict
-        The BEM surfaces to use (`from make_bem_model`)
+        The BEM surfaces to use (from :func:`mne.make_bem_model`).
     %(verbose)s
 
     Returns
@@ -548,8 +548,7 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
         for a one-layer model, or three elements for a three-layer model.
         Defaults to ``[0.3, 0.006, 0.3]``. The MNE-C default for a
         single-layer model would be ``[0.3]``.
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    %(subjects_dir)s
     %(verbose)s
 
     Returns
@@ -1225,7 +1224,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The name of the file containing the surfaces.
     patch_stats : bool, optional (default False)
         Calculate and add cortical patch statistics to the surfaces.
@@ -1362,7 +1361,7 @@ def read_bem_solution(fname, verbose=None):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The file containing the BEM solution.
     %(verbose)s
 
@@ -1603,8 +1602,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
         Run grad_unwarp with -unwarp option on each of the converted
         data sets. It requires FreeSurfer's MATLAB toolbox to be properly
         installed.
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    %(subjects_dir)s
     %(verbose)s
 
     Notes
@@ -1752,8 +1750,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         Write over existing .surf files in bem folder.
     show : bool
         Show surfaces to visually inspect all three BEM surfaces (recommended).
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    %(subjects_dir)s
     flash_path : str | None
         Path to the flash images. If None (default), mri/flash/parameter_maps
         within the subject reconstruction is used.

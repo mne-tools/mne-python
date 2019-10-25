@@ -61,14 +61,14 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     Parameters
     ----------
-    fname : string
+    fname : str
         Name of evoked/average FIF file to load.
         If None no data is loaded.
     condition : int, or str
         Dataset ID number (int) or comment/name (str). Optional if there is
         only one data set in file.
     proj : bool, optional
-        Apply SSP projection vectors
+        Apply SSP projection vectors.
     kind : str
         Either 'average' or 'standard_error'. The type of data to read.
         Only used if 'condition' is a str.
@@ -84,7 +84,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     ----------
     info : dict
         Measurement info.
-    ch_names : list of string
+    ch_names : list of str
         List of channels' names.
     nave : int
         Number of averaged epochs.
@@ -94,7 +94,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         First time sample.
     last : int
         Last time sample.
-    comment : string
+    comment : str
         Comment on dataset. Can be the condition.
     times : array
         Array of time instants in seconds.
@@ -182,7 +182,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        fname : string
+        fname : str
             The name of the file, which should end with -ave.fif or
             -ave.fif.gz.
 
@@ -672,7 +672,7 @@ class EvokedArray(Evoked):
         this structure.
     tmin : float
         Start time before event. Defaults to 0.
-    comment : string
+    comment : str
         Comment on dataset. Can be the condition. Defaults to ''.
     nave : int
         Number of averaged epochs. Defaults to 1.
@@ -885,7 +885,7 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The file name, which should end with -ave.fif or -ave.fif.gz.
     condition : int or str | list of int or str | None
         The index or list of indices of the evoked dataset to read. FIF files
@@ -1119,7 +1119,7 @@ def write_evokeds(fname, evoked):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The file name, which should end with -ave.fif or -ave.fif.gz.
     evoked : Evoked instance, or list of Evoked instances
         The evoked dataset, or list of evoked datasets, to save in one file.

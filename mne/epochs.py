@@ -1774,9 +1774,9 @@ class Epochs(BaseEpochs):
         and a dict is created with string integer names corresponding
         to the event id integers.
     tmin : float
-        Start time before event. If nothing is provided, defaults to -0.2
+        Start time before event. If nothing is provided, defaults to -0.2.
     tmax : float
-        End time after event. If nothing is provided, defaults to 0.5
+        End time after event. If nothing is provided, defaults to 0.5.
     baseline : None or tuple of length 2 (default (None, 0))
         The time interval to apply baseline correction. If None do not apply
         it. If baseline is (a, b) the interval is between "a (s)" and "b (s)".
@@ -1787,7 +1787,7 @@ class Epochs(BaseEpochs):
         (a, b) includes both endpoints, i.e. all timepoints t such that
         a <= t <= b.
     %(picks_all)s
-    preload : boolean
+    preload : bool
         Load all epochs from disk when creating the object
         or wait before accessing each epoch (more memory
         efficient but can be slower).
@@ -2476,7 +2476,7 @@ def read_epochs(fname, proj=True, preload=True, verbose=None):
     Returns
     -------
     epochs : instance of Epochs
-        The epochs
+        The epochs.
     """
     return EpochsFIF(fname, proj, preload, verbose)
 
@@ -2849,7 +2849,7 @@ def concatenate_epochs(epochs_list, add_offset=True):
     Parameters
     ----------
     epochs_list : list
-        list of Epochs instances to concatenate (in order).
+        List of Epochs instances to concatenate (in order).
     add_offset : bool
         If True, a fixed offset is added to the event times from different
         Epochs sets, such that they are easy to distinguish after the
