@@ -22,7 +22,7 @@ pytest-timeout
 joblib
 psutil
 dipy
-https://api.github.com/repos/larsoner/numpydoc/zipball/validate
+https://api.github.com/repos/larsoner/numpydoc/zipball/validation
 PySurfer[save_movie]
 nilearn
 neo
