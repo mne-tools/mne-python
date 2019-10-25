@@ -220,8 +220,7 @@ def test_shift_time_evoked():
     """Test for shifting of time scale."""
     tempdir = _TempDir()
     # Shift backward
-    ave = read_evokeds(fname, 0)
-    ave.shift_time(-0.1, relative=True)
+    ave = read_evokeds(fname, 0).shift_time(-0.1, relative=True)
     write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
 
     # Shift forward twice the amount

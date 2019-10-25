@@ -1682,6 +1682,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             If true, move the time backwards or forwards by specified amount.
             Else, set the starting time point to the value of tshift.
 
+        Returns
+        -------
+        epochs : instance of Epochs
+            The modified Epochs instance.
+
         Notes
         -----
         Maximum accuracy of time shift is 1 / epochs.info['sfreq']
@@ -1696,6 +1701,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         first = int(tshift * sfreq) + offset
         last = first + len(times) - 1
         self._set_times(np.arange(first, last + 1, dtype=np.float) / sfreq)
+        return self
 
 
 def _check_baseline(baseline, tmin, tmax, sfreq):
