@@ -900,12 +900,12 @@ def find_source_space_hemi(src):
     Parameters
     ----------
     src : dict
-        The source space to investigate
+        The source space to investigate.
 
     Returns
     -------
     hemi : int
-        Deduced hemisphere id
+        Deduced hemisphere id.
     """
     xave = src['rr'][:, 0].sum()
 
@@ -923,16 +923,16 @@ def label_src_vertno_sel(label, src):
     Parameters
     ----------
     label : Label
-        Source space label
+        Source space label.
     src : dict
-        Source space
+        Source space.
 
     Returns
     -------
     vertices : list of length 2
-        Vertex numbers for lh and rh
+        Vertex numbers for lh and rh.
     src_sel : array of int (len(idx) = len(vertices[0]) + len(vertices[1]))
-        Indices of the selected vertices in sourse space
+        Indices of the selected vertices in sourse space.
     """
     if src[0]['type'] != 'surf':
         return Exception('Labels are only supported with surface source '
@@ -1145,19 +1145,18 @@ def head_to_mri(pos, subject, mri_head_t, subjects_dir=None,
     Parameters
     ----------
     pos : array, shape (n_pos, 3)
-        The  coordinates (in m) in head coordinate system
-    subject : string
+        The  coordinates (in m) in head coordinate system.
+    subject : str
         Name of the subject.
     mri_head_t : instance of Transform
-        MRI<->Head coordinate transformation
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+        MRI<->Head coordinate transformation.
+    %(subjects_dir)s
     %(verbose)s
 
     Returns
     -------
     coordinates : array, shape (n_pos, 3)
-        The MRI RAS coordinates (in mm) of pos
+        The MRI RAS coordinates (in mm) of pos.
 
     Notes
     -----
@@ -1183,9 +1182,9 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
     Parameters
     ----------
     vertices : int, or list of int
-        Vertex number(s) to convert
+        Vertex number(s) to convert.
     hemis : int, or list of int
-        Hemisphere(s) the vertices belong to
+        Hemisphere(s) the vertices belong to.
     subject : str
         Name of the subject to load surfaces from.
     subjects_dir : str, or None
@@ -1197,7 +1196,7 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
     Returns
     -------
     coordinates : array, shape (n_vertices, 3)
-        The MNI coordinates (in mm) of the vertices
+        The MNI coordinates (in mm) of the vertices.
     """
     if not isinstance(vertices, list) and not isinstance(vertices, np.ndarray):
         vertices = [vertices]
@@ -1233,19 +1232,18 @@ def head_to_mni(pos, subject, mri_head_t, subjects_dir=None,
     Parameters
     ----------
     pos : array, shape (n_pos, 3)
-        The  coordinates (in m) in head coordinate system
-    subject : string
+        The  coordinates (in m) in head coordinate system.
+    subject : str
         Name of the subject.
     mri_head_t : instance of Transform
-        MRI<->Head coordinate transformation
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+        MRI<->Head coordinate transformation.
+    %(subjects_dir)s
     %(verbose)s
 
     Returns
     -------
     coordinates : array, shape (n_pos, 3)
-        The MNI coordinates (in mm) of pos
+        The MNI coordinates (in mm) of pos.
 
     Notes
     -----
@@ -1400,8 +1398,7 @@ def setup_source_space(subject, spacing='oct6', surface='white',
            Support for integers for distance-based spacing.
     surface : str
         The surface to use.
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    %(subjects_dir)s
     add_dist : bool
         Add distance and patch information to the source space. This takes some
         time so precomputing it is recommended.
@@ -1531,8 +1528,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
     exclude : float
         Exclude points closer than this distance (mm) from the center of mass
         of the bounding surface.
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    %(subjects_dir)s
     volume_label : str | list | None
         Region of interest corresponding with freesurfer lookup table.
     add_interpolator : bool
@@ -2471,7 +2467,7 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False):
         Filename to read. Typically aseg.mgz or some variant in the freesurfer
         pipeline.
     return_colors : bool
-        If True returns also the labels colors
+        If True returns also the labels colors.
 
     Returns
     -------
@@ -2516,11 +2512,11 @@ def get_volume_labels_from_src(src, subject, subjects_dir):
     Parameters
     ----------
     src : instance of SourceSpaces
-        The source space containing the volume regions
+        The source space containing the volume regions.
     subject : str
-        Subject name
+        Subject name.
     subjects_dir : str
-        Freesurfer folder of the subjects
+        Freesurfer folder of the subjects.
 
     Returns
     -------
@@ -2718,8 +2714,7 @@ def _get_morph_src_reordering(vertices, src_from, subject_from, subject_to,
         The source subject.
     subject_to : str
         The destination subject.
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    %(subjects_dir)s
     %(verbose)s
 
     Returns

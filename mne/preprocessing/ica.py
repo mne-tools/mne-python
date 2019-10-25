@@ -1829,7 +1829,7 @@ def ica_find_eog_events(raw, eog_source=None, event_id=998, l_freq=1,
     Returns
     -------
     eog_events : array
-        Events
+        Events.
     """
     eog_events = _find_eog_events(eog_source[np.newaxis], event_id=event_id,
                                   l_freq=l_freq, h_freq=h_freq,

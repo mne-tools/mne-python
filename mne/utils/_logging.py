@@ -32,7 +32,7 @@ def verbose(function):
     Returns
     -------
     dec : callable
-        The decorated function
+        The decorated function.
 
     See Also
     --------

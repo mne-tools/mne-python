@@ -610,7 +610,7 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
     Returns
     -------
     fig : instance of Figure
-        The figure object
+        The figure object.
     """
     import matplotlib.pyplot as plt
     my_range = np.arange(ica.n_components_)

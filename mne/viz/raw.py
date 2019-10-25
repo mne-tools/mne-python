@@ -606,7 +606,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     %(show)s
     %(n_jobs)s
     %(plot_psd_average)s
-    %(plot_psd_line_alpha)sxscale=xscale,
+    %(plot_psd_line_alpha)s
     %(plot_psd_spatial_colors)s
     %(verbose)s
 

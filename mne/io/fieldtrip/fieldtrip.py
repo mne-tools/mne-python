@@ -98,7 +98,7 @@ def read_epochs_fieldtrip(fname, info, data_name='data',
         Name of heading dict/ variable name under which the data was originally
         saved in MATLAB.
     trialinfo_column : int
-        Column of the trialinfo matrix to use for the event codes
+        Column of the trialinfo matrix to use for the event codes.
 
     Returns
     -------

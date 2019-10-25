@@ -1020,11 +1020,11 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None, xhemi=False,
 
     Parameters
     ----------
-    subject_from : string
+    subject_from : str
         Name of the original subject as named in the SUBJECTS_DIR.
-    subject_to : string
+    subject_to : str
         Name of the subject on which to morph as named in the SUBJECTS_DIR.
-    subjects_dir : string
+    subjects_dir : str
         Path to SUBJECTS_DIR is not set in the environment.
     xhemi : bool
         Morph across hemisphere. Currently only implemented for
@@ -1401,14 +1401,14 @@ def mesh_dist(tris, vert):
     Parameters
     ----------
     tris : array (n_tris x 3)
-        Mesh triangulation
+        Mesh triangulation.
     vert : array (n_vert x 3)
-        Vertex locations
+        Vertex locations.
 
     Returns
     -------
     dist_matrix : scipy.sparse.csr_matrix
-        Sparse matrix with distances between adjacent vertices
+        Sparse matrix with distances between adjacent vertices.
     """
     edges = mesh_edges(tris).tocoo()
 

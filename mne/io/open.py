@@ -99,7 +99,7 @@ def fiff_open(fname, preload=False, verbose=None):
 
     Parameters
     ----------
-    fname : string | fid
+    fname : str | fid
         Name of the fif file, or an opened file (will seek back to 0).
     preload : bool
         If True, all data from the file is read into a memory buffer. This
@@ -110,7 +110,7 @@ def fiff_open(fname, preload=False, verbose=None):
     Returns
     -------
     fid : file
-        The file descriptor of the open file
+        The file descriptor of the open file.
     tree : fif tree
         The tree is a complex structure filled with dictionaries,
         lists and tags.

@@ -2377,7 +2377,7 @@ def spatio_temporal_tris_connectivity(tris, n_times, remap_vertices=False,
     tris : array
         N x 3 array defining triangles.
     n_times : int
-        Number of time points
+        Number of time points.
     remap_vertices : bool
         Reassign vertex indices based on unique values. Useful
         to process a subset of triangles. Defaults to False.
@@ -2412,7 +2412,7 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=None):
         with a call to :func:`mne.setup_source_space` with the
         ``add_dist=True`` option.
     n_times : int
-        Number of time points
+        Number of time points.
     dist : float
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors.

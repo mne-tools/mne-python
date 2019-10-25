@@ -79,7 +79,7 @@ def _get_psf_ctf(resmat, src, idx, func='psf', norm=False):
         Whether to produce PSFs or CTFs. Defaults to psf.
     norm : bool
         Whether to normalise to maximum across all PSFs and CTFs (default:
-        False)
+        False).
 
     Returns
     -------
@@ -120,7 +120,7 @@ def get_point_spread(resmat, src, idx, norm=False):
     idx : list of int
         Vertex indices for which PSFs or CTFs to produce.
     norm : bool
-        Whether to normalise to maximum across all PSFs (default: False)
+        Whether to normalise to maximum across all PSFs (default: False).
 
     Returns
     -------
@@ -142,7 +142,7 @@ def get_cross_talk(resmat, src, idx, norm=False):
     idx : list of int
         Vertex indices for which PSFs or CTFs to produce.
     norm : bool
-        Whether to normalise to maximum across all CTFs (default: False)
+        Whether to normalise to maximum across all CTFs (default: False).
 
     Returns
     -------

@@ -46,7 +46,7 @@ def requires_sample_data(func):
     Parameters
     ----------
     func : callable
-        The function to decorate.False
+        The function to decorate.
 
     Returns
     -------

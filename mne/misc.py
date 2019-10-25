@@ -9,8 +9,8 @@ def parse_config(fname):
 
     Parameters
     ----------
-    fname : string
-        config file name
+    fname : str
+        Config file name.
 
     Returns
     -------

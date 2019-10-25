@@ -142,15 +142,15 @@ def pick_channels(ch_names, include, exclude=[], ordered=False):
 
     Parameters
     ----------
-    ch_names : list of string
+    ch_names : list of str
         List of channels.
-    include : list of string
+    include : list of str
         List of channels to include (if empty include all available).
 
         .. note:: This is to be treated as a set. The order of this list
            is not used or maintained in ``sel``.
 
-    exclude : list of string
+    exclude : list of str
         List of channels to exclude (if empty do not exclude any channel).
         Defaults to [].
     ordered : bool
@@ -209,10 +209,10 @@ def pick_channels_regexp(ch_names, regexp):
 
     Parameters
     ----------
-    ch_names : list of string
-        List of channels
+    ch_names : list of str
+        List of channels.
 
-    regexp : string
+    regexp : str
         The regular expression. See python standard module for regular
         expressions.
 
@@ -350,12 +350,12 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         fNIRS channels. If False (default) include none. If string it can be
         'hbo' (to include channels measuring oxyhemoglobin) or 'hbr' (to
         include channels measuring deoxyhemoglobin).
-    include : list of string
+    include : list of str
         List of additional channels to include. If empty do not include any.
-    exclude : list of string | str
+    exclude : list of str | str
         List of channels to exclude. If 'bads' (default), exclude channels
         in ``info['bads']``.
-    selection : list of string
+    selection : list of str
         Restrict sensor channels (MEG, EEG) to this list of channel names.
 
     Returns
@@ -511,9 +511,9 @@ def pick_channels_evoked(orig, include=[], exclude='bads'):
     ----------
     orig : Evoked object
         One evoked dataset.
-    include : list of string, (optional)
+    include : list of str, (optional)
         List of channels to include (if empty, include all available).
-    exclude : list of string | str
+    exclude : list of str | str
         List of channels to exclude. If empty do not exclude any (default).
         If 'bads', exclude channels in orig.info['bads']. Defaults to 'bads'.
 
@@ -556,10 +556,10 @@ def pick_channels_forward(orig, include=[], exclude=[], ordered=False,
     ----------
     orig : dict
         A forward solution.
-    include : list of string
+    include : list of str
         List of channels to include (if empty, include all available).
         Defaults to [].
-    exclude : list of string | 'bads'
+    exclude : list of str | 'bads'
         Channels to exclude (if empty, do not exclude any). Defaults to [].
         If 'bads', then exclude bad channels in orig.
     ordered : bool
@@ -638,22 +638,22 @@ def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, seeg=False,
     Parameters
     ----------
     orig : dict
-        A forward solution
-    meg : bool or string
+        A forward solution.
+    meg : bool or str
         If True include all MEG channels. If False include None
         If string it can be 'mag' or 'grad' to select only gradiometers
         or magnetometers.
     eeg : bool
-        If True include EEG channels
+        If True include EEG channels.
     ref_meg : bool
-        If True include CTF / 4D reference channels
+        If True include CTF / 4D reference channels.
     seeg : bool
-        If True include stereotactic EEG channels
+        If True include stereotactic EEG channels.
     ecog : bool
-        If True include electrocorticography channels
-    include : list of string
+        If True include electrocorticography channels.
+    include : list of str
         List of additional channels to include. If empty do not include any.
-    exclude : list of string | str
+    exclude : list of str | str
         List of channels to exclude. If empty do not exclude any (default).
         If 'bads', exclude channels in orig['info']['bads'].
 
@@ -709,9 +709,9 @@ def pick_channels_cov(orig, include=[], exclude='bads'):
     ----------
     orig : Covariance
         A covariance.
-    include : list of string, (optional)
+    include : list of str, (optional)
         List of channels to include (if empty, include all available).
-    exclude : list of string, (optional) | 'bads'
+    exclude : list of str, (optional) | 'bads'
         Channels to exclude (if empty, do not exclude any). Defaults to 'bads'.
 
     Returns
@@ -781,7 +781,7 @@ def _picks_by_type(info, meg_combined=False, ref_meg=False, exclude='bads'):
         Can be 'auto' to choose based on Maxwell filtering status.
     ref_meg : bool
         If True include CTF / 4D reference channels
-    exclude : list of string | str
+    exclude : list of str | str
         List of channels to exclude. If 'bads' (default), exclude channels
         in info['bads'].
 
@@ -830,7 +830,7 @@ def _check_excludes_includes(chs, info=None, allow_bads=False):
 
     Parameters
     ----------
-    chs : any input, should be list, tuple, set, string
+    chs : any input, should be list, tuple, set, str
         The channels passed to include or exclude.
     allow_bads : bool
         Allow the user to supply "bads" as a string for auto exclusion.

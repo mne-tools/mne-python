@@ -569,7 +569,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         number of time points as stc_*. The array-like object can also
         be a list/generator of array, shape =(n_signals, n_times),
         or a list/generator of SourceEstimate or VolSourceEstimate objects.
-    method : string | list of string
+    method : str | list of str
         Connectivity measure(s) to compute.
     indices : tuple of array | None
         Two arrays with indices of connections for which to compute
@@ -590,7 +590,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     fskip : int
         Omit every "(fskip + 1)-th" frequency bin to decimate in frequency
         domain.
-    faverage : boolean
+    faverage : bool
         Average connectivity scores for each frequency band. If True,
         the output freqs will be a list with arrays of the frequencies
         that were averaged.

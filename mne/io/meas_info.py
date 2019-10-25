@@ -666,7 +666,7 @@ def read_fiducials(fname, verbose=None):
         List of digitizer points (each point in a dict).
     coord_frame : int
         The coordinate frame of the points (one of
-        mne.io.constants.FIFF.FIFFV_COORD_...)
+        mne.io.constants.FIFF.FIFFV_COORD_...).
     """
     fid, tree, _ = fiff_open(fname)
     with fid:
@@ -1508,7 +1508,7 @@ def write_info(fname, info, data_type=None, reset_range=True):
     fname : str
         The name of the file. Should end by -info.fif.
     info : instance of Info
-        The measurement info structure
+        The measurement info structure.
     data_type : int
         The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
         5 (FIFFT_DOUBLE), or 16 (FIFFT_DAU_PACK16) for

@@ -86,7 +86,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     n_cycles : float | array of float
         Number of cycles. Fixed number or one per frequency.
     df : float
-        delta frequency within bands.
+        Delta frequency within bands.
     use_fft : bool
         Do convolutions in time or frequency domain with FFT.
     decim : int
@@ -409,11 +409,11 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     Parameters
     ----------
     raw : instance of Raw
-        The raw data
+        The raw data.
     inverse_operator : instance of InverseOperator
-        The inverse operator
+        The inverse operator.
     lambda2 : float
-        The regularization parameter
+        The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA"
         Use minimum norm, dSPM (default), sLORETA, or eLORETA.
     tmin : float
@@ -423,9 +423,9 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         The end of the time interval of interest (in seconds). If None
         stop at the end of the file.
     fmin : float
-        The lower frequency of interest
+        The lower frequency of interest.
     fmax : float
-        The upper frequency of interest
+        The upper frequency of interest.
     n_fft : int
         Window size for the FFT. Should be a power of 2.
     overlap : float
@@ -436,7 +436,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         only the radial component is kept. This is only implemented
         when working with loose orientations.
     label : Label
-        Restricts the source estimates to a given label
+        Restricts the source estimates to a given label.
     nave : int
         The number of averages used to scale the noise covariance matrix.
     pca : bool

@@ -28,7 +28,7 @@ def fetch_fsaverage(subjects_dir=None, verbose=None):
     -------
     fs_dir : str
         The fsaverage directory.
-        (essentially ``subjects_dir + '/fsaverage'``)
+        (essentially ``subjects_dir + '/fsaverage'``).
 
     Notes
     -----

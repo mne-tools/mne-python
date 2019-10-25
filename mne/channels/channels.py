@@ -94,7 +94,7 @@ def equalize_channels(candidates, verbose=None):
     Parameters
     ----------
     candidates : list
-        list Raw | Epochs | Evoked | AverageTFR
+        Can be a list of Raw, Epochs, Evoked, or AverageTFR.
     %(verbose)s
 
     Notes
@@ -389,7 +389,7 @@ class SetChannelsMixin(object):
         Parameters
         ----------
         mapping : dict
-            a dictionary mapping a channel to a sensor type (str)
+            A dictionary mapping a channel to a sensor type (str)
             {'EEG061': 'eog'}.
 
         Notes
@@ -449,7 +449,7 @@ class SetChannelsMixin(object):
         Parameters
         ----------
         mapping : dict | callable
-            a dictionary mapping the old channel to a new channel name
+            A dictionary mapping the old channel to a new channel name
             e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
             that takes and returns a string (new in version 0.10.0).
 
@@ -981,7 +981,7 @@ def rename_channels(info, mapping):
     info : dict
         Measurement info.
     mapping : dict | callable
-        a dictionary mapping the old channel to a new channel name
+        A dictionary mapping the old channel to a new channel name
         e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
         that takes and returns a string (new in version 0.10.0).
     """
