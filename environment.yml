@@ -32,7 +32,7 @@ dependencies:
 - testpath<0.4
 - pip:
   - mne
-  - https://api.github.com/repos/larsoner/numpydoc/zipball/validation
+  - https://api.github.com/repos/numpy/numpydoc/zipball/master
   - vtk
   - https://github.com/pyvista/pyvista/zipball/master
   - mayavi
