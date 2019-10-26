@@ -451,7 +451,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         The data in source space. The data can either be a single array or
         a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
         "sens_data" shape (n_sensors, n_times). In this case, the source
-        space data corresponds to "numpy.dot(kernel, sens_data)".
+        space data corresponds to ``np.dot(kernel, sens_data)``.
     vertices : array | list of array, shape (2,)
         Vertex numbers corresponding to the data. If a list, the first element
         of the list contains vertices of left hemisphere and the
@@ -1358,7 +1358,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
     data : array of shape (n_dipoles, n_times) | tuple, shape (2,)
         The data in source space. When it is a single array, the
         left hemisphere is stored in data[:len(vertices[0])] and the right
-        hemisphere is stored in data[:-len(vertices[1])].
+        hemisphere is stored in data[-len(vertices[1]):].
         When data is a tuple, it contains two arrays:
 
         - "kernel" shape (n_vertices, n_sensors) and
@@ -1928,7 +1928,7 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
         The data in source space. The data can either be a single array or
         a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
         "sens_data" shape (n_sensors, n_times). In this case, the source
-        space data corresponds to "numpy.dot(kernel, sens_data)".
+        space data corresponds to ``np.dot(kernel, sens_data)``.
     vertices : array of shape (n_dipoles,)
         The indices of the dipoles in the source space.
     tmin : scalar
@@ -2130,7 +2130,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         The data in source space. The data can either be a single array or
         a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
         "sens_data" shape (n_sensors, n_times). In this case, the source
-        space data corresponds to "numpy.dot(kernel, sens_data)".
+        space data corresponds to ``np.dot(kernel, sens_data)``.
     vertices : list of array, shape (2,)
         Vertex numbers corresponding to the data. The first element of the list
         contains vertices of left hemisphere and the second element contains
