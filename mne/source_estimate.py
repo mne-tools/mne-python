@@ -2061,10 +2061,8 @@ class VectorSourceEstimate(_BaseVectorSourceEstimate,
     data : array of shape (n_dipoles, 3, n_times)
         The data in source space. Each dipole contains three vectors that
         denote the dipole strength in X, Y and Z directions over time.
-    vertices : list of array, shape (2,)
-        Vertex numbers corresponding to the data. The first element of the list
-        contains vertices of left hemisphere and the second element contains
-        vertices of right hemisphere.
+    vertices : array
+        Vertex numbers corresponding to the data.
     tmin : float
         Time point of the first sample in data.
     tstep : float
