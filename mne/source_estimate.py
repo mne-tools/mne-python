@@ -447,12 +447,12 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
 
     Parameters
     ----------
-    data : array of shape (n_dipoles, n_times) | tuple, shape (2,)
+    data : array, shape (n_dipoles, n_times) | tuple, shape (2,)
         The data in source space. The data can either be a single array or
         a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
         "sens_data" shape (n_sensors, n_times). In this case, the source
         space data corresponds to "numpy.dot(kernel, sens_data)".
-    vertices : array | list of shape (2,)
+    vertices : array | list of array, shape (2,)
         Vertex numbers corresponding to the data. If a list, the first element
         of the list contains vertices of left hemisphere and the
         second element contains vertices of right hemisphere.
@@ -1138,7 +1138,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
     ----------
     data : array
         The data in source space.
-    vertices : list of shape (2,)
+    vertices : list of array, shape (2,)
         Vertex numbers corresponding to the data. The first element of the list
         contains vertices of left hemisphere and the second element contains
         vertices of right hemisphere.
@@ -1157,7 +1157,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         The subject name.
     times : array of shape (n_times,)
         The time vector.
-    vertices : list of shape (2,)
+    vertices : list of array, shape (2,)
         Vertex numbers corresponding to the data. The first element of the list
         contains vertices of left hemisphere and the second element contains
         vertices of right hemisphere.
@@ -1366,7 +1366,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         In this case, the source space data corresponds to
         ``np.dot(kernel, sens_data)``.
-    vertices : list of shape (2,)
+    vertices : list of array, shape (2,)
         Vertex numbers corresponding to the data. The first element of the list
         contains vertices of left hemisphere and the second element contains
         vertices of right hemisphere.
@@ -1385,7 +1385,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         The subject name.
     times : array of shape (n_times,)
         The time vector.
-    vertices : list of shape (2,)
+    vertices : list of array, shape (2,)
         The indices of the dipoles in the left and right source space.
     data : array of shape (n_dipoles, n_times)
         The data in source space.
@@ -2061,7 +2061,7 @@ class VectorSourceEstimate(_BaseVectorSourceEstimate,
     data : array of shape (n_dipoles, 3, n_times)
         The data in source space. Each dipole contains three vectors that
         denote the dipole strength in X, Y and Z directions over time.
-    vertices : list of shape (2,)
+    vertices : list of array, shape (2,)
         Vertex numbers corresponding to the data. The first element of the list
         contains vertices of left hemisphere and the second element contains
         vertices of right hemisphere.
@@ -2131,7 +2131,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
         "sens_data" shape (n_sensors, n_times). In this case, the source
         space data corresponds to "numpy.dot(kernel, sens_data)".
-    vertices : list of shape (2,)
+    vertices : list of array, shape (2,)
         Vertex numbers corresponding to the data. The first element of the list
         contains vertices of left hemisphere and the second element contains
         vertices of right hemisphere.
@@ -2150,7 +2150,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         The subject name.
     times : array of shape (n_times,)
         The time vector.
-    vertices : list of shape (2,)
+    vertices : list of array, shape (2,)
         Vertex numbers corresponding to the data. The first element of the list
         contains vertices of left hemisphere and the second element contains
         vertices of right hemisphere.
