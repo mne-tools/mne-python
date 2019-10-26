@@ -294,6 +294,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             If true, move the time backwards or forwards by specified amount.
             Else, set the starting time point to the value of tshift.
 
+        Returns
+        -------
+        evoked : instance of Evoked
+            The modified Evoked instance.
+
         Notes
         -----
         Maximum accuracy of time shift is 1 / evoked.info['sfreq']
@@ -307,6 +312,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self.last = self.first + len(times) - 1
         self.times = np.arange(self.first, self.last + 1,
                                dtype=np.float) / sfreq
+        return self
 
     @copy_function_doc_to_method_doc(plot_evoked)
     def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
