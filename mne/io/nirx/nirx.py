@@ -116,8 +116,9 @@ class RawNIRX(BaseRaw):
         hdr.read_string(hdr_str)
 
         # Check that the file format version is supported
-        if hdr['GeneralInfo']['NIRStar'] != "\"15.2\"":
-            raise RuntimeError('Only NIRStar version 15.2 is supported')
+        if not any(item == hdr['GeneralInfo']['NIRStar'] for item in
+                   ["\"15.0\"", "\"15.2\""]):
+            raise RuntimeError('MNE does not support this NIRStar version')
 
         # Parse required header fields
 
@@ -133,11 +134,15 @@ class RawNIRX(BaseRaw):
                                 hdr['DataStructure']['S-D-Key'])], int)
 
         # Determine if short channels are present and on which detectors
-        has_short = np.array(hdr['ImagingParameters']['ShortBundles'], int)
-        short_det = [int(s) for s in
-                     re.findall(r'(\d+)',
-                     hdr['ImagingParameters']['ShortDetIndex'])]
-        short_det = np.array(short_det, int)
+        if any(key == 'shortbundles' for key in hdr['ImagingParameters']):
+            has_short = np.array(hdr['ImagingParameters']['ShortBundles'], int)
+            short_det = [int(s) for s in
+                         re.findall(r'(\d+)',
+                         hdr['ImagingParameters']['ShortDetIndex'])]
+            short_det = np.array(short_det, int)
+        else:
+            has_short = 0
+            short_det = []
 
         # Extract sampling rate
         samplingrate = float(hdr['ImagingParameters']['SamplingRate'])
@@ -223,11 +228,12 @@ class RawNIRX(BaseRaw):
             # Store channel location
             # Channel locations for short channels are bodged,
             # for short channels use the source location and add small offset
-            if (has_short > 0) & (len(np.where(short_det == det + 1)[0]) > 0):
-                info['chs'][ch_idx2 * 2]['loc'][:3] = src_locs[src, :]
-                info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = src_locs[src, :]
-                info['chs'][ch_idx2 * 2]['loc'][0] += 0.8
-                info['chs'][ch_idx2 * 2 + 1]['loc'][0] += 0.8
+            if has_short > 0:
+                if len(np.where(short_det == det + 1)[0]) > 0:
+                    info['chs'][ch_idx2 * 2]['loc'][:3] = src_locs[src, :]
+                    info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = src_locs[src, :]
+                    info['chs'][ch_idx2 * 2]['loc'][0] += 0.8
+                    info['chs'][ch_idx2 * 2 + 1]['loc'][0] += 0.8
             else:
                 info['chs'][ch_idx2 * 2]['loc'][:3] = ch_locs[ch_idx2, :]
                 info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = ch_locs[ch_idx2, :]

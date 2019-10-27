@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # Authors: Robert Luke  <mail@robertluke.net>
+#          Eric Larson <larson.eric.d@gmail.com>
 #          simplified BSD-3 license
 
 import os.path as op
@@ -13,6 +14,8 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.transforms import apply_trans, _get_trans
 from mne.utils import run_tests_if_main
 
+fname_nirx_15_0 = op.join(data_path(download=False),
+                          'NIRx', 'nirx_15_0_recording')
 fname_nirx_15_2 = op.join(data_path(download=False),
                           'NIRx', 'nirx_15_2_recording')
 fname_nirx_15_2_short = op.join(data_path(download=False),
@@ -139,9 +142,56 @@ def test_nirx_15_2():
 
 
 @requires_testing_data
+def test_nirx_15_0():
+    """Test reading NIRX files."""
+    raw = read_raw_nirx(fname_nirx_15_0, preload=True)
+
+    # Test data import
+    assert raw._data.shape == (20, 92)
+    assert raw.info['sfreq'] == 6.25
+
+    # Test channel naming
+    assert raw.info['ch_names'][:12] == ["S1-D1 760", "S1-D1 850",
+                                         "S2-D2 760", "S2-D2 850",
+                                         "S3-D3 760", "S3-D3 850",
+                                         "S4-D4 760", "S4-D4 850",
+                                         "S5-D5 760", "S5-D5 850",
+                                         "S6-D6 760", "S6-D6 850"]
+
+    # Test info import
+    assert raw.info['subject_info'] == {'first_name': 'NIRX',
+                                        'last_name': 'Test', 'sex': '0'}
+
+    # Test trigger events
+    assert_array_equal(raw.annotations.description, ['1.0', '2.0', '2.0'])
+
+    # Test location of detectors
+    allowed_dist_error = 0.0002
+    locs = [ch['loc'][6:9] for ch in raw.info['chs']]
+    head_mri_t, _ = _get_trans('fsaverage', 'head', 'mri')
+    mni_locs = apply_trans(head_mri_t, locs)
+
+    assert raw.info['ch_names'][0][3:5] == 'D1'
+    assert_allclose(
+        mni_locs[0], [0.0287, -0.1143, -0.0332], atol=allowed_dist_error)
+
+    assert raw.info['ch_names'][15][3:5] == 'D8'
+    assert_allclose(
+        mni_locs[15], [-0.0693, -0.0480, 0.0657], atol=allowed_dist_error)
+
+    # Test distance between optodes matches values from
+    allowed_distance_error = 0.0002
+    distances = raw._probe_distances()
+    assert_allclose(distances[::2], [
+        0.0301, 0.0315, 0.0343, 0.0368, 0.0408,
+        0.0399, 0.0393, 0.0367, 0.0336, 0.0447], atol=allowed_distance_error)
+
+
+@requires_testing_data
 @pytest.mark.parametrize('fname, boundary_decimal', (
     [fname_nirx_15_2_short, 1],
-    [fname_nirx_15_2, 0]
+    [fname_nirx_15_2, 0],
+    [fname_nirx_15_0, 0]
 ))
 def test_nirx_standard(fname, boundary_decimal):
     """Test standard operations."""
