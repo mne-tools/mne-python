@@ -118,7 +118,8 @@ class RawNIRX(BaseRaw):
         # Check that the file format version is supported
         if not any(item == hdr['GeneralInfo']['NIRStar'] for item in
                    ["\"15.0\"", "\"15.2\""]):
-            raise RuntimeError('MNE does not support this NIRStar version')
+            raise RuntimeError('MNE does not support this NIRStar version'
+                               ' (%s)' % (hdr['GeneralInfo']['NIRStar'],))
 
         # Parse required header fields
 
