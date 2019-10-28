@@ -333,7 +333,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
     if slices is None:
         slices = np.round(
             np.linspace(0, n_slices, 12, endpoint=False)).astype(np.int)
-    slices = np.atleast_1d(slices)
+    slices = np.atleast_1d(slices).copy()
     slices[slices < 0] += n_slices  # allow negative indexing
     if not np.array_equal(np.sort(slices), slices) or slices.ndim != 1 or \
             slices.size < 1 or slices[0] < 0 or slices[-1] >= n_slices or \
