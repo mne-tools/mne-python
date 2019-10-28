@@ -89,7 +89,6 @@ def test_interpolation_eeg(offset):
     assert_allclose(ave_before, interp_fit, atol=2e-6)
     assert 0.99 < np.corrcoef(ave_before, interp_fit)[0, 1]  # better
 
-
     # check that interpolation fails when preload is False
     epochs_eeg.preload = False
     pytest.raises(RuntimeError, epochs_eeg.interpolate_bads)
