@@ -272,10 +272,10 @@ class _Renderer(_BaseRenderer):
                                       figure.smooth_shading)
         return tube
 
-    def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
-                 glyph_height=None, glyph_center=None, glyph_resolution=None,
-                 opacity=1.0, scale_mode='none', scalars=None,
-                 backface_culling=False):
+    def quiver3d(self, x, y, z, u, v, w, color, scale, mode='2darrow',
+                 resolution=8, glyph_height=None, glyph_center=None,
+                 glyph_resolution=None, opacity=1.0, scale_mode='none',
+                 scalars=None, backface_culling=False):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             from pyvista import UnstructuredGrid
@@ -293,7 +293,25 @@ class _Renderer(_BaseRenderer):
                 scale = 'mag'
             else:
                 scale = False
-            if mode == "arrow":
+            if mode == "2darrow":
+                glyph = vtk.vtkGlyphSource2D()
+                glyph.SetGlyphTypeToArrow()
+                glyph.FilledOff()
+                if glyph_center is not None:
+                    glyph.SetCenter(glyph_center)
+                glyph.Update()
+                geom = glyph.GetOutput()
+                self.plotter.add_mesh(grid.glyph(orient='vec',
+                                                 scale=scale,
+                                                 factor=factor,
+                                                 geom=geom),
+                                      color=color,
+                                      opacity=opacity,
+                                      backface_culling=backface_culling,
+                                      smooth_shading=self.figure.
+                                      smooth_shading)
+
+            elif mode == "arrow":
                 self.plotter.add_mesh(grid.glyph(orient='vec',
                                                  scale=scale,
                                                  factor=factor),

@@ -464,6 +464,25 @@ class _Brain(object):
                                        vmin=dt_min,
                                        vmax=dt_max,
                                        scalars=act_data)
+            if array.ndim == 3:
+                scale_factor_norm = scale_factor / magnitude_max
+                vectors = array[:, :, 0].copy()
+                #self._renderer._add_vector_data(vectors, act_data,
+                #                                fmin, fmid, fmax,
+                #                                scale_factor_norm,
+                #                                vertices, vector_alpha
+                #                                lut)
+                vertices = slice(None) if vertices is None else vertices
+                #x, y, z = np.array(self._geo_mesh.data.points.data)[vertices].T
+                x = self.geo[hemi].coords[vertices, 0]
+                y = self.geo[hemi].coords[vertices, 1]
+                z = self.geo[hemi].coords[vertices, 2]
+                vector_alpha = min(vector_alpha, 0.9999999)
+                self._renderer.quiver3d(
+                    x, y, z, vectors[:, 0], vectors[:, 1], vectors[:, 2],
+                    color=(1, 1, 1), scale=scale_factor_norm*act_data.max(),
+                    scalars=act_data, opacity=vector_alpha)
+
             if array.ndim >= 2 and callable(time_label):
                 self._renderer.text2d(x=0.95, y=y_txt,
                                       size=time_label_size,
