@@ -320,7 +320,7 @@ def test_setup_forward_model(tmpdir):
     with ArgvSetter(('--model', use_fname, '-d', subjects_dir,
                      '-s', 'sample', '--ico', '3', '--verbose')):
         mne_setup_forward_model.run()
-    model = mne.read_bem_surfaces(fname(use_fname))
+    model = read_bem_surfaces(fname(use_fname))
     assert len(model) == 3
 
 
