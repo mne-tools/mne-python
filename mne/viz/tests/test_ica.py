@@ -158,11 +158,12 @@ def test_plot_ica_properties():
     plt.close('all')
 
     # Test merging grads.
-    raw = _get_raw(preload=True)
-    picks = pick_types(raw.info, meg='grad')[:10]
-    ica = ICA(n_components=2, random_state=1, max_iter=1)
+    pick_names = raw.ch_names[:15:2] + raw.ch_names[1:15:2]
+    raw = _get_raw(preload=True).pick_channels(pick_names)
+    raw.info.normalize_proj()
+    ica = ICA(random_state=0, max_iter=1)
     with pytest.warns(UserWarning, match='did not converge'):
-        ica.fit(raw, picks=picks)
+        ica.fit(raw)
     ica.plot_properties(raw)
     plt.close('all')
 
@@ -170,8 +171,10 @@ def test_plot_ica_properties():
     raw._data[:] = 0
     with pytest.warns(UserWarning, match='Infinite value .* for epochs '):
         ica.plot_properties(raw)
-    ica = ICA(n_components=2, random_state=0)
-    ica.fit(epochs)
+    ica = ICA(random_state=0, max_iter=1)
+    epochs.pick_channels(pick_names)
+    with pytest.warns(UserWarning, match='did not converge'):
+        ica.fit(epochs)
     epochs._data[0] = 0
     with pytest.warns(UserWarning, match='Infinite value .* for epoch 0'):
         ica.plot_properties(epochs)
