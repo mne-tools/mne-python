@@ -1153,7 +1153,8 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                                                  read_metadata=True)
             volume_info.update(new_info)  # replace volume info, 'head' stays
 
-            write_surface(s, rr, tris, volume_info=volume_info)
+            write_surface(s, rr, tris, volume_info=volume_info,
+                          overwrite=overwrite)
             # Create symbolic links
             surf_out = op.join(bem_dir, '%s.surf' % s)
             if not overwrite and op.exists(surf_out):
