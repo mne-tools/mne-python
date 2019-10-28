@@ -59,6 +59,8 @@ Bug
 
 - Fix bug in :func:`mne.preprocessing.mark_flat` where acquisition skips were not handled proeprly, by `Eric Larson`_
 
+- Fix bug in :func:`mne.viz.plot_bem` where some sources were not plotted by `Jean-Remi King`_ and `Eric Larson`_
+
 - Fix TAL channel parsing (annotations) for EDF-D files by `Clemens Brunner`_
 
 - Fix bug with :func:`mne.viz.plot_dipole_locations` when plotting in head coordinates by `Eric Larson`_
