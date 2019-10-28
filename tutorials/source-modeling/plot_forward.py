@@ -9,7 +9,6 @@ computation.
 
 For more extensive details and presentation of the general
 concepts for forward modeling. See :ref:`ch_forward`.
-
 """
 
 import os.path as op
@@ -145,6 +144,13 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 # To compute a volume based source space defined with a grid of candidate
 # dipoles inside the brain (requires the :term:`BEM` surfaces) you can use the
 # following.
+#
+# .. note:: Some sources appear to be outside the BEM inner skull contour.
+#           This is because the ``slices`` are decimated for plotting here.
+#           Each set of axes actually represents several MRI slices, with only
+#           the MRI voxels and BEM boundaries for a single (midpoint of the
+#           given slice range) shown, and each source space point is shown on
+#           exactly one of the slice axes.
 
 surface = op.join(subjects_dir, subject, 'bem', 'inner_skull.surf')
 vol_src = mne.setup_volume_source_space(subject, subjects_dir=subjects_dir,
