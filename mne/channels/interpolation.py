@@ -10,7 +10,6 @@ from ..fixes import einsum
 from ..utils import logger, warn, verbose
 from ..io.pick import pick_types, pick_channels, pick_info
 from ..surface import _normalize_vectors
-from ..bem import _fit_sphere
 from ..forward import _map_meg_channels
 
 
@@ -106,7 +105,7 @@ def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
 
 
 @verbose
-def _interpolate_bads_eeg(inst, verbose=None):
+def _interpolate_bads_eeg(inst, origin, verbose=None):
     """Interpolate bad EEG channels.
 
     Operates in place.
@@ -135,20 +134,17 @@ def _interpolate_bads_eeg(inst, verbose=None):
     bads_idx_pos = bads_idx[picks]
     goods_idx_pos = goods_idx[picks]
 
-    pos_good = pos[goods_idx_pos]
-    pos_bad = pos[bads_idx_pos]
-
     # test spherical fit
-    radius, center = _fit_sphere(pos_good)
-    distance = np.sqrt(np.sum((pos_good - center) ** 2, 1))
-    distance = np.mean(distance / radius)
+    distance = np.linalg.norm(pos - origin, axis=-1)
+    distance = np.mean(distance / np.mean(distance))
     if np.abs(1. - distance) > 0.1:
         warn('Your spherical fit is poor, interpolation results are '
              'likely to be inaccurate.')
 
+    pos_good = pos[goods_idx_pos] - origin
+    pos_bad = pos[bads_idx_pos] - origin
     logger.info('Computing interpolation matrix from {} sensor '
                 'positions'.format(len(pos_good)))
-
     interpolation = _make_interpolation_matrix(pos_good, pos_bad)
 
     logger.info('Interpolating {} sensors'.format(len(pos_bad)))
@@ -195,5 +191,5 @@ def _interpolate_bads_meg(inst, mode='accurate', origin=(0., 0., 0.04),
         return
     info_from = pick_info(inst.info, picks_good)
     info_to = pick_info(inst.info, picks_bad)
-    mapping = _map_meg_channels(info_from, info_to, mode=mode)
+    mapping = _map_meg_channels(info_from, info_to, mode=mode, origin=origin)
     _do_interp_dots(inst, mapping, picks_good, picks_bad)
