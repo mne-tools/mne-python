@@ -321,7 +321,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
     # nim = resample_from_to(nim, ((256, 256, 256), vox_ras_t), order=0)
     # mri_vox_t = np.dot(np.linalg.inv(vox_ras_t), mri_ras_t['trans'])
     #
-    # But until someone complains about obnoxious data oreintations,
+    # But until someone complains about obnoxious data orientations,
     # what we have already should work fine (and be faster because no
     # resampling is done).
     data = _get_img_fdata(nim)
@@ -450,9 +450,10 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
     -----
     Images are plotted in MRI voxel coordinates.
 
-    For a given slice index, all source points are shown that are halfway
-    between the previous slice and the given slice, and halfway between the
-    current slice and the next slice. For large slice decimations, this can
+    If ``src`` is not None, for a given slice index, all source points are
+    shown that are halfway between the previous slice and the given slice,
+    and halfway between the current slice and the next slice.
+    For large slice decimations, this can
     make some source points appear outside the BEM contour, which is shown
     for the given slice index. For example, in the case where the single
     midpoint slice is used ``slices=[128]``, all source points will be shown

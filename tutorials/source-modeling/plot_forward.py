@@ -147,10 +147,11 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 #
 # .. note:: Some sources appear to be outside the BEM inner skull contour.
 #           This is because the ``slices`` are decimated for plotting here.
-#           Each set of axes actually represents several MRI slices, with only
-#           the MRI voxels and BEM boundaries for a single (midpoint of the
-#           given slice range) shown, and each source space point is shown on
-#           exactly one of the slice axes.
+#           Each set of axes actually represents several MRI slices, but
+#           only the MRI voxels and BEM boundaries for a single (midpoint of
+#           the given slice range) slice are shown, whereas the source space
+#           points plotted on that midpoint slice consist of all points
+#           for which that slice (out of all slices shown) was the closest.
 
 surface = op.join(subjects_dir, subject, 'bem', 'inner_skull.surf')
 vol_src = mne.setup_volume_source_space(subject, subjects_dir=subjects_dir,
