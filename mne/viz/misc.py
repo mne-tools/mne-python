@@ -335,8 +335,9 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
                               zorder=1)
 
         for sources in src_points:
-            in_slice = np.logical_and(sources[:, z] > sl - 0.5,
-                                      sources[:, z] < sl + 0.5)
+            slice_size = np.diff(np.unique(np.round(sources[:, z]))).min()
+            in_slice = np.logical_and(sources[:, z] > sl - slice_size,
+                                      sources[:, z] < sl + slice_size)
             ax.scatter(sources[in_slice, x], sources[in_slice, y], marker='.',
                        color='#FF00FF', s=1, zorder=2)
 
