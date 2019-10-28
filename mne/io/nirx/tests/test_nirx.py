@@ -4,6 +4,7 @@
 
 import os.path as op
 
+import pytest
 from numpy.testing import assert_allclose, assert_array_equal
 
 from mne.datasets.testing import data_path, requires_testing_data
@@ -138,10 +139,14 @@ def test_nirx_15_2():
 
 
 @requires_testing_data
-def test_nirx_standard():
+@pytest.mark.parametrize('fname, boundary_decimal', (
+    [fname_nirx_15_2_short, 1],
+    [fname_nirx_15_2, 0]
+))
+def test_nirx_standard(fname, boundary_decimal):
     """Test standard operations."""
-    _test_raw_reader(read_raw_nirx, fname=fname_nirx_15_2_short,
-                     boundary_decimal=1)  # low fs
+    _test_raw_reader(read_raw_nirx, fname=fname,
+                     boundary_decimal=boundary_decimal)  # low fs
 
 
 run_tests_if_main()
