@@ -452,7 +452,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
 
     If ``src`` is not None, for a given slice index, all source points are
     shown that are halfway between the previous slice and the given slice,
-    and halfway between the current slice and the next slice.
+    and halfway between the given slice and the next slice.
     For large slice decimations, this can
     make some source points appear outside the BEM contour, which is shown
     for the given slice index. For example, in the case where the single
