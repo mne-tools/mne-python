@@ -363,10 +363,8 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
     fig, axs = _prepare_trellis(len(slices), 4)
     fig.set_facecolor('k')
     bounds = np.concatenate(
-        [[-np.inf], slices[:-1] + np.diff(slices) / 2., [np.inf]])
-    bounds[[0, -1]] = [0, n_slices]
-    bounds = np.round(bounds).astype(int)
-    for ax, sl, start, stop in zip(axs, slices, bounds[:-1], bounds[1:]):
+        [[-np.inf], slices[:-1] + np.diff(slices) / 2., [np.inf]])  # float
+    for ax, sl, lower, upper in zip(axs, slices, bounds[:-1], bounds[1:]):
         # adjust the orientations for good view
         if orientation == 'coronal':
             dat = data[:, :, sl].transpose()
@@ -390,7 +388,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
                               zorder=1)
 
         for sources in src_points:
-            in_slice = (sources[:, z] >= start) & (sources[:, z] < stop)
+            in_slice = (sources[:, z] >= lower) & (sources[:, z] < upper)
             ax.scatter(sources[in_slice, x], sources[in_slice, y], marker='.',
                        color='#FF00FF', s=1, zorder=2)
         if show_indices:
@@ -424,9 +422,14 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
         to files in the subject's ``surf`` directory (e.g. ``"white"``).
     src : None | SourceSpaces | str
         SourceSpaces instance or path to a source space to plot individual
-        sources as scatter-plot. Only sources lying in the shown slices will be
-        visible, sources that lie between visible slices are not shown. Path
-        can be absolute or relative to the subject's ``bem`` folder.
+        sources as scatter-plot. Sources will be shown on exactly one slice
+        (whichever slice is closest to each source in the given orientation
+        plane). Path can be absolute or relative to the subject's ``bem``
+        folder.
+
+        .. versionchanged:: 0.20
+           All sources are shown on the nearest slice rather than some
+           being omitted.
     show : bool
         Show figure if True.
     show_indices : bool
