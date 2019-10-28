@@ -121,7 +121,7 @@ def test_plot_ica_properties():
     epochs = Epochs(raw, events[:10], event_id, tmin, tmax,
                     baseline=(None, 0), preload=True)
 
-    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, max_iter=1,
               max_pca_components=2, n_pca_components=2, random_state=0)
     with pytest.warns(RuntimeWarning, match='projection'):
         ica.fit(raw)
@@ -160,8 +160,9 @@ def test_plot_ica_properties():
     # Test merging grads.
     raw = _get_raw(preload=True)
     picks = pick_types(raw.info, meg='grad')[:10]
-    ica = ICA(n_components=2, random_state=0)
-    ica.fit(raw, picks=picks)
+    ica = ICA(n_components=2, random_state=1, max_iter=1)
+    with pytest.warns(UserWarning, match='did not converge'):
+        ica.fit(raw, picks=picks)
     ica.plot_properties(raw)
     plt.close('all')
 
