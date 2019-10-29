@@ -135,14 +135,12 @@ class RawNIRX(BaseRaw):
                                 hdr['DataStructure']['S-D-Key'])], int)
 
         # Determine if short channels are present and on which detectors
-        if any(key == 'shortbundles' for key in hdr['ImagingParameters']):
-            has_short = np.array(hdr['ImagingParameters']['ShortBundles'], int)
+        if 'shortbundles' in hdr['ImagingParameters']:
             short_det = [int(s) for s in
                          re.findall(r'(\d+)',
                          hdr['ImagingParameters']['ShortDetIndex'])]
             short_det = np.array(short_det, int)
         else:
-            has_short = 0
             short_det = []
 
         # Extract sampling rate
@@ -228,13 +226,10 @@ class RawNIRX(BaseRaw):
             info['chs'][ch_idx2 * 2 + 1]['loc'][6:9] = det_locs[det, :]
             # Store channel location
             # Channel locations for short channels are bodged,
-            # for short channels use the source location and add small offset
-            if has_short > 0:
-                if len(np.where(short_det == det + 1)[0]) > 0:
-                    info['chs'][ch_idx2 * 2]['loc'][:3] = src_locs[src, :]
-                    info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = src_locs[src, :]
-                    info['chs'][ch_idx2 * 2]['loc'][0] += 0.8
-                    info['chs'][ch_idx2 * 2 + 1]['loc'][0] += 0.8
+            # for short channels use the source location.
+            if det + 1 in short_det:
+                info['chs'][ch_idx2 * 2]['loc'][:3] = src_locs[src, :]
+                info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = src_locs[src, :]
             else:
                 info['chs'][ch_idx2 * 2]['loc'][:3] = ch_locs[ch_idx2, :]
                 info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = ch_locs[ch_idx2, :]
