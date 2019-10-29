@@ -61,8 +61,7 @@ def run():
                            'instead a three layer one (scalp, skull, and '
                            ' brain). If this flag is specified, the options '
                            '--brainc, --skullc, and --scalpc are irrelevant.',
-                      default=None,
-                      type='float')
+                      default=None, action="store_true")
     parser.add_option('-d', '--subjects-dir',
                       dest='subjects_dir',
                       help='Subjects directory',
@@ -81,13 +80,13 @@ def run():
     brainc = options.brainc
     skullc = options.skullc
     scalpc = options.scalpc
-    homog = options.homog
+    homog = True if options.homog is not None else False
     verbose = True if options.verbose is not None else False
 
     # Parse conductivity option
-    if homog is not None:
+    if homog is True:
         # Single layer
-        conductivity = [homog]
+        conductivity = [0.3]
     else:
         conductivity = [brainc, skullc, scalpc]
     # Create source space
@@ -98,13 +97,14 @@ def run():
                                    verbose=verbose)
     # Generate filename
     if fname is None:
-        n_faces = list(str(len(surface['tris'])) for surface in bem_model)
-        fname = subject + '-' + '-'.join(n_faces) + '-bem.fif'
+        n_faces = [str(len(surface['tris']) for surface in bem_model)]
+        fname = subject + '-'.join(n_faces) + '-bem.fif'
+        # Save to subject's directory
+        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        fname = os.path.join(subjects_dir, subject, "bem", fname)
     else:
         if not (fname.endswith('-bem.fif') or fname.endswith('_bem.fif')):
             fname = fname + "-bem.fif"
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    fname = os.path.join(subjects_dir, subject, "bem", fname)
     # Save source space to file
     mne.write_bem_surfaces(fname, bem_model)
 
