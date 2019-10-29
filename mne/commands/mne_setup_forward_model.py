@@ -86,7 +86,7 @@ def run():
     # Parse conductivity option
     if homog is True:
         # Single layer
-        conductivity = [0.3]
+        conductivity = [brainc]
     else:
         conductivity = [brainc, skullc, scalpc]
     # Create source space
@@ -97,14 +97,14 @@ def run():
                                    verbose=verbose)
     # Generate filename
     if fname is None:
-        n_faces = [str(len(surface['tris']) for surface in bem_model)]
-        fname = subject + '-'.join(n_faces) + '-bem.fif'
-        # Save to subject's directory
-        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-        fname = os.path.join(subjects_dir, subject, "bem", fname)
+        n_faces = list(str(len(surface['tris'])) for surface in bem_model)
+        fname = subject + '-' + '-'.join(n_faces) + '-bem.fif'
     else:
         if not (fname.endswith('-bem.fif') or fname.endswith('_bem.fif')):
             fname = fname + "-bem.fif"
+            # Save to subject's directory
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    fname = os.path.join(subjects_dir, subject, "bem", fname)
     # Save source space to file
     mne.write_bem_surfaces(fname, bem_model)
 
