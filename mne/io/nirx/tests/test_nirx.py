@@ -183,7 +183,7 @@ def test_nirx_15_0():
 
     # Test distance between optodes matches values from
     allowed_distance_error = 0.0002
-    distances = raw._probe_distances()
+    distances = _probe_distances(raw)
     assert_allclose(distances[::2], [
         0.0301, 0.0315, 0.0343, 0.0368, 0.0408,
         0.0399, 0.0393, 0.0367, 0.0336, 0.0447], atol=allowed_distance_error)
