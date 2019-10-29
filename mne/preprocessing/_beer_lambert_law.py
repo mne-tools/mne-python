@@ -49,6 +49,9 @@ def beer_lambert_law(raw, ppf=0.1):
         raw.info['chs'][ii]['coil_type'] = FIFF.FIFFV_COIL_FNIRS_HBO
         raw.info['chs'][ii + 1]['coil_type'] = FIFF.FIFFV_COIL_FNIRS_HBR
 
+        raw.info['chs'][ii]['unit'] = FIFF.FIFF_UNIT_MOL
+        raw.info['chs'][ii + 1]['unit'] = FIFF.FIFF_UNIT_MOL
+
         rename_channels(raw.info, {raw.info['chs'][ii]['ch_name']:
                                    raw.info['chs'][ii]['ch_name'][:-4] +
                                    ' hbo'})
