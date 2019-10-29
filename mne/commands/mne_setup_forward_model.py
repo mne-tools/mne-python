@@ -12,7 +12,7 @@ Examples
 import sys
 import os
 import mne
-from mne.utils import get_subjects_dir
+from mne.utils import get_subjects_dir, warn
 
 
 def run():
@@ -47,13 +47,13 @@ def run():
                       dest='skullc',
                       help='Defines the skull compartment conductivity. '
                            'The default value is 0.006 S/m.',
-                      default=0.006,
+                      default=None,
                       type='float')
     parser.add_option('--scalpc',
                       dest='scalpc',
                       help='Defines the scalp compartment conductivity. '
                            'The default value is 0.3 S/m.',
-                      default=0.3,
+                      default=None,
                       type='float')
     parser.add_option('--homog',
                       dest='homog',
@@ -82,12 +82,21 @@ def run():
     scalpc = options.scalpc
     homog = True if options.homog is not None else False
     verbose = True if options.verbose is not None else False
-
     # Parse conductivity option
     if homog is True:
+        if skullc is not None:
+            warn('Trying to set the skull conductivity for a single layer '
+                 'model. To use a 3 layer model, do not set the --homog flag.')
+        if scalpc is not None:
+            warn('Trying to set the scalp conductivity for a single layer '
+                 'model. To use a 3 layer model, do not set the --homog flag.')
         # Single layer
         conductivity = [brainc]
     else:
+        if skullc is None:
+            skullc = 0.006
+        if scalpc is None:
+            scalpc = 0.3
         conductivity = [brainc, skullc, scalpc]
     # Create source space
     bem_model = mne.make_bem_model(subject,
