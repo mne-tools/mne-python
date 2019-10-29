@@ -309,7 +309,7 @@ def test_setup_source_space(tmpdir):
 
 
 @pytest.mark.slowtest
-#@testing.requires_testing_data
+@testing.requires_testing_data
 def test_setup_forward_model(tmpdir):
     """Test mne setup_source_space."""
     check_usage(mne_setup_forward_model, force_help=True)
