@@ -44,7 +44,7 @@ def beer_lambert_law(raw, ppf=0.1):
         EL = abs_coef * distances[ii] * ppf
         iEL = np.linalg.pinv(EL)
 
-        raw._data[[ii, ii + 1]] = (raw._data[[ii, ii + 1]].T * iEL.T).T * 1e-3
+        raw._data[[ii, ii + 1]] = (raw._data[[ii, ii + 1]].T @ iEL.T).T * 1e-3
 
         raw.info['chs'][ii]['coil_type'] = FIFF.FIFFV_COIL_FNIRS_HBO
         raw.info['chs'][ii + 1]['coil_type'] = FIFF.FIFFV_COIL_FNIRS_HBR
@@ -114,8 +114,8 @@ def _load_absorption(freqs):
     interp_hbo = interp1d(a[:, 0], a[:, 1], kind='linear')
     interp_hb = interp1d(a[:, 0], a[:, 2], kind='linear')
 
-    ext_coef = np.matrix([[interp_hbo(freqs[0]), interp_hb(freqs[0])],
-                          [interp_hbo(freqs[1]), interp_hb(freqs[1])]])
+    ext_coef = np.array([[interp_hbo(freqs[0]), interp_hb(freqs[0])],
+                        [interp_hbo(freqs[1]), interp_hb(freqs[1])]])
     abs_coef = ext_coef * 0.2303
 
     return abs_coef
