@@ -1,6 +1,7 @@
 """Conversion tool from CTF to FIF."""
 
-# Author: Eric Larson <larson.eric.d<gmail.com>
+# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
+#          Eric Larson <larsoner@uw.edu>
 #
 # License: BSD (3-clause)
 
@@ -9,6 +10,7 @@ import os.path as op
 
 import numpy as np
 
+from .._digitization import _format_dig_points
 from ...utils import verbose, logger, _clean_names, fill_doc, _check_option
 
 from ..base import BaseRaw
@@ -21,8 +23,6 @@ from .trans import _make_ctf_coord_trans_set
 from .info import _compose_meas_info, _read_bad_chans, _annotate_bad_segments
 from .constants import CTF
 from .markers import _read_annotations_ctf_call
-
-from ..._digitization.base import _format_dig_points
 
 
 @fill_doc

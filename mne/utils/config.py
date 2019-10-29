@@ -7,7 +7,6 @@
 import atexit
 from functools import partial
 import inspect
-from io import StringIO
 import json
 import os
 import os.path as op
@@ -34,7 +33,7 @@ def set_cache_dir(cache_dir):
 
     Parameters
     ----------
-    cache_dir: str or None
+    cache_dir : str or None
         Directory to use for temporary file storage. None disables
         temporary file storage.
     """
@@ -49,7 +48,7 @@ def set_memmap_min_size(memmap_min_size):
 
     Parameters
     ----------
-    memmap_min_size: str or None
+    memmap_min_size : str or None
         Threshold on the minimum size of arrays that triggers automated memory
         mapping for parallel processing, e.g., '1M' for 1 megabyte.
         Use None to disable memmaping of large arrays.
@@ -104,6 +103,7 @@ known_config_types = (
     'MNE_DATASETS_KILOWORD_PATH',
     'MNE_DATASETS_FIELDTRIP_CMC_PATH',
     'MNE_DATASETS_PHANTOM_4DBTI_PATH',
+    'MNE_DATASETS_LIMO_PATH',
     'MNE_FORCE_SERIAL',
     'MNE_KIT2FIFF_STIM_CHANNELS',
     'MNE_KIT2FIFF_STIM_CHANNEL_CODING',
@@ -259,12 +259,6 @@ def set_config(key, value, home_dir=None, set_env=True):
     --------
     get_config
     """
-    if key is None:
-        warn('set_config(key=None, value=None) to get a list of valid keys '
-             'has been deprecated and will be removed in version 0.19. Use '
-             'get_config(key='') instead.', DeprecationWarning)
-        return known_config_types
-
     _validate_type(key, 'str', "key")
     # While JSON allow non-string types, we allow users to override config
     # settings using env, which are strings, so we enforce that here
@@ -421,6 +415,28 @@ def _get_root_dir():
     return root_dir
 
 
+def _get_numpy_libs():
+    from ._testing import SilenceStdout
+    with SilenceStdout() as capture:
+        np.show_config()
+    lines = capture.getvalue().split('\n')
+    libs = []
+    for li, line in enumerate(lines):
+        for key in ('lapack', 'blas'):
+            if line.startswith('%s_opt_info' % key):
+                lib = lines[li + 1]
+                if 'NOT AVAILABLE' in lib:
+                    lib = 'unknown'
+                else:
+                    try:
+                        lib = lib.split('[')[1].split("'")[1]
+                    except IndexError:
+                        pass  # keep whatever it was
+                libs += ['%s=%s' % (key, lib)]
+    libs = ', '.join(libs)
+    return libs
+
+
 def sys_info(fid=None, show_paths=False):
     """Print the system information for debugging.
 
@@ -457,7 +473,6 @@ def sys_info(fid=None, show_paths=False):
         cupy:          4.1.0
         pandas:        0.17.1+25.g547750a
         dipy:          0.14.0
-
     """  # noqa: E501
     ljust = 15
     out = 'Platform:'.ljust(ljust) + platform.platform() + '\n'
@@ -479,28 +494,7 @@ def sys_info(fid=None, show_paths=False):
     else:
         out += '%0.1f GB\n' % (psutil.virtual_memory().total / float(2 ** 30),)
     out += '\n'
-    old_stdout = sys.stdout
-    capture = StringIO()
-    try:
-        sys.stdout = capture
-        np.show_config()
-    finally:
-        sys.stdout = old_stdout
-    lines = capture.getvalue().split('\n')
-    libs = []
-    for li, line in enumerate(lines):
-        for key in ('lapack', 'blas'):
-            if line.startswith('%s_opt_info' % key):
-                lib = lines[li + 1]
-                if 'NOT AVAILABLE' in lib:
-                    lib = 'unknown'
-                else:
-                    try:
-                        lib = lib.split('[')[1].split("'")[1]
-                    except IndexError:
-                        pass  # keep whatever it was
-                libs += ['%s=%s' % (key, lib)]
-    libs = ', '.join(libs)
+    libs = _get_numpy_libs()
     for mod_name in ('mne', 'numpy', 'scipy', 'matplotlib', '', 'sklearn',
                      'numba', 'nibabel', 'cupy', 'pandas', 'dipy',
                      'mayavi', 'pyvista', 'vtk'):

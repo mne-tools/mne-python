@@ -9,203 +9,87 @@
 
 .. _current:
 
-Current (0.19.dev0)
+Current (0.20.dev0)
 -------------------
 
 Changelog
 ~~~~~~~~~
+- Add command :ref:`gen_mne_setup_source_space` to quickly set up bilateral hemisphere surface-based source space with subsampling by `Victor Ferat`_.
 
-- Add :func:`mne.cuda.set_cuda_device` and config variable ``MNE_CUDA_DEVICE`` to select among multiple GPUs (by numeric device ID) by `Daniel McCloy`_.
+- Add function :func:`mne.make_fixed_length_epochs` to segment raw into fixed length epochs by `Mohammad Daneshzand`_
 
-- Add :func:`mne.channels.make_standard_montage` to create :class:`mne.channels.DigMontage` from templates by `Joan Massich`_ and `Alex Gramfort`_.
+- Add support for passing a destination source space ``src_to`` in :func:`mne.compute_source_morph` to ensure morphing for multiple subjects results in consistent STCs, by `Eric Larson`_
 
-- Add :func:`mne.channels.compute_dev_head_t` to compute Device-to-Head transformation from a montage by `Joan Massich`_ and `Alex Gramfort`_.
+- Add support for plotting fNIRS channels in :func:`mne.viz.plot_alignment` by `Eric Larson`_
 
-- Add :func:`mne.channels.read_dig_polhemus_isotrak` and :func:`mne.channels.read_polhemus_fastscan` to read Polhemus data by `Joan Massich`_
+- Add command line tool :ref:`gen_mne_anonymize` for anonymizing raw fiff files by `Luke Bloy`_
 
-- Add support for making epochs with duplicated events, by allowing three policies: "error" (default), "drop", or "merge" in :class:`mne.Epochs` by `Stefan Appelhoff`_
+- Add support to :func:`mne.io.anonymize_info` to allow time offset to be applied to dates by `Luke Bloy`_
 
-- Add :func:`mne.channels.make_dig_montage` to create :class:`mne.channels.DigMontage` objects out of np.arrays by `Joan Massich`_
+- Add support for computing resolution matrix to get point spread functions (PSF) and cross-talk functions (CTF) in :func:`mne.minimum_norm.make_resolution_matrix`, :func:`mne.minimum_norm.get_cross_talk`, :func:`mne.minimum_norm.get_point_spread` by `Olaf Hauk`_
 
-- Add support for reading in BrainVision CapTrak (BVCT) digitization coordinate files in :func:`mne.channels.read_dig_montage` by `Stefan Appelhoff`_
+- Add keyboard functionality to interactive colorbar plotting TFRs by `Stefan Repplinger`_
 
-- Allow :meth:`mne.Annotations.crop` to support negative ``tmin`` and ``tmax`` by `Joan Massich`_
+- Add the ability to ``return_event_id`` in :func:`mne.read_events` for use with MNE-C produced ``-annot.fif`` files, by `Eric Larson`_
 
-- Unknown events code in GDF are now visible in the ``event_id`` by `Theodore Papadopoulo`_
+- Add option to :func:`mne.connectivity.spectral_connectivity` to compute corrected imaginary PLV by `Adonay Nunes`_
 
-- Now :func:`mne.io.read_raw_ctf` populates ``raw.annotations`` with the markers in ``MarkerFile.mrk`` if any by `Joan Massich`_
+- Add :func:`mne.SourceEstimate.estimate_snr` to estimate source-space SNR, by `Kaisu Lankinen`_ and `Padma Sundaram`_
 
-- Add options for controlling the use of the ``-T1`` flag and the location of the brainmask output in :ref:`mne watershed_bem <gen_mne_watershed_bem>` by `Eric Larson`_
+- Add option to specify the coordinate frame in :func:`mne.channels.read_custom_montage` by `Eric Larson`_
 
-- Add support to :func:`mne.read_annotations` to read CTF marker files by `Joan Massich`_
+- Add reader for NIRx data in :func:`mne.io.read_raw_nirx` by `Robert Luke`_
 
-- Do not convert effective number of averages (``nave`` attribute of :class:`mne.Evoked`) to integer except when saving to FIFF file by `Daniel McCloy`_.
+- Add reader for ``*.dat`` electrode position files :func:`mne.channels.read_dig_dat` by `Christian Brodbeck`_
 
-- Add automatic fiducial position estimation in :ref:`mne coreg <gen_mne_coreg>` using MNI Talairach fiducial locations in :func:`mne.coreg.get_mni_fiducials` by `Jon Houck`_ and `Eric Larson`_
+- Improved :ref:`limo-dataset` usage and :ref:`example <ex-limo-data>` for usage of :func:`mne.stats.linear_regression` by `Jose Alanis`_
 
-- Add support for :ref:`mne coreg <gen_mne_coreg>` scaling surrogate subjects without surface reconstructions, such as those created for volumetric analyses only (e.g., with ``recon-all -autorecon1``) by `Eric Larson`_
+- For KIT systems without built-in layout, :func:`mne.channels.find_layout` now falls back on an automatically generated layout, by `Christian Brodbeck`_
 
-- Add reader for Curry data in :func:`mne.io.read_raw_curry` by `Dirk Gütlin`_
-
-- Butterfly channel plots now possible for :meth:`mne.Epochs.plot_psd` with ``average=False``. Infrastructure for this function now shared with analogous Raw function, found in ``mne.viz.utils`` by `Jeff Hanna` _
-
-- Add option not to orthogonalize power envelopes with ``orthogonalize=False`` in :func:`mne.connectivity.envelope_correlation` by `Denis Engemann`_
-
-- Accept filenames of raw .fif files that end in ``_meg.fif`` to enable complicance with the Brain Imaging Data Structure by `Stefan Appelhoff`_
-
-- Add function to check the type of a FIF file using :func:`mne.what` and `mne what <gen_mne_what>` by `Eric Larson`_
-
-- Add support for specifying the initial time and/or position and providing a :class:`mne.SourceMorph` instead of :class:`mne.SourceSpaces` in :func:`mne.viz.plot_volume_source_estimates` by `Eric Larson`_
-
-- Speed up morph map generation in :func:`mne.read_morph_map` by ~5-10x by using :func:`numba.jit` by `Eric Larson`_
-
-- Speed up :func:`mne.setup_volume_source_space`, especially when ``volume_label is not None`` by `Eric Larson`_
-
-- Speed up :ref:`mne coreg <gen_mne_coreg>` interactive and automated (ICP) alignment by using nearest-neighbor calculations in the MRI coordinate frame, by `Eric Larson`_
-
-- Add :func:`mne.dig_mri_distances` to compute the distances between digitized head points and the MRI head surface by `Alex Gramfort`_ and `Eric Larson`_
-
-- Add scale bars for data channels in :func:`mne.io.Raw.plot` by `Eric Larson`_
-
-- Add :func:`mne.viz.plot_brain_colorbar` to plot a colorbar appropriately matched to a :func:`mne.viz.plot_source_estimates` plot by `Eric Larson`_
-
-- Add support for showing head surface (to visualize digitization fit) while showing a single-layer BEM to :func:`mne.viz.plot_alignment` by `Eric Larson`_
-
-- Add option ``include_tmax=True`` to cropping methods :meth:`mne.io.Raw.crop`, :meth:`mne.Epochs.crop`, :meth:`mne.Evoked.crop`, :meth:`mne.SourceEstimate.crop`, :meth:`mne.Dipole.crop`, and :meth:`mne.time_frequency.AverageTFR.crop` by `Eric Larson`_
-
-- Change the behavior of :meth:`mne.io.Raw.plot` for ``scalings='auto'`` and ``remove_dc=True`` to compute the scalings on the data with DC removed by `Clemens Brunner`_
-
-- Allow creating annotations within existing annotations in :func:`mne.io.Raw.plot` by default (the old snapping behavior can be toggled by pressing 'p') by `Clemens Brunner`_
-
-- Add a new :func:`mne.viz.plot_sensors_connectivity` function to visualize the sensor connectivity in 3D by `Guillaume Favelier`_ and `Alex Gramfort`_
-
-- Add control over dipole colors in :func:`mne.viz.plot_dipole_locations` when using orthoview mode by `Eric Larson`_
-
-- Use second-order-sections filtering in :meth:`mne.io.Raw.plot` and :ref:`mne browse_raw <gen_mne_browse_raw>` by `Eric Larson`_
-
-- Add re-referencing functionality for ecog and seeg channel types in :func:`mne.set_eeg_reference` by `Keith Doelling`_
-
-- Add support for median averaging and for returning unaggregated segments in :func:`mne.time_frequency.psd_welch` by `Richard Höchenberger`_
-
+- :meth:`mne.Epochs.plot` now takes a ``epochs_colors`` parameter to color specific epoch segments by `Mainak Jas`_
 
 Bug
 ~~~
 
-- Fix saving raw read from BDF file using ``tmin`` and ``tmax`` using ``preload=False`` by `Alex Gramfort`_
+- Fix :meth:`mne.Epochs.shift_time` and :meth:`mne.Evoked.shift_time` to return the modified :class:`~mne.Epochs` or :class:`~mne.Evoked` instance (instead of ``None``) by `Daniel McCloy`_.
 
-- Fix :func:`mne.grand_average` to use equal sum-to-one weights (like it used to, before changes to underlying :func:`mne.combine_evoked`) by `Daniel McCloy`_
+- Fix bug in :class:`~mne.preprocessing.ICA` where requesting extended infomax via ``fit_params={'extended': True}`` was overridden, by `Daniel McCloy`_.
 
-- Fix one-sample baseline issue in :class:`mne.BaseEpochs` when using `tmin=0` by `Milan Rybář`_
+- Fix bug in :func:`mne.write_evokeds` where ``evoked.nave`` was not saved properly when multiple :class:`~mne.Evoked` instances were written to a single file, by `Eric Larson`_
 
-- Fix bug in :func:`mne.viz.plot_volume_source_estimates` where ``'glass_brain'`` MRIs were not transformed to MNI space, by `Eric Larson`_
+- Fix bug in :func:`mne.preprocessing.mark_flat` where acquisition skips were not handled proeprly, by `Eric Larson`_
 
-- Fix bug in :func:`mne.viz.plot_volume_source_estimates` where MRIs with voxels not in RAS orientation could not be browsed properly, by `Eric Larson`_
+- Fix bug in :func:`mne.viz.plot_bem` where some sources were not plotted by `Jean-Remi King`_ and `Eric Larson`_
 
-- Fix bug in :meth:`mne.SourceMorph.apply` where output STCs had ``stc.vertices`` defined improperly, by `Eric Larson`_
+- Fix TAL channel parsing (annotations) for EDF-D files by `Clemens Brunner`_
 
-- Fix bug in :meth:`mne.SourceMorph.apply` where the default was errantly ``mri_space=False`` instead of ``mri_space=None`` (as documented), by `Eric Larson`_
+- Fix bug with :func:`mne.viz.plot_dipole_locations` when plotting in head coordinates by `Eric Larson`_
 
-- Fix :meth:`mne.io.Raw.set_annotations` for ``meas_date`` previous to 1970 by `Joan Massich`_
+- Fix handling in cases where no components are found in :func:`mne.preprocessing.corrmap` by `Eric Larson`_
 
-- Fix horizontal spacing issues in :meth:`mne.io.Raw.plot_psd` by `Jeff Hanna`_
+- Fix handling of repeated events in :class:`mne.Epochs` by `Fahimeh Mamashli`_ and `Alex Gramfort`_
 
-- Fix reading of dates in BrainVision files if no "New Segment" marker is specified, no date is given, or data is missing, by `Stefan Appelhoff`_
+- Fix :func:`mne.io.anonymize_info` to allow shifting dates of service and to match anticipated changes in mne-cpp by `Luke Bloy`_
 
-- Fix bug with reading one-channel GDF files by `Abram Hindle`_
+- Fix reading of cardinals in .htps files (identifier are int not strings) by `Alex Gramfort`_
 
-- Fix bug with y-axis labeling in :meth:`mne.io.Raw.plot_psd` by `Eric Larson`_
+- Fix IO of TFRs when event_id contain a / in one of the keys by `Alex Gramfort`_
 
-- Fix side-effect where :func:`mne.viz.plot_ica_sources` and :meth:`mne.preprocessing.ICA.plot_sources` changed the ``ICA.exclude`` attribute even when users didn't interact with the plot by `Daniel McCloy`_.
+- Fix plotting of TFRs with linear y-scale (misaligned frequency bins), by `Stefan Repplinger`_ and `Eric Larson`_
 
-- Fix scaling of sources in :meth:`ica.plot_sources(epochs) <mne.preprocessing.ICA.plot_sources>` by `Eric Larson`_
+- Fix ``info['sfreq']`` when decimating in :func:`mne.time_frequency.tfr_multitaper` and :func:`mne.time_frequency.tfr_morlet` and make sure an error is raised when exceed Nyquist frequency by `Adonay Nunes`_
 
-- Fix wrong assumptions about units in BrainVision montages and add test asserting units in "mm" or "auto", by `Stefan Appelhoff`_
-
-- Fix scaling issue with signals in mV in EDF files read with :func:`mne.io.read_raw_edf` by `Alex Gramfort`_
-
-- Fix bug in :func:`mne.io.read_raw_brainvision` so that recording date timestamps are also recognized if channel reference data is negative, by `Stefan Appelhoff`_
-
-- Fix order of ``info['dig']`` that was alphabetical based on channel names and not following the channel order when using :meth:`mne.io.Raw.set_montage` and a :class:`mne.channels.Montage` object by `Joan Massich`_ and `Alex Gramfort`_.
-
-- Fix reading CNT files larger than 2Gb by `Joan Massich`_
-
-- Fix formula for effective number of averages in :func:`mne.combine_evoked` when ``weights='equal'`` by `Daniel McCloy`_.
-
-- Fix bug in :func:`mne.simulation.simulate_stc` to avoid empty stc if label vertices and source space do not intersect, by `Kostiantyn Maksymenko`_
-
-- Fix ``event_id='auto'`` in :func:`mne.events_from_annotations` to recover Brainvision markers after saving it in ``.fif`` by `Joan Massich`_
-
-- Fix :func:`mne.read_epochs_eeglab` when epochs are stored as float. By `Thomas Radman`_
-
-- Fix :func:`mne.Evoked.resample` and :func:`mne.Epochs.resample` not setting ``inst.info['lowpass']`` properly by `Eric Larson`_
-
-- Fix checks when constructing volumetric and surface source spaces with :func:`mne.setup_volume_source_space` and :func:`mne.setup_source_space`, respectively, by `Eric Larson`_
-
-- Fix bug in handling of :class:`mne.Evoked` types that were not produced by MNE-Python (e.g., alternating average) by `Eric Larson`_
-
-- Fix bug in :func:`mne.read_source_estimate` where vector volumetric source estimates could not be read by `Eric Larson`_
-
-- Fix bug in :func:`mne.inverse_sparse.mixed_norm` and :func:`mne.inverse_sparse.tf_mixed_norm` where ``weights`` was supplied but ``weights_min`` was not, by `Eric Larson`_
-
-- Fix bug in :func:`mne.set_eeg_reference` where non-EEG channels could be re-referenced by default if there were no EEG channels present, by `Eric Larson`_
-
-- Fix bug in :func:`mne.io.Raw.plot` when using HiDPI displays and the MacOSX backend of matplotlib by `Eric Larson`_
-
-- Fix bug in :func:`mne.viz.plot_compare_evokeds` when using Neuromag 122 system by `Eric Larson`_
-
-- Fix bug in :func:`mne.Epochs.plot_psd` when some channels had zero/infinite ``psd`` values causing erroneous error messages by `Luke Bloy`_
-
-- Fix :func:`mne.Evoked.decimate` not setting ``inst.first`` and ``inst.last`` properly by `Marijn van Vliet`_
-
-- Fix :func:`mne.io.read_raw_brainvision` not handling ``Event`` markers created by PyCorder correctly by `Richard Höchenberger`_
-
-- Fix support for string-like objects (such as :class:`python:pathlib.Path`) by `Eric Larson`_
-
-- Fix :class:`mne.Report` silently suppressing exceptions when used as a context manager by `Marijn van Vliet`_
+- Fix bug in EDF(+) loading, filter values ignored by insufficient regex, by `Demetres Kostas`_
 
 API
 ~~~
 
-- Minimum dependency versions for the following libraries have been bumped up (by `Eric Larson`_):
+- The APIs of :meth:`mne.io.Raw.plot_projs_topomap`, :meth:`mne.Epochs.plot_projs_topomap` and :meth:`mne.Evoked.plot_projs_topomap` are now more similar to :func:`mne.viz.plot_projs_topomap` by `Daniel McCloy`_.
 
-  - NumPy: 1.12.1
-  - SciPy: 0.18.1
-  - matplotlib: 2.0.2
-  - scikit-learn: 0.18.2
-  - pandas 0.19.2
+- :func:`mne.viz.plot_projs_topomap` now accepts both :class:`~mne.channels.Layout` and :class:`~mne.Info` (previously one or the other), and will ignore :class:`~mne.Info` if :class:`~mne.channels.Layout` is provided `Daniel McCloy`_.
 
-- New boolean parameter ``show_scrollbars`` for :meth:`mne.io.Raw.plot`, :meth:`mne.Epochs.plot`, and :meth:`mne.preprocessing.ICA.plot_sources` (and associated functions) that allows hiding the scrollbars and buttons for a "zen mode" data browsing experience. When the plot window has focus, zen mode can be toggled by pressing :kbd:`z`, by `Daniel McCloy`_.
+- :func:`mne.viz.plot_projs_topomap` and the related methods :meth:`mne.io.Raw.plot_projs_topomap`, :meth:`mne.Epochs.plot_projs_topomap` and :meth:`mne.Evoked.plot_projs_topomap` now accept parameter ``vlim`` to control the colormap, with keyword ``'joint'`` computing the colormap jointly across all projectors of a given channel type, by `Daniel McCloy`_.
 
-- Deprecate passing ``np.arrays`` as ``hsp``, ``hpi`` or ``elp`` parameters to ``mne.channels.read_dig_montage`` by `Joan Massich`_.
+- New methods :meth:`mne.io.Raw.get_channel_types`, :meth:`mne.Epochs.get_channel_types`, :meth:`mne.Evoked.get_channel_types` by `Daniel McCloy`_.
 
-- Deprecate ``fif`` and ``egi`` parameters in ``mne.channels.read_dig_montage`` by `Joan Massich`_.
-
-- Deprecate ``mne.evoked.grand_average`` in favor of :func:`mne.grand_average` (which works on both :class:`~mne.Evoked` and :class:`~mne.time_frequency.AverageTFR`) by `Daniel McCloy`_
-
-- Deprecate ``exclude`` parameter in :func:`mne.viz.plot_ica_sources` and :meth:`mne.preprocessing.ICA.plot_sources`, instead always use the ``exclude`` attribute of the ICA object by `Daniel McCloy`_.
-
-- Deprecate ``montage`` parameter in favor of the ``set_montage`` method in all EEG data readers :func:`mne.io.read_raw_cnt`, :func:`mne.io.read_raw_egi`, :func:`mne.io.read_raw_edf`, :func:`mne.io.read_raw_gdf`, :func:`mne.io.read_raw_nicolet`, :func:`mne.io.read_raw_eeglab` and :func:`mne.read_epochs_eeglab` by `Alex Gramfort`_
-
-- New parameter ``clear`` in :func:`mne.viz.plot_epochs_image` for clearing pre-existing axes before plotting into them by `Daniel McCloy`_
-
-- :func:`mne.viz.plot_epochs_image` no longer supports ``group_by='type'`` — combining by channel type is now the default when ``picks`` is a channel type string; to get individual plots for each channel, pass ``picks`` as a list of channel names or indices by `Daniel McCloy`_
-
-- New parameter ``combine`` in :func:`mne.viz.plot_compare_evokeds` for specifying method to combine information across channels by `Daniel McCloy`_
-
-- The ``gfp`` parameter of :func:`mne.viz.plot_compare_evokeds` is deprecated; use ``combine='gfp'`` instead by `Daniel McCloy`_
-
-- The ``truncate_yaxis='max_ticks'`` parameter of :func:`mne.viz.plot_compare_evokeds` is deprecated; use ``truncate_yaxis='auto'`` instead by `Daniel McCloy`_
-
-- The ``truncate_xaxis`` and ``truncate_yaxis`` parameters of :func:`mne.viz.plot_compare_evokeds` now perform one-sided truncation unless both are ``True`` by `Daniel McCloy`_
-
-- The ``show_legend`` parameter of :func:`mne.viz.plot_compare_evokeds` is renamed to ``legend`` by `Daniel McCloy`_
-
-- :func:`mne.viz.plot_compare_evokeds` always returns a list of figures even when a single figure is generated by `Daniel McCloy`_
-
-- Deprecate ``average=True`` and ``spatial_colors=False`` for :func:`mne.Epochs.plot_psd` by `Jeff Hanna`_
-
-- :func:`mne.io.read_raw_brainvision` no longer raises an error when there are inconsistencies between ``info['chs']`` and ``montage`` but warns instead by `Joan Massich`_
-
-- Add ``update_ch_names`` parameter to :meth:`mne.io.Raw.set_montage` to allow updating the channel names based on the montage by `Joan Massich`_
-
-- Reading annotations contained in GDF files with :func:`mne.io.read_raw_gdf` now returns numeric event codes as descriptions (instead of textual descriptions) due to restrictive licensing of the GDF event code table from BioSig by `Clemens Brunner`_
+- Deprecate ``mne.minimum_norm.point_spread_function`` and ``mne.minimum_norm.cross_talk_function`` by `Alex Gramfort`_

@@ -254,4 +254,26 @@
 
 .. _Milan Rybář: http://milanrybar.cz
 
+.. _Joshua Bear: https://github.com/joshbear
+
+.. _Eberhard Eich: https://github.com/ebeich
+
 .. _Abram Hindle: http://softwareprocess.es
+
+.. _Kaisu Lankinen: http://bishoplab.berkeley.edu/Kaisu.html
+
+.. _Padma Sundaram: https://www.nmr.mgh.harvard.edu/user/8071
+
+.. _Robert Luke: https://github.com/rob-luke
+
+.. _Mohammad Daneshzand: https://github.com/mdaneshzand
+
+.. _Fahimeh Mamashli: https://github.com/fmamashli
+
+.. _Jose Alanis: https://github.com/JoseAlanis
+
+.. _Adonay Nunes: https://github.com/AdoNunes
+
+.. _Victor Ferat: https://github.com/vferat
+
+.. _Demetres Kostas: https://github.com/kostasde

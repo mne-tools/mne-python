@@ -1,5 +1,5 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
@@ -94,7 +94,7 @@ class Covariance(dict):
     ----------
     data : array of shape (n_channels, n_channels)
         The covariance.
-    ch_names : list of string
+    ch_names : list of str
         List of channels' names.
     nfree : int
         Number of degrees of freedom i.e. number of time points used.
@@ -241,7 +241,7 @@ def read_cov(fname, verbose=None):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The name of file containing the covariance matrix. It should end with
         -cov.fif or -cov.fif.gz.
     %(verbose)s
@@ -328,7 +328,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
     Parameters
     ----------
     raw : instance of Raw
-        Raw data
+        Raw data.
     tmin : float
         Beginning of time interval in seconds. Defaults to 0.
     tmax : float | None (default None)
@@ -383,7 +383,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         .. versionadded:: 0.12
     return_estimators : bool (default False)
         Whether to return all estimators or the best. Only considered if
-        method equals 'auto' or is a list of str. Defaults to False
+        method equals 'auto' or is a list of str. Defaults to False.
 
         .. versionadded:: 0.12
     reject_by_annotation : bool
@@ -410,7 +410,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
 
     See Also
     --------
-    compute_covariance : Estimate noise covariance matrix from epochs
+    compute_covariance : Estimate noise covariance matrix from epochs.
 
     Notes
     -----
@@ -629,7 +629,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     %(n_jobs)s
     return_estimators : bool (default False)
         Whether to return all estimators or the best. Only considered if
-        method equals 'auto' or is a list of str. Defaults to False
+        method equals 'auto' or is a list of str. Defaults to False.
     on_mismatch : str
         What to do when the MEG<->Head transformations do not match between
         epochs. If "raise" (default) an error is raised, if "warn" then a
@@ -656,7 +656,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     See Also
     --------
-    compute_raw_covariance : Estimate noise covariance from raw data
+    compute_raw_covariance : Estimate noise covariance from raw data.
 
     Notes
     -----
@@ -1136,8 +1136,8 @@ class _RegCovariance(BaseEstimator):
     """Aux class."""
 
     def __init__(self, info, grad=0.1, mag=0.1, eeg=0.1, seeg=0.1, ecog=0.1,
-                 hbo=0.1, hbr=0.1, store_precision=False,
-                 assume_centered=False):
+                 hbo=0.1, hbr=0.1, fnirs_raw=0.1, fnirs_od=0.1,
+                 store_precision=False, assume_centered=False):
         self.info = info
         # For sklearn compat, these cannot (easily?) be combined into
         # a single dictionary
@@ -1148,6 +1148,8 @@ class _RegCovariance(BaseEstimator):
         self.ecog = ecog
         self.hbo = hbo
         self.hbr = hbr
+        self.fnirs_raw = fnirs_raw
+        self.fnirs_od = fnirs_od
         self.store_precision = store_precision
         self.assume_centered = assume_centered
 
@@ -1261,10 +1263,10 @@ def write_cov(fname, cov):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The name of the file. It should end with -cov.fif or -cov.fif.gz.
     cov : Covariance
-        The noise covariance matrix
+        The noise covariance matrix.
 
     See Also
     --------
@@ -1327,7 +1329,6 @@ def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
         If dict, it will override the following dict (default if None)::
 
             dict(mag=1e12, grad=1e11, eeg=1e5)
-
     %(verbose)s
 
     Returns
@@ -1430,6 +1431,7 @@ def _smart_eigh(C, info, rank, scalings=None, projs=None,
 @verbose
 def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
                proj=True, seeg=0.1, ecog=0.1, hbo=0.1, hbr=0.1,
+               fnirs_raw=0.1, fnirs_od=0.1,
                rank=None, scalings=None, verbose=None):
     """Regularize noise covariance matrix.
 
@@ -1470,6 +1472,10 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         Regularization factor for HBO signals.
     hbr : float (default 0.1)
         Regularization factor for HBR signals.
+    fnirs_raw : float (default 0.1)
+        Regularization factor for fNIRS raw signals.
+    fnirs_od : float (default 0.1)
+        Regularization factor for fNIRS optical density signals.
     %(rank_None)s
 
         .. versionadded:: 0.17
@@ -1746,9 +1752,9 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
     Parameters
     ----------
     evoked : instance of Evoked
-        The evoked data
+        The evoked data.
     noise_cov : instance of Covariance
-        The noise covariance
+        The noise covariance.
     %(picks_good_data)s
     diag : bool (default False)
         If True, whiten using only the diagonal of the covariance.
@@ -1763,7 +1769,6 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=None, rank=None,
         following default dict (default if None):
 
             dict(mag=1e12, grad=1e11, eeg=1e5)
-
     %(verbose)s
 
     Returns

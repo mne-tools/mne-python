@@ -12,7 +12,7 @@ from ...utils import logger, warn, verbose
 from ..utils import _read_segments_file
 from ..base import BaseRaw
 from ..meas_info import _empty_info
-from ..._digitization._utils import _make_dig_points
+from .._digitization import _make_dig_points
 from ..constants import FIFF
 from ...chpi import _fit_device_hpi_positions, _fit_coil_order_dev_head_trans
 from ...transforms import get_ras_to_neuromag_trans, apply_trans, Transform
@@ -32,7 +32,7 @@ def read_raw_artemis123(input_fname, preload=False, verbose=None,
     %(preload)s
     %(verbose)s
     pos_fname : str or None (default None)
-        If not None, load digitized head points from this file
+        If not None, load digitized head points from this file.
     add_head_trans : bool (default True)
         If True attempt to perform initial head localization. Compute initial
         device to head coordinate transform using HPI coils. If no

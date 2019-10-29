@@ -208,7 +208,7 @@ def linear_regression_raw(raw, events, event_id=None, tmin=-.1, tmax=1,
                           eog=250e-5 # V (EOG channels))
 
     flat : None | dict
-        or cleaning raw data before the regression is performed: set up
+        For cleaning raw data before the regression is performed: set up
         rejection parameters based on flatness of the signal. If None, no
         rejection is done. If a dict, keys are ('grad' | 'mag' |
         'eeg' | 'eog' | 'ecg') and values are minimal peak-to-peak values to

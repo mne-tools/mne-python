@@ -85,15 +85,17 @@ def test_plot_cov():
 @requires_nibabel()
 def test_plot_bem():
     """Test plotting of BEM contours."""
-    pytest.raises(IOError, plot_bem, subject='bad-subject',
-                  subjects_dir=subjects_dir)
-    pytest.raises(ValueError, plot_bem, subject='sample',
-                  subjects_dir=subjects_dir, orientation='bad-ori')
+    with pytest.raises(IOError, match='MRI file .* does not exist'):
+        plot_bem(subject='bad-subject', subjects_dir=subjects_dir)
+    with pytest.raises(ValueError, match="Invalid value for the 'orientation"):
+        plot_bem(subject='sample', subjects_dir=subjects_dir,
+                 orientation='bad-ori')
+    with pytest.raises(ValueError, match="sorted 1D array"):
+        plot_bem(subject='sample', subjects_dir=subjects_dir, slices=[0, 500])
     plot_bem(subject='sample', subjects_dir=subjects_dir,
              orientation='sagittal', slices=[25, 50])
     plot_bem(subject='sample', subjects_dir=subjects_dir,
-             orientation='coronal', slices=[25, 50],
-             brain_surfaces='white')
+             orientation='coronal', brain_surfaces='white')
     plot_bem(subject='sample', subjects_dir=subjects_dir,
              orientation='coronal', slices=[25, 50], src=src_fname)
 

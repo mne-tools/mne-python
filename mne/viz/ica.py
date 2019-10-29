@@ -8,6 +8,7 @@
 # License: Simplified BSD
 
 from functools import partial
+import warnings
 
 import numpy as np
 
@@ -29,7 +30,7 @@ from ..utils import _reject_data_segments
 
 
 @fill_doc
-def plot_ica_sources(ica, inst, picks=None, exclude='deprecated', start=None,
+def plot_ica_sources(ica, inst, picks=None, start=None,
                      stop=None, title=None, show=True, block=False,
                      show_first_samp=False, show_scrollbars=True):
     """Plot estimated latent sources given the unmixing matrix.
@@ -40,7 +41,6 @@ def plot_ica_sources(ica, inst, picks=None, exclude='deprecated', start=None,
     2. plot latent source around event related time windows (Epochs input)
     3. plot time-locking in ICA space (Evoked input)
 
-
     Parameters
     ----------
     ica : instance of mne.preprocessing.ICA
@@ -48,10 +48,6 @@ def plot_ica_sources(ica, inst, picks=None, exclude='deprecated', start=None,
     inst : instance of mne.io.Raw, mne.Epochs, mne.Evoked
         The object to plot the sources from.
     %(picks_base)s all sources in the order as fitted.
-    exclude : 'deprecated'
-        The ``exclude`` parameter is deprecated and will be removed in version
-        0.20; specify excluded components using the ``ICA.exclude`` attribute
-        instead.
     start : int
         X-axis start index. If None, from the beginning.
     stop : int
@@ -86,11 +82,6 @@ def plot_ica_sources(ica, inst, picks=None, exclude='deprecated', start=None,
     from ..evoked import Evoked
     from ..epochs import BaseEpochs
 
-    if exclude != 'deprecated':
-        warn('The "exclude" parameter is deprecated and will be removed in '
-             'version 0.20; specify excluded components using the ICA.exclude '
-             'attribute instead. Provided value of {} will be ignored; falling'
-             ' back to ICA.exclude'.format(exclude), DeprecationWarning)
     exclude = ica.exclude
     picks = _picks_to_idx(ica.n_components_, picks, 'all')
 
@@ -191,14 +182,18 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
                                 color="k", alpha=.5)
 
     # kde
-    kde = gaussian_kde(epoch_var)
     ymin, ymax = hist_ax.get_ylim()
-    x = np.linspace(ymin, ymax, 50)
-    kde_ = kde(x)
-    kde_ /= kde_.max()
-    kde_ *= hist_ax.get_xlim()[-1] * .9
-    hist_ax.plot(kde_, x, color="k")
-    hist_ax.set_ylim(ymin, ymax)
+    try:
+        kde = gaussian_kde(epoch_var)
+    except np.linalg.LinAlgError:
+        pass  # singular: happens when there is nothing plotted
+    else:
+        x = np.linspace(ymin, ymax, 50)
+        kde_ = kde(x)
+        kde_ /= kde_.max()
+        kde_ *= hist_ax.get_xlim()[-1] * .9
+        hist_ax.plot(kde_, x, color="k")
+        hist_ax.set_ylim(ymin, ymax)
 
     # aesthetics
     # ----------
@@ -244,15 +239,17 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
 def _get_psd_label_and_std(this_psd, dB, ica, num_std):
     """Handle setting up PSD for one component, for plot_ica_properties."""
     psd_ylabel = _convert_psds(this_psd, dB, estimate='auto', scaling=1.,
-                               unit='AU', ch_names=ica.ch_names)
+                               unit='AU', first_dim='epoch')
     psds_mean = this_psd.mean(axis=0)
     diffs = this_psd - psds_mean
     # the distribution of power for each frequency bin is highly
     # skewed so we calculate std for values below and above average
     # separately - this is used for fill_between shade
-    spectrum_std = [
-        [np.sqrt((d[d < 0] ** 2).mean(axis=0)) for d in diffs.T],
-        [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]]
+    with warnings.catch_warnings():  # mean of empty slice
+        warnings.simplefilter('ignore')
+        spectrum_std = [
+            [np.sqrt((d[d < 0] ** 2).mean(axis=0)) for d in diffs.T],
+            [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]]
     spectrum_std = np.array(spectrum_std) * num_std
 
     return psd_ylabel, psds_mean, spectrum_std
@@ -271,18 +268,18 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
     ----------
     ica : instance of mne.preprocessing.ICA
         The ICA solution.
-    inst: instance of Epochs or Raw
+    inst : instance of Epochs or Raw
         The data to use in plotting properties.
     %(picks_base)s the first five sources.
         If more than one components were chosen in the picks,
         each one will be plotted in a separate figure.
-    axes: list of matplotlib axes | None
+    axes : list of Axes | None
         List of five matplotlib axes to use in plotting: [topomap_axis,
         image_axis, erp_axis, spectrum_axis, variance_axis]. If None a new
         figure with relevant axes is created. Defaults to None.
-    dB: bool
+    dB : bool
         Whether to plot spectrum in dB. Defaults to True.
-    plot_std: bool | float
+    plot_std : bool | float
         Whether to plot standard deviation/confidence intervals in ERP/ERF and
         spectrum plots.
         Defaults to True, which plots one standard deviation above/below for
@@ -392,13 +389,13 @@ def plot_ica_properties(ica, inst, picks=None, axes=None, dB=True,
             inst_rejected = RawArray(data, inst.info)
 
         # break up continuous signal into segments
-        from ..epochs import _segment_raw
-        inst_rejected = _segment_raw(inst_rejected,
-                                     segment_length=2.,
-                                     verbose=False,
-                                     preload=True)
-        inst = _segment_raw(inst, segment_length=2., verbose=False,
-                            preload=True)
+        from ..epochs import make_fixed_length_epochs
+        inst_rejected = make_fixed_length_epochs(inst_rejected,
+                                                 duration=2.,
+                                                 verbose=False,
+                                                 preload=True)
+        inst = make_fixed_length_epochs(inst, duration=2., verbose=False,
+                                        preload=True)
         kind = "Segment"
     else:
         drop_inds = None
@@ -620,7 +617,7 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
     Returns
     -------
     fig : instance of Figure
-        The figure object
+        The figure object.
     """
     import matplotlib.pyplot as plt
     my_range = np.arange(ica.n_components_)
@@ -999,7 +996,8 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
                   bads=list(), bad_color=(1., 0., 0.),
                   t_start=start * len(epochs.times),
                   data_picks=list(), decim=1, whitened_ch_names=(),
-                  noise_cov=None, show_scrollbars=show_scrollbars)
+                  noise_cov=None, show_scrollbars=show_scrollbars,
+                  epoch_colors=None)
     params['label_click_fun'] = partial(_label_clicked, params=params)
     # changing the order to 'misc' before 'eog' and 'ecg'
     order = list(_DATA_CH_TYPES_ORDER_DEFAULT)

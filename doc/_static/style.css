@@ -1,7 +1,8 @@
 :root {
   --a-color-dark: rgb(31, 92, 153);
   --a-color: rgb(41, 122, 204);
-  --a-hover-color: rgb(102, 179, 255);
+  --a-color-light: rgb(102, 179, 255);
+  --a-color-lighter: rgb(204, 230, 255);
 }
 html {
   position: relative;
@@ -26,9 +27,26 @@ p code {
 code.xref, a code {
     font-weight: 600;
 }
+/* .. unless in a param list */
+span.classifier a.reference code.literal {
+    font-weight: bold;
+}
 /* use semibold weight for version dropdown */
 .btn {
     font-weight: 600;
+}
+/* Modify our definition lists to be more like sklearn */
+dl.field-list dt.field-odd, dt.field-even {
+    border-right-style: solid;
+    border-width: 1px;
+    border-color: var(--a-color-lighter);
+}
+dl.field-list dd dl dd {
+    padding-left: 30px;
+}
+dl.field-list dt, dd {
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
 
 .navbar-version {
@@ -41,7 +59,7 @@ a {
 }
 
 a:hover {
-    color: var(--a-hover-color);
+    color: var(--a-color-light);
 }
 
 blockquote {
@@ -89,21 +107,23 @@ a code {
     color: var(--a-color);
 }
 a:hover code {
-    color: var(--a-hover-color);
+    color: var(--a-color-light);
 }
-.note a, .note a code {
+
+/* Background is light */
+.alert-info a, .alert-info a code {
     color: var(--a-color-dark);
 }
-.note a:hover, .note a:hover code {
+.alert-info a:hover, .alert-info a:hover code {
     color: var(--a-color);
 }
-.note {
-    background-color: rgb(204, 230, 255);
+.alert-info {
+    background-color: var(--a-color-lighter);
     color: rgb(0, 0, 0);
     border: none;
 }
-.note pre {
-    background-color: rgb(242, 249, 255);
+.alert-info pre {
+    background-color: var(--a-color-lighter);
 }
 .warning {
     background-color: rgb(230, 57, 57);
@@ -340,7 +360,7 @@ span.classifier a span.xref, span.classifier a code.docutils.literal.notranslate
     color: var(--a-color);
 }
 span.classifier a:hover span.xref, span.classifier a:hover code.docutils.literal.notranslate, span.classifier a.reference.external:hover {
-    color: var(--a-hover-color);
+    color: var(--a-color-light);
 }
 
 /* Allow easier copy-paste in code blocks */

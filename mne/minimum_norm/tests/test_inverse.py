@@ -219,10 +219,9 @@ def test_make_inverse_operator_loose(evoked):
     fwd_op = convert_forward_solution(read_forward_solution_meg(fname_fwd),
                                       surf_ori=True, copy=False)
     with catch_logging() as log:
-        with pytest.deprecated_call():  # limit_depth_chs
-            my_inv_op = make_inverse_operator(
-                evoked.info, fwd_op, noise_cov, loose=0.2, depth=0.8,
-                limit_depth_chs=False, verbose=True)
+        my_inv_op = make_inverse_operator(
+            evoked.info, fwd_op, noise_cov, loose=0.2,
+            depth=dict(exp=0.8, limit_depth_chs=False), verbose=True)
     log = log.getvalue()
     assert 'MEG: rank 302 computed' in log
     assert 'limit = 1/%d' % fwd_op['nsource'] in log
@@ -641,16 +640,16 @@ def test_make_inverse_operator_diag(evoked, noise_cov):
 def test_inverse_operator_noise_cov_rank(evoked, noise_cov):
     """Test MNE inverse operator with a specified noise cov rank."""
     fwd_op = read_forward_solution_meg(fname_fwd, surf_ori=True)
-    with pytest.deprecated_call():  # rank int
-        inv = make_inverse_operator(evoked.info, fwd_op, noise_cov, rank=64)
+    inv = make_inverse_operator(
+        evoked.info, fwd_op, noise_cov, rank=dict(meg=64))
     assert (compute_rank_inverse(inv) == 64)
-    inv = make_inverse_operator(evoked.info, fwd_op, noise_cov,
-                                rank=dict(meg=64))
+    inv = make_inverse_operator(
+        evoked.info, fwd_op, noise_cov, rank=dict(meg=64))
     assert (compute_rank_inverse(inv) == 64)
 
     fwd_op = read_forward_solution_eeg(fname_fwd, surf_ori=True)
-    inv = make_inverse_operator(evoked.info, fwd_op, noise_cov,
-                                rank=dict(eeg=20))
+    inv = make_inverse_operator(
+        evoked.info, fwd_op, noise_cov, rank=dict(eeg=20))
     assert (compute_rank_inverse(inv) == 20)
 
 
@@ -673,6 +672,8 @@ def test_inverse_operator_volume(evoked):
     stc_vec = apply_inverse(evoked, inv_vol, lambda2, 'dSPM', 'vector')
     assert (repr(stc_vec))
     assert_allclose(np.linalg.norm(stc_vec.data, axis=1), stc.data)
+    with pytest.raises(RuntimeError, match='surface or discrete'):
+        apply_inverse(evoked, inv_vol, pick_ori='normal')
 
 
 @pytest.mark.slowtest

@@ -20,7 +20,7 @@ from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
 from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
-                    _check_path_like, get_subjects_dir)
+                    _check_path_like, get_subjects_dir, fill_doc, _check_fname)
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -76,12 +76,17 @@ class Transform(dict):
     Parameters
     ----------
     fro : str | int
-        The starting coordinate frame.
+        The starting coordinate frame. See notes for valid coordinate frames.
     to : str | int
-        The ending coordinate frame.
+        The ending coordinate frame. See notes for valid coordinate frames.
     trans : array-like, shape (4, 4) | None
         The transformation matrix. If None, an identity matrix will be
         used.
+
+    Notes
+    -----
+    Valid coordinate frames are 'meg','mri','mri_voxel','head','mri_tal','ras'
+    'fs_tal','ctf_head','ctf_meg','unknown'
     """
 
     def __init__(self, fro, to, trans=None):  # noqa: D102
@@ -438,6 +443,9 @@ def _get_trans(trans, fro='mri', to='head'):
     """Get mri_head_t (from=mri, to=head) from mri filename."""
     if _check_path_like(trans):
         trans = str(trans)
+        if trans == 'fsaverage':
+            trans = op.join(op.dirname(__file__), 'data', 'fsaverage',
+                            'fsaverage-trans.fif')
         if not op.isfile(trans):
             raise IOError('trans file "%s" not found' % trans)
         if op.splitext(trans)[1] in ['.fif', '.gz']:
@@ -1140,7 +1148,7 @@ def quat_to_rot(quat):
     Parameters
     ----------
     quat : array, shape (..., 3)
-        q1, q2, and q3 (x, y, z) parameters of a unit quaternion.
+        The q1, q2, and q3 (x, y, z) parameters of a unit quaternion.
 
     Returns
     -------
@@ -1297,16 +1305,28 @@ def _average_quats(quats, weights=None):
     return avg_quat
 
 
-def _read_ras_mni_t(subject, subjects_dir=None):
+@fill_doc
+def read_ras_mni_t(subject, subjects_dir=None):
+    """Read a subject's RAS to MNI transform.
+
+    Parameters
+    ----------
+    subject : str
+        The subject.
+    %(subjects_dir)s
+
+    Returns
+    -------
+    ras_mni_t : instance of Transform
+        The transform from RAS to MNI.
+    """
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     _validate_type(subject, 'str', 'subject')
     fname = op.join(subjects_dir, subject, 'mri', 'transforms',
                     'talairach.xfm')
-    if not op.isfile(fname):
-        raise FileNotFoundError(
-            'FreeSurfer Talairach transformation file not found: %s'
-            % (fname,))
+    fname = _check_fname(
+        fname, 'read', True, 'FreeSurfer Talairach transformation file')
     return Transform('ras', 'mni_tal', _read_fs_xfm(fname)[0])
 
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
@@ -99,7 +99,7 @@ def fiff_open(fname, preload=False, verbose=None):
 
     Parameters
     ----------
-    fname : string | fid
+    fname : str | fid
         Name of the fif file, or an opened file (will seek back to 0).
     preload : bool
         If True, all data from the file is read into a memory buffer. This
@@ -110,7 +110,7 @@ def fiff_open(fname, preload=False, verbose=None):
     Returns
     -------
     fid : file
-        The file descriptor of the open file
+        The file descriptor of the open file.
     tree : fif tree
         The tree is a complex structure filled with dictionaries,
         lists and tags.
@@ -196,6 +196,11 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
         Provide information about this tag. If None (default), all information
         is shown.
     %(verbose)s
+
+    Returns
+    -------
+    contents : str
+        The contents of the file.
     """
     if output not in [list, str]:
         raise ValueError('output must be list or str')

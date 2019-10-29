@@ -9,6 +9,7 @@ Frequently Asked Questions (FAQ)
 .. contents:: Page contents
    :local:
 
+.. highlight:: python
 
 General MNE-Python issues
 =========================
@@ -34,10 +35,31 @@ If Mayavi plotting in Jupyter Notebooks doesn't work well, using the IPython
 magic ``%gui qt`` after importing MNE/Mayavi/PySurfer should `help
 <https://github.com/ipython/ipython/issues/10384>`_.
 
-.. code:: ipython
+.. code-block:: ipython
 
    from mayavi import mlab
    %gui qt
+
+Python runs on macOS extremely slow even on simple commands!
+------------------------------------------------------------
+
+Python uses some backends that interfere with the macOS energy saver when 
+using an IDE such as Spyder or PyCharm. To test it, import ``time`` and run::
+
+    start = time.time(); time.sleep(0.0005); print(time.time() - start)
+
+If it takes several seconds you can either:
+
+- Install the module ``appnope`` and run in your script::
+
+      import appnope
+      appnope.nope()
+
+- Change the configuration defaults by running in your terminal:
+
+  .. code-block:: console
+
+      $ defaults write org.python.python NSAppSleepDisabled -bool YES
 
 
 How do I cite MNE?
@@ -249,8 +271,8 @@ How should I regularize the covariance matrix?
 
 The estimated covariance can be numerically unstable and tends to induce
 correlations between estimated source amplitudes and the number of samples
-available. The MNE manual therefore suggests to regularize the noise covariance
-matrix (see :ref:`c_legacy_cov_regularization`), especially if only few samples
+available. It is thus suggested to regularize the noise covariance
+matrix (see :ref:`cov_regularization_math`), especially if only few samples
 are available. Unfortunately it is not easy to tell the effective number of
 samples, hence, to choose the appropriate regularization. In MNE-Python,
 regularization is done using advanced regularization methods described in [1]_.

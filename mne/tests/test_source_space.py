@@ -18,11 +18,10 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  morph_source_spaces, SourceEstimate, make_sphere_model,
                  head_to_mni, read_trans, compute_source_morph,
                  read_bem_solution)
-from mne.utils import (requires_fs_or_nibabel, requires_nibabel,
-                       requires_freesurfer, run_subprocess, modified_env,
-                       requires_mne, run_tests_if_main)
+from mne.utils import (requires_nibabel, requires_freesurfer, run_subprocess,
+                       modified_env, requires_mne, run_tests_if_main)
 from mne.surface import _accumulate_normals, _triangle_neighbors
-from mne.source_space import _get_mri_header, _get_mgz_header, _read_talxfm
+from mne.source_space import _get_mgz_header, _read_talxfm
 from mne.source_estimate import _get_src_type
 from mne.transforms import apply_trans, invert_transform
 from mne.source_space import (get_volume_labels_from_aseg, SourceSpaces,
@@ -56,14 +55,15 @@ rng = np.random.RandomState(0)
 
 
 @testing.requires_testing_data
-@requires_nibabel(vox2ras_tkr=True)
+@requires_nibabel()
 def test_mgz_header():
     """Test MGZ header reading."""
+    import nibabel
     header = _get_mgz_header(fname_mri)
-    mri_hdr = _get_mri_header(fname_mri)
+    mri_hdr = nibabel.load(fname_mri).header
     assert_allclose(mri_hdr.get_data_shape(), header['dims'])
     assert_allclose(mri_hdr.get_vox2ras_tkr(), header['vox2ras_tkr'])
-    assert_allclose(mri_hdr.get_ras2vox(), header['ras2vox'])
+    assert_allclose(mri_hdr.get_ras2vox(), np.linalg.inv(header['vox2ras']))
 
 
 def test_add_patch_info(monkeypatch):
@@ -470,7 +470,6 @@ def test_write_source_space(tmpdir):
 
 
 @testing.requires_testing_data
-@requires_fs_or_nibabel
 def test_vertex_to_mni():
     """Test conversion of vertices to MNI coordinates."""
     # obtained using "tksurfer (sample) (l/r)h white"
@@ -484,7 +483,6 @@ def test_vertex_to_mni():
 
 
 @testing.requires_testing_data
-@requires_fs_or_nibabel
 def test_head_to_mni():
     """Test conversion of aseg vertices to MNI coordinates."""
     # obtained using freeview
@@ -509,18 +507,15 @@ def test_head_to_mni():
 
 
 @testing.requires_testing_data
-@requires_freesurfer
-@requires_nibabel()
-def test_vertex_to_mni_fs_nibabel():
+def test_vertex_to_mni_fs_nibabel(monkeypatch):
     """Test equivalence of vert_to_mni for nibabel and freesurfer."""
     n_check = 1000
     subject = 'sample'
     vertices = rng.randint(0, 100000, n_check)
     hemis = rng.randint(0, 1, n_check)
-    coords = vertex_to_mni(vertices, hemis, subject, subjects_dir,
-                           'nibabel')
-    coords_2 = vertex_to_mni(vertices, hemis, subject, subjects_dir,
-                             'freesurfer')
+    coords = vertex_to_mni(vertices, hemis, subject, subjects_dir)
+    monkeypatch.setattr(mne.source_space, 'has_nibabel', lambda: False)
+    coords_2 = vertex_to_mni(vertices, hemis, subject, subjects_dir)
     # less than 0.1 mm error
     assert_allclose(coords, coords_2, atol=0.1)
 

@@ -28,21 +28,20 @@ def read_raw_fieldtrip(fname, info, data_name='data'):
 
     Parameters
     ----------
-    fname: str
+    fname : str
         Path and filename of the .mat file containing the data.
-    info: dict or None
+    info : dict or None
         The info dict of the raw data file corresponding to the data to import.
         If this is set to None, limited information is extracted from the
         FieldTrip structure.
-    data_name: str
+    data_name : str
         Name of heading dict/ variable name under which the data was originally
         saved in MATLAB.
 
     Returns
     -------
-    raw: instance of RawArray
+    raw : instance of RawArray
         A Raw Object containing the loaded data.
-
     """
     from ...externals.pymatreader.pymatreader import read_mat
 
@@ -89,24 +88,22 @@ def read_epochs_fieldtrip(fname, info, data_name='data',
 
     Parameters
     ----------
-    fname: str
+    fname : str
         Path and filename of the .mat file containing the data.
-    info: dict or None
+    info : dict or None
         The info dict of the raw data file corresponding to the data to import.
         If this is set to None, limited information is extracted from the
         FieldTrip structure.
-    data_name: str
+    data_name : str
         Name of heading dict/ variable name under which the data was originally
         saved in MATLAB.
-    trialinfo_column: int
-        Column of the trialinfo matrix to use for the event codes
+    trialinfo_column : int
+        Column of the trialinfo matrix to use for the event codes.
 
     Returns
     -------
-    epochs: instance of EpochsArray
+    epochs : instance of EpochsArray
         An EpochsArray containing the loaded data.
-
-
     """
     from ...externals.pymatreader.pymatreader import read_mat
     ft_struct = read_mat(fname,
@@ -143,23 +140,22 @@ def read_evoked_fieldtrip(fname, info, comment=None,
 
     Parameters
     ----------
-    fname: str
+    fname : str
         Path and filename of the .mat file containing the data.
-    info: dict or None
+    info : dict or None
         The info dict of the raw data file corresponding to the data to import.
         If this is set to None, limited information is extracted from the
         FieldTrip structure.
-    comment: str
+    comment : str
         Comment on dataset. Can be the condition.
-    data_name: str
+    data_name : str
         Name of heading dict/ variable name under which the data was originally
         saved in MATLAB.
 
     Returns
     -------
-    evoked: instance of EvokedArray
+    evoked : instance of EvokedArray
         An EvokedArray containing the loaded data.
-
     """
     from ...externals.pymatreader.pymatreader import read_mat
     ft_struct = read_mat(fname,

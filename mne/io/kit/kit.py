@@ -29,7 +29,7 @@ from .constants import KIT, LEGACY_AMP_PARAMS
 from .coreg import read_mrk
 from ...event import read_events
 
-from ..._digitization._utils import _set_dig_kit
+from .._digitization import _set_dig_kit
 
 
 def _call_digitization(info, mrk, elp, hsp):
@@ -39,15 +39,14 @@ def _call_digitization(info, mrk, elp, hsp):
                else marker for marker in mrk]
         mrk = np.mean(mrk, axis=0)
 
-    # setup digitiztaion
-    if (mrk is not None and elp is not None and hsp is not None):
+    # setup digitization
+    if mrk is not None and elp is not None and hsp is not None:
         dig_points, dev_head_t = _set_dig_kit(mrk, elp, hsp)
         info['dig'] = dig_points
         info['dev_head_t'] = dev_head_t
-    elif (mrk is not None or elp is not None or hsp is not None):
-        err = ("mrk, elp and hsp need to be provided as a group (all or "
-               "none)")
-        raise ValueError(err)
+    elif mrk is not None or elp is not None or hsp is not None:
+        raise ValueError("mrk, elp and hsp need to be provided as a group "
+                         "(all or none)")
 
     return info
 

@@ -11,7 +11,7 @@ and show activation on ``fsaverage``.
 # License: BSD (3-clause)
 
 import mne
-from mne.datasets import sample
+from mne.datasets import sample, fetch_fsaverage
 from mne.beamformer import make_lcmv, apply_lcmv
 
 print(__doc__)
@@ -23,6 +23,8 @@ data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-vol-7-fwd.fif'
+fetch_fsaverage(subjects_dir)  # ensure fsaverage src exists
+fname_fs_src = subjects_dir + '/fsaverage/bem/fsaverage-vol-5-src.fif'
 
 # Get epochs
 event_id, tmin, tmax = [1, 2], -0.2, 0.5
@@ -105,10 +107,13 @@ stc.plot(
 # argument to `mne.VolSourceEstimate.plot`. To save a bit of speed when
 # applying the morph, we will crop the STC:
 
+src_fs = mne.read_source_spaces(fname_fs_src)
 morph = mne.compute_source_morph(
-    forward['src'], 'sample', 'fsaverage', subjects_dir=subjects_dir,
-    zooms=7, verbose=True)
-stc.copy().crop(0.05, 0.18).plot(
-    src=morph, subject='fsaverage', subjects_dir=subjects_dir,
-    mode='stat_map', clim=dict(kind='value', pos_lims=lims),
-    initial_time=0.1, verbose=True)
+    forward['src'], subject_from='sample', src_to=src_fs,
+    subjects_dir=subjects_dir,
+    niter_sdr=[10, 10, 5], niter_affine=[10, 10, 5],  # just for speed
+    verbose=True)
+stc_fs = morph.apply(stc.copy().crop(0.05, 0.18))
+stc_fs.plot(
+    src=src_fs, mode='stat_map', initial_time=0.1, subjects_dir=subjects_dir,
+    clim=dict(kind='value', pos_lims=lims), verbose=True)

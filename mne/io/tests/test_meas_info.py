@@ -6,7 +6,7 @@
 
 import hashlib
 import os.path as op
-
+from datetime import datetime, timedelta, timezone
 
 import pytest
 import numpy as np
@@ -17,21 +17,22 @@ from mne import Epochs, read_events, pick_info, pick_types, Annotations
 from mne.event import make_fixed_length_events
 from mne.datasets import testing
 from mne.io import (read_fiducials, write_fiducials, _coil_trans_to_loc,
-                    _loc_to_coil_trans, read_raw_fif, read_info, write_info,
-                    anonymize_info)
+                    _loc_to_coil_trans, read_raw_fif, read_info, write_info)
 from mne.io.constants import FIFF
-from mne.io.write import DATE_NONE
+from mne.io.write import _generate_meas_id
 from mne.io.meas_info import (Info, create_info, _merge_info,
                               _force_update_info, RAW_INFO_FIELDS,
-                              _bad_chans_comp, _get_valid_units)
-from mne._digitization._utils import (_write_dig_points, _read_dig_points,
-                                      _make_dig_points,)
+                              _bad_chans_comp, _get_valid_units,
+                              anonymize_info, _stamp_to_dt, _dt_to_stamp)
+from mne.io._digitization import (_write_dig_points, _read_dig_points,
+                                  _make_dig_points,)
 from mne.io import read_raw_ctf
-from mne.utils import _TempDir, run_tests_if_main, catch_logging
-from mne.channels.montage import read_montage, read_dig_montage
+from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
+from mne.channels import make_standard_montage
 
+fiducials_fname = op.join(op.dirname(__file__), '..', '..', 'data',
+                          'fsaverage', 'fsaverage-fiducials.fif')
 base_dir = op.join(op.dirname(__file__), 'data')
-fiducials_fname = op.join(base_dir, 'fsaverage-fiducials.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 chpi_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
@@ -85,33 +86,16 @@ def test_make_info():
                   ch_types='awesome')
     pytest.raises(TypeError, create_info, ['Test Ch'], sfreq=1000,
                   ch_types=None, montage=np.array([1]))
-    m = read_montage('biosemi32')
+    m = make_standard_montage('biosemi32')
     info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
                        montage=m)
     ch_pos = [ch['loc'][:3] for ch in info['chs']]
-    assert_array_equal(ch_pos, m.pos)
-
-    names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
-    d = read_dig_montage(hsp_fname, None, elp_fname, names, unit='m',
-                         transform=False)
-    info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
-                       montage=d)
-    idents = [p['ident'] for p in info['dig']]
-    assert FIFF.FIFFV_POINT_NASION in idents
-
-    info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
-                       montage=[d, m])
-    ch_pos = [ch['loc'][:3] for ch in info['chs']]
-    assert_array_equal(ch_pos, m.pos)
-    idents = [p['ident'] for p in info['dig']]
-    assert (FIFF.FIFFV_POINT_NASION in idents)
-    info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
-                       montage=[d, 'biosemi32'])
-    ch_pos = [ch['loc'][:3] for ch in info['chs']]
-    assert_array_equal(ch_pos, m.pos)
-    idents = [p['ident'] for p in info['dig']]
-    assert (FIFF.FIFFV_POINT_NASION in idents)
-    assert info['meas_date'] is None
+    ch_pos_mon = m._get_ch_pos()
+    ch_pos_mon = np.array(
+        [ch_pos_mon[ch_name] for ch_name in info['ch_names']])
+    # transform to head
+    ch_pos_mon += (0., 0., 0.04014)
+    assert_allclose(ch_pos, ch_pos_mon, atol=1e-5)
 
 
 def test_duplicate_name_correction():
@@ -125,14 +109,13 @@ def test_duplicate_name_correction():
         create_info(['A', 'A', 'A-0'], 1000., verbose='error')
 
 
-def test_fiducials_io():
+def test_fiducials_io(tmpdir):
     """Test fiducials i/o."""
-    tempdir = _TempDir()
     pts, coord_frame = read_fiducials(fiducials_fname)
     assert pts[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI
     assert pts[0]['ident'] == FIFF.FIFFV_POINT_CARDINAL
 
-    temp_fname = op.join(tempdir, 'test.fif')
+    temp_fname = tmpdir.join('test.fif')
     write_fiducials(temp_fname, pts, coord_frame)
     pts_1, coord_frame_1 = read_fiducials(temp_fname)
     assert coord_frame == coord_frame_1
@@ -209,11 +192,10 @@ def test_info():
     assert info == info2
 
 
-def test_read_write_info():
+def test_read_write_info(tmpdir):
     """Test IO of info."""
-    tempdir = _TempDir()
     info = read_info(raw_fname)
-    temp_file = op.join(tempdir, 'info.fif')
+    temp_file = str(tmpdir.join('info.fif'))
     # check for bug `#1198`
     info['dev_head_t']['trans'] = np.eye(4)
     t1 = info['dev_head_t']['trans']
@@ -253,25 +235,26 @@ def test_read_write_info():
     with open(temp_file, 'rb') as fid:
         m1.update(fid.read())
     m1 = m1.hexdigest()
-    temp_file_2 = op.join(tempdir, 'info2.fif')
+    temp_file_2 = tmpdir.join('info2.fif')
     assert temp_file_2 != temp_file
     write_info(temp_file_2, info)
     m2 = hashlib.md5()
-    with open(temp_file_2, 'rb') as fid:
+    with open(str(temp_file_2), 'rb') as fid:
         m2.update(fid.read())
     m2 = m2.hexdigest()
     assert m1 == m2
 
 
-def test_io_dig_points():
+def test_io_dig_points(tmpdir):
     """Test Writing for dig files."""
-    tempdir = _TempDir()
     points = _read_dig_points(hsp_fname)
 
-    dest = op.join(tempdir, 'test.txt')
-    dest_bad = op.join(tempdir, 'test.mne')
-    pytest.raises(ValueError, _write_dig_points, dest, points[:, :2])
-    pytest.raises(ValueError, _write_dig_points, dest_bad, points)
+    dest = str(tmpdir.join('test.txt'))
+    dest_bad = str(tmpdir.join('test.mne'))
+    with pytest.raises(ValueError, match='must be of shape'):
+        _write_dig_points(dest, points[:, :2])
+    with pytest.raises(ValueError, match='extension'):
+        _write_dig_points(dest_bad, points)
     _write_dig_points(dest, points)
     points1 = _read_dig_points(dest, unit='m')
     err = "Dig points diverged after writing and reading."
@@ -279,7 +262,8 @@ def test_io_dig_points():
 
     points2 = np.array([[-106.93, 99.80], [99.80, 68.81]])
     np.savetxt(dest, points2, delimiter='\t', newline='\n')
-    pytest.raises(ValueError, _read_dig_points, dest)
+    with pytest.raises(ValueError, match='must be of shape'):
+        _read_dig_points(dest)
 
 
 def test_make_dig_points():
@@ -443,49 +427,92 @@ def test_check_consistency():
     assert_array_equal(info3['ch_names'], ['a', 'b-0', 'b-1', 'c', 'b-2'])
 
 
-def _is_anonymous(inst):
-    """Check all the anonymity fields.
+def _test_anonymize_info(base_info):
+    """Test that sensitive information can be anonymized."""
+    pytest.raises(TypeError, anonymize_info, 'foo')
 
-    inst is either a raw or epochs object.
-    """
-    from collections import namedtuple
-    anonymity_checks = namedtuple("anonymity_checks",
-                                  ["missing_subject_info",
-                                   "anonymous_file_id_secs",
-                                   "anonymous_file_id_usecs",
-                                   "anonymous_meas_id_secs",
-                                   "anonymous_meas_id_usecs",
-                                   "anonymous_meas_date",
-                                   "anonymous_annotations"])
+    default_anon_dos = datetime(2000, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    default_str = "mne_anonymize"
+    default_subject_id = 0
+    default_desc = ("Anonymized using a time shift" +
+                    " to preserve age at acquisition")
 
-    if 'subject_info' not in inst.info.keys():
-        missing_subject_info = True
-    else:
-        missing_subject_info = inst.info['subject_info'] is None
+    # Test no error for incomplete info
+    info = base_info.copy()
+    info.pop('file_id')
+    anonymize_info(info)
 
-    anonymous_file_id_secs = inst.info['file_id']['secs'] == DATE_NONE[0]
-    anonymous_file_id_usecs = inst.info['file_id']['usecs'] == DATE_NONE[1]
-    anonymous_meas_id_secs = inst.info['meas_id']['secs'] == DATE_NONE[0]
-    anonymous_meas_id_usecs = inst.info['meas_id']['usecs'] == DATE_NONE[1]
-    if inst.info['meas_date'] is None:
-        anonymous_meas_date = True
-    else:
-        assert isinstance(inst.info['meas_date'], tuple)
-        anonymous_meas_date = inst.info['meas_date'] == DATE_NONE
+    # Fake some subject data
+    meas_date = datetime(2010, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    base_info['meas_date'] = _dt_to_stamp(meas_date)
 
-    anonymous_annotations = (hasattr(inst, 'annotations') and
-                             inst.annotations.orig_time is None)
+    base_info['subject_info'] = dict(id=1, his_id='foobar', last_name='bar',
+                                     first_name='bar', birthday=(1987, 4, 8),
+                                     sex=0, hand=1)
 
-    return anonymity_checks(missing_subject_info,
-                            anonymous_file_id_secs,
-                            anonymous_file_id_usecs,
-                            anonymous_meas_id_secs,
-                            anonymous_meas_id_usecs,
-                            anonymous_meas_date,
-                            anonymous_annotations)
+    # generate expected info...
+    # first expected result with no options.
+    # will move DOS from 2010/1/1 to 2000/1/1 which is 3653 days.
+    exp_info = base_info.copy()
+    exp_info['description'] = default_desc
+    exp_info['experimenter'] = default_str
+    exp_info['proj_name'] = default_str
+    exp_info['proj_id'][:] = 0
+    exp_info['subject_info']['first_name'] = default_str
+    exp_info['subject_info']['last_name'] = default_str
+    exp_info['subject_info']['id'] = default_subject_id
+    exp_info['subject_info']['his_id'] = str(default_subject_id)
+    # this bday is 3653 days different. the change in day is due to a
+    # different number of leap days between 1987 and 1977 than between
+    # 2010 and 2000.
+    exp_info['subject_info']['birthday'] = (1977, 4, 7)
+    exp_info['meas_date'] = _dt_to_stamp(default_anon_dos)
+    for key in ('file_id', 'meas_id'):
+        value = exp_info.get(key)
+        if value is not None:
+            assert 'msecs' not in value
+            value['secs'] = exp_info['meas_date'][0]
+            value['usecs'] = exp_info['meas_date'][1]
+            value['machid'][:] = 0
+
+    # exp 2 tests the keep_his option
+    exp_info_2 = exp_info.copy()
+    exp_info_2['subject_info']['his_id'] = 'foobar'
+
+    # exp 3 tests is a supplied daysback
+    dt = timedelta(days=43)
+    exp_info_3 = exp_info.copy()
+    exp_info_3['subject_info']['birthday'] = (1987, 2, 24)
+    exp_info_3['meas_date'] = _dt_to_stamp(meas_date - dt)
+    for key in ('file_id', 'meas_id'):
+        value = exp_info_3.get(key)
+        if value is not None:
+            assert 'msecs' not in value
+            value['secs'] = exp_info_3['meas_date'][0]
+            value['usecs'] = exp_info_3['meas_date'][1]
+            value['machid'][:] = 0
+
+    new_info = anonymize_info(base_info.copy())
+    assert_object_equal(new_info, exp_info)
+
+    new_info = anonymize_info(base_info.copy(), keep_his=True)
+    assert_object_equal(new_info, exp_info_2)
+
+    new_info = anonymize_info(base_info.copy(), daysback=dt.days)
+    assert_object_equal(new_info, exp_info_3)
 
 
-def test_anonymize():
+def test_meas_date_convert(tmpdir):
+    """Test conversions of meas_date to datetime objects."""
+    meas_date = (1346981585, 835782)
+    meas_datetime = _stamp_to_dt(meas_date)
+    meas_date2 = _dt_to_stamp(meas_datetime)
+    assert(meas_date == meas_date2)
+    assert(meas_datetime == datetime(2012, 9, 7, 1, 33, 5, 835782,
+                                     tzinfo=timezone.utc))
+
+
+def test_anonymize(tmpdir):
     """Test that sensitive information can be anonymized."""
     pytest.raises(TypeError, anonymize_info, 'foo')
 
@@ -495,37 +522,21 @@ def test_anonymize():
                                     duration=[1, 1],
                                     description='dummy',
                                     orig_time=None))
-    raw.info['subject_info'] = dict(id=1, his_id='foobar', last_name='bar',
-                                    first_name='bar', birthday=(1987, 4, 8),
-                                    sex=0, hand=1)
-
-    # Test no error for incomplete info
-    info = raw.info.copy()
-    info.pop('file_id')
-    anonymize_info(info)
 
     # Test instance method
     events = read_events(event_name)
     epochs = Epochs(raw, events[:1], 2, 0., 0.1, baseline=None)
 
-    assert not any(_is_anonymous(raw))
+    _test_anonymize_info(raw.info.copy())
+    _test_anonymize_info(epochs.info.copy())
+
+    # test that annotations are correctly zeroed
     raw.anonymize()
-    assert all(_is_anonymous(raw))
-
-    assert not any(_is_anonymous(epochs)[:-1])  # epochs has no annotations
-    epochs.anonymize()
-    assert all(_is_anonymous(epochs)[:-1])
-
-    # When we write out with raw.save, these get overwritten with the
-    # new save time
-    tempdir = _TempDir()
-    out_fname = op.join(tempdir, 'test_subj_info_raw.fif')
-    raw.save(out_fname, overwrite=True)
-    assert all(_is_anonymous(read_raw_fif(out_fname)))
+    assert(raw.annotations.orig_time is raw.info['meas_date'])
 
 
 @testing.requires_testing_data
-def test_csr_csc():
+def test_csr_csc(tmpdir):
     """Test CSR and CSC."""
     info = read_info(sss_ctc_fname)
     info = pick_info(info, pick_types(info, meg=True, exclude=[]))
@@ -533,8 +544,7 @@ def test_csr_csc():
     ct = sss_ctc['decoupler'].copy()
     # CSC
     assert isinstance(ct, sparse.csc_matrix)
-    tempdir = _TempDir()
-    fname = op.join(tempdir, 'test.fif')
+    fname = tmpdir.join('test.fif')
     write_info(fname, info)
     info_read = read_info(fname)
     ct_read = info_read['proc_history'][0]['max_info']['sss_ctc']['decoupler']
@@ -545,7 +555,7 @@ def test_csr_csc():
     assert isinstance(csr, sparse.csr_matrix)
     assert_array_equal(csr.toarray(), ct.toarray())
     info['proc_history'][0]['max_info']['sss_ctc']['decoupler'] = csr
-    fname = op.join(tempdir, 'test1.fif')
+    fname = tmpdir.join('test1.fif')
     write_info(fname, info)
     info_read = read_info(fname)
     ct_read = info_read['proc_history'][0]['max_info']['sss_ctc']['decoupler']
@@ -579,6 +589,22 @@ def test_check_compensation_consistency():
             Epochs(raw, events, None, -0.2, 0.2, preload=False,
                    picks=picks, verbose=True)
             assert'Removing 5 compensators' in log.getvalue()
+
+
+def test_field_round_trip(tmpdir):
+    """Test round-trip for new fields."""
+    info = create_info(1, 1000., 'eeg')
+    for key in ('file_id', 'meas_id'):
+        info[key] = _generate_meas_id()
+    info['device_info'] = dict(
+        type='a', model='b', serial='c', site='d')
+    info['helium_info'] = dict(
+        he_level_raw=1., helium_level=2., orig_file_guid='e', meas_date=(1, 2))
+    fname = tmpdir.join('temp-info.fif')
+    write_info(fname, info)
+    info_read = read_info(fname)
+    info_read['dig'] = None  # XXX eventually this should go away
+    assert_object_equal(info, info_read)
 
 
 run_tests_if_main()

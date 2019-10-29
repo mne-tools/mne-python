@@ -25,6 +25,9 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 raw.crop(tmax=60).load_data()
 
 ###############################################################################
+# Background on SSS and Maxwell filtering
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
 # Signal-space separation (SSS) [1]_ [2]_ is a technique based on the physics
 # of electromagnetic fields. SSS separates the measured signal into components
 # attributable to sources *inside* the measurement volume of the sensor array
@@ -50,6 +53,23 @@ raw.crop(tmax=60).load_data()
 #     and should be considered *experimental* for non-Neuromag data. See the
 #     Notes section of the :func:`~mne.preprocessing.maxwell_filter` docstring
 #     for details.
+#
+# The MNE-Python implementation of SSS / Maxwell filtering currently provides
+# the following features:
+#
+# - Bad channel reconstruction
+# - Cross-talk cancellation
+# - Fine calibration correction
+# - tSSS
+# - Coordinate frame translation
+# - Regularization of internal components using information theory
+# - Raw movement compensation (using head positions estimated by MaxFilter)
+# - cHPI subtraction (see :func:`mne.chpi.filter_chpi`)
+# - Handling of 3D (in addition to 1D) fine calibration files
+# - Epoch-based movement compensation as described in [1]_ through
+#   :func:`mne.epochs.average_movements`
+# - **Experimental** processing of data from (un-compensated) non-Elekta
+#   systems
 #
 #
 # Using SSS and Maxwell filtering in MNE-Python
@@ -172,7 +192,14 @@ mne.viz.plot_head_positions(head_pos, mode='traces')
 # movement within a given recording session, but also would effectively
 # normalize head position across different measurement sessions and subjects.
 # See :ref:`here <example-movement-comp>` for an extended example of applying
-# movement compensation during Maxwell filtering / SSS.
+# movement compensation during Maxwell filtering / SSS. Another option is to
+# apply movement compensation when averaging epochs into an
+# :class:`~mne.Evoked` instance, using the :func:`mne.epochs.average_movements`
+# function.
+#
+# Each of these approaches requires time-varying estimates of head position,
+# which is obtained from MaxFilter using the ``-headpos`` and ``-hp``
+# arguments (see the MaxFilter manual for details).
 #
 #
 # Caveats to using SSS / Maxwell filtering
@@ -198,7 +225,8 @@ mne.viz.plot_head_positions(head_pos, mode='traces')
 #
 # .. [2] Taulu S and Simola J. (2006). Spatiotemporal signal space separation
 #        method for rejecting nearby interference in MEG measurements. *Phys
-#        Med Biol* 51, 1759-1768. https://doi.org/10.1088/0031-9155/51/7/008
+#        Med Biol* 51, 1759-1768.
+#        https://doi.org/10.1088/0031-9155/51/7/008
 #
 #
 # .. LINKS

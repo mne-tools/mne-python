@@ -1,4 +1,6 @@
 """
+.. _example-sLORETA:
+
 =============================================
 Compute sLORETA inverse solution on raw data
 =============================================

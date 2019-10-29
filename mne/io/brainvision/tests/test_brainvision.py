@@ -57,9 +57,15 @@ vhdr_nV_path = op.join(data_dir, 'test_nV.vhdr')
 # Test bad date
 vhdr_bad_date = op.join(data_dir, 'test_bad_date.vhdr')
 
-montage = op.join(data_dir, 'test.hpts')
 eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
 eog = ['HL', 'HR', 'Vb']
+
+# XXX: BUG we cannot parse test.hpts FastSCAN file to create a DigMontage
+#      (plus I've removed montage from all the read_raw_brainvision and nothing
+#       broke, so we were not testing that set_montage in brainvision was
+#       working)
+#      This should be amend in its own PR.
+montage = op.join(data_dir, 'test.hpts')
 
 
 def test_orig_units(recwarn):
@@ -225,8 +231,8 @@ def test_brainvision_data_highpass_filters():
     """Test reading raw Brain Vision files with amplifier filter settings."""
     # Homogeneous highpass in seconds (default measurement unit)
     raw = _test_raw_reader(
-        read_raw_brainvision, vhdr_fname=vhdr_highpass_path,
-        montage=montage, eog=eog)
+        read_raw_brainvision, vhdr_fname=vhdr_highpass_path, eog=eog
+    )
 
     assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 10))
     assert_equal(raw.info['lowpass'], 250.)
@@ -235,7 +241,7 @@ def test_brainvision_data_highpass_filters():
     with pytest.warns(RuntimeWarning, match='different .*pass filters') as w:
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_mixed_highpass_path,
-            montage=montage, eog=eog)
+            eog=eog)
 
     lowpass_warning = ['different lowpass filters' in str(ww.message)
                        for ww in w]
@@ -252,7 +258,7 @@ def test_brainvision_data_highpass_filters():
     # Homogeneous highpass in Hertz
     raw = _test_raw_reader(
         read_raw_brainvision, vhdr_fname=vhdr_highpass_hz_path,
-        montage=montage, eog=eog)
+        eog=eog)
 
     assert_equal(raw.info['highpass'], 10.)
     assert_equal(raw.info['lowpass'], 250.)
@@ -261,7 +267,7 @@ def test_brainvision_data_highpass_filters():
     with pytest.warns(RuntimeWarning, match='different .*pass filters') as w:
         raw = _test_raw_reader(
             read_raw_brainvision, vhdr_fname=vhdr_mixed_highpass_hz_path,
-            montage=montage, eog=eog)
+            eog=eog)
 
     trigger_warning = ['will be dropped' in str(ww.message)
                        for ww in w]
@@ -282,8 +288,8 @@ def test_brainvision_data_lowpass_filters():
     """Test files with amplifier LP filter settings."""
     # Homogeneous lowpass in Hertz (default measurement unit)
     raw = _test_raw_reader(
-        read_raw_brainvision, vhdr_fname=vhdr_lowpass_path,
-        montage=montage, eog=eog)
+        read_raw_brainvision, vhdr_fname=vhdr_lowpass_path, eog=eog
+    )
 
     assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 10))
     assert_equal(raw.info['lowpass'], 250.)
@@ -291,8 +297,8 @@ def test_brainvision_data_lowpass_filters():
     # Heterogeneous lowpass in Hertz (default measurement unit)
     with pytest.warns(RuntimeWarning) as w:  # event parsing
         raw = _test_raw_reader(
-            read_raw_brainvision, vhdr_fname=vhdr_mixed_lowpass_path,
-            montage=montage, eog=eog)
+            read_raw_brainvision, vhdr_fname=vhdr_mixed_lowpass_path, eog=eog
+        )
 
     lowpass_warning = ['different lowpass filters' in str(ww.message)
                        for ww in w]
@@ -308,8 +314,8 @@ def test_brainvision_data_lowpass_filters():
 
     # Homogeneous lowpass in seconds
     raw = _test_raw_reader(
-        read_raw_brainvision, vhdr_fname=vhdr_lowpass_s_path,
-        montage=montage, eog=eog)
+        read_raw_brainvision, vhdr_fname=vhdr_lowpass_s_path, eog=eog
+    )
 
     assert_equal(raw.info['highpass'], 1. / (2 * np.pi * 10))
     assert_equal(raw.info['lowpass'], 1. / (2 * np.pi * 0.004))
@@ -317,8 +323,8 @@ def test_brainvision_data_lowpass_filters():
     # Heterogeneous lowpass in seconds
     with pytest.warns(RuntimeWarning) as w:  # filter settings
         raw = _test_raw_reader(
-            read_raw_brainvision, vhdr_fname=vhdr_mixed_lowpass_s_path,
-            montage=montage, eog=eog)
+            read_raw_brainvision, vhdr_fname=vhdr_mixed_lowpass_s_path, eog=eog
+        )
 
     lowpass_warning = ['different lowpass filters' in str(ww.message)
                        for ww in w]
@@ -338,8 +344,8 @@ def test_brainvision_data_partially_disabled_hw_filters():
     with pytest.warns(RuntimeWarning) as w:  # event parsing
         raw = _test_raw_reader(
             read_raw_brainvision,
-            vhdr_fname=vhdr_partially_disabled_hw_filter_path,
-            montage=montage, eog=eog)
+            vhdr_fname=vhdr_partially_disabled_hw_filter_path, eog=eog
+        )
 
     trigger_warning = ['will be dropped' in str(ww.message)
                        for ww in w]
@@ -370,12 +376,12 @@ def test_brainvision_data_software_filters_latin1_global_units():
 def test_brainvision_data():
     """Test reading raw Brain Vision files."""
     pytest.raises(IOError, read_raw_brainvision, vmrk_path)
-    pytest.raises(ValueError, read_raw_brainvision, vhdr_path, montage,
+    pytest.raises(ValueError, read_raw_brainvision, vhdr_path,
                   preload=True, scale="foo")
 
     raw_py = _test_raw_reader(
-        read_raw_brainvision, vhdr_fname=vhdr_path, montage=montage,
-        eog=eog, misc='auto')
+        read_raw_brainvision, vhdr_fname=vhdr_path, eog=eog, misc='auto'
+    )
 
     assert ('RawBrainVision' in repr(raw_py))
 
@@ -417,8 +423,8 @@ def test_brainvision_data():
     # For the nanovolt unit test we use the same data file with a different
     # header file.
     raw_nV = _test_raw_reader(
-        read_raw_brainvision, vhdr_fname=vhdr_nV_path, montage=montage,
-        eog=eog, misc='auto')
+        read_raw_brainvision, vhdr_fname=vhdr_nV_path, eog=eog, misc='auto'
+    )
     assert_equal(raw_nV.info['chs'][0]['ch_name'], 'FP1')
     assert_equal(raw_nV.info['chs'][0]['kind'], FIFF.FIFFV_EEG_CH)
     data_nanovolt, _ = raw_nV[0]
@@ -476,8 +482,11 @@ def test_coodinates_extraction():
     assert raw.info['dig'] is not None
     diglist = raw.info['dig']
     coords = np.array([dig['r'] for dig in diglist])
-    assert coords.shape[0] == len(raw.ch_names)
-    assert coords.shape[1] == 3
+    EXPECTED_SHAPE = (
+        len(raw.ch_names) - 4,  # HL, HR, Vb, ReRef are not set in dig
+        3,
+    )
+    assert coords.shape == EXPECTED_SHAPE
 
     # Make sure the scaling seems right
     # a coordinate more than 20cm away from origin is implausible

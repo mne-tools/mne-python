@@ -20,55 +20,39 @@ from mne.channels.montage import get_builtin_montages
 from mne.datasets import fetch_fsaverage
 from mne.viz import set_3d_title, set_3d_view
 
-import warnings
-
-warnings.simplefilter("ignore")
 
 ###############################################################################
 # Check all montages against a sphere
-#
-
-sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.085)
 
 for current_montage in get_builtin_montages():
-
     montage = mne.channels.make_standard_montage(current_montage)
+    info = mne.create_info(
+        ch_names=montage.ch_names, sfreq=100., ch_types='eeg', montage=montage)
+    sphere = mne.make_sphere_model(r0='auto', head_radius='auto', info=info)
     fig = mne.viz.plot_alignment(
         # Plot options
-        show_axes=True, dig=True, surfaces='head', bem=sphere,
-
-        # Create dummy info
-        info=mne.create_info(
-            ch_names=montage.ch_names,
-            sfreq=1,
-            ch_types='eeg',
-            montage=montage,
-        ),
-    )
+        show_axes=True, dig='fiducials', surfaces='head',
+        bem=sphere, info=info)
     set_3d_view(figure=fig, azimuth=135, elevation=80)
     set_3d_title(figure=fig, title=current_montage)
 
 
 ###############################################################################
 # Check all montages against fsaverage
-#
 
 subjects_dir = op.dirname(fetch_fsaverage())
 
 for current_montage in get_builtin_montages():
     montage = mne.channels.make_standard_montage(current_montage)
+    # Create dummy info
+    info = mne.create_info(
+        ch_names=montage.ch_names, sfreq=100., ch_types='eeg', montage=montage)
     fig = mne.viz.plot_alignment(
         # Plot options
-        show_axes=True, dig=True, surfaces='head', trans=None,
-        subject='fsaverage', subjects_dir=subjects_dir,
-
-        # Create dummy info
-        info=mne.create_info(
-            ch_names=montage.ch_names,
-            sfreq=1,
-            ch_types='eeg',
-            montage=montage,
-        ),
+        show_axes=True, dig='fiducials', surfaces='head', mri_fiducials=True,
+        subject='fsaverage', subjects_dir=subjects_dir, info=info,
+        coord_frame='mri',
+        trans='fsaverage',  # transform from head coords to fsaverage's MRI
     )
     set_3d_view(figure=fig, azimuth=135, elevation=80)
     set_3d_title(figure=fig, title=current_montage)

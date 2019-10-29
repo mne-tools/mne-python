@@ -1,7 +1,7 @@
 # Authors: Denis A. Engemann  <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Yuval Harpaz <yuvharpaz@gmail.com>
 #          Joan Massich <mailsik@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
@@ -17,6 +17,7 @@ import numpy as np
 from ...utils import logger, verbose
 from ...transforms import (combine_transforms, invert_transform,
                            Transform)
+from .._digitization import _make_bti_dig_points
 from ..constants import FIFF
 from .. import BaseRaw, _coil_trans_to_loc, _loc_to_coil_trans, _empty_info
 from ..utils import _mult_cal_one, read_str
@@ -571,10 +572,10 @@ def _read_channel(fid):
                 'ymax': read_double(fid),
                 'index': read_int32(fid),
                 'checksum': read_int32(fid),
-                'off_flag': read_str(fid, 16),
+                'off_flag': read_str(fid, 4),
                 'offset': read_float(fid)})
 
-    fid.seek(12, 1)
+    fid.seek(24, 1)
 
     return out
 
@@ -627,7 +628,7 @@ def _read_process(fid):
             fid.seek(32, 1)
         elif ptype in BTI.PROC_BPFILTER:
             this_step['high_freq'] = read_float(fid)
-            this_step['low_frew'] = read_float(fid)
+            this_step['low_freq'] = read_float(fid)
         else:
             jump = this_step['user_space_size'] = read_int32(fid)
             fid.seek(32, 1)
@@ -825,6 +826,10 @@ def _read_bti_header(pdf_fname, config_fname, sort_by_ch_name=True):
         chans_cfg = [c for c in cfg['chs'] if c['chan_no']
                      in [c_['chan_no'] for c_ in chans]]
 
+        # sort chans_cfg and chans
+        chans = sorted(chans, key=lambda k: k['chan_no'])
+        chans_cfg = sorted(chans_cfg, key=lambda k: k['chan_no'])
+
         # check all pdf channels are present in config
         match = [c['chan_no'] for c in chans_cfg] == \
                 [c['chan_no'] for c in chans]
@@ -988,9 +993,6 @@ class RawBTi(BaseRaw):
 
 def _make_bti_digitization(
         info, head_shape_fname, convert, use_hpi, bti_dev_t, dev_ctf_t):
-
-    from ..._digitization._utils import _make_bti_dig_points
-
     if head_shape_fname:
         logger.info('... Reading digitization points from %s' %
                     head_shape_fname)

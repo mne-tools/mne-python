@@ -22,12 +22,11 @@ pytest-timeout
 joblib
 psutil
 dipy
-numpydoc
+https://api.github.com/repos/numpy/numpydoc/zipball/master
 PySurfer[save_movie]
 nilearn
 neo
 xlrd
 pydocstyle
 flake8
-pyvista>=0.21.3
-panel
+https://github.com/pyvista/pyvista/zipball/master

@@ -77,10 +77,9 @@ def check_version(library, min_version):
     except ImportError:
         ok = False
     else:
-        if min_version:
-            this_version = LooseVersion(library.__version__)
-            if this_version < min_version:
-                ok = False
+        if min_version and \
+                LooseVersion(library.__version__) < LooseVersion(min_version):
+            ok = False
     return ok
 
 
@@ -135,7 +134,7 @@ def _check_event_id(event_id, events):
     return event_id
 
 
-def _check_fname(fname, overwrite=False, must_exist=False):
+def _check_fname(fname, overwrite=False, must_exist=False, name='File'):
     """Check for file existence."""
     _validate_type(fname, 'path-like', 'fname')
     if op.isfile(fname):
@@ -145,7 +144,7 @@ def _check_fname(fname, overwrite=False, must_exist=False):
         elif overwrite != 'read':
             logger.info('Overwriting existing file.')
     elif must_exist:
-        raise IOError('File "%s" does not exist' % fname)
+        raise IOError('%s "%s" does not exist' % (name, fname))
     return str(fname)
 
 
@@ -272,10 +271,24 @@ def _is_numeric(n):
     return isinstance(n, (np.integer, np.floating, int, float))
 
 
+class _IntLike(object):
+    @classmethod
+    def __instancecheck__(cls, other):
+        try:
+            _ensure_int(other)
+        except TypeError:
+            return False
+        else:
+            return True
+
+int_like = _IntLike()
+
+
 _multi = {
     'str': (str,),
-    'numeric': (np.integer, np.floating, int, float),
+    'numeric': (np.floating, float, int_like),
     'path-like': (str, Path),
+    'int-like': (int_like,)
 }
 try:
     _multi['path-like'] += (os.PathLike,)
@@ -421,30 +434,12 @@ def _check_channels_spatial_filter(ch_names, filters):
 
 
 def _check_rank(rank):
-    """Check rank parameter and deal with deprecation."""
-    err_msg = ('rank must be None, dict, "full", or int, '
-               'got %s (type %s)' % (rank, type(rank)))
+    """Check rank parameter."""
+    _validate_type(rank, (None, dict, str), 'rank')
     if isinstance(rank, str):
-        # XXX we can use rank='' to deprecate to get to None eventually:
-        # if rank == '':
-        #     warn('The rank parameter default in 0.18 of "full" will change '
-        #          'to None in 0.19, set it explicitly to avoid this warning',
-        #          DeprecationWarning)
-        #     rank = 'full'
         if rank not in ['full', 'info']:
             raise ValueError('rank, if str, must be "full" or "info", '
                              'got %s' % (rank,))
-    elif isinstance(rank, bool):
-        raise TypeError(err_msg)
-    elif rank is not None and not isinstance(rank, dict):
-        try:
-            rank = int(operator.index(rank))
-        except TypeError:
-            raise TypeError(err_msg)
-        else:
-            warn('rank as int is deprecated and will be removed in 0.19. '
-                 'use rank=dict(meg=...) instead.', DeprecationWarning)
-            rank = dict(meg=rank)
     return rank
 
 
@@ -546,3 +541,22 @@ def _check_combine(mode, valid=('mean', 'median', 'std')):
                          " or callable, got %s (type %s)." %
                          (mode, type(mode)))
     return fun
+
+
+def _check_src_normal(pick_ori, src):
+    from ..source_space import SourceSpaces
+    _validate_type(src, SourceSpaces, 'src')
+    if pick_ori == 'normal' and src.kind not in ('surface', 'discrete'):
+        raise RuntimeError('Normal source orientation is supported only for '
+                           'surface or discrete SourceSpaces, got type '
+                           '%s' % (src.kind,))
+
+
+def _check_stc_units(stc, threshold=1e-7):  # 100 nAm threshold for warning
+    max_cur = np.max(np.abs(stc.data))
+    if max_cur > threshold:
+        warn('The maximum current magnitude is %0.1f nAm, which is very large.'
+             ' Are you trying to apply the forward model to noise-normalized '
+             '(dSPM, sLORETA, or eLORETA) values? The result will only be '
+             'correct if currents (in units of Am) are used.'
+             % (1e9 * max_cur))

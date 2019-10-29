@@ -13,8 +13,13 @@ from abc import ABCMeta, abstractclassmethod
 class _BaseRenderer(metaclass=ABCMeta):
     @abstractclassmethod
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
-                 name=None, show=False):
+                 name=None, show=False, shape=(1, 1)):
         """Set up the scene."""
+        pass
+
+    @abstractclassmethod
+    def subplot(self, x, y):
+        """Set the active subplot."""
         pass
 
     @abstractclassmethod
@@ -237,7 +242,7 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def text2d(self, x_window, y_window, text, width, color='white'):
+    def text2d(self, x_window, y_window, text, size=14, color='white'):
         """Add 2d text in the scene.
 
         Parameters
@@ -250,8 +255,8 @@ class _BaseRenderer(metaclass=ABCMeta):
             window coordinates system (window_width, window_height).
         text: str
             The content of the text.
-        width: float
-            The width of the text.
+        size: int
+            The size of the font.
         color: tuple | str
             The color of the text as a tuple (red, green, blue) of float
             values between 0 and 1 or a valid color name (i.e. 'white'
@@ -326,8 +331,17 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def screenshot(self):
-        """Take a screenshot of the scene."""
+    def screenshot(self, mode='rgb', filename=None):
+        """Take a screenshot of the scene.
+
+        Parameters
+        ----------
+        mode: str
+            Either 'rgb' or 'rgba' for values to return.
+            Default is 'rgb'.
+        filename: str | None
+            If not None, save the figure to the disk.
+        """
         pass
 
     @abstractclassmethod

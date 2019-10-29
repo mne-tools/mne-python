@@ -41,7 +41,18 @@ def _skip_sample_data():
 
 
 def requires_sample_data(func):
-    """Skip testing data test."""
+    """Skip testing data test.
+
+    Parameters
+    ----------
+    func : callable
+        The function to decorate.
+
+    Returns
+    -------
+    dec_func : callable
+        The decorated function.
+    """
     import pytest
     return pytest.mark.skipif(_skip_sample_data(),
                               reason='Requires sample dataset')(func)

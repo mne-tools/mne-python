@@ -48,10 +48,12 @@ To install the latest stable version of MNE-Python, you can use pip_ in a termin
 
     pip install -U mne
 
-**Note** that MNE-Python 0.17 will be the last release to support Python 2. From MNE-Python 0.18, only Python 3 will be supported.
+**Note** that MNE-Python 0.17 was the last release to support Python 2.
+MNE-Python 0.18 only works under Python 3, and MNE-Python 0.19 requires
+Python 3.5 or higher.
 
 For more complete instructions and more advanced installation methods (e.g. for
-the latest development version), see the `getting started page`_.
+the latest development version), see the `installation guide`_.
 
 
 Get the latest code
@@ -101,7 +103,7 @@ Contributing to MNE-Python
 
 Please see the documentation on the MNE-Python homepage:
 
-https://mne.tools/dev/contributing.html
+https://mne.tools/dev/install/contributing.html
 
 
 Mailing list
@@ -151,5 +153,5 @@ MNE-Python is **BSD-licenced** (3 clause):
 
 .. _MNE-Python software: https://mne.tools/dev/
 .. _MNE documentation: https://mne.tools/dev/overview/index.html
-.. _getting started page: https://mne.tools/dev/install/index.html
+.. _installation guide: https://mne.tools/dev/install/index.html
 .. _pip: https://pip.pypa.io/en/stable/

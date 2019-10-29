@@ -16,6 +16,7 @@
 .. _`mne-python sample dataset`: https://s3.amazonaws.com/mne-python/datasets/MNE-sample-data-processed.tar.gz
 .. _`mne command line utilities`: http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/
 .. _`mne-scripts`: https://github.com/mne-tools/mne-scripts/
+.. _`MNE-C manual`: https://mne.tools/mne-c-manual/MNE-manual-2.7.3.pdf
 .. _`MNE mailing list`: http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
 .. _`GitHub issues page`: https://github.com/mne-tools/mne-python/issues/
 .. _`MNE gitter channel`: https://gitter.im/mne-tools/mne-python
@@ -181,7 +182,7 @@
 .. _pep8: https://pypi.org/project/pep8/
 .. _pyflakes: https://pypi.org/project/pyflakes
 .. _coverage: https://pypi.python.org/pypi/coverage
-.. _mayavi: https//docs.enthought.com/mayavi/mayavi/
+.. _mayavi: https://docs.enthought.com/mayavi/mayavi/
 .. _nitime: http://nipy.org/nitime/
 .. _joblib: https://pypi.python.org/pypi/joblib
 .. _scikit-learn: https://scikit-learn.org/stable/

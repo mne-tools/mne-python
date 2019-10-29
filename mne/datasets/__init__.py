@@ -31,4 +31,5 @@ __all__ = [
     'fetch_hcp_mmp_parcellation', 'fieldtrip_cmc', 'hf_sef', 'kiloword',
     'misc', 'mtrf', 'multimodal', 'opm', 'phantom_4dbti', 'sample',
     'sleep_physionet', 'somato', 'spm_face', 'testing', 'visual_92_categories',
+    'limo',
 ]

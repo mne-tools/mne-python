@@ -10,7 +10,7 @@ from sys import stdout
 
 import numpy as np
 
-from ...channels import read_montage
+from ...channels import make_standard_montage
 from ...epochs import EpochsArray
 from ...io.meas_info import create_info
 from ...utils import _fetch_file, _check_pandas_installed, verbose
@@ -158,7 +158,7 @@ def load_data(subject, path=None, force_update=False, update_path=None,
 
     Returns
     -------
-    epochs : MNE Epochs data structure
+    epochs : instance of Epochs
         The epochs.
     """  # noqa: E501
     pd = _check_pandas_installed()
@@ -202,9 +202,9 @@ def load_data(subject, path=None, force_update=False, update_path=None,
     labels = data_info['chanlocs']['labels']
     labels = [label for label, *_ in labels[0]]
     # get montage
-    montage = read_montage('biosemi128')
+    montage = make_standard_montage('biosemi128')
     # add external electrodes (e.g., eogs)
-    ch_names = montage.ch_names[:-3] + ['EXG1', 'EXG2', 'EXG3', 'EXG4']
+    ch_names = montage.ch_names + ['EXG1', 'EXG2', 'EXG3', 'EXG4']
     # match individual labels to labels in montage
     found_inds = [ind for ind, name in enumerate(ch_names) if name in labels]
     missing_chans = [name for name in ch_names if name not in labels]

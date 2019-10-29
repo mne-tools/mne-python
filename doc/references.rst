@@ -107,7 +107,7 @@ A. K. Liu, A. M. Dale, and J. W. Belliveau, "Monte Carlo
 simulation studies of EEG and MEG localization accuracy," Human Brain
 Mapping, vol. 16, pp. 47-62, 2002.
 
-F. H. Lin, J. W. Belliveau, A. M. Dale, and M. S. Hamalainen,
+F. H. Lin, J. W. Belliveau, A. M. Dale, and M. S. Hämäläinen,
 "Distributed current estimates using cortical orientation constraints,"
 Human Brain Mapping, vol. 27, pp. 1-13, 2006.
 
@@ -139,7 +139,7 @@ imaging of human brain activity using functional MRI constrained
 magnetoencephalography data: Monte Carlo simulations," Proc Natl
 Acad Sci U S A, vol. 95, pp. 8945-50., 1998.
 
-F. H. Lin, T. Witzel, M. S. Hamalainen, A. M. Dale, J. W.
+F. H. Lin, T. Witzel, M. S. Hämäläinen, A. M. Dale, J. W.
 Belliveau, and S. M. Stufflebeam, "Spectral spatiotemporal imaging
 of cortical oscillations and interactions in the human brain," Neuroimage,
 vol. 23, pp. 582-95, 2004.

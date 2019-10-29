@@ -10,7 +10,7 @@ import pytest
 from numpy.testing import assert_array_equal
 
 from mne.io.kit import read_mrk
-from mne._digitization._utils import _write_dig_points
+from mne.io._digitization import _write_dig_points
 from mne.utils import _TempDir
 
 

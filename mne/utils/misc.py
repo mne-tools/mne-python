@@ -82,7 +82,7 @@ def pformat(temp, **fmt):
 
 
 @verbose
-def run_subprocess(command, verbose=None, *args, **kwargs):
+def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
     """Run command using subprocess.Popen.
 
     Run command and wait for command to complete. If the return code was zero
@@ -94,6 +94,11 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
     ----------
     command : list of str | str
         Command to run as subprocess (see subprocess.Popen documentation).
+    return_code : bool
+        If True, return the return code instead of raising an error if it's
+        non-zero.
+
+        .. versionadded:: 0.20
     %(verbose)s
     *args, **kwargs : arguments
         Additional arguments to pass to subprocess.Popen.
@@ -104,6 +109,8 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
         Stdout returned by the process.
     stderr : str
         Stderr returned by the process.
+    code : int
+        The return code, only returned if ``return_code == True``.
     """
     with running_subprocess(command, *args, **kwargs) as p:
         stdout_, stderr = p.communicate()
@@ -111,7 +118,9 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
     stderr = u'' if stderr is None else stderr.decode('utf-8')
     output = (stdout_, stderr)
 
-    if p.returncode:
+    if return_code:
+        output = output + (p.returncode,)
+    elif p.returncode:
         print(output)
         err_fun = subprocess.CalledProcessError.__init__
         if 'output' in _get_args(err_fun):

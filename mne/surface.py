@@ -1,8 +1,12 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
+
+# Many of the computations in this code were derived from Matti Hämäläinen's
+# C code.
 
 from copy import deepcopy
 from distutils.version import LooseVersion
@@ -26,7 +30,7 @@ from .io.write import (write_int, start_file, end_block, start_block, end_file,
 from .channels.channels import _get_meg_system
 from .parallel import parallel_func
 from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
-                         _get_trans, apply_trans)
+                         _get_trans, apply_trans, Transform)
 from .utils import logger, verbose, get_subjects_dir, warn, _check_fname
 from .fixes import (_serialize_volume_info, _get_read_geometry, einsum, jit,
                     prange)
@@ -162,7 +166,10 @@ def get_meg_helmet_surf(info, trans=None, verbose=None):
 
     # Ignore what the file says, it's in device coords and we want MRI coords
     surf['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
-    transform_surface_to(surf, 'head', info['dev_head_t'])
+    dev_head_t = info['dev_head_t']
+    if dev_head_t is None:
+        dev_head_t = Transform('meg', 'head')
+    transform_surface_to(surf, 'head', dev_head_t)
     if trans is not None:
         transform_surface_to(surf, 'mri', trans)
     return surf
@@ -1013,11 +1020,11 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None, xhemi=False,
 
     Parameters
     ----------
-    subject_from : string
+    subject_from : str
         Name of the original subject as named in the SUBJECTS_DIR.
-    subject_to : string
+    subject_to : str
         Name of the subject on which to morph as named in the SUBJECTS_DIR.
-    subjects_dir : string
+    subjects_dir : str
         Path to SUBJECTS_DIR is not set in the environment.
     xhemi : bool
         Morph across hemisphere. Currently only implemented for
@@ -1394,14 +1401,14 @@ def mesh_dist(tris, vert):
     Parameters
     ----------
     tris : array (n_tris x 3)
-        Mesh triangulation
+        Mesh triangulation.
     vert : array (n_vert x 3)
-        Vertex locations
+        Vertex locations.
 
     Returns
     -------
     dist_matrix : scipy.sparse.csr_matrix
-        Sparse matrix with distances between adjacent vertices
+        Sparse matrix with distances between adjacent vertices.
     """
     edges = mesh_edges(tris).tocoo()
 
@@ -1432,14 +1439,14 @@ def read_tri(fname_in, swap=False, verbose=None):
         Triangulation (each line contains indices for three points which
         together form a face).
 
-    Notes
-    -----
-    .. versionadded:: 0.13.0
-
     See Also
     --------
     read_surface
     write_surface
+
+    Notes
+    -----
+    .. versionadded:: 0.13.0
     """
     with open(fname_in, "r") as fid:
         lines = fid.readlines()

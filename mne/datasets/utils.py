@@ -231,13 +231,14 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         'kiloword': 'MNE_DATASETS_KILOWORD_PATH',
         'mtrf': 'MNE_DATASETS_MTRF_PATH',
         'fieldtrip_cmc': 'MNE_DATASETS_FIELDTRIP_CMC_PATH',
-        'phantom_4dbti': 'MNE_DATASETS_PHANTOM_4DBTI_PATH'
+        'phantom_4dbti': 'MNE_DATASETS_PHANTOM_4DBTI_PATH',
+        'limo': 'MNE_DATASETS_LIMO_PATH',
     }[name]
 
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.71', misc='0.3')
+    releases = dict(testing='0.76', misc='0.5')
     # And also update the "md5_hashes['testing']" variable below.
 
     # To update any other dataset, update the data archive itself (upload
@@ -315,11 +316,11 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
             bst_raw='fa2efaaec3f3d462b319bc24898f440c',
             bst_resting='70fc7bf9c3b97c4f2eab6260ee4a0430'),
         fake='3194e9f7b46039bb050a74f3e1ae9908',
-        misc='d822a720ef94302467cb6ad1d320b669',
+        misc='84e606998ac379ef53029b3b1cf37918',
         sample='fc2d5b9eb0a144b1d6ba84dc3b983602',
         somato='f08f17924e23c57a751b3bed4a05fe02',
         spm='9f43f67150e3b694b523a21eb929ea75',
-        testing='28e420d9c298868f4d537e762823ba5b',
+        testing='a000fdd45c4584aa3fb61e3ed6b08357',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
         opm='370ad1dcfd5c47e029e692c85358a374',
         visual_92_categories=['74f50bbeb65740903eadc229c9fa759f',
@@ -598,7 +599,7 @@ def _download_all_example_data(verbose=True):
         fetch_hcp_mmp_parcellation()
     finally:
         sys.argv.pop(-1)
-    limo.load_data(subject=2, update_path=True)
+    limo.load_data(subject=1, update_path=True)
 
 
 @verbose

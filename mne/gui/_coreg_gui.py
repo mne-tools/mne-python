@@ -185,7 +185,7 @@ class CoregModel(HasPrivateTraits):
     scale_labels = Bool(True, desc="whether to scale *.label files")
     copy_annot = Bool(True, desc="whether to copy *.annot files for scaled "
                       "subject")
-    prepare_bem_model = Bool(True, desc="whether to run mne_prepare_bem_model "
+    prepare_bem_model = Bool(True, desc="whether to run make_bem_solution "
                              "after scaling the MRI")
 
     # secondary to parameters

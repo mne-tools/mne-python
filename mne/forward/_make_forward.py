@@ -1,9 +1,12 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larsoner@uw.edu>
 #
 # License: BSD (3-clause)
+
+# The computations in this code were primarily derived from Matti Hämäläinen's
+# C code.
 
 from copy import deepcopy
 from contextlib import contextmanager
@@ -512,13 +515,7 @@ def make_forward_solution(info, trans, src, bem, meg=True, eeg=True,
         If str, then it should be a filename to a Raw, Epochs, or Evoked
         file with measurement information. If dict, should be an info
         dict (such as one from Raw, Epochs, or Evoked).
-    trans : dict | str | None
-        Either a transformation filename (usually made using mne_analyze)
-        or an info dict (usually opened using read_trans()).
-        If string, an ending of `.fif` or `.fif.gz` will be assumed to
-        be in FIF format, any other ending will be assumed to be a text
-        file with a 4x4 transformation matrix (like the `--trans` MNE-C
-        option). Can be None to use the identity transform.
+    %(trans)s
     src : str | instance of SourceSpaces
         If string, should be a source space filename. Can also be an
         instance of loaded or generated SourceSpaces.

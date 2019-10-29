@@ -23,7 +23,6 @@ dependencies:
 - pytest-timeout
 - joblib
 - psutil
-- numpydoc
 - flake8
 - spyder
 - numexpr
@@ -33,8 +32,9 @@ dependencies:
 - testpath<0.4
 - pip:
   - mne
+  - https://api.github.com/repos/numpy/numpydoc/zipball/master
   - vtk
-  - pyvista>=0.21.3
+  - https://github.com/pyvista/pyvista/zipball/master
   - mayavi
   - PySurfer[save_movie]
   - dipy --only-binary dipy
@@ -46,4 +46,3 @@ dependencies:
   - pydocstyle
   - codespell
   - python-picard
-  - panel

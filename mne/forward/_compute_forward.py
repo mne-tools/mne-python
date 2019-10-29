@@ -1,15 +1,18 @@
 # -*- coding: utf-8 -*-
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larsoner@uw.edu>
 #          Mark Wronkiewicz <wronk@uw.edu>
 #
 # License: BSD (3-clause)
+
+# The computations in this code were primarily derived from Matti Hämäläinen's
+# C code.
 #
 # Many of the idealized equations behind these calculations can be found in:
 # 1) Realistic conductivity geometry model of the human head for interpretation
-#        of neuromagnetic data. Hamalainen and Sarvas, 1989. Specific to MNE
+#        of neuromagnetic data. Hämäläinen and Sarvas, 1989. Specific to MNE
 # 2) EEG and MEG: forward solutions for inverse methods. Mosher, Leahy, and
 #        Lewis, 1999. Generalized discussion of forward solutions.
 
@@ -69,7 +72,7 @@ def _lin_field_coeff(surf, mult, rmags, cosmags, ws, bins, n_jobs):
         Dict containing information for one surface of the BEM
     mult : float
         Multiplier for particular BEM surface (Iso Skull Approach discussed in
-        Mosher et al., 1999 and Hamalainen and Sarvas, 1989 Section III?)
+        Mosher et al., 1999 and Hämäläinen and Sarvas, 1989 Section III?)
     rmag : ndarray, shape (n_integration_pts, 3)
         3D positions of MEG coil integration points (from coil['rmag'])
     cosmag : ndarray, shape (n_integration_pts, 3)
@@ -502,7 +505,7 @@ def _do_inf_pots(mri_rr, bem_rr, mri_Q, sol):
     # We chunk the source mri_rr's in order to save memory
     B = np.empty((len(mri_rr) * 3, sol.shape[1]))
     for start, stop in _rr_bounds(mri_rr):
-        # v0 in Hamalainen et al., 1989 == v_inf in Mosher, et al., 1999
+        # v0 in Hämäläinen et al., 1989 == v_inf in Mosher, et al., 1999
         v0s = _bem_inf_pots(mri_rr[start:stop], bem_rr, mri_Q)
         v0s = v0s.reshape(-1, v0s.shape[2])
         B[3 * start:3 * stop] = np.dot(v0s, sol)
@@ -529,7 +532,7 @@ def _sphere_field(rrs, coils, sphere):
     biomagnetic inverse problem", Phys. Med. Biol. 1987, Vol. 32, 1, 11-22.
 
     The formulas have been manipulated for efficient computation
-    by Matti Hamalainen, February 1990
+    by Matti Hämäläinen, February 1990
     """
     rmags, cosmags, ws, bins = _triage_coils(coils)
     del coils

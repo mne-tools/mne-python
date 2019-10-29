@@ -408,9 +408,7 @@ def test_priors():
     with pytest.raises(ValueError, match='noise_cov must be a Covariance'):
         compute_depth_prior(fwd, info, limit_depth_chs='whiten')
     fwd_fixed = convert_forward_solution(fwd, force_fixed=True)
-    with pytest.deprecated_call():
-        depth_prior = compute_depth_prior(
-            fwd_fixed['sol']['data'], info, is_fixed_ori=True)
+    depth_prior = compute_depth_prior(fwd_fixed, info=info)
     assert depth_prior.shape == (n_sources,)
     # Orientation prior
     orient_prior = compute_orient_prior(fwd, 1.)

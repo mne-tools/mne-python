@@ -36,15 +36,15 @@ class LinearModel(BaseEstimator):
     patterns_ : ndarray, shape ([n_targets], n_features)
         If fit, the patterns used to restore M/EEG signals.
 
-    Notes
-    -----
-    .. versionadded:: 0.10
-
     See Also
     --------
     CSP
     mne.preprocessing.ICA
     mne.preprocessing.Xdawn
+
+    Notes
+    -----
+    .. versionadded:: 0.10
 
     References
     ----------
@@ -385,7 +385,7 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
     groups : array-like, with shape (n_samples,)
         Group labels for the samples used while splitting the dataset into
         train/test set.
-    scoring : string, callable | None
+    scoring : str, callable | None
         A string (see model evaluation documentation) or
         a scorer callable object / function with signature
         ``scorer(estimator, X, y)``.
@@ -411,7 +411,7 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
         The verbosity level.
     fit_params : dict, optional
         Parameters to pass to the fit method of the estimator.
-    pre_dispatch : int, or string, optional
+    pre_dispatch : int, or str, optional
         Controls the number of jobs that get dispatched during parallel
         execution. Reducing this number can be useful to avoid an
         explosion of memory consumption when more jobs get dispatched

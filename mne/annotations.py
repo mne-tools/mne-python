@@ -156,7 +156,6 @@ class Annotations(object):
                        |         |      |
                        |         +------+
 
-
                     [[[ CRASH ]]]
 
         ----------- meas_date=None, orig_time=None -------------------------
@@ -175,7 +174,6 @@ class Annotations(object):
              n                        |      |
              e                        +------+
          orig_time                 onset[0]'
-
     """  # noqa: E501
 
     def __init__(self, onset, duration, description,
@@ -882,10 +880,10 @@ def events_from_annotations(raw, event_id="auto",
 
         .. versionchanged:: 0.18
            Default ignores bad and edge descriptions.
-    use_rounding : boolean
+    use_rounding : bool
         If True, use rounding (instead of truncation) when converting
         times to indices. This can help avoid non-unique indices.
-    chunk_duration: float | None
+    chunk_duration : float | None
         Chunk duration in seconds. If ``chunk_duration`` is set to None
         (default), generated events correspond to the annotation onsets.
         If not, :func:`mne.events_from_annotations` returns as many events as

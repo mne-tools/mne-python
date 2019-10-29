@@ -32,7 +32,11 @@ inplace:
 	$(PYTHON) setup.py build_ext -i
 
 wheel:
-	$(PYTHON) setup.py sdist -q bdist_wheel
+	$(PYTHON) setup.py sdist bdist_wheel
+
+wheel_quiet:
+	$(PYTHON) setup.py -q sdist bdist_wheel
+
 sample_data:
 	@python -c "import mne; mne.datasets.sample.data_path(verbose=True);"
 
@@ -117,7 +121,7 @@ docstring:
 check-manifest:
 	check-manifest --ignore .circleci*,doc,logo,mne/io/*/tests/data*,mne/io/tests/data,mne/preprocessing/tests/data,.DS_Store
 
-check-readme: clean wheel
+check-readme: clean wheel_quiet
 	twine check dist/*
 
 nesting:

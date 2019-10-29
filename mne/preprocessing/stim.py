@@ -65,7 +65,7 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
     Returns
     -------
     inst : instance of Raw or Evoked or Epochs
-        Instance with modified data
+        Instance with modified data.
     """
     _check_option('mode', mode, ['linear', 'window'])
     s_start = int(np.ceil(inst.info['sfreq'] * tmin))

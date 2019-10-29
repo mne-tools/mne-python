@@ -78,7 +78,13 @@ def _make_xy_sfunc(func, ndim_output=False):
 
 # makes score funcs attr accessible for users
 def get_score_funcs():
-    """Get the score functions."""
+    """Get the score functions.
+
+    Returns
+    -------
+    score_funcs : dict
+        The score functions.
+    """
     from scipy import stats
     from scipy.spatial import distance
     score_funcs = Bunch()
@@ -108,10 +114,9 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
     chs = list({channel_type(info, j) for j in picks})
     check = all([ch in types for ch in chs])
     if not check:
-        raise ValueError('Invalid channel type(s) passed for ICA.\n'
-                         'Only the following channels are supported {}\n'
-                         'Following types were passed {}\n'
-                         .format(types, chs))
+        raise ValueError('Invalid channel type%s passed for ICA: %s.'
+                         'Only the following types are supported: %s'
+                         .format(_pl(chs), chs, types))
 
 
 @fill_doc
@@ -321,13 +326,7 @@ class ICA(ContainsMixin):
                  n_pca_components=None, noise_cov=None, random_state=None,
                  method='fastica', fit_params=None, max_iter=200,
                  allow_ref_meg=False, verbose=None):  # noqa: D102
-        _check_option('method', method,
-                      ['fastica', 'infomax', 'extended-infomax', 'picard'])
-        if method == 'extended-infomax':
-            warn("method='extended-infomax' is deprecated and will be removed "
-                 "in 0.19. If you want to use Extended Infomax, specify "
-                 "method='infomax' together with "
-                 "fit_params=dict(extended=True).", DeprecationWarning)
+        _check_option('method', method, ['fastica', 'infomax', 'picard'])
         if method == 'fastica' and not check_version('sklearn', '0.15'):
             raise RuntimeError('The scikit-learn package (version >= 0.15) '
                                'is required for FastICA.')
@@ -363,12 +362,10 @@ class ICA(ContainsMixin):
             fit_params.update({k: v for k, v in update.items() if k
                                not in fit_params})
         elif method == 'infomax':
-            fit_params.update({'extended': False})
-        elif method == 'extended-infomax':
-            fit_params.update({'extended': True})
-            method = 'infomax'
-        if 'max_iter' not in fit_params:
-            fit_params['max_iter'] = max_iter
+            # extended=True is default in underlying function, but we want
+            # default False here unless user specified True:
+            fit_params.setdefault('extended', False)
+        fit_params.setdefault('max_iter', max_iter)
         self.max_iter = max_iter
         self.fit_params = fit_params
 
@@ -1590,10 +1587,10 @@ class ICA(ContainsMixin):
                                    figsize=figsize, show=show, reject=reject)
 
     @copy_function_doc_to_method_doc(plot_ica_sources)
-    def plot_sources(self, inst, picks=None, exclude='deprecated', start=None,
+    def plot_sources(self, inst, picks=None, start=None,
                      stop=None, title=None, show=True, block=False,
                      show_first_samp=False, show_scrollbars=True):
-        return plot_ica_sources(self, inst=inst, picks=picks, exclude=exclude,
+        return plot_ica_sources(self, inst=inst, picks=picks,
                                 start=start, stop=stop, title=title, show=show,
                                 block=block, show_first_samp=show_first_samp,
                                 show_scrollbars=show_scrollbars)
@@ -1832,7 +1829,7 @@ def ica_find_eog_events(raw, eog_source=None, event_id=998, l_freq=1,
     Returns
     -------
     eog_events : array
-        Events
+        Events.
     """
     eog_events = _find_eog_events(eog_source[np.newaxis], event_id=event_id,
                                   l_freq=l_freq, h_freq=h_freq,
@@ -2538,8 +2535,10 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
                          "montage. Consider interpolating bad channels before "
                          "running ICA.")
 
+    threshold_extra = ''
     if threshold == 'auto':
         threshold = np.arange(60, 95, dtype=np.float64) / 100.
+        threshold_extra = ' ("auto")'
 
     all_maps = [ica.get_components().T for ica in icas]
 
@@ -2572,36 +2571,32 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         template_fig.canvas.draw()
 
     # first run: use user-selected map
-    if isinstance(threshold, (int, float)):
-        if len(all_maps) == 0:
-            logger.info('No component detected using find_outliers.'
-                        ' Consider using threshold="auto"')
-            return icas
-        nt, mt, s, mx = _find_max_corrs(all_maps, target, threshold)
-    elif len(threshold) > 1:
-        paths = [_find_max_corrs(all_maps, target, t) for t in threshold]
-        # find iteration with highest avg correlation with target
-        nt, mt, s, mx = paths[np.argmax([path[2] for path in paths])]
+    threshold = np.atleast_1d(np.array(threshold, float)).ravel()
+    threshold_err = ('No component detected using find_outliers when '
+                     'using threshold%s %s, consider using a more lenient '
+                     'threshold' % (threshold_extra, threshold))
+    if len(all_maps) == 0:
+        raise RuntimeError(threshold_err)
+    paths = [_find_max_corrs(all_maps, target, t) for t in threshold]
+    # find iteration with highest avg correlation with target
+    new_target, _, _, _ = paths[np.argmax([path[2] for path in paths])]
 
     # second run: use output from first run
-    if isinstance(threshold, (int, float)):
-        if len(all_maps) == 0 or len(nt) == 0:
-            if threshold > 1:
-                logger.info('No component detected using find_outliers. '
-                            'Consider using threshold="auto"')
-            return icas
-        nt, mt, s, mx = _find_max_corrs(all_maps, nt, threshold)
-    elif len(threshold) > 1:
-        paths = [_find_max_corrs(all_maps, nt, t) for t in threshold]
-        # find iteration with highest avg correlation with target
-        nt, mt, s, mx = paths[np.argmax([path[1] for path in paths])]
+    if len(all_maps) == 0 or len(new_target) == 0:
+        raise RuntimeError(threshold_err)
+    paths = [_find_max_corrs(all_maps, new_target, t) for t in threshold]
+    del new_target
+    # find iteration with highest avg correlation with target
+    _, median_corr, _, max_corrs = paths[
+        np.argmax([path[1] for path in paths])]
 
     allmaps, indices, subjs, nones = [list() for _ in range(4)]
-    logger.info('Median correlation with constructed map: %0.3f' % mt)
+    logger.info('Median correlation with constructed map: %0.3f' % median_corr)
+    del median_corr
     if plot is True:
         logger.info('Displaying selected ICs per subject.')
 
-    for ii, (ica, max_corr) in enumerate(zip(icas, mx)):
+    for ii, (ica, max_corr) in enumerate(zip(icas, max_corrs)):
         if len(max_corr) > 0:
             if isinstance(max_corr[0], np.ndarray):
                 max_corr = max_corr[0]
@@ -2620,9 +2615,9 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     if len(nones) == 0:
         logger.info('At least 1 IC detected for each subject.')
     else:
-        logger.info('No maps selected for subject(s) ' +
-                    ', '.join([str(x) for x in nones]) +
-                    ', consider a more liberal threshold.')
+        logger.info('No maps selected for subject%s %s, '
+                    'consider a more liberal threshold.'
+                    % (_pl(nones), nones))
 
     if plot is True:
         labelled_ics = _plot_corrmap(allmaps, subjs, indices, ch_type, ica,

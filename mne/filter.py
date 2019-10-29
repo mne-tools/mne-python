@@ -891,7 +891,6 @@ def create_filter(data, sfreq, l_freq, h_freq, filter_length='auto',
         * Fs1 = Fp1 - l_trans_bandwidth in Hz
         * Fs2 = Fp2 + h_trans_bandwidth in Hz
 
-
     **Band-stop filter**
 
     The frequency response is (approximately) given by::
@@ -1103,7 +1102,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
         The bandwidth of the multitaper windowing function in Hz.
         Only used in 'spectrum_fit' mode.
     p_value : float
-        p-value to use in F-test thresholding to determine significant
+        P-value to use in F-test thresholding to determine significant
         sinusoidal components to remove when method='spectrum_fit' and
         freqs=None. Note that this will be Bonferroni corrected for the
         number of frequencies, so large p-values may be justified.
@@ -1123,7 +1122,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
     Returns
     -------
     xf : array
-        x filtered.
+        The x array filtered.
 
     See Also
     --------
@@ -1362,7 +1361,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
     Returns
     -------
     y : array
-        x resampled.
+        The x array resampled.
 
     Notes
     -----
@@ -1525,17 +1524,18 @@ def detrend(x, order=1, axis=-1):
         Signal to detrend.
     order : int
         Fit order. Currently must be '0' or '1'.
-    axis : integer
+    axis : int
         Axis of the array to operate on.
 
     Returns
     -------
     y : array
-        x detrended.
+        The x array detrended.
 
     Examples
     --------
-    As in scipy.signal.detrend:
+    As in :func:`scipy.signal.detrend`::
+
         >>> randgen = np.random.RandomState(9)
         >>> npoints = int(1e3)
         >>> noise = randgen.randn(npoints)
@@ -2236,8 +2236,13 @@ def _filt_check_picks(info, picks, h_freq, l_freq):
     # This will pick *all* data channels
     picks = _picks_to_idx(info, picks, 'data_or_ica', exclude=())
     if h_freq is not None or l_freq is not None:
-        data_picks = _picks_to_idx(info, None, 'data_or_ica', exclude=())
-        if np.in1d(data_picks, picks).all():
+        data_picks = _picks_to_idx(info, None, 'data_or_ica', exclude=(),
+                                   allow_empty=True)
+        if len(data_picks) == 0:
+            logger.info('No data channels found. The highpass and '
+                        'lowpass values in the measurement info will not '
+                        'be updated.')
+        elif np.in1d(data_picks, picks).all():
             update_info = True
         else:
             logger.info('Filtering a subset of channels. The highpass and '

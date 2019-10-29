@@ -15,6 +15,7 @@ import os.path as op
 from math import ceil
 import shutil
 import sys
+from datetime import datetime, timedelta, timezone
 
 import numpy as np
 from scipy import sparse
@@ -23,7 +24,7 @@ from ._logging import logger, warn, verbose
 from .check import check_random_state, _ensure_int, _validate_type
 from .linalg import _svd_lwork, _repeated_svd, dgemm, zgemm
 from ..fixes import _infer_dimension_, svd_flip, stable_cumsum, _safe_svd
-from .docs import deprecated, fill_doc
+from .docs import fill_doc
 
 
 def split_list(l, n, idx=False):
@@ -69,12 +70,12 @@ def sum_squared(X):
     Parameters
     ----------
     X : array
-        Data whose norm must be found
+        Data whose norm must be found.
 
     Returns
     -------
     value : float
-        Sum of squares of the input array X
+        Sum of squares of the input array X.
     """
     X_flat = X.ravel(order='F' if np.isfortran(X) else 'C')
     return np.dot(X_flat, X_flat)
@@ -394,33 +395,6 @@ def _check_scaling_inputs(data, picks_list, scalings):
         raise NotImplementedError("No way! That's not a rescaling "
                                   'option: %s' % scalings)
     return scalings_
-
-
-@deprecated('mne.utils.md5sum will be deprecated in 0.19, please use '
-            'mne.utils.hashfunc(... , hash_type="md5") instead.')
-def md5sum(fname, block_size=1048576):  # 2 ** 20
-    """Calculate the md5sum for a file.
-
-    Parameters
-    ----------
-    fname : str
-        Filename.
-    block_size : int
-        Block size to use when reading.
-
-    Returns
-    -------
-    hash_ : str
-        The hexadecimal digest of the hash.
-    """
-    md5 = hashlib.md5()
-    with open(fname, 'rb') as fid:
-        while True:
-            data = fid.read(block_size)
-            if not data:
-                break
-            md5.update(data)
-    return md5.hexdigest()
 
 
 def hashfunc(fname, block_size=1048576, hash_type="md5"):  # 2 ** 20
@@ -751,8 +725,13 @@ def object_diff(a, b, pre=''):
     """
     out = ''
     if type(a) != type(b):
-        out += pre + ' type mismatch (%s, %s)\n' % (type(a), type(b))
-    elif isinstance(a, dict):
+        # Deal with NamedInt and NamedFloat
+        for sub in (int, float):
+            if isinstance(a, sub) and isinstance(b, sub):
+                break
+        else:
+            return pre + ' type mismatch (%s, %s)\n' % (type(a), type(b))
+    if isinstance(a, dict):
         k1s = _sort_keys(a)
         k2s = _sort_keys(b)
         m1 = set(k2s) - set(k1s)
@@ -903,3 +882,98 @@ def _mask_to_onsets_offsets(mask):
         offsets = np.concatenate([offsets, [len(mask)]])
     assert len(onsets) == len(offsets)
     return onsets, offsets
+
+
+def _julian_to_dt(jd):
+    """Convert Julian integer to a datetime object.
+
+    Parameters
+    ----------
+    jd : int
+        Julian date - number of days since julian day 0
+        Julian day number 0 assigned to the day starting at
+        noon on January 1, 4713 BC, proleptic Julian calendar
+        November 24, 4714 BC, in the proleptic Gregorian calendar
+
+    Returns
+    -------
+    jd_date : datetime
+        Datetime representation of jd
+
+    """
+    # https://aa.usno.navy.mil/data/docs/JulianDate.php
+    # Thursday, A.D. 1970 Jan 1 12:00:00.0  2440588.000000
+    jd_t0 = 2440588
+    datetime_t0 = datetime(1970, 1, 1, 12, 0, 0, 0, tzinfo=timezone.utc)
+
+    dt = timedelta(days=(jd - jd_t0))
+    return datetime_t0 + dt
+
+
+def _dt_to_julian(jd_date):
+    """Convert datetime object to a Julian integer.
+
+    Parameters
+    ----------
+    jd_date : datetime
+
+    Returns
+    -------
+    jd : float
+        Julian date corresponding to jd_date
+        - number of days since julian day 0
+        Julian day number 0 assigned to the day starting at
+        noon on January 1, 4713 BC, proleptic Julian calendar
+        November 24, 4714 BC, in the proleptic Gregorian calendar
+
+    """
+    # https://aa.usno.navy.mil/data/docs/JulianDate.php
+    # Thursday, A.D. 1970 Jan 1 12:00:00.0  2440588.000000
+    jd_t0 = 2440588
+    datetime_t0 = datetime(1970, 1, 1, 12, 0, 0, 0, tzinfo=timezone.utc)
+
+    dt = jd_date - datetime_t0
+    return jd_t0 + dt.days
+
+
+def _cal_to_julian(year, month, day):
+    """Convert calendar date (year, month, day) to a Julian integer.
+
+    Parameters
+    ----------
+    year : int
+        Year as an integer.
+    month : int
+        Month as an integer.
+    day : int
+        Day as an integer.
+
+    Returns
+    -------
+    jd: int
+        Julian date.
+    """
+    return int(_dt_to_julian(datetime(year, month, day, 12, 0, 0,
+                                      tzinfo=timezone.utc)))
+
+
+def _julian_to_cal(jd):
+    """Convert calendar date (year, month, day) to a Julian integer.
+
+    Parameters
+    ----------
+    jd: int, float
+        Julian date.
+
+    Returns
+    -------
+    year : int
+        Year as an integer.
+    month : int
+        Month as an integer.
+    day : int
+        Day as an integer.
+
+    """
+    tmp_date = _julian_to_dt(jd)
+    return tmp_date.year, tmp_date.month, tmp_date.day

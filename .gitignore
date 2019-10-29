@@ -79,3 +79,4 @@ cover
 
 .venv/
 venv/
+*.json
