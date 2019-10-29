@@ -48,6 +48,8 @@ Changelog
 
 - :meth:`mne.Epochs.plot` now takes a ``epochs_colors`` parameter to color specific epoch segments by `Mainak Jas`_
 
+- Add command :ref:`gen_mne_setup_forward_model` to quickly create a BEM model for a subject by `Victor Ferat`_.
+
 Bug
 ~~~
 
