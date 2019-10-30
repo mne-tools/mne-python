@@ -13,6 +13,8 @@ from mne.io import read_raw_nirx
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.transforms import apply_trans, _get_trans
 from mne.utils import run_tests_if_main
+from mne.preprocessing._beer_lambert_law import _probe_distances,\
+    _short_channels
 
 fname_nirx_15_0 = op.join(data_path(download=False),
                           'NIRx', 'nirx_15_0_recording')
@@ -45,7 +47,7 @@ def test_nirx_15_2_short():
     # nirsite https://github.com/mne-tools/mne-testing-data/pull/51
     # step 4 figure 2
     allowed_distance_error = 0.0002
-    distances = raw._probe_distances()
+    distances = _probe_distances(raw)
     assert_allclose(distances[::2], [
         0.0304, 0.0078, 0.0310, 0.0086, 0.0416,
         0.0072, 0.0389, 0.0075, 0.0558, 0.0562,
@@ -54,11 +56,11 @@ def test_nirx_15_2_short():
     # Test which channels are short
     # These are the ones marked as red at
     # https://github.com/mne-tools/mne-testing-data/pull/51 step 4 figure 2
-    short_channels = raw._short_channels()
+    short_channels = _short_channels(raw)
     assert_array_equal(short_channels[:9:2], [False, True, False, True, False])
-    short_channels = raw._short_channels(threshold=0.003)
+    short_channels = _short_channels(raw, threshold=0.003)
     assert_array_equal(short_channels[:3:2], [False, False])
-    short_channels = raw._short_channels(threshold=50)
+    short_channels = _short_channels(raw, threshold=50)
     assert_array_equal(short_channels[:3:2], [True, True])
 
     # Test trigger events
@@ -181,7 +183,7 @@ def test_nirx_15_0():
 
     # Test distance between optodes matches values from
     allowed_distance_error = 0.0002
-    distances = raw._probe_distances()
+    distances = _probe_distances(raw)
     assert_allclose(distances[::2], [
         0.0301, 0.0315, 0.0343, 0.0368, 0.0408,
         0.0399, 0.0393, 0.0367, 0.0336, 0.0447], atol=allowed_distance_error)

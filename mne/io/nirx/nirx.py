@@ -278,19 +278,6 @@ class RawNIRX(BaseRaw):
 
         return data
 
-    def _probe_distances(self):
-        """Return the distance between each source-detector pair."""
-        dist = [np.linalg.norm(ch['loc'][3:6] - ch['loc'][6:9])
-                for ch in self.info['chs']]
-        return np.array(dist, float)
-
-    def _short_channels(self, threshold=0.01):
-        """Return a vector indicating which channels are short.
-
-        Channels with distance less than `threshold` are reported as short.
-        """
-        return self._probe_distances() < threshold
-
 
 def _read_csv_rows_cols(fname, start, stop, cols, n_cols):
     # The following is equivalent to:
