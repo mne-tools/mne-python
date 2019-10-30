@@ -16,7 +16,7 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_report, mne_surf2bem, mne_watershed_bem,
                           mne_compare_fiff, mne_flash_bem, mne_show_fiff,
                           mne_show_info, mne_what, mne_setup_source_space,
-                          mne_anonymize)
+                          mne_setup_forward_model, mne_anonymize)
 from mne.datasets import testing, sample
 from mne.io import read_raw_fif, read_info
 from mne.utils import (run_tests_if_main, requires_mne,
@@ -306,6 +306,22 @@ def test_setup_source_space(tmpdir):
                          '-s', 'sample', '--ico', '3', '--spacing', '10',
                          '--oct', '3')):
             assert mne_setup_source_space.run()
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_setup_forward_model(tmpdir):
+    """Test mne setup_source_space."""
+    check_usage(mne_setup_forward_model, force_help=True)
+    # Using the sample dataset
+    subjects_dir = op.join(testing.data_path(download=False), 'subjects')
+    use_fname = op.join(tmpdir, "model-bem.fif")
+    # Test  command
+    with ArgvSetter(('--model', use_fname, '-d', subjects_dir,
+                     '-s', 'sample', '--ico', '3', '--verbose')):
+        mne_setup_forward_model.run()
+    model = read_bem_surfaces(use_fname)
+    assert len(model) == 3
 
 
 def test_show_info():
