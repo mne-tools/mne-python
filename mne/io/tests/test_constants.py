@@ -26,7 +26,11 @@ _dir_ignore_names = ('clear', 'copy', 'fromkeys', 'get', 'items', 'keys',
                      'has_key', 'iteritems', 'iterkeys', 'itervalues',  # Py2
                      'viewitems', 'viewkeys', 'viewvalues',  # Py2
                      )
-_tag_ignore_names = ()  # for fiff-constants pending updates
+_tag_ignore_names = (
+    'FIFFV_MNE_CUSTOM_REF_ON',
+    'FIFFV_MNE_CUSTOM_REF_OFF',
+    'FIFFV_MNE_CUSTOM_REF_CSD',
+)  # for fiff-constants pending updates
 _ignore_incomplete_enums = (  # XXX eventually we could complete these
     'bem_surf_id', 'cardinal_point_cardiac', 'cond_model', 'coord',
     'dacq_system', 'diffusion_param', 'gantry_type', 'map_surf',
@@ -254,7 +258,8 @@ def test_constants(tmpdir):
                     if name.startswith('FIFFV_' + check.upper()):
                         break
                 else:
-                    raise RuntimeError('Could not find %s' % (name,))
+                    if name not in _tag_ignore_names:
+                        raise RuntimeError('Could not find %s' % (name,))
             assert check in used_enums, name
             if 'SSS' in check:
                 raise RuntimeError

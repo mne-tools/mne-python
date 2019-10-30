@@ -128,10 +128,16 @@ def test_apply_reference():
         )
     )
     # Projection concerns channels mentioned in projector
-    pytest.raises(RuntimeError, _apply_reference, raw, ['EEG 001'])
+    with pytest.raises(RuntimeError, match='Inactive signal space'):
+        _apply_reference(raw, ['EEG 001'])
 
     # Projection does not concern channels mentioned in projector, no error
     _apply_reference(raw, ['EEG 003'], ['EEG 004'])
+
+    # CSD cannot be rereferenced
+    raw.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_CSD
+    with pytest.raises(RuntimeError, match="Cannot set.* type 'CSD'"):
+        raw.set_eeg_reference()
 
 
 @testing.requires_testing_data

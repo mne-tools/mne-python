@@ -632,6 +632,12 @@ FIFF.FIFFV_PROJ_ITEM_HOMOG_FIELD    = 5
 FIFF.FIFFV_PROJ_ITEM_EEG_AVREF      = 10  # Linear projection related to EEG average reference
 FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF  = FIFF.FIFFV_PROJ_ITEM_EEG_AVREF  # backward compat alias
 #
+# Custom EEG references
+#
+FIFF.FIFFV_MNE_CUSTOM_REF_OFF       = 0
+FIFF.FIFFV_MNE_CUSTOM_REF_ON        = 1
+FIFF.FIFFV_MNE_CUSTOM_REF_CSD       = 2
+#
 # SSS job options
 #
 FIFF.FIFFV_SSS_JOB_NOTHING          = 0   # No SSS, just copy input to output
