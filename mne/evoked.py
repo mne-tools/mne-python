@@ -18,7 +18,7 @@ from .channels.layout import _merge_grad_data, _pair_grad_sensors
 from .filter import detrend, FilterMixin
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc, _validate_type,
-                    fill_doc, _check_option)
+                    fill_doc, _check_option, ShiftTimeMixin)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
@@ -56,7 +56,7 @@ _aspect_rev = {val: key for key, val in _aspect_dict.items()}
 @fill_doc
 class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              InterpolationMixin, FilterMixin, ToDataFrameMixin, TimeMixin,
-             SizeMixin):
+             SizeMixin, ShiftTimeMixin):
     """Evoked data.
 
     Parameters
@@ -230,8 +230,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'],
                           include_tmax=include_tmax)
         self.times = self.times[mask]
-        self.first = int(self.times[0] * self.info['sfreq'])
-        self.last = len(self.times) + self.first - 1
+        self._update_first_last()
         self.data = self.data[:, mask]
         return self
 
@@ -278,40 +277,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self.times = self.times[decim_slice].copy()
         self.first = int(self.times[0] * self.info['sfreq'])
         self.last = len(self.times) + self.first - 1
-        return self
-
-    def shift_time(self, tshift, relative=True):
-        """Shift time scale in evoked data.
-
-        Parameters
-        ----------
-        tshift : float
-            The amount of time shift to be applied if relative is True
-            else the first time point. When relative is True, positive value
-            of tshift moves the data forward while negative tshift moves it
-            backward.
-        relative : bool
-            If true, move the time backwards or forwards by specified amount.
-            Else, set the starting time point to the value of tshift.
-
-        Returns
-        -------
-        evoked : instance of Evoked
-            The modified Evoked instance.
-
-        Notes
-        -----
-        Maximum accuracy of time shift is 1 / evoked.info['sfreq']
-        """
-        times = self.times
-        sfreq = self.info['sfreq']
-
-        offset = self.first if relative else 0
-
-        self.first = int(tshift * sfreq) + offset
-        self.last = self.first + len(times) - 1
-        self.times = np.arange(self.first, self.last + 1,
-                               dtype=np.float) / sfreq
         return self
 
     @copy_function_doc_to_method_doc(plot_evoked)
