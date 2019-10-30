@@ -156,7 +156,8 @@ class _Renderer(_BaseRenderer):
             surface.actor.property.backface_culling = backface_culling
 
     def sphere(self, center, color, scale, opacity=1.0,
-               resolution=8, backface_culling=False):
+               resolution=8, backface_culling=False,
+               radius=None):
         color = _check_color(color)
         center = np.atleast_2d(center)
         x, y, z = center.T

@@ -114,7 +114,7 @@ def test_3d_backend(renderer):
 
     # use sphere
     rend.sphere(center=sph_center, color=sph_color,
-                scale=sph_scale)
+                scale=sph_scale, radius=1.0)
 
     # use quiver3d
     rend.quiver3d(x=qv_center[:, 0],

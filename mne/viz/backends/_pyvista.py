@@ -229,18 +229,22 @@ class _Renderer(_BaseRenderer):
                                   smooth_shading=self.figure.smooth_shading)
 
     def sphere(self, center, color, scale, opacity=1.0,
-               resolution=8, backface_culling=False):
+               resolution=8, backface_culling=False,
+               radius=None):
+        factor = 1.0 if radius is not None else scale
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             from pyvista import PolyData
             sphere = vtk.vtkSphereSource()
             sphere.SetThetaResolution(resolution)
             sphere.SetPhiResolution(resolution)
+            if radius is not None:
+                sphere.SetRadius(radius)
             sphere.Update()
             geom = sphere.GetOutput()
             pd = PolyData(center)
             self.plotter.add_mesh(pd.glyph(orient=False, scale=False,
-                                           factor=scale, geom=geom),
+                                           factor=factor, geom=geom),
                                   color=color, opacity=opacity,
                                   backface_culling=backface_culling,
                                   smooth_shading=self.figure.smooth_shading)

@@ -129,7 +129,8 @@ class _BaseRenderer(metaclass=ABCMeta):
 
     @abstractclassmethod
     def sphere(self, center, color, scale, opacity=1.0,
-               resolution=8, backface_culling=False):
+               resolution=8, backface_culling=False,
+               radius=None):
         """Add sphere in the scene.
 
         Parameters
@@ -150,6 +151,9 @@ class _BaseRenderer(metaclass=ABCMeta):
             of divisions along theta and phi.
         backface_culling: bool
             If True, enable backface culling on the sphere(s).
+        radius: float | None
+            Replace the glyph scaling by a fixed radius value for each
+            sphere (not supported by mayavi).
         """
         pass
 
