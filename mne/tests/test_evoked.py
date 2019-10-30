@@ -252,6 +252,13 @@ def test_shift_time_evoked():
     assert_allclose(ave_normal.data, ave_absolute.data, atol=1e-16, rtol=1e-3)
     assert_equal(ave_absolute.first, int(-0.3 * ave.info['sfreq']))
 
+    # subsample shift
+    shift = 1e-6  # 1 μs, should be well below 1/sfreq
+    ave = read_evokeds(fname, 0)
+    times = ave.times
+    ave.shift_time(shift)
+    assert_allclose(times + shift, ave.times, atol=1e-16, rtol=1e-12)
+
 
 def test_evoked_resample():
     """Test resampling evoked data."""
