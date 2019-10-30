@@ -8,6 +8,7 @@ import os.path as op
 
 import re as re
 import numpy as np
+from scipy import linalg
 
 from .. import rename_channels
 from ..io import BaseRaw
@@ -42,7 +43,7 @@ def beer_lambert_law(raw, ppf=0.1):
     for ii in picks[::2]:
 
         EL = abs_coef * distances[ii] * ppf
-        iEL = np.linalg.pinv(EL)
+        iEL = linalg.pinv(EL)
 
         raw._data[[ii, ii + 1]] = (raw._data[[ii, ii + 1]].T @ iEL.T).T * 1e-3
 
@@ -123,7 +124,7 @@ def _load_absorption(freqs):
 
 def _probe_distances(raw):
     """Return the distance between each source-detector pair."""
-    dist = [np.linalg.norm(ch['loc'][3:6] - ch['loc'][6:9])
+    dist = [linalg.norm(ch['loc'][3:6] - ch['loc'][6:9])
             for ch in raw.info['chs']]
     return np.array(dist, float)
 
