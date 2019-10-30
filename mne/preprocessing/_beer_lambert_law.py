@@ -103,8 +103,8 @@ def _load_absorption(freqs):
     # extinct_coef=importdata('extinction_coef.txt')
     # save('extinction_coef.mat', 'extinct_coef')
     #
-    # Returns data as [[HbO2(freq1), HbO2(freq1),
-    #                  [Hb(freq2)], Hb(freq2)]]
+    # Returns data as [[HbO2(freq1), Hb(freq1)],
+    #                  [HbO2(freq2), Hb(freq2)]]
     from scipy.io import loadmat
     from scipy.interpolate import interp1d
 
