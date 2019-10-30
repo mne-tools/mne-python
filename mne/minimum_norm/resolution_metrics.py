@@ -122,19 +122,19 @@ def _localisation_error(resmat, src, function, metric):
 
     Parameters
     ----------
-    resmat: array, shape (n_orient*n_locations, n_locations)
+    resmat : array, shape (n_orient*n_locations, n_locations)
         The resolution matrix.
         If not a square matrix and if the number of rows is a multiple of
         number of columns (i.e. n_orient>1), then the Euclidean length per
         source location is computed (e.g. if inverse operator with free
         orientations was applied to foward solution with fixed orientations).
-    src: Source Space
+    src : Source Space
         Source space object from forward or inverse operator.
-    function: str
+    function : str
         'psf'|'ctf'
         Whether to compute metrics for columns (point-spread functions, PSFs)
         or rows (cross-talk functions, CTFs).
-    metric: str
+    metric : str
         What type of localisation error to compute.
         'peak': Peak localisation error (PLE), Euclidean distance between peak
                 and true source location, in centimeters.
@@ -143,7 +143,7 @@ def _localisation_error(resmat, src, function, metric):
 
     Returns
     -------
-    locerr: array, shape (n_locations,)
+    locerr : array, shape (n_locations,)
         Localisation error per location (in cm).
     """
     # ensure resolution matrix is square
