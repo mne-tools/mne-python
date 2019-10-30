@@ -10,7 +10,6 @@ import re as re
 import numpy as np
 from scipy import linalg
 
-from .. import rename_channels
 from ..io import BaseRaw
 from ..io.pick import _picks_to_idx
 from ..io.constants import FIFF
