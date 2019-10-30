@@ -60,7 +60,7 @@ def run():
                       help='Use a single compartment model (brain only) '
                            'instead a three layer one (scalp, skull, and '
                            ' brain). If this flag is specified, the options '
-                           '--brainc, --skullc, and --scalpc are irrelevant.',
+                           '--skullc and --scalpc are irrelevant.',
                       default=None, action="store_true")
     parser.add_option('-d', '--subjects-dir',
                       dest='subjects_dir',
