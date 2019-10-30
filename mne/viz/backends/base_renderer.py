@@ -141,11 +141,13 @@ class _BaseRenderer(metaclass=ABCMeta):
             values between 0 and 1 or a valid color name (i.e. 'white'
             or 'w').
         scale: float
-            The scale of the sphere(s).
+            The scaling applied to the spheres. The given value specifies
+            the maximum size in drawing units.
         opacity: float
             The opacity of the sphere(s).
         resolution: int
-            The resolution of the sphere.
+            The resolution of the sphere created. This is the number
+            of divisions along theta and phi.
         backface_culling: bool
             If True, enable backface culling on the sphere(s).
         """
@@ -219,11 +221,15 @@ class _BaseRenderer(metaclass=ABCMeta):
             values between 0 and 1 or a valid color name (i.e. 'white'
             or 'w').
         scale: float
-            The scale of the quiver.
+            The scaling applied to the glyphs. The size of the glyph
+            is by default calculated from the inter-glyph spacing.
+            The given value specifies the maximum glyph size in drawing units.
         mode: 'arrow', 'cone' or 'cylinder'
             The type of the quiver.
         resolution: int
-            The resolution of the arrow.
+            The resolution of the glyph created. Depending on the type of
+            glyph, it represents the number of divisions in its geometric
+            representation.
         glyph_height: float
             The height of the glyph used with the quiver.
         glyph_center: tuple
