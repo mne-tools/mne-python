@@ -505,5 +505,5 @@ class ShiftTimeMixin(object):
 
     def _update_first_last(self):
         """Update self.first and self.last (sample indices)."""
-        self.first = int(self.times[0] * self.info['sfreq'])
+        self.first = round(self.times[0] * self.info['sfreq'])
         self.last = len(self.times) + self.first - 1
