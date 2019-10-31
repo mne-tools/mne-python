@@ -30,7 +30,7 @@ def run():
                       help='Specify the name of the file containing the'
                            'triangulation and conductivity information '
                            'together with the BEM geometry matrix computed by '
-                           'mne_prepare_bem_model . The standard ending for '
+                           'mne_prepare_bem_model. The standard ending for '
                            'this file is -bem-sol.fif.',
                       metavar='FILE', default=None)
     _add_verbose_flag(parser)
