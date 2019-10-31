@@ -10,7 +10,6 @@ import re as re
 import numpy as np
 from scipy import linalg
 
-from .. import rename_channels
 from ..io import BaseRaw
 from ..io.pick import _picks_to_idx
 from ..io.constants import FIFF
@@ -47,18 +46,14 @@ def beer_lambert_law(raw, ppf=0.1):
 
         raw._data[[ii, ii + 1]] = (raw._data[[ii, ii + 1]].T @ iEL.T).T * 1e-3
 
-        raw.info['chs'][ii]['coil_type'] = FIFF.FIFFV_COIL_FNIRS_HBO
-        raw.info['chs'][ii + 1]['coil_type'] = FIFF.FIFFV_COIL_FNIRS_HBR
-
-        raw.info['chs'][ii]['unit'] = FIFF.FIFF_UNIT_MOL
-        raw.info['chs'][ii + 1]['unit'] = FIFF.FIFF_UNIT_MOL
-
-        rename_channels(raw.info, {raw.info['chs'][ii]['ch_name']:
-                                   raw.info['chs'][ii]['ch_name'][:-4] +
-                                   ' hbo'})
-        rename_channels(raw.info, {raw.info['chs'][ii + 1]['ch_name']:
-                                   raw.info['chs'][ii + 1]['ch_name'][:-4] +
-                                   ' hbr'})
+        # Update channel information
+        coil_dict = dict(hbo=FIFF.FIFFV_COIL_FNIRS_HBO,
+                         hbr=FIFF.FIFFV_COIL_FNIRS_HBR)
+        for ki, kind in enumerate(('hbo', 'hbr')):
+            ch = raw.info['chs'][ii + ki]
+            ch.update(coil_type=coil_dict[kind], unit=FIFF.FIFF_UNIT_MOL)
+            raw.rename_channels({
+                ch['ch_name']: '%s %s' % (ch['ch_name'][:-4], kind)})
 
     return raw
 
@@ -116,7 +111,7 @@ def _load_absorption(freqs):
     interp_hb = interp1d(a[:, 0], a[:, 2], kind='linear')
 
     ext_coef = np.array([[interp_hbo(freqs[0]), interp_hb(freqs[0])],
-                        [interp_hbo(freqs[1]), interp_hb(freqs[1])]])
+                         [interp_hbo(freqs[1]), interp_hb(freqs[1])]])
     abs_coef = ext_coef * 0.2303
 
     return abs_coef
