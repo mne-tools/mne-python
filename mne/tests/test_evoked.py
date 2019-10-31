@@ -51,14 +51,14 @@ def test_decim():
     assert_array_equal(evoked_dec.data, evoked_dec_3.data)
 
     # Check proper updating of various fields
-    assert evoked_dec.first == -1
-    assert evoked_dec.last == 2
+    assert evoked_dec.first == -2
+    assert evoked_dec.last == 1
     assert_array_equal(evoked_dec.times, [-1, -0.4, 0.2, 0.8])
-    assert evoked_dec_2.first == -1
-    assert evoked_dec_2.last == 2
+    assert evoked_dec_2.first == -2
+    assert evoked_dec_2.last == 1
     assert_array_equal(evoked_dec_2.times, [-0.9, -0.3, 0.3, 0.9])
-    assert evoked_dec_3.first == -1
-    assert evoked_dec_3.last == 2
+    assert evoked_dec_3.first == -2
+    assert evoked_dec_3.last == 1
     assert_array_equal(evoked_dec_3.times, [-1, -0.4, 0.2, 0.8])
 
     # Now let's do it with some real data
