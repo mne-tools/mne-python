@@ -53,7 +53,7 @@ def data_path(dataset='evoked', path=None, force_update=False,
     destdir = op.join(path, 'HF_SEF')
 
     urls = {'evoked':
-            'https://osf.io/25f8d/download?version=1',
+            'https://zenodo.org/record/3523071/files/hf_sef_evoked.tar.gz',
             'raw':
             'https://zenodo.org/record/889296/files/hf_sef_raw.tar.gz'}
     hashes = {'evoked': 'a3e36f006dcece8f1da50b602bfc9cbe',
