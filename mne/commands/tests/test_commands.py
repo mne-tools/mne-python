@@ -340,7 +340,7 @@ def test_mne_prepare_bem_model(tmpdir):
                      '--verbose')):
         mne_prepare_bem_model.run()
     bem_solution = read_bem_solution(bem_solution_fname)
-    assert isInstance(bem_solution, ConductorModel)
+    assert isinstance(bem_solution, ConductorModel)
 
 
 def test_show_info():
