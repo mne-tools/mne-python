@@ -64,8 +64,8 @@ def test_decim():
     # make sure the time nearest zero is also sample number 0.
     for ev in (evoked_dec, evoked_dec_2, evoked_dec_3):
         lowest_index = np.argmin(np.abs(np.arange(ev.first, ev.last)))
-        idxs_of_times_nearest_zero = (np.where(np.abs(ev.times) ==
-                                      np.min(np.abs(ev.times)))[0])
+        idxs_of_times_nearest_zero = \
+            np.where(np.abs(ev.times) == np.min(np.abs(ev.times)))[0]
         # we use `in` here in case two times are equidistant from 0.
         assert lowest_index in idxs_of_times_nearest_zero
         assert len(idxs_of_times_nearest_zero) in (1, 2)
