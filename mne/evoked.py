@@ -683,7 +683,7 @@ class EvokedArray(Evoked):
 
         self.data = data
 
-        self.first = round(tmin * info['sfreq'])
+        self.first = int(round(tmin * info['sfreq']))
         self.last = self.first + np.shape(data)[-1] - 1
         self.times = np.arange(self.first, self.last + 1,
                                dtype=np.float) / info['sfreq']
