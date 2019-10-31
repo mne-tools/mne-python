@@ -61,6 +61,15 @@ def test_decim():
     assert evoked_dec_3.last == 1
     assert_array_equal(evoked_dec_3.times, [-1, -0.4, 0.2, 0.8])
 
+    # make sure the time nearest zero is also sample number 0.
+    for ev in (evoked_dec, evoked_dec_2, evoked_dec_3):
+        lowest_index = np.argmin(np.abs(np.arange(ev.first, ev.last)))
+        idxs_of_times_nearest_zero = (np.where(np.abs(ev.times) ==
+                                      np.min(np.abs(ev.times)))[0])
+        # we use `in` here in case two times are equidistant from 0.
+        assert lowest_index in idxs_of_times_nearest_zero
+        assert len(idxs_of_times_nearest_zero) in (1, 2)
+
     # Now let's do it with some real data
     raw = read_raw_fif(raw_fname)
     events = read_events(event_name)
