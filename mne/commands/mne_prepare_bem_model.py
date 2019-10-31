@@ -21,17 +21,16 @@ def run():
     parser = get_optparser(__file__)
 
     parser.add_option('--bem', dest='bem_fname',
-                      help='Specify the name of the file containing the '
+                      help='The name of the file containing the '
                            'triangulations of the BEM surfaces and the '
                            'conductivities of the compartments. The standard '
                            'ending for this file is -bem.fif.',
                       metavar="FILE")
     parser.add_option('--sol', dest='bem_sol_fname',
-                      help='Specify the name of the file containing the'
-                           'triangulation and conductivity information '
-                           'together with the BEM geometry matrix computed by '
-                           'mne_prepare_bem_model. The standard ending for '
-                           'this file is -bem-sol.fif.',
+                      help='The name of the resulting file containing BEM '
+                           'solution (geometry matrix). It uses the linear '
+                           'collocation approach. The file should end with '
+                           '-bem-sof.fif.',
                       metavar='FILE', default=None)
     _add_verbose_flag(parser)
 
