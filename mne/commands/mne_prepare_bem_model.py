@@ -5,7 +5,7 @@ Examples
 --------
 .. code-block:: console
 
-    $ mne preapre_bem_model --bem sample-5120-5120-5120-bem.fif
+    $ mne prepare_bem_model --bem sample-5120-5120-5120-bem.fif
 
 """
 
