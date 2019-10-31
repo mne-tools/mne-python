@@ -259,6 +259,16 @@ def test_shift_time_evoked():
     ave.shift_time(shift)
     assert_allclose(times + shift, ave.times, atol=1e-16, rtol=1e-12)
 
+    # test handling of Evoked.first, Evoked.last
+    ave = read_evokeds(fname, 0)
+    first_last = np.array([ave.first, ave.last])
+    # should shift by 0 samples
+    ave.shift_time(1e-6)
+    assert_array_equal(first_last, np.array([ave.first, ave.last]))
+    # should shift by 57 samples
+    ave.shift_time(57. / ave.info['sfreq'])
+    assert_array_equal(first_last + 57, np.array([ave.first, ave.last]))
+
 
 def test_evoked_resample():
     """Test resampling evoked data."""
