@@ -924,7 +924,7 @@ class InterpolationMixin(object):
 
     @verbose
     def interpolate_bads(self, reset_bads=True, mode='accurate',
-                         origin=(0., 0., 0.04), verbose=None):
+                         origin='auto', verbose=None):
         """Interpolate bad MEG and EEG channels.
 
         Operates in place.
@@ -939,8 +939,8 @@ class InterpolationMixin(object):
             channels.
         origin : array-like, shape (3,) | str
             Origin of the sphere in the head coordinate frame and in meters.
-            Can be ``'auto'``, which means a head-digitization-based origin
-            fit. Default is ``(0., 0., 0.04)``.
+            Can be ``'auto'`` (default), which means a head-digitization-based
+            origin fit.
 
             .. versionadded:: 0.17
         %(verbose_meth)s
@@ -954,6 +954,7 @@ class InterpolationMixin(object):
         -----
         .. versionadded:: 0.9.0
         """
+        from ..bem import _check_origin
         from .interpolation import _interpolate_bads_eeg, _interpolate_bads_meg
 
         _check_preload(self, "interpolation")
@@ -961,8 +962,8 @@ class InterpolationMixin(object):
         if len(self.info['bads']) == 0:
             warn('No bad channels to interpolate. Doing nothing...')
             return self
-
-        _interpolate_bads_eeg(self)
+        origin = _check_origin(origin, self.info)
+        _interpolate_bads_eeg(self, origin=origin)
         _interpolate_bads_meg(self, mode=mode, origin=origin)
 
         if reset_bads is True:
