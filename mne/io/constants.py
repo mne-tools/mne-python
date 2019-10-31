@@ -779,6 +779,7 @@ FIFF.FIFF_UNIT_H   = 113  # Henry
 FIFF.FIFF_UNIT_CEL = 114  # celsius
 FIFF.FIFF_UNIT_LM  = 115  # lumen
 FIFF.FIFF_UNIT_LX  = 116  # lux
+FIFF.FIFF_UNIT_V_M2 = 117  # V/m^2
 #
 # Others we need
 #
