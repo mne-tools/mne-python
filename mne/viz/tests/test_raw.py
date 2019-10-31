@@ -6,15 +6,13 @@ import numpy as np
 import os.path as op
 import itertools
 from distutils.version import LooseVersion
-import logging
 
 from numpy.testing import assert_allclose
 import pytest
 import matplotlib
 import matplotlib.pyplot as plt
 
-from mne import read_events, pick_types, Annotations, create_info,\
-    set_log_level
+from mne import read_events, pick_types, Annotations, create_info
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_ctf, RawArray
 from mne.utils import run_tests_if_main
@@ -423,10 +421,9 @@ def test_plot_raw_psd():
     raw.plot_psd(picks=picks, average=False)
     raw.plot_psd(picks=picks, average=True)
     plt.close('all')
-    old_log_level = set_log_level(logging.CRITICAL)
     raw.set_channel_types({'MEG 0113': 'hbo', 'MEG 0112': 'hbr',
-                           'MEG 0122': 'fnirs_raw', 'MEG 0123': 'fnirs_od'})
-    set_log_level(old_log_level)
+                           'MEG 0122': 'fnirs_raw', 'MEG 0123': 'fnirs_od'},
+                          verbose='error')
     fig = raw.plot_psd()
     assert len(fig.axes) == 10
 
