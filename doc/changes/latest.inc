@@ -40,6 +40,10 @@ Changelog
 
 - Add reader for NIRx data in :func:`mne.io.read_raw_nirx` by `Robert Luke`_
 
+- Add function to convert NIRS data to optical density :func:`mne.preprocessing.optical_density` by `Robert Luke`_
+
+- Add function to convert NIRS data to haemoglobin concentration :func:`mne.preprocessing.beer_lambert_law` by `Robert Luke`_
+
 - Add reader for ``*.dat`` electrode position files :func:`mne.channels.read_dig_dat` by `Christian Brodbeck`_
 
 - Improved :ref:`limo-dataset` usage and :ref:`example <ex-limo-data>` for usage of :func:`mne.stats.linear_regression` by `Jose Alanis`_
@@ -47,6 +51,8 @@ Changelog
 - For KIT systems without built-in layout, :func:`mne.channels.find_layout` now falls back on an automatically generated layout, by `Christian Brodbeck`_
 
 - :meth:`mne.Epochs.plot` now takes a ``epochs_colors`` parameter to color specific epoch segments by `Mainak Jas`_
+
+- Add command :ref:`gen_mne_setup_forward_model` to quickly create a BEM model for a subject by `Victor Ferat`_.
 
 Bug
 ~~~
@@ -58,6 +64,8 @@ Bug
 - Fix bug in :func:`mne.write_evokeds` where ``evoked.nave`` was not saved properly when multiple :class:`~mne.Evoked` instances were written to a single file, by `Eric Larson`_
 
 - Fix bug in :func:`mne.preprocessing.mark_flat` where acquisition skips were not handled proeprly, by `Eric Larson`_
+
+- Fix bug in :func:`mne.viz.plot_bem` where some sources were not plotted by `Jean-Remi King`_ and `Eric Larson`_
 
 - Fix TAL channel parsing (annotations) for EDF-D files by `Clemens Brunner`_
 

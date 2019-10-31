@@ -308,7 +308,7 @@ def test_plot_psd_epochs():
     epochs.plot_psd_topomap()
 
     # with a flat channel
-    err_str = r'channel\(s\) (%s){1}\.' % epochs.ch_names[2]
+    err_str = 'for channel %s' % epochs.ch_names[2]
     epochs.get_data()[0, 2, :] = 0
     for dB in [True, False]:
         with pytest.warns(UserWarning, match=err_str):
@@ -354,9 +354,8 @@ def test_plot_psd_epochs_ctf():
     epochs.plot_psd_topomap()
 
     # EEG060 is flat in this dataset
-    err_str = r'channel\(s\) EEG060\.'
     for dB in [True, False]:
-        with pytest.warns(UserWarning, match=err_str):
+        with pytest.warns(UserWarning, match='for channel EEG060'):
             epochs.plot_psd(dB=dB)
     epochs.drop_channels(['EEG060'])
     epochs.plot_psd(spatial_colors=False, average=False)

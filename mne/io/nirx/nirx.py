@@ -116,8 +116,10 @@ class RawNIRX(BaseRaw):
         hdr.read_string(hdr_str)
 
         # Check that the file format version is supported
-        if hdr['GeneralInfo']['NIRStar'] != "\"15.2\"":
-            raise RuntimeError('Only NIRStar version 15.2 is supported')
+        if not any(item == hdr['GeneralInfo']['NIRStar'] for item in
+                   ["\"15.0\"", "\"15.2\""]):
+            raise RuntimeError('MNE does not support this NIRStar version'
+                               ' (%s)' % (hdr['GeneralInfo']['NIRStar'],))
 
         # Parse required header fields
 
@@ -133,11 +135,13 @@ class RawNIRX(BaseRaw):
                                 hdr['DataStructure']['S-D-Key'])], int)
 
         # Determine if short channels are present and on which detectors
-        has_short = np.array(hdr['ImagingParameters']['ShortBundles'], int)
-        short_det = [int(s) for s in
-                     re.findall(r'(\d+)',
-                     hdr['ImagingParameters']['ShortDetIndex'])]
-        short_det = np.array(short_det, int)
+        if 'shortbundles' in hdr['ImagingParameters']:
+            short_det = [int(s) for s in
+                         re.findall(r'(\d+)',
+                         hdr['ImagingParameters']['ShortDetIndex'])]
+            short_det = np.array(short_det, int)
+        else:
+            short_det = []
 
         # Extract sampling rate
         samplingrate = float(hdr['ImagingParameters']['SamplingRate'])
@@ -222,12 +226,10 @@ class RawNIRX(BaseRaw):
             info['chs'][ch_idx2 * 2 + 1]['loc'][6:9] = det_locs[det, :]
             # Store channel location
             # Channel locations for short channels are bodged,
-            # for short channels use the source location and add small offset
-            if (has_short > 0) & (len(np.where(short_det == det + 1)[0]) > 0):
+            # for short channels use the source location.
+            if det + 1 in short_det:
                 info['chs'][ch_idx2 * 2]['loc'][:3] = src_locs[src, :]
                 info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = src_locs[src, :]
-                info['chs'][ch_idx2 * 2]['loc'][0] += 0.8
-                info['chs'][ch_idx2 * 2 + 1]['loc'][0] += 0.8
             else:
                 info['chs'][ch_idx2 * 2]['loc'][:3] = ch_locs[ch_idx2, :]
                 info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = ch_locs[ch_idx2, :]
@@ -275,19 +277,6 @@ class RawNIRX(BaseRaw):
         data[:] = this_data[idx]
 
         return data
-
-    def _probe_distances(self):
-        """Return the distance between each source-detector pair."""
-        dist = [np.linalg.norm(ch['loc'][3:6] - ch['loc'][6:9])
-                for ch in self.info['chs']]
-        return np.array(dist, float)
-
-    def _short_channels(self, threshold=0.01):
-        """Return a vector indicating which channels are short.
-
-        Channels with distance less than `threshold` are reported as short.
-        """
-        return self._probe_distances() < threshold
 
 
 def _read_csv_rows_cols(fname, start, stop, cols, n_cols):

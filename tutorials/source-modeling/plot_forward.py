@@ -8,8 +8,7 @@ The aim of this tutorial is to be a getting started for forward
 computation.
 
 For more extensive details and presentation of the general
-concepts for forward modeling. See :ref:`ch_forward`.
-
+concepts for forward modeling, see :ref:`ch_forward`.
 """
 
 import os.path as op
@@ -57,25 +56,23 @@ subject = 'sample'
 # MEG 1 layer (inner skull) is enough.
 #
 # Let's look at these surfaces. The function :func:`mne.viz.plot_bem`
-# assumes that you have the the *bem* folder of your subject FreeSurfer
-# reconstruction the necessary files.
+# assumes that you have the ``bem`` folder of your subject's FreeSurfer
+# reconstruction, containing the necessary files.
 
 mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
                  brain_surfaces='white', orientation='coronal')
 
 ###############################################################################
-# Visualization the coregistration
-# --------------------------------
+# Visualizing the coregistration
+# ------------------------------
 #
-# The coregistration is operation that allows to position the head and the
+# The coregistration is the operation that allows to position the head and the
 # sensors in a common coordinate system. In the MNE software the transformation
 # to align the head and the sensors in stored in a so-called **trans file**.
 # It is a FIF file that ends with ``-trans.fif``. It can be obtained with
 # :func:`mne.gui.coregistration` (or its convenient command line
 # equivalent :ref:`gen_mne_coreg`), or mrilab if you're using a Neuromag
 # system.
-#
-# For the Python version see :func:`mne.gui.coregistration`
 #
 # Here we assume the coregistration is done, so we just visually check the
 # alignment with the following code.
@@ -155,8 +152,15 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
                  brain_surfaces='white', src=vol_src, orientation='coronal')
 
 ###############################################################################
-# With the surface-based source space only sources that lie in the plotted MRI
-# slices are shown. Let's see how to view all sources in 3D.
+# .. note:: Some sources may appear to be outside the BEM inner skull contour.
+#           This is because the ``slices`` are decimated for plotting here.
+#           Each slice in the figure actually represents several MRI slices,
+#           but only the MRI voxels and BEM boundaries for a single (midpoint
+#           of the given slice range) slice are shown, whereas the source space
+#           points plotted on that midpoint slice consist of all points
+#           for which that slice (out of all slices shown) was the closest.
+#
+# Now let's see how to view all sources in 3D.
 
 fig = mne.viz.plot_alignment(subject=subject, subjects_dir=subjects_dir,
                              surfaces='white', coord_frame='head',
@@ -173,10 +177,8 @@ mne.viz.set_3d_view(fig, azimuth=173.78, elevation=101.75,
 # We can now compute the forward solution.
 # To reduce computation we'll just compute a single layer BEM (just inner
 # skull) that can then be used for MEG (not EEG).
-#
 # We specify if we want a one-layer or a three-layer BEM using the
-# conductivity parameter.
-#
+# ``conductivity`` parameter.
 # The BEM solution requires a BEM model which describes the geometry
 # of the head the conductivities of the different tissues.
 
@@ -194,15 +196,15 @@ bem = mne.make_bem_solution(model)
 #
 # Let's now compute the forward operator, commonly referred to as the
 # gain or leadfield matrix.
-#
-# See :func:`mne.make_forward_solution` for details on parameters meaning.
+# See :func:`mne.make_forward_solution` for details on the meaning of each
+# parameter.
 
 fwd = mne.make_forward_solution(raw_fname, trans=trans, src=src, bem=bem,
                                 meg=True, eeg=False, mindist=5.0, n_jobs=2)
 print(fwd)
 
 ###############################################################################
-# We can explore the content of fwd to access the numpy array that contains
+# We can explore the content of ``fwd`` to access the numpy array that contains
 # the gain matrix.
 
 leadfield = fwd['sol']['data']
@@ -210,7 +212,7 @@ print("Leadfield size : %d sensors x %d dipoles" % leadfield.shape)
 
 ###############################################################################
 # To extract the numpy array containing the forward operator corresponding to
-# the source space `fwd['src']` with cortical orientation constraint
+# the source space ``fwd['src']`` with cortical orientation constraint
 # we can use the following:
 
 fwd_fixed = mne.convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
@@ -233,7 +235,7 @@ leadfield = mne.apply_forward(fwd_fixed, stc, info).data / 1e-9
 # To save to disk a forward solution you can use
 # :func:`mne.write_forward_solution` and to read it back from disk
 # :func:`mne.read_forward_solution`. Don't forget that FIF files containing
-# forward solution should end with *-fwd.fif*.
+# forward solution should end with :file:`-fwd.fif`.
 #
 # To get a fixed-orientation forward solution, use
 # :func:`mne.convert_forward_solution` to convert the free-orientation
