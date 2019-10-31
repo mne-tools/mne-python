@@ -31,6 +31,7 @@ _tag_ignore_names = (
     'FIFFV_MNE_CUSTOM_REF_OFF',
     'FIFFV_MNE_CUSTOM_REF_CSD',
     'FIFF_UNIT_V_M2',
+    'FIFFV_COIL_EEG_CSD',
 )  # for fiff-constants pending updates
 _ignore_incomplete_enums = (  # XXX eventually we could complete these
     'bem_surf_id', 'cardinal_point_cardiac', 'cond_model', 'coord',

@@ -817,6 +817,7 @@ FIFF.FIFFV_COIL_NM_122                = 2  # Neuromag 122 coils
 FIFF.FIFFV_COIL_NM_24                 = 3  # Old 24 channel system in HUT
 FIFF.FIFFV_COIL_NM_MCG_AXIAL          = 4  # The axial devices in the HUCS MCG system
 FIFF.FIFFV_COIL_EEG_BIPOLAR           = 5  # Bipolar EEG lead
+FIFF.FIFFV_COIL_EEG_CSD               = 6  # CSD-transformed EEG lead
 
 FIFF.FIFFV_COIL_DIPOLE             = 200  # Time-varying dipole definition
 # The coil info contains dipole location (r0) and
