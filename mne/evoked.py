@@ -277,6 +277,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self.times = self.times[decim_slice].copy()
         self.first = int(self.times[0] * self.info['sfreq'])
         self.last = len(self.times) + self.first - 1
+        # self._update_first_last()
         return self
 
     @copy_function_doc_to_method_doc(plot_evoked)
