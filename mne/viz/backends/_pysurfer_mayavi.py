@@ -60,7 +60,6 @@ class _Renderer(_BaseRenderer):
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
                  name=None, show=False, shape=(1, 1)):
         self.mlab = _import_mlab()
-        self.window_size = size
         self.shape = shape
         if fig is None:
             self.fig = _mlab_figure(figure=name, bgcolor=bgcolor, size=size)
@@ -68,6 +67,7 @@ class _Renderer(_BaseRenderer):
             self.fig = _mlab_figure(figure=fig, bgcolor=bgcolor, size=size)
         else:
             self.fig = fig
+        self.fig.window_size = size
         _toggle_mlab_render(self.fig, show)
 
     def subplot(self, x, y):
@@ -251,7 +251,7 @@ class _Renderer(_BaseRenderer):
             _toggle_mlab_render(self.fig, True)
 
     def close(self):
-        self.mlab.close(self.fig)
+        _close_3d_figure(figure=self.fig)
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
                    focalpoint=None):
@@ -260,16 +260,8 @@ class _Renderer(_BaseRenderer):
                      focalpoint=focalpoint)
 
     def screenshot(self, mode='rgb', filename=None):
-        from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
-        if MNE_3D_BACKEND_TEST_DATA:
-            ndim = 3 if mode == 'rgb' else 4
-            return np.zeros(tuple(self.window_size) + (ndim,), np.uint8)
-        else:
-            with warnings.catch_warnings(record=True):  # traits
-                img = self.mlab.screenshot(self.fig, mode=mode)
-                if isinstance(filename, str):
-                    _save_figure(img, filename)
-                return img
+        return _take_3d_screenshot(figure=self.fig, mode=mode,
+                                   filename=filename)
 
     def project(self, xyz, ch_names):
         xy = _3d_to_2d(self.fig, xyz)
@@ -410,7 +402,7 @@ def _set_3d_title(figure, title, size=40):
     mlab.draw(figure)
 
 
-def _check_figure(figure):
+def _check_3d_figure(figure):
     from mayavi.core.scene import Scene
     if not isinstance(figure, Scene):
         raise TypeError('figure must be a mayavi scene')
@@ -423,3 +415,25 @@ def _save_figure(img, filename):
     FigureCanvasAgg(fig)
     fig.figimage(img, resize=True)
     fig.savefig(filename)
+
+
+def _close_3d_figure(figure):
+    from mayavi import mlab
+    mlab.close(figure)
+
+
+def _take_3d_screenshot(figure, mode='rgb', filename=None):
+    from mayavi import mlab
+    from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
+    if MNE_3D_BACKEND_TEST_DATA:
+        ndim = 3 if mode == 'rgb' else 4
+        return np.zeros(tuple(figure.window_size) + (ndim,), np.uint8)
+    else:
+        from pyface.api import GUI
+        gui = GUI()
+        gui.process_events()
+        with warnings.catch_warnings(record=True):  # traits
+            img = mlab.screenshot(figure, mode=mode)
+            if isinstance(filename, str):
+                _save_figure(img, filename)
+            return img

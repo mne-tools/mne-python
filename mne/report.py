@@ -147,26 +147,25 @@ def _figs_to_mrislices(sl, n_jobs, **kwargs):
 def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
     import matplotlib.pyplot as plt
-    from mayavi import mlab, core
-    from pyface.api import GUI
+    from .viz import (check_3d_figure, take_3d_screenshot, close_3d_figure,
+                      set_3d_view)
+
     fig = function(**kwargs)
-    gui = GUI()
-    gui.process_events()
-    assert isinstance(fig, core.scene.Scene)
+    check_3d_figure(fig)
 
     views = [(90, 90), (0, 90), (0, -90)]
     fig2, axes = plt.subplots(1, len(views))
     for view, ax in zip(views, axes):
-        mlab.view(view[0], view[1])
-        gui.process_events()
+        set_3d_view(fig, azimuth=view[0], elevation=view[1],
+                    focalpoint=None, distance=None)
         if fig.scene is not None:
-            im = mlab.screenshot(figure=fig)
+            im = take_3d_screenshot(figure=fig)
         else:  # Testing mode
             im = np.zeros((2, 2, 3))
         ax.imshow(im)
         ax.axis('off')
 
-    mlab.close(fig)
+    close_3d_figure(fig)
     img = _fig_to_img(fig2, image_format='png')
     return img
 
