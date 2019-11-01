@@ -34,7 +34,7 @@ from .io.meas_info import read_meas_info, write_meas_info
 from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_string, write_float_matrix,
-                       write_id)
+                       write_id, write_float)
 from .io.base import ToDataFrameMixin, TimeMixin, _check_maxshield
 
 _aspect_dict = {
@@ -1132,7 +1132,9 @@ def _write_evokeds(fname, evoked, check=True):
             if e.comment is not None and len(e.comment) > 0:
                 write_string(fid, FIFF.FIFF_COMMENT, e.comment)
 
-            # First and last sample
+            # First time, num. samples, first and last sample
+            write_float(fid, FIFF.FIFF_FIRST_TIME, e.times[0])
+            write_int(fid, FIFF.FIFF_NO_SAMPLES, len(e.times))
             write_int(fid, FIFF.FIFF_FIRST_SAMPLE, e.first)
             write_int(fid, FIFF.FIFF_LAST_SAMPLE, e.last)
 
