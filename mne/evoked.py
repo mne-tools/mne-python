@@ -1051,22 +1051,21 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
             data = np.concatenate([e.data[None, :] for e in epoch], axis=0)
         data = data.astype(np.float)
 
-        if first is not None:
-            nsamp = last - first + 1
-        elif first_time is not None:
+        if first_time is not None and nsamp is not None:
             first = int(round(first_time * info['sfreq']))
-            last = first + nsamp
+            last = first + nsamp - 1
+            times = first_time + np.arange(nsamp) / info['sfreq']
+        elif first is not None:
+            nsamp = last - first + 1
+            times = np.arange(first, last + 1) / info['sfreq']
         else:
             raise RuntimeError('Could not read time parameters')
         if nsamp is not None and data.shape[1] != nsamp:
             raise ValueError('Incorrect number of samples (%d instead of '
                              ' %d)' % (data.shape[1], nsamp))
-        nsamp = data.shape[1]
-        last = first + nsamp - 1
         logger.info('    Found the data of interest:')
         logger.info('        t = %10.2f ... %10.2f ms (%s)'
-                    % (1000 * first / info['sfreq'],
-                       1000 * last / info['sfreq'], comment))
+                    % (1000 * times[0], 1000 * times[-1], comment))
         if info['comps'] is not None:
             logger.info('        %d CTF compensation matrices available'
                         % len(info['comps']))
@@ -1079,7 +1078,6 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
                      for k in range(info['nchan'])])
     data *= cals[:, np.newaxis]
 
-    times = np.arange(first, last + 1, dtype=np.float) / info['sfreq']
     return info, nave, aspect_kind, first, last, comment, times, data
 
 
