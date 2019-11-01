@@ -274,9 +274,15 @@ def test_shift_time_evoked():
     # should shift by 0 samples
     ave.shift_time(1e-6)
     assert_array_equal(first_last, np.array([ave.first, ave.last]))
+    write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
+    ave_loaded = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
+    assert_array_almost_equal(ave.times, ave_loaded.times, 8)
     # should shift by 57 samples
     ave.shift_time(57. / ave.info['sfreq'])
     assert_array_equal(first_last + 57, np.array([ave.first, ave.last]))
+    write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
+    ave_loaded = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
+    assert_array_almost_equal(ave.times, ave_loaded.times, 8)
 
 
 def test_evoked_resample():
