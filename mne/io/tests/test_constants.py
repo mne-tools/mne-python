@@ -15,7 +15,7 @@ from mne.utils import _fetch_file, requires_good_network
 
 
 # https://github.com/mne-tools/fiff-constants/commits/master
-commit = '07e87ab09bb235052f086b6a92f49019120dd63c'
+commit = '064604db8aeba310c76c93e7c76cc983257105b4'
 
 # These are oddities that we won't address:
 iod_dups = (355, 359)  # these are in both MEGIN and MNE files
@@ -27,11 +27,6 @@ _dir_ignore_names = ('clear', 'copy', 'fromkeys', 'get', 'items', 'keys',
                      'viewitems', 'viewkeys', 'viewvalues',  # Py2
                      )
 _tag_ignore_names = (
-    'FIFFV_MNE_CUSTOM_REF_ON',
-    'FIFFV_MNE_CUSTOM_REF_OFF',
-    'FIFFV_MNE_CUSTOM_REF_CSD',
-    'FIFF_UNIT_V_M2',
-    'FIFFV_COIL_EEG_CSD',
 )  # for fiff-constants pending updates
 _ignore_incomplete_enums = (  # XXX eventually we could complete these
     'bem_surf_id', 'cardinal_point_cardiac', 'cond_model', 'coord',
@@ -46,6 +41,7 @@ _missing_coil_def = (
     3,      # Old 24 channel system in HUT
     4,      # The axial devices in the HUCS MCG system
     5,      # Bipolar EEG electrode position
+    6,      # CSD-transformed EEG electrodes
     200,    # Time-varying dipole definition
     300,    # FNIRS oxyhemoglobin
     301,    # FNIRS deoxyhemoglobin
@@ -307,9 +303,11 @@ def test_constants(tmpdir):
         if key not in _missing_coil_def and key not in coil_def:
             bad_list.append(('    %s,' % key).ljust(10) +
                             '  # ' + fif['coil'][key][1])
-    assert len(bad_list) == 0, '\n' + '\n'.join(bad_list)
+    assert len(bad_list) == 0, \
+        '\nIn fiff-constants, missing from coil_def:\n' + '\n'.join(bad_list)
     # Assert that enum(coil) has all `coil_def.dat` entries
     for key, desc in zip(coil_def, coil_desc):
         if key not in fif['coil']:
             bad_list.append(('    %s,' % key).ljust(10) + '  # ' + desc)
-    assert len(bad_list) == 0, '\n' + '\n'.join(bad_list)
+    assert len(bad_list) == 0, \
+        'In coil_def, missing  from fiff-constants:\n' + '\n'.join(bad_list)
