@@ -246,7 +246,7 @@ def test_shift_time_evoked():
     ave_relative = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
 
     assert_allclose(ave_normal.data, ave_relative.data, atol=1e-16, rtol=1e-3)
-    assert_array_almost_equal(ave_normal.times, ave_relative.times, 10)
+    assert_array_almost_equal(ave_normal.times, ave_relative.times, 8)
 
     assert_equal(ave_normal.last, ave_relative.last)
     assert_equal(ave_normal.first, ave_relative.first)
@@ -604,7 +604,7 @@ def test_array_epochs():
     evoked2 = read_evokeds(tmp_fname)[0]
     data2 = evoked2.data
     assert_allclose(data1, data2)
-    assert_allclose(evoked1.times, evoked2.times)
+    assert_array_almost_equal(evoked1.times, evoked2.times, 8)
     assert_equal(evoked1.first, evoked2.first)
     assert_equal(evoked1.last, evoked2.last)
     assert_equal(evoked1.kind, evoked2.kind)
