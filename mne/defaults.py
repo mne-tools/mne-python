@@ -10,7 +10,7 @@ DEFAULTS = dict(
     color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='m', emg='k',
                ref_meg='steelblue', misc='k', stim='k', resp='k', chpi='k',
                exci='k', ias='k', syst='k', seeg='saddlebrown', dipole='k',
-               gof='k', bio='k', ecog='k', hbo='darkblue', hbr='b',
+               gof='k', bio='k', ecog='k', hbo='#AA3377', hbr='b',
                fnirs_raw='k', fnirs_od='k'),
     units=dict(mag='fT', grad='fT/cm', eeg='uV', eog='uV', ecg='uV', emg='uV',
                misc='AU', seeg='mV', dipole='nAm', gof='GOF', bio='uV',
