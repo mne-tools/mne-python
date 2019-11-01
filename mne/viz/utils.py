@@ -2978,17 +2978,19 @@ def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
 def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     """Set PSD plot params."""
     import matplotlib.pyplot as plt
-    _data_types = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'fnirs_raw')
+    _data_types = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'fnirs_raw',
+                   'fnirs_od', 'hbo', 'hbr')
     _check_option('area_mode', area_mode, [None, 'std', 'range'])
     picks = _picks_to_idx(info, picks)
 
     # XXX this could be refactored more with e.g., plot_evoked
     # XXX when it's refactored, Report._render_raw will need to be updated
-    megs = ['mag', 'grad', False, False, False, False]
-    eegs = [False, False, True, False, False, False]
-    seegs = [False, False, False, True, False, False]
-    ecogs = [False, False, False, False, True, False]
-    fnirss = [False, False, False, False, False, 'fnirs_raw']
+    megs = ['mag', 'grad', False, False, False, False, False, False, False]
+    eegs = [False, False, True, False, False, False, False, False, False]
+    seegs = [False, False, False, True, False, False, False, False, False]
+    ecogs = [False, False, False, False, True, False, False, False, False]
+    fnirss = [False, False, False, False, False, 'fnirs_raw', 'fnirs_od',
+              'hbo', 'hbr']
     titles = _handle_default('titles', None)
     units = _handle_default('units', None)
     scalings = _handle_default('scalings', None)

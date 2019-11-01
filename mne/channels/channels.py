@@ -379,18 +379,20 @@ class SetChannelsMixin(object):
                        % name)
                 raise ValueError(msg)
 
-    def set_channel_types(self, mapping):
+    @verbose
+    def set_channel_types(self, mapping, verbose=None):
         """Define the sensor type of channels.
 
         Note: The following sensor types are accepted:
             ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, stim, syst, ecog,
-            hbo, hbr
+            hbo, hbr, fnirs_raw, fnirs_od
 
         Parameters
         ----------
         mapping : dict
             A dictionary mapping a channel to a sensor type (str)
             {'EEG061': 'eog'}.
+        %(verbose_meth)s
 
         Notes
         -----
