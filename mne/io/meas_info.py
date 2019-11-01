@@ -199,7 +199,7 @@ class Info(dict):
     ctf_head_t : dict | None
         The transformation from 4D/CTF head coordinates to Neuromag head
         coordinates. This is only present in 4D/CTF data.
-    custom_ref_applied : bool
+    custom_ref_applied : int
         Whether a custom (=other than average) reference has been applied to
         the EEG data. This flag is checked by some algorithms that require an
         average reference to be set.
@@ -832,7 +832,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     proj_name = None
     line_freq = None
     gantry_angle = None
-    custom_ref_applied = False
+    custom_ref_applied = FIFF.FIFFV_MNE_CUSTOM_REF_OFF
     xplotter_layout = None
     kit_system_id = None
     for k in range(meas_info['nent']):
@@ -900,7 +900,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             gantry_angle = float(tag.data)
         elif kind in [FIFF.FIFF_MNE_CUSTOM_REF, 236]:  # 236 used before v0.11
             tag = read_tag(fid, pos)
-            custom_ref_applied = bool(tag.data)
+            custom_ref_applied = int(tag.data)
         elif kind == FIFF.FIFF_XPLOTTER_LAYOUT:
             tag = read_tag(fid, pos)
             xplotter_layout = str(tag.data)
@@ -1827,7 +1827,7 @@ def _empty_info(sfreq):
         info[k] = None
     for k in _list_keys:
         info[k] = list()
-    info['custom_ref_applied'] = False
+    info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_OFF
     info['highpass'] = 0.
     info['sfreq'] = float(sfreq)
     info['lowpass'] = info['sfreq'] / 2.

@@ -154,7 +154,7 @@ def _apply_reference(inst, ref_from, ref_to=None):
         # If the reference touches EEG electrodes, note in the info that a
         # non-CAR has been applied.
         if len(np.intersect1d(ref_to, eeg_idx)) > 0:
-            inst.info['custom_ref_applied'] = True
+            inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
     else:
         ref_data = None
 
@@ -266,6 +266,22 @@ def add_reference_channels(inst, ref_channels, copy=True):
     return inst
 
 
+_ref_dict = {
+    FIFF.FIFFV_MNE_CUSTOM_REF_ON: 'on',
+    FIFF.FIFFV_MNE_CUSTOM_REF_OFF: 'off',
+    FIFF.FIFFV_MNE_CUSTOM_REF_CSD: 'CSD',
+}
+
+
+def _check_can_reref(inst):
+    _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), "Instance")
+    current_custom = inst.info['custom_ref_applied']
+    if current_custom not in (FIFF.FIFFV_MNE_CUSTOM_REF_ON,
+                              FIFF.FIFFV_MNE_CUSTOM_REF_OFF):
+        raise RuntimeError('Cannot set new reference on data with custom '
+                           'reference type %r' % (_ref_dict[current_custom],))
+
+
 @verbose
 def set_eeg_reference(inst, ref_channels='average', copy=True,
                       projection=False, ch_type='auto', verbose=None):
@@ -363,7 +379,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
 
     .. versionadded:: 0.9.0
     """
-    _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), "Instance")
+    _check_can_reref(inst)
 
     if projection:  # average reference projector
         if ref_channels != 'average':
@@ -379,18 +395,18 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
             # sure that the custom_ref_applied flag is left untouched.
             custom_ref_applied = inst.info['custom_ref_applied']
             try:
-                inst.info['custom_ref_applied'] = False
+                inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_OFF
                 inst.add_proj(make_eeg_average_ref_proj(inst.info,
                               activate=False))
-                # If the data has been preloaded, projections will no
-                # longer be automatically applied.
-                if inst.preload:
-                    logger.info('Average reference projection was added, '
-                                'but has not been applied yet. Use the '
-                                'apply_proj method to apply it.')
             except Exception:
                 inst.info['custom_ref_applied'] = custom_ref_applied
                 raise
+            # If the data has been preloaded, projections will no
+            # longer be automatically applied.
+            if inst.preload:
+                logger.info('Average reference projection was added, '
+                            'but has not been applied yet. Use the '
+                            'apply_proj method to apply it.')
             return inst, None
 
     inst = inst.copy() if copy else inst
@@ -492,6 +508,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
 
     .. versionadded:: 0.9.0
     """
+    _check_can_reref(inst)
     if not isinstance(anode, list):
         anode = [anode]
 

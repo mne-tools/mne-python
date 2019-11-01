@@ -632,6 +632,12 @@ FIFF.FIFFV_PROJ_ITEM_HOMOG_FIELD    = 5
 FIFF.FIFFV_PROJ_ITEM_EEG_AVREF      = 10  # Linear projection related to EEG average reference
 FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF  = FIFF.FIFFV_PROJ_ITEM_EEG_AVREF  # backward compat alias
 #
+# Custom EEG references
+#
+FIFF.FIFFV_MNE_CUSTOM_REF_OFF       = 0
+FIFF.FIFFV_MNE_CUSTOM_REF_ON        = 1
+FIFF.FIFFV_MNE_CUSTOM_REF_CSD       = 2
+#
 # SSS job options
 #
 FIFF.FIFFV_SSS_JOB_NOTHING          = 0   # No SSS, just copy input to output
@@ -773,6 +779,7 @@ FIFF.FIFF_UNIT_H   = 113  # Henry
 FIFF.FIFF_UNIT_CEL = 114  # celsius
 FIFF.FIFF_UNIT_LM  = 115  # lumen
 FIFF.FIFF_UNIT_LX  = 116  # lux
+FIFF.FIFF_UNIT_V_M2 = 117  # V/m^2
 #
 # Others we need
 #
@@ -810,6 +817,7 @@ FIFF.FIFFV_COIL_NM_122                = 2  # Neuromag 122 coils
 FIFF.FIFFV_COIL_NM_24                 = 3  # Old 24 channel system in HUT
 FIFF.FIFFV_COIL_NM_MCG_AXIAL          = 4  # The axial devices in the HUCS MCG system
 FIFF.FIFFV_COIL_EEG_BIPOLAR           = 5  # Bipolar EEG lead
+FIFF.FIFFV_COIL_EEG_CSD               = 6  # CSD-transformed EEG lead
 
 FIFF.FIFFV_COIL_DIPOLE             = 200  # Time-varying dipole definition
 # The coil info contains dipole location (r0) and
