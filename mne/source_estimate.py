@@ -452,10 +452,8 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
         "sens_data" shape (n_sensors, n_times). In this case, the source
         space data corresponds to ``np.dot(kernel, sens_data)``.
-    vertices : array | list of array, shape (2,)
-        Vertex numbers corresponding to the data. If a list, the first element
-        of the list contains vertices of left hemisphere and the
-        second element contains vertices of right hemisphere.
+    vertices : array | list of array
+        Vertex numbers corresponding to the data.
     tmin : float
         Time point of the first sample in data.
     tstep : float
@@ -2131,10 +2129,9 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
         "sens_data" shape (n_sensors, n_times). In this case, the source
         space data corresponds to ``np.dot(kernel, sens_data)``.
-    vertices : list of array, shape (2,)
-        Vertex numbers corresponding to the data. The first element of the list
-        contains vertices of left hemisphere and the second element contains
-        vertices of right hemisphere.
+    vertices : list of array
+        Vertex numbers corresponding to the data. The list contains arrays
+        with one array per source space.
     tmin : scalar
         Time point of the first sample in data.
     tstep : scalar
@@ -2150,10 +2147,9 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         The subject name.
     times : array of shape (n_times,)
         The time vector.
-    vertices : list of array, shape (2,)
-        Vertex numbers corresponding to the data. The first element of the list
-        contains vertices of left hemisphere and the second element contains
-        vertices of right hemisphere.
+    vertices : list of array
+        Vertex numbers corresponding to the data. The list contains arrays
+        with one array per source space.
     data : array of shape (n_dipoles, n_times)
         The data in source space.
     shape : tuple
