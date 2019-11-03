@@ -16,7 +16,7 @@ import pytest
 from numpy.testing import assert_allclose
 import mne
 from mne.channels import make_standard_montage
-from mne import create_info
+from mne import create_info, Annotations
 from mne.io import RawArray
 from mne.utils import run_tests_if_main
 from mne.datasets import testing
@@ -35,29 +35,22 @@ def test_csd():
     data = mat_contents['data']
     n_channels, n_epochs = data.shape[0], data.shape[1] // 386
     sfreq = 250.
-    ch_names = ['E%i' % i for i in range(1, n_channels + 1, 1)] + ['STI 014']
-    ch_types = ['eeg'] * n_channels + ['stim']
-    data = np.r_[data, data[-1:]]
-    data[-1].fill(0)
+    ch_names = ['E%i' % i for i in range(1, n_channels + 1, 1)]
+    ch_types = ['eeg'] * n_channels
     sphere = (0., 0., 0., 0.095)
     info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=sfreq)
     raw = RawArray(data=data, info=info)
     montage = make_standard_montage('GSN-HydroCel-257')
     raw.set_montage(montage)
+    onset = raw.times[np.arange(50, n_epochs * 386, 386)]
+    raw.set_annotations(Annotations(onset=onset,
+                                    duration=np.repeat(0.1, 3),
+                                    description=np.repeat('foo', 3)))
 
-    triggers = np.arange(50, n_epochs * 386, 386)
-
-    raw._data[-1].fill(0.0)
-    raw._data[-1, triggers] = [10] * n_epochs
-
-    events = mne.find_events(raw)
-    event_id = {
-        'foo': 10,
-    }
+    events, event_id = mne.events_from_annotations(raw)
     epochs = mne.Epochs(raw, events, event_id, tmin=-.2, tmax=1.34,
                         preload=True, reject=None, picks=None,
                         baseline=(None, 0), verbose=False)
-    epochs.drop_channels(['STI 014'])
     picks = mne.pick_types(epochs.info, meg=False, eeg=True, eog=False,
                            stim=False, exclude='bads')
 
@@ -95,22 +88,27 @@ def test_csd():
 
     csd_epochs = compute_current_source_density(epochs, sphere=sphere)
 
+    warn_raw = raw.copy()
+    warn_raw.info['bads'].append(warn_raw.ch_names[3])
+    with pytest.warns(UserWarning, match='Deleting bad channels'):
+        compute_current_source_density(warn_raw)
+
     with pytest.raises(TypeError):
         csd_epochs = compute_current_source_density(None)
 
     fail_raw = raw.copy()
     with pytest.raises(ValueError, match='Zero or infinite position'):
-        for ch in fail_raw.info['chs']:
-            ch['loc'][:3] = np.array([0, 0, 0])
+        fail_raw.info['chs'][3]['loc'][:3] = np.array([0, 0, 0])
         compute_current_source_density(fail_raw, sphere=sphere)
 
     with pytest.raises(ValueError, match='Zero or infinite position'):
-        for ch in fail_raw.info['chs']:
-            ch['loc'][:3] = np.array([np.inf, np.inf, np.inf])
+        fail_raw.info['chs'][3]['loc'][:3] = np.array([np.inf, np.inf, np.inf])
         compute_current_source_density(fail_raw, sphere=sphere)
 
     with pytest.raises(ValueError, match=('No EEG channels found.')):
-        fail_raw = raw.copy().pick_types(eeg=False, stim=True)
+        fail_raw = raw.copy()
+        fail_raw.set_channel_types({ch_name: 'ecog' for ch_name in
+                                    fail_raw.ch_names})
         compute_current_source_density(fail_raw, sphere=sphere)
 
     with pytest.raises(TypeError):

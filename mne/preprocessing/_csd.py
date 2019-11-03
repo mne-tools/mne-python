@@ -13,6 +13,7 @@
 #          permission from authors of original GPL code
 
 import numpy as np
+from warnings import warn
 
 from scipy.linalg import inv
 
@@ -91,6 +92,10 @@ def compute_current_source_density(inst, lambda2=1e-5, stiffness=4,
 
     inst = inst.copy() if copy else inst
 
+    if inst.info['bads']:
+        warn('Deleting bad channels for consistency')
+        inst.drop_channels(inst.info['bads'])
+
     picks = pick_types(inst.info, meg=False, eeg=True, exclude='bads')
 
     if len(picks) == 0:
@@ -153,10 +158,9 @@ def compute_current_source_density(inst, lambda2=1e-5, stiffness=4,
 
     pick_info(inst.info, picks, copy=False)
     inst.info['custom_ref_applied'] = -1
-    for ch in inst.info['chs']:
-        if ch['coil_type'] == FIFF.FIFFV_COIL_EEG:
-            ch.update(coil_type=FIFF.FIFFV_COIL_EEG_CSD,
-                      unit=FIFF.FIFF_UNIT_V_M2)
+    for pick in picks:
+        inst.info['chs'][pick].update(coil_type=FIFF.FIFFV_COIL_EEG_CSD,
+                                      unit=FIFF.FIFF_UNIT_V_M2)
     return inst
 
 # References
