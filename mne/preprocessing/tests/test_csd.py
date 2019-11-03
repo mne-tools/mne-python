@@ -98,7 +98,8 @@ def test_csd():
 
     fail_raw = raw.copy()
     with pytest.raises(ValueError, match='Zero or infinite position'):
-        fail_raw.info['chs'][3]['loc'][:3] = np.array([0, 0, 0])
+        for ch in fail_raw.info['chs']:
+            ch['loc'][:3] = np.array([0, 0, 0])
         compute_current_source_density(fail_raw, sphere=sphere)
 
     with pytest.raises(ValueError, match='Zero or infinite position'):

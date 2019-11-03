@@ -263,11 +263,10 @@ def _check_ch_locs(chs):
     """
     for ch in chs:
         loc3d = ch['loc'][:3]
-        if ((loc3d == 0).all() or
-            (~np.isfinite(loc3d)).all() or
-                np.allclose(loc3d, 0.)):
+        if (~np.isfinite(loc3d)).all():
             return False
-    return True
+    locs3d = np.array([ch['loc'][:3] for ch in chs])
+    return not np.allclose(locs3d, 0.)
 
 
 def _is_numeric(n):
