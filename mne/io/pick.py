@@ -56,7 +56,9 @@ def get_channel_types():
                 hbo=dict(kind=FIFF.FIFFV_FNIRS_CH,
                          coil_type=FIFF.FIFFV_COIL_FNIRS_HBO),
                 hbr=dict(kind=FIFF.FIFFV_FNIRS_CH,
-                         coil_type=FIFF.FIFFV_COIL_FNIRS_HBR))
+                         coil_type=FIFF.FIFFV_COIL_FNIRS_HBR),
+                csd=dict(kind=FIFF.FIFFV_EEG_CSD_CH,
+                         coil_type=FIFF.FIFFV_COIL_EEG_CSD))
 
 
 _first_rule = {
@@ -88,6 +90,7 @@ _first_rule = {
     FIFF.FIFFV_GOODNESS_FIT: 'gof',
     FIFF.FIFFV_ECOG_CH: 'ecog',
     FIFF.FIFFV_FNIRS_CH: 'fnirs',
+    FIFF.FIFFV_EEG_CSD_CH: 'csd'
 }
 # How to reduce our categories in channel_type (originally)
 _second_rules = {
@@ -294,8 +297,8 @@ def _check_info_exclude(info, exclude):
 def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                emg=False, ref_meg='auto', misc=False, resp=False, chpi=False,
                exci=False, ias=False, syst=False, seeg=False, dipole=False,
-               gof=False, bio=False, ecog=False, fnirs=False, include=(),
-               exclude='bads', selection=None):
+               gof=False, bio=False, ecog=False, fnirs=False, csd=False,
+               include=(), exclude='bads', selection=None):
     """Pick channels by type and names.
 
     Parameters
@@ -350,6 +353,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         fNIRS channels. If False (default) include none. If string it can be
         'hbo' (to include channels measuring oxyhemoglobin) or 'hbr' (to
         include channels measuring deoxyhemoglobin).
+    csd: bool
+        Current source density channels.
     include : list of str
         List of additional channels to include. If empty do not include any.
     exclude : list of str | str
@@ -376,7 +381,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                    len(info['comps']) > 0 and meg is not False)
 
     for param in (eeg, stim, eog, ecg, emg, misc, resp, chpi, exci,
-                  ias, syst, seeg, dipole, gof, bio, ecog):
+                  ias, syst, seeg, dipole, gof, bio, ecog, csd):
         if not isinstance(param, bool):
             w = ('Parameters for all channel types (with the exception '
                  'of "meg", "ref_meg" and "fnirs") must be of type bool, '
@@ -386,7 +391,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     param_dict = dict(eeg=eeg, stim=stim, eog=eog, ecg=ecg, emg=emg,
                       misc=misc, resp=resp, chpi=chpi, exci=exci,
                       ias=ias, syst=syst, seeg=seeg, dipole=dipole,
-                      gof=gof, bio=bio, ecog=ecog)
+                      gof=gof, bio=bio, ecog=ecog, csd=csd)
     # avoid triage if possible
     if isinstance(meg, bool):
         for key in ('grad', 'mag'):
@@ -861,20 +866,21 @@ def _check_excludes_includes(chs, info=None, allow_bads=False):
 _PICK_TYPES_DATA_DICT = dict(
     meg=True, eeg=True, stim=False, eog=False, ecg=False, emg=False,
     misc=False, resp=False, chpi=False, exci=False, ias=False, syst=False,
-    seeg=True, dipole=False, gof=False, bio=False, ecog=True, fnirs=True)
+    seeg=True, dipole=False, gof=False, bio=False, ecog=True, fnirs=True,
+    csd=True)
 _PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT.keys()) + ['ref_meg'])
 _DATA_CH_TYPES_SPLIT = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr',
-                        'fnirs_raw', 'fnirs_od')
+                        'fnirs_raw', 'fnirs_od', 'csd')
 _DATA_CH_TYPES_ORDER_DEFAULT = ('mag', 'grad', 'eeg', 'eog', 'ecg', 'emg',
                                 'ref_meg', 'misc', 'stim', 'resp',
                                 'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio',
                                 'ecog', 'hbo', 'hbr', 'fnirs_raw', 'fnirs_od',
-                                'whitened')
+                                'whitened', 'csd')
 
 # Valid data types, ordered for consistency, used in viz/evoked.
 _VALID_CHANNEL_TYPES = ('eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg',
                         'dipole', 'gof', 'bio', 'ecog', 'hbo', 'hbr',
-                        'fnirs_raw', 'fnirs_od', 'misc')
+                        'fnirs_raw', 'fnirs_od', 'misc', 'csd')
 
 _MEG_CH_TYPES_SPLIT = ('mag', 'grad', 'planar1', 'planar2')
 _FNIRS_CH_TYPES_SPLIT = ('hbo', 'hbr', 'fnirs_raw', 'fnirs_od')

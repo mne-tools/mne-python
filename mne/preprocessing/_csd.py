@@ -159,7 +159,8 @@ def compute_current_source_density(inst, lambda2=1e-5, stiffness=4,
     pick_info(inst.info, picks, copy=False)
     inst.info['custom_ref_applied'] = -1
     for pick in picks:
-        inst.info['chs'][pick].update(coil_type=FIFF.FIFFV_COIL_EEG_CSD,
+        inst.info['chs'][pick].update(kind=FIFF.FIFFV_EEG_CSD_CH,
+                                      coil_type=FIFF.FIFFV_COIL_EEG_CSD,
                                       unit=FIFF.FIFF_UNIT_V_M2)
     return inst
 
