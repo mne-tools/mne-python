@@ -248,6 +248,16 @@ def test_pick_chpi():
     assert 'ecog' not in channel_types
 
 
+def test_pick_csd():
+    """Test picking current source density channles."""
+    # Make sure we don't mis-classify cHPI channels
+    names = ['MEG 2331', 'MEG 2332', 'MEG 2333', 'A1', 'A2', 'Fz']
+    types = 'mag mag grad csd csd csd'.split()
+    info = create_info(names, 1024., types)
+    picks_by_type = [('mag', [0, 1]), ('grad', [2]), ('csd', [3, 4, 5])]
+    assert_indexing(info, picks_by_type, all_data=False)
+
+
 def test_pick_bio():
     """Test picking BIO channels."""
     names = 'A1 A2 Fz O BIO1 BIO2 BIO3'.split()
