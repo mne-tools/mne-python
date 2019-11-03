@@ -854,6 +854,24 @@ def test_read_annotation_txt_orig_time(
     assert_array_equal(annot.description, ['AA', 'BB'])
 
 
+@pytest.fixture(scope='session')
+def dummy_annotation_txt_file_empty(tmpdir_factory):
+    """Create empty TXT annotations."""
+    content = ("# MNE-Annotations\n"
+               "# onset, duration, description\n")
+    fname = tmpdir_factory.mktemp('data').join('empty-annotations.txt')
+    fname.write(content)
+    return fname
+
+def test_read_annotation_txt_empty(
+        dummy_annotation_txt_file_empty):
+    """Test empty TXT input/output."""
+    annot = read_annotations(str(dummy_annotation_txt_file_empty))
+    assert_array_equal(annot.onset, [])
+    assert_array_equal(annot.duration, [])
+    assert_array_equal(annot.description, [])
+
+
 def test_annotations_simple_iteration():
     """Test indexing Annotations."""
     NUM_ANNOT = 5
