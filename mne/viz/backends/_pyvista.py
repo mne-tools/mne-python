@@ -568,6 +568,3 @@ def _try_3d_backend():
             import pyvista  # noqa: F401
     except Exception:
         pass
-    else:
-        global MNE_3D_BACKEND_TESTING
-        MNE_3D_BACKEND_TESTING = True

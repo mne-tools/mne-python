@@ -204,3 +204,10 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), handle=None):
     """
     renderer = _mod._Renderer(fig=handle, size=size, bgcolor=bgcolor)
     return renderer.scene()
+
+
+def _enable_3d_backend_testing():
+    """Enable the testing mode the current 3d backend."""
+    _mod._try_3d_backend()
+    global MNE_3D_BACKEND_TESTING
+    MNE_3D_BACKEND_TESTING = True

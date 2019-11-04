@@ -449,6 +449,4 @@ def _try_3d_backend():
     except Exception:
         pass
     else:
-        global MNE_3D_BACKEND_TESTING
-        MNE_3D_BACKEND_TESTING = True
         mlab.options.backend = 'test'
