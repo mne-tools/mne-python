@@ -67,7 +67,7 @@ jobs:
     displayName: make check-manifest
     condition: always()
   - bash: |
-      pip install twine
+      pip install twine wheel
     displayName: Install twine
     condition: always()
   - bash: |
