@@ -465,7 +465,7 @@ class _FakeNoPandas(object):  # noqa: D101
 
 
 class ShiftTimeMixin(object):
-    """Class for shift_time method (Epochs and Evoked)."""
+    """Class for shift_time method (Epochs, Evoked, and DipoleFixed)."""
 
     def shift_time(self, tshift, relative=True):
         """Shift time scale in epoched or evoked data.

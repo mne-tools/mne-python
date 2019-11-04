@@ -236,6 +236,9 @@ def test_dipole_fitting_fixed(tmpdir):
     plt.close('all')
     dip_fixed.plot()
     plt.close('all')
+    orig_times = np.array(dip_fixed.times)
+    shift_times = dip_fixed.shift_time(1.).times
+    assert_allclose(shift_times, orig_times + 1)
 
 
 @testing.requires_testing_data

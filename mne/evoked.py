@@ -117,9 +117,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                  verbose=None):  # noqa: D102
         _validate_type(proj, bool, "'proj'")
         # Read the requested data
-        self.info, self.nave, self._aspect_kind, self.first, self.last, \
-            self.comment, self.times, self.data = _read_evoked(
-                fname, condition, kind, allow_maxshield)
+        self.info, self.nave, self._aspect_kind, self.comment, self.times, \
+            self.data = _read_evoked(fname, condition, kind, allow_maxshield)
+        self._update_first_last()
         self.verbose = verbose
         self.preload = True
         # project and baseline correct
@@ -1052,14 +1052,13 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
         data = data.astype(np.float)
 
         if first_time is not None and nsamp is not None:
-            first = int(round(first_time * info['sfreq']))
-            last = first + nsamp - 1
             times = first_time + np.arange(nsamp) / info['sfreq']
         elif first is not None:
             nsamp = last - first + 1
             times = np.arange(first, last + 1) / info['sfreq']
         else:
             raise RuntimeError('Could not read time parameters')
+        del first, last
         if nsamp is not None and data.shape[1] != nsamp:
             raise ValueError('Incorrect number of samples (%d instead of '
                              ' %d)' % (data.shape[1], nsamp))
@@ -1078,7 +1077,7 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
                      for k in range(info['nchan'])])
     data *= cals[:, np.newaxis]
 
-    return info, nave, aspect_kind, first, last, comment, times, data
+    return info, nave, aspect_kind, comment, times, data
 
 
 def write_evokeds(fname, evoked):
