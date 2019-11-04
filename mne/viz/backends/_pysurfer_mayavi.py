@@ -402,9 +402,15 @@ def _set_3d_title(figure, title, size=40):
 
 
 def _check_3d_figure(figure):
-    from mayavi.core.scene import Scene
-    if not isinstance(figure, Scene):
-        raise TypeError('figure must be a mayavi scene')
+    try:
+        import mayavi  # noqa F401
+    except Exception:
+        raise TypeError('figure must be a mayavi scene but the'
+                        'mayavi package is not found.')
+    else:
+        from mayavi.core.scene import Scene
+        if not isinstance(figure, Scene):
+            raise TypeError('figure must be a mayavi scene.')
 
 
 def _save_figure(img, filename):

@@ -544,7 +544,7 @@ def _set_3d_title(figure, title, size=40):
 
 def _check_3d_figure(figure):
     if not isinstance(figure, _Figure):
-        raise TypeError('figure must be an instance of _Figure')
+        raise TypeError('figure must be an instance of _Figure.')
 
 
 def _close_3d_figure(figure):
