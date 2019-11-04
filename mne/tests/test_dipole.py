@@ -370,7 +370,7 @@ def _check_roundtrip_fixed(dip, tmpdir):
     dip.save(op.join(tempdir, 'test-dip.fif.gz'))
     dip_read = read_dipole(op.join(tempdir, 'test-dip.fif.gz'))
     assert_allclose(dip_read.data, dip_read.data)
-    assert_allclose(dip_read.times, dip.times)
+    assert_allclose(dip_read.times, dip.times, atol=1e-8)
     assert dip_read.info['xplotter_layout'] == dip.info['xplotter_layout']
     assert dip_read.ch_names == dip.ch_names
     for ch_1, ch_2 in zip(dip_read.info['chs'], dip.info['chs']):
