@@ -62,7 +62,6 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
     # a mpl Figure
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
-    from .viz.backends.renderer import MNE_3D_BACKEND_TESTING
     if isinstance(fig, np.ndarray):
         fig = _ndarray_to_fig(fig)
     elif callable(fig):
@@ -71,7 +70,7 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
     elif not isinstance(fig, Figure):
         from .viz.backends.renderer import (
             _check_3d_figure, _take_3d_screenshot,
-            _close_3d_figure
+            _close_3d_figure, MNE_3D_BACKEND_TESTING
         )
         _check_3d_figure(figure=fig)
         if not MNE_3D_BACKEND_TESTING:
@@ -140,10 +139,9 @@ def _figs_to_mrislices(sl, n_jobs, **kwargs):
 def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
     import matplotlib.pyplot as plt
-    from .viz.backends.renderer import MNE_3D_BACKEND_TESTING
     from .viz.backends.renderer import (
-        _check_3d_figure, _take_3d_screenshot,
-        _close_3d_figure, _set_3d_view
+        _check_3d_figure, _take_3d_screenshot, _close_3d_figure,
+        _set_3d_view, MNE_3D_BACKEND_TESTING
     )
 
     fig = function(**kwargs)
