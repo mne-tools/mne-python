@@ -208,4 +208,5 @@ def run():
     print("Writing ECG events in %s" % ecg_event_fname)
     mne.write_events(ecg_event_fname, events)
 
+
 mne.utils.run_command_if_main()

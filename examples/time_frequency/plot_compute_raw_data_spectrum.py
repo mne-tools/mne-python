@@ -82,7 +82,7 @@ picks = picks[:4]
 plt.figure()
 ax = plt.axes()
 raw.plot_psd(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,
-             n_jobs=1, proj=False, ax=ax, color=(0, 0, 1),  picks=picks,
+             n_jobs=1, proj=False, ax=ax, color=(0, 0, 1), picks=picks,
              show=False, average=True)
 
 raw.plot_psd(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,

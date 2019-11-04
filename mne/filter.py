@@ -1557,6 +1557,7 @@ def detrend(x, order=1, axis=-1):
 
     return y
 
+
 # Taken from Ifeachor and Jervis p. 356.
 # Note that here the passband ripple and stopband attenuation are
 # rendundant. The scalar passband ripple δp is expressed in dB as

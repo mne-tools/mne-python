@@ -372,4 +372,5 @@ def test_read_ctf_annotations_smoke_test():
     raw = read_raw_ctf(fname)
     _assert_annotations_equal(raw.annotations, annot)
 
+
 run_tests_if_main()

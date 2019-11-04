@@ -375,7 +375,7 @@ class EpochsKIT(BaseEpochs):
 
     @verbose
     def __init__(self, input_fname, events, event_id=None, tmin=0,
-                 baseline=None,  reject=None, flat=None, reject_tmin=None,
+                 baseline=None, reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, mrk=None, elp=None, hsp=None,
                  allow_unknown_format=False, verbose=None):  # noqa: D102
 

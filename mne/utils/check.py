@@ -281,6 +281,7 @@ class _IntLike(object):
         else:
             return True
 
+
 int_like = _IntLike()
 
 

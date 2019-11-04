@@ -360,4 +360,5 @@ def test_anonymize(tmpdir):
     assert(op.exists(out_fname))
     assert_equal(info['meas_date'], (946684800, 0))
 
+
 run_tests_if_main()

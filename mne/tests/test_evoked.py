@@ -387,8 +387,8 @@ def test_get_peak():
     ch_name, time_idx = evoked.get_peak(ch_type='grad', merge_grads=True)
     assert_equal(ch_name, 'MEG 244X')
 
-    data = np.array([[0., 1.,  2.],
-                     [0., -3.,  0]])
+    data = np.array([[0., 1., 2.],
+                     [0., -3., 0]])
 
     times = np.array([.1, .2, .3])
 
@@ -625,8 +625,8 @@ def test_add_channels():
     """Test evoked splitting / re-appending channel types."""
     evoked = read_evokeds(fname, condition=0)
     hpi_coils = [{'event_bits': []},
-                 {'event_bits': np.array([256,   0, 256, 256])},
-                 {'event_bits': np.array([512,   0, 512, 512])}]
+                 {'event_bits': np.array([256, 0, 256, 256])},
+                 {'event_bits': np.array([512, 0, 512, 512])}]
     evoked.info['hpi_subsystem'] = dict(hpi_coils=hpi_coils, ncoil=2)
     evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
     evoked_meg = evoked.copy().pick_types(meg=True)

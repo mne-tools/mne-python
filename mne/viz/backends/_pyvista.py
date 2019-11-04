@@ -469,10 +469,10 @@ def _get_world_to_view_matrix(plotter):
 
 def _get_view_to_display_matrix(size):
     x, y = size
-    view_to_disp_mat = np.array([[x / 2.0,       0.,   0.,   x / 2.0],
-                                 [0.,      -y / 2.0,   0.,   y / 2.0],
-                                 [0.,            0.,   1.,        0.],
-                                 [0.,            0.,   0.,        1.]])
+    view_to_disp_mat = np.array([[x / 2.0,       0.,   0.,   x / 2.0],  # noqa: E241,E501
+                                 [0.,      -y / 2.0,   0.,   y / 2.0],  # noqa: E241,E501
+                                 [0.,            0.,   1.,        0.],  # noqa: E241,E501
+                                 [0.,            0.,   0.,        1.]])  # noqa: E241,E501
     return view_to_disp_mat
 
 
