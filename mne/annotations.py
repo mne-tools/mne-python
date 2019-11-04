@@ -740,7 +740,8 @@ def _read_annotations_txt(fname):
         onset, duration, desc = np.loadtxt(fname, delimiter=',',
                                            dtype=np.bytes_, unpack=True)
     except ValueError:
-        onset, duration, desc = [], [], []
+        return [], [], []
+
     onset = [float(o.decode()) for o in onset]
     duration = [float(d.decode()) for d in duration]
     desc = [str(d.decode()).strip() for d in desc]
