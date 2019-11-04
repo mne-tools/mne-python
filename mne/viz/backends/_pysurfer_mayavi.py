@@ -423,8 +423,8 @@ def _close_3d_figure(figure):
 
 def _take_3d_screenshot(figure, mode='rgb', filename=None):
     from mayavi import mlab
-    from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
-    if MNE_3D_BACKEND_TEST_DATA:
+    from mne.viz.backends.renderer import MNE_3D_BACKEND_TESTING
+    if MNE_3D_BACKEND_TESTING:
         ndim = 3 if mode == 'rgb' else 4
         if figure.scene is None:
             figure_size = (600, 600)
@@ -440,3 +440,15 @@ def _take_3d_screenshot(figure, mode='rgb', filename=None):
             if isinstance(filename, str):
                 _save_figure(img, filename)
             return img
+
+
+def _try_3d_backend():
+    try:
+        with warnings.catch_warnings(record=True):  # traits
+            from mayavi import mlab  # noqa F401
+    except Exception:
+        pass
+    else:
+        global MNE_3D_BACKEND_TESTING
+        MNE_3D_BACKEND_TESTING = True
+        mlab.options.backend = 'test'

@@ -17,16 +17,16 @@ from ...utils.check import _check_option
 
 try:
     MNE_3D_BACKEND
-    MNE_3D_BACKEND_TEST_DATA
+    MNE_3D_BACKEND_TESTING
 except NameError:
     MNE_3D_BACKEND = _get_backend_based_on_env_and_defaults()
-    MNE_3D_BACKEND_TEST_DATA = None
+    MNE_3D_BACKEND_TESTING = False
 
 logger.info('Using %s 3d backend.\n' % MNE_3D_BACKEND)
 
 _fromlist = ('_Renderer', '_Projection', '_close_all', '_check_3d_figure',
              '_set_3d_view', '_set_3d_title', '_close_3d_figure',
-             '_take_3d_screenshot')
+             '_take_3d_screenshot', '_try_3d_backend')
 _name_map = dict(mayavi='_pysurfer_mayavi', pyvista='_pyvista')
 if MNE_3D_BACKEND in VALID_3D_BACKENDS:
     # This is (hopefully) the equivalent to:
@@ -143,8 +143,8 @@ def _use_test_3d_backend(backend_name):
         The 3d backend to use in the context.
     """
     with use_3d_backend(backend_name):
-        global MNE_3D_BACKEND_TEST_DATA
-        MNE_3D_BACKEND_TEST_DATA = True
+        global MNE_3D_BACKEND_TESTING
+        MNE_3D_BACKEND_TESTING = True
         yield
 
 

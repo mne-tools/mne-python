@@ -62,6 +62,7 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
     # a mpl Figure
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
+    from .viz.backends.renderer import MNE_3D_BACKEND_TESTING
     if isinstance(fig, np.ndarray):
         fig = _ndarray_to_fig(fig)
     elif callable(fig):
@@ -73,7 +74,7 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
             _close_3d_figure
         )
         _check_3d_figure(figure=fig)
-        if fig.scene is not None:
+        if not MNE_3D_BACKEND_TESTING:
             img = _take_3d_screenshot(figure=fig)
         else:  # Testing mode
             img = np.zeros((2, 2, 3))
@@ -139,6 +140,7 @@ def _figs_to_mrislices(sl, n_jobs, **kwargs):
 def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
     import matplotlib.pyplot as plt
+    from .viz.backends.renderer import MNE_3D_BACKEND_TESTING
     from .viz.backends.renderer import (
         _check_3d_figure, _take_3d_screenshot,
         _close_3d_figure, _set_3d_view
@@ -152,7 +154,7 @@ def _iterate_trans_views(function, **kwargs):
     for view, ax in zip(views, axes):
         _set_3d_view(fig, azimuth=view[0], elevation=view[1],
                      focalpoint=None, distance=None)
-        if fig.scene is not None:
+        if not MNE_3D_BACKEND_TESTING:
             im = _take_3d_screenshot(figure=fig)
         else:  # Testing mode
             im = np.zeros((2, 2, 3))

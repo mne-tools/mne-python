@@ -107,7 +107,7 @@ class _Renderer(_BaseRenderer):
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
                  name="PyVista Scene", show=False, shape=(1, 1)):
         from pyvista import OFF_SCREEN
-        from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
+        from mne.viz.backends.renderer import MNE_3D_BACKEND_TESTING
         figure = _Figure(title=name, size=size, shape=shape,
                          background_color=bgcolor, notebook=_check_notebook())
         self.font_family = "arial"
@@ -125,12 +125,12 @@ class _Renderer(_BaseRenderer):
             self.figure = fig
 
         # Enable off_screen if sphinx-gallery or testing
-        if OFF_SCREEN or MNE_3D_BACKEND_TEST_DATA:
+        if OFF_SCREEN or MNE_3D_BACKEND_TESTING:
             self.figure.store['off_screen'] = True
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            if MNE_3D_BACKEND_TEST_DATA:
+            if MNE_3D_BACKEND_TESTING:
                 from pyvista import Plotter
                 self.figure.plotter_class = Plotter
 
@@ -559,3 +559,15 @@ def _take_3d_screenshot(figure, mode='rgb', filename=None):
         return figure.plotter.screenshot(
             transparent_background=(mode == 'rgba'),
             filename=filename)
+
+
+def _try_3d_backend():
+    try:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            import pyvista  # noqa: F401
+    except Exception:
+        pass
+    else:
+        global MNE_3D_BACKEND_TESTING
+        MNE_3D_BACKEND_TESTING = True

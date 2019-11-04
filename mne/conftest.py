@@ -103,13 +103,8 @@ def matplotlib_config():
         pass
     else:
         ETSConfig.toolkit = 'qt4'
-    try:
-        with warnings.catch_warnings(record=True):  # traits
-            from mayavi import mlab
-    except Exception:
-        pass
-    else:
-        mlab.options.backend = 'test'
+    from mne.viz.backends.renderer import _try_3d_backend
+    _try_3d_backend()
 
 
 def _replace(mod, key):
