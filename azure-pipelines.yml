@@ -25,35 +25,54 @@ jobs:
   - bash: |
       python -m pip install numpy scipy matplotlib sphinx pytest pytest-cov pytest-timeout pytest-sugar flake8
     displayName: Install dependencies
+    condition: always()
   - bash: |
       make flake
+    displayName: make flake
+    condition: always()
   - bash: |
       pip install pydocstyle
     displayName: Install pydocstyle
+    condition: always()
   - bash: |
       make pydocstyle
+    displayName: make pydocstyle
+    condition: always()
   - bash: |
       pip install codespell
     displayName: Install codespell
+    condition: always()
   - bash: |
       make codespell-error
+    displayName: make codespell-error
+    condition: always()
   - bash: |
       pip install https://api.github.com/repos/numpy/numpydoc/zipball/master pytest pytest-cov pytest-timeout pytest-sugar
-      displayName: Install NumpyDoc validation
+    displayName: Install NumpyDoc validation
+    condition: always()
   - bash: |
       make docstring
+    displayName: make docstring
   - bash: |
       make nesting
+    displayName: make nesting
+    condition: always()
   - bash: |
       pip install check-manifest
-      displayName: Install manifest checker
+    displayName: Install manifest checker
+    condition: always()
   - bash: |
       make check-manifest
+    displayName: make check-manifest
+    condition: always()
   - bash: |
       pip install twine
-      displayName: Install twine
+    displayName: Install twine
+    condition: always()
   - bash: |
       make check-readme
+    displayName: make check-readme
+    condition: always()
 
 - job: Windows
   pool:
