@@ -16,7 +16,7 @@ event_fname = op.join(base_dir, 'test-eve.fif')
 
 def test_psd_nan():
     """Test handling of NaN in psd_array_welch."""
-    n_samples, n_fft, n_overlap = 2048,  1024, 512
+    n_samples, n_fft, n_overlap = 2048, 1024, 512
     x = np.random.RandomState(0).randn(1, n_samples)
     psds, freqs = psd_array_welch(
         x[:n_fft + n_overlap], float(n_fft), n_fft=n_fft, n_overlap=n_overlap)

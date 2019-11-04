@@ -173,6 +173,7 @@ class ContainsMixin(object):
         return [channel_type(self.info, n)
                 for n in range(len(self.info['ch_names']))]
 
+
 # XXX Eventually de-duplicate with _kind_dict of mne/io/meas_info.py
 _human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,
                'eeg': FIFF.FIFFV_EEG_CH,

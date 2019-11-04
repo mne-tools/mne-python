@@ -785,4 +785,5 @@ def test_getitem_epochsTFR():
     # Test that current state is maintained
     assert_array_equal(power.next(), power.data[ind + 1])
 
+
 run_tests_if_main()

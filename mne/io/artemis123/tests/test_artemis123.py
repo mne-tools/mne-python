@@ -59,7 +59,7 @@ def test_data():
 
     dev_head_t_1 = np.array([[9.713e-01, 2.340e-01, -4.164e-02, 1.302e-04],
                              [-2.371e-01, 9.664e-01, -9.890e-02, 1.977e-03],
-                             [1.710e-02,   1.059e-01, 9.942e-01, -8.159e-03],
+                             [1.710e-02, 1.059e-01, 9.942e-01, -8.159e-03],
                              [0.0, 0.0, 0.0, 1.0]])
 
     dev_head_t_2 = np.array([[9.890e-01, 1.475e-01, -8.090e-03, 4.997e-04],
@@ -74,7 +74,7 @@ def test_data():
 
     # test with head loc and digitization
     with pytest.warns(RuntimeWarning, match='Large difference'):
-        raw = read_raw_artemis123(short_HPI_dip_fname,  add_head_trans=True,
+        raw = read_raw_artemis123(short_HPI_dip_fname, add_head_trans=True,
                                   pos_fname=dig_fname)
     _assert_trans(raw.info['dev_head_t']['trans'], dev_head_t_1)
 

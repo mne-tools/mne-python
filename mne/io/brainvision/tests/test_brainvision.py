@@ -608,4 +608,5 @@ def test_event_id_stability_when_save_and_fif_reload(tmpdir):
     assert event_id == original_event_id
     assert_array_equal(events, original_events)
 
+
 run_tests_if_main()

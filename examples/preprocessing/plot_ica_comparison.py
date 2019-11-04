@@ -49,6 +49,7 @@ def run_ica(method, fit_params=None):
     title = ('ICA decomposition using %s (took %.1fs)' % (method, fit_time))
     ica.plot_components(title=title)
 
+
 ###############################################################################
 # FastICA
 run_ica('fastica')

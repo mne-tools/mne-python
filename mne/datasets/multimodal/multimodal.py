@@ -20,11 +20,13 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
                       update_path=update_path, name='multimodal',
                       download=download)
 
+
 data_path.__doc__ = _data_path_doc.format(name='multimodal',
                                           conf='MNE_DATASETS_MULTIMODAL_PATH')
 
 
 def get_version():  # noqa: D103
     return _get_version('multimodal')
+
 
 get_version.__doc__ = _version_doc.format(name='multimodal')

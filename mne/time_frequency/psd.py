@@ -12,8 +12,8 @@ from .multitaper import psd_array_multitaper
 
 def _spect_func(epoch, n_overlap, n_per_seg, nfft, fs, freq_mask, func):
     """Aux function."""
-    _, _,  spect = func(epoch, fs=fs, nperseg=n_per_seg, noverlap=n_overlap,
-                        nfft=nfft, window='hamming')
+    _, _, spect = func(epoch, fs=fs, nperseg=n_per_seg, noverlap=n_overlap,
+                       nfft=nfft, window='hamming')
     return spect[..., freq_mask, :]
 
 

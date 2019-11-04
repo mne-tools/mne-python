@@ -185,7 +185,7 @@ def _read_header(input_fname):
                          category_lengths=[],
                          pre_baseline=0))
     else:
-        raise NotImplementedError('Only continuos files are supported')
+        raise NotImplementedError('Only continuous files are supported')
     info['unsegmented'] = unsegmented
     info.update(mff_hdr)
     return info

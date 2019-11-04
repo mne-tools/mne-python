@@ -197,7 +197,8 @@ def _foo_get_data_from_dig(dig):
             dig_ch_pos_location.append(d['r'])
 
     dig_coord_frames = set([d['coord_frame'] for d in dig])
-    assert len(dig_coord_frames) == 1, 'Only single coordinate frame in dig is supported' # noqa # XXX
+    assert len(dig_coord_frames) == 1, \
+        'Only single coordinate frame in dig is supported'  # XXX
 
     return Bunch(
         nasion=fids.get('nasion', None),

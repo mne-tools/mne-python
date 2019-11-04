@@ -1421,7 +1421,7 @@ def _check_info(info, sss=True, tsss=True, calibration=True, ctc=True):
         for msg, key, doing in (('SSS', 'sss_info', sss),
                                 ('tSSS', 'max_st', tsss),
                                 ('fine calibration', 'sss_cal', calibration),
-                                ('cross-talk cancellation',  'sss_ctc', ctc)):
+                                ('cross-talk cancellation', 'sss_ctc', ctc)):
             if not doing:
                 continue
             if len(ent['max_info'][key]) > 0:

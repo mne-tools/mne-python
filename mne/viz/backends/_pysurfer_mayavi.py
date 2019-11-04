@@ -381,10 +381,10 @@ def _get_view_to_display_matrix(scene):
     # so we need to scale by width and height of the display window and shift
     # by half width and half height. The matrix accomplishes that.
     x, y = tuple(scene.get_size())
-    view_to_disp_mat = np.array([[x / 2.0,       0.,   0.,   x / 2.0],
-                                 [0.,      -y / 2.0,   0.,   y / 2.0],
-                                 [0.,            0.,   1.,        0.],
-                                 [0.,            0.,   0.,        1.]])
+    view_to_disp_mat = np.array([[x / 2.0,       0.,   0.,   x / 2.0],  # noqa: E241,E501
+                                 [0.,      -y / 2.0,   0.,   y / 2.0],  # noqa: E241,E501
+                                 [0.,            0.,   1.,        0.],  # noqa: E241,E501
+                                 [0.,            0.,   0.,        1.]])  # noqa: E241,E501
     return view_to_disp_mat
 
 
