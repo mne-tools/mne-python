@@ -736,13 +736,14 @@ def _read_annotations_txt_parse_header(fname):
 
 
 def _read_annotations_txt(fname):
-    try:
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore")
-            onset, duration, desc = np.loadtxt(fname, delimiter=',',
-                                               dtype=np.bytes_, unpack=True)
-    except ValueError:
-        return [], [], []
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("ignore")
+        out = np.loadtxt(fname, delimiter=',',
+                         dtype=np.bytes_, unpack=True)
+    if len(out) == 0:
+        onset, duration, desc = [], [], []
+    else:
+        onset, duration, desc = out
 
     onset = [float(o.decode()) for o in np.atleast_1d(onset)]
     duration = [float(d.decode()) for d in np.atleast_1d(duration)]
