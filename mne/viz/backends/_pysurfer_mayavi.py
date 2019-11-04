@@ -426,7 +426,7 @@ def _take_3d_screenshot(figure, mode='rgb', filename=None):
     from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
     if MNE_3D_BACKEND_TEST_DATA:
         ndim = 3 if mode == 'rgb' else 4
-        if figure.scene == None:
+        if figure.scene is None:
             figure_size = (600, 600)
         else:
             figure_size = figure.scene._renwin.size
