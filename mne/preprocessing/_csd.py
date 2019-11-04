@@ -92,11 +92,12 @@ def compute_current_source_density(inst, lambda2=1e-5, stiffness=4,
 
     inst = inst.copy() if copy else inst
 
-    if inst.info['bads']:
-        warn('Deleting bad channels for consistency')
-        inst.drop_channels(inst.info['bads'])
+    picks = pick_types(inst.info, meg=False, eeg=True, exclude=[])
 
-    picks = pick_types(inst.info, meg=False, eeg=True, exclude='bads')
+    if any([ch in np.array(inst.ch_names)[picks] for ch in inst.info['bads']]):
+        raise ValueError('Drop (inst.drop_channels(inst.info[\'bads\'\]) ' +
+                         'or interpolate (`inst.interpolate_bads()`) ' +
+                         'bad channels for consistent channel types')
 
     if len(picks) == 0:
         raise ValueError('No EEG channels found.')

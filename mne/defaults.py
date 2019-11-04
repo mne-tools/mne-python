@@ -15,7 +15,7 @@ DEFAULTS = dict(
     units=dict(mag='fT', grad='fT/cm', eeg='uV', eog='uV', ecg='uV', emg='uV',
                misc='AU', seeg='mV', dipole='nAm', gof='GOF', bio='uV',
                ecog='uV', hbo='uM', hbr='uM', ref_meg='fT', fnirs_raw='V',
-               fnirs_od='V', csd='V/m^2'),
+               fnirs_od='V', csd=r'$\frac{V}{m^2}$'),
     # scalings for the units
     scalings=dict(mag=1e15, grad=1e13, eeg=1e6, eog=1e6, emg=1e6, ecg=1e6,
                   misc=1.0, seeg=1e3, dipole=1e9, gof=1.0, bio=1e6, ecog=1e6,

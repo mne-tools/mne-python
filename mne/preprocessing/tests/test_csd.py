@@ -90,7 +90,7 @@ def test_csd():
 
     warn_raw = raw.copy()
     warn_raw.info['bads'].append(warn_raw.ch_names[3])
-    with pytest.warns(UserWarning, match='Deleting bad channels'):
+    with pytest.raises(ValueError, match='Drop'):
         compute_current_source_density(warn_raw)
 
     with pytest.raises(TypeError):
