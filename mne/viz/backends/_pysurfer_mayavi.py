@@ -67,7 +67,6 @@ class _Renderer(_BaseRenderer):
             self.fig = _mlab_figure(figure=fig, bgcolor=bgcolor, size=size)
         else:
             self.fig = fig
-        self.fig.window_size = size
         _toggle_mlab_render(self.fig, show)
 
     def subplot(self, x, y):
@@ -427,7 +426,11 @@ def _take_3d_screenshot(figure, mode='rgb', filename=None):
     from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
     if MNE_3D_BACKEND_TEST_DATA:
         ndim = 3 if mode == 'rgb' else 4
-        return np.zeros(tuple(figure.window_size) + (ndim,), np.uint8)
+        if figure.scene == None:
+            figure_size = (600, 600)
+        else:
+            figure_size = figure.scene._renwin.size
+        return np.zeros(tuple(figure_size) + (ndim,), np.uint8)
     else:
         from pyface.api import GUI
         gui = GUI()
