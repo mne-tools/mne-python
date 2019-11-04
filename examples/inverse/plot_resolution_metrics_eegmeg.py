@@ -23,7 +23,7 @@ References
 import mne
 from mne.datasets import sample
 from mne.minimum_norm.resolution_matrix import make_resolution_matrix
-from mne.minimum_norm.resolution_metrics import resolution_metrics
+from mne.minimum_norm.spatial_resolution import resolution_metrics
 
 print(__doc__)
 

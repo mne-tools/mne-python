@@ -14,7 +14,7 @@ from mne.utils import logger, verbose
 
 
 @verbose
-def resolution_metrics(resmat, src, function, kind, metric):
+def resolution_metrics(resmat, src, function, kind, metric, threshold=0.5):
     """Compute spatial resolution metrics for linear solvers.
 
     Parameters
@@ -50,6 +50,9 @@ def resolution_metrics(resmat, src, function, kind, metric):
             'peak': Ratio between absolute maximum amplitudes of peaks per
                     location and maximum peak across locations.
             'sum': Ratio between sums of absolute amplitudes.
+    threshold : float
+        Amplitude fraction threshold for spatial extent metric 'maxrad'.
+        Defaults to 0.5.
 
     Returns
     -------
@@ -98,7 +101,7 @@ def resolution_metrics(resmat, src, function, kind, metric):
     elif kind == 'spatial_extent':
 
         resolution_metric = _spatial_extent(resmat, src, function=function,
-                                            metric=metric)
+                                            metric=metric, threshold=threshold)
 
     elif kind == 'relative_amplitude':
 
@@ -204,7 +207,7 @@ def _localisation_error(resmat, src, function, metric):
     return locerr
 
 
-def _spatial_extent(resmat, src, function, metric):
+def _spatial_extent(resmat, src, function, metric, threshold=0.5):
     """Compute spatial width metrics for resolution matrix.
 
     Parameters
@@ -223,7 +226,10 @@ def _spatial_extent(resmat, src, function, metric):
     metric : string ('sd' | 'rad')
         What type of width metric to compute.
         'sd': spatial deviation (e.g. Molins et al.), in centimeters.
-        'maxrad': maximum radius to 50% of max amplitude, in centimeters.
+        'maxrad': maximum radius to fraction threshold of max amplitude, in
+        centimeters.
+    threshold : float
+        Amplitude fraction threshold for metric 'maxrad'. Defaults to 0.5.
 
     Returns
     -------
@@ -274,19 +280,20 @@ def _spatial_extent(resmat, src, function, metric):
         # peak amplitudes per location across columns
         maxamp = resmat.max(axis=0)
 
-        for ii, aa in enumerate(maxamp):  # for all locations
+        for ii, amps in enumerate(maxamp):  # for all locations
 
             # pick current column
             resvec = resmat[:, ii]
 
-            # indices of elements with values larger than 50% of peak amplitude
-            amps50idx = np.where(resvec > 0.5 * aa)[0]
+            # indices of elements with values larger than fraction threshold
+            # of peak amplitude
+            thresh_idx = np.where(resvec > threshold * amps)
 
             # get distances for those indices from true source position
-            locs50 = locations[amps50idx, :] - locations[ii, :]
+            locs_thresh = locations[thresh_idx, :] - locations[ii, :]
 
             # get maximum distance
-            width[ii] = np.sqrt(np.sum(locs50**2, 1).max())
+            width[ii] = np.sqrt(np.sum(locs_thresh**2, 1).max())
 
     else:
 
