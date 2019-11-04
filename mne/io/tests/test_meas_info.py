@@ -539,7 +539,8 @@ def test_anonymize(tmpdir):
 
     # test that annotations are correctly zeroed
     raw.anonymize()
-    assert(raw.annotations.orig_time is raw.info['meas_date'])
+    assert(raw.annotations.orig_time == (raw.info['meas_date'][0] +
+                                         raw.info['meas_date'][1] / 1000000.))
 
 
 @testing.requires_testing_data

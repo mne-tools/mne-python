@@ -22,6 +22,7 @@ from ..io.meas_info import anonymize_info, Info
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _contains_ch_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx)
+from ..annotations import _handle_meas_date
 
 
 DEPRECATED_PARAM = object()
@@ -582,7 +583,8 @@ class SetChannelsMixin(object):
         """
         anonymize_info(self.info, daysback=daysback, keep_his=keep_his)
         if hasattr(self, 'annotations'):
-            self.annotations.orig_time = self.info['meas_date']
+            self.annotations.orig_time = \
+                _handle_meas_date(self.info['meas_date'])
             self.annotations.onset -= self._first_time
         return self
 
