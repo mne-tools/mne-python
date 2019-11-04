@@ -57,7 +57,7 @@ def get_channel_types():
                          coil_type=FIFF.FIFFV_COIL_FNIRS_HBO),
                 hbr=dict(kind=FIFF.FIFFV_FNIRS_CH,
                          coil_type=FIFF.FIFFV_COIL_FNIRS_HBR),
-                csd=dict(kind=FIFF.FIFFV_EEG_CSD_CH,
+                csd=dict(kind=FIFF.FIFFV_EEG_CH,
                          coil_type=FIFF.FIFFV_COIL_EEG_CSD))
 
 
@@ -90,7 +90,6 @@ _first_rule = {
     FIFF.FIFFV_GOODNESS_FIT: 'gof',
     FIFF.FIFFV_ECOG_CH: 'ecog',
     FIFF.FIFFV_FNIRS_CH: 'fnirs',
-    FIFF.FIFFV_EEG_CSD_CH: 'csd'
 }
 # How to reduce our categories in channel_type (originally)
 _second_rules = {
@@ -101,6 +100,11 @@ _second_rules = {
                             FIFF.FIFFV_COIL_FNIRS_RAW: 'fnirs_raw',
                             FIFF.FIFFV_COIL_FNIRS_OD: 'fnirs_od',
                             }),
+    'eeg': ('coil_type', {FIFF.FIFFV_COIL_EEG: 'eeg',
+                          FIFF.FIFFV_COIL_EEG_BIPOLAR: 'eeg',
+                          FIFF.FIFFV_COIL_NONE: 'eeg',  # MNE-C backward compat
+                          FIFF.FIFFV_COIL_EEG_CSD: 'csd',
+                          })
 }
 
 
@@ -353,7 +357,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         fNIRS channels. If False (default) include none. If string it can be
         'hbo' (to include channels measuring oxyhemoglobin) or 'hbr' (to
         include channels measuring deoxyhemoglobin).
-    csd: bool
+    csd : bool
         Current source density channels.
     include : list of str
         List of additional channels to include. If empty do not include any.

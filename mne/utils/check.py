@@ -261,12 +261,10 @@ def _check_ch_locs(chs):
     chs : dict
         The channels from info['chs']
     """
-    for ch in chs:
-        loc3d = ch['loc'][:3]
-        if (~np.isfinite(loc3d)).all():
-            return False
     locs3d = np.array([ch['loc'][:3] for ch in chs])
-    return not np.allclose(locs3d, 0.)
+    return not ((locs3d == 0).all() or
+                (~np.isfinite(locs3d)).all() or
+                np.allclose(locs3d, 0.))
 
 
 def _is_numeric(n):

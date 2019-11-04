@@ -68,7 +68,10 @@ def _channel_type_old(info, idx):
     ch = info['chs'][idx]
 
     # iterate through all defined channel types until we find a match with ch
-    for t, rules in get_channel_types().items():
+    # go in order from most specific (most rules entries) to least specific
+    channel_types = sorted(
+        get_channel_types().items(), key=lambda x: len(x[1]))[::-1]
+    for t, rules in channel_types:
         for key, vals in rules.items():  # all keys must match the values
             if ch.get(key, None) not in np.array(vals):
                 break  # not channel type t, go to next iteration
@@ -249,7 +252,7 @@ def test_pick_chpi():
 
 
 def test_pick_csd():
-    """Test picking current source density channles."""
+    """Test picking current source density channels."""
     # Make sure we don't mis-classify cHPI channels
     names = ['MEG 2331', 'MEG 2332', 'MEG 2333', 'A1', 'A2', 'Fz']
     types = 'mag mag grad csd csd csd'.split()

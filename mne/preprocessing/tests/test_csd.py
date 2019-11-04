@@ -14,49 +14,63 @@ from scipy import io as sio
 
 import pytest
 from numpy.testing import assert_allclose
-import mne
+
 from mne.channels import make_standard_montage
-from mne import create_info, Annotations
-from mne.io import RawArray
-from mne.utils import run_tests_if_main
+from mne import (create_info, Annotations, events_from_annotations, Epochs,
+                 pick_types)
+from mne.io import RawArray, read_raw_fif
+from mne.io.constants import FIFF
+from mne.utils import object_diff, run_tests_if_main
 from mne.datasets import testing
 
 from mne.preprocessing import compute_current_source_density
 
 from mne.channels.interpolation import _calc_g, _calc_h
 
-base_path = op.join(testing.data_path(download=False), 'preprocessing')
+data_path = testing.data_path(download=False)
+eeg_fname = op.join(data_path, 'preprocessing', 'test-eeg.mat')
+csd_fname = op.join(data_path, 'preprocessing', 'test-eeg-csd.mat')
+
+io_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
+raw_fname = op.join(io_path, 'test_raw.fif')
 
 
-@testing.requires_testing_data
-def test_csd():
-    """Test replication of the CSD MATLAB toolbox."""
-    mat_contents = sio.loadmat(op.join(base_path, 'test-eeg.mat'))
+@pytest.fixture(scope='function', params=[testing._pytest_param()])
+def raw_epochs_sphere():
+    """Get the MATLAB EEG data."""
+    n_times = 386
+    mat_contents = sio.loadmat(eeg_fname)
     data = mat_contents['data']
-    n_channels, n_epochs = data.shape[0], data.shape[1] // 386
+    n_channels, n_epochs = data.shape[0], data.shape[1] // n_times
     sfreq = 250.
     ch_names = ['E%i' % i for i in range(1, n_channels + 1, 1)]
     ch_types = ['eeg'] * n_channels
-    sphere = (0., 0., 0., 0.095)
     info = create_info(ch_names=ch_names, ch_types=ch_types, sfreq=sfreq)
     raw = RawArray(data=data, info=info)
     montage = make_standard_montage('GSN-HydroCel-257')
     raw.set_montage(montage)
-    onset = raw.times[np.arange(50, n_epochs * 386, 386)]
+    onset = raw.times[np.arange(50, n_epochs * n_times, n_times)]
     raw.set_annotations(Annotations(onset=onset,
                                     duration=np.repeat(0.1, 3),
                                     description=np.repeat('foo', 3)))
 
-    events, event_id = mne.events_from_annotations(raw)
-    epochs = mne.Epochs(raw, events, event_id, tmin=-.2, tmax=1.34,
-                        preload=True, reject=None, picks=None,
-                        baseline=(None, 0), verbose=False)
-    picks = mne.pick_types(epochs.info, meg=False, eeg=True, eog=False,
-                           stim=False, exclude='bads')
+    events, event_id = events_from_annotations(raw)
+    epochs = Epochs(raw, events, event_id, tmin=-.2, tmax=1.34,
+                    preload=True, reject=None, picks=None,
+                    baseline=(None, 0), verbose=False)
+    sphere = (0., 0., 0., 0.095)
+    return raw, epochs, sphere
 
-    csd_data = sio.loadmat(op.join(base_path, 'test-eeg-csd.mat'))
 
-    """Test G, H and CSD against matlab CSD Toolbox"""
+def test_csd_matlab(raw_epochs_sphere):
+    """Test replication of the CSD MATLAB toolbox."""
+    raw, epochs, sphere = raw_epochs_sphere
+    n_epochs = len(epochs)
+    picks = pick_types(epochs.info, meg=False, eeg=True, eog=False,
+                       stim=False, exclude='bads')
+
+    csd_data = sio.loadmat(csd_fname)
+
     montage = make_standard_montage('EGI_256', head_size=0.100004)
     positions = np.array([montage.dig[pick]['r'] * 10 for pick in picks])
     cosang = np.dot(positions, positions.T)
@@ -88,13 +102,22 @@ def test_csd():
 
     csd_epochs = compute_current_source_density(epochs, sphere=sphere)
 
+    csd_evoked = compute_current_source_density(epochs.average(),
+                                                sphere=sphere)
+    assert_allclose(csd_evoked.data, csd_data['X'].mean(0), atol=1e-3)
+    assert_allclose(csd_evoked.data, csd_epochs._data.mean(0), atol=1e-3)
+
+
+def test_csd_degenerate(raw_epochs_sphere):
+    """Test degenerate conditions."""
+    raw, epochs, sphere = raw_epochs_sphere
     warn_raw = raw.copy()
     warn_raw.info['bads'].append(warn_raw.ch_names[3])
-    with pytest.raises(ValueError, match='Drop'):
+    with pytest.raises(ValueError, match='Either drop.*or interpolate'):
         compute_current_source_density(warn_raw)
 
-    with pytest.raises(TypeError):
-        csd_epochs = compute_current_source_density(None)
+    with pytest.raises(TypeError, match='must be an instance of'):
+        compute_current_source_density(None)
 
     fail_raw = raw.copy()
     with pytest.raises(ValueError, match='Zero or infinite position'):
@@ -103,7 +126,7 @@ def test_csd():
         compute_current_source_density(fail_raw, sphere=sphere)
 
     with pytest.raises(ValueError, match='Zero or infinite position'):
-        fail_raw.info['chs'][3]['loc'][:3] = np.array([np.inf, np.inf, np.inf])
+        fail_raw.info['chs'][3]['loc'][:3] = np.inf
         compute_current_source_density(fail_raw, sphere=sphere)
 
     with pytest.raises(ValueError, match=('No EEG channels found.')):
@@ -143,10 +166,30 @@ def test_csd():
     with pytest.raises(TypeError):
         compute_current_source_density(epochs, copy=2, sphere=sphere)
 
-    csd_evoked = compute_current_source_density(epochs.average(),
-                                                sphere=sphere)
-    assert_allclose(csd_evoked.data, csd_data['X'].mean(0), atol=1e-3)
-    assert_allclose(csd_evoked.data, csd_epochs._data.mean(0), atol=1e-3)
+
+def test_csd_fif():
+    """Test applying CSD to FIF data."""
+    raw = read_raw_fif(raw_fname).load_data()
+    raw.info['bads'] = []
+    picks = pick_types(raw.info, meg=False, eeg=True)
+    assert 'csd' not in raw
+    orig_eeg = raw.get_data('eeg')
+    assert len(orig_eeg) == 60
+    raw_csd = compute_current_source_density(raw)
+    assert 'eeg' not in raw_csd
+    new_eeg = raw_csd.get_data('csd')
+    assert not (orig_eeg == new_eeg).any()
+
+    # reset the only things that should change, and assert objects are the same
+    assert raw_csd.info['custom_ref_applied'] == FIFF.FIFFV_MNE_CUSTOM_REF_CSD
+    raw_csd.info['custom_ref_applied'] = 0
+    for pick in picks:
+        ch = raw_csd.info['chs'][pick]
+        assert ch['coil_type'] == FIFF.FIFFV_COIL_EEG_CSD
+        assert ch['unit'] == FIFF.FIFF_UNIT_V_M2
+        ch.update(coil_type=FIFF.FIFFV_COIL_EEG, unit=FIFF.FIFF_UNIT_V)
+        raw_csd._data[pick] = raw._data[pick]
+    assert object_diff(raw.info, raw_csd.info) == ''
 
 
 run_tests_if_main()

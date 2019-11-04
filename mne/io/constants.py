@@ -183,7 +183,6 @@ FIFF.FIFFV_EXCI_CH      = 920  # flux excitation channel used to be a stimulus c
 FIFF.FIFFV_DIPOLE_WAVE  = 1000  # Dipole time curve (xplotter/xfit)
 FIFF.FIFFV_GOODNESS_FIT = 1001  # Goodness of fit (xplotter/xfit)
 FIFF.FIFFV_FNIRS_CH     = 1100  # Functional near-infrared spectroscopy
-FIFF.FIFFV_EEG_CSD_CH   = 1200  # Current source density
 
 #
 # Quaternion channels for head position monitoring
