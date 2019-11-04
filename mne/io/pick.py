@@ -138,7 +138,7 @@ def channel_type(info, idx):
 def pick_channels(ch_names, include, exclude=[], ordered=False):
     """Pick channels by names.
 
-    Returns the indices of the channels in ch_names and not in "info['bads']".
+    Returns the indices of ``ch_names`` in ``include`` but not in ``exclude``.
 
     Parameters
     ----------
