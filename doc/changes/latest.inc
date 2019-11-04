@@ -61,6 +61,8 @@ Bug
 
 - Fix :meth:`mne.Epochs.shift_time` and :meth:`mne.Evoked.shift_time` to return the modified :class:`~mne.Epochs` or :class:`~mne.Evoked` instance (instead of ``None``) by `Daniel McCloy`_.
 
+- Fix :func:`mne.read_annotations` for text files with zero or one annotations, by `Adonay Nunes`_
+
 - Fix bug in :class:`~mne.preprocessing.ICA` where requesting extended infomax via ``fit_params={'extended': True}`` was overridden, by `Daniel McCloy`_.
 
 - Fix bug in :meth:`mne.Epochs.interpolate_bads` where the ``origin`` was not used during MEG or EEG data interpolation by `Eric Larson`_. Old behavior can be achieved using ``origin=(0., 0., 0.)`` for EEG and ``origin=(0., 0., 0.04)`` for MEG, and the new default is ``origin='auto'``, which uses a head-digitization-based fit.

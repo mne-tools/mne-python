@@ -854,6 +854,45 @@ def test_read_annotation_txt_orig_time(
     assert_array_equal(annot.description, ['AA', 'BB'])
 
 
+@pytest.fixture(scope='session')
+def dummy_annotation_txt_one_segment(tmpdir_factory):
+    """Create empty TXT annotations."""
+    content = ("# MNE-Annotations\n"
+               "# onset, duration, description\n"
+               "3.14, 42, AA")
+    fname = tmpdir_factory.mktemp('data').join('one-annotations.txt')
+    fname.write(content)
+    return fname
+
+
+def test_read_annotation_txt_one_segment(
+        dummy_annotation_txt_one_segment):
+    """Test empty TXT input/output."""
+    annot = read_annotations(str(dummy_annotation_txt_one_segment))
+    assert_array_equal(annot.onset, 3.14)
+    assert_array_equal(annot.duration, 42)
+    assert_array_equal(annot.description, 'AA')
+
+
+@pytest.fixture(scope='session')
+def dummy_annotation_txt_file_empty(tmpdir_factory):
+    """Create empty TXT annotations."""
+    content = ("# MNE-Annotations\n"
+               "# onset, duration, description\n")
+    fname = tmpdir_factory.mktemp('data').join('empty-annotations.txt')
+    fname.write(content)
+    return fname
+
+
+def test_read_annotation_txt_empty(
+        dummy_annotation_txt_file_empty):
+    """Test empty TXT input/output."""
+    annot = read_annotations(str(dummy_annotation_txt_file_empty))
+    assert_array_equal(annot.onset, np.array([], dtype=np.float64))
+    assert_array_equal(annot.duration, np.array([], dtype=np.float64))
+    assert_array_equal(annot.description, np.array([], dtype='<U1'))
+
+
 def test_annotations_simple_iteration():
     """Test indexing Annotations."""
     NUM_ANNOT = 5
