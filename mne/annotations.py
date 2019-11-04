@@ -736,6 +736,8 @@ def _read_annotations_txt_parse_header(fname):
 
 
 def _read_annotations_txt(fname):
+    import warnings
+    warnings.filterwarnings("ignore", message=('loadtxt: Empty input file: "%s"' % fname))
     try:
         onset, duration, desc = np.loadtxt(fname, delimiter=',',
                                            dtype=np.bytes_, unpack=True)

@@ -867,9 +867,9 @@ def test_read_annotation_txt_empty(
         dummy_annotation_txt_file_empty):
     """Test empty TXT input/output."""
     annot = read_annotations(str(dummy_annotation_txt_file_empty))
-    assert_array_equal(annot.onset, [])
-    assert_array_equal(annot.duration, [])
-    assert_array_equal(annot.description, [])
+    assert_array_equal(annot.onset, None)
+    assert_array_equal(annot.duration, None)
+    assert_array_equal(annot.description, None)
 
 
 def test_annotations_simple_iteration():
