@@ -481,9 +481,6 @@ def reset_warnings(gallery_conf, fname):
         'ignore', message="can't resolve package from", category=ImportWarning)
     warnings.filterwarnings(
         'ignore', message='.*mne-realtime.*', category=DeprecationWarning)
-    # ignore warnings for our "general bibliography" page
-    warnings.filterwarnings(
-        'ignore', message=r'Citation \[[A-Za-z0-9]*\] is not referenced\.')
 
 
 reset_warnings(None, None)
