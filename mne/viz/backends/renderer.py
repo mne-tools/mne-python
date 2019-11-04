@@ -25,7 +25,8 @@ except NameError:
 logger.info('Using %s 3d backend.\n' % MNE_3D_BACKEND)
 
 _fromlist = ('_Renderer', '_Projection', '_close_all', '_check_3d_figure',
-             '_close_3d_figure', '_take_3d_screenshot')
+             '_set_3d_view', '_set_3d_title', '_close_3d_figure',
+             '_take_3d_screenshot')
 _name_map = dict(mayavi='_pysurfer_mayavi', pyvista='_pyvista')
 if MNE_3D_BACKEND in VALID_3D_BACKENDS:
     # This is (hopefully) the equivalent to:
@@ -203,47 +204,3 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), handle=None):
     """
     renderer = _mod._Renderer(fig=handle, size=size, bgcolor=bgcolor)
     return renderer.scene()
-
-
-def check_3d_figure(figure):
-    """Check the figure's type depending on the current backend.
-
-    Parameters
-    ----------
-    figure : object
-        The scene which is verified.
-    """
-    _mod._check_3d_figure(figure=figure)
-
-
-def close_3d_figure(figure):
-    """Close the given active figure.
-
-    Parameters
-    ----------
-    figure : object
-        The scene to close.
-    """
-    _mod._close_3d_figure(figure=figure)
-
-
-def take_3d_screenshot(figure, mode, filename):
-    """Take a screenshot of the figure.
-
-    Parameters
-    ----------
-    figure : object
-        The scene to process.
-    mode: str
-        Either 'rgb' or 'rgba' for values to return.
-        Default is 'rgb'.
-    filename: str | None
-        If not None, save the figure to the disk.
-
-    Returns
-    -------
-    img: np.ndarray
-        The output screenshot.
-    """
-    return _mod._take_3d_screenshot(figure=figure, mode=mode,
-                                    filename=filename)

@@ -147,25 +147,27 @@ def _figs_to_mrislices(sl, n_jobs, **kwargs):
 def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
     import matplotlib.pyplot as plt
-    from .viz import (check_3d_figure, take_3d_screenshot, close_3d_figure,
-                      set_3d_view)
+    from .viz.backends.renderer import (
+        _check_3d_figure, _take_3d_screenshot,
+        _close_3d_figure, _set_3d_view
+    )
 
     fig = function(**kwargs)
-    check_3d_figure(fig)
+    _check_3d_figure(fig)
 
     views = [(90, 90), (0, 90), (0, -90)]
     fig2, axes = plt.subplots(1, len(views))
     for view, ax in zip(views, axes):
-        set_3d_view(fig, azimuth=view[0], elevation=view[1],
-                    focalpoint=None, distance=None)
+        _set_3d_view(fig, azimuth=view[0], elevation=view[1],
+                     focalpoint=None, distance=None)
         if fig.scene is not None:
-            im = take_3d_screenshot(figure=fig)
+            im = _take_3d_screenshot(figure=fig)
         else:  # Testing mode
             im = np.zeros((2, 2, 3))
         ax.imshow(im)
         ax.axis('off')
 
-    close_3d_figure(fig)
+    _close_3d_figure(fig)
     img = _fig_to_img(fig2, image_format='png')
     return img
 
