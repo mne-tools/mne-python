@@ -504,7 +504,7 @@ def _test_anonymize_info(base_info):
             value['machid'][:] = 0
 
     # exp 4 tests is a supplied daysback
-    dt_2 = timedelta(days=223+364*500)
+    dt_2 = timedelta(days=223 + 364 * 500)
     exp_info_4['subject_info']['birthday'] = (1488, 5, 10)
     exp_info_4['meas_date'] = _dt_to_stamp(meas_date - dt_2)
     for key in ('file_id', 'meas_id'):

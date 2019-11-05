@@ -1882,7 +1882,6 @@ def _add_timedelta_to_meas_date(meas_date, dt):
     new_meas_date : tuple | none
         The new meas_date tuple.
     """
-
     if meas_date is None:
         new_meas_date = None
     else:
@@ -1943,7 +1942,7 @@ def anonymize_info(info, daysback=None, keep_his=False):
 
     # compute timeshift delta
     if daysback is None and info['meas_date'] is None:
-        delta_t = datetime.timedelta(days=np.random.randint(365, 45*365))
+        delta_t = datetime.timedelta(days=np.random.randint(365, 45 * 365))
     elif daysback is None:
         delta_t = _stamp_to_dt(info['meas_date']) - default_anon_dos
     else:
