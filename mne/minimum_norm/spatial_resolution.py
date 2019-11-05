@@ -19,7 +19,7 @@ def resolution_metrics(resmat, src, function, kind, metric, threshold=0.5):
 
     Parameters
     ----------
-    resmat : array, shape (n_orient*n_locations, n_locations)
+    resmat : array of shape [n_orient*n_locations, n_locations]
         The resolution matrix.
         If not a square matrix and if the number of rows is a multiple of
         number of columns (e.g. free or loose orientations), then the Euclidean
@@ -56,8 +56,8 @@ def resolution_metrics(resmat, src, function, kind, metric, threshold=0.5):
     Returns
     -------
     resolution_metric : instance of SourceEstimate
-        The source estimate contains the resolution metric as an array with
-        shape (n_locations,).
+        The source estimate contains the resolution metric as an array of
+        shape [n_locations,].
 
     References
     ----------
@@ -124,7 +124,7 @@ def _localisation_error(resmat, src, function, metric):
 
     Parameters
     ----------
-    resmat : array, shape (n_orient*n_locations, n_locations)
+    resmat : array of shape [n_orient*n_locations, n_locations]
         The resolution matrix.
         If not a square matrix and if the number of rows is a multiple of
         number of columns (i.e. n_orient>1), then the Euclidean length per
@@ -144,7 +144,7 @@ def _localisation_error(resmat, src, function, metric):
 
     Returns
     -------
-    locerr : array, shape (n_locations,)
+    locerr : array of shape [n_locations,]
         Localisation error per location (in cm).
     """
     # ensure resolution matrix is square
@@ -210,7 +210,7 @@ def _spatial_extent(resmat, src, function, metric, threshold=0.5):
 
     Parameters
     ----------
-    resmat : array, shape (n_orient*n_dipoles, n_dipoles)
+    resmat : array of shape [n_orient*n_dipoles, n_dipoles]
         The resolution matrix.
         If not a square matrix and if the number of rows is a multiple of
         number of columns (i.e. n_orient>1), then the Euclidean length per
@@ -230,7 +230,7 @@ def _spatial_extent(resmat, src, function, metric, threshold=0.5):
 
     Returns
     -------
-    width : array, shape (n_dipoles,)
+    width : array of shape [n_dipoles,]
         Spatial width metric per location.
     """
     # locations used in forward and inverse operator
@@ -304,7 +304,7 @@ def _relative_amplitude(resmat, src, function, metric):
 
     Parameters
     ----------
-    resmat : array, shape (n_orient*n_dipoles, n_dipoles)
+    resmat : array of shape [n_orient*n_dipoles, n_dipoles]
         The resolution matrix.
         If not a square matrix and if the number of rows is a multiple of
         number of columns (i.e. n_orient>1), then the Euclidean length per
@@ -322,7 +322,7 @@ def _relative_amplitude(resmat, src, function, metric):
 
     Returns
     -------
-    relamp: array, shape (n_dipoles,)
+    relamp: array, shape [n_dipoles,]
         Relative amplitude metric per location.
     """
     # The below will operate on columns
@@ -364,7 +364,7 @@ def _relative_amplitude(resmat, src, function, metric):
 
 
 def _get_src_locations(src):
-    """Helper to get source positions from src object."""
+    """Get source positions from src object."""
     # vertices used in forward and inverse operator
     vertno_lh = src[0]['vertno']
     vertno_rh = src[1]['vertno']
@@ -379,7 +379,7 @@ def _get_src_locations(src):
 
 def _rectify_resolution_matrix(resmat):
     """
-    Helper to ensure resolution matrix is square matrix.
+    Ensure resolution matrix is square matrix.
 
     If resmat is not a square matrix, it is assumed that the inverse operator
     had free or loose orientation constraint, i.e. multiple values per source
