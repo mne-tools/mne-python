@@ -15,7 +15,7 @@ from mne.io import (read_raw_fif, RawArray, read_raw_bti, read_raw_kit,
 from mne.io.pick import (channel_indices_by_type, channel_type,
                          pick_types_forward, _picks_by_type, _picks_to_idx,
                          get_channel_types, _DATA_CH_TYPES_SPLIT,
-                         _contains_ch_type, pick_channels_intersection)
+                         _contains_ch_type)
 from mne.io.constants import FIFF
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
@@ -505,22 +505,6 @@ def test_picks_to_idx():
     assert_array_equal(np.arange(len(info['ch_names'])),
                        _picks_to_idx(info, 'all'))
     assert_array_equal([0], _picks_to_idx(info, 'data'))
-
-
-def test_pick_channels_intersection():
-    raw = RawArray(np.zeros((1, 1)), create_info(['raw', 'CH2', 'CH3'], 1024.))
-    epochs = EpochsArray(np.zeros((1, 1, 1)),
-                         create_info(['CH1', 'info', 'CH2'], 1024.))
-    info = create_info(['CH1', 'CH2', 'info'], 1024.)
-
-    pytest.raises(TypeError, pick_channels_intersection, 1)
-    pytest.raises(TypeError, pick_channels_intersection, [1])
-    pytest.raises(ValueError, pick_channels_intersection, [])
-    pytest.raises(TypeError, pick_channels_intersection, [raw, [1]])
-    pytest.raises(ValueError, pick_channels_intersection, [raw, ['nooverlap']])
-    assert pick_channels_intersection([raw, ['CH1', 'CH2']]) == ['CH2']
-    assert pick_channels_intersection([raw, epochs]) == ['CH2']
-    assert pick_channels_intersection([raw, epochs, info]) == ['CH2']
 
 
 run_tests_if_main()
