@@ -19,7 +19,7 @@ def resolution_metrics(resmat, src, function, kind, metric, threshold=0.5):
 
     Parameters
     ----------
-    resmat : array of shape [n_orient*n_locations, n_locations]
+    resmat : array of shape (n_orient * n_vertices, n_vertices)
         The resolution matrix.
         If not a square matrix and if the number of rows is a multiple of
         number of columns (e.g. free or loose orientations), then the Euclidean
@@ -33,22 +33,34 @@ def resolution_metrics(resmat, src, function, kind, metric, threshold=0.5):
         or rows (cross-talk functions, CTFs) of the resolution matrix.
     kind : str
         What kind of resolution feature to consider.
-        Options are 'localization_error' | 'spatial_extent' | 'amplitude'.
+        Options are 'localization_error', 'spatial_extent', and 'amplitude'.
     metric : str
         The exact resolution metric for the kind of resolution feature.
         This must match with 'kind'. The allowed options are:
-        kind='localization_error':
-            'peak': Peak localization error (PLE), Euclidean distance between
-                    peak and true source location.
-            'cog': Centre-of-gravity localisation error (CoG), Euclidean
-                   distance between CoG and true source location.
-        kind='spatial_extent':
-            'sd': spatial deviation (e.g. [1,2]_).
-            'maxrad': maximum radius to 50% of max amplitude.
-        kind='relative_amplitude':
-            'peak': Ratio between absolute maximum amplitudes of peaks per
-                    location and maximum peak across locations.
-            'sum': Ratio between sums of absolute amplitudes.
+
+        - ``kind='localization_error'``:
+
+          - ``metric='peak'``
+              Peak localization error (PLE), Euclidean distance between
+              peak and true source location.
+          - ``metric='cog'``
+              Centre-of-gravity localisation error (CoG), Euclidean
+              distance between CoG and true source location.
+
+        - ``kind='spatial_extent'``:
+
+          - ``metric='sd'``
+              spatial deviation (e.g. [1,2]_).
+          - ``metric='maxrad'``
+              maximum radius to 50% of max amplitude.
+        - ``kind='relative_amplitude'``:
+
+          - ``metric='peak'``
+              Ratio between absolute maximum amplitudes of peaks per
+              location and maximum peak across locations.
+          - ``metric='sum'``
+              Ratio between sums of absolute amplitudes.
+
     threshold : float
         Amplitude fraction threshold for spatial extent metric 'maxrad'.
         Defaults to 0.5.
@@ -56,8 +68,13 @@ def resolution_metrics(resmat, src, function, kind, metric, threshold=0.5):
     Returns
     -------
     resolution_metric : instance of SourceEstimate
-        The source estimate contains the resolution metric as an array of
-        shape [n_locations,].
+        The resolution metric.
+
+    Notes
+    -----
+    For details, see [1]_ [2]_.
+
+    .. versionadded:: 0.20
 
     References
     ----------
