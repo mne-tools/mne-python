@@ -637,6 +637,7 @@ Inverse Solutions
    source_induced_power
    write_inverse_operator
    make_resolution_matrix
+   resolution_metrics
    get_cross_talk
    get_point_spread
 

@@ -24,12 +24,11 @@ def resolution_metrics(resmat, src, function, kind, metric, threshold=0.5):
         If not a square matrix and if the number of rows is a multiple of
         number of columns (e.g. free or loose orientations), then the Euclidean
         length per source location is computed (e.g. if inverse operator with
-        free orientations was applied to foward solution with fixed
+        free orientations was applied to forward solution with fixed
         orientations).
     src : instance of SourceSpaces
         Source space object from forward or inverse operator.
-    function: str
-        'psf'|'ctf'
+    function: 'psf' | 'ctf'
         Whether to compute metrics for columns (point-spread functions, PSFs)
         or rows (cross-talk functions, CTFs) of the resolution matrix.
     kind : str
@@ -58,7 +57,7 @@ def resolution_metrics(resmat, src, function, kind, metric, threshold=0.5):
     -------
     resolution_metric : instance of SourceEstimate
         The source estimate contains the resolution metric as an array with
-        shape (n_locations,)
+        shape (n_locations,).
 
     References
     ----------
@@ -130,11 +129,10 @@ def _localisation_error(resmat, src, function, metric):
         If not a square matrix and if the number of rows is a multiple of
         number of columns (i.e. n_orient>1), then the Euclidean length per
         source location is computed (e.g. if inverse operator with free
-        orientations was applied to foward solution with fixed orientations).
+        orientations was applied to forward solution with fixed orientations).
     src : Source Space
         Source space object from forward or inverse operator.
-    function : str
-        'psf'|'ctf'
+    function : 'psf' | 'ctf'
         Whether to compute metrics for columns (point-spread functions, PSFs)
         or rows (cross-talk functions, CTFs).
     metric : str
@@ -217,11 +215,10 @@ def _spatial_extent(resmat, src, function, metric, threshold=0.5):
         If not a square matrix and if the number of rows is a multiple of
         number of columns (i.e. n_orient>1), then the Euclidean length per
         source location is computed (e.g. if inverse operator with free
-        orientations was applied to foward solution with fixed orientations).
+        orientations was applied to forward solution with fixed orientations).
     src : Source Space
         Source space object from forward or inverse operator.
-    function : str
-        'psf'|'ctf'
+    function : 'psf' | 'ctf'
         Whether to compute metrics for columns (PSFs) or rows (CTFs).
     metric : string ('sd' | 'rad')
         What type of width metric to compute.
@@ -312,11 +309,10 @@ def _relative_amplitude(resmat, src, function, metric):
         If not a square matrix and if the number of rows is a multiple of
         number of columns (i.e. n_orient>1), then the Euclidean length per
         source location is computed (e.g. if inverse operator with free
-        orientations was applied to foward solution with fixed orientations).
+        orientations was applied to forward solution with fixed orientations).
     src : Source Space
         Source space object from forward or inverse operator.
-    function : str
-        'psf'|'ctf'
+    function : 'psf' | 'ctf'
         Whether to compute metrics for columns (PSFs) or rows (CTFs).
     metric : str
         Which amplitudes to use.
