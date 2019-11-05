@@ -366,7 +366,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
             Vh = Vh[:time_pca]
         M = U * s
 
-    # Scaling to make setting of alpha and tol easy
+    # Scaling to make setting of tol and alpha easy
     tol *= sum_squared(M)
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
     alpha_max = norm_l2inf(np.dot(gain.T, M), n_dip_per_pos, copy=False)
@@ -616,7 +616,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
     n_coefs = n_steps * n_freqs
     phi = _Phi(wsize, tstep, n_coefs)
 
-    # Scaling to make setting of alpha and tol easy
+    # Scaling to make setting of tol and alpha easy
     tol *= sum_squared(M)
     alpha_max = norm_epsilon_inf(gain, M, phi, l1_ratio, n_dip_per_pos)
     alpha_max *= 0.01
