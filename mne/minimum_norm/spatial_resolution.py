@@ -28,7 +28,7 @@ def resolution_metrics(resmat, src, function, kind, metric, threshold=0.5):
         orientations).
     src : instance of SourceSpaces
         Source space object from forward or inverse operator.
-    function: 'psf' | 'ctf'
+    function : 'psf' | 'ctf'
         Whether to compute metrics for columns (point-spread functions, PSFs)
         or rows (cross-talk functions, CTFs) of the resolution matrix.
     kind : str
