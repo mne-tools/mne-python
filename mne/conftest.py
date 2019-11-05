@@ -73,6 +73,7 @@ def pytest_configure(config):
     ignore:numpy.ufunc size changed:RuntimeWarning
     ignore:.*mne-realtime.*:DeprecationWarning
     ignore:.*imp.*:DeprecationWarning
+    ignore:Exception creating Regex for oneOf.*:SyntaxWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
