@@ -13,7 +13,7 @@ from ..minimum_norm.inverse import (combine_xyz, _prepare_forward,
 from ..forward import is_fixed_orient
 from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
-from ..utils import logger, verbose, _check_depth
+from ..utils import logger, verbose, _check_depth, sum_squared
 from ..dipole import Dipole
 
 from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver, _Phi,
@@ -366,7 +366,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
             Vh = Vh[:time_pca]
         M = U * s
 
-    # Scaling to make setting of alpha easy
+    # Scaling to make setting of alpha and tol easy
+    tol *= sum_squared(M)
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
     alpha_max = norm_l2inf(np.dot(gain.T, M), n_dip_per_pos, copy=False)
     alpha_max *= 0.01
@@ -610,12 +611,13 @@ def tf_mixed_norm(evoked, forward, noise_cov,
     logger.info('Whitening data matrix.')
     M = np.dot(whitener, M)
 
-    # Scaling to make setting of alpha easy
     n_steps = np.ceil(M.shape[1] / tstep.astype(float)).astype(int)
     n_freqs = wsize // 2 + 1
     n_coefs = n_steps * n_freqs
     phi = _Phi(wsize, tstep, n_coefs)
 
+    # Scaling to make setting of alpha and tol easy
+    tol *= sum_squared(M)
     alpha_max = norm_epsilon_inf(gain, M, phi, l1_ratio, n_dip_per_pos)
     alpha_max *= 0.01
     gain /= alpha_max
