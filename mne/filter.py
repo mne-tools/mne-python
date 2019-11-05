@@ -2010,8 +2010,7 @@ class FilterMixin(object):
             self._raw_times = self.times
         else:  # isinstance(self, Evoked)
             self.times = new_times
-            self.first = int(self.times[0] * self.info['sfreq'])
-            self.last = len(self.times) + self.first - 1
+            self._update_first_last()
         return self
 
     @verbose

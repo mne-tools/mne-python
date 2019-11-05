@@ -1382,8 +1382,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
     evoked = EvokedArray(data, info_out, times[0], nave=1)
 
     evoked.times = times
-    evoked.first = int(np.round(evoked.times[0] * sfreq))
-    evoked.last = evoked.first + evoked.data.shape[1] - 1
+    evoked._update_first_last()
 
     return evoked
 
