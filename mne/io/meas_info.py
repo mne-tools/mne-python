@@ -1866,6 +1866,30 @@ def _force_update_info(info_base, info_target):
             i_targ[key] = val
 
 
+def _add_timedelta_to_meas_date(meas_date, dt):
+    """Add a timedelta to a meas_date tuple.
+
+    Parameters
+    ----------
+    meas_date : tuple | None
+        The Info object you want to use for overwriting values
+        in target Info objects.
+    dt : datetime.timedelta
+        The time difference that is added to the meas_date timestamp
+
+    Returns
+    -------
+    new_meas_date : tuple | none
+        The new meas_date tuple.
+    """
+
+    if meas_date is None:
+        new_meas_date = None
+    else:
+        new_meas_date = _dt_to_stamp(_stamp_to_dt(meas_date) + dt)
+    return new_meas_date
+
+
 def anonymize_info(info, daysback=None, keep_his=False):
     """Anonymize measurement information in place.
 
@@ -1917,25 +1941,31 @@ def anonymize_info(info, daysback=None, keep_his=False):
     default_desc = ("Anonymized using a time shift"
                     " to preserve age at acquisition")
 
-    # datetime object representing meas_date
-    meas_date_datetime = _stamp_to_dt(info['meas_date'])
-
-    if daysback is None:
-        delta_t = meas_date_datetime - default_anon_dos
+    # compute timeshift delta
+    if daysback is None and info['meas_date'] is None:
+        delta_t = datetime.timedelta(days=np.random.randint(365, 45*365))
+    elif daysback is None:
+        delta_t = _stamp_to_dt(info['meas_date']) - default_anon_dos
     else:
         delta_t = datetime.timedelta(days=daysback)
 
     # adjust meas_date
-    info['meas_date'] = _dt_to_stamp(meas_date_datetime - delta_t)
+    info['meas_date'] = _add_timedelta_to_meas_date(info['meas_date'],
+                                                    -delta_t)
 
     # file_id and meas_id
     for key in ('file_id', 'meas_id'):
         value = info.get(key)
         if value is not None:
             assert 'msecs' not in value
-            value['secs'] = info['meas_date'][0]
-            value['usecs'] = info['meas_date'][1]
-            value['machid'][:] = 0
+            tmp = _add_timedelta_to_meas_date((value['secs'], value['usecs']),
+                                              -delta_t)
+            value['secs'] = tmp[0]
+            value['usecs'] = tmp[1]
+            # this is needed for a test CTF dataset
+            _tmp = value['machid'].copy()
+            _tmp[:] = 0
+            value['machid'] = _tmp
 
     # subject info
     subject_info = info.get('subject_info')
@@ -1975,10 +2005,13 @@ def anonymize_info(info, daysback=None, keep_his=False):
     proc_hist = info.get('proc_history')
     if proc_hist is not None:
         for record in proc_hist:
-            record['block_id']['secs'] = info['meas_date'][0]
-            record['block_id']['usecs'] = info['meas_date'][1]
+            this_t0 = (record['block_id']['secs'], record['block_id']['usecs'])
+            this_t1 = _add_timedelta_to_meas_date(this_t0, -delta_t)
+            record['block_id']['secs'] = this_t1[0]
+            record['block_id']['usecs'] = this_t1[1]
             record['block_id']['machid'][:] = 0
-            record['date'] = info['meas_date']
+            record['date'] = _add_timedelta_to_meas_date(record['date'],
+                                                         -delta_t)
             record['experimenter'] = default_str
 
     hi = info.get('helium_info')
@@ -1986,15 +2019,14 @@ def anonymize_info(info, daysback=None, keep_his=False):
         if hi.get('orig_file_guid') is not None:
             hi['orig_file_guid'] = default_str
         if hi.get('meas_date') is not None:
-            hi['meas_date'] = [info['meas_date'][0],
-                               info['meas_date'][1]]
+            hi['meas_date'] = _add_timedelta_to_meas_date(hi['meas_date'],
+                                                          -delta_t)
 
     di = info.get('device_info')
     if di is not None:
         for k in ('serial', 'site'):
             if di.get(k) is not None:
                 di[k] = default_str
-
     return info
 
 
