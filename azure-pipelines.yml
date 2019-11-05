@@ -7,9 +7,77 @@ trigger:
       - maint/*
 
 jobs:
+
+- job: Style
+  pool:
+    vmImage: 'ubuntu-18.04'
+  strategy:
+    matrix:
+      Python37-64bit-fast:
+        PYTHON_VERSION: '3.7'
+        PYTHON_ARCH: 'x64'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: $(PYTHON_VERSION)
+      architecture: $(PYTHON_ARCH)
+      addToPath: true
+  - bash: |
+      python -m pip install --upgrade pip
+      python -m pip install numpy scipy matplotlib sphinx pytest pytest-cov pytest-timeout pytest-sugar flake8
+    displayName: Install dependencies
+    condition: always()
+  - bash: |
+      make flake
+    displayName: make flake
+    condition: always()
+  - bash: |
+      pip install pydocstyle
+    displayName: Install pydocstyle
+    condition: always()
+  - bash: |
+      make pydocstyle
+    displayName: make pydocstyle
+    condition: always()
+  - bash: |
+      pip install codespell
+    displayName: Install codespell
+    condition: always()
+  - bash: |
+      make codespell-error
+    displayName: make codespell-error
+    condition: always()
+  - bash: |
+      pip install https://api.github.com/repos/numpy/numpydoc/zipball/master pytest pytest-cov pytest-timeout pytest-sugar
+    displayName: Install NumpyDoc validation
+    condition: always()
+  - bash: |
+      make docstring
+    displayName: make docstring
+  - bash: |
+      make nesting
+    displayName: make nesting
+    condition: always()
+  - bash: |
+      pip install check-manifest
+    displayName: Install manifest checker
+    condition: always()
+  - bash: |
+      make check-manifest
+    displayName: make check-manifest
+    condition: always()
+  - bash: |
+      pip install twine wheel
+    displayName: Install twine
+    condition: always()
+  - bash: |
+      make check-readme
+    displayName: make check-readme
+    condition: always()
+
 - job: Windows
   pool:
-    vmIMage: 'VS2017-Win2016'
+    vmImage: 'VS2017-Win2016'
   variables:
     MNE_LOGGING_LEVEL: 'warning'
     MNE_FORCE_SERIAL: 'true'
