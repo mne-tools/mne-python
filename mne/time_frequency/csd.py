@@ -92,7 +92,10 @@ class CrossSpectralDensity(object):
         self.frequencies = frequencies
 
         self.n_fft = n_fft
-        self.projs = cp.deepcopy(projs)
+        if projs is None:
+            self.projs = []
+        else:
+            self.projs = cp.deepcopy(projs)
 
     @property
     def n_channels(self):

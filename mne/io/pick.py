@@ -10,6 +10,9 @@ import re
 
 import numpy as np
 
+from ..base import BaseRaw
+from ..epochs import BaseEpochs
+from ..io import Info
 from .constants import FIFF
 from ..utils import (logger, verbose, _validate_type, fill_doc, _ensure_int,
                      _check_option)
@@ -1095,3 +1098,57 @@ def _get_channel_types(info, picks=None, unique=True,
         ch_types = [ch_type for ch_type in ch_types
                     if ch_type in _DATA_CH_TYPES_SPLIT]
     return set(ch_types) if unique is True else ch_types
+
+
+@verbose
+def pick_channels_intersection(instances, verbose=None):
+    """Pick channels present in all instances.
+
+    Goes through all given instances and picks the channels that are present in
+    all of them.
+
+    Parameters
+    ----------
+    instances : list of (inst | list of str)
+        List of instances that define a list of channel names. Each entry can
+        be one of::
+          - :class:`AverageTFR`
+          - :class:`Covariance`
+          - :class:`CrossSpectralDensity`
+          - :class:`Epochs`
+          - :class:`EpochsTFR`
+          - :class:`Evoked`
+          - :class:`Forward`
+          - :class:`Info`
+          - :class:`Raw`
+          - List of string channel names
+    %(verbose)s
+
+    Returns
+    -------
+    ch_sel : list of str
+        A list of channel names that are present in all given instances.
+    """
+    ch_sel = None
+    for inst in instances:
+        if isinstance(inst, (BaseRaw, BaseEpochs)):
+            channels = inst.ch_names
+        elif isinstance(inst, Info):
+            channels = inst['ch_names']
+        elif isinstance(inst, (list, tuple, set, np.ndarray)):
+            if len(inst) > 0 and not isinstance(inst[0], str):
+                raise TypeError('When giving a list of channel names, the '
+                                ' elements of the list must be strings.')
+            channels = inst
+
+        if ch_sel is None:
+            ch_sel = set(channels)
+        else:
+            ch_sel &= set(channels)
+
+    if ch_sel is None:
+        raise TypeError('No instances define a list of channel names.')
+    elif len(ch_sel) == 0:
+        raise ValueError('Given instances have no channels in common.')
+
+    return list(ch_sel)

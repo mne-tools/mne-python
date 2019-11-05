@@ -41,13 +41,9 @@ raw_fname = op.join(data_path, 'sub-{}'.format(subject), 'meg',
 
 raw = mne.io.read_raw_fif(raw_fname)
 
-# Set picks, use a single sensor type
-picks = mne.pick_types(raw.info, meg='grad', exclude='bads')
-
 # Read epochs
 events = mne.find_events(raw)
-epochs = mne.Epochs(raw, events, event_id=1, tmin=-1.5, tmax=2, picks=picks,
-                    preload=True)
+epochs = mne.Epochs(raw, events, event_id=1, tmin=-1.5, tmax=2, preload=True)
 
 # Read forward operator and point to freesurfer subject directory
 fname_fwd = op.join(data_path, 'derivatives', 'sub-{}'.format(subject),
@@ -73,7 +69,8 @@ csd_ers = csd_morlet(epochs, freqs, tmin=0.5, tmax=1.5, decim=20)
 ###############################################################################
 # Computing DICS spatial filters using the CSD that was computed on the entire
 # timecourse.
-filters = make_dics(epochs.info, fwd, csd.mean(), pick_ori='max-power')
+filters = make_dics(epochs.info, fwd, csd.mean(), noise_csd=csd_baseline.mean(),
+                    pick_ori='max-power')
 
 ###############################################################################
 # Applying DICS spatial filters separately to the CSD computed using the

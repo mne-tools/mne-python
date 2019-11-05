@@ -8,9 +8,10 @@
 # License: BSD (3-clause)
 import numpy as np
 
+from ..io.pick import pick_info
 from ..utils import (logger, verbose, warn, _check_one_ch_type,
                      _check_channels_spatial_filter, _check_rank,
-                     _check_option)
+                     _check_option, _check_info_inv)
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..source_estimate import _make_stc, _get_src_type
@@ -18,7 +19,6 @@ from ..time_frequency import csd_fourier, csd_multitaper, csd_morlet
 from ._compute_beamformer import (_check_proj_match, _prepare_beamformer_input,
                                   _compute_beamformer, _check_src_type,
                                   Beamformer, _compute_power)
-
 
 @verbose
 def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
@@ -192,6 +192,9 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
     _check_option('inversion', inversion, ['single', 'matrix'])
     _check_option('weight_norm', weight_norm, ['unit-noise-gain', 'nai', None])
 
+    picks = _check_info_inv(info, forward, csd, noise_csd)
+    info = pick_info(info, picks)
+
     # Leadfield rank and optional rank reduction
     # (to deal with problems with complex eigenvalues within the computation
     # of the optimal orientation when using pinv if the leadfield was only
@@ -230,7 +233,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
     subject = _subject_from_forward(forward)
     ch_names = list(info['ch_names'])
 
-    csd_picks = [csd.ch_names.index(ch) for ch in ch_names]
+    csd_picks = pick_types(info, meg=True, eeg=True, seeg=True)
+    #csd_picks = [csd.ch_names.index(ch) for ch in ch_names]
 
     logger.info('Computing DICS spatial filters...')
     Ws = []

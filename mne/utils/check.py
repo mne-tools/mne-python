@@ -451,6 +451,7 @@ def _check_one_ch_type(method, info, forward, data_cov=None, noise_cov=None):
     from ..channels.channels import _contains_ch_type
     if isinstance(data_cov, CrossSpectralDensity):
         # FIXME
+        _validate_type(noise_cov, [None, CrossSpectralDensity], 'noise_cov')
         picks = list(range(len(data_cov.ch_names)))
         info_pick = info
     else:
@@ -469,7 +470,7 @@ def _check_one_ch_type(method, info, forward, data_cov=None, noise_cov=None):
         noise_cov = make_ad_hoc_cov(info_pick, std=1.)
     else:
         noise_cov = noise_cov.copy()
-        if 'estimator' in noise_cov:
+        if isinstance(noise_cov, Covariance) and 'estimator' in noise_cov:
             del noise_cov['estimator']
     return noise_cov, picks
 
