@@ -711,7 +711,7 @@ def channel_indices_by_type(info, picks=None):
     return idx_by_type
 
 
-def pick_channels_cov(orig, include=[], exclude='bads'):
+def pick_channels_cov(orig, include=[], exclude='bads', ordered=False):
     """Pick channels from covariance matrix.
 
     Parameters
@@ -722,6 +722,11 @@ def pick_channels_cov(orig, include=[], exclude='bads'):
         List of channels to include (if empty, include all available).
     exclude : list of str, (optional) | 'bads'
         Channels to exclude (if empty, do not exclude any). Defaults to 'bads'.
+    ordered : bool
+        If True (default False), ensure that the order of the channels in the
+        modified instance matches the order of ``include``.
+
+        .. versionadded:: 0.20.0
 
     Returns
     -------
@@ -730,7 +735,8 @@ def pick_channels_cov(orig, include=[], exclude='bads'):
     """
     from ..cov import Covariance
     exclude = orig['bads'] if exclude == 'bads' else exclude
-    sel = pick_channels(orig['names'], include=include, exclude=exclude)
+    sel = pick_channels(orig['names'], include=include, exclude=exclude,
+                        ordered=ordered)
     data = orig['data'][sel][:, sel] if not orig['diag'] else orig['data'][sel]
     names = [orig['names'][k] for k in sel]
     bads = [name for name in orig['bads'] if name in orig['names']]

@@ -44,13 +44,21 @@ from ..transforms import (transform_surface_to, invert_transform,
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      run_subprocess, check_fname, logger, verbose, fill_doc,
                      _validate_type, _check_compensation_grade, _check_option,
-                     _check_stc_units)
+                     _check_stc_units, copy_function_doc_to_method_doc)
 from ..label import Label
 from ..fixes import einsum
 
 
 class Forward(dict):
-    """Forward class to represent info from forward solution."""
+    """Forward class to represent info from forward solution.
+
+    Attributes
+    ----------
+    ch_names : list of str
+        List of channels' names.
+
+        ..versionadded 0.20.0
+    """
 
     def copy(self):
         """Copy the Forward instance."""
@@ -98,6 +106,14 @@ class Forward(dict):
         entr += '>'
 
         return entr
+
+    @property
+    def ch_names(self):
+        return self['info']['ch_names']
+
+    @copy_function_doc_to_method_doc(pick_channels_forward)
+    def pick_channels(self, ch_names, ordered=False):
+        return pick_channels_forward(self, ch_names, ordered=ordered)
 
 
 def _block_diag(A, n):

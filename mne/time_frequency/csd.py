@@ -20,6 +20,47 @@ from ..parallel import parallel_func
 from ..externals.h5io import read_hdf5, write_hdf5
 
 
+def pick_channels_csd(csd, include=[], exclude=[], ordered=False):
+    """Pick channels from covariance matrix.
+
+    Parameters
+    ----------
+    csd : instance of CrossSpectralDensity
+        The CSD object to select the channels from.
+    include : list of str
+        List of channels to include (if empty, include all available).
+    exclude : list of str
+        Channels to exclude (if empty, do not exclude any).
+    ordered : bool
+        If True (default False), ensure that the order of the channels in the
+        modified instance matches the order of ``include``.
+
+        .. versionadded:: 0.20.0
+
+    Returns
+    -------
+    res : instance of CrossSpectralDensity
+        Cross-spectral density restricted to selected channels.
+    """
+    sel = pick_channels(csd.ch_names, include=include, exclude=exclude,
+                        ordered=ordered)
+    data = []
+    for vec in csd._data.T:
+        mat = _vector_to_sym_mat(vec)
+        mat = mat[sel, :][:, sel]
+        data.append(_sym_mat_to_vector(mat))
+    ch_names = [csd.ch_names[i] for i in sel]
+
+    return CrossSpectralDensity(
+        data=np.array(data).T,
+        ch_names=ch_names,
+        tmin=csd.tmin,
+        tmax=csd.tmax,
+        frequencies=csd.frequencies,
+        n_fft=csd.n_fft,
+    )
+
+
 class CrossSpectralDensity(object):
     """Cross-spectral density.
 
@@ -400,6 +441,11 @@ class CrossSpectralDensity(object):
         """Return copy of the CrossSpectralDensity object."""
         return cp.deepcopy(self)
 
+    @copy_function_doc_to_method_doc(pick_channels_csd)
+    def pick_channels(self, include=[], exclude=[], ordered=False):
+        return pick_channels_csd(self, include=include, exclude=exclude,
+                                 ordered=ordered)
+
 
 def _n_dims_from_triu(n):
     """Compute matrix dims from number of elements in the upper triangle.
@@ -501,41 +547,6 @@ def read_csd(fname):
 
     csd_dict = read_hdf5(fname, title='conpy')
     return CrossSpectralDensity(**csd_dict)
-
-
-def pick_channels_csd(csd, include=[], exclude=[]):
-    """Pick channels from covariance matrix.
-
-    Parameters
-    ----------
-    csd : instance of CrossSpectralDensity
-        The CSD object to select the channels from.
-    include : list of str
-        List of channels to include (if empty, include all available).
-    exclude : list of str
-        Channels to exclude (if empty, do not exclude any).
-
-    Returns
-    -------
-    res : instance of CrossSpectralDensity
-        Cross-spectral density restricted to selected channels.
-    """
-    sel = pick_channels(csd.ch_names, include=include, exclude=exclude)
-    data = []
-    for vec in csd._data.T:
-        mat = _vector_to_sym_mat(vec)
-        mat = mat[sel, :][:, sel]
-        data.append(_sym_mat_to_vector(mat))
-    ch_names = [csd.ch_names[i] for i in sel]
-
-    return CrossSpectralDensity(
-        data=np.array(data).T,
-        ch_names=ch_names,
-        tmin=csd.tmin,
-        tmax=csd.tmax,
-        frequencies=csd.frequencies,
-        n_fft=csd.n_fft,
-    )
 
 
 @verbose

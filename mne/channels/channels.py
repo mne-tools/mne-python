@@ -103,33 +103,38 @@ def equalize_channels(candidates, verbose=None):
     -----
     This function operates inplace.
     """
+    from ..cov import Covariance
     from ..io.base import BaseRaw
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
-    from ..time_frequency import _BaseTFR
+    from ..forward import Forward
+    from ..time_frequency import _BaseTFR, CrossSpectralDensity
 
+    # Instances need to have a `ch_names` attribute and a `pick_channels`
+    # method that supports `ordered=True`.
     for candidate in candidates:
         _validate_type(candidate,
                        (BaseRaw, BaseEpochs, Evoked, _BaseTFR),
                        "Instances to be modified",
                        "Raw, Epochs, Evoked or TFR")
 
-    chan_max_idx = np.argmax([c.info['nchan'] for c in candidates])
+    chan_max_idx = np.argmax([len(c.ch_names) for c in candidates])
     chan_template = candidates[chan_max_idx].ch_names
     logger.info('Identifying common channels ...')
     channels = [set(c.ch_names) for c in candidates]
     common_channels = set(chan_template).intersection(*channels)
-    dropped = list()
+    all_channels = set(chan_template).union(*channels)
+    dropped = list(set(all_channels - common_channels))
+
+    # Preserve the order of chan_template
+    order = np.argsort([chan_template.index(ch) for ch in common_channels])
+    common_channels = np.array(common_channels)[order].tolist()
+
     for c in candidates:
-        drop_them = list(set(c.ch_names) - common_channels)
-        if drop_them:
-            c.drop_channels(drop_them)
-            dropped.extend(drop_them)
+        c.pick_channels(common_channels, ordered=True)
+
     if dropped:
-        dropped = list(set(dropped))
         logger.info('Dropped the following channels:\n%s' % dropped)
-    else:
-        logger.info('all channels are corresponding, nothing to do.')
 
 
 class ContainsMixin(object):
@@ -683,7 +688,7 @@ class UpdateChannelsMixin(object):
             selection=selection)
         return self._pick_drop_channels(idx)
 
-    def pick_channels(self, ch_names):
+    def pick_channels(self, ch_names, ordered=False):
         """Pick some channels.
 
         Parameters
@@ -695,6 +700,11 @@ class UpdateChannelsMixin(object):
         -------
         inst : instance of Raw, Epochs, or Evoked
             The modified instance.
+        ordered : bool
+            If True (default False), ensure that the order of the channels in
+            the modified instance matches the order of ``ch_names``.
+
+            .. versionadded:: 0.20.0
 
         See Also
         --------
@@ -711,10 +721,10 @@ class UpdateChannelsMixin(object):
         .. versionadded:: 0.9.0
         """
         return self._pick_drop_channels(
-            pick_channels(self.info['ch_names'], ch_names))
+            pick_channels(self.info['ch_names'], ch_names, ordered=ordered))
 
     @fill_doc
-    def pick(self, picks, exclude=()):
+    def pick(self, picks, exclude=(), ordered=False):
         """Pick a subset of channels.
 
         Parameters
@@ -723,6 +733,11 @@ class UpdateChannelsMixin(object):
         exclude : list | str
             Set of channels to exclude, only used when picking based on
             types (e.g., exclude="bads" when picks="meg").
+        ordered : bool
+            If True (default False), ensure that the order of the channels in
+            the modified instance matches the order of ``picks``.
+
+            .. versionadded:: 0.20.0
 
         Returns
         -------
@@ -730,7 +745,7 @@ class UpdateChannelsMixin(object):
             The modified instance.
         """
         picks = _picks_to_idx(self.info, picks, 'all', exclude,
-                              allow_empty=False)
+                              allow_empty=False, ordered=ordered)
         return self._pick_drop_channels(picks)
 
     def reorder_channels(self, ch_names):

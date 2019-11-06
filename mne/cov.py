@@ -231,6 +231,11 @@ class Covariance(dict):
         return viz.misc.plot_cov(self, info, exclude, colorbar, proj, show_svd,
                                  show, verbose)
 
+    @copy_function_doc_to_method_doc(pick_channels_cov)
+    def pick_channels(self, include=[], exclude='bads', ordered=False):
+        return pick_channels_cov(self, include=include, exclude=exclude,
+                                 ordered=ordered)
+
 
 ###############################################################################
 # IO
