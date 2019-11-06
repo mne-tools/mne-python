@@ -2050,7 +2050,7 @@ def anonymize_info(info, daysback=None, keep_his=False):
     try:
         info._check_consistency()
     except RuntimeError as e:
-        raise RuntimeError('anonymize_info generated an inconsistant info '
+        raise RuntimeError('anonymize_info generated an inconsistent info '
                            'object. Most often this is because daysback '
                            'parameter was too large.\nUnderlying Error: "%r"'
                            % str(e))
