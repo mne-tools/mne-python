@@ -93,6 +93,8 @@ Bug
 
 - Fix bug in EDF(+) loading, filter values ignored by insufficient regex, by `Demetres Kostas`_
 
+- Fix missing scaling of tolerance parameter in :func:`mne.inverse_sparse.tf_mixed_norm` and :func:`mne.inverse_sparse.mixed_norm`, by `Mathurin Massias`_
+
 API
 ~~~
 
