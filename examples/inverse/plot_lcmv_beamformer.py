@@ -56,11 +56,13 @@ evoked = epochs.average()
 forward = mne.read_forward_solution(fname_fwd)
 forward = mne.convert_forward_solution(forward, surf_ori=True)
 
-# Compute regularized noise and data covariances
-noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0, method='shrunk',
-                                   rank=None)
+# Compute noise and data covariances. For beamformers, you want to use the
+# empirical covariance matrix. Regularization will be applied by the
+# beamformer.
+noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0,
+                                   method='empirical')
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
-                                  method='shrunk', rank=None)
+                                  method='empirical')
 evoked.plot(time_unit='s')
 
 ###############################################################################
@@ -81,7 +83,7 @@ for pick_ori, desc in zip(pick_oris, descriptions):
         use_forward = forward
     filters = make_lcmv(evoked.info, use_forward, data_cov, reg=0.05,
                         noise_cov=noise_cov, pick_ori=pick_ori,
-                        weight_norm='unit-noise-gain', rank=None)
+                        weight_norm='unit-noise-gain', rank='info')
     print(filters)
     # apply this spatial filter to source-reconstruct the evoked data
     stc = apply_lcmv(evoked, filters, max_ori_out='signed')
