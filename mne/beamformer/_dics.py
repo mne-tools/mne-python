@@ -54,6 +54,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
         frequencies as the data CSDs. Providing noise CSDs is mandatory if you
         mix sensor types, e.g.  gradiometers with magnetometers or EEG with
         MEG.
+
+        .. versionadded:: 0.20
     label : Label | None
         Restricts the solution to a given label.
     pick_ori : None | 'normal' | 'max-power'
