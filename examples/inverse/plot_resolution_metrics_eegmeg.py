@@ -1,6 +1,6 @@
 """
 ==============================================================
-Compute spatial resolution metrics to compare MEG with EEGMEG.
+Compute spatial resolution metrics to compare MEG with EEG+MEG
 ==============================================================
 
 Compute peak localisation error and spatial deviation for the point-spread
@@ -106,10 +106,10 @@ brain_ple_diff = diff_ple.plot('sample', 'inflated', 'lh',
                                smoothing_steps=20,
                                title='PLE EMEG-MEG')
 
-print('With respect to peak localization error, adding EEG to MEG does not'
-      'bring much benefit.')
-
-# Visualise spatial deviation (SD) across the whole cortex for PSF
+###############################################################################
+# These plots show that with respect to peak localization error, adding EEG to
+# MEG does not bring much benefit. Next let's visualise spatial deviation (SD)
+# across the whole cortex for PSF:
 
 brain_sd_emeg = sd_psf_emeg.plot('sample', 'inflated', 'lh',
                                  subjects_dir=subjects_dir, figure=4,
@@ -130,6 +130,7 @@ brain_sd_diff = diff_sd.plot('sample', 'inflated', 'lh',
                              smoothing_steps=20,
                              title='SD EMEG-MEG')
 
-print('Adding EEG to MEG decreases the spatial extent of point-spread'
-      'functions (lower spatial deviation, blue colors), thus increasing'
-      'resolution, especially for deeper source locations.')
+###############################################################################
+# Adding EEG to MEG decreases the spatial extent of point-spread
+# functions (lower spatial deviation, blue colors), thus increasing
+# resolution, especially for deeper source locations.
