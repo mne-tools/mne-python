@@ -12,7 +12,7 @@ from ...utils import logger, warn, verbose
 from ..utils import _read_segments_file
 from ..base import BaseRaw
 from ..meas_info import _empty_info
-from .._digitization import _make_dig_points
+from .._digitization import _make_dig_points, DigPoint
 from ..constants import FIFF
 from ...chpi import _fit_device_hpi_positions, _fit_coil_order_dev_head_trans
 from ...transforms import get_ras_to_neuromag_trans, apply_trans, Transform
@@ -380,7 +380,7 @@ class RawArtemis123(BaseRaw):
                         d = {'r': point, 'ident': idx + 1,
                              'kind': FIFF.FIFFV_POINT_HPI,
                              'coord_frame': FIFF.FIFFV_COORD_DEVICE}
-                        self.info['dig'].append(d)
+                        self.info['dig'].append(DigPoint(d))
 
                     dig_dists = cdist(hpi_head[order], hpi_head[order])
                     dev_dists = cdist(hpi_dev, hpi_dev)
