@@ -346,7 +346,6 @@ class CrossSpectralDensity(object):
             from ..cov import Covariance  # to avoid circular import
             return Covariance(data, self.ch_names, bads=[], projs=self.projs,
                               nfree=self.n_fft)
-            return None
         else:
             return data
 
