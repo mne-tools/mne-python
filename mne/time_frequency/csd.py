@@ -318,6 +318,8 @@ class CrossSpectralDensity(object):
             Whether to return the data as a numpy array (`False`, the default),
             or pack it in a :class:`mne.Covariance` object (`True`).
 
+            .. versionadded:: 0.20
+
         Returns
         -------
         csd : ndarray, shape (n_channels, n_channels) | instance of Covariance
