@@ -19,7 +19,7 @@ def resolution_metrics(resmat, src, function, kind, metric, threshold=0.5):
 
     Parameters
     ----------
-    resmat : array of shape (n_orient * n_vertices, n_vertices)
+    resmat : array of shape [n_orient * n_vertices, n_vertices]
         The resolution matrix.
         If not a square matrix and if the number of rows is a multiple of
         number of columns (e.g. free or loose orientations), then the Euclidean
