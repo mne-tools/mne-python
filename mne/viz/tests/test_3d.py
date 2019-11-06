@@ -342,7 +342,6 @@ def test_plot_alignment(tmpdir, renderer):
 
 @testing.requires_testing_data
 @requires_pysurfer
-@requires_mayavi
 @traits_test
 def test_limits_to_control_points(renderer):
     """Test functionality for determining control points."""
@@ -582,8 +581,7 @@ def test_plot_vec_source_estimates():
 
 
 @testing.requires_testing_data
-@requires_mayavi
-def test_plot_sensors_connectivity():
+def test_plot_sensors_connectivity(renderer):
     """Test plotting of sensors connectivity."""
     from mne import io, pick_types
 
