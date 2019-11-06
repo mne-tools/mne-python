@@ -276,4 +276,6 @@
 
 .. _Victor Ferat: https://github.com/vferat
 
+.. _Dmitrii Altukhov: https://www.hse.ru/en/org/persons/190873905
+
 .. _Demetres Kostas: https://github.com/kostasde

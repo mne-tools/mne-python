@@ -61,16 +61,6 @@ def _safe_svd(A, **kwargs):
             raise
 
 
-# SciPy 1.0+
-def _check_info(info, driver, positive='did not converge (LAPACK info=%d)'):
-    """Check info return value."""
-    if info < 0:
-        raise ValueError('illegal value in argument %d of internal %s'
-                         % (-info, driver))
-    if info > 0 and positive:
-        raise LinAlgError(("%s " + positive) % (driver, info,))
-
-
 ###############################################################################
 # Backporting nibabel's read_geometry
 
