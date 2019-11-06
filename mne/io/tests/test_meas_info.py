@@ -471,7 +471,6 @@ def _test_anonymize_info(base_info):
 
     # make copies
     exp_info_3 = exp_info.copy()
-    exp_info_4 = exp_info.copy()
 
     # adjust each expected outcome
     dt = timedelta(days=3653)
@@ -505,17 +504,6 @@ def _test_anonymize_info(base_info):
 
     # exp 4 tests is a supplied daysback
     dt_2 = timedelta(days=223 + 364 * 500)
-    exp_info_4['subject_info']['birthday'] = (1488, 5, 10)
-    exp_info_4['meas_date'] = _dt_to_stamp(meas_date - dt_2)
-    for key in ('file_id', 'meas_id'):
-        value = exp_info_4.get(key)
-        if value is not None:
-            assert 'msecs' not in value
-            tmp = _add_timedelta_to_meas_date((value['secs'], value['usecs']),
-                                              -dt_2)
-            value['secs'] = tmp[0]
-            value['usecs'] = tmp[1]
-            value['machid'][:] = 0
 
     new_info = anonymize_info(base_info.copy())
     assert_object_equal(new_info, exp_info)
@@ -526,8 +514,9 @@ def _test_anonymize_info(base_info):
     new_info = anonymize_info(base_info.copy(), daysback=dt_1.days)
     assert_object_equal(new_info, exp_info_3)
 
-    new_info = anonymize_info(base_info.copy(), daysback=dt_2.days)
-    assert_object_equal(new_info, exp_info_4)
+    with pytest.raises(RuntimeError, match='anonymize_info generated'):
+        anonymize_info(base_info.copy(), daysback=dt_2.days)
+    # assert_object_equal(new_info, exp_info_4)
 
     # test with a non meas_date
     base_info['meas_date'] = None

@@ -589,12 +589,33 @@ class Info(dict):
             raise RuntimeError('bad channel(s) %s marked do not exist in info'
                                % (missing,))
         meas_date = self.get('meas_date')
-        if meas_date is not None and (
-                not isinstance(self['meas_date'], tuple) or
-                len(self['meas_date']) != 2):
-            raise RuntimeError('info["meas_date"] must be a tuple of length '
-                               '2 or None, got "%r"'
-                               % (repr(self['meas_date']),))
+        if meas_date is not None:
+            if (not isinstance(self['meas_date'], tuple) or
+                    len(self['meas_date']) != 2):
+                raise RuntimeError('info["meas_date"] must be a tuple '
+                                   'of length 2 or None, got "%r"'
+                                   % (repr(self['meas_date']),))
+            if (meas_date[0] < np.iinfo('>i4').min or
+                    meas_date[0] > np.iinfo('>i4').max):
+                raise RuntimeError('info["meas_date"] must be between "%r" '
+                                   'and "%r", got "%r"'
+                                   % (repr((np.iinfo('>i4').min, 0)),
+                                      repr((np.iinfo('>i4').max, 0)),
+                                      repr(self['meas_date']),))
+
+        for key in ('file_id', 'meas_id'):
+            value = self.get(key)
+            if value is not None:
+                assert 'msecs' not in value
+                for key_2 in ('secs', 'usecs'):
+                    if (value[key_2] < np.iinfo('>i4').min or
+                            value[key_2] > np.iinfo('>i4').max):
+                        raise RuntimeError('info[%s][%s] must be between '
+                                           '"%r" and "%r", got "%r"'
+                                           % (key, key_2,
+                                              repr(np.iinfo('>i4').min),
+                                              repr(np.iinfo('>i4').max),
+                                              repr(value[key_2]),))
 
         chs = [ch['ch_name'] for ch in self['chs']]
         if len(self['ch_names']) != len(chs) or any(
@@ -2026,6 +2047,13 @@ def anonymize_info(info, daysback=None, keep_his=False):
         for k in ('serial', 'site'):
             if di.get(k) is not None:
                 di[k] = default_str
+    try:
+        info._check_consistency()
+    except RuntimeError as e:
+        raise RuntimeError('anonymize_info generated an inconsistant info '
+                           'object. Most often this is because daysback '
+                           'parameter was too large.\nUnderlying Error: "%r"'
+                           % str(e))
     return info
 
 
