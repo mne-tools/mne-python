@@ -103,8 +103,8 @@ def equalize_channels(candidates, verbose=None):
     ----------
     candidates : list
         A list of MNE-Python objects to equalize the channels for. Objects can
-        be of type Raw, Epochs, Evoked, AverageTFR, Forward, Covariance or
-        CrossSpectralDensity.
+        be of type Raw, Epochs, Evoked, AverageTFR, Forward, Covariance,
+        CrossSpectralDensity or Info.
     %(verbose)s
 
     Notes
@@ -113,6 +113,7 @@ def equalize_channels(candidates, verbose=None):
     """
     from ..cov import Covariance
     from ..io.base import BaseRaw
+    from ..io.meas_info import Info
     from ..epochs import BaseEpochs
     from ..evoked import Evoked
     from ..forward import Forward
@@ -121,9 +122,9 @@ def equalize_channels(candidates, verbose=None):
     # Instances need to have a `ch_names` attribute and a `pick_channels`
     # method that supports `ordered=True`.
     allowed_types = (BaseRaw, BaseEpochs, Evoked, _BaseTFR, Forward,
-                     Covariance, CrossSpectralDensity)
-    allowed_types_str = ("Raw, Epochs, Evoked, TFR, Forward, Covariance or "
-                         "CrossSpectralDensity")
+                     Covariance, CrossSpectralDensity, Info)
+    allowed_types_str = ("Raw, Epochs, Evoked, TFR, Forward, Covariance, "
+                         "CrossSpectralDensity or Info")
     for candidate in candidates:
         _validate_type(candidate, allowed_types, "Instances to be modified",
                        allowed_types_str)

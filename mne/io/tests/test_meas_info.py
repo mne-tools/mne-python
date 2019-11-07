@@ -29,7 +29,7 @@ from mne.io._digitization import (_write_dig_points, _read_dig_points,
                                   _make_dig_points,)
 from mne.io import read_raw_ctf
 from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
-from mne.channels import make_standard_montage
+from mne.channels import make_standard_montage, equalize_channels
 
 fiducials_fname = op.join(op.dirname(__file__), '..', '..', 'data',
                           'fsaverage', 'fsaverage-fiducials.fif')
@@ -650,4 +650,12 @@ def test_field_round_trip(tmpdir):
     assert_object_equal(info, info_read)
 
 
+def test_equalize_channels():
+    """Test equalization of channels for instances of Info."""
+    info1 = create_info(['CH1', 'CH2', 'CH3'], sfreq=1.)
+    info2 = create_info(['CH4', 'CH2', 'CH1'], sfreq=1.)
+    equalize_channels([info1, info2])
+
+    assert info1.ch_names == ['CH1', 'CH2']
+    assert info2.ch_names == ['CH1', 'CH2']
 run_tests_if_main()
