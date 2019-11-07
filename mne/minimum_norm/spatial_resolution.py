@@ -14,7 +14,7 @@ from mne.utils import logger, verbose
 
 
 @verbose
-def resolution_metrics(resmat, src, function, kind, metric, threshold=0.5):
+def resolution_metrics(resmat, src, function, metric, threshold=0.5):
     """Compute spatial resolution metrics for linear solvers.
 
     Parameters
