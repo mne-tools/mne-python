@@ -13,6 +13,7 @@ import numpy as np
 from scipy import linalg
 
 from ..cov import Covariance, make_ad_hoc_cov
+from ..fixes import pinv
 from ..forward.forward import is_fixed_orient, _restrict_forward_to_src_sel
 from ..io.proj import make_projector, Projection
 from ..minimum_norm.inverse import _get_vertno, _prepare_forward
@@ -270,7 +271,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                     assert Ck.shape[1:] == (3, 3)
                     # Invert for all dipoles simultaneously using matrix
                     # inversion.
-                    norm = np.linalg.pinv(Ck, **pinv_kwargs)
+                    norm = pinv(Ck, **pinv_kwargs)
                 # Reapply source covariance after inversion
                 norm *= sk[:, :, np.newaxis]
                 norm *= sk[:, np.newaxis, :]
