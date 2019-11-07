@@ -2299,12 +2299,6 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         data = getattr(stc, hemi + '_data')
         vertices = stc.vertices[hemi_idx]
         if len(data) > 0:
-            if scale_factor is None:
-                _, y, _ = np.array(brain.geo[hemi].coords).T
-                magnitude = np.linalg.norm(data, axis=1)
-                scale_factor = magnitude.max() / magnitude[:, 0].max()
-                scale_factor *= (np.max(y) - np.min(y)) / 5.
-
             with warnings.catch_warnings(record=True):  # traits warnings
                 brain.add_data(data, colormap=colormap, vertices=vertices,
                                smoothing_steps=smoothing_steps, time=times,
@@ -2314,6 +2308,17 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                scale_factor=scale_factor,
                                min=scale_pts[0], max=scale_pts[2],
                                **ad_kwargs)
+            if scale_factor is None:
+                # Compute the width of the brain
+                width = np.ptp(brain.geo[hemi].coords[:, 1])
+                # Retrieve the current hemi
+                for b in brain._brain_list:
+                    if b['hemi'] == hemi:
+                        found_hemi = b['brain']
+                layer_id = brain.data['layer_id']
+                # Configure the glyphs scale directly
+                glyphs = found_hemi.data[layer_id]['glyphs']
+                glyphs.glyph.glyph.scale_factor = width / 5.
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
                                   fmax=scale_pts[2], **sd_kwargs)
 
