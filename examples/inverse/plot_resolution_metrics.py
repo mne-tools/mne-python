@@ -65,19 +65,15 @@ rm_dspm = make_resolution_matrix(forward, inverse_operator,
 
 # Compute peak localisation error (PLE) for point spread functions (PSFs)
 ple_mne_psf = resolution_metrics(rm_mne, inverse_operator['src'],
-                                 function='psf',
-                                 kind='localization_error', metric='peak')
+                                 function='psf', metric='peak_err')
 ple_dspm_psf = resolution_metrics(rm_dspm, inverse_operator['src'],
-                                  function='psf',
-                                  kind='localization_error', metric='peak')
+                                  function='psf', metric='peak_err')
 
 # Compute spatial deviation (SD) for PSFs
 sd_mne_psf = resolution_metrics(rm_mne, inverse_operator['src'],
-                                function='psf',
-                                kind='spatial_extent', metric='sd')
+                                function='psf', metric='sd_ext')
 sd_dspm_psf = resolution_metrics(rm_dspm, inverse_operator['src'],
-                                 function='psf',
-                                 kind='spatial_extent', metric='sd')
+                                 function='psf', metric='sd_ext')
 
 # Visualise peak localisation error (PLE) across the whole cortex for PSF
 brain_ple_mne = ple_mne_psf.plot('sample', 'inflated', 'lh',

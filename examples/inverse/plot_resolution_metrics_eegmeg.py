@@ -71,19 +71,15 @@ rm_meg = make_resolution_matrix(forward_meg, inv_meg,
 
 # Compute peak localisation error for PSFs
 ple_psf_emeg = resolution_metrics(rm_emeg, inv_emeg['src'],
-                                  function='psf',
-                                  kind='localization_error', metric='peak')
+                                  function='psf', metric='peak_err')
 ple_psf_meg = resolution_metrics(rm_meg, inv_meg['src'],
-                                 function='psf',
-                                 kind='localization_error', metric='peak')
+                                 function='psf', metric='peak_err')
 
 # Compute spatial deviation for PSFs
 sd_psf_emeg = resolution_metrics(rm_emeg, inv_emeg['src'],
-                                 function='psf',
-                                 kind='spatial_extent', metric='sd')
+                                 function='psf', metric='sd_ext')
 sd_psf_meg = resolution_metrics(rm_meg, inv_meg['src'],
-                                function='psf',
-                                kind='spatial_extent', metric='sd')
+                                function='psf', metric='sd_ext')
 
 # Visualise peak localisation error (PLE) across the whole cortex for PSF
 
