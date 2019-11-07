@@ -486,18 +486,17 @@ def pick_info(info, sel=(), copy=True, verbose=None):
     info['bads'] = [ch for ch in info['bads'] if ch in info['ch_names']]
 
     if 'comps' in info:
-        if 'csd' not in info['comps']:  # added for csd 0.20
-            comps = deepcopy(info['comps'])
-            for c in comps:
-                row_idx = [k for k, n in enumerate(c['data']['row_names'])
-                           if n in info['ch_names']]
-                row_names = [c['data']['row_names'][i] for i in row_idx]
-                rowcals = c['rowcals'][row_idx]
-                c['rowcals'] = rowcals
-                c['data']['nrow'] = len(row_names)
-                c['data']['row_names'] = row_names
-                c['data']['data'] = c['data']['data'][row_idx]
-            info['comps'] = comps
+        comps = deepcopy(info['comps'])
+        for c in comps:
+            row_idx = [k for k, n in enumerate(c['data']['row_names'])
+                       if n in info['ch_names']]
+            row_names = [c['data']['row_names'][i] for i in row_idx]
+            rowcals = c['rowcals'][row_idx]
+            c['rowcals'] = rowcals
+            c['data']['nrow'] = len(row_names)
+            c['data']['row_names'] = row_names
+            c['data']['data'] = c['data']['data'][row_idx]
+        info['comps'] = comps
     info._check_consistency()
     return info
 
@@ -868,18 +867,17 @@ def _check_excludes_includes(chs, info=None, allow_bads=False):
 
 
 _PICK_TYPES_DATA_DICT = dict(
-    meg=True, eeg=True, stim=False, eog=False, ecg=False, emg=False,
+    meg=True, eeg=True, csd=True, stim=False, eog=False, ecg=False, emg=False,
     misc=False, resp=False, chpi=False, exci=False, ias=False, syst=False,
-    seeg=True, dipole=False, gof=False, bio=False, ecog=True, fnirs=True,
-    csd=True)
+    seeg=True, dipole=False, gof=False, bio=False, ecog=True, fnirs=True)
 _PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT.keys()) + ['ref_meg'])
-_DATA_CH_TYPES_SPLIT = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr',
-                        'fnirs_raw', 'fnirs_od', 'csd')
-_DATA_CH_TYPES_ORDER_DEFAULT = ('mag', 'grad', 'eeg', 'eog', 'ecg', 'emg',
-                                'ref_meg', 'misc', 'stim', 'resp',
+_DATA_CH_TYPES_SPLIT = ('mag', 'grad', 'eeg', 'csd', 'seeg', 'ecog',
+                        'hbo', 'hbr', 'fnirs_raw', 'fnirs_od')
+_DATA_CH_TYPES_ORDER_DEFAULT = ('mag', 'grad', 'eeg', 'csd', 'eog', 'ecg',
+                                'emg', 'ref_meg', 'misc', 'stim', 'resp',
                                 'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio',
                                 'ecog', 'hbo', 'hbr', 'fnirs_raw', 'fnirs_od',
-                                'whitened', 'csd')
+                                'whitened')
 
 # Valid data types, ordered for consistency, used in viz/evoked.
 _VALID_CHANNEL_TYPES = ('eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg',

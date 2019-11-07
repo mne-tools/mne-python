@@ -35,11 +35,18 @@ raw = raw.pick_types(meg=False, eeg=True, eog=True, ecg=True, stim=False,
 raw.set_eeg_reference(projection=True).apply_proj()
 
 ###############################################################################
-# Plot the raw data and CSD-transformed raw data
+# Plot the raw data and CSD-transformed raw data:
 
-raw.plot()
 raw_csd = mne.preprocessing.compute_current_source_density(raw)
+raw.plot()
 raw_csd.plot()
+
+###############################################################################
+# Also look at the power spectral densities:
+
+raw.plot_psd()
+raw_csd.plot_psd()
+raise RuntimeError
 
 ###############################################################################
 event_id = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,

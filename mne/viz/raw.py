@@ -556,9 +556,6 @@ def _label_clicked(pos, params):
     _plot_update_raw_proj(params, None)
 
 
-_data_types = ('mag', 'grad', 'eeg', 'seeg', 'ecog')
-
-
 @verbose
 def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
                  n_fft=None, n_overlap=0, reject_by_annotation=True,
