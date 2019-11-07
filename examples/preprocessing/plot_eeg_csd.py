@@ -46,7 +46,6 @@ raw_csd.plot()
 
 raw.plot_psd()
 raw_csd.plot_psd()
-raise RuntimeError
 
 ###############################################################################
 event_id = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
