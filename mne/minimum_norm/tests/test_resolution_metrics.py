@@ -8,6 +8,7 @@ Currently only for fixed source orientations.
 
 import os.path as op
 import numpy as np
+import pytest
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_)
 
@@ -73,57 +74,57 @@ def test_resolution_metrics():
     # Compute localisation error (STCs)
     # Peak
     le_mne_psf = resolution_metrics(rm_mne, fwd['src'], function='psf',
-                                    kind='localization_error', metric='peak')
+                                    metric='peak_err')
     le_mne_ctf = resolution_metrics(rm_mne, fwd['src'], function='ctf',
-                                    kind='localization_error', metric='peak')
+                                    metric='peak_err')
     le_lor_psf = resolution_metrics(rm_lor, fwd['src'], function='psf',
-                                    kind='localization_error', metric='peak')
+                                    metric='peak_err')
     # Centre-of-gravity
     cog_mne_psf = resolution_metrics(rm_mne, fwd['src'], function='psf',
-                                     kind='localization_error', metric='cog')
+                                     metric='cog_err')
     cog_mne_ctf = resolution_metrics(rm_mne, fwd['src'], function='ctf',
-                                     kind='localization_error', metric='cog')
+                                     metric='cog_err')
 
     # Compute spatial spread (STCs)
     # Spatial deviation
     sd_mne_psf = resolution_metrics(rm_mne, fwd['src'], function='psf',
-                                    kind='spatial_extent', metric='sd')
+                                    metric='sd_ext')
     sd_mne_psf_smooth = resolution_metrics(rm_mne_smooth, fwd['src'],
                                            function='psf',
-                                           kind='spatial_extent', metric='sd')
+                                           metric='sd_ext')
     sd_mne_ctf = resolution_metrics(rm_mne, fwd['src'], function='ctf',
-                                    kind='spatial_extent', metric='sd')
+                                    metric='sd_ext')
     sd_lor_ctf = resolution_metrics(rm_lor, fwd['src'], function='ctf',
-                                    kind='spatial_extent', metric='sd')
+                                    metric='sd_ext')
     # Maximum radius
     mr_mne_psf = resolution_metrics(rm_mne, fwd['src'], function='psf',
-                                    kind='spatial_extent', metric='maxrad',
-                                    threshold=0.6)
+                                    metric='maxrad_ext', threshold=0.6)
     mr_mne_psf_smooth = resolution_metrics(rm_mne_smooth, fwd['src'],
-                                           function='psf',
-                                           kind='spatial_extent',
-                                           metric='maxrad', threshold=0.6)
+                                           function='psf', metric='maxrad_ext',
+                                           threshold=0.6)
     mr_mne_ctf = resolution_metrics(rm_mne, fwd['src'], function='ctf',
-                                    kind='spatial_extent', metric='maxrad',
-                                    threshold=0.6)
+                                    metric='maxrad_ext', threshold=0.6)
     mr_lor_ctf = resolution_metrics(rm_lor, fwd['src'], function='ctf',
-                                    kind='spatial_extent', metric='maxrad',
-                                    threshold=0.6)
+                                    metric='maxrad_ext', threshold=0.6)
     # lower threshold -> larger spatial extent
     mr_mne_psf_0 = resolution_metrics(rm_mne, fwd['src'], function='psf',
-                                      kind='spatial_extent', metric='maxrad',
-                                      threshold=0.)
+                                      metric='maxrad_ext', threshold=0.)
     mr_mne_psf_9 = resolution_metrics(rm_mne, fwd['src'], function='psf',
-                                      kind='spatial_extent', metric='maxrad',
-                                      threshold=0.9)
+                                      metric='maxrad_ext', threshold=0.9)
 
     # Compute relative amplitude (STCs)
     ra_mne_psf = resolution_metrics(rm_mne, fwd['src'], function='psf',
-                                    kind='relative_amplitude', metric='peak')
+                                    metric='peak_amp')
     ra_mne_ctf = resolution_metrics(rm_mne, fwd['src'], function='ctf',
-                                    kind='relative_amplitude', metric='peak')
+                                    metric='peak_amp')
 
     # Tests
+
+    with pytest.raises(ValueError, match='is not a recognized metric'):
+        resolution_metrics(rm_mne, fwd['src'], function='psf', metric='foo')
+    with pytest.raises(ValueError, match='a recognised resolution function'):
+        resolution_metrics(rm_mne, fwd['src'], function='foo',
+                           metric='peak_err')
 
     # For MNE: PLE for PSF and CTF equal?
     assert_array_almost_equal(le_mne_psf.data, le_mne_ctf.data)

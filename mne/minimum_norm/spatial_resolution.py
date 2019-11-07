@@ -53,7 +53,7 @@ def resolution_metrics(resmat, src, function, metric, threshold=0.5):
         - ``'sum_amp'`` Ratio between sums of absolute amplitudes.
 
     threshold : float
-        Amplitude fraction threshold for spatial extent metric 'maxrad'.
+        Amplitude fraction threshold for spatial extent metric 'maxrad_ext'.
         Defaults to 0.5.
 
     Returns
@@ -157,7 +157,7 @@ def _localisation_error(resmat, src, function, metric):
         resmat = resmat.T
 
     # Euclidean distance between true location and maximum
-    if metric == 'peak':
+    if metric == 'peak_err':
 
         # find indices of maxima along columns
         resmax = resmat.argmax(axis=0)
@@ -172,7 +172,7 @@ def _localisation_error(resmat, src, function, metric):
         locerr = np.sqrt(np.sum(diffloc ** 2, 1))
 
     # centre of gravity
-    elif metric == 'cog':
+    elif metric == 'cog_err':
 
         # initialise result array
         locerr = np.empty(locations.shape[0])
@@ -187,11 +187,6 @@ def _localisation_error(resmat, src, function, metric):
 
             # centre of gravity
             locerr[ii] = np.sqrt(np.sum((rr - cog) ** 2))
-
-    else:
-
-        raise ValueError('Not a valid metric for localisation error: %s.'
-                         % metric)
 
     return locerr
 
@@ -245,7 +240,7 @@ def _spatial_extent(resmat, src, function, metric, threshold=0.5):
     width = np.empty(len(resmax))
 
     # spatial deviation as in Molins et al.
-    if metric == 'sd':
+    if metric == 'sd_ext':
 
         for ii in range(locations.shape[0]):
 
@@ -263,7 +258,7 @@ def _spatial_extent(resmat, src, function, metric, threshold=0.5):
                                 np.sum(resvec))
 
     # maximum radius to 50% of max amplitude
-    elif metric == 'maxrad':
+    elif metric == 'maxrad_ext':
 
         # peak amplitudes per location across columns
         maxamp = resmat.max(axis=0)
@@ -282,10 +277,6 @@ def _spatial_extent(resmat, src, function, metric, threshold=0.5):
 
             # get maximum distance
             width[ii] = np.sqrt(np.sum(locs_thresh**2, 1).max())
-
-    else:
-
-        raise ValueError('Not a valid metric for spatial width: %s.' % metric)
 
     return width
 
@@ -325,7 +316,7 @@ def _relative_amplitude(resmat, src, function, metric):
     resmat = np.absolute(resmat)
 
     # Ratio between amplitude at peak and global peak maximum
-    if metric == 'peak':
+    if metric == 'peak_amp':
 
         # maximum amplitudes per column
         maxamps = resmat.max(axis=0)
@@ -336,7 +327,7 @@ def _relative_amplitude(resmat, src, function, metric):
         relamp = maxamps / maxmaxamps
 
     # ratio between sums of absolute amplitudes
-    elif metric == 'sum':
+    elif metric == 'sum_amp':
 
         # sum of amplitudes per column
         sumamps = np.sum(resmat, axis=0)
@@ -345,11 +336,6 @@ def _relative_amplitude(resmat, src, function, metric):
         sumampsmax = sumamps.max()
 
         relamp = sumamps / sumampsmax
-
-    else:
-
-        raise ValueError('Not a valid metric for relative amplitude: %s.'
-                         % metric)
 
     return relamp
 
