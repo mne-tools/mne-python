@@ -216,11 +216,8 @@ def test_psd_welch_average_kwarg(kind):
     assert psds_mean.shape == psds_unagg.shape[:-1]
     assert_allclose(psds_mean, psds_unagg.mean(axis=-1))
 
-    # SciPy's welch() function corrects the median PSD for its bias relative to
-    # the mean.
-    from scipy.signal.spectral import _median_bias
-    median_bias = _median_bias(psds_unagg.shape[-1])
-    assert_allclose(psds_median, np.median(psds_unagg, axis=-1) / median_bias)
+    # Compare with manual median calculation
+    assert_allclose(psds_median, np.median(psds_unagg, axis=-1))
 
 
 @pytest.mark.slowtest
