@@ -44,7 +44,7 @@ from ..transforms import (transform_surface_to, invert_transform,
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      run_subprocess, check_fname, logger, verbose, fill_doc,
                      _validate_type, _check_compensation_grade, _check_option,
-                     _check_stc_units, copy_function_doc_to_method_doc)
+                     _check_stc_units)
 from ..label import Label
 from ..fixes import einsum
 
@@ -111,9 +111,33 @@ class Forward(dict):
     def ch_names(self):
         return self['info']['ch_names']
 
-    @copy_function_doc_to_method_doc(pick_channels_forward)
     def pick_channels(self, ch_names, ordered=False):
-        return pick_channels_forward(self, ch_names, ordered=ordered)
+        """Pick channels from this forward operator.
+
+        Parameters
+        ----------
+        orig : dict
+            A forward solution.
+        ch_names : list of str
+            List of channels to include.
+        ordered : bool
+            If true (default False), treat ``include`` as an ordered list
+            rather than a set.
+
+        Returns
+        -------
+        fwd : instance of Forward.
+            The modified forward model.
+
+        Notes
+        -----
+        Operates in-place.
+
+        .. versionadded:: 0.20
+        """
+        return pick_channels_forward(self, ch_names, exclude=[],
+                                     ordered=ordered, copy=False,
+                                     verbose=False)
 
 
 def _block_diag(A, n):

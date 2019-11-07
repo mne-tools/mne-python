@@ -711,7 +711,8 @@ def channel_indices_by_type(info, picks=None):
     return idx_by_type
 
 
-def pick_channels_cov(orig, include=[], exclude='bads', ordered=False):
+def pick_channels_cov(orig, include=[], exclude='bads', ordered=False,
+                      copy=True):
     """Pick channels from covariance matrix.
 
     Parameters
@@ -727,24 +728,33 @@ def pick_channels_cov(orig, include=[], exclude='bads', ordered=False):
         modified instance matches the order of ``include``.
 
         .. versionadded:: 0.20.0
+    copy : bool
+        If True (the default), return a copy of the covariance matrix with the
+        modified channels. If False, channels are modified in-place.
+
+        .. versionadded:: 0.20.0
 
     Returns
     -------
     res : dict
         Covariance solution restricted to selected channels.
     """
-    from ..cov import Covariance
+    if copy:
+        orig = orig.copy()
+
     exclude = orig['bads'] if exclude == 'bads' else exclude
     sel = pick_channels(orig['names'], include=include, exclude=exclude,
                         ordered=ordered)
     data = orig['data'][sel][:, sel] if not orig['diag'] else orig['data'][sel]
     names = [orig['names'][k] for k in sel]
     bads = [name for name in orig['bads'] if name in orig['names']]
-    res = Covariance(
-        data=data, names=names, bads=bads, projs=deepcopy(orig['projs']),
-        nfree=orig['nfree'], eig=None, eigvec=None,
-        method=orig.get('method', None), loglik=orig.get('loglik', None))
-    return res
+
+    orig['data'] = data
+    orig['names'] = names
+    orig['bads'] = bads
+    orig['dim'] = len(data)
+
+    return orig
 
 
 def _mag_grad_dependent(info):

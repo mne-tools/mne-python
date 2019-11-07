@@ -20,7 +20,7 @@ from ..parallel import parallel_func
 from ..externals.h5io import read_hdf5, write_hdf5
 
 
-def pick_channels_csd(csd, include=[], exclude=[], ordered=False):
+def pick_channels_csd(csd, include=[], exclude=[], ordered=False, copy=True):
     """Pick channels from covariance matrix.
 
     Parameters
@@ -36,12 +36,20 @@ def pick_channels_csd(csd, include=[], exclude=[], ordered=False):
         modified instance matches the order of ``include``.
 
         .. versionadded:: 0.20.0
+    copy : bool
+        If True (the default), return a copy of the CSD matrix with the
+        modified channels. If False, channels are modified in-place.
+
+        .. versionadded:: 0.20.0
 
     Returns
     -------
     res : instance of CrossSpectralDensity
         Cross-spectral density restricted to selected channels.
     """
+    if copy:
+        csd = csd.copy()
+
     sel = pick_channels(csd.ch_names, include=include, exclude=exclude,
                         ordered=ordered)
     data = []
@@ -51,14 +59,9 @@ def pick_channels_csd(csd, include=[], exclude=[], ordered=False):
         data.append(_sym_mat_to_vector(mat))
     ch_names = [csd.ch_names[i] for i in sel]
 
-    return CrossSpectralDensity(
-        data=np.array(data).T,
-        ch_names=ch_names,
-        tmin=csd.tmin,
-        tmax=csd.tmax,
-        frequencies=csd.frequencies,
-        n_fft=csd.n_fft,
-    )
+    csd._data = np.array(data).T
+    csd.ch_names = ch_names
+    return csd
 
 
 class CrossSpectralDensity(object):
@@ -441,10 +444,30 @@ class CrossSpectralDensity(object):
         """Return copy of the CrossSpectralDensity object."""
         return cp.deepcopy(self)
 
-    @copy_function_doc_to_method_doc(pick_channels_csd)
-    def pick_channels(self, include=[], exclude=[], ordered=False):
-        return pick_channels_csd(self, include=include, exclude=exclude,
-                                 ordered=ordered)
+    def pick_channels(self, ch_names, ordered=False):
+        """Pick channels from this cross-spectral density matrix.
+
+        Parameters
+        ----------
+        ch_names : list of str
+            List of channels to keep. All other channels are dropped.
+        ordered : bool
+            If True (default False), ensure that the order of the channels
+            matches the order of ``ch_names``.
+
+        Returns
+        -------
+        csd : instance of CrossSpectralDensity.
+            The modified cross-spectral density object.
+
+        Notes
+        -----
+        Operates in-place.
+
+        .. versionadded:: 0.20.0
+        """
+        return pick_channels_csd(self, include=ch_names, exclude=[],
+                                 ordered=ordered, copy=False)
 
 
 def _n_dims_from_triu(n):

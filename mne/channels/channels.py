@@ -91,12 +91,20 @@ def _get_ch_type(inst, ch_type, allow_ref_meg=False):
 
 @verbose
 def equalize_channels(candidates, verbose=None):
-    """Equalize channel picks for a collection of MNE-Python objects.
+    """Equalize channel picks and ordering across multiple MNE-Python objects.
+
+    First, all channels that are not common to each object are dropped. Then,
+    using the ordering of the object that originally defined the most channels
+    as a template, the channels of each object are re-ordered to match the
+    template. The end result is that all given objects define the same
+    channels, in the same order.
 
     Parameters
     ----------
-    candidates : list
-        Can be a list of Raw, Epochs, Evoked, or AverageTFR.
+    candidates : list of inst
+        A list of MNE-Python objects to equalize the channels for. Objects can
+        be of type Raw, Epochs, Evoked, AverageTFR, Forward, Covariance or
+        CrossSpectralDensity.
     %(verbose)s
 
     Notes
@@ -112,11 +120,13 @@ def equalize_channels(candidates, verbose=None):
 
     # Instances need to have a `ch_names` attribute and a `pick_channels`
     # method that supports `ordered=True`.
+    allowed_types = (BaseRaw, BaseEpochs, Evoked, _BaseTFR, Forward,
+                     Covariance, CrossSpectralDensity)
+    allowed_types_str = ("Raw, Epochs, Evoked, TFR, Forward, Covariance or "
+                         "CrossSpectralDensity")
     for candidate in candidates:
-        _validate_type(candidate,
-                       (BaseRaw, BaseEpochs, Evoked, _BaseTFR),
-                       "Instances to be modified",
-                       "Raw, Epochs, Evoked or TFR")
+        _validate_type(candidate, allowed_types, "Instances to be modified",
+                       allowed_types_str)
 
     chan_max_idx = np.argmax([len(c.ch_names) for c in candidates])
     chan_template = candidates[chan_max_idx].ch_names
@@ -128,7 +138,7 @@ def equalize_channels(candidates, verbose=None):
 
     # Preserve the order of chan_template
     order = np.argsort([chan_template.index(ch) for ch in common_channels])
-    common_channels = np.array(common_channels)[order].tolist()
+    common_channels = np.array(list(common_channels))[order].tolist()
 
     for c in candidates:
         c.pick_channels(common_channels, ordered=True)
@@ -695,16 +705,16 @@ class UpdateChannelsMixin(object):
         ----------
         ch_names : list
             The list of channels to select.
-
-        Returns
-        -------
-        inst : instance of Raw, Epochs, or Evoked
-            The modified instance.
         ordered : bool
             If True (default False), ensure that the order of the channels in
             the modified instance matches the order of ``ch_names``.
 
             .. versionadded:: 0.20.0
+
+        Returns
+        -------
+        inst : instance of Raw, Epochs, or Evoked
+            The modified instance.
 
         See Also
         --------
@@ -724,7 +734,7 @@ class UpdateChannelsMixin(object):
             pick_channels(self.info['ch_names'], ch_names, ordered=ordered))
 
     @fill_doc
-    def pick(self, picks, exclude=(), ordered=False):
+    def pick(self, picks, exclude=()):
         """Pick a subset of channels.
 
         Parameters
@@ -733,11 +743,6 @@ class UpdateChannelsMixin(object):
         exclude : list | str
             Set of channels to exclude, only used when picking based on
             types (e.g., exclude="bads" when picks="meg").
-        ordered : bool
-            If True (default False), ensure that the order of the channels in
-            the modified instance matches the order of ``picks``.
-
-            .. versionadded:: 0.20.0
 
         Returns
         -------
@@ -745,7 +750,7 @@ class UpdateChannelsMixin(object):
             The modified instance.
         """
         picks = _picks_to_idx(self.info, picks, 'all', exclude,
-                              allow_empty=False, ordered=ordered)
+                              allow_empty=False)
         return self._pick_drop_channels(picks)
 
     def reorder_channels(self, ch_names):
