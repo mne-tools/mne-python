@@ -2318,7 +2318,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                 layer_id = brain.data['layer_id']
                 # Configure the glyphs scale directly
                 glyphs = found_hemi.data[layer_id]['glyphs']
-                glyphs.glyph.glyph.scale_factor = width / 5.
+                glyphs.glyph.glyph.scale_factor = width * 0.1
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
                                   fmax=scale_pts[2], **sd_kwargs)
 
