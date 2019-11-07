@@ -31,35 +31,26 @@ def resolution_metrics(resmat, src, function, kind, metric, threshold=0.5):
     function : 'psf' | 'ctf'
         Whether to compute metrics for columns (point-spread functions, PSFs)
         or rows (cross-talk functions, CTFs) of the resolution matrix.
-    kind : str
-        What kind of resolution feature to consider.
-        Options are 'localization_error', 'spatial_extent', and 'amplitude'.
     metric : str
-        The exact resolution metric for the kind of resolution feature.
-        This must match with 'kind'. The allowed options are:
+        The resolution metric to compute. Allowed options are:
 
-        - ``kind='localization_error'``:
+        Localization-based metrics:
 
-          - ``metric='peak'``
-              Peak localization error (PLE), Euclidean distance between
-              peak and true source location.
-          - ``metric='cog'``
-              Centre-of-gravity localisation error (CoG), Euclidean
-              distance between CoG and true source location.
+        - ``'peak_err'`` Peak localization error (PLE), Euclidean distance
+          between peak and true source location.
+        - ``'cog_err'`` Centre-of-gravity localisation error (CoG), Euclidean
+          distance between CoG and true source location.
 
-        - ``kind='spatial_extent'``:
+        Spatial-extent-based metrics:
 
-          - ``metric='sd'``
-              spatial deviation (e.g. [1,2]_).
-          - ``metric='maxrad'``
-              maximum radius to 50% of max amplitude.
-        - ``kind='relative_amplitude'``:
+        - ``'sd_ext'`` spatial deviation (e.g. [1,2]_).
+        - ``'maxrad_ext'`` maximum radius to 50% of max amplitude.
 
-          - ``metric='peak'``
-              Ratio between absolute maximum amplitudes of peaks per
-              location and maximum peak across locations.
-          - ``metric='sum'``
-              Ratio between sums of absolute amplitudes.
+        Amplitude-based metrics:
+
+        - ``'peak_amp'`` Ratio between absolute maximum amplitudes of peaks per
+            location and maximum peak across locations.
+        - ``'sum_amp'`` Ratio between sums of absolute amplitudes.
 
     threshold : float
         Amplitude fraction threshold for spatial extent metric 'maxrad'.
@@ -86,41 +77,24 @@ def resolution_metrics(resmat, src, function, kind, metric, threshold=0.5):
            Kit", bioRxiv, doi: https://doi.org/10.1101/672956.
     """
     # Check if input options are valid
-    if kind == 'localization_error':
-        if metric not in ['peak', 'cog']:
-            raise ValueError('Not an allowed metric for localization_error: %s'
-                             % metric)
-
-    elif kind == 'spatial_extent':
-        if metric not in ['sd', 'maxrad']:
-            raise ValueError('Not an allowed metric for spatial_extent: %s'
-                             % metric)
-
-    elif kind == 'relative_amplitude':
-        if metric not in ['peak', 'sum']:
-            raise ValueError('Not an allowed metric for amplitude: %s'
-                             % metric)
-
-    else:
-        raise ValueError('Not a recognised kind of resolution feature: %s.'
-                         % kind)
+    metrics = ('peak_err', 'cog_err', 'sd_ext', 'maxrad_ext', 'peak_amp',
+               'sum_amp')
+    if metric not in metrics:
+        raise ValueError('"%s" is not a recognized metric.' % metric)
 
     if function not in ['psf', 'ctf']:
         raise ValueError('Not a recognised resolution function: %s.'
                          % function)
 
-    if kind == 'localization_error':
-
+    if metric in ('peak_err', 'cog_err'):
         resolution_metric = _localisation_error(resmat, src, function=function,
                                                 metric=metric)
 
-    elif kind == 'spatial_extent':
-
+    elif metric in ('sd_ext', 'maxrad_ext'):
         resolution_metric = _spatial_extent(resmat, src, function=function,
                                             metric=metric, threshold=threshold)
 
-    elif kind == 'relative_amplitude':
-
+    elif metric in ('peak_amp', 'sum_amp'):
         resolution_metric = _relative_amplitude(resmat, src, function=function,
                                                 metric=metric)
 
