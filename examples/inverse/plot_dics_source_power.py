@@ -45,8 +45,6 @@ raw = mne.io.read_raw_fif(raw_fname)
 events = mne.find_events(raw)
 epochs = mne.Epochs(raw, events, event_id=1, tmin=-1.5, tmax=2, preload=True)
 
-epochs.pick_types(meg='grad')
-
 # Read forward operator and point to freesurfer subject directory
 fname_fwd = op.join(data_path, 'derivatives', 'sub-{}'.format(subject),
                     'sub-{}_task-{}-fwd.fif'.format(subject, task))
