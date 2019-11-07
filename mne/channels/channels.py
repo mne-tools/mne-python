@@ -101,7 +101,7 @@ def equalize_channels(candidates, verbose=None):
 
     Parameters
     ----------
-    candidates : list of inst
+    candidates : list
         A list of MNE-Python objects to equalize the channels for. Objects can
         be of type Raw, Epochs, Evoked, AverageTFR, Forward, Covariance or
         CrossSpectralDensity.
