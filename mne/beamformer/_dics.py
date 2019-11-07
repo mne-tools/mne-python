@@ -246,20 +246,26 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
                         (freq, i + 1, n_freqs))
 
         Cm = csd.get_data(index=i)
-        if noise_csd is not None:
-            noise_csd_freq = noise_csd.get_data(index=i, as_cov=True)
-        else:
-            noise_csd_freq = None
-
-        _, _, proj, vertices, G, _, nn, orient_std = _prepare_beamformer_input(
-            info, forward, label, pick_ori, noise_cov=noise_csd_freq,
-            combine_xyz=combine_xyz, exp=exp)
-
         if real_filter:
             Cm = Cm.real
 
+        if noise_csd is not None:
+            noise_csd_freq = noise_csd.get_data(index=i, as_cov=True)
+            if real_filter:
+                noise_csd_freq['data'] = noise_csd_freq['data'].real
+        else:
+            noise_csd_freq = None
+
+        _, _, proj, vertices, G, whitener, nn, orient_std = _prepare_beamformer_input(
+            info, forward, label, pick_ori, noise_csd_freq,
+            combine_xyz=combine_xyz, exp=exp)
+
+
         # Ensure the CSD is in the same order as the leadfield
         Cm = Cm[csd_picks, :][:, csd_picks]
+
+        # Whiten the CSD
+        Cm = np.dot(whitener, np.dot(Cm, whitener.conj().T))
 
         # compute spatial filter
         W = _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,

@@ -450,8 +450,8 @@ def _check_one_ch_type(method, info, forward, data_cov=None, noise_cov=None):
     from ..io.pick import pick_info
     from ..channels.channels import _contains_ch_type
     if isinstance(data_cov, CrossSpectralDensity):
-        # FIXME
         _validate_type(noise_cov, [None, CrossSpectralDensity], 'noise_cov')
+        # FIXME
         picks = list(range(len(data_cov.ch_names)))
         info_pick = info
     else:
