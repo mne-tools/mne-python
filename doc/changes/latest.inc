@@ -95,7 +95,7 @@ Bug
 
 - Fix missing scaling of tolerance parameter in :func:`mne.inverse_sparse.tf_mixed_norm` and :func:`mne.inverse_sparse.mixed_norm`, by `Mathurin Massias`_
 
-- Fix the automatic scaling of the glyphs in :func:`plot_vector_source_estimates` by using 10% of the brain width, by `Guillaume Favelier`_
+- Fix the automatic scaling of the glyphs in :func:`mne.viz.plot_vector_source_estimates` by using 10% of the brain width, by `Guillaume Favelier`_
 
 API
 ~~~
