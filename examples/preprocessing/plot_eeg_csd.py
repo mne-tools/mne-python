@@ -48,6 +48,9 @@ raw.plot_psd()
 raw_csd.plot_psd()
 
 ###############################################################################
+# CSD can also be computed on Evoked (averaged) data.
+# Here we epoch and average the data so we can demonstrate that.
+
 event_id = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
             'visual/right': 4, 'smiley': 5, 'button': 32}
 epochs = mne.Epochs(raw, events, event_id=event_id, tmin=-0.2, tmax=.5,
@@ -55,7 +58,8 @@ epochs = mne.Epochs(raw, events, event_id=event_id, tmin=-0.2, tmax=.5,
 evo = epochs['auditory'].average()
 
 ###############################################################################
-# Let's look at the topography of CSD compared to average
+# First let's look at how CSD affects scalp topography:
+
 fig, axes = plt.subplots(1, 6)
 times = np.array([-0.1, 0., 0.05, 0.1, 0.15])
 evo.plot_topomap(times=times, cmap='Spectral_r', axes=axes[:5],
@@ -68,12 +72,15 @@ csd_evo.plot_topomap(times=times, axes=axes[:5], cmap='Spectral_r',
                      colorbar=True, title='Current Source Density')
 
 ###############################################################################
-# Plot evoked
+# Now let's see how it changes a traditional ERP plot:
+
 evo.plot_joint(title='Average Reference', show=False)
 csd_evo.plot_joint(title='Current Source Density')
 
 ###############################################################################
-# Look at the effect of smoothing and spline flexibility
+# CSD has parameters ``m`` and ``lambda2`` affecting smoothing and spline
+# flexibility, respectively. Let's see how they affect the solution:
+
 fig, ax = plt.subplots(4, 4)
 fig.set_size_inches(10, 10)
 for i, lambda2 in enumerate([0, 1e-7, 1e-5, 1e-3]):
@@ -83,7 +90,7 @@ for i, lambda2 in enumerate([0, 1e-7, 1e-5, 1e-3]):
         this_csd_evo.plot_topomap(
             0.1, axes=ax[i, j], outlines='skirt', contours=4, time_unit='s',
             colorbar=False, show=False)
-        ax[i, j].set_title('m=%i, lambda=%s' % (m, lambda2))
+        ax[i, j].set_title('m=%i, λ²=%s' % (m, lambda2))
 
 ###############################################################################
 # References
