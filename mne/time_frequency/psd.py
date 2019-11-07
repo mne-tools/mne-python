@@ -124,6 +124,10 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     -----
     .. versionadded:: 0.14.0
     """
+    if average is not None and average not in ["mean", "median"]:
+        raise ValueError('average must be one of `mean`, `median`, or None, '
+                         'got {}'.format(average))
+
     dshape = x.shape[:-1]
     n_times = x.shape[-1]
     x = x.reshape(-1, n_times)
@@ -140,34 +144,20 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     # Parallelize across first N-1 dimensions
     x_splits = np.array_split(x, n_jobs)
 
-    if average in ['mean', 'median']:
-        from scipy.signal import welch
-        parallel, my_welch_func, n_jobs = parallel_func(_welch_func,
-                                                        n_jobs=n_jobs)
+    from scipy.signal import spectrogram
+    parallel, my_spect_func, n_jobs = parallel_func(_spect_func, n_jobs=n_jobs)
 
-        psds = parallel(my_welch_func(d, fs=sfreq, freq_mask=freq_mask,
-                                      n_per_seg=n_per_seg, n_overlap=n_overlap,
-                                      nfft=n_fft, average=average, func=welch)
-                        for d in x_splits)
-        psds = np.concatenate(psds, axis=0)
-        psds.shape = dshape + (-1,)
-    elif average is None:
-        from scipy.signal import spectrogram
-        parallel, my_spect_func, n_jobs = parallel_func(_spect_func,
-                                                        n_jobs=n_jobs)
+    f_spect = parallel(my_spect_func(d, n_overlap=n_overlap,
+                                     n_per_seg=n_per_seg, nfft=n_fft, fs=sfreq,
+                                     freq_mask=freq_mask, func=spectrogram)
+                       for d in x_splits)
+    psds = np.concatenate(f_spect, axis=0)
+    psds.shape = dshape + (len(freqs), -1)
 
-        f_spect = parallel(my_spect_func(d, n_overlap=n_overlap,
-                                         nfft=n_fft,
-                                         fs=sfreq, freq_mask=freq_mask,
-                                         func=spectrogram,
-                                         n_per_seg=n_per_seg)
-                           for d in x_splits)
-        psds = np.concatenate(f_spect, axis=0)
-        psds.shape = dshape + (len(freqs), -1)
-    else:
-        raise ValueError('average must be one of `mean`, `median`, or None, '
-                         'got {}'.format(average))
-
+    if average == 'mean':
+        psds = np.nanmean(psds, axis=-1)
+    elif average == 'median':
+        psds = np.nanmedian(psds, axis=-1)
     return psds, freqs
 
 
