@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+# Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
+#          Daniel McCloy <dan.mccloy@gmail.com>
+#
+# License: BSD (3-clause)
 """
 Test the following properties for resolution metrics.
 

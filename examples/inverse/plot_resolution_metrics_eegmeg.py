@@ -8,7 +8,9 @@ functions of dSPM and MNE. Plot their distributions and difference of
 distributions.
 This example mimics some results from [1]_, namely Figure 3 (peak localisation
 error for PSFs, L2-MNE vs dSPM) and Figure 4 (spatial deviation for PSFs,
-L2-MNE vs dSPM).
+L2-MNE vs dSPM). It shows that combining MEG with EEG reduces the
+point-spread function and increases the spatial resolution of source imaging,
+especially for deeper sources.
 
 References
 ----------
