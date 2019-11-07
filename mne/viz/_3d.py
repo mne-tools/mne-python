@@ -2299,6 +2299,12 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         data = getattr(stc, hemi + '_data')
         vertices = stc.vertices[hemi_idx]
         if len(data) > 0:
+            if scale_factor is None:
+                _, y, _ = np.array(brain.geo[hemi].coords).T
+                magnitude = np.linalg.norm(data, axis=1)
+                scale_factor = magnitude.max() / magnitude[:, 0].max()
+                scale_factor *= (np.max(y) - np.min(y)) / 5.
+
             with warnings.catch_warnings(record=True):  # traits warnings
                 brain.add_data(data, colormap=colormap, vertices=vertices,
                                smoothing_steps=smoothing_steps, time=times,
