@@ -116,7 +116,7 @@ def _localisation_error(resmat, src, function, metric):
 
     Parameters
     ----------
-    resmat : array of shape [n_orient*n_locations, n_locations]
+    resmat : array, shape (n_orient * n_locations, n_locations)
         The resolution matrix.
         If not a square matrix and if the number of rows is a multiple of
         number of columns (i.e. n_orient>1), then the Euclidean length per
@@ -137,7 +137,7 @@ def _localisation_error(resmat, src, function, metric):
 
     Returns
     -------
-    locerr : array of shape [n_locations,]
+    locerr : array, shape (n_locations,)
         Localisation error per location (in cm).
     """
     # ensure resolution matrix is square
@@ -174,7 +174,7 @@ def _spatial_extent(resmat, src, function, metric, threshold=0.5):
 
     Parameters
     ----------
-    resmat : array of shape [n_orient*n_dipoles, n_dipoles]
+    resmat : array, shape (n_orient * n_dipoles, n_dipoles)
         The resolution matrix.
         If not a square matrix and if the number of rows is a multiple of
         number of columns (i.e. n_orient>1), then the Euclidean length per
@@ -196,7 +196,7 @@ def _spatial_extent(resmat, src, function, metric, threshold=0.5):
 
     Returns
     -------
-    width : array of shape [n_dipoles,]
+    width : array, shape (n_dipoles,)
         Spatial width metric per location.
     """
     locations = _get_src_locations(src)  # locs used in forw. and inv. operator
@@ -242,7 +242,7 @@ def _relative_amplitude(resmat, src, function, metric):
 
     Parameters
     ----------
-    resmat : array of shape [n_orient*n_dipoles, n_dipoles]
+    resmat : array, shape (n_orient * n_dipoles, n_dipoles)
         The resolution matrix.
         If not a square matrix and if the number of rows is a multiple of
         number of columns (i.e. n_orient>1), then the Euclidean length per
@@ -261,7 +261,7 @@ def _relative_amplitude(resmat, src, function, metric):
 
     Returns
     -------
-    relamp: array, shape [n_dipoles,]
+    relamp : array, shape (n_dipoles,)
         Relative amplitude metric per location.
     """
     # The code below will operate on columns, so transpose if you want CTFs
