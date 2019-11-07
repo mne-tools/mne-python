@@ -67,16 +67,23 @@ csd_baseline = csd_morlet(epochs, freqs, tmin=-1, tmax=0, decim=20)
 csd_ers = csd_morlet(epochs, freqs, tmin=0.5, tmax=1.5, decim=20)
 
 ###############################################################################
+# To compute the source power for a frequency band, rather than each frequency
+# separately, we average the CSD objects across frequencies.
+csd = csd.mean()
+csd_baseline = csd_baseline.mean()
+csd_ers = csd_ers.mean()
+
+###############################################################################
 # Computing DICS spatial filters using the CSD that was computed on the entire
 # timecourse.
-filters = make_dics(epochs.info, fwd, csd.mean(), noise_csd=csd_baseline.mean(),
+filters = make_dics(epochs.info, fwd, csd, noise_csd=csd_baseline,
                     pick_ori='max-power')
 
 ###############################################################################
 # Applying DICS spatial filters separately to the CSD computed using the
 # baseline and the CSD computed during the ERS activity.
-baseline_source_power, freqs = apply_dics_csd(csd_baseline.mean(), filters)
-beta_source_power, freqs = apply_dics_csd(csd_ers.mean(), filters)
+baseline_source_power, freqs = apply_dics_csd(csd_baseline, filters)
+beta_source_power, freqs = apply_dics_csd(csd_ers, filters)
 
 ###############################################################################
 # Visualizing source power during ERS activity relative to the baseline power.

@@ -8,7 +8,7 @@
 # License: BSD (3-clause)
 import numpy as np
 
-from ..io.pick import pick_info
+from ..io.pick import pick_info, pick_types
 from ..utils import (logger, verbose, warn, _check_one_ch_type,
                      _check_channels_spatial_filter, _check_rank,
                      _check_option, _check_info_inv)
@@ -52,7 +52,7 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
         Noise cross-spectral density (CSD) matrices. If provided, whitening
         will be done. The noise CSDs need to have been computed for the same
         frequencies as the data CSDs. Providing noise CSDs is mandatory if you
-        mix sensor types, e.g.  gradiometers with magnetometers or EEG with
+        mix sensor types, e.g. gradiometers with magnetometers or EEG with
         MEG.
 
         .. versionadded:: 0.20
@@ -194,7 +194,7 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
     _check_option('inversion', inversion, ['single', 'matrix'])
     _check_option('weight_norm', weight_norm, ['unit-noise-gain', 'nai', None])
 
-    picks = _check_info_inv(info, forward, csd, noise_csd)
+    picks = _check_info_inv(info, forward)
     info = pick_info(info, picks)
 
     # Leadfield rank and optional rank reduction
