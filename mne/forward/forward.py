@@ -116,8 +116,6 @@ class Forward(dict):
 
         Parameters
         ----------
-        orig : dict
-            A forward solution.
         ch_names : list of str
             List of channels to include.
         ordered : bool
