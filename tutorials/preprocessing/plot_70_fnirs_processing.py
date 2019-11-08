@@ -37,7 +37,7 @@ raw_intensity = mne.io.read_raw_nirx(fnirs_raw_dir, verbose=True).load_data()
 # response. To achieve this we pick all the channels that are not considered
 # to be short (less than 1 cm distance between optodes).
 
-is_short = mne.preprocessing._beer_lambert_law.short_channels(
+is_short = mne.preprocessing.short_channels(
     raw_intensity, threshold=0.01)
 long_channels = np.logical_not(is_short)
 raw_intensity.pick(mne.pick_channels(raw_intensity.ch_names,
