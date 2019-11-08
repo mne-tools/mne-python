@@ -133,7 +133,7 @@ def short_channels(raw, threshold=0.01):
     Parameters
     ----------
     raw : instance of Raw
-        The optical density data.
+        NIRS data instance.
     threshold : float
         The threshold distance for what is considered short.
 
