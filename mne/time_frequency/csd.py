@@ -21,7 +21,7 @@ from ..externals.h5io import read_hdf5, write_hdf5
 
 
 def pick_channels_csd(csd, include=[], exclude=[], ordered=False, copy=True):
-    """Pick channels from covariance matrix.
+    """Pick channels from cross-spectral density matrix.
 
     Parameters
     ----------

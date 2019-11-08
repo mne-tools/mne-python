@@ -519,7 +519,7 @@ def test_picks_to_idx():
                        _picks_to_idx(info, 'all'))
     assert_array_equal([0], _picks_to_idx(info, 'data'))
 
-    
+
 def test_pick_channels_cov():
     """Test picking channels from a Covariance object."""
     info = create_info(['CH1', 'CH2', 'CH3'], 1., ch_types='eeg')

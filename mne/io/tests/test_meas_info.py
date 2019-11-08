@@ -658,4 +658,6 @@ def test_equalize_channels():
 
     assert info1.ch_names == ['CH1', 'CH2']
     assert info2.ch_names == ['CH1', 'CH2']
+
+
 run_tests_if_main()
