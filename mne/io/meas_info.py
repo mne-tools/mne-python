@@ -122,10 +122,10 @@ def _summarize_str(st):
 def _dt_to_stamp(inp_date):
     """Convert a datetime object to a meas_date."""
     if inp_date.timestamp() > 0:
-        secondsback = int(inp_date.timestamp() // 1)
+        secondsforward = int(inp_date.timestamp() // 1)
     else:
-        secondsback = int(inp_date.timestamp() // 60)
-    return secondsback, inp_date.microsecond
+        secondsforward = int(inp_date.timestamp() // 60)
+    return secondsforward, inp_date.microsecond
 
 
 def _stamp_to_dt(utc_stamp):
