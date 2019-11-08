@@ -510,6 +510,13 @@ def test_meas_date_convert(tmpdir):
     assert(meas_date == meas_date2)
     assert(meas_datetime == datetime(2012, 9, 7, 1, 33, 5, 835782,
                                      tzinfo=timezone.utc))
+    # test old dates for BIDS anonymization
+    meas_date = (-45557390, 24382)
+    meas_datetime = _stamp_to_dt(meas_date)
+    meas_date2 = _dt_to_stamp(meas_datetime)
+    assert(meas_date == meas_date2)
+    assert(meas_datetime == datetime(1883, 5, 19, 22, 10, 0, 24382,
+                                     tzinfo=timezone.utc))
 
 
 def test_anonymize(tmpdir):

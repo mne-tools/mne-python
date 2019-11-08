@@ -277,3 +277,5 @@
 .. _Victor Ferat: https://github.com/vferat
 
 .. _Demetres Kostas: https://github.com/kostasde
+
+.. _Alex Rockhill: https://github.com/alexrockhill/

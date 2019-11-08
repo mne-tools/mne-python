@@ -121,7 +121,11 @@ def _summarize_str(st):
 
 def _dt_to_stamp(inp_date):
     """Convert a datetime object to a meas_date."""
-    return int(inp_date.timestamp() // 1), inp_date.microsecond
+    if inp_date.timestamp() > 0:
+        secondsback = int(inp_date.timestamp() // 1)
+    else:
+        secondsback = int(inp_date.timestamp() // 60)
+    return secondsback, inp_date.microsecond
 
 
 def _stamp_to_dt(utc_stamp):
@@ -130,9 +134,11 @@ def _stamp_to_dt(utc_stamp):
     stamp = [int(s) for s in utc_stamp]
     if len(stamp) == 1:  # In case there is no microseconds information
         stamp.append(0)
-    return (datetime.datetime.fromtimestamp(stamp[0],
+    if stamp[0] < 0:
+        stamp[0] *= 60  # convert to minutes if before Unix time zero
+    return (datetime.datetime.fromtimestamp(0,
                                             tz=datetime.timezone.utc) +
-            datetime.timedelta(0, 0, stamp[1]))  # day, sec, μs
+            datetime.timedelta(0, stamp[0], stamp[1]))  # day, sec, μs
 
 
 def _unique_channel_names(ch_names):
