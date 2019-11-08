@@ -363,6 +363,7 @@ Projections:
    corrmap
    optical_density
    beer_lambert_law
+   short_channels
 
 EEG referencing:
 

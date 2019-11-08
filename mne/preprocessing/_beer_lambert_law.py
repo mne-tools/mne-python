@@ -125,7 +125,7 @@ def _probe_distances(raw):
 
 
 def short_channels(raw, threshold=0.01):
-    """Determine which NIRS channels are short.
+    r"""Determine which NIRS channels are short.
 
     Channels with a source to detector distance of less than
     `threshold` are reported as short. The default threshold is 1 cm.
@@ -141,6 +141,5 @@ def short_channels(raw, threshold=0.01):
     -------
     short : array of bool
         Array indicating which channels are short.
-
     """
     return _probe_distances(raw) < threshold
