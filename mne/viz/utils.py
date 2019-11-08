@@ -2991,7 +2991,7 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     units_list = list()
     scalings_list = list()
     for name in _DATA_CH_TYPES_SPLIT:
-        kwargs = dict(meg=False, exclude=[])
+        kwargs = dict(meg=False, ref_meg=False, exclude=[])
         if name in ('mag', 'grad'):
             kwargs['meg'] = name
         elif name in ('fnirs_raw', 'fnirs_od', 'hbo', 'hbr'):
