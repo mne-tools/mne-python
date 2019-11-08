@@ -48,19 +48,15 @@ def make_resolution_matrix(forward, inverse_operator, method='dSPM',
 
     # good channels
     ch_names = [c for c in inv['info']['ch_names'] if (c not in bads_inv)]
-
     fwd = pick_channels_forward(fwd, ch_names, ordered=True)
 
     # get leadfield matrix from forward solution
     leadfield = fwd['sol']['data']
-
     invmat = _get_matrix_from_inverse_operator(inv, fwd,
                                                method=method, lambda2=lambda2)
-
     resmat = invmat.dot(leadfield)
 
     logger.info('Dimensions of resolution matrix: %d by %d.' % resmat.shape)
-
     return resmat
 
 
