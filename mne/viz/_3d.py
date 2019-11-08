@@ -2319,6 +2319,11 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                 # Configure the glyphs scale directly
                 glyphs = found_hemi.data[layer_id]['glyphs']
                 glyphs.glyph.glyph.scale_factor = width * 0.1
+            # depth peeling patch
+            if brain_alpha < 1.0:
+                for ff in brain._figures:
+                    for f in ff:
+                        f.scene.renderer.use_depth_peeling = True
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
                                   fmax=scale_pts[2], **sd_kwargs)
 
