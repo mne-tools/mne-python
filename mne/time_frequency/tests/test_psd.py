@@ -18,11 +18,11 @@ def test_psd_nan():
     """Test handling of NaN in psd_array_welch."""
     n_samples, n_fft, n_overlap = 2048, 1024, 512
     x = np.random.RandomState(0).randn(1, n_samples)
-    psds, freqs = psd_array_welch(
-        x[:n_fft + n_overlap], float(n_fft), n_fft=n_fft, n_overlap=n_overlap)
-    x[n_fft + n_overlap:] = np.nan  # what Raw.get_data() will give us
-    psds_2, freqs_2 = psd_array_welch(
-        x, float(n_fft), n_fft=n_fft, n_overlap=n_overlap)
+    psds, freqs = psd_array_welch(x[:, :n_fft + n_overlap], float(n_fft),
+                                  n_fft=n_fft, n_overlap=n_overlap)
+    x[:, n_fft + n_overlap:] = np.nan  # what Raw.get_data() will give us
+    psds_2, freqs_2 = psd_array_welch(x, float(n_fft), n_fft=n_fft,
+                                      n_overlap=n_overlap)
     assert_allclose(freqs, freqs_2)
     assert_allclose(psds, psds_2)
     # 1-d
