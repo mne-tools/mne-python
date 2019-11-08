@@ -6,7 +6,7 @@ import pytest
 
 from mne import pick_types, Epochs, read_events
 from mne.io import RawArray, read_raw_fif
-from mne.utils import run_tests_if_main, requires_version
+from mne.utils import run_tests_if_main
 from mne.time_frequency import psd_welch, psd_multitaper, psd_array_welch
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -160,7 +160,6 @@ def test_psd():
         assert (psds_ev.shape == (len(kws['picks']), len(freqs)))
 
 
-@requires_version('scipy', '1.2.0')
 @pytest.mark.parametrize('kind', ('raw', 'epochs', 'evoked'))
 def test_psd_welch_average_kwarg(kind):
     """Test `average` kwarg of psd_welch()."""
