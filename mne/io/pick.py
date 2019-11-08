@@ -741,6 +741,12 @@ def pick_channels_cov(orig, include=[], exclude='bads', ordered=False,
     """
     if copy:
         orig = orig.copy()
+        # A little peculiarity of the cov objects is that these two fields
+        # should not be copied over when None.
+        if 'method' in orig and orig['method'] is None:
+            del orig['method']
+        if 'loglik' in orig and orig['loglik'] is None:
+            del orig['loglik']
 
     exclude = orig['bads'] if exclude == 'bads' else exclude
     sel = pick_channels(orig['names'], include=include, exclude=exclude,
