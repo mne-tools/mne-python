@@ -15,7 +15,7 @@ Current (0.20.dev0)
 Changelog
 ~~~~~~~~~
 
-- Change `mne.io.meas_info._stamp_to_dt` and `mne.io.meas_info._dt_to_stamp` so that dates before Unix time 0 (1970 Jan 1) are represented as 32-bit integers corresponding to minutes instead of seconds by `Alex Rockhill`_.
+- Change mne.io.meas_info._stamp_to_dt and mne.io.meas_info._dt_to_stamp so that dates before Unix time 0 (1970 Jan 1) are represented as 32-bit integers corresponding to minutes instead of seconds by `Alex Rockhill`_.
 
 - Add :func:`mne.minimum_norm.resolution_metrics` to compute various resolution metrics for inverse solutions, by `Olaf Hauk`_.
 
@@ -64,7 +64,7 @@ Changelog
 Bug
 ~~~
 
-- Fix `mne.io.meas_info._stamp_to_dt` to read dates before Unix time zero (1970 Jan 1) on Windows by `Alex Rockhill`_.
+- Fix mne.io.meas_info._stamp_to_dt to read dates before Unix time zero (1970 Jan 1) on Windows by `Alex Rockhill`_.
 
 - Fix :meth:`mne.Epochs.shift_time` and :meth:`mne.Evoked.shift_time` to return the modified :class:`~mne.Epochs` or :class:`~mne.Evoked` instance (instead of ``None``) by `Daniel McCloy`_.
 
