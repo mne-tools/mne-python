@@ -435,7 +435,7 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
 
     from sklearn.base import clone
     from sklearn.utils import indexable
-    from sklearn.metrics.scorer import check_scoring
+    from sklearn.metrics import check_scoring
     from sklearn.model_selection._split import check_cv
 
     X, y, groups = indexable(X, y, groups)
