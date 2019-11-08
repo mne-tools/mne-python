@@ -61,7 +61,7 @@ Changelog
 Bug
 ~~~
 
-- Fix :func:`mne.io.meas_info._stamp_to_dt` to read dates before Unix time zero (1970 Jan 1) on Windows by `Alex Rockhill`_.
+- Fix `mne.io.meas_info._stamp_to_dt` to read dates before Unix time zero (1970 Jan 1) on Windows by `Alex Rockhill`_.
 
 - Fix :meth:`mne.Epochs.shift_time` and :meth:`mne.Evoked.shift_time` to return the modified :class:`~mne.Epochs` or :class:`~mne.Evoked` instance (instead of ``None``) by `Daniel McCloy`_.
 
