@@ -2308,6 +2308,23 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                scale_factor=scale_factor,
                                min=scale_pts[0], max=scale_pts[2],
                                **ad_kwargs)
+            if scale_factor is None:
+                # Compute the width of the brain
+                width = np.ptp(brain.geo[hemi].coords[:, 1])
+                # Retrieve the current hemi
+                for b in brain._brain_list:
+                    if b['hemi'] == hemi:
+                        found_hemi = b['brain']
+                layer_id = brain.data['layer_id']
+                # Configure the glyphs scale directly
+                glyphs = found_hemi.data[layer_id]['glyphs']
+                glyphs.glyph.glyph.scale_factor = width * 0.1
+            # depth peeling patch
+            if brain_alpha < 1.0:
+                for ff in brain._figures:
+                    for f in ff:
+                        if f.scene is not None:
+                            f.scene.renderer.use_depth_peeling = True
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
                                   fmax=scale_pts[2], **sd_kwargs)
 
