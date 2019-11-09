@@ -6,6 +6,7 @@ import numpy as np
 
 from .mixin import TransformerMixin
 from .base import BaseEstimator, _check_estimator
+from ..fixes import _get_check_scoring
 from ..parallel import parallel_func
 from ..utils import (_validate_type, array_split_idx, ProgressBar,
                      verbose, fill_doc)
@@ -273,7 +274,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         score : array, shape (n_samples, n_estimators)
             Score for each estimator/task.
         """  # noqa: E501
-        from sklearn.metrics.scorer import check_scoring
+        check_scoring = _get_check_scoring()
 
         self._check_Xy(X)
         if X.shape[-1] != len(self.estimators_):
@@ -569,7 +570,7 @@ class GeneralizingEstimator(SlidingEstimator):
         score : array, shape (n_samples, n_estimators, n_slices)
             Score for each estimator / data slice couple.
         """  # noqa: E501
-        from sklearn.metrics.scorer import check_scoring
+        check_scoring = _get_check_scoring()
         self._check_Xy(X)
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.

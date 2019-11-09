@@ -294,7 +294,7 @@ def _mixed_norm_solver_cd(M, G, alpha, lipschitz_constant, maxit=10000,
                           tol=1e-8, verbose=None, init=None, n_orient=1,
                           dgap_freq=10):
     """Solve L21 inverse problem with coordinate descent."""
-    from sklearn.linear_model.coordinate_descent import MultiTaskLasso
+    from sklearn.linear_model import MultiTaskLasso
 
     assert M.ndim == G.ndim and M.shape[0] == G.shape[0]
 
@@ -499,7 +499,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 
     has_sklearn = True
     try:
-        from sklearn.linear_model.coordinate_descent import MultiTaskLasso  # noqa: F401,E501
+        from sklearn.linear_model import MultiTaskLasso  # noqa: F401
     except ImportError:
         has_sklearn = False
 
