@@ -16,6 +16,8 @@ Bug
 
 - Fix :func:`mne.io.Raw.set_montage` to allow using custom montages in unknown coordinates when LPA, Nasion, and/or RPA are not present by `Eric Larson`_
 
+- Fix date reading before Unix time zero (1970 Jan 1) on Windows by `Alex Rockhill`_.
+
 Version 0.19.2
 --------------
 

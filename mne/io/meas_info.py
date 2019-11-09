@@ -118,14 +118,20 @@ def _summarize_str(st):
     return st[:56][::-1].split(',', 1)[-1][::-1] + ', ...'
 
 
-def _stamp_to_dt(stamp):
+def _dt_to_stamp(inp_date):
+    """Convert a datetime object to a meas_date."""
+    return int(inp_date.timestamp() // 1), inp_date.microsecond
+
+
+def _stamp_to_dt(utc_stamp):
     """Convert timestamp to datetime object in Windows-friendly way."""
     # The min on windows is 86400
-    stamp = [int(s) for s in stamp]
+    stamp = [int(s) for s in utc_stamp]
     if len(stamp) == 1:  # In case there is no microseconds information
         stamp.append(0)
-    return (datetime.datetime.utcfromtimestamp(stamp[0]) +
-            datetime.timedelta(0, 0, stamp[1]))  # day, sec, μs
+    return (datetime.datetime.fromtimestamp(0,
+                                            tz=datetime.timezone.utc) +
+            datetime.timedelta(0, stamp[0], stamp[1]))  # day, sec, μs
 
 
 def _unique_channel_names(ch_names):

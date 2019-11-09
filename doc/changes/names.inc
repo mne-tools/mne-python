@@ -263,3 +263,5 @@
 .. _Fahimeh Mamashli: https://github.com/fmamashli
 
 .. _Adonay Nunes: https://github.com/AdoNunes
+
+.. _Alex Rockhill: https://github.com/alexrockhill/

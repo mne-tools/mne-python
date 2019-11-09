@@ -470,6 +470,13 @@ def _is_anonymous(inst):
                             anonymous_meas_id_usecs,
                             anonymous_meas_date,
                             anonymous_annotations)
+    # test old dates for BIDS anonymization
+    meas_date = (-1533443343, 24382)
+    meas_datetime = _stamp_to_dt(meas_date)
+    meas_date2 = _dt_to_stamp(meas_datetime)
+    assert(meas_date == meas_date2)
+    assert(meas_datetime == datetime(1921, 5, 29, 19, 30, 57, 24382,
+                                     tzinfo=timezone.utc))
 
 
 def test_anonymize(tmpdir):
