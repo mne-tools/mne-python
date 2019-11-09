@@ -6,7 +6,7 @@ import numpy as np
 
 from ..parallel import parallel_func
 from ..io.pick import _picks_to_idx
-from ..utils import logger, verbose, _time_mask
+from ..utils import logger, verbose, _time_mask, _check_option
 from .multitaper import psd_array_multitaper
 
 
@@ -124,9 +124,7 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     -----
     .. versionadded:: 0.14.0
     """
-    if average is not None and average not in ["mean", "median"]:
-        raise ValueError('average must be one of `mean`, `median`, or None, '
-                         'got {}'.format(average))
+    _check_option('average', average, (None, 'mean', 'median'))
 
     dshape = x.shape[:-1]
     n_times = x.shape[-1]
