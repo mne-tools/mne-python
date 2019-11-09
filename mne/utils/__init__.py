@@ -56,5 +56,4 @@ from .numerics import (hashfunc, _compute_row_norms,
 from .mixin import (SizeMixin, GetEpochsMixin, _prepare_read_metadata,
                     _prepare_write_metadata, _FakeNoPandas, ShiftTimeMixin)
 from .linalg import (_svd_lwork, _repeated_svd, _repeated_pinv2,
-                     _eig_lwork, _repeated_eig, _inv_lwork, _repeated_inv,
                      dgesdd, dgemm, zgemm, dgemv, ddot, LinAlgError, eigh)
