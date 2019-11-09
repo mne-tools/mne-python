@@ -217,12 +217,7 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
     %(rank_None)s
 
         .. versionadded:: 0.18
-    pick_ori : None | "vector"
-        Only applies to loose/free orientation. By default (None) pooling is
-        performed by taking the norm of current vectors. Set to  "vector" to
-        return vector source estimate.
-
-        .. versionadded:: 0.20
+    %(pick_ori-vec)s
     %(verbose)s
 
     Returns

@@ -141,6 +141,18 @@ def test_mxne_inverse_standard():
     assert_array_almost_equal(stc.times, evoked.times, 5)
     assert stc.vertices[1][0] in label.vertices
 
+    # vector
+    stc_nrm = tf_mixed_norm(
+        evoked, forward, cov, loose=1, depth=depth, maxit=100, tol=1e-4,
+        tstep=4, wsize=16, window=0.1, weights=stc_dspm,
+        weights_min=weights_min, alpha=alpha, l1_ratio=l1_ratio)
+    stc_vec = tf_mixed_norm(
+        evoked, forward, cov, loose=1, depth=depth, maxit=100, tol=1e-4,
+        tstep=4, wsize=16, window=0.1, weights=stc_dspm,
+        weights_min=weights_min, alpha=alpha, l1_ratio=l1_ratio,
+        pick_ori='vector')
+    assert_stcs_equal(stc_vec.magnitude(), stc_nrm)
+
     pytest.raises(ValueError, tf_mixed_norm, evoked, forward, cov,
                   alpha=101, l1_ratio=0.03)
     pytest.raises(ValueError, tf_mixed_norm, evoked, forward, cov,
