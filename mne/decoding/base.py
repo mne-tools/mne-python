@@ -10,7 +10,7 @@ import numpy as np
 import time
 import numbers
 from ..parallel import parallel_func
-from ..fixes import BaseEstimator, is_classifier
+from ..fixes import BaseEstimator, is_classifier, _get_check_scoring
 from ..utils import check_version, logger, warn, fill_doc
 
 
@@ -435,8 +435,8 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
 
     from sklearn.base import clone
     from sklearn.utils import indexable
-    from sklearn.metrics.scorer import check_scoring
     from sklearn.model_selection._split import check_cv
+    check_scoring = _get_check_scoring()
 
     X, y, groups = indexable(X, y, groups)
 

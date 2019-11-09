@@ -669,6 +669,16 @@ class BaseEstimator(object):
     # ``if type(self).__module__.startswith('sklearn.')``.
 
 
+# newer sklearn deprecates importing from sklearn.metrics.scoring,
+# but older sklearn does not expose check_scoring in sklearn.metrics.
+def _get_check_scoring():
+    try:
+        from sklearn.metrics import check_scoring  # noqa
+    except ImportError:
+        from sklearn.metrics.scorer import check_scoring  # noqa
+    return check_scoring
+
+
 ###############################################################################
 # Copied from sklearn to simplify code paths
 
