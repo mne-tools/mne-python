@@ -9,12 +9,6 @@ distributions.
 This example mimics some results from [1]_, namely Figure 3 (peak localisation
 error for PSFs, L2-MNE vs dSPM) and Figure 4 (spatial deviation for PSFs,
 L2-MNE vs dSPM).
-
-References
-----------
-.. [1] Hauk et al. "Towards an Objective Evaluation of EEG/MEG Source
-   Estimation Methods: The Linear Tool Kit", bioRxiv 2019,
-   doi: https://doi.org/10.1101/672956.
 """
 # Author: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #
@@ -36,8 +30,8 @@ fname_evo = data_path + '/MEG/sample/sample_audvis-ave.fif'
 # read forward solution
 forward = mne.read_forward_solution(fname_fwd)
 # forward operator with fixed source orientations
-forward = mne.convert_forward_solution(forward, surf_ori=True,
-                                       force_fixed=True)
+mne.convert_forward_solution(forward, surf_ori=True,
+                             force_fixed=True, copy=False)
 
 # noise covariance matrix
 noise_cov = mne.read_cov(fname_cov)
@@ -55,26 +49,36 @@ inverse_operator = mne.minimum_norm.make_inverse_operator(
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
 
-# compute resolution matrix for MNE
+###############################################################################
+# MNE
+# ---
+# Compute resolution matrices, peak localisation error (PLE) for point spread
+# functions (PSFs), spatial deviation (SD) for PSFs:
+
 rm_mne = make_resolution_matrix(forward, inverse_operator,
                                 method='MNE', lambda2=lambda2)
-
-# compute resolution matrix for dSPM
-rm_dspm = make_resolution_matrix(forward, inverse_operator,
-                                 method='dSPM', lambda2=lambda2)
-
-# Compute peak localisation error (PLE) for point spread functions (PSFs)
 ple_mne_psf = resolution_metrics(rm_mne, inverse_operator['src'],
                                  function='psf', metric='peak_err')
-ple_dspm_psf = resolution_metrics(rm_dspm, inverse_operator['src'],
-                                  function='psf', metric='peak_err')
-
-# Compute spatial deviation (SD) for PSFs
 sd_mne_psf = resolution_metrics(rm_mne, inverse_operator['src'],
                                 function='psf', metric='sd_ext')
+del rm_mne
+
+###############################################################################
+# dSPM
+# ----
+# Do the same for dSPM:
+
+rm_dspm = make_resolution_matrix(forward, inverse_operator,
+                                 method='dSPM', lambda2=lambda2)
+ple_dspm_psf = resolution_metrics(rm_dspm, inverse_operator['src'],
+                                  function='psf', metric='peak_err')
 sd_dspm_psf = resolution_metrics(rm_dspm, inverse_operator['src'],
                                  function='psf', metric='sd_ext')
+del rm_dspm
 
+###############################################################################
+# Visualize results
+# -----------------
 # Visualise peak localisation error (PLE) across the whole cortex for PSF
 brain_ple_mne = ple_mne_psf.plot('sample', 'inflated', 'lh',
                                  subjects_dir=subjects_dir, figure=1,
@@ -122,3 +126,9 @@ brain_sd_diff.add_text(0.1, 0.9, 'SD MNE-dSPM', 'title', font_size=16)
 ###############################################################################
 # These plots show that dSPM has generally higher spatial deviation than MNE
 # (blue color), i.e. worse performance to distinguish different sources.
+#
+# References
+# ----------
+# .. [1] Hauk O, Stenroos M, Treder M (2019). "Towards an Objective Evaluation
+#        of EEG/MEG Source Estimation Methods: The Linear Tool Kit", bioRxiv,
+#        doi: https://doi.org/10.1101/672956.
