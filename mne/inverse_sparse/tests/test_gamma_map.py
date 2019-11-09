@@ -17,6 +17,7 @@ from mne.inverse_sparse import gamma_map
 from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles
 from mne import pick_types_forward
 from mne.utils import run_tests_if_main
+from mne.utils._testing import assert_stcs_equal
 from mne.dipole import Dipole
 
 data_path = testing.data_path(download=False)
@@ -44,16 +45,6 @@ def _check_stc(stc, evoked, idx, hemi, fwd, dist_limit=0., ratio=50.):
     assert amps[0] > ratio * amps[1]
 
 
-def _check_stcs(stc1, stc2):
-    """Check correctness."""
-    assert_allclose(stc1.times, stc2.times)
-    assert_allclose(stc1.data, stc2.data)
-    assert_allclose(stc1.vertices[0], stc2.vertices[0])
-    assert_allclose(stc1.vertices[1], stc2.vertices[1])
-    assert_allclose(stc1.tmin, stc2.tmin)
-    assert_allclose(stc1.tstep, stc2.tstep)
-
-
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_gamma_map():
@@ -77,7 +68,7 @@ def test_gamma_map():
 
     vec_stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
                         xyz_same_gamma=True, update_mode=1, pick_ori='vector')
-    _check_stcs(vec_stc.magnitude(), stc)
+    assert_stcs_equal(vec_stc.magnitude(), stc)
 
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
                     xyz_same_gamma=False, update_mode=1)
@@ -88,7 +79,7 @@ def test_gamma_map():
                      return_as_dipoles=True)
     assert (isinstance(dips[0], Dipole))
     stc_dip = make_stc_from_dipoles(dips, forward['src'])
-    _check_stcs(stc, stc_dip)
+    assert_stcs_equal(stc, stc_dip)
 
     # force fixed orientation
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
