@@ -658,7 +658,7 @@ def _get_check_scoring():
     try:
         from sklearn.metrics import check_scoring  # noqa
     except ImportError:
-        from sklearn.metrics.scoring import check_scoring  # noqa
+        from sklearn.metrics.scorer import check_scoring  # noqa
     return check_scoring
 
 
