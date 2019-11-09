@@ -75,6 +75,10 @@ def test_gamma_map():
                     xyz_same_gamma=True, update_mode=1)
     _check_stc(stc, evoked, 68477, 'lh', fwd=forward)
 
+    vec_stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
+                        xyz_same_gamma=True, update_mode=1, pick_ori='vector')
+    _check_stcs(vec_stc.magnitude(), stc)
+
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-4,
                     xyz_same_gamma=False, update_mode=1)
     _check_stc(stc, evoked, 82010, 'lh', fwd=forward)

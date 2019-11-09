@@ -7,6 +7,7 @@ import numpy as np
 from scipy import linalg
 
 from ..source_estimate import (SourceEstimate, VolSourceEstimate,
+                               VectorSourceEstimate, VolVectorSourceEstimate,
                                _BaseSourceEstimate)
 from ..minimum_norm.inverse import (combine_xyz, _prepare_forward,
                                     _check_reference)
@@ -102,10 +103,13 @@ def _compute_residual(forward, evoked, X, active_set, info):
 
 @verbose
 def _make_sparse_stc(X, active_set, forward, tmin, tstep,
-                     active_is_idx=False, verbose=None):
+                     active_is_idx=False, pick_ori=None, verbose=None):
     if not is_fixed_orient(forward):
-        logger.info('combining the current components...')
-        X = combine_xyz(X)
+        if pick_ori == 'vector':
+            X = X.reshape((-1, 3, X.shape[-1]))
+        else:
+            logger.info('combining the current components...')
+            X = combine_xyz(X)
 
     if not active_is_idx:
         active_idx = np.where(active_set)[0]
@@ -120,7 +124,10 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep,
 
     if src.kind != 'surface':
         vertices = src[0]['vertno'][active_idx]
-        stc = VolSourceEstimate(X, vertices=vertices, tmin=tmin, tstep=tstep)
+        if pick_ori == 'vector':
+            stc = VolVectorSourceEstimate(X, vertices, tmin, tstep)
+        else:
+            stc = VolSourceEstimate(X, vertices, tmin, tstep)
     else:
         vertices = []
         n_points_so_far = 0
@@ -133,7 +140,10 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep,
             n_points_so_far = this_n_points_so_far
             vertices.append(this_vertno)
 
-        stc = SourceEstimate(X, vertices=vertices, tmin=tmin, tstep=tstep)
+        if pick_ori == 'vector':
+            stc = VectorSourceEstimate(X, vertices, tmin, tstep)
+        else:
+            stc = SourceEstimate(X, vertices, tmin, tstep)
 
     return stc
 

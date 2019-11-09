@@ -8,7 +8,7 @@ from scipy import linalg
 from ..forward import is_fixed_orient
 
 from ..minimum_norm.inverse import _check_reference
-from ..utils import logger, verbose, warn
+from ..utils import logger, verbose, warn, _check_option
 from .mxne_inverse import (_make_sparse_stc, _prepare_gain,
                            _reapply_source_weighting, _compute_residual,
                            _make_dipoles_sparse)
@@ -165,7 +165,7 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
 def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
               xyz_same_gamma=True, maxit=10000, tol=1e-6, update_mode=1,
               gammas=None, pca=True, return_residual=False,
-              return_as_dipoles=False, rank=None, verbose=None):
+              return_as_dipoles=False, rank=None, pick_ori=None, verbose=None):
     """Hierarchical Bayes (Gamma-MAP) sparse source localization method.
 
     Models each source time course using a zero-mean Gaussian prior with an
@@ -217,6 +217,12 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
     %(rank_None)s
 
         .. versionadded:: 0.18
+    pick_ori : None | "vector"
+        Only applies to loose/free orientation. By default (None) pooling is
+        performed by taking the norm of current vectors. Set to  "vector" to
+        return vector source estimate.
+
+        .. versionadded:: 0.20
     %(verbose)s
 
     Returns
@@ -239,6 +245,7 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
            DOI: 10.1016/j.neuroimage.2008.02.059
     """
     _check_reference(evoked)
+    _check_option('pick_ori', pick_ori, [None, 'vector'])
 
     forward, gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
         forward, evoked.info, noise_cov, pca, depth, loose, rank)
@@ -294,7 +301,8 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
                                    M_estimated, active_is_idx=True)
     else:
         out = _make_sparse_stc(X, active_set, forward, tmin, tstep,
-                               active_is_idx=True, verbose=verbose)
+                               active_is_idx=True, pick_ori=pick_ori,
+                               verbose=verbose)
 
     logger.info('[done]')
 
