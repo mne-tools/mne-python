@@ -80,21 +80,6 @@ def _repeated_svd(x, lwork, overwrite_a=False):
     return u, s, v
 
 
-def _repeated_pinv2(x, lwork, rcond=None):
-    """Mimic scipy.linalg.pinv2, avoid lwork and get_lapack_funcs overhead."""
-    # Adapted from SciPy
-    u, s, vh = _repeated_svd(x, lwork)
-    if rcond in [None, -1]:
-        t = u.dtype.char.lower()
-        factor = {'f': 1E3, 'd': 1E6}
-        rcond = factor[t] * np.finfo(t).eps
-    rank = np.sum(s > rcond * s[0])
-    psigma_diag = 1.0 / s[:rank]
-    u[:, :rank] *= psigma_diag
-    B = np.transpose(np.conjugate(np.dot(u[:, :rank], vh[:rank])))
-    return B
-
-
 ###############################################################################
 # linalg.eigh
 

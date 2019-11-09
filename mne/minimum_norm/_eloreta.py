@@ -5,7 +5,7 @@
 import numpy as np
 
 from ..defaults import _handle_default
-from ..fixes import _safe_svd
+from ..fixes import _safe_svd, pinv
 from ..utils import (warn, logger, _svd_lwork, _repeated_svd, eigh)
 
 
@@ -123,7 +123,7 @@ def _compute_eloreta_inv(G, G_3, W, n_orient, n_nzero, lambda2, force_equal,
         # Here we use a single-precision-suitable `rcond` (given our
         # 3x3 matrix size) because the inv could be saved in single
         # precision.
-        W_inv[:] = np.linalg.pinv(W, rcond=1e-7)
+        W_inv[:] = pinv(W, rcond=1e-7)
 
     # Weight the gain matrix
     if n_orient == 1 or force_equal:
