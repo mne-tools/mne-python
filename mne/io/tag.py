@@ -195,7 +195,7 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
         except KeyError:
             raise RuntimeError('Cannot handle matrix of type %d yet'
                                % matrix_type)
-        data = fid.read(bit * dims.prod())
+        data = fid.read(int(bit * dims.prod()))
         data = np.frombuffer(data, dtype=dtype)
         if matrix_type in (FIFF.FIFFT_COMPLEX_FLOAT,
                            FIFF.FIFFT_COMPLEX_DOUBLE):
