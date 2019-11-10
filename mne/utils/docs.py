@@ -212,7 +212,7 @@ depth : None | float | dict
 docdict['pick_ori-vec'] = """
     pick_ori : None | "vector"
         Only applies to loose/free orientation. By default (None) pooling is
-        performed by taking the norm of the current vectors. Use 
+        performed by taking the norm of the current vectors. Use
         pick_ori="vector" to return vector source estimate.
 
         .. versionadded:: 0.20
