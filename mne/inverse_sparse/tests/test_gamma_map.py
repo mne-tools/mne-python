@@ -6,7 +6,7 @@ import os.path as op
 
 import pytest
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_allclose
+from numpy.testing import assert_array_almost_equal
 
 import mne
 from mne.datasets import testing
