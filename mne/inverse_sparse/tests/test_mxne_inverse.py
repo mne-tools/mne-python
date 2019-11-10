@@ -16,8 +16,7 @@ from mne import (read_cov, read_forward_solution, read_evokeds,
 from mne.inverse_sparse import mixed_norm, tf_mixed_norm
 from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles
 from mne.minimum_norm import apply_inverse, make_inverse_operator
-from mne.utils import run_tests_if_main
-from mne.utils._testing import assert_stcs_equal
+from mne.utils import assert_stcs_equal, run_tests_if_main
 from mne.dipole import Dipole
 from mne.source_estimate import VolSourceEstimate
 

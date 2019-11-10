@@ -16,13 +16,11 @@ from mne.cov import regularize
 from mne.inverse_sparse import gamma_map
 from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles
 from mne import pick_types_forward
-from mne.utils import run_tests_if_main
-from mne.utils._testing import assert_stcs_equal
+from mne.utils import assert_stcs_equal, run_tests_if_main
 from mne.dipole import Dipole
 
 data_path = testing.data_path(download=False)
-fname_evoked = op.join(data_path, 'MEG', 'sample',
-                       'sample_audvis-ave.fif')
+fname_evoked = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
