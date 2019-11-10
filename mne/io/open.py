@@ -11,7 +11,7 @@ from gzip import GzipFile
 import numpy as np
 from scipy import sparse
 
-from .tag import read_tag_info, read_tag, read_big, Tag, _call_dict_names
+from .tag import read_tag_info, read_tag, Tag, _call_dict_names
 from .tree import make_dir_tree, dir_tree_find
 from .constants import FIFF
 from ..utils import logger, verbose, _file_like
@@ -123,7 +123,7 @@ def fiff_open(fname, preload=False, verbose=None):
         # note that StringIO objects instantiated this way are read-only,
         # but that's okay here since we are using mode "rb" anyway
         with fid as fid_old:
-            fid = BytesIO(read_big(fid_old))
+            fid = BytesIO(fid_old.read())
 
     tag = read_tag_info(fid)
 
