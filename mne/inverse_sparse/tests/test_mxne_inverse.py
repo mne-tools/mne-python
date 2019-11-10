@@ -134,7 +134,7 @@ def test_mxne_inverse_standard():
 
     # vector
     stc_nrm = tf_mixed_norm(
-        evoked, forward, cov, loose=1, depth=depth, maxit=100, tol=1e-4,
+        evoked, forward, cov, loose=1, depth=depth, maxit=2, tol=1e-4,
         tstep=4, wsize=16, window=0.1, weights=stc_dspm,
         weights_min=weights_min, alpha=alpha, l1_ratio=l1_ratio)
     stc_vec = tf_mixed_norm(
