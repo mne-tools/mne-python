@@ -114,7 +114,7 @@ def test_make_dics(tmpdir, _load_forward):
 
     fwd_free, fwd_surf, fwd_fixed, fwd_vol, label = _load_forward
     epochs, _, csd, _ = _simulate_data(fwd_fixed)
-    with pytest.raises(RuntimeError, match='several sensor types'):
+    with pytest.raises(ValueError, match='several sensor types'):
         make_dics(epochs.info, fwd_surf, csd, label=label, pick_ori=None)
     epochs.pick_types(meg='grad')
 
@@ -257,7 +257,7 @@ def test_apply_dics_csd(_load_forward):
     source_ind = vertices.tolist().index(source_vertno)
     reg = 1  # Lots of regularization for our toy dataset
 
-    with pytest.raises(RuntimeError, match='several sensor types'):
+    with pytest.raises(ValueError, match='several sensor types'):
         make_dics(epochs.info, fwd_free, csd)
     epochs.pick_types(meg='grad')
 
@@ -385,7 +385,7 @@ def test_apply_dics_timeseries(_load_forward):
     source_ind = vertices.tolist().index(source_vertno)
     reg = 5  # Lots of regularization for our toy dataset
 
-    with pytest.raises(RuntimeError, match='several sensor types'):
+    with pytest.raises(ValueError, match='several sensor types'):
         make_dics(evoked.info, fwd_surf, csd)
     evoked.pick_types(meg='grad')
 
@@ -487,7 +487,7 @@ def test_tf_dics(_load_forward):
     frequencies = [10, 20]
     freq_bins = [(8, 12), (18, 22)]
 
-    with pytest.raises(RuntimeError, match='several sensor types'):
+    with pytest.raises(ValueError, match='several sensor types'):
         stcs = tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep, win_lengths,
                        freq_bins=freq_bins, frequencies=frequencies,
                        decim=10, reg=reg, label=label)

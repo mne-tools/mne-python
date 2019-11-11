@@ -235,8 +235,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
     subject = _subject_from_forward(forward)
     ch_names = list(info['ch_names'])
 
-    csd_picks = pick_types(info, meg=True, eeg=True, seeg=True)
-    #csd_picks = [csd.ch_names.index(ch) for ch in ch_names]
+    #csd_picks = pick_types(info, meg=True, eeg=True, seeg=True)
+    csd_picks = [csd.ch_names.index(ch) for ch in ch_names]
 
     logger.info('Computing DICS spatial filters...')
     Ws = []

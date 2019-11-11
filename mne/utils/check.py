@@ -455,7 +455,7 @@ def _check_one_ch_type(method, info, forward, data_cov=None, noise_cov=None):
         picks = list(range(len(data_cov.ch_names)))
         info_pick = info
     else:
-        _validate_type(noise_cov, Covariance, 'noise_cov')
+        _validate_type(noise_cov, [None, Covariance], 'noise_cov')
         picks = _check_info_inv(info, forward, data_cov=data_cov,
                                 noise_cov=noise_cov)
         info_pick = pick_info(info, picks)
