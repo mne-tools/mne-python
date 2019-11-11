@@ -14,7 +14,7 @@
 
 import numpy as np
 
-from scipy.linalg import inv
+from scipy import linalg
 
 from mne import pick_types
 from mne.utils import _validate_type, _ensure_int
@@ -29,7 +29,7 @@ from mne.channels.interpolation import _calc_g, _calc_h
 def _prepare_G(G, lambda2):
     G.flat[::len(G) + 1] += lambda2
     # compute the CSD
-    Gi = inv(G)
+    Gi = linalg.inv(G)
 
     TC = Gi.sum(0)
     sgi = np.sum(TC)  # compute sum total
@@ -69,9 +69,9 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
         is the center of the sphere and r is the radius in meters.
         Can also be "auto" to use a digitization-based fit.
     lambda2 : float
-        Regularization parameter, produces smoothnes. Defaults to 1e-5.
+        Regularization parameter, produces smoothness. Defaults to 1e-5.
     stiffness : float
-        Stiffness of the spline. Also referred to as `m`.
+        Stiffness of the spline.
     n_legendre_terms : int
         Number of Legendre terms to evaluate.
     copy : bool
@@ -79,12 +79,12 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
 
     Returns
     -------
-    inst_csd : instance of Epochs or Evoked
+    inst_csd : instance of Raw, Epochs or Evoked
         The transformed data. Output type will match input type.
 
     Notes
     -----
-    This function applies an average reference to the data.
+    This function applies an average reference to the data if copy is False.
     Do not transform CSD data to source space.
 
     .. versionadded:: 0.20
@@ -154,17 +154,16 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
     pos -= (x, y, z)
 
     G = _calc_g(np.dot(pos, pos.T), stiffness=stiffness,
-                num_lterms=n_legendre_terms)
+                n_legendre_terms=n_legendre_terms)
     H = _calc_h(np.dot(pos, pos.T), stiffness=stiffness,
-                num_lterms=n_legendre_terms)
+                n_legendre_terms=n_legendre_terms)
 
     G_precomputed = _prepare_G(G, lambda2)
 
     trans_csd = _compute_csd(G_precomputed=G_precomputed,
                              H=H, radius=radius)
 
-    epochs = inst._data
-    epochs = [epochs] if not isinstance(inst, BaseEpochs) else epochs
+    epochs = [inst._data] if not isinstance(inst, BaseEpochs) else inst._data
     for epo in epochs:
         epo[picks] = np.dot(trans_csd, epo[picks])
     inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_CSD
@@ -180,11 +179,11 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
 #     Value and estimation from potential data." IEEE Trans Biomed Eng.
 #     1987;34(4):283–288.
 #
-# [1] Perrin F, Pernier J, Bertrand O, Echallier JF. "Spherical splines
+# [2] Perrin F, Pernier J, Bertrand O, Echallier JF. "Spherical splines
 #     for scalp potential and current density mapping."
 #     [Corrigenda EEG 02274, EEG Clin. Neurophysiol., 1990, 76, 565]
 #     Electroenceph Clin Neurophysiol. 1989;72(2):184–187.
 #
-# [2] Kayser J, Tenke CE. "On the benefits of using surface Laplacian
+# [3] Kayser J, Tenke CE. "On the benefits of using surface Laplacian
 #     (Current Source Density) methodology in electrophysiology."
 #     Int J Psychophysiol. 2015 Sep; 97(3): 171–173.
