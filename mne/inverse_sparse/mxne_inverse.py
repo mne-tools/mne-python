@@ -430,7 +430,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
                 M_estimated[:, cnt:(cnt + len(e.times))], verbose=None)
         else:
             out = _make_sparse_stc(
-                Xe, active_set, forward, tmin, tstep, pick_ori)
+                Xe, active_set, forward, tmin, tstep, pick_ori=pick_ori)
         outs.append(out)
         cnt += len(e.times)
 
