@@ -1399,8 +1399,10 @@ def _smart_eigh(C, info, rank, scalings=None, projs=None,
     # time saving short-circuit
     if proj_subspace and sum(rank.values()) == C.shape[0]:
         return np.ones(n_chan), np.eye(n_chan), np.ones(n_chan, bool)
-    eig = np.zeros(n_chan, dtype=C.dtype)
-    eigvec = np.zeros((n_chan, n_chan), dtype=C.dtype)
+
+    dtype = np.complex if C.dtype == np.complex else np.float
+    eig = np.zeros(n_chan, dtype)
+    eigvec = np.zeros((n_chan, n_chan), dtype)
     mask = np.zeros(n_chan, bool)
     for ch_type, picks in _picks_by_type(info, meg_combined=True,
                                          ref_meg=False, exclude='bads'):
@@ -1717,7 +1719,8 @@ def compute_whitener(noise_cov, info=None, picks=None, rank=None,
     nzero = (eig > 0)
     eig[~nzero] = 0.  # get rid of numerical noise (negative) ones
 
-    W = np.zeros((n_chan, 1), dtype=noise_cov['eigvec'].dtype)
+    dtype = np.complex if noise_cov['eigvec'].dtype == np.complex else np.float
+    W = np.zeros((n_chan, 1), dtype)
     W[nzero, 0] = 1.0 / np.sqrt(eig[nzero])
     #   Rows of eigvec are the eigenvectors
     W = W * noise_cov['eigvec']  # C ** -0.5
