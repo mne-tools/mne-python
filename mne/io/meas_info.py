@@ -605,8 +605,8 @@ class Info(dict):
                                       self['meas_date'],))
 
         for key in ('file_id', 'meas_id'):
-            if key in self:
-                value = self.get(key)
+            value = self.get(key)
+            if value is not None:
                 assert 'msecs' not in value
                 for key_2 in ('secs', 'usecs'):
                     if (value[key_2] < np.iinfo('>i4').min or
