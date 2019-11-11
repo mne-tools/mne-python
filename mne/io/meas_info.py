@@ -582,47 +582,49 @@ class Info(dict):
         st %= non_empty
         return st
 
-    def _check_consistency(self):
+    def _check_consistency(self, prepend_error=''):
         """Do some self-consistency checks and datatype tweaks."""
         missing = [bad for bad in self['bads'] if bad not in self['ch_names']]
         if len(missing) > 0:
-            raise RuntimeError('bad channel(s) %s marked do not exist in info'
-                               % (missing,))
+            msg = '%sbad channel(s) %s marked do not exist in info'
+            raise RuntimeError(msg % (prepend_error, missing,))
         meas_date = self.get('meas_date')
         if meas_date is not None:
             if (not isinstance(self['meas_date'], tuple) or
                     len(self['meas_date']) != 2):
-                raise RuntimeError('info["meas_date"] must be a tuple '
+                raise RuntimeError('%sinfo["meas_date"] must be a tuple '
                                    'of length 2 or None, got "%r"'
-                                   % (repr(self['meas_date']),))
+                                   % (prepend_error, repr(self['meas_date']),))
             if (meas_date[0] < np.iinfo('>i4').min or
                     meas_date[0] > np.iinfo('>i4').max):
-                raise RuntimeError('info["meas_date"] must be between "%r" '
+                raise RuntimeError('%sinfo["meas_date"] must be between "%r" '
                                    'and "%r", got "%r"'
-                                   % (repr((np.iinfo('>i4').min, 0)),
-                                      repr((np.iinfo('>i4').max, 0)),
-                                      repr(self['meas_date']),))
+                                   % (prepend_error,
+                                      (np.iinfo('>i4').min, 0),
+                                      (np.iinfo('>i4').max, 0),
+                                      self['meas_date'],))
 
         for key in ('file_id', 'meas_id'):
-            value = self.get(key)
-            if value is not None:
+            if key in self:
+                value = self.get(key)
                 assert 'msecs' not in value
                 for key_2 in ('secs', 'usecs'):
                     if (value[key_2] < np.iinfo('>i4').min or
                             value[key_2] > np.iinfo('>i4').max):
-                        raise RuntimeError('info[%s][%s] must be between '
+                        raise RuntimeError('%sinfo[%s][%s] must be between '
                                            '"%r" and "%r", got "%r"'
-                                           % (key, key_2,
-                                              repr(np.iinfo('>i4').min),
-                                              repr(np.iinfo('>i4').max),
-                                              repr(value[key_2]),))
+                                           % (prepend_error, key, key_2,
+                                              np.iinfo('>i4').min,
+                                              np.iinfo('>i4').max,
+                                              value[key_2]),)
 
         chs = [ch['ch_name'] for ch in self['chs']]
         if len(self['ch_names']) != len(chs) or any(
                 ch_1 != ch_2 for ch_1, ch_2 in zip(self['ch_names'], chs)) or \
                 self['nchan'] != len(chs):
-            raise RuntimeError('info channel name inconsistency detected, '
-                               'please notify mne-python developers')
+            raise RuntimeError('%sinfo channel name inconsistency detected, '
+                               'please notify mne-python developers'
+                               % (prepend_error,))
 
         # make sure we have the proper datatypes
         for key in ('sfreq', 'highpass', 'lowpass'):
@@ -2047,13 +2049,12 @@ def anonymize_info(info, daysback=None, keep_his=False):
         for k in ('serial', 'site'):
             if di.get(k) is not None:
                 di[k] = default_str
-    try:
-        info._check_consistency()
-    except RuntimeError as e:
-        raise RuntimeError('anonymize_info generated an inconsistent info '
-                           'object. Most often this is because daysback '
-                           'parameter was too large.\nUnderlying Error: "%r"'
-                           % str(e))
+
+    err_mesg = ('anonymize_info generated an inconsistent info object. Most ' +
+                'often this is because daysback parameter was too large.\n' +
+                'Underlying Error:')
+    info._check_consistency(prepend_error=err_mesg)
+
     return info
 
 
