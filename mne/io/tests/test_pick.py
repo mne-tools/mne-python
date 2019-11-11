@@ -6,7 +6,7 @@ from numpy.testing import assert_array_equal, assert_equal
 import pytest
 import numpy as np
 
-from mne import (pick_channels_regexp, pick_types, Epochs, EpochsArray,
+from mne import (pick_channels_regexp, pick_types, Epochs,
                  read_forward_solution, rename_channels,
                  pick_info, pick_channels, create_info)
 from mne import __file__ as _root_init_fname
