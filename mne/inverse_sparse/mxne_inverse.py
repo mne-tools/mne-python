@@ -7,13 +7,14 @@ import numpy as np
 from scipy import linalg
 
 from ..source_estimate import (SourceEstimate, VolSourceEstimate,
+                               VectorSourceEstimate, VolVectorSourceEstimate,
                                _BaseSourceEstimate)
 from ..minimum_norm.inverse import (combine_xyz, _prepare_forward,
                                     _check_reference)
 from ..forward import is_fixed_orient
 from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
-from ..utils import logger, verbose, _check_depth, sum_squared
+from ..utils import logger, verbose, _check_depth, _check_option, sum_squared
 from ..dipole import Dipole
 
 from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver, _Phi,
@@ -102,10 +103,13 @@ def _compute_residual(forward, evoked, X, active_set, info):
 
 @verbose
 def _make_sparse_stc(X, active_set, forward, tmin, tstep,
-                     active_is_idx=False, verbose=None):
+                     active_is_idx=False, pick_ori=None, verbose=None):
     if not is_fixed_orient(forward):
-        logger.info('combining the current components...')
-        X = combine_xyz(X)
+        if pick_ori == 'vector':
+            X = X.reshape((-1, 3, X.shape[-1]))
+        else:
+            logger.info('combining the current components...')
+            X = combine_xyz(X)
 
     if not active_is_idx:
         active_idx = np.where(active_set)[0]
@@ -120,7 +124,10 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep,
 
     if src.kind != 'surface':
         vertices = src[0]['vertno'][active_idx]
-        stc = VolSourceEstimate(X, vertices=vertices, tmin=tmin, tstep=tstep)
+        if pick_ori == 'vector':
+            stc = VolVectorSourceEstimate(X, vertices, tmin, tstep)
+        else:
+            stc = VolSourceEstimate(X, vertices, tmin, tstep)
     else:
         vertices = []
         n_points_so_far = 0
@@ -133,7 +140,10 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep,
             n_points_so_far = this_n_points_so_far
             vertices.append(this_vertno)
 
-        stc = SourceEstimate(X, vertices=vertices, tmin=tmin, tstep=tstep)
+        if pick_ori == 'vector':
+            stc = VectorSourceEstimate(X, vertices, tmin, tstep)
+        else:
+            stc = SourceEstimate(X, vertices, tmin, tstep)
 
     return stc
 
@@ -238,7 +248,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
                maxit=3000, tol=1e-4, active_set_size=10,
                debias=True, time_pca=True, weights=None, weights_min=0.,
                solver='auto', n_mxne_iter=1, return_residual=False,
-               return_as_dipoles=False, dgap_freq=10, rank=None,
+               return_as_dipoles=False, dgap_freq=10, rank=None, pick_ori=None,
                verbose=None):
     """Mixed-norm estimate (MxNE) and iterative reweighted MxNE (irMxNE).
 
@@ -300,6 +310,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     %(rank_None)s
 
         .. versionadded:: 0.18
+    %(pick_ori-vec)s
     %(verbose)s
 
     Returns
@@ -335,6 +346,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     if dgap_freq <= 0.:
         raise ValueError('dgap_freq must be a positive integer.'
                          ' Got dgap_freq = %s' % dgap_freq)
+    _check_option('pick_ori', pick_ori, [None, 'vector'])
 
     pca = True
     if not isinstance(evoked, list):
@@ -417,7 +429,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
                 M[:, cnt:(cnt + len(e.times))],
                 M_estimated[:, cnt:(cnt + len(e.times))], verbose=None)
         else:
-            out = _make_sparse_stc(Xe, active_set, forward, tmin, tstep)
+            out = _make_sparse_stc(
+                Xe, active_set, forward, tmin, tstep, pick_ori)
         outs.append(out)
         cnt += len(e.times)
 
@@ -464,7 +477,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
                   debias=True, wsize=64, tstep=4, window=0.02,
                   return_residual=False, return_as_dipoles=False,
                   alpha=None, l1_ratio=None, dgap_freq=10, rank=None,
-                  verbose=None):
+                  pick_ori=None, verbose=None):
     """Time-Frequency Mixed-norm estimate (TF-MxNE).
 
     Compute L1/L2 + L1 mixed-norm solution on time-frequency
@@ -535,6 +548,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
     %(rank_None)s
 
         .. versionadded:: 0.18
+    %(pick_ori-vec)s
     %(verbose)s
 
     Returns
@@ -571,6 +585,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
        DOI: 10.1109/PRNI.2016.7552337
     """
     _check_reference(evoked)
+    _check_option('pick_ori', pick_ori, [None, 'vector'])
 
     all_ch_names = evoked.ch_names
     info = evoked.info
@@ -653,7 +668,8 @@ def tf_mixed_norm(evoked, forward, noise_cov,
             M, M_estimated, verbose=None)
     else:
         out = _make_sparse_stc(
-            X, active_set, forward, evoked.times[0], 1.0 / info['sfreq'])
+            X, active_set, forward, evoked.times[0], 1.0 / info['sfreq'],
+            pick_ori=pick_ori)
 
     logger.info('[done]')
 

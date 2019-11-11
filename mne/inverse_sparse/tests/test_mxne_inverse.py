@@ -16,7 +16,7 @@ from mne import (read_cov, read_forward_solution, read_evokeds,
 from mne.inverse_sparse import mixed_norm, tf_mixed_norm
 from mne.inverse_sparse.mxne_inverse import make_stc_from_dipoles
 from mne.minimum_norm import apply_inverse, make_inverse_operator
-from mne.utils import run_tests_if_main
+from mne.utils import assert_stcs_equal, run_tests_if_main
 from mne.dipole import Dipole
 from mne.source_estimate import VolSourceEstimate
 
@@ -29,16 +29,6 @@ fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 label = 'Aud-rh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
-
-
-def _check_stcs(stc1, stc2):
-    """Check STC correctness."""
-    assert_allclose(stc1.times, stc2.times)
-    assert_allclose(stc1.data, stc2.data)
-    assert_allclose(stc1.vertices[0], stc2.vertices[0])
-    assert_allclose(stc1.vertices[1], stc2.vertices[1])
-    assert_allclose(stc1.tmin, stc2.tmin)
-    assert_allclose(stc1.tstep, stc2.tstep)
 
 
 @pytest.mark.timeout(120)  # ~30 sec on AppVeyor and Travis Linux
@@ -108,7 +98,7 @@ def test_mxne_inverse_standard():
     stc_dip = make_stc_from_dipoles(dips, forward['src'])
     assert isinstance(dips[0], Dipole)
     assert stc_dip.subject == "sample"
-    _check_stcs(stc_cd, stc_dip)
+    assert_stcs_equal(stc_cd, stc_dip)
 
     with pytest.warns(None):  # CD
         stc, _ = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
@@ -140,6 +130,18 @@ def test_mxne_inverse_standard():
                            alpha=alpha, l1_ratio=l1_ratio)
     assert_array_almost_equal(stc.times, evoked.times, 5)
     assert stc.vertices[1][0] in label.vertices
+
+    # vector
+    stc_nrm = tf_mixed_norm(
+        evoked, forward, cov, loose=1, depth=depth, maxit=2, tol=1e-4,
+        tstep=4, wsize=16, window=0.1, weights=stc_dspm,
+        weights_min=weights_min, alpha=alpha, l1_ratio=l1_ratio)
+    stc_vec = tf_mixed_norm(
+        evoked, forward, cov, loose=1, depth=depth, maxit=2, tol=1e-4,
+        tstep=4, wsize=16, window=0.1, weights=stc_dspm,
+        weights_min=weights_min, alpha=alpha, l1_ratio=l1_ratio,
+        pick_ori='vector')
+    assert_stcs_equal(stc_vec.magnitude(), stc_nrm)
 
     pytest.raises(ValueError, tf_mixed_norm, evoked, forward, cov,
                   alpha=101, l1_ratio=0.03)

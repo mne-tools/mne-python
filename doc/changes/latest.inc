@@ -60,6 +60,8 @@ Changelog
 
 - Add command :ref:`gen_mne_prepare_bem_model` to quickly create a BEM solution using the linear collocation approach by `Victor Ferat`_.
 
+- Allow returning vector source estimates from sparse inverse solvers through ``pick_ori='vector'`` by `Christian Brodbeck`_
+
 Bug
 ~~~
 
