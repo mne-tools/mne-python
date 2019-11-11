@@ -57,25 +57,6 @@ csd_evoked.plot_topomap(times=times, axes=axes[:5], cmap='Spectral_r',
 evoked.plot_joint(title='Average Reference', times=times, show=False)
 csd_evoked.plot_joint(title='Current Source Density', times=times)
 
-###############################################################################
-# Look at the effect of smoothing and spline flexibility
-fig, ax = plt.subplots(4, 4)
-fig.set_size_inches(10, 10)
-fig.subplots_adjust(hspace=0.5)
-for i, lambda2 in enumerate([0, 1e-7, 1e-5, 1e-3]):
-    for j, m in enumerate([5, 4, 3, 2]):
-        this_csd_evoked = \
-            mne.preprocessing.compute_current_source_density(evoked,
-                                                             stiffness=m,
-                                                             lambda2=lambda2,
-                                                             copy=True)
-        this_csd_evoked.plot_topomap(0.1, axes=ax[i, j],
-                                     outlines='skirt', contours=4,
-                                     time_unit='s',
-                                     colorbar=False, show=False)
-        ax[i, j].set_title('stiffness=%i\nlambda=%s' % (m, lambda2))
-
-plt.show()
 
 # References
 # ----------
