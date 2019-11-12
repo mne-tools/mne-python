@@ -889,7 +889,7 @@ def norm_epsilon(Y, l1_ratio, phi, w_space=1., w_time=None):
         The TF operator.
     w_space : float
         Scalar weight of the L2 norm. By default, it is taken equal to 1.
-    w_time : array, shape (n_coefs, )
+    w_time : array, shape (n_coefs, ) | None
         Weights of each TF coefficient in the L1 norm. If None, weights equal
         to 1 are used.
 
@@ -915,7 +915,7 @@ def norm_epsilon(Y, l1_ratio, phi, w_space=1., w_time=None):
     # Add negative freqs: count all freqs twice except first and last:
     freqs_count = np.full(len(Y), 2)
     for i, fc in enumerate(np.array_split(freqs_count,
-                                         np.cumsum(phi.n_coefs)[:-1])):
+                                          np.cumsum(phi.n_coefs)[:-1])):
         fc[:phi.n_steps[i]] = 1
         fc[-phi.n_steps[i]:] = 1
 
