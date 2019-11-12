@@ -578,8 +578,6 @@ def test_anonymize(tmpdir):
     assert(raw.annotations.orig_time == 0)
 
 
-
-
 @testing.requires_testing_data
 def test_csr_csc(tmpdir):
     """Test CSR and CSC."""
