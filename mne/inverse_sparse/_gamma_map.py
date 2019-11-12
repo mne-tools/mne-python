@@ -8,7 +8,7 @@ from scipy import linalg
 from ..forward import is_fixed_orient
 
 from ..minimum_norm.inverse import _check_reference
-from ..utils import logger, verbose, warn, _check_option
+from ..utils import logger, verbose, warn
 from .mxne_inverse import (_check_ori, _make_sparse_stc, _prepare_gain,
                            _reapply_source_weighting, _compute_residual,
                            _make_dipoles_sparse)
