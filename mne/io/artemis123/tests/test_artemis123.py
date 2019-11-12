@@ -85,7 +85,8 @@ def test_data():
     # test cHPI localization..
     dev_hpi_rr = np.array([p['r'] for p in raw.info['dig']
                            if p['coord_frame'] == FIFF.FIFFV_COORD_DEVICE])
-    assert_allclose(dev_hpi_rr, expected_dev_hpi_rr, atol=1e-5, rtol=1e-5)
+    # points should be within 0.1 mm (1e-4m) and within 1%
+    assert_allclose(dev_hpi_rr, expected_dev_hpi_rr, atol=1e-4, rtol=0.01)
 
     # test 1kz hpi head loc (different freq)
     raw = read_raw_artemis123(short_hpi_1kz_fname, add_head_trans=True)
