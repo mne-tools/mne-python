@@ -16,14 +16,14 @@ import numpy as np
 
 from scipy import linalg
 
-from mne import pick_types
-from mne.utils import _validate_type, _ensure_int
-from mne.io import BaseRaw
-from mne.io.constants import FIFF
-from mne.epochs import BaseEpochs
-from mne.evoked import Evoked
-from mne.bem import fit_sphere_to_headshape
-from mne.channels.interpolation import _calc_g, _calc_h
+from .. import pick_types
+from ..utils import _validate_type, _ensure_int
+from ..io import BaseRaw
+from ..io.constants import FIFF
+from ..epochs import BaseEpochs
+from ..evoked import Evoked
+from ..bem import fit_sphere_to_headshape
+from ..channels.interpolation import _calc_g, _calc_h
 
 
 def _prepare_G(G, lambda2):

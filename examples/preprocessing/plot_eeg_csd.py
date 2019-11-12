@@ -61,9 +61,9 @@ evoked = epochs['auditory'].average()
 # First let's look at how CSD affects scalp topography:
 
 times = np.array([-0.1, 0., 0.05, 0.1, 0.15])
-csd_evoked = mne.preprocessing.compute_current_source_density(evoked)
+evoked_csd = mne.preprocessing.compute_current_source_density(evoked)
 evoked.plot_joint(title='Average Reference', show=False)
-csd_evoked.plot_joint(title='Current Source Density')
+evoked_csd.plot_joint(title='Current Source Density')
 
 ###############################################################################
 # CSD has parameters ``stiffness`` and ``lambda2`` affecting smoothing and
@@ -74,9 +74,9 @@ fig.subplots_adjust(hspace=0.5)
 fig.set_size_inches(10, 10)
 for i, lambda2 in enumerate([0, 1e-7, 1e-5, 1e-3]):
     for j, m in enumerate([5, 4, 3, 2]):
-        this_csd_evo = mne.preprocessing.compute_current_source_density(
+        this_evoked_csd = mne.preprocessing.compute_current_source_density(
             evoked, stiffness=m, lambda2=lambda2)
-        this_csd_evo.plot_topomap(
+        this_evoked_csd.plot_topomap(
             0.1, axes=ax[i, j], outlines='skirt', contours=4, time_unit='s',
             colorbar=False, show=False)
         ax[i, j].set_title('stiffness=%i\nλ²=%s' % (m, lambda2))
