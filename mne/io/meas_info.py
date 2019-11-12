@@ -1966,8 +1966,8 @@ def anonymize_info(info, daysback=None, keep_his=False):
     none_meas_date = info['meas_date'] is None
 
     if none_meas_date:
-        logger.warning('Input info has \'meas_date\' set to None.' +
-                       ' Removing all information from time/date structures.' +
+        logger.warning('Input info has \'meas_date\' set to None.'
+                       ' Removing all information from time/date structures.'
                        ' *NOT* performing any time shifts')
         info['meas_date'] = None
     else:
@@ -2070,8 +2070,8 @@ def anonymize_info(info, daysback=None, keep_his=False):
             if di.get(k) is not None:
                 di[k] = default_str
 
-    err_mesg = ('anonymize_info generated an inconsistent info object. Most ' +
-                'often this is because daysback parameter was too large.\n' +
+    err_mesg = ('anonymize_info generated an inconsistent info object. Most '
+                'often this is because daysback parameter was too large.\n'
                 'Underlying Error:')
     info._check_consistency(prepend_error=err_mesg)
 
