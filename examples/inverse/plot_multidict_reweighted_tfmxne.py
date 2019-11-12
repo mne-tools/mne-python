@@ -4,28 +4,25 @@ Compute iterative reweighted TF-MxNE with multiscale time-frequency dictionary
 ==============================================================================
 
 The iterative reweighted TF-MxNE solver is a distributed inverse method
-based on the TF-MxNE solver, which promotes focal (sparse) sources.
-[1]_. The benefit of this approach is that:
+based on the TF-MxNE solver, which promotes focal (sparse) sources [1]_.
+The benefit of this approach is that:
 
   - it is spatio-temporal without assuming stationarity (sources properties
-    can vary over time)
-  - activations are localized in space, time and frequency in one step.
+    can vary over time),
+  - activations are localized in space, time and frequency in one step,
   - the solver uses non-convex penalties in the TF domain, which result in
-    solution less biased towards zero than when simple TF-MxNE is used.
-
-References
-----------
-.. [1] D. Strohmeier, A. Gramfort, J. Haueisen
-   "MEG/EEG Source Imaging with a Non-Convex Penalty in the Time-Frequency
-   Domain", 5th International Workshop on Pattern Recognition in
-   Neuroimaging (PRNI), 2015
-   DOI: 10.1109/PRNI.2015.14
+    solution less biased towards zero than when simple TF-MxNE is used,
+  - using a multiscale dictionary allows to capture short transient
+    activations along with slower brain waves [2]_.
 """
 # Author: Mathurin Massias <mathurin.massias@gmail.com>
+#         Yousra Bekhti <yousra.bekhti@gmail.com>
+#         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
+#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 
-from os.path import join as pjoin  # TODO is this the standard import in mne?
+import os.path as op
 
 import mne
 from mne.datasets import somato
@@ -41,10 +38,10 @@ print(__doc__)
 data_path = somato.data_path()
 subject = '01'
 task = 'somato'
-raw_fname = pjoin(data_path, 'sub-{}'.format(subject), 'meg',
-                  'sub-{}_task-{}_meg.fif'.format(subject, task))
-fwd_fname = pjoin(data_path, 'derivatives', 'sub-{}'.format(subject),
-                  'sub-{}_task-{}-fwd.fif'.format(subject, task))
+raw_fname = op.join(data_path, 'sub-{}'.format(subject), 'meg',
+                    'sub-{}_task-{}_meg.fif'.format(subject, task))
+fwd_fname = op.join(data_path, 'derivatives', 'sub-{}'.format(subject),
+                    'sub-{}_task-{}-fwd.fif'.format(subject, task))
 
 condition = 'Unknown'
 
@@ -79,11 +76,10 @@ wsize, tstep = [16, 64], [2, 4]
 
 n_tfmxne_iter = 10
 # Compute TF-MxNE inverse solution with dipole output
-tol = 1e-1  # TODO change tol when scaling tol PR is merged
 dipoles, residual = tf_mixed_norm(
     evoked, forward, cov, alpha=alpha, l1_ratio=l1_ratio,
     n_tfmxne_iter=n_tfmxne_iter, loose=loose,
-    depth=depth, tol=tol,
+    depth=depth, tol=1e-3,
     wsize=wsize, tstep=tstep, return_as_dipoles=True,
     return_residual=True)
 
@@ -113,3 +109,19 @@ evoked.plot(titles=dict(grad='Evoked Response: Gradiometers'), ylim=ylim,
 residual.pick_types(meg='grad', exclude='bads')
 residual.plot(titles=dict(grad='Residuals: Gradiometers'), ylim=ylim,
               proj=True)
+
+
+###############################################################################
+# References
+# ----------
+# .. [1] D. Strohmeier, A. Gramfort, J. Haueisen
+#  "MEG/EEG Source Imaging with a Non-Convex Penalty in the Time-Frequency
+#  Domain", 5th International Workshop on Pattern Recognition in
+#  Neuroimaging (PRNI), 2015
+#  DOI: 10.1109/PRNI.2015.14
+#
+# .. [2] Y. Bekhti, D. Strohmeier, M. Jas, R. Badeau, A. Gramfort
+#  "M/EEG Source Localization with Multi-Scale Time-Frequency Dictionaries"
+#  6th International Workshop on Pattern Recognition in
+#  Neuroimaging (PRNI), 2016
+#  DOI: 10.1109/PRNI.2016.7552337

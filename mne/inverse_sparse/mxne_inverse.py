@@ -484,9 +484,9 @@ def tf_mixed_norm(evoked, forward, noise_cov,
                   loose='auto', depth=0.8, maxit=3000,
                   tol=1e-4, weights=None, weights_min=0., pca=True,
                   debias=True, wsize=64, tstep=4, window=0.02,
-                  n_tfmxne_iter=1, return_residual=False,
-                  return_as_dipoles=False, alpha=None, l1_ratio=None,
-                  dgap_freq=10, rank=None, pick_ori=None, verbose=None):
+                  return_residual=False, return_as_dipoles=False, alpha=None,
+                  l1_ratio=None, dgap_freq=10, rank=None, pick_ori=None,
+                  n_tfmxne_iter=1, verbose=None):
     """Time-Frequency Mixed-norm estimate (TF-MxNE).
 
     Compute L1/L2 + L1 mixed-norm solution on time-frequency
@@ -538,8 +538,6 @@ def tf_mixed_norm(evoked, forward, noise_cov,
         Length of time window used to take care of edge artifacts in seconds.
         It can be one float or float if the values are different for left
         and right window length.
-    n_tfmxne_iter : int
-        Number of TF-MxNE iterations. If > 1, iterative reweighting is applied.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
     return_as_dipoles : bool
@@ -560,6 +558,8 @@ def tf_mixed_norm(evoked, forward, noise_cov,
 
         .. versionadded:: 0.18
     %(pick_ori-vec)s
+    n_tfmxne_iter : int
+        Number of TF-MxNE iterations. If > 1, iterative reweighting is applied.
     %(verbose)s
 
     Returns

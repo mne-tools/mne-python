@@ -913,12 +913,11 @@ def norm_epsilon(Y, l1_ratio, phi, w_space=1., w_time=None):
     # of Y are assumed positive
 
     # Add negative freqs: count all freqs twice except first and last:
-    freqs_count = np.empty(len(Y), dtype=int)
-    freqs_count.fill(2)
-    for i, w in enumerate(np.array_split(freqs_count,
+    freqs_count = np.full(len(Y), 2)
+    for i, fc in enumerate(np.array_split(freqs_count,
                                          np.cumsum(phi.n_coefs)[:-1])):
-        w[:phi.n_steps[i]] = 1
-        w[-phi.n_steps[i]:] = 1
+        fc[:phi.n_steps[i]] = 1
+        fc[-phi.n_steps[i]:] = 1
 
     # exclude 0 weights:
     if w_time is not None:
