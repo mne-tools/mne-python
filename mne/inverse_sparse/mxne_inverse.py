@@ -21,6 +21,14 @@ from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver, _Phi,
                          norm_l2inf, tf_mixed_norm_solver, norm_epsilon_inf)
 
 
+def _check_ori(pick_ori, forward):
+    """Check pick_ori."""
+    _check_option('pick_ori', pick_ori, [None, 'vector'])
+    if pick_ori == 'vector' and is_fixed_orient(forward):
+        raise ValueError('pick_ori="vector" cannot be combined with a fixed '
+                         'orientation forward solution.')
+
+
 @verbose
 def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
     mask = None
@@ -346,7 +354,6 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     if dgap_freq <= 0.:
         raise ValueError('dgap_freq must be a positive integer.'
                          ' Got dgap_freq = %s' % dgap_freq)
-    _check_option('pick_ori', pick_ori, [None, 'vector'])
 
     pca = True
     if not isinstance(evoked, list):
@@ -362,6 +369,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     forward, gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
         forward, evoked[0].info, noise_cov, pca, depth, loose, rank,
         weights, weights_min)
+    _check_ori(pick_ori, forward)
 
     sel = [all_ch_names.index(name) for name in gain_info['ch_names']]
     M = np.concatenate([e.data[sel] for e in evoked], axis=1)
@@ -430,7 +438,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
                 M_estimated[:, cnt:(cnt + len(e.times))], verbose=None)
         else:
             out = _make_sparse_stc(
-                Xe, active_set, forward, tmin, tstep, pick_ori)
+                Xe, active_set, forward, tmin, tstep, pick_ori=pick_ori)
         outs.append(out)
         cnt += len(e.times)
 
@@ -585,7 +593,6 @@ def tf_mixed_norm(evoked, forward, noise_cov,
        DOI: 10.1109/PRNI.2016.7552337
     """
     _check_reference(evoked)
-    _check_option('pick_ori', pick_ori, [None, 'vector'])
 
     all_ch_names = evoked.ch_names
     info = evoked.info
@@ -614,6 +621,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
     forward, gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
         forward, evoked.info, noise_cov, pca, depth, loose, rank,
         weights, weights_min)
+    _check_ori(pick_ori, forward)
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
 
     if window is not None:

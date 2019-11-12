@@ -8,8 +8,8 @@ from scipy import linalg
 from ..forward import is_fixed_orient
 
 from ..minimum_norm.inverse import _check_reference
-from ..utils import logger, verbose, warn, _check_option
-from .mxne_inverse import (_make_sparse_stc, _prepare_gain,
+from ..utils import logger, verbose, warn
+from .mxne_inverse import (_check_ori, _make_sparse_stc, _prepare_gain,
                            _reapply_source_weighting, _compute_residual,
                            _make_dipoles_sparse)
 
@@ -240,10 +240,10 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
            DOI: 10.1016/j.neuroimage.2008.02.059
     """
     _check_reference(evoked)
-    _check_option('pick_ori', pick_ori, [None, 'vector'])
 
     forward, gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
         forward, evoked.info, noise_cov, pca, depth, loose, rank)
+    _check_ori(pick_ori, forward)
 
     group_size = 1 if (is_fixed_orient(forward) or not xyz_same_gamma) else 3
 

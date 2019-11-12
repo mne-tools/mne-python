@@ -90,6 +90,17 @@ def test_mxne_inverse_standard():
     assert stc_cd.vertices[1][0] in label.vertices
     assert stc_bcd.vertices[1][0] in label.vertices
 
+    # vector
+    with pytest.warns(None):  # no convergence
+        stc = mixed_norm(evoked_l21, forward, cov, alpha, loose=1, maxit=2)
+    with pytest.warns(None):  # no convergence
+        stc_vec = mixed_norm(evoked_l21, forward, cov, alpha, loose=1, maxit=2,
+                             pick_ori='vector')
+    assert_stcs_equal(stc_vec.magnitude(), stc)
+    with pytest.warns(None), pytest.raises(ValueError, match='pick_ori='):
+        mixed_norm(evoked_l21, forward, cov, alpha, loose=0, maxit=2,
+                   pick_ori='vector')
+
     with pytest.warns(None):  # CD
         dips = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
                           depth=depth, maxit=300, tol=1e-8, active_set_size=10,
