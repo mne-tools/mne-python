@@ -45,7 +45,7 @@ forward = mne.read_forward_solution(fwd_fname)
 # Run solver
 alpha = 55  # regularization parameter between 0 and 100 (100 is high)
 loose, depth = 0.2, 0.9  # loose orientation & depth weighting
-n_mxne_iter = 10  # if > 1 use L0.5/L2 reweighted mixed norm solver
+n_mxne_iter = 5  # if > 1 use L0.5/L2 reweighted mixed norm solver
 # if n_mxne_iter > 1 dSPM weighting can be avoided.
 
 # Compute dSPM solution to be used as weights in MxNE
@@ -106,9 +106,9 @@ stc_fsaverage = morph.apply(stc)
 src_fsaverage_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
 src_fsaverage = mne.read_source_spaces(src_fsaverage_fname)
 
-plot_sparse_source_estimates(src_fsaverage, stc_fsaverage, bgcolor=(1, 1, 1),
-                             fig_name="Morphed %s (cond %s)" % (solver,
-                             condition), opacity=0.1)
+plot_sparse_source_estimates(
+    src_fsaverage, stc_fsaverage, bgcolor=(1, 1, 1),
+    fig_name="Morphed %s (cond %s)" % (solver, condition), opacity=0.1)
 
 ###############################################################################
 # References
