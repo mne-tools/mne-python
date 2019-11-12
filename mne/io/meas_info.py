@@ -1889,7 +1889,7 @@ def _force_update_info(info_base, info_target):
             i_targ[key] = val
 
 
-def _add_timedelta_to_meas_date(meas_date, dt):
+def _add_timedelta_to_meas_date(meas_date, delta_t):
     """Add a timedelta to a meas_date tuple.
 
     Parameters
@@ -1897,7 +1897,7 @@ def _add_timedelta_to_meas_date(meas_date, dt):
     meas_date : tuple | None
         The Info object you want to use for overwriting values
         in target Info objects.
-    dt : datetime.timedelta
+    delta_t : datetime.timedelta
         The time difference that is added to the meas_date timestamp
 
     Returns
@@ -1908,7 +1908,7 @@ def _add_timedelta_to_meas_date(meas_date, dt):
     if meas_date is None:
         new_meas_date = None
     else:
-        new_meas_date = _dt_to_stamp(_stamp_to_dt(meas_date) + dt)
+        new_meas_date = _dt_to_stamp(_stamp_to_dt(meas_date) + delta_t)
     return new_meas_date
 
 
