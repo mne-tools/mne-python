@@ -210,7 +210,7 @@ MNE-Python, but are needed for locally running our test suite or building our
 documentation::
 
     $ pip install sphinx sphinx-gallery sphinx_bootstrap_theme sphinx_fontawesome memory_profiler
-    $ conda install sphinx-autobuild doc8  # linter packages for reStructuredText (optional)
+    $ conda install -c conda-forge sphinx-autobuild doc8  # linter packages for reStructuredText (optional)
 
 
 .. _basic-git:
