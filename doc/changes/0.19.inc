@@ -9,6 +9,15 @@
 
 .. _changes_0_19:
 
+Version 0.19.2
+--------------
+
+Bug
+~~~
+
+- Fix handling of missing values (NaNs) in :func:`mne.time_frequency.psd_welch` by `Clemens Brunner`_
+
+
 Version 0.19.1
 --------------
 
