@@ -97,18 +97,14 @@ event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
 #         events_from_file = mne.read_events(sample_data_events_file)
 #
 #
-# Creating an :class:`~mne.Epochs` object
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#
 # The :class:`~mne.io.Raw` object and the events array are the bare minimum
 # needed to create an :class:`~mne.Epochs` object, which we create with the
 # :class:`mne.Epochs` class constructor. However, you will almost surely want
 # to change some of the other default parameters. Here we'll change ``tmin``
 # and ``tmax`` (the time relative to each event at which to start and end each
-# epoch); since we didn't preload the :class:`~mne.io.Raw` data, we'll tell the
-# :class:`~mne.Epochs` constructor to load the epoched data into memory:
+# epoch):
 
-epochs = mne.Epochs(raw, events, tmin=-0.3, tmax=0.7, preload=True)
+epochs = mne.Epochs(raw, events, tmin=-0.3, tmax=0.7)
 
 ###############################################################################
 # You'll see from the output that:
@@ -170,8 +166,12 @@ epochs.plot(n_epochs=10)
 # :meth:`raw.plot() <mne.io.Raw.plot>`) and have many of the same interactive
 # controls as :class:`~mne.io.Raw` plots; pressing :kbd:`?` when the plot is
 # focused will show a help screen with all the available controls. See
-# :ref:`tut-visualize-epochs` for more details (as well as ways of visualizing
-# epoched data).
+# :ref:`tut-visualize-epochs` for more details (as well as other ways of
+# visualizing epoched data).
+#
+# Note also that the :class:`~mne.Epochs` constructor also accepts parameters
+# ``reject`` and ``flat`` for rejecting individual epochs based on signal
+# amplitude. See the `tut-reject-epochs-section` section for examples.
 #
 #
 # Querying ``Epochs`` objects
@@ -218,7 +218,7 @@ except KeyError:
 # Selecting epochs by index
 # ~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# :class:`~mne.Epochs` objects can also be indexed with integers, :func:`slices
+# :class:`~mne.Epochs` objects can also be indexed with integers, :term:`slices
 # <slice>`, or lists of integers. This method of selection ignores event
 # labels, so if you want the first 10 epochs of a particular type, you can
 # select the type first, then use integers or slices:
@@ -250,6 +250,8 @@ new_order = ['EEG 002', 'STI 014', 'EOG 061', 'MEG 2521']
 epochs_subset = epochs.copy().reorder_channels(new_order)
 print(epochs_subset.ch_names)
 
+###############################################################################
+
 del epochs_eeg, epochs_subset
 
 ###############################################################################
@@ -266,6 +268,8 @@ epochs.rename_channels({'EOG 061': 'BlinkChannel'})
 
 epochs.set_channel_types({'EEG 060': 'ecg'})
 print(list(zip(epochs.ch_names, epochs.get_channel_types()))[-4:])
+
+###############################################################################
 
 # let's set them back to the correct values before moving on
 epochs.rename_channels({'BlinkChannel': 'EOG 061'})
@@ -287,8 +291,6 @@ for name, obj in dict(Original=epochs, Cropped=shorter_epochs).items():
     print('{} epochs has {} time samples'
           .format(name, obj.get_data().shape[-1]))
 
-del shorter_epochs
-
 ###############################################################################
 # It is also possible to change the "zero point" that defines the time values
 # in an :class:`~mne.Epochs` object, with the :meth:`~mne.Epochs.shift_time`
@@ -304,6 +306,10 @@ print(later_epochs.times[:3])
 # shift times by a relative amount
 later_epochs.shift_time(tshift=-7, relative=True)
 print(later_epochs.times[:3])
+
+###############################################################################
+
+del shorter_epochs, later_epochs
 
 ###############################################################################
 # Note that although time shifting respects the sampling frequency (the spacing
@@ -334,13 +340,13 @@ for name, arr in dict(EOG=eog_data, MEG=meg_data, Slice=channel_4_6_8).items():
 # to form a heirarchical :class:`~pandas.MultiIndex`. Each channel will appear
 # in a separate column. Then you can use any of Pandas' tools for grouping and
 # aggregating data; for example, here we select any epochs numbered 10 or less
-# from the ``auditory/left`` condition, and extract times between 100 and 110
+# from the ``auditory/left`` condition, and extract times between 100 and 107
 # ms on channels ``EEG 056`` through ``EEG 058`` (note that slice indexing
 # within Pandas' :attr:`~pandas.DataFrame.loc` is inclusive of the endpoint):
 
 df = epochs.to_data_frame()
 df.sort_index(inplace=True)
-print(df.loc[('auditory/left', slice(0, 10), slice(100, 110)),
+print(df.loc[('auditory/left', slice(0, 10), slice(100, 107)),
              'EEG 056':'EEG 058'])
 
 del df
@@ -379,76 +385,19 @@ print(type(epochs_from_file))
 print(all([isinstance(epochs, mne.BaseEpochs),
            isinstance(epochs_from_file, mne.BaseEpochs)]))
 
+###############################################################################
+# Iterating over ``Epochs``
+# ^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# Iterating over an :class:`~mne.Epochs` object will yield :class:`arrays
+# <numpy.ndarray>` rather than single-trial :class:`~mne.Epochs` objects:
 
-
-
-
-
-
+for epoch in epochs[:3]:
+    print(type(epoch))
 
 ###############################################################################
-# It is also possible to iterate through :class:`Epochs <mne.Epochs>` objects
-# in this way. Note that behavior is different if you iterate on `Epochs`
-# directly rather than indexing:
+# If you want to iterate over :class:`~mne.Epochs` objects, you can use an
+# integer index as the iterator:
 
-# These will be epochs objects
-for i in range(3):
-    print(epochs[i])
-
-# These will be arrays
-for ep in epochs[:2]:
-    print(ep)
-
-###############################################################################
-# You can manually remove epochs from the Epochs object by using
-# :func:`epochs.drop(idx) <mne.Epochs.drop>`, or by using rejection or flat
-# thresholds with :func:`epochs.drop_bad(reject, flat) <mne.Epochs.drop_bad>`.
-# You can also inspect the reason why epochs were dropped by looking at the
-# list stored in ``epochs.drop_log`` or plot them with
-# :func:`epochs.plot_drop_log() <mne.Epochs.plot_drop_log>`. The indices
-# from the original set of events are stored in ``epochs.selection``.
-
-epochs.drop([0], reason='User reason')
-epochs.drop_bad(reject=dict(grad=2500e-13, mag=4e-12, eog=200e-6), flat=None)
-print(epochs.drop_log)
-epochs.plot_drop_log()
-print('Selection from original events:\n%s' % epochs.selection)
-print('Removed events (from numpy setdiff1d):\n%s'
-      % (np.setdiff1d(np.arange(len(events)), epochs.selection).tolist(),))
-print('Removed events (from list comprehension -- should match!):\n%s'
-      % ([li for li, log in enumerate(epochs.drop_log) if len(log) > 0]))
-
-###############################################################################
-# If you wish to save the epochs as a file, you can do it with
-# :func:`mne.Epochs.save`. To conform to MNE naming conventions, the
-# epochs file names should end with '-epo.fif'.
-epochs_fname = op.join(data_path, 'MEG', 'sample', 'sample-epo.fif')
-epochs.save(epochs_fname, overwrite=True)
-
-###############################################################################
-# Later on you can read the epochs with :func:`mne.read_epochs`. For reading
-# EEGLAB epochs files see :func:`mne.read_epochs_eeglab`. We can also use
-# ``preload=False`` to save memory, loading the epochs from disk on demand.
-epochs = mne.read_epochs(epochs_fname, preload=False)
-
-###############################################################################
-# If you wish to look at the average across trial types, then you may do so,
-# creating an :class:`Evoked <mne.Evoked>` object in the process. Instances
-# of `Evoked` are usually created by calling :func:`mne.Epochs.average`. For
-# creating `Evoked` from other data structures see :class:`mne.EvokedArray` and
-# :ref:`tut_creating_data_structures`.
-
-ev_left = epochs['Auditory/Left'].average()
-ev_right = epochs['Auditory/Right'].average()
-
-f, axs = plt.subplots(3, 2, figsize=(10, 5))
-_ = f.suptitle('Left / Right auditory', fontsize=20)
-_ = ev_left.plot(axes=axs[:, 0], show=False, time_unit='s')
-_ = ev_right.plot(axes=axs[:, 1], show=False, time_unit='s')
-plt.tight_layout()
-
-###############################################################################
-# To export and manipulate Epochs using Pandas see
-# :ref:`tut-epochs-dataframe`,
-# or to work directly with metadata in MNE-Python see
-# :ref:`tut-epochs-metadata`.
+for index in range(3):
+    print(type(epochs[index]))
