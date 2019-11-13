@@ -70,6 +70,10 @@ class _Figure(object):
             return False
         return hasattr(self.plotter, 'ren_win')
 
+    def _ipython_display_(self):
+        from IPython.display import display
+        display(self.display)
+
 
 class _Projection(object):
     """Class storing projection information.
@@ -395,7 +399,7 @@ class _Renderer(_BaseRenderer):
                                         background_color=bgcolor)
 
     def show(self):
-        self.figure.display = self.plotter.show()
+        self.figure.display = self.plotter.show(use_panel=True, auto_close=False)
         return self.scene()
 
     def close(self):

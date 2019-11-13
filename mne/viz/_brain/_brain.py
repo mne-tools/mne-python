@@ -817,6 +817,10 @@ class _Brain(object):
                              extra + ", got " + str(hemi))
         return hemi
 
+    def _ipython_display_(self):
+        from IPython.display import display
+        display(self._show())
+
 
 def _update_limits(fmin, fmid, fmax, center, array):
     if center is None:
