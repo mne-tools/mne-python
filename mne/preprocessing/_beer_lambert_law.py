@@ -14,6 +14,7 @@ from ..io import BaseRaw
 from ..io.pick import _picks_to_idx
 from ..io.constants import FIFF
 from ..utils import _validate_type
+from mne.preprocessing.nirs import nirs_source_detector_distances
 
 
 def beer_lambert_law(raw, ppf=0.1):
@@ -37,7 +38,7 @@ def beer_lambert_law(raw, ppf=0.1):
     freqs = np.unique(_channel_frequencies(raw))
     picks = _check_channels_ordered(raw, freqs)
     abs_coef = _load_absorption(freqs)
-    distances = _probe_distances(raw)
+    distances = nirs_source_detector_distances(raw.info)
 
     for ii in picks[::2]:
 
@@ -115,31 +116,3 @@ def _load_absorption(freqs):
     abs_coef = ext_coef * 0.2303
 
     return abs_coef
-
-
-def _probe_distances(raw):
-    """Return the distance between each source-detector pair."""
-    dist = [linalg.norm(ch['loc'][3:6] - ch['loc'][6:9])
-            for ch in raw.info['chs']]
-    return np.array(dist, float)
-
-
-def short_channels(raw, threshold=0.01):
-    r"""Determine which NIRS channels are short.
-
-    Channels with a source to detector distance of less than
-    `threshold` are reported as short. The default threshold is 1 cm.
-
-    Parameters
-    ----------
-    raw : instance of Raw
-        NIRS data instance.
-    threshold : float
-        The threshold distance for what is considered short.
-
-    Returns
-    -------
-    short : array of bool
-        Array indicating which channels are short.
-    """
-    return _probe_distances(raw) < threshold

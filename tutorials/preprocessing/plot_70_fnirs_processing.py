@@ -17,8 +17,6 @@ Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 # sphinx_gallery_thumbnail_number = 3
 
 import os
-import numpy as np
-from itertools import compress
 import matplotlib.pyplot as plt
 
 import mne
@@ -37,12 +35,10 @@ raw_intensity = mne.io.read_raw_nirx(fnirs_raw_dir, verbose=True).load_data()
 # response. To achieve this we pick all the channels that are not considered
 # to be short (less than 1 cm distance between optodes).
 
-is_short = mne.preprocessing.short_channels(
-    raw_intensity, threshold=0.01)
-long_channels = np.logical_not(is_short)
-raw_intensity.pick(mne.pick_channels(raw_intensity.ch_names,
-                                     list(compress(raw_intensity.ch_names,
-                                                   long_channels))))
+picks = mne.pick_types(raw_intensity.info, meg=False, fnirs=True)
+dists = mne.preprocessing.nirs.nirs_source_detector_distances(
+    raw_intensity.info, picks=picks)
+raw_intensity.pick(picks[dists < 0.01])
 raw_intensity.plot(n_channels=len(raw_intensity.ch_names), duration=500)
 
 
