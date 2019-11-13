@@ -238,7 +238,7 @@ def test_rotation3d_align_z_axis():
     # The more complex z axis fails the assert presumably due to tolerance
     #
     inp_zs = [[0, 0, 1], [0, 1, 0], [1, 0, 0], [0, 0, -1],
-              [-0.75071668, -0.62183808,  0.22302888]]
+              [-0.75071668, -0.62183808, 0.22302888]]
 
     exp_res = [[[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]],
                [[1., 0., 0.], [0., 0., 1.], [0., -1., 0.]],

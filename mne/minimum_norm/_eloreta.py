@@ -5,9 +5,8 @@
 import numpy as np
 
 from ..defaults import _handle_default
-from ..fixes import _safe_svd
-from ..utils import (warn, logger, _svd_lwork, _repeated_svd, _repeated_pinv2,
-                     eigh)
+from ..fixes import _safe_svd, pinv
+from ..utils import (warn, logger, _svd_lwork, _repeated_svd, eigh)
 
 
 # For the reference implementation of eLORETA (force_equal=False),
@@ -62,12 +61,11 @@ def _compute_eloreta(inv, lambda2, options):
     extra = ' (this make take a while)' if n_orient == 3 else ''
     logger.info('        Fitting up to %d iterations%s...'
                 % (max_iter, extra))
-    pinv2_lwork = _svd_lwork((3, 3))
     svd_lwork = _svd_lwork((G.shape[0], G.shape[0]))
     for kk in range(max_iter):
         # Compute inverse of the weights (stabilized) and corresponding M
         M, _ = _compute_eloreta_inv(G, G_3, W, n_orient, n_nzero, lambda2,
-                                    force_equal, pinv2_lwork, svd_lwork)
+                                    force_equal, svd_lwork)
 
         # Update the weights
         W_last = W.copy()
@@ -97,7 +95,7 @@ def _compute_eloreta(inv, lambda2, options):
         warn('eLORETA weight fitting did not converge (>= %s)' % eps)
     logger.info('        Assembling eLORETA kernel and modifying inverse')
     M, W_inv = _compute_eloreta_inv(G, G_3, W, n_orient, n_nzero, lambda2,
-                                    force_equal, pinv2_lwork, svd_lwork)
+                                    force_equal, svd_lwork)
     K = np.zeros((n_src * n_orient, n_chan))
     for ii in range(n_src):
         sl = slice(n_orient * ii, n_orient * (ii + 1))
@@ -115,18 +113,17 @@ def _compute_eloreta(inv, lambda2, options):
 
 
 def _compute_eloreta_inv(G, G_3, W, n_orient, n_nzero, lambda2, force_equal,
-                         pinv2_lwork, svd_lwork):
+                         svd_lwork):
     """Invert weights and compute M."""
     W_inv = np.empty(W.shape)
     n_src = W_inv.shape[0]
     if n_orient == 1 or force_equal:
         W_inv[:] = 1. / W
     else:
-        for ii in range(n_src):
-            # Here we use a single-precision-suitable `rcond` (given our
-            # 3x3 matrix size) because the inv could be saved in single
-            # precision.
-            W_inv[ii] = _repeated_pinv2(W[ii], rcond=1e-7, lwork=pinv2_lwork)
+        # Here we use a single-precision-suitable `rcond` (given our
+        # 3x3 matrix size) because the inv could be saved in single
+        # precision.
+        W_inv[:] = pinv(W, rcond=1e-7)
 
     # Weight the gain matrix
     if n_orient == 1 or force_equal:

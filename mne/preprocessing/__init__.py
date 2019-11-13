@@ -21,5 +21,6 @@ from .infomax_ import infomax
 from .stim import fix_stim_artifact
 from .maxwell import maxwell_filter
 from .xdawn import Xdawn
+from ._csd import compute_current_source_density
 from ._optical_density import optical_density
-from ._beer_lambert_law import beer_lambert_law
+from ._beer_lambert_law import beer_lambert_law, short_channels

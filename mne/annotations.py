@@ -9,7 +9,7 @@ import re
 from copy import deepcopy
 from itertools import takewhile
 import collections
-
+import warnings
 import numpy as np
 
 from .utils import (_pl, check_fname, _validate_type, verbose, warn, logger,
@@ -736,11 +736,18 @@ def _read_annotations_txt_parse_header(fname):
 
 
 def _read_annotations_txt(fname):
-    onset, duration, desc = np.loadtxt(fname, delimiter=',',
-                                       dtype=np.bytes_, unpack=True)
-    onset = [float(o.decode()) for o in onset]
-    duration = [float(d.decode()) for d in duration]
-    desc = [str(d.decode()).strip() for d in desc]
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("ignore")
+        out = np.loadtxt(fname, delimiter=',',
+                         dtype=np.bytes_, unpack=True)
+    if len(out) == 0:
+        onset, duration, desc = [], [], []
+    else:
+        onset, duration, desc = out
+
+    onset = [float(o.decode()) for o in np.atleast_1d(onset)]
+    duration = [float(d.decode()) for d in np.atleast_1d(duration)]
+    desc = [str(d.decode()).strip() for d in np.atleast_1d(desc)]
     return onset, duration, desc
 
 

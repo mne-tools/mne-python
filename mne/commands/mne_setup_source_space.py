@@ -132,4 +132,5 @@ def run():
     # Save source space to file
     src.save(fname=fname, overwrite=overwrite)
 
+
 mne.utils.run_command_if_main()

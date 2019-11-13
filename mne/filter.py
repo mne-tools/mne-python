@@ -1557,6 +1557,7 @@ def detrend(x, order=1, axis=-1):
 
     return y
 
+
 # Taken from Ifeachor and Jervis p. 356.
 # Note that here the passband ripple and stopband attenuation are
 # rendundant. The scalar passband ripple δp is expressed in dB as
@@ -2009,8 +2010,7 @@ class FilterMixin(object):
             self._raw_times = self.times
         else:  # isinstance(self, Evoked)
             self.times = new_times
-            self.first = int(self.times[0] * self.info['sfreq'])
-            self.last = len(self.times) + self.first - 1
+            self._update_first_last()
         return self
 
     @verbose

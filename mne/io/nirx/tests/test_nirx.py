@@ -14,7 +14,7 @@ from mne.io.tests.test_raw import _test_raw_reader
 from mne.transforms import apply_trans, _get_trans
 from mne.utils import run_tests_if_main
 from mne.preprocessing._beer_lambert_law import _probe_distances,\
-    _short_channels
+    short_channels
 
 fname_nirx_15_0 = op.join(data_path(download=False),
                           'NIRx', 'nirx_15_0_recording')
@@ -56,12 +56,12 @@ def test_nirx_15_2_short():
     # Test which channels are short
     # These are the ones marked as red at
     # https://github.com/mne-tools/mne-testing-data/pull/51 step 4 figure 2
-    short_channels = _short_channels(raw)
-    assert_array_equal(short_channels[:9:2], [False, True, False, True, False])
-    short_channels = _short_channels(raw, threshold=0.003)
-    assert_array_equal(short_channels[:3:2], [False, False])
-    short_channels = _short_channels(raw, threshold=50)
-    assert_array_equal(short_channels[:3:2], [True, True])
+    is_short = short_channels(raw)
+    assert_array_equal(is_short[:9:2], [False, True, False, True, False])
+    is_short = short_channels(raw, threshold=0.003)
+    assert_array_equal(is_short[:3:2], [False, False])
+    is_short = short_channels(raw, threshold=50)
+    assert_array_equal(is_short[:3:2], [True, True])
 
     # Test trigger events
     assert_array_equal(raw.annotations.description, ['3.0', '2.0', '1.0'])

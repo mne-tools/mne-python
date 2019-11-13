@@ -188,6 +188,7 @@ Datasets
    fetch_aparc_sub_parcellation
    fetch_fsaverage
    fetch_hcp_mmp_parcellation
+   fnirs_motor.data_path
    hf_sef.data_path
    kiloword.data_path
    limo.load_data
@@ -343,6 +344,7 @@ Projections:
 
    ICA
    Xdawn
+   compute_current_source_density
    compute_proj_ecg
    compute_proj_eog
    create_ecg_epochs
@@ -362,6 +364,7 @@ Projections:
    corrmap
    optical_density
    beer_lambert_law
+   short_channels
 
 EEG referencing:
 
@@ -637,6 +640,7 @@ Inverse Solutions
    source_induced_power
    write_inverse_operator
    make_resolution_matrix
+   resolution_metrics
    get_cross_talk
    get_point_spread
 

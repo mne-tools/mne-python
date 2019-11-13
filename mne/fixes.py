@@ -61,16 +61,6 @@ def _safe_svd(A, **kwargs):
             raise
 
 
-# SciPy 1.0+
-def _check_info(info, driver, positive='did not converge (LAPACK info=%d)'):
-    """Check info return value."""
-    if info < 0:
-        raise ValueError('illegal value in argument %d of internal %s'
-                         % (-info, driver))
-    if info > 0 and positive:
-        raise LinAlgError(("%s " + positive) % (driver, info,))
-
-
 ###############################################################################
 # Backporting nibabel's read_geometry
 
@@ -334,6 +324,33 @@ try:
     from scipy.fft import fft, ifft, fftfreq, rfft, irfft, rfftfreq, ifftshift
 except ImportError:
     from numpy.fft import fft, ifft, fftfreq, rfft, irfft, rfftfreq, ifftshift
+
+
+###############################################################################
+# np.linalg.pinv (NumPy 1.13)
+
+if LooseVersion(np.__version__) >= LooseVersion('1.13'):
+    pinv = np.linalg.pinv
+else:
+    def _makearray(a):
+        new = np.asarray(a)
+        wrap = getattr(a, "__array_prepare__", new.__array_wrap__)
+        return new, wrap
+
+    def pinv(a, rcond=1e-15):
+        """Pseudoinverse."""
+        a, wrap = _makearray(a)
+        rcond = np.asarray(rcond)
+        a = a.conjugate()
+        u, s, vt = np.linalg.svd(a, full_matrices=False)
+        cutoff = rcond[..., np.newaxis] * np.amax(s, axis=-1, keepdims=True)
+        large = s > cutoff
+        s = np.divide(1, s, where=large, out=s)
+        s[~large] = 0
+        res = np.matmul(np.swapaxes(vt, -1, -2),
+                        np.multiply(s[..., np.newaxis],
+                                    np.swapaxes(u, -1, -2)))
+        return wrap(res)
 
 
 ###############################################################################
@@ -650,6 +667,16 @@ class BaseEstimator(object):
     # __getstate__ and __setstate__ are omitted because they only contain
     # conditionals that are not satisfied by our objects (e.g.,
     # ``if type(self).__module__.startswith('sklearn.')``.
+
+
+# newer sklearn deprecates importing from sklearn.metrics.scoring,
+# but older sklearn does not expose check_scoring in sklearn.metrics.
+def _get_check_scoring():
+    try:
+        from sklearn.metrics import check_scoring  # noqa
+    except ImportError:
+        from sklearn.metrics.scorer import check_scoring  # noqa
+    return check_scoring
 
 
 ###############################################################################

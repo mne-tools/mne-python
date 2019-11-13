@@ -201,7 +201,7 @@ def test_io_set_epochs_events(tmpdir):
     """Test different combinations of events and event_ids."""
     tmpdir = str(tmpdir)
     out_fname = op.join(tmpdir, 'test-eve.fif')
-    events = np.array([[4, 0, 1], [12, 0, 2], [20, 0, 3], [26, 0,  3]])
+    events = np.array([[4, 0, 1], [12, 0, 2], [20, 0, 3], [26, 0, 3]])
     write_events(out_fname, events)
     event_id = {'S255/S8': 1, 'S8': 2, 'S255/S9': 3}
     out_fname = op.join(tmpdir, 'test-eve.fif')
@@ -305,8 +305,8 @@ def one_chanpos_fname(tmpdir_factory):
         'srate': 128, 'times': np.array([0., 0.1, 0.2]),
         'data': np.empty([3, 3]),
         'chanlocs': np.array(
-            [(b'F3',  1.,  4.,  7.),
-             (b'unknown',  2.,  5.,  8.),
+            [(b'F3', 1., 4., 7.),
+             (b'unknown', 2., 5., 8.),
              (b'FPz', np.nan, np.nan, np.nan)],
             dtype=[('labels', 'S10'), ('X', 'f8'), ('Y', 'f8'), ('Z', 'f8')]
         )
@@ -323,8 +323,8 @@ def test_position_information(one_chanpos_fname):
     """Test reading file with 3 channels - one without position information."""
     nan = np.nan
     EXPECTED_LOCATIONS_FROM_FILE = np.array([
-        [-4.,  1.,  7.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],
-        [-5.,  2.,  8.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],
+        [-4.,  1.,  7.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],  # noqa: E241,E501
+        [-5.,  2.,  8.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],  # noqa: E241,E501
         [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
     ])
 

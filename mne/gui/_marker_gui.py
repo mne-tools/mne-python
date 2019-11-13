@@ -33,7 +33,7 @@ if _check_pyface_backend()[0] == 'wx':
         'Pickled markers (*.pickled)|*.pickled']
     mrk_out_wildcard = ["Tab separated values file (*.txt)|*.txt"]
 else:
-    if sys.platform in ('win32',  'linux2'):
+    if sys.platform in ('win32', 'linux2'):
         # on Windows and Ubuntu, multiple wildcards does not seem to work
         mrk_wildcard = ["*.sqd", "*.mrk", "*.txt", "*.pickled"]
     else:

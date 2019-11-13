@@ -433,6 +433,16 @@ def assert_snr(actual, desired, tol):
     assert snr >= tol, '%f < %f' % (snr, tol)
 
 
+def assert_stcs_equal(stc1, stc2):
+    """Check that two STC are equal."""
+    assert_allclose(stc1.times, stc2.times)
+    assert_allclose(stc1.data, stc2.data)
+    assert_array_equal(stc1.vertices[0], stc2.vertices[0])
+    assert_array_equal(stc1.vertices[1], stc2.vertices[1])
+    assert_allclose(stc1.tmin, stc2.tmin)
+    assert_allclose(stc1.tstep, stc2.tstep)
+
+
 def _dig_sort_key(dig):
     """Sort dig keys."""
     return (dig['kind'], dig['ident'])

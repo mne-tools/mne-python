@@ -560,8 +560,7 @@ def _add_patch_info(s):
 
 
 @verbose
-def _read_source_spaces_from_tree(fid, tree, patch_stats=False,
-                                  verbose=None):
+def _read_source_spaces_from_tree(fid, tree, patch_stats=False, verbose=None):
     """Read the source spaces from a FIF file.
 
     Parameters
@@ -647,8 +646,7 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
     return src
 
 
-@verbose
-def _read_one_source_space(fid, this, verbose=None):
+def _read_one_source_space(fid, this):
     """Read one source space."""
     FIFF_BEM_SURF_NTRI = 3104
     FIFF_BEM_SURF_TRIANGLES = 3106

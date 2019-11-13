@@ -337,7 +337,7 @@ def _read_forward_meas_info(tree, fid):
     if tag is None:
         tag = find_tag(fid, parent_mri, 236)  # Constant 236 used before v0.11
 
-    info['custom_ref_applied'] = bool(tag.data) if tag is not None else False
+    info['custom_ref_applied'] = int(tag.data) if tag is not None else False
     info._check_consistency()
     return info
 
@@ -1382,8 +1382,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
     evoked = EvokedArray(data, info_out, times[0], nave=1)
 
     evoked.times = times
-    evoked.first = int(np.round(evoked.times[0] * sfreq))
-    evoked.last = evoked.first + evoked.data.shape[1] - 1
+    evoked._update_first_last()
 
     return evoked
 

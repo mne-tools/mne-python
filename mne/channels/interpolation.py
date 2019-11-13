@@ -10,11 +10,29 @@ from ..fixes import einsum
 from ..utils import logger, warn, verbose
 from ..io.pick import pick_types, pick_channels, pick_info
 from ..surface import _normalize_vectors
-from ..bem import _fit_sphere
 from ..forward import _map_meg_channels
 
 
-def _calc_g(cosang, stiffness=4, num_lterms=50):
+def _calc_h(cosang, stiffness=4, n_legendre_terms=50):
+    """Calculate spherical spline h function between points on a sphere.
+
+    Parameters
+    ----------
+    cosang : array-like | float
+        cosine of angles between pairs of points on a spherical surface. This
+        is equivalent to the dot product of unit vectors.
+    stiffness : float
+        stiffnes of the spline. Also referred to as `m`.
+    n_legendre_terms : int
+        number of Legendre terms to evaluate.
+    """
+    factors = [(2 * n + 1) /
+               (n ** (stiffness - 1) * (n + 1) ** (stiffness - 1) * 4 * np.pi)
+               for n in range(1, n_legendre_terms + 1)]
+    return legval(cosang, [0] + factors)
+
+
+def _calc_g(cosang, stiffness=4, n_legendre_terms=50):
     """Calculate spherical spline g function between points on a sphere.
 
     Parameters
@@ -24,7 +42,7 @@ def _calc_g(cosang, stiffness=4, num_lterms=50):
         is equivalent to the dot product of unit vectors.
     stiffness : float
         stiffness of the spline.
-    num_lterms : int
+    n_legendre_terms : int
         number of Legendre terms to evaluate.
 
     Returns
@@ -33,7 +51,8 @@ def _calc_g(cosang, stiffness=4, num_lterms=50):
         The G matrix.
     """
     factors = [(2 * n + 1) / (n ** stiffness * (n + 1) ** stiffness *
-                              4 * np.pi) for n in range(1, num_lterms + 1)]
+                              4 * np.pi)
+               for n in range(1, n_legendre_terms + 1)]
     return legval(cosang, [0] + factors)
 
 
@@ -106,7 +125,7 @@ def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
 
 
 @verbose
-def _interpolate_bads_eeg(inst, verbose=None):
+def _interpolate_bads_eeg(inst, origin, verbose=None):
     """Interpolate bad EEG channels.
 
     Operates in place.
@@ -135,20 +154,17 @@ def _interpolate_bads_eeg(inst, verbose=None):
     bads_idx_pos = bads_idx[picks]
     goods_idx_pos = goods_idx[picks]
 
-    pos_good = pos[goods_idx_pos]
-    pos_bad = pos[bads_idx_pos]
-
     # test spherical fit
-    radius, center = _fit_sphere(pos_good)
-    distance = np.sqrt(np.sum((pos_good - center) ** 2, 1))
-    distance = np.mean(distance / radius)
+    distance = np.linalg.norm(pos - origin, axis=-1)
+    distance = np.mean(distance / np.mean(distance))
     if np.abs(1. - distance) > 0.1:
         warn('Your spherical fit is poor, interpolation results are '
              'likely to be inaccurate.')
 
+    pos_good = pos[goods_idx_pos] - origin
+    pos_bad = pos[bads_idx_pos] - origin
     logger.info('Computing interpolation matrix from {} sensor '
                 'positions'.format(len(pos_good)))
-
     interpolation = _make_interpolation_matrix(pos_good, pos_bad)
 
     logger.info('Interpolating {} sensors'.format(len(pos_bad)))
@@ -195,5 +211,5 @@ def _interpolate_bads_meg(inst, mode='accurate', origin=(0., 0., 0.04),
         return
     info_from = pick_info(inst.info, picks_good)
     info_to = pick_info(inst.info, picks_bad)
-    mapping = _map_meg_channels(info_from, info_to, mode=mode)
+    mapping = _map_meg_channels(info_from, info_to, mode=mode, origin=origin)
     _do_interp_dots(inst, mapping, picks_good, picks_bad)

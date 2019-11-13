@@ -205,7 +205,7 @@ def test_cross_val_multiscore():
     # compare to cross-val-score
     X = np.random.rand(20, 3)
     y = np.arange(20) % 2
-    cv = KFold(2, random_state=0)
+    cv = KFold(2, random_state=0, shuffle=True)
     clf = logreg
     assert_array_equal(cross_val_score(clf, X, y, cv=cv),
                        cross_val_multiscore(clf, X, y, cv=cv))

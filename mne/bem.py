@@ -750,6 +750,15 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
 
     Notes
     -----
+    The default model has::
+
+        relative_radii = (0.90, 0.92, 0.97, 1.0)
+        sigmas = (0.33, 1.0, 0.004, 0.33)
+
+    These correspond to compartments (with relative radii in ``m`` and
+    conductivities σ in ``S/m``) for the brain, CSF, skull, and scalp,
+    respectively.
+
     .. versionadded:: 0.9.0
     """
     for name in ('r0', 'head_radius'):

@@ -51,15 +51,24 @@ def test_decim():
     assert_array_equal(evoked_dec.data, evoked_dec_3.data)
 
     # Check proper updating of various fields
-    assert evoked_dec.first == -1
-    assert evoked_dec.last == 2
+    assert evoked_dec.first == -2
+    assert evoked_dec.last == 1
     assert_array_equal(evoked_dec.times, [-1, -0.4, 0.2, 0.8])
-    assert evoked_dec_2.first == -1
-    assert evoked_dec_2.last == 2
+    assert evoked_dec_2.first == -2
+    assert evoked_dec_2.last == 1
     assert_array_equal(evoked_dec_2.times, [-0.9, -0.3, 0.3, 0.9])
-    assert evoked_dec_3.first == -1
-    assert evoked_dec_3.last == 2
+    assert evoked_dec_3.first == -2
+    assert evoked_dec_3.last == 1
     assert_array_equal(evoked_dec_3.times, [-1, -0.4, 0.2, 0.8])
+
+    # make sure the time nearest zero is also sample number 0.
+    for ev in (evoked_dec, evoked_dec_2, evoked_dec_3):
+        lowest_index = np.argmin(np.abs(np.arange(ev.first, ev.last)))
+        idxs_of_times_nearest_zero = \
+            np.where(np.abs(ev.times) == np.min(np.abs(ev.times)))[0]
+        # we use `in` here in case two times are equidistant from 0.
+        assert lowest_index in idxs_of_times_nearest_zero
+        assert len(idxs_of_times_nearest_zero) in (1, 2)
 
     # Now let's do it with some real data
     raw = read_raw_fif(raw_fname)
@@ -237,7 +246,7 @@ def test_shift_time_evoked():
     ave_relative = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
 
     assert_allclose(ave_normal.data, ave_relative.data, atol=1e-16, rtol=1e-3)
-    assert_array_almost_equal(ave_normal.times, ave_relative.times, 10)
+    assert_array_almost_equal(ave_normal.times, ave_relative.times, 8)
 
     assert_equal(ave_normal.last, ave_relative.last)
     assert_equal(ave_normal.first, ave_relative.first)
@@ -251,6 +260,29 @@ def test_shift_time_evoked():
 
     assert_allclose(ave_normal.data, ave_absolute.data, atol=1e-16, rtol=1e-3)
     assert_equal(ave_absolute.first, int(-0.3 * ave.info['sfreq']))
+
+    # subsample shift
+    shift = 1e-6  # 1 μs, should be well below 1/sfreq
+    ave = read_evokeds(fname, 0)
+    times = ave.times
+    ave.shift_time(shift)
+    assert_allclose(times + shift, ave.times, atol=1e-16, rtol=1e-12)
+
+    # test handling of Evoked.first, Evoked.last
+    ave = read_evokeds(fname, 0)
+    first_last = np.array([ave.first, ave.last])
+    # should shift by 0 samples
+    ave.shift_time(1e-6)
+    assert_array_equal(first_last, np.array([ave.first, ave.last]))
+    write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
+    ave_loaded = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
+    assert_array_almost_equal(ave.times, ave_loaded.times, 8)
+    # should shift by 57 samples
+    ave.shift_time(57. / ave.info['sfreq'])
+    assert_array_equal(first_last + 57, np.array([ave.first, ave.last]))
+    write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
+    ave_loaded = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
+    assert_array_almost_equal(ave.times, ave_loaded.times, 8)
 
 
 def test_evoked_resample():
@@ -387,8 +419,8 @@ def test_get_peak():
     ch_name, time_idx = evoked.get_peak(ch_type='grad', merge_grads=True)
     assert_equal(ch_name, 'MEG 244X')
 
-    data = np.array([[0., 1.,  2.],
-                     [0., -3.,  0]])
+    data = np.array([[0., 1., 2.],
+                     [0., -3., 0]])
 
     times = np.array([.1, .2, .3])
 
@@ -578,7 +610,7 @@ def test_array_epochs():
     evoked2 = read_evokeds(tmp_fname)[0]
     data2 = evoked2.data
     assert_allclose(data1, data2)
-    assert_allclose(evoked1.times, evoked2.times)
+    assert_array_almost_equal(evoked1.times, evoked2.times, 8)
     assert_equal(evoked1.first, evoked2.first)
     assert_equal(evoked1.last, evoked2.last)
     assert_equal(evoked1.kind, evoked2.kind)
@@ -625,8 +657,8 @@ def test_add_channels():
     """Test evoked splitting / re-appending channel types."""
     evoked = read_evokeds(fname, condition=0)
     hpi_coils = [{'event_bits': []},
-                 {'event_bits': np.array([256,   0, 256, 256])},
-                 {'event_bits': np.array([512,   0, 512, 512])}]
+                 {'event_bits': np.array([256, 0, 256, 256])},
+                 {'event_bits': np.array([512, 0, 512, 512])}]
     evoked.info['hpi_subsystem'] = dict(hpi_coils=hpi_coils, ncoil=2)
     evoked_eeg = evoked.copy().pick_types(meg=False, eeg=True)
     evoked_meg = evoked.copy().pick_types(meg=True)

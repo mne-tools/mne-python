@@ -122,9 +122,6 @@ a:hover code {
     color: rgb(0, 0, 0);
     border: none;
 }
-.alert-info pre {
-    background-color: var(--a-color-lighter);
-}
 .warning {
     background-color: rgb(230, 57, 57);
     color: white;

@@ -451,7 +451,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         The data in source space. The data can either be a single array or
         a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
         "sens_data" shape (n_sensors, n_times). In this case, the source
-        space data corresponds to "numpy.dot(kernel, sens_data)".
+        space data corresponds to ``np.dot(kernel, sens_data)``.
     vertices : array | list of array
         Vertex numbers corresponding to the data.
     tmin : float
@@ -1136,8 +1136,10 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
     ----------
     data : array
         The data in source space.
-    vertices : list, shape (2,)
-        Vertex numbers corresponding to the data.
+    vertices : list of array, shape (2,)
+        Vertex numbers corresponding to the data. The first element of the list
+        contains vertices of left hemisphere and the second element contains
+        vertices of right hemisphere.
     tmin : scalar
         Time point of the first sample in data.
     tstep : scalar
@@ -1154,7 +1156,9 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
     times : array of shape (n_times,)
         The time vector.
     vertices : list of array, shape (2,)
-        The indices of the dipoles in the left and right source space.
+        Vertex numbers corresponding to the data. The first element of the list
+        contains vertices of left hemisphere and the second element contains
+        vertices of right hemisphere.
     data : array
         The data in source space.
     shape : tuple
@@ -1350,12 +1354,20 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
     Parameters
     ----------
     data : array of shape (n_dipoles, n_times) | tuple, shape (2,)
-        The data in source space. The data can either be a single array or
-        a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
-        "sens_data" shape (n_sensors, n_times). In this case, the source
-        space data corresponds to "numpy.dot(kernel, sens_data)".
-    vertices : list of shape (2,)
-        Vertex numbers corresponding to the data.
+        The data in source space. When it is a single array, the
+        left hemisphere is stored in data[:len(vertices[0])] and the right
+        hemisphere is stored in data[-len(vertices[1]):].
+        When data is a tuple, it contains two arrays:
+
+        - "kernel" shape (n_vertices, n_sensors) and
+        - "sens_data" shape (n_sensors, n_times).
+
+        In this case, the source space data corresponds to
+        ``np.dot(kernel, sens_data)``.
+    vertices : list of array, shape (2,)
+        Vertex numbers corresponding to the data. The first element of the list
+        contains vertices of left hemisphere and the second element contains
+        vertices of right hemisphere.
     tmin : scalar
         Time point of the first sample in data.
     tstep : scalar
@@ -1371,7 +1383,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         The subject name.
     times : array of shape (n_times,)
         The time vector.
-    vertices : list of shape (2,)
+    vertices : list of array, shape (2,)
         The indices of the dipoles in the left and right source space.
     data : array of shape (n_dipoles, n_times)
         The data in source space.
@@ -1914,9 +1926,9 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
         The data in source space. The data can either be a single array or
         a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
         "sens_data" shape (n_sensors, n_times). In this case, the source
-        space data corresponds to "numpy.dot(kernel, sens_data)".
-    vertices : array
-        Vertex numbers corresponding to the data.
+        space data corresponds to ``np.dot(kernel, sens_data)``.
+    vertices : array of shape (n_dipoles,)
+        The indices of the dipoles in the source space.
     tmin : scalar
         Time point of the first sample in data.
     tstep : scalar
@@ -1994,8 +2006,8 @@ class VolVectorSourceEstimate(_BaseVectorSourceEstimate,
     data : array of shape (n_dipoles, 3, n_times)
         The data in source space. Each dipole contains three vectors that
         denote the dipole strength in X, Y and Z directions over time.
-    vertices : array
-        Vertex numbers corresponding to the data.
+    vertices : array of shape (n_dipoles,)
+        The indices of the dipoles in the source space.
     tmin : scalar
         Time point of the first sample in data.
     tstep : scalar
@@ -2047,8 +2059,10 @@ class VectorSourceEstimate(_BaseVectorSourceEstimate,
     data : array of shape (n_dipoles, 3, n_times)
         The data in source space. Each dipole contains three vectors that
         denote the dipole strength in X, Y and Z directions over time.
-    vertices : array | list of shape (2,)
-        Vertex numbers corresponding to the data.
+    vertices : list of array, shape (2,)
+        Vertex numbers corresponding to the data. The first element of the list
+        contains vertices of left hemisphere and the second element contains
+        vertices of right hemisphere.
     tmin : float
         Time point of the first sample in data.
     tstep : float
@@ -2114,9 +2128,10 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         The data in source space. The data can either be a single array or
         a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
         "sens_data" shape (n_sensors, n_times). In this case, the source
-        space data corresponds to "numpy.dot(kernel, sens_data)".
+        space data corresponds to ``np.dot(kernel, sens_data)``.
     vertices : list of array
-        Vertex numbers corresponding to the data.
+        Vertex numbers corresponding to the data. The list contains arrays
+        with one array per source space.
     tmin : scalar
         Time point of the first sample in data.
     tstep : scalar
@@ -2133,7 +2148,8 @@ class MixedSourceEstimate(_BaseSourceEstimate):
     times : array of shape (n_times,)
         The time vector.
     vertices : list of array
-        The indices of the dipoles in each source space.
+        Vertex numbers corresponding to the data. The list contains arrays
+        with one array per source space.
     data : array of shape (n_dipoles, n_times)
         The data in source space.
     shape : tuple

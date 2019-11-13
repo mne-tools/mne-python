@@ -50,7 +50,7 @@ def pytest_configure(config):
     #   we should remove them from here.
     # - This list should also be considered alongside reset_warnings in
     #   doc/conf.py.
-    warning_lines = """
+    warning_lines = r"""
     error::
     ignore::ImportWarning
     ignore:the matrix subclass:PendingDeprecationWarning
@@ -73,6 +73,8 @@ def pytest_configure(config):
     ignore:numpy.ufunc size changed:RuntimeWarning
     ignore:.*mne-realtime.*:DeprecationWarning
     ignore:.*imp.*:DeprecationWarning
+    ignore:Exception creating Regex for oneOf.*:SyntaxWarning
+    ignore:scipy\.gradient is deprecated.*:DeprecationWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):

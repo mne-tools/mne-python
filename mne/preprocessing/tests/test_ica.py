@@ -1055,7 +1055,7 @@ def test_ica_eeg():
                 ica.get_sources(inst)
 
     with pytest.warns(RuntimeWarning, match='MISC channel'):
-        raw = read_raw_ctf(ctf_fname2,  preload=True)
+        raw = read_raw_ctf(ctf_fname2, preload=True)
     events = make_fixed_length_events(raw, 99999, start=0, stop=0.2,
                                       duration=0.1)
     picks_meg = pick_types(raw.info, meg=True, eeg=False)[:2]
