@@ -45,7 +45,7 @@ import mne
 #   including :meth:`~mne.Epochs.pick`, :meth:`~mne.Epochs.pick_channels` and
 #   :meth:`~mne.Epochs.pick_types` methods.
 #
-# - :term:`SSP` projector manipulation is possible through
+# - :term:`SSP projector <projector>` manipulation is possible through
 #   :meth:`~mne.Epochs.add_proj`, :meth:`~mne.Epochs.del_proj`, and
 #   :meth:`~mne.Epochs.plot_projs_topomap` methods.
 #
