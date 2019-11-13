@@ -363,6 +363,18 @@ Projections:
    corrmap
    optical_density
    beer_lambert_law
+
+:py:mod:`mne.preprocessing.nirs`:
+
+.. currentmodule:: mne.preprocessing.nirs
+
+.. automodule:: mne.preprocessing.nirs
+   :no-members:
+   :no-inherited-members:
+
+.. autosummary::
+   :toctree: generated/
+
    nirs_source_detector_distances
    nirs_short_channels
 
