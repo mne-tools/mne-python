@@ -1,4 +1,4 @@
-"""NIRS specific preprocessing functions"""
+"""NIRS specific preprocessing functions."""
 
 import numpy as np
 from scipy import linalg
