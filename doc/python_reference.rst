@@ -344,6 +344,7 @@ Projections:
 
    ICA
    Xdawn
+   compute_current_source_density
    compute_proj_ecg
    compute_proj_eog
    create_ecg_epochs

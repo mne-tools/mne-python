@@ -258,7 +258,8 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                             t['t_ctf_head_head'], ch['loc'][:3])
             neeg += 1
             ch.update(logno=neeg, kind=FIFF.FIFFV_EEG_CH,
-                      unit=FIFF.FIFF_UNIT_V, coord_frame=coord_frame)
+                      unit=FIFF.FIFF_UNIT_V, coord_frame=coord_frame,
+                      coil_type=FIFF.FIFFV_COIL_EEG)
         elif cch['sensor_type_index'] == CTF.CTFV_STIM_CH:
             nstim += 1
             ch.update(logno=nstim, coord_frame=FIFF.FIFFV_COORD_UNKNOWN,

@@ -14,7 +14,10 @@ Current (0.20.dev0)
 
 Changelog
 ~~~~~~~~~
-- Add :func:`mne.minimum_norm.resolution_metrics` to compute various resolution metrics for inverse solutions, by `Olaf Hauk`_.
+
+- Add :func:`mne.minimum_norm.resolution_metrics` to compute various resolution metrics for inverse solutions, by `Olaf Hauk`_
+
+- Add current source density :func:`mne.preprocessing.compute_current_source_density` to compute the surface Laplacian in order to reduce volume conduction in data by `Alex Rockhill`_
 
 - Add command :ref:`gen_mne_setup_source_space` to quickly set up bilateral hemisphere surface-based source space with subsampling by `Victor Ferat`_.
 
@@ -65,6 +68,8 @@ Changelog
 Bug
 ~~~
 
+- Fix :meth:`mne.io.Raw.anonymize` correctly reset ``raw.annotations.orig_time`` by `Luke Bloy`_.
+
 - Fix date reading before Unix time zero (1970 Jan 1) on Windows by `Alex Rockhill`_.
 
 - Fix :meth:`mne.io.read_raw_artemis123` to add HPI locations to digitization points, by `Luke Bloy`_
@@ -79,7 +84,7 @@ Bug
 
 - Fix bug in :func:`mne.write_evokeds` where ``evoked.nave`` was not saved properly when multiple :class:`~mne.Evoked` instances were written to a single file, by `Eric Larson`_
 
-- Fix bug in :func:`mne.preprocessing.mark_flat` where acquisition skips were not handled proeprly, by `Eric Larson`_
+- Fix bug in :func:`mne.preprocessing.mark_flat` where acquisition skips were not handled properly, by `Eric Larson`_
 
 - Fix bug in :func:`mne.viz.plot_bem` where some sources were not plotted by `Jean-Remi King`_ and `Eric Larson`_
 
