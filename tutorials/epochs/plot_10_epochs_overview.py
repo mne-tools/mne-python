@@ -7,8 +7,8 @@ The Epochs data structure: discontinuous data
 
 This tutorial covers the basics of creating and working with :term:`epoched
 <epochs>` data. It introduces the :class:`~mne.Epochs` data structure in
-detail, including how to load, query, subselect, export, and plot data from a
-:class:`~mne.Epochs` object. For more info on visualization of
+detail, including how to load, query, subselect, export, and plot data from an
+:class:`~mne.Epochs` object. For more information about visualizing
 :class:`~mne.Epochs` objects, see :ref:`tut-visualize-epochs`. For info on
 creating an :class:`~mne.Epochs` object from (possibly simulated) data in a
 :class:`NumPy array <numpy.ndarray>`, see :ref:`tut_creating_data_structures`.
@@ -29,9 +29,10 @@ import mne
 # are most often used to represent data that is time-locked to repeated
 # experimental events (such as stimulus onsets or subject button presses), but
 # can also be used for storing sequential or overlapping frames of a continuous
-# signal (e.g., for analysis of resting-state activity). Inside an
-# :class:`~mne.Epochs` object, the data are stored in an :class:`array
-# <numpy.ndarray>` of shape ``(n_epochs, n_channels, n_times)``.
+# signal (e.g., for analysis of resting-state activity; see
+# :ref:`fixed-length-events`). Inside an :class:`~mne.Epochs` object, the data
+# are stored in an :class:`array <numpy.ndarray>` of shape ``(n_epochs,
+# n_channels, n_times)``.
 #
 # :class:`~mne.Epochs` objects have many similarities with :class:`~mne.io.Raw`
 # objects, including:
@@ -41,31 +42,33 @@ import mne
 #   :meth:`~mne.Epochs.get_data` method or to a :class:`Pandas DataFrame
 #   <pandas.DataFrame>` through the :meth:`~mne.Epochs.to_data_frame` method.
 #
-# - :class:`~mne.Epochs` objects support channel selection by index or name,
-#   including :meth:`~mne.Epochs.pick`, :meth:`~mne.Epochs.pick_channels` and
-#   :meth:`~mne.Epochs.pick_types` methods.
+# - Both :class:`~mne.Epochs` and :class:`~mne.io.Raw` objects support channel
+#   selection by index or name, including :meth:`~mne.Epochs.pick`,
+#   :meth:`~mne.Epochs.pick_channels` and :meth:`~mne.Epochs.pick_types`
+#   methods.
 #
 # - :term:`SSP projector <projector>` manipulation is possible through
 #   :meth:`~mne.Epochs.add_proj`, :meth:`~mne.Epochs.del_proj`, and
 #   :meth:`~mne.Epochs.plot_projs_topomap` methods.
 #
-# - :class:`~mne.Epochs` have :meth:`~mne.Epochs.copy`,
-#   :meth:`~mne.Epochs.crop`, :meth:`~mne.Epochs.time_as_index`,
-#   :meth:`~mne.Epochs.filter`, and :meth:`~mne.Epochs.resample` methods.
+# - Both :class:`~mne.Epochs` and :class:`~mne.io.Raw` objects have
+#   :meth:`~mne.Epochs.copy`, :meth:`~mne.Epochs.crop`,
+#   :meth:`~mne.Epochs.time_as_index`, :meth:`~mne.Epochs.filter`, and
+#   :meth:`~mne.Epochs.resample` methods.
 #
-# - :class:`~mne.Epochs` have :attr:`~mne.Epochs.times`,
-#   :attr:`~mne.Epochs.ch_names`, :attr:`~mne.Epochs.proj`, and :class:`info
-#   <mne.Info>` attributes.
+# - Both :class:`~mne.Epochs` and :class:`~mne.io.Raw` objects have
+#   :attr:`~mne.Epochs.times`, :attr:`~mne.Epochs.ch_names`,
+#   :attr:`~mne.Epochs.proj`, and :class:`info <mne.Info>` attributes.
 #
-# - :class:`~mne.Epochs` have built-in plotting methods
-#   :meth:`~mne.Epochs.plot`, :meth:`~mne.Epochs.plot_psd`,
+# - Both :class:`~mne.Epochs` and :class:`~mne.io.Raw` objects have built-in
+#   plotting methods :meth:`~mne.Epochs.plot`, :meth:`~mne.Epochs.plot_psd`,
 #   and :meth:`~mne.Epochs.plot_psd_topomap`.
 #
 #
 # Creating Epoched data from a ``Raw`` object
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# The example data we've been using thus far doesn't include pre-epoched
+# The example dataset we've been using thus far doesn't include pre-epoched
 # data, so in this section we'll load the continuous data and create epochs
 # based on the events recorded in the :class:`~mne.io.Raw` object's STIM
 # channels.
@@ -77,13 +80,9 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 
 ###############################################################################
 # As we saw in the :ref:`tut-events-vs-annotations` tutorial, we can extract an
-# events array from :class:`~mne.io.Raw` objects using :func:`mne.find_events`,
-# and we can make referencing events and pooling across event types easier if
-# we make an event dictionary:
+# events array from :class:`~mne.io.Raw` objects using :func:`mne.find_events`:
 
 events = mne.find_events(raw, stim_channel='STI 014')
-event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
-              'visual/right': 4, 'face': 5, 'buttonpress': 32}
 
 ###############################################################################
 # .. note::
@@ -97,12 +96,16 @@ event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
 #         events_from_file = mne.read_events(sample_data_events_file)
 #
 #
+
 # The :class:`~mne.io.Raw` object and the events array are the bare minimum
 # needed to create an :class:`~mne.Epochs` object, which we create with the
 # :class:`mne.Epochs` class constructor. However, you will almost surely want
 # to change some of the other default parameters. Here we'll change ``tmin``
 # and ``tmax`` (the time relative to each event at which to start and end each
-# epoch):
+# epoch). Note also that the :class:`~mne.Epochs` constructor accepts
+# parameters ``reject`` and ``flat`` for rejecting individual epochs based on
+# signal amplitude. See the :ref:`tut-reject-epochs-section` section for
+# examples.
 
 epochs = mne.Epochs(raw, events, tmin=-0.3, tmax=0.7)
 
@@ -113,7 +116,7 @@ epochs = mne.Epochs(raw, events, tmin=-0.3, tmax=0.7)
 #
 # - baseline correction was automatically applied (by default, baseline is
 #   defined as the time span from ``tmin`` to ``0``, but can be customized with
-#   the `` baseline`` parameter)
+#   the ``baseline`` parameter)
 #
 # - no additional metadata was provided
 #
@@ -135,9 +138,12 @@ print(epochs)
 print(epochs.event_id)
 
 ###############################################################################
-# This time let's pass ``preload=True`` and provide the event dictionary; our
-# provided dictionary will get stored as the ``event_id`` attribute:
+# This time let's pass ``preload=True`` and provide an event dictionary; our
+# provided dictionary will get stored as the ``event_id`` attribute and will
+# make referencing events and pooling across event types easier:
 
+event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
+              'visual/right': 4, 'face': 5, 'buttonpress': 32}
 epochs = mne.Epochs(raw, events, tmin=-0.3, tmax=0.7, event_id=event_dict,
                     preload=True)
 print(epochs.event_id)
@@ -152,6 +158,10 @@ del raw  # we're done with raw, free up some memory
 #
 #         epochs.event_id = event_dict
 #
+#
+# Basic visualization of ``Epochs`` objects
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
 # The :class:`~mne.Epochs` object can be visualized (and browsed interactively)
 # using its :meth:`~mne.Epochs.plot` method:
 
@@ -164,14 +174,11 @@ epochs.plot(n_epochs=10)
 # line marks time=0 for each epoch (i.e., in this case, the stimulus onset
 # time for each trial). Epoch plots are interactive (similar to
 # :meth:`raw.plot() <mne.io.Raw.plot>`) and have many of the same interactive
-# controls as :class:`~mne.io.Raw` plots; pressing :kbd:`?` when the plot is
-# focused will show a help screen with all the available controls. See
-# :ref:`tut-visualize-epochs` for more details (as well as other ways of
-# visualizing epoched data).
-#
-# Note also that the :class:`~mne.Epochs` constructor also accepts parameters
-# ``reject`` and ``flat`` for rejecting individual epochs based on signal
-# amplitude. See the `tut-reject-epochs-section` section for examples.
+# controls as :class:`~mne.io.Raw` plots. Horizontal and vertical scrollbars
+# allow browsing through epochs or channels (respectively), and pressing
+# :kbd:`?` when the plot is focused will show a help screen with all the
+# available controls. See :ref:`tut-visualize-epochs` for more details (as well
+# as other ways of visualizing epoched data).
 #
 #
 # Querying ``Epochs`` objects
@@ -280,10 +287,7 @@ epochs.set_channel_types({'EEG 060': 'eeg'})
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # To change the temporal extent of the :class:`~mne.Epochs`, you can use the
-# :meth:`~mne.Epochs.crop` method. However, if you wanted to *expand* the
-# time domain of an :class:`~mne.Epochs` object, you would need to go back to
-# the :class:`~mne.io.Raw` data and recreate the :class:`~mne.Epochs` with
-# different values for ``tmin`` and/or ``tmax``.
+# :meth:`~mne.Epochs.crop` method:
 
 shorter_epochs = epochs.copy().crop(tmin=-0.1, tmax=0.1, include_tmax=True)
 
@@ -292,6 +296,11 @@ for name, obj in dict(Original=epochs, Cropped=shorter_epochs).items():
           .format(name, obj.get_data().shape[-1]))
 
 ###############################################################################
+# However, if you wanted to *expand* the time domain of an :class:`~mne.Epochs`
+# object, you would need to go back to the :class:`~mne.io.Raw` data and
+# recreate the :class:`~mne.Epochs` with different values for ``tmin`` and/or
+# ``tmax``.
+#
 # It is also possible to change the "zero point" that defines the time values
 # in an :class:`~mne.Epochs` object, with the :meth:`~mne.Epochs.shift_time`
 # method. :meth:`~mne.Epochs.shift_time` allows shifting times relative to the
