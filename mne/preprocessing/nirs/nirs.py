@@ -4,8 +4,10 @@ import numpy as np
 from scipy import linalg
 
 from ...io.pick import _picks_to_idx
+from ...utils import fill_doc
 
 
+@fill_doc
 def nirs_source_detector_distances(info, picks=None):
     r"""Determine the distance between NIRS source and detectors.
 
@@ -13,7 +15,7 @@ def nirs_source_detector_distances(info, picks=None):
     ----------
     info : Info
         The measurement info.
-    %(picks_good_data)s
+    %(picks_all)s
 
     Returns
     -------
