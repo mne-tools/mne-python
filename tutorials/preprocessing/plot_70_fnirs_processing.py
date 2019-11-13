@@ -48,7 +48,7 @@ raw_intensity.plot(n_channels=len(raw_intensity.ch_names), duration=500)
 #
 # The raw intensity values are then converted to optical density.
 
-raw_od = mne.preprocessing.optical_density(raw_intensity)
+raw_od = mne.preprocessing.nirs.optical_density(raw_intensity)
 raw_od.plot(n_channels=len(raw_od.ch_names), duration=500)
 
 
@@ -59,7 +59,7 @@ raw_od.plot(n_channels=len(raw_od.ch_names), duration=500)
 # Next we convert the optical density data to haemoglobin concentration using
 # the modified Beer-Lambert law.
 
-raw_haemo = mne.preprocessing.beer_lambert_law(raw_od)
+raw_haemo = mne.preprocessing.nirs.beer_lambert_law(raw_od)
 raw_haemo.plot(n_channels=len(raw_haemo.ch_names), duration=500)
 
 
