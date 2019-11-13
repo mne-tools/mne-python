@@ -346,7 +346,7 @@ for name, arr in dict(EOG=eog_data, MEG=meg_data, Slice=channel_4_6_8).items():
 # <pandas.DataFrame>`. The :class:`~pandas.DataFrame` index will be constructed
 # by converting the time of each sample into milliseconds and rounding it to
 # the nearest integer, and combining it with the event types and epoch numbers
-# to form a heirarchical :class:`~pandas.MultiIndex`. Each channel will appear
+# to form a hierarchical :class:`~pandas.MultiIndex`. Each channel will appear
 # in a separate column. Then you can use any of Pandas' tools for grouping and
 # aggregating data; for example, here we select any epochs numbered 10 or less
 # from the ``auditory/left`` condition, and extract times between 100 and 107
