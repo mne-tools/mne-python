@@ -399,7 +399,8 @@ class _Renderer(_BaseRenderer):
                                         background_color=bgcolor)
 
     def show(self):
-        self.figure.display = self.plotter.show(use_panel=True, auto_close=False)
+        self.figure.display = self.plotter.show(use_panel=True,
+                                                auto_close=False)
         return self.scene()
 
     def close(self):
