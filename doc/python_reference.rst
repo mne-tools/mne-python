@@ -376,8 +376,8 @@ Projections:
 
    optical_density
    beer_lambert_law
-   nirs_source_detector_distances
-   nirs_short_channels
+   source_detector_distances
+   short_channels
 
 EEG referencing:
 
