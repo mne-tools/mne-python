@@ -1,5 +1,5 @@
 """
-.. _tut_viz_epochs:
+.. _tut-visualize-epochs:
 
 Visualize Epochs data
 =====================
