@@ -11,7 +11,7 @@ import numpy as np
 
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx, BaseRaw, read_raw_fif
-from mne.preprocessing import optical_density, beer_lambert_law
+from mne.preprocessing.nirs import optical_density, beer_lambert_law
 from mne.utils import _validate_type
 from mne.datasets import testing
 from mne.externals.pymatreader import read_mat

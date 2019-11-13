@@ -361,8 +361,6 @@ Projections:
    read_ica
    run_ica
    corrmap
-   optical_density
-   beer_lambert_law
 
 :py:mod:`mne.preprocessing.nirs`:
 
@@ -375,6 +373,8 @@ Projections:
 .. autosummary::
    :toctree: generated/
 
+   optical_density
+   beer_lambert_law
    nirs_source_detector_distances
    nirs_short_channels
 

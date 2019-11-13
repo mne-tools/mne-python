@@ -8,7 +8,7 @@ from ...utils import fill_doc
 
 
 @fill_doc
-def nirs_source_detector_distances(info, picks=None):
+def source_detector_distances(info, picks=None):
     r"""Determine the distance between NIRS source and detectors.
 
     Parameters
@@ -29,7 +29,7 @@ def nirs_source_detector_distances(info, picks=None):
     return np.array(dist, float)[picks]
 
 
-def nirs_short_channels(info, threshold=0.01):
+def short_channels(info, threshold=0.01):
     r"""Determine which NIRS channels are short.
 
     Channels with a source to detector distance of less than
@@ -48,4 +48,4 @@ def nirs_short_channels(info, threshold=0.01):
         Array indicating which channels are short.
         Of shape equal to number of channels.
     """
-    return nirs_source_detector_distances(info) < threshold
+    return source_detector_distances(info) < threshold

@@ -36,7 +36,7 @@ raw_intensity = mne.io.read_raw_nirx(fnirs_raw_dir, verbose=True).load_data()
 # to be short (less than 1 cm distance between optodes).
 
 picks = mne.pick_types(raw_intensity.info, meg=False, fnirs=True)
-dists = mne.preprocessing.nirs.nirs_source_detector_distances(
+dists = mne.preprocessing.nirs.source_detector_distances(
     raw_intensity.info, picks=picks)
 raw_intensity.pick(picks[dists > 0.01])
 raw_intensity.plot(n_channels=len(raw_intensity.ch_names), duration=500)

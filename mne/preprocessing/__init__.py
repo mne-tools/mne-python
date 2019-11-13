@@ -21,7 +21,5 @@ from .infomax_ import infomax
 from .stim import fix_stim_artifact
 from .maxwell import maxwell_filter
 from .xdawn import Xdawn
-from ._optical_density import optical_density
-from ._beer_lambert_law import beer_lambert_law
 from . import nirs
 

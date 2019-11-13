@@ -10,11 +10,11 @@ import re as re
 import numpy as np
 from scipy import linalg
 
-from ..io import BaseRaw
-from ..io.pick import _picks_to_idx
-from ..io.constants import FIFF
-from ..utils import _validate_type
-from mne.preprocessing.nirs import nirs_source_detector_distances
+from ...io import BaseRaw
+from ...io.pick import _picks_to_idx
+from ...io.constants import FIFF
+from ...utils import _validate_type
+from ..nirs import source_detector_distances
 
 
 def beer_lambert_law(raw, ppf=0.1):
@@ -38,7 +38,7 @@ def beer_lambert_law(raw, ppf=0.1):
     freqs = np.unique(_channel_frequencies(raw))
     picks = _check_channels_ordered(raw, freqs)
     abs_coef = _load_absorption(freqs)
-    distances = nirs_source_detector_distances(raw.info)
+    distances = source_detector_distances(raw.info)
 
     for ii in picks[::2]:
 
@@ -104,7 +104,7 @@ def _load_absorption(freqs):
     from scipy.io import loadmat
     from scipy.interpolate import interp1d
 
-    extinction_fname = op.join(op.dirname(__file__), '..', 'data',
+    extinction_fname = op.join(op.dirname(__file__), '..', '..', 'data',
                                'extinction_coef.mat')
     a = loadmat(extinction_fname)['extinct_coef']
 
