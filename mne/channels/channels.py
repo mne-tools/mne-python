@@ -73,7 +73,7 @@ def _get_ch_type(inst, ch_type, allow_ref_meg=False):
     then grads, then ... to plot.
     """
     if ch_type is None:
-        allowed_types = ['mag', 'grad', 'planar1', 'planar2', 'eeg']
+        allowed_types = ['mag', 'grad', 'planar1', 'planar2', 'eeg', 'csd']
         allowed_types += ['ref_meg'] if allow_ref_meg else []
         for type_ in allowed_types:
             if isinstance(inst, Info):
@@ -597,14 +597,14 @@ class UpdateChannelsMixin(object):
                    ecg=False, emg=False, ref_meg='auto', misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
                    seeg=False, dipole=False, gof=False, bio=False, ecog=False,
-                   fnirs=False, include=(), exclude='bads', selection=None,
-                   verbose=None):
+                   fnirs=False, csd=False, include=(), exclude='bads',
+                   selection=None, verbose=None):
         """Pick some channels by type and names.
 
         Parameters
         ----------
         meg : bool | str
-            If True include all MEG channels. If False include None
+            If True include all MEG channels. If False include None.
             If string it can be 'mag', 'grad', 'planar1' or 'planar2' to select
             only magnetometers, all gradiometers, or a specific type of
             gradiometer.
@@ -649,6 +649,8 @@ class UpdateChannelsMixin(object):
             fNIRS channels. If False (default) include none. If string it can
             be 'hbo' (to include channels measuring oxyhemoglobin) or 'hbr' (to
             include channels measuring deoxyhemoglobin).
+        csd : bool
+            EEG-CSD channels.
         include : list of string
             List of additional channels to include. If empty do not include
             any.

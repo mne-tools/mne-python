@@ -23,6 +23,7 @@ import numpy as np
 from . import read_evokeds, read_events, pick_types, read_cov
 from .fixes import _get_img_fdata
 from .io import read_raw_fif, read_info, _stamp_to_dt
+from .io.pick import _DATA_CH_TYPES_SPLIT
 from .utils import (logger, verbose, get_subjects_dir, warn, _import_mlab,
                     fill_doc, _check_option)
 from .viz import plot_events, plot_alignment, plot_cov
@@ -31,7 +32,6 @@ from .forward import read_forward_solution
 from .epochs import read_epochs
 from .minimum_norm import read_inverse_operator
 from .parallel import parallel_func, check_n_jobs
-from .viz.raw import _data_types
 
 from .externals.tempita import HTMLTemplate, Template
 from .externals.h5io import read_hdf5, write_hdf5
@@ -1826,7 +1826,7 @@ class Report(object):
         raw_psd = {} if self.raw_psd is True else self.raw_psd
         if isinstance(raw_psd, dict):
             from matplotlib.backends.backend_agg import FigureCanvasAgg
-            n_ax = sum(kind in raw for kind in _data_types)
+            n_ax = sum(kind in raw for kind in _DATA_CH_TYPES_SPLIT)
             fig, axes = plt.subplots(n_ax, 1, figsize=(6, 1 + 1.5 * n_ax),
                                      dpi=92)
             FigureCanvasAgg(fig)
