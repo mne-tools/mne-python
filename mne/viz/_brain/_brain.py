@@ -386,16 +386,6 @@ class _Brain(object):
                 raise ValueError('If array has 3 dimensions, array.shape[1] '
                                  'must equal 3, got %s' % (array.shape[1],))
             magnitude = np.linalg.norm(array, axis=1)
-            if scale_factor is None:
-                distance = np.sum([array[:, dim, :].ptp(axis=0).max() ** 2
-                                   for dim in range(3)])
-                if distance == 0:
-                    scale_factor = 1
-                else:
-                    scale_factor = (0.4 * distance /
-                                    (4 * array.shape[0] ** (0.33)))
-            if self._units == 'm':
-                scale_factor = scale_factor / 1000.
             magnitude_max = magnitude.max()
 
         if time is not None and len(array.shape) == 2:
@@ -409,7 +399,6 @@ class _Brain(object):
                 act_data = array[:, 0]
             elif array.ndim == 3:
                 assert magnitude is not None
-                assert scale_factor is not None
                 act_data = magnitude[:, time_idx]
 
         fmin, fmid, fmax = _update_limits(
@@ -468,7 +457,29 @@ class _Brain(object):
                                        scalars=act_data,
                                        opacity=alpha)
             if array.ndim == 3:
-                scale_factor_norm = scale_factor / magnitude_max
+                vectors = array[:, :, time_idx]
+                vector_values = magnitude[:, time_idx]
+                scalar_data = smooth_mat * magnitude
+                vertices = slice(None) if vertices is None else vertices
+                x, y, z = np.array(self.geo[hemi].coords)[vertices].T
+
+                if scale_factor is None:
+                    width = np.ptp(self.geo[hemi].coords[:, 1])
+                    final_scale_factor = width * 0.1
+                else:
+                    if self._units == 'm':
+                        scale_factor = scale_factor / 1000.
+                    scale_factor_norm = scale_factor / magnitude_max
+                    final_scale_factor = scale_factor_norm * scalar_data.max()
+
+                self._renderer.quiver3d(
+                    x, y, z, vectors[:, 0], vectors[:, 1], vectors[:, 2],
+                    scalars=vector_values,
+                    # colormap='hot', vmin=fmin, vmax=fmax,
+                    color='white',
+                    opacity=vector_alpha,
+                    scale=final_scale_factor
+                )
 
             if array.ndim >= 2 and callable(time_label):
                 self._renderer.text2d(x=0.95, y=y_txt,
