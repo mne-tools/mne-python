@@ -64,9 +64,7 @@ def _channel_frequencies(raw):
     picks = _picks_to_idx(raw.info, 'fnirs_od')
     freqs = np.empty(picks.size, int)
     for ii in picks:
-        ch_name_info = re.match(r'S(\d+)-D(\d+) (\d+)',
-                                raw.info['chs'][ii]['ch_name'])
-        freqs[ii] = ch_name_info.groups()[2]
+        freqs[ii] = raw.info['chs'][ii]['loc'][9]
     return freqs
 
 
