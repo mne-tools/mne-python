@@ -66,3 +66,7 @@ recursive-exclude mne/io/brainvision/tests/data *
 recursive-exclude mne/io/egi/tests/data *
 recursive-exclude mne/io/nicolet/tests/data *
 recursive-exclude mne/preprocessing/tests/data *
+
+# Notebook
+
+recursive-exclude notebook *.ipynb
