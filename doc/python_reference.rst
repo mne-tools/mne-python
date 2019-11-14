@@ -362,8 +362,21 @@ Projections:
    read_ica
    run_ica
    corrmap
+
+:py:mod:`mne.preprocessing.nirs`:
+
+.. currentmodule:: mne.preprocessing.nirs
+
+.. automodule:: mne.preprocessing.nirs
+   :no-members:
+   :no-inherited-members:
+
+.. autosummary::
+   :toctree: generated/
+
    optical_density
    beer_lambert_law
+   source_detector_distances
    short_channels
 
 EEG referencing:
