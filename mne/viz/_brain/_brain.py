@@ -216,7 +216,8 @@ class _Brain(object):
                                         y=self.geo[h].coords[:, 1],
                                         z=self.geo[h].coords[:, 2],
                                         triangles=self.geo[h].faces,
-                                        color=self.geo[h].grey_curv)
+                                        color=self.geo[h].grey_curv,
+                                        opacity=alpha)
                     self._renderer.set_camera(azimuth=views_dict[v].azim,
                                               elevation=views_dict[v].elev)
         # Force rendering
@@ -463,25 +464,11 @@ class _Brain(object):
                                        colormap=ctable,
                                        vmin=dt_min,
                                        vmax=dt_max,
-                                       scalars=act_data)
+                                       scalars=act_data,
+                                       opacity=alpha)
             if array.ndim == 3:
                 scale_factor_norm = scale_factor / magnitude_max
-                vectors = array[:, :, 0].copy()
-                #self._renderer._add_vector_data(vectors, act_data,
-                #                                fmin, fmid, fmax,
-                #                                scale_factor_norm,
-                #                                vertices, vector_alpha
-                #                                lut)
-                vertices = slice(None) if vertices is None else vertices
-                #x, y, z = np.array(self._geo_mesh.data.points.data)[vertices].T
-                x = self.geo[hemi].coords[vertices, 0]
-                y = self.geo[hemi].coords[vertices, 1]
-                z = self.geo[hemi].coords[vertices, 2]
-                vector_alpha = min(vector_alpha, 0.9999999)
-                self._renderer.quiver3d(
-                    x, y, z, vectors[:, 0], vectors[:, 1], vectors[:, 2],
-                    color=(1, 1, 1), scale=scale_factor_norm*act_data.max(),
-                    scalars=act_data, opacity=vector_alpha)
+                print(scale_factor_norm)
 
             if array.ndim >= 2 and callable(time_label):
                 self._renderer.text2d(x=0.95, y=y_txt,
@@ -862,6 +849,11 @@ class _Brain(object):
             raise ValueError('hemi must be either "lh" or "rh"' +
                              extra + ", got " + str(hemi))
         return hemi
+
+    def scale_data_colormap(self, fmin, fmid, fmax, transparent,
+                            center=None, alpha=1.0, data=None, verbose=None):
+        """Scale the data colormap."""
+        pass
 
 
 def _update_limits(fmin, fmid, fmax, center, array):
