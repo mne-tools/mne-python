@@ -6,7 +6,7 @@ import pytest
 
 from mne import pick_types, Epochs, read_events
 from mne.io import RawArray, read_raw_fif
-from mne.utils import run_tests_if_main, requires_version
+from mne.utils import run_tests_if_main
 from mne.time_frequency import psd_welch, psd_multitaper, psd_array_welch
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -16,13 +16,13 @@ event_fname = op.join(base_dir, 'test-eve.fif')
 
 def test_psd_nan():
     """Test handling of NaN in psd_array_welch."""
-    n_samples, n_fft, n_overlap = 2048,  1024, 512
+    n_samples, n_fft, n_overlap = 2048, 1024, 512
     x = np.random.RandomState(0).randn(1, n_samples)
-    psds, freqs = psd_array_welch(
-        x[:n_fft + n_overlap], float(n_fft), n_fft=n_fft, n_overlap=n_overlap)
-    x[n_fft + n_overlap:] = np.nan  # what Raw.get_data() will give us
-    psds_2, freqs_2 = psd_array_welch(
-        x, float(n_fft), n_fft=n_fft, n_overlap=n_overlap)
+    psds, freqs = psd_array_welch(x[:, :n_fft + n_overlap], float(n_fft),
+                                  n_fft=n_fft, n_overlap=n_overlap)
+    x[:, n_fft + n_overlap:] = np.nan  # what Raw.get_data() will give us
+    psds_2, freqs_2 = psd_array_welch(x, float(n_fft), n_fft=n_fft,
+                                      n_overlap=n_overlap)
     assert_allclose(freqs, freqs_2)
     assert_allclose(psds, psds_2)
     # 1-d
@@ -160,7 +160,6 @@ def test_psd():
         assert (psds_ev.shape == (len(kws['picks']), len(freqs)))
 
 
-@requires_version('scipy', '1.2.0')
 @pytest.mark.parametrize('kind', ('raw', 'epochs', 'evoked'))
 def test_psd_welch_average_kwarg(kind):
     """Test `average` kwarg of psd_welch()."""
@@ -216,11 +215,8 @@ def test_psd_welch_average_kwarg(kind):
     assert psds_mean.shape == psds_unagg.shape[:-1]
     assert_allclose(psds_mean, psds_unagg.mean(axis=-1))
 
-    # SciPy's welch() function corrects the median PSD for its bias relative to
-    # the mean.
-    from scipy.signal.spectral import _median_bias
-    median_bias = _median_bias(psds_unagg.shape[-1])
-    assert_allclose(psds_median, np.median(psds_unagg, axis=-1) / median_bias)
+    # Compare with manual median calculation
+    assert_allclose(psds_median, np.median(psds_unagg, axis=-1))
 
 
 @pytest.mark.slowtest

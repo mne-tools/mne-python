@@ -22,6 +22,7 @@ from ..io.meas_info import anonymize_info, Info
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _contains_ch_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx)
+from ..annotations import _handle_meas_date
 
 
 DEPRECATED_PARAM = object()
@@ -72,7 +73,7 @@ def _get_ch_type(inst, ch_type, allow_ref_meg=False):
     then grads, then ... to plot.
     """
     if ch_type is None:
-        allowed_types = ['mag', 'grad', 'planar1', 'planar2', 'eeg']
+        allowed_types = ['mag', 'grad', 'planar1', 'planar2', 'eeg', 'csd']
         allowed_types += ['ref_meg'] if allow_ref_meg else []
         for type_ in allowed_types:
             if isinstance(inst, Info):
@@ -94,7 +95,7 @@ def equalize_channels(candidates, verbose=None):
     Parameters
     ----------
     candidates : list
-        list Raw | Epochs | Evoked | AverageTFR
+        Can be a list of Raw, Epochs, Evoked, or AverageTFR.
     %(verbose)s
 
     Notes
@@ -172,6 +173,7 @@ class ContainsMixin(object):
         """Get a list of channel type for each channel."""
         return [channel_type(self.info, n)
                 for n in range(len(self.info['ch_names']))]
+
 
 # XXX Eventually de-duplicate with _kind_dict of mne/io/meas_info.py
 _human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,
@@ -379,18 +381,20 @@ class SetChannelsMixin(object):
                        % name)
                 raise ValueError(msg)
 
-    def set_channel_types(self, mapping):
+    @verbose
+    def set_channel_types(self, mapping, verbose=None):
         """Define the sensor type of channels.
 
         Note: The following sensor types are accepted:
             ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, stim, syst, ecog,
-            hbo, hbr
+            hbo, hbr, fnirs_raw, fnirs_od
 
         Parameters
         ----------
         mapping : dict
-            a dictionary mapping a channel to a sensor type (str)
+            A dictionary mapping a channel to a sensor type (str)
             {'EEG061': 'eog'}.
+        %(verbose_meth)s
 
         Notes
         -----
@@ -449,7 +453,7 @@ class SetChannelsMixin(object):
         Parameters
         ----------
         mapping : dict | callable
-            a dictionary mapping the old channel to a new channel name
+            A dictionary mapping the old channel to a new channel name
             e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
             that takes and returns a string (new in version 0.10.0).
 
@@ -579,7 +583,8 @@ class SetChannelsMixin(object):
         """
         anonymize_info(self.info, daysback=daysback, keep_his=keep_his)
         if hasattr(self, 'annotations'):
-            self.annotations.orig_time = self.info['meas_date']
+            self.annotations.orig_time = \
+                _handle_meas_date(self.info['meas_date'])
             self.annotations.onset -= self._first_time
         return self
 
@@ -592,14 +597,14 @@ class UpdateChannelsMixin(object):
                    ecg=False, emg=False, ref_meg='auto', misc=False,
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
                    seeg=False, dipole=False, gof=False, bio=False, ecog=False,
-                   fnirs=False, include=(), exclude='bads', selection=None,
-                   verbose=None):
+                   fnirs=False, csd=False, include=(), exclude='bads',
+                   selection=None, verbose=None):
         """Pick some channels by type and names.
 
         Parameters
         ----------
         meg : bool | str
-            If True include all MEG channels. If False include None
+            If True include all MEG channels. If False include None.
             If string it can be 'mag', 'grad', 'planar1' or 'planar2' to select
             only magnetometers, all gradiometers, or a specific type of
             gradiometer.
@@ -644,6 +649,8 @@ class UpdateChannelsMixin(object):
             fNIRS channels. If False (default) include none. If string it can
             be 'hbo' (to include channels measuring oxyhemoglobin) or 'hbr' (to
             include channels measuring deoxyhemoglobin).
+        csd : bool
+            EEG-CSD channels.
         include : list of string
             List of additional channels to include. If empty do not include
             any.
@@ -924,7 +931,7 @@ class InterpolationMixin(object):
 
     @verbose
     def interpolate_bads(self, reset_bads=True, mode='accurate',
-                         origin=(0., 0., 0.04), verbose=None):
+                         origin='auto', verbose=None):
         """Interpolate bad MEG and EEG channels.
 
         Operates in place.
@@ -939,8 +946,8 @@ class InterpolationMixin(object):
             channels.
         origin : array-like, shape (3,) | str
             Origin of the sphere in the head coordinate frame and in meters.
-            Can be ``'auto'``, which means a head-digitization-based origin
-            fit. Default is ``(0., 0., 0.04)``.
+            Can be ``'auto'`` (default), which means a head-digitization-based
+            origin fit.
 
             .. versionadded:: 0.17
         %(verbose_meth)s
@@ -954,6 +961,7 @@ class InterpolationMixin(object):
         -----
         .. versionadded:: 0.9.0
         """
+        from ..bem import _check_origin
         from .interpolation import _interpolate_bads_eeg, _interpolate_bads_meg
 
         _check_preload(self, "interpolation")
@@ -961,8 +969,8 @@ class InterpolationMixin(object):
         if len(self.info['bads']) == 0:
             warn('No bad channels to interpolate. Doing nothing...')
             return self
-
-        _interpolate_bads_eeg(self)
+        origin = _check_origin(origin, self.info)
+        _interpolate_bads_eeg(self, origin=origin)
         _interpolate_bads_meg(self, mode=mode, origin=origin)
 
         if reset_bads is True:
@@ -981,7 +989,7 @@ def rename_channels(info, mapping):
     info : dict
         Measurement info.
     mapping : dict | callable
-        a dictionary mapping the old channel to a new channel name
+        A dictionary mapping the old channel to a new channel name
         e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
         that takes and returns a string (new in version 0.10.0).
     """

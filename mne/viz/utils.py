@@ -38,7 +38,7 @@ from ..io.meas_info import create_info
 from ..rank import compute_rank
 from ..io.proj import setup_proj
 from ..utils import (verbose, get_config, set_config, warn, _check_ch_locs,
-                     _check_option, logger, fill_doc)
+                     _check_option, logger, fill_doc, _pl)
 
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
@@ -119,7 +119,7 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
     Parameters
     ----------
     pad : float
-        padding between the figure edge and the edges of subplots, as a
+        Padding between the figure edge and the edges of subplots, as a
         fraction of the font-size.
     h_pad : float
         Padding height between edges of adjacent subplots.
@@ -2978,17 +2978,11 @@ def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
 def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     """Set PSD plot params."""
     import matplotlib.pyplot as plt
-    _data_types = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'fnirs_raw')
     _check_option('area_mode', area_mode, [None, 'std', 'range'])
     picks = _picks_to_idx(info, picks)
 
     # XXX this could be refactored more with e.g., plot_evoked
     # XXX when it's refactored, Report._render_raw will need to be updated
-    megs = ['mag', 'grad', False, False, False, False]
-    eegs = [False, False, True, False, False, False]
-    seegs = [False, False, False, True, False, False]
-    ecogs = [False, False, False, False, True, False]
-    fnirss = [False, False, False, False, False, 'fnirs_raw']
     titles = _handle_default('titles', None)
     units = _handle_default('units', None)
     scalings = _handle_default('scalings', None)
@@ -2996,10 +2990,15 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     titles_list = list()
     units_list = list()
     scalings_list = list()
-    for meg, eeg, seeg, ecog, fnirs, name in zip(megs, eegs, seegs, ecogs,
-                                                 fnirss, _data_types):
-        these_picks = pick_types(info, meg=meg, eeg=eeg, seeg=seeg, ecog=ecog,
-                                 ref_meg=False, fnirs=fnirs, exclude=[])
+    for name in _DATA_CH_TYPES_SPLIT:
+        kwargs = dict(meg=False, ref_meg=False, exclude=[])
+        if name in ('mag', 'grad'):
+            kwargs['meg'] = name
+        elif name in ('fnirs_raw', 'fnirs_od', 'hbo', 'hbr'):
+            kwargs['fnirs'] = name
+        else:
+            kwargs[name] = True
+        these_picks = pick_types(info, **kwargs)
         these_picks = np.intersect1d(these_picks, picks)
         if len(these_picks) > 0:
             picks_list.append(these_picks)
@@ -3073,11 +3072,10 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names=None,
         else:
             bads = ', '.join(str(ii) for ii in where)
 
-        msg = "{bad_value} value in PSD for {first_dim}(s) {bads}.".format(
-            bad_value=bad_value, first_dim=first_dim, bads=bads)
+        msg = "{bad_value} value in PSD for {first_dim}{pl} {bads}.".format(
+            bad_value=bad_value, first_dim=first_dim, bads=bads, pl=_pl(where))
         if first_dim == 'channel':
             msg += '\nThese channels might be dead.'
-
         warn(msg, UserWarning)
 
     if estimate == 'auto':
@@ -3161,9 +3159,10 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
         info = create_info([inst.ch_names[p] for p in picks],
                            inst.info['sfreq'], types)
         info['chs'] = [inst.info['chs'][p] for p in picks]
-        valid_channel_types = ['mag', 'grad', 'eeg', 'seeg', 'eog', 'ecg',
-                               'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
-                               'hbr', 'misc', 'fnirs_raw', 'fnirs_od']
+        valid_channel_types = [
+            'mag', 'grad', 'eeg', 'csd', 'seeg', 'eog', 'ecg',
+            'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
+            'hbr', 'misc', 'fnirs_raw', 'fnirs_od']
         ch_types_used = list()
         for this_type in valid_channel_types:
             if this_type in types:

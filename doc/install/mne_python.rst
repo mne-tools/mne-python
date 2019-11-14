@@ -17,7 +17,8 @@ Installing Python
 ^^^^^^^^^^^^^^^^^
 
 MNE-Python runs within Python, and depends on several other Python packages.
-MNE-Python 0.18 only supports Python version 3.5 or higher. We strongly
+Starting with version 0.18, MNE-Python only supports Python version 3.5 or
+higher. We strongly
 recommend the `Anaconda`_ distribution of Python, which comes with more than
 250 scientific packages pre-bundled, and includes the ``conda`` command line
 tool for installing new packages and managing different package sets
@@ -125,7 +126,7 @@ MNE-Python with all dependencies is update your base Anaconda environment:
 
 If you prefer an isolated Anaconda environment, instead of using\
 :samp:`conda env update` to modify your "base" environment,
-you can create a new dedicated environment with
+you can create a new dedicated environment (here called "mne") with
 :samp:`conda env create --name mne --file environment.yml`.
 
 .. javascript below adapted from nilearn
@@ -142,6 +143,21 @@ you can create a new dedicated environment with
         element.setAttribute("aria-expanded", "true");
     });
     </script>
+
+.. collapse:: |hand-stop-o| If you are installing on a headless server...
+    :class: danger
+
+    Installing `mayavi`_ requires a running `X server`_. If you are
+    installing MNE-Python into a computer with no display connected to it, you
+    can try removing `mayavi`_ from the :file:`environment.yml` file before
+    running :samp:`conda env create --file environment.yml`, activating the new
+    environment, and then installing `mayavi`_ using `xvfb`_ (e.g.,
+    :samp:`xvfb-run pip install mayavi`). Be sure to read Mayavi's instructions
+    on `off-screen rendering`_ and `rendering with a virtual framebuffer`_.
+
+    Note: if :samp:`xvfb` is not already installed on your server, you will
+    need administrator privileges to install it.
+
 
 Testing MNE-Python installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -197,3 +213,12 @@ good resources for troubleshooting installation problems.
 .. highlight:: python
 
 **Next:** :doc:`freesurfer`
+
+
+.. LINKS
+
+.. _`mayavi`: https://docs.enthought.com/mayavi/mayavi/
+.. _`X server`: https://en.wikipedia.org/wiki/X_Window_System
+.. _`xvfb`: https://en.wikipedia.org/wiki/Xvfb
+.. _`off-screen rendering`: https://docs.enthought.com/mayavi/mayavi/tips.html#off-screen-rendering
+.. _`rendering with a virtual framebuffer`: https://docs.enthought.com/mayavi/mayavi/tips.html#rendering-using-the-virtual-framebuffer

@@ -50,9 +50,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
 
         .. versionchanged:: 0.20
            Support for subject_to=None.
-    subjects_dir : str | None
-        Path to SUBJECTS_DIR if it is not set in the environment. The default
-        is None.
+    %(subjects_dir)s
     zooms : float | tuple | str | None
         The voxel size of volume for each spatial dimension in mm.
         If spacing is None, MRIs won't be resliced, and both volumes
@@ -930,7 +928,7 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
     Parameters
     ----------
     subject : str
-        Name of the subject
+        Name of the subject.
     grade : int | list
         Resolution of the icosahedral mesh (typically 5). If None, all
         vertices will be used (potentially filling the surface). If a list,
@@ -941,15 +939,14 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
         computing vertex locations. Note that if subject='fsaverage'
         and 'grade=5', this set of vertices will automatically be used
         (instead of computed) for speed, since this is a common morph.
-    subjects_dir : str | None
-        Path to SUBJECTS_DIR if it is not set in the environment
+    %(subjects_dir)s
     %(n_jobs)s
     %(verbose)s
 
     Returns
     -------
     vertices : list of array of int
-        Vertex numbers for LH and RH
+        Vertex numbers for LH and RH.
     """
     # add special case for fsaverage for speed
     if subject == 'fsaverage' and isinstance(grade, int) and grade == 5:

@@ -52,9 +52,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         Raw, Epochs, and Evoked files.
     subject : None | str
         Name of the mri subject.
-    subjects_dir : None | str
-        Override the SUBJECTS_DIR environment variable
-        (sys.environ['SUBJECTS_DIR'])
+    %(subjects_dir)s
     guess_mri_subject : bool
         When selecting a new head shape file, guess the subject's name based
         on the filename and change the MRI subject accordingly (default True).

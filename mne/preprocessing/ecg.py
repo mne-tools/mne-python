@@ -142,9 +142,9 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     Parameters
     ----------
     raw : instance of Raw
-        The raw data
+        The raw data.
     event_id : int
-        The index to assign to found events
+        The index to assign to found events.
     ch_name : None | str
         The name of the channel to use for ECG peak detection.
         If None (default), a synthetic ECG channel is created from
@@ -281,7 +281,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
     Parameters
     ----------
     raw : instance of Raw
-        The raw data
+        The raw data.
     ch_name : None | str
         The name of the channel to use for ECG peak detection.
         If None (default), ECG channel is used if present. If None and no
@@ -289,7 +289,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         cross channel average. Synthetic channel can only be created from
         MEG channels.
     event_id : int
-        The index to assign to found events
+        The index to assign to found events.
     %(picks_all)s
     tmin : float
         Start time before event.

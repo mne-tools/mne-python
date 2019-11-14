@@ -95,7 +95,7 @@ def read_inverse_operator(fname, verbose=None):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The name of the FIF file, which ends with -inv.fif or -inv.fif.gz.
     %(verbose)s
 
@@ -316,7 +316,7 @@ def write_inverse_operator(fname, inv, verbose=None):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The name of the FIF file, which ends with -inv.fif or -inv.fif.gz.
     inv : dict
         The inverse operator.

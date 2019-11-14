@@ -40,11 +40,11 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
     info : instance of Info
         The measurement info.
     layout : instance of mne.layout.Layout | None
-        The layout to use. If None, layout will be guessed
+        The layout to use. If None, layout will be guessed.
     on_pick : callable | None
         The callback function to be invoked on clicking one
         of the axes. Is supposed to instantiate the following
-        API: `function(axis, channel_index)`
+        API: ``function(axis, channel_index)``.
     fig : matplotlib.figure.Figure | None
         The figure object to be considered. If None, a new
         figure will be created.
@@ -584,13 +584,13 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         inferred from the data.
     layout_scale : float
         Scaling factor for adjusting the relative size of the layout
-        on the canvas
+        on the canvas.
     color : list of color objects | color object | None
         Everything matplotlib accepts to specify colors. If not list-like,
         the color specified will be repeated. If None, colors are
         automatically drawn.
     border : str
-        matplotlib borders style to be used for each sensor plot.
+        Matplotlib borders style to be used for each sensor plot.
     ylim : dict | None
         ylim for plots (after scaling has been applied). The value
         determines the upper and lower subplot limits. e.g.
@@ -857,7 +857,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     cmap : colormap
         Colors to be mapped to the values.
     layout_scale : float
-        scaling factor for adjusting the relative size of the layout
+        Scaling factor for adjusting the relative size of the layout
         on the canvas.
     title : str
         Title of the figure.
@@ -865,7 +865,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
         The scalings of the channel types to be applied for plotting. If
         ``None``, defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
     border : str
-        matplotlib borders style to be used for each sensor plot.
+        Matplotlib borders style to be used for each sensor plot.
     fig_facecolor : color
         The figure face color. Defaults to black.
     fig_background : None | array

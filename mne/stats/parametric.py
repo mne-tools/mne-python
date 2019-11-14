@@ -36,7 +36,7 @@ def ttest_1samp_no_p(X, sigma=0, method='relative'):
     Returns
     -------
     t : array
-        t-values, potentially adjusted using the hat method.
+        T-values, potentially adjusted using the hat method.
 
     Notes
     -----
@@ -246,7 +246,7 @@ def f_threshold_mway_rm(n_subjects, factor_levels, effects='A*B',
     Returns
     -------
     F_threshold : list | float
-        list of F-values for each effect if the number of effects
+        List of F-values for each effect if the number of effects
         requested > 2, else float.
 
     See Also

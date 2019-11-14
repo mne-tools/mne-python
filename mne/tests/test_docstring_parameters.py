@@ -67,13 +67,7 @@ error_ignores = (
     'SA04',  # no description in See Also
     'PR04',  # Parameter "shape (n_channels" has no type
     'RT02',  # The first line of the Returns section should contain only the type, unless multiple values are being returned  # noqa
-    # XXX but these we should fix eventually:
-    'PR06',  # Parameter type should use "str" instead of "string"
-    'PR08',  # Parameter description should start with a capital letter
-    'PR09',  # Parameter description should finish with "."
-    'RT04',  # Return value description should start with a capital letter
-    'RT05',  # Return value description should finish with "."
-    # XXX should also verify that | is used rather than , to separate params
+   # XXX should also verify that | is used rather than , to separate params
     # XXX should maybe also restore the parameter-desc-length < 800 char check
 )
 
@@ -88,7 +82,7 @@ def check_parameters_match(func):
                 getattr(func, '__code__', None), 'co_name', ''))
     if skip:
         return list()
-    incorrect = ['%s : %s : %s' % (err[0], name, err[1])
+    incorrect = ['%s : %s : %s' % (name, err[0], err[1])
                  for err in validate(name)['errors']
                  if err[0] not in error_ignores]
     return incorrect

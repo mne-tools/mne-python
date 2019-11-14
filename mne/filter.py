@@ -1102,7 +1102,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
         The bandwidth of the multitaper windowing function in Hz.
         Only used in 'spectrum_fit' mode.
     p_value : float
-        p-value to use in F-test thresholding to determine significant
+        P-value to use in F-test thresholding to determine significant
         sinusoidal components to remove when method='spectrum_fit' and
         freqs=None. Note that this will be Bonferroni corrected for the
         number of frequencies, so large p-values may be justified.
@@ -1122,7 +1122,7 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
     Returns
     -------
     xf : array
-        x filtered.
+        The x array filtered.
 
     See Also
     --------
@@ -1361,7 +1361,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
     Returns
     -------
     y : array
-        x resampled.
+        The x array resampled.
 
     Notes
     -----
@@ -1524,17 +1524,18 @@ def detrend(x, order=1, axis=-1):
         Signal to detrend.
     order : int
         Fit order. Currently must be '0' or '1'.
-    axis : integer
+    axis : int
         Axis of the array to operate on.
 
     Returns
     -------
     y : array
-        x detrended.
+        The x array detrended.
 
     Examples
     --------
-    As in scipy.signal.detrend:
+    As in :func:`scipy.signal.detrend`::
+
         >>> randgen = np.random.RandomState(9)
         >>> npoints = int(1e3)
         >>> noise = randgen.randn(npoints)
@@ -1555,6 +1556,7 @@ def detrend(x, order=1, axis=-1):
     y = detrend(x, axis=axis, type=fit)
 
     return y
+
 
 # Taken from Ifeachor and Jervis p. 356.
 # Note that here the passband ripple and stopband attenuation are
@@ -2008,8 +2010,7 @@ class FilterMixin(object):
             self._raw_times = self.times
         else:  # isinstance(self, Evoked)
             self.times = new_times
-            self.first = int(self.times[0] * self.info['sfreq'])
-            self.last = len(self.times) + self.first - 1
+            self._update_first_last()
         return self
 
     @verbose

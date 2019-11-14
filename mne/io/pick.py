@@ -56,7 +56,9 @@ def get_channel_types():
                 hbo=dict(kind=FIFF.FIFFV_FNIRS_CH,
                          coil_type=FIFF.FIFFV_COIL_FNIRS_HBO),
                 hbr=dict(kind=FIFF.FIFFV_FNIRS_CH,
-                         coil_type=FIFF.FIFFV_COIL_FNIRS_HBR))
+                         coil_type=FIFF.FIFFV_COIL_FNIRS_HBR),
+                csd=dict(kind=FIFF.FIFFV_EEG_CH,
+                         coil_type=FIFF.FIFFV_COIL_EEG_CSD))
 
 
 _first_rule = {
@@ -98,6 +100,11 @@ _second_rules = {
                             FIFF.FIFFV_COIL_FNIRS_RAW: 'fnirs_raw',
                             FIFF.FIFFV_COIL_FNIRS_OD: 'fnirs_od',
                             }),
+    'eeg': ('coil_type', {FIFF.FIFFV_COIL_EEG: 'eeg',
+                          FIFF.FIFFV_COIL_EEG_BIPOLAR: 'eeg',
+                          FIFF.FIFFV_COIL_NONE: 'eeg',  # MNE-C backward compat
+                          FIFF.FIFFV_COIL_EEG_CSD: 'csd',
+                          })
 }
 
 
@@ -116,9 +123,9 @@ def channel_type(info, idx):
     type : str
         Type of channel. Will be one of::
 
-            {'grad', 'mag', 'eeg', 'stim', 'eog', 'emg', 'ecg', 'ref_meg',
-             'resp', 'exci', 'ias', 'syst', 'misc', 'seeg', 'bio', 'chpi',
-             'dipole', 'gof', 'ecog', 'hbo', 'hbr'}
+            {'grad', 'mag', 'eeg', 'csd', 'stim', 'eog', 'emg', 'ecg',
+             'ref_meg', 'resp', 'exci', 'ias', 'syst', 'misc', 'seeg', 'bio',
+             'chpi', 'dipole', 'gof', 'ecog', 'hbo', 'hbr'}
     """
     # This is faster than the original _channel_type_old now in test_pick.py
     # because it uses (at most!) two dict lookups plus one conditional
@@ -138,19 +145,19 @@ def channel_type(info, idx):
 def pick_channels(ch_names, include, exclude=[], ordered=False):
     """Pick channels by names.
 
-    Returns the indices of the good channels in ch_names.
+    Returns the indices of ``ch_names`` in ``include`` but not in ``exclude``.
 
     Parameters
     ----------
-    ch_names : list of string
+    ch_names : list of str
         List of channels.
-    include : list of string
+    include : list of str
         List of channels to include (if empty include all available).
 
         .. note:: This is to be treated as a set. The order of this list
            is not used or maintained in ``sel``.
 
-    exclude : list of string
+    exclude : list of str
         List of channels to exclude (if empty do not exclude any channel).
         Defaults to [].
     ordered : bool
@@ -209,10 +216,10 @@ def pick_channels_regexp(ch_names, regexp):
 
     Parameters
     ----------
-    ch_names : list of string
-        List of channels
+    ch_names : list of str
+        List of channels.
 
-    regexp : string
+    regexp : str
         The regular expression. See python standard module for regular
         expressions.
 
@@ -294,8 +301,8 @@ def _check_info_exclude(info, exclude):
 def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                emg=False, ref_meg='auto', misc=False, resp=False, chpi=False,
                exci=False, ias=False, syst=False, seeg=False, dipole=False,
-               gof=False, bio=False, ecog=False, fnirs=False, include=(),
-               exclude='bads', selection=None):
+               gof=False, bio=False, ecog=False, fnirs=False, csd=False,
+               include=(), exclude='bads', selection=None):
     """Pick channels by type and names.
 
     Parameters
@@ -350,12 +357,14 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         fNIRS channels. If False (default) include none. If string it can be
         'hbo' (to include channels measuring oxyhemoglobin) or 'hbr' (to
         include channels measuring deoxyhemoglobin).
-    include : list of string
+    csd : bool
+        Current source density channels.
+    include : list of str
         List of additional channels to include. If empty do not include any.
-    exclude : list of string | str
+    exclude : list of str | str
         List of channels to exclude. If 'bads' (default), exclude channels
         in ``info['bads']``.
-    selection : list of string
+    selection : list of str
         Restrict sensor channels (MEG, EEG) to this list of channel names.
 
     Returns
@@ -376,7 +385,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                    len(info['comps']) > 0 and meg is not False)
 
     for param in (eeg, stim, eog, ecg, emg, misc, resp, chpi, exci,
-                  ias, syst, seeg, dipole, gof, bio, ecog):
+                  ias, syst, seeg, dipole, gof, bio, ecog, csd):
         if not isinstance(param, bool):
             w = ('Parameters for all channel types (with the exception '
                  'of "meg", "ref_meg" and "fnirs") must be of type bool, '
@@ -386,7 +395,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     param_dict = dict(eeg=eeg, stim=stim, eog=eog, ecg=ecg, emg=emg,
                       misc=misc, resp=resp, chpi=chpi, exci=exci,
                       ias=ias, syst=syst, seeg=seeg, dipole=dipole,
-                      gof=gof, bio=bio, ecog=ecog)
+                      gof=gof, bio=bio, ecog=ecog, csd=csd)
     # avoid triage if possible
     if isinstance(meg, bool):
         for key in ('grad', 'mag'):
@@ -511,9 +520,9 @@ def pick_channels_evoked(orig, include=[], exclude='bads'):
     ----------
     orig : Evoked object
         One evoked dataset.
-    include : list of string, (optional)
+    include : list of str, (optional)
         List of channels to include (if empty, include all available).
-    exclude : list of string | str
+    exclude : list of str | str
         List of channels to exclude. If empty do not exclude any (default).
         If 'bads', exclude channels in orig.info['bads']. Defaults to 'bads'.
 
@@ -556,10 +565,10 @@ def pick_channels_forward(orig, include=[], exclude=[], ordered=False,
     ----------
     orig : dict
         A forward solution.
-    include : list of string
+    include : list of str
         List of channels to include (if empty, include all available).
         Defaults to [].
-    exclude : list of string | 'bads'
+    exclude : list of str | 'bads'
         Channels to exclude (if empty, do not exclude any). Defaults to [].
         If 'bads', then exclude bad channels in orig.
     ordered : bool
@@ -638,22 +647,22 @@ def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, seeg=False,
     Parameters
     ----------
     orig : dict
-        A forward solution
-    meg : bool or string
+        A forward solution.
+    meg : bool or str
         If True include all MEG channels. If False include None
         If string it can be 'mag' or 'grad' to select only gradiometers
         or magnetometers.
     eeg : bool
-        If True include EEG channels
+        If True include EEG channels.
     ref_meg : bool
-        If True include CTF / 4D reference channels
+        If True include CTF / 4D reference channels.
     seeg : bool
-        If True include stereotactic EEG channels
+        If True include stereotactic EEG channels.
     ecog : bool
-        If True include electrocorticography channels
-    include : list of string
+        If True include electrocorticography channels.
+    include : list of str
         List of additional channels to include. If empty do not include any.
-    exclude : list of string | str
+    exclude : list of str | str
         List of channels to exclude. If empty do not exclude any (default).
         If 'bads', exclude channels in orig['info']['bads'].
 
@@ -709,9 +718,9 @@ def pick_channels_cov(orig, include=[], exclude='bads'):
     ----------
     orig : Covariance
         A covariance.
-    include : list of string, (optional)
+    include : list of str, (optional)
         List of channels to include (if empty, include all available).
-    exclude : list of string, (optional) | 'bads'
+    exclude : list of str, (optional) | 'bads'
         Channels to exclude (if empty, do not exclude any). Defaults to 'bads'.
 
     Returns
@@ -781,7 +790,7 @@ def _picks_by_type(info, meg_combined=False, ref_meg=False, exclude='bads'):
         Can be 'auto' to choose based on Maxwell filtering status.
     ref_meg : bool
         If True include CTF / 4D reference channels
-    exclude : list of string | str
+    exclude : list of str | str
         List of channels to exclude. If 'bads' (default), exclude channels
         in info['bads'].
 
@@ -830,7 +839,7 @@ def _check_excludes_includes(chs, info=None, allow_bads=False):
 
     Parameters
     ----------
-    chs : any input, should be list, tuple, set, string
+    chs : any input, should be list, tuple, set, str
         The channels passed to include or exclude.
     allow_bads : bool
         Allow the user to supply "bads" as a string for auto exclusion.
@@ -858,14 +867,14 @@ def _check_excludes_includes(chs, info=None, allow_bads=False):
 
 
 _PICK_TYPES_DATA_DICT = dict(
-    meg=True, eeg=True, stim=False, eog=False, ecg=False, emg=False,
+    meg=True, eeg=True, csd=True, stim=False, eog=False, ecg=False, emg=False,
     misc=False, resp=False, chpi=False, exci=False, ias=False, syst=False,
     seeg=True, dipole=False, gof=False, bio=False, ecog=True, fnirs=True)
 _PICK_TYPES_KEYS = tuple(list(_PICK_TYPES_DATA_DICT.keys()) + ['ref_meg'])
-_DATA_CH_TYPES_SPLIT = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', 'hbr',
-                        'fnirs_raw', 'fnirs_od')
-_DATA_CH_TYPES_ORDER_DEFAULT = ('mag', 'grad', 'eeg', 'eog', 'ecg', 'emg',
-                                'ref_meg', 'misc', 'stim', 'resp',
+_DATA_CH_TYPES_SPLIT = ('mag', 'grad', 'eeg', 'csd', 'seeg', 'ecog',
+                        'hbo', 'hbr', 'fnirs_raw', 'fnirs_od')
+_DATA_CH_TYPES_ORDER_DEFAULT = ('mag', 'grad', 'eeg', 'csd', 'eog', 'ecg',
+                                'emg', 'ref_meg', 'misc', 'stim', 'resp',
                                 'chpi', 'exci', 'ias', 'syst', 'seeg', 'bio',
                                 'ecog', 'hbo', 'hbr', 'fnirs_raw', 'fnirs_od',
                                 'whitened')
@@ -873,7 +882,7 @@ _DATA_CH_TYPES_ORDER_DEFAULT = ('mag', 'grad', 'eeg', 'eog', 'ecg', 'emg',
 # Valid data types, ordered for consistency, used in viz/evoked.
 _VALID_CHANNEL_TYPES = ('eeg', 'grad', 'mag', 'seeg', 'eog', 'ecg', 'emg',
                         'dipole', 'gof', 'bio', 'ecog', 'hbo', 'hbr',
-                        'fnirs_raw', 'fnirs_od', 'misc')
+                        'fnirs_raw', 'fnirs_od', 'misc', 'csd')
 
 _MEG_CH_TYPES_SPLIT = ('mag', 'grad', 'planar1', 'planar2')
 _FNIRS_CH_TYPES_SPLIT = ('hbo', 'hbr', 'fnirs_raw', 'fnirs_od')

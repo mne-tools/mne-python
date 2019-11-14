@@ -54,7 +54,7 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _check_pandas_installed, _check_preload, GetEpochsMixin,
                     _prepare_read_metadata, _prepare_write_metadata,
                     _check_event_id, _gen_events, _check_option,
-                    _check_combine)
+                    _check_combine, ShiftTimeMixin)
 from .utils.docs import fill_doc
 
 
@@ -294,7 +294,7 @@ def _handle_event_repeated(events, event_id, event_repeated, selection,
 
 
 @fill_doc
-class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
+class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
                  ToDataFrameMixin, TimeMixin, SizeMixin, GetEpochsMixin):
     """Abstract base class for Epochs-type classes.
@@ -1668,35 +1668,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # actually remove the indices
         return self, indices
 
-    def shift_time(self, tshift, relative=True):
-        """Shift time scale in epoched data.
-
-        Parameters
-        ----------
-        tshift : float
-            The amount of time shift to be applied if relative is True
-            else the first time point. When relative is True, positive value
-            of tshift moves the data forward while negative tshift moves it
-            backward.
-        relative : bool
-            If true, move the time backwards or forwards by specified amount.
-            Else, set the starting time point to the value of tshift.
-
-        Notes
-        -----
-        Maximum accuracy of time shift is 1 / epochs.info['sfreq']
-        """
-        _check_preload(self, 'shift_time')
-        times = self.times
-        sfreq = self.info['sfreq']
-        old_first = int(self.tmin * sfreq)
-
-        offset = old_first if relative else 0
-
-        first = int(tshift * sfreq) + offset
-        last = first + len(times) - 1
-        self._set_times(np.arange(first, last + 1, dtype=np.float) / sfreq)
-
 
 def _check_baseline(baseline, tmin, tmax, sfreq):
     """Check for a valid baseline."""
@@ -1774,9 +1745,9 @@ class Epochs(BaseEpochs):
         and a dict is created with string integer names corresponding
         to the event id integers.
     tmin : float
-        Start time before event. If nothing is provided, defaults to -0.2
+        Start time before event. If nothing is provided, defaults to -0.2.
     tmax : float
-        End time after event. If nothing is provided, defaults to 0.5
+        End time after event. If nothing is provided, defaults to 0.5.
     baseline : None or tuple of length 2 (default (None, 0))
         The time interval to apply baseline correction. If None do not apply
         it. If baseline is (a, b) the interval is between "a (s)" and "b (s)".
@@ -1787,7 +1758,7 @@ class Epochs(BaseEpochs):
         (a, b) includes both endpoints, i.e. all timepoints t such that
         a <= t <= b.
     %(picks_all)s
-    preload : boolean
+    preload : bool
         Load all epochs from disk when creating the object
         or wait before accessing each epoch (more memory
         efficient but can be slower).
@@ -2476,7 +2447,7 @@ def read_epochs(fname, proj=True, preload=True, verbose=None):
     Returns
     -------
     epochs : instance of Epochs
-        The epochs
+        The epochs.
     """
     return EpochsFIF(fname, proj, preload, verbose)
 
@@ -2849,7 +2820,7 @@ def concatenate_epochs(epochs_list, add_offset=True):
     Parameters
     ----------
     epochs_list : list
-        list of Epochs instances to concatenate (in order).
+        List of Epochs instances to concatenate (in order).
     add_offset : bool
         If True, a fixed offset is added to the event times from different
         Epochs sets, such that they are easy to distinguish after the

@@ -44,7 +44,7 @@ def pick_events(events, include=None, exclude=None, step=False):
     Returns
     -------
     events : array, shape (n_events, 3)
-        The list of events
+        The list of events.
     """
     if include is not None:
         if not isinstance(include, list):
@@ -198,7 +198,7 @@ def read_events(filename, include=None, exclude=None, mask=None,
 
     Parameters
     ----------
-    filename : string
+    filename : str
         Name of the input file.
         If the extension is .fif, events are read assuming
         the file is in FIF format, otherwise (e.g., .eve,
@@ -230,7 +230,7 @@ def read_events(filename, include=None, exclude=None, mask=None,
     Returns
     -------
     events: array, shape (n_events, 3)
-        The list of events
+        The list of events.
     event_id : dict
         Dictionary of ``{str: int}`` mappings of event IDs.
 
@@ -304,16 +304,15 @@ def write_events(filename, event_list):
 
     Parameters
     ----------
-    filename : string
+    filename : str
         Name of the output file.
         If the extension is .fif, events are written in
         binary FIF format, otherwise (e.g., .eve, .lst,
         .txt) events are written as plain text.
         Note that new format event files do not contain
         the "time" column (used to be the second column).
-
     event_list : array, shape (n_events, 3)
-        The list of events
+        The list of events.
 
     See Also
     --------
@@ -404,7 +403,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
         indicates over how many samples events should be merged, and the sign
         indicates in which direction they should be merged (negative means
         towards the earlier event, positive towards the later event).
-    stim_channel : None | string | list of string
+    stim_channel : None | str | list of str
         Name of the stim channel or all the stim channels
         affected by the trigger. If None, the config variables
         'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',
@@ -548,7 +547,7 @@ def find_events(raw, stim_channel=None, output='onset',
     ----------
     raw : Raw object
         The raw data.
-    stim_channel : None | string | list of string
+    stim_channel : None | str | list of str
         Name of the stim channel or all the stim channels
         affected by triggers. If None, the config variables
         'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',
@@ -775,7 +774,7 @@ def merge_events(events, ids, new_id, replace_events=True):
     Returns
     -------
     new_events : array, shape (n_events_out, 3)
-        The new events
+        The new events.
 
     Notes
     -----
@@ -1334,7 +1333,7 @@ class AcqParserFIF(object):
             (e.g. acqp['Auditory left'], where acqp is an instance of
             AcqParserFIF). If None, get all conditions marked active in
             DACQ.
-        stim_channel : None | string | list of string
+        stim_channel : None | str | list of str
             Name of the stim channel or all the stim channels
             affected by the trigger. If None, the config variables
             'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',

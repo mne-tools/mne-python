@@ -8,6 +8,7 @@
 # License: Simplified BSD
 
 from functools import partial
+import warnings
 
 import numpy as np
 
@@ -181,14 +182,18 @@ def _plot_ica_properties(pick, ica, inst, psds_mean, freqs, n_trials,
                                 color="k", alpha=.5)
 
     # kde
-    kde = gaussian_kde(epoch_var)
     ymin, ymax = hist_ax.get_ylim()
-    x = np.linspace(ymin, ymax, 50)
-    kde_ = kde(x)
-    kde_ /= kde_.max()
-    kde_ *= hist_ax.get_xlim()[-1] * .9
-    hist_ax.plot(kde_, x, color="k")
-    hist_ax.set_ylim(ymin, ymax)
+    try:
+        kde = gaussian_kde(epoch_var)
+    except np.linalg.LinAlgError:
+        pass  # singular: happens when there is nothing plotted
+    else:
+        x = np.linspace(ymin, ymax, 50)
+        kde_ = kde(x)
+        kde_ /= kde_.max()
+        kde_ *= hist_ax.get_xlim()[-1] * .9
+        hist_ax.plot(kde_, x, color="k")
+        hist_ax.set_ylim(ymin, ymax)
 
     # aesthetics
     # ----------
@@ -240,9 +245,11 @@ def _get_psd_label_and_std(this_psd, dB, ica, num_std):
     # the distribution of power for each frequency bin is highly
     # skewed so we calculate std for values below and above average
     # separately - this is used for fill_between shade
-    spectrum_std = [
-        [np.sqrt((d[d < 0] ** 2).mean(axis=0)) for d in diffs.T],
-        [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]]
+    with warnings.catch_warnings():  # mean of empty slice
+        warnings.simplefilter('ignore')
+        spectrum_std = [
+            [np.sqrt((d[d < 0] ** 2).mean(axis=0)) for d in diffs.T],
+            [np.sqrt((d[d > 0] ** 2).mean(axis=0)) for d in diffs.T]]
     spectrum_std = np.array(spectrum_std) * num_std
 
     return psd_ylabel, psds_mean, spectrum_std
@@ -610,7 +617,7 @@ def plot_ica_scores(ica, scores, exclude=None, labels=None, axhline=None,
     Returns
     -------
     fig : instance of Figure
-        The figure object
+        The figure object.
     """
     import matplotlib.pyplot as plt
     my_range = np.arange(ica.n_components_)

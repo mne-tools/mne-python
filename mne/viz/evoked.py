@@ -624,7 +624,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     Parameters
     ----------
     evoked : instance of Evoked
-        The evoked data
+        The evoked data.
     %(picks_all)s
     exclude : list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the
@@ -634,12 +634,12 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     show : bool
         Show figure if True.
     ylim : dict | None
-        ylim for plots (after scaling has been applied). e.g.
+        Y limits for plots (after scaling has been applied). e.g.
         ylim = dict(eeg=[-20, 20])
         Valid keys are eeg, mag, grad, misc. If None, the ylim parameter
         for each channel equals the pyplot default.
     xlim : 'tight' | tuple | None
-        xlim for plots.
+        X limits for plots.
     proj : bool | 'interactive'
         If true SSP projections are applied before display. If 'interactive',
         a check box for reversible selection of SSP projection vectors will
@@ -746,15 +746,15 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         inferred from the data.
     layout_scale : float
         Scaling factor for adjusting the relative size of the layout
-        on the canvas
+        on the canvas.
     color : list of color | color | None
         Everything matplotlib accepts to specify colors. If not list-like,
         the color specified will be repeated. If None, colors are
         automatically drawn.
     border : str
-        matplotlib borders style to be used for each sensor plot.
+        Matplotlib borders style to be used for each sensor plot.
     ylim : dict | None
-        ylim for plots (after scaling has been applied). The value
+        Y limits for plots (after scaling has been applied). The value
         determines the upper and lower subplot limits. e.g.
         ylim = dict(eeg=[-20, 20]). Valid keys are eeg, mag, grad, misc.
         If None, the ylim parameter for each channel is determined by
@@ -776,7 +776,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     merge_grads : bool
         Whether to use RMS value of gradiometer pairs. Only works for Neuromag
         data. Defaults to False.
-    legend : bool | int | string | tuple
+    legend : bool | int | str | tuple
         If True, create a legend based on evoked.comment. If False, disable the
         legend. Otherwise, the legend is created and the parameter value is
         passed as the location parameter to the matplotlib legend call. It can
@@ -802,7 +802,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     Returns
     -------
     fig : instance of matplotlib.figure.Figure
-        Images of evoked responses at sensor locations
+        Images of evoked responses at sensor locations.
     """
     from matplotlib.colors import colorConverter
 
@@ -850,7 +850,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
     Parameters
     ----------
     evoked : instance of Evoked
-        The evoked data
+        The evoked data.
     %(picks_all)s
         This parameter can also be used to set the order the channels
         are shown in, as the channel image is sorted by the order of picks.
@@ -862,12 +862,12 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
     show : bool
         Show figure if True.
     clim : dict | None
-        clim for plots (after scaling has been applied). e.g.
-        clim = dict(eeg=[-20, 20])
+        Color limits for plots (after scaling has been applied). e.g.
+        ``clim = dict(eeg=[-20, 20])``.
         Valid keys are eeg, mag, grad, misc. If None, the clim parameter
         for each channel equals the pyplot default.
     xlim : 'tight' | tuple | None
-        xlim for plots.
+        X limits for plots.
     proj : bool | 'interactive'
         If true SSP projections are applied before display. If 'interactive',
         a check box for reversible selection of SSP projection vectors will
@@ -1778,6 +1778,10 @@ def _draw_axes_pce(ax, ymin, ymax, truncate_yaxis, truncate_xaxis, invert_y,
     if tmin == tmax:
         tmax += 1e-9
     ax.set_xlim(tmin, tmax)
+    # for dark backgrounds:
+    ax.patch.set_alpha(0)
+    if not np.isfinite([ymin, ymax]).all():  # nothing plotted
+        return
     ax.set_ylim(ymin, ymax)
     ybounds = (ymin, ymax)
     # determine ymin/ymax for spine truncation
@@ -1798,8 +1802,6 @@ def _draw_axes_pce(ax, ymin, ymax, truncate_yaxis, truncate_xaxis, invert_y,
                              '"auto", got {}'.format(truncate_yaxis))
     _setup_ax_spines(ax, vlines, tmin, tmax, ybounds[0], ybounds[1], invert_y,
                      unit, truncate_xaxis, trunc_y, skip_axlabel)
-    # for dark backgrounds:
-    ax.patch.set_alpha(0)
 
 
 def _get_data_and_ci(evoked, combine, combine_func, picks, scaling=1,

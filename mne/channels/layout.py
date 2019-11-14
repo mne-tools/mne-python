@@ -228,7 +228,7 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads'):
     height : float | None
         Height of sensor axes as a fraction of main figure height. By default,
         this will be the maximum height possible without axes overlapping.
-    exclude : list of string | str
+    exclude : list of str | str
         List of channels to exclude. If empty do not exclude any.
         If 'bads', exclude channels in info['bads'] (default).
 
@@ -373,7 +373,7 @@ def find_layout(info, ch_type=None, exclude='bads'):
         Defaults to None. Note, this argument will only be considered for
         VectorView type layout. Use `meg` to force using the full layout
         in situations where the info does only contain one sensor type.
-    exclude : list of string | str
+    exclude : list of str | str
         List of channels to exclude. If empty do not exclude any.
         If 'bads', exclude channels in info['bads'] (default).
 

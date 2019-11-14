@@ -64,6 +64,9 @@ def _prepare_topo_plot(inst, ch_type, layout):
         if ch_type == 'eeg':
             picks = pick_types(info, meg=False, eeg=True, ref_meg=False,
                                exclude='bads')
+        elif ch_type == 'csd':
+            picks = pick_types(info, meg=False, csd=True, ref_meg=False,
+                               exclude='bads')
         else:
             picks = pick_types(info, meg=ch_type, ref_meg=False,
                                exclude='bads')
@@ -185,7 +188,7 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
     Parameters
     ----------
     projs : list of Projection
-        The projections
+        The projections.
     %(proj_topomap_kwargs)s
     info : instance of Info | None
         The measurement information to use to determine the layout. If both
@@ -1884,7 +1887,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     Parameters
     ----------
     epochs : instance of Epochs
-        The epochs object
+        The epochs object.
     bands : list of tuple | None
         The lower and upper frequency and the name for that band. If None,
         (default) expands to:
@@ -2610,7 +2613,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
         The measurement info to interpolate to. If None, it is assumed
         to be the same as info_from.
     scale : float, default 1e-10
-        To scale the arrows
+        To scale the arrows.
     vmin : float | callable | None
         The value specifying the lower bound of the color range.
         If None, and vmax is None, -vmax is used. Else np.min(data).
@@ -2693,7 +2696,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
     Returns
     -------
     fig : matplotlib.figure.Figure
-        The Figure of the plot
+        The Figure of the plot.
 
     Notes
     -----

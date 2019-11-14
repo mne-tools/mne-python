@@ -6,28 +6,22 @@ import numpy as np
 
 from ..parallel import parallel_func
 from ..io.pick import _picks_to_idx
-from ..utils import logger, verbose, _time_mask
+from ..utils import logger, verbose, _time_mask, _check_option
 from .multitaper import psd_array_multitaper
 
 
-def _spect_func(epoch, n_overlap, n_per_seg, nfft, fs, freq_mask, func):
+def _spect_func(epoch, n_overlap, n_per_seg, nfft, fs, freq_mask, func,
+                average):
     """Aux function."""
-    _, _,  spect = func(epoch, fs=fs, nperseg=n_per_seg, noverlap=n_overlap,
-                        nfft=nfft, window='hamming')
-    return spect[..., freq_mask, :]
-
-
-def _welch_func(epoch, n_overlap, n_per_seg, nfft, fs, freq_mask, average,
-                func):
-    """Aux function."""
-    kws = dict(fs=fs, nperseg=n_per_seg, noverlap=n_overlap, nfft=nfft,
-               window='hamming', average=average)
-
-    if average == 'mean':  # Compatibility with SciPy <1.2
-        del kws['average']
-
-    _, psd = func(epoch, **kws)
-    return psd[..., freq_mask]
+    _, _, spect = func(epoch, fs=fs, nperseg=n_per_seg, noverlap=n_overlap,
+                       nfft=nfft, window='hamming')
+    spect = spect[..., freq_mask, :]
+    # Do the averaging here (per epoch) to save memory
+    if average == 'mean':
+        spect = np.nanmean(spect, axis=-1)
+    elif average == 'median':
+        spect = np.nanmedian(spect, axis=-1)
+    return spect
 
 
 def _check_nfft(n, n_fft, n_per_seg, n_overlap):
@@ -124,6 +118,8 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     -----
     .. versionadded:: 0.14.0
     """
+    _check_option('average', average, (None, 'mean', 'median'))
+
     dshape = x.shape[:-1]
     n_times = x.shape[-1]
     x = x.reshape(-1, n_times)
@@ -140,34 +136,19 @@ def psd_array_welch(x, sfreq, fmin=0, fmax=np.inf, n_fft=256, n_overlap=0,
     # Parallelize across first N-1 dimensions
     x_splits = np.array_split(x, n_jobs)
 
-    if average in ['mean', 'median']:
-        from scipy.signal import welch
-        parallel, my_welch_func, n_jobs = parallel_func(_welch_func,
-                                                        n_jobs=n_jobs)
+    from scipy.signal import spectrogram
+    parallel, my_spect_func, n_jobs = parallel_func(_spect_func, n_jobs=n_jobs)
 
-        psds = parallel(my_welch_func(d, fs=sfreq, freq_mask=freq_mask,
-                                      n_per_seg=n_per_seg, n_overlap=n_overlap,
-                                      nfft=n_fft, average=average, func=welch)
-                        for d in x_splits)
-        psds = np.concatenate(psds, axis=0)
-        psds.shape = dshape + (-1,)
-    elif average is None:
-        from scipy.signal import spectrogram
-        parallel, my_spect_func, n_jobs = parallel_func(_spect_func,
-                                                        n_jobs=n_jobs)
-
-        f_spect = parallel(my_spect_func(d, n_overlap=n_overlap,
-                                         nfft=n_fft,
-                                         fs=sfreq, freq_mask=freq_mask,
-                                         func=spectrogram,
-                                         n_per_seg=n_per_seg)
-                           for d in x_splits)
-        psds = np.concatenate(f_spect, axis=0)
-        psds.shape = dshape + (len(freqs), -1)
-    else:
-        raise ValueError('average must be one of `mean`, `median`, or None, '
-                         'got {}'.format(average))
-
+    f_spect = parallel(my_spect_func(d, n_overlap=n_overlap,
+                                     n_per_seg=n_per_seg, nfft=n_fft, fs=sfreq,
+                                     freq_mask=freq_mask, func=spectrogram,
+                                     average=average)
+                       for d in x_splits)
+    psds = np.concatenate(f_spect, axis=0)
+    shape = dshape + (len(freqs),)
+    if average is None:
+        shape = shape + (-1,)
+    psds.shape = shape
     return psds, freqs
 
 
@@ -183,15 +164,15 @@ def psd_welch(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None, n_fft=256,
     Parameters
     ----------
     inst : instance of Epochs or Raw or Evoked
-        The data for PSD calculation
+        The data for PSD calculation.
     fmin : float
-        Min frequency of interest
+        Min frequency of interest.
     fmax : float
-        Max frequency of interest
+        Max frequency of interest.
     tmin : float | None
-        Min time of interest
+        Min time of interest.
     tmax : float | None
-        Max time of interest
+        Max time of interest.
     n_fft : int
         The length of FFT used, must be ``>= n_per_seg`` (default: 256).
         The segments will be zero-padded if ``n_fft > n_per_seg``.
@@ -270,13 +251,13 @@ def psd_multitaper(inst, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     inst : instance of Epochs or Raw or Evoked
         The data for PSD calculation.
     fmin : float
-        Min frequency of interest
+        Min frequency of interest.
     fmax : float
-        Max frequency of interest
+        Max frequency of interest.
     tmin : float | None
-        Min time of interest
+        Min time of interest.
     tmax : float | None
-        Max time of interest
+        Max time of interest.
     bandwidth : float
         The bandwidth of the multi taper windowing function in Hz. The default
         value is a window half-bandwidth of 4.

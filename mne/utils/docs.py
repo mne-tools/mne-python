@@ -209,6 +209,14 @@ depth : None | float | dict
     keyword arguments to pass to :func:`mne.forward.compute_depth_prior`
     (see docstring for details and defaults).
 """
+docdict['pick_ori-vec'] = """
+    pick_ori : None | "vector"
+        Only applies to loose/free orientation. By default (None) pooling is
+        performed by taking the norm of the current vectors. Use
+        pick_ori="vector" to return vector source estimate.
+
+        .. versionadded:: 0.20
+"""
 
 # Forward
 docdict['on_missing'] = """
@@ -563,12 +571,12 @@ def copy_function_doc_to_method_doc(source):
     Parameters
     ----------
     source : function
-        Function to copy the docstring from
+        Function to copy the docstring from.
 
     Returns
     -------
     wrapper : function
-        The decorated method
+        The decorated method.
 
     Notes
     -----

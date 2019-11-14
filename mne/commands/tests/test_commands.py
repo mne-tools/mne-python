@@ -8,7 +8,8 @@ import pytest
 from numpy.testing import assert_equal, assert_allclose
 
 from mne import (concatenate_raws, read_bem_surfaces, read_surface,
-                 read_source_spaces)
+                 read_source_spaces, read_bem_solution)
+from mne.bem import ConductorModel
 from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_compute_proj_ecg, mne_compute_proj_eog,
                           mne_coreg, mne_kit2fiff,
@@ -16,7 +17,8 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_report, mne_surf2bem, mne_watershed_bem,
                           mne_compare_fiff, mne_flash_bem, mne_show_fiff,
                           mne_show_info, mne_what, mne_setup_source_space,
-                          mne_anonymize)
+                          mne_setup_forward_model, mne_anonymize,
+                          mne_prepare_bem_model)
 from mne.datasets import testing, sample
 from mne.io import read_raw_fif, read_info
 from mne.utils import (run_tests_if_main, requires_mne,
@@ -308,6 +310,39 @@ def test_setup_source_space(tmpdir):
             assert mne_setup_source_space.run()
 
 
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_setup_forward_model(tmpdir):
+    """Test mne setup_source_space."""
+    check_usage(mne_setup_forward_model, force_help=True)
+    # Using the sample dataset
+    subjects_dir = op.join(testing.data_path(download=False), 'subjects')
+    use_fname = op.join(tmpdir, "model-bem.fif")
+    # Test  command
+    with ArgvSetter(('--model', use_fname, '-d', subjects_dir,
+                     '-s', 'sample', '--ico', '3', '--verbose')):
+        mne_setup_forward_model.run()
+    model = read_bem_surfaces(use_fname)
+    assert len(model) == 3
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_mne_prepare_bem_model(tmpdir):
+    """Test mne setup_source_space."""
+    check_usage(mne_prepare_bem_model, force_help=True)
+    # Using the sample dataset
+    bem_model_fname = op.join(testing.data_path(download=False), 'subjects',
+                              'sample', 'bem', 'sample-320-320-320-bem.fif')
+    bem_solution_fname = op.join(tmpdir, "bem_solution-bem-sol.fif")
+    # Test  command
+    with ArgvSetter(('--bem', bem_model_fname, '--sol', bem_solution_fname,
+                     '--verbose')):
+        mne_prepare_bem_model.run()
+    bem_solution = read_bem_solution(bem_solution_fname)
+    assert isinstance(bem_solution, ConductorModel)
+
+
 def test_show_info():
     """Test mne show_info."""
     check_usage(mne_show_info)
@@ -324,5 +359,6 @@ def test_anonymize(tmpdir):
     info = read_info(out_fname)
     assert(op.exists(out_fname))
     assert_equal(info['meas_date'], (946684800, 0))
+
 
 run_tests_if_main()

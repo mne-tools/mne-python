@@ -922,6 +922,7 @@ def _fake_montage(ch_names):
     return make_dig_montage(ch_pos=dict(zip(ch_names, pos)),
                             coord_frame='head')
 
+
 cnt_ignore_warns = [
     pytest.mark.filterwarnings(
         'ignore:.*Could not parse meas date from the header. Setting to None.'

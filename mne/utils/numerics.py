@@ -70,12 +70,12 @@ def sum_squared(X):
     Parameters
     ----------
     X : array
-        Data whose norm must be found
+        Data whose norm must be found.
 
     Returns
     -------
     value : float
-        Sum of squares of the input array X
+        Sum of squares of the input array X.
     """
     X_flat = X.ravel(order='F' if np.isfortran(X) else 'C')
     return np.dot(X_flat, X_flat)
