@@ -69,4 +69,5 @@ recursive-exclude mne/preprocessing/tests/data *
 
 # Notebook
 
+exclude notebook
 recursive-exclude notebook *.ipynb
