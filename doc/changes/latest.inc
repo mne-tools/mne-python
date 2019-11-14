@@ -67,6 +67,8 @@ Changelog
 
 - Allow returning vector source estimates from sparse inverse solvers through ``pick_ori='vector'`` by `Christian Brodbeck`_
 
+- Add NIRS support to :func:`mne.viz.plot_topomap` by `Robert Luke`_
+
 Bug
 ~~~
 

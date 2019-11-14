@@ -67,6 +67,9 @@ def _prepare_topo_plot(inst, ch_type, layout):
         elif ch_type == 'csd':
             picks = pick_types(info, meg=False, csd=True, ref_meg=False,
                                exclude='bads')
+        elif ch_type in ['hbo', 'hbr']:
+            picks = pick_types(info, meg=False, csd=True, ref_meg=False,
+                               fnirs=True, exclude='bads')
         else:
             picks = pick_types(info, meg=ch_type, ref_meg=False,
                                exclude='bads')
