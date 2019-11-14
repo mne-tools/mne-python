@@ -60,7 +60,7 @@ forward = mne.convert_forward_solution(forward, surf_ori=True)
 # Compute noise and data covariance matrices.
 #
 # These matrices need to be inverted at some point, but since they are rank
-# deficient, some regularization needs to be done for them to be invertable. 
+# deficient, some regularization needs to be done for them to be invertable.
 # Regularization can be added either by the :func:`mne.compute_covariance`
 # function or later by the :func:`mne.beamformer.make_lcmv` function. In this
 # example, we'll go with the latter option, so we specify ``method='empirical``
