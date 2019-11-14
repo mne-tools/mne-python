@@ -481,7 +481,6 @@ class _Brain(object):
                     vmin=fmin,
                     vmax=fmax,
                     scalars=vector_values,
-                    #scale_mode='scalar',
                     scale=final_scale_factor,
                     opacity=vector_alpha
                 )
