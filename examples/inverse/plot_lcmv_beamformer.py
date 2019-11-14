@@ -56,9 +56,15 @@ evoked = epochs.average()
 forward = mne.read_forward_solution(fname_fwd)
 forward = mne.convert_forward_solution(forward, surf_ori=True)
 
-# Compute noise and data covariances. For beamformers, you want to use the
-# empirical covariance matrix. Regularization will be applied by the
-# beamformer.
+###############################################################################
+# Compute noise and data covariance matrices.
+#
+# These matrices need to be inverted at some point, but since they are rank
+# deficient, some regularization needs to be done for them to be invertable. 
+# Regularization can be added either by the :func:`mne.compute_covariance`
+# function or later by the :func:`mne.beamformer.make_lcmv` function. In this
+# example, we'll go with the latter option, so we specify ``method='empirical``
+# here.
 noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0,
                                    method='empirical')
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
@@ -67,7 +73,9 @@ evoked.plot(time_unit='s')
 
 ###############################################################################
 # Run beamformers and look at maximum outputs
-
+#
+# Regularization is added to the covariance matrices through the ``reg``
+# parameter of :func:`mne.beamformer.make_lcmv`.
 pick_oris = [None, 'normal', 'max-power', None]
 descriptions = ['Free', 'Normal', 'Max-power', 'Fixed']
 
@@ -81,6 +89,7 @@ for pick_ori, desc in zip(pick_oris, descriptions):
         use_forward = mne.convert_forward_solution(forward, force_fixed=True)
     else:
         use_forward = forward
+
     filters = make_lcmv(evoked.info, use_forward, data_cov, reg=0.05,
                         noise_cov=noise_cov, pick_ori=pick_ori,
                         weight_norm='unit-noise-gain', rank='info')
