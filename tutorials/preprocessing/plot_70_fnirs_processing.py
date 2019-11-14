@@ -17,6 +17,7 @@ Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 # sphinx_gallery_thumbnail_number = 3
 
 import os
+import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
@@ -162,7 +163,7 @@ for column, condition in enumerate(['Control', 'Tapping']):
 # Plot standard fNIRS response image
 # ----------------------------------
 #
-# Finally we generate the most common visualisation of fNIRS data, plotting
+# Next we generate the most common visualisation of fNIRS data, plotting
 # both the HbO and HbR on the same figure to illustrate the relation between
 # the two signals.
 
@@ -180,3 +181,31 @@ styles_dict = dict(Control=dict(linestyle='dashed'))
 
 mne.viz.plot_compare_evokeds(evoked_dict, combine="mean", ci=0.95,
                              colors=color_dict, styles=styles_dict)
+
+
+###############################################################################
+# View topographic representation of activity
+# -------------------------------------------
+#
+# Next we view how the topographic activity changes throughout the response.
+
+times = np.arange(-3.5, 13.2, 3.0)
+epochs['Tapping'].average(picks='hbo').plot_joint(times=times)
+
+
+###############################################################################
+# Compare tapping of left and right hands
+# ---------------------------------------
+#
+# Finally we generate topo maps for the left and right conditions to view
+# the location of activity. First we visualise the HbO activity.
+
+times = np.arange(4.0, 11.0, 1.0)
+epochs['Tapping/Left'].average(picks='hbo').plot_topomap(times=times)
+epochs['Tapping/Right'].average(picks='hbo').plot_topomap(times=times)
+
+###############################################################################
+# And we also view the HbR activity for the two conditions.
+
+epochs['Tapping/Left'].average(picks='hbr').plot_topomap(times=times)
+epochs['Tapping/Right'].average(picks='hbr').plot_topomap(times=times)
