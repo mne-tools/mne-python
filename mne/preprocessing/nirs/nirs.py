@@ -1,4 +1,8 @@
-"""NIRS specific preprocessing functions."""
+# Authors: Robert Luke <mail@robertluke.net>
+#          Eric Larson <larson.eric.d@gmail.com>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#
+# License: BSD (3-clause)
 
 import numpy as np
 from scipy import linalg
