@@ -275,7 +275,8 @@ class _Renderer(_BaseRenderer):
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode='2darrow',
                  resolution=8, glyph_height=None, glyph_center=None,
                  glyph_resolution=None, opacity=1.0, scale_mode='none',
-                 scalars=None, backface_culling=False):
+                 scalars=None, backface_culling=False,
+                 colormap=None, vmin=None, vmax=None):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             from pyvista import UnstructuredGrid
@@ -288,12 +289,17 @@ class _Renderer(_BaseRenderer):
             cells = np.c_[np.full(n_points, 1), range(n_points)]
             grid = UnstructuredGrid(offset, cells, cell_type, points)
             grid.point_arrays['vec'] = vectors
-            if scale_mode == "scalar":
+            if scale_mode == 'scalar':
                 grid.point_arrays['mag'] = np.array(scalars)
                 scale = 'mag'
             else:
                 scale = False
-            if mode == "2darrow":
+            if isinstance(colormap, np.ndarray):
+                if colormap.dtype == np.uint8:
+                    colormap = colormap.astype(np.float) / 255.
+                from matplotlib.colors import ListedColormap
+                colormap = ListedColormap(colormap)
+            if mode == '2darrow':
                 glyph = vtk.vtkGlyphSource2D()
                 glyph.SetGlyphTypeToArrow()
                 glyph.FilledOff()
@@ -302,11 +308,14 @@ class _Renderer(_BaseRenderer):
                 glyph.Update()
                 geom = glyph.GetOutput()
                 self.plotter.add_mesh(grid.glyph(orient='vec',
-                                                 scale=scale,
-                                                 factor=factor,
-                                                 geom=geom),
+                                      scale=scale,
+                                      factor=factor,
+                                      geom=geom),
                                       color=color,
+                                      cmap=colormap,
+                                      rng=[vmin, vmax],
                                       opacity=opacity,
+                                      show_scalar_bar=False,
                                       backface_culling=backface_culling,
                                       smooth_shading=self.figure.
                                       smooth_shading)

@@ -337,6 +337,7 @@ class _Brain(object):
 
         hemi = self._check_hemi(hemi)
         array = np.asarray(array)
+        vector_alpha = alpha if vector_alpha is None else vector_alpha
 
         # Create time array and add label if > 1D
         if array.ndim <= 1:
@@ -473,12 +474,16 @@ class _Brain(object):
                     final_scale_factor = scale_factor_norm * scalar_data.max()
 
                 self._renderer.quiver3d(
-                    x, y, z, vectors[:, 0], vectors[:, 1], vectors[:, 2],
+                    x, y, z,
+                    vectors[:, 0], vectors[:, 1], vectors[:, 2],
+                    color=None,
+                    colormap=ctable,
+                    vmin=fmin,
+                    vmax=fmax,
                     scalars=vector_values,
-                    # colormap='hot', vmin=fmin, vmax=fmax,
-                    color='white',
-                    opacity=vector_alpha,
-                    scale=final_scale_factor
+                    #scale_mode='scalar',
+                    scale=final_scale_factor,
+                    opacity=vector_alpha
                 )
 
             if array.ndim >= 2 and callable(time_label):
