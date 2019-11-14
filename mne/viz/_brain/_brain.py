@@ -408,15 +408,16 @@ class _Brain(object):
             elif array.ndim == 2:
                 act_data = array[:, 0]
             elif array.ndim == 3:
-                assert array.shape[1] == 3  # should always be true
                 assert magnitude is not None
                 assert scale_factor is not None
-                act_data = magnitude[:, 0]
+                act_data = magnitude[:, time_idx]
 
         fmin, fmid, fmax = _update_limits(
             fmin, fmid, fmax, center, array
         )
 
+        self._data['array'] = act_data
+        self._data['magnitude'] = magnitude
         self._data['time'] = time
         self._data['initial_time'] = initial_time
         self._data['time_label'] = time_label
@@ -468,7 +469,6 @@ class _Brain(object):
                                        opacity=alpha)
             if array.ndim == 3:
                 scale_factor_norm = scale_factor / magnitude_max
-                print(scale_factor_norm)
 
             if array.ndim >= 2 and callable(time_label):
                 self._renderer.text2d(x=0.95, y=y_txt,
