@@ -31,7 +31,7 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_alignment, plot_volume_source_estimates,
                      plot_sensors_connectivity, plot_brain_colorbar)
 from mne.viz.utils import _fake_click
-from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
+from mne.utils import (requires_pysurfer, run_tests_if_main,
                        requires_nibabel, check_version,
                        traits_test, requires_version, catch_logging)
 from mne.datasets import testing
@@ -561,9 +561,8 @@ def test_plot_volume_source_estimates_morph():
 
 @testing.requires_testing_data
 @requires_pysurfer
-@requires_mayavi
 @traits_test
-def test_plot_vec_source_estimates():
+def test_plot_vec_source_estimates(renderer):
     """Test plotting of vector source estimates."""
     sample_src = read_source_spaces(src_fname)
 
