@@ -307,18 +307,21 @@ class _Renderer(_BaseRenderer):
                     glyph.SetCenter(glyph_center)
                 glyph.Update()
                 geom = glyph.GetOutput()
-                self.plotter.add_mesh(grid.glyph(orient='vec',
-                                      scale=scale,
-                                      factor=factor,
-                                      geom=geom),
-                                      color=color,
-                                      cmap=colormap,
-                                      rng=[vmin, vmax],
-                                      opacity=opacity,
-                                      show_scalar_bar=False,
-                                      backface_culling=backface_culling,
-                                      smooth_shading=self.figure.
-                                      smooth_shading)
+                actor = self.plotter.add_mesh(
+                    grid.glyph(orient='vec',
+                               scale=scale,
+                               factor=factor,
+                               geom=geom),
+                    color=color,
+                    cmap=colormap,
+                    rng=[vmin, vmax],
+                    opacity=opacity,
+                    show_scalar_bar=False,
+                    backface_culling=backface_culling,
+                    smooth_shading=self.figure.
+                    smooth_shading
+                )
+                actor.GetProperty().SetLineWidth(2)
 
             elif mode == "arrow":
                 self.plotter.add_mesh(grid.glyph(orient='vec',
