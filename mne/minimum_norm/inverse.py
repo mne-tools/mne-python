@@ -904,12 +904,12 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
                              Pi[:, np.newaxis] * w_t))
     data_est_w = np.dot(inv['whitener'], np.dot(inv['proj'], data_est))
     var_exp = 1 - ((data_est_w - data_w) ** 2).sum() / (data_w ** 2).sum()
-    
+
     if method == 'eLORETA':
         logger.info('    Explained variance unknown')
     else:
         logger.info('    Explained %5.1f%% variance' % (100 * var_exp,))
-    
+
     if return_residual:
         residual = evoked.copy()
         residual.data[sel] -= data_est
