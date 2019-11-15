@@ -2435,8 +2435,8 @@ def _find_max_corrs(all_maps, target, threshold):
 
 @verbose
 def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
-            plot=True, show=True, verbose=None, outlines='head', layout=None,
-            sensors=True, contours=6, cmap=None):
+            plot=True, show=True, outlines='head', layout=None,
+            sensors=True, contours=6, cmap=None, verbose=None):
     """Find similar Independent Components across subjects by map similarity.
 
     Corrmap (Viola et al. 2009 Clin Neurophysiol) identifies the best group
@@ -2493,16 +2493,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         to True.
     show : bool
         Show figures if True.
-    %(verbose)s
-    outlines : 'head' | dict | None
-        The outlines to be drawn. If 'head', a head scheme will be drawn. If
-        dict, each key refers to a tuple of x and y positions. The values in
-        'mask_pos' will serve as image mask. If None, nothing will be drawn.
-        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
-        trigger automated shrinking of the positions due to points outside the
-        outline. Moreover, a matplotlib patch object can be passed for
-        advanced masking options, either directly or as a function that returns
-        patches (required for multi-axis plots).
+    %(topomap_outlines)s
     layout : None | Layout | list of Layout
         Layout instance specifying sensor positions (does not need to be
         specified for Neuromag data). Or a list of Layout if projections
@@ -2520,6 +2511,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     cmap : None | matplotlib colormap
         Colormap for the plot. If ``None``, defaults to 'Reds_r' for norm data,
         otherwise to 'RdBu_r'.
+    %(verbose)s
 
     Returns
     -------

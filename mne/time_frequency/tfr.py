@@ -26,7 +26,8 @@ from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
                      fill_doc, _prepare_write_metadata, _check_event_id,
                      _gen_events, SizeMixin, _is_numeric, _check_option,
                      _validate_type)
-from ..channels.channels import ContainsMixin, UpdateChannelsMixin
+from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
+                                 HEAD_SIZE_DEFAULT)
 from ..channels.layout import _pair_grad_sensors
 from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
                        _get_channel_types)
@@ -1786,13 +1787,14 @@ class AverageTFR(_BaseTFR):
         plt_show(show)
         return fig
 
+    @fill_doc
     def plot_topomap(self, tmin=None, tmax=None, fmin=None, fmax=None,
                      ch_type=None, baseline=None, mode='mean', layout=None,
                      vmin=None, vmax=None, cmap=None, sensors=True,
                      colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
                      axes=None, show=True, outlines='head', head_pos=None,
-                     contours=6):
+                     contours=6, head_radius=HEAD_SIZE_DEFAULT):
         """Plot topographic maps of time-frequency intervals of TFR data.
 
         Parameters
@@ -1889,22 +1891,8 @@ class AverageTFR(_BaseTFR):
             The axes to plot to. If None the axes is defined automatically.
         show : bool
             Call pyplot.show() at the end.
-        outlines : 'head' | 'skirt' | dict | None
-            The outlines to be drawn. If 'head', the default head scheme will
-            be drawn. If 'skirt' the head scheme will be drawn, but sensors are
-            allowed to be plotted outside of the head circle. If dict, each key
-            refers to a tuple of x and y positions, the values in 'mask_pos'
-            will serve as image mask, and the 'autoshrink' (bool) field will
-            trigger automated shrinking of the positions due to points outside
-            the outline. Alternatively, a matplotlib patch object can be passed
-            for advanced masking options, either directly or as a function that
-            returns patches (required for multi-axis plots). If None, nothing
-            will be drawn. Defaults to 'head'.
-        head_pos : dict | None
-            If None (default), the sensors are positioned such that they span
-            the head circle. If dict, can have entries 'center' (tuple) and
-            'scale' (tuple) for what the center and scale of the head should be
-            relative to the electrode locations.
+        %(topomap_outlines)s
+        %(topomap_head_pos)s
         contours : int | array of float
             The number of contour lines to draw. If 0, no contours will be
             drawn. When an integer, matplotlib ticker locator is used to find
@@ -1912,6 +1900,7 @@ class AverageTFR(_BaseTFR):
             inaccurate, use array for accuracy). If an array, the values
             represent the levels for the contours. If colorbar=True, the ticks
             in colorbar correspond to the contour levels. Defaults to 6.
+        %(topomap_head_radius_auto)s
 
         Returns
         -------
@@ -1927,7 +1916,7 @@ class AverageTFR(_BaseTFR):
                                 cbar_fmt=cbar_fmt, show_names=show_names,
                                 title=title, axes=axes, show=show,
                                 outlines=outlines, head_pos=head_pos,
-                                contours=contours)
+                                contours=contours, head_radius=head_radius)
 
     def _check_compat(self, tfr):
         """Check that self and tfr have the same time-frequency ranges."""

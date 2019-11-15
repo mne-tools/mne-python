@@ -12,6 +12,7 @@ from functools import partial
 import numpy as np
 
 from ..annotations import _annotations_starts_stops
+from ..channels.channels import HEAD_SIZE_DEFAULT
 from ..filter import create_filter, _overlap_add_filter
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
                        _PICK_TYPES_KEYS, pick_channels)
@@ -566,7 +567,8 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
                  picks=None, ax=None, color='black', xscale='linear',
                  area_mode='std', area_alpha=0.33, dB=True, estimate='auto',
                  show=True, n_jobs=1, average=False, line_alpha=None,
-                 spatial_colors=True, verbose=None):
+                 spatial_colors=True, head_radius=HEAD_SIZE_DEFAULT,
+                 verbose=None):
     """%(plot_psd_doc)s.
 
     Parameters
@@ -609,6 +611,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     %(plot_psd_average)s
     %(plot_psd_line_alpha)s
     %(plot_psd_spatial_colors)s
+    %(topomap_head_radius_auto)s
     %(verbose)s
 
     Returns
@@ -637,7 +640,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     fig = _plot_psd(raw, fig, freqs, psd_list, picks_list, titles_list,
                     units_list, scalings_list, ax_list, make_label, color,
                     area_mode, area_alpha, dB, estimate, average,
-                    spatial_colors, xscale, line_alpha)
+                    spatial_colors, xscale, line_alpha, head_radius)
     plt_show(show)
     return fig
 

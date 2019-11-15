@@ -50,6 +50,36 @@ include_tmax : bool
 docdict["show"] = """
 show : bool
     Show figure if True."""
+# XXX need to update proj_topomap_kwargs below as well
+docdict['topomap_outlines'] = """
+outlines : 'head' | 'skirt' | dict | None
+    The outlines to be drawn. If 'head', the default head scheme will be
+    drawn. If 'skirt' the head scheme will be drawn, but sensors are
+    allowed to be plotted outside of the head circle. If dict, each key
+    refers to a tuple of x and y positions, the values in 'mask_pos' will
+    serve as image mask.
+    Alternatively, a matplotlib patch object can be passed for advanced
+    masking options, either directly or as a function that returns patches
+    (required for multi-axis plots). If None, nothing will be drawn.
+    Defaults to 'head'.
+"""
+docdict['topomap_head_pos'] = """
+head_pos : dict | None
+    Deprecated and will be removed in 0.21. Use ``head_radius`` instead.
+"""
+docdict['topomap_head_radius'] = """
+head_radius : float
+    The head radius to use for the cartoon head.
+
+    .. versionadded:: 0.20
+"""
+docdict['topomap_head_radius_auto'] = """
+head_radius : float | str
+    The head radius to use for the cartoon head.
+    Can be "auto" to use a digitization-based fit.
+
+    .. versionadded:: 0.20
+"""
 
 # Picks
 docdict['picks_header'] = 'picks : str | list | slice | None'
@@ -412,8 +442,7 @@ docdict["proj_topomap_kwargs"] = """
         drawn. If 'skirt' the head scheme will be drawn, but sensors are
         allowed to be plotted outside of the head circle. If dict, each key
         refers to a tuple of x and y positions, the values in 'mask_pos' will
-        serve as image mask, and the 'autoshrink' (bool) field will trigger
-        automated shrinking of the positions due to points outside the outline.
+        serve as image mask.
         Alternatively, a matplotlib patch object can be passed for advanced
         masking options, either directly or as a function that returns patches
         (required for multi-axis plots). If None, nothing will be drawn.

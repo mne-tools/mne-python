@@ -24,6 +24,7 @@ from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx)
 
 
+HEAD_SIZE_DEFAULT = 0.095  # in [m]
 DEPRECATED_PARAM = object()
 
 

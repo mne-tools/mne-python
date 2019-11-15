@@ -580,3 +580,18 @@ def _check_pyqt5_version():
              % (version,))
 
     return version
+
+
+def _check_head_radius(head_radius, info=None):
+    from ..bem import fit_sphere_to_headshape
+    if info is None:
+        _validate_type(head_radius, 'numeric', 'head_radius')
+    else:
+        _validate_type(head_radius, ('numeric', str), 'head_radius')
+        if isinstance(head_radius, str):
+            if head_radius != 'auto':
+                raise ValueError('head_radius, if str, must be "auto", got %r'
+                                 % (head_radius))
+            head_radius, _, _ = fit_sphere_to_headshape(
+                info, verbose=False, units='m', move_origin=False)
+    return float(head_radius)

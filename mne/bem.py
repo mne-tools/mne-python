@@ -832,7 +832,8 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
 # Sphere fitting
 
 @verbose
-def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
+def fit_sphere_to_headshape(info, dig_kinds='auto', units='m',
+                            move_origin=True, verbose=None):
     """Fit a sphere to the headshape points to determine head center.
 
     Parameters
@@ -849,6 +850,10 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
         Can be "m" (default) or "mm".
 
         .. versionadded:: 0.12
+    move_origin : bool
+        If True, allow the origin to vary. Otherwise, fix it at (0, 0, 0).
+
+        .. versionadded:: 0.20
 
     %(verbose)s
 
@@ -869,7 +874,7 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
     if not isinstance(units, str) or units not in ('m', 'mm'):
         raise ValueError('units must be a "m" or "mm"')
     radius, origin_head, origin_device = _fit_sphere_to_headshape(
-        info, dig_kinds)
+        info, dig_kinds, move_origin=move_origin)
     if units == 'mm':
         radius *= 1e3
         origin_head *= 1e3
@@ -951,10 +956,11 @@ def get_fitting_dig(info, dig_kinds='auto', exclude_frontal=True,
 
 
 @verbose
-def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
+def _fit_sphere_to_headshape(info, dig_kinds, move_origin=True, verbose=None):
     """Fit a sphere to the given head shape."""
     hsp = get_fitting_dig(info, dig_kinds)
-    radius, origin_head = _fit_sphere(np.array(hsp), disp=False)
+    radius, origin_head = _fit_sphere(np.array(hsp), disp=False,
+                                      move_origin=move_origin)
     # compute origin in device coordinates
     dev_head_t = info['dev_head_t']
     if dev_head_t is None:
@@ -980,7 +986,7 @@ def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
     return radius, origin_head, origin_device
 
 
-def _fit_sphere(points, disp='auto'):
+def _fit_sphere(points, disp='auto', move_origin=True):
     """Fit a sphere to an arbitrary set of points."""
     from scipy.optimize import fmin_cobyla
     if isinstance(disp, str) and disp == 'auto':
@@ -991,21 +997,31 @@ def _fit_sphere(points, disp='auto'):
     center_init = np.median(points, axis=0)
 
     # optimization
-    x0 = np.concatenate([center_init, [radius_init]])
+    if move_origin:
+        x0 = np.concatenate([center_init, [radius_init]])
+    else:
+        x0 = [radius_init]
 
     def cost_fun(center_rad):
-        d = np.linalg.norm(points - center_rad[:3], axis=1) - center_rad[3]
+        if move_origin:
+            d = np.linalg.norm(points - center_rad[:3], axis=1) - center_rad[3]
+        else:
+            d = np.linalg.norm(points, axis=1) - center_rad[0]
         d *= d
         return d.sum()
 
     def constraint(center_rad):
-        return center_rad[3]  # radius must be >= 0
+        return center_rad[3 if move_origin else 0]  # radius must be >= 0
 
     x_opt = fmin_cobyla(cost_fun, x0, constraint, rhobeg=radius_init,
                         rhoend=radius_init * 1e-6, disp=disp)
 
-    origin = x_opt[:3]
-    radius = x_opt[3]
+    if move_origin:
+        origin = x_opt[:3]
+        radius = x_opt[3]
+    else:
+        origin = np.zeros(3)
+        radius = x_opt[0]
     return radius, origin
 
 

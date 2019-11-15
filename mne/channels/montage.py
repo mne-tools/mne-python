@@ -38,9 +38,7 @@ from ..utils import (warn, logger, copy_function_doc_to_method_doc,
 from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
 
-from .channels import DEPRECATED_PARAM
-
-HEAD_SIZE_DEFAULT = 0.095  # in [m]
+from .channels import DEPRECATED_PARAM, HEAD_SIZE_DEFAULT
 
 _BUILT_IN_MONTAGES = [
     'EGI_256',
@@ -217,8 +215,6 @@ class DigMontage(object):
 
     @copy_function_doc_to_method_doc(plot_montage)
     def plot(self, scale_factor=20, show_names=False, kind='3d', show=True):
-        # XXX: plot_montage takes an empty info and sets 'self'
-        #      Therefore it should not be a representation problem.
         return plot_montage(self, scale_factor=scale_factor,
                             show_names=show_names, kind=kind, show=show)
 
