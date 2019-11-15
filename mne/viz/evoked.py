@@ -36,7 +36,7 @@ from ..utils import (logger, _clean_names, warn, _pl, verbose, _validate_type,
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topo_plot, plot_topomap, _check_outlines,
                       _draw_outlines, _prepare_topomap, _set_contour_locator)
-from ..channels.layout import (_pair_grad_sensors, _auto_topomap_coords,
+from ..channels.layout import (_pair_grad_sensors, _find_topomap_coords,
                                find_layout)
 
 
@@ -536,7 +536,7 @@ def _handle_spatial_colors(colors, info, idx, ch_type, psd, ax):
     # find indices for bads
     bads = [np.where(used_nm == bad)[0][0] for bad in info['bads'] if bad in
             used_nm]
-    pos = _auto_topomap_coords(info, idx, ignore_overlap=True, to_sphere=True)
+    pos = _find_topomap_coords(info, idx, ignore_overlap=True)
     pos, outlines = _check_outlines(pos, np.array([1, 1]),
                                     {'center': (0, 0), 'scale': (0.5, 0.5)})
     loc = 1 if psd else 2  # Legend in top right for psd plot.
@@ -1673,8 +1673,7 @@ def _evoked_sensor_legend(info, picks, ymin, ymax, show_sensors, ax):
         ymin, ymax = np.abs(ax.get_ylim())
         show_sensors = "lower right" if ymin > ymax else "upper right"
 
-    pos = _auto_topomap_coords(info, picks, ignore_overlap=True,
-                               to_sphere=True)
+    pos = _find_topomap_coords(info, picks, ignore_overlap=True)
     head_pos = {'center': (0, 0), 'scale': (0.5, 0.5)}
     pos, outlines = _check_outlines(pos, np.array([1, 1]), head_pos)
 

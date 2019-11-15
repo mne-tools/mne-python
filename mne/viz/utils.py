@@ -25,7 +25,6 @@ from distutils.version import LooseVersion
 from itertools import cycle
 import warnings
 
-from ..channels.layout import _auto_topomap_coords
 from ..channels.channels import _contains_ch_type
 from ..defaults import _handle_default
 from ..fixes import _get_status
@@ -1639,12 +1638,9 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                 if pick in value:
                     colors[pick_idx] = color_vals[ind]
                     break
-    if kind in ('topomap', 'select'):
-        pos = _auto_topomap_coords(info, picks, True, to_sphere=to_sphere)
-
     title = 'Sensor positions (%s)' % ch_type if title is None else title
-    fig = _plot_sensors(pos, colors, bads, ch_names, title, show_names, axes,
-                        show, kind == 'select', block=block,
+    fig = _plot_sensors(pos, info, picks, colors, bads, ch_names, title,
+                        show_names, axes, show, kind, block=block,
                         to_sphere=to_sphere)
     if kind == 'select':
         return fig, fig.lasso.selection
@@ -1681,17 +1677,17 @@ def _close_event(event, fig):
         fig.lasso.disconnect()
 
 
-def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
-                  select, block, to_sphere):
+def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
+                  ax, show, kind, block, to_sphere):
     """Plot sensors."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
-    from .topomap import _check_outlines, _draw_outlines
+    from .topomap import _get_pos_outlines, _draw_outlines
     edgecolors = np.repeat('black', len(colors))
     edgecolors[bads] = 'red'
     if ax is None:
         fig = plt.figure(figsize=(max(plt.rcParams['figure.figsize']),) * 2)
-        if pos.shape[1] == 3:
+        if kind == '3d':
             Axes3D(fig)
             ax = fig.gca(projection='3d')
         else:
@@ -1699,7 +1695,7 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
     else:
         fig = ax.get_figure()
 
-    if pos.shape[1] == 3:
+    if kind == '3d':
         ax.text(0, 0, 0, '', zorder=1)
         ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], picker=True, c=colors,
                    s=75, edgecolor=edgecolors, linewidth=2)
@@ -1709,29 +1705,25 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
         ax.xaxis.set_label_text('x')
         ax.yaxis.set_label_text('y')
         ax.zaxis.set_label_text('z')
-    else:
+    else:  # kind in 'select', 'topomap'
         ax.text(0, 0, '', zorder=1)
-        # Equal aspect for 3D looks bad, so only use for 2D
-        ax.set(xticks=[], yticks=[], aspect='equal')
-        fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
-                            hspace=None)
-        if to_sphere:
-            pos, outlines = _check_outlines(pos, 'head')
-        else:
-            pos, outlines = _check_outlines(pos, np.array([0.5, 0.5]),
-                                            {'center': (0, 0),
-                                             'scale': (4.5, 4.5)})
+
+        pos, outlines = _get_pos_outlines(info, picks, ax, to_sphere)
         _draw_outlines(ax, outlines)
-
-        pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors, s=25,
-                         edgecolor=edgecolors, linewidth=2, clip_on=False)
-
-        if select:
+        pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, clip_on=False,
+                         c=colors, edgecolors=edgecolors, s=25, lw=2)
+        raise RuntimeError
+        if kind == 'select':
             fig.lasso = SelectFromCollection(ax, pts, ch_names)
         else:
             fig.lasso = None
 
-        ax.axis("off")  # remove border around figure
+        # Equal aspect for 3D looks bad, so only use for 2D
+        ax.set(aspect='equal')
+        # XXX put these back
+        # fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
+        #                     hspace=None)
+        # ax.axis("off")  # remove border around figure
 
     connect_picker = True
     if show_names:
@@ -1741,11 +1733,11 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
             indices = range(len(pos))
         for idx in indices:
             this_pos = pos[idx]
-            if pos.shape[1] == 3:
+            if kind == '3d':
                 ax.text(this_pos[0], this_pos[1], this_pos[2], ch_names[idx])
             else:
                 ax.text(this_pos[0] + 0.015, this_pos[1], ch_names[idx])
-        connect_picker = select
+        connect_picker = (kind == 'select')
     if connect_picker:
         picker = partial(_onpick_sensor, fig=fig, ax=ax, pos=pos,
                          ch_names=ch_names, show_names=show_names)

@@ -1351,7 +1351,7 @@ def _compute_ch_connectivity(info, ch_type):
     """
     from scipy.spatial import Delaunay
     from .. import spatial_tris_connectivity
-    from ..channels.layout import _auto_topomap_coords, _pair_grad_sensors
+    from ..channels.layout import _find_topomap_coords, _pair_grad_sensors
     combine_grads = (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
                      np.unique([ch['coil_type'] for ch in info['chs']]))
 
@@ -1363,9 +1363,9 @@ def _compute_ch_connectivity(info, ch_type):
             raise RuntimeError('Cannot find a pair for some of the '
                                'gradiometers. Cannot compute connectivity '
                                'matrix.')
-        xy = _auto_topomap_coords(info, picks[::2])  # only for one of the pair
+        xy = _find_topomap_coords(info, picks[::2])  # only for one of the pair
     else:
-        xy = _auto_topomap_coords(info, picks)
+        xy = _find_topomap_coords(info, picks)
     tri = Delaunay(xy)
     neighbors = spatial_tris_connectivity(tri.simplices)
 

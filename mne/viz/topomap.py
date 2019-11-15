@@ -613,13 +613,25 @@ class _GridData(object):
         return self.interpolator(*args)
 
 
-def _plot_sensors(pos_x, pos_y, sensors, ax):
+def _topomap_plot_sensors(pos_x, pos_y, sensors, ax):
     """Plot sensors."""
     if sensors is True:
         ax.scatter(pos_x, pos_y, s=0.25, marker='o',
                    edgecolor=['k'] * len(pos_x), facecolor='none')
     else:
         ax.plot(pos_x, pos_y, sensors)
+
+
+def _get_pos_outlines(info, picks, ax, to_sphere):
+    pos = _find_topomap_coords(
+        info, picks, ignore_overlap=True, to_sphere=to_sphere)
+    if to_sphere:
+        outlines, head_pos = 'head', None
+    else:
+        outlines, head_pos = np.array([0.5, 0.5]), dict(
+            center=(0, 0), scale=(4.5, 4.5))
+    pos, outlines = _check_outlines(pos, outlines, head_pos)
+    return pos, outlines
 
 
 def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
@@ -885,12 +897,12 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
     pos_x, pos_y = pos.T
     if sensors is not False and mask is None:
-        _plot_sensors(pos_x, pos_y, sensors=sensors, ax=ax)
+        _topomap_plot_sensors(pos_x, pos_y, sensors=sensors, ax=ax)
     elif sensors and mask is not None:
         idx = np.where(mask)[0]
         ax.plot(pos_x[idx], pos_y[idx], **mask_params)
         idx = np.where(~mask)[0]
-        _plot_sensors(pos_x[idx], pos_y[idx], sensors=sensors, ax=ax)
+        _topomap_plot_sensors(pos_x[idx], pos_y[idx], sensors=sensors, ax=ax)
     elif not sensors and mask is not None:
         idx = np.where(mask)[0]
         ax.plot(pos_x[idx], pos_y[idx], **mask_params)

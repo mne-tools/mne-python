@@ -250,7 +250,7 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads'):
 
     picks = pick_types(info, meg=False, eeg=True, ref_meg=False,
                        exclude=exclude)
-    loc2d = _auto_topomap_coords(info, picks)
+    loc2d = _find_topomap_coords(info, picks)
     names = [info['chs'][i]['ch_name'] for i in picks]
 
     # Scale [x, y] to [-0.5, 0.5]
@@ -425,8 +425,8 @@ def find_layout(info, ch_type=None, exclude='bads'):
 
     # If no known layout is found, fall back on automatic layout
     if layout_name is None:
-        xy = _auto_topomap_coords(info, picks=range(info['nchan']),
-                                  ignore_overlap=True, to_sphere=False)
+        xy = _find_topomap_coords(info, picks=range(info['nchan']),
+                                  ignore_overlap=True)
         return generate_2d_layout(xy, ch_names=info['ch_names'], name='custom',
                                   normalize=False)
 
@@ -582,7 +582,8 @@ def _box_size(points, width=None, height=None, padding=0.0):
     return width, height
 
 
-def _find_topomap_coords(info, picks, layout=None):
+def _find_topomap_coords(info, picks, layout=None, ignore_overlap=False,
+                         to_sphere=True):
     """Guess the E/MEG layout and return appropriate topomap coordinates.
 
     Parameters
@@ -608,7 +609,8 @@ def _find_topomap_coords(info, picks, layout=None):
         pos = [layout.pos[layout.names.index(ch['ch_name'])] for ch in chs]
         pos = np.asarray(pos)
     else:
-        pos = _auto_topomap_coords(info, picks)
+        pos = _auto_topomap_coords(
+            info, picks, ignore_overlap=ignore_overlap, to_sphere=to_sphere)
 
     return pos
 
@@ -709,11 +711,13 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
                          ' which causes problems during visualization:\n' +
                          ', '.join(problematic_electrodes))
 
+    # XXX this is where the magic happens
     if to_sphere:
         # use spherical (theta, pol) as (r, theta) for polar->cartesian
-        return _pol_to_cart(_cart_to_sph(locs3d)[:, 1:][:, ::-1])
-
-    return _pol_to_cart(_cart_to_sph(locs3d))
+        out = _pol_to_cart(_cart_to_sph(locs3d)[:, 1:][:, ::-1])
+    else:
+        out = _pol_to_cart(_cart_to_sph(locs3d))
+    return out
 
 
 def _topo_to_sphere(pos, eegs):
