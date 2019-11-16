@@ -209,3 +209,25 @@ epochs['Tapping/Right'].average(picks='hbo').plot_topomap(times=times)
 
 epochs['Tapping/Left'].average(picks='hbr').plot_topomap(times=times)
 epochs['Tapping/Right'].average(picks='hbr').plot_topomap(times=times)
+
+###############################################################################
+# And we can plot the comparison at a single time point for two conditions.
+
+fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(8, 5))
+vmin, vmax, ts = -12, 12, 8.0
+epochs['Tapping/Left'].average(picks='hbo').\
+    plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 0],
+                 vmin=vmin, vmax=vmax, colorbar=False)
+epochs['Tapping/Left'].average(picks='hbr').\
+    plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 0],
+                 vmin=vmin, vmax=vmax, colorbar=False)
+epochs['Tapping/Right'].average(picks='hbo').\
+    plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 1],
+                 vmin=vmin, vmax=vmax, colorbar=False)
+epochs['Tapping/Right'].average(picks='hbr').\
+    plot_topomap(ch_type='hbr', times=ts,
+                 axes=axes[1, 1], vmin=vmin, vmax=vmax, colorbar=True)
+for column, condition in enumerate(['Tapping Left', 'Tapping Right']):
+    axes[0, column].set_title('{}: {}'.format(condition,
+                                              axes[0, column].get_title()))
+    axes[1, column].set_title('')
