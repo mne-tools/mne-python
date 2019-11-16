@@ -41,7 +41,7 @@ def _prepare_topo_plot(inst, ch_type, layout):
         layout = find_layout(info)  # XXX : why not passing ch_type???
     elif layout == 'auto':
         layout = None
-    if ch_type in ['hbo', 'hbr']:
+    if ch_type in ['hbo', 'hbr', 'fnirs_raw', 'fnirs_od']:
         # The naming for nirs is very specific and should not be modified
         clean_ch_names = info['ch_names']
     else:
@@ -70,7 +70,7 @@ def _prepare_topo_plot(inst, ch_type, layout):
         elif ch_type == 'csd':
             picks = pick_types(info, meg=False, csd=True, ref_meg=False,
                                exclude='bads')
-        elif ch_type in ['hbo', 'hbr']:
+        elif ch_type in ['hbo', 'hbr', 'fnirs_raw', 'fnirs_od']:
             picks = pick_types(info, meg=False, ref_meg=False,
                                fnirs=True, exclude='bads')
         else:
