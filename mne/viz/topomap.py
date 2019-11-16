@@ -813,25 +813,19 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                    aspect='equal', extent=(xmin, xmax, ymin, ymax),
                    interpolation=image_interp)
 
-    # This tackles an incomprehensible matplotlib bug if no contours are
-    # drawn. To avoid rescalings, we will always draw contours.
-    # But if no contours are desired we only draw one and make it invisible .
+    # gh-1432 had a workaround for no contours here, but we'll remove it
+    # because mpl has probably fixed it
     linewidth = mask_params['markeredgewidth']
-    no_contours = False
+    cont = True
     if isinstance(contours, (np.ndarray, list)):
-        pass  # contours precomputed
-    elif contours == 0:
-        contours, no_contours = 1, True
-    if (Zi == Zi[0, 0]).all():
+        pass
+    elif contours == 0 or (Zi == Zi[0, 0]).all():
         cont = None  # can't make contours for constant-valued functions
-    else:
+    if cont:
         with warnings.catch_warnings(record=True):
             warnings.simplefilter('ignore')
             cont = ax.contour(Xi, Yi, Zi, contours, colors='k',
                               linewidths=linewidth / 2.)
-    if no_contours and cont is not None:
-        for col in cont.collections:
-            col.set_visible(False)
 
     if patch_ is not None:
         im.set_clip_path(patch_)
