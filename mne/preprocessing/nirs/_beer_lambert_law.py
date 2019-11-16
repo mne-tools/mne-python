@@ -64,7 +64,7 @@ def _channel_frequencies(raw):
     picks = _picks_to_idx(raw.info, 'fnirs_od')
     freqs = np.empty(picks.size, int)
     for ii in picks:
-        ch_name_info = re.match(r'S(\d+)-D(\d+) (\d+)',
+        ch_name_info = re.match(r'S(\d+)_D(\d+) (\d+)',
                                 raw.info['chs'][ii]['ch_name'])
         freqs[ii] = ch_name_info.groups()[2]
     return freqs
@@ -76,9 +76,9 @@ def _check_channels_ordered(raw, freqs):
     # and have the specified light frequencies.
     picks = _picks_to_idx(raw.info, 'fnirs_od')
     for ii in picks[::2]:
-        ch1_name_info = re.match(r'S(\d+)-D(\d+) (\d+)',
+        ch1_name_info = re.match(r'S(\d+)_D(\d+) (\d+)',
                                  raw.info['chs'][ii]['ch_name'])
-        ch2_name_info = re.match(r'S(\d+)-D(\d+) (\d+)',
+        ch2_name_info = re.match(r'S(\d+)_D(\d+) (\d+)',
                                  raw.info['chs'][ii + 1]['ch_name'])
 
         if (ch1_name_info.groups()[0] != ch2_name_info.groups()[0]) or \

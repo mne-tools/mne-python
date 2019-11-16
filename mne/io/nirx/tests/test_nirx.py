@@ -34,9 +34,9 @@ def test_nirx_15_2_short():
     assert raw.info['sfreq'] == 12.5
 
     # Test channel naming
-    assert raw.info['ch_names'][:4] == ["S1-D1 760", "S1-D1 850",
-                                        "S1-D9 760", "S1-D9 850"]
-    assert raw.info['ch_names'][24:26] == ["S5-D13 760", "S5-D13 850"]
+    assert raw.info['ch_names'][:4] == ["S1_D1 760", "S1_D1 850",
+                                        "S1_D9 760", "S1_D9 850"]
+    assert raw.info['ch_names'][24:26] == ["S5_D13 760", "S5_D13 850"]
 
     # Test info import
     assert raw.info['subject_info'] == dict(sex=1, first_name="MNE",
@@ -119,8 +119,8 @@ def test_nirx_15_2():
     assert raw.info['sfreq'] == 3.90625
 
     # Test channel naming
-    assert raw.info['ch_names'][:4] == ["S1-D1 760", "S1-D1 850",
-                                        "S1-D10 760", "S1-D10 850"]
+    assert raw.info['ch_names'][:4] == ["S1_D1 760", "S1_D1 850",
+                                        "S1_D10 760", "S1_D10 850"]
 
     # Test info import
     assert raw.info['subject_info'] == dict(sex=1, first_name="TestRecording")
@@ -153,12 +153,12 @@ def test_nirx_15_0():
     assert raw.info['sfreq'] == 6.25
 
     # Test channel naming
-    assert raw.info['ch_names'][:12] == ["S1-D1 760", "S1-D1 850",
-                                         "S2-D2 760", "S2-D2 850",
-                                         "S3-D3 760", "S3-D3 850",
-                                         "S4-D4 760", "S4-D4 850",
-                                         "S5-D5 760", "S5-D5 850",
-                                         "S6-D6 760", "S6-D6 850"]
+    assert raw.info['ch_names'][:12] == ["S1_D1 760", "S1_D1 850",
+                                         "S2_D2 760", "S2_D2 850",
+                                         "S3_D3 760", "S3_D3 850",
+                                         "S4_D4 760", "S4_D4 850",
+                                         "S5_D5 760", "S5_D5 850",
+                                         "S6_D6 760", "S6_D6 850"]
 
     # Test info import
     assert raw.info['subject_info'] == {'first_name': 'NIRX',
