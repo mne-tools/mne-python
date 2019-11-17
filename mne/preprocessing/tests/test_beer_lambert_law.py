@@ -68,6 +68,6 @@ def test_beer_lambert_v_matlab():
                              raw._data[idx])
         assert mean_error < 0.1
         matlab_name = ("S" + str(int(matlab_data['sources'][idx])) +
-                       "-D" + str(int(matlab_data['detectors'][idx])) +
+                       "_D" + str(int(matlab_data['detectors'][idx])) +
                        " " + matlab_data['type'][idx])
         assert raw.info['ch_names'][idx] == matlab_name
