@@ -69,7 +69,7 @@ def _prepare_topo_plot(inst, ch_type, layout):
                                exclude='bads')
         elif ch_type in ['hbo', 'hbr', 'fnirs_raw', 'fnirs_od']:
             picks = pick_types(info, meg=False, ref_meg=False,
-                               fnirs=True, exclude='bads')
+                               fnirs=ch_type, exclude='bads')
         else:
             picks = pick_types(info, meg=ch_type, ref_meg=False,
                                exclude='bads')
