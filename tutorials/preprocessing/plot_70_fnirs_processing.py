@@ -231,3 +231,53 @@ for column, condition in enumerate(['Tapping Left', 'Tapping Right']):
     axes[0, column].set_title('{}: {}'.format(condition,
                                               axes[0, column].get_title()))
     axes[1, column].set_title('')
+
+fig, axes = plt.subplots(nrows=2, ncols=4, figsize=(9, 5))
+vmin, vmax, ts = -8, 8, 9.0
+epochs['Tapping/Left'].average(picks='hbo').plot_topomap(ch_type='hbo',
+                                                         times=ts,
+                                                         axes=axes[0, 0],
+                                                         vmin=vmin,
+                                                         vmax=vmax,
+                                                         colorbar=False)
+epochs['Tapping/Left'].average(picks='hbr').plot_topomap(ch_type='hbr',
+                                                         times=ts,
+                                                         axes=axes[1, 0],
+                                                         vmin=vmin,
+                                                         vmax=vmax,
+                                                         colorbar=False)
+epochs['Tapping/Right'].average(picks='hbo').plot_topomap(ch_type='hbo',
+                                                          times=ts,
+                                                          axes=axes[0, 1],
+                                                          vmin=vmin,
+                                                          vmax=vmax,
+                                                          colorbar=False)
+epochs['Tapping/Right'].average(picks='hbr').plot_topomap(ch_type='hbr',
+                                                          times=ts,
+                                                          axes=axes[1, 1],
+                                                          vmin=vmin,
+                                                          vmax=vmax,
+                                                          colorbar=False)
+
+left, right = epochs["Tapping/Left"].average(picks='hbo'), epochs[
+    "Tapping/Right"].average(picks='hbo')
+mne.combine_evoked([left, -right], weights='equal').plot_topomap(ch_type='hbo',
+                                                                 times=ts,
+                                                                 axes=axes[
+                                                                     0, 2],
+                                                                 vmin=vmin,
+                                                                 vmax=vmax)
+left, right = epochs["Tapping/Left"].average(picks='hbr'), epochs[
+    "Tapping/Right"].average(picks='hbr')
+mne.combine_evoked([left, -right], weights='equal').plot_topomap(ch_type='hbr',
+                                                                 times=ts,
+                                                                 axes=axes[
+                                                                     1, 2],
+                                                                 vmin=vmin,
+                                                                 vmax=vmax,
+                                                                 colorbar=True)
+
+for column, condition in enumerate(
+        ['Tapping Left', 'Tapping Right', 'Left-Right']):
+    for row, chroma in enumerate(['HbO', 'HbR']):
+        axes[row, column].set_title('{}: {}'.format(chroma, condition))
