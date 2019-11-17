@@ -42,6 +42,7 @@ def _prepare_topo_plot(inst, ch_type, layout):
     elif layout == 'auto':
         layout = None
     clean_ch_names = _clean_names(info['ch_names'])
+
     for ii, this_ch in enumerate(info['chs']):
         this_ch['ch_name'] = clean_ch_names[ii]
     info['bads'] = _clean_names(info['bads'])
@@ -1639,6 +1640,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     mask_params = _handle_default('mask_params', mask_params)
     mask_params['markersize'] *= size / 2.
     mask_params['markeredgewidth'] *= size / 2.
+
     picks, pos, merge_grads, names, ch_type = _prepare_topo_plot(
         evoked, ch_type, layout)
 
