@@ -228,12 +228,12 @@ evoked_right.plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 1],
 evoked_right.plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 1],
                           vmin=vmin, vmax=vmax, colorbar=False)
 
-mne.combine_evoked([evoked_left, -evoked_right], weights='equal').\
-    plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 2],
-                 vmin=vmin, vmax=vmax)
-mne.combine_evoked([evoked_left, -evoked_right], weights='equal').\
-    plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 2],
-                 vmin=vmin, vmax=vmax, colorbar=True)
+evoked_diff = mne.combine_evoked([evoked_left, -evoked_right], weights='equal')
+
+evoked_diff.plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 2],
+                         vmin=vmin, vmax=vmax)
+evoked_diff.plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 2],
+                         vmin=vmin, vmax=vmax, colorbar=True)
 
 for column, condition in enumerate(
         ['Tapping Left', 'Tapping Right', 'Left-Right']):
