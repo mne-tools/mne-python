@@ -313,7 +313,8 @@ class _Renderer(_BaseRenderer):
                                scale=scale,
                                factor=factor,
                                geom=geom,
-                               rng=[vmin, vmax]),
+                               rng=[vmin, vmax],
+                               clamping=True),
                     color=color,
                     cmap=colormap,
                     opacity=opacity,
@@ -446,6 +447,9 @@ class _Renderer(_BaseRenderer):
         pts = self.plotter.renderer.GetActors().GetLastItem()
 
         return _Projection(xy=xy, pts=pts)
+
+    def enable_depth_peeling(self):
+        self.plotter.enable_depth_peeling()
 
 
 def _deg2rad(deg):

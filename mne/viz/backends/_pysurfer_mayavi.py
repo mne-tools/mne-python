@@ -278,6 +278,10 @@ class _Renderer(_BaseRenderer):
 
         return _Projection(xy=xy, pts=pts)
 
+    def enable_depth_peeling(self):
+        if self.fig.scene is not None:
+            self.fig.scene.renderer.use_depth_peeling = True
+
 
 def _mlab_figure(**kwargs):
     """Create a Mayavi figure using our defaults."""

@@ -871,6 +871,10 @@ class _Brain(object):
         """Scale the data colormap."""
         pass
 
+    def enable_depth_peeling(self):
+        """Enable depth peeling."""
+        self._renderer.enable_depth_peeling()
+
 
 def _update_limits(fmin, fmid, fmax, center, array):
     if center is None:

@@ -2343,6 +2343,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                         for f in ff:
                             if f.scene is not None:
                                 f.scene.renderer.use_depth_peeling = True
+            else:
+                brain.enable_depth_peeling()
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
                                   fmax=scale_pts[2], **sd_kwargs)
 
