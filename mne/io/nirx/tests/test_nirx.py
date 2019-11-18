@@ -38,6 +38,10 @@ def test_nirx_15_2_short():
                                         "S1_D9 760", "S1_D9 850"]
     assert raw.info['ch_names'][24:26] == ["S5_D13 760", "S5_D13 850"]
 
+    # Test frequency encoding
+    assert raw.info['chs'][0]['loc'][9] == 760
+    assert raw.info['chs'][1]['loc'][9] == 850
+
     # Test info import
     assert raw.info['subject_info'] == dict(sex=1, first_name="MNE",
                                             middle_name="Test",
