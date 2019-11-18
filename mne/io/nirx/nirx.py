@@ -198,7 +198,7 @@ class RawNIRX(BaseRaw):
             list = [str.format(i) for i in list]
             return(list)
         snames = prepend(sources[req_ind], 'S')
-        dnames = prepend(detectors[req_ind], '-D')
+        dnames = prepend(detectors[req_ind], '_D')
         sdnames = [m + str(n) for m, n in zip(snames, dnames)]
         sd1 = [s + ' ' + str(fnirs_wavelengths[0]) for s in sdnames]
         sd2 = [s + ' ' + str(fnirs_wavelengths[1]) for s in sdnames]

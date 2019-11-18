@@ -73,7 +73,8 @@ def _get_ch_type(inst, ch_type, allow_ref_meg=False):
     then grads, then ... to plot.
     """
     if ch_type is None:
-        allowed_types = ['mag', 'grad', 'planar1', 'planar2', 'eeg', 'csd']
+        allowed_types = ['mag', 'grad', 'planar1', 'planar2', 'eeg', 'csd',
+                         'fnirs_raw', 'fnirs_od', 'hbo', 'hbr']
         allowed_types += ['ref_meg'] if allow_ref_meg else []
         for type_ in allowed_types:
             if isinstance(inst, Info):

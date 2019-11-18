@@ -17,6 +17,7 @@ Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 # sphinx_gallery_thumbnail_number = 3
 
 import os
+import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
@@ -162,7 +163,7 @@ for column, condition in enumerate(['Control', 'Tapping']):
 # Plot standard fNIRS response image
 # ----------------------------------
 #
-# Finally we generate the most common visualisation of fNIRS data, plotting
+# Next we generate the most common visualisation of fNIRS data, plotting
 # both the HbO and HbR on the same figure to illustrate the relation between
 # the two signals.
 
@@ -180,3 +181,61 @@ styles_dict = dict(Control=dict(linestyle='dashed'))
 
 mne.viz.plot_compare_evokeds(evoked_dict, combine="mean", ci=0.95,
                              colors=color_dict, styles=styles_dict)
+
+
+###############################################################################
+# View topographic representation of activity
+# -------------------------------------------
+#
+# Next we view how the topographic activity changes throughout the response.
+
+times = np.arange(-3.5, 13.2, 3.0)
+epochs['Tapping'].average(picks='hbo').plot_joint(times=times)
+
+
+###############################################################################
+# Compare tapping of left and right hands
+# ---------------------------------------
+#
+# Finally we generate topo maps for the left and right conditions to view
+# the location of activity. First we visualise the HbO activity.
+
+times = np.arange(4.0, 11.0, 1.0)
+epochs['Tapping/Left'].average(picks='hbo').plot_topomap(times=times)
+epochs['Tapping/Right'].average(picks='hbo').plot_topomap(times=times)
+
+###############################################################################
+# And we also view the HbR activity for the two conditions.
+
+epochs['Tapping/Left'].average(picks='hbr').plot_topomap(times=times)
+epochs['Tapping/Right'].average(picks='hbr').plot_topomap(times=times)
+
+###############################################################################
+# And we can plot the comparison at a single time point for two conditions.
+
+fig, axes = plt.subplots(nrows=2, ncols=4, figsize=(9, 5))
+vmin, vmax, ts = -8, 8, 9.0
+
+evoked_left = epochs['Tapping/Left'].average()
+evoked_right = epochs['Tapping/Right'].average()
+
+evoked_left.plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 0],
+                         vmin=vmin, vmax=vmax, colorbar=False)
+evoked_left.plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 0],
+                         vmin=vmin, vmax=vmax, colorbar=False)
+evoked_right.plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 1],
+                          vmin=vmin, vmax=vmax, colorbar=False)
+evoked_right.plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 1],
+                          vmin=vmin, vmax=vmax, colorbar=False)
+
+evoked_diff = mne.combine_evoked([evoked_left, -evoked_right], weights='equal')
+
+evoked_diff.plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 2],
+                         vmin=vmin, vmax=vmax)
+evoked_diff.plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 2],
+                         vmin=vmin, vmax=vmax, colorbar=True)
+
+for column, condition in enumerate(
+        ['Tapping Left', 'Tapping Right', 'Left-Right']):
+    for row, chroma in enumerate(['HbO', 'HbR']):
+        axes[row, column].set_title('{}: {}'.format(chroma, condition))
