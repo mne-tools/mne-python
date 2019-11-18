@@ -218,7 +218,6 @@ def test_read_write_info(tmpdir):
         info['gantry_angle'] = 0.  # Elekta supine position
     gantry_angle = info['gantry_angle']
 
-    meas_id = info['meas_id']
     write_info(temp_file, info)
     info = read_info(temp_file)
     assert info['proc_history'][0]['creator'] == creator
@@ -227,9 +226,6 @@ def test_read_write_info(tmpdir):
     assert info['gantry_angle'] == gantry_angle
     assert info['subject_info']['height'] == 2.3
     assert info['subject_info']['weight'] == 11.1
-    for key in ['secs', 'usecs', 'version']:
-        assert info['meas_id'][key] == meas_id[key]
-    assert_array_equal(info['meas_id']['machid'], meas_id['machid'])
 
     # Test that writing twice produces the same file
     m1 = hashlib.md5()
