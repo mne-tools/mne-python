@@ -778,7 +778,6 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     xlim = np.inf, -np.inf,
     ylim = np.inf, -np.inf,
     mask_ = np.c_[outlines['mask_pos']]
-    print(outlines['mask_pos'][0].max())
     xmin, xmax = (np.min(np.r_[xlim[0], mask_[:, 0]]),
                   np.max(np.r_[xlim[1], mask_[:, 0]]))
     ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1]]),
