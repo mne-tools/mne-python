@@ -131,7 +131,7 @@ class Forward(dict):
         -----
         Operates in-place.
 
-        .. versionadded:: 0.20
+        .. versionadded:: 0.20.0
         """
         return pick_channels_forward(self, ch_names, exclude=[],
                                      ordered=ordered, copy=False,
