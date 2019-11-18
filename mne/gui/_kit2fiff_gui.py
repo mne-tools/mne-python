@@ -35,7 +35,7 @@ from ..io.kit.kit import (RawKIT, KIT, _make_stim_channel, _default_stim_chs,
 from ..transforms import (apply_trans, als_ras_trans,
                           get_ras_to_neuromag_trans, Transform)
 from ..coreg import _decimate_points, fit_matched_points
-from ._backend import _check_pyface_backend
+from ._backend import _get_pyface_backend
 from ..event import _find_events
 from ._marker_gui import CombineMarkersPanel, CombineMarkersModel
 from ._help import read_tooltips
@@ -44,7 +44,7 @@ from ._viewer import HeadViewController, PointObject
 
 use_editor = CheckListEditor(cols=5, values=[(i, str(i)) for i in range(5)])
 
-if _check_pyface_backend()[0] == 'wx':
+if _get_pyface_backend() == 'wx':
     # wx backend allows labels for wildcards
     hsp_wildcard = ['Head Shape Points (*.hsp;*.txt)|*.hsp;*.txt']
     elp_wildcard = ['Head Shape Fiducials (*.elp;*.txt)|*.elp;*.txt']

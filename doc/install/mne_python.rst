@@ -39,7 +39,21 @@ conda to ``/home/user/anaconda3``)::
 .. collapse:: |hand-stop-o| If you get an error or these look incorrect...
     :class: danger
 
-    **If you see something like**::
+    .. rubric:: If you are on a |windows| Windows command prompt:
+
+    Most of our instructions start with ``$``, which indicates
+    that the commands are designed to be run from a Bash command prompt.
+
+    Windows command prompts to not expose the same command-line tools as Bash
+    shells, so things like ``which`` will not work, and you need to use
+    alternatives, such as::
+
+        > where mne
+        C:\Users\mneuser\Anaconda3\Scripts\mne
+
+    .. rubric:: If you see something like:
+
+    ::
 
         conda: command not found
 
@@ -71,7 +85,9 @@ conda to ``/home/user/anaconda3``)::
     are using (bash, tcsh, etc.), add the line to that shell's ``rc`` or
     ``profile`` file to fix the problem.
 
-    **If you see an error like**::
+    .. rubric:: If you see an error like:
+
+    ::
 
         CommandNotFoundError: Your shell has not been properly configured to use 'conda activate'.
 
@@ -149,7 +165,7 @@ Testing MNE-Python installation
 To make sure MNE-Python installed itself and its dependencies correctly,
 type the following command in a terminal::
 
-    $ python -c 'import mne; mne.sys_info()'
+    $ python -c "import mne; mne.sys_info()"
 
 This should display some system information along with the versions of
 MNE-Python and its dependencies. Typical output looks like this::
@@ -178,13 +194,16 @@ MNE-Python and its dependencies. Typical output looks like this::
 .. collapse:: |hand-stop-o| If you get an error...
     :class: danger
 
-    **If you see an error like**::
+    .. rubric:: If you see an error like:
+
+    ::
 
         Traceback (most recent call last):
           File "<string>", line 1, in <module>
         ModuleNotFoundError: No module named 'mne'
 
-    This suggests that your ``mne`` environment is not active. Try doing
+    This suggests that your environment containing ``mne`` is not active.
+    If you installed to the ``mne`` instead of ``base`` environment, try doing
     ``conda activate mne`` and try again. If this works, you might want to
     add ``conda activate mne`` to the end of your ``~/.bashrc`` or
     ``~/.bash_profile`` files so that it gets executed automatically.
