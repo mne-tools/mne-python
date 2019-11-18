@@ -57,7 +57,7 @@ class Forward(dict):
     ch_names : list of str
         List of channels' names.
 
-        ..versionadded 0.20.0
+        .. versionadded:: 0.20.0
     """
 
     def copy(self):

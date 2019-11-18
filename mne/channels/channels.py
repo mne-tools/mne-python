@@ -106,10 +106,10 @@ def equalize_channels(instances, copy=False, verbose=None):
         CrossSpectralDensity or Info.
     copy : bool
         When dropping and/or re-ordering channels, an object will be copied
-        when this parameter is set to ``True`` (the default). When set to
-        ``False`` the dropping and re-ordering of channels happens in-place.
+        when this parameter is set to ``True``. When set to ``False`` (the
+        default) the dropping and re-ordering of channels happens in-place.
 
-        ..versionadded 0.20
+        .. versionadded:: 0.20.0
     %(verbose)s
 
     Returns
