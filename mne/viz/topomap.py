@@ -819,7 +819,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     cont = True
     if isinstance(contours, (np.ndarray, list)):
         pass
-    elif contours == 0 or (Zi == Zi[0, 0]).all():
+    elif contours == 0 or ((Zi == Zi[0, 0]) | np.isnan(Zi)).all():
         cont = None  # can't make contours for constant-valued functions
     if cont:
         with warnings.catch_warnings(record=True):
