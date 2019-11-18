@@ -22,8 +22,8 @@ from mne.io import (read_info, read_raw_fif, read_raw_ctf, read_raw_bti,
                     read_raw_eeglab, read_raw_kit, RawArray)
 from mne.io.constants import FIFF
 from mne.utils import _TempDir, run_tests_if_main
-from mne import (pick_types, pick_channels, EpochsArray, make_ad_hoc_cov,
-                 create_info)
+from mne import (pick_types, pick_channels, EpochsArray, EvokedArray,
+                 make_ad_hoc_cov, create_info)
 from mne.datasets import testing
 
 io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
@@ -330,14 +330,33 @@ def test_equalize_channels():
     cov = make_ad_hoc_cov(create_info(['CH2', 'CH1', 'CH8'], sfreq=1.,
                                       ch_types='eeg'))
     cov['bads'] = ['CH1']
+    ave = EvokedArray([[1.], [2.]], create_info(['CH1', 'CH2'], sfreq=1.))
 
-    equalize_channels([epochs, raw, cov])
+    raw2, epochs2, cov2, ave2 = equalize_channels([raw, epochs, cov, ave])
 
-    # Raw defines the most channels, so should have been used as template for
-    # the ordering of the channels. No bad channels should have been dropped.
-    assert raw.ch_names == ['CH1', 'CH2']
-    assert epochs.ch_names == ['CH1', 'CH2']
-    assert cov.ch_names == ['CH1', 'CH2']
+    # The Raw object was the first in the list, so should have been used as
+    # template for the ordering of the channels. No bad channels should have
+    # been dropped.
+    assert raw2.ch_names == ['CH1', 'CH2']
+    assert_array_equal(raw2.get_data(), [[1.], [2.]])
+    assert epochs2.ch_names == ['CH1', 'CH2']
+    assert_array_equal(epochs2.get_data(), [[[3.], [2.]]])
+    assert cov2.ch_names == ['CH1', 'CH2']
+    assert cov2['bads'] == cov['bads']
+    assert ave2.ch_names == ave.ch_names
+    assert_array_equal(ave2.data, ave.data)
+
+    # All objects should have been copied, except for the Evoked object which
+    # did not have to be touched.
+    assert raw is not raw2
+    assert epochs is not epochs2
+    assert cov is not cov2
+    assert ave is ave2
+
+    # Test in-place operation
+    raw2, epochs2 = equalize_channels([raw, epochs], copy=False)
+    assert raw is raw2
+    assert epochs is epochs2
 
 
-run_tests_if_main()
+# run_tests_if_main()

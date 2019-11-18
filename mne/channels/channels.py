@@ -90,22 +90,33 @@ def _get_ch_type(inst, ch_type, allow_ref_meg=False):
 
 
 @verbose
-def equalize_channels(candidates, verbose=None):
+def equalize_channels(instances, copy=True, verbose=None):
     """Equalize channel picks and ordering across multiple MNE-Python objects.
 
     First, all channels that are not common to each object are dropped. Then,
-    using the ordering of the object that originally defined the most channels
-    as a template, the channels of each object are re-ordered to match the
-    template. The end result is that all given objects define the same
-    channels, in the same order.
+    using the first object in the list as a template, the channels of each
+    object are re-ordered to match the template. The end result is that all
+    given objects define the same channels, in the same order.
 
     Parameters
     ----------
-    candidates : list
+    instances : list
         A list of MNE-Python objects to equalize the channels for. Objects can
         be of type Raw, Epochs, Evoked, AverageTFR, Forward, Covariance,
         CrossSpectralDensity or Info.
+    copy : bool
+        When dropping and/or re-ordering channels, an object will be copied
+        when this parameter is set to ``True`` (the default). When set to
+        ``False`` the dropping and re-ordering of channels happens in-place.
+
+        ..versionadded 0.20
     %(verbose)s
+
+    Returns
+    -------
+    equalized_instances : list
+        A list of MNE-Python objects that have the same channels defined in the
+        same order.
 
     Notes
     -----
@@ -125,14 +136,13 @@ def equalize_channels(candidates, verbose=None):
                      Covariance, CrossSpectralDensity, Info)
     allowed_types_str = ("Raw, Epochs, Evoked, TFR, Forward, Covariance, "
                          "CrossSpectralDensity or Info")
-    for candidate in candidates:
-        _validate_type(candidate, allowed_types, "Instances to be modified",
+    for inst in instances:
+        _validate_type(inst, allowed_types, "Instances to be modified",
                        allowed_types_str)
 
-    chan_max_idx = np.argmax([len(c.ch_names) for c in candidates])
-    chan_template = candidates[chan_max_idx].ch_names
+    chan_template = instances[0].ch_names
     logger.info('Identifying common channels ...')
-    channels = [set(c.ch_names) for c in candidates]
+    channels = [set(inst.ch_names) for inst in instances]
     common_channels = set(chan_template).intersection(*channels)
     all_channels = set(chan_template).union(*channels)
     dropped = list(set(all_channels - common_channels))
@@ -141,11 +151,25 @@ def equalize_channels(candidates, verbose=None):
     order = np.argsort([chan_template.index(ch) for ch in common_channels])
     common_channels = np.array(list(common_channels))[order].tolist()
 
-    for c in candidates:
-        c.pick_channels(common_channels, ordered=True)
+    # Update all instances to match the common_channels list
+    reordered = False
+    equalized_instances = []
+    for inst in instances:
+        # Only perform picking when needed
+        if inst.ch_names != common_channels:
+            if copy:
+                inst = inst.copy()
+            inst.pick_channels(common_channels, ordered=True)
+            if len(inst.ch_names) == len(common_channels):
+                reordered = True
+        equalized_instances.append(inst)
 
     if dropped:
         logger.info('Dropped the following channels:\n%s' % dropped)
+    elif reordered:
+        logger.info('Channels have been re-ordered.')
+
+    return equalized_instances
 
 
 class ContainsMixin(object):
