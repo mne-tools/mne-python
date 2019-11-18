@@ -17,6 +17,7 @@ Bug
 
 - Fix handling of missing values (NaNs) in :func:`mne.time_frequency.psd_welch` by `Clemens Brunner`_
 
+- Fix Windows command-line utility ``mne`` use by `Eric Larson`_
 
 Version 0.19.1
 --------------
