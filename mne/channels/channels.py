@@ -550,7 +550,8 @@ class SetChannelsMixin(object):
 
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,
                      show_names=False, ch_groups=None, to_sphere=True,
-                     axes=None, block=False, show=True):
+                     axes=None, block=False, show=True,
+                     sphere=HEAD_SIZE_DEFAULT, verbose=None):
         """Plot sensor positions.
 
         Parameters
@@ -602,6 +603,8 @@ class SetChannelsMixin(object):
 
         show : bool
             Show figure if True. Defaults to True.
+        %(topomap_sphere_auto)s
+        %(verbose)s
 
         Returns
         -------
@@ -626,7 +629,7 @@ class SetChannelsMixin(object):
         return plot_sensors(self.info, kind=kind, ch_type=ch_type, title=title,
                             show_names=show_names, ch_groups=ch_groups,
                             to_sphere=to_sphere, axes=axes, block=block,
-                            show=show)
+                            show=show, sphere=sphere, verbose=verbose)
 
     @copy_function_doc_to_method_doc(anonymize_info)
     def anonymize(self, daysback=None, keep_his=False, verbose=None):

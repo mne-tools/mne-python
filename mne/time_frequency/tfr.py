@@ -1794,7 +1794,7 @@ class AverageTFR(_BaseTFR):
                      colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
                      axes=None, show=True, outlines='head', head_pos=None,
-                     contours=6, head_radius=HEAD_SIZE_DEFAULT):
+                     contours=6, sphere=HEAD_SIZE_DEFAULT):
         """Plot topographic maps of time-frequency intervals of TFR data.
 
         Parameters
@@ -1900,7 +1900,7 @@ class AverageTFR(_BaseTFR):
             inaccurate, use array for accuracy). If an array, the values
             represent the levels for the contours. If colorbar=True, the ticks
             in colorbar correspond to the contour levels. Defaults to 6.
-        %(topomap_head_radius_auto)s
+        %(topomap_sphere_auto)s
 
         Returns
         -------
@@ -1916,7 +1916,7 @@ class AverageTFR(_BaseTFR):
                                 cbar_fmt=cbar_fmt, show_names=show_names,
                                 title=title, axes=axes, show=show,
                                 outlines=outlines, head_pos=head_pos,
-                                contours=contours, head_radius=head_radius)
+                                contours=contours, sphere=sphere)
 
     def _check_compat(self, tfr):
         """Check that self and tfr have the same time-frequency ranges."""

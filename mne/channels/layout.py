@@ -19,7 +19,8 @@ from ..transforms import _pol_to_cart, _cart_to_sph
 from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
 from ..io.meas_info import Info
-from ..utils import _clean_names, warn, _check_ch_locs, fill_doc, _check_option
+from ..utils import (_clean_names, warn, _check_ch_locs, fill_doc,
+                     _check_option, _check_sphere)
 from .channels import _get_ch_info, HEAD_SIZE_DEFAULT
 
 
@@ -582,7 +583,7 @@ def _box_size(points, width=None, height=None, padding=0.0):
 
 
 def _find_topomap_coords(info, picks, layout=None, ignore_overlap=False,
-                         to_sphere=True, head_radius=HEAD_SIZE_DEFAULT):
+                         to_sphere=True, sphere=HEAD_SIZE_DEFAULT):
     """Guess the E/MEG layout and return appropriate topomap coordinates.
 
     Parameters
@@ -595,6 +596,8 @@ def _find_topomap_coords(info, picks, layout=None, ignore_overlap=False,
         Enforce using a specific layout. With None, a new map is generated
         and a layout is chosen based on the channels in the picks
         parameter.
+    sphere : array-like | str
+        Definition of the head sphere.
 
     Returns
     -------
@@ -610,12 +613,12 @@ def _find_topomap_coords(info, picks, layout=None, ignore_overlap=False,
     else:
         pos = _auto_topomap_coords(
             info, picks, ignore_overlap=ignore_overlap, to_sphere=to_sphere,
-            head_radius=head_radius)
+            sphere=sphere)
 
     return pos
 
 
-def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, head_radius):
+def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
     """Make a 2 dimensional sensor map from sensor positions in an info dict.
 
     The default is to use the electrode locations. The fallback option is to
@@ -634,6 +637,8 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, head_radius):
     to_sphere : bool
         If True, the radial distance of spherical coordinates is ignored, in
         effect fitting the xyz-coordinates to a sphere. Defaults to True.
+    sphere : array-like | str
+        The head sphere definition.
 
     Returns
     -------
@@ -641,6 +646,7 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, head_radius):
         An array of positions of the 2 dimensional map.
     """
     from scipy.spatial.distance import pdist, squareform
+    sphere = _check_sphere(sphere, info)
 
     picks = _picks_to_idx(info, picks, 'all', exclude=(), allow_empty=False)
     chs = [info['chs'][i] for i in picks]
@@ -708,10 +714,13 @@ def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, head_radius):
                          ', '.join(problematic_electrodes))
 
     if to_sphere:
+        # translate to sphere origin, transform/flatten Z, translate back
+        locs3d -= sphere[:3]
         # use spherical (theta, pol) as (r, theta) for polar->cartesian
         out = _pol_to_cart(_cart_to_sph(locs3d)[:, 1:][:, ::-1])
         # scale from radians to mm
-        out *= (head_radius / (np.pi / 2.))
+        out *= (sphere[3] / (np.pi / 2.))
+        out += sphere[:2]
     else:
         out = _pol_to_cart(_cart_to_sph(locs3d))
     return out

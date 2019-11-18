@@ -26,7 +26,7 @@ from ..fixes import _remove_duplicate_rows
 from ..io.pick import (pick_types, _picks_by_type, channel_type, pick_info,
                        _pick_data_channels, pick_channels, _picks_to_idx)
 from ..utils import (_clean_names, _time_mask, verbose, logger, warn, fill_doc,
-                     _validate_type, _check_head_radius)
+                     _validate_type, _check_sphere)
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times, DraggableColorbar,
@@ -368,34 +368,34 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
     return fig
 
 
-def _make_head_outlines(head_radius, pos, outlines='head', head_pos=None):
+def _make_head_outlines(sphere, pos, outlines='head', head_pos=None):
     """Check or create outlines for topoplot."""
-    assert isinstance(head_radius, float)
-    radius = head_radius
-    del head_radius
+    assert isinstance(sphere, np.ndarray)
+    x, y, _, radius = sphere
+    del sphere
     if head_pos is not None:
         warn('head_pos is deprecated and will be removed in 0.21. '
-             'It is no longer used, use head_radius instead.',
+             'It is no longer used, use sphere instead.',
              DeprecationWarning)
 
     if outlines in ('head', 'skirt', None):
         ll = np.linspace(0, 2 * np.pi, 101)
-        head_x = np.cos(ll) * radius
-        head_y = np.sin(ll) * radius
+        head_x = np.cos(ll) * radius + x
+        head_y = np.sin(ll) * radius + y
         dx = np.exp(np.arccos(np.deg2rad(12)) * 1j)
         dx, dy = dx.real, dx.imag
-        nose_x = np.array([-dx, 0, dx]) * radius
-        nose_y = np.array([dy, 1.15, dy]) * radius
+        nose_x = np.array([-dx, 0, dx]) * radius + x
+        nose_y = np.array([dy, 1.15, dy]) * radius + y
         ear_x = np.array([.497, .510, .518, .5299, .5419, .54, .547,
                           .532, .510, .489]) * (radius * 2)
         ear_y = np.array([.0555, .0775, .0783, .0746, .0555, -.0055, -.0932,
-                          -.1313, -.1384, -.1199]) * (radius * 2)
+                          -.1313, -.1384, -.1199]) * (radius * 2) + y
 
         if outlines is not None:
             # Define the outline of the head, ears and nose
             outlines_dict = dict(head=(head_x, head_y), nose=(nose_x, nose_y),
-                                 ear_left=(ear_x, ear_y),
-                                 ear_right=(-ear_x, ear_y))
+                                 ear_left=(ear_x + x, ear_y),
+                                 ear_right=(-ear_x + x, ear_y))
         else:
             outlines_dict = dict()
 
@@ -403,10 +403,10 @@ def _make_head_outlines(head_radius, pos, outlines='head', head_pos=None):
         mask_scale = 1.25 if outlines == 'skirt' else 1.
         outlines_dict['mask_pos'] = (mask_scale * head_x, mask_scale * head_y)
         clip_radius = radius * mask_scale
-        # XXX Someday we might want to ensure it always contains our most
-        # extremely positioned channels, in which case we could do:
-        # clip_radius = max(clip_radius,
-        #                   np.linalg.norm(pos, axis=1).max() * 1.01)
+        # We probably want to ensure it always contains our most
+        # extremely positioned channels, so we do:
+        clip_radius = max(clip_radius,
+                          np.linalg.norm(pos, axis=1).max() * 1.01)
         outlines_dict['clip_radius'] = (clip_radius,) * 2
         outlines = outlines_dict
 
@@ -431,16 +431,16 @@ def _draw_outlines(ax, outlines):
     return outlines_
 
 
-def _get_extra_points(pos, method, head_radius):
+def _get_extra_points(pos, method, sphere):
     """Get coordinates of additinal interpolation points.
 
-    If head_radius is None, returns coordinates of convex hull of channel
+    If sphere is None, returns coordinates of convex hull of channel
     positions, expanded by the median inter-channel distance.
     Otherwise gives positions of points on the head circle placed with a step
     of median inter-channel distance.
     """
     from scipy.spatial.qhull import Delaunay
-    assert head_radius is not None
+    x, y, _, radius = sphere
 
     # the old method of placement - large box
     if method == 'box':
@@ -521,10 +521,10 @@ def _get_extra_points(pos, method, head_radius):
         new_pos = np.concatenate([hull_extended] + add_points)
     else:
         # return points on the head circle
-        angle = np.arcsin(distance / 2 / head_radius) * 2
+        angle = np.arcsin(distance / 2 / radius) * 2
         points_l = np.arange(0, 2 * np.pi, angle)
-        points_x = np.cos(points_l) * head_radius
-        points_y = np.sin(points_l) * head_radius
+        points_x = np.cos(points_l) * radius + x
+        points_y = np.sin(points_l) * radius + y
         new_pos = np.stack([points_x, points_y], axis=1)
         if colinear:
             tri = Delaunay(np.concatenate([pos, new_pos], axis=0))
@@ -541,11 +541,11 @@ class _GridData(object):
     to be set independently.
     """
 
-    def __init__(self, pos, method='box', head_radius=None):
+    def __init__(self, pos, method='box', sphere=None):
         # in principle this works in N dimensions, not just 2
         assert pos.ndim == 2 and pos.shape[1] == 2, pos.shape
         # Adding points outside the extremes helps the interpolators
-        outer_pts, tri = _get_extra_points(pos, method, head_radius)
+        outer_pts, tri = _get_extra_points(pos, method, sphere)
         self.n_extra = outer_pts.shape[0]
         self.tri = tri
 
@@ -585,11 +585,12 @@ def _topomap_plot_sensors(pos_x, pos_y, sensors, ax):
         ax.plot(pos_x, pos_y, sensors)
 
 
-def _get_pos_outlines(info, picks, head_radius, to_sphere=True):
+def _get_pos_outlines(info, picks, sphere, to_sphere=True):
+    sphere = _check_sphere(sphere)
     pos = _find_topomap_coords(
         info, picks, ignore_overlap=True, to_sphere=to_sphere,
-        head_radius=head_radius)
-    outlines = _make_head_outlines(head_radius, pos)
+        sphere=sphere)
+    outlines = _make_head_outlines(sphere, pos)
     return pos, outlines
 
 
@@ -599,7 +600,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                  mask_params=None, outlines='head',
                  contours=6, image_interp='bilinear', show=True,
                  head_pos=None, onselect=None, extrapolate='box',
-                 head_radius=HEAD_SIZE_DEFAULT):
+                 sphere=HEAD_SIZE_DEFAULT):
     """Plot a topographic map as image.
 
     Parameters
@@ -675,7 +676,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         distance).
 
         .. versionadded:: 0.18
-    %(topomap_head_radius)s
+    %(topomap_sphere)s
 
     Returns
     -------
@@ -684,12 +685,12 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     cn : matplotlib.contour.ContourSet
         The fieldlines.
     """
-    head_radius = _check_head_radius(head_radius)
+    sphere = _check_sphere(sphere)
     return _plot_topomap(data, pos, vmin, vmax, cmap, sensors, res, axes,
                          names, show_names, mask, mask_params, outlines,
                          contours, image_interp, show,
                          head_pos, onselect, extrapolate,
-                         head_radius=head_radius)[:2]
+                         sphere=sphere)[:2]
 
 
 def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
@@ -697,7 +698,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                   mask_params=None, outlines='head',
                   contours=6, image_interp='bilinear', show=True,
                   head_pos=None, onselect=None, extrapolate='box',
-                  head_radius=HEAD_SIZE_DEFAULT):
+                  sphere=HEAD_SIZE_DEFAULT):
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
     data = np.asarray(data)
@@ -764,7 +765,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         cmap = 'Reds' if norm else 'RdBu_r'
 
     outlines = _make_head_outlines(
-        head_radius, pos, outlines=outlines, head_pos=head_pos)
+        sphere, pos, outlines=outlines, head_pos=head_pos)
     assert isinstance(outlines, dict)
 
     ax = axes if axes else plt.gca()
@@ -788,7 +789,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     xi = np.linspace(xmin, xmax, res)
     yi = np.linspace(ymin, ymax, res)
     Xi, Yi = np.meshgrid(xi, yi)
-    interp = _GridData(pos, extrapolate, head_radius).set_values(data)
+    interp = _GridData(pos, extrapolate, sphere).set_values(data)
     Zi = interp.set_locations(Xi, Yi)()
 
     # plot outline
@@ -878,14 +879,14 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
                       title=None, show=True, outlines='head', contours=6,
                       image_interp='bilinear', head_pos=None, axes=None,
                       sensors=True, allow_ref_meg=False, extrapolate='box',
-                      head_radius=HEAD_SIZE_DEFAULT):
+                      sphere=HEAD_SIZE_DEFAULT):
     """Plot single ica map to axes."""
     from matplotlib.axes import Axes
 
     if ica.info is None:
         raise RuntimeError('The ICA\'s measurement info is missing. Please '
                            'fit the ICA or add the corresponding info object.')
-    head_radius = _check_head_radius(head_radius, ica.info)
+    sphere = _check_sphere(sphere, ica.info)
     if not isinstance(axes, Axes):
         raise ValueError('axis has to be an instance of matplotlib Axes, '
                          'got %s instead.' % type(axes))
@@ -907,7 +908,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
         data.ravel(), pos, vmin=vmin_, vmax=vmax_, res=res, axes=axes,
         cmap=cmap, outlines=outlines, contours=contours, sensors=sensors,
         image_interp=image_interp, show=show, extrapolate=extrapolate,
-        head_pos=head_pos, head_radius=head_radius)[0]
+        head_pos=head_pos, sphere=sphere)[0]
     if colorbar:
         cbar, cax = _add_colorbar(axes, im, cmap, pad=.05, title="AU",
                                   format='%3.2f')
@@ -924,7 +925,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                         image_interp='bilinear', head_pos=None,
                         inst=None, plot_std=True, topomap_args=None,
                         image_args=None, psd_args=None, reject='auto',
-                        head_radius=HEAD_SIZE_DEFAULT):
+                        sphere=HEAD_SIZE_DEFAULT):
     """Project unmixing matrix on interpolated sensor topography.
 
     Parameters
@@ -1010,7 +1011,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         If None, no rejection is applied. The default is 'auto',
         which applies the rejection parameters used when fitting
         the ICA object.
-    %(topomap_head_radius_auto)s
+    %(topomap_sphere_auto)s
 
     Returns
     -------
@@ -1033,7 +1034,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         raise RuntimeError('The ICA\'s measurement info is missing. Please '
                            'fit the ICA or add the corresponding info object.')
 
-    head_radius = _check_head_radius(head_radius, ica.info)
+    sphere = _check_sphere(sphere, ica.info)
 
     if picks is None:  # plot components by sets of 20
         ch_type = _get_ch_type(ica, ch_type)
@@ -1147,7 +1148,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
                      colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
                      axes=None, show=True, outlines='head', head_pos=None,
-                     contours=6, head_radius=HEAD_SIZE_DEFAULT):
+                     contours=6, sphere=HEAD_SIZE_DEFAULT):
     """Plot topographic maps of specific time-frequency intervals of TFR data.
 
     Parameters
@@ -1249,7 +1250,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         array for accuracy). If an array, the values represent the levels for
         the contours. If colorbar=True, the ticks in colorbar correspond to the
         contour levels. Defaults to 6.
-    %(topomap_head_radius_auto)s
+    %(topomap_sphere_auto)s
 
     Returns
     -------
@@ -1258,7 +1259,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     """  # noqa: E501
     import matplotlib.pyplot as plt
     ch_type = _get_ch_type(tfr, ch_type)
-    head_radius = _check_head_radius(head_radius, tfr.info)
+    sphere = _check_sphere(sphere, tfr.info)
 
     picks, pos, merge_grads, names, _ = _prepare_topo_plot(tfr, ch_type,
                                                            layout)
@@ -1351,7 +1352,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                         mask_params=None, outlines='head', contours=6,
                         image_interp='bilinear', average=None, head_pos=None,
                         axes=None, extrapolate='box',
-                        head_radius=HEAD_SIZE_DEFAULT):
+                        sphere=HEAD_SIZE_DEFAULT):
     """Plot topographic maps of specific time points of evoked data.
 
     Parameters
@@ -1484,7 +1485,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         distance).
 
         .. versionadded:: 0.18
-    %(topomap_head_radius_auto)s
+    %(topomap_sphere_auto)s
 
     Returns
     -------
@@ -1496,7 +1497,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     from matplotlib.widgets import Slider
     from ..evoked import Evoked
     _validate_type(evoked, Evoked, 'evoked')
-    head_radius = _check_head_radius(head_radius, evoked.info)
+    sphere = _check_sphere(sphere, evoked.info)
     ch_type = _get_ch_type(evoked, ch_type)
 
     time_unit, _ = _check_time_unit(time_unit, evoked.times)
@@ -1637,7 +1638,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                   show_names=show_names, cmap=cmap[0], mask_params=mask_params,
                   outlines=outlines, contours=contours, head_pos=head_pos,
                   image_interp=image_interp, show=False,
-                  extrapolate=extrapolate, head_radius=head_radius)
+                  extrapolate=extrapolate, sphere=sphere)
     for idx, time in enumerate(times):
         tp, cn, interp = _plot_topomap(
             data[:, idx], pos, axes=axes[idx],
@@ -1725,7 +1726,7 @@ def _slider_changed(val, ax, data, times, pos, scaling, func, time_format,
 def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
                              vmax=None, cmap=None, outlines='head',
                              colorbar=False, cbar_fmt='%3.3f',
-                             head_radius=HEAD_SIZE_DEFAULT):
+                             sphere=HEAD_SIZE_DEFAULT):
     """Plot topomap multi cbar."""
     _hide_frame(ax)
     vmin = np.min(data) if vmin is None else vmin
@@ -1736,8 +1737,7 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
         ax.set_title(title, fontsize=10)
     im, _ = plot_topomap(data, pos, vmin=vmin, vmax=vmax, axes=ax,
                          cmap=cmap[0], image_interp='bilinear', contours=0,
-                         outlines=outlines, show=False,
-                         head_radius=head_radius)
+                         outlines=outlines, show=False, sphere=sphere)
 
     if colorbar is True:
         cbar, cax = _add_colorbar(ax, im, cmap, pad=.25, title=None,
@@ -1869,7 +1869,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
 def plot_psds_topomap(
         psds, freqs, pos, agg_fun=None, vmin=None, vmax=None, bands=None,
         cmap=None, dB=True, normalize=False, cbar_fmt='%0.3f', outlines='head',
-        axes=None, show=True, head_radius=HEAD_SIZE_DEFAULT):
+        axes=None, show=True, sphere=HEAD_SIZE_DEFAULT):
     """Plot spatial maps of PSDs.
 
     Parameters
@@ -1923,7 +1923,7 @@ def plot_psds_topomap(
         will be created automatically. Defaults to None.
     show : bool
         Show figure if True.
-    %(topomap_head_radius)s
+    %(topomap_sphere)s
 
     Returns
     -------
@@ -1931,7 +1931,7 @@ def plot_psds_topomap(
         Figure distributing one image per channel across sensor topography.
     """
     import matplotlib.pyplot as plt
-    head_radius = _check_head_radius(head_radius)
+    sphere = _check_sphere(sphere)
 
     if bands is None:
         bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
@@ -1968,7 +1968,7 @@ def plot_psds_topomap(
         _plot_topomap_multi_cbar(data, pos, ax, title=title, vmin=vmin,
                                  vmax=vmax, cmap=cmap, outlines=outlines,
                                  colorbar=True, unit=unit, cbar_fmt=cbar_fmt,
-                                 head_radius=head_radius)
+                                 sphere=sphere)
     tight_layout(fig=fig)
     fig.canvas.draw()
     plt_show(show)
@@ -2105,7 +2105,7 @@ def _hide_frame(ax):
     ax.set_frame_on(False)
 
 
-def _init_anim(ax, ax_line, ax_cbar, params, merge_grads, head_radius):
+def _init_anim(ax, ax_line, ax_cbar, params, merge_grads, sphere):
     """Initialize animated topomap."""
     from matplotlib import pyplot as plt, patches
     logger.info('Initializing animation...')
@@ -2128,7 +2128,7 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads, head_radius):
 
     vmin, vmax = _setup_vmin_vmax(data, None, None, norm)
 
-    outlines = _make_head_outlines(head_radius, params['pos'])
+    outlines = _make_head_outlines(sphere, params['pos'])
 
     _hide_frame(ax)
     xlim = np.inf, -np.inf,
@@ -2145,7 +2145,7 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads, head_radius):
     Xi, Yi = np.meshgrid(xi, yi)
     params['Zis'] = list()
 
-    interp = _GridData(params['pos'], 'box', head_radius)
+    interp = _GridData(params['pos'], 'box', sphere)
     for frame in params['frames']:
         params['Zis'].append(interp.set_values(data[:, frame])(Xi, Yi))
     Zi = params['Zis'][0]
@@ -2252,12 +2252,13 @@ def _key_press(event, params):
 
 
 def _topomap_animation(evoked, ch_type, times, frame_rate, butterfly, blit,
-                       show, time_unit, head_radius):
+                       show, time_unit, sphere):
     """Make animation of evoked data as topomap timeseries.
 
     See mne.evoked.Evoked.animate_topomap.
     """
     from matplotlib import pyplot as plt, animation
+    sphere = _check_sphere(sphere, evoked.info)
     if ch_type is None:
         ch_type = _picks_by_type(evoked.info)[0][0]
     if ch_type not in ('mag', 'grad', 'eeg'):
@@ -2299,7 +2300,7 @@ def _topomap_animation(evoked, ch_type, times, frame_rate, butterfly, blit,
                   pause=False, times=times, time_unit=time_unit)
     init_func = partial(_init_anim, ax=ax, ax_cbar=ax_cbar, ax_line=ax_line,
                         params=params, merge_grads=merge_grads,
-                        head_radius=head_radius)
+                        sphere=sphere)
     animate_func = partial(_animate, ax=ax, ax_line=ax_line, params=params)
     pause_func = partial(_pause_anim, params=params)
     fig.canvas.mpl_connect('button_press_event', pause_func)
@@ -2402,7 +2403,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
                   names=None, show_names=False, mask=None, mask_params=None,
                   outlines='head', contours=6, image_interp='bilinear',
                   show=True, head_pos=None, onselect=None,
-                  extrapolate='box', head_radius=HEAD_SIZE_DEFAULT):
+                  extrapolate='box', sphere=HEAD_SIZE_DEFAULT):
     """Plot arrow map.
 
     Compute arrowmaps, based upon the Hosaka-Cohen transformation [1]_,
@@ -2490,7 +2491,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
         distance).
 
         .. versionadded:: 0.18
-    %(topomap_head_radius_auto)s
+    %(topomap_sphere_auto)s
 
     Returns
     -------
@@ -2511,7 +2512,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
     from matplotlib import pyplot as plt
     from ..forward import _map_meg_channels
 
-    head_radius = _check_head_radius(head_radius, info_from)
+    sphere = _check_sphere(sphere, info_from)
     ch_type = _picks_by_type(info_from)
 
     if len(ch_type) > 1:

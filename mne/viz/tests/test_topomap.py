@@ -138,7 +138,7 @@ def test_plot_topomap_animation():
 
 
 @pytest.mark.slowtest
-def test_plot_topomap():
+def test_plot_topomap_basic():
     """Test basics of topomap plotting."""
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0))

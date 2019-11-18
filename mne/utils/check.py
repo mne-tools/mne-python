@@ -582,16 +582,34 @@ def _check_pyqt5_version():
     return version
 
 
-def _check_head_radius(head_radius, info=None):
-    from ..bem import fit_sphere_to_headshape
-    if info is None:
-        _validate_type(head_radius, 'numeric', 'head_radius')
-    else:
-        _validate_type(head_radius, ('numeric', str), 'head_radius')
-        if isinstance(head_radius, str):
-            if head_radius != 'auto':
-                raise ValueError('head_radius, if str, must be "auto", got %r'
-                                 % (head_radius))
-            head_radius, _, _ = fit_sphere_to_headshape(
-                info, verbose=False, units='m', move_origin=False)
-    return float(head_radius)
+def _check_sphere(sphere, info=None, sphere_units='m'):
+    from ..bem import fit_sphere_to_headshape, ConductorModel
+    if isinstance(sphere, str):
+        if sphere != 'auto':
+            raise ValueError('sphere, if str, must be "auto", got %r'
+                             % (sphere))
+        R, r0, _ = fit_sphere_to_headshape(info, verbose=False, units='m')
+        sphere = tuple(r0) + (R,)
+        sphere_units = 'm'
+    elif isinstance(sphere, ConductorModel):
+        if not sphere['is_sphere'] or len(sphere['layers']) == 0:
+            raise ValueError('sphere, if a ConductorModel, must be spherical '
+                             'with multiple layers, not a BEM or single-layer '
+                             'sphere (got %s)' % (sphere,))
+        sphere = tuple(sphere['r0']) + (sphere['layers'][0]['rad'],)
+        sphere_units = 'm'
+    sphere = np.array(sphere, dtype=float)
+    if sphere.shape == ():
+        sphere = np.concatenate([[0.] * 3, [sphere]])
+    if sphere.shape != (4,):
+        raise ValueError('sphere must be float or 1D array of shape (4,), got '
+                         'array-like of shape %s' % (sphere.shape,))
+    # 0.21 deprecation can just remove this conversion
+    if sphere_units is None:
+        sphere_units = 'mm'
+    _check_option('sphere_units', sphere_units, ('m', 'mm'))
+    if sphere_units == 'mm':
+        sphere /= 1000.
+
+    sphere = np.array(sphere, float)
+    return sphere

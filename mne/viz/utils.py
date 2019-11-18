@@ -37,7 +37,7 @@ from ..io.meas_info import create_info
 from ..rank import compute_rank
 from ..io.proj import setup_proj
 from ..utils import (verbose, get_config, set_config, warn, _check_ch_locs,
-                     _check_option, logger, fill_doc, _pl, _check_head_radius)
+                     _check_option, logger, fill_doc, _pl, _check_sphere)
 
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
@@ -1498,10 +1498,11 @@ def _process_times(inst, use_times, n_peaks=None, few=False):
     return use_times
 
 
-@fill_doc
+@verbose
 def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                  show_names=False, ch_groups=None, to_sphere=True, axes=None,
-                 block=False, show=True, head_radius=HEAD_SIZE_DEFAULT):
+                 block=False, show=True, sphere=HEAD_SIZE_DEFAULT,
+                 verbose=None):
     """Plot sensors positions.
 
     Parameters
@@ -1551,7 +1552,8 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         .. versionadded:: 0.13.0
     show : bool
         Show figure if True. Defaults to True.
-    %(topomap_head_radius)s
+    %(topomap_sphere)s
+    %(verbose)s
 
     Returns
     -------
@@ -1643,7 +1645,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     title = 'Sensor positions (%s)' % ch_type if title is None else title
     fig = _plot_sensors(pos, info, picks, colors, bads, ch_names, title,
                         show_names, axes, show, kind, block,
-                        to_sphere, head_radius)
+                        to_sphere, sphere)
     if kind == 'select':
         return fig, fig.lasso.selection
     return fig
@@ -1680,13 +1682,12 @@ def _close_event(event, fig):
 
 
 def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
-                  ax, show, kind, block, to_sphere, head_radius):
+                  ax, show, kind, block, to_sphere, sphere):
     """Plot sensors."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
     from .topomap import _get_pos_outlines, _draw_outlines
-    head_radius = _check_head_radius(head_radius, info)
-    assert isinstance(head_radius, float)
+    sphere = _check_sphere(sphere, info)
 
     edgecolors = np.repeat('black', len(colors))
     edgecolors[bads] = 'red'
@@ -1713,7 +1714,7 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
     else:  # kind in 'select', 'topomap'
         ax.text(0, 0, '', zorder=1)
 
-        pos, outlines = _get_pos_outlines(info, picks, head_radius,
+        pos, outlines = _get_pos_outlines(info, picks, sphere,
                                           to_sphere=to_sphere)
         _draw_outlines(ax, outlines)
         pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, clip_on=False,
@@ -1728,6 +1729,7 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
         fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
                             hspace=None)
         ax.axis("off")  # remove border around figure
+    del sphere
 
     connect_picker = True
     if show_names:
@@ -1740,7 +1742,8 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
             if kind == '3d':
                 ax.text(this_pos[0], this_pos[1], this_pos[2], ch_names[idx])
             else:
-                ax.text(this_pos[0] + 0.015, this_pos[1], ch_names[idx])
+                ax.text(this_pos[0] + 0.0025, this_pos[1], ch_names[idx],
+                        ha='left', va='center')
         connect_picker = (kind == 'select')
     if connect_picker:
         picker = partial(_onpick_sensor, fig=fig, ax=ax, pos=pos,
@@ -3110,11 +3113,11 @@ def _check_psd_fmax(inst, fmax):
 def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
               units_list, scalings_list, ax_list, make_label, color, area_mode,
               area_alpha, dB, estimate, average, spatial_colors, xscale,
-              line_alpha, head_radius):
+              line_alpha, sphere):
     # helper function for plot_raw_psd and plot_epochs_psd
     from matplotlib.ticker import ScalarFormatter
     from .evoked import _plot_lines
-    head_radius = _check_head_radius(head_radius, inst.info)
+    sphere = _check_sphere(sphere, inst.info)
 
     for key, ls in zip(['lowpass', 'highpass', 'line_freq'],
                        ['--', '--', '-.']):
@@ -3182,7 +3185,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
                     ylim=None, times=freqs, bad_ch_idx=[], titles=titles,
                     ch_types_used=ch_types_used, selectable=True, psd=True,
                     line_alpha=line_alpha, nave=None, time_unit='ms',
-                    head_radius=head_radius)
+                    sphere=sphere)
     for ii, ax in enumerate(ax_list):
         ax.grid(True, linestyle=':')
         if xscale == 'log':

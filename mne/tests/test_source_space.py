@@ -269,7 +269,8 @@ def test_volume_source_space(tmpdir):
     # Spheres
     sphere = make_sphere_model(r0=(0., 0., 0.), head_radius=0.1,
                                relative_radii=(0.9, 1.0), sigmas=(0.33, 1.0))
-    src = setup_volume_source_space(pos=10)
+    with pytest.deprecated_call(match='sphere_units'):
+        src = setup_volume_source_space(pos=10)
     src_new = setup_volume_source_space(pos=10, sphere=sphere)
     _compare_source_spaces(src, src_new, mode='exact')
     with pytest.raises(ValueError, match='could not convert string to float'):

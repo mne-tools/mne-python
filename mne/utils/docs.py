@@ -65,18 +65,25 @@ outlines : 'head' | 'skirt' | dict | None
 """
 docdict['topomap_head_pos'] = """
 head_pos : dict | None
-    Deprecated and will be removed in 0.21. Use ``head_radius`` instead.
+    Deprecated and will be removed in 0.21. Use ``sphere`` instead.
 """
-docdict['topomap_head_radius'] = """
-head_radius : float
-    The head radius to use for the cartoon head.
+docdict['topomap_sphere'] = """
+sphere : float | array-like | instance of ConductorModel
+    The sphere parameters to use for the cartoon head.
+    Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+    meters, or a single float to give the radius (origin assumed 0, 0, 0).
+    Can also be a spherical ConductorModel, which will use the origin and
+    radius.
 
     .. versionadded:: 0.20
 """
-docdict['topomap_head_radius_auto'] = """
-head_radius : float | str
-    The head radius to use for the cartoon head.
-    Can be "auto" to use a digitization-based fit.
+docdict['topomap_sphere_auto'] = """
+sphere : float | array-like | str
+    The sphere parameters to use for the cartoon head.
+    Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+    meters, or a single float to give the radius (origin assumed 0, 0, 0).
+    Can also be a spherical ConductorModel, which will use the origin and
+    radius. Can be "auto" to use a digitization-based fit.
 
     .. versionadded:: 0.20
 """
