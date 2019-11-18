@@ -125,23 +125,26 @@ def test_plot_projs_topomap():
     plt.close('all')
 
 
-@pytest.mark.slowtest
-@testing.requires_testing_data
-def test_plot_topomap():
+def test_plot_topomap_animation():
     """Test topomap plotting."""
     # evoked
-    res = 8
-    fast_test = dict(res=res, contours=0, sensors=False, time_unit='s')
-    fast_test_noscale = dict(res=res, contours=0, sensors=False)
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0))
-
     # Test animation
     _, anim = evoked.animate_topomap(ch_type='grad', times=[0, 0.1],
                                      butterfly=False, time_unit='s')
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     plt.close('all')
 
+
+@pytest.mark.slowtest
+def test_plot_topomap():
+    """Test basics of topomap plotting."""
+    evoked = read_evokeds(evoked_fname, 'Left Auditory',
+                          baseline=(None, 0))
+    res = 8
+    fast_test = dict(res=res, contours=0, sensors=False, time_unit='s')
+    fast_test_noscale = dict(res=res, contours=0, sensors=False)
     ev_bad = evoked.copy().pick_types(meg=False, eeg=True)
     ev_bad.pick_channels(ev_bad.ch_names[:2])
     plt_topomap = partial(ev_bad.plot_topomap, **fast_test)
