@@ -1699,7 +1699,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         vertices = stc.vertices[hemi_idx]
         if len(data) > 0:
             if transparent is None:
-                transparent = False
+                transparent = True
             kwargs = {
                 "array": data, "colormap": colormap,
                 "vertices": vertices,
