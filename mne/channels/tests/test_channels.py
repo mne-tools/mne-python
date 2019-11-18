@@ -332,7 +332,8 @@ def test_equalize_channels():
     cov['bads'] = ['CH1']
     ave = EvokedArray([[1.], [2.]], create_info(['CH1', 'CH2'], sfreq=1.))
 
-    raw2, epochs2, cov2, ave2 = equalize_channels([raw, epochs, cov, ave])
+    raw2, epochs2, cov2, ave2 = equalize_channels([raw, epochs, cov, ave],
+                                                  copy=True)
 
     # The Raw object was the first in the list, so should have been used as
     # template for the ordering of the channels. No bad channels should have
@@ -359,4 +360,4 @@ def test_equalize_channels():
     assert epochs is epochs2
 
 
-# run_tests_if_main()
+run_tests_if_main()
