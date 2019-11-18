@@ -101,9 +101,9 @@ def test_gamma_map_vol_sphere():
     info = evoked.info
     sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.080)
     src = mne.setup_volume_source_space(subject=None, pos=30., mri=None,
-                                        sphere=(0.0, 0.0, 0.0, 80.0),
+                                        sphere=(0.0, 0.0, 0.0, 0.08),
                                         bem=None, mindist=5.0,
-                                        exclude=2.0)
+                                        exclude=2.0, sphere_units='m')
     fwd = mne.make_forward_solution(info, trans=None, src=src, bem=sphere,
                                     eeg=False, meg=True)
 

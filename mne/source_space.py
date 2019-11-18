@@ -1487,7 +1487,7 @@ def setup_source_space(subject, spacing='oct6', surface='white',
 
 @verbose
 def setup_volume_source_space(subject=None, pos=5.0, mri=None,
-                              sphere=(0.0, 0.0, 0.0, 90.0), bem=None,
+                              sphere=None, bem=None,
                               surface=None, mindist=5.0, exclude=0.0,
                               subjects_dir=None, volume_label=None,
                               add_interpolator=True, sphere_units=None,
@@ -1521,6 +1521,8 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         by (ox, oy, oz, rad) in ``sphere_units``.
         Only used if ``bem`` and ``surface`` are both None. Can also be a
         spherical ConductorModel, which will use the origin and radius.
+        The default (None) is a temporary alias for ``(0.0, 0.0, 0.0, 0.09)``
+        in meters.
     bem : str | None | ConductorModel
         Define source space bounds using a BEM file (specifically the inner
         skull surface) or a ConductorModel for a 1-layer of 3-layers BEM.
@@ -1623,6 +1625,12 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
                                  'check  freesurfer lookup table.'
                                  % (label, mri))
 
+    if sphere is None:  # just allow this until deprecation is over
+        sphere = np.array((0.0, 0.0, 0.0, 90.0))
+        if isinstance(sphere_units, str) and sphere_units == 'm':
+            sphere /= 1000.
+        else:
+            sphere_units = 'mm'
     need_warn = sphere_units is None and not isinstance(sphere, ConductorModel)
     sphere = _check_sphere(sphere, sphere_units=sphere_units)
 

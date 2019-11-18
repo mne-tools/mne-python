@@ -2003,7 +2003,8 @@ def plot_layout(layout, picks=None, show=True):
                         hspace=None)
     ax.set(xticks=[], yticks=[], aspect='equal')
     pos = np.array([(p[0] + p[2] / 2., p[1] + p[3] / 2.) for p in layout.pos])
-    outlines = _make_head_outlines(0.5, pos)  # normalized
+    sphere = _check_sphere((0., 0., 0., 0.5))  # normalized
+    outlines = _make_head_outlines(sphere, pos)
     _draw_outlines(ax, outlines)
     picks = _picks_to_idx(len(layout.names), picks)
     pos = pos[picks]

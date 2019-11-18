@@ -287,8 +287,9 @@ def test_make_lcmv(tmpdir, reg, proj):
     # selection and rank reduction of the leadfield
     sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.080)
     src = mne.setup_volume_source_space(subject=None, pos=15., mri=None,
-                                        sphere=(0.0, 0.0, 0.0, 80.0),
-                                        bem=None, mindist=5.0, exclude=2.0)
+                                        sphere=(0.0, 0.0, 0.0, 0.08),
+                                        bem=None, mindist=5.0, exclude=2.0,
+                                        sphere_units='m')
 
     fwd_sphere = mne.make_forward_solution(evoked.info, trans=None, src=src,
                                            bem=sphere, eeg=False, meg=True)

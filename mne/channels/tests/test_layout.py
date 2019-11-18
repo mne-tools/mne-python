@@ -87,7 +87,7 @@ def test_find_topomap_coords():
 
     # Use channel locations
     kwargs = dict(ignore_overlap=False, to_sphere=True,
-                  head_radius=HEAD_SIZE_DEFAULT)
+                  sphere=HEAD_SIZE_DEFAULT)
     l0 = _find_topomap_coords(info, picks, **kwargs)
 
     # Remove electrode position information, use digitization points from now
