@@ -108,20 +108,20 @@ def test_plot_projs_topomap():
     plot_projs_topomap(projs, info=info, colorbar=True, **fast_test)
     plt.close('all')
     ax = plt.subplot(111)
-    projs[3].plot_topomap()
-    plot_projs_topomap(projs[:1], axes=ax, **fast_test)  # test axes param
+    projs[3].plot_topomap(info)
+    plot_projs_topomap(projs[:1], info, axes=ax, **fast_test)  # test axes
     plt.close('all')
-    plot_projs_topomap(read_info(triux_fname)['projs'][-1:], **fast_test)
+    triux_info = read_info(triux_fname)
+    plot_projs_topomap(triux_info['projs'][-1:], triux_info, **fast_test)
     plt.close('all')
-    plot_projs_topomap(read_info(triux_fname)['projs'][:1], ** fast_test)
+    plot_projs_topomap(triux_info['projs'][:1], triux_info, **fast_test)
     plt.close('all')
     eeg_avg = make_eeg_average_ref_proj(info)
-    pytest.raises(RuntimeError, eeg_avg.plot_topomap)  # no layout
-    eeg_avg.plot_topomap(info=info, **fast_test)
+    eeg_avg.plot_topomap(info, **fast_test)
     plt.close('all')
     # test vlims
     for vlim in ('joint', (-1, 1), (None, 0.5), (0.5, None), (None, None)):
-        plot_projs_topomap(projs[:-1], vlim=vlim, info=info, colorbar=True)
+        plot_projs_topomap(projs[:-1], info, vlim=vlim, colorbar=True)
     plt.close('all')
 
 
@@ -462,9 +462,9 @@ def test_plot_topomap_neuromag122():
                                 col_names=evoked.ch_names, data=np.ones(122)),
                       explained_var=0.5)
 
-    plot_projs_topomap([proj], info=evoked.info, **fast_test)
-    plot_projs_topomap([proj], layout=layout, **fast_test)
-    pytest.raises(RuntimeError, plot_projs_topomap, [proj], **fast_test)
+    plot_projs_topomap([proj], evoked.info, **fast_test)
+    with pytest.deprecated_call(match='layout'):
+        plot_projs_topomap([proj], evoked.info, layout=layout, **fast_test)
 
 
 run_tests_if_main()

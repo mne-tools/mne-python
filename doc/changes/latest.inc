@@ -159,7 +159,7 @@ API
 
 - The ``head_pos`` argument of :func:`mne.Evoked.plot_topomap` and related functions has been deprecated in favor of ``head_radius``, by `Eric Larson`_.
 
-- The ``layout`` argument to topomap-related functions such as :meth:`mne.Evoked.plot_topomap` and :func:`mne.viz.plot_tfr_topomap` has been deprecated in favor of channel-position based flattening based on the new ``sphere`` argument, by `Eric Larson`_.
+- The ``layout`` argument to topomap-related functions such as :meth:`mne.Evoked.plot_topomap` and :func:`mne.viz.plot_tfr_topomap` has been deprecated in favor of channel-position based flattening based on the ``info`` and ``sphere`` argument, by `Eric Larson`_.
 
 - The APIs of :meth:`mne.io.Raw.plot_projs_topomap`, :meth:`mne.Epochs.plot_projs_topomap` and :meth:`mne.Evoked.plot_projs_topomap` are now more similar to :func:`mne.viz.plot_projs_topomap` by `Daniel McCloy`_.
 

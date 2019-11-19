@@ -50,7 +50,6 @@ include_tmax : bool
 docdict["show"] = """
 show : bool
     Show figure if True."""
-# XXX need to update proj_topomap_kwargs below as well
 docdict['topomap_outlines'] = """
 outlines : 'head' | 'skirt' | dict | None
     The outlines to be drawn. If 'head', the default head scheme will be
@@ -432,66 +431,61 @@ spatial_colors : bool
 
 # plot_projs_topomap
 docdict["proj_topomap_kwargs"] = """
-    layout : None | Layout | list of Layout
-        Layout instance specifying sensor positions (does not need to be
-        specified for Neuromag data). Or a list of Layout if projections
-        are from different sensor types.
-    cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
-        Colormap to use. If tuple, the first value indicates the colormap to
-        use and the second value is a boolean defining interactivity. In
-        interactive mode (only works if ``colorbar=True``) the colors are
-        adjustable by clicking and dragging the colorbar with left and right
-        mouse button. Left mouse button moves the scale up and down and right
-        mouse button adjusts the range. Hitting space bar resets the range. Up
-        and down arrows can be used to change the colormap. If None (default),
-        'Reds' is used for all positive data, otherwise defaults to 'RdBu_r'.
-        If 'interactive', translates to (None, True).
-    sensors : bool | str
-        Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses). If True, a circle will be
-        used (via .add_artist). Defaults to True.
-    colorbar : bool
-        Plot a colorbar.
-    res : int
-        The resolution of the topomap image (n pixels along each side).
-    size : scalar
-        Side length of the topomaps in inches (only applies when plotting
-        multiple topomaps at a time).
-    show : bool
-        Show figure if True.
-    outlines : 'head' | 'skirt' | dict | None
-        The outlines to be drawn. If 'head', the default head scheme will be
-        drawn. If 'skirt' the head scheme will be drawn, but sensors are
-        allowed to be plotted outside of the head circle. If dict, each key
-        refers to a tuple of x and y positions, the values in 'mask_pos' will
-        serve as image mask.
-        Alternatively, a matplotlib patch object can be passed for advanced
-        masking options, either directly or as a function that returns patches
-        (required for multi-axis plots). If None, nothing will be drawn.
-        Defaults to 'head'.
-    contours : int | array of float
-        The number of contour lines to draw. If 0, no contours will be drawn.
-        When an integer, matplotlib ticker locator is used to find suitable
-        values for the contour thresholds (may sometimes be inaccurate, use
-        array for accuracy). If an array, the values represent the levels for
-        the contours. Defaults to 6.
-    image_interp : str
-        The image interpolation to be used. All matplotlib options are
-        accepted.
-    axes : instance of Axes | list | None
-        The axes to plot to. If list, the list must be a list of Axes of
-        the same length as the number of projectors. If instance of Axes,
-        there must be only one projector. Defaults to None.
-    vlim : tuple of length 2 | 'joint'
-        Colormap limits to use. If :class:`tuple`, specifies the lower and
-        upper bounds of the colormap (in that order); providing ``None`` for
-        either of these will set the corresponding boundary at the min/max of
-        the data (separately for each projector). The keyword value ``'joint'``
-        will compute the colormap limits jointly across all provided
-        projectors of the same channel type, using the min/max of the projector
-        data. If vlim is ``'joint'``, ``info`` must not be ``None``. Defaults
-        to ``(None, None)``.
-"""
+info : instance of Info
+    The info associated with the channels in the projectors.
+
+    .. versionchanged:: 0.20
+        The positional argument ``layout`` has been deprecated and replaced
+        by ``info``.
+cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+    Colormap to use. If tuple, the first value indicates the colormap to
+    use and the second value is a boolean defining interactivity. In
+    interactive mode (only works if ``colorbar=True``) the colors are
+    adjustable by clicking and dragging the colorbar with left and right
+    mouse button. Left mouse button moves the scale up and down and right
+    mouse button adjusts the range. Hitting space bar resets the range. Up
+    and down arrows can be used to change the colormap. If None (default),
+    'Reds' is used for all positive data, otherwise defaults to 'RdBu_r'.
+    If 'interactive', translates to (None, True).
+sensors : bool | str
+    Add markers for sensor locations to the plot. Accepts matplotlib plot
+    format string (e.g., 'r+' for red plusses). If True, a circle will be
+    used (via .add_artist). Defaults to True.
+colorbar : bool
+    Plot a colorbar.
+res : int
+    The resolution of the topomap image (n pixels along each side).
+size : scalar
+    Side length of the topomaps in inches (only applies when plotting
+    multiple topomaps at a time).
+show : bool
+    Show figure if True.
+%(topomap_outlines)s
+contours : int | array of float
+    The number of contour lines to draw. If 0, no contours will be drawn.
+    When an integer, matplotlib ticker locator is used to find suitable
+    values for the contour thresholds (may sometimes be inaccurate, use
+    array for accuracy). If an array, the values represent the levels for
+    the contours. Defaults to 6.
+image_interp : str
+    The image interpolation to be used. All matplotlib options are
+    accepted.
+axes : instance of Axes | list | None
+    The axes to plot to. If list, the list must be a list of Axes of
+    the same length as the number of projectors. If instance of Axes,
+    there must be only one projector. Defaults to None.
+vlim : tuple of length 2 | 'joint'
+    Colormap limits to use. If :class:`tuple`, specifies the lower and
+    upper bounds of the colormap (in that order); providing ``None`` for
+    either of these will set the corresponding boundary at the min/max of
+    the data (separately for each projector). The keyword value ``'joint'``
+    will compute the colormap limits jointly across all provided
+    projectors of the same channel type, using the min/max of the projector
+    data. If vlim is ``'joint'``, ``info`` must not be ``None``. Defaults
+    to ``(None, None)``.
+layout : None
+    Deprecated, will be removed in 0.20. Use ``info`` instead.
+""" % docdict
 
 # Montage
 docdict["montage_deprecated"] = """

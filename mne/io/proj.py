@@ -8,7 +8,6 @@
 from copy import deepcopy
 from itertools import count
 from math import sqrt
-import warnings
 
 import numpy as np
 from scipy import linalg
@@ -19,6 +18,7 @@ from .constants import FIFF
 from .pick import pick_types
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
+from ..defaults import HEAD_SIZE_DEFAULT
 from ..utils import logger, verbose, warn, fill_doc
 
 
@@ -35,10 +35,11 @@ class Projection(dict):
         return "<Projection  |  %s>" % s
 
     @fill_doc
-    def plot_topomap(self, layout=None, cmap=None, sensors=True,
+    def plot_topomap(self, info, cmap=None, sensors=True,
                      colorbar=False, res=64, size=1, show=True,
                      outlines='head', contours=6, image_interp='bilinear',
-                     axes=None, vlim=(None, None), info=None):
+                     axes=None, vlim=(None, None), layout=None,
+                     sphere=HEAD_SIZE_DEFAULT):
         """Plot topographic maps of SSP projections.
 
         Parameters
@@ -48,6 +49,7 @@ class Projection(dict):
             The measurement information to use to determine the layout. If both
             ``info`` and ``layout`` are provided, the layout will take
             precedence.
+        %(topomap_sphere_auto)s
 
         Returns
         -------
@@ -59,10 +61,10 @@ class Projection(dict):
         .. versionadded:: 0.15.0
         """  # noqa: E501
         from ..viz.topomap import plot_projs_topomap
-        with warnings.catch_warnings(record=True):  # tight_layout fails
-            return plot_projs_topomap(self, layout, cmap, sensors, colorbar,
-                                      res, size, show, outlines,
-                                      contours, image_interp, axes, vlim, info)
+        return plot_projs_topomap(self, info, cmap, sensors, colorbar,
+                                  res, size, show, outlines,
+                                  contours, image_interp, axes, vlim, layout,
+                                  sphere=sphere)
 
 
 class ProjMixin(object):

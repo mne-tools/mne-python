@@ -19,9 +19,8 @@ import numpy as np
 from ..baseline import rescale
 from ..channels.channels import HEAD_SIZE_DEFAULT, _get_ch_type
 from ..channels.layout import (
-    _find_topomap_coords, _merge_grad_data, find_layout, read_layout,
-    _pair_grad_sensors_ch_names_vectorview, _pair_grad_sensors,
-    _pair_grad_sensors_ch_names_neuromag122, Layout)
+    _find_topomap_coords, _merge_grad_data, find_layout, _pair_grad_sensors,
+    Layout)
 from ..fixes import _remove_duplicate_rows
 from ..io.pick import (pick_types, _picks_by_type, channel_type, pick_info,
                        _pick_data_channels, pick_channels, _picks_to_idx)
@@ -57,6 +56,12 @@ def _adjust_meg_sphere(sphere, info, ch_type):
     return sphere
 
 
+def _deprecate_layout(layout):
+    if layout is not None:
+        warn('Using a layout with topomaps is deprecated and will be removed '
+             'in 0.21', DeprecationWarning)
+
+
 def _prepare_topomap_plot(inst, ch_type, layout=None,
                           sphere=HEAD_SIZE_DEFAULT):
     """Prepare topo plot."""
@@ -64,9 +69,7 @@ def _prepare_topomap_plot(inst, ch_type, layout=None,
     sphere = _check_sphere(sphere, info)
     sphere = _adjust_meg_sphere(sphere, info, ch_type)
 
-    if layout is not None:
-        warn('Using a layout with topomaps is deprecated and will be removed '
-             'in 0.21', DeprecationWarning)
+    _deprecate_layout(layout)
     del layout
 
     clean_ch_names = _clean_names(info['ch_names'])
@@ -196,10 +199,10 @@ def _eliminate_zeros(proj):
 
 
 @fill_doc
-def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
+def plot_projs_topomap(projs, info, cmap=None, sensors=True,
                        colorbar=False, res=64, size=1, show=True,
                        outlines='head', contours=6, image_interp='bilinear',
-                       axes=None, vlim=(None, None), info=None,
+                       axes=None, vlim=(None, None), layout=None,
                        sphere=HEAD_SIZE_DEFAULT, extrapolate='box'):
     """Plot topographic maps of SSP projections.
 
@@ -208,9 +211,6 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
     projs : list of Projection
         The projections.
     %(proj_topomap_kwargs)s
-    info : instance of Info | None
-        The measurement information to use to determine the layout. If both
-        ``info`` and ``layout`` are provided, the layout will take precedence.
     %(topomap_sphere_auto)s
     %(topomap_extrapolate)s
 
@@ -232,24 +232,10 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
     if isinstance(projs, Projection):
         projs = [projs]
 
-    # argument checking
-    if info is None and vlim == 'joint':
-        raise ValueError("If vlim is 'joint', info must not be None.")
-    if info is not None and not isinstance(info, Info):
-        raise TypeError('info must be an instance of Info, got {}'
-                        .format(type(info)))
-    if info is None and layout is None:
-        layout = read_layout('Vectorview-all')
-    if isinstance(layout, Layout):
-        layout = [layout]
-    if layout is not None:
-        if not isinstance(layout, (list, tuple)):
-            raise TypeError('layout must be an instance of Layout, list, '
-                            'or None, got {}'.format(type(layout)))
-        for l in layout:
-            if not isinstance(l, Layout):
-                raise TypeError('All entries in layout list must be of type '
-                                'Layout, got type {}'.format(type(l)))
+    if isinstance(info, Layout) or layout is not None:
+        warn('layout is deprecated and no longer used. It will be removed in '
+             '0.21. Pass info instead.', DeprecationWarning)
+    _validate_type(info, 'info', 'info')
 
     types = []
     datas = []
@@ -268,71 +254,15 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
             assert len(these_ch_types) == 1
             types.append(list(these_ch_types)[0])
         data = proj['data']['data'].ravel()
-        # check layout
-        if layout is not None:
-            idx = []
-            for l in layout:
-                grad_pairs = None
-                # vectorview
-                if l.kind.startswith('Vectorview'):
-                    grad_pairs = \
-                        _pair_grad_sensors_ch_names_vectorview(ch_names)
-                    if grad_pairs:
-                        ch_names = [ch_names[i] for i in grad_pairs]
-                # neuromag 122
-                if l.kind.startswith('Neuromag_122'):
-                    grad_pairs = \
-                        _pair_grad_sensors_ch_names_neuromag122(ch_names)
-                    if grad_pairs:
-                        ch_names = [ch_names[i] for i in grad_pairs]
-                # make sure this layout has the channels in the current proj
-                l_names = _clean_names(l.names, remove_whitespace=True)
-                idx = [l_names.index(c) for c in ch_names if c in l_names]
-                if len(idx) == 0:
-                    continue
-                # handle grad pairs (if present)
-                pos = l.pos[idx]
-                if grad_pairs:
-                    shape = (len(idx) // 2, 2, -1)
-                    pos = pos.reshape(shape).mean(axis=1)
-                    data = _merge_grad_data(data[grad_pairs]).ravel()
-                break
-            # if we didn't find any matching layouts...
-            if len(idx) == 0:
-                if ch_names[0].startswith('EEG'):
-                    msg = ('Cannot find a proper layout for projection {}.'
-                           ' The proper layout of an EEG topomap cannot be'
-                           ' inferred from the data. '.format(proj['desc']))
-                    if layout is None and info is None:
-                        msg += (' For EEG data, valid `layout` or `info` is'
-                                ' required. None was provided, please consider'
-                                ' passing one of them.')
-                    elif info is None:
-                        msg += (' A `layout` was provided but could not be'
-                                ' used for display. Please review the `layout`'
-                                ' parameter.')
-                    else:  # layout is none, but we have info
-                        msg += (' The `info` parameter was provided but could'
-                                ' not be used for display. Please review the'
-                                ' `info` parameter.')
-                    raise RuntimeError(msg)
-                else:
-                    raise RuntimeError('Cannot find a proper layout for '
-                                       'projection {}, consider explicitly '
-                                       'passing a Layout or Info as the layout'
-                                       ' parameter.'.format(proj['desc']))
-            this_sphere = sphere.copy()
-        # get data / pos from info
-        elif info is not None:
-            info_names = _clean_names(info['ch_names'],
-                                      remove_whitespace=True)
-            use_info = pick_info(info, pick_channels(info_names, ch_names))
-            data_picks, pos, merge_grads, names, _, this_sphere = \
-                _prepare_topomap_plot(
-                    use_info, _get_ch_type(use_info, None), sphere=sphere)
-            data = data[data_picks]
-            if merge_grads:
-                data = _merge_grad_data(data).ravel()
+        info_names = _clean_names(info['ch_names'], remove_whitespace=True)
+        use_info = pick_info(info, pick_channels(info_names, ch_names))
+        data_picks, pos, merge_grads, names, _, this_sphere = \
+            _prepare_topomap_plot(
+                use_info, _get_ch_type(use_info, None), sphere=sphere)
+        data = data[data_picks]
+        if merge_grads:
+            data = _merge_grad_data(data).ravel()
+
         # populate containers
         datas.append(data)
         poses.append(pos)
@@ -382,13 +312,15 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
                           sensors=sensors, res=res, axes=ax,
                           outlines=outlines, contours=contours,
                           image_interp=image_interp, show=False,
-                          extrapolate='local', sphere=_sphere)[0]
+                          extrapolate=extrapolate, sphere=_sphere)[0]
 
         if colorbar:
             _add_colorbar(ax, im, cmap)
 
     fig = ax.get_figure()
-    tight_layout(fig=fig)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        tight_layout(fig=fig)
     plt_show(show)
     return fig
 
