@@ -112,11 +112,21 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
     code : int
         The return code, only returned if ``return_code == True``.
     """
+    all_out = ''
+    all_err = ''
     with running_subprocess(command, *args, **kwargs) as p:
-        stdout_, stderr = p.communicate()
-    stdout_ = u'' if stdout_ is None else stdout_.decode('utf-8')
-    stderr = u'' if stderr is None else stderr.decode('utf-8')
-    output = (stdout_, stderr)
+        while True:
+            out = p.stdout.readline().decode('utf-8')
+            err = p.stderr.readline().decode('utf-8')
+            if out == '' and err == '' and p.poll() is not None:
+                break
+            if out:
+                logger.info(out)
+            if err:
+                logger.warning(err)
+            all_out += out
+            all_err += err
+    output = (all_out, all_err)
 
     if return_code:
         output = output + (p.returncode,)
@@ -158,17 +168,9 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
     """
     _validate_type(after, str, 'after')
     _check_option('after', after, ['wait', 'terminate', 'kill', 'communicate'])
-    for stdxxx, sys_stdxxx, thresh in (
-            ['stderr', sys.stderr, logging.ERROR],
-            ['stdout', sys.stdout, logging.WARNING]):
-        if stdxxx not in kwargs and logger.level >= thresh:
+    for stdxxx, sys_stdxxx in (['stderr', sys.stderr], ['stdout', sys.stdout]):
+        if stdxxx not in kwargs:
             kwargs[stdxxx] = subprocess.PIPE
-        elif kwargs.get(stdxxx, sys_stdxxx) is sys_stdxxx:
-            if isinstance(sys_stdxxx, StringIO):
-                # nose monkey patches sys.stderr and sys.stdout to StringIO
-                kwargs[stdxxx] = subprocess.PIPE
-            else:
-                kwargs[stdxxx] = sys_stdxxx
 
     # Check the PATH environment variable. If run_subprocess() is to be called
     # frequently this should be refactored so as to only check the path once.
