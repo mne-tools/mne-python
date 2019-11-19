@@ -1067,10 +1067,10 @@ def _label_clicked(pos, params):
     fig, axes = _prepare_trellis(len(types), max_col=3)
     for ch_idx, ch_type in enumerate(types):
         try:
-            data_picks, pos, merge_grads, _, _ = _prepare_topomap_plot(
-                ica, ch_type)
+            data_picks, pos, merge_grads, _, _, this_sphere = \
+                _prepare_topomap_plot(ica, ch_type)
         except Exception as exc:
-            warn(exc)
+            warn(str(exc))
             plt.close(fig)
             return
         this_data = data[:, data_picks]
@@ -1080,7 +1080,8 @@ def _label_clicked(pos, params):
         for ii, data_ in zip(ic_idx, this_data):
             ax.set_title('%s %s' % (ica._ica_names[ii], ch_type), fontsize=12)
             data_ = _merge_grad_data(data_) if merge_grads else data_
-            plot_topomap(data_.flatten(), pos, axes=ax, show=False)
+            plot_topomap(data_.flatten(), pos, axes=ax, show=False,
+                         sphere=this_sphere)
             _hide_frame(ax)
     tight_layout(fig=fig)
     fig.subplots_adjust(top=0.88, bottom=0.)
