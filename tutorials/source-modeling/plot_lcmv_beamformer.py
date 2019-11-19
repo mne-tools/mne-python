@@ -78,7 +78,7 @@ evoked.plot_joint()
 # we will supply a noise covariance matrix to the beamformer, which will be
 # used for whitening.
 
-data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
+data_cov = mne.compute_covariance(epochs, tmin=0.05, tmax=0.25,
                                   method='empirical')
 noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0,
                                    method='empirical')
@@ -134,7 +134,7 @@ stc = apply_lcmv(evoked, filters, max_ori_out='signed')
 # Visualize the reconstructed source activity
 # -------------------------------------------
 
-lims = [0.1, 0.2, 0.3]
+lims = [0.3, 0.45, 0.6]
 
 stc.plot(
     src=forward['src'], subject='sample', subjects_dir=subjects_dir,
