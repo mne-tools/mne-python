@@ -15,6 +15,8 @@ Current (0.21.dev0)
 Changelog
 ~~~~~~~~~
 
+- Add space transform details to `plot_source_alignment` tutorial by `Alex Rockhill`_
+
 - Modified :meth:`mne.Epochs.pick_types` to remove dropped channel types from ``reject`` and ``flat`` dictionaries by `Rahul Nadkarni`_
 
 - Improve memory efficiency of :func:`mne.concatenate_epochs` by `Eric Larson`_

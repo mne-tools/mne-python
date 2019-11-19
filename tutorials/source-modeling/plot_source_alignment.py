@@ -18,6 +18,7 @@ Let's start out by loading some data.
 import os.path as op
 
 import numpy as np
+import nibabel as nib
 
 import mne
 from mne.datasets import sample
@@ -33,6 +34,7 @@ raw = mne.io.read_raw_fif(raw_fname)
 trans = mne.read_trans(trans_fname)
 src = mne.read_source_spaces(op.join(subjects_dir, 'sample', 'bem',
                                      'sample-oct-6-src.fif'))
+t1w = nib.load(op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz'))
 
 ###############################################################################
 # Understanding coordinate frames
@@ -167,6 +169,45 @@ mne.viz.plot_alignment(raw.info, trans=None, subject='sample', src=src,
 # It is quite clear that the MRI surfaces (head, brain) are not well aligned
 # to the head digitization points (dots).
 #
+# Compute the transform
+# ---------------------
+# Let's step through the process that the transform is accomplishing.
+
+###############################################################################
+# Get landmarks in head space from the DigMontage stored in raw.
+# -------------------------------------------------------------
+# Adjust units by * 1e3 m -> mm.
+# head_space = np.array([dig['r'] for dig in
+#                        raw.info['dig']], dtype=float) * 1e3
+
+###############################################################################
+# Transform digitization points into MRI space (T2)
+# -------------------------------------------------
+# mri_space = mne.transforms.apply_trans(trans, head_space, move=True)
+
+###############################################################################
+# Get landmarks in voxel space, using the T1 data (T3 and 4)
+# ----------------------------------------------------------
+# vox2ras_tkr = t1w.header.get_vox2ras_tkr()
+# ras2vox_tkr = scipy.linalg.inv(vox2ras_tkr)
+# mri_voxel_space = mne.transforms.apply_trans(ras2vox_tkr, mri_space)
+
+###############################################################################
+# Diagram of the transform
+# ------------------------
+
+# .. mermaid::
+#
+# graph LR
+#     A(Sensor Coordinates) -->|Ts1...Tsn| B(Device coordinates)
+#     B(Device coordinates) -->|T1| C(Head coordinates)
+#     C(Head coordinates) -->|T2| D(Surface RAS MRI coordinates)
+#     D(Surface RAS MRI coordinates) -->|T3| E(RAS coordinates)
+#     E(RAS coordinates) -->|T4| F(MRI Talairach coordinates)
+#     F(MRI Talairach coordinates) -->|T-| G(FreeSurfer Talairach coordinates, z < 0)
+#     F(MRI Talairach coordinates) -->|T+| H(FreeSurfer Talairach coordinates, z > 0)
+
+###############################################################################
 # A good example
 # --------------
 # Here is the same plot, this time with the ``trans`` properly defined
