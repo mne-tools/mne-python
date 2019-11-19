@@ -2317,7 +2317,6 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                         found_hemi = b['brain']
                 # Configure the glyphs scale directly
                 for layer in found_hemi.data.values():
-                    layer['mesh'].update()
                     glyphs = layer['glyphs']
                     glyphs.glyph.glyph.scale_factor = width * 0.1
             # depth peeling patch
