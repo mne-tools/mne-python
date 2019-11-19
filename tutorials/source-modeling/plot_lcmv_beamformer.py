@@ -1,6 +1,4 @@
 """
-.. _tut-inverse-methods:
-
 Source reconstruction using an LCMV beamformer
 ==============================================
 
@@ -69,7 +67,7 @@ evoked.plot_joint()
 
 ###############################################################################
 # Computation of covariance matrices
-# ---------------------------------
+# ----------------------------------
 # The spatial filter is computed from two ingredients: the forward model
 # solution that we read from disk above and the covariance matrix of the data.
 # The data covariance matrix will be inverted during the spatial filter
@@ -112,7 +110,7 @@ data_cov.plot(epochs.info)
 # as a scalar beamformer. It is also possible to compute a vector beamformer,
 # which gives back three estimates per voxel, corresponding to the three
 # directions of the source. This can be achieved by setting ``pick_ori`` to
-# ``vector``.
+# 'vector'.
 
 filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
                     noise_cov=noise_cov, pick_ori='max-power',
