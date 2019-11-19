@@ -170,7 +170,7 @@ def test_array_raw():
     info = create_info(ch_names, Fs, 'ecog', montage=montage)
 
     raw = RawArray(data, info)
-    raw.plot_psd(average=False)  # looking for inexistent layout
+    raw.plot_psd(average=False)  # looking for nonexistent layout
     raw.plot_psd_topo()
 
 

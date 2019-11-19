@@ -164,3 +164,23 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
         data_paths.extend(data_path(url, path, force_update, update_path))
 
     return data_paths
+
+
+def standardize(raw):
+    """Standardize channel positions and names.
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        The raw data to standardize. Operates in-place.
+    """
+    rename = dict()
+    for name in raw.ch_names:
+        std_name = name.strip('.')
+        std_name = std_name.upper()
+        if std_name.endswith('Z'):
+            std_name = std_name[:-1] + 'z'
+        if std_name.startswith('FP'):
+            std_name = 'Fp' + std_name[2:]
+        rename[name] = std_name
+    raw.rename_channels(rename)
