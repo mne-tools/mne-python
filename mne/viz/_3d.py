@@ -2315,10 +2315,11 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                 for b in brain._brain_list:
                     if b['hemi'] == hemi:
                         found_hemi = b['brain']
-                layer_id = brain.data['layer_id']
                 # Configure the glyphs scale directly
-                glyphs = found_hemi.data[layer_id]['glyphs']
-                glyphs.glyph.glyph.scale_factor = width * 0.1
+                for layer in found_hemi.data.values():
+                    layer['mesh'].update()
+                    glyphs = layer['glyphs']
+                    glyphs.glyph.glyph.scale_factor = width * 0.1
             # depth peeling patch
             if brain_alpha < 1.0:
                 for ff in brain._figures:
