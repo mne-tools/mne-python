@@ -31,13 +31,16 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # MNE-Python comes pre-loaded with information about the sensor positions of
-# many MEG and EEG systems. This information is stored in *layout files* and
-# *montages*. :class:`Layouts <mne.channels.Layout>` give sensor positions in 2
-# dimensions (defined by ``x``, ``y``, ``width``, and ``height`` values for
-# each sensor), and are primarily used for illustrative purposes (i.e., making
-# diagrams of approximate sensor positions in top-down diagrams of the head).
-# In contrast, :class:`montages <mne.channels.DigMontage>` contain sensor
-# positions in 3D (``x``, ``y``, ``z``, in meters). Many layout and montage
+# many MEG and EEG systems. This information is stored in *montages* and
+# *layout files*. :class:`montages <mne.channels.DigMontage>` contain sensor
+# positions in 3D (``x``, ``y``, ``z``, in meters), and can be used to set
+# the physical positions of sensors.
+#
+# For any given set of sensor positions (from a montage or otherwise), a
+# :class:`Layouts <mne.channels.Layout>` can be generated, mostly for the
+# purpose of interactively selecting channels.
+#
+# Many layout and montage
 # files are included during MNE-Python installation, and are stored in your
 # ``mne-python`` directory, in the :file:`mne/channels/data/layouts` and
 # :file:`mne/channels/data/montages` folders, respectively:

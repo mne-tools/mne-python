@@ -177,7 +177,8 @@ def test_plot_topomap_basic():
     plot_topomap(temp_data, info_sel, extrapolate='head', res=res)
 
     plt_topomap = partial(evoked.plot_topomap, **fast_test)
-    plt_topomap(0.1, layout=layout, scalings=dict(mag=0.1))
+    with pytest.deprecated_call(match='layout'):
+        plt_topomap(0.1, layout=layout, scalings=dict(mag=0.1))
     plt.close('all')
     axes = [plt.subplot(221), plt.subplot(222)]
     plt_topomap(axes=axes, colorbar=False)

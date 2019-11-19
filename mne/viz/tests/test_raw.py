@@ -457,10 +457,10 @@ def test_plot_sensors():
     _fake_click(fig, ax, (0, 1), xform='ax')
     plt.draw()
     assert fig.lasso.selection == []
-    _fake_click(fig, ax, (0.7, 1), xform='ax', kind='motion')
-    _fake_click(fig, ax, (0.7, 0.7), xform='ax', kind='motion')
+    _fake_click(fig, ax, (0.65, 1), xform='ax', kind='motion')
+    _fake_click(fig, ax, (0.65, 0.65), xform='ax', kind='motion')
     fig.canvas.key_press_event('control')
-    _fake_click(fig, ax, (0, 0.7), xform='ax', kind='release')
+    _fake_click(fig, ax, (0, 0.65), xform='ax', kind='release')
     assert fig.lasso.selection == ['MEG 0121']
 
     _fake_click(fig, ax, (0.7, 1), xform='ax', kind='motion')

@@ -34,7 +34,7 @@ from ..utils import (logger, _clean_names, warn, _pl, verbose, _validate_type,
                      _check_if_nan, _check_ch_locs, fill_doc, _is_numeric)
 
 from .topo import _plot_evoked_topo
-from .topomap import (_prepare_topo_plot, plot_topomap, _get_pos_outlines,
+from .topomap import (_prepare_topomap_plot, plot_topomap, _get_pos_outlines,
                       _draw_outlines, _prepare_topomap, _set_contour_locator,
                       _check_sphere)
 from ..channels.layout import _pair_grad_sensors, find_layout
@@ -82,7 +82,7 @@ def _butterfly_on_button_press(event, params):
 
 
 def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
-                        psd=False, time_unit='s'):
+                        psd=False, time_unit='s', sphere=HEAD_SIZE_DEFAULT):
     """Draw topomaps from the selected area."""
     import matplotlib.pyplot as plt
     ch_types = [type_ for type_ in ch_types if type_ in ('eeg', 'grad', 'mag')]
@@ -115,8 +115,8 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
     for idx, ch_type in enumerate(ch_types):
         if ch_type not in ('eeg', 'grad', 'mag'):
             continue
-        picks, pos, merge_grads, _, ch_type = _prepare_topo_plot(
-            info, ch_type, layout=None)
+        picks, pos, merge_grads, _, ch_type, this_sphere = \
+            _prepare_topomap_plot(info, ch_type, sphere=sphere)
         if len(pos) < 2:
             fig.delaxes(axarr[0][idx])
             continue
@@ -134,7 +134,7 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
         vmax = max(this_data) if psd else None  # All negative for dB psd.
         cmap = 'Reds' if psd else None
         plot_topomap(this_data, pos, cmap=cmap, vmin=vmin, vmax=vmax,
-                     axes=axarr[0][idx], show=False)
+                     axes=axarr[0][idx], show=False, sphere=this_sphere)
 
     unit = 'Hz' if psd else time_unit
     fig.suptitle('Average over %.2f%s - %.2f%s' % (xmin, unit, xmax, unit),
@@ -517,7 +517,8 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
             callback_onselect = partial(_line_plot_onselect,
                                         ch_types=ch_types_used, info=info,
                                         data=data, times=times, text=text,
-                                        psd=psd, time_unit=time_unit)
+                                        psd=psd, time_unit=time_unit,
+                                        sphere=sphere)
             blit = False if plt.get_backend() == 'MacOSX' else True
             minspan = 0 if len(times) < 2 else times[1] - times[0]
             ax._span_selector = SpanSelector(

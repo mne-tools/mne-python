@@ -679,7 +679,7 @@ class EvokedArray(Evoked):
 
         if data.ndim != 2:
             raise ValueError('Data must be a 2D array of shape (n_channels, '
-                             'n_samples)')
+                             'n_samples), got shape %s' % (data.shape,))
 
         if len(info['ch_names']) != np.shape(data)[0]:
             raise ValueError('Info (%s) and data (%s) must have same number '

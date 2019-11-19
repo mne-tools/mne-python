@@ -15,7 +15,7 @@ import numpy as np
 from .utils import (tight_layout, _prepare_trellis, _select_bads,
                     _plot_raw_onscroll, _mouse_click,
                     _plot_raw_onkey, plt_show, _convert_psds)
-from .topomap import (_prepare_topo_plot, plot_topomap, _hide_frame,
+from .topomap import (_prepare_topomap_plot, plot_topomap, _hide_frame,
                       _plot_ica_topomap)
 from .raw import _prepare_mne_browse_raw, _plot_raw_traces
 from .epochs import _prepare_mne_browse_epochs, plot_epochs_image
@@ -1067,9 +1067,8 @@ def _label_clicked(pos, params):
     fig, axes = _prepare_trellis(len(types), max_col=3)
     for ch_idx, ch_type in enumerate(types):
         try:
-            data_picks, pos, merge_grads, _, _ = _prepare_topo_plot(ica,
-                                                                    ch_type,
-                                                                    None)
+            data_picks, pos, merge_grads, _, _ = _prepare_topomap_plot(
+                ica, ch_type)
         except Exception as exc:
             warn(exc)
             plt.close(fig)
