@@ -232,12 +232,13 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         .. versionadded:: 0.16.0
     event_id : dict | None
         Event IDs used to show at event markers (default None shows
-        theh event numbers).
+        the event numbers).
 
         .. versionadded:: 0.16.0
-    use_scalebars : bool | True
-        Whether, or not to show the scale bars. Defaults to True.
-        .. vertionadded:: 0.19.0
+    use_scalebars : bool
+        Whether or not to show the scale bars. Defaults to True.
+
+        .. versionadded:: 0.19.0
 
     %(show_scrollbars)s
     %(verbose)s
@@ -400,8 +401,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   data_picks=data_picks, event_id_rev=event_id_rev,
                   noise_cov=noise_cov, use_noise_cov=noise_cov is not None,
                   filt_bounds=filt_bounds, units=units, snap_annotations=False,
-                  unit_scalings=unit_scalings, use_scalebars=use_scalebars,
-                  show_scrollbars=show_scrollbars)
+                  unit_scalings=unit_scalings, show_scrollbars=show_scrollbars,
+                  use_scalebars=use_scalebars)
 
     if group_by in ['selection', 'position']:
         params['fig_selection'] = fig_selection
