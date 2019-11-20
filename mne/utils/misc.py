@@ -7,8 +7,6 @@
 from contextlib import contextmanager
 import fnmatch
 import inspect
-from io import StringIO
-import logging
 from math import log
 import os
 from string import Formatter
