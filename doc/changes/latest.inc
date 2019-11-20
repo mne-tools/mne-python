@@ -69,7 +69,7 @@ Changelog
 
 - Add NIRS support to :func:`mne.viz.plot_topomap` by `Robert Luke`_
 
-- Add the ability to :func:`mne.channels.equalize_channels` to also re-order the channels and also operate on instances of :class:`mne.io.Info`, :class:`mne.Forward`, :class:`mne.Covariance` and :class:`mne.time_frequency.CrossSpectralDensity` by `Marijn van Vliet`_
+- Add the ability to :func:`mne.channels.equalize_channels` to also re-order the channels and also operate on instances of :class:`mne.Info`, :class:`mne.Forward`, :class:`mne.Covariance` and :class:`mne.time_frequency.CrossSpectralDensity` by `Marijn van Vliet`_
 
 Bug
 ~~~
@@ -145,4 +145,4 @@ API
 
 - New methods :meth:`mne.Forward.pick_channels`, :meth:`mne.Covariance.pick_channels`, :meth:`mne.Info.pick_channels`, :meth:`mne.time_frequency.CrossSpectralDensity.pick_channels` by `Marijn van Vliet`_
 
-- New attributes :attr:`mne..Forward.ch_names`, :attr:`mne.io.Info.ch_names` by `Marijn van Vliet`_
+- New attributes :attr:`mne.Forward.ch_names`, :attr:`mne.Info.ch_names` by `Marijn van Vliet`_
