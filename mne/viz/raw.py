@@ -239,7 +239,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     show_scalebars : bool
         Whether or not to show the scale bars. Defaults to True.
 
-        .. versionadded:: 0.19.0w
+        .. versionadded:: 0.19.0
     %(verbose)s
 
     Returns
