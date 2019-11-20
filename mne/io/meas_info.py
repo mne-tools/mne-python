@@ -1412,10 +1412,8 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         write_int(fid, FIFF.FIFF_PROJ_ID, info['proj_id'])
     if info.get('proj_name') is not None:
         write_string(fid, FIFF.FIFF_PROJ_NAME, info['proj_name'])
-    if 'meas_date' in info:
-        meas_date = info['meas_date']
-        meas_date = DATE_NONE if meas_date is None else meas_date
-        write_int(fid, FIFF.FIFF_MEAS_DATE, meas_date)
+    if info.get('meas_date') is not None:
+        write_int(fid, FIFF.FIFF_MEAS_DATE, info['meas_date'])
     if info.get('utc_offset') is not None:
         write_string(fid, FIFF.FIFF_UTC_OFFSET, info['utc_offset'])
     write_int(fid, FIFF.FIFF_NCHAN, info['nchan'])
@@ -1984,8 +1982,8 @@ def anonymize_info(info, daysback=None, keep_his=False):
                                                         -delta_t)
 
     # file_id and meas_id
-    for key in ('file_id', 'meas_id'):
-        value = info.get(key)
+    to_anon = [info.get('file_id'), info.get('meas_id')]
+    for value in to_anon:
         if value is not None:
             assert 'msecs' not in value
             if none_meas_date:
@@ -2033,7 +2031,7 @@ def anonymize_info(info, daysback=None, keep_his=False):
     info['description'] = default_desc
 
     if info['proj_id'] is not None:
-        info['proj_id'][:] = 0
+        info['proj_id'] = np.zeros_like(info['proj_id'])
     if info['proj_name'] is not None:
         info['proj_name'] = default_str
     if info['utc_offset'] is not None:

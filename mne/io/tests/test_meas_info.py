@@ -247,6 +247,7 @@ def test_read_write_info(tmpdir):
 
     info = read_info(raw_fname)
     info['meas_date'] = None
+    anonymize_info(info)
     tmp_fname_3 = tmpdir.join('info3.fif')
     write_info(tmp_fname_3, info)
     info2 = read_info(tmp_fname_3)

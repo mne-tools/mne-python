@@ -2060,7 +2060,7 @@ def read_ica(fname, verbose=None):
 
     try:
         # we used to store bads that weren't part of the info...
-        info, meas = read_meas_info(fid, tree, clean_bads=True)
+        info, _ = read_meas_info(fid, tree, clean_bads=True)
     except ValueError:
         logger.info('Could not find the measurement info. \n'
                     'Functionality requiring the info won\'t be'
