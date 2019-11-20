@@ -33,7 +33,7 @@ from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
 from ..time_frequency import psd_multitaper
 from ..defaults import _handle_default
 from ..transforms import apply_trans, invert_transform
-from ..io.meas_info import Info
+from ..io.meas_info import Info, _simplify_info
 from ..io.proj import Projection
 
 
@@ -558,7 +558,7 @@ def _topomap_plot_sensors(pos_x, pos_y, sensors, ax):
 
 def _get_pos_outlines(info, picks, sphere, to_sphere=True):
     sphere = _check_sphere(sphere)
-    ch_type = _get_ch_type(info, None)
+    ch_type = _get_ch_type(pick_info(_simplify_info(info), picks), None)
     sphere = _adjust_meg_sphere(sphere, info, ch_type)
     pos = _find_topomap_coords(
         info, picks, ignore_overlap=True, to_sphere=to_sphere,

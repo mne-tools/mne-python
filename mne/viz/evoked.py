@@ -2191,7 +2191,8 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
                 linestyles=linestyles, styles=styles, vlines=vlines, ci=ci,
                 truncate_yaxis=truncate_yaxis, ylim=ylim, invert_y=invert_y,
                 legend=legend, show_sensors=show_sensors,
-                axes=ax, title=_title, split_legend=split_legend, show=show))
+                axes=ax, title=_title, split_legend=split_legend, show=show,
+                sphere=sphere))
         return figs
 
     # colors and colormap. This yields a `styles` dict with one entry per
@@ -2233,7 +2234,8 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
                 truncate_yaxis=truncate_yaxis, truncate_xaxis=truncate_xaxis,
                 ylim=ylim, invert_y=invert_y, show_sensors=show_sensors,
                 legend=legend, split_legend=split_legend,
-                picks=picks[pick_], combine=combine, axes=ax_, show=True)
+                picks=picks[pick_], combine=combine, axes=ax_, show=True,
+                sphere=sphere)
 
         layout = find_layout(info)
         # shift everything to the right by 15% of one axes width

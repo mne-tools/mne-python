@@ -338,6 +338,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
         # detect ylims across figures
         if evoked and not manual_ylims:
+            # ensure get_ylim works properly
+            this_axes_dict['evoked'].figure.canvas.draw_idle()
             this_bot, this_top = this_axes_dict['evoked'].get_ylim()
             this_min = min(this_bot, this_top)
             this_max = max(this_bot, this_top)
