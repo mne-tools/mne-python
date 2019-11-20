@@ -95,8 +95,9 @@ events = mne.find_events(raw, stim_channel='STI 014')
 #                                                'sample_audvis_raw-eve.fif')
 #         events_from_file = mne.read_events(sample_data_events_file)
 #
+#     See :ref:`tut-section-events-io` for more details.
 #
-
+#
 # The :class:`~mne.io.Raw` object and the events array are the bare minimum
 # needed to create an :class:`~mne.Epochs` object, which we create with the
 # :class:`mne.Epochs` class constructor. However, you will almost surely want

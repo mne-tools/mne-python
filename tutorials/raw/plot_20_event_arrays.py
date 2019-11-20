@@ -39,6 +39,8 @@ raw.crop(tmax=60).load_data()
 events = mne.find_events(raw, stim_channel='STI 014')
 
 ###############################################################################
+# .. _tut-section-events-io:
+#
 # Reading and writing events from/to a file
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
