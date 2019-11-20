@@ -2,18 +2,21 @@
 Source reconstruction using an LCMV beamformer
 ==============================================
 
-The aim of this tutorial is to give you an overview over the beamformer method
-and to teach you how to use an LCMV beamformer to reconstruct source
+This tutorial gives an overview of the beamformer method
+and shows how to use an LCMV beamformer to reconstruct source
 activity.
+
+.. contents:: Page contents
+   :local:
+   :depth: 2
 
 A beamformer is a spatial filter that reconstructs source activity by scanning
 through a grid of pre-defined source points and estimating activity at each of
 those source points independently.
-
 The beamforming method applied in this tutorial is the linearly constrained
-minimum variance (LCMV) beamformer [1] which operates on time series.
+minimum variance (LCMV) beamformer [1]_ which operates on time series.
 Frequency-resolved data can be reconstructed with the dynamic imaging of
-coherent sources (DICS) beamforming method [2].
+coherent sources (DICS) beamforming method [2]_.
 """
 # Author: Britta Westner <britta.wstnr@gmail.com>
 #
@@ -25,23 +28,22 @@ import mne
 from mne.datasets import sample
 from mne.beamformer import make_lcmv, apply_lcmv
 
-print(__doc__)
-
 ###############################################################################
 # Data processing
 # ---------------
-# We will use the sample data set for this tutorial and aim at reconstructing
-# the trials with left auditory stimulation.
-# Beamformers are usually computed in a volume source space, as a visualization
+# We will use the sample data set for this tutorial and reconstruct source
+# activity on the trials with left auditory stimulation. Note that
+# beamformers are usually computed in a :class:`volume source space
+# <mne.VolSourceEsitmate>`, as a visualization
 # of only the surface activation can misrepresent the data.
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-vol-7-fwd.fif'
+fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-vol-7-fwd.fif'
 
 # Read forward model
-forward = mne.read_forward_solution(fname_fwd)
+forward = mne.read_forward_solution(fwd_fname)
 
 # Read the raw data
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
@@ -70,13 +72,13 @@ evoked.plot_joint()
 # ----------------------------------
 # The spatial filter is computed from two ingredients: the forward model
 # solution that we read from disk above and the covariance matrix of the data.
-# The data covariance matrix will be inverted during the spatial filter
-# computation, so it is valuable to plot the covaraince matrix and its
-# eigenvalues.
-# We combine different channel types in this data set (magnetometers and
-# gradiometers). To take care of the different scaling of these channels types,
-# we will supply a noise covariance matrix to the beamformer, which will be
-# used for whitening.
+# The data covariance matrix will be `inverted`_ during the spatial filter
+# computation, so it is valuable to plot the covariance matrix and its
+# eigenvalues to gauge whether matrix inversion will be possible.
+# Also, because we want to combine different channel types (magnetometers and
+# gradiometers), we need to account for the different amplitude scales of these
+# channel types. To do this we will supply a noise covariance matrix to the
+# beamformer, which will be used for whitening.
 
 data_cov = mne.compute_covariance(epochs, tmin=0.05, tmax=0.25,
                                   method='empirical')
@@ -91,13 +93,15 @@ data_cov.plot(epochs.info)
 # Now we can compute the spatial filter.
 # When looking at the covariance matrix plots, we can see that our data is
 # slightly rank-deficient. Thus, we will regularize the covariance matrix by
-# setting the parameter ``reg`` to 0.05. This corresponds to loading the
+# setting the parameter ``reg=0.05``. This corresponds to loading the
 # diagonal of the covariance matrix with 5% of the sensor power.
 #
 # Different variants of the LCMV beamformer exist. We will compute a
 # unit-noise-gain beamformer, which normalizes the beamformer weights to take
-# care of an inherent depth bias. To achieve this, we set ``weight_norm`` to
-# 'unit-noise-gain'. This parameter can also be set to 'nai', which implements
+# care of an inherent depth bias. To achieve this, we set
+# ``weight_norm='unit-noise-gain'``.
+# This parameter can also be set to ``'nai'`` (Neural Activity Index, see [1]_)
+# which implements
 # a further normalization with the estimated noise. An alternative way to take
 # care of this depth bias is to use the ``depth`` parameter and normalize the
 # forward solution instead of the weights. Note that if you compare conditions,
@@ -105,12 +109,12 @@ data_cov.plot(epochs.info)
 # ``None``.
 #
 # Furthermore, we will optimize the orientation of the sources such that output
-# power is maximized. This is achieved by setting ``pick_ori`` to 'max-power'.
+# power is maximized. This is achieved by setting ``pick_ori='max-power'``.
 # This gives us one source estimate per source (i.e., voxel), which is known
 # as a scalar beamformer. It is also possible to compute a vector beamformer,
 # which gives back three estimates per voxel, corresponding to the three
-# directions of the source. This can be achieved by setting ``pick_ori`` to
-# 'vector'.
+# directions of the source. This can be achieved by setting
+# ``pick_ori='vector'``.
 
 filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
                     noise_cov=noise_cov, pick_ori='max-power',
@@ -124,9 +128,12 @@ filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
 # ------------------------
 # The spatial filter can be applied to different data types: raw, epochs,
 # evoked data or the data covariance matrix to gain a static image of power.
-# The function to apply the spatial filter to evoked data is ``apply_lcmv`` and
-# what we will use here. The other functions are ``apply_lcmv_raw``,
-# ``apply_lcmv_epochs``, and ``apply_lcmv_cov``.
+# The function to apply the spatial filter to :class:`~mne.Evoked` data is
+# :func:`~mne.beamformer.apply_lcmv` which is
+# what we will use here. The other functions are
+# :func:`~mne.beamformer.apply_lcmv_raw`,
+# :func:`~mne.beamformer.apply_lcmv_epochs`, and
+# :func:`~mne.beamformer.apply_lcmv_cov`.
 
 stc = apply_lcmv(evoked, filters, max_ori_out='signed')
 
@@ -148,10 +155,15 @@ stc.plot(
 ###############################################################################
 # References
 # ----------
-# [1] Van Veen et al. Localization of brain electrical activity via linearly
-#     constrained minimum variance spatial filtering.
-#     Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
+# .. _[1] Van Veen et al. Localization of brain electrical activity via
+#         linearly constrained minimum variance spatial filtering.
+#         Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
 #
-# [2] Gross et al. (2001) Dynamic imaging of coherent sources: Studying
-#     neural interactions in the human brain.
-#     PNAS vol. 98 (2) pp. 694-699. https://doi.org/10.1073/pnas.98.2.694
+# .. _[2] Gross et al. (2001) Dynamic imaging of coherent sources: Studying
+#         neural interactions in the human brain.
+#         PNAS vol. 98 (2) pp. 694-699. https://doi.org/10.1073/pnas.98.2.694
+#
+#
+# .. LINKS
+#
+# .. _`inverted`: https://en.wikipedia.org/wiki/Invertible_matrix
