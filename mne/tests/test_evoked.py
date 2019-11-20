@@ -497,7 +497,7 @@ def test_equalize_channels():
     evoked1.drop_channels(evoked1.ch_names[:1])
     evoked2.drop_channels(evoked2.ch_names[1:2])
     my_comparison = [evoked1, evoked2]
-    equalize_channels(my_comparison)
+    my_comparison = equalize_channels(my_comparison)
     for e in my_comparison:
         assert_equal(ch_names, e.ch_names)
 

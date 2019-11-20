@@ -545,7 +545,7 @@ def test_equalize_channels():
     """Test equalization of channels for instances of CrossSpectralDensity."""
     csd1 = _make_csd()
     csd2 = csd1.copy().pick_channels(['CH2', 'CH1'], ordered=True)
-    equalize_channels([csd1, csd2])
+    csd1, csd2 = equalize_channels([csd1, csd2])
 
     assert csd1.ch_names == ['CH1', 'CH2']
     assert csd2.ch_names == ['CH1', 'CH2']

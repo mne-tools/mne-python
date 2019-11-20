@@ -654,7 +654,7 @@ def test_equalize_channels():
     """Test equalization of channels for instances of Info."""
     info1 = create_info(['CH1', 'CH2', 'CH3'], sfreq=1.)
     info2 = create_info(['CH4', 'CH2', 'CH1'], sfreq=1.)
-    equalize_channels([info1, info2])
+    info1, info2 = equalize_channels([info1, info2])
 
     assert info1.ch_names == ['CH1', 'CH2']
     assert info2.ch_names == ['CH1', 'CH2']

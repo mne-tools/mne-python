@@ -742,7 +742,7 @@ def test_equalize_channels():
                                        ch_types='eeg'))
     cov2 = make_ad_hoc_cov(create_info(['CH5', 'CH1', 'CH2'], sfreq=1.0,
                                        ch_types='eeg'))
-    equalize_channels([cov1, cov2])
+    cov1, cov2 = equalize_channels([cov1, cov2])
     assert cov1.ch_names == ['CH1', 'CH2']
     assert cov2.ch_names == ['CH1', 'CH2']
 

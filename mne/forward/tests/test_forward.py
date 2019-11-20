@@ -433,7 +433,7 @@ def test_equalize_channels():
     fwd1 = read_forward_solution(fname_meeg)
     fwd1.pick_channels(['EEG 001', 'EEG 002', 'EEG 003'])
     fwd2 = fwd1.copy().pick_channels(['EEG 002', 'EEG 001'], ordered=True)
-    equalize_channels([fwd1, fwd2])
+    fwd1, fwd2 = equalize_channels([fwd1, fwd2])
     assert fwd1.ch_names == ['EEG 001', 'EEG 002']
     assert fwd2.ch_names == ['EEG 001', 'EEG 002']
 
