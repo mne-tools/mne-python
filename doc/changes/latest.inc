@@ -78,6 +78,8 @@ Bug
 
 - Fix date reading before Unix time zero (1970 Jan 1) on Windows by `Alex Rockhill`_.
 
+- Fix bug running subprocesses (e.g., in :func:`mne.bem.make_watershed_bem`) in Jupyter notebooks, by `Eric Larson`_
+
 - Fix :meth:`mne.io.read_raw_artemis123` to add HPI locations to digitization points, by `Luke Bloy`_
 
 - Fix :meth:`mne.Epochs.shift_time` and :meth:`mne.Evoked.shift_time` to return the modified :class:`~mne.Epochs` or :class:`~mne.Evoked` instance (instead of ``None``) by `Daniel McCloy`_.
