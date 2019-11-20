@@ -2174,7 +2174,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  colorbar=True, clim='auto', cortex='classic',
                                  size=800, background='black',
                                  foreground='white', initial_time=None,
-                                 time_unit='s'):
+                                 time_unit='s', glyph='arrow2d'):
     """Plot VectorSourceEstimate with PySurfer.
 
     A "glass brain" is drawn and all dipoles defined in the source estimate
@@ -2245,6 +2245,10 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     time_unit : 's' | 'ms'
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
+    glyph : 'arrow2d' | 'arrow3d'
+        The type of glyphs to use. If 'arrow2d', the glyphs belong to a plan
+        and if 'arrow3d', the glyphs are composite 3d objects (cone +
+        cylinder).
 
     Returns
     -------
@@ -2323,6 +2327,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                 kwargs["fmin"] = scale_pts[0]
                 kwargs["fmid"] = scale_pts[1]
                 kwargs["fmax"] = scale_pts[2]
+                kwargs["glyph"] = glyph
             with warnings.catch_warnings(record=True):  # traits warnings
                 brain.add_data(**kwargs)
             if get_3d_backend() == "mayavi":
@@ -2337,6 +2342,12 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                     # Configure the glyphs scale directly
                     glyphs = found_hemi.data[layer_id]['glyphs']
                     glyphs.glyph.glyph.scale_factor = width * 0.1
+                    glyph_source = glyphs.glyph.glyph_source
+                    if glyph == 'arrow2d':
+                        source = glyph_source.glyph_dict['glyph_source2d']
+                    elif glyph == 'arrow3d':
+                        source = glyph_source.glyph_dict['arrow_source']
+                    glyph_source.glyph_source = source
                 # depth peeling patch
                 if brain_alpha < 1.0:
                     for ff in brain._figures:
@@ -2344,7 +2355,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                             if f.scene is not None:
                                 f.scene.renderer.use_depth_peeling = True
             else:
-                brain.enable_depth_peeling()
+                if brain_alpha < 1.0:
+                    brain.enable_depth_peeling()
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
                                   fmax=scale_pts[2], **sd_kwargs)
 

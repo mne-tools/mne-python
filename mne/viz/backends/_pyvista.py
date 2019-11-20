@@ -272,7 +272,7 @@ class _Renderer(_BaseRenderer):
                                       figure.smooth_shading)
         return tube
 
-    def quiver3d(self, x, y, z, u, v, w, color, scale, mode='2darrow',
+    def quiver3d(self, x, y, z, u, v, w, color, scale, mode="arrow2d",
                  resolution=8, glyph_height=None, glyph_center=None,
                  glyph_resolution=None, opacity=1.0, scale_mode='none',
                  scalars=None, backface_culling=False,
@@ -299,7 +299,7 @@ class _Renderer(_BaseRenderer):
                     colormap = colormap.astype(np.float) / 255.
                 from matplotlib.colors import ListedColormap
                 colormap = ListedColormap(colormap)
-            if mode == '2darrow':
+            if mode == 'arrow2d':
                 glyph = vtk.vtkGlyphSource2D()
                 glyph.SetGlyphTypeToArrow()
                 glyph.FilledOff()
@@ -319,20 +319,21 @@ class _Renderer(_BaseRenderer):
                     cmap=colormap,
                     opacity=opacity,
                     show_scalar_bar=False,
-                    backface_culling=backface_culling,
                 )
                 actor.GetProperty().SetLineWidth(2)
 
-            elif mode == "arrow":
+            elif mode == 'arrow' or mode == 'arrow3d':
                 self.plotter.add_mesh(grid.glyph(orient='vec',
                                                  scale=scale,
-                                                 factor=factor),
+                                                 factor=factor,
+                                                 rng=[vmin, vmax],
+                                                 clamping=True),
                                       color=color,
+                                      cmap=colormap,
                                       opacity=opacity,
-                                      backface_culling=backface_culling,
-                                      smooth_shading=self.figure.
-                                      smooth_shading)
-            elif mode == "cone":
+                                      show_scalar_bar=False,
+                                      backface_culling=backface_culling)
+            elif mode == 'cone':
                 cone = vtk.vtkConeSource()
                 if glyph_height is not None:
                     cone.SetHeight(glyph_height)
@@ -349,11 +350,9 @@ class _Renderer(_BaseRenderer):
                                                  geom=geom),
                                       color=color,
                                       opacity=opacity,
-                                      backface_culling=backface_culling,
-                                      smooth_shading=self.figure.
-                                      smooth_shading)
+                                      backface_culling=backface_culling)
 
-            elif mode == "cylinder":
+            elif mode == 'cylinder':
                 cylinder = vtk.vtkCylinderSource()
                 cylinder.SetHeight(glyph_height)
                 cylinder.SetRadius(0.15)
@@ -376,9 +375,7 @@ class _Renderer(_BaseRenderer):
                                                  geom=geom),
                                       color=color,
                                       opacity=opacity,
-                                      backface_culling=backface_culling,
-                                      smooth_shading=self.figure.
-                                      smooth_shading)
+                                      backface_culling=backface_culling)
 
     def text2d(self, x, y, text, size=14, color=(1.0, 1.0, 1.0),
                justification=None):
