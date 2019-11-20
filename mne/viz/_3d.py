@@ -2331,23 +2331,26 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
             with warnings.catch_warnings(record=True):  # traits warnings
                 brain.add_data(**kwargs)
             if get_3d_backend() == "mayavi":
+                # Retrieve the current hemi
+                for b in brain._brain_list:
+                    if b['hemi'] == hemi:
+                        found_hemi = b['brain']
+                layer_id = brain.data['layer_id']
+                glyphs = found_hemi.data[layer_id]['glyphs']
+
+                glyph_source = glyphs.glyph.glyph_source
+                if glyph == 'arrow2d':
+                    source = glyph_source.glyph_dict['glyph_source2d']
+                elif glyph == 'arrow3d':
+                    source = glyph_source.glyph_dict['arrow_source']
+                glyph_source.glyph_source = source
+
                 if scale_factor is None:
                     # Compute the width of the brain
                     width = np.ptp(brain.geo[hemi].coords[:, 1])
-                    # Retrieve the current hemi
-                    for b in brain._brain_list:
-                        if b['hemi'] == hemi:
-                            found_hemi = b['brain']
-                    layer_id = brain.data['layer_id']
                     # Configure the glyphs scale directly
-                    glyphs = found_hemi.data[layer_id]['glyphs']
                     glyphs.glyph.glyph.scale_factor = width * 0.1
-                    glyph_source = glyphs.glyph.glyph_source
-                    if glyph == 'arrow2d':
-                        source = glyph_source.glyph_dict['glyph_source2d']
-                    elif glyph == 'arrow3d':
-                        source = glyph_source.glyph_dict['arrow_source']
-                    glyph_source.glyph_source = source
+
                 # depth peeling patch
                 if brain_alpha < 1.0:
                     for ff in brain._figures:
