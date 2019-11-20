@@ -2316,10 +2316,11 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                             f.scene.renderer.use_depth_peeling = True
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
                                   fmax=scale_pts[2], **sd_kwargs)
-    for hemi in hemis:
-        if scale_factor is None:
-            # Compute the width of the brain
-            width = np.ptp(brain.geo[hemi].coords[:, 1])
+    if scale_factor is None:
+        # Compute the width of the brain
+        width = np.mean([np.ptp(brain.geo[hemi].coords[:, 1])
+                         for hemi in hemis])
+        for hemi in hemis:
             # Retrieve the current hemi
             for b in brain._brain_list:
                 if b['hemi'] == hemi:
