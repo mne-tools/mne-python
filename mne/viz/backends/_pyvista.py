@@ -289,6 +289,10 @@ class _Renderer(_BaseRenderer):
             cells = np.c_[np.full(n_points, 1), range(n_points)]
             grid = UnstructuredGrid(offset, cells, cell_type, points)
             grid.point_arrays['vec'] = vectors
+            if vmin is not None and vmax is not None:
+                rng = [vmin, vmax]
+            else:
+                rng = None
             if scale_mode == 'scalar':
                 grid.point_arrays['mag'] = np.array(scalars)
                 scale = 'mag'
@@ -313,7 +317,7 @@ class _Renderer(_BaseRenderer):
                                scale=scale,
                                factor=factor,
                                geom=geom,
-                               rng=[vmin, vmax],
+                               rng=rng,
                                clamping=True),
                     color=color,
                     cmap=colormap,
@@ -326,7 +330,7 @@ class _Renderer(_BaseRenderer):
                 self.plotter.add_mesh(grid.glyph(orient='vec',
                                                  scale=scale,
                                                  factor=factor,
-                                                 rng=[vmin, vmax],
+                                                 rng=rng,
                                                  clamping=True),
                                       color=color,
                                       cmap=colormap,
