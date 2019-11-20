@@ -11,7 +11,7 @@ import numpy as np
 
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx, BaseRaw, read_raw_fif
-from mne.preprocessing import optical_density, beer_lambert_law
+from mne.preprocessing.nirs import optical_density, beer_lambert_law
 from mne.utils import _validate_type
 from mne.datasets import testing
 from mne.externals.pymatreader import read_mat
@@ -68,6 +68,6 @@ def test_beer_lambert_v_matlab():
                              raw._data[idx])
         assert mean_error < 0.1
         matlab_name = ("S" + str(int(matlab_data['sources'][idx])) +
-                       "-D" + str(int(matlab_data['detectors'][idx])) +
+                       "_D" + str(int(matlab_data['detectors'][idx])) +
                        " " + matlab_data['type'][idx])
         assert raw.info['ch_names'][idx] == matlab_name

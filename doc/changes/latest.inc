@@ -45,9 +45,11 @@ Changelog
 
 - Add reader for NIRx data in :func:`mne.io.read_raw_nirx` by `Robert Luke`_
 
-- Add function to convert NIRS data to optical density :func:`mne.preprocessing.optical_density` by `Robert Luke`_
+- Add function to convert NIRS data to optical density :func:`mne.preprocessing.nirs.optical_density` by `Robert Luke`_
 
-- Add function to convert NIRS data to haemoglobin concentration :func:`mne.preprocessing.beer_lambert_law` by `Robert Luke`_
+- Add function to convert NIRS data to haemoglobin concentration :func:`mne.preprocessing.nirs.beer_lambert_law` by `Robert Luke`_
+
+- Add functions to calculate spatial information of NIRS channels :func:`mne.preprocessing.nirs.source_detector_distances` and :func:`mne.preprocessing.nirs.short_channels` by `Robert Luke`_
 
 - Add reader for ``*.dat`` electrode position files :func:`mne.channels.read_dig_dat` by `Christian Brodbeck`_
 
@@ -64,6 +66,8 @@ Changelog
 - Add command :ref:`gen_mne_prepare_bem_model` to quickly create a BEM solution using the linear collocation approach by `Victor Ferat`_.
 
 - Allow returning vector source estimates from sparse inverse solvers through ``pick_ori='vector'`` by `Christian Brodbeck`_
+
+- Add NIRS support to :func:`mne.viz.plot_topomap` by `Robert Luke`_
 
 Bug
 ~~~

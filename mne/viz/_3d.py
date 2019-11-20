@@ -2330,14 +2330,19 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                 kwargs["glyph"] = glyph
             with warnings.catch_warnings(record=True):  # traits warnings
                 brain.add_data(**kwargs)
-            if get_3d_backend() == "mayavi":
-                # Retrieve the current hemi
-                for b in brain._brain_list:
-                    if b['hemi'] == hemi:
-                        found_hemi = b['brain']
-                layer_id = brain.data['layer_id']
-                glyphs = found_hemi.data[layer_id]['glyphs']
+        brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
+                                  fmax=scale_pts[2], **sd_kwargs)
 
+    if get_3d_backend() == "mayavi":
+        for hemi in hemis:
+            # Retrieve the current hemi
+            for b in brain._brain_list:
+                if b['hemi'] == hemi:
+                    found_hemi = b['brain']
+
+            # Update the glyph type
+            for layer in found_hemi.data.values():
+                glyphs = layer['glyphs']
                 glyph_source = glyphs.glyph.glyph_source
                 if glyph == 'arrow2d':
                     source = glyph_source.glyph_dict['glyph_source2d']
@@ -2345,23 +2350,23 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                     source = glyph_source.glyph_dict['arrow_source']
                 glyph_source.glyph_source = source
 
-                if scale_factor is None:
-                    # Compute the width of the brain
-                    width = np.ptp(brain.geo[hemi].coords[:, 1])
-                    # Configure the glyphs scale directly
+            if scale_factor is None:
+                # Compute the width of the brain
+                width = np.mean([np.ptp(brain.geo[hemi].coords[:, 1])
+                                 for hemi in hemis])
+                # Configure the glyphs scale directly
+                for layer in found_hemi.data.values():
+                    glyphs = layer['glyphs']
                     glyphs.glyph.glyph.scale_factor = width * 0.1
-
-                # depth peeling patch
-                if brain_alpha < 1.0:
-                    for ff in brain._figures:
-                        for f in ff:
-                            if f.scene is not None:
-                                f.scene.renderer.use_depth_peeling = True
-            else:
-                if brain_alpha < 1.0:
-                    brain.enable_depth_peeling()
-        brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
-                                  fmax=scale_pts[2], **sd_kwargs)
+        # depth peeling patch
+        if brain_alpha < 1.0:
+            for ff in brain._figures:
+                for f in ff:
+                    if f.scene is not None:
+                        f.scene.renderer.use_depth_peeling = True
+    else:
+        if brain_alpha < 1.0:
+            brain.enable_depth_peeling()
 
     if time_viewer:
         TimeViewer(brain)

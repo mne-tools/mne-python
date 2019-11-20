@@ -51,13 +51,20 @@ evoked = epochs.average()
 evoked.plot_joint()
 
 ###############################################################################
-# Compute covariance matrices, fit and apply  spatial filter.
+# Compute covariance matrices.
+#
+# These matrices need to be inverted at some point, but since they are rank
+# deficient, some regularization needs to be done for them to be invertable.
+# Regularization can be added either by the :func:`mne.compute_covariance`
+# function or later by the :func:`mne.beamformer.make_lcmv` function. In this
+# example, we'll go with the latter option, so we specify ``method='empirical``
+# here.
 
 # Read regularized noise covariance and compute regularized data covariance
-noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0, method='shrunk',
-                                   rank=None)
+noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0,
+                                   method='empirical')
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
-                                  method='shrunk', rank=None)
+                                  method='empirical')
 
 # Compute weights of free orientation (vector) beamformer with weight
 # normalization (neural activity index, NAI). Providing a noise covariance

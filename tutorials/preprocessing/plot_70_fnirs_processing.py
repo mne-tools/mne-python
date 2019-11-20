@@ -18,7 +18,6 @@ Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 
 import os
 import numpy as np
-from itertools import compress
 import matplotlib.pyplot as plt
 
 import mne
@@ -37,12 +36,10 @@ raw_intensity = mne.io.read_raw_nirx(fnirs_raw_dir, verbose=True).load_data()
 # response. To achieve this we pick all the channels that are not considered
 # to be short (less than 1 cm distance between optodes).
 
-is_short = mne.preprocessing.short_channels(
-    raw_intensity, threshold=0.01)
-long_channels = np.logical_not(is_short)
-raw_intensity.pick(mne.pick_channels(raw_intensity.ch_names,
-                                     list(compress(raw_intensity.ch_names,
-                                                   long_channels))))
+picks = mne.pick_types(raw_intensity.info, meg=False, fnirs=True)
+dists = mne.preprocessing.nirs.source_detector_distances(
+    raw_intensity.info, picks=picks)
+raw_intensity.pick(picks[dists > 0.01])
 raw_intensity.plot(n_channels=len(raw_intensity.ch_names), duration=500)
 
 
@@ -52,7 +49,7 @@ raw_intensity.plot(n_channels=len(raw_intensity.ch_names), duration=500)
 #
 # The raw intensity values are then converted to optical density.
 
-raw_od = mne.preprocessing.optical_density(raw_intensity)
+raw_od = mne.preprocessing.nirs.optical_density(raw_intensity)
 raw_od.plot(n_channels=len(raw_od.ch_names), duration=500)
 
 
@@ -63,7 +60,7 @@ raw_od.plot(n_channels=len(raw_od.ch_names), duration=500)
 # Next we convert the optical density data to haemoglobin concentration using
 # the modified Beer-Lambert law.
 
-raw_haemo = mne.preprocessing.beer_lambert_law(raw_od)
+raw_haemo = mne.preprocessing.nirs.beer_lambert_law(raw_od)
 raw_haemo.plot(n_channels=len(raw_haemo.ch_names), duration=500)
 
 
@@ -166,7 +163,7 @@ for column, condition in enumerate(['Control', 'Tapping']):
 # Plot standard fNIRS response image
 # ----------------------------------
 #
-# Finally we generate the most common visualisation of fNIRS data, plotting
+# Next we generate the most common visualisation of fNIRS data, plotting
 # both the HbO and HbR on the same figure to illustrate the relation between
 # the two signals.
 
@@ -184,3 +181,61 @@ styles_dict = dict(Control=dict(linestyle='dashed'))
 
 mne.viz.plot_compare_evokeds(evoked_dict, combine="mean", ci=0.95,
                              colors=color_dict, styles=styles_dict)
+
+
+###############################################################################
+# View topographic representation of activity
+# -------------------------------------------
+#
+# Next we view how the topographic activity changes throughout the response.
+
+times = np.arange(-3.5, 13.2, 3.0)
+epochs['Tapping'].average(picks='hbo').plot_joint(times=times)
+
+
+###############################################################################
+# Compare tapping of left and right hands
+# ---------------------------------------
+#
+# Finally we generate topo maps for the left and right conditions to view
+# the location of activity. First we visualise the HbO activity.
+
+times = np.arange(4.0, 11.0, 1.0)
+epochs['Tapping/Left'].average(picks='hbo').plot_topomap(times=times)
+epochs['Tapping/Right'].average(picks='hbo').plot_topomap(times=times)
+
+###############################################################################
+# And we also view the HbR activity for the two conditions.
+
+epochs['Tapping/Left'].average(picks='hbr').plot_topomap(times=times)
+epochs['Tapping/Right'].average(picks='hbr').plot_topomap(times=times)
+
+###############################################################################
+# And we can plot the comparison at a single time point for two conditions.
+
+fig, axes = plt.subplots(nrows=2, ncols=4, figsize=(9, 5))
+vmin, vmax, ts = -8, 8, 9.0
+
+evoked_left = epochs['Tapping/Left'].average()
+evoked_right = epochs['Tapping/Right'].average()
+
+evoked_left.plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 0],
+                         vmin=vmin, vmax=vmax, colorbar=False)
+evoked_left.plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 0],
+                         vmin=vmin, vmax=vmax, colorbar=False)
+evoked_right.plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 1],
+                          vmin=vmin, vmax=vmax, colorbar=False)
+evoked_right.plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 1],
+                          vmin=vmin, vmax=vmax, colorbar=False)
+
+evoked_diff = mne.combine_evoked([evoked_left, -evoked_right], weights='equal')
+
+evoked_diff.plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 2],
+                         vmin=vmin, vmax=vmax)
+evoked_diff.plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 2],
+                         vmin=vmin, vmax=vmax, colorbar=True)
+
+for column, condition in enumerate(
+        ['Tapping Left', 'Tapping Right', 'Left-Right']):
+    for row, chroma in enumerate(['HbO', 'HbR']):
+        axes[row, column].set_title('{}: {}'.format(chroma, condition))

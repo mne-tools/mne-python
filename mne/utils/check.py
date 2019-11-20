@@ -8,6 +8,7 @@ from distutils.version import LooseVersion
 import operator
 import os
 import os.path as op
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -561,3 +562,21 @@ def _check_stc_units(stc, threshold=1e-7):  # 100 nAm threshold for warning
              '(dSPM, sLORETA, or eLORETA) values? The result will only be '
              'correct if currents (in units of Am) are used.'
              % (1e9 * max_cur))
+
+
+def _check_pyqt5_version():
+    bad = True
+    try:
+        from PyQt5.Qt import PYQT_VERSION_STR as version
+    except Exception:
+        version = 'unknown'
+    else:
+        if LooseVersion(version) >= LooseVersion('5.10'):
+            bad = False
+    bad &= sys.platform == 'darwin'
+    if bad:
+        warn('macOS users should use PyQt5 >= 5.10 for GUIs, got %s. '
+             'Please upgrade e.g. with:\n\n    pip install "PyQt5>=5.10"\n'
+             % (version,))
+
+    return version

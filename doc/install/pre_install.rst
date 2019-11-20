@@ -32,6 +32,11 @@ Overview of the MNE tools suite
 There is also a growing ecosystem of other Python packages that work alongside
 MNE-Python, including packages for:
 
+.. sidebar:: Something missing?
+
+    If you know of a package that is related but not listed here, feel free to
+    :ref:`make a pull request <contributing>` to add it to this list.
+
 - a graphical user interface for MNE-Python (`MNELAB`_)
 - easily importing MEG data from the Human Connectome Project for
   use with MNE-Python (`MNE-HCP`_)
@@ -49,6 +54,8 @@ MNE-Python, including packages for:
   (`conpy`_)
 - general-purpose statistical analysis of M/EEG data (`eelbrain`_)
 - post-hoc modification of linear models (`posthoc`_)
+- a python implementation of the Preprocessing Pipeline (PREP) for EEG data
+  (`pyprep`_)
 
 
 What should I install?
@@ -92,3 +99,4 @@ Help with installation is available through the `MNE mailing list`_ and
 .. _conpy: https://aaltoimaginglanguage.github.io/conpy/
 .. _eelbrain: https://eelbrain.readthedocs.io/en/stable/index.html
 .. _posthoc: https://users.aalto.fi/~vanvlm1/posthoc/python/
+.. _pyprep: https://github.com/sappelhoff/pyprep

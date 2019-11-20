@@ -182,6 +182,7 @@ class _Brain(object):
         self._views = views
         self._n_times = None
         self._scalarbar = False
+        self._depth_peeling = False
         # for now only one color bar can be added
         # since it is the same for all figures
         self._colorbar_added = False
@@ -878,7 +879,9 @@ class _Brain(object):
 
     def enable_depth_peeling(self):
         """Enable depth peeling."""
-        self._renderer.enable_depth_peeling()
+        if not self._depth_peeling:
+            self._renderer.enable_depth_peeling()
+            self._depth_peeling = True
 
 
 def _update_limits(fmin, fmid, fmax, center, array):
