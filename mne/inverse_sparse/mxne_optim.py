@@ -937,15 +937,14 @@ def norm_epsilon(Y, l1_ratio, phi, w_space=1., w_time=None):
     if norm_inf_Y == 0.:
         return 0.
 
-    # get K largest values of Y:
+    # ignore some values of Y by lower bound on dual norm:
     if w_time is None:
         idx = Y > l1_ratio * norm_inf_Y
     else:
-        # TODO this is a temporary hack, must implement better sol
-        idx = np.arange(Y.shape[0])
-    K = idx.sum()
+        idx = Y > l1_ratio * np.max(Y / (w_space * (1. - l1_ratio) +
+                                    l1_ratio * w_time))
 
-    if K == 1:
+    if idx.sum() == 1:
         return norm_inf_Y
 
     # sort both Y / w_time and freqs_count at the same time
@@ -964,31 +963,24 @@ def norm_epsilon(Y, l1_ratio, phi, w_space=1., w_time=None):
 
     K = Y.shape[0]
     if w_time is None:
-        p_sum_Y2 = np.cumsum(Y[:-1] ** 2)
-        p_sum_w2 = np.arange(1, K)
-        p_sum_Yw = np.cumsum(Y[:-1])
-        upper = p_sum_Y2 / Y[1:] ** 2 - 2. * p_sum_Yw / Y[1:] + p_sum_w2
+        p_sum_Y2 = np.cumsum(Y ** 2)
+        p_sum_w2 = np.arange(1, K + 1)
+        p_sum_Yw = np.cumsum(Y)
+        upper = p_sum_Y2 / Y ** 2 - 2. * p_sum_Yw / Y + p_sum_w2
     else:
-        p_sum_Y2 = np.cumsum(Y[:-1] ** 2)
-        p_sum_w2 = np.cumsum(w_time[:-1] ** 2)
-        p_sum_Yw = np.cumsum(Y[:-1] * w_time[:-1])
-        upper = (p_sum_Y2 / (Y[1:] / w_time[1:]) ** 2 -
-                 2. * p_sum_Yw / (Y[1:] / w_time[1:]) + p_sum_w2)
-    in_lower_upper = np.where(upper > w_space ** 2 * (1. - l1_ratio) ** 2 /
-                              l1_ratio ** 2)[0]
-    if in_lower_upper.size > 0:
-        # j = in_lower_upper[0] + 1
-        p_sum_Y2 = p_sum_Y2[in_lower_upper[0]]
-        p_sum_w2 = p_sum_w2[in_lower_upper[0]]
-        p_sum_Yw = p_sum_Yw[in_lower_upper[0]]
-    else:
-        p_sum_Y2 = p_sum_Y2[-1] + Y[K - 1] ** 2
-        if w_time is None:
-            p_sum_w2 = K
-            p_sum_Yw = p_sum_Yw[-1] + Y[K - 1]
-        else:
-            p_sum_w2 = p_sum_w2[-1] + w_time[K - 1] ** 2
-            p_sum_Yw = p_sum_Yw[-1] + Y[K - 1] * w_time[K - 1]
+        p_sum_Y2 = np.cumsum(Y ** 2)
+        p_sum_w2 = np.cumsum(w_time ** 2)
+        p_sum_Yw = np.cumsum(Y * w_time)
+        upper = (p_sum_Y2 / (Y / w_time) ** 2 -
+                 2. * p_sum_Yw / (Y / w_time) + p_sum_w2)
+    upper_greater = np.where(upper > w_space ** 2 * (1. - l1_ratio) ** 2 /
+                             l1_ratio ** 2)[0]
+
+    i0 = upper_greater[0] - 1 if upper_greater.size else K - 1
+
+    p_sum_Y2 = p_sum_Y2[i0]
+    p_sum_w2 = p_sum_w2[i0]
+    p_sum_Yw = p_sum_Yw[i0]
 
     denom = l1_ratio ** 2 * p_sum_w2 - w_space ** 2 * (1. - l1_ratio) ** 2
     if np.abs(denom) < 1e-10:
