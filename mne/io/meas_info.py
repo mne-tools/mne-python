@@ -1412,8 +1412,10 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         write_int(fid, FIFF.FIFF_PROJ_ID, info['proj_id'])
     if info.get('proj_name') is not None:
         write_string(fid, FIFF.FIFF_PROJ_NAME, info['proj_name'])
-    if info.get('meas_date') is not None:
-        write_int(fid, FIFF.FIFF_MEAS_DATE, info['meas_date'])
+    if 'meas_date' in info:
+        meas_date = info['meas_date']
+        meas_date = DATE_NONE if meas_date is None else meas_date
+        write_int(fid, FIFF.FIFF_MEAS_DATE, meas_date)
     if info.get('utc_offset') is not None:
         write_string(fid, FIFF.FIFF_UTC_OFFSET, info['utc_offset'])
     write_int(fid, FIFF.FIFF_NCHAN, info['nchan'])
