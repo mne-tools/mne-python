@@ -90,7 +90,7 @@ def _get_ch_type(inst, ch_type, allow_ref_meg=False):
 
 
 @verbose
-def equalize_channels(instances, copy=False, verbose=None):
+def equalize_channels(instances, copy=True, verbose=None):
     """Equalize channel picks and ordering across multiple MNE-Python objects.
 
     First, all channels that are not common to each object are dropped. Then,
