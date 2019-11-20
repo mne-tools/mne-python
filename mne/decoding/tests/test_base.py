@@ -61,13 +61,22 @@ def test_get_coef():
     from sklearn.base import TransformerMixin, BaseEstimator
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import StandardScaler
+    from sklearn import svm
     from sklearn.linear_model import Ridge, LinearRegression
+    from sklearn.model_selection import GridSearchCV
 
-    lm = LinearModel()
-    assert (is_classifier(lm))
+    lm_classification = LinearModel()
+    assert (is_classifier(lm_classification))
 
-    lm = LinearModel(Ridge())
-    assert (is_regressor(lm))
+    lm_regression = LinearModel(Ridge())
+    assert (is_regressor(lm_regression))
+
+    parameters = {'kernel':['linear'], 'C':[1, 10, 100, 1000]}
+    lm_gs_classification = LinearModel(GridSearchCV(svm.SVC(), parameters, cv=5, refit=True, iid=False, n_jobs= 5))
+    assert (is_classifier(lm_gs_classification))
+
+    lm_gs_regression = LinearModel(GridSearchCV(svm.SVR(), parameters, cv=5, refit=True, iid=False, n_jobs= 5))
+    assert (is_regressor(lm_gs_regression))
 
     # Define a classifier, an invertible transformer and an non-invertible one.
 
@@ -114,16 +123,42 @@ def test_get_coef():
         invs = _get_inverse_funcs(est)
         assert_equal(invs, list())
 
-    # II. Test get coef for simple estimator and pipelines
-    for clf in (lm, make_pipeline(StandardScaler(), lm)):
+    # II. Test get coef for classification/regression estimators and pipelines
+    for clf in (lm_classification, make_pipeline(StandardScaler(), lm_classification),
+                lm_regression, make_pipeline(StandardScaler(), lm_regression),
+                lm_gs_classification, make_pipeline(StandardScaler(), lm_gs_classification),
+                lm_gs_regression, make_pipeline(StandardScaler(), lm_gs_regression)):
+
+        # generate some categorical/continuous data according to the type of estimator.
+        if is_classifier(clf):
+            n, n_features = 2000, 3
+            X = np.random.rand(n, n_features)
+            y = np.arange(n) % 2
+        else:
+            X, y, A = _make_data(n_samples=2000, n_features=3, n_targets=1)
+            y = np.ravel(y)
+
         clf.fit(X, y)
+
         # Retrieve final linear model
         filters = get_coef(clf, 'filters_', False)
         if hasattr(clf, 'steps'):
-            coefs = clf.steps[-1][-1].model.coef_
+            if hasattr(clf.steps[-1][-1].model, 'best_estimator_'):
+                # Linear Model with GridSearchCV
+                coefs = clf.steps[-1][-1].model.best_estimator_.coef_
+            else:
+                # Standard Linear Model
+                coefs = clf.steps[-1][-1].model.coef_
         else:
-            coefs = clf.model.coef_
-        assert_array_equal(filters, coefs[0])
+            if hasattr(clf.model, 'best_estimator_'):
+                # Linear Model with GridSearchCV
+                coefs = clf.model.best_estimator_.coef_
+            else:
+                # Standard Linear Model
+                coefs = clf.model.coef_
+        if coefs.ndim == 2 and coefs.shape[0] == 1:
+            coefs = coefs[0]
+        assert_array_equal(filters, coefs)
         patterns = get_coef(clf, 'patterns_', False)
         assert (filters[0] != patterns[0])
         n_chans = X.shape[1]
@@ -136,7 +171,7 @@ def test_get_coef():
     assert (patterns[0] != patterns_inv[0])
 
     # Check with search_light and combination of preprocessing ending with sl:
-    slider = SlidingEstimator(make_pipeline(StandardScaler(), lm))
+    slider = SlidingEstimator(make_pipeline(StandardScaler(), lm_regression))
     X = np.transpose([X, -X], [1, 2, 0])  # invert X across 2 time samples
     clfs = (make_pipeline(Scaler(None, scalings='mean'), slider), slider)
     for clf in clfs:
@@ -170,6 +205,8 @@ def test_get_coef():
 @requires_version('sklearn', '0.15')
 def test_linearmodel():
     """Test LinearModel class for computing filters and patterns."""
+
+    # check categorical target fit in standard linear model
     from sklearn.linear_model import LinearRegression
     np.random.seed(42)
     clf = LinearModel()
@@ -181,10 +218,29 @@ def test_linearmodel():
     assert_equal(clf.patterns_.shape, (n_features,))
     pytest.raises(ValueError, clf.fit, np.random.rand(n, n_features, 99), y)
 
-    # check multi-target fit
-    n_targets = 5
-    clf = LinearModel(LinearRegression())
+    # check categorical target fit in standard linear model with GridSearchCV
+    from sklearn import svm
+    from sklearn.model_selection import GridSearchCV
+    parameters = {'kernel':['linear'], 'C':[1, 10, 100, 1000]}
+    clf = LinearModel(GridSearchCV(svm.SVC(), parameters, cv=5, refit=True, iid=False, n_jobs= 5))
+    clf.fit(X, y)
+    assert_equal(clf.filters_.shape, (n_features,))
+    assert_equal(clf.patterns_.shape, (n_features,))
+    pytest.raises(ValueError, clf.fit, np.random.rand(n, n_features, 99), y)
+
+    # check continous target fit in standard linear model with GridSearchCV
+    n_targets = 1
     Y = np.random.rand(n, n_targets)
+    clf = LinearModel(GridSearchCV(svm.SVR(), parameters, cv=5, refit=True, iid=False, n_jobs= 5))
+    clf.fit(X, y)
+    assert_equal(clf.filters_.shape, (n_features, ))
+    assert_equal(clf.patterns_.shape, (n_features, ))
+    pytest.raises(ValueError, clf.fit, X, np.random.rand(n, n_features, 99))
+
+    # check multi-target fit in standard linear model
+    n_targets = 5
+    Y = np.random.rand(n, n_targets)
+    clf = LinearModel(LinearRegression())
     clf.fit(X, Y)
     assert_equal(clf.filters_.shape, (n_targets, n_features))
     assert_equal(clf.patterns_.shape, (n_targets, n_features))
