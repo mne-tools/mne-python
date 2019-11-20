@@ -105,7 +105,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
              show_first_samp=False, proj=True, group_by='type',
              butterfly=False, decim='auto', noise_cov=None, event_id=None,
-             show_scrollbars=True, verbose=None):
+             show_scrollbars=True, use_scalebars=True, verbose=None):
     """Plot raw data.
 
     Parameters
@@ -235,6 +235,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         theh event numbers).
 
         .. versionadded:: 0.16.0
+    use_scalebars : bool | True
+        Whether, or not to show the scale bars. Defaults to True.
+        .. vertionadded:: 0.19.0
+
     %(show_scrollbars)s
     %(verbose)s
 
@@ -396,7 +400,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   data_picks=data_picks, event_id_rev=event_id_rev,
                   noise_cov=noise_cov, use_noise_cov=noise_cov is not None,
                   filt_bounds=filt_bounds, units=units, snap_annotations=False,
-                  unit_scalings=unit_scalings, use_scalebars=True,
+                  unit_scalings=unit_scalings, use_scalebars=use_scalebars,
                   show_scrollbars=show_scrollbars)
 
     if group_by in ['selection', 'position']:
@@ -820,6 +824,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                     params['unit_scalings'][this_type] *
                     2. /
                     params['scale_factor'])
+
                 units = params['units'][this_type]
                 bar = ax.plot([x, x], [offset - 1., offset + 1.],
                               color=scale_color, zorder=5, lw=4)[0]
@@ -828,7 +833,6 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                                va='baseline', ha='right',
                                color=scale_color, zorder=5, size='xx-small')
                 params['scalebars'][this_type] = bar
-
         else:
             # "remove" lines
             lines[ii].set_xdata([])
