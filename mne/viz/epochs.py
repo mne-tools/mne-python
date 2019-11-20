@@ -14,6 +14,7 @@
 from collections import Counter
 from functools import partial
 from copy import deepcopy
+import warnings
 
 import numpy as np
 
@@ -557,7 +558,9 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
         this_colorbar.ax.set_ylabel(unit, rotation=270, labelpad=12)
         if cmap[1]:
             ax_im.CB = DraggableColorbar(this_colorbar, im)
-        tight_layout(fig=fig)
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter('ignore')
+            tight_layout(fig=fig)
 
     # finish
     plt_show(show)
