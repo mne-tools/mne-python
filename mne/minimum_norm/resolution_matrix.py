@@ -74,8 +74,8 @@ def make_resolution_matrix_lcmv(filters, forward, info):
          (see mne.beamformer.make_lcmv).
     forward : dict
         Forward Solution with leadfield matrix.
-    info: dict
-        Info used to compute LCMV filters.
+    info : instance of Info
+        Measurement info used to compute LCMV filters.
 
     Returns
     -------
@@ -340,8 +340,8 @@ def _get_matrix_from_lcmv(filters, forward, info, max_ori_out='signed',
         LCMV spatial filter.
     forward : dict
         The forward solution.
-    info: dict
-        Info used to compute the LCMV filters.
+    info : instance of Info
+        Measurement info used to compute the LCMV filters.
     max_ori_out : ‘signed’
         Specify in case of pick_ori=’max-power’.
     verbose : bool, str, int, or None
