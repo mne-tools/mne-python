@@ -1004,7 +1004,7 @@ def _plot_raw_onkey(event, params):
         params['update_fun']()
         params['plot_fun']()
     elif event.key == 's':
-        params['use_scalebars'] = not params['use_scalebars']
+        params['show_scalebars'] = not params['show_scalebars']
         params['plot_fun']()
     elif event.key == 'p':
         params['snap_annotations'] = not params['snap_annotations']
