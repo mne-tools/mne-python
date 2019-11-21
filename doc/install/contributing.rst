@@ -130,6 +130,17 @@ your GitHub user account.
 
 .. image:: https://help.github.com/assets/images/help/repository/fork_button.jpg
 
+This will create a copy of the MNE-Python codebase inside your GitHub user
+account (this is called "your fork"). Changes you make to MNE-Python will
+eventually get "pushed" to your fork, and will be incorporated into the
+official version of MNE-Python (often called the "upstream version") through a
+"pull request". This process will be described in detail below; a summary
+graphic is provided here:
+
+.. graphviz:: ../_static/diagrams/git_setup.dot
+   :alt: Diagram of recommended git setup
+   :align: left
+
 
 Setting up the development environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
