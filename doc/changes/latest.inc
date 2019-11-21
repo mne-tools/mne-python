@@ -145,4 +145,4 @@ API
 
 - New methods :meth:`mne.Forward.pick_channels`, :meth:`mne.Covariance.pick_channels`, :meth:`mne.Info.pick_channels`, :meth:`mne.time_frequency.CrossSpectralDensity.pick_channels` by `Marijn van Vliet`_
 
-- New attributes :attr:`mne.Forward.ch_names`, :attr:`mne.Info.ch_names` by `Marijn van Vliet`_
+- New attributes ``mne.Forward.ch_names`` and ``mne.Info.ch_names`` by `Marijn van Vliet`_
