@@ -38,7 +38,7 @@ raw_fname2 = op.join(data_path_MEG, 'bst_auditory', 'S01_AEF_20131218_02.ds')
 
 raw = read_raw_ctf(raw_fname1, preload=True)
 mne.io.concatenate_raws([raw, read_raw_ctf(raw_fname2, preload=True)])
-
+raw.crop(350, 600)
 # Detect bad channels
 bad_chns = detect_bad_channels(raw, zscore_v=4, method='both',
                                neigh_max_distance=.035)
