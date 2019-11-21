@@ -1002,22 +1002,3 @@ def test_vol_mask():
 
 
 run_tests_if_main()
-
-
-@testing.requires_testing_data
-def test_mixed_sources_plot_surface():
-    """Test plot_surface() for  mixed source space."""
-    src = read_source_spaces(fname_fwd)
-    N = np.sum([s['nuse'] for s in src])  # number of sources
-    T = 2  # number of time points
-    S = 3  # number of source spaces
-
-    data = rng.randn(N, T)
-    vertno = S * [np.arange(N // S)]
-
-    stc = MixedSourceEstimate(data, vertno, 0, 1)
-
-    # This requires FreeSurfer to be installed, so that the subject
-    # fsaverage exists.
-    stc.plot_surface(views='lat', hemi='split', src=src,
-                     subject='fsaverage', colorbar=False)
