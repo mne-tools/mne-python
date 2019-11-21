@@ -9,6 +9,7 @@
 from os import path as path
 
 import numpy as np
+from ...utils import check_version
 
 
 class Surface(object):
@@ -66,6 +67,10 @@ class Surface(object):
 
     def __init__(self, subject_id, hemi, surf, subjects_dir=None, offset=None,
                  units='mm'):
+
+        if not check_version('surfer', '0.9'):
+            raise RuntimeError('This function requires ' +
+                               'pysurfer (surfer >= 0.9)')
         from surfer.utils import _check_units, _get_subjects_dir
 
         hemis = ('lh', 'rh')
