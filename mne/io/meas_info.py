@@ -1923,6 +1923,7 @@ def anonymize_info(info, daysback=None, keep_his=False):
     daysback : int | None
         Number of days to subtract from all dates.
         If None (default) the date of service will be set to Jan 1ˢᵗ 2000.
+        This parameter is ignored if ``info['meas_date'] is None``.
     keep_his : bool
         If True his_id of subject_info will NOT be overwritten.
         Defaults to False.
@@ -1953,6 +1954,9 @@ def anonymize_info(info, daysback=None, keep_his=False):
     - helium_info, device_info
           Dates use the meas_date logic, meta info uses defaults.
 
+    If ``info['meas_date']`` is None, it will remain None during processing
+    the above fields.
+
     Operates in place.
     """
     _validate_type(info, 'info', "self")
@@ -1982,8 +1986,8 @@ def anonymize_info(info, daysback=None, keep_his=False):
                                                         -delta_t)
 
     # file_id and meas_id
-    to_anon = [info.get('file_id'), info.get('meas_id')]
-    for value in to_anon:
+    for key in ('file_id', 'meas_id'):
+        value = info.get(key)
         if value is not None:
             assert 'msecs' not in value
             if none_meas_date:

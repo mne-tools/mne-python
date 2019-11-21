@@ -248,8 +248,10 @@ def test_read_write_info(tmpdir):
     info = read_info(raw_fname)
     info['meas_date'] = None
     anonymize_info(info)
+    assert info['meas_date'] is None
     tmp_fname_3 = tmpdir.join('info3.fif')
     write_info(tmp_fname_3, info)
+    assert info['meas_date'] is None
     info2 = read_info(tmp_fname_3)
     assert info2['meas_date'] is None
 
