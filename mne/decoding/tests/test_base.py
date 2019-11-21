@@ -71,11 +71,21 @@ def test_get_coef():
     lm_regression = LinearModel(Ridge())
     assert (is_regressor(lm_regression))
 
-    parameters = {'kernel':['linear'], 'C':[1, 10, 100, 1000]}
-    lm_gs_classification = LinearModel(GridSearchCV(svm.SVC(), parameters, cv=5, refit=True, iid=False, n_jobs= 5))
+    parameters = {'kernel': ['linear'], 'C': [1, 10, 100, 1000]}
+    lm_gs_classification = LinearModel(
+        GridSearchCV(
+            svm.SVC(), parameters,
+            cv=5, refit=True, iid=False, n_jobs=5
+        )
+    )
     assert (is_classifier(lm_gs_classification))
 
-    lm_gs_regression = LinearModel(GridSearchCV(svm.SVR(), parameters, cv=5, refit=True, iid=False, n_jobs= 5))
+    lm_gs_regression = LinearModel(
+        GridSearchCV(
+            svm.SVR(), parameters, cv=5,
+            refit=True, iid=False, n_jobs=5
+        )
+    )
     assert (is_regressor(lm_gs_regression))
 
     # Define a classifier, an invertible transformer and an non-invertible one.
@@ -124,12 +134,17 @@ def test_get_coef():
         assert_equal(invs, list())
 
     # II. Test get coef for classification/regression estimators and pipelines
-    for clf in (lm_classification, make_pipeline(StandardScaler(), lm_classification),
-                lm_regression, make_pipeline(StandardScaler(), lm_regression),
-                lm_gs_classification, make_pipeline(StandardScaler(), lm_gs_classification),
-                lm_gs_regression, make_pipeline(StandardScaler(), lm_gs_regression)):
+    for clf in (lm_classification,
+                lm_regression,
+                lm_gs_classification,
+                lm_gs_regression,
+                make_pipeline(StandardScaler(), lm_classification),
+                make_pipeline(StandardScaler(), lm_regression),
+                make_pipeline(StandardScaler(), lm_gs_classification),
+                make_pipeline(StandardScaler(), lm_gs_regression)):
 
-        # generate some categorical/continuous data according to the type of estimator.
+        # generate some categorical/continuous data
+        # according to the type of estimator.
         if is_classifier(clf):
             n, n_features = 2000, 3
             X = np.random.rand(n, n_features)
@@ -205,7 +220,6 @@ def test_get_coef():
 @requires_version('sklearn', '0.15')
 def test_linearmodel():
     """Test LinearModel class for computing filters and patterns."""
-
     # check categorical target fit in standard linear model
     from sklearn.linear_model import LinearRegression
     np.random.seed(42)
@@ -221,17 +235,27 @@ def test_linearmodel():
     # check categorical target fit in standard linear model with GridSearchCV
     from sklearn import svm
     from sklearn.model_selection import GridSearchCV
-    parameters = {'kernel':['linear'], 'C':[1, 10, 100, 1000]}
-    clf = LinearModel(GridSearchCV(svm.SVC(), parameters, cv=5, refit=True, iid=False, n_jobs= 5))
+    parameters = {'kernel': ['linear'], 'C': [1, 10, 100, 1000]}
+    clf = LinearModel(
+        GridSearchCV(
+            svm.SVC(), parameters, cv=5,
+            refit=True, iid=False, n_jobs=5
+        )
+    )
     clf.fit(X, y)
     assert_equal(clf.filters_.shape, (n_features,))
     assert_equal(clf.patterns_.shape, (n_features,))
     pytest.raises(ValueError, clf.fit, np.random.rand(n, n_features, 99), y)
 
-    # check continous target fit in standard linear model with GridSearchCV
+    # check continuous target fit in standard linear model with GridSearchCV
     n_targets = 1
     Y = np.random.rand(n, n_targets)
-    clf = LinearModel(GridSearchCV(svm.SVR(), parameters, cv=5, refit=True, iid=False, n_jobs= 5))
+    clf = LinearModel(
+        GridSearchCV(
+            svm.SVR(), parameters, cv=5,
+            refit=True, iid=False, n_jobs=5
+        )
+    )
     clf.fit(X, y)
     assert_equal(clf.filters_.shape, (n_features, ))
     assert_equal(clf.patterns_.shape, (n_features, ))

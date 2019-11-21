@@ -117,7 +117,6 @@ class LinearModel(BaseEstimator):
             filters = self.model.best_estimator_.coef_
         else:
             raise ValueError('model does not have a `coef_` attribute.')
-        
         if filters.ndim == 2 and filters.shape[0] == 1:
             filters = filters[0]
         return filters
