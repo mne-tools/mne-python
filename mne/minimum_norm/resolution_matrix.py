@@ -6,12 +6,11 @@ from copy import deepcopy
 
 import numpy as np
 
-import mne
 from mne import pick_channels_forward, EvokedArray, SourceEstimate
 from mne.io.constants import FIFF
 from mne.utils import logger, verbose
 from mne.forward.forward import convert_forward_solution
-
+from mne.beamformer import apply_lcmv
 from mne.minimum_norm import apply_inverse
 
 
@@ -69,7 +68,7 @@ def make_resolution_matrix_lcmv(filters, forward, info):
 
     Parameters
     ----------
-    filters : Instance of Beamformer
+    filters : instance of Beamformer
          Dictionary containing filter weights from LCMV beamformer
          (see mne.beamformer.make_lcmv).
     forward : dict
@@ -79,7 +78,7 @@ def make_resolution_matrix_lcmv(filters, forward, info):
 
     Returns
     -------
-    resmat : array of shape (n_dipoles_lcmv, n_dipoles_fwd)
+    resmat : array, shape (n_dipoles_lcmv, n_dipoles_fwd)
         Resolution matrix (filter matrix multiplied to leadfield from
         forward solution).
         Numbers of rows (n_dipoles_lcmv) and columns (n_dipoles_fwd) may differ
@@ -361,11 +360,11 @@ def _get_matrix_from_lcmv(filters, forward, info, max_ori_out='signed',
     id_mat = np.eye(n_chs)
 
     # convert identity matrix to evoked data type (pretending it's an epochs
-    evo_ident = mne.EvokedArray(id_mat, info=info, tmin=0.)
+    evo_ident = EvokedArray(id_mat, info=info, tmin=0.)
 
     # apply beamformer to identity matrix
-    stc_lcmv = mne.beamformer.apply_lcmv(evo_ident, filters,
-                                         max_ori_out='signed', verbose=verbose)
+    stc_lcmv = apply_lcmv(evo_ident, filters, max_ori_out='signed',
+                          verbose=verbose)
 
     # turn source estimate into numpsy array
     invmat = stc_lcmv.data
