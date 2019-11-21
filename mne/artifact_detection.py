@@ -18,9 +18,10 @@ from itertools import compress
 
 
 def detect_bad_channels(raw, zscore_v=4, method='both',
-                    neigh_max_distance=.035):
-    """ zscore_v = zscore threshold"""
-   
+                        neigh_max_distance=.035):
+    """ detect bad channels based on z-score amplitude deviation or/ and
+        decreased local correlation with other channels"""
+
     # set recording length
     Fs = raw.info['sfreq']
     t1x = 30
@@ -66,7 +67,6 @@ def detect_bad_channels(raw, zscore_v=4, method='both',
 
 
 def detect_movement(info, pos, thr_mov=.005):
-    
     time = pos[:, 0]
     quats = pos[:, 1:7]
 
@@ -102,22 +102,23 @@ def detect_movement(info, pos, thr_mov=.005):
     # Compute displacements from final median head pos
     hpi_disp = chpi_mov_head - np.tile(chpi_median_pos, (len(time), 1, 1))
     hpi_disp = np.sqrt((hpi_disp**2).sum(axis=-1))
-    
-    art_mask_mov = np.any(hpi_disp > thr_mov, axis=-1)  
+
+    art_mask_mov = np.any(hpi_disp > thr_mov, axis=-1)
     annot = Annotations([], [], [])
     annot += _annotations_from_mask(time, art_mask_mov,
                                     'Bad-motion-dist>%0.3f' % thr_mov)
 
     # Compute new dev->head transformation from median
     dev_head_t = _quaternion_align(info['dev_head_t']['from'],
-                                        info['dev_head_t']['to'],
-                                        chpi_locs_dev, chpi_median_pos)
-    
+                                   info['dev_head_t']['to'],
+                                   chpi_locs_dev, chpi_median_pos)
+
     return annot, hpi_disp, dev_head_t
+
 
 def detect_muscle(raw, thr=1.5, t_min=1):
     """Find and annotate mucsle artifacts - by Luke Bloy"""
-    
+
     raw.pick_types(meg=True, ref_meg=False)
     raw.notch_filter(np.arange(60, 241, 60), fir_design='firwin')
     raw.filter(110, 140, fir_design='firwin')
@@ -138,7 +139,8 @@ def detect_muscle(raw, thr=1.5, t_min=1):
     mus_annot = _annotations_from_mask(raw.times, art_mask,
                                        'Bad-muscle')
     return mus_annot, art_scores_filt
-        
+
+
 def weighted_median(data, weights):
     """ by tinybike
     Args:
@@ -163,6 +165,7 @@ def weighted_median(data, weights):
                 else:
                     w_median[d1, d2] = s_data[idx+1]
     return w_median
+
 
 def _annotations_from_mask(times, art_mask, art_name):
     # make annotations - by Luke Bloy
