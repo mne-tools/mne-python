@@ -51,7 +51,7 @@ conda to ``/home/user/anaconda3``)::
     Most of our instructions start with ``$``, which indicates
     that the commands are designed to be run from a Bash command prompt.
 
-    Windows command prompts to not expose the same command-line tools as Bash
+    Windows command prompts do not expose the same command-line tools as Bash
     shells, so things like ``which`` will not work, and you need to use
     alternatives, such as::
 
