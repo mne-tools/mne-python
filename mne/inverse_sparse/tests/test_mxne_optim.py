@@ -308,7 +308,7 @@ def test_iterative_reweighted_mxne():
 
 
 def test_iterative_reweighted_tfmxne():
-    """Test convergence of irTFMxNE solver."""
+    """Test convergence of irTF-MxNE solver."""
     M, G, true_active_set = _generate_tf_data()
     alpha_space = 38.
     alpha_time = 0.5

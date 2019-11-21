@@ -65,7 +65,7 @@ cov = mne.compute_covariance(epochs, rank='info', tmax=0.)
 forward = mne.read_forward_solution(fwd_fname)
 
 ###############################################################################
-# Run iterative reweighted multidict TFMxNE solver
+# Run iterative reweighted multidict TF-MxNE solver
 
 alpha, l1_ratio = 20, 0.05
 loose, depth = 1, 0.95
@@ -96,7 +96,6 @@ stc = make_stc_from_dipoles(dipoles, forward['src'])
 plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
                              opacity=0.1, fig_name="irTF-MxNE (cond %s)"
                              % condition)
-# modes=['sphere'], scale_factors=[1.])
 
 
 ###############################################################################

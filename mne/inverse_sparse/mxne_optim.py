@@ -1467,7 +1467,7 @@ def iterative_tf_mixed_norm_solver(M, G, alpha_space, alpha_time,
         will be the estimated time series. 0 means no temporal regularization,
         aka irMxNE.
     n_tfmxne_iter : int
-        Number of TFMxNE iterations. If > 1, iterative reweighting is applied.
+        Number of TF-MxNE iterations. If > 1, iterative reweighting is applied.
     wsize : int or array-like
         Length of the STFT window in samples (must be a multiple of 4).
         If an array is passed, multiple TF dictionaries are used (each having
@@ -1480,11 +1480,11 @@ def iterative_tf_mixed_norm_solver(M, G, alpha_space, alpha_time,
         its own wsize and tstep), and each entry of tstep must be a multiple
         of 2 and divide the corresponding entry of wsize.
     maxit : int
-        The maximum number of iterations for each TFMxNE problem.
+        The maximum number of iterations for each TF-MxNE problem.
     tol : float
         If absolute difference between estimates at 2 successive iterations
         is lower than tol, the convergence is reached. Also used as criterion
-        on duality gap for each TFMxNE problem.
+        on duality gap for each TF-MxNE problem.
     debias : bool
         Debias source estimates.
     n_orient : int
