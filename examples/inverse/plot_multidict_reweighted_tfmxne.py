@@ -10,7 +10,7 @@ The benefit of this approach is that:
   - it is spatio-temporal without assuming stationarity (sources properties
     can vary over time),
   - activations are localized in space, time and frequency in one step,
-  - the solver uses non-convex penalties in the TF domain, which result in
+  - the solver uses non-convex penalties in the TF domain, which results in a
     solution less biased towards zero than when simple TF-MxNE is used,
   - using a multiscale dictionary allows to capture short transient
     activations along with slower brain waves [2]_.
@@ -52,10 +52,9 @@ reject = dict(grad=4000e-13, eog=350e-6)
 picks = mne.pick_types(raw.info, meg=True, eog=True)
 
 event_id, tmin, tmax = 1, -1., 3.
-baseline = (None, 0)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=baseline, reject=reject, preload=True)
-evoked = epochs.average().resample(sfreq=1000)
+                    reject=reject, preload=True)
+evoked = epochs.filter(1, None).average()
 evoked = evoked.pick_types(meg=True)
 evoked.crop(tmin=0.008, tmax=0.2)
 
@@ -68,10 +67,10 @@ forward = mne.read_forward_solution(fwd_fname)
 ###############################################################################
 # Run iterative reweighted multidict TFMxNE solver
 
-alpha, l1_ratio = 29.5, 0.05
-loose, depth = 1, 0.9
+alpha, l1_ratio = 20, 0.05
+loose, depth = 1, 0.95
 # Use a multiscale time-frequency dictionary
-wsize, tstep = [16, 64], [2, 4]
+wsize, tstep = [4, 16], [2, 4]
 
 
 n_tfmxne_iter = 10
@@ -96,17 +95,18 @@ stc = make_stc_from_dipoles(dipoles, forward['src'])
 
 plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
                              opacity=0.1, fig_name="irTF-MxNE (cond %s)"
-                             % condition, modes=['sphere'], scale_factors=[1.])
+                             % condition)
+# modes=['sphere'], scale_factors=[1.])
 
 
 ###############################################################################
 # Show the evoked response and the residual for gradiometers
 ylim = dict(grad=[-300, 300])
-evoked.pick_types(meg='grad', exclude='bads')
+evoked.pick_types(meg='grad')
 evoked.plot(titles=dict(grad='Evoked Response: Gradiometers'), ylim=ylim,
             proj=True)
 
-residual.pick_types(meg='grad', exclude='bads')
+residual.pick_types(meg='grad')
 residual.plot(titles=dict(grad='Residuals: Gradiometers'), ylim=ylim,
               proj=True)
 
