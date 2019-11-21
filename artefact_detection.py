@@ -21,7 +21,6 @@ def detect_bad_channels(raw, zscore_v=4, method='both',
                     neigh_max_distance=.035):
     """ zscore_v = zscore threshold"""
    
-    
     # set recording length
     Fs = raw.info['sfreq']
     t1x = 30
