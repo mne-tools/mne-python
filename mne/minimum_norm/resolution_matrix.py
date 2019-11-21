@@ -333,6 +333,7 @@ def _check_fixed_ori(inst):
 def _get_matrix_from_lcmv(filters, forward, info, max_ori_out='signed',
                           verbose=None):
     """Get inverse matrix for LCMV beamformer.
+
     Parameters
     ----------
     filters : instance of Beamformer

@@ -28,8 +28,6 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 # Read raw data
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
 
-raw.set_eeg_reference('average', projection=True)
-
 # only pick good EEG/MEG sensors
 raw.info['bads'] += ['EEG 053']  # bads + 1 more
 picks = mne.pick_types(raw.info, meg=True, eeg=True, exclude='bads')
@@ -71,6 +69,10 @@ info = raw.info
 noise_cov = mne.cov.regularize(noise_cov, info, mag=0.1, grad=0.1,
                                eeg=0.1, rank='info')
 
+##############################################################################
+# Compute LCMV filters with different data covariance matrices
+# ------------------------------------------------------------
+
 # compute LCMV beamformer filters for pre-stimulus interval
 filters_pre = make_lcmv(info, forward, cov_pre, reg=0.05,
                         noise_cov=noise_cov,
@@ -87,8 +89,11 @@ filters_post = make_lcmv(info, forward, cov_post, reg=0.05,
                          reduce_rank=False,
                          verbose=False)
 
-# compute resolution matrices for LCMV beamformers with different covariance
-# matrices
+##############################################################################
+# Compute resolution matrices for LCMV beamformers with different data
+# covariance matrices
+# --------------------------------------------------------------------
+
 rm_pre = make_resolution_matrix_lcmv(filters_pre, forward, info)
 
 rm_post = make_resolution_matrix_lcmv(filters_post, forward, info)
@@ -100,7 +105,9 @@ stc_pre = get_cross_talk(rm_pre, forward['src'], sources, norm=True)
 
 stc_post = get_cross_talk(rm_post, forward['src'], sources, norm=True)
 
+##############################################################################
 # Visualise
+# ---------
 vertno_lh = forward['src'][0]['vertno']  # vertex of selected source
 verttrue = [vertno_lh[sources[0]]]  # pick one vertex
 
