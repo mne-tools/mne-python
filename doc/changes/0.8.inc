@@ -191,4 +191,4 @@ The committer list for this release is the following (preceded by number of comm
 * 2  Federico Raimondo
 * 2  Alan Leggitt
 * 1  Jean-Remi King
-* 1  Matti Hamalainen
+* 1  Matti Hämäläinen

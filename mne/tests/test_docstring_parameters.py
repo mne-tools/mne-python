@@ -9,9 +9,7 @@ from unittest import SkipTest
 import pytest
 
 import mne
-from mne.utils import (run_tests_if_main, _doc_special_members,
-                       requires_numpydoc)
-from mne.fixes import _get_args
+from mne.utils import run_tests_if_main, requires_numpydoc, _pl
 
 public_modules = [
     # the list of modules users need to access for all functionality
@@ -45,90 +43,54 @@ public_modules = [
 ]
 
 
-def get_name(func, cls=None):
-    """Get the name."""
-    parts = []
-    module = inspect.getmodule(func)
-    if module:
-        parts.append(module.__name__)
-    if cls is not None:
-        parts.append(cls.__name__)
-    parts.append(func.__name__)
-    return '.'.join(parts)
+def _func_name(func):
+    return '%s.%s' % (inspect.getmodule(func).__name__, func.__name__)
 
 
 # functions to ignore args / docstring of
 docstring_ignores = [
-    'mne.io.Info',  # Parameters
-    'mne.io.write',  # always ignore these
-    'mne.datasets.sample.sample.requires_sample_data',
-    # Deprecations
+    'mne.externals',
+    'mne.fixes',
+    'mne.io.write',
 ]
 char_limit = 800  # XX eventually we should probably get this lower
-docstring_length_ignores = [
-    'mne.filter.construct_iir_filter::iir_params',
-]
 tab_ignores = [
     'mne.channels.tests.test_montage',
 ]
+error_ignores = (
+    # These we do not live by:
+    'GL01',  # Docstring should start in the line immediately after the quotes
+    'EX01', 'EX02',  # examples failed (we test them separately)
+    'ES01',  # no extended summary
+    'SA01',  # no see also
+    'YD01',  # no yields section
+    'SA04',  # no description in See Also
+    'PR04',  # Parameter "shape (n_channels" has no type
+    'RT02',  # The first line of the Returns section should contain only the type, unless multiple values are being returned  # noqa
+   # XXX should also verify that | is used rather than , to separate params
+    # XXX should maybe also restore the parameter-desc-length < 800 char check
+)
 
 
-def check_parameters_match(func, doc=None, cls=None):
+def check_parameters_match(func):
     """Check docstring, return list of incorrect results."""
-    from numpydoc import docscrape
-    incorrect = []
-    name_ = get_name(func, cls=cls)
-    if not name_.startswith('mne.') or name_.startswith('mne.externals'):
-        return incorrect
-    if inspect.isdatadescriptor(func):
-        return incorrect
-    args = _get_args(func)
-    # drop self
-    if len(args) > 0 and args[0] == 'self':
-        args = args[1:]
-
-    if doc is None:
-        with pytest.warns(None) as w:
-            try:
-                doc = docscrape.FunctionDoc(func)
-            except Exception as exp:
-                incorrect += [name_ + ' parsing error: ' + str(exp)]
-                return incorrect
-        if len(w):
-            raise RuntimeError('Error for %s:\n%s' % (name_, w[0]))
-    # check set
-    parameters = doc['Parameters']
-    # clean up some docscrape output:
-    parameters = [[p[0].split(':')[0].strip('` '), p[2]]
-                  for p in parameters]
-    parameters = [p for p in parameters if '*' not in p[0]]
-    param_names = [p[0] for p in parameters]
-    if len(param_names) != len(args):
-        bad = str(sorted(list(set(param_names) - set(args)) +
-                         list(set(args) - set(param_names))))
-        if not any(re.match(d, name_) for d in docstring_ignores) and \
-                'deprecation_wrapped' not in func.__code__.co_name:
-            incorrect += [name_ + ' arg mismatch: ' + bad]
-    else:
-        for n1, n2 in zip(param_names, args):
-            if n1 != n2:
-                incorrect += [name_ + ' ' + n1 + ' != ' + n2]
-        for param_name, desc in parameters:
-            desc = '\n'.join(desc)
-            full_name = name_ + '::' + param_name
-            if full_name in docstring_length_ignores:
-                assert len(desc) > char_limit  # assert it actually needs to be
-            elif len(desc) > char_limit:
-                incorrect += ['%s too long (%d > %d chars)'
-                              % (full_name, len(desc), char_limit)]
+    from numpydoc.validate import validate
+    name = _func_name(func)
+    skip = (not name.startswith('mne.') or
+            any(re.match(d, name) for d in docstring_ignores) or
+            'deprecation_wrapped' in getattr(
+                getattr(func, '__code__', None), 'co_name', ''))
+    if skip:
+        return list()
+    incorrect = ['%s : %s : %s' % (name, err[0], err[1])
+                 for err in validate(name)['errors']
+                 if err[0] not in error_ignores]
     return incorrect
 
 
 @requires_numpydoc
 def test_docstring_parameters():
     """Test module docstring formatting."""
-    from numpydoc import docscrape
-
     # skip modules that require mayavi if mayavi is not installed
     public_modules_ = public_modules[:]
     try:
@@ -149,27 +111,17 @@ def test_docstring_parameters():
             module = getattr(module, submod)
         classes = inspect.getmembers(module, inspect.isclass)
         for cname, cls in classes:
-            if cname.startswith('_') and cname not in _doc_special_members:
+            if cname.startswith('_'):
                 continue
-            with pytest.warns(None) as w:
-                cdoc = docscrape.ClassDoc(cls)
-            for ww in w:
-                if 'Using or importing the ABCs' not in str(ww.message):
-                    raise RuntimeError('Error for __init__ of %s in %s:\n%s'
-                                       % (cls, name, ww))
-            if hasattr(cls, '__init__'):
-                incorrect += check_parameters_match(cls.__init__, cdoc, cls)
-            for method_name in cdoc.methods:
-                method = getattr(cls, method_name)
-                incorrect += check_parameters_match(method, cls=cls)
-            if hasattr(cls, '__call__'):
-                incorrect += check_parameters_match(cls.__call__, cls=cls)
+            incorrect += check_parameters_match(cls)
         functions = inspect.getmembers(module, inspect.isfunction)
         for fname, func in functions:
             if fname.startswith('_'):
                 continue
             incorrect += check_parameters_match(func)
-    msg = '\n' + '\n'.join(sorted(list(set(incorrect))))
+    incorrect = sorted(list(set(incorrect)))
+    msg = '\n' + '\n'.join(incorrect)
+    msg += '\n%d error%s' % (len(incorrect), _pl(incorrect))
     if len(incorrect) > 0:
         raise AssertionError(msg)
 

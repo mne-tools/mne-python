@@ -40,7 +40,6 @@ raw.crop(tmax=60.)
 #     See :ref:`tut-artifact-overview` for guidance on detecting and
 #     visualizing various types of artifact.
 #
-#
 # What is ICA?
 # ^^^^^^^^^^^^
 #
@@ -153,6 +152,7 @@ raw.plot(order=artifact_picks, n_channels=len(artifact_picks))
 # :ref:`tut-artifact-overview` tutorial:
 
 eog_evoked = create_eog_epochs(raw).average()
+eog_evoked.apply_baseline(baseline=(None, -0.2))
 eog_evoked.plot_joint()
 
 ###############################################################################
@@ -160,6 +160,7 @@ eog_evoked.plot_joint()
 # :func:`~mne.preprocessing.create_ecg_epochs`:
 
 ecg_evoked = create_ecg_epochs(raw).average()
+ecg_evoked.apply_baseline(baseline=(None, -0.2))
 ecg_evoked.plot_joint()
 
 ###############################################################################

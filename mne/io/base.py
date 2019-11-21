@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
@@ -302,10 +302,14 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         :meth:`mne.io.Raw.save`.
     orig_units : dict | None
         Dictionary mapping channel names to their units as specified in
-        the header file. Example: {'FC1': 'nV'}
+        the header file. Example: {'FC1': 'nV'}.
 
         .. versionadded:: 0.17
     %(verbose)s
+
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
 
     Notes
     -----
@@ -318,10 +322,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         * _read_segment_file(self, data, idx, fi, start, stop, cals, mult)
           (only needed for types that support on-demand disk reads)
-
-    See Also
-    --------
-    mne.io.Raw : Documentation of attribute and methods.
     """
 
     @verbose
@@ -1558,14 +1558,14 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
              show_first_samp=False, proj=True, group_by='type',
              butterfly=False, decim='auto', noise_cov=None, event_id=None,
-             show_scrollbars=True, verbose=None):
+             show_scrollbars=True, show_scalebars=True, verbose=None):
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,
                         lowpass, filtorder, clipping, show_first_samp, proj,
                         group_by, butterfly, decim, noise_cov=noise_cov,
                         event_id=event_id, show_scrollbars=show_scrollbars,
-                        verbose=verbose)
+                        show_scalebars=show_scalebars, verbose=verbose)
 
     @verbose
     @copy_function_doc_to_method_doc(plot_raw_psd)
@@ -1635,7 +1635,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """Mark channels as bad from a text file.
 
         This function operates mostly in the style of the C function
-        ``mne_mark_bad_channels``.
+        ``mne_mark_bad_channels``. Each line in the text file will be
+        interpreted as a name of a bad channel.
 
         Parameters
         ----------
@@ -1679,7 +1680,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Parameters
         ----------
         raws : list, or Raw instance
-            list of Raw instances to concatenate to the current instance
+            List of Raw instances to concatenate to the current instance
             (in order), or a single raw instance to concatenate.
         preload : bool, str, or None (default None)
             Preload data into memory for data manipulation and faster indexing.
@@ -2194,7 +2195,7 @@ def concatenate_raws(raws, preload=None, events_list=None, verbose=None):
     Parameters
     ----------
     raws : list
-        list of Raw instances to concatenate (in order).
+        List of Raw instances to concatenate (in order).
     preload : bool, or None
         If None, preload status is inferred using the preload status of the
         raw files passed in. True or False sets the resulting raw file to

@@ -62,6 +62,12 @@ class RawEDF(BaseRaw):
     %(preload)s
     %(verbose)s
 
+    See Also
+    --------
+    mne.io.Raw : Documentation of attributes and methods.
+    mne.io.read_raw_edf : Recommended way to read EDF/EDF+ files.
+    mne.io.read_raw_bdf : Recommended way to read BDF files.
+
     Notes
     -----
     Biosemi devices trigger codes are encoded in 16-bit format, whereas system
@@ -98,12 +104,6 @@ class RawEDF(BaseRaw):
     If channels named 'status' or 'trigger' are present, they are considered as
     STIM channels by default. Use func:`mne.find_events` to parse events
     encoded in such analog stim channels.
-
-    See Also
-    --------
-    mne.io.Raw : Documentation of attributes and methods.
-    mne.io.read_raw_edf : Recommended way to read EDF/EDF+ files.
-    mne.io.read_raw_bdf : Recommended way to read BDF files.
     """
 
     @verbose
@@ -169,16 +169,16 @@ class RawGDF(BaseRaw):
     %(preload)s
     %(verbose)s
 
+    See Also
+    --------
+    mne.io.Raw : Documentation of attributes and methods.
+    mne.io.read_raw_gdf : Recommended way to read GDF files.
+
     Notes
     -----
     If channels named 'status' or 'trigger' are present, they are considered as
     STIM channels by default. Use func:`mne.find_events` to parse events
     encoded in such analog stim channels.
-
-    See Also
-    --------
-    mne.io.Raw : Documentation of attributes and methods.
-    mne.io.read_raw_gdf : Recommended way to read GDF files.
     """
 
     @verbose
@@ -340,6 +340,9 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, chs, filenames):
                               2**17 - 1)
         data[stim_channel_idx, :] = stim
 
+    if len(tal_data) > 1:
+        tal_data = np.concatenate([tal.ravel() for tal in tal_data])
+        tal_data = tal_data[np.newaxis, :]
     return tal_data
 
 
@@ -503,6 +506,19 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     return info, edf_info, orig_units
 
 
+def _parse_prefilter_string(prefiltering):
+    """Parse prefilter string from EDF+ and BDF headers."""
+    highpass = np.array(
+        [v for hp in [re.findall(r'HP:\s*([0-9]+[.]*[0-9]*)', filt)
+                      for filt in prefiltering] for v in hp]
+    )
+    lowpass = np.array(
+        [v for hp in [re.findall(r'LP:\s*([0-9]+[.]*[0-9]*)', filt)
+                      for filt in prefiltering] for v in hp]
+    )
+    return highpass, lowpass
+
+
 def _read_edf_header(fname, exclude):
     """Read header information from EDF+ or BDF file."""
     edf_info = {'events': []}
@@ -587,10 +603,7 @@ def _read_edf_header(fname, exclude):
                                 for ch in channels])[sel]
         prefiltering = [fid.read(80).decode().strip(' \x00')
                         for ch in channels][:-1]
-        highpass = np.ravel([re.findall(r'HP:\s+(\w+)', filt)
-                             for filt in prefiltering])
-        lowpass = np.ravel([re.findall(r'LP:\s+(\w+)', filt)
-                            for filt in prefiltering])
+        highpass, lowpass = _parse_prefilter_string(prefiltering)
 
         # number of samples per record
         n_samps = np.array([int(fid.read(8).decode()) for ch
@@ -725,10 +738,7 @@ def _read_gdf_header(fname, exclude):
             digital_max = np.fromfile(fid, np.int64, len(channels))
             prefiltering = [fid.read(80).decode().strip(' \x00')
                             for ch in channels][:-1]
-            highpass = np.ravel([re.findall(r'HP:\s+(\w+)', filt)
-                                 for filt in prefiltering])
-            lowpass = np.ravel([re.findall('LP:\\s+(\\w+)', filt)
-                                for filt in prefiltering])
+            highpass, lowpass = _parse_prefilter_string(prefiltering)
 
             # n samples per record
             n_samps = np.fromfile(fid, np.int32, len(channels))
@@ -1122,6 +1132,16 @@ def read_raw_edf(input_fname, eog=None, misc=None,
     %(preload)s
     %(verbose)s
 
+    Returns
+    -------
+    raw : instance of RawEDF
+        The raw instance.
+
+    See Also
+    --------
+    mne.io.read_raw_bdf : Reader function for BDF files.
+    mne.io.read_raw_gdf : Reader function for GDF files.
+
     Notes
     -----
     It is worth noting that in some special cases, it may be necessary to shift
@@ -1138,11 +1158,6 @@ def read_raw_edf(input_fname, eog=None, misc=None,
     If channels named 'status' or 'trigger' are present, they are considered as
     STIM channels by default. Use func:`mne.find_events` to parse events
     encoded in such analog stim channels.
-
-    See Also
-    --------
-    mne.io.read_raw_bdf : Reader function for BDF files.
-    mne.io.read_raw_gdf : Reader function for GDF files.
     """
     input_fname = os.path.abspath(input_fname)
     ext = os.path.splitext(input_fname)[1][1:].lower()
@@ -1199,6 +1214,16 @@ def read_raw_bdf(input_fname, eog=None, misc=None,
     %(preload)s
     %(verbose)s
 
+    Returns
+    -------
+    raw : instance of RawEDF
+        The raw instance.
+
+    See Also
+    --------
+    mne.io.read_raw_edf : Reader function for EDF and EDF+ files.
+    mne.io.read_raw_gdf : Reader function for GDF files.
+
     Notes
     -----
     Biosemi devices trigger codes are encoded in 16-bit format, whereas system
@@ -1234,11 +1259,6 @@ def read_raw_bdf(input_fname, eog=None, misc=None,
     If channels named 'status' or 'trigger' are present, they are considered as
     STIM channels by default. Use func:`mne.find_events` to parse events
     encoded in such analog stim channels.
-
-    See Also
-    --------
-    mne.io.read_raw_edf : Reader function for EDF and EDF+ files.
-    mne.io.read_raw_gdf : Reader function for GDF files.
     """
     input_fname = os.path.abspath(input_fname)
     ext = os.path.splitext(input_fname)[1][1:].lower()
@@ -1278,16 +1298,21 @@ def read_raw_gdf(input_fname, eog=None, misc=None,
     %(preload)s
     %(verbose)s
 
-    Notes
-    -----
-    If channels named 'status' or 'trigger' are present, they are considered as
-    STIM channels by default. Use func:`mne.find_events` to parse events
-    encoded in such analog stim channels.
+    Returns
+    -------
+    raw : instance of RawGDF
+        The raw instance.
 
     See Also
     --------
     mne.io.read_raw_edf : Reader function for EDF and EDF+ files.
     mne.io.read_raw_bdf : Reader function for BDF files.
+
+    Notes
+    -----
+    If channels named 'status' or 'trigger' are present, they are considered as
+    STIM channels by default. Use func:`mne.find_events` to parse events
+    encoded in such analog stim channels.
     """
     input_fname = os.path.abspath(input_fname)
     ext = os.path.splitext(input_fname)[1][1:].lower()

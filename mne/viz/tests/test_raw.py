@@ -411,12 +411,21 @@ def test_plot_raw_psd():
     raw.plot_psd(reject_by_annotation=True)
     raw.plot_psd(reject_by_annotation=False)
 
+    # test fmax value checking
+    with pytest.raises(ValueError, match='not exceed one half the sampling'):
+        raw.plot_psd(fmax=50000)
+
     # gh-5046
     raw = read_raw_fif(raw_fname, preload=True).crop(0, 1)
     picks = pick_types(raw.info)
     raw.plot_psd(picks=picks, average=False)
     raw.plot_psd(picks=picks, average=True)
     plt.close('all')
+    raw.set_channel_types({'MEG 0113': 'hbo', 'MEG 0112': 'hbr',
+                           'MEG 0122': 'fnirs_raw', 'MEG 0123': 'fnirs_od'},
+                          verbose='error')
+    fig = raw.plot_psd()
+    assert len(fig.axes) == 10
 
 
 def test_plot_sensors():

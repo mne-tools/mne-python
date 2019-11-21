@@ -281,8 +281,8 @@ def test_sym_mat_to_vector():
     # Test complex values: diagonals should be complex conjugates
     comp_vec = np.arange(3) + 1j
     assert_array_equal(_vector_to_sym_mat(comp_vec),
-                       [[0. + 0.j,  1. + 1.j],
-                        [1. - 1.j,  2. + 0.j]])
+                       [[0. + 0.j, 1. + 1.j],
+                        [1. - 1.j, 2. + 0.j]])
 
     # Test preservation of data type
     assert _sym_mat_to_vector(mat.astype(np.int8)).dtype == np.int8

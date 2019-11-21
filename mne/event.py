@@ -1,14 +1,14 @@
 """IO with fif files containing events."""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Clement Moutard <clement.moutard@polytechnique.org>
 #
 # License: BSD (3-clause)
 
+import os.path as op
 import numpy as np
-from os.path import splitext
 
 
 from .utils import (check_fname, logger, verbose, _get_stim_channel, warn,
@@ -44,7 +44,7 @@ def pick_events(events, include=None, exclude=None, step=False):
     Returns
     -------
     events : array, shape (n_events, 3)
-        The list of events
+        The list of events.
     """
     if include is not None:
         if not isinstance(include, list):
@@ -156,41 +156,41 @@ def _read_events_fif(fid, tree):
         raise ValueError('Could not find event data')
 
     events = events[0]
-
+    event_list = None
+    event_id = None
     for d in events['directory']:
         kind = d.kind
         pos = d.pos
         if kind == FIFF.FIFF_MNE_EVENT_LIST:
             tag = read_tag(fid, pos)
             event_list = tag.data
+            event_list.shape = (-1, 3)
             break
-    else:
+    if event_list is None:
         raise ValueError('Could not find any events')
-
-    mappings = dir_tree_find(tree, FIFF.FIFFB_MNE_EVENTS)
-    mappings = mappings[0]
-
-    for d in mappings['directory']:
+    for d in events['directory']:
         kind = d.kind
         pos = d.pos
         if kind == FIFF.FIFF_DESCRIPTION:
             tag = read_tag(fid, pos)
-            mappings = tag.data
+            event_id = tag.data
+            m_ = [[s[::-1] for s in m[::-1].split(':', 1)]
+                  for m in event_id.split(';')]
+            event_id = {k: int(v) for v, k in m_}
             break
-    else:
-        mappings = None
-
-    if mappings is not None:  # deal with ':' in keys
-        m_ = [[s[::-1] for s in m[::-1].split(':', 1)]
-              for m in mappings.split(';')]
-        mappings = {k: int(v) for v, k in m_}
-    event_list = event_list.reshape(len(event_list) // 3, 3)
-    return event_list, mappings
+        elif kind == FIFF.FIFF_MNE_EVENT_COMMENTS:
+            tag = read_tag(fid, pos)
+            event_id = tag.data
+            event_id = event_id.tostring().decode('latin-1').split('\x00')[:-1]
+            assert len(event_id) == len(event_list)
+            event_id = {k: v[2] for k, v in zip(event_id, event_list)}
+            break
+    return event_list, event_id
 
 
 @verbose
 def read_events(filename, include=None, exclude=None, mask=None,
-                mask_type='and', verbose=None):
+                mask_type='and', return_event_id=False, verbose=None):
     """Read events from fif or text file.
 
     See :ref:`tut_epoching_and_averaging` as well as :ref:`ex-read-events`
@@ -198,7 +198,7 @@ def read_events(filename, include=None, exclude=None, mask=None,
 
     Parameters
     ----------
-    filename : string
+    filename : str
         Name of the input file.
         If the extension is .fif, events are read assuming
         the file is in FIF format, otherwise (e.g., .eve,
@@ -215,17 +215,24 @@ def read_events(filename, include=None, exclude=None, mask=None,
     mask : int | None
         The value of the digital mask to apply to the stim channel values.
         If None (default), no masking is performed.
-    mask_type: 'and' | 'not_and'
+    mask_type : 'and' | 'not_and'
         The type of operation between the mask and the trigger.
         Choose 'and' (default) for MNE-C masking behavior.
 
         .. versionadded:: 0.13
+    return_event_id : bool
+        If True, ``event_id`` will be returned. This is only possible for
+        ``-annot.fif`` files produced with MNE-C ``mne_browse_raw``.
+
+        .. versionadded:: 0.20
     %(verbose)s
 
     Returns
     -------
     events: array, shape (n_events, 3)
-        The list of events
+        The list of events.
+    event_id : dict
+        Dictionary of ``{str: int}`` mappings of event IDs.
 
     See Also
     --------
@@ -241,13 +248,15 @@ def read_events(filename, include=None, exclude=None, mask=None,
     """
     check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
                                      '-eve.lst', '-eve.txt', '_eve.fif',
-                                     '_eve.fif.gz', '_eve.lst', '_eve.txt'))
+                                     '_eve.fif.gz', '_eve.lst', '_eve.txt',
+                                     '-annot.fif',  # MNE-C annot
+                                     ))
 
-    ext = splitext(filename)[1].lower()
+    ext = op.splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
         fid, tree, _ = fiff_open(filename)
         with fid as f:
-            event_list, _ = _read_events_fif(f, tree)
+            event_list, event_id = _read_events_fif(f, tree)
         # hack fix for windows to avoid bincount problems
         event_list = event_list.astype(int)
     else:
@@ -272,6 +281,7 @@ def read_events(filename, include=None, exclude=None, mask=None,
                 event_list[0, 2] == 0):
             event_list = event_list[1:]
             warn('first row of event file discarded (zero-valued)')
+        event_id = None
 
     event_list = pick_events(event_list, include, exclude)
     unmasked_len = event_list.shape[0]
@@ -281,7 +291,12 @@ def read_events(filename, include=None, exclude=None, mask=None,
         if masked_len < unmasked_len:
             warn('{} of {} events masked'.format(unmasked_len - masked_len,
                                                  unmasked_len))
-    return event_list
+    out = event_list
+    if return_event_id:
+        if event_id is None:
+            raise RuntimeError('No event_id found in the file')
+        out = (out, event_id)
+    return out
 
 
 def write_events(filename, event_list):
@@ -289,16 +304,15 @@ def write_events(filename, event_list):
 
     Parameters
     ----------
-    filename : string
+    filename : str
         Name of the output file.
         If the extension is .fif, events are written in
         binary FIF format, otherwise (e.g., .eve, .lst,
         .txt) events are written as plain text.
         Note that new format event files do not contain
         the "time" column (used to be the second column).
-
     event_list : array, shape (n_events, 3)
-        The list of events
+        The list of events.
 
     See Also
     --------
@@ -308,7 +322,7 @@ def write_events(filename, event_list):
                                      '-eve.lst', '-eve.txt', '_eve.fif',
                                      '_eve.fif.gz', '_eve.lst', '_eve.txt'))
 
-    ext = splitext(filename)[1].lower()
+    ext = op.splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
         #   Start writing...
         fid = start_file(filename)
@@ -378,7 +392,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
     ----------
     raw : Raw object
         The raw data.
-    pad_start: None | int
+    pad_start : None | int
         Values to assume outside of the stim channel (e.g., if pad_start=0 and
         the stim channel starts with value 5, an event of [0, 0, 5] will be
         inserted at the beginning). With None, no steps will be inserted.
@@ -389,7 +403,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
         indicates over how many samples events should be merged, and the sign
         indicates in which direction they should be merged (negative means
         towards the earlier event, positive towards the later event).
-    stim_channel : None | string | list of string
+    stim_channel : None | str | list of str
         Name of the stim channel or all the stim channels
         affected by the trigger. If None, the config variables
         'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',
@@ -533,7 +547,7 @@ def find_events(raw, stim_channel=None, output='onset',
     ----------
     raw : Raw object
         The raw data.
-    stim_channel : None | string | list of string
+    stim_channel : None | str | list of str
         Name of the stim channel or all the stim channels
         affected by triggers. If None, the config variables
         'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',
@@ -568,7 +582,7 @@ def find_events(raw, stim_channel=None, output='onset',
         in MNE-C.
 
         .. versionadded:: 0.12
-    mask_type: 'and' | 'not_and'
+    mask_type : 'and' | 'not_and'
         The type of operation between the mask and the trigger.
         Choose 'and' (default) for MNE-C masking behavior.
 
@@ -675,7 +689,6 @@ def find_events(raw, stim_channel=None, output='onset',
              37 '0100101' <- mask
          ----------------
               2 '0000010'
-
     """
     min_samples = min_duration * raw.info['sfreq']
 
@@ -761,7 +774,16 @@ def merge_events(events, ids, new_id, replace_events=True):
     Returns
     -------
     new_events : array, shape (n_events_out, 3)
-        The new events
+        The new events.
+
+    Notes
+    -----
+    Rather than merging events you can use hierarchical event_id
+    in Epochs. For example, here::
+
+        >>> event_id = {'auditory/left': 1, 'auditory/right': 2}
+
+    And the condition 'auditory' would correspond to either 1 or 2.
 
     Examples
     --------
@@ -778,15 +800,6 @@ def merge_events(events, ids, new_id, replace_events=True):
                [341,   0,   2],
                [341,   0,  12],
                [502,   0,   3]])
-
-    Notes
-    -----
-    Rather than merging events you can use hierarchical event_id
-    in Epochs. For example, here::
-
-        >>> event_id = {'auditory/left': 1, 'auditory/right': 2}
-
-    And the condition 'auditory' would correspond to either 1 or 2.
     """
     events = np.asarray(events)
     events_out = events.copy()
@@ -849,9 +862,9 @@ def make_fixed_length_events(raw, id=1, start=0, stop=None, duration=1.,
     stop : float | None
         Maximum time of last event. If None, events extend to the end
         of the recording.
-    duration: float
+    duration : float
         The duration to separate events by.
-    first_samp: bool
+    first_samp : bool
         If True (default), times will have raw.first_samp added to them, as
         in :func:`mne.find_events`. This behavior is not desirable if the
         returned events will be combined with event times that already
@@ -978,7 +991,7 @@ class AcqParserFIF(object):
 
     See Also
     --------
-    mne.io.Raw.acqparser : access the parser through a Raw attribute
+    mne.io.Raw.acqparser : Access the parser through a Raw attribute.
 
     Notes
     -----
@@ -1320,7 +1333,7 @@ class AcqParserFIF(object):
             (e.g. acqp['Auditory left'], where acqp is an instance of
             AcqParserFIF). If None, get all conditions marked active in
             DACQ.
-        stim_channel : None | string | list of string
+        stim_channel : None | str | list of str
             Name of the stim channel or all the stim channels
             affected by the trigger. If None, the config variables
             'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',
@@ -1336,10 +1349,10 @@ class AcqParserFIF(object):
             Neuromag acquisition setups that use channel STI016 (channel 16
             turns data into e.g. -32768), similar to ``mne_fix_stim14 --32``
             in MNE-C.
-        mask_type: 'and' | 'not_and'
+        mask_type : 'and' | 'not_and'
             The type of operation between the mask and the trigger.
             Choose 'and' for MNE-C masking behavior.
-        delayed_lookup: bool
+        delayed_lookup : bool
             If True, use the 'delayed lookup' procedure implemented in Elekta
             software. When a trigger transition occurs, the lookup of
             the new trigger value will not happen immediately at the following

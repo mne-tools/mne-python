@@ -2,6 +2,7 @@ from copy import deepcopy
 from distutils.version import LooseVersion
 from io import StringIO
 import os.path as op
+from datetime import datetime, timezone
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
@@ -10,7 +11,7 @@ from scipy import sparse
 
 from mne import read_evokeds, read_cov, pick_types
 from mne.io.pick import _picks_by_type
-from mne.epochs import _segment_raw
+from mne.epochs import make_fixed_length_epochs
 from mne.io import read_raw_fif
 from mne.time_frequency import tfr_morlet
 from mne.utils import (_get_inst_data, hashfunc,
@@ -19,7 +20,8 @@ from mne.utils import (_get_inst_data, hashfunc,
                        object_hash, object_diff, _apply_scaling_cov,
                        _undo_scaling_cov, _apply_scaling_array,
                        _undo_scaling_array, _PCA, requires_sklearn,
-                       _array_equal_nan)
+                       _array_equal_nan, _julian_to_cal, _cal_to_julian,
+                       _dt_to_julian, _julian_to_dt)
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -35,7 +37,7 @@ def test_get_inst_data():
     assert_array_equal(_get_inst_data(raw), raw._data)
     raw.pick_channels(raw.ch_names[:2])
 
-    epochs = _segment_raw(raw, 0.5)
+    epochs = make_fixed_length_epochs(raw, 0.5)
     assert_array_equal(_get_inst_data(epochs), epochs._data)
 
     evoked = epochs.average()
@@ -443,3 +445,23 @@ def test_array_equal_nan():
     assert not _array_equal_nan(a, b)
     a = b = [np.nan] * 2
     assert _array_equal_nan(a, b)
+
+
+def test_julian_conversions():
+    """Test julian calendar conversions."""
+    # https://aa.usno.navy.mil/data/docs/JulianDate.php
+    # A.D. 1922 Jun 13  12:00:00.0  2423219.000000
+    # A.D. 2018 Oct 3   12:00:00.0  2458395.000000
+
+    jds = [2423219, 2458395, 2445701]
+    dds = [datetime(1922, 6, 13, 12, 0, 0, tzinfo=timezone.utc),
+           datetime(2018, 10, 3, 12, 0, 0, tzinfo=timezone.utc),
+           datetime(1984, 1, 1, 12, 0, 0, tzinfo=timezone.utc)]
+    cals = [(1922, 6, 13), (2018, 10, 3), (1984, 1, 1)]
+
+    for dd, cal, jd in zip(dds, cals, jds):
+        assert (dd == _julian_to_dt(jd))
+        assert (cal == _julian_to_cal(jd))
+
+        assert (jd == _dt_to_julian(dd))
+        assert (jd == _cal_to_julian(cal[0], cal[1], cal[2]))

@@ -181,11 +181,11 @@ def test_scale_mri_xfm(tmpdir, few_surfaces):
             overwrite = skip_fiducials = False
         else:
             with pytest.raises(IOError, match='No fiducials file'):
-                scale_mri(subject_from, subject_to,  scale,
+                scale_mri(subject_from, subject_to, scale,
                           subjects_dir=tempdir)
             skip_fiducials = True
             with pytest.raises(IOError, match='already exists'):
-                scale_mri(subject_from, subject_to,  scale,
+                scale_mri(subject_from, subject_to, scale,
                           subjects_dir=tempdir, skip_fiducials=skip_fiducials)
             overwrite = True
         if subject_from == 'sample':  # support for not needing all surf files

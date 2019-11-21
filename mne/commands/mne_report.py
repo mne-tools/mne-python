@@ -152,4 +152,5 @@ def run():
     log_elapsed(time.time() - t0, verbose=verbose)
     report.save(open_browser=open_browser, overwrite=overwrite)
 
+
 mne.utils.run_command_if_main()

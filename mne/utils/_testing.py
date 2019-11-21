@@ -65,12 +65,9 @@ class _TempDir(str):
         rmtree(self._path, ignore_errors=True)
 
 
-def requires_nibabel(vox2ras_tkr=False):
-    """Check for nibabel."""
-    import pytest
-    extra = ' with vox2ras_tkr support' if vox2ras_tkr else ''
-    return pytest.mark.skipif(not has_nibabel(vox2ras_tkr),
-                              reason='Requires nibabel%s' % extra)
+def requires_nibabel():
+    """Wrap to requires_module with a function call (fewer lines to change)."""
+    return partial(requires_module, name='nibabel')
 
 
 def requires_dipy():
@@ -153,11 +150,6 @@ if 'NEUROMAG2FT_ROOT' not in os.environ:
     raise ImportError
 """
 
-_fs_or_ni_call = """
-if not has_nibabel() and not has_freesurfer():
-    raise ImportError
-"""
-
 requires_pandas = partial(requires_module, name='pandas', call=_pandas_call)
 requires_pylsl = partial(requires_module, name='pylsl')
 requires_sklearn = partial(requires_module, name='sklearn', call=_sklearn_call)
@@ -167,8 +159,6 @@ requires_freesurfer = partial(requires_module, name='Freesurfer',
                               call=_fs_call)
 requires_neuromag2ft = partial(requires_module, name='neuromag2ft',
                                call=_n2ft_call)
-requires_fs_or_nibabel = partial(requires_module, name='nibabel or Freesurfer',
-                                 call=_fs_or_ni_call)
 
 requires_tvtk = partial(requires_module, name='TVTK',
                         call='from tvtk.api import tvtk')
@@ -299,19 +289,14 @@ class SilenceStdout(object):
     def __enter__(self):  # noqa: D105
         self.stdout = sys.stdout
         sys.stdout = StringIO()
-        return self
+        return sys.stdout
 
     def __exit__(self, *args):  # noqa: D105
         sys.stdout = self.stdout
 
 
-def has_nibabel(vox2ras_tkr=False):
+def has_nibabel():
     """Determine if nibabel is installed.
-
-    Parameters
-    ----------
-    vox2ras_tkr : bool
-        If True, require nibabel has vox2ras_tkr support.
 
     Returns
     -------
@@ -319,15 +304,11 @@ def has_nibabel(vox2ras_tkr=False):
         True if the user has nibabel.
     """
     try:
-        import nibabel
-        out = True
-        if vox2ras_tkr:  # we need MGHHeader to have vox2ras_tkr param
-            out = (getattr(getattr(getattr(nibabel, 'MGHImage', 0),
-                                   'header_class', 0),
-                           'get_vox2ras_tkr', None) is not None)
-        return out
+        import nibabel  # noqa
     except ImportError:
         return False
+    else:
+        return True
 
 
 def has_mne_c():
@@ -450,6 +431,16 @@ def assert_snr(actual, desired, tol):
     snr = (linalg.norm(desired, ord='fro') /
            linalg.norm(desired - actual, ord='fro'))
     assert snr >= tol, '%f < %f' % (snr, tol)
+
+
+def assert_stcs_equal(stc1, stc2):
+    """Check that two STC are equal."""
+    assert_allclose(stc1.times, stc2.times)
+    assert_allclose(stc1.data, stc2.data)
+    assert_array_equal(stc1.vertices[0], stc2.vertices[0])
+    assert_array_equal(stc1.vertices[1], stc2.vertices[1])
+    assert_allclose(stc1.tmin, stc2.tmin)
+    assert_allclose(stc1.tstep, stc2.tstep)
 
 
 def _dig_sort_key(dig):

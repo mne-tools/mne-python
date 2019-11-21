@@ -33,12 +33,6 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
     The PSI is computed from the coherency (see spectral_connectivity), details
     can be found in [1].
 
-    References
-    ----------
-    [1] Nolte et al. "Robustly Estimating the Flow Direction of Information in
-    Complex Physical Systems", Physical Review Letters, vol. 100, no. 23,
-    pp. 1-4, Jun. 2008.
-
     Parameters
     ----------
     data : array-like, shape=(n_epochs, n_signals, n_times)
@@ -80,7 +74,7 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
         bandwidth. Only used in 'multitaper' mode.
     cwt_freqs : array
         Array of frequencies of interest. Only used in 'cwt_morlet' mode.
-    cwt_n_cycles: float | array of float
+    cwt_n_cycles : float | array of float
         Number of cycles. Fixed number or one per frequency. Only used in
         'cwt_morlet' mode.
     block_size : int
@@ -109,6 +103,12 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
     n_tapers : int
         The number of DPSS tapers used. Only defined in 'multitaper' mode.
         Otherwise None is returned.
+
+    References
+    ----------
+    [1] Nolte et al. "Robustly Estimating the Flow Direction of Information in
+        Complex Physical Systems", Physical Review Letters, vol. 100, no. 23,
+        pp. 1-4, Jun. 2008.
     """
     logger.info('Estimating phase slope index (PSI)')
     # estimate the coherency

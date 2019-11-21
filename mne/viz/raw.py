@@ -27,7 +27,8 @@ from .utils import (_toggle_options, _toggle_proj, _prepare_mne_browse,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
                     _change_channel_group, _plot_annotations, _setup_butterfly,
                     _handle_decim, _setup_plot_projector, _check_cov,
-                    _set_ax_label_style, _draw_vert_line, _simplify_float)
+                    _set_ax_label_style, _draw_vert_line, _simplify_float,
+                    _check_psd_fmax)
 
 
 def _plot_update_raw_proj(params, bools):
@@ -105,7 +106,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
              show_first_samp=False, proj=True, group_by='type',
              butterfly=False, decim='auto', noise_cov=None, event_id=None,
-             show_scrollbars=True, verbose=None):
+             show_scrollbars=True, show_scalebars=True, verbose=None):
     """Plot raw data.
 
     Parameters
@@ -232,10 +233,14 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         .. versionadded:: 0.16.0
     event_id : dict | None
         Event IDs used to show at event markers (default None shows
-        theh event numbers).
+        the event numbers).
 
         .. versionadded:: 0.16.0
     %(show_scrollbars)s
+    show_scalebars : bool
+        Whether or not to show the scale bars. Defaults to True.
+
+        .. versionadded:: 0.20.0
     %(verbose)s
 
     Returns
@@ -331,7 +336,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     for t in ['grad', 'mag']:
         inds += [pick_types(info, meg=t, ref_meg=False, exclude=[])]
         types += [t] * len(inds[-1])
-    for t in ['hbo', 'hbr', 'fnirs_raw']:
+    for t in ['hbo', 'hbr', 'fnirs_raw', 'fnirs_od']:
         inds += [pick_types(info, meg=False, ref_meg=False, fnirs=t,
                             exclude=[])]
         types += [t] * len(inds[-1])
@@ -396,8 +401,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   data_picks=data_picks, event_id_rev=event_id_rev,
                   noise_cov=noise_cov, use_noise_cov=noise_cov is not None,
                   filt_bounds=filt_bounds, units=units, snap_annotations=False,
-                  unit_scalings=unit_scalings, use_scalebars=True,
-                  show_scrollbars=show_scrollbars)
+                  unit_scalings=unit_scalings, show_scrollbars=show_scrollbars,
+                  show_scalebars=show_scalebars)
 
     if group_by in ['selection', 'position']:
         params['fig_selection'] = fig_selection
@@ -555,9 +560,6 @@ def _label_clicked(pos, params):
     _plot_update_raw_proj(params, None)
 
 
-_data_types = ('mag', 'grad', 'eeg', 'seeg', 'ecog')
-
-
 @verbose
 def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
                  n_fft=None, n_overlap=0, reject_by_annotation=True,
@@ -605,7 +607,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     %(show)s
     %(n_jobs)s
     %(plot_psd_average)s
-    %(plot_psd_line_alpha)sxscale=xscale,
+    %(plot_psd_line_alpha)s
     %(plot_psd_spatial_colors)s
     %(verbose)s
 
@@ -618,6 +620,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
         make_label = _set_psd_plot_params(
             raw.info, proj, picks, ax, area_mode)
+    _check_psd_fmax(raw, fmax)
     del ax
     psd_list = list()
     if n_fft is None:
@@ -804,7 +807,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                 labels[ii].set_color(this_color)
             lines[ii].set_zorder(this_z)
             # add a scale bar
-            if (params['use_scalebars'] and
+            if (params['show_scalebars'] and
                     this_type != 'stim' and
                     ch_name not in params['whitened_ch_names'] and
                     ch_name not in params['info']['bads'] and
@@ -820,6 +823,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                     params['unit_scalings'][this_type] *
                     2. /
                     params['scale_factor'])
+
                 units = params['units'][this_type]
                 bar = ax.plot([x, x], [offset - 1., offset + 1.],
                               color=scale_color, zorder=5, lw=4)[0]
@@ -828,7 +832,6 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                                va='baseline', ha='right',
                                color=scale_color, zorder=5, size='xx-small')
                 params['scalebars'][this_type] = bar
-
         else:
             # "remove" lines
             lines[ii].set_xdata([])

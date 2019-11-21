@@ -22,12 +22,14 @@ import numpy as np
 from scipy import linalg
 
 from ..defaults import DEFAULTS
+from ..fixes import _get_img_fdata
 from ..rank import compute_rank
 from ..surface import read_surface
 from ..io.proj import make_projector
 from ..io.pick import (_DATA_CH_TYPES_SPLIT, pick_types, pick_info,
                        pick_channels)
-from ..source_space import read_source_spaces, SourceSpaces
+from ..source_space import read_source_spaces, SourceSpaces, _read_mri_info
+from ..transforms import invert_transform, apply_trans
 from ..utils import (logger, verbose, get_subjects_dir, warn, _check_option,
                      _mask_to_onsets_offsets)
 from ..io.pick import _picks_by_type
@@ -44,9 +46,9 @@ def plot_cov(cov, info, exclude=(), colorbar=True, proj=False, show_svd=True,
     ----------
     cov : instance of Covariance
         The covariance matrix.
-    info: dict
+    info : dict
         Measurement info.
-    exclude : list of string | str
+    exclude : list of str | str
         List of channels to exclude. If empty do not exclude any channel.
         If 'bads', exclude info['bads'].
     colorbar : bool
@@ -199,6 +201,11 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
         If true, a colorbar will be added to the plot.
     show : bool
         Show figure if True.
+
+    Returns
+    -------
+    fig : instance of Figure
+        The figure.
     """
     import matplotlib.pyplot as plt
 
@@ -286,65 +293,78 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
 
 
 def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
-                       slices=None, show=True):
+                       slices=None, show=True, show_indices=False):
     """Plot BEM contours on anatomical slices."""
     import matplotlib.pyplot as plt
     import nibabel as nib
+    # For ease of plotting, we will do everything in voxel coordinates.
+    _check_option('orientation', orientation, ('coronal', 'axial', 'sagittal'))
 
     # plot axes (x, y, z) as data axes (0, 1, 2)
     if orientation == 'coronal':
         x, y, z = 0, 1, 2
     elif orientation == 'axial':
         x, y, z = 2, 0, 1
-    elif orientation == 'sagittal':
+    else:  # orientation == 'sagittal'
         x, y, z = 2, 1, 0
-    else:
-        raise ValueError("Orientation must be 'coronal', 'axial' or "
-                         "'sagittal'. Got %s." % orientation)
 
     # Load the T1 data
     nim = nib.load(mri_fname)
-    data = nim.get_data()
-    try:
-        affine = nim.affine
-    except AttributeError:  # older nibabel
-        affine = nim.get_affine()
-
+    _, vox_mri_t, _, _, _ = _read_mri_info(mri_fname, units='mm')
+    mri_vox_t = invert_transform(vox_mri_t)['trans']
+    del vox_mri_t
+    # We make some assumptions here about our data orientation. Someday we
+    # might want to resample to standard orientation instead:
+    #
+    # vox_ras_t = np.array(  # our standard orientation
+    #     [[-1., 0, 0, 128], [0, 0, 1, -128], [0, -1, 0, 128], [0, 0, 0, 1]])
+    # nim = resample_from_to(nim, ((256, 256, 256), vox_ras_t), order=0)
+    # mri_vox_t = np.dot(np.linalg.inv(vox_ras_t), mri_ras_t['trans'])
+    #
+    # But until someone complains about obnoxious data orientations,
+    # what we have already should work fine (and be faster because no
+    # resampling is done).
+    data = _get_img_fdata(nim)
     n_sag, n_axi, n_cor = data.shape
     orientation_name2axis = dict(sagittal=0, axial=1, coronal=2)
     orientation_axis = orientation_name2axis[orientation]
 
+    n_slices = data.shape[orientation_axis]
     if slices is None:
-        n_slices = data.shape[orientation_axis]
-        slices = np.linspace(0, n_slices, 12, endpoint=False).astype(np.int)
+        slices = np.round(
+            np.linspace(0, n_slices, 12, endpoint=False)).astype(np.int)
+    slices = np.atleast_1d(slices).copy()
+    slices[slices < 0] += n_slices  # allow negative indexing
+    if not np.array_equal(np.sort(slices), slices) or slices.ndim != 1 or \
+            slices.size < 1 or slices[0] < 0 or slices[-1] >= n_slices or \
+            slices.dtype.kind not in 'iu':
+        raise ValueError('slices must be a sorted 1D array of int with unique '
+                         'elements, at least one element, and no elements '
+                         'greater than %d, got %s' % (n_slices - 1, slices))
 
     # create of list of surfaces
     surfs = list()
-
-    trans = linalg.inv(affine)
-    # XXX : next line is a hack don't ask why
-    trans[:3, -1] = [n_sag // 2, n_axi // 2, n_cor // 2]
-
     for file_name, color in surfaces:
         surf = dict()
         surf['rr'], surf['tris'] = read_surface(file_name)
         # move back surface to MRI coordinate system
-        surf['rr'] = nib.affines.apply_affine(trans, surf['rr'])
+        surf['rr'] = apply_trans(mri_vox_t, surf['rr'])
         surfs.append((surf, color))
 
     src_points = list()
     if isinstance(src, SourceSpaces):
         for src_ in src:
             points = src_['rr'][src_['inuse'].astype(bool)] * 1e3
-            src_points.append(nib.affines.apply_affine(trans, points))
+            src_points.append(apply_trans(mri_vox_t, points))
     elif src is not None:
         raise TypeError("src needs to be None or SourceSpaces instance, not "
                         "%s" % repr(src))
 
     fig, axs = _prepare_trellis(len(slices), 4)
-
-    for ax, sl in zip(axs, slices):
-
+    fig.set_facecolor('k')
+    bounds = np.concatenate(
+        [[-np.inf], slices[:-1] + np.diff(slices) / 2., [np.inf]])  # float
+    for ax, sl, lower, upper in zip(axs, slices, bounds[:-1], bounds[1:]):
         # adjust the orientations for good view
         if orientation == 'coronal':
             dat = data[:, :, sl].transpose()
@@ -368,10 +388,12 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
                               zorder=1)
 
         for sources in src_points:
-            in_slice = np.logical_and(sources[:, z] > sl - 0.5,
-                                      sources[:, z] < sl + 0.5)
+            in_slice = (sources[:, z] >= lower) & (sources[:, z] < upper)
             ax.scatter(sources[in_slice, x], sources[in_slice, y], marker='.',
                        color='#FF00FF', s=1, zorder=2)
+        if show_indices:
+            ax.text(dat.shape[1] // 8 + 0.5, 0.5, str(sl),
+                    color='w', fontsize='x-small', va='top', ha='left')
 
     plt.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
                         hspace=0.)
@@ -380,7 +402,8 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
 
 
 def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
-             slices=None, brain_surfaces=None, src=None, show=True):
+             slices=None, brain_surfaces=None, src=None, show=True,
+             show_indices=True):
     """Plot BEM contours on anatomical slices.
 
     Parameters
@@ -399,11 +422,20 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
         to files in the subject's ``surf`` directory (e.g. ``"white"``).
     src : None | SourceSpaces | str
         SourceSpaces instance or path to a source space to plot individual
-        sources as scatter-plot. Only sources lying in the shown slices will be
-        visible, sources that lie between visible slices are not shown. Path
-        can be absolute or relative to the subject's ``bem`` folder.
+        sources as scatter-plot. Sources will be shown on exactly one slice
+        (whichever slice is closest to each source in the given orientation
+        plane). Path can be absolute or relative to the subject's ``bem``
+        folder.
+
+        .. versionchanged:: 0.20
+           All sources are shown on the nearest slice rather than some
+           being omitted.
     show : bool
         Show figure if True.
+    show_indices : bool
+        Show slice indices if True.
+
+        .. versionadded:: 0.20
 
     Returns
     -------
@@ -413,6 +445,20 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
     See Also
     --------
     mne.viz.plot_alignment
+
+    Notes
+    -----
+    Images are plotted in MRI voxel coordinates.
+
+    If ``src`` is not None, for a given slice index, all source points are
+    shown that are halfway between the previous slice and the given slice,
+    and halfway between the given slice and the next slice.
+    For large slice decimations, this can
+    make some source points appear outside the BEM contour, which is shown
+    for the given slice index. For example, in the case where the single
+    midpoint slice is used ``slices=[128]``, all source points will be shown
+    on top of the midpoint MRI slice with the BEM boundary drawn for that
+    slice.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
@@ -467,7 +513,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
 
     # Plot the contours
     return _plot_mri_contours(mri_fname, surfaces, src, orientation, slices,
-                              show)
+                              show, show_indices)
 
 
 def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
@@ -612,7 +658,7 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True):
     ----------
     dipoles : list of instance of Dipole
         The dipoles whose amplitudes should be shown.
-    colors: list of color | None
+    colors : list of color | None
         Color to plot with each dipole. If None default colors are used.
     show : bool
         Show figure if True.
@@ -769,7 +815,6 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
     from scipy.signal import (
         freqz, group_delay, lfilter, filtfilt, sosfilt, sosfiltfilt)
     import matplotlib.pyplot as plt
-    from matplotlib.ticker import FormatStrFormatter, NullFormatter
     sfreq = float(sfreq)
     _check_option('fscale', fscale, ['log', 'linear'])
     flim = _get_flim(flim, fscale, freq, sfreq)
@@ -870,8 +915,6 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
         if xticks is not None:
             ax.set(xticks=xticks)
             ax.set(xticklabels=xticklabels)
-        ax.xaxis.set_major_formatter(FormatStrFormatter('%0.1f'))
-        ax.xaxis.set_minor_formatter(NullFormatter())
         ax.set(xlim=flim, ylim=ylim, xlabel='Frequency (Hz)', ylabel=ylabel)
     adjust_axes([ax_time, ax_freq, ax_delay])
     tight_layout()
@@ -932,7 +975,6 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
         >>> gain = [0, 1, 1, 0]
         >>> plot_ideal_filter(freq, gain, flim=(0.1, 100))  #doctest: +ELLIPSIS
         <...Figure...>
-
     """
     import matplotlib.pyplot as plt
     my_freq, my_gain = list(), list()
@@ -1012,7 +1054,7 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
     ----------
     csd : instance of CrossSpectralDensity
         The CSD matrix to plot.
-    info: instance of Info | None
+    info : instance of Info | None
         To split the figure by channel-type, provide the measurement info.
         By default, the CSD matrix is plotted as a whole.
     mode : 'csd' | 'coh'

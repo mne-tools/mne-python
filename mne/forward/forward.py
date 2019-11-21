@@ -1,8 +1,11 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
+
+# The computations in this code were primarily derived from Matti Hämäläinen's
+# C code.
 
 from time import time
 from copy import deepcopy
@@ -40,7 +43,8 @@ from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      run_subprocess, check_fname, logger, verbose, fill_doc,
-                     _validate_type, _check_compensation_grade, _check_option)
+                     _validate_type, _check_compensation_grade, _check_option,
+                     _check_stc_units)
 from ..label import Label
 from ..fixes import einsum
 
@@ -333,7 +337,7 @@ def _read_forward_meas_info(tree, fid):
     if tag is None:
         tag = find_tag(fid, parent_mri, 236)  # Constant 236 used before v0.11
 
-    info['custom_ref_applied'] = bool(tag.data) if tag is not None else False
+    info['custom_ref_applied'] = int(tag.data) if tag is not None else False
     info._check_consistency()
     return info
 
@@ -385,7 +389,7 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The file name, which should end with -fwd.fif or -fwd.fif.gz.
     include : list, optional
         List of names of channels to include. If empty all channels
@@ -574,7 +578,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         Use surface-based source coordinate system? Note that force_fixed=True
         implies surf_ori=True.
     force_fixed : bool, optional (default False)
-        Force fixed source orientation mode?
+        If True, force fixed source orientation mode.
     copy : bool
         Whether to return a new instance or modify in place.
     use_cps : bool (default True)
@@ -1133,7 +1137,6 @@ def compute_depth_prior(forward, info, exp=0.8, limit=10.0,
           Use all channels. Not recommended since the depth weighting will be
           biased toward whichever channel type has the largest values in
           SI units (such as EEG being orders of magnitude larger than MEG).
-
     """
     from ..cov import Covariance, compute_whitener
     _validate_type(forward, Forward, 'forward')
@@ -1300,13 +1303,7 @@ def _apply_forward(fwd, stc, start=None, stop=None, on_missing='raise',
              'Use pick_ori="normal" when computing the inverse to compute '
              'currents not current magnitudes.')
 
-    max_cur = np.max(np.abs(stc.data))
-    if max_cur > 1e-7:  # 100 nAm threshold for warning
-        warn('The maximum current magnitude is %0.1f nAm, which is very large.'
-             ' Are you trying to apply the forward model to noise-normalized '
-             '(dSPM, sLORETA, or eLORETA) values? The result will only be '
-             'correct if currents (in units of Am) are used.'
-             % (1e9 * max_cur))
+    _check_stc_units(stc)
 
     src_sel, stc_sel, _ = _stc_src_sel(fwd['src'], stc, on_missing=on_missing)
     gain = fwd['sol']['data'][:, src_sel]
@@ -1335,7 +1332,6 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
     evoked_template. The evoked_template should be from the same MEG system on
     which the original data was acquired. An exception will be raised if the
     forward operator contains channels that are not present in the template.
-
 
     Parameters
     ----------
@@ -1386,8 +1382,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
     evoked = EvokedArray(data, info_out, times[0], nave=1)
 
     evoked.times = times
-    evoked.first = int(np.round(evoked.times[0] * sfreq))
-    evoked.last = evoked.first + evoked.data.shape[1] - 1
+    evoked._update_first_last()
 
     return evoked
 

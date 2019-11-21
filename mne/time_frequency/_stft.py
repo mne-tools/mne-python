@@ -15,24 +15,19 @@ def stft(x, wsize, tstep=None, verbose=None):
     Parameters
     ----------
     x : array, shape (n_signals, n_times)
-        containing multi-channels signal
+        Containing multi-channels signal.
     wsize : int
-        length of the STFT window in samples (must be a multiple of 4)
+        Length of the STFT window in samples (must be a multiple of 4).
     tstep : int
-        step between successive windows in samples (must be a multiple of 2,
-        a divider of wsize and smaller than wsize/2) (default: wsize/2)
+        Step between successive windows in samples (must be a multiple of 2,
+        a divider of wsize and smaller than wsize/2) (default: wsize/2).
     %(verbose)s
 
     Returns
     -------
     X : array, shape (n_signals, wsize // 2 + 1, n_step)
         STFT coefficients for positive frequencies with
-        n_step = ceil(T / tstep)
-
-    Examples
-    --------
-    X = stft(x, wsize)
-    X = stft(x, wsize, tstep)
+        ``n_step = ceil(T / tstep)``.
 
     See Also
     --------
@@ -107,22 +102,17 @@ def istft(X, tstep=None, Tx=None):
     Parameters
     ----------
     X : array, shape (n_signals, wsize / 2 + 1, n_step)
-        The STFT coefficients for positive frequencies
+        The STFT coefficients for positive frequencies.
     tstep : int
-        step between successive windows in samples (must be a multiple of 2,
-        a divider of wsize and smaller than wsize/2) (default: wsize/2)
+        Step between successive windows in samples (must be a multiple of 2,
+        a divider of wsize and smaller than wsize/2) (default: wsize/2).
     Tx : int
-        Length of returned signal. If None Tx = n_step * tstep
+        Length of returned signal. If None Tx = n_step * tstep.
 
     Returns
     -------
     x : array, shape (Tx,)
-        vector containing the inverse STFT signal
-
-    Examples
-    --------
-    x = istft(X)
-    x = istft(X, tstep)
+        Array containing the inverse STFT signal.
 
     See Also
     --------
@@ -184,12 +174,12 @@ def istft(X, tstep=None, Tx=None):
 
 
 def stftfreq(wsize, sfreq=None):  # noqa: D401
-    """Frequencies of stft transformation.
+    """Compute frequencies of stft transformation.
 
     Parameters
     ----------
     wsize : int
-        Size of stft window
+        Size of stft window.
     sfreq : float
         Sampling frequency. If None the frequencies are given between 0 and pi
         otherwise it's given in Hz.
@@ -197,7 +187,7 @@ def stftfreq(wsize, sfreq=None):  # noqa: D401
     Returns
     -------
     freqs : array
-        The positive frequencies returned by stft
+        The positive frequencies returned by stft.
 
     See Also
     --------

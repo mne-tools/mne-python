@@ -46,6 +46,11 @@ __all__ = ['TemplateError', 'Template', 'sub', 'HTMLTemplate',
 in_re = re.compile(r'\s+in\s+')
 var_re = re.compile(r'^[a-z_][a-z0-9_]*$', re.I)
 
+try:
+    from html import escape as html_escape  # python 3.8+
+except ImportError:
+    from cgi import escape as html_escape
+
 
 class TemplateError(Exception):
     """Exception raised while parsing a template
@@ -451,11 +456,11 @@ def html_quote(value, force=True):
     if not isinstance(value, basestring_):
         value = coerce_text(value)
     if sys.version >= "3" and isinstance(value, bytes):
-        value = cgi.escape(value.decode('latin1'), 1)
+        value = html_escape(value.decode('latin1'), 1)
         value = value.encode('latin1')
     else:
         with warnings.catch_warnings(record=True):  # annoying
-            value = cgi.escape(value, 1)
+            value = html_escape(value, 1)
     if sys.version < "3":
         if is_unicode(value):
             value = value.encode('ascii', 'xmlcharrefreplace')

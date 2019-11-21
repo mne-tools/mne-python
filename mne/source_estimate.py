@@ -1,5 +1,5 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Mads Jensen <mje.mads@gmail.com>
 #
@@ -12,18 +12,21 @@ import numpy as np
 from scipy import linalg, sparse
 from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
 
+from .cov import Covariance
+from .evoked import _get_peak
 from .filter import resample
 from .fixes import einsum
-from .evoked import _get_peak
 from .surface import read_surface, _get_ico_surface, mesh_edges
 from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject, SourceSpaces)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     _time_mask, warn as warn_, copy_function_doc_to_method_doc,
-                    fill_doc, _check_option, _validate_type, _check_src_normal)
+                    fill_doc, _check_option, _validate_type, _check_src_normal,
+                    _check_stc_units)
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
 from .io.base import ToDataFrameMixin, TimeMixin
+from .io.meas_info import Info
 from .externals.h5io import read_hdf5, write_hdf5
 
 
@@ -448,7 +451,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         The data in source space. The data can either be a single array or
         a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
         "sens_data" shape (n_sensors, n_times). In this case, the source
-        space data corresponds to "numpy.dot(kernel, sens_data)".
+        space data corresponds to ``np.dot(kernel, sens_data)``.
     vertices : array | list of array
         Vertex numbers corresponding to the data.
     tmin : float
@@ -1133,8 +1136,10 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
     ----------
     data : array
         The data in source space.
-    vertices : list, shape (2,)
-        Vertex numbers corresponding to the data.
+    vertices : list of array, shape (2,)
+        Vertex numbers corresponding to the data. The first element of the list
+        contains vertices of left hemisphere and the second element contains
+        vertices of right hemisphere.
     tmin : scalar
         Time point of the first sample in data.
     tstep : scalar
@@ -1151,7 +1156,9 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
     times : array of shape (n_times,)
         The time vector.
     vertices : list of array, shape (2,)
-        The indices of the dipoles in the left and right source space.
+        Vertex numbers corresponding to the data. The first element of the list
+        contains vertices of left hemisphere and the second element contains
+        vertices of right hemisphere.
     data : array
         The data in source space.
     shape : tuple
@@ -1347,12 +1354,20 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
     Parameters
     ----------
     data : array of shape (n_dipoles, n_times) | tuple, shape (2,)
-        The data in source space. The data can either be a single array or
-        a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
-        "sens_data" shape (n_sensors, n_times). In this case, the source
-        space data corresponds to "numpy.dot(kernel, sens_data)".
-    vertices : list of shape (2,)
-        Vertex numbers corresponding to the data.
+        The data in source space. When it is a single array, the
+        left hemisphere is stored in data[:len(vertices[0])] and the right
+        hemisphere is stored in data[-len(vertices[1]):].
+        When data is a tuple, it contains two arrays:
+
+        - "kernel" shape (n_vertices, n_sensors) and
+        - "sens_data" shape (n_sensors, n_times).
+
+        In this case, the source space data corresponds to
+        ``np.dot(kernel, sens_data)``.
+    vertices : list of array, shape (2,)
+        Vertex numbers corresponding to the data. The first element of the list
+        contains vertices of left hemisphere and the second element contains
+        vertices of right hemisphere.
     tmin : scalar
         Time point of the first sample in data.
     tstep : scalar
@@ -1368,7 +1383,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         The subject name.
     times : array of shape (n_times,)
         The time vector.
-    vertices : list of shape (2,)
+    vertices : list of array, shape (2,)
         The indices of the dipoles in the left and right source space.
     data : array of shape (n_dipoles, n_times)
         The data in source space.
@@ -1505,6 +1520,80 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         return label_tc
 
+    @verbose
+    def estimate_snr(self, info, fwd, cov, verbose=None):
+        r"""Compute time-varying SNR in the source space.
+
+        This function should only be used with source estimates with units
+        nanoAmperes (i.e., MNE-like solutions, *not* dSPM or sLORETA).
+
+        .. warning:: This function currently only works properly for fixed
+                     orientation.
+
+        Parameters
+        ----------
+        info : instance Info
+            The measurement info.
+        fwd : instance of Forward
+            The forward solution used to create the source estimate.
+        cov : instance of Covariance
+            The noise covariance used to estimate the resting cortical
+            activations. Should be an evoked covariance, not empty room.
+        %(verbose)s
+
+        Returns
+        -------
+        snr_stc : instance of SourceEstimate
+            The source estimate with the SNR computed.
+
+        Notes
+        -----
+        We define the SNR in decibels for each source location at each
+        time point as:
+
+        .. math::
+
+            {\rm SNR} = 10\log_10[\frac{a^2}{N}\sum_k\frac{b_k^2}{s_k^2}]
+
+        where :math:`\\b_k` is the signal on sensor :math:`k` provided by the
+        forward model for a source with unit amplitude, :math:`a` is the
+        source amplitude, :math:`N` is the number of sensors, and
+        :math:`s_k^2` is the noise variance on sensor :math:`k`.
+
+        References
+        ----------
+        .. [1] Goldenholz, D. M., Ahlfors, S. P., Hämäläinen, M. S., Sharon,
+               D., Ishitobi, M., Vaina, L. M., & Stufflebeam, S. M. (2009).
+               Mapping the Signal-To-Noise-Ratios of Cortical Sources in
+               Magnetoencephalography and Electroencephalography.
+               Human Brain Mapping, 30(4), 1077–1086. doi:10.1002/hbm.20571
+        """
+        from .forward import convert_forward_solution, Forward
+        from .minimum_norm.inverse import _prepare_forward
+        _validate_type(fwd, Forward, 'fwd')
+        _validate_type(info, Info, 'info')
+        _validate_type(cov, Covariance, 'cov')
+        _check_stc_units(self)
+        if (self.data >= 0).all():
+            warn_('This STC appears to be from free orientation, currently SNR'
+                  ' function is valid only for fixed orientation')
+
+        fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=False)
+
+        # G is gain matrix [ch x src], cov is noise covariance [ch x ch]
+        G, _, _, _, _, _, _, cov, _ = _prepare_forward(
+            fwd, info, cov, fixed=True, loose=0, rank=None, pca=False,
+            use_cps=True, exp=None, limit_depth_chs=False, combine_xyz='fro',
+            allow_fixed_depth=False, limit=None)
+        G = G['sol']['data']
+        n_channels = cov['dim']  # number of sensors/channels
+        b_k2 = (G * G).T
+        s_k2 = np.diag(cov['data'])
+        scaling = (1 / n_channels) * np.sum(b_k2 / s_k2, axis=1, keepdims=True)
+        snr_stc = self.copy()
+        snr_stc._data[:] = 10 * np.log10((self.data * self.data) * scaling)
+        return snr_stc
+
     def get_peak(self, hemi=None, tmin=None, tmax=None, mode='abs',
                  vert_as_index=False, time_as_index=False):
         """Get location and latency of peak amplitude.
@@ -1586,11 +1675,6 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             of mass on the spherical surface to help avoid potential issues
             with cortical folding.
 
-        See Also
-        --------
-        mne.Label.center_of_mass
-        mne.vertex_to_mni
-
         Returns
         -------
         vertex : int
@@ -1603,6 +1687,11 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         t : float
             Time of the temporal center of mass (weighted by the sum across
             source vertices).
+
+        See Also
+        --------
+        mne.Label.center_of_mass
+        mne.vertex_to_mni
 
         References
         ----------
@@ -1695,11 +1784,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
                  subject=None, verbose=None):  # noqa: D102
-        if not (isinstance(vertices, np.ndarray) or
-                isinstance(vertices, list)):
-            raise ValueError('Vertices must be a numpy array or a list of '
-                             'arrays')
-
+        _validate_type(vertices, (np.ndarray, list), 'vertices')
         _BaseSourceEstimate.__init__(self, data, vertices=vertices, tmin=tmin,
                                      tstep=tstep, subject=subject,
                                      verbose=verbose)
@@ -1841,9 +1926,9 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
         The data in source space. The data can either be a single array or
         a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
         "sens_data" shape (n_sensors, n_times). In this case, the source
-        space data corresponds to "numpy.dot(kernel, sens_data)".
-    vertices : array
-        Vertex numbers corresponding to the data.
+        space data corresponds to ``np.dot(kernel, sens_data)``.
+    vertices : array of shape (n_dipoles,)
+        The indices of the dipoles in the source space.
     tmin : scalar
         Time point of the first sample in data.
     tstep : scalar
@@ -1866,16 +1951,16 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
     shape : tuple
         The shape of the data. A tuple of int (n_dipoles, n_times).
 
-    Notes
-    -----
-    .. versionadded:: 0.9.0
-
     See Also
     --------
     SourceEstimate : A container for surface source estimates.
     VolVectorSourceEstimate : A container for volume vector source estimates.
     MixedSourceEstimate : A container for mixed surface + volume source
                           estimates.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
 
     @verbose
@@ -1921,8 +2006,8 @@ class VolVectorSourceEstimate(_BaseVectorSourceEstimate,
     data : array of shape (n_dipoles, 3, n_times)
         The data in source space. Each dipole contains three vectors that
         denote the dipole strength in X, Y and Z directions over time.
-    vertices : array
-        Vertex numbers corresponding to the data.
+    vertices : array of shape (n_dipoles,)
+        The indices of the dipoles in the source space.
     tmin : scalar
         Time point of the first sample in data.
     tstep : scalar
@@ -1945,16 +2030,16 @@ class VolVectorSourceEstimate(_BaseVectorSourceEstimate,
     shape : tuple
         The shape of the data. A tuple of int (n_dipoles, n_times).
 
-    Notes
-    -----
-    .. versionadded:: 0.9.0
-
     See Also
     --------
     SourceEstimate : A container for surface source estimates.
     VectorSourceEstimate : A container for vector source estimates.
     MixedSourceEstimate : A container for mixed surface + volume source
                           estimates.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
 
     _data_ndim = 3
@@ -1974,8 +2059,10 @@ class VectorSourceEstimate(_BaseVectorSourceEstimate,
     data : array of shape (n_dipoles, 3, n_times)
         The data in source space. Each dipole contains three vectors that
         denote the dipole strength in X, Y and Z directions over time.
-    vertices : array | list of shape (2,)
-        Vertex numbers corresponding to the data.
+    vertices : list of array, shape (2,)
+        Vertex numbers corresponding to the data. The first element of the list
+        contains vertices of left hemisphere and the second element contains
+        vertices of right hemisphere.
     tmin : float
         Time point of the first sample in data.
     tstep : float
@@ -1994,16 +2081,16 @@ class VectorSourceEstimate(_BaseVectorSourceEstimate,
     shape : tuple
         The shape of the data. A tuple of int (n_dipoles, n_times).
 
-    Notes
-    -----
-    .. versionadded:: 0.15
-
     See Also
     --------
     SourceEstimate : A container for surface source estimates.
     VolSourceEstimate : A container for volume source estimates.
     MixedSourceEstimate : A container for mixed surface + volume source
                           estimates.
+
+    Notes
+    -----
+    .. versionadded:: 0.15
     """
 
     _data_ndim = 3
@@ -2041,9 +2128,10 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         The data in source space. The data can either be a single array or
         a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
         "sens_data" shape (n_sensors, n_times). In this case, the source
-        space data corresponds to "numpy.dot(kernel, sens_data)".
+        space data corresponds to ``np.dot(kernel, sens_data)``.
     vertices : list of array
-        Vertex numbers corresponding to the data.
+        Vertex numbers corresponding to the data. The list contains arrays
+        with one array per source space.
     tmin : scalar
         Time point of the first sample in data.
     tstep : scalar
@@ -2060,15 +2148,12 @@ class MixedSourceEstimate(_BaseSourceEstimate):
     times : array of shape (n_times,)
         The time vector.
     vertices : list of array
-        The indices of the dipoles in each source space.
+        Vertex numbers corresponding to the data. The list contains arrays
+        with one array per source space.
     data : array of shape (n_dipoles, n_times)
         The data in source space.
     shape : tuple
         The shape of the data. A tuple of int (n_dipoles, n_times).
-
-    Notes
-    -----
-    .. versionadded:: 0.9.0
 
     See Also
     --------
@@ -2076,6 +2161,10 @@ class MixedSourceEstimate(_BaseSourceEstimate):
     VectorSourceEstimate : A container for vector source estimates.
     VolSourceEstimate : A container for volume source estimates.
     VolVectorSourceEstimate : A container for Volume vector source estimates.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
 
     _data_ndim = 2
@@ -2304,7 +2393,7 @@ def spatio_temporal_tris_connectivity(tris, n_times, remap_vertices=False,
     tris : array
         N x 3 array defining triangles.
     n_times : int
-        Number of time points
+        Number of time points.
     remap_vertices : bool
         Reassign vertex indices based on unique values. Useful
         to process a subset of triangles. Defaults to False.
@@ -2339,7 +2428,7 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=None):
         with a call to :func:`mne.setup_source_space` with the
         ``add_dist=True`` option.
     n_times : int
-        Number of time points
+        Number of time points.
     dist : float
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors.

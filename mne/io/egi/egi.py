@@ -129,6 +129,10 @@ def read_raw_egi(input_fname, eog=None, misc=None,
     raw : instance of RawEGI
         A Raw object containing EGI data.
 
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
+
     Notes
     -----
     The trigger channel names are based on the arbitrary user dependent event
@@ -143,10 +147,6 @@ def read_raw_egi(input_fname, eog=None, misc=None,
     As a consequence, triggers have only short durations.
 
     This step will fail if events are not mutually exclusive.
-
-    See Also
-    --------
-    mne.io.Raw : Documentation of attribute and methods.
     """
     if input_fname.endswith('.mff'):
         return _read_raw_egi_mff(input_fname, eog, misc, include,

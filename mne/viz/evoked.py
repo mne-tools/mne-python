@@ -585,9 +585,9 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
         vmin=vmin, vmax=vmax, mask_style=mask_style, mask_alpha=mask_alpha,
         mask_cmap=mask_cmap)
 
+    # ignore xlim='tight'; happens automatically with `extent` in imshow
+    xlim = None if xlim == 'tight' else xlim
     if xlim is not None:
-        if xlim == 'tight':
-            xlim = (times[0], times[-1])
         ax.set_xlim(xlim)
 
     if colorbar:
@@ -596,22 +596,16 @@ def _plot_image(data, ax, this_type, picks, cmap, unit, units, scalings, times,
         if cmap[1]:
             ax.CB = DraggableColorbar(cbar, im)
 
-    ylabel = "Channels" if show_names else 'Channel (index)'
+    ylabel = 'Channels' if show_names else 'Channel (index)'
     t = titles[this_type] + ' (%d channel%s' % (len(data), _pl(data)) + t_end
     ax.set(ylabel=ylabel, xlabel='Time (%s)' % (time_unit,), title=t)
     _add_nave(ax, nave)
 
-    if show_names is not False:
-        if show_names == "all":
-            yticks = np.arange(len(picks)).astype(int)
-            yticklabels = np.array(ch_names)[picks]
-        else:
-            max_tick = len(picks)
-            yticks = [tick for tick in ax.get_yticks() if tick < max_tick]
-            yticks = np.array(yticks).astype(int)
-            # these should only ever be ints right?
-            yticklabels = np.array(ch_names)[picks][yticks]
-        ax.set(yticks=yticks + .5, yticklabels=yticklabels)
+    yticks = np.arange(len(picks))
+    if show_names != 'all':
+        yticks = np.intersect1d(np.round(ax.get_yticks()).astype(int), yticks)
+    yticklabels = np.array(ch_names)[picks] if show_names else np.array(picks)
+    ax.set(yticks=yticks, yticklabels=yticklabels[yticks])
 
 
 @verbose
@@ -630,7 +624,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     Parameters
     ----------
     evoked : instance of Evoked
-        The evoked data
+        The evoked data.
     %(picks_all)s
     exclude : list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the
@@ -640,12 +634,12 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     show : bool
         Show figure if True.
     ylim : dict | None
-        ylim for plots (after scaling has been applied). e.g.
+        Y limits for plots (after scaling has been applied). e.g.
         ylim = dict(eeg=[-20, 20])
         Valid keys are eeg, mag, grad, misc. If None, the ylim parameter
         for each channel equals the pyplot default.
     xlim : 'tight' | tuple | None
-        xlim for plots.
+        X limits for plots.
     proj : bool | 'interactive'
         If true SSP projections are applied before display. If 'interactive',
         a check box for reversible selection of SSP projection vectors will
@@ -750,17 +744,17 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         Layout instance specifying sensor positions (does not need to
         be specified for Neuromag data). If possible, the correct layout is
         inferred from the data.
-    layout_scale: float
+    layout_scale : float
         Scaling factor for adjusting the relative size of the layout
-        on the canvas
+        on the canvas.
     color : list of color | color | None
         Everything matplotlib accepts to specify colors. If not list-like,
         the color specified will be repeated. If None, colors are
         automatically drawn.
     border : str
-        matplotlib borders style to be used for each sensor plot.
+        Matplotlib borders style to be used for each sensor plot.
     ylim : dict | None
-        ylim for plots (after scaling has been applied). The value
+        Y limits for plots (after scaling has been applied). The value
         determines the upper and lower subplot limits. e.g.
         ylim = dict(eeg=[-20, 20]). Valid keys are eeg, mag, grad, misc.
         If None, the ylim parameter for each channel is determined by
@@ -782,7 +776,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     merge_grads : bool
         Whether to use RMS value of gradiometer pairs. Only works for Neuromag
         data. Defaults to False.
-    legend : bool | int | string | tuple
+    legend : bool | int | str | tuple
         If True, create a legend based on evoked.comment. If False, disable the
         legend. Otherwise, the legend is created and the parameter value is
         passed as the location parameter to the matplotlib legend call. It can
@@ -808,7 +802,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     Returns
     -------
     fig : instance of matplotlib.figure.Figure
-        Images of evoked responses at sensor locations
+        Images of evoked responses at sensor locations.
     """
     from matplotlib.colors import colorConverter
 
@@ -856,7 +850,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
     Parameters
     ----------
     evoked : instance of Evoked
-        The evoked data
+        The evoked data.
     %(picks_all)s
         This parameter can also be used to set the order the channels
         are shown in, as the channel image is sorted by the order of picks.
@@ -868,12 +862,12 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
     show : bool
         Show figure if True.
     clim : dict | None
-        clim for plots (after scaling has been applied). e.g.
-        clim = dict(eeg=[-20, 20])
+        Color limits for plots (after scaling has been applied). e.g.
+        ``clim = dict(eeg=[-20, 20])``.
         Valid keys are eeg, mag, grad, misc. If None, the clim parameter
         for each channel equals the pyplot default.
     xlim : 'tight' | tuple | None
-        xlim for plots.
+        X limits for plots.
     proj : bool | 'interactive'
         If true SSP projections are applied before display. If 'interactive',
         a check box for reversible selection of SSP projection vectors will
@@ -915,7 +909,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
         significance.
 
         .. versionadded:: 0.16
-    mask_style: None | 'both' | 'contour' | 'mask'
+    mask_style : None | 'both' | 'contour' | 'mask'
         If `mask` is not None: if 'contour', a contour line is drawn around
         the masked areas (``True`` in `mask`). If 'mask', entries not
         ``True`` in `mask` are shown transparently. If 'both', both a contour
@@ -939,14 +933,13 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
         The units for the time axis, can be "ms" or "s" (default).
 
         .. versionadded:: 0.16
-    show_names : bool | str
+    show_names : bool | 'auto' | 'all'
         Determines if channel names should be plotted on the y axis. If False,
-        no names are shown. If True, ticks are set automatically and the
-        corresponding channel names are shown. If str, must be "auto" or "all".
-        If "all", all channel names are shown.
-        If "auto", is set to False if `picks` is ``None``; to ``True`` if
-        `picks` is not ``None`` and fewer than 25 picks are shown; to "all"
-        if `picks` is not ``None`` and contains fewer than 25 entries.
+        no names are shown. If True, ticks are set automatically by matplotlib
+        and the corresponding channel names are shown. If "all", all channel
+        names are shown. If "auto", is set to False if `picks` is ``None``,
+        to ``True`` if ``picks`` contains 25 or more entries, or to "all"
+        if ``picks`` contains fewer than 25 entries.
     group_by : None | dict
         If a dict, the values must be picks, and `axes` must also be a dict
         with matching keys, or None. If `axes` is None, one figure and one axis
@@ -1785,6 +1778,10 @@ def _draw_axes_pce(ax, ymin, ymax, truncate_yaxis, truncate_xaxis, invert_y,
     if tmin == tmax:
         tmax += 1e-9
     ax.set_xlim(tmin, tmax)
+    # for dark backgrounds:
+    ax.patch.set_alpha(0)
+    if not np.isfinite([ymin, ymax]).all():  # nothing plotted
+        return
     ax.set_ylim(ymin, ymax)
     ybounds = (ymin, ymax)
     # determine ymin/ymax for spine truncation
@@ -1805,8 +1802,6 @@ def _draw_axes_pce(ax, ymin, ymax, truncate_yaxis, truncate_xaxis, invert_y,
                              '"auto", got {}'.format(truncate_yaxis))
     _setup_ax_spines(ax, vlines, tmin, tmax, ybounds[0], ybounds[1], invert_y,
                      unit, truncate_xaxis, trunc_y, skip_axlabel)
-    # for dark backgrounds:
-    ax.patch.set_alpha(0)
 
 
 def _get_data_and_ci(evoked, combine, combine_func, picks, scaling=1,

@@ -38,7 +38,7 @@ from ..io.meas_info import create_info
 from ..rank import compute_rank
 from ..io.proj import setup_proj
 from ..utils import (verbose, get_config, set_config, warn, _check_ch_locs,
-                     _check_option, logger, fill_doc)
+                     _check_option, logger, fill_doc, _pl)
 
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
@@ -119,7 +119,7 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
     Parameters
     ----------
     pad : float
-        padding between the figure edge and the edges of subplots, as a
+        Padding between the figure edge and the edges of subplots, as a
         fraction of the font-size.
     h_pad : float
         Padding height between edges of adjacent subplots.
@@ -212,13 +212,12 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
 
     Examples
     --------
-    The following code will plot a STC using standard MNE limits:
+    The following code will plot a STC using standard MNE limits::
 
-        colormap = mne.viz.mne_analyze_colormap(limits=[5, 10, 15])
-        brain = stc.plot('fsaverage', 'inflated', 'rh', colormap)
-        brain.scale_data_colormap(fmin=-15, fmid=0, fmax=15, transparent=False)
-
-    """
+        >>> colormap = mne.viz.mne_analyze_colormap(limits=[5, 10, 15])  # doctest: +SKIP
+        >>> brain = stc.plot('fsaverage', 'inflated', 'rh', colormap)  # doctest: +SKIP
+        >>> brain.scale_data_colormap(fmin=-15, fmid=0, fmax=15, transparent=False)  # doctest: +SKIP
+    """  # noqa: E501
     # Ensure limits is an array
     limits = np.asarray(limits, dtype='float')
 
@@ -733,7 +732,20 @@ def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
 
 
 def figure_nobar(*args, **kwargs):
-    """Make matplotlib figure with no toolbar."""
+    """Make matplotlib figure with no toolbar.
+
+    Parameters
+    ----------
+    *args : list
+        Arguments to pass to :func:`matplotlib.pyplot.figure`.
+    **kwargs : dict
+        Keyword arguments to pass to :func:`matplotlib.pyplot.figure`.
+
+    Returns
+    -------
+    fig : instance of Figure
+        The figure.
+    """
     from matplotlib import rcParams, pyplot as plt
     old_val = rcParams['toolbar']
     try:
@@ -992,7 +1004,7 @@ def _plot_raw_onkey(event, params):
         params['update_fun']()
         params['plot_fun']()
     elif event.key == 's':
-        params['use_scalebars'] = not params['use_scalebars']
+        params['show_scalebars'] = not params['show_scalebars']
         params['plot_fun']()
     elif event.key == 'p':
         params['snap_annotations'] = not params['snap_annotations']
@@ -1016,17 +1028,19 @@ def _setup_annotation_fig(params):
     labels = np.union1d(labels, params['added_label'])
     fig = figure_nobar(figsize=(4.5, 2.75 + len(labels) * 0.75))
     fig.patch.set_facecolor('white')
-    ax = plt.subplot2grid((len(labels) + 2, 2), (0, 0),
-                          rowspan=max(len(labels), 1),
+    len_labels = max(len(labels), 1)
+    # can't pass fig=fig here on matplotlib 2.0.2, need to wait for an update
+    ax = plt.subplot2grid((len_labels + 2, 2), (0, 0),
+                          rowspan=len_labels,
                           colspan=2, frameon=False)
     ax.set_title('Labels')
     ax.set_aspect('equal')
-    button_ax = plt.subplot2grid((len(labels) + 2, 2), (len(labels), 1),
+    button_ax = plt.subplot2grid((len_labels + 2, 2), (len_labels, 1),
                                  rowspan=1, colspan=1)
-    label_ax = plt.subplot2grid((len(labels) + 2, 2), (len(labels), 0),
+    label_ax = plt.subplot2grid((len_labels + 2, 2), (len_labels, 0),
                                 rowspan=1, colspan=1)
     plt.axis('off')
-    text_ax = plt.subplot2grid((len(labels) + 2, 2), (len(labels) + 1, 0),
+    text_ax = plt.subplot2grid((len_labels + 2, 2), (len_labels + 1, 0),
                                rowspan=1, colspan=2)
     text_ax.text(0.5, 0.9, 'Left click & drag - Create/modify annotation\n'
                            'Right click - Delete annotation\n'
@@ -1296,7 +1310,6 @@ class ClickableImage(object):
     Notes
     -----
     .. versionadded:: 0.9.0
-
     """
 
     def __init__(self, imdata, **kwargs):
@@ -1415,7 +1428,6 @@ def add_background_image(fig, im, set_ratios=None):
     Notes
     -----
     .. versionadded:: 0.9.0
-
     """
     if im is None:
         # Don't do anything and return nothing
@@ -1516,26 +1528,22 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         array, the channels are divided by picks given in the array.
 
         .. versionadded:: 0.13.0
-
     to_sphere : bool
         Whether to project the 3d locations to a sphere. When False, the
         sensor array appears similar as to looking downwards straight above the
         subject's head. Has no effect when kind='3d'. Defaults to True.
 
         .. versionadded:: 0.14.0
-
     axes : instance of Axes | instance of Axes3D | None
         Axes to draw the sensors to. If ``kind='3d'``, axes must be an instance
         of Axes3D. If None (default), a new axes will be created.
 
         .. versionadded:: 0.13.0
-
     block : bool
         Whether to halt program execution until the figure is closed. Defaults
         to False.
 
         .. versionadded:: 0.13.0
-
     show : bool
         Show figure if True. Defaults to True.
 
@@ -1557,7 +1565,6 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     :func:`mne.viz.plot_alignment`.
 
     .. versionadded:: 0.12.0
-
     """
     from .evoked import _rgb
     _check_option('kind', kind, ['topomap', '3d', 'select'])
@@ -1665,7 +1672,7 @@ def _onpick_sensor(event, fig, ax, pos, ch_names, show_names):
 
 def _close_event(event, fig):
     """Listen for sensor plotter close event."""
-    if getattr(fig, 'lasso') is not None:
+    if getattr(fig, 'lasso', None) is not None:
         fig.lasso.disconnect()
 
 
@@ -1891,6 +1898,7 @@ class DraggableColorbar(object):
         self.press = None
         self.cycle = sorted([i for i in dir(plt.cm) if
                              hasattr(getattr(plt.cm, i), 'N')])
+        self.cycle += [mappable.get_cmap().name]
         self.index = self.cycle.index(mappable.get_cmap().name)
         self.lims = (self.cbar.norm.vmin, self.cbar.norm.vmax)
         self.connect()
@@ -1916,6 +1924,9 @@ class DraggableColorbar(object):
 
     def key_press(self, event):
         """Handle key press."""
+        # print(event.key)
+        scale = self.cbar.norm.vmax - self.cbar.norm.vmin
+        perc = 0.03
         if event.key == 'down':
             self.index += 1
         elif event.key == 'up':
@@ -1923,6 +1934,18 @@ class DraggableColorbar(object):
         elif event.key == ' ':  # space key resets scale
             self.cbar.norm.vmin = self.lims[0]
             self.cbar.norm.vmax = self.lims[1]
+        elif event.key == '+':
+            self.cbar.norm.vmin -= (perc * scale) * -1
+            self.cbar.norm.vmax += (perc * scale) * -1
+        elif event.key == '-':
+            self.cbar.norm.vmin -= (perc * scale) * 1
+            self.cbar.norm.vmax += (perc * scale) * 1
+        elif event.key == 'pageup':
+            self.cbar.norm.vmin -= (perc * scale) * 1
+            self.cbar.norm.vmax -= (perc * scale) * 1
+        elif event.key == 'pagedown':
+            self.cbar.norm.vmin -= (perc * scale) * -1
+            self.cbar.norm.vmax -= (perc * scale) * -1
         else:
             return
         if self.index < 0:
@@ -1933,6 +1956,7 @@ class DraggableColorbar(object):
         self.cbar.set_cmap(cmap)
         self.cbar.draw_all()
         self.mappable.set_cmap(cmap)
+        self.mappable.set_norm(self.cbar.norm)
         self.cbar.patch.figure.canvas.draw()
 
     def on_motion(self, event):
@@ -2841,7 +2865,10 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
     else:
         # imshow for linear because the y ticks are nicer
         # and the masked areas look better
-        extent = [times[0], times[-1], yvals[0], yvals[-1] + 1]
+        dt = np.median(np.diff(times)) / 2. if len(times) > 1 else 0.1
+        dy = np.median(np.diff(yvals)) / 2. if len(yvals) > 1 else 0.5
+        extent = [times[0] - dt, times[-1] + dt,
+                  yvals[0] - dy, yvals[-1] + dy]
         im_args = dict(interpolation='nearest', origin='lower',
                        extent=extent, aspect='auto', vmin=vmin, vmax=vmax)
 
@@ -2857,8 +2884,9 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
             ax.contour(big_mask, colors=["k"], extent=extent,
                        linewidths=[.75], corner_mask=False,
                        antialiased=False, levels=[.5])
-        time_lims = times[[0, -1]]
-        ylim = yvals[0], yvals[-1] + 1
+        time_lims = [extent[0], extent[1]]
+        if ylim is None:
+            ylim = [extent[2], extent[3]]
 
     ax.set_xlim(time_lims[0], time_lims[-1])
     ax.set_ylim(ylim)
@@ -2950,17 +2978,11 @@ def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
 def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     """Set PSD plot params."""
     import matplotlib.pyplot as plt
-    _data_types = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'fnirs_raw')
     _check_option('area_mode', area_mode, [None, 'std', 'range'])
     picks = _picks_to_idx(info, picks)
 
     # XXX this could be refactored more with e.g., plot_evoked
     # XXX when it's refactored, Report._render_raw will need to be updated
-    megs = ['mag', 'grad', False, False, False, False]
-    eegs = [False, False, True, False, False, False]
-    seegs = [False, False, False, True, False, False]
-    ecogs = [False, False, False, False, True, False]
-    fnirss = [False, False, False, False, False, 'fnirs_raw']
     titles = _handle_default('titles', None)
     units = _handle_default('units', None)
     scalings = _handle_default('scalings', None)
@@ -2968,10 +2990,15 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     titles_list = list()
     units_list = list()
     scalings_list = list()
-    for meg, eeg, seeg, ecog, fnirs, name in zip(megs, eegs, seegs, ecogs,
-                                                 fnirss, _data_types):
-        these_picks = pick_types(info, meg=meg, eeg=eeg, seeg=seeg, ecog=ecog,
-                                 ref_meg=False, fnirs=fnirs, exclude=[])
+    for name in _DATA_CH_TYPES_SPLIT:
+        kwargs = dict(meg=False, ref_meg=False, exclude=[])
+        if name in ('mag', 'grad'):
+            kwargs['meg'] = name
+        elif name in ('fnirs_raw', 'fnirs_od', 'hbo', 'hbr'):
+            kwargs['fnirs'] = name
+        else:
+            kwargs[name] = True
+        these_picks = pick_types(info, **kwargs)
         these_picks = np.intersect1d(these_picks, picks)
         if len(these_picks) > 0:
             picks_list.append(these_picks)
@@ -3010,7 +3037,8 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
             ax_list, make_label)
 
 
-def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
+def _convert_psds(psds, dB, estimate, scaling, unit, ch_names=None,
+                  first_dim='channel'):
     """Convert PSDs to dB (if necessary) and appropriate units.
 
     The following table summarizes the relationship between the value of
@@ -3029,15 +3057,25 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
     where amp are the units corresponding to the variable, as specified by
     ``unit``.
     """
+    _check_option('first_dim', first_dim, ['channel', 'epoch'])
     where = np.where(psds.min(1) <= 0)[0]
-    dead_ch = ', '.join(ch_names[ii] for ii in where)
     if len(where) > 0:
+        # Construct a helpful error message, depending on whether the first
+        # dimension of `psds` are channels or epochs.
         if dB:
-            msg = "Infinite value in PSD for channel(s) %s. " \
-                  "These channels might be dead." % dead_ch
+            bad_value = 'Infinite'
         else:
-            msg = "Zero value in PSD for channel(s) %s. " \
-                  "These channels might be dead." % dead_ch
+            bad_value = 'Zero'
+
+        if first_dim == 'channel':
+            bads = ', '.join(ch_names[ii] for ii in where)
+        else:
+            bads = ', '.join(str(ii) for ii in where)
+
+        msg = "{bad_value} value in PSD for {first_dim}{pl} {bads}.".format(
+            bad_value=bad_value, first_dim=first_dim, bads=bads, pl=_pl(where))
+        if first_dim == 'channel':
+            msg += '\nThese channels might be dead.'
         warn(msg, UserWarning)
 
     if estimate == 'auto':
@@ -3058,6 +3096,14 @@ def _convert_psds(psds, dB, estimate, scaling, unit, ch_names):
         ylabel += r'$\ \mathrm{(dB)}$'
 
     return ylabel
+
+
+def _check_psd_fmax(inst, fmax):
+    """Make sure requested fmax does not exceed Nyquist frequency."""
+    if np.isfinite(fmax) and (fmax > inst.info['sfreq'] / 2):
+        raise ValueError('Requested fmax ({} Hz) must not exceed one half '
+                         'the sampling frequency of the data ({}).'
+                         .format(fmax, 0.5 * inst.info['sfreq']))
 
 
 def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
@@ -3113,9 +3159,10 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
         info = create_info([inst.ch_names[p] for p in picks],
                            inst.info['sfreq'], types)
         info['chs'] = [inst.info['chs'][p] for p in picks]
-        valid_channel_types = ['mag', 'grad', 'eeg', 'seeg', 'eog', 'ecg',
-                               'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
-                               'hbr', 'misc', 'fnirs_raw', 'fnirs_od']
+        valid_channel_types = [
+            'mag', 'grad', 'eeg', 'csd', 'seeg', 'eog', 'ecg',
+            'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
+            'hbr', 'misc', 'fnirs_raw', 'fnirs_od']
         ch_types_used = list()
         for this_type in valid_channel_types:
             if this_type in types:

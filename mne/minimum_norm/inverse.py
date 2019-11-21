@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
@@ -95,7 +95,7 @@ def read_inverse_operator(fname, verbose=None):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The name of the FIF file, which ends with -inv.fif or -inv.fif.gz.
     %(verbose)s
 
@@ -316,7 +316,7 @@ def write_inverse_operator(fname, inv, verbose=None):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The name of the FIF file, which ends with -inv.fif or -inv.fif.gz.
     inv : dict
         The inverse operator.
@@ -768,7 +768,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     ----------
     evoked : Evoked object
         Evoked data.
-    inverse_operator: instance of InverseOperator
+    inverse_operator : instance of InverseOperator
         Inverse operator.
     lambda2 : float
         The regularization parameter.
@@ -810,8 +810,8 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
 
     See Also
     --------
-    apply_inverse_raw : Apply inverse operator to raw object
-    apply_inverse_epochs : Apply inverse operator to epochs object
+    apply_inverse_raw : Apply inverse operator to raw object.
+    apply_inverse_epochs : Apply inverse operator to epochs object.
 
     Notes
     -----
@@ -853,7 +853,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
 
     References
     ----------
-    .. [1] Hamalainen M S and Ilmoniemi R. Interpreting magnetic fields of
+    .. [1] Hämäläinen M S and Ilmoniemi R. Interpreting magnetic fields of
            the brain: minimum norm estimates. Medical & Biological Engineering
            & Computing, 32(1):35-42, 1994.
     .. [2] Dale A, Liu A, Fischl B, Buckner R. (2000) Dynamic statistical
@@ -904,7 +904,12 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
                              Pi[:, np.newaxis] * w_t))
     data_est_w = np.dot(inv['whitener'], np.dot(inv['proj'], data_est))
     var_exp = 1 - ((data_est_w - data_w) ** 2).sum() / (data_w ** 2).sum()
-    logger.info('    Explained %5.1f%% variance' % (100 * var_exp,))
+
+    if method == 'eLORETA':
+        logger.info('    Explained variance unknown')
+    else:
+        logger.info('    Explained %5.1f%% variance' % (100 * var_exp,))
+
     if return_residual:
         residual = evoked.copy()
         residual.data[sel] -= data_est
@@ -994,8 +999,8 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
     See Also
     --------
-    apply_inverse_epochs : Apply inverse operator to epochs object
-    apply_inverse : Apply inverse operator to evoked object
+    apply_inverse_epochs : Apply inverse operator to epochs object.
+    apply_inverse : Apply inverse operator to evoked object.
     """
     _check_reference(raw, inverse_operator['info']['ch_names'])
     _check_option('method', method, INVERSE_METHODS)
@@ -1192,8 +1197,8 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
 
     See Also
     --------
-    apply_inverse_raw : Apply inverse operator to raw object
-    apply_inverse : Apply inverse operator to evoked object
+    apply_inverse_raw : Apply inverse operator to raw object.
+    apply_inverse : Apply inverse operator to evoked object.
     """
     stcs = _apply_inverse_epochs_gen(
         epochs, inverse_operator, lambda2, method=method, label=label,

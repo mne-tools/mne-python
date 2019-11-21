@@ -29,7 +29,7 @@ from .constants import KIT, LEGACY_AMP_PARAMS
 from .coreg import read_mrk
 from ...event import read_events
 
-from ..._digitization._utils import _set_dig_kit
+from .._digitization import _set_dig_kit
 
 
 def _call_digitization(info, mrk, elp, hsp):
@@ -375,7 +375,7 @@ class EpochsKIT(BaseEpochs):
 
     @verbose
     def __init__(self, input_fname, events, event_id=None, tmin=0,
-                 baseline=None,  reject=None, flat=None, reject_tmin=None,
+                 baseline=None, reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, mrk=None, elp=None, hsp=None,
                  allow_unknown_format=False, verbose=None):  # noqa: D102
 

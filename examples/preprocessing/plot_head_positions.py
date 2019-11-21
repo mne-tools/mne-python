@@ -1,4 +1,6 @@
 """
+.. _example-head-pos:
+
 ===============================
 Visualize subject head movement
 ===============================

@@ -26,17 +26,17 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='n_jobs',
 
     Parameters
     ----------
-    func: callable
-        A function
-    n_jobs: int
-        Number of jobs to run in parallel
+    func : callable
+        A function.
+    n_jobs : int
+        Number of jobs to run in parallel.
     max_nbytes : int, str, or None
         Threshold on the minimum size of arrays passed to the workers that
         triggers automated memory mapping. Can be an int in Bytes,
         or a human-readable string, e.g., '1M' for 1 megabyte.
         Use None to disable memmaping of large arrays. Use 'auto' to
         use the value set using mne.set_memmap_min_size.
-    pre_dispatch : int, or string, optional
+    pre_dispatch : int, or str, optional
         See :class:`joblib.Parallel`.
     total : int | None
         If int, use a progress bar to display the progress of dispatched
@@ -54,11 +54,11 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='n_jobs',
     Returns
     -------
     parallel: instance of joblib.Parallel or list
-        The parallel object
+        The parallel object.
     my_func: callable
-        func if not parallel or delayed(func)
+        ``func`` if not parallel or delayed(func).
     n_jobs: int
-        Number of jobs >= 0
+        Number of jobs >= 0.
     """
     should_print = (logger.level <= logging.INFO)
     # for a single job, we don't need joblib
@@ -152,7 +152,7 @@ def check_n_jobs(n_jobs, allow_cuda=False):
     -------
     n_jobs : int
         The checked number of jobs. Always positive (or 'cuda' if
-        applicable.)
+        applicable).
     """
     if not isinstance(n_jobs, int):
         if not allow_cuda:

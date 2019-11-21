@@ -16,6 +16,7 @@ jobs:
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
               export MNE_ROOT=${PWD}/minimal_cmds
               echo "export MNE_ROOT=${PWD}/minimal_cmds" >> $BASH_ENV
+              echo "export MNE_3D_BACKEND=pyvista" >> $BASH_ENV
               echo "export PATH=~/.local/bin/:${MNE_ROOT}/bin:$PATH" >> $BASH_ENV
               curl https://staff.washington.edu/larsoner/minimal_cmds.tar.gz | tar xz
               echo "export LD_LIBRARY_PATH=${MNE_ROOT}/lib:$LD_LIBRARY_PATH" >> $BASH_ENV
@@ -77,9 +78,9 @@ jobs:
         - run:
             name: Get Python running
             command: |
-              pip install --user --upgrade --progress-bar off pip numpy vtk
-              pip install --user --upgrade --progress-bar off -r requirements.txt
-              pip install --user --upgrade --progress-bar off ipython sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler "https://api.github.com/repos/nipy/PySurfer/zipball/master"
+              python -m pip install --user --upgrade --progress-bar off pip numpy vtk
+              python -m pip install --user --upgrade --progress-bar off -r requirements.txt
+              python -m pip install --user --upgrade --progress-bar off ipython sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler "https://api.github.com/repos/nipy/PySurfer/zipball/master"
 
         - save_cache:
             key: pip-cache
@@ -185,6 +186,9 @@ jobs:
                     if [[ $(cat $FNAME | grep -x ".*datasets.*multimodal.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.multimodal.data_path(update_path=True))";
                     fi;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*fnirs_motor.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.fnirs_motor.data_path(update_path=True))";
+                    fi;
                     if [[ $(cat $FNAME | grep -x ".*datasets.*opm.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.opm.data_path(update_path=True))";
                     fi;
@@ -192,7 +196,7 @@ jobs:
                       python -c "import mne; print(mne.datasets.phantom_4dbti.data_path(update_path=True))";
                     fi;
                     if [[ $(cat $FNAME | grep -x ".*datasets.*limo.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.limo.data_path(subject=2, update_path=True))";
+                      python -c "import mne; print(mne.datasets.limo.data_path(subject=1, update_path=True))";
                     fi;
                   fi;
                 done;
@@ -319,9 +323,9 @@ jobs:
             name: pip install dependencies
             command: |
                set -e;
-               pip install --user --progress-bar off numpy scipy matplotlib pillow
-               pip install --user --progress-bar off sphinx numpydoc sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler
-               pip install --user -e .
+               python -m pip install --user --progress-bar off numpy scipy matplotlib pillow
+               python -m pip install --user --progress-bar off sphinx numpydoc sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler
+               python -m pip install --user -e .
         - run:
             name: make linkcheck
             command: |

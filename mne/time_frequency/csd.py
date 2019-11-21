@@ -34,7 +34,7 @@ class CrossSpectralDensity(object):
     ----------
     data : ndarray, shape ((n_channels**2 + n_channels) / 2, n_frequencies)
         For each frequency, the cross-spectral density matrix in vector format.
-    ch_names : list of string
+    ch_names : list of str
         List of string names for each channel.
     frequencies : float | list of float | list of list of float
         Frequency or frequencies for which the CSD matrix was calculated. When
@@ -494,7 +494,7 @@ def read_csd(fname):
 
     See Also
     --------
-    CrossSpectralDensity.save : For saving CSD objects
+    CrossSpectralDensity.save : For saving CSD objects.
     """
     if not fname.endswith('.h5'):
         fname += '.h5'
@@ -510,9 +510,9 @@ def pick_channels_csd(csd, include=[], exclude=[]):
     ----------
     csd : instance of CrossSpectralDensity
         The CSD object to select the channels from.
-    include : list of string
+    include : list of str
         List of channels to include (if empty, include all available).
-    exclude : list of string
+    exclude : list of str
         Channels to exclude (if empty, do not exclude any).
 
     Returns
@@ -836,7 +836,7 @@ def csd_morlet(epochs, frequencies, tmin=None, tmax=None, picks=None,
         Maximum time instant to consider, in seconds. If ``None`` end at last
         sample.
     %(picks_good_data_noref)s
-    n_cycles: float | list of float | None
+    n_cycles : float | list of float | None
         Number of cycles to use when constructing Morlet wavelets. Fixed number
         or one per frequency. Defaults to 7.
     use_fft : bool
@@ -903,7 +903,7 @@ def csd_array_morlet(X, sfreq, frequencies, t0=0, tmin=None, tmax=None,
     ch_names : list of str | None
         A name for each time series. If ``None`` (the default), the series will
         be named 'SERIES###'.
-    n_cycles: float | list of float | None
+    n_cycles : float | list of float | None
         Number of cycles to use when constructing Morlet wavelets. Fixed number
         or one per frequency. Defaults to 7.
     use_fft : bool
@@ -1251,7 +1251,7 @@ def _csd_morlet(data, sfreq, wavelets, tslice=None, use_fft=True, decim=1):
 
     See Also
     --------
-    _vector_to_sym_mat : For converting the CSD to a full matrix
+    _vector_to_sym_mat : For converting the CSD to a full matrix.
     """
     # Compute PSD
     psds = cwt(data, wavelets, use_fft=use_fft, decim=decim)

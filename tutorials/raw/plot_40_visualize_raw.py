@@ -184,7 +184,7 @@ raw.plot_sensors(ch_type='eeg')
 # generated. More details on working with and plotting projectors are given in
 # :ref:`tut-projectors-background` and :ref:`tut-artifact-ssp`.
 
-raw.plot_projs_topomap()
+raw.plot_projs_topomap(colorbar=True)
 
 ###############################################################################
 # .. LINKS

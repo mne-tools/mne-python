@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+from itertools import chain
 import os
 import os.path as op
 
@@ -17,7 +18,7 @@ from numpy.testing import (assert_array_equal,
 
 from mne import __file__ as _mne_file, create_info, read_evokeds
 from mne.utils._testing import _dig_sort_key
-from mne.channels import (get_builtin_montages, DigMontage,
+from mne.channels import (get_builtin_montages, DigMontage, read_dig_dat,
                           read_dig_egi, read_dig_captrack, read_dig_fif,
                           make_standard_montage, read_custom_montage,
                           compute_dev_head_t, make_dig_montage,
@@ -29,10 +30,9 @@ from mne.channels.montage import (_set_montage, transform_to_head,
 from mne.utils import _TempDir, run_tests_if_main, assert_dig_allclose
 from mne.bem import _fit_sphere
 from mne.io.constants import FIFF
-from mne._digitization import Digitization
-from mne._digitization._utils import _format_dig_points
-from mne._digitization._utils import _get_fid_coords
-from mne._digitization.base import _get_dig_eeg, _count_points_by_type
+from mne.io._digitization import (_format_dig_points,
+                                  _get_fid_coords, _get_dig_eeg,
+                                  _count_points_by_type)
 
 from mne.viz._3d import _fiducial_coords
 
@@ -175,12 +175,13 @@ def test_documented():
                 'FPz': [0., 0.99977915, -0.02101571],
                 'Fz': [0., 0.71457525, 0.69955859],
             },
-            nasion=None, lpa=None, rpa=None,
+            nasion=None, lpa=None, rpa=None, coord_frame='head',
         ),
         'loc', id='EEGLAB'),
 
     pytest.param(
-        partial(read_custom_montage, head_size=None, unit='m'),
+        partial(read_custom_montage, head_size=None, unit='m',
+                coord_frame='mri'),
         ('// MatLab   Sphere coordinates [degrees]         Cartesian coordinates\n'  # noqa: E501
          '// Label       Theta       Phi    Radius         X         Y         Z       off sphere surface\n'  # noqa: E501
          'E1      37.700     -14.000       1.000    0.7677    0.5934   -0.2419  -0.00000000000000011\n'  # noqa: E501
@@ -194,7 +195,7 @@ def test_documented():
                 'E31': [0., 0.9816, -0.1908],
                 'E61': [-0.8857, 0.3579, -0.2957],
             },
-            nasion=None, lpa=None, rpa=None,
+            nasion=None, lpa=None, rpa=None, coord_frame='mri',
         ),
         'csd', id='matlab'),
 
@@ -329,6 +330,8 @@ def test_montage_readers(
     expected_ch_pos = expected_dig._get_ch_pos()
     for kk in actual_ch_pos:
         assert_allclose(actual_ch_pos[kk], expected_ch_pos[kk], atol=1e-5)
+    for d1, d2 in zip(dig_montage.dig, expected_dig.dig):
+        assert d1['coord_frame'] == d2['coord_frame']
 
 
 @testing.requires_testing_data
@@ -345,6 +348,47 @@ def test_read_locs():
                  [0., 0.067885, 0.066458]],
         atol=1e-6
     )
+
+
+def test_read_dig_dat():
+    """Test reading *.dat electrode locations."""
+    rows = [
+        ['Nasion', 78, 0.00, 1.00, 0.00],
+        ['Left', 76, -1.00, 0.00, 0.00],
+        ['Right', 82, 1.00, -0.00, 0.00],
+        ['O2', 69, -0.50, -0.90, 0.05],
+        ['Centroid', 67, 0.00, 0.00, 0.00],
+    ]
+    # write mock test.dat file
+    temp_dir = _TempDir()
+    fname_temp = op.join(temp_dir, 'test.dat')
+    with open(fname_temp, 'w') as fid:
+        for row in rows:
+            name = row[0].rjust(10)
+            data = '\t'.join(map(str, row[1:]))
+            fid.write("%s\t%s\n" % (name, data))
+    # construct expected value
+    idents = {
+        78: FIFF.FIFFV_POINT_NASION,
+        76: FIFF.FIFFV_POINT_LPA,
+        82: FIFF.FIFFV_POINT_RPA,
+        69: 1,
+    }
+    kinds = {
+        78: FIFF.FIFFV_POINT_CARDINAL,
+        76: FIFF.FIFFV_POINT_CARDINAL,
+        82: FIFF.FIFFV_POINT_CARDINAL,
+        69: FIFF.FIFFV_POINT_EEG,
+    }
+    target = {row[0]: {'r': row[2:], 'ident': idents[row[1]],
+                       'kind': kinds[row[1]], 'coord_frame': 0}
+              for row in rows[:-1]}
+    # read it
+    dig = read_dig_dat(fname_temp)
+    assert set(dig.ch_names) == {'O2'}
+    keys = chain(['Left', 'Nasion', 'Right'], dig.ch_names)
+    target = [target[k] for k in keys]
+    assert dig.dig == target
 
 
 def test_read_dig_montage_using_polhemus_fastscan():
@@ -878,6 +922,7 @@ def _fake_montage(ch_names):
     return make_dig_montage(ch_pos=dict(zip(ch_names, pos)),
                             coord_frame='head')
 
+
 cnt_ignore_warns = [
     pytest.mark.filterwarnings(
         'ignore:.*Could not parse meas date from the header. Setting to None.'
@@ -892,7 +937,7 @@ cnt_ignore_warns = [
 def test_digmontage_constructor_errors():
     """Test proper error messaging."""
     with pytest.raises(ValueError, match='does not match the number'):
-        _ = DigMontage(ch_names=['foo', 'bar'], dig=Digitization())
+        _ = DigMontage(ch_names=['foo', 'bar'], dig=list())
 
 
 def test_transform_to_head_and_compute_dev_head_t():
@@ -1006,7 +1051,7 @@ def test_set_montage_with_sub_super_set_of_ch_names():
     assert len(info['dig']) == len(list('abc'))
 
     # montage is a SUBset of info
-    _MSG = 'subset of info. There are 2 .* not present it the DigMontage'
+    _MSG = 'subset of info. There are 2 .* not present in the DigMontage'
     with pytest.raises(ValueError, match=_MSG):
         _ = create_info(
             ch_names=list('abcdfgh'), sfreq=1, ch_types='eeg', montage=montage

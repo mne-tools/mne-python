@@ -9,10 +9,11 @@ import re as re
 import numpy as np
 
 from ..base import BaseRaw
-from ..meas_info import create_info
-from ...utils import logger, verbose, fill_doc
 from ..constants import FIFF
+from ..meas_info import create_info, _format_dig_points
 from ...annotations import Annotations
+from ...transforms import apply_trans, _get_trans
+from ...utils import logger, verbose, fill_doc
 
 
 @fill_doc
@@ -57,6 +58,7 @@ class RawNIRX(BaseRaw):
     @verbose
     def __init__(self, fname, preload=False, verbose=None):
         from ...externals.pymatreader import read_mat
+        from ...coreg import get_mni_fiducials  # avoid circular import prob
         logger.info('Loading %s' % fname)
 
         # Check if required files exist and store names for later use
@@ -114,8 +116,10 @@ class RawNIRX(BaseRaw):
         hdr.read_string(hdr_str)
 
         # Check that the file format version is supported
-        if hdr['GeneralInfo']['NIRStar'] != "\"15.2\"":
-            raise RuntimeError('Only NIRStar version 15.2 is supported')
+        if not any(item == hdr['GeneralInfo']['NIRStar'] for item in
+                   ["\"15.0\"", "\"15.2\""]):
+            raise RuntimeError('MNE does not support this NIRStar version'
+                               ' (%s)' % (hdr['GeneralInfo']['NIRStar'],))
 
         # Parse required header fields
 
@@ -131,11 +135,13 @@ class RawNIRX(BaseRaw):
                                 hdr['DataStructure']['S-D-Key'])], int)
 
         # Determine if short channels are present and on which detectors
-        has_short = np.array(hdr['ImagingParameters']['ShortBundles'], int)
-        short_det = [int(s) for s in
-                     re.findall(r'(\d+)',
-                     hdr['ImagingParameters']['ShortDetIndex'])]
-        short_det = np.array(short_det, int)
+        if 'shortbundles' in hdr['ImagingParameters']:
+            short_det = [int(s) for s in
+                         re.findall(r'(\d+)',
+                         hdr['ImagingParameters']['ShortDetIndex'])]
+            short_det = np.array(short_det, int)
+        else:
+            short_det = []
 
         # Extract sampling rate
         samplingrate = float(hdr['ImagingParameters']['SamplingRate'])
@@ -149,9 +155,31 @@ class RawNIRX(BaseRaw):
         #   Channels are defined as the midpoint between source and detector
         mat_data = read_mat(files['probeInfo.mat'], uint16_codec=None)
         requested_channels = mat_data['probeInfo']['probes']['index_c']
-        src_locs = mat_data['probeInfo']['probes']['coords_s3'] * 10
-        det_locs = mat_data['probeInfo']['probes']['coords_d3'] * 10
-        ch_locs = mat_data['probeInfo']['probes']['coords_c3'] * 10
+        src_locs = mat_data['probeInfo']['probes']['coords_s3'] / 100.
+        det_locs = mat_data['probeInfo']['probes']['coords_d3'] / 100.
+        ch_locs = mat_data['probeInfo']['probes']['coords_c3'] / 100.
+
+        # These are all in MNI coordinates, so let's transform them to
+        # the Neuromag head coordinate frame
+        mri_head_t, _ = _get_trans('fsaverage', 'mri', 'head')
+        src_locs = apply_trans(mri_head_t, src_locs)
+        det_locs = apply_trans(mri_head_t, det_locs)
+        ch_locs = apply_trans(mri_head_t, ch_locs)
+
+        # Set up digitization
+        dig = get_mni_fiducials('fsaverage', verbose=False)
+        for fid in dig:
+            fid['r'] = apply_trans(mri_head_t, fid['r'])
+            fid['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+        for ii, ch_loc in enumerate(ch_locs, 1):
+            dig.append(dict(
+                kind=FIFF.FIFFV_POINT_EEG,  # misnomer but probably okay
+                r=ch_loc,
+                ident=ii,
+                coord_frame=FIFF.FIFFV_COORD_HEAD,
+            ))
+        dig = _format_dig_points(dig)
+        del mri_head_t
 
         # Determine requested channel indices
         # The wl1 and wl2 files include all possible source - detector pairs.
@@ -170,7 +198,7 @@ class RawNIRX(BaseRaw):
             list = [str.format(i) for i in list]
             return(list)
         snames = prepend(sources[req_ind], 'S')
-        dnames = prepend(detectors[req_ind], '-D')
+        dnames = prepend(detectors[req_ind], '_D')
         sdnames = [m + str(n) for m, n in zip(snames, dnames)]
         sd1 = [s + ' ' + str(fnirs_wavelengths[0]) for s in sdnames]
         sd2 = [s + ' ' + str(fnirs_wavelengths[1]) for s in sdnames]
@@ -180,13 +208,14 @@ class RawNIRX(BaseRaw):
         info = create_info(chnames,
                            samplingrate,
                            ch_types='fnirs_raw')
-        info.update({'subject_info': subject_info})
+        info.update(subject_info=subject_info, dig=dig)
 
         # Store channel, source, and detector locations
         # The channel location is stored in the first 3 entries of loc.
         # The source location is stored in the second 3 entries of loc.
         # The detector location is stored in the third 3 entries of loc.
         # NIRx NIRSite uses MNI coordinates.
+        # Also encode the light frequency in the structure.
         for ch_idx2 in range(requested_channels.shape[0]):
             # Find source and store location
             src = int(requested_channels[ch_idx2, 0]) - 1
@@ -198,15 +227,15 @@ class RawNIRX(BaseRaw):
             info['chs'][ch_idx2 * 2 + 1]['loc'][6:9] = det_locs[det, :]
             # Store channel location
             # Channel locations for short channels are bodged,
-            # for short channels use the source location and add small offset
-            if (has_short > 0) & (len(np.where(short_det == det + 1)[0]) > 0):
+            # for short channels use the source location.
+            if det + 1 in short_det:
                 info['chs'][ch_idx2 * 2]['loc'][:3] = src_locs[src, :]
                 info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = src_locs[src, :]
-                info['chs'][ch_idx2 * 2]['loc'][0] += 0.8
-                info['chs'][ch_idx2 * 2 + 1]['loc'][0] += 0.8
             else:
                 info['chs'][ch_idx2 * 2]['loc'][:3] = ch_locs[ch_idx2, :]
                 info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = ch_locs[ch_idx2, :]
+            info['chs'][ch_idx2 * 2]['loc'][9] = fnirs_wavelengths[0]
+            info['chs'][ch_idx2 * 2 + 1]['loc'][9] = fnirs_wavelengths[1]
         raw_extras = {"sd_index": req_ind, 'files': files}
 
         super(RawNIRX, self).__init__(
@@ -251,19 +280,6 @@ class RawNIRX(BaseRaw):
         data[:] = this_data[idx]
 
         return data
-
-    def _probe_distances(self):
-        """Return the distance between each source-detector pair."""
-        dist = [np.linalg.norm(ch['loc'][3:6] - ch['loc'][6:9])
-                for ch in self.info['chs']]
-        return np.array(dist, float)
-
-    def _short_channels(self, threshold=10.0):
-        """Return a vector indicating which channels are short.
-
-        Channels with distance less than `threshold` are reported as short.
-        """
-        return self._probe_distances() < threshold
 
 
 def _read_csv_rows_cols(fname, start, stop, cols, n_cols):

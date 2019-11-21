@@ -23,18 +23,16 @@ import numpy as np
 from ..viz import plot_montage
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _frame_to_str, Transform)
-from .._digitization import Digitization
-from .._digitization.base import _count_points_by_type
-from .._digitization.base import _get_dig_eeg
-from .._digitization._utils import (_make_dig_points, write_dig, _read_dig_fif,
-                                    _format_dig_points)
+from ..io._digitization import (_count_points_by_type,
+                                _get_dig_eeg, _make_dig_points, write_dig,
+                                _read_dig_fif, _format_dig_points,
+                                _get_fid_coords, _coord_frame_const)
 from ..io.pick import pick_types
 from ..io.open import fiff_open
 from ..io.constants import FIFF
 from ..utils import (warn, logger, copy_function_doc_to_method_doc,
                      _check_option, _validate_type, _check_fname,
                      fill_doc)
-from .._digitization._utils import _get_fid_coords
 
 from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
@@ -74,7 +72,7 @@ def _check_ch_names_are_compatible(info_names, montage_names):
     if len(not_in_montage):  # DigMontage is subset of info
         raise ValueError((
             'DigMontage is a only a subset of info.'
-            ' There are {n_ch} channel positions not present it the'
+            ' There are {n_ch} channel positions not present in the'
             ' DigMontage. The required channels are: {ch_names}.'
         ).format(n_ch=len(not_in_montage), ch_names=not_in_montage))
     else:
@@ -180,6 +178,7 @@ class DigMontage(object):
     See Also
     --------
     read_dig_captrack
+    read_dig_dat
     read_dig_egi
     read_dig_fif
     read_dig_hpts
@@ -195,9 +194,8 @@ class DigMontage(object):
         # XXX: dev_head_t now is np.array, we should add dev_head_transform
         #      (being instance of Transformation) and move the parameter to the
         #      end of the call.
-        dig = Digitization() if dig is None else dig
-        _validate_type(item=dig, types=Digitization,
-                       item_name='dig', type_name='Digitization')
+        dig = list() if dig is None else dig
+        _validate_type(item=dig, types=list, item_name='dig')
         ch_names = list() if ch_names is None else ch_names
         n_eeg = sum([1 for d in dig if d['kind'] == FIFF.FIFFV_POINT_EEG])
         if n_eeg != len(ch_names):
@@ -345,21 +343,79 @@ def transform_to_head(montage):
         coordinate system.
     """
     # Get fiducial points and their coord_frame
-    fid_coords, coord_frame = _get_fid_coords(montage.dig)
-
-    montage = deepcopy(montage)  # to avoid inplace modification
-
-    if coord_frame != FIFF.FIFFV_COORD_HEAD:
-        nasion, lpa, rpa = \
-            fid_coords['nasion'], fid_coords['lpa'], fid_coords['rpa']
-        native_head_t = get_ras_to_neuromag_trans(nasion, lpa, rpa)
-
+    native_head_t = compute_native_head_t(montage)
+    montage = montage.copy()  # to avoid inplace modification
+    if native_head_t['from'] != FIFF.FIFFV_COORD_HEAD:
         for d in montage.dig:
-            if d['coord_frame'] == coord_frame:
+            if d['coord_frame'] == native_head_t['from']:
                 d['r'] = apply_trans(native_head_t, d['r'])
                 d['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-
     return montage
+
+
+def read_dig_dat(fname):
+    r"""Read electrode positions from a ``*.dat`` file.
+
+    .. Warning::
+        This function was implemented based on ``*.dat`` files available from
+        `Compumedics <https://compumedicsneuroscan.com/scan-acquire-
+        configuration-files/>`_ and might not work as expected with novel
+        files. If it does not read your files correctly please contact the
+        mne-python developers.
+
+    Parameters
+    ----------
+    fname : path-like
+        File from which to read electrode locations.
+
+    Returns
+    -------
+    montage : DigMontage
+        The montage.
+
+    See Also
+    --------
+    read_dig_captrack
+    read_dig_dat
+    read_dig_egi
+    read_dig_fif
+    read_dig_hpts
+    read_dig_polhemus_isotrak
+    make_dig_montage
+
+    Notes
+    -----
+    ``*.dat`` files are plain text files and can be inspected and amended with
+    a plain text editor.
+    """
+    fname = _check_fname(fname, overwrite='read', must_exist=True)
+
+    with open(fname, 'r') as fid:
+        lines = fid.readlines()
+
+    electrodes = {}
+    nasion = lpa = rpa = None
+    for i, line in enumerate(lines):
+        items = line.split()
+        if not items:
+            continue
+        elif len(items) != 5:
+            raise ValueError(
+                "Error reading %s, line %s has unexpected number of entries:\n"
+                "%s" % (fname, i, line.rstrip()))
+        num = items[1]
+        if num == '67':
+            continue  # centroid
+        pos = np.array([float(item) for item in items[2:]])
+        if num == '78':
+            nasion = pos
+        elif num == '76':
+            lpa = pos
+        elif num == '82':
+            rpa = pos
+        else:
+            electrodes[items[0]] = pos
+    return make_dig_montage(electrodes, nasion, lpa, rpa)
 
 
 def read_dig_fif(fname):
@@ -382,6 +438,7 @@ def read_dig_fif(fname):
     See Also
     --------
     DigMontage
+    read_dig_dat
     read_dig_egi
     read_dig_captrack
     read_dig_polhemus_isotrak
@@ -422,6 +479,7 @@ def read_dig_hpts(fname, unit='mm'):
     --------
     DigMontage
     read_dig_captrack
+    read_dig_dat
     read_dig_egi
     read_dig_fif
     read_dig_polhemus_isotrak
@@ -456,9 +514,9 @@ def read_dig_hpts(fname, unit='mm'):
 
     For example::
 
-        cardinal    nasion    -5.6729  -12.3873  -30.3671
-        cardinal    lpa    -37.6782  -10.4957   91.5228
-        cardinal    rpa    -131.3127    9.3976  -22.2363
+        cardinal    2    -5.6729  -12.3873  -30.3671
+        cardinal    1    -37.6782  -10.4957   91.5228
+        cardinal    3    -131.3127    9.3976  -22.2363
         hpi    1    -30.4493  -11.8450   83.3601
         hpi    2    -122.5353    9.2232  -28.6828
         hpi    3    -6.8518  -47.0697  -37.0829
@@ -480,7 +538,8 @@ def read_dig_hpts(fname, unit='mm'):
     xyz = np.array([out['f%d' % ii] for ii in range(2, 5)]).T
     xyz *= _scale
     del _scale
-    fid = {label[ii]: this_xyz
+    fid_idx_to_label = {'1': 'lpa', '2': 'nasion', '3': 'rpa'}
+    fid = {fid_idx_to_label[label[ii]]: this_xyz
            for ii, this_xyz in enumerate(xyz) if kind[ii] == 'cardinal'}
     ch_pos = {label[ii]: this_xyz
               for ii, this_xyz in enumerate(xyz) if kind[ii] == 'eeg'}
@@ -510,6 +569,7 @@ def read_dig_egi(fname):
     --------
     DigMontage
     read_dig_captrack
+    read_dig_dat
     read_dig_fif
     read_dig_hpts
     read_dig_polhemus_isotrak
@@ -548,6 +608,7 @@ def read_dig_captrack(fname):
     See Also
     --------
     DigMontage
+    read_dig_dat
     read_dig_egi
     read_dig_fif
     read_dig_hpts
@@ -794,6 +855,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
     make_dig_montage
     read_polhemus_fastscan
     read_dig_captrack
+    read_dig_dat
     read_dig_egi
     read_dig_fif
     """
@@ -890,7 +952,8 @@ def _read_eeglab_locations(fname, unit):
     return ch_names, pos
 
 
-def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
+def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m',
+                        coord_frame=None):
     """Read a montage from a file.
 
     Parameters
@@ -905,6 +968,12 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
     head_size : float | None
         The size of the head in [m]. If none, returns the values read from the
         file with no modification. Defaults to 95mm.
+    coord_frame : str | None
+        The coordinate frame of the points. Usually this is "unknown"
+        for native digitizer space. Defaults to None, which is "unknown" for
+        most readers but "head" for EEGLAB.
+
+        .. versionadded:: 0.20
 
     Returns
     -------
@@ -946,8 +1015,8 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
 
     if ext in SUPPORTED_FILE_EXT['eeglab']:
         if head_size is None:
-            raise(ValueError,
-                  "``head_size`` cannot be None for '{}'".format(ext))
+            raise ValueError(
+                "``head_size`` cannot be None for '{}'".format(ext))
         ch_names, pos = _read_eeglab_locations(fname, unit)
         scale = head_size / np.median(np.linalg.norm(pos, axis=-1))
         pos *= scale
@@ -968,8 +1037,8 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
 
     elif ext in SUPPORTED_FILE_EXT['generic (Theta-phi in degrees)']:
         if head_size is None:
-            raise(ValueError,
-                  "``head_size`` cannot be None for '{}'".format(ext))
+            raise ValueError(
+                "``head_size`` cannot be None for '{}'".format(ext))
         montage = _read_theta_phi_in_degrees(fname, head_size=head_size,
                                              fid_names=('Nz', 'LPA', 'RPA'))
 
@@ -978,6 +1047,11 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m'):
 
     elif ext in SUPPORTED_FILE_EXT['brainvision']:
         montage = _read_brainvision(fname, head_size, unit)
+
+    if coord_frame is not None:
+        coord_frame = _coord_frame_const(coord_frame)
+        for d in montage.dig:
+            d['coord_frame'] = coord_frame
 
     return montage
 
@@ -1022,6 +1096,33 @@ def compute_dev_head_t(montage):
     return Transform(fro='meg', to='head', trans=trans)
 
 
+def compute_native_head_t(montage):
+    """Compute the native-to-head transformation for a montage.
+
+    This uses the fiducials in the native space to transform to compute the
+    transform to the head coordinate frame.
+
+    Parameters
+    ----------
+    montage : instance of DigMontage
+        The montage.
+
+    Returns
+    -------
+    native_head_t : instance of Transform
+        A native-to-head transformation matrix.
+    """
+    # Get fiducial points and their coord_frame
+    fid_coords, coord_frame = _get_fid_coords(montage.dig)
+    if coord_frame == FIFF.FIFFV_COORD_HEAD:
+        native_head_t = np.eye(3)
+    else:
+        nasion, lpa, rpa = \
+            fid_coords['nasion'], fid_coords['lpa'], fid_coords['rpa']
+        native_head_t = get_ras_to_neuromag_trans(nasion, lpa, rpa)
+    return Transform(coord_frame, 'head', native_head_t)
+
+
 def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
     """Read a generic (built-in) montage.
 
@@ -1047,9 +1148,9 @@ def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
     Notes
     -----
     Individualized (digitized) electrode positions should be read in using
-    :func:`read_dig_captrack`, :func:`read_dig_egi`, :func:`read_dig_fif`,
-    :func:`read_dig_polhemus_isotrak`, :func:`read_dig_hpts` or made with
-    :func:`make_dig_montage`.
+    :func:`read_dig_captrack`, :func:`read_dig_dat`, :func:`read_dig_egi`,
+    :func:`read_dig_fif`, :func:`read_dig_polhemus_isotrak`,
+    :func:`read_dig_hpts` or made with :func:`make_dig_montage`.
 
     Valid ``kind`` arguments are:
 
