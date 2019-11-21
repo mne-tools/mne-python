@@ -2301,6 +2301,7 @@ def _read_one_epoch_file(f, tree, preload):
 
         #   Locate the data of interest
         processed = dir_tree_find(meas, FIFF.FIFFB_PROCESSED_DATA)
+        del meas
         if len(processed) == 0:
             raise ValueError('Could not find processed data')
 

@@ -161,6 +161,7 @@ class Raw(BaseRaw):
                         raise ValueError('No raw data in %s' % fname_rep)
                     _check_maxshield(allow_maxshield)
                     info['maxshield'] = True
+            del meas
 
             if len(raw_node) == 1:
                 raw_node = raw_node[0]

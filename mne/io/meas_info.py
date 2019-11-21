@@ -1923,6 +1923,7 @@ def anonymize_info(info, daysback=None, keep_his=False):
     daysback : int | None
         Number of days to subtract from all dates.
         If None (default) the date of service will be set to Jan 1ˢᵗ 2000.
+        This parameter is ignored if ``info['meas_date'] is None``.
     keep_his : bool
         If True his_id of subject_info will NOT be overwritten.
         Defaults to False.
@@ -1952,6 +1953,9 @@ def anonymize_info(info, daysback=None, keep_his=False):
           Dates use the meas_date logic, and experimenter a default string.
     - helium_info, device_info
           Dates use the meas_date logic, meta info uses defaults.
+
+    If ``info['meas_date']`` is None, it will remain None during processing
+    the above fields.
 
     Operates in place.
     """
@@ -2031,7 +2035,7 @@ def anonymize_info(info, daysback=None, keep_his=False):
     info['description'] = default_desc
 
     if info['proj_id'] is not None:
-        info['proj_id'][:] = 0
+        info['proj_id'] = np.zeros_like(info['proj_id'])
     if info['proj_name'] is not None:
         info['proj_name'] = default_str
     if info['utc_offset'] is not None:
