@@ -16,7 +16,7 @@ from numpy.testing import assert_
 import mne
 from mne.datasets import testing
 from mne.beamformer import make_lcmv
-from mne.beamformer.resolution_matrix_lcmv import make_resolution_matrix_lcmv
+from mne.minimum_norm import make_resolution_matrix_lcmv
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -48,6 +48,7 @@ def test_resolution_matrix_lcmv():
 
     # evoked data for info
     evoked = mne.read_evokeds(fname_evoked, 0)
+    evoked = evoked.pick_types(meg=True, eeg=True, exclude='bads')
 
     # Resolution matrix for Beamformer
 
@@ -67,7 +68,7 @@ def test_resolution_matrix_lcmv():
                         reduce_rank=False,
                         verbose=False)
 
-    resmat_lcmv = make_resolution_matrix_lcmv(forward_fxd, filters)
+    resmat_lcmv = make_resolution_matrix_lcmv(filters, forward_fxd, info)
 
     # for noise_cov==data_cov, the filter weights should be the transpose of
     # leadfield
@@ -77,7 +78,7 @@ def test_resolution_matrix_lcmv():
     filters_lfd['weights'] = forward_fxd['sol']['data'].T
 
     # compute resolution matrix for filters with transposed leadfield
-    resmat_fwd = make_resolution_matrix_lcmv(forward_fxd, filters_lfd)
+    resmat_fwd = make_resolution_matrix_lcmv(filters_lfd, forward_fxd, info)
 
     # Tests
 

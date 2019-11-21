@@ -12,8 +12,7 @@ Visualise cross-talk functions at one vertex for different LCMV beamformers.
 import mne
 from mne.datasets import sample
 from mne.beamformer import make_lcmv
-from mne.minimum_norm.resolution_matrix import (make_resolution_matrix_lcmv,
-                                                get_cross_talk)
+from mne.minimum_norm import (make_resolution_matrix_lcmv, get_cross_talk)
 
 print(__doc__)
 
