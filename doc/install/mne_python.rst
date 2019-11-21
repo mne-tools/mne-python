@@ -25,6 +25,12 @@ tool for installing new packages and managing different package sets
 ("environments") for different projects.
 
 To get started, follow the `installation instructions for Anaconda`_.
+
+.. warning::
+   If you have the ``PYTHONPATH`` or ``PYTHONHOME`` environment variables set,
+   you may run into difficulty using Anaconda. See the
+   `Anaconda troubleshooting guide`_ for more information.
+
 When you are done, if you type the following commands in a ``bash`` terminal,
 you should see outputs similar to the following (assuming you installed
 conda to ``/home/user/anaconda3``)::
