@@ -18,7 +18,8 @@ from ..utils import logger, verbose, _check_depth, _check_option, sum_squared
 from ..dipole import Dipole
 
 from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver, _Phi,
-                         norm_l2inf, tf_mixed_norm_solver, norm_epsilon_inf)
+                         tf_mixed_norm_solver, iterative_tf_mixed_norm_solver,
+                         norm_l2inf, norm_epsilon_inf)
 
 
 def _check_ori(pick_ori, forward):
@@ -483,9 +484,9 @@ def tf_mixed_norm(evoked, forward, noise_cov,
                   loose='auto', depth=0.8, maxit=3000,
                   tol=1e-4, weights=None, weights_min=0., pca=True,
                   debias=True, wsize=64, tstep=4, window=0.02,
-                  return_residual=False, return_as_dipoles=False,
-                  alpha=None, l1_ratio=None, dgap_freq=10, rank=None,
-                  pick_ori=None, verbose=None):
+                  return_residual=False, return_as_dipoles=False, alpha=None,
+                  l1_ratio=None, dgap_freq=10, rank=None, pick_ori=None,
+                  n_tfmxne_iter=1, verbose=None):
     """Time-Frequency Mixed-norm estimate (TF-MxNE).
 
     Compute L1/L2 + L1 mixed-norm solution on time-frequency
@@ -557,6 +558,8 @@ def tf_mixed_norm(evoked, forward, noise_cov,
 
         .. versionadded:: 0.18
     %(pick_ori-vec)s
+    n_tfmxne_iter : int
+        Number of TF-MxNE iterations. If > 1, iterative reweighting is applied.
     %(verbose)s
 
     Returns
@@ -607,6 +610,10 @@ def tf_mixed_norm(evoked, forward, noise_cov,
     alpha_space = alpha * (1. - l1_ratio)
     alpha_time = alpha * l1_ratio
 
+    if n_tfmxne_iter < 1:
+        raise ValueError('TF-MxNE has to be computed at least 1 time. '
+                         'Requires n_tfmxne_iter >= 1, got %s' % n_tfmxne_iter)
+
     if dgap_freq <= 0.:
         raise ValueError('dgap_freq must be a positive integer.'
                          ' Got dgap_freq = %s' % dgap_freq)
@@ -622,6 +629,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
         forward, evoked.info, noise_cov, pca, depth, loose, rank,
         weights, weights_min)
     _check_ori(pick_ori, forward)
+
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
 
     if window is not None:
@@ -646,10 +654,16 @@ def tf_mixed_norm(evoked, forward, noise_cov,
     gain /= alpha_max
     source_weighting /= alpha_max
 
-    X, active_set, E = tf_mixed_norm_solver(
-        M, gain, alpha_space, alpha_time, wsize=wsize, tstep=tstep,
-        maxit=maxit, tol=tol, verbose=verbose, n_orient=n_dip_per_pos,
-        dgap_freq=dgap_freq, debias=debias)
+    if n_tfmxne_iter == 1:
+        X, active_set, E = tf_mixed_norm_solver(
+            M, gain, alpha_space, alpha_time, wsize=wsize, tstep=tstep,
+            maxit=maxit, tol=tol, verbose=verbose, n_orient=n_dip_per_pos,
+            dgap_freq=dgap_freq, debias=debias)
+    else:
+        X, active_set, E = iterative_tf_mixed_norm_solver(
+            M, gain, alpha_space, alpha_time, wsize=wsize, tstep=tstep,
+            n_tfmxne_iter=n_tfmxne_iter, maxit=maxit, tol=tol, verbose=verbose,
+            n_orient=n_dip_per_pos, dgap_freq=dgap_freq, debias=debias)
 
     if active_set.sum() == 0:
         raise Exception("No active dipoles found. "
