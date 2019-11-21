@@ -1,10 +1,9 @@
+# -*- coding: utf-8 -*-
 """
-==============================================================
 Compute cross-talk functions for LCMV beamformers
 ==============================================================
 
-Visualise CTF at one vertex for LCMV beamformer for covariance matrices
-computed for pre- and post-stimulus intervals, respectively.
+Visualise cross-talk functions at one vertex for different LCMV beamformers.
 """
 # Author: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #

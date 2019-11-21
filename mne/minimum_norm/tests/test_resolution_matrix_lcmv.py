@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 """
 Test computation of resolution matrix for LCMV beamformers.
+
 If noise and data covariance are the same, the LCMV beamformer weights should
 be the transpose of the leadfield matrix.
 """
