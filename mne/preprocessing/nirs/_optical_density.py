@@ -6,10 +6,10 @@
 
 import numpy as np
 
-from ..io import BaseRaw
-from ..io.constants import FIFF
-from ..utils import _validate_type, warn
-from ..io.pick import _picks_to_idx
+from ...io import BaseRaw
+from ...io.constants import FIFF
+from ...utils import _validate_type, warn
+from ...io.pick import _picks_to_idx
 
 
 def optical_density(raw):

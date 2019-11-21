@@ -578,6 +578,7 @@ def test_plot_vec_source_estimates():
     with pytest.raises(ValueError, match='use "pos_lims"'):
         stc.plot('sample', subjects_dir=subjects_dir,
                  clim=dict(pos_lims=[1, 2, 3]))
+    stc.plot('sample', subjects_dir=subjects_dir, hemi='both')
 
 
 @testing.requires_testing_data

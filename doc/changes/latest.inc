@@ -14,7 +14,10 @@ Current (0.20.dev0)
 
 Changelog
 ~~~~~~~~~
-- Add :func:`mne.minimum_norm.resolution_metrics` to compute various resolution metrics for inverse solutions, by `Olaf Hauk`_.
+
+- Add :func:`mne.minimum_norm.resolution_metrics` to compute various resolution metrics for inverse solutions, by `Olaf Hauk`_
+
+- Add current source density :func:`mne.preprocessing.compute_current_source_density` to compute the surface Laplacian in order to reduce volume conduction in data by `Alex Rockhill`_
 
 - Add command :ref:`gen_mne_setup_source_space` to quickly set up bilateral hemisphere surface-based source space with subsampling by `Victor Ferat`_.
 
@@ -42,13 +45,17 @@ Changelog
 
 - Add reader for NIRx data in :func:`mne.io.read_raw_nirx` by `Robert Luke`_
 
-- Add function to convert NIRS data to optical density :func:`mne.preprocessing.optical_density` by `Robert Luke`_
+- Add function to convert NIRS data to optical density :func:`mne.preprocessing.nirs.optical_density` by `Robert Luke`_
 
-- Add function to convert NIRS data to haemoglobin concentration :func:`mne.preprocessing.beer_lambert_law` by `Robert Luke`_
+- Add function to convert NIRS data to haemoglobin concentration :func:`mne.preprocessing.nirs.beer_lambert_law` by `Robert Luke`_
+
+- Add functions to calculate spatial information of NIRS channels :func:`mne.preprocessing.nirs.source_detector_distances` and :func:`mne.preprocessing.nirs.short_channels` by `Robert Luke`_
 
 - Add reader for ``*.dat`` electrode position files :func:`mne.channels.read_dig_dat` by `Christian Brodbeck`_
 
 - Improved :ref:`limo-dataset` usage and :ref:`example <ex-limo-data>` for usage of :func:`mne.stats.linear_regression` by `Jose Alanis`_
+
+- Speed up :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.make_dics` calculations by vectorizing linear algebra calls by `Dmitrii Altukhov`_ and `Eric Larson`_
 
 - For KIT systems without built-in layout, :func:`mne.channels.find_layout` now falls back on an automatically generated layout, by `Christian Brodbeck`_
 
@@ -58,8 +65,20 @@ Changelog
 
 - Add command :ref:`gen_mne_prepare_bem_model` to quickly create a BEM solution using the linear collocation approach by `Victor Ferat`_.
 
+- Allow returning vector source estimates from sparse inverse solvers through ``pick_ori='vector'`` by `Christian Brodbeck`_
+
+- Add NIRS support to :func:`mne.viz.plot_topomap` by `Robert Luke`_
+
 Bug
 ~~~
+
+- Fix :meth:`mne.io.Raw.anonymize` correctly reset ``raw.annotations.orig_time`` by `Luke Bloy`_.
+
+- Fix date reading before Unix time zero (1970 Jan 1) on Windows by `Alex Rockhill`_.
+
+- Fix bug running subprocesses (e.g., in :func:`mne.bem.make_watershed_bem`) in Jupyter notebooks, by `Eric Larson`_
+
+- Fix :meth:`mne.io.read_raw_artemis123` to add HPI locations to digitization points, by `Luke Bloy`_
 
 - Fix :meth:`mne.Epochs.shift_time` and :meth:`mne.Evoked.shift_time` to return the modified :class:`~mne.Epochs` or :class:`~mne.Evoked` instance (instead of ``None``) by `Daniel McCloy`_.
 
@@ -71,7 +90,7 @@ Bug
 
 - Fix bug in :func:`mne.write_evokeds` where ``evoked.nave`` was not saved properly when multiple :class:`~mne.Evoked` instances were written to a single file, by `Eric Larson`_
 
-- Fix bug in :func:`mne.preprocessing.mark_flat` where acquisition skips were not handled proeprly, by `Eric Larson`_
+- Fix bug in :func:`mne.preprocessing.mark_flat` where acquisition skips were not handled properly, by `Eric Larson`_
 
 - Fix bug in :func:`mne.viz.plot_bem` where some sources were not plotted by `Jean-Remi King`_ and `Eric Larson`_
 
@@ -96,6 +115,10 @@ Bug
 - Fix bug in EDF(+) loading, filter values ignored by insufficient regex, by `Demetres Kostas`_
 
 - Fix missing scaling of tolerance parameter in :func:`mne.inverse_sparse.tf_mixed_norm` and :func:`mne.inverse_sparse.mixed_norm`, by `Mathurin Massias`_
+
+- Fix the automatic scaling of the glyphs in :func:`mne.viz.plot_vector_source_estimates` by using 10% of the brain width, by `Guillaume Favelier`_
+
+- Fix handling of missing values (NaNs) in :func:`mne.time_frequency.psd_welch` by `Clemens Brunner`_
 
 API
 ~~~

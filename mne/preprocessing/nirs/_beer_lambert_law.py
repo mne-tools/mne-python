@@ -10,10 +10,11 @@ import re as re
 import numpy as np
 from scipy import linalg
 
-from ..io import BaseRaw
-from ..io.pick import _picks_to_idx
-from ..io.constants import FIFF
-from ..utils import _validate_type
+from ...io import BaseRaw
+from ...io.pick import _picks_to_idx
+from ...io.constants import FIFF
+from ...utils import _validate_type
+from ..nirs import source_detector_distances
 
 
 def beer_lambert_law(raw, ppf=0.1):
@@ -37,7 +38,7 @@ def beer_lambert_law(raw, ppf=0.1):
     freqs = np.unique(_channel_frequencies(raw))
     picks = _check_channels_ordered(raw, freqs)
     abs_coef = _load_absorption(freqs)
-    distances = _probe_distances(raw)
+    distances = source_detector_distances(raw.info)
 
     for ii in picks[::2]:
 
@@ -63,9 +64,7 @@ def _channel_frequencies(raw):
     picks = _picks_to_idx(raw.info, 'fnirs_od')
     freqs = np.empty(picks.size, int)
     for ii in picks:
-        ch_name_info = re.match(r'S(\d+)-D(\d+) (\d+)',
-                                raw.info['chs'][ii]['ch_name'])
-        freqs[ii] = ch_name_info.groups()[2]
+        freqs[ii] = raw.info['chs'][ii]['loc'][9]
     return freqs
 
 
@@ -75,9 +74,9 @@ def _check_channels_ordered(raw, freqs):
     # and have the specified light frequencies.
     picks = _picks_to_idx(raw.info, 'fnirs_od')
     for ii in picks[::2]:
-        ch1_name_info = re.match(r'S(\d+)-D(\d+) (\d+)',
+        ch1_name_info = re.match(r'S(\d+)_D(\d+) (\d+)',
                                  raw.info['chs'][ii]['ch_name'])
-        ch2_name_info = re.match(r'S(\d+)-D(\d+) (\d+)',
+        ch2_name_info = re.match(r'S(\d+)_D(\d+) (\d+)',
                                  raw.info['chs'][ii + 1]['ch_name'])
 
         if (ch1_name_info.groups()[0] != ch2_name_info.groups()[0]) or \
@@ -103,7 +102,7 @@ def _load_absorption(freqs):
     from scipy.io import loadmat
     from scipy.interpolate import interp1d
 
-    extinction_fname = op.join(op.dirname(__file__), '..', 'data',
+    extinction_fname = op.join(op.dirname(__file__), '..', '..', 'data',
                                'extinction_coef.mat')
     a = loadmat(extinction_fname)['extinct_coef']
 
@@ -115,31 +114,3 @@ def _load_absorption(freqs):
     abs_coef = ext_coef * 0.2303
 
     return abs_coef
-
-
-def _probe_distances(raw):
-    """Return the distance between each source-detector pair."""
-    dist = [linalg.norm(ch['loc'][3:6] - ch['loc'][6:9])
-            for ch in raw.info['chs']]
-    return np.array(dist, float)
-
-
-def short_channels(raw, threshold=0.01):
-    r"""Determine which NIRS channels are short.
-
-    Channels with a source to detector distance of less than
-    `threshold` are reported as short. The default threshold is 1 cm.
-
-    Parameters
-    ----------
-    raw : instance of Raw
-        NIRS data instance.
-    threshold : float
-        The threshold distance for what is considered short.
-
-    Returns
-    -------
-    short : array of bool
-        Array indicating which channels are short.
-    """
-    return _probe_distances(raw) < threshold

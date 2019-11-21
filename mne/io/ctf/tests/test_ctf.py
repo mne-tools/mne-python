@@ -145,6 +145,10 @@ def test_read_ctf(tmpdir):
                         key in ('kind', 'unit', 'coord_frame', 'coil_type',
                                 'logno'):
                     continue  # XXX see below...
+                if key == 'coil_type' and c1[key] == FIFF.FIFFV_COIL_EEG:
+                    # XXX MNE-C bug that this is not set
+                    assert c2[key] == FIFF.FIFFV_COIL_NONE
+                    continue
                 assert c1[key] == c2[key], key
             for key in ('cal',):
                 assert_allclose(c1[key], c2[key], atol=1e-6, rtol=1e-4,

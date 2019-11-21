@@ -11,12 +11,6 @@ error for PSFs, L2-MNE vs dSPM) and Figure 4 (spatial deviation for PSFs,
 L2-MNE vs dSPM). It shows that combining MEG with EEG reduces the
 point-spread function and increases the spatial resolution of source imaging,
 especially for deeper sources.
-
-References
-----------
-.. [1] Hauk O, Stenroos M, Treder M (2019). "Towards an Objective Evaluation of
-       EEG/MEG Source Estimation Methods: The Linear Tool Kit", bioRxiv,
-       doi: https://doi.org/10.1101/672956.
 """
 # Author: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #
@@ -63,27 +57,37 @@ inv_meg = mne.minimum_norm.make_inverse_operator(
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
 
-# compute resolution matrix for MNE
+###############################################################################
+# EEGMEG
+# ------
+# Compute resolution matrices, localization error, and spatial deviations
+# for MNE:
+
 rm_emeg = make_resolution_matrix(forward_emeg, inv_emeg,
                                  method='MNE', lambda2=lambda2)
-
-# compute resolution matrix for sLORETA
-rm_meg = make_resolution_matrix(forward_meg, inv_meg,
-                                method='MNE', lambda2=lambda2)
-
-# Compute peak localisation error for PSFs
 ple_psf_emeg = resolution_metrics(rm_emeg, inv_emeg['src'],
                                   function='psf', metric='peak_err')
-ple_psf_meg = resolution_metrics(rm_meg, inv_meg['src'],
-                                 function='psf', metric='peak_err')
-
-# Compute spatial deviation for PSFs
 sd_psf_emeg = resolution_metrics(rm_emeg, inv_emeg['src'],
                                  function='psf', metric='sd_ext')
+del rm_emeg
+
+###############################################################################
+# MEG
+# ---
+# Do the same for MEG:
+
+rm_meg = make_resolution_matrix(forward_meg, inv_meg,
+                                method='MNE', lambda2=lambda2)
+ple_psf_meg = resolution_metrics(rm_meg, inv_meg['src'],
+                                 function='psf', metric='peak_err')
 sd_psf_meg = resolution_metrics(rm_meg, inv_meg['src'],
                                 function='psf', metric='sd_ext')
+del rm_meg
 
-# Visualise peak localisation error (PLE) across the whole cortex for PSF
+###############################################################################
+# Visualization
+# -------------
+# Look at peak localisation error (PLE) across the whole cortex for PSF:
 
 brain_ple_emeg = ple_psf_emeg.plot('sample', 'inflated', 'lh',
                                    subjects_dir=subjects_dir, figure=1,
@@ -132,3 +136,9 @@ brain_sd_diff = diff_sd.plot('sample', 'inflated', 'lh',
 # Adding EEG to MEG decreases the spatial extent of point-spread
 # functions (lower spatial deviation, blue colors), thus increasing
 # resolution, especially for deeper source locations.
+#
+# References
+# ----------
+# .. [1] Hauk O, Stenroos M, Treder M (2019). "Towards an Objective Evaluation
+#        of EEG/MEG Source Estimation Methods: The Linear Tool Kit", bioRxiv,
+#        doi: https://doi.org/10.1101/672956.

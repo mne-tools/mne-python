@@ -22,10 +22,10 @@ from ..coreg import fit_matched_points
 from ..io.kit import read_mrk
 from ..io._digitization import _write_dig_points
 from ._viewer import PointObject
-from ._backend import _check_pyface_backend
+from ._backend import _get_pyface_backend
 
 
-if _check_pyface_backend()[0] == 'wx':
+if _get_pyface_backend() == 'wx':
     mrk_wildcard = [
         'Supported Files (*.sqd, *.mrk, *.txt, *.pickled)|*.sqd;*.mrk;*.txt;*.pickled',  # noqa:E501
         'Sqd marker file (*.sqd;*.mrk)|*.sqd;*.mrk',
