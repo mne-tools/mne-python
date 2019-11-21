@@ -71,19 +71,19 @@ def test_get_coef():
     lm_regression = LinearModel(Ridge())
     assert (is_regressor(lm_regression))
 
-    parameters = {'kernel': ['linear'], 'C': [1, 10, 100, 1000]}
+    parameters = {'kernel': ['linear'], 'C': [1, 10, 100]}
     lm_gs_classification = LinearModel(
         GridSearchCV(
             svm.SVC(), parameters,
-            cv=5, refit=True, iid=False, n_jobs=5
+            cv=2, refit=True, iid=False, n_jobs=1
         )
     )
     assert (is_classifier(lm_gs_classification))
 
     lm_gs_regression = LinearModel(
         GridSearchCV(
-            svm.SVR(), parameters, cv=5,
-            refit=True, iid=False, n_jobs=5
+            svm.SVR(), parameters, cv=2,
+            refit=True, iid=False, n_jobs=1
         )
     )
     assert (is_regressor(lm_gs_regression))
@@ -235,11 +235,11 @@ def test_linearmodel():
     # check categorical target fit in standard linear model with GridSearchCV
     from sklearn import svm
     from sklearn.model_selection import GridSearchCV
-    parameters = {'kernel': ['linear'], 'C': [1, 10, 100, 1000]}
+    parameters = {'kernel': ['linear'], 'C': [1, 10, 100]}
     clf = LinearModel(
         GridSearchCV(
-            svm.SVC(), parameters, cv=5,
-            refit=True, iid=False, n_jobs=5
+            svm.SVC(), parameters, cv=2,
+            refit=True, iid=False, n_jobs=1
         )
     )
     clf.fit(X, y)
@@ -252,8 +252,8 @@ def test_linearmodel():
     Y = np.random.rand(n, n_targets)
     clf = LinearModel(
         GridSearchCV(
-            svm.SVR(), parameters, cv=5,
-            refit=True, iid=False, n_jobs=5
+            svm.SVR(), parameters, cv=2,
+            refit=True, iid=False, n_jobs=1
         )
     )
     clf.fit(X, y)
