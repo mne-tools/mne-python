@@ -55,8 +55,8 @@ evoked_fname = op.join(base_dir, 'test-ave.fif')
 
 fwd_fname = op.join(data_dir, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-vol-7-fwd.fif')
-fwd_fname2 = op.join(data_dir,
-                    'MEG', 'sample', 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+fwd_fname2 = op.join(data_dir, 'MEG', 'sample',
+                     'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 
 base_dir = op.join(io_dir, 'bti', 'tests', 'data')
 pdf_fname = op.join(base_dir, 'test_pdf_linux')
@@ -660,7 +660,8 @@ def test_mixed_sources_plot_surface():
     # This requires FreeSurfer to be installed, so that the subject
     # fsaverage exists.
     stc.plot_surface(views='lat', hemi='split', src=src,
-                     subject='fsaverage', subjects_dir=subjects_dir, colorbar=False)
+                     subject='fsaverage', subjects_dir=subjects_dir,
+                     colorbar=False)
 
 
 run_tests_if_main()
