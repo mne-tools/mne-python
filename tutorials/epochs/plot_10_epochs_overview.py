@@ -71,12 +71,13 @@ import mne
 # The example dataset we've been using thus far doesn't include pre-epoched
 # data, so in this section we'll load the continuous data and create epochs
 # based on the events recorded in the :class:`~mne.io.Raw` object's STIM
-# channels.
+# channels. As we often do in these tutorials, we'll :meth:`~mne.io.Raw.crop`
+# the :class:`~mne.io.Raw` data to save memory:
 
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
-raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
+raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False).crop(tmax=60)
 
 ###############################################################################
 # As we saw in the :ref:`tut-events-vs-annotations` tutorial, we can extract an
