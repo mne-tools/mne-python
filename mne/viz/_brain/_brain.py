@@ -142,7 +142,7 @@ class _Brain(object):
                  foreground=None, figure=None, subjects_dir=None,
                  views=['lateral'], offset=True, show_toolbar=False,
                  offscreen=False, interaction=None, units='mm'):
-        from ..backends.renderer import _Renderer, _check_figure
+        from ..backends.renderer import _Renderer, _check_3d_figure
         from matplotlib.colors import colorConverter
 
         if interaction is not None:
@@ -193,7 +193,7 @@ class _Brain(object):
         offset = None if (not offset or hemi != 'both') else 0.0
 
         if figure is not None and not isinstance(figure, int):
-            _check_figure(figure)
+            _check_3d_figure(figure)
         self._renderer = _Renderer(size=fig_size, bgcolor=background,
                                    shape=(n_row, n_col), fig=figure)
 
