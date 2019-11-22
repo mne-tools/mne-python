@@ -71,7 +71,7 @@ def test_get_coef():
     lm_regression = LinearModel(Ridge())
     assert (is_regressor(lm_regression))
 
-    parameters = {'kernel': ['linear'], 'C': [1, 10, 100]}
+    parameters = {'kernel': ['linear'], 'C': [1, 10]}
     lm_gs_classification = LinearModel(
         GridSearchCV(
             svm.SVC(), parameters,
@@ -105,7 +105,7 @@ def test_get_coef():
         def inverse_transform(self, X):
             return X
 
-    X, y, A = _make_data(n_samples=2000, n_features=3, n_targets=1)
+    X, y, A = _make_data(n_samples=1000, n_features=3, n_targets=1)
 
     # I. Test inverse function
 
@@ -134,23 +134,19 @@ def test_get_coef():
         assert_equal(invs, list())
 
     # II. Test get coef for classification/regression estimators and pipelines
-    for clf in (lm_classification,
-                lm_regression,
+    for clf in (lm_regression,
                 lm_gs_classification,
-                lm_gs_regression,
                 make_pipeline(StandardScaler(), lm_classification),
-                make_pipeline(StandardScaler(), lm_regression),
-                make_pipeline(StandardScaler(), lm_gs_classification),
                 make_pipeline(StandardScaler(), lm_gs_regression)):
 
         # generate some categorical/continuous data
         # according to the type of estimator.
         if is_classifier(clf):
-            n, n_features = 2000, 3
+            n, n_features = 1000, 3
             X = np.random.rand(n, n_features)
             y = np.arange(n) % 2
         else:
-            X, y, A = _make_data(n_samples=2000, n_features=3, n_targets=1)
+            X, y, A = _make_data(n_samples=1000, n_features=3, n_targets=1)
             y = np.ravel(y)
 
         clf.fit(X, y)
@@ -205,7 +201,7 @@ def test_get_coef():
     # Check patterns with more than 1 regressor
     for n_features in [1, 5]:
         for n_targets in [1, 3]:
-            X, Y, A = _make_data(n_samples=5000, n_features=5, n_targets=3)
+            X, Y, A = _make_data(n_samples=3000, n_features=5, n_targets=3)
             lm = LinearModel(LinearRegression()).fit(X, Y)
             assert_array_equal(lm.filters_.shape, lm.patterns_.shape)
             assert_array_equal(lm.filters_.shape, [3, 5])
@@ -235,7 +231,7 @@ def test_linearmodel():
     # check categorical target fit in standard linear model with GridSearchCV
     from sklearn import svm
     from sklearn.model_selection import GridSearchCV
-    parameters = {'kernel': ['linear'], 'C': [1, 10, 100]}
+    parameters = {'kernel': ['linear'], 'C': [1, 10]}
     clf = LinearModel(
         GridSearchCV(
             svm.SVC(), parameters, cv=2,
