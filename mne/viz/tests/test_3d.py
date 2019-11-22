@@ -76,8 +76,6 @@ coil_3d = """# custom cube coil def
   0.1250  0.750e-03  0.750e-03  0.750e-03  0.000  0.000  1.000
 """
 
-rng = np.random.RandomState(0)
-
 
 def test_plot_head_positions():
     """Test plotting of head positions."""
@@ -654,6 +652,7 @@ def test_mixed_sources_plot_surface():
     T = 2  # number of time points
     S = 3  # number of source spaces
 
+    rng = np.random.RandomState(0)
     data = rng.randn(N, T)
     vertno = S * [np.arange(N // S)]
 

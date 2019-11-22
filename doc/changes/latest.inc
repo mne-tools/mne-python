@@ -72,6 +72,8 @@ Changelog
 Bug
 ~~~
 
+- Fix a bug in :meth:`mne.source_estimate.MixedSourceEstimate.plot_surface` by `Christian O'Reilly`_.
+
 - Fix :meth:`mne.io.Raw.anonymize` correctly reset ``raw.annotations.orig_time`` by `Luke Bloy`_.
 
 - Fix date reading before Unix time zero (1970 Jan 1) on Windows by `Alex Rockhill`_.
