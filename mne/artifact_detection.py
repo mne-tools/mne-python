@@ -24,8 +24,8 @@ def detect_bad_channels(raw, zscore_v=4, method='both', t1=30, t2=220,
 
     # set recording length
     Fs = raw.info['sfreq']
-    t2x = min(raw.last_samp/Fs, t2)
-    t1x = max(0, t1 + t2x-t2)  # Start earlier if recording is shorter
+    t2x = min(raw.last_samp / Fs, t2)
+    t1x = max(0, t1 + t2x - t2)  # Start earlier if recording is shorter
 
     # Get data
     raw_copy = raw.copy().crop(t1x, t2x).load_data()
@@ -44,7 +44,7 @@ def detect_bad_channels(raw, zscore_v=4, method='both', t1=30, t2=220,
     chns_corr = np.abs(np.corrcoef(data_chans))
     weig = np.array(chns_dist, dtype=bool)
     chn_nei_corr = np.average(chns_corr, axis=1, weights=weig)
-    chn_nei_uncorr_z = zscore(1-chn_nei_corr)  # l ower corr higer Z
+    chn_nei_uncorr_z = zscore(1 - chn_nei_corr)  # l ower corr higer Z
 
     # Get channel magnitudes
     max_Pow = np.sqrt(np.sum(data_chans ** 2, axis=1))
@@ -57,7 +57,7 @@ def detect_bad_channels(raw, zscore_v=4, method='both', t1=30, t2=220,
         feat_vec = max_Z
         max_th = feat_vec > zscore_v
     elif method == 'both':  # Combine uncorrelation with magnitude
-        feat_vec = (chn_nei_uncorr_z+max_Z)/2
+        feat_vec = (chn_nei_uncorr_z + max_Z) / 2
         max_th = (feat_vec) > zscore_v
 
     bad_chns = list(compress(raw_copy.info['ch_names'], max_th))
@@ -131,7 +131,7 @@ def detect_muscle(raw, thr=1.5, t_min=1, notch=True):
     # remove artifact free periods shorter than t_min
     idx_min = t_min * sfreq
     comps, num_comps = label(art_mask == 0)
-    for l in range(1, num_comps+1):
+    for l in range(1, num_comps + 1):
         l_idx = np.nonzero(comps == l)[0]
         if len(l_idx) < idx_min:
             art_mask[l_idx] = True
@@ -151,8 +151,8 @@ def weighted_median(data, weights):
     for d1 in range(dims[1]):
         for d2 in range(dims[2]):
             data_dd = np.array(data[:, d1, d2]).squeeze()
-            s_data, s_weights = map(np.array, zip(*sorted(zip(
-                                                        data_dd, weights))))
+            s_data, s_weights = map(np.array, zip(*sorted(zip(data_dd,
+                                                              weights))))
             midpoint = 0.5 * sum(s_weights)
             if any(s_weights > midpoint):
                 w_median[d1, d2] = (data[weights == np.max(weights)])[0]
@@ -160,9 +160,9 @@ def weighted_median(data, weights):
                 cs_weights = np.cumsum(s_weights)
                 idx = np.where(cs_weights <= midpoint)[0][-1]
                 if cs_weights[idx] == midpoint:
-                    w_median[d1, d2] = np.mean(s_data[idx:idx+2])
+                    w_median[d1, d2] = np.mean(s_data[idx:idx + 2])
                 else:
-                    w_median[d1, d2] = s_data[idx+1]
+                    w_median[d1, d2] = s_data[idx + 1]
     return w_median
 
 
@@ -173,13 +173,13 @@ def _annotations_from_mask(times, art_mask, art_name):
     durations = []
     desc = []
     n_times = len(times)
-    for l in range(1, num_comps+1):
+    for l in range(1, num_comps + 1):
         l_idx = np.nonzero(comps == l)[0]
         onsets.append(times[l_idx[0]])
         # duration is to the time after the last labeled time
         # or to the end of the times.
-        if 1+l_idx[-1] < n_times:
-            durations.append(times[1+l_idx[-1]] - times[l_idx[0]])
+        if 1 + l_idx[-1] < n_times:
+            durations.append(times[1 + l_idx[-1]] - times[l_idx[0]])
         else:
             durations.append(times[l_idx[-1]] - times[l_idx[0]])
         desc.append(art_name)
