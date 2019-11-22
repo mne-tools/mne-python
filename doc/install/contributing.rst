@@ -135,7 +135,7 @@ account (this is called "your fork"). Changes you make to MNE-Python will
 eventually get "pushed" to your fork, and will be incorporated into the
 official version of MNE-Python (often called the "upstream version") through a
 "pull request". This process will be described in detail below; a summary
-graphic is provided here:
+of how that structure is set up is given here:
 
 .. graphviz:: ../_static/diagrams/git_setup.dot
    :alt: Diagram of recommended git setup
@@ -173,8 +173,8 @@ separate environment for MNE-Python development (here we'll give it the name
 Now you'll have *two* MNE-Python environments: ``base`` (or whatever custom
 name you used when installing the stable version of MNE-Python) and ``mnedev``
 that we just created. At this point ``mnedev`` also has the stable version of
-MNE-Python (that's what the :file:`environment.yml` installs), but we're about
-to remove the stable version from ``mnedev`` and replace it with the
+MNE-Python (that's what the :file:`environment.yml` file installs), but we're
+about to remove the stable version from ``mnedev`` and replace it with the
 development version. To do that, we'll `clone`_ the MNE-Python repository from
 your remote fork, and also connect the local copy to the ``upstream`` version
 of the codebase, so you can stay up-to-date with changes from other
