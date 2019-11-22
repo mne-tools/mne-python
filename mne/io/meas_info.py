@@ -15,7 +15,7 @@ import operator
 import numpy as np
 from scipy import linalg
 
-from .pick import channel_type
+from .pick import channel_type, pick_channels, pick_info
 from .constants import FIFF
 from .open import fiff_open
 from .tree import dir_tree_find
@@ -660,6 +660,36 @@ class Info(dict):
         """Update the redundant entries."""
         self['ch_names'] = [ch['ch_name'] for ch in self['chs']]
         self['nchan'] = len(self['chs'])
+
+    def pick_channels(self, ch_names, ordered=False):
+        """Pick channels from this Info object.
+
+        Parameters
+        ----------
+        ch_names : list of str
+            List of channels to keep. All other channels are dropped.
+        ordered : bool
+            If True (default False), ensure that the order of the channels
+            matches the order of ``ch_names``.
+
+        Returns
+        -------
+        info : instance of Info.
+            The modified Info object.
+
+        Notes
+        -----
+        Operates in-place.
+
+        .. versionadded:: 0.20.0
+        """
+        sel = pick_channels(self.ch_names, ch_names, exclude=[],
+                            ordered=ordered)
+        return pick_info(self, sel, copy=False, verbose=False)
+
+    @property
+    def ch_names(self):
+        return self['ch_names']
 
 
 def _simplify_info(info):

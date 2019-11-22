@@ -497,7 +497,7 @@ def test_equalize_channels():
     evoked1.drop_channels(evoked1.ch_names[:1])
     evoked2.drop_channels(evoked2.ch_names[1:2])
     my_comparison = [evoked1, evoked2]
-    equalize_channels(my_comparison)
+    my_comparison = equalize_channels(my_comparison)
     for e in my_comparison:
         assert_equal(ch_names, e.ch_names)
 
@@ -585,7 +585,7 @@ def test_arithmetic():
     evoked2.reorder_channels(evoked2.ch_names[::-1])
     assert not np.allclose(data2, evoked2.data)
     with pytest.warns(RuntimeWarning, match='reordering'):
-        ev3 = grand_average((evoked1, evoked2))
+        ev3 = combine_evoked([evoked1, evoked2], weights=[0.5, 0.5])
     assert np.allclose(ev3.data, data)
     assert evoked1.ch_names != evoked2.ch_names
     assert evoked1.ch_names == ev3.ch_names

@@ -2057,7 +2057,7 @@ def test_equalize_channels():
     epochs1.drop_channels(epochs1.ch_names[:1])
     epochs2.drop_channels(epochs2.ch_names[1:2])
     my_comparison = [epochs1, epochs2]
-    equalize_channels(my_comparison)
+    my_comparison = equalize_channels(my_comparison)
     for e in my_comparison:
         assert_equal(ch_names, e.ch_names)
 
