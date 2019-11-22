@@ -84,7 +84,7 @@ Bug
 
 - Fix :meth:`mne.io.read_raw_ctf` to set measurement date from CTF ds files by `Luke Bloy`_.
 
-- Fix a bug in :meth:`mne.source_estimate.MixedSourceEstimate.plot_surface` by `Christian O'Reilly`_.
+- Fix a bug in :meth:`mne.MixedSourceEstimate.plot_surface` that prevented plotting in latest PySurfer by `Christian O'Reilly`_.
 
 - Fix :meth:`mne.io.Raw.anonymize` correctly reset ``raw.annotations.orig_time`` by `Luke Bloy`_.
 
