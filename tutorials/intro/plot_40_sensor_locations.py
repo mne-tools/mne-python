@@ -78,7 +78,7 @@ print(ten_twenty_montage)
 # Once loaded, a montage can be applied to data via one of the instance methods
 # such as :meth:`raw.set_montage <mne.io.Raw.set_montage>`. It is also possible
 # to skip the loading step by passing the filename string directly to the
-# :meth:`~mne.io.Raw.set_montage>` method. This won't work with our sample
+# :meth:`~mne.io.Raw.set_montage` method. This won't work with our sample
 # data, because it's channel names don't match the channel names in the
 # standard 10-20 montage, so these commands are not run here:
 
