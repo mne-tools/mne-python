@@ -443,9 +443,9 @@ def _take_3d_screenshot(figure, mode='rgb', filename=None):
         gui.process_events()
         with warnings.catch_warnings(record=True):  # traits
             img = mlab.screenshot(figure, mode=mode)
-            if isinstance(filename, str):
-                _save_figure(img, filename)
-            return img
+        if isinstance(filename, str):
+            _save_figure(img, filename)
+        return img
 
 
 def _try_3d_backend():
