@@ -36,16 +36,19 @@ subjects_dir = op.join(data_path, 'subjects')
 raw_fname1 = op.join(data_path_MEG, 'bst_auditory', 'S01_AEF_20131218_01.ds')
 raw_fname2 = op.join(data_path_MEG, 'bst_auditory', 'S01_AEF_20131218_02.ds')
 
-raw = read_raw_ctf(raw_fname1, preload=True)
-mne.io.concatenate_raws([raw, read_raw_ctf(raw_fname2, preload=True)])
+raw = read_raw_ctf(raw_fname1, preload=False)
+
+mne.io.concatenate_raws([raw, read_raw_ctf(raw_fname2, preload=False)])
+raw.crop(350, 550).load_data()
+raw.notch_filter([60, 120, 180, 240]).resample(300, npad="auto")
 
 # Detect bad channels
-bad_chns = detect_bad_channels(raw, zscore_v=4, method='both',
+bad_chns = detect_bad_channels(raw, zscore_v=4, method='both', t1=0, t2=190,
                                neigh_max_distance=.035)
 
 # detect excecive movement and correct dev_head trans
 pos = mne.chpi._calculate_head_pos_ctf(raw)
-thr_mov = .005  # in meters
+thr_mov = .001  # in meters
 annotation_movement, hpi_disp, dev_head_t = detect_movement(raw.info, pos,
                                                             thr_mov=thr_mov)
 raw.info['dev_head_t'] = dev_head_t
@@ -53,25 +56,26 @@ raw.info['dev_head_t'] = dev_head_t
 plt.figure()
 plt.plot(pos[:, 0], hpi_disp)
 plt.axhline(y=thr_mov, color='r')
-plt.show()
 plt.xlabel('time s.')
 plt.ylabel('distance m')
 plt.title('cHPI w.r.t median recording head position')
+plt.show(block=False)
 
 # detect muscle artifacts
 thr_mus = 1.5  # z-score
-annotation_muscle, scores_muscle = detect_muscle(raw, thr=thr_mus, t_min=2)
+annotation_muscle, scores_muscle = detect_muscle(raw, thr=thr_mus, t_min=2,
+                                                 notch=False)
 
 plt.figure()
 plt.plot(raw.times, scores_muscle)
 plt.axhline(y=thr_mus, color='r')
-plt.show()
+plt.show(block=False)
 plt.title('Avg z-score high freq. activity')
 plt.xlabel('time s.')
 plt.ylabel('zscore')
 
 
 raw.set_annotations(annotation_movement + annotation_muscle)
-start = annotation_muscle[1]['onset'] - 6
+start = annotation_muscle[0]['onset'] - 6
 
 raw.plot(n_channels=100, start=start)

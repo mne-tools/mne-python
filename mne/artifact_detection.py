@@ -17,20 +17,18 @@ from mne.chpi import _apply_quat
 from itertools import compress
 
 
-def detect_bad_channels(raw, zscore_v=4, method='both',
+def detect_bad_channels(raw, zscore_v=4, method='both', t1=30, t2=220,
                         neigh_max_distance=.035):
     """ detect bad channels based on z-score amplitude deviation or/ and
         decreased local correlation with other channels"""
 
     # set recording length
     Fs = raw.info['sfreq']
-    t1x = 30
-    t2x = 220
-    t2 = min(raw.last_samp/Fs, t2x)
-    t1 = max(0, t1x + t2-t2x)  # Start earlier if recording is shorter
+    t2x = min(raw.last_samp/Fs, t2)
+    t1x = max(0, t1 + t2x-t2)  # Start earlier if recording is shorter
 
     # Get data
-    raw_copy = raw.copy().crop(t1, t2).load_data()
+    raw_copy = raw.copy().crop(t1x, t2x).load_data()
     raw_copy = raw_copy.pick_types(meg=True, ref_meg=False)\
         .filter(1, 45).resample(150, npad='auto')
     data_chans = raw_copy.get_data()
@@ -116,11 +114,12 @@ def detect_movement(info, pos, thr_mov=.005):
     return annot, hpi_disp, dev_head_t
 
 
-def detect_muscle(raw, thr=1.5, t_min=1):
+def detect_muscle(raw, thr=1.5, t_min=1, notch=True):
     """Find and annotate mucsle artifacts - by Luke Bloy"""
 
     raw.pick_types(meg=True, ref_meg=False)
-    raw.notch_filter(np.arange(60, 241, 60), fir_design='firwin')
+    if notch is True:
+        raw.notch_filter(np.arange(60, 241, 60), fir_design='firwin')
     raw.filter(110, 140, fir_design='firwin')
     raw.apply_hilbert(envelope=True)
     sfreq = raw.info['sfreq']
