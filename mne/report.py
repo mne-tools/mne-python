@@ -140,7 +140,7 @@ def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
     import matplotlib.pyplot as plt
     from .viz.backends.renderer import (
-        _check_3d_figure, _take_3d_screenshot, _close_3d_figure,
+        _check_3d_figure, _take_3d_screenshot, _close_all,
         _set_3d_view, MNE_3D_BACKEND_TESTING
     )
 
@@ -159,7 +159,7 @@ def _iterate_trans_views(function, **kwargs):
         ax.imshow(im)
         ax.axis('off')
 
-    _close_3d_figure(fig)
+    _close_all()
     img = _fig_to_img(fig2, image_format='png')
     return img
 
