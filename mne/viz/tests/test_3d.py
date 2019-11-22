@@ -657,8 +657,6 @@ def test_mixed_sources_plot_surface():
 
     stc = MixedSourceEstimate(data, vertno, 0, 1)
 
-    # This requires FreeSurfer to be installed, so that the subject
-    # fsaverage exists.
     stc.plot_surface(views='lat', hemi='split', src=src,
                      subject='fsaverage', subjects_dir=subjects_dir,
                      colorbar=False)
