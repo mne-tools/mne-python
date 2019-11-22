@@ -24,7 +24,7 @@ from . import read_evokeds, read_events, pick_types, read_cov
 from .fixes import _get_img_fdata
 from .io import read_raw_fif, read_info, _stamp_to_dt
 from .io.pick import _DATA_CH_TYPES_SPLIT
-from .utils import (logger, verbose, get_subjects_dir, warn, _import_mlab,
+from .utils import (logger, verbose, get_subjects_dir, warn,
                     fill_doc, _check_option)
 from .viz import plot_events, plot_alignment, plot_cov
 from .viz._3d import _plot_mri_contours
@@ -68,25 +68,17 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
         plt.close('all')
         fig = fig(**kwargs)
     elif not isinstance(fig, Figure):
-        mlab = None
-        try:
-            mlab = _import_mlab()
-        # on some systems importing Mayavi raises SystemExit (!)
-        except Exception:
-            is_mayavi = False
-        else:
-            import mayavi
-            is_mayavi = isinstance(fig, mayavi.core.scene.Scene)
-        if not is_mayavi:
-            raise TypeError('Each fig must be a matplotlib Figure, mayavi '
-                            'Scene, or NumPy ndarray, got %s (type %s)'
-                            % (fig, type(fig)))
-        if fig.scene is not None:
-            img = mlab.screenshot(figure=fig)
+        from .viz.backends.renderer import (
+            _check_3d_figure, _take_3d_screenshot,
+            _close_3d_figure, MNE_3D_BACKEND_TESTING
+        )
+        _check_3d_figure(figure=fig)
+        if not MNE_3D_BACKEND_TESTING:
+            img = _take_3d_screenshot(figure=fig)
         else:  # Testing mode
             img = np.zeros((2, 2, 3))
 
-        mlab.close(fig)
+        _close_3d_figure(figure=fig)
         fig = _ndarray_to_fig(img)
 
     output = BytesIO()
@@ -147,26 +139,27 @@ def _figs_to_mrislices(sl, n_jobs, **kwargs):
 def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
     import matplotlib.pyplot as plt
-    from mayavi import mlab, core
-    from pyface.api import GUI
+    from .viz.backends.renderer import (
+        _check_3d_figure, _take_3d_screenshot, _close_all,
+        _set_3d_view, MNE_3D_BACKEND_TESTING
+    )
+
     fig = function(**kwargs)
-    gui = GUI()
-    gui.process_events()
-    assert isinstance(fig, core.scene.Scene)
+    _check_3d_figure(fig)
 
     views = [(90, 90), (0, 90), (0, -90)]
     fig2, axes = plt.subplots(1, len(views))
     for view, ax in zip(views, axes):
-        mlab.view(view[0], view[1])
-        gui.process_events()
-        if fig.scene is not None:
-            im = mlab.screenshot(figure=fig)
+        _set_3d_view(fig, azimuth=view[0], elevation=view[1],
+                     focalpoint=None, distance=None)
+        if not MNE_3D_BACKEND_TESTING:
+            im = _take_3d_screenshot(figure=fig)
         else:  # Testing mode
             im = np.zeros((2, 2, 3))
         ax.imshow(im)
         ax.axis('off')
 
-    mlab.close(fig)
+    _close_all()
     img = _fig_to_img(fig2, image_format='png')
     return img
 

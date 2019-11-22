@@ -107,7 +107,7 @@ class _Renderer(_BaseRenderer):
     def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
                  name="PyVista Scene", show=False, shape=(1, 1)):
         from pyvista import OFF_SCREEN
-        from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
+        from mne.viz.backends.renderer import MNE_3D_BACKEND_TESTING
         figure = _Figure(title=name, size=size, shape=shape,
                          background_color=bgcolor, notebook=_check_notebook())
         self.font_family = "arial"
@@ -125,12 +125,12 @@ class _Renderer(_BaseRenderer):
             self.figure = fig
 
         # Enable off_screen if sphinx-gallery or testing
-        if OFF_SCREEN or MNE_3D_BACKEND_TEST_DATA:
+        if OFF_SCREEN or MNE_3D_BACKEND_TESTING:
             self.figure.store['off_screen'] = True
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            if MNE_3D_BACKEND_TEST_DATA:
+            if MNE_3D_BACKEND_TESTING:
                 from pyvista import Plotter
                 self.figure.plotter_class = Plotter
 
@@ -399,7 +399,7 @@ class _Renderer(_BaseRenderer):
         return self.scene()
 
     def close(self):
-        self.plotter.close()
+        _close_3d_figure(figure=self.figure)
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
                    focalpoint=None):
@@ -407,8 +407,8 @@ class _Renderer(_BaseRenderer):
                      distance=distance, focalpoint=focalpoint)
 
     def screenshot(self, mode='rgb', filename=None):
-        return self.plotter.screenshot(transparent_background=(mode == 'rgba'),
-                                       filename=filename)
+        return _take_3d_screenshot(figure=self.figure, mode=mode,
+                                   filename=filename)
 
     def project(self, xyz, ch_names):
         xy = _3d_to_2d(self.plotter, xyz)
@@ -542,6 +542,29 @@ def _set_3d_title(figure, title, size=40):
         figure.plotter.add_text(title, font_size=32, color=(1.0, 1.0, 1.0))
 
 
-def _check_figure(figure):
+def _check_3d_figure(figure):
     if not isinstance(figure, _Figure):
-        raise TypeError('figure must be an instance of _Figure')
+        raise TypeError('figure must be an instance of _Figure.')
+
+
+def _close_3d_figure(figure):
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=FutureWarning)
+        figure.plotter.close()
+
+
+def _take_3d_screenshot(figure, mode='rgb', filename=None):
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=FutureWarning)
+        return figure.plotter.screenshot(
+            transparent_background=(mode == 'rgba'),
+            filename=filename)
+
+
+def _try_3d_backend():
+    try:
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            import pyvista  # noqa: F401
+    except Exception:
+        pass
