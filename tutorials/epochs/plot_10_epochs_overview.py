@@ -72,11 +72,16 @@ import mne
 # data, so in this section we'll load the continuous data and create epochs
 # based on the events recorded in the :class:`~mne.io.Raw` object's STIM
 # channels.
+#
+# .. note:: To conserve memory, here we load a version of the raw data
+#           that has been low-passed at 40 Hz and decimated.
+#           We also remove the average reference projector.
 
 sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
-                                    'sample_audvis_raw.fif')
+                                    'sample_audvis_filt-0-40_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
+raw.del_proj()
 
 ###############################################################################
 # As we saw in the :ref:`tut-events-vs-annotations` tutorial, we can extract an
@@ -85,19 +90,6 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
 events = mne.find_events(raw, stim_channel='STI 014')
 
 ###############################################################################
-# .. note::
-#
-#     We could also have loaded the events from file, using
-#     :func:`mne.read_events`::
-#
-#         sample_data_events_file = os.path.join(sample_data_folder,
-#                                                'MEG', 'sample',
-#                                                'sample_audvis_raw-eve.fif')
-#         events_from_file = mne.read_events(sample_data_events_file)
-#
-#     See :ref:`tut-section-events-io` for more details.
-#
-#
 # The :class:`~mne.io.Raw` object and the events array are the bare minimum
 # needed to create an :class:`~mne.Epochs` object, which we create with the
 # :class:`mne.Epochs` class constructor. However, you will almost surely want
