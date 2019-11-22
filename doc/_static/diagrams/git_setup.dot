@@ -38,7 +38,7 @@ digraph gitstructure {
 
         upstream [label=<<FONT POINT-SIZE="16">Official version (“upstream”)</FONT><BR ALIGN="LEFT"/>https://github.com/mne-tools/mne-python>]
 
-        yourfork [label=<<FONT POINT-SIZE="16">Your fork</FONT><BR ALIGN="LEFT"/>https://github.com/your_github_username/mne-python>]
+        yourfork [label=<<FONT POINT-SIZE="16">Your fork (“origin”)</FONT><BR ALIGN="LEFT"/>https://github.com/your_github_username/mne-python>]
 
     }
 
