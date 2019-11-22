@@ -26,7 +26,7 @@ MNE-Python*, you should instead write to the `MNE mailing list`_ or chat with
 developers on the `MNE gitter channel`_. Users and contributors to MNE-Python
 are expected to follow our `code of conduct`_.
 
-The `contributing guide`_ has details on the preferred contribution workflow
+This page has details on the preferred contribution workflow
 and how best to configure your system for a smooth experience contributing to
 MNE-Python.
 
