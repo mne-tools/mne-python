@@ -78,12 +78,11 @@ def make_resolution_matrix_lcmv(filters, forward, info):
 
     Returns
     -------
-    resmat : array, shape (n_dipoles1, n_dipoles2)
+    resmat : array, shape (n_dipoles_lcmv, n_dipoles_fwd)
         Resolution matrix (filter matrix multiplied to leadfield from
-        forward solution).
-        Numbers of rows (n_dipoles1) and columns (n_dipoles2) may differ
-        depending on orientation constraints of filter and forward solution,
-        respectively.
+        forward solution). Numbers of rows (n_dipoles_lcmv) and columns
+        (n_dipoles_fwd) may differ depending on orientation constraints of
+        filter and forward solution, respectively.
     """
     # don't include bad channels from noise covariance matrix
     bads_filt = filters['noise_cov']['bads']
