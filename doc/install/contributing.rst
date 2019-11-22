@@ -160,26 +160,29 @@ This lets you switch between different versions of Python (MNE-Python requires
 version 3.5 or higher) and also switch between the stable and development
 versions of MNE-Python (so you can, for example, use the same computer to
 analyze your data with the stable release, and also work with the latest
-development version to fix bugs or add new features). If you've already
+development version to fix bugs or add new features). Even if you've already
 followed the :ref:`installation instructions <install-python>` for the stable
-version of MNE-Python, MNE-Python will be installed in the environment ``base``
-(unless you provided a custom environment name during installation). Before
-continuing, you should create a new, separate environment for MNE-Python
-development (here we'll call it ``mnedev``)::
+version of MNE-Python, you should now repeat that process to create a new,
+separate environment for MNE-Python development (here we'll give it the name
+``mnedev``)::
 
     $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
     $ conda env create --file environment.yml --name mnedev
     $ conda activate mnedev
 
-Now you'll have *two* MNE-Python environments: ``base`` (or whatever you called
-it) for the stable version and ``mnedev`` for the development version. Next
-`clone`_ the MNE-Python repository from your remote fork, and also connect the
-local copy to the ``upstream`` version of the codebase, so you can stay
-up-to-date with changes from other contributors. First, edit these two
-variables for your situation::
+Now you'll have *two* MNE-Python environments: ``base`` (or whatever custom
+name you used when installing the stable version of MNE-Python) and ``mnedev``
+that we just created. At this point ``mnedev`` also has the stable version of
+MNE-Python (that's what the :file:`environment.yml` installs), but we're about
+to remove the stable version from ``mnedev`` and replace it with the
+development version. To do that, we'll `clone`_ the MNE-Python repository from
+your remote fork, and also connect the local copy to the ``upstream`` version
+of the codebase, so you can stay up-to-date with changes from other
+contributors. First, edit these two variables for your situation::
 
+    $ GITHUB_USERNAME="insert_your_actual_GitHub_username_here"
+    $ # pick where to put your local copy of MNE-Python development version:
     $ INSTALL_LOCATION="/opt"
-    $ GITHUB_USERNAME="new_mne_contributor"
 
 Then make a local clone of your remote fork (``origin``)::
 
@@ -205,11 +208,9 @@ Finally, set up a link between your local clone and the official repository
     $ git remote add upstream git://github.com/mne-tools/mne-python.git
     $ git fetch --all
 
-When you created the ``mnedev`` environment using the environment file, it
-installed the *stable* version of MNE-Python, so next we'll remove that and
-replace it with the *development* version (the clone we just created with git).
-Make sure you're in the correct environment first (:samp:`conda activate
-mnedev`), and then do::
+Now we'll remove the *stable* version of MNE-Python and replace it with the
+*development* version (the clone we just created with git). Make sure you're in
+the correct environment first (:samp:`conda activate mnedev`), and then do::
 
     $ cd $INSTALL_LOCATION/mne-python    # make sure we're in the right folder
     $ pip uninstall -y mne
