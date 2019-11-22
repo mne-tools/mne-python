@@ -202,7 +202,7 @@ def test_time_frequency():
     assert_equal(power_drop.ch_names, power_pick.ch_names)
     assert_equal(power_pick.data.shape[0], len(power_drop.ch_names))
 
-    mne.equalize_channels([power_pick, power_drop])
+    power_pick, power_drop = mne.equalize_channels([power_pick, power_drop])
     assert_equal(power_pick.ch_names, power_drop.ch_names)
     assert_equal(power_pick.data.shape, power_drop.data.shape)
 

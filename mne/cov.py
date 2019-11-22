@@ -231,6 +231,31 @@ class Covariance(dict):
         return viz.misc.plot_cov(self, info, exclude, colorbar, proj, show_svd,
                                  show, verbose)
 
+    def pick_channels(self, ch_names, ordered=False):
+        """Pick channels from this covariance matrix.
+
+        Parameters
+        ----------
+        ch_names : list of str
+            List of channels to keep. All other channels are dropped.
+        ordered : bool
+            If True (default False), ensure that the order of the channels
+            matches the order of ``ch_names``.
+
+        Returns
+        -------
+        cov : instance of Covariance.
+            The modified covariance matrix.
+
+        Notes
+        -----
+        Operates in-place.
+
+        .. versionadded:: 0.20.0
+        """
+        return pick_channels_cov(self, ch_names, exclude=[], ordered=ordered,
+                                 copy=False)
+
 
 ###############################################################################
 # IO

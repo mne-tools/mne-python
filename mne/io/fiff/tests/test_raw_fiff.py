@@ -1454,7 +1454,7 @@ def test_equalize_channels():
     raw1.drop_channels(raw1.ch_names[:1])
     raw2.drop_channels(raw2.ch_names[1:2])
     my_comparison = [raw1, raw2]
-    equalize_channels(my_comparison)
+    my_comparison = equalize_channels(my_comparison)
     for e in my_comparison:
         assert ch_names == e.ch_names
 
