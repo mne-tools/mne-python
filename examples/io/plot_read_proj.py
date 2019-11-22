@@ -40,7 +40,8 @@ raw.plot_projs_topomap()
 
 ###############################################################################
 # Display the projections one by one
-fig, axes = plt.subplots(1, len(empty_room_proj))
+n_cols = len(empty_room_proj)
+fig, axes = plt.subplots(1, n_cols, figsize=(2 * n_cols, 2))
 for proj, ax in zip(empty_room_proj, axes):
     proj.plot_topomap(axes=ax, info=raw.info)
 

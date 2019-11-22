@@ -274,7 +274,8 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
     nrows = math.floor(math.sqrt(n_projs))
     ncols = math.ceil(n_projs / nrows)
     if axes is None:
-        _, axes = plt.subplots(nrows, ncols, squeeze=False)
+        _, axes = plt.subplots(nrows, ncols, squeeze=False,
+                               figsize=(ncols * 2, nrows * 2))
         axes = axes.ravel()
         if len(axes[n_projs:]):
             [ax.remove() for ax in axes[n_projs:]]
@@ -512,7 +513,7 @@ class _GridData(object):
     to be set independently.
     """
 
-    def __init__(self, pos, method='box', sphere=None):
+    def __init__(self, pos, method, sphere):
         # in principle this works in N dimensions, not just 2
         assert pos.ndim == 2 and pos.shape[1] == 2, pos.shape
         # Adding points outside the extremes helps the interpolators
@@ -659,6 +660,23 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                          sphere=sphere)[:2]
 
 
+def _setup_interp(pos, res, extrapolate, sphere, outlines):
+    xlim = np.inf, -np.inf,
+    ylim = np.inf, -np.inf,
+    mask_ = np.c_[outlines['mask_pos']]
+    clip_radius = outlines['clip_radius']
+    xmin, xmax = (np.min(np.r_[xlim[0], mask_[:, 0], -clip_radius[0]]),
+                  np.max(np.r_[xlim[1], mask_[:, 0], clip_radius[0]]))
+    ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1], -clip_radius[1]]),
+                  np.max(np.r_[ylim[1], mask_[:, 1], clip_radius[1]]))
+    xi = np.linspace(xmin, xmax, res)
+    yi = np.linspace(ymin, ymax, res)
+    Xi, Yi = np.meshgrid(xi, yi)
+    interp = _GridData(pos, extrapolate, sphere)
+    extent = (xmin, xmax, ymin, ymax)
+    return extent, Xi, Yi, interp
+
+
 def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                   res=64, axes=None, names=None, show_names=False, mask=None,
                   mask_params=None, outlines='head',
@@ -741,20 +759,10 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     mask_params = _handle_default('mask_params', mask_params)
 
     # find mask limits
-    xlim = np.inf, -np.inf,
-    ylim = np.inf, -np.inf,
-    mask_ = np.c_[outlines['mask_pos']]
-    xmin, xmax = (np.min(np.r_[xlim[0], mask_[:, 0]]),
-                  np.max(np.r_[xlim[1], mask_[:, 0]]))
-    ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1]]),
-                  np.max(np.r_[ylim[1], mask_[:, 1]]))
-
-    # interpolate the data, we multiply clip radius by 1.06 so that pixelated
-    # edges of the interpolated image would appear under the mask
-    xi = np.linspace(xmin, xmax, res)
-    yi = np.linspace(ymin, ymax, res)
-    Xi, Yi = np.meshgrid(xi, yi)
-    interp = _GridData(pos, extrapolate, sphere).set_values(data)
+    clip_radius = outlines['clip_radius']
+    extent, Xi, Yi, interp = _setup_interp(
+        pos, res, extrapolate, sphere, outlines)
+    interp.set_values(data)
     Zi = interp.set_locations(Xi, Yi)()
 
     # plot outline
@@ -769,14 +777,14 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     if _use_default_outlines:
         from matplotlib import patches
         patch_ = patches.Ellipse((0, 0),
-                                 2 * outlines['clip_radius'][0],
-                                 2 * outlines['clip_radius'][1],
+                                 2 * clip_radius[0],
+                                 2 * clip_radius[1],
                                  clip_on=True,
                                  transform=ax.transData)
 
     # plot interpolated map
     im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
-                   aspect='equal', extent=(xmin, xmax, ymin, ymax),
+                   aspect='equal', extent=extent,
                    interpolation=image_interp)
 
     # gh-1432 had a workaround for no contours here, but we'll remove it
@@ -2077,21 +2085,9 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads, sphere):
     outlines = _make_head_outlines(sphere, params['pos'])
 
     _hide_frame(ax)
-    xlim = np.inf, -np.inf,
-    ylim = np.inf, -np.inf,
-    mask_ = np.c_[outlines['mask_pos']]
-    xmin, xmax = (np.min(np.r_[xlim[0], mask_[:, 0]]),
-                  np.max(np.r_[xlim[1], mask_[:, 0]]))
-    ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1]]),
-                  np.max(np.r_[ylim[1], mask_[:, 1]]))
-
-    res = 64
-    xi = np.linspace(xmin, xmax, res)
-    yi = np.linspace(ymin, ymax, res)
-    Xi, Yi = np.meshgrid(xi, yi)
+    extent, Xi, Yi, interp = _setup_interp(
+        params['pos'], 64, 'box', sphere, outlines)
     params['Zis'] = list()
-
-    interp = _GridData(params['pos'], 'box', sphere)
     for frame in params['frames']:
         params['Zis'].append(interp.set_values(data[:, frame])(Xi, Yi))
     Zi = params['Zis'][0]
@@ -2099,11 +2095,10 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads, sphere):
     zi_max = np.nanmax(params['Zis'])
     cont_lims = np.linspace(zi_min, zi_max, 7, endpoint=False)[1:]
     params.update({'vmin': vmin, 'vmax': vmax, 'Xi': Xi, 'Yi': Yi, 'Zi': Zi,
-                   'extent': (xmin, xmax, ymin, ymax), 'cmap': cmap,
-                   'cont_lims': cont_lims})
+                   'extent': extent, 'cmap': cmap, 'cont_lims': cont_lims})
     # plot map and contour
     im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
-                   aspect='equal', extent=(xmin, xmax, ymin, ymax),
+                   aspect='equal', extent=extent,
                    interpolation='bilinear')
     plt.colorbar(im, cax=ax_cbar, cmap=cmap)
     cont = ax.contour(Xi, Yi, Zi, levels=cont_lims, colors='k', linewidths=1)
