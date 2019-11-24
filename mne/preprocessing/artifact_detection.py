@@ -16,8 +16,10 @@ from mne.chpi import _apply_quat
 
 def detect_bad_channels(raw, zscore_v=4, method='both', start=30, end=220,
                         neigh_max_distance=.035):
-    """Detect bad channels based on z-score amplitude deviation or/and
-        decreased local correlation with other channels.
+    """Detect bad channels.
+
+    Can be based on z-score amplitude deviation or/and decreased local
+    correlation with other channels.
 
     Notes
     -----
@@ -39,7 +41,7 @@ def detect_bad_channels(raw, zscore_v=4, method='both', start=30, end=220,
     end : int
         End time in seconds used from estimating bad chan
     neigh_max_distance : int
-        In meters, limit channel distance for local correlation
+        I meters, limit channel distance for local correlation
 
     Returns
     -------
@@ -67,7 +69,7 @@ def detect_bad_channels(raw, zscore_v=4, method='both', start=30, end=220,
     chns_corr = np.abs(np.corrcoef(data_chans))
     weig = np.array(chns_dist, dtype=bool)
     chn_nei_corr = np.average(chns_corr, axis=1, weights=weig)
-    chn_nei_uncorr_z = zscore(1 - chn_nei_corr)  # lower corr higer Z
+    chn_nei_uncorr_z = zscore(1 - chn_nei_corr)  # lower corr higher Z
 
     # Get channel magnitudes
     max_pow = np.sqrt(np.sum(data_chans ** 2, axis=1))
@@ -88,7 +90,8 @@ def detect_bad_channels(raw, zscore_v=4, method='both', start=30, end=220,
 
 
 def detect_movement(info, pos, thr_mov=.005):
-    """Detect segments that deviate from the recording median head possition.
+    """Detect segments that deviate from the recording median head position.
+
     First, the cHPI is calculated relative to the default head position, then
     segments beyond the threshold are discarded and the median head pos is
     calculated. Time points further thr_mov from the median are annotated and
@@ -165,6 +168,7 @@ def detect_movement(info, pos, thr_mov=.005):
 
 def detect_muscle(raw, thr=1.5, t_min=1, notch=[60, 120, 180]):
     """Find and annotate mucsle artifacts based on high frequency activity.
+
     Data is band pass filtered at high frequencies, smoothed with the envelope,
     z-scored, channel averaged and low-pass filtered to remove transient peaks.
 
@@ -173,14 +177,14 @@ def detect_muscle(raw, thr=1.5, t_min=1, notch=[60, 120, 180]):
     raw : instance of Raw
         The data.
     thr : integer
-        threshold at wich a segment is marked as artifactual. The thr represent
+        threshold where a segment is marked as artifactual. The thr represent
         the channel averaged z-score values of the data band pass filtered
         betweehn 110 and 140 Hz.
     t_min = integer
         Min. time between annotated muscle artifacts, below will be annotated
         as muscle artifact.
     notch = List
-        The frequencies at wich to apply a notch filter
+        The frequencies at which to apply a notch filter
 
     Returns
     -------
@@ -213,7 +217,7 @@ def detect_muscle(raw, thr=1.5, t_min=1, notch=[60, 120, 180]):
 
 
 def weighted_median(data, weights):
-    """Get median with weights assigned to the data
+    """Get median with weights assigned to the data.
 
     Parameters
     ----------
@@ -242,7 +246,7 @@ def weighted_median(data, weights):
 
 
 def _annotations_from_mask(times, art_mask, art_name):
-    """Make annotations"""
+    """Make annotations."""
     comps, num_comps = label(art_mask)
     onsets = []
     durations = []
