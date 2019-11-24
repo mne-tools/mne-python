@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 =============================================
 Detect artifacts
@@ -14,7 +12,7 @@ Annotates segments contaminated with muscle artifacts
 
 """
 # Authors: Adonay Nunes <adonay.s.nunes@gmail.com>
-#
+#          Luke Bloy <luke.bloy@gmail.com>
 # License: BSD (3-clause)
 
 import os.path as op
@@ -39,15 +37,21 @@ raw_fname2 = op.join(data_path_MEG, 'bst_auditory', 'S01_AEF_20131218_02.ds')
 raw = read_raw_ctf(raw_fname1, preload=False)
 
 mne.io.concatenate_raws([raw, read_raw_ctf(raw_fname2, preload=False)])
-raw.crop(350, 550).load_data()
-raw.notch_filter([60, 120, 180, 240]).resample(300, npad="auto")
+raw.crop(350, 500).load_data()
+raw.resample(300, npad="auto").notch_filter([60, 120])
+
 
 # Detect bad channels
-bad_chns = detect_bad_channels(raw, zscore_v=4, method='both', t1=0, t2=190,
+bad_chns = detect_bad_channels(raw, zscore_v=4, method='both', t1=0, t2=140,
                                neigh_max_distance=.035)
 
 # detect excecive movement and correct dev_head trans
 pos = mne.chpi._calculate_head_pos_ctf(raw)
+
+
+pos[:, 0] -= raw._first_samps  # That is temporary, shouldn't happen
+
+
 thr_mov = .001  # in meters
 annotation_movement, hpi_disp, dev_head_t = detect_movement(raw.info, pos,
                                                             thr_mov=thr_mov)
@@ -63,7 +67,7 @@ plt.show(block=False)
 
 # detect muscle artifacts
 thr_mus = 1.5  # z-score
-annotation_muscle, scores_muscle = detect_muscle(raw, thr=thr_mus, t_min=2,
+annotation_muscle, scores_muscle = detect_muscle(raw, thr=thr_mus, t_min=0,
                                                  notch=False)
 
 plt.figure()
@@ -76,6 +80,5 @@ plt.ylabel('zscore')
 
 
 raw.set_annotations(annotation_movement + annotation_muscle)
-start = annotation_muscle[0]['onset'] - 6
 
-raw.plot(n_channels=100, start=start)
+raw.plot(n_channels=100)

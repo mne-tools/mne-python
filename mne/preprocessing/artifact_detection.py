@@ -1,31 +1,55 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Nov 19 09:40:37 2019
+# Authors: Adonay Nunes <adonay.s.nunes@gmail.com>
+#          Luke Bloy <luke.bloy@gmail.com>
+# License: BSD (3-clause)
 
-@author: an512
-"""
 
 from scipy.stats import zscore
-import mne
-import numpy as np
-
-from mne.annotations import Annotations
 from scipy.ndimage.measurements import label
-from mne.io.ctf.trans import _quaternion_align
-from mne.chpi import _apply_quat
+import numpy as np
 from itertools import compress
 
+from mne.filter import filter_data
+from mne.annotations import Annotations
+from mne.io.ctf.trans import _quaternion_align
+from mne.chpi import _apply_quat
 
-def detect_bad_channels(raw, zscore_v=4, method='both', t1=30, t2=220,
+
+def detect_bad_channels(raw, zscore_v=4, method='both', start=30, end=220,
                         neigh_max_distance=.035):
-    """ detect bad channels based on z-score amplitude deviation or/ and
-        decreased local correlation with other channels"""
+    """Detect bad channels based on z-score amplitude deviation or/and
+        decreased local correlation with other channels.
 
+    Notes
+    -----
+    This helps in detecting suspissious channels, visual inspection warranted.
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        The data.
+    zscore : int
+        the z-score value to reject channels exceeding it
+    method : 'corr | 'norm' | 'both'
+        The criteria to detect bad channels
+        'corr' correlates a chan with its neighbours at neigh_max_distance
+        'norm' takes the averaged magnitude of the channel
+        'both' takes the mean of the z-scored 'corr' and 'norm' methods
+    start : int
+        Start time in seconds used from estimating bad chan
+    end : int
+        End time in seconds used from estimating bad chan
+    neigh_max_distance : int
+        In meters, limit channel distance for local correlation
+
+    Returns
+    -------
+    bad_chs : list
+        a list of possible bad channels
+    """
     # set recording length
-    Fs = raw.info['sfreq']
-    t2x = min(raw.last_samp / Fs, t2)
-    t1x = max(0, t1 + t2x - t2)  # Start earlier if recording is shorter
+    sfreq = raw.info['sfreq']
+    t2x = min(raw.last_samp / sfreq, end)
+    t1x = max(0, start + t2x - end)  # Start earlier if recording is shorter
 
     # Get data
     raw_copy = raw.copy().crop(t1x, t2x).load_data()
@@ -34,9 +58,8 @@ def detect_bad_channels(raw, zscore_v=4, method='both', t1=30, t2=220,
     data_chans = raw_copy.get_data()
 
     # Get channel distances matrix
-    chns_locs = np.asarray([x['loc'][:3] for x in
-                            raw_copy.info['chs']])
-    chns_dist = np.linalg.norm(chns_locs - chns_locs[:, None],
+    ch_locs = np.asarray([x['loc'][:3] for x in raw_copy.info['chs']])
+    chns_dist = np.linalg.norm(ch_locs - ch_locs[:, None],
                                axis=-1)
     chns_dist[chns_dist > neigh_max_distance] = 0
 
@@ -44,11 +67,11 @@ def detect_bad_channels(raw, zscore_v=4, method='both', t1=30, t2=220,
     chns_corr = np.abs(np.corrcoef(data_chans))
     weig = np.array(chns_dist, dtype=bool)
     chn_nei_corr = np.average(chns_corr, axis=1, weights=weig)
-    chn_nei_uncorr_z = zscore(1 - chn_nei_corr)  # l ower corr higer Z
+    chn_nei_uncorr_z = zscore(1 - chn_nei_corr)  # lower corr higer Z
 
     # Get channel magnitudes
-    max_Pow = np.sqrt(np.sum(data_chans ** 2, axis=1))
-    max_Z = zscore(max_Pow)
+    max_pow = np.sqrt(np.sum(data_chans ** 2, axis=1))
+    max_Z = zscore(max_pow)
 
     if method == 'corr':  # Based on local uncorrelation
         feat_vec = chn_nei_uncorr_z
@@ -60,11 +83,37 @@ def detect_bad_channels(raw, zscore_v=4, method='both', t1=30, t2=220,
         feat_vec = (chn_nei_uncorr_z + max_Z) / 2
         max_th = (feat_vec) > zscore_v
 
-    bad_chns = list(compress(raw_copy.info['ch_names'], max_th))
-    return bad_chns
+    bad_chs = list(compress(raw_copy.info['ch_names'], max_th))
+    return bad_chs
 
 
 def detect_movement(info, pos, thr_mov=.005):
+    """Detect segments that deviate from the recording median head possition.
+    First, the cHPI is calculated relative to the default head position, then
+    segments beyond the threshold are discarded and the median head pos is
+    calculated. Time points further thr_mov from the median are annotated and
+    a new device to head transformation is calculated only with the good
+    segments.
+
+    Parameters
+    ----------
+    info : structure
+        From raw.info
+    pos : array, shape (N, 10)
+        The position and quaternion parameters from cHPI fitting.
+    thr_mov : int
+        in meters, the maximal distance allowed from the median cHPI
+
+    Returns
+    -------
+    annot : mne.Annotations
+        periods where head position was too far
+    hpi_disp : array
+        head position over time w.r.t the median head pos
+    dev_head_t : array
+        new trans matrix using accepted head pos
+    """
+
     time = pos[:, 0]
     quats = pos[:, 1:7]
 
@@ -114,19 +163,42 @@ def detect_movement(info, pos, thr_mov=.005):
     return annot, hpi_disp, dev_head_t
 
 
-def detect_muscle(raw, thr=1.5, t_min=1, notch=True):
-    """Find and annotate mucsle artifacts - by Luke Bloy"""
+def detect_muscle(raw, thr=1.5, t_min=1, notch=[60, 120, 180]):
+    """Find and annotate mucsle artifacts based on high frequency activity.
+    Data is band pass filtered at high frequencies, smoothed with the envelope,
+    z-scored, channel averaged and low-pass filtered to remove transient peaks.
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        The data.
+    thr : integer
+        threshold at wich a segment is marked as artifactual. The thr represent
+        the channel averaged z-score values of the data band pass filtered
+        betweehn 110 and 140 Hz.
+    t_min = integer
+        Min. time between annotated muscle artifacts, below will be annotated
+        as muscle artifact.
+    notch = List
+        The frequencies at wich to apply a notch filter
+
+    Returns
+    -------
+    annot : mne.Annotations
+        periods with muscle artifacts
+    art_scores_filt : array
+        the z-score values of the filtered data
+    """
 
     raw.pick_types(meg=True, ref_meg=False)
-    if notch is True:
-        raw.notch_filter(np.arange(60, 241, 60), fir_design='firwin')
+    if notch is not None:
+        raw.notch_filter(notch, fir_design='firwin')
     raw.filter(110, 140, fir_design='firwin')
     raw.apply_hilbert(envelope=True)
     sfreq = raw.info['sfreq']
     art_scores = zscore(raw._data, axis=1)
     # band pass filter the data
-    art_scores_filt = mne.filter.filter_data(art_scores.mean(axis=0),
-                                             sfreq, None, 4)
+    art_scores_filt = filter_data(art_scores.mean(axis=0), sfreq, None, 4)
     art_mask = art_scores_filt > thr
     # remove artifact free periods shorter than t_min
     idx_min = t_min * sfreq
@@ -141,10 +213,13 @@ def detect_muscle(raw, thr=1.5, t_min=1, notch=True):
 
 
 def weighted_median(data, weights):
-    """ by tinybike
-    Args:
-      data (list or numpy.array): data
-      weights (list or numpy.array): weights
+    """Get median with weights assigned to the data
+
+    Parameters
+    ----------
+    data : array
+    weights : array or list
+        values to assign at each of the data points
     """
     dims = data.shape
     w_median = np.zeros((dims[1], dims[2]))
@@ -167,7 +242,7 @@ def weighted_median(data, weights):
 
 
 def _annotations_from_mask(times, art_mask, art_name):
-    # make annotations - by Luke Bloy
+    """Make annotations"""
     comps, num_comps = label(art_mask)
     onsets = []
     durations = []
