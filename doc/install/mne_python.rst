@@ -25,6 +25,17 @@ tool for installing new packages and managing different package sets
 ("environments") for different projects.
 
 To get started, follow the `installation instructions for Anaconda`_.
+
+.. warning::
+   If you have the ``PYTHONPATH`` or ``PYTHONHOME`` environment variables set,
+   you may run into difficulty using Anaconda. See the
+   `Anaconda troubleshooting guide`_ for more information. Note that it is
+   easy to switch between ``conda``-managed Python installations and the system
+   Python installation using the ``conda activate`` and ``conda deactivate``
+   commands, so you may find that after adopting Anaconda it is possible
+   (indeed, preferable) to leave ``PYTHONPATH`` and ``PYTHONHOME`` permanently
+   unset.
+
 When you are done, if you type the following commands in a ``bash`` terminal,
 you should see outputs similar to the following (assuming you installed
 conda to ``/home/user/anaconda3``)::
@@ -45,7 +56,7 @@ conda to ``/home/user/anaconda3``)::
     Most of our instructions start with ``$``, which indicates
     that the commands are designed to be run from a Bash command prompt.
 
-    Windows command prompts to not expose the same command-line tools as Bash
+    Windows command prompts do not expose the same command-line tools as Bash
     shells, so things like ``which`` will not work, and you need to use
     alternatives, such as::
 

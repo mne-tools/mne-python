@@ -19,19 +19,16 @@ Contributing to MNE-Python
 MNE-Python is maintained by a community of scientists and research labs, and
 accepts contributions in the form of bug reports, fixes, feature additions, and
 documentation improvements (even just typo corrections). The best way to start
-contributing is by `opening an issue`_ on our GitHub page to tell us about
-errors you are encountering or to discuss your ideas for changes. For general
-troubleshooting, you can also write to the `MNE mailing list`_ or chat with
-developers on the `MNE gitter channel`_.
+contributing is by `opening an issue`_ on our GitHub page to discuss your ideas
+for changes or enhancements, or to tell us about behavior that you think might
+be a bug in MNE-Python. *For general troubleshooting of scripts that use
+MNE-Python*, you should instead write to the `MNE mailing list`_ or chat with
+developers on the `MNE gitter channel`_. Users and contributors to MNE-Python
+are expected to follow our `code of conduct`_.
 
-Changes are typically made by `forking`_ the MNE-Python repository, making
-changes to your fork (usually by `cloning`_ it to your personal computer,
-making the changes, and then `pushing`_ the local changes up to your fork), and
-finally creating a `pull request`_ to incorporate your changes back into the
-shared "upstream" version of the codebase.
-
-Users and contributors to MNE-Python are expected to follow our `code of
-conduct`_.
+This page has details on the preferred contribution workflow
+and how best to configure your system for a smooth experience contributing to
+MNE-Python.
 
 .. collapse:: |rocket| Want an example to work through?
    :class: success
@@ -45,16 +42,17 @@ conduct`_.
 .. _`MNE mailing list`: http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
 .. _`MNE gitter channel`: https://gitter.im/mne-tools/mne-python
 
-.. _`forking`: https://help.github.com/en/articles/fork-a-repo
-.. _`cloning`: https://help.github.com/en/articles/cloning-a-repository
-.. _`pushing`: https://help.github.com/en/articles/pushing-to-a-remote
-.. _`pull request`: https://help.github.com/en/articles/creating-a-pull-request-from-a-fork
-
 .. _`code of conduct`: https://github.com/mne-tools/mne-python/blob/master/CODE_OF_CONDUCT.md
-.. _`GitHub issues marked "easy"`:
+.. _`GitHub issues marked "easy"`: https://github.com/mne-tools/mne-python/issues?q=is%3Aissue+is%3Aopen+label%3AEASY
 
 Overview of contribution process
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Changes to MNE-Python are typically made by `forking`_ the MNE-Python
+repository, making changes to your fork (usually by `cloning`_ it to your
+personal computer, making the changes, and then `pushing`_ the local changes up
+to your fork), and finally creating a `pull request`_ to incorporate your
+changes back into the shared "upstream" version of the codebase.
 
 In general you'll be working with three different copies of the MNE-Python
 codebase: the official remote copy at https://github.com/mne-tools/mne-python
@@ -120,9 +118,28 @@ when writing commit messages, so you might as well configure that now too::
    $ git config --global core.editor emacs    # or vim, or nano, or subl, or...
 
 There are many other ways to customize git's behavior; see `configuring git`_
-for more information. Once you have git installed and configured, and before
-creating your local copy of the codebase, go to the `MNE-Python GitHub`_ page
-and create a `fork`_ into your GitHub user account.
+for more information.
+
+
+Forking the MNE-Python repository
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Once you have git installed and configured, and before creating your local copy
+of the codebase, go to the `MNE-Python GitHub`_ page and create a `fork`_ into
+your GitHub user account.
+
+.. image:: https://help.github.com/assets/images/help/repository/fork_button.jpg
+
+This will create a copy of the MNE-Python codebase inside your GitHub user
+account (this is called "your fork"). Changes you make to MNE-Python will
+eventually get "pushed" to your fork, and will be incorporated into the
+official version of MNE-Python (often called the "upstream version") through a
+"pull request". This process will be described in detail below; a summary
+of how that structure is set up is given here:
+
+.. graphviz:: ../_static/diagrams/git_setup.dot
+   :alt: Diagram of recommended git setup
+   :align: left
 
 
 Setting up the development environment
@@ -143,26 +160,29 @@ This lets you switch between different versions of Python (MNE-Python requires
 version 3.5 or higher) and also switch between the stable and development
 versions of MNE-Python (so you can, for example, use the same computer to
 analyze your data with the stable release, and also work with the latest
-development version to fix bugs or add new features). If you've already
+development version to fix bugs or add new features). Even if you've already
 followed the :ref:`installation instructions <install-python>` for the stable
-version of MNE-Python, MNE-Python will be installed in the environment ``base``
-(unless you provided a custom environment name during installation). Before
-continuing, you should create a new, separate environment for MNE-Python
-development (here we'll call it ``mnedev``)::
+version of MNE-Python, you should now repeat that process to create a new,
+separate environment for MNE-Python development (here we'll give it the name
+``mnedev``)::
 
     $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
     $ conda env create --file environment.yml --name mnedev
     $ conda activate mnedev
 
-Now you'll have *two* MNE-Python environments: ``base`` (or whatever you called
-it) for the stable version and ``mnedev`` for the development version. Next
-`clone`_ the MNE-Python repository from your remote fork, and also connect the
-local copy to the ``upstream`` version of the codebase, so you can stay
-up-to-date with changes from other contributors. First, edit these two
-variables for your situation::
+Now you'll have *two* MNE-Python environments: ``base`` (or whatever custom
+name you used when installing the stable version of MNE-Python) and ``mnedev``
+that we just created. At this point ``mnedev`` also has the stable version of
+MNE-Python (that's what the :file:`environment.yml` file installs), but we're
+about to remove the stable version from ``mnedev`` and replace it with the
+development version. To do that, we'll `clone`_ the MNE-Python repository from
+your remote fork, and also connect the local copy to the ``upstream`` version
+of the codebase, so you can stay up-to-date with changes from other
+contributors. First, edit these two variables for your situation::
 
+    $ GITHUB_USERNAME="insert_your_actual_GitHub_username_here"
+    $ # pick where to put your local copy of MNE-Python development version:
     $ INSTALL_LOCATION="/opt"
-    $ GITHUB_USERNAME="new_mne_contributor"
 
 Then make a local clone of your remote fork (``origin``)::
 
@@ -188,11 +208,9 @@ Finally, set up a link between your local clone and the official repository
     $ git remote add upstream git://github.com/mne-tools/mne-python.git
     $ git fetch --all
 
-When you created the ``mnedev`` environment using the environment file, it
-installed the *stable* version of MNE-Python, so next we'll remove that and
-replace it with the *development* version (the clone we just created with git).
-Make sure you're in the correct environment first (:samp:`conda activate
-mnedev`), and then do::
+Now we'll remove the *stable* version of MNE-Python and replace it with the
+*development* version (the clone we just created with git). Make sure you're in
+the correct environment first (:samp:`conda activate mnedev`), and then do::
 
     $ cd $INSTALL_LOCATION/mne-python    # make sure we're in the right folder
     $ pip uninstall -y mne
@@ -843,6 +861,9 @@ it can serve as a useful example of what to expect from the PR review process.
 .. _fork: https://help.github.com/en/articles/fork-a-repo
 .. _clone: https://help.github.com/en/articles/cloning-a-repository
 .. _push: https://help.github.com/en/articles/pushing-to-a-remote
+.. _forking: https://help.github.com/en/articles/fork-a-repo
+.. _cloning: https://help.github.com/en/articles/cloning-a-repository
+.. _pushing: https://help.github.com/en/articles/pushing-to-a-remote
 .. _branches: https://help.github.com/en/articles/about-branches
 .. _several help pages: https://help.github.com/en/articles/connecting-to-github-with-ssh
 .. _draft PRs: https://help.github.com/en/articles/about-pull-requests#draft-pull-requests
