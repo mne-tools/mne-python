@@ -20,8 +20,9 @@ import mne
 
 from mne.datasets.brainstorm import bst_auditory
 from mne.io import read_raw_ctf
-from mne.artifact_detection import (detect_bad_channels, detect_movement,
-                                    detect_muscle)
+from mne.preprocessing.artifact_detection import (detect_bad_channels,
+                                                  detect_movement,
+                                                  detect_muscle)
 import matplotlib.pyplot as plt
 
 # Load data
@@ -42,14 +43,14 @@ raw.resample(300, npad="auto").notch_filter([60, 120])
 
 
 # Detect bad channels
-bad_chns = detect_bad_channels(raw, zscore_v=4, method='both', t1=0, t2=140,
-                               neigh_max_distance=.035)
+bad_chns = detect_bad_channels(raw, zscore_v=4, method='both', start=0,
+                               end=140, neigh_max_distance=.035)
 
 # detect excecive movement and correct dev_head trans
 pos = mne.chpi._calculate_head_pos_ctf(raw)
 
 
-pos[:, 0] -= raw._first_samps  # That is temporary, shouldn't happen
+pos[:, 0] -= raw._first_time  # That is temporary, shouldn't happen
 
 
 thr_mov = .001  # in meters
@@ -68,7 +69,7 @@ plt.show(block=False)
 # detect muscle artifacts
 thr_mus = 1.5  # z-score
 annotation_muscle, scores_muscle = detect_muscle(raw, thr=thr_mus, t_min=0,
-                                                 notch=False)
+                                                 notch=None)
 
 plt.figure()
 plt.plot(raw.times, scores_muscle)
