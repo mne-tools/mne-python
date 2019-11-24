@@ -116,7 +116,6 @@ def detect_movement(info, pos, thr_mov=.005):
     dev_head_t : array
         new trans matrix using accepted head pos
     """
-
     time = pos[:, 0]
     quats = pos[:, 1:7]
 
@@ -193,7 +192,6 @@ def detect_muscle(raw, thr=1.5, t_min=1, notch=[60, 120, 180]):
     art_scores_filt : array
         the z-score values of the filtered data
     """
-
     raw.pick_types(meg=True, ref_meg=False)
     if notch is not None:
         raw.notch_filter(notch, fir_design='firwin')
