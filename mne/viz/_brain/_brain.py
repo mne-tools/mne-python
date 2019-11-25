@@ -446,22 +446,6 @@ class _Brain(object):
         ctable = self.update_lut(transparent=transparent)
 
         for ri, v in enumerate(self._views):
-            views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
-            if self._hemi != 'split':
-                ci = 0
-            else:
-                ci = 0 if hemi == 'lh' else 1
-            self._renderer.subplot(ri, ci)
-            mesh = self._renderer.mesh(x=self.geo[hemi].coords[:, 0],
-                                       y=self.geo[hemi].coords[:, 1],
-                                       z=self.geo[hemi].coords[:, 2],
-                                       triangles=self.geo[hemi].faces,
-                                       color=None,
-                                       colormap=ctable,
-                                       vmin=dt_min,
-                                       vmax=dt_max,
-                                       scalars=act_data,
-                                       opacity=alpha)
             if array.ndim == 3:
                 vectors = array[:, :, time_idx]
                 vector_values = magnitude[:, time_idx]
@@ -491,6 +475,23 @@ class _Brain(object):
                     scale=final_scale_factor,
                     opacity=vector_alpha
                 )
+
+            views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
+            if self._hemi != 'split':
+                ci = 0
+            else:
+                ci = 0 if hemi == 'lh' else 1
+            self._renderer.subplot(ri, ci)
+            mesh = self._renderer.mesh(x=self.geo[hemi].coords[:, 0],
+                                       y=self.geo[hemi].coords[:, 1],
+                                       z=self.geo[hemi].coords[:, 2],
+                                       triangles=self.geo[hemi].faces,
+                                       color=None,
+                                       colormap=ctable,
+                                       vmin=dt_min,
+                                       vmax=dt_max,
+                                       scalars=act_data,
+                                       opacity=alpha)
 
             if array.ndim >= 2 and callable(time_label):
                 self._renderer.text2d(x=0.95, y=y_txt,
