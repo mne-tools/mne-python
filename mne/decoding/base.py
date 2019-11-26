@@ -109,9 +109,14 @@ class LinearModel(BaseEstimator):
 
     @property
     def filters_(self):
-        if not hasattr(self.model, 'coef_'):
+        if hasattr(self.model, 'coef_'):
+            # Standard Linear Model
+            filters = self.model.coef_
+        elif hasattr(self.model.best_estimator_, 'coef_'):
+            # Linear Model with GridSearchCV
+            filters = self.model.best_estimator_.coef_
+        else:
             raise ValueError('model does not have a `coef_` attribute.')
-        filters = self.model.coef_
         if filters.ndim == 2 and filters.shape[0] == 1:
             filters = filters[0]
         return filters
