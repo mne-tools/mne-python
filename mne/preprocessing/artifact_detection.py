@@ -117,6 +117,11 @@ def detect_movement(info, pos, thr_mov=.005):
         new trans matrix using accepted head pos
     """
     time = pos[:, 0]
+
+    # Subtract any offset
+    if time[0] != 0.0:
+        time -= time[0]
+
     quats = pos[:, 1:7]
 
     # Get static head pos from file, used to convert quat to cartesian
