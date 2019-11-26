@@ -134,6 +134,7 @@ def test_get_coef():
         assert_equal(invs, list())
 
     # II. Test get coef for classification/regression estimators and pipelines
+    rng = np.random.RandomState(0)
     for clf in (lm_regression,
                 lm_gs_classification,
                 make_pipeline(StandardScaler(), lm_classification),
@@ -143,7 +144,7 @@ def test_get_coef():
         # according to the type of estimator.
         if is_classifier(clf):
             n, n_features = 1000, 3
-            X = np.random.rand(n, n_features)
+            X = rng.rand(n, n_features)
             y = np.arange(n) % 2
         else:
             X, y, A = _make_data(n_samples=1000, n_features=3, n_targets=1)
@@ -218,15 +219,17 @@ def test_linearmodel():
     """Test LinearModel class for computing filters and patterns."""
     # check categorical target fit in standard linear model
     from sklearn.linear_model import LinearRegression
-    np.random.seed(42)
+    rng = np.random.RandomState(0)
     clf = LinearModel()
     n, n_features = 20, 3
-    X = np.random.rand(n, n_features)
+    X = rng.rand(n, n_features)
     y = np.arange(n) % 2
     clf.fit(X, y)
     assert_equal(clf.filters_.shape, (n_features,))
     assert_equal(clf.patterns_.shape, (n_features,))
-    pytest.raises(ValueError, clf.fit, np.random.rand(n, n_features, 99), y)
+    with pytest.raises(ValueError):
+        wrong_X = rng.rand(n, n_features, 99)
+        clf.fit(wrong_X, y)
 
     # check categorical target fit in standard linear model with GridSearchCV
     from sklearn import svm
@@ -241,11 +244,13 @@ def test_linearmodel():
     clf.fit(X, y)
     assert_equal(clf.filters_.shape, (n_features,))
     assert_equal(clf.patterns_.shape, (n_features,))
-    pytest.raises(ValueError, clf.fit, np.random.rand(n, n_features, 99), y)
+    with pytest.raises(ValueError):
+        wrong_X = rng.rand(n, n_features, 99)
+        clf.fit(wrong_X, y)
 
     # check continuous target fit in standard linear model with GridSearchCV
     n_targets = 1
-    Y = np.random.rand(n, n_targets)
+    Y = rng.rand(n, n_targets)
     clf = LinearModel(
         GridSearchCV(
             svm.SVR(), parameters, cv=2,
@@ -255,16 +260,20 @@ def test_linearmodel():
     clf.fit(X, y)
     assert_equal(clf.filters_.shape, (n_features, ))
     assert_equal(clf.patterns_.shape, (n_features, ))
-    pytest.raises(ValueError, clf.fit, X, np.random.rand(n, n_features, 99))
+    with pytest.raises(ValueError):
+        wrong_y = rng.rand(n, n_features, 99)
+        clf.fit(X, wrong_y)
 
     # check multi-target fit in standard linear model
     n_targets = 5
-    Y = np.random.rand(n, n_targets)
+    Y = rng.rand(n, n_targets)
     clf = LinearModel(LinearRegression())
     clf.fit(X, Y)
     assert_equal(clf.filters_.shape, (n_targets, n_features))
     assert_equal(clf.patterns_.shape, (n_targets, n_features))
-    pytest.raises(ValueError, clf.fit, X, np.random.rand(n, n_features, 99))
+    with pytest.raises(ValueError):
+        wrong_y = rng.rand(n, n_features, 99)
+        clf.fit(X, wrong_y)
 
 
 @requires_version('sklearn', '0.18')
