@@ -25,7 +25,6 @@ from distutils.version import LooseVersion
 from itertools import cycle
 import warnings
 
-from ..channels.channels import HEAD_SIZE_DEFAULT
 from ..defaults import _handle_default
 from ..fixes import _get_status
 from ..io import show_fiff, Info
@@ -1501,8 +1500,7 @@ def _process_times(inst, use_times, n_peaks=None, few=False):
 @verbose
 def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                  show_names=False, ch_groups=None, to_sphere=True, axes=None,
-                 block=False, show=True, sphere=HEAD_SIZE_DEFAULT,
-                 verbose=None):
+                 block=False, show=True, sphere=None, verbose=None):
     """Plot sensors positions.
 
     Parameters
@@ -1552,7 +1550,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         .. versionadded:: 0.13.0
     show : bool
         Show figure if True. Defaults to True.
-    %(topomap_sphere)s
+    %(topomap_sphere_auto)s
     %(verbose)s
 
     Returns

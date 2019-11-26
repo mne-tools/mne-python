@@ -5,12 +5,11 @@ from ..utils import (check_version, logger, _check_option, _validate_type,
                      verbose)
 from . import plot_sensors
 from ..io._digitization import _get_fid_coords
-from ..channels.channels import HEAD_SIZE_DEFAULT
 
 
 @verbose
 def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
-                 show=True, sphere=HEAD_SIZE_DEFAULT, verbose=None):
+                 show=True, sphere=None, verbose=None):
     """Plot a montage.
 
     Parameters

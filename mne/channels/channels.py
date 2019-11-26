@@ -14,6 +14,7 @@ import sys
 import numpy as np
 from scipy import sparse
 
+from ..defaults import HEAD_SIZE_DEFAULT
 from ..utils import (verbose, logger, warn, copy_function_doc_to_method_doc,
                      _check_preload, _validate_type, fill_doc, _check_option)
 from ..io.compensator import get_current_comp
@@ -22,7 +23,6 @@ from ..io.meas_info import anonymize_info, Info
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _contains_ch_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx)
-from ..defaults import HEAD_SIZE_DEFAULT
 
 
 DEPRECATED_PARAM = object()
@@ -550,8 +550,8 @@ class SetChannelsMixin(object):
 
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,
                      show_names=False, ch_groups=None, to_sphere=True,
-                     axes=None, block=False, show=True,
-                     sphere=HEAD_SIZE_DEFAULT, verbose=None):
+                     axes=None, block=False, show=True, sphere=None,
+                     verbose=None):
         """Plot sensor positions.
 
         Parameters
@@ -1367,9 +1367,10 @@ def _compute_ch_connectivity(info, ch_type):
             raise RuntimeError('Cannot find a pair for some of the '
                                'gradiometers. Cannot compute connectivity '
                                'matrix.')
-        xy = _find_topomap_coords(info, picks[::2])  # only for one of the pair
+        # only for one of the pair
+        xy = _find_topomap_coords(info, picks[::2], sphere=HEAD_SIZE_DEFAULT)
     else:
-        xy = _find_topomap_coords(info, picks)
+        xy = _find_topomap_coords(info, picks, sphere=HEAD_SIZE_DEFAULT)
     tri = Delaunay(xy)
     neighbors = spatial_tris_connectivity(tri.simplices)
 

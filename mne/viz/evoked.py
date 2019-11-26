@@ -36,9 +36,8 @@ from ..utils import (logger, _clean_names, warn, _pl, verbose, _validate_type,
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topomap_plot, plot_topomap, _get_pos_outlines,
                       _draw_outlines, _prepare_topomap, _set_contour_locator,
-                      _check_sphere)
+                      _check_sphere, _make_head_outlines)
 from ..channels.layout import _pair_grad_sensors, find_layout
-from ..channels.channels import HEAD_SIZE_DEFAULT
 
 
 def _butterfly_onpick(event, params):
@@ -82,7 +81,7 @@ def _butterfly_on_button_press(event, params):
 
 
 def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
-                        psd=False, time_unit='s', sphere=HEAD_SIZE_DEFAULT):
+                        psd=False, time_unit='s', sphere=None):
     """Draw topomaps from the selected area."""
     import matplotlib.pyplot as plt
     ch_types = [type_ for type_ in ch_types if type_ in ('eeg', 'grad', 'mag')]
@@ -115,8 +114,9 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
     for idx, ch_type in enumerate(ch_types):
         if ch_type not in ('eeg', 'grad', 'mag'):
             continue
-        picks, pos, merge_grads, _, ch_type, this_sphere = \
+        picks, pos, merge_grads, _, ch_type, this_sphere, clip_origin = \
             _prepare_topomap_plot(info, ch_type, sphere=sphere)
+        outlines = _make_head_outlines(this_sphere, pos, 'head', clip_origin)
         if len(pos) < 2:
             fig.delaxes(axarr[0][idx])
             continue
@@ -134,7 +134,8 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
         vmax = max(this_data) if psd else None  # All negative for dB psd.
         cmap = 'Reds' if psd else None
         plot_topomap(this_data, pos, cmap=cmap, vmin=vmin, vmax=vmax,
-                     axes=axarr[0][idx], show=False, sphere=this_sphere)
+                     axes=axarr[0][idx], show=False, sphere=this_sphere,
+                     outlines=outlines)
 
     unit = 'Hz' if psd else time_unit
     fig.suptitle('Average over %.2f%s - %.2f%s' % (xmin, unit, xmax, unit),
@@ -191,8 +192,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                  set_tight_layout=True, selectable=True, zorder='unsorted',
                  noise_cov=None, colorbar=True, mask=None, mask_style=None,
                  mask_cmap=None, mask_alpha=.25, time_unit='s',
-                 show_names=False, group_by=None,
-                 sphere=HEAD_SIZE_DEFAULT):
+                 show_names=False, group_by=None, sphere=None):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings).
 
     Extra param is:
@@ -616,8 +616,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, xlim='tight', proj=False, hline=None, units=None,
                 scalings=None, titles=None, axes=None, gfp=False,
                 window_title=None, spatial_colors=False, zorder='unsorted',
-                selectable=True, noise_cov=None, time_unit='s',
-                sphere=HEAD_SIZE_DEFAULT, verbose=None):
+                selectable=True, noise_cov=None, time_unit='s', sphere=None,
+                verbose=None):
     """Plot evoked data using butterfly plots.
 
     Left click to a line shows the channel name. Selecting an area by clicking
@@ -710,7 +710,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         The units for the time axis, can be "ms" or "s" (default).
 
         .. versionadded:: 0.16
-    %(topomap_sphere)s
+    %(topomap_sphere_auto)s
     %(verbose)s
 
     Returns
@@ -850,7 +850,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
                       cmap='RdBu_r', colorbar=True, mask=None,
                       mask_style=None, mask_cmap="Greys", mask_alpha=.25,
                       time_unit='s', show_names="auto", group_by=None,
-                      sphere=HEAD_SIZE_DEFAULT):
+                      sphere=None):
     """Plot evoked data as images.
 
     Parameters
@@ -958,7 +958,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
             group_by=dict(Left_ROI=[1, 2, 3, 4], Right_ROI=[5, 6, 7, 8])
 
         If None, all picked channels are plotted to the same axis.
-    %(topomap_sphere)s
+    %(topomap_sphere_auto)s
 
     Returns
     -------
@@ -999,7 +999,7 @@ def _plot_update_evoked(params, bools):
 
 @verbose
 def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
-                      sphere=HEAD_SIZE_DEFAULT, verbose=None):
+                      sphere=None, verbose=None):
     """Plot whitened evoked response.
 
     Plots the whitened evoked response and the whitened GFP as described in
@@ -1020,7 +1020,7 @@ def plot_evoked_white(evoked, noise_cov, show=True, rank=None, time_unit='s',
         The units for the time axis, can be "ms" or "s" (default).
 
         .. versionadded:: 0.16
-    %(topomap_sphere)s
+    %(topomap_sphere_auto)s
     %(verbose)s
 
     Returns
@@ -1388,7 +1388,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
                        proj=False, hline=None, units=None, scalings=None,
                        titles=None, gfp=False, window_title=None,
                        spatial_colors=True, zorder='std',
-                       sphere=HEAD_SIZE_DEFAULT)
+                       sphere=None)
     ts_args_def.update(ts_args)
     _plot_evoked(evoked, axes=ts_ax, show=False, plot_type='butterfly',
                  exclude=[], set_tight_layout=False, **ts_args_def)
@@ -1890,7 +1890,7 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
                          truncate_xaxis=True, ylim=None, invert_y=False,
                          show_sensors=None, legend=True,
                          split_legend=None, axes=None, title=None, show=True,
-                         combine=None, sphere=HEAD_SIZE_DEFAULT):
+                         combine=None, sphere=None):
     """Plot evoked time courses for one or more conditions and/or channels.
 
     Parameters
@@ -2033,7 +2033,7 @@ def plot_compare_evokeds(evokeds, picks=None, colors=None,
         unless ``picks`` is a single channel (not channel type) or
         ``axes='topo'``, in which cases no combining is performed. Defaults to
         ``None``.
-    %(topomap_sphere)s
+    %(topomap_sphere_auto)s
 
     Returns
     -------

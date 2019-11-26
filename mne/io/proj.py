@@ -18,7 +18,6 @@ from .constants import FIFF
 from .pick import pick_types
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
-from ..defaults import HEAD_SIZE_DEFAULT
 from ..utils import logger, verbose, warn, fill_doc
 
 
@@ -39,7 +38,7 @@ class Projection(dict):
                      colorbar=False, res=64, size=1, show=True,
                      outlines='head', contours=6, image_interp='bilinear',
                      axes=None, vlim=(None, None), layout=None,
-                     sphere=HEAD_SIZE_DEFAULT):
+                     sphere=None):
         """Plot topographic maps of SSP projections.
 
         Parameters

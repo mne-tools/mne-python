@@ -43,8 +43,7 @@ from .bem import _check_origin
 from .evoked import EvokedArray, _check_decim
 from .baseline import rescale, _log_rescale
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
-                                SetChannelsMixin, InterpolationMixin,
-                                HEAD_SIZE_DEFAULT)
+                                SetChannelsMixin, InterpolationMixin)
 from .filter import detrend, FilterMixin
 from .event import _read_events_fif, make_fixed_length_events
 from .fixes import _get_args, rng_uniform
@@ -1080,7 +1079,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                          layout=None, cmap='RdBu_r', agg_fun=None, dB=True,
                          n_jobs=1, normalize=False, cbar_fmt='%0.3f',
                          outlines='head', axes=None, show=True,
-                         sphere=HEAD_SIZE_DEFAULT, verbose=None):
+                         sphere=None, verbose=None):
         return plot_epochs_psd_topomap(
             self, bands=bands, vmin=vmin, vmax=vmax, tmin=tmin, tmax=tmax,
             proj=proj, bandwidth=bandwidth, adaptive=adaptive,

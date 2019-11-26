@@ -18,7 +18,6 @@ import warnings
 
 import numpy as np
 
-from ..channels.channels import HEAD_SIZE_DEFAULT
 from ..defaults import _handle_default
 from ..utils import verbose, logger, warn, fill_doc, check_version
 from ..io.meas_info import create_info, _validate_type
@@ -884,7 +883,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                     xscale='linear', area_mode='std', area_alpha=0.33,
                     dB=True, estimate='auto', show=True, n_jobs=1,
                     average=False, line_alpha=None, spatial_colors=True,
-                    sphere=HEAD_SIZE_DEFAULT, verbose=None):
+                    sphere=None, verbose=None):
     """%(plot_psd_doc)s.
 
     Parameters
@@ -928,7 +927,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     %(plot_psd_average)s
     %(plot_psd_line_alpha)s
     %(plot_psd_spatial_colors)s
-    %(topomap_sphere)s
+    %(topomap_sphere_auto)s
     %(verbose)s
 
     Returns

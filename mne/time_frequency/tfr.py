@@ -26,8 +26,7 @@ from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
                      fill_doc, _prepare_write_metadata, _check_event_id,
                      _gen_events, SizeMixin, _is_numeric, _check_option,
                      _validate_type)
-from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
-                                 HEAD_SIZE_DEFAULT)
+from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
 from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
                        _get_channel_types)
@@ -1791,7 +1790,7 @@ class AverageTFR(_BaseTFR):
                      colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
                      axes=None, show=True, outlines='head', head_pos=None,
-                     contours=6, sphere=HEAD_SIZE_DEFAULT):
+                     contours=6, sphere=None):
         """Plot topographic maps of time-frequency intervals of TFR data.
 
         Parameters

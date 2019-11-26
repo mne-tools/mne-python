@@ -583,7 +583,18 @@ def _check_pyqt5_version():
 
 
 def _check_sphere(sphere, info=None, sphere_units='m'):
-    from ..bem import fit_sphere_to_headshape, ConductorModel
+    from ..defaults import HEAD_SIZE_DEFAULT
+    from ..bem import fit_sphere_to_headshape, ConductorModel, get_fitting_dig
+    if sphere is None:
+        sphere = HEAD_SIZE_DEFAULT
+        if info is not None:
+            # Decide if we have enough dig points to do the auto fit
+            try:
+                get_fitting_dig(info, 'extra', verbose='error')
+            except (RuntimeError, ValueError):
+                pass
+            else:
+                sphere = 'auto'
     if isinstance(sphere, str):
         if sphere != 'auto':
             raise ValueError('sphere, if str, must be "auto", got %r'

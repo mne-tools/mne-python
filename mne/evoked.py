@@ -13,8 +13,7 @@ import numpy as np
 
 from .baseline import rescale
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
-                                SetChannelsMixin, InterpolationMixin,
-                                HEAD_SIZE_DEFAULT)
+                                SetChannelsMixin, InterpolationMixin)
 from .channels.layout import _merge_grad_data, _pair_grad_sensors
 from .filter import detrend, FilterMixin
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
@@ -284,8 +283,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              xlim='tight', proj=False, hline=None, units=None, scalings=None,
              titles=None, axes=None, gfp=False, window_title=None,
              spatial_colors=False, zorder='unsorted', selectable=True,
-             noise_cov=None, time_unit='s', sphere=HEAD_SIZE_DEFAULT,
-             verbose=None):
+             noise_cov=None, time_unit='s', sphere=None, verbose=None):
         return plot_evoked(
             self, picks=picks, exclude=exclude, unit=unit, show=show,
             ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
@@ -335,8 +333,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                      proj=False, show=True, show_names=False, title=None,
                      mask=None, mask_params=None, outlines='head',
                      contours=6, image_interp='bilinear', average=None,
-                     head_pos=None, axes=None, extrapolate='box',
-                     sphere=HEAD_SIZE_DEFAULT):
+                     head_pos=None, axes=None, extrapolate='box', sphere=None):
         return plot_evoked_topomap(
             self, times=times, ch_type=ch_type, layout=layout, vmin=vmin,
             vmax=vmax, cmap=cmap, sensors=sensors, colorbar=colorbar,
@@ -371,7 +368,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     def animate_topomap(self, ch_type=None, times=None, frame_rate=None,
                         butterfly=False, blit=True, show=True, time_unit='s',
-                        sphere=HEAD_SIZE_DEFAULT):
+                        sphere=None):
         """Make animation of evoked data as topomap timeseries.
 
         The animation can be paused/resumed with left mouse button.
@@ -405,7 +402,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             or "s" (will become the default in 0.17).
 
             .. versionadded:: 0.16
-        %(topomap_sphere)s
+        %(topomap_sphere_auto)s
 
         Returns
         -------

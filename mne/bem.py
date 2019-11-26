@@ -839,12 +839,7 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
     ----------
     info : instance of Info
         Measurement info.
-    dig_kinds : list of str | str
-        Kind of digitization points to use in the fitting. These can be any
-        combination of ('cardinal', 'hpi', 'eeg', 'extra'). Can also
-        be 'auto' (default), which will use only the 'extra' points if
-        enough (more than 10) are available, and if not, uses 'extra' and
-        'eeg' points.
+    %(dig_kinds)s
     units : str
         Can be "m" (default) or "mm".
 

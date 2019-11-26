@@ -42,8 +42,7 @@ from ..viz import (plot_ica_components, plot_ica_scores,
 from ..viz.ica import plot_ica_properties
 from ..viz.topomap import _plot_corrmap
 
-from ..channels.channels import (_contains_ch_type, ContainsMixin,
-                                 HEAD_SIZE_DEFAULT)
+from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
 from ..utils import (check_version, logger, check_fname, verbose,
                      _reject_data_segments, check_random_state, _validate_type,
@@ -2437,8 +2436,7 @@ def _find_max_corrs(all_maps, target, threshold):
 @verbose
 def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
             plot=True, show=True, outlines='head', layout=None,
-            sensors=True, contours=6, cmap=None, sphere=HEAD_SIZE_DEFAULT,
-            verbose=None):
+            sensors=True, contours=6, cmap=None, sphere=None, verbose=None):
     """Find similar Independent Components across subjects by map similarity.
 
     Corrmap (Viola et al. 2009 Clin Neurophysiol) identifies the best group

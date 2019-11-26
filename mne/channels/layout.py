@@ -21,7 +21,7 @@ from ..io.constants import FIFF
 from ..io.meas_info import Info
 from ..utils import (_clean_names, warn, _check_ch_locs, fill_doc,
                      _check_option, _check_sphere)
-from .channels import _get_ch_info, HEAD_SIZE_DEFAULT
+from .channels import _get_ch_info
 
 
 class Layout(object):
@@ -583,7 +583,7 @@ def _box_size(points, width=None, height=None, padding=0.0):
 
 
 def _find_topomap_coords(info, picks, layout=None, ignore_overlap=False,
-                         to_sphere=True, sphere=HEAD_SIZE_DEFAULT):
+                         to_sphere=True, sphere=None):
     """Guess the E/MEG layout and return appropriate topomap coordinates.
 
     Parameters

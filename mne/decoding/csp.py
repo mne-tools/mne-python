@@ -14,7 +14,6 @@ from scipy import linalg
 
 from .mixin import TransformerMixin
 from .base import BaseEstimator
-from ..channels import HEAD_SIZE_DEFAULT
 from ..cov import _regularized_covariance
 from ..utils import fill_doc, _check_option
 
@@ -299,7 +298,7 @@ class CSP(TransformerMixin, BaseEstimator):
                       show=True, show_names=False, title=None, mask=None,
                       mask_params=None, outlines='head', contours=6,
                       image_interp='bilinear', average=None, head_pos=None,
-                      sphere=HEAD_SIZE_DEFAULT):
+                      sphere=None):
         """Plot topographic patterns of components.
 
         The patterns explain how the measured data was generated from the

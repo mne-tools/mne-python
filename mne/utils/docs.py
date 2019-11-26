@@ -12,6 +12,7 @@ import warnings
 import webbrowser
 
 from .config import get_config
+from ..defaults import HEAD_SIZE_DEFAULT
 from ..externals.doccer import filldoc, unindent_dict
 from .check import _check_option
 
@@ -82,20 +83,22 @@ sphere : float | array-like | instance of ConductorModel
     Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
     meters, or a single float to give the radius (origin assumed 0, 0, 0).
     Can also be a spherical ConductorModel, which will use the origin and
-    radius.
+    radius. Can also be None (default) which is an alias for %s.
 
     .. versionadded:: 0.20
-"""
+""" % (HEAD_SIZE_DEFAULT,)
 docdict['topomap_sphere_auto'] = """
-sphere : float | array-like | str
+sphere : float | array-like | str | None
     The sphere parameters to use for the cartoon head.
     Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
     meters, or a single float to give the radius (origin assumed 0, 0, 0).
     Can also be a spherical ConductorModel, which will use the origin and
     radius. Can be "auto" to use a digitization-based fit.
+    Can also be None (default) to use 'auto' when enough extra digitization
+    points are available, and %s otherwise.
 
     .. versionadded:: 0.20
-"""
+""" % (HEAD_SIZE_DEFAULT,)
 docdict['layout_dep'] = """
 layout : None
     Deprecated and will be removed in 0.21. Use ``sphere`` to control
@@ -279,7 +282,7 @@ dig_kinds : list of str | str
     Kind of digitization points to use in the fitting. These can be any
     combination of ('cardinal', 'hpi', 'eeg', 'extra'). Can also
     be 'auto' (default), which will use only the 'extra' points if
-    enough (more than 10) are available, and if not, uses 'extra' and
+    enough (more than 4) are available, and if not, uses 'extra' and
     'eeg' points.
 """
 docdict['exclude_frontal'] = """

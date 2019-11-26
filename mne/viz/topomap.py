@@ -17,7 +17,8 @@ import warnings
 import numpy as np
 
 from ..baseline import rescale
-from ..channels.channels import HEAD_SIZE_DEFAULT, _get_ch_type
+from ..defaults import HEAD_SIZE_DEFAULT
+from ..channels.channels import _get_ch_type
 from ..channels.layout import (
     _find_topomap_coords, _merge_grad_data, find_layout, _pair_grad_sensors,
     Layout)
@@ -38,6 +39,7 @@ from ..io.proj import Projection
 
 
 def _adjust_meg_sphere(sphere, info, ch_type):
+    sphere = _check_sphere(sphere)
     assert ch_type is not None
     if ch_type in ('mag', 'grad', 'planar1', 'planar2'):
         # move sphere X/Y (head coords) to device X/Y space
@@ -53,7 +55,10 @@ def _adjust_meg_sphere(sphere, info, ch_type):
             # but let's just assume some orthographic rather than parallel
             # projection for explicitness / simplicity.
             sphere[2] = 0.
-    return sphere
+        clip_origin = (0., 0.)
+    else:
+        clip_origin = sphere[:2].copy()
+    return sphere, clip_origin
 
 
 def _deprecate_layout(layout):
@@ -62,12 +67,10 @@ def _deprecate_layout(layout):
              'in 0.21', DeprecationWarning)
 
 
-def _prepare_topomap_plot(inst, ch_type, layout=None,
-                          sphere=HEAD_SIZE_DEFAULT):
+def _prepare_topomap_plot(inst, ch_type, layout=None, sphere=None):
     """Prepare topo plot."""
     info = copy.deepcopy(inst if isinstance(inst, Info) else inst.info)
-    sphere = _check_sphere(sphere, info)
-    sphere = _adjust_meg_sphere(sphere, info, ch_type)
+    sphere, clip_origin = _adjust_meg_sphere(sphere, info, ch_type)
 
     _deprecate_layout(layout)
     del layout
@@ -116,7 +119,7 @@ def _prepare_topomap_plot(inst, ch_type, layout=None,
         # instead of MEG0142 or MEG0143 which are the 2 planar grads.
         ch_names = [ch_names[k][:-1] + 'x' for k in range(0, len(ch_names), 2)]
     pos = np.array(pos)[:, :2]  # 2D plot, otherwise interpolation bugs
-    return picks, pos, merge_grads, ch_names, ch_type, sphere
+    return picks, pos, merge_grads, ch_names, ch_type, sphere, clip_origin
 
 
 def _plot_update_evoked_topomap(params, bools):
@@ -203,7 +206,7 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
                        colorbar=False, res=64, size=1, show=True,
                        outlines='head', contours=6, image_interp='bilinear',
                        axes=None, vlim=(None, None), layout=None,
-                       sphere=HEAD_SIZE_DEFAULT, extrapolate='box'):
+                       sphere=None, extrapolate='box'):
     """Plot topographic maps of SSP projections.
 
     Parameters
@@ -237,10 +240,7 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
              '0.21. Pass info instead.', DeprecationWarning)
     _validate_type(info, 'info', 'info')
 
-    types = []
-    datas = []
-    poses = []
-    spheres = []
+    types, datas, poss, spheres, outliness = [], [], [], [], []
     for proj in projs:
         # get ch_names, ch_types, data
         proj = _eliminate_zeros(proj)  # gh 5641
@@ -256,17 +256,20 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
         data = proj['data']['data'].ravel()
         info_names = _clean_names(info['ch_names'], remove_whitespace=True)
         use_info = pick_info(info, pick_channels(info_names, ch_names))
-        data_picks, pos, merge_grads, names, _, this_sphere = \
+        data_picks, pos, merge_grads, names, _, this_sphere, clip_origin = \
             _prepare_topomap_plot(
                 use_info, _get_ch_type(use_info, None), sphere=sphere)
+        these_outlines = _make_head_outlines(
+            sphere, pos, outlines, clip_origin)
         data = data[data_picks]
         if merge_grads:
             data = _merge_grad_data(data).ravel()
 
         # populate containers
         datas.append(data)
-        poses.append(pos)
+        poss.append(pos)
         spheres.append(this_sphere)
+        outliness.append(these_outlines)
     del sphere
 
     # setup axes
@@ -301,8 +304,8 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
         vlims = [vlim for _ in range(len(datas))]
 
     # plot
-    for proj, ax, _data, _pos, _vlim, _sphere in zip(
-            projs, axes, datas, poses, vlims, spheres):
+    for proj, ax, _data, _pos, _vlim, _sphere, _outlines in zip(
+            projs, axes, datas, poss, vlims, spheres, outliness):
         # title
         title = proj['desc']
         title = '\n'.join(title[ii:ii + 22] for ii in range(0, len(title), 22))
@@ -311,7 +314,7 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
         vmin, vmax = _vlim
         im = plot_topomap(_data, _pos[:, :2], vmin=vmin, vmax=vmax, cmap=cmap,
                           sensors=sensors, res=res, axes=ax,
-                          outlines=outlines, contours=contours,
+                          outlines=_outlines, contours=contours,
                           image_interp=image_interp, show=False,
                           extrapolate=extrapolate, sphere=_sphere)[0]
 
@@ -340,7 +343,7 @@ def _head_pos_to_layout_pos(pos):
     return pos
 
 
-def _make_head_outlines(sphere, pos, outlines='head', head_pos=None):
+def _make_head_outlines(sphere, pos, outlines, clip_origin, head_pos=None):
     """Check or create outlines for topoplot."""
     assert isinstance(sphere, np.ndarray)
     x, y, _, radius = sphere
@@ -380,6 +383,7 @@ def _make_head_outlines(sphere, pos, outlines='head', head_pos=None):
         outlines_dict['mask_pos'] = (mask_scale * head_x, mask_scale * head_y)
         clip_radius = radius * mask_scale
         outlines_dict['clip_radius'] = (clip_radius,) * 2
+        outlines_dict['clip_origin'] = clip_origin
         outlines = outlines_dict
 
     elif isinstance(outlines, dict):
@@ -397,7 +401,7 @@ def _draw_outlines(ax, outlines):
     outlines_ = {k: v for k, v in outlines.items()
                  if k not in ['patch']}
     for key, (x_coord, y_coord) in outlines_.items():
-        if 'mask' in key or key == 'clip_radius':
+        if 'mask' in key or key in ('clip_radius', 'clip_origin'):
             continue
         ax.plot(x_coord, y_coord, color='k', linewidth=1, clip_on=False)
     return outlines_
@@ -558,13 +562,12 @@ def _topomap_plot_sensors(pos_x, pos_y, sensors, ax):
 
 
 def _get_pos_outlines(info, picks, sphere, to_sphere=True):
-    sphere = _check_sphere(sphere)
     ch_type = _get_ch_type(pick_info(_simplify_info(info), picks), None)
-    sphere = _adjust_meg_sphere(sphere, info, ch_type)
+    sphere, clip_origin = _adjust_meg_sphere(sphere, info, ch_type)
     pos = _find_topomap_coords(
         info, picks, ignore_overlap=True, to_sphere=to_sphere,
         sphere=sphere)
-    outlines = _make_head_outlines(sphere, pos)
+    outlines = _make_head_outlines(sphere, pos, 'head', clip_origin)
     return pos, outlines
 
 
@@ -574,7 +577,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                  mask_params=None, outlines='head',
                  contours=6, image_interp='bilinear', show=True,
                  head_pos=None, onselect=None, extrapolate='box',
-                 sphere=HEAD_SIZE_DEFAULT):
+                 sphere=None):
     """Plot a topographic map as image.
 
     Parameters
@@ -665,10 +668,19 @@ def _setup_interp(pos, res, extrapolate, sphere, outlines):
     ylim = np.inf, -np.inf,
     mask_ = np.c_[outlines['mask_pos']]
     clip_radius = outlines['clip_radius']
-    xmin, xmax = (np.min(np.r_[xlim[0], mask_[:, 0], -clip_radius[0]]),
-                  np.max(np.r_[xlim[1], mask_[:, 0], clip_radius[0]]))
-    ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1], -clip_radius[1]]),
-                  np.max(np.r_[ylim[1], mask_[:, 1], clip_radius[1]]))
+    clip_origin = outlines.get('clip_origin', (0., 0.))
+    xmin, xmax = (np.min(np.r_[xlim[0],
+                               mask_[:, 0],
+                               clip_origin[0] - clip_radius[0]]),
+                  np.max(np.r_[xlim[1],
+                               mask_[:, 0],
+                               clip_origin[0] + clip_radius[0]]))
+    ymin, ymax = (np.min(np.r_[ylim[0],
+                               mask_[:, 1],
+                               clip_origin[1] - clip_radius[1]]),
+                  np.max(np.r_[ylim[1],
+                               mask_[:, 1],
+                               clip_origin[1] + clip_radius[1]]))
     xi = np.linspace(xmin, xmax, res)
     yi = np.linspace(ymin, ymax, res)
     Xi, Yi = np.meshgrid(xi, yi)
@@ -682,7 +694,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                   mask_params=None, outlines='head',
                   contours=6, image_interp='bilinear', show=True,
                   head_pos=None, onselect=None, extrapolate='box',
-                  sphere=HEAD_SIZE_DEFAULT):
+                  sphere=None):
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
     data = np.asarray(data)
@@ -748,8 +760,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     if cmap is None:
         cmap = 'Reds' if norm else 'RdBu_r'
 
-    outlines = _make_head_outlines(
-        sphere, pos, outlines=outlines, head_pos=head_pos)
+    outlines = _make_head_outlines(sphere, pos, outlines, (0., 0.), head_pos)
     assert isinstance(outlines, dict)
 
     ax = axes if axes else plt.gca()
@@ -760,6 +771,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
     # find mask limits
     clip_radius = outlines['clip_radius']
+    clip_origin = outlines.get('clip_origin', (0., 0.))
     extent, Xi, Yi, interp = _setup_interp(
         pos, res, extrapolate, sphere, outlines)
     interp.set_values(data)
@@ -776,7 +788,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         ax.set_clip_path(patch_)
     if _use_default_outlines:
         from matplotlib import patches
-        patch_ = patches.Ellipse((0, 0),
+        patch_ = patches.Ellipse(clip_origin,
                                  2 * clip_radius[0],
                                  2 * clip_radius[1],
                                  clip_on=True,
@@ -852,7 +864,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
                       title=None, show=True, outlines='head', contours=6,
                       image_interp='bilinear', head_pos=None, axes=None,
                       sensors=True, allow_ref_meg=False, extrapolate='box',
-                      sphere=HEAD_SIZE_DEFAULT):
+                      sphere=None):
     """Plot single ica map to axes."""
     from matplotlib.axes import Axes
 
@@ -869,9 +881,11 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
         return
 
     data = ica.get_components()[:, idx]
-    data_picks, pos, merge_grads, names, _, sphere = _prepare_topomap_plot(
-        ica, ch_type, layout, sphere=sphere)
+    data_picks, pos, merge_grads, names, _, sphere, clip_origin = \
+        _prepare_topomap_plot(ica, ch_type, layout, sphere=sphere)
     data = data[data_picks]
+    outlines = _make_head_outlines(sphere, pos, outlines, clip_origin,
+                                   head_pos)
 
     if merge_grads:
         data = _merge_grad_data(data)
@@ -898,7 +912,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                         image_interp='bilinear', head_pos=None,
                         inst=None, plot_std=True, topomap_args=None,
                         image_args=None, psd_args=None, reject='auto',
-                        sphere=HEAD_SIZE_DEFAULT):
+                        sphere=None):
     """Project unmixing matrix on interpolated sensor topography.
 
     Parameters
@@ -1038,8 +1052,10 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     data = np.dot(ica.mixing_matrix_[:, picks].T,
                   ica.pca_components_[:ica.n_components_])
 
-    data_picks, pos, merge_grads, names, _, sphere = _prepare_topomap_plot(
-        ica, ch_type, layout, sphere=sphere)
+    data_picks, pos, merge_grads, names, _, sphere, clip_origin = \
+        _prepare_topomap_plot(ica, ch_type, layout, sphere=sphere)
+    outlines = _make_head_outlines(sphere, pos, outlines, clip_origin,
+                                   head_pos)
 
     data = np.atleast_2d(data)
     data = data[:, data_picks]
@@ -1121,7 +1137,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
                      colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
                      axes=None, show=True, outlines='head', head_pos=None,
-                     contours=6, sphere=HEAD_SIZE_DEFAULT):
+                     contours=6, sphere=None):
     """Plot topographic maps of specific time-frequency intervals of TFR data.
 
     Parameters
@@ -1229,8 +1245,11 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     import matplotlib.pyplot as plt
     ch_type = _get_ch_type(tfr, ch_type)
 
-    picks, pos, merge_grads, names, _, sphere = _prepare_topomap_plot(
-        tfr, ch_type, layout, sphere=sphere)
+    picks, pos, merge_grads, names, _, sphere, clip_origin = \
+        _prepare_topomap_plot(tfr, ch_type, layout, sphere=sphere)
+    outlines = _make_head_outlines(sphere, pos, outlines, clip_origin,
+                                   head_pos)
+
     if not show_names:
         names = None
 
@@ -1294,7 +1313,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
                          contours=contours, names=names, show_names=show_names,
                          show=False, onselect=selection_callback,
                          sensors=sensors, res=res, head_pos=head_pos,
-                         outlines=outlines)
+                         outlines=outlines, sphere=sphere)
 
     if colorbar:
         from matplotlib import ticker
@@ -1320,7 +1339,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                         mask_params=None, outlines='head', contours=6,
                         image_interp='bilinear', average=None, head_pos=None,
                         axes=None, extrapolate='box',
-                        sphere=HEAD_SIZE_DEFAULT):
+                        sphere=None):
     """Plot topographic maps of specific time points of evoked data.
 
     Parameters
@@ -1471,8 +1490,10 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     mask_params['markersize'] *= size / 2.
     mask_params['markeredgewidth'] *= size / 2.
 
-    picks, pos, merge_grads, names, ch_type, sphere = _prepare_topomap_plot(
-        evoked, ch_type, layout, sphere=sphere)
+    picks, pos, merge_grads, names, ch_type, sphere, clip_origin = \
+        _prepare_topomap_plot(evoked, ch_type, layout, sphere=sphere)
+    outlines = _make_head_outlines(sphere, pos, outlines, clip_origin,
+                                   head_pos)
 
     # project before picks
     if proj is True and evoked.proj is not True:
@@ -1682,7 +1703,7 @@ def _slider_changed(val, ax, data, times, pos, scaling, func, time_format,
 def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
                              vmax=None, cmap=None, outlines='head',
                              colorbar=False, cbar_fmt='%3.3f',
-                             sphere=HEAD_SIZE_DEFAULT):
+                             sphere=None):
     """Plot topomap multi cbar."""
     _hide_frame(ax)
     vmin = np.min(data) if vmin is None else vmin
@@ -1712,7 +1733,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
                             cmap='RdBu_r', agg_fun=None, dB=False, n_jobs=1,
                             normalize=False, cbar_fmt='%0.3f',
                             outlines='head', axes=None, show=True,
-                            sphere=HEAD_SIZE_DEFAULT, verbose=None):
+                            sphere=None, verbose=None):
     """Plot the topomap of the power spectral density across epochs.
 
     Parameters
@@ -1798,8 +1819,9 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     """
     ch_type = _get_ch_type(epochs, ch_type)
 
-    picks, pos, merge_grads, names, ch_type, sphere = _prepare_topomap_plot(
-        epochs, ch_type, layout, sphere=sphere)
+    picks, pos, merge_grads, names, ch_type, sphere, clip_origin = \
+        _prepare_topomap_plot(epochs, ch_type, layout, sphere=sphere)
+    outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
 
     psds, freqs = psd_multitaper(epochs, tmin=tmin, tmax=tmax,
                                  bandwidth=bandwidth, adaptive=adaptive,
@@ -1822,7 +1844,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
 def plot_psds_topomap(
         psds, freqs, pos, agg_fun=None, vmin=None, vmax=None, bands=None,
         cmap=None, dB=True, normalize=False, cbar_fmt='%0.3f', outlines='head',
-        axes=None, show=True, sphere=HEAD_SIZE_DEFAULT):
+        axes=None, show=True, sphere=None):
     """Plot spatial maps of PSDs.
 
     Parameters
@@ -2082,7 +2104,8 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads, sphere):
 
     vmin, vmax = _setup_vmin_vmax(data, None, None, norm)
 
-    outlines = _make_head_outlines(sphere, params['pos'])
+    outlines = _make_head_outlines(sphere, params['pos'], 'head',
+                                   params['clip_origin'])
 
     _hide_frame(ax)
     extent, Xi, Yi, interp = _setup_interp(
@@ -2216,8 +2239,8 @@ def _topomap_animation(evoked, ch_type, times, frame_rate, butterfly, blit,
     frames = [np.abs(evoked.times - time).argmin() for time in times]
 
     blit = False if plt.get_backend() == 'MacOSX' else blit
-    picks, pos, merge_grads, _, ch_type, sphere = _prepare_topomap_plot(
-        evoked, ch_type, sphere=sphere)
+    picks, pos, merge_grads, _, ch_type, sphere, clip_origin = \
+        _prepare_topomap_plot(evoked, ch_type, sphere=sphere)
     data = evoked.data[picks, :]
     data *= _handle_default('scalings')[ch_type]
 
@@ -2237,7 +2260,8 @@ def _topomap_animation(evoked, ch_type, times, frame_rate, butterfly, blit,
 
     params = dict(data=data, pos=pos, all_times=evoked.times, frame=0,
                   frames=frames, butterfly=butterfly, blit=blit,
-                  pause=False, times=times, time_unit=time_unit)
+                  pause=False, times=times, time_unit=time_unit,
+                  clip_origin=clip_origin)
     init_func = partial(_init_anim, ax=ax, ax_cbar=ax_cbar, ax_line=ax_line,
                         params=params, merge_grads=merge_grads,
                         sphere=sphere)
@@ -2275,7 +2299,7 @@ def _set_contour_locator(vmin, vmax, contours):
 
 def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
                   layout, cmap, contours, template=False,
-                  sphere=HEAD_SIZE_DEFAULT):
+                  sphere=None):
     """Customize ica.plot_components for corrmap."""
     if not template:
         title = 'Detected components'
@@ -2298,8 +2322,9 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
     elif np.isscalar(picks):
         picks = [picks]
 
-    data_picks, pos, merge_grads, names, _, sphere = _prepare_topomap_plot(
-        ica, ch_type, layout, sphere=sphere)
+    data_picks, pos, merge_grads, names, _, sphere, clip_origin = \
+        _prepare_topomap_plot(ica, ch_type, layout, sphere=sphere)
+    outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
 
     data = np.atleast_2d(data)
     data = data[:, data_picks]
@@ -2344,7 +2369,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
                   names=None, show_names=False, mask=None, mask_params=None,
                   outlines='head', contours=6, image_interp='bilinear',
                   show=True, head_pos=None, onselect=None,
-                  extrapolate='box', sphere=HEAD_SIZE_DEFAULT):
+                  extrapolate='box', sphere=None):
     """Plot arrow map.
 
     Compute arrowmaps, based upon the Hosaka-Cohen transformation [1]_,
@@ -2477,7 +2502,10 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
         mapping = _map_meg_channels(info_from, info_to, mode='accurate')
         data = np.dot(mapping, data)
 
-    pos = _prepare_topomap_plot(info_to, 'mag', sphere=sphere)[1]
+    _, pos, _, _, _, sphere, clip_origin = \
+        _prepare_topomap_plot(info_to, 'mag', sphere=sphere)
+    outlines = _make_head_outlines(
+        sphere, pos, outlines, clip_origin, head_pos)
     if axes is None:
         fig, axes = plt.subplots()
     else:
@@ -2486,12 +2514,14 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
                  sensors=sensors, res=res, names=names, show_names=show_names,
                  mask=mask, mask_params=mask_params, outlines=outlines,
                  contours=contours, image_interp=image_interp, show=show,
-                 head_pos=head_pos, onselect=onselect, extrapolate=extrapolate)
+                 head_pos=head_pos, onselect=onselect, extrapolate=extrapolate,
+                 sphere=sphere)
     x, y = tuple(pos.T)
     dx, dy = _trigradient(x, y, data)
     dxx = dy.data
     dyy = -dx.data
-    axes.quiver(x, y, dxx, dyy, scale=scale, color='k', lw=1)
+    axes.quiver(x, y, dxx, dyy, scale=scale, color='k', lw=1, clip_on=False)
+    axes.figure.canvas.draw_idle()
     tight_layout(fig=fig)
 
     return fig
