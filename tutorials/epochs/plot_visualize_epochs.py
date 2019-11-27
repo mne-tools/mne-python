@@ -65,7 +65,7 @@ del raw
 
 catch_trials_and_buttonpresses = mne.pick_events(events, include=[5, 32])
 epochs['face'].plot(events=catch_trials_and_buttonpresses,
-                    event_colors={32: 'red'})
+                    event_colors={32: 'red', 5: 'yellow'})
 #epochs['face'].plot(events=events, event_colors=dict(buttonpress='red'))
 
 ###############################################################################
