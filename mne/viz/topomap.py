@@ -39,7 +39,7 @@ from ..io.proj import Projection
 
 
 def _adjust_meg_sphere(sphere, info, ch_type):
-    sphere = _check_sphere(sphere)
+    sphere = _check_sphere(sphere, info)
     assert ch_type is not None
     if ch_type in ('mag', 'grad', 'planar1', 'planar2'):
         # move sphere X/Y (head coords) to device X/Y space
