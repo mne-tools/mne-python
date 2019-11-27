@@ -183,6 +183,7 @@ class _Brain(object):
         self._n_times = None
         self._scalarbar = False
         self._depth_peeling = False
+        self._surfaces = []
         # for now only one color bar can be added
         # since it is the same for all figures
         self._colorbar_added = False
@@ -444,6 +445,7 @@ class _Brain(object):
         dt_min = fmin if center is None else -1 * fmax
 
         ctable = self.update_lut(transparent=transparent)
+        self._data['ctable'] = ctable
 
         for ri, v in enumerate(self._views):
             if array.ndim == 3:
@@ -504,6 +506,7 @@ class _Brain(object):
                 self._colorbar_added = True
             self._renderer.set_camera(azimuth=views_dict[v].azim,
                                       elevation=views_dict[v].elev)
+            self._surfaces.append(mesh)
 
     def add_label(self, label, color=None, alpha=1, scalar_thresh=None,
                   borders=False, hemi=None, subdir=None):
@@ -876,7 +879,18 @@ class _Brain(object):
     def scale_data_colormap(self, fmin, fmid, fmax, transparent,
                             center=None, alpha=1.0, data=None, verbose=None):
         """Scale the data colormap."""
-        pass
+        lut_lst = self._data['ctable']
+        n_col = len(lut_lst)
+
+        # apply the lut on every surfaces
+        for surf in self._surfaces:
+            vtk_lut = surf.GetMapper().GetLookupTable()
+            vtk_lut.SetNumberOfColors(n_col)
+            vtk_lut.SetRange([fmin, fmax])
+            vtk_lut.Build()
+            for i in range(0, n_col):
+                lt = lut_lst[i]
+                vtk_lut.SetTableValue(i, lt[0], lt[1], lt[2], alpha)
 
     def enable_depth_peeling(self):
         """Enable depth peeling."""

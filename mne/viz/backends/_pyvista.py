@@ -178,11 +178,14 @@ class _Renderer(_BaseRenderer):
                 from matplotlib.colors import ListedColormap
                 colormap = ListedColormap(colormap)
 
-            self.plotter.add_mesh(mesh=pd, color=color, scalars=scalars,
-                                  rgba=rgba, opacity=opacity, cmap=colormap,
-                                  backface_culling=backface_culling,
-                                  rng=[vmin, vmax], show_scalar_bar=False,
-                                  smooth_shading=smooth_shading)
+            actor = self.plotter.add_mesh(
+                mesh=pd, color=color, scalars=scalars,
+                rgba=rgba, opacity=opacity, cmap=colormap,
+                backface_culling=backface_culling,
+                rng=[vmin, vmax], show_scalar_bar=False,
+                smooth_shading=smooth_shading
+            )
+            return actor
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
@@ -450,8 +453,8 @@ class _Renderer(_BaseRenderer):
         return _Projection(xy=xy, pts=pts)
 
     def enable_depth_peeling(self):
-        self.plotter.enable_depth_peeling(number_of_peels=3,
-                                          occlusion_ratio=0.5)
+        self.plotter.enable_depth_peeling(number_of_peels=1,
+                                          occlusion_ratio=1.0)
 
 
 def _deg2rad(deg):
