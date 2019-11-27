@@ -41,7 +41,10 @@ epochs = mne.Epochs(raw, events, tmin=-0.2, tmax=0.5, event_id=event_dict,
 del raw
 
 ###############################################################################
-# .. sidebar:: block=True
+# Plotting ``Epochs`` as time series
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# .. sidebar:: Interactivity in pipelines and scripts
 #
 #     To use the interactive features of the :meth:`~mne.Epochs.plot` method
 #     when running your code non-interactively, pass the ``block=True``
@@ -57,7 +60,7 @@ del raw
 # bad epochs (by clicking the data) for later dropping. Channels marked "bad"
 # will be shown in light grey color and will be added to
 # ``epochs.info['bads']``; epochs marked as bad will be indicated as ``'USER'``
-# in the :attr:`~mne.Epochs.drop_log`.
+# in ``epochs.drop_log``.
 #
 # Here we'll plot only the "catch" trials from the :ref:`sample dataset
 # <sample-dataset>`, and pass in our events array so that the button press
@@ -114,8 +117,8 @@ epochs.plot_sensors(kind='3d', ch_type='all')
 epochs.plot_sensors(kind='topomap', ch_type='all')
 
 ###############################################################################
-# Plotting the power spectrum
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Plotting the power spectrum of ``Epochs``
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # Again, just like :class:`~mne.io.Raw` objects, :class:`~mne.Epochs` objects
 # have a :meth:`~mne.Epochs.plot_psd` method for plotting the `spectral
@@ -141,12 +144,12 @@ epochs['auditory'].plot_psd(picks='eeg')
 # accompanied by a scalebar indicating the range of the colormap, and a time
 # series showing the average signal across epochs and a bootstrapped 95%
 # confidence band around the mean. :meth:`~mne.Epochs.plot_image` is a highly
-# customizable function with many parameters, including customization of the
+# customizable method with many parameters, including customization of the
 # auxiliary colorbar and averaged time series subplots. See the docstrings of
 # :meth:`~mne.Epochs.plot_image` and `mne.viz.plot_compare_evokeds` (which is
-# used to plot the average time series) for full details.
+# used to plot the average time series) for full details. Here we'll show the
+# mean across magnetometers for all epochs with an auditory stimulus:
 
-# sphinx_gallery_thumbnail_number = 6
 epochs['auditory'].plot_image(picks='mag', combine='mean')
 
 ###############################################################################
@@ -156,6 +159,7 @@ epochs['auditory'].plot_image(picks='mag', combine='mean')
 # plot the global field power (useful for combining sensors that respond with
 # opposite polarity).
 
+# sphinx_gallery_thumbnail_number = 8
 epochs['auditory'].plot_image(picks=['MEG 0242', 'MEG 0243'])
 epochs['auditory'].plot_image(picks=['MEG 0242', 'MEG 0243'], combine='gfp')
 
@@ -165,13 +169,15 @@ epochs['auditory'].plot_image(picks=['MEG 0242', 'MEG 0243'], combine='gfp')
 # number of image maps simultaneously, and (in interactive sessions) allows you
 # to click on each small image map to pop open a separate figure with the
 # full-sized image plot (as if you had called :meth:`~mne.Epochs.plot_image` on
-# just that sensor). Note also the inclusion of the ``sigma`` parameter, which
+# just that sensor). Note also the use of the ``sigma`` parameter, which
 # smooths the image map along the vertical dimension (across epochs) which can
 # make the small image maps easier to view (by smoothing out noisy epochs onto
 # their neighbors, while reinforcing parts of the image where adjacent epochs
-# are similar):
+# are similar). At the small scale shown in this tutorial it's hard to see any
+# useful detail in these plots; it's often best when plotting interactively to
+# maximize the topo image plots to fullscreen.
 
-epochs['visual'].plot_topo_image(fig_facecolor='w', font_color='k', sigma=1)
+epochs['auditory'].plot_topo_image(fig_facecolor='0.5', sigma=1)
 
 ###############################################################################
 # By default, if multiple channel types are present,
@@ -187,7 +193,7 @@ epochs['visual'].plot_topo_image(fig_facecolor='w', font_color='k', sigma=1)
 
 layout = mne.channels.find_layout(epochs.info, ch_type='eeg')
 epochs['visual'].plot_topo_image(layout=layout, fig_facecolor='w',
-                                 font_color='k', sigma=1, vmin=-60, vmax=60)
+                                 sigma=1, vmin=-60, vmax=60)
 
 ###############################################################################
 # .. LINKS
