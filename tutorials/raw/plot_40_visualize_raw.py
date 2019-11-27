@@ -170,6 +170,8 @@ raw.copy().pick_types(meg=False, eeg=True).plot_psd_topo()
 raw.plot_sensors(ch_type='eeg')
 
 ###############################################################################
+# .. _`tut-section-raw-plot-proj`:
+#
 # Plotting projectors from ``Raw`` objects
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
