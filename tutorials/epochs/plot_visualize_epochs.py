@@ -42,6 +42,7 @@ del raw
 
 ###############################################################################
 # .. sidebar:: block=True
+#
 #     To use the interactive features of the :meth:`~mne.Epochs.plot` method
 #     when running your code non-interactively, pass the ``block=True``
 #     parameter, which halts the Python interpreter until the figure window is
