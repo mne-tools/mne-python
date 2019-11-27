@@ -1,94 +1,194 @@
 """
 .. _tut-visualize-epochs:
 
-Visualize Epochs data
-=====================
+Visualizing epoched data
+========================
 
+This tutorial shows how to plot epoched data as time series, how to plot the
+spectral density of epoched data, how to plot epochs as an imagemap, and how to
+plot the sensor locations and projectors stored in :class:`~mne.Epochs`
+objects.
+
+.. contents:: Page contents
+   :local:
+   :depth: 2
+
+We'll start by importing the modules we need, loading the continuous (raw)
+sample data, and cropping it to save memory:
 """
-# sphinx_gallery_thumbnail_number = 7
 
-import os.path as op
-
+import os
 import mne
 
-data_path = op.join(mne.datasets.sample.data_path(), 'MEG', 'sample')
-raw = mne.io.read_raw_fif(
-    op.join(data_path, 'sample_audvis_filt-0-40_raw.fif'), preload=True)
-event_id = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
-            'visual/right': 4, 'smiley': 5, 'button': 32}
-events = mne.find_events(raw)
-epochs = mne.Epochs(raw, events, event_id=event_id, tmin=-0.2, tmax=.5,
+sample_data_folder = mne.datasets.sample.data_path()
+sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
+                                    'sample_audvis_raw.fif')
+raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False).crop(tmax=120)
+
+###############################################################################
+# To create the :class:`~mne.Epochs` data structure, we'll extract the event
+# IDs stored in the :term:`stim channel`, map those integer event IDs to more
+# descriptive condition labels using an event dictionary, and pass those to the
+# :class:`~mne.Epochs` constructor, along with the :class:`~mne.io.Raw` data
+# and the desired temporal limits of our epochs, ``tmin`` and ``tmax`` (for a
+# detailed explanation of these steps, see :ref:`tut-epochs-class`).
+
+events = mne.find_events(raw, stim_channel='STI 014')
+event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
+              'visual/right': 4, 'face': 5, 'buttonpress': 32}
+epochs = mne.Epochs(raw, events, tmin=-0.2, tmax=0.5, event_id=event_dict,
                     preload=True)
 del raw
 
 ###############################################################################
-# This tutorial focuses on visualization of epoched data. All of the functions
-# introduced here are basically high level matplotlib functions with built in
-# intelligence to work with epoched data. All the methods return a handle to
-# matplotlib figure instance.
+# .. sidebar:: block=True
+#     To use the interactive features of the :meth:`~mne.Epochs.plot` method
+#     when running your code non-interactively, pass the ``block=True``
+#     parameter, which halts the Python interpreter until the figure window is
+#     closed. That way, any channels or epochs that you mark as "bad" will be
+#     taken into account in subsequent processing steps.
 #
-# Events used for constructing the epochs here are the triggers for subject
-# being presented a smiley face at the center of the visual field. More of the
-# paradigm at :ref:`sample-dataset`.
+# To visualize epoched data as time series (one time series per channel), the
+# :meth:`mne.Epochs.plot` method is available. It creates an interactive window
+# where you can scroll through epochs and channels, enable/disable any
+# unapplied :term:`SSP projectors <projector>` to see how they affect the
+# signal, and even manually mark bad channels (by clicking the channel name) or
+# bad epochs (by clicking the data) for later dropping. Channels marked "bad"
+# will be shown in light grey color and will be added to
+# ``epochs.info['bads']``; epochs marked as bad will be indicated as ``'USER'``
+# in the :attr:`~mne.Epochs.drop_log`.
 #
-# All plotting functions start with ``plot``. Let's start with the most
-# obvious. :func:`mne.Epochs.plot` offers an interactive browser that allows
-# rejection by hand when called in combination with a keyword ``block=True``.
-# This blocks the execution of the script until the browser window is closed.
-epochs.plot(block=True)
+# Here we'll plot only the "catch" trials from the :ref:`sample dataset
+# <sample-dataset>`, and pass in our events array so that the button press
+# responses also get marked (we'll plot them in red):
+
+catch_trials_and_buttonpresses = mne.pick_events(events, include=[5, 32])
+epochs['face'].plot(events=catch_trials_and_buttonpresses,
+                    event_colors={32: 'red'})
+#epochs['face'].plot(events=events, event_colors=dict(buttonpress='red'))
 
 ###############################################################################
-# The numbers at the top refer to the event id of the epoch. The number at the
-# bottom is the running numbering for the epochs.
+# Plotting projectors from an ``Epochs`` object
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# Since we did no artifact correction or rejection, there are epochs
-# contaminated with blinks and saccades. For instance, epoch number 1 seems to
-# be contaminated by a blink (scroll to the bottom to view the EOG channel).
-# This epoch can be marked for rejection by clicking on top of the browser
-# window. The epoch should turn red when you click it. This means that it will
-# be dropped as the browser window is closed.
-#
-# It is possible to plot event markers on epoched data by passing ``events``
-# keyword to the epochs plotter. The events are plotted as vertical lines and
-# they follow the same coloring scheme as :func:`mne.viz.plot_events`. The
-# events plotter gives you all the events with a rough idea of the timing.
-# Since the colors are the same, the event plotter can also function as a
-# legend for the epochs plotter events. It is also possible to pass your own
-# colors via ``event_colors`` keyword. Here we can plot the reaction times
-# between seeing the smiley face and the button press (event 32).
-#
-# When events are passed, the epoch numbering at the bottom is switched off by
-# default to avoid overlaps. You can turn it back on via settings dialog by
-# pressing `o` key. You should check out `help` at the lower left corner of the
-# window for more information about the interactive features.
-events = mne.pick_events(events, include=[5, 32])
-mne.viz.plot_events(events)
-epochs['smiley'].plot(events=events)
+# In the plot above we can see heartbeat artifacts in the magnetometer
+# channels, so before we continue let's load ECG projectors from disk and apply
+# them to the data:
+
+ecg_proj_file = os.path.join(sample_data_folder, 'MEG', 'sample',
+                             'sample_audvis_ecg-proj.fif')
+ecg_projs = mne.read_proj(ecg_proj_file)
+epochs.add_proj(ecg_projs)
+epochs.apply_proj()
 
 ###############################################################################
-# To plot individual channels as an image, where you see all the epochs at one
-# glance, you can use function :func:`mne.Epochs.plot_image`. It shows the
-# amplitude of the signal over all the epochs plus an average (evoked response)
-# of the activation. We explicitly set interactive colorbar on (it is also on
-# by default for plotting functions with a colorbar except the topo plots). In
-# interactive mode you can scale and change the colormap with mouse scroll and
-# up/down arrow keys. You can also drag the colorbar with left/right mouse
-# button. Hitting space bar resets the scale.
-epochs.plot_image(278, cmap='interactive', sigma=1., vmin=-250, vmax=250)
+# Just as we saw in the :ref:`tut-section-raw-plot-proj` section, we can plot
+# the projectors present in an :class:`~mne.Epochs` object using the same
+# :meth:`~mne.Epochs.plot_projs_topomap` method. Since the original three
+# empty-room magnetometer projectors were inherited from the
+# :class:`~mne.io.Raw` file, and we added two ECG projectors for each sensor
+# type, we should see nine projector topomaps:
+
+epochs.plot_projs_topomap(vlim='joint')
 
 ###############################################################################
-# We can also give an overview of all channels by calculating  the global
-# field power (or other other aggregation methods). However, combining
-# multiple channel types (e.g., MEG and EEG) in this way is not sensible, so
-# by default if you don't specify specific channel picks the
-# :meth:`~mne.Epochs.plot_image` method will generate a separate figure for
-# each channel type.
-epochs.plot_image(combine='gfp', sigma=2., cmap="YlGnBu_r")
+# Note that these field maps illustrate aspects of the signal that *have
+# already been removed* (because projectors in :class:`~mne.io.Raw` data are
+# applied by default when epoching, and because we called
+# :meth:`~mne.Epochs.apply_proj` after adding additional ECG projectors from
+# file). You can check this by examining the ``'active'`` field of the
+# projectors:
+
+print(all(proj['active'] for proj in epochs.info['projs']))
 
 ###############################################################################
-# You also have functions for plotting channelwise information arranged into a
-# shape of the channel array. The image plotting uses automatic scaling by
-# default, but noisy channels and different channel types can cause the scaling
-# to be a bit off. Here we define the limits by hand.
-epochs.plot_topo_image(vmin=-250, vmax=250, title='ERF images', sigma=2.,
-                       fig_facecolor='w', font_color='k')
+# Plotting sensor locations
+# ^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# Just like :class:`~mne.io.Raw` objects, :class:`~mne.Epochs` objects keep
+# track of sensor locations, which can be visualized with the
+# :meth:`~mne.Epochs.plot_sensors` method:
+
+epochs.plot_sensors(kind='3d', ch_type='all')
+epochs.plot_sensors(kind='topomap', ch_type='all')
+
+###############################################################################
+# Plotting the power spectrum
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# Again, just like :class:`~mne.io.Raw` objects, :class:`~mne.Epochs` objects
+# have a :meth:`~mne.Epochs.plot_psd` method for plotting the `spectral
+# density`_ of the data.
+
+epochs['auditory'].plot_psd(picks='eeg')
+
+###############################################################################
+# Plotting ``Epochs`` as an image map
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# A convenient way to visualize many epochs simultaneously is to plot them as
+# an image map, with each row of pixels in the image representing a single
+# epoch, the horizontal axis representing time, and each pixel's color
+# representing the signal value at that time sample for that epoch. Of course,
+# this requires either a separate image map for each channel, or some way of
+# combining information across channels. The latter is possible using the
+# :meth:`~mne.Epochs.plot_image` method; the former can be achieved with the
+# :meth:`~mne.Epochs.plot_image` method (one channel at a time) or with the
+# :meth:`~mne.Epochs.plot_topo_image` method (all sensors at once).
+#
+# By default, the image map generated by :meth:`~mne.Epochs.plot_image` will be
+# accompanied by a scalebar indicating the range of the colormap, and a time
+# series showing the average signal across epochs and a bootstrapped 95%
+# confidence band around the mean. :meth:`~mne.Epochs.plot_image` is a highly
+# customizable function with many parameters, including customization of the
+# auxiliary colorbar and averaged time series subplots. See the docstrings of
+# :meth:`~mne.Epochs.plot_image` and `mne.viz.plot_compare_evokeds` (which is
+# used to plot the average time series) for full details.
+
+# sphinx_gallery_thumbnail_number = 6
+epochs['auditory'].plot_image(picks='mag', combine='mean')
+
+###############################################################################
+# To plot image maps for individual sensors or a small group of sensors, use
+# the ``picks`` parameter. Passing ``combine=None`` (the default) will yield
+# separate plots for each sensor in ``picks``; passing ``combine='gfp'`` will
+# plot the global field power (useful for combining sensors that respond with
+# opposite polarity).
+
+epochs['auditory'].plot_image(picks=['MEG 0242', 'MEG 0243'])
+epochs['auditory'].plot_image(picks=['MEG 0242', 'MEG 0243'], combine='gfp')
+
+###############################################################################
+# To plot an image map for *all* sensors simultaneously, use
+# :meth:`~mne.Epochs.plot_topo_image`, which is optimized for plotting a large
+# number of image maps simultaneously, and (in interactive sessions) allows you
+# to click on each small image map to pop open a separate figure with the
+# full-sized image plot (as if you had called :meth:`~mne.Epochs.plot_image` on
+# just that sensor). Note also the inclusion of the ``sigma`` parameter, which
+# smooths the image map along the vertical dimension (across epochs) which can
+# make the small image maps easier to view (by smoothing out noisy epochs onto
+# their neighbors, while reinforcing parts of the image where adjacent epochs
+# are similar):
+
+epochs['visual'].plot_topo_image(fig_facecolor='w', font_color='k', sigma=1)
+
+###############################################################################
+# By default, if multiple channel types are present,
+# :meth:`~mne.Epochs.plot_topo_image` will not necessarily show all of them. In
+# the plot above, only magnetometers and gradiometers are shown; to plot image
+# maps for all *EEG* sensors, pass an EEG layout as the ``layout`` parameter of
+# :meth:`~mne.Epochs.plot_topo_image`. Note also here the use of the ``vmin``
+# and ``vmax`` parameters to set custom limits for the colormap; this can help
+# highlight the presence of epochs that have persistent extreme values and
+# maybe should have been excluded, and whose presence may have been masked by
+# the ``sigma`` smoothing (e.g., note the blue horizontal stripe occurring
+# near the bottom-right of the image map, across many electrodes).
+
+layout = mne.channels.find_layout(epochs.info, ch_type='eeg')
+epochs['visual'].plot_topo_image(layout=layout, fig_facecolor='w',
+                                 font_color='k', sigma=1, vmin=-60, vmax=60)
+
+###############################################################################
+# .. LINKS
+#
+# .. _spectral density: https://en.wikipedia.org/wiki/Spectral_density
