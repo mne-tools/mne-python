@@ -174,8 +174,8 @@ for ax in fig.axes[:2]:
 # show all three channel types, even though EEG channels are less strongly
 # affected by heartbeat artifacts:
 
-# sphinx_gallery_thumbnail_number = 4
-ecg_epochs = mne.preprocessing.create_ecg_epochs(raw)
+# sphinx_gallery_thumbnail_number = 5
+ecg_epochs = mne.preprocessing.create_ecg_epochs(raw, baseline=(-0.5, -0.2))
 ecg_epochs.plot_image(combine='mean')
 
 ###############################################################################
@@ -213,9 +213,11 @@ avg_ecg_epochs.plot_joint(times=[-0.25, -0.025, 0, 0.025, 0.25])
 # higher-level convenience function that automatically finds the artifacts and
 # extracts them in to an :class:`~mne.Epochs` object in one step. Unlike the
 # heartbeat artifacts seen above, ocular artifacts are usually most prominent
-# in the EEG channels, but we'll still show all three channel types:
+# in the EEG channels, but we'll still show all three channel types; note that
+# there are many fewer blinks than heartbeats, which makes the image plots
+# appear somewhat blocky:
 
-eog_epochs = mne.preprocessing.create_eog_epochs(raw)
+eog_epochs = mne.preprocessing.create_eog_epochs(raw, baseline=(-0.5, -0.2))
 eog_epochs.plot_image(combine='mean')
 eog_epochs.average().plot_joint()
 
