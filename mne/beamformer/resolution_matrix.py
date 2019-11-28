@@ -2,7 +2,6 @@
 # Authors: olaf.hauk@mrc-cbu.cam.ac.uk
 #
 # License: BSD (3-clause)
-
 import numpy as np
 
 from mne import pick_channels_forward, EvokedArray
