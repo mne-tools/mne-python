@@ -63,53 +63,6 @@ def make_resolution_matrix(forward, inverse_operator, method='dSPM',
     return resmat
 
 
-def make_resolution_matrix_lcmv(filters, forward, info):
-    """Compute resolution matrix for LCMV beamformer.
-
-    Parameters
-    ----------
-    filters : instance of Beamformer
-         Dictionary containing filter weights from LCMV beamformer
-         (see mne.beamformer.make_lcmv).
-    forward : dict
-        Forward Solution with leadfield matrix.
-    info : instance of Info
-        Measurement info used to compute LCMV filters.
-
-    Returns
-    -------
-    resmat : array, shape (n_dipoles_lcmv, n_dipoles_fwd)
-        Resolution matrix (filter matrix multiplied to leadfield from
-        forward solution). Numbers of rows (n_dipoles_lcmv) and columns
-        (n_dipoles_fwd) may differ depending on orientation constraints of
-        filter and forward solution, respectively.
-    """
-    # don't include bad channels from noise covariance matrix
-    bads_filt = filters['noise_cov']['bads']
-    ch_names = filters['noise_cov']['names']
-
-    # good channels
-    ch_names = [c for c in ch_names if (c not in bads_filt)]
-
-    # adjust channels in forward solution
-    forward = pick_channels_forward(forward, ch_names, ordered=True)
-
-    # get leadfield matrix from forward solution
-    leadfield = forward['sol']['data']
-
-    # get the filter weights for beamformer as matrix
-    filtmat = _get_matrix_from_lcmv(filters, forward, info)
-
-    # compute resolution matrix
-    resmat = filtmat.dot(leadfield)
-
-    shape = resmat.shape
-
-    logger.info('Dimensions of LCMV resolution matrix: %d by %d.' % shape)
-
-    return resmat
-
-
 def _get_psf_ctf(resmat, src, idx, func='psf', norm=False):
     """Get point-spread (PSFs) or cross-talk (CTFs) functions for vertices.
 
@@ -326,46 +279,3 @@ def _check_fixed_ori(inst):
     """Check if inverse or forward was computed for fixed orientations."""
     is_fixed = inst['source_ori'] != FIFF.FIFFV_MNE_FREE_ORI
     return is_fixed
-
-
-def _get_matrix_from_lcmv(filters, forward, info, max_ori_out='signed',
-                          verbose=None):
-    """Get inverse matrix for LCMV beamformer.
-
-    Parameters
-    ----------
-    filters : instance of Beamformer
-        LCMV spatial filter.
-    forward : dict
-        The forward solution.
-    info : instance of Info
-        Measurement info used to compute the LCMV filters.
-    max_ori_out : ‘signed’
-        Specify in case of pick_ori=’max-power’.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose() and
-        Logging documentation for more).
-
-    Returns
-    -------
-    invmat : array, shape (n_dipoles, n_channels)
-        Inverse matrix associated with LCMV beamformer filters.
-    """
-    # number of channels for identity matrix
-    n_chs = len(info['ch_names'])
-
-    # create identity matrix as input for inverse operator
-    # set elements to zero for non-selected channels
-    id_mat = np.eye(n_chs)
-
-    # convert identity matrix to evoked data type (pretending it's an epochs
-    evo_ident = EvokedArray(id_mat, info=info, tmin=0.)
-
-    # apply beamformer to identity matrix
-    stc_lcmv = apply_lcmv(evo_ident, filters, max_ori_out='signed',
-                          verbose=verbose)
-
-    # turn source estimate into numpsy array
-    invmat = stc_lcmv.data
-
-    return invmat
