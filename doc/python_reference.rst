@@ -653,7 +653,6 @@ Inverse Solutions
    source_induced_power
    write_inverse_operator
    make_resolution_matrix
-   make_resolution_matrix_lcmv
    resolution_metrics
    get_cross_talk
    get_point_spread
@@ -699,6 +698,7 @@ Inverse Solutions
    rap_music
    tf_dics
    tf_lcmv
+   make_resolution_matrix
 
 .. currentmodule:: mne
 
