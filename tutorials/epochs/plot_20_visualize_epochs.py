@@ -176,7 +176,7 @@ epochs['auditory'].plot_image(picks=['MEG 0242', 'MEG 0243'], combine='gfp')
 # show magnetometers and gradiometers on the same plot (and hence not show a
 # colorbar, since the sensors are on different scales) so we'll also pass a
 # :class:`~mne.channels.Layout` restricting each plot to one channel type.
-# First, howver, we'll also drop any epochs that have unusually high signal
+# First, however, we'll also drop any epochs that have unusually high signal
 # levels, because they can cause the colormap limits to be too extreme and
 # therefore mask smaller signal fluctuations of interest.
 
