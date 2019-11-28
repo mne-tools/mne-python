@@ -158,8 +158,8 @@ del raw  # we're done with raw, free up some memory
 # such criteria. In this case, it turns out that the last event was too close
 # the end of the (cropped) raw file to accommodate our requested ``tmax`` of
 # 0.7 seconds, so the final epoch was dropped because it was too short. Here
-# are the :attr:`~mne.Epochs.drop_log` reasons for the last 4 epochs (empty
-# lists indicate epochs that were *not* dropped):
+# are the ``drop_log`` entries for the last 4 epochs (empty lists indicate
+# epochs that were *not* dropped):
 
 print(epochs.drop_log[-4:])
 
