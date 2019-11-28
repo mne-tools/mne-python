@@ -69,7 +69,6 @@ del raw
 catch_trials_and_buttonpresses = mne.pick_events(events, include=[5, 32])
 epochs['face'].plot(events=catch_trials_and_buttonpresses,
                     event_colors={32: 'red', 5: 'yellow'})
-#epochs['face'].plot(events=events, event_colors=dict(buttonpress='red'))
 
 ###############################################################################
 # Plotting projectors from an ``Epochs`` object
@@ -164,36 +163,46 @@ epochs['auditory'].plot_image(picks=['MEG 0242', 'MEG 0243'])
 epochs['auditory'].plot_image(picks=['MEG 0242', 'MEG 0243'], combine='gfp')
 
 ###############################################################################
-# To plot an image map for *all* sensors simultaneously, use
+# To plot an image map for *all* sensors, use
 # :meth:`~mne.Epochs.plot_topo_image`, which is optimized for plotting a large
 # number of image maps simultaneously, and (in interactive sessions) allows you
 # to click on each small image map to pop open a separate figure with the
 # full-sized image plot (as if you had called :meth:`~mne.Epochs.plot_image` on
-# just that sensor). Note also the use of the ``sigma`` parameter, which
-# smooths the image map along the vertical dimension (across epochs) which can
-# make the small image maps easier to view (by smoothing out noisy epochs onto
-# their neighbors, while reinforcing parts of the image where adjacent epochs
-# are similar). At the small scale shown in this tutorial it's hard to see any
-# useful detail in these plots; it's often best when plotting interactively to
-# maximize the topo image plots to fullscreen.
+# just that sensor). At the small scale shown in this tutorial it's hard to see
+# much useful detail in these plots; it's often best when plotting
+# interactively to maximize the topo image plots to fullscreen. The default is
+# a figure with black background, so here we specify a white background and
+# black foreground text. By default :meth:`~mne.Epochs.plot_topo_image` will
+# show magnetometers and gradiometers on the same plot (and hence not show a
+# colorbar, since the sensors are on different scales) so we'll also pass a
+# :class:`~mne.channels.Layout` restricting each plot to one channel type.
+# First, howver, we'll also drop any epochs that have unusually high signal
+# levels, because they can cause the colormap limits to be too extreme and
+# therefore mask smaller signal fluctuations of interest.
 
-epochs['auditory'].plot_topo_image(fig_facecolor='0.5', sigma=1)
+reject_criteria = dict(mag=3000e-15,     # 3000 fT
+                       grad=3000e-13,    # 3000 fT/cm
+                       eeg=150e-6)       # 150 μV
+epochs.drop_bad(reject=reject_criteria)
+
+for ch_type, title in dict(mag='Magnetometers', grad='Gradiometers').items():
+    layout = mne.channels.find_layout(epochs.info, ch_type=ch_type)
+    epochs['auditory/left'].plot_topo_image(layout=layout, fig_facecolor='w',
+                                            font_color='k', title=title)
 
 ###############################################################################
-# By default, if multiple channel types are present,
-# :meth:`~mne.Epochs.plot_topo_image` will not necessarily show all of them. In
-# the plot above, only magnetometers and gradiometers are shown; to plot image
-# maps for all *EEG* sensors, pass an EEG layout as the ``layout`` parameter of
-# :meth:`~mne.Epochs.plot_topo_image`. Note also here the use of the ``vmin``
-# and ``vmax`` parameters to set custom limits for the colormap; this can help
-# highlight the presence of epochs that have persistent extreme values and
-# maybe should have been excluded, and whose presence may have been masked by
-# the ``sigma`` smoothing (e.g., note the blue horizontal stripe occurring
-# near the bottom-right of the image map, across many electrodes).
+# To plot image maps for all EEG sensors, pass an EEG layout as the ``layout``
+# parameter of :meth:`~mne.Epochs.plot_topo_image`. Note also here the use of
+# the ``sigma`` parameter, which smooths each image map along the vertical
+# dimension (across epochs) which can make it easier to see patterns across the
+# small image maps (by smearing noisy epochs onto their neighbors, while
+# reinforcing parts of the image where adjacent epochs are similar). However,
+# ``sigma`` can also disguise epochs that have persistent extreme values and
+# maybe should have been excluded, so it should be used with caution.
 
 layout = mne.channels.find_layout(epochs.info, ch_type='eeg')
-epochs['visual'].plot_topo_image(layout=layout, fig_facecolor='w',
-                                 sigma=1, vmin=-60, vmax=60)
+epochs['auditory/left'].plot_topo_image(layout=layout, fig_facecolor='w',
+                                        font_color='k', sigma=1)
 
 ###############################################################################
 # .. LINKS
