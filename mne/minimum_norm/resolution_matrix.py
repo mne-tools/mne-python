@@ -10,7 +10,6 @@ from mne import pick_channels_forward, EvokedArray, SourceEstimate
 from mne.io.constants import FIFF
 from mne.utils import logger, verbose
 from mne.forward.forward import convert_forward_solution
-from mne.beamformer import apply_lcmv
 from mne.minimum_norm import apply_inverse
 
 

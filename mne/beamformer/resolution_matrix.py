@@ -2,15 +2,13 @@
 # Authors: olaf.hauk@mrc-cbu.cam.ac.uk
 #
 # License: BSD (3-clause)
-from copy import deepcopy
 
 import numpy as np
 
-from mne import pick_channels_forward, EvokedArray, SourceEstimate
-from mne.io.constants import FIFF
-from mne.utils import logger, verbose
-from mne.forward.forward import convert_forward_solution
+from mne import pick_channels_forward, EvokedArray
+from mne.utils import logger
 from mne.beamformer import apply_lcmv
+
 
 def make_resolution_matrix(filters, forward, info):
     """Compute resolution matrix for LCMV beamformer.
