@@ -286,6 +286,7 @@ def test_saving_picked(tmpdir, comp_grade):
     temp_dir = str(tmpdir)
     out_fname = op.join(temp_dir, 'test_py_raw.fif')
     raw = read_raw_ctf(op.join(ctf_dir, ctf_fname_1_trial))
+    assert(raw.info['meas_date'] == (1367228160, 0))
     raw.crop(0, 1).load_data()
     assert raw.compensation_grade == get_current_comp(raw.info) == 0
     assert len(raw.info['comps']) == 5

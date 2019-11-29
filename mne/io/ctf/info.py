@@ -13,7 +13,7 @@ import numpy as np
 from ...utils import logger, warn, _clean_names
 from ...transforms import (apply_trans, _coord_frame_name, invert_transform,
                            combine_transforms)
-from ...annotations import Annotations
+from ...annotations import Annotations, _handle_meas_date
 
 from ..meas_info import _empty_info
 from ..write import get_new_file_id
@@ -424,6 +424,7 @@ def _compose_meas_info(res4, coils, trans, eeg):
     info['meas_id']['usecs'] = 0
     info['meas_id']['secs'] = _convert_time(res4['data_date'],
                                             res4['data_time'])
+    info['meas_date'] = (info['meas_id']['secs'], info['meas_id']['usecs'])
     info['experimenter'] = res4['nf_operator']
     info['subject_info'] = dict(his_id=res4['nf_subject_id'])
     for filt in res4['filters']:
@@ -464,10 +465,12 @@ def _read_bad_chans(directory, info):
     return bad_chans
 
 
-def _annotate_bad_segments(directory, start_time):
+def _annotate_bad_segments(directory, start_time, meas_date):
     fname = op.join(directory, 'bad.segments')
     if not op.exists(fname):
         return None
+    orig_time = _handle_meas_date(meas_date)
+
     # read in bad segment file
     onsets = []
     durations = []
@@ -482,4 +485,4 @@ def _annotate_bad_segments(directory, start_time):
     if len(onsets) == 0:
         return None
 
-    return Annotations(onsets, durations, desc)
+    return Annotations(onsets, durations, desc, orig_time)
