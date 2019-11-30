@@ -74,6 +74,8 @@ Changelog
 Bug
 ~~~
 
+- Fix :meth:`mne.io.read_raw_ctf` to set measurement date from CTF ds files by `Luke Bloy`_.
+
 - Fix :meth:`mne.io.Raw.anonymize` correctly reset ``raw.annotations.orig_time`` by `Luke Bloy`_.
 
 - Fix date reading before Unix time zero (1970 Jan 1) on Windows by `Alex Rockhill`_.
