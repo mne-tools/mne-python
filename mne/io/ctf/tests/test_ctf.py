@@ -115,6 +115,9 @@ def test_read_ctf(tmpdir):
         for t in ('dev_head_t', 'dev_ctf_t', 'ctf_head_t'):
             assert_allclose(raw.info[t]['trans'], raw_c.info[t]['trans'],
                             rtol=1e-4, atol=1e-7)
+        # XXX 2019/11/29 : MNC-C FIF conversion files don't have meas_date set.
+        # Consider adding meas_date to below checks once this is addressed in
+        # MNE-C
         for key in ('acq_pars', 'acq_stim', 'bads',
                     'ch_names', 'custom_ref_applied', 'description',
                     'events', 'experimenter', 'highpass', 'line_freq',
