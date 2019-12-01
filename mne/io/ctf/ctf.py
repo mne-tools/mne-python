@@ -141,11 +141,13 @@ class RawCTF(BaseRaw):
 
         # Add bad segments as Annotations (correct for start time)
         start_time = -res4['pre_trig_pts'] / float(info['sfreq'])
-        annot = _annotate_bad_segments(directory, start_time)
+        annot = _annotate_bad_segments(directory, start_time,
+                                       info['meas_date'])
         marker_annot = _read_annotations_ctf_call(
             directory=directory,
             total_offset=(res4['pre_trig_pts'] / res4['sfreq']),
             trial_duration=(res4['nsamp'] / res4['sfreq']),
+            meas_date=info['meas_date']
         )
         annot = marker_annot if annot is None else annot + marker_annot
         self.set_annotations(annot)
