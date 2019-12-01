@@ -193,7 +193,7 @@ def read_events(filename, include=None, exclude=None, mask=None,
                 mask_type='and', return_event_id=False, verbose=None):
     """Read events from fif or text file.
 
-    See :ref:`tut_epoching_and_averaging` as well as :ref:`ex-read-events`
+    See :ref:`tut-events-vs-annotations` and :ref:`tut-event-arrays`
     for more information about events.
 
     Parameters
@@ -540,7 +540,7 @@ def find_events(raw, stim_channel=None, output='onset',
                 mask_type='and', initial_event=False, verbose=None):
     """Find events from raw file.
 
-    See :ref:`tut_epoching_and_averaging` as well as :ref:`ex-read-events`
+    See :ref:`tut-events-vs-annotations` and :ref:`tut-event-arrays`
     for more information about events.
 
     Parameters

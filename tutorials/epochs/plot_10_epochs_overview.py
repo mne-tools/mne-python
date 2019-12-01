@@ -152,6 +152,18 @@ print(epochs.event_id)
 del raw  # we're done with raw, free up some memory
 
 ###############################################################################
+# Notice that the output now mentions "1 bad epoch dropped". In the tutorial
+# section :ref:`tut-reject-epochs-section` we saw how you can specify channel
+# amplitude criteria for rejecting epochs, but here we haven't specified any
+# such criteria. In this case, it turns out that the last event was too close
+# the end of the (cropped) raw file to accommodate our requested ``tmax`` of
+# 0.7 seconds, so the final epoch was dropped because it was too short. Here
+# are the ``drop_log`` entries for the last 4 epochs (empty lists indicate
+# epochs that were *not* dropped):
+
+print(epochs.drop_log[-4:])
+
+###############################################################################
 # .. note::
 #
 #     If you forget to provide the event dictionary to the :class:`~mne.Epochs`
