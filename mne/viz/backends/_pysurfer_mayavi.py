@@ -18,6 +18,7 @@ Actual implementation of _Renderer and _Projection classes.
 import warnings
 import numpy as np
 from .base_renderer import _BaseRenderer
+from ._utils import _check_color
 from ...surface import _normalize_vectors
 from ...utils import (_import_mlab, _validate_type, SilenceStdout,
                       copy_base_doc_to_subclass_doc)
@@ -57,8 +58,10 @@ class _Renderer(_BaseRenderer):
         Mayavi scene handle.
     """
 
-    def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
+    def __init__(self, fig=None, size=(600, 600), bgcolor='black',
                  name=None, show=False, shape=(1, 1)):
+        if bgcolor is not None:
+            bgcolor = _check_color(bgcolor)
         self.mlab = _import_mlab()
         self.shape = shape
         if fig is None:
@@ -84,6 +87,8 @@ class _Renderer(_BaseRenderer):
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
              backface_culling=False, scalars=None, colormap=None,
              vmin=None, vmax=None, **kwargs):
+        if color is not None:
+            color = _check_color(color)
         if color is not None and isinstance(color, np.ndarray) \
            and color.ndim > 1:
             if color.shape[1] == 3:
@@ -135,6 +140,8 @@ class _Renderer(_BaseRenderer):
                 vmin=None, vmax=None, colormap=None,
                 normalized_colormap=False, scalars=None,
                 backface_culling=False):
+        if color is not None:
+            color = _check_color(color)
         if normalized_colormap:
             colormap = colormap * 255.0
         # Make a solid surface
@@ -148,24 +155,23 @@ class _Renderer(_BaseRenderer):
             surface.actor.property.backface_culling = backface_culling
 
     def sphere(self, center, color, scale, opacity=1.0,
-               resolution=8, backface_culling=False):
-        if center.ndim == 1:
-            x = center[0]
-            y = center[1]
-            z = center[2]
-        elif center.ndim == 2:
-            x = center[:, 0]
-            y = center[:, 1]
-            z = center[:, 2]
+               resolution=8, backface_culling=False,
+               radius=None):
+        color = _check_color(color)
+        center = np.atleast_2d(center)
+        x, y, z = center.T
         surface = self.mlab.points3d(x, y, z, color=color,
                                      resolution=resolution,
                                      scale_factor=scale, opacity=opacity,
                                      figure=self.fig)
         surface.actor.property.backface_culling = backface_culling
 
-    def tube(self, origin, destination, radius=1.0, color=(1.0, 1.0, 1.0),
+    def tube(self, origin, destination, radius=0.001, color='white',
              scalars=None, vmin=None, vmax=None, colormap='RdBu',
              normalized_colormap=False, reverse_lut=False):
+        color = _check_color(color)
+        origin = np.atleast_2d(origin)
+        destination = np.atleast_2d(destination)
         if scalars is None:
             surface = self.mlab.plot3d([origin[:, 0], destination[:, 0]],
                                        [origin[:, 1], destination[:, 1]],
@@ -190,6 +196,7 @@ class _Renderer(_BaseRenderer):
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
                  backface_culling=False):
+        color = _check_color(color)
         with warnings.catch_warnings(record=True):  # traits
             if mode == 'arrow':
                 self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
@@ -211,17 +218,21 @@ class _Renderer(_BaseRenderer):
                     glyph_resolution
                 quiv.actor.property.backface_culling = backface_culling
 
-    def text2d(self, x, y, text, size=14, color=(1.0, 1.0, 1.0),
+    def text2d(self, x_window, y_window, text, size=14, color='white',
                justification=None):
+        if color is not None:
+            color = _check_color(color)
         size = 14 if size is None else size
         with warnings.catch_warnings(record=True):  # traits
-            text = self.mlab.text(x, y, text, color=color, figure=self.fig)
+            text = self.mlab.text(x_window, y_window, text, color=color,
+                                  figure=self.fig)
             text.property.font_size = size
             text.actor.text_scale_mode = 'viewport'
             if isinstance(justification, str):
                 text.property.justification = justification
 
-    def text3d(self, x, y, z, text, scale, color=(1.0, 1.0, 1.0)):
+    def text3d(self, x, y, z, text, scale, color='white'):
+        color = _check_color(color)
         with warnings.catch_warnings(record=True):  # traits
             self.mlab.text3d(x, y, z, text, scale=scale, color=color,
                              figure=self.fig)
