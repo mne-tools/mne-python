@@ -184,7 +184,7 @@ def _calculate_head_pos_ctf(raw, gof_limit=0.98):
     HLC002[123]\\* - lpa
     HLC003[123]\\* - rpa
     """
-    # Pick channels cooresponding to the cHPI positions
+    # Pick channels corresponding to the cHPI positions
     hpi_picks = pick_channels_regexp(raw.info['ch_names'],
                                      'HLC00[123][123].*')
 

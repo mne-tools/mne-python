@@ -1389,7 +1389,7 @@ def setup_source_space(subject, spacing='oct6', surface='white',
     spacing : str
         The spacing to use. Can be ``'ico#'`` for a recursively subdivided
         icosahedron, ``'oct#'`` for a recursively subdivided octahedron,
-        ``'all'`` for all points, or an integer to use appoximate
+        ``'all'`` for all points, or an integer to use approximate
         distance-based spacing (in mm).
 
         .. versionchanged:: 0.18

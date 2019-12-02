@@ -1465,7 +1465,7 @@ def iterative_tf_mixed_norm_solver(M, G, alpha_space, alpha_time,
     alpha_time : float
         The temporal regularization parameter. The higher it is the smoother
         will be the estimated time series. 0 means no temporal regularization,
-        aka irMxNE.
+        a.k.a. irMxNE.
     n_tfmxne_iter : int
         Number of TF-MxNE iterations. If > 1, iterative reweighting is applied.
     wsize : int or array-like
