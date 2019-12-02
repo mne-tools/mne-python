@@ -18,7 +18,7 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_compare_fiff, mne_flash_bem, mne_show_fiff,
                           mne_show_info, mne_what, mne_setup_source_space,
                           mne_setup_forward_model, mne_anonymize,
-                          mne_prepare_bem_model)
+                          mne_prepare_bem_model, mne_sys_info)
 from mne.datasets import testing, sample
 from mne.io import read_raw_fif, read_info
 from mne.utils import (run_tests_if_main, requires_mne,
@@ -348,6 +348,17 @@ def test_show_info():
     check_usage(mne_show_info)
     with ArgvSetter((raw_fname,)):
         mne_show_info.run()
+
+
+def test_sys_info():
+    """Test mne show_info."""
+    check_usage(mne_sys_info, force_help=True)
+    with ArgvSetter((raw_fname,)):
+        with pytest.raises(SystemExit, match='1'):
+            mne_sys_info.run()
+    with ArgvSetter() as out:
+        mne_sys_info.run()
+    assert 'numpy' in out.stdout.getvalue()
 
 
 def test_anonymize(tmpdir):

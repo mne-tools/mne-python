@@ -192,7 +192,7 @@ Testing MNE-Python installation
 To make sure MNE-Python installed itself and its dependencies correctly,
 type the following command in a terminal::
 
-    $ python -c "import mne; mne.sys_info()"
+    $ mne sys_info
 
 This should display some system information along with the versions of
 MNE-Python and its dependencies. Typical output looks like this::

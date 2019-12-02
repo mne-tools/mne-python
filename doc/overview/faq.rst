@@ -97,7 +97,7 @@ channel. If you're pretty sure the problem you've encountered is a software bug
 
   .. code-block:: console
 
-      $ python -c "import mne; mne.sys_info()"
+      $ mne sys_info
 
   which will also give you version info about important MNE-Python
   dependencies.
