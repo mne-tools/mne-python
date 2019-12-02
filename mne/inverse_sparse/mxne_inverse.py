@@ -551,7 +551,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
         Proportion of temporal regularization.
         If l1_ratio and alpha are not None, alpha_space and alpha_time are
         overridden by alpha * alpha_max * (1. - l1_ratio) and alpha * alpha_max
-        * l1_ratio. 0 means no time regularization aka MxNE.
+        * l1_ratio. 0 means no time regularization a.k.a. MxNE.
     dgap_freq : int or np.inf
         The duality gap is evaluated every dgap_freq iterations.
     %(rank_None)s
