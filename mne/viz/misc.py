@@ -773,7 +773,7 @@ def plot_filter(h, sfreq, freq=None, gain=None, title=None, color='#1f77b4',
         The ideal response gains to plot.
         If None (default), do not plot the ideal response.
     title : str | None
-        The title to use. If None (default), deteremine the title based
+        The title to use. If None (default), determine the title based
         on the type of the system.
     color : color object
         The color to use (default '#1f77b4').

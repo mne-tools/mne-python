@@ -1230,7 +1230,7 @@ def read_raw_bti(pdf_fname, config_fname='config',
            the weights or use the low level functions from this module to
            include them by yourself.
         2. The informed guess for the 4D name is E31 for the ECG channel and
-           E63, E63 for the EOG channels. Pleas check and adjust if those
+           E63, E63 for the EOG channels. Please check and adjust if those
            channels are present in your dataset but 'ECG 01' and 'EOG 01',
            'EOG 02' don't appear in the channel names of the raw object.
 

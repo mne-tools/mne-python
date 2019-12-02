@@ -58,7 +58,7 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1,
     T_obs : array of shape [n_tests]
         T-statistic observed for all variables.
     p_values : array of shape [n_tests]
-        P-values for all the tests (aka variables).
+        P-values for all the tests (a.k.a. variables).
     H0 : array of shape [n_permutations]
         T-statistic obtained by permutations and t-max trick for multiple
         comparison.
