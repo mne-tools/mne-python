@@ -7,6 +7,8 @@
 #
 # License: Simplified BSD
 
+import numpy as np
+import collections
 from ...utils import get_config
 from ...utils.check import _check_option
 
@@ -23,7 +25,6 @@ def _get_backend_based_on_env_and_defaults():
 
 def _get_colormap_from_array(colormap=None, normalized_colormap=False,
                              default_colormap='coolwarm'):
-    import numpy as np
     from matplotlib import cm
     from matplotlib.colors import ListedColormap
     if colormap is None:
@@ -38,8 +39,6 @@ def _get_colormap_from_array(colormap=None, normalized_colormap=False,
 
 
 def _check_color(color):
-    import numpy as np
-    import collections
     from matplotlib.colors import colorConverter
     if isinstance(color, str):
         color = colorConverter.to_rgb(color)
