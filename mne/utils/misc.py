@@ -9,9 +9,11 @@ import fnmatch
 import inspect
 from math import log
 import os
+from queue import Queue, Empty
 from string import Formatter
 import subprocess
 import sys
+from threading import Thread
 import traceback
 
 import numpy as np
@@ -79,6 +81,11 @@ def pformat(temp, **fmt):
     return formatter.vformat(temp, (), mapping)
 
 
+def _enqueue_output(out, queue):
+    for line in iter(out.readline, b''):
+        queue.put(line)
+
+
 @verbose
 def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
     """Run command using subprocess.Popen.
@@ -112,18 +119,39 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
     """
     all_out = ''
     all_err = ''
+    # non-blocking adapted from https://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python#4896288  # noqa: E501
+    out_q = Queue()
+    err_q = Queue()
     with running_subprocess(command, *args, **kwargs) as p:
+        out_t = Thread(target=_enqueue_output, args=(p.stdout, out_q))
+        err_t = Thread(target=_enqueue_output, args=(p.stderr, err_q))
+        out_t.daemon = True
+        err_t.daemon = True
+        out_t.start()
+        err_t.start()
         while True:
-            out = p.stdout.readline().decode('utf-8')
-            err = p.stderr.readline().decode('utf-8')
-            if out == '' and err == '' and p.poll() is not None:
+            do_break = p.poll() is not None
+            # read all current lines without blocking
+            while True:
+                try:
+                    out = out_q.get(timeout=0.01)
+                except Empty:
+                    break
+                else:
+                    out = out.decode('utf-8')
+                    logger.info(out)
+                    all_out += out
+            while True:
+                try:
+                    err = err_q.get(timeout=0.01)
+                except Empty:
+                    break
+                else:
+                    err = err.decode('utf-8')
+                    logger.warning(err)
+                    all_err += err
+            if do_break:
                 break
-            if out:
-                logger.info(out)
-            if err:
-                logger.warning(err)
-            all_out += out
-            all_err += err
     output = (all_out, all_err)
 
     if return_code:
