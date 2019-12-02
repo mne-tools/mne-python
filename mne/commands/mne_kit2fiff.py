@@ -82,4 +82,5 @@ def run():
     raw.save(out_fname)
     raw.close()
 
+
 mne.utils.run_command_if_main()

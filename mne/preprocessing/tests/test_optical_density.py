@@ -11,7 +11,7 @@ from numpy.testing import assert_allclose
 
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx, BaseRaw
-from mne.preprocessing import optical_density
+from mne.preprocessing.nirs import optical_density
 from mne.utils import _validate_type
 from mne.datasets import testing
 

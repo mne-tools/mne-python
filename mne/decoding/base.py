@@ -10,7 +10,7 @@ import numpy as np
 import time
 import numbers
 from ..parallel import parallel_func
-from ..fixes import BaseEstimator, is_classifier
+from ..fixes import BaseEstimator, is_classifier, _get_check_scoring
 from ..utils import check_version, logger, warn, fill_doc
 
 
@@ -109,9 +109,14 @@ class LinearModel(BaseEstimator):
 
     @property
     def filters_(self):
-        if not hasattr(self.model, 'coef_'):
+        if hasattr(self.model, 'coef_'):
+            # Standard Linear Model
+            filters = self.model.coef_
+        elif hasattr(self.model.best_estimator_, 'coef_'):
+            # Linear Model with GridSearchCV
+            filters = self.model.best_estimator_.coef_
+        else:
             raise ValueError('model does not have a `coef_` attribute.')
-        filters = self.model.coef_
         if filters.ndim == 2 and filters.shape[0] == 1:
             filters = filters[0]
         return filters
@@ -435,8 +440,8 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
 
     from sklearn.base import clone
     from sklearn.utils import indexable
-    from sklearn.metrics.scorer import check_scoring
     from sklearn.model_selection._split import check_cv
+    check_scoring = _get_check_scoring()
 
     X, y, groups = indexable(X, y, groups)
 

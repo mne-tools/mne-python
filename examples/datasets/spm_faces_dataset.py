@@ -59,7 +59,7 @@ tmin, tmax = -0.2, 0.6
 baseline = None  # no baseline as high-pass is applied
 reject = dict(mag=5e-12)
 
-epochs = mne.Epochs(raw, events, event_ids, tmin, tmax,  picks=picks,
+epochs = mne.Epochs(raw, events, event_ids, tmin, tmax, picks=picks,
                     baseline=baseline, preload=True, reject=reject)
 
 # Fit ICA, find and remove major artifacts

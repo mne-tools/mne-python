@@ -115,6 +115,9 @@ def test_read_ctf(tmpdir):
         for t in ('dev_head_t', 'dev_ctf_t', 'ctf_head_t'):
             assert_allclose(raw.info[t]['trans'], raw_c.info[t]['trans'],
                             rtol=1e-4, atol=1e-7)
+        # XXX 2019/11/29 : MNC-C FIF conversion files don't have meas_date set.
+        # Consider adding meas_date to below checks once this is addressed in
+        # MNE-C
         for key in ('acq_pars', 'acq_stim', 'bads',
                     'ch_names', 'custom_ref_applied', 'description',
                     'events', 'experimenter', 'highpass', 'line_freq',
@@ -145,6 +148,10 @@ def test_read_ctf(tmpdir):
                         key in ('kind', 'unit', 'coord_frame', 'coil_type',
                                 'logno'):
                     continue  # XXX see below...
+                if key == 'coil_type' and c1[key] == FIFF.FIFFV_COIL_EEG:
+                    # XXX MNE-C bug that this is not set
+                    assert c2[key] == FIFF.FIFFV_COIL_NONE
+                    continue
                 assert c1[key] == c2[key], key
             for key in ('cal',):
                 assert_allclose(c1[key], c2[key], atol=1e-6, rtol=1e-4,
@@ -282,6 +289,7 @@ def test_saving_picked(tmpdir, comp_grade):
     temp_dir = str(tmpdir)
     out_fname = op.join(temp_dir, 'test_py_raw.fif')
     raw = read_raw_ctf(op.join(ctf_dir, ctf_fname_1_trial))
+    assert(raw.info['meas_date'] == (1367228160, 0))
     raw.crop(0, 1).load_data()
     assert raw.compensation_grade == get_current_comp(raw.info) == 0
     assert len(raw.info['comps']) == 5
@@ -371,5 +379,6 @@ def test_read_ctf_annotations_smoke_test():
 
     raw = read_raw_ctf(fname)
     _assert_annotations_equal(raw.annotations, annot)
+
 
 run_tests_if_main()

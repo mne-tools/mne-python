@@ -146,4 +146,5 @@ def run():
         with open(origin_out, 'w') as fid:
             fid.write(origin + '\n')
 
+
 mne.utils.run_command_if_main()

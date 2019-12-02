@@ -46,10 +46,13 @@ def test_backend_environment_setup(backend, backend_mocker, monkeypatch):
 
 def test_3d_functions(renderer):
     """Test figure management functions."""
+    renderer._try_3d_backend()
     fig = renderer.create_3d_figure((300, 300))
-    renderer._check_figure(fig)
-    renderer.set_3d_view(figure=fig)
-    renderer.set_3d_title(figure=fig, title='foo')
+    renderer._check_3d_figure(fig)
+    renderer._set_3d_view(figure=fig, azimuth=None, elevation=None,
+                          focalpoint=(0., 0., 0.), distance=None)
+    renderer._set_3d_title(figure=fig, title='foo')
+    renderer._take_3d_screenshot(figure=fig)
     renderer._close_all()
 
 

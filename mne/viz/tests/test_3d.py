@@ -342,7 +342,6 @@ def test_plot_alignment(tmpdir, renderer):
 
 @testing.requires_testing_data
 @requires_pysurfer
-@requires_mayavi
 @traits_test
 def test_limits_to_control_points(renderer):
     """Test functionality for determining control points."""
@@ -579,11 +578,11 @@ def test_plot_vec_source_estimates():
     with pytest.raises(ValueError, match='use "pos_lims"'):
         stc.plot('sample', subjects_dir=subjects_dir,
                  clim=dict(pos_lims=[1, 2, 3]))
+    stc.plot('sample', subjects_dir=subjects_dir, hemi='both')
 
 
 @testing.requires_testing_data
-@requires_mayavi
-def test_plot_sensors_connectivity():
+def test_plot_sensors_connectivity(renderer):
     """Test plotting of sensors connectivity."""
     from mne import io, pick_types
 

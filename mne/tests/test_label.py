@@ -859,8 +859,8 @@ def test_label_sign_flip():
     label = Label(vertices=src[0]['vertno'][:5], hemi='lh')
     src[0]['nn'][label.vertices] = np.array(
         [[1., 0., 0.],
-         [0.,  1., 0.],
-         [0,  0, 1.],
+         [0., 1., 0.],
+         [0, 0, 1.],
          [1. / np.sqrt(2), 1. / np.sqrt(2), 0.],
          [1. / np.sqrt(2), 1. / np.sqrt(2), 0.]])
     known_flips = np.array([1, 1, np.nan, 1, 1])

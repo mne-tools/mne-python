@@ -64,6 +64,12 @@ def _prepare_topo_plot(inst, ch_type, layout):
         if ch_type == 'eeg':
             picks = pick_types(info, meg=False, eeg=True, ref_meg=False,
                                exclude='bads')
+        elif ch_type == 'csd':
+            picks = pick_types(info, meg=False, csd=True, ref_meg=False,
+                               exclude='bads')
+        elif ch_type in ['hbo', 'hbr', 'fnirs_raw', 'fnirs_od']:
+            picks = pick_types(info, meg=False, ref_meg=False,
+                               fnirs=ch_type, exclude='bads')
         else:
             picks = pick_types(info, meg=ch_type, ref_meg=False,
                                exclude='bads')

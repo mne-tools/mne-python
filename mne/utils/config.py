@@ -17,7 +17,7 @@ import tempfile
 
 import numpy as np
 
-from .check import _validate_type
+from .check import _validate_type, _check_pyqt5_version
 from ._logging import warn, logger
 
 
@@ -95,6 +95,7 @@ known_config_types = (
     'MNE_DATASETS_SAMPLE_PATH',
     'MNE_DATASETS_SOMATO_PATH',
     'MNE_DATASETS_MULTIMODAL_PATH',
+    'MNE_DATASETS_FNIRS_MOTOR_PATH',
     'MNE_DATASETS_OPM_PATH',
     'MNE_DATASETS_SPM_FACE_DATASETS_TESTS',
     'MNE_DATASETS_SPM_FACE_PATH',
@@ -521,11 +522,9 @@ def sys_info(fid=None, show_paths=False):
                 except Exception:
                     qt_api = 'unknown'
                 if qt_api == 'pyqt5':
-                    try:
-                        from PyQt5.Qt import PYQT_VERSION_STR
-                        qt_api += ', PyQt5=%s' % (PYQT_VERSION_STR,)
-                    except Exception:
-                        pass
+                    qt_version = _check_pyqt5_version()
+                    if qt_version != 'unknown':
+                        qt_api += ', PyQt5=%s' % (qt_version,)
                 extra = ' {qt_api=%s}%s' % (qt_api, extra)
             if mod_name == 'vtk':
                 version = mod.VTK_VERSION

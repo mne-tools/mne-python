@@ -236,6 +236,9 @@ def test_dipole_fitting_fixed(tmpdir):
     plt.close('all')
     dip_fixed.plot()
     plt.close('all')
+    orig_times = np.array(dip_fixed.times)
+    shift_times = dip_fixed.shift_time(1.).times
+    assert_allclose(shift_times, orig_times + 1)
 
 
 @testing.requires_testing_data
@@ -370,7 +373,7 @@ def _check_roundtrip_fixed(dip, tmpdir):
     dip.save(op.join(tempdir, 'test-dip.fif.gz'))
     dip_read = read_dipole(op.join(tempdir, 'test-dip.fif.gz'))
     assert_allclose(dip_read.data, dip_read.data)
-    assert_allclose(dip_read.times, dip.times)
+    assert_allclose(dip_read.times, dip.times, atol=1e-8)
     assert dip_read.info['xplotter_layout'] == dip.info['xplotter_layout']
     assert dip_read.ch_names == dip.ch_names
     for ch_1, ch_2 in zip(dip_read.info['chs'], dip.info['chs']):

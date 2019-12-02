@@ -121,6 +121,8 @@ raw.plot(events=eog_events, order=eeg_picks)
 # on creating annotations programmatically.
 #
 #
+# .. _`tut-reject-epochs-section`:
+#
 # Rejecting Epochs based on channel amplitude
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #

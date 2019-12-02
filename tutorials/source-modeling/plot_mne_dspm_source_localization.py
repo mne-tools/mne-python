@@ -50,7 +50,7 @@ fig_cov, fig_spectra = mne.viz.plot_cov(noise_cov, raw.info)
 ###############################################################################
 # Compute the evoked response
 # ---------------------------
-# Let's just use MEG channels for simplicity.
+# Let's just use the MEG channels for simplicity.
 
 evoked = epochs.average().pick('meg')
 evoked.plot(time_unit='s')

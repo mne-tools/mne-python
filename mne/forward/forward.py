@@ -50,7 +50,15 @@ from ..fixes import einsum
 
 
 class Forward(dict):
-    """Forward class to represent info from forward solution."""
+    """Forward class to represent info from forward solution.
+
+    Attributes
+    ----------
+    ch_names : list of str
+        List of channels' names.
+
+        .. versionadded:: 0.20.0
+    """
 
     def copy(self):
         """Copy the Forward instance."""
@@ -98,6 +106,36 @@ class Forward(dict):
         entr += '>'
 
         return entr
+
+    @property
+    def ch_names(self):
+        return self['info']['ch_names']
+
+    def pick_channels(self, ch_names, ordered=False):
+        """Pick channels from this forward operator.
+
+        Parameters
+        ----------
+        ch_names : list of str
+            List of channels to include.
+        ordered : bool
+            If true (default False), treat ``include`` as an ordered list
+            rather than a set.
+
+        Returns
+        -------
+        fwd : instance of Forward.
+            The modified forward model.
+
+        Notes
+        -----
+        Operates in-place.
+
+        .. versionadded:: 0.20.0
+        """
+        return pick_channels_forward(self, ch_names, exclude=[],
+                                     ordered=ordered, copy=False,
+                                     verbose=False)
 
 
 def _block_diag(A, n):
@@ -337,7 +375,7 @@ def _read_forward_meas_info(tree, fid):
     if tag is None:
         tag = find_tag(fid, parent_mri, 236)  # Constant 236 used before v0.11
 
-    info['custom_ref_applied'] = bool(tag.data) if tag is not None else False
+    info['custom_ref_applied'] = int(tag.data) if tag is not None else False
     info._check_consistency()
     return info
 
@@ -1382,8 +1420,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
     evoked = EvokedArray(data, info_out, times[0], nave=1)
 
     evoked.times = times
-    evoked.first = int(np.round(evoked.times[0] * sfreq))
-    evoked.last = evoked.first + evoked.data.shape[1] - 1
+    evoked._update_first_last()
 
     return evoked
 

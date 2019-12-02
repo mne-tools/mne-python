@@ -54,7 +54,7 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _check_pandas_installed, _check_preload, GetEpochsMixin,
                     _prepare_read_metadata, _prepare_write_metadata,
                     _check_event_id, _gen_events, _check_option,
-                    _check_combine)
+                    _check_combine, ShiftTimeMixin)
 from .utils.docs import fill_doc
 
 
@@ -294,7 +294,7 @@ def _handle_event_repeated(events, event_id, event_repeated, selection,
 
 
 @fill_doc
-class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
+class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
                  ToDataFrameMixin, TimeMixin, SizeMixin, GetEpochsMixin):
     """Abstract base class for Epochs-type classes.
@@ -1668,41 +1668,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # actually remove the indices
         return self, indices
 
-    def shift_time(self, tshift, relative=True):
-        """Shift time scale in epoched data.
-
-        Parameters
-        ----------
-        tshift : float
-            The amount of time shift to be applied if relative is True
-            else the first time point. When relative is True, positive value
-            of tshift moves the data forward while negative tshift moves it
-            backward.
-        relative : bool
-            If true, move the time backwards or forwards by specified amount.
-            Else, set the starting time point to the value of tshift.
-
-        Returns
-        -------
-        epochs : instance of Epochs
-            The modified Epochs instance.
-
-        Notes
-        -----
-        Maximum accuracy of time shift is 1 / epochs.info['sfreq']
-        """
-        _check_preload(self, 'shift_time')
-        times = self.times
-        sfreq = self.info['sfreq']
-        old_first = int(self.tmin * sfreq)
-
-        offset = old_first if relative else 0
-
-        first = int(tshift * sfreq) + offset
-        last = first + len(times) - 1
-        self._set_times(np.arange(first, last + 1, dtype=np.float) / sfreq)
-        return self
-
 
 def _check_baseline(baseline, tmin, tmax, sfreq):
     """Check for a valid baseline."""
@@ -2336,6 +2301,7 @@ def _read_one_epoch_file(f, tree, preload):
 
         #   Locate the data of interest
         processed = dir_tree_find(meas, FIFF.FIFFB_PROCESSED_DATA)
+        del meas
         if len(processed) == 0:
             raise ValueError('Could not find processed data')
 

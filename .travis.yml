@@ -13,17 +13,9 @@ env:
 
 matrix:
     include:
-        # No data + style testing
-        - os: linux
-          env: DEPS=nodata MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
-               CONDA_DEPENDENCIES="numpy scipy matplotlib sphinx"
-               PIP_DEPENDENCIES="codecov flake8 https://api.github.com/repos/numpy/numpydoc/zipball/master codespell pydocstyle codecov check-manifest twine"
-
         # Linux
-        # As of 2019/09/19 there is a mysterious joblib bug, so temporarily work around it with MNE_FORCE_SERIAL
         - os: linux
           env: CONDA_ENV="environment.yml"
-               MNE_FORCE_SERIAL=true
 
         # OSX conda
         - os: osx
@@ -42,14 +34,13 @@ matrix:
         - os: linux
           env: PYTHON_VERSION=3.5
                CONDA_DEPENDENCIES="numpy=1.12 scipy=0.18 matplotlib=2.0 pandas=0.19 scikit-learn=0.18"
-               PIP_DEPENDENCIES="codecov nitime"
                CONDA_CHANNELS="conda-forge"
 
-        # Minimal
+        # Minimal (runs with and without testing data)
         - os: linux
           env: DEPS=minimial
                CONDA_DEPENDENCIES="numpy scipy matplotlib"
-               PIP_DEPENDENCIES="codecov"
+               MNE_DONTWRITE_HOME=true MNE_FORCE_SERIAL=true MNE_SKIP_NETWORK_TEST=1
 
 # Setup anaconda
 before_install:
@@ -69,16 +60,18 @@ before_install:
           conda activate base;
           conda env update --file $CONDA_ENV;
           pip uninstall -yq mne;
-          pip install codecov nitime;
           if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
             pip install "pyqt5>=5.10";
           fi;
         fi;
       fi
     # Always install these via pip so we get the latest possible versions (testing bugfixes)
-    - pip install --upgrade pytest pytest-sugar pytest-cov pytest-mock pytest-timeout
+    - pip install --upgrade pytest pytest-sugar pytest-cov pytest-mock pytest-timeout codecov
+    - if [ "${DEPS}" != "minimal" ]; then
+        pip install nitime;
+      fi
     # Don't source mne_setup_sh here because changing PATH etc. can't be done in a script
-    - if [ "${DEPS}" == "" ]; then
+    - if [ "${DEPS}" != "minimal" ]; then
         export MNE_ROOT="${PWD}/minimal_cmds";
         export PATH=${MNE_ROOT}/bin:$PATH;
         if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
@@ -107,12 +100,10 @@ install:
     # Trigger download of testing data. Note that
     # the testing dataset has been constructed to contain the necessary
     # files to act as a FREESURFER_HOME for the coreg tests
-    - if [ "${DEPS}" != "nodata" ]; then
+    - if [ "${DEPS}" != "minimal" ]; then
         python -c 'import mne; mne.datasets.testing.data_path(verbose=True)';
-      else
-        export MNE_SKIP_TESTING_DATASET_TESTS=true;
       fi;
-    - if [ "${DEPS}" == "" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+    - if [ "${DEPS}" != "minimal" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
         export FREESURFER_HOME=$(python -c 'import mne; print(mne.datasets.testing.data_path())');
         export MNE_SKIP_FS_FLASH_CALL=1;
       fi;
@@ -172,15 +163,20 @@ script:
         done;
       fi;
     # Test run_tests_if_main
-    - if [ "${DEPS}" == "nodata" ]; then
+    - if [ "${DEPS}" == "minimal" ]; then
         pip uninstall -yq mne;
         pip install -e .;
         python mne/tests/test_evoked.py;
       fi;
     - echo pytest -m "${CONDITION}" --cov=mne ${USE_DIRS}
     - pytest -m "${CONDITION}" --cov=mne ${USE_DIRS}
-    - if [ "${DEPS}" == "nodata" ]; then
-        make pep;
+    # run the minimal one with the testing data
+    - if [ "${DEPS}" == "minimal" ]; then
+        export MNE_SKIP_TESTING_DATASET_TESTS=false;
+        python -c 'import mne; mne.datasets.testing.data_path(verbose=True)';
+      fi;
+    - if [ "${DEPS}" == "minimal" ]; then
+        pytest -m "${CONDITION}" --cov=mne ${USE_DIRS};
       fi;
 
 after_script:

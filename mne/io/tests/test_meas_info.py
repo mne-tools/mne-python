@@ -19,16 +19,17 @@ from mne.datasets import testing
 from mne.io import (read_fiducials, write_fiducials, _coil_trans_to_loc,
                     _loc_to_coil_trans, read_raw_fif, read_info, write_info)
 from mne.io.constants import FIFF
-from mne.io.write import _generate_meas_id
+from mne.io.write import _generate_meas_id, DATE_NONE
 from mne.io.meas_info import (Info, create_info, _merge_info,
                               _force_update_info, RAW_INFO_FIELDS,
                               _bad_chans_comp, _get_valid_units,
-                              anonymize_info, _stamp_to_dt, _dt_to_stamp)
+                              anonymize_info, _stamp_to_dt, _dt_to_stamp,
+                              _add_timedelta_to_meas_date)
 from mne.io._digitization import (_write_dig_points, _read_dig_points,
                                   _make_dig_points,)
 from mne.io import read_raw_ctf
 from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
-from mne.channels import make_standard_montage
+from mne.channels import make_standard_montage, equalize_channels
 
 fiducials_fname = op.join(op.dirname(__file__), '..', '..', 'data',
                           'fsaverage', 'fsaverage-fiducials.fif')
@@ -244,6 +245,16 @@ def test_read_write_info(tmpdir):
     m2 = m2.hexdigest()
     assert m1 == m2
 
+    info = read_info(raw_fname)
+    info['meas_date'] = None
+    anonymize_info(info)
+    assert info['meas_date'] is None
+    tmp_fname_3 = tmpdir.join('info3.fif')
+    write_info(tmp_fname_3, info)
+    assert info['meas_date'] is None
+    info2 = read_info(tmp_fname_3)
+    assert info2['meas_date'] is None
+
 
 def test_io_dig_points(tmpdir):
     """Test Writing for dig files."""
@@ -457,7 +468,7 @@ def _test_anonymize_info(base_info):
     exp_info['description'] = default_desc
     exp_info['experimenter'] = default_str
     exp_info['proj_name'] = default_str
-    exp_info['proj_id'][:] = 0
+    exp_info['proj_id'] = np.array([0])
     exp_info['subject_info']['first_name'] = default_str
     exp_info['subject_info']['last_name'] = default_str
     exp_info['subject_info']['id'] = default_subject_id
@@ -467,12 +478,20 @@ def _test_anonymize_info(base_info):
     # 2010 and 2000.
     exp_info['subject_info']['birthday'] = (1977, 4, 7)
     exp_info['meas_date'] = _dt_to_stamp(default_anon_dos)
+
+    # make copies
+    exp_info_3 = exp_info.copy()
+
+    # adjust each expected outcome
+    delta_t = timedelta(days=3653)
     for key in ('file_id', 'meas_id'):
         value = exp_info.get(key)
         if value is not None:
             assert 'msecs' not in value
-            value['secs'] = exp_info['meas_date'][0]
-            value['usecs'] = exp_info['meas_date'][1]
+            tmp = _add_timedelta_to_meas_date((value['secs'], value['usecs']),
+                                              -delta_t)
+            value['secs'] = tmp[0]
+            value['usecs'] = tmp[1]
             value['machid'][:] = 0
 
     # exp 2 tests the keep_his option
@@ -480,17 +499,21 @@ def _test_anonymize_info(base_info):
     exp_info_2['subject_info']['his_id'] = 'foobar'
 
     # exp 3 tests is a supplied daysback
-    dt = timedelta(days=43)
-    exp_info_3 = exp_info.copy()
+    delta_t_2 = timedelta(days=43)
     exp_info_3['subject_info']['birthday'] = (1987, 2, 24)
-    exp_info_3['meas_date'] = _dt_to_stamp(meas_date - dt)
+    exp_info_3['meas_date'] = _dt_to_stamp(meas_date - delta_t_2)
     for key in ('file_id', 'meas_id'):
         value = exp_info_3.get(key)
         if value is not None:
             assert 'msecs' not in value
-            value['secs'] = exp_info_3['meas_date'][0]
-            value['usecs'] = exp_info_3['meas_date'][1]
+            tmp = _add_timedelta_to_meas_date((value['secs'], value['usecs']),
+                                              -delta_t_2)
+            value['secs'] = tmp[0]
+            value['usecs'] = tmp[1]
             value['machid'][:] = 0
+
+    # exp 4 tests is a supplied daysback
+    delta_t_3 = timedelta(days=223 + 364 * 500)
 
     new_info = anonymize_info(base_info.copy())
     assert_object_equal(new_info, exp_info)
@@ -498,7 +521,26 @@ def _test_anonymize_info(base_info):
     new_info = anonymize_info(base_info.copy(), keep_his=True)
     assert_object_equal(new_info, exp_info_2)
 
-    new_info = anonymize_info(base_info.copy(), daysback=dt.days)
+    new_info = anonymize_info(base_info.copy(), daysback=delta_t_2.days)
+    assert_object_equal(new_info, exp_info_3)
+
+    with pytest.raises(RuntimeError, match='anonymize_info generated'):
+        anonymize_info(base_info.copy(), daysback=delta_t_3.days)
+    # assert_object_equal(new_info, exp_info_4)
+
+    # test with meas_date = None
+    base_info['meas_date'] = None
+    exp_info_3['meas_date'] = None
+    exp_info_3['file_id']['secs'] = DATE_NONE[0]
+    exp_info_3['file_id']['usecs'] = DATE_NONE[1]
+    exp_info_3['meas_id']['secs'] = DATE_NONE[0]
+    exp_info_3['meas_id']['usecs'] = DATE_NONE[1]
+    exp_info_3['subject_info'].pop('birthday', None)
+
+    new_info = anonymize_info(base_info.copy(), daysback=delta_t_2.days)
+    assert_object_equal(new_info, exp_info_3)
+
+    new_info = anonymize_info(base_info.copy())
     assert_object_equal(new_info, exp_info_3)
 
 
@@ -509,6 +551,13 @@ def test_meas_date_convert(tmpdir):
     meas_date2 = _dt_to_stamp(meas_datetime)
     assert(meas_date == meas_date2)
     assert(meas_datetime == datetime(2012, 9, 7, 1, 33, 5, 835782,
+                                     tzinfo=timezone.utc))
+    # test old dates for BIDS anonymization
+    meas_date = (-1533443343, 24382)
+    meas_datetime = _stamp_to_dt(meas_date)
+    meas_date2 = _dt_to_stamp(meas_datetime)
+    assert(meas_date == meas_date2)
+    assert(meas_datetime == datetime(1921, 5, 29, 19, 30, 57, 24382,
                                      tzinfo=timezone.utc))
 
 
@@ -532,7 +581,11 @@ def test_anonymize(tmpdir):
 
     # test that annotations are correctly zeroed
     raw.anonymize()
-    assert(raw.annotations.orig_time is raw.info['meas_date'])
+    assert(raw.annotations.orig_time == (raw.info['meas_date'][0] +
+                                         raw.info['meas_date'][1] / 1000000.))
+    raw.info['meas_date'] = None
+    raw.anonymize()
+    assert(raw.annotations.orig_time == 0)
 
 
 @testing.requires_testing_data
@@ -605,6 +658,16 @@ def test_field_round_trip(tmpdir):
     info_read = read_info(fname)
     info_read['dig'] = None  # XXX eventually this should go away
     assert_object_equal(info, info_read)
+
+
+def test_equalize_channels():
+    """Test equalization of channels for instances of Info."""
+    info1 = create_info(['CH1', 'CH2', 'CH3'], sfreq=1.)
+    info2 = create_info(['CH4', 'CH2', 'CH1'], sfreq=1.)
+    info1, info2 = equalize_channels([info1, info2])
+
+    assert info1.ch_names == ['CH1', 'CH2']
+    assert info2.ch_names == ['CH1', 'CH2']
 
 
 run_tests_if_main()

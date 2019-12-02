@@ -106,7 +106,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
              show_first_samp=False, proj=True, group_by='type',
              butterfly=False, decim='auto', noise_cov=None, event_id=None,
-             show_scrollbars=True, verbose=None):
+             show_scrollbars=True, show_scalebars=True, verbose=None):
     """Plot raw data.
 
     Parameters
@@ -233,10 +233,14 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         .. versionadded:: 0.16.0
     event_id : dict | None
         Event IDs used to show at event markers (default None shows
-        theh event numbers).
+        the event numbers).
 
         .. versionadded:: 0.16.0
     %(show_scrollbars)s
+    show_scalebars : bool
+        Whether or not to show the scale bars. Defaults to True.
+
+        .. versionadded:: 0.20.0
     %(verbose)s
 
     Returns
@@ -397,8 +401,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                   data_picks=data_picks, event_id_rev=event_id_rev,
                   noise_cov=noise_cov, use_noise_cov=noise_cov is not None,
                   filt_bounds=filt_bounds, units=units, snap_annotations=False,
-                  unit_scalings=unit_scalings, use_scalebars=True,
-                  show_scrollbars=show_scrollbars)
+                  unit_scalings=unit_scalings, show_scrollbars=show_scrollbars,
+                  show_scalebars=show_scalebars)
 
     if group_by in ['selection', 'position']:
         params['fig_selection'] = fig_selection
@@ -554,9 +558,6 @@ def _label_clicked(pos, params):
             params['ax_vscroll'].patches[idx].set_color(color)
     params['raw'].info['bads'] = bads
     _plot_update_raw_proj(params, None)
-
-
-_data_types = ('mag', 'grad', 'eeg', 'seeg', 'ecog')
 
 
 @verbose
@@ -806,7 +807,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                 labels[ii].set_color(this_color)
             lines[ii].set_zorder(this_z)
             # add a scale bar
-            if (params['use_scalebars'] and
+            if (params['show_scalebars'] and
                     this_type != 'stim' and
                     ch_name not in params['whitened_ch_names'] and
                     ch_name not in params['info']['bads'] and
@@ -822,6 +823,7 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                     params['unit_scalings'][this_type] *
                     2. /
                     params['scale_factor'])
+
                 units = params['units'][this_type]
                 bar = ax.plot([x, x], [offset - 1., offset + 1.],
                               color=scale_color, zorder=5, lw=4)[0]
@@ -830,7 +832,6 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                                va='baseline', ha='right',
                                color=scale_color, zorder=5, size='xx-small')
                 params['scalebars'][this_type] = bar
-
         else:
             # "remove" lines
             lines[ii].set_xdata([])

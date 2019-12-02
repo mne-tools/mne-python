@@ -18,6 +18,7 @@ from mne.utils import (requires_mne, run_subprocess,
 from mne.forward import (restrict_forward_to_stc, restrict_forward_to_label,
                          Forward, is_fixed_orient, compute_orient_prior,
                          compute_depth_prior)
+from mne.channels import equalize_channels
 
 data_path = testing.data_path(download=False)
 fname_meeg = op.join(data_path, 'MEG', 'sample',
@@ -424,6 +425,17 @@ def test_priors():
         compute_orient_prior(fwd_surf_ori, -0.5)
     with pytest.raises(ValueError, match='with fixed orientation'):
         compute_orient_prior(fwd_fixed, 0.5)
+
+
+@testing.requires_testing_data
+def test_equalize_channels():
+    """Test equalization of channels for instances of Forward."""
+    fwd1 = read_forward_solution(fname_meeg)
+    fwd1.pick_channels(['EEG 001', 'EEG 002', 'EEG 003'])
+    fwd2 = fwd1.copy().pick_channels(['EEG 002', 'EEG 001'], ordered=True)
+    fwd1, fwd2 = equalize_channels([fwd1, fwd2])
+    assert fwd1.ch_names == ['EEG 001', 'EEG 002']
+    assert fwd2.ch_names == ['EEG 001', 'EEG 002']
 
 
 run_tests_if_main()

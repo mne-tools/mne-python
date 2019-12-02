@@ -18,7 +18,7 @@ from .channels.layout import _merge_grad_data, _pair_grad_sensors
 from .filter import detrend, FilterMixin
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc, _validate_type,
-                    fill_doc, _check_option)
+                    fill_doc, _check_option, ShiftTimeMixin)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
@@ -34,7 +34,7 @@ from .io.meas_info import read_meas_info, write_meas_info
 from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_string, write_float_matrix,
-                       write_id)
+                       write_id, write_float)
 from .io.base import ToDataFrameMixin, TimeMixin, _check_maxshield
 
 _aspect_dict = {
@@ -56,7 +56,7 @@ _aspect_rev = {val: key for key, val in _aspect_dict.items()}
 @fill_doc
 class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              InterpolationMixin, FilterMixin, ToDataFrameMixin, TimeMixin,
-             SizeMixin):
+             SizeMixin, ShiftTimeMixin):
     """Evoked data.
 
     Parameters
@@ -117,9 +117,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                  verbose=None):  # noqa: D102
         _validate_type(proj, bool, "'proj'")
         # Read the requested data
-        self.info, self.nave, self._aspect_kind, self.first, self.last, \
-            self.comment, self.times, self.data = _read_evoked(
-                fname, condition, kind, allow_maxshield)
+        self.info, self.nave, self._aspect_kind, self.comment, self.times, \
+            self.data = _read_evoked(fname, condition, kind, allow_maxshield)
+        self._update_first_last()
         self.verbose = verbose
         self.preload = True
         # project and baseline correct
@@ -230,8 +230,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'],
                           include_tmax=include_tmax)
         self.times = self.times[mask]
-        self.first = int(self.times[0] * self.info['sfreq'])
-        self.last = len(self.times) + self.first - 1
+        self._update_first_last()
         self.data = self.data[:, mask]
         return self
 
@@ -276,42 +275,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self.info['sfreq'] = new_sfreq
         self.data = self.data[:, decim_slice].copy()
         self.times = self.times[decim_slice].copy()
-        self.first = int(self.times[0] * self.info['sfreq'])
-        self.last = len(self.times) + self.first - 1
-        return self
-
-    def shift_time(self, tshift, relative=True):
-        """Shift time scale in evoked data.
-
-        Parameters
-        ----------
-        tshift : float
-            The amount of time shift to be applied if relative is True
-            else the first time point. When relative is True, positive value
-            of tshift moves the data forward while negative tshift moves it
-            backward.
-        relative : bool
-            If true, move the time backwards or forwards by specified amount.
-            Else, set the starting time point to the value of tshift.
-
-        Returns
-        -------
-        evoked : instance of Evoked
-            The modified Evoked instance.
-
-        Notes
-        -----
-        Maximum accuracy of time shift is 1 / evoked.info['sfreq']
-        """
-        times = self.times
-        sfreq = self.info['sfreq']
-
-        offset = self.first if relative else 0
-
-        self.first = int(tshift * sfreq) + offset
-        self.last = self.first + len(times) - 1
-        self.times = np.arange(self.first, self.last + 1,
-                               dtype=np.float) / sfreq
+        self._update_first_last()
         return self
 
     @copy_function_doc_to_method_doc(plot_evoked)
@@ -718,8 +682,7 @@ class EvokedArray(Evoked):
 
         self.data = data
 
-        # XXX: this should use round and be tested
-        self.first = int(tmin * info['sfreq'])
+        self.first = int(round(tmin * info['sfreq']))
         self.last = self.first + np.shape(data)[-1] - 1
         self.times = np.arange(self.first, self.last + 1,
                                dtype=np.float) / info['sfreq']
@@ -1088,22 +1051,20 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
             data = np.concatenate([e.data[None, :] for e in epoch], axis=0)
         data = data.astype(np.float)
 
-        if first is not None:
+        if first_time is not None and nsamp is not None:
+            times = first_time + np.arange(nsamp) / info['sfreq']
+        elif first is not None:
             nsamp = last - first + 1
-        elif first_time is not None:
-            first = int(round(first_time * info['sfreq']))
-            last = first + nsamp
+            times = np.arange(first, last + 1) / info['sfreq']
         else:
             raise RuntimeError('Could not read time parameters')
+        del first, last
         if nsamp is not None and data.shape[1] != nsamp:
             raise ValueError('Incorrect number of samples (%d instead of '
                              ' %d)' % (data.shape[1], nsamp))
-        nsamp = data.shape[1]
-        last = first + nsamp - 1
         logger.info('    Found the data of interest:')
         logger.info('        t = %10.2f ... %10.2f ms (%s)'
-                    % (1000 * first / info['sfreq'],
-                       1000 * last / info['sfreq'], comment))
+                    % (1000 * times[0], 1000 * times[-1], comment))
         if info['comps'] is not None:
             logger.info('        %d CTF compensation matrices available'
                         % len(info['comps']))
@@ -1116,8 +1077,7 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
                      for k in range(info['nchan'])])
     data *= cals[:, np.newaxis]
 
-    times = np.arange(first, last + 1, dtype=np.float) / info['sfreq']
-    return info, nave, aspect_kind, first, last, comment, times, data
+    return info, nave, aspect_kind, comment, times, data
 
 
 def write_evokeds(fname, evoked):
@@ -1169,7 +1129,9 @@ def _write_evokeds(fname, evoked, check=True):
             if e.comment is not None and len(e.comment) > 0:
                 write_string(fid, FIFF.FIFF_COMMENT, e.comment)
 
-            # First and last sample
+            # First time, num. samples, first and last sample
+            write_float(fid, FIFF.FIFF_FIRST_TIME, e.times[0])
+            write_int(fid, FIFF.FIFF_NO_SAMPLES, len(e.times))
             write_int(fid, FIFF.FIFF_FIRST_SAMPLE, e.first)
             write_int(fid, FIFF.FIFF_LAST_SAMPLE, e.last)
 

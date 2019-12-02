@@ -192,6 +192,24 @@ with auditory, visual, and somatosensory stimuli.
 
     * :ref:`ex-io-ave-fiff`
 
+.. _fnirs-motor-dataset:
+
+fNIRS motor
+===========
+:func:`mne.datasets.fnirs_motor.data_path`
+
+This dataset contains a single subject recorded at Macquarie University.
+It has optodes placed over the motor cortex. There are three conditions:
+
+- tapping the left thumb to fingers
+- tapping the right thumb to fingers
+- a control where nothing happens
+
+The tapping lasts 5 seconds, and there are 30 trials of each condition.
+
+.. topic:: Examples
+
+    * :ref:`tut-fnirs-processing`
 
 High frequency SEF
 ==================
