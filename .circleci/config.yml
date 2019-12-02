@@ -92,7 +92,7 @@ jobs:
             name: Check installation
             command: |
                which python
-               python -c "import mne; mne.sys_info()"
+               mne sys_info
                LIBGL_DEBUG=verbose python -c "from mayavi import mlab; import matplotlib.pyplot as plt; mlab.figure(); plt.figure()"
                python -c "import mne; mne.set_config('MNE_USE_CUDA', 'false')"  # this is needed for the config tutorial
                python -c "import mne; mne.set_config('MNE_LOGGING_LEVEL', 'info')"

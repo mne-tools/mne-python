@@ -140,10 +140,8 @@ jobs:
     displayName: 'Install dependencies with conda'
   - script: python setup.py develop
     displayName: 'Install MNE-Python dev'
-  - script: python -c "import mne; print(mne.sys_info())"
-    displayName: 'Print config'
-  - script: mne --help
-    displayName: 'Test basic access to commands'
+  - script: mne sys_info
+    displayName: 'Print config and test access to commands'
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
   - script: pytest -m "not ultraslowtest" --cov=mne mne
