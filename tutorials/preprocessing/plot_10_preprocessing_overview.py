@@ -174,7 +174,7 @@ for ax in fig.axes[:2]:
 # show all three channel types, even though EEG channels are less strongly
 # affected by heartbeat artifacts:
 
-# sphinx_gallery_thumbnail_number = 5
+# sphinx_gallery_thumbnail_number = 3
 ecg_epochs = mne.preprocessing.create_ecg_epochs(raw)
 ecg_epochs.plot_image(combine='mean')
 
