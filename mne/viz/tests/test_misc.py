@@ -113,17 +113,19 @@ def test_plot_events():
     with pytest.warns(RuntimeWarning, match='will be ignored'):
         plot_events(events, raw.info['sfreq'], raw.first_samp,
                     event_id=event_labels)
-    with pytest.warns(RuntimeWarning, match='Color is not available'):
+    with pytest.warns(RuntimeWarning, match='Color was not assigned'):
         plot_events(events, raw.info['sfreq'], raw.first_samp,
                     color=color)
-    with pytest.warns(RuntimeWarning, match='event .* missing'):
+    with pytest.warns(RuntimeWarning, match=r'vent \d+ missing from event_id'):
         plot_events(events, raw.info['sfreq'], raw.first_samp,
                     event_id=event_labels, color=color)
-    with pytest.warns(RuntimeWarning, match='event .* missing'):
-        pytest.raises(ValueError, plot_events, events, raw.info['sfreq'],
-                      raw.first_samp, event_id={'aud_l': 1}, color=color)
-    pytest.raises(ValueError, plot_events, events, raw.info['sfreq'],
-                  raw.first_samp, event_id={'aud_l': 111}, color=color)
+    multimatch = r'event \d+ missing from event_id|in the color dict but is'
+    with pytest.warns(RuntimeWarning, match=multimatch):
+        plot_events(events, raw.info['sfreq'], raw.first_samp,
+                    event_id={'aud_l': 1}, color=color)
+    with pytest.raises(ValueError, match='from event_id is not present in'):
+        plot_events(events, raw.info['sfreq'], raw.first_samp,
+                    event_id={'aud_l': 111}, color=color)
     plt.close('all')
 
 
