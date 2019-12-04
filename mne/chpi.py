@@ -166,7 +166,7 @@ def calculate_head_pos_ctf(raw, gof_limit=0.98):
 
     Parameters
     ----------
-    raw : instance of raw
+    raw : instance of Raw
         Raw data with cHPI information. HLC00 channels
     gof_limit : float
         Minimum goodness of fit to accept.
