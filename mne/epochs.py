@@ -16,6 +16,7 @@ from copy import deepcopy
 import json
 import operator
 import os.path as op
+import warnings
 from distutils.version import LooseVersion
 
 import numpy as np
@@ -382,7 +383,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         if events is not None:  # RtEpochs can have events=None
             events_type = type(events)
-            events = np.asarray(events)
+            with warnings.catch_warnings(record=True):
+                warnings.simplefilter('ignore')  # deprecation for object array
+                events = np.asarray(events)
             if not np.issubdtype(events.dtype, np.integer):
                 raise TypeError('events should be a NumPy array of integers, '
                                 'got {}'.format(events_type))
