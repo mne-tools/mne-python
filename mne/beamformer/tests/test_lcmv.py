@@ -732,9 +732,10 @@ def test_lcmv_reg_proj(proj, weight_norm):
     else:
         scale = 1.
     assert_allclose(stc_nocov.data, stc_adhoc.data * scale)
-    assert_allclose(
-        np.dot(filters_nocov['weights'], filters_nocov['whitener']),
-        np.dot(filters_adhoc['weights'], filters_adhoc['whitener']) * scale)
+    a = np.dot(filters_nocov['weights'], filters_nocov['whitener'])
+    b = np.dot(filters_adhoc['weights'], filters_adhoc['whitener']) * scale
+    atol = np.mean(np.sqrt(a * a)) * 1e-7
+    assert_allclose(a, b, atol=atol, rtol=1e-7)
 
     # Compare adhoc and cov: locs might not be equivalent, but the same
     # general profile should persist, so look at the std and be lenient:
