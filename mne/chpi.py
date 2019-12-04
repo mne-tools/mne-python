@@ -161,13 +161,13 @@ def _apply_quat(quat, pts, move=True):
     return(apply_trans(trans, pts, move=move))
 
 
-def _calculate_head_pos_ctf(raw, gof_limit=0.98):
+def calculate_head_pos_ctf(raw, gof_limit=0.98):
     r"""Extract head position parameters from ctf dataset.
 
     Parameters
     ----------
-    raw : instance of raw
-        Raw data with cHPI information. HLC00 channels
+    raw : instance of Raw
+        Raw data with CTF cHPI information.
     gof_limit : float
         Minimum goodness of fit to accept.
 
@@ -179,10 +179,14 @@ def _calculate_head_pos_ctf(raw, gof_limit=0.98):
     Notes
     -----
     CTF continuous head monitoring stores the x,y,z location (m) of each chpi
-    coil as separate channels in the dataset.
-    HLC001[123]\\* - nasion
-    HLC002[123]\\* - lpa
-    HLC003[123]\\* - rpa
+    coil as separate channels in the dataset:
+
+    - ``HLC001[123]\\*`` - nasion
+    - ``HLC002[123]\\*`` - lpa
+    - ``HLC003[123]\\*`` - rpa
+
+    This uses those positions to compute the head position as a function of
+    time.
     """
     # Pick channels corresponding to the cHPI positions
     hpi_picks = pick_channels_regexp(raw.info['ch_names'],
@@ -263,6 +267,9 @@ def _calculate_head_pos_ctf(raw, gof_limit=0.98):
     quats[:, 0] += raw._first_time
     return quats
 
+
+# facilitate transition for people who had used the private one (bloyl)
+_calculate_head_pos_ctf = calculate_head_pos_ctf
 
 # ############################################################################
 # Estimate positions from data
