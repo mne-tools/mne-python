@@ -19,6 +19,8 @@ Changelog
 
 - Add current source density :func:`mne.preprocessing.compute_current_source_density` to compute the surface Laplacian in order to reduce volume conduction in data by `Alex Rockhill`_
 
+- Add :func:`mne.chpi.calculate_head_pos_ctf` by `Luke Bloy`_
+
 - Add command :ref:`gen_mne_setup_source_space` to quickly set up bilateral hemisphere surface-based source space with subsampling by `Victor Ferat`_.
 
 - Add command :ref:`gen_mne_sys_info` to print system information by `Eric Larson`_
