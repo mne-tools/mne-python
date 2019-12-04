@@ -129,13 +129,13 @@ jobs:
     displayName: 'Install dependencies with pip'
   # VTK does not have wheels (scheduled Q1 2020):
   # https://github.com/KitwareMedical/VTKPythonPackage/issues/39
-  # Missing: vtk, mayavi, PySurfer, pyvista, numexpr, python-picard, numba, dipy
+  # Missing: vtk, mayavi, PySurfer, pyvista, numexpr, python-picard, numba, dipy, statsmodels (doesn't work on pre as of 2019/12/04)
   - powershell: |
       Set-StrictMode -Version Latest
       $ErrorActionPreference = "Stop"
       $PSDefaultParameterValues['*:ErrorAction']='Stop'
       python -m pip install --upgrade pip setuptools
-      python -m pip install --upgrade --pre --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" numpy scipy scikit-learn matplotlib h5py pandas statsmodels Pillow
+      python -m pip install --upgrade --pre --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" numpy scipy scikit-learn matplotlib h5py pandas Pillow
       python -m pip install --upgrade nilearn pyqt5 pyqt5-sip nibabel pytest pytest-cov pytest-faulthandler pytest-mock pytest-sugar pytest-timeout joblib psutil https://api.github.com/repos/numpy/numpydoc/zipball/master neo xlrd codecov
       python -m pip install codecov
     condition: eq(variables['TEST_MODE'], 'pre-pip')
