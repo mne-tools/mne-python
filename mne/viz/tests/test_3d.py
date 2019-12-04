@@ -526,6 +526,7 @@ def test_plot_volume_source_estimates(mode, stype, init_t, want_t,
 
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
+@requires_dipy()
 @requires_nibabel()
 @requires_version('nilearn', '0.4')
 def test_plot_volume_source_estimates_morph():
