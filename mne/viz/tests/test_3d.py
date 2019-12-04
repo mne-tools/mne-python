@@ -32,7 +32,7 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_sensors_connectivity, plot_brain_colorbar)
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
-                       requires_nibabel, check_version,
+                       requires_nibabel, check_version, requires_dipy,
                        traits_test, requires_version, catch_logging)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
@@ -480,6 +480,7 @@ def test_snapshot_brain_montage(renderer):
 
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
+@requires_dipy()
 @requires_nibabel()
 @requires_version('nilearn', '0.4')
 @pytest.mark.parametrize('mode, stype, init_t, want_t, init_p, want_p', [
@@ -525,6 +526,7 @@ def test_plot_volume_source_estimates(mode, stype, init_t, want_t,
 
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
+@requires_dipy()
 @requires_nibabel()
 @requires_version('nilearn', '0.4')
 def test_plot_volume_source_estimates_morph():

@@ -321,7 +321,7 @@ def test_reject():
             epochs.drop_bad()
             assert_equal(len(epochs), len(events))
             assert_array_equal(epochs.selection, np.arange(len(events)))
-            assert_array_equal(epochs.drop_log, [[]] * 7)
+            assert epochs.drop_log == [[]] * 7
             if proj not in data_7:
                 data_7[proj] = epochs.get_data()
             assert_array_equal(epochs.get_data(), data_7[proj])
@@ -332,7 +332,7 @@ def test_reject():
             epochs.drop_bad()
             assert_equal(len(epochs), len(events) - 4)
             assert_array_equal(epochs.selection, selection)
-            assert_array_equal(epochs.drop_log, drop_log)
+            assert epochs.drop_log == drop_log
             assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
 
             # rejection post-hoc
@@ -345,7 +345,7 @@ def test_reject():
             assert_equal(len(epochs), len(events) - 4)
             assert_equal(len(epochs), len(epochs.get_data()))
             assert_array_equal(epochs.selection, selection)
-            assert_array_equal(epochs.drop_log, drop_log)
+            assert epochs.drop_log == drop_log
             assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
 
             # rejection twice
@@ -357,7 +357,7 @@ def test_reject():
             epochs.drop_bad(reject)
             assert_equal(len(epochs), len(events) - 4)
             assert_array_equal(epochs.selection, selection)
-            assert_array_equal(epochs.drop_log, drop_log)
+            assert epochs.drop_log == drop_log
             assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
 
             # ensure that thresholds must become more stringent, not less
@@ -957,7 +957,7 @@ def test_epochs_io_preload(tmpdir, preload):
     epochs_read5 = read_epochs(temp_fname, preload=preload)
     assert_array_equal(epochs_read5.selection, epochs.selection)
     assert_equal(len(epochs_read5.selection), len(epochs_read5.events))
-    assert_array_equal(epochs_read5.drop_log, epochs.drop_log)
+    assert epochs_read5.drop_log == epochs.drop_log
 
     if preload:
         # Test that one can drop channels on read file
@@ -986,7 +986,7 @@ def test_epochs_io_preload(tmpdir, preload):
     assert_allclose(epochs.get_data(), epochs_read.get_data(), **tols)
     assert_array_equal(epochs.events, epochs_read.events)
     assert_array_equal(epochs.selection, epochs_read.selection)
-    assert_equal(epochs.drop_log, epochs_read.drop_log)
+    assert epochs.drop_log == epochs_read.drop_log
 
     # Test that having a single time point works
     epochs.load_data().crop(0, 0)
