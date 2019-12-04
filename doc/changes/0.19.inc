@@ -9,6 +9,13 @@
 
 .. _changes_0_19:
 
+Version 0.19.3
+
+Bug
+~~~
+
+- Fix :func:`mne.io.Raw.set_montage` to allow using custom montages in unknown coordinates when LPA, Nasion, and/or RPA are not present by `Eric Larson`_
+
 Version 0.19.2
 --------------
 
