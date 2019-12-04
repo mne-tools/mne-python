@@ -1505,7 +1505,8 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     # make sure the inputs are arrays
     if np.isscalar(seeds):
         seeds = [seeds]
-    seeds = np.atleast_1d([np.atleast_1d(seed) for seed in seeds])
+    # these can have different sizes so need to use object array
+    seeds = np.asarray([np.atleast_1d(seed) for seed in seeds], dtype='O')
     extents = np.atleast_1d(extents)
     hemis = np.atleast_1d(hemis)
     n_seeds = len(seeds)

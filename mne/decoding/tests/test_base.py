@@ -73,19 +73,11 @@ def test_get_coef():
 
     parameters = {'kernel': ['linear'], 'C': [1, 10]}
     lm_gs_classification = LinearModel(
-        GridSearchCV(
-            svm.SVC(), parameters,
-            cv=2, refit=True, iid=False, n_jobs=1
-        )
-    )
+        GridSearchCV(svm.SVC(), parameters, cv=2, refit=True, n_jobs=1))
     assert (is_classifier(lm_gs_classification))
 
     lm_gs_regression = LinearModel(
-        GridSearchCV(
-            svm.SVR(), parameters, cv=2,
-            refit=True, iid=False, n_jobs=1
-        )
-    )
+        GridSearchCV(svm.SVR(), parameters, cv=2, refit=True, n_jobs=1))
     assert (is_regressor(lm_gs_regression))
 
     # Define a classifier, an invertible transformer and an non-invertible one.
@@ -236,11 +228,7 @@ def test_linearmodel():
     from sklearn.model_selection import GridSearchCV
     parameters = {'kernel': ['linear'], 'C': [1, 10]}
     clf = LinearModel(
-        GridSearchCV(
-            svm.SVC(), parameters, cv=2,
-            refit=True, iid=False, n_jobs=1
-        )
-    )
+        GridSearchCV(svm.SVC(), parameters, cv=2, refit=True, n_jobs=1))
     clf.fit(X, y)
     assert_equal(clf.filters_.shape, (n_features,))
     assert_equal(clf.patterns_.shape, (n_features,))
@@ -252,11 +240,7 @@ def test_linearmodel():
     n_targets = 1
     Y = rng.rand(n, n_targets)
     clf = LinearModel(
-        GridSearchCV(
-            svm.SVR(), parameters, cv=2,
-            refit=True, iid=False, n_jobs=1
-        )
-    )
+        GridSearchCV(svm.SVR(), parameters, cv=2, refit=True, n_jobs=1))
     clf.fit(X, y)
     assert_equal(clf.filters_.shape, (n_features, ))
     assert_equal(clf.patterns_.shape, (n_features, ))

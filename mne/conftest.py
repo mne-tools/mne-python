@@ -75,6 +75,8 @@ def pytest_configure(config):
     ignore:.*imp.*:DeprecationWarning
     ignore:Exception creating Regex for oneOf.*:SyntaxWarning
     ignore:scipy\.gradient is deprecated.*:DeprecationWarning
+    ignore:sklearn\.externals\.joblib is deprecated.*:FutureWarning
+    ignore:The sklearn.*module.*deprecated.*:FutureWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
