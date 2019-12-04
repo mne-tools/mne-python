@@ -31,7 +31,7 @@ from ..io.pick import (_DATA_CH_TYPES_SPLIT, pick_types, pick_info,
 from ..source_space import read_source_spaces, SourceSpaces, _read_mri_info
 from ..transforms import invert_transform, apply_trans
 from ..utils import (logger, verbose, get_subjects_dir, warn, _check_option,
-                     _mask_to_onsets_offsets)
+                     _mask_to_onsets_offsets, _pl)
 from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
 from .utils import tight_layout, _get_color_list, _prepare_trellis, plt_show
@@ -1037,6 +1037,12 @@ def _handle_event_colors(color_dict, unique_events, event_id):
             else:                     # key not a valid event, warn and ignore
                 warn('Event ID %s is in the color dict but is not '
                      'present in events or event_id.' % key)
+        # warn if color_dict is missing any entries
+        unassigned = list(set(unique_events) - set(colors_out))
+        if len(unassigned):
+            unassigned_str = ', '.join(str(e) for e in unassigned)
+            warn('Color was not assigned for event%s %s. Default colors will '
+                 'be used.' % (_pl(unassigned), unassigned_str))
     # assign defaults if needed
     for event, color in zip(sorted(unique_events), default_colors):
         colors_out[event] = colors_out.get(event, color)
