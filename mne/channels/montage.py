@@ -27,7 +27,7 @@ from ..viz import plot_montage
 from .channels import _contains_ch_type
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _frame_to_str, _str_to_frame,
-                          Transform)
+                          Transform, _verbose_frames)
 from .._digitization import Digitization
 from .._digitization.base import _count_points_by_type
 from .._digitization.base import _get_dig_eeg
@@ -926,13 +926,23 @@ def transform_to_head(montage):
     """
     # Get fiducial points and their coord_frame
     fid_coords, coord_frame = _get_fid_coords(montage.dig)
+    if coord_frame is None:
+        coord_frame = FIFF.FIFFV_COORD_UNKNOWN
 
     montage = deepcopy(montage)  # to avoid inplace modification
 
     if coord_frame != FIFF.FIFFV_COORD_HEAD:
-        nasion, lpa, rpa = \
-            fid_coords['nasion'], fid_coords['lpa'], fid_coords['rpa']
-        native_head_t = get_ras_to_neuromag_trans(nasion, lpa, rpa)
+        fid_keys = ('nasion', 'lpa', 'rpa')
+        for key in fid_keys:
+            if fid_coords[key] is None:
+                warn('Fiducial point %s not found, assuming identity %s to '
+                     'head transformation'
+                     % (key, _verbose_frames[coord_frame],))
+                native_head_t = Transform(coord_frame, 'head')
+                break
+        else:
+            native_head_t = get_ras_to_neuromag_trans(
+                *[fid_coords[key] for key in fid_keys])
 
         for d in montage.dig:
             if d['coord_frame'] == coord_frame:
