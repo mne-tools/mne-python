@@ -1109,7 +1109,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     epoch_nr = True
     if events is not None:
         event_set = set(events[:, 2])
-        event_colors = _handle_event_colors(event_set, event_colors, event_set)
+        event_colors = _handle_event_colors(event_colors, event_set,
+                                            params['epochs'].event_id)
         epoch_nr = False  # epoch number off by default to avoid overlap
         for label in ax.xaxis.get_ticklabels():
             label.set_visible(False)
