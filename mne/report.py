@@ -22,7 +22,7 @@ import numpy as np
 
 from . import read_evokeds, read_events, pick_types, read_cov
 from .fixes import _get_img_fdata
-from .io import read_raw_fif, read_info, _stamp_to_dt
+from .io import read_raw_fif, read_info
 from .io.pick import _DATA_CH_TYPES_SPLIT
 from .utils import (logger, verbose, get_subjects_dir, warn,
                     fill_doc, _check_option)
@@ -1809,7 +1809,7 @@ class Report(object):
             ecg = 'Not available'
         meas_date = raw.info['meas_date']
         if meas_date is not None:
-            meas_date = _stamp_to_dt(meas_date).strftime("%B %d, %Y") + ' GMT'
+            meas_date = meas_date.strftime("%B %d, %Y") + ' GMT'
 
         html = raw_template.substitute(
             div_klass='raw', id=global_id, caption=caption, info=raw.info,

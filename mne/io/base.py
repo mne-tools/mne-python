@@ -10,6 +10,7 @@
 # License: BSD (3-clause)
 
 from copy import deepcopy
+from datetime import timedelta
 import os
 import os.path as op
 
@@ -36,7 +37,7 @@ from ..filter import (FilterMixin, notch_filter, resample,
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_pandas_index_arguments, fill_doc, copy_doc,
-                     check_fname, _get_stim_channel,
+                     check_fname, _get_stim_channel, _stamp_to_dt,
                      logger, verbose, _time_mask, warn, SizeMixin,
                      copy_function_doc_to_method_doc, _validate_type,
                      _check_preload, _get_argvalues, _check_option)
@@ -44,7 +45,6 @@ from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..event import find_events, concatenate_events
 from ..annotations import Annotations, _combine_annotations, _sync_onset
-from ..annotations import _ensure_annotation_object
 
 
 def _set_pandas_dtype(df, columns, dtype):
@@ -356,6 +356,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self._last_samps = np.array(last_samps)
         self._first_samps = np.array(first_samps)
         orig_ch_names = info['ch_names']
+        if isinstance(info['meas_date'], tuple):  # be permissive of old code
+            info['meas_date'] = _stamp_to_dt(info['meas_date'])
         info._check_consistency()  # make sure subclass did a good job
         self.info = info
         self.buffer_size_sec = float(buffer_size_sec)
@@ -720,12 +722,13 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             supplied.
         """
         first_samp_in_abs_time = (_handle_meas_date(self.info['meas_date']) +
-                                  self._first_time)
+                                  timedelta(0, self._first_time))
         if origin is None:
             origin = first_samp_in_abs_time
 
-        absolute_time = np.atleast_1d(times) + _handle_meas_date(origin)
-        times = (absolute_time - first_samp_in_abs_time)
+        delta = (_handle_meas_date(origin) -
+                 first_samp_in_abs_time).total_seconds()
+        times = np.atleast_1d(times) + delta
 
         return super(BaseRaw, self).time_as_index(times, use_rounding)
 
@@ -763,16 +766,13 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """
         meas_date = _handle_meas_date(self.info['meas_date'])
         if annotations is None:
-            if self.info['meas_date'] is not None:
-                orig_time = meas_date
-            else:
-                orig_time = None
+            orig_time = None if self.info['meas_date'] is None else meas_date
             self._annotations = Annotations([], [], [], orig_time)
         else:
-            _ensure_annotation_object(annotations)
+            _validate_type(annotations, Annotations, 'annotations')
 
             if self.info['meas_date'] is None and \
-               annotations.orig_time is not None:
+                    annotations.orig_time is not None:
                 raise RuntimeError('Ambiguous operation. Setting an Annotation'
                                    ' object with known ``orig_time`` to a raw'
                                    ' object which has ``meas_date`` set to'
@@ -784,27 +784,28 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                    ' the raw object.')
 
             delta = 1. / self.info['sfreq']
-            time_of_first_sample = meas_date + self.first_samp * delta
+            time_of_first_sample = meas_date + timedelta(0, self._first_time)
             new_annotations = annotations.copy()
             if annotations.orig_time is None:
                 # Assume annotations to be relative to the data
-                new_annotations.orig_time = time_of_first_sample
+                new_annotations._orig_time = time_of_first_sample
 
             tmin = time_of_first_sample
-            tmax = tmin + self.times[-1] + delta
+            tmax = tmin + timedelta(seconds=self.times[-1] + delta)
             new_annotations.crop(tmin=tmin, tmax=tmax,
                                  emit_warning=emit_warning)
 
             if self.info['meas_date'] is None:
-                new_annotations.orig_time = None
+                new_annotations._orig_time = None
             elif annotations.orig_time != meas_date:
                 # XXX, TODO: this should be a function, method or something.
                 # maybe orig_time should have a setter
                 # new_annotations.orig_time = xxxxx # resets onset based on x
                 # new_annotations._update_orig(xxxx)
                 orig_time = new_annotations.orig_time
-                new_annotations.orig_time = meas_date
-                new_annotations.onset -= (meas_date - orig_time)
+                new_annotations._orig_time = meas_date
+                new_annotations.onset -= (
+                    meas_date - orig_time).total_seconds()
 
             self._annotations = new_annotations
 
@@ -1738,6 +1739,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         # now combine information from each raw file to construct new self
         annotations = self.annotations
+        assert annotations.orig_time == self.info['meas_date']
         edge_samps = list()
         for ri, r in enumerate(raws):
             n_samples = self.last_samp - self.first_samp + 1
@@ -1755,6 +1757,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             self._last_samps = np.r_[self._last_samps, r._last_samps]
             self._raw_extras += r._raw_extras
             self._filenames += r._filenames
+        assert annotations.orig_time == self.info['meas_date']
         self._update_times()
         self.set_annotations(annotations)
         for edge_samp in edge_samps:
@@ -1890,7 +1893,7 @@ class _RawShell(object):
     def set_annotations(self, annotations):
         if annotations is None:
             annotations = Annotations([], [], [], None)
-        self._annotations = annotations
+        self._annotations = annotations.copy()
 
 
 ###############################################################################

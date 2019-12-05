@@ -624,8 +624,11 @@ class SetChannelsMixin(object):
         """
         anonymize_info(self.info, daysback=daysback, keep_his=keep_his)
         if hasattr(self, 'annotations'):
-            self.annotations.orig_time = \
-                _handle_meas_date(self.info['meas_date'])
+            if self.info['meas_date'] is not None:
+                self.annotations._orig_time = \
+                    _handle_meas_date(self.info['meas_date'])
+            else:
+                self.annotations._orig_time = None
             self.annotations.onset -= self._first_time
         return self
 

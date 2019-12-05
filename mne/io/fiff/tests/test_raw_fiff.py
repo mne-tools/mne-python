@@ -25,7 +25,7 @@ from mne.io.tests.test_raw import _test_concat, _test_raw_reader
 from mne import (concatenate_events, find_events, equalize_channels,
                  compute_proj_raw, pick_types, pick_channels, create_info,
                  pick_info)
-from mne.utils import (requires_pandas, assert_object_equal,
+from mne.utils import (requires_pandas, assert_object_equal, _dt_to_stamp,
                        requires_mne, run_subprocess, run_tests_if_main,
                        assert_and_remove_boundary_annot)
 from mne.annotations import Annotations
@@ -416,7 +416,7 @@ def test_split_files(tmpdir):
     with pytest.raises(ValueError,
                        match='too large for the given split size'):
         raw_crop.save(split_fname,
-                      split_size=3002276,  # still too small, now after Info
+                      split_size=3003000,  # still too small, now after Info
                       buffer_size_sec=1., overwrite=True)
     # just barely big enough here; the right size to write exactly one buffer
     # at a time so we hit GH#3210 if we aren't careful
@@ -1224,8 +1224,8 @@ def test_save(tmpdir):
     pytest.raises(IOError, raw.save, fif_fname)
 
     # test abspath support and annotations
-    annot = Annotations([10], [5], ['test'],
-                        orig_time=raw.info['meas_date'][0] + raw._first_time)
+    orig_time = _dt_to_stamp(raw.info['meas_date'])[0] + raw._first_time
+    annot = Annotations([10], [5], ['test'], orig_time=orig_time)
     raw.set_annotations(annot)
     annot = raw.annotations
     new_fname = tmpdir.join('break_raw.fif')
@@ -1256,8 +1256,9 @@ def test_annotation_crop(tmpdir):
     assert_array_almost_equal([2., 2.5, 1.], durations[:3], decimal=2)
 
     # test annotation clipping
-    annot = Annotations([0., raw.times[-1]], [2., 2.], 'test',
-                        orig_time=raw.info['meas_date'] + raw._first_time - 1.)
+    orig_time = _dt_to_stamp(raw.info['meas_date'])
+    orig_time = orig_time[0] + orig_time[1] * 1e-6 + raw._first_time - 1.
+    annot = Annotations([0., raw.times[-1]], [2., 2.], 'test', orig_time)
     with pytest.warns(RuntimeWarning, match='Limited .* expanding outside'):
         raw.set_annotations(annot)
     assert_allclose(raw.annotations.duration,

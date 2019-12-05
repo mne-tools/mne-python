@@ -316,6 +316,8 @@ def _str_to_meas_date(date_str):
     if date_str in ['', '0', '00000000000000000000']:
         return None
 
+    # these calculations are in navie time but should be okay since
+    # they are relative (subtraction below)
     try:
         meas_date = datetime.strptime(date_str, '%Y%m%d%H%M%S%f')
     except ValueError as e:
@@ -774,7 +776,6 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             coord_frame=FIFF.FIFFV_COORD_HEAD))
 
     info._update_redundant()
-    info._check_consistency()
     return (info, data_fname, fmt, order, n_samples, mrk_fname, montage,
             orig_units)
 

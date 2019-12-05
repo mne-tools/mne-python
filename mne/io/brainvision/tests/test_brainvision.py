@@ -14,7 +14,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 import pytest
 from tempfile import NamedTemporaryFile
 
-from mne.utils import _TempDir, run_tests_if_main
+from mne.utils import _TempDir, run_tests_if_main, _stamp_to_dt
 from mne import pick_types, read_annotations, concatenate_raws
 from mne.io.constants import FIFF
 from mne.io import read_raw_fif, read_raw_brainvision
@@ -135,10 +135,11 @@ def mocked_meas_date_file(_mocked_meas_date_data, request):
     lines[MEAS_DATE_LINE] = request.param['content']
     with open(vmrk_fname, 'w') as fout:
         fout.writelines(lines)
+    meas_date = request.param['meas_date']
+    if meas_date is not None:
+        meas_date = _stamp_to_dt(meas_date)
 
-    yield (
-        vhdr_fname, request.param['meas_date'], request.param['meas_date_repr']
-    )
+    yield vhdr_fname, meas_date, request.param['meas_date_repr']
 
 
 def test_meas_date(mocked_meas_date_file):
@@ -149,7 +150,7 @@ def test_meas_date(mocked_meas_date_file):
     if expected_meas is None:
         assert raw.info['meas_date'] is None
     else:
-        assert_allclose(raw.info['meas_date'], expected_meas)
+        assert raw.info['meas_date'] == expected_meas
 
 
 def test_vhdr_codepage_ansi():
@@ -531,7 +532,7 @@ def test_read_vmrk_annotations():
 def test_read_vhdr_annotations_and_events():
     """Test load brainvision annotations and parse them to events."""
     sfreq = 1000.0
-    expected_orig_time = 1384359243.794231
+    expected_orig_time = _stamp_to_dt((1384359243, 794231))
     expected_onset_latency = np.array(
         [0, 486., 496., 1769., 1779., 3252., 3262., 4935., 4945., 5999., 6619.,
          6629., 7629., 7699.]

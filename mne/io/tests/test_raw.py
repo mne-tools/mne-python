@@ -105,7 +105,7 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
             assert isinstance(d, DigPoint), (di, d)
 
     # gh-5604
-    assert _handle_meas_date(raw.info['meas_date']) >= 0
+    assert _handle_meas_date(raw.info['meas_date']) >= _handle_meas_date(0)
 
     # test resetting raw
     if test_kwargs:
@@ -242,14 +242,14 @@ def test_meas_date_orig_time():
     # clips the annotations based on raw.data and resets the annotation based
     # on raw.info['meas_date]
     raw = _raw_annot(1, 1.5)
-    assert raw.annotations.orig_time == 1
+    assert raw.annotations.orig_time == _handle_meas_date(1)
     assert raw.annotations.onset[0] == 1
 
     # meas_time is set and orig_time is None:
     # Consider annot.orig_time to be raw.frist_sample, clip and reset
     # annotations to have the raw.annotations.orig_time == raw.info['meas_date]
     raw = _raw_annot(1, None)
-    assert raw.annotations.orig_time == 1
+    assert raw.annotations.orig_time == _handle_meas_date(1)
     assert raw.annotations.onset[0] == 1.5
 
     # meas_time is None and orig_time is set:
@@ -318,7 +318,7 @@ def test_5839():
         raw = RawArray(data=np.empty((10, 10)),
                        info=create_info(ch_names=10, sfreq=10., ),
                        first_samp=10)
-        raw.info['meas_date'] = meas_date
+        raw.info['meas_date'] = _handle_meas_date(meas_date)
         raw.set_annotations(annotations=Annotations(onset=[.5],
                                                     duration=[.2],
                                                     description='dummy',
@@ -331,4 +331,4 @@ def test_5839():
     assert_array_equal(raw_A.annotations.onset, EXPECTED_ONSET)
     assert_array_equal(raw_A.annotations.duration, EXPECTED_DURATION)
     assert_array_equal(raw_A.annotations.description, EXPECTED_DESCRIPTION)
-    assert raw_A.annotations.orig_time == 0.0
+    assert raw_A.annotations.orig_time == _handle_meas_date(0.0)
