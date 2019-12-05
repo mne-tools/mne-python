@@ -544,21 +544,23 @@ def _test_anonymize_info(base_info):
     assert_object_equal(new_info, exp_info_3)
 
 
-def test_meas_date_convert(tmpdir):
-    """Test conversions of meas_date to datetime objects."""
-    meas_date = (1346981585, 835782)
-    meas_datetime = _stamp_to_dt(meas_date)
-    meas_date2 = _dt_to_stamp(meas_datetime)
-    assert(meas_date == meas_date2)
-    assert(meas_datetime == datetime(2012, 9, 7, 1, 33, 5, 835782,
-                                     tzinfo=timezone.utc))
+@pytest.mark.parametrize('meas_date, dt', [
+    [(1346981585, 835782), (2012, 9, 7, 1, 33, 5, 835782)],
     # test old dates for BIDS anonymization
-    meas_date = (-1533443343, 24382)
+    [(-1533443343, 24382), (1921, 5, 29, 19, 30, 57, 24382)],
+    # gh-7116
+    [(-908196946, 988669), (1941, 3, 22, 11, 4, 14, 988669)],
+])
+def test_meas_date_convert(meas_date, dt):
+    """Test conversions of meas_date to datetime objects."""
     meas_datetime = _stamp_to_dt(meas_date)
     meas_date2 = _dt_to_stamp(meas_datetime)
-    assert(meas_date == meas_date2)
-    assert(meas_datetime == datetime(1921, 5, 29, 19, 30, 57, 24382,
-                                     tzinfo=timezone.utc))
+    assert meas_date == meas_date2
+    assert meas_datetime == datetime(*dt, tzinfo=timezone.utc)
+    # smoke test for info __repr__
+    info = create_info(1, 1000., 'eeg')
+    info['meas_date'] = meas_date
+    assert str(dt[0]) in repr(info)
 
 
 def test_anonymize(tmpdir):
