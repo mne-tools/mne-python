@@ -89,7 +89,8 @@ def detect_bad_channels(raw, zscore_v=4, method='both', start=30, end=220,
     return bad_chs
 
 
-def detect_movement(info, pos, thr_mov=.005):
+#  def annotate_head_pos_distance(info, pos, dist_translation=.01):
+def detect_movement(info, pos, dist_translation=.005):
     """Detect segments that deviate from the recording median head position.
 
     First, the cHPI is calculated relative to the default head position, then
@@ -116,6 +117,7 @@ def detect_movement(info, pos, thr_mov=.005):
     dev_head_t : array
         new trans matrix using accepted head pos
     """
+
     time = pos[:, 0]
 
     # Subtract any offset
@@ -141,7 +143,7 @@ def detect_movement(info, pos, thr_mov=.005):
     hpi_disp = chpi_mov_head - np.tile(chpi_med_head_tmp, (len(time), 1, 1))
     # get positions above threshold distance
     disp = np.sqrt((hpi_disp ** 2).sum(axis=2))
-    disp_exes = np.any(disp > thr_mov, axis=1)
+    disp_exes = np.any(disp > dist_translation, axis=1)
 
     # Get median head pos during recording under threshold distance
     weights = np.append(time[1:] - time[:-1], 0)
@@ -157,10 +159,10 @@ def detect_movement(info, pos, thr_mov=.005):
     hpi_disp = chpi_mov_head - np.tile(chpi_median_pos, (len(time), 1, 1))
     hpi_disp = np.sqrt((hpi_disp**2).sum(axis=-1))
 
-    art_mask_mov = np.any(hpi_disp > thr_mov, axis=-1)
+    art_mask_mov = np.any(hpi_disp > dist_translation, axis=-1)
     annot = Annotations([], [], [])
     annot += _annotations_from_mask(time, art_mask_mov,
-                                    'Bad-motion-dist>%0.3f' % thr_mov)
+                                    'Bad-motion-dist>%0.3f' % dist_translation)
 
     # Compute new dev->head transformation from median
     dev_head_t = _quaternion_align(info['dev_head_t']['from'],
@@ -168,6 +170,52 @@ def detect_movement(info, pos, thr_mov=.005):
                                    chpi_locs_dev, chpi_median_pos)
 
     return annot, hpi_disp, dev_head_t
+
+
+def compute_average_dev_head_t(raw, pos):
+    '''Get new device to head transform based on averaged recording
+
+    It excludes pos that have a BAD_ annotation'''
+
+    time = pos[:, 0]
+    info = raw['info']
+    quats = pos[:, 1:7]
+
+    # Original head pos from file
+    chpi_locs_dev = sorted([d for d in info['hpi_results'][-1]
+                            ['dig_points']], key=lambda x: x['ident'])
+    chpi_locs_dev = np.array([d['r'] for d in chpi_locs_dev])
+
+    # Get head pos displacement
+    chpi_mov_head = np.array([_apply_quat(quat, chpi_locs_dev, move=True)
+                              for quat in quats])
+
+    # Get weights for each head pos
+    weights = np.append(time[1:] - time[:-1], 0)
+
+    # Bad segments have a weight of 0
+    for annoth in raw.annotations:
+        if 'bad_' in annoth['description']:
+            onset = annoth['onset']
+            end = onset + annoth['duration']
+            out_beg = np.argmin(np.abs(time - onset))
+            out_end = np.argmin(np.abs(time - end))
+            weights[out_beg:out_end] = 0
+    weights /= sum(weights)
+
+    # Get head pos closest to weighted average pos
+    avg_head_pos = np.average(chpi_mov_head, axis=0, weights=weights)
+    hpi_disp = chpi_mov_head - np.tile(avg_head_pos, (len(time), 1, 1))
+    hpi_dist = np.sqrt((hpi_disp.reshape(-1, 9) ** 2).sum(axis=1))
+    head_pos_avg = chpi_mov_head[hpi_dist.argmin(), :, :]
+
+    # Compute new dev->head transformation from median
+    dev_head_t = _quaternion_align(info['dev_head_t']['from'],
+                                   info['dev_head_t']['to'],
+                                   chpi_locs_dev, head_pos_avg)
+
+    return dev_head_t
+
 
 
 def detect_muscle(raw, thr=1.5, t_min=1, notch=[60, 120, 180]):
