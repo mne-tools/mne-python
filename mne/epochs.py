@@ -16,6 +16,7 @@ from copy import deepcopy
 import json
 import operator
 import os.path as op
+import warnings
 from distutils.version import LooseVersion
 
 import numpy as np
@@ -381,8 +382,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         _check_option('on_missing', on_missing, ['error', 'warning', 'ignore'])
 
         if events is not None:  # RtEpochs can have events=None
-            events = np.asarray(events)
-
+            with warnings.catch_warnings(record=True):
+                warnings.simplefilter('ignore')  # deprecation for object array
+                events = np.asarray(events)
         event_id = _check_event_id(event_id, events)
         self.event_id = event_id
         del event_id
