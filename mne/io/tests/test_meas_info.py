@@ -6,7 +6,7 @@
 
 import hashlib
 import os.path as op
-
+from datetime import datetime, timezone
 
 import pytest
 import numpy as np
@@ -23,7 +23,8 @@ from mne.io.constants import FIFF
 from mne.io.write import DATE_NONE, _generate_meas_id
 from mne.io.meas_info import (Info, create_info, _merge_info,
                               _force_update_info, RAW_INFO_FIELDS,
-                              _bad_chans_comp, _get_valid_units)
+                              _bad_chans_comp, _get_valid_units,
+                              _stamp_to_dt, _dt_to_stamp)
 from mne._digitization._utils import (_write_dig_points, _read_dig_points,
                                       _make_dig_points,)
 from mne.io import read_raw_ctf
@@ -470,6 +471,10 @@ def _is_anonymous(inst):
                             anonymous_meas_id_usecs,
                             anonymous_meas_date,
                             anonymous_annotations)
+
+
+def test_meas_date_convert():
+    """Test conversions of meas_date to datetime objects."""
     # test old dates for BIDS anonymization
     meas_date = (-1533443343, 24382)
     meas_datetime = _stamp_to_dt(meas_date)
