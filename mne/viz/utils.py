@@ -58,8 +58,8 @@ def _setup_vmin_vmax(data, vmin, vmax, norm=False):
     For the normal use-case (when `vmin` and `vmax` are None), the parameter
     `norm` drives the computation. When norm=False, data is supposed to come
     from a mag and the output tuple (vmin, vmax) is symmetric range
-    (-x, x) where x is the max(abs(data)). When norm=True (aka data is the L2
-    norm of a gradiometer pair) the output tuple corresponds to (0, x).
+    (-x, x) where x is the max(abs(data)). When norm=True (a.k.a. data is the
+    L2 norm of a gradiometer pair) the output tuple corresponds to (0, x).
 
     Otherwise, vmin and vmax are callables that drive the operation.
     """
@@ -578,7 +578,7 @@ def _update_borders(params, new_width, new_height):
 
 
 def _toggle_scrollbars(params):
-    """Show or hide scrollbars (AKA zen mode) in mne_browse-style plots."""
+    """Show or hide scrollbars (A.K.A. zen mode) in mne_browse-style plots."""
     if params.get('show_scrollbars', None) is not None:
         # grow/shrink main axes to take up space from/make room for scrollbars
         # can't use ax.set_position() because axes are locatable, so we have to

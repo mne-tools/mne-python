@@ -15,14 +15,15 @@ from numpy.testing import assert_array_equal, assert_equal
 
 from mne.channels import (rename_channels, read_ch_connectivity,
                           find_ch_connectivity, make_1020_channel_selections,
-                          read_custom_montage)
+                          read_custom_montage, equalize_channels)
 from mne.channels.channels import (_ch_neighbor_connectivity,
                                    _compute_ch_connectivity)
 from mne.io import (read_info, read_raw_fif, read_raw_ctf, read_raw_bti,
-                    read_raw_eeglab, read_raw_kit)
+                    read_raw_eeglab, read_raw_kit, RawArray)
 from mne.io.constants import FIFF
 from mne.utils import _TempDir, run_tests_if_main
-from mne import pick_types, pick_channels
+from mne import (pick_types, pick_channels, EpochsArray, EvokedArray,
+                 make_ad_hoc_cov, create_info)
 from mne.datasets import testing
 
 io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
@@ -312,6 +313,51 @@ def test_drop_channels():
     raw.drop_channels({"MEG 0132", "MEG 0133"})  # set argument
     pytest.raises(ValueError, raw.drop_channels, ["MEG 0111", 5])
     pytest.raises(ValueError, raw.drop_channels, 5)  # must be list or str
+
+
+def test_equalize_channels():
+    """Test equalizing channels and their ordering."""
+    # This function only tests the generic functionality of equalize_channels.
+    # Additional tests for each instance type are included in the accompanying
+    # test suite for each type.
+    pytest.raises(TypeError, equalize_channels, ['foo', 'bar'],
+                  match='Instances to be modified must be an instance of')
+
+    raw = RawArray([[1.], [2.], [3.], [4.]],
+                   create_info(['CH1', 'CH2', 'CH3', 'CH4'], sfreq=1.))
+    epochs = EpochsArray([[[1.], [2.], [3.]]],
+                         create_info(['CH5', 'CH2', 'CH1'], sfreq=1.))
+    cov = make_ad_hoc_cov(create_info(['CH2', 'CH1', 'CH8'], sfreq=1.,
+                                      ch_types='eeg'))
+    cov['bads'] = ['CH1']
+    ave = EvokedArray([[1.], [2.]], create_info(['CH1', 'CH2'], sfreq=1.))
+
+    raw2, epochs2, cov2, ave2 = equalize_channels([raw, epochs, cov, ave],
+                                                  copy=True)
+
+    # The Raw object was the first in the list, so should have been used as
+    # template for the ordering of the channels. No bad channels should have
+    # been dropped.
+    assert raw2.ch_names == ['CH1', 'CH2']
+    assert_array_equal(raw2.get_data(), [[1.], [2.]])
+    assert epochs2.ch_names == ['CH1', 'CH2']
+    assert_array_equal(epochs2.get_data(), [[[3.], [2.]]])
+    assert cov2.ch_names == ['CH1', 'CH2']
+    assert cov2['bads'] == cov['bads']
+    assert ave2.ch_names == ave.ch_names
+    assert_array_equal(ave2.data, ave.data)
+
+    # All objects should have been copied, except for the Evoked object which
+    # did not have to be touched.
+    assert raw is not raw2
+    assert epochs is not epochs2
+    assert cov is not cov2
+    assert ave is ave2
+
+    # Test in-place operation
+    raw2, epochs2 = equalize_channels([raw, epochs], copy=False)
+    assert raw is raw2
+    assert epochs is epochs2
 
 
 run_tests_if_main()

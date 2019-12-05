@@ -39,6 +39,8 @@ raw.crop(tmax=60).load_data()
 events = mne.find_events(raw, stim_channel='STI 014')
 
 ###############################################################################
+# .. _tut-section-events-io:
+#
 # Reading and writing events from/to a file
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -172,10 +174,10 @@ raw.plot(events=events, start=5, duration=10, color='gray',
 new_events = mne.make_fixed_length_events(raw, start=5, stop=50, duration=2.)
 
 ###############################################################################
-# By default, the events will all be given the integer Event ID of `1`, but you
-# can change that with the ``id`` parameter. It is also possible to specify an
-# ``overlap`` duration — i.e., if you ultimately want :term:`epochs` that are
-# 2.5 seconds long, but you want them to overlap by 0.5 seconds, you can
+# By default, the events will all be given the integer Event ID of ``1``, but
+# you can change that with the ``id`` parameter. It is also possible to specify
+# an ``overlap`` duration — i.e., if you ultimately want :term:`epochs` that
+# are 2.5 seconds long, but you want them to overlap by 0.5 seconds, you can
 # specify ``duration=2.5, overlap=0.5`` in the call to
 # :func:`~mne.make_fixed_length_events` (this will yield the same spacing of
 # events as ``duration=2, overlap=0)``.

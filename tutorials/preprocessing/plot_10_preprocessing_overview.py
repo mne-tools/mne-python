@@ -174,14 +174,17 @@ for ax in fig.axes[:2]:
 # show all three channel types, even though EEG channels are less strongly
 # affected by heartbeat artifacts:
 
-# sphinx_gallery_thumbnail_number = 4
+# sphinx_gallery_thumbnail_number = 3
 ecg_epochs = mne.preprocessing.create_ecg_epochs(raw)
 ecg_epochs.plot_image(combine='mean')
 
 ###############################################################################
 # The horizontal streaks in the magnetometer image plot reflect the fact that
 # the heartbeat artifacts are superimposed on low-frequency drifts like the one
-# we saw in an earlier section. You can also get a quick look at the
+# we saw in an earlier section; to avoid this you could pass
+# ``baseline=(-0.5, -0.2)`` in the call to
+# :func:`~mne.preprocessing.create_ecg_epochs`.
+# You can also get a quick look at the
 # ECG-related field pattern across sensors by averaging the ECG epochs together
 # via the :meth:`~mne.Epochs.average` method, and then using the
 # :meth:`mne.Evoked.plot_topomap` method:
@@ -213,9 +216,11 @@ avg_ecg_epochs.plot_joint(times=[-0.25, -0.025, 0, 0.025, 0.25])
 # higher-level convenience function that automatically finds the artifacts and
 # extracts them in to an :class:`~mne.Epochs` object in one step. Unlike the
 # heartbeat artifacts seen above, ocular artifacts are usually most prominent
-# in the EEG channels, but we'll still show all three channel types:
+# in the EEG channels, but we'll still show all three channel types. We'll use
+# the ``baseline`` parameter this time too; note that there are many fewer
+# blinks than heartbeats, which makes the image plots appear somewhat blocky:
 
-eog_epochs = mne.preprocessing.create_eog_epochs(raw)
+eog_epochs = mne.preprocessing.create_eog_epochs(raw, baseline=(-0.5, -0.2))
 eog_epochs.plot_image(combine='mean')
 eog_epochs.average().plot_joint()
 

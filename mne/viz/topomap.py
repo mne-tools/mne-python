@@ -338,7 +338,7 @@ def plot_projs_topomap(projs, layout=None, cmap=None, sensors=True,
     if vlim == 'joint':
         for _ch_type in set(types):
             idx = np.where(np.in1d(types, _ch_type))[0]
-            these_data = np.concatenate(np.array(datas)[idx])
+            these_data = np.concatenate(np.array(datas, dtype=object)[idx])
             norm = all(these_data >= 0)
             _vl = _setup_vmin_vmax(these_data, vmin=None, vmax=None, norm=norm)
             for _idx in idx:

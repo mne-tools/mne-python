@@ -15,7 +15,7 @@ import operator
 import numpy as np
 from scipy import linalg
 
-from .pick import channel_type
+from .pick import channel_type, pick_channels, pick_info
 from .constants import FIFF
 from .open import fiff_open
 from .tree import dir_tree_find
@@ -660,6 +660,36 @@ class Info(dict):
         """Update the redundant entries."""
         self['ch_names'] = [ch['ch_name'] for ch in self['chs']]
         self['nchan'] = len(self['chs'])
+
+    def pick_channels(self, ch_names, ordered=False):
+        """Pick channels from this Info object.
+
+        Parameters
+        ----------
+        ch_names : list of str
+            List of channels to keep. All other channels are dropped.
+        ordered : bool
+            If True (default False), ensure that the order of the channels
+            matches the order of ``ch_names``.
+
+        Returns
+        -------
+        info : instance of Info.
+            The modified Info object.
+
+        Notes
+        -----
+        Operates in-place.
+
+        .. versionadded:: 0.20.0
+        """
+        sel = pick_channels(self.ch_names, ch_names, exclude=[],
+                            ordered=ordered)
+        return pick_info(self, sel, copy=False, verbose=False)
+
+    @property
+    def ch_names(self):
+        return self['ch_names']
 
 
 def _simplify_info(info):
@@ -1923,6 +1953,7 @@ def anonymize_info(info, daysback=None, keep_his=False):
     daysback : int | None
         Number of days to subtract from all dates.
         If None (default) the date of service will be set to Jan 1ˢᵗ 2000.
+        This parameter is ignored if ``info['meas_date'] is None``.
     keep_his : bool
         If True his_id of subject_info will NOT be overwritten.
         Defaults to False.
@@ -1952,6 +1983,9 @@ def anonymize_info(info, daysback=None, keep_his=False):
           Dates use the meas_date logic, and experimenter a default string.
     - helium_info, device_info
           Dates use the meas_date logic, meta info uses defaults.
+
+    If ``info['meas_date']`` is None, it will remain None during processing
+    the above fields.
 
     Operates in place.
     """
@@ -2031,7 +2065,7 @@ def anonymize_info(info, daysback=None, keep_his=False):
     info['description'] = default_desc
 
     if info['proj_id'] is not None:
-        info['proj_id'][:] = 0
+        info['proj_id'] = np.zeros_like(info['proj_id'])
     if info['proj_name'] is not None:
         info['proj_name'] = default_str
     if info['utc_offset'] is not None:
