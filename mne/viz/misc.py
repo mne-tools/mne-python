@@ -1022,31 +1022,30 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
 
 def _handle_event_colors(color_dict, unique_events, event_id):
     """Create event-integer-to-color mapping, assigning defaults as needed."""
-    default_colors = cycle(_get_color_list())
-    colors_out = dict()
+    default_colors = dict(zip(sorted(unique_events), cycle(_get_color_list())))
+    # warn if not enough colors
     if color_dict is None:
         if len(unique_events) > len(_get_color_list()):
             warn('More events than default colors available. You should pass '
                  'a list of unique colors.')
     else:
+        custom_colors = dict()
         for key, color in color_dict.items():
             if key in unique_events:  # key was a valid event integer
-                colors_out[key] = color
+                custom_colors[key] = color
             elif key in event_id:     # key was an event label
-                colors_out[event_id[key]] = color
+                custom_colors[event_id[key]] = color
             else:                     # key not a valid event, warn and ignore
                 warn('Event ID %s is in the color dict but is not '
-                     'present in events or event_id.' % key)
+                     'present in events or event_id.' % str(key))
         # warn if color_dict is missing any entries
-        unassigned = list(set(unique_events) - set(colors_out))
+        unassigned = sorted(set(unique_events) - set(custom_colors))
         if len(unassigned):
             unassigned_str = ', '.join(str(e) for e in unassigned)
             warn('Color was not assigned for event%s %s. Default colors will '
                  'be used.' % (_pl(unassigned), unassigned_str))
-    # assign defaults if needed
-    for event, color in zip(sorted(unique_events), default_colors):
-        colors_out[event] = colors_out.get(event, color)
-    return colors_out
+        default_colors.update(custom_colors)
+    return default_colors
 
 
 def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
