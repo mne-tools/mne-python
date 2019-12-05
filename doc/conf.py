@@ -456,6 +456,11 @@ def reset_warnings(gallery_conf, fname):
     warnings.filterwarnings(  # deal with bootstrap-theme bug
         'ignore', message=".*modify script_files in the theme.*",
         category=Warning)
+    warnings.filterwarnings(  # nilearn
+        'ignore', message=r'sklearn\.externals\.joblib is deprecated.*',
+        category=FutureWarning)
+    warnings.filterwarnings(  # nilearn
+        'ignore', message=r'The sklearn.* module is.*', category=FutureWarning)
     warnings.filterwarnings(  # deal with other modules having bad imports
         'ignore', message=".*ufunc size changed.*", category=RuntimeWarning)
     warnings.filterwarnings(  # realtime
