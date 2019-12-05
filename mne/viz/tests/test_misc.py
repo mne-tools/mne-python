@@ -14,13 +14,15 @@ import pytest
 import matplotlib.pyplot as plt
 
 from mne import (read_events, read_cov, read_source_spaces, read_evokeds,
-                 read_dipole, SourceEstimate)
+                 read_dipole, SourceEstimate, pick_events)
 from mne.datasets import testing
 from mne.filter import create_filter
 from mne.io import read_raw_fif
 from mne.minimum_norm import read_inverse_operator
 from mne.viz import (plot_bem, plot_events, plot_source_spectrogram,
                      plot_snr_estimate, plot_filter, plot_csd)
+from mne.viz.misc import _handle_event_colors
+from mne.viz.utils import _get_color_list
 from mne.utils import requires_nibabel, run_tests_if_main
 from mne.time_frequency import CrossSpectralDensity
 
@@ -100,6 +102,22 @@ def test_plot_bem():
              orientation='coronal', slices=[25, 50], src=src_fname)
 
 
+def test_event_colors():
+    """Test color assignment."""
+    events = pick_events(_get_events(), include=[1, 2])
+    unique_events = set(events[:, 2])
+    # make sure defaults work
+    colors = _handle_event_colors(None, unique_events, dict())
+    default_colors = _get_color_list()
+    assert colors[1] == default_colors[0]
+    # make sure custom color overrides default
+    colors = _handle_event_colors(color_dict=dict(foo='k', bar='#facade'),
+                                  unique_events=unique_events,
+                                  event_id=dict(foo=1, bar=2))
+    assert colors[1] == 'k'
+    assert colors[2] == '#facade'
+
+
 def test_plot_events():
     """Test plotting events."""
     event_labels = {'aud_l': 1, 'aud_r': 2, 'vis_l': 3, 'vis_r': 4}
@@ -113,17 +131,19 @@ def test_plot_events():
     with pytest.warns(RuntimeWarning, match='will be ignored'):
         plot_events(events, raw.info['sfreq'], raw.first_samp,
                     event_id=event_labels)
-    with pytest.warns(RuntimeWarning, match='Color is not available'):
+    with pytest.warns(RuntimeWarning, match='Color was not assigned'):
         plot_events(events, raw.info['sfreq'], raw.first_samp,
                     color=color)
-    with pytest.warns(RuntimeWarning, match='event .* missing'):
+    with pytest.warns(RuntimeWarning, match=r'vent \d+ missing from event_id'):
         plot_events(events, raw.info['sfreq'], raw.first_samp,
                     event_id=event_labels, color=color)
-    with pytest.warns(RuntimeWarning, match='event .* missing'):
-        pytest.raises(ValueError, plot_events, events, raw.info['sfreq'],
-                      raw.first_samp, event_id={'aud_l': 1}, color=color)
-    pytest.raises(ValueError, plot_events, events, raw.info['sfreq'],
-                  raw.first_samp, event_id={'aud_l': 111}, color=color)
+    multimatch = r'event \d+ missing from event_id|in the color dict but is'
+    with pytest.warns(RuntimeWarning, match=multimatch):
+        plot_events(events, raw.info['sfreq'], raw.first_samp,
+                    event_id={'aud_l': 1}, color=color)
+    with pytest.raises(ValueError, match='from event_id is not present in'):
+        plot_events(events, raw.info['sfreq'], raw.first_samp,
+                    event_id={'aud_l': 111}, color=color)
     plt.close('all')
 
 
