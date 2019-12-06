@@ -724,7 +724,8 @@ def _epochs_axes_onclick(event, params):
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                 title=None, events=None, event_colors=None, order=None,
                 show=True, block=False, decim='auto', noise_cov=None,
-                butterfly=False, show_scrollbars=True, epoch_colors=None):
+                butterfly=False, show_scrollbars=True, epoch_colors=None,
+                event_id=None):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
@@ -811,6 +812,12 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     %(show_scrollbars)s
     epoch_colors : list of (n_epochs) list (of n_channels) | None
         Colors to use for individual epochs. If None, use default colors.
+    event_id : dict | None
+        Dictionary of event labels (e.g. 'aud_l') as keys and associated event
+        integers as values. Useful when ``events`` contains event numbers not
+        present in ``epochs.event_id`` (e.g., because of event subselection).
+        Values in ``event_id`` will take precedence over those in
+        ``epochs.event_id`` when there are overlapping keys.
 
     Returns
     -------
@@ -849,7 +856,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     params['label_click_fun'] = partial(_pick_bad_channels, params=params)
     _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks, events=events, order=order,
-                               event_colors=event_colors, butterfly=butterfly)
+                               event_colors=event_colors, butterfly=butterfly,
+                               event_id=event_id)
     _prepare_projectors(params)
 
     callback_close = partial(_close_event, params=params)
@@ -948,7 +956,8 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
 
 def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks, events=None, event_colors=None,
-                               order=None, butterfly=False, info=None):
+                               order=None, butterfly=False, info=None,
+                               event_id=None):
     """Set up the mne_browse_epochs window."""
     import matplotlib as mpl
     from matplotlib.collections import LineCollection
@@ -1109,8 +1118,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     epoch_nr = True
     if events is not None:
         event_set = set(events[:, 2])
-        event_colors = _handle_event_colors(event_colors, event_set,
-                                            params['epochs'].event_id)
+        ev_id = params['epochs'].event_id if event_id is None else event_id
+        event_colors = _handle_event_colors(event_colors, event_set, ev_id)
         epoch_nr = False  # epoch number off by default to avoid overlap
         for label in ax.xaxis.get_ticklabels():
             label.set_visible(False)
