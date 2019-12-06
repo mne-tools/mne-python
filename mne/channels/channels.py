@@ -632,7 +632,7 @@ class SetChannelsMixin(object):
         ----------
         meas_date : datetime | float | tuple | None
             The new measurement date.
-            If datetime, it must be timezone-aware and in UTC.
+            If datetime object, it must be timezone-aware and in UTC.
             A tuple of (seconds, microseconds) or float (alias for
             ``(meas_date, 0)``) can also be passed and a datetime
             object will be automatically created. If None, will remove
