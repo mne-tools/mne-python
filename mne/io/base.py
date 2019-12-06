@@ -690,6 +690,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return self._first_samps[0]
 
     @property
+    def first_time(self):
+        """The first time point (including first_samp but not meas_date)."""
+        return self._first_time
+
+    @property
     def last_samp(self):
         """The last data sample."""
         return self.first_samp + sum(self._raw_lengths) - 1
@@ -789,8 +794,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             if annotations.orig_time is None:
                 new_annotations.crop(0, self.times[-1] + delta,
                                      emit_warning=emit_warning)
-                if meas_date is not None:
-                    new_annotations.onset += self._first_time
+                new_annotations.onset += self._first_time
             else:
                 tmin = meas_date + timedelta(0, self._first_time)
                 tmax = tmin + timedelta(seconds=self.times[-1] + delta)

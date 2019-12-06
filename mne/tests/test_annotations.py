@@ -369,13 +369,13 @@ def test_annotation_filtering(first_samp):
     # one last test: let's cut out a section entirely:
     # here the 1-3 second window should be skipped
     raw = raws_concat.copy()
-    raw.annotations.append(1., 2., 'foo')
+    raw.annotations.append(1. + raw._first_time, 2., 'foo')
     with catch_logging() as log:
         raw.filter(l_freq=50., h_freq=None, fir_design='firwin',
                    skip_by_annotation='foo', verbose='info')
     log = log.getvalue()
     assert '2 contiguous segments' in log
-    raw.annotations.append(2., 1., 'foo')  # shouldn't change anything
+    raw.annotations.append(2. + raw._first_time, 1., 'foo')  # shouldn't change
     with catch_logging() as log:
         raw.filter(l_freq=50., h_freq=None, fir_design='firwin',
                    skip_by_annotation='foo', verbose='info')

@@ -1915,7 +1915,8 @@ def _add_timedelta_to_stamp(meas_date_stamp, delta_t):
     return meas_date_stamp
 
 
-def anonymize_info(info, daysback=None, keep_his=False):
+@verbose
+def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
     """Anonymize measurement information in place.
 
     Parameters
@@ -1929,6 +1930,7 @@ def anonymize_info(info, daysback=None, keep_his=False):
     keep_his : bool
         If True his_id of subject_info will NOT be overwritten.
         Defaults to False.
+    %(verbose)s
 
     Returns
     -------

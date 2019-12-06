@@ -428,24 +428,9 @@ def _combine_annotations(one, two, one_n_samples, one_first_samp,
     """Combine a tuple of annotations."""
     assert one is not None
     assert two is not None
-
-    # Compute the shift necessary for alignment:
-    # 1. The shift (in time) due to concatenation
-    shift = one_n_samples / sfreq
-
-    # 2. No need to shift by the difference in meas_date and one.orig_time
-    #    because these are always synchronized nowadays.
-    if one.orig_time is not None:
-        shift += one_first_samp / sfreq
-        assert meas_date is not None
-        assert meas_date == one.orig_time
-
-    # 3. Shift by the difference in meas_date and two.orig_time
-    #    The meas_date of two is completely ignored here by design, as the
-    #    assumption of the concatenation is that the user is shifting
-    #    two onto the end of one in whatever the actual timeline was.
-    shift -= two_first_samp / sfreq
-
+    shift = one_n_samples / sfreq  # to the right by the number of samples
+    shift += one_first_samp / sfreq  # to the right by the offset
+    shift -= two_first_samp / sfreq  # undo its offset
     onset = np.concatenate([one.onset, two.onset + shift])
     duration = np.concatenate([one.duration, two.duration])
     description = np.concatenate([one.description, two.description])
@@ -481,14 +466,9 @@ def _handle_meas_date(meas_date):
 
 def _sync_onset(raw, onset, inverse=False):
     """Adjust onsets in relation to raw data."""
-    if raw.annotations.orig_time is None:
-        annot_start = onset
-    else:
-        assert raw.info['meas_date'] is not None  # should be guaranteed
-        offset = -raw._first_time if inverse else raw._first_time
-        annot_start = (onset - offset +
-                       (raw.annotations.orig_time -
-                        raw.info['meas_date']).total_seconds())
+    offset = (-1 if inverse else 1) * raw._first_time
+    assert raw.info['meas_date'] == raw.annotations.orig_time
+    annot_start = onset - offset
     return annot_start
 
 

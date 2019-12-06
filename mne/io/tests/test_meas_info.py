@@ -247,7 +247,7 @@ def test_read_write_info(tmpdir):
 
     info = read_info(raw_fname)
     info['meas_date'] = None
-    anonymize_info(info)
+    anonymize_info(info, verbose='error')
     assert info['meas_date'] is None
     tmp_fname_3 = tmpdir.join('info3.fif')
     write_info(tmp_fname_3, info)
@@ -518,7 +518,8 @@ def _test_anonymize_info(base_info):
     new_info = anonymize_info(base_info.copy())
     assert_object_equal(new_info, exp_info)
 
-    new_info = anonymize_info(base_info.copy(), keep_his=True)
+    with pytest.warns(RuntimeWarning, match="keeping 'his_id'"):
+        new_info = anonymize_info(base_info.copy(), keep_his=True)
     assert_object_equal(new_info, exp_info_2)
 
     new_info = anonymize_info(base_info.copy(), daysback=delta_t_2.days)
@@ -537,10 +538,16 @@ def _test_anonymize_info(base_info):
     exp_info_3['meas_id']['usecs'] = DATE_NONE[1]
     exp_info_3['subject_info'].pop('birthday', None)
 
-    new_info = anonymize_info(base_info.copy(), daysback=delta_t_2.days)
+    if base_info['meas_date'] is None:
+        with pytest.warns(RuntimeWarning, match='all information'):
+            new_info = anonymize_info(base_info.copy(),
+                                      daysback=delta_t_2.days)
+    else:
+        new_info = anonymize_info(base_info.copy(), daysback=delta_t_2.days)
     assert_object_equal(new_info, exp_info_3)
 
-    new_info = anonymize_info(base_info.copy())
+    with pytest.warns(None):  # meas_date is None
+        new_info = anonymize_info(base_info.copy())
     assert_object_equal(new_info, exp_info_3)
 
 
@@ -594,7 +601,8 @@ def test_anonymize(tmpdir):
     assert raw.annotations.orig_time == _stamp_to_dt(stamp)
 
     raw.info['meas_date'] = None
-    raw.anonymize()
+    with pytest.warns(RuntimeWarning, match='None'):
+        raw.anonymize()
     assert raw.annotations.orig_time is None
     assert raw.first_samp == first_samp
     assert_allclose(raw.annotations.onset, expected_onset)

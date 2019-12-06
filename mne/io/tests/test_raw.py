@@ -139,11 +139,7 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
     assert concat_raw.last_samp - last_samp + first_samp == last_samp + 1
     idx = np.where(concat_raw.annotations.description == 'BAD boundary')[0]
 
-    if concat_raw.info['meas_date'] is None:
-        expected_bad_boundary_onset = ((last_samp - first_samp) /
-                                       raw.info['sfreq'])
-    else:
-        expected_bad_boundary_onset = raw._last_time
+    expected_bad_boundary_onset = raw._last_time
 
     assert_array_almost_equal(concat_raw.annotations.onset[idx],
                               expected_bad_boundary_onset,
@@ -262,7 +258,7 @@ def test_meas_date_orig_time():
     # Consider annot.orig_time to be raw.first_sample and clip
     raw = _raw_annot(None, None)
     assert raw.annotations.orig_time is None
-    assert raw.annotations.onset[0] == 0.5
+    assert raw.annotations.onset[0] == 1.5
     assert raw.annotations.duration[0] == 0.2
 
 
