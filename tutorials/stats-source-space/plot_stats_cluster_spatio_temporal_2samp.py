@@ -108,5 +108,5 @@ subjects_dir = op.join(data_path, 'subjects')
 # blue blobs are for condition A != condition B
 brain = stc_all_cluster_vis.plot('fsaverage', hemi='both',
                                  views='lateral', subjects_dir=subjects_dir,
-                                 time_label='Duration significant (ms)',
+                                 time_label='temporal extent (ms)',
                                  clim=dict(kind='value', lims=[0, 1, 40]))
