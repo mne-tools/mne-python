@@ -1105,8 +1105,7 @@ def test_set_montage_coord_frame_in_head_vs_unknown():
         ]
     )
 
-    _MSG = 'Points have to be provided as one dimensional arrays of length 3.'
-    with pytest.raises(ValueError, match=_MSG):
+    with pytest.warns(RuntimeWarning, match='assuming identity'):
         raw.set_montage(montage_in_unknown)
 
     raw.set_montage(montage_in_unknown_with_fid)

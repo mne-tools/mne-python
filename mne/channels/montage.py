@@ -22,7 +22,8 @@ import numpy as np
 
 from ..viz import plot_montage
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
-                          _topo_to_sph, _frame_to_str, Transform)
+                          _topo_to_sph, _frame_to_str, Transform,
+                          _verbose_frames)
 from ..io._digitization import (_count_points_by_type,
                                 _get_dig_eeg, _make_dig_points, write_dig,
                                 _read_dig_fif, _format_dig_points,
@@ -1114,12 +1115,22 @@ def compute_native_head_t(montage):
     """
     # Get fiducial points and their coord_frame
     fid_coords, coord_frame = _get_fid_coords(montage.dig)
+    if coord_frame is None:
+        coord_frame = FIFF.FIFFV_COORD_UNKNOWN
     if coord_frame == FIFF.FIFFV_COORD_HEAD:
-        native_head_t = np.eye(3)
+        native_head_t = np.eye(4)
     else:
-        nasion, lpa, rpa = \
-            fid_coords['nasion'], fid_coords['lpa'], fid_coords['rpa']
-        native_head_t = get_ras_to_neuromag_trans(nasion, lpa, rpa)
+        fid_keys = ('nasion', 'lpa', 'rpa')
+        for key in fid_keys:
+            if fid_coords[key] is None:
+                warn('Fiducial point %s not found, assuming identity %s to '
+                     'head transformation'
+                     % (key, _verbose_frames[coord_frame],))
+                native_head_t = np.eye(4)
+                break
+        else:
+            native_head_t = get_ras_to_neuromag_trans(
+                *[fid_coords[key] for key in fid_keys])
     return Transform(coord_frame, 'head', native_head_t)
 
 
