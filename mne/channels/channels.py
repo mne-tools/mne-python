@@ -645,7 +645,7 @@ class SetChannelsMixin(object):
 
         See Also
         --------
-        mne.io.Raw.anonymize_info
+        mne.io.Raw.anonymize
 
         Notes
         -----
