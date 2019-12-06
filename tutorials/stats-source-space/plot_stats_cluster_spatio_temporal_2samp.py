@@ -44,7 +44,7 @@ morph = mne.compute_source_morph(stc, 'sample', 'fsaverage',
                                  subjects_dir=subjects_dir)
 stc = morph.apply(stc)
 n_vertices_fsave, n_times = stc.data.shape
-tstep = stc.tstep
+tstep = stc.tstep * 1000  # convert to milliseconds
 
 n_subjects1, n_subjects2 = 7, 9
 print('Simulating data for %d and %d subjects.' % (n_subjects1, n_subjects2))

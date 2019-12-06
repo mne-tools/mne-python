@@ -85,7 +85,7 @@ condition2 = apply_inverse(evoked2, inverse_operator, lambda2, method)
 condition1.crop(0, None)
 condition2.crop(0, None)
 tmin = condition1.tmin
-tstep = condition1.tstep
+tstep = condition1.tstep * 1000  # convert to milliseconds
 
 ###############################################################################
 # Transform to common cortical space

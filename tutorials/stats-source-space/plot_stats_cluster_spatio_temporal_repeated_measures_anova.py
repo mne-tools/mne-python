@@ -89,7 +89,7 @@ for cond in ['l_aud', 'r_aud', 'l_vis', 'r_vis']:  # order is important
     conditions.append(condition)
 
 tmin = conditions[0].tmin
-tstep = conditions[0].tstep
+tstep = conditions[0].tstep * 1000  # convert to milliseconds
 
 ###############################################################################
 # Transform to common cortical space
