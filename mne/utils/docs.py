@@ -71,12 +71,12 @@ extrapolate : str
         Extrapolate to four points placed to form a square encompassing all
         data points, where each side of the square is three times the range
         of the data in the respective dimension.
+    - 'local'
+        Extrapolate only to nearby points (approximately to points closer than
+        median inter-electrode distance).
     - 'head'
         Extrapolate to the edges of the head circle (does not work well
         with sensors outside the head circle).
-    - 'local'
-        Extrapolate only to nearby points (approximately to points closer than
-        median inter-electrode distance)
 """
 docdict['topomap_head_pos'] = """
 head_pos : dict | None
