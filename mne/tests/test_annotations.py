@@ -651,7 +651,7 @@ def _create_annotation_based_on_descr(description, annotation_start_sampl=0,
     raw = RawArray(data=np.empty([10, 10], dtype=np.float64),
                    info=create_info(ch_names=10, sfreq=1000.),
                    first_samp=0)
-    raw.info['meas_date'] = _stamp_to_dt((0, 0))
+    raw.set_meas_date(0)
 
     # create dummy annotations based on the descriptions
     onset = raw.times[annotation_start_sampl]
@@ -838,18 +838,19 @@ def dummy_annotation_txt_header(tmpdir_factory):
 
 
 @pytest.mark.parametrize('meas_date, out', [
-    pytest.param('toto', 0, id='invalid string'),
-    pytest.param(None, 0, id='None'),
+    pytest.param('toto', None, id='invalid string'),
+    pytest.param(None, None, id='None'),
     pytest.param(42, 42.0, id='Scalar'),
     pytest.param(3.14, 3.14, id='Float'),
     pytest.param((3, 140000), 3.14, id='Scalar touple'),
     pytest.param('2002-12-03 19:01:11.720100', 1038942071.7201,
                  id='valid iso8601 string'),
-    pytest.param('2002-12-03T19:01:11.720100', 0,
+    pytest.param('2002-12-03T19:01:11.720100', None,
                  id='invalid iso8601 string')])
 def test_handle_meas_date(meas_date, out):
     """Test meas date formats."""
-    out = datetime.fromtimestamp(out, timezone.utc)
+    if out is not None:
+        out = datetime.fromtimestamp(out, timezone.utc)
     assert _handle_meas_date(meas_date) == out
 
 
@@ -879,10 +880,8 @@ def test_read_annotation_txt_orig_time(
     """Test TXT input/output."""
     annot = read_annotations(str(dummy_annotation_txt_file_with_orig_time))
     dt = datetime.fromtimestamp(1038942071.7201, timezone.utc)
-    assert annot.orig_time == dt
-    assert_array_equal(annot.onset, [3.14, 6.28])
-    assert_array_equal(annot.duration, [42., 48])
-    assert_array_equal(annot.description, ['AA', 'BB'])
+    want = Annotations([3.14, 6.28], [42., 48], ['AA', 'BB'], dt)
+    assert annot == want
 
 
 @pytest.fixture(scope='session')
@@ -1032,7 +1031,7 @@ def test_negative_meas_dates():
     # Regression test for gh-6621
     raw = RawArray(data=np.empty((1, 1), dtype=np.float64),
                    info=create_info(ch_names=1, sfreq=1.))
-    raw.info['meas_date'] = _stamp_to_dt((-908196946, 988669))
+    raw.set_meas_date((-908196946, 988669))
     raw.set_annotations(Annotations(description='foo', onset=[0],
                                     duration=[0], orig_time=None))
     events, _ = events_from_annotations(raw)

@@ -1973,9 +1973,9 @@ def anonymize_info(info, daysback=None, keep_his=False):
     none_meas_date = info['meas_date'] is None
 
     if none_meas_date:
-        logger.warning('Input info has \'meas_date\' set to None.'
-                       ' Removing all information from time/date structures.'
-                       ' *NOT* performing any time shifts')
+        warn('Input info has \'meas_date\' set to None.'
+             ' Removing all information from time/date structures.'
+             ' *NOT* performing any time shifts')
         info['meas_date'] = None
     else:
         # compute timeshift delta
@@ -2010,7 +2010,7 @@ def anonymize_info(info, daysback=None, keep_his=False):
         if subject_info.get('id') is not None:
             subject_info['id'] = default_subject_id
         if keep_his:
-            logger.warning('Not fully anonymizing info - keeping \'his_id\'')
+            warn('Not fully anonymizing info - keeping \'his_id\'')
         elif subject_info.get('his_id') is not None:
             subject_info['his_id'] = str(default_subject_id)
 

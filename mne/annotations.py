@@ -177,9 +177,7 @@ class Annotations(object):
 
     def __init__(self, onset, duration, description,
                  orig_time=None):  # noqa: D102
-        if orig_time is not None:
-            orig_time = _handle_meas_date(orig_time)
-        self._orig_time = orig_time
+        self._orig_time = _handle_meas_date(orig_time)
         self.onset, self.duration, self.description = _check_o_d_s(
             onset, duration, description)
         self._sort()  # ensure we're sorted
@@ -188,6 +186,15 @@ class Annotations(object):
     def orig_time(self):
         """The time base of the Annotations."""
         return self._orig_time
+
+    def __eq__(self, other):
+        """Compare to another Annotations instance."""
+        if not isinstance(other, Annotations):
+            return False
+        return (np.array_equal(self.onset, other.onset) and
+                np.array_equal(self.duration, other.duration) and
+                np.array_equal(self.description, other.description) and
+                self.orig_time == other.orig_time)
 
     def __repr__(self):
         """Show the representation."""
@@ -425,11 +432,14 @@ def _combine_annotations(one, two, one_n_samples, one_first_samp,
     # Compute the shift necessary for alignment:
     # 1. The shift (in time) due to concatenation
     shift = one_n_samples / sfreq
-    meas_date = _handle_meas_date(meas_date)
-    # 2. Shift by the difference in meas_date and one.orig_time
+
+    # 2. No need to shift by the difference in meas_date and one.orig_time
+    #    because these are always synchronized nowadays.
     if one.orig_time is not None:
         shift += one_first_samp / sfreq
-        shift += (meas_date - one.orig_time).total_seconds()
+        assert meas_date is not None
+        assert meas_date == one.orig_time
+
     # 3. Shift by the difference in meas_date and two.orig_time
     #    The meas_date of two is completely ignored here by design, as the
     #    assumption of the concatenation is that the user is shifting
@@ -443,43 +453,42 @@ def _combine_annotations(one, two, one_n_samples, one_first_samp,
 
 
 def _handle_meas_date(meas_date):
-    """Convert meas_date to datetime.
+    """Convert meas_date to datetime or None.
 
     If `meas_date` is a string, it should conform to the ISO8601 format.
     More precisely to this '%Y-%m-%d %H:%M:%S.%f' particular case of the
     ISO8601 format where the delimiter between date and time is ' '.
-
-    Otherwise, this function returns 0. Note that ISO8601 allows for ' ' or 'T'
-    as delimiters between date and time.
+    Note that ISO8601 allows for ' ' or 'T' as delimiters between date and
+    time.
     """
-    if meas_date is None:
-        meas_date = 0  # XXX eventually we should keep this None and refactor
-    elif isinstance(meas_date, str):
+    if isinstance(meas_date, str):
         ACCEPTED_ISO8601 = '%Y-%m-%d %H:%M:%S.%f'
         try:
             meas_date = datetime.strptime(meas_date, ACCEPTED_ISO8601)
         except ValueError:
-            meas_date = 0
+            meas_date = None
         else:
             meas_date = meas_date.replace(tzinfo=timezone.utc)
     elif isinstance(meas_date, tuple):
         # old way
         meas_date = _stamp_to_dt(meas_date)
-    if np.isscalar(meas_date):
-        meas_date = datetime.fromtimestamp(meas_date, timezone.utc)
-    _check_dt(meas_date)  # run checks
+    if meas_date is not None:
+        if np.isscalar(meas_date):
+            meas_date = datetime.fromtimestamp(meas_date, timezone.utc)
+        _check_dt(meas_date)  # run checks
     return meas_date
 
 
 def _sync_onset(raw, onset, inverse=False):
     """Adjust onsets in relation to raw data."""
-    meas_date = _handle_meas_date(raw.info['meas_date'])
     if raw.annotations.orig_time is None:
         annot_start = onset
     else:
+        assert raw.info['meas_date'] is not None  # should be guaranteed
         offset = -raw._first_time if inverse else raw._first_time
         annot_start = (onset - offset +
-                       (raw.annotations.orig_time - meas_date).total_seconds())
+                       (raw.annotations.orig_time -
+                        raw.info['meas_date']).total_seconds())
     return annot_start
 
 
@@ -546,7 +555,10 @@ def _write_annotations(fid, annotations):
 
 def _write_annotations_csv(fname, annot):
     pd = _check_pandas_installed(strict=True)
-    dt = _handle_meas_date(annot.orig_time).replace(tzinfo=None)
+    dt = _handle_meas_date(annot.orig_time)
+    if dt is None:
+        dt = datetime.fromtimestamp(0, timezone.utc)
+    dt = dt.replace(tzinfo=None)
     onsets_dt = [dt + timedelta(seconds=o) for o in annot.onset]
     df = pd.DataFrame(dict(onset=onsets_dt, duration=annot.duration,
                            description=annot.description))
@@ -687,12 +699,10 @@ def _read_annotations_csv(fname):
              'onsets in seconds.')
     except ValueError:
         pass
-    orig_time = _handle_meas_date(orig_time)
     onset_dt = pd.to_datetime(df['onset'])
     onset = (onset_dt - onset_dt[0]).dt.total_seconds()
     duration = df['duration'].values.astype(float)
     description = df['description'].values
-    orig_time = None if orig_time == _handle_meas_date(0) else orig_time
     return Annotations(onset, duration, description, orig_time)
 
 

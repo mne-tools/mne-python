@@ -226,7 +226,7 @@ def test_time_as_index_ref(offset, origin):
     """Test indexing of raw times."""
     info = create_info(ch_names=10, sfreq=10.)
     raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
-    raw.info['meas_date'] = _stamp_to_dt((1, 0))
+    raw.set_meas_date(1)
 
     relative_times = raw.times
     inds = raw.time_as_index(relative_times + offset,
@@ -317,14 +317,14 @@ def test_5839():
         raw = RawArray(data=np.empty((10, 10)),
                        info=create_info(ch_names=10, sfreq=10.),
                        first_samp=10)
-        raw.info['meas_date'] = meas_date
+        raw.set_meas_date(meas_date)
         raw.set_annotations(annotations=Annotations(onset=[.5],
                                                     duration=[.2],
                                                     description='dummy',
                                                     orig_time=None))
         return raw
 
-    raw_A, raw_B = [raw_factory(_stamp_to_dt((x, 0))) for x in [0, 2]]
+    raw_A, raw_B = [raw_factory((x, 0)) for x in [0, 2]]
     raw_A.append(raw_B)
 
     assert_array_equal(raw_A.annotations.onset, EXPECTED_ONSET)

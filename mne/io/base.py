@@ -721,19 +721,16 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             Indices relative to ``first_samp`` corresponding to the times
             supplied.
         """
-        if self.info['meas_date'] is None:
-            if origin is not None:
-                raise ValueError('origin must be None when info["meas_date"] '
-                                 'is None, got %s' % (origin,))
+        origin = _handle_meas_date(origin)
+        if origin is None:
             delta = 0
+        elif self.info['meas_date'] is None:
+            raise ValueError('origin must be None when info["meas_date"] '
+                             'is None, got %s' % (origin,))
         else:
-            self.info._check_consistency()
             first_samp_in_abs_time = (self.info['meas_date'] +
                                       timedelta(0, self._first_time))
-            if origin is None:
-                origin = first_samp_in_abs_time
-            delta = (_handle_meas_date(origin) -
-                     first_samp_in_abs_time).total_seconds()
+            delta = (origin - first_samp_in_abs_time).total_seconds()
         times = np.atleast_1d(times) + delta
 
         return super(BaseRaw, self).time_as_index(times, use_rounding)
@@ -772,13 +769,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """
         meas_date = _handle_meas_date(self.info['meas_date'])
         if annotations is None:
-            orig_time = None if self.info['meas_date'] is None else meas_date
-            self._annotations = Annotations([], [], [], orig_time)
+            self._annotations = Annotations([], [], [], meas_date)
         else:
             _validate_type(annotations, Annotations, 'annotations')
 
-            if self.info['meas_date'] is None and \
-                    annotations.orig_time is not None:
+            if meas_date is None and annotations.orig_time is not None:
                 raise RuntimeError('Ambiguous operation. Setting an Annotation'
                                    ' object with known ``orig_time`` to a raw'
                                    ' object which has ``meas_date`` set to'
@@ -790,28 +785,20 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                    ' the raw object.')
 
             delta = 1. / self.info['sfreq']
-            time_of_first_sample = meas_date + timedelta(0, self._first_time)
             new_annotations = annotations.copy()
             if annotations.orig_time is None:
-                # Assume annotations to be relative to the data
-                new_annotations._orig_time = time_of_first_sample
-
-            tmin = time_of_first_sample
-            tmax = tmin + timedelta(seconds=self.times[-1] + delta)
-            new_annotations.crop(tmin=tmin, tmax=tmax,
-                                 emit_warning=emit_warning)
-
-            if self.info['meas_date'] is None:
-                new_annotations._orig_time = None
-            elif annotations.orig_time != meas_date:
-                # XXX, TODO: this should be a function, method or something.
-                # maybe orig_time should have a setter
-                # new_annotations.orig_time = xxxxx # resets onset based on x
-                # new_annotations._update_orig(xxxx)
-                orig_time = new_annotations.orig_time
-                new_annotations._orig_time = meas_date
+                new_annotations.crop(0, self.times[-1] + delta,
+                                     emit_warning=emit_warning)
+                if meas_date is not None:
+                    new_annotations.onset += self._first_time
+            else:
+                tmin = meas_date + timedelta(0, self._first_time)
+                tmax = tmin + timedelta(seconds=self.times[-1] + delta)
+                new_annotations.crop(tmin=tmin, tmax=tmax,
+                                     emit_warning=emit_warning)
                 new_annotations.onset -= (
-                    meas_date - orig_time).total_seconds()
+                    meas_date - new_annotations.orig_time).total_seconds()
+            new_annotations._orig_time = meas_date
 
             self._annotations = new_annotations
 

@@ -573,6 +573,10 @@ def test_anonymize(tmpdir):
                                     duration=[1, 1],
                                     description='dummy',
                                     orig_time=None))
+    first_samp = raw.first_samp
+    expected_onset = np.arange(2) + raw._first_time
+    assert raw.first_samp == first_samp
+    assert_allclose(raw.annotations.onset, expected_onset)
 
     # Test instance method
     events = read_events(event_name)
@@ -583,12 +587,17 @@ def test_anonymize(tmpdir):
 
     # test that annotations are correctly zeroed
     raw.anonymize()
+    assert raw.first_samp == first_samp
+    assert_allclose(raw.annotations.onset, expected_onset)
     assert raw.annotations.orig_time == raw.info['meas_date']
     stamp = _dt_to_stamp(raw.info['meas_date'])
     assert raw.annotations.orig_time == _stamp_to_dt(stamp)
+
     raw.info['meas_date'] = None
     raw.anonymize()
     assert raw.annotations.orig_time is None
+    assert raw.first_samp == first_samp
+    assert_allclose(raw.annotations.onset, expected_onset)
 
 
 @testing.requires_testing_data
