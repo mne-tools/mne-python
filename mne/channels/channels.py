@@ -645,12 +645,12 @@ class SetChannelsMixin(object):
 
         See Also
         --------
-        mne.io.Raw.anonymize
+        mne.io.Raw.anonymize_info
 
         Notes
         -----
         If you want to remove all time references in the file, call
-        :func:`mne.io.anonymize_info(inst.info) <mne.io.anonymize>`
+        :func:`mne.io.anonymize_info(inst.info) <mne.io.anonymize_info>`
         after calling ``inst.set_meas_date(None)``.
 
         .. versionadded:: 0.20
