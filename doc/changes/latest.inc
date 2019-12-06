@@ -78,6 +78,8 @@ Changelog
 Bug
 ~~~
 
+- Fix incorrect scaling of cluster temporal extent :func:`mne.stats.summarize_clusters_stc` by `Daniel McCloy`_.
+
 - Fix :meth:`mne.io.read_raw_ctf` to set measurement date from CTF ds files by `Luke Bloy`_.
 
 - Fix :meth:`mne.io.Raw.anonymize` correctly reset ``raw.annotations.orig_time`` by `Luke Bloy`_.
