@@ -67,8 +67,8 @@ del raw
 # responses also get marked (we'll plot them in red):
 
 catch_trials_and_buttonpresses = mne.pick_events(events, include=[5, 32])
-epochs['face'].plot(events=catch_trials_and_buttonpresses,
-                    event_colors={32: 'red', 5: 'green'})
+epochs['face'].plot(events=catch_trials_and_buttonpresses, event_id=event_dict,
+                    event_colors=dict(buttonpress='red', face='yellow'))
 
 ###############################################################################
 # Plotting projectors from an ``Epochs`` object
