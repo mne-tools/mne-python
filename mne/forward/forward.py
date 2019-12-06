@@ -44,7 +44,7 @@ from ..transforms import (transform_surface_to, invert_transform,
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      run_subprocess, check_fname, logger, verbose, fill_doc,
                      _validate_type, _check_compensation_grade, _check_option,
-                     _check_stc_units)
+                     _check_stc_units, _stamp_to_dt)
 from ..label import Label
 from ..fixes import einsum
 
@@ -1319,11 +1319,9 @@ def _fill_measurement_info(info, fwd, sfreq):
     sec = np.floor(now)
     usec = 1e6 * (now - sec)
 
-    info['meas_date'] = (int(sec), int(usec))
-    info['highpass'] = 0.0
-    info['lowpass'] = sfreq / 2.0
-    info['sfreq'] = sfreq
-    info['projs'] = []
+    info.update(meas_date=_stamp_to_dt((int(sec), int(usec))), highpass=0.,
+                lowpass=sfreq / 2., sfreq=sfreq, projs=[])
+    info._check_consistency()
 
     return info
 
@@ -1402,6 +1400,10 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
     --------
     apply_forward_raw: Compute sensor space data and return a Raw object.
     """
+    _validate_type(info, Info, 'info')
+    _validate_type(fwd, Forward, 'forward')
+    info._check_consistency()
+
     # make sure evoked_template contains all channels in fwd
     for ch_name in fwd['sol']['row_names']:
         if ch_name not in info['ch_names']:
