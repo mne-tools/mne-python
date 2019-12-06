@@ -19,6 +19,7 @@ additional options.
 
 import numpy as np
 import matplotlib.pyplot as plt
+
 from mne.datasets import sample
 from mne import read_evokeds
 

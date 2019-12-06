@@ -65,13 +65,18 @@ outlines : 'head' | 'skirt' | dict | None
 """
 docdict['topomap_extrapolate'] = """
 extrapolate : str
-    If 'box' (default) extrapolate to four points placed to form a square
-    encompassing all data points, where each side of the square is three
-    times the range of the data in the respective dimension. If 'head'
-    extrapolate to the edges of the head circle (or to the edges of the
-    skirt if ``outlines='skirt'``). If 'local' extrapolate only to nearby
-    points (approximately to points closer than median inter-electrode
-    distance).
+    Options:
+
+    - 'box' (default)
+        Extrapolate to four points placed to form a square encompassing all
+        data points, where each side of the square is three times the range
+        of the data in the respective dimension.
+    - 'head'
+        Extrapolate to the edges of the head circle (does not work well
+        with sensors outside the head circle).
+    - 'local'
+        Extrapolate only to nearby points (approximately to points closer than
+        median inter-electrode distance)
 """
 docdict['topomap_head_pos'] = """
 head_pos : dict | None

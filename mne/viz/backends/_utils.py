@@ -8,7 +8,7 @@
 # License: Simplified BSD
 
 import numpy as np
-import collections
+import collections.abc
 from ...utils import get_config
 from ...utils.check import _check_option
 
@@ -42,7 +42,7 @@ def _check_color(color):
     from matplotlib.colors import colorConverter
     if isinstance(color, str):
         color = colorConverter.to_rgb(color)
-    elif isinstance(color, collections.Iterable):
+    elif isinstance(color, collections.abc.Iterable):
         np_color = np.array(color)
         if np_color.size % 3 != 0 and np_color.size % 4 != 0:
             raise ValueError("The expected valid format is RGB or RGBA.")

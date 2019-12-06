@@ -407,7 +407,7 @@ def _draw_outlines(ax, outlines):
     return outlines_
 
 
-def _get_extra_points(pos, method, sphere):
+def _get_extra_points(pos, extrapolate, sphere):
     """Get coordinates of additinal interpolation points.
 
     If sphere is None, returns coordinates of convex hull of channel
@@ -416,10 +416,10 @@ def _get_extra_points(pos, method, sphere):
     of median inter-channel distance.
     """
     from scipy.spatial.qhull import Delaunay
-    x, y, _, radius = sphere
+    x, y, _, head_radius = sphere
 
     # the old method of placement - large box
-    if method == 'box':
+    if extrapolate == 'box':
         extremes = np.array([pos.min(axis=0), pos.max(axis=0)])
         diffs = extremes[1] - extremes[0]
         extremes[0] -= diffs
@@ -453,7 +453,7 @@ def _get_extra_points(pos, method, sphere):
              for i1, i2 in zip([idx1, idx2], [idx2, idx3])])
         distance = np.median(distances)
 
-    if method == 'local':
+    if extrapolate == 'local':
         if colinear:
             # special case for colinear points
             edge_points = sorting[[0, -1]]
@@ -497,10 +497,10 @@ def _get_extra_points(pos, method, sphere):
         new_pos = np.concatenate([hull_extended] + add_points)
     else:
         # return points on the head circle
-        angle = np.arcsin(distance / 2 / radius) * 2
+        angle = np.arcsin(distance / 2 / head_radius) * 2
         points_l = np.arange(0, 2 * np.pi, angle)
-        points_x = np.cos(points_l) * radius + x
-        points_y = np.sin(points_l) * radius + y
+        points_x = np.cos(points_l) * head_radius + x
+        points_y = np.sin(points_l) * head_radius + y
         new_pos = np.stack([points_x, points_y], axis=1)
         if colinear:
             tri = Delaunay(np.concatenate([pos, new_pos], axis=0))
@@ -517,11 +517,11 @@ class _GridData(object):
     to be set independently.
     """
 
-    def __init__(self, pos, method, sphere):
+    def __init__(self, pos, extrapolate, sphere):
         # in principle this works in N dimensions, not just 2
         assert pos.ndim == 2 and pos.shape[1] == 2, pos.shape
         # Adding points outside the extremes helps the interpolators
-        outer_pts, tri = _get_extra_points(pos, method, sphere)
+        outer_pts, tri = _get_extra_points(pos, extrapolate, sphere)
         self.n_extra = outer_pts.shape[0]
         self.tri = tri
 
@@ -2090,11 +2090,11 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads, sphere):
     if params['butterfly']:
         all_times = params['all_times']
         for idx in range(len(data)):
-            ax_line.plot(all_times, data[idx], color='k')
+            ax_line.plot(all_times, data[idx], color='k', lw=1)
         vmin, vmax = _setup_vmin_vmax(data, None, None)
-        ax_line.set_yticks(np.around(np.linspace(vmin, vmax, 5), -1))
-        params['line'], = ax_line.plot([all_times[0], all_times[0]],
-                                       ax_line.get_ylim(), color='r')
+        ax_line.set(yticks=np.around(np.linspace(vmin, vmax, 5), -1),
+                    xlim=all_times[[0, -1]])
+        params['line'] = ax_line.axvline(all_times[0], color='r', lw=2, zorder=6)
         items.append(params['line'])
     if merge_grads:
         from mne.channels.layout import _merge_grad_data
@@ -2123,6 +2123,7 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads, sphere):
     im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
                    aspect='equal', extent=extent,
                    interpolation='bilinear')
+    ax.autoscale(enable=True, tight=True)
     plt.colorbar(im, cax=ax_cbar, cmap=cmap)
     cont = ax.contour(Xi, Yi, Zi, levels=cont_lims, colors='k', linewidths=1)
 
@@ -2143,6 +2144,7 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads, sphere):
     outlines_ = _draw_outlines(ax, outlines)
 
     params.update({'patch': patch_, 'outlines': outlines_})
+    ax.figure.tight_layout()
     return tuple(items) + tuple(cont.collections)
 
 
@@ -2184,17 +2186,18 @@ def _animate(frame, ax, ax_line, params):
     cont = ax.contour(Xi, Yi, Zi, levels=cont_lims, colors='k', linewidths=1)
 
     im.set_clip_path(patch)
-    items = [im, text]
     for col in cont.collections:
         col.set_clip_path(patch)
 
+    items = [im, text]
     if params['butterfly']:
         all_times = params['all_times']
         line = params['line']
         line.remove()
-        params['line'] = ax_line.plot([all_times[time_idx],
-                                       all_times[time_idx]],
-                                      ax_line.get_ylim(), color='r')[0]
+        ylim = ax_line.get_ylim()
+        params['line'] = ax_line.axvline(all_times[time_idx], color='r')
+        print(all_times[time_idx])
+        ax_line.set_ylim(ylim)
         items.append(params['line'])
     params['frame'] = frame
     return tuple(items) + tuple(cont.collections)
@@ -2244,18 +2247,18 @@ def _topomap_animation(evoked, ch_type, times, frame_rate, butterfly, blit,
     data = evoked.data[picks, :]
     data *= _handle_default('scalings')[ch_type]
 
-    fig = plt.figure()
-    offset = 0. if blit else 0.4  # XXX: blit changes the sizes for some reason
-    ax = plt.axes([0. + offset / 2., 0. + offset / 2., 1. - offset,
-                   1. - offset], xlim=(-1, 1), ylim=(-1, 1))
+    fig = plt.figure(figsize=(6, 5))
+    shape = (8, 12)
+    colspan = shape[1] - 1
+    rowspan = shape[0] - bool(butterfly)
+    ax = plt.subplot2grid(shape, (0, 0), rowspan=rowspan, colspan=colspan)
     if butterfly:
-        ax_line = plt.axes([0.2, 0.05, 0.6, 0.1], xlim=(evoked.times[0],
-                                                        evoked.times[-1]))
+        ax_line = plt.subplot2grid(shape, (rowspan, 0), colspan=colspan)
     else:
         ax_line = None
     if isinstance(frames, Integral):
         frames = np.linspace(0, len(evoked.times) - 1, frames).astype(int)
-    ax_cbar = plt.axes([0.85, 0.1, 0.05, 0.8])
+    ax_cbar = plt.subplot2grid(shape, (0, colspan), rowspan=rowspan)
     ax_cbar.set_title(_handle_default('units')[ch_type], fontsize=10)
 
     params = dict(data=data, pos=pos, all_times=evoked.times, frame=0,
