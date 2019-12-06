@@ -15,13 +15,11 @@ import os
 import os.path as op
 import re
 from datetime import datetime, timezone
-from math import modf
 from io import StringIO
 
 import numpy as np
 
-from ...utils import (verbose, logger, warn, fill_doc, _DefaultEventParser,
-                      _stamp_to_dt)
+from ...utils import verbose, logger, warn, fill_doc, _DefaultEventParser
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import BaseRaw

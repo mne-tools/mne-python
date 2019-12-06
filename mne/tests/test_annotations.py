@@ -5,6 +5,7 @@
 from datetime import datetime, timezone
 from itertools import repeat
 from collections import OrderedDict
+import sys
 
 import os.path as op
 
@@ -33,6 +34,23 @@ fif_fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
                     'test_raw.fif')
 
 first_samps = pytest.mark.parametrize('first_samp', (0, 10000))
+
+
+# On Windows, datetime.fromtimestamp throws an error for negative times.
+# We mimic this behavior on non-Windows platforms for ease of testing.
+class _windows_datetime(datetime):
+    @classmethod
+    def fromtimestamp(cls, timestamp, tzinfo=None):
+        if timestamp < 0:
+            raise OSError('[Errno 22] Invalid argument')
+        return datetime.fromtimestamp(timestamp, tzinfo)
+
+
+@pytest.fixture(scope='function')
+def windows_like_datetime(monkeypatch):
+    if not sys.platform.startswith('win'):
+        monkeypatch.setattr('mne.annotations.datetime', _windows_datetime)
+    yield
 
 
 def test_basics():
@@ -120,8 +138,7 @@ def test_raw_array_orig_times():
 
     # These three things should be equivalent
     stamp = _dt_to_stamp(raw.info['meas_date'])
-    orig_time = datetime.fromtimestamp(
-        stamp[0] + stamp[1] * 1e-6, timezone.utc)
+    orig_time = _handle_meas_date(stamp)
     for empty_annot in (
             Annotations([], [], [], stamp),
             Annotations([], [], [], orig_time),
@@ -850,6 +867,7 @@ def dummy_annotation_txt_header(tmpdir_factory):
 def test_handle_meas_date(meas_date, out):
     """Test meas date formats."""
     if out is not None:
+        assert out >= 0  # otherwise it'll break on Windows
         out = datetime.fromtimestamp(out, timezone.utc)
     assert _handle_meas_date(meas_date) == out
 
@@ -1026,7 +1044,7 @@ def test_date_none(tmpdir):
     assert raw_read.info['meas_date'] is None
 
 
-def test_negative_meas_dates():
+def test_negative_meas_dates(windows_like_datetime):
     """Test meas_date previous to 1970."""
     # Regression test for gh-6621
     raw = RawArray(data=np.empty((1, 1), dtype=np.float64),
@@ -1038,7 +1056,7 @@ def test_negative_meas_dates():
     assert events[:, 0] == 0
 
 
-def test_crop_when_negative_orig_time():
+def test_crop_when_negative_orig_time(windows_like_datetime):
     """Test croping with orig_time, tmin and tmax previous to 1970."""
     # Regression test for gh-6621
     orig_time_stamp = -908196945.011331  # 1941-03-22 11:04:14.988669

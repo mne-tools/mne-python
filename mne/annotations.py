@@ -22,6 +22,10 @@ from .io.open import fiff_open
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
 
+# For testing windows_like_datetime, we monkeypatch "datetime" in this module.
+# Keep the true datetime object around for _validate_type use.
+_datetime = datetime
+
 
 def _check_o_d_s(onset, duration, description):
     onset = np.atleast_1d(np.array(onset, dtype=float))
@@ -65,8 +69,8 @@ class Annotations(object):
         Array of strings containing description for each annotation. If a
         string, all the annotations are given the same description. To reject
         epochs, use description starting with keyword 'bad'. See example above.
-    orig_time : float | int | instance of datetime.datetime | array of int | None | str
-        A POSIX Timestamp, datetime or an array containing the timestamp as the
+    orig_time : float | str | datetime | tuple of int | None
+        A POSIX Timestamp, datetime or a tuple containing the timestamp as the
         first element and microseconds as the second element. Determines the
         starting time of annotation acquisition. If None (default),
         starting time is determined from beginning of raw data acquisition.
@@ -368,7 +372,7 @@ class Annotations(object):
         if tmax is None:
             tmax = timedelta((self.onset + self.duration).max()) + offset
         for key, val in [('tmin', tmin), ('tmax', tmax)]:
-            _validate_type(val, ('numeric', datetime), key,
+            _validate_type(val, ('numeric', _datetime), key,
                            'numeric, datetime, or None')
         if tmin > tmax:
             raise ValueError('tmax should be greater than or equal to tmin '
@@ -459,7 +463,15 @@ def _handle_meas_date(meas_date):
         meas_date = _stamp_to_dt(meas_date)
     if meas_date is not None:
         if np.isscalar(meas_date):
-            meas_date = datetime.fromtimestamp(meas_date, timezone.utc)
+            # It would be nice just to do:
+            #
+            #     meas_date = datetime.fromtimestamp(meas_date, timezone.utc)
+            #
+            # But Windows does not like timestamps < 0. So we'll use
+            # our specialized wrapper instead:
+            meas_date = np.array(np.modf(meas_date)[::-1])
+            meas_date *= [1, 1e6]
+            meas_date = _stamp_to_dt(np.round(meas_date))
         _check_dt(meas_date)  # run checks
     return meas_date
 
@@ -537,7 +549,7 @@ def _write_annotations_csv(fname, annot):
     pd = _check_pandas_installed(strict=True)
     dt = _handle_meas_date(annot.orig_time)
     if dt is None:
-        dt = datetime.fromtimestamp(0, timezone.utc)
+        dt = _handle_meas_date(0)
     dt = dt.replace(tzinfo=None)
     onsets_dt = [dt + timedelta(seconds=o) for o in annot.onset]
     df = pd.DataFrame(dict(onset=onsets_dt, duration=annot.duration,
