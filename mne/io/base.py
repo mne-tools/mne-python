@@ -709,7 +709,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         use_rounding : boolean
             If True, use rounding (instead of truncation) when converting
             times to indices. This can help avoid non-unique indices.
-        origin: time-like | float | int | None
+        origin: datetime | float | int | None
             Time reference for times. If None, ``times`` are assumed to be
             relative to ``first_samp``.
 
@@ -721,13 +721,19 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             Indices relative to ``first_samp`` corresponding to the times
             supplied.
         """
-        first_samp_in_abs_time = (_handle_meas_date(self.info['meas_date']) +
-                                  timedelta(0, self._first_time))
-        if origin is None:
-            origin = first_samp_in_abs_time
-
-        delta = (_handle_meas_date(origin) -
-                 first_samp_in_abs_time).total_seconds()
+        if self.info['meas_date'] is None:
+            if origin is not None:
+                raise ValueError('origin must be None when info["meas_date"] '
+                                 'is None, got %s' % (origin,))
+            delta = 0
+        else:
+            self.info._check_consistency()
+            first_samp_in_abs_time = (self.info['meas_date'] +
+                                      timedelta(0, self._first_time))
+            if origin is None:
+                origin = first_samp_in_abs_time
+            delta = (_handle_meas_date(origin) -
+                     first_samp_in_abs_time).total_seconds()
         times = np.atleast_1d(times) + delta
 
         return super(BaseRaw, self).time_as_index(times, use_rounding)
@@ -1743,12 +1749,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         edge_samps = list()
         for ri, r in enumerate(raws):
             n_samples = self.last_samp - self.first_samp + 1
-            r_annot = Annotations(onset=r.annotations.onset - r._first_time,
-                                  duration=r.annotations.duration,
-                                  description=r.annotations.description,
-                                  orig_time=None)
             annotations = _combine_annotations(
-                annotations, r_annot, n_samples,
+                annotations, r.annotations, n_samples,
                 self.first_samp, r.first_samp,
                 self.info['sfreq'], self.info['meas_date'])
             edge_samps.append(sum(self._last_samps) -

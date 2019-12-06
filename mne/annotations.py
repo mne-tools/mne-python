@@ -419,12 +419,8 @@ class Annotations(object):
 def _combine_annotations(one, two, one_n_samples, one_first_samp,
                          two_first_samp, sfreq, meas_date):
     """Combine a tuple of annotations."""
-    if one is None and two is None:
-        return None
-    elif two is None:
-        return one
-    elif one is None:
-        one = Annotations([], [], [], None)
+    assert one is not None
+    assert two is not None
 
     # Compute the shift necessary for alignment:
     # 1. The shift (in time) due to concatenation
@@ -435,9 +431,10 @@ def _combine_annotations(one, two, one_n_samples, one_first_samp,
         shift += one_first_samp / sfreq
         shift += (meas_date - one.orig_time).total_seconds()
     # 3. Shift by the difference in meas_date and two.orig_time
-    if two.orig_time is not None:
-        shift -= two_first_samp / sfreq
-        shift -= (meas_date - two.orig_time).total_seconds()
+    #    The meas_date of two is completely ignored here by design, as the
+    #    assumption of the concatenation is that the user is shifting
+    #    two onto the end of one in whatever the actual timeline was.
+    shift -= two_first_samp / sfreq
 
     onset = np.concatenate([one.onset, two.onset + shift])
     duration = np.concatenate([one.duration, two.duration])

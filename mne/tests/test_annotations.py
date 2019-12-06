@@ -651,7 +651,7 @@ def _create_annotation_based_on_descr(description, annotation_start_sampl=0,
     raw = RawArray(data=np.empty([10, 10], dtype=np.float64),
                    info=create_info(ch_names=10, sfreq=1000.),
                    first_samp=0)
-    raw.info['meas_date'] = 0
+    raw.info['meas_date'] = _stamp_to_dt((0, 0))
 
     # create dummy annotations based on the descriptions
     onset = raw.times[annotation_start_sampl]

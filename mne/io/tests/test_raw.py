@@ -14,10 +14,9 @@ from numpy.testing import (assert_allclose, assert_array_almost_equal,
                            assert_array_equal)
 
 from mne import concatenate_raws, create_info, Annotations
-from mne.annotations import _handle_meas_date
 from mne.datasets import testing
 from mne.io import read_raw_fif, RawArray, BaseRaw
-from mne.utils import _TempDir, catch_logging, _raw_annot
+from mne.utils import _TempDir, catch_logging, _raw_annot, _stamp_to_dt
 from mne.io.meas_info import _get_valid_units
 from mne.io._digitization import DigPoint
 
@@ -105,7 +104,8 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
             assert isinstance(d, DigPoint), (di, d)
 
     # gh-5604
-    assert _handle_meas_date(raw.info['meas_date']) >= _handle_meas_date(0)
+    meas_date = raw.info['meas_date']
+    assert meas_date is None or meas_date >= _stamp_to_dt((0, 0))
 
     # test resetting raw
     if test_kwargs:
@@ -224,10 +224,9 @@ def test_time_as_index():
     pytest.param(2, 0.0, id='absolute times in s. relative to 0')])
 def test_time_as_index_ref(offset, origin):
     """Test indexing of raw times."""
-    meas_date = 1
     info = create_info(ch_names=10, sfreq=10.)
     raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
-    raw.info['meas_date'] = meas_date
+    raw.info['meas_date'] = _stamp_to_dt((1, 0))
 
     relative_times = raw.times
     inds = raw.time_as_index(relative_times + offset,
@@ -242,14 +241,14 @@ def test_meas_date_orig_time():
     # clips the annotations based on raw.data and resets the annotation based
     # on raw.info['meas_date]
     raw = _raw_annot(1, 1.5)
-    assert raw.annotations.orig_time == _handle_meas_date(1)
+    assert raw.annotations.orig_time == _stamp_to_dt((1, 0))
     assert raw.annotations.onset[0] == 1
 
     # meas_time is set and orig_time is None:
     # Consider annot.orig_time to be raw.frist_sample, clip and reset
     # annotations to have the raw.annotations.orig_time == raw.info['meas_date]
     raw = _raw_annot(1, None)
-    assert raw.annotations.orig_time == _handle_meas_date(1)
+    assert raw.annotations.orig_time == _stamp_to_dt((1, 0))
     assert raw.annotations.onset[0] == 1.5
 
     # meas_time is None and orig_time is set:
@@ -316,19 +315,19 @@ def test_5839():
 
     def raw_factory(meas_date):
         raw = RawArray(data=np.empty((10, 10)),
-                       info=create_info(ch_names=10, sfreq=10., ),
+                       info=create_info(ch_names=10, sfreq=10.),
                        first_samp=10)
-        raw.info['meas_date'] = _handle_meas_date(meas_date)
+        raw.info['meas_date'] = meas_date
         raw.set_annotations(annotations=Annotations(onset=[.5],
                                                     duration=[.2],
                                                     description='dummy',
                                                     orig_time=None))
         return raw
 
-    raw_A, raw_B = [raw_factory((x, 0)) for x in [0, 2]]
+    raw_A, raw_B = [raw_factory(_stamp_to_dt((x, 0))) for x in [0, 2]]
     raw_A.append(raw_B)
 
     assert_array_equal(raw_A.annotations.onset, EXPECTED_ONSET)
     assert_array_equal(raw_A.annotations.duration, EXPECTED_DURATION)
     assert_array_equal(raw_A.annotations.description, EXPECTED_DESCRIPTION)
-    assert raw_A.annotations.orig_time == _handle_meas_date(0.0)
+    assert raw_A.annotations.orig_time == _stamp_to_dt((0, 0))

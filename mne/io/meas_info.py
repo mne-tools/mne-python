@@ -2078,8 +2078,8 @@ def anonymize_info(info, daysback=None, keep_his=False):
                 di[k] = default_str
 
     err_mesg = ('anonymize_info generated an inconsistent info object. Most '
-                'often this is because daysback parameter was too large.\n'
-                'Underlying Error:')
+                'often this is because daysback parameter was too large. '
+                'Underlying Error:\n')
     info._check_consistency(prepend_error=err_mesg)
 
     return info

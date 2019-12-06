@@ -23,7 +23,7 @@ from mne.datasets import testing, sample
 from mne.io import read_raw_fif, read_info
 from mne.utils import (run_tests_if_main, requires_mne,
                        requires_mayavi, requires_tvtk, requires_freesurfer,
-                       traits_test, ArgvSetter, modified_env)
+                       traits_test, ArgvSetter, modified_env, _stamp_to_dt)
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -369,7 +369,7 @@ def test_anonymize(tmpdir):
         mne_anonymize.run()
     info = read_info(out_fname)
     assert(op.exists(out_fname))
-    assert_equal(info['meas_date'], (946684800, 0))
+    assert info['meas_date'] == _stamp_to_dt((946684800, 0))
 
 
 run_tests_if_main()
