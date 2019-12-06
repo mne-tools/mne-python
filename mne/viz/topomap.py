@@ -2094,7 +2094,7 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads, sphere):
         vmin, vmax = _setup_vmin_vmax(data, None, None)
         ax_line.set(yticks=np.around(np.linspace(vmin, vmax, 5), -1),
                     xlim=all_times[[0, -1]])
-        params['line'] = ax_line.axvline(all_times[0], color='r', lw=2, zorder=6)
+        params['line'] = ax_line.axvline(all_times[0], color='r')
         items.append(params['line'])
     if merge_grads:
         from mne.channels.layout import _merge_grad_data
