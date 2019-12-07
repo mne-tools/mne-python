@@ -73,6 +73,8 @@ def test_xdawn_fit():
     evoked = epochs['cond2'].average()
     assert_array_equal(evoked.data, xd.evokeds_['cond2'].data)
 
+    assert np.all(np.isclose(np.linalg.norm(xd.filters_['cond2'], axis=1), 1))
+
     # ========== with signal cov provided ====================
     # Provide covariance object
     signal_cov = compute_raw_covariance(raw, picks=picks)
@@ -242,8 +244,8 @@ def test_XdawnTransformer():
 
     xdt = _XdawnTransformer()
     xdt.fit(X, y)
-    assert_array_almost_equal(xd.filters_['cond2'][:, :2],
-                              xdt.filters_.reshape(2, 2, 8)[0].T)
+    assert_array_almost_equal(xd.filters_['cond2'][:2, :],
+                              xdt.filters_.reshape(2, 2, 8)[0])
 
     # Transform testing
     xdt.transform(X[1:, ...])  # different number of epochs

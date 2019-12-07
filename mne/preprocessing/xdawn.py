@@ -137,6 +137,7 @@ def _fit_xdawn(epochs_data, y, n_components, reg=None, signal_cov=None,
     -------
     filters : array, shape (n_channels, n_channels)
         The Xdawn components used to decompose the data for each event type.
+        Each row corresponds to one component.
     patterns : array, shape (n_channels, n_channels)
         The Xdawn patterns used to restore the signals for each event type.
     evokeds : array, shape (n_class, n_components, n_times)
@@ -371,7 +372,8 @@ class Xdawn(_XdawnTransformer):
     ----------
     filters_ : dict of ndarray
         If fit, the Xdawn components used to decompose the data for each event
-        type, else empty.
+        type, else empty. For each event type, the filters are in the rows of
+        the corresponding array.
     patterns_ : dict of ndarray
         If fit, the Xdawn patterns used to restore the signals for each event
         type, else empty.
@@ -474,8 +476,8 @@ class Xdawn(_XdawnTransformer):
         idx = np.argsort([value for _, value in epochs.event_id.items()])
         for eid, this_filter, this_pattern, this_evo in zip(
                 epochs.event_id, filters[idx], patterns[idx], evokeds[idx]):
-            self.filters_[eid] = this_filter.T
-            self.patterns_[eid] = this_pattern.T
+            self.filters_[eid] = this_filter
+            self.patterns_[eid] = this_pattern
             n_events = len(epochs[eid])
             evoked = EvokedArray(this_evo, use_info, tmin=epochs.tmin,
                                  comment=eid, nave=n_events)
