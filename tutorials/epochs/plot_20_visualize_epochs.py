@@ -64,7 +64,8 @@ del raw
 #
 # Here we'll plot only the "catch" trials from the :ref:`sample dataset
 # <sample-dataset>`, and pass in our events array so that the button press
-# responses also get marked (we'll plot them in red). We also need to pass in
+# responses also get marked (we'll plot them in red, and plot the "face" events
+# defining time zero for each epoch in blue). We also need to pass in
 # our ``event_dict`` so that the :meth:`~mne.Epochs.plot` method will know what
 # we mean by "buttonpress" — this is because subsetting the conditions by
 # calling ``epochs['face']`` automatically purges the dropped entries from
@@ -72,7 +73,7 @@ del raw
 
 catch_trials_and_buttonpresses = mne.pick_events(events, include=[5, 32])
 epochs['face'].plot(events=catch_trials_and_buttonpresses, event_id=event_dict,
-                    event_colors=dict(buttonpress='red', face='yellow'))
+                    event_colors=dict(buttonpress='red', face='blue'))
 
 ###############################################################################
 # Plotting projectors from an ``Epochs`` object

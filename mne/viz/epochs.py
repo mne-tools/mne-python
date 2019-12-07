@@ -1352,7 +1352,7 @@ def _plot_traces(params):
         _set_ax_label_style(ax, params)
 
     if params['events'] is not None:  # vertical lines for events.
-        _draw_event_lines(params)
+        _ = _draw_event_lines(params)
 
     params['vsel_patch'].set_y(ch_start)
     params['fig'].canvas.draw()
@@ -1429,20 +1429,24 @@ def _plot_vert_lines(params):
     params['vert_lines'] = list()
     params['ev_lines'] = list()
     params['vertline_t'].set_text('')
-
     epochs = params['epochs']
-    if params['settings'][3]:  # if zeroline visible
+
+    # draw event lines
+    tzero_already_drawn = False
+    if params['events'] is not None:
+        tzero_already_drawn = _draw_event_lines(params)
+    # draw zero lines
+    if params['settings'][3] and not tzero_already_drawn:
         t_zero = np.where(epochs.times == 0.)[0]
         if len(t_zero) == 1:  # not True if tmin > 0
             for event_idx in range(len(epochs.events)):
                 pos = [event_idx * len(epochs.times) + t_zero[0],
                        event_idx * len(epochs.times) + t_zero[0]]
-                ax.plot(pos, ax.get_ylim(), 'g', zorder=4, alpha=0.4)
+                ax.plot(pos, ax.get_ylim(), 'g', zorder=0, alpha=0.4)
+    # draw boundaries between epochs
     for epoch_idx in range(len(epochs.events)):
         pos = [epoch_idx * len(epochs.times), epoch_idx * len(epochs.times)]
         ax.plot(pos, ax.get_ylim(), color='black', linestyle='--', zorder=2)
-    if params['events'] is not None:
-        _draw_event_lines(params)
 
 
 def _pick_bad_epochs(event, params):
@@ -1985,6 +1989,7 @@ def _label2idx(params, pos):
 
 def _draw_event_lines(params):
     """Draw event lines."""
+    includes_tzero = False
     epochs = params['epochs']
     n_times = len(epochs.times)
     start_idx = int(params['t_start'] / n_times)
@@ -2005,8 +2010,8 @@ def _draw_event_lines(params):
         event_mask = ((event[0] - t_zero < samp_times) &
                       (samp_times < event[0] + n_times - t_zero))
         for ev in params['events'][event_mask]:
-            if ev[0] == event[0]:  # don't redraw the zeroline
-                continue
+            if ev[0] == event[0]:
+                includes_tzero = True
             pos = [idx * n_times + ev[0] - event[0] + t_zero,
                    idx * n_times + ev[0] - event[0] + t_zero]
             kwargs = {} if ev[2] not in color else {'color': color[ev[2]]}
@@ -2015,3 +2020,4 @@ def _draw_event_lines(params):
             params['ev_texts'].append(ax.text(pos[0], ax.get_ylim()[0],
                                               ev[2], color=color[ev[2]],
                                               ha='center', va='top'))
+    return includes_tzero
