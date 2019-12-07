@@ -48,6 +48,7 @@ class _windows_datetime(datetime):
 
 @pytest.fixture(scope='function')
 def windows_like_datetime(monkeypatch):
+    """Ensure datetime.fromtimestamp is Windows-like."""
     if not sys.platform.startswith('win'):
         monkeypatch.setattr('mne.annotations.datetime', _windows_datetime)
     yield
