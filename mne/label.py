@@ -465,6 +465,8 @@ class Label(object):
         ----------
         src : instance of SourceSpaces
             The source spaces to use to restrict the label.
+        name : None | str
+            Name for the new Label (default is self.name).
 
         Returns
         -------
@@ -474,6 +476,10 @@ class Label(object):
         See Also
         --------
         Label.fill
+
+        Notes
+        -----
+        .. versionadded:: 0.20
         """
         if len(self.vertices) == 0:
             return self.copy()
