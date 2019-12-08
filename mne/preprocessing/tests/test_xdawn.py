@@ -290,8 +290,9 @@ def _load_audvis_testdata():
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_xdawn_decoding_performance():
-    # this test is based on the plot-decoding-xdawn-eeg example
-    from sklearn.model_selection import  KFold
+    """Test decoding performance using xDAWN."""
+    # is based on the plot-decoding-xdawn-eeg example
+    from sklearn.model_selection import KFold
     from sklearn.pipeline import make_pipeline
     from sklearn.linear_model import LogisticRegression
     from sklearn.preprocessing import MinMaxScaler
@@ -339,5 +340,6 @@ def test_xdawn_decoding_performance():
 
     assert np.mean(cv_accuracy_xdawn_trans) >= expected_accuracy
     assert_allclose(cv_accuracy_xdawn_trans, cv_accuracy_xdawn, atol=0.01)
+
 
 run_tests_if_main()
