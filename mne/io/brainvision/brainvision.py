@@ -315,7 +315,7 @@ def _str_to_meas_date(date_str):
     if date_str in ['', '0', '00000000000000000000']:
         return None
 
-    # these calculations are in navie time but should be okay since
+    # these calculations are in naive time but should be okay since
     # they are relative (subtraction below)
     try:
         meas_date = datetime.strptime(date_str, '%Y%m%d%H%M%S%f')

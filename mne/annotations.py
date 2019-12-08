@@ -403,8 +403,11 @@ class Annotations(object):
                 clip_right_elem.append(absolute_offset > absolute_tmax)
                 if clip_right_elem[-1]:
                     absolute_offset = absolute_tmax
-                durations.append(
-                    (absolute_offset - absolute_onset).total_seconds())
+                if clip_left_elem[-1] or clip_right_elem[-1]:
+                    durations.append(
+                        (absolute_offset - absolute_onset).total_seconds())
+                else:
+                    durations.append(duration)
                 onsets.append(
                     (absolute_onset - offset).total_seconds())
                 descriptions.append(description)

@@ -287,8 +287,8 @@ def test_crop_more():
     assert len(raw_concat.annotations) == 4
     assert_array_equal(raw_concat.annotations.description,
                        raw.annotations.description)
-    assert_allclose(raw.annotations.duration, duration, atol=1e-6)
-    assert_allclose(raw_concat.annotations.duration, duration, atol=1e-6)
+    assert_allclose(raw.annotations.duration, duration)
+    assert_allclose(raw_concat.annotations.duration, duration)
     assert_allclose(raw.annotations.onset, onset + offset)
     assert_allclose(raw_concat.annotations.onset, onset + offset,
                     atol=1. / raw.info['sfreq'])

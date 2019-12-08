@@ -518,8 +518,7 @@ def _test_anonymize_info(base_info):
     new_info = anonymize_info(base_info.copy())
     assert_object_equal(new_info, exp_info)
 
-    with pytest.warns(RuntimeWarning, match="keeping 'his_id'"):
-        new_info = anonymize_info(base_info.copy(), keep_his=True)
+    new_info = anonymize_info(base_info.copy(), keep_his=True)
     assert_object_equal(new_info, exp_info_2)
 
     new_info = anonymize_info(base_info.copy(), daysback=delta_t_2.days)

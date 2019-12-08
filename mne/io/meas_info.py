@@ -1930,6 +1930,9 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
     keep_his : bool
         If True his_id of subject_info will NOT be overwritten.
         Defaults to False.
+
+        .. warning:: This could mean that ``info`` is not fully
+                     anonymized. Use with caution.
     %(verbose)s
 
     Returns
@@ -2012,7 +2015,7 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
         if subject_info.get('id') is not None:
             subject_info['id'] = default_subject_id
         if keep_his:
-            warn('Not fully anonymizing info - keeping \'his_id\'')
+            logger.info('Not fully anonymizing info - keeping \'his_id\'')
         elif subject_info.get('his_id') is not None:
             subject_info['his_id'] = str(default_subject_id)
 

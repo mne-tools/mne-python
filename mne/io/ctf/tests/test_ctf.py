@@ -352,7 +352,7 @@ def test_read_ctf_annotations():
     raw = RawArray(
         data=np.empty((1, 432000), dtype=np.float64),
         info=create_info(ch_names=1, sfreq=1200.0))
-    raw.info['meas_date'] = read_raw_ctf(somato_fname).info['meas_date']
+    raw.set_meas_date(read_raw_ctf(somato_fname).info['meas_date'])
     raw.set_annotations(read_annotations(somato_fname))
 
     events, _ = events_from_annotations(raw)
