@@ -13,6 +13,8 @@ import pytest
 
 from mne import (Epochs, read_events, pick_types, compute_raw_covariance,
                  create_info, EpochsArray)
+from mne.datasets import testing
+from mne.decoding import Vectorizer
 from mne.io import read_raw_fif
 from mne.utils import (requires_sklearn, run_tests_if_main, check_version,
                        _get_numpy_libs)
@@ -264,5 +266,78 @@ def test_XdawnTransformer():
     pytest.raises(ValueError, xdt.inverse_transform, Xt[:, 1:, :])
     pytest.raises(ValueError, xdt.inverse_transform, 42)
 
+
+def _load_audvis_testdata():
+    from mne.datasets import sample
+    data_path = sample.data_path(download=False)
+    raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+    event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
+    tmin, tmax = -0.1, 0.3
+    event_id = dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4)
+
+    raw = read_raw_fif(raw_fname, preload=True)
+    raw.filter(1, 20, fir_design='firwin')
+    events = read_events(event_fname)
+    picks = pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
+                       exclude='bads')
+
+    epochs = Epochs(raw, events, event_id, tmin, tmax, proj=False,
+                    picks=picks, baseline=None, preload=True,
+                    verbose=False)
+    return epochs
+
+
+@pytest.mark.slowtest
+@testing.requires_testing_data
+def test_xdawn_decoding_performance():
+    # this test is based on the plot-decoding-xdawn-eeg example
+    from sklearn.model_selection import  KFold
+    from sklearn.pipeline import make_pipeline
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.preprocessing import MinMaxScaler
+    from sklearn.metrics import accuracy_score
+
+    expected_accuracy = 0.85
+    epochs = _load_audvis_testdata()
+    labels = epochs.events[:, -1]
+
+    # first, test with Xdawn
+    xdawn_pipeline = make_pipeline(Xdawn(n_components=3),
+                                   Vectorizer(),
+                                   MinMaxScaler(),
+                                   LogisticRegression(penalty='l1',
+                                                      solver='liblinear',
+                                                      multi_class='auto'))
+    cv = KFold(n_splits=5, shuffle=False)
+    predictions = np.empty_like(labels, dtype=float)
+    for cur_train_idxs, cur_test_idxs in cv.split(epochs, labels):
+        xdawn_pipeline.fit(epochs[cur_train_idxs], labels[cur_train_idxs])
+        predictions[cur_test_idxs] = xdawn_pipeline.predict(
+            epochs[cur_test_idxs])
+
+    cv_accuracy_xdawn = accuracy_score(labels, predictions)
+
+    assert np.mean(cv_accuracy_xdawn) >= expected_accuracy
+
+    # results should be the same as with the Xdawn transformer
+    xdawn_trans_pipeline = make_pipeline(_XdawnTransformer(n_components=3),
+                                   Vectorizer(),
+                                   MinMaxScaler(),
+                                   LogisticRegression(penalty='l1',
+                                                      solver='liblinear',
+                                                      multi_class='auto'))
+
+    cv = KFold(n_splits=5, shuffle=False)
+    predictions_trans = np.empty_like(labels, dtype=float)
+    for cur_train_idxs, cur_test_idxs in cv.split(epochs, labels):
+        xdawn_trans_pipeline.fit(epochs[cur_train_idxs].get_data(),
+                                 labels[cur_train_idxs])
+        predictions_trans[cur_test_idxs] = xdawn_trans_pipeline.predict(
+            epochs[cur_test_idxs].get_data())
+
+    cv_accuracy_xdawn_trans = accuracy_score(labels, predictions_trans)
+
+    assert np.mean(cv_accuracy_xdawn_trans) >= expected_accuracy
+    assert_allclose(cv_accuracy_xdawn_trans, cv_accuracy_xdawn)
 
 run_tests_if_main()

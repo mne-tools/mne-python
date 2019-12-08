@@ -105,8 +105,8 @@ plt.show()
 
 
 ###############################################################################
-# The ``patterns_`` attribute of a fitted Xdawn instance (here from the last CV
-# fold) can be used for visualization.
+# The ``patterns_`` attribute of a fitted Xdawn instance (here from the last
+# cross-validation fold) can be used for visualization.
 
 fig, axes = plt.subplots(nrows=len(event_id), ncols=n_filter)
 fitted_xdawn = clf.steps[0][1]
@@ -124,4 +124,5 @@ for i, (cur_class, cur_patterns) in enumerate(fitted_xdawn.patterns_.items()):
         axes=axes[i, :],
         extrapolate='head',
         show=False)
+fig.subplots_adjust(hspace=0.1)
 plt.show()

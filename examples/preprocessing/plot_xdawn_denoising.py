@@ -66,7 +66,7 @@ plot_epochs_image(epochs['vis_r'], picks=[230], vmin=-500, vmax=500)
 
 ###############################################################################
 # Now, we estimate a set of xDAWN filters for the epochs (which contain only
-# the ``vis_r`` class.
+# the ``vis_r`` class).
 
 # Estimates signal covariance
 signal_cov = compute_raw_covariance(raw, picks=picks)
