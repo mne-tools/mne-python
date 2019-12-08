@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from mne import read_events, pick_types, Annotations, create_info
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_ctf, RawArray
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, _dt_to_stamp
 from mne.viz.utils import _fake_click, _annotation_radio_clicked, _sync_onset
 from mne.viz import plot_raw, plot_sensors
 
@@ -276,8 +276,8 @@ def test_plot_raw():
                     kind='release')
 
         plt.close('all')
-    # test if meas_date has only one element
-    raw.info['meas_date'] = (raw.info['meas_date'][0], 0)
+    # test if meas_date is off
+    raw.set_meas_date(_dt_to_stamp(raw.info['meas_date'])[0])
     annot = Annotations([1 + raw.first_samp / raw.info['sfreq']],
                         [5], ['bad'])
     with pytest.warns(RuntimeWarning, match='outside data range'):

@@ -639,6 +639,8 @@ def object_hash(x, h=None):
         h.update(str(x.shape).encode('utf-8'))
         h.update(str(x.dtype).encode('utf-8'))
         h.update(x.tostring())
+    elif isinstance(x, datetime):
+        object_hash(_dt_to_stamp(x))
     elif hasattr(x, '__len__'):
         # all other list-like types
         h.update(str(type(x)).encode('utf-8'))
@@ -681,6 +683,8 @@ def object_size(x):
             size += object_size(value)
     elif isinstance(x, (list, tuple)):
         size = sys.getsizeof(x) + sum(object_size(xx) for xx in x)
+    elif isinstance(x, datetime):
+        size = object_size(_dt_to_stamp(x))
     elif sparse.isspmatrix_csc(x) or sparse.isspmatrix_csr(x):
         size = sum(sys.getsizeof(xx)
                    for xx in [x, x.data, x.indices, x.indptr])
@@ -761,6 +765,9 @@ def object_diff(a, b, pre=''):
     elif isinstance(a, (StringIO, BytesIO)):
         if a.getvalue() != b.getvalue():
             out += pre + ' StringIO mismatch\n'
+    elif isinstance(a, datetime):
+        if (a - b).total_seconds() != 0:
+            out += pre + ' datetime mismatch\n'
     elif sparse.isspmatrix(a):
         # sparsity and sparse type of b vs a already checked above by type()
         if b.shape != a.shape:
@@ -977,3 +984,25 @@ def _julian_to_cal(jd):
     """
     tmp_date = _julian_to_dt(jd)
     return tmp_date.year, tmp_date.month, tmp_date.day
+
+
+def _check_dt(dt):
+    if not isinstance(dt, datetime) or dt.tzinfo is None or \
+            dt.tzinfo is not timezone.utc:
+        raise ValueError('Date must be datetime object in UTC: %r' % (dt,))
+
+
+def _dt_to_stamp(inp_date):
+    """Convert a datetime object to a timestamp."""
+    _check_dt(inp_date)
+    return int(inp_date.timestamp() // 1), inp_date.microsecond
+
+
+def _stamp_to_dt(utc_stamp):
+    """Convert timestamp to datetime object in Windows-friendly way."""
+    # The min on windows is 86400
+    stamp = [int(s) for s in utc_stamp]
+    if len(stamp) == 1:  # In case there is no microseconds information
+        stamp.append(0)
+    return (datetime.fromtimestamp(0, tz=timezone.utc) +
+            timedelta(0, stamp[0], stamp[1]))  # day, sec, μs

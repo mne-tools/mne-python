@@ -2,8 +2,7 @@
 #
 # License: BSD (3-clause)
 
-from datetime import datetime, timedelta
-import time
+from datetime import datetime, timedelta, timezone
 import os.path as op
 import re
 from copy import deepcopy
@@ -13,8 +12,8 @@ import warnings
 import numpy as np
 
 from .utils import (_pl, check_fname, _validate_type, verbose, warn, logger,
-                    _check_pandas_installed, _mask_to_onsets_offsets)
-from .utils import _DefaultEventParser
+                    _check_pandas_installed, _mask_to_onsets_offsets,
+                    _DefaultEventParser, _check_dt, _stamp_to_dt, _dt_to_stamp)
 
 from .io.write import (start_block, end_block, write_float, write_name_list,
                        write_double, start_file)
@@ -22,6 +21,10 @@ from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
+
+# For testing windows_like_datetime, we monkeypatch "datetime" in this module.
+# Keep the true datetime object around for _validate_type use.
+_datetime = datetime
 
 
 def _check_o_d_s(onset, duration, description):
@@ -66,8 +69,8 @@ class Annotations(object):
         Array of strings containing description for each annotation. If a
         string, all the annotations are given the same description. To reject
         epochs, use description starting with keyword 'bad'. See example above.
-    orig_time : float | int | instance of datetime.datetime | array of int | None | str
-        A POSIX Timestamp, datetime or an array containing the timestamp as the
+    orig_time : float | str | datetime | tuple of int | None
+        A POSIX Timestamp, datetime or a tuple containing the timestamp as the
         first element and microseconds as the second element. Determines the
         starting time of annotation acquisition. If None (default),
         starting time is determined from beginning of raw data acquisition.
@@ -178,12 +181,24 @@ class Annotations(object):
 
     def __init__(self, onset, duration, description,
                  orig_time=None):  # noqa: D102
-        if orig_time is not None:
-            orig_time = _handle_meas_date(orig_time)
-        self.orig_time = orig_time
+        self._orig_time = _handle_meas_date(orig_time)
         self.onset, self.duration, self.description = _check_o_d_s(
             onset, duration, description)
         self._sort()  # ensure we're sorted
+
+    @property
+    def orig_time(self):
+        """The time base of the Annotations."""
+        return self._orig_time
+
+    def __eq__(self, other):
+        """Compare to another Annotations instance."""
+        if not isinstance(other, Annotations):
+            return False
+        return (np.array_equal(self.onset, other.onset) and
+                np.array_equal(self.duration, other.duration) and
+                np.array_equal(self.description, other.description) and
+                self.orig_time == other.orig_time)
 
     def __repr__(self):
         """Show the representation."""
@@ -194,7 +209,7 @@ class Annotations(object):
         if self.orig_time is None:
             orig = 'orig_time : None'
         else:
-            orig = 'orig_time : %s' % datetime.utcfromtimestamp(self.orig_time)
+            orig = 'orig_time : %s' % self.orig_time
         return ('<Annotations  |  %s segment%s %s, %s>'
                 % (len(self.onset), _pl(len(self.onset)), kinds, orig))
 
@@ -214,7 +229,7 @@ class Annotations(object):
         Both annotations must have the same orig_time
         """
         if len(self) == 0:
-            self.orig_time = other.orig_time
+            self._orig_time = other.orig_time
         if self.orig_time != other.orig_time:
             raise ValueError("orig_time should be the same to "
                              "add/concatenate 2 annotations "
@@ -325,16 +340,17 @@ class Annotations(object):
         self.duration = self.duration[order]
         self.description = self.description[order]
 
-    def crop(self, tmin=None, tmax=None, emit_warning=False):
+    @verbose
+    def crop(self, tmin=None, tmax=None, emit_warning=False, verbose=None):
         """Remove all annotation that are outside of [tmin, tmax].
 
         The method operates inplace.
 
         Parameters
         ----------
-        tmin : float | None
+        tmin : float | datetime | None
             Start time of selection in seconds.
-        tmax : float | None
+        tmax : float | datetime | None
             End time of selection in seconds.
         emit_warning : bool
             Whether to emit warnings when limiting or omitting annotations.
@@ -346,42 +362,67 @@ class Annotations(object):
             The cropped Annotations object.
         """
         if len(self) == 0:
-            return  # no annotations, nothing to do
-
-        offset = 0 if self.orig_time is None else self.orig_time
-        absolute_onset = self.onset + offset
-        absolute_offset = absolute_onset + self.duration
-
-        tmin = tmin if tmin is not None else absolute_onset.min()
-        tmax = tmax if tmax is not None else absolute_offset.max()
-
+            return self  # no annotations, nothing to do
+        if self.orig_time is None:
+            offset = _handle_meas_date(0)
+        else:
+            offset = self.orig_time
+        if tmin is None:
+            tmin = timedelta(self.onset.min()) + offset
+        if tmax is None:
+            tmax = timedelta((self.onset + self.duration).max()) + offset
+        for key, val in [('tmin', tmin), ('tmax', tmax)]:
+            _validate_type(val, ('numeric', _datetime), key,
+                           'numeric, datetime, or None')
         if tmin > tmax:
-            raise ValueError('tmax should be greater than tmin.')
+            raise ValueError('tmax should be greater than or equal to tmin '
+                             '(%s < %s).' % (tmax, tmin))
+        logger.debug('Cropping annotations %s - %s' % (tmin, tmax))
+        absolute_tmin = _handle_meas_date(tmin)
+        absolute_tmax = _handle_meas_date(tmax)
+        del tmin, tmax
 
-        out_of_bounds = (absolute_onset > tmax) | (absolute_offset < tmin)
-
-        # clip the left side
-        clip_left_elem = (absolute_onset < tmin) & ~out_of_bounds
-        self.onset[clip_left_elem] = tmin - offset
-        diff = tmin - absolute_onset[clip_left_elem]
-        self.duration[clip_left_elem] = self.duration[clip_left_elem] - diff
-
-        # clip the right side
-        clip_right_elem = (absolute_offset > tmax) & ~out_of_bounds
-        diff = absolute_offset[clip_right_elem] - tmax
-        self.duration[clip_right_elem] = self.duration[clip_right_elem] - diff
-
-        # remove out of bounds
-        self.onset = self.onset.compress(~out_of_bounds)
-        self.duration = self.duration.compress(~out_of_bounds)
-        self.description = self.description.compress(~out_of_bounds)
+        onsets, durations, descriptions = [], [], []
+        out_of_bounds, clip_left_elem, clip_right_elem = [], [], []
+        for onset, duration, description in zip(
+                self.onset, self.duration, self.description):
+            # convert to absolute times
+            absolute_onset = timedelta(0, onset) + offset
+            absolute_offset = absolute_onset + timedelta(0, duration)
+            out_of_bounds.append(
+                absolute_onset > absolute_tmax or
+                absolute_offset < absolute_tmin)
+            if out_of_bounds[-1]:
+                clip_left_elem.append(False)
+                clip_right_elem.append(False)
+            else:
+                # clip the left side
+                clip_left_elem.append(absolute_onset < absolute_tmin)
+                if clip_left_elem[-1]:
+                    absolute_onset = absolute_tmin
+                clip_right_elem.append(absolute_offset > absolute_tmax)
+                if clip_right_elem[-1]:
+                    absolute_offset = absolute_tmax
+                if clip_left_elem[-1] or clip_right_elem[-1]:
+                    durations.append(
+                        (absolute_offset - absolute_onset).total_seconds())
+                else:
+                    durations.append(duration)
+                onsets.append(
+                    (absolute_onset - offset).total_seconds())
+                descriptions.append(description)
+        self.onset = np.array(onsets, float)
+        self.duration = np.array(durations, float)
+        assert (self.duration >= 0).all()
+        self.description = np.array(descriptions, dtype=str)
 
         if emit_warning:
-            omitted = out_of_bounds.sum()
+            omitted = np.array(out_of_bounds).sum()
             if omitted > 0:
                 warn('Omitted %s annotation(s) that were outside data'
                      ' range.' % omitted)
-            limited = clip_left_elem.sum() + clip_right_elem.sum()
+            limited = (np.array(clip_left_elem) |
+                       np.array(clip_right_elem)).sum()
             if limited > 0:
                 warn('Limited %s annotation(s) that were expanding outside the'
                      ' data range.' % limited)
@@ -392,26 +433,11 @@ class Annotations(object):
 def _combine_annotations(one, two, one_n_samples, one_first_samp,
                          two_first_samp, sfreq, meas_date):
     """Combine a tuple of annotations."""
-    if one is None and two is None:
-        return None
-    elif two is None:
-        return one
-    elif one is None:
-        one = Annotations([], [], [], None)
-
-    # Compute the shift necessary for alignment:
-    # 1. The shift (in time) due to concatenation
-    shift = one_n_samples / sfreq
-    meas_date = _handle_meas_date(meas_date)
-    # 2. Shift by the difference in meas_date and one.orig_time
-    if one.orig_time is not None:
-        shift += one_first_samp / sfreq
-        shift += meas_date - one.orig_time
-    # 3. Shift by the difference in meas_date and two.orig_time
-    if two.orig_time is not None:
-        shift -= two_first_samp / sfreq
-        shift -= meas_date - two.orig_time
-
+    assert one is not None
+    assert two is not None
+    shift = one_n_samples / sfreq  # to the right by the number of samples
+    shift += one_first_samp / sfreq  # to the right by the offset
+    shift -= two_first_samp / sfreq  # undo its offset
     onset = np.concatenate([one.onset, two.onset + shift])
     duration = np.concatenate([one.duration, two.duration])
     description = np.concatenate([one.description, two.description])
@@ -419,45 +445,45 @@ def _combine_annotations(one, two, one_n_samples, one_first_samp,
 
 
 def _handle_meas_date(meas_date):
-    """Convert meas_date to seconds.
+    """Convert meas_date to datetime or None.
 
     If `meas_date` is a string, it should conform to the ISO8601 format.
     More precisely to this '%Y-%m-%d %H:%M:%S.%f' particular case of the
     ISO8601 format where the delimiter between date and time is ' '.
-
-    Otherwise, this function returns 0. Note that ISO8601 allows for ' ' or 'T'
-    as delimiters between date and time.
+    Note that ISO8601 allows for ' ' or 'T' as delimiters between date and
+    time.
     """
-    if meas_date is None:
-        meas_date = 0
-    elif isinstance(meas_date, str):
+    if isinstance(meas_date, str):
         ACCEPTED_ISO8601 = '%Y-%m-%d %H:%M:%S.%f'
         try:
             meas_date = datetime.strptime(meas_date, ACCEPTED_ISO8601)
         except ValueError:
-            meas_date = 0
+            meas_date = None
         else:
-            unix_ref_time = datetime.utcfromtimestamp(0)
-            meas_date = (meas_date - unix_ref_time).total_seconds()
-        meas_date = round(meas_date, 6)  # round that 6th decimal
-    elif isinstance(meas_date, datetime):
-        meas_date = float(time.mktime(meas_date.timetuple()))
-    elif not np.isscalar(meas_date):
-        if len(meas_date) > 1:
-            meas_date = meas_date[0] + meas_date[1] / 1000000.
-        else:
-            meas_date = meas_date[0]
-    return float(meas_date)
+            meas_date = meas_date.replace(tzinfo=timezone.utc)
+    elif isinstance(meas_date, tuple):
+        # old way
+        meas_date = _stamp_to_dt(meas_date)
+    if meas_date is not None:
+        if np.isscalar(meas_date):
+            # It would be nice just to do:
+            #
+            #     meas_date = datetime.fromtimestamp(meas_date, timezone.utc)
+            #
+            # But Windows does not like timestamps < 0. So we'll use
+            # our specialized wrapper instead:
+            meas_date = np.array(np.modf(meas_date)[::-1])
+            meas_date *= [1, 1e6]
+            meas_date = _stamp_to_dt(np.round(meas_date))
+        _check_dt(meas_date)  # run checks
+    return meas_date
 
 
 def _sync_onset(raw, onset, inverse=False):
     """Adjust onsets in relation to raw data."""
-    meas_date = _handle_meas_date(raw.info['meas_date'])
-    if raw.annotations.orig_time is None:
-        annot_start = onset
-    else:
-        offset = -raw._first_time if inverse else raw._first_time
-        annot_start = (raw.annotations.orig_time - meas_date) - offset + onset
+    offset = (-1 if inverse else 1) * raw._first_time
+    assert raw.info['meas_date'] == raw.annotations.orig_time
+    annot_start = onset - offset
     return annot_start
 
 
@@ -517,14 +543,17 @@ def _write_annotations(fid, annotations):
     write_name_list(fid, FIFF.FIFF_COMMENT, [d.replace(':', ';') for d in
                                              annotations.description])
     if annotations.orig_time is not None:
-        write_double(fid, FIFF.FIFF_MEAS_DATE, annotations.orig_time)
+        write_double(fid, FIFF.FIFF_MEAS_DATE,
+                     _dt_to_stamp(annotations.orig_time))
     end_block(fid, FIFF.FIFFB_MNE_ANNOTATIONS)
 
 
 def _write_annotations_csv(fname, annot):
     pd = _check_pandas_installed(strict=True)
-    meas_date = _handle_meas_date(annot.orig_time)
-    dt = datetime.utcfromtimestamp(meas_date)
+    dt = _handle_meas_date(annot.orig_time)
+    if dt is None:
+        dt = _handle_meas_date(0)
+    dt = dt.replace(tzinfo=None)
     onsets_dt = [dt + timedelta(seconds=o) for o in annot.onset]
     df = pd.DataFrame(dict(onset=onsets_dt, duration=annot.duration,
                            description=annot.description))
@@ -534,9 +563,9 @@ def _write_annotations_csv(fname, annot):
 def _write_annotations_txt(fname, annot):
     content = "# MNE-Annotations\n"
     if annot.orig_time is not None:
-        meas_date = _handle_meas_date(annot.orig_time)
-        orig_dt = datetime.utcfromtimestamp(meas_date)
-        content += "# orig_time : %s   \n" % orig_dt
+        # for backward compat, we do not write tzinfo (assumed UTC)
+        content += ("# orig_time : %s   \n"
+                    % annot.orig_time.replace(tzinfo=None))
     content += "# onset, duration, description\n"
 
     data = np.array([annot.onset, annot.duration, annot.description],
@@ -665,14 +694,10 @@ def _read_annotations_csv(fname):
              'onsets in seconds.')
     except ValueError:
         pass
-    orig_time = _handle_meas_date(orig_time)
     onset_dt = pd.to_datetime(df['onset'])
     onset = (onset_dt - onset_dt[0]).dt.total_seconds()
     duration = df['duration'].values.astype(float)
     description = df['description'].values
-    if orig_time == 0:
-        orig_time = None
-
     return Annotations(onset, duration, description, orig_time)
 
 
@@ -775,21 +800,15 @@ def _read_annotations_fif(fid, tree):
                 description = [d.replace(';', ':') for d in
                                description]
             elif kind == FIFF.FIFF_MEAS_DATE:
-                orig_time = float(tag.data)
+                orig_time = tag.data
+                try:
+                    orig_time = float(orig_time)  # old way
+                except TypeError:
+                    orig_time = tuple(orig_time)  # new way
         assert len(onset) == len(duration) == len(description)
         annotations = Annotations(onset, duration, description,
                                   orig_time)
     return annotations
-
-
-def _ensure_annotation_object(obj):
-    """Check that the object is an Annotations instance.
-
-    Raise error otherwise.
-    """
-    if not isinstance(obj, Annotations):
-        raise ValueError('Annotations must be an instance of '
-                         'mne.Annotations. Got %s.' % obj)
 
 
 def _select_annotations_based_on_description(descriptions, event_id, regexp):

@@ -21,6 +21,8 @@ Changelog
 
 - Add :func:`mne.chpi.calculate_head_pos_ctf` by `Luke Bloy`_
 
+- Add :func:`mne.io.Raw.set_meas_date` by `Eric Larson`_
+
 - Add command :ref:`gen_mne_setup_source_space` to quickly set up bilateral hemisphere surface-based source space with subsampling by `Victor Ferat`_.
 
 - Add command :ref:`gen_mne_sys_info` to print system information by `Eric Larson`_
@@ -82,7 +84,15 @@ Bug
 
 - Fix :meth:`mne.io.read_raw_ctf` to set measurement date from CTF ds files by `Luke Bloy`_.
 
-- Fix :meth:`mne.io.Raw.anonymize` correctly reset ``raw.annotations.orig_time`` by `Luke Bloy`_.
+- Fix :meth:`mne.io.Raw.anonymize` to correctly reset ``raw.annotations.orig_time`` by `Luke Bloy`_.
+
+- Fix :meth:`mne.io.Raw.anonymize` to correctly avoid shifting ``raw.annotations.onset`` relative to ``raw.first_samp`` by `Eric Larson`_
+
+- The attribute :class:`mne.Annotations.orig_time <mne.Annotations>` is now read-only, and is a :class:`~python:datetime.datetime` object (or None) rather than float, by `Eric Larson`_
+
+- Unify behavior of ``raw.annotations.append(...)`` when ``raw.info['meas_date']`` is None to make onsets absolute relative to ``first_samp`` as they are when ``raw.info['meas_date']`` is not None; i.e., you might need to do ``raw.annotations.append(old_time + raw.first_time)``, by `Eric Larson`_
+
+- The :class:`info['meas_date'] <mne.Info>` entry is now a :class:`~python:datetime.datetime` object (or None) rather than float, by `Eric Larson`_
 
 - Fix date reading before Unix time zero (1970 Jan 1) on Windows by `Alex Rockhill`_.
 

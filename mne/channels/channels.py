@@ -22,7 +22,6 @@ from ..io.meas_info import anonymize_info, Info
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _contains_ch_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx)
-from ..annotations import _handle_meas_date
 
 
 DEPRECATED_PARAM = object()
@@ -623,10 +622,44 @@ class SetChannelsMixin(object):
         .. versionadded:: 0.13.0
         """
         anonymize_info(self.info, daysback=daysback, keep_his=keep_his)
+        self.set_meas_date(self.info['meas_date'])  # unify annot update
+        return self
+
+    def set_meas_date(self, meas_date):
+        """Set the measurement start date.
+
+        Parameters
+        ----------
+        meas_date : datetime | float | tuple | None
+            The new measurement date.
+            If datetime object, it must be timezone-aware and in UTC.
+            A tuple of (seconds, microseconds) or float (alias for
+            ``(meas_date, 0)``) can also be passed and a datetime
+            object will be automatically created. If None, will remove
+            the time reference.
+
+        Returns
+        -------
+        inst : instance of Raw | Epochs | Evoked
+            The modified raw instance. Operates in place.
+
+        See Also
+        --------
+        mne.io.Raw.anonymize
+
+        Notes
+        -----
+        If you want to remove all time references in the file, call
+        :func:`mne.io.anonymize_info(inst.info) <mne.io.anonymize_info>`
+        after calling ``inst.set_meas_date(None)``.
+
+        .. versionadded:: 0.20
+        """
+        from ..annotations import _handle_meas_date
+        meas_date = _handle_meas_date(meas_date)
+        self.info['meas_date'] = meas_date
         if hasattr(self, 'annotations'):
-            self.annotations.orig_time = \
-                _handle_meas_date(self.info['meas_date'])
-            self.annotations.onset -= self._first_time
+            self.annotations._orig_time = meas_date
         return self
 
 

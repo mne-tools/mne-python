@@ -24,7 +24,7 @@ from mne.io.meas_info import (Info, create_info, _merge_info,
                               _force_update_info, RAW_INFO_FIELDS,
                               _bad_chans_comp, _get_valid_units,
                               anonymize_info, _stamp_to_dt, _dt_to_stamp,
-                              _add_timedelta_to_meas_date)
+                              _add_timedelta_to_stamp)
 from mne.io._digitization import (_write_dig_points, _read_dig_points,
                                   _make_dig_points,)
 from mne.io import read_raw_ctf
@@ -247,7 +247,7 @@ def test_read_write_info(tmpdir):
 
     info = read_info(raw_fname)
     info['meas_date'] = None
-    anonymize_info(info)
+    anonymize_info(info, verbose='error')
     assert info['meas_date'] is None
     tmp_fname_3 = tmpdir.join('info3.fif')
     write_info(tmp_fname_3, info)
@@ -455,7 +455,7 @@ def _test_anonymize_info(base_info):
 
     # Fake some subject data
     meas_date = datetime(2010, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-    base_info['meas_date'] = _dt_to_stamp(meas_date)
+    base_info['meas_date'] = meas_date
 
     base_info['subject_info'] = dict(id=1, his_id='foobar', last_name='bar',
                                      first_name='bar', birthday=(1987, 4, 8),
@@ -477,7 +477,7 @@ def _test_anonymize_info(base_info):
     # different number of leap days between 1987 and 1977 than between
     # 2010 and 2000.
     exp_info['subject_info']['birthday'] = (1977, 4, 7)
-    exp_info['meas_date'] = _dt_to_stamp(default_anon_dos)
+    exp_info['meas_date'] = default_anon_dos
 
     # make copies
     exp_info_3 = exp_info.copy()
@@ -488,8 +488,8 @@ def _test_anonymize_info(base_info):
         value = exp_info.get(key)
         if value is not None:
             assert 'msecs' not in value
-            tmp = _add_timedelta_to_meas_date((value['secs'], value['usecs']),
-                                              -delta_t)
+            tmp = _add_timedelta_to_stamp(
+                (value['secs'], value['usecs']), -delta_t)
             value['secs'] = tmp[0]
             value['usecs'] = tmp[1]
             value['machid'][:] = 0
@@ -501,13 +501,13 @@ def _test_anonymize_info(base_info):
     # exp 3 tests is a supplied daysback
     delta_t_2 = timedelta(days=43)
     exp_info_3['subject_info']['birthday'] = (1987, 2, 24)
-    exp_info_3['meas_date'] = _dt_to_stamp(meas_date - delta_t_2)
+    exp_info_3['meas_date'] = meas_date - delta_t_2
     for key in ('file_id', 'meas_id'):
         value = exp_info_3.get(key)
         if value is not None:
             assert 'msecs' not in value
-            tmp = _add_timedelta_to_meas_date((value['secs'], value['usecs']),
-                                              -delta_t_2)
+            tmp = _add_timedelta_to_stamp(
+                (value['secs'], value['usecs']), -delta_t_2)
             value['secs'] = tmp[0]
             value['usecs'] = tmp[1]
             value['machid'][:] = 0
@@ -537,28 +537,36 @@ def _test_anonymize_info(base_info):
     exp_info_3['meas_id']['usecs'] = DATE_NONE[1]
     exp_info_3['subject_info'].pop('birthday', None)
 
-    new_info = anonymize_info(base_info.copy(), daysback=delta_t_2.days)
+    if base_info['meas_date'] is None:
+        with pytest.warns(RuntimeWarning, match='all information'):
+            new_info = anonymize_info(base_info.copy(),
+                                      daysback=delta_t_2.days)
+    else:
+        new_info = anonymize_info(base_info.copy(), daysback=delta_t_2.days)
     assert_object_equal(new_info, exp_info_3)
 
-    new_info = anonymize_info(base_info.copy())
+    with pytest.warns(None):  # meas_date is None
+        new_info = anonymize_info(base_info.copy())
     assert_object_equal(new_info, exp_info_3)
 
 
-def test_meas_date_convert(tmpdir):
-    """Test conversions of meas_date to datetime objects."""
-    meas_date = (1346981585, 835782)
-    meas_datetime = _stamp_to_dt(meas_date)
-    meas_date2 = _dt_to_stamp(meas_datetime)
-    assert(meas_date == meas_date2)
-    assert(meas_datetime == datetime(2012, 9, 7, 1, 33, 5, 835782,
-                                     tzinfo=timezone.utc))
+@pytest.mark.parametrize('stamp, dt', [
+    [(1346981585, 835782), (2012, 9, 7, 1, 33, 5, 835782)],
     # test old dates for BIDS anonymization
-    meas_date = (-1533443343, 24382)
-    meas_datetime = _stamp_to_dt(meas_date)
-    meas_date2 = _dt_to_stamp(meas_datetime)
-    assert(meas_date == meas_date2)
-    assert(meas_datetime == datetime(1921, 5, 29, 19, 30, 57, 24382,
-                                     tzinfo=timezone.utc))
+    [(-1533443343, 24382), (1921, 5, 29, 19, 30, 57, 24382)],
+    # gh-7116
+    [(-908196946, 988669), (1941, 3, 22, 11, 4, 14, 988669)],
+])
+def test_meas_date_convert(stamp, dt):
+    """Test conversions of meas_date to datetime objects."""
+    meas_datetime = _stamp_to_dt(stamp)
+    stamp2 = _dt_to_stamp(meas_datetime)
+    assert stamp == stamp2
+    assert meas_datetime == datetime(*dt, tzinfo=timezone.utc)
+    # smoke test for info __repr__
+    info = create_info(1, 1000., 'eeg')
+    info['meas_date'] = meas_datetime
+    assert str(dt[0]) in repr(info)
 
 
 def test_anonymize(tmpdir):
@@ -571,6 +579,10 @@ def test_anonymize(tmpdir):
                                     duration=[1, 1],
                                     description='dummy',
                                     orig_time=None))
+    first_samp = raw.first_samp
+    expected_onset = np.arange(2) + raw._first_time
+    assert raw.first_samp == first_samp
+    assert_allclose(raw.annotations.onset, expected_onset)
 
     # Test instance method
     events = read_events(event_name)
@@ -581,11 +593,18 @@ def test_anonymize(tmpdir):
 
     # test that annotations are correctly zeroed
     raw.anonymize()
-    assert(raw.annotations.orig_time == (raw.info['meas_date'][0] +
-                                         raw.info['meas_date'][1] / 1000000.))
+    assert raw.first_samp == first_samp
+    assert_allclose(raw.annotations.onset, expected_onset)
+    assert raw.annotations.orig_time == raw.info['meas_date']
+    stamp = _dt_to_stamp(raw.info['meas_date'])
+    assert raw.annotations.orig_time == _stamp_to_dt(stamp)
+
     raw.info['meas_date'] = None
-    raw.anonymize()
-    assert(raw.annotations.orig_time == 0)
+    with pytest.warns(RuntimeWarning, match='None'):
+        raw.anonymize()
+    assert raw.annotations.orig_time is None
+    assert raw.first_samp == first_samp
+    assert_allclose(raw.annotations.onset, expected_onset)
 
 
 @testing.requires_testing_data
