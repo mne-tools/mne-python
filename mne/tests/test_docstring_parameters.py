@@ -59,16 +59,16 @@ def _func_name(func, cls=None):
 
 
 # functions to ignore args / docstring of
-docstring_ignores = [
+docstring_ignores = {
     'mne.externals',
     'mne.fixes',
     'mne.io.write',
-]
+}
 char_limit = 800  # XX eventually we should probably get this lower
 tab_ignores = [
     'mne.channels.tests.test_montage',
 ]
-error_ignores = (
+error_ignores = {
     # These we do not live by:
     'GL01',  # Docstring should start in the line immediately after the quotes
     'EX01', 'EX02',  # examples failed (we test them separately)
@@ -80,6 +80,12 @@ error_ignores = (
     'RT02',  # The first line of the Returns section should contain only the type, unless multiple values are being returned  # noqa
    # XXX should also verify that | is used rather than , to separate params
     # XXX should maybe also restore the parameter-desc-length < 800 char check
+}
+subclass_name_ignores = (
+    (dict, {'values', 'setdefault', 'popitems', 'keys', 'pop', 'update',
+            'copy', 'popitem', 'get', 'items', 'fromkeys'}),
+    (list, {'append', 'count', 'extend', 'index', 'insert', 'pop', 'remove',
+            'sort'}),
 )
 
 
@@ -93,12 +99,17 @@ def check_parameters_match(func, cls=None):
                 getattr(func, '__code__', None), 'co_name', ''))
     if skip:
         return list()
+    if cls is not None:
+        for subclass, ignores in subclass_name_ignores:
+            if issubclass(cls, subclass) and name.split('.')[-1] in ignores:
+                return list()
     incorrect = ['%s : %s : %s' % (name, err[0], err[1])
                  for err in validate(name)['errors']
                  if err[0] not in error_ignores]
     return incorrect
 
 
+@pytest.mark.slowtest
 @requires_numpydoc
 def test_docstring_parameters():
     """Test module docstring formatting."""

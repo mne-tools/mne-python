@@ -1371,7 +1371,12 @@ class ClickableImage(object):
         Parameters
         ----------
         **kwargs : dict
-            Arguments are passed to generate_2d_layout
+            Arguments are passed to generate_2d_layout.
+
+        Returns
+        -------
+        layout : instance of Layout
+            The layout.
         """
         from ..channels.layout import generate_2d_layout
         coords = np.array(self.coords)
