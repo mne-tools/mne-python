@@ -579,7 +579,7 @@ class Label(object):
 
         See Also
         --------
-        mne.morph_labels : morph a set of labels
+        mne.morph_labels : Morph a set of labels.
 
         Notes
         -----
@@ -622,6 +622,7 @@ class Label(object):
         self.subject = subject_to
         return self
 
+    @fill_doc
     def split(self, parts=2, subject=None, subjects_dir=None,
               freesurfer=False):
         """Split the Label into two or more parts.
@@ -704,7 +705,7 @@ class Label(object):
         Returns
         -------
         label_tris : ndarray of int, shape (n_tris, 3)
-            The subset of tris used by the label
+            The subset of tris used by the label.
         """
         vertices_ = self.get_vertices_used(vertices)
         selection = np.all(np.in1d(tris, vertices_).reshape(tris.shape),
@@ -726,6 +727,7 @@ class Label(object):
 
         return label_tris
 
+    @fill_doc
     def center_of_mass(self, subject=None, restrict_vertices=False,
                        subjects_dir=None, surf='sphere'):
         """Compute the center of mass of the label.
@@ -735,7 +737,7 @@ class Label(object):
 
         Parameters
         ----------
-        subject : string | None
+        subject : str | None
             The subject the label is defined for.
         restrict_vertices : bool | array of int | instance of SourceSpaces
             If True, returned vertex will be one from the label. Otherwise,
@@ -764,7 +766,7 @@ class Label(object):
 
         Notes
         -----
-        .. versionadded: 0.13
+        .. versionadded:: 0.13
 
         References
         ----------

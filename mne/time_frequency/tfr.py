@@ -932,7 +932,13 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         return self
 
     def copy(self):
-        """Return a copy of the instance."""
+        """Return a copy of the instance.
+
+        Returns
+        -------
+        copy : instance of EpochsTFR | instance of AverageTFR
+            A copy of the instance.
+        """
         return deepcopy(self)
 
     @verbose
@@ -963,7 +969,6 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
             - dividing by the mean of baseline values, taking the log, and
               dividing by the standard deviation of log baseline values
               ('zlogratio')
-
         %(verbose_meth)s
 
         Returns
@@ -1155,7 +1160,7 @@ class AverageTFR(_BaseTFR):
             significance.
 
             .. versionadded:: 0.16.0
-        mask_style: None | 'both' | 'contour' | 'mask'
+        mask_style : None | 'both' | 'contour' | 'mask'
             If `mask` is not None: if 'contour', a contour line is drawn around
             the masked areas (``True`` in `mask`). If 'mask', entries not
             ``True`` in `mask` are shown transparently. If 'both', both a contour
@@ -1401,7 +1406,6 @@ class AverageTFR(_BaseTFR):
         absolute peak across the time-frequency representation.
 
         .. versionadded:: 0.16.0
-
         """  # noqa: E501
         from ..viz.topomap import _set_contour_locator, plot_topomap
         from ..channels.layout import (find_layout, _merge_grad_data,
@@ -1720,20 +1724,20 @@ class AverageTFR(_BaseTFR):
         dB : bool
             If True, 10*log10 is applied to the data to get dB.
         colorbar : bool
-            If true, colorbar will be added to the plot
+            If true, colorbar will be added to the plot.
         layout_scale : float
             Scaling factor for adjusting the relative size of the layout
             on the canvas.
         show : bool
             Call pyplot.show() at the end.
         border : str
-            matplotlib borders style to be used for each sensor plot.
+            Matplotlib borders style to be used for each sensor plot.
         fig_facecolor : color
             The figure face color. Defaults to black.
         fig_background : None | array
             A background image for the figure. This must be a valid input to
             `matplotlib.pyplot.imshow`. Defaults to None.
-        font_color: color
+        font_color : color
             The color of tick labels in the colorbar. Defaults to white.
         yscale : 'auto' (default) | 'linear' | 'log'
             The scale of y (frequency) axis. 'linear' gives linear y axis,

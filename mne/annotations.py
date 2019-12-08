@@ -268,7 +268,7 @@ class Annotations(object):
             Duration of the annotation in seconds.
         description : str | array-like
             Description for the annotation. To reject epochs, use description
-            starting with keyword 'bad'
+            starting with keyword 'bad'.
 
         Returns
         -------
@@ -290,7 +290,13 @@ class Annotations(object):
         return self
 
     def copy(self):
-        """Return a deep copy of self."""
+        """Return a copy of the Annotations.
+
+        Returns
+        -------
+        inst : instance of Annotations
+            A copy of the object.
+        """
         return deepcopy(self)
 
     def delete(self, idx):
@@ -355,6 +361,7 @@ class Annotations(object):
         emit_warning : bool
             Whether to emit warnings when limiting or omitting annotations.
             Defaults to False.
+        %(verbose_meth)s
 
         Returns
         -------

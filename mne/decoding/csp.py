@@ -268,7 +268,7 @@ class CSP(TransformerMixin, BaseEstimator):
             If self.transform_into == 'average_power' then returns the power of
             CSP features averaged over time and shape (n_epochs, n_sources)
             If self.transform_into == 'csp_space' then returns the data in CSP
-            space and shape is (n_epochs, n_sources, n_times)
+            space and shape is (n_epochs, n_sources, n_times).
         """
         if not isinstance(X, np.ndarray):
             raise ValueError("X should be of type ndarray (got %s)." % type(X))
@@ -307,7 +307,7 @@ class CSP(TransformerMixin, BaseEstimator):
         info : instance of Info
             Info dictionary of the epochs used for fitting.
             If not possible, consider using ``create_info``.
-        components : float | array of float | None.
+        components : float | array of float | None
            The patterns to plot. If None, n_components will be shown.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are
@@ -361,7 +361,7 @@ class CSP(TransformerMixin, BaseEstimator):
         cbar_fmt : str
             String format for colorbar values.
         name_format : str
-            String format for topomap values. Defaults to "CSP%01d"
+            String format for topomap values. Defaults to "CSP%01d".
         show : bool
             Show figure if True.
         show_names : bool | callable
@@ -509,7 +509,7 @@ class CSP(TransformerMixin, BaseEstimator):
         cbar_fmt : str
             String format for colorbar values.
         name_format : str
-            String format for topomap values. Defaults to "CSP%01d"
+            String format for topomap values. Defaults to "CSP%01d".
         show : bool
             Show figure if True.
         show_names : bool | callable
@@ -830,6 +830,6 @@ class SPoC(CSP):
             If self.transform_into == 'average_power' then returns the power of
             CSP features averaged over time and shape (n_epochs, n_sources)
             If self.transform_into == 'csp_space' then returns the data in CSP
-            space and shape is (n_epochs, n_sources, n_times)
+            space and shape is (n_epochs, n_sources, n_times).
         """
         return super(SPoC, self).transform(X)

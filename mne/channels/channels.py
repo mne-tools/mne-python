@@ -210,7 +210,13 @@ class ContainsMixin(object):
         return get_current_comp(self.info)
 
     def get_channel_types(self):
-        """Get a list of channel type for each channel."""
+        """Get a list of channel type for each channel.
+
+        Returns
+        -------
+        channel_types : list
+            The channel types.
+        """
         return [channel_type(self.info, n)
                 for n in range(len(self.info['ch_names']))]
 
@@ -512,7 +518,7 @@ class SetChannelsMixin(object):
         Parameters
         ----------
         %(montage)s
-        raise_if_subset: bool
+        raise_if_subset : bool
             If True, ValueError will be raised when montage.ch_names is a
             subset of info['ch_names']. This parameter was introduced for
             backward compatibility when set to False.
@@ -520,8 +526,13 @@ class SetChannelsMixin(object):
             Defaults to False in 0.19, it will change to default to True in
             0.20, and will be removed in 0.21.
 
-            .. versionadded: 0.19
+            .. versionadded:: 0.19
         %(verbose_meth)s
+
+        Returns
+        -------
+        inst : instance of Raw | Epochs | Evoked
+            The instance.
 
         Notes
         -----
@@ -617,11 +628,12 @@ class SetChannelsMixin(object):
                             show=show)
 
     @copy_function_doc_to_method_doc(anonymize_info)
-    def anonymize(self, daysback=None, keep_his=False):
+    def anonymize(self, daysback=None, keep_his=False, verbose=None):
         """
         .. versionadded:: 0.13.0
         """
-        anonymize_info(self.info, daysback=daysback, keep_his=keep_his)
+        anonymize_info(self.info, daysback=daysback, keep_his=keep_his,
+                       verbose=verbose)
         self.set_meas_date(self.info['meas_date'])  # unify annot update
         return self
 
@@ -692,7 +704,7 @@ class UpdateChannelsMixin(object):
             If True include ECG channels.
         emg : bool
             If True include EMG channels.
-        ref_meg: bool | str
+        ref_meg : bool | str
             If True include CTF / 4D reference channels. If 'auto', the
             reference channels are only included if compensations are present.
         misc : bool
@@ -725,13 +737,13 @@ class UpdateChannelsMixin(object):
             include channels measuring deoxyhemoglobin).
         csd : bool
             EEG-CSD channels.
-        include : list of string
+        include : list of str
             List of additional channels to include. If empty do not include
             any.
-        exclude : list of string | str
+        exclude : list of str | str
             List of channels to exclude. If 'bads' (default), exclude channels
             in ``info['bads']``.
-        selection : list of string
+        selection : list of str
             Restrict sensor channels (MEG, EEG) to this list of channel names.
         %(verbose_meth)s
 
@@ -921,7 +933,7 @@ class UpdateChannelsMixin(object):
         ----------
         add_list : list
             A list of objects to append to self. Must contain all the same
-            type as the current object
+            type as the current object.
         force_update_info : bool
             If True, force the info for objects to be appended to match the
             values in `self`. This should generally only be used when adding

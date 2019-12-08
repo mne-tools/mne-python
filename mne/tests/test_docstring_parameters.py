@@ -86,6 +86,7 @@ subclass_name_ignores = (
             'copy', 'popitem', 'get', 'items', 'fromkeys'}),
     (list, {'append', 'count', 'extend', 'index', 'insert', 'pop', 'remove',
             'sort'}),
+    (mne.fixes.BaseEstimator, {'get_params', 'set_params', 'fit_transform'}),
 )
 
 

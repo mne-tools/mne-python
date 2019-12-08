@@ -117,7 +117,7 @@ class SourceSpaces(list):
             The subjects bem and bem/flash folders are searched for the 'surf'
             files. Defaults to None, which is False for surface source spaces,
             and True otherwise.
-        subjects_dir : string, or None
+        subjects_dir : str | None
             Path to SUBJECTS_DIR if it is not set in the environment.
         trans : str | 'auto' | dict | None
             The full path to the head<->MRI transform ``*-trans.fif`` file

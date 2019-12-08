@@ -385,7 +385,7 @@ class SourceMorph(object):
             Can be 'stc' (default) or possibly 'nifti1', or 'nifti2'
             when working with a volume source space defined on a regular
             grid.
-        mri_resolution: bool | tuple | int | float
+        mri_resolution : bool | tuple | int | float
             If True the image is saved in MRI resolution. Default False.
             WARNING: if you have many time points the file produced can be
             huge. The default is mri_resolution=False.
@@ -478,7 +478,7 @@ class SourceMorph(object):
         ----------
         fname : str
             The stem of the file name. '-morph.h5' will be added if fname does
-            not end with '.h5'
+            not end with '.h5'.
         overwrite : bool
             If True, overwrite existing file.
         %(verbose_meth)s

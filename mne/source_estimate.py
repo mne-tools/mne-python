@@ -555,10 +555,10 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
 
         Parameters
         ----------
-        fname : string
+        fname : str
             The file name to write the source estimate to, should end in
             '-stc.h5'.
-        ftype : string
+        ftype : str
             File format to use. Currently, the only allowed values is "h5".
         %(verbose_meth)s
         """
@@ -599,6 +599,11 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         tmax : float | None
             The last time point in seconds. If None the last present is used.
         %(include_tmax)s
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            The cropped source estimate.
         """
         mask = _time_mask(self.times, tmin, tmax, sfreq=self.sfreq,
                           include_tmax=include_tmax)
@@ -623,10 +628,15 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             Amount to pad the start and end of the data.
             Can also be "auto" to use a padding that will result in
             a power-of-two size (can be much faster).
-        window : string or tuple
-            Window to use in resampling. See scipy.signal.resample.
+        window : str | tuple
+            Window to use in resampling. See :func:`scipy.signal.resample`.
         %(n_jobs)s
         %(verbose_meth)s
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            The resampled source estimate.
 
         Notes
         -----
@@ -878,7 +888,13 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         return self ** (0.5)
 
     def copy(self):
-        """Return copy of source estimate instance."""
+        """Return copy of source estimate instance.
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            A copy of the source estimate.
+        """
         return copy.deepcopy(self)
 
     def bin(self, width, tstart=None, tstop=None, func=np.mean):
@@ -931,7 +947,6 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         """Get data after a linear (time) transform has been applied.
 
         The transform is applied to each source time course independently.
-
 
         Parameters
         ----------
@@ -1320,8 +1335,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         subject_orig : str | None
             The original subject. For most source spaces this shouldn't need
             to be provided, since it is stored in the source space itself.
-        subjects_dir : string, or None
-            Path to SUBJECTS_DIR if it is not set in the environment.
+        %(subjects_dir)s
         %(verbose_meth)s
 
         Returns
@@ -1404,12 +1418,12 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         Parameters
         ----------
-        fname : string
+        fname : str
             The stem of the file name. The file names used for surface source
             spaces are obtained by adding "-lh.stc" and "-rh.stc" (or "-lh.w"
             and "-rh.w") to the stem provided, for the left and the right
             hemisphere, respectively.
-        ftype : string
+        ftype : str
             File format to use. Allowed values are "stc" (default), "w",
             and "h5". The "w" format only supports a single time point.
         %(verbose_meth)s
@@ -1489,7 +1503,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         See Also
         --------
-        extract_label_time_course : extract time courses for multiple STCs
+        extract_label_time_course : Extract time courses for multiple STCs.
 
         Notes
         -----
@@ -1613,7 +1627,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             be considered. If 'abs' absolute values will be considered.
             Defaults to 'abs'.
         vert_as_index : bool
-            whether to return the vertex index instead of of its ID.
+            Whether to return the vertex index instead of of its ID.
             Defaults to False.
         time_as_index : bool
             Whether to return the time index instead of the latency.
@@ -1636,6 +1650,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         return (vert_idx if vert_as_index else vertno[vert_idx],
                 time_idx if time_as_index else self.times[time_idx])
 
+    @fill_doc
     def center_of_mass(self, subject=None, hemi=None, restrict_vertices=False,
                        subjects_dir=None, surf='sphere'):
         """Compute the center of mass of activity.
@@ -1653,7 +1668,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         Parameters
         ----------
-        subject : string | None
+        subject : str | None
             The subject the stc is defined for.
         hemi : int, or None
             Calculate the center of mass for the left (0) or right (1)
@@ -1666,9 +1681,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             will come from that array. If instance of SourceSpaces (as of
             0.13), the returned vertex will be from the given source space.
             For most accuruate estimates, do not restrict vertices.
-        subjects_dir : str, or None
-            Path to the SUBJECTS_DIR. If None, the path is obtained by using
-            the environment variable SUBJECTS_DIR.
+        %(subjects_dir)s
         surf : str
             The surface to use for Euclidean distance center of mass
             finding. The default here is "sphere", which finds the center
@@ -1812,7 +1825,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
 
         Parameters
         ----------
-        fname : string
+        fname : str
             The name of the generated nifti file.
         src : list
             The list of source spaces (should all be of type volume).
@@ -1820,15 +1833,15 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             If 'mri' the volume is defined in the coordinate system of
             the original T1 image. If 'surf' the coordinate system
             of the FreeSurfer surface is used (Surface RAS).
-        mri_resolution: bool
+        mri_resolution : bool
             It True the image is saved in MRI resolution.
-            WARNING: if you have many time points the file produced can be
-            huge.
+
+            .. warning:: If you have many time points, the file produced can be
+                         huge.
         format : str
             Either 'nifti1' (default) or 'nifti2'.
 
             .. versionadded:: 0.17
-
 
         Returns
         -------
@@ -1858,10 +1871,11 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             If 'mri' the volume is defined in the coordinate system of
             the original T1 image. If 'surf' the coordinate system
             of the FreeSurfer surface is used (Surface RAS).
-        mri_resolution: bool
+        mri_resolution : bool
             It True the image is saved in MRI resolution.
-            WARNING: if you have many time points the file produced can be
-            huge.
+
+            .. warning:: If you have many time points, the file produced can be
+                         huge.
         format : str
             Either 'nifti1' (default) or 'nifti2'.
 
@@ -1895,7 +1909,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             be considered. If 'abs' absolute values will be considered.
             Defaults to 'abs'.
         vert_as_index : bool
-            whether to return the vertex index instead of of its ID.
+            Whether to return the vertex index instead of of its ID.
             Defaults to False.
         time_as_index : bool
             Whether to return the time index instead of the latency.
@@ -1969,10 +1983,10 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
 
         Parameters
         ----------
-        fname : string
+        fname : str
             The stem of the file name. The stem is extended with "-vl.stc"
             or "-vl.w".
-        ftype : string
+        ftype : str
             File format to use. Allowed values are "stc" (default), "w",
             and "h5". The "w" format only supports a single time point.
         %(verbose_meth)s
@@ -2181,6 +2195,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
                                      tstep=tstep, subject=subject,
                                      verbose=verbose)
 
+    @fill_doc
     def plot_surface(self, src, subject=None, surface='inflated', hemi='lh',
                      colormap='auto', time_label='time=%02.f ms',
                      smoothing_steps=10,
@@ -2226,9 +2241,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         config_opts : dict
             Keyword arguments for Brain initialization.
             See pysurfer.viz.Brain.
-        subjects_dir : str
-            The path to the FreeSurfer subjects reconstructions.
-            It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
+        %(subjects_dir)s
         figure : instance of mayavi.mlab.Figure | None
             If None, the last figure will be cleaned and a new figure will
             be created.
