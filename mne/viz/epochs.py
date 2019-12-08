@@ -819,6 +819,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
         Values in ``event_id`` will take precedence over those in
         ``epochs.event_id`` when there are overlapping keys.
 
+        .. versionadded:: 0.20
+
     Returns
     -------
     fig : instance of matplotlib.figure.Figure
