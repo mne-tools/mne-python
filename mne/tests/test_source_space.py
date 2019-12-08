@@ -8,6 +8,7 @@ import os.path as op
 from shutil import copytree
 
 import pytest
+import scipy
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 from mne.datasets import testing
@@ -19,7 +20,8 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  head_to_mni, read_trans, compute_source_morph,
                  read_bem_solution)
 from mne.utils import (requires_nibabel, requires_freesurfer, run_subprocess,
-                       modified_env, requires_mne, run_tests_if_main)
+                       modified_env, requires_mne, run_tests_if_main,
+                       check_version)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_space import _get_mgz_header, _read_talxfm
 from mne.source_estimate import _get_src_type
@@ -66,15 +68,21 @@ def test_mgz_header():
     assert_allclose(mri_hdr.get_ras2vox(), np.linalg.inv(header['vox2ras']))
 
 
+def _read_small_src(remove=True):
+    src = read_source_spaces(fname_small)
+    if remove:
+        for s in src:
+            s['nearest'] = None
+            s['nearest_dist'] = None
+            s['pinfo'] = None
+    return src
+
+
 def test_add_patch_info(monkeypatch):
     """Test adding patch info to source space."""
     # let's setup a small source space
-    src = read_source_spaces(fname_small)
-    src_new = read_source_spaces(fname_small)
-    for s in src_new:
-        s['nearest'] = None
-        s['nearest_dist'] = None
-        s['pinfo'] = None
+    src = _read_small_src(remove=False)
+    src_new = _read_small_src()
 
     # test that no patch info is added for small dist_limit
     add_source_space_distances(src_new, dist_limit=0.00001)
@@ -83,16 +91,27 @@ def test_add_patch_info(monkeypatch):
     assert all(s['pinfo'] is None for s in src_new)
 
     # now let's use one that works (and test our warning-throwing)
-    monkeypatch.setattr(mne.source_space, '_DIST_WARN_LIMIT', 1)
-    with pytest.warns(RuntimeWarning, match='Computing distances for 258'):
-        add_source_space_distances(src_new)
+    with monkeypatch.context() as m:
+        m.setattr(mne.source_space, '_DIST_WARN_LIMIT', 1)
+        with pytest.warns(RuntimeWarning, match='Computing distances for 258'):
+            add_source_space_distances(src_new)
+    _compare_source_spaces(src, src_new, 'approx')
 
-    for s1, s2 in zip(src, src_new):
-        assert_array_equal(s1['nearest'], s2['nearest'])
-        assert_allclose(s1['nearest_dist'], s2['nearest_dist'], atol=1e-7)
-        assert_equal(len(s1['pinfo']), len(s2['pinfo']))
-        for p1, p2 in zip(s1['pinfo'], s2['pinfo']):
-            assert_array_equal(p1, p2)
+    # Old SciPy can't do patch info only
+    src_new = _read_small_src()
+    with monkeypatch.context() as m:
+        m.setattr(scipy, '__version__', '1.0')
+        with pytest.raises(RuntimeError, match='required to calculate patch '):
+            add_source_space_distances(src_new, dist_limit=0)
+
+    # New SciPy can
+    if check_version('scipy', '1.3'):
+        src_nodist = src.copy()
+        for s in src_nodist:
+            for key in ('dist', 'dist_limit'):
+                s[key] = None
+        add_source_space_distances(src_new, dist_limit=0)
+        _compare_source_spaces(src, src_new, 'approx')
 
 
 @testing.requires_testing_data
@@ -142,6 +161,8 @@ def test_add_source_space_distances(tmpdir):
     out_name = tmpdir.join('temp-src.fif')
     n_jobs = 2
     assert n_do % n_jobs != 0
+    with pytest.raises(ValueError, match='non-negative'):
+        add_source_space_distances(src_new, dist_limit=-1)
     add_source_space_distances(src_new, n_jobs=n_jobs)
     write_source_spaces(out_name, src_new)
     src_new = read_source_spaces(out_name)

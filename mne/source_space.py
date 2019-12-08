@@ -1397,11 +1397,15 @@ def setup_source_space(subject, spacing='oct6', surface='white',
     surface : str
         The surface to use.
     %(subjects_dir)s
-    add_dist : bool
+    add_dist : bool | str
         Add distance and patch information to the source space. This takes some
-        time so precomputing it is recommended.
+        time so precomputing it is recommended. Can also be 'patch' to only
+        compute patch information (requires SciPy 1.3+).
+
+        .. versionchanged:: 0.20
+           Support for add_dist='patch'.
     %(n_jobs)s
-        Will use at most 2 jobs (one for each hemisphere).
+        Ignored if ``add_dist=='patch'``.
     %(verbose)s
 
     Returns
@@ -1472,7 +1476,9 @@ def setup_source_space(subject, spacing='oct6', surface='white',
     src = SourceSpaces(src, dict(working_dir=os.getcwd(), command_line=cmd))
 
     if add_dist:
-        add_source_space_distances(src, n_jobs=n_jobs, verbose=verbose)
+        dist_limit = 0. if add_dist == 'patch' else np.inf
+        add_source_space_distances(src, dist_limit=dist_limit,
+                                   n_jobs=n_jobs, verbose=verbose)
 
     # write out if requested, then return the data
     logger.info('You are now one step closer to computing the gain matrix')
@@ -2344,9 +2350,10 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     dist_limit : float
         The upper limit of distances to include (in meters).
         Note: if limit < np.inf, scipy > 0.13 (bleeding edge as of
-        10/2013) must be installed.
+        10/2013) must be installed. If 0, then only patch (nearest vertex)
+        information is added.
     %(n_jobs)s
-        Will only use (up to) as many cores as there are source spaces.
+        Ignored if ``dist_limit==0.``.
     %(verbose)s
 
     Returns
@@ -2367,14 +2374,19 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     the source space to disk, as the computed distances will automatically be
     stored along with the source space data for future use.
     """
+    from scipy.sparse.csgraph import dijkstra
     n_jobs = check_n_jobs(n_jobs)
     src = _ensure_src(src)
-    if not np.isscalar(dist_limit):
-        raise ValueError('limit must be a scalar, got %s' % repr(dist_limit))
-    if not check_version('scipy', '0.11'):
-        raise RuntimeError('scipy >= 0.11 must be installed (or > 0.13 '
-                           'if dist_limit < np.inf')
-
+    dist_limit = float(dist_limit)
+    if dist_limit < 0:
+        raise ValueError('dist_limit must be non-negative, got %s'
+                         % (dist_limit,))
+    patch_only = (dist_limit == 0)
+    if patch_only and not check_version('scipy', '1.3'):
+        raise RuntimeError('scipy >= 1.3 is required to calculate patch '
+                           'information only, consider upgrading SciPy or '
+                           'using dist_limit=np.inf when running '
+                           'add_source_space_distances')
     if src.kind != 'surface':
         raise RuntimeError('Currently all source spaces must be of surface '
                            'type')
@@ -2382,38 +2394,46 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     parallel, p_fun, _ = parallel_func(_do_src_distances, n_jobs)
     min_dists = list()
     min_idxs = list()
-    logger.info('Calculating source space distances (limit=%s mm)...'
-                % (1000 * dist_limit))
+    msg = 'patch information' if patch_only else 'source space distances'
+    logger.info('Calculating %s (limit=%s mm)...' % (msg, 1000 * dist_limit))
     max_n = max(s['nuse'] for s in src)
-    if max_n > _DIST_WARN_LIMIT:
+    if not patch_only and max_n > _DIST_WARN_LIMIT:
         warn('Computing distances for %d source space points (in one '
              'hemisphere) will be very slow, consider using add_dist=False'
              % (max_n,))
     for s in src:
         connectivity = mesh_dist(s['tris'], s['rr'])
-        d = parallel(p_fun(connectivity, s['vertno'], r, dist_limit)
-                     for r in np.array_split(np.arange(len(s['vertno'])),
-                                             n_jobs))
-        # deal with indexing so we can add patch info
-        min_idx = np.array([dd[1] for dd in d])
-        min_dist = np.array([dd[2] for dd in d])
-        midx = np.argmin(min_dist, axis=0)
-        range_idx = np.arange(len(s['rr']))
-        min_dist = min_dist[midx, range_idx]
-        min_idx = min_idx[midx, range_idx]
-        min_dists.append(min_dist)
-        min_idxs.append(min_idx)
-        # now actually deal with distances, convert to sparse representation
-        d = np.concatenate([dd[0] for dd in d]).ravel()  # already float32
-        idx = d > 0
-        d = d[idx]
-        i, j = np.meshgrid(s['vertno'], s['vertno'])
-        i = i.ravel()[idx]
-        j = j.ravel()[idx]
-        d = sparse.csr_matrix((d, (i, j)),
-                              shape=(s['np'], s['np']), dtype=np.float32)
-        s['dist'] = d
-        s['dist_limit'] = np.array([dist_limit], np.float32)
+        if patch_only:
+            min_dist, _, min_idx = dijkstra(
+                connectivity, indices=s['vertno'],
+                min_only=True, return_predecessors=True)
+            min_dists.append(min_dist.astype(np.float32))
+            min_idxs.append(min_idx)
+            for key in ('dist', 'dist_limit'):
+                s[key] = None
+        else:
+            d = parallel(p_fun(connectivity, s['vertno'], r, dist_limit)
+                         for r in np.array_split(np.arange(len(s['vertno'])),
+                                                 n_jobs))
+            # deal with indexing so we can add patch info
+            min_idx = np.array([dd[1] for dd in d])
+            min_dist = np.array([dd[2] for dd in d])
+            midx = np.argmin(min_dist, axis=0)
+            range_idx = np.arange(len(s['rr']))
+            min_dist = min_dist[midx, range_idx]
+            min_idx = min_idx[midx, range_idx]
+            min_dists.append(min_dist)
+            min_idxs.append(min_idx)
+            # convert to sparse representation
+            d = np.concatenate([dd[0] for dd in d]).ravel()  # already float32
+            idx = d > 0
+            d = d[idx]
+            i, j = np.meshgrid(s['vertno'], s['vertno'])
+            i = i.ravel()[idx]
+            j = j.ravel()[idx]
+            s['dist'] = sparse.csr_matrix(
+                (d, (i, j)), shape=(s['np'], s['np']), dtype=np.float32)
+            s['dist_limit'] = np.array([dist_limit], np.float32)
 
     # Let's see if our distance was sufficient to allow for patch info
     if not any(np.any(np.isinf(md)) for md in min_dists):
@@ -2430,10 +2450,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
 def _do_src_distances(con, vertno, run_inds, limit):
     """Compute source space distances in chunks."""
     from scipy.sparse.csgraph import dijkstra
-    if limit < np.inf:
-        func = partial(dijkstra, limit=limit)
-    else:
-        func = dijkstra
+    func = partial(dijkstra, limit=limit)
     chunk_size = 20  # save memory by chunking (only a little slower)
     lims = np.r_[np.arange(0, len(run_inds), chunk_size), len(run_inds)]
     n_chunks = len(lims) - 1
@@ -2808,7 +2825,9 @@ def _compare_source_spaces(src0, src1, mode='exact', nearest=True,
                 if s0[name] is None:
                     assert_(s1[name] is None, name)
                 else:
-                    assert_array_equal(s0[name], s1[name])
+                    atol = 0 if mode == 'exact' else 1e-6
+                    assert_allclose(s0[name], s1[name],
+                                    atol=atol, err_msg=name)
             for name in ['pinfo']:
                 if s0[name] is None:
                     assert_(s1[name] is None, name)
