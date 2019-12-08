@@ -305,9 +305,9 @@ def test_xdawn_decoding_performance():
     xdawn_pipeline = make_pipeline(Xdawn(n_components=3),
                                    Vectorizer(),
                                    MinMaxScaler(),
-                                   LogisticRegression(penalty='l1',
-                                                      solver='liblinear',
-                                                      multi_class='auto'))
+                                   LogisticRegression(
+                                       penalty='l1', solver='liblinear',
+                                       multi_class='auto'))
     cv = KFold(n_splits=5, shuffle=False)
     predictions = np.empty_like(labels, dtype=float)
     for cur_train_idxs, cur_test_idxs in cv.split(epochs, labels):
@@ -321,11 +321,11 @@ def test_xdawn_decoding_performance():
 
     # results should be the same as with the Xdawn transformer
     xdawn_trans_pipeline = make_pipeline(_XdawnTransformer(n_components=3),
-                                   Vectorizer(),
-                                   MinMaxScaler(),
-                                   LogisticRegression(penalty='l1',
-                                                      solver='liblinear',
-                                                      multi_class='auto'))
+                                         Vectorizer(),
+                                         MinMaxScaler(),
+                                         LogisticRegression(
+                                             penalty='l1', solver='liblinear',
+                                             multi_class='auto'))
 
     cv = KFold(n_splits=5, shuffle=False)
     predictions_trans = np.empty_like(labels, dtype=float)
@@ -338,6 +338,6 @@ def test_xdawn_decoding_performance():
     cv_accuracy_xdawn_trans = accuracy_score(labels, predictions_trans)
 
     assert np.mean(cv_accuracy_xdawn_trans) >= expected_accuracy
-    assert_allclose(cv_accuracy_xdawn_trans, cv_accuracy_xdawn)
+    assert_allclose(cv_accuracy_xdawn_trans, cv_accuracy_xdawn, atol=0.01)
 
 run_tests_if_main()
