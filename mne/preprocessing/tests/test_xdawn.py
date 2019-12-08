@@ -295,25 +295,26 @@ def test_xdawn_decoding_performance():
     from sklearn.model_selection import KFold
     from sklearn.pipeline import make_pipeline
     from sklearn.linear_model import LogisticRegression
+    from sklearn.model_selection import cross_val_predict
     from sklearn.preprocessing import MinMaxScaler
     from sklearn.metrics import accuracy_score
 
-    expected_accuracy = 0.85
+    expected_accuracy = 0.84
     epochs = _load_audvis_testdata()
     labels = epochs.events[:, -1]
 
     # first, test with Xdawn
-    xdawn_pipeline = make_pipeline(Xdawn(n_components=3),
-                                   Vectorizer(),
-                                   MinMaxScaler(),
-                                   LogisticRegression(
-                                       penalty='l1', solver='liblinear',
-                                       multi_class='auto'))
-    cv = KFold(n_splits=5, shuffle=False)
+    xdawn_pipe = make_pipeline(Xdawn(n_components=3),
+                               Vectorizer(),
+                               MinMaxScaler(),
+                               LogisticRegression(
+                                   penalty='l1', solver='liblinear',
+                                   multi_class='auto'))
+    cv = KFold(n_splits=3, shuffle=False)
     predictions = np.empty_like(labels, dtype=float)
     for cur_train_idxs, cur_test_idxs in cv.split(epochs, labels):
-        xdawn_pipeline.fit(epochs[cur_train_idxs], labels[cur_train_idxs])
-        predictions[cur_test_idxs] = xdawn_pipeline.predict(
+        xdawn_pipe.fit(epochs[cur_train_idxs], labels[cur_train_idxs])
+        predictions[cur_test_idxs] = xdawn_pipe.predict(
             epochs[cur_test_idxs])
 
     cv_accuracy_xdawn = accuracy_score(labels, predictions)
@@ -321,21 +322,16 @@ def test_xdawn_decoding_performance():
     assert np.mean(cv_accuracy_xdawn) >= expected_accuracy
 
     # results should be the same as with the Xdawn transformer
-    xdawn_trans_pipeline = make_pipeline(_XdawnTransformer(n_components=3),
-                                         Vectorizer(),
-                                         MinMaxScaler(),
-                                         LogisticRegression(
-                                             penalty='l1', solver='liblinear',
-                                             multi_class='auto'))
+    xdawn_trans_pipe = make_pipeline(_XdawnTransformer(n_components=3),
+                                     Vectorizer(),
+                                     MinMaxScaler(),
+                                     LogisticRegression(
+                                         penalty='l1', solver='liblinear',
+                                         multi_class='auto'))
 
-    cv = KFold(n_splits=5, shuffle=False)
-    predictions_trans = np.empty_like(labels, dtype=float)
-    for cur_train_idxs, cur_test_idxs in cv.split(epochs, labels):
-        xdawn_trans_pipeline.fit(epochs[cur_train_idxs].get_data(),
-                                 labels[cur_train_idxs])
-        predictions_trans[cur_test_idxs] = xdawn_trans_pipeline.predict(
-            epochs[cur_test_idxs].get_data())
-
+    predictions_trans = \
+        cross_val_predict(xdawn_trans_pipe, epochs.get_data(), labels,
+                          cv=cv)
     cv_accuracy_xdawn_trans = accuracy_score(labels, predictions_trans)
 
     assert np.mean(cv_accuracy_xdawn_trans) >= expected_accuracy
