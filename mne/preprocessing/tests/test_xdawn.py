@@ -13,7 +13,7 @@ import pytest
 
 from mne import (Epochs, read_events, pick_types, compute_raw_covariance,
                  create_info, EpochsArray)
-from mne.datasets import testing
+from mne.datasets import testing, sample
 from mne.decoding import Vectorizer
 from mne.io import read_raw_fif
 from mne.utils import (requires_sklearn, run_tests_if_main, check_version,
@@ -268,7 +268,6 @@ def test_XdawnTransformer():
 
 
 def _load_audvis_testdata():
-    from mne.datasets import sample
     data_path = sample.data_path(download=False)
     raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
     event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
@@ -288,7 +287,7 @@ def _load_audvis_testdata():
 
 
 @pytest.mark.slowtest
-@testing.requires_testing_data
+@sample.requires_sample_data
 def test_xdawn_decoding_performance():
     """Test decoding performance using xDAWN."""
     # is based on the plot-decoding-xdawn-eeg example
