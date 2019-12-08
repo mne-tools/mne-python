@@ -627,7 +627,7 @@ class Xdawn(_XdawnTransformer):
         logger.info('Transforming to Xdawn space')
 
         # Apply unmixing
-        sources = np.dot(self.filters_[eid].T, data)
+        sources = np.dot(self.filters_[eid], data)
 
         if include not in (None, list()):
             mask = np.ones(len(sources), dtype=np.bool)
@@ -639,7 +639,7 @@ class Xdawn(_XdawnTransformer):
             sources[exclude_] = 0.
             logger.info('Zeroing out %i Xdawn components' % len(exclude_))
         logger.info('Inverse transforming to sensor space')
-        data = np.dot(self.patterns_[eid], sources)
+        data = np.dot(self.patterns_[eid].T, sources)
 
         return data
 
