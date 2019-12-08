@@ -7,7 +7,8 @@ import numpy as np
 import os.path as op
 import sys
 
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import (assert_array_equal, assert_array_almost_equal,
+                           assert_allclose)
 import pytest
 
 from mne import (Epochs, read_events, pick_types, compute_raw_covariance,
@@ -73,7 +74,7 @@ def test_xdawn_fit():
     evoked = epochs['cond2'].average()
     assert_array_equal(evoked.data, xd.evokeds_['cond2'].data)
 
-    assert np.all(np.isclose(np.linalg.norm(xd.filters_['cond2'], axis=1), 1))
+    assert_allclose(np.linalg.norm(xd.filters_['cond2'], axis=1), 1)
 
     # ========== with signal cov provided ====================
     # Provide covariance object
