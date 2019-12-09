@@ -1232,7 +1232,7 @@ class Report(object):
 
         Parameters
         ----------
-        figs : list of figures
+        figs : list of Figure
             Each figure in the list can be an instance of
             :class:`matplotlib.figure.Figure`,
             :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.

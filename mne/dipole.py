@@ -291,7 +291,7 @@ class Dipole(object):
 
         Parameters
         ----------
-        color : matplotlib Color
+        color : matplotlib color
             Color to use for the trace.
         show : bool
             Show figure if True.
