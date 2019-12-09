@@ -322,14 +322,12 @@ def test_xdawn_decoding_performance():
         Xdawn(n_components=n_xdawn_comps),
         Vectorizer(),
         MinMaxScaler(),
-        LogisticRegression(
-            penalty='l1', solver='liblinear', multi_class='auto'))
+        LogisticRegression(penalty='l1', solver='liblinear'))
     xdawn_trans_pipe = make_pipeline(
         _XdawnTransformer(n_components=n_xdawn_comps),
         Vectorizer(),
         MinMaxScaler(),
-        LogisticRegression(
-            penalty='l1', solver='liblinear', multi_class='auto'))
+        LogisticRegression(penalty='l1', solver='liblinear'))
 
     for cur_pipeline, cur_pipeline_input in (
             (xdawn_pipe, epochs),
