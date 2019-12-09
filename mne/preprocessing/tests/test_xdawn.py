@@ -13,7 +13,6 @@ import pytest
 
 from mne import (Epochs, read_events, pick_types, compute_raw_covariance,
                  create_info, EpochsArray)
-from mne.datasets import testing, sample
 from mne.decoding import Vectorizer
 from mne.io import read_raw_fif
 from mne.utils import (requires_sklearn, run_tests_if_main, check_version,
@@ -267,74 +266,98 @@ def test_XdawnTransformer():
     pytest.raises(ValueError, xdt.inverse_transform, 42)
 
 
-def _load_audvis_testdata():
-    data_path = sample.data_path(download=False)
-    raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-    event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-    tmin, tmax = -0.1, 0.3
-    event_id = dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4)
+def _simulate_erplike_mixed_data(n_epochs=100, n_channels=10):
+    rs = np.random.RandomState(42)
+    epoch_tmin, epoch_tmax = 0, 1
+    sfreq = 100
+    informative_ch_idx = 0
 
-    raw = read_raw_fif(raw_fname, preload=True)
-    raw.filter(1, 20, fir_design='firwin')
-    events = read_events(event_fname)
-    picks = pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
-                       exclude='bads')
+    labels = rs.randint(0, 2, n_epochs)
+    n_times = int((epoch_tmax - epoch_tmin) * sfreq)
+    epoch_times = np.linspace(epoch_tmin, epoch_tmax, n_times)
 
-    epochs = Epochs(raw, events, event_id, tmin, tmax, proj=False,
-                    picks=picks, baseline=None, preload=True,
-                    verbose=False)
-    return epochs
+    target_template = 1e-6 * (epoch_times - epoch_tmax) * np.sin(
+        2 * np.pi * epoch_times)
+    nontarget_template = 0.7e-6 * (epoch_times - epoch_tmax) * np.sin(
+        2 * np.pi * (epoch_times - 0.1))
+
+    epoch_data = rs.randn(n_epochs, n_channels, n_times) * 5e-7
+    epoch_data[labels == 0, informative_ch_idx, :] += nontarget_template
+    epoch_data[labels == 1, informative_ch_idx, :] += target_template
+
+    mixing_mat = np.linalg.svd(rs.randn(n_channels, n_channels))[0]
+    mixed_epoch_data = np.dot(mixing_mat.T, epoch_data).transpose((1, 0, 2))
+
+    events = np.zeros((n_epochs, 3), dtype=int)
+    events[:, 0] = np.arange(0, n_epochs * n_times, n_times)
+    events[:, 2] = labels
+
+    info = create_info(
+        ch_names=['C{:02d}'.format(i) for i in range(n_channels)],
+        ch_types=['eeg'] * n_channels,
+        sfreq=sfreq)
+    epochs = EpochsArray(mixed_epoch_data, info, events,
+                         tmin=epoch_tmin,
+                         event_id={'nt': 0, 't': 1})
+
+    return epochs, mixing_mat
 
 
-@pytest.mark.slowtest
-@sample.requires_sample_data
 def test_xdawn_decoding_performance():
-    """Test decoding performance using xDAWN."""
-    # is based on the plot-decoding-xdawn-eeg example
     from sklearn.model_selection import KFold
     from sklearn.pipeline import make_pipeline
     from sklearn.linear_model import LogisticRegression
-    from sklearn.model_selection import cross_val_predict
     from sklearn.preprocessing import MinMaxScaler
     from sklearn.metrics import accuracy_score
 
-    expected_accuracy = 0.84
-    epochs = _load_audvis_testdata()
-    labels = epochs.events[:, -1]
+    n_xdawn_comps = 3
+    expected_accuracy = 0.85
 
-    # first, test with Xdawn
-    xdawn_pipe = make_pipeline(Xdawn(n_components=3),
-                               Vectorizer(),
-                               MinMaxScaler(),
-                               LogisticRegression(
-                                   penalty='l1', solver='liblinear',
-                                   multi_class='auto'))
-    cv = KFold(n_splits=3, shuffle=False)
-    predictions = np.empty_like(labels, dtype=float)
-    for cur_train_idxs, cur_test_idxs in cv.split(epochs, labels):
-        xdawn_pipe.fit(epochs[cur_train_idxs], labels[cur_train_idxs])
-        predictions[cur_test_idxs] = xdawn_pipe.predict(
-            epochs[cur_test_idxs])
+    epochs, mixing_mat = _simulate_erplike_mixed_data(n_epochs=100)
+    labels = epochs.events[:, 2]
 
-    cv_accuracy_xdawn = accuracy_score(labels, predictions)
+    # results of Xdawn and _XdawnTransformer should match
+    xdawn_pipe = make_pipeline(
+        Xdawn(n_components=n_xdawn_comps),
+        Vectorizer(),
+        MinMaxScaler(),
+        LogisticRegression(
+            penalty='l1', solver='liblinear', multi_class='auto'))
+    xdawn_trans_pipe = make_pipeline(
+        _XdawnTransformer(n_components=n_xdawn_comps),
+        Vectorizer(),
+        MinMaxScaler(),
+        LogisticRegression(
+            penalty='l1', solver='liblinear', multi_class='auto'))
 
-    assert np.mean(cv_accuracy_xdawn) >= expected_accuracy
+    for cur_pipeline, cur_pipeline_input in (
+            (xdawn_pipe, epochs),
+            (xdawn_trans_pipe, epochs.get_data())):
+        cv = KFold(n_splits=3, shuffle=False)
+        predictions = np.empty_like(labels, dtype=float)
+        for cur_train_idxs, cur_test_idxs in cv.split(cur_pipeline_input,
+                                                      labels):
+            cur_pipeline.fit(cur_pipeline_input[cur_train_idxs],
+                             labels[cur_train_idxs])
+            predictions[cur_test_idxs] = cur_pipeline.predict(
+                cur_pipeline_input[cur_test_idxs])
 
-    # results should be the same as with the Xdawn transformer
-    xdawn_trans_pipe = make_pipeline(_XdawnTransformer(n_components=3),
-                                     Vectorizer(),
-                                     MinMaxScaler(),
-                                     LogisticRegression(
-                                         penalty='l1', solver='liblinear',
-                                         multi_class='auto'))
+        cv_accuracy_xdawn = accuracy_score(labels, predictions)
+        assert_allclose(cv_accuracy_xdawn, expected_accuracy, atol=0.01)
 
-    predictions_trans = \
-        cross_val_predict(xdawn_trans_pipe, epochs.get_data(), labels,
-                          cv=cv)
-    cv_accuracy_xdawn_trans = accuracy_score(labels, predictions_trans)
+        # for both event types, the first component should "match" the mixing
+        fitted_xdawn = cur_pipeline[0]
+        if isinstance(fitted_xdawn, Xdawn):
+            relev_patterns = np.concatenate([
+                fitted_xdawn.patterns_[cur_class][:1, :]
+                for cur_class in epochs.event_id.keys()])
+        else:
+            relev_patterns = fitted_xdawn.patterns_[::n_xdawn_comps]
 
-    assert np.mean(cv_accuracy_xdawn_trans) >= expected_accuracy
-    assert_allclose(cv_accuracy_xdawn_trans, cv_accuracy_xdawn, atol=0.01)
+        for i in range(len(relev_patterns)):
+            pattern_corr = np.corrcoef(relev_patterns[i, :],
+                                       mixing_mat[0, :])[0, 1]
+            assert np.abs(pattern_corr) > 0.99
 
 
 run_tests_if_main()
