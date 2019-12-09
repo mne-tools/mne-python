@@ -303,6 +303,7 @@ def _simulate_erplike_mixed_data(n_epochs=100, n_channels=10):
     return epochs, mixing_mat
 
 
+@requires_sklearn
 def test_xdawn_decoding_performance():
     from sklearn.model_selection import KFold
     from sklearn.pipeline import make_pipeline
