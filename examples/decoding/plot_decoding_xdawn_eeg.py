@@ -124,5 +124,5 @@ for i, (cur_class, cur_patterns) in enumerate(fitted_xdawn.patterns_.items()):
         axes=axes[i, :],
         extrapolate='head',
         show=False)
-fig.subplots_adjust(hspace=0.1)
+fig.subplots_adjust(hspace=0.3)
 plt.show()
