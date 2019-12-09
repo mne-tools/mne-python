@@ -305,6 +305,7 @@ def _simulate_erplike_mixed_data(n_epochs=100, n_channels=10):
 
 @requires_sklearn
 def test_xdawn_decoding_performance():
+    """Test decoding performance and extracted pattern on synthetic data."""
     from sklearn.model_selection import KFold
     from sklearn.pipeline import make_pipeline
     from sklearn.linear_model import LogisticRegression
