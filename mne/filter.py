@@ -1805,8 +1805,13 @@ class FilterMixin(object):
 
             https://gist.github.com/larsoner/bbac101d50176611136b
 
-
         .. versionadded:: 0.9.0
+
+        References
+        ----------
+        .. [1] Savitzky, A., Golay, M.J.E. (1964). "Smoothing and
+               Differentiation of Data by Simplified Least Squares
+               Procedures". Analytical Chemistry 36 (8): 1627-39.
 
         Examples
         --------
@@ -1816,12 +1821,6 @@ class FilterMixin(object):
         >>> evoked = mne.read_evokeds(evoked_fname, baseline=(None, 0))[0]  # doctest:+SKIP
         >>> evoked.savgol_filter(10.)  # low-pass at around 10 Hz # doctest:+SKIP
         >>> evoked.plot()  # doctest:+SKIP
-
-        References
-        ----------
-        .. [1] Savitzky, A., Golay, M.J.E. (1964). "Smoothing and
-               Differentiation of Data by Simplified Least Squares
-               Procedures". Analytical Chemistry 36 (8): 1627-39.
         """  # noqa: E501
         _check_preload(self, 'inst.savgol_filter')
         h_freq = float(h_freq)
@@ -2021,10 +2020,10 @@ class FilterMixin(object):
         Parameters
         ----------
         %(picks_all_data_noref)s
-        envelope : bool (default: False)
-            Compute the envelope signal of each channel. See Notes.
-        n_jobs: int
-            Number of jobs to run in parallel.
+        envelope : bool
+            Compute the envelope signal of each channel. Default False.
+            See Notes.
+        %(n_jobs)s
         n_fft : int | None | str
             Points to use in the FFT for Hilbert transformation. The signal
             will be padded with zeros before computing Hilbert, then cut back

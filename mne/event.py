@@ -1380,7 +1380,6 @@ class AcqParserFIF(object):
             tmax : float
                 Epoch ending time relative to t0. Use as the ``tmax``
                 parameter to Epochs.
-
         """
         if condition is None:
             condition = self.categories  # get all

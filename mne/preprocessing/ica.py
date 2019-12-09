@@ -453,7 +453,6 @@ class ICA(ContainsMixin):
             Defaults to True.
 
             .. versionadded:: 0.14.0
-
         %(verbose_meth)s
 
         Returns
@@ -792,7 +791,7 @@ class ICA(ContainsMixin):
             Object to compute sources from and to represent sources in.
         add_channels : None | list of str
             Additional channels  to be added. Useful to e.g. compare sources
-            with some reference. Defaults to None
+            with some reference. Defaults to None.
         start : int | float | None
             First sample to include. If float, data will be interpreted as
             time in seconds. If None, the entire data will be used.
@@ -960,13 +959,12 @@ class ICA(ContainsMixin):
             If True, data annotated as bad will be omitted. Defaults to True.
 
             .. versionadded:: 0.14.0
-
         %(verbose_meth)s
 
         Returns
         -------
         scores : ndarray
-            scores for each source as returned from score_func
+            Scores for each source as returned from score_func.
         """
         if isinstance(inst, BaseRaw):
             _check_compensation_grade(self.info, inst.info, 'ICA', 'Raw',
@@ -1128,7 +1126,6 @@ class ICA(ContainsMixin):
             If True, data annotated as bad will be omitted. Defaults to True.
 
             .. versionadded:: 0.14.0
-
         %(verbose_meth)s
 
         Returns
@@ -1207,9 +1204,9 @@ class ICA(ContainsMixin):
         inst : instance of Raw, Epochs or Evoked
             Object to compute sources from. Should contain at least one channel
             i.e. component derived from MEG reference channels.
-        ch_name: list of int
+        ch_name : list of int
             Which MEG reference components to use. If None, then all channels
-            that begin with REF_ICA
+            that begin with REF_ICA.
         threshold : int | float
             The value above which a feature is classified as outlier.
         start : int | float | None
@@ -1233,6 +1230,10 @@ class ICA(ContainsMixin):
         scores : np.ndarray of float, shape (``n_components_``) | list of array
             The correlation scores.
 
+        See Also
+        --------
+        find_bads_ecg, find_bads_eog
+
         Notes
         -----
         Detection is based on Pearson correlation between the MEG data
@@ -1247,10 +1248,6 @@ class ICA(ContainsMixin):
         that they can be automatically detected.
 
         .. versionadded:: 0.18
-
-        See Also
-        --------
-        find_bads_ecg, find_bads_eog
         """
         inds = []
         if not ch_name:
@@ -1303,7 +1300,6 @@ class ICA(ContainsMixin):
             If True, data annotated as bad will be omitted. Defaults to True.
 
             .. versionadded:: 0.14.0
-
         %(verbose_meth)s
 
         Returns
@@ -1343,10 +1339,10 @@ class ICA(ContainsMixin):
         ----------
         inst : instance of Raw, Epochs or Evoked
             The data to be processed. The instance is modified inplace.
-        include : array_like of int.
+        include : array_like of int
             The indices referring to columns in the ummixing matrix. The
             components to be kept.
-        exclude : array_like of int.
+        exclude : array_like of int
             The indices referring to columns in the ummixing matrix. The
             components to be zeroed out.
         n_pca_components : int | float | None
@@ -1527,6 +1523,11 @@ class ICA(ContainsMixin):
         fname : str
             The absolute path of the file name to save the ICA solution into.
             The file name should end with -ica.fif or -ica.fif.gz.
+
+        Returns
+        -------
+        ica : instance of ICA
+            The object.
         """
         if self.current_fit == 'unfitted':
             raise RuntimeError('No fit available. Please first fit ICA')
@@ -1702,14 +1703,16 @@ class ICA(ContainsMixin):
             (name : str, target : str | array, score_func : callable,
             criterion : float | int | list-like | slice). This parameter is a
             generalization of the artifact specific parameters above and has
-            the same structure. Example:
-            add_nodes=('ECG phase lock', ECG 01', my_phase_lock_function, 0.5)
+            the same structure. Example::
+
+                add_nodes=('ECG phase lock', ECG 01',
+                           my_phase_lock_function, 0.5)
 
         Returns
         -------
         self : instance of ICA
             The ICA object with the detected artifact indices marked for
-            exclusion
+            exclusion.
         """
         logger.info('    Searching for artifacts...')
         _detect_artifacts(self, raw=raw, start_find=start_find,

@@ -140,6 +140,11 @@ class ProjMixin(object):
     def apply_proj(self):
         """Apply the signal space projection (SSP) operators to the data.
 
+        Returns
+        -------
+        self : instance of Raw | Epochs | Evoked
+            The instance.
+
         Notes
         -----
         Once the projectors have been applied, they can no longer be
@@ -159,11 +164,6 @@ class ProjMixin(object):
             # drop the first and see again
             evoked.copy().del_proj(0).apply_proj().plot()
             evoked.apply_proj()  # finally keep both
-
-        Returns
-        -------
-        self : instance of Raw | Epochs | Evoked
-            The instance.
         """
         from ..epochs import BaseEpochs
         from ..evoked import Evoked
@@ -206,8 +206,8 @@ class ProjMixin(object):
     def del_proj(self, idx='all'):
         """Remove SSP projection vector.
 
-        Note: The projection vector can only be removed if it is inactive
-              (has not been applied to the data).
+        .. note:: The projection vector can only be removed if it is inactive
+                  (has not been applied to the data).
 
         Parameters
         ----------
@@ -218,6 +218,7 @@ class ProjMixin(object):
         Returns
         -------
         self : instance of Raw | Epochs | Evoked
+            The instance.
         """
         if isinstance(idx, str) and idx == 'all':
             idx = list(range(len(self.info['projs'])))

@@ -313,7 +313,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                   merge_grads=False, legend=True, axes=None,
                   background_color='w', noise_cov=None, show=True):
         """
-
         Notes
         -----
         .. versionadded:: 0.10.0
@@ -475,6 +474,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Returns
         -------
         evoked : instance of Evoked
+            A copy of the object.
         """
         evoked = deepcopy(self)
         return evoked

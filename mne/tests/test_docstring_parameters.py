@@ -43,21 +43,32 @@ public_modules = [
 ]
 
 
-def _func_name(func):
-    return '%s.%s' % (inspect.getmodule(func).__name__, func.__name__)
+def _func_name(func, cls=None):
+    """Get the name."""
+    parts = []
+    if cls is not None:
+        module = inspect.getmodule(cls)
+    else:
+        module = inspect.getmodule(func)
+    if module:
+        parts.append(module.__name__)
+    if cls is not None:
+        parts.append(cls.__name__)
+    parts.append(func.__name__)
+    return '.'.join(parts)
 
 
 # functions to ignore args / docstring of
-docstring_ignores = [
+docstring_ignores = {
     'mne.externals',
     'mne.fixes',
     'mne.io.write',
-]
+}
 char_limit = 800  # XX eventually we should probably get this lower
 tab_ignores = [
     'mne.channels.tests.test_montage',
 ]
-error_ignores = (
+error_ignores = {
     # These we do not live by:
     'GL01',  # Docstring should start in the line immediately after the quotes
     'EX01', 'EX02',  # examples failed (we test them separately)
@@ -69,28 +80,41 @@ error_ignores = (
     'RT02',  # The first line of the Returns section should contain only the type, unless multiple values are being returned  # noqa
    # XXX should also verify that | is used rather than , to separate params
     # XXX should maybe also restore the parameter-desc-length < 800 char check
+}
+subclass_name_ignores = (
+    (dict, {'values', 'setdefault', 'popitems', 'keys', 'pop', 'update',
+            'copy', 'popitem', 'get', 'items', 'fromkeys'}),
+    (list, {'append', 'count', 'extend', 'index', 'insert', 'pop', 'remove',
+            'sort'}),
+    (mne.fixes.BaseEstimator, {'get_params', 'set_params', 'fit_transform'}),
 )
 
 
-def check_parameters_match(func):
+def check_parameters_match(func, cls=None):
     """Check docstring, return list of incorrect results."""
     from numpydoc.validate import validate
-    name = _func_name(func)
+    name = _func_name(func, cls)
     skip = (not name.startswith('mne.') or
             any(re.match(d, name) for d in docstring_ignores) or
             'deprecation_wrapped' in getattr(
                 getattr(func, '__code__', None), 'co_name', ''))
     if skip:
         return list()
+    if cls is not None:
+        for subclass, ignores in subclass_name_ignores:
+            if issubclass(cls, subclass) and name.split('.')[-1] in ignores:
+                return list()
     incorrect = ['%s : %s : %s' % (name, err[0], err[1])
                  for err in validate(name)['errors']
                  if err[0] not in error_ignores]
     return incorrect
 
 
+@pytest.mark.slowtest
 @requires_numpydoc
 def test_docstring_parameters():
     """Test module docstring formatting."""
+    from numpydoc import docscrape
     # skip modules that require mayavi if mayavi is not installed
     public_modules_ = public_modules[:]
     try:
@@ -114,6 +138,12 @@ def test_docstring_parameters():
             if cname.startswith('_'):
                 continue
             incorrect += check_parameters_match(cls)
+            cdoc = docscrape.ClassDoc(cls)
+            for method_name in cdoc.methods:
+                method = getattr(cls, method_name)
+                incorrect += check_parameters_match(method, cls=cls)
+            if hasattr(cls, '__call__'):
+                incorrect += check_parameters_match(cls.__call__)
         functions = inspect.getmembers(module, inspect.isfunction)
         for fname, func in functions:
             if fname.startswith('_'):

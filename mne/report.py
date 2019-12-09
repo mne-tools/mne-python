@@ -833,9 +833,7 @@ class Report(object):
     ----------
     info_fname : str
         Name of the file containing the info dictionary.
-    subjects_dir : str | None
-        Path to the SUBJECTS_DIR. If None, the path is obtained by using
-        the environment variable SUBJECTS_DIR.
+    %(subjects_dir)s
     subject : str | None
         Subject name.
     title : str
@@ -1119,7 +1117,6 @@ class Report(object):
         replace : bool
             If ``True``, figures already present that have the same caption
             will be replaced. Defaults to ``False``.
-
         """
         # Note: using scipy.misc is equivalent because scipy internally
         # imports PIL anyway. It's not possible to redirect image output
@@ -1207,13 +1204,10 @@ class Report(object):
             Use this decimation factor for generating MRI/BEM images
             (since it can be time consuming).
         %(n_jobs)s
-        subjects_dir : str | None
-            Path to the SUBJECTS_DIR. If None, the path is obtained by using
-            the environment variable SUBJECTS_DIR.
+        %(subjects_dir)s
         replace : bool
             If ``True``, figures already present that have the same caption
             will be replaced. Defaults to ``False``.
-
 
         Notes
         -----
@@ -1238,7 +1232,7 @@ class Report(object):
 
         Parameters
         ----------
-        figs : list of figures.
+        figs : list of Figure
             Each figure in the list can be an instance of
             :class:`matplotlib.figure.Figure`,
             :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.
@@ -1265,7 +1259,6 @@ class Report(object):
         replace : bool
             If ``True``, figures already present that have the same caption
             will be replaced. Defaults to ``False``.
-
 
         Notes
         -----

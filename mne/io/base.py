@@ -241,7 +241,7 @@ class TimeMixin(object):
         ----------
         times : list-like | float | int
             List of numbers or a number representing points in time.
-        use_rounding : boolean
+        use_rounding : bool
             If True, use rounding (instead of truncation) when converting
             times to indices. This can help avoid non-unique indices.
 
@@ -711,10 +711,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ----------
         times : list-like | float | int
             List of numbers or a number representing points in time.
-        use_rounding : boolean
+        use_rounding : bool
             If True, use rounding (instead of truncation) when converting
             times to indices. This can help avoid non-unique indices.
-        origin: datetime | float | int | None
+        origin : datetime | float | int | None
             Time reference for times. If None, ``times`` are assumed to be
             relative to ``first_samp``.
 
@@ -1052,18 +1052,18 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         dtype : numpy.dtype (default: None)
             Data type to use for raw data after applying the function. If None
             the data type is not modified.
-        n_jobs: int (default: 1)
+        n_jobs : int (default: 1)
             Number of jobs to run in parallel. Ignored if `channel_wise` is
             False.
-        channel_wise: bool (default: True)
+        channel_wise : bool (default: True)
             Whether to apply the function to each channel individually. If
             False, the function will be applied to all channels at once.
 
             .. versionadded:: 0.18
-        *args :
+        *args : list
             Additional positional arguments to pass to fun (first pos. argument
             of fun is the timeseries of a channel).
-        **kwargs :
+        **kwargs : dict
             Keyword arguments to pass to fun. Note that if "verbose" is passed
             as a member of ``kwargs``, it will be consumed and will override
             the default mne-python verbose level (see :func:`mne.verbose` and
@@ -1146,7 +1146,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             The bandwidth of the multitaper windowing function in Hz.
             Only used in 'spectrum_fit' mode.
         p_value : float
-            p-value to use in F-test thresholding to determine significant
+            P-value to use in F-test thresholding to determine significant
             sinusoidal components to remove when method='spectrum_fit' and
             freqs=None. Note that this will be Bonferroni corrected for the
             number of frequencies, so large p-values may be justified.
@@ -1416,7 +1416,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        fname : string
+        fname : str
             File name of the new dataset. This has to be a new filename
             unless data have been preloaded. Filenames should end with
             raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif,
@@ -1439,7 +1439,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
             .. note:: If ``apply_proj()`` was used to apply the projections,
                       the projectons will be active even if ``proj`` is False.
-
         fmt : 'single' | 'double' | 'int' | 'short'
             Format to use to save raw data. Valid options are 'double',
             'single', 'int', and 'short' for 64- or 32-bit float, or 32- or
@@ -1455,7 +1454,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             If False (default), an error will be raised if the file exists.
             To overwrite original file (the same one that was loaded),
             data must be preloaded upon reading.
-        split_size : string | int
+        split_size : str | int
             Large raw files are automatically split into multiple pieces. This
             parameter specifies the maximum size of each piece. If the
             parameter is an integer, it specifies the size in Bytes. It is
@@ -1463,12 +1462,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
             .. note:: Due to FIFF file limitations, the maximum split
                       size is 2GB.
-
         split_naming : {'neuromag' | 'bids'}
             Add the filename partition with the appropriate naming schema.
 
             .. versionadded:: 0.17
-
         %(verbose_meth)s
 
         Notes
@@ -1638,11 +1635,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        bad_file : string
+        bad_file : str
             File name of the text file containing bad channels
             If bad_file = None, bad channels are cleared, but this
             is more easily done directly as raw.info['bads'] = [].
-        force : boolean
+        force : bool
             Whether or not to force bad channel marking (of those
             that exist) if channels are not found, instead of
             raising an error.
@@ -1770,7 +1767,13 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         pass  # noqa
 
     def copy(self):
-        """Return copy of Raw instance."""
+        """Return copy of Raw instance.
+
+        Returns
+        -------
+        inst : instance of Raw
+            A copy of the instance.
+        """
         return deepcopy(self)
 
     def __repr__(self):  # noqa: D105
