@@ -42,6 +42,6 @@ dependencies:
   - neo
   - pytest-faulthandler
   - pytest-sugar
-  - pydocstyle
+  - pydocstyle==4.0.1
   - codespell
   - python-picard
