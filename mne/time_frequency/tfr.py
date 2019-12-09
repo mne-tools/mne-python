@@ -1834,7 +1834,6 @@ class AverageTFR(_BaseTFR):
             - dividing by the mean of baseline values, taking the log, and
               dividing by the standard deviation of log baseline values
               ('zlogratio')
-
         %(layout_dep)s
         vmin : float | callable | None
             The value specifying the lower bound of the color range. If None,

@@ -343,7 +343,6 @@ class CSP(TransformerMixin, BaseEstimator):
 
             .. warning::  Interactive mode works smoothly only for a small
                 amount of topomaps.
-
         sensors : bool | str
             Add markers for sensor locations to the plot. Accepts matplotlib
             plot format string (e.g., 'r+' for red plusses). If True,
@@ -383,7 +382,6 @@ class CSP(TransformerMixin, BaseEstimator):
 
                 dict(marker='o', markerfacecolor='w', markeredgecolor='k',
                      linewidth=0, markersize=4)
-
         %(topomap_outlines)s
         contours : int | array of float
             The number of contour lines to draw. If 0, no contours will be
@@ -479,7 +477,6 @@ class CSP(TransformerMixin, BaseEstimator):
 
             .. warning::  Interactive mode works smoothly only for a small
                 amount of topomaps.
-
         sensors : bool | str
             Add markers for sensor locations to the plot. Accepts matplotlib
             plot format string (e.g., 'r+' for red plusses). If True,
@@ -519,7 +516,6 @@ class CSP(TransformerMixin, BaseEstimator):
 
                 dict(marker='o', markerfacecolor='w', markeredgecolor='k',
                      linewidth=0, markersize=4)
-
         %(topomap_outlines)s
         contours : int | array of float
             The number of contour lines to draw. If 0, no contours will be

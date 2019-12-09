@@ -439,12 +439,6 @@ spatial_colors : bool
 
 # plot_projs_topomap
 docdict["proj_topomap_kwargs"] = """
-info : instance of Info
-    The info associated with the channels in the projectors.
-
-    .. versionchanged:: 0.20
-        The positional argument ``layout`` has been deprecated and replaced
-        by ``info``.
 cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
     Colormap to use. If tuple, the first value indicates the colormap to
     use and the second value is a boolean defining interactivity. In

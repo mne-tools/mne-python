@@ -548,6 +548,7 @@ class SetChannelsMixin(object):
         _set_montage(self.info, montage, raise_if_subset=raise_if_subset)
         return self
 
+    @verbose
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,
                      show_names=False, ch_groups=None, to_sphere=True,
                      axes=None, block=False, show=True, sphere=None,
@@ -570,7 +571,7 @@ class SetChannelsMixin(object):
             channels are chosen in the order given above.
         title : str | None
             Title for the figure. If None (default), equals to ``'Sensor
-            positions (%s)' % ch_type``.
+            positions (%%s)' %% ch_type``.
         show_names : bool | array of str
             Whether to display all channel names. If an array, only the channel
             names in the array are shown. Defaults to False.
@@ -581,30 +582,26 @@ class SetChannelsMixin(object):
             array, the channels are divided by picks given in the array.
 
             .. versionadded:: 0.13.0
-
         to_sphere : bool
             Whether to project the 3d locations to a sphere. When False, the
             sensor array appears similar as to looking downwards straight above
             the subject's head. Has no effect when kind='3d'. Defaults to True.
 
             .. versionadded:: 0.14.0
-
         axes : instance of Axes | instance of Axes3D | None
             Axes to draw the sensors to. If ``kind='3d'``, axes must be an
             instance of Axes3D. If None (default), a new axes will be created.
 
             .. versionadded:: 0.13.0
-
         block : bool
             Whether to halt program execution until the figure is closed.
             Defaults to False.
 
             .. versionadded:: 0.13.0
-
         show : bool
             Show figure if True. Defaults to True.
         %(topomap_sphere_auto)s
-        %(verbose)s
+        %(verbose_meth)s
 
         Returns
         -------

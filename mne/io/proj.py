@@ -43,11 +43,11 @@ class Projection(dict):
 
         Parameters
         ----------
-        %(proj_topomap_kwargs)s
         info : instance of Info | None
             The measurement information to use to determine the layout. If both
             ``info`` and ``layout`` are provided, the layout will take
             precedence.
+        %(proj_topomap_kwargs)s
         %(topomap_sphere_auto)s
 
         Returns
@@ -237,7 +237,7 @@ class ProjMixin(object):
                            sensors=True, colorbar=False, res=64, size=1,
                            show=True, outlines='head', contours=6,
                            image_interp='bilinear', axes=None,
-                           vlim=(None, None)):
+                           vlim=(None, None), sphere=None):
         """Plot SSP vector.
 
         Parameters
@@ -247,7 +247,10 @@ class ProjMixin(object):
             ted in pairs and the RMS for each pair is plotted. If None
             (default), it will return all channel types present. If a list of
             ch_types is provided, it will return multiple figures.
+        layout : object
+            Deprecated, do not use.
         %(proj_topomap_kwargs)s
+        %(topomap_sphere_auto)s
 
         Returns
         -------

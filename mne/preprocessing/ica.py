@@ -1564,7 +1564,8 @@ class ICA(ContainsMixin):
                         colorbar=False, title=None, show=True, outlines='head',
                         contours=6, image_interp='bilinear', head_pos=None,
                         inst=None, plot_std=True, topomap_args=None,
-                        image_args=None, psd_args=None, reject='auto'):
+                        image_args=None, psd_args=None, reject='auto',
+                        sphere=None):
         return plot_ica_components(self, picks=picks, ch_type=ch_type,
                                    res=res, layout=layout, vmin=vmin,
                                    vmax=vmax, cmap=cmap, sensors=sensors,
@@ -1575,7 +1576,7 @@ class ICA(ContainsMixin):
                                    plot_std=plot_std,
                                    topomap_args=topomap_args,
                                    image_args=image_args, psd_args=psd_args,
-                                   reject=reject)
+                                   reject=reject, sphere=sphere)
 
     @copy_function_doc_to_method_doc(plot_ica_properties)
     def plot_properties(self, inst, picks=None, axes=None, dB=True,
