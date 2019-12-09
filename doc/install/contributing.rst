@@ -42,7 +42,7 @@ MNE-Python.
 .. _`MNE mailing list`: http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
 .. _`MNE gitter channel`: https://gitter.im/mne-tools/mne-python
 
-.. _`code of conduct`: https://github.com/mne-tools/mne-python/blob/master/CODE_OF_CONDUCT.md
+.. _`code of conduct`: https://github.com/mne-tools/.github/blob/master/CODE_OF_CONDUCT.md
 .. _`GitHub issues marked "easy"`: https://github.com/mne-tools/mne-python/issues?q=is%3Aissue+is%3Aopen+label%3AEASY
 
 Overview of contribution process
