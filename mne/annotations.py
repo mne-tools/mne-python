@@ -393,6 +393,9 @@ class Annotations(object):
         out_of_bounds, clip_left_elem, clip_right_elem = [], [], []
         for onset, duration, description in zip(
                 self.onset, self.duration, self.description):
+            # if duration is NaN behave like a zero
+            if np.isnan(duration):
+                duration = 0.
             # convert to absolute times
             absolute_onset = timedelta(0, onset) + offset
             absolute_offset = absolute_onset + timedelta(0, duration)

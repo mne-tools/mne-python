@@ -1082,4 +1082,23 @@ def test_crop_when_negative_orig_time(windows_like_datetime):
     assert crop_annot.orig_time == orig_dt  # orig_time does not change
 
 
+def test_allow_nan_durations():
+    """Deal with "n/a" strings in BIDS events with nan durations."""
+    raw = RawArray(data=np.empty([2, 10], dtype=np.float64),
+                   info=create_info(ch_names=2, sfreq=1.),
+                   first_samp=0)
+    raw.set_meas_date(0)
+
+    ons = [1, 2., 15., 17.]
+    dus = [np.nan, 1., 0.5, np.nan]
+    descriptions = ['A'] * 4
+    onsets = np.asarray(ons, dtype=float)
+    durations = np.asarray(dus, dtype=float)
+    annot = mne.Annotations(onset=onsets,
+                            duration=durations,
+                            description=descriptions)
+    with pytest.warns(RuntimeWarning, match='Omitted 2 annotation'):
+        raw.set_annotations(annot)
+
+
 run_tests_if_main()
