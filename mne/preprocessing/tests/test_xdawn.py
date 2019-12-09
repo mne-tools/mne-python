@@ -345,7 +345,7 @@ def test_xdawn_decoding_performance():
         assert_allclose(cv_accuracy_xdawn, expected_accuracy, atol=0.01)
 
         # for both event types, the first component should "match" the mixing
-        fitted_xdawn = cur_pipeline[0]
+        fitted_xdawn = cur_pipeline.steps[0][1]
         if isinstance(fitted_xdawn, Xdawn):
             relev_patterns = np.concatenate([
                 fitted_xdawn.patterns_[cur_class][:1, :]
