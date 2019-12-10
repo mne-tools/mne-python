@@ -666,22 +666,24 @@ def _triage_coils(coils):
 # #############################################################################
 # MAGNETIC DIPOLE (e.g. CHPI)
 
+_MIN_DIST_LIMIT = 1e-5
+
+
 def _magnetic_dipole_field_vec(rrs, coils, too_close='raise'):
     rmags, cosmags, ws, bins = _triage_coils(coils)
     fwd = np.zeros((3 * len(rrs), bins[-1] + 1))
-    min_dist = _compute_mdfv(fwd, rrs, rmags, cosmags, ws, bins)
-    if min_dist < 1e-5:
-        msg = 'Coil too close (dist = %g m)' % min_dist
+    min_dist = _compute_mdfv(fwd, rrs, rmags, cosmags, ws, bins, too_close)
+    if min_dist < _MIN_DIST_LIMIT:
+        msg = 'Coil too close (dist = %g mm)' % (min_dist * 1000,)
         if too_close == 'raise':
             raise RuntimeError(msg)
-        else:  # warning
-            func = warn if too_close == 'warning' else logger.info
-            func('Coil too close (dist = %g m)' % min_dist)
+        func = warn if too_close == 'warning' else logger.info
+        func(msg)
     return fwd
 
 
 @jit()
-def _compute_mdfv(fwd, rrs, rmags, cosmags, ws, bins):
+def _compute_mdfv(fwd, rrs, rmags, cosmags, ws, bins, too_close):
     """Compute an MEG forward solution for a set of magnetic dipoles."""
     # The code below is a more efficient version (~30x) of this:
     # for ri, rr in enumerate(rrs):
@@ -707,6 +709,8 @@ def _compute_mdfv(fwd, rrs, rmags, cosmags, ws, bins):
         dist2 = dist2_.reshape(-1, 1)
         dist = np.sqrt(dist2)
         min_dist = min(dist.min(), min_dist)
+        if min_dist < _MIN_DIST_LIMIT and too_close == 'raise':
+            break
         t_ = np.sum(diff * cosmags, axis=1)
         t = t_.reshape(-1, 1)
         sum_ = ws2 * (3 * diff * t - dist2 * cosmags) / (dist2 * dist2 * dist)
