@@ -19,15 +19,14 @@
 import numpy as np
 from copy import deepcopy
 
-from ..surface import _project_onto_surface, _jit_cross
-from ..io.constants import FIFF, FWD
-from ..transforms import apply_trans
 from ..fixes import jit, bincount
-from ..utils import logger, verbose, _pl, warn, fill_doc
-from ..parallel import parallel_func
 from ..io.compensator import get_current_comp, make_compensator
+from ..io.constants import FIFF, FWD
 from ..io.pick import pick_types
-from ..fixes import einsum
+from ..parallel import parallel_func
+from ..surface import _project_onto_surface, _jit_cross
+from ..transforms import apply_trans
+from ..utils import logger, verbose, _pl, warn, fill_doc
 
 
 # #############################################################################
@@ -253,8 +252,8 @@ def _bem_specify_els(bem, els, mults):
     ws = np.concatenate([el['w'] for el in els])
     tri_weights, tri_idx = _project_onto_surface(rrs, scalp)
     tri_weights *= ws[:, np.newaxis]
-    weights = einsum('ij,ijk->ik', tri_weights,
-                     bem['solution'][scalp['tris'][tri_idx]])
+    weights = np.matmul(tri_weights[:, np.newaxis],
+                        bem['solution'][scalp['tris'][tri_idx]])[:, 0]
     # there are way more vertices than electrodes generally, so let's iterate
     # over the electrodes
     edges = np.concatenate([[0], np.cumsum([len(el['w']) for el in els])])
@@ -338,7 +337,6 @@ def _bem_inf_pots(mri_rr, bem_rr, mri_Q=None):
         diff[ri] = this_diff.T
 
     return diff
-
 
 # This function has been refactored to process all points simultaneously
 # def _bem_inf_field(rd, Q, rp, d):
@@ -548,13 +546,13 @@ def _sphere_field(rrs, coils, sphere):
     by Matti Hämäläinen, February 1990
     """
     rmags, cosmags, ws, bins = _triage_coils(coils)
-    # Shift to the sphere model coordinates
     return _do_sphere_field(rrs, rmags, cosmags, ws, bins, sphere['r0'])
 
 
 @jit()
 def _do_sphere_field(rrs, rmags, cosmags, ws, bins, r0):
     n_coils = bins[-1] + 1
+    # Shift to the sphere model coordinates
     rrs = rrs - r0
     B = np.zeros((3 * len(rrs), n_coils))
     for ri in range(len(rrs)):
@@ -652,7 +650,7 @@ def _eeg_spherepot_coil(rrs, coils, sphere):
 
             # compute total result
             xx = vval_one * ws[:, np.newaxis]
-            zz = np.array([np.bincount(bins, x, bins[-1] + 1) for x in xx.T])
+            zz = np.array([bincount(bins, x, bins[-1] + 1) for x in xx.T])
             B[3 * ri:3 * ri + 3, :] = zz
     # finishing by scaling by 1/(4*M_PI)
     B *= 0.25 / np.pi
@@ -716,6 +714,7 @@ def _compute_mdfv(fwd, rrs, rmags, cosmags, ws, bins, too_close):
         sum_ = ws2 * (3 * diff * t - dist2 * cosmags) / (dist2 * dist2 * dist)
         for ii in range(3):
             fwd[3 * ri + ii] = bincount(bins, sum_[:, ii], bins[-1] + 1)
+    fwd *= 1e-7
     return min_dist
 
 
