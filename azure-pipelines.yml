@@ -32,7 +32,7 @@ jobs:
     displayName: make flake
     condition: always()
   - bash: |
-      pip install pydocstyle==4.0.1
+      pip install pydocstyle
     displayName: Install pydocstyle
     condition: always()
   - bash: |
