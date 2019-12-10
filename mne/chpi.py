@@ -45,6 +45,7 @@ from .io.ctf.trans import _make_ctf_coord_trans_set
 from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
                       _concatenate_coils)
 from .cov import make_ad_hoc_cov, compute_whitener
+from .fixes import jit
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat)
 from .utils import (verbose, logger, use_log_level, _check_fname, warn,
@@ -411,6 +412,7 @@ def _fit_magnetic_dipole(B_orig, x0, coils, scale, method, too_close):
     return x, 1. - objective(x) / B2
 
 
+@jit()
 def _chpi_objective(x, coil_dev_rrs, coil_head_rrs):
     """Compute objective function."""
     d = np.dot(coil_dev_rrs, quat_to_rot(x[:3]).T)

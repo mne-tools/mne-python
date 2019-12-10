@@ -19,6 +19,7 @@ from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
+from .fixes import jit
 from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
                     _check_path_like, get_subjects_dir, fill_doc, _check_fname)
 
@@ -1142,6 +1143,7 @@ def _topo_to_sph(topo):
 ###############################################################################
 # Quaternions
 
+@jit()
 def quat_to_rot(quat):
     """Convert a set of quaternions to rotations.
 
@@ -1171,16 +1173,20 @@ def quat_to_rot(quat):
     bc_2 = 2 * b * c
     bd_2 = 2 * b * d
     cd_2 = 2 * c * d
-    rotation = np.array([(aa + bb - cc - dd, bc_2 - ad_2, bd_2 + ac_2),
-                         (bc_2 + ad_2, aa + cc - bb - dd, cd_2 - ab_2),
-                         (bd_2 - ac_2, cd_2 + ab_2, aa + dd - bb - cc),
-                         ])
-    if quat.ndim > 1:
-        rotation = np.rollaxis(np.rollaxis(rotation, 1, quat.ndim + 1),
-                               0, quat.ndim)
+    rotation = np.empty(quat.shape[:-1] + (3, 3))
+    rotation[..., 0, 0] = aa + bb - cc - dd
+    rotation[..., 0, 1] = bc_2 - ad_2
+    rotation[..., 0, 2] = bd_2 + ac_2
+    rotation[..., 1, 0] = bc_2 + ad_2
+    rotation[..., 1, 1] = aa + cc - bb - dd
+    rotation[..., 1, 2] = cd_2 - ab_2
+    rotation[..., 2, 0] = bd_2 - ac_2
+    rotation[..., 2, 1] = cd_2 + ab_2
+    rotation[..., 2, 2] = aa + dd - bb - cc
     return rotation
 
 
+@jit()
 def _one_rot_to_quat(rot):
     """Convert a rotation matrix to quaternions."""
     # see e.g. http://www.euclideanspace.com/maths/geometry/rotations/

@@ -33,7 +33,7 @@ from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
                          _get_trans, apply_trans, Transform)
 from .utils import logger, verbose, get_subjects_dir, warn, _check_fname
 from .fixes import (_serialize_volume_info, _get_read_geometry, einsum, jit,
-                    prange)
+                    prange, bincount)
 
 
 ###############################################################################
@@ -218,17 +218,23 @@ def fast_cross_3d(x, y):
     assert y.shape[-1] == 3
     if max(x.size, y.size) >= 500:
         out = np.empty(np.broadcast(x, y).shape)
-        np.multiply(x[..., 1], y[..., 2], out=out[..., 0])
-        out[..., 0] -= x[..., 2] * y[..., 1]
-        np.multiply(x[..., 2], y[..., 0], out=out[..., 1])
-        out[..., 1] -= x[..., 0] * y[..., 2]
-        np.multiply(x[..., 0], y[..., 1], out=out[..., 2])
-        out[..., 2] -= x[..., 1] * y[..., 0]
+        _jit_cross(out, x, y)
         return out
     else:
         return np.cross(x, y)
 
 
+@jit()
+def _jit_cross(out, x, y):
+    out[..., 0] = x[..., 1] * y[..., 2]
+    out[..., 0] -= x[..., 2] * y[..., 1]
+    out[..., 1] = x[..., 2] * y[..., 0]
+    out[..., 1] -= x[..., 0] * y[..., 2]
+    out[..., 2] = x[..., 0] * y[..., 1]
+    out[..., 2] -= x[..., 1] * y[..., 0]
+
+
+@jit()
 def _fast_cross_nd_sum(a, b, c):
     """Fast cross and sum."""
     return ((a[..., 1] * b[..., 2] - a[..., 2] * b[..., 1]) * c[..., 0] +
@@ -236,6 +242,7 @@ def _fast_cross_nd_sum(a, b, c):
             (a[..., 0] * b[..., 1] - a[..., 1] * b[..., 0]) * c[..., 2])
 
 
+@jit()
 def _accumulate_normals(tris, tri_nn, npts):
     """Efficiently accumulate triangle normals."""
     # this code replaces the following, but is faster (vectorized):
@@ -246,10 +253,11 @@ def _accumulate_normals(tris, tri_nn, npts):
     #     this['nn'][verts, :] += this['tri_nn'][p, :]
     #
     nn = np.zeros((npts, 3))
-    for verts in tris.T:  # note this only loops 3x (number of verts per tri)
+    for vi in range(3):
+        verts = tris[:, vi]
         for idx in range(3):  # x, y, z
-            nn[:, idx] += np.bincount(verts, weights=tri_nn[:, idx],
-                                      minlength=npts)
+            nn[:, idx] += bincount(verts, weights=tri_nn[:, idx],
+                                   minlength=npts)
     return nn
 
 
@@ -309,7 +317,7 @@ def _project_onto_surface(rrs, surf, project_rrs=False, return_nn=False,
         idx = _compute_nearest(surf['rr'], rrs)
         out = (None, None, surf['rr'][idx])
         if return_nn:
-            nn = _accumulate_normals(surf['tris'], surf_geom['nn'],
+            nn = _accumulate_normals(surf['tris'].astype(int), surf_geom['nn'],
                                      len(surf['rr']))
             out += (nn[idx],)
     return out
@@ -358,7 +366,8 @@ def complete_surface_info(surf, do_neighbor_vert=False, copy=True,
     #    Find neighboring triangles, accumulate vertex normals, normalize
     logger.info('    Triangle neighbors and vertex normals...')
     surf['neighbor_tri'] = _triangle_neighbors(surf['tris'], surf['np'])
-    surf['nn'] = _accumulate_normals(surf['tris'], surf['tri_nn'], surf['np'])
+    surf['nn'] = _accumulate_normals(surf['tris'].astype(int),
+                                     surf['tri_nn'], surf['np'])
     _normalize_vectors(surf['nn'])
 
     #   Check for topological defects
@@ -1475,38 +1484,27 @@ def read_tri(fname_in, swap=False, verbose=None):
     return (rr, tris)
 
 
+@jit()
 def _get_solids(tri_rrs, fros):
     """Compute _sum_solids_div total angle in chunks."""
     # NOTE: This incorporates the division by 4PI that used to be separate
-    # for tri_rr in tri_rrs:
-    #     v1 = fros - tri_rr[0]
-    #     v2 = fros - tri_rr[1]
-    #     v3 = fros - tri_rr[2]
-    #     triple = np.sum(fast_cross_3d(v1, v2) * v3, axis=1)
-    #     l1 = np.sqrt(np.sum(v1 * v1, axis=1))
-    #     l2 = np.sqrt(np.sum(v2 * v2, axis=1))
-    #     l3 = np.sqrt(np.sum(v3 * v3, axis=1))
-    #     s = (l1 * l2 * l3 +
-    #          np.sum(v1 * v2, axis=1) * l3 +
-    #          np.sum(v1 * v3, axis=1) * l2 +
-    #          np.sum(v2 * v3, axis=1) * l1)
-    #     tot_angle -= np.arctan2(triple, s)
-
-    # This is the vectorized version, but with a slicing heuristic to
-    # prevent memory explosion
     tot_angle = np.zeros((len(fros)))
-    slices = np.r_[np.arange(0, len(fros), 100), [len(fros)]]
-    for i1, i2 in zip(slices[:-1], slices[1:]):
-        # shape (3 verts, n_tri, n_fro, 3 X/Y/Z)
-        vs = (fros[np.newaxis, np.newaxis, i1:i2] -
-              tri_rrs.transpose([1, 0, 2])[:, :, np.newaxis])
-        triples = _fast_cross_nd_sum(vs[0], vs[1], vs[2])
-        ls = np.linalg.norm(vs, axis=3)
-        ss = np.prod(ls, axis=0)
-        ss += einsum('ijk,ijk,ij->ij', vs[0], vs[1], ls[2])
-        ss += einsum('ijk,ijk,ij->ij', vs[0], vs[2], ls[1])
-        ss += einsum('ijk,ijk,ij->ij', vs[1], vs[2], ls[0])
-        tot_angle[i1:i2] = -np.sum(np.arctan2(triples, ss), axis=0)
+    for ti in range(len(tri_rrs)):
+        tri_rr = tri_rrs[ti]
+        v1 = fros - tri_rr[0]
+        v2 = fros - tri_rr[1]
+        v3 = fros - tri_rr[2]
+        v4 = np.empty((v1.shape[0], 3))
+        _jit_cross(v4, v1, v2)
+        triple = np.sum(v4 * v3, axis=1)
+        l1 = np.sqrt(np.sum(v1 * v1, axis=1))
+        l2 = np.sqrt(np.sum(v2 * v2, axis=1))
+        l3 = np.sqrt(np.sum(v3 * v3, axis=1))
+        s = (l1 * l2 * l3 +
+             np.sum(v1 * v2, axis=1) * l3 +
+             np.sum(v1 * v3, axis=1) * l2 +
+             np.sum(v2 * v3, axis=1) * l1)
+        tot_angle -= np.arctan2(triple, s)
     return tot_angle
 
 

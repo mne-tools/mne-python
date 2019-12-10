@@ -1205,6 +1205,17 @@ else:
     has_numba = True
 
 
+if has_numba:
+    @jit()
+    def bincount(x, weights, minlength):  # noqa: D103
+        out = np.zeros(minlength)
+        for idx, w in zip(x, weights):
+            out[idx] += w
+        return out
+else:
+    bincount = np.bincount
+
+
 ###############################################################################
 # Python 3.5 compat with pathlib.Path-like objects
 
