@@ -112,7 +112,7 @@ fig, axes = plt.subplots(nrows=len(event_id), ncols=n_filter)
 fitted_xdawn = clf.steps[0][1]
 for i, (cur_class, cur_patterns) in enumerate(fitted_xdawn.patterns_.items()):
     tmp_info = epochs.info.copy()
-    tmp_info['sfreq'] = 1
+    tmp_info['sfreq'] = 1.
     pattern_evoked = EvokedArray(cur_patterns[:n_filter].T, tmp_info, tmin=0)
     pattern_evoked.plot_topomap(
         times=np.arange(n_filter), ch_type=None,
