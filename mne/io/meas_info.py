@@ -582,28 +582,6 @@ class Info(dict):
                 raise RuntimeError('%sinfo["meas_date"] must be a datetime '
                                    'object in UTC or None, got "%r"'
                                    % (prepend_error, repr(self['meas_date']),))
-            meas_date_stamp = _dt_to_stamp(meas_date)
-            if (meas_date_stamp[0] < np.iinfo('>i4').min or
-                    meas_date_stamp[0] > np.iinfo('>i4').max):
-                raise RuntimeError(
-                    '%sinfo["meas_date"] seconds must be between "%r" '
-                    'and "%r", got "%r"'
-                    % (prepend_error, (np.iinfo('>i4').min, 0),
-                       (np.iinfo('>i4').max, 0), meas_date_stamp[0],))
-
-        for key in ('file_id', 'meas_id'):
-            value = self.get(key)
-            if value is not None:
-                assert 'msecs' not in value
-                for key_2 in ('secs', 'usecs'):
-                    if (value[key_2] < np.iinfo('>i4').min or
-                            value[key_2] > np.iinfo('>i4').max):
-                        raise RuntimeError('%sinfo[%s][%s] must be between '
-                                           '"%r" and "%r", got "%r"'
-                                           % (prepend_error, key, key_2,
-                                              np.iinfo('>i4').min,
-                                              np.iinfo('>i4').max,
-                                              value[key_2]),)
 
         chs = [ch['ch_name'] for ch in self['chs']]
         if len(self['ch_names']) != len(chs) or any(
@@ -1290,6 +1268,40 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     return info, meas
 
 
+def _check_dates(info, prepend_error=''):
+    """Check dates before writing as fif files.
+
+    It's needed because of the limited integer precision
+    of the fix standard.
+    """
+    for key in ('file_id', 'meas_id'):
+        value = info.get(key)
+        if value is not None:
+            assert 'msecs' not in value
+            for key_2 in ('secs', 'usecs'):
+                if (value[key_2] < np.iinfo('>i4').min or
+                        value[key_2] > np.iinfo('>i4').max):
+                    raise RuntimeError('%sinfo[%s][%s] must be between '
+                                       '"%r" and "%r", got "%r"'
+                                       % (prepend_error, key, key_2,
+                                          np.iinfo('>i4').min,
+                                          np.iinfo('>i4').max,
+                                          value[key_2]),)
+
+    meas_date = info.get('meas_date')
+    if meas_date is None:
+        return
+
+    meas_date_stamp = _dt_to_stamp(meas_date)
+    if (meas_date_stamp[0] < np.iinfo('>i4').min or
+            meas_date_stamp[0] > np.iinfo('>i4').max):
+        raise RuntimeError(
+            '%sinfo["meas_date"] seconds must be between "%r" '
+            'and "%r", got "%r"'
+            % (prepend_error, (np.iinfo('>i4').min, 0),
+               (np.iinfo('>i4').max, 0), meas_date_stamp[0],))
+
+
 def write_meas_info(fid, info, data_type=None, reset_range=True):
     """Write measurement info into a file id (from a fif file).
 
@@ -1311,6 +1323,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     Tags are written in a particular order for compatibility with maxfilter.
     """
     info._check_consistency()
+    _check_dates(info)
 
     # Measurement info
     start_block(fid, FIFF.FIFFB_MEAS_INFO)
@@ -2082,10 +2095,13 @@ def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
             if di.get(k) is not None:
                 di[k] = default_str
 
-    err_mesg = ('anonymize_info generated an inconsistent info object. Most '
-                'often this is because daysback parameter was too large. '
+    err_mesg = ('anonymize_info generated an inconsistent info object. '
                 'Underlying Error:\n')
     info._check_consistency(prepend_error=err_mesg)
+    err_mesg = ('anonymize_info generated an inconsistent info object. '
+                'daysback parameter was too large.'
+                'Underlying Error:\n')
+    _check_dates(info, prepend_error=err_mesg)
 
     return info
 
