@@ -1269,7 +1269,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
 
 
 def _check_dates(info, prepend_error=''):
-    """Check dates before writting as fif files.
+    """Check dates before writing as fif files.
 
     It's needed because of the limited integer precision
     of the fix standard.
