@@ -126,6 +126,8 @@ Bug
 
 - Fix handling of repeated events in :class:`mne.Epochs` by `Fahimeh Mamashli`_ and `Alex Gramfort`_
 
+- Fix many bugs with plotting sensors overlaid on a head outline. All plotting is now done in head coordinates and scaled by ``head_radius``, which defaults to 0.095, by `Eric Larson`_
+
 - Fix :func:`mne.io.anonymize_info` to allow shifting dates of service and to match anticipated changes in mne-cpp by `Luke Bloy`_
 
 - Fix reading of cardinals in .htps files (identifier are int not strings) by `Alex Gramfort`_
@@ -155,9 +157,13 @@ API
 
 - :meth:`mne.Epochs.shift_time` and :meth:`mne.Evoked.shift_time` now allow shifting times by arbitrary amounts (previously only by integer multiples of the sampling period), by `Daniel McCloy`_ and `Eric Larson`_.
 
+- The ``head_pos`` argument of :func:`mne.Evoked.plot_topomap` and related functions has been deprecated in favor of ``head_radius``, by `Eric Larson`_.
+
+- The ``layout`` argument to topomap-related functions such as :meth:`mne.Evoked.plot_topomap` and :func:`mne.viz.plot_tfr_topomap` has been deprecated in favor of channel-position based flattening based on the ``info`` and ``sphere`` argument, by `Eric Larson`_.
+
 - The APIs of :meth:`mne.io.Raw.plot_projs_topomap`, :meth:`mne.Epochs.plot_projs_topomap` and :meth:`mne.Evoked.plot_projs_topomap` are now more similar to :func:`mne.viz.plot_projs_topomap` by `Daniel McCloy`_.
 
-- :func:`mne.viz.plot_projs_topomap` now accepts both :class:`~mne.channels.Layout` and :class:`~mne.Info` (previously one or the other), and will ignore :class:`~mne.Info` if :class:`~mne.channels.Layout` is provided `Daniel McCloy`_.
+- The function :func:`mne.setup_volume_source_space` has a ``sphere_units`` argument that defaults to ``'mm'`` in 0.20 but will change to ``'m'`` in 0.21, set it to avoid a warning by `Eric Larson`_.
 
 - :func:`mne.viz.plot_projs_topomap` and the related methods :meth:`mne.io.Raw.plot_projs_topomap`, :meth:`mne.Epochs.plot_projs_topomap` and :meth:`mne.Evoked.plot_projs_topomap` now accept parameter ``vlim`` to control the colormap, with keyword ``'joint'`` computing the colormap jointly across all projectors of a given channel type, by `Daniel McCloy`_.
 

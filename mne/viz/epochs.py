@@ -14,11 +14,11 @@
 from collections import Counter
 from functools import partial
 from copy import deepcopy
+import warnings
 
 import numpy as np
 
 from ..defaults import _handle_default
-
 from ..utils import verbose, logger, warn, fill_doc, check_version
 from ..io.meas_info import create_info, _validate_type
 
@@ -338,6 +338,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
         # detect ylims across figures
         if evoked and not manual_ylims:
+            # ensure get_ylim works properly
+            this_axes_dict['evoked'].figure.canvas.draw_idle()
             this_bot, this_top = this_axes_dict['evoked'].get_ylim()
             this_min = min(this_bot, this_top)
             this_max = max(this_bot, this_top)
@@ -555,7 +557,9 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
         this_colorbar.ax.set_ylabel(unit, rotation=270, labelpad=12)
         if cmap[1]:
             ax_im.CB = DraggableColorbar(this_colorbar, im)
-        tight_layout(fig=fig)
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter('ignore')
+            tight_layout(fig=fig)
 
     # finish
     plt_show(show)
@@ -879,7 +883,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                     xscale='linear', area_mode='std', area_alpha=0.33,
                     dB=True, estimate='auto', show=True, n_jobs=1,
                     average=False, line_alpha=None, spatial_colors=True,
-                    verbose=None):
+                    sphere=None, verbose=None):
     """%(plot_psd_doc)s.
 
     Parameters
@@ -923,6 +927,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     %(plot_psd_average)s
     %(plot_psd_line_alpha)s
     %(plot_psd_spatial_colors)s
+    %(topomap_sphere_auto)s
     %(verbose)s
 
     Returns
@@ -951,7 +956,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     fig = _plot_psd(epochs, fig, freqs, psd_list, picks_list, titles_list,
                     units_list, scalings_list, ax_list, make_label, color,
                     area_mode, area_alpha, dB, estimate, average,
-                    spatial_colors, xscale, line_alpha)
+                    spatial_colors, xscale, line_alpha, sphere)
     plt_show(show)
     return fig
 

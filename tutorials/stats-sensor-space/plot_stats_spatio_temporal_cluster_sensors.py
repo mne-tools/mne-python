@@ -21,7 +21,6 @@ the possible interpretation of "significant" clusters.
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from mne.viz import plot_topomap
 
 import mne
 from mne.stats import spatio_temporal_cluster_test
@@ -119,9 +118,6 @@ good_cluster_inds = np.where(p_values < p_accept)[0]
 colors = {"Aud": "crimson", "Vis": 'steelblue'}
 linestyles = {"L": '-', "R": '--'}
 
-# get sensor positions via layout
-pos = mne.find_layout(epochs.info).pos
-
 # organize data for plotting
 evokeds = {cond: epochs[cond].average() for cond in event_id}
 
@@ -146,8 +142,11 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
     fig, ax_topo = plt.subplots(1, 1, figsize=(10, 3))
 
     # plot average test statistic and mark significant sensors
-    image, _ = plot_topomap(f_map, pos, mask=mask, axes=ax_topo, cmap='Reds',
-                            vmin=np.min, vmax=np.max, show=False)
+    f_evoked = mne.EvokedArray(f_map[:, np.newaxis], epochs.info, tmin=0)
+    f_evoked.plot_topomap(times=0, mask=mask, axes=ax_topo, cmap='Reds',
+                          vmin=np.min, vmax=np.max, show=False,
+                          colorbar=False, mask_params=dict(markersize=10))
+    image = ax_topo.images[0]
 
     # create additional axes (for ERF and colorbar)
     divider = make_axes_locatable(ax_topo)

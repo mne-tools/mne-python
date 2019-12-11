@@ -451,21 +451,24 @@ def test_plot_sensors():
     # Click with no sensors
     _fake_click(fig, ax, (0., 0.), xform='data')
     _fake_click(fig, ax, (0, 0.), xform='data', kind='release')
-    assert len(fig.lasso.selection) == 0
+    assert fig.lasso.selection == []
 
-    # Lasso with 1 sensor
-    _fake_click(fig, ax, (-0.5, 0.5), xform='data')
+    # Lasso with 1 sensor (upper left)
+    _fake_click(fig, ax, (0, 1), xform='ax')
     plt.draw()
-    _fake_click(fig, ax, (0., 0.5), xform='data', kind='motion')
-    _fake_click(fig, ax, (0., 0.), xform='data', kind='motion')
+    assert fig.lasso.selection == []
+    _fake_click(fig, ax, (0.65, 1), xform='ax', kind='motion')
+    _fake_click(fig, ax, (0.65, 0.65), xform='ax', kind='motion')
     fig.canvas.key_press_event('control')
-    _fake_click(fig, ax, (-0.5, 0.), xform='data', kind='release')
-    assert len(fig.lasso.selection) == 1
+    _fake_click(fig, ax, (0, 0.65), xform='ax', kind='release')
+    assert fig.lasso.selection == ['MEG 0121']
 
-    _fake_click(fig, ax, (-0.09, -0.43), xform='data')  # single selection
-    assert len(fig.lasso.selection) == 2
-    _fake_click(fig, ax, (-0.09, -0.43), xform='data')  # deselect
-    assert len(fig.lasso.selection) == 1
+    _fake_click(fig, ax, (0.7, 1), xform='ax', kind='motion')
+    xy = ax.collections[0].get_offsets()
+    _fake_click(fig, ax, xy[2], xform='data')  # single selection
+    assert fig.lasso.selection == ['MEG 0121', 'MEG 0131']
+    _fake_click(fig, ax, xy[2], xform='data')  # deselect
+    assert fig.lasso.selection == ['MEG 0121']
     plt.close('all')
 
 

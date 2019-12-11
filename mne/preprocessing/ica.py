@@ -1564,7 +1564,8 @@ class ICA(ContainsMixin):
                         colorbar=False, title=None, show=True, outlines='head',
                         contours=6, image_interp='bilinear', head_pos=None,
                         inst=None, plot_std=True, topomap_args=None,
-                        image_args=None, psd_args=None, reject='auto'):
+                        image_args=None, psd_args=None, reject='auto',
+                        sphere=None):
         return plot_ica_components(self, picks=picks, ch_type=ch_type,
                                    res=res, layout=layout, vmin=vmin,
                                    vmax=vmax, cmap=cmap, sensors=sensors,
@@ -1575,7 +1576,7 @@ class ICA(ContainsMixin):
                                    plot_std=plot_std,
                                    topomap_args=topomap_args,
                                    image_args=image_args, psd_args=psd_args,
-                                   reject=reject)
+                                   reject=reject, sphere=sphere)
 
     @copy_function_doc_to_method_doc(plot_ica_properties)
     def plot_properties(self, inst, picks=None, axes=None, dB=True,
@@ -2435,8 +2436,8 @@ def _find_max_corrs(all_maps, target, threshold):
 
 @verbose
 def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
-            plot=True, show=True, verbose=None, outlines='head', layout=None,
-            sensors=True, contours=6, cmap=None):
+            plot=True, show=True, outlines='head', layout=None,
+            sensors=True, contours=6, cmap=None, sphere=None, verbose=None):
     """Find similar Independent Components across subjects by map similarity.
 
     Corrmap (Viola et al. 2009 Clin Neurophysiol) identifies the best group
@@ -2493,20 +2494,8 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         to True.
     show : bool
         Show figures if True.
-    %(verbose)s
-    outlines : 'head' | dict | None
-        The outlines to be drawn. If 'head', a head scheme will be drawn. If
-        dict, each key refers to a tuple of x and y positions. The values in
-        'mask_pos' will serve as image mask. If None, nothing will be drawn.
-        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
-        trigger automated shrinking of the positions due to points outside the
-        outline. Moreover, a matplotlib patch object can be passed for
-        advanced masking options, either directly or as a function that returns
-        patches (required for multi-axis plots).
-    layout : None | Layout | list of Layout
-        Layout instance specifying sensor positions (does not need to be
-        specified for Neuromag data). Or a list of Layout if projections
-        are from different sensor types.
+    %(topomap_outlines)s
+    %(layout_dep)s
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., 'r+' for red plusses). If True, a circle will be
@@ -2520,6 +2509,8 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     cmap : None | matplotlib colormap
         Colormap for the plot. If ``None``, defaults to 'Reds_r' for norm data,
         otherwise to 'RdBu_r'.
+    %(topomap_sphere_auto)s
+    %(verbose)s
 
     Returns
     -------
@@ -2563,13 +2554,14 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
             template_fig = icas[template[0]].plot_components(
                 picks=template[1], ch_type=ch_type, title=ttl,
                 outlines=outlines, cmap=cmap, contours=contours, layout=layout,
-                show=show)
+                show=show, topomap_args=dict(sphere=sphere))
         else:  # plotting an array
             template_fig = _plot_corrmap([template], [0], [0], ch_type,
                                          icas[0].copy(), "Template",
                                          outlines=outlines, cmap=cmap,
                                          contours=contours, layout=layout,
-                                         show=show, template=True)
+                                         show=show, template=True,
+                                         sphere=sphere)
         template_fig.subplots_adjust(top=0.8)
         template_fig.canvas.draw()
 
@@ -2626,7 +2618,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         labelled_ics = _plot_corrmap(allmaps, subjs, indices, ch_type, ica,
                                      label, outlines=outlines, cmap=cmap,
                                      contours=contours, layout=layout,
-                                     show=show)
+                                     show=show, sphere=sphere)
         return template_fig, labelled_ics
     else:
         return None

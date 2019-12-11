@@ -33,7 +33,7 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _CheckInside)
 from .utils import (get_subjects_dir, check_fname, logger, verbose,
                     _ensure_int, check_version, _get_call_line, warn,
-                    _check_fname, _check_path_like, has_nibabel)
+                    _check_fname, _check_path_like, has_nibabel, _check_sphere)
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
@@ -1487,10 +1487,11 @@ def setup_source_space(subject, spacing='oct6', surface='white',
 
 @verbose
 def setup_volume_source_space(subject=None, pos=5.0, mri=None,
-                              sphere=(0.0, 0.0, 0.0, 90.0), bem=None,
+                              sphere=None, bem=None,
                               surface=None, mindist=5.0, exclude=0.0,
                               subjects_dir=None, volume_label=None,
-                              add_interpolator=True, verbose=None):
+                              add_interpolator=True, sphere_units=None,
+                              verbose=None):
     """Set up a volume source space with grid spacing or discrete source space.
 
     Parameters
@@ -1517,9 +1518,11 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         else it will stay None.
     sphere : ndarray, shape (4,) | ConductorModel
         Define spherical source space bounds using origin and radius given
-        by (ox, oy, oz, rad) in mm. Only used if ``bem`` and ``surface``
-        are both None. Can also be a spherical ConductorModel, which will
-        use the origin and radius.
+        by (ox, oy, oz, rad) in ``sphere_units``.
+        Only used if ``bem`` and ``surface`` are both None. Can also be a
+        spherical ConductorModel, which will use the origin and radius.
+        The default (None) is a temporary alias for ``(0.0, 0.0, 0.0, 0.09)``
+        in meters.
     bem : str | None | ConductorModel
         Define source space bounds using a BEM file (specifically the inner
         skull surface) or a ConductorModel for a 1-layer of 3-layers BEM.
@@ -1538,6 +1541,11 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
     add_interpolator : bool
         If True and ``mri`` is not None, then an interpolation matrix
         will be produced.
+    sphere_units : str
+        Defaults to ``"mm"`` in 0.20 but will change to ``"m"`` in 0.21.
+        Set it explicitly to avoid warnings.
+
+        .. versionadded:: 0.20
     %(verbose)s
 
     Returns
@@ -1617,17 +1625,14 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
                                  'check  freesurfer lookup table.'
                                  % (label, mri))
 
-    if isinstance(sphere, ConductorModel):
-        if not sphere['is_sphere'] or len(sphere['layers']) == 0:
-            raise ValueError('sphere, if a ConductorModel, must be spherical '
-                             'with multiple layers, not a BEM or single-layer '
-                             'sphere (got %s)' % (sphere,))
-        sphere = tuple(1000 * sphere['r0']) + (1000 *
-                                               sphere['layers'][0]['rad'],)
-    sphere = np.asarray(sphere, dtype=float)
-    if sphere.size != 4:
-        raise ValueError('"sphere" must be array_like with 4 elements, got: %s'
-                         % (sphere,))
+    if sphere is None:  # just allow this until deprecation is over
+        sphere = np.array((0.0, 0.0, 0.0, 90.0))
+        if isinstance(sphere_units, str) and sphere_units == 'm':
+            sphere /= 1000.
+        else:
+            sphere_units = 'mm'
+    need_warn = sphere_units is None and not isinstance(sphere, ConductorModel)
+    sphere = _check_sphere(sphere, sphere_units=sphere_units)
 
     # triage bounding argument
     if bem is not None:
@@ -1647,8 +1652,12 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         logger.info('Boundary surface file : %s', surf_extra)
     else:
         logger.info('Sphere                : origin at (%.1f %.1f %.1f) mm'
-                    % (sphere[0], sphere[1], sphere[2]))
-        logger.info('              radius  : %.1f mm' % sphere[3])
+                    % (1000 * sphere[0], 1000 * sphere[1], 1000 * sphere[2]))
+        logger.info('              radius  : %.1f mm' % (1000 * sphere[3],))
+        if need_warn:
+            warn('sphere_units defaults to mm in 0.20 but will change to m in '
+                 '0.21, set it explicitly to avoid this warning',
+                 DeprecationWarning)
 
     # triage pos argument
     if isinstance(pos, dict):
@@ -1713,7 +1722,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
             surf['rr'] *= 1e-3  # must be converted to meters
         else:  # Load an icosahedron and use that as the surface
             logger.info('Setting up the sphere...')
-            surf = dict(R=sphere[3] / 1000., r0=sphere[:3] / 1000.)
+            surf = dict(R=sphere[3], r0=sphere[:3])
         # Make the grid of sources in MRI space
         if volume_label is not None:
             sp = []
@@ -1725,6 +1734,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         else:
             sp = [_make_volume_source_space(surf, pos, exclude, mindist, mri,
                                             volume_label)]
+    del sphere
     if volume_label is None:
         volume_label = ['the whole brain']
     assert len(volume_label) == len(sp)

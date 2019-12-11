@@ -283,14 +283,14 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              xlim='tight', proj=False, hline=None, units=None, scalings=None,
              titles=None, axes=None, gfp=False, window_title=None,
              spatial_colors=False, zorder='unsorted', selectable=True,
-             noise_cov=None, time_unit='s', verbose=None):
+             noise_cov=None, time_unit='s', sphere=None, verbose=None):
         return plot_evoked(
             self, picks=picks, exclude=exclude, unit=unit, show=show,
             ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
             scalings=scalings, titles=titles, axes=axes, gfp=gfp,
             window_title=window_title, spatial_colors=spatial_colors,
             zorder=zorder, selectable=selectable, noise_cov=noise_cov,
-            time_unit=time_unit, verbose=verbose)
+            time_unit=time_unit, sphere=sphere, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_evoked_image)
     def plot_image(self, picks=None, exclude='bads', unit=True, show=True,
@@ -298,13 +298,14 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                    scalings=None, titles=None, axes=None, cmap='RdBu_r',
                    colorbar=True, mask=None, mask_style=None,
                    mask_cmap='Greys', mask_alpha=.25, time_unit='s',
-                   show_names=None, group_by=None):
+                   show_names=None, group_by=None, sphere=None):
         return plot_evoked_image(
             self, picks=picks, exclude=exclude, unit=unit, show=show,
             clim=clim, xlim=xlim, proj=proj, units=units, scalings=scalings,
             titles=titles, axes=axes, cmap=cmap, colorbar=colorbar, mask=mask,
             mask_style=mask_style, mask_cmap=mask_cmap, mask_alpha=mask_alpha,
-            time_unit=time_unit, show_names=show_names, group_by=group_by)
+            time_unit=time_unit, show_names=show_names, group_by=group_by,
+            sphere=sphere)
 
     @copy_function_doc_to_method_doc(plot_evoked_topo)
     def plot_topo(self, layout=None, layout_scale=0.945, color=None,
@@ -333,7 +334,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                      proj=False, show=True, show_names=False, title=None,
                      mask=None, mask_params=None, outlines='head',
                      contours=6, image_interp='bilinear', average=None,
-                     head_pos=None, axes=None, extrapolate='box'):
+                     head_pos=None, axes=None, extrapolate='box', sphere=None):
         return plot_evoked_topomap(
             self, times=times, ch_type=ch_type, layout=layout, vmin=vmin,
             vmax=vmax, cmap=cmap, sensors=sensors, colorbar=colorbar,
@@ -343,7 +344,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             show_names=show_names, title=title, mask=mask,
             mask_params=mask_params, outlines=outlines, contours=contours,
             image_interp=image_interp, average=average, head_pos=head_pos,
-            axes=axes, extrapolate=extrapolate)
+            axes=axes, extrapolate=extrapolate, sphere=sphere)
 
     @copy_function_doc_to_method_doc(plot_evoked_field)
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
@@ -353,10 +354,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @copy_function_doc_to_method_doc(plot_evoked_white)
     def plot_white(self, noise_cov, show=True, rank=None, time_unit='s',
-                   verbose=None):
+                   sphere=None, verbose=None):
         return plot_evoked_white(
             self, noise_cov=noise_cov, rank=rank, show=show,
-            time_unit=time_unit, verbose=verbose)
+            time_unit=time_unit, sphere=sphere, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_evoked_joint)
     def plot_joint(self, times="peaks", title='', picks=None,
@@ -366,8 +367,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                  exclude=exclude, show=show, ts_args=ts_args,
                                  topomap_args=topomap_args)
 
+    @fill_doc
     def animate_topomap(self, ch_type=None, times=None, frame_rate=None,
-                        butterfly=False, blit=True, show=True, time_unit='s'):
+                        butterfly=False, blit=True, show=True, time_unit='s',
+                        sphere=None):
         """Make animation of evoked data as topomap timeseries.
 
         The animation can be paused/resumed with left mouse button.
@@ -401,6 +404,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             or "s" (will become the default in 0.17).
 
             .. versionadded:: 0.16
+        %(topomap_sphere_auto)s
 
         Returns
         -------
@@ -415,7 +419,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """
         return _topomap_animation(
             self, ch_type=ch_type, times=times, frame_rate=frame_rate,
-            butterfly=butterfly, blit=blit, show=show, time_unit=time_unit)
+            butterfly=butterfly, blit=blit, show=show, time_unit=time_unit,
+            sphere=sphere)
 
     def as_type(self, ch_type='grad', mode='fast'):
         """Compute virtual evoked using interpolated fields.
@@ -673,7 +678,7 @@ class EvokedArray(Evoked):
 
         if data.ndim != 2:
             raise ValueError('Data must be a 2D array of shape (n_channels, '
-                             'n_samples)')
+                             'n_samples), got shape %s' % (data.shape,))
 
         if len(info['ch_names']) != np.shape(data)[0]:
             raise ValueError('Info (%s) and data (%s) must have same number '

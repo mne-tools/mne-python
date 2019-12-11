@@ -1061,7 +1061,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                  xscale='linear', area_mode='std', area_alpha=0.33,
                  dB=True, estimate='auto', show=True, n_jobs=1,
                  average=False, line_alpha=None, spatial_colors=True,
-                 verbose=None):
+                 sphere=None, verbose=None):
         return plot_epochs_psd(self, fmin=fmin, fmax=fmax, tmin=tmin,
                                tmax=tmax, proj=proj, bandwidth=bandwidth,
                                adaptive=adaptive, low_bias=low_bias,
@@ -1070,7 +1070,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                                area_alpha=area_alpha, dB=dB, estimate=estimate,
                                show=show, n_jobs=n_jobs, average=average,
                                line_alpha=line_alpha,
-                               spatial_colors=spatial_colors, verbose=verbose)
+                               spatial_colors=spatial_colors, sphere=sphere,
+                               verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd_topomap)
     def plot_psd_topomap(self, bands=None, vmin=None, vmax=None, tmin=None,
@@ -1078,14 +1079,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                          low_bias=True, normalization='length', ch_type=None,
                          layout=None, cmap='RdBu_r', agg_fun=None, dB=True,
                          n_jobs=1, normalize=False, cbar_fmt='%0.3f',
-                         outlines='head', axes=None, show=True, verbose=None):
+                         outlines='head', axes=None, show=True,
+                         sphere=None, verbose=None):
         return plot_epochs_psd_topomap(
             self, bands=bands, vmin=vmin, vmax=vmax, tmin=tmin, tmax=tmax,
             proj=proj, bandwidth=bandwidth, adaptive=adaptive,
             low_bias=low_bias, normalization=normalization, ch_type=ch_type,
             layout=layout, cmap=cmap, agg_fun=agg_fun, dB=dB, n_jobs=n_jobs,
             normalize=normalize, cbar_fmt=cbar_fmt, outlines=outlines,
-            axes=axes, show=show, verbose=verbose)
+            axes=axes, show=show, sphere=sphere, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_topo_image_epochs)
     def plot_topo_image(self, layout=None, sigma=0., vmin=None, vmax=None,

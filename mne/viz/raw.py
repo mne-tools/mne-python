@@ -566,7 +566,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
                  picks=None, ax=None, color='black', xscale='linear',
                  area_mode='std', area_alpha=0.33, dB=True, estimate='auto',
                  show=True, n_jobs=1, average=False, line_alpha=None,
-                 spatial_colors=True, verbose=None):
+                 spatial_colors=True, sphere=None, verbose=None):
     """%(plot_psd_doc)s.
 
     Parameters
@@ -609,6 +609,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     %(plot_psd_average)s
     %(plot_psd_line_alpha)s
     %(plot_psd_spatial_colors)s
+    %(topomap_sphere_auto)s
     %(verbose)s
 
     Returns
@@ -637,7 +638,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     fig = _plot_psd(raw, fig, freqs, psd_list, picks_list, titles_list,
                     units_list, scalings_list, ax_list, make_label, color,
                     area_mode, area_alpha, dB, estimate, average,
-                    spatial_colors, xscale, line_alpha)
+                    spatial_colors, xscale, line_alpha, sphere)
     plt_show(show)
     return fig
 

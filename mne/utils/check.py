@@ -580,3 +580,47 @@ def _check_pyqt5_version():
              % (version,))
 
     return version
+
+
+def _check_sphere(sphere, info=None, sphere_units='m'):
+    from ..defaults import HEAD_SIZE_DEFAULT
+    from ..bem import fit_sphere_to_headshape, ConductorModel, get_fitting_dig
+    if sphere is None:
+        sphere = HEAD_SIZE_DEFAULT
+        if info is not None:
+            # Decide if we have enough dig points to do the auto fit
+            try:
+                get_fitting_dig(info, 'extra', verbose='error')
+            except (RuntimeError, ValueError):
+                pass
+            else:
+                sphere = 'auto'
+    if isinstance(sphere, str):
+        if sphere != 'auto':
+            raise ValueError('sphere, if str, must be "auto", got %r'
+                             % (sphere))
+        R, r0, _ = fit_sphere_to_headshape(info, verbose=False, units='m')
+        sphere = tuple(r0) + (R,)
+        sphere_units = 'm'
+    elif isinstance(sphere, ConductorModel):
+        if not sphere['is_sphere'] or len(sphere['layers']) == 0:
+            raise ValueError('sphere, if a ConductorModel, must be spherical '
+                             'with multiple layers, not a BEM or single-layer '
+                             'sphere (got %s)' % (sphere,))
+        sphere = tuple(sphere['r0']) + (sphere['layers'][0]['rad'],)
+        sphere_units = 'm'
+    sphere = np.array(sphere, dtype=float)
+    if sphere.shape == ():
+        sphere = np.concatenate([[0.] * 3, [sphere]])
+    if sphere.shape != (4,):
+        raise ValueError('sphere must be float or 1D array of shape (4,), got '
+                         'array-like of shape %s' % (sphere.shape,))
+    # 0.21 deprecation can just remove this conversion
+    if sphere_units is None:
+        sphere_units = 'mm'
+    _check_option('sphere_units', sphere_units, ('m', 'mm'))
+    if sphere_units == 'mm':
+        sphere /= 1000.
+
+    sphere = np.array(sphere, float)
+    return sphere

@@ -125,14 +125,14 @@ mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
 
 ###############################################################################
 # To compute a volume based source space defined with a grid of candidate
-# dipoles inside a sphere of radius 90mm centered at (0.0, 0.0, 40.0)
+# dipoles inside a sphere of radius 90mm centered at (0.0, 0.0, 40.0) mm
 # you can use the following code.
 # Obviously here, the sphere is not perfect. It is not restricted to the
 # brain and it can miss some parts of the cortex.
 
-sphere = (0.0, 0.0, 40.0, 90.0)
+sphere = (0.0, 0.0, 0.04, 0.09)
 vol_src = mne.setup_volume_source_space(subject, subjects_dir=subjects_dir,
-                                        sphere=sphere)
+                                        sphere=sphere, sphere_units='m')
 print(vol_src)
 
 mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,

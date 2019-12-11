@@ -1352,10 +1352,7 @@ class AverageTFR(_BaseTFR):
             Call pyplot.show() at the end.
         title : str | None
             String for title. Defaults to None (blank/no title).
-        layout : Layout | None
-            Layout instance specifying sensor positions. Used for interactive
-            plotting of topographies on rectangle selection. If possible, the
-            correct layout is inferred from the data.
+        %(layout_dep)s
         yscale : 'auto' (default) | 'linear' | 'log'
             The scale of y (frequency) axis. 'linear' gives linear y axis,
             'log' leads to log-spaced y axis and 'auto' detects if frequencies
@@ -1786,13 +1783,14 @@ class AverageTFR(_BaseTFR):
         plt_show(show)
         return fig
 
+    @fill_doc
     def plot_topomap(self, tmin=None, tmax=None, fmin=None, fmax=None,
                      ch_type=None, baseline=None, mode='mean', layout=None,
                      vmin=None, vmax=None, cmap=None, sensors=True,
                      colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
                      axes=None, show=True, outlines='head', head_pos=None,
-                     contours=6):
+                     contours=6, sphere=None):
         """Plot topographic maps of time-frequency intervals of TFR data.
 
         Parameters
@@ -1836,13 +1834,7 @@ class AverageTFR(_BaseTFR):
             - dividing by the mean of baseline values, taking the log, and
               dividing by the standard deviation of log baseline values
               ('zlogratio')
-
-        layout : None | Layout
-            Layout instance specifying sensor positions (does not need to
-            be specified for Neuromag data). If possible, the correct layout
-            file is inferred from the data; if no appropriate layout file was
-            found, the layout is automatically generated from the sensor
-            locations.
+        %(layout_dep)s
         vmin : float | callable | None
             The value specifying the lower bound of the color range. If None,
             and vmax is None, -vmax is used. Else np.min(data) or in case
@@ -1889,22 +1881,8 @@ class AverageTFR(_BaseTFR):
             The axes to plot to. If None the axes is defined automatically.
         show : bool
             Call pyplot.show() at the end.
-        outlines : 'head' | 'skirt' | dict | None
-            The outlines to be drawn. If 'head', the default head scheme will
-            be drawn. If 'skirt' the head scheme will be drawn, but sensors are
-            allowed to be plotted outside of the head circle. If dict, each key
-            refers to a tuple of x and y positions, the values in 'mask_pos'
-            will serve as image mask, and the 'autoshrink' (bool) field will
-            trigger automated shrinking of the positions due to points outside
-            the outline. Alternatively, a matplotlib patch object can be passed
-            for advanced masking options, either directly or as a function that
-            returns patches (required for multi-axis plots). If None, nothing
-            will be drawn. Defaults to 'head'.
-        head_pos : dict | None
-            If None (default), the sensors are positioned such that they span
-            the head circle. If dict, can have entries 'center' (tuple) and
-            'scale' (tuple) for what the center and scale of the head should be
-            relative to the electrode locations.
+        %(topomap_outlines)s
+        %(topomap_head_pos)s
         contours : int | array of float
             The number of contour lines to draw. If 0, no contours will be
             drawn. When an integer, matplotlib ticker locator is used to find
@@ -1912,6 +1890,7 @@ class AverageTFR(_BaseTFR):
             inaccurate, use array for accuracy). If an array, the values
             represent the levels for the contours. If colorbar=True, the ticks
             in colorbar correspond to the contour levels. Defaults to 6.
+        %(topomap_sphere_auto)s
 
         Returns
         -------
@@ -1927,7 +1906,7 @@ class AverageTFR(_BaseTFR):
                                 cbar_fmt=cbar_fmt, show_names=show_names,
                                 title=title, axes=axes, show=show,
                                 outlines=outlines, head_pos=head_pos,
-                                contours=contours)
+                                contours=contours, sphere=sphere)
 
     def _check_compat(self, tfr):
         """Check that self and tfr have the same time-frequency ranges."""

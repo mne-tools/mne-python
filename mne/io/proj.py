@@ -8,7 +8,6 @@
 from copy import deepcopy
 from itertools import count
 from math import sqrt
-import warnings
 
 import numpy as np
 from scipy import linalg
@@ -35,19 +34,21 @@ class Projection(dict):
         return "<Projection  |  %s>" % s
 
     @fill_doc
-    def plot_topomap(self, layout=None, cmap=None, sensors=True,
+    def plot_topomap(self, info, cmap=None, sensors=True,
                      colorbar=False, res=64, size=1, show=True,
                      outlines='head', contours=6, image_interp='bilinear',
-                     axes=None, vlim=(None, None), info=None):
+                     axes=None, vlim=(None, None), layout=None,
+                     sphere=None):
         """Plot topographic maps of SSP projections.
 
         Parameters
         ----------
-        %(proj_topomap_kwargs)s
         info : instance of Info | None
             The measurement information to use to determine the layout. If both
             ``info`` and ``layout`` are provided, the layout will take
             precedence.
+        %(proj_topomap_kwargs)s
+        %(topomap_sphere_auto)s
 
         Returns
         -------
@@ -59,10 +60,10 @@ class Projection(dict):
         .. versionadded:: 0.15.0
         """  # noqa: E501
         from ..viz.topomap import plot_projs_topomap
-        with warnings.catch_warnings(record=True):  # tight_layout fails
-            return plot_projs_topomap(self, layout, cmap, sensors, colorbar,
-                                      res, size, show, outlines,
-                                      contours, image_interp, axes, vlim, info)
+        return plot_projs_topomap(self, info, cmap, sensors, colorbar,
+                                  res, size, show, outlines,
+                                  contours, image_interp, axes, vlim, layout,
+                                  sphere=sphere)
 
 
 class ProjMixin(object):
@@ -236,7 +237,7 @@ class ProjMixin(object):
                            sensors=True, colorbar=False, res=64, size=1,
                            show=True, outlines='head', contours=6,
                            image_interp='bilinear', axes=None,
-                           vlim=(None, None)):
+                           vlim=(None, None), sphere=None):
         """Plot SSP vector.
 
         Parameters
@@ -246,7 +247,10 @@ class ProjMixin(object):
             ted in pairs and the RMS for each pair is plotted. If None
             (default), it will return all channel types present. If a list of
             ch_types is provided, it will return multiple figures.
+        layout : object
+            Deprecated, do not use.
         %(proj_topomap_kwargs)s
+        %(topomap_sphere_auto)s
 
         Returns
         -------
