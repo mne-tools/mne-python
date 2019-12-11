@@ -7,17 +7,6 @@ ERP decoding with Xdawn ([1]_, [2]_). For each event type, a set of
 spatial Xdawn filters are trained and applied on the signal. Channels are
 concatenated and rescaled to create features vectors that will be fed into
 a logistic regression.
-
-References
-----------
-.. [1] Rivet, B., Souloumiac, A., Attina, V., & Gibert, G. (2009). xDAWN
-       algorithm to enhance evoked potentials: application to brain-computer
-       interface. Biomedical Engineering, IEEE Transactions on, 56(8),
-       2035-2043.
-.. [2] Rivet, B., Cecotti, H., Souloumiac, A., Maby, E., & Mattout, J. (2011,
-       August). Theoretical analysis of xDAWN algorithm: application to an
-       efficient sensor selection in a P300 BCI. In Signal Processing
-       Conference, 2011 19th European (pp. 1382-1386). IEEE.
 """
 # Authors: Alexandre Barachant <alexandre.barachant@gmail.com>
 #
@@ -36,7 +25,6 @@ from mne import io, pick_types, read_events, Epochs, EvokedArray
 from mne.datasets import sample
 from mne.preprocessing import Xdawn
 from mne.decoding import Vectorizer
-from mne.viz import tight_layout
 
 
 print(__doc__)
@@ -48,7 +36,8 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 tmin, tmax = -0.1, 0.3
-event_id = dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4)
+event_id = {'Auditory/Left': 1, 'Auditory/Right': 2,
+            'Visual/Left': 3, 'Visual/Right': 4}
 n_filter = 3
 
 # Setup for reading the raw data
@@ -92,37 +81,43 @@ cm = confusion_matrix(labels, preds)
 cm_normalized = cm.astype(float) / cm.sum(axis=1)[:, np.newaxis]
 
 # Plot confusion matrix
-plt.imshow(cm_normalized, interpolation='nearest', cmap=plt.cm.Blues)
-plt.title('Normalized Confusion matrix')
-plt.colorbar()
+fig, ax = plt.subplots(1)
+im = ax.imshow(cm_normalized, interpolation='nearest', cmap=plt.cm.Blues)
+ax.set(title='Normalized Confusion matrix')
+fig.colorbar(im)
 tick_marks = np.arange(len(target_names))
 plt.xticks(tick_marks, target_names, rotation=45)
 plt.yticks(tick_marks, target_names)
-tight_layout()
-plt.ylabel('True label')
-plt.xlabel('Predicted label')
-plt.show()
-
+fig.tight_layout()
+ax.set(ylabel='True label', xlabel='Predicted label')
 
 ###############################################################################
 # The ``patterns_`` attribute of a fitted Xdawn instance (here from the last
 # cross-validation fold) can be used for visualization.
 
-fig, axes = plt.subplots(nrows=len(event_id), ncols=n_filter)
+fig, axes = plt.subplots(nrows=len(event_id), ncols=n_filter,
+                         figsize=(n_filter, len(event_id) * 2))
 fitted_xdawn = clf.steps[0][1]
-for i, (cur_class, cur_patterns) in enumerate(fitted_xdawn.patterns_.items()):
-    tmp_info = epochs.info.copy()
-    tmp_info['sfreq'] = 1.
+tmp_info = epochs.info.copy()
+tmp_info['sfreq'] = 1.
+for ii, cur_class in enumerate(sorted(event_id)):
+    cur_patterns = fitted_xdawn.patterns_[cur_class]
     pattern_evoked = EvokedArray(cur_patterns[:n_filter].T, tmp_info, tmin=0)
     pattern_evoked.plot_topomap(
-        times=np.arange(n_filter), ch_type=None,
-        scalings=None,
-        time_format='{} / comp. %01d'.format(cur_class),
-        colorbar=False,
-        head_pos={'center': [0, 0]},
-        show_names=False,
-        axes=axes[i, :],
-        extrapolate='head',
-        show=False)
-fig.subplots_adjust(hspace=0.3)
-plt.show()
+        times=np.arange(n_filter),
+        time_format='Component %d' if ii == 0 else '', colorbar=False,
+        show_names=False, axes=axes[ii], show=False)
+    axes[ii, 0].set(ylabel=cur_class)
+fig.tight_layout(h_pad=1.0, w_pad=1.0, pad=0.1)
+
+###############################################################################
+# References
+# ----------
+# .. [1] Rivet, B., Souloumiac, A., Attina, V., & Gibert, G. (2009). xDAWN
+#        algorithm to enhance evoked potentials: application to brain-computer
+#        interface. Biomedical Engineering, IEEE Transactions on, 56(8),
+#        2035-2043.
+# .. [2] Rivet, B., Cecotti, H., Souloumiac, A., Maby, E., & Mattout, J. (2011,
+#        August). Theoretical analysis of xDAWN algorithm: application to an
+#        efficient sensor selection in a P300 BCI. In Signal Processing
+#        Conference, 2011 19th European (pp. 1382-1386). IEEE.
