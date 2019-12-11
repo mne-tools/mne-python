@@ -1285,7 +1285,11 @@ def _check_dates(info):
                                           np.iinfo('>i4').max,
                                           value[key_2]),)
 
-    meas_date_stamp = _dt_to_stamp(info['meas_date'])
+    meas_date = info.get('meas_date')
+    if meas_date is None:
+        return
+
+    meas_date_stamp = _dt_to_stamp(meas_date)
     if (meas_date_stamp[0] < np.iinfo('>i4').min or
             meas_date_stamp[0] > np.iinfo('>i4').max):
         raise RuntimeError(

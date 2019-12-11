@@ -255,6 +255,13 @@ def test_read_write_info(tmpdir):
     info2 = read_info(tmp_fname_3)
     assert info2['meas_date'] is None
 
+    # Check that having a very old date in fine until you try to save it to fif
+    info['meas_date'] = datetime(1800, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    info._check_consistency()
+    fname = tmpdir.join('test.fif')
+    with pytest.raises(RuntimeError, match='must be between '):
+        write_info(fname, info)
+
 
 def test_io_dig_points(tmpdir):
     """Test Writing for dig files."""
