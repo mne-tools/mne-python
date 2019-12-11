@@ -1,5 +1,5 @@
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
@@ -128,10 +128,16 @@ def test_apply_reference():
         )
     )
     # Projection concerns channels mentioned in projector
-    pytest.raises(RuntimeError, _apply_reference, raw, ['EEG 001'])
+    with pytest.raises(RuntimeError, match='Inactive signal space'):
+        _apply_reference(raw, ['EEG 001'])
 
     # Projection does not concern channels mentioned in projector, no error
     _apply_reference(raw, ['EEG 003'], ['EEG 004'])
+
+    # CSD cannot be rereferenced
+    raw.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_CSD
+    with pytest.raises(RuntimeError, match="Cannot set.* type 'CSD'"):
+        raw.set_eeg_reference()
 
 
 @testing.requires_testing_data
@@ -161,39 +167,39 @@ def test_set_eeg_reference():
     raw_nopreload = read_raw_fif(fif_fname, preload=False)
     raw_nopreload.info['projs'] = []
     reref, ref_data = set_eeg_reference(raw_nopreload, projection=True)
-    assert (_has_eeg_average_ref_proj(reref.info['projs']))
-    assert (not reref.info['projs'][0]['active'])
+    assert _has_eeg_average_ref_proj(reref.info['projs'])
+    assert not reref.info['projs'][0]['active']
 
     # Rereference raw data by creating a copy of original data
     reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'], copy=True)
-    assert (reref.info['custom_ref_applied'])
+    assert reref.info['custom_ref_applied']
     _test_reference(raw, reref, ref_data, ['EEG 001', 'EEG 002'])
 
     # Test that data is modified in place when copy=False
     reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'],
                                         copy=False)
-    assert (raw is reref)
+    assert raw is reref
 
     # Test moving from custom to average reference
     reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'])
     reref, _ = set_eeg_reference(reref, projection=True)
-    assert (_has_eeg_average_ref_proj(reref.info['projs']))
-    assert_equal(reref.info['custom_ref_applied'], False)
+    assert _has_eeg_average_ref_proj(reref.info['projs'])
+    assert not reref.info['custom_ref_applied']
 
     # When creating an average reference fails, make sure the
     # custom_ref_applied flag remains untouched.
     reref = raw.copy()
-    reref.info['custom_ref_applied'] = True
+    reref.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
     reref.pick_types(eeg=False)  # Cause making average ref fail
     pytest.raises(ValueError, set_eeg_reference, reref, projection=True)
-    assert (reref.info['custom_ref_applied'])
+    assert reref.info['custom_ref_applied'] == FIFF.FIFFV_MNE_CUSTOM_REF_ON
 
     # Test moving from average to custom reference
     reref, ref_data = set_eeg_reference(raw, projection=True)
     reref, _ = set_eeg_reference(reref, ['EEG 001', 'EEG 002'])
     assert not _has_eeg_average_ref_proj(reref.info['projs'])
     assert len(reref.info['projs']) == 0
-    assert_equal(reref.info['custom_ref_applied'], True)
+    assert reref.info['custom_ref_applied'] == FIFF.FIFFV_MNE_CUSTOM_REF_ON
 
     # Test that disabling the reference does not change the data
     assert _has_eeg_average_ref_proj(raw.info['projs'])

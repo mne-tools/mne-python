@@ -141,6 +141,34 @@ class _PLVEst(_EpochMeanConEstBase):
         self.con_scores[con_idx] = plv
 
 
+class _ciPLVEst(_EpochMeanConEstBase):
+    """corrected imaginary PLV Estimator."""
+
+    name = 'ciPLV'
+
+    def __init__(self, n_cons, n_freqs, n_times):
+        super(_ciPLVEst, self).__init__(n_cons, n_freqs, n_times)
+
+        # allocate accumulator
+        self._acc = np.zeros(self.csd_shape, dtype=np.complex128)
+
+    def accumulate(self, con_idx, csd_xy):
+        """Accumulate some connections."""
+        self._acc[con_idx] += csd_xy / np.abs(csd_xy)
+
+    def compute_con(self, con_idx, n_epochs):
+        """Compute final con. score for some connections."""
+        if self.con_scores is None:
+            self.con_scores = np.zeros(self.csd_shape)
+        imag_plv = np.abs(np.imag(self._acc)) / n_epochs
+        real_plv = np.real(self._acc) / n_epochs
+        real_plv = np.clip(real_plv, -1, 1)  # bounded from -1 to 1
+        mask = (np.abs(real_plv) == 1)  # avoid division by 0
+        real_plv[mask] = 0
+        corrected_imag_plv = imag_plv / np.sqrt(1 - real_plv ** 2)
+        self.con_scores[con_idx] = corrected_imag_plv
+
+
 class _PLIEst(_EpochMeanConEstBase):
     """PLI Estimator."""
 
@@ -481,9 +509,9 @@ def _get_and_verify_data_sizes(data, n_signals=None, n_times=None, times=None):
 
 # map names to estimator types
 _CON_METHOD_MAP = {'coh': _CohEst, 'cohy': _CohyEst, 'imcoh': _ImCohEst,
-                   'plv': _PLVEst, 'ppc': _PPCEst, 'pli': _PLIEst,
-                   'pli2_unbiased': _PLIUnbiasedEst, 'wpli': _WPLIEst,
-                   'wpli2_debiased': _WPLIDebiasedEst}
+                   'plv': _PLVEst, 'ciplv': _ciPLVEst, 'ppc': _PPCEst,
+                   'pli': _PLIEst, 'pli2_unbiased': _PLIUnbiasedEst,
+                   'wpli': _WPLIEst, 'wpli2_debiased': _WPLIDebiasedEst}
 
 
 def _check_estimators(method, mode):
@@ -541,7 +569,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         number of time points as stc_*. The array-like object can also
         be a list/generator of array, shape =(n_signals, n_times),
         or a list/generator of SourceEstimate or VolSourceEstimate objects.
-    method : string | list of string
+    method : str | list of str
         Connectivity measure(s) to compute.
     indices : tuple of array | None
         Two arrays with indices of connections for which to compute
@@ -562,7 +590,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     fskip : int
         Omit every "(fskip + 1)-th" frequency bin to decimate in frequency
         domain.
-    faverage : boolean
+    faverage : bool
         Average connectivity scores for each frequency band. If True,
         the output freqs will be a list with arrays of the frequencies
         that were averaged.
@@ -587,7 +615,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         bandwidth. Only used in 'multitaper' mode.
     cwt_freqs : array
         Array of frequencies of interest. Only used in 'cwt_morlet' mode.
-    cwt_n_cycles: float | array of float
+    cwt_n_cycles : float | array of float
         Number of cycles. Fixed number or one per frequency. Only used in
         'cwt_morlet' mode.
     block_size : int
@@ -670,23 +698,28 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
             PLV = |E[Sxy/|Sxy|]|
 
-        'ppc' : Pairwise Phase Consistency (PPC), an unbiased estimator
-        of squared PLV [3]_.
+        'ciplv' : corrected imaginary PLV (icPLV) [3]_ given by::
 
-        'pli' : Phase Lag Index (PLI) [4]_ given by::
+                             |E[Im(Sxy/|Sxy|)]|
+            ciPLV = ------------------------------------
+                     sqrt(1 - |E[real(Sxy/|Sxy|)]| ** 2)
+
+        'ppc' : Pairwise Phase Consistency (PPC), an unbiased estimator
+        of squared PLV [4]_.
+
+        'pli' : Phase Lag Index (PLI) [5]_ given by::
 
             PLI = |E[sign(Im(Sxy))]|
 
-        'pli2_unbiased' : Unbiased estimator of squared PLI [5]_.
+        'pli2_unbiased' : Unbiased estimator of squared PLI [6]_.
 
-        'wpli' : Weighted Phase Lag Index (WPLI) [5]_ given by::
+        'wpli' : Weighted Phase Lag Index (WPLI) [6]_ given by::
 
                       |E[Im(Sxy)]|
             WPLI = ------------------
                       E[|Im(Sxy)|]
 
-        'wpli2_debiased' : Debiased estimator of squared WPLI [5]_.
-
+        'wpli2_debiased' : Debiased estimator of squared WPLI [6]_.
 
     References
     ----------
@@ -695,14 +728,17 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
            no. 10, pp. 2292-2307, Oct. 2004.
     .. [2] Lachaux et al. "Measuring phase synchrony in brain signals" Human
            brain mapping, vol. 8, no. 4, pp. 194-208, Jan. 1999.
-    .. [3] Vinck et al. "The pairwise phase consistency: a bias-free measure of
+    .. [3] Bruña et al. "Phase locking value revisited: teaching new tricks to
+           an old dog" Journal of Neural Engineering, vol. 15, no. 5, pp.
+           056011 , Jul. 2018.
+    .. [4] Vinck et al. "The pairwise phase consistency: a bias-free measure of
            rhythmic neuronal synchronization" NeuroImage, vol. 51, no. 1,
            pp. 112-122, May 2010.
-    .. [4] Stam et al. "Phase lag index: assessment of functional connectivity
+    .. [5] Stam et al. "Phase lag index: assessment of functional connectivity
            from multi channel EEG and MEG with diminished bias from common
            sources" Human brain mapping, vol. 28, no. 11, pp. 1178-1193,
            Nov. 2007.
-    .. [5] Vinck et al. "An improved index of phase-synchronization for
+    .. [6] Vinck et al. "An improved index of phase-synchronization for
            electro-physiological data in the presence of volume-conduction,
            noise and sample-size bias" NeuroImage, vol. 55, no. 4,
            pp. 1548-1565, Apr. 2011.

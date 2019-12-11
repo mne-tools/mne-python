@@ -18,7 +18,8 @@ import numpy as np
 from scipy import linalg
 
 from ..pick import pick_types
-from ...utils import verbose, logger, warn, fill_doc, _check_option
+from ...utils import (verbose, logger, warn, fill_doc, _check_option,
+                      _stamp_to_dt)
 from ...transforms import apply_trans, als_ras_trans
 from ..base import BaseRaw
 from ..utils import _mult_cal_one
@@ -29,7 +30,7 @@ from .constants import KIT, LEGACY_AMP_PARAMS
 from .coreg import read_mrk
 from ...event import read_events
 
-from ..._digitization._utils import _set_dig_kit
+from .._digitization import _set_dig_kit
 
 
 def _call_digitization(info, mrk, elp, hsp):
@@ -39,15 +40,14 @@ def _call_digitization(info, mrk, elp, hsp):
                else marker for marker in mrk]
         mrk = np.mean(mrk, axis=0)
 
-    # setup digitiztaion
-    if (mrk is not None and elp is not None and hsp is not None):
+    # setup digitization
+    if mrk is not None and elp is not None and hsp is not None:
         dig_points, dev_head_t = _set_dig_kit(mrk, elp, hsp)
         info['dig'] = dig_points
         info['dev_head_t'] = dev_head_t
-    elif (mrk is not None or elp is not None or hsp is not None):
-        err = ("mrk, elp and hsp need to be provided as a group (all or "
-               "none)")
-        raise ValueError(err)
+    elif mrk is not None or elp is not None or hsp is not None:
+        raise ValueError("mrk, elp and hsp need to be provided as a group "
+                         "(all or none)")
 
     return info
 
@@ -376,7 +376,7 @@ class EpochsKIT(BaseEpochs):
 
     @verbose
     def __init__(self, input_fname, events, event_id=None, tmin=0,
-                 baseline=None,  reject=None, flat=None, reject_tmin=None,
+                 baseline=None, reject=None, flat=None, reject_tmin=None,
                  reject_tmax=None, mrk=None, elp=None, hsp=None,
                  allow_unknown_format=False, verbose=None):  # noqa: D102
 
@@ -669,7 +669,8 @@ def get_kit_info(rawfile, allow_unknown_format):
 
     # Create raw.info dict for raw fif object with SQD data
     info = _empty_info(float(sqd['sfreq']))
-    info.update(meas_date=(create_time, 0), lowpass=sqd['lowpass'],
+    info.update(meas_date=_stamp_to_dt((create_time, 0)),
+                lowpass=sqd['lowpass'],
                 highpass=sqd['highpass'], kit_system_id=sysid)
 
     # Creates a list of dicts of meg channels for raw.info

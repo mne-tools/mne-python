@@ -13,7 +13,7 @@ from .general import (_get_signalfname, _get_ep_info, _extract, _get_blocks,
 from ..base import BaseRaw
 from ..constants import FIFF
 from ..meas_info import _empty_info
-from ..utils import _create_chs, _deprecate_montage
+from ..utils import _create_chs
 from ...utils import verbose, logger, warn
 from ...annotations import _sync_onset
 
@@ -185,7 +185,7 @@ def _read_header(input_fname):
                          category_lengths=[],
                          pre_baseline=0))
     else:
-        raise NotImplementedError('Only continuos files are supported')
+        raise NotImplementedError('Only continuous files are supported')
     info['unsegmented'] = unsegmented
     info.update(mff_hdr)
     return info
@@ -213,7 +213,7 @@ def _read_locs(filepath, chs, egi_info):
 
 
 @verbose
-def _read_raw_egi_mff(input_fname, montage='deprecated', eog=None, misc=None,
+def _read_raw_egi_mff(input_fname, eog=None, misc=None,
                       include=None, exclude=None, preload=False,
                       channel_naming='E%d', verbose=None):
     """Read EGI mff binary as raw object.
@@ -225,7 +225,6 @@ def _read_raw_egi_mff(input_fname, montage='deprecated', eog=None, misc=None,
     ----------
     input_fname : str
         Path to the raw file.
-    %(montage_deprecated)s
     eog : list or tuple
         Names of channels or list of indices that should be designated
         EOG channels. Default is None.
@@ -274,7 +273,7 @@ def _read_raw_egi_mff(input_fname, montage='deprecated', eog=None, misc=None,
 
     .. versionadded:: 0.15.0
     """
-    return RawMff(input_fname, montage, eog, misc, include, exclude,
+    return RawMff(input_fname, eog, misc, include, exclude,
                   preload, channel_naming, verbose)
 
 
@@ -282,7 +281,7 @@ class RawMff(BaseRaw):
     """RawMff class."""
 
     @verbose
-    def __init__(self, input_fname, montage='deprecated', eog=None, misc=None,
+    def __init__(self, input_fname, eog=None, misc=None,
                  include=None, exclude=None, preload=False,
                  channel_naming='E%d', verbose=None):
         """Init the RawMff class."""
@@ -420,8 +419,6 @@ class RawMff(BaseRaw):
             info, preload=preload, orig_format='float', filenames=[file_bin],
             last_samps=[egi_info['n_samples'] - 1], raw_extras=[egi_info],
             verbose=verbose)
-
-        _deprecate_montage(self, "read_raw_egi", montage)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of data."""

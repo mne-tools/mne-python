@@ -8,14 +8,14 @@ import numpy as np
 
 from mne import (pick_channels_regexp, pick_types, Epochs,
                  read_forward_solution, rename_channels,
-                 pick_info, pick_channels, create_info)
+                 pick_info, pick_channels, create_info, make_ad_hoc_cov)
 from mne import __file__ as _root_init_fname
 from mne.io import (read_raw_fif, RawArray, read_raw_bti, read_raw_kit,
                     read_info)
 from mne.io.pick import (channel_indices_by_type, channel_type,
                          pick_types_forward, _picks_by_type, _picks_to_idx,
                          get_channel_types, _DATA_CH_TYPES_SPLIT,
-                         _contains_ch_type)
+                         _contains_ch_type, pick_channels_cov)
 from mne.io.constants import FIFF
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
@@ -68,7 +68,10 @@ def _channel_type_old(info, idx):
     ch = info['chs'][idx]
 
     # iterate through all defined channel types until we find a match with ch
-    for t, rules in get_channel_types().items():
+    # go in order from most specific (most rules entries) to least specific
+    channel_types = sorted(
+        get_channel_types().items(), key=lambda x: len(x[1]))[::-1]
+    for t, rules in channel_types:
         for key, vals in rules.items():  # all keys must match the values
             if ch.get(key, None) not in np.array(vals):
                 break  # not channel type t, go to next iteration
@@ -248,6 +251,16 @@ def test_pick_chpi():
     assert 'ecog' not in channel_types
 
 
+def test_pick_csd():
+    """Test picking current source density channels."""
+    # Make sure we don't mis-classify cHPI channels
+    names = ['MEG 2331', 'MEG 2332', 'MEG 2333', 'A1', 'A2', 'Fz']
+    types = 'mag mag grad csd csd csd'.split()
+    info = create_info(names, 1024., types)
+    picks_by_type = [('mag', [0, 1]), ('grad', [2]), ('csd', [3, 4, 5])]
+    assert_indexing(info, picks_by_type, all_data=False)
+
+
 def test_pick_bio():
     """Test picking BIO channels."""
     names = 'A1 A2 Fz O BIO1 BIO2 BIO3'.split()
@@ -259,11 +272,12 @@ def test_pick_bio():
 
 def test_pick_fnirs():
     """Test picking fNIRS channels."""
-    names = 'A1 A2 Fz O hbo1 hbo2 hbr1'.split()
-    types = 'mag mag eeg eeg hbo hbo hbr'.split()
+    names = 'A1 A2 Fz O hbo1 hbo2 hbr1 fnirsRaw1 fnirsRaw2 fnirsOD1'.split()
+    types = 'mag mag eeg eeg hbo hbo hbr fnirs_raw fnirs_raw fnirs_od'.split()
     info = create_info(names, 1024., types)
     picks_by_type = [('mag', [0, 1]), ('eeg', [2, 3]),
-                     ('hbo', [4, 5]), ('hbr', [6])]
+                     ('hbo', [4, 5]), ('hbr', [6]),
+                     ('fnirs_raw', [7, 8]), ('fnirs_od', [9])]
     assert_indexing(info, picks_by_type)
 
 
@@ -492,6 +506,46 @@ def test_picks_to_idx():
     assert_array_equal(np.arange(len(info['ch_names'])),
                        _picks_to_idx(info, 'all'))
     assert_array_equal([0], _picks_to_idx(info, 'data'))
+    info = create_info(['a', 'b'], 1000., ['fnirs_raw', 'fnirs_od'])
+    assert_array_equal(np.arange(2), _picks_to_idx(info, 'fnirs'))
+    assert_array_equal([0], _picks_to_idx(info, 'fnirs_raw'))
+    assert_array_equal([1], _picks_to_idx(info, 'fnirs_od'))
+    info = create_info(['a', 'b'], 1000., ['fnirs_raw', 'misc'])
+    assert_array_equal(np.arange(len(info['ch_names'])),
+                       _picks_to_idx(info, 'all'))
+    assert_array_equal([0], _picks_to_idx(info, 'data'))
+    info = create_info(['a', 'b'], 1000., ['fnirs_od', 'misc'])
+    assert_array_equal(np.arange(len(info['ch_names'])),
+                       _picks_to_idx(info, 'all'))
+    assert_array_equal([0], _picks_to_idx(info, 'data'))
+
+
+def test_pick_channels_cov():
+    """Test picking channels from a Covariance object."""
+    info = create_info(['CH1', 'CH2', 'CH3'], 1., ch_types='eeg')
+    cov = make_ad_hoc_cov(info)
+    cov['data'] = np.array([1., 2., 3.])
+
+    cov_copy = pick_channels_cov(cov, ['CH2', 'CH1'], ordered=False, copy=True)
+    assert cov_copy.ch_names == ['CH1', 'CH2']
+    assert_array_equal(cov_copy['data'], [1., 2.])
+
+    # Test re-ordering channels
+    cov_copy = pick_channels_cov(cov, ['CH2', 'CH1'], ordered=True, copy=True)
+    assert cov_copy.ch_names == ['CH2', 'CH1']
+    assert_array_equal(cov_copy['data'], [2., 1.])
+
+    # Test picking in-place
+    pick_channels_cov(cov, ['CH2', 'CH1'], copy=False)
+    assert cov.ch_names == ['CH1', 'CH2']
+    assert_array_equal(cov['data'], [1., 2.])
+
+    # Test whether `method` and `loglik` are dropped when None
+    cov['method'] = None
+    cov['loglik'] = None
+    cov_copy = pick_channels_cov(cov, ['CH1', 'CH2'], copy=True)
+    assert 'method' not in cov_copy
+    assert 'loglik' not in cov_copy
 
 
 run_tests_if_main()

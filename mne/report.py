@@ -1,6 +1,6 @@
 """Generate self-contained HTML reports from MNE objects."""
 
-# Authors: Alex Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alex Gramfort <alexandre.gramfort@inria.fr>
 #          Mainak Jas <mainak@neuro.hut.fi>
 #          Teon Brooks <teon.brooks@gmail.com>
 #
@@ -21,8 +21,10 @@ import webbrowser
 import numpy as np
 
 from . import read_evokeds, read_events, pick_types, read_cov
-from .io import read_raw_fif, read_info, _stamp_to_dt
-from .utils import (logger, verbose, get_subjects_dir, warn, _import_mlab,
+from .fixes import _get_img_fdata
+from .io import read_raw_fif, read_info
+from .io.pick import _DATA_CH_TYPES_SPLIT
+from .utils import (logger, verbose, get_subjects_dir, warn,
                     fill_doc, _check_option)
 from .viz import plot_events, plot_alignment, plot_cov
 from .viz._3d import _plot_mri_contours
@@ -30,7 +32,6 @@ from .forward import read_forward_solution
 from .epochs import read_epochs
 from .minimum_norm import read_inverse_operator
 from .parallel import parallel_func, check_n_jobs
-from .viz.raw import _data_types
 
 from .externals.tempita import HTMLTemplate, Template
 from .externals.h5io import read_hdf5, write_hdf5
@@ -67,25 +68,17 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
         plt.close('all')
         fig = fig(**kwargs)
     elif not isinstance(fig, Figure):
-        mlab = None
-        try:
-            mlab = _import_mlab()
-        # on some systems importing Mayavi raises SystemExit (!)
-        except Exception:
-            is_mayavi = False
-        else:
-            import mayavi
-            is_mayavi = isinstance(fig, mayavi.core.scene.Scene)
-        if not is_mayavi:
-            raise TypeError('Each fig must be a matplotlib Figure, mayavi '
-                            'Scene, or NumPy ndarray, got %s (type %s)'
-                            % (fig, type(fig)))
-        if fig.scene is not None:
-            img = mlab.screenshot(figure=fig)
+        from .viz.backends.renderer import (
+            _check_3d_figure, _take_3d_screenshot,
+            _close_3d_figure, MNE_3D_BACKEND_TESTING
+        )
+        _check_3d_figure(figure=fig)
+        if not MNE_3D_BACKEND_TESTING:
+            img = _take_3d_screenshot(figure=fig)
         else:  # Testing mode
             img = np.zeros((2, 2, 3))
 
-        mlab.close(fig)
+        _close_3d_figure(figure=fig)
         fig = _ndarray_to_fig(img)
 
     output = BytesIO()
@@ -146,26 +139,27 @@ def _figs_to_mrislices(sl, n_jobs, **kwargs):
 def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
     import matplotlib.pyplot as plt
-    from mayavi import mlab, core
-    from pyface.api import GUI
+    from .viz.backends.renderer import (
+        _check_3d_figure, _take_3d_screenshot, _close_all,
+        _set_3d_view, MNE_3D_BACKEND_TESTING
+    )
+
     fig = function(**kwargs)
-    gui = GUI()
-    gui.process_events()
-    assert isinstance(fig, core.scene.Scene)
+    _check_3d_figure(fig)
 
     views = [(90, 90), (0, 90), (0, -90)]
     fig2, axes = plt.subplots(1, len(views))
     for view, ax in zip(views, axes):
-        mlab.view(view[0], view[1])
-        gui.process_events()
-        if fig.scene is not None:
-            im = mlab.screenshot(figure=fig)
+        _set_3d_view(fig, azimuth=view[0], elevation=view[1],
+                     focalpoint=None, distance=None)
+        if not MNE_3D_BACKEND_TESTING:
+            im = _take_3d_screenshot(figure=fig)
         else:  # Testing mode
             im = np.zeros((2, 2, 3))
         ax.imshow(im)
         ax.axis('off')
 
-    mlab.close(fig)
+    _close_all()
     img = _fig_to_img(fig2, image_format='png')
     return img
 
@@ -665,7 +659,7 @@ footer_template = HTMLTemplate(u"""
 <div class="footer">
         &copy; Copyright 2012-{{current_year}}, MNE Developers.
       Created on {{date}}.
-      Powered by <a href="http://martinos.org/mne">MNE.
+      Powered by <a href="http://mne.tools/">MNE.
 </div>
 </html>
 """)
@@ -839,9 +833,7 @@ class Report(object):
     ----------
     info_fname : str
         Name of the file containing the info dictionary.
-    subjects_dir : str | None
-        Path to the SUBJECTS_DIR. If None, the path is obtained by using
-        the environment variable SUBJECTS_DIR.
+    %(subjects_dir)s
     subject : str | None
         Subject name.
     title : str
@@ -947,10 +939,12 @@ class Report(object):
                 comments = [comments]
         if len(comments) != len(items):
             raise ValueError('Comments and report items must have the same '
-                             'length or comments should be None.')
+                             'length or comments should be None, got %d and %d'
+                             % (len(comments), len(items)))
         elif len(captions) != len(items):
             raise ValueError('Captions and report items must have the same '
-                             'length.')
+                             'length, got %d and %d'
+                             % (len(captions), len(items)))
 
         # Book-keeping of section names
         if section not in self.sections:
@@ -1123,7 +1117,6 @@ class Report(object):
         replace : bool
             If ``True``, figures already present that have the same caption
             will be replaced. Defaults to ``False``.
-
         """
         # Note: using scipy.misc is equivalent because scipy internally
         # imports PIL anyway. It's not possible to redirect image output
@@ -1211,13 +1204,10 @@ class Report(object):
             Use this decimation factor for generating MRI/BEM images
             (since it can be time consuming).
         %(n_jobs)s
-        subjects_dir : str | None
-            Path to the SUBJECTS_DIR. If None, the path is obtained by using
-            the environment variable SUBJECTS_DIR.
+        %(subjects_dir)s
         replace : bool
             If ``True``, figures already present that have the same caption
             will be replaced. Defaults to ``False``.
-
 
         Notes
         -----
@@ -1242,7 +1232,7 @@ class Report(object):
 
         Parameters
         ----------
-        figs : list of figures.
+        figs : list of Figure
             Each figure in the list can be an instance of
             :class:`matplotlib.figure.Figure`,
             :class:`mayavi.core.api.Scene`, or :class:`numpy.ndarray`.
@@ -1269,7 +1259,6 @@ class Report(object):
         replace : bool
             If ``True``, figures already present that have the same caption
             will be replaced. Defaults to ``False``.
-
 
         Notes
         -----
@@ -1776,7 +1765,7 @@ class Report(object):
             self._sectionvars['mri'] = 'mri'
 
         nim = nib.load(image)
-        data = nim.get_data()
+        data = _get_img_fdata(nim)
         shape = data.shape
         limits = {'sagittal': range(0, shape[0], 2),
                   'axial': range(0, shape[1], 2),
@@ -1813,7 +1802,7 @@ class Report(object):
             ecg = 'Not available'
         meas_date = raw.info['meas_date']
         if meas_date is not None:
-            meas_date = _stamp_to_dt(meas_date).strftime("%B %d, %Y") + ' GMT'
+            meas_date = meas_date.strftime("%B %d, %Y") + ' GMT'
 
         html = raw_template.substitute(
             div_klass='raw', id=global_id, caption=caption, info=raw.info,
@@ -1823,7 +1812,7 @@ class Report(object):
         raw_psd = {} if self.raw_psd is True else self.raw_psd
         if isinstance(raw_psd, dict):
             from matplotlib.backends.backend_agg import FigureCanvasAgg
-            n_ax = sum(kind in raw for kind in _data_types)
+            n_ax = sum(kind in raw for kind in _DATA_CH_TYPES_SPLIT)
             fig, axes = plt.subplots(n_ax, 1, figsize=(6, 1 + 1.5 * n_ax),
                                      dpi=92)
             FigureCanvasAgg(fig)
@@ -2013,7 +2002,7 @@ class Report(object):
                                           n_jobs=n_jobs)
         # XXX : find a better way to get max range of slices
         nim = nib.load(mri_fname)
-        data = nim.get_data()
+        data = _get_img_fdata(nim)
         shape = data.shape
         del data  # free up memory
 

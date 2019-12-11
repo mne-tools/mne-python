@@ -2,7 +2,7 @@
 
 Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 """
-# Authors : Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors : Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #           Hari Bharadwaj <hari@nmr.mgh.harvard.edu>
 #           Clement Moutard <clement.moutard@polytechnique.org>
 #           Jean-Remi King <jeanremi.king@gmail.com>
@@ -24,7 +24,8 @@ from ..parallel import parallel_func
 from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
                      sizeof_fmt, GetEpochsMixin, _prepare_read_metadata,
                      fill_doc, _prepare_write_metadata, _check_event_id,
-                     _gen_events, SizeMixin, _is_numeric, _check_option)
+                     _gen_events, SizeMixin, _is_numeric, _check_option,
+                     _validate_type)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
 from ..channels.layout import _pair_grad_sensors
 from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
@@ -44,8 +45,8 @@ def morlet(sfreq, freqs, n_cycles=7.0, sigma=None, zero_mean=False):
     sfreq : float
         The sampling Frequency.
     freqs : array
-        frequency range of interest (1 x Frequencies)
-    n_cycles: float | array of float, default 7.0
+        Frequency range of interest (1 x Frequencies).
+    n_cycles : float | array of float, default 7.0
         Number of cycles. Fixed number or one per frequency.
     sigma : float, default None
         It controls the width of the wavelet ie its temporal
@@ -117,7 +118,6 @@ def _make_dpss(sfreq, freqs, n_cycles=7., time_bandwidth=4.0, zero_mean=False):
         Default is 4.0, giving 3 good tapers.
     zero_mean : bool | None, , default False
         Make sure the wavelet has a mean of zero.
-
 
     Returns
     -------
@@ -335,15 +335,22 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
     # Check data
     epoch_data = np.asarray(epoch_data)
     if epoch_data.ndim != 3:
-        raise ValueError('epoch_data must be of shape '
-                         '(n_epochs, n_chans, n_times)')
+        raise ValueError('epoch_data must be of shape (n_epochs, n_chans, '
+                         'n_times), got %s' % (epoch_data.shape,))
 
     # Check params
     freqs, sfreq, zero_mean, n_cycles, time_bandwidth, decim = \
         _check_tfr_param(freqs, sfreq, method, zero_mean, n_cycles,
                          time_bandwidth, use_fft, decim, output)
 
-    # Setup wavelet
+    decim = _check_decim(decim)
+    if (freqs > sfreq / 2.).any():
+        raise ValueError('Cannot compute freq above Nyquist freq of the data '
+                         '(%0.1f Hz), got %0.1f Hz'
+                         % (sfreq / 2., freqs.max()))
+
+    # We decimate *after* decomposition, so we need to create our kernels
+    # for the original sfreq
     if method == 'morlet':
         W = morlet(sfreq, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
         Ws = [W]  # to have same dimensionality as the 'multitaper' case
@@ -358,7 +365,6 @@ def _compute_tfr(epoch_data, freqs, sfreq=1.0, method='morlet',
                          'signal. Use a longer signal or shorter wavelets.')
 
     # Initialize output
-    decim = _check_decim(decim)
     n_freqs = len(freqs)
     n_epochs, n_chans, n_times = epoch_data[:, :, decim].shape
     if output in ('power', 'phase', 'avg_power', 'itc'):
@@ -578,7 +584,7 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
     See Also
     --------
     mne.time_frequency.tfr_morlet : Compute time-frequency decomposition
-                                    with Morlet wavelets
+                                    with Morlet wavelets.
     """
     decim = _check_decim(decim)
     n_signals, n_times = X[:, decim].shape
@@ -598,7 +604,7 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
     """Help reduce redundancy between tfr_morlet and tfr_multitaper."""
     decim = _check_decim(decim)
     data = _get_data(inst, return_itc)
-    info = inst.info
+    info = inst.info.copy()  # make a copy as sfreq can be altered
 
     info, data = _prepare_picks(info, data, picks, axis=1)
     del picks
@@ -619,6 +625,7 @@ def _tfr_aux(method, inst, freqs, decim, return_itc, picks, average,
     out = _compute_tfr(data, freqs, info['sfreq'], method=method,
                        output=output, decim=decim, **tfr_params)
     times = inst.times[decim].copy()
+    info['sfreq'] /= decim.step
 
     if average:
         if return_itc:
@@ -673,7 +680,6 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False, return_itc=True, decim=1,
         If `slice`, returns tfr[..., decim].
 
         .. note:: Decimation may create aliasing artifacts.
-
     %(n_jobs)s
     picks : array-like of int | None, default None
         The indices of the channels to decompose. If None, all available
@@ -747,7 +753,6 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
         .. note::
             Decimation may create aliasing artifacts, yet decimation
             is done after the convolutions.
-
     output : str, default 'complex'
 
         * 'complex' : single trial complex.
@@ -757,10 +762,9 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
         * 'itc' : inter-trial coherence.
         * 'avg_power_itc' : average of single trial power and inter-trial
           coherence across trials.
-
     %(n_jobs)s
         The number of epochs to process at the same time. The parallelization
-        is implemented across channels. default 1
+        is implemented across channels. Default 1.
     %(verbose)s
 
     Returns
@@ -770,7 +774,7 @@ def tfr_array_morlet(epoch_data, sfreq, freqs, n_cycles=7.0,
         'phase', 'power'], then shape of out is (n_epochs, n_chans, n_freqs,
         n_times), else it is (n_chans, n_freqs, n_times). If output is
         'avg_power_itc', the real values code for 'avg_power' and the
-        imaginary values code for the 'itc': out = avg_power + i * itc
+        imaginary values code for the 'itc': out = avg_power + i * itc.
 
     See Also
     --------
@@ -806,7 +810,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
     n_cycles : float | ndarray, shape (n_freqs,)
         The number of cycles globally or for each frequency.
         The time-window length is thus T = n_cycles / freq.
-    time_bandwidth : float, (optional), default 4.0 (n_tapers=3).
+    time_bandwidth : float, (optional), default 4.0 (n_tapers=3)
         Time x (Full) Bandwidth product. Should be >= 2.0.
         Choose this along with n_cycles to get desired frequency resolution.
         The number of good tapers (least leakage from far away frequencies)
@@ -825,7 +829,6 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
         If `slice`, returns tfr[..., decim].
 
         .. note:: Decimation may create aliasing artifacts.
-
     %(n_jobs)s
     %(picks_good_data)s
     average : bool, default True
@@ -929,7 +932,13 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         return self
 
     def copy(self):
-        """Return a copy of the instance."""
+        """Return a copy of the instance.
+
+        Returns
+        -------
+        copy : instance of EpochsTFR | instance of AverageTFR
+            A copy of the instance.
+        """
         return deepcopy(self)
 
     @verbose
@@ -960,7 +969,6 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
             - dividing by the mean of baseline values, taking the log, and
               dividing by the standard deviation of log baseline values
               ('zlogratio')
-
         %(verbose_meth)s
 
         Returns
@@ -977,9 +985,9 @@ class _BaseTFR(ContainsMixin, UpdateChannelsMixin, SizeMixin):
         Parameters
         ----------
         fname : str
-            The file name, which should end with -tfr.h5 .
+            The file name, which should end with ``-tfr.h5``.
         overwrite : bool
-            If True, overwrite file (if it exists). Defaults to False
+            If True, overwrite file (if it exists). Defaults to False.
         """
         write_tfrs(fname, self, overwrite=overwrite)
 
@@ -1027,7 +1035,6 @@ class AverageTFR(_BaseTFR):
         Comment on dataset. Can be the condition.
     method : str | None, default None
         Comment on the method used to compute the data, e.g., morlet wavelet.
-
     """
 
     @verbose
@@ -1153,7 +1160,7 @@ class AverageTFR(_BaseTFR):
             significance.
 
             .. versionadded:: 0.16.0
-        mask_style: None | 'both' | 'contour' | 'mask'
+        mask_style : None | 'both' | 'contour' | 'mask'
             If `mask` is not None: if 'contour', a contour line is drawn around
             the masked areas (``True`` in `mask`). If 'mask', entries not
             ``True`` in `mask` are shown transparently. If 'both', both a contour
@@ -1345,10 +1352,7 @@ class AverageTFR(_BaseTFR):
             Call pyplot.show() at the end.
         title : str | None
             String for title. Defaults to None (blank/no title).
-        layout : Layout | None
-            Layout instance specifying sensor positions. Used for interactive
-            plotting of topographies on rectangle selection. If possible, the
-            correct layout is inferred from the data.
+        %(layout_dep)s
         yscale : 'auto' (default) | 'linear' | 'log'
             The scale of y (frequency) axis. 'linear' gives linear y axis,
             'log' leads to log-spaced y axis and 'auto' detects if frequencies
@@ -1399,7 +1403,6 @@ class AverageTFR(_BaseTFR):
         absolute peak across the time-frequency representation.
 
         .. versionadded:: 0.16.0
-
         """  # noqa: E501
         from ..viz.topomap import _set_contour_locator, plot_topomap
         from ..channels.layout import (find_layout, _merge_grad_data,
@@ -1718,20 +1721,20 @@ class AverageTFR(_BaseTFR):
         dB : bool
             If True, 10*log10 is applied to the data to get dB.
         colorbar : bool
-            If true, colorbar will be added to the plot
+            If true, colorbar will be added to the plot.
         layout_scale : float
             Scaling factor for adjusting the relative size of the layout
             on the canvas.
         show : bool
             Call pyplot.show() at the end.
         border : str
-            matplotlib borders style to be used for each sensor plot.
+            Matplotlib borders style to be used for each sensor plot.
         fig_facecolor : color
             The figure face color. Defaults to black.
         fig_background : None | array
             A background image for the figure. This must be a valid input to
             `matplotlib.pyplot.imshow`. Defaults to None.
-        font_color: color
+        font_color : color
             The color of tick labels in the colorbar. Defaults to white.
         yscale : 'auto' (default) | 'linear' | 'log'
             The scale of y (frequency) axis. 'linear' gives linear y axis,
@@ -1780,13 +1783,14 @@ class AverageTFR(_BaseTFR):
         plt_show(show)
         return fig
 
+    @fill_doc
     def plot_topomap(self, tmin=None, tmax=None, fmin=None, fmax=None,
                      ch_type=None, baseline=None, mode='mean', layout=None,
                      vmin=None, vmax=None, cmap=None, sensors=True,
                      colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
                      axes=None, show=True, outlines='head', head_pos=None,
-                     contours=6):
+                     contours=6, sphere=None):
         """Plot topographic maps of time-frequency intervals of TFR data.
 
         Parameters
@@ -1830,13 +1834,7 @@ class AverageTFR(_BaseTFR):
             - dividing by the mean of baseline values, taking the log, and
               dividing by the standard deviation of log baseline values
               ('zlogratio')
-
-        layout : None | Layout
-            Layout instance specifying sensor positions (does not need to
-            be specified for Neuromag data). If possible, the correct layout
-            file is inferred from the data; if no appropriate layout file was
-            found, the layout is automatically generated from the sensor
-            locations.
+        %(layout_dep)s
         vmin : float | callable | None
             The value specifying the lower bound of the color range. If None,
             and vmax is None, -vmax is used. Else np.min(data) or in case
@@ -1883,22 +1881,8 @@ class AverageTFR(_BaseTFR):
             The axes to plot to. If None the axes is defined automatically.
         show : bool
             Call pyplot.show() at the end.
-        outlines : 'head' | 'skirt' | dict | None
-            The outlines to be drawn. If 'head', the default head scheme will
-            be drawn. If 'skirt' the head scheme will be drawn, but sensors are
-            allowed to be plotted outside of the head circle. If dict, each key
-            refers to a tuple of x and y positions, the values in 'mask_pos'
-            will serve as image mask, and the 'autoshrink' (bool) field will
-            trigger automated shrinking of the positions due to points outside
-            the outline. Alternatively, a matplotlib patch object can be passed
-            for advanced masking options, either directly or as a function that
-            returns patches (required for multi-axis plots). If None, nothing
-            will be drawn. Defaults to 'head'.
-        head_pos : dict | None
-            If None (default), the sensors are positioned such that they span
-            the head circle. If dict, can have entries 'center' (tuple) and
-            'scale' (tuple) for what the center and scale of the head should be
-            relative to the electrode locations.
+        %(topomap_outlines)s
+        %(topomap_head_pos)s
         contours : int | array of float
             The number of contour lines to draw. If 0, no contours will be
             drawn. When an integer, matplotlib ticker locator is used to find
@@ -1906,6 +1890,7 @@ class AverageTFR(_BaseTFR):
             inaccurate, use array for accuracy). If an array, the values
             represent the levels for the contours. If colorbar=True, the ticks
             in colorbar correspond to the contour levels. Defaults to 6.
+        %(topomap_sphere_auto)s
 
         Returns
         -------
@@ -1921,7 +1906,7 @@ class AverageTFR(_BaseTFR):
                                 cbar_fmt=cbar_fmt, show_names=show_names,
                                 title=title, axes=axes, show=show,
                                 outlines=outlines, head_pos=head_pos,
-                                contours=contours)
+                                contours=contours, sphere=sphere)
 
     def _check_compat(self, tfr):
         """Check that self and tfr have the same time-frequency ranges."""
@@ -1991,7 +1976,7 @@ class EpochsTFR(_BaseTFR, GetEpochsMixin):
         integers.
     metadata : instance of pandas.DataFrame | None
         A :class:`pandas.DataFrame` containing pertinent information for each
-        trial. See :class:`mne.Epochs` for further details
+        trial. See :class:`mne.Epochs` for further details.
     %(verbose)s
 
     Attributes
@@ -2220,11 +2205,12 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
 
 def _check_decim(decim):
     """Aux function checking the decim parameter."""
-    if isinstance(decim, int):
-        decim = slice(None, None, decim)
-    elif not isinstance(decim, slice):
-        raise TypeError('`decim` must be int or slice, got %s instead'
-                        % type(decim))
+    _validate_type(decim, ('int-like', slice), 'decim')
+    if not isinstance(decim, slice):
+        decim = slice(None, None, int(decim))
+    # ensure that we can actually use `decim.step`
+    if decim.step is None:
+        decim = slice(decim.start, decim.stop, 1)
     return decim
 
 
@@ -2236,12 +2222,12 @@ def write_tfrs(fname, tfr, overwrite=False):
 
     Parameters
     ----------
-    fname : string
-        The file name, which should end with -tfr.h5
+    fname : str
+        The file name, which should end with ``-tfr.h5``.
     tfr : AverageTFR instance, or list of AverageTFR instances
         The TFR dataset, or list of TFR datasets, to save in one file.
         Note. If .comment is not None, a name will be generated on the fly,
-        based on the order in which the TFR objects are passed
+        based on the order in which the TFR objects are passed.
     overwrite : bool
         If True, overwrite file (if it exists). Defaults to False.
 
@@ -2259,7 +2245,8 @@ def write_tfrs(fname, tfr, overwrite=False):
     for ii, tfr_ in enumerate(tfr):
         comment = ii if tfr_.comment is None else tfr_.comment
         out.append(_prepare_write_tfr(tfr_, condition=comment))
-    write_hdf5(fname, out, overwrite=overwrite, title='mnepython')
+    write_hdf5(fname, out, overwrite=overwrite, title='mnepython',
+               slash='replace')
 
 
 def _prepare_write_tfr(tfr, condition):
@@ -2280,21 +2267,21 @@ def read_tfrs(fname, condition=None):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The file name, which should end with -tfr.h5 .
     condition : int or str | list of int or str | None
         The condition to load. If None, all conditions will be returned.
         Defaults to None.
-
-    See Also
-    --------
-    write_tfrs
 
     Returns
     -------
     tfrs : list of instances of AverageTFR | instance of AverageTFR
         Depending on `condition` either the TFR object or a list of multiple
         TFR objects.
+
+    See Also
+    --------
+    write_tfrs
 
     Notes
     -----
@@ -2303,7 +2290,7 @@ def read_tfrs(fname, condition=None):
     check_fname(fname, 'tfr', ('-tfr.h5', '_tfr.h5'))
 
     logger.info('Reading %s ...' % fname)
-    tfr_data = read_hdf5(fname, title='mnepython')
+    tfr_data = read_hdf5(fname, title='mnepython', slash='replace')
     for k, tfr in tfr_data:
         tfr['info'] = Info(tfr['info'])
         if 'metadata' in tfr:

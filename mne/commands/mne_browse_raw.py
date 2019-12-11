@@ -19,8 +19,7 @@ import mne
 def run():
     """Run command."""
     import matplotlib.pyplot as plt
-
-    from mne.commands.utils import get_optparser
+    from mne.commands.utils import get_optparser, _add_verbose_flag
 
     parser = get_optparser(__file__, usage='usage: %prog raw [options]')
 
@@ -70,10 +69,7 @@ def run():
     parser.add_option("--filterchpi", dest="filterchpi",
                       help="Enable filtering cHPI signals.", default=None,
                       action="store_true")
-    parser.add_option("--verbose", dest='verbose',
-                      help="Enable verbose mode.", default=None,
-                      action="store_true")
-
+    _add_verbose_flag(parser)
     options, args = parser.parse_args()
 
     if len(args):

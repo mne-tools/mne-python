@@ -45,11 +45,6 @@ curry8_bdf_ascii_file = op.join(curry_dir,
 
 missing_event_file = op.join(curry_dir, "test_sfreq_0.dat")
 
-if not check_version("numpy", "1.16.0"):
-    do_warn = 'ignore:.*take longer for ASCII.*:'
-else:
-    do_warn = ''
-
 
 @pytest.fixture(scope='session')
 def bdf_curry_ref():
@@ -58,7 +53,6 @@ def bdf_curry_ref():
     return raw
 
 
-@pytest.mark.filterwarnings(do_warn)
 @testing.requires_testing_data
 @pytest.mark.parametrize('fname,tol', [
     pytest.param(curry7_bdf_file, 1e-7, id='curry 7'),
@@ -69,14 +63,16 @@ def bdf_curry_ref():
 @pytest.mark.parametrize('preload', [True, False])
 def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
     """Test reading CURRY files."""
-    raw = read_raw_curry(fname, preload=preload)
+    with pytest.warns(None) as wrn:
+        raw = read_raw_curry(fname, preload=preload)
 
-    if preload:
-        isinstance(getattr(raw, '_data'), np.ndarray)
+    if not check_version('numpy', '1.16') and preload and fname.endswith(
+            'ASCII.dat'):
+        assert len(wrn) > 0
     else:
-        with pytest.raises(AttributeError, match="no attribute '_data'"):
-            getattr(raw, '_data')
+        assert len(wrn) == 0
 
+    assert hasattr(raw, '_data') == preload
     assert raw.n_times == bdf_curry_ref.n_times
     assert raw.info['sfreq'] == bdf_curry_ref.info['sfreq']
 
@@ -84,6 +80,7 @@ def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
         assert_array_equal([ch[field] for ch in raw.info['chs']],
                            [ch[field] for ch in bdf_curry_ref.info['chs']])
 
+    raw.verbose = 'error'  # don't emit warnings about slow reading
     assert_allclose(raw.get_data(), bdf_curry_ref.get_data(), atol=tol)
 
     picks, start, stop = ["C3", "C4"], 200, 800
@@ -93,7 +90,6 @@ def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
         rtol=tol)
 
 
-@pytest.mark.filterwarnings(do_warn)
 @testing.requires_testing_data
 @pytest.mark.parametrize('fname,tol', [
     pytest.param(curry7_rfDC_file, 1e-6, id='curry 7'),

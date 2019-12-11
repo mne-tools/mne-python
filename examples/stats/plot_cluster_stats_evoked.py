@@ -8,7 +8,7 @@ between conditions. Multiple comparison problem is addressed
 with cluster level permutation test.
 
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 

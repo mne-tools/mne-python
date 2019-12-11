@@ -1,9 +1,12 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Lorenzo De Santis <lorenzo.de-santis@u-psud.fr>
 #
 # License: BSD (3-clause)
+
+# The computations in this code were primarily derived from Matti Hämäläinen's
+# C code.
 
 from functools import partial
 import glob
@@ -16,7 +19,7 @@ import numpy as np
 from scipy import linalg
 
 from .io.constants import FIFF, FWD
-from ._digitization.base import _dig_kind_dict, _dig_kind_rev, _dig_kind_ints
+from .io._digitization import _dig_kind_dict, _dig_kind_rev, _dig_kind_ints
 from .io.write import (start_file, start_block, write_float, write_int,
                        write_float_matrix, write_int_matrix, end_block,
                        end_file)
@@ -26,9 +29,9 @@ from .io.open import fiff_open
 from .surface import (read_surface, write_surface, complete_surface_info,
                       _compute_nearest, _get_ico_surface, read_tri,
                       _fast_cross_nd_sum, _get_solids)
-from .transforms import _ensure_trans, apply_trans
+from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
-                    _pl, _validate_type, _TempDir)
+                    _pl, _validate_type, _TempDir, get_config)
 from .fixes import einsum
 
 
@@ -305,17 +308,13 @@ def make_bem_solution(surfs, verbose=None):
     Parameters
     ----------
     surfs : list of dict
-        The BEM surfaces to use (`from make_bem_model`)
+        The BEM surfaces to use (from :func:`mne.make_bem_model`).
     %(verbose)s
 
     Returns
     -------
     bem : instance of ConductorModel
         The BEM solution.
-
-    Notes
-    -----
-    .. versionadded:: 0.10.0
 
     See Also
     --------
@@ -324,6 +323,10 @@ def make_bem_solution(surfs, verbose=None):
     write_bem_surfaces
     read_bem_solution
     write_bem_solution
+
+    Notes
+    -----
+    .. versionadded:: 0.10.0
     """
     logger.info('Approximation method : Linear collocation\n')
     if isinstance(surfs, str):
@@ -545,8 +548,7 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
         for a one-layer model, or three elements for a three-layer model.
         Defaults to ``[0.3, 0.006, 0.3]``. The MNE-C default for a
         single-layer model would be ``[0.3]``.
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    %(subjects_dir)s
     %(verbose)s
 
     Returns
@@ -555,16 +557,16 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
         The BEM surfaces. Use `make_bem_solution` to turn these into a
         `ConductorModel` suitable for forward calculation.
 
-    Notes
-    -----
-    .. versionadded:: 0.10.0
-
     See Also
     --------
     make_bem_solution
     make_sphere_model
     read_bem_surfaces
     write_bem_surfaces
+
+    Notes
+    -----
+    .. versionadded:: 0.10.0
     """
     conductivity = np.array(conductivity, float)
     if conductivity.ndim != 1 or conductivity.size not in (1, 3):
@@ -741,14 +743,23 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
     sphere : instance of ConductorModel
         The resulting spherical conductor model.
 
-    Notes
-    -----
-    .. versionadded:: 0.9.0
-
     See Also
     --------
     make_bem_model
     make_bem_solution
+
+    Notes
+    -----
+    The default model has::
+
+        relative_radii = (0.90, 0.92, 0.97, 1.0)
+        sigmas = (0.33, 1.0, 0.004, 0.33)
+
+    These correspond to compartments (with relative radii in ``m`` and
+    conductivities σ in ``S/m``) for the brain, CSF, skull, and scalp,
+    respectively.
+
+    .. versionadded:: 0.9.0
     """
     for name in ('r0', 'head_radius'):
         param = locals()[name]
@@ -828,16 +839,15 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
     ----------
     info : instance of Info
         Measurement info.
-    dig_kinds : list of str | str
-        Kind of digitization points to use in the fitting. These can be any
-        combination of ('cardinal', 'hpi', 'eeg', 'extra'). Can also
-        be 'auto' (default), which will use only the 'extra' points if
-        enough (more than 10) are available, and if not, uses 'extra' and
-        'eeg' points.
+    %(dig_kinds)s
     units : str
         Can be "m" (default) or "mm".
 
         .. versionadded:: 0.12
+    move_origin : bool
+        If True, allow the origin to vary. Otherwise, fix it at (0, 0, 0).
+
+        .. versionadded:: 0.20
 
     %(verbose)s
 
@@ -945,7 +955,10 @@ def _fit_sphere_to_headshape(info, dig_kinds, verbose=None):
     hsp = get_fitting_dig(info, dig_kinds)
     radius, origin_head = _fit_sphere(np.array(hsp), disp=False)
     # compute origin in device coordinates
-    head_to_dev = _ensure_trans(info['dev_head_t'], 'head', 'meg')
+    dev_head_t = info['dev_head_t']
+    if dev_head_t is None:
+        dev_head_t = Transform('meg', 'head')
+    head_to_dev = _ensure_trans(dev_head_t, 'head', 'meg')
     origin_device = apply_trans(head_to_dev, origin_head)
     logger.info('Fitted sphere radius:'.ljust(30) + '%0.1f mm'
                 % (radius * 1e3,))
@@ -990,8 +1003,7 @@ def _fit_sphere(points, disp='auto'):
     x_opt = fmin_cobyla(cost_fun, x0, constraint, rhobeg=radius_init,
                         rhoend=radius_init * 1e-6, disp=disp)
 
-    origin = x_opt[:3]
-    radius = x_opt[3]
+    origin, radius = x_opt[:3], x_opt[3]
     return radius, origin
 
 
@@ -1148,7 +1160,8 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                                                  read_metadata=True)
             volume_info.update(new_info)  # replace volume info, 'head' stays
 
-            write_surface(s, rr, tris, volume_info=volume_info)
+            write_surface(s, rr, tris, volume_info=volume_info,
+                          overwrite=overwrite)
             # Create symbolic links
             surf_out = op.join(bem_dir, '%s.surf' % s)
             if not overwrite and op.exists(surf_out):
@@ -1219,7 +1232,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The name of the file containing the surfaces.
     patch_stats : bool, optional (default False)
         Calculate and add cortical patch statistics to the surfaces.
@@ -1356,7 +1369,7 @@ def read_bem_solution(fname, verbose=None):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The file containing the BEM solution.
     %(verbose)s
 
@@ -1558,7 +1571,8 @@ def write_bem_solution(fname, bem):
 def _prepare_env(subject, subjects_dir, requires_freesurfer):
     """Prepare an env object for subprocess calls."""
     env = os.environ.copy()
-    if requires_freesurfer and not os.environ.get('FREESURFER_HOME'):
+    fs_home = get_config('FREESURFER_HOME')
+    if fs_home is None:
         raise RuntimeError('I cannot find freesurfer. The FREESURFER_HOME '
                            'environment variable is not set.')
 
@@ -1572,8 +1586,8 @@ def _prepare_env(subject, subjects_dir, requires_freesurfer):
     if not op.isdir(subject_dir):
         raise RuntimeError('Could not find the subject data directory "%s"'
                            % (subject_dir,))
-    env['SUBJECT'] = subject
-    env['SUBJECTS_DIR'] = subjects_dir
+    env.update(SUBJECT=subject, SUBJECTS_DIR=subjects_dir,
+               FREESURFER_HOME=fs_home)
     mri_dir = op.join(subject_dir, 'mri')
     bem_dir = op.join(subject_dir, 'bem')
     return env, mri_dir, bem_dir
@@ -1597,8 +1611,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
         Run grad_unwarp with -unwarp option on each of the converted
         data sets. It requires FreeSurfer's MATLAB toolbox to be properly
         installed.
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    %(subjects_dir)s
     %(verbose)s
 
     Notes
@@ -1606,22 +1619,22 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
     Before running this script do the following:
     (unless convert=False is specified)
 
-        1. Copy all of your FLASH images in a single directory <source> and
-           create a directory <dest> to hold the output of mne_organize_dicom
-        2. cd to <dest> and run
-           $ mne_organize_dicom <source>
-           to create an appropriate directory structure
-        3. Create symbolic links to make flash05 and flash30 point to the
-           appropriate series:
-           $ ln -s <FLASH 5 series dir> flash05
-           $ ln -s <FLASH 30 series dir> flash30
-           Some partition formats (e.g. FAT32) do not support symbolic links.
-           In this case, copy the file to the appropriate series:
-           $ cp <FLASH 5 series dir> flash05
-           $ cp <FLASH 30 series dir> flash30
-        4. cd to the directory where flash05 and flash30 links are
-        5. Set SUBJECTS_DIR and SUBJECT environment variables appropriately
-        6. Run this script
+    1. Copy all of your FLASH images in a single directory <source> and
+        create a directory <dest> to hold the output of mne_organize_dicom
+    2. cd to <dest> and run
+        $ mne_organize_dicom <source>
+        to create an appropriate directory structure
+    3. Create symbolic links to make flash05 and flash30 point to the
+        appropriate series:
+        $ ln -s <FLASH 5 series dir> flash05
+        $ ln -s <FLASH 30 series dir> flash30
+        Some partition formats (e.g. FAT32) do not support symbolic links.
+        In this case, copy the file to the appropriate series:
+        $ cp <FLASH 5 series dir> flash05
+        $ cp <FLASH 30 series dir> flash30
+    4. cd to the directory where flash05 and flash30 links are
+    5. Set SUBJECTS_DIR and SUBJECT environment variables appropriately
+    6. Run this script
 
     This function assumes that the Freesurfer segmentation of the subject
     has been completed. In particular, the T1.mgz and brain.mgz MRI volumes
@@ -1746,8 +1759,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
         Write over existing .surf files in bem folder.
     show : bool
         Show surfaces to visually inspect all three BEM surfaces (recommended).
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    %(subjects_dir)s
     flash_path : str | None
         Path to the flash images. If None (default), mri/flash/parameter_maps
         within the subject reconstruction is used.

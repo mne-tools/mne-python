@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
@@ -15,7 +15,6 @@ import os
 
 from .constants import FIFF
 from .meas_info import _get_valid_units
-from .. import __version__
 from ..utils import warn
 
 
@@ -31,33 +30,6 @@ def _deprecate_montage(raw, raw_type, montage, **kwargs):
     else:
         raw.set_montage(montage, **kwargs)
         warn(_MSG, DeprecationWarning)
-
-
-def _deprecate_stim_channel(stim_channel, removed_in='0.19'):
-    minor_current = int(__version__.split('.')[1])
-    minor_removed_in = int(removed_in.split('.')[1])
-    if minor_current == minor_removed_in - 2:
-        if stim_channel is None:
-            _MSG = (
-                'The parameter `stim_channel` controlling the stim channel'
-                ' synthesis has not been specified. In 0.%s it defaults to'
-                ' True but will change to False in 0.%s (when no stim channel'
-                ' synthesis will be allowed) and be removed in %s; migrate'
-                ' code to use `stim_channel=False` and'
-                ' :func:`mne.events_from_annotations` or set'
-                ' `stim_channel=True` to avoid this warning.'
-                % (minor_removed_in - 2, minor_removed_in - 1, removed_in))
-            warn(_MSG, FutureWarning)
-
-    elif minor_current == minor_removed_in - 1:
-        if stim_channel is not False:
-            _MSG = ('stim_channel must be False or omitted; it will be '
-                    'removed in %s' % removed_in)
-            raise ValueError(_MSG, DeprecationWarning)
-    else:
-        raise RuntimeError('stim_channel was supposed to be removed in version'
-                           ' %s, and it is still present in %s' %
-                           (removed_in, __version__))
 
 
 def _check_orig_units(orig_units):

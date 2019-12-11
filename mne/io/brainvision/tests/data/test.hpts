@@ -1,10 +1,6 @@
-# Ascii stylus data file created by FastSCAN V4.0.7 on Thu Oct 17 12:30:44 2013
-# raw surface, 86 visible points, bounding box reference
-# x y z
-
-cardinal	nasion    -5.6729  -12.3873  -30.3671
-cardinal	lpa    -37.6782  -10.4957   91.5228
-cardinal	rpa    -131.3127    9.3976  -22.2363
+cardinal	2    -5.6729  -12.3873  -30.3671
+cardinal	1    -37.6782  -10.4957   91.5228
+cardinal	3    -131.3127    9.3976  -22.2363
 hpi    1    -30.4493  -11.8450   83.3601
 hpi    2    -122.5353    9.2232  -28.6828
 hpi    3    -6.8518  -47.0697  -37.0829

@@ -1,4 +1,4 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
@@ -21,7 +21,8 @@ from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_covariance,
                  compute_covariance, read_evokeds, compute_proj_raw,
                  pick_channels_cov, pick_types, make_ad_hoc_cov,
-                 make_fixed_length_events)
+                 make_fixed_length_events, create_info)
+from mne.channels import equalize_channels
 from mne.datasets import testing
 from mne.fixes import _get_args
 from mne.io import read_raw_fif, RawArray, read_raw_ctf
@@ -666,8 +667,9 @@ def test_low_rank_cov(raw_epochs_events):
     cov_full = compute_covariance(epochs_meg, method='oas',
                                   rank='full', verbose='error')
     assert _cov_rank(cov_full, epochs_meg.info) == 306
-    with pytest.deprecated_call(match='int is deprecated'):
-        cov_dict = compute_covariance(epochs_meg, method='oas', rank=306)
+    with pytest.warns(RuntimeWarning, match='few samples'):
+        cov_dict = compute_covariance(epochs_meg, method='oas',
+                                      rank=dict(meg=306))
     assert _cov_rank(cov_dict, epochs_meg.info) == 306
     assert_allclose(cov_full['data'], cov_dict['data'])
     cov_dict = compute_covariance(epochs_meg, method='oas',
@@ -694,7 +696,6 @@ def test_low_rank_cov(raw_epochs_events):
                                  verbose='error')
     assert _cov_rank(dia_cov, epochs.info) == rank
     assert_allclose(dia_cov['data'], reg_cov['data'])
-    # test our deprecation: can simply remove later
     epochs.pick_channels(epochs.ch_names[:103])
     # degenerate
     with pytest.raises(ValueError, match='can.*only be used with rank="full"'):
@@ -733,6 +734,17 @@ def test_cov_ctf():
 
     # make sure comps matrices was not removed from raw
     assert raw.info['comps'], 'Comps matrices removed'
+
+
+def test_equalize_channels():
+    """Test equalization of channels for instances of Covariance."""
+    cov1 = make_ad_hoc_cov(create_info(['CH1', 'CH2', 'CH3', 'CH4'], sfreq=1.0,
+                                       ch_types='eeg'))
+    cov2 = make_ad_hoc_cov(create_info(['CH5', 'CH1', 'CH2'], sfreq=1.0,
+                                       ch_types='eeg'))
+    cov1, cov2 = equalize_channels([cov1, cov2])
+    assert cov1.ch_names == ['CH1', 'CH2']
+    assert cov2.ch_names == ['CH1', 'CH2']
 
 
 run_tests_if_main()

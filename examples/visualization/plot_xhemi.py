@@ -18,7 +18,6 @@ import mne
 data_dir = mne.datasets.sample.data_path()
 subjects_dir = data_dir + '/subjects'
 stc_path = data_dir + '/MEG/sample/sample_audvis-meg-eeg'
-
 stc = mne.read_source_estimate(stc_path, 'sample')
 
 # First, morph the data to fsaverage_sym, for which we have left_right

@@ -1,8 +1,11 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
+
+# The computations in this code were primarily derived from Matti Hämäläinen's
+# C code.
 
 from time import time
 from copy import deepcopy
@@ -40,13 +43,22 @@ from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
                      run_subprocess, check_fname, logger, verbose, fill_doc,
-                     _validate_type, _check_compensation_grade, _check_option)
+                     _validate_type, _check_compensation_grade, _check_option,
+                     _check_stc_units, _stamp_to_dt)
 from ..label import Label
 from ..fixes import einsum
 
 
 class Forward(dict):
-    """Forward class to represent info from forward solution."""
+    """Forward class to represent info from forward solution.
+
+    Attributes
+    ----------
+    ch_names : list of str
+        List of channels' names.
+
+        .. versionadded:: 0.20.0
+    """
 
     def copy(self):
         """Copy the Forward instance."""
@@ -94,6 +106,36 @@ class Forward(dict):
         entr += '>'
 
         return entr
+
+    @property
+    def ch_names(self):
+        return self['info']['ch_names']
+
+    def pick_channels(self, ch_names, ordered=False):
+        """Pick channels from this forward operator.
+
+        Parameters
+        ----------
+        ch_names : list of str
+            List of channels to include.
+        ordered : bool
+            If true (default False), treat ``include`` as an ordered list
+            rather than a set.
+
+        Returns
+        -------
+        fwd : instance of Forward.
+            The modified forward model.
+
+        Notes
+        -----
+        Operates in-place.
+
+        .. versionadded:: 0.20.0
+        """
+        return pick_channels_forward(self, ch_names, exclude=[],
+                                     ordered=ordered, copy=False,
+                                     verbose=False)
 
 
 def _block_diag(A, n):
@@ -333,14 +375,14 @@ def _read_forward_meas_info(tree, fid):
     if tag is None:
         tag = find_tag(fid, parent_mri, 236)  # Constant 236 used before v0.11
 
-    info['custom_ref_applied'] = bool(tag.data) if tag is not None else False
+    info['custom_ref_applied'] = int(tag.data) if tag is not None else False
     info._check_consistency()
     return info
 
 
 def _subject_from_forward(forward):
     """Get subject id from inverse operator."""
-    return forward['src'][0].get('subject_his_id', None)
+    return forward['src']._subject
 
 
 @verbose
@@ -385,7 +427,7 @@ def read_forward_solution(fname, include=(), exclude=(), verbose=None):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The file name, which should end with -fwd.fif or -fwd.fif.gz.
     include : list, optional
         List of names of channels to include. If empty all channels
@@ -574,7 +616,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         Use surface-based source coordinate system? Note that force_fixed=True
         implies surf_ori=True.
     force_fixed : bool, optional (default False)
-        Force fixed source orientation mode?
+        If True, force fixed source orientation mode.
     copy : bool
         Whether to return a new instance or modify in place.
     use_cps : bool (default True)
@@ -1051,11 +1093,9 @@ def _restrict_gain_matrix(G, info):
 
 
 @verbose
-def compute_depth_prior(forward, info, is_fixed_ori=None,
-                        exp=0.8, limit=10.0,
-                        patch_areas=None, limit_depth_chs=False,
-                        combine_xyz='spectral', noise_cov=None, rank=None,
-                        verbose=None):
+def compute_depth_prior(forward, info, exp=0.8, limit=10.0,
+                        limit_depth_chs=False, combine_xyz='spectral',
+                        noise_cov=None, rank=None, verbose=None):
     """Compute depth prior for depth weighting.
 
     Parameters
@@ -1064,15 +1104,11 @@ def compute_depth_prior(forward, info, is_fixed_ori=None,
         The forward solution.
     info : instance of Info
         The measurement info.
-    is_fixed_ori : bool | None
-        Deprecated, will be removed in 0.19.
     exp : float
         Exponent for the depth weighting, must be between 0 and 1.
     limit : float | None
         The upper bound on depth weighting.
         Can be None to be bounded by the largest finite prior.
-    patch_areas : ndarray | None
-        Deprecated, will be removed in 0.19.
     limit_depth_chs : bool | 'whiten'
         How to deal with multiple channel types in depth weighting.
         The default is True, which whitens based on the source sensitivity
@@ -1139,19 +1175,12 @@ def compute_depth_prior(forward, info, is_fixed_ori=None,
           Use all channels. Not recommended since the depth weighting will be
           biased toward whichever channel type has the largest values in
           SI units (such as EEG being orders of magnitude larger than MEG).
-
     """
     from ..cov import Covariance, compute_whitener
-    if isinstance(forward, Forward):
-        patch_areas = forward.get('patch_areas', None)
-        is_fixed_ori = is_fixed_orient(forward)
-        G = forward['sol']['data']
-    else:
-        warn('Parameters G, is_fixed_ori, and patch_areas are '
-             'deprecated and will be removed in 0.19, pass in the forward '
-             'solution directly.', DeprecationWarning)
-        G = forward
-    _validate_type(is_fixed_ori, bool, 'is_fixed_ori')
+    _validate_type(forward, Forward, 'forward')
+    patch_areas = forward.get('patch_areas', None)
+    is_fixed_ori = is_fixed_orient(forward)
+    G = forward['sol']['data']
     logger.info('Creating the depth weighting matrix...')
     _validate_type(noise_cov, (Covariance, None), 'noise_cov',
                    'Covariance or None')
@@ -1290,11 +1319,9 @@ def _fill_measurement_info(info, fwd, sfreq):
     sec = np.floor(now)
     usec = 1e6 * (now - sec)
 
-    info['meas_date'] = (int(sec), int(usec))
-    info['highpass'] = 0.0
-    info['lowpass'] = sfreq / 2.0
-    info['sfreq'] = sfreq
-    info['projs'] = []
+    info.update(meas_date=_stamp_to_dt((int(sec), int(usec))), highpass=0.,
+                lowpass=sfreq / 2., sfreq=sfreq, projs=[])
+    info._check_consistency()
 
     return info
 
@@ -1312,13 +1339,7 @@ def _apply_forward(fwd, stc, start=None, stop=None, on_missing='raise',
              'Use pick_ori="normal" when computing the inverse to compute '
              'currents not current magnitudes.')
 
-    max_cur = np.max(np.abs(stc.data))
-    if max_cur > 1e-7:  # 100 nAm threshold for warning
-        warn('The maximum current magnitude is %0.1f nAm, which is very large.'
-             ' Are you trying to apply the forward model to noise-normalized '
-             '(dSPM, sLORETA, or eLORETA) values? The result will only be '
-             'correct if currents (in units of Am) are used.'
-             % (1e9 * max_cur))
+    _check_stc_units(stc)
 
     src_sel, stc_sel, _ = _stc_src_sel(fwd['src'], stc, on_missing=on_missing)
     gain = fwd['sol']['data'][:, src_sel]
@@ -1347,7 +1368,6 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
     evoked_template. The evoked_template should be from the same MEG system on
     which the original data was acquired. An exception will be raised if the
     forward operator contains channels that are not present in the template.
-
 
     Parameters
     ----------
@@ -1380,6 +1400,10 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
     --------
     apply_forward_raw: Compute sensor space data and return a Raw object.
     """
+    _validate_type(info, Info, 'info')
+    _validate_type(fwd, Forward, 'forward')
+    info._check_consistency()
+
     # make sure evoked_template contains all channels in fwd
     for ch_name in fwd['sol']['row_names']:
         if ch_name not in info['ch_names']:
@@ -1398,8 +1422,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
     evoked = EvokedArray(data, info_out, times[0], nave=1)
 
     evoked.times = times
-    evoked.first = int(np.round(evoked.times[0] * sfreq))
-    evoked.last = evoked.first + evoked.data.shape[1] - 1
+    evoked._update_first_last()
 
     return evoked
 

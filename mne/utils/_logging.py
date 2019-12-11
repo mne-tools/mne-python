@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 
+import contextlib
 import inspect
 from io import StringIO
 import re
@@ -31,17 +32,7 @@ def verbose(function):
     Returns
     -------
     dec : callable
-        The decorated function
-
-    Examples
-    --------
-    You can use the ``verbose`` argument to set the verbose level on the fly::
-        >>> import mne
-        >>> cov = mne.compute_raw_covariance(raw, verbose='WARNING')  # doctest: +SKIP
-        >>> cov = mne.compute_raw_covariance(raw, verbose='INFO')  # doctest: +SKIP
-        Using up to 49 segments
-        Number of samples used : 5880
-        [done]
+        The decorated function.
 
     See Also
     --------
@@ -57,6 +48,16 @@ def verbose(function):
     verbosity level for all functions, use :func:`mne.set_log_level`.
 
     This function also serves as a docstring filler.
+
+    Examples
+    --------
+    You can use the ``verbose`` argument to set the verbose level on the fly::
+        >>> import mne
+        >>> cov = mne.compute_raw_covariance(raw, verbose='WARNING')  # doctest: +SKIP
+        >>> cov = mne.compute_raw_covariance(raw, verbose='INFO')  # doctest: +SKIP
+        Using up to 49 segments
+        Number of samples used : 5880
+        [done]
     """  # noqa: E501
     # See https://decorator.readthedocs.io/en/latest/tests.documentation.html
     # #dealing-with-third-party-decorators
@@ -126,6 +127,11 @@ def set_log_level(verbose=None, return_old_level=False):
         it doesn't exist, defaults to INFO.
     return_old_level : bool
         If True, return the old verbosity level.
+
+    Returns
+    -------
+    old_level : int
+        The old level. Only returned if ``return_old_level`` is True.
     """
     from .config import get_config
     if verbose is None:
@@ -356,3 +362,17 @@ class ETSContext(object):
             value.code += ("\nThis can probably be solved by setting "
                            "ETS_TOOLKIT=qt4. On bash, type\n\n    $ export "
                            "ETS_TOOLKIT=qt4\n\nand run the command again.")
+
+
+@contextlib.contextmanager
+def wrapped_stdout(indent=''):
+    """Wrap stdout writes to logger.info, with an optional indent prefix."""
+    orig_stdout = sys.stdout
+    my_out = StringIO()
+    sys.stdout = my_out
+    try:
+        yield
+    finally:
+        sys.stdout = orig_stdout
+        for line in my_out.getvalue().split('\n'):
+            logger.info(indent + line)

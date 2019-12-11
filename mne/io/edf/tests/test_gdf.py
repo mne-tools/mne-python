@@ -5,6 +5,7 @@
 
 import os.path as op
 
+import pytest
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal)
 import numpy as np
@@ -12,7 +13,6 @@ import scipy.io as sio
 
 from mne.datasets import testing
 from mne.io import read_raw_gdf
-from mne.io.meas_info import DATE_NONE
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import run_tests_if_main
 from mne import pick_types, find_events, events_from_annotations
@@ -20,6 +20,7 @@ from mne import pick_types, find_events, events_from_annotations
 data_path = testing.data_path(download=False)
 gdf1_path = op.join(data_path, 'GDF', 'test_gdf_1.25')
 gdf2_path = op.join(data_path, 'GDF', 'test_gdf_2.20')
+gdf_1ch_path = op.join(data_path, 'GDF', 'test_1ch.gdf')
 
 
 @testing.requires_testing_data
@@ -52,7 +53,7 @@ def test_gdf_data():
     assert len(raw.annotations.duration == 963)
 
     # gh-5604
-    assert raw.info['meas_date'] == DATE_NONE
+    assert raw.info['meas_date'] is None
 
 
 @testing.requires_testing_data
@@ -78,9 +79,18 @@ def test_gdf2_data():
     assert_array_equal(events[:, 2], [20, 28])
 
     # gh-5604
-    assert raw.info['meas_date'] == DATE_NONE
+    assert raw.info['meas_date'] is None
     _test_raw_reader(read_raw_gdf, input_fname=gdf2_path + '.gdf',
                      eog=None, misc=None)
+
+
+@testing.requires_testing_data
+def test_one_channel_gdf():
+    """Test a one-channel GDF file."""
+    with pytest.warns(RuntimeWarning, match='different highpass'):
+        ecg = read_raw_gdf(gdf_1ch_path, preload=True)
+    assert ecg['ECG'][0].shape == (1, 4500)
+    assert 150.0 == ecg.info['sfreq']
 
 
 run_tests_if_main()

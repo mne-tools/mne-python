@@ -1,18 +1,16 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
 from functools import partial
-import gzip
-import os
 import struct
 
 import numpy as np
 from scipy import sparse
 
 from .constants import FIFF
-from ..externals.jdcal import jd2jcal
+from ..utils.numerics import _julian_to_cal
 
 
 ##############################################################################
@@ -59,83 +57,6 @@ class Tag(object):
                    self.next == tag.next and
                    self.pos == tag.pos and
                    self.data == tag.data)
-
-
-def read_big(fid, size=None):
-    """Read large chunks of data (>16MB) Windows-friendly.
-
-    Parameters
-    ----------
-    fid : file
-        Open file to read from.
-    size : int or None
-        Number of bytes to read. If None, the whole file is read.
-
-    Returns
-    -------
-    buf : bytes
-        The data.
-
-    Notes
-    -----
-    Windows (argh) can't handle reading large chunks of data, so we
-    have to do it piece-wise, possibly related to:
-       http://stackoverflow.com/questions/4226941
-
-    Examples
-    --------
-    This code should work for normal files and .gz files:
-
-        >>> import numpy as np
-        >>> import gzip, os, tempfile, shutil
-        >>> fname = tempfile.mkdtemp()
-        >>> fname_gz = os.path.join(fname, 'temp.gz')
-        >>> fname = os.path.join(fname, 'temp.bin')
-        >>> randgen = np.random.RandomState(9)
-        >>> x = randgen.randn(3000000)  # > 16MB data
-        >>> with open(fname, 'wb') as fid: x.tofile(fid)
-        >>> with open(fname, 'rb') as fid: y = np.frombuffer(read_big(fid))
-        >>> assert np.all(x == y)
-        >>> fid_gz = gzip.open(fname_gz, 'wb')
-        >>> _ = fid_gz.write(x.tostring())
-        >>> fid_gz.close()
-        >>> fid_gz = gzip.open(fname_gz, 'rb')
-        >>> y = np.frombuffer(read_big(fid_gz))
-        >>> assert np.all(x == y)
-        >>> fid_gz.close()
-        >>> shutil.rmtree(os.path.dirname(fname))
-
-    """
-    # buf_size is chosen as a largest working power of 2 (16 MB):
-    buf_size = 16777216
-    if size is None:
-        # it's not possible to get .gz uncompressed or file-like file size
-        if not isinstance(fid, gzip.GzipFile):
-            try:
-                size = os.fstat(fid.fileno()).st_size - fid.tell()
-            except Exception:  # e.g., io.UnsupportedOperation: fileno
-                pass
-
-    if size is not None:
-        # Use pre-buffering method
-        segments = np.r_[np.arange(0, size, buf_size), size]
-        buf = bytearray(b' ' * size)
-        for start, end in zip(segments[:-1], segments[1:]):
-            data = fid.read(int(end - start))
-            if len(data) != end - start:
-                raise ValueError('Read error')
-            buf[start:end] = data
-        buf = bytes(buf)
-    else:
-        # Use presumably less efficient concatenating method
-        buf = [b'']
-        new = fid.read(buf_size)
-        while len(new) > 0:
-            buf.append(new)
-            new = fid.read(buf_size)
-        buf = b''.join(buf)
-
-    return buf
 
 
 def read_tag_info(fid):
@@ -231,6 +152,16 @@ def _read_tag_header(fid):
     return Tag(*struct.unpack('>iIii', s))
 
 
+_matrix_bit_dtype = {
+    FIFF.FIFFT_INT: (4, '>i4'),
+    FIFF.FIFFT_JULIAN: (4, '>i4'),
+    FIFF.FIFFT_FLOAT: (4, '>f4'),
+    FIFF.FIFFT_DOUBLE: (8, '>f8'),
+    FIFF.FIFFT_COMPLEX_FLOAT: (8, '>f4'),
+    FIFF.FIFFT_COMPLEX_DOUBLE: (16, '>f8'),
+}
+
+
 def _read_matrix(fid, tag, shape, rlims, matrix_coding):
     """Read a matrix (dense or sparse) tag."""
     matrix_coding = matrix_coding >> 16
@@ -259,28 +190,17 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
                             'supported at this time')
 
         matrix_type = _data_type & tag.type
-
-        if matrix_type == FIFF.FIFFT_INT:
-            data = np.frombuffer(read_big(fid, 4 * dims.prod()), dtype='>i4')
-        elif matrix_type == FIFF.FIFFT_JULIAN:
-            data = np.frombuffer(read_big(fid, 4 * dims.prod()), dtype='>i4')
-        elif matrix_type == FIFF.FIFFT_FLOAT:
-            data = np.frombuffer(read_big(fid, 4 * dims.prod()), dtype='>f4')
-        elif matrix_type == FIFF.FIFFT_DOUBLE:
-            data = np.frombuffer(read_big(fid, 8 * dims.prod()), dtype='>f8')
-        elif matrix_type == FIFF.FIFFT_COMPLEX_FLOAT:
-            data = np.frombuffer(read_big(fid, 4 * 2 * dims.prod()),
-                                 dtype='>f4')
+        try:
+            bit, dtype = _matrix_bit_dtype[matrix_type]
+        except KeyError:
+            raise RuntimeError('Cannot handle matrix of type %d yet'
+                               % matrix_type)
+        data = fid.read(int(bit * dims.prod()))
+        data = np.frombuffer(data, dtype=dtype)
+        if matrix_type in (FIFF.FIFFT_COMPLEX_FLOAT,
+                           FIFF.FIFFT_COMPLEX_DOUBLE):
             # Note: we need the non-conjugate transpose here
             data = (data[::2] + 1j * data[1::2])
-        elif matrix_type == FIFF.FIFFT_COMPLEX_DOUBLE:
-            data = np.frombuffer(read_big(fid, 8 * 2 * dims.prod()),
-                                 dtype='>f8')
-            # Note: we need the non-conjugate transpose here
-            data = (data[::2] + 1j * data[1::2])
-        else:
-            raise Exception('Cannot handle matrix of type %d yet'
-                            % matrix_type)
         data.shape = dims
     elif matrix_coding in (_matrix_coding_CCS, _matrix_coding_RCS):
         # Find dimensions and return to the beginning of tag data
@@ -448,7 +368,7 @@ def _read_dir_entry_struct(fid, tag, shape, rlims):
 
 def _read_julian(fid, tag, shape, rlims):
     """Read julian tag."""
-    return jd2jcal(int(np.frombuffer(fid.read(4), dtype=">i4")))
+    return _julian_to_cal(int(np.frombuffer(fid.read(4), dtype=">i4")))
 
 
 # Read types call dict
@@ -480,7 +400,7 @@ _call_dict_names = {
 
 #  Append the simple types
 _simple_dict = {
-    FIFF.FIFFT_BYTE: '>B1',
+    FIFF.FIFFT_BYTE: '>B',
     FIFF.FIFFT_SHORT: '>i2',
     FIFF.FIFFT_INT: '>i4',
     FIFF.FIFFT_USHORT: '>u2',

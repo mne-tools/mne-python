@@ -3,7 +3,6 @@
 Decoding in time-frequency space data using the Common Spatial Pattern (CSP)
 ============================================================================
 
-
 The time-frequency decomposition is estimated by iterating over raw data that
 has been band-passed at different frequencies. This is used to compute a
 covariance matrix over each epoch or a rolling time-window and extract the CSP
@@ -13,7 +12,7 @@ signals.
 # Authors: Laura Gwilliams <laura.gwilliams@nyu.edu>
 #          Jean-Remi King <jeanremi.king@gmail.com>
 #          Alex Barachant <alexandre.barachant@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 

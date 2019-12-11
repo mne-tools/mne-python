@@ -1,6 +1,6 @@
 """Functions to plot epochs data."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -14,12 +14,14 @@
 from collections import Counter
 from functools import partial
 from copy import deepcopy
+import warnings
 
 import numpy as np
 
 from ..defaults import _handle_default
 from ..utils import verbose, logger, warn, fill_doc, check_version
-from ..io.meas_info import create_info
+from ..io.meas_info import create_info, _validate_type
+
 from ..io.pick import (pick_types, channel_type, _get_channel_types,
                        _picks_to_idx, _DATA_CH_TYPES_SPLIT,
                        _DATA_CH_TYPES_ORDER_DEFAULT, _VALID_CHANNEL_TYPES)
@@ -30,7 +32,8 @@ from .utils import (tight_layout, figure_nobar, _toggle_proj, _toggle_options,
                     _compute_scalings, DraggableColorbar, _setup_cmap,
                     _handle_decim, _setup_plot_projector, _set_ax_label_style,
                     _set_title_multiple_electrodes, _make_combine_callable,
-                    _get_figsize_from_config, _toggle_scrollbars)
+                    _get_figsize_from_config, _toggle_scrollbars,
+                    _check_psd_fmax)
 from .misc import _handle_event_colors
 
 
@@ -195,13 +198,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
     from scipy.ndimage import gaussian_filter1d
     from .. import EpochsArray
 
-    # deprecations
-    if group_by == 'type':
-        warn('group_by="type" is no longer supported; combining by channel '
-             'type is now default behavior when "picks" is None or a (list '
-             'of) channel type string(s). Setting "group_by=None" instead.',
-             category=DeprecationWarning)
-        group_by = None
+    _validate_type(group_by, (dict, None), 'group_by')
 
     units = _handle_default('units', units)
     scalings = _handle_default('scalings', scalings)
@@ -341,6 +338,8 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
         # detect ylims across figures
         if evoked and not manual_ylims:
+            # ensure get_ylim works properly
+            this_axes_dict['evoked'].figure.canvas.draw_idle()
             this_bot, this_top = this_axes_dict['evoked'].get_ylim()
             this_min = min(this_bot, this_top)
             this_max = max(this_bot, this_top)
@@ -558,7 +557,9 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
         this_colorbar.ax.set_ylabel(unit, rotation=270, labelpad=12)
         if cmap[1]:
             ax_im.CB = DraggableColorbar(this_colorbar, im)
-        tight_layout(fig=fig)
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter('ignore')
+            tight_layout(fig=fig)
 
     # finish
     plt_show(show)
@@ -727,7 +728,8 @@ def _epochs_axes_onclick(event, params):
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                 title=None, events=None, event_colors=None, order=None,
                 show=True, block=False, decim='auto', noise_cov=None,
-                butterfly=False, show_scrollbars=True):
+                butterfly=False, show_scrollbars=True, epoch_colors=None,
+                event_id=None):
     """Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
@@ -738,7 +740,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
     Parameters
     ----------
     epochs : instance of Epochs
-        The epochs object
+        The epochs object.
     %(picks_good_data)s
     scalings : dict | 'auto' | None
         Scaling factors for the traces. If any fields in scalings are 'auto',
@@ -781,7 +783,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
         .. versionadded:: 0.18.0
     show : bool
-        Show figure if True. Defaults to True
+        Show figure if True. Defaults to True.
     block : bool
         Whether to halt program execution until the figure is closed.
         Useful for rejecting bad trials on the fly by clicking on an epoch.
@@ -812,6 +814,16 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
 
         .. versionadded:: 0.18.0
     %(show_scrollbars)s
+    epoch_colors : list of (n_epochs) list (of n_channels) | None
+        Colors to use for individual epochs. If None, use default colors.
+    event_id : dict | None
+        Dictionary of event labels (e.g. 'aud_l') as keys and associated event
+        integers as values. Useful when ``events`` contains event numbers not
+        present in ``epochs.event_id`` (e.g., because of event subselection).
+        Values in ``event_id`` will take precedence over those in
+        ``epochs.event_id`` when there are overlapping keys.
+
+        .. versionadded:: 0.20
 
     Returns
     -------
@@ -845,11 +857,13 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20, n_channels=20,
                   bad_color=(0.8, 0.8, 0.8), histogram=None, decim=decim,
                   data_picks=data_picks, noise_cov=noise_cov,
                   use_noise_cov=noise_cov is not None,
-                  show_scrollbars=show_scrollbars)
+                  show_scrollbars=show_scrollbars,
+                  epoch_colors=epoch_colors)
     params['label_click_fun'] = partial(_pick_bad_channels, params=params)
     _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks, events=events, order=order,
-                               event_colors=event_colors, butterfly=butterfly)
+                               event_colors=event_colors, butterfly=butterfly,
+                               event_id=event_id)
     _prepare_projectors(params)
 
     callback_close = partial(_close_event, params=params)
@@ -868,14 +882,14 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
                     normalization='length', picks=None, ax=None, color='black',
                     xscale='linear', area_mode='std', area_alpha=0.33,
                     dB=True, estimate='auto', show=True, n_jobs=1,
-                    average=None, line_alpha=None, spatial_colors=None,
-                    verbose=None):
+                    average=False, line_alpha=None, spatial_colors=True,
+                    sphere=None, verbose=None):
     """%(plot_psd_doc)s.
 
     Parameters
     ----------
     epochs : instance of Epochs
-        The epochs object
+        The epochs object.
     fmin : float
         Start frequency to consider.
     fmax : float
@@ -913,6 +927,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     %(plot_psd_average)s
     %(plot_psd_line_alpha)s
     %(plot_psd_spatial_colors)s
+    %(topomap_sphere_auto)s
     %(verbose)s
 
     Returns
@@ -920,24 +935,11 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     fig : instance of Figure
         Figure with frequency spectra of the data channels.
     """
-    # this chunk should be removed for 0.2
-    if average is False and spatial_colors is None:
-        spatial_colors = True
-    if spatial_colors is None:
-        spatial_colors = False
-        warn('spatial_colors defaults to False in 0.19 but will change to True'
-             ' in 0.20. Set it explicitly to avoid this warning.',
-             DeprecationWarning)
-    if average is None:
-        average = True
-        warn('average defaults to True in 0.19 but will change to False'
-             ' in 0.20. Set it explicitly to avoid this warning.',
-             DeprecationWarning)
-
     from .utils import _set_psd_plot_params, _plot_psd
     fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
         make_label = _set_psd_plot_params(epochs.info, proj, picks, ax,
                                           area_mode)
+    _check_psd_fmax(epochs, fmax)
     del ax
     psd_list = list()
     for picks in picks_list:
@@ -954,14 +956,15 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     fig = _plot_psd(epochs, fig, freqs, psd_list, picks_list, titles_list,
                     units_list, scalings_list, ax_list, make_label, color,
                     area_mode, area_alpha, dB, estimate, average,
-                    spatial_colors, xscale, line_alpha)
+                    spatial_colors, xscale, line_alpha, sphere)
     plt_show(show)
     return fig
 
 
 def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks, events=None, event_colors=None,
-                               order=None, butterfly=False, info=None):
+                               order=None, butterfly=False, info=None,
+                               event_id=None):
     """Set up the mne_browse_epochs window."""
     import matplotlib as mpl
     from matplotlib.collections import LineCollection
@@ -995,6 +998,22 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         raise RuntimeError('Some channels not classified. Please'
                            ' check your picks')
     ch_names = [params['info']['ch_names'][idx] for idx in inds]
+    _validate_type(params['epoch_colors'], (list, None), 'epoch_colors')
+    if params['epoch_colors'] is not None:
+        if len(params['epoch_colors']) != len(params['epochs'].events):
+            raise ValueError('epoch_colors must be list of len(epochs.events).'
+                             ' Got %s' % len(params['epoch_colors']))
+        for epoch_idx in range(len(params['epoch_colors'])):
+            these_colors = params['epoch_colors'][epoch_idx]
+            _validate_type(these_colors, list,
+                           'epoch_colors[%s]' % (epoch_idx,))
+            if len(these_colors) != len(params['epochs'].ch_names):
+                raise ValueError('epoch_colors for the %dth epoch '
+                                 'has length %d, expected %d.'
+                                 % (epoch_idx, len(these_colors),
+                                    len(params['epochs'].ch_names)))
+            params['epoch_colors'][epoch_idx] = \
+                [these_colors[idx] for idx in inds]
 
     # set up plotting
     n_epochs = min(n_epochs, len(epochs_events))
@@ -1106,7 +1125,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     epoch_nr = True
     if events is not None:
         event_set = set(events[:, 2])
-        event_colors = _handle_event_colors(event_set, event_colors, event_set)
+        ev_id = params['epochs'].event_id if event_id is None else event_id
+        event_colors = _handle_event_colors(event_colors, event_set, ev_id)
         epoch_nr = False  # epoch number off by default to avoid overlap
         for label in ax.xaxis.get_ticklabels():
             label.set_visible(False)
@@ -1155,6 +1175,21 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'ch_types': ch_types})
 
     params['plot_fun'] = partial(_plot_traces, params=params)
+
+    # Plot epoch_colors
+    if params['epoch_colors'] is not None:
+        for epoch_idx, epoch_color in enumerate(params['epoch_colors']):
+            for ch_idx in range(len(params['ch_names'])):
+                if epoch_color[ch_idx] is not None:
+                    params['colors'][ch_idx][epoch_idx] = \
+                        colorConverter.to_rgba(epoch_color[ch_idx])
+
+            # plot on horizontal patch if all colors are same
+            if epoch_color.count(epoch_color[0]) == len(epoch_color):
+                params['ax_hscroll'].patches[epoch_idx].set_color(
+                    epoch_color[0])
+                params['ax_hscroll'].patches[epoch_idx].set_zorder(3)
+                params['ax_hscroll'].patches[epoch_idx].set_edgecolor('w')
 
     # callbacks
     callback_scroll = partial(_plot_onscroll, params=params)
@@ -1324,7 +1359,7 @@ def _plot_traces(params):
         _set_ax_label_style(ax, params)
 
     if params['events'] is not None:  # vertical lines for events.
-        _draw_event_lines(params)
+        _ = _draw_event_lines(params)
 
     params['vsel_patch'].set_y(ch_start)
     params['fig'].canvas.draw()
@@ -1401,20 +1436,24 @@ def _plot_vert_lines(params):
     params['vert_lines'] = list()
     params['ev_lines'] = list()
     params['vertline_t'].set_text('')
-
     epochs = params['epochs']
-    if params['settings'][3]:  # if zeroline visible
+
+    # draw event lines
+    tzero_already_drawn = False
+    if params['events'] is not None:
+        tzero_already_drawn = _draw_event_lines(params)
+    # draw zero lines
+    if params['settings'][3] and not tzero_already_drawn:
         t_zero = np.where(epochs.times == 0.)[0]
         if len(t_zero) == 1:  # not True if tmin > 0
             for event_idx in range(len(epochs.events)):
                 pos = [event_idx * len(epochs.times) + t_zero[0],
                        event_idx * len(epochs.times) + t_zero[0]]
-                ax.plot(pos, ax.get_ylim(), 'g', zorder=4, alpha=0.4)
+                ax.plot(pos, ax.get_ylim(), 'g', zorder=0, alpha=0.4)
+    # draw boundaries between epochs
     for epoch_idx in range(len(epochs.events)):
         pos = [epoch_idx * len(epochs.times), epoch_idx * len(epochs.times)]
         ax.plot(pos, ax.get_ylim(), color='black', linestyle='--', zorder=2)
-    if params['events'] is not None:
-        _draw_event_lines(params)
 
 
 def _pick_bad_epochs(event, params):
@@ -1957,6 +1996,7 @@ def _label2idx(params, pos):
 
 def _draw_event_lines(params):
     """Draw event lines."""
+    includes_tzero = False
     epochs = params['epochs']
     n_times = len(epochs.times)
     start_idx = int(params['t_start'] / n_times)
@@ -1977,8 +2017,8 @@ def _draw_event_lines(params):
         event_mask = ((event[0] - t_zero < samp_times) &
                       (samp_times < event[0] + n_times - t_zero))
         for ev in params['events'][event_mask]:
-            if ev[0] == event[0]:  # don't redraw the zeroline
-                continue
+            if ev[0] == event[0]:
+                includes_tzero = True
             pos = [idx * n_times + ev[0] - event[0] + t_zero,
                    idx * n_times + ev[0] - event[0] + t_zero]
             kwargs = {} if ev[2] not in color else {'color': color[ev[2]]}
@@ -1987,3 +2027,4 @@ def _draw_event_lines(params):
             params['ev_texts'].append(ax.text(pos[0], ax.get_ylim()[0],
                                               ev[2], color=color[ev[2]],
                                               ha='center', va='top'))
+    return includes_tzero

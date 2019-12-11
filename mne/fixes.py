@@ -61,16 +61,6 @@ def _safe_svd(A, **kwargs):
             raise
 
 
-# SciPy 1.0+
-def _check_info(info, driver, positive='did not converge (LAPACK info=%d)'):
-    """Check info return value."""
-    if info < 0:
-        raise ValueError('illegal value in argument %d of internal %s'
-                         % (-info, driver))
-    if info > 0 and positive:
-        raise LinAlgError(("%s " + positive) % (driver, info,))
-
-
 ###############################################################################
 # Backporting nibabel's read_geometry
 
@@ -200,11 +190,20 @@ def tridisolve(d, e, b, overwrite_b=True):
         t = ew[k - 1]
         ew[k - 1] = t / dw[k - 1]
         dw[k] = dw[k] - t * ew[k - 1]
-    for k in range(1, N):
-        x[k] = x[k] - ew[k - 1] * x[k - 1]
-    x[N - 1] = x[N - 1] / dw[N - 1]
-    for k in range(N - 2, -1, -1):
-        x[k] = x[k] / dw[k] - ew[k] * x[k + 1]
+    # This iterative solver can fail sometimes. There is probably a
+    # graceful way to solve this, but it should only be a problem
+    # in very rare cases. Users of SciPy 1.1+ will never hit this anyway,
+    # so not worth spending more time figuring out how to do it faster.
+    if dw[N - 1] == 0:
+        a = np.diag(d) + np.diag(e[:-1], -1) + np.diag(e[:-1], 1)
+        x[:] = linalg.solve(a, b)
+    else:
+        for k in range(1, N):
+            x[k] = x[k] - ew[k - 1] * x[k - 1]
+        if dw[N - 1] != 0:
+            x[N - 1] = x[N - 1] / dw[N - 1]
+        for k in range(N - 2, -1, -1):
+            x[k] = x[k] / dw[k] - ew[k] * x[k + 1]
 
     if not overwrite_b:
         return x
@@ -328,6 +327,33 @@ except ImportError:
 
 
 ###############################################################################
+# np.linalg.pinv (NumPy 1.13)
+
+if LooseVersion(np.__version__) >= LooseVersion('1.13'):
+    pinv = np.linalg.pinv
+else:
+    def _makearray(a):
+        new = np.asarray(a)
+        wrap = getattr(a, "__array_prepare__", new.__array_wrap__)
+        return new, wrap
+
+    def pinv(a, rcond=1e-15):
+        """Pseudoinverse."""
+        a, wrap = _makearray(a)
+        rcond = np.asarray(rcond)
+        a = a.conjugate()
+        u, s, vt = np.linalg.svd(a, full_matrices=False)
+        cutoff = rcond[..., np.newaxis] * np.amax(s, axis=-1, keepdims=True)
+        large = s > cutoff
+        s = np.divide(1, s, where=large, out=s)
+        s[~large] = 0
+        res = np.matmul(np.swapaxes(vt, -1, -2),
+                        np.multiply(s[..., np.newaxis],
+                                    np.swapaxes(u, -1, -2)))
+        return wrap(res)
+
+
+###############################################################################
 # NumPy Generator (NumPy 1.17)
 
 def rng_uniform(rng):
@@ -419,6 +445,14 @@ def minimum_phase(h):
 
 ###############################################################################
 # Misc utilities
+
+# Deal with nibabel 2.5 img.get_data() deprecation
+def _get_img_fdata(img):
+    try:
+        return img.get_fdata()
+    except AttributeError:
+        return img.get_data().astype(float)
+
 
 def _read_volume_info(fobj):
     """An implementation of nibabel.freesurfer.io._read_volume_info, since old
@@ -633,6 +667,16 @@ class BaseEstimator(object):
     # __getstate__ and __setstate__ are omitted because they only contain
     # conditionals that are not satisfied by our objects (e.g.,
     # ``if type(self).__module__.startswith('sklearn.')``.
+
+
+# newer sklearn deprecates importing from sklearn.metrics.scoring,
+# but older sklearn does not expose check_scoring in sklearn.metrics.
+def _get_check_scoring():
+    try:
+        from sklearn.metrics import check_scoring  # noqa
+    except ImportError:
+        from sklearn.metrics.scorer import check_scoring  # noqa
+    return check_scoring
 
 
 ###############################################################################

@@ -1,5 +1,5 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
 #
@@ -8,7 +8,6 @@
 from copy import deepcopy
 from itertools import count
 from math import sqrt
-import warnings
 
 import numpy as np
 from scipy import linalg
@@ -19,7 +18,7 @@ from .constants import FIFF
 from .pick import pick_types
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
-from ..utils import logger, verbose, warn
+from ..utils import logger, verbose, warn, fill_doc
 
 
 class Projection(dict):
@@ -34,69 +33,22 @@ class Projection(dict):
         s += ", n_channels : %s" % self['data']['ncol']
         return "<Projection  |  %s>" % s
 
-    # Can't use copy_ function here b/c of circular import
-    def plot_topomap(self, layout=None, cmap=None, sensors=True,
+    @fill_doc
+    def plot_topomap(self, info, cmap=None, sensors=True,
                      colorbar=False, res=64, size=1, show=True,
                      outlines='head', contours=6, image_interp='bilinear',
-                     axes=None, info=None):
+                     axes=None, vlim=(None, None), layout=None,
+                     sphere=None):
         """Plot topographic maps of SSP projections.
 
         Parameters
         ----------
-        layout : None | Layout | list of Layout
-            Layout instance specifying sensor positions (does not need to be
-            specified for Neuromag data). Or a list of Layout if projections
-            are from different sensor types.
-        cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
-            Colormap to use. If tuple, the first value indicates the colormap to
-            use and the second value is a boolean defining interactivity. In
-            interactive mode (only works if ``colorbar=True``) the colors are
-            adjustable by clicking and dragging the colorbar with left and right
-            mouse button. Left mouse button moves the scale up and down and right
-            mouse button adjusts the range. Hitting space bar resets the range. Up
-            and down arrows can be used to change the colormap. If None (default),
-            'Reds' is used for all positive data, otherwise defaults to 'RdBu_r'.
-            If 'interactive', translates to (None, True).
-        sensors : bool | str
-            Add markers for sensor locations to the plot. Accepts matplotlib plot
-            format string (e.g., 'r+' for red plusses). If True, a circle will be
-            used (via .add_artist). Defaults to True.
-        colorbar : bool
-            Plot a colorbar.
-        res : int
-            The resolution of the topomap image (n pixels along each side).
-        size : scalar
-            Side length of the topomaps in inches (only applies when plotting
-            multiple topomaps at a time).
-        show : bool
-            Show figure if True.
-        outlines : 'head' | 'skirt' | dict | None
-            The outlines to be drawn. If 'head', the default head scheme will be
-            drawn. If 'skirt' the head scheme will be drawn, but sensors are
-            allowed to be plotted outside of the head circle. If dict, each key
-            refers to a tuple of x and y positions, the values in 'mask_pos' will
-            serve as image mask, and the 'autoshrink' (bool) field will trigger
-            automated shrinking of the positions due to points outside the outline.
-            Alternatively, a matplotlib patch object can be passed for advanced
-            masking options, either directly or as a function that returns patches
-            (required for multi-axis plots). If None, nothing will be drawn.
-            Defaults to 'head'.
-        contours : int | array of float
-            The number of contour lines to draw. If 0, no contours will be drawn.
-            When an integer, matplotlib ticker locator is used to find suitable
-            values for the contour thresholds (may sometimes be inaccurate, use
-            array for accuracy). If an array, the values represent the levels for
-            the contours. Defaults to 6.
-        image_interp : str
-            The image interpolation to be used. All matplotlib options are
-            accepted.
-        axes : instance of Axes | list | None
-            The axes to plot to. If list, the list must be a list of Axes of
-            the same length as the number of projectors. If instance of Axes,
-            there must be only one projector. Defaults to None.
         info : instance of Info | None
-            The measurement information to use to determine the layout.
-            If not None, ``layout`` must be None.
+            The measurement information to use to determine the layout. If both
+            ``info`` and ``layout`` are provided, the layout will take
+            precedence.
+        %(proj_topomap_kwargs)s
+        %(topomap_sphere_auto)s
 
         Returns
         -------
@@ -108,10 +60,10 @@ class Projection(dict):
         .. versionadded:: 0.15.0
         """  # noqa: E501
         from ..viz.topomap import plot_projs_topomap
-        with warnings.catch_warnings(record=True):  # tight_layout fails
-            return plot_projs_topomap([self], layout, cmap, sensors, colorbar,
-                                      res, size, show, outlines,
-                                      contours, image_interp, axes, info)
+        return plot_projs_topomap(self, info, cmap, sensors, colorbar,
+                                  res, size, show, outlines,
+                                  contours, image_interp, axes, vlim, layout,
+                                  sphere=sphere)
 
 
 class ProjMixin(object):
@@ -189,6 +141,11 @@ class ProjMixin(object):
     def apply_proj(self):
         """Apply the signal space projection (SSP) operators to the data.
 
+        Returns
+        -------
+        self : instance of Raw | Epochs | Evoked
+            The instance.
+
         Notes
         -----
         Once the projectors have been applied, they can no longer be
@@ -208,11 +165,6 @@ class ProjMixin(object):
             # drop the first and see again
             evoked.copy().del_proj(0).apply_proj().plot()
             evoked.apply_proj()  # finally keep both
-
-        Returns
-        -------
-        self : instance of Raw | Epochs | Evoked
-            The instance.
         """
         from ..epochs import BaseEpochs
         from ..evoked import Evoked
@@ -255,8 +207,8 @@ class ProjMixin(object):
     def del_proj(self, idx='all'):
         """Remove SSP projection vector.
 
-        Note: The projection vector can only be removed if it is inactive
-              (has not been applied to the data).
+        .. note:: The projection vector can only be removed if it is inactive
+                  (has not been applied to the data).
 
         Parameters
         ----------
@@ -267,6 +219,7 @@ class ProjMixin(object):
         Returns
         -------
         self : instance of Raw | Epochs | Evoked
+            The instance.
         """
         if isinstance(idx, str) and idx == 'all':
             idx = list(range(len(self.info['projs'])))
@@ -279,7 +232,12 @@ class ProjMixin(object):
         self.info['projs'] = [p for p, k in zip(self.info['projs'], keep) if k]
         return self
 
-    def plot_projs_topomap(self, ch_type=None, layout=None, axes=None):
+    @fill_doc
+    def plot_projs_topomap(self, ch_type=None, layout=None, cmap=None,
+                           sensors=True, colorbar=False, res=64, size=1,
+                           show=True, outlines='head', contours=6,
+                           image_interp='bilinear', axes=None,
+                           vlim=(None, None), sphere=None):
         """Plot SSP vector.
 
         Parameters
@@ -289,17 +247,10 @@ class ProjMixin(object):
             ted in pairs and the RMS for each pair is plotted. If None
             (default), it will return all channel types present. If a list of
             ch_types is provided, it will return multiple figures.
-        layout : None | Layout | list of Layout
-            Layout instance specifying sensor positions (does not need to
-            be specified for Neuromag data). If possible, the correct
-            layout file is inferred from the data; if no appropriate layout
-            file was found, the layout is automatically generated from the
-            sensor locations. Or a list of Layout if projections
-            are from different sensor types.
-        axes : instance of Axes | list | None
-            The axes to plot to. If list, the list must be a list of Axes of
-            the same length as the number of projectors. If instance of Axes,
-            there must be only one projector. Defaults to None.
+        layout : object
+            Deprecated, do not use.
+        %(proj_topomap_kwargs)s
+        %(topomap_sphere_auto)s
 
         Returns
         -------
@@ -308,22 +259,15 @@ class ProjMixin(object):
         """
         if self.info['projs'] is not None or len(self.info['projs']) != 0:
             from ..viz.topomap import plot_projs_topomap
-            from ..channels.layout import find_layout
-            if layout is None:
-                layout = []
-                if ch_type is None:
-                    ch_type = [ch for ch in ['meg', 'eeg'] if ch in self]
-                elif isinstance(ch_type, str):
-                    ch_type = [ch_type]
-                for ch in ch_type:
-                    if ch in self:
-                        layout.append(find_layout(self.info, ch, exclude=[]))
-                    else:
-                        warn('Channel type %s is not found in info.' % ch)
-            fig = plot_projs_topomap(self.info['projs'], layout, axes=axes)
+            fig = plot_projs_topomap(self.info['projs'], layout=layout,
+                                     cmap=cmap, sensors=sensors,
+                                     colorbar=colorbar, res=res, size=size,
+                                     show=show, outlines=outlines,
+                                     contours=contours,
+                                     image_interp=image_interp, axes=axes,
+                                     vlim=vlim, info=self.info)
         else:
             raise ValueError("Info is missing projs. Nothing to plot.")
-
         return fig
 
 

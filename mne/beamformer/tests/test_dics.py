@@ -167,7 +167,7 @@ def test_make_dics(tmpdir, _load_forward):
     assert_array_equal(filters['proj'], np.eye(n_channels))
     assert_array_equal(filters['vertices'][0], vertices)
     assert_array_equal(filters['vertices'][1], [])  # Label was on the LH
-    assert filters['subject'] == fwd_free['src'][0]['subject_his_id']
+    assert filters['subject'] == fwd_free['src']._subject
     assert filters['pick_ori'] is None
     assert filters['n_orient'] == n_orient
     assert filters['inversion'] == 'single'
@@ -567,7 +567,7 @@ def test_tf_dics(_load_forward):
         tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep=0.15,
                 win_lengths=[0.2, 0.1], freq_bins=freq_bins)
 
-    # Test if incorrent number of n_ffts is detected
+    # Test if incorrect number of n_ffts is detected
     with pytest.raises(ValueError, match='When specifying number of FFT'):
         tf_dics(epochs, fwd_surf, None, tmin, tmax, tstep,
                 win_lengths, freq_bins=freq_bins, n_ffts=[1])

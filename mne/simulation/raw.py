@@ -9,7 +9,6 @@ from collections.abc import Iterable
 
 import numpy as np
 
-from .evoked import add_noise
 from ..event import _get_stim_channel
 from ..filter import _Interp2
 from ..io.pick import (pick_types, pick_info, pick_channels,
@@ -31,7 +30,7 @@ from ..source_space import (_ensure_src, _set_source_space_vertices,
 from ..source_estimate import _BaseSourceEstimate
 from ..surface import _CheckInside
 from ..utils import (logger, verbose, check_random_state, _pl, _validate_type,
-                     warn, _check_preload)
+                     _check_preload)
 from ..parallel import check_n_jobs
 
 
@@ -53,18 +52,12 @@ def _check_cov(info, cov):
     return cov
 
 
-def _check_stc_iterable(stc, info, n_samples=None):
+def _check_stc_iterable(stc, info):
     # 1. Check that our STC is iterable (or convert it to one using cycle)
     # 2. Do first iter so we can get the vertex subselection
     # 3. Get the list of verts, which must stay the same across iterations
     if isinstance(stc, _BaseSourceEstimate):
-        if n_samples is None:
-            stc = [stc]
-        else:
-            n_samp_stc = stc.times.size
-            n_stc = int(np.ceil(n_samples / n_samp_stc))
-            logger.info('Making %d copies of STC to fit into raw' % (n_stc,))
-            stc = [stc] * n_stc
+        stc = [stc]
     _validate_type(stc, Iterable, 'SourceEstimate, tuple, or iterable')
     stc_enum = enumerate(stc)
     del stc
@@ -131,11 +124,9 @@ def _check_head_pos(head_pos, info, first_samp, times=None):
 
 
 @verbose
-def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
-                 blink=None, ecg=None, chpi=None, head_pos=None,
-                 mindist=1.0, interp='cos2', iir_filter=None, n_jobs=1,
-                 random_state=None, use_cps=True, forward=None, first_samp=0,
-                 max_iter=10000, raw=None, verbose=None):
+def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
+                 mindist=1.0, interp='cos2', n_jobs=1, use_cps=True,
+                 forward=None, first_samp=0, max_iter=10000, verbose=None):
     u"""Simulate raw data.
 
     Head movements can optionally be simulated using the ``head_pos``
@@ -143,10 +134,8 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
 
     Parameters
     ----------
-    info : instance of Info | instance of Raw
+    info : instance of Info
         The channel information to use for simulation.
-        Can be an instance of :class:`mne.io.Raw`, but this is deprecated and
-        will be removed in 0.19.
 
         .. versionchanged:: 0.18
            Support for :class:`mne.Info`.
@@ -175,39 +164,13 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
         BEM solution  corresponding to the stc. If string, should be a BEM
         solution filename (e.g., "sample-5120-5120-5120-bem-sol.fif").
         Can be None if ``forward`` is provided.
-    cov : instance of Covariance | str | dict of float | None
-        Deprecated and will be removed in 0.18.
-        Use :func:`mne.simulation.add_noise` instead.
-        The sensor covariance matrix used to generate noise. If string, should
-        be a filename or 'simple'. If 'simple', an ad hoc covariance matrix
-        will be generated with default values. If dict, an ad hoc covariance
-        matrix will be generated with the values specified by the dict entries.
-        If None, no noise will be added.
-    blink : bool
-        Deprecated and will be removed in 0.19, use :func:`add_eog` instead.
-        If true, add simulated blink artifacts. See Notes for details.
-    ecg : bool
-        Deprecated and will be removed in 0.19, use :func:`add_ecg` instead.
-        If true, add simulated ECG artifacts. See Notes for details.
-    chpi : bool
-        Deprecated and will be removed in 0.19, use :func:`add_chpi` instead.
-        If true, simulate continuous head position indicator information.
-        Valid cHPI information must encoded in ``raw.info['hpi_meas']``
-        to use this option.
     %(head_pos)s
         See for example [1]_.
     mindist : float
         Minimum distance between sources and the inner skull boundary
         to use during forward calculation.
     %(interp)s
-    iir_filter : None | array
-        Deprecated and will be removed in 0.19. Use :func:`add_noise` instead.
-        IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
     %(n_jobs)s
-    random_state : int | None
-      Deprecated and will be removed in 0.19. Use dedicated noise-generation
-      functions :func:`add_noise`, :func:`add_ecg`, and :func:`add_eog`
-      instead.
     use_cps : None | bool (default True)
         Whether to use cortical patch statistics to define normal
         orientations. Only used when surf_ori and/or force_fixed are True.
@@ -226,9 +189,6 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
         This is a sanity parameter to prevent accidental blowups.
 
         .. versionadded:: 0.18
-    raw : instance of Raw
-        Deprecated and will be removed in 0.18. Pass an instance of
-        :class: `mne.Info` to ``info`` instead.
     %(verbose)s
 
     Returns
@@ -282,28 +242,8 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
            for Head Movements During MEG Acquisition Across Different Age
            Groups." Brain Topogr 30:172–181
     """  # noqa: E501
-    _validate_type(info, (BaseRaw, Info), 'info', 'Raw or Info')
-    if cov is not None:
-        warn('cov is deprecated in 0.18 and will be removed in 0.19, '
-             'use mne.simulation.add_noise instead', DeprecationWarning)
-
-    warn_raw = False
-    if raw is not None:
-        info = raw
-        warn_raw = True
-    del raw
-    if isinstance(info, Info):
-        raw_verbose = verbose
-        n_samples = None
-    else:
-        raw_verbose = info.verbose
-        n_samples = len(info.times)
-        info, first_samp = info.info, info.first_samp
-        warn_raw = True
-    if warn_raw:
-        warn('Passing a raw instance to simulate_raw is deprecated and will '
-             'not work in 0.19, pass an instance of Info as first argument or '
-             'as a keyword argument as info=info', DeprecationWarning)
+    _validate_type(info, Info, 'info')
+    raw_verbose = verbose
 
     if len(pick_types(info, meg=False, stim=True)) == 0:
         event_ch = None
@@ -324,28 +264,18 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
                              'the one in raw.info["dev_head_t"]')
         src = forward['src']
 
-    if blink is not None:
-        warn('blink is deprecated and will be removed in 0.19, use add_eog '
-             'instead', DeprecationWarning)
-    if ecg is not None:
-        warn('ecg is deprecated and will be removed in 0.19, use add_ecg '
-             'instead', DeprecationWarning)
-    if chpi is not None:
-        warn('chpi is deprecated and will be removed in 0.19, use add_chpi '
-             'instead', DeprecationWarning)
     dev_head_ts, offsets = _check_head_pos(head_pos, info, first_samp, None)
 
     src = _ensure_src(src, verbose=False)
     if isinstance(bem, str):
         bem = read_bem_solution(bem, verbose=False)
-    cov = _check_cov(info, cov)
 
     # Extract necessary info
     meeg_picks = pick_types(info, meg=True, eeg=True, exclude=[])
     logger.info('Setting up raw simulation: %s position%s, "%s" interpolation'
                 % (len(dev_head_ts), _pl(dev_head_ts), interp))
 
-    stc_enum, stc_counted, verts = _check_stc_iterable(stc, info, n_samples)
+    stc_enum, stc_counted, verts = _check_stc_iterable(stc, info)
     # del stc
     if forward is not None:
         forward = restrict_forward_to_stc(forward, verts)
@@ -379,7 +309,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
         start = offsets[fi - 1]
         stop = np.inf if fi == len(offsets) else offsets[fi]
         interper.n_samp = stop - start
-        logger.info('   Simulating data for forward operator %d/%d'
+        logger.info('    Simulating data for forward operator %d/%d'
                     % (fi, len(offsets) - 1))
 
         # To avoid a blowup of memory, process in chunk sizes equal to
@@ -388,7 +318,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
         this_start = start
         while this_start < stop:
             this_stop = min(this_start + stc_data.shape[1], stop)
-            logger.info('   Interval %0.3f-%0.3f sec'
+            logger.info('    Interval %0.3f-%0.3f sec'
                         % (this_start / info['sfreq'],
                            this_stop / info['sfreq']))
             n_doing = this_stop - this_start
@@ -414,36 +344,18 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, cov=None,
                 try:
                     stc_counted = next(stc_enum)
                 except StopIteration:
-                    if n_samples is not None and this_stop < n_samples:
-                        raise RuntimeError('Iterable did not provide stc[%d] '
-                                           'required to cover the raw duration'
-                                           ' %s sec'
-                                           % (stc_counted[0] + 1,
-                                              n_samples / info['sfreq']))
                     logger.info('    %d STC iteration%s provided'
                                 % (n, _pl(n)))
                     break
                 n += 1
                 stc_data, stim_data, _ = _stc_data_event(
                     stc_counted, fi, info['sfreq'], fwd['src'], verts)
-            if n_samples is not None and this_stop >= n_samples - 1:
-                break
             if n > max_iter:
                 raise RuntimeError('Maximum number of STC iterations (%d) '
                                    'exceeded' % (n,))
         del fwd
     raw_data = np.concatenate(raw_datas, axis=-1)
     raw = RawArray(raw_data, info, first_samp=first_samp, verbose=False)
-    if blink:
-        add_eog(raw, head_pos, interp, n_jobs, random_state)
-    if ecg:
-        add_ecg(raw, head_pos, interp, n_jobs, random_state)
-    if chpi:
-        add_chpi(raw, head_pos, interp, n_jobs)
-    if cov is not None:
-        add_noise(raw, cov, iir_filter, random_state)
-    if n_samples is not None:
-        raw.crop(0, (n_samples - 1.) / raw.info['sfreq'])
     raw.set_annotations(raw.annotations)
     raw.verbose = raw_verbose
     logger.info('Done')
@@ -630,7 +542,8 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
         ch = None
     nn = np.zeros_like(exg_rr)
     nn[:, 2] = 1
-    src = setup_volume_source_space(pos=dict(rr=exg_rr, nn=nn))
+    src = setup_volume_source_space(pos=dict(rr=exg_rr, nn=nn),
+                                    sphere_units='mm')
     _log_ch('%s simulated and trace' % kind, info, ch)
     del ch, nn, noise
 

@@ -72,12 +72,14 @@ from the stable version of MNE-Python to the current development version.
 .. warning:: In between releases, function and class APIs can change without
              warning.
 
-For a one-time update to latest master, make sure you're in the ``mne`` conda
-environment (``conda activate mne``), and use ``pip``:
+For a one-time update to latest master, make sure you're in the conda
+environment where MNE-Python is installed (if you followed the default install
+instructions, this will be ``base``), and use ``pip`` to upgrade:
 
 .. code-block:: console
 
-   $ pip install --upgrade --no-deps git+https://github.com/mne-tools/mne-python.git
+   $ conda activate name_of_my_mne_environment
+   $ pip install --upgrade --no-deps https://api.github.com/repos/mne-tools/mne-python/zipball/master
 
 If you plan to contribute to MNE-Python, or just prefer to use git rather than
 pip to make frequent updates, check out the :ref:`contributing guide

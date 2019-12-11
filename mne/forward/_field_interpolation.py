@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Eric Larson <larsoner@uw.edu>
+
+# The computations in this code were primarily derived from Matti Hämäläinen's
+# C code.
 
 from copy import deepcopy
 
@@ -357,7 +363,7 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         for most applications.
     meg_surf : 'helmet' | 'head'
         Should be ``'helmet'`` or ``'head'`` to specify in which surface
-        to compute the MEG field map. The default value is ``'helmet'``
+        to compute the MEG field map. The default value is ``'helmet'``.
     origin : array-like, shape (3,) | 'auto'
         Origin of the sphere in the head coordinate frame and in meters.
         Can be ``'auto'``, which means a head-digitization-based origin

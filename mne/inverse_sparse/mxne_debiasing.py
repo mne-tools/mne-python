@@ -1,5 +1,5 @@
 # Authors: Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 

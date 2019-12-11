@@ -182,7 +182,7 @@ def test_polar_to_cartesian():
                     _pol_to_cart(polar), atol=1e-7)
 
 
-def _topo_to_sphere(theta, radius):
+def _topo_to_phi_theta(theta, radius):
     """Convert using old function."""
     sph_phi = (0.5 - radius) * 180
     sph_theta = -theta
@@ -202,9 +202,9 @@ def test_topo_to_sph():
     new[:, [0, 1]] = new[:, [1, 0]] * [-1, 1]
     # old way
     for ii, (angle, radius) in enumerate(zip(angles, radii)):
-        sph_phi, sph_theta = _topo_to_sphere(angle, radius)
+        sph_phi, sph_theta = _topo_to_phi_theta(angle, radius)
         if ii == 0:
-            assert_allclose(_topo_to_sphere(angle, radius), [45, -30])
+            assert_allclose(_topo_to_phi_theta(angle, radius), [45, -30])
         azimuth = sph_theta / 180.0 * np.pi
         elevation = sph_phi / 180.0 * np.pi
         assert_allclose(sph[ii], [1., azimuth, np.pi / 2. - elevation],
@@ -238,7 +238,7 @@ def test_rotation3d_align_z_axis():
     # The more complex z axis fails the assert presumably due to tolerance
     #
     inp_zs = [[0, 0, 1], [0, 1, 0], [1, 0, 0], [0, 0, -1],
-              [-0.75071668, -0.62183808,  0.22302888]]
+              [-0.75071668, -0.62183808, 0.22302888]]
 
     exp_res = [[[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]],
                [[1., 0., 0.], [0., 0., 1.], [0., -1., 0.]],

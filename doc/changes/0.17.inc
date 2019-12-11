@@ -135,7 +135,7 @@ Bug
 
 - Fix bug with :func:`mne.stats.permutation_cluster_test` and :func:`mne.stats.spatio_temporal_cluster_test` where ``threshold=None`` was not calculated properly for a f-oneway test by `Daniel McCloy`_ and `Eric Larson`_
 
-- Fix bug with channel names in ``mgh70`` montage in :func:`mne.channels.read_montage` by `Eric Larson`_
+- Fix bug with channel names in ``mgh70`` montage in ``mne.channels.read_montage`` by `Eric Larson`_
 
 - Fix duplication of ``info['hpi_meas']`` and ``info['hpi_results']`` by `Sara Sommariva`_
 

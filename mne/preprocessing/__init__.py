@@ -1,7 +1,7 @@
 """Preprocessing with artifact detection, SSP, and ICA."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #
@@ -21,3 +21,5 @@ from .infomax_ import infomax
 from .stim import fix_stim_artifact
 from .maxwell import maxwell_filter
 from .xdawn import Xdawn
+from ._csd import compute_current_source_density
+from . import nirs

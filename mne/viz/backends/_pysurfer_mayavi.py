@@ -4,7 +4,7 @@ Core visualization operations based on Mayavi.
 Actual implementation of _Renderer and _Projection classes.
 """
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -18,6 +18,7 @@ Actual implementation of _Renderer and _Projection classes.
 import warnings
 import numpy as np
 from .base_renderer import _BaseRenderer
+from ._utils import _check_color
 from ...surface import _normalize_vectors
 from ...utils import (_import_mlab, _validate_type, SilenceStdout,
                       copy_base_doc_to_subclass_doc)
@@ -57,15 +58,22 @@ class _Renderer(_BaseRenderer):
         Mayavi scene handle.
     """
 
-    def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
-                 name=None, show=False):
+    def __init__(self, fig=None, size=(600, 600), bgcolor='black',
+                 name=None, show=False, shape=(1, 1)):
+        if bgcolor is not None:
+            bgcolor = _check_color(bgcolor)
         self.mlab = _import_mlab()
+        self.shape = shape
         if fig is None:
             self.fig = _mlab_figure(figure=name, bgcolor=bgcolor, size=size)
+        elif isinstance(fig, int):
+            self.fig = _mlab_figure(figure=fig, bgcolor=bgcolor, size=size)
         else:
             self.fig = fig
-        if show is False:
-            _toggle_mlab_render(self.fig, False)
+        _toggle_mlab_render(self.fig, show)
+
+    def subplot(self, x, y):
+        pass
 
     def scene(self):
         return self.fig
@@ -77,8 +85,12 @@ class _Renderer(_BaseRenderer):
                 tvtk.InteractorStyleTerrain()
 
     def mesh(self, x, y, z, triangles, color, opacity=1.0, shading=False,
-             backface_culling=False, **kwargs):
-        if isinstance(color, np.ndarray) and color.ndim > 1:
+             backface_culling=False, scalars=None, colormap=None,
+             vmin=None, vmax=None, **kwargs):
+        if color is not None:
+            color = _check_color(color)
+        if color is not None and isinstance(color, np.ndarray) \
+           and color.ndim > 1:
             if color.shape[1] == 3:
                 vertex_color = np.c_[color, np.ones(len(color))] * 255.0
             else:
@@ -87,7 +99,6 @@ class _Renderer(_BaseRenderer):
             scalars = np.arange(len(color))
             color = None
         else:
-            scalars = None
             vertex_color = None
         with warnings.catch_warnings(record=True):  # traits
             surface = self.mlab.triangular_mesh(x, y, z, triangles,
@@ -95,10 +106,22 @@ class _Renderer(_BaseRenderer):
                                                 scalars=scalars,
                                                 opacity=opacity,
                                                 figure=self.fig,
+                                                vmin=vmin,
+                                                vmax=vmax,
                                                 **kwargs)
             if vertex_color is not None:
                 surface.module_manager.scalar_lut_manager.lut.table = \
                     vertex_color
+            elif isinstance(colormap, np.ndarray):
+                l_m = surface.module_manager.scalar_lut_manager
+                if colormap.dtype == np.uint8:
+                    l_m.lut.table = colormap
+                elif colormap.dtype == np.float:
+                    l_m.load_lut_from_list(colormap)
+                else:
+                    raise TypeError('Expected type for colormap values are'
+                                    ' np.float or np.uint8: '
+                                    '{} was given'.format(colormap.dtype))
             surface.actor.property.shading = shading
             surface.actor.property.backface_culling = backface_culling
         return surface
@@ -117,6 +140,8 @@ class _Renderer(_BaseRenderer):
                 vmin=None, vmax=None, colormap=None,
                 normalized_colormap=False, scalars=None,
                 backface_culling=False):
+        if color is not None:
+            color = _check_color(color)
         if normalized_colormap:
             colormap = colormap * 255.0
         # Make a solid surface
@@ -130,24 +155,23 @@ class _Renderer(_BaseRenderer):
             surface.actor.property.backface_culling = backface_culling
 
     def sphere(self, center, color, scale, opacity=1.0,
-               resolution=8, backface_culling=False):
-        if center.ndim == 1:
-            x = center[0]
-            y = center[1]
-            z = center[2]
-        elif center.ndim == 2:
-            x = center[:, 0]
-            y = center[:, 1]
-            z = center[:, 2]
+               resolution=8, backface_culling=False,
+               radius=None):
+        color = _check_color(color)
+        center = np.atleast_2d(center)
+        x, y, z = center.T
         surface = self.mlab.points3d(x, y, z, color=color,
                                      resolution=resolution,
                                      scale_factor=scale, opacity=opacity,
                                      figure=self.fig)
         surface.actor.property.backface_culling = backface_culling
 
-    def tube(self, origin, destination, radius=1.0, color=(1.0, 1.0, 1.0),
+    def tube(self, origin, destination, radius=0.001, color='white',
              scalars=None, vmin=None, vmax=None, colormap='RdBu',
              normalized_colormap=False, reverse_lut=False):
+        color = _check_color(color)
+        origin = np.atleast_2d(origin)
+        destination = np.atleast_2d(destination)
         if scalars is None:
             surface = self.mlab.plot3d([origin[:, 0], destination[:, 0]],
                                        [origin[:, 1], destination[:, 1]],
@@ -172,6 +196,7 @@ class _Renderer(_BaseRenderer):
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
                  backface_culling=False):
+        color = _check_color(color)
         with warnings.catch_warnings(record=True):  # traits
             if mode == 'arrow':
                 self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
@@ -193,26 +218,50 @@ class _Renderer(_BaseRenderer):
                     glyph_resolution
                 quiv.actor.property.backface_culling = backface_culling
 
-    def text2d(self, x, y, text, width, color=(1.0, 1.0, 1.0)):
+    def text2d(self, x_window, y_window, text, size=14, color='white',
+               justification=None):
+        if color is not None:
+            color = _check_color(color)
+        size = 14 if size is None else size
         with warnings.catch_warnings(record=True):  # traits
-            self.mlab.text(x, y, text, width=width, color=color,
-                           figure=self.fig)
+            text = self.mlab.text(x_window, y_window, text, color=color,
+                                  figure=self.fig)
+            text.property.font_size = size
+            text.actor.text_scale_mode = 'viewport'
+            if isinstance(justification, str):
+                text.property.justification = justification
 
-    def text3d(self, x, y, z, text, scale, color=(1.0, 1.0, 1.0)):
+    def text3d(self, x, y, z, text, scale, color='white'):
+        color = _check_color(color)
         with warnings.catch_warnings(record=True):  # traits
             self.mlab.text3d(x, y, z, text, scale=scale, color=color,
                              figure=self.fig)
 
-    def scalarbar(self, source, title=None, n_labels=4):
+    def scalarbar(self, source, title=None, n_labels=4, bgcolor=None):
         with warnings.catch_warnings(record=True):  # traits
             self.mlab.scalarbar(source, title=title, nb_labels=n_labels)
+        if bgcolor is not None:
+            from tvtk.api import tvtk
+            bgcolor = np.asarray(bgcolor)
+            bgcolor = np.append(bgcolor, 1.0) * 255.
+            cmap = source.module_manager.scalar_lut_manager
+            lut = cmap.lut
+            ctable = lut.table.to_array()
+            cbar_lut = tvtk.LookupTable()
+            cbar_lut.deep_copy(lut)
+            alphas = ctable[:, -1][:, np.newaxis] / 255.
+            use_lut = ctable.copy()
+            use_lut[:, -1] = 255.
+            vals = (use_lut * alphas) + bgcolor * (1 - alphas)
+            cbar_lut.table.from_array(vals)
+            cmap.scalar_bar.lookup_table = cbar_lut
 
     def show(self):
         if self.fig is not None:
             _toggle_mlab_render(self.fig, True)
 
     def close(self):
-        self.mlab.close(self.fig)
+        _close_3d_figure(figure=self.fig)
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
                    focalpoint=None):
@@ -220,9 +269,9 @@ class _Renderer(_BaseRenderer):
                      elevation=elevation, distance=distance,
                      focalpoint=focalpoint)
 
-    def screenshot(self):
-        with warnings.catch_warnings(record=True):  # traits
-            return self.mlab.screenshot(self.fig)
+    def screenshot(self, mode='rgb', filename=None):
+        return _take_3d_screenshot(figure=self.fig, mode=mode,
+                                   filename=filename)
 
     def project(self, xyz, ch_names):
         xy = _3d_to_2d(self.fig, xyz)
@@ -334,10 +383,10 @@ def _get_view_to_display_matrix(scene):
     # so we need to scale by width and height of the display window and shift
     # by half width and half height. The matrix accomplishes that.
     x, y = tuple(scene.get_size())
-    view_to_disp_mat = np.array([[x / 2.0,       0.,   0.,   x / 2.0],
-                                 [0.,      -y / 2.0,   0.,   y / 2.0],
-                                 [0.,            0.,   1.,        0.],
-                                 [0.,            0.,   0.,        1.]])
+    view_to_disp_mat = np.array([[x / 2.0,       0.,   0.,   x / 2.0],  # noqa: E241,E501
+                                 [0.,      -y / 2.0,   0.,   y / 2.0],  # noqa: E241,E501
+                                 [0.,            0.,   1.,        0.],  # noqa: E241,E501
+                                 [0.,            0.,   0.,        1.]])  # noqa: E241,E501
     return view_to_disp_mat
 
 
@@ -361,3 +410,60 @@ def _set_3d_title(figure, title, size=40):
     text.property.vertical_justification = 'top'
     text.property.font_size = size
     mlab.draw(figure)
+
+
+def _check_3d_figure(figure):
+    try:
+        import mayavi  # noqa F401
+    except Exception:
+        raise TypeError('figure must be a mayavi scene but the'
+                        'mayavi package is not found.')
+    else:
+        from mayavi.core.scene import Scene
+        if not isinstance(figure, Scene):
+            raise TypeError('figure must be a mayavi scene.')
+
+
+def _save_figure(img, filename):
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    from matplotlib.figure import Figure
+    fig = Figure(frameon=False)
+    FigureCanvasAgg(fig)
+    fig.figimage(img, resize=True)
+    fig.savefig(filename)
+
+
+def _close_3d_figure(figure):
+    from mayavi import mlab
+    mlab.close(figure)
+
+
+def _take_3d_screenshot(figure, mode='rgb', filename=None):
+    from mayavi import mlab
+    from mne.viz.backends.renderer import MNE_3D_BACKEND_TESTING
+    if MNE_3D_BACKEND_TESTING:
+        ndim = 3 if mode == 'rgb' else 4
+        if figure.scene is None:
+            figure_size = (600, 600)
+        else:
+            figure_size = figure.scene._renwin.size
+        return np.zeros(tuple(figure_size) + (ndim,), np.uint8)
+    else:
+        from pyface.api import GUI
+        gui = GUI()
+        gui.process_events()
+        with warnings.catch_warnings(record=True):  # traits
+            img = mlab.screenshot(figure, mode=mode)
+        if isinstance(filename, str):
+            _save_figure(img, filename)
+        return img
+
+
+def _try_3d_backend():
+    try:
+        with warnings.catch_warnings(record=True):  # traits
+            from mayavi import mlab  # noqa F401
+    except Exception:
+        pass
+    else:
+        mlab.options.backend = 'test'

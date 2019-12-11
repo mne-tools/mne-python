@@ -39,9 +39,20 @@ def _load_data(kind):
     return raw, epochs
 
 
-def test_interpolation_eeg():
+@pytest.mark.parametrize('offset', (0., 0.1))
+@pytest.mark.filterwarnings('ignore:.*than 20 mm from head frame origin.*')
+def test_interpolation_eeg(offset):
     """Test interpolation of EEG channels."""
     raw, epochs_eeg = _load_data('eeg')
+    epochs_eeg = epochs_eeg.copy()
+    # Offsetting the coordinate frame should have no effect on the output
+    for inst in (raw, epochs_eeg):
+        for ch in inst.info['chs']:
+            if ch['kind'] == io.constants.FIFF.FIFFV_EEG_CH:
+                ch['loc'][:3] += offset
+                ch['loc'][3:6] += offset
+        for d in inst.info['dig']:
+            d['r'] += offset
 
     # check that interpolation does nothing if no bads are marked
     epochs_eeg.info['bads'] = []
@@ -64,13 +75,19 @@ def test_interpolation_eeg():
     pos_bad = pos[bads_idx]
     interpolation = _make_interpolation_matrix(pos_good, pos_bad)
     assert interpolation.shape == (1, len(epochs_eeg.ch_names) - 1)
-    ave_after = np.dot(interpolation, evoked_eeg.data[goods_idx])
+    interp_manual = np.dot(interpolation, evoked_eeg.data[goods_idx])
 
     epochs_eeg.info['bads'] = ['EEG 012']
     evoked_eeg = epochs_eeg.average()
-    assert_array_equal(ave_after, evoked_eeg.interpolate_bads().data[bads_idx])
-
-    assert_allclose(ave_before, ave_after, atol=2e-6)
+    interp_zero = evoked_eeg.interpolate_bads(
+        origin=(0., 0., 0.)).data[bads_idx]
+    assert_array_equal(interp_manual, interp_zero)
+    assert_allclose(ave_before, interp_zero, atol=3e-6)
+    assert 0.985 < np.corrcoef(ave_before, interp_zero)[0, 1] < 0.99
+    evoked_eeg.info['bads'] = ['EEG 012']
+    interp_fit = evoked_eeg.interpolate_bads().data[bads_idx]
+    assert_allclose(ave_before, interp_fit, atol=2e-6)
+    assert 0.99 < np.corrcoef(ave_before, interp_fit)[0, 1]  # better
 
     # check that interpolation fails when preload is False
     epochs_eeg.preload = False
@@ -99,10 +116,10 @@ def test_interpolation_eeg():
     orig_data = raw_few[1][0]
     with pytest.warns(None) as w:
         raw_few.interpolate_bads(reset_bads=False)
-    assert len(w) == 0
+    assert len([ww for ww in w if 'more than' not in str(ww.message)]) == 0
     new_data = raw_few[1][0]
     assert (new_data == 0).mean() < 0.5
-    assert np.corrcoef(new_data, orig_data)[0, 1] > 0.1
+    assert np.corrcoef(new_data, orig_data)[0, 1] > 0.2
 
 
 def test_interpolation_meg():
@@ -164,7 +181,7 @@ def _this_interpol(inst, ref_meg=False):
 
 def test_interpolate_meg_ctf():
     """Test interpolation of MEG channels from CTF system."""
-    thresh = .7
+    thresh = .85
     tol = .05  # assert the new interpol correlates at least .05 "better"
     bad = 'MLC22-2622'  # select a good channel to test the interpolation
 
@@ -198,7 +215,7 @@ def test_interpolation_ctf_comp():
     raw_fname = op.join(ctf_dir, 'somMDYO-18av.ds')
     raw = io.read_raw_ctf(raw_fname, preload=True)
     raw.info['bads'] = [raw.ch_names[5], raw.ch_names[-5]]
-    raw.interpolate_bads(mode='fast')
+    raw.interpolate_bads(mode='fast', origin=(0., 0., 0.04))
     assert raw.info['bads'] == []
 
 

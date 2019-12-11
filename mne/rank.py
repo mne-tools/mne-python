@@ -4,8 +4,6 @@
 #
 # License: BSD (3-clause)
 
-import operator
-
 import numpy as np
 from scipy import linalg
 
@@ -14,7 +12,7 @@ from .io.meas_info import _simplify_info
 from .io.pick import (_picks_by_type, pick_info, pick_channels_cov,
                       _picks_to_idx)
 from .io.proj import make_projector
-from .utils import (logger, _compute_row_norms, _pl,
+from .utils import (logger, _compute_row_norms, _pl, _validate_type,
                     _apply_scaling_cov, _undo_scaling_cov,
                     _scaled_array, warn, _check_rank, verbose)
 
@@ -320,10 +318,6 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
         number of good channels. If a `Covariance` is passed, this can make
         sense if it has been (possibly improperly) regularized without taking
         into account the true data rank.
-    :class:`python:int`
-        This value is used as the MEG rank. For other channel types,
-        rank is taken from ``info``. This is deprecated and will be
-        removed in 0.19, use ``dict(meg=...)`` instead.
 
     .. versionadded:: 0.18
     """
@@ -345,21 +339,18 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
                                     for name in inst['names']])
     else:
         info = inst.info
-        inst_type = 'raw' if isinstance(inst, BaseRaw) else 'epochs'
-    logger.info('Computing data rank from %s with rank=%r' % (inst_type, rank))
+        inst_type = 'data'
+    logger.info('Computing rank from %s with rank=%r' % (inst_type, rank))
 
+    _validate_type(rank, (str, dict, None), 'rank')
     if isinstance(rank, str):  # string, either 'info' or 'full'
         rank_type = 'info'
         info_type = rank
         rank = dict()
-    else:  # None, dict, or int
+    else:  # None or dict
         rank_type = 'estimated'
-        if not isinstance(rank, dict):  # dict is pass-through
-            if rank is not None:  # int
-                rank = dict(meg=int(operator.index(rank)))
-            else:  # None
-                rank = dict()
-    assert isinstance(rank, dict)  # should be guaranteed by _check_rank
+        if rank is None:
+            rank = dict()
 
     simple_info = _simplify_info(info)
     picks_list = _picks_by_type(info, meg_combined=True, ref_meg=False,

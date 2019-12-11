@@ -94,12 +94,11 @@ def _read_proc_history(fid, tree):
                 else:
                     warn('Unknown processing history item %s' % kind)
             record['max_info'] = _read_maxfilter_record(fid, proc_record)
-            smartshields = dir_tree_find(proc_record,
-                                         FIFF.FIFFB_SMARTSHIELD)
-            if len(smartshields) > 0:
+            iass = dir_tree_find(proc_record, FIFF.FIFFB_IAS)
+            if len(iass) > 0:
                 # XXX should eventually populate this
-                ss = [dict() for _ in range(len(smartshields))]
-                record['smartshield'] = ss
+                ss = [dict() for _ in range(len(iass))]
+                record['ias'] = ss
             if len(record['max_info']) > 0:
                 out.append(record)
     return out
@@ -115,11 +114,11 @@ def _write_proc_history(fid, info):
                 if key in record:
                     writer(fid, id_, record[key])
             _write_maxfilter_record(fid, record['max_info'])
-            if 'smartshield' in record:
-                for _ in record['smartshield']:
-                    start_block(fid, FIFF.FIFFB_SMARTSHIELD)
+            if 'ias' in record:
+                for _ in record['ias']:
+                    start_block(fid, FIFF.FIFFB_IAS)
                     # XXX should eventually populate this
-                    end_block(fid, FIFF.FIFFB_SMARTSHIELD)
+                    end_block(fid, FIFF.FIFFB_IAS)
             end_block(fid, FIFF.FIFFB_PROCESSING_RECORD)
         end_block(fid, FIFF.FIFFB_PROCESSING_HISTORY)
 

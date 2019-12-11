@@ -269,7 +269,6 @@ def read_raw_curry(fname, preload=False, verbose=None):
     -------
     raw : instance of RawCurry
         A Raw object containing Curry data.
-
     """
     return RawCurry(fname, preload, verbose)
 
@@ -336,7 +335,6 @@ class RawCurry(BaseRaw):
                                    skiprows=start,
                                    usecols=ch_idx[idx]).T
                 block = block[:, :stop - start]
-
             data_view = data[:, :block.shape[1]]
             _mult_cal_one(data_view, block, idx, cals, mult)
 

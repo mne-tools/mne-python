@@ -9,7 +9,7 @@ we simulate data from multiple subjects using one subject's data.
 The multiple comparisons problem is addressed with a cluster-level
 permutation test across space and time.
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD (3-clause)
 
@@ -85,7 +85,7 @@ condition2 = apply_inverse(evoked2, inverse_operator, lambda2, method)
 condition1.crop(0, None)
 condition2.crop(0, None)
 tmin = condition1.tmin
-tstep = condition1.tstep
+tstep = condition1.tstep * 1000  # convert to milliseconds
 
 ###############################################################################
 # Transform to common cortical space
@@ -184,6 +184,6 @@ subjects_dir = op.join(data_path, 'subjects')
 # blue blobs are for condition A < condition B, red for A > B
 brain = stc_all_cluster_vis.plot(
     hemi='both', views='lateral', subjects_dir=subjects_dir,
-    time_label='Duration significant (ms)', size=(800, 800),
+    time_label='temporal extent (ms)', size=(800, 800),
     smoothing_steps=5, clim=dict(kind='value', pos_lims=[0, 1, 40]))
 # brain.save_image('clusters.png')

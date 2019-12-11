@@ -14,7 +14,7 @@ import pytest
 
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_bti
-from mne._digitization._utils import _make_bti_dig_points
+from mne.io._digitization import _make_bti_dig_points
 from mne.io.bti.bti import (_read_config,
                             _read_bti_header, _get_bti_dev_t,
                             _correct_trans, _get_bti_info,
@@ -40,6 +40,10 @@ tmp_raw_fname = op.join(base_dir, 'tmp_raw.fif')
 
 fname_2500 = op.join(testing.data_path(download=False), 'BTi', 'erm_HFH',
                      'c,rfDC')
+fname_sim = op.join(testing.data_path(download=False), 'BTi', '4Dsim',
+                    'c,rfDC')
+fname_sim_filt = op.join(testing.data_path(download=False), 'BTi', '4Dsim',
+                         'c,rfDC,fn50,o')
 
 # the 4D exporter doesn't export all channels, so we confine our comparison
 NCH = 248
@@ -343,6 +347,14 @@ def test_nan_trans():
                 if convert:
                     t = _loc_to_coil_trans(bti_info['chs'][idx]['loc'])
                     t = _convert_coil_trans(t, dev_ctf_t, bti_dev_t)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('fname', (fname_sim, fname_sim_filt))
+@pytest.mark.parametrize('preload', (True, False))
+def test_bti_ch_data(fname, preload):
+    """Test for gh-6048."""
+    read_raw_bti(fname, preload=preload)  # used to fail with ascii decode err
 
 
 run_tests_if_main()

@@ -11,7 +11,7 @@ import numpy as np
 from .egimff import _read_raw_egi_mff
 from .events import _combine_triggers
 from ..base import BaseRaw
-from ..utils import _read_segments_file, _create_chs, _deprecate_montage
+from ..utils import _read_segments_file, _create_chs
 from ..meas_info import _empty_info
 from ..constants import FIFF
 from ...utils import verbose, logger, warn
@@ -88,7 +88,7 @@ def _read_events(fid, info):
 
 
 @verbose
-def read_raw_egi(input_fname, montage='deprecated', eog=None, misc=None,
+def read_raw_egi(input_fname, eog=None, misc=None,
                  include=None, exclude=None, preload=False,
                  channel_naming='E%d', verbose=None):
     """Read EGI simple binary as raw object.
@@ -98,7 +98,6 @@ def read_raw_egi(input_fname, montage='deprecated', eog=None, misc=None,
     input_fname : str
         Path to the raw file. Files with an extension .mff are automatically
         considered to be EGI's native MFF format files.
-    %(montage_deprecated)s
     eog : list or tuple
         Names of channels or list of indices that should be designated
         EOG channels. Default is None.
@@ -130,6 +129,10 @@ def read_raw_egi(input_fname, montage='deprecated', eog=None, misc=None,
     raw : instance of RawEGI
         A Raw object containing EGI data.
 
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
+
     Notes
     -----
     The trigger channel names are based on the arbitrary user dependent event
@@ -144,15 +147,11 @@ def read_raw_egi(input_fname, montage='deprecated', eog=None, misc=None,
     As a consequence, triggers have only short durations.
 
     This step will fail if events are not mutually exclusive.
-
-    See Also
-    --------
-    mne.io.Raw : Documentation of attribute and methods.
     """
     if input_fname.endswith('.mff'):
-        return _read_raw_egi_mff(input_fname, montage, eog, misc, include,
+        return _read_raw_egi_mff(input_fname, eog, misc, include,
                                  exclude, preload, channel_naming, verbose)
-    return RawEGI(input_fname, montage, eog, misc, include, exclude, preload,
+    return RawEGI(input_fname, eog, misc, include, exclude, preload,
                   channel_naming, verbose)
 
 
@@ -160,7 +159,7 @@ class RawEGI(BaseRaw):
     """Raw object from EGI simple binary file."""
 
     @verbose
-    def __init__(self, input_fname, montage='deprecated', eog=None, misc=None,
+    def __init__(self, input_fname, eog=None, misc=None,
                  include=None, exclude=None, preload=False,
                  channel_naming='E%d', verbose=None):  # noqa: D102
         if eog is None:
@@ -257,8 +256,6 @@ class RawEGI(BaseRaw):
             info, preload, orig_format=egi_info['orig_format'],
             filenames=[input_fname], last_samps=[egi_info['n_samples'] - 1],
             raw_extras=[egi_info], verbose=verbose)
-
-        _deprecate_montage(self, "read_raw_egi", montage)
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file."""

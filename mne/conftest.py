@@ -50,7 +50,7 @@ def pytest_configure(config):
     #   we should remove them from here.
     # - This list should also be considered alongside reset_warnings in
     #   doc/conf.py.
-    warning_lines = """
+    warning_lines = r"""
     error::
     ignore::ImportWarning
     ignore:the matrix subclass:PendingDeprecationWarning
@@ -73,6 +73,11 @@ def pytest_configure(config):
     ignore:numpy.ufunc size changed:RuntimeWarning
     ignore:.*mne-realtime.*:DeprecationWarning
     ignore:.*imp.*:DeprecationWarning
+    ignore:Exception creating Regex for oneOf.*:SyntaxWarning
+    ignore:scipy\.gradient is deprecated.*:DeprecationWarning
+    ignore:sklearn\.externals\.joblib is deprecated.*:FutureWarning
+    ignore:The sklearn.*module.*deprecated.*:FutureWarning
+    always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
         warning_line = warning_line.strip()
@@ -102,13 +107,8 @@ def matplotlib_config():
         pass
     else:
         ETSConfig.toolkit = 'qt4'
-    try:
-        with warnings.catch_warnings(record=True):  # traits
-            from mayavi import mlab
-    except Exception:
-        pass
-    else:
-        mlab.options.backend = 'test'
+    from mne.viz.backends.renderer import _enable_3d_backend_testing
+    _enable_3d_backend_testing()
 
 
 def _replace(mod, key):

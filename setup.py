@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-# Copyright (C) 2011-2017 Alexandre Gramfort
-# <alexandre.gramfort@telecom-paristech.fr>
+# Copyright (C) 2011-2019 Alexandre Gramfort
+# <alexandre.gramfort@inria.fr>
 
 import os
 import os.path as op
@@ -24,8 +24,8 @@ descr = """MNE python project for MEG and EEG data analysis."""
 DISTNAME = 'mne'
 DESCRIPTION = descr
 MAINTAINER = 'Alexandre Gramfort'
-MAINTAINER_EMAIL = 'alexandre.gramfort@telecom-paristech.fr'
-URL = 'http://martinos.org/mne'
+MAINTAINER_EMAIL = 'alexandre.gramfort@inria.fr'
+URL = 'https://mne.tools/dev/'
 LICENSE = 'BSD (3-clause)'
 DOWNLOAD_URL = 'http://github.com/mne-tools/mne-python'
 VERSION = version
@@ -45,6 +45,9 @@ if __name__ == "__main__":
     if op.exists('MANIFEST'):
         os.remove('MANIFEST')
 
+    with open('README.rst', 'r') as fid:
+        long_description = fid.read()
+
     setup(name=DISTNAME,
           maintainer=MAINTAINER,
           include_package_data=True,
@@ -54,7 +57,8 @@ if __name__ == "__main__":
           url=URL,
           version=VERSION,
           download_url=DOWNLOAD_URL,
-          long_description=open('README.rst').read(),
+          long_description=long_description,
+          long_description_content_type='text/x-rst',
           zip_safe=False,  # the package can run out of an .egg file
           classifiers=['Intended Audience :: Science/Research',
                        'Intended Audience :: Developers',
@@ -92,5 +96,7 @@ if __name__ == "__main__":
               op.join('html', '*.css'),
               op.join('io', 'artemis123', 'resources', '*.csv'),
               op.join('io', 'edf', 'gdf_encodes.txt')
-              ]},
-          scripts=['bin/mne'])
+          ]},
+          entry_points={'console_scripts': [
+              'mne = mne.commands.utils:main',
+          ]})

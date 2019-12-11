@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
@@ -86,7 +86,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     n_cycles : float | array of float
         Number of cycles. Fixed number or one per frequency.
     df : float
-        delta frequency within bands.
+        Delta frequency within bands.
     use_fft : bool
         Do convolutions in time or frequency domain with FFT.
     decim : int
@@ -373,9 +373,15 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
     method_params : dict | None
         Additional options for eLORETA. See Notes of :func:`apply_inverse`.
     %(verbose)s
+
+    Returns
+    -------
+    power : array
+        The induced power.
     """  # noqa: E501
     _check_option('method', method, INVERSE_METHODS)
-    _check_ori(pick_ori, inverse_operator['source_ori'])
+    _check_ori(pick_ori, inverse_operator['source_ori'],
+               inverse_operator['src'])
 
     power, plv, vertno = _source_induced_power(
         epochs, inverse_operator, freqs, label=label, lambda2=lambda2,
@@ -403,12 +409,12 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     Parameters
     ----------
     raw : instance of Raw
-        The raw data
+        The raw data.
     inverse_operator : instance of InverseOperator
-        The inverse operator
-    lambda2: float
-        The regularization parameter
-    method: "MNE" | "dSPM" | "sLORETA"
+        The inverse operator.
+    lambda2 : float
+        The regularization parameter.
+    method : "MNE" | "dSPM" | "sLORETA"
         Use minimum norm, dSPM (default), sLORETA, or eLORETA.
     tmin : float
         The beginning of the time interval of interest (in seconds).
@@ -417,23 +423,23 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         The end of the time interval of interest (in seconds). If None
         stop at the end of the file.
     fmin : float
-        The lower frequency of interest
+        The lower frequency of interest.
     fmax : float
-        The upper frequency of interest
-    n_fft: int
+        The upper frequency of interest.
+    n_fft : int
         Window size for the FFT. Should be a power of 2.
-    overlap: float
+    overlap : float
         The overlap fraction between windows. Should be between 0 and 1.
         0 means no overlap.
     pick_ori : None | "normal"
         If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
-    label: Label
-        Restricts the source estimates to a given label
+    label : Label
+        Restricts the source estimates to a given label.
     nave : int
         The number of averages used to scale the noise covariance matrix.
-    pca: bool
+    pca : bool
         If True, the true dimension of data is estimated before running
         the time-frequency transforms. It reduces the computation times
         e.g. with a dataset that was maxfiltered (true dim is 64).

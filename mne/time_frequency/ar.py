@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          The statsmodels folks for AR yule_walker
 #
 # License: BSD (3-clause)
@@ -45,9 +45,9 @@ def fit_iir_model_raw(raw, order=2, picks=None, tmin=None, tmax=None,
     Parameters
     ----------
     raw : Raw object
-        an instance of Raw.
+        An instance of Raw.
     order : int
-        order of the FIR filter.
+        Order of the FIR filter.
     %(picks_good_data)s
     tmin : float
         The beginning of time interval in seconds.
@@ -60,7 +60,7 @@ def fit_iir_model_raw(raw, order=2, picks=None, tmin=None, tmax=None,
     b : ndarray
         Numerator filter coefficients.
     a : ndarray
-        Denominator filter coefficients
+        Denominator filter coefficients.
     """
     start, stop = None, None
     if tmin is not None:

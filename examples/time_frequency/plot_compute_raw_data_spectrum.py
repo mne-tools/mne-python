@@ -7,7 +7,7 @@ This script shows how to compute the power spectral density (PSD)
 of measurements on a raw dataset. It also show the effect of applying SSP
 to the data to reduce ECG and EOG artifacts.
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD (3-clause)
@@ -82,7 +82,7 @@ picks = picks[:4]
 plt.figure()
 ax = plt.axes()
 raw.plot_psd(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,
-             n_jobs=1, proj=False, ax=ax, color=(0, 0, 1),  picks=picks,
+             n_jobs=1, proj=False, ax=ax, color=(0, 0, 1), picks=picks,
              show=False, average=True)
 
 raw.plot_psd(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,

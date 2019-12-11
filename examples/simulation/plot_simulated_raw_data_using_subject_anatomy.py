@@ -186,8 +186,7 @@ stc_data = source_simulator.get_stc()
 # The :class:`~mne.simulation.SourceSimulator` can be given directly to the
 # :func:`~mne.simulation.simulate_raw` function.
 
-raw_sim = mne.simulation.simulate_raw(info, source_simulator, forward=fwd,
-                                      cov=None)
+raw_sim = mne.simulation.simulate_raw(info, source_simulator, forward=fwd)
 raw_sim.set_eeg_reference(projection=True)
 
 mne.simulation.add_noise(raw_sim, cov=noise_cov, random_state=0)

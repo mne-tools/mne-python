@@ -1,5 +1,5 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
@@ -36,9 +36,14 @@ FIFF.FIFFB_EVENTS             = 115
 FIFF.FIFFB_INDEX              = 116
 FIFF.FIFFB_DACQ_PARS          = 117
 FIFF.FIFFB_REF                = 118
-FIFF.FIFFB_SMSH_RAW_DATA      = 119
-FIFF.FIFFB_SMSH_ASPECT        = 120
+FIFF.FIFFB_IAS_RAW_DATA       = 119
+FIFF.FIFFB_IAS_ASPECT         = 120
 FIFF.FIFFB_HPI_SUBSYSTEM      = 121
+# FIFF.FIFFB_PHANTOM_SUBSYSTEM  = 122
+# FIFF.FIFFB_STATUS_SUBSYSTEM   = 123
+FIFF.FIFFB_DEVICE             = 124
+FIFF.FIFFB_HELIUM             = 125
+FIFF.FIFFB_CHANNEL_INFO       = 126
 
 FIFF.FIFFB_SPHERE             = 300   # Concentric sphere model related
 FIFF.FIFFB_BEM                = 310   # Boundary-element method
@@ -62,7 +67,7 @@ FIFF.FIFFB_SSS_INFO           = 502
 FIFF.FIFFB_SSS_CAL            = 503
 FIFF.FIFFB_SSS_ST_INFO        = 504
 FIFF.FIFFB_SSS_BASES          = 505
-FIFF.FIFFB_SMARTSHIELD        = 510
+FIFF.FIFFB_IAS                = 510
 #
 # Of general interest
 #
@@ -89,6 +94,16 @@ FIFF.FIFF_REF_FILE_NAME   = 118
 #
 FIFF.FIFF_DACQ_PARS      = 150
 FIFF.FIFF_DACQ_STIM      = 151
+
+FIFF.FIFF_DEVICE_TYPE    = 152
+FIFF.FIFF_DEVICE_MODEL   = 153
+FIFF.FIFF_DEVICE_SERIAL  = 154
+FIFF.FIFF_DEVICE_SITE    = 155
+
+FIFF.FIFF_HE_LEVEL_RAW   = 156
+FIFF.FIFF_HELIUM_LEVEL   = 157
+FIFF.FIFF_ORIG_FILE_GUID = 158
+FIFF.FIFF_UTC_OFFSET     = 159
 
 FIFF.FIFF_NCHAN       = 200
 FIFF.FIFF_SFREQ       = 201
@@ -617,6 +632,12 @@ FIFF.FIFFV_PROJ_ITEM_HOMOG_FIELD    = 5
 FIFF.FIFFV_PROJ_ITEM_EEG_AVREF      = 10  # Linear projection related to EEG average reference
 FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF  = FIFF.FIFFV_PROJ_ITEM_EEG_AVREF  # backward compat alias
 #
+# Custom EEG references
+#
+FIFF.FIFFV_MNE_CUSTOM_REF_OFF       = 0
+FIFF.FIFFV_MNE_CUSTOM_REF_ON        = 1
+FIFF.FIFFV_MNE_CUSTOM_REF_CSD       = 2
+#
 # SSS job options
 #
 FIFF.FIFFV_SSS_JOB_NOTHING          = 0   # No SSS, just copy input to output
@@ -758,6 +779,7 @@ FIFF.FIFF_UNIT_H   = 113  # Henry
 FIFF.FIFF_UNIT_CEL = 114  # celsius
 FIFF.FIFF_UNIT_LM  = 115  # lumen
 FIFF.FIFF_UNIT_LX  = 116  # lux
+FIFF.FIFF_UNIT_V_M2 = 117  # V/m^2
 #
 # Others we need
 #
@@ -795,12 +817,15 @@ FIFF.FIFFV_COIL_NM_122                = 2  # Neuromag 122 coils
 FIFF.FIFFV_COIL_NM_24                 = 3  # Old 24 channel system in HUT
 FIFF.FIFFV_COIL_NM_MCG_AXIAL          = 4  # The axial devices in the HUCS MCG system
 FIFF.FIFFV_COIL_EEG_BIPOLAR           = 5  # Bipolar EEG lead
+FIFF.FIFFV_COIL_EEG_CSD               = 6  # CSD-transformed EEG lead
 
 FIFF.FIFFV_COIL_DIPOLE             = 200  # Time-varying dipole definition
 # The coil info contains dipole location (r0) and
 # direction (ex)
-FIFF.FIFFV_COIL_FNIRS_HBO               = 300  # fNIRS oxyhemoglobin
-FIFF.FIFFV_COIL_FNIRS_HBR               = 301  # fNIRS deoxyhemoglobin
+FIFF.FIFFV_COIL_FNIRS_HBO             = 300  # fNIRS oxyhemoglobin
+FIFF.FIFFV_COIL_FNIRS_HBR             = 301  # fNIRS deoxyhemoglobin
+FIFF.FIFFV_COIL_FNIRS_RAW             = 302  # fNIRS raw light intensity
+FIFF.FIFFV_COIL_FNIRS_OD              = 303  # fNIRS optical density
 
 FIFF.FIFFV_COIL_MCG_42             = 1000  # For testing the MCG software
 
@@ -811,10 +836,12 @@ FIFF.FIFFV_COIL_VV_PLANAR_W        = 3011  # VV prototype wirewound planar senso
 FIFF.FIFFV_COIL_VV_PLANAR_T1       = 3012  # Vectorview SQ20483N planar gradiometer
 FIFF.FIFFV_COIL_VV_PLANAR_T2       = 3013  # Vectorview SQ20483N-A planar gradiometer
 FIFF.FIFFV_COIL_VV_PLANAR_T3       = 3014  # Vectorview SQ20950N planar gradiometer
+FIFF.FIFFV_COIL_VV_PLANAR_T4       = 3015  # Vectorview planar gradiometer (MEG-MRI)
 FIFF.FIFFV_COIL_VV_MAG_W           = 3021  # VV prototype wirewound magnetometer
 FIFF.FIFFV_COIL_VV_MAG_T1          = 3022  # Vectorview SQ20483N magnetometer
 FIFF.FIFFV_COIL_VV_MAG_T2          = 3023  # Vectorview SQ20483-A magnetometer
 FIFF.FIFFV_COIL_VV_MAG_T3          = 3024  # Vectorview SQ20950N magnetometer
+FIFF.FIFFV_COIL_VV_MAG_T4          = 3025  # Vectorview magnetometer (MEG-MRI)
 
 FIFF.FIFFV_COIL_MAGNES_MAG         = 4001  # Magnes WH magnetometer
 FIFF.FIFFV_COIL_MAGNES_GRAD        = 4002  # Magnes WH gradiometer
@@ -860,6 +887,7 @@ FIFF.FIFFV_COIL_ARTEMIS123_REF_GRAD     = 7503
 # QuSpin sensors
 #
 FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG   = 8001
+FIFF.FIFFV_COIL_QUSPIN_ZFOPM_MAG2  = 8002
 #
 # KRISS sensors
 #

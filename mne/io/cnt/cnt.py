@@ -11,9 +11,7 @@ import numpy as np
 from ...utils import warn, verbose, fill_doc, _check_option
 from ...channels.layout import _topo_to_sphere
 from ..constants import FIFF
-from ..utils import (_mult_cal_one, _find_channels, _create_chs, read_str,
-                     _deprecate_stim_channel, _synthesize_stim_channel,
-                     _deprecate_montage)
+from ..utils import (_mult_cal_one, _find_channels, _create_chs, read_str)
 from ..meas_info import _empty_info
 from ..base import BaseRaw
 from ...annotations import Annotations
@@ -94,28 +92,34 @@ def _read_annotations_cnt(fname, data_format='int16'):
 
 
 @fill_doc
-def read_raw_cnt(input_fname, montage='deprecated', eog=(), misc=(), ecg=(),
+def read_raw_cnt(input_fname, eog=(), misc=(), ecg=(),
                  emg=(), data_format='auto', date_format='mm/dd/yy',
-                 preload=False, stim_channel=False, verbose=None):
+                 preload=False, verbose=None):
     """Read CNT data as raw object.
 
     .. Note::
-        If montage is not provided, the x and y coordinates are read from the
-        file header. Channels that are not assigned with keywords ``eog``,
-        ``ecg``, ``emg`` and ``misc`` are assigned as eeg channels. All the eeg
-        channel locations are fit to a sphere when computing the z-coordinates
-        for the channels. If channels assigned as eeg channels have locations
+        2d spatial coordinates (x, y) for EEG channels are read from the file
+        header and fit to a sphere to compute corresponding z-coordinates.
+        If channels assigned as EEG channels have locations
         far away from the head (i.e. x and y coordinates don't fit to a
-        sphere), all the channel locations will be distorted. If you are not
+        sphere), all the channel locations will be distorted
+        (all channels that are not assigned with keywords ``eog``, ``ecg``,
+        ``emg`` and ``misc`` are assigned as EEG channels). If you are not
         sure that the channel locations in the header are correct, it is
-        probably safer to use a (standard) montage. See
-        :func:`mne.channels.read_montage`
+        probably safer to replace them with :meth:`mne.io.Raw.set_montage`.
+        Montages can be created/imported with:
+
+        - Standard montages with :func:`mne.channels.make_standard_montage`
+        - Montages for `Compumedics systems <https://compumedicsneuroscan.com/
+          scan-acquire-configuration-files/>`_ with
+          :func:`mne.channels.read_dig_dat`
+        - Other reader functions are listed under *See Also* at
+          :class:`mne.channels.DigMontage`
 
     Parameters
     ----------
     input_fname : str
         Path to the data file.
-    %(montage_deprecated)s
     eog : list | tuple | 'auto' | 'header'
         Names of channels or list of indices that should be designated
         EOG channels. If 'header', VEOG and HEOG channels assigned in the file
@@ -139,16 +143,6 @@ def read_raw_cnt(input_fname, montage='deprecated', eog=(), misc=(), ecg=(),
     date_format : 'mm/dd/yy' | 'dd/mm/yy'
         Format of date in the header. Defaults to 'mm/dd/yy'.
     %(preload)s
-    stim_channel : bool | None
-        Add a stim channel from the events. Defaults to None to trigger a
-        future warning.
-
-        .. warning:: This defaults to True in 0.18 but will change to False in
-                     0.19 (when no stim channel synthesis will be allowed)
-                     and be removed in 0.20; migrate code to use
-                     :func:`mne.events_from_annotations` instead.
-
-        .. versionadded:: 0.18
     %(verbose)s
 
     Returns
@@ -164,16 +158,14 @@ def read_raw_cnt(input_fname, montage='deprecated', eog=(), misc=(), ecg=(),
     -----
     .. versionadded:: 0.12
     """
-    return RawCNT(input_fname, montage=montage, eog=eog, misc=misc, ecg=ecg,
+    return RawCNT(input_fname, eog=eog, misc=misc, ecg=ecg,
                   emg=emg, data_format=data_format, date_format=date_format,
-                  preload=preload, stim_channel=stim_channel, verbose=verbose)
+                  preload=preload, verbose=verbose)
 
 
-def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
-                  stim_channel_toggle):
+def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
     """Read the cnt header."""
     # XXX stim_channel_toggle is used because stim_channel was in use already
-    _deprecate_stim_channel(stim_channel_toggle, removed_in='0.20')
 
     data_offset = 900  # Size of the 'SETUP' header.
     cnt_info = dict()
@@ -287,16 +279,6 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
             cal = np.fromfile(fid, dtype='f4', count=1)
             cals.append(cal * sensitivity * 1e-6 / 204.8)
 
-        if stim_channel_toggle:
-            data_format = 'int32' if n_bytes == 4 else 'int16'
-            annot = _read_annotations_cnt(input_fname, data_format=data_format)
-            events = (np.stack((annot.onset * sfreq,
-                                annot.duration * sfreq,
-                                annot.description.astype(int)))
-                      .astype(int)
-                      .transpose())
-            stim_channel = _synthesize_stim_channel(events, n_samples)
-
     info = _empty_info(sfreq)
     if lowpass_toggle == 1:
         info['lowpass'] = highcutoff
@@ -316,23 +298,12 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format,
                       FIFF.FIFFV_EEG_CH, eog, ecg, emg, misc)
     eegs = [idx for idx, ch in enumerate(chs) if
             ch['coil_type'] == FIFF.FIFFV_COIL_EEG]
+    # XXX this should probably use mne.transforms._topo_to_sph and _sph_to_cart
     coords = _topo_to_sphere(pos, eegs)
     locs = np.full((len(chs), 12), np.nan)
     locs[:, :3] = coords
     for ch, loc in zip(chs, locs):
         ch.update(loc=loc)
-
-    if stim_channel_toggle:
-        chan_info = {'cal': 1.0, 'logno': len(chs) + 1, 'scanno': len(chs) + 1,
-                     'range': 1.0, 'unit_mul': 0., 'ch_name': 'STI 014',
-                     'unit': FIFF.FIFF_UNIT_NONE,
-                     'coord_frame': FIFF.FIFFV_COORD_UNKNOWN,
-                     'loc': np.zeros(12),
-                     'coil_type': FIFF.FIFFV_COIL_NONE,
-                     'kind': FIFF.FIFFV_STIM_CH}
-        chs.append(chan_info)
-        baselines.append(0)  # For stim channel
-        cnt_info.update(stim_channel=stim_channel)
 
     cnt_info.update(baselines=np.array(baselines), n_samples=n_samples,
                     n_bytes=n_bytes)
@@ -350,26 +321,20 @@ class RawCNT(BaseRaw):
     """Raw object from Neuroscan CNT file.
 
     .. Note::
-        If montage is not provided, the x and y coordinates are read from the
-        file header. Channels that are not assigned with keywords ``eog``,
-        ``ecg``, ``emg`` and ``misc`` are assigned as eeg channels. All the eeg
-        channel locations are fit to a sphere when computing the z-coordinates
-        for the channels. If channels assigned as eeg channels have locations
-        far away from the head (i.e. x and y coordinates don't fit to a
-        sphere), all the channel locations will be distorted. If you are not
-        sure that the channel locations in the header are correct, it is
-        probably safer to use a (standard) montage. See
-        :func:`mne.channels.read_montage`
+        The channel positions are read from the file header. Channels that are
+        not assigned with keywords ``eog``, ``ecg``, ``emg`` and ``misc`` are
+        assigned as eeg channels. All the eeg channel locations are fit to a
+        sphere when computing the z-coordinates for the channels. If channels
+        assigned as eeg channels have locations far away from the head (i.e.
+        x and y coordinates don't fit to a sphere), all the channel locations
+        will be distorted. If you are not sure that the channel locations in
+        the header are correct, it is probably safer to use a (standard)
+        montage. See :func:`mne.channels.make_standard_montage`
 
     Parameters
     ----------
     input_fname : str
         Path to the CNT file.
-    montage : str | None | instance of Montage
-        Path or instance of montage containing electrode positions. If None,
-        xy sensor locations are read from the header (``x_coord`` and
-        ``y_coord`` in ``ELECTLOC``) and fit to a sphere. See the documentation
-        of :func:`mne.channels.read_montage` for more information.
     eog : list | tuple
         Names of channels or list of indices that should be designated
         EOG channels. If 'auto', the channel names beginning with
@@ -409,10 +374,9 @@ class RawCNT(BaseRaw):
     mne.io.Raw : Documentation of attribute and methods.
     """
 
-    def __init__(self, input_fname, montage='deprecated', eog=(), misc=(),
+    def __init__(self, input_fname, eog=(), misc=(),
                  ecg=(), emg=(), data_format='auto', date_format='mm/dd/yy',
-                 preload=False, stim_channel=False,
-                 verbose=None):  # noqa: D102
+                 preload=False, verbose=None):  # noqa: D102
 
         _check_option('date_format', date_format, ['mm/dd/yy', 'dd/mm/yy'])
         if date_format == 'dd/mm/yy':
@@ -422,7 +386,7 @@ class RawCNT(BaseRaw):
 
         input_fname = path.abspath(input_fname)
         info, cnt_info = _get_cnt_info(input_fname, eog, ecg, emg, misc,
-                                       data_format, _date_format, stim_channel)
+                                       data_format, _date_format)
         last_samps = [cnt_info['n_samples'] - 1]
         super(RawCNT, self).__init__(
             info, preload, filenames=[input_fname], raw_extras=[cnt_info],
@@ -431,8 +395,6 @@ class RawCNT(BaseRaw):
         data_format = 'int32' if cnt_info['n_bytes'] == 4 else 'int16'
         self.set_annotations(
             _read_annotations_cnt(input_fname, data_format=data_format))
-
-        _deprecate_montage(self, "read_raw_cnt", montage)
 
     @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):

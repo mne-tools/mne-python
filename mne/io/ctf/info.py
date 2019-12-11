@@ -258,7 +258,8 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                             t['t_ctf_head_head'], ch['loc'][:3])
             neeg += 1
             ch.update(logno=neeg, kind=FIFF.FIFFV_EEG_CH,
-                      unit=FIFF.FIFF_UNIT_V, coord_frame=coord_frame)
+                      unit=FIFF.FIFF_UNIT_V, coord_frame=coord_frame,
+                      coil_type=FIFF.FIFFV_COIL_EEG)
         elif cch['sensor_type_index'] == CTF.CTFV_STIM_CH:
             nstim += 1
             ch.update(logno=nstim, coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
@@ -423,6 +424,7 @@ def _compose_meas_info(res4, coils, trans, eeg):
     info['meas_id']['usecs'] = 0
     info['meas_id']['secs'] = _convert_time(res4['data_date'],
                                             res4['data_time'])
+    info['meas_date'] = (info['meas_id']['secs'], info['meas_id']['usecs'])
     info['experimenter'] = res4['nf_operator']
     info['subject_info'] = dict(his_id=res4['nf_subject_id'])
     for filt in res4['filters']:
@@ -463,10 +465,11 @@ def _read_bad_chans(directory, info):
     return bad_chans
 
 
-def _annotate_bad_segments(directory, start_time):
+def _annotate_bad_segments(directory, start_time, meas_date):
     fname = op.join(directory, 'bad.segments')
     if not op.exists(fname):
         return None
+
     # read in bad segment file
     onsets = []
     durations = []
@@ -481,4 +484,4 @@ def _annotate_bad_segments(directory, start_time):
     if len(onsets) == 0:
         return None
 
-    return Annotations(onsets, durations, desc)
+    return Annotations(onsets, durations, desc, meas_date)

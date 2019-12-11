@@ -6,8 +6,8 @@ r"""
 Background information on filtering
 ===================================
 
-Here we give some background information on filtering in general,
-and how it is done in MNE-Python in particular.
+Here we give some background information on filtering in general, and
+how it is done in MNE-Python in particular.
 Recommended reading for practical applications of digital
 filter design can be found in Parks & Burrus (1987) [1]_ and
 Ifeachor & Jervis (2002) [2]_, and for filtering in an
@@ -710,7 +710,7 @@ plt.show()
 # a high-pass, it is important to keep in mind (as most authors note) that
 # filtering choices should depend on the frequency content of both the
 # signal(s) of interest and the noise to be suppressed. For example, in
-# some of the MNE-Python examples involving :ref:`ch_sample_data`,
+# some of the MNE-Python examples involving :ref:`sample-data`,
 # high-pass values of around 1 Hz are used when looking at auditory
 # or visual N100 responses, because we analyze standard (not deviant) trials
 # and thus expect that contamination by later or slower components will

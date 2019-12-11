@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
@@ -36,7 +36,7 @@ def ttest_1samp_no_p(X, sigma=0, method='relative'):
     Returns
     -------
     t : array
-        t-values, potentially adjusted using the hat method.
+        T-values, potentially adjusted using the hat method.
 
     Notes
     -----
@@ -106,7 +106,6 @@ def f_oneway(*args):
     .. [1] Lowry, Richard.  "Concepts and Applications of Inferential
            Statistics". Chapter 14.
     .. [2] Heiman, G.W.  Research Methods in Statistics. 2002.
-
     """
     n_classes = len(args)
     n_samples_per_class = np.array([len(a) for a in args])
@@ -247,7 +246,7 @@ def f_threshold_mway_rm(n_subjects, factor_levels, effects='A*B',
     Returns
     -------
     F_threshold : list | float
-        list of F-values for each effect if the number of effects
+        List of F-values for each effect if the number of effects
         requested > 2, else float.
 
     See Also

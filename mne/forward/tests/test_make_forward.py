@@ -6,12 +6,13 @@ import pytest
 import numpy as np
 from numpy.testing import assert_equal, assert_allclose, assert_array_equal
 
+from mne.channels import make_standard_montage
 from mne.datasets import testing
 from mne.io import read_raw_fif, read_raw_kit, read_raw_bti, read_info
 from mne.io.constants import FIFF
 from mne import (read_forward_solution, write_forward_solution,
                  make_forward_solution, convert_forward_solution,
-                 setup_volume_source_space, read_source_spaces,
+                 setup_volume_source_space, read_source_spaces, create_info,
                  make_sphere_model, pick_types_forward, pick_info, pick_types,
                  read_evokeds, read_cov, read_dipole, SourceSpaces)
 from mne.utils import (requires_mne, requires_nibabel,
@@ -289,7 +290,7 @@ def test_make_forward_solution_sphere(tmpdir):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_nibabel(False)
+@requires_nibabel()
 def test_forward_mixed_source_space(tmpdir):
     """Test making the forward solution for a mixed source space."""
     # get the surface source space
@@ -438,6 +439,22 @@ def test_make_forward_dipole():
                                    trans=fname_trans)
     assert isinstance(stc, VolSourceEstimate)
     assert_allclose(stc.times, np.arange(0., 0.003, 0.001))
+
+
+@testing.requires_testing_data
+def test_make_forward_no_meg(tmpdir):
+    """Test that we can make and I/O forward solution with no MEG channels."""
+    pos = dict(rr=[[0.05, 0, 0]], nn=[[0, 0, 1.]])
+    src = setup_volume_source_space(pos=pos)
+    bem = make_sphere_model()
+    trans = None
+    montage = make_standard_montage('standard_1020')
+    info = create_info(['Cz'], 1000., 'eeg', montage=montage)
+    fwd = make_forward_solution(info, trans, src, bem)
+    fname = tmpdir.join('test-fwd.fif')
+    write_forward_solution(fname, fwd)
+    fwd_read = read_forward_solution(fname)
+    assert_allclose(fwd['sol']['data'], fwd_read['sol']['data'])
 
 
 run_tests_if_main()

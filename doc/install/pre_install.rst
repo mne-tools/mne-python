@@ -10,16 +10,17 @@ Before you install
 Overview of the MNE tools suite
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- :doc:`MNE-C <../manual/c_reference>` was the initial stage of this project,
+- MNE-C was the initial stage of this project,
   providing a set of interrelated command-line and GUI programs focused on
   computing cortically constrained Minimum Norm Estimates from MEG and EEG
-  data. These tools were written in C by Matti Hämäläinen.
+  data. These tools were written in C by Matti Hämäläinen, and are
+  documented `here <MNE-C manual_>`_.
 
 - :doc:`MNE-Python <../python_reference>` reimplements the functionality of
   MNE-C, and extends considerably the analysis and visualization capabilities.
   MNE-Python is collaboratively developed and has more than 150 contributors.
 
-- The :doc:`../manual/matlab` provides a MATLAB interface to the .fif file
+- The :ref:`mne_matlab` provides a MATLAB interface to the .fif file
   format and other MNE data structures, and provides example MATLAB
   implementations of some of the core analysis functionality of MNE-C. It is
   distributed alongside MNE-C, and can also be downloaded from the `MNE-MATLAB
@@ -30,6 +31,11 @@ Overview of the MNE tools suite
 
 There is also a growing ecosystem of other Python packages that work alongside
 MNE-Python, including packages for:
+
+.. sidebar:: Something missing?
+
+    If you know of a package that is related but not listed here, feel free to
+    :ref:`make a pull request <contributing>` to add it to this list.
 
 - a graphical user interface for MNE-Python (`MNELAB`_)
 - easily importing MEG data from the Human Connectome Project for
@@ -48,29 +54,28 @@ MNE-Python, including packages for:
   (`conpy`_)
 - general-purpose statistical analysis of M/EEG data (`eelbrain`_)
 - post-hoc modification of linear models (`posthoc`_)
+- a python implementation of the Preprocessing Pipeline (PREP) for EEG data
+  (`pyprep`_)
 
 
 What should I install?
 ^^^^^^^^^^^^^^^^^^^^^^
 
 If you intend only to perform ERP, ERF, or other sensor-level analyses,
-:doc:`MNE-Python <mne_python>` is all you need. If you prefer MATLAB
-over Python, probably all you need is :doc:`MNE-C <mne_c>` — the MNE
-MATLAB toolbox is distributed with it — although note that the MATLAB toolbox
-is less actively developed than the MNE-Python module, and hence the MATLAB
-code is considerably less feature-complete.
+:doc:`MNE-Python <mne_python>` is all you need. If you prefer to work with
+shell scripts and the Unix command line, or prefer MATLAB over Python, probably
+all you need is :doc:`MNE-C <mne_c>` — the MNE MATLAB toolbox is distributed
+with it — although note that the C tools and the MATLAB toolbox are less
+actively developed than the MNE-Python module, and hence are considerably less
+feature-complete.
 
 If you want to transform sensor recordings into estimates of localized brain
-activity, you will most likely need:
+activity, you will most likely also need :doc:`FreeSurfer <freesurfer>` to
+convert structural MRI scans into models of the scalp, inner/outer skull, and
+cortical surfaces (specifically, for command-line functions
+:ref:`gen_mne_flash_bem`, :ref:`gen_mne_watershed_bem`, and
+:ref:`gen_mne_make_scalp_surfaces`).
 
-- :doc:`FreeSurfer <freesurfer>` to convert structural MRI scans into
-  models of the scalp, inner/outer skull, and cortical surfaces
-
-- :doc:`MNE-C <mne_c>` for constructing and solving a boundary-element
-  model of tissue conductance, and for aligning coordinate frames between the
-  structural MRI and the digitizations of M/EEG sensor locations
-
-- :doc:`MNE-Python <mne_python>` can be used for everything else
 
 Getting help
 ^^^^^^^^^^^^
@@ -94,3 +99,4 @@ Help with installation is available through the `MNE mailing list`_ and
 .. _conpy: https://aaltoimaginglanguage.github.io/conpy/
 .. _eelbrain: https://eelbrain.readthedocs.io/en/stable/index.html
 .. _posthoc: https://users.aalto.fi/~vanvlm1/posthoc/python/
+.. _pyprep: https://github.com/sappelhoff/pyprep

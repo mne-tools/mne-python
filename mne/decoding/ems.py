@@ -1,5 +1,5 @@
 # Author: Denis Engemann <denis.engemann@gmail.com>
-#         Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD (3-clause)
@@ -25,7 +25,7 @@ class EMS(TransformerMixin, EstimatorMixin):
     gives the similarity between the filter at each time point and the
     data vector (sensors) at that time point.
 
-    .. note : EMS only works for binary classification.
+    .. note:: EMS only works for binary classification.
 
     Attributes
     ----------

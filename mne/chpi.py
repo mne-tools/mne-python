@@ -161,13 +161,13 @@ def _apply_quat(quat, pts, move=True):
     return(apply_trans(trans, pts, move=move))
 
 
-def _calculate_head_pos_ctf(raw, gof_limit=0.98):
+def calculate_head_pos_ctf(raw, gof_limit=0.98):
     r"""Extract head position parameters from ctf dataset.
 
     Parameters
     ----------
-    raw : instance of raw
-        Raw data with cHPI information. HLC00 channels
+    raw : instance of Raw
+        Raw data with CTF cHPI information.
     gof_limit : float
         Minimum goodness of fit to accept.
 
@@ -179,12 +179,16 @@ def _calculate_head_pos_ctf(raw, gof_limit=0.98):
     Notes
     -----
     CTF continuous head monitoring stores the x,y,z location (m) of each chpi
-    coil as separate channels in the dataset.
-    HLC001[123]\\* - nasion
-    HLC002[123]\\* - lpa
-    HLC003[123]\\* - rpa
+    coil as separate channels in the dataset:
+
+    - ``HLC001[123]\\*`` - nasion
+    - ``HLC002[123]\\*`` - lpa
+    - ``HLC003[123]\\*`` - rpa
+
+    This uses those positions to compute the head position as a function of
+    time.
     """
-    # Pick channels cooresponding to the cHPI positions
+    # Pick channels corresponding to the cHPI positions
     hpi_picks = pick_channels_regexp(raw.info['ch_names'],
                                      'HLC00[123][123].*')
 
@@ -263,6 +267,9 @@ def _calculate_head_pos_ctf(raw, gof_limit=0.98):
     quats[:, 0] += raw._first_time
     return quats
 
+
+# facilitate transition for people who had used the private one (bloyl)
+_calculate_head_pos_ctf = calculate_head_pos_ctf
 
 # ############################################################################
 # Estimate positions from data
@@ -452,7 +459,7 @@ def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts):
         (quat_to_rot(best_quat[:3]),
          best_quat[3:][:, np.newaxis]), axis=1)
     dev_head_t = np.concatenate((dev_head_t, [[0, 0, 0, 1.]]))
-    return dev_head_t, best_order
+    return dev_head_t, best_order, best_g
 
 
 @verbose
@@ -672,7 +679,7 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
             if on > 0]
 
     coil_dev_rrs = np.array([o[0] for o in outs])
-    coil_g = np.array([o[0] for o in outs])
+    coil_g = np.array([o[1] for o in outs])
 
     return coil_dev_rrs, coil_g
 

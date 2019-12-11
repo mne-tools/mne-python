@@ -19,7 +19,7 @@ from mne.utils import ETSContext
 
 def run():
     """Run command."""
-    from mne.commands.utils import get_optparser
+    from mne.commands.utils import get_optparser, _add_verbose_flag
 
     parser = get_optparser(__file__)
 
@@ -77,8 +77,7 @@ def run():
     parser.add_option('--simple-rendering', action='store_false',
                       dest='advanced_rendering',
                       help='Use simplified OpenGL rendering')
-    parser.add_option('--verbose', action='store_true', dest='verbose',
-                      help='Turn on verbose mode.')
+    _add_verbose_flag(parser)
 
     options, args = parser.parse_args()
 
@@ -117,5 +116,6 @@ def run():
             scale=options.scale,
             advanced_rendering=options.advanced_rendering,
             verbose=options.verbose)
+
 
 mne.utils.run_command_if_main()

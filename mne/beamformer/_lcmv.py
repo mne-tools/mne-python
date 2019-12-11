@@ -1,6 +1,6 @@
 """Compute Linearly constrained minimum variance (LCMV) beamformer."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Roman Goj <roman.goj@gmail.com>
 #          Britta Westner <britta.wstnr@gmail.com>
 #
@@ -61,7 +61,6 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
                 each location.
             'vector'
                 Keeps the currents for each direction separate
-
     %(rank_info)s
     weight_norm : 'unit-noise-gain' | 'nai' | None
         If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
@@ -275,7 +274,7 @@ def apply_lcmv(evoked, filters, max_ori_out='signed', verbose=None):
     filters : instance of Beamformer
         LCMV spatial filter (beamformer weights).
         Filter weights returned from :func:`make_lcmv`.
-    max_ori_out: 'signed'
+    max_ori_out : 'signed'
         Specify in case of pick_ori='max-power'.
     %(verbose)s
 
@@ -322,13 +321,12 @@ def apply_lcmv_epochs(epochs, filters, max_ori_out='signed',
     filters : instance of Beamformer
         LCMV spatial filter (beamformer weights)
         Filter weights returned from :func:`make_lcmv`.
-    max_ori_out: 'signed'
+    max_ori_out : 'signed'
         Specify in case of pick_ori='max-power'.
     return_generator : bool
          Return a generator object instead of a list. This allows iterating
          over the stcs without having to keep them all in memory.
     %(verbose)s
-
 
     Returns
     -------
@@ -374,7 +372,7 @@ def apply_lcmv_raw(raw, filters, start=None, stop=None, max_ori_out='signed',
         Index of first time sample (index not time is seconds).
     stop : int
         Index of first time sample not to include (index not time is seconds).
-    max_ori_out: 'signed'
+    max_ori_out : 'signed'
         Specify in case of pick_ori='max-power'.
     %(verbose)s
 
@@ -411,7 +409,7 @@ def apply_lcmv_cov(data_cov, filters, verbose=None):
     Parameters
     ----------
     data_cov : instance of Covariance
-        Data covariance matrix
+        Data covariance matrix.
     filters : instance of Beamformer
         LCMV spatial filter (beamformer weights).
         Filter weights returned from :func:`make_lcmv`.

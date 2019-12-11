@@ -8,6 +8,7 @@ from distutils.version import LooseVersion
 import operator
 import os
 import os.path as op
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -77,10 +78,9 @@ def check_version(library, min_version):
     except ImportError:
         ok = False
     else:
-        if min_version:
-            this_version = LooseVersion(library.__version__)
-            if this_version < min_version:
-                ok = False
+        if min_version and \
+                LooseVersion(library.__version__) < LooseVersion(min_version):
+            ok = False
     return ok
 
 
@@ -135,7 +135,7 @@ def _check_event_id(event_id, events):
     return event_id
 
 
-def _check_fname(fname, overwrite=False, must_exist=False):
+def _check_fname(fname, overwrite=False, must_exist=False, name='File'):
     """Check for file existence."""
     _validate_type(fname, 'path-like', 'fname')
     if op.isfile(fname):
@@ -145,24 +145,26 @@ def _check_fname(fname, overwrite=False, must_exist=False):
         elif overwrite != 'read':
             logger.info('Overwriting existing file.')
     elif must_exist:
-        raise IOError('File "%s" does not exist' % fname)
+        raise IOError('%s "%s" does not exist' % (name, fname))
     return str(fname)
 
 
-def _check_subject(class_subject, input_subject, raise_error=True):
+def _check_subject(class_subject, input_subject, raise_error=True,
+                   kind='class subject attribute'):
     """Get subject name from class."""
     if input_subject is not None:
         _validate_type(input_subject, 'str', "subject input")
+        if class_subject is not None and input_subject != class_subject:
+            raise ValueError('%s (%r) did not match input subject (%r)'
+                             % (kind, class_subject, input_subject))
         return input_subject
     elif class_subject is not None:
         _validate_type(class_subject, 'str',
-                       "Either subject input or class subject attribute")
+                       "Either subject input or %s" % (kind,))
         return class_subject
-    else:
-        if raise_error is True:
-            raise ValueError('Neither subject input nor class subject '
-                             'attribute was a string')
-        return None
+    elif raise_error is True:
+        raise ValueError('Neither subject input nor %s was a string' % (kind,))
+    return None
 
 
 def _check_preload(inst, msg):
@@ -270,10 +272,25 @@ def _is_numeric(n):
     return isinstance(n, (np.integer, np.floating, int, float))
 
 
+class _IntLike(object):
+    @classmethod
+    def __instancecheck__(cls, other):
+        try:
+            _ensure_int(other)
+        except TypeError:
+            return False
+        else:
+            return True
+
+
+int_like = _IntLike()
+
+
 _multi = {
     'str': (str,),
-    'numeric': (np.integer, np.floating, int, float),
+    'numeric': (np.floating, float, int_like),
     'path-like': (str, Path),
+    'int-like': (int_like,)
 }
 try:
     _multi['path-like'] += (os.PathLike,)
@@ -419,30 +436,12 @@ def _check_channels_spatial_filter(ch_names, filters):
 
 
 def _check_rank(rank):
-    """Check rank parameter and deal with deprecation."""
-    err_msg = ('rank must be None, dict, "full", or int, '
-               'got %s (type %s)' % (rank, type(rank)))
+    """Check rank parameter."""
+    _validate_type(rank, (None, dict, str), 'rank')
     if isinstance(rank, str):
-        # XXX we can use rank='' to deprecate to get to None eventually:
-        # if rank == '':
-        #     warn('The rank parameter default in 0.18 of "full" will change '
-        #          'to None in 0.19, set it explicitly to avoid this warning',
-        #          DeprecationWarning)
-        #     rank = 'full'
         if rank not in ['full', 'info']:
             raise ValueError('rank, if str, must be "full" or "info", '
                              'got %s' % (rank,))
-    elif isinstance(rank, bool):
-        raise TypeError(err_msg)
-    elif rank is not None and not isinstance(rank, dict):
-        try:
-            rank = int(operator.index(rank))
-        except TypeError:
-            raise TypeError(err_msg)
-        else:
-            warn('rank as int is deprecated and will be removed in 0.19. '
-                 'use rank=dict(meg=...) instead.', DeprecationWarning)
-            rank = dict(meg=rank)
     return rank
 
 
@@ -544,3 +543,84 @@ def _check_combine(mode, valid=('mean', 'median', 'std')):
                          " or callable, got %s (type %s)." %
                          (mode, type(mode)))
     return fun
+
+
+def _check_src_normal(pick_ori, src):
+    from ..source_space import SourceSpaces
+    _validate_type(src, SourceSpaces, 'src')
+    if pick_ori == 'normal' and src.kind not in ('surface', 'discrete'):
+        raise RuntimeError('Normal source orientation is supported only for '
+                           'surface or discrete SourceSpaces, got type '
+                           '%s' % (src.kind,))
+
+
+def _check_stc_units(stc, threshold=1e-7):  # 100 nAm threshold for warning
+    max_cur = np.max(np.abs(stc.data))
+    if max_cur > threshold:
+        warn('The maximum current magnitude is %0.1f nAm, which is very large.'
+             ' Are you trying to apply the forward model to noise-normalized '
+             '(dSPM, sLORETA, or eLORETA) values? The result will only be '
+             'correct if currents (in units of Am) are used.'
+             % (1e9 * max_cur))
+
+
+def _check_pyqt5_version():
+    bad = True
+    try:
+        from PyQt5.Qt import PYQT_VERSION_STR as version
+    except Exception:
+        version = 'unknown'
+    else:
+        if LooseVersion(version) >= LooseVersion('5.10'):
+            bad = False
+    bad &= sys.platform == 'darwin'
+    if bad:
+        warn('macOS users should use PyQt5 >= 5.10 for GUIs, got %s. '
+             'Please upgrade e.g. with:\n\n    pip install "PyQt5>=5.10"\n'
+             % (version,))
+
+    return version
+
+
+def _check_sphere(sphere, info=None, sphere_units='m'):
+    from ..defaults import HEAD_SIZE_DEFAULT
+    from ..bem import fit_sphere_to_headshape, ConductorModel, get_fitting_dig
+    if sphere is None:
+        sphere = HEAD_SIZE_DEFAULT
+        if info is not None:
+            # Decide if we have enough dig points to do the auto fit
+            try:
+                get_fitting_dig(info, 'extra', verbose='error')
+            except (RuntimeError, ValueError):
+                pass
+            else:
+                sphere = 'auto'
+    if isinstance(sphere, str):
+        if sphere != 'auto':
+            raise ValueError('sphere, if str, must be "auto", got %r'
+                             % (sphere))
+        R, r0, _ = fit_sphere_to_headshape(info, verbose=False, units='m')
+        sphere = tuple(r0) + (R,)
+        sphere_units = 'm'
+    elif isinstance(sphere, ConductorModel):
+        if not sphere['is_sphere'] or len(sphere['layers']) == 0:
+            raise ValueError('sphere, if a ConductorModel, must be spherical '
+                             'with multiple layers, not a BEM or single-layer '
+                             'sphere (got %s)' % (sphere,))
+        sphere = tuple(sphere['r0']) + (sphere['layers'][0]['rad'],)
+        sphere_units = 'm'
+    sphere = np.array(sphere, dtype=float)
+    if sphere.shape == ():
+        sphere = np.concatenate([[0.] * 3, [sphere]])
+    if sphere.shape != (4,):
+        raise ValueError('sphere must be float or 1D array of shape (4,), got '
+                         'array-like of shape %s' % (sphere.shape,))
+    # 0.21 deprecation can just remove this conversion
+    if sphere_units is None:
+        sphere_units = 'mm'
+    _check_option('sphere_units', sphere_units, ('m', 'mm'))
+    if sphere_units == 'mm':
+        sphere /= 1000.
+
+    sphere = np.array(sphere, float)
+    return sphere

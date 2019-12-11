@@ -19,7 +19,7 @@ from mne.utils import _check_option
 
 def run():
     """Run command."""
-    from mne.commands.utils import get_optparser
+    from mne.commands.utils import get_optparser, _add_verbose_flag
 
     parser = get_optparser(__file__)
 
@@ -52,8 +52,7 @@ def run():
                       "relative to the "
                       "$SUBJECTS_DIR/$SUBJECT/bem/watershed/ directory.",
                       default="ws")
-    parser.add_option("--verbose", dest="verbose",
-                      help="Turn on verbose mode.", action="store_true")
+    _add_verbose_flag(parser)
 
     options, args = parser.parse_args()
 
@@ -81,5 +80,6 @@ def run():
                        overwrite=overwrite, volume=volume, atlas=atlas,
                        gcaatlas=gcaatlas, preflood=preflood, copy=copy,
                        T1=T1, brainmask=brainmask, verbose=verbose)
+
 
 mne.utils.run_command_if_main()

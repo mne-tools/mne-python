@@ -1,4 +1,4 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Romain Trachel <trachelr@gmail.com>
 #         Alexandre Barachant <alexandre.barachant@gmail.com>
 #         Jean-Remi King <jeanremi.king@gmail.com>

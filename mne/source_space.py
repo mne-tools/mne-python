@@ -1,7 +1,10 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
+
+# Many of the computations in this code were derived from Matti Hämäläinen's
+# C code.
 
 from copy import deepcopy
 from functools import partial
@@ -22,20 +25,20 @@ from .io.write import (start_block, end_block, write_int,
                        write_float_matrix, write_int_matrix,
                        write_coord_trans, start_file, end_file, write_id)
 from .bem import read_bem_surfaces, ConductorModel
+from .fixes import _get_img_fdata
 from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _tessellate_sphere_surf, _get_surf_neighbors,
                       _normalize_vectors, _triangle_neighbors, mesh_dist,
                       complete_surface_info, _compute_nearest, fast_cross_3d,
                       _CheckInside)
-from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
-                    has_nibabel, check_fname, logger, verbose, _ensure_int,
-                    check_version, _get_call_line, warn, _check_fname,
-                    _check_path_like)
+from .utils import (get_subjects_dir, check_fname, logger, verbose,
+                    _ensure_int, check_version, _get_call_line, warn,
+                    _check_fname, _check_path_like, has_nibabel, _check_sphere)
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
                          _coord_frame_name, Transform, _str_to_frame,
-                         _ensure_trans, _read_fs_xfm)
+                         _ensure_trans, read_ras_mni_t)
 
 
 def _get_lut():
@@ -114,7 +117,7 @@ class SourceSpaces(list):
             The subjects bem and bem/flash folders are searched for the 'surf'
             files. Defaults to None, which is False for surface source spaces,
             and True otherwise.
-        subjects_dir : string, or None
+        subjects_dir : str | None
             Path to SUBJECTS_DIR if it is not set in the environment.
         trans : str | 'auto' | dict | None
             The full path to the head<->MRI transform ``*-trans.fif`` file
@@ -177,7 +180,7 @@ class SourceSpaces(list):
         info = create_info(0, 1000., 'eeg')
 
         return plot_alignment(
-            info, trans=trans, subject=self[0]['subject_his_id'],
+            info, trans=trans, subject=self._subject,
             subjects_dir=subjects_dir, surfaces=surfaces,
             coord_frame=coord_frame, meg=(), eeg=False, dig=False, ecog=False,
             bem=bem, src=self
@@ -185,7 +188,8 @@ class SourceSpaces(list):
 
     def __repr__(self):  # noqa: D105
         ss_repr = []
-        for ss in self:
+        extra = []
+        for si, ss in enumerate(self):
             ss_type = ss['type']
             r = _src_kind_dict[ss_type]
             if ss_type == 'vol':
@@ -195,10 +199,20 @@ class SourceSpaces(list):
                     r += ", shape=%s" % (ss['shape'],)
             elif ss_type == 'surf':
                 r += (" (%s), n_vertices=%i" % (_get_hemi(ss)[0], ss['np']))
-            r += (', n_used=%i, coordinate_frame=%s'
-                  % (ss['nuse'], _coord_frame_name(int(ss['coord_frame']))))
+            r += ', n_used=%i' % (ss['nuse'],)
+            if si == 0:
+                extra += ['%s coords'
+                          % (_coord_frame_name(int(ss['coord_frame'])))]
             ss_repr.append('<%s>' % r)
-        return "<SourceSpaces: [%s]>" % ', '.join(ss_repr)
+        subj = self._subject
+        if subj is not None:
+            extra += ['subject %r' % (subj,)]
+        return "<SourceSpaces: [%s] %s>" % (
+            ', '.join(ss_repr), ', '.join(extra))
+
+    @property
+    def _subject(self):
+        return self[0].get('subject_his_id', None)
 
     @property
     def kind(self):
@@ -354,7 +368,7 @@ class SourceSpaces(list):
                 # get the inuse array
                 if mri_resolution:
                     # read the mri file used to generate volumes
-                    aseg_data = nib.load(vs['mri_file']).get_data()
+                    aseg_data = _get_img_fdata(nib.load(vs['mri_file']))
                     # get the voxel space shape
                     shape3d = (vs['mri_height'], vs['mri_depth'],
                                vs['mri_width'])
@@ -469,18 +483,18 @@ class SourceSpaces(list):
         # calculate affine transform for image (MRI_VOXEL to RAS)
         if mri_resolution:
             # MRI_VOXEL to MRI transform
-            transform = vs['vox_mri_t'].copy()
+            transform = vs['vox_mri_t']
         else:
             # MRI_VOXEL to MRI transform
             # NOTE: 'src' indicates downsampled version of MRI_VOXEL
-            transform = vs['src_mri_t'].copy()
+            transform = vs['src_mri_t']
         if dest == 'mri':
             # combine with MRI to RAS transform
             transform = combine_transforms(transform, vs['mri_ras_t'],
                                            transform['from'],
                                            vs['mri_ras_t']['to'])
         # now setup the affine for volume image
-        affine = transform['trans']
+        affine = transform['trans'].copy()
         # make sure affine converts from m to mm
         affine[:3] *= 1e3
 
@@ -546,8 +560,7 @@ def _add_patch_info(s):
 
 
 @verbose
-def _read_source_spaces_from_tree(fid, tree, patch_stats=False,
-                                  verbose=None):
+def _read_source_spaces_from_tree(fid, tree, patch_stats=False, verbose=None):
     """Read the source spaces from a FIF file.
 
     Parameters
@@ -633,8 +646,7 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
     return src
 
 
-@verbose
-def _read_one_source_space(fid, this, verbose=None):
+def _read_one_source_space(fid, this):
     """Read one source space."""
     FIFF_BEM_SURF_NTRI = 3104
     FIFF_BEM_SURF_TRIANGLES = 3106
@@ -886,12 +898,12 @@ def find_source_space_hemi(src):
     Parameters
     ----------
     src : dict
-        The source space to investigate
+        The source space to investigate.
 
     Returns
     -------
     hemi : int
-        Deduced hemisphere id
+        Deduced hemisphere id.
     """
     xave = src['rr'][:, 0].sum()
 
@@ -909,16 +921,16 @@ def label_src_vertno_sel(label, src):
     Parameters
     ----------
     label : Label
-        Source space label
+        Source space label.
     src : dict
-        Source space
+        Source space.
 
     Returns
     -------
     vertices : list of length 2
-        Vertex numbers for lh and rh
+        Vertex numbers for lh and rh.
     src_sel : array of int (len(idx) = len(vertices[0]) + len(vertices[1]))
-        Indices of the selected vertices in sourse space
+        Indices of the selected vertices in sourse space.
     """
     if src[0]['type'] != 'surf':
         return Exception('Labels are only supported with surface source '
@@ -1131,40 +1143,30 @@ def head_to_mri(pos, subject, mri_head_t, subjects_dir=None,
     Parameters
     ----------
     pos : array, shape (n_pos, 3)
-        The  coordinates (in m) in head coordinate system
-    subject : string
+        The  coordinates (in m) in head coordinate system.
+    subject : str
         Name of the subject.
-    mri_head_t: instance of Transform
-        MRI<->Head coordinate transformation
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    mri_head_t : instance of Transform
+        MRI<->Head coordinate transformation.
+    %(subjects_dir)s
     %(verbose)s
 
     Returns
     -------
     coordinates : array, shape (n_pos, 3)
-        The MNI coordinates (in mm) of pos
+        The MRI RAS coordinates (in mm) of pos.
 
     Notes
     -----
     This function requires either nibabel (in Python) or Freesurfer
     (with utility "mri_info") to be correctly installed.
     """
-    import nibabel as nib
-
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
-
     head_mri_t = _ensure_trans(mri_head_t, 'head', 'mri')
-    mri_pos = apply_trans(head_mri_t, pos) * 1e3
-    t1 = nib.load(t1_fname)
-    vox2ras_tkr = t1.header.get_vox2ras_tkr()
-    ras2vox_tkr = linalg.inv(vox2ras_tkr)
-    vox2ras = t1.header.get_vox2ras()
-    mri_pos = apply_trans(ras2vox_tkr, mri_pos)  # in vox
-    mri_pos = apply_trans(vox2ras, mri_pos)  # in RAS
-
-    return mri_pos
+    _, _, mri_ras_t, _, _ = _read_mri_info(t1_fname)
+    head_ras_t = combine_transforms(head_mri_t, mri_ras_t, 'head', 'ras')
+    return 1e3 * apply_trans(head_ras_t, pos)  # mm
 
 
 ##############################################################################
@@ -1178,34 +1180,22 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
     Parameters
     ----------
     vertices : int, or list of int
-        Vertex number(s) to convert
+        Vertex number(s) to convert.
     hemis : int, or list of int
-        Hemisphere(s) the vertices belong to
-    subject : string
+        Hemisphere(s) the vertices belong to.
+    subject : str
         Name of the subject to load surfaces from.
-    subjects_dir : string, or None
+    subjects_dir : str, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
-    mode : string | None
-        Either 'nibabel' or 'freesurfer' for the software to use to
-        obtain the transforms. If None, 'nibabel' is tried first, falling
-        back to 'freesurfer' if it fails. Results should be equivalent with
-        either option, but nibabel may be quicker (and more pythonic).
+    mode : str | None
+        Deprecated, will be removed in 0.21.
     %(verbose)s
 
     Returns
     -------
     coordinates : array, shape (n_vertices, 3)
-        The MNI coordinates (in mm) of the vertices
-
-    Notes
-    -----
-    This function requires either nibabel (in Python) or Freesurfer
-    (with utility "mri_info") to be correctly installed.
+        The MNI coordinates (in mm) of the vertices.
     """
-    if not has_freesurfer() and not has_nibabel():
-        raise RuntimeError('NiBabel (Python) or Freesurfer (Unix) must be '
-                           'correctly installed and accessible from Python')
-
     if not isinstance(vertices, list) and not isinstance(vertices, np.ndarray):
         vertices = [vertices]
 
@@ -1240,19 +1230,18 @@ def head_to_mni(pos, subject, mri_head_t, subjects_dir=None,
     Parameters
     ----------
     pos : array, shape (n_pos, 3)
-        The  coordinates (in m) in head coordinate system
-    subject : string
+        The  coordinates (in m) in head coordinate system.
+    subject : str
         Name of the subject.
-    mri_head_t: instance of Transform
-        MRI<->Head coordinate transformation
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    mri_head_t : instance of Transform
+        MRI<->Head coordinate transformation.
+    %(subjects_dir)s
     %(verbose)s
 
     Returns
     -------
     coordinates : array, shape (n_pos, 3)
-        The MNI coordinates (in mm) of pos
+        The MNI coordinates (in mm) of pos.
 
     Notes
     -----
@@ -1272,18 +1261,15 @@ def head_to_mni(pos, subject, mri_head_t, subjects_dir=None,
 
 @verbose
 def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
-    """Read MNI transform from FreeSurfer talairach.xfm file.
+    """Compute MNI transform from FreeSurfer talairach.xfm file.
 
     Adapted from freesurfer m-files. Altered to deal with Norig
     and Torig correctly.
     """
-    if mode is not None and mode not in ['nibabel', 'freesurfer']:
-        raise ValueError('mode must be "nibabel" or "freesurfer"')
-    fname = op.join(subjects_dir, subject, 'mri', 'transforms',
-                    'talairach.xfm')
-
+    if mode is not None:
+        warn('mode is deprecated and will be removed in 0.21, do not set it')
     # Setup the RAS to MNI transform
-    ras_mni_t = Transform('ras', 'mni_tal', _read_fs_xfm(fname)[0])
+    ras_mni_t = read_ras_mni_t(subject, subjects_dir)
 
     # We want to get from Freesurfer surface RAS ('mri') to MNI ('mni_tal').
     # This file only gives us RAS (non-zero origin) ('ras') to MNI ('mni_tal').
@@ -1296,31 +1282,26 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
         path = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
     if not op.isfile(path):
         raise IOError('mri not found: %s' % path)
+    _, _, mri_ras_t, _, _ = _read_mri_info(path, units='mm')
+    mri_mni_t = combine_transforms(mri_ras_t, ras_mni_t, 'mri', 'mni_tal')
+    return mri_mni_t
 
+
+def _read_mri_info(path, units='m'):
     if has_nibabel():
-        use_nibabel = True
-    else:
-        use_nibabel = False
-        if mode == 'nibabel':
-            raise ImportError('Tried to import nibabel but failed, try using '
-                              'mode=None or mode=Freesurfer')
-
-    # note that if mode == None, then we default to using nibabel
-    if use_nibabel is True and mode == 'freesurfer':
-        use_nibabel = False
-    if use_nibabel:
-        hdr = _get_mri_header(path)
+        import nibabel
+        hdr = nibabel.load(path).header
         n_orig = hdr.get_vox2ras()
         t_orig = hdr.get_vox2ras_tkr()
+        dims = hdr.get_data_shape()
+        zooms = hdr.get_zooms()[:3]
     else:
-        nt_orig = list()
-        for conv in ['--vox2ras', '--vox2ras-tkr']:
-            stdout, stderr = run_subprocess(['mri_info', conv, path])
-            stdout = np.fromstring(stdout, sep=' ').astype(float)
-            if not stdout.size == 16:
-                raise ValueError('Could not parse Freesurfer mri_info output')
-            nt_orig.append(stdout.reshape(4, 4))
-        n_orig, t_orig = nt_orig
+        hdr = _get_mgz_header(path)
+        n_orig = hdr['vox2ras']
+        t_orig = hdr['vox2ras_tkr']
+        dims = hdr['dims']
+        zooms = hdr['zooms']
+
     # extract the MRI_VOXEL to RAS (non-zero origin) transform
     vox_ras_t = Transform('mri_voxel', 'ras', n_orig)
 
@@ -1331,9 +1312,16 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
     mri_ras_t = combine_transforms(
         invert_transform(vox_mri_t), vox_ras_t, 'mri', 'ras')
 
-    # construct the MRI to MNI transform
-    mri_mni_t = combine_transforms(mri_ras_t, ras_mni_t, 'mri', 'mni_tal')
-    return mri_mni_t
+    assert units in ('m', 'mm')
+    if units == 'm':
+        conv = np.array([[1e-3, 1e-3, 1e-3, 1]]).T
+        # scaling and translation terms
+        vox_ras_t['trans'] *= conv
+        vox_mri_t['trans'] *= conv
+        # just the translation term
+        mri_ras_t['trans'][:, 3:4] *= conv
+
+    return vox_ras_t, vox_mri_t, mri_ras_t, dims, zooms
 
 
 ###############################################################################
@@ -1401,20 +1389,23 @@ def setup_source_space(subject, spacing='oct6', surface='white',
     spacing : str
         The spacing to use. Can be ``'ico#'`` for a recursively subdivided
         icosahedron, ``'oct#'`` for a recursively subdivided octahedron,
-        ``'all'`` for all points, or an integer to use appoximate
+        ``'all'`` for all points, or an integer to use approximate
         distance-based spacing (in mm).
 
         .. versionchanged:: 0.18
            Support for integers for distance-based spacing.
     surface : str
         The surface to use.
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
-    add_dist : bool
+    %(subjects_dir)s
+    add_dist : bool | str
         Add distance and patch information to the source space. This takes some
-        time so precomputing it is recommended.
+        time so precomputing it is recommended. Can also be 'patch' to only
+        compute patch information (requires SciPy 1.3+).
+
+        .. versionchanged:: 0.20
+           Support for add_dist='patch'.
     %(n_jobs)s
-        Will use at most 2 jobs (one for each hemisphere).
+        Ignored if ``add_dist=='patch'``.
     %(verbose)s
 
     Returns
@@ -1485,7 +1476,9 @@ def setup_source_space(subject, spacing='oct6', surface='white',
     src = SourceSpaces(src, dict(working_dir=os.getcwd(), command_line=cmd))
 
     if add_dist:
-        add_source_space_distances(src, n_jobs=n_jobs, verbose=verbose)
+        dist_limit = 0. if add_dist == 'patch' else np.inf
+        add_source_space_distances(src, dist_limit=dist_limit,
+                                   n_jobs=n_jobs, verbose=verbose)
 
     # write out if requested, then return the data
     logger.info('You are now one step closer to computing the gain matrix')
@@ -1494,10 +1487,11 @@ def setup_source_space(subject, spacing='oct6', surface='white',
 
 @verbose
 def setup_volume_source_space(subject=None, pos=5.0, mri=None,
-                              sphere=(0.0, 0.0, 0.0, 90.0), bem=None,
+                              sphere=None, bem=None,
                               surface=None, mindist=5.0, exclude=0.0,
                               subjects_dir=None, volume_label=None,
-                              add_interpolator=True, verbose=None):
+                              add_interpolator=True, sphere_units=None,
+                              verbose=None):
     """Set up a volume source space with grid spacing or discrete source space.
 
     Parameters
@@ -1524,9 +1518,11 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         else it will stay None.
     sphere : ndarray, shape (4,) | ConductorModel
         Define spherical source space bounds using origin and radius given
-        by (ox, oy, oz, rad) in mm. Only used if ``bem`` and ``surface``
-        are both None. Can also be a spherical ConductorModel, which will
-        use the origin and radius.
+        by (ox, oy, oz, rad) in ``sphere_units``.
+        Only used if ``bem`` and ``surface`` are both None. Can also be a
+        spherical ConductorModel, which will use the origin and radius.
+        The default (None) is a temporary alias for ``(0.0, 0.0, 0.0, 0.09)``
+        in meters.
     bem : str | None | ConductorModel
         Define source space bounds using a BEM file (specifically the inner
         skull surface) or a ConductorModel for a 1-layer of 3-layers BEM.
@@ -1539,13 +1535,17 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
     exclude : float
         Exclude points closer than this distance (mm) from the center of mass
         of the bounding surface.
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    %(subjects_dir)s
     volume_label : str | list | None
         Region of interest corresponding with freesurfer lookup table.
     add_interpolator : bool
         If True and ``mri`` is not None, then an interpolation matrix
         will be produced.
+    sphere_units : str
+        Defaults to ``"mm"`` in 0.20 but will change to ``"m"`` in 0.21.
+        Set it explicitly to avoid warnings.
+
+        .. versionadded:: 0.20
     %(verbose)s
 
     Returns
@@ -1625,17 +1625,14 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
                                  'check  freesurfer lookup table.'
                                  % (label, mri))
 
-    if isinstance(sphere, ConductorModel):
-        if not sphere['is_sphere'] or len(sphere['layers']) == 0:
-            raise ValueError('sphere, if a ConductorModel, must be spherical '
-                             'with multiple layers, not a BEM or single-layer '
-                             'sphere (got %s)' % (sphere,))
-        sphere = tuple(1000 * sphere['r0']) + (1000 *
-                                               sphere['layers'][0]['rad'],)
-    sphere = np.asarray(sphere, dtype=float)
-    if sphere.size != 4:
-        raise ValueError('"sphere" must be array_like with 4 elements, got: %s'
-                         % (sphere,))
+    if sphere is None:  # just allow this until deprecation is over
+        sphere = np.array((0.0, 0.0, 0.0, 90.0))
+        if isinstance(sphere_units, str) and sphere_units == 'm':
+            sphere /= 1000.
+        else:
+            sphere_units = 'mm'
+    need_warn = sphere_units is None and not isinstance(sphere, ConductorModel)
+    sphere = _check_sphere(sphere, sphere_units=sphere_units)
 
     # triage bounding argument
     if bem is not None:
@@ -1655,8 +1652,12 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         logger.info('Boundary surface file : %s', surf_extra)
     else:
         logger.info('Sphere                : origin at (%.1f %.1f %.1f) mm'
-                    % (sphere[0], sphere[1], sphere[2]))
-        logger.info('              radius  : %.1f mm' % sphere[3])
+                    % (1000 * sphere[0], 1000 * sphere[1], 1000 * sphere[2]))
+        logger.info('              radius  : %.1f mm' % (1000 * sphere[3],))
+        if need_warn:
+            warn('sphere_units defaults to mm in 0.20 but will change to m in '
+                 '0.21, set it explicitly to avoid this warning',
+                 DeprecationWarning)
 
     # triage pos argument
     if isinstance(pos, dict):
@@ -1721,7 +1722,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
             surf['rr'] *= 1e-3  # must be converted to meters
         else:  # Load an icosahedron and use that as the surface
             logger.info('Setting up the sphere...')
-            surf = dict(R=sphere[3] / 1000., r0=sphere[:3] / 1000.)
+            surf = dict(R=sphere[3], r0=sphere[:3])
         # Make the grid of sources in MRI space
         if volume_label is not None:
             sp = []
@@ -1733,6 +1734,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         else:
             sp = [_make_volume_source_space(surf, pos, exclude, mindist, mri,
                                             volume_label)]
+    del sphere
     if volume_label is None:
         volume_label = ['the whole brain']
     assert len(volume_label) == len(sp)
@@ -1829,7 +1831,7 @@ def _get_volume_label_mask(mri, volume_label, rr):
 
     # Read the segmentation data using nibabel
     mgz = nib.load(mri)
-    mgz_data = mgz.get_data()
+    mgz_data = _get_img_fdata(mgz)
 
     # Get the numeric index for this volume label
     lut = _get_lut()
@@ -1839,18 +1841,15 @@ def _get_volume_label_mask(mri, volume_label, rr):
     vox_bool = mgz_data == vol_id
 
     # Get the 3 dimensional indices in voxel space
-    vox_xyz = np.array(np.where(vox_bool)).T
+    vox_ijk = np.array(np.where(vox_bool)).T
 
-    # Transform to RAS coordinates
-    # (use tkr normalization or volume won't align with surface sources)
-    trans = _get_mgz_header(mri)['vox2ras_tkr']
-    # Convert transform from mm to m
-    trans[:3] /= 1000.
-    rr_voi = apply_trans(trans, vox_xyz)  # positions of VOI in RAS space
+    # Transform to MRI coordinates (where our surfaces live)
+    _, vox_mri_t, _, _, _ = _read_mri_info(mri)
+    rr_voi = apply_trans(vox_mri_t, vox_ijk)  # mri voxels -> MRI surface RAS
     # Filter out points too far from volume region voxels
     dists = _compute_nearest(rr_voi, rr, return_dists=True)[1]
     # Maximum distance from center of mass of a voxel to any of its corners
-    maxdist = linalg.norm(trans[:3, :3].sum(0) / 2.)
+    maxdist = linalg.norm(vox_mri_t['trans'][:3, :3].sum(0) / 2.)
     return dists <= maxdist
 
 
@@ -1891,7 +1890,7 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
                         % (c, 1000 * mi * grid, 1000 * ma * grid))
 
     # Now make the initial grid
-    ns = maxn - minn + 1
+    ns = tuple(maxn - minn + 1)
     npts = np.prod(ns)
     nrow = ns[0]
     ncol = ns[1]
@@ -2057,16 +2056,6 @@ def _vol_vertex(width, height, jj, kk, pp):
     return jj + width * kk + pp * (width * height)
 
 
-def _get_mri_header(fname):
-    """Get MRI header using nibabel."""
-    import nibabel as nib
-    img = nib.load(fname)
-    try:
-        return img.header
-    except AttributeError:  # old nibabel
-        return img.get_header()
-
-
 def _get_mgz_header(fname):
     """Adapted from nibabel to quickly extract header info."""
     if not fname.endswith('.mgz'):
@@ -2099,8 +2088,8 @@ def _get_mgz_header(fname):
     M = np.eye(4, 4)
     M[0:3, 0:3] = np.dot(Mdc, d)
     M[0:3, 3] = pxyz_0.T
-    M = linalg.inv(M)
-    header = dict(dims=dims, vox2ras_tkr=v2rtkr, ras2vox=M)
+    header = dict(dims=dims, vox2ras_tkr=v2rtkr, vox2ras=M,
+                  zooms=header['delta'])
     return header
 
 
@@ -2110,18 +2099,13 @@ def _add_interpolator(s, mri_name, add_interpolator, first=True,
     # extract transformation information from mri
     if first:
         logger.info('Reading %s...' % mri_name)
-    header = _get_mgz_header(mri_name)
-    mri_width, mri_height, mri_depth = header['dims']
 
-    s.update(dict(mri_width=mri_width, mri_height=mri_height,
-                  mri_depth=mri_depth))
-    trans = header['vox2ras_tkr'].copy()
-    trans[:3, :] /= 1000.0
-    s['vox_mri_t'] = Transform('mri_voxel', 'mri', trans)  # ras_tkr
-    trans = linalg.inv(np.dot(header['vox2ras_tkr'], header['ras2vox']))
-    trans[:3, 3] /= 1000.0
-    s['mri_ras_t'] = Transform('mri', 'ras', trans)  # ras
-    s['mri_volume_name'] = mri_name
+    _, s['vox_mri_t'], s['mri_ras_t'], dims, _ = _read_mri_info(mri_name)
+    mri_width, mri_height, mri_depth = dims
+    del dims
+
+    s.update(mri_width=mri_width, mri_height=mri_height,
+             mri_depth=mri_depth, mri_volume_name=mri_name)
     nvox = mri_width * mri_height * mri_depth
     if not add_interpolator:
         s['interpolator'] = sparse.csr_matrix((nvox, s['np']))
@@ -2326,8 +2310,9 @@ def _adjust_patch_info(s, verbose=None):
 
 
 @verbose
-def _ensure_src(src, kind=None, verbose=None):
+def _ensure_src(src, kind=None, extra='', verbose=None):
     """Ensure we have a source space."""
+    msg = 'src must be a string or instance of SourceSpaces%s' % (extra,)
     if _check_path_like(src):
         src = str(src)
         if not op.isfile(src):
@@ -2335,19 +2320,15 @@ def _ensure_src(src, kind=None, verbose=None):
         logger.info('Reading %s...' % src)
         src = read_source_spaces(src, verbose=False)
     if not isinstance(src, SourceSpaces):
-        raise ValueError('src must be a string or instance of SourceSpaces')
-    if kind is not None:
-        if kind == 'surf':
-            surf = [s for s in src if s['type'] == 'surf']
-            if len(surf) != 2 or len(src) != 2:
-                raise ValueError('Source space must contain exactly two '
-                                 'surfaces.')
-            src = surf
+        raise ValueError('%s, got %s (type %s)' % (msg, src, type(src)))
+    if kind is not None and src.kind != kind:
+        raise ValueError('Source space must be %s type, got '
+                         '%s' % (kind, src.kind))
     return src
 
 
 def _ensure_src_subject(src, subject):
-    src_subject = src[0].get('subject_his_id', None)
+    src_subject = src._subject
     if subject is None:
         subject = src_subject
         if subject is None:
@@ -2379,9 +2360,10 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     dist_limit : float
         The upper limit of distances to include (in meters).
         Note: if limit < np.inf, scipy > 0.13 (bleeding edge as of
-        10/2013) must be installed.
+        10/2013) must be installed. If 0, then only patch (nearest vertex)
+        information is added.
     %(n_jobs)s
-        Will only use (up to) as many cores as there are source spaces.
+        Ignored if ``dist_limit==0.``.
     %(verbose)s
 
     Returns
@@ -2402,14 +2384,19 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     the source space to disk, as the computed distances will automatically be
     stored along with the source space data for future use.
     """
+    from scipy.sparse.csgraph import dijkstra
     n_jobs = check_n_jobs(n_jobs)
     src = _ensure_src(src)
-    if not np.isscalar(dist_limit):
-        raise ValueError('limit must be a scalar, got %s' % repr(dist_limit))
-    if not check_version('scipy', '0.11'):
-        raise RuntimeError('scipy >= 0.11 must be installed (or > 0.13 '
-                           'if dist_limit < np.inf')
-
+    dist_limit = float(dist_limit)
+    if dist_limit < 0:
+        raise ValueError('dist_limit must be non-negative, got %s'
+                         % (dist_limit,))
+    patch_only = (dist_limit == 0)
+    if patch_only and not check_version('scipy', '1.3'):
+        raise RuntimeError('scipy >= 1.3 is required to calculate patch '
+                           'information only, consider upgrading SciPy or '
+                           'using dist_limit=np.inf when running '
+                           'add_source_space_distances')
     if src.kind != 'surface':
         raise RuntimeError('Currently all source spaces must be of surface '
                            'type')
@@ -2417,38 +2404,46 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     parallel, p_fun, _ = parallel_func(_do_src_distances, n_jobs)
     min_dists = list()
     min_idxs = list()
-    logger.info('Calculating source space distances (limit=%s mm)...'
-                % (1000 * dist_limit))
+    msg = 'patch information' if patch_only else 'source space distances'
+    logger.info('Calculating %s (limit=%s mm)...' % (msg, 1000 * dist_limit))
     max_n = max(s['nuse'] for s in src)
-    if max_n > _DIST_WARN_LIMIT:
+    if not patch_only and max_n > _DIST_WARN_LIMIT:
         warn('Computing distances for %d source space points (in one '
              'hemisphere) will be very slow, consider using add_dist=False'
              % (max_n,))
     for s in src:
         connectivity = mesh_dist(s['tris'], s['rr'])
-        d = parallel(p_fun(connectivity, s['vertno'], r, dist_limit)
-                     for r in np.array_split(np.arange(len(s['vertno'])),
-                                             n_jobs))
-        # deal with indexing so we can add patch info
-        min_idx = np.array([dd[1] for dd in d])
-        min_dist = np.array([dd[2] for dd in d])
-        midx = np.argmin(min_dist, axis=0)
-        range_idx = np.arange(len(s['rr']))
-        min_dist = min_dist[midx, range_idx]
-        min_idx = min_idx[midx, range_idx]
-        min_dists.append(min_dist)
-        min_idxs.append(min_idx)
-        # now actually deal with distances, convert to sparse representation
-        d = np.concatenate([dd[0] for dd in d]).ravel()  # already float32
-        idx = d > 0
-        d = d[idx]
-        i, j = np.meshgrid(s['vertno'], s['vertno'])
-        i = i.ravel()[idx]
-        j = j.ravel()[idx]
-        d = sparse.csr_matrix((d, (i, j)),
-                              shape=(s['np'], s['np']), dtype=np.float32)
-        s['dist'] = d
-        s['dist_limit'] = np.array([dist_limit], np.float32)
+        if patch_only:
+            min_dist, _, min_idx = dijkstra(
+                connectivity, indices=s['vertno'],
+                min_only=True, return_predecessors=True)
+            min_dists.append(min_dist.astype(np.float32))
+            min_idxs.append(min_idx)
+            for key in ('dist', 'dist_limit'):
+                s[key] = None
+        else:
+            d = parallel(p_fun(connectivity, s['vertno'], r, dist_limit)
+                         for r in np.array_split(np.arange(len(s['vertno'])),
+                                                 n_jobs))
+            # deal with indexing so we can add patch info
+            min_idx = np.array([dd[1] for dd in d])
+            min_dist = np.array([dd[2] for dd in d])
+            midx = np.argmin(min_dist, axis=0)
+            range_idx = np.arange(len(s['rr']))
+            min_dist = min_dist[midx, range_idx]
+            min_idx = min_idx[midx, range_idx]
+            min_dists.append(min_dist)
+            min_idxs.append(min_idx)
+            # convert to sparse representation
+            d = np.concatenate([dd[0] for dd in d]).ravel()  # already float32
+            idx = d > 0
+            d = d[idx]
+            i, j = np.meshgrid(s['vertno'], s['vertno'])
+            i = i.ravel()[idx]
+            j = j.ravel()[idx]
+            s['dist'] = sparse.csr_matrix(
+                (d, (i, j)), shape=(s['np'], s['np']), dtype=np.float32)
+            s['dist_limit'] = np.array([dist_limit], np.float32)
 
     # Let's see if our distance was sufficient to allow for patch info
     if not any(np.any(np.isinf(md)) for md in min_dists):
@@ -2465,10 +2460,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
 def _do_src_distances(con, vertno, run_inds, limit):
     """Compute source space distances in chunks."""
     from scipy.sparse.csgraph import dijkstra
-    if limit < np.inf:
-        func = partial(dijkstra, limit=limit)
-    else:
-        func = dijkstra
+    func = partial(dijkstra, limit=limit)
     chunk_size = 20  # save memory by chunking (only a little slower)
     lims = np.r_[np.arange(0, len(run_inds), chunk_size), len(run_inds)]
     n_chunks = len(lims) - 1
@@ -2500,7 +2492,7 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False):
         Filename to read. Typically aseg.mgz or some variant in the freesurfer
         pipeline.
     return_colors : bool
-        If True returns also the labels colors
+        If True returns also the labels colors.
 
     Returns
     -------
@@ -2516,7 +2508,7 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False):
     import nibabel as nib
 
     # Read the mgz file using nibabel
-    mgz_data = nib.load(mgz_fname).get_data()
+    mgz_data = _get_img_fdata(nib.load(mgz_fname))
 
     # Get the unique label names
     lut = _get_lut()
@@ -2545,17 +2537,16 @@ def get_volume_labels_from_src(src, subject, subjects_dir):
     Parameters
     ----------
     src : instance of SourceSpaces
-        The source space containing the volume regions
-    subject: str
-        Subject name
-    subjects_dir: str
-        Freesurfer folder of the subjects
+        The source space containing the volume regions.
+    subject : str
+        Subject name.
+    subjects_dir : str
+        Freesurfer folder of the subjects.
 
     Returns
     -------
     labels_aseg : list of Label
         List of Label of segmented volumes included in src space.
-
     """
     from . import Label
     from . import get_volume_labels_from_aseg
@@ -2748,8 +2739,7 @@ def _get_morph_src_reordering(vertices, src_from, subject_from, subject_to,
         The source subject.
     subject_to : str
         The destination subject.
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    %(subjects_dir)s
     %(verbose)s
 
     Returns
@@ -2845,7 +2835,9 @@ def _compare_source_spaces(src0, src1, mode='exact', nearest=True,
                 if s0[name] is None:
                     assert_(s1[name] is None, name)
                 else:
-                    assert_array_equal(s0[name], s1[name])
+                    atol = 0 if mode == 'exact' else 1e-6
+                    assert_allclose(s0[name], s1[name],
+                                    atol=atol, err_msg=name)
             for name in ['pinfo']:
                 if s0[name] is None:
                     assert_(s1[name] is None, name)

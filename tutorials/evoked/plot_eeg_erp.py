@@ -4,9 +4,6 @@
 EEG processing and Event Related Potentials (ERPs)
 ==================================================
 
-For a generic introduction to the computation of ERP and ERF
-see :ref:`tut_epoching_and_averaging`.
-
 .. contents:: Here we cover the specifics of EEG, namely:
    :local:
    :depth: 1
@@ -60,7 +57,7 @@ print(raw.info['chs'][0]['loc'])
 # And it's actually possible to plot the channel locations using
 # :func:`mne.io.Raw.plot_sensors`.
 # In the case where your data don't have locations you can use one of the
-# standard :class:`Montages <mne.channels.Montage>` shipped with MNE.
+# standard :class:`Montages <mne.channels.DigMontage>` shipped with MNE.
 # See :ref:`plot_montage` and :ref:`tut-eeg-fsaverage-source-modeling`.
 
 raw.plot_sensors()

@@ -6,8 +6,8 @@ Alexandre Gramfort <alexandre.gramfort@inria.fr> Alexandre Gramfort <gramfort@lo
 Martin Luessi <mluessi@nmr.mgh.harvard.edu> mluessi@nmr.mgh.harvard.edu <mluessi@nmr.mgh.harvard.edu>
 Martin Luessi <mluessi@nmr.mgh.harvard.edu> martin <martin@think.hsd1.ma.comcast.net>
 Martin Luessi <mluessi@nmr.mgh.harvard.edu> martin <martin@think.(none)>
-Matti Hamalainen <msh@nmr.mgh.harvard.edu> Matti Hamalainen <msh@parsley.nmr.mgh.harvard.edu>
-Matti Hamalainen <msh@nmr.mgh.harvard.edu> mshamalainen <msh@nmr.mgh.harvard.edu>
+Matti Hämäläinen <msh@nmr.mgh.harvard.edu> Matti Hämäläinen <msh@parsley.nmr.mgh.harvard.edu>
+Matti Hämäläinen <msh@nmr.mgh.harvard.edu> mshamalainen <msh@nmr.mgh.harvard.edu>
 Christian Brodbeck <christianmbrodbeck@gmail.com> christianmbrodbeck <christianmbrodbeck@gmail.com>
 Christian Brodbeck <christianmbrodbeck@gmail.com> Christian Brodbeck <christianbrodbeck@nyu.edu>
 Louis Thibault <louist87@gmail.com> = <louist87@gmail.com>
@@ -23,9 +23,9 @@ Denis A. Engemann <denis.engemann@gmail.com> Denis Engemann <dengemann@Deniss-Ma
 Denis A. Engemann <denis.engemann@gmail.com> Denis A. Engemann <d.engemann@fz-juelich.de>
 Denis A. Engemann <denis.engemann@gmail.com> Denis Engemann <dengemann@pool-186-21-zam037.wlan.kfa-juelich.de>
 Denis A. Engemann <denis.engemann@gmail.com> Denis A. Engemann <denisaengemann@Denis-A-Engemanns-MacBook-Air.local>
+Denis A. Engemann <denis.engemann@gmail.com> Denis A. Engemann <denis-alexander.engemann@inria.fr>
 Daniel Strohmeier <daniel.strohmeier@googlemail.com> joewalter <daniel.strohmeier@googlemail.com>
 Daniel Strohmeier <daniel.strohmeier@googlemail.com> Daniel Strohmeier <daniel.strohmeier@googlemail.com>
-Dan G. Wakeman <dgwakeman@gmail.com>
 Dan G. Wakeman <dgwakeman@gmail.com> dgwakeman <dgwakeman@users.noreply.github.com>
 Teon Brooks <teon.brooks@gmail.com>
 Teon Brooks <teon.brooks@gmail.com> Teon <teon@nyu.edu>
@@ -119,6 +119,7 @@ Hubert Banville <hubert.jbanville@gmail.com> hubertjb <hubert.jbanville@gmail.co
 Sara Sommariva <sommariva@dima.unige.it> sarasommariva <sommariva@dima.unige.it>
 Manu Sutela <manu.sutela@gmail.com> MJAS1 <manu.sutela@gmail.com>
 Joan Massich <mailsik@gmail.com> massich <sik@visor.udg.edu>
+Joan Massich <mailsik@gmail.com> Joan Massich <sik@visor.udg.edu>
 David Sabbagh <dav.sabbagh@gmail.com> DavidSabbagh <33925146+DavidSabbagh@users.noreply.github.com>
 Nikolas Chalas <nikos.ch01@gmail.com> Nichalas <nikos.ch01@gmail.com>
 Katarina Slama <slama@berkeley.edu> katarinaslama <slama@berkeley.edu>
@@ -128,3 +129,11 @@ Steve Matindi <stevematindi@gmail.com> stevemats <stevematindi@gmail.com>
 Legrand Nicolas <legrand@cyceron.fr> LegrandNico <legrand@cyceron.fr>
 Johannes Kasper <jeythekey@tutanota.com> jeythekey <44215387+jeythekey@users.noreply.github.com>
 Thomas Radman <radman.thomas@gmail.com>
+Joshua J Bear <joshbear@users.noreply.github.com>
+Paul Roujansky <paul@roujansky.eu>
+José C. García Alanis <joialanisson@gmail.com> José C. García Alanis <12409129+JoseAlanis@users.noreply.github.com>
+José C. García Alanis <joialanisson@gmail.com> José C. G. Alanis <12409129+JoseAlanis@users.noreply.github.com>
+José C. García Alanis <joialanisson@gmail.com> Jose C. G. Alanis <12409129+JoseAlanis@users.noreply.github.com>
+Kostiantyn Maksymenko <makkostya@ukr.net> Maksymenko Kostiantyn <kostiantyn.maksymenko@inria.fr>
+Samuel Deslauriers-Gauthier <sam.deslauriers@gmail.com> Samuel Deslauriers-Gauthier <sdeslauriers@users.noreply.github.com>
+Eberhard Eich <e.eich@fz-juelich.de> ebeich <ebeich@users.noreply.github.com>

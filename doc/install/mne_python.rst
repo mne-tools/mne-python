@@ -17,13 +17,25 @@ Installing Python
 ^^^^^^^^^^^^^^^^^
 
 MNE-Python runs within Python, and depends on several other Python packages.
-MNE-Python 0.18 only supports Python version 3.5 or higher. We strongly
+Starting with version 0.18, MNE-Python only supports Python version 3.5 or
+higher. We strongly
 recommend the `Anaconda`_ distribution of Python, which comes with more than
 250 scientific packages pre-bundled, and includes the ``conda`` command line
 tool for installing new packages and managing different package sets
 ("environments") for different projects.
 
 To get started, follow the `installation instructions for Anaconda`_.
+
+.. warning::
+   If you have the ``PYTHONPATH`` or ``PYTHONHOME`` environment variables set,
+   you may run into difficulty using Anaconda. See the
+   `Anaconda troubleshooting guide`_ for more information. Note that it is
+   easy to switch between ``conda``-managed Python installations and the system
+   Python installation using the ``conda activate`` and ``conda deactivate``
+   commands, so you may find that after adopting Anaconda it is possible
+   (indeed, preferable) to leave ``PYTHONPATH`` and ``PYTHONHOME`` permanently
+   unset.
+
 When you are done, if you type the following commands in a ``bash`` terminal,
 you should see outputs similar to the following (assuming you installed
 conda to ``/home/user/anaconda3``)::
@@ -39,7 +51,21 @@ conda to ``/home/user/anaconda3``)::
 .. collapse:: |hand-stop-o| If you get an error or these look incorrect...
     :class: danger
 
-    **If you see something like**::
+    .. rubric:: If you are on a |windows| Windows command prompt:
+
+    Most of our instructions start with ``$``, which indicates
+    that the commands are designed to be run from a Bash command prompt.
+
+    Windows command prompts do not expose the same command-line tools as Bash
+    shells, so things like ``which`` will not work, and you need to use
+    alternatives, such as::
+
+        > where mne
+        C:\Users\mneuser\Anaconda3\Scripts\mne
+
+    .. rubric:: If you see something like:
+
+    ::
 
         conda: command not found
 
@@ -71,7 +97,9 @@ conda to ``/home/user/anaconda3``)::
     are using (bash, tcsh, etc.), add the line to that shell's ``rc`` or
     ``profile`` file to fix the problem.
 
-    **If you see an error like**::
+    .. rubric:: If you see an error like:
+
+    ::
 
         CommandNotFoundError: Your shell has not been properly configured to use 'conda activate'.
 
@@ -125,7 +153,7 @@ MNE-Python with all dependencies is update your base Anaconda environment:
 
 If you prefer an isolated Anaconda environment, instead of using\
 :samp:`conda env update` to modify your "base" environment,
-you can create a new dedicated environment with
+you can create a new dedicated environment (here called "mne") with
 :samp:`conda env create --name mne --file environment.yml`.
 
 .. javascript below adapted from nilearn
@@ -143,13 +171,28 @@ you can create a new dedicated environment with
     });
     </script>
 
+.. collapse:: |hand-stop-o| If you are installing on a headless server...
+    :class: danger
+
+    Installing `mayavi`_ requires a running `X server`_. If you are
+    installing MNE-Python into a computer with no display connected to it, you
+    can try removing `mayavi`_ from the :file:`environment.yml` file before
+    running :samp:`conda env create --file environment.yml`, activating the new
+    environment, and then installing `mayavi`_ using `xvfb`_ (e.g.,
+    :samp:`xvfb-run pip install mayavi`). Be sure to read Mayavi's instructions
+    on `off-screen rendering`_ and `rendering with a virtual framebuffer`_.
+
+    Note: if :samp:`xvfb` is not already installed on your server, you will
+    need administrator privileges to install it.
+
+
 Testing MNE-Python installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To make sure MNE-Python installed itself and its dependencies correctly,
 type the following command in a terminal::
 
-    $ python -c 'import mne; mne.sys_info()'
+    $ mne sys_info
 
 This should display some system information along with the versions of
 MNE-Python and its dependencies. Typical output looks like this::
@@ -178,13 +221,16 @@ MNE-Python and its dependencies. Typical output looks like this::
 .. collapse:: |hand-stop-o| If you get an error...
     :class: danger
 
-    **If you see an error like**::
+    .. rubric:: If you see an error like:
+
+    ::
 
         Traceback (most recent call last):
           File "<string>", line 1, in <module>
         ModuleNotFoundError: No module named 'mne'
 
-    This suggests that your ``mne`` environment is not active. Try doing
+    This suggests that your environment containing ``mne`` is not active.
+    If you installed to the ``mne`` instead of ``base`` environment, try doing
     ``conda activate mne`` and try again. If this works, you might want to
     add ``conda activate mne`` to the end of your ``~/.bashrc`` or
     ``~/.bash_profile`` files so that it gets executed automatically.
@@ -197,3 +243,12 @@ good resources for troubleshooting installation problems.
 .. highlight:: python
 
 **Next:** :doc:`freesurfer`
+
+
+.. LINKS
+
+.. _`mayavi`: https://docs.enthought.com/mayavi/mayavi/
+.. _`X server`: https://en.wikipedia.org/wiki/X_Window_System
+.. _`xvfb`: https://en.wikipedia.org/wiki/Xvfb
+.. _`off-screen rendering`: https://docs.enthought.com/mayavi/mayavi/tips.html#off-screen-rendering
+.. _`rendering with a virtual framebuffer`: https://docs.enthought.com/mayavi/mayavi/tips.html#rendering-using-the-virtual-framebuffer

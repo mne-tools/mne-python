@@ -1,5 +1,5 @@
 # Authors : Denis A. Engemann <denis.engemann@gmail.com>
-#           Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#           Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License : BSD 3-clause
 
@@ -140,6 +140,14 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
     freqs : ndarray
         The frequencies.
 
+    See Also
+    --------
+    mne.time_frequency.tfr_stockwell
+    mne.time_frequency.tfr_multitaper
+    mne.time_frequency.tfr_array_multitaper
+    mne.time_frequency.tfr_morlet
+    mne.time_frequency.tfr_array_morlet
+
     References
     ----------
     .. [1] Stockwell, R. G. "Why use the S-transform." AMS Pseudo-differential
@@ -159,14 +167,6 @@ def tfr_array_stockwell(data, sfreq, fmin=None, fmax=None, n_fft=None,
        (2006). S-transform time-frequency analysis of P300 reveals deficits in
        individuals diagnosed with alcoholism.
        Clinical Neurophysiology 117 2128--2143
-
-    See Also
-    --------
-    mne.time_frequency.tfr_stockwell
-    mne.time_frequency.tfr_multitaper
-    mne.time_frequency.tfr_array_multitaper
-    mne.time_frequency.tfr_morlet
-    mne.time_frequency.tfr_array_morlet
     """
     n_epochs, n_channels = data.shape[:2]
     n_out = data.shape[2] // decim + bool(data.shape[2] % decim)

@@ -16,6 +16,7 @@ jobs:
               echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
               export MNE_ROOT=${PWD}/minimal_cmds
               echo "export MNE_ROOT=${PWD}/minimal_cmds" >> $BASH_ENV
+              echo "export MNE_3D_BACKEND=pyvista" >> $BASH_ENV
               echo "export PATH=~/.local/bin/:${MNE_ROOT}/bin:$PATH" >> $BASH_ENV
               curl https://staff.washington.edu/larsoner/minimal_cmds.tar.gz | tar xz
               echo "export LD_LIBRARY_PATH=${MNE_ROOT}/lib:$LD_LIBRARY_PATH" >> $BASH_ENV
@@ -77,9 +78,10 @@ jobs:
         - run:
             name: Get Python running
             command: |
-              pip install --user --upgrade --progress-bar off pip numpy vtk
-              pip install --user --upgrade --progress-bar off -r requirements.txt
-              pip install --user --upgrade --progress-bar off ipython sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler "https://api.github.com/repos/nipy/PySurfer/zipball/master"
+              python -m pip install --user --upgrade --progress-bar off pip numpy vtk
+              python -m pip install --user --upgrade --progress-bar off -r requirements.txt
+              python -m pip install --user --upgrade --progress-bar off ipython sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler "https://api.github.com/repos/nipy/PySurfer/zipball/master"
+              python -m pip install --user -e .
 
         - save_cache:
             key: pip-cache
@@ -91,7 +93,7 @@ jobs:
             name: Check installation
             command: |
                which python
-               python -c "import mne; mne.sys_info()"
+               mne sys_info
                LIBGL_DEBUG=verbose python -c "from mayavi import mlab; import matplotlib.pyplot as plt; mlab.figure(); plt.figure()"
                python -c "import mne; mne.set_config('MNE_USE_CUDA', 'false')"  # this is needed for the config tutorial
                python -c "import mne; mne.set_config('MNE_LOGGING_LEVEL', 'info')"
@@ -110,7 +112,7 @@ jobs:
               if [ "$CIRCLE_BRANCH" == "master" ] || [[ $(cat gitlog.txt) == *"[circle full]"* ]]; then
                 echo html_dev > build.txt;
                 python -c "import mne; mne.datasets._download_all_example_data()";
-              elif [ "$CIRCLE_BRANCH" == "maint/0.18" ]; then
+              elif [ "$CIRCLE_BRANCH" == "maint/0.19" ]; then
                 echo html_stable > build.txt;
                 python -c "import mne; mne.datasets._download_all_example_data()";
               else
@@ -137,7 +139,10 @@ jobs:
                       python -c "import mne; print(mne.datasets.somato.data_path(update_path=True))";
                     fi;
                     if [[ $(cat $FNAME | grep -x ".*datasets.*eegbci.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.eegbci.load_data(1, [6, 10, 14], update_path=True))";
+                      python -c "import mne; print(mne.datasets.eegbci.load_data(1, [3, 6, 10, 14], update_path=True))";
+                      python -c "import mne; print(mne.datasets.eegbci.load_data(2, [3], update_path=True))";
+                      python -c "import mne; print(mne.datasets.eegbci.load_data(3, [3], update_path=True))";
+                      python -c "import mne; print(mne.datasets.eegbci.load_data(4, [3], update_path=True))";
                     fi;
                     if [[ $(cat $FNAME | grep -x ".*datasets.*sleep_physionet.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.sleep_physionet.age.fetch_data([0, 1], recording=[1], update_path=True))";
@@ -182,6 +187,9 @@ jobs:
                     if [[ $(cat $FNAME | grep -x ".*datasets.*multimodal.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.multimodal.data_path(update_path=True))";
                     fi;
+                    if [[ $(cat $FNAME | grep -x ".*datasets.*fnirs_motor.*" | wc -l) -gt 0 ]]; then
+                      python -c "import mne; print(mne.datasets.fnirs_motor.data_path(update_path=True))";
+                    fi;
                     if [[ $(cat $FNAME | grep -x ".*datasets.*opm.*" | wc -l) -gt 0 ]]; then
                       python -c "import mne; print(mne.datasets.opm.data_path(update_path=True))";
                     fi;
@@ -189,7 +197,7 @@ jobs:
                       python -c "import mne; print(mne.datasets.phantom_4dbti.data_path(update_path=True))";
                     fi;
                     if [[ $(cat $FNAME | grep -x ".*datasets.*limo.*" | wc -l) -gt 0 ]]; then
-                      python -c "import mne; print(mne.datasets.limo.data_path(subject=2, update_path=True))";
+                      python -c "import mne; print(mne.datasets.limo.data_path(subject=1, update_path=True))";
                     fi;
                   fi;
                 done;
@@ -234,7 +242,7 @@ jobs:
         - run:
             name: Reduce artifact upload time
             command: |
-              if grep -q html_dev build.txt; then
+              if grep -q html_dev-pattern build.txt || grep -q html_dev-noplot build.txt; then
                 tar czf doc/_build/html/_downloads.tgz doc/_build/html/_downloads
                 rm -Rf doc/_build/html/_downloads
               fi
@@ -316,9 +324,9 @@ jobs:
             name: pip install dependencies
             command: |
                set -e;
-               pip install --user --progress-bar off numpy scipy matplotlib pillow
-               pip install --user --progress-bar off sphinx numpydoc sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler
-               pip install --user -e .
+               python -m pip install --user --progress-bar off numpy scipy matplotlib pillow
+               python -m pip install --user --progress-bar off sphinx numpydoc sphinx_fontawesome sphinx_bootstrap_theme "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master" memory_profiler
+               python -m pip install --user -e .
         - run:
             name: make linkcheck
             command: |
@@ -359,7 +367,7 @@ jobs:
             name: Deploy docs
             command: |
               set -e;
-              if [ "${CIRCLE_BRANCH}" == "master" ] || [ "${CIRCLE_BRANCH}" == "maint/0.18" ]; then
+              if [ "${CIRCLE_BRANCH}" == "master" ] || [ "${CIRCLE_BRANCH}" == "maint/0.19" ]; then
                 git config --global user.email "circle@mne.com";
                 git config --global user.name "Circle CI";
                 cd ~/mne-tools.github.io;
@@ -403,7 +411,7 @@ workflows:
             branches:
               only:
                 - master
-                - maint/0.18
+                - maint/0.19
 
   weekly:
     jobs:

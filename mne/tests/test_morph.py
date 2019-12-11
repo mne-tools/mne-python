@@ -21,7 +21,7 @@ from mne.datasets import testing
 from mne.minimum_norm import (apply_inverse, read_inverse_operator,
                               make_inverse_operator)
 from mne.source_space import get_volume_labels_from_aseg
-from mne.utils import (run_tests_if_main, requires_nibabel, _TempDir,
+from mne.utils import (run_tests_if_main, requires_nibabel,
                        requires_dipy, requires_h5py, requires_version)
 from mne.fixes import _get_args
 
@@ -169,10 +169,8 @@ def test_xhemi_morph():
 
 @requires_h5py
 @testing.requires_testing_data
-def test_surface_vector_source_morph():
+def test_surface_vector_source_morph(tmpdir):
     """Test surface and vector source estimate morph."""
-    tempdir = _TempDir()
-
     inverse_operator_surf = read_inverse_operator(fname_inv_surf)
 
     stc_surf = read_source_estimate(fname_smorph, subject='sample')
@@ -203,9 +201,9 @@ def test_surface_vector_source_morph():
     assert 'surface' in repr(source_morph_surf)
 
     # check loading and saving for surf
-    source_morph_surf.save(op.join(tempdir, '42.h5'))
+    source_morph_surf.save(tmpdir.join('42.h5'))
 
-    source_morph_surf_r = read_source_morph(op.join(tempdir, '42.h5'))
+    source_morph_surf_r = read_source_morph(tmpdir.join('42.h5'))
 
     assert (all([read == saved for read, saved in
                  zip(sorted(source_morph_surf_r.__dict__),
@@ -226,22 +224,21 @@ def test_surface_vector_source_morph():
 @requires_dipy()
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_volume_source_morph():
+def test_volume_source_morph(tmpdir):
     """Test volume source estimate morph, special cases and exceptions."""
     import nibabel as nib
-    tempdir = _TempDir()
     inverse_operator_vol = read_inverse_operator(fname_inv_vol)
     stc_vol = read_source_estimate(fname_vol, 'sample')
 
     # check for invalid input type
-    with pytest.raises(TypeError, match='src must be an instance of'):
+    with pytest.raises(ValueError, match='src must be a string or instance'):
         compute_source_morph(src=42)
 
     # check for raising an error if neither
     # inverse_operator_vol['src'][0]['subject_his_id'] nor subject_from is set,
     # but attempting to perform a volume morph
     src = inverse_operator_vol['src']
-    src[0]['subject_his_id'] = None
+    assert src._subject is None  # already None on disk (old!)
 
     with pytest.raises(ValueError, match='subject_from could not be inferred'):
         compute_source_morph(src=src, subjects_dir=subjects_dir)
@@ -259,7 +256,8 @@ def test_volume_source_morph():
     zooms = 20
     kwargs = dict(zooms=zooms, niter_sdr=(1,), niter_affine=(1,))
     source_morph_vol = compute_source_morph(
-        subjects_dir=subjects_dir, src=inverse_operator_vol['src'], **kwargs)
+        subjects_dir=subjects_dir, src=fname_inv_vol, subject_from='sample',
+        **kwargs)
     shape = (13,) * 3  # for the given zooms
 
     assert source_morph_vol.subject_from == 'sample'
@@ -287,18 +285,19 @@ def test_volume_source_morph():
                              subjects_dir=subjects_dir)
 
     # two different ways of saving
-    source_morph_vol.save(op.join(tempdir, 'vol'))
+    source_morph_vol.save(tmpdir.join('vol'))
 
     # check loading
-    source_morph_vol_r = read_source_morph(
-        op.join(tempdir, 'vol-morph.h5'))
+    source_morph_vol_r = read_source_morph(tmpdir.join('vol-morph.h5'))
 
     # check for invalid file name handling ()
     with pytest.raises(IOError, match='not found'):
-        read_source_morph(op.join(tempdir, '42'))
+        read_source_morph(tmpdir.join('42'))
 
     # check morph
     stc_vol_morphed = source_morph_vol.apply(stc_vol)
+    # old way, verts do not match
+    assert not np.array_equal(stc_vol_morphed.vertices, stc_vol.vertices)
 
     # vector
     stc_vol_vec = VolVectorSourceEstimate(
@@ -363,7 +362,7 @@ def test_volume_source_morph():
         compute_source_morph(src=src, subject_from='42')
     with pytest.raises(ValueError, match='output'):
         source_morph_vol.apply(stc_vol, output='42')
-    with pytest.raises(TypeError, match='subject_to must'):
+    with pytest.raises(ValueError, match='subject_to cannot be None'):
         compute_source_morph(src, 'sample', None,
                              subjects_dir=subjects_dir)
     # Check if not morphed, but voxel size not boolean, raise ValueError.
@@ -375,6 +374,25 @@ def test_volume_source_morph():
     stc_surf = read_source_estimate(fname_stc, 'sample')
     with pytest.raises(ValueError, match='stc_from was type'):
         source_morph_vol.apply(stc_surf)
+
+    # src_to
+    # zooms=20 does not match src_to zooms (7)
+    with pytest.raises(ValueError, match='If src_to is provided, zooms shoul'):
+        source_morph_vol = compute_source_morph(
+            fwd['src'], subject_from='sample', src_to=fwd['src'],
+            subjects_dir=subjects_dir, **kwargs)
+    # hack the src_to "zooms" to make it seem like a pos=20. source space
+    fwd['src'][0]['src_mri_t']['trans'][:3, :3] = 0.02 * np.eye(3)
+    source_morph_vol = compute_source_morph(
+        fwd['src'], subject_from='sample', src_to=fwd['src'],
+        subjects_dir=subjects_dir, **kwargs)
+    stc_vol_2 = source_morph_vol.apply(stc_vol)
+    # new way, verts match
+    assert_array_equal(stc_vol.vertices, stc_vol_2.vertices)
+    stc_vol_bad = VolSourceEstimate(
+        stc_vol.data[:-1], stc_vol.vertices[:-1], stc_vol.tmin, stc_vol.tstep)
+    with pytest.raises(ValueError, match='vertices do not match between morp'):
+        source_morph_vol.apply(stc_vol_bad)
 
 
 @pytest.mark.slowtest
@@ -440,7 +458,7 @@ def test_morph_stc_dense():
             subjects_dir=subjects_dir)
 
     # subject from mismatch
-    with pytest.raises(ValueError, match="does not match source space subj"):
+    with pytest.raises(ValueError, match="subject_from does not match"):
         compute_source_morph(stc_from, subject_from='foo',
                              subjects_dir=subjects_dir)
 
@@ -528,7 +546,9 @@ def test_volume_labels_morph(tmpdir):
     assert stc.data.shape == (n_src, 1)
     img = stc.as_volume(src, mri_resolution=True)
     n_on = np.array(img.dataobj).astype(bool).sum()
-    assert n_on == 291  # was 291 on `master` before gh-5590
+    # This was 291 on `master` before gh-5590. Then refactoring transforms
+    # it became 279 despite a < 1e-8 change in vox_mri_t
+    assert n_on in (279, 291)
     img = stc.as_volume(src, mri_resolution=False)
     n_on = np.array(img.dataobj).astype(bool).sum()
     assert n_on == 44  # was 20 on `master` before gh-5590

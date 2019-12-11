@@ -120,6 +120,7 @@ def stat_fun(x):
     """Return sum of squares."""
     return np.sum(x ** 2, axis=0)
 
+
 # Plot
 fig, axes = plt.subplots(4, 1, figsize=(10, 7), sharex=True, sharey=True)
 colors = plt.get_cmap('winter_r')(np.linspace(0, 1, 4))

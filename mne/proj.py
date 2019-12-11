@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 
@@ -24,7 +24,7 @@ def read_proj(fname):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The name of file containing the projections vectors. It should end with
         -proj.fif or -proj.fif.gz.
 
@@ -51,7 +51,7 @@ def write_proj(fname, projs):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The name of file containing the projections vectors. It should end with
         -proj.fif or -proj.fif.gz.
 
@@ -144,15 +144,15 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
     Parameters
     ----------
     epochs : instance of Epochs
-        The epochs containing the artifact
+        The epochs containing the artifact.
     n_grad : int
-        Number of vectors for gradiometers
+        Number of vectors for gradiometers.
     n_mag : int
-        Number of vectors for magnetometers
+        Number of vectors for magnetometers.
     n_eeg : int
-        Number of vectors for EEG channels
+        Number of vectors for EEG channels.
     %(n_jobs)s
-        Number of jobs to use to compute covariance
+        Number of jobs to use to compute covariance.
     desc_prefix : str | None
         The description prefix to use. If None, one will be created based on
         the event_id, tmin, and tmax.
@@ -168,7 +168,7 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
     Returns
     -------
     projs: list
-        List of projection vectors
+        List of projection vectors.
 
     See Also
     --------
@@ -211,13 +211,13 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, desc_prefix=None,
     Parameters
     ----------
     evoked : instance of Evoked
-        The Evoked obtained by averaging the artifact
+        The Evoked obtained by averaging the artifact.
     n_grad : int
-        Number of vectors for gradiometers
+        Number of vectors for gradiometers.
     n_mag : int
-        Number of vectors for magnetometers
+        Number of vectors for magnetometers.
     n_eeg : int
-        Number of vectors for EEG channels
+        Number of vectors for EEG channels.
     desc_prefix : str | None
         The description prefix to use. If None, one will be created based on
         tmin and tmax.
@@ -235,7 +235,7 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, desc_prefix=None,
     Returns
     -------
     projs : list
-        List of projection vectors
+        List of projection vectors.
 
     See Also
     --------
@@ -290,7 +290,7 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
     Returns
     -------
     projs: list
-        List of projection vectors
+        List of projection vectors.
 
     See Also
     --------
@@ -349,7 +349,7 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
         'fixed', 'ratio', 'radiality', 'angle', 'remaining', or 'dampening'
         corresponding to the argument --map 1, 2, 3, 4, 5, 6 and 7 of the
         command mne_sensitivity_map.
-    exclude : list of string | str
+    exclude : list of str | str
         List of channels to exclude. If empty do not exclude any (default).
         If 'bads', exclude channels in fwd['info']['bads'].
     %(verbose)s

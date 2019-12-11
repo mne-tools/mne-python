@@ -149,7 +149,7 @@ def test_copy_function_doc_to_method_doc():
 
 def myfun(x):
     """Check url."""
-    assert 'martinos' in x
+    assert 'mne.tools' in x
 
 
 def test_open_docs():

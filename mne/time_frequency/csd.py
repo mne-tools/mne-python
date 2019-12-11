@@ -20,6 +20,50 @@ from ..parallel import parallel_func
 from ..externals.h5io import read_hdf5, write_hdf5
 
 
+def pick_channels_csd(csd, include=[], exclude=[], ordered=False, copy=True):
+    """Pick channels from cross-spectral density matrix.
+
+    Parameters
+    ----------
+    csd : instance of CrossSpectralDensity
+        The CSD object to select the channels from.
+    include : list of str
+        List of channels to include (if empty, include all available).
+    exclude : list of str
+        Channels to exclude (if empty, do not exclude any).
+    ordered : bool
+        If True (default False), ensure that the order of the channels in the
+        modified instance matches the order of ``include``.
+
+        .. versionadded:: 0.20.0
+    copy : bool
+        If True (the default), return a copy of the CSD matrix with the
+        modified channels. If False, channels are modified in-place.
+
+        .. versionadded:: 0.20.0
+
+    Returns
+    -------
+    res : instance of CrossSpectralDensity
+        Cross-spectral density restricted to selected channels.
+    """
+    if copy:
+        csd = csd.copy()
+
+    sel = pick_channels(csd.ch_names, include=include, exclude=exclude,
+                        ordered=ordered)
+    data = []
+    for vec in csd._data.T:
+        mat = _vector_to_sym_mat(vec)
+        mat = mat[sel, :][:, sel]
+        data.append(_sym_mat_to_vector(mat))
+    ch_names = [csd.ch_names[i] for i in sel]
+
+    csd._data = np.array(data).T
+    csd.ch_names = ch_names
+    return csd
+
+
 class CrossSpectralDensity(object):
     """Cross-spectral density.
 
@@ -34,7 +78,7 @@ class CrossSpectralDensity(object):
     ----------
     data : ndarray, shape ((n_channels**2 + n_channels) / 2, n_frequencies)
         For each frequency, the cross-spectral density matrix in vector format.
-    ch_names : list of string
+    ch_names : list of str
         List of string names for each channel.
     frequencies : float | list of float | list of list of float
         Frequency or frequencies for which the CSD matrix was calculated. When
@@ -397,8 +441,39 @@ class CrossSpectralDensity(object):
         write_hdf5(fname, self.__getstate__(), overwrite=True, title='conpy')
 
     def copy(self):
-        """Return copy of the CrossSpectralDensity object."""
+        """Return copy of the CrossSpectralDensity object.
+
+        Returns
+        -------
+        copy : instance of CrossSpectralDensity
+            A copy of the object.
+        """
         return cp.deepcopy(self)
+
+    def pick_channels(self, ch_names, ordered=False):
+        """Pick channels from this cross-spectral density matrix.
+
+        Parameters
+        ----------
+        ch_names : list of str
+            List of channels to keep. All other channels are dropped.
+        ordered : bool
+            If True (default False), ensure that the order of the channels
+            matches the order of ``ch_names``.
+
+        Returns
+        -------
+        csd : instance of CrossSpectralDensity.
+            The modified cross-spectral density object.
+
+        Notes
+        -----
+        Operates in-place.
+
+        .. versionadded:: 0.20.0
+        """
+        return pick_channels_csd(self, include=ch_names, exclude=[],
+                                 ordered=ordered, copy=False)
 
 
 def _n_dims_from_triu(n):
@@ -494,48 +569,13 @@ def read_csd(fname):
 
     See Also
     --------
-    CrossSpectralDensity.save : For saving CSD objects
+    CrossSpectralDensity.save : For saving CSD objects.
     """
     if not fname.endswith('.h5'):
         fname += '.h5'
 
     csd_dict = read_hdf5(fname, title='conpy')
     return CrossSpectralDensity(**csd_dict)
-
-
-def pick_channels_csd(csd, include=[], exclude=[]):
-    """Pick channels from covariance matrix.
-
-    Parameters
-    ----------
-    csd : instance of CrossSpectralDensity
-        The CSD object to select the channels from.
-    include : list of string
-        List of channels to include (if empty, include all available).
-    exclude : list of string
-        Channels to exclude (if empty, do not exclude any).
-
-    Returns
-    -------
-    res : instance of CrossSpectralDensity
-        Cross-spectral density restricted to selected channels.
-    """
-    sel = pick_channels(csd.ch_names, include=include, exclude=exclude)
-    data = []
-    for vec in csd._data.T:
-        mat = _vector_to_sym_mat(vec)
-        mat = mat[sel, :][:, sel]
-        data.append(_sym_mat_to_vector(mat))
-    ch_names = [csd.ch_names[i] for i in sel]
-
-    return CrossSpectralDensity(
-        data=np.array(data).T,
-        ch_names=ch_names,
-        tmin=csd.tmin,
-        tmax=csd.tmax,
-        frequencies=csd.frequencies,
-        n_fft=csd.n_fft,
-    )
 
 
 @verbose
@@ -836,7 +876,7 @@ def csd_morlet(epochs, frequencies, tmin=None, tmax=None, picks=None,
         Maximum time instant to consider, in seconds. If ``None`` end at last
         sample.
     %(picks_good_data_noref)s
-    n_cycles: float | list of float | None
+    n_cycles : float | list of float | None
         Number of cycles to use when constructing Morlet wavelets. Fixed number
         or one per frequency. Defaults to 7.
     use_fft : bool
@@ -903,7 +943,7 @@ def csd_array_morlet(X, sfreq, frequencies, t0=0, tmin=None, tmax=None,
     ch_names : list of str | None
         A name for each time series. If ``None`` (the default), the series will
         be named 'SERIES###'.
-    n_cycles: float | list of float | None
+    n_cycles : float | list of float | None
         Number of cycles to use when constructing Morlet wavelets. Fixed number
         or one per frequency. Defaults to 7.
     use_fft : bool
@@ -1251,7 +1291,7 @@ def _csd_morlet(data, sfreq, wavelets, tslice=None, use_fft=True, decim=1):
 
     See Also
     --------
-    _vector_to_sym_mat : For converting the CSD to a full matrix
+    _vector_to_sym_mat : For converting the CSD to a full matrix.
     """
     # Compute PSD
     psds = cwt(data, wavelets, use_fft=use_fft, decim=decim)

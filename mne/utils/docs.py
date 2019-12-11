@@ -12,6 +12,7 @@ import warnings
 import webbrowser
 
 from .config import get_config
+from ..defaults import HEAD_SIZE_DEFAULT
 from ..externals.doccer import filldoc, unindent_dict
 from .check import _check_option
 
@@ -50,6 +51,64 @@ include_tmax : bool
 docdict["show"] = """
 show : bool
     Show figure if True."""
+docdict['topomap_outlines'] = """
+outlines : 'head' | 'skirt' | dict | None
+    The outlines to be drawn. If 'head', the default head scheme will be
+    drawn. If 'skirt' the head scheme will be drawn, but sensors are
+    allowed to be plotted outside of the head circle. If dict, each key
+    refers to a tuple of x and y positions, the values in 'mask_pos' will
+    serve as image mask.
+    Alternatively, a matplotlib patch object can be passed for advanced
+    masking options, either directly or as a function that returns patches
+    (required for multi-axis plots). If None, nothing will be drawn.
+    Defaults to 'head'.
+"""
+docdict['topomap_extrapolate'] = """
+extrapolate : str
+    Options:
+
+    - 'box' (default)
+        Extrapolate to four points placed to form a square encompassing all
+        data points, where each side of the square is three times the range
+        of the data in the respective dimension.
+    - 'local'
+        Extrapolate only to nearby points (approximately to points closer than
+        median inter-electrode distance).
+    - 'head'
+        Extrapolate to the edges of the head circle (does not work well
+        with sensors outside the head circle).
+"""
+docdict['topomap_head_pos'] = """
+head_pos : dict | None
+    Deprecated and will be removed in 0.21. Use ``sphere`` instead.
+"""
+docdict['topomap_sphere'] = """
+sphere : float | array-like | instance of ConductorModel
+    The sphere parameters to use for the cartoon head.
+    Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+    meters, or a single float to give the radius (origin assumed 0, 0, 0).
+    Can also be a spherical ConductorModel, which will use the origin and
+    radius. Can also be None (default) which is an alias for %s.
+
+    .. versionadded:: 0.20
+""" % (HEAD_SIZE_DEFAULT,)
+docdict['topomap_sphere_auto'] = """
+sphere : float | array-like | str | None
+    The sphere parameters to use for the cartoon head.
+    Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+    meters, or a single float to give the radius (origin assumed 0, 0, 0).
+    Can also be a spherical ConductorModel, which will use the origin and
+    radius. Can be "auto" to use a digitization-based fit.
+    Can also be None (default) to use 'auto' when enough extra digitization
+    points are available, and %s otherwise.
+
+    .. versionadded:: 0.20
+""" % (HEAD_SIZE_DEFAULT,)
+docdict['layout_dep'] = """
+layout : None
+    Deprecated and will be removed in 0.21. Use ``sphere`` to control
+    head-sensor relationship instead.
+"""
 
 # Picks
 docdict['picks_header'] = 'picks : str | list | slice | None'
@@ -83,7 +142,7 @@ l_freq : float | None
 docdict['h_freq'] = """
 h_freq : float | None
     For FIR filters, the upper pass-band edge; for IIR filters, the upper
-    cutoff frequency. If None the data are only low-passed.
+    cutoff frequency. If None the data are only high-passed.
 """
 docdict['filter_length'] = """
 filter_length : str | int
@@ -100,7 +159,6 @@ filter_length : str | int
       ``phase="zero-double"``.
     * **int**: Specified length in samples. For fir_design="firwin",
       this should not be used.
-
 """
 docdict['l_trans_bandwidth'] = """
 l_trans_bandwidth : float | str
@@ -210,6 +268,14 @@ depth : None | float | dict
     keyword arguments to pass to :func:`mne.forward.compute_depth_prior`
     (see docstring for details and defaults).
 """
+docdict['pick_ori-vec'] = """
+    pick_ori : None | "vector"
+        Only applies to loose/free orientation. By default (None) pooling is
+        performed by taking the norm of the current vectors. Use
+        pick_ori="vector" to return vector source estimate.
+
+        .. versionadded:: 0.20
+"""
 
 # Forward
 docdict['on_missing'] = """
@@ -221,7 +287,7 @@ dig_kinds : list of str | str
     Kind of digitization points to use in the fitting. These can be any
     combination of ('cardinal', 'hpi', 'eeg', 'extra'). Can also
     be 'auto' (default), which will use only the 'extra' points if
-    enough (more than 10) are available, and if not, uses 'extra' and
+    enough (more than 4) are available, and if not, uses 'extra' and
     'eeg' points.
 """
 docdict['exclude_frontal'] = """
@@ -229,7 +295,20 @@ exclude_frontal : bool
     If True, exclude points that have both negative Z values
     (below the nasion) and positivy Y values (in front of the LPA/RPA).
 """
+docdict['trans'] = """
+trans : str | dict | instance of Transform | None
+    If str, the path to the head<->MRI transform ``*-trans.fif`` file produced
+    during coregistration. Can also be ``'fsaverage'`` to use the built-in
+    fsaverage transformation. If trans is None, an identity matrix is assumed.
 
+    .. versionchanged:: 0.19
+       Support for 'fsaverage' argument.
+"""
+docdict['subjects_dir'] = """
+subjects_dir : str | None
+    The path to the freesurfer subjects reconstructions.
+    It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+"""
 
 # Simulation
 docdict['interp'] = """
@@ -257,20 +336,20 @@ n_jobs : int
 
 # Random state
 docdict['random_state'] = """
-random_state : None | int | instance of ~numpy.random.mtrand.RandomState
+random_state : None | int | instance of ~numpy.random.RandomState
     If ``random_state`` is an :class:`int`, it will be used as a seed for
-    :class:`~numpy.random.mtrand.RandomState`. If ``None``, the seed will be
+    :class:`~numpy.random.RandomState`. If ``None``, the seed will be
     obtained from the operating system (see
-    :class:`~numpy.random.mtrand.RandomState` for details). Default is
+    :class:`~numpy.random.RandomState` for details). Default is
     ``None``.
 """
 
 docdict['seed'] = """
-seed : None | int | instance of ~numpy.random.mtrand.RandomState
+seed : None | int | instance of ~numpy.random.RandomState
     If ``seed`` is an :class:`int`, it will be used as a seed for
-    :class:`~numpy.random.mtrand.RandomState`. If ``None``, the seed will be
+    :class:`~numpy.random.RandomState`. If ``None``, the seed will be
     obtained from the operating system (see
-    :class:`~numpy.random.mtrand.RandomState` for details). Default is
+    :class:`~numpy.random.RandomState` for details). Default is
     ``None``.
 """
 
@@ -358,6 +437,58 @@ spatial_colors : bool
     Whether to use spatial colors. Only used when ``average=False``.
 """
 
+# plot_projs_topomap
+docdict["proj_topomap_kwargs"] = """
+cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+    Colormap to use. If tuple, the first value indicates the colormap to
+    use and the second value is a boolean defining interactivity. In
+    interactive mode (only works if ``colorbar=True``) the colors are
+    adjustable by clicking and dragging the colorbar with left and right
+    mouse button. Left mouse button moves the scale up and down and right
+    mouse button adjusts the range. Hitting space bar resets the range. Up
+    and down arrows can be used to change the colormap. If None (default),
+    'Reds' is used for all positive data, otherwise defaults to 'RdBu_r'.
+    If 'interactive', translates to (None, True).
+sensors : bool | str
+    Add markers for sensor locations to the plot. Accepts matplotlib plot
+    format string (e.g., 'r+' for red plusses). If True, a circle will be
+    used (via .add_artist). Defaults to True.
+colorbar : bool
+    Plot a colorbar.
+res : int
+    The resolution of the topomap image (n pixels along each side).
+size : scalar
+    Side length of the topomaps in inches (only applies when plotting
+    multiple topomaps at a time).
+show : bool
+    Show figure if True.
+%(topomap_outlines)s
+contours : int | array of float
+    The number of contour lines to draw. If 0, no contours will be drawn.
+    When an integer, matplotlib ticker locator is used to find suitable
+    values for the contour thresholds (may sometimes be inaccurate, use
+    array for accuracy). If an array, the values represent the levels for
+    the contours. Defaults to 6.
+image_interp : str
+    The image interpolation to be used. All matplotlib options are
+    accepted.
+axes : instance of Axes | list | None
+    The axes to plot to. If list, the list must be a list of Axes of
+    the same length as the number of projectors. If instance of Axes,
+    there must be only one projector. Defaults to None.
+vlim : tuple of length 2 | 'joint'
+    Colormap limits to use. If :class:`tuple`, specifies the lower and
+    upper bounds of the colormap (in that order); providing ``None`` for
+    either of these will set the corresponding boundary at the min/max of
+    the data (separately for each projector). The keyword value ``'joint'``
+    will compute the colormap limits jointly across all provided
+    projectors of the same channel type, using the min/max of the projector
+    data. If vlim is ``'joint'``, ``info`` must not be ``None``. Defaults
+    to ``(None, None)``.
+layout : None
+    Deprecated, will be removed in 0.20. Use ``info`` instead.
+""" % docdict
+
 # Montage
 docdict["montage_deprecated"] = """
 montage : str | None | instance of Montage
@@ -367,6 +498,57 @@ montage : str | None | instance of Montage
 
     DEPRECATED in version 0.19
     Use the `set_montage` method.
+"""
+docdict["montage"] = """
+montage : None | str | DigMontage
+    A montage containing channel positions. If str or DigMontage is
+    specified, the channel info will be updated with the channel
+    positions. Default is None. See also the documentation of
+    :class:`mne.channels.DigMontage` for more information.
+"""
+
+# Brain plotting
+docdict["clim"] = """
+clim : str | dict
+    Colorbar properties specification. If 'auto', set clim automatically
+    based on data percentiles. If dict, should contain:
+
+        ``kind`` : 'value' | 'percent'
+            Flag to specify type of limits.
+        ``lims`` : list | np.ndarray | tuple of float, 3 elements
+            Lower, middle, and upper bounds for colormap.
+        ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
+            Lower, middle, and upper bound for colormap. Positive values
+            will be mirrored directly across zero during colormap
+            construction to obtain negative control points.
+
+    .. note:: Only one of ``lims`` or ``pos_lims`` should be provided.
+              Only sequential colormaps should be used with ``lims``, and
+              only divergent colormaps should be used with ``pos_lims``.
+"""
+docdict["clim_onesided"] = """
+clim : str | dict
+    Colorbar properties specification. If 'auto', set clim automatically
+    based on data percentiles. If dict, should contain:
+
+        ``kind`` : 'value' | 'percent'
+            Flag to specify type of limits.
+        ``lims`` : list | np.ndarray | tuple of float, 3 elements
+            Lower, middle, and upper bound for colormap.
+
+    Unlike :meth:`stc.plot <mne.SourceEstimate.plot>`, it cannot use
+    ``pos_lims``, as the surface plot must show the magnitude.
+"""
+docdict["colormap"] = """
+colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
+    Name of colormap to use or a custom look up table. If array, must
+    be (n x 3) or (n x 4) array for with RGB or RGBA values between
+    0 and 255.
+"""
+docdict["transparent"] = """
+transparent : bool | None
+    If True, use a linear transparency between fmin and fmid.
+    None will choose automatically based on colormap type.
 """
 
 # Finalize
@@ -436,12 +618,18 @@ def copy_function_doc_to_method_doc(source):
     Parameters
     ----------
     source : function
-        Function to copy the docstring from
+        Function to copy the docstring from.
 
     Returns
     -------
     wrapper : function
-        The decorated method
+        The decorated method.
+
+    Notes
+    -----
+    The parsing performed is very basic and will break easily on docstrings
+    that are not formatted exactly according to the ``numpydoc`` standard.
+    Always inspect the resulting docstring when using this decorator.
 
     Examples
     --------
@@ -482,12 +670,6 @@ def copy_function_doc_to_method_doc(source):
             -----
             .. versionadded:: 0.13.0
     <BLANKLINE>
-
-    Notes
-    -----
-    The parsing performed is very basic and will break easily on docstrings
-    that are not formatted exactly according to the ``numpydoc`` standard.
-    Always inspect the resulting docstring when using this decorator.
     """
     def wrapper(func):
         doc = source.__doc__.split('\n')
@@ -687,7 +869,7 @@ def open_docs(kind=None, version=None):
     if version is None:
         version = get_config('MNE_DOCS_VERSION', 'stable')
     _check_option('version', version, ['stable', 'dev'])
-    webbrowser.open_new_tab('https://martinos.org/mne/%s/%s' % (version, kind))
+    webbrowser.open_new_tab('https://mne.tools/%s/%s' % (version, kind))
 
 
 # Following deprecated class copied from scikit-learn

@@ -4,7 +4,7 @@
 Source localization with equivalent current dipole (ECD) fit
 ============================================================
 
-This shows how to fit a dipole using mne-python.
+This shows how to fit a dipole [1]_ using mne-python.
 
 For a comparison of fits between MNE-C and mne-python, see
 `this gist <https://gist.github.com/larsoner/ca55f791200fe1dc3dd2>`__.
@@ -101,3 +101,10 @@ plt.suptitle('Comparison of measured and predicted fields '
 dip_fixed = mne.fit_dipole(evoked_full, fname_cov, fname_bem, fname_trans,
                            pos=dip.pos[best_idx], ori=dip.ori[best_idx])[0]
 dip_fixed.plot(time_unit='s')
+
+##############################################################################
+# References
+# ----------
+# .. [1] Sarvas, J. (1987). Basic mathematical and electromagnetic concepts of
+#        the biomagnetic inverse problem.
+#        Physics in Medicine & Biology, 32(1), 11.

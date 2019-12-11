@@ -71,6 +71,7 @@ extensions = [
 
 linkcheck_ignore = [
     'https://doi.org/10.1088/0031-9155/57/7/1937',  # 403 Client Error: Forbidden for url: http://iopscience.iop.org/article/10.1088/0031-9155/57/7/1937/meta
+    'https://doi.org/10.1088/0031-9155/51/7/008',  # 403 Client Error: Forbidden for url: https://iopscience.iop.org/article/10.1088/0031-9155/51/7/008
     'https://sccn.ucsd.edu/wiki/.*',  # HTTPSConnectionPool(host='sccn.ucsd.edu', port=443): Max retries exceeded with url: /wiki/Firfilt_FAQ (Caused by SSLError(SSLError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:847)'),))
     'https://docs.python.org/dev/howto/logging.html',  # ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
     'https://docs.python.org/3/library/.*',  # ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))
@@ -83,6 +84,11 @@ autodoc_default_options = {'inherited-members': None}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
+
+# List of patterns, relative to source directory, that match files and
+# directories to ignore when looking for source files.
+# This pattern also affects html_static_path and html_extra_path.
+exclude_patterns = ['_includes']
 
 # The suffix of source filenames.
 source_suffix = '.rst'
@@ -205,7 +211,12 @@ html_static_path = ['_static', '_images']
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
 # directly to the root of the documentation.
-#html_extra_path = []
+html_extra_path = [
+    'contributing.html',
+    'documentation.html',
+    'getting_started.html',
+    'install_mne_python.html',
+]
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -438,12 +449,18 @@ def reset_warnings(gallery_conf, fname):
                 "DocumenterBridge requires a state object",  # sphinx dev
                 "'U' mode is deprecated",  # sphinx io
                 r"joblib is deprecated in 0\.21",  # nilearn
+                'The usage of `cmp` is deprecated and will',  # sklearn/pytest
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
     warnings.filterwarnings(  # deal with bootstrap-theme bug
         'ignore', message=".*modify script_files in the theme.*",
         category=Warning)
+    warnings.filterwarnings(  # nilearn
+        'ignore', message=r'sklearn\.externals\.joblib is deprecated.*',
+        category=FutureWarning)
+    warnings.filterwarnings(  # nilearn
+        'ignore', message=r'The sklearn.* module is.*', category=FutureWarning)
     warnings.filterwarnings(  # deal with other modules having bad imports
         'ignore', message=".*ufunc size changed.*", category=RuntimeWarning)
     warnings.filterwarnings(  # realtime
@@ -474,6 +491,7 @@ sphinx_gallery_conf = {
                                        '../examples/realtime/',
                                        '../examples/datasets/',
                                        '../tutorials/intro/',
+                                       '../tutorials/io/',
                                        '../tutorials/raw/',
                                        '../tutorials/preprocessing/',
                                        '../tutorials/epochs/',
@@ -501,6 +519,7 @@ sphinx_gallery_conf = {
     'show_memory': True,
     'line_numbers': False,  # XXX currently (0.3.dev0) messes with style
     'within_subsection_order': FileNameSortKey,
+    'capture_repr': (),
     'junit': op.join('..', 'test-results', 'sphinx-gallery', 'junit.xml'),
 }
 
@@ -510,7 +529,7 @@ sphinx_gallery_conf = {
 # XXX This hack defines what extra methods numpydoc will document
 docscrape.ClassDoc.extra_public_methods = mne.utils._doc_special_members
 numpydoc_class_members_toctree = False
-numpydoc_attributes_as_param_list = False
+numpydoc_attributes_as_param_list = True
 numpydoc_xref_param_type = True
 numpydoc_xref_aliases = {
     'Popen': 'python:subprocess.Popen',
@@ -522,6 +541,7 @@ numpydoc_xref_aliases = {
     'Axes': 'matplotlib.axes.Axes',
     'Figure': 'matplotlib.figure.Figure',
     'Axes3D': 'mpl_toolkits.mplot3d.axes3d.Axes3D',
+    'ColorbarBase': 'matplotlib.colorbar.ColorbarBase',
     # Mayavi
     'mayavi.mlab.Figure': 'mayavi.core.api.Scene',
     'mlab.Figure': 'mayavi.core.api.Scene',
@@ -532,16 +552,17 @@ numpydoc_xref_aliases = {
     # nibabel
     'Nifti1Image': 'nibabel.nifti1.Nifti1Image',
     'Nifti2Image': 'nibabel.nifti2.Nifti2Image',
+    'SpatialImage': 'nibabel.spatialimages.SpatialImage',
     # MNE
     'Label': 'mne.Label', 'Forward': 'mne.Forward', 'Evoked': 'mne.Evoked',
     'Info': 'mne.Info', 'SourceSpaces': 'mne.SourceSpaces',
+    'SourceMorph': 'mne.SourceMorph',
     'Epochs': 'mne.Epochs', 'Layout': 'mne.channels.Layout',
     'EvokedArray': 'mne.EvokedArray', 'BiHemiLabel': 'mne.BiHemiLabel',
     'AverageTFR': 'mne.time_frequency.AverageTFR',
     'EpochsTFR': 'mne.time_frequency.EpochsTFR',
     'Raw': 'mne.io.Raw', 'ICA': 'mne.preprocessing.ICA',
     'Covariance': 'mne.Covariance', 'Annotations': 'mne.Annotations',
-    'Montage': 'mne.channels.Montage',
     'DigMontage': 'mne.channels.DigMontage',
     'VectorSourceEstimate': 'mne.VectorSourceEstimate',
     'VolSourceEstimate': 'mne.VolSourceEstimate',
@@ -583,11 +604,13 @@ numpydoc_xref_ignore = {
     'n_splits', 'n_scores', 'n_outputs', 'n_trials', 'n_estimators', 'n_tasks',
     'nd_features', 'n_classes', 'n_targets', 'n_slices', 'n_hpi', 'n_fids',
     'n_elp', 'n_pts', 'n_tris', 'n_nodes', 'n_nonzero', 'n_events_out',
+    'n_segments', 'n_orient_inv', 'n_orient_fwd', 'n_orient',
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
-    'RawBrainVision', 'RawCurry',
+    'RawBrainVision', 'RawCurry', 'RawNIRX', 'RawGDF',
     # sklearn subclasses
     'mapping', 'to', 'any',
     # unlinkable
     'mayavi.mlab.pipeline.surface',
+    'CoregFrame', 'Kit2FiffFrame', 'FiducialsFrame',
 }

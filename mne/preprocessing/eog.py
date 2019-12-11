@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
@@ -31,8 +31,8 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
         High cut-off frequency to apply to the EOG channel in Hz.
     filter_length : str | int | None
         Number of taps to use for filtering.
-    ch_name: str | None
-        If not None, use specified channel(s) for EOG
+    ch_name : str | None
+        If not None, use specified channel(s) for EOG.
     tstart : float
         Start detection after tstart seconds.
     reject_by_annotation : bool
@@ -169,12 +169,12 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None, tmin=-0.5,
     Parameters
     ----------
     raw : instance of Raw
-        The raw data
+        The raw data.
     ch_name : str
         The name of the channel to use for EOG peak detection.
         The argument is mandatory if the dataset contains no EOG channels.
     event_id : int
-        The index to assign to found events
+        The index to assign to found events.
     %(picks_all)s
     tmin : float
         Start time before event.

@@ -25,7 +25,7 @@ Integration with the scientific python stack
 MNE-Python also integrates well with other standard scientific python
 libraries. For example, MNE-Python objects underlyingly store their data in
 NumPy arrays, making it easy to apply custom algorithms or pass your data into
-one of `scikit-learn's <scikit-learn>`_ machine learning pipelines.
+one of `scikit-learn's <scikit-learn_>`_ machine learning pipelines.
 MNE-Python's 2-D plotting functions also return `matplotlib`_
 :class:`~matplotlib.figure.Figure` objects, and the 3D plotting functions
 return `mayavi`_ scenes, so you can customize your MNE-Python plots using any

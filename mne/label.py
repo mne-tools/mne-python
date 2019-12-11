@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #
@@ -24,7 +24,7 @@ from .surface import (read_surface, fast_cross_3d, mesh_edges, mesh_dist,
                       read_morph_map)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, warn,
                     check_random_state, _validate_type, fill_doc,
-                    _check_option)
+                    _check_option, check_version)
 
 
 def _blend_colors(color_1, color_2):
@@ -149,15 +149,14 @@ class Label(object):
           is raised.
         * Values of duplicate vertices are summed.
 
-
     Parameters
     ----------
     vertices : array, shape (N,)
-        vertex indices (0 based).
+        Vertex indices (0 based).
     pos : array, shape (N, 3) | None
-        locations in meters. If None, then zeros are used.
+        Locations in meters. If None, then zeros are used.
     values : array, shape (N,) | None
-        values at the vertices. If None, then ones are used.
+        Values at the vertices. If None, then ones are used.
     hemi : 'lh' | 'rh'
         Hemisphere to which the label applies.
     comment : str
@@ -275,10 +274,11 @@ class Label(object):
         return len(self.vertices)
 
     def __add__(self, other):
-        """Add BiHemiLabels."""
+        """Add Labels."""
+        _validate_type(other, (Label, BiHemiLabel), 'other')
         if isinstance(other, BiHemiLabel):
             return other + self
-        elif isinstance(other, Label):
+        else:  # isinstance(other, Label)
             if self.subject != other.subject:
                 raise ValueError('Label subject parameters must match, got '
                                  '"%s" and "%s". Consider setting the '
@@ -294,8 +294,6 @@ class Label(object):
                     lh, rh = other.copy(), self.copy()
                 color = _blend_colors(self.color, other.color)
                 return BiHemiLabel(lh, rh, name, color)
-        else:
-            raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
 
         # check for overlap
         duplicates = np.intersect1d(self.vertices, other.vertices)
@@ -345,13 +343,14 @@ class Label(object):
         return label
 
     def __sub__(self, other):
-        """Subtract BiHemiLabels."""
+        """Subtract Labels."""
+        _validate_type(other, (Label, BiHemiLabel), 'other')
         if isinstance(other, BiHemiLabel):
             if self.hemi == 'lh':
                 return self - other.lh
             else:
                 return self - other.rh
-        elif isinstance(other, Label):
+        else:  # isinstance(other, Label):
             if self.subject != other.subject:
                 raise ValueError('Label subject parameters must match, got '
                                  '"%s" and "%s". Consider setting the '
@@ -359,8 +358,6 @@ class Label(object):
                                  'setting label.subject manually before '
                                  'combining labels.' % (self.subject,
                                                         other.subject))
-        else:
-            raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
 
         if self.hemi == other.hemi:
             keep = np.in1d(self.vertices, other.vertices, True, invert=True)
@@ -377,7 +374,7 @@ class Label(object):
 
         Parameters
         ----------
-        filename : string
+        filename : str
             Path to label file to produce.
 
         Notes
@@ -417,27 +414,34 @@ class Label(object):
         label : Label
             The label covering the same vertices in source space but also
             including intermediate surface vertices.
+
+        See Also
+        --------
+        Label.restrict
+        Label.smooth
         """
         # find source space patch info
         if len(self.vertices) == 0:
             return self.copy()
-        if self.hemi == 'lh':
-            hemi_src = src[0]
-        elif self.hemi == 'rh':
-            hemi_src = src[1]
+        hemi_src = _get_label_src(self, src)
 
         if not np.all(np.in1d(self.vertices, hemi_src['vertno'])):
             msg = "Source space does not contain all of the label's vertices"
             raise ValueError(msg)
 
-        nearest = hemi_src['nearest']
-        if nearest is None:
-            warn("Computing patch info for source space, this can take "
-                 "a while. In order to avoid this in the future, run "
+        if hemi_src['nearest'] is None:
+            warn("Source space is being modified in place because patch "
+                 "information is needed. To avoid this in the future, run "
                  "mne.add_source_space_distances() on the source space "
-                 "and save it.")
-            add_source_space_distances(src)
-            nearest = hemi_src['nearest']
+                 "and save it to disk.")
+            if check_version('scipy', '1.3'):
+                dist_limit = 0
+            else:
+                warn('SciPy < 1.3 detected, adding source space patch '
+                     'information will be slower. Consider upgrading SciPy.')
+                dist_limit = np.inf
+            add_source_space_distances(src, dist_limit=dist_limit)
+        nearest = hemi_src['nearest']
 
         # find new vertices
         include = np.in1d(nearest, self.vertices, False)
@@ -449,10 +453,42 @@ class Label(object):
         # pos
         pos = hemi_src['rr'][vertices]
 
-        if name is None:
-            name = self.name
+        name = self.name if name is None else name
         label = Label(vertices, pos, values, self.hemi, self.comment, name,
                       None, self.subject, self.color)
+        return label
+
+    def restrict(self, src, name=None):
+        """Restrict a label to a source space.
+
+        Parameters
+        ----------
+        src : instance of SourceSpaces
+            The source spaces to use to restrict the label.
+        name : None | str
+            Name for the new Label (default is self.name).
+
+        Returns
+        -------
+        label : instance of Label
+            The Label restricted to the set of source space vertices.
+
+        See Also
+        --------
+        Label.fill
+
+        Notes
+        -----
+        .. versionadded:: 0.20
+        """
+        if len(self.vertices) == 0:
+            return self.copy()
+        hemi_src = _get_label_src(self, src)
+        mask = np.in1d(self.vertices, hemi_src['vertno'])
+        name = self.name if name is None else name
+        label = Label(self.vertices[mask], self.pos[mask], self.values[mask],
+                      self.hemi, self.comment, name, None, self.subject,
+                      self.color)
         return label
 
     @verbose
@@ -484,8 +520,7 @@ class Label(object):
             computing vertex locations. If one array is used, it is assumed
             that all vertices belong to the hemisphere of the label. To create
             a label filling the surface, use None.
-        subjects_dir : str, or None
-            Path to SUBJECTS_DIR if it is not set in the environment.
+        %(subjects_dir)s
         %(n_jobs)s
         %(verbose_meth)s
 
@@ -533,8 +568,7 @@ class Label(object):
             computing vertex locations. If one array is used, it is assumed
             that all vertices belong to the hemisphere of the label. To create
             a label filling the surface, use None.
-        subjects_dir : str, or None
-            Path to SUBJECTS_DIR if it is not set in the environment.
+        %(subjects_dir)s
         %(n_jobs)s
         %(verbose_meth)s
 
@@ -545,7 +579,7 @@ class Label(object):
 
         See Also
         --------
-        mne.morph_labels : morph a set of labels
+        mne.morph_labels : Morph a set of labels.
 
         Notes
         -----
@@ -588,6 +622,7 @@ class Label(object):
         self.subject = subject_to
         return self
 
+    @fill_doc
     def split(self, parts=2, subject=None, subjects_dir=None,
               freesurfer=False):
         """Split the Label into two or more parts.
@@ -603,8 +638,7 @@ class Label(object):
         subject : None | str
             Subject which this label belongs to (needed to locate surface file;
             should only be specified if it is not specified in the label).
-        subjects_dir : None | str
-            Path to SUBJECTS_DIR if it is not set in the environment.
+        %(subjects_dir)s
         freesurfer : bool
             By default (``False``) ``split_label`` uses an algorithm that is
             slightly optimized for performance and numerical precision. Set
@@ -671,7 +705,7 @@ class Label(object):
         Returns
         -------
         label_tris : ndarray of int, shape (n_tris, 3)
-            The subset of tris used by the label
+            The subset of tris used by the label.
         """
         vertices_ = self.get_vertices_used(vertices)
         selection = np.all(np.in1d(tris, vertices_).reshape(tris.shape),
@@ -693,6 +727,7 @@ class Label(object):
 
         return label_tris
 
+    @fill_doc
     def center_of_mass(self, subject=None, restrict_vertices=False,
                        subjects_dir=None, surf='sphere'):
         """Compute the center of mass of the label.
@@ -702,7 +737,7 @@ class Label(object):
 
         Parameters
         ----------
-        subject : string | None
+        subject : str | None
             The subject the label is defined for.
         restrict_vertices : bool | array of int | instance of SourceSpaces
             If True, returned vertex will be one from the label. Otherwise,
@@ -711,9 +746,7 @@ class Label(object):
             SourceSpaces (as of 0.13), the returned vertex will be from
             the given source space. For most accuruate estimates, do not
             restrict vertices.
-        subjects_dir : str, or None
-            Path to the SUBJECTS_DIR. If None, the path is obtained by using
-            the environment variable SUBJECTS_DIR.
+        %(subjects_dir)s
         surf : str
             The surface to use for Euclidean distance center of mass
             finding. The default here is "sphere", which finds the center
@@ -733,7 +766,7 @@ class Label(object):
 
         Notes
         -----
-        .. versionadded: 0.13
+        .. versionadded:: 0.13
 
         References
         ----------
@@ -754,6 +787,18 @@ class Label(object):
         return vertex
 
 
+def _get_label_src(label, src):
+    _validate_type(src, SourceSpaces, 'src')
+    if src.kind != 'surface':
+        raise RuntimeError('Cannot operate on SourceSpaces that are not '
+                           'surface type, got %s' % (src.kind,))
+    if label.hemi == 'lh':
+        hemi_src = src[0]
+    else:
+        hemi_src = src[1]
+    return hemi_src
+
+
 class BiHemiLabel(object):
     """A freesurfer/MNE label with vertices in both hemispheres.
 
@@ -764,7 +809,7 @@ class BiHemiLabel(object):
     rh : Label
         Label for the right hemisphere.
     name : None | str
-        name for the label
+        Name for the label.
     color : None | color
         Label color and alpha (e.g., ``(1., 0., 0., 1.)`` for red).
         Note that due to file specification limitations, the color isn't saved
@@ -780,7 +825,6 @@ class BiHemiLabel(object):
         A name for the label. It is OK to change that attribute manually.
     subject : str | None
         Subject the label is from.
-
     """
 
     def __init__(self, lh, rh, name=None, color=None):  # noqa: D102
@@ -825,6 +869,7 @@ class BiHemiLabel(object):
 
     def __sub__(self, other):
         """Subtract labels."""
+        _validate_type(other, (Label, BiHemiLabel), 'other')
         if isinstance(other, Label):
             if other.hemi == 'lh':
                 lh = self.lh - other
@@ -832,11 +877,9 @@ class BiHemiLabel(object):
             else:
                 rh = self.rh - other
                 lh = self.lh
-        elif isinstance(other, BiHemiLabel):
+        else:  # isinstance(other, BiHemiLabel)
             lh = self.lh - other.lh
             rh = self.rh - other.rh
-        else:
-            raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
 
         if len(lh.vertices) == 0:
             return rh
@@ -852,7 +895,7 @@ def read_label(filename, subject=None, color=None):
 
     Parameters
     ----------
-    filename : string
+    filename : str
         Path to label file.
     subject : str | None
         Name of the subject the data are defined for.
@@ -930,20 +973,20 @@ def write_label(filename, label, verbose=None):
 
     Parameters
     ----------
-    filename : string
+    filename : str
         Path to label file to produce.
     label : Label
         The label object to save.
     %(verbose)s
 
+    See Also
+    --------
+    write_labels_to_annot
+
     Notes
     -----
     Note that due to file specification limitations, the Label's subject and
     color attributes are not saved to disk.
-
-    See Also
-    --------
-    write_labels_to_annot
     """
     hemi = label.hemi
     path_head, name = op.split(filename)
@@ -965,7 +1008,6 @@ def write_label(filename, label, verbose=None):
         fid.write(b'%d\n' % n_vertices)
         for d in data:
             fid.write(b'%d %f %f %f %f\n' % tuple(d))
-    return label
 
 
 def _prep_label_split(label, subject=None, subjects_dir=None):
@@ -1002,8 +1044,7 @@ def _split_label_contig(label_to_split, subject=None, subjects_dir=None):
     subject : None | str
         Subject which this label belongs to (needed to locate surface file;
         should only be specified if it is not specified in the label).
-    subjects_dir : None | str
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    %(subjects_dir)s
 
     Returns
     -------
@@ -1072,6 +1113,7 @@ def _split_label_contig(label_to_split, subject=None, subjects_dir=None):
     return labels
 
 
+@fill_doc
 def split_label(label, parts=2, subject=None, subjects_dir=None,
                 freesurfer=False):
     """Split a Label into two or more parts.
@@ -1088,8 +1130,7 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
     subject : None | str
         Subject which this label belongs to (needed to locate surface file;
         should only be specified if it is not specified in the label).
-    subjects_dir : None | str
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    %(subjects_dir)s
     freesurfer : bool
         By default (``False``) ``split_label`` uses an algorithm that is
         slightly optimized for performance and numerical precision. Set
@@ -1216,7 +1257,7 @@ def label_sign_flip(label, src):
     Returns
     -------
     flip : array
-        Sign flip vector (contains 1 or -1)
+        Sign flip vector (contains 1 or -1).
     """
     if len(src) != 2:
         raise ValueError('Only source spaces with 2 hemisphers are accepted')
@@ -1274,8 +1315,7 @@ def stc_to_label(stc, src=None, smooth=True, connected=False,
         If True a list of connected labels will be returned in each
         hemisphere. The labels are ordered in decreasing order depending
         of the maximum value in the stc.
-    subjects_dir : str | None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    %(subjects_dir)s
     %(verbose)s
 
     Returns
@@ -1470,14 +1510,9 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     label is generated containing all vertices within a maximum geodesic
     distance on the white matter surface from the seed.
 
-    Note: "extents" and "hemis" can either be arrays with the same length as
-          seeds, which allows using a different extent and hemisphere for each
-          label, or integers, in which case the same extent and hemisphere is
-          used for each label.
-
     Parameters
     ----------
-    subject : string
+    subject : str
         Name of the subject as in SUBJECTS_DIR.
     seeds : int | list
         Seed, or list of seeds. Each seed can be either a vertex number or
@@ -1486,8 +1521,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
         Extents (radius in mm) of the labels.
     hemis : array | int
         Hemispheres to use for the labels (0: left, 1: right).
-    subjects_dir : string
-        Path to SUBJECTS_DIR if not set in the environment.
+    %(subjects_dir)s
     %(n_jobs)s
         Likely only useful if tens or hundreds of labels are being expanded
         simultaneously. Does not apply with ``overlap=False``.
@@ -1498,7 +1532,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     names : None | list of str
         Assign names to the new labels (list needs to have the same length as
         seeds).
-    surface : string
+    surface : str
         The surface used to grow the labels, defaults to the white surface.
 
     Returns
@@ -1506,7 +1540,14 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     labels : list of Label
         The labels' ``comment`` attribute contains information on the seed
         vertex and extent; the ``values``  attribute contains distance from the
-        seed in millimeters
+        seed in millimeters.
+
+    Notes
+    -----
+    "extents" and "hemis" can either be arrays with the same length as
+    seeds, which allows using a different extent and hemisphere for
+    label, or integers, in which case the same extent and hemisphere is
+    used for each label.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     n_jobs = check_n_jobs(n_jobs)
@@ -1514,7 +1555,8 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     # make sure the inputs are arrays
     if np.isscalar(seeds):
         seeds = [seeds]
-    seeds = np.atleast_1d([np.atleast_1d(seed) for seed in seeds])
+    # these can have different sizes so need to use object array
+    seeds = np.asarray([np.atleast_1d(seed) for seed in seeds], dtype='O')
     extents = np.atleast_1d(extents)
     hemis = np.atleast_1d(hemis)
     n_seeds = len(seeds)
@@ -1658,24 +1700,23 @@ def random_parcellation(subject, n_parcel, hemi, subjects_dir=None,
 
     Parameters
     ----------
-    subject : string
+    subject : str
         Name of the subject as in SUBJECTS_DIR.
     n_parcel : int
         Total number of cortical parcels.
     hemi : str
-        hemisphere id (ie 'lh', 'rh', 'both'). In the case
+        Hemisphere id (ie 'lh', 'rh', 'both'). In the case
         of 'both', both hemispheres are processed with (n_parcel // 2)
         parcels per hemisphere.
-    subjects_dir : string
-        Path to SUBJECTS_DIR if not set in the environment.
-    surface : string
+    %(subjects_dir)s
+    surface : str
         The surface used to grow the labels, defaults to the white surface.
     %(random_state)s
 
     Returns
     -------
     labels : list of Label
-        Random cortex parcellation
+        Random cortex parcellation.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if hemi == 'both':
@@ -1945,7 +1986,7 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
         The hemisphere from which to read the parcellation, can be 'lh', 'rh',
         or 'both'.
     surf_name : str
-        Surface used to obtain vertex locations, e.g., 'white', 'pial'
+        Surface used to obtain vertex locations, e.g., 'white', 'pial'.
     annot_fname : str or None
         Filename of the .annot file. If not None, only this file is read
         and 'parc' and 'hemi' are ignored.
@@ -1953,8 +1994,7 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
         Regular expression or substring to select particular labels from the
         parcellation. E.g. 'superior' will return all labels in which this
         substring is contained.
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    %(subjects_dir)s
     %(verbose)s
 
     Returns
@@ -2051,10 +2091,9 @@ def morph_labels(labels, subject_to, subject_from=None, subjects_dir=None,
     subject_from : str | None
         The subject to morph labels from. Can be None if the labels
         have the ``.subject`` property defined.
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    %(subjects_dir)s
     surf_name : str
-        Surface used to obtain vertex locations, e.g., 'white', 'pial'
+        Surface used to obtain vertex locations, e.g., 'white', 'pial'.
     %(verbose)s
 
     Returns
@@ -2227,8 +2266,7 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
         The parcellation name to use.
     overwrite : bool
         Overwrite files if they already exist.
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
+    %(subjects_dir)s
     annot_fname : str | None
         Filename of the .annot file. If not None, only this file is written
         and 'parc' and 'subject' are ignored.
@@ -2455,8 +2493,7 @@ def select_sources(subject, label, location='center', extent=0.,
     grow_outside : bool
         Let the region grow outside the original label where location was
         defined.
-    subjects_dir : string
-        Path to SUBJECTS_DIR if not set in the environment.
+    %(subjects_dir)s
     name : None | str
         Assign name to the new label.
     %(random_state)s

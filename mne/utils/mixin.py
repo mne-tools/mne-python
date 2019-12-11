@@ -462,3 +462,48 @@ class _FakeNoPandas(object):  # noqa: D101
         import mne
         mne.epochs._check_pandas_installed = self._old_check
         mne.utils.mixin._check_pandas_installed = self._old_check
+
+
+class ShiftTimeMixin(object):
+    """Class for shift_time method (Epochs, Evoked, and DipoleFixed)."""
+
+    def shift_time(self, tshift, relative=True):
+        """Shift time scale in epoched or evoked data.
+
+        Parameters
+        ----------
+        tshift : float
+            The (absolute or relative) time shift in seconds. If ``relative``
+            is True, positive tshift increases the time value associated with
+            each sample, while negative tshift decreases it.
+        relative : bool
+            If True, increase or decrease time values by ``tshift`` seconds.
+            Otherwise, shift the time values such that the time of the first
+            sample equals ``tshift``.
+
+        Returns
+        -------
+        epochs : instance of Epochs
+            The modified Epochs instance.
+
+        Notes
+        -----
+        This method allows you to shift the *time* values associated with each
+        data sample by an arbitrary amount. It does *not* resample the signal
+        or change the *data* values in any way.
+        """
+        from ..epochs import BaseEpochs
+        _check_preload(self, 'shift_time')
+        start = tshift + (self.times[0] if relative else 0.)
+        new_times = start + np.arange(len(self.times)) / self.info['sfreq']
+        if isinstance(self, BaseEpochs):
+            self._set_times(new_times)
+        else:
+            self.times = new_times
+            self._update_first_last()
+        return self
+
+    def _update_first_last(self):
+        """Update self.first and self.last (sample indices)."""
+        self.first = int(round(self.times[0] * self.info['sfreq']))
+        self.last = len(self.times) + self.first - 1

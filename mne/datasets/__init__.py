@@ -14,6 +14,7 @@ from . import mtrf
 from . import sample
 from . import somato
 from . import multimodal
+from . import fnirs_motor
 from . import opm
 from . import spm_face
 from . import testing
@@ -31,4 +32,5 @@ __all__ = [
     'fetch_hcp_mmp_parcellation', 'fieldtrip_cmc', 'hf_sef', 'kiloword',
     'misc', 'mtrf', 'multimodal', 'opm', 'phantom_4dbti', 'sample',
     'sleep_physionet', 'somato', 'spm_face', 'testing', 'visual_92_categories',
+    'limo',
 ]

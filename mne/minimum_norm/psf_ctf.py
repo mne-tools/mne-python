@@ -1,5 +1,5 @@
 # Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 
@@ -10,7 +10,7 @@ from scipy import linalg
 
 from ..io.constants import FIFF
 from ..io.pick import pick_channels
-from ..utils import logger, verbose, _check_option
+from ..utils import logger, verbose, _check_option, deprecated
 from ..forward import convert_forward_solution
 from ..evoked import EvokedArray
 from ..source_estimate import SourceEstimate
@@ -37,6 +37,8 @@ def _pick_leadfield(leadfield, forward, ch_names):
     return leadfield[picks_fwd]
 
 
+@deprecated('point_spread_function is deprecated and will be removed in 0.21;'
+            'please get_point_spread instead.')
 @verbose
 def point_spread_function(inverse_operator, forward, labels, method='dSPM',
                           lambda2=1 / 9., pick_ori=None, mode='mean',
@@ -318,6 +320,8 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
     return invmat, label_singvals
 
 
+@deprecated('cross_talk_function is deprecated and will be removed in 0.21;'
+            'please get_cross_talk instead.')
 @verbose
 def cross_talk_function(inverse_operator, forward, labels,
                         method='dSPM', lambda2=1 / 9., signed=False,

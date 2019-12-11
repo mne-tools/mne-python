@@ -1,5 +1,5 @@
 # Authors: Denis Engemann <denis.engemann@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: Simplified BSD
 
@@ -121,8 +121,8 @@ def test_plot_ica_properties():
     epochs = Epochs(raw, events[:10], event_id, tmin, tmax,
                     baseline=(None, 0), preload=True)
 
-    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
-              max_pca_components=2, n_pca_components=2)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2, max_iter=1,
+              max_pca_components=2, n_pca_components=2, random_state=0)
     with pytest.warns(RuntimeWarning, match='projection'):
         ica.fit(raw)
 
@@ -158,11 +158,26 @@ def test_plot_ica_properties():
     plt.close('all')
 
     # Test merging grads.
-    raw = _get_raw(preload=True)
-    picks = pick_types(raw.info, meg='grad')[:10]
-    ica = ICA(n_components=2)
-    ica.fit(raw, picks=picks)
+    pick_names = raw.ch_names[:15:2] + raw.ch_names[1:15:2]
+    raw = _get_raw(preload=True).pick_channels(pick_names)
+    raw.info.normalize_proj()
+    ica = ICA(random_state=0, max_iter=1)
+    with pytest.warns(UserWarning, match='did not converge'):
+        ica.fit(raw)
     ica.plot_properties(raw)
+    plt.close('all')
+
+    # Test handling of zeros
+    raw._data[:] = 0
+    with pytest.warns(UserWarning, match='Infinite value .* for epochs '):
+        ica.plot_properties(raw)
+    ica = ICA(random_state=0, max_iter=1)
+    epochs.pick_channels(pick_names)
+    with pytest.warns(UserWarning, match='did not converge'):
+        ica.fit(epochs)
+    epochs._data[0] = 0
+    with pytest.warns(UserWarning, match='Infinite value .* for epoch 0'):
+        ica.plot_properties(epochs)
     plt.close('all')
 
 
@@ -189,10 +204,11 @@ def test_plot_ica_sources():
     fig = ica.plot_sources(raw)
     # also test mouse clicks
     data_ax = fig.axes[0]
+    assert len(plt.get_fignums()) == 1
     _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
-    # `exclude` parameter is deprecated
-    with pytest.deprecated_call():
-        ica.plot_sources(raw, exclude=[1])
+    assert len(plt.get_fignums()) == 2
+    ica.exclude = [1]
+    ica.plot_sources(raw)
 
     raw.info['bads'] = ['MEG 0113']
     with pytest.raises(RuntimeError, match="Raw doesn't match fitted data"):
@@ -229,7 +245,7 @@ def test_plot_ica_overlay():
     raw = _get_raw(preload=True)
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
-              max_pca_components=3, n_pca_components=3)
+              max_pca_components=3, n_pca_components=3, random_state=0)
     # can't use info.normalize_proj here because of how and when ICA and Epochs
     # objects do picking of Raw data
     with pytest.warns(RuntimeWarning, match='projection'):

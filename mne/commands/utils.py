@@ -15,6 +15,12 @@ import sys
 import mne
 
 
+def _add_verbose_flag(parser):
+    parser.add_option("--verbose", dest='verbose',
+                      help="Enable verbose mode (printing of log messages).",
+                      default=None, action="store_true")
+
+
 def load_module(name, path):
     """Load module from .py/.pyc file.
 
@@ -78,7 +84,6 @@ def main():
     valid_commands = sorted(glob.glob(op.join(mne_bin_dir,
                                               'commands', 'mne_*.py')))
     valid_commands = [c.split(op.sep)[-1][4:-3] for c in valid_commands]
-
 
     def print_help():  # noqa
         print("Usage : mne command options\n")

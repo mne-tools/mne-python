@@ -1,28 +1,32 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Mads Jensen <mje.mads@gmail.com>
 #
 # License: BSD (3-clause)
 
+import contextlib
 import copy
 import os.path as op
 import numpy as np
 from scipy import linalg, sparse
 from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
 
+from .cov import Covariance
+from .evoked import _get_peak
 from .filter import resample
 from .fixes import einsum
-from .evoked import _get_peak
 from .surface import read_surface, _get_ico_surface, mesh_edges
 from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject, SourceSpaces)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     _time_mask, warn as warn_, copy_function_doc_to_method_doc,
-                    fill_doc, _check_option, _validate_type)
+                    fill_doc, _check_option, _validate_type, _check_src_normal,
+                    _check_stc_units)
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
 from .io.base import ToDataFrameMixin, TimeMixin
+from .io.meas_info import Info
 from .externals.h5io import read_hdf5, write_hdf5
 
 
@@ -447,7 +451,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         The data in source space. The data can either be a single array or
         a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
         "sens_data" shape (n_sensors, n_times). In this case, the source
-        space data corresponds to "numpy.dot(kernel, sens_data)".
+        space data corresponds to ``np.dot(kernel, sens_data)``.
     vertices : array | list of array
         Vertex numbers corresponding to the data.
     tmin : float
@@ -551,10 +555,10 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
 
         Parameters
         ----------
-        fname : string
+        fname : str
             The file name to write the source estimate to, should end in
             '-stc.h5'.
-        ftype : string
+        ftype : str
             File format to use. Currently, the only allowed values is "h5".
         %(verbose_meth)s
         """
@@ -595,6 +599,11 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         tmax : float | None
             The last time point in seconds. If None the last present is used.
         %(include_tmax)s
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            The cropped source estimate.
         """
         mask = _time_mask(self.times, tmin, tmax, sfreq=self.sfreq,
                           include_tmax=include_tmax)
@@ -619,10 +628,15 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             Amount to pad the start and end of the data.
             Can also be "auto" to use a padding that will result in
             a power-of-two size (can be much faster).
-        window : string or tuple
-            Window to use in resampling. See scipy.signal.resample.
+        window : str | tuple
+            Window to use in resampling. See :func:`scipy.signal.resample`.
         %(n_jobs)s
         %(verbose_meth)s
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            The resampled source estimate.
 
         Notes
         -----
@@ -874,7 +888,13 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         return self ** (0.5)
 
     def copy(self):
-        """Return copy of source estimate instance."""
+        """Return copy of source estimate instance.
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            A copy of the source estimate.
+        """
         return copy.deepcopy(self)
 
     def bin(self, width, tstart=None, tstop=None, func=np.mean):
@@ -927,7 +947,6 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         """Get data after a linear (time) transform has been applied.
 
         The transform is applied to each source time course independently.
-
 
         Parameters
         ----------
@@ -1132,8 +1151,10 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
     ----------
     data : array
         The data in source space.
-    vertices : list, shape (2,)
-        Vertex numbers corresponding to the data.
+    vertices : list of array, shape (2,)
+        Vertex numbers corresponding to the data. The first element of the list
+        contains vertices of left hemisphere and the second element contains
+        vertices of right hemisphere.
     tmin : scalar
         Time point of the first sample in data.
     tstep : scalar
@@ -1150,7 +1171,9 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
     times : array of shape (n_times,)
         The time vector.
     vertices : list of array, shape (2,)
-        The indices of the dipoles in the left and right source space.
+        Vertex numbers corresponding to the data. The first element of the list
+        contains vertices of left hemisphere and the second element contains
+        vertices of right hemisphere.
     data : array
         The data in source space.
     shape : tuple
@@ -1312,8 +1335,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         subject_orig : str | None
             The original subject. For most source spaces this shouldn't need
             to be provided, since it is stored in the source space itself.
-        subjects_dir : string, or None
-            Path to SUBJECTS_DIR if it is not set in the environment.
+        %(subjects_dir)s
         %(verbose_meth)s
 
         Returns
@@ -1331,7 +1353,7 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
         """
         if self.subject is None:
             raise ValueError('stc.subject must be set')
-        src_orig = _ensure_src(src_orig, kind='surf')
+        src_orig = _ensure_src(src_orig, kind='surface')
         subject_orig = _ensure_src_subject(src_orig, subject_orig)
         data_idx, vertices = _get_morph_src_reordering(
             self.vertices, src_orig, subject_orig, self.subject, subjects_dir)
@@ -1346,12 +1368,20 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
     Parameters
     ----------
     data : array of shape (n_dipoles, n_times) | tuple, shape (2,)
-        The data in source space. The data can either be a single array or
-        a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
-        "sens_data" shape (n_sensors, n_times). In this case, the source
-        space data corresponds to "numpy.dot(kernel, sens_data)".
-    vertices : list of shape (2,)
-        Vertex numbers corresponding to the data.
+        The data in source space. When it is a single array, the
+        left hemisphere is stored in data[:len(vertices[0])] and the right
+        hemisphere is stored in data[-len(vertices[1]):].
+        When data is a tuple, it contains two arrays:
+
+        - "kernel" shape (n_vertices, n_sensors) and
+        - "sens_data" shape (n_sensors, n_times).
+
+        In this case, the source space data corresponds to
+        ``np.dot(kernel, sens_data)``.
+    vertices : list of array, shape (2,)
+        Vertex numbers corresponding to the data. The first element of the list
+        contains vertices of left hemisphere and the second element contains
+        vertices of right hemisphere.
     tmin : scalar
         Time point of the first sample in data.
     tstep : scalar
@@ -1367,7 +1397,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         The subject name.
     times : array of shape (n_times,)
         The time vector.
-    vertices : list of shape (2,)
+    vertices : list of array, shape (2,)
         The indices of the dipoles in the left and right source space.
     data : array of shape (n_dipoles, n_times)
         The data in source space.
@@ -1388,12 +1418,12 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         Parameters
         ----------
-        fname : string
+        fname : str
             The stem of the file name. The file names used for surface source
             spaces are obtained by adding "-lh.stc" and "-rh.stc" (or "-lh.w"
             and "-rh.w") to the stem provided, for the left and the right
             hemisphere, respectively.
-        ftype : string
+        ftype : str
             File format to use. Allowed values are "stc" (default), "w",
             and "h5". The "w" format only supports a single time point.
         %(verbose_meth)s
@@ -1473,7 +1503,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         See Also
         --------
-        extract_label_time_course : extract time courses for multiple STCs
+        extract_label_time_course : Extract time courses for multiple STCs.
 
         Notes
         -----
@@ -1504,6 +1534,80 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         return label_tc
 
+    @verbose
+    def estimate_snr(self, info, fwd, cov, verbose=None):
+        r"""Compute time-varying SNR in the source space.
+
+        This function should only be used with source estimates with units
+        nanoAmperes (i.e., MNE-like solutions, *not* dSPM or sLORETA).
+
+        .. warning:: This function currently only works properly for fixed
+                     orientation.
+
+        Parameters
+        ----------
+        info : instance Info
+            The measurement info.
+        fwd : instance of Forward
+            The forward solution used to create the source estimate.
+        cov : instance of Covariance
+            The noise covariance used to estimate the resting cortical
+            activations. Should be an evoked covariance, not empty room.
+        %(verbose)s
+
+        Returns
+        -------
+        snr_stc : instance of SourceEstimate
+            The source estimate with the SNR computed.
+
+        Notes
+        -----
+        We define the SNR in decibels for each source location at each
+        time point as:
+
+        .. math::
+
+            {\rm SNR} = 10\log_10[\frac{a^2}{N}\sum_k\frac{b_k^2}{s_k^2}]
+
+        where :math:`\\b_k` is the signal on sensor :math:`k` provided by the
+        forward model for a source with unit amplitude, :math:`a` is the
+        source amplitude, :math:`N` is the number of sensors, and
+        :math:`s_k^2` is the noise variance on sensor :math:`k`.
+
+        References
+        ----------
+        .. [1] Goldenholz, D. M., Ahlfors, S. P., Hämäläinen, M. S., Sharon,
+               D., Ishitobi, M., Vaina, L. M., & Stufflebeam, S. M. (2009).
+               Mapping the Signal-To-Noise-Ratios of Cortical Sources in
+               Magnetoencephalography and Electroencephalography.
+               Human Brain Mapping, 30(4), 1077–1086. doi:10.1002/hbm.20571
+        """
+        from .forward import convert_forward_solution, Forward
+        from .minimum_norm.inverse import _prepare_forward
+        _validate_type(fwd, Forward, 'fwd')
+        _validate_type(info, Info, 'info')
+        _validate_type(cov, Covariance, 'cov')
+        _check_stc_units(self)
+        if (self.data >= 0).all():
+            warn_('This STC appears to be from free orientation, currently SNR'
+                  ' function is valid only for fixed orientation')
+
+        fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=False)
+
+        # G is gain matrix [ch x src], cov is noise covariance [ch x ch]
+        G, _, _, _, _, _, _, cov, _ = _prepare_forward(
+            fwd, info, cov, fixed=True, loose=0, rank=None, pca=False,
+            use_cps=True, exp=None, limit_depth_chs=False, combine_xyz='fro',
+            allow_fixed_depth=False, limit=None)
+        G = G['sol']['data']
+        n_channels = cov['dim']  # number of sensors/channels
+        b_k2 = (G * G).T
+        s_k2 = np.diag(cov['data'])
+        scaling = (1 / n_channels) * np.sum(b_k2 / s_k2, axis=1, keepdims=True)
+        snr_stc = self.copy()
+        snr_stc._data[:] = 10 * np.log10((self.data * self.data) * scaling)
+        return snr_stc
+
     def get_peak(self, hemi=None, tmin=None, tmax=None, mode='abs',
                  vert_as_index=False, time_as_index=False):
         """Get location and latency of peak amplitude.
@@ -1523,7 +1627,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             be considered. If 'abs' absolute values will be considered.
             Defaults to 'abs'.
         vert_as_index : bool
-            whether to return the vertex index instead of of its ID.
+            Whether to return the vertex index instead of of its ID.
             Defaults to False.
         time_as_index : bool
             Whether to return the time index instead of the latency.
@@ -1546,6 +1650,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         return (vert_idx if vert_as_index else vertno[vert_idx],
                 time_idx if time_as_index else self.times[time_idx])
 
+    @fill_doc
     def center_of_mass(self, subject=None, hemi=None, restrict_vertices=False,
                        subjects_dir=None, surf='sphere'):
         """Compute the center of mass of activity.
@@ -1563,7 +1668,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         Parameters
         ----------
-        subject : string | None
+        subject : str | None
             The subject the stc is defined for.
         hemi : int, or None
             Calculate the center of mass for the left (0) or right (1)
@@ -1576,19 +1681,12 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             will come from that array. If instance of SourceSpaces (as of
             0.13), the returned vertex will be from the given source space.
             For most accuruate estimates, do not restrict vertices.
-        subjects_dir : str, or None
-            Path to the SUBJECTS_DIR. If None, the path is obtained by using
-            the environment variable SUBJECTS_DIR.
+        %(subjects_dir)s
         surf : str
             The surface to use for Euclidean distance center of mass
             finding. The default here is "sphere", which finds the center
             of mass on the spherical surface to help avoid potential issues
             with cortical folding.
-
-        See Also
-        --------
-        mne.Label.center_of_mass
-        mne.vertex_to_mni
 
         Returns
         -------
@@ -1602,6 +1700,11 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         t : float
             Time of the temporal center of mass (weighted by the sum across
             source vertices).
+
+        See Also
+        --------
+        mne.Label.center_of_mass
+        mne.vertex_to_mni
 
         References
         ----------
@@ -1677,6 +1780,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             The source estimate only retaining the activity orthogonal to the
             cortex.
         """
+        _check_src_normal('normal', src)
         normals = np.vstack([s['nn'][v] for s, v in
                              zip(src, self._vertices_list)])
         data_norm = einsum('ijk,ij->ik', self.data, normals)
@@ -1693,11 +1797,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
                  subject=None, verbose=None):  # noqa: D102
-        if not (isinstance(vertices, np.ndarray) or
-                isinstance(vertices, list)):
-            raise ValueError('Vertices must be a numpy array or a list of '
-                             'arrays')
-
+        _validate_type(vertices, (np.ndarray, list), 'vertices')
         _BaseSourceEstimate.__init__(self, data, vertices=vertices, tmin=tmin,
                                      tstep=tstep, subject=subject,
                                      verbose=verbose)
@@ -1709,12 +1809,15 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
     @copy_function_doc_to_method_doc(plot_volume_source_estimates)
     def plot(self, src, subject=None, subjects_dir=None, mode='stat_map',
              bg_img=None, colorbar=True, colormap='auto', clim='auto',
-             transparent='auto', show=True, verbose=None):
+             transparent='auto', show=True, initial_time=None,
+             initial_pos=None, verbose=None):
         data = self.magnitude() if self._data_ndim == 3 else self
         return plot_volume_source_estimates(
             data, src=src, subject=subject, subjects_dir=subjects_dir,
             mode=mode, bg_img=bg_img, colorbar=colorbar, colormap=colormap,
-            clim=clim, transparent=transparent, show=show, verbose=verbose)
+            clim=clim, transparent=transparent, show=show,
+            initial_time=initial_time, initial_pos=initial_pos,
+            verbose=verbose)
 
     def save_as_volume(self, fname, src, dest='mri', mri_resolution=False,
                        format='nifti1'):
@@ -1722,7 +1825,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
 
         Parameters
         ----------
-        fname : string
+        fname : str
             The name of the generated nifti file.
         src : list
             The list of source spaces (should all be of type volume).
@@ -1730,15 +1833,15 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             If 'mri' the volume is defined in the coordinate system of
             the original T1 image. If 'surf' the coordinate system
             of the FreeSurfer surface is used (Surface RAS).
-        mri_resolution: bool
+        mri_resolution : bool
             It True the image is saved in MRI resolution.
-            WARNING: if you have many time points the file produced can be
-            huge.
+
+            .. warning:: If you have many time points, the file produced can be
+                         huge.
         format : str
             Either 'nifti1' (default) or 'nifti2'.
 
             .. versionadded:: 0.17
-
 
         Returns
         -------
@@ -1768,16 +1871,17 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             If 'mri' the volume is defined in the coordinate system of
             the original T1 image. If 'surf' the coordinate system
             of the FreeSurfer surface is used (Surface RAS).
-        mri_resolution: bool
+        mri_resolution : bool
             It True the image is saved in MRI resolution.
-            WARNING: if you have many time points the file produced can be
-            huge.
+
+            .. warning:: If you have many time points, the file produced can be
+                         huge.
         format : str
             Either 'nifti1' (default) or 'nifti2'.
 
         Returns
         -------
-        img : instance Nifti1Image
+        img : instance of Nifti1Image
             The image object.
 
         Notes
@@ -1805,7 +1909,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
             be considered. If 'abs' absolute values will be considered.
             Defaults to 'abs'.
         vert_as_index : bool
-            whether to return the vertex index instead of of its ID.
+            Whether to return the vertex index instead of of its ID.
             Defaults to False.
         time_as_index : bool
             Whether to return the time index instead of the latency.
@@ -1836,9 +1940,9 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
         The data in source space. The data can either be a single array or
         a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
         "sens_data" shape (n_sensors, n_times). In this case, the source
-        space data corresponds to "numpy.dot(kernel, sens_data)".
-    vertices : array
-        Vertex numbers corresponding to the data.
+        space data corresponds to ``np.dot(kernel, sens_data)``.
+    vertices : array of shape (n_dipoles,)
+        The indices of the dipoles in the source space.
     tmin : scalar
         Time point of the first sample in data.
     tstep : scalar
@@ -1861,16 +1965,16 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
     shape : tuple
         The shape of the data. A tuple of int (n_dipoles, n_times).
 
-    Notes
-    -----
-    .. versionadded:: 0.9.0
-
     See Also
     --------
     SourceEstimate : A container for surface source estimates.
     VolVectorSourceEstimate : A container for volume vector source estimates.
     MixedSourceEstimate : A container for mixed surface + volume source
                           estimates.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
 
     @verbose
@@ -1879,10 +1983,10 @@ class VolSourceEstimate(_BaseVolSourceEstimate):
 
         Parameters
         ----------
-        fname : string
+        fname : str
             The stem of the file name. The stem is extended with "-vl.stc"
             or "-vl.w".
-        ftype : string
+        ftype : str
             File format to use. Allowed values are "stc" (default), "w",
             and "h5". The "w" format only supports a single time point.
         %(verbose_meth)s
@@ -1916,8 +2020,8 @@ class VolVectorSourceEstimate(_BaseVectorSourceEstimate,
     data : array of shape (n_dipoles, 3, n_times)
         The data in source space. Each dipole contains three vectors that
         denote the dipole strength in X, Y and Z directions over time.
-    vertices : array
-        Vertex numbers corresponding to the data.
+    vertices : array of shape (n_dipoles,)
+        The indices of the dipoles in the source space.
     tmin : scalar
         Time point of the first sample in data.
     tstep : scalar
@@ -1940,16 +2044,16 @@ class VolVectorSourceEstimate(_BaseVectorSourceEstimate,
     shape : tuple
         The shape of the data. A tuple of int (n_dipoles, n_times).
 
-    Notes
-    -----
-    .. versionadded:: 0.9.0
-
     See Also
     --------
     SourceEstimate : A container for surface source estimates.
     VectorSourceEstimate : A container for vector source estimates.
     MixedSourceEstimate : A container for mixed surface + volume source
                           estimates.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
 
     _data_ndim = 3
@@ -1969,8 +2073,10 @@ class VectorSourceEstimate(_BaseVectorSourceEstimate,
     data : array of shape (n_dipoles, 3, n_times)
         The data in source space. Each dipole contains three vectors that
         denote the dipole strength in X, Y and Z directions over time.
-    vertices : array | list of shape (2,)
-        Vertex numbers corresponding to the data.
+    vertices : list of array, shape (2,)
+        Vertex numbers corresponding to the data. The first element of the list
+        contains vertices of left hemisphere and the second element contains
+        vertices of right hemisphere.
     tmin : float
         Time point of the first sample in data.
     tstep : float
@@ -1989,16 +2095,16 @@ class VectorSourceEstimate(_BaseVectorSourceEstimate,
     shape : tuple
         The shape of the data. A tuple of int (n_dipoles, n_times).
 
-    Notes
-    -----
-    .. versionadded:: 0.15
-
     See Also
     --------
     SourceEstimate : A container for surface source estimates.
     VolSourceEstimate : A container for volume source estimates.
     MixedSourceEstimate : A container for mixed surface + volume source
                           estimates.
+
+    Notes
+    -----
+    .. versionadded:: 0.15
     """
 
     _data_ndim = 3
@@ -2036,9 +2142,10 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         The data in source space. The data can either be a single array or
         a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
         "sens_data" shape (n_sensors, n_times). In this case, the source
-        space data corresponds to "numpy.dot(kernel, sens_data)".
+        space data corresponds to ``np.dot(kernel, sens_data)``.
     vertices : list of array
-        Vertex numbers corresponding to the data.
+        Vertex numbers corresponding to the data. The list contains arrays
+        with one array per source space.
     tmin : scalar
         Time point of the first sample in data.
     tstep : scalar
@@ -2055,15 +2162,12 @@ class MixedSourceEstimate(_BaseSourceEstimate):
     times : array of shape (n_times,)
         The time vector.
     vertices : list of array
-        The indices of the dipoles in each source space.
+        Vertex numbers corresponding to the data. The list contains arrays
+        with one array per source space.
     data : array of shape (n_dipoles, n_times)
         The data in source space.
     shape : tuple
         The shape of the data. A tuple of int (n_dipoles, n_times).
-
-    Notes
-    -----
-    .. versionadded:: 0.9.0
 
     See Also
     --------
@@ -2071,6 +2175,10 @@ class MixedSourceEstimate(_BaseSourceEstimate):
     VectorSourceEstimate : A container for vector source estimates.
     VolSourceEstimate : A container for volume source estimates.
     VolVectorSourceEstimate : A container for Volume vector source estimates.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
 
     _data_ndim = 2
@@ -2087,6 +2195,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
                                      tstep=tstep, subject=subject,
                                      verbose=verbose)
 
+    @fill_doc
     def plot_surface(self, src, subject=None, surface='inflated', hemi='lh',
                      colormap='auto', time_label='time=%02.f ms',
                      smoothing_steps=10,
@@ -2132,9 +2241,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         config_opts : dict
             Keyword arguments for Brain initialization.
             See pysurfer.viz.Brain.
-        subjects_dir : str
-            The path to the FreeSurfer subjects reconstructions.
-            It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
+        %(subjects_dir)s
         figure : instance of mayavi.mlab.Figure | None
             If None, the last figure will be cleaned and a new figure will
             be created.
@@ -2151,7 +2258,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
             A instance of `surfer.Brain` from PySurfer.
         """
         # extract surface source spaces
-        surf = _ensure_src(src, kind='surf')
+        surf = _ensure_src(src, kind='surface')
 
         # extract surface source estimate
         data = self.data[:surf[0]['nuse'] + surf[1]['nuse']]
@@ -2299,7 +2406,7 @@ def spatio_temporal_tris_connectivity(tris, n_times, remap_vertices=False,
     tris : array
         N x 3 array defining triangles.
     n_times : int
-        Number of time points
+        Number of time points.
     remap_vertices : bool
         Reassign vertex indices based on unique values. Useful
         to process a subset of triangles. Defaults to False.
@@ -2330,10 +2437,11 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=None):
     ----------
     src : instance of SourceSpaces
         The source space must have distances between vertices computed, such
-        that src['dist'] exists and is useful. This can be obtained using MNE
-        with a call to mne_add_patch_info with the --dist option.
+        that src['dist'] exists and is useful. This can be obtained
+        with a call to :func:`mne.setup_source_space` with the
+        ``add_dist=True`` option.
     n_times : int
-        Number of time points
+        Number of time points.
     dist : float
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors.
@@ -2349,8 +2457,8 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=None):
         during time 2, etc.
     """
     if src[0]['dist'] is None:
-        raise RuntimeError('src must have distances included, consider using\n'
-                           'mne_add_patch_info with --dist argument')
+        raise RuntimeError('src must have distances included, consider using '
+                           'setup_source_space with add_dist=True')
     edges = sparse_block_diag([s['dist'][s['vertno'], :][:, s['vertno']]
                                for s in src])
     edges.data[:] = np.less_equal(edges.data, dist)
@@ -2413,8 +2521,9 @@ def spatial_dist_connectivity(src, dist, verbose=None):
     ----------
     src : instance of SourceSpaces
         The source space must have distances between vertices computed, such
-        that src['dist'] exists and is useful. This can be obtained using MNE
-        with a call to mne_add_patch_info with the --dist option.
+        that src['dist'] exists and is useful. This can be obtained
+        with a call to :func:`mne.setup_source_space` with the
+        ``add_dist=True`` option.
     dist : float
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors.
@@ -2450,7 +2559,7 @@ def spatial_inter_hemi_connectivity(src, dist, verbose=None):
         using geodesic distances.
     """
     from scipy.spatial.distance import cdist
-    src = _ensure_src(src, kind='surf')
+    src = _ensure_src(src, kind='surface')
     conn = cdist(src[0]['rr'][src[0]['vertno']],
                  src[1]['rr'][src[1]['vertno']])
     conn = sparse.csr_matrix(conn <= dist, dtype=int)
@@ -2493,22 +2602,6 @@ def _get_ico_tris(grade, verbose=None, return_surf=False):
         return ico
 
 
-def _get_label_flip(labels, label_vertidx, src):
-    """Get sign-flip for labels."""
-    # do the import here to avoid circular dependency
-    from .label import label_sign_flip
-    # get the sign-flip vector for every label
-    label_flip = list()
-    for label, vertidx in zip(labels, label_vertidx):
-        if vertidx is not None:
-            flip = label_sign_flip(label, src)[:, None]
-        else:
-            flip = None
-        label_flip.append(flip)
-
-    return label_flip
-
-
 def _pca_flip(flip, data):
     U, s, V = linalg.svd(data, full_matrices=False)
     # determine sign-flip
@@ -2526,19 +2619,90 @@ _label_funcs = {
 }
 
 
-@verbose
-def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
-                                   allow_empty=False, verbose=None):
-    """Generate extract_label_time_course."""
+@contextlib.contextmanager
+def _temporary_vertices(src, vertices):
+    orig_vertices = [s['vertno'] for s in src]
+    for s, v in zip(src, vertices):
+        s['vertno'] = v
+    try:
+        yield
+    finally:
+        for s, v in zip(src, orig_vertices):
+            s['vertno'] = v
+
+
+def _prepare_label_extraction(stc, labels, src, mode, allow_empty):
+    """Prepare indices and flips for extract_label_time_course."""
     # if src is a mixed src space, the first 2 src spaces are surf type and
     # the other ones are vol type. For mixed source space n_labels will be the
     # given by the number of ROIs of the cortical parcellation plus the number
     # of vol src space
+    from .label import label_sign_flip
 
-    if mode not in _label_funcs:
-        raise ValueError('%s is an invalid mode' % mode)
+    # get vertices from source space, they have to be the same as in the stcs
+    vertno = stc.vertices
+    nvert = [len(vn) for vn in vertno]
+
+    # do the initialization
+    label_vertidx = list()
+    label_flip = list()
+    for s, v, hemi in zip(src, stc.vertices, ('left', 'right')):
+        n_missing = (~np.in1d(v, s['vertno'])).sum()
+        if n_missing:
+            raise ValueError('%d/%d %s hemisphere stc vertices missing from '
+                             'the source space, likely mismatch'
+                             % (n_missing, len(v), hemi))
+    for label in labels:
+        if label.hemi == 'both':
+            # handle BiHemiLabel
+            sub_labels = [label.lh, label.rh]
+        else:
+            sub_labels = [label]
+        this_vertidx = list()
+        for slabel in sub_labels:
+            if slabel.hemi == 'lh':
+                this_vertices = np.intersect1d(vertno[0], slabel.vertices)
+                vertidx = np.searchsorted(vertno[0], this_vertices)
+            elif slabel.hemi == 'rh':
+                this_vertices = np.intersect1d(vertno[1], slabel.vertices)
+                vertidx = nvert[0] + np.searchsorted(vertno[1], this_vertices)
+            else:
+                raise ValueError('label %s has invalid hemi' % label.name)
+            this_vertidx.append(vertidx)
+
+        # convert it to an array
+        this_vertidx = np.concatenate(this_vertidx)
+        this_flip = None
+        if len(this_vertidx) == 0:
+            msg = ('source space does not contain any vertices for label %s'
+                   % label.name)
+            if not allow_empty:
+                raise ValueError(msg)
+            else:
+                warn_(msg + '. Assigning all-zero time series to label.')
+            this_vertidx = None  # to later check if label is empty
+        elif mode not in ('mean', 'max'):  # mode-dependent initialization
+            # label_sign_flip uses two properties:
+            #
+            # - src[ii]['nn']
+            # - src[ii]['vertno']
+            #
+            # So if we override vertno with the stc vertices, it will pick
+            # the correct normals.
+            with _temporary_vertices(src, stc.vertices):
+                this_flip = label_sign_flip(label, src[:2])[:, None]
+
+        label_vertidx.append(this_vertidx)
+        label_flip.append(this_flip)
+
+    return label_vertidx, label_flip
+
+
+def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
+                                   allow_empty=False, verbose=None):
+    # loop through source estimates and extract time series
+    _check_option('mode', mode, sorted(_label_funcs.keys()))
     func = _label_funcs[mode]
-
     if len(src) > 2:
         if src[0]['type'] != 'surf' or src[1]['type'] != 'surf':
             raise ValueError('The first 2 source spaces have to be surf type')
@@ -2550,55 +2714,15 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
         n_labels = n_aparc + n_aseg
     else:
         n_labels = len(labels)
-
-    # get vertices from source space, they have to be the same as in the stcs
-    vertno = [s['vertno'] for s in src]
-    nvert = [len(vn) for vn in vertno]
-
-    # do the initialization
-    label_vertidx = list()
-    for label in labels:
-        if label.hemi == 'both':
-            # handle BiHemiLabel
-            sub_labels = [label.lh, label.rh]
-        else:
-            sub_labels = [label]
-        this_vertidx = list()
-        for slabel in sub_labels:
-            if slabel.hemi == 'lh':
-                this_vertno = np.intersect1d(vertno[0], slabel.vertices)
-                vertidx = np.searchsorted(vertno[0], this_vertno)
-            elif slabel.hemi == 'rh':
-                this_vertno = np.intersect1d(vertno[1], slabel.vertices)
-                vertidx = nvert[0] + np.searchsorted(vertno[1], this_vertno)
-            else:
-                raise ValueError('label %s has invalid hemi' % label.name)
-            this_vertidx.append(vertidx)
-
-        # convert it to an array
-        this_vertidx = np.concatenate(this_vertidx)
-        if len(this_vertidx) == 0:
-            msg = ('source space does not contain any vertices for label %s'
-                   % label.name)
-            if not allow_empty:
-                raise ValueError(msg)
-            else:
-                warn_(msg + '. Assigning all-zero time series to label.')
-            this_vertidx = None  # to later check if label is empty
-
-        label_vertidx.append(this_vertidx)
-
-    # mode-dependent initialization
-    if mode not in ('mean', 'max'):
-        # get the sign-flip vector for every label
-        src_flip = _get_label_flip(labels, label_vertidx, src[:2])
-    else:
-        src_flip = [None] * len(labels)
-
-    # loop through source estimates and extract time series
+    vertno = None
     for stc in stcs:
+        if vertno is None:
+            vertno = copy.deepcopy(stc.vertices)
+            nvert = [len(v) for v in vertno]
+            label_vertidx, src_flip = _prepare_label_extraction(
+                stc, labels, src, mode, allow_empty)
         # make sure the stc is compatible with the source space
-        for i in range(len(src)):
+        for i in range(len(vertno)):
             if len(stc.vertices[i]) != nvert[i]:
                 raise ValueError('stc not compatible with source space. '
                                  'stc has %s time series but there are %s '

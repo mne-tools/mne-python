@@ -15,7 +15,7 @@ Runs a full pipeline using MNE-Python:
 .. note:: This example does quite a bit of processing, so even on a
           fast machine it can take several minutes to complete.
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
@@ -59,7 +59,7 @@ tmin, tmax = -0.2, 0.6
 baseline = None  # no baseline as high-pass is applied
 reject = dict(mag=5e-12)
 
-epochs = mne.Epochs(raw, events, event_ids, tmin, tmax,  picks=picks,
+epochs = mne.Epochs(raw, events, event_ids, tmin, tmax, picks=picks,
                     baseline=baseline, preload=True, reject=reject)
 
 # Fit ICA, find and remove major artifacts

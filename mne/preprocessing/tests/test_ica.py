@@ -1,5 +1,5 @@
 # Author: Denis Engemann <denis.engemann@gmail.com>
-#         Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#         Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 
@@ -386,7 +386,9 @@ def test_ica_additional(method):
     ica3 = ica.copy()
     corrmap([ica, ica2], (0, 0), threshold='auto', label='blinks', plot=True,
             ch_type="mag")
-    corrmap([ica, ica2], (0, 0), threshold=2, plot=False, show=False)
+    with pytest.raises(RuntimeError, match='No component detected'):
+        corrmap([ica, ica2], (0, 0), threshold=2, plot=False, show=False,)
+    corrmap([ica, ica2], (0, 0), threshold=0.5, plot=False, show=False)
     assert (ica.labels_["blinks"] == ica2.labels_["blinks"])
     assert (0 in ica.labels_["blinks"])
     # test retrieval of component maps as arrays
@@ -399,6 +401,20 @@ def test_ica_additional(method):
     assert (ica2.labels_["blinks"] == ica3.labels_["blinks"])
 
     plt.close('all')
+
+    # No match
+    bad_ica = ica2.copy()
+    bad_ica.mixing_matrix_[:] = 0.
+    with pytest.warns(RuntimeWarning, match='divide'):
+        with catch_logging() as log:
+            corrmap([ica, bad_ica], (0, 0), threshold=0.5, plot=False,
+                    show=False, verbose=True)
+    log = log.getvalue()
+    assert 'No maps selected' in log
+
+    # make sure a single threshold in a list works
+    corrmap([ica, ica3], template, threshold=[0.5], label='blinks', plot=True,
+            ch_type="mag")
 
     ica_different_channels = ICA(n_components=2, random_state=0).fit(
         raw, picks=[2, 3, 4, 5])
@@ -1012,7 +1028,6 @@ def test_ica_eeg():
     raw_fif = read_raw_fif(fif_fname, preload=True)
     raw_eeglab = read_raw_eeglab(input_fname=eeglab_fname,
                                  preload=True)
-    raw_eeglab.set_montage(eeglab_montage)
     for raw in [raw_fif, raw_eeglab]:
         events = make_fixed_length_events(raw, 99999, start=0, stop=0.3,
                                           duration=0.1)
@@ -1040,7 +1055,7 @@ def test_ica_eeg():
                 ica.get_sources(inst)
 
     with pytest.warns(RuntimeWarning, match='MISC channel'):
-        raw = read_raw_ctf(ctf_fname2,  preload=True)
+        raw = read_raw_ctf(ctf_fname2, preload=True)
     events = make_fixed_length_events(raw, 99999, start=0, stop=0.2,
                                       duration=0.1)
     picks_meg = pick_types(raw.info, meg=True, eeg=False)[:2]

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
@@ -38,7 +38,7 @@ from ..transforms import _ensure_trans, transform_surface_to
 from ..source_estimate import _make_stc, _get_src_type
 from ..utils import (check_fname, logger, verbose, warn,
                      _check_compensation_grade, _check_option,
-                     _check_depth)
+                     _check_depth, _check_src_normal)
 
 
 INVERSE_METHODS = ['MNE', 'dSPM', 'sLORETA', 'eLORETA']
@@ -95,7 +95,7 @@ def read_inverse_operator(fname, verbose=None):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The name of the FIF file, which ends with -inv.fif or -inv.fif.gz.
     %(verbose)s
 
@@ -316,7 +316,7 @@ def write_inverse_operator(fname, inv, verbose=None):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The name of the FIF file, which ends with -inv.fif or -inv.fif.gz.
     inv : dict
         The inverse operator.
@@ -729,12 +729,13 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
     return K, noise_norm, vertno, source_nn
 
 
-def _check_ori(pick_ori, source_ori):
+def _check_ori(pick_ori, source_ori, src):
     """Check pick_ori."""
     _check_option('pick_ori', pick_ori, [None, 'normal', 'vector'])
     if pick_ori == 'vector' and source_ori != FIFF.FIFFV_MNE_FREE_ORI:
         raise RuntimeError('pick_ori="vector" cannot be combined with an '
                            'inverse operator with fixed orientations.')
+    _check_src_normal(pick_ori, src)
 
 
 def _check_reference(inst, ch_names=None):
@@ -754,7 +755,7 @@ def _check_reference(inst, ch_names=None):
 
 def _subject_from_inverse(inverse_operator):
     """Get subject id from inverse operator."""
-    return inverse_operator['src'][0].get('subject_his_id', None)
+    return inverse_operator['src']._subject
 
 
 @verbose
@@ -767,7 +768,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     ----------
     evoked : Evoked object
         Evoked data.
-    inverse_operator: instance of InverseOperator
+    inverse_operator : instance of InverseOperator
         Inverse operator.
     lambda2 : float
         The regularization parameter.
@@ -809,8 +810,8 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
 
     See Also
     --------
-    apply_inverse_raw : Apply inverse operator to raw object
-    apply_inverse_epochs : Apply inverse operator to epochs object
+    apply_inverse_raw : Apply inverse operator to raw object.
+    apply_inverse_epochs : Apply inverse operator to epochs object.
 
     Notes
     -----
@@ -852,7 +853,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
 
     References
     ----------
-    .. [1] Hamalainen M S and Ilmoniemi R. Interpreting magnetic fields of
+    .. [1] Hämäläinen M S and Ilmoniemi R. Interpreting magnetic fields of
            the brain: minimum norm estimates. Medical & Biological Engineering
            & Computing, 32(1):35-42, 1994.
     .. [2] Dale A, Liu A, Fischl B, Buckner R. (2000) Dynamic statistical
@@ -869,7 +870,8 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     _check_option('method', method, INVERSE_METHODS)
     if method == 'eLORETA' and return_residual:
         raise ValueError('eLORETA does not currently support return_residual')
-    _check_ori(pick_ori, inverse_operator['source_ori'])
+    _check_ori(pick_ori, inverse_operator['source_ori'],
+               inverse_operator['src'])
     #
     #   Set up the inverse according to the parameters
     #
@@ -902,7 +904,12 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
                              Pi[:, np.newaxis] * w_t))
     data_est_w = np.dot(inv['whitener'], np.dot(inv['proj'], data_est))
     var_exp = 1 - ((data_est_w - data_w) ** 2).sum() / (data_w ** 2).sum()
-    logger.info('    Explained %5.1f%% variance' % (100 * var_exp,))
+
+    if method == 'eLORETA':
+        logger.info('    Explained variance unknown')
+    else:
+        logger.info('    Explained %5.1f%% variance' % (100 * var_exp,))
+
     if return_residual:
         residual = evoked.copy()
         residual.data[sel] -= data_est
@@ -992,12 +999,13 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
     See Also
     --------
-    apply_inverse_epochs : Apply inverse operator to epochs object
-    apply_inverse : Apply inverse operator to evoked object
+    apply_inverse_epochs : Apply inverse operator to epochs object.
+    apply_inverse : Apply inverse operator to evoked object.
     """
     _check_reference(raw, inverse_operator['info']['ch_names'])
     _check_option('method', method, INVERSE_METHODS)
-    _check_ori(pick_ori, inverse_operator['source_ori'])
+    _check_ori(pick_ori, inverse_operator['source_ori'],
+               inverse_operator['src'])
     _check_ch_names(inverse_operator, raw.info)
 
     #
@@ -1074,7 +1082,8 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                               verbose=None):
     """Generate inverse solutions for epochs. Used in apply_inverse_epochs."""
     _check_option('method', method, INVERSE_METHODS)
-    _check_ori(pick_ori, inverse_operator['source_ori'])
+    _check_ori(pick_ori, inverse_operator['source_ori'],
+               inverse_operator['src'])
     _check_ch_names(inverse_operator, epochs.info)
 
     #
@@ -1188,8 +1197,8 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
 
     See Also
     --------
-    apply_inverse_raw : Apply inverse operator to raw object
-    apply_inverse : Apply inverse operator to evoked object
+    apply_inverse_raw : Apply inverse operator to raw object.
+    apply_inverse : Apply inverse operator to evoked object.
     """
     stcs = _apply_inverse_epochs_gen(
         epochs, inverse_operator, lambda2, method=method, label=label,
@@ -1400,8 +1409,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
 
 @verbose
 def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
-                          fixed='auto', limit_depth_chs=None, rank=None,
-                          use_cps=True, verbose=None):
+                          fixed='auto', rank=None, use_cps=True, verbose=None):
     """Assemble inverse operator.
 
     Parameters
@@ -1427,9 +1435,6 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
         Use fixed source orientations normal to the cortical mantle. If True,
         the loose parameter must be "auto" or 0. If 'auto', the loose value
         is used.
-    limit_depth_chs : bool
-        Deprecated and will be removed in 0.19.
-        Use ``depth=dict(limit_depth_chs=...)``.
     %(rank_None)s
     use_cps : None | bool (default True)
         Whether to use cortical patch statistics to define normal
@@ -1480,16 +1485,11 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     # For now we always have pca='white'. It does not seem to affect
     # calculations and is also backward-compatible with MNE-C
     depth = _check_depth(depth, 'depth_mne')
-    if limit_depth_chs is not None:
-        warn('limit_depth_chs is deprecated and will be removed in 0.19, '
-             'use depth=dict(limit_depth_chs=...) instead.',
-             DeprecationWarning)
-        depth['limit_depth_chs'] = limit_depth_chs
     forward, gain_info, gain, depth_prior, orient_prior, source_std, \
         trace_GRGT, noise_cov, _ = _prepare_forward(
             forward, info, noise_cov, fixed, loose, rank, pca='white',
             use_cps=use_cps, **depth)
-    del fixed, loose, depth, use_cps, limit_depth_chs
+    del fixed, loose, depth, use_cps
 
     # Decompose the combined matrix
     logger.info('Computing SVD of whitened and weighted lead field '

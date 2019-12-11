@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #          Nathalie Gayraud <nat.gayraud@gmail.com>
@@ -26,9 +26,9 @@ def select_source_in_label(src, label, random_state=None, location='random',
     Parameters
     ----------
     src : list of dict
-        The source space
+        The source space.
     label : Label
-        the label (read with mne.read_label)
+        The label.
     %(random_state)s
     location : str
         The label location to choose. Can be 'random' (default) or 'center'
@@ -37,20 +37,14 @@ def select_source_in_label(src, label, random_state=None, location='random',
         mode the label values are used as weights.
 
         .. versionadded:: 0.13
-
-    subject : string | None
+    subject : str | None
         The subject the label is defined for.
         Only used with ``location='center'``.
 
         .. versionadded:: 0.13
-
-    subjects_dir : str, or None
-        Path to the SUBJECTS_DIR. If None, the path is obtained by using
-        the environment variable SUBJECTS_DIR.
-        Only used with ``location='center'``.
+    %(subjects_dir)s
 
         .. versionadded:: 0.13
-
     surf : str
         The surface to use for Euclidean distance center of mass
         finding. The default here is "sphere", which finds the center
@@ -62,9 +56,9 @@ def select_source_in_label(src, label, random_state=None, location='random',
     Returns
     -------
     lh_vertno : list
-        selected source coefficients on the left hemisphere
+        Selected source coefficients on the left hemisphere.
     rh_vertno : list
-        selected source coefficients on the right hemisphere
+        Selected source coefficients on the right hemisphere.
     """
     lh_vertno = list()
     rh_vertno = list()
@@ -107,7 +101,7 @@ def simulate_sparse_stc(src, n_dipoles, times,
     n_dipoles : int
         Number of dipoles to simulate.
     times : array
-        Time array
+        Time array.
     data_fun : callable
         Function to generate the waveforms. The default is a 100 nAm, 10 Hz
         sinusoid as ``1e-7 * np.sin(20 * pi * t)``. The function should take
@@ -122,20 +116,14 @@ def simulate_sparse_stc(src, n_dipoles, times,
         mode the label values are used as weights.
 
         .. versionadded:: 0.13
-
-    subject : string | None
+    subject : str | None
         The subject the label is defined for.
         Only used with ``location='center'``.
 
         .. versionadded:: 0.13
-
-    subjects_dir : str, or None
-        Path to the SUBJECTS_DIR. If None, the path is obtained by using
-        the environment variable SUBJECTS_DIR.
-        Only used with ``location='center'``.
+    %(subjects_dir)s
 
         .. versionadded:: 0.13
-
     surf : str
         The surface to use for Euclidean distance center of mass
         finding. The default here is "sphere", which finds the center
@@ -161,7 +149,7 @@ def simulate_sparse_stc(src, n_dipoles, times,
     """
     rng = check_random_state(random_state)
     src = _ensure_src(src, verbose=False)
-    subject_src = src[0].get('subject_his_id')
+    subject_src = src._subject
     if subject is None:
         subject = subject_src
     elif subject_src is not None and subject != subject_src:
@@ -230,21 +218,21 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None,
     Parameters
     ----------
     src : instance of SourceSpaces
-        The source space
+        The source space.
     labels : list of Label
-        The labels
+        The labels.
     stc_data : array, shape (n_labels, n_times)
-        The waveforms
+        The waveforms.
     tmin : float
-        The beginning of the timeseries
+        The beginning of the timeseries.
     tstep : float
-        The time step (1 / sampling frequency)
+        The time step (1 / sampling frequency).
     value_fun : callable | None
         Function to apply to the label values to obtain the waveform
         scaling for each vertex in the label. If None (default), uniform
         scaling is used.
     allow_overlap : bool
-        Allow overlapping labels or not. Default value is False
+        Allow overlapping labels or not. Default value is False.
 
         .. versionadded:: 0.18
 
@@ -322,9 +310,8 @@ def simulate_stc(src, labels, stc_data, tmin, tstep, value_fun=None,
             data.append(stc_data_extended[i][idx])
             vertno[i] = vertno[i][idx]
 
-    subject = src[0].get('subject_his_id')
     stc = SourceEstimate(np.concatenate(data), vertices=vertno, tmin=tmin,
-                         tstep=tstep, subject=subject)
+                         tstep=tstep, subject=src._subject)
     return stc
 
 
@@ -380,14 +367,14 @@ class SourceSimulator(object):
 
         Parameters
         ----------
-        label : Label
+        label : instance of Label
             The label (as created for example by mne.read_label). If the label
             does not match any sources in the SourceEstimate, a ValueError is
             raised.
         waveform : array, shape (n_times,) or (n_events, n_times) | list
             The waveform(s) describing the activity on the label vertices.
-            If list, it must have the same length as events
-        events: array of int, shape (n_events, 3)
+            If list, it must have the same length as events.
+        events : array of int, shape (n_events, 3)
             Events associated to the waveform(s) to specify when the activity
             should occur.
         """

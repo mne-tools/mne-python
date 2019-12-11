@@ -27,7 +27,8 @@ from .utils import (_toggle_options, _toggle_proj, _prepare_mne_browse,
                     _radio_clicked, _set_radio_button, _handle_topomap_bads,
                     _change_channel_group, _plot_annotations, _setup_butterfly,
                     _handle_decim, _setup_plot_projector, _check_cov,
-                    _set_ax_label_style, _draw_vert_line, _simplify_float)
+                    _set_ax_label_style, _draw_vert_line, _simplify_float,
+                    _check_psd_fmax)
 
 
 def _plot_update_raw_proj(params, bools):
@@ -335,7 +336,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
     for t in ['grad', 'mag']:
         inds += [pick_types(info, meg=t, ref_meg=False, exclude=[])]
         types += [t] * len(inds[-1])
-    for t in ['hbo', 'hbr']:
+    for t in ['hbo', 'hbr', 'fnirs_raw', 'fnirs_od']:
         inds += [pick_types(info, meg=False, ref_meg=False, fnirs=t,
                             exclude=[])]
         types += [t] * len(inds[-1])
@@ -559,16 +560,13 @@ def _label_clicked(pos, params):
     _plot_update_raw_proj(params, None)
 
 
-_data_types = ('mag', 'grad', 'eeg', 'seeg', 'ecog')
-
-
 @verbose
 def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
                  n_fft=None, n_overlap=0, reject_by_annotation=True,
                  picks=None, ax=None, color='black', xscale='linear',
                  area_mode='std', area_alpha=0.33, dB=True, estimate='auto',
                  show=True, n_jobs=1, average=False, line_alpha=None,
-                 spatial_colors=True, verbose=None):
+                 spatial_colors=True, sphere=None, verbose=None):
     """%(plot_psd_doc)s.
 
     Parameters
@@ -609,8 +607,9 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     %(show)s
     %(n_jobs)s
     %(plot_psd_average)s
-    %(plot_psd_line_alpha)sxscale=xscale,
+    %(plot_psd_line_alpha)s
     %(plot_psd_spatial_colors)s
+    %(topomap_sphere_auto)s
     %(verbose)s
 
     Returns
@@ -622,6 +621,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
         make_label = _set_psd_plot_params(
             raw.info, proj, picks, ax, area_mode)
+    _check_psd_fmax(raw, fmax)
     del ax
     psd_list = list()
     if n_fft is None:
@@ -638,7 +638,7 @@ def plot_raw_psd(raw, fmin=0, fmax=np.inf, tmin=None, tmax=None, proj=False,
     fig = _plot_psd(raw, fig, freqs, psd_list, picks_list, titles_list,
                     units_list, scalings_list, ax_list, make_label, color,
                     area_mode, area_alpha, dB, estimate, average,
-                    spatial_colors, xscale, line_alpha)
+                    spatial_colors, xscale, line_alpha, sphere)
     plt_show(show)
     return fig
 
@@ -1060,7 +1060,6 @@ def _setup_browser_selection(raw, kind, selector=True):
     topo_ax = plt.subplot2grid((6, 1), (0, 0), rowspan=2, colspan=1)
     keys = np.concatenate([keys, ['Custom']])
     order.update({'Custom': list()})  # custom selection with lasso
-
     plot_sensors(raw.info, kind='select', ch_type='all', axes=topo_ax,
                  ch_groups=kind, title='', show=False)
     fig_selection.radio = RadioButtons(rax, [key for key in keys

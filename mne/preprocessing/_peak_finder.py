@@ -1,6 +1,6 @@
 import numpy as np
 
-from .. utils import logger, verbose
+from .. utils import logger, verbose, _pl
 
 
 @verbose
@@ -23,9 +23,9 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     Returns
     -------
     peak_loc : array
-        The indices of the identified peaks in x0
+        The indices of the identified peaks in x0.
     peak_mag : array
-        The magnitude of the identified peaks
+        The magnitude of the identified peaks.
 
     Notes
     -----
@@ -44,7 +44,6 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     array([36, 260]) # doctest: +SKIP
     >>> peak_mags # doctest: +SKIP
     array([0.36900026, 1.76007351]) # doctest: +SKIP
-
     """
     x0 = np.asanyarray(x0)
     s = x0.size
@@ -54,6 +53,7 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
 
     if thresh is None:
         thresh = (np.max(x0) - np.min(x0)) / 4
+        logger.debug('Peak finder automatic threshold: %0.2g' % (thresh,))
 
     assert extrema in [-1, 1]
 
@@ -173,5 +173,8 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     # Plot if no output desired
     if len(peak_inds) == 0:
         logger.info('No significant peaks found')
+    else:
+        logger.info('Found %d significant peak%s'
+                    % (len(peak_inds), _pl(peak_inds)))
 
     return peak_inds, peak_mags

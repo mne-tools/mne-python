@@ -1,5 +1,5 @@
 # Authors: Josef Pktd and example from H Raja and rewrite from Vincent Davis
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # Code borrowed from statsmodels
 #
@@ -17,7 +17,7 @@ def _ecdf(x):
 def fdr_correction(pvals, alpha=0.05, method='indep'):
     """P-value correction with False Discovery Rate (FDR).
 
-    Correction for multiple comparison using FDR.
+    Correction for multiple comparison using FDR [1]_.
 
     This covers Benjamini/Hochberg for independent or positively correlated and
     Benjamini/Yekutieli for general or negatively correlated tests.
@@ -25,9 +25,9 @@ def fdr_correction(pvals, alpha=0.05, method='indep'):
     Parameters
     ----------
     pvals : array_like
-        set of p-values of the individual tests.
+        Set of p-values of the individual tests.
     alpha : float
-        error rate
+        Error rate.
     method : 'indep' | 'negcorr'
         If 'indep' it implements Benjamini/Hochberg for independent or if
         'negcorr' it corresponds to Benjamini/Yekutieli.
@@ -35,16 +35,15 @@ def fdr_correction(pvals, alpha=0.05, method='indep'):
     Returns
     -------
     reject : array, bool
-        True if a hypothesis is rejected, False if not
+        True if a hypothesis is rejected, False if not.
     pval_corrected : array
-        pvalues adjusted for multiple hypothesis testing to limit FDR
+        P-values adjusted for multiple hypothesis testing to limit FDR.
 
-    Notes
-    -----
-    Reference:
-    Genovese CR, Lazar NA, Nichols T.
-    Thresholding of statistical maps in functional neuroimaging using the false
-    discovery rate. Neuroimage. 2002 Apr;15(4):870-8.
+    References
+    ----------
+    .. [1] Genovese CR, Lazar NA, Nichols T. Thresholding of statistical maps
+           in functional neuroimaging using the false discovery rate.
+           Neuroimage. 2002 Apr;15(4):870-8.
     """
     pvals = np.asarray(pvals)
     shape_init = pvals.shape
@@ -83,17 +82,16 @@ def bonferroni_correction(pval, alpha=0.05):
     Parameters
     ----------
     pval : array_like
-        set of p-values of the individual tests.
+        Set of p-values of the individual tests.
     alpha : float
-        error rate
+        Error rate.
 
     Returns
     -------
     reject : array, bool
-        True if a hypothesis is rejected, False if not
+        True if a hypothesis is rejected, False if not.
     pval_corrected : array
-        pvalues adjusted for multiple hypothesis testing to limit FDR
-
+        P-values adjusted for multiple hypothesis testing to limit FDR.
     """
     pval = np.asarray(pval)
     pval_corrected = pval * float(pval.size)

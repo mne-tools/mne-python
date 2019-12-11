@@ -1,5 +1,5 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
@@ -7,7 +7,7 @@ from .constants import FIFF
 from .tag import find_tag, has_tag
 from .write import (write_int, start_block, end_block, write_float_matrix,
                     write_name_list)
-from ..utils import logger, verbose
+from ..utils import logger
 
 
 def _transpose_named_matrix(mat):
@@ -17,9 +17,7 @@ def _transpose_named_matrix(mat):
     mat['data'] = mat['data'].T
 
 
-@verbose
-def _read_named_matrix(fid, node, matkind, indent='    ', transpose=False,
-                       verbose=None):
+def _read_named_matrix(fid, node, matkind, indent='    ', transpose=False):
     """Read named matrix from the given node.
 
     Parameters

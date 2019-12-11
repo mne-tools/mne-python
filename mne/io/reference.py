@@ -1,5 +1,5 @@
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
@@ -154,7 +154,7 @@ def _apply_reference(inst, ref_from, ref_to=None):
         # If the reference touches EEG electrodes, note in the info that a
         # non-CAR has been applied.
         if len(np.intersect1d(ref_to, eeg_idx)) > 0:
-            inst.info['custom_ref_applied'] = True
+            inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
     else:
         ref_data = None
 
@@ -266,6 +266,22 @@ def add_reference_channels(inst, ref_channels, copy=True):
     return inst
 
 
+_ref_dict = {
+    FIFF.FIFFV_MNE_CUSTOM_REF_ON: 'on',
+    FIFF.FIFFV_MNE_CUSTOM_REF_OFF: 'off',
+    FIFF.FIFFV_MNE_CUSTOM_REF_CSD: 'CSD',
+}
+
+
+def _check_can_reref(inst):
+    _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), "Instance")
+    current_custom = inst.info['custom_ref_applied']
+    if current_custom not in (FIFF.FIFFV_MNE_CUSTOM_REF_ON,
+                              FIFF.FIFFV_MNE_CUSTOM_REF_OFF):
+        raise RuntimeError('Cannot set new reference on data with custom '
+                           'reference type %r' % (_ref_dict[current_custom],))
+
+
 @verbose
 def set_eeg_reference(inst, ref_channels='average', copy=True,
                       projection=False, ch_type='auto', verbose=None):
@@ -277,30 +293,6 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     electrode or a new virtual channel. This function will re-reference the
     data according to the desired reference and prevent MNE-Python from
     automatically adding an average reference projection.
-
-    Some common referencing schemes and the corresponding value for the
-    ``ref_channels`` parameter:
-
-    No re-referencing:
-        If the EEG data is already using the proper reference, set
-        ``ref_channels=[]``. This will prevent MNE-Python from automatically
-        adding an average reference projection.
-
-    Average reference:
-        A new virtual reference electrode is created by averaging the current
-        EEG signal by setting ``ref_channels='average'``. Bad EEG channels are
-        automatically excluded if they are properly set in ``info['bads']``.
-
-    A single electrode:
-        Set ``ref_channels`` to a list containing the name of the channel that
-        will act as the new reference, for example ``ref_channels=['Cz']``.
-
-    The mean of multiple electrodes:
-        A new virtual reference electrode is created by computing the average
-        of the current EEG signal recorded from two or more selected channels.
-        Set ``ref_channels`` to a list of channel names, indicating which
-        channels to use. For example, to apply an average mastoid reference,
-        when using the 10-20 naming scheme, set ``ref_channels=['M1', 'M2']``.
 
     Parameters
     ----------
@@ -342,8 +334,37 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
         Array of reference data subtracted from EEG channels. This will be
         ``None`` if ``ref_channels='average'`` and ``projection=True``.
 
+    See Also
+    --------
+    set_bipolar_reference : Convenience function for creating bipolar
+                            references.
+
     Notes
     -----
+    Some common referencing schemes and the corresponding value for the
+    ``ref_channels`` parameter:
+
+    No re-referencing:
+        If the EEG data is already using the proper reference, set
+        ``ref_channels=[]``. This will prevent MNE-Python from automatically
+        adding an average reference projection.
+
+    Average reference:
+        A new virtual reference electrode is created by averaging the current
+        EEG signal by setting ``ref_channels='average'``. Bad EEG channels are
+        automatically excluded if they are properly set in ``info['bads']``.
+
+    A single electrode:
+        Set ``ref_channels`` to a list containing the name of the channel that
+        will act as the new reference, for example ``ref_channels=['Cz']``.
+
+    The mean of multiple electrodes:
+        A new virtual reference electrode is created by computing the average
+        of the current EEG signal recorded from two or more selected channels.
+        Set ``ref_channels`` to a list of channel names, indicating which
+        channels to use. For example, to apply an average mastoid reference,
+        when using the 10-20 naming scheme, set ``ref_channels=['M1', 'M2']``.
+
     1. If a reference is requested that is not the average reference, this
        function removes any pre-existing average reference projections.
 
@@ -357,13 +378,8 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
        they are properly set in ``info['bads']``.
 
     .. versionadded:: 0.9.0
-
-    See Also
-    --------
-    set_bipolar_reference : Convenience function for creating bipolar
-                            references.
     """
-    _validate_type(inst, (BaseRaw, BaseEpochs, Evoked), "Instance")
+    _check_can_reref(inst)
 
     if projection:  # average reference projector
         if ref_channels != 'average':
@@ -379,18 +395,18 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
             # sure that the custom_ref_applied flag is left untouched.
             custom_ref_applied = inst.info['custom_ref_applied']
             try:
-                inst.info['custom_ref_applied'] = False
+                inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_OFF
                 inst.add_proj(make_eeg_average_ref_proj(inst.info,
                               activate=False))
-                # If the data has been preloaded, projections will no
-                # longer be automatically applied.
-                if inst.preload:
-                    logger.info('Average reference projection was added, '
-                                'but has not been applied yet. Use the '
-                                'apply_proj method to apply it.')
             except Exception:
                 inst.info['custom_ref_applied'] = custom_ref_applied
                 raise
+            # If the data has been preloaded, projections will no
+            # longer be automatically applied.
+            if inst.preload:
+                logger.info('Average reference projection was added, '
+                            'but has not been applied yet. Use the '
+                            'apply_proj method to apply it.')
             return inst, None
 
     inst = inst.copy() if copy else inst
@@ -476,6 +492,10 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     inst : instance of Raw | Epochs | Evoked
         Data with the specified channels re-referenced.
 
+    See Also
+    --------
+    set_eeg_reference : Convenience function for creating an EEG reference.
+
     Notes
     -----
     1. If the anodes contain any EEG channels, this function removes
@@ -487,11 +507,8 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     3. The data must be preloaded.
 
     .. versionadded:: 0.9.0
-
-    See Also
-    --------
-    set_eeg_reference : Convenience function for creating an EEG reference.
     """
+    _check_can_reref(inst)
     if not isinstance(anode, list):
         anode = [anode]
 

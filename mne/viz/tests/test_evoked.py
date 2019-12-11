@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -277,11 +277,6 @@ def test_plot_compare_evokeds():
     plot_compare_evokeds(evoked_dict, cmap=('cmap title', 'inferno'),
                          linestyles=['-', ':', '--'])
     plt.close('all')
-    # test deprecation
-    with pytest.warns(DeprecationWarning, match='"gfp" is deprecated'):
-        plot_compare_evokeds(evoked, gfp=True)
-    with pytest.warns(DeprecationWarning, match='"max_ticks" changed to '):
-        plot_compare_evokeds(evoked, picks=[0], truncate_yaxis='max_ticks')
     # test warnings
     with pytest.warns(RuntimeWarning, match='in "picks"; cannot combine'):
         plot_compare_evokeds(evoked, picks=[0], combine='median')

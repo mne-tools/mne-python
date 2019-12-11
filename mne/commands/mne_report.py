@@ -82,7 +82,7 @@ def log_elapsed(t, verbose=None):
 
 def run():
     """Run command."""
-    from mne.commands.utils import get_optparser
+    from mne.commands.utils import get_optparser, _add_verbose_flag
 
     parser = get_optparser(__file__)
 
@@ -116,8 +116,7 @@ def run():
     parser.add_option("--image-format", type="str", dest="image_format",
                       default='png', help="Image format to use "
                       "(can be 'png' or 'svg')")
-    parser.add_option("-v", "--verbose", dest="verbose",
-                      action='store_true', help="run in verbose mode")
+    _add_verbose_flag(parser)
 
     options, args = parser.parse_args()
     path = options.path
@@ -152,5 +151,6 @@ def run():
                         mri_decim=mri_decim)
     log_elapsed(time.time() - t0, verbose=verbose)
     report.save(open_browser=open_browser, overwrite=overwrite)
+
 
 mne.utils.run_command_if_main()

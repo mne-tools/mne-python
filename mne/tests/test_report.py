@@ -22,6 +22,7 @@ from mne.report import Report, open_report, _ReportScraper
 from mne.utils import (_TempDir, requires_mayavi, requires_nibabel, Bunch,
                        run_tests_if_main, traits_test, requires_h5py)
 from mne.viz import plot_alignment
+from mne.io.write import DATE_NONE
 
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
@@ -142,9 +143,9 @@ def test_render_report():
     # ndarray support smoke test
     report.add_figs_to_section(np.zeros((2, 3, 3)), 'caption', 'section')
 
-    with pytest.raises(TypeError, match='Each fig must be a'):
+    with pytest.raises(TypeError, match='figure must be a'):
         report.add_figs_to_section('foo', 'caption', 'section')
-    with pytest.raises(TypeError, match='Each fig must be a'):
+    with pytest.raises(TypeError, match='figure must be a'):
         report.add_figs_to_section(['foo'], 'caption', 'section')
 
 
@@ -165,9 +166,25 @@ def test_report_raw_psd_and_date():
     assert 'PSD' in ''.join(report.html)
     assert 'GMT' in ''.join(report.html)
 
-    # DATE_NONE functionality
+    # test new anonymize functionality
     report = Report()
     raw.anonymize()
+    raw.save(raw_fname_new, overwrite=True)
+    report.parse_folder(data_path=tempdir, render_bem=False,
+                        on_error='raise')
+    assert isinstance(report.html, list)
+    assert 'GMT' in ''.join(report.html)
+
+    # DATE_NONE functionality
+    report = Report()
+    # old style (pre 0.20) date anonymization
+    raw.info['meas_date'] = None
+    for key in ('file_id', 'meas_id'):
+        value = raw.info.get(key)
+        if value is not None:
+            assert 'msecs' not in value
+            value['secs'] = DATE_NONE[0]
+            value['usecs'] = DATE_NONE[1]
     raw.save(raw_fname_new, overwrite=True)
     report.parse_folder(data_path=tempdir, render_bem=False,
                         on_error='raise')

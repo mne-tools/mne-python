@@ -9,7 +9,7 @@ parcellation. The connectivity is visualized using a circular graph which
 is ordered based on the locations of the regions in the axial plane.
 """
 # Authors: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Nicolas P. Rougier (graph code borrowed from his matplotlib gallery)
 #
 # License: BSD (3-clause)
@@ -100,7 +100,7 @@ label_ts = mne.extract_label_time_course(stcs, labels, src, mode='mean_flip',
 fmin = 8.
 fmax = 13.
 sfreq = raw.info['sfreq']  # the sampling frequency
-con_methods = ['pli', 'wpli2_debiased']
+con_methods = ['pli', 'wpli2_debiased', 'ciplv']
 con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
     label_ts, method=con_methods, mode='multitaper', sfreq=sfreq, fmin=fmin,
     fmax=fmax, faverage=True, mt_adaptive=True, n_jobs=1)
@@ -163,7 +163,7 @@ for ii, method in enumerate(con_methods):
     plot_connectivity_circle(con_res[method], no_names, n_lines=300,
                              node_angles=node_angles, node_colors=label_colors,
                              title=method, padding=0, fontsize_colorbar=6,
-                             fig=fig, subplot=(1, 2, ii + 1))
+                             fig=fig, subplot=(1, 3, ii + 1))
 
 plt.show()
 

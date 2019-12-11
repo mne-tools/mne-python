@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -83,6 +83,21 @@ def test_plot_epochs_basic(capsys):
     with pytest.warns(RuntimeWarning, match='projection'):
         epochs.plot(noise_cov=cov)
     plt.close('all')
+    # check the epochs color plotting
+    epoch_colors = [['r'] * len(epochs.ch_names) for _ in
+                    range(len(epochs.events))]
+    epochs.plot(epoch_colors=epoch_colors)
+    with pytest.raises(TypeError, match='must be an instance of'):
+        epochs.plot(epoch_colors='r')
+    with pytest.raises(ValueError, match='must be list of len'):
+        epochs.plot(epoch_colors=['r'] * len(epochs.ch_names))
+    epoch_colors[0] = None
+    with pytest.raises(TypeError, match='must be an instance of'):
+        epochs.plot(epoch_colors=epoch_colors)
+    epoch_colors[0] = ['r'] * 5
+    with pytest.raises(ValueError, match='epoch_colors for the 0th epoch has'
+                       ' length'):
+        epochs.plot(epoch_colors=epoch_colors)
     # other options
     fig = epochs[0].plot(picks=[0, 2, 3], scalings=None)
     fig.canvas.key_press_event('escape')
@@ -180,14 +195,11 @@ def test_plot_epochs_image():
     # test order=callable
     epochs.plot_image(picks=[0, 1],
                       order=lambda times, data: np.arange(len(data))[::-1])
-    # test deprecation
-    with pytest.warns(DeprecationWarning, match='group_by="type" is no longe'):
-        epochs.plot_image(group_by='type')
     # test warning
     with pytest.warns(RuntimeWarning, match='Only one channel in group'):
         epochs.plot_image(picks=[1], combine='mean')
     # group_by should be a dict
-    with pytest.raises(AttributeError, match="has no attribute 'items'"):
+    with pytest.raises(TypeError, match="dict or None"):
         epochs.plot_image(group_by='foo')
     # units and scalings keys must match
     with pytest.raises(ValueError, match='Scalings and units must have the'):
@@ -296,7 +308,7 @@ def test_plot_psd_epochs():
     epochs.plot_psd_topomap()
 
     # with a flat channel
-    err_str = r'channel\(s\) (%s){1}\.' % epochs.ch_names[2]
+    err_str = 'for channel %s' % epochs.ch_names[2]
     epochs.get_data()[0, 2, :] = 0
     for dB in [True, False]:
         with pytest.warns(UserWarning, match=err_str):
@@ -342,9 +354,8 @@ def test_plot_psd_epochs_ctf():
     epochs.plot_psd_topomap()
 
     # EEG060 is flat in this dataset
-    err_str = r'channel\(s\) EEG060\.'
     for dB in [True, False]:
-        with pytest.warns(UserWarning, match=err_str):
+        with pytest.warns(UserWarning, match='for channel EEG060'):
             epochs.plot_psd(dB=dB)
     epochs.drop_channels(['EEG060'])
     epochs.plot_psd(spatial_colors=False, average=False)

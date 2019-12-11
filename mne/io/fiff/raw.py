@@ -1,5 +1,5 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
@@ -156,11 +156,12 @@ class Raw(BaseRaw):
             if len(raw_node) == 0:
                 raw_node = dir_tree_find(meas, FIFF.FIFFB_CONTINUOUS_DATA)
                 if (len(raw_node) == 0):
-                    raw_node = dir_tree_find(meas, FIFF.FIFFB_SMSH_RAW_DATA)
+                    raw_node = dir_tree_find(meas, FIFF.FIFFB_IAS_RAW_DATA)
                     if (len(raw_node) == 0):
                         raise ValueError('No raw data in %s' % fname_rep)
                     _check_maxshield(allow_maxshield)
                     info['maxshield'] = True
+            del meas
 
             if len(raw_node) == 1:
                 raw_node = raw_node[0]

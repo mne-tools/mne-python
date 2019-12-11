@@ -16,7 +16,7 @@ The procedure consists of:
   - compute stats to see if ratio deviates from 1.
 
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 

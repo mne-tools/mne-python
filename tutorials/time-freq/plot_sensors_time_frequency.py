@@ -11,8 +11,9 @@ of your data (frequency and time-frequency). Here we'll work on Epochs.
 We will use this dataset: :ref:`somato-dataset`. It contains so-called event
 related synchronizations (ERS) / desynchronizations (ERD) in the beta band.
 """  # noqa: E501
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+#          Richard Höchenberger <richard.hoechenberger@gmail.com>
 #
 # License: BSD (3-clause)
 import os.path as op
@@ -21,7 +22,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
-from mne.time_frequency import tfr_morlet, psd_multitaper
+from mne.time_frequency import tfr_morlet, psd_multitaper, psd_welch
 from mne.datasets import somato
 
 ###############################################################################
@@ -46,7 +47,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=baseline, reject=dict(grad=4000e-13, eog=350e-6),
                     preload=True)
 
-epochs.resample(150., npad='auto')  # resample to reduce computation time
+epochs.resample(200., npad='auto')  # resample to reduce computation time
 
 ###############################################################################
 # Frequency analysis
@@ -78,9 +79,50 @@ psds_std = psds.mean(0).std(0)
 ax.plot(freqs, psds_mean, color='k')
 ax.fill_between(freqs, psds_mean - psds_std, psds_mean + psds_std,
                 color='k', alpha=.5)
-ax.set(title='Multitaper PSD (gradiometers)', xlabel='Frequency',
+ax.set(title='Multitaper PSD (gradiometers)', xlabel='Frequency (Hz)',
        ylabel='Power Spectral Density (dB)')
 plt.show()
+
+###############################################################################
+# Notably, :func:`mne.time_frequency.psd_welch` supports the keyword argument
+# ``average``, which specifies how to estimate the PSD based on the individual
+# windowed segments. The default is ``average='mean'``, which simply calculates
+# the arithmetic mean across segments. Specifying ``average='median'``, in
+# contrast, returns the PSD based on the median of the segments (corrected for
+# bias relative to the mean), which is a more robust measure.
+
+# Estimate PSDs based on "mean" and "median" averaging for comparison.
+kwargs = dict(fmin=2, fmax=40, n_jobs=1)
+psds_welch_mean, freqs_mean = psd_welch(epochs, average='mean', **kwargs)
+psds_welch_median, freqs_median = psd_welch(epochs, average='median', **kwargs)
+
+# Convert power to dB scale.
+psds_welch_mean = 10 * np.log10(psds_welch_mean)
+psds_welch_median = 10 * np.log10(psds_welch_median)
+
+# We will only plot the PSD for a single sensor in the first epoch.
+ch_name = 'MEG 0122'
+ch_idx = epochs.info['ch_names'].index(ch_name)
+epo_idx = 0
+
+_, ax = plt.subplots()
+ax.plot(freqs_mean, psds_welch_mean[epo_idx, ch_idx, :], color='k',
+        ls='-', label='mean of segments')
+ax.plot(freqs_median, psds_welch_median[epo_idx, ch_idx, :], color='k',
+        ls='--', label='median of segments')
+
+ax.set(title='Welch PSD ({}, Epoch {})'.format(ch_name, epo_idx),
+       xlabel='Frequency (Hz)', ylabel='Power Spectral Density (dB)')
+ax.legend(loc='upper right')
+plt.show()
+
+###############################################################################
+# Lastly, we can also retrieve the unaggregated segments by passing
+# ``average=None`` to :func:`mne.time_frequency.psd_welch`. The dimensions of
+# the returned array are ``(n_epochs, n_sensors, n_freqs, n_segments)``.
+
+psds_welch_unagg, freqs_unagg = psd_welch(epochs, average=None, **kwargs)
+print(psds_welch_unagg.shape)
 
 ###############################################################################
 # .. _inter-trial-coherence:
@@ -143,8 +185,7 @@ itc.plot_topo(title='Inter-Trial coherence', vmin=0., vmax=1., cmap='Reds')
 #     Baseline correction can be applied to power or done in plots.
 #     To illustrate the baseline correction in plots, the next line is
 #     commented power.apply_baseline(baseline=(-0.5, 0), mode='logratio')
-
-###############################################################################
+#
 # Exercise
 # --------
 #

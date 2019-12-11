@@ -13,9 +13,10 @@ class TransformerMixin(object):
         ----------
         X : array, shape (n_samples, n_features)
             Training set.
-
         y : array, shape (n_samples,)
             Target values.
+        **fit_params : dict
+            Additional fitting parameters passed to ``self.fit``.
 
         Returns
         -------
@@ -46,7 +47,18 @@ class EstimatorMixin(object):
         return
 
     def set_params(self, **params):
-        """Set parameters (mimics sklearn API)."""
+        """Set parameters (mimics sklearn API).
+
+        Parameters
+        ----------
+        **params : dict
+            Extra parameters.
+
+        Returns
+        -------
+        inst : object
+            The instance.
+        """
         if not params:
             return self
         valid_params = self.get_params(deep=True)

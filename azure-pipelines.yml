@@ -7,15 +7,82 @@ trigger:
       - maint/*
 
 jobs:
+
+- job: Style
+  pool:
+    vmImage: 'ubuntu-18.04'
+  strategy:
+    matrix:
+      Python37-64bit-fast:
+        PYTHON_VERSION: '3.7'
+        PYTHON_ARCH: 'x64'
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: $(PYTHON_VERSION)
+      architecture: $(PYTHON_ARCH)
+      addToPath: true
+  - bash: |
+      python -m pip install --upgrade pip
+      python -m pip install numpy scipy matplotlib sphinx pytest pytest-cov pytest-timeout pytest-sugar flake8
+    displayName: Install dependencies
+    condition: always()
+  - bash: |
+      make flake
+    displayName: make flake
+    condition: always()
+  - bash: |
+      pip install pydocstyle
+    displayName: Install pydocstyle
+    condition: always()
+  - bash: |
+      make pydocstyle
+    displayName: make pydocstyle
+    condition: always()
+  - bash: |
+      pip install codespell
+    displayName: Install codespell
+    condition: always()
+  - bash: |
+      make codespell-error
+    displayName: make codespell-error
+    condition: always()
+  - bash: |
+      pip install https://api.github.com/repos/numpy/numpydoc/zipball/master pytest pytest-cov pytest-timeout pytest-sugar
+    displayName: Install NumpyDoc validation
+    condition: always()
+  - bash: |
+      make docstring
+    displayName: make docstring
+  - bash: |
+      make nesting
+    displayName: make nesting
+    condition: always()
+  - bash: |
+      pip install check-manifest
+    displayName: Install manifest checker
+    condition: always()
+  - bash: |
+      make check-manifest
+    displayName: make check-manifest
+    condition: always()
+  - bash: |
+      pip install twine wheel
+    displayName: Install twine
+    condition: always()
+  - bash: |
+      make check-readme
+    displayName: make check-readme
+    condition: always()
+
 - job: Windows
   pool:
-    vmIMage: 'VS2017-Win2016'
+    vmImage: 'VS2017-Win2016'
   variables:
     MNE_LOGGING_LEVEL: 'warning'
     MNE_FORCE_SERIAL: 'true'
     OPENBLAS_NUM_THREADS: 1
     AZURE_CI_WINDOWS: 'true'
-    PYTHON_VERSION: '3.7'
     CONDA_VERSION: '>=4.3.27'
   strategy:
     maxParallel: 4
@@ -28,32 +95,45 @@ jobs:
         TEST_MODE: 'conda'
         CONDA_ENV: 'environment.yml'
         PIP_NO_UPGRADE: 'True'
+        PYTHON_VERSION: '3.7'
       Python37-64bit-full-pip:
         PYTHON_ARCH: 'x64'
         TEST_MODE: 'pip'
+        PYTHON_VERSION: '3.7'
+      Python38-64bit-pre-pip:
+        PYTHON_ARCH: 'x64'
+        TEST_MODE: 'pre-pip'
+        PYTHON_VERSION: '3.8'
   steps:
   - task: UsePythonVersion@0
     inputs:
       versionSpec: $(PYTHON_VERSION)
       architecture: $(PYTHON_ARCH)
       addToPath: true
-    condition: eq(variables['TEST_MODE'], 'pip')
-  - powershell: |
-      Set-StrictMode -Version Latest
-      $ErrorActionPreference = "Stop"
-      $PSDefaultParameterValues['*:ErrorAction']='Stop'
+    condition: in(variables['TEST_MODE'], 'pip', 'pre-pip')
+  - bash: |
+      set -e
       git clone --depth 1 git://github.com/pyvista/gl-ci-helpers.git
       powershell gl-ci-helpers/appveyor/install_opengl.ps1
     displayName: Install OpenGL
-  - powershell: |
-      Set-StrictMode -Version Latest
-      $ErrorActionPreference = "Stop"
-      $PSDefaultParameterValues['*:ErrorAction']='Stop'
+  - bash: |
+      set -e
       pip install --upgrade numpy scipy vtk
       pip install --upgrade -r requirements.txt
       pip install codecov
     condition: eq(variables['TEST_MODE'], 'pip')
     displayName: 'Install dependencies with pip'
+  # VTK does not have wheels (scheduled Q1 2020):
+  # https://github.com/KitwareMedical/VTKPythonPackage/issues/39
+  # Missing: vtk, mayavi, PySurfer, pyvista, numexpr, python-picard, numba, dipy, statsmodels (doesn't work on pre as of 2019/12/04)
+  - bash: |
+      set -e
+      python -m pip install --upgrade pip setuptools
+      python -m pip install --upgrade --pre --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" numpy scipy scikit-learn matplotlib h5py pandas Pillow
+      python -m pip install --upgrade nilearn pyqt5 pyqt5-sip nibabel pytest pytest-cov pytest-faulthandler pytest-mock pytest-sugar pytest-timeout joblib psutil https://api.github.com/repos/numpy/numpydoc/zipball/master neo xlrd codecov
+      python -m pip install codecov
+    condition: eq(variables['TEST_MODE'], 'pre-pip')
+    displayName: 'Install dependencies with pip --pre'
   - powershell: |
       Set-StrictMode -Version Latest
       $ErrorActionPreference = "Stop"
@@ -72,11 +152,11 @@ jobs:
     displayName: 'Install dependencies with conda'
   - script: python setup.py develop
     displayName: 'Install MNE-Python dev'
-  - script: python -c "import mne; print(mne.sys_info())"
-    displayName: 'Print config'
+  - script: mne sys_info
+    displayName: 'Print config and test access to commands'
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
-  - script: pytest -m "not ultraslowtest" mne
+  - script: pytest -m "not ultraslowtest" --cov=mne mne
     displayName: 'Run tests'
   - script: codecov --root %BUILD_REPOSITORY_LOCALPATH% -t %CODECOV_TOKEN%
     displayName: 'Codecov'

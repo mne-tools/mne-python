@@ -10,7 +10,6 @@ from numpy.testing import assert_allclose
 import pytest
 
 from mne.datasets import testing
-from mne.io.tests import data_dir as fiff_data_dir
 from mne.utils import _TempDir, requires_mayavi, run_tests_if_main, traits_test
 from mne.channels import read_dig_fif
 
@@ -18,7 +17,8 @@ data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 bem_path = op.join(subjects_dir, 'sample', 'bem', 'sample-1280-bem.fif')
 inst_path = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
-fid_path = op.join(fiff_data_dir, 'fsaverage-fiducials.fif')
+fid_path = op.join(op.dirname(__file__), '..', '..', 'data', 'fsaverage',
+                   'fsaverage-fiducials.fif')
 
 
 @testing.requires_testing_data

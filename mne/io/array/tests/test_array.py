@@ -163,11 +163,14 @@ def test_array_raw():
     ch_pos_loc = np.random.randint(60, size=(n_elec, 3)).tolist()
 
     data = np.random.rand(n_elec, ts_size)
-    montage = make_dig_montage(ch_pos=dict(zip(ch_names, ch_pos_loc)))
+    montage = make_dig_montage(
+        ch_pos=dict(zip(ch_names, ch_pos_loc)),
+        coord_frame='head'
+    )
     info = create_info(ch_names, Fs, 'ecog', montage=montage)
 
     raw = RawArray(data, info)
-    raw.plot_psd(average=False)  # looking for inexistent layout
+    raw.plot_psd(average=False)  # looking for nonexistent layout
     raw.plot_psd_topo()
 
 

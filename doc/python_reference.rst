@@ -53,7 +53,6 @@ Reading raw data
    :toctree: generated/
 
    anonymize_info
-   find_edf_events
    read_raw_artemis123
    read_raw_bti
    read_raw_cnt
@@ -64,6 +63,7 @@ Reading raw data
    read_raw_gdf
    read_raw_kit
    read_raw_nicolet
+   read_raw_nirx
    read_raw_eeglab
    read_raw_brainvision
    read_raw_egi
@@ -185,11 +185,14 @@ Datasets
    brainstorm.bst_resting.data_path
    brainstorm.bst_raw.data_path
    eegbci.load_data
+   eegbci.standardize
    fetch_aparc_sub_parcellation
    fetch_fsaverage
    fetch_hcp_mmp_parcellation
+   fnirs_motor.data_path
    hf_sef.data_path
    kiloword.data_path
+   limo.load_data
    misc.data_path
    mtrf.data_path
    multimodal.data_path
@@ -223,6 +226,7 @@ Visualization
    circular_layout
    mne_analyze_colormap
    plot_bem
+   plot_brain_colorbar
    plot_connectivity_circle
    plot_cov
    plot_csd
@@ -303,18 +307,19 @@ Projections:
    :toctree: generated/
 
    Layout
-   Montage
    DigMontage
    fix_mag_coil_types
-   read_montage
    read_polhemus_fastscan
    get_builtin_montages
-   read_dig_montage
    make_dig_montage
    read_dig_polhemus_isotrak
    read_dig_captrack
+   read_dig_dat
    read_dig_egi
    read_dig_fif
+   read_dig_hpts
+   make_standard_montage
+   read_custom_montage
    compute_dev_head_t
    read_layout
    find_layout
@@ -340,6 +345,7 @@ Projections:
 
    ICA
    Xdawn
+   compute_current_source_density
    compute_proj_ecg
    compute_proj_eog
    create_ecg_epochs
@@ -357,6 +363,22 @@ Projections:
    read_ica
    run_ica
    corrmap
+
+:py:mod:`mne.preprocessing.nirs`:
+
+.. currentmodule:: mne.preprocessing.nirs
+
+.. automodule:: mne.preprocessing.nirs
+   :no-members:
+   :no-inherited-members:
+
+.. autosummary::
+   :toctree: generated/
+
+   optical_density
+   beer_lambert_law
+   source_detector_distances
+   short_channels
 
 EEG referencing:
 
@@ -398,6 +420,7 @@ EEG referencing:
 .. autosummary::
    :toctree: generated/
 
+   calculate_head_pos_ctf
    filter_chpi
    head_pos_to_trans_rot_t
    read_head_pos
@@ -417,6 +440,7 @@ EEG referencing:
    Transform
    quat_to_rot
    rot_to_quat
+   read_ras_mni_t
 
 Events
 ======
@@ -432,6 +456,7 @@ Events
    find_events
    find_stim_steps
    make_fixed_length_events
+   make_fixed_length_epochs
    merge_events
    parse_config
    pick_events
@@ -629,8 +654,10 @@ Inverse Solutions
    source_band_induced_power
    source_induced_power
    write_inverse_operator
-   point_spread_function
-   cross_talk_function
+   make_resolution_matrix
+   resolution_metrics
+   get_cross_talk
+   get_point_spread
 
 :py:mod:`mne.inverse_sparse`:
 
@@ -1024,3 +1051,4 @@ Logging and Configuration
 
    get_cuda_memory
    init_cuda
+   set_cuda_device
