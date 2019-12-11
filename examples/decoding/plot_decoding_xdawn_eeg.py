@@ -32,7 +32,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.preprocessing import MinMaxScaler
 
-from mne import io, pick_types, read_events, Epochs
+from mne import io, pick_types, read_events, Epochs, EvokedArray
 from mne.datasets import sample
 from mne.preprocessing import Xdawn
 from mne.decoding import Vectorizer
@@ -49,6 +49,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 tmin, tmax = -0.1, 0.3
 event_id = dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4)
+n_filter = 3
 
 # Setup for reading the raw data
 raw = io.read_raw_fif(raw_fname, preload=True)
@@ -63,7 +64,7 @@ epochs = Epochs(raw, events, event_id, tmin, tmax, proj=False,
                 verbose=False)
 
 # Create classification pipeline
-clf = make_pipeline(Xdawn(n_components=3),
+clf = make_pipeline(Xdawn(n_components=n_filter),
                     Vectorizer(),
                     MinMaxScaler(),
                     LogisticRegression(penalty='l1', solver='liblinear',
@@ -100,4 +101,28 @@ plt.yticks(tick_marks, target_names)
 tight_layout()
 plt.ylabel('True label')
 plt.xlabel('Predicted label')
+plt.show()
+
+
+###############################################################################
+# The ``patterns_`` attribute of a fitted Xdawn instance (here from the last
+# cross-validation fold) can be used for visualization.
+
+fig, axes = plt.subplots(nrows=len(event_id), ncols=n_filter)
+fitted_xdawn = clf.steps[0][1]
+for i, (cur_class, cur_patterns) in enumerate(fitted_xdawn.patterns_.items()):
+    tmp_info = epochs.info.copy()
+    tmp_info['sfreq'] = 1.
+    pattern_evoked = EvokedArray(cur_patterns[:n_filter].T, tmp_info, tmin=0)
+    pattern_evoked.plot_topomap(
+        times=np.arange(n_filter), ch_type=None,
+        scalings=None,
+        time_format='{} / comp. %01d'.format(cur_class),
+        colorbar=False,
+        head_pos={'center': [0, 0]},
+        show_names=False,
+        axes=axes[i, :],
+        extrapolate='head',
+        show=False)
+fig.subplots_adjust(hspace=0.3)
 plt.show()
