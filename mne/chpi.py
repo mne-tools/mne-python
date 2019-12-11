@@ -433,6 +433,7 @@ def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs, x0):
     """Fit rotation and translation (quaternion) parameters for cHPI coils."""
     from scipy.optimize import fmin_cobyla
     denom = np.linalg.norm(coil_head_rrs - np.mean(coil_head_rrs, axis=0))
+    denom *= denom
     objective = partial(_chpi_objective, coil_dev_rrs=coil_dev_rrs,
                         coil_head_rrs=coil_head_rrs)
     x0 = x0.copy()
