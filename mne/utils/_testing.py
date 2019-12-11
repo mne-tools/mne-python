@@ -172,7 +172,11 @@ requires_good_network = partial(
          '    raise ImportError')
 requires_nitime = partial(requires_module, name='nitime')
 requires_h5py = partial(requires_module, name='h5py')
-requires_numpydoc = partial(requires_module, name='numpydoc')
+
+
+def requires_numpydoc(func):
+    """Decorate tests that need numpydoc."""
+    return requires_version('numpydoc', '1.0')(func)  # validate needs 1.0
 
 
 def check_version(library, min_version):

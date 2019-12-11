@@ -784,6 +784,7 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
                                                        mults, n_jobs)
                 else:
                     # Compute solution for EEG sensor
+                    logger.info('Setting up for EEG...')
                     solution = _bem_specify_els(bem, coils, mults)
             else:
                 solution = csolution = bem
