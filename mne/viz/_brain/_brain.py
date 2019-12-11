@@ -457,7 +457,7 @@ class _Brain(object):
 
                 if scale_factor is None:
                     width = np.ptp(self.geo[hemi].coords[:, 1])
-                    final_scale_factor = width * 0.05
+                    final_scale_factor = width * 0.1
                 else:
                     if self._units == 'm':
                         scale_factor = scale_factor / 1000.
