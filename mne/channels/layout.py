@@ -16,11 +16,11 @@ import os.path as op
 import numpy as np
 
 from ..transforms import _pol_to_cart, _cart_to_sph
-from ..bem import fit_sphere_to_headshape
 from ..io.pick import pick_types, _picks_to_idx
 from ..io.constants import FIFF
 from ..io.meas_info import Info
-from ..utils import _clean_names, warn, _check_ch_locs, fill_doc, _check_option
+from ..utils import (_clean_names, warn, _check_ch_locs, fill_doc,
+                     _check_option, _check_sphere)
 from .channels import _get_ch_info
 
 
@@ -250,13 +250,13 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads'):
 
     picks = pick_types(info, meg=False, eeg=True, ref_meg=False,
                        exclude=exclude)
-    loc2d = _auto_topomap_coords(info, picks)
+    loc2d = _find_topomap_coords(info, picks)
     names = [info['chs'][i]['ch_name'] for i in picks]
 
-    # Scale [x, y] to [-0.5, 0.5]
-    loc2d_min = np.min(loc2d, axis=0)
-    loc2d_max = np.max(loc2d, axis=0)
-    loc2d = (loc2d - (loc2d_max + loc2d_min) / 2.) / (loc2d_max - loc2d_min)
+    # Scale [x, y] to be in the range [-0.5, 0.5]
+    # Don't mess with the origin or aspect ratio
+    scale = np.maximum(-np.min(loc2d, axis=0), np.max(loc2d, axis=0)).max() * 2
+    loc2d /= scale
 
     # If no width or height specified, calculate the maximum value possible
     # without axes overlapping.
@@ -425,8 +425,8 @@ def find_layout(info, ch_type=None, exclude='bads'):
 
     # If no known layout is found, fall back on automatic layout
     if layout_name is None:
-        xy = _auto_topomap_coords(info, picks=range(info['nchan']),
-                                  ignore_overlap=True, to_sphere=False)
+        xy = _find_topomap_coords(info, picks=range(info['nchan']),
+                                  ignore_overlap=True)
         return generate_2d_layout(xy, ch_names=info['ch_names'], name='custom',
                                   normalize=False)
 
@@ -582,7 +582,8 @@ def _box_size(points, width=None, height=None, padding=0.0):
     return width, height
 
 
-def _find_topomap_coords(info, picks, layout=None):
+def _find_topomap_coords(info, picks, layout=None, ignore_overlap=False,
+                         to_sphere=True, sphere=None):
     """Guess the E/MEG layout and return appropriate topomap coordinates.
 
     Parameters
@@ -595,6 +596,8 @@ def _find_topomap_coords(info, picks, layout=None):
         Enforce using a specific layout. With None, a new map is generated
         and a layout is chosen based on the channels in the picks
         parameter.
+    sphere : array-like | str
+        Definition of the head sphere.
 
     Returns
     -------
@@ -608,12 +611,14 @@ def _find_topomap_coords(info, picks, layout=None):
         pos = [layout.pos[layout.names.index(ch['ch_name'])] for ch in chs]
         pos = np.asarray(pos)
     else:
-        pos = _auto_topomap_coords(info, picks)
+        pos = _auto_topomap_coords(
+            info, picks, ignore_overlap=ignore_overlap, to_sphere=to_sphere,
+            sphere=sphere)
 
     return pos
 
 
-def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
+def _auto_topomap_coords(info, picks, ignore_overlap, to_sphere, sphere):
     """Make a 2 dimensional sensor map from sensor positions in an info dict.
 
     The default is to use the electrode locations. The fallback option is to
@@ -632,6 +637,8 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
     to_sphere : bool
         If True, the radial distance of spherical coordinates is ignored, in
         effect fitting the xyz-coordinates to a sphere. Defaults to True.
+    sphere : array-like | str
+        The head sphere definition.
 
     Returns
     -------
@@ -639,6 +646,7 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
         An array of positions of the 2 dimensional map.
     """
     from scipy.spatial.distance import pdist, squareform
+    sphere = _check_sphere(sphere, info)
 
     picks = _picks_to_idx(info, picks, 'all', exclude=(), allow_empty=False)
     chs = [info['chs'][i] for i in picks]
@@ -682,12 +690,8 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
                              "doesn't match the number of EEG channels "
                              "(%d)" % (len(locs3d), len(eeg_ch_names)))
 
-        # Center digitization points on head origin
-        dig_kinds = (FIFF.FIFFV_POINT_CARDINAL,
-                     FIFF.FIFFV_POINT_EEG,
-                     FIFF.FIFFV_POINT_EXTRA)
-        _, origin_head, _ = fit_sphere_to_headshape(info, dig_kinds, units='m')
-        locs3d -= origin_head
+        # We no longer center digitization points on head origin, as we work
+        # in head coordinates always
 
         # Match the digitization points with the requested
         # channels.
@@ -710,10 +714,16 @@ def _auto_topomap_coords(info, picks, ignore_overlap=False, to_sphere=True):
                          ', '.join(problematic_electrodes))
 
     if to_sphere:
+        # translate to sphere origin, transform/flatten Z, translate back
+        locs3d -= sphere[:3]
         # use spherical (theta, pol) as (r, theta) for polar->cartesian
-        return _pol_to_cart(_cart_to_sph(locs3d)[:, 1:][:, ::-1])
-
-    return _pol_to_cart(_cart_to_sph(locs3d))
+        out = _pol_to_cart(_cart_to_sph(locs3d)[:, 1:][:, ::-1])
+        # scale from radians to mm
+        out *= (sphere[3] / (np.pi / 2.))
+        out += sphere[:2]
+    else:
+        out = _pol_to_cart(_cart_to_sph(locs3d))
+    return out
 
 
 def _topo_to_sphere(pos, eegs):

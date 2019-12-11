@@ -10,8 +10,7 @@
 #
 # License: BSD (3-clause)
 
-import calendar
-import datetime
+from datetime import datetime, timezone, timedelta
 import os
 import re
 
@@ -20,7 +19,7 @@ import numpy as np
 from ...utils import verbose, logger, warn
 from ..utils import _blk_read_lims
 from ..base import BaseRaw
-from ..meas_info import _empty_info, _unique_channel_names, DATE_NONE
+from ..meas_info import _empty_info, _unique_channel_names
 from ..constants import FIFF
 from ...filter import resample
 from ...utils import fill_doc
@@ -544,8 +543,8 @@ def _read_edf_header(fname, exclude):
         hour, minute, sec = [int(x) for x in
                              re.findall(r'(\d+)', fid.read(8).decode())]
         century = 2000 if year < 50 else 1900
-        date = datetime.datetime(year + century, month, day, hour, minute, sec)
-        meas_date = (calendar.timegm(date.utctimetuple()), 0)
+        meas_date = datetime(year + century, month, day, hour, minute, sec,
+                             tzinfo=timezone.utc)
 
         header_nbytes = int(fid.read(8).decode())
 
@@ -671,7 +670,7 @@ def _read_gdf_header(fname, exclude):
         version = fid.read(8).decode()
         edf_info['type'] = edf_info['subtype'] = version[:3]
         edf_info['number'] = float(version[4:])
-        meas_date = DATE_NONE
+        meas_date = None
 
         # GDF 1.x
         # ---------------------------------------------------------------------
@@ -694,11 +693,12 @@ def _read_gdf_header(fname, exclude):
             try:
                 if tm[14:16] == '  ':
                     tm = tm[:14] + '00' + tm[16:]
-                date = datetime.datetime(int(tm[0:4]), int(tm[4:6]),
-                                         int(tm[6:8]), int(tm[8:10]),
-                                         int(tm[10:12]), int(tm[12:14]),
-                                         int(tm[14:16]) * pow(10, 4))
-                meas_date = (calendar.timegm(date.utctimetuple()), 0)
+                meas_date = datetime(
+                    int(tm[0:4]), int(tm[4:6]),
+                    int(tm[6:8]), int(tm[8:10]),
+                    int(tm[10:12]), int(tm[12:14]),
+                    int(tm[14:16]) * pow(10, 4),
+                    tzinfo=timezone.utc)
             except Exception:
                 pass
 
@@ -848,21 +848,23 @@ def _read_gdf_header(fname, exclude):
             loc['altitude'] = float(np.fromfile(fid, np.int32, 1)[0]) / 100
             meas_id['loc'] = loc
 
-            date = np.fromfile(fid, np.uint64, 1)[0]
-            if date != 0:
-                date = datetime.datetime(1, 1, 1) + \
-                    datetime.timedelta(date * pow(2, -32) - 367)
-                meas_date = (calendar.timegm(date.utctimetuple()), 0)
+            meas_date = np.fromfile(fid, np.uint64, 1)[0]
+            if meas_date != 0:
+                meas_date = (datetime(1, 1, 1, tzinfo=timezone.utc) +
+                             timedelta(meas_date * pow(2, -32) - 367))
+            else:
+                meas_date = None
 
             birthday = np.fromfile(fid, np.uint64, 1).tolist()[0]
             if birthday == 0:
-                birthday = datetime.datetime(1, 1, 1)
+                birthday = datetime(1, 1, 1, tzinfo=timezone.utc)
             else:
-                birthday = (datetime.datetime(1, 1, 1) +
-                            datetime.timedelta(birthday * pow(2, -32) - 367))
+                birthday = (datetime(1, 1, 1) +
+                            timedelta(birthday * pow(2, -32) - 367))
             patient['birthday'] = birthday
-            if patient['birthday'] != datetime.datetime(1, 1, 1, 0, 0):
-                today = datetime.datetime.today()
+            if patient['birthday'] != datetime(1, 1, 1, 0, 0,
+                                               tzinfo=timezone.utc):
+                today = datetime.today(tzinfo=timezone.utc)
                 patient['age'] = today.year - patient['birthday'].year
                 today = today.replace(year=patient['birthday'].year)
                 if today < patient['birthday']:

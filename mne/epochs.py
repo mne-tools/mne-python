@@ -16,6 +16,7 @@ from copy import deepcopy
 import json
 import operator
 import os.path as op
+import warnings
 from distutils.version import LooseVersion
 
 import numpy as np
@@ -382,7 +383,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         if events is not None:  # RtEpochs can have events=None
             events_type = type(events)
-            events = np.asarray(events)
+            with warnings.catch_warnings(record=True):
+                warnings.simplefilter('ignore')  # deprecation for object array
+                events = np.asarray(events)
             if not np.issubdtype(events.dtype, np.integer):
                 raise TypeError('events should be a NumPy array of integers, '
                                 'got {}'.format(events_type))
@@ -578,7 +581,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             current sampling rate.
 
             .. versionadded:: 0.12
-
         %(verbose_meth)s
 
         Returns
@@ -809,12 +811,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         """Subtract an evoked response from each epoch.
 
         Can be used to exclude the evoked response when analyzing induced
-        activity, see e.g. [1].
-
-        References
-        ----------
-        [1] David et al. "Mechanisms of evoked and induced responses in
-        MEG/EEG", NeuroImage, vol. 31, no. 4, pp. 1580-1591, July 2006.
+        activity, see e.g. [1]_.
 
         Parameters
         ----------
@@ -826,6 +823,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         -------
         self : instance of Epochs
             The modified instance (instance is also modified inplace).
+
+        References
+        ----------
+        .. [1] David et al. "Mechanisms of evoked and induced responses in
+               MEG/EEG", NeuroImage, vol. 31, no. 4, pp. 1580-1591, July 2006.
         """
         logger.info('Subtracting Evoked from Epochs')
         if evoked is None:
@@ -917,7 +919,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             >>> epochs.average(method=trim)  # doctest:+SKIP
 
         This would compute the trimmed mean.
-
         """
         return self._compute_aggregate(picks=picks, mode=method)
 
@@ -1042,7 +1043,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     def plot(self, picks=None, scalings=None, n_epochs=20, n_channels=20,
              title=None, events=None, event_colors=None, order=None,
              show=True, block=False, decim='auto', noise_cov=None,
-             butterfly=False, show_scrollbars=True, epoch_colors=None):
+             butterfly=False, show_scrollbars=True, epoch_colors=None,
+             event_id=None):
         return plot_epochs(self, picks=picks, scalings=scalings,
                            n_epochs=n_epochs, n_channels=n_channels,
                            title=title, events=events,
@@ -1050,7 +1052,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                            show=show, block=block, decim=decim,
                            noise_cov=noise_cov, butterfly=butterfly,
                            show_scrollbars=show_scrollbars,
-                           epoch_colors=epoch_colors)
+                           epoch_colors=epoch_colors, event_id=event_id)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd)
     def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None,
@@ -1059,7 +1061,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                  xscale='linear', area_mode='std', area_alpha=0.33,
                  dB=True, estimate='auto', show=True, n_jobs=1,
                  average=False, line_alpha=None, spatial_colors=True,
-                 verbose=None):
+                 sphere=None, verbose=None):
         return plot_epochs_psd(self, fmin=fmin, fmax=fmax, tmin=tmin,
                                tmax=tmax, proj=proj, bandwidth=bandwidth,
                                adaptive=adaptive, low_bias=low_bias,
@@ -1068,7 +1070,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                                area_alpha=area_alpha, dB=dB, estimate=estimate,
                                show=show, n_jobs=n_jobs, average=average,
                                line_alpha=line_alpha,
-                               spatial_colors=spatial_colors, verbose=verbose)
+                               spatial_colors=spatial_colors, sphere=sphere,
+                               verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd_topomap)
     def plot_psd_topomap(self, bands=None, vmin=None, vmax=None, tmin=None,
@@ -1076,14 +1079,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                          low_bias=True, normalization='length', ch_type=None,
                          layout=None, cmap='RdBu_r', agg_fun=None, dB=True,
                          n_jobs=1, normalize=False, cbar_fmt='%0.3f',
-                         outlines='head', axes=None, show=True, verbose=None):
+                         outlines='head', axes=None, show=True,
+                         sphere=None, verbose=None):
         return plot_epochs_psd_topomap(
             self, bands=bands, vmin=vmin, vmax=vmax, tmin=tmin, tmax=tmax,
             proj=proj, bandwidth=bandwidth, adaptive=adaptive,
             low_bias=low_bias, normalization=normalization, ch_type=ch_type,
             layout=layout, cmap=cmap, agg_fun=agg_fun, dB=dB, n_jobs=n_jobs,
             normalize=normalize, cbar_fmt=cbar_fmt, outlines=outlines,
-            axes=axes, show=show, verbose=verbose)
+            axes=axes, show=show, sphere=sphere, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_topo_image_epochs)
     def plot_topo_image(self, layout=None, sigma=0., vmin=None, vmax=None,
@@ -1476,7 +1480,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return self
 
     def copy(self):
-        """Return copy of Epochs instance."""
+        """Return copy of Epochs instance.
+
+        Returns
+        -------
+        epochs : instance of Epochs
+            A copy of the object.
+        """
         raw = self._raw
         del self._raw
         new = deepcopy(self)
@@ -1495,7 +1505,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         fname : str
             The name of the file, which should end with -epo.fif or
             -epo.fif.gz.
-        split_size : string | int
+        split_size : str | int
             Large raw files are automatically split into multiple pieces. This
             parameter specifies the maximum size of each piece. If the
             parameter is an integer, it specifies the size in Bytes. It is
@@ -2301,6 +2311,7 @@ def _read_one_epoch_file(f, tree, preload):
 
         #   Locate the data of interest
         processed = dir_tree_find(meas, FIFF.FIFFB_PROCESSED_DATA)
+        del meas
         if len(processed) == 0:
             raise ValueError('Could not find processed data')
 

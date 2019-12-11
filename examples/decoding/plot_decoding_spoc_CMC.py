@@ -31,7 +31,6 @@ import mne
 from mne import Epochs
 from mne.decoding import SPoC
 from mne.datasets.fieldtrip_cmc import data_path
-from mne.channels import read_layout
 
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import Ridge
@@ -87,5 +86,4 @@ plt.show()
 # Plot the contributions to the detected components (i.e., the forward model)
 
 spoc.fit(X, y)
-layout = read_layout('CTF151.lay')
-spoc.plot_patterns(meg_epochs.info, layout=layout)
+spoc.plot_patterns(meg_epochs.info)

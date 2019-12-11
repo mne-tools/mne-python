@@ -37,7 +37,7 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.model_selection import ShuffleSplit, cross_val_score
 
 from mne import Epochs, pick_types, events_from_annotations
-from mne.channels import read_layout
+from mne.channels import make_standard_montage
 from mne.io import concatenate_raws, read_raw_edf
 from mne.datasets import eegbci
 from mne.decoding import CSP
@@ -56,6 +56,9 @@ runs = [6, 10, 14]  # motor imagery: hands vs feet
 
 raw_fnames = eegbci.load_data(subject, runs)
 raw = concatenate_raws([read_raw_edf(f, preload=True) for f in raw_fnames])
+eegbci.standardize(raw)  # set channel names
+montage = make_standard_montage('standard_1005')
+raw.set_montage(montage)
 
 # strip channel names of "." characters
 raw.rename_channels(lambda x: x.strip('.'))
@@ -102,9 +105,7 @@ print("Classification accuracy: %f / Chance level: %f" % (np.mean(scores),
 # plot CSP patterns estimated on full data for visualization
 csp.fit_transform(epochs_data, labels)
 
-layout = read_layout('EEG1005')
-csp.plot_patterns(epochs.info, layout=layout, ch_type='eeg',
-                  units='Patterns (AU)', size=1.5)
+csp.plot_patterns(epochs.info, ch_type='eeg', units='Patterns (AU)', size=1.5)
 
 ###############################################################################
 # Look at performance over time

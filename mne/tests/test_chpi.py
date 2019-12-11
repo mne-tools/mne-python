@@ -14,7 +14,7 @@ from mne.io import (read_raw_fif, read_raw_artemis123, read_raw_ctf, read_info,
                     RawArray)
 from mne.io.constants import FIFF
 from mne.chpi import (_calculate_chpi_positions, _calculate_chpi_coil_locs,
-                      _calculate_head_pos_ctf, head_pos_to_trans_rot_t,
+                      calculate_head_pos_ctf, head_pos_to_trans_rot_t,
                       read_head_pos, write_head_pos, filter_chpi,
                       _get_hpi_info, _get_hpi_initial_fit)
 from mne.transforms import rot_to_quat, _angle_between_quats
@@ -399,12 +399,13 @@ def test_chpi_subtraction():
 def test_calculate_head_pos_ctf():
     """Test extracting of cHPI positions from ctf data."""
     raw = read_raw_ctf(ctf_chpi_fname)
-    quats = _calculate_head_pos_ctf(raw)
+    quats = calculate_head_pos_ctf(raw)
     mc_quats = read_head_pos(ctf_chpi_pos_fname)
     _assert_quats(quats, mc_quats, dist_tol=0.004, angle_tol=2.5)
 
     raw = read_raw_fif(ctf_fname)
-    pytest.raises(RuntimeError, _calculate_head_pos_ctf, raw)
+    with pytest.raises(RuntimeError, match='Could not find'):
+        calculate_head_pos_ctf(raw)
 
 
 run_tests_if_main()

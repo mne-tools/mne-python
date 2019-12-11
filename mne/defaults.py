@@ -95,3 +95,6 @@ def _handle_default(k, v=None):
             for key in this_mapping.keys():
                 this_mapping[key] = v
     return this_mapping
+
+
+HEAD_SIZE_DEFAULT = 0.095  # in [m]

@@ -121,7 +121,7 @@ general neuroimaging concepts. If you think a term is missing, please consider
     forward solution
         The forward solution (abbr. ``fwd``) is a linear operator capturing the
         relationship between each dipole location in the :term:`source space`
-        and the corresponding field distribution measured by the sensors (AKA,
+        and the corresponding field distribution measured by the sensors (A.K.A.,
         the "lead field matrix"). Calculating a forward solution requires a
         conductivity model of the head, encapsulating the geometry and
         electrical conductivity of the different tissue compartments (see

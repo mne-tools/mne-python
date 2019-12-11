@@ -7,13 +7,13 @@
 from contextlib import contextmanager
 import fnmatch
 import inspect
-from io import StringIO
-import logging
 from math import log
 import os
+from queue import Queue, Empty
 from string import Formatter
 import subprocess
 import sys
+from threading import Thread
 import traceback
 
 import numpy as np
@@ -81,6 +81,11 @@ def pformat(temp, **fmt):
     return formatter.vformat(temp, (), mapping)
 
 
+def _enqueue_output(out, queue):
+    for line in iter(out.readline, b''):
+        queue.put(line)
+
+
 @verbose
 def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
     """Run command using subprocess.Popen.
@@ -112,11 +117,42 @@ def run_subprocess(command, return_code=False, verbose=None, *args, **kwargs):
     code : int
         The return code, only returned if ``return_code == True``.
     """
+    all_out = ''
+    all_err = ''
+    # non-blocking adapted from https://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python#4896288  # noqa: E501
+    out_q = Queue()
+    err_q = Queue()
     with running_subprocess(command, *args, **kwargs) as p:
-        stdout_, stderr = p.communicate()
-    stdout_ = u'' if stdout_ is None else stdout_.decode('utf-8')
-    stderr = u'' if stderr is None else stderr.decode('utf-8')
-    output = (stdout_, stderr)
+        out_t = Thread(target=_enqueue_output, args=(p.stdout, out_q))
+        err_t = Thread(target=_enqueue_output, args=(p.stderr, err_q))
+        out_t.daemon = True
+        err_t.daemon = True
+        out_t.start()
+        err_t.start()
+        while True:
+            do_break = p.poll() is not None
+            # read all current lines without blocking
+            while True:
+                try:
+                    out = out_q.get(timeout=0.01)
+                except Empty:
+                    break
+                else:
+                    out = out.decode('utf-8')
+                    logger.info(out)
+                    all_out += out
+            while True:
+                try:
+                    err = err_q.get(timeout=0.01)
+                except Empty:
+                    break
+                else:
+                    err = err.decode('utf-8')
+                    logger.warning(err)
+                    all_err += err
+            if do_break:
+                break
+    output = (all_out, all_err)
 
     if return_code:
         output = output + (p.returncode,)
@@ -158,17 +194,9 @@ def running_subprocess(command, after="wait", verbose=None, *args, **kwargs):
     """
     _validate_type(after, str, 'after')
     _check_option('after', after, ['wait', 'terminate', 'kill', 'communicate'])
-    for stdxxx, sys_stdxxx, thresh in (
-            ['stderr', sys.stderr, logging.ERROR],
-            ['stdout', sys.stdout, logging.WARNING]):
-        if stdxxx not in kwargs and logger.level >= thresh:
+    for stdxxx, sys_stdxxx in (['stderr', sys.stderr], ['stdout', sys.stdout]):
+        if stdxxx not in kwargs:
             kwargs[stdxxx] = subprocess.PIPE
-        elif kwargs.get(stdxxx, sys_stdxxx) is sys_stdxxx:
-            if isinstance(sys_stdxxx, StringIO):
-                # nose monkey patches sys.stderr and sys.stdout to StringIO
-                kwargs[stdxxx] = subprocess.PIPE
-            else:
-                kwargs[stdxxx] = sys_stdxxx
 
     # Check the PATH environment variable. If run_subprocess() is to be called
     # frequently this should be refactored so as to only check the path once.

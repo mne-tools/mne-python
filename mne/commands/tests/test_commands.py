@@ -18,12 +18,12 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_compare_fiff, mne_flash_bem, mne_show_fiff,
                           mne_show_info, mne_what, mne_setup_source_space,
                           mne_setup_forward_model, mne_anonymize,
-                          mne_prepare_bem_model)
+                          mne_prepare_bem_model, mne_sys_info)
 from mne.datasets import testing, sample
 from mne.io import read_raw_fif, read_info
 from mne.utils import (run_tests_if_main, requires_mne,
                        requires_mayavi, requires_tvtk, requires_freesurfer,
-                       traits_test, ArgvSetter, modified_env)
+                       traits_test, ArgvSetter, modified_env, _stamp_to_dt)
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -350,6 +350,17 @@ def test_show_info():
         mne_show_info.run()
 
 
+def test_sys_info():
+    """Test mne show_info."""
+    check_usage(mne_sys_info, force_help=True)
+    with ArgvSetter((raw_fname,)):
+        with pytest.raises(SystemExit, match='1'):
+            mne_sys_info.run()
+    with ArgvSetter() as out:
+        mne_sys_info.run()
+    assert 'numpy' in out.stdout.getvalue()
+
+
 def test_anonymize(tmpdir):
     """Test mne anonymize."""
     check_usage(mne_anonymize)
@@ -358,7 +369,7 @@ def test_anonymize(tmpdir):
         mne_anonymize.run()
     info = read_info(out_fname)
     assert(op.exists(out_fname))
-    assert_equal(info['meas_date'], (946684800, 0))
+    assert info['meas_date'] == _stamp_to_dt((946684800, 0))
 
 
 run_tests_if_main()

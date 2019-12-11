@@ -1,13 +1,15 @@
 """Functions to plot EEG sensor montages or digitizer montages."""
 from copy import deepcopy
 import numpy as np
-from ..utils import check_version, logger, _check_option, _validate_type
+from ..utils import (check_version, logger, _check_option, _validate_type,
+                     verbose)
 from . import plot_sensors
 from ..io._digitization import _get_fid_coords
 
 
+@verbose
 def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
-                 show=True):
+                 show=True, sphere=None, verbose=None):
     """Plot a montage.
 
     Parameters
@@ -22,6 +24,8 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
         Whether to plot the montage as '3d' or 'topomap' (default).
     show : bool
         Show figure if True.
+    %(topomap_sphere_auto)s
+    %(verbose)s
 
     Returns
     -------
@@ -64,7 +68,7 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
 
     info = create_info(ch_names, sfreq=256, ch_types="eeg", montage=montage)
     fig = plot_sensors(info, kind=kind, show_names=show_names, show=show,
-                       title=title)
+                       title=title, sphere=sphere)
     collection = fig.axes[0].collections[0]
     if check_version("matplotlib", "1.4"):
         collection.set_sizes([scale_factor])

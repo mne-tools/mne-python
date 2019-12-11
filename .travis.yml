@@ -7,7 +7,7 @@ env:
     # TRAVIS_PYTHON_VERSION is only needed for neo's setup.py
     # OPENBLAS_NUM_THREADS=1 avoid slowdowns:
     # https://github.com/xianyi/OpenBLAS/issues/731
-    global: PYTHON_VERSION=3.7 DISPLAY=:99.0 MNE_LOGGING_LEVEL=warning TEST_LOCATION=src
+    global: PYTHON_VERSION=3.7 DISPLAY=:99.0 MNE_LOGGING_LEVEL=warning
             TRAVIS_PYTHON_VERSION=3.7 CONDA_VERSION=">=4.3.27"
             OPENBLAS_NUM_THREADS=1
 
@@ -94,7 +94,7 @@ install:
     # Suppress the parallel outputs for logging cleanliness
     - python setup.py build
     - python setup.py install
-    - python -c "import mne; mne.sys_info()"
+    - mne sys_info
     - SRC_DIR=$(pwd)
     - cd ~
     # Trigger download of testing data. Note that
@@ -107,25 +107,7 @@ install:
         export FREESURFER_HOME=$(python -c 'import mne; print(mne.datasets.testing.data_path())');
         export MNE_SKIP_FS_FLASH_CALL=1;
       fi;
-    - MNE_DIR=$(python -c 'import mne;print(mne.__path__[0])')
-    # We run two versions: one out of the source directory (that makes
-    # coveralls coverage work), and one out of the install directory (that
-    # ensures we have included all necessary files).
-    - if [ "${TEST_LOCATION}" == "install" ]; then
-        ln -s ${SRC_DIR}/mne/io/tests/data ${MNE_DIR}/io/tests/data;
-        ln -s ${SRC_DIR}/mne/io/bti/tests/data ${MNE_DIR}/io/bti/tests/data;
-        ln -s ${SRC_DIR}/mne/io/edf/tests/data ${MNE_DIR}/io/edf/tests/data;
-        ln -s ${SRC_DIR}/mne/io/kit/tests/data ${MNE_DIR}/io/kit/tests/data;
-        ln -s ${SRC_DIR}/mne/io/brainvision/tests/data ${MNE_DIR}/io/brainvision/tests/data;
-        ln -s ${SRC_DIR}/mne/io/egi/tests/data ${MNE_DIR}/io/egi/tests/data;
-        ln -s ${SRC_DIR}/mne/io/nicolet/tests/data ${MNE_DIR}/io/nicolet/tests/data;
-        ln -s ${SRC_DIR}/mne/preprocessing/tests/data ${MNE_DIR}/preprocessing/tests/data;
-        ln -s ${SRC_DIR}/setup.cfg ${MNE_DIR}/../setup.cfg;
-        ln -s ${SRC_DIR}/.coveragerc ${MNE_DIR}/../.coveragerc;
-        cd ${MNE_DIR}/../;
-      else
-        cd ${SRC_DIR};
-      fi;
+    - cd ${SRC_DIR}
 
 
 script:
@@ -138,7 +120,6 @@ script:
       else
         CONDITION='not ultraslowtest';
       fi;
-    - python -c "import mne; print(mne.sys_info())"
     # Determine directories to test (could use SPLIT=0 SPLIT=1 but currently
     # we are fast enough, so disable it)
     - if [ -z ${SPLIT} ]; then

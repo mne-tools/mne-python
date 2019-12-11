@@ -47,8 +47,10 @@ class _BaseRenderer(metaclass=ABCMeta):
            The array containing the Z component of the vertices.
         triangles: array, shape (n_polygons, 3)
            The array containing the indices of the polygons.
-        color: tuple
-            The color of the mesh: (red, green, blue).
+        color: tuple | str
+            The color of the mesh as a tuple (red, green, blue) of float
+            values between 0 and 1 or a valid color name (i.e. 'white'
+            or 'w').
         opacity: float
             The opacity of the mesh.
         shading: bool
@@ -104,8 +106,10 @@ class _BaseRenderer(metaclass=ABCMeta):
         ----------
         surface: surface object
             The information describing the surface.
-        color: tuple
-            The color of the surface: (red, green, blue).
+        color: tuple | str
+            The color of the surface as a tuple (red, green, blue) of float
+            values between 0 and 1 or a valid color name (i.e. 'white'
+            or 'w').
         opacity: float
             The opacity of the surface.
         vmin: float | None
@@ -125,28 +129,36 @@ class _BaseRenderer(metaclass=ABCMeta):
 
     @abstractclassmethod
     def sphere(self, center, color, scale, opacity=1.0,
-               resolution=8, backface_culling=False):
+               resolution=8, backface_culling=False,
+               radius=None):
         """Add sphere in the scene.
 
         Parameters
         ----------
         center: ndarray, shape(n_center, 3)
             The list of centers to use for the sphere(s).
-        color: tuple
-            The color of the sphere(s): (red, green, blue).
+        color: tuple | str
+            The color of the sphere as a tuple (red, green, blue) of float
+            values between 0 and 1 or a valid color name (i.e. 'white'
+            or 'w').
         scale: float
-            The scale of the sphere(s).
+            The scaling applied to the spheres. The given value specifies
+            the maximum size in drawing units.
         opacity: float
             The opacity of the sphere(s).
         resolution: int
-            The resolution of the sphere.
+            The resolution of the sphere created. This is the number
+            of divisions along theta and phi.
         backface_culling: bool
             If True, enable backface culling on the sphere(s).
+        radius: float | None
+            Replace the glyph scaling by a fixed radius value for each
+            sphere (not supported by mayavi).
         """
         pass
 
     @abstractclassmethod
-    def tube(self, origin, destination, radius=1.0, color=(1.0, 1.0, 1.0),
+    def tube(self, origin, destination, radius=0.001, color='white',
              scalars=None, vmin=None, vmax=None, colormap='RdBu',
              normalized_colormap=False, reverse_lut=False):
         """Add tube in the scene.
@@ -159,8 +171,10 @@ class _BaseRenderer(metaclass=ABCMeta):
             The coordinates of the other end of the tube(s).
         radius: float
             The radius of the tube(s).
-        color: tuple
-            The color of the tube(s): (red, green, blue).
+        color: tuple | str
+            The color of the tube as a tuple (red, green, blue) of float
+            values between 0 and 1 or a valid color name (i.e. 'white'
+            or 'w').
         scalars: array, shape (n_quivers,) | None
             The optional scalar data to use.
         vmin: float | None
@@ -206,14 +220,20 @@ class _BaseRenderer(metaclass=ABCMeta):
             The last Y component of the quiver.
         w: array, shape (n_quivers,)
             The last Z component of the quiver.
-        color: tuple
-            The color of the quiver: (red, green, blue).
+        color: tuple | str
+            The color of the quiver as a tuple (red, green, blue) of float
+            values between 0 and 1 or a valid color name (i.e. 'white'
+            or 'w').
         scale: float
-            The scale of the quiver.
+            The scaling applied to the glyphs. The size of the glyph
+            is by default calculated from the inter-glyph spacing.
+            The given value specifies the maximum glyph size in drawing units.
         mode: 'arrow', 'cone' or 'cylinder'
             The type of the quiver.
         resolution: int
-            The resolution of the arrow.
+            The resolution of the glyph created. Depending on the type of
+            glyph, it represents the number of divisions in its geometric
+            representation.
         glyph_height: float
             The height of the glyph used with the quiver.
         glyph_center: tuple
@@ -232,26 +252,30 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def text2d(self, x, y, text, size=14, color=(1.0, 1.0, 1.0)):
+    def text2d(self, x_window, y_window, text, size=14, color='white'):
         """Add 2d text in the scene.
 
         Parameters
         ----------
         x: float
-            The X component to use as position of the text.
+            The X component to use as position of the text in the
+            window coordinates system (window_width, window_height).
         y: float
-            The Y component to use as position of the text.
+            The Y component to use as position of the text in the
+            window coordinates system (window_width, window_height).
         text: str
             The content of the text.
         size: int
             The size of the font.
-        color: tuple
-            The color of the text.
+        color: tuple | str
+            The color of the text as a tuple (red, green, blue) of float
+            values between 0 and 1 or a valid color name (i.e. 'white'
+            or 'w').
         """
         pass
 
     @abstractclassmethod
-    def text3d(self, x, y, z, text, width, color=(1.0, 1.0, 1.0)):
+    def text3d(self, x, y, z, text, width, color='white'):
         """Add 2d text in the scene.
 
         Parameters
@@ -266,8 +290,10 @@ class _BaseRenderer(metaclass=ABCMeta):
             The content of the text.
         width: float
             The width of the text.
-        color: tuple
-            The color of the text.
+        color: tuple | str
+            The color of the text as a tuple (red, green, blue) of float
+            values between 0 and 1 or a valid color name (i.e. 'white'
+            or 'w').
         """
         pass
 

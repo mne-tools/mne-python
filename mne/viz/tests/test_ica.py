@@ -204,7 +204,9 @@ def test_plot_ica_sources():
     fig = ica.plot_sources(raw)
     # also test mouse clicks
     data_ax = fig.axes[0]
+    assert len(plt.get_fignums()) == 1
     _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
+    assert len(plt.get_fignums()) == 2
     ica.exclude = [1]
     ica.plot_sources(raw)
 

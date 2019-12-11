@@ -10,6 +10,7 @@
 # License: BSD (3-clause)
 
 from copy import deepcopy
+from datetime import timedelta
 import os
 import os.path as op
 
@@ -36,7 +37,7 @@ from ..filter import (FilterMixin, notch_filter, resample,
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_pandas_index_arguments, fill_doc, copy_doc,
-                     check_fname, _get_stim_channel,
+                     check_fname, _get_stim_channel, _stamp_to_dt,
                      logger, verbose, _time_mask, warn, SizeMixin,
                      copy_function_doc_to_method_doc, _validate_type,
                      _check_preload, _get_argvalues, _check_option)
@@ -44,7 +45,6 @@ from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..defaults import _handle_default
 from ..event import find_events, concatenate_events
 from ..annotations import Annotations, _combine_annotations, _sync_onset
-from ..annotations import _ensure_annotation_object
 
 
 def _set_pandas_dtype(df, columns, dtype):
@@ -241,7 +241,7 @@ class TimeMixin(object):
         ----------
         times : list-like | float | int
             List of numbers or a number representing points in time.
-        use_rounding : boolean
+        use_rounding : bool
             If True, use rounding (instead of truncation) when converting
             times to indices. This can help avoid non-unique indices.
 
@@ -356,6 +356,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self._last_samps = np.array(last_samps)
         self._first_samps = np.array(first_samps)
         orig_ch_names = info['ch_names']
+        if isinstance(info['meas_date'], tuple):  # be permissive of old code
+            info['meas_date'] = _stamp_to_dt(info['meas_date'])
         info._check_consistency()  # make sure subclass did a good job
         self.info = info
         self.buffer_size_sec = float(buffer_size_sec)
@@ -688,6 +690,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return self._first_samps[0]
 
     @property
+    def first_time(self):
+        """The first time point (including first_samp but not meas_date)."""
+        return self._first_time
+
+    @property
     def last_samp(self):
         """The last data sample."""
         return self.first_samp + sum(self._raw_lengths) - 1
@@ -704,10 +711,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ----------
         times : list-like | float | int
             List of numbers or a number representing points in time.
-        use_rounding : boolean
+        use_rounding : bool
             If True, use rounding (instead of truncation) when converting
             times to indices. This can help avoid non-unique indices.
-        origin: time-like | float | int | None
+        origin : datetime | float | int | None
             Time reference for times. If None, ``times`` are assumed to be
             relative to ``first_samp``.
 
@@ -719,13 +726,17 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             Indices relative to ``first_samp`` corresponding to the times
             supplied.
         """
-        first_samp_in_abs_time = (_handle_meas_date(self.info['meas_date']) +
-                                  self._first_time)
+        origin = _handle_meas_date(origin)
         if origin is None:
-            origin = first_samp_in_abs_time
-
-        absolute_time = np.atleast_1d(times) + _handle_meas_date(origin)
-        times = (absolute_time - first_samp_in_abs_time)
+            delta = 0
+        elif self.info['meas_date'] is None:
+            raise ValueError('origin must be None when info["meas_date"] '
+                             'is None, got %s' % (origin,))
+        else:
+            first_samp_in_abs_time = (self.info['meas_date'] +
+                                      timedelta(0, self._first_time))
+            delta = (origin - first_samp_in_abs_time).total_seconds()
+        times = np.atleast_1d(times) + delta
 
         return super(BaseRaw, self).time_as_index(times, use_rounding)
 
@@ -763,16 +774,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """
         meas_date = _handle_meas_date(self.info['meas_date'])
         if annotations is None:
-            if self.info['meas_date'] is not None:
-                orig_time = meas_date
-            else:
-                orig_time = None
-            self._annotations = Annotations([], [], [], orig_time)
+            self._annotations = Annotations([], [], [], meas_date)
         else:
-            _ensure_annotation_object(annotations)
+            _validate_type(annotations, Annotations, 'annotations')
 
-            if self.info['meas_date'] is None and \
-               annotations.orig_time is not None:
+            if meas_date is None and annotations.orig_time is not None:
                 raise RuntimeError('Ambiguous operation. Setting an Annotation'
                                    ' object with known ``orig_time`` to a raw'
                                    ' object which has ``meas_date`` set to'
@@ -784,27 +790,19 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                    ' the raw object.')
 
             delta = 1. / self.info['sfreq']
-            time_of_first_sample = meas_date + self.first_samp * delta
             new_annotations = annotations.copy()
             if annotations.orig_time is None:
-                # Assume annotations to be relative to the data
-                new_annotations.orig_time = time_of_first_sample
-
-            tmin = time_of_first_sample
-            tmax = tmin + self.times[-1] + delta
-            new_annotations.crop(tmin=tmin, tmax=tmax,
-                                 emit_warning=emit_warning)
-
-            if self.info['meas_date'] is None:
-                new_annotations.orig_time = None
-            elif annotations.orig_time != meas_date:
-                # XXX, TODO: this should be a function, method or something.
-                # maybe orig_time should have a setter
-                # new_annotations.orig_time = xxxxx # resets onset based on x
-                # new_annotations._update_orig(xxxx)
-                orig_time = new_annotations.orig_time
-                new_annotations.orig_time = meas_date
-                new_annotations.onset -= (meas_date - orig_time)
+                new_annotations.crop(0, self.times[-1] + delta,
+                                     emit_warning=emit_warning)
+                new_annotations.onset += self._first_time
+            else:
+                tmin = meas_date + timedelta(0, self._first_time)
+                tmax = tmin + timedelta(seconds=self.times[-1] + delta)
+                new_annotations.crop(tmin=tmin, tmax=tmax,
+                                     emit_warning=emit_warning)
+                new_annotations.onset -= (
+                    meas_date - new_annotations.orig_time).total_seconds()
+            new_annotations._orig_time = meas_date
 
             self._annotations = new_annotations
 
@@ -1054,18 +1052,18 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         dtype : numpy.dtype (default: None)
             Data type to use for raw data after applying the function. If None
             the data type is not modified.
-        n_jobs: int (default: 1)
+        n_jobs : int (default: 1)
             Number of jobs to run in parallel. Ignored if `channel_wise` is
             False.
-        channel_wise: bool (default: True)
+        channel_wise : bool (default: True)
             Whether to apply the function to each channel individually. If
             False, the function will be applied to all channels at once.
 
             .. versionadded:: 0.18
-        *args :
+        *args : list
             Additional positional arguments to pass to fun (first pos. argument
             of fun is the timeseries of a channel).
-        **kwargs :
+        **kwargs : dict
             Keyword arguments to pass to fun. Note that if "verbose" is passed
             as a member of ``kwargs``, it will be consumed and will override
             the default mne-python verbose level (see :func:`mne.verbose` and
@@ -1148,7 +1146,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             The bandwidth of the multitaper windowing function in Hz.
             Only used in 'spectrum_fit' mode.
         p_value : float
-            p-value to use in F-test thresholding to determine significant
+            P-value to use in F-test thresholding to determine significant
             sinusoidal components to remove when method='spectrum_fit' and
             freqs=None. Note that this will be Bonferroni corrected for the
             number of frequencies, so large p-values may be justified.
@@ -1418,7 +1416,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        fname : string
+        fname : str
             File name of the new dataset. This has to be a new filename
             unless data have been preloaded. Filenames should end with
             raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif,
@@ -1441,7 +1439,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
             .. note:: If ``apply_proj()`` was used to apply the projections,
                       the projectons will be active even if ``proj`` is False.
-
         fmt : 'single' | 'double' | 'int' | 'short'
             Format to use to save raw data. Valid options are 'double',
             'single', 'int', and 'short' for 64- or 32-bit float, or 32- or
@@ -1457,7 +1454,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             If False (default), an error will be raised if the file exists.
             To overwrite original file (the same one that was loaded),
             data must be preloaded upon reading.
-        split_size : string | int
+        split_size : str | int
             Large raw files are automatically split into multiple pieces. This
             parameter specifies the maximum size of each piece. If the
             parameter is an integer, it specifies the size in Bytes. It is
@@ -1465,12 +1462,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
             .. note:: Due to FIFF file limitations, the maximum split
                       size is 2GB.
-
         split_naming : {'neuromag' | 'bids'}
             Add the filename partition with the appropriate naming schema.
 
             .. versionadded:: 0.17
-
         %(verbose_meth)s
 
         Notes
@@ -1558,14 +1553,14 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              highpass=None, lowpass=None, filtorder=4, clipping=None,
              show_first_samp=False, proj=True, group_by='type',
              butterfly=False, decim='auto', noise_cov=None, event_id=None,
-             show_scrollbars=True, verbose=None):
+             show_scrollbars=True, show_scalebars=True, verbose=None):
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block, highpass,
                         lowpass, filtorder, clipping, show_first_samp, proj,
                         group_by, butterfly, decim, noise_cov=noise_cov,
                         event_id=event_id, show_scrollbars=show_scrollbars,
-                        verbose=verbose)
+                        show_scalebars=show_scalebars, verbose=verbose)
 
     @verbose
     @copy_function_doc_to_method_doc(plot_raw_psd)
@@ -1574,7 +1569,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                  picks=None, ax=None, color='black', xscale='linear',
                  area_mode='std', area_alpha=0.33, dB=True, estimate='auto',
                  show=True, n_jobs=1, average=False, line_alpha=None,
-                 spatial_colors=True, verbose=None):
+                 spatial_colors=True, sphere=None, verbose=None):
         return plot_raw_psd(self, fmin=fmin, fmax=fmax, tmin=tmin, tmax=tmax,
                             proj=proj, n_fft=n_fft, n_overlap=n_overlap,
                             reject_by_annotation=reject_by_annotation,
@@ -1582,7 +1577,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                             area_mode=area_mode, area_alpha=area_alpha,
                             dB=dB, estimate=estimate, show=show, n_jobs=n_jobs,
                             average=average, line_alpha=line_alpha,
-                            spatial_colors=spatial_colors, verbose=verbose)
+                            spatial_colors=spatial_colors, sphere=sphere,
+                            verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_raw_psd_topo)
     def plot_psd_topo(self, tmin=0., tmax=None, fmin=0, fmax=100, proj=False,
@@ -1640,11 +1636,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        bad_file : string
+        bad_file : str
             File name of the text file containing bad channels
             If bad_file = None, bad channels are cleared, but this
             is more easily done directly as raw.info['bads'] = [].
-        force : boolean
+        force : bool
             Whether or not to force bad channel marking (of those
             that exist) if channels are not found, instead of
             raising an error.
@@ -1738,15 +1734,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         # now combine information from each raw file to construct new self
         annotations = self.annotations
+        assert annotations.orig_time == self.info['meas_date']
         edge_samps = list()
         for ri, r in enumerate(raws):
             n_samples = self.last_samp - self.first_samp + 1
-            r_annot = Annotations(onset=r.annotations.onset - r._first_time,
-                                  duration=r.annotations.duration,
-                                  description=r.annotations.description,
-                                  orig_time=None)
             annotations = _combine_annotations(
-                annotations, r_annot, n_samples,
+                annotations, r.annotations, n_samples,
                 self.first_samp, r.first_samp,
                 self.info['sfreq'], self.info['meas_date'])
             edge_samps.append(sum(self._last_samps) -
@@ -1755,6 +1748,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             self._last_samps = np.r_[self._last_samps, r._last_samps]
             self._raw_extras += r._raw_extras
             self._filenames += r._filenames
+        assert annotations.orig_time == self.info['meas_date']
         self._update_times()
         self.set_annotations(annotations)
         for edge_samp in edge_samps:
@@ -1774,7 +1768,13 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         pass  # noqa
 
     def copy(self):
-        """Return copy of Raw instance."""
+        """Return copy of Raw instance.
+
+        Returns
+        -------
+        inst : instance of Raw
+            A copy of the instance.
+        """
         return deepcopy(self)
 
     def __repr__(self):  # noqa: D105
@@ -1890,7 +1890,7 @@ class _RawShell(object):
     def set_annotations(self, annotations):
         if annotations is None:
             annotations = Annotations([], [], [], None)
-        self._annotations = annotations
+        self._annotations = annotations.copy()
 
 
 ###############################################################################

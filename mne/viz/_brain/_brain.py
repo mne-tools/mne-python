@@ -142,7 +142,7 @@ class _Brain(object):
                  foreground=None, figure=None, subjects_dir=None,
                  views=['lateral'], offset=True, show_toolbar=False,
                  offscreen=False, interaction=None, units='mm'):
-        from ..backends.renderer import _Renderer, _check_figure
+        from ..backends.renderer import _Renderer, _check_3d_figure
         from matplotlib.colors import colorConverter
 
         if interaction is not None:
@@ -195,7 +195,7 @@ class _Brain(object):
         offset = None if (not offset or hemi != 'both') else 0.0
 
         if figure is not None and not isinstance(figure, int):
-            _check_figure(figure)
+            _check_3d_figure(figure)
         self._renderer = _Renderer(size=fig_size, bgcolor=background,
                                    shape=(n_row, n_col), fig=figure)
 
@@ -496,7 +496,7 @@ class _Brain(object):
                                        opacity=alpha)
 
             if array.ndim >= 2 and callable(time_label):
-                self._renderer.text2d(x=0.95, y=y_txt,
+                self._renderer.text2d(x_window=0.95, y_window=y_txt,
                                       size=time_label_size,
                                       text=time_label(time[time_idx]),
                                       justification='right')
@@ -715,7 +715,7 @@ class _Brain(object):
         # are implemented
         # _check_option('name', name, [None])
 
-        self._renderer.text2d(x=x, y=y, text=text, color=color,
+        self._renderer.text2d(x_window=x, y_window=y, text=text, color=color,
                               size=font_size, justification=justification)
 
     def remove_labels(self, labels=None):

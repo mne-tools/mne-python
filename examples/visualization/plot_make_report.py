@@ -49,5 +49,5 @@ for t in times:
 report.add_slider_to_section(figs, times, 'Evoked Response',
                              image_format='png')  # can also use 'svg'
 
-# to save report
+# Save the report
 report.save('my_report.html', overwrite=True)

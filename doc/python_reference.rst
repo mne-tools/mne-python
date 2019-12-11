@@ -185,6 +185,7 @@ Datasets
    brainstorm.bst_resting.data_path
    brainstorm.bst_raw.data_path
    eegbci.load_data
+   eegbci.standardize
    fetch_aparc_sub_parcellation
    fetch_fsaverage
    fetch_hcp_mmp_parcellation
@@ -419,6 +420,7 @@ EEG referencing:
 .. autosummary::
    :toctree: generated/
 
+   calculate_head_pos_ctf
    filter_chpi
    head_pos_to_trans_rot_t
    read_head_pos
