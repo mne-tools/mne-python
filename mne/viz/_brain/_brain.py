@@ -334,12 +334,12 @@ class _Brain(object):
         """
         _check_option('transparent', type(transparent), [bool])
         _check_option('vector_alpha', type(vector_alpha), [float, type(None)])
+        _check_option('scale_factor', type(scale_factor), [float, type(None)])
 
         # those parameters are not supported yet, only None is allowed
         _check_option('thresh', thresh, [None])
         _check_option('remove_existing', remove_existing, [None])
         _check_option('time_label_size', time_label_size, [None])
-        _check_option('scale_factor', scale_factor, [None])
 
         hemi = self._check_hemi(hemi)
         array = np.asarray(array)

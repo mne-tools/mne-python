@@ -92,6 +92,7 @@ print(stc)
 
 ###############################################################################
 # This too comes with a convenient plot method.
+
 stc.plot(src, subject='sample', subjects_dir=subjects_dir)
 
 ###############################################################################

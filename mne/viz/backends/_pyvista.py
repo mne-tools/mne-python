@@ -457,8 +457,9 @@ class _Renderer(_BaseRenderer):
         return _Projection(xy=xy, pts=pts)
 
     def enable_depth_peeling(self):
-        self.plotter.enable_depth_peeling(number_of_peels=1,
-                                          occlusion_ratio=1.0)
+        if not self.figure.store['off_screen']:
+            self.plotter.enable_depth_peeling(number_of_peels=1,
+                                              occlusion_ratio=1.0)
 
 
 def _deg2rad(deg):
