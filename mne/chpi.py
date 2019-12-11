@@ -49,7 +49,7 @@ from .fixes import jit
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat)
 from .utils import (verbose, logger, use_log_level, _check_fname, warn,
-                    _check_option)
+                    _check_option, _validate_type)
 
 # Eventually we should add:
 #   hpicons
@@ -468,9 +468,7 @@ def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts):
 
 
 @verbose
-def _setup_hpi_struct(info, model_n_window,
-                      method='forward',
-                      exclude='bads',
+def _setup_hpi_struct(info, t_window, method='forward', exclude='bads',
                       remove_aliased=False, verbose=None):
     """Generate HPI structure for HPI localization.
 
@@ -484,12 +482,21 @@ def _setup_hpi_struct(info, model_n_window,
 
     # grab basic info.
     hpi_freqs, hpi_pick, hpi_ons = _get_hpi_info(info)
+    _validate_type(t_window, (str, 'numeric'), 't_window')
+    if isinstance(t_window, str):
+        if t_window != 'auto':
+            raise ValueError('t_window must be "auto" if a string, got %r'
+                             % (t_window,))
+        t_window = max(5. / min(hpi_freqs), 1. / np.diff(hpi_freqs).min())
+        logger.info('Automatically choosing t_window=%0.1f ms'
+                    % (1000 * t_window,))
+    model_n_window = int(round(float(t_window) * info['sfreq']))
     # worry about resampled/filtered data.
     # What to do e.g. if Raw has been resampled and some of our
     # HPI freqs would now be aliased
     highest = info.get('lowpass')
     highest = info['sfreq'] / 2. if highest is None else highest
-    keepers = np.array([h <= highest for h in hpi_freqs], bool)
+    keepers = hpi_freqs <= highest
     if remove_aliased:
         hpi_freqs = hpi_freqs[keepers]
         hpi_ons = hpi_ons[keepers]
@@ -506,12 +513,11 @@ def _setup_hpi_struct(info, model_n_window,
                 % ' '.join(['%d' % l for l in line_freqs]))
 
     # build model to extract sinusoidal amplitudes.
-    slope = np.arange(model_n_window).astype(np.float64)[:, np.newaxis]
-    slope -= np.mean(slope)
-    rads = slope / info['sfreq']
-    rads *= 2 * np.pi
-    f_t = hpi_freqs[np.newaxis, :] * rads
-    l_t = line_freqs[np.newaxis, :] * rads
+    slope = np.linspace(-0.5, 0.5, model_n_window)[:, np.newaxis]
+    rps = np.arange(model_n_window)[:, np.newaxis].astype(float)
+    rps *= 2 * np.pi / info['sfreq']  # radians/sec
+    f_t = hpi_freqs[np.newaxis, :] * rps
+    l_t = line_freqs[np.newaxis, :] * rps
     model = [np.sin(f_t), np.cos(f_t)]  # hpi freqs
     model += [np.sin(l_t), np.cos(l_t)]  # line freqs
     model += [slope, np.ones(slope.shape)]
@@ -534,13 +540,15 @@ def _setup_hpi_struct(info, model_n_window,
         coils = _concatenate_coils(coils)
     else:  # == 'multipole'
         coils = _prep_mf_coils(info)
+    # Do not include projectors in the whitener (i.e., just scale)
+    info = info.copy()
+    info['projs'] = []
     diag_cov = make_ad_hoc_cov(info, verbose=False)
-
     diag_whitener, _ = compute_whitener(diag_cov, info, picks=meg_picks,
                                         verbose=False)
-
+    del info
     hpi = dict(meg_picks=meg_picks, hpi_pick=hpi_pick,
-               model=model, inv_model=inv_model,
+               model=model, inv_model=inv_model, t_window=t_window,
                on=hpi_ons, n_window=model_n_window, method=method,
                freqs=hpi_freqs, line_freqs=line_freqs, n_freqs=len(hpi_freqs),
                scale=diag_whitener, coils=coils
@@ -662,7 +670,8 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
 
     time_sl = slice(i_win[0], i_win[1])
 
-    hpi = _setup_hpi_struct(raw.info, i_win[1] - i_win[0])
+    hpi = _setup_hpi_struct(
+        raw.info, (i_win[1] - i_win[0]) / raw.info['sfreq'])
 
     if initial_dev_rrs is None:
         initial_dev_rrs = []
@@ -690,10 +699,10 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
 
 
 @verbose
-def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
-                              t_window=0.2, dist_limit=0.005, gof_limit=0.98,
-                              use_distances=True, too_close='raise',
-                              verbose=None):
+def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
+                            t_window='auto', dist_limit=0.005,
+                            gof_limit=0.98, use_distances=True,
+                            too_close='raise', verbose=None):
     """Calculate head positions using cHPI coils.
 
     Parameters
@@ -705,8 +714,10 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         t_step_max will be used.
     t_step_max : float
         Maximum time step to use.
-    t_window : float
+    t_window : float | str
         Time window to use to estimate the head positions.
+        Can also be "auto" (default) to automatically chose based on the cHPI
+        frequencies (see Notes).
     dist_limit : float
         Minimum distance (m) to accept for coil position fitting.
     gof_limit : float
@@ -723,15 +734,24 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
     quats : ndarray, shape (N, 10)
         The ``[t, q1, q2, q3, x, y, z, gof, err, v]`` for each fit.
 
+    See Also
+    --------
+    read_head_pos
+    write_head_pos
+
     Notes
     -----
     The number of time points ``N`` will depend on the velocity of head
     movements as well as ``t_step_max`` and ``t_step_min``.
 
-    See Also
-    --------
-    read_head_pos
-    write_head_pos
+    In "auto" mode, ``t_window`` will be set to the longer of:
+
+    1. Five cycles of the lowest HPI frequency.
+          Ensures that the frequency estimate is stable.
+    2. The reciprocal of the smallest difference between HPI frequencies.
+          Ensures that neighboring frequencies can be disambiguated.
+
+    .. versionadded:: 0.20
     """
     from scipy.spatial.distance import cdist
     # extract initial geometry from info['hpi_results']
@@ -739,7 +759,8 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
     _check_option('too_close', too_close, ['raise', 'warning', 'info'])
 
     # extract hpi system information
-    hpi = _setup_hpi_struct(raw.info, int(round(t_window * raw.info['sfreq'])))
+    hpi = _setup_hpi_struct(raw.info, t_window)
+    del t_window
 
     # move to device coords
     dev_head_t = raw.info['dev_head_t']['trans']
@@ -757,9 +778,8 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
 
     t_begin = raw.times[0]
     t_end = raw.times[-1]
-    fit_idxs = raw.time_as_index(np.arange(t_begin + t_window / 2., t_end,
-                                           t_step_min),
-                                 use_rounding=True)
+    fit_idxs = raw.time_as_index(np.arange(
+        t_begin + hpi['t_window'] / 2., t_end, t_step_min), use_rounding=True)
     quats = []
     logger.info('Fitting up to %s time points (%0.1f sec duration)'
                 % (len(fit_idxs), t_end - t_begin))
@@ -858,13 +878,12 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
 
         # velocities, in device coords, of HPI coils
         # dt = fit_time - last['fit_time'] #
-        dt = t_window
-        vs = tuple(1000. * np.sqrt(np.sum((last['coil_dev_rrs'] -
-                                           this_coil_dev_rrs) ** 2,
-                                          axis=1)) / dt)
+        dt = hpi['t_window']
+        vs = tuple(1000. * np.linalg.norm(last['coil_dev_rrs'] -
+                                          this_coil_dev_rrs, axis=1) / dt)
         logger.info(_time_prefix(fit_time) +
                     ('%s/%s good HPI fits, movements [mm/s] = ' +
-                     ' / '.join(['% 6.1f'] * hpi['n_freqs']))
+                     ' / '.join(['% 8.1f'] * hpi['n_freqs']))
                     % ((use_mask.sum(), hpi['n_freqs']) + vs))
 
         # resulting errors in head coil positions
@@ -968,7 +987,8 @@ def _calculate_chpi_coil_locs(raw, t_step_min=0.1, t_step_max=10.,
     hpi_dig_head_rrs = _get_hpi_initial_fit(raw.info)
 
     # extract hpi system information
-    hpi = _setup_hpi_struct(raw.info, int(round(t_window * raw.info['sfreq'])))
+    hpi = _setup_hpi_struct(raw.info, t_window)
+    del t_window
 
     # move to device coords
     head_dev_t = invert_transform(raw.info['dev_head_t'])['trans']
@@ -980,9 +1000,8 @@ def _calculate_chpi_coil_locs(raw, t_step_min=0.1, t_step_max=10.,
 
     t_begin = raw.times[0]
     t_end = raw.times[-1]
-    fit_idxs = raw.time_as_index(np.arange(t_begin + t_window / 2., t_end,
-                                           t_step_min),
-                                 use_rounding=True)
+    fit_idxs = raw.time_as_index(np.arange(
+        t_begin + hpi['t_window'] / 2., t_end, t_step_min), use_rounding=True)
     times = []
     chpi_digs = []
     logger.info('Fitting up to %s time points (%0.1f sec duration)'
@@ -1012,6 +1031,11 @@ def _calculate_chpi_coil_locs(raw, t_step_min=0.1, t_step_max=10.,
 
         # check if data has sufficiently changed
         if last['sin_fit'] is not None:  # first iteration
+            # deal with sign ambiguity, which varies per freq
+            last_sin_fit = last['sin_fit'].copy()
+            last_sin_fit *= np.array([np.sign(np.dot(l, s))
+                                      for l, s in zip(last_sin_fit, sin_fit)
+                                      ])[:, np.newaxis]
             corr = np.corrcoef(sin_fit.ravel(), last['sin_fit'].ravel())[0, 1]
             # check to see if we need to continue
             if fit_time - last['fit_time'] <= t_step_max - 1e-7 and \
@@ -1091,9 +1115,9 @@ def filter_chpi(raw, include_line=True, t_step=0.01, t_window=0.2,
         raise ValueError('t_step (%s) and t_window (%s) must both be > 0.'
                          % (t_step, t_window))
     n_step = int(np.ceil(t_step * raw.info['sfreq']))
-    hpi = _setup_hpi_struct(raw.info, int(round(t_window * raw.info['sfreq'])),
-                            exclude='bads', remove_aliased=True,
-                            verbose=False)
+    hpi = _setup_hpi_struct(raw.info, t_window, exclude='bads',
+                            remove_aliased=True, verbose=False)
+    del t_window
 
     fit_idxs = np.arange(0, len(raw.times) + hpi['n_window'] // 2, n_step)
     n_freqs = len(hpi['freqs'])

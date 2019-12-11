@@ -425,6 +425,7 @@ EEG referencing:
    :toctree: generated/
 
    calculate_head_pos_ctf
+   calculate_head_pos_chpi
    filter_chpi
    head_pos_to_trans_rot_t
    read_head_pos

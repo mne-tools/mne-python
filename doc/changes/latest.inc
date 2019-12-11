@@ -19,7 +19,9 @@ Changelog
 
 - Add current source density :func:`mne.preprocessing.compute_current_source_density` to compute the surface Laplacian in order to reduce volume conduction in data by `Alex Rockhill`_
 
-- Add :func:`mne.chpi.calculate_head_pos_ctf` by `Luke Bloy`_
+- Add :func:`mne.chpi.calculate_head_pos_ctf` to extract head positions from CTF data  by `Luke Bloy`_
+
+- Add :func:`mne.chpi.calculate_head_pos_chpi` to compute head positions from cHPI signals in data by `Eric Larson`_ and `Luke Bloy`_
 
 - Add :func:`mne.io.Raw.set_meas_date` by `Eric Larson`_
 
