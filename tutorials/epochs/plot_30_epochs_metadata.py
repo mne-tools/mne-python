@@ -5,8 +5,8 @@ Working with Epoch metadata
 ===========================
 
 This tutorial shows how to add metadata to :class:`~mne.Epochs` objects, and
-how to use :label:`Pandas query strings <indexing.query>` to select and plot
-epochs based on metadata properties.
+how to use :ref:`Pandas query strings <pandas:indexing.query>` to select and
+plot epochs based on metadata properties.
 
 .. contents:: Page contents
    :local:
@@ -56,16 +56,19 @@ epochs = mne.read_epochs(kiloword_data_file)
 # its prominence in the English lexicon (e.g., ``WordFrequency``). Here are all
 # the metadata variables:
 
-print(epochs.metadata.columns.tolist())
+# In notebooks just running this line will produce a nice HTML output,
+# in scripts you could print(epochs.metadata.columns.tolist()) instead.
+epochs.metadata
 
 ###############################################################################
 # Viewing the metadata values for a given epoch and metadata variable is done
-# using any of the :label:`Pandas indexing </reference/indexing.rst>` methods
-# such as :meth:`~pandas.DataFrame.loc`, :meth:`~pandas.DataFrame.iloc`,
-# :meth:`~pandas.DataFrame.at`, and :meth:`~pandas.DataFrame.iat`. Because the
+# using any of the :ref:`Pandas indexing <pandas:/reference/indexing.rst>`
+# methods such as :attr:`~pandas.DataFrame.loc`,
+# :attr:`~pandas.DataFrame.iloc`, :attr:`~pandas.DataFrame.at`,
+# and :attr:`~pandas.DataFrame.iat`. Because the
 # index of the dataframe is the integer epoch number, the name- and index-based
 # selection methods will work similarly for selecting rows, except that
-# name-based selection (with :meth:`~pandas.DataFrame.loc`) is inclusive of the
+# name-based selection (with :attr:`~pandas.DataFrame.loc`) is inclusive of the
 # endpoint:
 
 print('Name-based selection with .loc')
@@ -88,8 +91,8 @@ epochs.metadata['NumberOfLetters'] = \
     epochs.metadata['NumberOfLetters'].map(int)
 
 epochs.metadata['HighComplexity'] = epochs.metadata['VisualComplexity'] > 65
+epochs.metadata.head()
 
-print(epochs.metadata.head())
 
 ###############################################################################
 # Selecting epochs using metadata queries
@@ -98,7 +101,7 @@ print(epochs.metadata.head())
 # All :class:`~mne.Epochs` objects can be subselected by event name, index, or
 # :term:`slice` (see :ref:`tut-section-subselect-epochs`). But
 # :class:`~mne.Epochs` objects with metadata can also be queried using
-# :label:`Pandas query strings <indexing.query>` by passing the query string
+# :ref:`Pandas query strings <indexing.query>` by passing the query string
 # just as you would normally pass an event name. For example:
 
 print(epochs['WORD.str.startswith("dis")'])

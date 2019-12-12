@@ -441,3 +441,8 @@ div.institutions a {
   .institution_lg {
     max-height: 60px;
   }
+
+  /* Pandas DataFrame _repr_html_ */
+table.dataframe th,td {
+    padding: 5px;
+}
