@@ -391,7 +391,6 @@ def test_limits_to_control_points(renderer):
 
 @testing.requires_testing_data
 @requires_nibabel()
-@requires_pysurfer
 def test_stc_mpl():
     """Test plotting source estimates with matplotlib."""
     sample_src = read_source_spaces(src_fname)
@@ -531,7 +530,6 @@ def test_plot_volume_source_estimates(mode, stype, init_t, want_t,
 @testing.requires_testing_data
 @requires_dipy()
 @requires_nibabel()
-@requires_version('dipy', '0.10.1')
 @requires_version('nilearn', '0.4')
 def test_plot_volume_source_estimates_morph():
     """Test interactive plotting of volume source estimates with morph."""

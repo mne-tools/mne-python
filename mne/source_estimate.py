@@ -2238,9 +2238,6 @@ class MixedSourceEstimate(_BaseSourceEstimate):
             Alpha value to apply globally to the overlay.
         time_viewer : bool
             Display time viewer GUI.
-        config_opts : dict
-            Keyword arguments for Brain initialization.
-            See pysurfer.viz.Brain.
         %(subjects_dir)s
         figure : instance of mayavi.mlab.Figure | None
             If None, the last figure will be cleaned and a new figure will
