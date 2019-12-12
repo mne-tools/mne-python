@@ -56,7 +56,7 @@ sss_erm_st1_cal_ctc_reg_fname = pre + 'erm_st1FineCalCrossTalkRegIn_raw_sss.fif'
 
 sample_fname = op.join(data_path, 'MEG', 'sample_audvis_trunc_raw.fif')
 sss_sample_reg_fname = op.join(data_path, 'SSS',
-                             'sample_audvis_trunc_regIn_raw_sss.fif')
+                               'sample_audvis_trunc_regIn_raw_sss.fif')
 sss_sample_fname = op.join(data_path, 'SSS', 'sample_audvis_trunc_raw_sss.fif')
 
 pos_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.pos')
