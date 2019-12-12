@@ -421,15 +421,15 @@ def write_float_sparse_ccs(fid, kind, mat):
 
 def write_float_sparse(fid, kind, mat, fmt='auto'):
     """Write a single-precision floating-point sparse matrix tag."""
-    from .tag import _matrix_coding_CCS, _matrix_coding_RCS
+    from .tag import _matrix_coding_ccs, _matrix_coding_rcs
     if fmt == 'auto':
         fmt = 'csr' if isinstance(mat, sparse.csr_matrix) else 'csc'
     if fmt == 'csr':
         need = sparse.csr_matrix
-        bits = _matrix_coding_RCS
+        bits = _matrix_coding_rcs
     else:
         need = sparse.csc_matrix
-        bits = _matrix_coding_CCS
+        bits = _matrix_coding_ccs
     if not isinstance(mat, need):
         raise TypeError('Must write %s, got %s' % (fmt.upper(), type(mat),))
     FIFFT_MATRIX = bits << 16
