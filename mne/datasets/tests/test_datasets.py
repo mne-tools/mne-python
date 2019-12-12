@@ -10,7 +10,6 @@ from mne import datasets
 from mne.datasets import testing
 from mne.datasets._fsaverage.base import _set_montage_coreg_path
 from mne.datasets.utils import _manifest_check_download
-
 from mne.utils import (run_tests_if_main, requires_good_network, modified_env,
                        get_subjects_dir, ArgvSetter, _pl, use_log_level,
                        catch_logging)

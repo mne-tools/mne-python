@@ -12,10 +12,8 @@ import numpy as np
 
 from .._digitization import _format_dig_points
 from ...utils import verbose, logger, _clean_names, fill_doc, _check_option
-
 from ..base import BaseRaw
 from ..utils import _mult_cal_one, _blk_read_lims
-
 from .res4 import _read_res4, _make_ctf_name
 from .hc import _read_hc
 from .eeg import _read_eeg, _read_pos

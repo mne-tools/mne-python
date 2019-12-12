@@ -8,15 +8,13 @@ from os import path
 
 import numpy as np
 
+from ...annotations import Annotations
 from ...utils import warn, verbose, fill_doc, _check_option
 from ...channels.layout import _topo_to_sphere
 from ..constants import FIFF
 from ..utils import (_mult_cal_one, _find_channels, _create_chs, read_str)
 from ..meas_info import _empty_info
 from ..base import BaseRaw
-from ...annotations import Annotations
-
-
 from ._utils import (_read_teeg, _get_event_parser, _session_date_2_meas_date,
                      _compute_robust_event_table_position, CNTEventType3)
 

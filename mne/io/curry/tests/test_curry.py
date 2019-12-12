@@ -30,10 +30,10 @@ curry_dir = op.join(data_dir, "curry")
 
 bdf_file = op.join(data_dir, 'BDF', 'test_bdf_stim_channel.bdf')
 
-bti_rfDC_file = op.join(data_dir, 'BTi', 'erm_HFH', 'c,rfDC')
+bti_rfDC_file = op.join(data_dir, 'BTi', 'erm_HFH', 'c,rfDC')  # noqa: N816
 
-curry7_rfDC_file = op.join(curry_dir, "c,rfDC Curry 7.dat")
-curry8_rfDC_file = op.join(curry_dir, "c,rfDC Curry 8.cdt")
+curry7_rfDC_file = op.join(curry_dir, "c,rfDC Curry 7.dat")  # noqa: N816
+curry8_rfDC_file = op.join(curry_dir, "c,rfDC Curry 8.cdt")  # noqa: N816
 
 curry7_bdf_file = op.join(curry_dir, "test_bdf_stim_channel Curry 7.dat")
 curry7_bdf_ascii_file = op.join(curry_dir,
@@ -95,7 +95,7 @@ def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
     pytest.param(curry7_rfDC_file, 1e-6, id='curry 7'),
     pytest.param(curry8_rfDC_file, 1e-3, id='curry 8'),
 ])
-def test_read_raw_curry_rfDC(fname, tol):
+def test_read_raw_curry_rfDC(fname, tol):  # noqa: N802
     """Test reading CURRY files."""
     # check data
     bti_rfDC = read_raw_bti(pdf_fname=bti_rfDC_file, head_shape_fname=None)

@@ -3,8 +3,8 @@
 # License: BSD (3-clause)
 
 import os.path as op
-import numpy as np
 
+import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
 import pytest
 from scipy import sparse
@@ -38,10 +38,8 @@ sss_fine_cal_fname = pre + 'fineCal_raw_sss.fif'
 sss_ctc_fname = pre + 'crossTalk_raw_sss.fif'
 sss_trans_default_fname = pre + 'transDefault_raw_sss.fif'
 sss_trans_sample_fname = pre + 'transSample_raw_sss.fif'
-sss_st1FineCalCrossTalkRegIn_fname = \
-    pre + 'st1FineCalCrossTalkRegIn_raw_sss.fif'
-sss_st1FineCalCrossTalkRegInTransSample_fname = \
-    pre + 'st1FineCalCrossTalkRegInTransSample_raw_sss.fif'
+sss_st1FineCalCrossTalkRegIn_fname = pre + 'st1FineCalCrossTalkRegIn_raw_sss.fif'  # noqa: E501,N816
+sss_st1FineCalCrossTalkRegInTransSample_fname = pre + 'st1FineCalCrossTalkRegInTransSample_raw_sss.fif'  # noqa: E501,N816
 sss_movecomp_fname = pre + 'movecomp_raw_sss.fif'
 sss_movecomp_reg_in_fname = pre + 'movecomp_regIn_raw_sss.fif'
 sss_movecomp_reg_in_st4s_fname = pre + 'movecomp_regIn_st4s_raw_sss.fif'
@@ -53,9 +51,8 @@ sss_erm_reg_in_fname = pre + 'erm_regIn_raw_sss.fif'
 sss_erm_fine_cal_fname = pre + 'erm_fineCal_raw_sss.fif'
 sss_erm_ctc_fname = pre + 'erm_crossTalk_raw_sss.fif'
 sss_erm_st_fname = pre + 'erm_st1_raw_sss.fif'
-sss_erm_st1FineCalCrossTalk_fname = pre + 'erm_st1FineCalCrossTalk_raw_sss.fif'
-sss_erm_st1FineCalCrossTalkRegIn_fname = \
-    pre + 'erm_st1FineCalCrossTalkRegIn_raw_sss.fif'
+sss_erm_st1FineCalCrossTalk_fname = pre + 'erm_st1FineCalCrossTalk_raw_sss.fif'  # noqa: E501,N816
+sss_erm_st1FineCalCrossTalkRegIn_fname = pre + 'erm_st1FineCalCrossTalkRegIn_raw_sss.fif'  # noqa: E501,N816
 
 sample_fname = op.join(data_path, 'MEG', 'sample_audvis_trunc_raw.fif')
 sss_samp_reg_in_fname = op.join(data_path, 'SSS',
@@ -998,7 +995,7 @@ def test_triux():
 
 
 @testing.requires_testing_data
-def test_MGH_cross_talk():
+def test_mgh_cross_talk():
     """Test cross-talk."""
     raw = read_crop(raw_fname, (0., 1.))
     raw_sss = maxwell_filter(raw, cross_talk=ctc_mgh_fname)

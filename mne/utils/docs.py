@@ -878,7 +878,7 @@ def open_docs(kind=None, version=None):
 warnings.filterwarnings('always', category=DeprecationWarning, module='mne')
 
 
-class deprecated(object):
+class deprecated(object):  # noqa: N801
     """Mark a function or class as deprecated (decorator).
 
     Issue a warning when the function is called/the class is instantiated and

@@ -18,7 +18,6 @@ from mne.time_frequency._stockwell import (tfr_stockwell, _st,
                                            _precompute_st_windows,
                                            _check_input_st,
                                            _st_power_itc)
-
 from mne.time_frequency.tfr import AverageTFR
 from mne.utils import run_tests_if_main
 

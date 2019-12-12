@@ -34,7 +34,6 @@ from mne.utils import (requires_pandas, run_tests_if_main, object_diff,
                        requires_version, catch_logging, _FakeNoPandas,
                        assert_meg_snr, check_version, _dt_to_stamp)
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
-
 from mne.io import RawArray, read_raw_fif
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.event import merge_events

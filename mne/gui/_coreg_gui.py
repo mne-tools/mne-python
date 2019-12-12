@@ -57,6 +57,7 @@ multiplications / divisions.
 #
 # License: BSD (3-clause)
 
+import contextlib
 import os
 import queue
 import re
@@ -104,13 +105,13 @@ from ._viewer import (HeadViewController, PointObject, SurfaceObject,
 defaults = DEFAULTS['coreg']
 
 
-class busy(object):
+@contextlib.contextmanager
+def busy():
     """Set the GUI state to busy."""
-
-    def __enter__(self):  # noqa: D105
-        GUI.set_busy(True)
-
-    def __exit__(self, type, value, traceback):  # noqa: D105
+    GUI.set_busy(True)
+    try:
+        yield
+    finally:
         GUI.set_busy(False)
 
 

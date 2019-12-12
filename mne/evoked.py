@@ -23,7 +23,6 @@ from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
 from .viz.topomap import _topomap_animation
-
 from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag

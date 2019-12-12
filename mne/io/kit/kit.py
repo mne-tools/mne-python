@@ -17,20 +17,19 @@ from struct import unpack
 import numpy as np
 from scipy import linalg
 
-from ..pick import pick_types
 from ...utils import (verbose, logger, warn, fill_doc, _check_option,
                       _stamp_to_dt)
 from ...transforms import apply_trans, als_ras_trans
-from ..base import BaseRaw
-from ..utils import _mult_cal_one
 from ...epochs import BaseEpochs
+from ...event import read_events
+from ..pick import pick_types
+from ..base import BaseRaw
+from .._digitization import _set_dig_kit
+from ..utils import _mult_cal_one
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from .constants import KIT, LEGACY_AMP_PARAMS
 from .coreg import read_mrk
-from ...event import read_events
-
-from .._digitization import _set_dig_kit
 
 
 def _call_digitization(info, mrk, elp, hsp):

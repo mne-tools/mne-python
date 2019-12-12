@@ -16,7 +16,6 @@ from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
 from ..utils import logger, verbose, _check_depth, _check_option, sum_squared
 from ..dipole import Dipole
-
 from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver, _Phi,
                          tf_mixed_norm_solver, iterative_tf_mixed_norm_solver,
                          norm_l2inf, norm_epsilon_inf)

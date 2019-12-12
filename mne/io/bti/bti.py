@@ -8,9 +8,10 @@
 #
 #          simplified BSD-3 license
 
-import os.path as op
+import contextlib
 from io import BytesIO
 from itertools import count
+import os.path as op
 
 import numpy as np
 
@@ -47,17 +48,10 @@ dtypes = zip(list(range(1, 5)), ('>i2', '>i4', '>f4', '>f8'))
 DTYPES = {i: np.dtype(t) for i, t in dtypes}
 
 
-class _bytes_io_mock_context():
+@contextlib.contextmanager
+def _bytes_io_mock_context(target):
     """Make a context for BytesIO."""
-
-    def __init__(self, target):  # noqa: D102
-        self.target = target
-
-    def __enter__(self):  # noqa: D105
-        return self.target
-
-    def __exit__(self, type, value, tb):  # noqa: D105
-        pass
+    yield target
 
 
 def _bti_open(fname, *args, **kwargs):

@@ -523,7 +523,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                 resid -= orig_in_data
                 # Here we operate on our actual data
                 proc = out_meg_data if st_only else orig_data
-                _do_tSSS(proc, orig_in_data, resid, st_correlation,
+                _do_tsss(proc, orig_in_data, resid, st_correlation,
                          n_positions, t_str, tsss_valid)
 
         if not st_only or st_when == 'after':
@@ -564,7 +564,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
         # If doing tSSS at the end
         if st_when == 'after':
-            _do_tSSS(out_meg_data, orig_in_data, resid, st_correlation,
+            _do_tsss(out_meg_data, orig_in_data, resid, st_correlation,
                      n_positions, t_str, tsss_valid)
         elif st_when == 'never' and head_pos[0] is not None:
             logger.info('        Used % 2d head position%s for %s'
@@ -735,7 +735,7 @@ def _trans_starts_stops_quats(pos, start, stop, this_pos_data):
     return trans, rel_starts, rel_stops, quats, avg_trans
 
 
-def _do_tSSS(clean_data, orig_in_data, resid, st_correlation,
+def _do_tsss(clean_data, orig_in_data, resid, st_correlation,
              n_positions, t_str, tsss_valid):
     """Compute and apply SSP-like projection vectors based on min corr."""
     if not tsss_valid:

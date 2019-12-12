@@ -18,7 +18,6 @@ from traitsui.api import View, Item, VGroup
 from pyface.api import DirectoryDialog, OK, ProgressDialog, error, information
 
 from ._viewer import _DIG_SOURCE_WIDTH
-
 from ..bem import read_bem_surfaces
 from ..io.constants import FIFF
 from ..io import read_info, read_fiducials

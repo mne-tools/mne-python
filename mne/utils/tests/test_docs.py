@@ -23,7 +23,7 @@ def deprecated_func():
 
 
 @deprecated('message')
-class deprecated_class(object):
+class DeprecatedClass(object):
 
     def __init__(self):
         pass
@@ -32,7 +32,7 @@ class deprecated_class(object):
 def test_deprecated():
     """Test deprecated function."""
     pytest.deprecated_call(deprecated_func)
-    pytest.deprecated_call(deprecated_class)
+    pytest.deprecated_call(DeprecatedClass)
 
 
 def test_copy_doc():

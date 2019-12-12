@@ -21,6 +21,7 @@ from ..io.pick import (channel_type,
                        _VALID_CHANNEL_TYPES, channel_indices_by_type,
                        _DATA_CH_TYPES_SPLIT, _pick_inst, _get_channel_types,
                        _PICK_TYPES_DATA_DICT, _picks_to_idx, pick_info)
+from ..channels.layout import _pair_grad_sensors, find_layout
 from ..defaults import _handle_default
 from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     plt_show, _process_times, DraggableColorbar, _setup_cmap,
@@ -32,12 +33,10 @@ from .utils import (_draw_proj_checkbox, tight_layout, _check_delayed_ssp,
                     _plot_masked_image, _trim_ticks)
 from ..utils import (logger, _clean_names, warn, _pl, verbose, _validate_type,
                      _check_if_nan, _check_ch_locs, fill_doc, _is_numeric)
-
 from .topo import _plot_evoked_topo
 from .topomap import (_prepare_topomap_plot, plot_topomap, _get_pos_outlines,
                       _draw_outlines, _prepare_topomap, _set_contour_locator,
                       _check_sphere, _make_head_outlines)
-from ..channels.layout import _pair_grad_sensors, find_layout
 
 
 def _butterfly_onpick(event, params):

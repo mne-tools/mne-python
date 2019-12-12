@@ -6,8 +6,8 @@
 
 import itertools
 import os.path as op
-import numpy as np
 
+import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 import pytest
 

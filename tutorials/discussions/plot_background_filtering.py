@@ -139,10 +139,9 @@ from numpy.fft import fft, fftfreq
 from scipy import signal
 import matplotlib.pyplot as plt
 
+import mne
 from mne.time_frequency.tfr import morlet
 from mne.viz import plot_filter, plot_ideal_filter
-
-import mne
 
 sfreq = 1000.
 f_p = 40.

@@ -242,7 +242,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         """  # noqa: E501
         return self._transform(X, 'decision_function')
 
-    def _check_Xy(self, X, y=None):
+    def _check_Xy(self, X, y=None):  # noqa: N802
         """Aux. function to check input data."""
         if y is not None:
             if len(X) != len(y) or len(y) < 1:

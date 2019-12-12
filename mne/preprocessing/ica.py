@@ -11,7 +11,6 @@ from collections import namedtuple
 from copy import deepcopy
 from numbers import Integral
 from time import time
-
 import os
 import json
 
@@ -22,7 +21,6 @@ from .ecg import (qrs_detector, _get_ecg_channel_index, _make_ecg,
                   create_ecg_epochs)
 from .eog import _find_eog_events, _get_eog_channel_index
 from .infomax_ import infomax
-
 from ..cov import compute_whitener
 from .. import Covariance, Evoked
 from ..io.pick import (pick_types, pick_channels, pick_info,
@@ -41,7 +39,6 @@ from ..viz import (plot_ica_components, plot_ica_scores,
                    plot_ica_sources, plot_ica_overlay)
 from ..viz.ica import plot_ica_properties
 from ..viz.topomap import _plot_corrmap
-
 from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
 from ..utils import (check_version, logger, check_fname, verbose,
@@ -51,7 +48,6 @@ from ..utils import (check_version, logger, check_fname, verbose,
                      _check_preload, _check_compensation_grade, fill_doc,
                      _check_option, _PCA)
 from ..utils.check import _check_all_same_channel_names
-
 from ..fixes import _get_args
 from ..filter import filter_data
 from .bads import find_outliers

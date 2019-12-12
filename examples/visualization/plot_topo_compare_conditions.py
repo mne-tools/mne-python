@@ -16,8 +16,8 @@ layout plot of the related evoked responses.
 
 
 import matplotlib.pyplot as plt
-import mne
 
+import mne
 from mne.viz import plot_evoked_topo
 from mne.datasets import sample
 

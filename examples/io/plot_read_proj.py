@@ -15,10 +15,8 @@ vector. Such projections are sometimes referred to as PCA projections.
 import matplotlib.pyplot as plt
 
 import mne
-from mne import read_proj
-from mne.io import read_raw_fif
-
 from mne.datasets import sample
+from mne.io import read_raw_fif
 
 print(__doc__)
 
@@ -57,7 +55,7 @@ mne.viz.plot_projs_topomap(empty_room_proj, info=raw.info)
 # The ECG projections can be loaded from a file and added to the raw object
 
 # read the projections
-ecg_projs = read_proj(ecg_fname)
+ecg_projs = mne.read_proj(ecg_fname)
 
 # add them to raw and plot everything
 raw.add_proj(ecg_projs)

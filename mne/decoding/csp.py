@@ -133,7 +133,7 @@ class CSP(TransformerMixin, BaseEstimator):
         self.norm_trace = norm_trace
         self.cov_method_params = cov_method_params
 
-    def _check_Xy(self, X, y=None):
+    def _check_Xy(self, X, y=None):  # noqa: N802
         """Aux. function to check input data."""
         if y is not None:
             if len(X) != len(y) or len(y) < 1:

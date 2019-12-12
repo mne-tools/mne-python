@@ -16,7 +16,6 @@ from mne.cov import (regularize, whiten_evoked,
                      _auto_low_rank_model,
                      prepare_noise_cov, compute_whitener,
                      _regularized_covariance)
-
 from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_covariance,
                  compute_covariance, read_evokeds, compute_proj_raw,

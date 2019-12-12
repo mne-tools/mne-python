@@ -9,7 +9,6 @@ import numpy as np
 
 from .mixin import TransformerMixin
 from .base import BaseEstimator
-
 from .. import pick_types
 from ..filter import filter_data, _triage_filter_params
 from ..time_frequency.psd import psd_array_multitaper

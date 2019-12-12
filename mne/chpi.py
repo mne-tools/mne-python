@@ -16,7 +16,7 @@
 #     5. Use a linear model (DC + linear slope + sin + cos terms set up
 #        in ``_setup_hpi_struct``) to fit sinusoidal amplitudes to MEG
 #        channels. Use SVD to determine the phase/amplitude of the sinusoids.
-#        This step is accomplished using ``_fit_cHPI_amplitudes``
+#        This step is accomplished using ``_fit_chpi_amplitudes``
 #     6. If the amplitudes are 98% correlated with last position
 #        (and Δt < t_step_max), skip fitting.
 #     7. Fit magnetic dipoles using the amplitudes for each coil frequency
@@ -555,7 +555,7 @@ def _time_prefix(fit_time):
 
 
 @verbose
-def _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time, verbose=None):
+def _fit_chpi_amplitudes(raw, time_sl, hpi, fit_time, verbose=None):
     """Fit amplitudes for each channel from each of the N cHPI sinusoids.
 
     Returns
@@ -670,7 +670,7 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
             initial_dev_rrs.append([0.0, 0.0, 0.0])
 
     # 1. Fit amplitudes for each channel from each of the N cHPI sinusoids
-    sin_fit = _fit_cHPI_amplitudes(raw, time_sl, hpi, 0)
+    sin_fit = _fit_chpi_amplitudes(raw, time_sl, hpi, 0)
 
     # skip this window if it bad.
     # logging has already been done! Maybe turn this into an Exception
@@ -780,7 +780,7 @@ def _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10.,
         #
         # 1. Fit amplitudes for each channel from each of the N cHPI sinusoids
         #
-        sin_fit = _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time)
+        sin_fit = _fit_chpi_amplitudes(raw, time_sl, hpi, fit_time)
 
         # skip this window if bad
         # logging has already been done! Maybe turn this into an Exception
@@ -1003,7 +1003,7 @@ def _calculate_chpi_coil_locs(raw, t_step_min=0.1, t_step_max=10.,
         #
         # 1. Fit amplitudes for each channel from each of the N cHPI sinusoids
         #
-        sin_fit = _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time)
+        sin_fit = _fit_chpi_amplitudes(raw, time_sl, hpi, fit_time)
 
         # skip this window if bad
         # logging has already been done! Maybe turn this into an Exception

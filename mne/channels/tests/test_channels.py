@@ -4,7 +4,6 @@
 # License: BSD (3-clause)
 
 import os.path as op
-
 from copy import deepcopy
 from functools import partial
 

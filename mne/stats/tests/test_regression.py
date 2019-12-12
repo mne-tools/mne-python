@@ -145,10 +145,10 @@ def test_continuous_regression_with_overlap():
         raw, events, tmin=0, solver=solver)['1'].data.flatten())
 
     # test bad solvers
-    def solT(X, y):
+    def sol_t(X, y):
         return ridge_regression(X, y, alpha=0., solver="cholesky").T
     pytest.raises(ValueError, linear_regression_raw, raw, events,
-                  solver=solT)
+                  solver=sol_t)
     pytest.raises(ValueError, linear_regression_raw, raw, events, solver='err')
     pytest.raises(TypeError, linear_regression_raw, raw, events, solver=0)
 

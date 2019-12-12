@@ -25,7 +25,6 @@ from .forward._make_forward import (_get_trans, _setup_bem,
                                     _prep_meg_channels, _prep_eeg_channels)
 from .forward._compute_forward import (_compute_forwards_meeg,
                                        _prep_field_computation)
-
 from .surface import (transform_surface_to, _compute_nearest,
                       _points_outside_surface)
 from .bem import _bem_find_surface, _surf_name
@@ -674,7 +673,7 @@ def _dipole_gof(uu, sing, vv, B, B2):
     return gof, one
 
 
-def _fit_Q(fwd_data, whitener, B, B2, B_orig, rd, ori=None):
+def _fit_q(fwd_data, whitener, B, B2, B_orig, rd, ori=None):
     """Fit the dipole moment once the location is known."""
     if 'fwd' in fwd_data:
         # should be a single precomputed "guess" (i.e., fixed position)
@@ -952,7 +951,7 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, guess_rrs,
     # rd_final = simplex[0]
 
     # Compute the dipole moment at the final point
-    Q, gof, residual_noproj, n_comp = _fit_Q(
+    Q, gof, residual_noproj, n_comp = _fit_q(
         fwd_data, whitener, B, B2, B_orig, rd_final, ori=ori)
     khi2 = (1 - gof) * B2
     nfree = rank - n_comp
@@ -983,7 +982,7 @@ def _fit_dipole_fixed(min_dist_to_inner_skull, B_orig, t, guess_rrs,
         warn('Zero field found for time %s' % t)
         return np.zeros(3), 0, np.zeros(3), 0, np.zeros(6)
     # Compute the dipole moment
-    Q, gof, residual_noproj = _fit_Q(guess_data, whitener, B, B2, B_orig,
+    Q, gof, residual_noproj = _fit_q(guess_data, whitener, B, B2, B_orig,
                                      rd=None, ori=ori)[:3]
     if ori is None:
         amp = np.sqrt(np.dot(Q, Q))

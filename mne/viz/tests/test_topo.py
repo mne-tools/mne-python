@@ -18,12 +18,10 @@ from mne.channels import read_layout
 from mne.io import read_raw_fif
 from mne.time_frequency.tfr import AverageTFR
 from mne.utils import run_tests_if_main
-
 from mne.viz import (plot_topo_image_epochs, _get_presser,
                      mne_analyze_colormap, plot_evoked_topo)
 from mne.viz.evoked import _line_plot_onselect
 from mne.viz.utils import _fake_click
-
 from mne.viz.topo import (_plot_update_evoked_topo_proj, iter_topography,
                           _imshow_tfr)
 

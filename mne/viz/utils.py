@@ -37,7 +37,6 @@ from ..rank import compute_rank
 from ..io.proj import setup_proj
 from ..utils import (verbose, get_config, set_config, warn, _check_ch_locs,
                      _check_option, logger, fill_doc, _pl, _check_sphere)
-
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
 from ..annotations import _sync_onset

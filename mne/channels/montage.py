@@ -35,10 +35,8 @@ from ..io.constants import FIFF
 from ..utils import (warn, logger, copy_function_doc_to_method_doc,
                      _check_option, _validate_type, _check_fname,
                      fill_doc)
-
 from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
-
 from .channels import DEPRECATED_PARAM
 
 _BUILT_IN_MONTAGES = [

@@ -15,7 +15,6 @@ from mne.filter import (filter_data, resample, _resample_stim_channels,
                         construct_iir_filter, notch_filter, detrend,
                         _overlap_add_filter, _smart_pad, design_mne_c_filter,
                         estimate_ringing_samples, create_filter, _Interp2)
-
 from mne.utils import (sum_squared, run_tests_if_main,
                        catch_logging, requires_version, _TempDir,
                        requires_mne, run_subprocess)

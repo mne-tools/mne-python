@@ -23,7 +23,6 @@ from ..io.tree import dir_tree_find
 from ..io.write import (write_int, write_float_matrix, start_file,
                         start_block, end_block, end_file, write_float,
                         write_coord_trans, write_string)
-
 from ..io.pick import channel_type, pick_info, pick_types
 from ..cov import (compute_whitener, _read_cov, _write_cov, Covariance,
                    prepare_noise_cov)

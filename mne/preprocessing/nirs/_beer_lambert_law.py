@@ -5,8 +5,8 @@
 # License: BSD (3-clause)
 
 import os.path as op
-
 import re as re
+
 import numpy as np
 from scipy import linalg
 

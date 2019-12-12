@@ -26,7 +26,7 @@ from ..bem import fit_sphere_to_headshape
 from ..channels.interpolation import _calc_g, _calc_h
 
 
-def _prepare_G(G, lambda2):
+def _prepare_G(G, lambda2):  # noqa: N802
     G.flat[::len(G) + 1] += lambda2
     # compute the CSD
     Gi = linalg.inv(G)

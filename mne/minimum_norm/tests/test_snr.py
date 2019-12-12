@@ -12,7 +12,6 @@ from numpy.testing import assert_allclose
 from mne import read_evokeds
 from mne.datasets import testing
 from mne.minimum_norm import read_inverse_operator, estimate_snr
-
 from mne.utils import _TempDir, requires_mne, run_subprocess
 
 s_path = op.join(testing.data_path(download=False), 'MEG', 'sample')

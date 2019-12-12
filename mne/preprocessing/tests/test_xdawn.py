@@ -205,7 +205,7 @@ def test_xdawn_regularization():
 
 
 @requires_sklearn
-def test_XdawnTransformer():
+def test_XdawnTransformer():  # noqa: N802
     """Test _XdawnTransformer."""
     # Get data
     raw, events, picks = _get_data()

@@ -22,9 +22,9 @@ from mne.io.kit.coreg import read_sns
 from mne.io.kit.constants import KIT
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.surface import _get_ico_surface
-from mne.io.kit import __file__ as _KIT_INIT_FILE
+from mne.io.kit import __file__ as _kit_file
 
-data_dir = op.join(op.dirname(_KIT_INIT_FILE), 'tests', 'data')
+data_dir = op.join(op.dirname(_kit_file), 'tests', 'data')
 sqd_path = op.join(data_dir, 'test.sqd')
 sqd_umd_path = op.join(data_dir, 'test_umd-raw.sqd')
 epochs_path = op.join(data_dir, 'test-epoch.raw')

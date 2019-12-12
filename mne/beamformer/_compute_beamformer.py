@@ -21,7 +21,6 @@ from ..source_space import label_src_vertno_sel
 from ..utils import (verbose, check_fname, _reg_pinv, _check_option, logger,
                      _pl, _check_src_normal, check_version)
 from ..time_frequency.csd import CrossSpectralDensity
-
 from ..externals.h5io import read_hdf5, write_hdf5
 
 

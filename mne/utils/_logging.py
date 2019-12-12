@@ -94,7 +94,8 @@ def verbose(function):
         __qualname__=function.__qualname__)
 
 
-class use_log_level(object):
+@contextlib.contextmanager
+def use_log_level(level):
     """Context handler for logging level.
 
     Parameters
@@ -102,15 +103,11 @@ class use_log_level(object):
     level : int
         The level to use.
     """
-
-    def __init__(self, level):  # noqa: D102
-        self.level = level
-
-    def __enter__(self):  # noqa: D105
-        self.old_level = set_log_level(self.level, True)
-
-    def __exit__(self, *args):  # noqa: D105
-        set_log_level(self.old_level)
+    old_level = set_log_level(level, True)
+    try:
+        yield
+    finally:
+        set_log_level(old_level)
 
 
 def set_log_level(verbose=None, return_old_level=False):
@@ -205,25 +202,24 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
     logger.addHandler(lh)
 
 
-class catch_logging(object):
+@contextlib.contextmanager
+def catch_logging():
     """Store logging.
 
     This will remove all other logging handlers, and return the handler to
     stdout when complete.
     """
-
-    def __enter__(self):  # noqa: D105
-        self._data = StringIO()
-        self._lh = logging.StreamHandler(self._data)
-        self._lh.setFormatter(logging.Formatter('%(message)s'))
-        self._lh._mne_file_like = True  # monkey patch for warn() use
-        for lh in logger.handlers:
-            logger.removeHandler(lh)
-        logger.addHandler(self._lh)
-        return self._data
-
-    def __exit__(self, *args):  # noqa: D105
-        logger.removeHandler(self._lh)
+    data = StringIO()
+    lh = logging.StreamHandler(data)
+    lh.setFormatter(logging.Formatter('%(message)s'))
+    lh._mne_file_like = True  # monkey patch for warn() use
+    for lh_ in logger.handlers:
+        logger.removeHandler(lh_)
+    logger.addHandler(lh)
+    try:
+        yield data
+    finally:
+        logger.removeHandler(lh)
         set_log_file(None)
 
 

@@ -17,7 +17,6 @@ import numpy as np
 from scipy import linalg
 
 from .multitaper import dpss_windows
-
 from ..baseline import rescale
 from ..fixes import fft, ifft
 from ..parallel import parallel_func

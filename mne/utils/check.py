@@ -319,7 +319,7 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
         _ensure_int(item, name=item_name)
         return  # terminate prematurely
     elif types == "info":
-        from mne.io import Info as types
+        from mne.io import Info as types  # noqa: N813
 
     if not isinstance(types, (list, tuple)):
         types = [types]
@@ -567,7 +567,7 @@ def _check_stc_units(stc, threshold=1e-7):  # 100 nAm threshold for warning
 def _check_pyqt5_version():
     bad = True
     try:
-        from PyQt5.Qt import PYQT_VERSION_STR as version
+        from PyQt5.Qt import PYQT_VERSION_STR as version  # noqa: N811
     except Exception:
         version = 'unknown'
     else:

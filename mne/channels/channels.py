@@ -1424,7 +1424,7 @@ def fix_mag_coil_types(info):
     info._check_consistency()
 
 
-def _get_T1T2_mag_inds(info):
+def _get_T1T2_mag_inds(info):  # noqa: N802
     """Find T1/T2 magnetometer coil types."""
     picks = pick_types(info, meg='mag')
     old_mag_inds = []

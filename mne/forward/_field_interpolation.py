@@ -15,7 +15,6 @@ from ..io.constants import FWD
 from ..bem import _check_origin
 from ..io.pick import pick_types, pick_info
 from ..surface import get_head_surf, get_meg_helmet_surf
-
 from ..io.proj import _has_eeg_average_ref_proj, make_projector
 from ..transforms import (transform_surface_to, read_trans, _find_trans,
                           _ensure_trans)

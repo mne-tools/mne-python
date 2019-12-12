@@ -1,5 +1,4 @@
 from itertools import product
-
 import glob
 import os
 import os.path as op

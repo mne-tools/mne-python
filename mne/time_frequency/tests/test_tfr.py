@@ -715,7 +715,7 @@ def test_compute_tfr_correct(method, decim):
 
 
 @requires_pandas
-def test_getitem_epochsTFR():
+def test_getitem_EpochsTFR():  # noqa: N802
     """Test GetEpochsMixin in the context of EpochsTFR."""
     from pandas import DataFrame
     # Setup for reading the raw data and select a few trials

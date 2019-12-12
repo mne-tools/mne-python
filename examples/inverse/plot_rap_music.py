@@ -19,9 +19,8 @@ References
 # License: BSD (3-clause)
 
 import mne
-
-from mne.datasets import sample
 from mne.beamformer import rap_music
+from mne.datasets import sample
 from mne.viz import plot_dipole_locations, plot_dipole_amplitudes
 
 print(__doc__)

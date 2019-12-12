@@ -13,7 +13,6 @@ import numpy as np
 
 import mne
 from mne.datasets import sample
-
 from mne.minimum_norm import read_inverse_operator, apply_inverse
 from mne.simulation import simulate_stc, simulate_evoked
 

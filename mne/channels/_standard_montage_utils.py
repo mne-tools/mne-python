@@ -11,9 +11,9 @@ import xml.etree.ElementTree as ElementTree
 
 from .montage import make_dig_montage
 from ..transforms import _sph_to_cart
-from . import __file__ as _CHANNELS_INIT_FILE
+from . import __file__ as _channels_file
 
-MONTAGE_PATH = op.join(op.dirname(_CHANNELS_INIT_FILE), 'data', 'montages')
+MONTAGE_PATH = op.join(op.dirname(_channels_file), 'data', 'montages')
 
 _str = 'U100'
 

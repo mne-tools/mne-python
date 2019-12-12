@@ -15,6 +15,7 @@ import os.path as op
 
 import numpy as np
 
+from .forward import Forward, _merge_meg_eeg_fwds, convert_forward_solution
 from ._compute_forward import _compute_forwards
 from ..io import read_info, _loc_to_coil_trans, _loc_to_eeg_loc, Info
 from ..io.pick import _has_kit_refs, pick_types, pick_info
@@ -29,8 +30,6 @@ from ..source_space import (_ensure_src, _filter_source_spaces,
 from ..source_estimate import VolSourceEstimate
 from ..surface import _normalize_vectors
 from ..bem import read_bem_solution, _bem_find_surface, ConductorModel
-
-from .forward import Forward, _merge_meg_eeg_fwds, convert_forward_solution
 
 
 _accuracy_dict = dict(normal=FWD.COIL_ACCURACY_NORMAL,

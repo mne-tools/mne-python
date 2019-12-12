@@ -29,7 +29,7 @@ from mne.io.edf.edf import _read_ch
 from mne.io.edf.edf import _parse_prefilter_string
 from mne.io.pick import channel_indices_by_type
 from mne.annotations import events_from_annotations, read_annotations
-from mne.io.meas_info import _kind_dict as _KIND_DICT
+from mne.io.meas_info import _kind_dict
 
 
 FILE = inspect.getfile(inspect.currentframe())
@@ -339,7 +339,7 @@ def test_load_generator(fname, recwarn):
 def test_edf_stim_ch_pick_up(test_input, EXPECTED):
     """Test stim_channel."""
     # This is fragile for EEG/EEG-CSD, so just omit csd
-    TYPE_LUT = {v[0]: k for k, v in _KIND_DICT.items() if k != 'csd'}
+    TYPE_LUT = {v[0]: k for k, v in _kind_dict.items() if k != 'csd'}
     fname = op.join(data_dir, 'test_stim_channel.edf')
 
     raw = read_raw_edf(fname, stim_channel=test_input)

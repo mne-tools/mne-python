@@ -28,15 +28,15 @@ times = np.arange(0, 10, 0.001)  # Use 10000 samples (10s)
 
 sin = np.sin(times * 10)  # Multiplied by 10 for shorter cycles
 cos = np.cos(times * 10)
-sinX2 = sin * 2
-cosX2 = cos * 2
+sin_2 = sin * 2
+cos_2 = cos * 2
 
 # Numpy array of size 4 X 10000.
-data = np.array([sin, cos, sinX2, cosX2])
+data = np.array([sin, cos, sin_2, cos_2])
 
 # Definition of channel types and names.
 ch_types = ['mag', 'mag', 'grad', 'grad']
-ch_names = ['sin', 'cos', 'sinX2', 'cosX2']
+ch_names = ['sin', 'cos', 'sin_2', 'cos_2']
 
 ###############################################################################
 # Create an :class:`info <mne.Info>` object.

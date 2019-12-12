@@ -20,7 +20,7 @@ from mne.io.constants import FIFF
 
 artemis123_dir = op.join(testing.data_path(download=False), 'ARTEMIS123')
 
-short_HPI_dip_fname = op.join(artemis123_dir,
+short_hpi_dip_fname = op.join(artemis123_dir,
                               'Artemis_Data_2017-04-04-15h-44m-' +
                               '22s_Motion_Translation-z.bin')
 
@@ -72,13 +72,13 @@ def test_data():
                                     [0.06666813, 0.0148956, 0.00545488],
                                     [-0.06699212, -0.01732376, 0.0112027]])
     # test with head loc no digitization
-    raw = read_raw_artemis123(short_HPI_dip_fname, add_head_trans=True)
+    raw = read_raw_artemis123(short_hpi_dip_fname, add_head_trans=True)
     _assert_trans(raw.info['dev_head_t']['trans'], dev_head_t_1)
     assert_equal(raw.info['sfreq'], 5000.0)
 
     # test with head loc and digitization
     with pytest.warns(RuntimeWarning, match='Large difference'):
-        raw = read_raw_artemis123(short_HPI_dip_fname, add_head_trans=True,
+        raw = read_raw_artemis123(short_hpi_dip_fname, add_head_trans=True,
                                   pos_fname=dig_fname)
     _assert_trans(raw.info['dev_head_t']['trans'], dev_head_t_1)
 

@@ -5,16 +5,14 @@
 from datetime import datetime, timezone
 from itertools import repeat
 from collections import OrderedDict
-import sys
-
 import os.path as op
+import sys
 
 import pytest
 from pytest import approx
+import numpy as np
 from numpy.testing import (assert_equal, assert_array_equal,
                            assert_array_almost_equal, assert_allclose)
-
-import numpy as np
 
 import mne
 from mne import create_info, read_annotations, events_from_annotations
@@ -38,7 +36,7 @@ first_samps = pytest.mark.parametrize('first_samp', (0, 10000))
 
 # On Windows, datetime.fromtimestamp throws an error for negative times.
 # We mimic this behavior on non-Windows platforms for ease of testing.
-class _windows_datetime(datetime):
+class _WindowsDatetime(datetime):
     @classmethod
     def fromtimestamp(cls, timestamp, tzinfo=None):
         if timestamp < 0:
@@ -50,7 +48,7 @@ class _windows_datetime(datetime):
 def windows_like_datetime(monkeypatch):
     """Ensure datetime.fromtimestamp is Windows-like."""
     if not sys.platform.startswith('win'):
-        monkeypatch.setattr('mne.annotations.datetime', _windows_datetime)
+        monkeypatch.setattr('mne.annotations.datetime', _WindowsDatetime)
     yield
 
 

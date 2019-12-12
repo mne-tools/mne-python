@@ -3,11 +3,11 @@
 # License: BSD (3-clause)
 
 import numpy as np
+
 from ..evoked import Evoked
 from ..epochs import BaseEpochs
 from ..io import BaseRaw
 from ..event import find_events
-
 from ..io.pick import _pick_data_channels
 from ..utils import _check_preload, _check_option
 

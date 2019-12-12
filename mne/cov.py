@@ -18,11 +18,9 @@ from .io.proj import (make_projector, _proj_equal, activate_proj,
                       _check_projs, _needs_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj, _read_proj, _write_proj)
 from .io import fiff_open, RawArray
-
 from .io.pick import (pick_types, pick_channels_cov, pick_channels, pick_info,
                       _picks_by_type, _pick_data_channels, _picks_to_idx,
                       _DATA_CH_TYPES_SPLIT)
-
 from .io.constants import FIFF
 from .io.meas_info import read_bad_channels, create_info
 from .io.tag import find_tag
@@ -38,7 +36,6 @@ from .utils import (check_fname, logger, verbose, check_version, _time_mask,
                     _undo_scaling_cov, _scaled_array, _validate_type,
                     _check_option, eigh)
 from . import viz
-
 from .fixes import BaseEstimator, EmpiricalCovariance, _logdet
 
 

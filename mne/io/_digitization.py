@@ -8,25 +8,21 @@
 # License: BSD (3-clause)
 
 from collections import OrderedDict, Counter
-
 import datetime
 import os.path as op
 import re
 
 import numpy as np
 
-from ..utils import logger, warn, _check_option, Bunch
-
 from .constants import FIFF
 from .tree import dir_tree_find
 from .tag import read_tag
 from .write import (start_file, end_file, write_dig_points)
-
+from ..utils import logger, warn, _check_option, Bunch
 from ..transforms import (apply_trans, als_ras_trans, Transform,
                           get_ras_to_neuromag_trans, combine_transforms,
                           invert_transform, _to_const, _str_to_frame,
                           _coord_frame_name)
-
 from .. import __version__
 
 b = bytes  # alias

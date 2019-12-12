@@ -36,10 +36,8 @@ Preprocessing
 
 import os.path as op
 
-from mne.filter import next_fast_len
-
 import mne
-
+from mne.filter import next_fast_len
 
 print(__doc__)
 

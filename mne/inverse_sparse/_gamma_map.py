@@ -6,7 +6,6 @@ import numpy as np
 from scipy import linalg
 
 from ..forward import is_fixed_orient
-
 from ..minimum_norm.inverse import _check_reference
 from ..utils import logger, verbose, warn
 from .mxne_inverse import (_check_ori, _make_sparse_stc, _prepare_gain,

@@ -21,7 +21,6 @@ import numpy as np
 from ..defaults import _handle_default
 from ..utils import verbose, logger, warn, fill_doc, check_version
 from ..io.meas_info import create_info, _validate_type
-
 from ..io.pick import (pick_types, channel_type, _get_channel_types,
                        _picks_to_idx, _DATA_CH_TYPES_SPLIT,
                        _DATA_CH_TYPES_ORDER_DEFAULT, _VALID_CHANNEL_TYPES)

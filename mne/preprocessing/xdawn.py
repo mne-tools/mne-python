@@ -327,7 +327,7 @@ class _XdawnTransformer(BaseEstimator, TransformerMixin):
         # Transform
         return np.dot(self.patterns_.T, X).transpose(1, 0, 2)
 
-    def _check_Xy(self, X, y=None):
+    def _check_Xy(self, X, y=None):  # noqa: N802
         """Check X and y types and dimensions."""
         # Check data
         if not isinstance(X, np.ndarray) or X.ndim != 3:

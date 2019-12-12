@@ -52,7 +52,7 @@ data_path = testing.data_path(download=False)
 neuroone_vhdr = op.join(data_path, 'Brainvision', 'test_NO.vhdr')
 
 # Test for nanovolts as unit
-vhdr_nV_path = op.join(data_dir, 'test_nV.vhdr')
+vhdr_nV_path = op.join(data_dir, 'test_nV.vhdr')  # noqa: N816
 
 # Test bad date
 vhdr_bad_date = op.join(data_dir, 'test_bad_date.vhdr')

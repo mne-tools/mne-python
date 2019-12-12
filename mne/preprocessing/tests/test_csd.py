@@ -22,9 +22,7 @@ from mne.io import RawArray, read_raw_fif
 from mne.io.constants import FIFF
 from mne.utils import object_diff, run_tests_if_main
 from mne.datasets import testing
-
 from mne.preprocessing import compute_current_source_density
-
 from mne.channels.interpolation import _calc_g, _calc_h
 
 data_path = testing.data_path(download=False)

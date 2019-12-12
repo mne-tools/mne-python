@@ -562,7 +562,7 @@ def test_summarize_clusters():
     pytest.raises(RuntimeError, summarize_clusters_stc, clu)
 
 
-def test_permutation_test_H0(numba_conditional):
+def test_permutation_test_h0(numba_conditional):
     """Test that H0 is populated properly during testing."""
     rng = np.random.RandomState(0)
     data = rng.rand(7, 10, 1) - 0.5

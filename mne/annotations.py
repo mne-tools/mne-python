@@ -14,7 +14,6 @@ import numpy as np
 from .utils import (_pl, check_fname, _validate_type, verbose, warn, logger,
                     _check_pandas_installed, _mask_to_onsets_offsets,
                     _DefaultEventParser, _check_dt, _stamp_to_dt, _dt_to_stamp)
-
 from .io.write import (start_block, end_block, write_float, write_name_list,
                        write_double, start_file)
 from .io.constants import FIFF

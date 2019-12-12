@@ -54,8 +54,8 @@ class _TempDir(str):
     object (an alternative could be using the atexit module instead).
     """
 
-    def __new__(self):  # noqa: D105
-        new = str.__new__(self, tempfile.mkdtemp(prefix='tmp_mne_tempdir_'))
+    def __new__(cls):  # noqa: D105
+        new = str.__new__(cls, tempfile.mkdtemp(prefix='tmp_mne_tempdir_'))
         return new
 
     def __init__(self):  # noqa: D102

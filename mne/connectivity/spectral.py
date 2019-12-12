@@ -141,7 +141,7 @@ class _PLVEst(_EpochMeanConEstBase):
         self.con_scores[con_idx] = plv
 
 
-class _ciPLVEst(_EpochMeanConEstBase):
+class _ciPLVEst(_EpochMeanConEstBase):  # noqa: N801
     """corrected imaginary PLV Estimator."""
 
     name = 'ciPLV'

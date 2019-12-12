@@ -138,8 +138,8 @@ def _loc_to_eeg_loc(loc):
 
 _is_matrix = 4294901760  # ffff0000
 _matrix_coding_dense = 16384      # 4000
-_matrix_coding_CCS = 16400      # 4010
-_matrix_coding_RCS = 16416      # 4020
+_matrix_coding_ccs = 16400      # 4010
+_matrix_coding_rcs = 16416      # 4020
 _data_type = 65535      # ffff
 
 
@@ -202,7 +202,7 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
             # Note: we need the non-conjugate transpose here
             data = (data[::2] + 1j * data[1::2])
         data.shape = dims
-    elif matrix_coding in (_matrix_coding_CCS, _matrix_coding_RCS):
+    elif matrix_coding in (_matrix_coding_ccs, _matrix_coding_rcs):
         # Find dimensions and return to the beginning of tag data
         pos = fid.tell()
         fid.seek(tag.size - 4, 1)
@@ -220,7 +220,7 @@ def _read_matrix(fid, tag, shape, rlims, matrix_coding):
         ncol = int(dims[2])
         data = np.frombuffer(fid.read(4 * nnz), dtype='>f4')
         shape = (dims[1], dims[2])
-        if matrix_coding == _matrix_coding_CCS:
+        if matrix_coding == _matrix_coding_ccs:
             #    CCS
             tmp_indices = fid.read(4 * nnz)
             indices = np.frombuffer(tmp_indices, dtype='>i4')

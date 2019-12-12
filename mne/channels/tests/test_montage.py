@@ -33,16 +33,13 @@ from mne.io.constants import FIFF
 from mne.io._digitization import (_format_dig_points,
                                   _get_fid_coords, _get_dig_eeg,
                                   _count_points_by_type)
-
 from mne.viz._3d import _fiducial_coords
-
 from mne.io.kit import read_mrk
 from mne.io import (read_raw_brainvision, read_raw_egi, read_raw_fif,
-                    read_fiducials, __file__ as _MNE_IO_FILE)
-
+                    read_fiducials, __file__ as _io_file)
 from mne.io import RawArray
 from mne.datasets import testing
-from mne.io.brainvision import __file__ as _BRAINVISON_FILE
+from mne.io.brainvision import __file__ as _io_brainvision_file
 
 
 data_path = testing.data_path(download=False)
@@ -61,7 +58,7 @@ bdf_fname2 = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
 egi_fname1 = op.join(data_path, 'EGI', 'test_egi.mff')
 cnt_fname = op.join(data_path, 'CNT', 'scan41_short.cnt')
 
-io_dir = op.dirname(_MNE_IO_FILE)
+io_dir = op.dirname(_io_file)
 kit_dir = op.join(io_dir, 'kit', 'tests', 'data')
 elp = op.join(kit_dir, 'test_elp.txt')
 hsp = op.join(kit_dir, 'test_hsp.txt')
@@ -1154,14 +1151,10 @@ def test_set_dig_montage_parameters_deprecation():
 def test_read_dig_hpts():
     """Test reading .hpts file (from MNE legacy)."""
     fname = op.join(
-        op.dirname(_BRAINVISON_FILE), 'tests', 'data', 'test.hpts'
-    )
-
+        op.dirname(_io_brainvision_file), 'tests', 'data', 'test.hpts')
     montage = read_dig_hpts(fname)
-    assert repr(montage) == (
-        '<DigMontage | '
-        '0 extras (headshape), 5 HPIs, 3 fiducials, 34 channels>'
-    )
+    assert repr(montage) == \
+        '<DigMontage | 0 extras (headshape), 5 HPIs, 3 fiducials, 34 channels>'
 
 
 def test_get_builtin_montages():

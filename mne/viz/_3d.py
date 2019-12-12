@@ -29,7 +29,6 @@ from ..io.constants import FIFF
 from ..io.meas_info import read_fiducials, create_info
 from ..source_space import (_ensure_src, _create_surf_spacing, _check_spacing,
                             _read_mri_info)
-
 from ..surface import (get_meg_helmet_surf, read_surface, _DistanceQuery,
                        transform_surface_to, _project_onto_surface,
                        mesh_edges, _reorder_ccw, _complete_sphere_surf)
@@ -40,10 +39,10 @@ from ..transforms import (_find_trans, apply_trans, rot_to_quat,
 from ..utils import (get_subjects_dir, logger, _check_subject, verbose, warn,
                      has_nibabel, check_version, fill_doc, _pl,
                      _ensure_int, _validate_type, _check_option)
-from .utils import (mne_analyze_colormap, _prepare_trellis, _get_color_list,
-                    plt_show, tight_layout, figure_nobar, _check_time_unit)
 from ..bem import (ConductorModel, _bem_find_surface, _surf_dict, _surf_name,
                    read_bem_surfaces)
+from .utils import (mne_analyze_colormap, _prepare_trellis, _get_color_list,
+                    plt_show, tight_layout, figure_nobar, _check_time_unit)
 
 
 verbose_dec = verbose

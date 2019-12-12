@@ -22,7 +22,6 @@ References
 # License: BSD (3-clause)
 
 import mne
-
 from mne import io
 from mne.datasets import sample
 from mne.cov import compute_covariance

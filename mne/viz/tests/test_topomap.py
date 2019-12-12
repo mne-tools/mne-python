@@ -28,7 +28,6 @@ from mne.channels import read_layout
 from mne.datasets import testing
 from mne.time_frequency.tfr import AverageTFR
 from mne.utils import run_tests_if_main
-
 from mne.viz import plot_evoked_topomap, plot_projs_topomap
 from mne.viz.topomap import (_get_pos_outlines, _onselect, plot_topomap,
                              plot_arrowmap, plot_psds_topomap)
