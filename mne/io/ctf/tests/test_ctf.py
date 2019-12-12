@@ -19,7 +19,8 @@ from mne.io import read_raw_fif, read_raw_ctf, RawArray
 from mne.io.compensator import get_current_comp
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.tests.test_annotations import _assert_annotations_equal
-from mne.utils import run_tests_if_main, _clean_names, catch_logging
+from mne.utils import (run_tests_if_main, _clean_names, catch_logging,
+                       _stamp_to_dt)
 from mne.datasets import testing, spm_face, brainstorm
 from mne.io.constants import FIFF
 
@@ -289,7 +290,7 @@ def test_saving_picked(tmpdir, comp_grade):
     temp_dir = str(tmpdir)
     out_fname = op.join(temp_dir, 'test_py_raw.fif')
     raw = read_raw_ctf(op.join(ctf_dir, ctf_fname_1_trial))
-    assert(raw.info['meas_date'] == (1367228160, 0))
+    assert raw.info['meas_date'] == _stamp_to_dt((1367228160, 0))
     raw.crop(0, 1).load_data()
     assert raw.compensation_grade == get_current_comp(raw.info) == 0
     assert len(raw.info['comps']) == 5
@@ -350,12 +351,13 @@ def test_read_ctf_annotations():
 
     raw = RawArray(
         data=np.empty((1, 432000), dtype=np.float64),
-        info=create_info(ch_names=1, sfreq=1200.0)
-    ).set_annotations(read_annotations(somato_fname))
+        info=create_info(ch_names=1, sfreq=1200.0))
+    raw.set_meas_date(read_raw_ctf(somato_fname).info['meas_date'])
+    raw.set_annotations(read_annotations(somato_fname))
 
     events, _ = events_from_annotations(raw)
     latencies = np.sort(events[:, 0])
-    assert_array_equal(latencies, EXPECTED_LATENCIES)
+    assert_allclose(latencies, EXPECTED_LATENCIES, atol=1e-6)
 
 
 @testing.requires_testing_data
@@ -378,7 +380,7 @@ def test_read_ctf_annotations_smoke_test():
     assert_allclose(annot.onset, EXPECTED_ONSET)
 
     raw = read_raw_ctf(fname)
-    _assert_annotations_equal(raw.annotations, annot)
+    _assert_annotations_equal(raw.annotations, annot, 1e-6)
 
 
 run_tests_if_main()

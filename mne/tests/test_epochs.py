@@ -32,7 +32,7 @@ from mne.epochs import (
     _handle_event_repeated)
 from mne.utils import (requires_pandas, run_tests_if_main, object_diff,
                        requires_version, catch_logging, _FakeNoPandas,
-                       assert_meg_snr, check_version)
+                       assert_meg_snr, check_version, _dt_to_stamp)
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 
 from mne.io import RawArray, read_raw_fif
@@ -384,8 +384,8 @@ def test_reject():
                   events[::2][:3]]
         onsets[0] = onsets[0] + tmin - 0.499  # tmin < 0
         onsets[1] = onsets[1] + tmax - 0.001
-        first_time = (raw.info['meas_date'][0] + raw.info['meas_date'][1] *
-                      1e-6 + raw.first_samp / sfreq)
+        stamp = _dt_to_stamp(raw.info['meas_date'])
+        first_time = (stamp[0] + stamp[1] * 1e-6 + raw.first_samp / sfreq)
         for orig_time in [None, first_time]:
             annot = Annotations(onsets, [0.5, 0.5, 0.5], 'BAD', orig_time)
             raw.set_annotations(annot)
@@ -2111,7 +2111,7 @@ def test_add_channels_epochs():
     epochs_meg2 = epochs_meg.copy()
     assert not epochs_meg.times.flags['WRITEABLE']
     assert not epochs_meg2.times.flags['WRITEABLE']
-    epochs_meg2.info['meas_date'] = (0, 0)
+    epochs_meg2.set_meas_date(0)
     add_channels_epochs([epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()

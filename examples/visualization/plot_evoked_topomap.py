@@ -19,6 +19,7 @@ additional options.
 
 import numpy as np
 import matplotlib.pyplot as plt
+
 from mne.datasets import sample
 from mne import read_evokeds
 
@@ -80,12 +81,15 @@ evoked.plot_topomap(times, ch_type='mag', cmap='Spectral_r', res=32,
 # Compare this with ``extrapolate='head'`` (second topography below) where
 # extrapolation goes to 0 at the head circle and ``extrapolate='local'`` where
 # extrapolation is performed only within some distance from channels:
+
 extrapolations = ['box', 'head', 'local']
 fig, axes = plt.subplots(figsize=(7.5, 2.5), ncols=3)
 
+# Here we look at EEG channels, and use a custom head sphere to get all the
+# sensors to be well within the drawn head surface
 for ax, extr in zip(axes, extrapolations):
-    evoked.plot_topomap(0.1, ch_type='mag', size=2, extrapolate=extr, axes=ax,
-                        show=False, colorbar=False)
+    evoked.plot_topomap(0.1, ch_type='eeg', size=2, extrapolate=extr, axes=ax,
+                        show=False, colorbar=False, sphere=(0., 0., 0., 0.09))
     ax.set_title(extr, fontsize=14)
 
 ###############################################################################

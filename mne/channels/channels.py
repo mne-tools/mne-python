@@ -14,6 +14,7 @@ import sys
 import numpy as np
 from scipy import sparse
 
+from ..defaults import HEAD_SIZE_DEFAULT
 from ..utils import (verbose, logger, warn, copy_function_doc_to_method_doc,
                      _check_preload, _validate_type, fill_doc, _check_option)
 from ..io.compensator import get_current_comp
@@ -22,7 +23,6 @@ from ..io.meas_info import anonymize_info, Info
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _contains_ch_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx)
-from ..annotations import _handle_meas_date
 
 
 DEPRECATED_PARAM = object()
@@ -74,7 +74,7 @@ def _get_ch_type(inst, ch_type, allow_ref_meg=False):
     """
     if ch_type is None:
         allowed_types = ['mag', 'grad', 'planar1', 'planar2', 'eeg', 'csd',
-                         'fnirs_raw', 'fnirs_od', 'hbo', 'hbr']
+                         'fnirs_raw', 'fnirs_od', 'hbo', 'hbr', 'ecog', 'seeg']
         allowed_types += ['ref_meg'] if allow_ref_meg else []
         for type_ in allowed_types:
             if isinstance(inst, Info):
@@ -211,7 +211,13 @@ class ContainsMixin(object):
         return get_current_comp(self.info)
 
     def get_channel_types(self):
-        """Get a list of channel type for each channel."""
+        """Get a list of channel type for each channel.
+
+        Returns
+        -------
+        channel_types : list
+            The channel types.
+        """
         return [channel_type(self.info, n)
                 for n in range(len(self.info['ch_names']))]
 
@@ -513,7 +519,7 @@ class SetChannelsMixin(object):
         Parameters
         ----------
         %(montage)s
-        raise_if_subset: bool
+        raise_if_subset : bool
             If True, ValueError will be raised when montage.ch_names is a
             subset of info['ch_names']. This parameter was introduced for
             backward compatibility when set to False.
@@ -521,8 +527,13 @@ class SetChannelsMixin(object):
             Defaults to False in 0.19, it will change to default to True in
             0.20, and will be removed in 0.21.
 
-            .. versionadded: 0.19
+            .. versionadded:: 0.19
         %(verbose_meth)s
+
+        Returns
+        -------
+        inst : instance of Raw | Epochs | Evoked
+            The instance.
 
         Notes
         -----
@@ -537,9 +548,11 @@ class SetChannelsMixin(object):
         _set_montage(self.info, montage, raise_if_subset=raise_if_subset)
         return self
 
+    @verbose
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,
                      show_names=False, ch_groups=None, to_sphere=True,
-                     axes=None, block=False, show=True):
+                     axes=None, block=False, show=True, sphere=None,
+                     verbose=None):
         """Plot sensor positions.
 
         Parameters
@@ -558,7 +571,7 @@ class SetChannelsMixin(object):
             channels are chosen in the order given above.
         title : str | None
             Title for the figure. If None (default), equals to ``'Sensor
-            positions (%s)' % ch_type``.
+            positions (%%s)' %% ch_type``.
         show_names : bool | array of str
             Whether to display all channel names. If an array, only the channel
             names in the array are shown. Defaults to False.
@@ -569,28 +582,26 @@ class SetChannelsMixin(object):
             array, the channels are divided by picks given in the array.
 
             .. versionadded:: 0.13.0
-
         to_sphere : bool
             Whether to project the 3d locations to a sphere. When False, the
             sensor array appears similar as to looking downwards straight above
             the subject's head. Has no effect when kind='3d'. Defaults to True.
 
             .. versionadded:: 0.14.0
-
         axes : instance of Axes | instance of Axes3D | None
             Axes to draw the sensors to. If ``kind='3d'``, axes must be an
             instance of Axes3D. If None (default), a new axes will be created.
 
             .. versionadded:: 0.13.0
-
         block : bool
             Whether to halt program execution until the figure is closed.
             Defaults to False.
 
             .. versionadded:: 0.13.0
-
         show : bool
             Show figure if True. Defaults to True.
+        %(topomap_sphere_auto)s
+        %(verbose_meth)s
 
         Returns
         -------
@@ -615,18 +626,53 @@ class SetChannelsMixin(object):
         return plot_sensors(self.info, kind=kind, ch_type=ch_type, title=title,
                             show_names=show_names, ch_groups=ch_groups,
                             to_sphere=to_sphere, axes=axes, block=block,
-                            show=show)
+                            show=show, sphere=sphere, verbose=verbose)
 
     @copy_function_doc_to_method_doc(anonymize_info)
-    def anonymize(self, daysback=None, keep_his=False):
+    def anonymize(self, daysback=None, keep_his=False, verbose=None):
         """
         .. versionadded:: 0.13.0
         """
-        anonymize_info(self.info, daysback=daysback, keep_his=keep_his)
+        anonymize_info(self.info, daysback=daysback, keep_his=keep_his,
+                       verbose=verbose)
+        self.set_meas_date(self.info['meas_date'])  # unify annot update
+        return self
+
+    def set_meas_date(self, meas_date):
+        """Set the measurement start date.
+
+        Parameters
+        ----------
+        meas_date : datetime | float | tuple | None
+            The new measurement date.
+            If datetime object, it must be timezone-aware and in UTC.
+            A tuple of (seconds, microseconds) or float (alias for
+            ``(meas_date, 0)``) can also be passed and a datetime
+            object will be automatically created. If None, will remove
+            the time reference.
+
+        Returns
+        -------
+        inst : instance of Raw | Epochs | Evoked
+            The modified raw instance. Operates in place.
+
+        See Also
+        --------
+        mne.io.Raw.anonymize
+
+        Notes
+        -----
+        If you want to remove all time references in the file, call
+        :func:`mne.io.anonymize_info(inst.info) <mne.io.anonymize_info>`
+        after calling ``inst.set_meas_date(None)``.
+
+        .. versionadded:: 0.20
+        """
+        from ..annotations import _handle_meas_date
+        meas_date = _handle_meas_date(meas_date)
+        self.info['meas_date'] = meas_date
         if hasattr(self, 'annotations'):
-            self.annotations.orig_time = \
-                _handle_meas_date(self.info['meas_date'])
-            self.annotations.onset -= self._first_time
+            self.annotations._orig_time = meas_date
         return self
 
 
@@ -659,7 +705,7 @@ class UpdateChannelsMixin(object):
             If True include ECG channels.
         emg : bool
             If True include EMG channels.
-        ref_meg: bool | str
+        ref_meg : bool | str
             If True include CTF / 4D reference channels. If 'auto', the
             reference channels are only included if compensations are present.
         misc : bool
@@ -692,13 +738,13 @@ class UpdateChannelsMixin(object):
             include channels measuring deoxyhemoglobin).
         csd : bool
             EEG-CSD channels.
-        include : list of string
+        include : list of str
             List of additional channels to include. If empty do not include
             any.
-        exclude : list of string | str
+        exclude : list of str | str
             List of channels to exclude. If 'bads' (default), exclude channels
             in ``info['bads']``.
-        selection : list of string
+        selection : list of str
             Restrict sensor channels (MEG, EEG) to this list of channel names.
         %(verbose_meth)s
 
@@ -888,7 +934,7 @@ class UpdateChannelsMixin(object):
         ----------
         add_list : list
             A list of objects to append to self. Must contain all the same
-            type as the current object
+            type as the current object.
         force_update_info : bool
             If True, force the info for objects to be appended to match the
             values in `self`. This should generally only be used when adding
@@ -1306,7 +1352,7 @@ def _compute_ch_connectivity(info, ch_type):
     """
     from scipy.spatial import Delaunay
     from .. import spatial_tris_connectivity
-    from ..channels.layout import _auto_topomap_coords, _pair_grad_sensors
+    from ..channels.layout import _find_topomap_coords, _pair_grad_sensors
     combine_grads = (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
                      np.unique([ch['coil_type'] for ch in info['chs']]))
 
@@ -1318,9 +1364,10 @@ def _compute_ch_connectivity(info, ch_type):
             raise RuntimeError('Cannot find a pair for some of the '
                                'gradiometers. Cannot compute connectivity '
                                'matrix.')
-        xy = _auto_topomap_coords(info, picks[::2])  # only for one of the pair
+        # only for one of the pair
+        xy = _find_topomap_coords(info, picks[::2], sphere=HEAD_SIZE_DEFAULT)
     else:
-        xy = _auto_topomap_coords(info, picks)
+        xy = _find_topomap_coords(info, picks, sphere=HEAD_SIZE_DEFAULT)
     tri = Delaunay(xy)
     neighbors = spatial_tris_connectivity(tri.simplices)
 

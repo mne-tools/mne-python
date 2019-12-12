@@ -12,6 +12,7 @@ import warnings
 import webbrowser
 
 from .config import get_config
+from ..defaults import HEAD_SIZE_DEFAULT
 from ..externals.doccer import filldoc, unindent_dict
 from .check import _check_option
 
@@ -50,6 +51,64 @@ include_tmax : bool
 docdict["show"] = """
 show : bool
     Show figure if True."""
+docdict['topomap_outlines'] = """
+outlines : 'head' | 'skirt' | dict | None
+    The outlines to be drawn. If 'head', the default head scheme will be
+    drawn. If 'skirt' the head scheme will be drawn, but sensors are
+    allowed to be plotted outside of the head circle. If dict, each key
+    refers to a tuple of x and y positions, the values in 'mask_pos' will
+    serve as image mask.
+    Alternatively, a matplotlib patch object can be passed for advanced
+    masking options, either directly or as a function that returns patches
+    (required for multi-axis plots). If None, nothing will be drawn.
+    Defaults to 'head'.
+"""
+docdict['topomap_extrapolate'] = """
+extrapolate : str
+    Options:
+
+    - 'box' (default)
+        Extrapolate to four points placed to form a square encompassing all
+        data points, where each side of the square is three times the range
+        of the data in the respective dimension.
+    - 'local'
+        Extrapolate only to nearby points (approximately to points closer than
+        median inter-electrode distance).
+    - 'head'
+        Extrapolate to the edges of the head circle (does not work well
+        with sensors outside the head circle).
+"""
+docdict['topomap_head_pos'] = """
+head_pos : dict | None
+    Deprecated and will be removed in 0.21. Use ``sphere`` instead.
+"""
+docdict['topomap_sphere'] = """
+sphere : float | array-like | instance of ConductorModel
+    The sphere parameters to use for the cartoon head.
+    Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+    meters, or a single float to give the radius (origin assumed 0, 0, 0).
+    Can also be a spherical ConductorModel, which will use the origin and
+    radius. Can also be None (default) which is an alias for %s.
+
+    .. versionadded:: 0.20
+""" % (HEAD_SIZE_DEFAULT,)
+docdict['topomap_sphere_auto'] = """
+sphere : float | array-like | str | None
+    The sphere parameters to use for the cartoon head.
+    Can be array-like of shape (4,) to give the X/Y/Z origin and radius in
+    meters, or a single float to give the radius (origin assumed 0, 0, 0).
+    Can also be a spherical ConductorModel, which will use the origin and
+    radius. Can be "auto" to use a digitization-based fit.
+    Can also be None (default) to use 'auto' when enough extra digitization
+    points are available, and %s otherwise.
+
+    .. versionadded:: 0.20
+""" % (HEAD_SIZE_DEFAULT,)
+docdict['layout_dep'] = """
+layout : None
+    Deprecated and will be removed in 0.21. Use ``sphere`` to control
+    head-sensor relationship instead.
+"""
 
 # Picks
 docdict['picks_header'] = 'picks : str | list | slice | None'
@@ -228,7 +287,7 @@ dig_kinds : list of str | str
     Kind of digitization points to use in the fitting. These can be any
     combination of ('cardinal', 'hpi', 'eeg', 'extra'). Can also
     be 'auto' (default), which will use only the 'extra' points if
-    enough (more than 10) are available, and if not, uses 'extra' and
+    enough (more than 4) are available, and if not, uses 'extra' and
     'eeg' points.
 """
 docdict['exclude_frontal'] = """
@@ -380,67 +439,55 @@ spatial_colors : bool
 
 # plot_projs_topomap
 docdict["proj_topomap_kwargs"] = """
-    layout : None | Layout | list of Layout
-        Layout instance specifying sensor positions (does not need to be
-        specified for Neuromag data). Or a list of Layout if projections
-        are from different sensor types.
-    cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
-        Colormap to use. If tuple, the first value indicates the colormap to
-        use and the second value is a boolean defining interactivity. In
-        interactive mode (only works if ``colorbar=True``) the colors are
-        adjustable by clicking and dragging the colorbar with left and right
-        mouse button. Left mouse button moves the scale up and down and right
-        mouse button adjusts the range. Hitting space bar resets the range. Up
-        and down arrows can be used to change the colormap. If None (default),
-        'Reds' is used for all positive data, otherwise defaults to 'RdBu_r'.
-        If 'interactive', translates to (None, True).
-    sensors : bool | str
-        Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses). If True, a circle will be
-        used (via .add_artist). Defaults to True.
-    colorbar : bool
-        Plot a colorbar.
-    res : int
-        The resolution of the topomap image (n pixels along each side).
-    size : scalar
-        Side length of the topomaps in inches (only applies when plotting
-        multiple topomaps at a time).
-    show : bool
-        Show figure if True.
-    outlines : 'head' | 'skirt' | dict | None
-        The outlines to be drawn. If 'head', the default head scheme will be
-        drawn. If 'skirt' the head scheme will be drawn, but sensors are
-        allowed to be plotted outside of the head circle. If dict, each key
-        refers to a tuple of x and y positions, the values in 'mask_pos' will
-        serve as image mask, and the 'autoshrink' (bool) field will trigger
-        automated shrinking of the positions due to points outside the outline.
-        Alternatively, a matplotlib patch object can be passed for advanced
-        masking options, either directly or as a function that returns patches
-        (required for multi-axis plots). If None, nothing will be drawn.
-        Defaults to 'head'.
-    contours : int | array of float
-        The number of contour lines to draw. If 0, no contours will be drawn.
-        When an integer, matplotlib ticker locator is used to find suitable
-        values for the contour thresholds (may sometimes be inaccurate, use
-        array for accuracy). If an array, the values represent the levels for
-        the contours. Defaults to 6.
-    image_interp : str
-        The image interpolation to be used. All matplotlib options are
-        accepted.
-    axes : instance of Axes | list | None
-        The axes to plot to. If list, the list must be a list of Axes of
-        the same length as the number of projectors. If instance of Axes,
-        there must be only one projector. Defaults to None.
-    vlim : tuple of length 2 | 'joint'
-        Colormap limits to use. If :class:`tuple`, specifies the lower and
-        upper bounds of the colormap (in that order); providing ``None`` for
-        either of these will set the corresponding boundary at the min/max of
-        the data (separately for each projector). The keyword value ``'joint'``
-        will compute the colormap limits jointly across all provided
-        projectors of the same channel type, using the min/max of the projector
-        data. If vlim is ``'joint'``, ``info`` must not be ``None``. Defaults
-        to ``(None, None)``.
-"""
+cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+    Colormap to use. If tuple, the first value indicates the colormap to
+    use and the second value is a boolean defining interactivity. In
+    interactive mode (only works if ``colorbar=True``) the colors are
+    adjustable by clicking and dragging the colorbar with left and right
+    mouse button. Left mouse button moves the scale up and down and right
+    mouse button adjusts the range. Hitting space bar resets the range. Up
+    and down arrows can be used to change the colormap. If None (default),
+    'Reds' is used for all positive data, otherwise defaults to 'RdBu_r'.
+    If 'interactive', translates to (None, True).
+sensors : bool | str
+    Add markers for sensor locations to the plot. Accepts matplotlib plot
+    format string (e.g., 'r+' for red plusses). If True, a circle will be
+    used (via .add_artist). Defaults to True.
+colorbar : bool
+    Plot a colorbar.
+res : int
+    The resolution of the topomap image (n pixels along each side).
+size : scalar
+    Side length of the topomaps in inches (only applies when plotting
+    multiple topomaps at a time).
+show : bool
+    Show figure if True.
+%(topomap_outlines)s
+contours : int | array of float
+    The number of contour lines to draw. If 0, no contours will be drawn.
+    When an integer, matplotlib ticker locator is used to find suitable
+    values for the contour thresholds (may sometimes be inaccurate, use
+    array for accuracy). If an array, the values represent the levels for
+    the contours. Defaults to 6.
+image_interp : str
+    The image interpolation to be used. All matplotlib options are
+    accepted.
+axes : instance of Axes | list | None
+    The axes to plot to. If list, the list must be a list of Axes of
+    the same length as the number of projectors. If instance of Axes,
+    there must be only one projector. Defaults to None.
+vlim : tuple of length 2 | 'joint'
+    Colormap limits to use. If :class:`tuple`, specifies the lower and
+    upper bounds of the colormap (in that order); providing ``None`` for
+    either of these will set the corresponding boundary at the min/max of
+    the data (separately for each projector). The keyword value ``'joint'``
+    will compute the colormap limits jointly across all provided
+    projectors of the same channel type, using the min/max of the projector
+    data. If vlim is ``'joint'``, ``info`` must not be ``None``. Defaults
+    to ``(None, None)``.
+layout : None
+    Deprecated, will be removed in 0.20. Use ``info`` instead.
+""" % docdict
 
 # Montage
 docdict["montage_deprecated"] = """

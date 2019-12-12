@@ -18,7 +18,8 @@ from mne.coreg import (fit_matched_points, create_default_subject, scale_mri,
                        coregister_fiducials, get_mni_fiducials)
 from mne.io import read_fiducials
 from mne.io.constants import FIFF
-from mne.utils import run_tests_if_main, requires_nibabel, modified_env
+from mne.utils import (run_tests_if_main, requires_nibabel, modified_env,
+                       check_version)
 from mne.source_space import write_source_spaces
 
 data_path = testing.data_path(download=False)
@@ -58,7 +59,8 @@ def test_coregister_fiducials():
 
 @pytest.mark.slowtest  # can take forever on OSX Travis
 @testing.requires_testing_data
-def test_scale_mri(tmpdir, few_surfaces):
+@pytest.mark.parametrize('scale', (.9, [1, .2, .8]))
+def test_scale_mri(tmpdir, few_surfaces, scale):
     """Test creating fsaverage and scaling it."""
     # create fsaverage using the testing "fsaverage" instead of the FreeSurfer
     # one
@@ -100,41 +102,55 @@ def test_scale_mri(tmpdir, few_surfaces):
     write_source_spaces(path % 'vol-50', vsrc)
 
     # scale fsaverage
-    for scale in (.9, [1, .2, .8]):
-        write_source_spaces(path % 'ico-0', src, overwrite=True)
-        with pytest.warns(None):  # sometimes missing nibabel
-            scale_mri('fsaverage', 'flachkopf', scale, True,
-                      subjects_dir=tempdir, verbose='debug')
-        assert _is_mri_subject('flachkopf', tempdir), "Scaling failed"
-        spath = op.join(tempdir, 'flachkopf', 'bem', 'flachkopf-%s-src.fif')
+    write_source_spaces(path % 'ico-0', src, overwrite=True)
+    with pytest.warns(None):  # sometimes missing nibabel
+        scale_mri('fsaverage', 'flachkopf', scale, True,
+                  subjects_dir=tempdir, verbose='debug')
+    assert _is_mri_subject('flachkopf', tempdir), "Scaling failed"
+    spath = op.join(tempdir, 'flachkopf', 'bem', 'flachkopf-%s-src.fif')
 
-        assert op.exists(spath % 'ico-0'), "Source space ico-0 was not scaled"
-        assert os.path.isfile(os.path.join(tempdir, 'flachkopf', 'surf',
-                                           'lh.sphere.reg'))
-        vsrc_s = mne.read_source_spaces(spath % 'vol-50')
-        pt = np.array([0.12, 0.41, -0.22])
-        assert_array_almost_equal(
-            apply_trans(vsrc_s[0]['src_mri_t'], pt * np.array(scale)),
-            apply_trans(vsrc[0]['src_mri_t'], pt))
-        scale_labels('flachkopf', subjects_dir=tempdir)
+    assert op.exists(spath % 'ico-0'), "Source space ico-0 was not scaled"
+    assert os.path.isfile(os.path.join(tempdir, 'flachkopf', 'surf',
+                                       'lh.sphere.reg'))
+    vsrc_s = mne.read_source_spaces(spath % 'vol-50')
+    pt = np.array([0.12, 0.41, -0.22])
+    assert_array_almost_equal(
+        apply_trans(vsrc_s[0]['src_mri_t'], pt * np.array(scale)),
+        apply_trans(vsrc[0]['src_mri_t'], pt))
+    scale_labels('flachkopf', subjects_dir=tempdir)
 
-        # add distances to source space after hacking the properties to make
-        # it run *much* faster
-        src_dist = src.copy()
+    # add distances to source space after hacking the properties to make
+    # it run *much* faster
+    src_dist = src.copy()
+    for s in src_dist:
+        s.update(rr=s['rr'][s['vertno']], nn=s['nn'][s['vertno']],
+                 tris=s['use_tris'])
+        s.update(np=len(s['rr']), ntri=len(s['tris']),
+                 vertno=np.arange(len(s['rr'])),
+                 inuse=np.ones(len(s['rr']), int))
+    mne.add_source_space_distances(src_dist)
+    write_source_spaces(path % 'ico-0', src_dist, overwrite=True)
+
+    # scale with distances
+    os.remove(spath % 'ico-0')
+    scale_source_space('flachkopf', 'ico-0', subjects_dir=tempdir)
+    ssrc = mne.read_source_spaces(spath % 'ico-0')
+    assert ssrc[0]['dist'] is not None
+    assert ssrc[0]['nearest'] is not None
+
+    # check patch info computation (only if SciPy is new enough to be fast)
+    if check_version('scipy', '1.3'):
         for s in src_dist:
-            s.update(rr=s['rr'][s['vertno']], nn=s['nn'][s['vertno']],
-                     tris=s['use_tris'])
-            s.update(np=len(s['rr']), ntri=len(s['tris']),
-                     vertno=np.arange(len(s['rr'])),
-                     inuse=np.ones(len(s['rr']), int))
-        mne.add_source_space_distances(src_dist)
+            for key in ('dist', 'dist_limit'):
+                s[key] = None
         write_source_spaces(path % 'ico-0', src_dist, overwrite=True)
 
         # scale with distances
         os.remove(spath % 'ico-0')
         scale_source_space('flachkopf', 'ico-0', subjects_dir=tempdir)
         ssrc = mne.read_source_spaces(spath % 'ico-0')
-        assert ssrc[0]['dist'] is not None
+        assert ssrc[0]['dist'] is None
+        assert ssrc[0]['nearest'] is not None
 
 
 @pytest.mark.slowtest  # can take forever on OSX Travis

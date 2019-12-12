@@ -212,7 +212,7 @@ class LinearModel(BaseEstimator):
         Returns
         -------
         score : float
-            Score of the linear model
+            Score of the linear model.
         """
         return self.model.score(X, y)
 

@@ -24,7 +24,7 @@ from .surface import (read_surface, fast_cross_3d, mesh_edges, mesh_dist,
                       read_morph_map)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose, warn,
                     check_random_state, _validate_type, fill_doc,
-                    _check_option)
+                    _check_option, check_version)
 
 
 def _blend_colors(color_1, color_2):
@@ -274,10 +274,11 @@ class Label(object):
         return len(self.vertices)
 
     def __add__(self, other):
-        """Add BiHemiLabels."""
+        """Add Labels."""
+        _validate_type(other, (Label, BiHemiLabel), 'other')
         if isinstance(other, BiHemiLabel):
             return other + self
-        elif isinstance(other, Label):
+        else:  # isinstance(other, Label)
             if self.subject != other.subject:
                 raise ValueError('Label subject parameters must match, got '
                                  '"%s" and "%s". Consider setting the '
@@ -293,8 +294,6 @@ class Label(object):
                     lh, rh = other.copy(), self.copy()
                 color = _blend_colors(self.color, other.color)
                 return BiHemiLabel(lh, rh, name, color)
-        else:
-            raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
 
         # check for overlap
         duplicates = np.intersect1d(self.vertices, other.vertices)
@@ -344,13 +343,14 @@ class Label(object):
         return label
 
     def __sub__(self, other):
-        """Subtract BiHemiLabels."""
+        """Subtract Labels."""
+        _validate_type(other, (Label, BiHemiLabel), 'other')
         if isinstance(other, BiHemiLabel):
             if self.hemi == 'lh':
                 return self - other.lh
             else:
                 return self - other.rh
-        elif isinstance(other, Label):
+        else:  # isinstance(other, Label):
             if self.subject != other.subject:
                 raise ValueError('Label subject parameters must match, got '
                                  '"%s" and "%s". Consider setting the '
@@ -358,8 +358,6 @@ class Label(object):
                                  'setting label.subject manually before '
                                  'combining labels.' % (self.subject,
                                                         other.subject))
-        else:
-            raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
 
         if self.hemi == other.hemi:
             keep = np.in1d(self.vertices, other.vertices, True, invert=True)
@@ -416,27 +414,34 @@ class Label(object):
         label : Label
             The label covering the same vertices in source space but also
             including intermediate surface vertices.
+
+        See Also
+        --------
+        Label.restrict
+        Label.smooth
         """
         # find source space patch info
         if len(self.vertices) == 0:
             return self.copy()
-        if self.hemi == 'lh':
-            hemi_src = src[0]
-        elif self.hemi == 'rh':
-            hemi_src = src[1]
+        hemi_src = _get_label_src(self, src)
 
         if not np.all(np.in1d(self.vertices, hemi_src['vertno'])):
             msg = "Source space does not contain all of the label's vertices"
             raise ValueError(msg)
 
-        nearest = hemi_src['nearest']
-        if nearest is None:
-            warn("Computing patch info for source space, this can take "
-                 "a while. In order to avoid this in the future, run "
+        if hemi_src['nearest'] is None:
+            warn("Source space is being modified in place because patch "
+                 "information is needed. To avoid this in the future, run "
                  "mne.add_source_space_distances() on the source space "
-                 "and save it.")
-            add_source_space_distances(src)
-            nearest = hemi_src['nearest']
+                 "and save it to disk.")
+            if check_version('scipy', '1.3'):
+                dist_limit = 0
+            else:
+                warn('SciPy < 1.3 detected, adding source space patch '
+                     'information will be slower. Consider upgrading SciPy.')
+                dist_limit = np.inf
+            add_source_space_distances(src, dist_limit=dist_limit)
+        nearest = hemi_src['nearest']
 
         # find new vertices
         include = np.in1d(nearest, self.vertices, False)
@@ -448,10 +453,42 @@ class Label(object):
         # pos
         pos = hemi_src['rr'][vertices]
 
-        if name is None:
-            name = self.name
+        name = self.name if name is None else name
         label = Label(vertices, pos, values, self.hemi, self.comment, name,
                       None, self.subject, self.color)
+        return label
+
+    def restrict(self, src, name=None):
+        """Restrict a label to a source space.
+
+        Parameters
+        ----------
+        src : instance of SourceSpaces
+            The source spaces to use to restrict the label.
+        name : None | str
+            Name for the new Label (default is self.name).
+
+        Returns
+        -------
+        label : instance of Label
+            The Label restricted to the set of source space vertices.
+
+        See Also
+        --------
+        Label.fill
+
+        Notes
+        -----
+        .. versionadded:: 0.20
+        """
+        if len(self.vertices) == 0:
+            return self.copy()
+        hemi_src = _get_label_src(self, src)
+        mask = np.in1d(self.vertices, hemi_src['vertno'])
+        name = self.name if name is None else name
+        label = Label(self.vertices[mask], self.pos[mask], self.values[mask],
+                      self.hemi, self.comment, name, None, self.subject,
+                      self.color)
         return label
 
     @verbose
@@ -542,7 +579,7 @@ class Label(object):
 
         See Also
         --------
-        mne.morph_labels : morph a set of labels
+        mne.morph_labels : Morph a set of labels.
 
         Notes
         -----
@@ -585,6 +622,7 @@ class Label(object):
         self.subject = subject_to
         return self
 
+    @fill_doc
     def split(self, parts=2, subject=None, subjects_dir=None,
               freesurfer=False):
         """Split the Label into two or more parts.
@@ -667,7 +705,7 @@ class Label(object):
         Returns
         -------
         label_tris : ndarray of int, shape (n_tris, 3)
-            The subset of tris used by the label
+            The subset of tris used by the label.
         """
         vertices_ = self.get_vertices_used(vertices)
         selection = np.all(np.in1d(tris, vertices_).reshape(tris.shape),
@@ -689,6 +727,7 @@ class Label(object):
 
         return label_tris
 
+    @fill_doc
     def center_of_mass(self, subject=None, restrict_vertices=False,
                        subjects_dir=None, surf='sphere'):
         """Compute the center of mass of the label.
@@ -698,7 +737,7 @@ class Label(object):
 
         Parameters
         ----------
-        subject : string | None
+        subject : str | None
             The subject the label is defined for.
         restrict_vertices : bool | array of int | instance of SourceSpaces
             If True, returned vertex will be one from the label. Otherwise,
@@ -727,7 +766,7 @@ class Label(object):
 
         Notes
         -----
-        .. versionadded: 0.13
+        .. versionadded:: 0.13
 
         References
         ----------
@@ -746,6 +785,18 @@ class Label(object):
         vertex = _center_of_mass(self.vertices, self.values, self.hemi, surf,
                                  subject, subjects_dir, restrict_vertices)
         return vertex
+
+
+def _get_label_src(label, src):
+    _validate_type(src, SourceSpaces, 'src')
+    if src.kind != 'surface':
+        raise RuntimeError('Cannot operate on SourceSpaces that are not '
+                           'surface type, got %s' % (src.kind,))
+    if label.hemi == 'lh':
+        hemi_src = src[0]
+    else:
+        hemi_src = src[1]
+    return hemi_src
 
 
 class BiHemiLabel(object):
@@ -818,6 +869,7 @@ class BiHemiLabel(object):
 
     def __sub__(self, other):
         """Subtract labels."""
+        _validate_type(other, (Label, BiHemiLabel), 'other')
         if isinstance(other, Label):
             if other.hemi == 'lh':
                 lh = self.lh - other
@@ -825,11 +877,9 @@ class BiHemiLabel(object):
             else:
                 rh = self.rh - other
                 lh = self.lh
-        elif isinstance(other, BiHemiLabel):
+        else:  # isinstance(other, BiHemiLabel)
             lh = self.lh - other.lh
             rh = self.rh - other.rh
-        else:
-            raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
 
         if len(lh.vertices) == 0:
             return rh

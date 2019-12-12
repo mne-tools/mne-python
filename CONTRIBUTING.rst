@@ -20,5 +20,5 @@ MNE-Python.
 .. _`MNE mailing list`: http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
 .. _`MNE gitter channel`: https://gitter.im/mne-tools/mne-python
 
-.. _`code of conduct`: https://github.com/mne-tools/mne-python/blob/master/CODE_OF_CONDUCT.md
+.. _`code of conduct`: https://github.com/mne-tools/.github/blob/master/CODE_OF_CONDUCT.md
 .. _`contributing guide`: https://mne-tools.github.io/dev/install/contributing.html

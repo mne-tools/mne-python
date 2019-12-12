@@ -20,6 +20,7 @@ from functools import partial
 
 import numpy as np
 
+from ..defaults import HEAD_SIZE_DEFAULT
 from ..viz import plot_montage
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _frame_to_str, Transform,
@@ -39,8 +40,6 @@ from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
 
 from .channels import DEPRECATED_PARAM
-
-HEAD_SIZE_DEFAULT = 0.095  # in [m]
 
 _BUILT_IN_MONTAGES = [
     'EGI_256',
@@ -216,11 +215,11 @@ class DigMontage(object):
                 ' {fid:d} fiducials, {eeg:d} channels>').format(**n_points)
 
     @copy_function_doc_to_method_doc(plot_montage)
-    def plot(self, scale_factor=20, show_names=False, kind='3d', show=True):
-        # XXX: plot_montage takes an empty info and sets 'self'
-        #      Therefore it should not be a representation problem.
+    def plot(self, scale_factor=20, show_names=False, kind='3d', show=True,
+             sphere=None):
         return plot_montage(self, scale_factor=scale_factor,
-                            show_names=show_names, kind=kind, show=show)
+                            show_names=show_names, kind=kind, show=show,
+                            sphere=sphere)
 
     def save(self, fname):
         """Save digitization points to FIF.

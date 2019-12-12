@@ -15,8 +15,8 @@ import numpy as np
 from .utils import (tight_layout, _prepare_trellis, _select_bads,
                     _plot_raw_onscroll, _mouse_click,
                     _plot_raw_onkey, plt_show, _convert_psds)
-from .topomap import (_prepare_topo_plot, plot_topomap, _hide_frame,
-                      _plot_ica_topomap)
+from .topomap import (_prepare_topomap_plot, plot_topomap, _hide_frame,
+                      _plot_ica_topomap, _make_head_outlines)
 from .raw import _prepare_mne_browse_raw, _plot_raw_traces
 from .epochs import _prepare_mne_browse_epochs, plot_epochs_image
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
@@ -1067,13 +1067,13 @@ def _label_clicked(pos, params):
     fig, axes = _prepare_trellis(len(types), max_col=3)
     for ch_idx, ch_type in enumerate(types):
         try:
-            data_picks, pos, merge_grads, _, _ = _prepare_topo_plot(ica,
-                                                                    ch_type,
-                                                                    None)
+            data_picks, pos, merge_grads, _, _, this_sphere, clip_origin = \
+                _prepare_topomap_plot(ica, ch_type)
         except Exception as exc:
-            warn(exc)
+            warn(str(exc))
             plt.close(fig)
             return
+        outlines = _make_head_outlines(this_sphere, pos, 'head', clip_origin)
         this_data = data[:, data_picks]
         ax = axes[ch_idx]
         if merge_grads:
@@ -1081,7 +1081,8 @@ def _label_clicked(pos, params):
         for ii, data_ in zip(ic_idx, this_data):
             ax.set_title('%s %s' % (ica._ica_names[ii], ch_type), fontsize=12)
             data_ = _merge_grad_data(data_) if merge_grads else data_
-            plot_topomap(data_.flatten(), pos, axes=ax, show=False)
+            plot_topomap(data_.flatten(), pos, axes=ax, show=False,
+                         sphere=this_sphere, outlines=outlines)
             _hide_frame(ax)
     tight_layout(fig=fig)
     fig.subplots_adjust(top=0.88, bottom=0.)

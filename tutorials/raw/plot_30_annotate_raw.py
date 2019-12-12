@@ -19,7 +19,7 @@ seconds before loading it into RAM to save memory:
 """
 
 import os
-from datetime import datetime
+from datetime import timedelta
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
@@ -65,7 +65,7 @@ raw.set_annotations(my_annot)
 print(raw.annotations)
 
 # convert meas_date (a tuple of seconds, microseconds) into a float:
-meas_date = raw.info['meas_date'][0] + raw.info['meas_date'][1] / 1e6
+meas_date = raw.info['meas_date']
 orig_time = raw.annotations.orig_time
 print(meas_date == orig_time)
 
@@ -92,7 +92,7 @@ print(raw.annotations.onset)
 # seconds later than ``raw.info['meas_date']``.
 
 time_format = '%Y-%m-%d %H:%M:%S.%f'
-new_orig_time = datetime.utcfromtimestamp(meas_date + 50).strftime(time_format)
+new_orig_time = (meas_date + timedelta(seconds=50)).strftime(time_format)
 print(new_orig_time)
 
 later_annot = mne.Annotations(onset=[3, 5, 7],
