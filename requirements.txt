@@ -29,4 +29,6 @@ neo
 xlrd
 pydocstyle
 flake8
+flake8-import-order
+pep8-naming
 https://github.com/pyvista/pyvista/zipball/master

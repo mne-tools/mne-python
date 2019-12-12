@@ -24,6 +24,8 @@ dependencies:
 - joblib
 - psutil
 - flake8
+- flake8-import-order
+- pep8-naming
 - spyder
 - numexpr
 - traits>=4.6.0
