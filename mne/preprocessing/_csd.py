@@ -26,7 +26,7 @@ from ..bem import fit_sphere_to_headshape
 from ..channels.interpolation import _calc_g, _calc_h
 
 
-def _prepare_G(G, lambda2):  # noqa: N802
+def _prepare_g(G, lambda2):
     G.flat[::len(G) + 1] += lambda2
     # compute the CSD
     Gi = linalg.inv(G)
@@ -158,7 +158,7 @@ def compute_current_source_density(inst, sphere='auto', lambda2=1e-5,
     H = _calc_h(np.dot(pos, pos.T), stiffness=stiffness,
                 n_legendre_terms=n_legendre_terms)
 
-    G_precomputed = _prepare_G(G, lambda2)
+    G_precomputed = _prepare_g(G, lambda2)
 
     trans_csd = _compute_csd(G_precomputed=G_precomputed,
                              H=H, radius=radius)

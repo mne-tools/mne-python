@@ -32,40 +32,40 @@ pre = op.join(sss_path, 'test_move_anon_')
 raw_fname = pre + 'raw.fif'
 sss_std_fname = pre + 'stdOrigin_raw_sss.fif'
 sss_nonstd_fname = pre + 'nonStdOrigin_raw_sss.fif'
-sss_bad_recon_fname = pre + 'badRecon_raw_sss.fif'
-sss_reg_in_fname = pre + 'regIn_raw_sss.fif'
-sss_fine_cal_fname = pre + 'fineCal_raw_sss.fif'
+sss_badrecon_fname = pre + 'badRecon_raw_sss.fif'
+sss_reg_fname = pre + 'regIn_raw_sss.fif'
+sss_cal_fname = pre + 'fineCal_raw_sss.fif'
 sss_ctc_fname = pre + 'crossTalk_raw_sss.fif'
-sss_trans_default_fname = pre + 'transDefault_raw_sss.fif'
-sss_trans_sample_fname = pre + 'transSample_raw_sss.fif'
-sss_st1FineCalCrossTalkRegIn_fname = pre + 'st1FineCalCrossTalkRegIn_raw_sss.fif'  # noqa: E501,N816
-sss_st1FineCalCrossTalkRegInTransSample_fname = pre + 'st1FineCalCrossTalkRegInTransSample_raw_sss.fif'  # noqa: E501,N816
+sss_transdefault_fname = pre + 'transDefault_raw_sss.fif'
+sss_transsample_fname = pre + 'transSample_raw_sss.fif'
+sss_st1_cal_ctc_reg_fname = pre + 'st1FineCalCrossTalkRegIn_raw_sss.fif'
+sss_st1_cal_ctc_reg_transsample_fname = pre + 'st1FineCalCrossTalkRegInTransSample_raw_sss.fif'  # noqa: E501
 sss_movecomp_fname = pre + 'movecomp_raw_sss.fif'
-sss_movecomp_reg_in_fname = pre + 'movecomp_regIn_raw_sss.fif'
-sss_movecomp_reg_in_st4s_fname = pre + 'movecomp_regIn_st4s_raw_sss.fif'
+sss_movecomp_reg_fname = pre + 'movecomp_regIn_raw_sss.fif'
+sss_movecomp_reg_st4_fname = pre + 'movecomp_regIn_st4s_raw_sss.fif'
 skip_fname = op.join(data_path, 'misc', 'intervalrecording_raw.fif')
 
 erm_fname = pre + 'erm_raw.fif'
 sss_erm_std_fname = pre + 'erm_devOrigin_raw_sss.fif'
-sss_erm_reg_in_fname = pre + 'erm_regIn_raw_sss.fif'
-sss_erm_fine_cal_fname = pre + 'erm_fineCal_raw_sss.fif'
+sss_erm_reg_fname = pre + 'erm_regIn_raw_sss.fif'
+sss_erm_cal_fname = pre + 'erm_fineCal_raw_sss.fif'
 sss_erm_ctc_fname = pre + 'erm_crossTalk_raw_sss.fif'
 sss_erm_st_fname = pre + 'erm_st1_raw_sss.fif'
-sss_erm_st1FineCalCrossTalk_fname = pre + 'erm_st1FineCalCrossTalk_raw_sss.fif'  # noqa: E501,N816
-sss_erm_st1FineCalCrossTalkRegIn_fname = pre + 'erm_st1FineCalCrossTalkRegIn_raw_sss.fif'  # noqa: E501,N816
+sss_erm_st1_cal_ctc_fname = pre + 'erm_st1FineCalCrossTalk_raw_sss.fif'
+sss_erm_st1_cal_ctc_reg_fname = pre + 'erm_st1FineCalCrossTalkRegIn_raw_sss.fif'  # noqa: E501
 
 sample_fname = op.join(data_path, 'MEG', 'sample_audvis_trunc_raw.fif')
-sss_samp_reg_in_fname = op.join(data_path, 'SSS',
-                                'sample_audvis_trunc_regIn_raw_sss.fif')
-sss_samp_fname = op.join(data_path, 'SSS', 'sample_audvis_trunc_raw_sss.fif')
+sss_sample_reg_fname = op.join(data_path, 'SSS',
+                             'sample_audvis_trunc_regIn_raw_sss.fif')
+sss_sample_fname = op.join(data_path, 'SSS', 'sample_audvis_trunc_raw_sss.fif')
 
 pos_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.pos')
 
 bases_fname = op.join(sss_path, 'sss_data.mat')
-fine_cal_fname = op.join(sss_path, 'sss_cal_3053.dat')
-fine_cal_fname_3d = op.join(sss_path, 'sss_cal_3053_3d.dat')
+cal_fname = op.join(sss_path, 'sss_cal_3053.dat')
+cal_fname_3d = op.join(sss_path, 'sss_cal_3053_3d.dat')
 ctc_fname = op.join(sss_path, 'ct_sparse.fif')
-fine_cal_mgh_fname = op.join(sss_path, 'sss_cal_mgh.dat')
+cal_mgh_fname = op.join(sss_path, 'sss_cal_mgh.dat')
 ctc_mgh_fname = op.join(sss_path, 'ct_sparse_mgh.fif')
 
 sample_fname = op.join(data_path, 'MEG', 'sample',
@@ -80,7 +80,7 @@ tri_sss_ctc_fname = op.join(triux_path, 'triux_bmlhus_erm_ctc_raw_sss.fif')
 tri_sss_cal_fname = op.join(triux_path, 'triux_bmlhus_erm_cal_raw_sss.fif')
 tri_sss_ctc_cal_fname = op.join(
     triux_path, 'triux_bmlhus_erm_ctc_cal_raw_sss.fif')
-tri_sss_ctc_cal_reg_in_fname = op.join(
+tri_sss_ctc_cal_reg_fname = op.join(
     triux_path, 'triux_bmlhus_erm_ctc_cal_regIn_raw_sss.fif')
 tri_ctc_fname = op.join(triux_path, 'ct_sparse_BMLHUS.fif')
 tri_cal_fname = op.join(triux_path, 'sss_cal_BMLHUS.dat')
@@ -148,7 +148,7 @@ def test_movement_compensation(tmpdir):
     # Movement compensation,    regularization, no tSSS
     #
     raw_sss = maxwell_filter(raw, head_pos=head_pos, origin=mf_head_origin)
-    assert_meg_snr(raw_sss, read_crop(sss_movecomp_reg_in_fname, lims),
+    assert_meg_snr(raw_sss, read_crop(sss_movecomp_reg_fname, lims),
                    0.5, 1.9, chpi_med_tol=121)
 
     #
@@ -160,12 +160,12 @@ def test_movement_compensation(tmpdir):
                                     st_duration=4., origin=mf_head_origin,
                                     st_fixed=False)
     # Neither match is particularly good because our algorithm actually differs
-    assert_meg_snr(raw_sss_mv, read_crop(sss_movecomp_reg_in_st4s_fname, lims),
+    assert_meg_snr(raw_sss_mv, read_crop(sss_movecomp_reg_st4_fname, lims),
                    0.6, 1.3)
     tSSS_fname = op.join(sss_path, 'test_move_anon_st4s_raw_sss.fif')
     assert_meg_snr(raw_sss_mv, read_crop(tSSS_fname, lims),
                    0.6, 1.0, chpi_med_tol=None)
-    assert_meg_snr(read_crop(sss_movecomp_reg_in_st4s_fname),
+    assert_meg_snr(read_crop(sss_movecomp_reg_st4_fname),
                    read_crop(tSSS_fname), 0.8, 1.0, chpi_med_tol=None)
 
     #
@@ -445,7 +445,7 @@ def test_basic():
     raw_missing.pick_types(meg=True)  # will be missing the bad
     maxwell_filter(raw_missing)
     with pytest.warns(RuntimeWarning, match='not in data'):
-        maxwell_filter(raw_missing, calibration=fine_cal_fname)
+        maxwell_filter(raw_missing, calibration=cal_fname)
 
 
 @testing.requires_testing_data
@@ -503,7 +503,7 @@ def test_bads_reconstruction():
     with use_coil_def(elekta_def_fname):
         raw_sss = maxwell_filter(raw, origin=mf_head_origin, regularize=None,
                                  bad_condition='ignore')
-    assert_meg_snr(raw_sss, read_crop(sss_bad_recon_fname), 300.)
+    assert_meg_snr(raw_sss, read_crop(sss_badrecon_fname), 300.)
 
 
 @buggy_mkl_svd
@@ -612,11 +612,11 @@ def test_fine_calibration():
     """Test Maxwell filter fine calibration."""
     # Load testing data (raw, SSS std origin, SSS non-standard origin)
     raw = read_crop(raw_fname, (0., 1.))
-    sss_fine_cal = read_crop(sss_fine_cal_fname)
+    sss_fine_cal = read_crop(sss_cal_fname)
 
     # Test 1D SSS fine calibration
     with use_coil_def(elekta_def_fname):
-        raw_sss = maxwell_filter(raw, calibration=fine_cal_fname,
+        raw_sss = maxwell_filter(raw, calibration=cal_fname,
                                  origin=mf_head_origin, regularize=None,
                                  bad_condition='ignore')
     assert_meg_snr(raw_sss, sss_fine_cal, 82, 611)
@@ -634,25 +634,25 @@ def test_fine_calibration():
     raw_missing.info['bads'] = ['MEG0111', 'MEG0943']  # 1 mag, 1 grad
     raw_missing.info._check_consistency()
     raw_sss_bad = maxwell_filter(
-        raw_missing, calibration=fine_cal_fname, origin=mf_head_origin,
+        raw_missing, calibration=cal_fname, origin=mf_head_origin,
         regularize=None, bad_condition='ignore')
     raw_missing.pick_types()  # actually remove bads
     raw_sss_bad.pick_channels(raw_missing.ch_names)  # remove them here, too
     with pytest.warns(RuntimeWarning, match='cal channels not in data'):
         raw_sss_missing = maxwell_filter(
-            raw_missing, calibration=fine_cal_fname, origin=mf_head_origin,
+            raw_missing, calibration=cal_fname, origin=mf_head_origin,
             regularize=None, bad_condition='ignore')
     assert_meg_snr(raw_sss_missing, raw_sss_bad, 1000., 10000.)
 
     # Test 3D SSS fine calibration (no equivalent func in MaxFilter yet!)
     # very low SNR as proc differs, eventually we should add a better test
-    raw_sss_3D = maxwell_filter(raw, calibration=fine_cal_fname_3d,
+    raw_sss_3D = maxwell_filter(raw, calibration=cal_fname_3d,
                                 origin=mf_head_origin, regularize=None,
                                 bad_condition='ignore')
     assert_meg_snr(raw_sss_3D, sss_fine_cal, 1.0, 6.)
     raw_ctf = read_crop(fname_ctf_raw).apply_gradient_compensation(0)
     pytest.raises(RuntimeError, maxwell_filter, raw_ctf, origin=(0., 0., 0.04),
-                  calibration=fine_cal_fname)
+                  calibration=cal_fname)
 
 
 @pytest.mark.slowtest
@@ -665,8 +665,8 @@ def test_regularization():
     origins = ((0., 0., 0.04), (0.,) * 3, (0., 0.02, 0.02))
     coord_frames = ('head', 'meg', 'head')
     raw_fnames = (raw_fname, erm_fname, sample_fname)
-    sss_fnames = (sss_reg_in_fname, sss_erm_reg_in_fname,
-                  sss_samp_reg_in_fname)
+    sss_fnames = (sss_reg_fname, sss_erm_reg_fname,
+                  sss_sample_reg_fname)
     comp_tols = [0, 1, 4]
     for ii, rf in enumerate(raw_fnames):
         raw = read_crop(rf, (0., 1.))
@@ -761,7 +761,7 @@ def test_head_translation():
             raw_sss = maxwell_filter(raw, destination=mf_head_origin,
                                      origin=mf_head_origin, regularize=None,
                                      bad_condition='ignore', verbose=True)
-    assert_meg_snr(raw_sss, read_crop(sss_trans_default_fname), 125.)
+    assert_meg_snr(raw_sss, read_crop(sss_transdefault_fname), 125.)
     destination = np.eye(4)
     destination[2, 3] = 0.04
     assert_allclose(raw_sss.info['dev_head_t']['trans'], destination)
@@ -770,7 +770,7 @@ def test_head_translation():
         raw_sss = maxwell_filter(raw, destination=sample_fname,
                                  origin=mf_head_origin, regularize=None,
                                  bad_condition='ignore', verbose=True)
-    assert_meg_snr(raw_sss, read_crop(sss_trans_sample_fname), 13., 100.)
+    assert_meg_snr(raw_sss, read_crop(sss_transsample_fname), 13., 100.)
     assert_allclose(raw_sss.info['dev_head_t']['trans'],
                     read_info(sample_fname)['dev_head_t']['trans'])
     # Degenerate cases
@@ -830,10 +830,10 @@ def test_shielding_factor(tmpdir):
     _assert_shielding(raw_sss, erm_power_grad, 0.1, 'grad')
 
     # Fine cal
-    _assert_shielding(read_crop(sss_erm_fine_cal_fname), erm_power, 12)  # 2.0)
+    _assert_shielding(read_crop(sss_erm_cal_fname), erm_power, 12)  # 2.0)
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              origin=mf_meg_origin,
-                             calibration=fine_cal_fname)
+                             calibration=cal_fname)
     _assert_shielding(raw_sss, erm_power, 12)  # 2.0)
 
     # Crosstalk
@@ -845,7 +845,7 @@ def test_shielding_factor(tmpdir):
 
     # Fine cal + Crosstalk
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
-                             calibration=fine_cal_fname,
+                             calibration=cal_fname,
                              origin=mf_meg_origin,
                              cross_talk=ctc_fname)
     _assert_shielding(raw_sss, erm_power, 13)  # 2.2)
@@ -864,38 +864,38 @@ def test_shielding_factor(tmpdir):
 
     # Fine cal + tSSS
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
-                             calibration=fine_cal_fname,
+                             calibration=cal_fname,
                              origin=mf_meg_origin, st_duration=1.)
     _assert_shielding(raw_sss, erm_power, 38)  # 5.98)
 
     # Fine cal + Crosstalk + tSSS
-    _assert_shielding(read_crop(sss_erm_st1FineCalCrossTalk_fname),
+    _assert_shielding(read_crop(sss_erm_st1_cal_ctc_fname),
                       erm_power, 39)  # 6.07)
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
-                             calibration=fine_cal_fname, origin=mf_meg_origin,
+                             calibration=cal_fname, origin=mf_meg_origin,
                              cross_talk=ctc_fname, st_duration=1.)
     _assert_shielding(raw_sss, erm_power, 39)  # 6.05)
 
     # Fine cal + Crosstalk + tSSS + Reg-in
-    _assert_shielding(read_crop(sss_erm_st1FineCalCrossTalkRegIn_fname),
+    _assert_shielding(read_crop(sss_erm_st1_cal_ctc_reg_fname),
                       erm_power, 57)  # 6.97)
-    raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname,
+    raw_sss = maxwell_filter(raw_erm, calibration=cal_fname,
                              cross_talk=ctc_fname, st_duration=1.,
                              origin=mf_meg_origin,
                              coord_frame='meg', regularize='in')
     _assert_shielding(raw_sss, erm_power, 53)  # 6.64)
-    raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname,
+    raw_sss = maxwell_filter(raw_erm, calibration=cal_fname,
                              cross_talk=ctc_fname, st_duration=1.,
                              coord_frame='meg', regularize='in')
     _assert_shielding(raw_sss, erm_power, 58)  # 7.0)
     _assert_shielding(raw_sss, erm_power_grad, 1.6, 'grad')
-    raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname,
+    raw_sss = maxwell_filter(raw_erm, calibration=cal_fname,
                              cross_talk=ctc_fname, st_duration=1.,
                              coord_frame='meg', regularize='in',
                              mag_scale='auto')
     _assert_shielding(raw_sss, erm_power, 51)
     _assert_shielding(raw_sss, erm_power_grad, 1.5, 'grad')
-    raw_sss = maxwell_filter(raw_erm, calibration=fine_cal_fname_3d,
+    raw_sss = maxwell_filter(raw_erm, calibration=cal_fname_3d,
                              cross_talk=ctc_fname, st_duration=1.,
                              coord_frame='meg', regularize='in')
 
@@ -904,7 +904,7 @@ def test_shielding_factor(tmpdir):
     # Show it by rewriting the 3D as 1D and testing it
     temp_dir = str(tmpdir)
     temp_fname = op.join(temp_dir, 'test_cal.dat')
-    with open(fine_cal_fname_3d, 'r') as fid:
+    with open(cal_fname_3d, 'r') as fid:
         with open(temp_fname, 'w') as fid_out:
             for line in fid:
                 fid_out.write(' '.join(line.strip().split(' ')[:14]) + '\n')
@@ -921,14 +921,14 @@ def test_shielding_factor(tmpdir):
 def test_all():
     """Test maxwell filter using all options."""
     raw_fnames = (raw_fname, raw_fname, erm_fname, sample_fname)
-    sss_fnames = (sss_st1FineCalCrossTalkRegIn_fname,
-                  sss_st1FineCalCrossTalkRegInTransSample_fname,
-                  sss_erm_st1FineCalCrossTalkRegIn_fname,
-                  sss_samp_fname)
-    fine_cals = (fine_cal_fname,
-                 fine_cal_fname,
-                 fine_cal_fname,
-                 fine_cal_mgh_fname)
+    sss_fnames = (sss_st1_cal_ctc_reg_fname,
+                  sss_st1_cal_ctc_reg_transsample_fname,
+                  sss_erm_st1_cal_ctc_reg_fname,
+                  sss_sample_fname)
+    fine_cals = (cal_fname,
+                 cal_fname,
+                 cal_fname,
+                 cal_mgh_fname)
     coord_frames = ('head', 'head', 'meg', 'head')
     ctcs = (ctc_fname, ctc_fname, ctc_fname, ctc_mgh_fname)
     mins = (3.5, 3.5, 1.2, 0.9)
@@ -983,7 +983,7 @@ def test_triux():
     sss_py = maxwell_filter(raw, coord_frame='meg', regularize='in',
                             calibration=tri_cal_fname,
                             cross_talk=tri_ctc_fname)
-    sss_mf = read_crop(tri_sss_ctc_cal_reg_in_fname)
+    sss_mf = read_crop(tri_sss_ctc_cal_reg_fname)
     assert_meg_snr(sss_py, sss_mf, 0.6, 9)
     _check_reg_match(sss_py, sss_mf, 1)
     # tSSS
