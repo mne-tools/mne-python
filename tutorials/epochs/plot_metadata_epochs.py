@@ -1,154 +1,169 @@
 """
 .. _tut-epochs-metadata:
 
-================================================
-Pandas querying and metadata with Epochs objects
-================================================
+Working with Epoch metadata
+===========================
 
-Demonstrating pandas-style string querying with Epochs metadata.
-For related uses of :class:`mne.Epochs`, see the starting tutorial
-:ref:`tut-epochs-class`.
+This tutorial shows how to add metadata to :class:`~mne.Epochs` objects, and
+how to use :label:`Pandas query strings <indexing.query>` to select and plot
+epochs based on metadata properties.
 
-Sometimes you may have a complex trial structure that cannot be easily
-summarized as a set of unique integers. In this case, it may be useful to use
-the ``metadata`` attribute of :class:`mne.Epochs` objects. This must be a
-:class:`pandas.DataFrame` where each row corresponds to an epoch, and each
-column corresponds to a metadata attribute of each epoch. Columns must
-contain either strings, ints, or floats.
+.. contents:: Page contents
+   :local:
+   :depth: 2
 
-In this dataset, subjects were presented with individual words
-on a screen, and the EEG activity in response to each word was recorded.
-We know which word was displayed in each epoch, as well as
-extra information about the word (e.g., word frequency).
-
-Loading the data
-----------------
-First we'll load the data. If metadata exists for an :class:`mne.Epochs`
-fif file, it will automatically be loaded in the ``metadata`` attribute.
+For this tutorial we'll use a different dataset than usual: the
+:ref:`kiloword-dataset`, which contains EEG data averaged across 75 subjects
+who were performing a lexical decision (word/non-word) task. The data is in
+:class:`~mne.Epochs` format, with each epoch representing the response to a
+different stimulus (word). As usual we'll start by importing the modules we
+need and loading the data:
 """
 
-# Authors: Chris Holdgraf <choldgraf@gmail.com>
-#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
-#          Eric Larson <larson.eric.d@gmail.com>
-
-# License: BSD (3-clause)
-
-import mne
+import os
 import numpy as np
-import matplotlib.pyplot as plt
+import pandas as pd
+import mne
 
-# Load the data from the internet
-path = mne.datasets.kiloword.data_path() + '/kword_metadata-epo.fif'
-epochs = mne.read_epochs(path)
-
-# The metadata exists as a Pandas DataFrame
-print(epochs.metadata.head(10))
-
-###############################################################################
-# We can use this metadata attribute to select subsets of Epochs. This
-# uses the Pandas :meth:`pandas.DataFrame.query` method under the hood.
-# Any valid query string will work. Below we'll make two plots to compare
-# between them:
-
-av1 = epochs['Concreteness < 5 and WordFrequency < 2'].average()
-av2 = epochs['Concreteness > 5 and WordFrequency > 2'].average()
-
-joint_kwargs = dict(ts_args=dict(time_unit='s'),
-                    topomap_args=dict(time_unit='s'))
-av1.plot_joint(show=False, **joint_kwargs)
-av2.plot_joint(show=False, **joint_kwargs)
+kiloword_data_folder = mne.datasets.kiloword.data_path()
+kiloword_data_file = os.path.join(kiloword_data_folder,
+                                  'kword_metadata-epo.fif')
+epochs = mne.read_epochs(kiloword_data_file)
 
 ###############################################################################
-# Next we'll choose a subset of words to keep.
-words = ['film', 'cent', 'shot', 'cold', 'main']
-epochs['WORD in {}'.format(words)].plot_image(show=False)
-
-###############################################################################
-# Note that traditional epochs sub-selection still works. The traditional
-# MNE methods for selecting epochs will supersede the rich metadata querying.
-epochs['cent'].average().plot(show=False, time_unit='s')
-
-###############################################################################
-# Below we'll show a more involved example that leverages the metadata
-# of each epoch. We'll create a new column in our metadata object and use
-# it to generate averages for many subsets of trials.
-
-# Create two new metadata columns
-metadata = epochs.metadata
-is_concrete = metadata["Concreteness"] > metadata["Concreteness"].median()
-metadata["is_concrete"] = np.where(is_concrete, 'Concrete', 'Abstract')
-is_long = metadata["NumberOfLetters"] > 5
-metadata["is_long"] = np.where(is_long, 'Long', 'Short')
-epochs.metadata = metadata
-
-###############################################################################
-# Now we can quickly extract (and plot) subsets of the data. For example, to
-# look at words split by word length and concreteness:
-
-query = "is_long == '{0}' & is_concrete == '{1}'"
-evokeds = dict()
-for concreteness in ("Concrete", "Abstract"):
-    for length in ("Long", "Short"):
-        subset = epochs[query.format(length, concreteness)]
-        evokeds["/".join((concreteness, length))] = list(subset.iter_evoked())
-
-# For the actual visualisation, we store a number of shared parameters.
-style_plot = dict(
-    colors={"Long": "Crimson", "Short": "Cornflowerblue"},
-    linestyles={"Concrete": "-", "Abstract": ":"},
-    split_legend=True,
-    ci=.68,
-    show_sensors='lower right',
-    legend='lower left',
-    truncate_yaxis="auto",
-    picks=epochs.ch_names.index("Pz"),
-)
-
-fig, ax = plt.subplots(figsize=(6, 4))
-mne.viz.plot_compare_evokeds(evokeds, axes=ax, **style_plot)
-plt.show()
-
-###############################################################################
-# To compare words which are 4, 5, 6, 7 or 8 letters long:
-
-letters = epochs.metadata["NumberOfLetters"].unique().astype(int).astype(str)
-
-evokeds = dict()
-for n_letters in letters:
-    evokeds[n_letters] = epochs["NumberOfLetters == " + n_letters].average()
-
-style_plot["colors"] = {n_letters: int(n_letters)
-                        for n_letters in letters}
-style_plot["cmap"] = ("# of Letters", "viridis_r")
-del style_plot['linestyles']
-
-fig, ax = plt.subplots(figsize=(6, 4))
-mne.viz.plot_compare_evokeds(evokeds, axes=ax, **style_plot)
-plt.show()
-
-###############################################################################
-# And finally, for the interaction between concreteness and continuous length
-# in letters:
-evokeds = dict()
-query = "is_concrete == '{0}' & NumberOfLetters == {1}"
-for concreteness in ("Concrete", "Abstract"):
-    for n_letters in letters:
-        subset = epochs[query.format(concreteness, n_letters)]
-        evokeds["/".join((concreteness, n_letters))] = subset.average()
-
-style_plot["linestyles"] = {"Concrete": "-", "Abstract": ":"}
-
-fig, ax = plt.subplots(figsize=(6, 4))
-mne.viz.plot_compare_evokeds(evokeds, axes=ax, **style_plot)
-plt.show()
-
-
-###############################################################################
-# .. note::
+# Viewing ``Epochs`` metadata
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-#    Creating an :class:`mne.Epochs` object with metadata is done by passing
-#    a :class:`pandas.DataFrame` to the ``metadata`` kwarg as follows:
+# .. sidebar:: Restrictions on metadata DataFrames
+#
+#    The dataframe attached as metadata to an :class:`~mne.Epochs` object is
+#    slightly less flexible than a typical :class:`pandas.DataFrame`. For
+#    example, the data types of its columns are constrained to strings, floats,
+#    integers, or booleans; and the row labels are always integers
+#    corresponding to epoch numbers. Other capabilities of :class:`DataFrames
+#    <pandas.DataFrame>` such as :class:`hierarchical indexing
+#    <pandas.MultiIndex>` are possible while the epochs object is in memory,
+#    but will not survive saving and reloading the :class:`~mne.Epochs` object
+#    to/from disk.
+#
+# The metadata attached to :class:`~mne.Epochs` objects is stored as a
+# :class:`pandas.DataFrame` containing one row for each epoch. The columns of
+# this :class:`~pandas.DataFrame` can contain just about any information you
+# want to store about each epoch; in this case, the metadata encodes
+# information about the stimulus seen on each trial: including properties of
+# the visual word form itself (e.g., ``NumberOfLetters``, ``VisualComplexity``)
+# as well as properties of what the word means (e.g., its ``Concreteness``) and
+# its prominence in the English lexicon (e.g., ``WordFrequency``). Here are all
+# the metadata variables:
 
-data = epochs.get_data()
-metadata = epochs.metadata.copy()
-epochs_new = mne.EpochsArray(data, epochs.info, metadata=metadata)
+print(epochs.metadata.columns.tolist())
+
+###############################################################################
+# Viewing the metadata values for a given epoch and metadata variable is done
+# using any of the :label:`Pandas indexing </reference/indexing.rst>` methods
+# such as :meth:`~pandas.DataFrame.loc`, :meth:`~pandas.DataFrame.iloc`,
+# :meth:`~pandas.DataFrame.at`, and :meth:`~pandas.DataFrame.iat`. Because the
+# index of the dataframe is the integer epoch number, the name- and index-based
+# selection methods will work similarly for selecting rows, except that
+# name-based selection (with :meth:`~pandas.DataFrame.loc`) is inclusive of the
+# endpoint:
+
+print('Name-based selection with .loc')
+print(epochs.metadata.loc[2:4])
+
+print('Index-based selection with .iloc')
+print(epochs.metadata.iloc[2:4])
+
+###############################################################################
+# Modifying the metadata
+# ^^^^^^^^^^^^^^^^^^^^^^
+#
+# Like any :class:`pandas.DataFrame`, you can modify the data or add columns as
+# needed. Here we convert the ``NumberOfLetters`` column from :class:`float` to
+# :class:`integer <int>` data type, and add a :class:`boolean <bool>` column
+# that arbitrarily divides the variable ``VisualComplexity`` into high and low
+# groups.
+
+epochs.metadata['NumberOfLetters'] = \
+    epochs.metadata['NumberOfLetters'].map(int)
+
+epochs.metadata['HighComplexity'] = epochs.metadata['VisualComplexity'] > 65
+
+print(epochs.metadata.head())
+
+###############################################################################
+# Selecting epochs using metadata queries
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# All :class:`~mne.Epochs` objects can be subselected by event name, index, or
+# :term:`slice` (see :ref:`tut-section-subselect-epochs`). But
+# :class:`~mne.Epochs` objects with metadata can also be queried using
+# :label:`Pandas query strings <indexing.query>` by passing the query string
+# just as you would normally pass an event name. For example:
+
+print(epochs['WORD.str.startswith("dis")'])
+
+###############################################################################
+# This capability uses the :meth:`pandas.DataFrame.query` method under the
+# hood, so you can check out the documentation of that method to learn how to
+# format query strings. Here's another example:
+
+print(epochs['Concreteness > 6 and WordFrequency < 1'])
+
+###############################################################################
+# Notice that in this dataset, each "condition" (A.K.A., each word) occurs only
+# once, whereas with the :ref:`sample-dataset` dataset each condition (e.g.,
+# "auditory/left", "visual/right", etc) occurred dozens of times. This makes
+# the Pandas querying methods especially useful when you want to aggregate
+# epochs that have different condition names but that share similar stimulus
+# properties. For example, here we group epochs based on the number of letters
+# in the stimulus word, and compare the average signal at electrode ``Pz`` for
+# each group:
+
+evokeds = dict()
+query = 'NumberOfLetters == {}'
+for n_letters in epochs.metadata['NumberOfLetters'].unique():
+    evokeds[str(n_letters)] = epochs[query.format(n_letters)].average()
+
+mne.viz.plot_compare_evokeds(evokeds, cmap=('word length', 'viridis'),
+                             picks='Pz')
+
+###############################################################################
+# We can use a Pandas query string to select specific words for plotting:
+
+words = ['typhoon', 'bungalow', 'colossus', 'drudgery', 'linguist', 'solenoid']
+epochs['WORD in {}'.format(words)].plot(n_channels=29)
+
+###############################################################################
+# Metadata can also be useful for sorting the epochs in an image plot. For
+# example, here we order the epochs based on word frequency to see if there's a
+# pattern to the latency or intensity of the response:
+
+sort_order = np.argsort(epochs.metadata['WordFrequency'])
+epochs.plot_image(order=sort_order, picks='Pz')
+
+###############################################################################
+# Although there's no obvious relationship in this case, such analyses may be
+# useful for metadata variables that more directly index the time course of
+# stimulus processing (such as reaction time).
+#
+# Note also that traditional epochs subselection by condition name still works;
+# MNE-Python will try the traditional method first before falling back on rich
+# metadata querying.
+
+epochs['solenoid'].plot_psd()
+
+###############################################################################
+# Adding metadata to an ``Epochs`` object
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# You can add a metadata :class:`~pandas.DataFrame` to any
+# :class:`~mne.Epochs` object (or replace existing metadata) simply by
+# assigning to the :attr:`~mne.Epochs.metadata` attribute:
+
+new_metadata = pd.DataFrame(data='foo' * len(epochs), columns=['bar'],
+                            index=range(len(epochs)))
+epochs.metadata = new_metadata
+
+###############################################################################
+# TODO: deleting metadata (is it even possible?)
