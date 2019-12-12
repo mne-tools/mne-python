@@ -258,6 +258,7 @@ More details and a description of the package can be found in [5]_.
     * :ref:`Receptive Field Estimation and Prediction <ex-receptive-field-mtrf>`: Partially replicates the results from Crosse et al. (2016).
 
 
+.. _kiloword-dataset:
 
 Kiloword dataset
 ================

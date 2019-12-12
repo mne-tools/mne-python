@@ -120,7 +120,8 @@ epochs = mne.Epochs(raw, events, tmin=-0.3, tmax=0.7)
 #   defined as the time span from ``tmin`` to ``0``, but can be customized with
 #   the ``baseline`` parameter)
 #
-# - no additional metadata was provided
+# - no additional metadata was provided (see :ref:`tut-epochs-metadata` for
+#   details)
 #
 # - the projection operators present in the :class:`~mne.io.Raw` file were
 #   copied over to the :class:`~mne.Epochs` object
@@ -195,8 +196,10 @@ epochs.plot(n_epochs=10)
 # as other ways of visualizing epoched data).
 #
 #
-# Querying ``Epochs`` objects
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# .. _tut-section-subselect-epochs:
+#
+# Subselecting epochs
+# ^^^^^^^^^^^^^^^^^^^
 #
 # Now that we have our :class:`~mne.Epochs` object with our descriptive event
 # labels added, we can subselect epochs easily using square brackets. For
