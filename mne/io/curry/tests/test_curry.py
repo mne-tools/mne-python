@@ -30,10 +30,10 @@ curry_dir = op.join(data_dir, "curry")
 
 bdf_file = op.join(data_dir, 'BDF', 'test_bdf_stim_channel.bdf')
 
-bti_rfDC_file = op.join(data_dir, 'BTi', 'erm_HFH', 'c,rfDC')  # noqa: N816
+bti_rfdc_file = op.join(data_dir, 'BTi', 'erm_HFH', 'c,rfDC')
 
-curry7_rfDC_file = op.join(curry_dir, "c,rfDC Curry 7.dat")  # noqa: N816
-curry8_rfDC_file = op.join(curry_dir, "c,rfDC Curry 8.cdt")  # noqa: N816
+curry7_rfdc_file = op.join(curry_dir, "c,rfDC Curry 7.dat")
+curry8_rfdc_file = op.join(curry_dir, "c,rfDC Curry 8.cdt")
 
 curry7_bdf_file = op.join(curry_dir, "test_bdf_stim_channel Curry 7.dat")
 curry7_bdf_ascii_file = op.join(curry_dir,
@@ -92,13 +92,13 @@ def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('fname,tol', [
-    pytest.param(curry7_rfDC_file, 1e-6, id='curry 7'),
-    pytest.param(curry8_rfDC_file, 1e-3, id='curry 8'),
+    pytest.param(curry7_rfdc_file, 1e-6, id='curry 7'),
+    pytest.param(curry8_rfdc_file, 1e-3, id='curry 8'),
 ])
-def test_read_raw_curry_rfDC(fname, tol):  # noqa: N802
+def test_read_raw_curry_rfdc(fname, tol):
     """Test reading CURRY files."""
     # check data
-    bti_rfDC = read_raw_bti(pdf_fname=bti_rfDC_file, head_shape_fname=None)
+    bti_rfdc = read_raw_bti(pdf_fname=bti_rfdc_file, head_shape_fname=None)
     raw = read_raw_curry(fname)
 
     # test on the eeg chans, since these were not renamed by curry
@@ -106,7 +106,7 @@ def test_read_raw_curry_rfDC(fname, tol):  # noqa: N802
                  if ch["kind"] == FIFF.FIFFV_EEG_CH]
 
     assert_allclose(raw.get_data(eeg_names),
-                    bti_rfDC.get_data(eeg_names), rtol=tol)
+                    bti_rfdc.get_data(eeg_names), rtol=tol)
 
 
 @testing.requires_testing_data
