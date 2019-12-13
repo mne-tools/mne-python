@@ -1640,9 +1640,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         An instance of :class:`surfer.Brain` from PySurfer or
         matplotlib figure.
     """  # noqa: E501
-    if not check_version('surfer', '0.9'):
-        raise RuntimeError('This function requires pysurfer (surfer >= 0.9)')
-
     from .backends.renderer import get_3d_backend
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
@@ -1653,6 +1650,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     _check_option('backend', backend, ['auto', 'matplotlib', 'mayavi'])
     plot_mpl = backend == 'matplotlib'
     if not plot_mpl:
+        if not check_version('surfer', '0.9'):
+            raise RuntimeError('This function requires pysurfer version '
+                               '>= 0.9')
         try:
             from mayavi import mlab  # noqa: F401
         except ImportError:
