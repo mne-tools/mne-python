@@ -319,7 +319,7 @@ def _validate_type(item, types=None, item_name=None, type_name=None):
         _ensure_int(item, name=item_name)
         return  # terminate prematurely
     elif types == "info":
-        from mne.io import Info as types  # noqa: N813
+        from mne.io import Info as types
 
     if not isinstance(types, (list, tuple)):
         types = [types]
@@ -567,19 +567,19 @@ def _check_stc_units(stc, threshold=1e-7):  # 100 nAm threshold for warning
 def _check_pyqt5_version():
     bad = True
     try:
-        from PyQt5.Qt import PYQT_VERSION_STR as version  # noqa: N811
+        from PyQt5.Qt import PYQT_VERSION_STR
     except Exception:
-        version = 'unknown'
+        PYQT_VERSION_STR = 'unknown'
     else:
-        if LooseVersion(version) >= LooseVersion('5.10'):
+        if LooseVersion(PYQT_VERSION_STR) >= LooseVersion('5.10'):
             bad = False
     bad &= sys.platform == 'darwin'
     if bad:
         warn('macOS users should use PyQt5 >= 5.10 for GUIs, got %s. '
              'Please upgrade e.g. with:\n\n    pip install "PyQt5>=5.10"\n'
-             % (version,))
+             % (PYQT_VERSION_STR,))
 
-    return version
+    return PYQT_VERSION_STR
 
 
 def _check_sphere(sphere, info=None, sphere_units='m'):

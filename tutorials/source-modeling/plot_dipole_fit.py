@@ -56,8 +56,8 @@ mni_pos = mne.head_to_mni(dip.pos, mri_head_t=trans,
 mri_pos = mne.head_to_mri(dip.pos, mri_head_t=trans,
                           subject=subject, subjects_dir=subjects_dir)
 
-t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
-plot_anat(t1_fname, cut_coords=mri_pos[0], title='Dipole loc.')
+T1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
+plot_anat(T1_fname, cut_coords=mri_pos[0], title='Dipole loc.')
 
 template = load_mni152_template()
 plot_anat(template, cut_coords=mni_pos[0], title='Dipole loc. (MNI Space)')

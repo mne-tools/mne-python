@@ -78,6 +78,6 @@ for cond in names:
 # the null hypothesis, points that are not significant will be shown
 # transparently, and if desired, in a different colour palette and surrounded
 # by dark contour lines.
-reject_h0, fdr_pvals = fdr_correction(res["Concreteness"].p_val.data)
+reject_H0, fdr_pvals = fdr_correction(res["Concreteness"].p_val.data)
 evoked = res["Concreteness"].beta
-evoked.plot_image(mask=reject_h0, time_unit='s')
+evoked.plot_image(mask=reject_H0, time_unit='s')

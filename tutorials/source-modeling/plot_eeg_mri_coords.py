@@ -54,7 +54,7 @@ fname_bem = op.join(bem_dir, 'sample-5120-5120-5120-bem-sol.fif')
 fname_src = op.join(bem_dir, 'sample-oct-6-src.fif')
 
 misc_path = mne.datasets.misc.data_path()
-fname_t1_electrodes = op.join(misc_path, 'sample_eeg_mri', 'T1_electrodes.mgz')
+fname_T1_electrodes = op.join(misc_path, 'sample_eeg_mri', 'T1_electrodes.mgz')
 fname_mon = op.join(misc_path, 'sample_eeg_mri', 'sample_mri_montage.elc')
 
 ##############################################################################
@@ -68,7 +68,7 @@ fname_mon = op.join(misc_path, 'sample_eeg_mri', 'sample_mri_montage.elc')
 # RAS-to-MRI transform to it, it becomes the voxel-to-MNI transformation we
 # need. Thus we create a "new" MRI image in MNI coordinates and plot it as:
 
-img = nibabel.load(fname_t1_electrodes)  # original subject MRI w/EEG
+img = nibabel.load(fname_T1_electrodes)  # original subject MRI w/EEG
 ras_mni_t = mne.transforms.read_ras_mni_t('sample', subjects_dir)  # from FS
 mni_affine = np.dot(ras_mni_t['trans'], img.affine)  # vox->ras->MNI
 img_mni = nibabel.Nifti1Image(img.dataobj, mni_affine)  # now in MNI coords!
@@ -93,7 +93,7 @@ plot_glass_brain(img_mni, cmap='hot_black_bone', threshold=0., black_bg=True,
 #     and then apply it::
 #
 #         >>> pos_vox = ...  # loaded from a file somehow
-#         >>> img = nibabel.load(fname_t1)
+#         >>> img = nibabel.load(fname_T1)
 #         >>> vox2mri = img.header.get_vox2ras_tkr()  # voxel -> mri
 #         >>> vox2mri[:3] /= 1000.  # mm -> m
 #         >>> pos_mri = mne.transforms.apply_trans(vox2mri, pos_vox)
