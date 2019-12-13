@@ -41,6 +41,7 @@ from ..utils import (verbose, get_config, set_config, warn, _check_ch_locs,
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
 from ..annotations import _sync_onset
+from ..transforms import apply_trans
 
 
 _channel_type_prettyprint = {'eeg': "EEG channel", 'grad': "Gradiometer",
@@ -1600,7 +1601,9 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     chs = [info['chs'][pick] for pick in picks]
     if not _check_ch_locs(chs):
         raise RuntimeError('No valid channel positions found')
-    pos = np.array([ch['loc'][:3] for ch in chs])
+    pos = np.array([apply_trans(info['dev_head_t'], ch['loc'][:3])
+                    if ch['coord_frame'] == 1 else
+                    ch['loc'][:3] for ch in chs])
     ch_names = np.array([ch['ch_name'] for ch in chs])
     bads = [idx for idx, name in enumerate(ch_names) if name in info['bads']]
     if ch_groups is None:
