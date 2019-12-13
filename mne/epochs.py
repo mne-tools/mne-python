@@ -1828,14 +1828,14 @@ class Epochs(BaseEpochs):
         overlapping with segments whose description begins with ``'bad'`` are
         rejected. If False, no rejection based on annotations is performed.
     metadata : instance of pandas.DataFrame | None
-        A :class:`pandas.DataFrame` specifying more complex metadata about
-        events. If given, ``len(metadata)`` must equal ``len(events)``.
-        The DataFrame may have values of type (str | int | float).
+        A :class:`pandas.DataFrame` specifying metadata about each epoch.
+        If given, ``len(metadata)`` must equal ``len(events)``. The DataFrame
+        may only contain values of type (str | int | float | bool).
         If metadata is given, then pandas-style queries may be used to select
         subsets of data, see :meth:`mne.Epochs.__getitem__`.
         When a subset of the epochs is created in this (or any other
-        supported) manner, the metadata object is subsetted in the same manner.
-        MNE will modify the row indices to match ``epochs.selection``.
+        supported) manner, the metadata object is subsetted accordingly, and
+        the row indices will be modified to match ``epochs.selection``.
 
         .. versionadded:: 0.16
     event_repeated : str
