@@ -1709,9 +1709,9 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
 
         ax.azim = 90
         ax.elev = 0
-        ax.xaxis.set_label_text('x')
-        ax.yaxis.set_label_text('y')
-        ax.zaxis.set_label_text('z')
+        ax.xaxis.set_label_text('x (m)')
+        ax.yaxis.set_label_text('y (m)')
+        ax.zaxis.set_label_text('z (m)')
     else:  # kind in 'select', 'topomap'
         ax.text(0, 0, '', zorder=1)
 
