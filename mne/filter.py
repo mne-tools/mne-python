@@ -2008,8 +2008,7 @@ class FilterMixin(object):
             self._raw_times = self.times
         else:  # isinstance(self, Evoked)
             self.times = new_times
-            self.first = int(self.times[0] * self.info['sfreq'])
-            self.last = len(self.times) + self.first - 1
+            self._update_first_last()
         return self
 
     @verbose
@@ -2020,10 +2019,10 @@ class FilterMixin(object):
         Parameters
         ----------
         %(picks_all_data_noref)s
-        envelope : bool (default: False)
-            Compute the envelope signal of each channel. See Notes.
-        n_jobs: int
-            Number of jobs to run in parallel.
+        envelope : bool
+            Compute the envelope signal of each channel. Default False.
+            See Notes.
+        %(n_jobs)s
         n_fft : int | None | str
             Points to use in the FFT for Hilbert transformation. The signal
             will be padded with zeros before computing Hilbert, then cut back
