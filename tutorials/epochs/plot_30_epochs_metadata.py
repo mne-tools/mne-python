@@ -36,28 +36,27 @@ epochs = mne.read_epochs(kiloword_data_file)
 #
 # .. sidebar:: Restrictions on metadata DataFrames
 #
-#    The dataframe attached as metadata to an :class:`~mne.Epochs` object is
-#    slightly less flexible than a typical :class:`pandas.DataFrame`. For
-#    example, the data types of its columns are constrained to strings, floats,
-#    integers, or booleans; and the row labels are always integers
-#    corresponding to epoch numbers. Other capabilities of :class:`DataFrames
-#    <pandas.DataFrame>` such as :class:`hierarchical indexing
-#    <pandas.MultiIndex>` are possible while the epochs object is in memory,
-#    but will not survive saving and reloading the :class:`~mne.Epochs` object
-#    to/from disk.
+#    Metadata dataframes are less flexible than typical
+#    :class:`Pandas DataFrames <pandas.DataFrame>`. For example, the allowed
+#    data types are restricted to strings, floats, integers, or booleans;
+#    and the row labels are always integers corresponding to epoch numbers.
+#    Other capabilities of :class:`DataFrames <pandas.DataFrame>` such as
+#    :class:`hierarchical indexing <pandas.MultiIndex>` are possible while the
+#    :class:`~mne.Epochs` object is in memory, but will not survive saving and
+#    reloading the :class:`~mne.Epochs` object to/from disk.
 #
 # The metadata attached to :class:`~mne.Epochs` objects is stored as a
 # :class:`pandas.DataFrame` containing one row for each epoch. The columns of
 # this :class:`~pandas.DataFrame` can contain just about any information you
 # want to store about each epoch; in this case, the metadata encodes
-# information about the stimulus seen on each trial: including properties of
+# information about the stimulus seen on each trial, including properties of
 # the visual word form itself (e.g., ``NumberOfLetters``, ``VisualComplexity``)
 # as well as properties of what the word means (e.g., its ``Concreteness``) and
 # its prominence in the English lexicon (e.g., ``WordFrequency``). Here are all
-# the metadata variables:
+# the variables; note that in a Jupyter notebook, viewing a
+# :class:`pandas.DataFrame` gets rendered as an HTML table instead of the
+# normal Python output block:
 
-# In notebooks just running this line will produce a nice HTML output,
-# in scripts you could print(epochs.metadata.columns.tolist()) instead.
 epochs.metadata
 
 ###############################################################################
@@ -74,7 +73,7 @@ epochs.metadata
 print('Name-based selection with .loc')
 print(epochs.metadata.loc[2:4])
 
-print('Index-based selection with .iloc')
+print('\nIndex-based selection with .iloc')
 print(epochs.metadata.iloc[2:4])
 
 ###############################################################################
@@ -93,7 +92,6 @@ epochs.metadata['NumberOfLetters'] = \
 epochs.metadata['HighComplexity'] = epochs.metadata['VisualComplexity'] > 65
 epochs.metadata.head()
 
-
 ###############################################################################
 # Selecting epochs using metadata queries
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -101,8 +99,8 @@ epochs.metadata.head()
 # All :class:`~mne.Epochs` objects can be subselected by event name, index, or
 # :term:`slice` (see :ref:`tut-section-subselect-epochs`). But
 # :class:`~mne.Epochs` objects with metadata can also be queried using
-# :ref:`Pandas query strings <indexing.query>` by passing the query string
-# just as you would normally pass an event name. For example:
+# :ref:`Pandas query strings <pandas:indexing.query>` by passing the query
+# string just as you would normally pass an event name. For example:
 
 print(epochs['WORD.str.startswith("dis")'])
 
@@ -112,6 +110,20 @@ print(epochs['WORD.str.startswith("dis")'])
 # format query strings. Here's another example:
 
 print(epochs['Concreteness > 6 and WordFrequency < 1'])
+
+###############################################################################
+# Note also that traditional epochs subselection by condition name still works;
+# MNE-Python will try the traditional method first before falling back on rich
+# metadata querying.
+
+epochs['solenoid'].plot_psd()
+
+###############################################################################
+# One use of the Pandas query string approach is to select specific words for
+# plotting:
+
+words = ['typhoon', 'bungalow', 'colossus', 'drudgery', 'linguist', 'solenoid']
+epochs['WORD in {}'.format(words)].plot(n_channels=29)
 
 ###############################################################################
 # Notice that in this dataset, each "condition" (A.K.A., each word) occurs only
@@ -128,14 +140,9 @@ query = 'NumberOfLetters == {}'
 for n_letters in epochs.metadata['NumberOfLetters'].unique():
     evokeds[str(n_letters)] = epochs[query.format(n_letters)].average()
 
+# sphinx_gallery_thumbnail_number = 3
 mne.viz.plot_compare_evokeds(evokeds, cmap=('word length', 'viridis'),
                              picks='Pz')
-
-###############################################################################
-# We can use a Pandas query string to select specific words for plotting:
-
-words = ['typhoon', 'bungalow', 'colossus', 'drudgery', 'linguist', 'solenoid']
-epochs['WORD in {}'.format(words)].plot(n_channels=29)
 
 ###############################################################################
 # Metadata can also be useful for sorting the epochs in an image plot. For
@@ -150,13 +157,7 @@ epochs.plot_image(order=sort_order, picks='Pz')
 # useful for metadata variables that more directly index the time course of
 # stimulus processing (such as reaction time).
 #
-# Note also that traditional epochs subselection by condition name still works;
-# MNE-Python will try the traditional method first before falling back on rich
-# metadata querying.
-
-epochs['solenoid'].plot_psd()
-
-###############################################################################
+#
 # Adding metadata to an ``Epochs`` object
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -164,9 +165,13 @@ epochs['solenoid'].plot_psd()
 # :class:`~mne.Epochs` object (or replace existing metadata) simply by
 # assigning to the :attr:`~mne.Epochs.metadata` attribute:
 
-new_metadata = pd.DataFrame(data='foo' * len(epochs), columns=['bar'],
+new_metadata = pd.DataFrame(data=['foo'] * len(epochs), columns=['bar'],
                             index=range(len(epochs)))
 epochs.metadata = new_metadata
+epochs.metadata.head()
 
 ###############################################################################
-# TODO: deleting metadata (is it even possible?)
+# You can remove metadata from an :class:`~mne.Epochs` object by setting its
+# metadata to ``None``:
+
+epochs.metadata = None
