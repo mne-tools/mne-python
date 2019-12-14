@@ -1146,6 +1146,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                 % (ws_dir, ' '.join(cmd)))
     os.makedirs(op.join(ws_dir))
     run_subprocess_env(cmd)
+    del tempdir  # clean up directory
     if op.isfile(T1_mgz):
         new_info = _extract_volume_info(T1_mgz)
         if new_info is None:
@@ -1158,10 +1159,18 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
 
             rr, tris, volume_info = read_surface(surf_ws_out,
                                                  read_metadata=True)
-            volume_info.update(new_info)  # replace volume info, 'head' stays
 
-            write_surface(s, rr, tris, volume_info=volume_info,
-                          overwrite=overwrite)
+            if overwrite:
+                # replace volume info, 'head' stays
+                volume_info.update(new_info)
+                write_surface(surf_ws_out, rr, tris, volume_info=volume_info,
+                              overwrite=True)
+            else:
+                orig_surf_ws_out = op.join(ws_dir, '%s_%s_original_surface' % (subject, s))
+                # rename surfaces with the original volume info
+                os.rename(surf_ws_out, orig_surf_ws_out)
+                volume_info.update(new_info)
+                write_surface(surf_ws_out, rr, tris, volume_info=volume_info)
             # Create symbolic links
             surf_out = op.join(bem_dir, '%s.surf' % s)
             if not overwrite and op.exists(surf_out):
@@ -1171,6 +1180,14 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                     os.remove(surf_out)
                 _symlink(surf_ws_out, surf_out, copy)
                 skip_symlink = False
+
+        if new_info:
+            if not overwrite:
+                logger.info('Updated the volume info from T1. To use the '
+                'original volume info, recreate symbolic links for original'
+                'surfaces.')
+            else:
+                logger.info('Updated the volume info from T1.')
 
         if skip_symlink:
             logger.info("Unable to create all symbolic links to .surf files "
