@@ -1810,7 +1810,7 @@ class FilterMixin(object):
 
         References
         ----------
-        .. footbibliography:: ../references.bib
+        .. footbibliography::
 
         Examples
         --------
