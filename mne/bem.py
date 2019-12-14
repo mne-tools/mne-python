@@ -1183,12 +1183,10 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                 skip_symlink = False
 
         if new_info:
+            logger.info('Updated the volume info from T1.')
             if not overwrite:
-                logger.info('Updated the volume info from T1. To use the '
-                            'original volume info, create symbolic links for '
-                            'original surfaces.')
-            else:
-                logger.info('Updated the volume info from T1.')
+                logger.info('To use the original volume info, create symbolic '
+                            'links for original surfaces.')
 
         if skip_symlink:
             logger.info("Unable to create all symbolic links to .surf files "
