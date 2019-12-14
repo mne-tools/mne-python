@@ -20,7 +20,7 @@ from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  VolSourceEstimate, make_sphere_model, use_coil_def,
                  setup_volume_source_space, read_forward_solution,
                  VolVectorSourceEstimate, convert_forward_solution,
-                 compute_source_morph)
+                 compute_source_morph, MixedSourceEstimate)
 from mne.io import (read_raw_ctf, read_raw_bti, read_raw_kit, read_info,
                     read_raw_nirx)
 from mne.io._digitization import write_dig
@@ -55,6 +55,8 @@ evoked_fname = op.join(base_dir, 'test-ave.fif')
 
 fwd_fname = op.join(data_dir, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-vol-7-fwd.fif')
+fwd_fname2 = op.join(data_dir, 'MEG', 'sample',
+                     'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 
 base_dir = op.join(io_dir, 'bti', 'tests', 'data')
 pdf_fname = op.join(base_dir, 'test_pdf_linux')
@@ -638,6 +640,28 @@ def test_brain_colorbar(orientation, diverging, lims):
         [float(h.get_text().replace('−', '-')) for h in have()], ticks)
     assert_array_equal(empty(), [])
     plt.close('all')
+
+
+@requires_pysurfer
+@testing.requires_testing_data
+@traits_test
+def test_mixed_sources_plot_surface():
+    """Test plot_surface() for  mixed source space."""
+    src = read_source_spaces(fwd_fname2)
+    N = np.sum([s['nuse'] for s in src])  # number of sources
+
+    T = 2  # number of time points
+    S = 3  # number of source spaces
+
+    rng = np.random.RandomState(0)
+    data = rng.randn(N, T)
+    vertno = S * [np.arange(N // S)]
+
+    stc = MixedSourceEstimate(data, vertno, 0, 1)
+
+    stc.plot_surface(views='lat', hemi='split', src=src,
+                     subject='fsaverage', subjects_dir=subjects_dir,
+                     colorbar=False)
 
 
 run_tests_if_main()

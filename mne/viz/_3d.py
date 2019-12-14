@@ -1650,6 +1650,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     _check_option('backend', backend, ['auto', 'matplotlib', 'mayavi'])
     plot_mpl = backend == 'matplotlib'
     if not plot_mpl:
+        if not check_version('surfer', '0.9'):
+            raise RuntimeError('This function requires pysurfer version '
+                               '>= 0.9')
         try:
             from mayavi import mlab  # noqa: F401
         except ImportError:
@@ -1698,6 +1701,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         data = getattr(stc, hemi + '_data')
         vertices = stc.vertices[hemi_idx]
         if len(data) > 0:
+            if transparent is None:
+                transparent = True
             kwargs = {
                 "array": data, "colormap": colormap,
                 "vertices": vertices,
