@@ -28,6 +28,7 @@ import warnings
 from ..defaults import _handle_default
 from ..fixes import _get_status
 from ..io import show_fiff, Info
+from ..io.constants import FIFF
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        _pick_data_channels, _DATA_CH_TYPES_SPLIT, pick_types,
                        pick_info, _picks_by_type, pick_channels_cov,
@@ -1602,7 +1603,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     if not _check_ch_locs(chs):
         raise RuntimeError('No valid channel positions found')
     pos = np.array([apply_trans(info['dev_head_t'], ch['loc'][:3])
-                    if ch['coord_frame'] == 1 else
+                    if ch['coord_frame'] == FIFF.FIFFV_COORD_DEVICE else
                     ch['loc'][:3] for ch in chs])
     ch_names = np.array([ch['ch_name'] for ch in chs])
     bads = [idx for idx, name in enumerate(ch_names) if name in info['bads']]
