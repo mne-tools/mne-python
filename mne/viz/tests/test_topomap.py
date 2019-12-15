@@ -18,7 +18,8 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Circle
 
 from mne import (read_evokeds, read_proj, make_fixed_length_events, Epochs,
-                 compute_proj_evoked, find_layout, pick_types)
+                 compute_proj_evoked, find_layout, pick_types,
+                 events_from_annotations)
 from mne.io.proj import make_eeg_average_ref_proj, Projection
 from mne.io import read_raw_fif, read_info
 from mne.io.constants import FIFF
@@ -33,6 +34,9 @@ from mne.viz import plot_evoked_topomap, plot_projs_topomap
 from mne.viz.topomap import (_get_pos_outlines, _onselect, plot_topomap,
                              plot_arrowmap, plot_psds_topomap)
 from mne.viz.utils import _find_peaks, _fake_click
+from mne.datasets.testing import data_path
+from mne.io import read_raw_nirx
+from mne.preprocessing import nirs
 
 
 data_dir = testing.data_path(download=False)
@@ -131,10 +135,23 @@ def test_plot_topomap_animation():
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0))
     # Test animation
-    _, anim = evoked.animate_topomap(ch_type='grad', times=[0, 0.1],
+    fig, anim = evoked.animate_topomap(ch_type='grad', times=[0, 0.1],
                                      butterfly=False, time_unit='s')
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     plt.close('all')
+
+    fname_nirx_15_0 = op.join(data_path(download=False),
+                              'NIRx', 'nirx_15_0_recording')
+    raw = read_raw_nirx(fname_nirx_15_0, preload=True)
+    raw = nirs.optical_density(raw)
+    raw = nirs.beer_lambert_law(raw)
+    events, _ = events_from_annotations(raw, event_id={'1.0': 1, '2.0': 2})
+    event_dict = {'A/b': 2, 'A/c': 1}
+    epochs = Epochs(raw, events, event_id=event_dict, tmin=-1, tmax=2)
+    evoked = epochs['A'].average()
+    fig, anim = evoked.animate_topomap(ch_type='hbo')
+    anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
+    assert len(fig.axes) == 2
 
 
 @pytest.mark.slowtest
