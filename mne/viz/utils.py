@@ -28,6 +28,7 @@ import warnings
 from ..defaults import _handle_default
 from ..fixes import _get_status
 from ..io import show_fiff, Info
+from ..io.constants import FIFF
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        _pick_data_channels, _DATA_CH_TYPES_SPLIT, pick_types,
                        pick_info, _picks_by_type, pick_channels_cov,
@@ -41,6 +42,7 @@ from ..utils import (verbose, get_config, set_config, warn, _check_ch_locs,
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
 from ..annotations import _sync_onset
+from ..transforms import apply_trans
 
 
 _channel_type_prettyprint = {'eeg': "EEG channel", 'grad': "Gradiometer",
@@ -1600,7 +1602,9 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     chs = [info['chs'][pick] for pick in picks]
     if not _check_ch_locs(chs):
         raise RuntimeError('No valid channel positions found')
-    pos = np.array([ch['loc'][:3] for ch in chs])
+    pos = np.array([apply_trans(info['dev_head_t'], ch['loc'][:3])
+                    if ch['coord_frame'] == FIFF.FIFFV_COORD_DEVICE else
+                    ch['loc'][:3] for ch in chs])
     ch_names = np.array([ch['ch_name'] for ch in chs])
     bads = [idx for idx, name in enumerate(ch_names) if name in info['bads']]
     if ch_groups is None:
@@ -1706,9 +1710,9 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
 
         ax.azim = 90
         ax.elev = 0
-        ax.xaxis.set_label_text('x')
-        ax.yaxis.set_label_text('y')
-        ax.zaxis.set_label_text('z')
+        ax.xaxis.set_label_text('x (m)')
+        ax.yaxis.set_label_text('y (m)')
+        ax.zaxis.set_label_text('z (m)')
     else:  # kind in 'select', 'topomap'
         ax.text(0, 0, '', zorder=1)
 

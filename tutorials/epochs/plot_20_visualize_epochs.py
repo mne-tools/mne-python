@@ -113,8 +113,8 @@ print(all(proj['active'] for proj in epochs.info['projs']))
 # Plotting sensor locations
 # ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# Just like :class:`~mne.io.Raw` objects, :class:`~mne.Epochs` objects keep
-# track of sensor locations, which can be visualized with the
+# Just like :class:`~mne.io.Raw` objects, :class:`~mne.Epochs` objects
+# keep track of sensor locations, which can be visualized with the
 # :meth:`~mne.Epochs.plot_sensors` method:
 
 epochs.plot_sensors(kind='3d', ch_type='all')

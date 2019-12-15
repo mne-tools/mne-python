@@ -88,7 +88,9 @@ Bug
 
 - Fix a bug in :meth:`mne.MixedSourceEstimate.plot_surface` that prevented plotting in latest PySurfer by `Christian O'Reilly`_.
 
-- Fix incorrect scaling of cluster temporal extent :func:`mne.stats.summarize_clusters_stc` by `Daniel McCloy`_.
+- Fix incorrect scaling of cluster temporal extent in :func:`mne.stats.summarize_clusters_stc` by `Daniel McCloy`_.
+
+- Fix :func:`mne.viz.plot_sensors` to always plot in head coordinate frame by `Daniel McCloy`_.
 
 - Fix :meth:`mne.io.read_raw_ctf` to set measurement date from CTF ds files by `Luke Bloy`_.
 
