@@ -7,51 +7,55 @@ from scipy.stats import zscore
 from scipy.ndimage.measurements import label
 import numpy as np
 from itertools import compress
+from scipy import linalg
 
 from mne.filter import filter_data
-from mne.annotations import Annotations
-from mne.io.ctf.trans import _quaternion_align
+from mne.annotations import Annotations, _annotations_starts_stops
 from mne.chpi import _apply_quat
+from mne.transforms import (quat_to_rot)
+from mne import Transform
+from mne.utils import _mask_to_onsets_offsets
 
 
-def detect_bad_channels(raw, zscore_v=4, method='both', start=30, end=220,
+def detect_bad_channels(raw, zscore_v=4, method='both', tmin=30, tmax=220,
                         neigh_max_distance=.035):
     """Detect bad channels.
 
-    Can be based on z-score amplitude deviation or/and decreased local
-    correlation with other channels.
+    Detection can be based on z-score amplitude deviation or/and decreased
+    local correlation with other channels.
 
     Notes
     -----
-    This helps in detecting suspissious channels, visual inspection warranted.
+    This helps in detecting suspicious channels, visual inspection warranted.
 
     Parameters
     ----------
     raw : instance of Raw
         The data.
     zscore : int
-        the z-score value to reject channels exceeding it
+        The z-score value to reject channels if exceeding it.
     method : 'corr | 'norm' | 'both'
-        The criteria to detect bad channels
-        'corr' correlates a chan with its neighbours at neigh_max_distance
-        'norm' takes the averaged magnitude of the channel
-        'both' takes the mean of the z-scored 'corr' and 'norm' methods
-    start : int
-        Start time in seconds used from estimating bad chan
-    end : int
-        End time in seconds used from estimating bad chan
-    neigh_max_distance : int
-        I meters, limit channel distance for local correlation
+        The criteria used to detect bad channels.
+        'corr' - correlation with all neighbours not exceeding
+               ``neigh_max_distance``.
+        'norm' - averaged magnitude.
+        'both' - mean of the z-scored 'corr' and 'norm' methods.
+    tmin : int
+        Start time in seconds of the signal segment used for bad chn detection.
+    tmax : int
+        End time in seconds of the signal segment used to detect bad channels.
+    neigh_max_distance : float
+        Maximum channel distance in meters for local correlation.
 
     Returns
     -------
     bad_chs : list
-        a list of possible bad channels
+        List of detected bad channels.
     """
     # set recording length
     sfreq = raw.info['sfreq']
-    t2x = min(raw.last_samp / sfreq, end)
-    t1x = max(0, start + t2x - end)  # Start earlier if recording is shorter
+    t2x = min(raw.last_samp / sfreq, tmax)
+    t1x = max(0, tmin + t2x - tmax)  # Start earlier if recording is shorter
 
     # Get data
     raw_copy = raw.copy().crop(t1x, t2x).load_data()
@@ -65,11 +69,12 @@ def detect_bad_channels(raw, zscore_v=4, method='both', start=30, end=220,
                                axis=-1)
     chns_dist[chns_dist > neigh_max_distance] = 0
 
-    # Get avg channel uncorrelation between neighbours
-    chns_corr = np.abs(np.corrcoef(data_chans))
-    weig = np.array(chns_dist, dtype=bool)
-    chn_nei_corr = np.average(chns_corr, axis=1, weights=weig)
-    chn_nei_uncorr_z = zscore(1 - chn_nei_corr)  # lower corr higher Z
+    if method == 'corr' or method == 'both':
+        # Get avg channel uncorrelation between neighbours
+        chns_corr = np.abs(np.corrcoef(data_chans))
+        weig = np.array(chns_dist, dtype=bool)
+        chn_nei_corr = np.average(chns_corr, axis=1, weights=weig)
+        chn_nei_uncorr_z = zscore(1 - chn_nei_corr)  # lower corr higher Z
 
     # Get channel magnitudes
     max_pow = np.sqrt(np.sum(data_chans ** 2, axis=1))
@@ -89,9 +94,9 @@ def detect_bad_channels(raw, zscore_v=4, method='both', start=30, end=220,
     return bad_chs
 
 
-#  def annotate_head_pos_distance(info, pos, dist_translation=.01):
-def detect_movement(info, pos, dist_translation=.005):
-    """Detect segments that deviate from the recording median head position.
+def annotate_movement(raw, pos, rotation_limit=None,
+                      translation_vel_limit=None, displacement_limit=None):
+    """Detect segments with movement velocity or displacement from mean.
 
     First, the cHPI is calculated relative to the default head position, then
     segments beyond the threshold are discarded and the median head pos is
@@ -118,58 +123,83 @@ def detect_movement(info, pos, dist_translation=.005):
         new trans matrix using accepted head pos
     """
 
-    time = pos[:, 0]
+    sfreq = raw.info['sfreq']
+    hp_ts = pos[:, 0]
+    hp_ts -= raw.first_samp / sfreq
+    dt = np.diff(hp_ts)
+    seg_good = np.append(dt, 1. / sfreq)
+    hp_ts = np.concatenate([hp_ts, [hp_ts[-1] + 1. / sfreq]])
 
-    # Subtract any offset
-    if time[0] != 0.0:
-        time -= time[0]
+    annot = Annotations([], [], [], orig_time=None)  # rel to data start
 
-    quats = pos[:, 1:7]
+    # Mark down times that are bad according to annotations
+    onsets, ends = _annotations_starts_stops(raw, 'bad')
+    for onset, end in zip(onsets, ends):
+        seg_good[onset:end] = 0
 
-    # Get static head pos from file, used to convert quat to cartesian
-    chpi_locs_dev = sorted([d for d in info['hpi_results'][-1]
-                            ['dig_points']], key=lambda x: x['ident'])
-    chpi_locs_dev = np.array([d['r'] for d in chpi_locs_dev])
-    # chpi_locs_dev[0]-> LPA, chpi_locs_dev[1]-> NASION, chpi_locs_dev[2]-> RPA
-    # Get head pos changes during recording
-    chpi_mov_head = np.array([_apply_quat(quat, chpi_locs_dev, move=True)
-                              for quat in quats])
+    # Annotate based on rotational velocity
+    t_tot = raw.times[-1]
+    if rotation_limit is not None:
+        from mne.transforms import _angle_between_quats
+        assert rotation_limit > 0
+        # Rotational velocity (radians / sec)
+        r = _angle_between_quats(pos[:-1, 1:4], pos[1:, 1:4])
+        r /= dt
+        bad_mask = (r >= np.deg2rad(rotation_limit))
+        onsets, offsets = _mask_to_onsets_offsets(bad_mask)
+        onsets, offsets = hp_ts[onsets], hp_ts[offsets]
+        bad_pct = 100 * (offsets - onsets).sum() / t_tot
+        print(u'Omitting %5.1f%% (%3d segments): '
+              u'ω >= %5.1f°/s (max: %0.1f°/s)'
+              % (bad_pct, len(onsets), rotation_limit,
+                 np.rad2deg(r.max())))
+        annot += _annotations_from_mask(hp_ts, bad_mask, 'BAD_rotat_vel')
 
-    # get median position across all recording
-    chpi_mov_head_f = chpi_mov_head.reshape([-1, 9])  # always 9 chans
-    chpi_med_head_tmp = np.median(chpi_mov_head_f, axis=0).reshape([3, 3])
+    # Annotate based on translational velocity
+    if translation_vel_limit is not None:
+        assert translation_vel_limit > 0
+        v = np.linalg.norm(np.diff(pos[:, 4:7], axis=0), axis=-1)
+        v /= dt
+        bad_mask = (v >= translation_vel_limit)
+        onsets, offsets = _mask_to_onsets_offsets(bad_mask)
+        onsets, offsets = hp_ts[onsets], hp_ts[offsets]
+        bad_pct = 100 * (offsets - onsets).sum() / t_tot
+        print(u'Omitting %5.1f%% (%3d segments): '
+              u'v >= %5.4fm/s (max: %5.4fm/s)'
+              % (bad_pct, len(onsets), translation_vel_limit, v.max()))
+        for onset, offset in zip(onsets, offsets):
+            annot.append(onset, offset - onset, 'BAD_trans_vel')
+        annot += _annotations_from_mask(hp_ts, bad_mask, 'BAD_trans_vel')
 
-    # get movement displacement from median
-    hpi_disp = chpi_mov_head - np.tile(chpi_med_head_tmp, (len(time), 1, 1))
-    # get positions above threshold distance
-    disp = np.sqrt((hpi_disp ** 2).sum(axis=2))
-    disp_exes = np.any(disp > dist_translation, axis=1)
+    # Annotate based on displacement from mean
+    disp = []
+    if displacement_limit is not None:
+        assert displacement_limit > 0
+        # Get static head pos from file, used to convert quat to cartesian
+        chpi_pos = sorted([d for d in raw.info['hpi_results'][-1]
+                          ['dig_points']], key=lambda x: x['ident'])
+        chpi_pos = np.array([d['r'] for d in chpi_pos])
+        # CTF: chpi_pos[0]-> LPA, chpi_pos[1]-> NASION, chpi_pos[2]-> RPA
+        # Get head pos changes during recording
+        chpi_pos_mov = np.array([_apply_quat(quat, chpi_pos, move=True)
+                                for quat in pos[:, 1:7]])
 
-    # Get median head pos during recording under threshold distance
-    weights = np.append(time[1:] - time[:-1], 0)
-    weights[disp_exes] = 0
-    weights /= sum(weights)
-    tmp_med_head = weighted_median(chpi_mov_head, weights)
-    # Get closest real pos to estimated median
-    hpi_disp_th = chpi_mov_head - np.tile(tmp_med_head, (len(time), 1, 1))
-    hpi_dist_th = np.sqrt((hpi_disp_th.reshape(-1, 9) ** 2).sum(axis=1))
-    chpi_median_pos = chpi_mov_head[hpi_dist_th.argmin(), :, :]
+        # get average position
+        chpi_pos_avg = np.average(chpi_pos_mov, axis=0, weights=seg_good)
 
-    # Compute displacements from final median head pos
-    hpi_disp = chpi_mov_head - np.tile(chpi_median_pos, (len(time), 1, 1))
-    hpi_disp = np.sqrt((hpi_disp**2).sum(axis=-1))
-
-    art_mask_mov = np.any(hpi_disp > dist_translation, axis=-1)
-    annot = Annotations([], [], [])
-    annot += _annotations_from_mask(time, art_mask_mov,
-                                    'Bad-motion-dist>%0.3f' % dist_translation)
-
-    # Compute new dev->head transformation from median
-    dev_head_t = _quaternion_align(info['dev_head_t']['from'],
-                                   info['dev_head_t']['to'],
-                                   chpi_locs_dev, chpi_median_pos)
-
-    return annot, hpi_disp, dev_head_t
+        # get movement displacement from mean pos
+        hpi_disp = chpi_pos_mov - np.tile(chpi_pos_avg, (len(seg_good), 1, 1))
+        # get positions above threshold distance
+        disp = np.sqrt((hpi_disp ** 2).sum(axis=2))
+        bad_mask = np.any(disp > displacement_limit, axis=1)
+        onsets, offsets = _mask_to_onsets_offsets(bad_mask)
+        onsets, offsets = hp_ts[onsets], hp_ts[offsets]
+        bad_pct = 100 * (offsets - onsets).sum() / t_tot
+        print(u'Omitting %5.1f%% (%3d segments): '
+              u'disp >= %5.4fm/s (max: %5.4fm)'
+              % (bad_pct, len(onsets), displacement_limit, disp.max()))
+        annot += _annotations_from_mask(hp_ts, bad_mask, 'BAD_mov_disp')
+    return annot, disp
 
 
 def compute_average_dev_head_t(raw, pos):
@@ -177,48 +207,84 @@ def compute_average_dev_head_t(raw, pos):
 
     It excludes pos that have a BAD_ annotation'''
 
-    time = pos[:, 0]
-    info = raw['info']
-    quats = pos[:, 1:7]
+    import warnings
 
-    # Original head pos from file
-    chpi_locs_dev = sorted([d for d in info['hpi_results'][-1]
-                            ['dig_points']], key=lambda x: x['ident'])
-    chpi_locs_dev = np.array([d['r'] for d in chpi_locs_dev])
+    sfreq = raw.info['sfreq']
+    seg_good = np.ones(len(raw.times))
+    trans_pos = np.zeros(3)
+    hp = pos
+    hp_ts = hp[:, 0] - raw._first_time
 
-    # Get head pos displacement
-    chpi_mov_head = np.array([_apply_quat(quat, chpi_locs_dev, move=True)
-                              for quat in quats])
+    # Check rounding issues at 0 time
+    if hp_ts[0] < 0:
+        hp_ts[0] = 0
+        assert hp_ts[1] > 1. / sfreq
 
-    # Get weights for each head pos
-    weights = np.append(time[1:] - time[:-1], 0)
+    # Mask out segments if beyond scan time
+    mask = hp_ts <= raw.times[-1]
+    if not mask.all():
+        warnings.warn(
+            '          Removing %0.1f%% time points > raw.times[-1] (%s)'
+            % ((~mask).sum() / float(len(mask)), raw.times[-1]))
+        hp = hp[mask]
+    del mask, hp_ts
 
-    # Bad segments have a weight of 0
-    for annoth in raw.annotations:
-        if 'bad_' in annoth['description']:
-            onset = annoth['onset']
-            end = onset + annoth['duration']
-            out_beg = np.argmin(np.abs(time - onset))
-            out_end = np.argmin(np.abs(time - end))
-            weights[out_beg:out_end] = 0
-    weights /= sum(weights)
+    # Get time indices
+    ts = np.concatenate((hp[:, 0], [(raw.last_samp + 1) / sfreq]))
+    assert (np.diff(ts) > 0).all()
+    ts -= raw.first_samp / sfreq
+    idx = raw.time_as_index(ts, use_rounding=True)
+    del ts
+    if idx[0] == -1:  # annoying rounding errors
+        idx[0] = 0
+        assert idx[1] > 0
+    assert (idx >= 0).all()
+    assert idx[-1] == len(seg_good)
+    assert (np.diff(idx) > 0).all()
 
-    # Get head pos closest to weighted average pos
-    avg_head_pos = np.average(chpi_mov_head, axis=0, weights=weights)
-    hpi_disp = chpi_mov_head - np.tile(avg_head_pos, (len(time), 1, 1))
-    hpi_dist = np.sqrt((hpi_disp.reshape(-1, 9) ** 2).sum(axis=1))
-    head_pos_avg = chpi_mov_head[hpi_dist.argmin(), :, :]
+    # Mark times bad that are bad according to annotations
+    onsets, ends = _annotations_starts_stops(raw, 'bad')
+    for onset, end in zip(onsets, ends):
+        seg_good[onset:end] = 0
+    dt = np.diff(np.cumsum(np.concatenate([[0], seg_good]))[idx])
+    assert (dt >= 0).all()
+    dt = dt / sfreq
+    del seg_good, idx
 
-    # Compute new dev->head transformation from median
-    dev_head_t = _quaternion_align(info['dev_head_t']['from'],
-                                   info['dev_head_t']['to'],
-                                   chpi_locs_dev, head_pos_avg)
+    # Get weighted head pos trans and rot
+    trans_pos += np.dot(dt, hp[:, 4:7])
+    rot_qs = hp[:, 1:4]
+    res = 1 - np.sum(rot_qs * rot_qs, axis=-1, keepdims=True)
+    assert (res >= 0).all()
+    rot_qs = np.concatenate((rot_qs, np.sqrt(res)), axis=-1)
+    assert np.allclose(np.linalg.norm(rot_qs, axis=1), 1)
+    rot_qs *= dt[:, np.newaxis]
+    # rank 1 update method
+    # https://arc.aiaa.org/doi/abs/10.2514/1.28949?journalCode=jgcd
+    # https://github.com/tolgabirdal/averaging_quaternions/blob/master/wavg_quaternion_markley.m  # noqa: E501
+    # qs.append(rot_qs)
+    outers = np.einsum('ij,ik->ijk', rot_qs, rot_qs)
+    A = outers.sum(axis=0)
+    dt_sum = dt.sum()
+    assert dt_sum >= 0
+    norm = dt_sum
+    if norm <= 0:
+        raise RuntimeError('No good segments found (norm=%s)' % (norm,))
+    A /= norm
 
+    best_q = linalg.eigh(A)[1][:, -1]  # largest eigenvector is the wavg
+    # Same as the largest eigenvector from the concatenation of all
+    # best_q = linalg.svd(np.concatenate(qs).T)[0][:, 0]
+    best_q = best_q[:3] * np.sign(best_q[-1])
+    trans = np.eye(4)
+    trans[:3, :3] = quat_to_rot(best_q)
+    trans[:3, 3] = trans_pos / norm
+    assert np.linalg.norm(trans[:3, 3]) < 1  # less than 1 meter is sane
+    dev_head_t = Transform('meg', 'head', trans)
     return dev_head_t
 
 
-
-def detect_muscle(raw, thr=1.5, t_min=1, notch=[60, 120, 180]):
+def annotate_muscle(raw, thr=1.5, t_min=1, notch=[60, 120, 180]):
     """Find and annotate mucsle artifacts based on high frequency activity.
 
     Data is band pass filtered at high frequencies, smoothed with the envelope,
@@ -263,45 +329,14 @@ def detect_muscle(raw, thr=1.5, t_min=1, notch=[60, 120, 180]):
         if len(l_idx) < idx_min:
             art_mask[l_idx] = True
     mus_annot = _annotations_from_mask(raw.times, art_mask,
-                                       'Bad-muscle')
+                                       'BAD_muscle')
     return mus_annot, art_scores_filt
 
 
-def weighted_median(data, weights):
-    """Get median with weights assigned to the data.
-
-    Parameters
-    ----------
-    data : array
-    weights : array or list
-        values to assign at each of the data points
-    """
-    dims = data.shape
-    w_median = np.zeros((dims[1], dims[2]))
-    for d1 in range(dims[1]):
-        for d2 in range(dims[2]):
-            data_dd = np.array(data[:, d1, d2]).squeeze()
-            s_data, s_weights = map(np.array, zip(*sorted(zip(data_dd,
-                                                              weights))))
-            midpoint = 0.5 * sum(s_weights)
-            if any(s_weights > midpoint):
-                w_median[d1, d2] = (data[weights == np.max(weights)])[0]
-            else:
-                cs_weights = np.cumsum(s_weights)
-                idx = np.where(cs_weights <= midpoint)[0][-1]
-                if cs_weights[idx] == midpoint:
-                    w_median[d1, d2] = np.mean(s_data[idx:idx + 2])
-                else:
-                    w_median[d1, d2] = s_data[idx + 1]
-    return w_median
-
-
 def _annotations_from_mask(times, art_mask, art_name):
-    """Make annotations."""
+    """Construct annotations from boolean mask of the data."""
     comps, num_comps = label(art_mask)
-    onsets = []
-    durations = []
-    desc = []
+    onsets, durations, desc = [], [], []
     n_times = len(times)
     for l in range(1, num_comps + 1):
         l_idx = np.nonzero(comps == l)[0]

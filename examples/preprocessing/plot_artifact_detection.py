@@ -21,8 +21,9 @@ import mne
 from mne.datasets.brainstorm import bst_auditory
 from mne.io import read_raw_ctf
 from mne.preprocessing.artifact_detection import (detect_bad_channels,
-                                                  detect_movement,
-                                                  detect_muscle)
+                                                  annotate_movement,
+                                                  annotate_muscle,
+                                                  compute_average_dev_head_t)
 import matplotlib.pyplot as plt
 
 # Load data
@@ -43,20 +44,17 @@ raw.resample(300, npad="auto").notch_filter([60, 120])
 
 
 # Detect bad channels
-bad_chns = detect_bad_channels(raw, zscore_v=4, method='both', start=0,
-                               end=140, neigh_max_distance=.035)
+bad_chns = detect_bad_channels(raw, zscore_v=4, method='both', tmin=0,
+                               tmax=140, neigh_max_distance=.035)
 
 # detect excecive movement and correct dev_head trans
 pos = mne.chpi._calculate_head_pos_ctf(raw)
 
-
-pos[:, 0] -= raw._first_time  # That is temporary, shouldn't happen
-
-
 thr_mov = .001  # in meters
-annotation_movement, hpi_disp, dev_head_t = detect_movement(raw.info, pos,
-                                                            thr_mov=thr_mov)
-raw.info['dev_head_t'] = dev_head_t
+out = annotate_movement(raw, pos, displacement_limit=thr_mov)
+
+annotation_movement, hpi_disp = out
+
 # Plot movement
 plt.figure()
 plt.plot(pos[:, 0], hpi_disp)
@@ -68,8 +66,8 @@ plt.show(block=False)
 
 # detect muscle artifacts
 thr_mus = 1.5  # z-score
-annotation_muscle, scores_muscle = detect_muscle(raw, thr=thr_mus, t_min=0,
-                                                 notch=None)
+annotation_muscle, scores_muscle = annotate_muscle(raw, thr=thr_mus, t_min=0,
+                                                   notch=None)
 
 plt.figure()
 plt.plot(raw.times, scores_muscle)
@@ -81,5 +79,7 @@ plt.ylabel('zscore')
 
 
 raw.set_annotations(annotation_movement + annotation_muscle)
+
+raw.info['dev_head_t'] = compute_average_dev_head_t(raw, pos)
 
 raw.plot(n_channels=100)
