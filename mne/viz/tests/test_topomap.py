@@ -135,7 +135,7 @@ def test_plot_topomap_animation():
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0))
     # Test animation
-    fig, anim = evoked.animate_topomap(ch_type='grad', times=[0, 0.1],
+    _, anim = evoked.animate_topomap(ch_type='grad', times=[0, 0.1],
                                      butterfly=False, time_unit='s')
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     plt.close('all')
