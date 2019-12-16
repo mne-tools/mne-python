@@ -152,9 +152,11 @@ EEGBCI motor imagery
 ====================
 :func:`mne.datasets.eegbci.load_data`
 
-The EEGBCI dataset is documented in [2]_. The data set is available at PhysioNet [3]_.
-The dataset contains 64-channel EEG recordings from 109 subjects and 14 runs on each subject in EDF+ format.
-The recordings were made using the BCI2000 system. To load a subject, do::
+The EEGBCI dataset is documented in :footcite:`SchalkEtAl2004`. The data set is
+available at PhysioNet :footcite:`GoldbergerEtAl2000`. The dataset contains
+64-channel EEG recordings from 109 subjects and 14 runs on each subject in EDF+
+format. The recordings were made using the BCI2000 system. To load a subject,
+do::
 
     from mne.io import concatenate_raws, read_raw_edf
     from mne.datasets import eegbci
@@ -232,13 +234,13 @@ Visual 92 object categories
 This dataset is recorded using a 306-channel Neuromag vectorview system.
 
 Experiment consisted in the visual presentation of 92 images of human, animal
-and inanimate objects either natural or artificial [4]_. Given the high number
-of conditions this dataset is well adapted to an approach based on
-Representational Similarity Analysis (RSA).
+and inanimate objects either natural or artificial :footcite:`CichyEtAl2014`.
+Given the high number of conditions this dataset is well adapted to an approach
+based on Representational Similarity Analysis (RSA).
 
 .. topic:: Examples
 
-    * :ref:`Representational Similarity Analysis (RSA) <ex-rsa-noplot>`: Partially replicates the results from Cichy et al. (2014).
+    * :ref:`Representational Similarity Analysis (RSA) <ex-rsa-noplot>`: Partially replicates the results from :footcite:`CichyEtAl2014`.
 
 
 mTRF Dataset
@@ -251,11 +253,12 @@ which is also available `here <https://sourceforge.net/projects/aespa/files/>`_.
 The experiment consisted of subjects listening to natural speech.
 The dataset contains several feature representations of the speech stimulus,
 suitable for using to fit continuous regression models of neural activity.
-More details and a description of the package can be found in [5]_.
+More details and a description of the package can be found in
+:footcite:`CrosseEtAl2016`.
 
 .. topic:: Examples
 
-    * :ref:`Receptive Field Estimation and Prediction <ex-receptive-field-mtrf>`: Partially replicates the results from Crosse et al. (2016).
+    * :ref:`Receptive Field Estimation and Prediction <ex-receptive-field-mtrf>`: Partially replicates the results from :footcite:`CrosseEtAl2016`.
 
 
 .. _kiloword-dataset:
@@ -264,17 +267,18 @@ Kiloword dataset
 ================
 :func:`mne.datasets.kiloword.data_path`.
 
-This dataset consists of averaged EEG data from 75 subjects performing a lexical decision
-task on 960 English words [6]_. The words are richly annotated, and can be used for e.g.
-multiple regression estimation of EEG correlates of printed word processing.
+This dataset consists of averaged EEG data from 75 subjects performing a
+lexical decision task on 960 English words :footcite:`DufauEtAl2015`. The words
+are richly annotated, and can be used for e.g. multiple regression estimation
+of EEG correlates of printed word processing.
 
 
 4D Neuroimaging / BTi dataset
 =============================
 :func:`mne.datasets.phantom_4dbti.data_path`.
 
-This dataset was obtained with a phantom on a 4D Neuroimaging / BTi system at the MEG
-center in La Timone hospital in Marseille.
+This dataset was obtained with a phantom on a 4D Neuroimaging / BTi system at
+the MEG center in La Timone hospital in Marseille.
 
 .. topic:: Examples
 
@@ -323,7 +327,7 @@ recordings, containing EEG, EOG, chin EMG, and event markers. Some records also
 contain respiration and body temperature. Corresponding hypnograms (sleep
 patterns) were manually scored by well-trained technicians according to the
 Rechtschaffen and Kales manual, and are also available. If you use these
-data please cite [7]_ and [8]_.
+data please cite :footcite:`KempEtAl2000` and :footcite:`GoldbergerEtAl2000`.
 
 .. topic:: Examples
 
@@ -370,7 +374,8 @@ LIMO Dataset
 ^^^^^^^^^^^^
 :func:`mne.datasets.limo.load_data`.
 
-In the original LIMO experiment (see [9]_), participants performed a
+In the original LIMO experiment (see :footcite:`RousseletEtAl2010`), participants
+performed a
 two-alternative forced choice task, discriminating between two face stimuli.
 Subjects discriminated the same two faces during the whole experiment.
 The critical manipulation consisted of the level of noise added to the
@@ -393,21 +398,10 @@ discriminate.
 References
 ==========
 
-.. [2] Schalk, G., McFarland, D.J., Hinterberger, T., Birbaumer, N., Wolpaw, J.R. (2004) BCI2000: A General-Purpose Brain-Computer Interface (BCI) System. IEEE TBME 51(6):1034-1043
+.. footbibliography::
 
-.. [3] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000) PhysioBank, PhysioToolkit, and PhysioNet: Components of a New Research Resource for Complex Physiologic Signals. Circulation 101(23):e215-e220
 
-.. [4] Cichy, R. M., Pantazis, D., & Oliva, A. Resolving human object recognition in space and time. Nature Neuroscience (2014): 17(3), 455-462
-
-.. [5] Crosse, M. J., Di Liberto, G. M., Bednar, A., & Lalor, E. C. The Multivariate Temporal Response Function (mTRF) Toolbox: A MATLAB Toolbox for Relating Neural Signals to Continuous Stimuli. Frontiers in Human Neuroscience (2016): 10.
-
-.. [6] Dufau, S., Grainger, J., Midgley, KJ., Holcomb, PJ. A thousand words are worth a picture: Snapshots of printed-word processing in an event-related potential megastudy. Psychological science, 2015
-
-.. [7] B Kemp, AH Zwinderman, B Tuk, HAC Kamphuisen, JJL Oberyé. Analysis of a sleep-dependent neuronal feedback loop: the slow-wave microcontinuity of the EEG. IEEE-BME 47(9):1185-1194 (2000). https://ieeexplore.ieee.org/document/867928
-
-.. [8] Goldberger AL, Amaral LAN, Glass L, Hausdorff JM, Ivanov PCh, Mark RG, Mietus JE, Moody GB, Peng C-K, Stanley HE. PhysioBank, PhysioToolkit, and PhysioNet: Components of a New Research Resource for Complex Physiologic Signals. Circulation 101(23):e215-e220 [Circulation Electronic Pages; http://circ.ahajournals.org/cgi/content/full/101/23/e215]; 2000 (June 13).
-
-.. [9] Rousselet, G. A., Gaspar, C. M., Pernet, C. R., Husk, J. S., Bennett, P. J., & Sekuler, A. B. (2010). Healthy aging delays scalp EEG sensitivity to noise in a face discrimination task. Frontiers in psychology, 1, 19. https://doi.org/10.3389/fpsyg.2010.00019
+.. LINKS
 
 .. _auditory dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetAuditory
 .. _resting state dataset tutorial: https://neuroimage.usc.edu/brainstorm/DatasetResting
