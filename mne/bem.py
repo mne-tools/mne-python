@@ -1159,15 +1159,10 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
 
             rr, tris, volume_info = read_surface(surf_ws_out,
                                                  read_metadata=True)
-
-            if not overwrite:
-                orig_surf = op.join(ws_dir,
-                                    '%s_%s_original_surface' % (subject, s))
-                # rename surfaces with the original volume info
-                os.rename(surf_ws_out, orig_surf)
             # replace volume info, 'head' stays
             volume_info.update(new_info)
-            write_surface(surf_ws_out, rr, tris, volume_info=volume_info)
+            write_surface(surf_ws_out, rr, tris, volume_info=volume_info,
+                          overwrite=True)
 
             # Create symbolic links
             surf_out = op.join(bem_dir, '%s.surf' % s)
@@ -1178,12 +1173,6 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                     os.remove(surf_out)
                 _symlink(surf_ws_out, surf_out, copy)
                 skip_symlink = False
-
-        if new_info:
-            logger.info('Updated the volume info from T1.')
-            if not overwrite:
-                logger.info('To use the original volume info, create symbolic '
-                            'links for original surfaces.')
 
         if skip_symlink:
             logger.info("Unable to create all symbolic links to .surf files "
