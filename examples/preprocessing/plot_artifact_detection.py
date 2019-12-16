@@ -41,6 +41,7 @@ raw = read_raw_ctf(raw_fname1, preload=False)
 mne.io.concatenate_raws([raw, read_raw_ctf(raw_fname2, preload=False)])
 raw.crop(350, 500).load_data()
 raw.resample(300, npad="auto").notch_filter([60, 120])
+raw.filter(l_freq=1, h_freq=149, picks='meg')
 
 
 # Detect bad channels
@@ -50,12 +51,14 @@ bad_chns = detect_bad_channels(raw, zscore_v=4, method='both', tmin=0,
 # detect excecive movement and correct dev_head trans
 pos = mne.chpi._calculate_head_pos_ctf(raw)
 
-thr_mov = .001  # in meters
+thr_mov = .0015  # in meters
 out = annotate_movement(raw, pos, displacement_limit=thr_mov)
-
 annotation_movement, hpi_disp = out
 
 # Plot movement
+raw.set_annotations(annotation_movement)
+raw.plot(n_channels=100, duration=20)
+
 plt.figure()
 plt.plot(pos[:, 0], hpi_disp)
 plt.axhline(y=thr_mov, color='r')
@@ -69,6 +72,7 @@ thr_mus = 1.5  # z-score
 annotation_muscle, scores_muscle = annotate_muscle(raw, thr=thr_mus, t_min=0,
                                                    notch=None)
 
+# Plot muscle
 plt.figure()
 plt.plot(raw.times, scores_muscle)
 plt.axhline(y=thr_mus, color='r')
@@ -77,9 +81,12 @@ plt.title('Avg z-score high freq. activity')
 plt.xlabel('time s.')
 plt.ylabel('zscore')
 
+raw.set_annotations(annotation_muscle)
+raw.plot(n_channels=100, duration=20)
 
-raw.set_annotations(annotation_movement + annotation_muscle)
+# Change dev to head transform
+new_dev_head_t = compute_average_dev_head_t(raw, pos)
+raw.info['dev_head_t'] = new_dev_head_t
 
-raw.info['dev_head_t'] = compute_average_dev_head_t(raw, pos)
 
-raw.plot(n_channels=100)
+

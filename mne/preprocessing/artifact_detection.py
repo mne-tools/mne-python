@@ -124,7 +124,7 @@ def annotate_movement(raw, pos, rotation_limit=None,
     """
 
     sfreq = raw.info['sfreq']
-    hp_ts = pos[:, 0]
+    hp_ts = pos[:, 0].copy()
     hp_ts -= raw.first_samp / sfreq
     dt = np.diff(hp_ts)
     seg_good = np.append(dt, 1. / sfreq)
@@ -212,7 +212,7 @@ def compute_average_dev_head_t(raw, pos):
     sfreq = raw.info['sfreq']
     seg_good = np.ones(len(raw.times))
     trans_pos = np.zeros(3)
-    hp = pos
+    hp = pos.copy()
     hp_ts = hp[:, 0] - raw._first_time
 
     # Check rounding issues at 0 time
@@ -311,13 +311,14 @@ def annotate_muscle(raw, thr=1.5, t_min=1, notch=[60, 120, 180]):
     art_scores_filt : array
         the z-score values of the filtered data
     """
-    raw.pick_types(meg=True, ref_meg=False)
+    raw_copy = raw.copy()
+    raw_copy.pick_types(meg=True, ref_meg=False)
     if notch is not None:
-        raw.notch_filter(notch, fir_design='firwin')
-    raw.filter(110, 140, fir_design='firwin')
-    raw.apply_hilbert(envelope=True)
-    sfreq = raw.info['sfreq']
-    art_scores = zscore(raw._data, axis=1)
+        raw_copy.notch_filter(notch, fir_design='firwin')
+    raw_copy.filter(110, 140, fir_design='firwin')
+    raw_copy.apply_hilbert(envelope=True)
+    sfreq = raw_copy.info['sfreq']
+    art_scores = zscore(raw_copy._data, axis=1)
     # band pass filter the data
     art_scores_filt = filter_data(art_scores.mean(axis=0), sfreq, None, 4)
     art_mask = art_scores_filt > thr
@@ -328,7 +329,7 @@ def annotate_muscle(raw, thr=1.5, t_min=1, notch=[60, 120, 180]):
         l_idx = np.nonzero(comps == l)[0]
         if len(l_idx) < idx_min:
             art_mask[l_idx] = True
-    mus_annot = _annotations_from_mask(raw.times, art_mask,
+    mus_annot = _annotations_from_mask(raw_copy.times, art_mask,
                                        'BAD_muscle')
     return mus_annot, art_scores_filt
 
