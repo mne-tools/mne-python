@@ -553,6 +553,7 @@ class _Brain(object):
                 ci = 0
             else:
                 ci = 0 if hemi == 'lh' else 1
+            views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
             self._renderer.subplot(ri, ci)
             self._renderer.mesh(x=self.geo[hemi].coords[:, 0],
                                 y=self.geo[hemi].coords[:, 1],
@@ -562,8 +563,8 @@ class _Brain(object):
                                 color=None,
                                 colormap=ctable,
                                 backface_culling=False)
-            self._renderer.set_camera(azimuth=0.,
-                                      elevation=90.)
+            self._renderer.set_camera(azimuth=views_dict[v].azim,
+                                      elevation=views_dict[v].elev)
 
     def add_foci(self, coords, coords_as_verts=False, map_surface=None,
                  scale_factor=1, color="white", alpha=1, name=None,
