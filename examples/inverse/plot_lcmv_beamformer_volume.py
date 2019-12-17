@@ -51,7 +51,8 @@ evoked = epochs.average()
 evoked.plot_joint()
 
 ###############################################################################
-# Compute covariance matrices.
+# Compute covariance matrices
+# ---------------------------
 #
 # These matrices need to be inverted at some point, but since they are rank
 # deficient, some regularization needs to be done for them to be invertable.
@@ -66,6 +67,10 @@ noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0,
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
                                   method='empirical')
 
+###############################################################################
+# Compute beamformer filters
+# --------------------------
+#
 # Compute weights of free orientation (vector) beamformer with weight
 # normalization (neural activity index, NAI). Providing a noise covariance
 # matrix enables whitening of the data and forward solution. Source orientation
@@ -86,7 +91,8 @@ print(filters)
 stc = apply_lcmv(evoked, filters, max_ori_out='signed')
 
 ###############################################################################
-# Plot source space activity:
+# Plot source space activity
+# --------------------------
 
 # You can save result in stc files with:
 # stc.save('lcmv-vol')
