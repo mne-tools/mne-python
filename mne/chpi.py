@@ -353,7 +353,7 @@ def _get_hpi_initial_fit(info, adjust_dig=False, verbose=None):
                      % hpi_result['moments'].shape[::-1])
         for moment in hpi_result['moments']:
             logger.debug("%g %g %g" % tuple(moment))
-    errors = np.sqrt(((hpi_rrs - hpi_rrs_fit) ** 2).sum(axis=1))
+    errors = np.linalg.norm(hpi_rrs - hpi_rrs_fit, axis=1)
     logger.debug('HPIFIT errors:  %s mm.'
                  % ', '.join('%0.1f' % (1000. * e) for e in errors))
     if errors.sum() < len(errors) * hpi_result['dist_limit']:
@@ -362,12 +362,13 @@ def _get_hpi_initial_fit(info, adjust_dig=False, verbose=None):
         warn('HPI consistency of isotrak and hpifit is poor.')
     else:
         # adjust HPI coil locations using the hpifit transformation
-        for hi, (r_dig, r_fit) in enumerate(zip(hpi_rrs, hpi_rrs_fit)):
+        for hi, (err, r_fit) in enumerate(zip(errors, hpi_rrs_fit)):
             # transform to head frame
-            d = 1000 * np.sqrt(((r_dig - r_fit) ** 2).sum())
+            d = 1000 * err
             if not adjust_dig:
-                warn('Discrepancy of HPI coil %d isotrak and hpifit is %.1f '
-                     'mm!' % (hi + 1, d))
+                if err >= hpi_result['dist_limit']:
+                    warn('Discrepancy of HPI coil %d isotrak and hpifit is '
+                        '%.1f mm!' % (hi + 1, d))
             elif hi + 1 not in hpi_result['used']:
                 if hpi_result['goodness'][hi] >= hpi_result['good_limit']:
                     logger.info('Note: HPI coil %d isotrak is adjusted by '
@@ -811,13 +812,13 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
 
         # check if data has sufficiently changed
         if last['sin_fit'] is not None:  # first iteration
-            # The sign of our fits is arbitrary
-            flips = np.sign((sin_fit * last['sin_fit']).sum(-1, keepdims=True))
-            sin_fit *= flips
-            corr = np.corrcoef(sin_fit.ravel(), last['sin_fit'].ravel())[0, 1]
+            corrs = np.array(
+                [np.corrcoef(s, l)[0, 1]
+                 for s, l in zip(sin_fit, last['sin_fit'])])
+            corrs *= corrs
             # check to see if we need to continue
             if fit_time - last['fit_time'] <= t_step_max - 1e-7 and \
-                    corr * corr > 0.98:
+                    (corrs > 0.98).sum() >= 3:
                 # don't need to refit data
                 continue
 
@@ -861,6 +862,12 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
         this_dev_head_t = np.concatenate((this_dev_head_t, [[0, 0, 0, 1.]]))
         est_coil_head_rrs = apply_trans(this_dev_head_t, this_coil_dev_rrs)
         errs = np.linalg.norm(hpi_dig_head_rrs - est_coil_head_rrs, axis=1)
+        if (errs[use_idx] < dist_limit).sum() < 3:
+            warn(_time_prefix(fit_time) + '%s/%s good HPI fits, cannot '
+                 'determine the transformation (%s)!'
+                 % (len(use_idx), hpi['n_freqs'],
+                    ', '.join('%0.2f' % g for g in g_coils)))
+            continue
 
         # velocities, in device coords, of HPI coils
         dt = fit_time - last['fit_time']
