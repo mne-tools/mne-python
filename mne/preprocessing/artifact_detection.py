@@ -3,95 +3,14 @@
 # License: BSD (3-clause)
 
 
-from scipy.stats import zscore
 from scipy.ndimage.measurements import label
 import numpy as np
-from itertools import compress
 from scipy import linalg
-
-from mne.filter import filter_data
 from mne.annotations import Annotations, _annotations_starts_stops
 from mne.chpi import _apply_quat
 from mne.transforms import (quat_to_rot)
 from mne import Transform
 from mne.utils import _mask_to_onsets_offsets
-
-
-def detect_bad_channels(raw, zscore_v=4, method='both', tmin=30, tmax=220,
-                        neigh_max_distance=.035):
-    """Detect bad channels.
-
-    Detection can be based on z-score amplitude deviation or/and decreased
-    local correlation with other channels.
-
-    Notes
-    -----
-    This helps in detecting suspicious channels, visual inspection warranted.
-
-    Parameters
-    ----------
-    raw : instance of Raw
-        The data.
-    zscore : int
-        The z-score value to reject channels if exceeding it.
-    method : 'corr | 'norm' | 'both'
-        The criteria used to detect bad channels.
-        'corr' - correlation with all neighbours not exceeding
-               ``neigh_max_distance``.
-        'norm' - averaged magnitude.
-        'both' - mean of the z-scored 'corr' and 'norm' methods.
-    tmin : int
-        Start time in seconds of the signal segment used for bad chn detection.
-    tmax : int
-        End time in seconds of the signal segment used to detect bad channels.
-    neigh_max_distance : float
-        Maximum channel distance in meters for local correlation.
-
-    Returns
-    -------
-    bad_chs : list
-        List of detected bad channels.
-    """
-    # set recording length
-    sfreq = raw.info['sfreq']
-    t2x = min(raw.last_samp / sfreq, tmax)
-    t1x = max(0, tmin + t2x - tmax)  # Start earlier if recording is shorter
-
-    # Get data
-    raw_copy = raw.copy().crop(t1x, t2x).load_data()
-    raw_copy = raw_copy.pick_types(meg=True, ref_meg=False)\
-        .filter(1, 45).resample(150, npad='auto')
-    data_chans = raw_copy.get_data()
-
-    # Get channel distances matrix
-    ch_locs = np.asarray([x['loc'][:3] for x in raw_copy.info['chs']])
-    chns_dist = np.linalg.norm(ch_locs - ch_locs[:, None],
-                               axis=-1)
-    chns_dist[chns_dist > neigh_max_distance] = 0
-
-    if method == 'corr' or method == 'both':
-        # Get avg channel uncorrelation between neighbours
-        chns_corr = np.abs(np.corrcoef(data_chans))
-        weig = np.array(chns_dist, dtype=bool)
-        chn_nei_corr = np.average(chns_corr, axis=1, weights=weig)
-        chn_nei_uncorr_z = zscore(1 - chn_nei_corr)  # lower corr higher Z
-
-    # Get channel magnitudes
-    max_pow = np.sqrt(np.sum(data_chans ** 2, axis=1))
-    max_Z = zscore(max_pow)
-
-    if method == 'corr':  # Based on local uncorrelation
-        feat_vec = chn_nei_uncorr_z
-        max_th = feat_vec > zscore_v
-    elif method == 'norm':  # Based on magnitude
-        feat_vec = max_Z
-        max_th = feat_vec > zscore_v
-    elif method == 'both':  # Combine uncorrelation with magnitude
-        feat_vec = (chn_nei_uncorr_z + max_Z) / 2
-        max_th = (feat_vec) > zscore_v
-
-    bad_chs = list(compress(raw_copy.info['ch_names'], max_th))
-    return bad_chs
 
 
 def annotate_movement(raw, pos, rotation_limit=None,
@@ -281,56 +200,6 @@ def compute_average_dev_head_t(raw, pos):
     assert np.linalg.norm(trans[:3, 3]) < 1  # less than 1 meter is sane
     dev_head_t = Transform('meg', 'head', trans)
     return dev_head_t
-
-
-def annotate_muscle(raw, thr=1.5, t_min=1, notch=[60, 120, 180]):
-    """Find and annotate mucsle artifacts based on high frequency activity.
-
-    Data is band pass filtered at high frequencies, smoothed with the envelope,
-    z-scored, channel averaged and low-pass filtered to remove transient peaks.
-
-    Parameters
-    ----------
-    raw : instance of Raw
-        The data.
-    thr : integer
-        threshold where a segment is marked as artifactual. The thr represent
-        the channel averaged z-score values of the data band pass filtered
-        betweehn 110 and 140 Hz.
-    t_min = integer
-        Min. time between annotated muscle artifacts, below will be annotated
-        as muscle artifact.
-    notch = List
-        The frequencies at which to apply a notch filter
-
-    Returns
-    -------
-    annot : mne.Annotations
-        periods with muscle artifacts
-    art_scores_filt : array
-        the z-score values of the filtered data
-    """
-    raw_copy = raw.copy()
-    raw_copy.pick_types(meg=True, ref_meg=False)
-    if notch is not None:
-        raw_copy.notch_filter(notch, fir_design='firwin')
-    raw_copy.filter(110, 140, fir_design='firwin')
-    raw_copy.apply_hilbert(envelope=True)
-    sfreq = raw_copy.info['sfreq']
-    art_scores = zscore(raw_copy._data, axis=1)
-    # band pass filter the data
-    art_scores_filt = filter_data(art_scores.mean(axis=0), sfreq, None, 4)
-    art_mask = art_scores_filt > thr
-    # remove artifact free periods shorter than t_min
-    idx_min = t_min * sfreq
-    comps, num_comps = label(art_mask == 0)
-    for l in range(1, num_comps + 1):
-        l_idx = np.nonzero(comps == l)[0]
-        if len(l_idx) < idx_min:
-            art_mask[l_idx] = True
-    mus_annot = _annotations_from_mask(raw_copy.times, art_mask,
-                                       'BAD_muscle')
-    return mus_annot, art_scores_filt
 
 
 def _annotations_from_mask(times, art_mask, art_name):

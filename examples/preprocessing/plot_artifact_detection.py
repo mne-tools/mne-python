@@ -1,6 +1,6 @@
 """
 =============================================
-Detect artifacts
+Detect movement artifacts
 =============================================
 
 Detects bad channels
@@ -20,9 +20,7 @@ import mne
 
 from mne.datasets.brainstorm import bst_auditory
 from mne.io import read_raw_ctf
-from mne.preprocessing.artifact_detection import (detect_bad_channels,
-                                                  annotate_movement,
-                                                  annotate_muscle,
+from mne.preprocessing.artifact_detection import (annotate_movement,
                                                   compute_average_dev_head_t)
 import matplotlib.pyplot as plt
 
@@ -41,12 +39,6 @@ raw = read_raw_ctf(raw_fname1, preload=False)
 mne.io.concatenate_raws([raw, read_raw_ctf(raw_fname2, preload=False)])
 raw.crop(350, 500).load_data()
 raw.resample(300, npad="auto").notch_filter([60, 120])
-raw.filter(l_freq=1, h_freq=149, picks='meg')
-
-
-# Detect bad channels
-bad_chns = detect_bad_channels(raw, zscore_v=4, method='both', tmin=0,
-                               tmax=140, neigh_max_distance=.035)
 
 # detect excecive movement and correct dev_head trans
 pos = mne.chpi._calculate_head_pos_ctf(raw)
@@ -66,23 +58,6 @@ plt.xlabel('time s.')
 plt.ylabel('distance m')
 plt.title('cHPI w.r.t median recording head position')
 plt.show(block=False)
-
-# detect muscle artifacts
-thr_mus = 1.5  # z-score
-annotation_muscle, scores_muscle = annotate_muscle(raw, thr=thr_mus, t_min=0,
-                                                   notch=None)
-
-# Plot muscle
-plt.figure()
-plt.plot(raw.times, scores_muscle)
-plt.axhline(y=thr_mus, color='r')
-plt.show(block=False)
-plt.title('Avg z-score high freq. activity')
-plt.xlabel('time s.')
-plt.ylabel('zscore')
-
-raw.set_annotations(annotation_muscle)
-raw.plot(n_channels=100, duration=20)
 
 # Change dev to head transform
 new_dev_head_t = compute_average_dev_head_t(raw, pos)
