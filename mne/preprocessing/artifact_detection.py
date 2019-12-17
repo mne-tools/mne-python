@@ -13,15 +13,15 @@ from mne import Transform
 from mne.utils import _mask_to_onsets_offsets
 
 
-def annotate_movement(raw, pos, rotation_limit=None,
-                      translation_vel_limit=None, displacement_limit=None):
+def annotate_movement(raw, pos, rotation_velocity_limit=None,
+                      translation_velocity_limit=None,
+                      mean_distance_limit=None):
     """Detect segments with movement velocity or displacement from mean.
 
     First, the cHPI is calculated relative to the default head position, then
-    segments beyond the threshold are discarded and the median head pos is
-    calculated. Time points further thr_mov from the median are annotated and
-    a new device to head transformation is calculated only with the good
-    segments.
+    segments with ``bad_`` annotations are discarded and the mean head pos is
+    calculated. Segments further from `rotation_velocity_limit`,
+    `translation_velocity_limit` and `mean_distance_limit`are annotated.
 
     Parameters
     ----------
@@ -29,8 +29,12 @@ def annotate_movement(raw, pos, rotation_limit=None,
         From raw.info
     pos : array, shape (N, 10)
         The position and quaternion parameters from cHPI fitting.
-    thr_mov : int
-        in meters, the maximal distance allowed from the median cHPI
+    rotation_velocity_limit: float
+        in radiants per second, head rotation velocity limit
+    translation_velocity_limit : float
+        in meters per seconds, head speed limit
+    mean_distance_limit : float
+        in meters, distance limit from the median head position
 
     Returns
     -------
@@ -57,42 +61,42 @@ def annotate_movement(raw, pos, rotation_limit=None,
 
     # Annotate based on rotational velocity
     t_tot = raw.times[-1]
-    if rotation_limit is not None:
+    if rotation_velocity_limit is not None:
         from mne.transforms import _angle_between_quats
-        assert rotation_limit > 0
+        assert rotation_velocity_limit > 0
         # Rotational velocity (radians / sec)
         r = _angle_between_quats(pos[:-1, 1:4], pos[1:, 1:4])
         r /= dt
-        bad_mask = (r >= np.deg2rad(rotation_limit))
+        bad_mask = (r >= np.deg2rad(rotation_velocity_limit))
         onsets, offsets = _mask_to_onsets_offsets(bad_mask)
         onsets, offsets = hp_ts[onsets], hp_ts[offsets]
         bad_pct = 100 * (offsets - onsets).sum() / t_tot
         print(u'Omitting %5.1f%% (%3d segments): '
               u'ω >= %5.1f°/s (max: %0.1f°/s)'
-              % (bad_pct, len(onsets), rotation_limit,
+              % (bad_pct, len(onsets), rotation_velocity_limit,
                  np.rad2deg(r.max())))
-        annot += _annotations_from_mask(hp_ts, bad_mask, 'BAD_rotat_vel')
+        annot += _annotations_from_mask(hp_ts, bad_mask, 'BAD_mov_rotat_vel')
 
-    # Annotate based on translational velocity
-    if translation_vel_limit is not None:
-        assert translation_vel_limit > 0
+    # Annotate based on translational velocity limit
+    if translation_velocity_limit is not None:
+        assert translation_velocity_limit > 0
         v = np.linalg.norm(np.diff(pos[:, 4:7], axis=0), axis=-1)
         v /= dt
-        bad_mask = (v >= translation_vel_limit)
+        bad_mask = (v >= translation_velocity_limit)
         onsets, offsets = _mask_to_onsets_offsets(bad_mask)
         onsets, offsets = hp_ts[onsets], hp_ts[offsets]
         bad_pct = 100 * (offsets - onsets).sum() / t_tot
         print(u'Omitting %5.1f%% (%3d segments): '
               u'v >= %5.4fm/s (max: %5.4fm/s)'
-              % (bad_pct, len(onsets), translation_vel_limit, v.max()))
+              % (bad_pct, len(onsets), translation_velocity_limit, v.max()))
         for onset, offset in zip(onsets, offsets):
             annot.append(onset, offset - onset, 'BAD_trans_vel')
-        annot += _annotations_from_mask(hp_ts, bad_mask, 'BAD_trans_vel')
+        annot += _annotations_from_mask(hp_ts, bad_mask, 'BAD_mov_vel')
 
-    # Annotate based on displacement from mean
+    # Annotate based on displacement from mean head position
     disp = []
-    if displacement_limit is not None:
-        assert displacement_limit > 0
+    if mean_distance_limit is not None:
+        assert mean_distance_limit > 0
         # Get static head pos from file, used to convert quat to cartesian
         chpi_pos = sorted([d for d in raw.info['hpi_results'][-1]
                           ['dig_points']], key=lambda x: x['ident'])
@@ -109,14 +113,14 @@ def annotate_movement(raw, pos, rotation_limit=None,
         hpi_disp = chpi_pos_mov - np.tile(chpi_pos_avg, (len(seg_good), 1, 1))
         # get positions above threshold distance
         disp = np.sqrt((hpi_disp ** 2).sum(axis=2))
-        bad_mask = np.any(disp > displacement_limit, axis=1)
+        bad_mask = np.any(disp > mean_distance_limit, axis=1)
         onsets, offsets = _mask_to_onsets_offsets(bad_mask)
         onsets, offsets = hp_ts[onsets], hp_ts[offsets]
         bad_pct = 100 * (offsets - onsets).sum() / t_tot
         print(u'Omitting %5.1f%% (%3d segments): '
               u'disp >= %5.4fm/s (max: %5.4fm)'
-              % (bad_pct, len(onsets), displacement_limit, disp.max()))
-        annot += _annotations_from_mask(hp_ts, bad_mask, 'BAD_mov_disp')
+              % (bad_pct, len(onsets), mean_distance_limit, disp.max()))
+        annot += _annotations_from_mask(hp_ts, bad_mask, 'BAD_mov_dist')
     return annot, disp
 
 

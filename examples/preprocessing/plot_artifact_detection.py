@@ -1,14 +1,19 @@
 """
-=============================================
-Detect movement artifacts
-=============================================
+======================================================
+Annotate movement artifacts and reestimate dev_head_t
+======================================================
 
-Detects bad channels
+Periods where the participant moved considerable are contaminated by low
+amplitude artifacts. When averaging the magnetic fields, the more spread the
+head possition, the bigger the cancellation due to different locations.
+Similarly, covariance calulation will also be affected by severe head movement,
+and source estimation by suffer from low corregistration accuracy.
 
-Annotates periods where there is excessive movement and calculates a new
-device to head transformation matrix
+This example uses the continious head position indicators (cHPI) times series
+to annotate periods of head movement, then the device to head transformation
+matrix is estimated from the artifact free segments. The new head position will
+be more representative of the actual head position during the recording.
 
-Annotates segments contaminated with muscle artifacts
 
 """
 # Authors: Adonay Nunes <adonay.s.nunes@gmail.com>
@@ -40,25 +45,31 @@ mne.io.concatenate_raws([raw, read_raw_ctf(raw_fname2, preload=False)])
 raw.crop(350, 500).load_data()
 raw.resample(300, npad="auto").notch_filter([60, 120])
 
-# detect excecive movement and correct dev_head trans
-pos = mne.chpi._calculate_head_pos_ctf(raw)
+# get cHPI time series
+pos = mne.chpi.calculate_head_pos_ctf(raw)
 
-thr_mov = .0015  # in meters
-out = annotate_movement(raw, pos, displacement_limit=thr_mov)
+mean_distance_limit = .0015  # in meters
+out = annotate_movement(raw, pos, mean_distance_limit=mean_distance_limit)
 annotation_movement, hpi_disp = out
 
-# Plot movement
+###############################################################################
+# Plot continuous head position with respect to the mean position
+# ------------------------------------------------------------------
+plt.figure()
+plt.plot(pos[:, 0], hpi_disp)
+plt.axhline(y=displacement_limit, color='r')
+plt.xlabel('time s')
+plt.ylabel('distance m')
+plt.title('cHPI w.r.t mean recording head position')
+plt.show(block=False)
+
+###############################################################################
+# Plot raw data with annotated movement
+# ------------------------------------------------------------------
 raw.set_annotations(annotation_movement)
 raw.plot(n_channels=100, duration=20)
 
-plt.figure()
-plt.plot(pos[:, 0], hpi_disp)
-plt.axhline(y=thr_mov, color='r')
-plt.xlabel('time s.')
-plt.ylabel('distance m')
-plt.title('cHPI w.r.t median recording head position')
-plt.show(block=False)
 
-# Change dev to head transform
+# After checking the annotated movement artifacts, calculate the new transform
 new_dev_head_t = compute_average_dev_head_t(raw, pos)
 raw.info['dev_head_t'] = new_dev_head_t
