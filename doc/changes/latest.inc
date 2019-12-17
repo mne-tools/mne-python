@@ -35,7 +35,7 @@ Changelog
 
 - Add support for passing a destination source space ``src_to`` in :func:`mne.compute_source_morph` to ensure morphing for multiple subjects results in consistent STCs, by `Eric Larson`_
 
-- Add support for plotting fNIRS channels in :func:`mne.viz.plot_alignment` by `Eric Larson`_
+- Add support for plotting fNIRS channels in :func:`mne.viz.plot_alignment` and :func:`mne.Evoked.animate_topomap` by `Eric Larson`_ and `Robert Luke`_
 
 - Add command line tool :ref:`gen_mne_anonymize` for anonymizing raw fiff files by `Luke Bloy`_
 
