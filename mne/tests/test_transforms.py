@@ -18,7 +18,7 @@ from mne.transforms import (invert_transform, _get_trans,
                             _topo_to_sph, _average_quats,
                             _SphericalSurfaceWarp as SphericalSurfaceWarp,
                             rotation3d_align_z_axis, _read_fs_xfm,
-                            _write_fs_xfm, _quat_real)
+                            _write_fs_xfm, _quat_real, _fit_matched_points)
 
 data_path = testing.data_path(download=False)
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-trans.fif')
@@ -384,6 +384,12 @@ def test_fs_xfm():
         _write_fs_xfm(fname_out, xfm[:2], 'foo')
         with pytest.raises(ValueError, match='Could not find'):
             _read_fs_xfm(fname_out)
+
+
+def test_fit_matched_points():
+    """Test analytical least-squares matched point fitting."""
+    quat = _fit_matched_points(np.eye(3), np.eye(3))
+    assert_allclose(quat, 0., atol=1e-14)
 
 
 run_tests_if_main()

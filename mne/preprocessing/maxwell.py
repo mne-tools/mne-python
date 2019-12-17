@@ -224,7 +224,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
        +-----------------------------------------------------------------------------+-----+-----------+
        | Automatic bad channel detection                                             |     | ✓         |
        +-----------------------------------------------------------------------------+-----+-----------+
-       | Head position estimation                                                    |     | ✓         |
+       | Head position estimation (:func:`~mne.chpi.calculate_head_pos_chpi`)        | ✓   | ✓         |
        +-----------------------------------------------------------------------------+-----+-----------+
 
     Epoch-based movement compensation is described in [1]_.

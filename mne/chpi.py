@@ -21,10 +21,10 @@
 #        (and Δt < t_step_max), skip fitting.
 #     7. Fit magnetic dipoles using the amplitudes for each coil frequency
 #        (calling ``_fit_magnetic_dipole``).
-#     8. If ``use_distances is True`` choose good coils based on pairwise
-#        distances, taking into account the tolerance ``dist_limit``.
-#     9. Fit dev_head_t quaternion (using ``_fit_chpi_quat``).
-#     10. Accept or reject fit based on GOF threshold ``gof_limit``.
+#     8. Drop coils whose GOF are below ``gof_limit``. If fewer than 3 coils
+#        remain, abandon fitting for the chunk.
+#     9. Fit dev_head_t quaternion (using ``_fit_chpi_quat``), iteratively
+#        dropping coils (as long as 3 remain) to find the best GOF.
 #
 # The function ``filter_chpi`` uses the same linear model to filter cHPI
 # and (optionally) line frequencies from the data.
@@ -47,7 +47,7 @@ from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
 from .cov import make_ad_hoc_cov, compute_whitener
 from .fixes import jit
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
-                         quat_to_rot, rot_to_quat)
+                         quat_to_rot, rot_to_quat, _fit_matched_points)
 from .utils import (verbose, logger, use_log_level, _check_fname, warn,
                     _check_option, _validate_type)
 
@@ -161,14 +161,14 @@ def _apply_quat(quat, pts, move=True):
     return(apply_trans(trans, pts, move=move))
 
 
-def calculate_head_pos_ctf(raw, gof_limit=0.98):
+def calculate_head_pos_ctf(raw, quat_gof_limit=0.98):
     r"""Extract head position parameters from ctf dataset.
 
     Parameters
     ----------
     raw : instance of Raw
         Raw data with CTF cHPI information.
-    gof_limit : float
+    quat_gof_limit : float
         Minimum goodness of fit to accept.
 
     Returns
@@ -187,6 +187,8 @@ def calculate_head_pos_ctf(raw, gof_limit=0.98):
 
     This uses those positions to compute the head position as a function of
     time.
+
+    .. versionadded:: 0.20
     """
     # Pick channels corresponding to the cHPI positions
     hpi_picks = pick_channels_regexp(raw.info['ch_names'],
@@ -243,7 +245,7 @@ def calculate_head_pos_ctf(raw, gof_limit=0.98):
 
         # fit quaternion
         this_quat, g = _fit_chpi_quat(this_dev, chpi_locs_head, last_quat)
-        if g < gof_limit:
+        if g < quat_gof_limit:
             raise RuntimeError('Bad coil fit! (g=%7.3f)' % (g,))
 
         if (idx > 0):
@@ -312,7 +314,7 @@ def _get_hpi_info(info, verbose=None):
 
 
 @verbose
-def _get_hpi_initial_fit(info, adjust=False, verbose=None):
+def _get_hpi_initial_fit(info, adjust_dig=False, verbose=None):
     """Get HPI fit locations from raw."""
     if info['hpi_results'] is None:
         raise RuntimeError('no initial cHPI head localization performed')
@@ -356,14 +358,14 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
                  % ', '.join('%0.1f' % (1000. * e) for e in errors))
     if errors.sum() < len(errors) * hpi_result['dist_limit']:
         logger.info('HPI consistency of isotrak and hpifit is OK.')
-    elif not adjust and (len(hpi_result['used']) == len(hpi_coils)):
+    elif not adjust_dig and (len(hpi_result['used']) == len(hpi_coils)):
         warn('HPI consistency of isotrak and hpifit is poor.')
     else:
         # adjust HPI coil locations using the hpifit transformation
         for hi, (r_dig, r_fit) in enumerate(zip(hpi_rrs, hpi_rrs_fit)):
             # transform to head frame
             d = 1000 * np.sqrt(((r_dig - r_fit) ** 2).sum())
-            if not adjust:
+            if not adjust_dig:
                 warn('Discrepancy of HPI coil %d isotrak and hpifit is %.1f '
                      'mm!' % (hi + 1, d))
             elif hi + 1 not in hpi_result['used']:
@@ -377,7 +379,7 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
     logger.debug('HP fitting limits: err = %.1f mm, gval = %.3f.'
                  % (1000 * hpi_result['dist_limit'], hpi_result['good_limit']))
 
-    return hpi_rrs
+    return hpi_rrs.astype(float)
 
 
 def _magnetic_dipole_objective(x, B, B2, coils, scale, method, too_close):
@@ -418,31 +420,20 @@ def _fit_magnetic_dipole(B_orig, x0, coils, scale, method, too_close):
 def _chpi_objective(x, coil_dev_rrs, coil_head_rrs):
     """Compute objective function."""
     d = np.dot(coil_dev_rrs, quat_to_rot(x[:3]).T)
-    d += x[3:] / 10.  # in decimeters to get quats and head units close
+    d += x[3:]
     d -= coil_head_rrs
     d *= d
     return d.sum()
 
 
-def _unit_quat_constraint(x):
-    """Constrain our 3 quaternion rot params (ignoring w) to have norm <= 1."""
-    return 1 - (x * x).sum()
-
-
 def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs, x0):
     """Fit rotation and translation (quaternion) parameters for cHPI coils."""
-    from scipy.optimize import fmin_cobyla
+    # Solve it the analytic way
+    x = _fit_matched_points(coil_dev_rrs, coil_head_rrs)
     denom = np.linalg.norm(coil_head_rrs - np.mean(coil_head_rrs, axis=0))
     denom *= denom
-    objective = partial(_chpi_objective, coil_dev_rrs=coil_dev_rrs,
-                        coil_head_rrs=coil_head_rrs)
-    x0 = x0.copy()
-    x0[3:] *= 10.  # decimeters to get quats and head units close
-    x = fmin_cobyla(objective, x0, _unit_quat_constraint,
-                    rhobeg=1e-3, rhoend=1e-5, disp=False)
-    result = objective(x)
-    x[3:] /= 10.
-    return x, 1. - result / denom
+    gof = 1. - _chpi_objective(x, coil_dev_rrs, coil_head_rrs) / denom
+    return x, gof
 
 
 def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts):
@@ -543,7 +534,10 @@ def _setup_hpi_struct(info, t_window, method='forward', exclude='bads',
     # Do not include projectors in the whitener (i.e., just scale)
     info = info.copy()
     info['projs'] = []
-    diag_cov = make_ad_hoc_cov(info, verbose=False)
+    # Setting mag and grad equal basically makes this a no-op, but
+    # it semes to be what MaxFilter does (and the grads are higher SNR)
+    diag_cov = make_ad_hoc_cov(info, std=dict(mag=1e-13, grad=1e-13),
+                               verbose=False)
     diag_whitener, _ = compute_whitener(diag_cov, info, picks=meg_picks,
                                         verbose=False)
     del info
@@ -551,9 +545,7 @@ def _setup_hpi_struct(info, t_window, method='forward', exclude='bads',
                model=model, inv_model=inv_model, t_window=t_window,
                on=hpi_ons, n_window=model_n_window, method=method,
                freqs=hpi_freqs, line_freqs=line_freqs, n_freqs=len(hpi_freqs),
-               scale=diag_whitener, coils=coils
-               )
-
+               scale=diag_whitener, coils=coils)
     return hpi
 
 
@@ -576,9 +568,19 @@ def _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time, verbose=None):
     with use_log_level(False):
         # loads good channels
         this_data = raw[hpi['meg_picks'], time_sl][0]
+    """
+    n = this_data.shape[1]
+    if n > 100:
+        from scipy.fft import rfft, irfft, rfftfreq
+        mask = rfftfreq(this_data.shape[-1], 1. / raw.info['sfreq'])
+        this_data = rfft(this_data, axis=-1)
+        mask[mask < np.min(hpi['freqs']) / 2.] = 0
+        this_data *= mask
+        this_data = irfft(this_data, n=n, axis=-1)
+    """
 
     # which HPI coils to use
-    # other then erroring I don't see this getting used elsewhere?
+    n_freqs = hpi['n_freqs']
     if hpi['hpi_pick'] is not None:
         with use_log_level(False):
             # loads hpi_stim channel
@@ -586,14 +588,13 @@ def _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time, verbose=None):
 
         ons = (np.round(chpi_data).astype(np.int) &
                hpi['on'][:, np.newaxis]).astype(bool)
-        n_on = np.sum(ons, axis=0)
+        n_on = ons.all(axis=-1).sum(axis=0)
         if not (n_on >= 3).all():
-            logger.info(_time_prefix(fit_time) + '%s < 3 HPI coils turned on, '
-                        'skipping fit' % (n_on.min(),))
-            return None
-        # #TODO REMOVE # ons = ons.all(axis=1)  # which HPI coils to use
+            return None, n_on
+        del ons
+    else:
+        n_on = n_freqs
 
-    n_freqs = hpi['n_freqs']
     this_len = time_sl.stop - time_sl.start
     if this_len == hpi['n_window']:
         model, inv_model = hpi['model'], hpi['inv_model']
@@ -632,7 +633,7 @@ def _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time, verbose=None):
                  '(%s chnls > 0.95)' % (fit_time, g_sin,
                                         (g_chan > 0.95).sum()))
 
-    return sin_fit
+    return sin_fit, n_on
 
 
 @verbose
@@ -679,7 +680,7 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
             initial_dev_rrs.append([0.0, 0.0, 0.0])
 
     # 1. Fit amplitudes for each channel from each of the N cHPI sinusoids
-    sin_fit = _fit_cHPI_amplitudes(raw, time_sl, hpi, 0)
+    sin_fit, _ = _fit_cHPI_amplitudes(raw, time_sl, hpi, 0)
 
     # skip this window if it bad.
     # logging has already been done! Maybe turn this into an Exception
@@ -701,7 +702,7 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
 @verbose
 def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
                             t_window='auto', dist_limit=0.005,
-                            gof_limit=0.98, use_distances=True,
+                            adjust_dig=False, gof_limit=0.98,
                             too_close='raise', verbose=None):
     """Calculate head positions using cHPI coils.
 
@@ -720,10 +721,11 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
         frequencies (see Notes).
     dist_limit : float
         Minimum distance (m) to accept for coil position fitting.
+    adjust_dig : bool
+        If True, adjust the digitization locations used for fitting based on
+        the positions localized at the start of the file.
     gof_limit : float
-        Minimum goodness of fit to accept.
-    use_distances : bool
-        use dist_limit to choose 'good' coils based on pairwise distances.
+        Minimum goodness of fit to accept for each coil.
     too_close : str
         How to handle HPI positions too close to the sensors,
         can be 'raise', 'warning', or 'info'.
@@ -753,9 +755,8 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
 
     .. versionadded:: 0.20
     """
-    from scipy.spatial.distance import cdist
     # extract initial geometry from info['hpi_results']
-    hpi_dig_head_rrs = _get_hpi_initial_fit(raw.info)
+    hpi_dig_head_rrs = _get_hpi_initial_fit(raw.info, adjust_dig)
     _check_option('too_close', too_close, ['raise', 'warning', 'info'])
 
     # extract hpi system information
@@ -766,9 +767,6 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
     dev_head_t = raw.info['dev_head_t']['trans']
     head_dev_t = invert_transform(raw.info['dev_head_t'])['trans']
     hpi_dig_dev_rrs = apply_trans(head_dev_t, hpi_dig_head_rrs)
-
-    # compute initial coil to coil distances
-    hpi_coil_dists = cdist(hpi_dig_head_rrs, hpi_dig_head_rrs)
 
     # setup last iteration structure
     last = dict(sin_fit=None, fit_time=t_step_min,
@@ -786,6 +784,7 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
     pos_0 = None
 
     hpi['n_freqs'] = len(hpi['freqs'])
+    last_off_log = -np.inf
     for midpt in fit_idxs:
         #
         # 0. determine samples to fit.
@@ -800,11 +799,14 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
         #
         # 1. Fit amplitudes for each channel from each of the N cHPI sinusoids
         #
-        sin_fit = _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time)
+        sin_fit, n_on = _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time)
 
         # skip this window if bad
-        # logging has already been done! Maybe turn this into an Exception
         if sin_fit is None:
+            if fit_time - last_off_log >= 0.999999:
+                logger.info(_time_prefix(fit_time) + '%s < 3 HPI coils turned '
+                            'on, skipping fit' % (n_on.min(),))
+                last_off_log = fit_time
             continue
 
         # check if data has sufficiently changed
@@ -830,76 +832,48 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
                                      hpi['method'], too_close)
                 for f, pos in zip(sin_fit, last['coil_dev_rrs'])]
         this_coil_dev_rrs = np.array([o[0] for o in outs])
-        g_coils = [o[1] for o in outs]
-
-        # filter coil fits based on the correspodnace to digitization geometry
-        use_mask = np.ones(hpi['n_freqs'], bool)
-        if use_distances:
-            these_dists = cdist(this_coil_dev_rrs, this_coil_dev_rrs)
-            these_dists = np.abs(hpi_coil_dists - these_dists)
-            # there is probably a better algorithm for finding the bad ones...
-            good = False
-            while not good:
-                d = these_dists[use_mask][:, use_mask]
-                d_bad = (d > dist_limit)
-                good = not d_bad.any()
-                if not good:
-                    if use_mask.sum() == 2:
-                        use_mask[:] = False
-                        break  # failure
-                    # exclude next worst point
-                    badness = (d * d_bad).sum(axis=0)
-                    exclude_coils = np.where(use_mask)[0][np.argmax(badness)]
-                    use_mask[exclude_coils] = False
-            good = use_mask.sum() >= 3
-            if not good:
-                warn(_time_prefix(fit_time) + '%s/%s good HPI fits, '
-                     'cannot determine the transformation!'
-                     % (use_mask.sum(), hpi['n_freqs']))
-                continue
+        g_coils = np.array([o[1] for o in outs])
+        use_idx = np.where(g_coils >= gof_limit)[0]
+        n_good = len(use_idx)
 
         #
-        # 3. Fit the head translation and rotation params (minimize error
-        #    between coil positions and the head coil digitization positions)
+        # 3. Check number of good ones
         #
-        this_quat, g = _fit_chpi_quat(this_coil_dev_rrs[use_mask],
-                                      hpi_dig_head_rrs[use_mask],
-                                      last['quat'])
-        if g < gof_limit:
-            logger.info(_time_prefix(fit_time) +
-                        'Bad coil fit! (g=%7.3f)' % (g,))
+        if len(use_idx) < 3:
+            warn(_time_prefix(fit_time) + '%s/%s good HPI fits, cannot '
+                 'determine the transformation (%s)!'
+                 % (len(use_idx), hpi['n_freqs'],
+                    ', '.join('%0.2f' % g for g in g_coils)))
             continue
+
+        #
+        # 4. Fit the head translation and rotation params (minimize error
+        #    between coil positions and the head coil digitization
+        #    positions) iteratively using different sets of coils.
+        #
+        this_quat, g, use_idx = _fit_chpi_quat_subset(
+            this_coil_dev_rrs, hpi_dig_head_rrs, last['quat'], use_idx)
 
         # Convert quaterion to transform
         this_dev_head_t = np.concatenate(
             (quat_to_rot(this_quat[:3]),
-             this_quat[3:][:, np.newaxis]), axis=1)
+                this_quat[3:][:, np.newaxis]), axis=1)
         this_dev_head_t = np.concatenate((this_dev_head_t, [[0, 0, 0, 1.]]))
+        est_coil_head_rrs = apply_trans(this_dev_head_t, this_coil_dev_rrs)
+        errs = np.linalg.norm(hpi_dig_head_rrs - est_coil_head_rrs, axis=1)
 
         # velocities, in device coords, of HPI coils
-        # dt = fit_time - last['fit_time'] #
-        dt = hpi['t_window']
+        dt = fit_time - last['fit_time']
         vs = tuple(1000. * np.linalg.norm(last['coil_dev_rrs'] -
                                           this_coil_dev_rrs, axis=1) / dt)
         logger.info(_time_prefix(fit_time) +
                     ('%s/%s good HPI fits, movements [mm/s] = ' +
-                     ' / '.join(['% 8.1f'] * hpi['n_freqs']))
-                    % ((use_mask.sum(), hpi['n_freqs']) + vs))
+                    ' / '.join(['% 8.1f'] * hpi['n_freqs']))
+                    % ((n_good, hpi['n_freqs']) + vs))
 
-        # resulting errors in head coil positions
-        est_coil_head_rrs = apply_trans(this_dev_head_t, this_coil_dev_rrs)
-        errs = 1000. * np.sqrt(((hpi_dig_head_rrs -
-                                 est_coil_head_rrs) ** 2).sum(axis=-1))
-        e = errs[use_mask].mean() / 1000.  # mm -> m
-        d = 100 * np.sqrt(np.sum(last['quat'][3:] - this_quat[3:]) ** 2)  # cm
-        r = _angle_between_quats(last['quat'][:3], this_quat[:3]) / dt
-        v = d / dt  # cm/sec
-        if pos_0 is None:
-            pos_0 = this_quat[3:].copy()
-        d = 100 * np.sqrt(np.sum((this_quat[3:] - pos_0) ** 2))  # dis from 1st
         # MaxFilter averages over a 200 ms window for display, but we don't
         for ii in range(hpi['n_freqs']):
-            if use_mask[ii]:
+            if ii in use_idx:
                 start, end = ' ', '/'
             else:
                 start, end = '(', ')'
@@ -908,26 +882,35 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
                        '{3:6.1f} {4:6.1f} {5:6.1f} / ' +
                        'g = {6:0.3f} err = {7:4.1f} ' +
                        end)
-            if ii <= 2:
-                log_str += '{8:6.3f} {9:6.3f} {10:6.3f}'
-            elif ii == 3:
-                log_str += '{8:6.1f} {9:6.1f} {10:6.1f}'
             vals = np.concatenate((1000 * hpi_dig_head_rrs[ii],
                                    1000 * est_coil_head_rrs[ii],
-                                   [g_coils[ii], errs[ii]]))  # errs in mm
-            if ii <= 2:
-                vals = np.concatenate((vals, this_dev_head_t[ii, :3]))
-            elif ii == 3:
-                vals = np.concatenate((vals, this_dev_head_t[:3, 3] * 1000.))
+                                   [g_coils[ii], 1000 * errs[ii]]))
+            if len(use_idx) >= 3:
+                if ii <= 2:
+                    log_str += '{8:6.3f} {9:6.3f} {10:6.3f}'
+                    vals = np.concatenate(
+                        (vals, this_dev_head_t[ii, :3]))
+                elif ii == 3:
+                    log_str += '{8:6.1f} {9:6.1f} {10:6.1f}'
+                    vals = np.concatenate(
+                        (vals, this_dev_head_t[:3, 3] * 1000.))
             logger.debug(log_str.format(*vals))
+
+        # resulting errors in head coil positions
+        d = 100 * np.sqrt(np.sum(last['quat'][3:] - this_quat[3:]) ** 2)  # cm
+        r = _angle_between_quats(last['quat'][:3], this_quat[:3]) / dt
+        v = d / dt  # cm/sec
+        if pos_0 is None:
+            pos_0 = this_quat[3:].copy()
+        d = 100 * np.sqrt(np.sum((this_quat[3:] - pos_0) ** 2))  # dis from 1st
         logger.debug('    #t = %0.3f, #e = %0.2f cm, #g = %0.3f, '
                      '#v = %0.2f cm/s, #r = %0.2f rad/s, #d = %0.2f cm'
-                     % (fit_time, 100 * e, g, v, r, d))
+                     % (fit_time, 100 * errs.mean(), g, v, r, d))
         logger.debug('    #t = %0.3f, #q = %s '
                      % (fit_time, ' '.join(map('{:8.5f}'.format, this_quat))))
 
         quats.append(np.concatenate(([fit_time], this_quat, [g],
-                                     [e * 100], [v])))  # e in centimeters
+                                     [errs.mean() * 100], [v])))
         last['fit_time'] = fit_time
         last['quat'] = this_quat
         last['coil_dev_rrs'] = this_coil_dev_rrs
@@ -937,8 +920,21 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
     return quats
 
 
+def _fit_chpi_quat_subset(coil_dev_rrs, coil_head_rrs, x0, use_idx):
+    quat, g = _fit_chpi_quat(coil_dev_rrs[use_idx], coil_head_rrs[use_idx], x0)
+    out_idx = use_idx.copy()
+    if len(use_idx) > 3:  # try dropping one (recursively)
+        for di in range(len(use_idx)):
+            this_use_idx = list(use_idx[:di]) + list(use_idx[di + 1:])
+            this_quat, this_g, this_use_idx = _fit_chpi_quat_subset(
+                coil_dev_rrs, coil_head_rrs, x0, this_use_idx)
+            if this_g > g:
+                quat, g, out_idx = this_quat, this_g, this_use_idx
+    return quat, g, out_idx
+
+
 @verbose
-def _calculate_chpi_coil_locs(raw, t_step_min=0.1, t_step_max=10.,
+def _calculate_chpi_coil_locs(raw, t_step_min=0.1, t_step_max=1.,
                               t_window=0.2, dist_limit=0.005, gof_limit=0.98,
                               too_close='raise', verbose=None):
     """Calculate locations of each cHPI coils over time.
@@ -1022,7 +1018,7 @@ def _calculate_chpi_coil_locs(raw, t_step_min=0.1, t_step_max=10.,
         #
         # 1. Fit amplitudes for each channel from each of the N cHPI sinusoids
         #
-        sin_fit = _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time)
+        sin_fit, _ = _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time)
 
         # skip this window if bad
         # logging has already been done! Maybe turn this into an Exception
