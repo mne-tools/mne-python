@@ -244,7 +244,7 @@ def calculate_head_pos_ctf(raw, quat_gof_limit=0.98):
         this_dev = apply_trans(ctf_dev_dev_t, this_ctf_dev)
 
         # fit quaternion
-        this_quat, g = _fit_chpi_quat(this_dev, chpi_locs_head, last_quat)
+        this_quat, g = _fit_chpi_quat(this_dev, chpi_locs_head)
         if g < quat_gof_limit:
             raise RuntimeError('Bad coil fit! (g=%7.3f)' % (g,))
 
@@ -427,7 +427,7 @@ def _chpi_objective(x, coil_dev_rrs, coil_head_rrs):
     return d.sum()
 
 
-def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs, x0):
+def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs):
     """Fit rotation and translation (quaternion) parameters for cHPI coils."""
     # Solve it the analytic way
     x = _fit_matched_points(coil_dev_rrs, coil_head_rrs)
@@ -439,13 +439,12 @@ def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs, x0):
 
 def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts):
     """Compute Device to Head transform allowing for permutiatons of points."""
-    id_quat = np.concatenate([rot_to_quat(np.eye(3)), [0.0, 0.0, 0.0]])
     best_order = None
     best_g = -999
     best_quat = id_quat
     for this_order in itertools.permutations(np.arange(len(head_pnts))):
         head_pnts_tmp = head_pnts[np.array(this_order)]
-        this_quat, g = _fit_chpi_quat(dev_pnts, head_pnts_tmp, id_quat)
+        this_quat, g = _fit_chpi_quat(dev_pnts, head_pnts_tmp)
         if g > best_g:
             best_g = g
             best_order = np.array(this_order)
@@ -770,7 +769,8 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
     hpi_dig_dev_rrs = apply_trans(head_dev_t, hpi_dig_head_rrs)
 
     # setup last iteration structure
-    last = dict(sin_fit=None, fit_time=t_step_min,
+    last = dict(sin_fit=None, coil_fit_time=t_step_min,
+                quat_fit_time=t_step_min,
                 coil_dev_rrs=hpi_dig_dev_rrs,
                 quat=np.concatenate([rot_to_quat(dev_head_t[:3, :3]),
                                      dev_head_t[:3, 3]]))
@@ -817,13 +817,14 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
                  for s, l in zip(sin_fit, last['sin_fit'])])
             corrs *= corrs
             # check to see if we need to continue
-            if fit_time - last['fit_time'] <= t_step_max - 1e-7 and \
+            if fit_time - last['coil_fit_time'] <= t_step_max - 1e-7 and \
                     (corrs > 0.98).sum() >= 3:
                 # don't need to refit data
                 continue
 
         # update 'last' sin_fit *before* inplace sign mult
         last['sin_fit'] = sin_fit.copy()
+        last['coil_fit_time'] = fit_time
 
         #
         # 2. Fit magnetic dipole for each coil to obtain coil positions
@@ -853,7 +854,7 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
         #    positions) iteratively using different sets of coils.
         #
         this_quat, g, use_idx = _fit_chpi_quat_subset(
-            this_coil_dev_rrs, hpi_dig_head_rrs, last['quat'], use_idx)
+            this_coil_dev_rrs, hpi_dig_head_rrs, use_idx)
 
         # Convert quaterion to transform
         this_dev_head_t = np.concatenate(
@@ -870,7 +871,7 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
             continue
 
         # velocities, in device coords, of HPI coils
-        dt = fit_time - last['fit_time']
+        dt = fit_time - last['quat_fit_time']
         vs = tuple(1000. * np.linalg.norm(last['coil_dev_rrs'] -
                                           this_coil_dev_rrs, axis=1) / dt)
         logger.info(_time_prefix(fit_time) +
@@ -918,7 +919,7 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
 
         quats.append(np.concatenate(([fit_time], this_quat, [g],
                                      [errs.mean() * 100], [v])))
-        last['fit_time'] = fit_time
+        last['quat_fit_time'] = fit_time
         last['quat'] = this_quat
         last['coil_dev_rrs'] = this_coil_dev_rrs
     logger.info('[done]')
@@ -927,14 +928,14 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
     return quats
 
 
-def _fit_chpi_quat_subset(coil_dev_rrs, coil_head_rrs, x0, use_idx):
-    quat, g = _fit_chpi_quat(coil_dev_rrs[use_idx], coil_head_rrs[use_idx], x0)
+def _fit_chpi_quat_subset(coil_dev_rrs, coil_head_rrs, use_idx):
+    quat, g = _fit_chpi_quat(coil_dev_rrs[use_idx], coil_head_rrs[use_idx])
     out_idx = use_idx.copy()
     if len(use_idx) > 3:  # try dropping one (recursively)
         for di in range(len(use_idx)):
             this_use_idx = list(use_idx[:di]) + list(use_idx[di + 1:])
             this_quat, this_g, this_use_idx = _fit_chpi_quat_subset(
-                coil_dev_rrs, coil_head_rrs, x0, this_use_idx)
+                coil_dev_rrs, coil_head_rrs, this_use_idx)
             if this_g > g:
                 quat, g, out_idx = this_quat, this_g, this_use_idx
     return quat, g, out_idx
@@ -998,7 +999,7 @@ def _calculate_chpi_coil_locs(raw, t_step_min=0.1, t_step_max=1.,
     hpi_dig_dev_rrs = apply_trans(head_dev_t, hpi_dig_head_rrs)
 
     # setup last iteration structure
-    last = dict(sin_fit=None, fit_time=t_step_min,
+    last = dict(sin_fit=None, coil_fit_time=t_step_min,
                 coil_dev_rrs=hpi_dig_dev_rrs)
 
     t_begin = raw.times[0]
@@ -1041,7 +1042,7 @@ def _calculate_chpi_coil_locs(raw, t_step_min=0.1, t_step_max=1.,
                                       ])[:, np.newaxis]
             corr = np.corrcoef(sin_fit.ravel(), last['sin_fit'].ravel())[0, 1]
             # check to see if we need to continue
-            if fit_time - last['fit_time'] <= t_step_max - 1e-7 and \
+            if fit_time - last['coil_fit_time'] <= t_step_max - 1e-7 and \
                     corr * corr > 0.98:
                 # don't need to refit data
                 continue
@@ -1069,7 +1070,7 @@ def _calculate_chpi_coil_locs(raw, t_step_min=0.1, t_step_max=1.,
         times.append(fit_time)
         chpi_digs.append(dig)
 
-        last['fit_time'] = fit_time
+        last['coil_fit_time'] = fit_time
         last['coil_dev_rrs'] = this_coil_dev_rrs
     logger.info('[done]')
     return times, chpi_digs
