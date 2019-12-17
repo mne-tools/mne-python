@@ -128,7 +128,7 @@ class _Renderer(_BaseRenderer):
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
-                normalized_colormap=False):
+                normalized_colormap=False, tube=False, color=None):
         mesh = _create_mesh_surf(surface, self.fig, scalars=scalars)
         with warnings.catch_warnings(record=True):  # traits
             cont = self.mlab.pipeline.contour_surface(

@@ -113,7 +113,7 @@ def test_3d_backend(renderer):
 
     # use contour
     rend.contour(surface=ct_surface, scalars=ct_scalars,
-                 contours=ct_levels)
+                 contours=ct_levels, tube=True)
 
     # use sphere
     rend.sphere(center=sph_center, color=sph_color,

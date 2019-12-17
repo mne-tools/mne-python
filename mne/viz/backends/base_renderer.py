@@ -70,7 +70,7 @@ class _BaseRenderer(metaclass=ABCMeta):
     @abstractclassmethod
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
-                normalized_colormap=False):
+                normalized_colormap=False, tube=False, color=None):
         """Add a contour in the scene.
 
         Parameters
