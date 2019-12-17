@@ -46,7 +46,7 @@ if not os.path.isdir('_images'):
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-needs_sphinx = '1.5'
+needs_sphinx = '2.0'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
@@ -67,6 +67,8 @@ extensions = [
     'gen_commands',
     'sphinx_bootstrap_theme',
     'sphinx_bootstrap_divs',
+    'sphinxcontrib.bibtex',
+    'sphinxcontrib.bibtex2',
 ]
 
 linkcheck_ignore = [
@@ -327,6 +329,14 @@ intersphinx_mapping = {
     'mne_realtime': ('https://mne.tools/mne-realtime', None),
     'picard': ('https://pierreablin.github.io/picard/', None),
 }
+
+
+##############################################################################
+# sphinxcontrib-bibtex
+
+bibtex_bibfiles = ['./references.bib']
+bibtex_style = 'unsrt'
+bibtex_footbibliography_header = ''
 
 ##############################################################################
 # sphinx-gallery

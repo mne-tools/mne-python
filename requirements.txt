@@ -29,4 +29,5 @@ neo
 xlrd
 pydocstyle
 flake8
+https://github.com/mcmtroffaes/sphinxcontrib-bibtex/zipball/29694f215b39d64a31b845aafd9ff2ae9329494f
 https://github.com/pyvista/pyvista/zipball/master

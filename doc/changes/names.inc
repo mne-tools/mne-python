@@ -284,4 +284,6 @@
 
 .. _Chun-Hui Li: https://github.com/iamsc
 
+.. _Christian O'Reilly: https://scholar.google.ca/citations?user=NllRAkwAAAAJ&hl=en
+
 .. _Yu-Han Luo: https://github.com/yh-luo
