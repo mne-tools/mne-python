@@ -213,7 +213,7 @@ def test_calculate_head_pos_chpi():
         with catch_logging() as log_file:
             calculate_head_pos_chpi(raw_bad, t_step_min=1., verbose=True)
     # ignore HPI info header and [done] footer
-    assert '0/5 good HPI fits' in log_file.getvalue().strip().split('\n')[-2]
+    assert '0/5 good HPI fits' in log_file.getvalue()
 
     # half the rate cuts off cHPI coils
     raw.info['lowpass'] /= 2.
@@ -338,21 +338,21 @@ def test_calculate_chpi_coil_locs():
     times, cHPI_digs = _calculate_chpi_coil_locs(raw_dec, verbose='debug')
 
     # spot check
-    assert_allclose(times[9], 9.9, atol=1e-3)
-    assert_allclose(cHPI_digs[9][2]['r'], [-0.0194, 0.0035, 0.0633], atol=3e-3)
-    assert_allclose(cHPI_digs[9][2]['gof'], 0.99, atol=1e-2)
+    assert_allclose(times[0], 9., atol=1e-2)
+    assert_allclose(cHPI_digs[0][2]['r'], [-0.0194, 0.0035, 0.0633], atol=3e-3)
+    assert_allclose(cHPI_digs[0][2]['gof'], 0.99, atol=1e-2)
 
-    assert_allclose(cHPI_digs[9][4]['r'],
+    assert_allclose(cHPI_digs[0][4]['r'],
                     [0.0563, 0.0142, 0.0408], atol=3e-3)
-    assert_allclose(cHPI_digs[9][4]['gof'], 0.07, atol=1e-2)
+    assert_allclose(cHPI_digs[0][4]['gof'], 0.07, atol=1e-2)
 
     # test on 5k artemis data
     raw = read_raw_artemis123(art_fname, preload=True)
     times, cHPI_digs = _calculate_chpi_coil_locs(raw, verbose='debug')
 
-    assert_allclose(times[2], 2., atol=1e-3)
-    assert_allclose(cHPI_digs[2][0]['gof'], 0.9980, atol=1e-3)
-    assert_allclose(cHPI_digs[2][0]['r'], [-0.0158, 0.0655, 0.0021], atol=1e-3)
+    assert_allclose(times[5], 1.5, atol=1e-3)
+    assert_allclose(cHPI_digs[5][0]['gof'], 0.995, atol=5e-3)
+    assert_allclose(cHPI_digs[5][0]['r'], [-0.0158, 0.0655, 0.0021], atol=1e-3)
     with pytest.raises(ValueError, match='too_close'):
         _calculate_chpi_coil_locs(raw, too_close='foo')
 

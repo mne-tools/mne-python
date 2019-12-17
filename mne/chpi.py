@@ -2,7 +2,7 @@
 """Functions for fitting head positions with (c)HPI coils."""
 
 # To fit head positions (continuously), the procedure using
-# ``_calculate_chpi_positions`` is:
+# ``calculate_head_pos_chpi`` is:
 #
 #     1. Get HPI coil locations (as digitized in info['dig'] in head coords
 #        using ``_get_hpi_initial_fit``.
@@ -49,7 +49,7 @@ from .fixes import jit
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat, _fit_matched_points)
 from .utils import (verbose, logger, use_log_level, _check_fname, warn,
-                    _check_option, _validate_type)
+                    _check_option, _validate_type, ProgressBar)
 
 # Eventually we should add:
 #   hpicons
@@ -629,10 +629,9 @@ def _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time, verbose=None):
     norm[norm == 0] = np.inf
     g_sin = 1 - data_diff_sq.sum() / norm_sum
     g_chan = 1 - data_diff_sq / norm
-    logger.debug('    HPI amplitude correlation %0.3f: %0.3f '
-                 '(%s chnls > 0.95)' % (fit_time, g_sin,
-                                        (g_chan > 0.95).sum()))
-
+    # logger.debug('    HPI amplitude correlation %0.3f: %0.3f '
+    #              '(%s chnls > 0.95)' % (fit_time, g_sin,
+    #                                     (g_chan > 0.95).sum()))
     return sin_fit, n_on
 
 
@@ -755,97 +754,36 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
 
     .. versionadded:: 0.20
     """
-    # extract initial geometry from info['hpi_results']
-    hpi_dig_head_rrs = _get_hpi_initial_fit(raw.info, adjust_dig)
-    _check_option('too_close', too_close, ['raise', 'warning', 'info'])
-
-    # extract hpi system information
-    hpi = _setup_hpi_struct(raw.info, t_window)
-    del t_window
-
-    # move to device coords
+    times, fit_coils = _calculate_chpi_coil_locs(
+        raw, t_step_min=t_step_min, t_step_max=t_step_max,
+        t_window=t_window, too_close=too_close)
+    hpi_dig_head_rrs = _get_hpi_initial_fit(raw.info, verbose='error')
+    hpi = _setup_hpi_struct(raw.info, t_window, verbose='error')
+    del t_step_max, t_window, too_close
+    coil_dev_rrs = apply_trans(invert_transform(raw.info['dev_head_t']),
+                               hpi_dig_head_rrs)
     dev_head_t = raw.info['dev_head_t']['trans']
-    head_dev_t = invert_transform(raw.info['dev_head_t'])['trans']
-    hpi_dig_dev_rrs = apply_trans(head_dev_t, hpi_dig_head_rrs)
-
-    # setup last iteration structure
-    last = dict(sin_fit=None, coil_fit_time=t_step_min,
-                quat_fit_time=t_step_min,
-                coil_dev_rrs=hpi_dig_dev_rrs,
+    pos_0 = dev_head_t[:3, 3]
+    last = dict(quat_fit_time=-t_step_min, coil_dev_rrs=coil_dev_rrs,
                 quat=np.concatenate([rot_to_quat(dev_head_t[:3, :3]),
                                      dev_head_t[:3, 3]]))
-
-    t_begin = raw.times[0]
-    t_end = raw.times[-1]
-    fit_idxs = raw.time_as_index(np.arange(
-        t_begin + hpi['t_window'] / 2., t_end, t_step_min), use_rounding=True)
+    del t_step_min
     quats = []
-    logger.info('Fitting up to %s time points (%0.1f sec duration)'
-                % (len(fit_idxs), t_end - t_begin))
-    pos_0 = None
-
-    hpi['n_freqs'] = len(hpi['freqs'])
-    last_off_log = -np.inf
-    for midpt in fit_idxs:
-        #
-        # 0. determine samples to fit.
-        #
-        fit_time = (midpt + raw.first_samp - hpi['n_window'] / 2.) /\
-            raw.info['sfreq']
-
-        time_sl = midpt - hpi['n_window'] // 2
-        time_sl = slice(max(time_sl, 0),
-                        min(time_sl + hpi['n_window'], len(raw.times)))
-
-        #
-        # 1. Fit amplitudes for each channel from each of the N cHPI sinusoids
-        #
-        sin_fit, n_on = _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time)
-
-        # skip this window if bad
-        if sin_fit is None:
-            if fit_time - last_off_log >= 0.999999:
-                logger.info(_time_prefix(fit_time) + '%s < 3 HPI coils turned '
-                            'on, skipping fit' % (n_on.min(),))
-                last_off_log = fit_time
-            continue
-
-        # check if data has sufficiently changed
-        if last['sin_fit'] is not None:  # first iteration
-            corrs = np.array(
-                [np.corrcoef(s, l)[0, 1]
-                 for s, l in zip(sin_fit, last['sin_fit'])])
-            corrs *= corrs
-            # check to see if we need to continue
-            if fit_time - last['coil_fit_time'] <= t_step_max - 1e-7 and \
-                    (corrs > 0.98).sum() >= 3:
-                # don't need to refit data
-                continue
-
-        # update 'last' sin_fit *before* inplace sign mult
-        last['sin_fit'] = sin_fit.copy()
-        last['coil_fit_time'] = fit_time
-
-        #
-        # 2. Fit magnetic dipole for each coil to obtain coil positions
-        #    in device coordinates
-        #
-        outs = [_fit_magnetic_dipole(f, pos, hpi['coils'], hpi['scale'],
-                                     hpi['method'], too_close)
-                for f, pos in zip(sin_fit, last['coil_dev_rrs'])]
-        this_coil_dev_rrs = np.array([o[0] for o in outs])
-        g_coils = np.array([o[1] for o in outs])
+    for fit_time, coils in zip(times, fit_coils):
+        this_coil_dev_rrs = np.array([coil['r'] for coil in coils])
+        g_coils = np.array([coil['gof'] for coil in coils])
         use_idx = np.where(g_coils >= gof_limit)[0]
         n_good = len(use_idx)
 
         #
         # 3. Check number of good ones
         #
-        if len(use_idx) < 3:
-            warn(_time_prefix(fit_time) + '%s/%s good HPI fits, cannot '
-                 'determine the transformation (%s)!'
-                 % (len(use_idx), hpi['n_freqs'],
-                    ', '.join('%0.2f' % g for g in g_coils)))
+        if n_good < 3:
+            msg = (_time_prefix(fit_time) + '%s/%s good HPI fits, cannot '
+                   'determine the transformation (%s)!'
+                   % (n_good, hpi['n_freqs'],
+                      ', '.join('%0.2f' % g for g in g_coils)))
+            warn(msg)
             continue
 
         #
@@ -863,7 +801,8 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
         this_dev_head_t = np.concatenate((this_dev_head_t, [[0, 0, 0, 1.]]))
         est_coil_head_rrs = apply_trans(this_dev_head_t, this_coil_dev_rrs)
         errs = np.linalg.norm(hpi_dig_head_rrs - est_coil_head_rrs, axis=1)
-        if (errs[use_idx] < dist_limit).sum() < 3:
+        use_idx = use_idx[errs[use_idx] < dist_limit]
+        if len(use_idx) < 3:
             warn(_time_prefix(fit_time) + '%s/%s good HPI fits, cannot '
                  'determine the transformation (%s)!'
                  % (len(use_idx), hpi['n_freqs'],
@@ -908,8 +847,6 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
         d = 100 * np.sqrt(np.sum(last['quat'][3:] - this_quat[3:]) ** 2)  # cm
         r = _angle_between_quats(last['quat'][:3], this_quat[:3]) / dt
         v = d / dt  # cm/sec
-        if pos_0 is None:
-            pos_0 = this_quat[3:].copy()
         d = 100 * np.sqrt(np.sum((this_quat[3:] - pos_0) ** 2))  # dis from 1st
         logger.debug('    #t = %0.3f, #e = %0.2f cm, #g = %0.3f, '
                      '#v = %0.2f cm/s, #r = %0.2f rad/s, #d = %0.2f cm'
@@ -922,7 +859,6 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
         last['quat_fit_time'] = fit_time
         last['quat'] = this_quat
         last['coil_dev_rrs'] = this_coil_dev_rrs
-    logger.info('[done]')
     quats = np.array(quats, np.float64)
     quats = np.zeros((0, 10)) if quats.size == 0 else quats
     return quats
@@ -938,13 +874,13 @@ def _fit_chpi_quat_subset(coil_dev_rrs, coil_head_rrs, use_idx):
                 coil_dev_rrs, coil_head_rrs, this_use_idx)
             if this_g > g:
                 quat, g, out_idx = this_quat, this_g, this_use_idx
-    return quat, g, out_idx
+    return quat, g, np.array(out_idx, int)
 
 
 @verbose
-def _calculate_chpi_coil_locs(raw, t_step_min=0.1, t_step_max=1.,
-                              t_window=0.2, dist_limit=0.005, gof_limit=0.98,
-                              too_close='raise', verbose=None):
+def _calculate_chpi_coil_locs(raw, t_step_min=0.01, t_step_max=1.,
+                              t_window='auto', too_close='raise',
+                              verbose=None):
     """Calculate locations of each cHPI coils over time.
 
     Parameters
@@ -1008,11 +944,14 @@ def _calculate_chpi_coil_locs(raw, t_step_min=0.1, t_step_max=1.,
         t_begin + hpi['t_window'] / 2., t_end, t_step_min), use_rounding=True)
     times = []
     chpi_digs = []
-    logger.info('Fitting up to %s time points (%0.1f sec duration)'
-                % (len(fit_idxs), t_end - t_begin))
+    logger.info('Fitting %d HPI coil locations for up to %s time points '
+                '(%0.1f sec duration)'
+                % (len(hpi['freqs']), len(fit_idxs), t_end - t_begin))
 
     hpi['n_freqs'] = len(hpi['freqs'])
-    for midpt in fit_idxs:
+    # Don't use a ProgressBar in debug mode
+    pb = ProgressBar(fit_idxs)
+    for midpt in pb:
         #
         # 0. determine samples to fit.
         #
@@ -1026,24 +965,21 @@ def _calculate_chpi_coil_locs(raw, t_step_min=0.1, t_step_max=1.,
         #
         # 1. Fit amplitudes for each channel from each of the N cHPI sinusoids
         #
-        sin_fit, _ = _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time)
+        sin_fit, n_on = _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time)
 
         # skip this window if bad
-        # logging has already been done! Maybe turn this into an Exception
         if sin_fit is None:
             continue
 
         # check if data has sufficiently changed
         if last['sin_fit'] is not None:  # first iteration
-            # deal with sign ambiguity, which varies per freq
-            last_sin_fit = last['sin_fit'].copy()
-            last_sin_fit *= np.array([np.sign(np.dot(l, s))
-                                      for l, s in zip(last_sin_fit, sin_fit)
-                                      ])[:, np.newaxis]
-            corr = np.corrcoef(sin_fit.ravel(), last['sin_fit'].ravel())[0, 1]
+            corrs = np.array(
+                [np.corrcoef(s, l)[0, 1]
+                 for s, l in zip(sin_fit, last['sin_fit'])])
+            corrs *= corrs
             # check to see if we need to continue
             if fit_time - last['coil_fit_time'] <= t_step_max - 1e-7 and \
-                    corr * corr > 0.98:
+                    (corrs > 0.98).sum() >= 3:
                 # don't need to refit data
                 continue
 
@@ -1064,15 +1000,12 @@ def _calculate_chpi_coil_locs(raw, t_step_min=0.1, t_step_max=1.,
                         'kind': FIFF.FIFFV_POINT_HPI,
                         'coord_frame': FIFF.FIFFV_COORD_DEVICE,
                         'gof': o[1]})
-
         this_coil_dev_rrs = np.array([o[0] for o in outs])
-
         times.append(fit_time)
         chpi_digs.append(dig)
-
         last['coil_fit_time'] = fit_time
         last['coil_dev_rrs'] = this_coil_dev_rrs
-    logger.info('[done]')
+    pb.done()
     return times, chpi_digs
 
 
