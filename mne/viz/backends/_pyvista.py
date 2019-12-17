@@ -186,22 +186,29 @@ class _Renderer(_BaseRenderer):
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
-                normalized_colormap=False):
+                normalized_colormap=False, tube=False, color=None):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             from pyvista import PolyData
-            cmap = _get_colormap_from_array(colormap, normalized_colormap)
+            if colormap is not None:
+                colormap = _get_colormap_from_array(colormap,
+                                                    normalized_colormap)
             vertices = np.array(surface['rr'])
             triangles = np.array(surface['tris'])
             n_triangles = len(triangles)
             triangles = np.c_[np.full(n_triangles, 3), triangles]
             pd = PolyData(vertices, triangles)
             pd.point_arrays['scalars'] = scalars
-            self.plotter.add_mesh(pd.contour(isosurfaces=contours,
-                                             rng=(vmin, vmax)),
+            mesh = pd.contour(isosurfaces=contours, rng=(vmin, vmax))
+            if isinstance(tube, int):
+                mesh = mesh.tube(radius=tube)
+            elif tube:
+                mesh = mesh.tube()
+            self.plotter.add_mesh(mesh,
                                   show_scalar_bar=False,
                                   line_width=line_width,
-                                  cmap=cmap,
+                                  color=color,
+                                  cmap=colormap,
                                   opacity=opacity,
                                   smooth_shading=self.figure.smooth_shading)
 
