@@ -510,6 +510,7 @@ class _Brain(object):
                                      % filepath)
             label = read_label(filepath)
             ids = label.vertices
+            scalars = label.values
         else:
             # try to extract parameters from label instance
             try:
@@ -536,8 +537,8 @@ class _Brain(object):
                                  '"values"')
             hemi = self._check_hemi(hemi)
 
-            if scalar_thresh is not None:
-                ids = ids[scalars >= scalar_thresh]
+        if scalar_thresh is not None:
+            ids = ids[scalars >= scalar_thresh]
 
         # XXX: add support for label_name
         self._label_name = label_name
