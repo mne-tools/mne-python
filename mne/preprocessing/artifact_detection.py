@@ -122,7 +122,6 @@ def annotate_movement(raw, pos, rotation_limit=None,
     dev_head_t : array
         new trans matrix using accepted head pos
     """
-
     sfreq = raw.info['sfreq']
     hp_ts = pos[:, 0].copy()
     hp_ts -= raw.first_samp / sfreq
@@ -203,10 +202,10 @@ def annotate_movement(raw, pos, rotation_limit=None,
 
 
 def compute_average_dev_head_t(raw, pos):
-    '''Get new device to head transform based on averaged recording
+    """Get new device to head transform based on averaged recording.
 
-    It excludes pos that have a BAD_ annotation'''
-
+    It excludes pos that have a BAD_ annotation.
+    """
     import warnings
 
     sfreq = raw.info['sfreq']

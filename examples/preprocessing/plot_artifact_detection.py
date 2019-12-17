@@ -87,6 +87,3 @@ raw.plot(n_channels=100, duration=20)
 # Change dev to head transform
 new_dev_head_t = compute_average_dev_head_t(raw, pos)
 raw.info['dev_head_t'] = new_dev_head_t
-
-
-
