@@ -380,9 +380,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Parameters
         ----------
         ch_type : str | None
-            Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg'.
-            If None, first available channel type from ('mag', 'grad', 'eeg')
-            is used. Defaults to None.
+            Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg',
+            'hbo', 'hbr', 'fnirs_od, and 'fnirs_raw'.
+            If None, first available channel type from ('mag', 'grad', 'eeg',
+            'hbo', 'hbr', 'fnirs_od, 'fnirs_raw') is used. Defaults to None.
         times : array of float | None
             The time points to plot. If None, 10 evenly spaced samples are
             calculated over the evoked time series. Defaults to None.
