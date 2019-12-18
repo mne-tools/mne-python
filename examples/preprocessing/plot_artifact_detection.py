@@ -3,15 +3,15 @@
 Annotate movement artifacts and reestimate dev_head_t
 ======================================================
 
-Periods where the participant moved considerable are contaminated by low
+Periods, where the participant moved considerably, are contaminated by low
 amplitude artifacts. When averaging the magnetic fields, the more spread the
-head possition, the bigger the cancellation due to different locations.
-Similarly, covariance calulation will also be affected by severe head movement,
-and source estimation by suffer from low corregistration accuracy.
+head position, the bigger the cancellation due to different locations.
+Similarly, the covariance will also be affected by severe head movement,
+and source estimation will suffer from low/smeared corregistration accuracy.
 
-This example uses the continious head position indicators (cHPI) times series
+This example uses the continuous head position indicators (cHPI) times series
 to annotate periods of head movement, then the device to head transformation
-matrix is estimated from the artifact free segments. The new head position will
+matrix is estimated from the artifact-free segments. The new head position will
 be more representative of the actual head position during the recording.
 
 
@@ -53,11 +53,11 @@ out = annotate_movement(raw, pos, mean_distance_limit=mean_distance_limit)
 annotation_movement, hpi_disp = out
 
 ###############################################################################
-# Plot continuous head position with respect to the mean position
+# Plot continuous head position with respect to the mean recording position
 # ------------------------------------------------------------------
 plt.figure()
 plt.plot(pos[:, 0], hpi_disp)
-plt.axhline(y=displacement_limit, color='r')
+plt.axhline(y=mean_distance_limit, color='r')
 plt.xlabel('time s')
 plt.ylabel('distance m')
 plt.title('cHPI w.r.t mean recording head position')
