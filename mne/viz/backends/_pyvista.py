@@ -200,7 +200,7 @@ class _Renderer(_BaseRenderer):
             pd = PolyData(vertices, triangles)
             pd.point_arrays['scalars'] = scalars
             mesh = pd.contour(isosurfaces=contours, rng=(vmin, vmax))
-            if isinstance(tube, int):
+            if isinstance(tube, float):
                 mesh = mesh.tube(radius=tube)
             elif tube:
                 mesh = mesh.tube()
