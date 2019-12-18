@@ -132,8 +132,8 @@ class _Renderer(_BaseRenderer):
         mesh = _create_mesh_surf(surface, self.fig, scalars=scalars)
         with warnings.catch_warnings(record=True):  # traits
             cont = self.mlab.pipeline.contour_surface(
-                mesh, contours=contours, line_width=width, vmin=vmin, vmax=vmax,
-                opacity=opacity, figure=self.fig)
+                mesh, contours=contours, line_width=width, vmin=vmin,
+                vmax=vmax, opacity=opacity, figure=self.fig)
             cont.module_manager.scalar_lut_manager.lut.table = colormap
 
     def surface(self, surface, color=None, opacity=1.0,
