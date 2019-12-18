@@ -206,7 +206,7 @@ def compute_average_dev_head_t(raw, pos):
         best_q = best_q[:3] * np.sign(best_q[-1])
     trans = np.eye(4)
     trans[:3, :3] = quat_to_rot(best_q)
-    trans[:3, 3] = trans_pos / norm
+    trans[:3, 3] = trans_pos / dt.sum()
     assert np.linalg.norm(trans[:3, 3]) < 1  # less than 1 meter is sane
     dev_head_t = Transform('meg', 'head', trans)
     return dev_head_t
