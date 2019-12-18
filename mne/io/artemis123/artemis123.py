@@ -14,7 +14,6 @@ from ..base import BaseRaw
 from ..meas_info import _empty_info
 from .._digitization import _make_dig_points, DigPoint
 from ..constants import FIFF
-from ...chpi import _fit_device_hpi_positions, _fit_coil_order_dev_head_trans
 from ...transforms import get_ras_to_neuromag_trans, apply_trans, Transform
 
 
@@ -307,7 +306,8 @@ class RawArtemis123(BaseRaw):
     def __init__(self, input_fname, preload=False, verbose=None,
                  pos_fname=None, add_head_trans=True):  # noqa: D102
         from scipy.spatial.distance import cdist
-
+        from ...chpi import (_fit_device_hpi_positions,
+                             _fit_coil_order_dev_head_trans)
         fname, ext = op.splitext(input_fname)
         if ext == '.txt':
             input_fname = fname + '.bin'
