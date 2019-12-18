@@ -562,7 +562,7 @@ class _Brain(object):
                     'tris': self.geo[hemi].faces,
                 }
                 self._renderer.contour(surface, label, [1.0], color=color,
-                                       tube=True)
+                                       kind='tube')
             else:
                 self._renderer.mesh(x=self.geo[hemi].coords[:, 0],
                                     y=self.geo[hemi].coords[:, 1],

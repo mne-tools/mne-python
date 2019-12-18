@@ -184,9 +184,9 @@ class _Renderer(_BaseRenderer):
                                   rng=[vmin, vmax], show_scalar_bar=False,
                                   smooth_shading=smooth_shading)
 
-    def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
+    def contour(self, surface, scalars, contours, width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
-                normalized_colormap=False, tube=False, color=None):
+                normalized_colormap=False, kind='line', color=None):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             from pyvista import PolyData
@@ -200,10 +200,10 @@ class _Renderer(_BaseRenderer):
             pd = PolyData(vertices, triangles)
             pd.point_arrays['scalars'] = scalars
             mesh = pd.contour(isosurfaces=contours, rng=(vmin, vmax))
-            if isinstance(tube, float):
-                mesh = mesh.tube(radius=tube)
-            elif tube:
-                mesh = mesh.tube()
+            line_width = width
+            if kind == 'tube':
+                mesh = mesh.tube(radius=width)
+                line_width = 1.0
             self.plotter.add_mesh(mesh,
                                   show_scalar_bar=False,
                                   line_width=line_width,
