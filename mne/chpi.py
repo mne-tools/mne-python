@@ -47,7 +47,7 @@ from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
 from .cov import make_ad_hoc_cov, compute_whitener
 from .fixes import jit
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
-                         quat_to_rot, rot_to_quat, _fit_matched_points)
+                         quat_to_rot, rot_to_quat)
 from .utils import (verbose, logger, use_log_level, _check_fname, warn,
                     _check_option, _validate_type, ProgressBar)
 
@@ -152,15 +152,6 @@ def head_pos_to_trans_rot_t(quats):
     return translation, rotation, t
 
 
-def _apply_quat(quat, pts, move=True):
-    """Apply MaxFilter-formatted head position parameters to points."""
-    trans = np.concatenate(
-        (quat_to_rot(quat[:3]),
-         quat[3:][:, np.newaxis]), axis=1)
-
-    return(apply_trans(trans, pts, move=move))
-
-
 def calculate_head_pos_ctf(raw, quat_gof_limit=0.98):
     r"""Extract head position parameters from ctf dataset.
 
@@ -236,6 +227,7 @@ def calculate_head_pos_ctf(raw, quat_gof_limit=0.98):
                                 dev_head_t['trans'][:3, 3]])
 
     quats = []
+    last_time = -0.001
     for idx in indices:
         # data in channels are in ctf device coordinates (cm)
         this_ctf_dev = chpi_data[:, idx].reshape(3, 3)  # m
@@ -248,12 +240,9 @@ def calculate_head_pos_ctf(raw, quat_gof_limit=0.98):
         if g < quat_gof_limit:
             raise RuntimeError('Bad coil fit! (g=%7.3f)' % (g,))
 
-        if (idx > 0):
-            dt = float(raw.times[idx] - raw.times[idx - 1])
-        else:
-            dt = 0.001
-
-        this_locs_head = _apply_quat(this_quat, this_dev, move=True)
+        dt = raw.times[idx] - last_time
+        this_dev_head_t = _quat_to_affine(this_quat)
+        this_locs_head = apply_trans(this_dev_head_t, this_dev)
         errs = 1000. * np.sqrt(((chpi_locs_head -
                                  this_locs_head) ** 2).sum(axis=-1))
         e = errs.mean() / 1000.  # mm -> m
@@ -263,6 +252,7 @@ def calculate_head_pos_ctf(raw, quat_gof_limit=0.98):
         quats.append(np.concatenate(([raw.times[idx]], this_quat, [g],
                                      [e * 100], [v])))  # e in centimeters
         last_quat = this_quat
+        last_time = raw.times[idx]
 
     quats = np.array(quats, np.float64)
     quats = np.zeros((0, 10)) if quats.size == 0 else quats
@@ -455,9 +445,17 @@ def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs, x0):
     return quat, gof
 
 
+def _quat_to_affine(quat):
+    assert quat.shape == (6,)
+    affine = np.eye(4)
+    affine[:3, :3] = quat_to_rot(quat[:3])
+    affine[:3, 3] = quat[3:]
+    return affine
+
+
 def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts):
     """Compute Device to Head transform allowing for permutiatons of points."""
-    id_quat = np.concatenate([rot_to_quat(np.eye(3)), [0.0, 0.0, 0.0]])
+    id_quat = np.zeros(6)
     best_order = None
     best_g = -999
     best_quat = id_quat
@@ -470,10 +468,7 @@ def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts):
             best_quat = this_quat
 
     # Convert Quaterion to transform
-    dev_head_t = np.concatenate(
-        (quat_to_rot(best_quat[:3]),
-         best_quat[3:][:, np.newaxis]), axis=1)
-    dev_head_t = np.concatenate((dev_head_t, [[0, 0, 0, 1.]]))
+    dev_head_t = _quat_to_affine(best_quat)
     return dev_head_t, best_order, best_g
 
 
@@ -795,10 +790,7 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
             this_coil_dev_rrs, hpi_dig_head_rrs, use_idx, last['quat'])
 
         # Convert quaterion to transform
-        this_dev_head_t = np.concatenate(
-            (quat_to_rot(this_quat[:3]),
-                this_quat[3:][:, np.newaxis]), axis=1)
-        this_dev_head_t = np.concatenate((this_dev_head_t, [[0, 0, 0, 1.]]))
+        this_dev_head_t = _quat_to_affine(this_quat)
         est_coil_head_rrs = apply_trans(this_dev_head_t, this_coil_dev_rrs)
         errs = np.linalg.norm(hpi_dig_head_rrs - est_coil_head_rrs, axis=1)
         n_good = ((g_coils >= gof_limit) & (errs < dist_limit)).sum()
