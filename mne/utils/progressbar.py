@@ -38,8 +38,6 @@ class ProgressBar(object):
         This does not include characters used for the message or percent
         complete. Can be "auto" (default) to try to set a sane value based
         on the terminal width.
-    progress_character : char
-        Character in the progress bar that indicates the portion completed.
     spinner : bool
         Show a spinner.  Useful for long-running processes that may not
         increment the progress bar very often.  This provides the user with
@@ -49,28 +47,14 @@ class ProgressBar(object):
         a sane value based on the current terminal width.
     verbose_bool : bool | 'auto'
         If True, show progress. 'auto' will use the current MNE verbose level.
-
-    Example
-    -------
-    >>> progress = ProgressBar(13000)
-    >>> progress.update(3000) # doctest: +SKIP
-    [.........                               ] 23.07692 |
-    >>> progress.update(6000) # doctest: +SKIP
-    [..................                      ] 46.15385 |
-
-    >>> progress = ProgressBar(13000, spinner=True)
-    >>> progress.update(3000) # doctest: +SKIP
-    [.........                               ] 23.07692 |
-    >>> progress.update(6000) # doctest: +SKIP
-    [..................                      ] 46.15385 /
     """
 
     spinner_symbols = ['|', '/', '-', '\\']
-    template = '\r{2} |{0}{1}| {3} {4}'
+    template = '\r{2}▕{0}{1}▏{3} {4}'
 
     def __init__(self, max_value, initial_value=0, mesg='', max_chars='auto',
-                 progress_character='█', spinner=False,
-                 max_total_width='auto', verbose_bool='auto'):  # noqa: D102
+                 spinner=False, max_total_width='auto',
+                 verbose_bool='auto'):  # noqa: D102
         self.cur_value = initial_value
         if isinstance(max_value, Iterable):
             self.max_value = len(max_value)
@@ -79,7 +63,6 @@ class ProgressBar(object):
             self.max_value = max_value
             self.iterable = None
         self.mesg = mesg
-        self.progress_character = progress_character
         self.spinner = spinner
         self.spinner_index = 0
         self.n_spinner = len(self.spinner_symbols)
@@ -147,9 +130,8 @@ class ProgressBar(object):
             spinner = self.spinner_symbols[self.spinner_index]
         else:
             spinner = ''
-        bar = self.template.format(
-            self.progress_character * num_chars, ' ' * num_left,
-            progress, self.mesg, spinner)
+        bar = self.template.format('█' * num_chars, '░' * num_left,
+                                   progress, self.mesg, spinner)
         bar = bar[:self.max_total_width]
         # Force a flush because sometimes when using bash scripts and pipes,
         # the output is not printed until after the program exits.
