@@ -18,13 +18,14 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Circle
 
 from mne import (read_evokeds, read_proj, make_fixed_length_events, Epochs,
-                 compute_proj_evoked, find_layout, pick_types)
+                 compute_proj_evoked, find_layout, pick_types, create_info,
+                 EvokedArray)
 from mne.io.proj import make_eeg_average_ref_proj, Projection
 from mne.io import read_raw_fif, read_info
 from mne.io.constants import FIFF
 from mne.io.pick import pick_info, channel_indices_by_type
 from mne.io.compensator import get_current_comp
-from mne.channels import read_layout
+from mne.channels import read_layout, make_standard_montage
 from mne.datasets import testing
 from mne.time_frequency.tfr import AverageTFR
 from mne.utils import run_tests_if_main
@@ -135,6 +136,20 @@ def test_plot_topomap_animation():
                                      butterfly=False, time_unit='s')
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     plt.close('all')
+
+    # Test plotting of fnirs types
+    montage = make_standard_montage('biosemi16')
+    ch_names = montage.ch_names
+    ch_types = ['eeg'] * 16
+    info = create_info(ch_names=ch_names, sfreq=20, ch_types=ch_types)
+    evoked_data = np.random.randn(16, 30)
+    evokeds = EvokedArray(evoked_data, info=info, tmin=-0.2, nave=4)
+    evokeds.set_montage(montage)
+    evokeds.set_channel_types({'Fp1': 'hbo', 'Fp2': 'hbo', 'F4': 'hbo',
+                               'Fz': 'hbo'}, verbose='error')
+    fig, anim = evokeds.animate_topomap(ch_type='hbo')
+    anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
+    assert len(fig.axes) == 2
 
 
 @pytest.mark.slowtest
