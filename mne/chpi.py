@@ -8,23 +8,24 @@
 #        using ``_get_hpi_initial_fit``.
 #     2. Get HPI frequencies,  HPI status channel, HPI status bits,
 #        and digitization order using ``_setup_hpi_struct``.
-#     3. Map HPI coil locations into device coords and compute coil to coil
-#        distances.
-#     4. Window data using ``t_window`` (half before and half after ``t``) and
+#     3. Window data using ``t_window`` (half before and half after ``t``) and
 #        ``t_step_min``.
 #        (Here Elekta high-passes the data, but we omit this step.)
-#     5. Use a linear model (DC + linear slope + sin + cos terms set up
+#     4. Use a linear model (DC + linear slope + sin + cos terms set up
 #        in ``_setup_hpi_struct``) to fit sinusoidal amplitudes to MEG
 #        channels. Use SVD to determine the phase/amplitude of the sinusoids.
 #        This step is accomplished using ``_fit_cHPI_amplitudes``
-#     6. If the amplitudes are 98% correlated with last position
+#     5. If the amplitudes are 98% correlated with last position
 #        (and Δt < t_step_max), skip fitting.
-#     7. Fit magnetic dipoles using the amplitudes for each coil frequency
+#     6. Fit magnetic dipoles using the amplitudes for each coil frequency
 #        (calling ``_fit_magnetic_dipole``).
-#     8. Drop coils whose GOF are below ``gof_limit``. If fewer than 3 coils
+#     7. Drop coils whose GOF are below ``gof_limit``. If fewer than 3 coils
 #        remain, abandon fitting for the chunk.
-#     9. Fit dev_head_t quaternion (using ``_fit_chpi_quat``), iteratively
+#     8. Fit dev_head_t quaternion (using ``_fit_chpi_quat``), iteratively
 #        dropping coils (as long as 3 remain) to find the best GOF.
+#     9. If fewer than 3 coils meet the ``dist_limit`` criteria following
+#        projection of the fitted device coil locations into the head frame,
+#        abandon fitting for the chunk.
 #
 # The function ``filter_chpi`` uses the same linear model to filter cHPI
 # and (optionally) line frequencies from the data.
@@ -41,7 +42,7 @@ import itertools
 
 from .io.pick import (pick_types, pick_channels, pick_channels_regexp,
                       pick_info)
-from .io.proj import Projection
+from .io.proj import Projection, setup_proj
 from .io.constants import FIFF
 from .io.ctf.trans import _make_ctf_coord_trans_set
 from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
@@ -51,7 +52,7 @@ from .fixes import jit
 from .preprocessing.maxwell import (_sss_basis, _prep_mf_coils, _get_mf_picks,
                                     _regularize_out)
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
-                         quat_to_rot, rot_to_quat)
+                         quat_to_rot, rot_to_quat, _fit_matched_points)
 from .utils import (verbose, logger, use_log_level, _check_fname, warn,
                     _check_option, _validate_type, ProgressBar)
 
@@ -240,7 +241,7 @@ def calculate_head_pos_ctf(raw, quat_gof_limit=0.98):
         this_dev = apply_trans(ctf_dev_dev_t, this_ctf_dev)
 
         # fit quaternion
-        this_quat, g = _fit_chpi_quat(this_dev, chpi_locs_head, last_quat)
+        this_quat, g = _fit_chpi_quat(this_dev, chpi_locs_head)
         if g < quat_gof_limit:
             raise RuntimeError('Bad coil fit! (g=%7.3f)' % (g,))
 
@@ -361,7 +362,7 @@ def _get_hpi_initial_fit(info, adjust_dig=False, verbose=None):
             if not adjust_dig:
                 if err >= hpi_result['dist_limit']:
                     warn('Discrepancy of HPI coil %d isotrak and hpifit is '
-                        '%.1f mm!' % (hi + 1, d))
+                         '%.1f mm!' % (hi + 1, d))
             elif hi + 1 not in hpi_result['used']:
                 if hpi_result['goodness'][hi] >= hpi_result['good_limit']:
                     logger.info('Note: HPI coil %d isotrak is adjusted by '
@@ -376,16 +377,16 @@ def _get_hpi_initial_fit(info, adjust_dig=False, verbose=None):
     return hpi_rrs.astype(float)
 
 
-def _magnetic_dipole_objective(x, B, B2, coils, scale, too_close):
+def _magnetic_dipole_objective(x, B, B2, coils, whitener, too_close):
     """Project data onto right eigenvectors of whitened forward."""
     fwd = _magnetic_dipole_field_vec(x[np.newaxis, :], coils, too_close)
-    return _magnetic_dipole_delta(fwd, scale, B, B2)
+    return _magnetic_dipole_delta(fwd, whitener, B, B2)
 
 
 @jit()
-def _magnetic_dipole_delta(fwd, scale, B, B2):
-    # Here we use .T to get scale to Fortran order, which speeds things up
-    fwd = np.dot(fwd, scale.T)
+def _magnetic_dipole_delta(fwd, whitener, B, B2):
+    # Here we use .T to get whitener to Fortran order, which speeds things up
+    fwd = np.dot(fwd, whitener.T)
     one = np.linalg.svd(fwd, full_matrices=False)[2]
     one = np.dot(one, B)
     Bm2 = np.dot(one, one)
@@ -395,10 +396,10 @@ def _magnetic_dipole_delta(fwd, scale, B, B2):
 def _fit_magnetic_dipole(B_orig, x0, too_close, hpi):
     """Fit a single bit of data (x0 = pos)."""
     from scipy.optimize import fmin_cobyla
-    B = np.dot(hpi['scale'], B_orig)
+    B = np.dot(hpi['whitener'], B_orig)
     B2 = np.dot(B, B)
     objective = partial(_magnetic_dipole_objective, B=B, B2=B2,
-                        coils=hpi['coils'], scale=hpi['scale'],
+                        coils=hpi['coils'], whitener=hpi['whitener'],
                         too_close=too_close)
     x = fmin_cobyla(objective, x0, (), rhobeg=1e-3, rhoend=1e-5, disp=False)
     return x, 1. - objective(x) / B2
@@ -408,37 +409,19 @@ def _fit_magnetic_dipole(B_orig, x0, too_close, hpi):
 def _chpi_objective(x, coil_dev_rrs, coil_head_rrs):
     """Compute objective function."""
     d = np.dot(coil_dev_rrs, quat_to_rot(x[:3]).T)
-    d += x[3:] / 10.  # in decimeters to get quats and head units close
+    d += x[3:]
     d -= coil_head_rrs
     d *= d
     return d.sum()
 
 
-def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs, x0):
+def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs):
     """Fit rotation and translation (quaternion) parameters for cHPI coils."""
-    from scipy.optimize import fmin_cobyla
     denom = np.linalg.norm(coil_head_rrs - np.mean(coil_head_rrs, axis=0))
     denom *= denom
     # We could try to solve it the analytic way:
-    #
-    # quat = _fit_matched_points(coil_dev_rrs, coil_head_rrs)
-    # quat[3:] *= 10
-    # gof = 1. - _chpi_objective(quat, coil_dev_rrs, coil_head_rrs) / denom
-    # quat[3:] /= 10
-    #
-    # But with few points this is dangerous because of possible flips.
-    # So we stick with COBYLA, using the previous position as the initial guess
-    # is hopefully safe enough to keep us in the right orientation.
-    # Rough timings suggest COBYLA is only 10% slower anyway.
-    #
-    objective = partial(_chpi_objective, coil_dev_rrs=coil_dev_rrs,
-                        coil_head_rrs=coil_head_rrs)
-    x0 = x0.copy()
-    x0[3:] *= 10.  # decimeters to get quats and head units close
-    quat = fmin_cobyla(objective, x0, _unit_quat_constraint,
-                       rhobeg=1e-3, rhoend=1e-5, catol=1e-7, disp=False)
-    gof = 1. - objective(quat) / denom
-    quat[3:] /= 10.
+    quat = _fit_matched_points(coil_dev_rrs, coil_head_rrs)
+    gof = 1. - _chpi_objective(quat, coil_dev_rrs, coil_head_rrs) / denom
     return quat, gof
 
 
@@ -458,20 +441,27 @@ def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts):
     best_quat = id_quat
     for this_order in itertools.permutations(np.arange(len(head_pnts))):
         head_pnts_tmp = head_pnts[np.array(this_order)]
-        this_quat, g = _fit_chpi_quat(dev_pnts, head_pnts_tmp, id_quat)
-        if g > best_g:
-            best_g = g
+        this_quat, g = _fit_chpi_quat(dev_pnts, head_pnts_tmp)
+        assert np.linalg.det(quat_to_rot(this_quat[:3])) > 0.9999
+        # For symmetrical arrangements, flips can produce roughly
+        # equivalent g values. To avoid this, heavily penalize
+        # large rotations.
+        rotation = _angle_between_quats(this_quat[:3], np.zeros(3))
+        check_g = g * max(1. - rotation / np.pi, 0) ** 0.25
+        if check_g > best_g:
+            out_g = g
+            best_g = check_g
             best_order = np.array(this_order)
             best_quat = this_quat
 
     # Convert Quaterion to transform
     dev_head_t = _quat_to_affine(best_quat)
-    return dev_head_t, best_order, best_g
+    return dev_head_t, best_order, out_g
 
 
 @verbose
-def _setup_hpi_struct(info, t_window, exclude='bads',
-                      remove_aliased=False, verbose=None):
+def _setup_hpi_struct(info, t_window, remove_aliased=False, ext_order=1,
+                      verbose=None):
     """Generate HPI structure for HPI localization.
 
     Returns
@@ -521,52 +511,41 @@ def _setup_hpi_struct(info, t_window, exclude='bads',
     model += [np.sin(l_t), np.cos(l_t)]  # line freqs
     model += [slope, np.ones(slope.shape)]
     model = np.concatenate(model, axis=1)
-    inv_model = linalg.pinv(model)
+    inv_model = np.array(linalg.pinv(model))  # ensure aligned, etc.
 
     # Set up magnetic dipole fits
-    meg_picks = pick_types(info, meg=True, eeg=False, exclude=exclude)
-    if len(exclude) > 0:
-        if exclude == 'bads':
-            msg = info['bads']
-        else:
-            msg = exclude
-        logger.debug('Static bad channels (%d): %s'
-                     % (len(msg), u' '.join(msg)))
+    meg_picks = pick_types(info, meg=True, eeg=False, exclude='bads')
+    info = pick_info(info, meg_picks)  # makes a copy
 
-    megchs = [ch for ci, ch in enumerate(info['chs']) if ci in meg_picks]
-    coils = _create_meg_coils(megchs, 'accurate')
+    coils = _create_meg_coils(info['chs'], 'accurate')
     coils = _concatenate_coils(coils)
 
     # Set up external model for interference suppression
     projs = list()
-    _, _, _, _, mag_or_fine = _get_mf_picks(info, 0, 1, ignore_ref=True,
-                                            verbose='error')
-    mf_coils = _prep_mf_coils(pick_info(info, pick_types(info)), verbose='error')
+    _, _, _, _, mag_or_fine = _get_mf_picks(
+        info, int_order=0, ext_order=ext_order, ignore_ref=True,
+        verbose='error')
+    mf_coils = _prep_mf_coils(
+        pick_info(info, pick_types(info)), verbose='error')
     ext = _sss_basis(
         dict(origin=(0., 0., 0.), int_order=0, ext_order=1), mf_coils).T
     out_removes = _regularize_out(0, 1, mag_or_fine)
     ext = ext[~np.in1d(np.arange(len(ext)), out_removes)]
     if len(ext):
         ext /= np.linalg.norm(ext, axis=-1, keepdims=True)
-        ch_names = [info['ch_names'][ci] for ci in meg_picks]
         projs.append(Projection(
             kind=FIFF.FIFFV_PROJ_ITEM_HOMOG_FIELD, desc='SSS', active=False,
-            data=dict(data=ext, ncol=len(megchs), col_names=ch_names,
+            data=dict(data=ext, ncol=info['nchan'], col_names=info['ch_names'],
                       nrow=len(ext))))
-    info = info.copy()
     info['projs'] = projs
-    # Setting mag and grad equal basically makes this a no-op, but
-    # it semes to be what MaxFilter does (and the grads are higher SNR)
-    diag_cov = make_ad_hoc_cov(info,  # std=dict(grad=3e-13, mag=3e-15),
-                               verbose=False)
-    diag_whitener, _ = compute_whitener(diag_cov, info, picks=meg_picks,
-                                        verbose=False)
-
+    cov = make_ad_hoc_cov(info, verbose=False)
+    whitener, _ = compute_whitener(cov, info, verbose=False)
+    proj, _ = setup_proj(info, add_eeg_ref=False, verbose=False)
     hpi = dict(meg_picks=meg_picks, hpi_pick=hpi_pick,
                model=model, inv_model=inv_model, t_window=t_window,
-               on=hpi_ons, n_window=model_n_window, ext=ext,
+               on=hpi_ons, n_window=model_n_window,
                freqs=hpi_freqs, line_freqs=line_freqs, n_freqs=len(hpi_freqs),
-               scale=diag_whitener, coils=coils)
+               whitener=whitener, coils=coils, proj=proj)
     return hpi
 
 
@@ -590,7 +569,6 @@ def _fit_cHPI_amplitudes(raw, time_sl, hpi):
         this_data = raw[hpi['meg_picks'], time_sl][0]
 
     # which HPI coils to use
-    n_freqs = hpi['n_freqs']
     if hpi['hpi_pick'] is not None:
         with use_log_level(False):
             # loads hpi_stim channel
@@ -600,18 +578,20 @@ def _fit_cHPI_amplitudes(raw, time_sl, hpi):
                hpi['on'][:, np.newaxis]).astype(bool)
         n_on = ons.all(axis=-1).sum(axis=0)
         if not (n_on >= 3).all():
-            return None, n_on
-        del ons
-    else:
-        n_on = n_freqs
+            return None
+    return _fast_fit(this_data, hpi['proj'], hpi['n_freqs'], hpi['model'],
+                     hpi['inv_model'])
 
-    this_len = time_sl.stop - time_sl.start
-    if this_len == hpi['n_window']:
-        model, inv_model = hpi['model'], hpi['inv_model']
+
+@jit()
+def _fast_fit(this_data, proj, n_freqs, model, inv_model):
+    if this_data.shape[1] == model.shape[0]:
+        model, inv_model = model, inv_model
     else:  # first or last window
-        model = hpi['model'][:this_len]
-        inv_model = linalg.pinv(model)
-    X = np.dot(inv_model, this_data.T)
+        model = model[:this_data.shape[1]]
+        inv_model = np.linalg.pinv(model)
+    proj_data = np.dot(proj, this_data)
+    X = np.dot(inv_model, proj_data.T)
     X_sin, X_cos = X[:n_freqs], X[n_freqs:2 * n_freqs]
 
     # use SVD across all sensors to estimate the sinusoid phase
@@ -622,28 +602,13 @@ def _fit_cHPI_amplitudes(raw, time_sl, hpi):
         # the first component holds the predominant phase direction
         # (so ignore the second, effectively doing s[1] = 0):
         sin_fit[fi, :] = vt[0]
-        # Do not modify X, however, because it will break the signal
-        # reconstruction step.
 
-    return sin_fit, n_on
+    return sin_fit
 
 
 def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
-                              too_close='raise'):
+                              too_close='raise', ext_order=1):
     """Calculate location of HPI coils in device coords for 1 time window.
-
-    Parameters
-    ----------
-    raw : instance of Raw
-        Raw data with cHPI information.
-    t_win : list, shape (2)
-        Time window to fit. If None entire data run is used.
-    initial_dev_rrs : ndarry, shape (n_CHPI, 3) || None
-        Initial guess on HPI locations. If None (0,0,0) is used for each hpi.
-    too_close : str
-        How to handle HPI positions too close to the sensors,
-        can be 'raise', 'warning', or 'info'.
-    %(verbose)s
 
     Returns
     -------
@@ -663,7 +628,8 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
     time_sl = slice(i_win[0], i_win[1])
 
     hpi = _setup_hpi_struct(
-        raw.info, (i_win[1] - i_win[0]) / raw.info['sfreq'])
+        raw.info, (i_win[1] - i_win[0]) / raw.info['sfreq'],
+        ext_order=ext_order)
 
     if initial_dev_rrs is None:
         initial_dev_rrs = []
@@ -671,7 +637,7 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
             initial_dev_rrs.append([0.0, 0.0, 0.0])
 
     # 1. Fit amplitudes for each channel from each of the N cHPI sinusoids
-    sin_fit, _ = _fit_cHPI_amplitudes(raw, time_sl, hpi)
+    sin_fit = _fit_cHPI_amplitudes(raw, time_sl, hpi)
 
     # skip this window if it bad.
     # logging has already been done! Maybe turn this into an Exception
@@ -693,7 +659,8 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
 def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
                             t_window='auto', dist_limit=0.005,
                             adjust_dig=False, gof_limit=0.98,
-                            too_close='raise', verbose=None):
+                            too_close='raise', ext_order=1,
+                            verbose=None):
     """Calculate head positions using cHPI coils.
 
     Parameters
@@ -719,11 +686,14 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
     too_close : str
         How to handle HPI positions too close to the sensors,
         can be 'raise', 'warning', or 'info'.
+    ext_order : int
+        The external order for SSS-like interfence suppression.
+        The SSS bases are used as projection vectors during fitting.
     %(verbose)s
 
     Returns
     -------
-    quats : ndarray, shape (N, 10)
+    quats : ndarray, shape (n_pos, 10)
         The ``[t, q1, q2, q3, x, y, z, gof, err, v]`` for each fit.
 
     See Also
@@ -733,7 +703,7 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
 
     Notes
     -----
-    The number of time points ``N`` will depend on the velocity of head
+    The number of fitted points ``n_pos`` will depend on the velocity of head
     movements as well as ``t_step_max`` and ``t_step_min``.
 
     In "auto" mode, ``t_window`` will be set to the longer of:
@@ -747,7 +717,7 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
     """
     times, fit_coils = _calculate_chpi_coil_locs(
         raw, t_step_min=t_step_min, t_step_max=t_step_max,
-        t_window=t_window, too_close=too_close)
+        t_window=t_window, too_close=too_close, ext_order=ext_order)
     hpi_dig_head_rrs = _get_hpi_initial_fit(raw.info, verbose='error')
     hpi = _setup_hpi_struct(raw.info, t_window, verbose='error')
     del t_step_max, t_window, too_close
@@ -782,7 +752,7 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
         #    positions) iteratively using different sets of coils.
         #
         this_quat, g, use_idx = _fit_chpi_quat_subset(
-            this_coil_dev_rrs, hpi_dig_head_rrs, use_idx, last['quat'])
+            this_coil_dev_rrs, hpi_dig_head_rrs, use_idx)
 
         # Convert quaterion to transform
         this_dev_head_t = _quat_to_affine(this_quat)
@@ -851,14 +821,14 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
     return quats
 
 
-def _fit_chpi_quat_subset(coil_dev_rrs, coil_head_rrs, use_idx, x0):
-    quat, g = _fit_chpi_quat(coil_dev_rrs[use_idx], coil_head_rrs[use_idx], x0)
+def _fit_chpi_quat_subset(coil_dev_rrs, coil_head_rrs, use_idx):
+    quat, g = _fit_chpi_quat(coil_dev_rrs[use_idx], coil_head_rrs[use_idx])
     out_idx = use_idx.copy()
     if len(use_idx) > 3:  # try dropping one (recursively)
         for di in range(len(use_idx)):
             this_use_idx = list(use_idx[:di]) + list(use_idx[di + 1:])
             this_quat, this_g, this_use_idx = _fit_chpi_quat_subset(
-                coil_dev_rrs, coil_head_rrs, this_use_idx, x0)
+                coil_dev_rrs, coil_head_rrs, this_use_idx)
             if this_g > g:
                 quat, g, out_idx = this_quat, this_g, this_use_idx
     return quat, g, np.array(out_idx, int)
@@ -873,7 +843,7 @@ def _unit_quat_constraint(x):
 @verbose
 def _calculate_chpi_coil_locs(raw, t_step_min=0.01, t_step_max=1.,
                               t_window='auto', too_close='raise',
-                              verbose=None):
+                              ext_order=1, verbose=None):
     """Calculate locations of each cHPI coils over time.
 
     Parameters
@@ -920,7 +890,7 @@ def _calculate_chpi_coil_locs(raw, t_step_min=0.01, t_step_max=1.,
     hpi_dig_head_rrs = _get_hpi_initial_fit(raw.info)
 
     # extract hpi system information
-    hpi = _setup_hpi_struct(raw.info, t_window)
+    hpi = _setup_hpi_struct(raw.info, t_window, ext_order=ext_order)
     del t_window
 
     # move to device coords
@@ -942,67 +912,69 @@ def _calculate_chpi_coil_locs(raw, t_step_min=0.01, t_step_max=1.,
                 % (len(hpi['freqs']), len(fit_idxs), t_end - t_begin))
 
     hpi['n_freqs'] = len(hpi['freqs'])
+    fit_times = (fit_idxs + raw.first_samp -
+                 hpi['n_window'] / 2.) / raw.info['sfreq']
+    sin_fits = list()
     # Don't use a ProgressBar in debug mode
-    pb = ProgressBar(fit_idxs, mesg='Fitting HPI')
-    for midpt in pb:
-        #
-        # 0. determine samples to fit.
-        #
-        fit_time = (midpt + raw.first_samp - hpi['n_window'] / 2.) /\
-            raw.info['sfreq']
+    with ProgressBar(fit_idxs, mesg='Pass 1: Amplitudes') as pb:
+        for mi, midpt in enumerate(pb):
+            #
+            # 0. determine samples to fit.
+            #
+            fit_time = fit_times[mi]
+            time_sl = midpt - hpi['n_window'] // 2
+            time_sl = slice(max(time_sl, 0),
+                            min(time_sl + hpi['n_window'], len(raw.times)))
 
-        time_sl = midpt - hpi['n_window'] // 2
-        time_sl = slice(max(time_sl, 0),
-                        min(time_sl + hpi['n_window'], len(raw.times)))
+            #
+            # 1. Fit amplitudes for each channel from each of the N sinusoids
+            #
+            sin_fits.append(_fit_cHPI_amplitudes(raw, time_sl, hpi))
 
-        #
-        # 1. Fit amplitudes for each channel from each of the N cHPI sinusoids
-        #
-        sin_fit, n_on = _fit_cHPI_amplitudes(raw, time_sl, hpi)
-
-        # skip this window if bad
-        if sin_fit is None:
-            continue
-
-        # check if data has sufficiently changed
-        if last['sin_fit'] is not None:  # first iteration
-            corrs = np.array(
-                [np.corrcoef(s, l)[0, 1]
-                 for s, l in zip(sin_fit, last['sin_fit'])])
-            corrs *= corrs
-            # check to see if we need to continue
-            if fit_time - last['coil_fit_time'] <= t_step_max - 1e-7 and \
-                    (corrs > 0.98).sum() >= 3:
-                # don't need to refit data
+    iter_ = list(zip(fit_times, sin_fits))
+    with ProgressBar(iter_, mesg='Pass 2: Locations') as pb:
+        for fit_time, sin_fit in pb:
+            # skip this window if bad
+            if sin_fit is None:
                 continue
 
-        # update 'last' sin_fit *before* inplace sign mult
-        last['sin_fit'] = sin_fit.copy()
+            # check if data has sufficiently changed
+            if last['sin_fit'] is not None:  # first iteration
+                corrs = np.array(
+                    [np.corrcoef(s, l)[0, 1]
+                     for s, l in zip(sin_fit, last['sin_fit'])])
+                corrs *= corrs
+                # check to see if we need to continue
+                if fit_time - last['coil_fit_time'] <= t_step_max - 1e-7 and \
+                        (corrs > 0.98).sum() >= 3:
+                    # don't need to refit data
+                    continue
 
-        #
-        # 2. Fit magnetic dipole for each coil to obtain coil positions
-        #    in device coordinates
-        #
-        rrs, gofs = zip(
-            *[_fit_magnetic_dipole(f, pos, too_close, hpi)
-              for f, pos in zip(sin_fit, last['coil_dev_rrs'])])
-        #print('\n' + ', '.join('%0.3f' % g for g in gofs))
-        #raise RuntimeError
-        dig = [{'r': rr, 'ident': idx + 1, 'gof': gof,
-                'kind': FIFF.FIFFV_POINT_HPI,
-                'coord_frame': FIFF.FIFFV_COORD_DEVICE}
-               for idx, (rr, gof) in enumerate(zip(rrs, gofs))]
-        times.append(fit_time)
-        chpi_digs.append(dig)
-        last['coil_fit_time'] = fit_time
-        last['coil_dev_rrs'] = rrs
-    pb.done()
+            # update 'last' sin_fit *before* inplace sign mult
+            last['sin_fit'] = sin_fit.copy()
+
+            #
+            # 2. Fit magnetic dipole for each coil to obtain coil positions
+            #    in device coordinates
+            #
+            rrs, gofs = zip(
+                *[_fit_magnetic_dipole(f, pos, too_close, hpi)
+                  for f, pos in zip(sin_fit, last['coil_dev_rrs'])])
+            dig = [{'r': rr, 'ident': idx + 1, 'gof': gof,
+                    'kind': FIFF.FIFFV_POINT_HPI,
+                    'coord_frame': FIFF.FIFFV_COORD_DEVICE}
+                   for idx, (rr, gof) in enumerate(zip(rrs, gofs))]
+            times.append(fit_time)
+            chpi_digs.append(dig)
+            last['coil_fit_time'] = fit_time
+            last['coil_dev_rrs'] = rrs
+
     return times, chpi_digs
 
 
 @verbose
 def filter_chpi(raw, include_line=True, t_step=0.01, t_window=0.2,
-                verbose=None):
+                ext_order=1, verbose=None):
     """Remove cHPI and line noise from data.
 
     .. note:: This function will only work properly if cHPI was on
@@ -1019,6 +991,13 @@ def filter_chpi(raw, include_line=True, t_step=0.01, t_window=0.2,
     t_window : float
         Time window to use to estimate the amplitudes, default is
         0.2 (200 ms).
+    ext_order : int
+        The external order for SSS-like interfence suppression.
+        The SSS bases are used as projection vectors during fitting.
+
+        .. versionchanged:: 0.20
+           Added ``ext_order=1`` by default, which should improve
+           suppression of true HPI signals.
     %(verbose)s
 
     Returns
@@ -1043,8 +1022,8 @@ def filter_chpi(raw, include_line=True, t_step=0.01, t_window=0.2,
         raise ValueError('t_step (%s) and t_window (%s) must both be > 0.'
                          % (t_step, t_window))
     n_step = int(np.ceil(t_step * raw.info['sfreq']))
-    hpi = _setup_hpi_struct(raw.info, t_window, exclude='bads',
-                            remove_aliased=True, verbose=False)
+    hpi = _setup_hpi_struct(raw.info, t_window, remove_aliased=True,
+                            verbose=False)
     del t_window
 
     fit_idxs = np.arange(0, len(raw.times) + hpi['n_window'] // 2, n_step)
@@ -1059,35 +1038,29 @@ def filter_chpi(raw, include_line=True, t_step=0.01, t_window=0.2,
         msg += ' and %s line harmonic' % len(hpi['line_freqs'])
     msg += ' frequencies from %s MEG channels' % len(meg_picks)
 
-    proj = np.dot(hpi['model'][:, :n_remove], hpi['inv_model'][:n_remove]).T
+    recon = np.dot(hpi['model'][:, :n_remove], hpi['inv_model'][:n_remove]).T
     logger.info(msg)
     chunks = list()  # the chunks to subtract
     last_endpt = 0
-    last_done = 0.
-    next_done = 60.
-    for ii, midpt in enumerate(fit_idxs):
-        if midpt / raw.info['sfreq'] >= next_done or ii == len(fit_idxs) - 1:
-            logger.info('    Filtering % 5.1f - % 5.1f sec'
-                        % (last_done, min(next_done, raw.times[-1])))
-            last_done = next_done
-            next_done += 60.
+    pb = ProgressBar(fit_idxs, mesg='Filtering')
+    for ii, midpt in enumerate(pb):
         left_edge = midpt - hpi['n_window'] // 2
         time_sl = slice(max(left_edge, 0),
                         min(left_edge + hpi['n_window'], len(raw.times)))
         this_len = time_sl.stop - time_sl.start
         if this_len == hpi['n_window']:
-            this_proj = proj
+            this_recon = recon
         else:  # first or last window
             model = hpi['model'][:this_len]
             inv_model = linalg.pinv(model)
-            this_proj = np.dot(model[:, :n_remove], inv_model[:n_remove]).T
+            this_recon = np.dot(model[:, :n_remove], inv_model[:n_remove]).T
         this_data = raw._data[meg_picks, time_sl]
         subt_pt = min(midpt + n_step, n_times)
         if last_endpt != subt_pt:
             fit_left_edge = left_edge - time_sl.start + hpi['n_window'] // 2
             fit_sl = slice(fit_left_edge,
                            fit_left_edge + (subt_pt - last_endpt))
-            chunks.append((subt_pt, np.dot(this_data, this_proj[:, fit_sl])))
+            chunks.append((subt_pt, np.dot(this_data, this_recon[:, fit_sl])))
         last_endpt = subt_pt
 
         # Consume (trailing) chunks that are now safe to remove because
@@ -1100,4 +1073,5 @@ def filter_chpi(raw, include_line=True, t_step=0.01, t_window=0.2,
             right_edge, chunk = chunks.pop(0)
             raw._data[meg_picks,
                       right_edge - chunk.shape[1]:right_edge] -= chunk
+    pb.done()
     return raw
