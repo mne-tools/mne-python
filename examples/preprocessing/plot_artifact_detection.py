@@ -54,7 +54,7 @@ annotation_movement, hpi_disp = out
 
 ###############################################################################
 # Plot continuous head position with respect to the mean recording position
-# ------------------------------------------------------------------
+# --------------------------------------------------------------------------
 plt.figure()
 plt.plot(pos[:, 0], hpi_disp)
 plt.axhline(y=mean_distance_limit, color='r')
