@@ -244,7 +244,7 @@ def calculate_head_pos_ctf(raw, quat_gof_limit=0.98):
         this_dev = apply_trans(ctf_dev_dev_t, this_ctf_dev)
 
         # fit quaternion
-        this_quat, g = _fit_chpi_quat(this_dev, chpi_locs_head)
+        this_quat, g = _fit_chpi_quat(this_dev, chpi_locs_head, last_quat)
         if g < quat_gof_limit:
             raise RuntimeError('Bad coil fit! (g=%7.3f)' % (g,))
 
@@ -421,30 +421,49 @@ def _fit_magnetic_dipole(B_orig, x0, coils, scale, method, too_close):
 def _chpi_objective(x, coil_dev_rrs, coil_head_rrs):
     """Compute objective function."""
     d = np.dot(coil_dev_rrs, quat_to_rot(x[:3]).T)
-    d += x[3:]
+    d += x[3:] / 10.  # in decimeters to get quats and head units close
     d -= coil_head_rrs
     d *= d
     return d.sum()
 
 
-def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs):
+def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs, x0):
     """Fit rotation and translation (quaternion) parameters for cHPI coils."""
-    # Solve it the analytic way
-    x = _fit_matched_points(coil_dev_rrs, coil_head_rrs)
+    from scipy.optimize import fmin_cobyla
     denom = np.linalg.norm(coil_head_rrs - np.mean(coil_head_rrs, axis=0))
     denom *= denom
-    gof = 1. - _chpi_objective(x, coil_dev_rrs, coil_head_rrs) / denom
-    return x, gof
+    # We could try to solve it the analytic way:
+    #
+    # quat = _fit_matched_points(coil_dev_rrs, coil_head_rrs)
+    # quat[3:] *= 10
+    # gof = 1. - _chpi_objective(quat, coil_dev_rrs, coil_head_rrs) / denom
+    # quat[3:] /= 10
+    #
+    # But with few points this is dangerous because of possible flips.
+    # So we stick with COBYLA, using the previous position as the initial guess
+    # is hopefully safe enough to keep us in the right orientation.
+    # Rough timings suggest COBYLA is only 10% slower anyway.
+    #
+    objective = partial(_chpi_objective, coil_dev_rrs=coil_dev_rrs,
+                        coil_head_rrs=coil_head_rrs)
+    x0 = x0.copy()
+    x0[3:] *= 10.  # decimeters to get quats and head units close
+    quat = fmin_cobyla(objective, x0, _unit_quat_constraint,
+                       rhobeg=1e-3, rhoend=1e-5, catol=1e-7, disp=False)
+    gof = 1. - objective(quat) / denom
+    quat[3:] /= 10.
+    return quat, gof
 
 
 def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts):
     """Compute Device to Head transform allowing for permutiatons of points."""
+    id_quat = np.concatenate([rot_to_quat(np.eye(3)), [0.0, 0.0, 0.0]])
     best_order = None
     best_g = -999
     best_quat = id_quat
     for this_order in itertools.permutations(np.arange(len(head_pnts))):
         head_pnts_tmp = head_pnts[np.array(this_order)]
-        this_quat, g = _fit_chpi_quat(dev_pnts, head_pnts_tmp)
+        this_quat, g = _fit_chpi_quat(dev_pnts, head_pnts_tmp, id_quat)
         if g > best_g:
             best_g = g
             best_order = np.array(this_order)
@@ -479,8 +498,7 @@ def _setup_hpi_struct(info, t_window, method='forward', exclude='bads',
             raise ValueError('t_window must be "auto" if a string, got %r'
                              % (t_window,))
         t_window = max(5. / min(hpi_freqs), 1. / np.diff(hpi_freqs).min())
-        logger.info('Automatically choosing t_window=%0.1f ms'
-                    % (1000 * t_window,))
+    logger.info('Using time window: %0.1f ms' % (1000 * t_window,))
     model_n_window = int(round(float(t_window) * info['sfreq']))
     # worry about resampled/filtered data.
     # What to do e.g. if Raw has been resampled and some of our
@@ -615,23 +633,6 @@ def _fit_cHPI_amplitudes(raw, time_sl, hpi, fit_time, verbose=None):
         # Do not modify X, however, because it will break the signal
         # reconstruction step.
 
-    data_diff_sq = np.dot(model, X).T - this_data
-    data_diff_sq *= data_diff_sq
-    data_diff_sq = np.sum(data_diff_sq, axis=-1)
-
-    # compute amplitude correlation (for logging), protect against zero
-    norm = this_data
-    del this_data
-    norm *= norm
-    norm = np.sum(norm, axis=-1)
-    norm_sum = norm.sum()
-    norm_sum = np.inf if norm_sum == 0 else norm_sum
-    norm[norm == 0] = np.inf
-    g_sin = 1 - data_diff_sq.sum() / norm_sum
-    g_chan = 1 - data_diff_sq / norm
-    # logger.debug('    HPI amplitude correlation %0.3f: %0.3f '
-    #              '(%s chnls > 0.95)' % (fit_time, g_sin,
-    #                                     (g_chan > 0.95).sum()))
     return sin_fit, n_on
 
 
@@ -773,15 +774,14 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
         this_coil_dev_rrs = np.array([coil['r'] for coil in coils])
         g_coils = np.array([coil['gof'] for coil in coils])
         use_idx = np.where(g_coils >= gof_limit)[0]
-        n_good = len(use_idx)
 
         #
         # 3. Check number of good ones
         #
-        if n_good < 3:
+        if len(use_idx) < 3:
             msg = (_time_prefix(fit_time) + '%s/%s good HPI fits, cannot '
                    'determine the transformation (%s)!'
-                   % (n_good, hpi['n_freqs'],
+                   % (len(use_idx), hpi['n_freqs'],
                       ', '.join('%0.2f' % g for g in g_coils)))
             warn(msg)
             continue
@@ -792,7 +792,7 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
         #    positions) iteratively using different sets of coils.
         #
         this_quat, g, use_idx = _fit_chpi_quat_subset(
-            this_coil_dev_rrs, hpi_dig_head_rrs, use_idx)
+            this_coil_dev_rrs, hpi_dig_head_rrs, use_idx, last['quat'])
 
         # Convert quaterion to transform
         this_dev_head_t = np.concatenate(
@@ -801,11 +801,11 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
         this_dev_head_t = np.concatenate((this_dev_head_t, [[0, 0, 0, 1.]]))
         est_coil_head_rrs = apply_trans(this_dev_head_t, this_coil_dev_rrs)
         errs = np.linalg.norm(hpi_dig_head_rrs - est_coil_head_rrs, axis=1)
-        use_idx = use_idx[errs[use_idx] < dist_limit]
-        if len(use_idx) < 3:
+        n_good = ((g_coils >= gof_limit) & (errs < dist_limit)).sum()
+        if n_good < 3:
             warn(_time_prefix(fit_time) + '%s/%s good HPI fits, cannot '
                  'determine the transformation (%s)!'
-                 % (len(use_idx), hpi['n_freqs'],
+                 % (n_good, hpi['n_freqs'],
                     ', '.join('%0.2f' % g for g in g_coils)))
             continue
 
@@ -864,17 +864,23 @@ def calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
     return quats
 
 
-def _fit_chpi_quat_subset(coil_dev_rrs, coil_head_rrs, use_idx):
-    quat, g = _fit_chpi_quat(coil_dev_rrs[use_idx], coil_head_rrs[use_idx])
+def _fit_chpi_quat_subset(coil_dev_rrs, coil_head_rrs, use_idx, x0):
+    quat, g = _fit_chpi_quat(coil_dev_rrs[use_idx], coil_head_rrs[use_idx], x0)
     out_idx = use_idx.copy()
     if len(use_idx) > 3:  # try dropping one (recursively)
         for di in range(len(use_idx)):
             this_use_idx = list(use_idx[:di]) + list(use_idx[di + 1:])
             this_quat, this_g, this_use_idx = _fit_chpi_quat_subset(
-                coil_dev_rrs, coil_head_rrs, this_use_idx)
+                coil_dev_rrs, coil_head_rrs, this_use_idx, x0)
             if this_g > g:
                 quat, g, out_idx = this_quat, this_g, this_use_idx
     return quat, g, np.array(out_idx, int)
+
+
+@jit()
+def _unit_quat_constraint(x):
+    """Constrain our 3 quaternion rot params (ignoring w) to have norm <= 1."""
+    return 1 - (x * x).sum()
 
 
 @verbose
@@ -944,13 +950,13 @@ def _calculate_chpi_coil_locs(raw, t_step_min=0.01, t_step_max=1.,
         t_begin + hpi['t_window'] / 2., t_end, t_step_min), use_rounding=True)
     times = []
     chpi_digs = []
-    logger.info('Fitting %d HPI coil locations for up to %s time points '
+    logger.info('Fitting %d HPI coil locations at up to %s time points '
                 '(%0.1f sec duration)'
                 % (len(hpi['freqs']), len(fit_idxs), t_end - t_begin))
 
     hpi['n_freqs'] = len(hpi['freqs'])
     # Don't use a ProgressBar in debug mode
-    pb = ProgressBar(fit_idxs)
+    pb = ProgressBar(fit_idxs, mesg='Fitting HPI')
     for midpt in pb:
         #
         # 0. determine samples to fit.

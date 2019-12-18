@@ -66,11 +66,11 @@ class ProgressBar(object):
     """
 
     spinner_symbols = ['|', '/', '-', '\\']
-    template = '\r[{0}{1}] {2} {3} {4}'
+    template = '\r{2} |{0}{1}| {3} {4}'
 
     def __init__(self, max_value, initial_value=0, mesg='', max_chars='auto',
-                 progress_character='.', spinner=False,
-                 max_total_width='auto', verbose_bool=True):  # noqa: D102
+                 progress_character='█', spinner=False,
+                 max_total_width='auto', verbose_bool='auto'):  # noqa: D102
         self.cur_value = initial_value
         if isinstance(max_value, Iterable):
             self.max_value = len(max_value)
@@ -143,9 +143,13 @@ class ProgressBar(object):
         # display in the console window.
         progress = '%6.02f%%' % (progress * 100,)
         progress = progress if self.cur_value <= max_value else 'unknown'
+        if self.spinner:
+            spinner = self.spinner_symbols[self.spinner_index]
+        else:
+            spinner = ''
         bar = self.template.format(
             self.progress_character * num_chars, ' ' * num_left,
-            progress, self.mesg, self.spinner_symbols[self.spinner_index])
+            progress, self.mesg, spinner)
         bar = bar[:self.max_total_width]
         # Force a flush because sometimes when using bash scripts and pipes,
         # the output is not printed until after the program exits.

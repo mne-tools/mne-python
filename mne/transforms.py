@@ -1191,31 +1191,34 @@ def _one_rot_to_quat(rot):
     """Convert a rotation matrix to quaternions."""
     # see e.g. http://www.euclideanspace.com/maths/geometry/rotations/
     #                 conversions/matrixToQuaternion/
+    det = np.linalg.det(np.reshape(rot, (3, 3)))
+    if np.abs(det - 1.) > 1e-3:
+        raise ValueError('Matrix is not a pure rotation, got determinant != 1')
     t = 1. + rot[0] + rot[4] + rot[8]
     if t > np.finfo(rot.dtype).eps:
         s = np.sqrt(t) * 2.
+        # qw = 0.25 * s
         qx = (rot[7] - rot[5]) / s
         qy = (rot[2] - rot[6]) / s
         qz = (rot[3] - rot[1]) / s
-        # qw = 0.25 * s
     elif rot[0] > rot[4] and rot[0] > rot[8]:
         s = np.sqrt(1. + rot[0] - rot[4] - rot[8]) * 2.
+        # qw = (rot[7] - rot[5]) / s
         qx = 0.25 * s
         qy = (rot[1] + rot[3]) / s
         qz = (rot[2] + rot[6]) / s
-        # qw = (rot[7] - rot[5]) / s
     elif rot[4] > rot[8]:
         s = np.sqrt(1. - rot[0] + rot[4] - rot[8]) * 2
+        # qw = (rot[2] - rot[6]) / s
         qx = (rot[1] + rot[3]) / s
         qy = 0.25 * s
         qz = (rot[5] + rot[7]) / s
-        # qw = (rot[2] - rot[6]) / s
     else:
         s = np.sqrt(1. - rot[0] - rot[4] + rot[8]) * 2.
+        # qw = (rot[3] - rot[1]) / s
         qx = (rot[2] + rot[6]) / s
         qy = (rot[5] + rot[7]) / s
         qz = 0.25 * s
-        # qw = (rot[3] - rot[1]) / s
     return np.array((qx, qy, qz))
 
 
@@ -1307,6 +1310,12 @@ def _fit_matched_points(p, x):
     # Follow notation of P.J. Besl and N.D. McKay, A Method for
     # Registration of 3-D Shapes, IEEE Trans. Patt. Anal. Machine Intell., 14,
     # 239 - 255, 1992.
+    #
+    # Caution: This can be dangerous if there are 3 points, or 4 points in
+    #          a symmetric layout, as the geometry can be explained
+    #          equivalently under 180 degree rotations.
+    #
+    # XXX eventually we should use this in coreg to speed things up.
     assert p.shape == x.shape
     assert p.ndim == 2
     assert p.shape[1] == 3
@@ -1323,7 +1332,9 @@ def _fit_matched_points(p, x):
     Q[1:, 1:] = Sigma_px + Sigma_px.T - tr_Sigma_px * np.eye(3)
     _, v = np.linalg.eigh(Q)  # sorted ascending
     quat = np.empty(6)
-    quat[:3] = v[1:, -1] * np.sign(v[0, -1])
+    quat[:3] = v[1:, -1]
+    if v[0, -1] != 0:
+        quat[:3] *= np.sign(v[0, -1])
     quat[3:] = mu_x - np.dot(quat_to_rot(quat[:3]), mu_p)
     return quat
 

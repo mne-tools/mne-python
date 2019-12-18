@@ -304,6 +304,13 @@ def test_quaternions():
             expected = np.pi if ii != jj else 0.
             assert_allclose(_angle_between_quats(a, b), expected, atol=1e-5)
 
+    y_180 = np.array([[-1, 0, 0], [0, 1, 0], [0, 0, -1.]])
+    assert_allclose(_angle_between_quats(rot_to_quat(y_180),
+                                         np.zeros(3)), np.pi)
+    h_180_attitude_90 = np.array([[0, 1, 0], [1, 0, 0], [0, 0, -1.]])
+    assert_allclose(_angle_between_quats(rot_to_quat(h_180_attitude_90),
+                                         np.zeros(3)), np.pi)
+
 
 def test_vector_rotation():
     """Test basic rotation matrix math."""
