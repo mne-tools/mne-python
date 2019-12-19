@@ -68,7 +68,7 @@ evoked.crop(tmin=-0.1, tmax=0.4)
 forward = mne.read_forward_solution(fwd_fname)
 
 ###############################################################################
-# Run the solver
+# Run solver
 
 # alpha parameter is between 0 and 100 (100 gives 0 active source)
 alpha = 40.  # general regularization parameter

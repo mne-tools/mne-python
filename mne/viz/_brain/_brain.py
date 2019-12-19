@@ -510,6 +510,7 @@ class _Brain(object):
                                      % filepath)
             label = read_label(filepath)
             ids = label.vertices
+            scalars = label.values
         else:
             # try to extract parameters from label instance
             try:
@@ -536,8 +537,8 @@ class _Brain(object):
                                  '"values"')
             hemi = self._check_hemi(hemi)
 
-            if scalar_thresh is not None:
-                ids = ids[scalars >= scalar_thresh]
+        if scalar_thresh is not None:
+            ids = ids[scalars >= scalar_thresh]
 
         # XXX: add support for label_name
         self._label_name = label_name
@@ -555,14 +556,22 @@ class _Brain(object):
                 ci = 0 if hemi == 'lh' else 1
             views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
             self._renderer.subplot(ri, ci)
-            self._renderer.mesh(x=self.geo[hemi].coords[:, 0],
-                                y=self.geo[hemi].coords[:, 1],
-                                z=self.geo[hemi].coords[:, 2],
-                                triangles=self.geo[hemi].faces,
-                                scalars=label,
-                                color=None,
-                                colormap=ctable,
-                                backface_culling=False)
+            if borders:
+                surface = {
+                    'rr': self.geo[hemi].coords,
+                    'tris': self.geo[hemi].faces,
+                }
+                self._renderer.contour(surface, label, [1.0], color=color,
+                                       kind='tube')
+            else:
+                self._renderer.mesh(x=self.geo[hemi].coords[:, 0],
+                                    y=self.geo[hemi].coords[:, 1],
+                                    z=self.geo[hemi].coords[:, 2],
+                                    triangles=self.geo[hemi].faces,
+                                    scalars=label,
+                                    color=None,
+                                    colormap=ctable,
+                                    backface_culling=False)
             self._renderer.set_camera(azimuth=views_dict[v].azim,
                                       elevation=views_dict[v].elev)
 
