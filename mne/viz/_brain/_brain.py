@@ -810,7 +810,6 @@ class _Brain(object):
                                               adj_mat, int(n_steps))
                 act_data = smooth_mat.dot(act_data)
                 pd.point_arrays['Data'] = act_data
-                pd.point_arrays.update(pd.point_arrays)
 
     @property
     def overlays(self):
