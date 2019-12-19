@@ -65,35 +65,35 @@ def mark_flat(raw, bad_percent=5., min_duration=0.005, picks=None,
     onsets, ends = _annotations_starts_stops(raw, 'bad_acq_skip', invert=True)
     idx = np.concatenate([np.arange(onset, end)
                           for onset, end in zip(onsets, ends)])
-    with ProgressBar(picks, mesg='Finding flat segments', spinner=True,
-                     verbose_bool='auto') as pb:
-        for pick in pb:
-            data = np.concatenate([raw[pick, onset:end][0][0]
-                                   for onset, end in zip(onsets, ends)])
-            flat = np.diff(data) == 0
-            flat = np.concatenate(
-                [flat[[0]], flat[1:] | flat[:-1], flat[[-1]]])
-            starts, stops = _mask_to_onsets_offsets(flat)
-            for start, stop in zip(starts, stops):
-                if stop - start < time_thresh:
-                    flat[start:stop] = False
-            flat_mean = flat.mean()
-            if flat_mean:  # only do something if there are actually flat parts
-                flat_mean *= 100
-                if flat_mean > bad_percent:
-                    kind, comp = 'bads', '>'
-                    bads.append(raw.ch_names[pick])
-                else:
-                    kind, comp = 'BAD_', '≤'
-                    any_flat[idx] |= flat
-                logger.debug('%s: %s (%s %s %s)'
-                             % (kind, raw.ch_names[pick],
-                                flat_mean, comp, bad_percent))
+    logger.info('Finding flat segments')
+    for pick in ProgressBar(picks, mesg='Channels'):
+        data = np.concatenate([raw[pick, onset:end][0][0]
+                               for onset, end in zip(onsets, ends)])
+        flat = np.diff(data) == 0
+        flat = np.concatenate(
+            [flat[[0]], flat[1:] | flat[:-1], flat[[-1]]])
+        starts, stops = _mask_to_onsets_offsets(flat)
+        for start, stop in zip(starts, stops):
+            if stop - start < time_thresh:
+                flat[start:stop] = False
+        flat_mean = flat.mean()
+        if flat_mean:  # only do something if there are actually flat parts
+            flat_mean *= 100
+            if flat_mean > bad_percent:
+                kind, comp = 'bads', '>'
+                bads.append(raw.ch_names[pick])
+            else:
+                kind, comp = 'BAD_', '≤'
+                any_flat[idx] |= flat
+            logger.debug('%s: %s (%s %s %s)'
+                         % (kind, raw.ch_names[pick],
+                            flat_mean, comp, bad_percent))
     starts, stops = _mask_to_onsets_offsets(any_flat)
     logger.info('Marking %0.2f%% of time points (%d segment%s) and '
-                '%d/%d channel%s bad: %s'
+                '%d/%d channel%s bad%s'
                 % (100 * any_flat[idx].mean(), len(starts), _pl(starts),
-                   len(bads), len(picks), _pl(bads), bads))
+                   len(bads), len(picks), _pl(bads),
+                   (': %s' % (bads,)) if bads else ''))
     add_bads = [bad for bad in bads if bad not in raw.info['bads']]
     raw.info['bads'] = list(raw.info['bads']) + add_bads
     if len(starts) > 0:

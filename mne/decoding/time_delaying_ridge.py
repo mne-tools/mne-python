@@ -12,7 +12,7 @@ from .base import BaseEstimator
 from ..cuda import _setup_cuda_fft_multiply_repeated
 from ..filter import next_fast_len
 from ..parallel import check_n_jobs
-from ..utils import warn, ProgressBar
+from ..utils import warn, ProgressBar, logger
 
 
 def _compute_corrs(X, y, smin, smax, n_jobs=1, fit_intercept=False,
@@ -54,9 +54,9 @@ def _compute_corrs(X, y, smin, smax, n_jobs=1, fit_intercept=False,
 
     x_xt = np.zeros([n_ch_x * len_trf] * 2)
     x_y = np.zeros((len_trf, n_ch_x, n_ch_y), order='F')
-    pb = ProgressBar(n_epochs * (n_ch_x * (n_ch_x + 1) // 2 + n_ch_x),
-                     mesg='Fit %d epochs, %d channels' % (n_epochs, n_ch_x),
-                     spinner=True, verbose_bool='auto')
+    n = n_epochs * (n_ch_x * (n_ch_x + 1) // 2 + n_ch_x)
+    logger.info('Fitting %d epochs, %d channels' % (n_epochs, n_ch_x))
+    pb = ProgressBar(n, mesg='Sample')
     count = 0
     pb.update(count)
     for ei in range(n_epochs):
@@ -114,7 +114,6 @@ def _compute_corrs(X, y, smin, smax, n_jobs=1, fit_intercept=False,
                 x_y[:, ch0] += cc_temp[smin:smax]
             count += 1
             pb.update(count)
-    pb.done()
 
     x_y = np.reshape(x_y, (n_ch_x * len_trf, n_ch_y), order='F')
     return x_xt, x_y, n_ch_x, X_offset, y_offset
