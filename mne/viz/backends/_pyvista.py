@@ -178,11 +178,12 @@ class _Renderer(_BaseRenderer):
                 from matplotlib.colors import ListedColormap
                 colormap = ListedColormap(colormap)
 
-            self.plotter.add_mesh(mesh=pd, color=color, scalars=scalars,
-                                  rgba=rgba, opacity=opacity, cmap=colormap,
-                                  backface_culling=backface_culling,
-                                  rng=[vmin, vmax], show_scalar_bar=False,
-                                  smooth_shading=smooth_shading)
+            actor = self.plotter.add_mesh(mesh=pd, color=color, scalars=scalars,
+                                          rgba=rgba, opacity=opacity, cmap=colormap,
+                                          backface_culling=backface_culling,
+                                          rng=[vmin, vmax], show_scalar_bar=False,
+                                          smooth_shading=smooth_shading)
+            return actor, pd
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,

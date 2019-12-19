@@ -336,6 +336,7 @@ class _Brain(object):
 
         hemi = self._check_hemi(hemi)
         array = np.asarray(array)
+        self._data['array'] = array
 
         # Create time array and add label if > 1D
         if array.ndim <= 1:
@@ -389,6 +390,7 @@ class _Brain(object):
             fmin, fmid, fmax, center, array
         )
 
+        self._data['vertices'] = vertices
         self._data['time'] = time
         self._data['initial_time'] = initial_time
         self._data['time_label'] = time_label
@@ -428,7 +430,7 @@ class _Brain(object):
             else:
                 ci = 0 if hemi == 'lh' else 1
             self._renderer.subplot(ri, ci)
-            mesh = self._renderer.mesh(x=self.geo[hemi].coords[:, 0],
+            m, p = self._renderer.mesh(x=self.geo[hemi].coords[:, 0],
                                        y=self.geo[hemi].coords[:, 1],
                                        z=self.geo[hemi].coords[:, 2],
                                        triangles=self.geo[hemi].faces,
@@ -437,13 +439,15 @@ class _Brain(object):
                                        vmin=dt_min,
                                        vmax=dt_max,
                                        scalars=act_data)
+            self._data[hemi + '_mesh'] = m
+            self._data[hemi + '_pd'] = p
             if array.ndim >= 2 and callable(time_label):
                 self._renderer.text2d(x_window=0.95, y_window=y_txt,
                                       size=time_label_size,
                                       text=time_label(time[time_idx]),
                                       justification='right')
             if colorbar and not self._colorbar_added:
-                self._renderer.scalarbar(source=mesh, n_labels=8,
+                self._renderer.scalarbar(source=m, n_labels=8,
                                          bgcolor=(0.5, 0.5, 0.5))
                 self._colorbar_added = True
             self._renderer.set_camera(azimuth=views_dict[v].azim,
@@ -779,6 +783,32 @@ class _Brain(object):
                           fmax=fmax, center=center, transparent=transparent)
 
         return self._data['ctable']
+
+    def set_data_smoothing_steps(self, smoothing_steps):
+        """Set the number of smoothing steps
+
+        Parameters
+        ----------
+        smoothing_steps : int
+            Number of smoothing steps
+        """
+        for hemi in ['lh', 'rh']:
+            pd = self._data[hemi + '_pd']
+            if pd is not None:
+                # Redraw
+                if self._data['array'].ndim == 1:
+                    act_data = self._data['array']
+                elif self._data['array'].ndim == 2:
+                    act_data = self._data['array'][:, self._data['time_idx']]
+                else:  # vector-valued
+                    act_data = self._data['magnitude'][:, self._data['time_idx']]
+
+                adj_mat = mesh_edges(self.geo[hemi].faces)
+                smooth_mat = smoothing_matrix(self._data['vertices'],
+                                              adj_mat, int(smoothing_steps))
+                act_data = smooth_mat.dot(act_data)
+                pd.point_arrays['Data'] = act_data
+                pd.point_arrays.update(pd.point_arrays)
 
     @property
     def overlays(self):
