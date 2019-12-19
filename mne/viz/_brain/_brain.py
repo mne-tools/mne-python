@@ -390,13 +390,13 @@ class _Brain(object):
             fmin, fmid, fmax, center, array
         )
 
-        self._data['vertices'] = vertices
         self._data['time'] = time
         self._data['initial_time'] = initial_time
         self._data['time_label'] = time_label
         self._data['time_idx'] = time_idx
         # data specific for a hemi
         self._data[hemi + '_array'] = array
+        self._data[hemi + '_vertices'] = vertices
 
         self._data['alpha'] = alpha
         self._data['colormap'] = colormap
@@ -794,8 +794,9 @@ class _Brain(object):
         """
         for hemi in ['lh', 'rh']:
             pd = self._data[hemi + '_pd']
+            array = self._data[hemi + '_array']
+            vertices = self._data[hemi + '_vertices']
             if pd is not None:
-                array = self._data['array']
                 time_idx = self._data['time_idx']
                 if self._data['array'].ndim == 1:
                     act_data = array
@@ -805,7 +806,7 @@ class _Brain(object):
                     act_data = self._data['magnitude'][:, time_idx]
 
                 adj_mat = mesh_edges(self.geo[hemi].faces)
-                smooth_mat = smoothing_matrix(self._data['vertices'],
+                smooth_mat = smoothing_matrix(vertices,
                                               adj_mat, int(n_steps))
                 act_data = smooth_mat.dot(act_data)
                 pd.point_arrays['Data'] = act_data
