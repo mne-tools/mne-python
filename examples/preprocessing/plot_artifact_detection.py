@@ -60,7 +60,7 @@ plt.plot(pos[:, 0], hpi_disp)
 plt.axhline(y=mean_distance_limit, color='r')
 plt.xlabel('time s')
 plt.ylabel('distance m')
-plt.title('cHPI w.r.t mean recording head position')
+plt.title('cHPI w.r.t mean recording head position ')
 plt.show(block=False)
 
 ###############################################################################
