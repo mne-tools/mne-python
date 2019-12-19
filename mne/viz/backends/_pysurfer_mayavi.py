@@ -124,7 +124,7 @@ class _Renderer(_BaseRenderer):
                                     '{} was given'.format(colormap.dtype))
             surface.actor.property.shading = shading
             surface.actor.property.backface_culling = backface_culling
-        return surface
+        return surface, None
 
     def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
