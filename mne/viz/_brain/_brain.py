@@ -810,6 +810,36 @@ class _Brain(object):
                                               adj_mat, int(n_steps))
                 act_data = smooth_mat.dot(act_data)
                 pd.point_arrays['Data'] = act_data
+                self._data[hemi + '_smooth_mat'] = smooth_mat
+
+    def set_time_point(self, time_idx):
+        """Set the time point shown."""
+        time_idx = int(time_idx)
+        for hemi in ['lh', 'rh']:
+            pd = self._data[hemi + '_pd']
+            array = self._data[hemi + '_array']
+            if array.ndim == 1:
+                continue  # skip data without time axis
+            # interpolation
+            if array.ndim == 2:
+                act_data = array
+                vectors = None
+            else:
+                act_data = self._data['magnitude']
+                vectors = array
+            if isinstance(time_idx, float):
+                pass # XXX: TODO time interpolation
+            else:
+                act_data = act_data[:, time_idx]
+                if vectors is not None:
+                    vectors = vectors[:, :, time_idx]
+
+            vector_values = act_data.copy()
+            smooth_mat = self._data[hemi + '_smooth_mat']
+            if smooth_mat is not None:
+                act_data = smooth_mat.dot(act_data)
+            pd.point_arrays['Data'] = act_data
+            self._data['time_idx'] = time_idx
 
     @property
     def overlays(self):

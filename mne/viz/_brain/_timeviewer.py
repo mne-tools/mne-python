@@ -13,17 +13,16 @@ class _TimeViewer(object):
 
         smoothing_slider = plotter.add_slider_widget(
             brain.set_data_smoothing,
+            value=10,
             rng=[2, 30], title="smoothing",
             pointa=(0.95, -0.1),
             pointb=(0.95, 1.2)
         )
 
-        def test(val):
-            pass
-
+        max_time = len(brain._data['time']) - 1
         time_slider = plotter.add_slider_widget(
-            test,
-            rng=[0, 1], title="time",
+            brain.set_time_point,
+            rng=[0, max_time], title="time",
             pointa=(0.85, -0.1),
             pointb=(0.85, 1.2)
         )
