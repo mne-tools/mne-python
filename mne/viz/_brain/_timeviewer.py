@@ -11,4 +11,4 @@ class _TimeViewer(object):
     def __init__(self, brain):
         plotter = brain._renderer.plotter
 
-        plotter.add_slider_widget(brain.set_data_smoothing_steps, rng=[2, 30])
+        plotter.add_slider_widget(brain.set_data_smoothing, rng=[2, 30])

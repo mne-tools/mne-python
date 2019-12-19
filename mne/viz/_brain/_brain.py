@@ -784,28 +784,29 @@ class _Brain(object):
 
         return self._data['ctable']
 
-    def set_data_smoothing_steps(self, smoothing_steps):
+    def set_data_smoothing(self, n_steps):
         """Set the number of smoothing steps
 
         Parameters
         ----------
-        smoothing_steps : int
+        n_steps : int
             Number of smoothing steps
         """
         for hemi in ['lh', 'rh']:
             pd = self._data[hemi + '_pd']
             if pd is not None:
-                # Redraw
+                array = self._data['array']
+                time_idx = self._data['time_idx']
                 if self._data['array'].ndim == 1:
-                    act_data = self._data['array']
+                    act_data = array
                 elif self._data['array'].ndim == 2:
-                    act_data = self._data['array'][:, self._data['time_idx']]
+                    act_data = array[:, time_idx]
                 else:  # vector-valued
-                    act_data = self._data['magnitude'][:, self._data['time_idx']]
+                    act_data = self._data['magnitude'][:, time_idx]
 
                 adj_mat = mesh_edges(self.geo[hemi].faces)
                 smooth_mat = smoothing_matrix(self._data['vertices'],
-                                              adj_mat, int(smoothing_steps))
+                                              adj_mat, int(n_steps))
                 act_data = smooth_mat.dot(act_data)
                 pd.point_arrays['Data'] = act_data
                 pd.point_arrays.update(pd.point_arrays)
