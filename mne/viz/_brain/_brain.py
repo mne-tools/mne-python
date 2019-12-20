@@ -785,7 +785,7 @@ class _Brain(object):
         return self._data['ctable']
 
     def set_data_smoothing(self, n_steps):
-        """Set the number of smoothing steps
+        """Set the number of smoothing steps.
 
         Parameters
         ----------
@@ -828,13 +828,12 @@ class _Brain(object):
                 act_data = self._data['magnitude']
                 vectors = array
             if isinstance(time_idx, float):
-                pass # XXX: TODO time interpolation
+                pass  # XXX: TODO time interpolation
             else:
                 act_data = act_data[:, time_idx]
                 if vectors is not None:
                     vectors = vectors[:, :, time_idx]
 
-            vector_values = act_data.copy()
             smooth_mat = self._data[hemi + '_smooth_mat']
             if smooth_mat is not None:
                 act_data = smooth_mat.dot(act_data)
