@@ -294,7 +294,13 @@ def _read_elp_besa(fname, head_size):
     if head_size is not None:
         pos *= head_size / np.median(np.linalg.norm(pos, axis=1))
 
-    return make_dig_montage(ch_pos=OrderedDict(zip(ch_names, pos)))
+    ch_pos = OrderedDict(zip(ch_names, pos))
+
+    fid_names = ('Nz', 'LPA', 'RPA')
+    # No one grants that the fid names actually exist.
+    nasion, lpa, rpa = [ch_pos.pop(n, None) for n in fid_names]
+
+    return make_dig_montage(ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa)
 
 
 def _read_brainvision(fname, head_size, unit):
