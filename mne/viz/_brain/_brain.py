@@ -817,7 +817,8 @@ class _Brain(object):
 
                         adj_mat = mesh_edges(self.geo[hemi].faces)
                         smooth_mat = smoothing_matrix(vertices,
-                                                      adj_mat, int(n_steps))
+                                                      adj_mat, int(n_steps),
+                                                      verbose=False)
                         act_data = smooth_mat.dot(act_data)
                         pd.point_arrays['Data'] = act_data
                         self._data[hemi + '_smooth_mat'] = smooth_mat
