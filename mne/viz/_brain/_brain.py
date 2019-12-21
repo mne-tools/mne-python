@@ -833,7 +833,7 @@ class _Brain(object):
                     array = self._data[hemi + '_array']
                     time = self._data['time']
                     time_label = self._data['time_label']
-                    time_actor = self._data[hemi + '_time_actor']
+                    time_actor = self._data.get(hemi + '_time_actor')
                     if array.ndim == 1:
                         continue  # skip data without time axis
                     # interpolation
@@ -847,7 +847,7 @@ class _Brain(object):
                     if smooth_mat is not None:
                         act_data = smooth_mat.dot(act_data)
                     pd.point_arrays['Data'] = act_data
-                    if callable(time_label):
+                    if callable(time_label) and time_actor is not None:
                         time_actor.SetInput(time_label(time[time_idx]))
                     self._data['time_idx'] = time_idx
 
