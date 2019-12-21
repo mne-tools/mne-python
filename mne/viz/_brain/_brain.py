@@ -441,10 +441,11 @@ class _Brain(object):
             self._data[hemi + '_mesh'] = m
             self._data[hemi + '_pd'] = p
             if array.ndim >= 2 and callable(time_label):
-                self._renderer.text2d(x_window=0.95, y_window=y_txt,
-                                      size=time_label_size,
-                                      text=time_label(time[time_idx]),
-                                      justification='right')
+                t = self._renderer.text2d(x_window=0.95, y_window=y_txt,
+                                          size=time_label_size,
+                                          text=time_label(time[time_idx]),
+                                          justification='right')
+                self._data[hemi + '_time_actor'] = t
             if colorbar and not self._colorbar_added:
                 self._renderer.scalarbar(source=m, n_labels=8,
                                          bgcolor=(0.5, 0.5, 0.5))
@@ -830,6 +831,9 @@ class _Brain(object):
                 pd = self._data.get(hemi + '_pd')
                 if pd is not None:
                     array = self._data[hemi + '_array']
+                    time = self._data['time']
+                    time_label = self._data['time_label']
+                    time_actor = self._data[hemi + '_time_actor']
                     if array.ndim == 1:
                         continue  # skip data without time axis
                     # interpolation
@@ -843,6 +847,8 @@ class _Brain(object):
                     if smooth_mat is not None:
                         act_data = smooth_mat.dot(act_data)
                     pd.point_arrays['Data'] = act_data
+                    if callable(time_label):
+                        time_actor.SetInput(time_label(time[time_idx]))
                     self._data['time_idx'] = time_idx
 
     @property

@@ -386,6 +386,7 @@ class _Renderer(_BaseRenderer):
                     raise ValueError('Expected values for `justification`'
                                      'are `left`, `center` or `right` but '
                                      'got {} instead.'.format(justification))
+        return actor
 
     def text3d(self, x, y, z, text, scale, color='white'):
         with warnings.catch_warnings():
