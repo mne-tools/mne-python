@@ -119,6 +119,30 @@ def test_brain_add_text(renderer):
     brain.add_text(x=0, y=0, text='foo')
 
 
+@testing.requires_testing_data
+def test_brain_timeviewer(renderer):
+    """Test _TimeViewer primitives."""
+    if renderer.get_3d_backend() == "mayavi":
+        pytest.skip()  # Skip PySurfer.TimeViewer
+    stc = read_source_estimate(fname_stc)
+
+    hemi = 'lh'
+    hemi_data = stc.data[:len(stc.vertices[0]), 10]
+    hemi_vertices = stc.vertices[0]
+    fmin = stc.data.min()
+    fmax = stc.data.max()
+
+    brain_data = _Brain(subject_id, hemi, surf, size=300,
+                        subjects_dir=subjects_dir)
+
+    brain_data.add_data(hemi_data, fmin=fmin, hemi=hemi, fmax=fmax,
+                        colormap='hot', vertices=hemi_vertices,
+                        colorbar=False)
+
+    brain_data.set_data_smoothing(n_steps=1)
+    brain_data.set_time_point(time_idx=0)
+
+
 def test_brain_colormap():
     """Test brain's colormap functions."""
     colormap = "coolwarm"

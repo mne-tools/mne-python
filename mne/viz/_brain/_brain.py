@@ -7,6 +7,7 @@
 #
 # License: Simplified BSD
 
+import warnings
 import numpy as np
 import os
 from os.path import join as pjoin
@@ -792,53 +793,50 @@ class _Brain(object):
         n_steps : int
             Number of smoothing steps
         """
-        for hemi in ['lh', 'rh']:
-            pd = self._data[hemi + '_pd']
-            array = self._data[hemi + '_array']
-            vertices = self._data[hemi + '_vertices']
-            if pd is not None:
-                time_idx = self._data['time_idx']
-                if self._data['array'].ndim == 1:
-                    act_data = array
-                elif self._data['array'].ndim == 2:
-                    act_data = array[:, time_idx]
-                else:  # vector-valued
-                    act_data = self._data['magnitude'][:, time_idx]
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=FutureWarning)
+            for hemi in ['lh', 'rh']:
+                pd = self._data.get(hemi + '_pd')
+                if pd is not None:
+                    array = self._data[hemi + '_array']
+                    vertices = self._data[hemi + '_vertices']
+                    if pd is not None:
+                        time_idx = self._data['time_idx']
+                        if self._data['array'].ndim == 1:
+                            act_data = array
+                        elif self._data['array'].ndim == 2:
+                            act_data = array[:, time_idx]
 
-                adj_mat = mesh_edges(self.geo[hemi].faces)
-                smooth_mat = smoothing_matrix(vertices,
-                                              adj_mat, int(n_steps))
-                act_data = smooth_mat.dot(act_data)
-                pd.point_arrays['Data'] = act_data
-                self._data[hemi + '_smooth_mat'] = smooth_mat
+                        adj_mat = mesh_edges(self.geo[hemi].faces)
+                        smooth_mat = smoothing_matrix(vertices,
+                                                      adj_mat, int(n_steps))
+                        act_data = smooth_mat.dot(act_data)
+                        pd.point_arrays['Data'] = act_data
+                        self._data[hemi + '_smooth_mat'] = smooth_mat
 
     def set_time_point(self, time_idx):
         """Set the time point shown."""
-        time_idx = int(time_idx)
-        for hemi in ['lh', 'rh']:
-            pd = self._data[hemi + '_pd']
-            array = self._data[hemi + '_array']
-            if array.ndim == 1:
-                continue  # skip data without time axis
-            # interpolation
-            if array.ndim == 2:
-                act_data = array
-                vectors = None
-            else:
-                act_data = self._data['magnitude']
-                vectors = array
-            if isinstance(time_idx, float):
-                pass  # XXX: TODO time interpolation
-            else:
-                act_data = act_data[:, time_idx]
-                if vectors is not None:
-                    vectors = vectors[:, :, time_idx]
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=FutureWarning)
+            time_idx = int(time_idx)
+            for hemi in ['lh', 'rh']:
+                pd = self._data.get(hemi + '_pd')
+                if pd is not None:
+                    array = self._data[hemi + '_array']
+                    if array.ndim == 1:
+                        continue  # skip data without time axis
+                    # interpolation
+                    if array.ndim == 2:
+                        act_data = array
 
-            smooth_mat = self._data[hemi + '_smooth_mat']
-            if smooth_mat is not None:
-                act_data = smooth_mat.dot(act_data)
-            pd.point_arrays['Data'] = act_data
-            self._data['time_idx'] = time_idx
+                    if isinstance(time_idx, int):
+                        act_data = act_data[:, time_idx]
+
+                    smooth_mat = self._data[hemi + '_smooth_mat']
+                    if smooth_mat is not None:
+                        act_data = smooth_mat.dot(act_data)
+                    pd.point_arrays['Data'] = act_data
+                    self._data['time_idx'] = time_idx
 
     @property
     def overlays(self):
