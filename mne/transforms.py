@@ -1243,15 +1243,41 @@ def rot_to_quat(rot):
 
 def _angle_between_quats(x, y):
     """Compute the ang between two quaternions w/3-element representations."""
-    # convert to complete quaternion representation
-    # use max() here to be safe in case roundoff errs put us over
-    x0 = np.sqrt(np.maximum(1. - x[..., 0] ** 2 -
-                            x[..., 1] ** 2 - x[..., 2] ** 2, 0.))
-    y0 = np.sqrt(np.maximum(1. - y[..., 0] ** 2 -
-                            y[..., 1] ** 2 - y[..., 2] ** 2, 0.))
-    # the difference z = x * conj(y), and theta = np.arccos(z0)
-    z0 = np.maximum(np.minimum(y0 * x0 + (x * y).sum(axis=-1), 1.), -1)
-    return 2 * np.arccos(z0)
+    # z = conj(x) * y
+    # conjugate just negates all but the first element in a 4-element quat,
+    # so it's just a negative for us
+    z = _quat_mult(-x, y)
+    z0 = _quat_real(z)
+    return 2 * np.arctan2(np.linalg.norm(z, axis=-1), z0)
+
+
+def _quat_real(quat):
+    """Get the real part of our 3-element quat."""
+    assert quat.shape[-1] == 3
+    return np.sqrt(np.maximum(1. -
+                              quat[..., 0] * quat[..., 0] -
+                              quat[..., 1] * quat[..., 1] -
+                              quat[..., 2] * quat[..., 2], 0.))
+
+
+def _quat_mult(one, two):
+    assert one.shape[-1] == two.shape[-1] == 3
+    w1 = _quat_real(one)
+    w2 = _quat_real(two)
+    out = np.empty(np.broadcast(one, two).shape)
+    # Most mathematical expressions use this sort of notation
+    x1, x2 = one[..., 0], two[..., 0]
+    y1, y2 = one[..., 1], two[..., 1]
+    z1, z2 = one[..., 2], two[..., 2]
+    out[..., 0] = w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2
+    out[..., 1] = w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2
+    out[..., 2] = w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2
+    # only need to compute w because we need signs from it
+    w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2
+    signs = np.sign(w)
+    signs = np.where(signs, signs, 1)
+    out *= signs[..., np.newaxis]
+    return out
 
 
 def _skew_symmetric_cross(a):
@@ -1297,17 +1323,20 @@ def _average_quats(quats, weights=None):
     #
     # We use unit quats and don't store the last element, so reconstruct it
     # to get our 4-element quaternions:
-    res = np.maximum(1. - np.sum(quats * quats, axis=-1, keepdims=True), 0.)
-    np.sqrt(res, out=res)
-    quats = np.concatenate((quats, res), axis=-1)
+    quats = np.concatenate((_quat_real(quats)[..., np.newaxis], quats), -1)
     quats *= weights[:, np.newaxis]
     A = np.einsum('ij,ik->jk', quats, quats)  # sum of outer product of each q
     avg_quat = linalg.eigh(A)[1][:, -1]  # largest eigenvector is the avg
     # Same as the largest eigenvector from the concatenation of all as
     # linalg.svd(quats, full_matrices=False)[-1][0], but faster.
-    avg_quat = avg_quat[:3]
-    if avg_quat[-1] != 0:
-        avg_quat *= np.sign(avg_quat[-1])
+    #
+    # By local convention we take the real term (which we remove from our
+    # representation) as positive. Since it can be zero, let's just ensure
+    # that the first non-zero element is positive. This shouldn't matter once
+    # we go to a rotation matrix, but it's nice for testing to have
+    # consistency.
+    avg_quat *= np.sign(avg_quat[avg_quat != 0][0])
+    avg_quat = avg_quat[1:]
     return avg_quat
 
 
