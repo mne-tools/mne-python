@@ -240,10 +240,13 @@ def test_documented():
     pytest.param(
         partial(read_custom_montage, head_size=None, unit='n/a'),
         ('346\n'  # XXX: this should actually race an error 346 != 4
-         'EEG\t      F3\t -62.027\t -50.053\t      85\n'
-         'EEG\t      Fz\t  45.608\t      90\t      85\n'
-         'EEG\t      F4\t   62.01\t  50.103\t      85\n'
-         'EEG\t      FCz\t   68.01\t  58.103\t      85\n'),
+         'FID\t      LPA\t -120.03\t      0\t      85\n'
+         'FID\t      RPA\t  120.03\t      0\t      85\n'
+         'FID\t      Nz\t   114.03\t     90\t      85\n'
+         'EEG\t      F3\t  -62.027\t -50.053\t     85\n'
+         'EEG\t      Fz\t   45.608\t      90\t     85\n'
+         'EEG\t      F4\t    62.01\t  50.103\t     85\n'
+         'EEG\t      FCz\t   68.01\t  58.103\t     85\n'),
         make_dig_montage(
             ch_pos={
                 'F3': [-0.48200427, 0.57551063, 0.39869712],
@@ -251,7 +254,9 @@ def test_documented():
                 'F4': [0.48142596, 0.57584026, 0.39891983],
                 'FCz': [0.41645989, 0.66914889, 0.31827805],
             },
-            nasion=None, lpa=None, rpa=None,
+            nasion=[4.75366562e-17, 7.76332511e-01, -3.46132681e-01],
+            lpa=[-7.35898963e-01, 9.01216309e-17, -4.25385374e-01],
+            rpa=[0.73589896, 0., -0.42538537],
         ),
         'elp', id='BESA spherical model'),
 
