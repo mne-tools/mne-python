@@ -13,7 +13,7 @@ import numpy as np
 import os.path as path
 from mne import read_source_estimate
 from mne.datasets import testing
-from mne.viz._brain import _Brain
+from mne.viz._brain import _Brain, _TimeViewer
 from mne.viz._brain.colormap import calculate_lut
 
 from matplotlib import cm
@@ -124,6 +124,10 @@ def test_brain_timeviewer(renderer):
     """Test _TimeViewer primitives."""
     if renderer.get_3d_backend() == "mayavi":
         pytest.skip()  # Skip PySurfer.TimeViewer
+    else:
+        # Disable testing to allow interactive window
+        renderer.MNE_3D_BACKEND_TESTING = False
+
     stc = read_source_estimate(fname_stc)
 
     hemi = 'lh'
@@ -137,10 +141,12 @@ def test_brain_timeviewer(renderer):
 
     brain_data.add_data(hemi_data, fmin=fmin, hemi=hemi, fmax=fmax,
                         colormap='hot', vertices=hemi_vertices,
-                        colorbar=False)
+                        colorbar=False, time=[0])
 
     brain_data.set_data_smoothing(n_steps=1)
     brain_data.set_time_point(time_idx=0)
+
+    _TimeViewer(brain_data)
 
 
 def test_brain_colormap():

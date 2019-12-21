@@ -121,8 +121,6 @@ class _Brain(object):
        +---------------------------+--------------+-----------------------+
        | labels_dict               | ✓            |                       |
        +---------------------------+--------------+-----------------------+
-       | overlays                  | ✓            | -                     |
-       +---------------------------+--------------+-----------------------+
        | remove_data               | ✓            |                       |
        +---------------------------+--------------+-----------------------+
        | remove_foci               | ✓            |                       |
@@ -837,10 +835,6 @@ class _Brain(object):
                         act_data = smooth_mat.dot(act_data)
                     pd.point_arrays['Data'] = act_data
                     self._data['time_idx'] = time_idx
-
-    @property
-    def overlays(self):
-        return self._overlays
 
     @property
     def data(self):
