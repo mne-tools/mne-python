@@ -30,4 +30,4 @@ xlrd
 pydocstyle
 flake8
 https://github.com/mcmtroffaes/sphinxcontrib-bibtex/zipball/29694f215b39d64a31b845aafd9ff2ae9329494f
-https://github.com/pyvista/pyvista/zipball/5b5a09d70579a2f34ae2344f7596196dc0244703
+https://github.com/pyvista/pyvista/zipball/8ddad9c314b26740777f9fe5813af5f2bc15a50e
