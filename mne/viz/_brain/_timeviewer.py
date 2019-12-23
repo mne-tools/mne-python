@@ -14,10 +14,13 @@ class TextSliderHelper(object):
         self.orientation = orientation
 
     def __call__(self, idx):
+        """Update the title of the slider."""
         idx = int(idx)
         orientation = self.orientation[idx]
         if self.slider is not None:
-            self.slider.GetRepresentation().SetTitleText(orientation)
+            slider_rep = self.slider.GetRepresentation()
+            slider_rep.GetLabelProperty().SetOpacity(0)
+            slider_rep.SetTitleText(orientation)
             self.brain.show_view(orientation)
 
 
@@ -31,16 +34,16 @@ class _TimeViewer(object):
             brain.set_data_smoothing,
             value=10,
             rng=[2, 30], title="smoothing",
-            pointa=(0.82, 0.9),
-            pointb=(0.98, 0.9)
+            pointa=(0.82, 0.94),
+            pointb=(0.98, 0.94)
         )
 
         max_time = len(brain._data['time']) - 1
         time_slider = self.plotter.add_slider_widget(
             brain.set_time_point,
             rng=[0, max_time], title="time",
-            pointa=(0.85, 0.),
-            pointb=(0.85, 1.),
+            pointa=(0.95, 0.),
+            pointb=(0.95, 1.),
             event_type='always'
         )
 
@@ -59,8 +62,8 @@ class _TimeViewer(object):
             set_orientation,
             value=0,
             rng=[0, len(orientation) - 1],
-            pointa=(0.95, 0.),
-            pointb=(0.95, 1.),
+            pointa=(0.82, 0.85),
+            pointb=(0.98, 0.85),
             event_type='always'
         )
         set_orientation.slider = orientation_slider
@@ -68,7 +71,7 @@ class _TimeViewer(object):
 
         _set_slider_style(smoothing_slider)
         _set_slider_style(time_slider, vertical=True)
-        _set_slider_style(orientation_slider, vertical=True)
+        _set_slider_style(orientation_slider)
 
         self.visibility = True
         self.plotter.add_key_event('y', self.toggle_interface)
