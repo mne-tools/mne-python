@@ -7,6 +7,7 @@
 
 class TextSliderHelper(object):
     """Class to set a text slider."""
+
     def __init__(self, slider=None, brain=None, orientation=None):
         self.slider = slider
         self.brain = brain
