@@ -45,6 +45,7 @@ class _Figure(object):
         self.store['shape'] = shape
         self.store['off_screen'] = off_screen
         self.store['border'] = False
+        self.store['auto_update'] = False
 
     def build(self):
         with warnings.catch_warnings():
@@ -58,6 +59,7 @@ class _Figure(object):
 
         if self.plotter_class == Plotter:
             self.store.pop('title', None)
+            self.store.pop('auto_update', None)
 
         if self.plotter is None:
             plotter = self.plotter_class(**self.store)

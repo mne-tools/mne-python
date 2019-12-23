@@ -83,6 +83,8 @@ Changelog
 
 - Add the ability to :func:`mne.channels.equalize_channels` to also re-order the channels and also operate on instances of :class:`mne.Info`, :class:`mne.Forward`, :class:`mne.Covariance` and :class:`mne.time_frequency.CrossSpectralDensity` by `Marijn van Vliet`_
 
+- Allow `mne.channels.read_custom_montage` to handle fiducial points for BESA spherical (``.elp``) files by `Richard Höchenberger`_
+
 Bug
 ~~~
 
