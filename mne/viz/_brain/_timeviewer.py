@@ -24,7 +24,8 @@ class _TimeViewer(object):
             brain.set_time_point,
             rng=[0, max_time], title="time",
             pointa=(0.85, -0.1),
-            pointb=(0.85, 1.2)
+            pointb=(0.85, 1.2),
+            event_type='always'
         )
 
         _set_slider_style(smoothing_slider)
