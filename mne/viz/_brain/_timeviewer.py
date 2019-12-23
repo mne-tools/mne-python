@@ -9,9 +9,9 @@ class _TimeViewer(object):
     """Class to interact with _Brain."""
 
     def __init__(self, brain):
-        plotter = brain._renderer.plotter
+        self.plotter = brain._renderer.plotter
 
-        smoothing_slider = plotter.add_slider_widget(
+        smoothing_slider = self.plotter.add_slider_widget(
             brain.set_data_smoothing,
             value=10,
             rng=[2, 30], title="smoothing",
@@ -20,7 +20,7 @@ class _TimeViewer(object):
         )
 
         max_time = len(brain._data['time']) - 1
-        time_slider = plotter.add_slider_widget(
+        time_slider = self.plotter.add_slider_widget(
             brain.set_time_point,
             rng=[0, max_time], title="time",
             pointa=(0.85, -0.1),
@@ -31,17 +31,12 @@ class _TimeViewer(object):
         _set_slider_style(smoothing_slider)
         _set_slider_style(time_slider)
 
-        self.sliders = [
-            smoothing_slider,
-            time_slider,
-        ]
-
         self.visibility = True
-        plotter.add_key_event('y', self.toggle_interface)
+        self.plotter.add_key_event('y', self.toggle_interface)
 
     def toggle_interface(self):
         self.visibility = not self.visibility
-        for slider in self.sliders:
+        for slider in self.plotter.slider_widgets:
             if self.visibility:
                 slider.On()
             else:
