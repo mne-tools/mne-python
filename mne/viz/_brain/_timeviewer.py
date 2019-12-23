@@ -30,6 +30,22 @@ class _TimeViewer(object):
         _set_slider_style(smoothing_slider)
         _set_slider_style(time_slider)
 
+        self.sliders = [
+            smoothing_slider,
+            time_slider,
+        ]
+
+        self.visibility = True
+        plotter.add_key_event('y', self.toggle_interface)
+
+    def toggle_interface(self):
+        self.visibility = not self.visibility
+        for slider in self.sliders:
+            if self.visibility:
+                slider.On()
+            else:
+                slider.Off()
+
 
 def _set_slider_style(slider):
     slider_rep = slider.GetRepresentation()
