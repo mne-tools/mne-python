@@ -13,7 +13,7 @@ import numpy as np
 from ...utils import logger, warn, _clean_names
 from ...transforms import (apply_trans, _coord_frame_name, invert_transform,
                            combine_transforms)
-from ...annotations import Annotations, _handle_meas_date
+from ...annotations import Annotations
 
 from ..meas_info import _empty_info
 from ..write import get_new_file_id
@@ -469,7 +469,6 @@ def _annotate_bad_segments(directory, start_time, meas_date):
     fname = op.join(directory, 'bad.segments')
     if not op.exists(fname):
         return None
-    orig_time = _handle_meas_date(meas_date)
 
     # read in bad segment file
     onsets = []
@@ -485,4 +484,4 @@ def _annotate_bad_segments(directory, start_time, meas_date):
     if len(onsets) == 0:
         return None
 
-    return Annotations(onsets, durations, desc, orig_time)
+    return Annotations(onsets, durations, desc, meas_date)

@@ -233,9 +233,9 @@ independent of  :math:`L` and, for fixed :math:`\lambda`, we see directly that
 Noise normalization
 -------------------
 
-The noise-normalized linear estimates introduced by Dale et al. [2]_ require
-division of the expected current amplitude by its variance. Noise normalization
-serves three purposes:
+The noise-normalized linear estimates introduced by Dale et al.
+:footcite:`DaleEtAl1999` require division of the expected current amplitude by
+its variance. Noise normalization serves three purposes:
 
 - It converts the expected current value into a dimensionless statistical test
   variable. Thus the resulting time and location dependent values are often
@@ -446,6 +446,4 @@ Generalizing, for any combination of sums and differences, where :math:`w_i =
 References
 ~~~~~~~~~~
 
-.. [2] Dale AM, Fischl B, Sereno MI (1999). "Cortical surface-based analysis.
-       I. Segmentation and surface reconstruction." *Neuroimage* 9, 179-94.
-       doi: 10.1006/nimg.1998.0395
+.. footbibliography::

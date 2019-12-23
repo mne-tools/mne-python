@@ -441,7 +441,13 @@ class CrossSpectralDensity(object):
         write_hdf5(fname, self.__getstate__(), overwrite=True, title='conpy')
 
     def copy(self):
-        """Return copy of the CrossSpectralDensity object."""
+        """Return copy of the CrossSpectralDensity object.
+
+        Returns
+        -------
+        copy : instance of CrossSpectralDensity
+            A copy of the object.
+        """
         return cp.deepcopy(self)
 
     def pick_channels(self, ch_names, ordered=False):

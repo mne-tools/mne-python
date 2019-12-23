@@ -31,7 +31,7 @@ from ..io.pick import (_DATA_CH_TYPES_SPLIT, pick_types, pick_info,
 from ..source_space import read_source_spaces, SourceSpaces, _read_mri_info
 from ..transforms import invert_transform, apply_trans
 from ..utils import (logger, verbose, get_subjects_dir, warn, _check_option,
-                     _mask_to_onsets_offsets)
+                     _mask_to_onsets_offsets, _pl)
 from ..io.pick import _picks_by_type
 from ..filter import estimate_ringing_samples
 from .utils import tight_layout, _get_color_list, _prepare_trellis, plt_show
@@ -585,7 +585,7 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     else:
         unique_events_id = unique_events
 
-    color = _handle_event_colors(unique_events, color, unique_events_id)
+    color = _handle_event_colors(color, unique_events, event_id)
     import matplotlib.pyplot as plt
 
     fig = None
@@ -1020,27 +1020,32 @@ def plot_ideal_filter(freq, gain, axes=None, title='', flim=None, fscale='log',
     return axes.figure
 
 
-def _handle_event_colors(unique_events, color, unique_events_id):
-    """Handle event colors."""
-    if color is None:
+def _handle_event_colors(color_dict, unique_events, event_id):
+    """Create event-integer-to-color mapping, assigning defaults as needed."""
+    default_colors = dict(zip(sorted(unique_events), cycle(_get_color_list())))
+    # warn if not enough colors
+    if color_dict is None:
         if len(unique_events) > len(_get_color_list()):
-            warn('More events than colors available. You should pass a list '
-                 'of unique colors.')
-        colors = cycle(_get_color_list())
-        color = dict()
-        for this_event, this_color in zip(sorted(unique_events_id), colors):
-            color[this_event] = this_color
+            warn('More events than default colors available. You should pass '
+                 'a list of unique colors.')
     else:
-        for this_event in color:
-            if this_event not in unique_events_id:
-                raise ValueError('Event ID %s is in the color dict but is not '
-                                 'present in events or event_id.' % this_event)
-
-        for this_event in unique_events_id:
-            if this_event not in color:
-                warn('Color is not available for event %d. Default colors '
-                     'will be used.' % this_event)
-    return color
+        custom_colors = dict()
+        for key, color in color_dict.items():
+            if key in unique_events:  # key was a valid event integer
+                custom_colors[key] = color
+            elif key in event_id:     # key was an event label
+                custom_colors[event_id[key]] = color
+            else:                     # key not a valid event, warn and ignore
+                warn('Event ID %s is in the color dict but is not '
+                     'present in events or event_id.' % str(key))
+        # warn if color_dict is missing any entries
+        unassigned = sorted(set(unique_events) - set(custom_colors))
+        if len(unassigned):
+            unassigned_str = ', '.join(str(e) for e in unassigned)
+            warn('Color was not assigned for event%s %s. Default colors will '
+                 'be used.' % (_pl(unassigned), unassigned_str))
+        default_colors.update(custom_colors)
+    return default_colors
 
 
 def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,

@@ -28,7 +28,8 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_julian, write_float_matrix, write_id, DATE_NONE)
 from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import invert_transform, Transform
-from ..utils import logger, verbose, warn, object_diff, _validate_type
+from ..utils import (logger, verbose, warn, object_diff, _validate_type,
+                     _stamp_to_dt, _dt_to_stamp)
 from ._digitization import (_format_dig_points, _dig_kind_proper,
                             _dig_kind_rev, _dig_kind_ints, _read_dig_fif)
 from ._digitization import write_dig as _dig_write_dig
@@ -118,22 +119,6 @@ def _get_valid_units():
 def _summarize_str(st):
     """Make summary string."""
     return st[:56][::-1].split(',', 1)[-1][::-1] + ', ...'
-
-
-def _dt_to_stamp(inp_date):
-    """Convert a datetime object to a meas_date."""
-    return int(inp_date.timestamp() // 1), inp_date.microsecond
-
-
-def _stamp_to_dt(utc_stamp):
-    """Convert timestamp to datetime object in Windows-friendly way."""
-    # The min on windows is 86400
-    stamp = [int(s) for s in utc_stamp]
-    if len(stamp) == 1:  # In case there is no microseconds information
-        stamp.append(0)
-    return (datetime.datetime.fromtimestamp(0,
-                                            tz=datetime.timezone.utc) +
-            datetime.timedelta(0, stamp[0], stamp[1]))  # day, sec, μs
 
 
 def _unique_channel_names(ch_names):
@@ -243,11 +228,12 @@ class Info(dict):
         Tilt angle of the gantry in degrees.
     lowpass : float
         Lowpass corner frequency in Hertz.
-    meas_date : tuple of int
-        The first element of this list is a UNIX timestamp (seconds since
-        1970-01-01 00:00:00) denoting the date and time at which the
-        measurement was taken. The second element is the additional number of
-        microseconds.
+    meas_date : datetime
+        The time (UTC) of the recording.
+
+        .. versionchanged:: 0.20
+           This is stored as a :class:`~python:datetime.datetime` object
+           instead of a tuple of seconds/microseconds.
     utc_offset : str
         "UTC offset of related meas_date (sHH:MM).
 
@@ -547,8 +533,7 @@ class Info(dict):
                     entr = 'unspecified'
                 else:
                     # first entry in meas_date is meaningful
-                    entr = (_stamp_to_dt(v).strftime('%Y-%m-%d %H:%M:%S') +
-                            ' GMT')
+                    entr = v.strftime('%Y-%m-%d %H:%M:%S') + ' GMT'
             elif k == 'kit_system_id' and v is not None:
                 from .kit.constants import KIT_SYSNAMES
                 entr = '%i (%s)' % (v, KIT_SYSNAMES.get(v, 'unknown'))
@@ -591,33 +576,12 @@ class Info(dict):
             raise RuntimeError(msg % (prepend_error, missing,))
         meas_date = self.get('meas_date')
         if meas_date is not None:
-            if (not isinstance(self['meas_date'], tuple) or
-                    len(self['meas_date']) != 2):
-                raise RuntimeError('%sinfo["meas_date"] must be a tuple '
-                                   'of length 2 or None, got "%r"'
+            if (not isinstance(self['meas_date'], datetime.datetime) or
+                    self['meas_date'].tzinfo is None or
+                    self['meas_date'].tzinfo is not datetime.timezone.utc):
+                raise RuntimeError('%sinfo["meas_date"] must be a datetime '
+                                   'object in UTC or None, got "%r"'
                                    % (prepend_error, repr(self['meas_date']),))
-            if (meas_date[0] < np.iinfo('>i4').min or
-                    meas_date[0] > np.iinfo('>i4').max):
-                raise RuntimeError('%sinfo["meas_date"] must be between "%r" '
-                                   'and "%r", got "%r"'
-                                   % (prepend_error,
-                                      (np.iinfo('>i4').min, 0),
-                                      (np.iinfo('>i4').max, 0),
-                                      self['meas_date'],))
-
-        for key in ('file_id', 'meas_id'):
-            value = self.get(key)
-            if value is not None:
-                assert 'msecs' not in value
-                for key_2 in ('secs', 'usecs'):
-                    if (value[key_2] < np.iinfo('>i4').min or
-                            value[key_2] > np.iinfo('>i4').max):
-                        raise RuntimeError('%sinfo[%s][%s] must be between '
-                                           '"%r" and "%r", got "%r"'
-                                           % (prepend_error, key, key_2,
-                                              np.iinfo('>i4').min,
-                                              np.iinfo('>i4').max,
-                                              value[key_2]),)
 
         chs = [ch['ch_name'] for ch in self['chs']]
         if len(self['ch_names']) != len(chs) or any(
@@ -1260,6 +1224,8 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         meas_date = (info['meas_id']['secs'], info['meas_id']['usecs'])
     if np.array_equal(meas_date, DATE_NONE):
         meas_date = None
+    else:
+        meas_date = _stamp_to_dt(meas_date)
     info['meas_date'] = meas_date
     info['utc_offset'] = utc_offset
 
@@ -1302,6 +1268,40 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     return info, meas
 
 
+def _check_dates(info, prepend_error=''):
+    """Check dates before writing as fif files.
+
+    It's needed because of the limited integer precision
+    of the fix standard.
+    """
+    for key in ('file_id', 'meas_id'):
+        value = info.get(key)
+        if value is not None:
+            assert 'msecs' not in value
+            for key_2 in ('secs', 'usecs'):
+                if (value[key_2] < np.iinfo('>i4').min or
+                        value[key_2] > np.iinfo('>i4').max):
+                    raise RuntimeError('%sinfo[%s][%s] must be between '
+                                       '"%r" and "%r", got "%r"'
+                                       % (prepend_error, key, key_2,
+                                          np.iinfo('>i4').min,
+                                          np.iinfo('>i4').max,
+                                          value[key_2]),)
+
+    meas_date = info.get('meas_date')
+    if meas_date is None:
+        return
+
+    meas_date_stamp = _dt_to_stamp(meas_date)
+    if (meas_date_stamp[0] < np.iinfo('>i4').min or
+            meas_date_stamp[0] > np.iinfo('>i4').max):
+        raise RuntimeError(
+            '%sinfo["meas_date"] seconds must be between "%r" '
+            'and "%r", got "%r"'
+            % (prepend_error, (np.iinfo('>i4').min, 0),
+               (np.iinfo('>i4').max, 0), meas_date_stamp[0],))
+
+
 def write_meas_info(fid, info, data_type=None, reset_range=True):
     """Write measurement info into a file id (from a fif file).
 
@@ -1323,6 +1323,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     Tags are written in a particular order for compatibility with maxfilter.
     """
     info._check_consistency()
+    _check_dates(info)
 
     # Measurement info
     start_block(fid, FIFF.FIFFB_MEAS_INFO)
@@ -1443,7 +1444,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     if info.get('proj_name') is not None:
         write_string(fid, FIFF.FIFF_PROJ_NAME, info['proj_name'])
     if info.get('meas_date') is not None:
-        write_int(fid, FIFF.FIFF_MEAS_DATE, info['meas_date'])
+        write_int(fid, FIFF.FIFF_MEAS_DATE, _dt_to_stamp(info['meas_date']))
     if info.get('utc_offset') is not None:
         write_string(fid, FIFF.FIFF_UTC_OFFSET, info['utc_offset'])
     write_int(fid, FIFF.FIFF_NCHAN, info['nchan'])
@@ -1920,30 +1921,15 @@ def _force_update_info(info_base, info_target):
             i_targ[key] = val
 
 
-def _add_timedelta_to_meas_date(meas_date, delta_t):
-    """Add a timedelta to a meas_date tuple.
-
-    Parameters
-    ----------
-    meas_date : tuple | None
-        The Info object you want to use for overwriting values
-        in target Info objects.
-    delta_t : datetime.timedelta
-        The time difference that is added to the meas_date timestamp
-
-    Returns
-    -------
-    new_meas_date : tuple | none
-        The new meas_date tuple.
-    """
-    if meas_date is None:
-        new_meas_date = None
-    else:
-        new_meas_date = _dt_to_stamp(_stamp_to_dt(meas_date) + delta_t)
-    return new_meas_date
+def _add_timedelta_to_stamp(meas_date_stamp, delta_t):
+    """Add a timedelta to a meas_date tuple."""
+    if meas_date_stamp is not None:
+        meas_date_stamp = _dt_to_stamp(_stamp_to_dt(meas_date_stamp) + delta_t)
+    return meas_date_stamp
 
 
-def anonymize_info(info, daysback=None, keep_his=False):
+@verbose
+def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
     """Anonymize measurement information in place.
 
     Parameters
@@ -1957,6 +1943,10 @@ def anonymize_info(info, daysback=None, keep_his=False):
     keep_his : bool
         If True his_id of subject_info will NOT be overwritten.
         Defaults to False.
+
+        .. warning:: This could mean that ``info`` is not fully
+                     anonymized. Use with caution.
+    %(verbose)s
 
     Returns
     -------
@@ -2001,19 +1991,18 @@ def anonymize_info(info, daysback=None, keep_his=False):
     none_meas_date = info['meas_date'] is None
 
     if none_meas_date:
-        logger.warning('Input info has \'meas_date\' set to None.'
-                       ' Removing all information from time/date structures.'
-                       ' *NOT* performing any time shifts')
+        warn('Input info has \'meas_date\' set to None.'
+             ' Removing all information from time/date structures.'
+             ' *NOT* performing any time shifts')
         info['meas_date'] = None
     else:
         # compute timeshift delta
         if daysback is None:
-            delta_t = _stamp_to_dt(info['meas_date']) - default_anon_dos
+            delta_t = info['meas_date'] - default_anon_dos
         else:
             delta_t = datetime.timedelta(days=daysback)
         # adjust meas_date
-        info['meas_date'] = _add_timedelta_to_meas_date(info['meas_date'],
-                                                        -delta_t)
+        info['meas_date'] = info['meas_date'] - delta_t
 
     # file_id and meas_id
     for key in ('file_id', 'meas_id'):
@@ -2023,8 +2012,8 @@ def anonymize_info(info, daysback=None, keep_his=False):
             if none_meas_date:
                 tmp = DATE_NONE
             else:
-                tmp = _add_timedelta_to_meas_date((value['secs'],
-                                                   value['usecs']), -delta_t)
+                tmp = _add_timedelta_to_stamp(
+                    (value['secs'], value['usecs']), -delta_t)
             value['secs'] = tmp[0]
             value['usecs'] = tmp[1]
             # The following copy is needed for a test CTF dataset
@@ -2039,7 +2028,7 @@ def anonymize_info(info, daysback=None, keep_his=False):
         if subject_info.get('id') is not None:
             subject_info['id'] = default_subject_id
         if keep_his:
-            logger.warning('Not fully anonymizing info - keeping \'his_id\'')
+            logger.info('Not fully anonymizing info - keeping \'his_id\'')
         elif subject_info.get('his_id') is not None:
             subject_info['his_id'] = str(default_subject_id)
 
@@ -2083,11 +2072,12 @@ def anonymize_info(info, daysback=None, keep_his=False):
             else:
                 this_t0 = (record['block_id']['secs'],
                            record['block_id']['usecs'])
-                this_t1 = _add_timedelta_to_meas_date(this_t0, -delta_t)
+                this_t1 = _add_timedelta_to_stamp(
+                    this_t0, -delta_t)
                 record['block_id']['secs'] = this_t1[0]
                 record['block_id']['usecs'] = this_t1[1]
-                record['date'] = _add_timedelta_to_meas_date(record['date'],
-                                                             -delta_t)
+                record['date'] = _add_timedelta_to_stamp(
+                    record['date'], -delta_t)
 
     hi = info.get('helium_info')
     if hi is not None:
@@ -2096,8 +2086,8 @@ def anonymize_info(info, daysback=None, keep_his=False):
         if none_meas_date and hi.get('meas_date') is not None:
             hi['meas_date'] = DATE_NONE
         elif hi.get('meas_date') is not None:
-            hi['meas_date'] = _add_timedelta_to_meas_date(hi['meas_date'],
-                                                          -delta_t)
+            hi['meas_date'] = _add_timedelta_to_stamp(
+                hi['meas_date'], -delta_t)
 
     di = info.get('device_info')
     if di is not None:
@@ -2105,10 +2095,13 @@ def anonymize_info(info, daysback=None, keep_his=False):
             if di.get(k) is not None:
                 di[k] = default_str
 
-    err_mesg = ('anonymize_info generated an inconsistent info object. Most '
-                'often this is because daysback parameter was too large.\n'
-                'Underlying Error:')
+    err_mesg = ('anonymize_info generated an inconsistent info object. '
+                'Underlying Error:\n')
     info._check_consistency(prepend_error=err_mesg)
+    err_mesg = ('anonymize_info generated an inconsistent info object. '
+                'daysback parameter was too large.'
+                'Underlying Error:\n')
+    _check_dates(info, prepend_error=err_mesg)
 
     return info
 

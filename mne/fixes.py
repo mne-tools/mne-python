@@ -15,6 +15,7 @@ at which the fix is no longer needed.
 import inspect
 from distutils.version import LooseVersion
 from math import log
+import os
 from pathlib import Path
 import warnings
 
@@ -1195,14 +1196,25 @@ try:
         return numba.jit(nopython=nopython, nogil=nogil, fastmath=fastmath,
                          cache=cache, **kwargs)
 except ImportError:
+    has_numba = False
+else:
+    has_numba = (os.getenv('MNE_USE_NUMBA', 'true').lower() == 'true')
+
+
+if not has_numba:
     def jit(**kwargs):  # noqa
         def _jit(func):
             return func
         return _jit
     prange = range
-    has_numba = False
+    bincount = np.bincount
 else:
-    has_numba = True
+    @jit()
+    def bincount(x, weights, minlength):  # noqa: D103
+        out = np.zeros(minlength)
+        for idx, w in zip(x, weights):
+            out[idx] += w
+        return out
 
 
 ###############################################################################

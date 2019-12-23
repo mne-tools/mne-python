@@ -28,7 +28,8 @@ raw.crop(tmax=60).load_data()
 # Background on SSS and Maxwell filtering
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# Signal-space separation (SSS) [1]_ [2]_ is a technique based on the physics
+# Signal-space separation (SSS) :footcite:`TauluKajola2005,TauluSimola2006`
+# is a technique based on the physics
 # of electromagnetic fields. SSS separates the measured signal into components
 # attributable to sources *inside* the measurement volume of the sensor array
 # (the *internal components*), and components attributable to sources *outside*
@@ -66,8 +67,8 @@ raw.crop(tmax=60).load_data()
 # - Raw movement compensation (using head positions estimated by MaxFilter)
 # - cHPI subtraction (see :func:`mne.chpi.filter_chpi`)
 # - Handling of 3D (in addition to 1D) fine calibration files
-# - Epoch-based movement compensation as described in [1]_ through
-#   :func:`mne.epochs.average_movements`
+# - Epoch-based movement compensation as described in
+#   :footcite:`TauluKajola2005` through :func:`mne.epochs.average_movements`
 # - **Experimental** processing of data from (un-compensated) non-Elekta
 #   systems
 #
@@ -132,7 +133,8 @@ raw_sss.pick(['meg']).plot(duration=2, butterfly=True)
 # The thickness of this source-free measurement shell should be 4-8 cm for SSS
 # to perform optimally. In practice, there may be sources falling within that
 # measurement volume; these can often be mitigated by using Spatiotemporal
-# Signal Space Separation (tSSS) [2]_. tSSS works by looking for temporal
+# Signal Space Separation (tSSS) :footcite:`TauluSimola2006`.
+# tSSS works by looking for temporal
 # correlation between components of the internal and external subspaces, and
 # projecting out any components that are common to the internal and external
 # subspaces. The projection is done in an analogous way to
@@ -219,14 +221,7 @@ mne.viz.plot_head_positions(head_pos, mode='traces')
 # References
 # ^^^^^^^^^^
 #
-# .. [1] Taulu S and Kajola M. (2005). Presentation of electromagnetic
-#        multichannel data: The signal space separation method. *J Appl Phys*
-#        97, 124905 1-10. https://doi.org/10.1063/1.1935742
-#
-# .. [2] Taulu S and Simola J. (2006). Spatiotemporal signal space separation
-#        method for rejecting nearby interference in MEG measurements. *Phys
-#        Med Biol* 51, 1759-1768.
-#        https://doi.org/10.1088/0031-9155/51/7/008
+# .. footbibliography::
 #
 #
 # .. LINKS

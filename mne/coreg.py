@@ -1092,10 +1092,13 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
             _normalize_vectors(ss['nn'])
             if ss['dist'] is not None:
                 add_dist = True
+                dist_limit = float(np.abs(sss[0]['dist_limit']))
+            elif ss['nearest'] is not None:
+                add_dist = True
+                dist_limit = 0
 
     if add_dist:
         logger.info("Recomputing distances, this might take a while")
-        dist_limit = float(np.abs(sss[0]['dist_limit']))
         add_source_space_distances(sss, dist_limit, n_jobs)
 
     write_source_spaces(dst, sss)

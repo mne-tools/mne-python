@@ -20,9 +20,11 @@ from functools import partial
 
 import numpy as np
 
+from ..defaults import HEAD_SIZE_DEFAULT
 from ..viz import plot_montage
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
-                          _topo_to_sph, _frame_to_str, Transform)
+                          _topo_to_sph, _frame_to_str, Transform,
+                          _verbose_frames)
 from ..io._digitization import (_count_points_by_type,
                                 _get_dig_eeg, _make_dig_points, write_dig,
                                 _read_dig_fif, _format_dig_points,
@@ -38,8 +40,6 @@ from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
 
 from .channels import DEPRECATED_PARAM
-
-HEAD_SIZE_DEFAULT = 0.095  # in [m]
 
 _BUILT_IN_MONTAGES = [
     'EGI_256',
@@ -215,11 +215,11 @@ class DigMontage(object):
                 ' {fid:d} fiducials, {eeg:d} channels>').format(**n_points)
 
     @copy_function_doc_to_method_doc(plot_montage)
-    def plot(self, scale_factor=20, show_names=False, kind='3d', show=True):
-        # XXX: plot_montage takes an empty info and sets 'self'
-        #      Therefore it should not be a representation problem.
+    def plot(self, scale_factor=20, show_names=False, kind='3d', show=True,
+             sphere=None):
         return plot_montage(self, scale_factor=scale_factor,
-                            show_names=show_names, kind=kind, show=show)
+                            show_names=show_names, kind=kind, show=show,
+                            sphere=sphere)
 
     def save(self, fname):
         """Save digitization points to FIF.
@@ -1114,12 +1114,22 @@ def compute_native_head_t(montage):
     """
     # Get fiducial points and their coord_frame
     fid_coords, coord_frame = _get_fid_coords(montage.dig)
+    if coord_frame is None:
+        coord_frame = FIFF.FIFFV_COORD_UNKNOWN
     if coord_frame == FIFF.FIFFV_COORD_HEAD:
-        native_head_t = np.eye(3)
+        native_head_t = np.eye(4)
     else:
-        nasion, lpa, rpa = \
-            fid_coords['nasion'], fid_coords['lpa'], fid_coords['rpa']
-        native_head_t = get_ras_to_neuromag_trans(nasion, lpa, rpa)
+        fid_keys = ('nasion', 'lpa', 'rpa')
+        for key in fid_keys:
+            if fid_coords[key] is None:
+                warn('Fiducial point %s not found, assuming identity %s to '
+                     'head transformation'
+                     % (key, _verbose_frames[coord_frame],))
+                native_head_t = np.eye(4)
+                break
+        else:
+            native_head_t = get_ras_to_neuromag_trans(
+                *[fid_coords[key] for key in fid_keys])
     return Transform(coord_frame, 'head', native_head_t)
 
 

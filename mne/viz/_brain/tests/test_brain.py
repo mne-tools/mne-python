@@ -99,7 +99,7 @@ def test_brain_add_label(renderer):
                    surf=surf, subjects_dir=subjects_dir)
     label = read_label(fname_label)
     brain.add_label(fname_label)
-    brain.add_label(label)
+    brain.add_label(label, scalar_thresh=0.)
 
 
 @testing.requires_testing_data

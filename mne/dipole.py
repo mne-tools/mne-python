@@ -219,10 +219,7 @@ class Dipole(object):
         subject : str
             The subject name corresponding to FreeSurfer environment
             variable SUBJECT.
-        subjects_dir : None | str
-            The path to the freesurfer subjects reconstructions.
-            It corresponds to Freesurfer environment variable SUBJECTS_DIR.
-            The default is None.
+        %(subjects_dir)s
         mode : str
             Can be ``'arrow'``, ``'sphere'`` or ``'orthoview'``.
 
@@ -261,7 +258,7 @@ class Dipole(object):
             Show figure if True. Defaults to True.
             Only used if mode equals 'orthoview'.
 
-        scale: float
+        scale : float
             The scale of the dipoles if ``mode`` is 'arrow' or 'sphere'.
         color : tuple
             The color of the dipoles if ``mode`` is 'arrow' or 'sphere'.
@@ -294,7 +291,7 @@ class Dipole(object):
 
         Parameters
         ----------
-        color: matplotlib Color
+        color : matplotlib color
             Color to use for the trace.
         show : bool
             Show figure if True.

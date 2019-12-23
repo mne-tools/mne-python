@@ -6,7 +6,7 @@ import numpy as np
 import os.path as op
 from io import BytesIO
 
-from ...annotations import Annotations, _handle_meas_date
+from ...annotations import Annotations
 from .res4 import _read_res4
 from .info import _convert_time
 
@@ -66,9 +66,8 @@ def _read_annotations_ctf(directory):
 def _read_annotations_ctf_call(directory, total_offset, trial_duration,
                                meas_date):
     fname = op.join(directory, 'MarkerFile.mrk')
-    orig_time = _handle_meas_date(meas_date)
     if not op.exists(fname):
-        return Annotations(list(), list(), list(), orig_time=orig_time)
+        return Annotations(list(), list(), list(), orig_time=meas_date)
     else:
         markers = _get_markers(fname)
 
@@ -80,4 +79,4 @@ def _read_annotations_ctf_call(directory, total_offset, trial_duration,
         ])
 
         return Annotations(onset=onset, duration=np.zeros_like(onset),
-                           description=description, orig_time=orig_time)
+                           description=description, orig_time=meas_date)
