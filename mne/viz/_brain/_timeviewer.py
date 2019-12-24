@@ -54,8 +54,8 @@ class _TimeViewer(object):
             set_orientation,
             value=0,
             rng=[0, len(orientation) - 1],
-            pointa=(0.82, 0.83),
-            pointb=(0.98, 0.83),
+            pointa=(0.82, 0.78),
+            pointb=(0.98, 0.78),
             event_type='always'
         )
         set_orientation.slider = orientation_slider
@@ -66,8 +66,8 @@ class _TimeViewer(object):
         time_slider = self.plotter.add_slider_widget(
             brain.set_time_point,
             rng=[0, max_time], title="time",
-            pointa=(0.95, 0.),
-            pointb=(0.95, 1.0),
+            pointa=(0.72, 0.64),
+            pointb=(0.98, 0.64),
             event_type='always'
         )
 
@@ -106,7 +106,7 @@ class _TimeViewer(object):
         _set_slider_style(fmin_slider)
         _set_slider_style(fmid_slider)
         _set_slider_style(fmax_slider)
-        _set_slider_style(time_slider, vertical=True)
+        _set_slider_style(time_slider)
 
         # add toggle to show/hide interface
         self.visibility = True
@@ -121,7 +121,7 @@ class _TimeViewer(object):
                 slider.Off()
 
 
-def _set_slider_style(slider, vertical=False, show_label=True):
+def _set_slider_style(slider, show_label=True):
     slider_rep = slider.GetRepresentation()
     slider_rep.SetSliderLength(0.02)
     slider_rep.SetSliderWidth(0.04)
@@ -129,8 +129,6 @@ def _set_slider_style(slider, vertical=False, show_label=True):
     slider_rep.SetEndCapLength(0.01)
     slider_rep.SetEndCapWidth(0.02)
     slider_rep.GetSliderProperty().SetColor((0.5, 0.5, 0.5))
-    if vertical:
-        slider_rep.GetTitleProperty().SetOrientation(-90)
     if not show_label:
         slider_rep.ShowSliderLabelOff()
 
