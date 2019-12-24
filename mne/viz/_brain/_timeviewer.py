@@ -30,6 +30,7 @@ class _TimeViewer(object):
     def __init__(self, brain):
         self.plotter = brain._renderer.plotter
 
+        # smoothing slider
         smoothing_slider = self.plotter.add_slider_widget(
             brain.set_data_smoothing,
             value=10,
@@ -38,15 +39,7 @@ class _TimeViewer(object):
             pointb=(0.98, 0.94)
         )
 
-        max_time = len(brain._data['time']) - 1
-        time_slider = self.plotter.add_slider_widget(
-            brain.set_time_point,
-            rng=[0, max_time], title="time",
-            pointa=(0.95, 0.),
-            pointb=(0.95, 1.),
-            event_type='always'
-        )
-
+        # orientation slider
         orientation = [
             'lateral',
             'medial',
@@ -69,10 +62,22 @@ class _TimeViewer(object):
         set_orientation.slider = orientation_slider
         set_orientation(0)
 
-        _set_slider_style(smoothing_slider)
-        _set_slider_style(time_slider, vertical=True)
-        _set_slider_style(orientation_slider)
+        # time slider
+        max_time = len(brain._data['time']) - 1
+        time_slider = self.plotter.add_slider_widget(
+            brain.set_time_point,
+            rng=[0, max_time], title="time",
+            pointa=(0.95, 0.),
+            pointb=(0.95, 1.),
+            event_type='always'
+        )
 
+        # set the slider style
+        _set_slider_style(smoothing_slider)
+        _set_slider_style(orientation_slider)
+        _set_slider_style(time_slider, vertical=True)
+
+        # add toggle to show/hide interface
         self.visibility = True
         self.plotter.add_key_event('y', self.toggle_interface)
 
