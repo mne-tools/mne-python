@@ -35,8 +35,8 @@ class _TimeViewer(object):
             brain.set_data_smoothing,
             value=10,
             rng=[2, 30], title="smoothing",
-            pointa=(0.82, 0.94),
-            pointb=(0.98, 0.94)
+            pointa=(0.82, 0.92),
+            pointb=(0.98, 0.92)
         )
 
         # orientation slider
@@ -55,8 +55,8 @@ class _TimeViewer(object):
             set_orientation,
             value=0,
             rng=[0, len(orientation) - 1],
-            pointa=(0.82, 0.85),
-            pointb=(0.98, 0.85),
+            pointa=(0.82, 0.83),
+            pointb=(0.98, 0.83),
             event_type='always'
         )
         set_orientation.slider = orientation_slider
@@ -68,13 +68,45 @@ class _TimeViewer(object):
             brain.set_time_point,
             rng=[0, max_time], title="time",
             pointa=(0.95, 0.),
-            pointb=(0.95, 1.),
+            pointb=(0.95, 1.0),
             event_type='always'
+        )
+
+        # colormap slider
+        def foo(val):
+            pass
+
+        fmin = brain._data["fmin"]
+        fmin_slider = self.plotter.add_slider_widget(
+            foo,
+            value=fmin,
+            rng=_get_range(fmin), title="fmin",
+            pointa=(0.02, 0.92),
+            pointb=(0.19, 0.92)
+        )
+        fmid = brain._data["fmid"]
+        fmid_slider = self.plotter.add_slider_widget(
+            foo,
+            value=fmid,
+            rng=_get_range(fmid), title="fmid",
+            pointa=(0.02, 0.78),
+            pointb=(0.19, 0.78)
+        )
+        fmax = brain._data["fmax"]
+        fmax_slider = self.plotter.add_slider_widget(
+            foo,
+            value=fmax,
+            rng=_get_range(fmax), title="fmax",
+            pointa=(0.02, 0.64),
+            pointb=(0.19, 0.64)
         )
 
         # set the slider style
         _set_slider_style(smoothing_slider)
         _set_slider_style(orientation_slider)
+        _set_slider_style(fmin_slider)
+        _set_slider_style(fmid_slider)
+        _set_slider_style(fmax_slider)
         _set_slider_style(time_slider, vertical=True)
 
         # add toggle to show/hide interface
@@ -100,3 +132,8 @@ def _set_slider_style(slider, vertical=False):
     slider_rep.GetSliderProperty().SetColor((0.5, 0.5, 0.5))
     if vertical:
         slider_rep.GetTitleProperty().SetOrientation(-90)
+
+
+def _get_range(val, percentage=0.5):
+    mid = abs(val) * percentage
+    return [val - mid, val + mid]
