@@ -19,7 +19,6 @@ class TextSliderHelper(object):
         orientation = self.orientation[idx]
         if self.slider is not None:
             slider_rep = self.slider.GetRepresentation()
-            slider_rep.GetLabelProperty().SetOpacity(0)
             slider_rep.SetTitleText(orientation)
             self.brain.show_view(orientation)
 
@@ -103,7 +102,7 @@ class _TimeViewer(object):
 
         # set the slider style
         _set_slider_style(smoothing_slider)
-        _set_slider_style(orientation_slider)
+        _set_slider_style(orientation_slider, show_label=False)
         _set_slider_style(fmin_slider)
         _set_slider_style(fmid_slider)
         _set_slider_style(fmax_slider)
@@ -122,7 +121,7 @@ class _TimeViewer(object):
                 slider.Off()
 
 
-def _set_slider_style(slider, vertical=False):
+def _set_slider_style(slider, vertical=False, show_label=True):
     slider_rep = slider.GetRepresentation()
     slider_rep.SetSliderLength(0.02)
     slider_rep.SetSliderWidth(0.04)
@@ -132,6 +131,8 @@ def _set_slider_style(slider, vertical=False):
     slider_rep.GetSliderProperty().SetColor((0.5, 0.5, 0.5))
     if vertical:
         slider_rep.GetTitleProperty().SetOrientation(-90)
+    if not show_label:
+        slider_rep.ShowSliderLabelOff()
 
 
 def _get_range(val, percentage=0.5):
