@@ -37,9 +37,9 @@ from ..source_space import (_read_source_spaces_from_tree, _get_src_nn,
 from ..surface import _normal_orth
 from ..transforms import _ensure_trans, transform_surface_to
 from ..source_estimate import _make_stc, _get_src_type
-from ..utils import (check_fname, logger, verbose, warn,
+from ..utils import (check_fname, logger, verbose, warn, _validate_type,
                      _check_compensation_grade, _check_option,
-                     _check_depth, _check_src_normal)
+                     _check_depth, _check_src_normal, sqrtm_sym)
 
 
 INVERSE_METHODS = ['MNE', 'dSPM', 'sLORETA', 'eLORETA']
@@ -329,6 +329,9 @@ def write_inverse_operator(fname, inv, verbose=None):
     """
     check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz',
                                             '_inv.fif', '_inv.fif.gz'))
+    _validate_type(inv, InverseOperator, 'inv')
+    if inv['source_cov'].ndim != 1:
+        raise RuntimeError('Cannot write prepared eLORETA inverse')
 
     #
     #   Open the file, create directory
@@ -669,9 +672,9 @@ def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
         dipoles.
     """  # noqa: E501
     eigen_leads = inv['eigen_leads']['data']
-    source_cov = inv['source_cov']['data'][:, None]
+    source_cov = inv['source_cov']['data']
     if method in ('dSPM', 'sLORETA'):
-        noise_norm = inv['noisenorm'][:, None]
+        noise_norm = inv['noisenorm'][:, np.newaxis]
     else:
         noise_norm = None
 
@@ -722,10 +725,6 @@ def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
             raise ValueError('Picking normal orientation can only be done '
                              'when working with loose orientations.')
 
-        # keep only the normal components
-        eigen_leads = eigen_leads[2::3]
-        source_cov = source_cov[2::3]
-
     trans = np.dot(inv['eigen_fields']['data'],
                    np.dot(inv['whitener'], inv['proj']))
     trans *= inv['reginv'][:, None]
@@ -734,18 +733,27 @@ def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
     #   Transformation into current distributions by weighting the eigenleads
     #   with the weights computed above
     #
+    K = np.dot(eigen_leads, trans)
     if inv['eigen_leads_weighted']:
         #
         #     R^0.5 has been already factored in
         #
         logger.info('    Eigenleads already weighted ... ')
-        K = np.dot(eigen_leads, trans)
     else:
         #
         #     R^0.5 has to be factored in
         #
         logger.info('    Eigenleads need to be weighted ...')
-        K = np.sqrt(source_cov) * np.dot(eigen_leads, trans)
+        if source_cov.ndim == 3:
+            R_sqrt, _ = sqrtm_sym(source_cov)
+            K.shape = (R_sqrt.shape[0], 3, -1)
+            K = np.matmul(R_sqrt, K)
+            K.shape = (R_sqrt.shape[0] * 3, -1)
+        else:
+            K *= np.sqrt(source_cov)[:, np.newaxis]
+
+    if pick_ori == 'normal':
+        K = K[2::3]
 
     return K, noise_norm, vertno, source_nn
 

@@ -330,7 +330,7 @@ except ImportError:
 ###############################################################################
 # np.linalg.pinv (NumPy 1.13)
 
-if LooseVersion(np.__version__) >= LooseVersion('1.13'):
+if LooseVersion(np.__version__) >= LooseVersion('1.17'):  # hermitian kwarg
     pinv = np.linalg.pinv
 else:
     def _makearray(a):
@@ -338,12 +338,21 @@ else:
         wrap = getattr(a, "__array_prepare__", new.__array_wrap__)
         return new, wrap
 
-    def pinv(a, rcond=1e-15):
+    def pinv(a, rcond=1e-15, hermitian=False):
         """Pseudoinverse."""
         a, wrap = _makearray(a)
         rcond = np.asarray(rcond)
-        a = a.conjugate()
-        u, s, vt = np.linalg.svd(a, full_matrices=False)
+        if hermitian:
+            s, u = np.linalg.eigh(a)
+            s = s[..., ::-1]
+            u = u[..., ::-1]
+            # singular values are unsigned, move the sign into v
+            vt = (u * np.sign(s)[..., np.newaxis, :]
+                  ).swapaxes(-2, -1).conjugate()
+            s = np.abs(s)
+        else:
+            a = a.conjugate()
+            u, s, vt = np.linalg.svd(a, full_matrices=False)
         cutoff = rcond[..., np.newaxis] * np.amax(s, axis=-1, keepdims=True)
         large = s > cutoff
         s = np.divide(1, s, where=large, out=s)

@@ -385,7 +385,16 @@ we can find our variance estimates as
 
 eLORETA
 ~~~~~~~
-The mathematics behind eLORETA are described in :footcite:`Pascual-Marqui2011`.
+While dSPM and sLORETA solve for noise normalization weights
+:math:`\sigma^2_k` that are applied to standard minimum-norm estimates
+:math:`\hat{j}(t)`, eLORETA :footcite:`Pascual-Marqui2011` instead solves for
+a source covariance
+matrix :math:`R` that achieves zero localization bias. For fixed-orientation
+solutions the resulting matrix :math:`R` will be a diagonal matrix, and for
+free-orientation solutions it will be a block-diagonal matrix with
+:math:`3 \times 3` blocks.
+
+XXX algorithm
 
 Predicted data
 ~~~~~~~~~~~~~~

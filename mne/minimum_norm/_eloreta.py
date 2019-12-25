@@ -6,7 +6,7 @@ import numpy as np
 
 from ..defaults import _handle_default
 from ..fixes import _safe_svd, pinv
-from ..utils import (warn, logger, _svd_lwork, _repeated_svd, eigh)
+from ..utils import (warn, logger, _svd_lwork, _repeated_svd, sqrtm_sym)
 
 
 # For the reference implementation of eLORETA (force_equal=False),
@@ -28,17 +28,21 @@ def _compute_eloreta(inv, lambda2, options):
         force_equal = True if is_loose else False
     force_equal = bool(force_equal)
 
-    # eps=1e-6, max_iter=20, force_equal=False):
     # Reassemble the gain matrix (should be fast enough)
     if inv['eigen_leads_weighted']:
         # We can probably relax this if we ever need to
         raise RuntimeError('eLORETA cannot be computed with weighted eigen '
                            'leads')
+    # This "G" is really "A" in our forumalation:
+    # A = G @ R_sqrt
+    # But let's proceed with eLORETA as if this weighted gain matrix
+    # were the correct one (it makes things like lambda reasonable).
     G = np.dot(inv['eigen_fields']['data'].T * inv['sing'],
                inv['eigen_leads']['data'].T)
-    # Getting this term right does not seem to be totally necessary...
-    # n_nzero = gain.shape[0]
     n_nzero = int(round((G * G).sum()))
+    orig_R = inv['source_cov']['data']
+    G /= np.sqrt(orig_R)
+    del orig_R
     n_src = inv['nsource']
     n_chan, n_orient = G.shape
     n_orient //= n_src
@@ -47,7 +51,7 @@ def _compute_eloreta(inv, lambda2, options):
         logger.info('        Using %s orientation weights'
                     % ('uniform' if force_equal else 'independent',))
         # src, sens, 3
-        G_3 = np.ascontiguousarray(G.reshape(-1, n_src, 3).transpose(1, 0, 2))
+        G_3 = np.ascontiguousarray(G.reshape(-1, n_src, 3).transpose(1, 2, 0))
     else:
         G_3 = None
 
@@ -56,37 +60,40 @@ def _compute_eloreta(inv, lambda2, options):
     shape += () if force_equal or n_orient == 1 else (n_orient, n_orient)
     W = np.empty(shape)
     W[:] = 1. if force_equal or n_orient == 1 else np.eye(n_orient)[np.newaxis]
-    # Here we keep the weights normalized to roughly n_src * n_orient.
-    # Not sure if there is a better way to normalize.
     extra = ' (this make take a while)' if n_orient == 3 else ''
     logger.info('        Fitting up to %d iterations%s...'
                 % (max_iter, extra))
     svd_lwork = _svd_lwork((G.shape[0], G.shape[0]))
     for kk in range(max_iter):
-        # Compute inverse of the weights (stabilized) and corresponding M
-        M, _ = _compute_eloreta_inv(G, G_3, W, n_orient, n_nzero, lambda2,
-                                    force_equal, svd_lwork)
+        # 1. Compute inverse of the weights (stabilized) and C
+        R = _w_inv(W, n_orient, force_equal)
+        if n_orient == 1 or force_equal:
+            R_Gt = G.T * R[:, np.newaxis]
+        else:
+            R_Gt = np.matmul(R, G_3).reshape(n_src * 3, -1)
+        G_R_Gt = np.dot(G, R_Gt)
+        loading_factor = np.trace(G_R_Gt) / n_nzero
+        u, s, v = _repeated_svd(G_R_Gt, lwork=svd_lwork)
+        s = s[:n_nzero] / (s[:n_nzero] ** 2 + lambda2 * loading_factor ** 2)
+        C = np.dot(v.T[:, :n_nzero] * s, u.T[:n_nzero])
 
         # Update the weights
         W_last = W.copy()
         if n_orient == 1:
-            W[:] = np.sqrt((np.dot(M, G) * G).sum(0))
-            W /= W.sum() / n_src
+            W[:] = np.sqrt((np.dot(C, G) * G).sum(0))
         else:
-            norm = 0.
-            for ii in range(n_src):
-                this_w, this_s = _sqrtm_sym(
-                    np.dot(np.dot(G_3[ii].T, M), G_3[ii]),
-                    overwrite_a=True, check_finite=False)
-                W[ii] = np.mean(this_s) if force_equal else this_w
-                norm += np.mean(this_s)
-            W /= norm / n_src
+            w, s, = sqrtm_sym(
+                np.matmul(np.matmul(G_3, C[np.newaxis]), G_3.swapaxes(-2, -1)))
+            if force_equal:
+                W[:] = np.mean(s, axis=-1)
+            else:
+                W[:] = w
 
         # Check for weight convergence
         delta = (np.linalg.norm(W.ravel() - W_last.ravel()) /
                  np.linalg.norm(W_last.ravel()))
-        logger.debug('            Iteration %s / %s ...%s'
-                     % (kk + 1, max_iter, extra))
+        logger.debug('            Iteration %s / %s ...%s (%0.1e)'
+                     % (kk + 1, max_iter, extra, delta))
         if delta < eps:
             logger.info('        Converged on iteration %d (%0.2g < %0.2g)'
                         % (kk, delta, eps))
@@ -94,65 +101,39 @@ def _compute_eloreta(inv, lambda2, options):
     else:
         warn('eLORETA weight fitting did not converge (>= %s)' % eps)
     logger.info('        Assembling eLORETA kernel and modifying inverse')
-    M, W_inv = _compute_eloreta_inv(G, G_3, W, n_orient, n_nzero, lambda2,
-                                    force_equal, svd_lwork)
-    K = np.zeros((n_src * n_orient, n_chan))
-    for ii in range(n_src):
-        sl = slice(n_orient * ii, n_orient * (ii + 1))
-        K[sl] = np.dot(W_inv[ii], np.dot(G.T[sl], M))
-    # Avoid the scaling to get to currents
-    K /= np.sqrt(inv['source_cov']['data'])[:, np.newaxis]
-    # eLORETA seems to break our simple relationships with noisenorm etc.,
-    # but we can get around it by making our eventual dots do the right thing
-    eigen_leads, reginv, eigen_fields = _safe_svd(K, full_matrices=False)
-    inv['eigen_leads']['data'] = eigen_leads
-    inv['reginv'] = reginv
-    inv['eigen_fields']['data'] = eigen_fields
-    logger.info('[done]')
-    return W
-
-
-def _compute_eloreta_inv(G, G_3, W, n_orient, n_nzero, lambda2, force_equal,
-                         svd_lwork):
-    """Invert weights and compute M."""
-    W_inv = np.empty(W.shape)
-    n_src = W_inv.shape[0]
+    R = _w_inv(W, n_orient, force_equal)
+    inv['source_cov']['data'] = R
     if n_orient == 1 or force_equal:
-        W_inv[:] = 1. / W
+        G *= np.sqrt(R)
+    else:
+        G = np.matmul(G_3.swapaxes(1, 2),
+                      sqrtm_sym(R)[0]).swapaxes(0, 1).reshape(n_chan, -1)
+    del R
+    eigen_fields, sing, eigen_leads = _safe_svd(G, full_matrices=False)
+    loading_factor = np.trace(np.dot(G, G.T)) / n_nzero
+    del G
+    with np.errstate(invalid='ignore'):  # if lambda2==0
+        reginv = np.where(sing > 0, sing / (sing ** 2 + lambda2 * loading_factor ** 2), 0)
+    inv['eigen_leads']['data'][:] = eigen_leads.T
+    inv['sing'][:] = sing
+    inv['reginv'][:] = reginv
+    inv['eigen_fields']['data'][:] = eigen_fields.T
+    logger.info('[done]')
+
+
+def _w_inv(W, n_orient, force_equal, orig_R=None):
+    """Invert weights to compute the source covariance matrix."""
+    if n_orient == 1 or force_equal:
+        R = np.repeat(1. / W, n_orient)
+        if orig_R is not None:
+            R *= orig_R
     else:
         # Here we use a single-precision-suitable `rcond` (given our
         # 3x3 matrix size) because the inv could be saved in single
         # precision.
-        W_inv[:] = pinv(W, rcond=1e-7)
-
-    # Weight the gain matrix
-    if n_orient == 1 or force_equal:
-        if n_orient == 3:
-            W_inv_rep = np.repeat(W_inv, 3)
-        else:
-            W_inv_rep = W_inv
-        W_inv_Gt = G.T * W_inv_rep[:, np.newaxis]
-    else:
-        W_inv_Gt = np.empty((n_src, 3, G.shape[0]))
-        for ii in range(n_src):
-            W_inv_Gt[ii] = np.dot(W_inv[ii], G_3[ii].T)
-        W_inv_Gt.shape = (n_src * 3, -1)
-
-    # Compute the inverse, normalizing by the trace
-    G_W_inv_Gt = np.dot(G, W_inv_Gt)
-    G_W_inv_Gt *= n_nzero / np.trace(G_W_inv_Gt)
-    u, s, v = _repeated_svd(G_W_inv_Gt, lwork=svd_lwork)
-    s = s / (s ** 2 + lambda2)
-    M = np.dot(v.T[:, :n_nzero] * s[:n_nzero], u.T[:n_nzero])
-    return M, W_inv
-
-
-def _sqrtm_sym(C, overwrite_a=False, check_finite=True):
-    """Compute the square root of a symmetric matrix."""
-    # Same as linalg.sqrtm(C) but faster, also yields the eigenvalues
-    s, u = eigh(C, overwrite_a=overwrite_a, check_finite=check_finite)
-    mask = s > s[-1] * 1e-7
-    u = u[:, mask]
-    s = np.sqrt(s[mask])
-    a = np.dot(s * u, u.T)
-    return a, s
+        R = pinv(W, rcond=1e-7, hermitian=True)
+        if orig_R is not None:
+            orig_R_sqrt = np.sqrt(orig_R).reshape(-1, 3)
+            R *= orig_R_sqrt[:, :, np.newaxis]
+            R *= orig_R_sqrt[:, np.newaxis, :]
+    return R
