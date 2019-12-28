@@ -3025,15 +3025,9 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
 
     fig = None
     if ax is None:
-        fig = plt.figure()
-        ax_list = list()
-        for ii in range(len(picks_list)):
-            # Make x-axes change together
-            if ii > 0:
-                ax_list.append(plt.subplot(len(picks_list), 1, ii + 1,
-                                           sharex=ax_list[0]))
-            else:
-                ax_list.append(plt.subplot(len(picks_list), 1, ii + 1))
+        fig, ax_list = plt.subplots(len(picks_list), 1, sharex=True,
+                                    squeeze=False)
+        ax_list = list(ax_list[:, 0])
         make_label = True
     else:
         fig = ax_list[0].get_figure()
