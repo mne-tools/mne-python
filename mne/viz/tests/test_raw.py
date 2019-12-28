@@ -416,7 +416,7 @@ def test_plot_raw_psd():
         raw.plot_psd(fmax=50000)
 
     # test xscale value checking
-    with pytest.raises(ValueError, match='xscale must be'):
+    with pytest.raises(ValueError, match="Invalid value for the 'xscale'"):
         raw.plot_psd(xscale='blah')
 
     # gh-5046

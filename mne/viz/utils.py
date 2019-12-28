@@ -3114,6 +3114,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
     from matplotlib.ticker import ScalarFormatter
     from .evoked import _plot_lines
     sphere = _check_sphere(sphere, inst.info)
+    _check_option('xscale', xscale, ('log', 'linear'))
 
     for key, ls in zip(['lowpass', 'highpass', 'line_freq'],
                        ['--', '--', '-.']):
@@ -3188,11 +3189,8 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
             ax.set(xscale='log')
             ax.set(xlim=[freqs[1] if freqs[0] == 0 else freqs[0], freqs[-1]])
             ax.get_xaxis().set_major_formatter(ScalarFormatter())
-        elif xscale == 'linear':
+        else:  # xscale == 'linear'
             ax.set(xlim=(freqs[0], freqs[-1]))
-        else:
-            raise ValueError('xscale must be "log" or "linear". Got %s.' %
-                             xscale)
         if make_label:
             if ii == len(picks_list) - 1:
                 ax.set_xlabel('Frequency (Hz)')
