@@ -1231,7 +1231,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
 def apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
                       method="dSPM", pick_ori=None, prepared=False,
                       label=None, method_params=None, return_residual=False,
-                      verbose=None, log=True):
+                      dB=True, verbose=None):
     """Apply inverse operator to covariance data.
 
     Parameters
@@ -1266,13 +1266,11 @@ def apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
         source estimates will be computed for the entire source space.
     method_params : dict | None
         Additional options for eLORETA. See Notes for details.
-
-        .. versionadded:: 0.16
     return_residual : bool
         If True (default False), return the residual evoked data.
         Cannot be used with ``method=='eLORETA'``.
-
-        .. versionadded:: 0.17
+    dB : bool
+        If True (default), transform data to decibels.
     %(verbose)s
 
     Returns
@@ -1284,6 +1282,7 @@ def apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
 
     See Also
     --------
+    apply_inverse : Apply inverse operator to evoked object.
     apply_inverse_raw : Apply inverse operator to raw object.
     apply_inverse_epochs : Apply inverse operator to epochs object.
 
@@ -1391,8 +1390,8 @@ def apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
     subject = _subject_from_inverse(inverse_operator)
 
     src_type = _get_src_type(inverse_operator['src'], vertno)
-    if log:
-        sol = np.log10(sol, out=sol)
+    if dB:
+        sol = 10 * np.log10(sol, out=sol)
 
     stc = _make_stc(sol, vertno, tmin=tmin, tstep=tstep, subject=subject,
                     vector=(pick_ori == 'vector'), source_nn=source_nn,

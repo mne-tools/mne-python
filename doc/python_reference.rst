@@ -651,6 +651,7 @@ Inverse Solutions
 
    InverseOperator
    apply_inverse
+   apply_inverse_cov
    apply_inverse_epochs
    apply_inverse_raw
    compute_source_psd
