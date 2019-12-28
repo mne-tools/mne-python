@@ -786,13 +786,18 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         epoch = epoch[:, self._decim_slice]
         return epoch
 
-    def iter_evoked(self):
+    def iter_evoked(self, copy=True):
         """Iterate over epochs as a sequence of Evoked objects.
 
         The Evoked objects yielded will each contain a single epoch (i.e., no
         averaging is performed).
 
         This method resets the object iteration state to the first epoch.
+
+        Parameters
+        ----------
+        copy : bool
+            If False copies of measurement info will be ommitted to save time.
         """
         self._current = 0
 
@@ -803,7 +808,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                 break
             data, event_id = out
             tmin = self.times[0]
-            info = deepcopy(self.info)
+            if copy:
+                info = deepcopy(self.info)
 
             yield EvokedArray(data, info, tmin, comment=str(event_id))
 
