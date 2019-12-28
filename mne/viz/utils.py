@@ -2883,6 +2883,7 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
             im = ax.imshow(
                 np.ma.masked_where(~mask, data), cmap=cmap, **im_args)
         else:
+            ax.imshow(data, cmap=cmap, **im_args)  # see #6481
             im = ax.imshow(data, cmap=cmap, **im_args)
 
         if draw_contour and np.unique(mask).size == 2:
