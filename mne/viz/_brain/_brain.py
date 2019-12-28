@@ -870,7 +870,7 @@ class _Brain(object):
 
     def update_fmid(self, fmid):
         """Set the colorbar mid point."""
-        if fmid > self._data['fmin'] and fmid < self._data['fmax']:
+        if self._data['fmin'] < fmid < self._data['fmax']:
             ctable = self.update_lut(fmid=fmid)
             ctable = (ctable * 255).astype(np.uint8)
             with warnings.catch_warnings():
