@@ -17,7 +17,7 @@ import numpy as np
 
 import mne
 from mne.datasets import sample
-from mne.minimum_norm import make_inverse_operator
+from mne.minimum_norm import make_inverse_operator, apply_inverse_cov
 
 data_path = sample.data_path()
 
@@ -101,98 +101,18 @@ inverse_operator = make_inverse_operator(info, fwd, noise_cov,
                                          loose=0.2, depth=0.8)
 
 
-def _apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
-                       method="dSPM", pick_ori=None, prepared=False,
-                       label=None, method_params=None, return_residual=False,
-                       verbose=None, log=True):
-    """Apply inverse operator to evoked data HACKED
-    """
-    from mne.minimum_norm.inverse import _check_reference
-    from mne.minimum_norm.inverse import _check_ori
-    from mne.minimum_norm.inverse import _check_ch_names
-    from mne.minimum_norm.inverse import _check_or_prepare
-    from mne.minimum_norm.inverse import _pick_channels_inverse_operator
-    from mne.minimum_norm.inverse import _assemble_kernel
-    from mne.minimum_norm.inverse import _subject_from_inverse
-    from mne.minimum_norm.inverse import _get_src_type
-    from mne.minimum_norm.inverse import _make_stc
-    from mne.utils import _check_option
-    from mne.utils import logger
-    from mne.io.constants import FIFF
-
-    INVERSE_METHODS = ['MNE', 'dSPM', 'sLORETA', 'eLORETA']
-
-    class fake_evoked:
-        info = info
-
-    _check_reference(fake_evoked, inverse_operator['info']['ch_names'])
-    _check_option('method', method, INVERSE_METHODS)
-    if method == 'eLORETA' and return_residual:
-        raise ValueError('eLORETA does not currently support return_residual')
-    _check_ori(pick_ori, inverse_operator['source_ori'])
-    #
-    #   Set up the inverse according to the parameters
-    #
-
-    _check_ch_names(inverse_operator, info)
-
-    inv = _check_or_prepare(inverse_operator, nave, lambda2, method,
-                            method_params, prepared)
-
-    #
-    #   Pick the correct channels from the data
-    #
-    sel = _pick_channels_inverse_operator(cov['names'], inv)
-    logger.info('Applying inverse operator to cov...')
-    logger.info('    Picked %d channels from the data' % len(sel))
-    logger.info('    Computing inverse...')
-
-    K, noise_norm, vertno, source_nn = _assemble_kernel(inv, label, method,
-                                                        pick_ori)
-
-    # apply imaging kernel
-    sol = np.einsum('ij,ij->i', K, (cov.data[sel] @ K.T).T)[:, None]
-
-    is_free_ori = (inverse_operator['source_ori'] ==
-                   FIFF.FIFFV_MNE_FREE_ORI and pick_ori != 'normal')
-
-    if is_free_ori and pick_ori != 'vector':
-        logger.info('    Combining the current components...')
-        sol = sol[0::3] + sol[1::3] + sol[2::3]
-
-    if noise_norm is not None:
-        logger.info('    %s...' % (method,))
-        if is_free_ori and pick_ori == 'vector':
-            noise_norm = noise_norm.repeat(3, axis=0)
-        sol *= noise_norm
-
-    tstep = 1.0 / info['sfreq']
-    tmin = 0.0
-    subject = _subject_from_inverse(inverse_operator)
-
-    src_type = _get_src_type(inverse_operator['src'], vertno)
-    if log:
-        sol = np.log10(sol, out=sol)
-
-    stc = _make_stc(sol, vertno, tmin=tmin, tstep=tstep, subject=subject,
-                    vector=(pick_ori == 'vector'), source_nn=source_nn,
-                    src_type=src_type)
-    logger.info('[done]')
-
-    return stc
-
 subjects_dir = data_path + '/subjects'
 # make an MEG inverse operator
 inverse_operator_er = make_inverse_operator(info, fwd, noise_cov,
                                             loose=0.2, depth=0.8)
 
-stc_er = _apply_inverse_cov(
+stc_er = apply_inverse_cov(
     data_cov, evoked.info, 1 / 9, inverse_operator_er,
     method='dSPM', pick_ori=None,
     lambda2=1.,
     verbose=True, log=False)
 
-stc_base = _apply_inverse_cov(
+stc_base = apply_inverse_cov(
     base_cov, evoked.info, 1 / 9, inverse_operator_er,
     method='dSPM', pick_ori=None,
     lambda2=1.,
