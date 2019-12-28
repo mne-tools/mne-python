@@ -65,9 +65,9 @@ class _TimeViewer(object):
         max_time = len(brain._data['time']) - 1
         time_slider = self.plotter.add_slider_widget(
             brain.set_time_point,
-            rng=[0, max_time], title="time",
-            pointa=(0.72, 0.64),
-            pointb=(0.98, 0.64),
+            rng=[0, max_time],
+            pointa=(0.15, 0.16),
+            pointb=(0.85, 0.16),
             event_type='always'
         )
 
