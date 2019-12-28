@@ -17,7 +17,6 @@ from .view import lh_views_dict, rh_views_dict, View
 from .surface import Surface
 from .utils import mesh_edges, smoothing_matrix
 from ..utils import _check_option, logger, verbose
-from ..backends._pyvista import _set_colormap_range
 
 
 class _Brain(object):
@@ -855,6 +854,7 @@ class _Brain(object):
 
     def update_fmax(self, fmax):
         """Set the colorbar max point."""
+        from ..backends._pyvista import _set_colormap_range
         if fmax > self._data['fmid']:
             ctable = self.update_lut(fmax=fmax)
             ctable = (ctable * 255).astype(np.uint8)
@@ -870,6 +870,7 @@ class _Brain(object):
 
     def update_fmid(self, fmid):
         """Set the colorbar mid point."""
+        from ..backends._pyvista import _set_colormap_range
         if self._data['fmin'] < fmid < self._data['fmax']:
             ctable = self.update_lut(fmid=fmid)
             ctable = (ctable * 255).astype(np.uint8)
@@ -884,6 +885,7 @@ class _Brain(object):
 
     def update_fmin(self, fmin):
         """Set the colorbar min point."""
+        from ..backends._pyvista import _set_colormap_range
         if fmin < self._data['fmid']:
             ctable = self.update_lut(fmin=fmin)
             ctable = (ctable * 255).astype(np.uint8)
