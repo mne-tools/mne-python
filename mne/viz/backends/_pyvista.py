@@ -586,3 +586,12 @@ def _try_3d_backend():
             import pyvista  # noqa: F401
     except Exception:
         pass
+
+
+def _set_colormap_range(mesh, ctable, rng=None):
+    from vtk.util import numpy_support as VN
+    mapper = mesh.GetMapper()
+    if rng is not None:
+        mapper.scalar_range = rng[0], rng[1]
+    table = mapper.GetLookupTable()
+    table.SetTable(VN.numpy_to_vtk(ctable))

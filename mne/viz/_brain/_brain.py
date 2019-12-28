@@ -17,6 +17,7 @@ from .view import lh_views_dict, rh_views_dict, View
 from .surface import Surface
 from .utils import mesh_edges, smoothing_matrix
 from ..utils import _check_option, logger, verbose
+from ..backends._pyvista import _set_colormap_range
 
 
 class _Brain(object):
@@ -851,6 +852,47 @@ class _Brain(object):
                     if callable(time_label) and time_actor is not None:
                         time_actor.SetInput(time_label(time[time_idx]))
                     self._data['time_idx'] = time_idx
+
+    def update_fmax(self, fmax):
+        if fmax > self._data['fmid']:
+            ctable = self.update_lut(fmax=fmax)
+            ctable = (ctable * 255).astype(np.uint8)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=FutureWarning)
+                for hemi in ['lh', 'rh']:
+                    mesh = self._data.get(hemi + '_mesh')
+                    if mesh is not None:
+                        rng = [self._data['fmin'], fmax]
+                        _set_colormap_range(mesh, ctable, rng)
+                        self._data['fmax'] = fmax
+                        self._data['ctable'] = ctable
+
+    def update_fmid(self, fmid):
+        if fmid > self._data['fmin'] and fmid < self._data['fmax']:
+            ctable = self.update_lut(fmid=fmid)
+            ctable = (ctable * 255).astype(np.uint8)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=FutureWarning)
+                for hemi in ['lh', 'rh']:
+                    mesh = self._data.get(hemi + '_mesh')
+                    if mesh is not None:
+                        _set_colormap_range(mesh, ctable)
+                        self._data['fmid'] = fmid
+                        self._data['ctable'] = ctable
+
+    def update_fmin(self, fmin):
+        if fmin < self._data['fmid']:
+            ctable = self.update_lut(fmin=fmin)
+            ctable = (ctable * 255).astype(np.uint8)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=FutureWarning)
+                for hemi in ['lh', 'rh']:
+                    mesh = self._data.get(hemi + '_mesh')
+                    if mesh is not None:
+                        rng = [fmin, self._data['fmax']]
+                        _set_colormap_range(mesh, ctable, rng)
+                        self._data['fmin'] = fmin
+                        self._data['ctable'] = ctable
 
     @property
     def data(self):

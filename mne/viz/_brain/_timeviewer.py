@@ -65,6 +65,7 @@ class _TimeViewer(object):
         max_time = len(brain._data['time']) - 1
         time_slider = self.plotter.add_slider_widget(
             brain.set_time_point,
+            value=brain._data['time_idx'],
             rng=[0, max_time],
             pointa=(0.15, 0.16),
             pointb=(0.85, 0.16),
@@ -72,12 +73,9 @@ class _TimeViewer(object):
         )
 
         # colormap slider
-        def foo(val):
-            pass
-
         fmin = brain._data["fmin"]
         fmin_slider = self.plotter.add_slider_widget(
-            foo,
+            brain.update_fmin,
             value=fmin,
             rng=_get_range(fmin), title="fmin",
             pointa=(0.02, 0.92),
@@ -85,7 +83,7 @@ class _TimeViewer(object):
         )
         fmid = brain._data["fmid"]
         fmid_slider = self.plotter.add_slider_widget(
-            foo,
+            brain.update_fmid,
             value=fmid,
             rng=_get_range(fmid), title="fmid",
             pointa=(0.02, 0.78),
@@ -93,7 +91,7 @@ class _TimeViewer(object):
         )
         fmax = brain._data["fmax"]
         fmax_slider = self.plotter.add_slider_widget(
-            foo,
+            brain.update_fmax,
             value=fmax,
             rng=_get_range(fmax), title="fmax",
             pointa=(0.02, 0.64),
