@@ -808,6 +808,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                 break
             data, event_id = out
             tmin = self.times[0]
+            info = self.info
             if copy:
                 info = deepcopy(self.info)
 
