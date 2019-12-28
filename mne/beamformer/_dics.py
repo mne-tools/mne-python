@@ -103,6 +103,10 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
         each spatial location, prior to inversion. This may be necessary when
         you use a single sphere model for MEG and ``mode='vertex'``.
         Defaults to ``False``.
+
+        .. versionchanged:: 0.20
+           Support for reducing rank in all modes (previously only supported
+           ``pick='max_power'`` with weight normalization).
     %(verbose)s
 
     Returns

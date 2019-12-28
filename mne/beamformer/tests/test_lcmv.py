@@ -10,7 +10,8 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_array_less)
 
 import mne
-from mne import convert_forward_solution, read_forward_solution
+from mne import (convert_forward_solution, read_forward_solution,
+                 VolVectorSourceEstimate, VolSourceEstimate)
 from mne.datasets import testing
 from mne.beamformer import (make_lcmv, apply_lcmv, apply_lcmv_epochs,
                             apply_lcmv_raw, tf_lcmv, Beamformer,
@@ -364,15 +365,6 @@ def test_make_lcmv(tmpdir, reg, proj):
         with pytest.raises(ValueError, match='do not match the projections'):
             apply_lcmv_raw(raw_proj, filters, max_ori_out='signed')
 
-    # Test if setting reduce_rank to True returns a NotImplementedError
-    # when no orientation selection is done or pick_ori='normal'
-    pytest.raises(NotImplementedError, make_lcmv, evoked.info, forward_vol,
-                  data_cov, noise_cov=noise_cov, pick_ori=None,
-                  weight_norm='nai', reduce_rank=True)
-    pytest.raises(NotImplementedError, make_lcmv, evoked.info,
-                  forward_surf_ori, data_cov, noise_cov=noise_cov,
-                  pick_ori='normal', weight_norm='nai', reduce_rank=True)
-
     # Test if spatial filter contains src_type
     assert 'src_type' in filters
 
@@ -458,7 +450,11 @@ def test_make_lcmv_sphere(pick_ori, weight_norm):
                         noise_cov=noise_cov, weight_norm=weight_norm,
                         pick_ori=pick_ori, reduce_rank=True)
     stc_sphere = apply_lcmv(evoked, filters, max_ori_out='signed')
-    stc_sphere = np.abs(stc_sphere)
+    if isinstance(stc_sphere, VolVectorSourceEstimate):
+        stc_sphere = stc_sphere.magnitude()
+    else:
+        stc_sphere = abs(stc_sphere)
+    assert isinstance(stc_sphere, VolSourceEstimate)
     stc_sphere.crop(0.02, None)
 
     stc_pow = np.sum(stc_sphere.data, axis=1)
@@ -466,7 +462,11 @@ def test_make_lcmv_sphere(pick_ori, weight_norm):
     max_stc = stc_sphere.data[idx]
     tmax = stc_sphere.times[np.argmax(max_stc)]
     assert 0.08 < tmax < 0.15, tmax
-    assert 0.4 < np.max(max_stc) < 2., np.max(max_stc)
+    min_, max_ = 0.4, 3.0
+    if weight_norm is None:
+        min_ *= 2e-7
+        max_ *= 2e-7
+    assert min_ < np.max(max_stc) < max_, (min_, np.max(max_stc), max_)
 
 
 @testing.requires_testing_data
@@ -682,7 +682,9 @@ def test_lcmv_ctf_comp():
     fwd = mne.make_forward_solution(evoked.info, None,
                                     mne.setup_volume_source_space(pos=15.0),
                                     mne.make_sphere_model())
-    filters = make_lcmv(evoked.info, fwd, data_cov)
+    with pytest.raises(ValueError, match='reduce_rank'):
+        make_lcmv(evoked.info, fwd, data_cov)
+    filters = make_lcmv(evoked.info, fwd, data_cov, reduce_rank=True)
     assert 'weights' in filters
 
     # test whether different compensations throw error
