@@ -797,7 +797,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         Parameters
         ----------
         copy : bool
-            If False copies of measurement info will be ommitted to save time.
+            If False copies of data and measurement info will be omitted
+            to save time.
         """
         self._current = 0
 
@@ -811,6 +812,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             info = self.info
             if copy:
                 info = deepcopy(self.info)
+                data = data.copy()
 
             yield EvokedArray(data, info, tmin, comment=str(event_id))
 
