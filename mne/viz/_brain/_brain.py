@@ -854,6 +854,7 @@ class _Brain(object):
                     self._data['time_idx'] = time_idx
 
     def update_fmax(self, fmax):
+        """Set the colorbar max point."""
         if fmax > self._data['fmid']:
             ctable = self.update_lut(fmax=fmax)
             ctable = (ctable * 255).astype(np.uint8)
@@ -868,6 +869,7 @@ class _Brain(object):
                         self._data['ctable'] = ctable
 
     def update_fmid(self, fmid):
+        """Set the colorbar mid point."""
         if fmid > self._data['fmin'] and fmid < self._data['fmax']:
             ctable = self.update_lut(fmid=fmid)
             ctable = (ctable * 255).astype(np.uint8)
@@ -881,6 +883,7 @@ class _Brain(object):
                         self._data['ctable'] = ctable
 
     def update_fmin(self, fmin):
+        """Set the colorbar min point."""
         if fmin < self._data['fmid']:
             ctable = self.update_lut(fmin=fmin)
             ctable = (ctable * 255).astype(np.uint8)
