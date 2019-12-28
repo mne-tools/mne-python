@@ -8,8 +8,8 @@
 class TextSliderHelper(object):
     """Class to set a text slider."""
 
-    def __init__(self, slider=None, brain=None, orientation=None):
-        self.slider = slider
+    def __init__(self, plotter=None, brain=None, orientation=None):
+        self.plotter = plotter
         self.brain = brain
         self.orientation = orientation
 
@@ -17,10 +17,12 @@ class TextSliderHelper(object):
         """Update the title of the slider."""
         idx = int(idx)
         orientation = self.orientation[idx]
-        if self.slider is not None:
-            slider_rep = self.slider.GetRepresentation()
-            slider_rep.SetTitleText(orientation)
-            self.brain.show_view(orientation)
+        for slider in self.plotter.slider_widgets:
+            name = getattr(slider, "name", None)
+            if name == "orientation":
+                slider_rep = slider.GetRepresentation()
+                slider_rep.SetTitleText(orientation)
+                self.brain.show_view(orientation)
 
 
 class _TimeViewer(object):
@@ -49,7 +51,7 @@ class _TimeViewer(object):
             'frontal',
             'parietal'
         ]
-        set_orientation = TextSliderHelper(None, brain, orientation)
+        set_orientation = TextSliderHelper(self.plotter, brain, orientation)
         orientation_slider = self.plotter.add_slider_widget(
             set_orientation,
             value=0,
@@ -58,7 +60,7 @@ class _TimeViewer(object):
             pointb=(0.98, 0.78),
             event_type='always'
         )
-        set_orientation.slider = orientation_slider
+        orientation_slider.name = "orientation"
         set_orientation(0)
 
         # time slider
