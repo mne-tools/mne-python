@@ -150,14 +150,14 @@ script:
         python mne/tests/test_evoked.py;
       fi;
     - echo pytest -m "${CONDITION}" --cov=mne ${USE_DIRS}
-    - pytest -m "${CONDITION}" --cov=mne ${USE_DIRS}
+    - pytest -m "${CONDITION}" --tb=short --cov=mne ${USE_DIRS}
     # run the minimal one with the testing data
     - if [ "${DEPS}" == "minimal" ]; then
         export MNE_SKIP_TESTING_DATASET_TESTS=false;
         python -c 'import mne; mne.datasets.testing.data_path(verbose=True)';
       fi;
     - if [ "${DEPS}" == "minimal" ]; then
-        pytest -m "${CONDITION}" --cov=mne ${USE_DIRS};
+        pytest -m "${CONDITION}" --tb=short --cov=mne ${USE_DIRS};
       fi;
 
 after_script:
