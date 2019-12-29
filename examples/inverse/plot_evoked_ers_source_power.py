@@ -1,23 +1,18 @@
 """
+==========================================================================
+Compute evoked ERS source power using DICS, LCMV beamfomer and MNE inverse
+==========================================================================
 
-=========================================
-Compute evoked ERS source power using LCMV beamfomer and MNE inverse
-=========================================
+Here we examine 3 ways of localizing event-related synchronization (ERS) of
+beta band activity in this dataset: :ref:`somato-dataset`
 
-Compute a Dynamic Imaging of Coherent Sources (DICS) [1]_ filter from
-single-trial activity to estimate source power across a frequency band. This
-example demonstrates how to source localize the event-related synchronization
-(ERS) of beta band activity in this dataset: :ref:`somato-dataset`
-
-References
-----------
-.. [1] Gross et al. Dynamic imaging of coherent sources: Studying neural
-       interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
+The first is using a Dynamic Imaging of Coherent Sources (DICS) filter, more
+fully discussed in example plot_dics_source_power.py. The second uses an LCMV
+beamformer applied to active and baseline covariance matrices. Similarly the
+third approach computes minimum norm (MNE/dSPM) inverses and applies them to
+active and baseline covariance matrices.
 """
-# Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
-#         Roman Goj <roman.goj@gmail.com>
-#         Denis Engemann <denis.engemann@gmail.com>
-#         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
+# Author: Luke Bloy <luke.bloy@gmail.com>
 #
 # License: BSD (3-clause)
 import os.path as op
@@ -74,6 +69,7 @@ active_win = (0.5, 1.5)
 baseline_win = (-1, 0)
 
 
+###############################################################################
 # generate a dics source estimate - see example/plot_dics_source_power.py for
 # more information
 def _gen_dics(active_win, baseline_win, epochs):
@@ -90,6 +86,7 @@ def _gen_dics(active_win, baseline_win, epochs):
     return stc
 
 
+# generate lcmv source estimate
 def _gen_lcmv(active_cov, baseline_cov, common_cov):
     filters = make_lcmv(epochs.info, fwd, common_cov, reg=0.05,
                         noise_cov=None, pick_ori='max-power',
@@ -100,6 +97,7 @@ def _gen_lcmv(active_cov, baseline_cov, common_cov):
     return stc_act
 
 
+# generate mne/dSPM source estimate
 def _gen_mne(active_cov, baseline_cov, common_cov, fwd, info, method):
     inverse_operator = make_inverse_operator(info, fwd, common_cov,
                                              loose=0.2, depth=0.8)
@@ -118,21 +116,15 @@ def _gen_mne(active_cov, baseline_cov, common_cov, fwd, info, method):
     stc_act /= stc_base
     return stc_act
 
-
-# compute covariances for the lcmv and MNE methods.
+###############################################################################
+# compute covariances needed for the lcmv and MNE methods.
 baseline_cov = compute_covariance(epochs, tmin=baseline_win[0],
                                   tmax=baseline_win[1], method='shrunk',
                                   rank=None)
 active_cov = compute_covariance(epochs, tmin=active_win[0], tmax=active_win[1],
                                 method='shrunk', rank=None)
 
-# compute a common covariance (weighted average of time windows)
-# to use in making the filter.
-ws = np.array([baseline_win[1] - baseline_win[0],
-               active_win[1] - active_win[0]])
-ws /= ws.sum()
-# this isn't supported
-# common_cov = ws[0] * baseline_cov + ws[1] * active_cov
+# weighted averaging is already in the addition of covariance objects.
 common_cov = baseline_cov + active_cov
 
 # Compute source estimates
@@ -143,6 +135,7 @@ stc_mne = _gen_mne(active_cov, baseline_cov, common_cov, fwd, epochs.info,
 stc_dspm = _gen_mne(active_cov, baseline_cov, common_cov, fwd, epochs.info,
                     'dSPM')
 
+# plot source estimates
 for method, stc in zip(['DICS', 'LCMV', 'MNE', 'dSPM'],
                        [stc_dics, stc_lcmv, stc_mne, stc_dspm]):
     title = '%s source power in the 12-30 Hz frequency band' % method
