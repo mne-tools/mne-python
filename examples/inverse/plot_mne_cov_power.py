@@ -20,6 +20,7 @@ from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse_cov
 
 data_path = sample.data_path()
+subjects_dir = data_path + '/subjects'
 
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 raw = mne.io.read_raw_fif(raw_fname)  # already has an average reference
@@ -100,23 +101,17 @@ info = evoked.info
 inverse_operator = make_inverse_operator(info, fwd, noise_cov,
                                          loose=0.2, depth=0.8)
 
-
-subjects_dir = data_path + '/subjects'
-# make an MEG inverse operator
-inverse_operator_er = make_inverse_operator(info, fwd, noise_cov,
-                                            loose=0.2, depth=0.8)
-
 stc_er = apply_inverse_cov(
-    data_cov, evoked.info, 1 / 9, inverse_operator_er,
+    data_cov, evoked.info, 1 / 9, inverse_operator,
     method='dSPM', pick_ori=None,
     lambda2=1.,
-    verbose=True, log=False)
+    verbose=True, dB=False)
 
 stc_base = apply_inverse_cov(
-    base_cov, evoked.info, 1 / 9, inverse_operator_er,
+    base_cov, evoked.info, 1 / 9, inverse_operator,
     method='dSPM', pick_ori=None,
     lambda2=1.,
-    verbose=True, log=False)
+    verbose=True, dB=False)
 
 # Power is relative to the baseline
 stc = stc_er / stc_base
