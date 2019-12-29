@@ -489,7 +489,8 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
             texts.append(ax.text(0, 0, 'blank', zorder=3,
                                  verticalalignment='baseline',
                                  horizontalalignment='left',
-                                 fontweight='bold', alpha=0))
+                                 fontweight='bold', alpha=0,
+                                 clip_on=True))
 
             if xlim is not None:
                 if xlim == 'tight':
