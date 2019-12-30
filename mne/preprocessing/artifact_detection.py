@@ -5,12 +5,11 @@
 
 from scipy.ndimage.measurements import label
 import numpy as np
-from scipy import linalg
-from mne.annotations import Annotations, _annotations_starts_stops
-from mne.chpi import _apply_quat
-from mne.transforms import (quat_to_rot, _average_quats)
-from mne import Transform
-from mne.utils import _mask_to_onsets_offsets
+from ..annotations import (Annotations, _annotations_starts_stops)
+from ..chpi import _apply_quat
+from ..transforms import (quat_to_rot, _average_quats)
+from .. import Transform
+from ..utils import _mask_to_onsets_offsets
 
 
 def annotate_movement(raw, pos, rotation_velocity_limit=None,
@@ -25,25 +24,23 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
 
     Parameters
     ----------
-    info : structure
-        From raw.info
+    raw instance : structure
+        Instance of a raw.
     pos : array, shape (N, 10)
         The position and quaternion parameters from cHPI fitting.
     rotation_velocity_limit: float
-        in radians per second, head rotation velocity limit
+        In radians per second, head rotation velocity limit.
     translation_velocity_limit : float
-        in meters per second, head speed limit
+        In meters per second, head speed limit.
     mean_distance_limit : float
-        in meters, distance limit from the median head position
+        In meters, distance limit from the median head position.
 
     Returns
     -------
     annot : mne.Annotations
-        periods with head motion
+        Periods with head motion.
     hpi_disp : array
-        head position over time w.r.t the mean head pos
-    dev_head_t : array
-        new trans matrix using accepted head pos
+        Head position over time w.r.t the mean head pos.
     """
     sfreq = raw.info['sfreq']
     hp_ts = pos[:, 0].copy()
@@ -129,6 +126,18 @@ def compute_average_dev_head_t(raw, pos):
 
     Segments with BAD_ annotations are not included for calculating the mean
     head position.
+
+    Parameters
+    ----------
+    raw instance : structure
+        Instance of a raw.
+    pos : array, shape (N, 10)
+        The position and quaternion parameters from cHPI fitting.
+
+    Returns
+    -------
+    dev_head_t : array
+        New trans matrix using the averaged good head positions.
     """
     import warnings
 
@@ -176,34 +185,10 @@ def compute_average_dev_head_t(raw, pos):
 
     # Get weighted head pos trans and rot
     trans_pos += np.dot(dt, hp[:, 4:7])
-    method_mne = True
 
     rot_qs = hp[:, 1:4]
-    res = 1 - np.sum(rot_qs * rot_qs, axis=-1, keepdims=True)
-    assert (res >= 0).all()
-    rot_qs = np.concatenate((rot_qs, np.sqrt(res)), axis=-1)
-    assert np.allclose(np.linalg.norm(rot_qs, axis=1), 1)
+    best_q = _average_quats(rot_qs, weights=dt)
 
-    if method_mne:
-        best_q = _average_quats(rot_qs, weights=dt)
-    else:
-        rot_qs *= dt[:, np.newaxis]
-        # rank 1 update method
-        # https://arc.aiaa.org/doi/abs/10.2514/1.28949?journalCode=jgcd
-        # https://github.com/tolgabirdal/averaging_quaternions/blob/master/wavg_quaternion_markley.m  # noqa: E501
-        # qs.append(rot_qs)
-        outers = np.einsum('ij,ik->ijk', rot_qs, rot_qs)
-        A = outers.sum(axis=0)
-        dt_sum = dt.sum()
-        assert dt_sum >= 0
-        norm = dt_sum
-        if norm <= 0:
-            raise RuntimeError('No good segments found (norm=%s)' % (norm,))
-        A /= norm
-        best_q = linalg.eigh(A)[1][:, -1]  # largest eigenvector is the wavg
-        # Same as the largest eigenvector from the concatenation of all
-        # best_q = linalg.svd(np.concatenate(qs).T)[0][:, 0]
-        best_q = best_q[:3] * np.sign(best_q[-1])
     trans = np.eye(4)
     trans[:3, :3] = quat_to_rot(best_q)
     trans[:3, 3] = trans_pos / dt.sum()
