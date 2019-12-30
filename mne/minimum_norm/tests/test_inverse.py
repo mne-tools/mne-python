@@ -800,43 +800,43 @@ def test_io_inverse_operator():
 @testing.requires_testing_data
 def test_apply_mne_inverse_cov():
     """Test MNE with precomputed inverse operator on cov."""
-    start = 3
-    stop = 10
     raw = read_raw_fif(fname_raw)
+    # use 10 sec of data
+    raw.crop(0, 10)
     label_lh = read_label(fname_label % 'Aud-lh')
     inverse_operator = read_inverse_operator(fname_full)
-    data_cov = compute_raw_covariance(raw, tmin=start, tmax=stop)
+
+    data_cov = compute_raw_covariance(raw, tmin=raw.times[0],
+                                      tmax=raw.times[-1], tstep=None)
     with pytest.raises(ValueError, match='has not been prepared'):
         apply_inverse_cov(data_cov, raw.info, 1, inverse_operator,
                           lambda2=lambda2, prepared=True)
     inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
                                                 lambda2=lambda2, method="dSPM")
-    pick_ori = 'normal'
-    # for pick_ori in [None, "normal", "vector"]:
-    stc_raw = apply_inverse_raw(raw, inverse_operator, lambda2, "dSPM",
-                                label=label_lh, start=start, stop=stop,
-                                nave=1, pick_ori=pick_ori, prepared=True)
 
-    stc_cov = apply_inverse_cov(data_cov, raw.info, 1, inverse_operator,
-                                method='dSPM', pick_ori=pick_ori,
-                                label=label_lh, prepared=True,
-                                lambda2=lambda2, dB=False)
+    working_pick_ori = ["normal"]  # , "vector", None]
+    for pick_ori in working_pick_ori:
+        stc_raw = apply_inverse_raw(raw, inverse_operator, lambda2, "dSPM",
+                                    label=label_lh, nave=1, pick_ori=pick_ori,
+                                    prepared=True)
 
-    stc_cov_db = apply_inverse_cov(data_cov, raw.info, 1, inverse_operator,
-                                   method='dSPM', pick_ori=pick_ori,
-                                   label=label_lh, prepared=True,
-                                   lambda2=lambda2, dB=True)
+        stc_cov = apply_inverse_cov(data_cov, raw.info, 1, inverse_operator,
+                                    method='dSPM', pick_ori=pick_ori,
+                                    label=label_lh, prepared=True,
+                                    lambda2=lambda2, dB=False)
 
-    assert (stc_cov.subject == 'sample')
-    assert (stc_cov_db.subject == 'sample')
-    assert_array_almost_equal(stc_cov_db.data, 10 * np.log10(stc_cov.data))
+        stc_cov_db = apply_inverse_cov(data_cov, raw.info, 1, inverse_operator,
+                                       method='dSPM', pick_ori=pick_ori,
+                                       label=label_lh, prepared=True,
+                                       lambda2=lambda2, dB=True)
+        assert (stc_cov.subject == 'sample')
+        assert (stc_cov_db.subject == 'sample')
+        assert_array_almost_equal(stc_cov_db.data, 10 * np.log10(stc_cov.data))
 
-    # expectation is that power in stc_raw time courses is equal (at least
-    # proportional) to the value in stc_cov
-    exp_res = np.diag(np.matmul(stc_raw.data, stc_raw.data.T))
-    pearson = np.corrcoef(exp_res, stc_cov.data.ravel())[0, 1]
-    assert pearson >= 0.99
-    assert_array_almost_equal(exp_res, stc_cov.data)
+        n_sources = stc_raw.data.shape[0]
+        exp_res = np.diag(np.cov(stc_raw.data.reshape(n_sources, -1)))
+        assert_allclose(exp_res, stc_cov.data.ravel(), atol=1e-2, rtol=1e-2,
+                        err_msg='Failed for pick_ori=%s' % pick_ori)
 
 
 @testing.requires_testing_data
