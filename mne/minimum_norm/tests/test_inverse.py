@@ -24,14 +24,14 @@ from mne import (read_cov, read_forward_solution, read_evokeds, pick_types,
                  pick_types_forward, make_forward_solution, EvokedArray,
                  convert_forward_solution, Covariance, combine_evoked,
                  SourceEstimate, make_sphere_model, make_ad_hoc_cov,
-                 pick_channels_forward)
+                 pick_channels_forward, compute_raw_covariance)
 from mne.io import read_raw_fif
 from mne.io.proj import make_projector
 from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       apply_inverse_raw, apply_inverse_epochs,
                                       make_inverse_operator,
                                       write_inverse_operator,
-                                      compute_rank_inverse,
+                                      compute_rank_inverse, apply_inverse_cov,
                                       prepare_inverse_operator,
                                       INVERSE_METHODS)
 from mne.utils import _TempDir, run_tests_if_main, catch_logging
@@ -795,6 +795,48 @@ def test_io_inverse_operator():
     _compare(inv_prep, inv_read_prep)
     inv_prep_prep = prepare_inverse_operator(inv_prep, *args)
     _compare(inv_prep, inv_prep_prep)
+
+
+@testing.requires_testing_data
+def test_apply_mne_inverse_cov():
+    """Test MNE with precomputed inverse operator on cov."""
+    start = 3
+    stop = 10
+    raw = read_raw_fif(fname_raw)
+    label_lh = read_label(fname_label % 'Aud-lh')
+    inverse_operator = read_inverse_operator(fname_full)
+    data_cov = compute_raw_covariance(raw, tmin=start, tmax=stop)
+    with pytest.raises(ValueError, match='has not been prepared'):
+        apply_inverse_cov(data_cov, raw.info, 1, inverse_operator,
+                          lambda2=lambda2, prepared=True)
+    inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
+                                                lambda2=lambda2, method="dSPM")
+    pick_ori = 'normal'
+    # for pick_ori in [None, "normal", "vector"]:
+    stc_raw = apply_inverse_raw(raw, inverse_operator, lambda2, "dSPM",
+                                label=label_lh, start=start, stop=stop,
+                                nave=1, pick_ori=pick_ori, prepared=True)
+
+    stc_cov = apply_inverse_cov(data_cov, raw.info, 1, inverse_operator,
+                                method='dSPM', pick_ori=pick_ori,
+                                label=label_lh, prepared=True,
+                                lambda2=lambda2, dB=False)
+
+    stc_cov_db = apply_inverse_cov(data_cov, raw.info, 1, inverse_operator,
+                                   method='dSPM', pick_ori=pick_ori,
+                                   label=label_lh, prepared=True,
+                                   lambda2=lambda2, dB=True)
+
+    assert (stc_cov.subject == 'sample')
+    assert (stc_cov_db.subject == 'sample')
+    assert_array_almost_equal(stc_cov_db.data, 10 * np.log10(stc_cov.data))
+
+    # expectation is that power in stc_raw time courses is equal (at least
+    # proportional) to the value in stc_cov
+    exp_res = np.diag(np.matmul(stc_raw.data, stc_raw.data.T))
+    pearson = np.corrcoef(exp_res, stc_cov.data.ravel())[0, 1]
+    assert pearson >= 0.99
+    assert_array_almost_equal(exp_res, stc_cov.data)
 
 
 @testing.requires_testing_data

@@ -1070,7 +1070,6 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
         if is_free_ori and pick_ori != 'vector':
             logger.info('    combining the current components...')
             sol = combine_xyz(sol)
-
     if noise_norm is not None:
         if pick_ori == 'vector' and is_free_ori:
             noise_norm = noise_norm.repeat(3, axis=0)
@@ -1230,7 +1229,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
 @verbose
 def apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
                       method="dSPM", pick_ori=None, prepared=False,
-                      label=None, method_params=None, return_residual=False,
+                      label=None, method_params=None,
                       dB=True, verbose=None):
     """Apply inverse operator to covariance data.
 
@@ -1255,10 +1254,8 @@ def apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
         leading to signed source activity.
         If "normal" only the radial component is kept. This is only implemented
         when working with loose orientations.
-        If "vector", no pooling of the orientations is done and the vector
-        result will be returned in the form of a
-        :class:`mne.VectorSourceEstimate` object. This is only implemented when
-        working with loose orientations.
+        If "vector", no pooling of the orientations is done
+        This is only implemented when working with loose orientations.
     prepared : bool
         If True, do not call :func:`prepare_inverse_operator`.
     label : Label | None
@@ -1266,9 +1263,6 @@ def apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
         source estimates will be computed for the entire source space.
     method_params : dict | None
         Additional options for eLORETA. See Notes for details.
-    return_residual : bool
-        If True (default False), return the residual evoked data.
-        Cannot be used with ``method=='eLORETA'``.
     dB : bool
         If True (default), transform data to decibels.
     %(verbose)s
@@ -1277,8 +1271,6 @@ def apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
     -------
     stc : SourceEstimate | VectorSourceEstimate | VolSourceEstimate
         The source estimates.
-    residual : instance of Evoked
-        The residual evoked data, only returned if return_residual is True.
 
     See Also
     --------
@@ -1346,8 +1338,6 @@ def apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
 
     _check_reference(FakeEvoked(info), inverse_operator['info']['ch_names'])
     _check_option('method', method, INVERSE_METHODS)
-    if method == 'eLORETA' and return_residual:
-        raise ValueError('eLORETA does not currently support return_residual')
     _check_ori(pick_ori, inverse_operator['source_ori'],
                inverse_operator['src'])
     #
@@ -1370,20 +1360,20 @@ def apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
                                                         pick_ori)
 
     # apply imaging kernel
-    sol = np.einsum('ij,ij->i', K, (cov.data[sel] @ K.T).T)[:, None]
+    sol = np.einsum('ij,ij->i', K, (cov.data[sel][:, sel] @ K.T).T)[:, None]
 
     is_free_ori = (inverse_operator['source_ori'] ==
                    FIFF.FIFFV_MNE_FREE_ORI and pick_ori != 'normal')
 
-    if is_free_ori and pick_ori != 'vector':
+    # always combine vector components
+    if is_free_ori:
         logger.info('    Combining the current components...')
         sol = sol[0::3] + sol[1::3] + sol[2::3]
 
+    # kernel is being applied twice so apply noise_norm twice
     if noise_norm is not None:
         logger.info('    %s...' % (method,))
-        if is_free_ori and pick_ori == 'vector':
-            noise_norm = noise_norm.repeat(3, axis=0)
-        sol *= noise_norm
+        sol *= noise_norm**2
 
     tstep = 1.0 / info['sfreq']
     tmin = 0.0
@@ -1394,7 +1384,7 @@ def apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
         sol = 10 * np.log10(sol, out=sol)
 
     stc = _make_stc(sol, vertno, tmin=tmin, tstep=tstep, subject=subject,
-                    vector=(pick_ori == 'vector'), source_nn=source_nn,
+                    vector=False, source_nn=source_nn,
                     src_type=src_type)
     logger.info('[done]')
     return stc

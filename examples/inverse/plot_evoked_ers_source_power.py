@@ -7,7 +7,7 @@ Here we examine 3 ways of localizing event-related synchronization (ERS) of
 beta band activity in this dataset: :ref:`somato-dataset`
 
 The first is using a Dynamic Imaging of Coherent Sources (DICS) filter, more
-fully discussed in example :ref:`_ex-inverse-source-power`. The second uses an
+fully discussed in example XXX make ref work e-source-power. The second uses an
 LCMV beamformer applied to active and baseline covariance matrices. Similarly
 the third approach computes minimum norm (MNE/dSPM) inverses and applies them
 to active and baseline covariance matrices.
