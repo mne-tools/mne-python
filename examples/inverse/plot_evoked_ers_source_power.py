@@ -7,7 +7,7 @@ Here we examine 3 ways of localizing event-related synchronization (ERS) of
 beta band activity in this dataset: :ref:`somato-dataset`
 
 The first is using a Dynamic Imaging of Coherent Sources (DICS) filter, more
-fully discussed in example XXX make ref work e-source-power. The second uses an
+fully discussed in example: :ref:`ex-inverse-source-power`. The second uses an
 LCMV beamformer applied to active and baseline covariance matrices. Similarly
 the third approach computes minimum norm (MNE/dSPM) inverses and applies them
 to active and baseline covariance matrices.
@@ -70,7 +70,7 @@ baseline_win = (-1, 0)
 
 
 ###############################################################################
-# generate a dics source estimate - see example/plot_dics_source_power.py for
+# generate a dics source estimate - see :ref:`ex-inverse-source-power` for
 # more information
 def _gen_dics(active_win, baseline_win, epochs):
     freqs = np.logspace(np.log10(12), np.log10(30), 9)
