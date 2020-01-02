@@ -1104,13 +1104,12 @@ def test_annotations_from_events():
     annots = annotations_from_events(events, raw.info['sfreq'],
                                      first_samp=raw.first_samp,
                                      orig_time=None)
-    print(annots[0])
     assert len(annots) == events.shape[0]
 
     # Convert back to events
     raw.set_annotations(annots)
     events_out, _ = events_from_annotations(raw, event_id=int)
-    print(events_out)
     assert_array_equal(events, events_out)
 
 
+run_tests_if_main()
