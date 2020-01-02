@@ -2,32 +2,27 @@
 #
 # License: BSD 3 clause
 
+import os.path as op
+import sys
+from collections import OrderedDict
 from datetime import datetime, timezone
 from itertools import repeat
-from collections import OrderedDict
-import sys
-
-import os.path as op
-
-import pytest
-from pytest import approx
-from numpy.testing import (assert_equal, assert_array_equal,
-                           assert_array_almost_equal, assert_allclose)
-
-import numpy as np
 
 import mne
-from mne import create_info, read_annotations, events_from_annotations
-from mne import Epochs, Annotations
-from mne.utils import (run_tests_if_main, _TempDir, requires_version,
-                       catch_logging)
-from mne.utils import (assert_and_remove_boundary_annot, _raw_annot,
-                       _dt_to_stamp, _stamp_to_dt)
-from mne.io import read_raw_fif, RawArray, concatenate_raws
-from mne.annotations import (_sync_onset, _handle_meas_date,
-                             _read_annotations_txt_parse_header)
+import numpy as np
+import pytest
+from mne import (Annotations, Epochs, annotations_from_events, create_info,
+                 events_from_annotations, read_annotations)
+from mne.annotations import (_handle_meas_date,
+                             _read_annotations_txt_parse_header, _sync_onset)
 from mne.datasets import testing
-
+from mne.io import RawArray, concatenate_raws, read_raw_fif
+from mne.utils import (_dt_to_stamp, _raw_annot, _stamp_to_dt, _TempDir,
+                       assert_and_remove_boundary_annot, catch_logging,
+                       requires_version, run_tests_if_main)
+from numpy.testing import (assert_allclose, assert_array_almost_equal,
+                           assert_array_equal, assert_equal)
+from pytest import approx
 
 data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
 fif_fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
@@ -1058,7 +1053,7 @@ def test_negative_meas_dates(windows_like_datetime):
 
 
 def test_crop_when_negative_orig_time(windows_like_datetime):
-    """Test croping with orig_time, tmin and tmax previous to 1970."""
+    """Test cropping with orig_time, tmin and tmax previous to 1970."""
     # Regression test for gh-6621
     orig_time_stamp = -908196945.011331  # 1941-03-22 11:04:14.988669
     annot = Annotations(description='foo', onset=np.arange(0, 0.999, 0.1),
@@ -1101,4 +1096,21 @@ def test_allow_nan_durations():
         raw.set_annotations(annot)
 
 
-run_tests_if_main()
+@testing.requires_testing_data
+def test_annotations_from_events():
+    """Test events to annotations conversion."""
+    raw = read_raw_fif(fif_fname)
+    events = mne.find_events(raw)
+    annots = annotations_from_events(events, raw.info['sfreq'],
+                                     first_samp=raw.first_samp,
+                                     orig_time=None)
+    print(annots[0])
+    assert len(annots) == events.shape[0]
+
+    # Convert back to events
+    raw.set_annotations(annots)
+    events_out, _ = events_from_annotations(raw, event_id=int)
+    print(events_out)
+    assert_array_equal(events, events_out)
+
+

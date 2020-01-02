@@ -977,3 +977,43 @@ def events_from_annotations(raw, event_id="auto",
                 (list(event_id_.keys()),))
 
     return events, event_id_
+
+
+@verbose
+def annotations_from_events(events, sfreq, first_samp=0, orig_time=None,
+                            verbose=None):
+    """Convert an event array to an Annotations object.
+
+    Parameters
+    ----------
+    events : ndarray, shape (n_events, 3)
+        The events.
+    sfreq : float
+        Sampling frequency.
+    first_samp : int
+        The first data sample. See :attr:`mne.io.Raw.first_samp` docstring.
+    orig_time : float | str | datetime | tuple of int | None
+        Determines the starting time of annotation acquisition. If None
+        (default), starting time is determined from beginning of raw data
+        acquisition. For details, see :meth:`mne.Annotations` docstring.
+    %(verbose)s
+
+    Returns
+    -------
+    annot : instance of Annotations | None
+        The annotations.
+
+    Notes
+    -----
+    Annotations returned by this function will all have zero (null) duration.
+
+    """
+    onsets = [(e[0] - first_samp) / sfreq for e in events]
+    descriptions = [str(e[2]) for e in events]
+    durations = [0. for _ in range(len(events))]  # dummy durations
+    annots = Annotations(onset=onsets,
+                         duration=durations,
+                         description=descriptions,
+                         orig_time=orig_time)
+
+    return annots
