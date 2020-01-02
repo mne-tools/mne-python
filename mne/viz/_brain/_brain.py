@@ -394,6 +394,7 @@ class _Brain(object):
         self._data['initial_time'] = initial_time
         self._data['time_label'] = time_label
         self._data['time_idx'] = time_idx
+        self._data['transparent'] = transparent
         # data specific for a hemi
         self._data[hemi + '_array'] = array
         self._data[hemi + '_vertices'] = vertices
@@ -421,7 +422,7 @@ class _Brain(object):
         dt_max = fmax
         dt_min = fmin if center is None else -1 * fmax
 
-        ctable = self.update_lut(transparent=transparent)
+        ctable = self.update_lut()
 
         for ri, v in enumerate(self._views):
             views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
@@ -776,7 +777,7 @@ class _Brain(object):
         """
         return self._renderer.screenshot(mode)
 
-    def update_lut(self, fmin=None, fmid=None, fmax=None, transparent=True):
+    def update_lut(self, fmin=None, fmid=None, fmax=None):
         u"""Update color map.
 
         Parameters
@@ -792,6 +793,7 @@ class _Brain(object):
         alpha = self._data['alpha']
         center = self._data['center']
         colormap = self._data['colormap']
+        transparent = self._data['transparent']
         fmin = self._data['fmin'] if fmin is None else fmin
         fmid = self._data['fmid'] if fmid is None else fmid
         fmax = self._data['fmax'] if fmax is None else fmax
@@ -865,10 +867,16 @@ class _Brain(object):
         if fmax > self._data['fmid']:
             ctable = self.update_lut(fmax=fmax)
             ctable = (ctable * 255).astype(np.uint8)
+            center = self._data['center']
             for hemi in ['lh', 'rh']:
                 actor = self._data.get(hemi + '_actor')
                 if actor is not None:
-                    rng = [self._data['fmin'], fmax]
+                    fmin = self._data['fmin']
+                    fmax = self._data['fmax']
+                    center = self._data['center']
+                    dt_max = fmax
+                    dt_min = fmin if center is None else -1 * fmax
+                    rng = [dt_min, dt_max]
                     _set_colormap_range(actor, ctable, rng)
                     self._data['fmax'] = fmax
                     self._data['ctable'] = ctable
@@ -895,7 +903,12 @@ class _Brain(object):
             for hemi in ['lh', 'rh']:
                 actor = self._data.get(hemi + '_actor')
                 if actor is not None:
-                    rng = [fmin, self._data['fmax']]
+                    fmin = self._data['fmin']
+                    fmax = self._data['fmax']
+                    center = self._data['center']
+                    dt_max = fmax
+                    dt_min = fmin if center is None else -1 * fmax
+                    rng = [dt_min, dt_max]
                     _set_colormap_range(actor, ctable, rng)
                     self._data['fmin'] = fmin
                     self._data['ctable'] = ctable

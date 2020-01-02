@@ -45,7 +45,9 @@ print(stc)
 # objects. Note that for this visualization to work, you must have ``mayavi``
 # and ``pysurfer`` installed on your machine.
 initial_time = 0.1
-brain = stc.plot(subjects_dir=subjects_dir, initial_time=initial_time)
+brain = stc.plot(subjects_dir=subjects_dir, initial_time=initial_time,
+                 clim=dict(kind='value', pos_lims=[3, 6, 9]),
+                 time_viewer=True)
 
 ###############################################################################
 #
