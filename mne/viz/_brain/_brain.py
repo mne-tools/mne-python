@@ -7,7 +7,6 @@
 #
 # License: Simplified BSD
 
-import warnings
 import numpy as np
 import os
 from os.path import join as pjoin
@@ -803,56 +802,54 @@ class _Brain(object):
         n_steps : int
             Number of smoothing steps
         """
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=FutureWarning)
-            for hemi in ['lh', 'rh']:
-                pd = self._data.get(hemi + '_pd')
+        from ..backends._pyvista import _set_mesh_scalars
+        for hemi in ['lh', 'rh']:
+            pd = self._data.get(hemi + '_pd')
+            if pd is not None:
+                array = self._data[hemi + '_array']
+                vertices = self._data[hemi + '_vertices']
                 if pd is not None:
-                    array = self._data[hemi + '_array']
-                    vertices = self._data[hemi + '_vertices']
-                    if pd is not None:
-                        time_idx = self._data['time_idx']
-                        if self._data['array'].ndim == 1:
-                            act_data = array
-                        elif self._data['array'].ndim == 2:
-                            act_data = array[:, time_idx]
+                    time_idx = self._data['time_idx']
+                    if self._data['array'].ndim == 1:
+                        act_data = array
+                    elif self._data['array'].ndim == 2:
+                        act_data = array[:, time_idx]
 
-                        adj_mat = mesh_edges(self.geo[hemi].faces)
-                        smooth_mat = smoothing_matrix(vertices,
-                                                      adj_mat, int(n_steps),
-                                                      verbose=False)
-                        act_data = smooth_mat.dot(act_data)
-                        pd.point_arrays['Data'] = act_data
-                        self._data[hemi + '_smooth_mat'] = smooth_mat
+                    adj_mat = mesh_edges(self.geo[hemi].faces)
+                    smooth_mat = smoothing_matrix(vertices,
+                                                  adj_mat, int(n_steps),
+                                                  verbose=False)
+                    act_data = smooth_mat.dot(act_data)
+                    _set_mesh_scalars(pd, act_data, 'Data')
+                    self._data[hemi + '_smooth_mat'] = smooth_mat
 
     def set_time_point(self, time_idx):
         """Set the time point shown."""
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=FutureWarning)
-            time_idx = int(time_idx)
-            for hemi in ['lh', 'rh']:
-                pd = self._data.get(hemi + '_pd')
-                if pd is not None:
-                    array = self._data[hemi + '_array']
-                    time = self._data['time']
-                    time_label = self._data['time_label']
-                    time_actor = self._data.get(hemi + '_time_actor')
-                    if array.ndim == 1:
-                        continue  # skip data without time axis
-                    # interpolation
-                    if array.ndim == 2:
-                        act_data = array
+        from ..backends._pyvista import _set_mesh_scalars
+        time_idx = int(time_idx)
+        for hemi in ['lh', 'rh']:
+            pd = self._data.get(hemi + '_pd')
+            if pd is not None:
+                array = self._data[hemi + '_array']
+                time = self._data['time']
+                time_label = self._data['time_label']
+                time_actor = self._data.get(hemi + '_time_actor')
+                if array.ndim == 1:
+                    continue  # skip data without time axis
+                # interpolation
+                if array.ndim == 2:
+                    act_data = array
 
-                    if isinstance(time_idx, int):
-                        act_data = act_data[:, time_idx]
+                if isinstance(time_idx, int):
+                    act_data = act_data[:, time_idx]
 
-                    smooth_mat = self._data[hemi + '_smooth_mat']
-                    if smooth_mat is not None:
-                        act_data = smooth_mat.dot(act_data)
-                    pd.point_arrays['Data'] = act_data
-                    if callable(time_label) and time_actor is not None:
-                        time_actor.SetInput(time_label(time[time_idx]))
-                    self._data['time_idx'] = time_idx
+                smooth_mat = self._data[hemi + '_smooth_mat']
+                if smooth_mat is not None:
+                    act_data = smooth_mat.dot(act_data)
+                _set_mesh_scalars(pd, act_data, 'Data')
+                if callable(time_label) and time_actor is not None:
+                    time_actor.SetInput(time_label(time[time_idx]))
+                self._data['time_idx'] = time_idx
 
     def update_fmax(self, fmax):
         """Set the colorbar max point."""
@@ -860,15 +857,13 @@ class _Brain(object):
         if fmax > self._data['fmid']:
             ctable = self.update_lut(fmax=fmax)
             ctable = (ctable * 255).astype(np.uint8)
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=FutureWarning)
-                for hemi in ['lh', 'rh']:
-                    mesh = self._data.get(hemi + '_mesh')
-                    if mesh is not None:
-                        rng = [self._data['fmin'], fmax]
-                        _set_colormap_range(mesh, ctable, rng)
-                        self._data['fmax'] = fmax
-                        self._data['ctable'] = ctable
+            for hemi in ['lh', 'rh']:
+                mesh = self._data.get(hemi + '_mesh')
+                if mesh is not None:
+                    rng = [self._data['fmin'], fmax]
+                    _set_colormap_range(mesh, ctable, rng)
+                    self._data['fmax'] = fmax
+                    self._data['ctable'] = ctable
 
     def update_fmid(self, fmid):
         """Set the colorbar mid point."""
@@ -876,14 +871,12 @@ class _Brain(object):
         if self._data['fmin'] < fmid < self._data['fmax']:
             ctable = self.update_lut(fmid=fmid)
             ctable = (ctable * 255).astype(np.uint8)
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=FutureWarning)
-                for hemi in ['lh', 'rh']:
-                    mesh = self._data.get(hemi + '_mesh')
-                    if mesh is not None:
-                        _set_colormap_range(mesh, ctable)
-                        self._data['fmid'] = fmid
-                        self._data['ctable'] = ctable
+            for hemi in ['lh', 'rh']:
+                mesh = self._data.get(hemi + '_mesh')
+                if mesh is not None:
+                    _set_colormap_range(mesh, ctable)
+                    self._data['fmid'] = fmid
+                    self._data['ctable'] = ctable
 
     def update_fmin(self, fmin):
         """Set the colorbar min point."""
@@ -891,15 +884,13 @@ class _Brain(object):
         if fmin < self._data['fmid']:
             ctable = self.update_lut(fmin=fmin)
             ctable = (ctable * 255).astype(np.uint8)
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=FutureWarning)
-                for hemi in ['lh', 'rh']:
-                    mesh = self._data.get(hemi + '_mesh')
-                    if mesh is not None:
-                        rng = [fmin, self._data['fmax']]
-                        _set_colormap_range(mesh, ctable, rng)
-                        self._data['fmin'] = fmin
-                        self._data['ctable'] = ctable
+            for hemi in ['lh', 'rh']:
+                mesh = self._data.get(hemi + '_mesh')
+                if mesh is not None:
+                    rng = [fmin, self._data['fmax']]
+                    _set_colormap_range(mesh, ctable, rng)
+                    self._data['fmin'] = fmin
+                    self._data['ctable'] = ctable
 
     @property
     def data(self):

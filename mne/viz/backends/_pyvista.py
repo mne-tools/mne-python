@@ -594,4 +594,16 @@ def _set_colormap_range(mesh, ctable, rng=None):
     if rng is not None:
         mapper.scalar_range = rng[0], rng[1]
     table = mapper.GetLookupTable()
-    table.SetTable(numpy_to_vtk(ctable))
+    # Catch:  FutureWarning: Conversion of the second argument of
+    # issubdtype from `complex` to `np.complexfloating` is deprecated.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=FutureWarning)
+        table.SetTable(numpy_to_vtk(ctable))
+
+
+def _set_mesh_scalars(mesh, scalars, name):
+    # Catch:  FutureWarning: Conversion of the second argument of
+    # issubdtype from `complex` to `np.complexfloating` is deprecated.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=FutureWarning)
+        mesh.point_arrays[name] = scalars

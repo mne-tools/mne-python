@@ -145,6 +145,9 @@ def test_brain_timeviewer(renderer):
 
     brain_data.set_data_smoothing(n_steps=1)
     brain_data.set_time_point(time_idx=0)
+    brain_data.update_fmax(fmax=1.0)
+    brain_data.update_fmid(fmid=0.5)
+    brain_data.update_fmin(fmin=0.0)
 
     _TimeViewer(brain_data)
 
