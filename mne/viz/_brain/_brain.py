@@ -430,7 +430,7 @@ class _Brain(object):
             else:
                 ci = 0 if hemi == 'lh' else 1
             self._renderer.subplot(ri, ci)
-            actor, mesh = self._renderer.mesh(
+            mesh_data = self._renderer.mesh(
                 x=self.geo[hemi].coords[:, 0],
                 y=self.geo[hemi].coords[:, 1],
                 z=self.geo[hemi].coords[:, 2],
@@ -441,6 +441,10 @@ class _Brain(object):
                 vmax=dt_max,
                 scalars=act_data
             )
+            if isinstance(mesh_data, tuple):
+                actor, mesh = mesh_data
+            else:
+                actor, mesh = mesh_data, None
             self._data[hemi + '_actor'] = actor
             self._data[hemi + '_mesh'] = mesh
             if array.ndim >= 2 and callable(time_label):
