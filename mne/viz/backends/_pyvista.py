@@ -588,9 +588,9 @@ def _try_3d_backend():
         pass
 
 
-def _set_colormap_range(mesh, ctable, rng=None):
+def _set_colormap_range(actor, ctable, rng=None):
     from vtk.util.numpy_support import numpy_to_vtk
-    mapper = mesh.GetMapper()
+    mapper = actor.GetMapper()
     if rng is not None:
         mapper.scalar_range = rng[0], rng[1]
     table = mapper.GetLookupTable()

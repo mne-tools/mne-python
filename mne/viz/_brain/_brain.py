@@ -430,25 +430,29 @@ class _Brain(object):
             else:
                 ci = 0 if hemi == 'lh' else 1
             self._renderer.subplot(ri, ci)
-            m, p = self._renderer.mesh(x=self.geo[hemi].coords[:, 0],
-                                       y=self.geo[hemi].coords[:, 1],
-                                       z=self.geo[hemi].coords[:, 2],
-                                       triangles=self.geo[hemi].faces,
-                                       color=None,
-                                       colormap=ctable,
-                                       vmin=dt_min,
-                                       vmax=dt_max,
-                                       scalars=act_data)
-            self._data[hemi + '_mesh'] = m
-            self._data[hemi + '_pd'] = p
+            actor, mesh = self._renderer.mesh(
+                x=self.geo[hemi].coords[:, 0],
+                y=self.geo[hemi].coords[:, 1],
+                z=self.geo[hemi].coords[:, 2],
+                triangles=self.geo[hemi].faces,
+                color=None,
+                colormap=ctable,
+                vmin=dt_min,
+                vmax=dt_max,
+                scalars=act_data
+            )
+            self._data[hemi + '_actor'] = actor
+            self._data[hemi + '_mesh'] = mesh
             if array.ndim >= 2 and callable(time_label):
-                t = self._renderer.text2d(x_window=0.95, y_window=y_txt,
-                                          size=time_label_size,
-                                          text=time_label(time[time_idx]),
-                                          justification='right')
-                self._data[hemi + '_time_actor'] = t
+                time_actor = self._renderer.text2d(
+                    x_window=0.95, y_window=y_txt,
+                    size=time_label_size,
+                    text=time_label(time[time_idx]),
+                    justification='right'
+                )
+                self._data[hemi + '_time_actor'] = time_actor
             if colorbar and not self._colorbar_added:
-                self._renderer.scalarbar(source=m, n_labels=8,
+                self._renderer.scalarbar(source=actor, n_labels=8,
                                          bgcolor=(0.5, 0.5, 0.5))
                 self._colorbar_added = True
             self._renderer.set_camera(azimuth=views_dict[v].azim,
@@ -804,7 +808,7 @@ class _Brain(object):
         """
         from ..backends._pyvista import _set_mesh_scalars
         for hemi in ['lh', 'rh']:
-            pd = self._data.get(hemi + '_pd')
+            pd = self._data.get(hemi + '_mesh')
             if pd is not None:
                 array = self._data[hemi + '_array']
                 vertices = self._data[hemi + '_vertices']
@@ -828,7 +832,7 @@ class _Brain(object):
         from ..backends._pyvista import _set_mesh_scalars
         time_idx = int(time_idx)
         for hemi in ['lh', 'rh']:
-            pd = self._data.get(hemi + '_pd')
+            pd = self._data.get(hemi + '_mesh')
             if pd is not None:
                 array = self._data[hemi + '_array']
                 time = self._data['time']
@@ -858,10 +862,10 @@ class _Brain(object):
             ctable = self.update_lut(fmax=fmax)
             ctable = (ctable * 255).astype(np.uint8)
             for hemi in ['lh', 'rh']:
-                mesh = self._data.get(hemi + '_mesh')
-                if mesh is not None:
+                actor = self._data.get(hemi + '_actor')
+                if actor is not None:
                     rng = [self._data['fmin'], fmax]
-                    _set_colormap_range(mesh, ctable, rng)
+                    _set_colormap_range(actor, ctable, rng)
                     self._data['fmax'] = fmax
                     self._data['ctable'] = ctable
 
@@ -872,9 +876,9 @@ class _Brain(object):
             ctable = self.update_lut(fmid=fmid)
             ctable = (ctable * 255).astype(np.uint8)
             for hemi in ['lh', 'rh']:
-                mesh = self._data.get(hemi + '_mesh')
-                if mesh is not None:
-                    _set_colormap_range(mesh, ctable)
+                actor = self._data.get(hemi + '_actor')
+                if actor is not None:
+                    _set_colormap_range(actor, ctable)
                     self._data['fmid'] = fmid
                     self._data['ctable'] = ctable
 
@@ -885,10 +889,10 @@ class _Brain(object):
             ctable = self.update_lut(fmin=fmin)
             ctable = (ctable * 255).astype(np.uint8)
             for hemi in ['lh', 'rh']:
-                mesh = self._data.get(hemi + '_mesh')
-                if mesh is not None:
+                actor = self._data.get(hemi + '_actor')
+                if actor is not None:
                     rng = [fmin, self._data['fmax']]
-                    _set_colormap_range(mesh, ctable, rng)
+                    _set_colormap_range(actor, ctable, rng)
                     self._data['fmin'] = fmin
                     self._data['ctable'] = ctable
 
