@@ -1006,7 +1006,6 @@ def annotations_from_events(events, sfreq, first_samp=0, orig_time=None,
     Notes
     -----
     Annotations returned by this function will all have zero (null) duration.
-
     """
     onsets = [(e[0] - first_samp) / sfreq for e in events]
     descriptions = [str(e[2]) for e in events]
