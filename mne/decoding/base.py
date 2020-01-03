@@ -465,7 +465,7 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
                    return_times=False, error_score='raise'):
     """Fit estimator and compute scores for a given dataset split."""
     #  This code is adapted from sklearn
-    from sklearn.model_selection._validation import _index_param_value
+    from sklearn.model_selection import _validation
     from sklearn.utils.metaestimators import _safe_split
     from sklearn.utils.validation import _num_samples
 
@@ -479,7 +479,7 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
 
     # Adjust length of sample weights
     fit_params = fit_params if fit_params is not None else {}
-    fit_params = {k: _index_param_value(X, v, train)
+    fit_params = {k: _validation._index_param_value(X, v, train)
                   for k, v in fit_params.items()}
 
     if parameters is not None:
