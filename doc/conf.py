@@ -362,7 +362,7 @@ try:
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=DeprecationWarning)
         import pyvista
-    pyvista.OFF_SCREEN = True
+    pyvista.OFF_SCREEN = False
 except Exception:
     pass
 else:
