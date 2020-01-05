@@ -786,7 +786,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         epoch = epoch[:, self._decim_slice]
         return epoch
 
-    def iter_evoked(self, copy=True):
+    def iter_evoked(self, copy=False):
         """Iterate over epochs as a sequence of Evoked objects.
 
         The Evoked objects yielded will each contain a single epoch (i.e., no

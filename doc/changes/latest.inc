@@ -102,7 +102,7 @@ Bug
 
 - Fix :meth:`mne.io.Raw.anonymize` to correctly avoid shifting ``raw.annotations.onset`` relative to ``raw.first_samp`` by `Eric Larson`_
 
-- :meth:`mne.Epochs.iter_evoked` now returns a copy of data when ``copy=True`` (default parameter) by `Alex Gramfort`_
+- :meth:`mne.Epochs.iter_evoked` now does not return a copy of info when ``copy=False`` (default parameter) by `Alex Gramfort`_
 
 - The attribute :class:`mne.Annotations.orig_time <mne.Annotations>` is now read-only, and is a :class:`~python:datetime.datetime` object (or None) rather than float, by `Eric Larson`_
 
