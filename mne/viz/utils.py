@@ -3031,13 +3031,15 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     else:
         fig = ax_list[0].get_figure()
 
-    adjust_layout = len(ax_list) == len(fig.axes)
+    # make_label decides if ylabel and titles are displayed
+    make_label = len(ax_list) == len(fig.axes)
+
     # Plot Frequency [Hz] xlabel on the last axis
     xlabels_list = [False] * len(picks_list)
     xlabels_list[-1] = True
 
     return (fig, picks_list, titles_list, units_list, scalings_list,
-            ax_list, adjust_layout, xlabels_list)
+            ax_list, make_label, xlabels_list)
 
 
 def _convert_psds(psds, dB, estimate, scaling, unit, ch_names=None,
@@ -3186,6 +3188,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
                     ch_types_used=ch_types_used, selectable=True, psd=True,
                     line_alpha=line_alpha, nave=None, time_unit='ms',
                     sphere=sphere)
+
     for ii, (ax, xlabel) in enumerate(zip(ax_list, xlabels_list)):
         ax.grid(True, linestyle=':')
         if xscale == 'log':
@@ -3194,6 +3197,8 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
             ax.get_xaxis().set_major_formatter(ScalarFormatter())
         else:  # xscale == 'linear'
             ax.set(xlim=(freqs[0], freqs[-1]))
+        if make_label:
+            ax.set(ylabel=ylabels[ii], title=titles_list[ii])
         if xlabel:
             ax.set_xlabel('Frequency (Hz)')
 

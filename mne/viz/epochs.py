@@ -937,7 +937,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     """
     from .utils import _set_psd_plot_params, _plot_psd
     fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
-        adjust_layout, xlabels_list = \
+        make_label, xlabels_list = \
         _set_psd_plot_params(epochs.info, proj, picks, ax, area_mode)
     _check_psd_fmax(epochs, fmax)
     del ax
@@ -954,7 +954,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
         psd_list.append(np.mean(psd, axis=0))
 
     fig = _plot_psd(epochs, fig, freqs, psd_list, picks_list, titles_list,
-                    units_list, scalings_list, ax_list, adjust_layout, color,
+                    units_list, scalings_list, ax_list, make_label, color,
                     area_mode, area_alpha, dB, estimate, average,
                     spatial_colors, xscale, line_alpha, sphere, xlabels_list)
     plt_show(show)
