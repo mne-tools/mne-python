@@ -3199,8 +3199,8 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
             ax.set(xlim=(freqs[0], freqs[-1]))
         if make_label:
             ax.set(ylabel=ylabels[ii], title=titles_list[ii])
-        if xlabel:
-            ax.set_xlabel('Frequency (Hz)')
+            if xlabel:
+                ax.set_xlabel('Frequency (Hz)')
 
     if make_label:
         fig.subplots_adjust(left=.1, bottom=.1, right=.9, top=.9, wspace=0.3,
