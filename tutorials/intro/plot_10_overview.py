@@ -207,7 +207,7 @@ fig.subplots_adjust(right=0.7)  # make room for the legend
 #
 # The :class:`~mne.io.Raw` object and the events array are the bare minimum
 # needed to create an :class:`~mne.Epochs` object, which we create with the
-# :class:`mne.Epochs` class constructor. Here we'll also specify some data
+# :class:`~mne.Epochs` class constructor. Here we'll also specify some data
 # quality constraints: we'll reject any epoch where peak-to-peak signal
 # amplitude is beyond reasonable limits for that channel type. This is done
 # with a *rejection dictionary*; you may include or omit thresholds for any of
