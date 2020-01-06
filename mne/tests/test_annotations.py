@@ -1106,6 +1106,9 @@ def test_annotations_from_events():
     """Test events to annotations conversion."""
     raw = read_raw_fif(fif_fname)
     events = mne.find_events(raw)
+
+    # 1. Automatic event description
+    # -------------------------------------------------------------------------
     annots = annotations_from_events(events, raw.info['sfreq'],
                                      first_samp=raw.first_samp,
                                      orig_time=None)
@@ -1115,6 +1118,28 @@ def test_annotations_from_events():
     raw.set_annotations(annots)
     events_out, _ = events_from_annotations(raw, event_id=int)
     assert_array_equal(events, events_out)
+
+    # 2. Explicit event mapping
+    # -------------------------------------------------------------------------
+    event_desc = {1: 'one', 2: 'two', 3: 'three', 32: None}
+    annots = annotations_from_events(events, sfreq=raw.info['sfreq'],
+                                     event_desc=event_desc,
+                                     first_samp=raw.first_samp,
+                                     orig_time=None)
+
+    assert np.all([a in ['one', 'two', 'three'] for a in annots.description])
+    assert len(annots) == events[events[:, 2] <= 3].shape[0]
+
+    # 3. Try passing callable
+    # -------------------------------------------------------------------------
+    event_desc = lambda d: 'event{}'.format(d)  # noqa:E731
+    annots = annotations_from_events(events, sfreq=raw.info['sfreq'],
+                                     event_desc=event_desc,
+                                     first_samp=raw.first_samp,
+                                     orig_time=None)
+
+    assert np.all(['event' in a for a in annots.description])
+    assert len(annots) == events.shape[0]
 
 
 run_tests_if_main()
