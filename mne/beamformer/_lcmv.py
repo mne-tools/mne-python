@@ -429,8 +429,12 @@ def apply_lcmv_cov(data_cov, filters, verbose=None):
     data_cov = pick_channels_cov(data_cov, sel_names)
 
     n_orient = filters['weights'].shape[0] // filters['nsource']
-    source_power = _compute_power(data_cov['data'], filters['weights'],
-                                  n_orient)
+
+    # Whiten the CSD
+    whitener = filters['whitener']
+    Cm = np.dot(whitener, np.dot(data_cov['data'], whitener.conj().T))
+
+    source_power = _compute_power(Cm, filters['weights'], n_orient)
 
     # compatibility with 0.16, add src_type as None if not present:
     filters, warn_text = _check_src_type(filters)

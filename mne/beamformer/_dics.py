@@ -240,6 +240,7 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
 
     logger.info('Computing DICS spatial filters...')
     Ws = []
+    whiteners = []
     for i, freq in enumerate(frequencies):
         if n_freqs > 1:
             logger.info('    computing DICS spatial filter at %sHz (%d/%d)' %
@@ -272,8 +273,10 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
                                 reduce_rank, rank=rank, inversion=inversion,
                                 nn=nn, orient_std=orient_std)
         Ws.append(W)
+        whiteners.append(whitener)
 
     Ws = np.array(Ws)
+    whiteners = np.array(whiteners)
 
     src_type = _get_src_type(forward['src'], vertices)
     filters = Beamformer(
@@ -281,7 +284,7 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
         vertices=vertices, subject=subject, pick_ori=pick_ori,
         inversion=inversion, weight_norm=weight_norm,
         normalize_fwd=bool(normalize_fwd), src_type=src_type,
-        n_orient=n_orient if pick_ori is None else 1)
+        n_orient=n_orient if pick_ori is None else 1, whiteners=whiteners)
 
     return filters
 
@@ -504,6 +507,10 @@ def apply_dics_csd(csd, filters, verbose=None):
         Cm = csd.get_data(index=i)
         Cm = Cm[csd_picks, :][:, csd_picks]
         W = filters['weights'][i]
+
+        # Whiten the CSD
+        whitener = filters['whiteners'][i]
+        Cm = np.dot(whitener, np.dot(Cm, whitener.conj().T))
 
         source_power[:, i] = _compute_power(Cm, W, n_orient)
 
