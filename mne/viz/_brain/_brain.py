@@ -181,7 +181,6 @@ class _Brain(object):
         self._subjects_dir = subjects_dir
         self._views = views
         self._n_times = None
-        self._scalarbar = False
         # for now only one color bar can be added
         # since it is the same for all figures
         self._colorbar_added = False
@@ -877,7 +876,11 @@ class _Brain(object):
                     dt_max = fmax
                     dt_min = fmin if center is None else -1 * fmax
                     rng = [dt_min, dt_max]
-                    _set_colormap_range(actor, ctable, rng)
+                    if self._colorbar_added:
+                        scalar_bar = self._renderer.plotter.scalar_bar
+                    else:
+                        scalar_bar = None
+                    _set_colormap_range(actor, ctable, scalar_bar, rng)
                     self._data['fmax'] = fmax
                     self._data['ctable'] = ctable
 
@@ -890,7 +893,11 @@ class _Brain(object):
             for hemi in ['lh', 'rh']:
                 actor = self._data.get(hemi + '_actor')
                 if actor is not None:
-                    _set_colormap_range(actor, ctable)
+                    if self._colorbar_added:
+                        scalar_bar = self._renderer.plotter.scalar_bar
+                    else:
+                        scalar_bar = None
+                    _set_colormap_range(actor, ctable, scalar_bar)
                     self._data['fmid'] = fmid
                     self._data['ctable'] = ctable
 
@@ -909,7 +916,11 @@ class _Brain(object):
                     dt_max = fmax
                     dt_min = fmin if center is None else -1 * fmax
                     rng = [dt_min, dt_max]
-                    _set_colormap_range(actor, ctable, rng)
+                    if self._colorbar_added:
+                        scalar_bar = self._renderer.plotter.scalar_bar
+                    else:
+                        scalar_bar = None
+                    _set_colormap_range(actor, ctable, scalar_bar, rng)
                     self._data['fmin'] = fmin
                     self._data['ctable'] = ctable
 

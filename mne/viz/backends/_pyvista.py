@@ -588,17 +588,19 @@ def _try_3d_backend():
         pass
 
 
-def _set_colormap_range(actor, ctable, rng=None):
+def _set_colormap_range(actor, ctable, scalar_bar, rng=None):
     from vtk.util.numpy_support import numpy_to_vtk
     mapper = actor.GetMapper()
-    if rng is not None:
-        mapper.scalar_range = rng[0], rng[1]
-    table = mapper.GetLookupTable()
+    lut = mapper.GetLookupTable()
     # Catch:  FutureWarning: Conversion of the second argument of
     # issubdtype from `complex` to `np.complexfloating` is deprecated.
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
-        table.SetTable(numpy_to_vtk(ctable))
+        lut.SetTable(numpy_to_vtk(ctable))
+    if rng is not None:
+        lut.SetRange(rng[0], rng[1])
+    if scalar_bar is not None:
+        scalar_bar.SetLookupTable(actor.GetMapper().GetLookupTable())
 
 
 def _set_mesh_scalars(mesh, scalars, name):
