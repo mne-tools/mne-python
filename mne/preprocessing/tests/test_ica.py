@@ -12,7 +12,7 @@ import pytest
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
-from scipy import stats
+from scipy import stats, linalg
 import matplotlib.pyplot as plt
 
 from mne import (Epochs, read_events, pick_types, create_info, EpochsArray,
@@ -90,6 +90,7 @@ def test_ica_full_data_recovery(method):
                       method=method, max_iter=1)
             with pytest.warns(UserWarning, match=None):  # sometimes warns
                 ica.fit(raw, picks=list(range(n_channels)))
+            _assert_ica_attributes(ica)
             raw2 = ica.apply(raw.copy(), exclude=[])
             if ok:
                 assert_allclose(data[:n_channels], raw2._data[:n_channels],
@@ -103,6 +104,7 @@ def test_ica_full_data_recovery(method):
                       n_pca_components=n_pca_components, random_state=0)
             with pytest.warns(None):  # sometimes warns
                 ica.fit(epochs, picks=list(range(n_channels)))
+            _assert_ica_attributes(ica)
             epochs2 = ica.apply(epochs.copy(), exclude=[])
             data2 = epochs2.get_data()[:, :n_channels]
             if ok:
@@ -294,6 +296,7 @@ def test_ica_core(method):
                   random_state=0, method=method)
         with pytest.warns(None):  # sometimes warns
             ica.fit(epochs, picks=picks)
+        _assert_ica_attributes(ica)
         data = epochs.get_data()[:, 0, :]
         n_samples = np.prod(data.shape)
         assert_equal(ica.n_samples_, n_samples)
@@ -355,6 +358,7 @@ def test_ica_additional(method):
               n_pca_components=None, random_state=0, method=method, max_iter=1)
     with pytest.warns(UserWarning, match='did not converge'):
         ica.fit(epochs)
+    _assert_ica_attributes(ica)
     # for testing eog functionality
     picks2 = np.concatenate([picks, pick_types(raw.info, False, eog=True)])
     epochs_eog = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks2,
@@ -367,6 +371,7 @@ def test_ica_additional(method):
     assert (ica.info is None)
     with pytest.warns(RuntimeWarning, match='normalize_proj'):
         ica.fit(raw, picks[:5])
+    _assert_ica_attributes(ica)
     assert (isinstance(ica.info, Info))
     assert (ica.n_components_ < 5)
 
@@ -375,6 +380,7 @@ def test_ica_additional(method):
     pytest.raises(RuntimeError, ica.save, '')
 
     ica.fit(raw, picks=[1, 2, 3, 4, 5], start=start, stop=stop2)
+    _assert_ica_attributes(ica)
 
     # check passing a ch_name to find_bads_ecg
     with pytest.warns(RuntimeWarning, match='longer'):
@@ -437,6 +443,7 @@ def test_ica_additional(method):
     n_samples = raw_._data.shape[1]
     with pytest.warns(UserWarning, match='did not converge'):
         ica.fit(raw, picks=picks[:5], decim=3)
+    _assert_ica_attributes(ica)
     assert raw_._data.shape[1] == n_samples
 
     # test expl var
@@ -444,6 +451,7 @@ def test_ica_additional(method):
               n_pca_components=4, method=method, max_iter=1)
     with pytest.warns(UserWarning, match='did not converge'):
         ica.fit(raw, picks=None, decim=3)
+    _assert_ica_attributes(ica)
     assert (ica.n_components_ == 4)
     ica_var = _ica_explained_variance(ica, raw, normalize=True)
     assert (np.all(ica_var[:-1] >= ica_var[1:]))
@@ -464,6 +472,7 @@ def test_ica_additional(method):
                   n_pca_components=4, method=method, max_iter=1)
         with pytest.warns(None):  # ICA does not converge
             ica.fit(raw, picks=picks[:10], start=start, stop=stop2)
+        _assert_ica_attributes(ica)
         sources = ica.get_sources(epochs).get_data()
         assert (ica.mixing_matrix_.shape == (2, 2))
         assert (ica.unmixing_matrix_.shape == (2, 2))
@@ -683,6 +692,7 @@ def test_ica_additional(method):
     ica = ICA(method=method)
     with pytest.warns(None):  # sometimes does not converge
         ica.fit(raw, picks=picks[:5])
+    _assert_ica_attributes(ica)
     with pytest.warns(RuntimeWarning, match='longer'):
         ica.find_bads_ecg(raw)
     ica.find_bads_eog(epochs, ch_name='MEG 0121')
@@ -726,6 +736,7 @@ def test_ica_reject_buffer(method):
         assert (raw._data[:5, ::2].shape[1] - 4 == ica.n_samples_)
     log = [l for l in drop_log.getvalue().split('\n') if 'detected' in l]
     assert_equal(len(log), 1)
+    _assert_ica_attributes(ica)
 
 
 @requires_sklearn
@@ -828,11 +839,13 @@ def test_eog_channel(method):
         picks1 = np.append(picks1a, picks1b)
         ica.fit(inst, picks=picks1)
         assert (any('EOG' in ch for ch in ica.ch_names))
+        _assert_ica_attributes(ica)
     # Test case for MEG data. Should have no EOG channel
     for inst in [raw, epochs]:
         picks1 = pick_types(inst.info, meg=True, stim=False, ecg=False,
                             eog=False, exclude='bads')[:5]
         ica.fit(inst, picks=picks1)
+        _assert_ica_attributes(ica)
         assert not any('EOG' in ch for ch in ica.ch_names)
 
 
@@ -857,6 +870,7 @@ def test_max_pca_components_none(method):
               n_components=n_components, random_state=random_state)
     with pytest.warns(None):
         ica.fit(epochs)
+    _assert_ica_attributes(ica)
     ica.save(output_fname)
 
     ica = read_ica(output_fname)
@@ -888,9 +902,11 @@ def test_n_components_none(method):
               n_components=n_components, random_state=random_state)
     with pytest.warns(None):
         ica.fit(epochs)
+    _assert_ica_attributes(ica)
     ica.save(output_fname)
 
     ica = read_ica(output_fname)
+    _assert_ica_attributes(ica)
 
     # ICA.fit() replaced max_pca_components, which was previously None,
     # with the appropriate integer value.
@@ -920,8 +936,10 @@ def test_n_components_and_max_pca_components_none(method):
     with pytest.warns(None):  # convergence
         ica.fit(epochs)
     ica.save(output_fname)
+    _assert_ica_attributes(ica)
 
     ica = read_ica(output_fname)
+    _assert_ica_attributes(ica)
 
     # ICA.fit() replaced max_pca_components, which was previously None,
     # with the appropriate integer value.
@@ -947,6 +965,7 @@ def test_ica_ctf():
                       method=method)
             with pytest.warns(UserWarning, match='did not converge'):
                 ica.fit(inst)
+            _assert_ica_attributes(ica)
 
         # test apply and get_sources
         for inst in [raw, epochs, evoked]:
@@ -958,6 +977,7 @@ def test_ica_ctf():
     ica = ICA(n_components=2, random_state=0, max_iter=2, method=method)
     with pytest.warns(UserWarning, match='did not converge'):
         ica.fit(raw)
+    _assert_ica_attributes(ica)
     raw.apply_gradient_compensation(1)
     epochs = Epochs(raw, events, None, -0.2, 0.2, preload=True)
     evoked = epochs.average()
@@ -989,6 +1009,7 @@ def test_ica_labels():
     ica = ICA(n_components=4, random_state=0, max_iter=2, method='fastica')
     with pytest.warns(UserWarning, match='did not converge'):
         ica.fit(raw)
+    _assert_ica_attributes(ica)
 
     ica.find_bads_eog(raw, l_freq=None, h_freq=None)
     picks = list(pick_types(raw.info, meg=False, eog=True))
@@ -1049,6 +1070,7 @@ def test_ica_eeg():
                           method=method)
                 with pytest.warns(None):
                     ica.fit(inst, picks=picks)
+                _assert_ica_attributes(ica)
 
             # test apply and get_sources
             for inst in [raw, epochs, evoked]:
@@ -1076,6 +1098,7 @@ def test_ica_eeg():
                           method=method)
                 with pytest.warns(None):
                     ica.fit(inst)
+                _assert_ica_attributes(ica)
 
             # test apply and get_sources
             for inst in [raw, epochs, evoked]:
@@ -1108,10 +1131,42 @@ def test_read_ica_eeglab():
         ind_comp_to_drop = np.where(comp_info["flags"])[0]
 
     ica = read_ica_eeglab(fname)
+    _assert_ica_attributes(ica)
     raw_cleaned = ica.apply(raw.copy(), exclude=ind_comp_to_drop)
 
     assert_allclose(raw_cleaned_matlab.get_data(), raw_cleaned.get_data(),
                     rtol=1e-05, atol=1e-08)
+
+
+def _assert_ica_attributes(ica):
+    """Assert some attributes of ICA objects."""
+    __tracebackhide__ = True
+    # This tests properties, but also serves as documentation of
+    # the shapes these arrays can obtain and how they obtain them
+
+    # Pre-whitener
+    n_ch = len(ica.ch_names)
+    assert ica.pre_whitener_.shape == (
+        n_ch, n_ch if ica.noise_cov is not None else 1)
+
+    # PCA
+    n_pca = ica.max_pca_components
+    assert ica.pca_components_.shape == (n_pca, n_ch), 'PCA shape'
+    assert_allclose(np.dot(ica.pca_components_, ica.pca_components_.T),
+                    np.eye(n_pca), atol=1e-6, err_msg='PCA orthogonality')
+    assert ica.pca_mean_.shape == (n_ch,)
+
+    # Mixing/unmixing
+    assert ica.unmixing_matrix_.shape == (ica.n_components_,) * 2, \
+        'Unmixing shape'
+    assert ica.mixing_matrix_.shape == (ica.n_components_,) * 2, \
+        'Mixing shape'
+    mix_unmix = np.dot(ica.mixing_matrix_, ica.unmixing_matrix_)
+    s = linalg.svdvals(ica.unmixing_matrix_)
+    nz = len(s) - (s > s[0] * 1e-12).sum()
+    want = np.eye(ica.n_components_)
+    want[:nz] = 0
+    assert_allclose(mix_unmix, want, atol=1e-6, err_msg='Mixing as pinv')
 
 
 run_tests_if_main()

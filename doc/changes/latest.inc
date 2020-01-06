@@ -45,6 +45,8 @@ Changelog
 
 - Add support for computing resolution matrix to get point spread functions (PSF) and cross-talk functions (CTF) in :func:`mne.minimum_norm.make_resolution_matrix`, :func:`mne.minimum_norm.get_cross_talk`, :func:`mne.minimum_norm.get_point_spread` by `Olaf Hauk`_
 
+- Add :func:`mne.preprocessing.read_ica_eeglab` to read EEGLAB ICA decompositions by `Christian O'Reilly`_
+
 - Add keyboard functionality to interactive colorbar plotting TFRs by `Stefan Repplinger`_
 
 - Add the ability to ``return_event_id`` in :func:`mne.read_events` for use with MNE-C produced ``-annot.fif`` files, by `Eric Larson`_
