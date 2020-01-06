@@ -2,7 +2,7 @@ numpy
 scipy
 matplotlib
 mayavi
-pyqt5
+pyqt5!=5.14.1
 pyqt5-sip
 sip
 scikit-learn

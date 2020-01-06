@@ -3029,13 +3029,18 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
         fig, ax_list = plt.subplots(len(picks_list), 1, sharex=True,
                                     squeeze=False)
         ax_list = list(ax_list[:, 0])
-        make_label = True
     else:
         fig = ax_list[0].get_figure()
-        make_label = len(ax_list) == len(fig.axes)
+
+    # make_label decides if ylabel and titles are displayed
+    make_label = len(ax_list) == len(fig.axes)
+
+    # Plot Frequency [Hz] xlabel on the last axis
+    xlabels_list = [False] * len(picks_list)
+    xlabels_list[-1] = True
 
     return (fig, picks_list, titles_list, units_list, scalings_list,
-            ax_list, make_label)
+            ax_list, make_label, xlabels_list)
 
 
 def _convert_psds(psds, dB, estimate, scaling, unit, ch_names=None,
@@ -3110,7 +3115,7 @@ def _check_psd_fmax(inst, fmax):
 def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
               units_list, scalings_list, ax_list, make_label, color, area_mode,
               area_alpha, dB, estimate, average, spatial_colors, xscale,
-              line_alpha, sphere):
+              line_alpha, sphere, xlabels_list):
     # helper function for plot_raw_psd and plot_epochs_psd
     from matplotlib.ticker import ScalarFormatter
     from .evoked import _plot_lines
@@ -3184,7 +3189,8 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
                     ch_types_used=ch_types_used, selectable=True, psd=True,
                     line_alpha=line_alpha, nave=None, time_unit='ms',
                     sphere=sphere)
-    for ii, ax in enumerate(ax_list):
+
+    for ii, (ax, xlabel) in enumerate(zip(ax_list, xlabels_list)):
         ax.grid(True, linestyle=':')
         if xscale == 'log':
             ax.set(xscale='log')
@@ -3193,9 +3199,10 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
         else:  # xscale == 'linear'
             ax.set(xlim=(freqs[0], freqs[-1]))
         if make_label:
-            if ii == len(picks_list) - 1:
-                ax.set_xlabel('Frequency (Hz)')
             ax.set(ylabel=ylabels[ii], title=titles_list[ii])
+            if xlabel:
+                ax.set_xlabel('Frequency (Hz)')
+
     if make_label:
         fig.subplots_adjust(left=.1, bottom=.1, right=.9, top=.9, wspace=0.3,
                             hspace=0.5)

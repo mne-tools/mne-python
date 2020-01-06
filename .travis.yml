@@ -61,7 +61,7 @@ before_install:
           conda env update --file $CONDA_ENV;
           pip uninstall -yq mne;
           if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-            pip install "pyqt5>=5.10";
+            pip install "pyqt5>=5.10,!=5.14.1";
           fi;
         fi;
       fi
