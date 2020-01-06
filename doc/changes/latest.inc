@@ -55,6 +55,8 @@ Changelog
 
 - Add option to specify the coordinate frame in :func:`mne.channels.read_custom_montage` by `Eric Larson`_
 
+- Add option to use ``match_case=False`` to :meth:`mne.io.Raw.set_montage` and related functions by `Eric Larson`_
+
 - Add reader for NIRx data in :func:`mne.io.read_raw_nirx` by `Robert Luke`_
 
 - Add function to convert NIRS data to optical density :func:`mne.preprocessing.nirs.optical_density` by `Robert Luke`_

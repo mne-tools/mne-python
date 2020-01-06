@@ -883,7 +883,7 @@ def test_read_dig_captrack(tmpdir):
                             [-0.005103, 0.05395, 0.144622], rtol=1e-04)
 
 
-def test_set_montage():
+def test_set_montage_mgh():
     """Test setting 'mgh60' montage to old fif."""
     raw = read_raw_fif(fif_fname)
     raw.rename_channels(lambda x: x.replace('EEG ', 'EEG'))
@@ -1030,13 +1030,38 @@ def test_set_montage_with_mismatching_ch_names():
     montage = make_standard_montage('mgh60')
 
     # 'EEG 001' and 'EEG001' won't match
-    with pytest.raises(ValueError, match='60 channel positions not present'):
+    missing_err = '60 channel positions not present'
+    with pytest.raises(ValueError, match=missing_err):
         raw.set_montage(montage)
 
     montage.ch_names = [  # modify the names in place
         name.replace('EEG', 'EEG ') for name in montage.ch_names
     ]
     raw.set_montage(montage)  # does not raise
+
+    # Case sensitivity
+    raw.rename_channels(lambda x: x.lower())
+    with pytest.raises(ValueError, match=missing_err):
+        raw.set_montage(montage)
+    # should work
+    raw.set_montage(montage, match_case=False)
+    raw.rename_channels(lambda x: x.upper())  # restore
+    assert 'EEG 001' in raw.ch_names and 'eeg 001' not in raw.ch_names
+    raw.rename_channels({'EEG 002': 'eeg 001'})
+    assert 'EEG 001' in raw.ch_names and 'eeg 001' in raw.ch_names
+    raw.set_channel_types({'eeg 001': 'misc'})
+    raw.set_montage(montage)
+    raw.set_channel_types({'eeg 001': 'eeg'})
+    with pytest.raises(ValueError, match='1 channel position not present'):
+        raw.set_montage(montage)
+    with pytest.raises(ValueError, match='match_case=False as 1 channel name'):
+        raw.set_montage(montage, match_case=False)
+    raw = RawArray(np.zeros((1, 1000)), create_info(['EEG 001'], 1000., 'eeg'))
+    mon = make_dig_montage({'EEG 001': np.zeros(3), 'eeg 001': np.zeros(3)},
+                           nasion=[0, 1., 0], rpa=[1., 0, 0], lpa=[-1., 0, 0])
+    raw.set_montage(mon)
+    with pytest.raises(ValueError, match='match_case=False as 1 montage name'):
+        raw.set_montage(mon, match_case=False)
 
 
 def test_set_montage_with_sub_super_set_of_ch_names():

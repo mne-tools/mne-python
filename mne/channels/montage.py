@@ -32,7 +32,7 @@ from ..io._digitization import (_count_points_by_type,
 from ..io.pick import pick_types
 from ..io.open import fiff_open
 from ..io.constants import FIFF
-from ..utils import (warn, logger, copy_function_doc_to_method_doc,
+from ..utils import (warn, copy_function_doc_to_method_doc, _pl,
                      _check_option, _validate_type, _check_fname,
                      fill_doc)
 
@@ -60,34 +60,6 @@ def _check_get_coord_frame(dig):
     dig_coord_frames = set([d['coord_frame'] for d in dig])
     assert len(dig_coord_frames) <= 1, _MSG
     return _frame_to_str[dig_coord_frames.pop()] if dig_coord_frames else None
-
-
-def _check_ch_names_are_compatible(info_names, montage_names):
-    assert isinstance(info_names, set) and isinstance(montage_names, set)
-
-    match_set = info_names & montage_names
-    not_in_montage = info_names - montage_names
-    not_in_info = montage_names - info_names
-
-    if len(not_in_montage):  # DigMontage is subset of info
-        raise ValueError((
-            'DigMontage is a only a subset of info.'
-            ' There are {n_ch} channel positions not present in the'
-            ' DigMontage. The required channels are: {ch_names}.'
-        ).format(n_ch=len(not_in_montage), ch_names=not_in_montage))
-    else:
-        pass  # noqa
-
-    if len(not_in_info):  # DigMontage is superset of info
-        logger.info((
-            'DigMontage is a superset of info. {n_ch} in DigMontage will be'
-            ' ignored. The ignored channels are: {ch_names}'
-        ).format(n_ch=len(not_in_info), ch_names=not_in_info))
-
-    else:
-        pass  # noqa
-
-    return match_set
 
 
 def get_builtin_montages():
@@ -682,7 +654,8 @@ def _set_montage_deprecation_helper(montage, update_ch_names, set_dig,
 
 
 @fill_doc
-def _set_montage(info, montage, raise_if_subset=DEPRECATED_PARAM):
+def _set_montage(info, montage, raise_if_subset=DEPRECATED_PARAM,
+                 match_case=True):
     """Apply montage to data.
 
     With a DigMontage, this function will replace the digitizer info with
@@ -705,6 +678,8 @@ def _set_montage(info, montage, raise_if_subset=DEPRECATED_PARAM):
         0.20, and will be removed in 0.21.
 
         .. versionadded: 0.19
+    %(match_case)s
+
     Notes
     -----
     This function will change the info variable in place.
@@ -718,7 +693,7 @@ def _set_montage(info, montage, raise_if_subset=DEPRECATED_PARAM):
         montage = make_standard_montage(montage)
 
     if isinstance(montage, DigMontage):
-        _mnt = _get_montage_in_head(montage)
+        mnt_head = _get_montage_in_head(montage)
 
         def _backcompat_value(pos, ref_pos):
             if any(np.isnan(pos)):
@@ -726,8 +701,8 @@ def _set_montage(info, montage, raise_if_subset=DEPRECATED_PARAM):
             else:
                 return np.concatenate((pos, ref_pos))
 
-        ch_pos = _mnt._get_ch_pos()
-        refs = set(ch_pos.keys()) & {'EEG000', 'REF'}
+        ch_pos = mnt_head._get_ch_pos()
+        refs = set(ch_pos) & {'EEG000', 'REF'}
         assert len(refs) <= 1
         eeg_ref_pos = np.zeros(3) if not(refs) else ch_pos.pop(refs.pop())
 
@@ -735,23 +710,50 @@ def _set_montage(info, montage, raise_if_subset=DEPRECATED_PARAM):
         _pick_chs = partial(
             pick_types, exclude=[], eeg=True, seeg=True, ecog=True, meg=False,
         )
-        matched_ch_names = _check_ch_names_are_compatible(
-            info_names=set([info['ch_names'][ii] for ii in _pick_chs(info)]),
-            montage_names=set(ch_pos),
-        )
+        info_names = [info['ch_names'][ii] for ii in _pick_chs(info)]
+        dig_names = mnt_head._get_dig_names()
+        ref_names = [None, 'EEG000', 'REF']
 
-        for name in matched_ch_names:
+        if match_case:
+            ch_pos_use = ch_pos
+            info_names_use = info_names
+            dig_names_use = dig_names
+        else:
+            ch_pos_use = {name.lower(): pos for name, pos in ch_pos.items()}
+            info_names_use = [name.lower() for name in info_names]
+            dig_names_use = [name.lower() if name is not None else name
+                             for name in dig_names]
+            ref_names = [name.lower() if name is not None else name
+                         for name in ref_names]
+            n_dup = len(ch_pos) - len(ch_pos_use)
+            if n_dup:
+                raise ValueError('Cannot use match_case=False as %s montage '
+                                 'name(s) require case sensitivity' % n_dup)
+            n_dup = len(info_names_use) - len(set(info_names_use))
+            if n_dup:
+                raise ValueError('Cannot use match_case=False as %s channel '
+                                 'name(s) require case sensitivity' % n_dup)
+        not_in_montage = [name for name, use in zip(info_names, info_names_use)
+                          if use not in ch_pos_use]
+        if len(not_in_montage):  # DigMontage is subset of info
+            raise ValueError('DigMontage is a only a subset of info. '
+                             'There are %s channel position%s not present in '
+                             'the DigMontage. The required channels are: %s'
+                             % (len(not_in_montage), _pl(not_in_montage),
+                                not_in_montage))
+
+        for name, use in zip(info_names, info_names_use):
             _loc_view = info['chs'][info['ch_names'].index(name)]['loc']
-            _loc_view[:6] = _backcompat_value(ch_pos[name], eeg_ref_pos)
+            _loc_view[:6] = _backcompat_value(ch_pos_use[use], eeg_ref_pos)
 
-        _names = _mnt._get_dig_names()
+        # XXX this is probably wrong as it uses the order from the montage
+        # rather than the order of our info['ch_names'] ...
         info['dig'] = _format_dig_points([
-            _mnt.dig[ii] for ii, name in enumerate(_names)
-            if name in matched_ch_names.union({None, 'EEG000', 'REF'})
-        ])
+            mnt_head.dig[ii] for ii, name in enumerate(dig_names_use)
+            if name in (info_names_use + ref_names)])
 
-        if _mnt.dev_head_t is not None:
-            info['dev_head_t'] = Transform('meg', 'head', _mnt.dev_head_t)
+        if mnt_head.dev_head_t is not None:
+            info['dev_head_t'] = Transform('meg', 'head', mnt_head.dev_head_t)
 
     else:  # None case
         info['dig'] = None
