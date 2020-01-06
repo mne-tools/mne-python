@@ -511,9 +511,8 @@ class SetChannelsMixin(object):
         rename_channels(self.info, mapping)
 
     @verbose
-    def set_montage(
-        self, montage, raise_if_subset=DEPRECATED_PARAM, verbose=None
-    ):
+    def set_montage(self, montage, raise_if_subset=DEPRECATED_PARAM,
+                    match_case=True, verbose=None):
         """Set EEG sensor configuration and head digitization.
 
         Parameters
@@ -528,6 +527,7 @@ class SetChannelsMixin(object):
             0.20, and will be removed in 0.21.
 
             .. versionadded:: 0.19
+        %(match_case)s
         %(verbose_meth)s
 
         Returns
@@ -545,7 +545,7 @@ class SetChannelsMixin(object):
         # https://gist.github.com/massich/f6a9f4799f1fbeb8f5e8f8bc7b07d3df
 
         from .montage import _set_montage
-        _set_montage(self.info, montage, raise_if_subset=raise_if_subset)
+        _set_montage(self.info, montage, raise_if_subset, match_case)
         return self
 
     @verbose
