@@ -540,6 +540,7 @@ def test_plot_volume_source_estimates_morph():
     n_time = 2
     data = np.random.RandomState(0).rand(n_verts, n_time)
     stc = VolSourceEstimate(data, vertices, 1, 1)
+    sample_src[0]['subject_his_id'] = 'sample'  # old src
     morph = compute_source_morph(sample_src, 'sample', 'fsaverage', zooms=5,
                                  subjects_dir=subjects_dir)
     initial_pos = (-0.05, -0.01, -0.006)
