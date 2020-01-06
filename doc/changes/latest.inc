@@ -166,6 +166,8 @@ Bug
 
 - Fix :class:`mne.decoding.LinearModel` to support the refitted estimator of ``GridSearchCV`` in ``sklearn`` by `Chun-Hui Li`_
 
+- Fix check for subject definition existing in source space in :func:`mne.compute_source_morph` and related functions by `Eric Larson`_
+
 - Fix bug in :class:`~mne.preprocessing.Xdawn` where filters where selected along the incorrect axis, by `Henrich Kolkhorst`_
 
 - Fix bug in :func:`mne.bem.make_watershed_bem` where some surfaces were saved incorrectly in the working directory by `Yu-Han Luo`_

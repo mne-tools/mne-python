@@ -19,7 +19,7 @@ from .source_space import SourceSpaces, _ensure_src
 from .surface import read_morph_map, mesh_edges, read_surface, _compute_nearest
 from .utils import (logger, verbose, check_version, get_subjects_dir,
                     warn as warn_, fill_doc, _check_option, _validate_type,
-                    BunchConst, wrapped_stdout, _check_fname)
+                    BunchConst, wrapped_stdout, _check_fname, warn)
 from .externals.h5io import read_hdf5, write_hdf5
 
 
@@ -525,6 +525,10 @@ def _check_subject_src(subject, src, name='subject_from', src_name='src'):
         subject_check = subject
     else:
         subject_check = src._subject
+        if subject_check is None:
+            warn('The source space does not contain the subject name, we '
+                 'recommend regenerating the source space (and forward / '
+                 'inverse if applicable) for better code reliability')
     if subject is None:
         subject = subject_check
     elif subject_check is not None and subject != subject_check:
