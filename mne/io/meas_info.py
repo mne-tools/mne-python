@@ -1783,7 +1783,9 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
         Currently supported fields are 'ecg', 'bio', 'stim', 'eog', 'misc',
         'seeg', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'emg', 'hbr' or 'hbo'.
         If str, then all channels are assumed to be of the same type.
-    %(montage)s
+    montage : None
+        Deprecated. Use :meth:`mne.io.Raw.set_montage`,
+        :meth:`mne.Epochs.set_montage`, etc. instead.
     %(verbose)s
 
     Returns
@@ -1818,8 +1820,11 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
         ch_names = list(np.arange(ch_names).astype(str))
     _validate_type(ch_names, (list, tuple), "ch_names",
                    ("list, tuple, or int"))
-    _validate_type(montage, types=(type(None), str, DigMontage),
-                   item_name='montage')
+    _validate_type(montage, (None, str, DigMontage), 'montage')
+    if montage is not None:
+        warn('Passing montage to create_info is deprecated and will be '
+             'removed in 0.21, use raw.set_montage (or epochs.set_montage, '
+             'etc.) instead', DeprecationWarning)
     sfreq = float(sfreq)
     if sfreq <= 0:
         raise ValueError('sfreq must be positive')
