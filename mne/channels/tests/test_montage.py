@@ -684,14 +684,15 @@ def test_set_dig_montage():
         ch_names,
         np.arange(N_CHANNELS * 3).reshape(N_CHANNELS, 3),
     ))
+    data = np.zeros((N_CHANNELS, 1))
 
     montage_ch_only = make_dig_montage(ch_pos=ch_pos, coord_frame='head')
 
     assert repr(montage_ch_only) == (
         '<DigMontage | 0 extras (headshape), 0 HPIs, 0 fiducials, 3 channels>'
     )
-    info = create_info(ch_names, sfreq=1, ch_types='eeg',
-                       montage=montage_ch_only)
+    info = create_info(ch_names, sfreq=1, ch_types='eeg')
+    RawArray(data, info, copy=None).set_montage(montage_ch_only)
     assert len(info['dig']) == len(montage_ch_only.dig)
 
     assert_allclose(actual=np.array([ch['loc'][:6] for ch in info['chs']]),
@@ -711,7 +712,8 @@ def test_set_dig_montage():
         '<DigMontage | 2 extras (headshape), 1 HPIs, 3 fiducials, 4 channels>'
     )
 
-    info = create_info(ch_names, sfreq=1, ch_types='eeg', montage=montage_full)
+    info = create_info(ch_names, sfreq=1, ch_types='eeg')
+    RawArray(data, info, copy=None).set_montage(montage_full)
     EXPECTED_LEN = sum({'hsp': 2, 'hpi': 1, 'fid': 3, 'eeg': 4}.values())
     assert len(info['dig']) == EXPECTED_LEN
     assert_allclose(actual=np.array([ch['loc'][:6] for ch in info['chs']]),
@@ -1068,24 +1070,22 @@ def test_set_montage_with_sub_super_set_of_ch_names():
     """Test info and montage ch_names matching criteria."""
     N_CHANNELS = len('abcdef')
     montage = _make_toy_dig_montage(N_CHANNELS, coord_frame='head')
+    data = np.zeros((7, 1))
 
     # montage and info match
-    _ = create_info(
-        ch_names=list('abcdef'), sfreq=1, ch_types='eeg', montage=montage
-    )
+    info = create_info(ch_names=list('abcdef'), sfreq=1, ch_types='eeg')
+    RawArray(data[:6], info, copy=None).set_montage(montage)
 
     # montage is a SUPERset of info
-    info = create_info(
-        ch_names=list('abc'), sfreq=1, ch_types='eeg', montage=montage
-    )
+    info = create_info(list('abc'), sfreq=1, ch_types='eeg')
+    RawArray(data[:3], info, copy=None).set_montage(montage)
     assert len(info['dig']) == len(list('abc'))
 
     # montage is a SUBset of info
     _MSG = 'subset of info. There are 2 .* not present in the DigMontage'
+    info = create_info(ch_names=list('abcdfgh'), sfreq=1, ch_types='eeg')
     with pytest.raises(ValueError, match=_MSG):
-        _ = create_info(
-            ch_names=list('abcdfgh'), sfreq=1, ch_types='eeg', montage=montage
-        )
+        RawArray(data, info, copy=None).set_montage(montage)
 
 
 def test_heterogeneous_ch_type():
@@ -1098,12 +1098,8 @@ def test_heterogeneous_ch_type():
     )
 
     # Montage and info match
-    _ = create_info(
-        ch_names=montage.ch_names,
-        ch_types=list(VALID_MONTAGE_NAMED_CHS),
-        montage=montage,
-        sfreq=1,
-    )
+    info = create_info(montage.ch_names, 1., list(VALID_MONTAGE_NAMED_CHS))
+    RawArray(np.zeros((3, 1)), info, copy=None).set_montage(montage)
 
 
 def test_set_montage_coord_frame_in_head_vs_unknown():
