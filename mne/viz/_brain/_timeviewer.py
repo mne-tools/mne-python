@@ -34,8 +34,8 @@ class _TimeViewer(object):
         # smoothing slider
         smoothing_slider = self.plotter.add_slider_widget(
             brain.set_data_smoothing,
-            value=10,
-            rng=[2, 30], title="smoothing",
+            value=7,
+            rng=[1, 15], title="smoothing",
             pointa=(0.82, 0.92),
             pointb=(0.98, 0.92)
         )
