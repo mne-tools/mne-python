@@ -2,27 +2,32 @@
 #
 # License: BSD 3 clause
 
-import os.path as op
-import sys
-from collections import OrderedDict
 from datetime import datetime, timezone
 from itertools import repeat
+from collections import OrderedDict
+import sys
+
+import os.path as op
+
+import pytest
+from pytest import approx
+from numpy.testing import (assert_equal, assert_array_equal,
+                           assert_array_almost_equal, assert_allclose)
+
+import numpy as np
 
 import mne
-import numpy as np
-import pytest
-from mne import (Annotations, Epochs, annotations_from_events, create_info,
-                 events_from_annotations, read_annotations)
-from mne.annotations import (_handle_meas_date,
-                             _read_annotations_txt_parse_header, _sync_onset)
+from mne import (create_info, read_annotations, annotations_from_events,
+                 events_from_annotations)
+from mne import Epochs, Annotations
+from mne.utils import (run_tests_if_main, _TempDir, requires_version,
+                       catch_logging)
+from mne.utils import (assert_and_remove_boundary_annot, _raw_annot,
+                       _dt_to_stamp, _stamp_to_dt)
+from mne.io import read_raw_fif, RawArray, concatenate_raws
+from mne.annotations import (_sync_onset, _handle_meas_date,
+                             _read_annotations_txt_parse_header)
 from mne.datasets import testing
-from mne.io import RawArray, concatenate_raws, read_raw_fif
-from mne.utils import (_dt_to_stamp, _raw_annot, _stamp_to_dt, _TempDir,
-                       assert_and_remove_boundary_annot, catch_logging,
-                       requires_version, run_tests_if_main)
-from numpy.testing import (assert_allclose, assert_array_almost_equal,
-                           assert_array_equal, assert_equal)
-from pytest import approx
 
 data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
 fif_fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',

@@ -1000,7 +1000,7 @@ def annotations_from_events(events, sfreq, first_samp=0, orig_time=None,
 
     Returns
     -------
-    annot : instance of Annotations | None
+    annot : instance of Annotations
         The annotations.
 
     Notes
