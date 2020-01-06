@@ -544,7 +544,7 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
         from . import plot_compare_evokeds
         pass_combine = (combine if combine_given else None)
         _picks = [0] if len(picks) == 1 else None  # prevent applying GFP
-        plot_compare_evokeds({'cond': list(epochs.iter_evoked())},
+        plot_compare_evokeds({'cond': list(epochs.iter_evoked(copy=False))},
                              picks=_picks, axes=ax['evoked'],
                              combine=pass_combine, **ts_args)
         ax['evoked'].set_xlim(tmin, tmax)  # don't multiply by 1e3 here

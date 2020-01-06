@@ -23,6 +23,8 @@ Changelog
 
 - Add :func:`mne.io.Raw.set_meas_date` by `Eric Larson`_
 
+- Add ``copy`` parameter to :meth:`mne.Epochs.iter_evoked` by `Alex Gramfort`_
+
 - Add command :ref:`gen_mne_setup_source_space` to quickly set up bilateral hemisphere surface-based source space with subsampling by `Victor Ferat`_.
 
 - Add command :ref:`gen_mne_sys_info` to print system information by `Eric Larson`_
@@ -101,6 +103,8 @@ Bug
 - Fix :meth:`mne.io.Raw.anonymize` to correctly reset ``raw.annotations.orig_time`` by `Luke Bloy`_.
 
 - Fix :meth:`mne.io.Raw.anonymize` to correctly avoid shifting ``raw.annotations.onset`` relative to ``raw.first_samp`` by `Eric Larson`_
+
+- :meth:`mne.Epochs.iter_evoked` now does not return a copy of info when ``copy=False`` (default parameter) by `Alex Gramfort`_
 
 - The attribute :class:`mne.Annotations.orig_time <mne.Annotations>` is now read-only, and is a :class:`~python:datetime.datetime` object (or None) rather than float, by `Eric Larson`_
 
