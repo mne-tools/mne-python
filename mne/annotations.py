@@ -938,7 +938,7 @@ def events_from_annotations(raw, event_id="auto",
     Notes
     -----
     For data formats that store integer events as strings (e.g., NeuroScan
-    ``.cnt`` files), passing the Python built-in function :func:`int` as the
+    ``.cnt`` files), passing the Python built-in function :class:`int` as the
     ``event_id`` parameter will do what most users probably want in those
     circumstances: return an ``event_id`` dictionary that maps event ``'1'`` to
     integer event code ``1``, ``'2'`` to ``2``, etc.
