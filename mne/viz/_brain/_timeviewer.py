@@ -106,7 +106,7 @@ class _TimeViewer(object):
         _set_slider_style(fmin_slider)
         _set_slider_style(fmid_slider)
         _set_slider_style(fmax_slider)
-        _set_slider_style(time_slider)
+        _set_slider_style(time_slider, show_label=False)
 
         # add toggle to show/hide interface
         self.visibility = True
