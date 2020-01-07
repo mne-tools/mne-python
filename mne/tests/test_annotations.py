@@ -1152,5 +1152,22 @@ def test_annotations_from_events():
     assert np.all(['event' in a for a in annots.description])
     assert len(annots) == events.shape[0]
 
+    # 3. Pass numpy array
+    # -------------------------------------------------------------------------
+    event_desc = np.array([[1, 2, 3], [1, 2, 3]])
+    with pytest.raises(ValueError):  # a 2D array should fail
+        annots = annotations_from_events(events, sfreq=raw.info['sfreq'],
+                                         event_desc=event_desc,
+                                         first_samp=raw.first_samp,
+                                         orig_time=None)
+
+    event_desc = np.array([[1, 2, 3], ])
+    annots = annotations_from_events(events, sfreq=raw.info['sfreq'],
+                                     event_desc=event_desc,
+                                     first_samp=raw.first_samp,
+                                     orig_time=None)
+    assert np.all([a in ['1', '2', '3'] for a in annots.description])
+    assert len(annots) == events[events[:, 2] <= 3].shape[0]
+
 
 run_tests_if_main()

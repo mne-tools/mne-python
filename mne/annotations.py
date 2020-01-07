@@ -916,6 +916,11 @@ def _check_event_description(event_desc, events):
     if event_desc is None:  # convert to int to make typing-checks happy
         event_desc = list(np.unique(events[:, 2]))
 
+    if isinstance(event_desc, np.ndarray):
+        event_desc = event_desc.squeeze()  # remove singletons
+        if event_desc.ndim == 1:
+            event_desc = list(event_desc)
+
     if isinstance(event_desc, dict):
         for val in event_desc.values():
             _validate_type(val, (str, None), 'Event names')
@@ -923,6 +928,8 @@ def _check_event_description(event_desc, events):
         event_desc = dict(zip(event_desc, (str(i) for i in event_desc)))
     elif callable(event_desc):
         pass
+    else:
+        raise ValueError('Invalid input event_id')
 
     return event_desc
 
@@ -1042,8 +1049,9 @@ def annotations_from_events(events, sfreq, event_desc=None, first_samp=0,
 
         - **dict**: map integer event codes (keys) to descriptions (values).
           Only the descriptions present will be mapped, others will be ignored.
-        - **list**: integer event codes (values) to include. Others will be
-          ignored. Event codes will be converted to string descriptions.
+        - **list** or **1darray**: integers event codes to include. Only the
+          event codes present will be mapped, others will be ignored. Event
+          codes will be passed as string descriptions.
         - **callable**: must take a integer event code as input and return a
           string description or None to ignore it.
         - **None**: Use integer event codes as descriptions.
