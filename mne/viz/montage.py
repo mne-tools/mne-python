@@ -34,6 +34,7 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
     """
     from scipy.spatial.distance import cdist
     from ..channels import DigMontage, make_dig_montage
+    from ..io import RawArray
     from .. import create_info
 
     _check_option('kind', kind, ['topomap', '3d'])
@@ -66,7 +67,9 @@ def plot_montage(montage, scale_factor=20, show_names=True, kind='topomap',
         fid, _ = _get_fid_coords(montage.dig)
         montage = make_dig_montage(ch_pos=ch_pos, **fid)
 
-    info = create_info(ch_names, sfreq=256, ch_types="eeg", montage=montage)
+    info = create_info(ch_names, sfreq=256, ch_types="eeg")
+    RawArray(np.zeros((len(ch_names), 1)), info,
+             copy=None).set_montage(montage)
     fig = plot_sensors(info, kind=kind, show_names=show_names, show=show,
                        title=title, sphere=sphere)
     collection = fig.axes[0].collections[0]

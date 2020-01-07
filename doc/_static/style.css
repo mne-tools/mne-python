@@ -8,6 +8,18 @@ html {
   position: relative;
   min-height: 100%;
 }
+
+/* Syntax reset */
+.highlight a {
+    color: var(--a-color);
+}
+.highlight * {
+    color: inherit;
+    font-weight: inherit;
+    font-style: inherit;
+    background-color: #fafafa;
+}
+
 /* overrides of bootstrap fonts */
 body {
     font-family:"Source Sans Pro", sans-serif;
@@ -444,7 +456,13 @@ div.institutions a {
   .hidden {
     display: none;
   }
-  /* Pandas DataFrame _repr_html_ */
+
+/* Pandas DataFrame _repr_html_ */
 table.dataframe th,td {
     padding: 5px;
+}
+
+/* Sphinx-gallery backreference links */
+a[class^="sphx-glr-backref-module-mne"] {
+    font-weight: 600;
 }
