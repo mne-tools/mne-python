@@ -871,7 +871,6 @@ class _Brain(object):
                 actor = self._data.get(hemi + '_actor')
                 if actor is not None:
                     fmin = self._data['fmin']
-                    fmax = self._data['fmax']
                     center = self._data['center']
                     dt_max = fmax
                     dt_min = fmin if center is None else -1 * fmax
@@ -910,7 +909,6 @@ class _Brain(object):
             for hemi in ['lh', 'rh']:
                 actor = self._data.get(hemi + '_actor')
                 if actor is not None:
-                    fmin = self._data['fmin']
                     fmax = self._data['fmax']
                     center = self._data['center']
                     dt_max = fmax

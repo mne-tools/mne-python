@@ -598,6 +598,7 @@ def _set_colormap_range(actor, ctable, scalar_bar, rng=None):
         warnings.filterwarnings("ignore", category=FutureWarning)
         lut.SetTable(numpy_to_vtk(ctable))
     if rng is not None:
+        mapper.SetScalarRange(rng[0], rng[1])
         lut.SetRange(rng[0], rng[1])
     if scalar_bar is not None:
         scalar_bar.SetLookupTable(actor.GetMapper().GetLookupTable())
