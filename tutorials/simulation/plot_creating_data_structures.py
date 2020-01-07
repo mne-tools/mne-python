@@ -53,7 +53,8 @@ sfreq = 1000  # in Hertz
 montage = 'standard_1005'
 
 # Initialize required fields
-info = mne.create_info(channel_names, sfreq, channel_types, montage)
+info = mne.create_info(channel_names, sfreq, channel_types)
+info.set_montage(montage)
 
 # Add some more information
 info['description'] = 'My custom dataset'
@@ -97,8 +98,7 @@ data = np.random.randn(5, 1000)
 info = mne.create_info(
     ch_names=['MEG1', 'MEG2', 'EEG1', 'EEG2', 'EOG'],
     ch_types=['grad', 'grad', 'eeg', 'eeg', 'eog'],
-    sfreq=100
-)
+    sfreq=100)
 
 custom_raw = mne.io.RawArray(data, info)
 print(custom_raw)
@@ -121,8 +121,7 @@ data = np.random.randn(10, 5, sfreq * 2)
 info = mne.create_info(
     ch_names=['MEG1', 'MEG2', 'EEG1', 'EEG2', 'EOG'],
     ch_types=['grad', 'grad', 'eeg', 'eeg', 'eog'],
-    sfreq=sfreq
-)
+    sfreq=sfreq)
 
 ###############################################################################
 # It is necessary to supply an "events" array in order to create an Epochs
