@@ -896,8 +896,8 @@ def events_from_annotations(raw, event_id="auto",
 
         - **dict**: map descriptions (keys) to integer event codes (values).
           Only the descriptions present will be mapped, others will be ignored.
-        - **callable**: must take a string input and returns an integer event
-          code or None to ignore it.
+        - **callable**: must take a string input and return an integer event
+          code, or return ``None`` to ignore the event.
         - **None**: Map descriptions to unique integer values based on their
           ``sorted`` order.
         - **'auto' (default)**: prefer a raw-format-specific parser:
@@ -934,6 +934,14 @@ def events_from_annotations(raw, event_id="auto",
         The events.
     event_id : dict
         The event_id variable that can be passed to Epochs.
+
+    Notes
+    -----
+    For data formats that store integer events as strings (e.g., NeuroScan
+    ``.cnt`` files), passing the Python built-in function :class:`int` as the
+    ``event_id`` parameter will do what most users probably want in those
+    circumstances: return an ``event_id`` dictionary that maps event ``'1'`` to
+    integer event code ``1``, ``'2'`` to ``2``, etc.
     """
     if len(raw.annotations) == 0:
         event_id = dict() if not isinstance(event_id, dict) else event_id
