@@ -52,6 +52,13 @@ class _TimeViewer(object):
     def __init__(self, brain):
         self.plotter = brain._renderer.plotter
 
+        # scalar bar
+        scalar_bar = self.plotter.scalar_bar
+        scalar_bar.SetOrientationToVertical()
+        scalar_bar.SetHeight(0.47)
+        scalar_bar.SetWidth(0.05)
+        scalar_bar.SetPosition(0.095, 0.35)
+
         # smoothing slider
         default_smoothing_value = 7
         set_smoothing = IntSlider(
@@ -97,14 +104,21 @@ class _TimeViewer(object):
         orientation_slider.name = "orientation"
         set_orientation(0)
 
+        # time label
+        for hemi in brain._hemis:
+            time_actor = brain._data[hemi + '_time_actor']
+            if time_actor is not None:
+                time_actor.SetPosition(0.5, 0.03)
+                time_actor.GetTextProperty().SetJustificationToCentered()
+
         # time slider
         max_time = len(brain._data['time']) - 1
         time_slider = self.plotter.add_slider_widget(
             brain.set_time_point,
             value=brain._data['time_idx'],
             rng=[0, max_time],
-            pointa=(0.15, 0.16),
-            pointb=(0.85, 0.16),
+            pointa=(0.25, 0.1),
+            pointb=(0.75, 0.1),
             event_type='always'
         )
 
@@ -114,31 +128,22 @@ class _TimeViewer(object):
             brain.update_fmin,
             value=fmin,
             rng=_get_range(fmin), title="fmin",
-            pointa=(0.02, 0.92),
-            pointb=(0.19, 0.92)
-        )
-        fmid = brain._data["fmid"]
-        fmid_slider = self.plotter.add_slider_widget(
-            brain.update_fmid,
-            value=fmid,
-            rng=_get_range(fmid), title="fmid",
-            pointa=(0.02, 0.78),
-            pointb=(0.19, 0.78)
+            pointa=(0.02, 0.27),
+            pointb=(0.19, 0.27)
         )
         fmax = brain._data["fmax"]
         fmax_slider = self.plotter.add_slider_widget(
             brain.update_fmax,
             value=fmax,
             rng=_get_range(fmax), title="fmax",
-            pointa=(0.02, 0.64),
-            pointb=(0.19, 0.64)
+            pointa=(0.02, 0.92),
+            pointb=(0.19, 0.92)
         )
 
         # set the slider style
         _set_slider_style(smoothing_slider)
         _set_slider_style(orientation_slider, show_label=False)
         _set_slider_style(fmin_slider)
-        _set_slider_style(fmid_slider)
         _set_slider_style(fmax_slider)
         _set_slider_style(time_slider, show_label=False)
 
