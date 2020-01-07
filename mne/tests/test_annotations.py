@@ -1130,7 +1130,18 @@ def test_annotations_from_events():
     assert np.all([a in ['one', 'two', 'three'] for a in annots.description])
     assert len(annots) == events[events[:, 2] <= 3].shape[0]
 
-    # 3. Try passing callable
+    # 3. Pass list
+    # -------------------------------------------------------------------------
+    event_desc = [1, 2, 3]
+    annots = annotations_from_events(events, sfreq=raw.info['sfreq'],
+                                     event_desc=event_desc,
+                                     first_samp=raw.first_samp,
+                                     orig_time=None)
+
+    assert np.all([a in ['1', '2', '3'] for a in annots.description])
+    assert len(annots) == events[events[:, 2] <= 3].shape[0]
+
+    # 4. Try passing callable
     # -------------------------------------------------------------------------
     event_desc = lambda d: 'event{}'.format(d)  # noqa:E731
     annots = annotations_from_events(events, sfreq=raw.info['sfreq'],

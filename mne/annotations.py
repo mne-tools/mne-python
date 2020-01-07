@@ -923,8 +923,7 @@ def _check_event_description(event_desc, events):
         event_desc = dict(zip(event_desc, (str(i) for i in event_desc)))
     elif callable(event_desc):
         pass
-    else:
-        event_desc = {event_desc: str(event_desc)}
+
     return event_desc
 
 
@@ -1043,6 +1042,8 @@ def annotations_from_events(events, sfreq, event_desc=None, first_samp=0,
 
         - **dict**: map integer event codes (keys) to descriptions (values).
           Only the descriptions present will be mapped, others will be ignored.
+        - **list**: integer event codes (values) to include. Others will be
+          ignored. Event codes will be converted to string descriptions.
         - **callable**: must take a integer event code as input and return a
           string description or None to ignore it.
         - **None**: Use integer event codes as descriptions.
