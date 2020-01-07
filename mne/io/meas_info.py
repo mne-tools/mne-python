@@ -150,8 +150,52 @@ def _unique_channel_names(ch_names):
     return ch_names
 
 
+DEPRECATED_PARAM = object()
+
+
+class MontageMixin(object):
+    """Mixin for Montage setting."""
+
+    @verbose
+    def set_montage(self, montage, raise_if_subset=DEPRECATED_PARAM,
+                    match_case=True, verbose=None):
+        """Set EEG sensor configuration and head digitization.
+
+        Parameters
+        ----------
+        %(montage)s
+        raise_if_subset : bool
+            If True, ValueError will be raised when montage.ch_names is a
+            subset of info['ch_names']. This parameter was introduced for
+            backward compatibility when set to False.
+
+            Defaults to False in 0.19, it will change to default to True in
+            0.20, and will be removed in 0.21.
+
+            .. versionadded:: 0.19
+        %(match_case)s
+        %(verbose_meth)s
+
+        Returns
+        -------
+        inst : instance of Raw | Epochs | Evoked
+            The instance.
+
+        Notes
+        -----
+        Operates in place.
+        """
+        # How to set up a montage to old named fif file (walk through example)
+        # https://gist.github.com/massich/f6a9f4799f1fbeb8f5e8f8bc7b07d3df
+
+        from ..channels.montage import _set_montage
+        info = self if isinstance(self, Info) else self.info
+        _set_montage(info, montage, raise_if_subset, match_case)
+        return self
+
+
 # XXX Eventually this should be de-duplicated with the MNE-MATLAB stuff...
-class Info(dict):
+class Info(dict, MontageMixin):
     """Measurement information.
 
     This data structure behaves like a dictionary. It contains all metadata
@@ -1784,8 +1828,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
         'seeg', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'emg', 'hbr' or 'hbo'.
         If str, then all channels are assumed to be of the same type.
     montage : None
-        Deprecated. Use :meth:`mne.io.Raw.set_montage`,
-        :meth:`mne.Epochs.set_montage`, etc. instead.
+        Deprecated. Use :meth:`mne.Info.set_montage` instead.
     %(verbose)s
 
     Returns

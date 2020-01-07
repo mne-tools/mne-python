@@ -29,8 +29,9 @@ from ..io._digitization import (_count_points_by_type,
                                 _get_dig_eeg, _make_dig_points, write_dig,
                                 _read_dig_fif, _format_dig_points,
                                 _get_fid_coords, _coord_frame_const)
-from ..io.pick import pick_types
+from ..io.meas_info import DEPRECATED_PARAM
 from ..io.open import fiff_open
+from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..utils import (warn, copy_function_doc_to_method_doc, _pl,
                      _check_option, _validate_type, _check_fname,
@@ -38,8 +39,6 @@ from ..utils import (warn, copy_function_doc_to_method_doc, _pl,
 
 from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
-
-from .channels import DEPRECATED_PARAM
 
 _BUILT_IN_MONTAGES = [
     'EGI_256',

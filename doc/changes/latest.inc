@@ -193,7 +193,7 @@ API
 
 - Deprecate ``mne.minimum_norm.point_spread_function`` and ``mne.minimum_norm.cross_talk_function`` by `Alex Gramfort`_
 
-- Deprecate ``montage`` parameter of :func:`mne.create_info` in favor of :meth:`mne.io.Raw.set_montage` and related functions by `Eric Larson`_
+- Deprecate ``montage`` parameter of :func:`mne.create_info` in favor of :meth:`mne.io.Raw.set_montage`, :meth:`mne.Info.set_montage`, and related functions by `Eric Larson`_
 
 - :func:`mne.channels.equalize_channels` no longer operates in-place by default, but instead makes copies of the objects when necessary (see ``copy`` parameter) by `Marijn van Vliet`_
 

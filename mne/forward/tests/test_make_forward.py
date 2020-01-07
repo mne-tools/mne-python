@@ -8,8 +8,7 @@ from numpy.testing import assert_equal, assert_allclose, assert_array_equal
 
 from mne.channels import make_standard_montage
 from mne.datasets import testing
-from mne.io import (read_raw_fif, read_raw_kit, read_raw_bti, read_info,
-                    RawArray)
+from mne.io import read_raw_fif, read_raw_kit, read_raw_bti, read_info
 from mne.io.constants import FIFF
 from mne import (read_forward_solution, write_forward_solution,
                  make_forward_solution, convert_forward_solution,
@@ -450,8 +449,7 @@ def test_make_forward_no_meg(tmpdir):
     bem = make_sphere_model()
     trans = None
     montage = make_standard_montage('standard_1020')
-    info = create_info(['Cz'], 1000., 'eeg')
-    RawArray(np.zeros((1, 1)), info, copy=None).set_montage(montage)
+    info = create_info(['Cz'], 1000., 'eeg').set_montage(montage)
     fwd = make_forward_solution(info, trans, src, bem)
     fname = tmpdir.join('test-fwd.fif')
     write_forward_solution(fname, fwd)
