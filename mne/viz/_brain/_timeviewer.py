@@ -5,24 +5,45 @@
 # License: Simplified BSD
 
 
-class TextSliderHelper(object):
+class TextSlider(object):
     """Class to set a text slider."""
 
-    def __init__(self, plotter=None, brain=None, orientation=None):
+    def __init__(self, plotter=None, data=None,
+                 callback=None, name=None):
         self.plotter = plotter
-        self.brain = brain
-        self.orientation = orientation
+        self.data = data
+        self.callback = callback
+        self.name = name
 
     def __call__(self, idx):
         """Update the title of the slider."""
         idx = int(idx)
-        orientation = self.orientation[idx]
+        data = self.data[idx]
         for slider in self.plotter.slider_widgets:
             name = getattr(slider, "name", None)
-            if name == "orientation":
+            if name == self.name:
                 slider_rep = slider.GetRepresentation()
-                slider_rep.SetTitleText(orientation)
-                self.brain.show_view(orientation)
+                slider_rep.SetTitleText(data)
+                self.callback(data)
+
+
+class IntSlider(object):
+    """Class to set a integer slider."""
+
+    def __init__(self, plotter=None, callback=None, name=None):
+        self.plotter = plotter
+        self.callback = callback
+        self.name = name
+
+    def __call__(self, idx):
+        """Round the label of the slider."""
+        idx = int(idx)
+        for slider in self.plotter.slider_widgets:
+            name = getattr(slider, "name", None)
+            if name == self.name:
+                slider_rep = slider.GetRepresentation()
+                slider_rep.SetValue(idx)
+                self.callback(idx)
 
 
 class _TimeViewer(object):
@@ -32,13 +53,21 @@ class _TimeViewer(object):
         self.plotter = brain._renderer.plotter
 
         # smoothing slider
+        default_smoothing_value = 7
+        set_smoothing = IntSlider(
+            plotter=self.plotter,
+            callback=brain.set_data_smoothing,
+            name="smoothing"
+        )
         smoothing_slider = self.plotter.add_slider_widget(
-            brain.set_data_smoothing,
-            value=7,
+            set_smoothing,
+            value=default_smoothing_value,
             rng=[1, 15], title="smoothing",
             pointa=(0.82, 0.92),
             pointb=(0.98, 0.92)
         )
+        smoothing_slider.name = 'smoothing'
+        set_smoothing(default_smoothing_value)
 
         # orientation slider
         orientation = [
@@ -51,7 +80,12 @@ class _TimeViewer(object):
             'frontal',
             'parietal'
         ]
-        set_orientation = TextSliderHelper(self.plotter, brain, orientation)
+        set_orientation = TextSlider(
+            plotter=self.plotter,
+            data=orientation,
+            callback=brain.show_view,
+            name="orientation"
+        )
         orientation_slider = self.plotter.add_slider_widget(
             set_orientation,
             value=0,
