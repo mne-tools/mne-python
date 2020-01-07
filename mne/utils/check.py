@@ -245,13 +245,13 @@ def _check_pandas_installed(strict=True):
 
 def _check_pandas_index_arguments(index, defaults):
     """Check pandas index arguments."""
-    if not any(isinstance(index, k) for k in (list, tuple)):
+    if isinstance(index, str):
         index = [index]
-    invalid_choices = [e for e in index if e not in defaults]
+    invalid_choices = set(index) - set(defaults)
     if invalid_choices:
         options = [', '.join(e) for e in [invalid_choices, defaults]]
-        raise ValueError('[%s] is not an valid option. Valid index'
-                         'values are \'None\' or %s' % tuple(options))
+        raise ValueError('"%s" is not an valid option. Valid index '
+                         'values are `None` or %s' % tuple(options))
 
 
 def _check_ch_locs(chs):
