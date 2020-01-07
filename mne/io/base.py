@@ -72,10 +72,14 @@ class ToDataFrameMixin(object):
         Parameters
         ----------
         %(picks_all)s
-        index : tuple of str | None
-            Column to be used as index for the data. Valid string options
-            are 'epoch', 'time' and 'condition'. If None, all three info
-            columns will be included in the table as categorial data.
+        index : str | list of str | None
+            Specifies how to index the DataFrame. Valid string options are
+            'epoch', 'time' and 'condition'. If a list of strings is provided,
+            they will be used to create a :class:`pandas.MultiIndex` with
+            levels occurring in the order given. If ``None``, a sequential
+            integer index (:class:`pandas.RangeIndex`) will be used, and
+            'condition', 'epoch' and 'time' will be included in the DataFrame
+            as columns.
         scaling_time : float
             Scaling to be applied to time units.
         scalings : dict | None
