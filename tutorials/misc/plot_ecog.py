@@ -40,7 +40,7 @@ print('Created %s channel positions' % len(ch_names))
 # Now that we have our electrode positions in MRI coordinates, we can create
 # our measurement info structure.
 
-info = mne.create_info(ch_names, 1000., 'ecog', montage=montage)
+info = mne.create_info(ch_names, 1000., 'ecog').set_montage(montage)
 
 ###############################################################################
 # We can then plot the locations of our electrodes on our subject's brain.
