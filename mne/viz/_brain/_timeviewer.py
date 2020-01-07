@@ -53,11 +53,12 @@ class _TimeViewer(object):
         self.plotter = brain._renderer.plotter
 
         # scalar bar
-        scalar_bar = self.plotter.scalar_bar
-        scalar_bar.SetOrientationToVertical()
-        scalar_bar.SetHeight(0.47)
-        scalar_bar.SetWidth(0.05)
-        scalar_bar.SetPosition(0.095, 0.35)
+        if brain._colorbar_added:
+            scalar_bar = self.plotter.scalar_bar
+            scalar_bar.SetOrientationToVertical()
+            scalar_bar.SetHeight(0.47)
+            scalar_bar.SetWidth(0.05)
+            scalar_bar.SetPosition(0.095, 0.35)
 
         # smoothing slider
         default_smoothing_value = 7
@@ -106,7 +107,7 @@ class _TimeViewer(object):
 
         # time label
         for hemi in brain._hemis:
-            time_actor = brain._data[hemi + '_time_actor']
+            time_actor = brain._data.get(hemi + '_time_actor')
             if time_actor is not None:
                 time_actor.SetPosition(0.5, 0.03)
                 time_actor.GetTextProperty().SetJustificationToCentered()
