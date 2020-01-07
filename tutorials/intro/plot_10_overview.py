@@ -377,7 +377,6 @@ stc.plot(initial_time=0.1, hemi='split', views=['lat', 'med'],
 # connectivity analysis, encoding/decoding models, lots more visualization
 # options, etc). Read on to learn more!
 #
-#
 # .. LINKS
 #
 # .. _`autoreject package`: http://autoreject.github.io/

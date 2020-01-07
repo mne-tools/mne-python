@@ -3,6 +3,7 @@
   --a-color: rgb(41, 122, 204);
   --a-color-light: rgb(102, 179, 255);
   --a-color-lighter: rgb(204, 230, 255);
+  --text-color: #2c3e50;
 }
 html {
   position: relative;
@@ -208,7 +209,7 @@ div.sidebar {
     border-radius: 4px;
 }
 .label {  /* Necessary for multiple refs, from bootstrap.min.css:7 */
-    color: #2c3e50;
+    color: var(--text-color);
 }
 /* Override bootstrap.min.css to avoid .. container:: padding problems */
 .nosize {
@@ -463,6 +464,19 @@ table.dataframe th,td {
 }
 
 /* Sphinx-gallery backreference links */
-a[class^="sphx-glr-backref-module-mne"] {
+a.sphx-glr-backref-instance:hover {  /* restore hover decoration that SG removes */
+    text-decoration: underline;
+}
+a[class^="sphx-glr-backref-module"] {  /* make non-MNE instances look like regular code */
+    color: var(--text-color);
+}
+a[class^="sphx-glr-backref-module"]:hover {
+    color: var(--a-color);
+}
+a[class^="sphx-glr-backref-module-mne"] {  /* make all MNE things bold */
     font-weight: 600;
+    color: var(--a-color);
+}
+a[class^="sphx-glr-backref-module-mne"]:hover {
+    color: var(--a-color-light);
 }
