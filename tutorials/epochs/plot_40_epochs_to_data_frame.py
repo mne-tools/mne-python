@@ -67,9 +67,25 @@ df = epochs.to_data_frame()
 df.head()
 
 ###############################################################################
-# Optional parameters include ``picks`` (for extracting only certain channels),
-# ``scalings`` (for converting signal units from SI units to more common
-# analysis units like μV or fT/cm), and ```` ().  See the documentation of
+# If you don't want a :class:`~pandas.MultiIndex`, you can pass
+# ``index='time'``, and the resulting :class:`~pandas.DataFrame` will have
+# additional columns ``condition`` and ``epoch``:
+
+df = epochs.to_data_frame(index='time')
+df.head()
+
+###############################################################################
+# You can also pass a list of any two of these values (``time``, ``epoch``, or
+# ``condition``) to get a corresponding two-level :class:`~pandas.MultiIndex`
+# with the remaining variable as a column in the :class:`~pandas.DataFrame`:
+
+df = epochs.to_data_frame(index=['condition', 'epoch'])
+df.head()
+
+###############################################################################
+# Other optional parameters include ``picks`` (for extracting only certain
+# channels) and ``scalings`` (for converting signal units from SI units to more
+# common analysis units like μV or fT/cm). See the documentation of
 # :meth:`~mne.Epochs.to_data_frame` for details.
 
 """
