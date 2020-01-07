@@ -1,15 +1,78 @@
 """
 .. _tut-epochs-dataframe:
 
-=================================
-Export epochs to Pandas DataFrame
-=================================
+Exporting Epochs to Pandas DataFrames
+=====================================
 
-In this example the pandas exporter will be used to produce a DataFrame
-object. After exploring some basic features a split-apply-combine
-work flow will be conducted to examine the latencies of the response
-maxima across epochs and conditions.
+This tutorial shows how to export the data in :class:`~mne.Epochs` objects to a
+:class:`Pandas DataFrame <pandas.DataFrame>`, and applies a typical Pandas
+:doc:`split-apply-combine <pandas:user_guide/groupby>` workflow to examine the
+latencies of the response maxima across epochs and conditions.
 
+.. contents:: Page contents
+   :local:
+   :depth: 2
+
+We'll use the :ref:`sample-dataset`, but load a version of the raw file that
+has already been filtered and downsampled, and has an average reference applied
+to its EEG channels. As usual we'll start by importing the modules we need and
+loading the data:
+"""
+import os
+import numpy as np
+import pandas as pd
+import mne
+
+sample_data_folder = mne.datasets.sample.data_path()
+sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
+                                    'sample_audvis_filt-0-40_raw.fif')
+raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
+
+###############################################################################
+# Next we'll load a list of events from file, map them to condition names with
+# an event dictionary, set some signal rejection thresholds (cf.
+# :ref:`tut-reject-epochs-section`), and segment the continuous data into
+# epochs:
+
+sample_data_events_file = os.path.join(sample_data_folder, 'MEG', 'sample',
+                                       'sample_audvis_filt-0-40_raw-eve.fif')
+events = mne.read_events(sample_data_events_file)
+
+event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
+              'visual/right': 4, 'smiley': 5, 'buttonpress': 32}
+
+reject_criteria = dict(mag=3000e-15,     # 3000 fT
+                       grad=3000e-13,    # 3000 fT/cm
+                       eeg=100e-6,       # 100 μV
+                       eog=200e-6)       # 200 μV
+
+tmin, tmax = (-0.2, 0.5)  # epoch from 200 ms before event to 500 ms after it
+baseline = (None, 0)      # baseline period from start of epoch to time=0
+
+epochs = mne.Epochs(raw, events, event_dict, tmin, tmax, proj=True,
+                    baseline=baseline, reject=reject_criteria, preload=True)
+
+###############################################################################
+# Converting an ``Epochs`` object to a ``DataFrame``
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# Once we have our :class:`~mne.Epochs` object, converting it to a
+# :class:`~pandas.DataFrame` is simple: just call :meth:`epochs.to_data_frame()
+# <mne.Epochs.to_data_frame>`. Each channel's data will be a column of the new
+# :class:`~pandas.DataFrame`; by default, the :attr:`pandas.DataFrame.index`
+# will be a :class:`~pandas.MultiIndex` of event name, epoch number, and sample
+# time (converted from seconds to milliseconds and then rounded to an integer):
+
+df = epochs.to_data_frame()
+df.head()
+
+###############################################################################
+# Optional parameters include ``picks`` (for extracting only certain channels),
+# ``scalings`` (for converting signal units from SI units to more common
+# analysis units like μV or fT/cm), and ```` ().  See the documentation of
+# :meth:`~mne.Epochs.to_data_frame` for details.
+
+"""
 .. note:: Equivalent methods are available for raw and evoked data objects.
 
 More information and additional introductory materials can be found at the
@@ -86,40 +149,6 @@ to_records :
 to_dict :
     export data as dict of arrays.
 """
-# Author: Denis Engemann <denis.engemann@gmail.com>
-#
-# License: BSD (3-clause)
-
-import mne
-import matplotlib.pyplot as plt
-import numpy as np
-from mne.datasets import sample
-
-print(__doc__)
-
-data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-
-# These data already have an average EEG ref applied
-raw = mne.io.read_raw_fif(raw_fname)
-
-# For simplicity we will only consider the first 10 epochs
-events = mne.read_events(event_fname)[:10]
-
-# Add a bad channel
-raw.info['bads'] += ['MEG 2443']
-picks = mne.pick_types(raw.info, meg='grad', eeg=True, eog=True,
-                       stim=False, exclude='bads')
-
-tmin, tmax = -0.2, 0.5
-baseline = (None, 0)
-reject = dict(grad=4000e-13, eog=150e-6)
-
-event_id = dict(auditory_l=1, auditory_r=2, visual_l=3, visual_r=4)
-
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
-                    baseline=baseline, preload=True, reject=reject)
 
 ###############################################################################
 # Export DataFrame
