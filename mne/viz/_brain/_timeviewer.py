@@ -17,7 +17,7 @@ class TextSlider(object):
 
     def __call__(self, idx):
         """Update the title of the slider."""
-        idx = int(idx)
+        idx = int(round(idx))
         data = self.data[idx]
         for slider in self.plotter.slider_widgets:
             name = getattr(slider, "name", None)
@@ -37,7 +37,7 @@ class IntSlider(object):
 
     def __call__(self, idx):
         """Round the label of the slider."""
-        idx = int(idx)
+        idx = int(round(idx))
         for slider in self.plotter.slider_widgets:
             name = getattr(slider, "name", None)
             if name == self.name:
