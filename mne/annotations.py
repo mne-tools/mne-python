@@ -868,7 +868,7 @@ def _select_events_based_on_id(events, event_desc):
             continue
 
         if isinstance(event_desc, dict):
-            if e[2] in event_desc and event_desc[e[2]] is not None:
+            if event_desc.get(e[2]) is not None:
                 event_desc_[e[2]] = event_desc[e[2]]
             else:
                 continue
@@ -1067,9 +1067,9 @@ def annotations_from_events(events, sfreq, event_desc=None, first_samp=0,
     event_desc = _check_event_description(event_desc, events)
     event_sel, event_desc_ = _select_events_based_on_id(events, event_desc)
     events_sel = events[event_sel]
-    onsets = [(e[0] - first_samp) / sfreq for e in events_sel]
+    onsets = (events_sel[:, 0] - first_samp) / sfreq
     descriptions = [event_desc_[e[2]] for e in events_sel]
-    durations = [0. for _ in range(len(events_sel))]  # dummy durations
+    durations = np.zeros(len(events_sel))  # dummy durations
 
     # Create annotations
     annots = Annotations(onset=onsets,
