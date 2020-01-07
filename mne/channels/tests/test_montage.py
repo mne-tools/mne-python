@@ -684,7 +684,6 @@ def test_set_dig_montage():
         ch_names,
         np.arange(N_CHANNELS * 3).reshape(N_CHANNELS, 3),
     ))
-    data = np.zeros((N_CHANNELS, 1))
 
     montage_ch_only = make_dig_montage(ch_pos=ch_pos, coord_frame='head')
 
@@ -692,7 +691,7 @@ def test_set_dig_montage():
         '<DigMontage | 0 extras (headshape), 0 HPIs, 0 fiducials, 3 channels>'
     )
     info = create_info(ch_names, sfreq=1, ch_types='eeg')
-    RawArray(data, info, copy=None).set_montage(montage_ch_only)
+    info.set_montage(montage_ch_only)
     assert len(info['dig']) == len(montage_ch_only.dig)
 
     assert_allclose(actual=np.array([ch['loc'][:6] for ch in info['chs']]),
@@ -713,7 +712,7 @@ def test_set_dig_montage():
     )
 
     info = create_info(ch_names, sfreq=1, ch_types='eeg')
-    RawArray(data, info, copy=None).set_montage(montage_full)
+    info.set_montage(montage_full)
     EXPECTED_LEN = sum({'hsp': 2, 'hpi': 1, 'fid': 3, 'eeg': 4}.values())
     assert len(info['dig']) == EXPECTED_LEN
     assert_allclose(actual=np.array([ch['loc'][:6] for ch in info['chs']]),
@@ -1058,34 +1057,33 @@ def test_set_montage_with_mismatching_ch_names():
         raw.set_montage(montage)
     with pytest.raises(ValueError, match='match_case=False as 1 channel name'):
         raw.set_montage(montage, match_case=False)
-    raw = RawArray(np.zeros((1, 1000)), create_info(['EEG 001'], 1000., 'eeg'))
+    info = create_info(['EEG 001'], 1000., 'eeg')
     mon = make_dig_montage({'EEG 001': np.zeros(3), 'eeg 001': np.zeros(3)},
                            nasion=[0, 1., 0], rpa=[1., 0, 0], lpa=[-1., 0, 0])
-    raw.set_montage(mon)
+    info.set_montage(mon)
     with pytest.raises(ValueError, match='match_case=False as 1 montage name'):
-        raw.set_montage(mon, match_case=False)
+        info.set_montage(mon, match_case=False)
 
 
 def test_set_montage_with_sub_super_set_of_ch_names():
     """Test info and montage ch_names matching criteria."""
     N_CHANNELS = len('abcdef')
     montage = _make_toy_dig_montage(N_CHANNELS, coord_frame='head')
-    data = np.zeros((7, 1))
 
     # montage and info match
     info = create_info(ch_names=list('abcdef'), sfreq=1, ch_types='eeg')
-    RawArray(data[:6], info, copy=None).set_montage(montage)
+    info.set_montage(montage)
 
     # montage is a SUPERset of info
     info = create_info(list('abc'), sfreq=1, ch_types='eeg')
-    RawArray(data[:3], info, copy=None).set_montage(montage)
+    info.set_montage(montage)
     assert len(info['dig']) == len(list('abc'))
 
     # montage is a SUBset of info
     _MSG = 'subset of info. There are 2 .* not present in the DigMontage'
     info = create_info(ch_names=list('abcdfgh'), sfreq=1, ch_types='eeg')
     with pytest.raises(ValueError, match=_MSG):
-        RawArray(data, info, copy=None).set_montage(montage)
+        info.set_montage(montage)
 
 
 def test_heterogeneous_ch_type():
