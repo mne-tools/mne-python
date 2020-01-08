@@ -1043,14 +1043,14 @@ def annotations_from_events(events, sfreq, event_desc=None, first_samp=0,
         The events.
     sfreq : float
         Sampling frequency.
-    event_desc : dict | list | 1darray | callable | None
+    event_desc : dict | array-like | callable | None
         Events description. Can be:
 
         - **dict**: map integer event codes (keys) to descriptions (values).
           Only the descriptions present will be mapped, others will be ignored.
-        - **list** or **1darray**: integers event codes to include. Only the
-          event codes present will be mapped, others will be ignored. Event
-          codes will be passed as string descriptions.
+        - **array-like**: list, or 1d array of integers event codes to include.
+          Only the event codes present will be mapped, others will be ignored.
+          Event codes will be passed as string descriptions.
         - **callable**: must take a integer event code as input and return a
           string description or None to ignore it.
         - **None**: Use integer event codes as descriptions.
