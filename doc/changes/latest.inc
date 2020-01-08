@@ -89,6 +89,8 @@ Changelog
 
 - Allow `mne.channels.read_custom_montage` to handle fiducial points for BESA spherical (``.elp``) files by `Richard Höchenberger`_
 
+- Add function to convert events to annotations :func:`mne.annotations_from_events` by `Nicolas Barascud`_
+
 Bug
 ~~~
 
