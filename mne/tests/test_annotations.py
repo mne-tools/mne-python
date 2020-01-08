@@ -1155,7 +1155,7 @@ def test_annotations_from_events():
     # 5. Pass numpy array
     # -------------------------------------------------------------------------
     event_desc = np.array([[1, 2, 3], [1, 2, 3]])
-    with pytest.raises(AssertionError):  # a 2D array should fail
+    with pytest.raises(ValueError, match='event_desc must be 1D'):
         annots = annotations_from_events(events, sfreq=raw.info['sfreq'],
                                          event_desc=event_desc,
                                          first_samp=raw.first_samp,

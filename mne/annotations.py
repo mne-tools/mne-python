@@ -860,24 +860,12 @@ def _select_annotations_based_on_description(descriptions, event_id, regexp):
 def _select_events_based_on_id(events, event_desc):
     """Get a collection of events and returns index of selected."""
     event_desc_ = dict()
-    dropped = []
-    # Iterate over the sorted descriptions so that the Counter mapping
-    # is slightly less arbitrary
-    for e in events:
-        if e[2] in event_desc_:
-            continue
-
-        if isinstance(event_desc, dict):
-            if event_desc.get(e[2]) is not None:
-                event_desc_[e[2]] = event_desc[e[2]]
-            else:
-                continue
-        else:
-            trigger = event_desc(e[2])
-            if trigger is not None:
-                event_desc_[e[2]] = trigger
-            else:
-                dropped.append(e)
+    func = event_desc.get if isinstance(event_desc, dict) else event_desc
+    event_ids = events[np.unique(events[:, 2], return_index=True)[1], 2]
+    for e in event_ids:
+        trigger = func(e)
+        if trigger is not None:
+            event_desc_[e] = trigger
 
     event_sel = [ii for ii, e in enumerate(events) if e[2] in event_desc_]
 
@@ -921,7 +909,9 @@ def _check_event_description(event_desc, events):
             _validate_type(val, (str, None), 'Event names')
     elif isinstance(event_desc, collections.Iterable):
         event_desc = np.asarray(event_desc)
-        assert event_desc.ndim == 1
+        if event_desc.ndim != 1:
+            raise ValueError('event_desc must be 1D, got shape {}'.format(
+                             event_desc.shape))
         event_desc = dict(zip(event_desc, map(str, event_desc)))
     elif callable(event_desc):
         pass
