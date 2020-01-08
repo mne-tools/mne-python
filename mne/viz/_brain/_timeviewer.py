@@ -82,9 +82,9 @@ class _TimeViewer(object):
         if brain._colorbar_added:
             scalar_bar = self.plotter.scalar_bar
             scalar_bar.SetOrientationToVertical()
-            scalar_bar.SetHeight(0.6)
+            scalar_bar.SetHeight(0.8)
             scalar_bar.SetWidth(0.05)
-            scalar_bar.SetPosition(0.05, 0.2)
+            scalar_bar.SetPosition(0.05, 0.1)
 
         # smoothing slider
         default_smoothing_value = 7
@@ -97,8 +97,8 @@ class _TimeViewer(object):
             set_smoothing,
             value=default_smoothing_value,
             rng=[1, 15], title="smoothing",
-            pointa=(0.82, 0.93),
-            pointb=(0.98, 0.93)
+            pointa=(0.82, 0.90),
+            pointb=(0.98, 0.90)
         )
         smoothing_slider.name = 'smoothing'
         set_smoothing(default_smoothing_value)
@@ -124,8 +124,8 @@ class _TimeViewer(object):
             set_orientation,
             value=0,
             rng=[0, len(orientation) - 1],
-            pointa=(0.82, 0.8),
-            pointb=(0.98, 0.8),
+            pointa=(0.82, 0.74),
+            pointb=(0.98, 0.74),
             event_type='always'
         )
         orientation_slider.name = "orientation"
@@ -144,8 +144,8 @@ class _TimeViewer(object):
             brain.set_time_point,
             value=brain._data['time_idx'],
             rng=[0, max_time],
-            pointa=(0.25, 0.1),
-            pointb=(0.75, 0.1),
+            pointa=(0.23, 0.1),
+            pointb=(0.77, 0.1),
             event_type='always'
         )
 
@@ -156,8 +156,8 @@ class _TimeViewer(object):
             brain.update_fmin,
             value=fmin,
             rng=_get_range(fmin, scaling_limits), title="fmin",
-            pointa=(0.82, 0.41),
-            pointb=(0.98, 0.41)
+            pointa=(0.82, 0.26),
+            pointb=(0.98, 0.26)
         )
         fmin_slider.name = "fmin"
         fmid = brain._data["fmid"]
@@ -165,8 +165,8 @@ class _TimeViewer(object):
             brain.update_fmid,
             value=fmid,
             rng=_get_range(fmid, scaling_limits), title="fmid",
-            pointa=(0.82, 0.54),
-            pointb=(0.98, 0.54)
+            pointa=(0.82, 0.42),
+            pointb=(0.98, 0.42)
         )
         fmid_slider.name = "fmid"
         fmax = brain._data["fmax"]
@@ -174,8 +174,8 @@ class _TimeViewer(object):
             brain.update_fmax,
             value=fmax,
             rng=_get_range(fmax, scaling_limits), title="fmax",
-            pointa=(0.82, 0.67),
-            pointb=(0.98, 0.67)
+            pointa=(0.82, 0.58),
+            pointb=(0.98, 0.58)
         )
         fmax_slider.name = "fmax"
         update_fscale = UpdateColorbarScale(
@@ -186,8 +186,8 @@ class _TimeViewer(object):
             update_fscale,
             value=1.0,
             rng=scaling_limits, title="fscale",
-            pointa=(0.82, 0.28),
-            pointb=(0.98, 0.28)
+            pointa=(0.82, 0.10),
+            pointb=(0.98, 0.10)
         )
 
         # set the slider style
