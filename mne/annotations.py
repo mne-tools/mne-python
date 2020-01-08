@@ -907,7 +907,7 @@ def _check_event_id(event_id, raw):
     elif callable(event_id) or isinstance(event_id, dict):
         return event_id
     else:
-        raise ValueError('Invalid type for event_id (should be None, "auto", '
+        raise ValueError('Invalid type for event_id (should be None, str, '
                          'dict or callable). Got {}'.format(type(event_id)))
 
 
@@ -919,7 +919,7 @@ def _check_event_description(event_desc, events):
     if isinstance(event_desc, dict):
         for val in event_desc.values():
             _validate_type(val, (str, None), 'Event names')
-    elif isinstance(event_desc, (list, np.ndarray)):
+    elif isinstance(event_desc, collections.Iterable):
         event_desc = np.asarray(event_desc)
         assert event_desc.ndim == 1
         event_desc = dict(zip(event_desc, map(str, event_desc)))

@@ -1163,7 +1163,7 @@ def test_annotations_from_events():
 
     with pytest.raises(ValueError, match='Invalid type for event_desc'):
         annots = annotations_from_events(events, sfreq=raw.info['sfreq'],
-                                         event_desc='auto',
+                                         event_desc=1,
                                          first_samp=raw.first_samp,
                                          orig_time=None)
 
