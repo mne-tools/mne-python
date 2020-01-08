@@ -242,8 +242,11 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     _validate_type(reduce_rank, bool, "reduce_rank", "a boolean")
     _check_option('inversion', inversion, ('matrix', 'single'))
     if reduce_rank and inversion == 'single':
-        raise ValueError('reduce_rank cannot be used with inversion="single", '
-                         'use inversion="matrix" instead.')
+        raise ValueError('reduce_rank cannot be used with inversion="single"; '
+                         'consider using inversion="matrix" if you have a '
+                         'rank-deficient forward model (i.e., from a sphere '
+                         'model with MEG channels), otherwise consider using '
+                         'reduce_rank=False')
     if n_orient > 1:
         _, Gk_s, _ = np.linalg.svd(Gk, full_matrices=False)
         assert Gk_s.shape == (n_sources, n_orient)
