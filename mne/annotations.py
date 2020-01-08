@@ -917,7 +917,6 @@ def _check_event_description(event_desc, events):
         event_desc = list(np.unique(events[:, 2]))
 
     if isinstance(event_desc, np.ndarray):
-        event_desc = event_desc.squeeze()  # remove singletons
         if event_desc.ndim == 1:
             event_desc = list(event_desc)
 
