@@ -4,7 +4,7 @@ version: 2
 jobs:
     build_docs:
       docker:
-        - image: circleci/python:3.7-stretch
+        - image: circleci/python:3.8-buster
       steps:
         - checkout
         - run:
@@ -317,7 +317,7 @@ jobs:
     linkcheck:
       # there are a few files excluded from this for expediency, see Makefile
       docker:
-        - image: circleci/python:3.6-jessie
+        - image: circleci/python:3.8-buster
       steps:
         - checkout
         - run:
@@ -346,7 +346,7 @@ jobs:
 
     deploy:
       docker:
-        - image: circleci/python:3.6-jessie
+        - image: circleci/python:3.8-buster
       steps:
         - attach_workspace:
             at: /tmp/build
