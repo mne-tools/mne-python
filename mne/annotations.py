@@ -907,28 +907,28 @@ def _check_event_id(event_id, raw):
     elif callable(event_id) or isinstance(event_id, dict):
         return event_id
     else:
-        raise ValueError('Invalid input event_id')
+        raise ValueError('Invalid type for event_id (should be None, "auto", '
+                         'dict or callable). Got {}'.format(type(event_id)))
 
 
 def _check_event_description(event_desc, events):
     """Check event_id and convert to default format."""
-    # check out event_id dict
     if event_desc is None:  # convert to int to make typing-checks happy
         event_desc = list(np.unique(events[:, 2]))
-
-    if isinstance(event_desc, np.ndarray):
-        if event_desc.ndim == 1:
-            event_desc = list(event_desc)
 
     if isinstance(event_desc, dict):
         for val in event_desc.values():
             _validate_type(val, (str, None), 'Event names')
-    elif isinstance(event_desc, list):
-        event_desc = dict(zip(event_desc, (str(i) for i in event_desc)))
+    elif isinstance(event_desc, (list, np.ndarray)):
+        event_desc = np.asarray(event_desc)
+        assert event_desc.ndim == 1
+        event_desc = dict(zip(event_desc, map(str, event_desc)))
     elif callable(event_desc):
         pass
     else:
-        raise ValueError('Invalid input event_id')
+        raise ValueError('Invalid type for event_desc (should be None, list, '
+                         '1darray, dict or callable). Got {}'.format(
+                             type(event_desc)))
 
     return event_desc
 
@@ -1043,7 +1043,7 @@ def annotations_from_events(events, sfreq, event_desc=None, first_samp=0,
         The events.
     sfreq : float
         Sampling frequency.
-    event_desc : dict | callable | None
+    event_desc : dict | list | 1darray | callable | None
         Events description. Can be:
 
         - **dict**: map integer event codes (keys) to descriptions (values).

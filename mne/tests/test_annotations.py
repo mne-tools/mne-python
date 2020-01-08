@@ -621,7 +621,7 @@ def test_events_from_annot_in_raw_objects():
     with pytest.raises(ValueError, match='not find any of the events'):
         events_from_annotations(raw, regexp='not_there')
 
-    with pytest.raises(ValueError, match='Invalid input event_id'):
+    with pytest.raises(ValueError, match='Invalid type for event_id'):
         events_from_annotations(raw, event_id='wrong')
 
     # concat does not introduce BAD or EDGE
@@ -1152,16 +1152,22 @@ def test_annotations_from_events():
     assert np.all(['event' in a for a in annots.description])
     assert len(annots) == events.shape[0]
 
-    # 3. Pass numpy array
+    # 5. Pass numpy array
     # -------------------------------------------------------------------------
     event_desc = np.array([[1, 2, 3], [1, 2, 3]])
-    with pytest.raises(ValueError):  # a 2D array should fail
+    with pytest.raises(AssertionError):  # a 2D array should fail
         annots = annotations_from_events(events, sfreq=raw.info['sfreq'],
                                          event_desc=event_desc,
                                          first_samp=raw.first_samp,
                                          orig_time=None)
 
-    event_desc = np.array([[1, 2, 3], ])
+    with pytest.raises(ValueError, match='Invalid type for event_desc'):
+        annots = annotations_from_events(events, sfreq=raw.info['sfreq'],
+                                         event_desc='auto',
+                                         first_samp=raw.first_samp,
+                                         orig_time=None)
+
+    event_desc = np.array([1, 2, 3])
     annots = annotations_from_events(events, sfreq=raw.info['sfreq'],
                                      event_desc=event_desc,
                                      first_samp=raw.first_samp,
