@@ -240,6 +240,10 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
 
     # leadfield rank and optional rank reduction
     _validate_type(reduce_rank, bool, "reduce_rank", "a boolean")
+    _check_option('inversion', inversion, ('matrix', 'single'))
+    if reduce_rank and inversion == 'single':
+        raise ValueError('reduce_rank cannot be used with inversion="single", '
+                         'use inversion="matrix" instead.')
     if n_orient > 1:
         _, Gk_s, _ = np.linalg.svd(Gk, full_matrices=False)
         assert Gk_s.shape == (n_sources, n_orient)
@@ -264,9 +268,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                 if inversion == 'single':
                     # Invert for each dipole separately using plain division
                     diags = np.diagonal(Ck, axis1=1, axis2=2)
-                    if reduce_rank:
-                        diags[np.arange(len(diags)),
-                              np.argmin(diags, axis=1)] = np.inf
+                    assert not reduce_rank   # guaranteed above
                     with np.errstate(divide='ignore'):
                         diags = 1. / diags
                     # set the diagonal of each 3x3

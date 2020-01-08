@@ -179,18 +179,6 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     _check_option('inversion', inversion, ['single', 'matrix'])
     _check_option('weight_norm', weight_norm, ['unit-noise-gain', 'nai', None])
 
-    # Leadfield rank and optional rank reduction
-    # (to deal with problems with complex eigenvalues within the computation
-    # of the optimal orientation when using pinv if the leadfield was only
-    # rank 2 (e.g., with the spherical headmodel of the phantom data),
-    # see gh-4568 and gh-4628.
-    if reduce_rank and not (pick_ori == 'max-power' and inversion == 'matrix'):
-        raise NotImplementedError(
-            'The computation of spatial filters with rank reduction using '
-            'reduce_rank=True is only implemented with pick_ori=="max-power" '
-            'and inversion="matrix".'
-        )
-
     frequencies = [np.mean(freq_bin) for freq_bin in csd.frequencies]
     n_freqs = len(frequencies)
     n_orient = forward['sol']['ncol'] // forward['nsource']
