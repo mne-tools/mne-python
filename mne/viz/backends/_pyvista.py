@@ -180,11 +180,14 @@ class _Renderer(_BaseRenderer):
                 from matplotlib.colors import ListedColormap
                 colormap = ListedColormap(colormap)
 
-            self.plotter.add_mesh(mesh=pd, color=color, scalars=scalars,
-                                  rgba=rgba, opacity=opacity, cmap=colormap,
-                                  backface_culling=backface_culling,
-                                  rng=[vmin, vmax], show_scalar_bar=False,
-                                  smooth_shading=smooth_shading)
+            actor = self.plotter.add_mesh(
+                mesh=pd, color=color, scalars=scalars,
+                rgba=rgba, opacity=opacity, cmap=colormap,
+                backface_culling=backface_culling,
+                rng=[vmin, vmax], show_scalar_bar=False,
+                smooth_shading=smooth_shading
+            )
+            return actor, pd
 
     def contour(self, surface, scalars, contours, width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
@@ -385,6 +388,7 @@ class _Renderer(_BaseRenderer):
                     raise ValueError('Expected values for `justification`'
                                      'are `left`, `center` or `right` but '
                                      'got {} instead.'.format(justification))
+        return actor
 
     def text3d(self, x, y, z, text, scale, color='white'):
         with warnings.catch_warnings():
@@ -402,7 +406,8 @@ class _Renderer(_BaseRenderer):
             warnings.filterwarnings("ignore", category=FutureWarning)
             self.plotter.add_scalar_bar(title=title, n_labels=n_labels,
                                         use_opacity=False, n_colors=256,
-                                        position_x=0.15, width=0.7,
+                                        position_x=0.15,
+                                        position_y=0.05, width=0.7,
                                         label_font_size=22,
                                         font_family=self.font_family,
                                         background_color=bgcolor)
@@ -581,3 +586,27 @@ def _try_3d_backend():
             import pyvista  # noqa: F401
     except Exception:
         pass
+
+
+def _set_colormap_range(actor, ctable, scalar_bar, rng=None):
+    from vtk.util.numpy_support import numpy_to_vtk
+    mapper = actor.GetMapper()
+    lut = mapper.GetLookupTable()
+    # Catch:  FutureWarning: Conversion of the second argument of
+    # issubdtype from `complex` to `np.complexfloating` is deprecated.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=FutureWarning)
+        lut.SetTable(numpy_to_vtk(ctable))
+    if rng is not None:
+        mapper.SetScalarRange(rng[0], rng[1])
+        lut.SetRange(rng[0], rng[1])
+    if scalar_bar is not None:
+        scalar_bar.SetLookupTable(actor.GetMapper().GetLookupTable())
+
+
+def _set_mesh_scalars(mesh, scalars, name):
+    # Catch:  FutureWarning: Conversion of the second argument of
+    # issubdtype from `complex` to `np.complexfloating` is deprecated.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=FutureWarning)
+        mesh.point_arrays[name] = scalars

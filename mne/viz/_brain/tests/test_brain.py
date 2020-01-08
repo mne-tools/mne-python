@@ -13,7 +13,7 @@ import numpy as np
 import os.path as path
 from mne import read_source_estimate
 from mne.datasets import testing
-from mne.viz._brain import _Brain
+from mne.viz._brain import _Brain, _TimeViewer
 from mne.viz._brain.colormap import calculate_lut
 
 from matplotlib import cm
@@ -117,6 +117,39 @@ def test_brain_add_text(renderer):
     brain = _Brain(subject_id, hemi='lh', size=250,
                    surf=surf, subjects_dir=subjects_dir)
     brain.add_text(x=0, y=0, text='foo')
+
+
+@testing.requires_testing_data
+def test_brain_timeviewer(renderer):
+    """Test _TimeViewer primitives."""
+    if renderer.get_3d_backend() == "mayavi":
+        pytest.skip()  # Skip PySurfer.TimeViewer
+    else:
+        # Disable testing to allow interactive window
+        renderer.MNE_3D_BACKEND_TESTING = False
+
+    stc = read_source_estimate(fname_stc)
+
+    hemi = 'lh'
+    hemi_data = stc.data[:len(stc.vertices[0]), 10]
+    hemi_vertices = stc.vertices[0]
+    fmin = stc.data.min()
+    fmax = stc.data.max()
+
+    brain_data = _Brain(subject_id, hemi, surf, size=300,
+                        subjects_dir=subjects_dir)
+
+    brain_data.add_data(hemi_data, fmin=fmin, hemi=hemi, fmax=fmax,
+                        colormap='hot', vertices=hemi_vertices,
+                        colorbar=False, time=[0])
+
+    brain_data.set_data_smoothing(n_steps=1)
+    brain_data.set_time_point(time_idx=0)
+    brain_data.update_fmax(fmax=1.0)
+    brain_data.update_fmid(fmid=0.5)
+    brain_data.update_fmin(fmin=0.0)
+
+    _TimeViewer(brain_data)
 
 
 def test_brain_colormap():
