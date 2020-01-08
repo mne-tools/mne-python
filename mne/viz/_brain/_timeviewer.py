@@ -56,9 +56,9 @@ class _TimeViewer(object):
         if brain._colorbar_added:
             scalar_bar = self.plotter.scalar_bar
             scalar_bar.SetOrientationToVertical()
-            scalar_bar.SetHeight(0.47)
+            scalar_bar.SetHeight(0.6)
             scalar_bar.SetWidth(0.05)
-            scalar_bar.SetPosition(0.095, 0.35)
+            scalar_bar.SetPosition(0.05, 0.2)
 
         # smoothing slider
         default_smoothing_value = 7
@@ -71,8 +71,8 @@ class _TimeViewer(object):
             set_smoothing,
             value=default_smoothing_value,
             rng=[1, 15], title="smoothing",
-            pointa=(0.82, 0.92),
-            pointb=(0.98, 0.92)
+            pointa=(0.82, 0.93),
+            pointb=(0.98, 0.93)
         )
         smoothing_slider.name = 'smoothing'
         set_smoothing(default_smoothing_value)
@@ -98,8 +98,8 @@ class _TimeViewer(object):
             set_orientation,
             value=0,
             rng=[0, len(orientation) - 1],
-            pointa=(0.82, 0.78),
-            pointb=(0.98, 0.78),
+            pointa=(0.82, 0.8),
+            pointb=(0.98, 0.8),
             event_type='always'
         )
         orientation_slider.name = "orientation"
@@ -129,22 +129,31 @@ class _TimeViewer(object):
             brain.update_fmin,
             value=fmin,
             rng=_get_range(fmin), title="fmin",
-            pointa=(0.02, 0.27),
-            pointb=(0.19, 0.27)
+            pointa=(0.82, 0.41),
+            pointb=(0.98, 0.41)
+        )
+        fmid = brain._data["fmid"]
+        fmid_slider = self.plotter.add_slider_widget(
+            brain.update_fmid,
+            value=fmid,
+            rng=_get_range(fmid), title="fmid",
+            pointa=(0.82, 0.54),
+            pointb=(0.98, 0.54)
         )
         fmax = brain._data["fmax"]
         fmax_slider = self.plotter.add_slider_widget(
             brain.update_fmax,
             value=fmax,
             rng=_get_range(fmax), title="fmax",
-            pointa=(0.02, 0.92),
-            pointb=(0.19, 0.92)
+            pointa=(0.82, 0.67),
+            pointb=(0.98, 0.67)
         )
 
         # set the slider style
         _set_slider_style(smoothing_slider)
         _set_slider_style(orientation_slider, show_label=False)
         _set_slider_style(fmin_slider)
+        _set_slider_style(fmid_slider)
         _set_slider_style(fmax_slider)
         _set_slider_style(time_slider, show_label=False)
 
