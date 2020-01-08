@@ -54,6 +54,7 @@ class UpdateColorbarScale(object):
         self.brain = brain
 
     def __call__(self, value):
+        """Update the colorbar sliders."""
         self.brain.update_fscale(value)
         fmin = self.brain._data['fmin'] * value
         fmid = self.brain._data['fmid'] * value
