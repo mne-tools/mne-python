@@ -150,11 +150,12 @@ class _TimeViewer(object):
         )
 
         # colormap slider
+        scaling_limits = [0.2, 2.0]
         fmin = brain._data["fmin"]
         fmin_slider = self.plotter.add_slider_widget(
             brain.update_fmin,
             value=fmin,
-            rng=_get_range(fmin), title="fmin",
+            rng=_get_range(fmin, scaling_limits), title="fmin",
             pointa=(0.82, 0.41),
             pointb=(0.98, 0.41)
         )
@@ -163,7 +164,7 @@ class _TimeViewer(object):
         fmid_slider = self.plotter.add_slider_widget(
             brain.update_fmid,
             value=fmid,
-            rng=_get_range(fmid), title="fmid",
+            rng=_get_range(fmid, scaling_limits), title="fmid",
             pointa=(0.82, 0.54),
             pointb=(0.98, 0.54)
         )
@@ -172,7 +173,7 @@ class _TimeViewer(object):
         fmax_slider = self.plotter.add_slider_widget(
             brain.update_fmax,
             value=fmax,
-            rng=_get_range(fmax), title="fmax",
+            rng=_get_range(fmax, scaling_limits), title="fmax",
             pointa=(0.82, 0.67),
             pointb=(0.98, 0.67)
         )
@@ -184,7 +185,7 @@ class _TimeViewer(object):
         fscale_slider = self.plotter.add_slider_widget(
             update_fscale,
             value=1.0,
-            rng=[0.2, 2.0], title="fscale",
+            rng=scaling_limits, title="fscale",
             pointa=(0.82, 0.28),
             pointb=(0.98, 0.28)
         )
@@ -223,6 +224,5 @@ def _set_slider_style(slider, show_label=True):
         slider_rep.ShowSliderLabelOff()
 
 
-def _get_range(val, percentage=0.5):
-    mid = abs(val) * percentage
-    return [val - mid, val + mid]
+def _get_range(val, rng):
+    return [val * rng[0], val * rng[1]]
