@@ -46,6 +46,31 @@ class IntSlider(object):
                 self.callback(idx)
 
 
+class UpdateColorbarScale(object):
+    """Class to update the values of the colorbar sliders."""
+
+    def __init__(self, plotter=None, brain=None):
+        self.plotter = plotter
+        self.brain = brain
+
+    def __call__(self, value):
+        self.brain.update_fscale(value)
+        fmin = self.brain._data['fmin'] * value
+        fmid = self.brain._data['fmid'] * value
+        fmax = self.brain._data['fmax'] * value
+        for slider in self.plotter.slider_widgets:
+            name = getattr(slider, "name", None)
+            if name == "fmin":
+                slider_rep = slider.GetRepresentation()
+                slider_rep.SetValue(fmin)
+            elif name == "fmid":
+                slider_rep = slider.GetRepresentation()
+                slider_rep.SetValue(fmid)
+            elif name == "fmax":
+                slider_rep = slider.GetRepresentation()
+                slider_rep.SetValue(fmax)
+
+
 class _TimeViewer(object):
     """Class to interact with _Brain."""
 
@@ -132,6 +157,7 @@ class _TimeViewer(object):
             pointa=(0.82, 0.41),
             pointb=(0.98, 0.41)
         )
+        fmin_slider.name = "fmin"
         fmid = brain._data["fmid"]
         fmid_slider = self.plotter.add_slider_widget(
             brain.update_fmid,
@@ -140,6 +166,7 @@ class _TimeViewer(object):
             pointa=(0.82, 0.54),
             pointb=(0.98, 0.54)
         )
+        fmid_slider.name = "fmid"
         fmax = brain._data["fmax"]
         fmax_slider = self.plotter.add_slider_widget(
             brain.update_fmax,
@@ -148,8 +175,13 @@ class _TimeViewer(object):
             pointa=(0.82, 0.67),
             pointb=(0.98, 0.67)
         )
+        fmax_slider.name = "fmax"
+        update_fscale = UpdateColorbarScale(
+            plotter=self.plotter,
+            brain=brain,
+        )
         fscale_slider = self.plotter.add_slider_widget(
-            brain.update_fscale,
+            update_fscale,
             value=1.0,
             rng=[0.2, 2.0], title="fscale",
             pointa=(0.82, 0.28),
