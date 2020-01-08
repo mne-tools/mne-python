@@ -148,6 +148,13 @@ class _TimeViewer(object):
             pointa=(0.82, 0.67),
             pointb=(0.98, 0.67)
         )
+        fscale_slider = self.plotter.add_slider_widget(
+            brain.update_fscale,
+            value=1.0,
+            rng=[0.2, 2.0], title="fscale",
+            pointa=(0.82, 0.28),
+            pointb=(0.98, 0.28)
+        )
 
         # set the slider style
         _set_slider_style(smoothing_slider)
@@ -155,6 +162,7 @@ class _TimeViewer(object):
         _set_slider_style(fmin_slider)
         _set_slider_style(fmid_slider)
         _set_slider_style(fmax_slider)
+        _set_slider_style(fscale_slider)
         _set_slider_style(time_slider, show_label=False)
 
         # add toggle to show/hide interface

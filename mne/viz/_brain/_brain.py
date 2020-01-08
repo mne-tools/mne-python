@@ -922,6 +922,28 @@ class _Brain(object):
                     self._data['fmin'] = fmin
                     self._data['ctable'] = ctable
 
+    def update_fscale(self, fscale):
+        """Scale the colorbar points."""
+        from ..backends._pyvista import _set_colormap_range
+        fmin = self._data['fmin'] * fscale
+        fmid = self._data['fmid'] * fscale
+        fmax = self._data['fmax'] * fscale
+        ctable = self.update_lut(fmin=fmin, fmid=fmid, fmax=fmax)
+        ctable = (ctable * 255).astype(np.uint8)
+        for hemi in ['lh', 'rh']:
+            actor = self._data.get(hemi + '_actor')
+            if actor is not None:
+                center = self._data['center']
+                dt_max = fmax
+                dt_min = fmin if center is None else -1 * fmax
+                rng = [dt_min, dt_max]
+                if self._colorbar_added:
+                    scalar_bar = self._renderer.plotter.scalar_bar
+                else:
+                    scalar_bar = None
+                _set_colormap_range(actor, ctable, scalar_bar, rng)
+                self._data['ctable'] = ctable
+
     @property
     def data(self):
         u"""Data used by time viewer and color bar widgets."""
