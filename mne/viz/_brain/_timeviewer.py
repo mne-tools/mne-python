@@ -50,6 +50,40 @@ class UpdateColorbarScale(object):
                 slider_rep.SetValue(fmax)
 
 
+class SnapColorbarPoints(object):
+    """Class that ensure constraints over the colorbar points."""
+
+    def __init__(self, plotter=None, brain=None, name=None):
+        self.plotter = plotter
+        self.brain = brain
+        self.name = name
+        self.callback = {
+            "fmin": brain.update_fmin,
+            "fmid": brain.update_fmid,
+            "fmax": brain.update_fmax
+        }
+
+    def __call__(self, value):
+        """Update the colorbar sliders."""
+        eps = 1e-4
+        fmin = self.brain._data['fmin']
+        fmid = self.brain._data['fmid']
+        fmax = self.brain._data['fmax']
+        if self.name == "fmin":
+            value = fmid - eps if value > fmid - eps else value
+        elif self.name == "fmid":
+            value = fmin + eps if value < fmin + eps else value
+            value = fmax - eps if value > fmax - eps else value
+        elif self.name == "fmax":
+            value = fmid + eps if value < fmid + eps else value
+        self.callback[self.name](value)
+        for slider in self.plotter.slider_widgets:
+            name = getattr(slider, "name", None)
+            if name == self.name:
+                slider_rep = slider.GetRepresentation()
+                slider_rep.SetValue(value)
+
+
 class _TimeViewer(object):
     """Class to interact with _Brain."""
 
@@ -122,8 +156,13 @@ class _TimeViewer(object):
         # colormap slider
         scaling_limits = [0.2, 2.0]
         fmin = brain._data["fmin"]
+        update_fmin = SnapColorbarPoints(
+            plotter=self.plotter,
+            brain=brain,
+            name="fmin"
+        )
         fmin_slider = self.plotter.add_slider_widget(
-            brain.update_fmin,
+            update_fmin,
             value=fmin,
             rng=_get_range(fmin, scaling_limits), title="fmin",
             pointa=(0.82, 0.26),
@@ -131,8 +170,13 @@ class _TimeViewer(object):
         )
         fmin_slider.name = "fmin"
         fmid = brain._data["fmid"]
+        update_fmid = SnapColorbarPoints(
+            plotter=self.plotter,
+            brain=brain,
+            name="fmid"
+        )
         fmid_slider = self.plotter.add_slider_widget(
-            brain.update_fmid,
+            update_fmid,
             value=fmid,
             rng=_get_range(fmid, scaling_limits), title="fmid",
             pointa=(0.82, 0.42),
@@ -140,8 +184,13 @@ class _TimeViewer(object):
         )
         fmid_slider.name = "fmid"
         fmax = brain._data["fmax"]
+        update_fmax = SnapColorbarPoints(
+            plotter=self.plotter,
+            brain=brain,
+            name="fmax"
+        )
         fmax_slider = self.plotter.add_slider_widget(
-            brain.update_fmax,
+            update_fmax,
             value=fmax,
             rng=_get_range(fmax, scaling_limits), title="fmax",
             pointa=(0.82, 0.58),
