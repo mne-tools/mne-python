@@ -1146,6 +1146,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                 % (ws_dir, ' '.join(cmd)))
     os.makedirs(op.join(ws_dir))
     run_subprocess_env(cmd)
+    del tempdir  # clean up directory
     if op.isfile(T1_mgz):
         new_info = _extract_volume_info(T1_mgz)
         if new_info is None:
@@ -1158,10 +1159,11 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
 
             rr, tris, volume_info = read_surface(surf_ws_out,
                                                  read_metadata=True)
-            volume_info.update(new_info)  # replace volume info, 'head' stays
+            # replace volume info, 'head' stays
+            volume_info.update(new_info)
+            write_surface(surf_ws_out, rr, tris, volume_info=volume_info,
+                          overwrite=True)
 
-            write_surface(s, rr, tris, volume_info=volume_info,
-                          overwrite=overwrite)
             # Create symbolic links
             surf_out = op.join(bem_dir, '%s.surf' % s)
             if not overwrite and op.exists(surf_out):

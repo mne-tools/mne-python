@@ -657,7 +657,7 @@ are rather far away from the brain sources, :func:`mne.make_forward_solution`
 takes them into account in the computations. If the data file has software
 gradient compensation activated, it computes the field of at the reference
 sensors in addition to the main MEG sensor array and computes a compensated
-forward solution`.
+forward solution.
 
 The EEG sphere model definition file
 ------------------------------------
@@ -697,8 +697,9 @@ EEG forward solution in the sphere model
    :ref:`plot_source_alignment_without_mri`.
 
 When the sphere model is employed, the computation of the EEG solution can be
-substantially accelerated by using approximation methods described by Mosher,
-Zhang, and Berg, see :ref:`CEGEGDEI` (Mosher *et al.* and references therein).
+substantially accelerated by using approximation methods described by Mosher
+:footcite:`MosherEtAl1999`, Zhang :footcite:`Zhang1995`, and Berg
+:footcite:`BergScherg1994`.
 :func:`mne.make_forward_solution` approximates the solution with three dipoles
 in a homogeneous sphere whose locations and amplitudes are determined by
 minimizing the cost function:
@@ -723,3 +724,10 @@ this purpose, :func:`mne.average_forward_solutions` computes a weighted average
 of several forward solutions. The function averages both MEG and EEG forward
 solutions. Usually the EEG forward solution is identical across runs because
 the electrode locations do not change.
+
+.. target for :end-before: forward-end-content
+
+References
+~~~~~~~~~~
+
+.. footbibliography::

@@ -19,14 +19,14 @@
 import numpy as np
 from copy import deepcopy
 
-from ..surface import fast_cross_3d, _project_onto_surface
+from ..fixes import jit, bincount
+from ..io.compensator import get_current_comp, make_compensator
 from ..io.constants import FIFF, FWD
+from ..io.pick import pick_types
+from ..parallel import parallel_func
+from ..surface import _project_onto_surface, _jit_cross
 from ..transforms import apply_trans
 from ..utils import logger, verbose, _pl, warn, fill_doc
-from ..parallel import parallel_func
-from ..io.compensator import get_current_comp, make_compensator
-from ..io.pick import pick_types
-from ..fixes import einsum
 
 
 # #############################################################################
@@ -98,6 +98,7 @@ def _lin_field_coeff(surf, mult, rmags, cosmags, ws, bins, n_jobs):
     return mult * np.sum(coeffs, axis=0)
 
 
+@jit()
 def _do_lin_field_coeff(bem_rr, tris, tn, ta, rmags, cosmags, ws, bins):
     """Compute field coefficients (parallel-friendly).
 
@@ -129,12 +130,13 @@ def _do_lin_field_coeff(bem_rr, tris, tn, ta, rmags, cosmags, ws, bins):
         Linear coefficients with effect of each BEM vertex on each sensor (?)
     """
     coeff = np.zeros((bins[-1] + 1, len(bem_rr)))
-    w_cosmags = ws[:, np.newaxis] * cosmags
-    diff = rmags[:, np.newaxis, :] - bem_rr
+    w_cosmags = ws.reshape(-1, 1) * cosmags
+    diff = rmags.reshape(rmags.shape[0], 1, rmags.shape[1]) - bem_rr
     den = np.sum(diff * diff, axis=-1)
     den *= np.sqrt(den)
     den *= 3
-    for tri, tri_nn, tri_area in zip(tris, tn, ta):
+    for ti in range(len(tris)):
+        tri, tri_nn, tri_area = tris[ti], tn[ti], ta[ti]
         # Accumulate the coefficients for each triangle node and add to the
         # corresponding coefficient matrix
 
@@ -147,13 +149,14 @@ def _do_lin_field_coeff(bem_rr, tris, tn, ta, rmags, cosmags, ws, bins):
         #     res = np.sum(coil['w'][np.newaxis, :] * x, axis=1)
         #     coeff[j][tri + off] += mult * res
 
-        c = fast_cross_3d(diff[:, tri], tri_nn)
-        c *= w_cosmags[:, np.newaxis]
+        c = np.empty((diff.shape[0], tri.shape[0], diff.shape[2]))
+        _jit_cross(c, diff[:, tri], tri_nn)
+        c *= w_cosmags.reshape(w_cosmags.shape[0], 1, w_cosmags.shape[1])
         for ti in range(3):
             x = np.sum(c[:, ti], axis=-1)
             x /= den[:, tri[ti]] / tri_area
             coeff[:, tri[ti]] += \
-                np.bincount(bins, weights=x, minlength=bins[-1] + 1)
+                bincount(bins, weights=x, minlength=bins[-1] + 1)
     return coeff
 
 
@@ -249,8 +252,8 @@ def _bem_specify_els(bem, els, mults):
     ws = np.concatenate([el['w'] for el in els])
     tri_weights, tri_idx = _project_onto_surface(rrs, scalp)
     tri_weights *= ws[:, np.newaxis]
-    weights = einsum('ij,ijk->ik', tri_weights,
-                     bem['solution'][scalp['tris'][tri_idx]])
+    weights = np.matmul(tri_weights[:, np.newaxis],
+                        bem['solution'][scalp['tris'][tri_idx]])[:, 0]
     # there are way more vertices than electrodes generally, so let's iterate
     # over the electrodes
     edges = np.concatenate([[0], np.cumsum([len(el['w']) for el in els])])
@@ -302,6 +305,7 @@ _MAG_FACTOR = 1e-7  # μ_0 / (4π)
 #     return np.sum(Q * diff, axis=1) / (diff2 * np.sqrt(diff2))
 
 
+@jit()
 def _bem_inf_pots(mri_rr, bem_rr, mri_Q=None):
     """Compute the infinite medium potential in all 3 directions.
 
@@ -321,18 +325,18 @@ def _bem_inf_pots(mri_rr, bem_rr, mri_Q=None):
     # NOTE: the (μ_0 / (4π) factor has been moved to _prep_field_communication
     # Get position difference vector between BEM vertex and dipole
     diff = np.empty((len(mri_rr), 3, len(bem_rr)))
-    for ri, rr in enumerate(mri_rr):
+    for ri in range(mri_rr.shape[0]):
+        rr = mri_rr[ri]
         this_diff = bem_rr - rr
-        diff_norm = np.sum(this_diff * this_diff, axis=1, keepdims=True)
+        diff_norm = np.sum(this_diff * this_diff, axis=1)
         diff_norm *= np.sqrt(diff_norm)
-        diff_norm[diff_norm == 0] = 1
+        diff_norm[diff_norm == 0] = 1.
         if mri_Q is not None:
             this_diff = np.dot(this_diff, mri_Q.T)
-        this_diff /= diff_norm
+        this_diff /= diff_norm.reshape(-1, 1)
         diff[ri] = this_diff.T
 
     return diff
-
 
 # This function has been refactored to process all points simultaneously
 # def _bem_inf_field(rd, Q, rp, d):
@@ -350,6 +354,7 @@ def _bem_inf_pots(mri_rr, bem_rr, mri_Q=None):
 #     return np.sum(x * d, axis=1) / (diff2 * np.sqrt(diff2))
 
 
+@jit()
 def _bem_inf_fields(rr, rmag, cosmag):
     """Compute infinite-medium magnetic field at one MEG sensor.
 
@@ -372,18 +377,24 @@ def _bem_inf_fields(rr, rmag, cosmag):
     # rr, rmag refactored according to Equation (19) in Mosher, 1999
     # Knowing that we're doing all directions, refactor above function:
 
-    diff = rmag.T[np.newaxis, :, :] - rr[:, :, np.newaxis]
-    diff_norm = np.sum(diff * diff, axis=1)
+    # rr, 3, rmag
+    diff = rmag.T.reshape(1, 3, rmag.shape[0]) - rr.reshape(rr.shape[0], 3, 1)
+    diff_norm = np.sum(diff * diff, axis=1)  # rr, rmag
     diff_norm *= np.sqrt(diff_norm)  # Get magnitude of distance cubed
-    diff_norm[diff_norm == 0] = 1  # avoid nans
+    diff_norm_ = diff_norm.reshape(-1)
+    diff_norm_[diff_norm_ == 0] = 1  # avoid nans
 
     # This is the result of cross-prod calcs with basis vectors,
     # as if we had taken (Q=np.eye(3)), then multiplied by cosmags
     # factor, and then summed across directions
-    x = np.array([diff[:, 1] * cosmag[:, 2] - diff[:, 2] * cosmag[:, 1],
-                  diff[:, 2] * cosmag[:, 0] - diff[:, 0] * cosmag[:, 2],
-                  diff[:, 0] * cosmag[:, 1] - diff[:, 1] * cosmag[:, 0]])
-    return np.rollaxis(x / diff_norm, 1)
+    x = np.empty((rr.shape[0], 3, rmag.shape[0]))
+    x[:, 0] = diff[:, 1] * cosmag[:, 2] - diff[:, 2] * cosmag[:, 1]
+    x[:, 1] = diff[:, 2] * cosmag[:, 0] - diff[:, 0] * cosmag[:, 2]
+    x[:, 2] = diff[:, 0] * cosmag[:, 1] - diff[:, 1] * cosmag[:, 0]
+    diff_norm = diff_norm_.reshape((rr.shape[0], 1, rmag.shape[0]))
+    x /= diff_norm
+    # x.shape == (rr.shape[0], 3, rmag.shape[0])
+    return x
 
 
 @fill_doc
@@ -423,7 +434,8 @@ def _bem_pot_or_field(rr, mri_rr, mri_Q, coils, solution, bem_rr, n_jobs,
     # reduce memory by chunking within _do_inf_pots and parallelize, too:
     parallel, p_fun, _ = parallel_func(_do_inf_pots, n_jobs)
     nas = np.array_split
-    B = np.sum(parallel(p_fun(mri_rr, sr.copy(), mri_Q, sol.copy())
+    B = np.sum(parallel(p_fun(mri_rr, sr.copy(), np.ascontiguousarray(mri_Q),
+                              np.array(sol))  # copy and contig
                         for sr, sol in zip(nas(bem_rr, n_jobs),
                                            nas(solution.T, n_jobs))), axis=0)
     # The copy()s above should make it so the whole objects don't need to be
@@ -466,8 +478,7 @@ def _do_prim_curr(rr, coils):
         p = _bem_inf_fields(rr[start:stop], rmags, cosmags)
         p *= ws
         p.shape = (3 * (stop - start), -1)
-        pc[3 * start:3 * stop] = [np.bincount(bins, pp, bins[-1] + 1)
-                                  for pp in p]
+        pc[3 * start:3 * stop] = [bincount(bins, pp, bins[-1] + 1) for pp in p]
     return pc
 
 
@@ -535,18 +546,21 @@ def _sphere_field(rrs, coils, sphere):
     by Matti Hämäläinen, February 1990
     """
     rmags, cosmags, ws, bins = _triage_coils(coils)
-    del coils
+    return _do_sphere_field(rrs, rmags, cosmags, ws, bins, sphere['r0'])
+
+
+@jit()
+def _do_sphere_field(rrs, rmags, cosmags, ws, bins, r0):
     n_coils = bins[-1] + 1
-
     # Shift to the sphere model coordinates
-    rrs = rrs - sphere['r0']
-
+    rrs = rrs - r0
     B = np.zeros((3 * len(rrs), n_coils))
-    for ri, rr in enumerate(rrs):
+    for ri in range(len(rrs)):
+        rr = rrs[ri]
         # Check for a dipole at the origin
         if np.sqrt(np.dot(rr, rr)) <= 1e-10:
             continue
-        this_poss = rmags - sphere['r0']
+        this_poss = rmags - r0
 
         # Vector from dipole to the field point
         a_vec = this_poss - rr
@@ -563,12 +577,16 @@ def _sphere_field(rrs, coils, sphere):
         r0e = np.sum(rr * cosmags, axis=1)
         g = (g0 * r0e - gr * re) / (F * F)
         good = (a > 0) | (r > 0) | ((a * r) + 1 > 1e-5)
-        v1 = fast_cross_3d(rr[np.newaxis, :], cosmags)
-        v2 = fast_cross_3d(rr[np.newaxis, :], this_poss)
-        xx = ((good * ws)[:, np.newaxis] *
-              (v1 / F[:, np.newaxis] + v2 * g[:, np.newaxis]))
-        zz = np.array([np.bincount(bins, x, n_coils) for x in xx.T])
-        B[3 * ri:3 * ri + 3, :] = zz
+        rr_ = rr.reshape(1, 3)
+        v1 = np.empty((cosmags.shape[0], 3))
+        _jit_cross(v1, rr_, cosmags)
+        v2 = np.empty((cosmags.shape[0], 3))
+        _jit_cross(v2, rr_, this_poss)
+        xx = ((good * ws).reshape(-1, 1) *
+              (v1 / F.reshape(-1, 1) + v2 * g.reshape(-1, 1)))
+        for jj in range(3):
+            zz = bincount(bins, xx[:, jj], n_coils)
+            B[3 * ri + jj, :] = zz
     B *= _MAG_FACTOR
     return B
 
@@ -632,7 +650,7 @@ def _eeg_spherepot_coil(rrs, coils, sphere):
 
             # compute total result
             xx = vval_one * ws[:, np.newaxis]
-            zz = np.array([np.bincount(bins, x, bins[-1] + 1) for x in xx.T])
+            zz = np.array([bincount(bins, x, bins[-1] + 1) for x in xx.T])
             B[3 * ri:3 * ri + 3, :] = zz
     # finishing by scaling by 1/(4*M_PI)
     B *= 0.25 / np.pi
@@ -646,7 +664,23 @@ def _triage_coils(coils):
 # #############################################################################
 # MAGNETIC DIPOLE (e.g. CHPI)
 
+_MIN_DIST_LIMIT = 1e-5
+
+
 def _magnetic_dipole_field_vec(rrs, coils, too_close='raise'):
+    rmags, cosmags, ws, bins = _triage_coils(coils)
+    fwd, min_dist = _compute_mdfv(rrs, rmags, cosmags, ws, bins, too_close)
+    if min_dist < _MIN_DIST_LIMIT:
+        msg = 'Coil too close (dist = %g mm)' % (min_dist * 1000,)
+        if too_close == 'raise':
+            raise RuntimeError(msg)
+        func = warn if too_close == 'warning' else logger.info
+        func(msg)
+    return fwd
+
+
+@jit()
+def _compute_mdfv(rrs, rmags, cosmags, ws, bins, too_close):
     """Compute an MEG forward solution for a set of magnetic dipoles."""
     # The code below is a more efficient version (~30x) of this:
     # for ri, rr in enumerate(rrs):
@@ -663,27 +697,25 @@ def _magnetic_dipole_field_vec(rrs, coils, too_close='raise'):
     #                                   axis=1)[:, np.newaxis] -
     #                 dist2 * this_coil['cosmag']) / dist5
     #         fwd[3*ri:3*ri+3, k] = 1e-7 * np.dot(this_coil['w'], sum_)
-    rmags, cosmags, ws, bins = _triage_coils(coils)
-    del coils
-    fwd = np.empty((3 * len(rrs), bins[-1] + 1), order='F')
-    for ri, rr in enumerate(rrs):
+    fwd = np.zeros((3 * len(rrs), bins[-1] + 1))
+    min_dist = np.inf
+    ws2 = ws.reshape(-1, 1)
+    for ri in range(len(rrs)):
+        rr = rrs[ri]
         diff = rmags - rr
-        dist2 = np.sum(diff * diff, axis=1)[:, np.newaxis]
+        dist2_ = np.sum(diff * diff, axis=1)
+        dist2 = dist2_.reshape(-1, 1)
         dist = np.sqrt(dist2)
-        if (dist < 1e-5).any():
-            msg = 'Coil too close (dist = %g m)' % dist.min()
-            if too_close == 'raise':
-                raise RuntimeError(msg)
-            else:  # warning
-                func = warn if too_close == 'warning' else logger.info
-                func('Coil too close (dist = %g m)' % dist.min())
-        sum_ = ws[:, np.newaxis] * (3 * diff * np.sum(diff * cosmags,
-                                                      axis=1)[:, np.newaxis] -
-                                    dist2 * cosmags) / (dist2 * dist2 * dist)
+        min_dist = min(dist.min(), min_dist)
+        if min_dist < _MIN_DIST_LIMIT and too_close == 'raise':
+            break
+        t_ = np.sum(diff * cosmags, axis=1)
+        t = t_.reshape(-1, 1)
+        sum_ = ws2 * (3 * diff * t - dist2 * cosmags) / (dist2 * dist2 * dist)
         for ii in range(3):
-            fwd[3 * ri + ii] = np.bincount(bins, sum_[:, ii], bins[-1] + 1)
+            fwd[3 * ri + ii] = bincount(bins, sum_[:, ii], bins[-1] + 1)
     fwd *= 1e-7
-    return fwd
+    return fwd, min_dist
 
 
 # #############################################################################
@@ -752,6 +784,7 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
                                                        mults, n_jobs)
                 else:
                     # Compute solution for EEG sensor
+                    logger.info('Setting up for EEG...')
                     solution = _bem_specify_els(bem, coils, mults)
             else:
                 solution = csolution = bem
@@ -810,7 +843,8 @@ def _compute_forwards_meeg(rr, fd, n_jobs, silent=False):
     # The dipole location and orientation must be transformed to mri coords
     mri_rr = None
     if fd['head_mri_t'] is not None:
-        mri_rr = apply_trans(fd['head_mri_t']['trans'], rr)
+        mri_rr = np.ascontiguousarray(
+            apply_trans(fd['head_mri_t']['trans'], rr))
     mri_Q, bem_rr, fun = fd['mri_Q'], fd['bem_rr'], fd['fun']
     for ci in range(len(fd['coils_list'])):
         coils, ccoils = fd['coils_list'][ci], fd['ccoils_list'][ci]

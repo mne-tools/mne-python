@@ -167,9 +167,10 @@ def test_array_raw():
         ch_pos=dict(zip(ch_names, ch_pos_loc)),
         coord_frame='head'
     )
-    info = create_info(ch_names, Fs, 'ecog', montage=montage)
+    info = create_info(ch_names, Fs, 'ecog')
 
     raw = RawArray(data, info)
+    raw.set_montage(montage)
     raw.plot_psd(average=False)  # looking for nonexistent layout
     raw.plot_psd_topo()
 

@@ -28,6 +28,7 @@ import warnings
 from ..defaults import _handle_default
 from ..fixes import _get_status
 from ..io import show_fiff, Info
+from ..io.constants import FIFF
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        _pick_data_channels, _DATA_CH_TYPES_SPLIT, pick_types,
                        pick_info, _picks_by_type, pick_channels_cov,
@@ -41,6 +42,7 @@ from ..utils import (verbose, get_config, set_config, warn, _check_ch_locs,
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
 from ..annotations import _sync_onset
+from ..transforms import apply_trans
 
 
 _channel_type_prettyprint = {'eeg': "EEG channel", 'grad': "Gradiometer",
@@ -1600,7 +1602,9 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     chs = [info['chs'][pick] for pick in picks]
     if not _check_ch_locs(chs):
         raise RuntimeError('No valid channel positions found')
-    pos = np.array([ch['loc'][:3] for ch in chs])
+    pos = np.array([apply_trans(info['dev_head_t'], ch['loc'][:3])
+                    if ch['coord_frame'] == FIFF.FIFFV_COORD_DEVICE else
+                    ch['loc'][:3] for ch in chs])
     ch_names = np.array([ch['ch_name'] for ch in chs])
     bads = [idx for idx, name in enumerate(ch_names) if name in info['bads']]
     if ch_groups is None:
@@ -1706,9 +1710,9 @@ def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
 
         ax.azim = 90
         ax.elev = 0
-        ax.xaxis.set_label_text('x')
-        ax.yaxis.set_label_text('y')
-        ax.zaxis.set_label_text('z')
+        ax.xaxis.set_label_text('x (m)')
+        ax.yaxis.set_label_text('y (m)')
+        ax.zaxis.set_label_text('z (m)')
     else:  # kind in 'select', 'topomap'
         ax.text(0, 0, '', zorder=1)
 
@@ -2879,6 +2883,7 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
             im = ax.imshow(
                 np.ma.masked_where(~mask, data), cmap=cmap, **im_args)
         else:
+            ax.imshow(data, cmap=cmap, **im_args)  # see #6481
             im = ax.imshow(data, cmap=cmap, **im_args)
 
         if draw_contour and np.unique(mask).size == 2:
@@ -3021,22 +3026,21 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
 
     fig = None
     if ax is None:
-        fig = plt.figure()
-        ax_list = list()
-        for ii in range(len(picks_list)):
-            # Make x-axes change together
-            if ii > 0:
-                ax_list.append(plt.subplot(len(picks_list), 1, ii + 1,
-                                           sharex=ax_list[0]))
-            else:
-                ax_list.append(plt.subplot(len(picks_list), 1, ii + 1))
-        make_label = True
+        fig, ax_list = plt.subplots(len(picks_list), 1, sharex=True,
+                                    squeeze=False)
+        ax_list = list(ax_list[:, 0])
     else:
         fig = ax_list[0].get_figure()
-        make_label = len(ax_list) == len(fig.axes)
+
+    # make_label decides if ylabel and titles are displayed
+    make_label = len(ax_list) == len(fig.axes)
+
+    # Plot Frequency [Hz] xlabel on the last axis
+    xlabels_list = [False] * len(picks_list)
+    xlabels_list[-1] = True
 
     return (fig, picks_list, titles_list, units_list, scalings_list,
-            ax_list, make_label)
+            ax_list, make_label, xlabels_list)
 
 
 def _convert_psds(psds, dB, estimate, scaling, unit, ch_names=None,
@@ -3111,11 +3115,12 @@ def _check_psd_fmax(inst, fmax):
 def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
               units_list, scalings_list, ax_list, make_label, color, area_mode,
               area_alpha, dB, estimate, average, spatial_colors, xscale,
-              line_alpha, sphere):
+              line_alpha, sphere, xlabels_list):
     # helper function for plot_raw_psd and plot_epochs_psd
     from matplotlib.ticker import ScalarFormatter
     from .evoked import _plot_lines
     sphere = _check_sphere(sphere, inst.info)
+    _check_option('xscale', xscale, ('log', 'linear'))
 
     for key, ls in zip(['lowpass', 'highpass', 'line_freq'],
                        ['--', '--', '-.']):
@@ -3184,18 +3189,20 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
                     ch_types_used=ch_types_used, selectable=True, psd=True,
                     line_alpha=line_alpha, nave=None, time_unit='ms',
                     sphere=sphere)
-    for ii, ax in enumerate(ax_list):
+
+    for ii, (ax, xlabel) in enumerate(zip(ax_list, xlabels_list)):
         ax.grid(True, linestyle=':')
         if xscale == 'log':
             ax.set(xscale='log')
             ax.set(xlim=[freqs[1] if freqs[0] == 0 else freqs[0], freqs[-1]])
             ax.get_xaxis().set_major_formatter(ScalarFormatter())
-        else:
+        else:  # xscale == 'linear'
             ax.set(xlim=(freqs[0], freqs[-1]))
         if make_label:
-            if ii == len(picks_list) - 1:
-                ax.set_xlabel('Frequency (Hz)')
             ax.set(ylabel=ylabels[ii], title=titles_list[ii])
+            if xlabel:
+                ax.set_xlabel('Frequency (Hz)')
+
     if make_label:
         fig.subplots_adjust(left=.1, bottom=.1, right=.9, top=.9, wspace=0.3,
                             hspace=0.5)

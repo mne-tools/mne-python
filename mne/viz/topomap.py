@@ -2233,9 +2233,11 @@ def _topomap_animation(evoked, ch_type, times, frame_rate, butterfly, blit,
     from matplotlib import pyplot as plt, animation
     if ch_type is None:
         ch_type = _picks_by_type(evoked.info)[0][0]
-    if ch_type not in ('mag', 'grad', 'eeg'):
+    if ch_type not in ('mag', 'grad', 'eeg',
+                       'hbo', 'hbr', 'fnirs_od', 'fnirs_raw'):
         raise ValueError("Channel type not supported. Supported channel "
-                         "types include 'mag', 'grad' and 'eeg'.")
+                         "types include 'mag', 'grad', 'eeg'. 'hbo', 'hbr', "
+                         "'fnirs_raw', and 'fnirs_od'.")
     time_unit, _ = _check_time_unit(time_unit, evoked.times)
     if times is None:
         times = np.linspace(evoked.times[0], evoked.times[-1], 10)

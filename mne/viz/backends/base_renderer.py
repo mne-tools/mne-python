@@ -68,9 +68,9 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
-    def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
+    def contour(self, surface, scalars, contours, width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
-                normalized_colormap=False):
+                normalized_colormap=False, kind='line', color=None):
         """Add a contour in the scene.
 
         Parameters
@@ -81,8 +81,8 @@ class _BaseRenderer(metaclass=ABCMeta):
             The scalar valued associated to the vertices.
         contours: int | list
              Specifying a list of values will only give the requested contours.
-        line_width: float
-            The width of the lines.
+        width: float
+            The width of the lines or radius of the tubes.
         opacity: float
             The opacity of the contour.
         vmin: float | None
@@ -93,6 +93,14 @@ class _BaseRenderer(metaclass=ABCMeta):
             If None, the max of the data will be used
         colormap:
             The colormap to use.
+        normalized_colormap: bool
+            Specify if the values of the colormap are between 0 and 1.
+        kind: 'line' | 'tube'
+            The type of the primitives to use to display the contours.
+        color:
+            The color of the mesh as a tuple (red, green, blue) of float
+            values between 0 and 1 or a valid color name (i.e. 'white'
+            or 'w').
         """
         pass
 

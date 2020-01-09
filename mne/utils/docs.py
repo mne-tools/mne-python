@@ -506,6 +506,12 @@ montage : None | str | DigMontage
     positions. Default is None. See also the documentation of
     :class:`mne.channels.DigMontage` for more information.
 """
+docdict["match_case"] = """
+match_case : bool
+    If True (default), channel name matching will be case sensitive.
+
+    .. versionadded:: 0.20
+"""
 
 # Brain plotting
 docdict["clim"] = """
