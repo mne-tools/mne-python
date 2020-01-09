@@ -549,10 +549,10 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
     # Now calculate the view_up vector of the camera.  If the view up is
     # close to the 'z' axis, the view plane normal is parallel to the
     # camera which is unacceptable, so we use a different view up.
-    if abs(elevation) < 5. or abs(elevation) > 175.:
-        view_up = [np.sin(phi), np.cos(phi), 0]
-    else:
+    if elevation is None or 5. <= abs(elevation) <= 175.:
         view_up = [0, 0, 1]
+    else:
+        view_up = [np.sin(phi), np.cos(phi), 0]
 
     position = [
         r * np.cos(phi) * np.sin(theta),
