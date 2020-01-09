@@ -193,7 +193,7 @@ class _TimeViewer(object):
         fmin_slider = self.plotter.add_slider_widget(
             update_fmin,
             value=fmin,
-            rng=_get_range(fmin, scaling_limits), title="fmin",
+            rng=_get_range(brain), title="fmin",
             pointa=(0.82, 0.26),
             pointb=(0.98, 0.26),
         )
@@ -207,7 +207,7 @@ class _TimeViewer(object):
         fmid_slider = self.plotter.add_slider_widget(
             update_fmid,
             value=fmid,
-            rng=_get_range(fmid, scaling_limits), title="fmid",
+            rng=_get_range(brain), title="fmid",
             pointa=(0.82, 0.42),
             pointb=(0.98, 0.42),
         )
@@ -221,7 +221,7 @@ class _TimeViewer(object):
         fmax_slider = self.plotter.add_slider_widget(
             update_fmax,
             value=fmax,
-            rng=_get_range(fmax, scaling_limits), title="fmax",
+            rng=_get_range(brain), title="fmax",
             pointa=(0.82, 0.58),
             pointb=(0.98, 0.58),
         )
@@ -272,5 +272,7 @@ def _set_slider_style(slider, show_label=True):
         slider_rep.ShowSliderLabelOff()
 
 
-def _get_range(val, rng):
-    return [val * rng[0], val * rng[1]]
+def _get_range(brain):
+    import numpy as np
+    val = abs(brain._data['array'])
+    return [np.min(val), np.max(val)]
