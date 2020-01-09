@@ -5,28 +5,6 @@
 # License: Simplified BSD
 
 
-class TextSlider(object):
-    """Class to set a text slider."""
-
-    def __init__(self, plotter=None, data=None,
-                 callback=None, name=None):
-        self.plotter = plotter
-        self.data = data
-        self.callback = callback
-        self.name = name
-
-    def __call__(self, idx):
-        """Update the title of the slider."""
-        idx = int(round(idx))
-        data = self.data[idx]
-        for slider in self.plotter.slider_widgets:
-            name = getattr(slider, "name", None)
-            if name == self.name:
-                slider_rep = slider.GetRepresentation()
-                slider_rep.SetTitleText(data)
-                self.callback(data)
-
-
 class IntSlider(object):
     """Class to set a integer slider."""
 
@@ -114,22 +92,14 @@ class _TimeViewer(object):
             'frontal',
             'parietal'
         ]
-        set_orientation = TextSlider(
-            plotter=self.plotter,
-            data=orientation,
-            callback=brain.show_view,
-            name="orientation"
-        )
-        orientation_slider = self.plotter.add_slider_widget(
-            set_orientation,
+        orientation_slider = self.plotter.add_text_slider_widget(
+            brain.show_view,
             value=0,
-            rng=[0, len(orientation) - 1],
+            data=orientation,
             pointa=(0.82, 0.74),
             pointb=(0.98, 0.74),
             event_type='always'
         )
-        orientation_slider.name = "orientation"
-        set_orientation(0)
 
         # time label
         for hemi in brain._hemis:
