@@ -4,6 +4,9 @@
 #
 # License: Simplified BSD
 
+import time
+import numpy as np
+
 
 class IntSlider(object):
     """Class to set a integer slider."""
@@ -62,55 +65,44 @@ class BumpColorbarPoints(object):
             "fmid": brain.update_fmid,
             "fmax": brain.update_fmax
         }
+        self.last_update = time.time()
 
     def __call__(self, value):
         """Update the colorbar sliders."""
-        eps = 1e-4
-        fmin = self.brain._data['fmin']
-        fmid = self.brain._data['fmid']
-        fmax = self.brain._data['fmax']
-        fmin_rep = None
-        fmid_rep = None
-        fmax_rep = None
+        keys = ('fmin', 'fmid', 'fmax')
+        vals = {key: self.brain._data[key] for key in keys}
+        reps = {key: None for key in keys}
         for slider in self.plotter.slider_widgets:
             name = getattr(slider, "name", None)
-            if name == "fmin":
-                fmin_rep = slider.GetRepresentation()
-            elif name == "fmid":
-                fmid_rep = slider.GetRepresentation()
-            elif name == "fmax":
-                fmax_rep = slider.GetRepresentation()
-        if self.name == "fmin" and fmin_rep is not None:
-            if value + eps > fmax:
-                fmax = value + 2 * eps
-                self.brain.update_fmax(fmax)
-                fmax_rep.SetValue(fmax)
-            if value > fmid:
-                fmid = value + eps
-                self.brain.update_fmid(fmid)
-                fmid_rep.SetValue(fmid)
-            fmin_rep.SetValue(value)
-        elif self.name == "fmid" and fmid_rep is not None:
-            if value < fmin:
-                fmin = value - eps
-                self.brain.update_fmin(fmin)
-                fmin_rep.SetValue(fmin)
-            if value > fmax:
-                fmax = value + eps
-                self.brain.update_fmax(fmax)
-                fmax_rep.SetValue(fmax)
-            fmid_rep.SetValue(value)
-        elif self.name == "fmax" and fmax_rep is not None:
-            if value - eps < fmin:
-                fmin = value - 2 * eps
-                self.brain.update_fmin(fmin)
-                fmin_rep.SetValue(fmin)
-            if value < fmid:
-                fmid = value - eps
-                self.brain.update_fmid(fmid)
-                fmid_rep.SetValue(fmid)
-            fmax_rep.SetValue(value)
-        self.callback[self.name](value)
+            if name is not None:
+                reps[name] = slider.GetRepresentation()
+        if self.name == "fmin" and reps["fmin"] is not None:
+            if vals['fmax'] < value:
+                self.brain.update_fmax(value)
+                reps['fmax'].SetValue(value)
+            if vals['fmid'] < value:
+                self.brain.update_fmid(value)
+                reps['fmid'].SetValue(value)
+            reps['fmin'].SetValue(value)
+        elif self.name == "fmid" and reps['fmid'] is not None:
+            if vals['fmin'] > value:
+                self.brain.update_fmin(value)
+                reps['fmin'].SetValue(value)
+            if vals['fmax'] < value:
+                self.brain.update_fmax(value)
+                reps['fmax'].SetValue(value)
+            reps['fmid'].SetValue(value)
+        elif self.name == "fmax" and reps['fmax'] is not None:
+            if vals['fmin'] > value:
+                self.brain.update_fmin(value)
+                reps['fmin'].SetValue(value)
+            if vals['fmid'] > value:
+                self.brain.update_fmid(value)
+                reps['fmid'].SetValue(value)
+            reps['fmax'].SetValue(value)
+        if time.time() > self.last_update + 1. / 30.:
+            self.callback[self.name](value)
+            self.last_update = time.time()
 
 
 class _TimeViewer(object):
@@ -196,13 +188,14 @@ class _TimeViewer(object):
             rng=_get_range(brain), title="fmin",
             pointa=(0.82, 0.26),
             pointb=(0.98, 0.26),
+            event_type="always",
         )
         fmin_slider.name = "fmin"
         fmid = brain._data["fmid"]
         update_fmid = BumpColorbarPoints(
             plotter=self.plotter,
             brain=brain,
-            name="fmid"
+            name="fmid",
         )
         fmid_slider = self.plotter.add_slider_widget(
             update_fmid,
@@ -210,13 +203,14 @@ class _TimeViewer(object):
             rng=_get_range(brain), title="fmid",
             pointa=(0.82, 0.42),
             pointb=(0.98, 0.42),
+            event_type="always",
         )
         fmid_slider.name = "fmid"
         fmax = brain._data["fmax"]
         update_fmax = BumpColorbarPoints(
             plotter=self.plotter,
             brain=brain,
-            name="fmax"
+            name="fmax",
         )
         fmax_slider = self.plotter.add_slider_widget(
             update_fmax,
@@ -224,6 +218,7 @@ class _TimeViewer(object):
             rng=_get_range(brain), title="fmax",
             pointa=(0.82, 0.58),
             pointb=(0.98, 0.58),
+            event_type="always",
         )
         fmax_slider.name = "fmax"
         update_fscale = UpdateColorbarScale(
@@ -273,6 +268,5 @@ def _set_slider_style(slider, show_label=True):
 
 
 def _get_range(brain):
-    import numpy as np
-    val = abs(brain._data['array'])
+    val = np.abs(brain._data['array'])
     return [np.min(val), np.max(val)]

@@ -793,14 +793,18 @@ class _Brain(object):
         center = self._data['center']
         colormap = self._data['colormap']
         transparent = self._data['transparent']
-        fmin = self._data['fmin'] if fmin is None else fmin
-        fmid = self._data['fmid'] if fmid is None else fmid
-        fmax = self._data['fmax'] if fmax is None else fmax
-
+        lims = dict(fmin=fmin, fmid=fmid, fmax=fmax)
+        lims = {key: self._data[key] if val is None else val
+                for key, val in lims.items()}
+        assert all(val is not None for val in lims.values())
+        if lims['fmin'] > lims['fmid']:
+            lims['fmin'] = lims['fmid']
+        if lims['fmax'] < lims['fmid']:
+            lims['fmax'] = lims['fmid']
+        self._data.update(lims)
         self._data['ctable'] = \
-            calculate_lut(colormap, alpha=alpha, fmin=fmin, fmid=fmid,
-                          fmax=fmax, center=center, transparent=transparent)
-
+            calculate_lut(colormap, alpha=alpha, center=center,
+                          transparent=transparent, **lims)
         return self._data['ctable']
 
     def set_data_smoothing(self, n_steps):
