@@ -546,12 +546,20 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
     if focalpoint is not None:
         cen = np.asarray(focalpoint)
 
+    # Now calculate the view_up vector of the camera.  If the view up is
+    # close to the 'z' axis, the view plane normal is parallel to the
+    # camera which is unacceptable, so we use a different view up.
+    if elevation is None or 5. <= abs(elevation) <= 175.:
+        view_up = [0, 0, 1]
+    else:
+        view_up = [np.sin(phi), np.cos(phi), 0]
+
     position = [
         r * np.cos(phi) * np.sin(theta),
         r * np.sin(phi) * np.sin(theta),
         r * np.cos(theta)]
     figure.plotter.camera_position = [
-        position, cen, [0, 0, 1]]
+        position, cen, view_up]
 
 
 def _set_3d_title(figure, title, size=40):
