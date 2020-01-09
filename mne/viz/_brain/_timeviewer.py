@@ -196,7 +196,6 @@ class _TimeViewer(object):
             rng=_get_range(fmin, scaling_limits), title="fmin",
             pointa=(0.82, 0.26),
             pointb=(0.98, 0.26),
-            event_type='always'
         )
         fmin_slider.name = "fmin"
         fmid = brain._data["fmid"]
@@ -211,7 +210,6 @@ class _TimeViewer(object):
             rng=_get_range(fmid, scaling_limits), title="fmid",
             pointa=(0.82, 0.42),
             pointb=(0.98, 0.42),
-            event_type='always'
         )
         fmid_slider.name = "fmid"
         fmax = brain._data["fmax"]
@@ -226,7 +224,6 @@ class _TimeViewer(object):
             rng=_get_range(fmax, scaling_limits), title="fmax",
             pointa=(0.82, 0.58),
             pointb=(0.98, 0.58),
-            event_type='always'
         )
         fmax_slider.name = "fmax"
         update_fscale = UpdateColorbarScale(
