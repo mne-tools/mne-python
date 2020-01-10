@@ -100,7 +100,7 @@ class BumpColorbarPoints(object):
                 self.brain.update_fmid(value)
                 reps['fmid'].SetValue(value)
             reps['fmax'].SetValue(value)
-        if time.time() > self.last_update + 1. / 30.:
+        if time.time() > self.last_update + 1. / 60.:
             self.callback[self.name](value)
             self.last_update = time.time()
 
