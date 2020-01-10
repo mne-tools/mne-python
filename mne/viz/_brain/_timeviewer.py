@@ -16,9 +16,9 @@ class IntSlider(object):
         self.callback = callback
         self.name = name
 
-    def __call__(self, idx):
+    def __call__(self, value):
         """Round the label of the slider."""
-        idx = int(round(idx))
+        idx = int(round(value))
         for slider in self.plotter.slider_widgets:
             name = getattr(slider, "name", None)
             if name == self.name:
@@ -121,20 +121,20 @@ class _TimeViewer(object):
 
         # smoothing slider
         default_smoothing_value = 7
-        set_smoothing = IntSlider(
+        self.set_smoothing = IntSlider(
             plotter=self.plotter,
             callback=brain.set_data_smoothing,
             name="smoothing"
         )
         smoothing_slider = self.plotter.add_slider_widget(
-            set_smoothing,
+            self.set_smoothing,
             value=default_smoothing_value,
             rng=[1, 15], title="smoothing",
             pointa=(0.82, 0.90),
             pointb=(0.98, 0.90)
         )
         smoothing_slider.name = 'smoothing'
-        set_smoothing(default_smoothing_value)
+        self.set_smoothing(default_smoothing_value)
 
         # orientation slider
         orientation = [
@@ -177,13 +177,13 @@ class _TimeViewer(object):
         # colormap slider
         scaling_limits = [0.2, 2.0]
         fmin = brain._data["fmin"]
-        update_fmin = BumpColorbarPoints(
+        self.update_fmin = BumpColorbarPoints(
             plotter=self.plotter,
             brain=brain,
             name="fmin"
         )
         fmin_slider = self.plotter.add_slider_widget(
-            update_fmin,
+            self.update_fmin,
             value=fmin,
             rng=_get_range(brain), title="fmin",
             pointa=(0.82, 0.26),
@@ -192,13 +192,13 @@ class _TimeViewer(object):
         )
         fmin_slider.name = "fmin"
         fmid = brain._data["fmid"]
-        update_fmid = BumpColorbarPoints(
+        self.update_fmid = BumpColorbarPoints(
             plotter=self.plotter,
             brain=brain,
             name="fmid",
         )
         fmid_slider = self.plotter.add_slider_widget(
-            update_fmid,
+            self.update_fmid,
             value=fmid,
             rng=_get_range(brain), title="fmid",
             pointa=(0.82, 0.42),
@@ -207,13 +207,13 @@ class _TimeViewer(object):
         )
         fmid_slider.name = "fmid"
         fmax = brain._data["fmax"]
-        update_fmax = BumpColorbarPoints(
+        self.update_fmax = BumpColorbarPoints(
             plotter=self.plotter,
             brain=brain,
             name="fmax",
         )
         fmax_slider = self.plotter.add_slider_widget(
-            update_fmax,
+            self.update_fmax,
             value=fmax,
             rng=_get_range(brain), title="fmax",
             pointa=(0.82, 0.58),

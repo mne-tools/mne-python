@@ -146,13 +146,13 @@ def test_brain_timeviewer(renderer):
                         colormap='hot', vertices=hemi_vertices,
                         colorbar=False, time=[0])
 
-    brain_data.set_data_smoothing(n_steps=1)
     brain_data.set_time_point(time_idx=0)
-    brain_data.update_fmax(fmax=11.0)
-    brain_data.update_fmid(fmid=5.0)
-    brain_data.update_fmin(fmin=0.0)
 
-    _TimeViewer(brain_data)
+    time_viewer = _TimeViewer(brain_data)
+    time_viewer.set_smoothing(value=1)
+    time_viewer.update_fmax(value=11.0)
+    time_viewer.update_fmid(value=5.0)
+    time_viewer.update_fmin(value=0.0)
 
 
 def test_brain_colormap():
