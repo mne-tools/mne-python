@@ -284,7 +284,7 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, chs, filenames):
                 # This now has size (n_chunks_read, n_samp[ci])
                 ch_data = many_chunk[:, ch_offsets[ci]:ch_offsets[ci + 1]]
 
-                if len(tal_idx) and ci == tal_idx[0]:
+                if len(tal_idx) and ci in tal_idx:
                     tal_data.append(ch_data)
                     continue
 
