@@ -150,9 +150,10 @@ def test_brain_timeviewer(renderer):
 
     time_viewer = _TimeViewer(brain_data)
     time_viewer.set_smoothing(value=1)
-    time_viewer.update_fmax(value=11.0)
-    time_viewer.update_fmid(value=5.0)
-    time_viewer.update_fmin(value=0.0)
+    time_viewer.update_fmin(value=12.0)
+    time_viewer.update_fmax(value=4.0)
+    time_viewer.update_fmid(value=6.0)
+    time_viewer.update_fmid(value=4.0)
 
 
 def test_brain_colormap():
