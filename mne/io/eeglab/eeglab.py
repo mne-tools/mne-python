@@ -23,15 +23,28 @@ from ...annotations import Annotations, read_annotations
 CAL = 1e-6
 
 
-def _check_fname(fname):
-    """Check if the file extension is valid."""
-    fmt = str(op.splitext(fname)[-1])
+def _check_fname(fname, dataname):
+    """Check if the file extension is valid or whether the filename
+    is valid."""
+    fmt = str(op.splitext(dataname)[-1])
     if fmt == '.dat':
         raise NotImplementedError(
             'Old data format .dat detected. Please update your EEGLAB '
             'version and resave the data in .fdt format')
     elif fmt != '.fdt':
         raise IOError('Expected .fdt file format. Found %s format' % fmt)
+
+    basedir = op.dirname(fname)
+    data_fname = op.join(basedir, dataname)
+    if not op.exists(data_fname):
+        fdt_from_set_fname = op.join(op.splitext(fname)[0], '.fdt')
+        if op.exists(fdt_from_set_fname):
+            fname = fdt_from_set_fname
+            msg = ('Data filename in EEG.data ({}) is incorrect, using the '
+                   'correct file name ({}).')
+            warn(msg.format(dataname, op.basename(fdt_from_set_fname)))
+        # else raise error?
+    return fname
 
 
 def _check_load_mat(fname, uint16_codec):
@@ -279,7 +292,6 @@ class RawEEGLAB(BaseRaw):
     @verbose
     def __init__(self, input_fname, eog=(),
                  preload=False, uint16_codec=None, verbose=None):  # noqa: D102
-        basedir = op.dirname(input_fname)
         eeg = _check_load_mat(input_fname, uint16_codec)
         if eeg.trials != 1:
             raise TypeError('The number of trials is %d. It must be 1 for raw'
@@ -291,8 +303,7 @@ class RawEEGLAB(BaseRaw):
 
         # read the data
         if isinstance(eeg.data, str):
-            data_fname = op.join(basedir, eeg.data)
-            _check_fname(data_fname)
+            data_fname = _check_fname(input_fname, eeg.data)
             logger.info('Reading %s' % data_fname)
 
             super(RawEEGLAB, self).__init__(
@@ -542,9 +553,7 @@ class EpochsEEGLAB(BaseEpochs):
                                  '(event id %i)' % (key, val))
 
         if isinstance(eeg.data, str):
-            basedir = op.dirname(input_fname)
-            data_fname = op.join(basedir, eeg.data)
-            _check_fname(data_fname)
+            data_fname = _check_fname(input_fname, eeg.data)
             with open(data_fname, 'rb') as data_fid:
                 data = np.fromfile(data_fid, dtype=np.float32)
                 data = data.reshape((eeg.nbchan, eeg.pnts, eeg.trials),
