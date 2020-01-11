@@ -206,7 +206,7 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
                        colorbar=False, res=64, size=1, show=True,
                        outlines='head', contours=6, image_interp='bilinear',
                        axes=None, vlim=(None, None), layout=None,
-                       sphere=None, extrapolate='box'):
+                       sphere=None, extrapolate='box', border=0):
     """Plot topographic maps of SSP projections.
 
     Parameters
@@ -322,7 +322,8 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
                           sensors=sensors, res=res, axes=ax,
                           outlines=_outlines, contours=contours,
                           image_interp=image_interp, show=False,
-                          extrapolate=extrapolate, sphere=_sphere)[0]
+                          extrapolate=extrapolate, sphere=_sphere,
+                          border=border)[0]
 
         if colorbar:
             _add_colorbar(ax, im, cmap)
@@ -523,12 +524,13 @@ class _GridData(object):
     to be set independently.
     """
 
-    def __init__(self, pos, extrapolate, sphere):
+    def __init__(self, pos, extrapolate, sphere, border):
         # in principle this works in N dimensions, not just 2
         assert pos.ndim == 2 and pos.shape[1] == 2, pos.shape
         # Adding points outside the extremes helps the interpolators
         outer_pts, tri = _get_extra_points(pos, extrapolate, sphere)
         self.n_extra = outer_pts.shape[0]
+        self.border = border
         self.tri = tri
 
     def set_values(self, v):
@@ -541,7 +543,20 @@ class _GridData(object):
         # Eventually we could also do set_values with this class if we want,
         # see scipy/interpolate/rbf.py, especially the self.nodes one-liner.
         from scipy.interpolate import CloughTocher2DInterpolator
-        v = np.concatenate((v, np.zeros(self.n_extra)))
+
+        if isinstance(self.border, Integral):
+            v_extra = np.ones(self.n_extra) * self.border
+        elif isinstance(self.border, str) and self.border == 'mean':
+            n_points = v.shape[0]
+            v_extra = np.zeros(self.n_extra)
+            indices, indptr = self.tri.vertex_neighbor_vertices
+            rng = range(n_points, n_points + self.n_extra)
+            for idx, extra_idx in enumerate(rng):
+                ngb = indptr[indices[extra_idx]:indices[extra_idx + 1]]
+                ngb = ngb[ngb < n_points]
+                v_extra[idx] = v[ngb].mean()
+
+        v = np.concatenate((v, v_extra))
         self.interpolator = CloughTocher2DInterpolator(self.tri, v)
         return self
 
@@ -583,7 +598,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                  mask_params=None, outlines='head',
                  contours=6, image_interp='bilinear', show=True,
                  head_pos=None, onselect=None, extrapolate='box',
-                 sphere=None):
+                 sphere=None, border=0):
     """Plot a topographic map as image.
 
     Parameters
@@ -653,6 +668,9 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
         .. versionadded:: 0.18
     %(topomap_sphere)s
+    border : float | 'mean'
+        Value to extrapolate to on the topomap borders. If ``'mean'`` then
+        each extrapolated point has the average value of its neighbours.
 
     Returns
     -------
@@ -666,10 +684,10 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                          names, show_names, mask, mask_params, outlines,
                          contours, image_interp, show,
                          head_pos, onselect, extrapolate,
-                         sphere=sphere)[:2]
+                         sphere=sphere, border=border)[:2]
 
 
-def _setup_interp(pos, res, extrapolate, sphere, outlines):
+def _setup_interp(pos, res, extrapolate, sphere, outlines, border):
     xlim = np.inf, -np.inf,
     ylim = np.inf, -np.inf,
     mask_ = np.c_[outlines['mask_pos']]
@@ -690,7 +708,7 @@ def _setup_interp(pos, res, extrapolate, sphere, outlines):
     xi = np.linspace(xmin, xmax, res)
     yi = np.linspace(ymin, ymax, res)
     Xi, Yi = np.meshgrid(xi, yi)
-    interp = _GridData(pos, extrapolate, sphere)
+    interp = _GridData(pos, extrapolate, sphere, border)
     extent = (xmin, xmax, ymin, ymax)
     return extent, Xi, Yi, interp
 
@@ -700,7 +718,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                   mask_params=None, outlines='head',
                   contours=6, image_interp='bilinear', show=True,
                   head_pos=None, onselect=None, extrapolate='box',
-                  sphere=None):
+                  sphere=None, border=0):
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
     data = np.asarray(data)
@@ -779,7 +797,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     clip_radius = outlines['clip_radius']
     clip_origin = outlines.get('clip_origin', (0., 0.))
     extent, Xi, Yi, interp = _setup_interp(
-        pos, res, extrapolate, sphere, outlines)
+        pos, res, extrapolate, sphere, outlines, border)
     interp.set_values(data)
     Zi = interp.set_locations(Xi, Yi)()
 
@@ -2115,7 +2133,7 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads, sphere):
 
     _hide_frame(ax)
     extent, Xi, Yi, interp = _setup_interp(
-        params['pos'], 64, 'box', sphere, outlines)
+        params['pos'], 64, 'box', sphere, outlines, 0)
     params['Zis'] = list()
     for frame in params['frames']:
         params['Zis'].append(interp.set_values(data[:, frame])(Xi, Yi))
