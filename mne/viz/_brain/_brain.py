@@ -793,14 +793,18 @@ class _Brain(object):
         center = self._data['center']
         colormap = self._data['colormap']
         transparent = self._data['transparent']
-        fmin = self._data['fmin'] if fmin is None else fmin
-        fmid = self._data['fmid'] if fmid is None else fmid
-        fmax = self._data['fmax'] if fmax is None else fmax
-
+        lims = dict(fmin=fmin, fmid=fmid, fmax=fmax)
+        lims = {key: self._data[key] if val is None else val
+                for key, val in lims.items()}
+        assert all(val is not None for val in lims.values())
+        if lims['fmin'] > lims['fmid']:
+            lims['fmin'] = lims['fmid']
+        if lims['fmax'] < lims['fmid']:
+            lims['fmax'] = lims['fmid']
+        self._data.update(lims)
         self._data['ctable'] = \
-            calculate_lut(colormap, alpha=alpha, fmin=fmin, fmid=fmid,
-                          fmax=fmax, center=center, transparent=transparent)
-
+            calculate_lut(colormap, alpha=alpha, center=center,
+                          transparent=transparent, **lims)
         return self._data['ctable']
 
     def set_data_smoothing(self, n_steps):
@@ -863,64 +867,61 @@ class _Brain(object):
     def update_fmax(self, fmax):
         """Set the colorbar max point."""
         from ..backends._pyvista import _set_colormap_range
-        if fmax > self._data['fmid']:
-            ctable = self.update_lut(fmax=fmax)
-            ctable = (ctable * 255).astype(np.uint8)
-            center = self._data['center']
-            for hemi in ['lh', 'rh']:
-                actor = self._data.get(hemi + '_actor')
-                if actor is not None:
-                    fmin = self._data['fmin']
-                    center = self._data['center']
-                    dt_max = fmax
-                    dt_min = fmin if center is None else -1 * fmax
-                    rng = [dt_min, dt_max]
-                    if self._colorbar_added:
-                        scalar_bar = self._renderer.plotter.scalar_bar
-                    else:
-                        scalar_bar = None
-                    _set_colormap_range(actor, ctable, scalar_bar, rng)
-                    self._data['fmax'] = fmax
-                    self._data['ctable'] = ctable
+        ctable = self.update_lut(fmax=fmax)
+        ctable = (ctable * 255).astype(np.uint8)
+        center = self._data['center']
+        for hemi in ['lh', 'rh']:
+            actor = self._data.get(hemi + '_actor')
+            if actor is not None:
+                fmin = self._data['fmin']
+                center = self._data['center']
+                dt_max = fmax
+                dt_min = fmin if center is None else -1 * fmax
+                rng = [dt_min, dt_max]
+                if self._colorbar_added:
+                    scalar_bar = self._renderer.plotter.scalar_bar
+                else:
+                    scalar_bar = None
+                _set_colormap_range(actor, ctable, scalar_bar, rng)
+                self._data['fmax'] = fmax
+                self._data['ctable'] = ctable
 
     def update_fmid(self, fmid):
         """Set the colorbar mid point."""
         from ..backends._pyvista import _set_colormap_range
-        if self._data['fmin'] < fmid < self._data['fmax']:
-            ctable = self.update_lut(fmid=fmid)
-            ctable = (ctable * 255).astype(np.uint8)
-            for hemi in ['lh', 'rh']:
-                actor = self._data.get(hemi + '_actor')
-                if actor is not None:
-                    if self._colorbar_added:
-                        scalar_bar = self._renderer.plotter.scalar_bar
-                    else:
-                        scalar_bar = None
-                    _set_colormap_range(actor, ctable, scalar_bar)
-                    self._data['fmid'] = fmid
-                    self._data['ctable'] = ctable
+        ctable = self.update_lut(fmid=fmid)
+        ctable = (ctable * 255).astype(np.uint8)
+        for hemi in ['lh', 'rh']:
+            actor = self._data.get(hemi + '_actor')
+            if actor is not None:
+                if self._colorbar_added:
+                    scalar_bar = self._renderer.plotter.scalar_bar
+                else:
+                    scalar_bar = None
+                _set_colormap_range(actor, ctable, scalar_bar)
+                self._data['fmid'] = fmid
+                self._data['ctable'] = ctable
 
     def update_fmin(self, fmin):
         """Set the colorbar min point."""
         from ..backends._pyvista import _set_colormap_range
-        if fmin < self._data['fmid']:
-            ctable = self.update_lut(fmin=fmin)
-            ctable = (ctable * 255).astype(np.uint8)
-            for hemi in ['lh', 'rh']:
-                actor = self._data.get(hemi + '_actor')
-                if actor is not None:
-                    fmax = self._data['fmax']
-                    center = self._data['center']
-                    dt_max = fmax
-                    dt_min = fmin if center is None else -1 * fmax
-                    rng = [dt_min, dt_max]
-                    if self._colorbar_added:
-                        scalar_bar = self._renderer.plotter.scalar_bar
-                    else:
-                        scalar_bar = None
-                    _set_colormap_range(actor, ctable, scalar_bar, rng)
-                    self._data['fmin'] = fmin
-                    self._data['ctable'] = ctable
+        ctable = self.update_lut(fmin=fmin)
+        ctable = (ctable * 255).astype(np.uint8)
+        for hemi in ['lh', 'rh']:
+            actor = self._data.get(hemi + '_actor')
+            if actor is not None:
+                fmax = self._data['fmax']
+                center = self._data['center']
+                dt_max = fmax
+                dt_min = fmin if center is None else -1 * fmax
+                rng = [dt_min, dt_max]
+                if self._colorbar_added:
+                    scalar_bar = self._renderer.plotter.scalar_bar
+                else:
+                    scalar_bar = None
+                _set_colormap_range(actor, ctable, scalar_bar, rng)
+                self._data['fmin'] = fmin
+                self._data['ctable'] = ctable
 
     def update_fscale(self, fscale):
         """Scale the colorbar points."""

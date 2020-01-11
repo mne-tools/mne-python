@@ -8,9 +8,12 @@
 #
 # License: Simplified BSD
 
+import os.path as path
+
 import pytest
 import numpy as np
-import os.path as path
+from numpy.testing import assert_allclose
+
 from mne import read_source_estimate
 from mne.datasets import testing
 from mne.viz._brain import _Brain, _TimeViewer
@@ -143,13 +146,14 @@ def test_brain_timeviewer(renderer):
                         colormap='hot', vertices=hemi_vertices,
                         colorbar=False, time=[0])
 
-    brain_data.set_data_smoothing(n_steps=1)
     brain_data.set_time_point(time_idx=0)
-    brain_data.update_fmax(fmax=1.0)
-    brain_data.update_fmid(fmid=0.5)
-    brain_data.update_fmin(fmin=0.0)
 
-    _TimeViewer(brain_data)
+    time_viewer = _TimeViewer(brain_data)
+    time_viewer.set_smoothing(value=1)
+    time_viewer.update_fmin(value=12.0)
+    time_viewer.update_fmax(value=4.0)
+    time_viewer.update_fmid(value=6.0)
+    time_viewer.update_fmid(value=4.0)
 
 
 def test_brain_colormap():
@@ -166,3 +170,92 @@ def test_brain_colormap():
     colormap = cm.get_cmap(colormap)
     calculate_lut(colormap, alpha=alpha, fmin=fmin,
                   fmid=fmid, fmax=fmax, center=center)
+
+    cmap = cm.get_cmap(colormap)
+    zero_alpha = np.array([1., 1., 1., 0])
+    half_alpha = np.array([1., 1., 1., 0.5])
+    atol = 1.5 / 256.
+
+    # fmin < fmid < fmax
+    lut = calculate_lut(colormap, alpha, 1, 2, 3)
+    assert lut.shape == (256, 4)
+    assert_allclose(lut[0], cmap(0) * zero_alpha, atol=atol)
+    assert_allclose(lut[127], cmap(0.5), atol=atol)
+    assert_allclose(lut[-1], cmap(1.), atol=atol)
+    # divergent
+    lut = calculate_lut(colormap, alpha, 0, 1, 2, 0)
+    assert lut.shape == (256, 4)
+    assert_allclose(lut[0], cmap(0), atol=atol)
+    assert_allclose(lut[63], cmap(0.25), atol=atol)
+    assert_allclose(lut[127], cmap(0.5) * zero_alpha, atol=atol)
+    assert_allclose(lut[192], cmap(0.75), atol=atol)
+    assert_allclose(lut[-1], cmap(1.), atol=atol)
+
+    # fmin == fmid == fmax
+    lut = calculate_lut(colormap, alpha, 1, 1, 1)
+    zero_alpha = np.array([1., 1., 1., 0])
+    assert lut.shape == (256, 4)
+    assert_allclose(lut[0], cmap(0) * zero_alpha, atol=atol)
+    assert_allclose(lut[1], cmap(0.5), atol=atol)
+    assert_allclose(lut[-1], cmap(1.), atol=atol)
+    # divergent
+    lut = calculate_lut(colormap, alpha, 0, 0, 0, 0)
+    assert lut.shape == (256, 4)
+    assert_allclose(lut[0], cmap(0), atol=atol)
+    assert_allclose(lut[127], cmap(0.5) * zero_alpha, atol=atol)
+    assert_allclose(lut[-1], cmap(1.), atol=atol)
+
+    # fmin == fmid < fmax
+    lut = calculate_lut(colormap, alpha, 1, 1, 2)
+    assert lut.shape == (256, 4)
+    assert_allclose(lut[0], cmap(0.) * zero_alpha, atol=atol)
+    assert_allclose(lut[1], cmap(0.5), atol=atol)
+    assert_allclose(lut[-1], cmap(1.), atol=atol)
+    # divergent
+    lut = calculate_lut(colormap, alpha, 1, 1, 2, 0)
+    assert lut.shape == (256, 4)
+    assert_allclose(lut[0], cmap(0), atol=atol)
+    assert_allclose(lut[62], cmap(0.245), atol=atol)
+    assert_allclose(lut[64], cmap(0.5) * zero_alpha, atol=atol)
+    assert_allclose(lut[127], cmap(0.5) * zero_alpha, atol=atol)
+    assert_allclose(lut[191], cmap(0.5) * zero_alpha, atol=atol)
+    assert_allclose(lut[193], cmap(0.755), atol=atol)
+    assert_allclose(lut[-1], cmap(1.), atol=atol)
+    lut = calculate_lut(colormap, alpha, 0, 0, 1, 0)
+    assert lut.shape == (256, 4)
+    assert_allclose(lut[0], cmap(0), atol=atol)
+    assert_allclose(lut[126], cmap(0.25), atol=atol)
+    assert_allclose(lut[127], cmap(0.5) * zero_alpha, atol=atol)
+    assert_allclose(lut[129], cmap(0.75), atol=atol)
+    assert_allclose(lut[-1], cmap(1.), atol=atol)
+
+    # fmin < fmid == fmax
+    lut = calculate_lut(colormap, alpha, 1, 2, 2)
+    assert lut.shape == (256, 4)
+    assert_allclose(lut[0], cmap(0) * zero_alpha, atol=atol)
+    assert_allclose(lut[-2], cmap(0.5), atol=atol)
+    assert_allclose(lut[-1], cmap(1.), atol=atol)
+    # divergent
+    lut = calculate_lut(colormap, alpha, 1, 2, 2, 0)
+    assert lut.shape == (256, 4)
+    assert_allclose(lut[0], cmap(0), atol=atol)
+    assert_allclose(lut[1], cmap(0.25), atol=2 * atol)
+    assert_allclose(lut[32], cmap(0.375) * half_alpha, atol=atol)
+    assert_allclose(lut[64], cmap(0.5) * zero_alpha, atol=atol)
+    assert_allclose(lut[127], cmap(0.5) * zero_alpha, atol=atol)
+    assert_allclose(lut[191], cmap(0.5) * zero_alpha, atol=atol)
+    assert_allclose(lut[223], cmap(0.625) * half_alpha, atol=atol)
+    assert_allclose(lut[-2], cmap(0.7475), atol=2 * atol)
+    assert_allclose(lut[-1], cmap(1.), atol=2 * atol)
+    lut = calculate_lut(colormap, alpha, 0, 1, 1, 0)
+    assert lut.shape == (256, 4)
+    assert_allclose(lut[0], cmap(0), atol=atol)
+    assert_allclose(lut[1], cmap(0.25), atol=2 * atol)
+    assert_allclose(lut[64], cmap(0.375) * half_alpha, atol=atol)
+    assert_allclose(lut[127], cmap(0.5) * zero_alpha, atol=atol)
+    assert_allclose(lut[191], cmap(0.625) * half_alpha, atol=atol)
+    assert_allclose(lut[-2], cmap(0.75), atol=2 * atol)
+    assert_allclose(lut[-1], cmap(1.), atol=atol)
+
+    with pytest.raises(ValueError, match=r'.*fmin \(1\) <= fmid \(0\) <= fma'):
+        calculate_lut(colormap, alpha, 1, 0, 2)
