@@ -1090,8 +1090,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     .. versionadded:: 0.10
     """
     from .viz.misc import plot_bem
-    env, mri_dir = _prepare_env(subject, subjects_dir,
-                                requires_freesurfer=True)[:2]
+    env = _prepare_env(subject, subjects_dir, requires_freesurfer=True)[0]
     tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env,
                                  cwd=tempdir)
