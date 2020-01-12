@@ -174,6 +174,8 @@ Bug
 
 - Fix bug in :func:`mne.bem.make_watershed_bem` where some surfaces were saved incorrectly in the working directory by `Yu-Han Luo`_
 
+- Fix support for multiple TAL (annotations) channels in BDF reader by `Clemens Brunner`_
+
 API
 ~~~
 
