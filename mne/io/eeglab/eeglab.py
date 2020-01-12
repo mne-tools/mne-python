@@ -24,8 +24,12 @@ CAL = 1e-6
 
 
 def _check_fname(fname, dataname):
-    """Check if the file extension is valid or whether the filename
-    is valid."""
+    """Check whether the filename is valid.
+
+    Check if the file extension is ``.fdt`` (older ``.dat`` being invalid) or
+    whether the ``EEG.data`` filename exists. If ``EEG.data`` file is absent the
+    set file name with .set changed to .fdt is checked.
+    """
     fmt = str(op.splitext(dataname)[-1])
     if fmt == '.dat':
         raise NotImplementedError(
@@ -37,7 +41,7 @@ def _check_fname(fname, dataname):
     basedir = op.dirname(fname)
     data_fname = op.join(basedir, dataname)
     if not op.exists(data_fname):
-        fdt_from_set_fname = op.join(op.splitext(fname)[0], '.fdt')
+        fdt_from_set_fname = op.splitext(fname)[0] + '.fdt'
         if op.exists(fdt_from_set_fname):
             data_fname = fdt_from_set_fname
             msg = ('Data filename in EEG.data ({}) is incorrect, using the '
