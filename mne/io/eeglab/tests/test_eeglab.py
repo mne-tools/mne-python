@@ -140,7 +140,7 @@ def test_io_set_raw_more(tmpdir):
         read_raw_eeglab(input_fname=overlap_fname, preload=True)
 
     # raise error when both EEG.data and fdt name from set are wrong
-    overlap_fname = 'test_ovrlap_event.set'
+    overlap_fname = op.join(tmpdir, 'test_ovrlap_event.set')
     io.savemat(overlap_fname,
                {'EEG': {'trials': eeg.trials, 'srate': eeg.srate,
                         'nbchan': eeg.nbchan, 'data': 'test_overla_event.fdt',
