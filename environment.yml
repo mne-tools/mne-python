@@ -45,3 +45,4 @@ dependencies:
   - pydocstyle
   - codespell
   - python-picard
+  - pyqt >=5.10
