@@ -17,30 +17,29 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
                       mean_distance_limit=None):
     """Detect segments with movement.
 
-    First, the cHPI is calculated relative to the default head position, then
-    segments with ``bad_`` annotations are discarded and the mean head pos is
-    calculated. Segments further from `rotation_velocity_limit`,
-    `translation_velocity_limit` and `mean_distance_limit`are annotated.
+    Detects segments periods further from `rotation_velocity_limit`,
+    `translation_velocity_limit` and `mean_distance_limit`. It returns an
+    annotation with the bad segments.
 
     Parameters
     ----------
-    raw instance : structure
+    raw instance : instance of Raw. Data to detect head movement for.
         Instance of a raw.
     pos : array, shape (N, 10)
         The position and quaternion parameters from cHPI fitting.
     rotation_velocity_limit: float
-        In radians per second, head rotation velocity limit.
+        Head rotation velocity limit in radians per second.
     translation_velocity_limit : float
-        In meters per second, head speed limit.
+        Head translation velocity limit in radians per second.
     mean_distance_limit : float
-        In meters, distance limit from the median head position.
+        Head position limit from mean recording in meters.
 
     Returns
     -------
     annot : mne.Annotations
         Periods with head motion.
     hpi_disp : array
-        Head position over time w.r.t the mean head pos.
+        Head position over time with respect to the mean head pos.
     """
     sfreq = raw.info['sfreq']
     hp_ts = pos[:, 0].copy()
@@ -129,7 +128,7 @@ def compute_average_dev_head_t(raw, pos):
 
     Parameters
     ----------
-    raw instance : structure
+    raw instance : instance of Raw. Data to compute head position.
         Instance of a raw.
     pos : array, shape (N, 10)
         The position and quaternion parameters from cHPI fitting.
