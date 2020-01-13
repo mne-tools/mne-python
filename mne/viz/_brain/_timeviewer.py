@@ -109,15 +109,16 @@ class _TimeViewer(object):
     """Class to interact with _Brain."""
 
     def __init__(self, brain):
+        self.brain = brain
         self.plotter = brain._renderer.plotter
 
         # scalar bar
         if brain._colorbar_added:
             scalar_bar = self.plotter.scalar_bar
             scalar_bar.SetOrientationToVertical()
-            scalar_bar.SetHeight(0.8)
+            scalar_bar.SetHeight(0.6)
             scalar_bar.SetWidth(0.05)
-            scalar_bar.SetPosition(0.05, 0.1)
+            scalar_bar.SetPosition(0.02, 0.2)
 
         # smoothing slider
         default_smoothing_value = 7
@@ -173,6 +174,23 @@ class _TimeViewer(object):
             pointb=(0.77, 0.1),
             event_type='always'
         )
+        time_slider.name = "time_slider"
+
+        # playback speed
+        default_playback_speed = 1
+        self.set_playback_speed = IntSlider(
+            plotter=self.plotter,
+            callback=self.set_playback_speed,
+            name="playback_speed"
+        )
+        playback_speed_slider = self.plotter.add_slider_widget(
+            self.set_playback_speed,
+            value=default_playback_speed,
+            rng=[1, 100], title="playback speed",
+            pointa=(0.02, 0.1),
+            pointb=(0.18, 0.1)
+        )
+        playback_speed_slider.name = "playback_speed"
 
         # colormap slider
         scaling_limits = [0.2, 2.0]
@@ -240,11 +258,18 @@ class _TimeViewer(object):
         _set_slider_style(fmid_slider)
         _set_slider_style(fmax_slider)
         _set_slider_style(fscale_slider)
+        _set_slider_style(playback_speed_slider)
         _set_slider_style(time_slider, show_label=False)
 
         # add toggle to show/hide interface
         self.visibility = True
         self.plotter.add_key_event('y', self.toggle_interface)
+
+        # add toggle to start/stop playback
+        self.playback = False
+        self.playback_speed = 1
+        self.plotter.add_key_event('t', self.toggle_playback)
+        self.plotter.add_callback(self.play)
 
     def toggle_interface(self):
         self.visibility = not self.visibility
@@ -253,6 +278,26 @@ class _TimeViewer(object):
                 slider.On()
             else:
                 slider.Off()
+
+    def toggle_playback(self):
+        self.playback = not self.playback
+
+    def set_playback_speed(self, speed):
+        self.playback_speed = speed
+
+    def play(self):
+        if self.playback:
+            time_idx = self.brain._data['time_idx'] + self.playback_speed
+            max_time = len(self.brain._data['time'])
+            if time_idx < max_time:
+                self.brain.set_time_point(time_idx)
+                for slider in self.plotter.slider_widgets:
+                    name = getattr(slider, "name", None)
+                    if name == "time_slider":
+                        slider_rep = slider.GetRepresentation()
+                        slider_rep.SetValue(time_idx)
+            else:
+                self.playback = False
 
 
 def _set_slider_style(slider, show_label=True):
