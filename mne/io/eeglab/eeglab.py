@@ -47,7 +47,9 @@ def _check_fname(fname, dataname):
             msg = ('Data filename in EEG.data ({}) is incorrect, using the '
                    'correct file name ({}).')
             warn(msg.format(dataname, op.basename(fdt_from_set_fname)))
-        # else raise error?
+        elif not data_fname == fdt_from_set_fname:
+            msg = 'Could not find the .fdt data file, tried {} and {}.'
+            raise FileNotFoundError(msg.format(data_fname, fdt_from_set_fname))
     return data_fname
 
 

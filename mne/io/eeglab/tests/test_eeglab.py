@@ -139,6 +139,18 @@ def test_io_set_raw_more(tmpdir):
     with pytest.warns(RuntimeWarning, match="is incorrect, using the"):
         read_raw_eeglab(input_fname=overlap_fname, preload=True)
 
+    # raise error when both EEG.data and fdt name from set are wrong
+    overlap_fname = 'test_ovrlap_event.set'
+    io.savemat(overlap_fname,
+               {'EEG': {'trials': eeg.trials, 'srate': eeg.srate,
+                        'nbchan': eeg.nbchan, 'data': 'test_overla_event.fdt',
+                        'epoch': eeg.epoch,
+                        'event': [eeg.event[0], eeg.event[0]],
+                        'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
+               appendmat=False, oned_as='row')
+    with pytest.raises(FileNotFoundError, match="not find the .fdt data file"):
+        read_raw_eeglab(input_fname=overlap_fname, preload=True)
+
     # test reading file with one channel
     one_chan_fname = op.join(tmpdir, 'test_one_channel.set')
     io.savemat(one_chan_fname,
