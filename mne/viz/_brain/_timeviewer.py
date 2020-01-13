@@ -268,8 +268,9 @@ class _TimeViewer(object):
         # add toggle to start/stop playback
         self.playback = False
         self.playback_speed = 1
+        self.time_elapsed = 0
         self.plotter.add_key_event('t', self.toggle_playback)
-        self.plotter.add_callback(self.play)
+        self.plotter.add_callback(self.play, 10)
 
     def toggle_interface(self):
         self.visibility = not self.visibility
@@ -281,23 +282,31 @@ class _TimeViewer(object):
 
     def toggle_playback(self):
         self.playback = not self.playback
+        self.time_elapsed = 0
 
     def set_playback_speed(self, speed):
         self.playback_speed = speed
 
     def play(self):
         if self.playback:
-            time_idx = self.brain._data['time_idx'] + self.playback_speed
-            max_time = len(self.brain._data['time'])
-            if time_idx < max_time:
-                self.brain.set_time_point(time_idx)
-                for slider in self.plotter.slider_widgets:
-                    name = getattr(slider, "name", None)
-                    if name == "time_slider":
-                        slider_rep = slider.GetRepresentation()
-                        slider_rep.SetValue(time_idx)
-            else:
-                self.playback = False
+            self.time_elapsed += 10
+            if self.time_elapsed >= self.playback_speed * 10:
+                times = self.brain._data['time']
+                time_idx = self.brain._data['time_idx']
+                time = times[time_idx] + 1. / self.playback_speed
+                idx = np.argmin(np.abs(times - time))
+
+                max_time = len(self.brain._data['time'])
+                if time_idx < max_time:
+                    self.brain.set_time_point(idx)
+                    for slider in self.plotter.slider_widgets:
+                        name = getattr(slider, "name", None)
+                        if name == "time_slider":
+                            slider_rep = slider.GetRepresentation()
+                            slider_rep.SetValue(idx)
+                else:
+                    self.playback = False
+                self.time_elapsed = 0
 
 
 def _set_slider_style(slider, show_label=True):
