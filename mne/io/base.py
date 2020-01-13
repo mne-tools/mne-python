@@ -195,8 +195,6 @@ class ToDataFrameMixin(object):
 
         if index is not None:
             _check_pandas_index_arguments(index, default_index)
-        else:
-            index = default_index
 
         if copy is True:
             data = data.copy()
@@ -210,11 +208,11 @@ class ToDataFrameMixin(object):
             if 'time' in index and not long_format:
                 _set_pandas_dtype(df, ['time'], np.int64)
             df.set_index(index, inplace=True)
-        if all(i in default_index for i in index):
-            if isinstance(self, _BaseSourceEstimate):
-                df.columns.name = 'source'
-            else:
-                df.columns.name = 'channel'
+            if all(i in default_index for i in index):
+                if isinstance(self, _BaseSourceEstimate):
+                    df.columns.name = 'source'
+                else:
+                    df.columns.name = 'channel'
 
         if long_format:
             df = df.stack().reset_index()
