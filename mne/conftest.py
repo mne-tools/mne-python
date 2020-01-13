@@ -107,8 +107,6 @@ def matplotlib_config():
         pass
     else:
         ETSConfig.toolkit = 'qt4'
-    from mne.viz.backends.renderer import _enable_3d_backend_testing
-    _enable_3d_backend_testing()
 
 
 def _replace(mod, key):
@@ -195,6 +193,8 @@ def renderer(backend_name):
     """Yield the 3D backends."""
     from mne.viz.backends.renderer import _use_test_3d_backend
     from mne.viz.backends.tests._utils import has_mayavi, has_pyvista
+    from mne.viz.backends.renderer import _enable_3d_backend_testing
+    _enable_3d_backend_testing()
     if backend_name == 'mayavi':
         if not has_mayavi():
             pytest.skip("Test skipped, requires mayavi.")
