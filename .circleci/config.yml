@@ -62,9 +62,9 @@ jobs:
         # https://github.com/ContinuumIO/anaconda-issues/issues/9190#issuecomment-386508136
         # https://github.com/golemfactory/golem/issues/1019
         - run:
-            name: Fix libgcc_s.so.1 pthread_cancel bug
+            name: Install PyQt5 dependencies
             command: |
-              sudo apt-get install qt5-default
+              sudo apt-get install libxkbcommon-x11-0
 
         - run:
             name: Install graphviz and fonts needed for diagrams
@@ -93,7 +93,7 @@ jobs:
             name: Check installation
             command: |
                which python
-               mne sys_info
+               QT_DEBUG_PLUGINS=1 mne sys_info
                LIBGL_DEBUG=verbose python -c "from mayavi import mlab; import matplotlib.pyplot as plt; mlab.figure(); plt.figure()"
                python -c "import mne; mne.set_config('MNE_USE_CUDA', 'false')"  # this is needed for the config tutorial
                python -c "import mne; mne.set_config('MNE_LOGGING_LEVEL', 'info')"
