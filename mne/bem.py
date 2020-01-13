@@ -1090,20 +1090,19 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     .. versionadded:: 0.10
     """
     from .viz.misc import plot_bem
-    env = _prepare_env(subject, subjects_dir)[0]
+    env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
     tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env,
                                  cwd=tempdir)
 
-    subjects_dir = env['SUBJECTS_DIR']
+    subjects_dir = env['SUBJECTS_DIR']  # Set by _prepare_env() above.
     subject_dir = op.join(subjects_dir, subject)
-    mri_dir = op.join(subject_dir, 'mri')
+    ws_dir = op.join(bem_dir, 'watershed')
     T1_dir = op.join(mri_dir, volume)
     T1_mgz = T1_dir
     if not T1_dir.endswith('.mgz'):
         T1_mgz += '.mgz'
-    bem_dir = op.join(subject_dir, 'bem')
-    ws_dir = op.join(subject_dir, 'bem', 'watershed')
+
     if not op.isdir(bem_dir):
         os.makedirs(bem_dir)
     if not op.isdir(T1_dir) and not op.isfile(T1_mgz):
@@ -1115,6 +1114,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                                ' to recreate it.' % ws_dir)
         else:
             shutil.rmtree(ws_dir)
+
     # put together the command
     cmd = ['mri_watershed']
     if preflood:
