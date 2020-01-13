@@ -1090,7 +1090,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     .. versionadded:: 0.10
     """
     from .viz.misc import plot_bem
-    env = _prepare_env(subject, subjects_dir, requires_freesurfer=True)[0]
+    env = _prepare_env(subject, subjects_dir)[0]
     tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env,
                                  cwd=tempdir)
@@ -1569,7 +1569,7 @@ def write_bem_solution(fname, bem):
 # #############################################################################
 # Create 3-Layers BEM model from Flash MRI images
 
-def _prepare_env(subject, subjects_dir, requires_freesurfer):
+def _prepare_env(subject, subjects_dir):
     """Prepare an env object for subprocess calls."""
     env = os.environ.copy()
     fs_home = get_config('FREESURFER_HOME')
@@ -1641,8 +1641,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
     has been completed. In particular, the T1.mgz and brain.mgz MRI volumes
     should be, as usual, in the subject's mri directory.
     """
-    env, mri_dir = _prepare_env(subject, subjects_dir,
-                                requires_freesurfer=True)[:2]
+    env, mri_dir = _prepare_env(subject, subjects_dir)[:2]
     tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env,
                                  cwd=tempdir)
@@ -1789,8 +1788,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
 
     is_test = os.environ.get('MNE_SKIP_FS_FLASH_CALL', False)
 
-    env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir,
-                                         requires_freesurfer=True)
+    env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
     tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env,
                                  cwd=tempdir)
