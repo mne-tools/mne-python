@@ -138,6 +138,7 @@ class _Renderer(_BaseRenderer):
 
             self.plotter = self.figure.build()
             self.plotter.hide_axes()
+            self.plotter.disable_depth_peeling()
 
     def subplot(self, x, y):
         with warnings.catch_warnings():
