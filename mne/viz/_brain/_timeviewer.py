@@ -338,15 +338,12 @@ class _TimeViewer(object):
         if self.playback:
             self.time_elapsed += self.refresh_rate
             if self.time_elapsed >= self.playback_speed * 10:
-                times = self.brain._data['time']
+                time_data = self.brain._data['time']
                 time_idx = self.brain._data['time_idx']
-                if isinstance(time_idx, float):
-                    ifunc = interp1d(times, times)
-                    time = ifunc(time_idx)
-                else:
-                    time = times[time_idx]
-                time = time + 1. / self.playback_speed
-                idx = np.argmin(np.abs(times - time))
+                times = np.arange(self.brain._n_times)
+                ifunc = interp1d(times, time_data)
+                time_point = ifunc(time_idx) + 1. / self.playback_speed
+                idx = np.argmin(np.abs(time_data - time_point))
 
                 max_time = len(self.brain._data['time'])
                 if time_idx < max_time:
