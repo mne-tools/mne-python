@@ -298,6 +298,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
                       FIFF.FIFFV_EEG_CH, eog, ecg, emg, misc)
     eegs = [idx for idx, ch in enumerate(chs) if
             ch['coil_type'] == FIFF.FIFFV_COIL_EEG]
+    # XXX this should probably use mne.transforms._topo_to_sph and _sph_to_cart
     coords = _topo_to_sphere(pos, eegs)
     locs = np.full((len(chs), 12), np.nan)
     locs[:, :3] = coords

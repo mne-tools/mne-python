@@ -44,7 +44,7 @@ morph = mne.compute_source_morph(stc, 'sample', 'fsaverage',
                                  subjects_dir=subjects_dir)
 stc = morph.apply(stc)
 n_vertices_fsave, n_times = stc.data.shape
-tstep = stc.tstep
+tstep = stc.tstep * 1000  # convert to milliseconds
 
 n_subjects1, n_subjects2 = 7, 9
 print('Simulating data for %d and %d subjects.' % (n_subjects1, n_subjects2))
@@ -108,5 +108,5 @@ subjects_dir = op.join(data_path, 'subjects')
 # blue blobs are for condition A != condition B
 brain = stc_all_cluster_vis.plot('fsaverage', hemi='both',
                                  views='lateral', subjects_dir=subjects_dir,
-                                 time_label='Duration significant (ms)',
+                                 time_label='temporal extent (ms)',
                                  clim=dict(kind='value', lims=[0, 1, 40]))

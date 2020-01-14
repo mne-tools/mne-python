@@ -32,7 +32,7 @@ from mne.epochs import (
     _handle_event_repeated)
 from mne.utils import (requires_pandas, run_tests_if_main, object_diff,
                        requires_version, catch_logging, _FakeNoPandas,
-                       assert_meg_snr, check_version)
+                       assert_meg_snr, check_version, _dt_to_stamp)
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 
 from mne.io import RawArray, read_raw_fif
@@ -321,7 +321,7 @@ def test_reject():
             epochs.drop_bad()
             assert_equal(len(epochs), len(events))
             assert_array_equal(epochs.selection, np.arange(len(events)))
-            assert_array_equal(epochs.drop_log, [[]] * 7)
+            assert epochs.drop_log == [[]] * 7
             if proj not in data_7:
                 data_7[proj] = epochs.get_data()
             assert_array_equal(epochs.get_data(), data_7[proj])
@@ -332,7 +332,7 @@ def test_reject():
             epochs.drop_bad()
             assert_equal(len(epochs), len(events) - 4)
             assert_array_equal(epochs.selection, selection)
-            assert_array_equal(epochs.drop_log, drop_log)
+            assert epochs.drop_log == drop_log
             assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
 
             # rejection post-hoc
@@ -345,7 +345,7 @@ def test_reject():
             assert_equal(len(epochs), len(events) - 4)
             assert_equal(len(epochs), len(epochs.get_data()))
             assert_array_equal(epochs.selection, selection)
-            assert_array_equal(epochs.drop_log, drop_log)
+            assert epochs.drop_log == drop_log
             assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
 
             # rejection twice
@@ -357,7 +357,7 @@ def test_reject():
             epochs.drop_bad(reject)
             assert_equal(len(epochs), len(events) - 4)
             assert_array_equal(epochs.selection, selection)
-            assert_array_equal(epochs.drop_log, drop_log)
+            assert epochs.drop_log == drop_log
             assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
 
             # ensure that thresholds must become more stringent, not less
@@ -384,8 +384,8 @@ def test_reject():
                   events[::2][:3]]
         onsets[0] = onsets[0] + tmin - 0.499  # tmin < 0
         onsets[1] = onsets[1] + tmax - 0.001
-        first_time = (raw.info['meas_date'][0] + raw.info['meas_date'][1] *
-                      1e-6 + raw.first_samp / sfreq)
+        stamp = _dt_to_stamp(raw.info['meas_date'])
+        first_time = (stamp[0] + stamp[1] * 1e-6 + raw.first_samp / sfreq)
         for orig_time in [None, first_time]:
             annot = Annotations(onsets, [0.5, 0.5, 0.5], 'BAD', orig_time)
             raw.set_annotations(annot)
@@ -957,7 +957,7 @@ def test_epochs_io_preload(tmpdir, preload):
     epochs_read5 = read_epochs(temp_fname, preload=preload)
     assert_array_equal(epochs_read5.selection, epochs.selection)
     assert_equal(len(epochs_read5.selection), len(epochs_read5.events))
-    assert_array_equal(epochs_read5.drop_log, epochs.drop_log)
+    assert epochs_read5.drop_log == epochs.drop_log
 
     if preload:
         # Test that one can drop channels on read file
@@ -986,7 +986,7 @@ def test_epochs_io_preload(tmpdir, preload):
     assert_allclose(epochs.get_data(), epochs_read.get_data(), **tols)
     assert_array_equal(epochs.events, epochs_read.events)
     assert_array_equal(epochs.selection, epochs_read.selection)
-    assert_equal(epochs.drop_log, epochs_read.drop_log)
+    assert epochs.drop_log == epochs_read.drop_log
 
     # Test that having a single time point works
     epochs.load_data().crop(0, 0)
@@ -2057,7 +2057,7 @@ def test_equalize_channels():
     epochs1.drop_channels(epochs1.ch_names[:1])
     epochs2.drop_channels(epochs2.ch_names[1:2])
     my_comparison = [epochs1, epochs2]
-    equalize_channels(my_comparison)
+    my_comparison = equalize_channels(my_comparison)
     for e in my_comparison:
         assert_equal(ch_names, e.ch_names)
 
@@ -2111,7 +2111,7 @@ def test_add_channels_epochs():
     epochs_meg2 = epochs_meg.copy()
     assert not epochs_meg.times.flags['WRITEABLE']
     assert not epochs_meg2.times.flags['WRITEABLE']
-    epochs_meg2.info['meas_date'] = (0, 0)
+    epochs_meg2.set_meas_date(0)
     add_channels_epochs([epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()

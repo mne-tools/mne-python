@@ -8,14 +8,14 @@ import numpy as np
 
 from mne import (pick_channels_regexp, pick_types, Epochs,
                  read_forward_solution, rename_channels,
-                 pick_info, pick_channels, create_info)
+                 pick_info, pick_channels, create_info, make_ad_hoc_cov)
 from mne import __file__ as _root_init_fname
 from mne.io import (read_raw_fif, RawArray, read_raw_bti, read_raw_kit,
                     read_info)
 from mne.io.pick import (channel_indices_by_type, channel_type,
                          pick_types_forward, _picks_by_type, _picks_to_idx,
                          get_channel_types, _DATA_CH_TYPES_SPLIT,
-                         _contains_ch_type)
+                         _contains_ch_type, pick_channels_cov)
 from mne.io.constants import FIFF
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
@@ -518,6 +518,34 @@ def test_picks_to_idx():
     assert_array_equal(np.arange(len(info['ch_names'])),
                        _picks_to_idx(info, 'all'))
     assert_array_equal([0], _picks_to_idx(info, 'data'))
+
+
+def test_pick_channels_cov():
+    """Test picking channels from a Covariance object."""
+    info = create_info(['CH1', 'CH2', 'CH3'], 1., ch_types='eeg')
+    cov = make_ad_hoc_cov(info)
+    cov['data'] = np.array([1., 2., 3.])
+
+    cov_copy = pick_channels_cov(cov, ['CH2', 'CH1'], ordered=False, copy=True)
+    assert cov_copy.ch_names == ['CH1', 'CH2']
+    assert_array_equal(cov_copy['data'], [1., 2.])
+
+    # Test re-ordering channels
+    cov_copy = pick_channels_cov(cov, ['CH2', 'CH1'], ordered=True, copy=True)
+    assert cov_copy.ch_names == ['CH2', 'CH1']
+    assert_array_equal(cov_copy['data'], [2., 1.])
+
+    # Test picking in-place
+    pick_channels_cov(cov, ['CH2', 'CH1'], copy=False)
+    assert cov.ch_names == ['CH1', 'CH2']
+    assert_array_equal(cov['data'], [1., 2.])
+
+    # Test whether `method` and `loglik` are dropped when None
+    cov['method'] = None
+    cov['loglik'] = None
+    cov_copy = pick_channels_cov(cov, ['CH1', 'CH2'], copy=True)
+    assert 'method' not in cov_copy
+    assert 'loglik' not in cov_copy
 
 
 run_tests_if_main()

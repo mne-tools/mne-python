@@ -336,7 +336,7 @@ def test_simulate_raw_bem(raw_data):
                          0, 1. / raw.info['sfreq'])
     stcs = [stc] * 15
     raw_sim_sph = simulate_raw(raw.info, stcs, trans, src, sphere)
-    raw_sim_bem = simulate_raw(raw.info, stcs, trans, src, bem_fname, n_jobs=2)
+    raw_sim_bem = simulate_raw(raw.info, stcs, trans, src, bem_fname)
     # some components (especially radial) might not match that well,
     # so just make sure that most components have high correlation
     assert_array_equal(raw_sim_sph.ch_names, raw_sim_bem.ch_names)
@@ -437,8 +437,9 @@ def test_simulate_raw_chpi():
     raw.info.normalize_proj()
     sphere = make_sphere_model('auto', 'auto', raw.info)
     # make sparse spherical source space
-    sphere_vol = tuple(sphere['r0'] * 1000.) + (sphere.radius * 1000.,)
-    src = setup_volume_source_space(sphere=sphere_vol, pos=70.)
+    sphere_vol = tuple(sphere['r0']) + (sphere.radius,)
+    src = setup_volume_source_space(sphere=sphere_vol, pos=70.,
+                                    sphere_units='m')
     stcs = [_make_stc(raw, src)] * 15
     # simulate data with cHPI on
     raw_sim = simulate_raw(raw.info, stcs, None, src, sphere,

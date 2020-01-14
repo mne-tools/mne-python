@@ -1570,7 +1570,7 @@ def _reshape_clusters(clusters, sample_shape):
     return clusters
 
 
-def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
+def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1.0, tmin=0,
                            subject='fsaverage', vertices=None):
     """Assemble summary SourceEstimate from spatiotemporal cluster results.
 
@@ -1584,7 +1584,10 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
     p_thresh : float
         The significance threshold for inclusion of clusters.
     tstep : float
-        The temporal difference between two time samples.
+        The time step between samples of the original :class:`STC
+        <mne.SourceEstimate>`, in seconds (i.e., ``1 / stc.sfreq``). Defaults
+        to ``1``, which will yield a colormap indicating cluster duration
+        measured in *samples* rather than *seconds*.
     tmin : float | int
         The time of the first sample.
     subject : str
@@ -1599,7 +1602,8 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
         A summary of the clusters. The first time point in this SourceEstimate
         object is the summation of all the clusters. Subsequent time points
         contain each individual cluster. The magnitude of the activity
-        corresponds to the length the cluster spans in time (in samples).
+        corresponds to the duration spanned by the cluster (duration units are
+        determined by ``tstep``).
     """
     if vertices is None:
         vertices = [np.arange(10242), np.arange(10242)]
@@ -1623,7 +1627,7 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
         data[v_inds, t_inds] = t_obs[t_inds, v_inds]
         # Store a nice visualization of the cluster by summing across time
         data = np.sign(data) * np.logical_not(data == 0) * tstep
-        data_summary[:, ii + 1] = 1e3 * np.sum(data, axis=1)
+        data_summary[:, ii + 1] = np.sum(data, axis=1)
         # Make the first "time point" a sum across all clusters for easy
         # visualization
     data_summary[:, 0] = np.sum(data_summary, axis=1)

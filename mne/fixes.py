@@ -15,6 +15,7 @@ at which the fix is no longer needed.
 import inspect
 from distutils.version import LooseVersion
 from math import log
+import os
 from pathlib import Path
 import warnings
 
@@ -679,6 +680,40 @@ def _get_check_scoring():
     return check_scoring
 
 
+def _check_fit_params(X, fit_params, indices=None):
+    """Check and validate the parameters passed during `fit`.
+
+    Parameters
+    ----------
+    X : array-like of shape (n_samples, n_features)
+        Data array.
+
+    fit_params : dict
+        Dictionary containing the parameters passed at fit.
+
+    indices : array-like of shape (n_samples,), default=None
+        Indices to be selected if the parameter has the same size as
+        `X`.
+
+    Returns
+    -------
+    fit_params_validated : dict
+        Validated parameters. We ensure that the values support
+        indexing.
+    """
+    try:
+        from sklearn.utils.validation import \
+            _check_fit_params as _sklearn_check_fit_params
+        return _sklearn_check_fit_params(X, fit_params, indices)
+    except ImportError:
+        from sklearn.model_selection import _validation
+
+        fit_params_validated = \
+            {k: _validation._index_param_value(X, v, indices)
+             for k, v in fit_params.items()}
+        return fit_params_validated
+
+
 ###############################################################################
 # Copied from sklearn to simplify code paths
 
@@ -1195,14 +1230,25 @@ try:
         return numba.jit(nopython=nopython, nogil=nogil, fastmath=fastmath,
                          cache=cache, **kwargs)
 except ImportError:
+    has_numba = False
+else:
+    has_numba = (os.getenv('MNE_USE_NUMBA', 'true').lower() == 'true')
+
+
+if not has_numba:
     def jit(**kwargs):  # noqa
         def _jit(func):
             return func
         return _jit
     prange = range
-    has_numba = False
+    bincount = np.bincount
 else:
-    has_numba = True
+    @jit()
+    def bincount(x, weights, minlength):  # noqa: D103
+        out = np.zeros(minlength)
+        for idx, w in zip(x, weights):
+            out[idx] += w
+        return out
 
 
 ###############################################################################

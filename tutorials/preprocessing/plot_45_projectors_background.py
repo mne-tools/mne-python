@@ -230,7 +230,8 @@ ax.quiver3D(*arrow_coords, length=0.96, arrow_length_ratio=0.1,
 #
 # We mentioned above that the projection matrix will vary depending on what
 # kind of noise you are trying to project away. Signal-space projection (SSP)
-# [1]_ is a way of estimating what that projection matrix should be, by
+# :footcite:`UusitaloIlmoniemi1997` is a way of estimating what that projection
+# matrix should be, by
 # comparing measurements with and without the signal of interest. For example,
 # you can take additional "empty room" measurements that record activity at the
 # sensors when no subject is present. By looking at the spatial pattern of
@@ -472,9 +473,7 @@ for data, title in zip([mags, mags_ecg], ['Without', 'With']):
 # References
 # ^^^^^^^^^^
 #
-# .. [1] Uusitalo MA and Ilmoniemi RJ. (1997). Signal-space projection method
-#        for separating MEG or EEG into components. *Med Biol Eng Comput*
-#        35(2), 135–140. doi:10.1007/BF02534144
+# .. footbibliography::
 #
 #
 # .. LINKS

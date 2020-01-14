@@ -46,10 +46,13 @@ def test_backend_environment_setup(backend, backend_mocker, monkeypatch):
 
 def test_3d_functions(renderer):
     """Test figure management functions."""
+    renderer._try_3d_backend()
     fig = renderer.create_3d_figure((300, 300))
-    renderer._check_figure(fig)
-    renderer.set_3d_view(figure=fig)
-    renderer.set_3d_title(figure=fig, title='foo')
+    renderer._check_3d_figure(fig)
+    renderer._set_3d_view(figure=fig, azimuth=None, elevation=None,
+                          focalpoint=(0., 0., 0.), distance=None)
+    renderer._set_3d_title(figure=fig, title='foo')
+    renderer._take_3d_screenshot(figure=fig)
     renderer._close_all()
 
 
@@ -57,7 +60,7 @@ def test_3d_backend(renderer):
     """Test default plot."""
     # set data
     win_size = (600, 600)
-    win_color = (0, 0, 0)
+    win_color = 'black'
 
     tet_size = 1.0
     tet_x = np.array([0, tet_size, 0, 0])
@@ -67,10 +70,10 @@ def test_3d_backend(renderer):
                             [0, 1, 3],
                             [0, 2, 3],
                             [1, 2, 3]])
-    tet_color = (1, 1, 1)
+    tet_color = 'white'
 
     sph_center = np.column_stack((tet_x, tet_y, tet_z))
-    sph_color = (1, 0, 0)
+    sph_color = 'red'
     sph_scale = tet_size / 3.0
 
     ct_scalars = np.array([0.0, 0.0, 0.0, 1.0])
@@ -81,7 +84,7 @@ def test_3d_backend(renderer):
     }
 
     qv_mode = "arrow"
-    qv_color = (0, 0, 1)
+    qv_color = 'blue'
     qv_scale = tet_size / 2.0
     qv_center = np.array([np.mean((sph_center[va, :],
                                    sph_center[vb, :],
@@ -110,11 +113,13 @@ def test_3d_backend(renderer):
 
     # use contour
     rend.contour(surface=ct_surface, scalars=ct_scalars,
-                 contours=ct_levels)
+                 contours=ct_levels, kind='line')
+    rend.contour(surface=ct_surface, scalars=ct_scalars,
+                 contours=ct_levels, kind='tube')
 
     # use sphere
     rend.sphere(center=sph_center, color=sph_color,
-                scale=sph_scale)
+                scale=sph_scale, radius=1.0)
 
     # use quiver3d
     rend.quiver3d(x=qv_center[:, 0],
@@ -140,7 +145,7 @@ def test_3d_backend(renderer):
     rend.scalarbar(source=tube, title="Scalar Bar")
 
     # use text
-    rend.text2d(x=txt_x, y=txt_y, text=txt_text,
+    rend.text2d(x_window=txt_x, y_window=txt_y, text=txt_text,
                 size=txt_size, justification='right')
     rend.text3d(x=0, y=0, z=0, text=txt_text, scale=1.0)
     rend.set_camera(azimuth=180.0, elevation=90.0,

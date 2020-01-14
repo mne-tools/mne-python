@@ -287,8 +287,9 @@ def test_make_lcmv(tmpdir, reg, proj):
     # selection and rank reduction of the leadfield
     sphere = mne.make_sphere_model(r0=(0., 0., 0.), head_radius=0.080)
     src = mne.setup_volume_source_space(subject=None, pos=15., mri=None,
-                                        sphere=(0.0, 0.0, 0.0, 80.0),
-                                        bem=None, mindist=5.0, exclude=2.0)
+                                        sphere=(0.0, 0.0, 0.0, 0.08),
+                                        bem=None, mindist=5.0, exclude=2.0,
+                                        sphere_units='m')
 
     fwd_sphere = mne.make_forward_solution(evoked.info, trans=None, src=src,
                                            bem=sphere, eeg=False, meg=True)
@@ -732,9 +733,10 @@ def test_lcmv_reg_proj(proj, weight_norm):
     else:
         scale = 1.
     assert_allclose(stc_nocov.data, stc_adhoc.data * scale)
-    assert_allclose(
-        np.dot(filters_nocov['weights'], filters_nocov['whitener']),
-        np.dot(filters_adhoc['weights'], filters_adhoc['whitener']) * scale)
+    a = np.dot(filters_nocov['weights'], filters_nocov['whitener'])
+    b = np.dot(filters_adhoc['weights'], filters_adhoc['whitener']) * scale
+    atol = np.mean(np.sqrt(a * a)) * 1e-7
+    assert_allclose(a, b, atol=atol, rtol=1e-7)
 
     # Compare adhoc and cov: locs might not be equivalent, but the same
     # general profile should persist, so look at the std and be lenient:

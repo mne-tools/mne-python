@@ -453,7 +453,6 @@ class ICA(ContainsMixin):
             Defaults to True.
 
             .. versionadded:: 0.14.0
-
         %(verbose_meth)s
 
         Returns
@@ -792,7 +791,7 @@ class ICA(ContainsMixin):
             Object to compute sources from and to represent sources in.
         add_channels : None | list of str
             Additional channels  to be added. Useful to e.g. compare sources
-            with some reference. Defaults to None
+            with some reference. Defaults to None.
         start : int | float | None
             First sample to include. If float, data will be interpreted as
             time in seconds. If None, the entire data will be used.
@@ -960,13 +959,12 @@ class ICA(ContainsMixin):
             If True, data annotated as bad will be omitted. Defaults to True.
 
             .. versionadded:: 0.14.0
-
         %(verbose_meth)s
 
         Returns
         -------
         scores : ndarray
-            scores for each source as returned from score_func
+            Scores for each source as returned from score_func.
         """
         if isinstance(inst, BaseRaw):
             _check_compensation_grade(self.info, inst.info, 'ICA', 'Raw',
@@ -1128,7 +1126,6 @@ class ICA(ContainsMixin):
             If True, data annotated as bad will be omitted. Defaults to True.
 
             .. versionadded:: 0.14.0
-
         %(verbose_meth)s
 
         Returns
@@ -1207,9 +1204,9 @@ class ICA(ContainsMixin):
         inst : instance of Raw, Epochs or Evoked
             Object to compute sources from. Should contain at least one channel
             i.e. component derived from MEG reference channels.
-        ch_name: list of int
+        ch_name : list of int
             Which MEG reference components to use. If None, then all channels
-            that begin with REF_ICA
+            that begin with REF_ICA.
         threshold : int | float
             The value above which a feature is classified as outlier.
         start : int | float | None
@@ -1233,6 +1230,10 @@ class ICA(ContainsMixin):
         scores : np.ndarray of float, shape (``n_components_``) | list of array
             The correlation scores.
 
+        See Also
+        --------
+        find_bads_ecg, find_bads_eog
+
         Notes
         -----
         Detection is based on Pearson correlation between the MEG data
@@ -1247,10 +1248,6 @@ class ICA(ContainsMixin):
         that they can be automatically detected.
 
         .. versionadded:: 0.18
-
-        See Also
-        --------
-        find_bads_ecg, find_bads_eog
         """
         inds = []
         if not ch_name:
@@ -1303,7 +1300,6 @@ class ICA(ContainsMixin):
             If True, data annotated as bad will be omitted. Defaults to True.
 
             .. versionadded:: 0.14.0
-
         %(verbose_meth)s
 
         Returns
@@ -1343,10 +1339,10 @@ class ICA(ContainsMixin):
         ----------
         inst : instance of Raw, Epochs or Evoked
             The data to be processed. The instance is modified inplace.
-        include : array_like of int.
+        include : array_like of int
             The indices referring to columns in the ummixing matrix. The
             components to be kept.
-        exclude : array_like of int.
+        exclude : array_like of int
             The indices referring to columns in the ummixing matrix. The
             components to be zeroed out.
         n_pca_components : int | float | None
@@ -1527,6 +1523,11 @@ class ICA(ContainsMixin):
         fname : str
             The absolute path of the file name to save the ICA solution into.
             The file name should end with -ica.fif or -ica.fif.gz.
+
+        Returns
+        -------
+        ica : instance of ICA
+            The object.
         """
         if self.current_fit == 'unfitted':
             raise RuntimeError('No fit available. Please first fit ICA')
@@ -1563,7 +1564,8 @@ class ICA(ContainsMixin):
                         colorbar=False, title=None, show=True, outlines='head',
                         contours=6, image_interp='bilinear', head_pos=None,
                         inst=None, plot_std=True, topomap_args=None,
-                        image_args=None, psd_args=None, reject='auto'):
+                        image_args=None, psd_args=None, reject='auto',
+                        sphere=None):
         return plot_ica_components(self, picks=picks, ch_type=ch_type,
                                    res=res, layout=layout, vmin=vmin,
                                    vmax=vmax, cmap=cmap, sensors=sensors,
@@ -1574,7 +1576,7 @@ class ICA(ContainsMixin):
                                    plot_std=plot_std,
                                    topomap_args=topomap_args,
                                    image_args=image_args, psd_args=psd_args,
-                                   reject=reject)
+                                   reject=reject, sphere=sphere)
 
     @copy_function_doc_to_method_doc(plot_ica_properties)
     def plot_properties(self, inst, picks=None, axes=None, dB=True,
@@ -1702,14 +1704,16 @@ class ICA(ContainsMixin):
             (name : str, target : str | array, score_func : callable,
             criterion : float | int | list-like | slice). This parameter is a
             generalization of the artifact specific parameters above and has
-            the same structure. Example:
-            add_nodes=('ECG phase lock', ECG 01', my_phase_lock_function, 0.5)
+            the same structure. Example::
+
+                add_nodes=('ECG phase lock', ECG 01',
+                           my_phase_lock_function, 0.5)
 
         Returns
         -------
         self : instance of ICA
             The ICA object with the detected artifact indices marked for
-            exclusion
+            exclusion.
         """
         logger.info('    Searching for artifacts...')
         _detect_artifacts(self, raw=raw, start_find=start_find,
@@ -2060,7 +2064,7 @@ def read_ica(fname, verbose=None):
 
     try:
         # we used to store bads that weren't part of the info...
-        info, meas = read_meas_info(fid, tree, clean_bads=True)
+        info, _ = read_meas_info(fid, tree, clean_bads=True)
     except ValueError:
         logger.info('Could not find the measurement info. \n'
                     'Functionality requiring the info won\'t be'
@@ -2432,8 +2436,8 @@ def _find_max_corrs(all_maps, target, threshold):
 
 @verbose
 def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
-            plot=True, show=True, verbose=None, outlines='head', layout=None,
-            sensors=True, contours=6, cmap=None):
+            plot=True, show=True, outlines='head', layout=None,
+            sensors=True, contours=6, cmap=None, sphere=None, verbose=None):
     """Find similar Independent Components across subjects by map similarity.
 
     Corrmap (Viola et al. 2009 Clin Neurophysiol) identifies the best group
@@ -2490,20 +2494,8 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         to True.
     show : bool
         Show figures if True.
-    %(verbose)s
-    outlines : 'head' | dict | None
-        The outlines to be drawn. If 'head', a head scheme will be drawn. If
-        dict, each key refers to a tuple of x and y positions. The values in
-        'mask_pos' will serve as image mask. If None, nothing will be drawn.
-        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
-        trigger automated shrinking of the positions due to points outside the
-        outline. Moreover, a matplotlib patch object can be passed for
-        advanced masking options, either directly or as a function that returns
-        patches (required for multi-axis plots).
-    layout : None | Layout | list of Layout
-        Layout instance specifying sensor positions (does not need to be
-        specified for Neuromag data). Or a list of Layout if projections
-        are from different sensor types.
+    %(topomap_outlines)s
+    %(layout_dep)s
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., 'r+' for red plusses). If True, a circle will be
@@ -2517,6 +2509,8 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
     cmap : None | matplotlib colormap
         Colormap for the plot. If ``None``, defaults to 'Reds_r' for norm data,
         otherwise to 'RdBu_r'.
+    %(topomap_sphere_auto)s
+    %(verbose)s
 
     Returns
     -------
@@ -2560,13 +2554,14 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
             template_fig = icas[template[0]].plot_components(
                 picks=template[1], ch_type=ch_type, title=ttl,
                 outlines=outlines, cmap=cmap, contours=contours, layout=layout,
-                show=show)
+                show=show, topomap_args=dict(sphere=sphere))
         else:  # plotting an array
             template_fig = _plot_corrmap([template], [0], [0], ch_type,
                                          icas[0].copy(), "Template",
                                          outlines=outlines, cmap=cmap,
                                          contours=contours, layout=layout,
-                                         show=show, template=True)
+                                         show=show, template=True,
+                                         sphere=sphere)
         template_fig.subplots_adjust(top=0.8)
         template_fig.canvas.draw()
 
@@ -2623,7 +2618,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         labelled_ics = _plot_corrmap(allmaps, subjs, indices, ch_type, ica,
                                      label, outlines=outlines, cmap=cmap,
                                      contours=contours, layout=layout,
-                                     show=show)
+                                     show=show, sphere=sphere)
         return template_fig, labelled_ics
     else:
         return None

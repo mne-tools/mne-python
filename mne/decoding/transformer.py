@@ -144,7 +144,7 @@ class Scaler(TransformerMixin, BaseEstimator):
         Returns
         -------
         self : instance of Scaler
-            Returns the modified instance.
+            The modified instance.
         """
         _sklearn_reshape_apply(self._scaler.fit, False, epochs_data, y=y)
         return self
@@ -374,12 +374,12 @@ class PSDEstimator(TransformerMixin):
         epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data.
         y : array, shape (n_epochs,)
-            The label for each epoch
+            The label for each epoch.
 
         Returns
         -------
         self : instance of PSDEstimator
-            returns the modified instance
+            The modified instance.
         """
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
@@ -393,7 +393,7 @@ class PSDEstimator(TransformerMixin):
         Parameters
         ----------
         epochs_data : array, shape (n_epochs, n_channels, n_times)
-            The data
+            The data.
 
         Returns
         -------
@@ -493,7 +493,7 @@ class FilterEstimator(TransformerMixin):
         Returns
         -------
         self : instance of FilterEstimator
-            Returns the modified instance
+            The modified instance.
         """
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
@@ -539,7 +539,7 @@ class FilterEstimator(TransformerMixin):
         Returns
         -------
         X : array, shape (n_epochs, n_channels, n_times)
-            The data after filtering
+            The data after filtering.
         """
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
@@ -796,7 +796,7 @@ class TemporalFilter(TransformerMixin):
         Returns
         -------
         self : instance of TemporalFilter
-            Returns the modified instance.
+            The modified instance.
         """  # noqa: E501
         return self
 

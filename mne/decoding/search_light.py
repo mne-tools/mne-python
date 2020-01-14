@@ -70,7 +70,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             The training input samples. For each data slice, a clone estimator
             is fitted independently. The feature dimension can be
             multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_tasks)
+            X.shape = (n_samples, n_features_1, n_features_2, n_tasks).
         y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
         **fit_params : dict of string -> object
@@ -166,7 +166,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             estimator makes a transformation of the data, e.g.
             ``[estimators[ii].transform(X[..., ii]) for ii in range(n_estimators)]``.
             The feature dimension can be multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_tasks)
+            X.shape = (n_samples, n_features_1, n_features_2, n_tasks).
 
         Returns
         -------
@@ -188,7 +188,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             makes the sample predictions, e.g.:
             ``[estimators[ii].predict(X[..., ii]) for ii in range(n_estimators)]``.
             The feature dimension can be multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_tasks)
+            X.shape = (n_samples, n_features_1, n_features_2, n_tasks).
 
         Returns
         -------
@@ -210,7 +210,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             makes the sample probabilistic predictions, e.g.:
             ``[estimators[ii].predict_proba(X[..., ii]) for ii in range(n_estimators)]``.
             The feature dimension can be multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_tasks)
+            X.shape = (n_samples, n_features_1, n_features_2, n_tasks).
 
         Returns
         -------
@@ -229,7 +229,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             outputs the distance to the hyperplane, e.g.:
             ``[estimators[ii].decision_function(X[..., ii]) for ii in range(n_estimators)]``.
             The feature dimension can be multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
+            X.shape = (n_samples, n_features_1, n_features_2, n_estimators).
 
         Returns
         -------
@@ -264,8 +264,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             scores the prediction, e.g.:
             ``[estimators[ii].score(X[..., ii], y) for ii in range(n_estimators)]``.
             The feature dimension can be multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_tasks)
-
+            X.shape = (n_samples, n_features_1, n_features_2, n_tasks).
         y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
 
@@ -478,7 +477,7 @@ class GeneralizingEstimator(SlidingEstimator):
             The input samples. For estimator the corresponding data slice is
             used to make a transformation. The feature dimension can be
             multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
+            X.shape = (n_samples, n_features_1, n_features_2, n_estimators).
 
         Returns
         -------
@@ -496,7 +495,7 @@ class GeneralizingEstimator(SlidingEstimator):
             The training input samples. For each data slice, a fitted estimator
             predicts each slice of the data independently. The feature
             dimension can be multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
+            X.shape = (n_samples, n_features_1, n_features_2, n_estimators).
 
         Returns
         -------

@@ -190,7 +190,9 @@ mne.viz.plot_compare_evokeds(evoked_dict, combine="mean", ci=0.95,
 # Next we view how the topographic activity changes throughout the response.
 
 times = np.arange(-3.5, 13.2, 3.0)
-epochs['Tapping'].average(picks='hbo').plot_joint(times=times)
+topomap_args = dict(extrapolate='local')
+epochs['Tapping'].average(picks='hbo').plot_joint(
+    times=times, topomap_args=topomap_args)
 
 
 ###############################################################################
@@ -201,14 +203,18 @@ epochs['Tapping'].average(picks='hbo').plot_joint(times=times)
 # the location of activity. First we visualise the HbO activity.
 
 times = np.arange(4.0, 11.0, 1.0)
-epochs['Tapping/Left'].average(picks='hbo').plot_topomap(times=times)
-epochs['Tapping/Right'].average(picks='hbo').plot_topomap(times=times)
+epochs['Tapping/Left'].average(picks='hbo').plot_topomap(
+    times=times, **topomap_args)
+epochs['Tapping/Right'].average(picks='hbo').plot_topomap(
+    times=times, **topomap_args)
 
 ###############################################################################
 # And we also view the HbR activity for the two conditions.
 
-epochs['Tapping/Left'].average(picks='hbr').plot_topomap(times=times)
-epochs['Tapping/Right'].average(picks='hbr').plot_topomap(times=times)
+epochs['Tapping/Left'].average(picks='hbr').plot_topomap(
+    times=times, **topomap_args)
+epochs['Tapping/Right'].average(picks='hbr').plot_topomap(
+    times=times, **topomap_args)
 
 ###############################################################################
 # And we can plot the comparison at a single time point for two conditions.
@@ -220,20 +226,26 @@ evoked_left = epochs['Tapping/Left'].average()
 evoked_right = epochs['Tapping/Right'].average()
 
 evoked_left.plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 0],
-                         vmin=vmin, vmax=vmax, colorbar=False)
+                         vmin=vmin, vmax=vmax, colorbar=False,
+                         **topomap_args)
 evoked_left.plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 0],
-                         vmin=vmin, vmax=vmax, colorbar=False)
+                         vmin=vmin, vmax=vmax, colorbar=False,
+                         **topomap_args)
 evoked_right.plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 1],
-                          vmin=vmin, vmax=vmax, colorbar=False)
+                          vmin=vmin, vmax=vmax, colorbar=False,
+                          **topomap_args)
 evoked_right.plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 1],
-                          vmin=vmin, vmax=vmax, colorbar=False)
+                          vmin=vmin, vmax=vmax, colorbar=False,
+                          **topomap_args)
 
 evoked_diff = mne.combine_evoked([evoked_left, -evoked_right], weights='equal')
 
 evoked_diff.plot_topomap(ch_type='hbo', times=ts, axes=axes[0, 2],
-                         vmin=vmin, vmax=vmax)
+                         vmin=vmin, vmax=vmax,
+                         **topomap_args)
 evoked_diff.plot_topomap(ch_type='hbr', times=ts, axes=axes[1, 2],
-                         vmin=vmin, vmax=vmax, colorbar=True)
+                         vmin=vmin, vmax=vmax, colorbar=True,
+                         **topomap_args)
 
 for column, condition in enumerate(
         ['Tapping Left', 'Tapping Right', 'Left-Right']):

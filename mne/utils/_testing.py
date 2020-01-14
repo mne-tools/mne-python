@@ -172,7 +172,11 @@ requires_good_network = partial(
          '    raise ImportError')
 requires_nitime = partial(requires_module, name='nitime')
 requires_h5py = partial(requires_module, name='h5py')
-requires_numpydoc = partial(requires_module, name='numpydoc')
+
+
+def requires_numpydoc(func):
+    """Decorate tests that need numpydoc."""
+    return requires_version('numpydoc', '1.0')(func)  # validate needs 1.0
 
 
 def check_version(library, min_version):
@@ -355,10 +359,14 @@ def assert_object_equal(a, b):
 
 def _raw_annot(meas_date, orig_time):
     from .. import Annotations, create_info
+    from ..annotations import _handle_meas_date
     from ..io import RawArray
     info = create_info(ch_names=10, sfreq=10.)
     raw = RawArray(data=np.empty((10, 10)), info=info, first_samp=10)
+    if meas_date is not None:
+        meas_date = _handle_meas_date(meas_date)
     raw.info['meas_date'] = meas_date
+    raw.info._check_consistency()
     annot = Annotations([.5], [.2], ['dummy'], orig_time)
     raw.set_annotations(annotations=annot)
     return raw

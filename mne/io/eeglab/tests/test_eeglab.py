@@ -339,7 +339,7 @@ def test_position_information(one_chanpos_fname):
     assert_array_equal(np.array([ch['loc'] for ch in raw.info['chs']]),
                        EXPECTED_LOCATIONS_FROM_FILE)
 
-    # To acomodate the new behavior so that:
+    # To accommodate the new behavior so that:
     # read_raw_eeglab(.. montage=montage) and raw.set_montage(montage)
     # behaves the same we need to flush the montage. otherwise we get
     # a mix of what is in montage and in the file
