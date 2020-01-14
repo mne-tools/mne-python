@@ -79,7 +79,11 @@ class ToDataFrameMixin(object):
             levels occurring in the order given. If ``None``, a sequential
             integer index (:class:`pandas.RangeIndex`) will be used, and
             'condition', 'epoch' and 'time' will be included in the DataFrame
-            as columns.
+            as columns. If 'time' is included in the index, it will be
+            converted to :class:`pandas.DatetimeIndex` (for
+            :class:`~mne.io.Raw` objects) or :class:`pandas.TimedeltaIndex`
+            (for :class:`~mne.Epochs`, :class:`~mne.Evoked`, or
+            :class:`~mne.SourceEstimate` objects).
         scaling_time : float
             Scaling to be applied to time units.
         scalings : dict | None
