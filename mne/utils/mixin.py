@@ -187,7 +187,7 @@ class GetEpochsMixin(object):
         inst.events = np.atleast_2d(inst.events[select])
         if inst.metadata is not None:
             pd = _check_pandas_installed(strict=False)
-            if pd is not False:
+            if pd:
                 metadata = inst.metadata.iloc[select]
                 if has_selection:
                     metadata.index = inst.selection
@@ -227,8 +227,9 @@ class GetEpochsMixin(object):
             msg = str(err.args[0])  # message for KeyError
             pd = _check_pandas_installed(strict=False)
             # See if the query can be done
-            if pd is not False:
-                self._check_metadata()
+            if pd:
+                md = self.metadata if hasattr(self, '_metadata') else None
+                self._check_metadata(metadata=md)
                 try:
                     # Try metadata
                     mask = self.metadata.eval(keys[0], engine='python').values
@@ -338,11 +339,11 @@ class GetEpochsMixin(object):
     def _check_metadata(self, metadata=None, reset_index=False):
         """Check metadata consistency."""
         # reset_index=False will not copy!
-        metadata = self.metadata if hasattr(self, '_metadata') and \
-            metadata is None else metadata
-        if metadata is not None:
+        if metadata is None:
+            return
+        else:
             pd = _check_pandas_installed(strict=False)
-            if pd is not False:
+            if pd:
                 _validate_type(metadata, types=pd.DataFrame,
                                item_name='metadata')
                 if len(metadata) != len(self.events):
@@ -408,7 +409,7 @@ def _prepare_read_metadata(metadata):
         # (which is necessary for round-trip equivalence)
         metadata = json.loads(metadata, object_pairs_hook=OrderedDict)
         assert isinstance(metadata, list)
-        if pd is not False:
+        if pd:
             metadata = pd.DataFrame.from_records(metadata)
             assert isinstance(metadata, pd.DataFrame)
     return metadata

@@ -542,7 +542,8 @@ def _add_exg(raw, kind, head_pos, interp, n_jobs, random_state):
         ch = None
     nn = np.zeros_like(exg_rr)
     nn[:, 2] = 1
-    src = setup_volume_source_space(pos=dict(rr=exg_rr, nn=nn))
+    src = setup_volume_source_space(pos=dict(rr=exg_rr, nn=nn),
+                                    sphere_units='mm')
     _log_ch('%s simulated and trace' % kind, info, ch)
     del ch, nn, noise
 

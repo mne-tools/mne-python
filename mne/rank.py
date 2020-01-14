@@ -339,8 +339,8 @@ def compute_rank(inst, rank=None, scalings=None, info=None, tol='auto',
                                     for name in inst['names']])
     else:
         info = inst.info
-        inst_type = 'raw' if isinstance(inst, BaseRaw) else 'epochs'
-    logger.info('Computing data rank from %s with rank=%r' % (inst_type, rank))
+        inst_type = 'data'
+    logger.info('Computing rank from %s with rank=%r' % (inst_type, rank))
 
     _validate_type(rank, (str, dict, None), 'rank')
     if isinstance(rank, str):  # string, either 'info' or 'full'

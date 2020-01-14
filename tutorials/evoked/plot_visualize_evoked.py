@@ -15,7 +15,8 @@ import mne
 
 ###############################################################################
 # First we read the evoked object from a file. Check out
-# :ref:`tut_epoching_and_averaging` to get to this stage from raw data.
+# :ref:`tut-epochs-class` and :ref:`tut-evoked-class` to get to this stage from
+# raw data.
 data_path = mne.datasets.sample.data_path()
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
 evoked = mne.read_evokeds(fname, baseline=(None, 0), proj=True)

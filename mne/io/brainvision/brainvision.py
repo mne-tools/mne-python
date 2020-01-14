@@ -14,8 +14,7 @@ import configparser
 import os
 import os.path as op
 import re
-from datetime import datetime
-from math import modf
+from datetime import datetime, timezone
 from io import StringIO
 
 import numpy as np
@@ -316,6 +315,8 @@ def _str_to_meas_date(date_str):
     if date_str in ['', '0', '00000000000000000000']:
         return None
 
+    # these calculations are in naive time but should be okay since
+    # they are relative (subtraction below)
     try:
         meas_date = datetime.strptime(date_str, '%Y%m%d%H%M%S%f')
     except ValueError as e:
@@ -324,13 +325,8 @@ def _str_to_meas_date(date_str):
         else:
             raise
 
-    # We need list of unix time in milliseconds and as second entry
-    # the additional amount of microseconds
-    epoch = datetime.utcfromtimestamp(0)
-    unix_time = (meas_date - epoch).total_seconds()
-    unix_secs = int(modf(unix_time)[1])
-    microsecs = int(modf(unix_time)[0] * 1e6)
-    return unix_secs, microsecs
+    meas_date = meas_date.replace(tzinfo=timezone.utc)
+    return meas_date
 
 
 def _aux_vhdr_info(vhdr_fname):
@@ -774,7 +770,6 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             coord_frame=FIFF.FIFFV_COORD_HEAD))
 
     info._update_redundant()
-    info._check_consistency()
     return (info, data_fname, fmt, order, n_samples, mrk_fname, montage,
             orig_units)
 

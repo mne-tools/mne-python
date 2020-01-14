@@ -87,7 +87,7 @@ raw.plot()
 #   - When the plot window is closed, the :class:`~mne.io.Raw` object's
 #     ``info`` attribute will be updated, adding or removing the newly
 #     (un)marked channels to/from the :class:`~mne.Info` object's ``bads``
-#     field (AKA ``raw.info['bads']``).
+#     field (A.K.A. ``raw.info['bads']``).
 #
 # .. TODO: discuss annotation snapping in the below bullets
 #
@@ -170,6 +170,8 @@ raw.copy().pick_types(meg=False, eeg=True).plot_psd_topo()
 raw.plot_sensors(ch_type='eeg')
 
 ###############################################################################
+# .. _`tut-section-raw-plot-proj`:
+#
 # Plotting projectors from ``Raw`` objects
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #

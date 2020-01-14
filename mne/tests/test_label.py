@@ -22,7 +22,7 @@ from mne import (read_label, stc_to_label, read_source_estimate,
 from mne.label import (Label, _blend_colors, label_sign_flip, _load_vert_pos,
                        select_sources)
 from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
-                       run_tests_if_main)
+                       run_tests_if_main, check_version)
 from mne.label import _n_colors
 from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges
@@ -252,18 +252,25 @@ def test_label_addition():
 
 
 @testing.requires_testing_data
-def test_label_in_src():
-    """Test label in src."""
+@pytest.mark.parametrize('fname', (real_label_fname, v1_label_fname))
+def test_label_fill_restrict(fname):
+    """Test label in fill and restrict."""
     src = read_source_spaces(src_fname)
-    label = read_label(v1_label_fname)
+    label = read_label(fname)
 
     # construct label from source space vertices
-    vert_in_src = np.intersect1d(label.vertices, src[0]['vertno'], True)
-    where = np.in1d(label.vertices, vert_in_src)
-    pos_in_src = label.pos[where]
-    values_in_src = label.values[where]
-    label_src = Label(vert_in_src, pos_in_src, values_in_src,
-                      hemi='lh').fill(src)
+    label_src = label.restrict(src)
+    vert_in_src = label_src.vertices
+    values_in_src = label_src.values
+    if check_version('scipy', '1.3') and fname == real_label_fname:
+        # Check that we can auto-fill patch info quickly for one condition
+        for s in src:
+            s['nearest'] = None
+        with pytest.warns(None):
+            label_src = label_src.fill(src)
+    else:
+        label_src = label_src.fill(src)
+    assert src[0]['nearest'] is not None
 
     # check label vertices
     vertices_status = np.in1d(src[0]['nearest'], label.vertices)
@@ -278,7 +285,8 @@ def test_label_in_src():
 
     # test exception
     vertices = np.append([-1], vert_in_src)
-    pytest.raises(ValueError, Label(vertices, hemi='lh').fill, src)
+    with pytest.raises(ValueError, match='does not contain all of the label'):
+        Label(vertices, hemi='lh').fill(src)
 
     # test filling empty label
     label = Label([], hemi='lh')

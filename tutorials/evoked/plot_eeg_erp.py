@@ -4,9 +4,6 @@
 EEG processing and Event Related Potentials (ERPs)
 ==================================================
 
-For a generic introduction to the computation of ERP and ERF
-see :ref:`tut_epoching_and_averaging`.
-
 .. contents:: Here we cover the specifics of EEG, namely:
    :local:
    :depth: 1

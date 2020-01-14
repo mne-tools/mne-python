@@ -11,6 +11,7 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
 from mne.inverse_sparse.mxne_optim import (mixed_norm_solver,
                                            tf_mixed_norm_solver,
                                            iterative_mixed_norm_solver,
+                                           iterative_tf_mixed_norm_solver,
                                            norm_epsilon_inf, norm_epsilon,
                                            _Phi, _PhiT, dgap_l21l1)
 from mne.time_frequency._stft import stft_norm2
@@ -139,8 +140,9 @@ def test_norm_epsilon():
     n_freqs = wsize // 2 + 1
     n_coefs = n_steps * n_freqs
     phi = _Phi(wsize, tstep, n_coefs)
+
     Y = np.zeros(n_steps * n_freqs)
-    l1_ratio = 0.5
+    l1_ratio = 0.03
     assert_allclose(norm_epsilon(Y, l1_ratio, phi), 0.)
 
     Y[0] = 2.
@@ -150,9 +152,26 @@ def test_norm_epsilon():
     assert_allclose(norm_epsilon(Y, l1_ratio, phi), np.max(Y))
     # dummy value without random:
     Y = np.arange(n_steps * n_freqs).reshape(-1, )
-    l1_ratio = 0.
+    l1_ratio = 0.0
     assert_allclose(norm_epsilon(Y, l1_ratio, phi) ** 2,
                     stft_norm2(Y.reshape(-1, n_freqs[0], n_steps[0])))
+
+    l1_ratio = 0.03
+    # test that vanilla epsilon norm = weights equal to 1
+    w_time = np.ones(n_coefs[0])
+    Y = np.abs(np.random.randn(n_coefs[0]))
+    assert_allclose(norm_epsilon(Y, l1_ratio, phi),
+                    norm_epsilon(Y, l1_ratio, phi, w_time=w_time))
+
+    # scaling w_time and w_space by the same amount should divide
+    # epsilon norm by the same amount
+    Y = np.arange(n_coefs) + 1
+    mult = 2.
+    assert_allclose(
+        norm_epsilon(Y, l1_ratio, phi, w_space=1,
+                     w_time=np.ones(n_coefs)) / mult,
+        norm_epsilon(Y, l1_ratio, phi, w_space=mult,
+                     w_time=mult * np.ones(n_coefs)))
 
 
 @pytest.mark.timeout(60)  # ~30 sec on Travis OSX and Linux OpenBLAS
@@ -286,3 +305,32 @@ def test_iterative_reweighted_mxne():
             debias=True, n_orient=5, solver='cd')
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
     assert_array_equal(X_hat_bcd, X_hat_cd, 5)
+
+
+def test_iterative_reweighted_tfmxne():
+    """Test convergence of irTF-MxNE solver."""
+    M, G, true_active_set = _generate_tf_data()
+    alpha_space = 38.
+    alpha_time = 0.5
+    tstep, wsize = [4, 2], [64, 16]
+
+    X_hat_tf, _, _ = tf_mixed_norm_solver(
+        M, G, alpha_space, alpha_time, maxit=1000, tol=1e-4, wsize=wsize,
+        tstep=tstep, verbose=False, n_orient=1, debias=False)
+    X_hat_bcd, active_set, _ = iterative_tf_mixed_norm_solver(
+        M, G, alpha_space, alpha_time, 1, wsize=wsize, tstep=tstep,
+        maxit=1000, tol=1e-4, debias=False, verbose=False)
+    assert_allclose(X_hat_tf, X_hat_bcd, rtol=1e-3)
+    assert_array_equal(np.where(active_set)[0], true_active_set)
+
+    alpha_space = 50.
+    X_hat_bcd, active_set, _ = iterative_tf_mixed_norm_solver(
+        M, G, alpha_space, alpha_time, 3, wsize=wsize, tstep=tstep,
+        n_orient=5, maxit=1000, tol=1e-4, debias=False, verbose=False)
+    assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
+
+    alpha_space = 40.
+    X_hat_bcd, active_set, _ = iterative_tf_mixed_norm_solver(
+        M, G, alpha_space, alpha_time, 2, wsize=wsize, tstep=tstep,
+        n_orient=2, maxit=1000, tol=1e-4, debias=False, verbose=False)
+    assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])

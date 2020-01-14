@@ -839,16 +839,15 @@ def fit_sphere_to_headshape(info, dig_kinds='auto', units='m', verbose=None):
     ----------
     info : instance of Info
         Measurement info.
-    dig_kinds : list of str | str
-        Kind of digitization points to use in the fitting. These can be any
-        combination of ('cardinal', 'hpi', 'eeg', 'extra'). Can also
-        be 'auto' (default), which will use only the 'extra' points if
-        enough (more than 10) are available, and if not, uses 'extra' and
-        'eeg' points.
+    %(dig_kinds)s
     units : str
         Can be "m" (default) or "mm".
 
         .. versionadded:: 0.12
+    move_origin : bool
+        If True, allow the origin to vary. Otherwise, fix it at (0, 0, 0).
+
+        .. versionadded:: 0.20
 
     %(verbose)s
 
@@ -1004,8 +1003,7 @@ def _fit_sphere(points, disp='auto'):
     x_opt = fmin_cobyla(cost_fun, x0, constraint, rhobeg=radius_init,
                         rhoend=radius_init * 1e-6, disp=disp)
 
-    origin = x_opt[:3]
-    radius = x_opt[3]
+    origin, radius = x_opt[:3], x_opt[3]
     return radius, origin
 
 
@@ -1092,21 +1090,19 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     .. versionadded:: 0.10
     """
     from .viz.misc import plot_bem
-    env, mri_dir = _prepare_env(subject, subjects_dir,
-                                requires_freesurfer=True)[:2]
+    env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
     tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env,
                                  cwd=tempdir)
 
-    subjects_dir = env['SUBJECTS_DIR']
+    subjects_dir = env['SUBJECTS_DIR']  # Set by _prepare_env() above.
     subject_dir = op.join(subjects_dir, subject)
-    mri_dir = op.join(subject_dir, 'mri')
+    ws_dir = op.join(bem_dir, 'watershed')
     T1_dir = op.join(mri_dir, volume)
     T1_mgz = T1_dir
     if not T1_dir.endswith('.mgz'):
         T1_mgz += '.mgz'
-    bem_dir = op.join(subject_dir, 'bem')
-    ws_dir = op.join(subject_dir, 'bem', 'watershed')
+
     if not op.isdir(bem_dir):
         os.makedirs(bem_dir)
     if not op.isdir(T1_dir) and not op.isfile(T1_mgz):
@@ -1118,6 +1114,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                                ' to recreate it.' % ws_dir)
         else:
             shutil.rmtree(ws_dir)
+
     # put together the command
     cmd = ['mri_watershed']
     if preflood:
@@ -1148,6 +1145,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                 % (ws_dir, ' '.join(cmd)))
     os.makedirs(op.join(ws_dir))
     run_subprocess_env(cmd)
+    del tempdir  # clean up directory
     if op.isfile(T1_mgz):
         new_info = _extract_volume_info(T1_mgz)
         if new_info is None:
@@ -1160,10 +1158,11 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
 
             rr, tris, volume_info = read_surface(surf_ws_out,
                                                  read_metadata=True)
-            volume_info.update(new_info)  # replace volume info, 'head' stays
+            # replace volume info, 'head' stays
+            volume_info.update(new_info)
+            write_surface(surf_ws_out, rr, tris, volume_info=volume_info,
+                          overwrite=True)
 
-            write_surface(s, rr, tris, volume_info=volume_info,
-                          overwrite=overwrite)
             # Create symbolic links
             surf_out = op.join(bem_dir, '%s.surf' % s)
             if not overwrite and op.exists(surf_out):
@@ -1570,7 +1569,7 @@ def write_bem_solution(fname, bem):
 # #############################################################################
 # Create 3-Layers BEM model from Flash MRI images
 
-def _prepare_env(subject, subjects_dir, requires_freesurfer):
+def _prepare_env(subject, subjects_dir):
     """Prepare an env object for subprocess calls."""
     env = os.environ.copy()
     fs_home = get_config('FREESURFER_HOME')
@@ -1642,8 +1641,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
     has been completed. In particular, the T1.mgz and brain.mgz MRI volumes
     should be, as usual, in the subject's mri directory.
     """
-    env, mri_dir = _prepare_env(subject, subjects_dir,
-                                requires_freesurfer=True)[:2]
+    env, mri_dir = _prepare_env(subject, subjects_dir)[:2]
     tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env,
                                  cwd=tempdir)
@@ -1790,8 +1788,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
 
     is_test = os.environ.get('MNE_SKIP_FS_FLASH_CALL', False)
 
-    env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir,
-                                         requires_freesurfer=True)
+    env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
     tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env,
                                  cwd=tempdir)

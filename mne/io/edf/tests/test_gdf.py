@@ -13,7 +13,6 @@ import scipy.io as sio
 
 from mne.datasets import testing
 from mne.io import read_raw_gdf
-from mne.io.meas_info import DATE_NONE
 from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import run_tests_if_main
 from mne import pick_types, find_events, events_from_annotations
@@ -54,7 +53,7 @@ def test_gdf_data():
     assert len(raw.annotations.duration == 963)
 
     # gh-5604
-    assert raw.info['meas_date'] == DATE_NONE
+    assert raw.info['meas_date'] is None
 
 
 @testing.requires_testing_data
@@ -80,7 +79,7 @@ def test_gdf2_data():
     assert_array_equal(events[:, 2], [20, 28])
 
     # gh-5604
-    assert raw.info['meas_date'] == DATE_NONE
+    assert raw.info['meas_date'] is None
     _test_raw_reader(read_raw_gdf, input_fname=gdf2_path + '.gdf',
                      eog=None, misc=None)
 

@@ -53,6 +53,7 @@ categories above) are linked here:
     migrating
     cite
     get_help
+    ../bibliography
 
 Documentation for the related C and MATLAB tools are available here:
 

@@ -109,9 +109,14 @@ class LinearModel(BaseEstimator):
 
     @property
     def filters_(self):
-        if not hasattr(self.model, 'coef_'):
+        if hasattr(self.model, 'coef_'):
+            # Standard Linear Model
+            filters = self.model.coef_
+        elif hasattr(self.model.best_estimator_, 'coef_'):
+            # Linear Model with GridSearchCV
+            filters = self.model.best_estimator_.coef_
+        else:
             raise ValueError('model does not have a `coef_` attribute.')
-        filters = self.model.coef_
         if filters.ndim == 2 and filters.shape[0] == 1:
             filters = filters[0]
         return filters
@@ -207,7 +212,7 @@ class LinearModel(BaseEstimator):
         Returns
         -------
         score : float
-            Score of the linear model
+            Score of the linear model.
         """
         return self.model.score(X, y)
 
@@ -460,7 +465,7 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
                    return_times=False, error_score='raise'):
     """Fit estimator and compute scores for a given dataset split."""
     #  This code is adapted from sklearn
-    from sklearn.model_selection._validation import _index_param_value
+    from ..fixes import _check_fit_params
     from sklearn.utils.metaestimators import _safe_split
     from sklearn.utils.validation import _num_samples
 
@@ -474,8 +479,7 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
 
     # Adjust length of sample weights
     fit_params = fit_params if fit_params is not None else {}
-    fit_params = {k: _index_param_value(X, v, train)
-                  for k, v in fit_params.items()}
+    fit_params = _check_fit_params(X, fit_params, train)
 
     if parameters is not None:
         estimator.set_params(**parameters)

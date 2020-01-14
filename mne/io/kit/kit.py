@@ -18,7 +18,8 @@ import numpy as np
 from scipy import linalg
 
 from ..pick import pick_types
-from ...utils import verbose, logger, warn, fill_doc, _check_option
+from ...utils import (verbose, logger, warn, fill_doc, _check_option,
+                      _stamp_to_dt)
 from ...transforms import apply_trans, als_ras_trans
 from ..base import BaseRaw
 from ..utils import _mult_cal_one
@@ -668,7 +669,8 @@ def get_kit_info(rawfile, allow_unknown_format):
 
     # Create raw.info dict for raw fif object with SQD data
     info = _empty_info(float(sqd['sfreq']))
-    info.update(meas_date=(create_time, 0), lowpass=sqd['lowpass'],
+    info.update(meas_date=_stamp_to_dt((create_time, 0)),
+                lowpass=sqd['lowpass'],
                 highpass=sqd['highpass'], kit_system_id=sysid)
 
     # Creates a list of dicts of meg channels for raw.info
