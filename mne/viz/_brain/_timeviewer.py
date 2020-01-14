@@ -317,13 +317,6 @@ class _TimeViewer(object):
                 slider.On()
             else:
                 slider.Off()
-        for button in self.plotter.button_widgets:
-            name = getattr(button, "name", None)
-            if name != "toggle_interface":
-                if self.visibility:
-                    button.On()
-                else:
-                    button.Off()
         if self.visibility:
             self.interface_actor.SetInput("Hide")
         else:
