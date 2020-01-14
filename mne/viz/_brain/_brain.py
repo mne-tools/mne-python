@@ -830,8 +830,9 @@ class _Brain(object):
                             act_data = act_data[:, time_idx]
                         else:
                             times = np.arange(self._n_times)
-                    act_data = interp1d(times, act_data, 'linear', axis=1,
-                                        assume_sorted=True)(time_idx)
+                            act_data = interp1d(
+                                times, act_data, 'linear', axis=1,
+                                assume_sorted=True)(time_idx)
 
                     adj_mat = mesh_edges(self.geo[hemi].faces)
                     smooth_mat = smoothing_matrix(vertices,
@@ -870,12 +871,13 @@ class _Brain(object):
                     act_data = smooth_mat.dot(act_data)
                 _set_mesh_scalars(pd, act_data, 'Data')
                 if callable(time_label) and time_actor is not None:
-                    if isinstance(time_idx, float):
-                        ifunc = interp1d(times, self._data['time'])
-                        time = ifunc(time_idx)
-                        time_actor.SetInput(time_label(time))
+                    if isinstance(time_idx, int):
+                        self._current_time = time[time_idx]
+                        time_actor.SetInput(time_label(self._current_time))
                     else:
-                        time_actor.SetInput(time_label(time[time_idx]))
+                        ifunc = interp1d(times, self._data['time'])
+                        self._current_time = ifunc(time_idx)
+                        time_actor.SetInput(time_label(self._current_time))
                 self._data['time_idx'] = time_idx
 
     def update_fmax(self, fmax):

@@ -257,6 +257,7 @@ class _TimeViewer(object):
         self.playback_speed = 1
         self.time_elapsed = 0
         self.refresh_rate = 16
+        self.refresh_rate_ms = self.refresh_rate / 1000.
         self.plotter.add_callback(self.play, self.refresh_rate)
         self.plotter.add_callback(self.perform_maintenance)
         self.button_size = 40
@@ -324,7 +325,6 @@ class _TimeViewer(object):
 
     def toggle_playback(self, state):
         self.playback = state
-        self.time_elapsed = 0
         if self.playback:
             self.playback_actor.SetInput("Stop")
         else:
@@ -336,26 +336,26 @@ class _TimeViewer(object):
     def play(self):
         from scipy.interpolate import interp1d
         if self.playback:
-            self.time_elapsed += self.refresh_rate
-            if self.time_elapsed >= self.playback_speed * 10:
-                time_data = self.brain._data['time']
-                time_idx = self.brain._data['time_idx']
-                times = np.arange(self.brain._n_times)
-                ifunc = interp1d(times, time_data)
-                time_point = ifunc(time_idx) + 1. / self.playback_speed
-                idx = np.argmin(np.abs(time_data - time_point))
-
-                max_time = len(self.brain._data['time'])
-                if time_idx < max_time:
-                    self.brain.set_time_point(idx)
-                    for slider in self.plotter.slider_widgets:
-                        name = getattr(slider, "name", None)
-                        if name == "time_slider":
-                            slider_rep = slider.GetRepresentation()
-                            slider_rep.SetValue(idx)
-                else:
-                    self.playback = False
-                self.time_elapsed = 0
+            time_data = self.brain._data['time']
+            times = np.arange(self.brain._n_times)
+            time_shift = self.refresh_rate_ms / self.playback_speed
+            time_point = self.brain._current_time + time_shift
+            if time_point < np.max(time_data):
+                ifunc = interp1d(time_data, times)
+                idx = ifunc(time_point)
+                self.brain.set_time_point(idx)
+                for slider in self.plotter.slider_widgets:
+                    name = getattr(slider, "name", None)
+                    if name == "time_slider":
+                        slider_rep = slider.GetRepresentation()
+                        slider_rep.SetValue(idx)
+            else:
+                self.toggle_playback(False)
+                for button in self.plotter.button_widgets:
+                    name = getattr(button, "name", None)
+                    if name == "toggle_playback":
+                        button_rep = button.GetRepresentation()
+                        button_rep.SetState(0)
 
     def place_widget(self, position):
         if hasattr(self.plotter, 'ren_win'):
