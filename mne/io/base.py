@@ -117,18 +117,20 @@ class ToDataFrameMixin(object):
         from ..source_estimate import _BaseSourceEstimate
 
         pd = _check_pandas_installed()
+        if isinstance(index, str):
+            index = [index]
         mindex = list()
         ch_map = None
         # Treat SourceEstimates special because they don't have the same info
         if isinstance(self, _BaseSourceEstimate):
+            data = self.data.T
+            times = self.times
+            shape = data.shape
             if self.subject is None:
                 default_index = ['time']
             else:
                 default_index = ['subject', 'time']
-            data = self.data.T
-            times = self.times
-            shape = data.shape
-            mindex.append(('subject', np.repeat(self.subject, shape[0])))
+                mindex.append(('subject', np.repeat(self.subject, shape[0])))
 
             if isinstance(self.vertices, list):
                 # surface source estimates
@@ -189,8 +191,14 @@ class ToDataFrameMixin(object):
             raise NameError('Object must be one of Raw, Epochs, Evoked,  or ' +
                             'SourceEstimate. This is {}'.format(type(self)))
 
-        # Make sure that the time index is scaled correctly
-        times = np.round(times * scaling_time)
+        # if time is in the index, convert to datetime/timedelta. Otherwise
+        # leave it as a float in seconds
+        if index is not None and 'time' in index:
+            if isinstance(self, BaseRaw):
+                times = (pd.to_timedelta(times + self.first_time, unit='s') +
+                         self.info['meas_date'])
+            else:
+                times = pd.to_timedelta(times, unit='s')
         mindex.append(('time', times))
 
         if index is not None:
@@ -205,8 +213,6 @@ class ToDataFrameMixin(object):
         for i, (k, v) in enumerate(mindex):
             df.insert(i, k, v)
         if index is not None:
-            if 'time' in index and not long_format:
-                _set_pandas_dtype(df, ['time'], np.int64)
             df.set_index(index, inplace=True)
             if all(i in index for i in default_index):
                 if isinstance(self, _BaseSourceEstimate):
