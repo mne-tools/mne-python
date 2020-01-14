@@ -334,12 +334,18 @@ class _TimeViewer(object):
         self.playback_speed = speed
 
     def play(self):
+        from scipy.interpolate import interp1d
         if self.playback:
             self.time_elapsed += self.refresh_rate
             if self.time_elapsed >= self.playback_speed * 10:
                 times = self.brain._data['time']
                 time_idx = self.brain._data['time_idx']
-                time = times[time_idx] + 1. / self.playback_speed
+                if isinstance(time_idx, float):
+                    ifunc = interp1d(times, times)
+                    time = ifunc(time_idx)
+                else:
+                    time = times[time_idx]
+                time = time + 1. / self.playback_speed
                 idx = np.argmin(np.abs(times - time))
 
                 max_time = len(self.brain._data['time'])
