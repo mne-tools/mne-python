@@ -208,7 +208,7 @@ class ToDataFrameMixin(object):
             if 'time' in index and not long_format:
                 _set_pandas_dtype(df, ['time'], np.int64)
             df.set_index(index, inplace=True)
-            if all(i in default_index for i in index):
+            if all(i in index for i in default_index):
                 if isinstance(self, _BaseSourceEstimate):
                     df.columns.name = 'source'
                 else:
