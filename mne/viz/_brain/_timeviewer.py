@@ -27,6 +27,23 @@ class IntSlider(object):
                 self.callback(idx)
 
 
+class UpdateOrientation(object):
+    """Class to update the orientation."""
+
+    def __init__(self, plotter=None, callback=None,
+                 orientation=None, label=None):
+        self.plotter = plotter
+        self.callback = callback
+        self.orientation = orientation
+        self.label = label
+
+    def __call__(self, value):
+        idx = int(round(value))
+        orientation = self.orientation[idx]
+        self.callback(orientation)
+        self.label.SetInput(orientation)
+
+
 class UpdateColorbarScale(object):
     """Class to update the values of the colorbar sliders."""
 
@@ -147,10 +164,26 @@ class _TimeViewer(object):
             'frontal',
             'parietal'
         ]
-        orientation_slider = self.plotter.add_text_slider_widget(
-            brain.show_view,
+        self.orientation_label_actor = self.plotter.add_text(
+            text=orientation[0],
+            font_size=14,
+            position=(0.9, 0.77),
+            viewport=True,
+        )
+        prop = self.orientation_label_actor.GetTextProperty()
+        prop.BoldOn()
+        prop.SetJustificationToCentered()
+        self.update_orientation = UpdateOrientation(
+            plotter=self.plotter,
+            callback=brain.show_view,
+            orientation=orientation,
+            label=self.orientation_label_actor,
+        )
+        orientation_slider = self.plotter.add_slider_widget(
+            self.update_orientation,
             value=0,
-            data=orientation,
+            rng=[0, len(orientation) - 1],
+            title='orientation',
             pointa=(0.82, 0.74),
             pointb=(0.98, 0.74),
             event_type='always'
