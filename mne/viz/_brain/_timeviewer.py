@@ -255,7 +255,6 @@ class _TimeViewer(object):
         # add toggle to start/stop playback
         self.playback = False
         self.playback_speed = default_playback_speed
-        self.time_elapsed = 0
         self.refresh_rate_ms = max(int(round(1000. / 60.)), 1)
         self.plotter.add_callback(self.play, self.refresh_rate_ms)
         self.plotter.add_key_event('space', self.toggle_playback)
