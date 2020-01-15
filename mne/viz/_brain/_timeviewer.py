@@ -180,7 +180,7 @@ class _TimeViewer(object):
         time_slider.name = "time_slider"
 
         # playback speed
-        default_playback_speed = 1
+        default_playback_speed = 0.05
         playback_speed_slider = self.plotter.add_slider_widget(
             self.set_playback_speed,
             value=default_playback_speed,
@@ -191,6 +191,9 @@ class _TimeViewer(object):
 
         # colormap slider
         scaling_limits = [0.2, 2.0]
+        pointa = np.array((0.82, 0.26))
+        pointb = np.array((0.98, 0.26))
+        shift = np.array([0, 0.08])
         fmin = brain._data["fmin"]
         self.update_fmin = BumpColorbarPoints(
             plotter=self.plotter,
@@ -200,9 +203,9 @@ class _TimeViewer(object):
         fmin_slider = self.plotter.add_slider_widget(
             self.update_fmin,
             value=fmin,
-            rng=_get_range(brain), title="fmin",
-            pointa=(0.82, 0.26),
-            pointb=(0.98, 0.26),
+            rng=_get_range(brain), title="clim",
+            pointa=pointa,
+            pointb=pointb,
             event_type="always",
         )
         fmin_slider.name = "fmin"
@@ -215,9 +218,9 @@ class _TimeViewer(object):
         fmid_slider = self.plotter.add_slider_widget(
             self.update_fmid,
             value=fmid,
-            rng=_get_range(brain), title="fmid",
-            pointa=(0.82, 0.42),
-            pointb=(0.98, 0.42),
+            rng=_get_range(brain), title="",
+            pointa=pointa + shift,
+            pointb=pointb + shift,
             event_type="always",
         )
         fmid_slider.name = "fmid"
@@ -230,9 +233,9 @@ class _TimeViewer(object):
         fmax_slider = self.plotter.add_slider_widget(
             self.update_fmax,
             value=fmax,
-            rng=_get_range(brain), title="fmax",
-            pointa=(0.82, 0.58),
-            pointb=(0.98, 0.58),
+            rng=_get_range(brain), title="",
+            pointa=pointa + 2 * shift,
+            pointb=pointb + 2 * shift,
             event_type="always",
         )
         fmax_slider.name = "fmax"
@@ -251,11 +254,10 @@ class _TimeViewer(object):
 
         # add toggle to start/stop playback
         self.playback = False
-        self.playback_speed = 1
+        self.playback_speed = default_playback_speed
         self.time_elapsed = 0
-        self.refresh_rate = 16
-        self.refresh_rate_ms = self.refresh_rate / 1000.
-        self.plotter.add_callback(self.play, self.refresh_rate)
+        self.refresh_rate_ms = max(int(round(1000. / 60.)), 1)
+        self.plotter.add_callback(self.play, self.refresh_rate_ms)
         self.plotter.add_key_event('space', self.toggle_playback)
 
         # add toggle to show/hide interface
@@ -285,6 +287,12 @@ class _TimeViewer(object):
 
     def toggle_playback(self):
         self.playback = not self.playback
+        if self.playback:
+            time_data = self.brain._data['time']
+            max_time = np.max(time_data)
+            if self.brain._current_time == max_time:  # start over
+                self.brain.set_time_point(np.min(time_data))
+            self._last_tick = time.time()
 
     def set_playback_speed(self, speed):
         self.playback_speed = speed
@@ -292,21 +300,25 @@ class _TimeViewer(object):
     def play(self):
         from scipy.interpolate import interp1d
         if self.playback:
+            this_time = time.time()
+            delta = this_time - self._last_tick
+            self._last_tick = time.time()
             time_data = self.brain._data['time']
             times = np.arange(self.brain._n_times)
-            time_shift = self.refresh_rate_ms * self.playback_speed
-            time_point = self.brain._current_time + time_shift
-            if time_point < np.max(time_data):
-                ifunc = interp1d(time_data, times)
-                idx = ifunc(time_point)
-                self.brain.set_time_point(idx)
-                for slider in self.plotter.slider_widgets:
-                    name = getattr(slider, "name", None)
-                    if name == "time_slider":
-                        slider_rep = slider.GetRepresentation()
-                        slider_rep.SetValue(idx)
-            else:
+            time_shift = delta * self.playback_speed
+            max_time = np.max(time_data)
+            time_point = min(self.brain._current_time + time_shift, max_time)
+            ifunc = interp1d(time_data, times)
+            idx = ifunc(time_point)
+            self.brain.set_time_point(idx)
+            for slider in self.plotter.slider_widgets:
+                name = getattr(slider, "name", None)
+                if name == "time_slider":
+                    slider_rep = slider.GetRepresentation()
+                    slider_rep.SetValue(idx)
+            if time_point == max_time:
                 self.playback = False
+            self.plotter.update()  # critical for smooth animation
 
 
 def _set_slider_style(slider, show_label=True):
