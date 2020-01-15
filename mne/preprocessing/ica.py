@@ -2658,6 +2658,7 @@ def read_ica_eeglab(fname):
     """
     eeg = _check_load_mat(fname, None)
     info = _get_info(eeg)[0]
+    pick_info(info, np.round(eeg['icachansind']).astype(int) - 1, copy=False)
 
     n_components = eeg.icaweights.shape[0]
 
