@@ -9,7 +9,7 @@ from ..annotations import (Annotations, _annotations_starts_stops)
 from ..chpi import _apply_quat
 from ..transforms import (quat_to_rot, _average_quats)
 from .. import Transform
-from ..utils import _mask_to_onsets_offsets
+from ..utils import (_mask_to_onsets_offsets, logger)
 
 
 def annotate_movement(raw, pos, rotation_velocity_limit=None,
@@ -23,8 +23,8 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
 
     Parameters
     ----------
-    raw instance : instance of Raw. Data to detect head movement for.
-        Instance of a raw.
+    raw instance : instance of Raw.
+        Data to compute head position.
     pos : array, shape (N, 10)
         The position and quaternion parameters from cHPI fitting.
     rotation_velocity_limit: float
@@ -67,10 +67,10 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
         onsets, offsets = _mask_to_onsets_offsets(bad_mask)
         onsets, offsets = hp_ts[onsets], hp_ts[offsets]
         bad_pct = 100 * (offsets - onsets).sum() / t_tot
-        print(u'Omitting %5.1f%% (%3d segments): '
-              u'ω >= %5.1f°/s (max: %0.1f°/s)'
-              % (bad_pct, len(onsets), rotation_velocity_limit,
-                 np.rad2deg(r.max())))
+        logger.info(u'Omitting %5.1f%% (%3d segments): '
+                    u'ω >= %5.1f°/s (max: %0.1f°/s)'
+                    % (bad_pct, len(onsets), rotation_velocity_limit,
+                       np.rad2deg(r.max())))
         annot += _annotations_from_mask(hp_ts, bad_mask, 'BAD_mov_rotat_vel')
 
     # Annotate based on translational velocity limit
@@ -82,9 +82,10 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
         onsets, offsets = _mask_to_onsets_offsets(bad_mask)
         onsets, offsets = hp_ts[onsets], hp_ts[offsets]
         bad_pct = 100 * (offsets - onsets).sum() / t_tot
-        print(u'Omitting %5.1f%% (%3d segments): '
-              u'v >= %5.4fm/s (max: %5.4fm/s)'
-              % (bad_pct, len(onsets), translation_velocity_limit, v.max()))
+        logger.info(u'Omitting %5.1f%% (%3d segments): '
+                    u'v >= %5.4fm/s (max: %5.4fm/s)'
+                    % (bad_pct, len(onsets), translation_velocity_limit,
+                       v.max()))
         for onset, offset in zip(onsets, offsets):
             annot.append(onset, offset - onset, 'BAD_trans_vel')
         annot += _annotations_from_mask(hp_ts, bad_mask, 'BAD_mov_vel')
@@ -113,9 +114,9 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
         onsets, offsets = _mask_to_onsets_offsets(bad_mask)
         onsets, offsets = hp_ts[onsets], hp_ts[offsets]
         bad_pct = 100 * (offsets - onsets).sum() / t_tot
-        print(u'Omitting %5.1f%% (%3d segments): '
-              u'disp >= %5.4fm/s (max: %5.4fm)'
-              % (bad_pct, len(onsets), mean_distance_limit, disp.max()))
+        logger.info(u'Omitting %5.1f%% (%3d segments): '
+                    u'disp >= %5.4fm/s (max: %5.4fm)'
+                    % (bad_pct, len(onsets), mean_distance_limit, disp.max()))
         annot += _annotations_from_mask(hp_ts, bad_mask, 'BAD_mov_dist')
     return annot, disp
 
@@ -128,8 +129,8 @@ def compute_average_dev_head_t(raw, pos):
 
     Parameters
     ----------
-    raw instance : instance of Raw. Data to compute head position.
-        Instance of a raw.
+    raw instance : instance of Raw.
+        Data to compute head position.
     pos : array, shape (N, 10)
         The position and quaternion parameters from cHPI fitting.
 
