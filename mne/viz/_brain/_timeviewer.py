@@ -5,7 +5,6 @@
 # License: Simplified BSD
 
 import time
-import warnings
 import numpy as np
 
 
@@ -119,7 +118,7 @@ class _TimeViewer(object):
             scalar_bar.SetOrientationToVertical()
             scalar_bar.SetHeight(0.6)
             scalar_bar.SetWidth(0.05)
-            scalar_bar.SetPosition(0.02, 0.35)
+            scalar_bar.SetPosition(0.02, 0.2)
 
         # smoothing slider
         default_smoothing_value = 7
@@ -253,40 +252,11 @@ class _TimeViewer(object):
         self.refresh_rate = 16
         self.refresh_rate_ms = self.refresh_rate / 1000.
         self.plotter.add_callback(self.play, self.refresh_rate)
-        self.plotter.add_callback(self.perform_maintenance)
-        self.button_size = 40
-        self.font_size = 14
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=FutureWarning)
-            playback_button = self.plotter.add_checkbox_button_widget(
-                self.toggle_playback,
-                value=False,
-                size=self.button_size,
-                position=(0, 0)
-            )
-        playback_button.name = "toggle_playback"
-        self.playback_actor = self.plotter.add_text(
-            text="Start",
-            font_size=self.font_size,
-            position=(0, 0)
-        )
+        self.plotter.add_key_event('space', self.toggle_playback)
 
         # add toggle to show/hide interface
         self.visibility = True
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=FutureWarning)
-            interface_button = self.plotter.add_checkbox_button_widget(
-                self.toggle_interface,
-                value=True,
-                size=self.button_size,
-                position=(0, 0)
-            )
-        interface_button.name = "toggle_interface"
-        self.interface_actor = self.plotter.add_text(
-            text="Hide",
-            font_size=self.font_size,
-            position=(0, 0)
-        )
+        self.plotter.add_key_event('y', self.toggle_interface)
 
         # set the slider style
         _set_slider_style(smoothing_slider)
@@ -300,29 +270,17 @@ class _TimeViewer(object):
 
         # set the text style
         _set_text_style(self.time_actor)
-        _set_text_style(self.playback_actor)
-        _set_text_style(self.interface_actor)
 
-        self.perform_maintenance()
-
-    def toggle_interface(self, state):
-        self.visibility = state
+    def toggle_interface(self):
+        self.visibility = not self.visibility
         for slider in self.plotter.slider_widgets:
             if self.visibility:
                 slider.On()
             else:
                 slider.Off()
-        if self.visibility:
-            self.interface_actor.SetInput("Hide")
-        else:
-            self.interface_actor.SetInput("Show")
 
-    def toggle_playback(self, state):
-        self.playback = state
-        if self.playback:
-            self.playback_actor.SetInput("Stop")
-        else:
-            self.playback_actor.SetInput("Start")
+    def toggle_playback(self):
+        self.playback = not self.playback
 
     def set_playback_speed(self, speed):
         self.playback_speed = speed
@@ -344,46 +302,7 @@ class _TimeViewer(object):
                         slider_rep = slider.GetRepresentation()
                         slider_rep.SetValue(idx)
             else:
-                self.toggle_playback(False)
-                for button in self.plotter.button_widgets:
-                    name = getattr(button, "name", None)
-                    if name == "toggle_playback":
-                        button_rep = button.GetRepresentation()
-                        button_rep.SetState(0)
-
-    def place_widget(self, position):
-        if hasattr(self.plotter, 'ren_win'):
-            window_size = self.plotter.ren_win.GetSize()
-            position = (
-                position[0] * window_size[0],
-                position[1] * window_size[1]
-            )
-        return position
-
-    def set_bounds(self, position):
-        bounds = [
-            position[0], position[0] + self.button_size,
-            position[1], position[1] + self.button_size,
-            0., 0.
-        ]
-        return bounds
-
-    def perform_maintenance(self):
-        for button in self.plotter.button_widgets:
-            name = getattr(button, "name", None)
-            if name == "toggle_playback":
-                button_rep = button.GetRepresentation()
-                position = self.place_widget((0.02, 0.17))
-                bounds = self.set_bounds(position)
-                button_rep.PlaceWidget(bounds)
-            elif name == "toggle_interface":
-                button_rep = button.GetRepresentation()
-                position = self.place_widget((0.02, 0.27))
-                bounds = self.set_bounds(position)
-                button_rep.PlaceWidget(bounds)
-
-        self.playback_actor.SetPosition(self.place_widget((0.06, 0.17)))
-        self.interface_actor.SetPosition(self.place_widget((0.06, 0.27)))
+                self.playback = False
 
 
 def _set_slider_style(slider, show_label=True):
