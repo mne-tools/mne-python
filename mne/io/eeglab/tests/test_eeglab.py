@@ -136,7 +136,7 @@ def test_io_set_raw_more(tmpdir):
                         'event': [eeg.event[0], eeg.event[0]],
                         'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
                appendmat=False, oned_as='row')
-    with pytest.warns(RuntimeWarning, match="is incorrect, using the"):
+    with pytest.warns(RuntimeWarning, match="must have changed on disk"):
         read_raw_eeglab(input_fname=overlap_fname, preload=True)
 
     # raise error when both EEG.data and fdt name from set are wrong

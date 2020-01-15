@@ -44,8 +44,9 @@ def _check_fname(fname, dataname):
         fdt_from_set_fname = op.splitext(fname)[0] + '.fdt'
         if op.exists(fdt_from_set_fname):
             data_fname = fdt_from_set_fname
-            msg = ('Data filename in EEG.data ({}) is incorrect, using the '
-                   'correct file name ({}).')
+            msg = ('Data file name in EEG.data ({}) is incorrect, the file '
+                   'name must have changed on disk, using the correct file '
+                   'name ({}).')
             warn(msg.format(dataname, op.basename(fdt_from_set_fname)))
         elif not data_fname == fdt_from_set_fname:
             msg = 'Could not find the .fdt data file, tried {} and {}.'
