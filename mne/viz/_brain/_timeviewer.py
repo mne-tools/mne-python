@@ -179,19 +179,13 @@ class _TimeViewer(object):
 
         # playback speed
         default_playback_speed = 1
-        self.set_playback_speed = IntSlider(
-            plotter=self.plotter,
-            callback=self.set_playback_speed,
-            name="playback_speed"
-        )
         playback_speed_slider = self.plotter.add_slider_widget(
             self.set_playback_speed,
             value=default_playback_speed,
-            rng=[1, 100], title="playback speed",
+            rng=[0.01, 1], title="playback speed",
             pointa=(0.02, 0.1),
             pointb=(0.18, 0.1)
         )
-        playback_speed_slider.name = "playback_speed"
 
         # colormap slider
         scaling_limits = [0.2, 2.0]
@@ -338,7 +332,7 @@ class _TimeViewer(object):
         if self.playback:
             time_data = self.brain._data['time']
             times = np.arange(self.brain._n_times)
-            time_shift = self.refresh_rate_ms / self.playback_speed
+            time_shift = self.refresh_rate_ms * self.playback_speed
             time_point = self.brain._current_time + time_shift
             if time_point < np.max(time_data):
                 ifunc = interp1d(time_data, times)
