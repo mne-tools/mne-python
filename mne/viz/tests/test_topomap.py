@@ -190,7 +190,7 @@ def test_plot_topomap_basic():
     info_sel = pick_info(evoked.info, picks)
     plot_topomap(temp_data, info_sel, extrapolate='local', res=res)
     plot_topomap(temp_data, info_sel, extrapolate='head', res=res)
-    
+
     # border=0 and border='mean':
     # ---------------------------
     ch_names = list('abcde')
@@ -211,7 +211,8 @@ def test_plot_topomap_basic():
     assert np.abs(img_data[31, 1] - 5.) > 4
 
     # border='mean'
-    ax, _ = plot_topomap(data, info, extrapolate='head', border='mean', sphere=1)
+    ax, _ = plot_topomap(data, info, extrapolate='head', border='mean',
+                         sphere=1)
     img_data = ax.get_array().data
 
     assert np.abs(img_data[31, 31] - 5.) < 0.025
