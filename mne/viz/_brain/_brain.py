@@ -816,6 +816,7 @@ class _Brain(object):
             Number of smoothing steps
         """
         from ..backends._pyvista import _set_mesh_scalars
+        from scipy.interpolate import interp1d
         for hemi in ['lh', 'rh']:
             pd = self._data.get(hemi + '_mesh')
             if pd is not None:
@@ -823,10 +824,15 @@ class _Brain(object):
                 vertices = self._data[hemi + '_vertices']
                 if pd is not None:
                     time_idx = self._data['time_idx']
-                    if self._data['array'].ndim == 1:
-                        act_data = array
-                    elif self._data['array'].ndim == 2:
-                        act_data = array[:, time_idx]
+                    act_data = array
+                    if self._data['array'].ndim == 2:
+                        if isinstance(time_idx, int):
+                            act_data = act_data[:, time_idx]
+                        else:
+                            times = np.arange(self._n_times)
+                            act_data = interp1d(
+                                times, act_data, 'linear', axis=1,
+                                assume_sorted=True)(time_idx)
 
                     adj_mat = mesh_edges(self.geo[hemi].faces)
                     smooth_mat = smoothing_matrix(vertices,
@@ -839,7 +845,7 @@ class _Brain(object):
     def set_time_point(self, time_idx):
         """Set the time point shown."""
         from ..backends._pyvista import _set_mesh_scalars
-        time_idx = int(time_idx)
+        from scipy.interpolate import interp1d
         for hemi in ['lh', 'rh']:
             pd = self._data.get(hemi + '_mesh')
             if pd is not None:
@@ -855,13 +861,23 @@ class _Brain(object):
 
                 if isinstance(time_idx, int):
                     act_data = act_data[:, time_idx]
+                else:
+                    times = np.arange(self._n_times)
+                    act_data = interp1d(times, act_data, 'linear', axis=1,
+                                        assume_sorted=True)(time_idx)
 
                 smooth_mat = self._data[hemi + '_smooth_mat']
                 if smooth_mat is not None:
                     act_data = smooth_mat.dot(act_data)
                 _set_mesh_scalars(pd, act_data, 'Data')
                 if callable(time_label) and time_actor is not None:
-                    time_actor.SetInput(time_label(time[time_idx]))
+                    if isinstance(time_idx, int):
+                        self._current_time = time[time_idx]
+                        time_actor.SetInput(time_label(self._current_time))
+                    else:
+                        ifunc = interp1d(times, self._data['time'])
+                        self._current_time = ifunc(time_idx)
+                        time_actor.SetInput(time_label(self._current_time))
                 self._data['time_idx'] = time_idx
 
     def update_fmax(self, fmax):
@@ -944,6 +960,9 @@ class _Brain(object):
                     scalar_bar = None
                 _set_colormap_range(actor, ctable, scalar_bar, rng)
                 self._data['ctable'] = ctable
+        self._data['fmin'] = fmin
+        self._data['fmid'] = fmid
+        self._data['fmax'] = fmax
 
     @property
     def data(self):

@@ -37,9 +37,9 @@ class UpdateColorbarScale(object):
     def __call__(self, value):
         """Update the colorbar sliders."""
         self.brain.update_fscale(value)
-        fmin = self.brain._data['fmin'] * value
-        fmid = self.brain._data['fmid'] * value
-        fmax = self.brain._data['fmax'] * value
+        fmin = self.brain._data['fmin']
+        fmid = self.brain._data['fmid']
+        fmax = self.brain._data['fmax']
         for slider in self.plotter.slider_widgets:
             name = getattr(slider, "name", None)
             if name == "fmin":
@@ -51,6 +51,9 @@ class UpdateColorbarScale(object):
             elif name == "fmax":
                 slider_rep = slider.GetRepresentation()
                 slider_rep.SetValue(fmax)
+            elif name == "fscale":
+                slider_rep = slider.GetRepresentation()
+                slider_rep.SetValue(1.0)
 
 
 class BumpColorbarPoints(object):
@@ -109,15 +112,16 @@ class _TimeViewer(object):
     """Class to interact with _Brain."""
 
     def __init__(self, brain):
+        self.brain = brain
         self.plotter = brain._renderer.plotter
 
         # scalar bar
         if brain._colorbar_added:
             scalar_bar = self.plotter.scalar_bar
             scalar_bar.SetOrientationToVertical()
-            scalar_bar.SetHeight(0.8)
+            scalar_bar.SetHeight(0.6)
             scalar_bar.SetWidth(0.05)
-            scalar_bar.SetPosition(0.05, 0.1)
+            scalar_bar.SetPosition(0.02, 0.2)
 
         # smoothing slider
         default_smoothing_value = 7
@@ -158,10 +162,10 @@ class _TimeViewer(object):
 
         # time label
         for hemi in brain._hemis:
-            time_actor = brain._data.get(hemi + '_time_actor')
-            if time_actor is not None:
-                time_actor.SetPosition(0.5, 0.03)
-                time_actor.GetTextProperty().SetJustificationToCentered()
+            self.time_actor = brain._data.get(hemi + '_time_actor')
+            if self.time_actor is not None:
+                self.time_actor.SetPosition(0.5, 0.03)
+                self.time_actor.GetTextProperty().SetJustificationToCentered()
 
         # time slider
         max_time = len(brain._data['time']) - 1
@@ -173,9 +177,23 @@ class _TimeViewer(object):
             pointb=(0.77, 0.1),
             event_type='always'
         )
+        time_slider.name = "time_slider"
+
+        # playback speed
+        default_playback_speed = 0.05
+        playback_speed_slider = self.plotter.add_slider_widget(
+            self.set_playback_speed,
+            value=default_playback_speed,
+            rng=[0.01, 1], title="playback speed",
+            pointa=(0.02, 0.1),
+            pointb=(0.18, 0.1)
+        )
 
         # colormap slider
         scaling_limits = [0.2, 2.0]
+        pointa = np.array((0.82, 0.26))
+        pointb = np.array((0.98, 0.26))
+        shift = np.array([0, 0.08])
         fmin = brain._data["fmin"]
         self.update_fmin = BumpColorbarPoints(
             plotter=self.plotter,
@@ -185,9 +203,9 @@ class _TimeViewer(object):
         fmin_slider = self.plotter.add_slider_widget(
             self.update_fmin,
             value=fmin,
-            rng=_get_range(brain), title="fmin",
-            pointa=(0.82, 0.26),
-            pointb=(0.98, 0.26),
+            rng=_get_range(brain), title="clim",
+            pointa=pointa,
+            pointb=pointb,
             event_type="always",
         )
         fmin_slider.name = "fmin"
@@ -200,9 +218,9 @@ class _TimeViewer(object):
         fmid_slider = self.plotter.add_slider_widget(
             self.update_fmid,
             value=fmid,
-            rng=_get_range(brain), title="fmid",
-            pointa=(0.82, 0.42),
-            pointb=(0.98, 0.42),
+            rng=_get_range(brain), title="",
+            pointa=pointa + shift,
+            pointb=pointb + shift,
             event_type="always",
         )
         fmid_slider.name = "fmid"
@@ -215,23 +233,35 @@ class _TimeViewer(object):
         fmax_slider = self.plotter.add_slider_widget(
             self.update_fmax,
             value=fmax,
-            rng=_get_range(brain), title="fmax",
-            pointa=(0.82, 0.58),
-            pointb=(0.98, 0.58),
+            rng=_get_range(brain), title="",
+            pointa=pointa + 2 * shift,
+            pointb=pointb + 2 * shift,
             event_type="always",
         )
         fmax_slider.name = "fmax"
-        update_fscale = UpdateColorbarScale(
+        self.update_fscale = UpdateColorbarScale(
             plotter=self.plotter,
             brain=brain,
         )
         fscale_slider = self.plotter.add_slider_widget(
-            update_fscale,
+            self.update_fscale,
             value=1.0,
             rng=scaling_limits, title="fscale",
             pointa=(0.82, 0.10),
             pointb=(0.98, 0.10)
         )
+        fscale_slider.name = "fscale"
+
+        # add toggle to start/stop playback
+        self.playback = False
+        self.playback_speed = default_playback_speed
+        self.refresh_rate_ms = max(int(round(1000. / 60.)), 1)
+        self.plotter.add_callback(self.play, self.refresh_rate_ms)
+        self.plotter.add_key_event('space', self.toggle_playback)
+
+        # add toggle to show/hide interface
+        self.visibility = True
+        self.plotter.add_key_event('y', self.toggle_interface)
 
         # set the slider style
         _set_slider_style(smoothing_slider)
@@ -240,11 +270,11 @@ class _TimeViewer(object):
         _set_slider_style(fmid_slider)
         _set_slider_style(fmax_slider)
         _set_slider_style(fscale_slider)
+        _set_slider_style(playback_speed_slider)
         _set_slider_style(time_slider, show_label=False)
 
-        # add toggle to show/hide interface
-        self.visibility = True
-        self.plotter.add_key_event('y', self.toggle_interface)
+        # set the text style
+        _set_text_style(self.time_actor)
 
     def toggle_interface(self):
         self.visibility = not self.visibility
@@ -254,17 +284,59 @@ class _TimeViewer(object):
             else:
                 slider.Off()
 
+    def toggle_playback(self):
+        self.playback = not self.playback
+        if self.playback:
+            time_data = self.brain._data['time']
+            max_time = np.max(time_data)
+            if self.brain._current_time == max_time:  # start over
+                self.brain.set_time_point(np.min(time_data))
+            self._last_tick = time.time()
+
+    def set_playback_speed(self, speed):
+        self.playback_speed = speed
+
+    def play(self):
+        from scipy.interpolate import interp1d
+        if self.playback:
+            this_time = time.time()
+            delta = this_time - self._last_tick
+            self._last_tick = time.time()
+            time_data = self.brain._data['time']
+            times = np.arange(self.brain._n_times)
+            time_shift = delta * self.playback_speed
+            max_time = np.max(time_data)
+            time_point = min(self.brain._current_time + time_shift, max_time)
+            ifunc = interp1d(time_data, times)
+            idx = ifunc(time_point)
+            self.brain.set_time_point(idx)
+            for slider in self.plotter.slider_widgets:
+                name = getattr(slider, "name", None)
+                if name == "time_slider":
+                    slider_rep = slider.GetRepresentation()
+                    slider_rep.SetValue(idx)
+            if time_point == max_time:
+                self.playback = False
+            self.plotter.update()  # critical for smooth animation
+
 
 def _set_slider_style(slider, show_label=True):
-    slider_rep = slider.GetRepresentation()
-    slider_rep.SetSliderLength(0.02)
-    slider_rep.SetSliderWidth(0.04)
-    slider_rep.SetTubeWidth(0.005)
-    slider_rep.SetEndCapLength(0.01)
-    slider_rep.SetEndCapWidth(0.02)
-    slider_rep.GetSliderProperty().SetColor((0.5, 0.5, 0.5))
-    if not show_label:
-        slider_rep.ShowSliderLabelOff()
+    if slider is not None:
+        slider_rep = slider.GetRepresentation()
+        slider_rep.SetSliderLength(0.02)
+        slider_rep.SetSliderWidth(0.04)
+        slider_rep.SetTubeWidth(0.005)
+        slider_rep.SetEndCapLength(0.01)
+        slider_rep.SetEndCapWidth(0.02)
+        slider_rep.GetSliderProperty().SetColor((0.5, 0.5, 0.5))
+        if not show_label:
+            slider_rep.ShowSliderLabelOff()
+
+
+def _set_text_style(text_actor):
+    if text_actor is not None:
+        prop = text_actor.GetTextProperty()
+        prop.BoldOn()
 
 
 def _get_range(brain):
