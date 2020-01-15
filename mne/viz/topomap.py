@@ -224,6 +224,7 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
     %(topomap_extrapolate)s
 
         .. versionadded:: 0.20
+    %(topomap_border)s
 
     Returns
     -------
@@ -668,9 +669,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
         .. versionadded:: 0.18
     %(topomap_sphere)s
-    border : float | 'mean'
-        Value to extrapolate to on the topomap borders. If ``'mean'`` then
-        each extrapolated point has the average value of its neighbours.
+    %(topomap_border)s
 
     Returns
     -------
