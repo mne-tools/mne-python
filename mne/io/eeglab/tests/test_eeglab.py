@@ -83,11 +83,10 @@ def test_io_set_raw(fname):
 def test_io_set_raw_more(tmpdir):
     """Test importing EEGLAB .set files."""
     tmpdir = str(tmpdir)
-    # test reading file with one event (read old version)
     eeg = io.loadmat(raw_fname_mat, struct_as_record=False,
                      squeeze_me=True)['EEG']
 
-    # test negative event latencies
+    # test reading file with one event (read old version)
     negative_latency_fname = op.join(tmpdir, 'test_negative_latency.set')
     evnts = deepcopy(eeg.event[0])
     evnts.latency = 0
@@ -103,6 +102,7 @@ def test_io_set_raw_more(tmpdir):
     with pytest.warns(RuntimeWarning, match="has a sample index of -1."):
         read_raw_eeglab(input_fname=negative_latency_fname, preload=True)
 
+    # test negative event latencies
     evnts.latency = -1
     io.savemat(negative_latency_fname,
                {'EEG': {'trials': eeg.trials, 'srate': eeg.srate,
@@ -126,6 +126,30 @@ def test_io_set_raw_more(tmpdir):
                appendmat=False, oned_as='row')
     shutil.copyfile(op.join(base_dir, 'test_raw.fdt'),
                     overlap_fname.replace('.set', '.fdt'))
+    read_raw_eeglab(input_fname=overlap_fname, preload=True)
+
+    # test reading file when the EEG.data name is wrong
+    io.savemat(overlap_fname,
+               {'EEG': {'trials': eeg.trials, 'srate': eeg.srate,
+                        'nbchan': eeg.nbchan, 'data': 'test_overla_event.fdt',
+                        'epoch': eeg.epoch,
+                        'event': [eeg.event[0], eeg.event[0]],
+                        'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
+               appendmat=False, oned_as='row')
+    with pytest.warns(RuntimeWarning, match="must have changed on disk"):
+        read_raw_eeglab(input_fname=overlap_fname, preload=True)
+
+    # raise error when both EEG.data and fdt name from set are wrong
+    overlap_fname = op.join(tmpdir, 'test_ovrlap_event.set')
+    io.savemat(overlap_fname,
+               {'EEG': {'trials': eeg.trials, 'srate': eeg.srate,
+                        'nbchan': eeg.nbchan, 'data': 'test_overla_event.fdt',
+                        'epoch': eeg.epoch,
+                        'event': [eeg.event[0], eeg.event[0]],
+                        'chanlocs': eeg.chanlocs, 'pnts': eeg.pnts}},
+               appendmat=False, oned_as='row')
+    with pytest.raises(FileNotFoundError, match="not find the .fdt data file"):
+        read_raw_eeglab(input_fname=overlap_fname, preload=True)
 
     # test reading file with one channel
     one_chan_fname = op.join(tmpdir, 'test_one_channel.set')
