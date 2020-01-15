@@ -949,7 +949,14 @@ class _Brain(object):
     def update_auto_scaling(self, state):
         from ..backends._pyvista import _set_colormap_range
         if not hasattr(self, '_backup'):
-            self._backup = self._data.copy()
+            self._backup = {
+                'fmin': self._data['fmin'],
+                'fmid': self._data['fmid'],
+                'fmax': self._data['fmax'],
+                'center': self._data['center'],
+                'colormap': self._data['colormap'],
+                'transparent': self._data['transparent'],
+            }
         if state:
             clim = 'auto'
             colormap = self._data['colormap']
@@ -974,6 +981,7 @@ class _Brain(object):
             fmin = self._data['fmin']
             fmid = self._data['fmid']
             fmax = self._data['fmax']
+
         ctable = self.update_lut(fmin=fmin, fmid=fmid, fmax=fmax)
         ctable = (ctable * 255).astype(np.uint8)
         for hemi in ['lh', 'rh']:

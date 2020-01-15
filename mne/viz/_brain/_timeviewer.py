@@ -221,12 +221,12 @@ class _TimeViewer(object):
             event_type="always",
         )
         fmax_slider.name = "fmax"
-        update_fscale = UpdateColorbarScale(
+        self.update_fscale = UpdateColorbarScale(
             plotter=self.plotter,
             brain=brain,
         )
         fscale_slider = self.plotter.add_slider_widget(
-            update_fscale,
+            self.update_fscale,
             value=1.0,
             rng=scaling_limits, title="fscale",
             pointa=(0.82, 0.10),
@@ -262,6 +262,7 @@ class _TimeViewer(object):
     def toggle_auto_scaling(self):
         self.auto_scaling = not self.auto_scaling
         self.brain.update_auto_scaling(self.auto_scaling)
+        self.update_fscale(1)
 
 
 def _set_slider_style(slider, show_label=True):
