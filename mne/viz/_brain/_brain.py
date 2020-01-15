@@ -10,6 +10,7 @@
 import numpy as np
 import os
 from os.path import join as pjoin
+from .._3d import _limits_to_control_points
 from ...label import read_label
 from .colormap import calculate_lut
 from .view import lh_views_dict, rh_views_dict, View
@@ -935,6 +936,49 @@ class _Brain(object):
             actor = self._data.get(hemi + '_actor')
             if actor is not None:
                 center = self._data['center']
+                dt_max = fmax
+                dt_min = fmin if center is None else -1 * fmax
+                rng = [dt_min, dt_max]
+                if self._colorbar_added:
+                    scalar_bar = self._renderer.plotter.scalar_bar
+                else:
+                    scalar_bar = None
+                _set_colormap_range(actor, ctable, scalar_bar, rng)
+                self._data['ctable'] = ctable
+
+    def update_auto_scaling(self, state):
+        from ..backends._pyvista import _set_colormap_range
+        if not hasattr(self, '_backup'):
+            self._backup = self._data.copy()
+        if state:
+            clim = 'auto'
+            colormap = self._data['colormap']
+            transparent = self._data['transparent']
+            time_idx = self._data['time_idx']
+            array = self._data['array']
+            if self._data['array'].ndim == 1:
+                act_data = array
+            elif self._data['array'].ndim == 2:
+                act_data = array[:, time_idx]
+            colormap, scale_pts, diverging, transparent, _ = \
+                _limits_to_control_points(clim, act_data, colormap,
+                                          transparent)
+            fmin, fmid, fmax = scale_pts
+            center = 0. if diverging else None
+            self._data['center'] = center
+            self._data['colormap'] = colormap
+            self._data['transparent'] = transparent
+        else:
+            self._data.update(self._backup)
+            center = self._data['center']
+            fmin = self._data['fmin']
+            fmid = self._data['fmid']
+            fmax = self._data['fmax']
+        ctable = self.update_lut(fmin=fmin, fmid=fmid, fmax=fmax)
+        ctable = (ctable * 255).astype(np.uint8)
+        for hemi in ['lh', 'rh']:
+            actor = self._data.get(hemi + '_actor')
+            if actor is not None:
                 dt_max = fmax
                 dt_min = fmin if center is None else -1 * fmax
                 rng = [dt_min, dt_max]

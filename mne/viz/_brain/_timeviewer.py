@@ -246,6 +246,11 @@ class _TimeViewer(object):
         self.visibility = True
         self.plotter.add_key_event('y', self.toggle_interface)
 
+        # add toggle for auto-scaling
+        self.auto_scaling = False
+        self.brain = brain
+        self.plotter.add_key_event('t', self.toggle_auto_scaling)
+
     def toggle_interface(self):
         self.visibility = not self.visibility
         for slider in self.plotter.slider_widgets:
@@ -253,6 +258,10 @@ class _TimeViewer(object):
                 slider.On()
             else:
                 slider.Off()
+
+    def toggle_auto_scaling(self):
+        self.auto_scaling = not self.auto_scaling
+        self.brain.update_auto_scaling(self.auto_scaling)
 
 
 def _set_slider_style(slider, show_label=True):
