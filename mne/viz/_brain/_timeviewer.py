@@ -236,12 +236,12 @@ class _TimeViewer(object):
             event_type="always",
         )
         fmax_slider.name = "fmax"
-        update_fscale = UpdateColorbarScale(
+        self.update_fscale = UpdateColorbarScale(
             plotter=self.plotter,
             brain=brain,
         )
         fscale_slider = self.plotter.add_slider_widget(
-            update_fscale,
+            self.update_fscale,
             value=1.0,
             rng=scaling_limits, title="fscale",
             pointa=(0.82, 0.10),
