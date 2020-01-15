@@ -1231,6 +1231,10 @@ class ICA(ContainsMixin):
             Defaults to "together." See notes.
         reject_by_annotation : bool
             If True, data annotated as bad will be omitted. Defaults to True.
+        bad_measure : {'zscore', "cor"}
+            Which method to use for finding outliers. "zscore" (default) is
+            the iterated Z-scoring method, and "cor" is an absolute raw
+            correlation threshold with a range of 0 to 1.
         %(verbose_meth)s
 
         Returns
