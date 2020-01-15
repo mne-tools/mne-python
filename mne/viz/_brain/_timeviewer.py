@@ -38,6 +38,7 @@ class UpdateOrientation(object):
         self.label = label
 
     def __call__(self, value):
+        """Update the value of the label."""
         idx = int(round(value))
         orientation = self.orientation[idx]
         self.callback(orientation)
