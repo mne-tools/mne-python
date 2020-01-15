@@ -23,7 +23,7 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
 
     Parameters
     ----------
-    raw instance : instance of Raw.
+    raw : instance of Raw.
         Data to compute head position.
     pos : array, shape (N, 10)
         The position and quaternion parameters from cHPI fitting.
@@ -129,7 +129,7 @@ def compute_average_dev_head_t(raw, pos):
 
     Parameters
     ----------
-    raw instance : instance of Raw.
+    raw : instance of Raw.
         Data to compute head position.
     pos : array, shape (N, 10)
         The position and quaternion parameters from cHPI fitting.
