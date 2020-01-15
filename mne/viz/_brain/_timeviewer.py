@@ -37,9 +37,9 @@ class UpdateColorbarScale(object):
     def __call__(self, value):
         """Update the colorbar sliders."""
         self.brain.update_fscale(value)
-        fmin = self.brain._data['fmin'] * value
-        fmid = self.brain._data['fmid'] * value
-        fmax = self.brain._data['fmax'] * value
+        fmin = self.brain._data['fmin']
+        fmid = self.brain._data['fmid']
+        fmax = self.brain._data['fmax']
         for slider in self.plotter.slider_widgets:
             name = getattr(slider, "name", None)
             if name == "fmin":
@@ -51,6 +51,9 @@ class UpdateColorbarScale(object):
             elif name == "fmax":
                 slider_rep = slider.GetRepresentation()
                 slider_rep.SetValue(fmax)
+            elif name == "fscale":
+                slider_rep = slider.GetRepresentation()
+                slider_rep.SetValue(1.0)
 
 
 class BumpColorbarPoints(object):
@@ -244,6 +247,7 @@ class _TimeViewer(object):
             pointa=(0.82, 0.10),
             pointb=(0.98, 0.10)
         )
+        fscale_slider.name = "fscale"
 
         # add toggle to start/stop playback
         self.playback = False

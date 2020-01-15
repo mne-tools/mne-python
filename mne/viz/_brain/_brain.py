@@ -960,6 +960,9 @@ class _Brain(object):
                     scalar_bar = None
                 _set_colormap_range(actor, ctable, scalar_bar, rng)
                 self._data['ctable'] = ctable
+        self._data['fmin'] = fmin
+        self._data['fmid'] = fmid
+        self._data['fmax'] = fmax
 
     @property
     def data(self):
