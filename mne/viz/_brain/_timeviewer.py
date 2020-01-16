@@ -264,7 +264,6 @@ class _TimeViewer(object):
         self.plotter.add_key_event('y', self.toggle_interface)
 
         # add toggle for auto-scaling
-        self.auto_scaling = False
         self.brain = brain
         self.plotter.add_key_event('t', self.toggle_auto_scaling)
 
@@ -290,9 +289,21 @@ class _TimeViewer(object):
                 slider.Off()
 
     def toggle_auto_scaling(self):
-        self.auto_scaling = not self.auto_scaling
-        self.brain.update_auto_scaling(self.auto_scaling)
-        self.update_fscale(1)
+        self.brain.update_auto_scaling()
+        fmin = self.brain._data['fmin']
+        fmid = self.brain._data['fmid']
+        fmax = self.brain._data['fmax']
+        for slider in self.plotter.slider_widgets:
+            name = getattr(slider, "name", None)
+            if name == "fmin":
+                slider_rep = slider.GetRepresentation()
+                slider_rep.SetValue(fmin)
+            elif name == "fmid":
+                slider_rep = slider.GetRepresentation()
+                slider_rep.SetValue(fmid)
+            elif name == "fmax":
+                slider_rep = slider.GetRepresentation()
+                slider_rep.SetValue(fmax)
 
     def toggle_playback(self):
         self.playback = not self.playback
