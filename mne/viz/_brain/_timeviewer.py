@@ -206,7 +206,7 @@ class _TimeViewer(object):
         self.set_smoothing(default_smoothing_value)
 
         # time label
-        self.time_actor = brain._data.get('_time_actor')
+        self.time_actor = brain._data.get('time_actor')
         if self.time_actor is not None:
             self.time_actor.SetPosition(0.5, 0.03)
             self.time_actor.GetTextProperty().SetJustificationToCentered()
