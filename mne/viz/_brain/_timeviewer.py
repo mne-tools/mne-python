@@ -115,6 +115,10 @@ class _TimeViewer(object):
         self.brain = brain
         self.plotter = brain._renderer.plotter
 
+        # put all controls on first view
+        if self.brain._hemi == 'split':
+            self.plotter.subplot(0, 0)
+
         # scalar bar
         if brain._colorbar_added:
             scalar_bar = self.plotter.scalar_bar
@@ -161,11 +165,10 @@ class _TimeViewer(object):
         )
 
         # time label
-        for hemi in brain._hemis:
-            self.time_actor = brain._data.get(hemi + '_time_actor')
-            if self.time_actor is not None:
-                self.time_actor.SetPosition(0.5, 0.03)
-                self.time_actor.GetTextProperty().SetJustificationToCentered()
+        self.time_actor = brain._data.get('_time_actor')
+        if self.time_actor is not None:
+            self.time_actor.SetPosition(0.5, 0.03)
+            self.time_actor.GetTextProperty().SetJustificationToCentered()
 
         # time slider
         max_time = len(brain._data['time']) - 1

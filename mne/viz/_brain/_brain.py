@@ -184,6 +184,9 @@ class _Brain(object):
         # for now only one color bar can be added
         # since it is the same for all figures
         self._colorbar_added = False
+        # for now only one time label can be added
+        # since it is the same for all figures
+        self._time_label_added = False
         # array of data used by TimeViewer
         self._data = {}
         self.geo, self._hemi_meshes, self._overlays = {}, {}, {}
@@ -448,13 +451,15 @@ class _Brain(object):
             self._data[hemi + '_actor'] = actor
             self._data[hemi + '_mesh'] = mesh
             if array.ndim >= 2 and callable(time_label):
-                time_actor = self._renderer.text2d(
-                    x_window=0.95, y_window=y_txt,
-                    size=time_label_size,
-                    text=time_label(time[time_idx]),
-                    justification='right'
-                )
-                self._data[hemi + '_time_actor'] = time_actor
+                if not self._time_label_added:
+                    time_actor = self._renderer.text2d(
+                        x_window=0.95, y_window=y_txt,
+                        size=time_label_size,
+                        text=time_label(time[time_idx]),
+                        justification='right'
+                    )
+                    self._data['_time_actor'] = time_actor
+                    self._time_label_added = True
             if colorbar and not self._colorbar_added:
                 self._renderer.scalarbar(source=actor, n_labels=8,
                                          bgcolor=(0.5, 0.5, 0.5))
@@ -852,7 +857,7 @@ class _Brain(object):
                 array = self._data[hemi + '_array']
                 time = self._data['time']
                 time_label = self._data['time_label']
-                time_actor = self._data.get(hemi + '_time_actor')
+                time_actor = self._data.get('_time_actor')
                 if array.ndim == 1:
                     continue  # skip data without time axis
                 # interpolation
