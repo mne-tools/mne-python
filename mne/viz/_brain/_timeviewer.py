@@ -111,22 +111,32 @@ class BumpColorbarPoints(object):
 class ShowView(object):
     """Class that selects the correct view."""
 
-    def __init__(self, plotter=None, brain=None, row=None, col=None,
-                 hemi=None, name=None):
+    def __init__(self, plotter=None, brain=None, orientation=None,
+                 row=None, col=None, hemi=None, name=None):
         self.plotter = plotter
         self.brain = brain
+        self.orientation = orientation
+        self.short_orientation = [s[:3] for s in orientation]
         self.row = row
         self.col = col
         self.hemi = hemi
         self.name = name
 
-    def __call__(self, value):
+    def __call__(self, value, update_widget=False):
         """Update the view."""
-        for slider in self.plotter.slider_widgets:
-            name = getattr(slider, "name", None)
-            if name == self.name:
-                self.brain.show_view(value, row=self.row, col=self.col,
-                                     hemi=self.hemi)
+        self.brain.show_view(value, row=self.row, col=self.col,
+                             hemi=self.hemi)
+        if update_widget:
+            if len(value) > 3:
+                idx = self.orientation.index(value)
+            else:
+                idx = self.short_orientation.index(value)
+            for slider in self.plotter.slider_widgets:
+                name = getattr(slider, "name", None)
+                if name == self.name:
+                    slider_rep = slider.GetRepresentation()
+                    slider_rep.SetValue(idx)
+                    slider_rep.SetTitleText(self.orientation[idx])
 
 
 class _TimeViewer(object):
@@ -156,10 +166,11 @@ class _TimeViewer(object):
             ci = 0 if hemi == 'lh' else 1
             for ri, view in enumerate(self.brain._views):
                 self.plotter.subplot(ri, ci)
-                name = "orientation" + str(ri) + "_" + str(ci)
+                name = "orientation_" + str(ri) + "_" + str(ci)
                 self.show_view = ShowView(
                     plotter=self.plotter,
                     brain=self.brain,
+                    orientation=orientation,
                     hemi=hemi,
                     row=ri,
                     col=ci,
@@ -175,6 +186,7 @@ class _TimeViewer(object):
                 )
                 orientation_slider.name = name
                 self.set_slider_style(orientation_slider, show_label=False)
+                self.show_view(view, update_widget=True)
 
         # necessary because show_view modified subplot
         if self.brain._hemi == 'split':
