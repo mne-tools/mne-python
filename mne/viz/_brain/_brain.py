@@ -743,22 +743,19 @@ class _Brain(object):
         """Close all figures and cleanup data structure."""
         self._renderer.close()
 
-    def show_view(self, view=None, roll=None, distance=None, row=0):
+    def show_view(self, view=None, roll=None, distance=None, row=0, col=0,
+                  hemi=None):
         """Orient camera to display view."""
-        views_dict = lh_views_dict if self._hemi == 'lh' else rh_views_dict
+        hemi = self._hemi if hemi is None else hemi
+        views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
         if isinstance(view, str):
             view = views_dict.get(view)
         elif isinstance(view, dict):
             view = View(azim=view['azimuth'],
                         elev=view['elevation'])
-        for hemi in ['lh', 'rh']:
-            if self._hemi != 'split':
-                ci = 0
-            else:
-                ci = 0 if hemi == 'lh' else 1
-            self._renderer.subplot(row, ci)
-            self._renderer.set_camera(azimuth=view.azim,
-                                      elevation=view.elev)
+        self._renderer.subplot(row, col)
+        self._renderer.set_camera(azimuth=view.azim,
+                                  elevation=view.elev)
 
     def save_image(self, filename, mode='rgb'):
         """Save view from all panels to disk.

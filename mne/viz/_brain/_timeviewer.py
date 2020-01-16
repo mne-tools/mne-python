@@ -111,10 +111,13 @@ class BumpColorbarPoints(object):
 class ShowView(object):
     """Class that selects the correct view."""
 
-    def __init__(self, plotter=None, brain=None, row=None, name=None):
+    def __init__(self, plotter=None, brain=None, row=None, col=None,
+                 hemi=None, name=None):
         self.plotter = plotter
         self.brain = brain
         self.row = row
+        self.col = col
+        self.hemi = hemi
         self.name = name
 
     def __call__(self, value):
@@ -122,8 +125,8 @@ class ShowView(object):
         for slider in self.plotter.slider_widgets:
             name = getattr(slider, "name", None)
             if name == self.name:
-                self.brain.show_view(value,
-                                     row=self.row)
+                self.brain.show_view(value, row=self.row, col=self.col,
+                                     hemi=self.hemi)
 
 
 class _TimeViewer(object):
@@ -149,25 +152,29 @@ class _TimeViewer(object):
         if self.brain._hemi == 'split':
             self.plotter.subplot(0, 0)
 
-        for idx, view in enumerate(self.brain._views):
-            self.plotter.subplot(idx, 0)
-            name = "orientation" + str(idx)
-            self.show_view = ShowView(
-                plotter=self.plotter,
-                brain=self.brain,
-                row=idx,
-                name=name
-            )
-            orientation_slider = self.plotter.add_text_slider_widget(
-                self.show_view,
-                value=0,
-                data=orientation,
-                pointa=(0.82, 0.74),
-                pointb=(0.98, 0.74),
-                event_type='always'
-            )
-            orientation_slider.name = name
-            self.set_slider_style(orientation_slider, show_label=False)
+        for hemi in self.brain._hemis:
+            ci = 0 if hemi == 'lh' else 1
+            for ri, view in enumerate(self.brain._views):
+                self.plotter.subplot(ri, ci)
+                name = "orientation" + str(ri) + "_" + str(ci)
+                self.show_view = ShowView(
+                    plotter=self.plotter,
+                    brain=self.brain,
+                    hemi=hemi,
+                    row=ri,
+                    col=ci,
+                    name=name
+                )
+                orientation_slider = self.plotter.add_text_slider_widget(
+                    self.show_view,
+                    value=0,
+                    data=orientation,
+                    pointa=(0.82, 0.74),
+                    pointb=(0.98, 0.74),
+                    event_type='always'
+                )
+                orientation_slider.name = name
+                self.set_slider_style(orientation_slider, show_label=False)
 
         # necessary because show_view modified subplot
         if self.brain._hemi == 'split':
