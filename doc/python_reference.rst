@@ -379,6 +379,7 @@ Projections:
    beer_lambert_law
    source_detector_distances
    short_channels
+   scalp_coupling_index
 
 EEG referencing:
 

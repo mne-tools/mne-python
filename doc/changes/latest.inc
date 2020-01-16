@@ -91,6 +91,8 @@ Changelog
 
 - Add function to convert events to annotations :func:`mne.annotations_from_events` by `Nicolas Barascud`_
 
+- Add function to calculate scalp coupling index for fNIRS data :func:`mne.preprocessing.nirs.scalp_coupling_index` by `Robert Luke`_
+
 Bug
 ~~~
 
