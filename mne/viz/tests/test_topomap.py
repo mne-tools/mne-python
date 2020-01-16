@@ -199,7 +199,7 @@ def test_plot_topomap_basic():
     ch_pos_dict = {name: pos for name, pos in zip(ch_names, ch_pos)}
     dig = make_dig_montage(ch_pos_dict, coord_frame='head')
 
-    data = np.ones(5) * 5
+    data = np.full(5, 5) + np.random.RandomState(23).randn(5)
     info = create_info(ch_names, 250, ['eeg'] * 5)
     info.set_montage(dig)
 
@@ -207,16 +207,16 @@ def test_plot_topomap_basic():
     ax, _ = plot_topomap(data, info, extrapolate='head', border=0, sphere=1)
     img_data = ax.get_array().data
 
-    assert np.abs(img_data[31, 31] - 5.) < 0.025
-    assert np.abs(img_data[31, 1] - 5.) > 4
+    assert np.abs(img_data[31, 31] - data[0]) < 0.12
+    assert np.abs(img_data[31, 1]) < 0.1
 
     # border='mean'
     ax, _ = plot_topomap(data, info, extrapolate='head', border='mean',
                          sphere=1)
     img_data = ax.get_array().data
 
-    assert np.abs(img_data[31, 31] - 5.) < 0.025
-    assert np.abs(img_data[31, 1] - 5.) < 0.025
+    assert np.abs(img_data[31, 31] - data[0]) < 0.12
+    assert img_data[31, 31] > 5
 
     # other:
     # ------
