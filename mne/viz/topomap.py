@@ -528,6 +528,8 @@ class _GridData(object):
     def __init__(self, pos, extrapolate, sphere, border):
         # in principle this works in N dimensions, not just 2
         assert pos.ndim == 2 and pos.shape[1] == 2, pos.shape
+        _validate_type(border, ('numeric', str), 'border')
+
         # Adding points outside the extremes helps the interpolators
         outer_pts, tri = _get_extra_points(pos, extrapolate, sphere)
         self.n_extra = outer_pts.shape[0]
@@ -545,9 +547,10 @@ class _GridData(object):
         # see scipy/interpolate/rbf.py, especially the self.nodes one-liner.
         from scipy.interpolate import CloughTocher2DInterpolator
 
-        if isinstance(self.border, Integral):
-            v_extra = np.ones(self.n_extra) * self.border
-        elif isinstance(self.border, str) and self.border == 'mean':
+        if isinstance(self.border, str):
+            if self.border != 'mean':
+                raise ValueError('border must be numeric or "mean", got %r' % (self.border,))
+            # border = 'mean'
             n_points = v.shape[0]
             v_extra = np.zeros(self.n_extra)
             indices, indptr = self.tri.vertex_neighbor_vertices
@@ -556,6 +559,8 @@ class _GridData(object):
                 ngb = indptr[indices[extra_idx]:indices[extra_idx + 1]]
                 ngb = ngb[ngb < n_points]
                 v_extra[idx] = v[ngb].mean()
+        else:
+            v_extra = np.full(self.n_extra, self.border, dtype=float)
 
         v = np.concatenate((v, v_extra))
         self.interpolator = CloughTocher2DInterpolator(self.tri, v)
