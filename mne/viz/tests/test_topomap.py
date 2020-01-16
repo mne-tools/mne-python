@@ -218,6 +218,16 @@ def test_plot_topomap_basic():
     assert np.abs(img_data[31, 31] - data[0]) < 0.12
     assert img_data[31, 31] > 5
 
+    # error when not numeric or str:
+    error_msg = 'border must be an instance of numeric or str'
+    with pytest.raises(TypeError, match=error_msg):
+        plot_topomap(data, info, extrapolate='head', border=[1, 2, 3])
+
+    # error when str is not 'mean':
+    error_msg = 'border must be numeric or "mean", got \'fancy\''
+    with pytest.raises(ValueError, match=error_msg):
+        plot_topomap(data, info, extrapolate='head', border='fancy')
+
     # other:
     # ------
     plt_topomap = partial(evoked.plot_topomap, **fast_test)
