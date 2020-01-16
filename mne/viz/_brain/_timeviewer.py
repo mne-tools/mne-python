@@ -271,14 +271,14 @@ class _TimeViewer(object):
         self.plotter.add_key_event('y', self.toggle_interface)
 
         # set the slider style
-        _set_slider_style(smoothing_slider)
-        _set_slider_style(orientation_slider, show_label=False)
-        _set_slider_style(fmin_slider)
-        _set_slider_style(fmid_slider)
-        _set_slider_style(fmax_slider)
-        _set_slider_style(fscale_slider)
-        _set_slider_style(playback_speed_slider)
-        _set_slider_style(time_slider, show_label=False)
+        self.set_slider_style(smoothing_slider)
+        self.set_slider_style(orientation_slider, show_label=False)
+        self.set_slider_style(fmin_slider)
+        self.set_slider_style(fmid_slider)
+        self.set_slider_style(fmax_slider)
+        self.set_slider_style(fscale_slider)
+        self.set_slider_style(playback_speed_slider)
+        self.set_slider_style(time_slider, show_label=False)
 
         # set the text style
         _set_text_style(self.time_actor)
@@ -326,18 +326,30 @@ class _TimeViewer(object):
                 self.playback = False
             self.plotter.update()  # critical for smooth animation
 
+    def set_slider_style(self, slider, show_label=True):
+        if slider is not None:
+            slider_rep = slider.GetRepresentation()
+            slider_rep.SetSliderLength(0.02)
+            slider_rep.SetSliderWidth(0.04)
+            slider_rep.SetTubeWidth(0.005)
+            slider_rep.SetEndCapLength(0.01)
+            slider_rep.SetEndCapWidth(0.02)
+            slider_rep.GetSliderProperty().SetColor((0.5, 0.5, 0.5))
+            if not show_label:
+                slider_rep.ShowSliderLabelOff()
 
-def _set_slider_style(slider, show_label=True):
-    if slider is not None:
-        slider_rep = slider.GetRepresentation()
-        slider_rep.SetSliderLength(0.02)
-        slider_rep.SetSliderWidth(0.04)
-        slider_rep.SetTubeWidth(0.005)
-        slider_rep.SetEndCapLength(0.01)
-        slider_rep.SetEndCapWidth(0.02)
-        slider_rep.GetSliderProperty().SetColor((0.5, 0.5, 0.5))
-        if not show_label:
-            slider_rep.ShowSliderLabelOff()
+            # add support for split window
+            shape = self.plotter.shape
+            pointa = slider_rep.GetPoint1Coordinate().GetValue()
+            pointb = slider_rep.GetPoint2Coordinate().GetValue()
+            pointa = _normalize(pointa, shape)
+            pointb = _normalize(pointb, shape)
+            slider_rep.GetPoint1Coordinate().\
+                SetCoordinateSystemToNormalizedDisplay()
+            slider_rep.GetPoint1Coordinate().SetValue(pointa[0], pointa[1])
+            slider_rep.GetPoint2Coordinate().\
+                SetCoordinateSystemToNormalizedDisplay()
+            slider_rep.GetPoint2Coordinate().SetValue(pointb[0], pointb[1])
 
 
 def _set_text_style(text_actor):
@@ -349,3 +361,7 @@ def _set_text_style(text_actor):
 def _get_range(brain):
     val = np.abs(brain._data['array'])
     return [np.min(val), np.max(val)]
+
+
+def _normalize(point, shape):
+    return (point[0] / shape[1], point[1] / shape[0])
