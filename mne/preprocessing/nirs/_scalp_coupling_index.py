@@ -18,8 +18,9 @@ def scalp_coupling_index(raw, l_freq=0.7, h_freq=1.5,
                          verbose=False):
     r"""Calculate scalp coupling index.
 
-    This function calculates the scalp coupling index [1]. This is a measure of
-    the quality of the connection between the optode and the scalp.
+    This function calculates the scalp coupling index
+    :footcite:`pollonini2014auditory`. This is a measure of the quality of the
+    connection between the optode and the scalp.
 
     Parameters
     ----------
@@ -38,9 +39,7 @@ def scalp_coupling_index(raw, l_freq=0.7, h_freq=1.5,
 
     References
     ----------
-    .. [1] Pollonini, Luca, et al. "Auditory cortex activation to natural
-       speech and simulated cochlear implant speech measured with functional
-       near-infrared spectroscopy." Hearing research 309 (2014): 84-93.
+    .. footbibliography::
     """
     raw = raw.copy().load_data()
     _validate_type(raw, BaseRaw, 'fnirs_od')

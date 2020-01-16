@@ -8,6 +8,7 @@ import os.path as op
 
 import pytest
 import numpy as np
+from numpy.testing import assert_allclose, assert_array_less
 
 from mne.datasets.testing import data_path
 from mne.io import read_raw_nirx
@@ -34,8 +35,8 @@ def test_scalp_coupling_index(fname, fmt, tmpdir):
     sci = scalp_coupling_index(raw)
 
     # All values should be between -1 and +1
-    assert (sci < 1.0).all()
-    assert (sci > -1.0).all()
+    assert_array_less(sci, 1.0)
+    assert_array_less(sci * -1.0, 1.0)
 
     # Fill in some data with known correlation values
     new_data = np.random.rand(raw._data[0].shape[0])
@@ -54,11 +55,6 @@ def test_scalp_coupling_index(fname, fmt, tmpdir):
     raw._data[7] = np.random.rand(raw._data[0].shape[0])
     # Check values
     sci = scalp_coupling_index(raw)
-    np.testing.assert_almost_equal(sci[0], 1)
-    np.testing.assert_almost_equal(sci[1], 1)
-    np.testing.assert_almost_equal(sci[2], 1)
-    np.testing.assert_almost_equal(sci[3], 1)
-    np.testing.assert_almost_equal(sci[4], -1)
-    np.testing.assert_almost_equal(sci[5], -1)
+    assert_allclose(sci[0:6], [1, 1, 1, 1, -1, -1], atol=0.01)
     assert np.abs(sci[6]) < 0.5
     assert np.abs(sci[7]) < 0.5

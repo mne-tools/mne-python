@@ -4,7 +4,7 @@
 #
 # License: BSD (3-clause)
 
-import re as re
+import re
 import numpy as np
 from scipy import linalg
 
