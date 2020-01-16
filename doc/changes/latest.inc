@@ -170,6 +170,8 @@ Bug
 
 - Fix check for subject definition existing in source space in :func:`mne.compute_source_morph` and related functions by `Eric Larson`_
 
+- Fix creation of new figures in :meth:`mne.Epochs.plot_image` and :func:`mne.viz.plot_epochs_image` by `Eric Larson`_
+
 - Fix bug in :class:`~mne.preprocessing.Xdawn` where filters where selected along the incorrect axis, by `Henrich Kolkhorst`_
 
 - Fix bug in :func:`mne.bem.make_watershed_bem` where some surfaces were saved incorrectly in the working directory by `Yu-Han Luo`_
