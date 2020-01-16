@@ -967,6 +967,7 @@ class _Brain(object):
 
     def update_auto_scaling(self, state):
         from ..backends._pyvista import _set_colormap_range
+        from scipy.interpolate import interp1d
         if not hasattr(self, '_backup'):
             self._backup = {
                 'fmin': self._data['fmin'],
@@ -981,11 +982,15 @@ class _Brain(object):
             colormap = self._data['colormap']
             transparent = self._data['transparent']
             time_idx = self._data['time_idx']
-            array = self._data['array']
-            if self._data['array'].ndim == 1:
-                act_data = array
-            elif self._data['array'].ndim == 2:
-                act_data = array[:, time_idx]
+            act_data = self._data['array']
+            if self._data['array'].ndim == 2:
+                if isinstance(time_idx, int):
+                    act_data = act_data[:, time_idx]
+                else:
+                    times = np.arange(self._n_times)
+                    act_data = interp1d(
+                        times, act_data, 'linear', axis=1,
+                        assume_sorted=True)(time_idx)
             colormap, scale_pts, diverging, transparent, _ = \
                 _limits_to_control_points(clim, act_data, colormap,
                                           transparent)
