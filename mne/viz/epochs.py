@@ -394,7 +394,8 @@ def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar, clear=False):
         rowspan = 2 if evoked else 3
         shape = (3, 10)
         for this_group in group_by:
-            this_fig = figure(this_group)
+            this_fig = figure()
+            this_fig.canvas.set_window_title(this_group)
             kwargs = dict()
             if check_version('matplotlib', '2.2'):
                 kwargs['fig'] = this_fig  # unavailable on earlier mpl

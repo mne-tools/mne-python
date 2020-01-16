@@ -174,9 +174,14 @@ def test_plot_epochs_image():
     `plt.close('all')` just before the offending test seems to prevent this
     warning, though it's unclear why.
     """
+    plt.close('all')
     epochs = _get_epochs()
     figs = epochs.plot_image()
     assert len(figs) == 2  # one fig per ch_type (test data has mag, grad)
+    assert len(plt.get_fignums()) == 2
+    figs = epochs.plot_image()
+    assert len(figs) == 2
+    assert len(plt.get_fignums()) == 4  # should create new figures
     epochs.plot_image(picks='mag', sigma=0.1)
     epochs.plot_image(picks=[0, 1], combine='mean',
                       ts_args=dict(show_sensors=False))
