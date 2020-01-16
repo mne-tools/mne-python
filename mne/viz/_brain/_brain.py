@@ -751,8 +751,15 @@ class _Brain(object):
         elif isinstance(view, dict):
             view = View(azim=view['azimuth'],
                         elev=view['elevation'])
-        self._renderer.set_camera(azimuth=view.azim,
-                                  elevation=view.elev)
+        for hemi in ['lh', 'rh']:
+            for ri, v in enumerate(self._views):
+                if self._hemi != 'split':
+                    ci = 0
+                else:
+                    ci = 0 if hemi == 'lh' else 1
+                self._renderer.subplot(ri, ci)
+                self._renderer.set_camera(azimuth=view.azim,
+                                          elevation=view.elev)
 
     def save_image(self, filename, mode='rgb'):
         """Save view from all panels to disk.

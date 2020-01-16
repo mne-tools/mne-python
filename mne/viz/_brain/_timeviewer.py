@@ -115,7 +115,31 @@ class _TimeViewer(object):
         self.brain = brain
         self.plotter = brain._renderer.plotter
 
-        # put all controls on first view
+        # default: put orientation slider on the first view
+        if self.brain._hemi == 'split':
+            self.plotter.subplot(0, 0)
+
+        # orientation slider
+        orientation = [
+            'lateral',
+            'medial',
+            'rostral',
+            'caudal',
+            'dorsal',
+            'ventral',
+            'frontal',
+            'parietal'
+        ]
+        orientation_slider = self.plotter.add_text_slider_widget(
+            brain.show_view,
+            value=0,
+            data=orientation,
+            pointa=(0.82, 0.74),
+            pointb=(0.98, 0.74),
+            event_type='always'
+        )
+
+        # necessary because show_view modified subplot
         if self.brain._hemi == 'split':
             self.plotter.subplot(0, 0)
 
@@ -143,26 +167,6 @@ class _TimeViewer(object):
         )
         smoothing_slider.name = 'smoothing'
         self.set_smoothing(default_smoothing_value)
-
-        # orientation slider
-        orientation = [
-            'lateral',
-            'medial',
-            'rostral',
-            'caudal',
-            'dorsal',
-            'ventral',
-            'frontal',
-            'parietal'
-        ]
-        orientation_slider = self.plotter.add_text_slider_widget(
-            brain.show_view,
-            value=0,
-            data=orientation,
-            pointa=(0.82, 0.74),
-            pointb=(0.98, 0.74),
-            event_type='always'
-        )
 
         # time label
         self.time_actor = brain._data.get('_time_actor')
