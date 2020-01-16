@@ -21,11 +21,11 @@ from mne import (read_evokeds, read_proj, make_fixed_length_events, Epochs,
                  compute_proj_evoked, find_layout, pick_types, create_info,
                  EvokedArray)
 from mne.io.proj import make_eeg_average_ref_proj, Projection
-from mne.io import read_raw_fif, read_info
+from mne.io import read_raw_fif, read_info, RawArray
 from mne.io.constants import FIFF
 from mne.io.pick import pick_info, channel_indices_by_type
 from mne.io.compensator import get_current_comp
-from mne.channels import read_layout, make_standard_montage
+from mne.channels import read_layout, make_standard_montage, make_dig_montage
 from mne.datasets import testing
 from mne.time_frequency.tfr import AverageTFR
 from mne.utils import run_tests_if_main
@@ -480,6 +480,20 @@ def test_plot_topomap_neuromag122():
     plot_projs_topomap([proj], evoked.info, **fast_test)
     with pytest.deprecated_call(match='layout'):
         plot_projs_topomap([proj], evoked.info, layout=layout, **fast_test)
+
+
+def test_plot_topomap_bads():
+    """Test plotting topomap with bad channels (gh-7213)."""
+    import matplotlib.pyplot as plt
+    data = np.random.RandomState(0).randn(3, 1000)
+    raw = RawArray(data, create_info(3, 1000., 'eeg'))
+    ch_pos_dict = {name: pos for name, pos in zip(raw.ch_names, np.eye(3))}
+    raw.info.set_montage(make_dig_montage(ch_pos_dict, coord_frame='head'))
+    for count in range(3):
+        raw.info['bads'] = raw.ch_names[:count]
+        raw.info._check_consistency()
+        plot_topomap(data[:, 0], raw.info)
+    plt.close('all')
 
 
 run_tests_if_main()
