@@ -46,8 +46,10 @@ def test_brain_init(renderer):
     with pytest.raises(KeyError):
         _Brain(subject_id=subject_id, hemi='foo', surf=surf)
 
-    _Brain(subject_id, hemi, surf, size=(300, 300),
-           subjects_dir=subjects_dir)
+    brain = _Brain(subject_id, hemi, surf, size=(300, 300),
+                   subjects_dir=subjects_dir)
+    brain.show_view(view=dict(azimuth=180., elevation=90.))
+    brain.close()
 
 
 @testing.requires_testing_data
@@ -57,6 +59,7 @@ def test_brain_screenshot(renderer):
                    surf=surf, subjects_dir=subjects_dir)
     img = brain.screenshot(mode='rgb')
     assert(img.shape == (600, 600, 3))
+    brain.close()
 
 
 @testing.requires_testing_data
@@ -94,7 +97,8 @@ def test_brain_add_data(renderer):
                         smoothing_steps=0, colorbar=False, time=None)
     brain_data.add_data(hemi_data, fmin=fmin, hemi=hemi, fmax=fmax,
                         colormap='hot', vertices=hemi_vertices,
-                        initial_time=0., colorbar=True, time=None)
+                        initial_time=0., colorbar=False, time=None)
+    brain_data.close()
 
 
 @testing.requires_testing_data
@@ -106,6 +110,7 @@ def test_brain_add_label(renderer):
     label = read_label(fname_label)
     brain.add_label(fname_label)
     brain.add_label(label, scalar_thresh=0.)
+    brain.close()
 
 
 @testing.requires_testing_data
@@ -115,6 +120,7 @@ def test_brain_add_foci(renderer):
                    surf=surf, subjects_dir=subjects_dir)
     brain.add_foci([0], coords_as_verts=True,
                    hemi='lh', color='blue')
+    brain.close()
 
 
 @testing.requires_testing_data
@@ -123,6 +129,7 @@ def test_brain_add_text(renderer):
     brain = _Brain(subject_id, hemi='lh', size=250,
                    surf=surf, subjects_dir=subjects_dir)
     brain.add_text(x=0, y=0, text='foo')
+    brain.close()
 
 
 @testing.requires_testing_data
@@ -147,22 +154,23 @@ def test_brain_timeviewer(renderer):
     stc_data.shape = (n_verts, n_time)
     stc = SourceEstimate(stc_data, vertices, 1, 1)
 
-    hemi = 'lh'
-    hemi_data = getattr(stc, hemi + '_data')
-    hemi_vertices = stc.vertices[0]
     fmin = stc.data.min()
     fmax = stc.data.max()
-
-    brain_data = _Brain(subject_id, hemi, surf, size=300,
+    brain_data = _Brain(subject_id, 'split', surf, size=300,
                         subjects_dir=subjects_dir)
-
-    brain_data.add_data(hemi_data, fmin=fmin, hemi=hemi, fmax=fmax,
-                        colormap='hot', vertices=hemi_vertices,
-                        colorbar=False)
+    for hemi in ['lh', 'rh']:
+        hemi_idx = 0 if hemi == 'lh' else 1
+        data = getattr(stc, hemi + '_data')
+        vertices = stc.vertices[hemi_idx]
+        brain_data.add_data(data, fmin=fmin, hemi=hemi, fmax=fmax,
+                            colormap='hot', vertices=vertices,
+                            colorbar=True)
 
     brain_data.set_time_point(time_idx=0)
 
     time_viewer = _TimeViewer(brain_data)
+    time_viewer.show_view('lat', update_widget=True)
+    time_viewer.show_view('medial', update_widget=True)
     time_viewer.set_smoothing(value=1)
     time_viewer.update_fmin(value=12.0)
     time_viewer.update_fmax(value=4.0)

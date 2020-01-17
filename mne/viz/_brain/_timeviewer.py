@@ -108,12 +108,89 @@ class BumpColorbarPoints(object):
             self.last_update = time.time()
 
 
+class ShowView(object):
+    """Class that selects the correct view."""
+
+    def __init__(self, plotter=None, brain=None, orientation=None,
+                 row=None, col=None, hemi=None, name=None):
+        self.plotter = plotter
+        self.brain = brain
+        self.orientation = orientation
+        self.short_orientation = [s[:3] for s in orientation]
+        self.row = row
+        self.col = col
+        self.hemi = hemi
+        self.name = name
+
+    def __call__(self, value, update_widget=False):
+        """Update the view."""
+        self.brain.show_view(value, row=self.row, col=self.col,
+                             hemi=self.hemi)
+        if update_widget:
+            if len(value) > 3:
+                idx = self.orientation.index(value)
+            else:
+                idx = self.short_orientation.index(value)
+            for slider in self.plotter.slider_widgets:
+                name = getattr(slider, "name", None)
+                if name == self.name:
+                    slider_rep = slider.GetRepresentation()
+                    slider_rep.SetValue(idx)
+                    slider_rep.SetTitleText(self.orientation[idx])
+
+
 class _TimeViewer(object):
     """Class to interact with _Brain."""
 
     def __init__(self, brain):
         self.brain = brain
         self.plotter = brain._renderer.plotter
+
+        # orientation slider
+        orientation = [
+            'lateral',
+            'medial',
+            'rostral',
+            'caudal',
+            'dorsal',
+            'ventral',
+            'frontal',
+            'parietal'
+        ]
+
+        # default: put orientation slider on the first view
+        if self.brain._hemi == 'split':
+            self.plotter.subplot(0, 0)
+
+        for hemi in self.brain._hemis:
+            ci = 0 if hemi == 'lh' else 1
+            for ri, view in enumerate(self.brain._views):
+                self.plotter.subplot(ri, ci)
+                name = "orientation_" + str(ri) + "_" + str(ci)
+                self.show_view = ShowView(
+                    plotter=self.plotter,
+                    brain=self.brain,
+                    orientation=orientation,
+                    hemi=hemi,
+                    row=ri,
+                    col=ci,
+                    name=name
+                )
+                orientation_slider = self.plotter.add_text_slider_widget(
+                    self.show_view,
+                    value=0,
+                    data=orientation,
+                    pointa=(0.82, 0.74),
+                    pointb=(0.98, 0.74),
+                    event_type='always'
+                )
+                orientation_slider.name = name
+                self.set_slider_style(orientation_slider, show_label=False)
+                self.show_view(view, update_widget=True)
+
+        # necessary because show_view modified subplot
+        if self.brain._hemi == 'split':
+            self.plotter.subplot(0, 0)
 
         # scalar bar
         if brain._colorbar_added:
@@ -140,32 +217,11 @@ class _TimeViewer(object):
         smoothing_slider.name = 'smoothing'
         self.set_smoothing(default_smoothing_value)
 
-        # orientation slider
-        orientation = [
-            'lateral',
-            'medial',
-            'rostral',
-            'caudal',
-            'dorsal',
-            'ventral',
-            'frontal',
-            'parietal'
-        ]
-        orientation_slider = self.plotter.add_text_slider_widget(
-            brain.show_view,
-            value=0,
-            data=orientation,
-            pointa=(0.82, 0.74),
-            pointb=(0.98, 0.74),
-            event_type='always'
-        )
-
         # time label
-        for hemi in brain._hemis:
-            self.time_actor = brain._data.get(hemi + '_time_actor')
-            if self.time_actor is not None:
-                self.time_actor.SetPosition(0.5, 0.03)
-                self.time_actor.GetTextProperty().SetJustificationToCentered()
+        self.time_actor = brain._data.get('time_actor')
+        if self.time_actor is not None:
+            self.time_actor.SetPosition(0.5, 0.03)
+            self.time_actor.GetTextProperty().SetJustificationToCentered()
 
         # time slider
         max_time = len(brain._data['time']) - 1
@@ -264,14 +320,13 @@ class _TimeViewer(object):
         self.plotter.add_key_event('y', self.toggle_interface)
 
         # set the slider style
-        _set_slider_style(smoothing_slider)
-        _set_slider_style(orientation_slider, show_label=False)
-        _set_slider_style(fmin_slider)
-        _set_slider_style(fmid_slider)
-        _set_slider_style(fmax_slider)
-        _set_slider_style(fscale_slider)
-        _set_slider_style(playback_speed_slider)
-        _set_slider_style(time_slider, show_label=False)
+        self.set_slider_style(smoothing_slider)
+        self.set_slider_style(fmin_slider)
+        self.set_slider_style(fmid_slider)
+        self.set_slider_style(fmax_slider)
+        self.set_slider_style(fscale_slider)
+        self.set_slider_style(playback_speed_slider)
+        self.set_slider_style(time_slider, show_label=False)
 
         # set the text style
         _set_text_style(self.time_actor)
@@ -319,18 +374,30 @@ class _TimeViewer(object):
                 self.playback = False
             self.plotter.update()  # critical for smooth animation
 
+    def set_slider_style(self, slider, show_label=True):
+        if slider is not None:
+            slider_rep = slider.GetRepresentation()
+            slider_rep.SetSliderLength(0.02)
+            slider_rep.SetSliderWidth(0.04)
+            slider_rep.SetTubeWidth(0.005)
+            slider_rep.SetEndCapLength(0.01)
+            slider_rep.SetEndCapWidth(0.02)
+            slider_rep.GetSliderProperty().SetColor((0.5, 0.5, 0.5))
+            if not show_label:
+                slider_rep.ShowSliderLabelOff()
 
-def _set_slider_style(slider, show_label=True):
-    if slider is not None:
-        slider_rep = slider.GetRepresentation()
-        slider_rep.SetSliderLength(0.02)
-        slider_rep.SetSliderWidth(0.04)
-        slider_rep.SetTubeWidth(0.005)
-        slider_rep.SetEndCapLength(0.01)
-        slider_rep.SetEndCapWidth(0.02)
-        slider_rep.GetSliderProperty().SetColor((0.5, 0.5, 0.5))
-        if not show_label:
-            slider_rep.ShowSliderLabelOff()
+            # add support for split window
+            shape = self.plotter.shape
+            pointa = slider_rep.GetPoint1Coordinate().GetValue()
+            pointb = slider_rep.GetPoint2Coordinate().GetValue()
+            pointa = _normalize(pointa, shape)
+            pointb = _normalize(pointb, shape)
+            slider_rep.GetPoint1Coordinate().\
+                SetCoordinateSystemToNormalizedDisplay()
+            slider_rep.GetPoint1Coordinate().SetValue(pointa[0], pointa[1])
+            slider_rep.GetPoint2Coordinate().\
+                SetCoordinateSystemToNormalizedDisplay()
+            slider_rep.GetPoint2Coordinate().SetValue(pointb[0], pointb[1])
 
 
 def _set_text_style(text_actor):
@@ -342,3 +409,7 @@ def _set_text_style(text_actor):
 def _get_range(brain):
     val = np.abs(brain._data['array'])
     return [np.min(val), np.max(val)]
+
+
+def _normalize(point, shape):
+    return (point[0] / shape[1], point[1] / shape[0])
