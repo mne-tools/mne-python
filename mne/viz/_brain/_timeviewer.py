@@ -319,6 +319,12 @@ class _TimeViewer(object):
         self.visibility = True
         self.plotter.add_key_event('y', self.toggle_interface)
 
+        # apply auto-scaling action
+        self.plotter.add_key_event('t', self.apply_auto_scaling)
+
+        # restore user scaling action
+        self.plotter.add_key_event('u', self.restore_user_scaling)
+
         # set the slider style
         self.set_slider_style(smoothing_slider)
         self.set_slider_style(fmin_slider)
@@ -338,6 +344,40 @@ class _TimeViewer(object):
                 slider.On()
             else:
                 slider.Off()
+
+    def apply_auto_scaling(self):
+        self.brain.update_auto_scaling()
+        fmin = self.brain._data['fmin']
+        fmid = self.brain._data['fmid']
+        fmax = self.brain._data['fmax']
+        for slider in self.plotter.slider_widgets:
+            name = getattr(slider, "name", None)
+            if name == "fmin":
+                slider_rep = slider.GetRepresentation()
+                slider_rep.SetValue(fmin)
+            elif name == "fmid":
+                slider_rep = slider.GetRepresentation()
+                slider_rep.SetValue(fmid)
+            elif name == "fmax":
+                slider_rep = slider.GetRepresentation()
+                slider_rep.SetValue(fmax)
+
+    def restore_user_scaling(self):
+        self.brain.update_auto_scaling(restore=True)
+        fmin = self.brain._data['fmin']
+        fmid = self.brain._data['fmid']
+        fmax = self.brain._data['fmax']
+        for slider in self.plotter.slider_widgets:
+            name = getattr(slider, "name", None)
+            if name == "fmin":
+                slider_rep = slider.GetRepresentation()
+                slider_rep.SetValue(fmin)
+            elif name == "fmid":
+                slider_rep = slider.GetRepresentation()
+                slider_rep.SetValue(fmid)
+            elif name == "fmax":
+                slider_rep = slider.GetRepresentation()
+                slider_rep.SetValue(fmax)
 
     def toggle_playback(self):
         self.playback = not self.playback
