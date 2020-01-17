@@ -970,12 +970,13 @@ class _Brain(object):
     def update_auto_scaling(self, restore=False):
         from ..backends._pyvista import _set_colormap_range
         from scipy.interpolate import interp1d
-        if 'lims' in self._data['clim']:
+        user_clim = self._data['clim']
+        if user_clim is not None and 'lims' in user_clim:
             allow_pos_lims = False
         else:
             allow_pos_lims = True
-        if restore:
-            clim = self._data['clim']
+        if user_clim is not None and restore:
+            clim = user_clim
         else:
             clim = 'auto'
         colormap = self._data['colormap']
