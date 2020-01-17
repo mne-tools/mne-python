@@ -864,18 +864,14 @@ class _Brain(object):
             if hemi_data is not None:
                 array = hemi_data['array']
                 for mesh in hemi_data['mesh']:
-                    if array.ndim == 1:
-                        continue  # skip data without time axis
                     # interpolation
                     if array.ndim == 2:
-                        act_data = array
-
-                    if isinstance(time_idx, int):
-                        act_data = act_data[:, time_idx]
-                    else:
-                        times = np.arange(self._n_times)
-                        act_data = interp1d(times, act_data, 'linear', axis=1,
-                                            assume_sorted=True)(time_idx)
+                        if isinstance(time_idx, int):
+                            act_data = array[:, time_idx]
+                        else:
+                            times = np.arange(self._n_times)
+                            act_data = interp1d(times, array, 'linear', axis=1,
+                                                assume_sorted=True)(time_idx)
 
                     smooth_mat = hemi_data['smooth_mat']
                     if smooth_mat is not None:
