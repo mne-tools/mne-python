@@ -171,7 +171,7 @@ def test_brain_timeviewer(renderer):
     time_viewer.update_fscale(value=1.1)
     time_viewer.toggle_interface()
     time_viewer.toggle_playback()
-    time_viewer.toggle_auto_scaling()
+    time_viewer.apply_auto_scaling()
     time_viewer.restore_user_scaling()
 
 
