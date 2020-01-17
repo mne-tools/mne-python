@@ -993,15 +993,14 @@ class _Brain(object):
         user_colormap = self._data['user_colormap']
         transparent = self._data['transparent']
         time_idx = self._data['time_idx']
-        act_data = self._data['array']
-        if self._data['array'].ndim == 2:
-            if isinstance(time_idx, int):
-                act_data = act_data[:, time_idx]
-            else:
-                times = np.arange(self._n_times)
-                act_data = interp1d(
-                    times, act_data, 'linear', axis=1,
-                    assume_sorted=True)(time_idx)
+        array = self._data['array']
+        if isinstance(time_idx, int):
+            act_data = array[:, time_idx]
+        else:
+            times = np.arange(self._n_times)
+            act_data = interp1d(
+                times, array, 'linear', axis=1,
+                assume_sorted=True)(time_idx)
         colormap, scale_pts, diverging, transparent, _ = \
             _limits_to_control_points(clim, act_data, user_colormap,
                                       transparent, allow_pos_lims)
@@ -1013,17 +1012,18 @@ class _Brain(object):
         ctable = self.update_lut(fmin=fmin, fmid=fmid, fmax=fmax)
         ctable = (ctable * 255).astype(np.uint8)
         for hemi in ['lh', 'rh']:
-            actor = self._data.get(hemi + '_actor')
-            if actor is not None:
-                dt_max = fmax
-                dt_min = fmin if center is None else -1 * fmax
-                rng = [dt_min, dt_max]
-                if self._colorbar_added:
-                    scalar_bar = self._renderer.plotter.scalar_bar
-                else:
-                    scalar_bar = None
-                _set_colormap_range(actor, ctable, scalar_bar, rng)
-                self._data['ctable'] = ctable
+            hemi_data = self._data.get(hemi)
+            if hemi_data is not None:
+                for actor in hemi_data['actor']:
+                    dt_max = fmax
+                    dt_min = fmin if center is None else -1 * fmax
+                    rng = [dt_min, dt_max]
+                    if self._colorbar_added:
+                        scalar_bar = self._renderer.plotter.scalar_bar
+                    else:
+                        scalar_bar = None
+                    _set_colormap_range(actor, ctable, scalar_bar, rng)
+                    self._data['ctable'] = ctable
 
     @property
     def data(self):
