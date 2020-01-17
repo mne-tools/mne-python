@@ -50,13 +50,16 @@ def _easycap(basename, head_size):
 
     ch_pos = montage._get_ch_pos()
 
-    nasion = np.concatenate([[0], ch_pos['Fpz'][1:]])
-    lpa = np.mean([ch_pos['FT9'],
-                   ch_pos['TP9']], axis=0)
-    lpa *= head_size / np.linalg.norm(lpa)  # on sphere
-    rpa = np.mean([ch_pos['FT10'],
-                   ch_pos['TP10']], axis=0)
-    rpa *= head_size / np.linalg.norm(rpa)
+    if basename == 'easycap-M1.txt':
+        nasion = np.concatenate([[0], ch_pos['Fpz'][1:]])
+        lpa = np.mean([ch_pos['FT9'], ch_pos['TP9']], axis=0)
+        lpa *= head_size / np.linalg.norm(lpa)  # on sphere
+        rpa = np.mean([ch_pos['FT10'], ch_pos['TP10']], axis=0)
+        rpa *= head_size / np.linalg.norm(rpa)
+    elif basename == 'easycap-M10.txt':
+        nasion = lpa = rpa = None
+    else:
+        raise NotImplementedError("%r montage" % basename)
 
     fids_montage = make_dig_montage(
         coord_frame='unknown', nasion=nasion, lpa=lpa, rpa=rpa,
@@ -127,7 +130,7 @@ standard_montage_look_up_table = {
     'EGI_256': _egi_256,
 
     'easycap-M1': partial(_easycap, basename='easycap-M1.txt'),
-    'easycap-M10': partial(_easycap, basename='easycap-M1.txt'),
+    'easycap-M10': partial(_easycap, basename='easycap-M10.txt'),
 
     'GSN-HydroCel-128': partial(_hydrocel, basename='GSN-HydroCel-128.sfp'),
     'GSN-HydroCel-129': partial(_hydrocel, basename='GSN-HydroCel-129.sfp'),
