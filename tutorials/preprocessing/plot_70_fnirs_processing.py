@@ -54,6 +54,24 @@ raw_od.plot(n_channels=len(raw_od.ch_names), duration=500)
 
 
 ###############################################################################
+# Evaluating the quality of the data
+# ----------------------------------
+#
+# At this stage we can quantify the quality of the coupling
+# between the scalp and the optodes using the scalp coupling index. This
+# method looks at the presence of a prominent synchronous signal in the
+# frequency range of cardiac signals across both photodetected signals.
+#
+# As this data is clean and the coupling is good for all channels we will
+# not mark any channels as bad based on the scalp coupling index.
+
+sci = mne.preprocessing.nirs.scalp_coupling_index(raw_od)
+fig, ax = plt.subplots()
+ax.hist(sci)
+ax.set(xlabel='Scalp Coupling Index', ylabel='Count', xlim=[0, 1])
+
+
+###############################################################################
 # Converting from optical density to haemoglobin
 # ----------------------------------------------
 #
