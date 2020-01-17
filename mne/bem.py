@@ -1042,7 +1042,7 @@ def _check_origin(origin, info, coord_frame='head', disp=False):
 @verbose
 def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                        volume='T1', atlas=False, gcaatlas=False, preflood=None,
-                       show=False, copy=False, T1=None, brainmask='ws',
+                       show=False, copy=False, T1=None, brainmask='ws.mgz',
                        verbose=None):
     """Create BEM surfaces using the FreeSurfer watershed algorithm.
 
