@@ -1536,6 +1536,14 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     return fig
 
 
+def plot_linked_brains(brains):
+    import collections
+    from ._brain import _LinkViewer
+    if not isinstance(brains, collections.Iterable):
+        brains = [brains]
+    return _LinkViewer(brains)
+
+
 @verbose
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='auto', time_label='auto',

@@ -6,6 +6,7 @@
 
 import time
 import numpy as np
+from ..backends._pyvista import _update_slider_callback
 
 
 class IntSlider(object):
@@ -144,6 +145,7 @@ class _TimeViewer(object):
 
     def __init__(self, brain):
         self.brain = brain
+        self.brain.time_viewer = self
         self.plotter = brain._renderer.plotter
 
         # orientation slider
@@ -225,8 +227,9 @@ class _TimeViewer(object):
 
         # time slider
         max_time = len(brain._data['time']) - 1
+        self.set_time_point = brain.set_time_point,
         time_slider = self.plotter.add_slider_widget(
-            brain.set_time_point,
+            self.set_time_point,
             value=brain._data['time_idx'],
             rng=[0, max_time],
             pointa=(0.23, 0.1),
@@ -438,6 +441,37 @@ class _TimeViewer(object):
             slider_rep.GetPoint2Coordinate().\
                 SetCoordinateSystemToNormalizedDisplay()
             slider_rep.GetPoint2Coordinate().SetValue(pointb[0], pointb[1])
+
+
+class _LinkViewer(object):
+    """Class to link multiple _TimeViewer objects."""
+
+    def __init__(self, brains):
+        self.brains = brains
+        self.time_viewers = [brain.time_viewer for brain in brains]
+
+        # link time sliders
+        self.link_sliders(
+            name="time_slider",
+            callback=self.set_time_point,
+            event_type="always"
+        )
+
+    def set_time_point(self, value):
+        for brain in self.brains:
+            brain.set_time_point(value)
+
+    def link_sliders(self, name, callback, event_type):
+        for time_viewer in self.time_viewers:
+            plotter = time_viewer.plotter
+            for slider in plotter.slider_widgets:
+                slider_name = getattr(slider, "name", None)
+                if slider_name == name:
+                    _update_slider_callback(
+                        slider=slider,
+                        callback=callback,
+                        event_type=event_type
+                    )
 
 
 def _set_text_style(text_actor):
