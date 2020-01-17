@@ -1537,6 +1537,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
 
 
 def plot_linked_brains(brains):
+    """Plot multiple SourceEstimate objects with PyVista."""
     import collections
     from ._brain import _LinkViewer
     if not isinstance(brains, collections.Iterable):
