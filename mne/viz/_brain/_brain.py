@@ -229,7 +229,7 @@ class _Brain(object):
                  time_label="time index=%d", colorbar=True,
                  hemi=None, remove_existing=None, time_label_size=None,
                  initial_time=None, scale_factor=None, vector_alpha=None,
-                 verbose=None):
+                 clim=None, user_colormap=None, verbose=None):
         u"""Display data from a numpy array on the surface.
 
         This provides a similar interface to
@@ -390,6 +390,8 @@ class _Brain(object):
             fmin, fmid, fmax, center, array
         )
 
+        self._data['clim'] = clim
+        self._data['user_colormap'] = user_colormap
         self._data['time'] = time
         self._data['initial_time'] = initial_time
         self._data['time_label'] = time_label
@@ -965,11 +967,19 @@ class _Brain(object):
         self._data['fmid'] = fmid
         self._data['fmax'] = fmax
 
-    def update_auto_scaling(self):
+    def update_auto_scaling(self, restore=False):
         from ..backends._pyvista import _set_colormap_range
         from scipy.interpolate import interp1d
-        clim = 'auto'
+        if 'lims' in self._data['clim']:
+            allow_pos_lims = False
+        else:
+            allow_pos_lims = True
+        if restore:
+            clim = self._data['clim']
+        else:
+            clim = 'auto'
         colormap = self._data['colormap']
+        user_colormap = self._data['user_colormap']
         transparent = self._data['transparent']
         time_idx = self._data['time_idx']
         act_data = self._data['array']
@@ -982,8 +992,8 @@ class _Brain(object):
                     times, act_data, 'linear', axis=1,
                     assume_sorted=True)(time_idx)
         colormap, scale_pts, diverging, transparent, _ = \
-            _limits_to_control_points(clim, act_data, colormap,
-                                      transparent)
+            _limits_to_control_points(clim, act_data, user_colormap,
+                                      transparent, allow_pos_lims)
         fmin, fmid, fmax = scale_pts
         center = 0. if diverging else None
         self._data['center'] = center
