@@ -53,13 +53,15 @@ def _easycap(basename, head_size):
     if basename == 'easycap-M1.txt':
         nasion = np.concatenate([[0], ch_pos['Fpz'][1:]])
         lpa = np.mean([ch_pos['FT9'], ch_pos['TP9']], axis=0)
-        lpa *= head_size / np.linalg.norm(lpa)  # on sphere
         rpa = np.mean([ch_pos['FT10'], ch_pos['TP10']], axis=0)
-        rpa *= head_size / np.linalg.norm(rpa)
     elif basename == 'easycap-M10.txt':
-        nasion = lpa = rpa = None
+        nasion = np.concatenate([[0], ch_pos['35'][1:]])
+        lpa = np.mean([ch_pos['60'], ch_pos['59']], axis=0)
+        rpa = np.mean([ch_pos['52'], ch_pos['53']], axis=0)
     else:
         raise NotImplementedError("%r montage" % basename)
+    lpa *= head_size / np.linalg.norm(lpa)  # on sphere
+    rpa *= head_size / np.linalg.norm(rpa)
 
     fids_montage = make_dig_montage(
         coord_frame='unknown', nasion=nasion, lpa=lpa, rpa=rpa,
