@@ -549,7 +549,8 @@ class _GridData(object):
 
         if isinstance(self.border, str):
             if self.border != 'mean':
-                raise ValueError('border must be numeric or "mean", got %r' % (self.border,))
+                msg = 'border must be numeric or "mean", got %r'
+                raise ValueError(msg.format(self.border))
             # border = 'mean'
             n_points = v.shape[0]
             v_extra = np.zeros(self.n_extra)
@@ -892,7 +893,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
                       title=None, show=True, outlines='head', contours=6,
                       image_interp='bilinear', head_pos=None, axes=None,
                       sensors=True, allow_ref_meg=False, extrapolate='box',
-                      sphere=None):
+                      sphere=None, border=0):
     """Plot single ica map to axes."""
     from matplotlib.axes import Axes
 
@@ -923,7 +924,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
         data.ravel(), pos, vmin=vmin_, vmax=vmax_, res=res, axes=axes,
         cmap=cmap, outlines=outlines, contours=contours, sensors=sensors,
         image_interp=image_interp, show=show, extrapolate=extrapolate,
-        head_pos=head_pos, sphere=sphere)[0]
+        head_pos=head_pos, sphere=sphere, border=border)[0]
     if colorbar:
         cbar, cax = _add_colorbar(axes, im, cmap, pad=.05, title="AU",
                                   format='%3.2f')
@@ -1366,8 +1367,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                         show=True, show_names=False, title=None, mask=None,
                         mask_params=None, outlines='head', contours=6,
                         image_interp='bilinear', average=None, head_pos=None,
-                        axes=None, extrapolate='box',
-                        sphere=None):
+                        axes=None, extrapolate='box', sphere=None, border=0):
     """Plot topographic maps of specific time points of evoked data.
 
     Parameters
@@ -1490,6 +1490,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
 
         .. versionadded:: 0.18
     %(topomap_sphere_auto)s
+    %(topomap_border)s
 
     Returns
     -------
@@ -1643,7 +1644,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                   show_names=show_names, cmap=cmap[0], mask_params=mask_params,
                   outlines=outlines, contours=contours, head_pos=head_pos,
                   image_interp=image_interp, show=False,
-                  extrapolate=extrapolate, sphere=sphere)
+                  extrapolate=extrapolate, sphere=sphere, border=border)
     for idx, time in enumerate(times):
         tp, cn, interp = _plot_topomap(
             data[:, idx], pos, axes=axes[idx],
