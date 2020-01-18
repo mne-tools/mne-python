@@ -243,15 +243,33 @@ def _check_pandas_installed(strict=True):
             return False
 
 
-def _check_pandas_index_arguments(index, defaults):
+def _check_pandas_index_arguments(index, valid):
     """Check pandas index arguments."""
+    if index is None:
+        return
     if isinstance(index, str):
         index = [index]
-    invalid_choices = set(index) - set(defaults)
-    if invalid_choices:
-        options = [', '.join(e) for e in [invalid_choices, defaults]]
-        raise ValueError('"%s" is not an valid option. Valid index '
-                         'values are `None` or %s' % tuple(options))
+    invalid = set(index) - set(valid)
+    if invalid:
+        plural = ('is not a valid option',
+                  'are not valid options')[int(len(invalid) > 1)]
+        raise ValueError('"{}" {}. Valid index options are `None`, {}'
+                         .format(', '.join(invalid), plural, ', '.join(valid)))
+    return index
+
+
+def _check_time_format(time_format, valid, meas_date=None):
+    """Check time_format argument."""
+    if time_format not in valid and time_format is not None:
+        valid_str = '", "'.join(valid)
+        raise ValueError('"{}" is not a valid time format. Valid options are '
+                         '"{}" and None.'.format(time_format, valid_str))
+    # allow datetime only if meas_date available
+    if time_format == 'datetime' and meas_date is None:
+        warn("Cannot convert to Datetime when raw.info['meas_date'] is "
+             "None. Falling back to Timedelta.")
+        time_format = 'timedelta'
+    return time_format
 
 
 def _check_ch_locs(chs):

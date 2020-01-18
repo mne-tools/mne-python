@@ -18,8 +18,7 @@ import numpy as np
 
 from .constants import FIFF
 from .utils import _construct_bids_filename, _check_orig_units
-from .pick import (pick_types, channel_type, pick_channels, pick_info,
-                   _picks_to_idx)
+from .pick import (pick_types, pick_channels, pick_info, _picks_to_idx)
 from .meas_info import write_meas_info
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
@@ -40,205 +39,182 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      check_fname, _get_stim_channel, _stamp_to_dt,
                      logger, verbose, _time_mask, warn, SizeMixin,
                      copy_function_doc_to_method_doc, _validate_type,
-                     _check_preload, _get_argvalues, _check_option)
+                     _check_preload, _get_argvalues, _check_option,
+                     _build_data_frame, _set_pandas_dtype, _convert_times,
+                     _scale_dataframe_data, _check_time_format)
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
-from ..defaults import _handle_default
 from ..event import find_events, concatenate_events
 from ..annotations import Annotations, _combine_annotations, _sync_onset
-
-
-def _set_pandas_dtype(df, columns, dtype):
-    """Try to set the right columns to dtype."""
-    for column in columns:
-        df[column] = df[column].astype(dtype)
-        logger.info('Converting "%s" to "%s"...' % (column, dtype))
 
 
 class ToDataFrameMixin(object):
     """Class to add to_data_frame capabilities to certain classes."""
 
     @fill_doc
-    def to_data_frame(self, picks=None, index=None, scaling_time=1e3,
-                      scalings=None, copy=True, start=None, stop=None,
-                      long_format=False):
+    def to_data_frame(self, index=None, time_format='ms', picks=None,
+                      scalings=None, copy=True, long_format=False,
+                      start=None, stop=None):
         """Export data in tabular structure as a pandas DataFrame.
 
-        Columns and indices will depend on the object being converted.
-        Generally this will include as much relevant information as
-        possible for the data type being converted. This makes it easy
-        to convert data for use in packages that utilize dataframes,
-        such as statsmodels or seaborn.
+        Channels are converted to columns in the DataFrame. By default,
+        additional columns "time", "epoch" (epoch number), and "condition"
+        (epoch event description) are added, unless ``index`` is not ``None``
+        (in which case the columns specified in ``index`` will be used to form
+        the DataFrame's index instead).
 
         Parameters
         ----------
-        %(picks_all)s
         index : str | list of str | None
-            Specifies how to index the DataFrame. Valid string options are
-            'epoch', 'time' and 'condition'. If a list of strings is provided,
-            they will be used to create a :class:`pandas.MultiIndex` with
-            levels occurring in the order given. If ``None``, a sequential
-            integer index (:class:`pandas.RangeIndex`) will be used, and
-            'condition', 'epoch' and 'time' will be included in the DataFrame
-            as columns. If 'time' is included in the index, it will be
-            converted to :class:`pandas.DatetimeIndex` (for
-            :class:`~mne.io.Raw` objects) or :class:`pandas.TimedeltaIndex`
-            (for :class:`~mne.Epochs`, :class:`~mne.Evoked`, or
-            :class:`~mne.SourceEstimate` objects).
-        scaling_time : float
-            Scaling to be applied to time units.
+            Kind of index to use for the DataFrame. If ``None``, a sequential
+            integer index (:class:`pandas.RangeIndex`) will be used. If
+            ``'time'``, a :class:`pandas.Float64Index`,
+            :class:`pandas.Int64Index`, :class:`pandas.TimedeltaIndex`, or
+            :class:`pandas.DatetimeIndex` will be used (depending on the value
+            of ``time_format``). If a list of two or more string values, a
+            :class:`pandas.MultiIndex` will be created (only supported for
+            :class:`~mne.Epochs` objects). Valid string values are 'time', and
+            for :class:`~mne.Epochs` objects, 'epoch' and 'condition'.
+            Defaults to ``None``.
+        time_format : str
+            Desired time format. If ``None``, no conversion is applied, and
+            time values remain as float values in seconds. If ``'ms'``, time
+            values will be rounded to the nearest millisecond and converted to
+            integers. If ``'timedelta'``, time values will be converted to
+            :class:`pandas.Timedelta` values. If ``'datetime'``, time values
+            will be converted to :class:`pandas.Datetime` values, relative to
+            ``raw.info['meas_date']`` and offset by ``raw.first_samp`` (only
+            supported for :class:`~mne.io.Raw` objects). Defaults to ``'ms'``.
+        %(picks_all)s
         scalings : dict | None
-            Scaling to be applied to the channels picked. If None, defaults to
-            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)``.
+            Scaling factor applied to the channels picked. If ``None``,
+            defaults to ``dict(eeg=1e6, mag=1e15, grad=1e13)`` — i.e., converts
+            EEG to μV, magnetometers to fT, and gradiometers to fT/cm. Ignored
+            for :class:`~mne.SourceEstimate` objects.
         copy : bool
-            If true, data will be copied. Else data may be modified in place.
-        start : int | None
-            If it is a Raw object, this defines a starting index for creating
-            the dataframe from a slice. The times will be interpolated from the
-            index and the sampling rate of the signal.
-        stop : int | None
-            If it is a Raw object, this defines a stop index for creating
-            the dataframe from a slice. The times will be interpolated from the
-            index and the sampling rate of the signal.
+            If ``True``, data will be copied. Otherwise data may be modified in
+            place. Defaults to ``True``.
         long_format : bool
-            If True, the dataframe is returned in long format where each row
-            is one observation of the signal at a unique coordinate of
-            channels, time points, epochs and conditions. The number of
-            factors depends on the data container. For convenience,
-            a `ch_type` column is added when using this option that will
-            facilitate subsetting the resulting dataframe.
-            Defaults to False.
+            If True, the DataFrame is returned in long format where each row is
+            one observation of the signal at a unique combination of time
+            point and channel (and for :class:`~mne.Epochs` objects, epoch
+            number and condition). Except for :class:`~mne.SourceEstimate`
+            objects, a ``ch_type`` column is added to facilitate subsetting the
+            resulting DataFrame. Defaults to ``False``.
+        start, stop : int | None
+            Starting and ending sample indices for creating the DataFrame from
+            a temporal span of the :class:`~mne.io.Raw` object. Ignored for
+            :class:`~mne.Epochs`, :class:`~mne.Evoked`, and
+            :class:`~mne.SourceEstimate` objects.
 
         Returns
         -------
         df : instance of pandas.DataFrame
             A dataframe suitable for usage with other
-            statistical/plotting/analysis packages. Column/Index values will
-            depend on the object type being converted, but should be
-            human-readable.
+            statistical/plotting/analysis packages.
         """
         from ..epochs import BaseEpochs
         from ..evoked import Evoked
         from ..source_estimate import _BaseSourceEstimate
 
-        pd = _check_pandas_installed()
-        if isinstance(index, str):
-            index = [index]
-        mindex = list()
-        ch_map = None
-        # Treat SourceEstimates special because they don't have the same info
-        if isinstance(self, _BaseSourceEstimate):
+        pd = _check_pandas_installed()  # noqa
+        # triage instance type
+        inst = ('raw' if isinstance(self, BaseRaw) else
+                ('epo' if isinstance(self, BaseEpochs) else
+                 ('evk' if isinstance(self, Evoked) else
+                  ('stc' if isinstance(self, _BaseSourceEstimate) else None))))
+        if inst is None:
+            raise NameError('Converting to DataFrame is only supported for '
+                            'Raw, Epochs, Evoked, and SourceEstimate objects. '
+                            'This is {}'.format(type(self)))
+        # arg checking
+        valid_index_args = dict(epo=['time', 'epoch', 'condition'])
+        valid_index_args = valid_index_args.get(inst, ['time'])
+        valid_time_formats = dict(raw=['ms', 'timedelta', 'datetime'])
+        valid_time_formats = valid_time_formats.get(inst, ['ms', 'timedelta'])
+        index = _check_pandas_index_arguments(index, valid_index_args)
+        time_format = _check_time_format(time_format, valid_time_formats)
+        # get data
+        if inst == 'stc':
             data = self.data.T
             times = self.times
-            shape = data.shape
-            if self.subject is None:
-                default_index = ['time']
-            else:
-                default_index = ['subject', 'time']
-                mindex.append(('subject', np.repeat(self.subject, shape[0])))
-
-            if isinstance(self.vertices, list):
-                # surface source estimates
-                col_names = [i for e in [
-                    ['{} {}'.format('LH' if ii < 1 else 'RH', vert)
-                     for vert in vertno]
-                    for ii, vertno in enumerate(self.vertices)]
-                    for i in e]
-            else:
-                # volume source estimates
-                col_names = ['VOL {}'.format(vert) for vert in self.vertices]
-        elif isinstance(self, (BaseEpochs, BaseRaw, Evoked)):
+        else:
             picks = _picks_to_idx(self.info, picks, 'all', exclude=())
-            if isinstance(self, BaseEpochs):
-                default_index = ['condition', 'epoch', 'time']
+            if inst == 'raw':
+                data, times = self[picks, start:stop]
+                data = data.T
+            elif inst == 'epo':
                 data = self.get_data()[:, picks, :]
                 times = self.times
                 n_epochs, n_picks, n_times = data.shape
                 data = np.hstack(data).T  # (time*epochs) x signals
-
-                # Multi-index creation
-                times = np.tile(times, n_epochs)
-                id_swapped = {v: k for k, v in self.event_id.items()}
-                names = [id_swapped[k] for k in self.events[:, 2]]
-                mindex.append(('condition', np.repeat(names, n_times)))
-                mindex.append(('epoch',
-                               np.repeat(np.arange(n_epochs), n_times)))
-                col_names = [self.ch_names[k] for k in picks]
-
-            elif isinstance(self, (BaseRaw, Evoked)):
-                default_index = ['time']
-                if isinstance(self, BaseRaw):
-                    data, times = self[picks, start:stop]
-                elif isinstance(self, Evoked):
-                    data = self.data[picks, :]
-                    times = self.times
+            elif inst == 'evk':
+                data = self.data[picks, :]
+                times = self.times
                 data = data.T
-                col_names = [self.ch_names[k] for k in picks]
-
-            ch_types = [channel_type(self.info, idx) for idx in picks]
-            ch_map = dict(
-                zip([self.info['ch_names'][pp] for pp in picks],
-                    ch_types))
-
-            ch_types_used = list()
-            scalings = _handle_default('scalings', scalings)
-            for tt in scalings.keys():
-                if tt in ch_types:
-                    ch_types_used.append(tt)
-
-            for tt in ch_types_used:
-                scaling = scalings[tt]
-                idx = [ii for ii in range(len(picks)) if ch_types[ii] == tt]
-                if len(idx) > 0:
-                    data[:, idx] *= scaling
-        else:
-            # In case some other object gets this mixin w/o an explicit check
-            raise NameError('Object must be one of Raw, Epochs, Evoked,  or ' +
-                            'SourceEstimate. This is {}'.format(type(self)))
-
-        # if time is in the index, convert to datetime/timedelta. Otherwise
-        # leave it as a float in seconds
-        if index is not None and 'time' in index:
-            if isinstance(self, BaseRaw):
-                times = (pd.to_timedelta(times + self.first_time, unit='s') +
-                         self.info['meas_date'])
-            else:
-                times = pd.to_timedelta(times, unit='s')
-        mindex.append(('time', times))
-
-        if index is not None:
-            _check_pandas_index_arguments(index, default_index)
-
-        if copy is True:
+        if copy:
             data = data.copy()
-
-        assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
-
+        if inst != 'stc':
+            data = _scale_dataframe_data(self, data, picks, scalings)
+        # prepare extra columns / multiindex
+        mindex = list()
+        default_index = dict(epo=['condition', 'epoch', 'time'])
+        default_index = default_index.get(inst, ['time'])
+        if inst == 'stc' and self.subject is not None:
+            default_index.insert('subject', 0)
+            mindex.append(('subject', np.repeat(self.subject, data.shape[0])))
+        # time
+        if inst == 'epo':
+            times = np.tile(times, n_epochs)
+        times = _convert_times(self, times, time_format)
+        mindex.append(('time', times))
+        # epoch, condition
+        if inst == 'epo':
+            rev_event_id = {v: k for k, v in self.event_id.items()}
+            conditions = [rev_event_id[k] for k in self.events[:, 2]]
+            mindex.append(('condition', np.repeat(conditions, n_times)))
+            mindex.append(('epoch', np.repeat(self.selection, n_times)))
+            assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
+        # column names for DataFrame
+        if inst == 'stc':
+            if isinstance(self.vertices, list):  # surface source estimate
+                col_names = list()
+                for ii, vertno in enumerate(self.vertices):
+                    col_names.extend(['{}_{}'.format(('LH', 'RH')[ii], vert)
+                                      for vert in vertno])
+            else:  # volume source estimate
+                col_names = ['VOL_{}'.format(vert) for vert in self.vertices]
+        else:
+            col_names = [inst.ch_names[p] for p in picks]
+        col_kind = 'source' if inst == 'stc' else 'channel'
+        # build DataFrame
         df = pd.DataFrame(data, columns=col_names)
         for i, (k, v) in enumerate(mindex):
             df.insert(i, k, v)
-        if index is not None:
+        # build Index
+        if long_format:
+            df.set_index(default_index, inplace=True)
+            df.columns.name = col_kind
+        elif index is not None:
             df.set_index(index, inplace=True)
-            if all(i in index for i in default_index):
-                if isinstance(self, _BaseSourceEstimate):
-                    df.columns.name = 'source'
-                else:
-                    df.columns.name = 'channel'
-
+            if set(index) == set(default_index):
+                df.columns.name = col_kind
+        # long format
         if long_format:
             df = df.stack().reset_index()
-            columns = list(df.columns)
-            sig_idx = columns.index(0)
-            columns[sig_idx] = 'observation'
-            df.columns = columns
-
-            if not isinstance(self, _BaseSourceEstimate):
-                df['ch_type'] = df.channel.map(ch_map)
-
-            columns = list(df.columns)
-            to_factor = [
-                cc for cc in columns if cc not in ['observation', 'time']]
+            df.rename(columns={0: 'value'}, inplace=True)
+            # add column for channel types (as appropriate)
+            if inst != 'stc':
+                ch_map = dict(zip(np.array(self.ch_names)[picks],
+                                  np.array(self.get_channel_types())[picks]))
+                col_index = len(df.columns) - 1
+                df.insert(col_index, 'ch_type', df['channel'].map(ch_map))
+            # restore index
+            if index is not None:
+                df.set_index(index, inplace=True)
+            # convert channel/vertex/ch_type columns to factors
+            to_factor = [c for c in df.columns.tolist()
+                         if c not in ('time', 'value')]
             _set_pandas_dtype(df, to_factor, 'category')
-
         return df
 
 
