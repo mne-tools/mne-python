@@ -240,6 +240,12 @@ def _read_theta_phi_in_degrees(fname, head_size, fid_names=None,
     ch_names, theta, phi = _safe_np_loadtxt(fname, skip_header=1,
                                             dtype=(_str, 'i4', 'i4'))
     if add_fiducials:
+        # Add fiducials based on 10/20 spherical coordinate definitions
+        # http://chgd.umich.edu/wp-content/uploads/2014/06/
+        # 10-20_system_positioning.pdf
+        # extrapolated from other sensor coordinates in the Easycap layouts
+        # https://www.easycap.de/wp-content/uploads/2018/02/
+        # Easycap-Equidistant-Layouts.pdf
         assert fid_names is None
         fid_names = ['Nasion', 'LPA', 'RPA']
         ch_names.extend(fid_names)

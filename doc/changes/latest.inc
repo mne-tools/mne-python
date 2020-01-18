@@ -91,6 +91,9 @@ Changelog
 
 - Add function to convert events to annotations :func:`mne.annotations_from_events` by `Nicolas Barascud`_
 
+- More accurate coordinate system for Easycap montages in :func:`mne.channels.make_standard_montage` by `Christian Brodbeck`_
+
+
 Bug
 ~~~
 
@@ -177,6 +180,8 @@ Bug
 - Fix bug in :func:`mne.bem.make_watershed_bem` where some surfaces were saved incorrectly in the working directory by `Yu-Han Luo`_
 
 - Fix support for multiple TAL (annotations) channels in BDF reader by `Clemens Brunner`_
+
+- Fix bug in :func:`mne.channels.make_standard_montage` which would return `easycap-M1` even when requesting `easycap-M10` by `Christian Brodbeck`_
 
 API
 ~~~
