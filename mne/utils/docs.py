@@ -574,6 +574,61 @@ transparent : bool | None
     If True, use a linear transparency between fmin and fmid.
     None will choose automatically based on colormap type.
 """
+# DataFrames
+docdict['df_index'] = """
+    Kind of index to use for the DataFrame. If ``None``, a sequential
+    integer index (:class:`pandas.RangeIndex`) will be used. If ``'time'``, a
+    :class:`pandas.Float64Index`, :class:`pandas.Int64Index`, {} will be used
+    (depending on the value of ``time_format``). {}
+"""
+datetime = ':class:`pandas.TimedeltaIndex`, or :class:`pandas.DatetimeIndex`'
+no_datetime = 'or :class:`pandas.TimedeltaIndex`'
+multiindex = ('If a list of two or more string values, a '
+              ':class:`pandas.MultiIndex` will be created. ')
+raw = (datetime, '')
+epo = (no_datetime, multiindex)
+evk = (no_datetime, '')
+docdict['df_index_raw'] = docdict['df_index'].format(*raw)
+docdict['df_index_epo'] = docdict['df_index'].format(*epo)
+docdict['df_index_evk'] = docdict['df_index'].format(*evk)
+docdict['df_time_format'] = """
+time_format : str
+    Desired time format. If ``None``, no conversion is applied, and time values
+    remain as float values in seconds. If ``'ms'``, time values will be rounded
+    to the nearest millisecond and converted to integers. If ``'timedelta'``,
+    time values will be converted to :class:`pandas.Timedelta` values. Defaults
+    to ``'ms'``.
+"""
+docdict['df_scalings'] = """
+scalings : dict | None
+    Scaling factor applied to the channels picked. If ``None``, defaults to
+    ``dict(eeg=1e6, mag=1e15, grad=1e13)`` — i.e., converts EEG to μV,
+    magnetometers to fT, and gradiometers to fT/cm.
+"""
+docdict['df_copy'] = """
+copy : bool
+    If ``True``, data will be copied. Otherwise data may be modified in place.
+    Defaults to ``True``.
+"""
+docdict['df_longform'] = """
+long_format : bool
+    If True, the DataFrame is returned in long format where each row is one
+    observation of the signal at a unique combination of time point{}.
+    {}Defaults to ``False``.
+"""
+ch_type = ('For convenience, a ``ch_type`` column is added to facilitate '
+           'subsetting the resulting DataFrame. ')
+raw = (' and channel', ch_type)
+epo = (', channel, epoch number, and condition', ch_type)
+stc = (' and vertex', '')
+docdict['df_longform_raw'] = docdict['df_longform'].format(*raw)
+docdict['df_longform_epo'] = docdict['df_longform'].format(*epo)
+docdict['df_longform_stc'] = docdict['df_longform'].format(*stc)
+docdict['df_return'] = """
+df : instance of pandas.DataFrame
+    A dataframe suitable for usage with other statistical/plotting/analysis
+    packages.
+"""
 
 # Finalize
 docdict = unindent_dict(docdict)

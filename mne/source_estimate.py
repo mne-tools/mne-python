@@ -22,10 +22,12 @@ from .source_space import (_ensure_src, _get_morph_src_reordering,
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     _time_mask, warn as warn_, copy_function_doc_to_method_doc,
                     fill_doc, _check_option, _validate_type, _check_src_normal,
-                    _check_stc_units)
+                    _check_stc_units, _check_pandas_installed,
+                    _check_pandas_index_arguments, _convert_times,
+                    _build_data_frame, _check_time_format)
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
-from .io.base import ToDataFrameMixin, TimeMixin
+from .io.base import TimeMixin
 from .io.meas_info import Info
 from .externals.h5io import read_hdf5, write_hdf5
 
@@ -442,7 +444,7 @@ def _verify_source_estimate_compat(a, b):
                          'names, %r and %r' % (a.subject, b.subject))
 
 
-class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
+class _BaseSourceEstimate(TimeMixin):
     """Base class for all source estimates.
 
     Parameters
@@ -1115,6 +1117,60 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             stcs.tmin = tmin
 
         return stcs
+
+    @fill_doc
+    def to_data_frame(self, index=None, time_format='ms', scalings=None,
+                      long_format=False):
+        """Export data in tabular structure as a pandas DataFrame.
+
+        Vertices are converted to columns in the DataFrame. By default,
+        an additional column "time" is added, unless ``index='time'``
+        (in which case time values form the DataFrame's index).
+
+        Parameters
+        ----------
+        index : 'time' | None
+            %(df_index_evk)s
+            Defaults to ``None``.
+        %(df_time_format)s
+        %(df_scalings)s
+        %(df_longform_stc)s
+
+        Returns
+        -------
+        %(df_return)s
+        """
+        # check pandas once here, instead of in each private utils function
+        pd = _check_pandas_installed()  # noqa
+        # arg checking
+        valid_index_args = ['time']
+        valid_time_formats = ['ms', 'timedelta']
+        index = _check_pandas_index_arguments(index, valid_index_args)
+        time_format = _check_time_format(time_format, valid_time_formats)
+        # get data
+        data = self.data.T
+        times = self.times
+        # prepare extra columns / multiindex
+        mindex = list()
+        default_index = ['time']
+        if self.subject is not None:
+            default_index = ['subject', 'time']
+            mindex.append(('subject', np.repeat(self.subject, data.shape[0])))
+        times = _convert_times(self, times, time_format)
+        mindex.append(('time', times))
+        # triage surface vs volume source estimates
+        if isinstance(self.vertices, list):
+            col_names = list()
+            for ii, vertno in enumerate(self.vertices):
+                col_names.extend(['{}_{}'.format(('LH', 'RH')[ii], vert)
+                                  for vert in vertno])
+        else:
+            col_names = ['VOL_{}'.format(vert) for vert in self.vertices]
+        # build DataFrame
+        df = _build_data_frame(self, data, None, long_format, mindex, index,
+                               default_index=default_index,
+                               col_names=col_names, col_kind='source')
+        return df
 
 
 def _center_of_mass(vertices, values, hemi, surf, subject, subjects_dir,

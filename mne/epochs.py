@@ -38,7 +38,7 @@ from .io.pick import (pick_types, channel_indices_by_type, channel_type,
                       _pick_aux_channels, _DATA_CH_TYPES_SPLIT,
                       _picks_to_idx)
 from .io.proj import setup_proj, ProjMixin, _proj_equal
-from .io.base import BaseRaw, ToDataFrameMixin, TimeMixin
+from .io.base import BaseRaw, TimeMixin
 from .bem import _check_origin
 from .evoked import EvokedArray, _check_decim
 from .baseline import rescale, _log_rescale
@@ -55,7 +55,9 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _check_pandas_installed, _check_preload, GetEpochsMixin,
                     _prepare_read_metadata, _prepare_write_metadata,
                     _check_event_id, _gen_events, _check_option,
-                    _check_combine, ShiftTimeMixin)
+                    _check_combine, ShiftTimeMixin, _build_data_frame,
+                    _check_pandas_index_arguments, _convert_times,
+                    _scale_dataframe_data, _check_time_format)
 from .utils.docs import fill_doc
 
 
@@ -297,7 +299,7 @@ def _handle_event_repeated(events, event_id, event_repeated, selection,
 @fill_doc
 class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
-                 ToDataFrameMixin, TimeMixin, SizeMixin, GetEpochsMixin):
+                 TimeMixin, SizeMixin, GetEpochsMixin):
     """Abstract base class for Epochs-type classes.
 
     This class provides basic functionality and should never be instantiated
@@ -1703,6 +1705,64 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self.drop(indices, reason='EQUALIZED_COUNT')
         # actually remove the indices
         return self, indices
+
+    @fill_doc
+    def to_data_frame(self, index=None, time_format='ms', picks=None,
+                      scalings=None, copy=True, long_format=False):
+        """Export data in tabular structure as a pandas DataFrame.
+
+        Channels are converted to columns in the DataFrame. By default,
+        additional columns "time", "epoch" (epoch number), and "condition"
+        (epoch event description) are added, unless ``index`` is not ``None``
+        (in which case the columns specified in ``index`` will be used to form
+        the DataFrame's index instead).
+
+        Parameters
+        ----------
+        index : str | list of str | None
+            %(df_index_epo)s
+            Valid string values are 'time', 'epoch', and 'condition'.
+            Defaults to ``None``.
+        %(df_time_format)s
+        %(picks_all)s
+        %(df_scalings)s
+        %(df_copy)s
+        %(df_longform_epo)s
+
+        Returns
+        -------
+        %(df_return)s
+        """
+        # check pandas once here, instead of in each private utils function
+        pd = _check_pandas_installed()  # noqa
+        # arg checking
+        valid_index_args = ['time', 'epoch', 'condition']
+        valid_time_formats = ['ms', 'timedelta']
+        index = _check_pandas_index_arguments(index, valid_index_args)
+        time_format = _check_time_format(time_format, valid_time_formats)
+        # get data
+        picks = _picks_to_idx(self.info, picks, 'all', exclude=())
+        data = self.get_data()[:, picks, :]
+        times = self.times
+        n_epochs, n_picks, n_times = data.shape
+        data = np.hstack(data).T  # (time*epochs) x signals
+        if copy:
+            data = data.copy()
+        data = _scale_dataframe_data(self, data, picks, scalings)
+        # prepare extra columns / multiindex
+        mindex = list()
+        times = np.tile(times, n_epochs)
+        times = _convert_times(self, times, time_format)
+        mindex.append(('time', times))
+        rev_event_id = {v: k for k, v in self.event_id.items()}
+        conditions = [rev_event_id[k] for k in self.events[:, 2]]
+        mindex.append(('condition', np.repeat(conditions, n_times)))
+        mindex.append(('epoch', np.repeat(self.selection, n_times)))
+        assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
+        # build DataFrame
+        df = _build_data_frame(self, data, picks, long_format, mindex, index,
+                               default_index=['condition', 'epoch', 'time'])
+        return df
 
 
 def _check_baseline(baseline, tmin, tmax, sfreq):

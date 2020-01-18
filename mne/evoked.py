@@ -18,7 +18,9 @@ from .channels.layout import _merge_grad_data, _pair_grad_sensors
 from .filter import detrend, FilterMixin
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc, _validate_type,
-                    fill_doc, _check_option, ShiftTimeMixin)
+                    fill_doc, _check_option, ShiftTimeMixin, _build_data_frame,
+                    _check_pandas_installed, _check_pandas_index_arguments,
+                    _convert_times, _scale_dataframe_data, _check_time_format)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
@@ -35,7 +37,7 @@ from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_string, write_float_matrix,
                        write_id, write_float)
-from .io.base import ToDataFrameMixin, TimeMixin, _check_maxshield
+from .io.base import TimeMixin, _check_maxshield
 
 _aspect_dict = {
     'average': FIFF.FIFFV_ASPECT_AVERAGE,
@@ -55,8 +57,8 @@ _aspect_rev = {val: key for key, val in _aspect_dict.items()}
 
 @fill_doc
 class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
-             InterpolationMixin, FilterMixin, ToDataFrameMixin, TimeMixin,
-             SizeMixin, ShiftTimeMixin):
+             InterpolationMixin, FilterMixin, TimeMixin, SizeMixin,
+             ShiftTimeMixin):
     """Evoked data.
 
     Parameters
@@ -610,6 +612,54 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             out += (max_amp,)
 
         return out
+
+    @fill_doc
+    def to_data_frame(self, index=None, time_format='ms', picks=None,
+                      scalings=None, copy=True, long_format=False):
+        """Export data in tabular structure as a pandas DataFrame.
+
+        Channels are converted to columns in the DataFrame. By default,
+        an additional column "time" is added, unless ``index='time'``
+        (in which case time values form the DataFrame's index).
+
+        Parameters
+        ----------
+        index : 'time' | None
+            %(df_index_evk)s
+            Defaults to ``None``.
+        %(df_time_format)s
+        %(picks_all)s
+        %(df_scalings)s
+        %(df_copy)s
+        %(df_longform_raw)s
+
+        Returns
+        -------
+        %(df_return)s
+        """
+        # check pandas once here, instead of in each private utils function
+        pd = _check_pandas_installed()  # noqa
+        # arg checking
+        valid_index_args = ['time']
+        valid_time_formats = ['ms', 'timedelta']
+        index = _check_pandas_index_arguments(index, valid_index_args)
+        time_format = _check_time_format(time_format, valid_time_formats)
+        # get data
+        picks = _picks_to_idx(self.info, picks, 'all', exclude=())
+        data = self.data[picks, :]
+        times = self.times
+        data = data.T
+        if copy:
+            data = data.copy()
+        data = _scale_dataframe_data(self, data, picks, scalings)
+        # prepare extra columns / multiindex
+        mindex = list()
+        times = _convert_times(self, times, time_format)
+        mindex.append(('time', times))
+        # build DataFrame
+        df = _build_data_frame(self, data, picks, long_format, mindex, index,
+                               default_index=['time'])
+        return df
 
 
 def _check_decim(info, decim, offset):
