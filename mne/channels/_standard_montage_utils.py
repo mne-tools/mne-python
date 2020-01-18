@@ -44,31 +44,7 @@ def _egi_256(head_size):
 
 def _easycap(basename, head_size):
     fname = op.join(MONTAGE_PATH, basename)
-    # ignore existing fiducials to adjust to mne head coord frame
-    fid_names = None
-    montage = _read_theta_phi_in_degrees(fname, head_size, fid_names)
-
-    ch_pos = montage._get_ch_pos()
-
-    if basename == 'easycap-M1.txt':
-        nasion = np.concatenate([[0], ch_pos['Fpz'][1:]])
-        lpa = np.mean([ch_pos['FT9'], ch_pos['TP9']], axis=0)
-        rpa = np.mean([ch_pos['FT10'], ch_pos['TP10']], axis=0)
-    elif basename == 'easycap-M10.txt':
-        nasion = np.concatenate([[0], ch_pos['35'][1:]])
-        lpa = np.mean([ch_pos['60'], ch_pos['59']], axis=0)
-        rpa = np.mean([ch_pos['52'], ch_pos['53']], axis=0)
-    else:
-        raise NotImplementedError("%r montage" % basename)
-    lpa *= head_size / np.linalg.norm(lpa)  # on sphere
-    rpa *= head_size / np.linalg.norm(rpa)
-
-    fids_montage = make_dig_montage(
-        coord_frame='unknown', nasion=nasion, lpa=lpa, rpa=rpa,
-    )
-
-    montage += fids_montage  # add fiducials to montage
-
+    montage = _read_theta_phi_in_degrees(fname, head_size, add_fiducials=True)
     return montage
 
 
@@ -259,9 +235,16 @@ def _read_elc(fname, head_size):
                             nasion=nasion, lpa=lpa, rpa=rpa)
 
 
-def _read_theta_phi_in_degrees(fname, head_size, fid_names):
-    options = dict(skip_header=1, dtype=(_str, 'i4', 'i4'))
-    ch_names, theta, phi = _safe_np_loadtxt(fname, **options)
+def _read_theta_phi_in_degrees(fname, head_size, fid_names=None,
+                               add_fiducials=False):
+    ch_names, theta, phi = _safe_np_loadtxt(fname, skip_header=1,
+                                            dtype=(_str, 'i4', 'i4'))
+    if add_fiducials:
+        assert fid_names is None
+        fid_names = ['Nasion', 'LPA', 'RPA']
+        ch_names.extend(fid_names)
+        theta = np.append(theta, [115, -115, 115])
+        phi = np.append(phi, [90, 0, 0])
 
     radii = np.full(len(phi), head_size)
     pos = _sph_to_cart(np.array([radii, np.deg2rad(phi), np.deg2rad(theta)]).T)
