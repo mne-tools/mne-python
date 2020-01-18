@@ -1680,6 +1680,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     # convert control points to locations in colormap
+    user_colormap = colormap  # save the original colormap
     colormap, scale_pts, diverging, transparent, _ = _limits_to_control_points(
         clim, stc.data, colormap, transparent)
 
@@ -1722,6 +1723,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 kwargs["fmin"] = scale_pts[0]
                 kwargs["fmid"] = scale_pts[1]
                 kwargs["fmax"] = scale_pts[2]
+                kwargs["clim"] = clim
+                kwargs["user_colormap"] = user_colormap
             with warnings.catch_warnings(record=True):  # traits warnings
                 brain.add_data(**kwargs)
     if time_viewer:
