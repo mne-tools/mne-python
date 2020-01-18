@@ -264,10 +264,7 @@ def _read_theta_phi_in_degrees(fname, head_size, fid_names):
     ch_names, theta, phi = _safe_np_loadtxt(fname, **options)
 
     radii = np.full(len(phi), head_size)
-    pos = _sph_to_cart(np.stack(
-        [radii, np.deg2rad(phi), np.deg2rad(theta)],
-        axis=-1,
-    ))
+    pos = _sph_to_cart(np.array([radii, np.deg2rad(phi), np.deg2rad(theta)]).T)
     ch_pos = OrderedDict(zip(ch_names, pos))
 
     nasion, lpa, rpa = None, None, None
