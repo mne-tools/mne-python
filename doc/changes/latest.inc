@@ -178,6 +178,8 @@ Bug
 
 - Fix support for multiple TAL (annotations) channels in BDF reader by `Clemens Brunner`_
 
+- Fix missing `brainmask` file type in :func:`mne.bem.make_watershed_bem` by changing its default value to `ws.mgz` by `Fu-Te Wong`_
+
 API
 ~~~
 
