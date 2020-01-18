@@ -1129,8 +1129,7 @@ class _BaseSourceEstimate(TimeMixin):
 
         Parameters
         ----------
-        index : 'time' | None
-            %(df_index_evk)s
+        %(df_index_evk)s
             Defaults to ``None``.
         %(df_time_format)s
         %(df_scalings)s

@@ -1719,8 +1719,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Parameters
         ----------
-        index : str | list of str | None
-            %(df_index_epo)s
+        %(df_index_epo)s
             Valid string values are 'time', 'epoch', and 'condition'.
             Defaults to ``None``.
         %(df_time_format)s

@@ -576,6 +576,7 @@ transparent : bool | None
 """
 # DataFrames
 docdict['df_index'] = """
+index : {} | None
     Kind of index to use for the DataFrame. If ``None``, a sequential
     integer index (:class:`pandas.RangeIndex`) will be used. If ``'time'``, a
     :class:`pandas.Float64Index`, :class:`pandas.Int64Index`, {} will be used
@@ -585,9 +586,9 @@ datetime = ':class:`pandas.TimedeltaIndex`, or :class:`pandas.DatetimeIndex`'
 no_datetime = 'or :class:`pandas.TimedeltaIndex`'
 multiindex = ('If a list of two or more string values, a '
               ':class:`pandas.MultiIndex` will be created. ')
-raw = (datetime, '')
-epo = (no_datetime, multiindex)
-evk = (no_datetime, '')
+raw = ("'time'", datetime, '')
+epo = ('str | list of str', no_datetime, multiindex)
+evk = ("'time'", no_datetime, '')
 docdict['df_index_raw'] = docdict['df_index'].format(*raw)
 docdict['df_index_epo'] = docdict['df_index'].format(*epo)
 docdict['df_index_evk'] = docdict['df_index'].format(*evk)

@@ -624,8 +624,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        index : 'time' | None
-            %(df_index_evk)s
+        %(df_index_evk)s
             Defaults to ``None``.
         %(df_time_format)s
         %(picks_all)s

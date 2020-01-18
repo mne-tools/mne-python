@@ -1664,12 +1664,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        index : 'time' | None
-            %(df_index_raw)s
+        %(df_index_raw)s
             Defaults to ``None``.
         %(df_time_format)s
             If ``'datetime'``, time values will be converted to
-            :class:`pandas.Datetime` values, relative to
+            :class:`pandas.Timestamp` values, relative to
             ``raw.info['meas_date']`` and offset by ``raw.first_samp``.
         %(picks_all)s
         start : int | None
