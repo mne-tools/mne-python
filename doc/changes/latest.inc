@@ -93,7 +93,6 @@ Changelog
 
 - More accurate coordinate system for Easycap montages in :func:`mne.channels.make_standard_montage` by `Christian Brodbeck`_
 
-
 Bug
 ~~~
 
@@ -171,6 +170,8 @@ Bug
 
 - Fix :class:`mne.decoding.LinearModel` to support the refitted estimator of ``GridSearchCV`` in ``sklearn`` by `Chun-Hui Li`_
 
+- Fix :func:`mne.viz.plot_topomap` when there are bad channels in the provided :class:`mne.Info` instance by `Eric Larson`_
+
 - Fix check for subject definition existing in source space in :func:`mne.compute_source_morph` and related functions by `Eric Larson`_
 
 - Fix creation of new figures in :meth:`mne.Epochs.plot_image` and :func:`mne.viz.plot_epochs_image` by `Eric Larson`_
@@ -180,6 +181,8 @@ Bug
 - Fix bug in :func:`mne.bem.make_watershed_bem` where some surfaces were saved incorrectly in the working directory by `Yu-Han Luo`_
 
 - Fix support for multiple TAL (annotations) channels in BDF reader by `Clemens Brunner`_
+
+- Fix missing `brainmask` file type in :func:`mne.bem.make_watershed_bem` by changing its default value to `ws.mgz` by `Fu-Te Wong`_
 
 - Fix bug in :func:`mne.channels.make_standard_montage` which would return `easycap-M1` even when requesting `easycap-M10` by `Christian Brodbeck`_
 
