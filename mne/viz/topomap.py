@@ -549,7 +549,7 @@ class _GridData(object):
 
         if isinstance(self.border, str):
             if self.border != 'mean':
-                msg = 'border must be numeric or "mean", got %r'
+                msg = 'border must be numeric or "mean", got {!r}'
                 raise ValueError(msg.format(self.border))
             # border = 'mean'
             n_points = v.shape[0]
