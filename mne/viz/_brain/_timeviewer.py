@@ -6,7 +6,6 @@
 
 import time
 import numpy as np
-from ..backends._pyvista import _update_slider_callback
 
 
 class IntSlider(object):
@@ -478,6 +477,7 @@ class _LinkViewer(object):
             time_viewer.time_call(value, update_widget=True)
 
     def link_sliders(self, name, callback, event_type):
+        from ..backends._pyvista import _update_slider_callback
         for time_viewer in self.time_viewers:
             plotter = time_viewer.plotter
             for slider in plotter.slider_widgets:
