@@ -353,7 +353,7 @@ class _TimeViewer(object):
         )
         fscale_slider.name = "fscale"
 
-        # add toggle to start/stop playback
+        # add toggle to start/pause playback
         self.playback = False
         self.playback_speed = default_playback_speed
         self.refresh_rate_ms = max(int(round(1000. / 60.)), 1)
@@ -472,9 +472,30 @@ class _LinkViewer(object):
             event_type="always"
         )
 
+        # link playback speed sliders
+        self.link_sliders(
+            name="playback_speed",
+            callback=self.set_playback_speed,
+            event_type="always"
+        )
+
+        # link toggle to start/pause playback
+        for time_viewer in self.time_viewers:
+            plotter = time_viewer.plotter
+            plotter.clear_events_for_key('space')
+            plotter.add_key_event('space', self.toggle_playback)
+
     def set_time_point(self, value):
         for time_viewer in self.time_viewers:
             time_viewer.time_call(value, update_widget=True)
+
+    def set_playback_speed(self, value):
+        for time_viewer in self.time_viewers:
+            time_viewer.playback_speed_call(value, update_widget=True)
+
+    def toggle_playback(self):
+        for time_viewer in self.time_viewers:
+            time_viewer.toggle_playback()
 
     def link_sliders(self, name, callback, event_type):
         from ..backends._pyvista import _update_slider_callback
