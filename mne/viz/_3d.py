@@ -1543,11 +1543,6 @@ def plot_linked_brains(brains):
     ----------
     brains : list, tuple or np.ndarray
         The collection of brains to plot.
-
-    Returns
-    -------
-    link_viewer : instance of _brain._LinkViewer
-       The interactive interface to plot the linked brains.
     """
     import collections
     from ._brain import _Brain, _TimeViewer, _LinkViewer
@@ -1559,7 +1554,8 @@ def plot_linked_brains(brains):
         elif not isinstance(brain, _TimeViewer):
             raise TypeError("Expected type is _Brain or _TimeViewer but"
                             " {} was given.".format(type(brain)))
-    return _LinkViewer(brains)
+    # link brains properties
+    _LinkViewer(brains)
 
 
 @verbose
