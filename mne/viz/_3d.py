@@ -1548,6 +1548,8 @@ def plot_linked_brains(brains):
     from ._brain import _Brain, _TimeViewer, _LinkViewer
     if not isinstance(brains, collections.Iterable):
         brains = [brains]
+    if len(brains) == 0:
+        raise ValueError("The collection of brains is empty.")
     for brain in brains:
         if isinstance(brain, _Brain):
             brain = _TimeViewer(brain)
