@@ -308,6 +308,7 @@ class _TimeViewer(object):
             event_type="always",
         )
         fmin_slider.name = "fmin"
+        self.fmin_slider_rep = fmin_slider.GetRepresentation()
         fmid = brain._data["fmid"]
         self.fmid_call = BumpColorbarPoints(
             plotter=self.plotter,
@@ -323,6 +324,7 @@ class _TimeViewer(object):
             event_type="always",
         )
         fmid_slider.name = "fmid"
+        self.fmid_slider_rep = fmid_slider.GetRepresentation()
         fmax = brain._data["fmax"]
         self.fmax_call = BumpColorbarPoints(
             plotter=self.plotter,
@@ -338,6 +340,7 @@ class _TimeViewer(object):
             event_type="always",
         )
         fmax_slider.name = "fmax"
+        self.fmax_slider_rep = fmax_slider.GetRepresentation()
         self.fscale_call = UpdateColorbarScale(
             plotter=self.plotter,
             brain=brain,
@@ -390,37 +393,15 @@ class _TimeViewer(object):
 
     def apply_auto_scaling(self):
         self.brain.update_auto_scaling()
-        fmin = self.brain._data['fmin']
-        fmid = self.brain._data['fmid']
-        fmax = self.brain._data['fmax']
-        for slider in self.plotter.slider_widgets:
-            name = getattr(slider, "name", None)
-            if name == "fmin":
-                slider_rep = slider.GetRepresentation()
-                slider_rep.SetValue(fmin)
-            elif name == "fmid":
-                slider_rep = slider.GetRepresentation()
-                slider_rep.SetValue(fmid)
-            elif name == "fmax":
-                slider_rep = slider.GetRepresentation()
-                slider_rep.SetValue(fmax)
+        self.fmin_slider_rep.SetValue(self.brain._data['fmin'])
+        self.fmid_slider_rep.SetValue(self.brain._data['fmid'])
+        self.fmid_slider_rep.SetValue(self.brain._data['fmax'])
 
     def restore_user_scaling(self):
         self.brain.update_auto_scaling(restore=True)
-        fmin = self.brain._data['fmin']
-        fmid = self.brain._data['fmid']
-        fmax = self.brain._data['fmax']
-        for slider in self.plotter.slider_widgets:
-            name = getattr(slider, "name", None)
-            if name == "fmin":
-                slider_rep = slider.GetRepresentation()
-                slider_rep.SetValue(fmin)
-            elif name == "fmid":
-                slider_rep = slider.GetRepresentation()
-                slider_rep.SetValue(fmid)
-            elif name == "fmax":
-                slider_rep = slider.GetRepresentation()
-                slider_rep.SetValue(fmax)
+        self.fmin_slider_rep.SetValue(self.brain._data['fmin'])
+        self.fmid_slider_rep.SetValue(self.brain._data['fmid'])
+        self.fmid_slider_rep.SetValue(self.brain._data['fmax'])
 
     def toggle_playback(self):
         self.playback = not self.playback
