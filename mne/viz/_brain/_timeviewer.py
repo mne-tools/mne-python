@@ -259,7 +259,7 @@ class _TimeViewer(object):
         self.time_call = SmartSlider(
             plotter=self.plotter,
             callback=self.brain.set_time_point,
-            name="time_slider"
+            name="time"
         )
         time_slider = self.plotter.add_slider_widget(
             self.time_call,
@@ -269,7 +269,7 @@ class _TimeViewer(object):
             pointb=(0.77, 0.1),
             event_type='always'
         )
-        time_slider.name = "time_slider"
+        time_slider.name = "time"
 
         # playback speed
         default_playback_speed = 0.05
@@ -487,7 +487,7 @@ class _LinkViewer(object):
 
         # link time sliders
         self.link_sliders(
-            name="time_slider",
+            name="time",
             callback=self.set_time_point,
             event_type="always"
         )
