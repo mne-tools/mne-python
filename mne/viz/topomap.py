@@ -707,7 +707,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     logger.debug('Plotting topomap for data shape %s' % (data.shape,))
 
     if isinstance(pos, Info):  # infer pos from Info object
-        picks = _pick_data_channels(pos)  # pick only data channels
+        picks = _pick_data_channels(pos, exclude=())  # pick only data channels
         pos = pick_info(pos, picks)
 
         # check if there is only 1 channel type, and n_chans matches the data
@@ -719,8 +719,9 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
             raise ValueError("Multiple channel types in Info structure. " +
                              info_help)
         elif len(pos["chs"]) != data.shape[0]:
-            raise ValueError("Number of channels in the Info object and "
-                             "the data array does not match. " + info_help)
+            raise ValueError("Number of channels in the Info object (%s) and "
+                             "the data array (%s) do not match. "
+                             % (len(pos['chs']), data.shape[0]) + info_help)
         else:
             ch_type = ch_type.pop()
 
