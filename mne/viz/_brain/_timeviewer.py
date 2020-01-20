@@ -16,16 +16,19 @@ class IntSlider(object):
         self.plotter = plotter
         self.callback = callback
         self.name = name
+        self.slider_rep = None
 
     def __call__(self, value):
         """Round the label of the slider."""
         idx = int(round(value))
-        for slider in self.plotter.slider_widgets:
-            name = getattr(slider, "name", None)
-            if name == self.name:
-                slider_rep = slider.GetRepresentation()
-                slider_rep.SetValue(idx)
-                self.callback(idx)
+        if self.slider_rep is None:
+            for slider in self.plotter.slider_widgets:
+                name = getattr(slider, "name", None)
+                if name == self.name:
+                    self.slider_rep = slider.GetRepresentation()
+        if self.slider_rep is not None:
+            self.slider_rep.SetValue(idx)
+        self.callback(idx)
 
 
 class UpdateColorbarScale(object):
@@ -34,6 +37,7 @@ class UpdateColorbarScale(object):
     def __init__(self, plotter=None, brain=None):
         self.plotter = plotter
         self.brain = brain
+        self.slider_rep = None
 
     def __call__(self, value):
         """Update the colorbar sliders."""
@@ -122,6 +126,7 @@ class ShowView(object):
         self.col = col
         self.hemi = hemi
         self.name = name
+        self.slider_rep = None
 
     def __call__(self, value, update_widget=False):
         """Update the view."""
@@ -132,12 +137,14 @@ class ShowView(object):
                 idx = self.orientation.index(value)
             else:
                 idx = self.short_orientation.index(value)
-            for slider in self.plotter.slider_widgets:
-                name = getattr(slider, "name", None)
-                if name == self.name:
-                    slider_rep = slider.GetRepresentation()
-                    slider_rep.SetValue(idx)
-                    slider_rep.SetTitleText(self.orientation[idx])
+            if self.slider_rep is None:
+                for slider in self.plotter.slider_widgets:
+                    name = getattr(slider, "name", None)
+                    if name == self.name:
+                        self.slider_rep = slider.GetRepresentation()
+            if self.slider_rep is not None:
+                self.slider_rep.SetValue(idx)
+                self.slider_rep.SetTitleText(self.orientation[idx])
 
 
 class SetTimePoint(object):
@@ -158,7 +165,8 @@ class SetTimePoint(object):
                     name = getattr(slider, "name", None)
                     if name == self.name:
                         self.slider_rep = slider.GetRepresentation()
-            self.slider_rep.SetValue(value)
+            if self.slider_rep is not None:
+                self.slider_rep.SetValue(value)
 
 
 class _TimeViewer(object):
