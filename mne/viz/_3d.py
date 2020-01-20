@@ -1537,11 +1537,28 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
 
 
 def plot_linked_brains(brains):
-    """Plot multiple SourceEstimate objects with PyVista."""
+    """Plot multiple SourceEstimate objects with PyVista.
+
+    Parameters
+    ----------
+    brains : list, tuple or np.ndarray
+        The collection of brains to plot.
+
+    Returns
+    -------
+    link_viewer : instance of _brain._LinkViewer
+       The interactive interface to plot the linked brains.
+    """
     import collections
-    from ._brain import _LinkViewer
+    from ._brain import _Brain, _TimeViewer, _LinkViewer
     if not isinstance(brains, collections.Iterable):
         brains = [brains]
+    for brain in brains:
+        if isinstance(brain, _Brain):
+            brain = _TimeViewer(brain)
+        elif not isinstance(brain, _TimeViewer):
+            raise TypeError("Expected type is _Brain or _TimeViewer but"
+                            " {} was given.".format(type(brain)))
     return _LinkViewer(brains)
 
 
