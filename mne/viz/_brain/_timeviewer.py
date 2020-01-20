@@ -294,13 +294,13 @@ class _TimeViewer(object):
         pointb = np.array((0.98, 0.26))
         shift = np.array([0, 0.08])
         fmin = brain._data["fmin"]
-        self.update_fmin = BumpColorbarPoints(
+        self.fmin_call = BumpColorbarPoints(
             plotter=self.plotter,
             brain=brain,
             name="fmin"
         )
         fmin_slider = self.plotter.add_slider_widget(
-            self.update_fmin,
+            self.fmin_call,
             value=fmin,
             rng=_get_range(brain), title="clim",
             pointa=pointa,
@@ -309,13 +309,13 @@ class _TimeViewer(object):
         )
         fmin_slider.name = "fmin"
         fmid = brain._data["fmid"]
-        self.update_fmid = BumpColorbarPoints(
+        self.fmid_call = BumpColorbarPoints(
             plotter=self.plotter,
             brain=brain,
             name="fmid",
         )
         fmid_slider = self.plotter.add_slider_widget(
-            self.update_fmid,
+            self.fmid_call,
             value=fmid,
             rng=_get_range(brain), title="",
             pointa=pointa + shift,
@@ -324,13 +324,13 @@ class _TimeViewer(object):
         )
         fmid_slider.name = "fmid"
         fmax = brain._data["fmax"]
-        self.update_fmax = BumpColorbarPoints(
+        self.fmax_call = BumpColorbarPoints(
             plotter=self.plotter,
             brain=brain,
             name="fmax",
         )
         fmax_slider = self.plotter.add_slider_widget(
-            self.update_fmax,
+            self.fmax_call,
             value=fmax,
             rng=_get_range(brain), title="",
             pointa=pointa + 2 * shift,
