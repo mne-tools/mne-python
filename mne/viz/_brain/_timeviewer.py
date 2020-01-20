@@ -198,7 +198,7 @@ class _TimeViewer(object):
             for ri, view in enumerate(self.brain._views):
                 self.plotter.subplot(ri, ci)
                 name = "orientation_" + str(ri) + "_" + str(ci)
-                self.show_view = ShowView(
+                self.orientation_call = ShowView(
                     plotter=self.plotter,
                     brain=self.brain,
                     orientation=orientation,
@@ -208,7 +208,7 @@ class _TimeViewer(object):
                     name=name
                 )
                 orientation_slider = self.plotter.add_text_slider_widget(
-                    self.show_view,
+                    self.orientation_call,
                     value=0,
                     data=orientation,
                     pointa=(0.82, 0.74),
@@ -217,7 +217,7 @@ class _TimeViewer(object):
                 )
                 orientation_slider.name = name
                 self.set_slider_style(orientation_slider, show_label=False)
-                self.show_view(view, update_widget=True)
+                self.orientation_call(view, update_widget=True)
 
         # necessary because show_view modified subplot
         if self.brain._hemi == 'split':
