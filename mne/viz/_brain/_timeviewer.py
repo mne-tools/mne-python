@@ -233,20 +233,20 @@ class _TimeViewer(object):
 
         # smoothing slider
         default_smoothing_value = 7
-        self.set_smoothing = IntSlider(
+        self.smoothing_call = IntSlider(
             plotter=self.plotter,
             callback=brain.set_data_smoothing,
             name="smoothing"
         )
         smoothing_slider = self.plotter.add_slider_widget(
-            self.set_smoothing,
+            self.smoothing_call,
             value=default_smoothing_value,
             rng=[0, 15], title="smoothing",
             pointa=(0.82, 0.90),
             pointb=(0.98, 0.90)
         )
         smoothing_slider.name = 'smoothing'
-        self.set_smoothing(default_smoothing_value)
+        self.smoothing_call(default_smoothing_value)
 
         # time label
         self.time_actor = brain._data.get('time_actor')

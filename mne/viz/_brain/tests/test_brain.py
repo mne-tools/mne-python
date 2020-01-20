@@ -168,9 +168,9 @@ def test_brain_timeviewer(renderer):
 
     time_viewer = _TimeViewer(brain_data)
     time_viewer.time_call(value=0)
-    time_viewer.orientation_call('lat', update_widget=True)
-    time_viewer.orientation_call('medial', update_widget=True)
-    time_viewer.set_smoothing(value=1)
+    time_viewer.orientation_call(value='lat', update_widget=True)
+    time_viewer.orientation_call(value='medial', update_widget=True)
+    time_viewer.smoothing_call(value=1)
     time_viewer.update_fmin(value=12.0)
     time_viewer.update_fmax(value=4.0)
     time_viewer.update_fmid(value=6.0)
