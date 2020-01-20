@@ -175,7 +175,7 @@ def test_brain_timeviewer(renderer):
     time_viewer.fmax_call(value=4.0)
     time_viewer.fmid_call(value=6.0)
     time_viewer.fmid_call(value=4.0)
-    time_viewer.update_fscale(value=1.1)
+    time_viewer.fscale_call(value=1.1)
     time_viewer.toggle_interface()
     time_viewer.playback_speed_call(value=0.01)
     time_viewer.toggle_playback()
