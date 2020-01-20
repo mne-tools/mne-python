@@ -17,7 +17,7 @@ from numpy.testing import assert_allclose
 from mne import SourceEstimate, read_source_estimate
 from mne.source_space import read_source_spaces
 from mne.datasets import testing
-from mne.viz._brain import _Brain, _TimeViewer
+from mne.viz._brain import _Brain, _TimeViewer, _LinkViewer
 from mne.viz._brain.colormap import calculate_lut
 
 from matplotlib import cm
@@ -177,10 +177,15 @@ def test_brain_timeviewer(renderer):
     time_viewer.fmid_call(value=4.0)
     time_viewer.fscale_call(value=1.1)
     time_viewer.toggle_interface()
-    time_viewer.playback_speed_call(value=0.01)
+    time_viewer.playback_speed_call(value=0.1)
     time_viewer.toggle_playback()
     time_viewer.apply_auto_scaling()
     time_viewer.restore_user_scaling()
+
+    link_viewer = _LinkViewer([brain_data])
+    link_viewer.set_time_point(value=0)
+    link_viewer.set_playback_speed(value=0.1)
+    link_viewer.toggle_playback()
 
 
 def test_brain_colormap():
