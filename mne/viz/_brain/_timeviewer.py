@@ -147,18 +147,18 @@ class ShowView(object):
                 self.slider_rep.SetTitleText(self.orientation[idx])
 
 
-class SetTimePoint(object):
-    """Class to set the time point."""
+class SmartSlider(object):
+    """Class to manage smart slider."""
 
-    def __init__(self, plotter=None, brain=None, name=None):
+    def __init__(self, plotter=None, callback=None, name=None):
         self.plotter = plotter
-        self.brain = brain
+        self.callback = callback
         self.name = name
         self.slider_rep = None
 
     def __call__(self, value, update_widget=False):
-        """Update the time point."""
-        self.brain.set_time_point(value)
+        """Update the value."""
+        self.callback(value)
         if update_widget:
             if self.slider_rep is None:
                 for slider in self.plotter.slider_widgets:
@@ -256,9 +256,9 @@ class _TimeViewer(object):
 
         # time slider
         max_time = len(brain._data['time']) - 1
-        self.set_time_point = SetTimePoint(
+        self.set_time_point = SmartSlider(
             plotter=self.plotter,
-            brain=self.brain,
+            callback=self.brain.set_time_point,
             name="time_slider"
         )
         time_slider = self.plotter.add_slider_widget(
@@ -273,13 +273,20 @@ class _TimeViewer(object):
 
         # playback speed
         default_playback_speed = 0.05
+        self.playback_speed_call = SmartSlider(
+            plotter=self.plotter,
+            callback=self.set_playback_speed,
+            name="playback_speed"
+        )
         playback_speed_slider = self.plotter.add_slider_widget(
-            self.set_playback_speed,
+            self.playback_speed_call,
             value=default_playback_speed,
             rng=[0.01, 1], title="playback speed",
             pointa=(0.02, 0.1),
-            pointb=(0.18, 0.1)
+            pointb=(0.18, 0.1),
+            event_type='always'
         )
+        playback_speed_slider.name = "playback_speed"
 
         # colormap slider
         scaling_limits = [0.2, 2.0]
