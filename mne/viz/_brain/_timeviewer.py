@@ -256,13 +256,13 @@ class _TimeViewer(object):
 
         # time slider
         max_time = len(brain._data['time']) - 1
-        self.set_time_point = SmartSlider(
+        self.time_call = SmartSlider(
             plotter=self.plotter,
             callback=self.brain.set_time_point,
             name="time_slider"
         )
         time_slider = self.plotter.add_slider_widget(
-            self.set_time_point,
+            self.time_call,
             value=brain._data['time_idx'],
             rng=[0, max_time],
             pointa=(0.23, 0.1),
@@ -447,7 +447,7 @@ class _TimeViewer(object):
             time_point = min(self.brain._current_time + time_shift, max_time)
             ifunc = interp1d(time_data, times)
             idx = ifunc(time_point)
-            self.set_time_point(idx, update_widget=True)
+            self.time_call(idx, update_widget=True)
             if time_point == max_time:
                 self.playback = False
             self.plotter.update()  # critical for smooth animation
@@ -494,7 +494,7 @@ class _LinkViewer(object):
 
     def set_time_point(self, value):
         for time_viewer in self.time_viewers:
-            time_viewer.set_time_point(value, update_widget=True)
+            time_viewer.time_call(value, update_widget=True)
 
     def link_sliders(self, name, callback, event_type):
         for time_viewer in self.time_viewers:

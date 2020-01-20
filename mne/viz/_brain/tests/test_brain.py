@@ -167,7 +167,7 @@ def test_brain_timeviewer(renderer):
                             colorbar=True)
 
     time_viewer = _TimeViewer(brain_data)
-    time_viewer.set_time_point(value=0)
+    time_viewer.time_call(value=0)
     time_viewer.show_view('lat', update_widget=True)
     time_viewer.show_view('medial', update_widget=True)
     time_viewer.set_smoothing(value=1)
