@@ -140,6 +140,27 @@ class ShowView(object):
                     slider_rep.SetTitleText(self.orientation[idx])
 
 
+class SetTimePoint(object):
+    """Class to set the time point."""
+
+    def __init__(self, plotter=None, brain=None, name=None):
+        self.plotter = plotter
+        self.brain = brain
+        self.name = name
+        self.slider_rep = None
+
+    def __call__(self, value, update_widget=False):
+        """Update the time point."""
+        self.brain.set_time_point(value)
+        if update_widget:
+            if self.slider_rep is None:
+                for slider in self.plotter.slider_widgets:
+                    name = getattr(slider, "name", None)
+                    if name == self.name:
+                        self.slider_rep = slider.GetRepresentation()
+            self.slider_rep.SetValue(value)
+
+
 class _TimeViewer(object):
     """Class to interact with _Brain."""
 
@@ -227,7 +248,11 @@ class _TimeViewer(object):
 
         # time slider
         max_time = len(brain._data['time']) - 1
-        self.set_time_point = brain.set_time_point,
+        self.set_time_point = SetTimePoint(
+            plotter=self.plotter,
+            brain=self.brain,
+            name="time_slider"
+        )
         time_slider = self.plotter.add_slider_widget(
             self.set_time_point,
             value=brain._data['time_idx'],
@@ -407,12 +432,7 @@ class _TimeViewer(object):
             time_point = min(self.brain._current_time + time_shift, max_time)
             ifunc = interp1d(time_data, times)
             idx = ifunc(time_point)
-            self.brain.set_time_point(idx)
-            for slider in self.plotter.slider_widgets:
-                name = getattr(slider, "name", None)
-                if name == "time_slider":
-                    slider_rep = slider.GetRepresentation()
-                    slider_rep.SetValue(idx)
+            self.set_time_point(idx, update_widget=True)
             if time_point == max_time:
                 self.playback = False
             self.plotter.update()  # critical for smooth animation
@@ -458,8 +478,8 @@ class _LinkViewer(object):
         )
 
     def set_time_point(self, value):
-        for brain in self.brains:
-            brain.set_time_point(value)
+        for time_viewer in self.time_viewers:
+            time_viewer.set_time_point(value, update_widget=True)
 
     def link_sliders(self, name, callback, event_type):
         for time_viewer in self.time_viewers:
