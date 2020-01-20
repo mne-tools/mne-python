@@ -154,34 +154,8 @@ def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk):
     norm *= sk[:, np.newaxis, :]
     power = np.matmul(norm, np.matmul(Wk, Gk))  # np.dot for each source
 
-    # import ipdb
-    # ipdb.set_trace()
+   # Determine orientation of max power
     Wk = _pick_ori(power, Wk, Gk, Cm_inv_sq, nn)
-
-    # # Determine orientation of max power
-    # assert power.dtype in (np.float64, np.complex128)  # LCMV, DICS
-    # eig_vals, eig_vecs = np.linalg.eig(power)
-    # if not np.iscomplexobj(power) and np.iscomplexobj(eig_vecs):
-    #     raise ValueError('The eigenspectrum of the leadfield is '
-    #                      'complex. Consider reducing the rank of the '
-    #                      'leadfield by using reduce_rank=True.')
-    # idx_max = np.argmax(eig_vals, axis=1)
-    # max_power_ori = eig_vecs[np.arange(eig_vecs.shape[0]), :, idx_max]
-
-    # # set the (otherwise arbitrary) sign to match the normal
-    # sign = np.sign(np.sum(max_power_ori * nn, axis=1, keepdims=True))
-    # sign[sign == 0] = 1
-    # max_power_ori *= sign
-
-    # # Compute the filter in the orientation of max power
-    # Wk_max = np.matmul(max_power_ori[:, np.newaxis], Wk)[:, 0]
-    # Gk_max = np.matmul(Gk, max_power_ori[:, :, np.newaxis])
-    # denom = np.matmul(Gk_max.transpose(0, 2, 1),
-    #                   np.matmul(Cm_inv_sq[np.newaxis], Gk_max))[:, 0]
-    # np.sqrt(denom, out=denom)
-    # Wk_max /= denom
-    # # All three entries get the same value from this operation
-    # Wk[:] = Wk_max[:, np.newaxis]
 
 
 def _pick_ori(power, Wk, Gk, Cm_inv, nn):
@@ -223,6 +197,7 @@ def _pick_ori(power, Wk, Gk, Cm_inv, nn):
                       np.matmul(Cm_inv[np.newaxis], Gk_max))[:, 0]
     np.sqrt(denom, out=denom)
     Wk_max /= denom
+
     # All three entries get the same value from this operation
     Wk[:] = Wk_max[:, np.newaxis]
 
@@ -348,19 +323,9 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                     power = np.matmul(np.matmul(Wk, Cm),
                                       Wk.transpose(0, 2, 1))
 
+                # Determine orientation of max. power
                 Wk = _pick_ori(power, Wk, Gk, Cm_inv, nn)
-                # assert power.shape == (n_sources, 3, 3)
-                # _, u_ = np.linalg.eigh(power.real)
-                # max_power_ori = u_[:, :, -1]
-                # assert max_power_ori.shape == (n_sources, 3)
 
-                # # set the (otherwise arbitrary) sign to match the normal
-                # signs = np.sign(np.sum(max_power_ori * nn, axis=1))
-                # signs[signs == 0] = 1.
-                # max_power_ori *= signs[:, np.newaxis]
-                # # all three entries get the same value from this operation
-                # Wk[:] = np.sum(max_power_ori[:, :, np.newaxis] * Wk, axis=1,
-                #                keepdims=True)
     W = Wk.reshape(n_sources * n_orient, n_channels)
     del Gk, Wk, sk
 
