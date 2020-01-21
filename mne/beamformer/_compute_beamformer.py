@@ -102,6 +102,20 @@ def _prepare_beamformer_input(info, forward, label=None, pick_ori=None,
             orient_std)
 
 
+def _sym_inv(x, reduce_rank):
+    """Symmetric inversion with optional rank reduction."""
+    s, u = np.linalg.eigh(x)
+    # mimic default np.linalg.pinv behavior
+    cutoff = 1e-15 * s[:, -1][:, np.newaxis]
+    s[s <= cutoff] = np.inf
+    if reduce_rank:
+        # These are ordered smallest to largest, so we set the first one
+        # to inf -- then the 1. / s below will turn this to zero, as needed.
+        s[:, 0] = np.inf
+    s = 1. / s
+    return np.matmul(u * s[:, np.newaxis], u.transpose(0, 2, 1))
+
+
 def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk):
     """Compute the normalized weights in max-power orientation.
 
@@ -132,13 +146,7 @@ def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk):
                          np.matmul(Cm_inv_sq[np.newaxis], Gk))
 
     # invert this using an eigenvalue decomposition
-    s, u = np.linalg.eigh(norm_inv)
-    if reduce_rank:
-        # These are ordered smallest to largest, so we set the first one
-        # to inf -- then the 1. / s below will turn this to zero, as needed.
-        s[:, 0] = np.inf
-    s = 1. / s
-    norm = np.matmul(u * s[:, np.newaxis], u.transpose(0, 2, 1))
+    norm = _sym_inv(norm_inv, reduce_rank)
 
     # Reapply source covariance after inversion
     norm *= sk[:, :, np.newaxis]
@@ -282,17 +290,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                     assert Ck.shape[1:] == (3, 3)
                     # Invert for all dipoles simultaneously using matrix
                     # inversion.
-                    u, s, v = np.linalg.svd(
-                        Ck, full_matrices=False, **pinv_kwargs)
-                    if reduce_rank:
-                        s[:, 2] = np.inf
-                    # mimic default np.linalg.pinv behavior
-                    cutoff = 1e-15 * s[:, 0][:, np.newaxis]
-                    s[s <= cutoff] = np.inf
-                    s = 1. / s
-                    norm = np.matmul(
-                        v.transpose(0, 2, 1),
-                        s[:, :, np.newaxis] * u.transpose((0, 2, 1)))
+                    norm = _sym_inv(Ck, reduce_rank)
                 # Reapply source covariance after inversion
                 norm *= sk[:, :, np.newaxis]
                 norm *= sk[:, np.newaxis, :]
