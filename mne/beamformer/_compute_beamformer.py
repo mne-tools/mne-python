@@ -154,7 +154,8 @@ def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk):
     norm *= sk[:, np.newaxis, :]
     power = np.matmul(norm, np.matmul(Wk, Gk))  # np.dot for each source
 
-   # Determine orientation of max power
+    # Determine orientation of max power
+    assert power.shape == (Wk.shape[0], 3, 3)  # sources, 3, 3
     Wk = _pick_ori(power, Wk, Gk, Cm_inv_sq, nn)
 
 
@@ -177,6 +178,7 @@ def _pick_ori(power, Wk, Gk, Cm_inv, nn):
     """
     # Determine orientation of max power
     assert power.dtype in (np.float64, np.complex128)  # LCMV, DICS
+    assert power.ndim == 3 and power.shape[1:] == (3, 3)
     eig_vals, eig_vecs = np.linalg.eig(power)
     if not np.iscomplexobj(power) and np.iscomplexobj(eig_vecs):
         raise ValueError('The eigenspectrum of the leadfield is '
