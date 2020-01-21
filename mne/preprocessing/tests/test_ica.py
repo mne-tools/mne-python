@@ -1000,7 +1000,8 @@ def test_ica_labels():
         assert key not in ica.labels_
 
     # derive reference ICA components and append them to raw
-    ica_rf = ICA(n_components=2, random_state=0, max_iter=2, allow_ref_meg=True)
+    ica_rf = ICA(n_components=2, random_state=0, max_iter=2,
+                 allow_ref_meg=True)
     with pytest.warns(UserWarning, match='did not converge'):
         ica_rf.fit(raw.copy().pick_types(meg=False, ref_meg=True))
     icacomps = ica_rf.get_sources(raw)

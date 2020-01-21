@@ -5,7 +5,7 @@
 import numpy as np
 
 
-def find_outliers(X, threshold=3.0, max_iter=2, tail="two"):
+def find_outliers(X, threshold=3.0, max_iter=2, tail=0):
     """Find outliers based on iterated Z-scoring.
 
     This procedure compares the absolute z-score against the threshold.
@@ -20,9 +20,9 @@ def find_outliers(X, threshold=3.0, max_iter=2, tail="two"):
         The value above which a feature is classified as outlier.
     max_iter : int
         The maximum number of iterations.
-    tail : {"two", "positive", "negative"}
-        Whether to search for outliers on both extremes of the z-scores,
-        or on just the positive or negative side.
+    tail : {0, 1, -1}
+        Whether to search for outliers on both extremes of the z-scores (0),
+        or on just the positive (1) or negative (-1) side.
 
     Returns
     -------
@@ -33,11 +33,11 @@ def find_outliers(X, threshold=3.0, max_iter=2, tail="two"):
     my_mask = np.zeros(len(X), dtype=np.bool)
     for _ in range(max_iter):
         X = np.ma.masked_array(X, my_mask)
-        if tail == "two":
+        if tail == 0:
             this_z = np.abs(zscore(X))
-        elif tail == "positive":
+        elif tail == 1:
             this_z = zscore(X)
-        elif tail == "negative":
+        elif tail == -1:
             this_z = -zscore(X)
         else:
             raise ValueError("Tail parameter %s not recognised." % tail)

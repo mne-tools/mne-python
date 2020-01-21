@@ -1033,7 +1033,7 @@ class ICA(ContainsMixin):
     def _find_bads_ch(self, inst, chs, threshold=3.0, start=None,
                       stop=None, l_freq=None, h_freq=None,
                       reject_by_annotation=True, prefix="chs",
-                      bad_measure="zscore"):
+                      measure="zscore"):
         """Compute ExG/ref components.
 
         See find_bads_ecg, find_bads, eog, and find_bads_ref for details.
@@ -1060,12 +1060,12 @@ class ICA(ContainsMixin):
                 stop=stop, l_freq=l_freq, h_freq=h_freq,
                 reject_by_annotation=reject_by_annotation)]
             # pick last scores
-            if bad_measure == "zscore":
+            if measure == "zscore":
                 this_idx = find_outliers(scores[-1], threshold=threshold)
-            elif bad_measure == "cor":
+            elif measure == "cor":
                 this_idx = np.where(abs(scores[-1]) > threshold)[0]
             else:
-                raise ValueError("Unknown bad_measure {}".format(bad_measure))
+                raise ValueError("Unknown measure {}".format(measure))
             idx += [this_idx]
             self.labels_['%s/%i/' % (prefix, ii) + ch] = list(this_idx)
 
@@ -1090,7 +1090,8 @@ class ICA(ContainsMixin):
     @verbose
     def find_bads_ecg(self, inst, ch_name=None, threshold=None, start=None,
                       stop=None, l_freq=8, h_freq=16, method='ctps',
-                      reject_by_annotation=True, verbose=None):
+                      reject_by_annotation=True, measure="zscore",
+                      verbose=None):
         """Detect ECG related components using correlation.
 
         .. note:: If no ECG channel is available, routine attempts to create
@@ -1131,7 +1132,12 @@ class ICA(ContainsMixin):
         reject_by_annotation : bool
             If True, data annotated as bad will be omitted. Defaults to True.
 
+
             .. versionadded:: 0.14.0
+        measure : {'zscore', "cor"}
+            Which method to use for finding outliers. "zscore" (default) is
+            the iterated Z-scoring method, and "cor" is an absolute raw
+            correlation threshold with a range of 0 to 1.
         %(verbose_meth)s
 
         Returns
@@ -1194,16 +1200,16 @@ class ICA(ContainsMixin):
             self.labels_['ecg'], scores = self._find_bads_ch(
                 inst, [ecg], threshold=threshold, start=start, stop=stop,
                 l_freq=l_freq, h_freq=h_freq, prefix="ecg",
-                reject_by_annotation=reject_by_annotation)
+                reject_by_annotation=reject_by_annotation, measure=measure)
         else:
             raise ValueError('Method "%s" not supported.' % method)
         return self.labels_['ecg'], scores
 
     @verbose
     def find_bads_ref(self, inst, ch_name=None, threshold=3.0, start=None,
-                      stop=None, l_freq=None, h_freq=None, method='together',
-                      reject_by_annotation=True, bad_measure="zscore",
-                      verbose=None):
+                      stop=None, l_freq=None, h_freq=None,
+                      reject_by_annotation=True, method='together',
+                      measure="zscore", verbose=None):
         """Detect MEG reference related components using correlation.
 
         Parameters
@@ -1211,7 +1217,7 @@ class ICA(ContainsMixin):
         inst : instance of Raw, Epochs or Evoked
             Object to compute sources from. Should contain at least one channel
             i.e. component derived from MEG reference channels.
-        ch_name: list of string
+        ch_name : list of str
             Which MEG reference components to use. If None, then all channels
             that begin with REF_ICA.
         threshold : int | float
@@ -1226,12 +1232,14 @@ class ICA(ContainsMixin):
             Low pass frequency.
         h_freq : float
             High pass frequency.
+        reject_by_annotation : bool
+            If True, data annotated as bad will be omitted. Defaults to True.
         method : {'together', 'separate'}
             Method to use to identify reference channel related components.
             Defaults to "together." See notes.
-        reject_by_annotation : bool
-            If True, data annotated as bad will be omitted. Defaults to True.
-        bad_measure : {'zscore', "cor"}
+
+            .. versionadded:: 0.20
+        measure : {'zscore', "cor"}
             Which method to use for finding outliers. "zscore" (default) is
             the iterated Z-scoring method, and "cor" is an absolute raw
             correlation threshold with a range of 0 to 1.
@@ -1272,13 +1280,7 @@ class ICA(ContainsMixin):
         recomputed until no supra-threshold component remains.
 
         Validation and further documentation for this technique can be found
-        in [1]
-
-        References
-        ----------
-        .. [1] Hanna, J., Kim, C., and Müller-Voggel, N, 2020. External noise
-        removed from magnetoencephalographic signal using Independent Component
-        Analyses of reference channels. Journal of Neuroscience Methods.
+        in :footcite:`HannaEtAl2020`
 
         .. versionadded:: 0.18
         """
@@ -1297,7 +1299,7 @@ class ICA(ContainsMixin):
                 inst, ref_chs, threshold=threshold, start=start, stop=stop,
                 l_freq=l_freq, h_freq=h_freq, prefix='ref_meg',
                 reject_by_annotation=reject_by_annotation,
-                bad_measure=bad_measure)
+                measure=measure)
         elif method == 'together':
             meg_picks = pick_types(self.info, meg=True, ref_meg=False)
             ref_picks = pick_types(self.info, meg=False, ref_meg=True)
@@ -1314,7 +1316,7 @@ class ICA(ContainsMixin):
             scores = np.log(normrats)
             self.labels_['ref_meg'] = list(find_outliers(scores,
                                            threshold=threshold,
-                                           tail="positive"))
+                                           tail=1))
         else:
             raise ValueError('Method "%s" not supported.' % method)
 
@@ -1323,7 +1325,8 @@ class ICA(ContainsMixin):
     @verbose
     def find_bads_eog(self, inst, ch_name=None, threshold=3.0, start=None,
                       stop=None, l_freq=1, h_freq=10,
-                      reject_by_annotation=True, verbose=None):
+                      reject_by_annotation=True, measure="zscore",
+                      verbose=None):
         """Detect EOG related components using correlation.
 
         Detection is based on Pearson correlation between the
@@ -1356,6 +1359,10 @@ class ICA(ContainsMixin):
             If True, data annotated as bad will be omitted. Defaults to True.
 
             .. versionadded:: 0.14.0
+        measure : {'zscore', "cor"}
+            Which method to use for finding outliers. "zscore" (default) is
+            the iterated Z-scoring method, and "cor" is an absolute raw
+            correlation threshold with a range of 0 to 1.
         %(verbose_meth)s
 
         Returns
@@ -1378,7 +1385,7 @@ class ICA(ContainsMixin):
         self.labels_['eog'], scores = self._find_bads_ch(
             inst, eog_chs, threshold=threshold, start=start, stop=stop,
             l_freq=l_freq, h_freq=h_freq, prefix="eog",
-            reject_by_annotation=reject_by_annotation)
+            reject_by_annotation=reject_by_annotation, measure=measure)
         return self.labels_['eog'], scores
 
     def apply(self, inst, include=None, exclude=None, n_pca_components=None,
