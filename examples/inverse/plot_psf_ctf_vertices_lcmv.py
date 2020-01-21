@@ -11,7 +11,7 @@ Visualise cross-talk functions at one vertex for different LCMV beamformers.
 
 import mne
 from mne.datasets import sample
-from mne.beamformer import make_lcmv, make_resolution_matrix
+from mne.beamformer import make_lcmv, make_lcmv_resolution_matrix
 from mne.minimum_norm import get_cross_talk
 
 print(__doc__)
@@ -92,9 +92,9 @@ filters_post = make_lcmv(info, forward, cov_post, reg=0.05,
 # covariance matrices
 # --------------------------------------------------------------------
 
-rm_pre = make_resolution_matrix(filters_pre, forward, info)
+rm_pre = make_lcmv_resolution_matrix(filters_pre, forward, info)
 
-rm_post = make_resolution_matrix(filters_post, forward, info)
+rm_post = make_lcmv_resolution_matrix(filters_post, forward, info)
 
 # compute cross-talk functions (CTFs) for one target vertex
 sources = [3000]

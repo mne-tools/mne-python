@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Compute resolution matrix for linear estimators."""
 # Authors: olaf.hauk@mrc-cbu.cam.ac.uk
 #
 # License: BSD (3-clause)
@@ -14,8 +15,8 @@ from mne.minimum_norm import apply_inverse
 
 
 @verbose
-def make_resolution_matrix(forward, inverse_operator, method='dSPM',
-                           lambda2=1. / 9., verbose=None):
+def make_inverse_resolution_matrix(forward, inverse_operator, method='dSPM',
+                                   lambda2=1. / 9., verbose=None):
     """Compute resolution matrix for linear inverse operator.
 
     Parameters

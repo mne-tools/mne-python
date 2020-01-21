@@ -18,7 +18,7 @@ especially for deeper sources.
 
 import mne
 from mne.datasets import sample
-from mne.minimum_norm.resolution_matrix import make_resolution_matrix
+from mne.minimum_norm.resolution_matrix import make_inverse_resolution_matrix
 from mne.minimum_norm.spatial_resolution import resolution_metrics
 
 print(__doc__)
@@ -63,8 +63,8 @@ lambda2 = 1.0 / snr ** 2
 # Compute resolution matrices, localization error, and spatial deviations
 # for MNE:
 
-rm_emeg = make_resolution_matrix(forward_emeg, inv_emeg,
-                                 method='MNE', lambda2=lambda2)
+rm_emeg = make_inverse_resolution_matrix(forward_emeg, inv_emeg,
+                                         method='MNE', lambda2=lambda2)
 ple_psf_emeg = resolution_metrics(rm_emeg, inv_emeg['src'],
                                   function='psf', metric='peak_err')
 sd_psf_emeg = resolution_metrics(rm_emeg, inv_emeg['src'],
@@ -76,8 +76,8 @@ del rm_emeg
 # ---
 # Do the same for MEG:
 
-rm_meg = make_resolution_matrix(forward_meg, inv_meg,
-                                method='MNE', lambda2=lambda2)
+rm_meg = make_inverse_resolution_matrix(forward_meg, inv_meg,
+                                        method='MNE', lambda2=lambda2)
 ple_psf_meg = resolution_metrics(rm_meg, inv_meg['src'],
                                  function='psf', metric='peak_err')
 sd_psf_meg = resolution_metrics(rm_meg, inv_meg['src'],

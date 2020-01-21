@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Compute resolution matrix for beamformers."""
 # Authors: olaf.hauk@mrc-cbu.cam.ac.uk
 #
 # License: BSD (3-clause)
@@ -9,7 +10,7 @@ from mne.utils import logger
 from mne.beamformer import apply_lcmv
 
 
-def make_resolution_matrix(filters, forward, info):
+def make_lcmv_resolution_matrix(filters, forward, info):
     """Compute resolution matrix for LCMV beamformer.
 
     Parameters
