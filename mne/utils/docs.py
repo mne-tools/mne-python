@@ -78,6 +78,13 @@ extrapolate : str
         Extrapolate to the edges of the head circle (does not work well
         with sensors outside the head circle).
 """
+docdict['topomap_border'] = """
+border : float | 'mean'
+    Value to extrapolate to on the topomap borders. If ``'mean'`` then each
+    extrapolated point has the average value of its neighbours.
+
+    .. versionadded:: 0.20
+"""
 docdict['topomap_head_pos'] = """
 head_pos : dict | None
     Deprecated and will be removed in 0.21. Use ``sphere`` instead.

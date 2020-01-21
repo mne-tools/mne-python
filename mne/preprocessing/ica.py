@@ -1528,6 +1528,10 @@ class ICA(ContainsMixin):
         -------
         ica : instance of ICA
             The object.
+
+        See Also
+        --------
+        read_ica
         """
         if self.current_fit == 'unfitted':
             raise RuntimeError('No fit available. Please first fit ICA')
