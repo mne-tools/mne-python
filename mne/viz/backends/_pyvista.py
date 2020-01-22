@@ -111,7 +111,7 @@ class _Renderer(_BaseRenderer):
         from pyvista import OFF_SCREEN
         from mne.viz.backends.renderer import MNE_3D_BACKEND_TESTING
         figure = _Figure(title=name, size=size, shape=shape,
-                         background_color=bgcolor, notebook=_check_notebook())
+                         background_color=bgcolor, notebook=None)
         self.font_family = "arial"
         if isinstance(fig, int):
             saved_fig = _FIGURES.get(fig)
@@ -501,22 +501,6 @@ def _close_all():
         warnings.filterwarnings("ignore", category=DeprecationWarning)
         from pyvista import close_all
         close_all()
-
-
-def _check_notebook():
-    if _run_from_ipython():
-        try:
-            return type(get_ipython()).__module__.startswith('ipykernel.')
-        except NameError:
-            return False
-
-
-def _run_from_ipython():
-    try:
-        __IPYTHON__
-        return True
-    except NameError:
-        return False
 
 
 def _get_camera_direction(focalpoint, position):
