@@ -144,6 +144,7 @@ class _Renderer(_BaseRenderer):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             self.plotter.subplot(x, y)
+            self.plotter.disable_depth_peeling()
 
     def scene(self):
         return self.figure
