@@ -1536,7 +1536,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     return fig
 
 
-def plot_linked_brains(brains):
+def link_brains(brains):
     """Plot multiple SourceEstimate objects with PyVista.
 
     Parameters

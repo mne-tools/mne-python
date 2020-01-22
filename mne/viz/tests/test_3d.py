@@ -30,7 +30,7 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      snapshot_brain_montage, plot_head_positions,
                      plot_alignment, plot_volume_source_estimates,
                      plot_sensors_connectivity, plot_brain_colorbar,
-                     plot_linked_brains)
+                     link_brains)
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
                        requires_nibabel, check_version, requires_dipy,
@@ -668,7 +668,7 @@ def test_mixed_sources_plot_surface():
 
 @testing.requires_testing_data
 @traits_test
-def test_plot_linked_brains(renderer):
+def test_link_brains(renderer):
     """Test plotting linked brains."""
     if renderer.get_3d_backend() == "mayavi":
         pytest.skip()  # Skip PySurfer.TimeViewer
@@ -676,9 +676,9 @@ def test_plot_linked_brains(renderer):
         # Disable testing to allow interactive window
         renderer.MNE_3D_BACKEND_TESTING = False
     with pytest.raises(ValueError, match='is empty'):
-        plot_linked_brains([])
+        link_brains([])
     with pytest.raises(TypeError, match='type is _Brain or _TimeViewer'):
-        plot_linked_brains('foo')
+        link_brains('foo')
 
     sample_src = read_source_spaces(src_fname)
     vertices = [s['vertno'] for s in sample_src]
@@ -698,7 +698,7 @@ def test_plot_linked_brains(renderer):
         subjects_dir=subjects_dir, colorbar=True,
         clim='auto'
     )
-    plot_linked_brains(brain)
+    link_brains(brain)
 
 
 run_tests_if_main()
