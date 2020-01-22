@@ -33,7 +33,7 @@ dependencies:
   - mne
   - https://api.github.com/repos/numpy/numpydoc/zipball/master
   - vtk
-  - https://api.github.com/repos/pyvista/pyvista/zipball/master
+  - https://api.github.com/repos/pyvista/pyvista/zipball/backgroundplotter_sphinx_test
   - mayavi
   - PySurfer[save_movie]
   - dipy --only-binary dipy
