@@ -1552,9 +1552,11 @@ def link_brains(brains):
         raise ValueError("The collection of brains is empty.")
     for brain in brains:
         if isinstance(brain, _Brain):
-            brain = _TimeViewer(brain)
-        elif not isinstance(brain, _TimeViewer):
-            raise TypeError("Expected type is _Brain or _TimeViewer but"
+            # check if the _TimeViewer wrapping is not already applied
+            if not hasattr(brain, 'time_viewer') or brain.time_viewer is None:
+                brain = _TimeViewer(brain)
+        else:
+            raise TypeError("Expected type is _Brain but"
                             " {} was given.".format(type(brain)))
     # link brains properties
     _LinkViewer(brains)
