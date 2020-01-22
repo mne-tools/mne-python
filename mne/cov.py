@@ -181,6 +181,8 @@ class Covariance(dict):
         -----
         This function allows creation of inverse operators
         equivalent to using the old "--diagnoise" mne option.
+
+        This function operates in place.
         """
         if self['diag']:
             return self
@@ -189,6 +191,14 @@ class Covariance(dict):
         self['eig'] = None
         self['eigvec'] = None
         return self
+
+    def _get_square(self):
+        if self['diag'] != (self.data.ndim == 1):
+            raise RuntimeError(
+                'Covariance attributes inconsistent, got data with '
+                'dimensionality %d but diag=%s'
+                % (self.data.ndim, self['diag']))
+        return np.diag(self.data) if self['diag'] else self.data.copy()
 
     def __repr__(self):  # noqa: D105
         if self.data.ndim == 2:
@@ -1376,10 +1386,7 @@ def prepare_noise_cov(noise_cov, info, ch_names=None, rank=None,
     if len(missing):
         raise RuntimeError('Not all channels present in noise covariance:\n%s'
                            % missing)
-    if not noise_cov['diag']:
-        C = noise_cov.data[np.ix_(noise_cov_idx, noise_cov_idx)]
-    else:
-        C = np.diag(noise_cov.data[noise_cov_idx])
+    C = noise_cov._get_square()[np.ix_(noise_cov_idx, noise_cov_idx)]
     info = pick_info(info, pick_channels(info['ch_names'], ch_names))
     projs = info['projs'] + noise_cov['projs']
     noise_cov = Covariance(

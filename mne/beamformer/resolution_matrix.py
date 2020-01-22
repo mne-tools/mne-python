@@ -5,9 +5,10 @@
 # License: BSD (3-clause)
 import numpy as np
 
-from mne import pick_channels_forward, EvokedArray
-from mne.utils import logger
-from mne.beamformer import apply_lcmv
+from ..io.pick import pick_channels, pick_info, pick_channels_forward
+from ..evoked import EvokedArray
+from ..utils import logger
+from ._lcmv import apply_lcmv
 
 
 def make_lcmv_resolution_matrix(filters, forward, info):
@@ -81,6 +82,8 @@ def _get_matrix_from_lcmv(filters, forward, info, max_ori_out='signed',
         Inverse matrix associated with LCMV beamformer filters.
     """
     # number of channels for identity matrix
+    info = pick_info(
+        info, pick_channels(info['ch_names'], filters['ch_names']))
     n_chs = len(info['ch_names'])
 
     # create identity matrix as input for inverse operator

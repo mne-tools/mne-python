@@ -9,9 +9,10 @@ If noise and data covariance are the same, the LCMV beamformer weights should
 be the transpose of the leadfield matrix.
 """
 
+from copy import deepcopy
 import os.path as op
 import numpy as np
-from numpy.testing import assert_
+from numpy.testing import assert_allclose
 
 import mne
 from mne.datasets import testing
@@ -42,20 +43,15 @@ def test_resolution_matrix_lcmv():
     forward_fxd = mne.convert_forward_solution(forward, surf_ori=True,
                                                force_fixed=True)
 
-    # noise covariance matrix
-    noise_cov = mne.read_cov(fname_cov)
+    # evoked info
+    info = mne.io.read_info(fname_evoked)
+    mne.pick_info(info, mne.pick_types(info), copy=False)  # good MEG channels
+    info['projs'] = []
 
-    # evoked data for info
-    evoked = mne.read_evokeds(fname_evoked, 0)
-    evoked = evoked.pick_types(meg=True, eeg=True, exclude='bads')
+    # noise covariance matrix
+    noise_cov = mne.make_ad_hoc_cov(info)
 
     # Resolution matrix for Beamformer
-
-    info = evoked.info
-    # over-regularise for testing (see below)
-    noise_cov = mne.cov.regularize(noise_cov, info, mag=0.05, grad=0.05,
-                                   eeg=0.05, rank=None)
-
     data_cov = noise_cov.copy()  # to test a property of LCMV
 
     # compute beamformer filters
@@ -73,16 +69,18 @@ def test_resolution_matrix_lcmv():
     # leadfield
 
     # create filters with transposed whitened leadfield as weights
-    filters_lfd = filters.copy()
-    filters_lfd['weights'] = forward_fxd['sol']['data'].T
+    forward_fxd = mne.pick_channels_forward(forward_fxd, info['ch_names'])
+    filters_lfd = deepcopy(filters)
+    filters_lfd['weights'][:] = forward_fxd['sol']['data'].T
 
     # compute resolution matrix for filters with transposed leadfield
     resmat_fwd = make_lcmv_resolution_matrix(filters_lfd, forward_fxd, info)
 
-    # Tests
-
     # This correlation should be exactly 1.0, but it isn't
     # probably due to different treatment of noise_cov and data_cov under the
     # hood.
-    for v in [10, 100, 100]:  # arbitrary vertices
-        assert_(np.corrcoef(resmat_fwd[v:], resmat_lcmv[v, :])[1, 1] > .95)
+    for mat in (resmat_fwd, resmat_lcmv):
+        mat -= np.mean(resmat_fwd, axis=1, keepdims=True)
+        mat /= np.std(mat, axis=1, keepdims=True)
+    corrs = np.mean(resmat_fwd * resmat_lcmv, axis=1)
+    assert_allclose(corrs, 1., atol=0.12)
