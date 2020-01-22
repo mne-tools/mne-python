@@ -444,19 +444,6 @@ class _TimeViewer(object):
             if not show_label:
                 slider_rep.ShowSliderLabelOff()
 
-            # add support for split window
-            shape = self.plotter.shape
-            pointa = slider_rep.GetPoint1Coordinate().GetValue()
-            pointb = slider_rep.GetPoint2Coordinate().GetValue()
-            pointa = _normalize(pointa, shape)
-            pointb = _normalize(pointb, shape)
-            slider_rep.GetPoint1Coordinate().\
-                SetCoordinateSystemToNormalizedDisplay()
-            slider_rep.GetPoint1Coordinate().SetValue(pointa[0], pointa[1])
-            slider_rep.GetPoint2Coordinate().\
-                SetCoordinateSystemToNormalizedDisplay()
-            slider_rep.GetPoint2Coordinate().SetValue(pointb[0], pointb[1])
-
 
 class _LinkViewer(object):
     """Class to link multiple _TimeViewer objects."""
