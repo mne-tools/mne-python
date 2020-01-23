@@ -394,7 +394,8 @@ def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar, clear=False):
         rowspan = 2 if evoked else 3
         shape = (3, 10)
         for this_group in group_by:
-            this_fig = figure(this_group)
+            this_fig = figure()
+            this_fig.canvas.set_window_title(this_group)
             kwargs = dict()
             if check_version('matplotlib', '2.2'):
                 kwargs['fig'] = this_fig  # unavailable on earlier mpl
@@ -544,7 +545,7 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
         from . import plot_compare_evokeds
         pass_combine = (combine if combine_given else None)
         _picks = [0] if len(picks) == 1 else None  # prevent applying GFP
-        plot_compare_evokeds({'cond': list(epochs.iter_evoked())},
+        plot_compare_evokeds({'cond': list(epochs.iter_evoked(copy=False))},
                              picks=_picks, axes=ax['evoked'],
                              combine=pass_combine, **ts_args)
         ax['evoked'].set_xlim(tmin, tmax)  # don't multiply by 1e3 here
@@ -937,8 +938,8 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     """
     from .utils import _set_psd_plot_params, _plot_psd
     fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
-        make_label = _set_psd_plot_params(epochs.info, proj, picks, ax,
-                                          area_mode)
+        make_label, xlabels_list = \
+        _set_psd_plot_params(epochs.info, proj, picks, ax, area_mode)
     _check_psd_fmax(epochs, fmax)
     del ax
     psd_list = list()
@@ -956,7 +957,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     fig = _plot_psd(epochs, fig, freqs, psd_list, picks_list, titles_list,
                     units_list, scalings_list, ax_list, make_label, color,
                     area_mode, area_alpha, dB, estimate, average,
-                    spatial_colors, xscale, line_alpha, sphere)
+                    spatial_colors, xscale, line_alpha, sphere, xlabels_list)
     plt_show(show)
     return fig
 

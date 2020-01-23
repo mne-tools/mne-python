@@ -17,7 +17,8 @@ from numpy.testing import (assert_equal, assert_array_equal,
 import numpy as np
 
 import mne
-from mne import create_info, read_annotations, events_from_annotations
+from mne import (create_info, read_annotations, annotations_from_events,
+                 events_from_annotations)
 from mne import Epochs, Annotations
 from mne.utils import (run_tests_if_main, _TempDir, requires_version,
                        catch_logging)
@@ -27,7 +28,6 @@ from mne.io import read_raw_fif, RawArray, concatenate_raws
 from mne.annotations import (_sync_onset, _handle_meas_date,
                              _read_annotations_txt_parse_header)
 from mne.datasets import testing
-
 
 data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
 fif_fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
@@ -621,7 +621,7 @@ def test_events_from_annot_in_raw_objects():
     with pytest.raises(ValueError, match='not find any of the events'):
         events_from_annotations(raw, regexp='not_there')
 
-    with pytest.raises(ValueError, match='Invalid input event_id'):
+    with pytest.raises(ValueError, match='Invalid type for event_id'):
         events_from_annotations(raw, event_id='wrong')
 
     # concat does not introduce BAD or EDGE
@@ -1058,7 +1058,7 @@ def test_negative_meas_dates(windows_like_datetime):
 
 
 def test_crop_when_negative_orig_time(windows_like_datetime):
-    """Test croping with orig_time, tmin and tmax previous to 1970."""
+    """Test cropping with orig_time, tmin and tmax previous to 1970."""
     # Regression test for gh-6621
     orig_time_stamp = -908196945.011331  # 1941-03-22 11:04:14.988669
     annot = Annotations(description='foo', onset=np.arange(0, 0.999, 0.1),
@@ -1099,6 +1099,81 @@ def test_allow_nan_durations():
                             description=descriptions)
     with pytest.warns(RuntimeWarning, match='Omitted 2 annotation'):
         raw.set_annotations(annot)
+
+
+@testing.requires_testing_data
+def test_annotations_from_events():
+    """Test events to annotations conversion."""
+    raw = read_raw_fif(fif_fname)
+    events = mne.find_events(raw)
+
+    # 1. Automatic event description
+    # -------------------------------------------------------------------------
+    annots = annotations_from_events(events, raw.info['sfreq'],
+                                     first_samp=raw.first_samp,
+                                     orig_time=None)
+    assert len(annots) == events.shape[0]
+
+    # Convert back to events
+    raw.set_annotations(annots)
+    events_out, _ = events_from_annotations(raw, event_id=int)
+    assert_array_equal(events, events_out)
+
+    # 2. Explicit event mapping
+    # -------------------------------------------------------------------------
+    event_desc = {1: 'one', 2: 'two', 3: 'three', 32: None}
+    annots = annotations_from_events(events, sfreq=raw.info['sfreq'],
+                                     event_desc=event_desc,
+                                     first_samp=raw.first_samp,
+                                     orig_time=None)
+
+    assert np.all([a in ['one', 'two', 'three'] for a in annots.description])
+    assert len(annots) == events[events[:, 2] <= 3].shape[0]
+
+    # 3. Pass list
+    # -------------------------------------------------------------------------
+    event_desc = [1, 2, 3]
+    annots = annotations_from_events(events, sfreq=raw.info['sfreq'],
+                                     event_desc=event_desc,
+                                     first_samp=raw.first_samp,
+                                     orig_time=None)
+
+    assert np.all([a in ['1', '2', '3'] for a in annots.description])
+    assert len(annots) == events[events[:, 2] <= 3].shape[0]
+
+    # 4. Try passing callable
+    # -------------------------------------------------------------------------
+    event_desc = lambda d: 'event{}'.format(d)  # noqa:E731
+    annots = annotations_from_events(events, sfreq=raw.info['sfreq'],
+                                     event_desc=event_desc,
+                                     first_samp=raw.first_samp,
+                                     orig_time=None)
+
+    assert np.all(['event' in a for a in annots.description])
+    assert len(annots) == events.shape[0]
+
+    # 5. Pass numpy array
+    # -------------------------------------------------------------------------
+    event_desc = np.array([[1, 2, 3], [1, 2, 3]])
+    with pytest.raises(ValueError, match='event_desc must be 1D'):
+        annots = annotations_from_events(events, sfreq=raw.info['sfreq'],
+                                         event_desc=event_desc,
+                                         first_samp=raw.first_samp,
+                                         orig_time=None)
+
+    with pytest.raises(ValueError, match='Invalid type for event_desc'):
+        annots = annotations_from_events(events, sfreq=raw.info['sfreq'],
+                                         event_desc=1,
+                                         first_samp=raw.first_samp,
+                                         orig_time=None)
+
+    event_desc = np.array([1, 2, 3])
+    annots = annotations_from_events(events, sfreq=raw.info['sfreq'],
+                                     event_desc=event_desc,
+                                     first_samp=raw.first_samp,
+                                     orig_time=None)
+    assert np.all([a in ['1', '2', '3'] for a in annots.description])
+    assert len(annots) == events[events[:, 2] <= 3].shape[0]
 
 
 run_tests_if_main()

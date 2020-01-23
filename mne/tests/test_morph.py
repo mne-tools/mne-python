@@ -241,7 +241,8 @@ def test_volume_source_morph(tmpdir):
     assert src._subject is None  # already None on disk (old!)
 
     with pytest.raises(ValueError, match='subject_from could not be inferred'):
-        compute_source_morph(src=src, subjects_dir=subjects_dir)
+        with pytest.warns(RuntimeWarning, match='recommend regenerating'):
+            compute_source_morph(src=src, subjects_dir=subjects_dir)
 
     # check infer subject_from from src[0]['subject_his_id']
     src[0]['subject_his_id'] = 'sample'
@@ -255,9 +256,10 @@ def test_volume_source_morph(tmpdir):
     # terrible quality buts fast
     zooms = 20
     kwargs = dict(zooms=zooms, niter_sdr=(1,), niter_affine=(1,))
-    source_morph_vol = compute_source_morph(
-        subjects_dir=subjects_dir, src=fname_inv_vol, subject_from='sample',
-        **kwargs)
+    with pytest.warns(RuntimeWarning, match='recommend regenerating'):
+        source_morph_vol = compute_source_morph(
+            subjects_dir=subjects_dir, src=fname_inv_vol,
+            subject_from='sample', **kwargs)
     shape = (13,) * 3  # for the given zooms
 
     assert source_morph_vol.subject_from == 'sample'
@@ -275,6 +277,7 @@ def test_volume_source_morph(tmpdir):
     assert source_morph_vol.src_data['src_shape_full'] == mri_size
 
     fwd = read_forward_solution(fname_fwd_vol)
+    fwd['src'][0]['subject_his_id'] = 'sample'  # avoid further warnings
     source_morph_vol = compute_source_morph(
         fwd['src'], 'sample', 'sample', subjects_dir=subjects_dir,
         **kwargs)
@@ -380,12 +383,12 @@ def test_volume_source_morph(tmpdir):
     with pytest.raises(ValueError, match='If src_to is provided, zooms shoul'):
         source_morph_vol = compute_source_morph(
             fwd['src'], subject_from='sample', src_to=fwd['src'],
-            subjects_dir=subjects_dir, **kwargs)
+            subject_to='sample', subjects_dir=subjects_dir, **kwargs)
     # hack the src_to "zooms" to make it seem like a pos=20. source space
     fwd['src'][0]['src_mri_t']['trans'][:3, :3] = 0.02 * np.eye(3)
     source_morph_vol = compute_source_morph(
         fwd['src'], subject_from='sample', src_to=fwd['src'],
-        subjects_dir=subjects_dir, **kwargs)
+        subject_to='sample', subjects_dir=subjects_dir, **kwargs)
     stc_vol_2 = source_morph_vol.apply(stc_vol)
     # new way, verts match
     assert_array_equal(stc_vol.vertices, stc_vol_2.vertices)

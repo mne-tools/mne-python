@@ -690,8 +690,8 @@ def test_set_dig_montage():
     assert repr(montage_ch_only) == (
         '<DigMontage | 0 extras (headshape), 0 HPIs, 0 fiducials, 3 channels>'
     )
-    info = create_info(ch_names, sfreq=1, ch_types='eeg',
-                       montage=montage_ch_only)
+    info = create_info(ch_names, sfreq=1, ch_types='eeg')
+    info.set_montage(montage_ch_only)
     assert len(info['dig']) == len(montage_ch_only.dig)
 
     assert_allclose(actual=np.array([ch['loc'][:6] for ch in info['chs']]),
@@ -711,7 +711,8 @@ def test_set_dig_montage():
         '<DigMontage | 2 extras (headshape), 1 HPIs, 3 fiducials, 4 channels>'
     )
 
-    info = create_info(ch_names, sfreq=1, ch_types='eeg', montage=montage_full)
+    info = create_info(ch_names, sfreq=1, ch_types='eeg')
+    info.set_montage(montage_full)
     EXPECTED_LEN = sum({'hsp': 2, 'hpi': 1, 'fid': 3, 'eeg': 4}.values())
     assert len(info['dig']) == EXPECTED_LEN
     assert_allclose(actual=np.array([ch['loc'][:6] for ch in info['chs']]),
@@ -883,7 +884,7 @@ def test_read_dig_captrack(tmpdir):
                             [-0.005103, 0.05395, 0.144622], rtol=1e-04)
 
 
-def test_set_montage():
+def test_set_montage_mgh():
     """Test setting 'mgh60' montage to old fif."""
     raw = read_raw_fif(fif_fname)
     raw.rename_channels(lambda x: x.replace('EEG ', 'EEG'))
@@ -1030,13 +1031,38 @@ def test_set_montage_with_mismatching_ch_names():
     montage = make_standard_montage('mgh60')
 
     # 'EEG 001' and 'EEG001' won't match
-    with pytest.raises(ValueError, match='60 channel positions not present'):
+    missing_err = '60 channel positions not present'
+    with pytest.raises(ValueError, match=missing_err):
         raw.set_montage(montage)
 
     montage.ch_names = [  # modify the names in place
         name.replace('EEG', 'EEG ') for name in montage.ch_names
     ]
     raw.set_montage(montage)  # does not raise
+
+    # Case sensitivity
+    raw.rename_channels(lambda x: x.lower())
+    with pytest.raises(ValueError, match=missing_err):
+        raw.set_montage(montage)
+    # should work
+    raw.set_montage(montage, match_case=False)
+    raw.rename_channels(lambda x: x.upper())  # restore
+    assert 'EEG 001' in raw.ch_names and 'eeg 001' not in raw.ch_names
+    raw.rename_channels({'EEG 002': 'eeg 001'})
+    assert 'EEG 001' in raw.ch_names and 'eeg 001' in raw.ch_names
+    raw.set_channel_types({'eeg 001': 'misc'})
+    raw.set_montage(montage)
+    raw.set_channel_types({'eeg 001': 'eeg'})
+    with pytest.raises(ValueError, match='1 channel position not present'):
+        raw.set_montage(montage)
+    with pytest.raises(ValueError, match='match_case=False as 1 channel name'):
+        raw.set_montage(montage, match_case=False)
+    info = create_info(['EEG 001'], 1000., 'eeg')
+    mon = make_dig_montage({'EEG 001': np.zeros(3), 'eeg 001': np.zeros(3)},
+                           nasion=[0, 1., 0], rpa=[1., 0, 0], lpa=[-1., 0, 0])
+    info.set_montage(mon)
+    with pytest.raises(ValueError, match='match_case=False as 1 montage name'):
+        info.set_montage(mon, match_case=False)
 
 
 def test_set_montage_with_sub_super_set_of_ch_names():
@@ -1045,22 +1071,19 @@ def test_set_montage_with_sub_super_set_of_ch_names():
     montage = _make_toy_dig_montage(N_CHANNELS, coord_frame='head')
 
     # montage and info match
-    _ = create_info(
-        ch_names=list('abcdef'), sfreq=1, ch_types='eeg', montage=montage
-    )
+    info = create_info(ch_names=list('abcdef'), sfreq=1, ch_types='eeg')
+    info.set_montage(montage)
 
     # montage is a SUPERset of info
-    info = create_info(
-        ch_names=list('abc'), sfreq=1, ch_types='eeg', montage=montage
-    )
+    info = create_info(list('abc'), sfreq=1, ch_types='eeg')
+    info.set_montage(montage)
     assert len(info['dig']) == len(list('abc'))
 
     # montage is a SUBset of info
     _MSG = 'subset of info. There are 2 .* not present in the DigMontage'
+    info = create_info(ch_names=list('abcdfgh'), sfreq=1, ch_types='eeg')
     with pytest.raises(ValueError, match=_MSG):
-        _ = create_info(
-            ch_names=list('abcdfgh'), sfreq=1, ch_types='eeg', montage=montage
-        )
+        info.set_montage(montage)
 
 
 def test_heterogeneous_ch_type():
@@ -1073,12 +1096,8 @@ def test_heterogeneous_ch_type():
     )
 
     # Montage and info match
-    _ = create_info(
-        ch_names=montage.ch_names,
-        ch_types=list(VALID_MONTAGE_NAMED_CHS),
-        montage=montage,
-        sfreq=1,
-    )
+    info = create_info(montage.ch_names, 1., list(VALID_MONTAGE_NAMED_CHS))
+    RawArray(np.zeros((3, 1)), info, copy=None).set_montage(montage)
 
 
 def test_set_montage_coord_frame_in_head_vs_unknown():

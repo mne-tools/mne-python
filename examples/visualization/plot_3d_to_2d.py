@@ -56,7 +56,7 @@ elec = mat['elec']  # electrode coordinates in meters
 # transform is the identity.
 montage = mne.channels.make_dig_montage(ch_pos=dict(zip(ch_names, elec)),
                                         coord_frame='head')
-info = mne.create_info(ch_names, 1000., 'ecog', montage=montage)
+info = mne.create_info(ch_names, 1000., 'ecog').set_montage(montage)
 print('Created %s channel positions' % len(ch_names))
 
 ###############################################################################

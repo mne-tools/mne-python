@@ -72,7 +72,8 @@ from .source_space import (read_source_spaces, vertex_to_mni,
                            add_source_space_distances, morph_source_spaces,
                            get_volume_labels_from_aseg,
                            get_volume_labels_from_src)
-from .annotations import Annotations, read_annotations, events_from_annotations
+from .annotations import (Annotations, read_annotations, annotations_from_events,
+                          events_from_annotations)
 from .epochs import (BaseEpochs, Epochs, EpochsArray, read_epochs,
                      concatenate_epochs, make_fixed_length_epochs)
 from .evoked import Evoked, EvokedArray, read_evokeds, write_evokeds, combine_evoked

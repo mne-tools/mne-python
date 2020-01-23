@@ -23,6 +23,8 @@ Changelog
 
 - Add :func:`mne.io.Raw.set_meas_date` by `Eric Larson`_
 
+- Add ``copy`` parameter to :meth:`mne.Epochs.iter_evoked` by `Alex Gramfort`_
+
 - Add command :ref:`gen_mne_setup_source_space` to quickly set up bilateral hemisphere surface-based source space with subsampling by `Victor Ferat`_.
 
 - Add command :ref:`gen_mne_sys_info` to print system information by `Eric Larson`_
@@ -52,6 +54,8 @@ Changelog
 - Add :func:`mne.SourceEstimate.estimate_snr` to estimate source-space SNR, by `Kaisu Lankinen`_ and `Padma Sundaram`_
 
 - Add option to specify the coordinate frame in :func:`mne.channels.read_custom_montage` by `Eric Larson`_
+
+- Add option to use ``match_case=False`` to :meth:`mne.io.Raw.set_montage` and related functions by `Eric Larson`_
 
 - Add reader for NIRx data in :func:`mne.io.read_raw_nirx` by `Robert Luke`_
 
@@ -85,12 +89,21 @@ Changelog
 
 - Allow `mne.channels.read_custom_montage` to handle fiducial points for BESA spherical (``.elp``) files by `Richard Höchenberger`_
 
+- Add function to convert events to annotations :func:`mne.annotations_from_events` by `Nicolas Barascud`_
+
+- More accurate coordinate system for Easycap montages in :func:`mne.channels.make_standard_montage` by `Christian Brodbeck`_
+
+- Add ``border`` argument to :func:`mne.viz.plot_topomap`. ``border`` controls the value of the edge points to which topomap values are extrapolated. ``border='mean'`` sets these points value to the average of their neighbours. By `Mikołaj Magnuski`_
+
 - Add function :func:`mne.preprocessing.annotate_movement` to annotate periods with head motion and :func:`mne.preprocessing.compute_average_dev_head_t` to re-estimate the device to head transform with average head position during segments with acceptable head movement. by `Adonay Nunes`_
+
 
 Bug
 ~~~
 
 - Fix a bug in :meth:`mne.MixedSourceEstimate.plot_surface` that prevented plotting in latest PySurfer by `Christian O'Reilly`_.
+
+- Fix missing xlabel for :func:`mne.io.Raw.plot_psd` and similar functions when passing a subset of axes from a figure by `Alex Gramfort`_
 
 - Fix incorrect scaling of cluster temporal extent in :func:`mne.stats.summarize_clusters_stc` by `Daniel McCloy`_.
 
@@ -102,7 +115,11 @@ Bug
 
 - Fix :meth:`mne.io.Raw.anonymize` to correctly avoid shifting ``raw.annotations.onset`` relative to ``raw.first_samp`` by `Eric Larson`_
 
+- :meth:`mne.Epochs.iter_evoked` now does not return a copy of info when ``copy=False`` (default parameter) by `Alex Gramfort`_
+
 - The attribute :class:`mne.Annotations.orig_time <mne.Annotations>` is now read-only, and is a :class:`~python:datetime.datetime` object (or None) rather than float, by `Eric Larson`_
+
+- Fix ``xscale='log'`` in :meth:`mne.io.Raw.plot_psd` and related functions by `Alex Gramfort`_
 
 - Unify behavior of ``raw.annotations.append(...)`` when ``raw.info['meas_date']`` is None to make onsets absolute relative to ``first_samp`` as they are when ``raw.info['meas_date']`` is not None; i.e., you might need to do ``raw.annotations.append(old_time + raw.first_time)``, by `Eric Larson`_
 
@@ -158,9 +175,21 @@ Bug
 
 - Fix :class:`mne.decoding.LinearModel` to support the refitted estimator of ``GridSearchCV`` in ``sklearn`` by `Chun-Hui Li`_
 
+- Fix :func:`mne.viz.plot_topomap` when there are bad channels in the provided :class:`mne.Info` instance by `Eric Larson`_
+
+- Fix check for subject definition existing in source space in :func:`mne.compute_source_morph` and related functions by `Eric Larson`_
+
+- Fix creation of new figures in :meth:`mne.Epochs.plot_image` and :func:`mne.viz.plot_epochs_image` by `Eric Larson`_
+
 - Fix bug in :class:`~mne.preprocessing.Xdawn` where filters where selected along the incorrect axis, by `Henrich Kolkhorst`_
 
 - Fix bug in :func:`mne.bem.make_watershed_bem` where some surfaces were saved incorrectly in the working directory by `Yu-Han Luo`_
+
+- Fix support for multiple TAL (annotations) channels in BDF reader by `Clemens Brunner`_
+
+- Fix missing `brainmask` file type in :func:`mne.bem.make_watershed_bem` by changing its default value to `ws.mgz` by `Fu-Te Wong`_
+
+- Fix bug in :func:`mne.channels.make_standard_montage` which would return `easycap-M1` even when requesting `easycap-M10` by `Christian Brodbeck`_
 
 API
 ~~~
@@ -182,6 +211,8 @@ API
 - New methods :meth:`mne.io.Raw.get_channel_types`, :meth:`mne.Epochs.get_channel_types`, :meth:`mne.Evoked.get_channel_types` by `Daniel McCloy`_.
 
 - Deprecate ``mne.minimum_norm.point_spread_function`` and ``mne.minimum_norm.cross_talk_function`` by `Alex Gramfort`_
+
+- Deprecate ``montage`` parameter of :func:`mne.create_info` in favor of :meth:`mne.io.Raw.set_montage`, :meth:`mne.Info.set_montage`, and related functions by `Eric Larson`_
 
 - :func:`mne.channels.equalize_channels` no longer operates in-place by default, but instead makes copies of the objects when necessary (see ``copy`` parameter) by `Marijn van Vliet`_
 
