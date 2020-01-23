@@ -280,7 +280,7 @@ class _TimeViewer(object):
         playback_speed_slider = self.plotter.add_slider_widget(
             self.playback_speed_call,
             value=default_playback_speed,
-            rng=[0.01, 1], title="play speed",
+            rng=[0.01, 1], title="speed",
             pointa=(0.02, 0.1),
             pointb=(0.18, 0.1),
             event_type='always'
