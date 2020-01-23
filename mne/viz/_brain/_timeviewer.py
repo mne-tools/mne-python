@@ -146,6 +146,14 @@ class _TimeViewer(object):
         self.brain = brain
         self.plotter = brain._renderer.plotter
 
+        self.id_actor = self.brain._renderer.text2d(0.05, 0.9, "vertex")
+        self.plotter.enable_point_picking(
+            callback=self.plot_point,
+            show_message=False,
+            show_point=False,
+            use_mesh=True
+        )
+
         # orientation slider
         orientation = [
             'lateral',
@@ -426,18 +434,8 @@ class _TimeViewer(object):
             if not show_label:
                 slider_rep.ShowSliderLabelOff()
 
-            # add support for split window
-            shape = self.plotter.shape
-            pointa = slider_rep.GetPoint1Coordinate().GetValue()
-            pointb = slider_rep.GetPoint2Coordinate().GetValue()
-            pointa = _normalize(pointa, shape)
-            pointb = _normalize(pointb, shape)
-            slider_rep.GetPoint1Coordinate().\
-                SetCoordinateSystemToNormalizedDisplay()
-            slider_rep.GetPoint1Coordinate().SetValue(pointa[0], pointa[1])
-            slider_rep.GetPoint2Coordinate().\
-                SetCoordinateSystemToNormalizedDisplay()
-            slider_rep.GetPoint2Coordinate().SetValue(pointb[0], pointb[1])
+    def plot_point(self, mesh, vertex_id):
+        self.id_actor.SetInput(str(vertex_id))
 
 
 def _set_text_style(text_actor):
