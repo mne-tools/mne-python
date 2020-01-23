@@ -108,8 +108,12 @@ def test_brain_add_label(renderer):
     brain = _Brain(subject_id, hemi='lh', size=500,
                    surf=surf, subjects_dir=subjects_dir)
     label = read_label(fname_label)
-    brain.add_label(fname_label)
     brain.add_label(label, scalar_thresh=0.)
+    brain.close()
+
+    brain = _Brain(subject_id, hemi='split', size=500,
+                   surf=surf, subjects_dir=subjects_dir)
+    brain.add_label(fname_label)
     brain.close()
 
 

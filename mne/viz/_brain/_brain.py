@@ -498,8 +498,7 @@ class _Brain(object):
             as part of the border definition.
         hemi : str | None
             If None, it is assumed to belong to the hemipshere being
-            shown. If two hemispheres are being shown, an error will
-            be thrown.
+            shown.
         subdir : None | str
             If a label is specified as name, subdir can be used to indicate
             that the label file is in a sub-directory of the subject's
@@ -513,14 +512,16 @@ class _Brain(object):
         """
         from matplotlib.colors import colorConverter
         if isinstance(label, str):
-            hemi = self._check_hemi(hemi)
             if color is None:
                 color = "crimson"
 
             if os.path.isfile(label):
                 filepath = label
+                label = read_label(filepath)
+                hemi = label.hemi
                 label_name = os.path.basename(filepath).split('.')[1]
             else:
+                hemi = self._check_hemi(hemi)
                 label_name = label
                 label_fname = ".".join([hemi, label_name, 'label'])
                 if subdir is None:
@@ -532,7 +533,7 @@ class _Brain(object):
                 if not os.path.exists(filepath):
                     raise ValueError('Label file %s does not exist'
                                      % filepath)
-            label = read_label(filepath)
+                label = read_label(filepath)
             ids = label.vertices
             scalars = label.values
         else:
