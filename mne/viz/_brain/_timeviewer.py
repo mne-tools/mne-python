@@ -385,10 +385,11 @@ class _TimeViewer(object):
     def toggle_interface(self):
         self.visibility = not self.visibility
         for slider in self.plotter.slider_widgets:
+            slider_rep = slider.GetRepresentation()
             if self.visibility:
-                slider.On()
+                slider_rep.VisibilityOn()
             else:
-                slider.Off()
+                slider_rep.VisibilityOff()
 
     def apply_auto_scaling(self):
         self.brain.update_auto_scaling()
