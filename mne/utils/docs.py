@@ -78,6 +78,13 @@ extrapolate : str
         Extrapolate to the edges of the head circle (does not work well
         with sensors outside the head circle).
 """
+docdict['topomap_border'] = """
+border : float | 'mean'
+    Value to extrapolate to on the topomap borders. If ``'mean'`` then each
+    extrapolated point has the average value of its neighbours.
+
+    .. versionadded:: 0.20
+"""
 docdict['topomap_head_pos'] = """
 head_pos : dict | None
     Deprecated and will be removed in 0.21. Use ``sphere`` instead.
@@ -505,6 +512,12 @@ montage : None | str | DigMontage
     specified, the channel info will be updated with the channel
     positions. Default is None. See also the documentation of
     :class:`mne.channels.DigMontage` for more information.
+"""
+docdict["match_case"] = """
+match_case : bool
+    If True (default), channel name matching will be case sensitive.
+
+    .. versionadded:: 0.20
 """
 
 # Brain plotting

@@ -321,7 +321,7 @@ intersphinx_mapping = {
     'nilearn': ('http://nilearn.github.io', None),
     'surfer': ('https://pysurfer.github.io/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
-    'statsmodels': ('http://www.statsmodels.org/stable/', None),
+    'statsmodels': ('http://www.statsmodels.org/dev', None),
     # There are some problems with dipy's redirect:
     # https://github.com/nipy/dipy/issues/1955
     'dipy': ('https://dipy.org/documentation/latest',
@@ -362,7 +362,7 @@ try:
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=DeprecationWarning)
         import pyvista
-    pyvista.OFF_SCREEN = True
+    pyvista.OFF_SCREEN = False
 except Exception:
     pass
 else:

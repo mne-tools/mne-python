@@ -3,11 +3,24 @@
   --a-color: rgb(41, 122, 204);
   --a-color-light: rgb(102, 179, 255);
   --a-color-lighter: rgb(204, 230, 255);
+  --text-color: #2c3e50;
 }
 html {
   position: relative;
   min-height: 100%;
 }
+
+/* Syntax reset */
+.highlight a {
+    color: var(--a-color);
+}
+.highlight * {
+    color: inherit;
+    font-weight: inherit;
+    font-style: inherit;
+    background-color: #fafafa;
+}
+
 /* overrides of bootstrap fonts */
 body {
     font-family:"Source Sans Pro", sans-serif;
@@ -196,7 +209,7 @@ div.sidebar {
     border-radius: 4px;
 }
 .label {  /* Necessary for multiple refs, from bootstrap.min.css:7 */
-    color: #2c3e50;
+    color: var(--text-color);
 }
 /* Override bootstrap.min.css to avoid .. container:: padding problems */
 .nosize {
@@ -444,7 +457,26 @@ div.institutions a {
   .hidden {
     display: none;
   }
-  /* Pandas DataFrame _repr_html_ */
+
+/* Pandas DataFrame _repr_html_ */
 table.dataframe th,td {
     padding: 5px;
+}
+
+/* Sphinx-gallery backreference links */
+a.sphx-glr-backref-instance:hover {  /* restore hover decoration that SG removes */
+    text-decoration: underline;
+}
+a[class^="sphx-glr-backref-module"] {  /* make non-MNE instances look like regular code */
+    color: var(--text-color);
+}
+a[class^="sphx-glr-backref-module"]:hover {
+    color: var(--a-color);
+}
+a[class^="sphx-glr-backref-module-mne"] {  /* make all MNE things bold */
+    font-weight: 600;
+    color: var(--a-color);
+}
+a[class^="sphx-glr-backref-module-mne"]:hover {
+    color: var(--a-color-light);
 }

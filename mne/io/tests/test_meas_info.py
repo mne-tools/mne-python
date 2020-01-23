@@ -88,8 +88,9 @@ def test_make_info():
     pytest.raises(TypeError, create_info, ['Test Ch'], sfreq=1000,
                   ch_types=None, montage=np.array([1]))
     m = make_standard_montage('biosemi32')
-    info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
-                       montage=m)
+    with pytest.deprecated_call():
+        info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
+                           montage=m)
     ch_pos = [ch['loc'][:3] for ch in info['chs']]
     ch_pos_mon = m._get_ch_pos()
     ch_pos_mon = np.array(
