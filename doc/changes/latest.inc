@@ -91,6 +91,8 @@ Changelog
 
 - Add function to convert events to annotations :func:`mne.annotations_from_events` by `Nicolas Barascud`_
 
+- Add function :func:`mne.viz.link_brains` to link time properties of multiple brain objects interactively by `Guillaume Faveler`_
+
 Bug
 ~~~
 
