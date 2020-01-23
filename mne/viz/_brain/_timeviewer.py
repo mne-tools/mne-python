@@ -280,7 +280,7 @@ class _TimeViewer(object):
         playback_speed_slider = self.plotter.add_slider_widget(
             self.playback_speed_call,
             value=default_playback_speed,
-            rng=[0.01, 1], title="playback speed",
+            rng=[0.01, 1], title="play speed",
             pointa=(0.02, 0.1),
             pointb=(0.18, 0.1),
             event_type='always'
@@ -395,13 +395,13 @@ class _TimeViewer(object):
         self.brain.update_auto_scaling()
         self.fmin_slider_rep.SetValue(self.brain._data['fmin'])
         self.fmid_slider_rep.SetValue(self.brain._data['fmid'])
-        self.fmid_slider_rep.SetValue(self.brain._data['fmax'])
+        self.fmax_slider_rep.SetValue(self.brain._data['fmax'])
 
     def restore_user_scaling(self):
         self.brain.update_auto_scaling(restore=True)
         self.fmin_slider_rep.SetValue(self.brain._data['fmin'])
         self.fmid_slider_rep.SetValue(self.brain._data['fmid'])
-        self.fmid_slider_rep.SetValue(self.brain._data['fmax'])
+        self.fmax_slider_rep.SetValue(self.brain._data['fmax'])
 
     def toggle_playback(self):
         self.playback = not self.playback
