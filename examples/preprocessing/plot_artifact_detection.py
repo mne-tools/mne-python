@@ -24,8 +24,7 @@ import matplotlib.pyplot as plt
 import mne
 from mne.datasets.brainstorm import bst_auditory
 from mne.io import read_raw_ctf
-from mne.preprocessing.artifact_detection import (annotate_movement,
-                                                  compute_average_dev_head_t)
+from mne.preprocessing import (annotate_movement, compute_average_dev_head_t)
 
 
 # Load data
