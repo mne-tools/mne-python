@@ -125,7 +125,7 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
 def compute_average_dev_head_t(raw, pos):
     """Get new device to head transform based on good segments.
 
-    Segments with BAD_ annotations are not included for calculating the mean
+    Segments with "BAD_" annotations are not included for calculating the mean
     head position.
 
     Parameters
