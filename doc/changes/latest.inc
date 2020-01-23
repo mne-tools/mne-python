@@ -81,6 +81,8 @@ Changelog
 
 - Add command :ref:`gen_mne_prepare_bem_model` to quickly create a BEM solution using the linear collocation approach by `Victor Ferat`_.
 
+- Add support for reading ``.bdip`` Xfit binary dipole fit files in :func:`mne.read_dipole` by `Eric Larson`_
+
 - Allow returning vector source estimates from sparse inverse solvers through ``pick_ori='vector'`` by `Christian Brodbeck`_
 
 - Add NIRS support to :func:`mne.viz.plot_topomap` by `Robert Luke`_
