@@ -7,13 +7,12 @@ Periods, where the participant moved considerably, are contaminated by low
 amplitude artifacts. When averaging the magnetic fields, the more spread the
 head position, the bigger the cancellation due to different locations.
 Similarly, the covariance will also be affected by severe head movement,
-and source estimation will suffer from low/smeared corregistration accuracy.
+and source estimation will suffer low/smeared coregistration accuracy.
 
 This example uses the continuous head position indicators (cHPI) times series
 to annotate periods of head movement, then the device to head transformation
 matrix is estimated from the artifact-free segments. The new head position will
 be more representative of the actual head position during the recording.
-
 
 """
 # Authors: Adonay Nunes <adonay.s.nunes@gmail.com>
@@ -21,13 +20,13 @@ be more representative of the actual head position during the recording.
 # License: BSD (3-clause)
 
 import os.path as op
+import matplotlib.pyplot as plt
 import mne
-
 from mne.datasets.brainstorm import bst_auditory
 from mne.io import read_raw_ctf
 from mne.preprocessing.artifact_detection import (annotate_movement,
                                                   compute_average_dev_head_t)
-import matplotlib.pyplot as plt
+
 
 # Load data
 data_path = bst_auditory.data_path()

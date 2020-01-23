@@ -3,11 +3,12 @@
 # License: BSD (3-clause)
 
 
-from scipy.ndimage.measurements import label
 import numpy as np
+import warnings
+from scipy.ndimage.measurements import label
 from ..annotations import (Annotations, _annotations_starts_stops)
 from ..chpi import _apply_quat
-from ..transforms import (quat_to_rot, _average_quats)
+from ..transforms import (quat_to_rot, _average_quats, _angle_between_quats)
 from .. import Transform
 from ..utils import (_mask_to_onsets_offsets, logger)
 
@@ -26,7 +27,8 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
     raw : instance of Raw.
         Data to compute head position.
     pos : array, shape (N, 10)
-        The position and quaternion parameters from cHPI fitting.
+        The position and quaternion parameters from cHPI fitting. Obtained
+        with `mne.chpi` functions.
     rotation_velocity_limit: float
         Head rotation velocity limit in radians per second.
     translation_velocity_limit : float
@@ -58,7 +60,6 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
     # Annotate based on rotational velocity
     t_tot = raw.times[-1]
     if rotation_velocity_limit is not None:
-        from mne.transforms import _angle_between_quats
         assert rotation_velocity_limit > 0
         # Rotational velocity (radians / sec)
         r = _angle_between_quats(pos[:-1, 1:4], pos[1:, 1:4])
@@ -139,8 +140,6 @@ def compute_average_dev_head_t(raw, pos):
     dev_head_t : array
         New trans matrix using the averaged good head positions.
     """
-    import warnings
-
     sfreq = raw.info['sfreq']
     seg_good = np.ones(len(raw.times))
     trans_pos = np.zeros(3)
