@@ -98,15 +98,7 @@ def make_dics(info, forward, csd, reg=0.05, label=None, pick_ori=None,
     real_filter : bool
         If ``True``, take only the real part of the cross-spectral-density
         matrices to compute real filters. Defaults to ``False``.
-    reduce_rank : bool
-        If ``True``, the rank of the forward operator will be reduced by 1 for
-        each spatial location, prior to inversion. This may be necessary when
-        you use a single sphere model for MEG and ``mode='vertex'``.
-        Defaults to ``False``.
-
-        .. versionchanged:: 0.20
-           Support for reducing rank in all modes (previously only supported
-           ``pick='max_power'`` with weight normalization).
+    %(reduce_rank)s
     %(verbose)s
 
     Returns
@@ -606,11 +598,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
     real_filter : bool
         If ``True``, take only the real part of the cross-spectral-density
         matrices to compute real filters. Defaults to ``False``.
-    reduce_rank : bool
-        If ``True``, the rank of the forward operator will be reduced by 1 for
-        each spatial location, prior to inversion. This may be necessary when
-        you use a single sphere model for MEG and ``mode='vertex'``.
-        Defaults to ``False``.
+    %(reduce_rank)s
     %(verbose)s
 
     Returns

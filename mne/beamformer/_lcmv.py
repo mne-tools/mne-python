@@ -67,14 +67,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
         if 'nai', the Neural Activity Index [1]_ will be computed,
         if None, the unit-gain LCMV beamformer [2]_ will be computed.
-    reduce_rank : bool
-        If True, the rank of the leadfield will be reduced by 1 for each
-        spatial location. Setting reduce_rank to True is typically necessary
-        if you use a single sphere model for MEG.
-
-        .. versionchanged:: 0.20
-           Support for reducing rank in all modes (previously only supported
-           ``pick='max_power'`` with weight normalization).
+    %(reduce_rank)s
     %(depth)s
 
         .. versionadded:: 0.18
