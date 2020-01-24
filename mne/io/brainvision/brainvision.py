@@ -622,11 +622,10 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
             line = re.split(divider, settings[idx + i])
             # double check alignment with channel by using the hw settings
             if idx == idx_amp:
-                line_amp = line
-                assert settings[idx + i].find(ch) > -1
+                line_amp = settings[idx + i]
             else:
-                line_amp = re.split(divider, settings[idx_amp + i])
-                assert settings[idx_amp + i].find(ch) > -1
+                line_amp = settings[idx_amp + i]
+            assert line_amp.find(ch) > -1
 
             # Correct shift for channel names with spaces
             # Header already gives 1 therefore has to be subtracted
