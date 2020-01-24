@@ -156,10 +156,10 @@ def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk):
 
     # Determine orientation of max power
     assert power.shape == (Wk.shape[0], 3, 3)  # sources, 3, 3
-    Wk = _pick_ori(power, Wk, Gk, Cm_inv_sq, nn)
+    Wk = _pick_max_power_ori(power, Wk, Gk, Cm_inv_sq, nn)
 
 
-def _pick_ori(power, Wk, Gk, Cm_inv, nn):
+def _pick_max_power_ori(power, Wk, Gk, Cm_inv, nn):
     """Pick the orientation that maximizes output power.
 
     Parameters
@@ -326,7 +326,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                                       Wk.transpose(0, 2, 1))
 
                 # Determine orientation of max. power
-                Wk = _pick_ori(power, Wk, Gk, Cm_inv, nn)
+                Wk = _pick_max_power_ori(power, Wk, Gk, Cm_inv, nn)
 
     W = Wk.reshape(n_sources * n_orient, n_channels)
     del Gk, Wk, sk
