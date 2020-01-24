@@ -164,6 +164,9 @@ class _TimeViewer(object):
 
         for hemi in self.brain._hemis:
             ci = 0 if hemi == 'lh' else 1
+            # with both, all hemis are on the same view
+            if self.brain._hemi == 'both':
+                ci = 0
             for ri, view in enumerate(self.brain._views):
                 self.plotter.subplot(ri, ci)
                 name = "orientation_" + str(ri) + "_" + str(ci)
@@ -425,19 +428,6 @@ class _TimeViewer(object):
             slider_rep.GetSliderProperty().SetColor((0.5, 0.5, 0.5))
             if not show_label:
                 slider_rep.ShowSliderLabelOff()
-
-            # add support for split window
-            shape = self.plotter.shape
-            pointa = slider_rep.GetPoint1Coordinate().GetValue()
-            pointb = slider_rep.GetPoint2Coordinate().GetValue()
-            pointa = _normalize(pointa, shape)
-            pointb = _normalize(pointb, shape)
-            slider_rep.GetPoint1Coordinate().\
-                SetCoordinateSystemToNormalizedDisplay()
-            slider_rep.GetPoint1Coordinate().SetValue(pointa[0], pointa[1])
-            slider_rep.GetPoint2Coordinate().\
-                SetCoordinateSystemToNormalizedDisplay()
-            slider_rep.GetPoint2Coordinate().SetValue(pointb[0], pointb[1])
 
 
 def _set_text_style(text_actor):
