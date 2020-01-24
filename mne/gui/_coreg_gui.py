@@ -31,7 +31,7 @@ properties that are set to be equivalent.
   |-- SurfaceObject (mri_obj) [5]: Represent a solid object in a mayavi scene.
   +-- PointObject ({hsp, eeg, lpa, nasion, rpa, hsp_lpa, hsp_nasion, hsp_rpa} + _obj): Represent a group of individual points in a mayavi scene.
 
-In the MRI viewing frame, MRI points and transformed via scaling, then by
+In the MRI viewing frame, MRI points are transformed via scaling, then by
 mri_head_t to the Neuromag head coordinate frame. Digitized points (in head
 coordinate frame) are never transformed.
 
