@@ -65,6 +65,7 @@ extensions = [
     'sphinx_gallery.gen_gallery',
     'sphinx_fontawesome',
     'gen_commands',
+    'gh_substitutions',
     'sphinx_bootstrap_theme',
     'sphinx_bootstrap_divs',
     'sphinxcontrib.bibtex',
