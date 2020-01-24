@@ -147,12 +147,15 @@ class _TimeViewer(object):
         self.plotter = brain._renderer.plotter
 
         self.id_actor = self.brain._renderer.text2d(0.05, 0.9, "vertex")
+        self.picked_point = -1
+        self.act_data = None
         self.plotter.enable_point_picking(
-            callback=self.plot_point,
+            callback=self.pick_point,
             show_message=False,
             show_point=False,
             use_mesh=True
         )
+        self.plotter.add_key_event('o', self.plot_point)
 
         # orientation slider
         orientation = [
@@ -434,8 +437,27 @@ class _TimeViewer(object):
             if not show_label:
                 slider_rep.ShowSliderLabelOff()
 
-    def plot_point(self, mesh, vertex_id):
+    def pick_point(self, mesh, vertex_id):
         self.id_actor.SetInput(str(vertex_id))
+        self.picked_point = vertex_id
+
+    def plot_point(self):
+        import matplotlib.pyplot as plt
+        if self.picked_point != -1:
+            if self.act_data is None:
+                hemi = self.brain._hemi
+                hemi_data = self.brain._data.get(hemi)
+
+                self.act_data = self.brain._data['array']
+                smooth_mat = hemi_data['smooth_mat']
+                if smooth_mat is not None:
+                    self.act_data = smooth_mat.dot(self.act_data)
+
+            time = self.brain._data['time']
+            fig = plt.figure()
+            plt.plot(time, self.act_data[self.picked_point, :], 'b')
+            plt.xlim(time[0], time[-1])
+            plt.show()
 
 
 def _set_text_style(text_actor):
