@@ -165,7 +165,7 @@ def _pick_ori(power, Wk, Gk, Cm_inv, nn):
     Parameters
     ----------
     power : ndarray, shape (n_sources, 3, 3)
-        Power source estimate.
+        Source covariance, with power source estimate on diagonal.
     Wk : ndarray, shape (n_sources, 3, n_channels)
         Part of the beamformer computation, G.T @ Cm_inv.
     Gk : ndarray, shape (n_sources, n_channels, 3)
