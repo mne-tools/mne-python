@@ -5,7 +5,7 @@
 
 import numpy as np
 import warnings
-from scipy.ndimage.measurements import label
+
 from ..annotations import (Annotations, _annotations_starts_stops)
 from ..chpi import _apply_quat
 from ..transforms import (quat_to_rot, _average_quats, _angle_between_quats)
@@ -198,6 +198,7 @@ def compute_average_dev_head_t(raw, pos):
 
 def _annotations_from_mask(times, art_mask, art_name):
     """Construct annotations from boolean mask of the data."""
+    from scipy.ndimage.measurements import label
     comps, num_comps = label(art_mask)
     onsets, durations, desc = [], [], []
     n_times = len(times)
