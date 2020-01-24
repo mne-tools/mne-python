@@ -16,7 +16,7 @@ Code projects, while others require more extensive work.
 Clustering statistics API
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The current clustering statistics has limited functionality. It should be
+The current clustering statistics code has limited functionality. It should be
 re-worked to create a new ``cluster_based_statistic`` or similar function.
 In particular, the new API should:
 
@@ -115,7 +115,7 @@ of by MNE. Subgoals consist of:
 Tutorial / example overhaul
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We want our tutorials to be written to get users up to speed on:
+We want our tutorials to get users up to speed on:
 
 1. How to do M/EEG analyses in principle, and
 2. How to do M/EEG analyses in MNE-Python in particular
@@ -141,15 +141,15 @@ Once this is done, we can effectively switch to a PyVista backend.
 BIDS Integration
 ^^^^^^^^^^^^^^^^
 
-MNE-Python should facilitate analyzing BIDS datasets. For more information,
-see https://github.com/mne-tools/mne-bids.
+MNE-Python should facilitate analyzing BIDS-compliant datasets. For more
+information, see https://github.com/mne-tools/mne-bids.
 
 
 Access to open EEG/MEG databases
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We should improve the access to open EEG/MEG databases via the
-:mod:`mne.datasets` module, in other works improve our dataset fetchers.
+:mod:`mne.datasets` module, in other words improve our dataset fetchers.
 We have physionet, but much more. Having a consistent API to access multiple
 data sources would be great. See :gh:`2852` and :gh:`3585` for some ideas,
 as well as:
