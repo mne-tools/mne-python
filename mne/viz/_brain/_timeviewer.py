@@ -177,6 +177,9 @@ class _TimeViewer(object):
 
         for hemi in self.brain._hemis:
             ci = 0 if hemi == 'lh' else 1
+            # with both, all hemis are on the same view
+            if self.brain._hemi == 'both':
+                ci = 0
             for ri, view in enumerate(self.brain._views):
                 self.plotter.subplot(ri, ci)
                 name = "orientation_" + str(ri) + "_" + str(ci)
