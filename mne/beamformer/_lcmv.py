@@ -15,7 +15,7 @@ from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz, _check_reference, _check_depth
 from ..cov import compute_covariance
 from ..source_estimate import _make_stc, _get_src_type
-from ..utils import (logger, verbose, warn, _validate_type, _reg_pinv,
+from ..utils import (logger, verbose, warn, _reg_pinv,
                      _check_channels_spatial_filter, _check_option)
 from ..utils import _check_one_ch_type, _check_rank, _check_info_inv
 from .. import Epochs
@@ -67,10 +67,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
         will be computed (Borgiotti-Kaplan beamformer) [2]_,
         if 'nai', the Neural Activity Index [1]_ will be computed,
         if None, the unit-gain LCMV beamformer [2]_ will be computed.
-    reduce_rank : bool
-        If True, the rank of the leadfield will be reduced by 1 for each
-        spatial location. Setting reduce_rank to True is typically necessary
-        if you use a single sphere model for MEG.
+    %(reduce_rank)s
     %(depth)s
 
         .. versionadded:: 0.18
@@ -161,15 +158,6 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     Cm = np.dot(whitener, np.dot(Cm, whitener.T))
     rank_int = sum(rank.values())
     del rank
-
-    # leadfield rank and optional rank reduction
-    if reduce_rank:
-        if not pick_ori == 'max-power':
-            raise NotImplementedError('The computation of spatial filters '
-                                      'with rank reduction using reduce_rank '
-                                      'parameter is only implemented with '
-                                      'pick_ori=="max-power".')
-        _validate_type(reduce_rank, bool, "reduce_rank", "a boolean")
 
     # compute spatial filter
     n_orient = 3 if is_free_ori else 1
