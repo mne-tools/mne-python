@@ -322,6 +322,12 @@ class _TimeViewer(object):
         self.visibility = True
         self.plotter.add_key_event('y', self.toggle_interface)
 
+        # add toggle to start/stop GIF movie
+        self.movie = False
+        self.movie_refresh_rate_ms = 40  # 1000ms / 25Hz
+        self.plotter.add_key_event('o', self.toggle_movie)
+        self.plotter.add_callback(self.save_movie, self.movie_refresh_rate_ms)
+
         # apply auto-scaling action
         self.plotter.add_key_event('t', self.apply_auto_scaling)
 
@@ -381,6 +387,18 @@ class _TimeViewer(object):
             elif name == "fmax":
                 slider_rep = slider.GetRepresentation()
                 slider_rep.SetValue(fmax)
+
+    def toggle_movie(self):
+        self.movie = not self.movie
+        if self.movie:
+            self.plotter.open_gif("time_viewer.gif")
+        else:
+            if hasattr(self.plotter, 'mwriter'):
+                self.plotter.mwriter.close()
+
+    def save_movie(self):
+        if self.movie:
+            self.plotter.write_frame()
 
     def toggle_playback(self):
         self.playback = not self.playback
