@@ -754,7 +754,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
             data = _merge_grad_data(data[picks]).reshape(-1)
         else:
             picks = list(range(data.shape[0]))
-            pos = _find_topomap_coords(pos, picks=picks)
+            pos = _find_topomap_coords(pos, picks=picks, sphere=sphere)
 
     if data.ndim > 1:
         raise ValueError("Data needs to be array of shape (n_sensors,); got "
