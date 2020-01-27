@@ -149,8 +149,8 @@ class _TimeViewer(object):
         self.point_actor = self.brain._renderer.text2d(0.05, 0.9, "")
         self.point_actor.VisibilityOff()
         self.point_actor
-        self.picked_point = -1
         self.fig = None
+        self.picked_points = list()
         self.act_data = None
         self.plotter.enable_point_picking(
             callback=self.pick_point,
@@ -446,24 +446,51 @@ class _TimeViewer(object):
         import matplotlib.pyplot as plt
         self.point_actor.VisibilityOn()
         self.point_actor.SetInput(str(vertex_id))
-        self.picked_point = vertex_id
-        if self.picked_point != -1:
-            if self.act_data is None:
-                hemi = self.brain._hemi
-                hemi_data = self.brain._data.get(hemi)
+        if vertex_id != -1:
+            if hasattr(mesh, "_hemi"):
+                if vertex_id not in self.picked_points:
+                    # add glyph at picked point
+                    center = mesh.GetPoints().GetPoint(vertex_id)
+                    actor, mesh = self.brain._renderer.sphere(
+                        center=np.array(center),
+                        color='red',
+                        scale=1.0,
+                        radius=3.0
+                    )
 
-                self.act_data = self.brain._data['array']
-                smooth_mat = hemi_data['smooth_mat']
-                if smooth_mat is not None:
-                    self.act_data = smooth_mat.dot(self.act_data)
+                    if self.act_data is None:
+                        hemi = self.brain._hemi
+                        hemi_data = self.brain._data.get(hemi)
 
-            time = self.brain._data['time']
-            if self.fig is not None:
-                plt.close(self.fig)
-            self.fig = plt.figure()
-            plt.plot(time, self.act_data[self.picked_point, :],
-                     color='b', figure=self.fig)
-            self.fig.show()
+                        self.act_data = self.brain._data['array']
+                        smooth_mat = hemi_data['smooth_mat']
+                        if smooth_mat is not None:
+                            self.act_data = smooth_mat.dot(self.act_data)
+
+                    time = self.brain._data['time']
+                    if self.fig is None:
+                        self.fig = plt.figure()
+                        plt.xlabel('Time (ms)')
+                        plt.ylabel('Brain activity (a.u)')
+                    line, = plt.plot(time, self.act_data[vertex_id, :],
+                                     label=f'vertex id = {vertex_id}',
+                                     figure=self.fig)
+                    _update_plot(self.fig)
+
+                    # add metadata for picking
+                    mesh._line = line
+                    mesh._actor = actor
+                    mesh._vertex_id = vertex_id
+                    self.picked_points.append(vertex_id)
+            else:
+                vertex_id = mesh._vertex_id
+                self.picked_points.remove(vertex_id)
+                self.plotter.remove_actor(mesh._actor)
+                mesh._line.remove()
+                _update_plot(self.fig)
+
+        def remove_point(self, index):
+            pass
 
 
 def _set_text_style(text_actor):
@@ -479,3 +506,11 @@ def _get_range(brain):
 
 def _normalize(point, shape):
     return (point[0] / shape[1], point[1] / shape[0])
+
+
+def _update_plot(fig):
+    import matplotlib.pyplot as plt
+    plt.legend()
+    fig.canvas.draw()
+    fig.canvas.flush_events()
+    fig.show()

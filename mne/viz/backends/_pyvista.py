@@ -257,11 +257,14 @@ class _Renderer(_BaseRenderer):
             sphere.Update()
             geom = sphere.GetOutput()
             pd = PolyData(center)
-            self.plotter.add_mesh(pd.glyph(orient=False, scale=False,
-                                           factor=factor, geom=geom),
-                                  color=color, opacity=opacity,
-                                  backface_culling=backface_culling,
-                                  smooth_shading=self.figure.smooth_shading)
+            glyph = pd.glyph(orient=False, scale=False,
+                             factor=factor, geom=geom)
+            actor = self.plotter.add_mesh(
+                glyph, color=color, opacity=opacity,
+                backface_culling=backface_culling,
+                smooth_shading=self.figure.smooth_shading
+            )
+            return actor, glyph
 
     def tube(self, origin, destination, radius=0.001, color='white',
              scalars=None, vmin=None, vmax=None, colormap='RdBu',

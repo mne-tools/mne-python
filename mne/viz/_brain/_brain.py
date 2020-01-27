@@ -215,11 +215,15 @@ class _Brain(object):
                 if not (hemi in ['lh', 'rh'] and h != hemi):
                     ci = hi if hemi == 'split' else 0
                     self._renderer.subplot(ri, ci)
-                    self._renderer.mesh(x=self.geo[h].coords[:, 0],
-                                        y=self.geo[h].coords[:, 1],
-                                        z=self.geo[h].coords[:, 2],
-                                        triangles=self.geo[h].faces,
-                                        color=self.geo[h].grey_curv)
+                    _, mesh = self._renderer.mesh(
+                        x=self.geo[h].coords[:, 0],
+                        y=self.geo[h].coords[:, 1],
+                        z=self.geo[h].coords[:, 2],
+                        triangles=self.geo[h].faces,
+                        color=self.geo[h].grey_curv
+                    )
+                    # add metadata to the mesh for picking
+                    mesh._hemi = h
                     self._renderer.set_camera(azimuth=views_dict[v].azim,
                                               elevation=views_dict[v].elev)
         # Force rendering
