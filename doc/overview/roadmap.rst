@@ -38,7 +38,7 @@ Historically we have used Mayavi for 3D visualization, but have faced
 limitations and challenges with it. We should work to use some other backend
 (e.g., PyVista) to get major improvements, such as:
 
-1. Proper notebook support (XTK through pyvtk?)
+1. Proper notebook support (through vtkjs)
 2. Better interactivity with surface plots
 3. Time-frequency plotting (complementary to volume-based
    :ref:`time-frequency-viz`)
@@ -89,6 +89,7 @@ in action (click for link to YouTube):
 
 Cluster computing
 ^^^^^^^^^^^^^^^^^
+
 Currently, cloud computing with M/EEG data requires multiple manual steps,
 including remote environment setup, data transfer, monitoring of remote jobs,
 and retrieval of output data/results. These steps are usually not specific to
@@ -108,7 +109,7 @@ of by MNE. Subgoals consist of:
 - Develop a (short as possible) example that shows people how to run a minimal
   task remotely, including setting up access, cluster, nodes, etc.
 - Adapt
-  MNE-biomag-group-demo code to use cloud computing (optionally, based on
+  MNE-study-template_ code to use cloud computing (optionally, based on
   config) rather than local resources.
 
 
@@ -141,7 +142,8 @@ Once this is done, we can effectively switch to a PyVista backend.
 BIDS Integration
 ^^^^^^^^^^^^^^^^
 
-MNE-Python should facilitate analyzing BIDS-compliant datasets. For more
+MNE-Python should facilitate analyzing BIDS-compliant datasets thanks to
+integration with the MNE-BIDS package. For more
 information, see https://github.com/mne-tools/mne-bids.
 
 
@@ -154,17 +156,22 @@ We have physionet, but much more. Having a consistent API to access multiple
 data sources would be great. See :gh:`2852` and :gh:`3585` for some ideas,
 as well as:
 
-- `MMN dataset <http://www.fil.ion.ucl.ac.uk/spm/data/eeg_mmn/>`__
-    used for tutorial/publications applying DCM for ERP analysis using SPM.
-- `Human Connectome Project Datasets <http://www.humanconnectome.org/data/>`__
+- `OpenNEURO <https://openneuro.org>`__
+    "A free and open platform for sharing MRI, MEG, EEG, iEEG, and ECoG data."
+- `Human Connectome Project Datasets <http://www.humanconnectome.org/data>`__
     Over a 3-year span (2012-2015), the Human Connectome Project (HCP) scanned
     1,200 healthy adult subjects. The available data includes MR structural
     scans, behavioral data and (on a subset of the data) resting state and/or
     task MEG data.
+- `MMN dataset <http://www.fil.ion.ucl.ac.uk/spm/data/eeg_mmn>`__
+    Used for tutorial/publications applying DCM for ERP analysis using SPM.
 - `Kymata Datasets <https://kymata-atlas.org/datasets>`__.
     Current and archived EMEG measurement data, used to test hypotheses in the
     Kymata atlas. The participants are healthy human adults listening to the
     radio and/or watching films, and the data is comprised of (averaged) EEG
     and MEG sensor data and source current reconstructions.
-- `BrainSignals <http://www.brainsignals.de/>`__
+- `BrainSignals <http://www.brainsignals.de>`__
     A website that lists a number of MEG datasets available for download.
+
+.. LINKS
+.. _MNE-study-template: https://github.com/mne-tools/mne-study-template
