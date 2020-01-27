@@ -87,9 +87,7 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
                     u'v >= %5.4fm/s (max: %5.4fm/s)'
                     % (bad_pct, len(onsets), translation_velocity_limit,
                        v.max()))
-        for onset, offset in zip(onsets, offsets):
-            annot.append(onset, offset - onset, 'BAD_trans_vel')
-        annot += _annotations_from_mask(hp_ts, bad_mask, 'BAD_mov_vel')
+        annot += _annotations_from_mask(hp_ts, bad_mask, 'BAD_mov_trans_vel')
 
     # Annotate based on displacement from mean head position
     disp = []
