@@ -4,6 +4,7 @@
 
 
 import os.path as op
+import warnings
 import numpy as np
 from numpy.testing import assert_allclose
 from mne.chpi import read_head_pos
@@ -17,7 +18,9 @@ pre = op.join(sss_path, 'test_move_anon_')
 raw_fname = pre + 'raw.fif'
 pos_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.pos')
 
-raw = read_raw_fif(raw_fname, allow_maxshield=True).load_data()
+with warnings.catch_warnings(record=True):
+    warnings.simplefilter("ignore")
+    raw = read_raw_fif(raw_fname, allow_maxshield=True).load_data()
 pos = read_head_pos(pos_fname)
 
 
