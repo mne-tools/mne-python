@@ -1562,8 +1562,11 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         is None, the environment will be used.
     surface : str
         The type of surface (inflated, white etc.).
-    hemi : str, 'lh' | 'rh' | 'split' | 'both'
-        The hemisphere to display.
+    hemi : str
+        Hemisphere id (ie 'lh', 'rh', 'both', or 'split'). In the case
+        of 'both', both hemispheres are shown in the same window.
+        In the case of 'split' hemispheres are displayed side-by-side
+        in different viewing panes.
     %(colormap)s
         The default ('auto') uses 'hot' for one-sided data and
         'mne' for two-sided data.
