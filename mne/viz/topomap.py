@@ -505,10 +505,11 @@ def _get_extra_points(pos, extrapolate, sphere):
         new_pos = np.concatenate([hull_extended] + add_points)
     else:
         # return points on the head circle
-        angle = np.arcsin(distance / 2 / head_radius) * 2
+        angle = np.arcsin(distance / 2 / head_radius)
         points_l = np.arange(0, 2 * np.pi, angle)
-        points_x = np.cos(points_l) * head_radius + x
-        points_y = np.sin(points_l) * head_radius + y
+        use_radius = head_radius * 1.1
+        points_x = np.cos(points_l) * use_radius + x
+        points_y = np.sin(points_l) * use_radius + y
         new_pos = np.stack([points_x, points_y], axis=1)
         if colinear:
             tri = Delaunay(np.concatenate([pos, new_pos], axis=0))
