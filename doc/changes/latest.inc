@@ -112,6 +112,8 @@ Bug
 
 - Fix :func:`mne.viz.plot_sensors` to always plot in head coordinate frame by `Daniel McCloy`_.
 
+- Fix :func:`mne.io.read_raw_cnt` for version 1 of format in the presence of annotations by `Alex Gramfort`_.
+
 - Fix :meth:`mne.io.read_raw_ctf` to set measurement date from CTF ds files by `Luke Bloy`_.
 
 - Fix :meth:`mne.io.read_raw_brainvision` when channel names have spaces by `Sebastian Major`_.
