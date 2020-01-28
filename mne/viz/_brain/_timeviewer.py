@@ -32,6 +32,7 @@ class MplCanvas(FigCanvas):
         FigCanvas.updateGeometry(self)
 
     def plot(self, x, y, vertex_id):
+        """Plot a curve."""
         line, = self.axes.plot(x, y,
                                label='vertex id = {}'.format(vertex_id))
         self.axes.legend()
@@ -39,6 +40,7 @@ class MplCanvas(FigCanvas):
         return line
 
     def update_plot(self):
+        """Update the plot."""
         self.draw()
 
 
@@ -387,6 +389,7 @@ class _TimeViewer(object):
         # set the text style
         _set_text_style(self.time_actor)
 
+        # use a matplotlib canvas
         self.mpl_canvas = MplCanvas(
             self.plotter.app_window,
             width=5, height=4, dpi=100
