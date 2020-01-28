@@ -18,8 +18,7 @@ from ..io.proj import make_projector, Projection
 from ..minimum_norm.inverse import _get_vertno, _prepare_forward
 from ..source_space import label_src_vertno_sel
 from ..utils import (verbose, check_fname, _reg_pinv, _check_option, logger,
-                     _pl, _check_src_normal, check_version, _validate_type,
-                     warn)
+                     _pl, _check_src_normal, check_version, warn)
 from ..time_frequency.csd import CrossSpectralDensity
 
 from ..externals.h5io import read_hdf5, write_hdf5
@@ -260,7 +259,6 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     # inversion of the denominator
     _check_option('inversion', inversion, ('matrix', 'single'))
     if reduce_rank and inversion == 'single':
-        # TODO: what about the leadfield rank reduction with backprojection?
         raise ValueError('reduce_rank cannot be used with inversion="single"; '
                          'consider using inversion="matrix" if you have a '
                          'rank-deficient forward model (i.e., from a sphere '
@@ -283,6 +281,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         s[:, np.argmin(s, axis=1)] = 0.  # set the smalles singular value to 0.
         # expand s to match dimension of u
         s_full = np.zeros(Gk.shape)
+        # TODO: vectorize?
         for s_full_vox, s_vox in zip(s_full, s):
             np.fill_diagonal(s_full_vox, s_vox)
 
