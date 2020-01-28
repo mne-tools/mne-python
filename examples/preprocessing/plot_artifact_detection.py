@@ -20,54 +20,55 @@ be more representative of the actual head position during the recording.
 # License: BSD (3-clause)
 
 import os.path as op
-import matplotlib.pyplot as plt
+
 import mne
 from mne.datasets.brainstorm import bst_auditory
 from mne.io import read_raw_ctf
-from mne.preprocessing import (annotate_movement, compute_average_dev_head_t)
-
+from mne.preprocessing import annotate_movement, compute_average_dev_head_t
 
 # Load data
 data_path = bst_auditory.data_path()
 data_path_MEG = op.join(data_path, 'MEG')
-
 subject = 'bst_auditory'
 subjects_dir = op.join(data_path, 'subjects')
-
+trans_fname = op.join(data_path, 'MEG', 'bst_auditory',
+                      'bst_auditory-trans.fif')
 raw_fname1 = op.join(data_path_MEG, 'bst_auditory', 'S01_AEF_20131218_01.ds')
 raw_fname2 = op.join(data_path_MEG, 'bst_auditory', 'S01_AEF_20131218_02.ds')
 
 raw = read_raw_ctf(raw_fname1, preload=False)
 
 mne.io.concatenate_raws([raw, read_raw_ctf(raw_fname2, preload=False)])
-raw.crop(350, 500).load_data()
-raw.resample(300, npad="auto").notch_filter([60, 120])
-
-# get cHPI time series
-pos = mne.chpi.calculate_head_pos_ctf(raw)
-
-mean_distance_limit = .0015  # in meters
-out = annotate_movement(raw, pos, mean_distance_limit=mean_distance_limit)
-annotation_movement, hpi_disp = out
+raw.crop(350, 410).load_data()
+raw.resample(100, npad="auto")
 
 ###############################################################################
 # Plot continuous head position with respect to the mean recording position
 # --------------------------------------------------------------------------
-plt.figure()
-plt.plot(pos[:, 0], hpi_disp)
-plt.axhline(y=mean_distance_limit, color='r')
-plt.xlabel('time s')
-plt.ylabel('distance m')
-plt.title('cHPI w.r.t mean recording head position ')
-plt.show(block=False)
+
+# get cHPI time series and compute average
+pos = mne.chpi.calculate_head_pos_ctf(raw)
+average_head_dev_t = mne.transforms.invert_transform(
+    compute_average_dev_head_t(raw, pos))
+fig = mne.viz.plot_head_positions(pos)
+for ax, val in zip(fig.axes[::2], average_head_dev_t['trans'][:3, 3]):
+    ax.axhline(1000 * val, color='r')
 
 ###############################################################################
 # Plot raw data with annotated movement
 # ------------------------------------------------------------------
+
+mean_distance_limit = .0015  # in meters
+annotation_movement, hpi_disp = annotate_movement(
+    raw, pos, mean_distance_limit=mean_distance_limit)
 raw.set_annotations(annotation_movement)
 raw.plot(n_channels=100, duration=20)
 
-
+##############################################################################
 # After checking the annotated movement artifacts, calculate the new transform
+# and plot it:
 new_dev_head_t = compute_average_dev_head_t(raw, pos)
 raw.info['dev_head_t'] = new_dev_head_t
+mne.viz.plot_alignment(
+    raw.info, show_axes=True, subject=subject, trans=trans_fname,
+    subjects_dir=subjects_dir)
