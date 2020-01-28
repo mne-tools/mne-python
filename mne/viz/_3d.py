@@ -16,6 +16,7 @@ from io import BytesIO
 from itertools import cycle
 import os.path as op
 import warnings
+import collections
 from functools import partial
 
 import numpy as np
@@ -1544,7 +1545,10 @@ def link_brains(brains):
     brains : list, tuple or np.ndarray
         The collection of brains to plot.
     """
-    import collections
+    from .backends.renderer import get_3d_backend
+    if get_3d_backend() != 'pyvista':
+        raise NotImplementedError("Expected 3d backend is pyvista but"
+                                  " {} was given.".format(get_3d_backend()))
     from ._brain import _Brain, _TimeViewer, _LinkViewer
     if not isinstance(brains, collections.Iterable):
         brains = [brains]
@@ -1556,7 +1560,7 @@ def link_brains(brains):
             if not hasattr(brain, 'time_viewer') or brain.time_viewer is None:
                 brain = _TimeViewer(brain)
         else:
-            raise TypeError("Expected type is _Brain but"
+            raise TypeError("Expected type is Brain but"
                             " {} was given.".format(type(brain)))
     # link brains properties
     _LinkViewer(brains)

@@ -147,7 +147,11 @@ class ShowView(object):
 
 
 class SmartSlider(object):
-    """Class to manage smart slider."""
+    """Class to manage smart slider.
+
+    It stores it's own slider representation for efficiency
+    and uses it when necessary.
+    """
 
     def __init__(self, plotter=None, callback=None, name=None):
         self.plotter = plotter

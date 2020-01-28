@@ -677,7 +677,7 @@ def test_link_brains(renderer):
         renderer.MNE_3D_BACKEND_TESTING = False
     with pytest.raises(ValueError, match='is empty'):
         link_brains([])
-    with pytest.raises(TypeError, match='type is _Brain'):
+    with pytest.raises(TypeError, match='type is Brain'):
         link_brains('foo')
 
     sample_src = read_source_spaces(src_fname)
