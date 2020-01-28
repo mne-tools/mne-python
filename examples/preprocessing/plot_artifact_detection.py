@@ -53,10 +53,11 @@ original_head_dev_t = mne.transforms.invert_transform(
 average_head_dev_t = mne.transforms.invert_transform(
     compute_average_dev_head_t(raw, pos))
 fig = mne.viz.plot_head_positions(pos)
-for ax, val, val_ori in zip(fig.axes[::2], average_head_dev_t['trans'][:3, 3]),
-                   original_head_dev_t['trans'][:3, 3]):
+for ax, val, val_ori in zip(fig.axes[::2], average_head_dev_t['trans'][:3, 3],
+                            original_head_dev_t['trans'][:3, 3]):
     ax.axhline(1000 * val, color='r')
     ax.axhline(1000 * val_ori, color='g')
+
 # The green horizontal lines represent the original head position, whereas the
 # red lines are the new head position averaged over all the time points.
 
