@@ -473,7 +473,7 @@ class _TimeViewer(object):
                         plt.xlabel('Time (ms)')
                         plt.ylabel('Brain activity (a.u)')
                     line, = plt.plot(time, self.act_data[vertex_id, :],
-                                     label=f'vertex id = {vertex_id}',
+                                     label='vertex id = {}'.format(vertex_id),
                                      figure=self.fig)
                     _update_plot(self.fig)
 
