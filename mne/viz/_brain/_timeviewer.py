@@ -6,6 +6,40 @@
 
 import time
 import numpy as np
+import matplotlib.pyplot as plt
+
+from PyQt5 import QtWidgets
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigCanvas
+
+
+class MplCanvas(FigCanvas):
+    """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
+
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = fig.add_subplot(111)
+
+        plt.xlabel('Time (ms)')
+        plt.ylabel('Brain activity (a.u)')
+
+        FigCanvas.__init__(self, fig)
+        self.setParent(parent)
+
+        FigCanvas.setSizePolicy(self,
+                                QtWidgets.QSizePolicy.Expanding,
+                                QtWidgets.QSizePolicy.Expanding)
+        FigCanvas.updateGeometry(self)
+
+    def plot(self, x, y, vertex_id):
+        line, = self.axes.plot(x, y,
+                               label='vertex id = {}'.format(vertex_id))
+        self.axes.legend()
+        self.update_plot()
+        return line
+
+    def update_plot(self):
+        self.draw()
 
 
 class IntSlider(object):
@@ -353,6 +387,15 @@ class _TimeViewer(object):
         # set the text style
         _set_text_style(self.time_actor)
 
+        self.mpl_canvas = MplCanvas(
+            self.plotter.app_window,
+            width=5, height=4, dpi=100
+        )
+        vlayout = self.plotter.frame.layout()
+        vlayout.addWidget(self.mpl_canvas)
+        vlayout.setStretch(0, 2)
+        vlayout.setStretch(1, 1)
+
     def toggle_interface(self):
         self.visibility = not self.visibility
         for slider in self.plotter.slider_widgets:
@@ -443,7 +486,6 @@ class _TimeViewer(object):
                 slider_rep.ShowSliderLabelOff()
 
     def pick_point(self, mesh, vertex_id):
-        import matplotlib.pyplot as plt
         self.point_actor.VisibilityOn()
         self.point_actor.SetInput(str(vertex_id))
         if vertex_id != -1:
@@ -468,14 +510,11 @@ class _TimeViewer(object):
                             self.act_data = smooth_mat.dot(self.act_data)
 
                     time = self.brain._data['time']
-                    if self.fig is None:
-                        self.fig = plt.figure()
-                        plt.xlabel('Time (ms)')
-                        plt.ylabel('Brain activity (a.u)')
-                    line, = plt.plot(time, self.act_data[vertex_id, :],
-                                     label='vertex id = {}'.format(vertex_id),
-                                     figure=self.fig)
-                    _update_plot(self.fig)
+                    line = self.mpl_canvas.plot(
+                        time,
+                        self.act_data[vertex_id, :],
+                        vertex_id
+                    )
 
                     # add metadata for picking
                     mesh._line = line
@@ -487,7 +526,7 @@ class _TimeViewer(object):
                 self.picked_points.remove(vertex_id)
                 self.plotter.remove_actor(mesh._actor)
                 mesh._line.remove()
-                _update_plot(self.fig)
+                self.mpl_canvas.update_plot()
 
         def remove_point(self, index):
             pass
@@ -506,11 +545,3 @@ def _get_range(brain):
 
 def _normalize(point, shape):
     return (point[0] / shape[1], point[1] / shape[0])
-
-
-def _update_plot(fig):
-    import matplotlib.pyplot as plt
-    plt.legend()
-    fig.canvas.draw()
-    fig.canvas.flush_events()
-    fig.show()
