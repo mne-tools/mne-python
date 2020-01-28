@@ -11,20 +11,19 @@ from mne.datasets import testing
 from mne.io import read_raw_fif
 from mne.preprocessing import (annotate_movement, compute_average_dev_head_t)
 
-data_path = testing.data_path()
+data_path = testing.data_path(download=False)
 sss_path = op.join(data_path, 'SSS')
 pre = op.join(sss_path, 'test_move_anon_')
 raw_fname = pre + 'raw.fif'
 pos_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.pos')
 
 
-raw = read_raw_fif(raw_fname, allow_maxshield='yes').load_data()
-pos = read_head_pos(pos_fname)
-
-
 @testing.requires_testing_data
 def test_movement_annotation_head_correction():
     """Test correct detection movement artifact and dev_head_t."""
+    raw = read_raw_fif(raw_fname, allow_maxshield='yes').load_data()
+    pos = read_head_pos(pos_fname)
+
     # Check 5 rotation segments are detected
     annot_rot, [] = annotate_movement(raw, pos, rotation_velocity_limit=5)
     assert(annot_rot.duration.size == 5)
