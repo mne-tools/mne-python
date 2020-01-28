@@ -24,7 +24,7 @@ pos = read_head_pos(pos_fname)
 
 @testing.requires_testing_data
 def test_movement_annotation_head_correction():
-    """ Test correct detection movement artifact and dev_head_t."""
+    """Test correct detection movement artifact and dev_head_t."""
     # Check 5 rotation segments are detected
     annot_rot, [] = annotate_movement(raw, pos, rotation_velocity_limit=5)
     assert(annot_rot.duration.size == 5)
