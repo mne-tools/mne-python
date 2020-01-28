@@ -604,3 +604,23 @@ def _set_mesh_scalars(mesh, scalars, name):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
         mesh.point_arrays[name] = scalars
+
+
+def _update_slider_callback(slider, callback, event_type):
+    from pyvista.utilities import try_callback
+
+    def _the_callback(widget, event):
+        value = widget.GetRepresentation().GetValue()
+        if hasattr(callback, '__call__'):
+            try_callback(callback, value)
+        return
+
+    if event_type == 'start':
+        event = vtk.vtkCommand.StartInteractionEvent
+    elif event_type == 'end':
+        event = vtk.vtkCommand.EndInteractionEvent
+    elif event_type == 'always':
+        event = vtk.vtkCommand.InteractionEvent
+
+    slider.RemoveObserver(event)
+    slider.AddObserver(event, _the_callback)

@@ -16,6 +16,7 @@ from io import BytesIO
 from itertools import cycle
 import os.path as op
 import warnings
+import collections
 from functools import partial
 
 import numpy as np
@@ -1534,6 +1535,35 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         cax.set(xlim=(scale_pts[0], scale_pts[2]))
     plt.show()
     return fig
+
+
+def link_brains(brains):
+    """Plot multiple SourceEstimate objects with PyVista.
+
+    Parameters
+    ----------
+    brains : list, tuple or np.ndarray
+        The collection of brains to plot.
+    """
+    from .backends.renderer import get_3d_backend
+    if get_3d_backend() != 'pyvista':
+        raise NotImplementedError("Expected 3d backend is pyvista but"
+                                  " {} was given.".format(get_3d_backend()))
+    from ._brain import _Brain, _TimeViewer, _LinkViewer
+    if not isinstance(brains, collections.Iterable):
+        brains = [brains]
+    if len(brains) == 0:
+        raise ValueError("The collection of brains is empty.")
+    for brain in brains:
+        if isinstance(brain, _Brain):
+            # check if the _TimeViewer wrapping is not already applied
+            if not hasattr(brain, 'time_viewer') or brain.time_viewer is None:
+                brain = _TimeViewer(brain)
+        else:
+            raise TypeError("Expected type is Brain but"
+                            " {} was given.".format(type(brain)))
+    # link brains properties
+    _LinkViewer(brains)
 
 
 @verbose
