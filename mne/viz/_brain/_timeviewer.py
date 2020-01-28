@@ -4,37 +4,37 @@
 #
 # License: Simplified BSD
 
+from itertools import cycle
 import time
 import numpy as np
-import matplotlib.pyplot as plt
 
 from PyQt5 import QtWidgets
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigCanvas
 
+from ..utils import _get_color_list, tight_layout
+
 
 class MplCanvas(FigCanvas):
     """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
 
-    def __init__(self, parent=None, width=5, height=4, dpi=100):
+    def __init__(self, parent, width, height, dpi):
         fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = fig.add_subplot(111)
-
-        plt.xlabel('Time (ms)')
-        plt.ylabel('Brain activity (a.u)')
-
+        self.axes.set(xlabel='Time (sec)', ylabel='Activation (AU)')
         FigCanvas.__init__(self, fig)
         self.setParent(parent)
-
         FigCanvas.setSizePolicy(self,
                                 QtWidgets.QSizePolicy.Expanding,
                                 QtWidgets.QSizePolicy.Expanding)
         FigCanvas.updateGeometry(self)
+        # XXX eventually this should be called in the window resize callback
+        tight_layout(fig=self.axes.figure)
 
-    def plot(self, x, y, vertex_id):
+    def plot(self, x, y, vertex_id, **kwargs):
         """Plot a curve."""
-        line, = self.axes.plot(x, y,
-                               label='vertex id = {}'.format(vertex_id))
+        line, = self.axes.plot(
+            x, y, label='vertex id = {}'.format(vertex_id), **kwargs)
         self.axes.legend()
         self.update_plot()
         return line
@@ -194,6 +194,7 @@ class _TimeViewer(object):
             show_point=False,
             use_mesh=True
         )
+        self.color_cycle = cycle(_get_color_list())
 
         # orientation slider
         orientation = [
@@ -390,10 +391,14 @@ class _TimeViewer(object):
         _set_text_style(self.time_actor)
 
         # use a matplotlib canvas
-        self.mpl_canvas = MplCanvas(
-            self.plotter.app_window,
-            width=5, height=4, dpi=100
-        )
+        win = self.plotter.app_window
+        dpi = win.windowHandle().screen().logicalDotsPerInch()
+        w, h = win.geometry().width() / dpi, win.geometry().height() / dpi
+        h /= 3  # one third of the window
+        self.mpl_canvas = MplCanvas(win, w, h, dpi)
+        xlim = [np.min(self.brain._data['time']),
+                np.max(self.brain._data['time'])]
+        self.mpl_canvas.axes.set(xlim=xlim)
         vlayout = self.plotter.frame.layout()
         vlayout.addWidget(self.mpl_canvas)
         vlayout.setStretch(0, 2)
@@ -495,10 +500,11 @@ class _TimeViewer(object):
             if hasattr(mesh, "_hemi"):
                 if vertex_id not in self.picked_points:
                     # add glyph at picked point
+                    color = next(self.color_cycle)
                     center = mesh.GetPoints().GetPoint(vertex_id)
                     actor, mesh = self.brain._renderer.sphere(
                         center=np.array(center),
-                        color='red',
+                        color=color,
                         scale=1.0,
                         radius=3.0
                     )
@@ -516,7 +522,9 @@ class _TimeViewer(object):
                     line = self.mpl_canvas.plot(
                         time,
                         self.act_data[vertex_id, :],
-                        vertex_id
+                        vertex_id,
+                        lw=1.,
+                        color=color
                     )
 
                     # add metadata for picking
