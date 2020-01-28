@@ -47,6 +47,7 @@ categories above) are linked here:
     faq
     design_philosophy
     implementation
+    roadmap
     datasets_index
     cookbook
     ../generated/commands

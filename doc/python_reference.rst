@@ -261,6 +261,7 @@ Visualization
    plot_sensors_connectivity
    plot_snr_estimate
    plot_source_estimates
+   link_brains
    plot_volume_source_estimates
    plot_vector_source_estimates
    plot_sparse_source_estimates

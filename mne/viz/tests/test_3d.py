@@ -29,7 +29,8 @@ from mne.io.constants import FIFF
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      snapshot_brain_montage, plot_head_positions,
                      plot_alignment, plot_volume_source_estimates,
-                     plot_sensors_connectivity, plot_brain_colorbar)
+                     plot_sensors_connectivity, plot_brain_colorbar,
+                     link_brains)
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
                        requires_nibabel, check_version, requires_dipy,
@@ -663,6 +664,41 @@ def test_mixed_sources_plot_surface():
     stc.plot_surface(views='lat', hemi='split', src=src,
                      subject='fsaverage', subjects_dir=subjects_dir,
                      colorbar=False)
+
+
+@testing.requires_testing_data
+@traits_test
+def test_link_brains(renderer):
+    """Test plotting linked brains."""
+    if renderer.get_3d_backend() == "mayavi":
+        pytest.skip()  # Skip PySurfer.TimeViewer
+    else:
+        # Disable testing to allow interactive window
+        renderer.MNE_3D_BACKEND_TESTING = False
+    with pytest.raises(ValueError, match='is empty'):
+        link_brains([])
+    with pytest.raises(TypeError, match='type is Brain'):
+        link_brains('foo')
+
+    sample_src = read_source_spaces(src_fname)
+    vertices = [s['vertno'] for s in sample_src]
+    n_time = 5
+    n_verts = sum(len(v) for v in vertices)
+    stc_data = np.zeros((n_verts * n_time))
+    stc_size = stc_data.size
+    stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = \
+        np.random.RandomState(0).rand(stc_data.size // 20)
+    stc_data.shape = (n_verts, n_time)
+    stc = SourceEstimate(stc_data, vertices, 1, 1)
+
+    colormap = 'mne_analyze'
+    brain = plot_source_estimates(
+        stc, 'sample', colormap=colormap,
+        background=(1, 1, 0),
+        subjects_dir=subjects_dir, colorbar=True,
+        clim='auto'
+    )
+    link_brains(brain)
 
 
 run_tests_if_main()

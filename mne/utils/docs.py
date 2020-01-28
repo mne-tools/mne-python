@@ -283,6 +283,17 @@ docdict['pick_ori-vec'] = """
 
         .. versionadded:: 0.20
 """
+docdict['reduce_rank'] = """
+reduce_rank : bool
+    If True, the rank of the denominator of the beamformer formula (i.e.,
+    during pseudo-inversion) will be reduced by one for each spatial location.
+    Setting ``reduce_rank=True`` is typically necessary if you use a single
+    sphere model with MEG data.
+
+    .. versionchanged:: 0.20
+        Support for reducing rank in all modes (previously only supported
+        ``pick='max_power'`` with weight normalization).
+"""
 
 # Forward
 docdict['on_missing'] = """
