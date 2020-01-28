@@ -100,7 +100,7 @@ for ax, extr in zip(axes, extrapolations):
 # post-stimulus, add channel labels, title and adjust plot margins:
 evoked.plot_topomap(0.1, ch_type='mag', show_names=True, colorbar=False,
                     size=6, res=128, title='Auditory response',
-                    time_unit='s')
+                    time_unit='s', extrapolate='local', border='mean')
 plt.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.88)
 
 ###############################################################################

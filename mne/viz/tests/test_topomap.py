@@ -208,7 +208,7 @@ def test_plot_topomap_basic():
     img_data = ax.get_array().data
 
     assert np.abs(img_data[31, 31] - data[0]) < 0.12
-    assert np.abs(img_data[31, 1]) < 0.1
+    assert np.abs(img_data[10, 54]) < 0.3
 
     # border='mean'
     ax, _ = plot_topomap(data, info, extrapolate='head', border='mean',
@@ -216,7 +216,7 @@ def test_plot_topomap_basic():
     img_data = ax.get_array().data
 
     assert np.abs(img_data[31, 31] - data[0]) < 0.12
-    assert img_data[31, 31] > 5
+    assert img_data[10, 54] > 5
 
     # error when not numeric or str:
     error_msg = 'border must be an instance of numeric or str'
