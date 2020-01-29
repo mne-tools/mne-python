@@ -10,10 +10,10 @@ import numpy as np
 
 from ..utils import _read_segments_file, _find_channels
 from ..constants import FIFF
-from ..meas_info import create_info, DEPRECATED_PARAM
+from ..meas_info import create_info
 from ..base import BaseRaw
 from ...utils import logger, verbose, warn, fill_doc, Bunch
-from ...channels import make_dig_montage, make_standard_montage
+from ...channels import make_dig_montage
 from ...epochs import BaseEpochs
 from ...event import read_events
 from ...annotations import Annotations, read_annotations
@@ -365,51 +365,6 @@ class RawEEGLAB(BaseRaw):
         """Read a chunk of raw data."""
         _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
                             dtype=np.float32, n_channels=self.info['nchan'])
-
-    # XXX: to be removed when deprecating montage
-
-    def set_montage(self, montage, update_ch_names=True,
-                    raise_if_subset=DEPRECATED_PARAM,
-                    verbose=None):
-        """Set EEG sensor configuration and head digitization.
-
-        Parameters
-        ----------
-        montage : instance of DigMontage | str | None
-            The montage to use (None removes any location information).
-        set_dig : bool
-            If True, update the digitization information (``info['dig']``)
-            in addition to the channel positions (``info['chs'][idx]['loc']``).
-
-            .. versionadded: 0.15
-        update_ch_names : bool
-            If True, overwrite the info channel names with the ones from
-            montage. Defaults to False.
-        %(verbose_meth)s
-        """
-        from ...channels.montage import _set_montage, _BUILT_IN_MONTAGES
-
-        cal = set([ch['cal'] for ch in self.info['chs']]).pop()
-
-        if isinstance(montage, str) and montage in _BUILT_IN_MONTAGES:
-            montage = make_standard_montage(montage)
-
-        _set_montage(self.info, montage)
-
-        # Revert update_ch_names modifications in cal and coord_frame
-        if update_ch_names:
-            for ch in self.info['chs']:
-                ch['cal'] = cal
-
-        # backcompat set the tail to 0 not to nan
-        _chs_to_fix = [
-            ch for ch in self.info['chs']
-            if not np.isnan(ch['loc'][0]) and np.isnan(ch['loc'][-1])
-        ]
-        for ch in _chs_to_fix:
-            ch['loc'][-6:] = 0
-
-        return self
 
 
 class EpochsEEGLAB(BaseEpochs):
