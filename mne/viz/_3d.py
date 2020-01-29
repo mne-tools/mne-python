@@ -1545,7 +1545,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           cortex="classic", size=800, background="black",
                           foreground="white", initial_time=None,
                           time_unit='s', backend='auto', spacing='oct6',
-                          title=None, verbose=None):
+                          title=None, show_traces=False, verbose=None):
     """Plot SourceEstimate with PySurfer.
 
     By default this function uses :mod:`mayavi.mlab` to plot the source
@@ -1630,6 +1630,12 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         .. versionadded:: 0.15.0
     title : str | None
         Title for the figure. If None, the subject name will be used.
+
+    show_traces : bool
+        If True, enable interactive picking of a point on the surface of the
+        brain and plot it's time course in a dedicated matplotlib figure.
+        This feature is only available with the pyvista 3d backend when
+        `time_viewer=True`. Defaults to false.
 
         .. versionadded:: 0.17.0
     %(verbose)s
@@ -1728,7 +1734,13 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
             with warnings.catch_warnings(record=True):  # traits warnings
                 brain.add_data(**kwargs)
     if time_viewer:
-        TimeViewer(brain)
+        if get_3d_backend() == "mayavi":
+            if show_traces:
+                raise NotImplementedError("Point picking is not available"
+                                          " for the mayavi 3d backend.")
+            TimeViewer(brain)
+        else:
+            TimeViewer(brain, show_traces=show_traces)
     return brain
 
 

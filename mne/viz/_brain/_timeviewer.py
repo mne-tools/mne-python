@@ -178,23 +178,9 @@ class ShowView(object):
 class _TimeViewer(object):
     """Class to interact with _Brain."""
 
-    def __init__(self, brain):
+    def __init__(self, brain, show_traces=False):
         self.brain = brain
         self.plotter = brain._renderer.plotter
-
-        self.point_actor = self.brain._renderer.text2d(0.05, 0.9, "")
-        self.point_actor.VisibilityOff()
-        self.point_actor
-        self.fig = None
-        self.picked_points = list()
-        self.act_data = None
-        self.plotter.enable_point_picking(
-            callback=self.pick_point,
-            show_message=False,
-            show_point=False,
-            use_mesh=True
-        )
-        self.color_cycle = cycle(_get_color_list())
 
         # orientation slider
         orientation = [
@@ -390,19 +376,30 @@ class _TimeViewer(object):
         # set the text style
         _set_text_style(self.time_actor)
 
-        # use a matplotlib canvas
-        win = self.plotter.app_window
-        dpi = win.windowHandle().screen().logicalDotsPerInch()
-        w, h = win.geometry().width() / dpi, win.geometry().height() / dpi
-        h /= 3  # one third of the window
-        self.mpl_canvas = MplCanvas(win, w, h, dpi)
-        xlim = [np.min(self.brain._data['time']),
-                np.max(self.brain._data['time'])]
-        self.mpl_canvas.axes.set(xlim=xlim)
-        vlayout = self.plotter.frame.layout()
-        vlayout.addWidget(self.mpl_canvas)
-        vlayout.setStretch(0, 2)
-        vlayout.setStretch(1, 1)
+        if show_traces:
+            self.picked_points = list()
+            self.act_data = None
+            self.plotter.enable_point_picking(
+                callback=self.pick_point,
+                show_message=False,
+                show_point=False,
+                use_mesh=True
+            )
+            self.color_cycle = cycle(_get_color_list())
+
+            # use a matplotlib canvas
+            win = self.plotter.app_window
+            dpi = win.windowHandle().screen().logicalDotsPerInch()
+            w, h = win.geometry().width() / dpi, win.geometry().height() / dpi
+            h /= 3  # one third of the window
+            self.mpl_canvas = MplCanvas(win, w, h, dpi)
+            xlim = [np.min(self.brain._data['time']),
+                    np.max(self.brain._data['time'])]
+            self.mpl_canvas.axes.set(xlim=xlim)
+            vlayout = self.plotter.frame.layout()
+            vlayout.addWidget(self.mpl_canvas)
+            vlayout.setStretch(0, 2)
+            vlayout.setStretch(1, 1)
 
     def toggle_interface(self):
         self.visibility = not self.visibility
@@ -494,8 +491,6 @@ class _TimeViewer(object):
                 slider_rep.ShowSliderLabelOff()
 
     def pick_point(self, mesh, vertex_id):
-        self.point_actor.VisibilityOn()
-        self.point_actor.SetInput(str(vertex_id))
         if vertex_id != -1:
             if hasattr(mesh, "_hemi"):
                 if vertex_id not in self.picked_points:
