@@ -170,7 +170,7 @@ def _add_colorbar(ax, im, cmap, side="right", pad=.05, title=None,
     from mpl_toolkits.axes_grid1 import make_axes_locatable  # noqa: F401
     divider = make_axes_locatable(ax)
     cax = divider.append_axes(side, size=size, pad=pad)
-    cbar = plt.colorbar(im, cax=cax, cmap=cmap, format=format)
+    cbar = plt.colorbar(im, cax=cax, format=format)
     if cmap is not None and cmap[1]:
         ax.CB = DraggableColorbar(cbar, im)
     if title is not None:
