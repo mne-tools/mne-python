@@ -116,6 +116,8 @@ Bug
 
 - Fix :func:`mne.io.read_raw_cnt` for version 1 of format in the presence of annotations by `Alex Gramfort`_.
 
+- Fix :class:`mne.decoding.GeneralizingEstimator` and related classes to support multi-class sklearn scorers such as ``'roc_auc_ovo'`` and ``'roc_auc_ovo_weighted'`` by `Eric Larson`_
+
 - Fix :meth:`mne.io.read_raw_ctf` to set measurement date from CTF ds files by `Luke Bloy`_.
 
 - Fix :meth:`mne.read_epochs_eeglab` that ignored channel locations by `Alex Gramfort`_.
