@@ -118,6 +118,8 @@ Bug
 
 - Fix :meth:`mne.io.read_raw_ctf` to set measurement date from CTF ds files by `Luke Bloy`_.
 
+- Fix :meth:`mne.read_epochs_eeglab` that ignored channel locations by `Alex Gramfort`_.
+
 - Fix :meth:`mne.io.read_raw_brainvision` when channel names have spaces by `Sebastian Major`_.
 
 - Fix :meth:`mne.io.Raw.anonymize` to correctly reset ``raw.annotations.orig_time`` by `Luke Bloy`_.
