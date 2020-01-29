@@ -23,3 +23,4 @@ from .maxwell import maxwell_filter
 from .xdawn import Xdawn
 from ._csd import compute_current_source_density
 from . import nirs
+from .artifact_detection import (annotate_movement, compute_average_dev_head_t)
