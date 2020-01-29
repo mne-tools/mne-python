@@ -358,7 +358,6 @@ def test_position_information(one_chanpos_fname):
         [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
     ])
 
-    montage = _read_eeglab_montage(montage_path)
     raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
     assert_array_equal(np.array([ch['loc'] for ch in raw.info['chs']]),
                        EXPECTED_LOCATIONS_FROM_FILE)
