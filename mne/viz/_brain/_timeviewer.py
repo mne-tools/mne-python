@@ -501,7 +501,7 @@ class _TimeViewer(object):
                         center=np.array(center),
                         color=color,
                         scale=1.0,
-                        radius=3.0
+                        radius=10.0
                     )
 
                     if self.act_data is None:
