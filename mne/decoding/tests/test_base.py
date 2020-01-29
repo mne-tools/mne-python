@@ -5,7 +5,7 @@
 
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
-                           assert_equal)
+                           assert_equal, assert_allclose)
 import pytest
 
 from mne.fixes import is_regressor, is_classifier
@@ -191,16 +191,46 @@ def test_get_coef():
         assert_array_equal(get_coef(clf.estimators_[t], 'filters_', False),
                            filters[:, t])
 
+
+@pytest.mark.parametrize('n_features', [1, 5])
+@pytest.mark.parametrize('n_targets', [1, 3])
+def test_get_coef_multiclass(n_features, n_targets):
+    """Test get_coef on multiclass problems."""
     # Check patterns with more than 1 regressor
-    for n_features in [1, 5]:
-        for n_targets in [1, 3]:
-            X, Y, A = _make_data(n_samples=3000, n_features=5, n_targets=3)
-            lm = LinearModel(LinearRegression()).fit(X, Y)
-            assert_array_equal(lm.filters_.shape, lm.patterns_.shape)
-            assert_array_equal(lm.filters_.shape, [3, 5])
-            assert_array_almost_equal(A, lm.patterns_.T, decimal=2)
-            lm = LinearModel(Ridge(alpha=1)).fit(X, Y)
-            assert_array_almost_equal(A, lm.patterns_.T, decimal=2)
+    X, Y, A = _make_data(
+        n_samples=30000, n_features=n_features, n_targets=n_targets)
+    lm = LinearModel(LinearRegression()).fit(X, Y)
+    assert_array_equal(lm.filters_.shape, lm.patterns_.shape)
+    if n_targets == 1:
+        want_shape = (n_features,)
+    else:
+        want_shape = (n_targets, n_features)
+    assert_array_equal(lm.filters_.shape, want_shape)
+    if n_features > 1 and n_targets > 1:
+        assert_array_almost_equal(A, lm.patterns_.T, decimal=2)
+    lm = LinearModel(Ridge(alpha=0))
+    clf = make_pipeline(lm)
+    clf.fit(X, Y)
+    if n_features > 1 and n_targets > 1:
+        assert_allclose(A, lm.patterns_.T, atol=2e-2)
+    coef = get_coef(clf, 'patterns_', inverse_transform=True)
+    assert_allclose(lm.patterns_, coef, atol=1e-5)
+
+    # With epochs, scaler, and vectorizer (typical use case)
+    X_epo = X.reshape(X.shape + (1,))
+    info = create_info(n_features, 1000., 'eeg')
+    lm = LinearModel(Ridge(alpha=1))
+    clf = make_pipeline(
+        # Scaler(info, scalings=dict(eeg=1.)),  # XXX adding this step breaks
+        Vectorizer(),
+        lm,
+    )
+    clf.fit(X_epo, Y)
+    if n_features > 1 and n_targets > 1:
+        assert_allclose(A, lm.patterns_.T, atol=2e-2)
+    coef = get_coef(clf, 'patterns_', inverse_transform=True)
+    lm_patterns_ = lm.patterns_[..., np.newaxis]
+    assert_allclose(lm_patterns_, coef, atol=1e-5)
 
     # Check can pass fitting parameters
     lm.fit(X, Y, sample_weight=np.ones(len(Y)))

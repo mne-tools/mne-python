@@ -336,8 +336,8 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
             coef.append(get_coef(this_est, attr, inverse_transform))
         coef = np.transpose(coef)
     elif not hasattr(est, attr):
-        raise ValueError('This estimator does not have a %s '
-                         'attribute.' % attr)
+        raise ValueError('This estimator does not have a %s attribute:\n%s'
+                         % (attr, est))
     else:
         coef = getattr(est, attr)
 

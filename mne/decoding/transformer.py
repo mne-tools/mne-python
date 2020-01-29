@@ -311,10 +311,10 @@ class Vectorizer(TransformerMixin):
             dimension is of length n_samples.
         """
         X = np.asarray(X)
-        if X.ndim != 2:
-            raise ValueError("X should be of 2 dimensions but given has %s "
-                             "dimension(s)" % X.ndim)
-        return X.reshape((len(X),) + self.features_shape_)
+        if X.ndim not in (2, 3):
+            raise ValueError("X should be of 2 or 3 dimensions but has shape "
+                             "%s" % (X.shape,))
+        return X.reshape(X.shape[:-1] + self.features_shape_)
 
 
 @fill_doc
