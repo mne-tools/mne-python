@@ -426,29 +426,10 @@ class _TimeViewer(object):
         _set_text_style(self.time_actor)
 
         if show_traces:
-            self.picked_points = list()
             self.act_data = None
-            self.plotter.enable_point_picking(
-                callback=self.pick_point,
-                show_message=False,
-                show_point=False,
-                use_mesh=True
-            )
-            self.color_cycle = cycle(_get_color_list())
-
-            # use a matplotlib canvas
-            win = self.plotter.app_window
-            dpi = win.windowHandle().screen().logicalDotsPerInch()
-            w, h = win.geometry().width() / dpi, win.geometry().height() / dpi
-            h /= 3  # one third of the window
-            self.mpl_canvas = MplCanvas(win, w, h, dpi)
-            xlim = [np.min(self.brain._data['time']),
-                    np.max(self.brain._data['time'])]
-            self.mpl_canvas.axes.set(xlim=xlim)
-            vlayout = self.plotter.frame.layout()
-            vlayout.addWidget(self.mpl_canvas)
-            vlayout.setStretch(0, 2)
-            vlayout.setStretch(1, 1)
+            self.color_cycle = None
+            self.picked_points = None
+            self.enable_point_picking()
 
     def toggle_interface(self):
         self.visibility = not self.visibility
@@ -513,6 +494,50 @@ class _TimeViewer(object):
             if not show_label:
                 slider_rep.ShowSliderLabelOff()
 
+    def enable_point_picking(self):
+        # get brain data
+        self.act_data = self.brain._data['array']
+        hemi = self.brain._hemi
+        hemi_data = self.brain._data.get(hemi)
+        smooth_mat = hemi_data['smooth_mat']
+        if smooth_mat is not None:
+            self.act_data = smooth_mat.dot(self.act_data)
+
+        # use a matplotlib canvas
+        self.color_cycle = cycle(_get_color_list())
+        win = self.plotter.app_window
+        dpi = win.windowHandle().screen().logicalDotsPerInch()
+        w, h = win.geometry().width() / dpi, win.geometry().height() / dpi
+        h /= 3  # one third of the window
+        self.mpl_canvas = MplCanvas(win, w, h, dpi)
+        xlim = [np.min(self.brain._data['time']),
+                np.max(self.brain._data['time'])]
+        self.mpl_canvas.axes.set(xlim=xlim)
+        vlayout = self.plotter.frame.layout()
+        vlayout.addWidget(self.mpl_canvas)
+        vlayout.setStretch(0, 2)
+        vlayout.setStretch(1, 1)
+
+        # initialize the default point
+        self.picked_points = list()
+        color = next(self.color_cycle)
+        ind = np.unravel_index(
+            np.argmax(self.act_data, axis=None),
+            self.act_data.shape
+        )
+        vertex_id = ind[0]
+        mesh = hemi_data['mesh'][-1]
+        line = self.plot_time_course(vertex_id, color)
+        self.add_point(mesh, vertex_id, line, color)
+
+        # configure the plotter
+        self.plotter.enable_point_picking(
+            callback=self.pick_point,
+            show_message=False,
+            show_point=False,
+            use_mesh=True
+        )
+
     def pick_point(self, mesh, vertex_id):
         if vertex_id != -1:
             if hasattr(mesh, "_hemi"):
@@ -524,7 +549,6 @@ class _TimeViewer(object):
 
                     # add glyph at picked point
                     self.add_point(mesh, vertex_id, line, color)
-
             else:
                 self.remove_point(mesh)
 
@@ -550,15 +574,6 @@ class _TimeViewer(object):
         self.plotter.remove_actor(mesh._actor)
 
     def plot_time_course(self, vertex_id, color):
-        if self.act_data is None:
-            hemi = self.brain._hemi
-            hemi_data = self.brain._data.get(hemi)
-
-            self.act_data = self.brain._data['array']
-            smooth_mat = hemi_data['smooth_mat']
-            if smooth_mat is not None:
-                self.act_data = smooth_mat.dot(self.act_data)
-
         time = self.brain._data['time']
         line = self.mpl_canvas.plot(
             time,
