@@ -107,8 +107,6 @@ def matplotlib_config():
         pass
     else:
         ETSConfig.toolkit = 'qt4'
-    from mne.viz.backends.renderer import _enable_3d_backend_testing
-    _enable_3d_backend_testing()
 
 
 def _replace(mod, key):
