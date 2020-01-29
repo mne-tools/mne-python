@@ -116,6 +116,24 @@ def _sym_inv(x, reduce_rank):
     return np.matmul(u * s[:, np.newaxis], u.transpose(0, 2, 1))
 
 
+def _reduce_leadfield_rank(G):
+    """Reduce the rank of the leadfield."""
+    # decompose lead field
+    u, s, v = np.linalg.svd(G)
+    s[:, np.argmin(s, axis=1)] = 0.  # set the smallest singular value to 0.
+
+    # expand s to match dimension of u
+    s_full = np.zeros(G.shape)
+    # TODO: vectorize?
+    for s_full_vox, s_vox in zip(s_full, s):
+        np.fill_diagonal(s_full_vox, s_vox)
+
+    # backproject
+    G = np.matmul(u, np.matmul(s_full, v))
+
+    return G
+
+
 def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk):
     """Compute the normalized weights in max-power orientation.
 
@@ -276,17 +294,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
 
     # rank reduction of the lead field
     if reduce_rank == 'leadfield':
-        # decompose lead field
-        u, s, v = np.linalg.svd(Gk)
-        s[:, np.argmin(s, axis=1)] = 0.  # set the smalles singular value to 0.
-        # expand s to match dimension of u
-        s_full = np.zeros(Gk.shape)
-        # TODO: vectorize?
-        for s_full_vox, s_vox in zip(s_full, s):
-            np.fill_diagonal(s_full_vox, s_vox)
-
-        # backproject
-        Gk = np.matmul(u, np.matmul(s_full, v))
+        Gk = _reduce_leadfield_rank(Gk)
 
     with _noop_indentation_context():
         if (inversion == 'matrix' and pick_ori == 'max-power' and
