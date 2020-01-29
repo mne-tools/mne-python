@@ -65,6 +65,7 @@ extensions = [
     'sphinx_gallery.gen_gallery',
     'sphinx_fontawesome',
     'gen_commands',
+    'gh_substitutions',
     'sphinx_bootstrap_theme',
     'sphinx_bootstrap_divs',
     'sphinxcontrib.bibtex',
@@ -322,6 +323,7 @@ intersphinx_mapping = {
     'surfer': ('https://pysurfer.github.io/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
     'statsmodels': ('http://www.statsmodels.org/dev', None),
+    'patsy': ('https://patsy.readthedocs.io/en/latest', None),
     # There are some problems with dipy's redirect:
     # https://github.com/nipy/dipy/issues/1955
     'dipy': ('https://dipy.org/documentation/latest',

@@ -69,6 +69,8 @@ Changelog
 
 - Improved :ref:`limo-dataset` usage and :ref:`example <ex-limo-data>` for usage of :func:`mne.stats.linear_regression` by `Jose Alanis`_
 
+- Add support for ``reduce_rank=True`` for vector beamformers by `Eric Larson`_
+
 - Speed up :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.make_dics` calculations by vectorizing linear algebra calls by `Dmitrii Altukhov`_ and `Eric Larson`_
 
 - Speed up :func:`mne.make_forward_solution` using Numba, by `Eric Larson`_
@@ -97,6 +99,7 @@ Changelog
 
 - Add ``border`` argument to :func:`mne.viz.plot_topomap`. ``border`` controls the value of the edge points to which topomap values are extrapolated. ``border='mean'`` sets these points value to the average of their neighbours. By `Mikołaj Magnuski`_
 
+- Add function :func:`mne.viz.link_brains` to link time properties of multiple brain objects interactively by `Guillaume Favelier`_
 
 Bug
 ~~~
@@ -109,7 +112,11 @@ Bug
 
 - Fix :func:`mne.viz.plot_sensors` to always plot in head coordinate frame by `Daniel McCloy`_.
 
+- Fix :func:`mne.io.read_raw_cnt` for version 1 of format in the presence of annotations by `Alex Gramfort`_.
+
 - Fix :meth:`mne.io.read_raw_ctf` to set measurement date from CTF ds files by `Luke Bloy`_.
+
+- Fix :meth:`mne.io.read_raw_brainvision` when channel names have spaces by `Sebastian Major`_.
 
 - Fix :meth:`mne.io.Raw.anonymize` to correctly reset ``raw.annotations.orig_time`` by `Luke Bloy`_.
 

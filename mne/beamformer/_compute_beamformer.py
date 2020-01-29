@@ -13,13 +13,12 @@ import numpy as np
 from scipy import linalg
 
 from ..cov import Covariance, make_ad_hoc_cov
-from ..fixes import pinv
 from ..forward.forward import is_fixed_orient, _restrict_forward_to_src_sel
 from ..io.proj import make_projector, Projection
 from ..minimum_norm.inverse import _get_vertno, _prepare_forward
 from ..source_space import label_src_vertno_sel
 from ..utils import (verbose, check_fname, _reg_pinv, _check_option, logger,
-                     _pl, _check_src_normal, check_version)
+                     _pl, _check_src_normal, check_version, _validate_type)
 from ..time_frequency.csd import CrossSpectralDensity
 
 from ..externals.h5io import read_hdf5, write_hdf5
@@ -103,6 +102,20 @@ def _prepare_beamformer_input(info, forward, label=None, pick_ori=None,
             orient_std)
 
 
+def _sym_inv(x, reduce_rank):
+    """Symmetric inversion with optional rank reduction."""
+    s, u = np.linalg.eigh(x)
+    # mimic default np.linalg.pinv behavior
+    cutoff = 1e-15 * s[:, -1][:, np.newaxis]
+    s[s <= cutoff] = np.inf
+    if reduce_rank:
+        # These are ordered smallest to largest, so we set the first one
+        # to inf -- then the 1. / s below will turn this to zero, as needed.
+        s[:, 0] = np.inf
+    s = 1. / s
+    return np.matmul(u * s[:, np.newaxis], u.transpose(0, 2, 1))
+
+
 def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk):
     """Compute the normalized weights in max-power orientation.
 
@@ -133,21 +146,7 @@ def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk):
                          np.matmul(Cm_inv_sq[np.newaxis], Gk))
 
     # invert this using an eigenvalue decomposition
-    s, u = np.linalg.eigh(norm_inv)
-    if reduce_rank:
-        # These are ordered smallest to largest, so we set the first one
-        # to inf -- then the 1. / s below will turn this to zero, as needed.
-        s[:, 0] = np.inf
-    try:
-        with np.errstate(divide='raise'):
-            s = 1. / s
-    except FloatingPointError:
-        raise ValueError(
-            'Singular matrix detected when estimating spatial filters. '
-            'Consider reducing the rank of the forward operator by using '
-            'reduce_rank=True.'
-        )
-    norm = np.matmul(u * s[:, np.newaxis], u.transpose(0, 2, 1))
+    norm = _sym_inv(norm_inv, reduce_rank)
 
     # Reapply source covariance after inversion
     norm *= sk[:, :, np.newaxis]
@@ -247,6 +246,24 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     if check_version('numpy', '1.17'):
         pinv_kwargs['hermitian'] = True
 
+    # leadfield rank and optional rank reduction
+    _validate_type(reduce_rank, bool, "reduce_rank", "a boolean")
+    _check_option('inversion', inversion, ('matrix', 'single'))
+    if reduce_rank and inversion == 'single':
+        raise ValueError('reduce_rank cannot be used with inversion="single"; '
+                         'consider using inversion="matrix" if you have a '
+                         'rank-deficient forward model (i.e., from a sphere '
+                         'model with MEG channels), otherwise consider using '
+                         'reduce_rank=False')
+    if n_orient > 1:
+        _, Gk_s, _ = np.linalg.svd(Gk, full_matrices=False)
+        assert Gk_s.shape == (n_sources, n_orient)
+        if not reduce_rank and (Gk_s[:, 0] > 1e6 * Gk_s[:, 2]).any():
+            raise ValueError(
+                'Singular matrix detected when estimating spatial filters. '
+                'Consider reducing the rank of the forward operator by using '
+                'reduce_rank=True.')
+
     with _noop_indentation_context():
         if (inversion == 'matrix' and pick_ori == 'max-power' and
                 weight_norm in ['unit-noise-gain', 'nai']):
@@ -261,8 +278,10 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                 # Free source orientation
                 if inversion == 'single':
                     # Invert for each dipole separately using plain division
+                    diags = np.diagonal(Ck, axis1=1, axis2=2)
+                    assert not reduce_rank   # guaranteed above
                     with np.errstate(divide='ignore'):
-                        diags = 1. / np.diagonal(Ck, axis1=1, axis2=2)
+                        diags = 1. / diags
                     # set the diagonal of each 3x3
                     norm = np.zeros((n_sources, n_orient, n_orient), Ck.dtype)
                     for k in range(n_sources):
@@ -271,11 +290,11 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                     assert Ck.shape[1:] == (3, 3)
                     # Invert for all dipoles simultaneously using matrix
                     # inversion.
-                    norm = pinv(Ck, **pinv_kwargs)
+                    norm = _sym_inv(Ck, reduce_rank)
                 # Reapply source covariance after inversion
                 norm *= sk[:, :, np.newaxis]
                 norm *= sk[:, np.newaxis, :]
-            else:
+            else:  # n_orient == 1
                 assert Ck.shape[1:] == (1, 1)
                 # Fixed source orientation
                 with np.errstate(divide='ignore'):

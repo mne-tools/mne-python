@@ -16,6 +16,7 @@ from io import BytesIO
 from itertools import cycle
 import os.path as op
 import warnings
+import collections
 from functools import partial
 
 import numpy as np
@@ -1536,6 +1537,35 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     return fig
 
 
+def link_brains(brains):
+    """Plot multiple SourceEstimate objects with PyVista.
+
+    Parameters
+    ----------
+    brains : list, tuple or np.ndarray
+        The collection of brains to plot.
+    """
+    from .backends.renderer import get_3d_backend
+    if get_3d_backend() != 'pyvista':
+        raise NotImplementedError("Expected 3d backend is pyvista but"
+                                  " {} was given.".format(get_3d_backend()))
+    from ._brain import _Brain, _TimeViewer, _LinkViewer
+    if not isinstance(brains, collections.Iterable):
+        brains = [brains]
+    if len(brains) == 0:
+        raise ValueError("The collection of brains is empty.")
+    for brain in brains:
+        if isinstance(brain, _Brain):
+            # check if the _TimeViewer wrapping is not already applied
+            if not hasattr(brain, 'time_viewer') or brain.time_viewer is None:
+                brain = _TimeViewer(brain)
+        else:
+            raise TypeError("Expected type is Brain but"
+                            " {} was given.".format(type(brain)))
+    # link brains properties
+    _LinkViewer(brains)
+
+
 @verbose
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='auto', time_label='auto',
@@ -1562,8 +1592,11 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         is None, the environment will be used.
     surface : str
         The type of surface (inflated, white etc.).
-    hemi : str, 'lh' | 'rh' | 'split' | 'both'
-        The hemisphere to display.
+    hemi : str
+        Hemisphere id (ie 'lh', 'rh', 'both', or 'split'). In the case
+        of 'both', both hemispheres are shown in the same window.
+        In the case of 'split' hemispheres are displayed side-by-side
+        in different viewing panes.
     %(colormap)s
         The default ('auto') uses 'hot' for one-sided data and
         'mne' for two-sided data.

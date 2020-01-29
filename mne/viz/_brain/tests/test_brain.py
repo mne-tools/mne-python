@@ -17,7 +17,7 @@ from numpy.testing import assert_allclose
 from mne import SourceEstimate, read_source_estimate
 from mne.source_space import read_source_spaces
 from mne.datasets import testing
-from mne.viz._brain import _Brain, _TimeViewer
+from mne.viz._brain import _Brain, _TimeViewer, _LinkViewer
 from mne.viz._brain.colormap import calculate_lut
 
 from matplotlib import cm
@@ -170,21 +170,26 @@ def test_brain_timeviewer(renderer):
                             colormap='hot', vertices=vertices,
                             colorbar=True)
 
-    brain_data.set_time_point(time_idx=0)
-
     time_viewer = _TimeViewer(brain_data)
-    time_viewer.show_view('lat', update_widget=True)
-    time_viewer.show_view('medial', update_widget=True)
-    time_viewer.set_smoothing(value=1)
-    time_viewer.update_fmin(value=12.0)
-    time_viewer.update_fmax(value=4.0)
-    time_viewer.update_fmid(value=6.0)
-    time_viewer.update_fmid(value=4.0)
-    time_viewer.update_fscale(value=1.1)
+    time_viewer.time_call(value=0)
+    time_viewer.orientation_call(value='lat', update_widget=True)
+    time_viewer.orientation_call(value='medial', update_widget=True)
+    time_viewer.smoothing_call(value=1)
+    time_viewer.fmin_call(value=12.0)
+    time_viewer.fmax_call(value=4.0)
+    time_viewer.fmid_call(value=6.0)
+    time_viewer.fmid_call(value=4.0)
+    time_viewer.fscale_call(value=1.1)
     time_viewer.toggle_interface()
+    time_viewer.playback_speed_call(value=0.1)
     time_viewer.toggle_playback()
     time_viewer.apply_auto_scaling()
     time_viewer.restore_user_scaling()
+
+    link_viewer = _LinkViewer([brain_data])
+    link_viewer.set_time_point(value=0)
+    link_viewer.set_playback_speed(value=0.1)
+    link_viewer.toggle_playback()
 
 
 def test_brain_colormap():
