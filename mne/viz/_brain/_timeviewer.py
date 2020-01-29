@@ -517,48 +517,57 @@ class _TimeViewer(object):
         if vertex_id != -1:
             if hasattr(mesh, "_hemi"):
                 if vertex_id not in self.picked_points:
-                    # add glyph at picked point
                     color = next(self.color_cycle)
-                    center = mesh.GetPoints().GetPoint(vertex_id)
-                    actor, mesh = self.brain._renderer.sphere(
-                        center=np.array(center),
-                        color=color,
-                        scale=1.0,
-                        radius=10.0
-                    )
 
-                    if self.act_data is None:
-                        hemi = self.brain._hemi
-                        hemi_data = self.brain._data.get(hemi)
+                    # update associated time course
+                    line = self.plot_time_course(vertex_id, color)
 
-                        self.act_data = self.brain._data['array']
-                        smooth_mat = hemi_data['smooth_mat']
-                        if smooth_mat is not None:
-                            self.act_data = smooth_mat.dot(self.act_data)
+                    # add glyph at picked point
+                    self.add_point(mesh, vertex_id, line, color)
 
-                    time = self.brain._data['time']
-                    line = self.mpl_canvas.plot(
-                        time,
-                        self.act_data[vertex_id, :],
-                        vertex_id,
-                        lw=1.,
-                        color=color
-                    )
-
-                    # add metadata for picking
-                    mesh._line = line
-                    mesh._actor = actor
-                    mesh._vertex_id = vertex_id
-                    self.picked_points.append(vertex_id)
             else:
-                vertex_id = mesh._vertex_id
-                self.picked_points.remove(vertex_id)
-                self.plotter.remove_actor(mesh._actor)
-                mesh._line.remove()
-                self.mpl_canvas.update_plot()
+                self.remove_point(mesh)
 
-        def remove_point(self, index):
-            pass
+    def add_point(self, mesh, vertex_id, line, color):
+        center = mesh.GetPoints().GetPoint(vertex_id)
+        actor, sphere = self.brain._renderer.sphere(
+            center=np.array(center),
+            color=color,
+            scale=1.0,
+            radius=10.0
+        )
+
+        # add metadata for picking
+        sphere._line = line
+        sphere._actor = actor
+        sphere._vertex_id = vertex_id
+        self.picked_points.append(vertex_id)
+
+    def remove_point(self, mesh):
+        mesh._line.remove()
+        self.mpl_canvas.update_plot()
+        self.picked_points.remove(mesh._vertex_id)
+        self.plotter.remove_actor(mesh._actor)
+
+    def plot_time_course(self, vertex_id, color):
+        if self.act_data is None:
+            hemi = self.brain._hemi
+            hemi_data = self.brain._data.get(hemi)
+
+            self.act_data = self.brain._data['array']
+            smooth_mat = hemi_data['smooth_mat']
+            if smooth_mat is not None:
+                self.act_data = smooth_mat.dot(self.act_data)
+
+        time = self.brain._data['time']
+        line = self.mpl_canvas.plot(
+            time,
+            self.act_data[vertex_id, :],
+            vertex_id,
+            lw=1.,
+            color=color
+        )
+        return line
 
 
 class _LinkViewer(object):
