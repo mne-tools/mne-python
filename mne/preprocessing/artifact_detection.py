@@ -4,7 +4,6 @@
 
 
 import numpy as np
-import warnings
 
 from ..annotations import (Annotations, _annotations_starts_stops)
 from ..chpi import _apply_quat
@@ -114,7 +113,7 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
         onsets, offsets = hp_ts[onsets], hp_ts[offsets]
         bad_pct = 100 * (offsets - onsets).sum() / t_tot
         logger.info(u'Omitting %5.1f%% (%3d segments): '
-                    u'disp >= %5.4fm/s (max: %5.4fm)'
+                    u'disp >= %5.4fm (max: %5.4fm)'
                     % (bad_pct, len(onsets), mean_distance_limit, disp.max()))
         annot += _annotations_from_mask(hp_ts, bad_mask, 'BAD_mov_dist')
     return annot, disp
@@ -152,9 +151,9 @@ def compute_average_dev_head_t(raw, pos):
     # Mask out segments if beyond scan time
     mask = hp_ts <= raw.times[-1]
     if not mask.all():
-        warnings.warn(
-            '          Removing %0.1f%% time points > raw.times[-1] (%s)'
-            % ((~mask).sum() / float(len(mask)), raw.times[-1]))
+        logger.info(
+            '          Removing %d samples > raw.times[-1] (%s)'
+            % (np.sum(~mask), raw.times[-1]))
         hp = hp[mask]
     del mask, hp_ts
 
