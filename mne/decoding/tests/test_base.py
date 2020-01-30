@@ -221,7 +221,7 @@ def test_get_coef_multiclass(n_features, n_targets):
     info = create_info(n_features, 1000., 'eeg')
     lm = LinearModel(Ridge(alpha=1))
     clf = make_pipeline(
-        # Scaler(info, scalings=dict(eeg=1.)),  # XXX adding this step breaks
+        Scaler(info, scalings=dict(eeg=1.)),  # XXX adding this step breaks
         Vectorizer(),
         lm,
     )

@@ -341,6 +341,11 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
     else:
         coef = getattr(est, attr)
 
+    ndim_is_one = False
+    if coef.ndim == 1:
+        ndim_is_one = True
+        coef = coef[None, :]
+
     # inverse pattern e.g. to get back physical units
     if inverse_transform:
         if not hasattr(estimator, 'steps') and not hasattr(est, 'estimators_'):
@@ -349,7 +354,11 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
         # The inverse_transform parameter will call this method on any
         # estimator contained in the pipeline, in reverse order.
         for inverse_func in _get_inverse_funcs(estimator)[::-1]:
-            coef = inverse_func(np.array([coef]))[0]
+            coef = inverse_func(coef)
+
+    if ndim_is_one:
+        coef = coef[0]
+
     return coef
 
 
