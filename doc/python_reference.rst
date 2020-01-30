@@ -99,7 +99,6 @@ File I/O
 .. autosummary::
    :toctree: generated
 
-   decimate_surface
    channel_type
    channel_indices_by_type
    get_head_surf
@@ -591,6 +590,7 @@ Forward Modeling
    apply_forward_raw
    average_forward_solutions
    convert_forward_solution
+   decimate_surface
    dig_mri_distances
    forward.compute_depth_prior
    forward.compute_orient_prior
