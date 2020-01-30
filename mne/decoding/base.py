@@ -341,10 +341,9 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
     else:
         coef = getattr(est, attr)
 
-    ndim_is_one = False
-    if coef.ndim == 1:
-        ndim_is_one = True
-        coef = coef[None, :]
+    ndim_is_one = (coef.ndim == 1)
+    if ndim_is_one:
+        coef = coef[np.newaxis]
 
     # inverse pattern e.g. to get back physical units
     if inverse_transform:

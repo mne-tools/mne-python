@@ -174,22 +174,43 @@ def test_get_coef():
     patterns_inv = get_coef(clf, 'patterns_', True)
     assert (patterns[0] != patterns_inv[0])
 
+
+class _Noop(BaseEstimator, TransformerMixin):
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        return X.copy()
+
+    inverse_transform = transform
+
+
+@pytest.mark.parametrize('inverse', (True, False))
+@pytest.mark.parametrize('Scale, kwargs', [
+    (Scaler, dict(info=None, scalings='mean')),
+    (_Noop, dict()),
+])
+def test_get_coef_inverse_transform(inverse, Scale, kwargs):
+    """Test get_coef with and without inverse_transform."""
+    lm_regression = LinearModel(Ridge())
+    X, y, A = _make_data(n_samples=1000, n_features=3, n_targets=1)
     # Check with search_light and combination of preprocessing ending with sl:
     slider = SlidingEstimator(make_pipeline(StandardScaler(), lm_regression))
     X = np.transpose([X, -X], [1, 2, 0])  # invert X across 2 time samples
-    clfs = (make_pipeline(Scaler(None, scalings='mean'), slider), slider)
-    for clf in clfs:
-        clf.fit(X, y)
-        for inverse in (True, False):
-            patterns = get_coef(clf, 'patterns_', inverse)
-            filters = get_coef(clf, 'filters_', inverse)
-            assert_array_equal(filters.shape, patterns.shape,
-                               X.shape[1:])
-            # the two time samples get inverted patterns
-            assert_equal(patterns[0, 0], -patterns[0, 1])
+    clf = make_pipeline(Scale(**kwargs), slider)
+    clf.fit(X, y)
+    patterns = get_coef(clf, 'patterns_', inverse)
+    filters = get_coef(clf, 'filters_', inverse)
+    assert_array_equal(filters.shape, patterns.shape, X.shape[1:])
+    # the two time samples get inverted patterns
+    assert_equal(patterns[0, 0], -patterns[0, 1])
     for t in [0, 1]:
-        assert_array_equal(get_coef(clf.estimators_[t], 'filters_', False),
-                           filters[:, t])
+        filters_t = get_coef(
+            clf.named_steps['slidingestimator'].estimators_[t],
+            'filters_', False)
+        if Scale is not _Noop:
+            assert_array_equal(filters_t, filters[:, t])
 
 
 @pytest.mark.parametrize('n_features', [1, 5])
