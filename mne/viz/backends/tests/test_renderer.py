@@ -48,7 +48,7 @@ def test_3d_functions(renderer):
     renderer._check_3d_figure(fig)
     renderer._set_3d_view(figure=fig, azimuth=None, elevation=None,
                           focalpoint=(0., 0., 0.), distance=None)
-    #renderer._set_3d_title(figure=fig, title='foo')
+    renderer._set_3d_title(figure=fig, title='foo')
     renderer._take_3d_screenshot(figure=fig)
     renderer._close_all()
 
