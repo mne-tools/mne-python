@@ -45,6 +45,9 @@ def test_backend_environment_setup(backend, backend_mocker, monkeypatch):
 def test_3d_functions(renderer):
     """Test figure management functions."""
     fig = renderer.create_3d_figure((300, 300))
+    # Mayavi actually needs something in the display to set the title
+    wrap_renderer = renderer._Renderer(fig=fig)
+    wrap_renderer.sphere(np.array([0., 0., 0.]), 'w', 1.)
     renderer._check_3d_figure(fig)
     renderer._set_3d_view(figure=fig, azimuth=None, elevation=None,
                           focalpoint=(0., 0., 0.), distance=None)
