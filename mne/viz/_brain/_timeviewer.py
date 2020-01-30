@@ -30,6 +30,36 @@ class IntSlider(object):
         self.callback(idx)
 
 
+class TimeSlider(object):
+    """Class to update the time slider."""
+
+    def __init__(self, plotter=None, brain=None):
+        self.plotter = plotter
+        self.brain = brain
+        self.slider_rep = None
+        if brain is None:
+            self.time_label = None
+        else:
+            if callable(self.brain._data['time_label']):
+                self.time_label = self.brain._data['time_label']
+
+    def __call__(self, value, update_widget=False):
+        """Update the time slider."""
+        self.brain.set_time_point(value)
+        current_time = self.brain._current_time
+        if self.slider_rep is None:
+            for slider in self.plotter.slider_widgets:
+                name = getattr(slider, "name", None)
+                if name == "time":
+                    self.slider_rep = slider.GetRepresentation()
+        if self.slider_rep is not None:
+            if update_widget:
+                self.slider_rep.SetValue(value)
+            if self.time_label is not None:
+                current_time = self.time_label(current_time)
+                self.slider_rep.SetTitleText(current_time)
+
+
 class UpdateColorbarScale(object):
     """Class to update the values of the colorbar sliders."""
 
@@ -259,23 +289,25 @@ class _TimeViewer(object):
         if self.time_actor is not None:
             self.time_actor.SetPosition(0.5, 0.03)
             self.time_actor.GetTextProperty().SetJustificationToCentered()
+            self.time_actor.GetTextProperty().BoldOn()
+            self.time_actor.VisibilityOff()
 
         # time slider
         max_time = len(brain._data['time']) - 1
-        self.time_call = SmartSlider(
+        self.time_call = TimeSlider(
             plotter=self.plotter,
-            callback=self.brain.set_time_point,
-            name="time"
+            brain=self.brain
         )
         time_slider = self.plotter.add_slider_widget(
             self.time_call,
-            value=brain._data['time_idx'],
             rng=[0, max_time],
             pointa=(0.23, 0.1),
             pointb=(0.77, 0.1),
             event_type='always'
         )
         time_slider.name = "time"
+        # set the default value
+        self.time_call(value=brain._data['time_idx'])
 
         # playback speed
         default_playback_speed = 0.05
@@ -384,19 +416,26 @@ class _TimeViewer(object):
         self.set_slider_style(fmax_slider)
         self.set_slider_style(fscale_slider)
         self.set_slider_style(playback_speed_slider)
-        self.set_slider_style(time_slider, show_label=False)
-
-        # set the text style
-        _set_text_style(self.time_actor)
+        self.set_slider_style(time_slider)
 
     def toggle_interface(self):
         self.visibility = not self.visibility
+        # manage sliders
         for slider in self.plotter.slider_widgets:
             slider_rep = slider.GetRepresentation()
             if self.visibility:
                 slider_rep.VisibilityOn()
             else:
                 slider_rep.VisibilityOff()
+
+        # manage time label
+        time_label = self.brain._data['time_label']
+        if callable(time_label) and self.time_actor is not None:
+            if self.visibility:
+                self.time_actor.VisibilityOff()
+            else:
+                self.time_actor.SetInput(time_label(self.brain._current_time))
+                self.time_actor.VisibilityOn()
 
     def apply_auto_scaling(self):
         self.brain.update_auto_scaling()
@@ -504,12 +543,6 @@ class _LinkViewer(object):
                         callback=callback,
                         event_type=event_type
                     )
-
-
-def _set_text_style(text_actor):
-    if text_actor is not None:
-        prop = text_actor.GetTextProperty()
-        prop.BoldOn()
 
 
 def _get_range(brain):

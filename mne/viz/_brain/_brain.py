@@ -861,8 +861,6 @@ class _Brain(object):
         from ..backends._pyvista import _set_mesh_scalars
         from scipy.interpolate import interp1d
         time = self._data['time']
-        time_label = self._data['time_label']
-        time_actor = self._data.get('time_actor')
         for hemi in ['lh', 'rh']:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
@@ -872,23 +870,18 @@ class _Brain(object):
                     if array.ndim == 2:
                         if isinstance(time_idx, int):
                             act_data = array[:, time_idx]
+                            self._current_time = time[time_idx]
                         else:
                             times = np.arange(self._n_times)
                             act_data = interp1d(times, array, 'linear', axis=1,
                                                 assume_sorted=True)(time_idx)
+                            ifunc = interp1d(times, self._data['time'])
+                            self._current_time = ifunc(time_idx)
 
                     smooth_mat = hemi_data['smooth_mat']
                     if smooth_mat is not None:
                         act_data = smooth_mat.dot(act_data)
                     _set_mesh_scalars(mesh, act_data, 'Data')
-                    if callable(time_label) and time_actor is not None:
-                        if isinstance(time_idx, int):
-                            self._current_time = time[time_idx]
-                            time_actor.SetInput(time_label(self._current_time))
-                        else:
-                            ifunc = interp1d(times, self._data['time'])
-                            self._current_time = ifunc(time_idx)
-                            time_actor.SetInput(time_label(self._current_time))
                     self._data['time_idx'] = time_idx
 
     def update_fmax(self, fmax):
