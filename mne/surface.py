@@ -978,14 +978,14 @@ def _decimate_surface(points, triangles, reduction):
     vtkpoints = vtkPoints()
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('ignore')
-        vtkpoints.SetData(numpy_to_vtk(points))
+        vtkpoints.SetData(numpy_to_vtk(points.astype(np.float64)))
     src.SetPoints(vtkpoints)
     vtkcells = vtkCellArray()
     triangles_ = np.pad(
         triangles, ((0, 0), (1, 0)), 'constant', constant_values=3)
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('ignore')
-        idarr = numpy_to_vtkIdTypeArray(triangles_.ravel())
+        idarr = numpy_to_vtkIdTypeArray(triangles_.ravel().astype(np.int64))
     vtkcells.SetCells(triangles.shape[0], idarr)
     src.SetPolys(vtkcells)
     # Eventually we should test:
