@@ -1673,7 +1673,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         An instance of :class:`surfer.Brain` from PySurfer or
         matplotlib figure.
     """  # noqa: E501
-    from .backends.renderer import get_3d_backend
+    from .backends.renderer import get_3d_backend, set_3d_backend
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
     _validate_type(stc, SourceEstimate, "stc", "Surface Source Estimate")
@@ -1683,14 +1683,11 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     _check_option('backend', backend, ['auto', 'matplotlib', 'mayavi'])
     plot_mpl = backend == 'matplotlib'
     if not plot_mpl:
-        if not check_version('surfer', '0.9'):
-            raise RuntimeError('This function requires pysurfer version '
-                               '>= 0.9')
         try:
-            from mayavi import mlab  # noqa: F401
-        except ImportError:
+            set_3d_backend(get_3d_backend())
+        except (ImportError, ModuleNotFoundError):
             if backend == 'auto':
-                warn('Mayavi not found. Resorting to matplotlib 3d.')
+                warn('No 3D backend found. Resorting to matplotlib 3d.')
                 plot_mpl = True
             else:  # 'mayavi'
                 raise
@@ -1705,6 +1702,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              spacing=spacing, time_viewer=time_viewer,
                              colorbar=colorbar, transparent=transparent)
     if get_3d_backend() == "mayavi":
+        if not check_version('surfer', '0.9'):
+            raise RuntimeError('This function requires pysurfer version '
+                               '>= 0.9')
         from surfer import Brain, TimeViewer
     else:
         from ._brain import _Brain as Brain

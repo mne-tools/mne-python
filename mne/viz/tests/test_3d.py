@@ -674,6 +674,8 @@ def test_link_brains(renderer):
         pytest.skip()  # Skip PySurfer.TimeViewer
     else:
         # Disable testing to allow interactive window
+        import pyvista
+        pyvista.OFF_SCREEN = False
         renderer.MNE_3D_BACKEND_TESTING = False
     with pytest.raises(ValueError, match='is empty'):
         link_brains([])

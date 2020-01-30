@@ -14,8 +14,8 @@ from mne import (read_surface, write_surface, decimate_surface, pick_types,
 from mne.surface import (read_morph_map, _compute_nearest,
                          fast_cross_3d, get_head_surf, read_curvature,
                          get_meg_helmet_surf)
-from mne.utils import (_TempDir, requires_mayavi, requires_tvtk, catch_logging,
-                       run_tests_if_main, object_diff, traits_test)
+from mne.utils import (_TempDir, requires_vtk, catch_logging,
+                       run_tests_if_main, object_diff)
 from mne.io import read_info
 from mne.io.constants import FIFF
 from mne.transforms import _get_trans
@@ -186,9 +186,7 @@ def test_read_curv():
     assert np.logical_or(bin_curv == 0, bin_curv == 1).all()
 
 
-@requires_tvtk
-@requires_mayavi
-@traits_test
+@requires_vtk
 def test_decimate_surface():
     """Test triangular surface decimation."""
     points = np.array([[-0.00686118, -0.10369860, 0.02615170],

@@ -9,7 +9,8 @@
 from os import path as path
 
 import numpy as np
-from ...utils import check_version
+from ...utils import _check_option, get_subjects_dir
+from ...surface import complete_surface_info
 
 
 class Surface(object):
@@ -68,11 +69,6 @@ class Surface(object):
     def __init__(self, subject_id, hemi, surf, subjects_dir=None, offset=None,
                  units='mm'):
 
-        if not check_version('surfer', '0.9'):
-            raise RuntimeError('This function requires ' +
-                               'pysurfer (surfer >= 0.9)')
-        from surfer.utils import _check_units, _get_subjects_dir
-
         hemis = ('lh', 'rh')
 
         if hemi not in hemis:
@@ -84,11 +80,12 @@ class Surface(object):
             raise ValueError('offset should either float or int, given ' +
                              'type {0}'.format(type(offset).__name__))
 
+        _check_option('units', units, ('mm', 'm'))
         self.subject_id = subject_id
         self.hemi = hemi
         self.surf = surf
         self.offset = offset
-        self.units = _check_units(units)
+        self.units = units
         self.bin_curv = None
         self.coords = None
         self.curv = None
@@ -97,7 +94,7 @@ class Surface(object):
         self.nn = None
         self.labels = dict()
 
-        subjects_dir = _get_subjects_dir(subjects_dir)
+        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         self.data_path = path.join(subjects_dir, subject_id)
 
     def load_geometry(self):
@@ -112,7 +109,6 @@ class Surface(object):
         None
         """
         from nibabel import freesurfer
-        from surfer.utils import _compute_normals
 
         surf_path = path.join(self.data_path, 'surf',
                               '%s.%s' % (self.hemi, self.surf))
@@ -124,7 +120,9 @@ class Surface(object):
                 coords[:, 0] -= (np.max(coords[:, 0]) + self.offset)
             else:
                 coords[:, 0] -= (np.min(coords[:, 0]) + self.offset)
-        nn = _compute_normals(coords, faces)
+        surf = dict(rr=coords, tris=faces)
+        complete_surface_info(surf, copy=False, verbose=False)
+        nn = surf['nn']
 
         if self.coords is None:
             self.coords = coords
