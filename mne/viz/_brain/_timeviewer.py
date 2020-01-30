@@ -285,9 +285,12 @@ class _TimeViewer(object):
         self.smoothing_call(default_smoothing_value)
 
         # time label
-        time_actor = brain._data.get('time_actor')
-        if time_actor is not None:
-            time_actor.VisibilityOff()
+        self.time_actor = brain._data.get('time_actor')
+        if self.time_actor is not None:
+            self.time_actor.SetPosition(0.5, 0.03)
+            self.time_actor.GetTextProperty().SetJustificationToCentered()
+            self.time_actor.GetTextProperty().BoldOn()
+            self.time_actor.VisibilityOff()
 
         # time slider
         max_time = len(brain._data['time']) - 1
@@ -417,12 +420,22 @@ class _TimeViewer(object):
 
     def toggle_interface(self):
         self.visibility = not self.visibility
+        # manage sliders
         for slider in self.plotter.slider_widgets:
             slider_rep = slider.GetRepresentation()
             if self.visibility:
                 slider_rep.VisibilityOn()
             else:
                 slider_rep.VisibilityOff()
+
+        # manage time label
+        time_label = self.brain._data['time_label']
+        if callable(time_label) and self.time_actor is not None:
+            if self.visibility:
+                self.time_actor.VisibilityOff()
+            else:
+                self.time_actor.SetInput(time_label(self.brain._current_time))
+                self.time_actor.VisibilityOn()
 
     def apply_auto_scaling(self):
         self.brain.update_auto_scaling()
