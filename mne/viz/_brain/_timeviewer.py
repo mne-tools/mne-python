@@ -212,6 +212,7 @@ class _TimeViewer(object):
     """Class to interact with _Brain."""
 
     def __init__(self, brain, show_traces=False):
+        from ..backends._pyvista import _update_picking_callback
         self.brain = brain
         self.brain.time_viewer = self
         self.plotter = brain._renderer.plotter
@@ -430,6 +431,26 @@ class _TimeViewer(object):
             self.color_cycle = None
             self.picked_points = None
             self.enable_point_picking()
+            self._mouse_no_mvt = -1
+            _update_picking_callback(
+                self.plotter.iren,
+                self.on_mouse_move,
+                self.on_button_press,
+                self.on_button_release
+            )
+
+    def on_mouse_move(self, vtk_picker, event):
+        if self._mouse_no_mvt:
+            self._mouse_no_mvt -= 1
+
+    def on_button_press(self, vtk_picker, event):
+        self._mouse_no_mvt = 2
+
+    def on_button_release(self, vtk_picker, event):
+        if self._mouse_no_mvt:
+            x, y = vtk_picker.GetEventPosition()
+            self.plotter.picker.Pick((x, y, 0), self.plotter.renderer)
+        self._mouse_no_mvt = 0
 
     def toggle_interface(self):
         self.visibility = not self.visibility
@@ -539,7 +560,7 @@ class _TimeViewer(object):
         )
 
     def pick_point(self, mesh, vertex_id):
-        if vertex_id != -1:
+        if vertex_id != -1 and self._mouse_no_mvt:
             if hasattr(mesh, "_hemi"):
                 if vertex_id not in self.picked_points:
                     color = next(self.color_cycle)

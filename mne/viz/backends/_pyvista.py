@@ -627,3 +627,21 @@ def _update_slider_callback(slider, callback, event_type):
 
     slider.RemoveObserver(event)
     slider.AddObserver(event, _the_callback)
+
+
+def _update_picking_callback(interactor,
+                             on_mouse_move,
+                             on_button_press,
+                             on_button_release):
+    interactor.AddObserver(
+        vtk.vtkCommand.RenderEvent,
+        on_mouse_move
+    )
+    interactor.AddObserver(
+        vtk.vtkCommand.LeftButtonPressEvent,
+        on_button_press
+    )
+    interactor.AddObserver(
+        vtk.vtkCommand.EndInteractionEvent,
+        on_button_release
+    )
