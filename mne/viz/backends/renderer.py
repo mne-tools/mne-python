@@ -52,6 +52,11 @@ def _reload_backend():
         globals()[key] = getattr(_mod, key)
 
 
+def _get_renderer(*args, **kwargs):
+    set_3d_backend(get_3d_backend(), verbose=False)
+    return _Renderer(*args, **kwargs)  # noqa: F821
+
+
 @verbose
 def set_3d_backend(backend_name, verbose=None):
     """Set the backend for MNE.
