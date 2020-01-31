@@ -106,6 +106,11 @@ def test_plot_head_positions():
 @traits_test
 def test_plot_sparse_source_estimates(renderer):
     """Test plotting of (sparse) source estimates."""
+    if renderer.get_3d_backend() == "pyvista":
+        # Disable testing to allow interactive window
+        import pyvista
+        pyvista.OFF_SCREEN = False
+        renderer.MNE_3D_BACKEND_TESTING = False
     sample_src = read_source_spaces(src_fname)
 
     # dense version
@@ -348,6 +353,11 @@ def test_plot_alignment(tmpdir, renderer):
 @traits_test
 def test_limits_to_control_points(renderer):
     """Test functionality for determining control points."""
+    if renderer.get_3d_backend() == "pyvista":
+        # Disable testing to allow interactive window
+        import pyvista
+        pyvista.OFF_SCREEN = False
+        renderer.MNE_3D_BACKEND_TESTING = False
     sample_src = read_source_spaces(src_fname)
     kwargs = dict(subjects_dir=subjects_dir, smoothing_steps=1)
 
