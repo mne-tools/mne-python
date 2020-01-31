@@ -326,7 +326,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         The mayavi figure.
     """
     # Update the backend
-    from .backends.renderer import _Renderer
+    from .backends.renderer import _get_renderer
     types = [t for t in ['eeg', 'grad', 'mag'] if t in evoked]
 
     time_idx = None
@@ -346,7 +346,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
                                      np.tile([0., 0., 0., 255.], (2, 1)),
                                      np.tile([255., 0., 0., 255.], (127, 1))])
 
-    renderer = _Renderer(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
+    renderer = _get_renderer(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
 
     for ii, this_map in enumerate(surf_maps):
         surf = this_map['surf']
@@ -628,7 +628,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     """
     from ..forward import _create_meg_coils, Forward
     # Update the backend
-    from .backends.renderer import _Renderer
+    from .backends.renderer import _get_renderer
 
     if eeg is False:
         eeg = list()
@@ -1019,7 +1019,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                         % (len(other_loc[key]), key, _pl(other_loc[key])))
 
     # initialize figure
-    renderer = _Renderer(fig, bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
+    renderer = _get_renderer(fig, bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
     if interaction == 'terrain':
         renderer.set_interactive()
 
@@ -2441,7 +2441,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     import matplotlib.pyplot as plt
     from matplotlib.colors import ColorConverter
     # Update the backend
-    from .backends.renderer import _Renderer
+    from .backends.renderer import _get_renderer
 
     known_modes = ['cone', 'sphere']
     if not isinstance(modes, (list, tuple)) or \
@@ -2484,7 +2484,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
     color_converter = ColorConverter()
 
-    renderer = _Renderer(bgcolor=bgcolor, size=(600, 600), name=fig_name)
+    renderer = _get_renderer(bgcolor=bgcolor, size=(600, 600), name=fig_name)
     surface = renderer.mesh(x=points[:, 0], y=points[:, 1],
                             z=points[:, 2], triangles=use_faces,
                             color=brain_color, opacity=opacity,
@@ -2650,9 +2650,9 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
             ax=ax, block=block, show=show, color=color,
             highlight_color=highlight_color)
     elif mode in ['arrow', 'sphere']:
-        from .backends.renderer import _Renderer
+        from .backends.renderer import _get_renderer
         color = (1., 0., 0.) if color is None else color
-        renderer = _Renderer(fig=fig, size=(600, 600))
+        renderer = _get_renderer(fig=fig, size=(600, 600))
         pos = dipoles.pos
         ori = dipoles.ori
         if coord_frame != 'head':
@@ -2704,7 +2704,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     from ..channels import DigMontage
     from .. import Info
     # Update the backend
-    from .backends.renderer import _Renderer
+    from .backends.renderer import _get_renderer
 
     if fig is None:
         raise ValueError('The figure must have a scene')
@@ -2723,7 +2723,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
                         ' or `dict`')
 
     # initialize figure
-    renderer = _Renderer(fig, show=True)
+    renderer = _get_renderer(fig, show=True)
 
     xyz = np.vstack(xyz)
     proj = renderer.project(xyz=xyz, ch_names=ch_names)
@@ -2755,9 +2755,9 @@ def plot_sensors_connectivity(info, con, picks=None):
     """
     _validate_type(info, "info")
 
-    from .backends.renderer import _Renderer
+    from .backends.renderer import _get_renderer
 
-    renderer = _Renderer(size=(600, 600), bgcolor=(0.5, 0.5, 0.5))
+    renderer = _get_renderer(size=(600, 600), bgcolor=(0.5, 0.5, 0.5))
 
     picks = _picks_to_idx(info, picks)
     if len(picks) != len(con):
