@@ -584,7 +584,7 @@ class _TimeViewer(object):
             center=np.array(center),
             color=color,
             scale=1.0,
-            radius=10.0
+            radius=4.0
         )
 
         # add metadata for picking
