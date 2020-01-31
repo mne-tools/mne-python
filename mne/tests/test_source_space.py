@@ -19,7 +19,7 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  morph_source_spaces, SourceEstimate, make_sphere_model,
                  head_to_mni, read_trans, compute_source_morph,
                  read_bem_solution)
-from mne.utils import (requires_nibabel, requires_freesurfer, run_subprocess,
+from mne.utils import (requires_nibabel, run_subprocess,
                        modified_env, requires_mne, run_tests_if_main,
                        check_version)
 from mne.surface import _accumulate_normals, _triangle_neighbors
@@ -543,7 +543,6 @@ def test_vertex_to_mni_fs_nibabel(monkeypatch):
 
 
 @testing.requires_testing_data
-@requires_freesurfer
 @requires_nibabel()
 def test_get_volume_label_names():
     """Test reading volume label names."""
@@ -556,7 +555,6 @@ def test_get_volume_label_names():
 
 
 @testing.requires_testing_data
-@requires_freesurfer
 @requires_nibabel()
 def test_source_space_from_label(tmpdir):
     """Test generating a source space from volume label."""
@@ -592,7 +590,6 @@ def test_source_space_from_label(tmpdir):
 @pytest.mark.timeout(60)  # ~24 sec on Travis
 @pytest.mark.slowtest
 @testing.requires_testing_data
-@requires_freesurfer
 @requires_nibabel()
 def test_read_volume_from_src():
     """Test reading volumes from a mixed source space."""
@@ -623,7 +620,6 @@ def test_read_volume_from_src():
 
 
 @testing.requires_testing_data
-@requires_freesurfer
 @requires_nibabel()
 def test_combine_source_spaces(tmpdir):
     """Test combining source spaces."""

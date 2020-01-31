@@ -204,7 +204,7 @@ def test_decimate_surface_vtk():
     pytest.raises(ValueError, decimate_surface, points, tris, n_tri)
 
 
-@requires_freesurfer
+@requires_freesurfer('mris_sphere')
 def test_decimate_surface_sphere():
     """Test sphere mode of decimation."""
     rr, tris = _tessellate_sphere(3)

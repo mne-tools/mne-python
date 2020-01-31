@@ -1158,8 +1158,7 @@ def head_to_mri(pos, subject, mri_head_t, subjects_dir=None,
 
     Notes
     -----
-    This function requires either nibabel (in Python) or Freesurfer
-    (with utility "mri_info") to be correctly installed.
+    This function requires nibabel.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
@@ -1245,8 +1244,7 @@ def head_to_mni(pos, subject, mri_head_t, subjects_dir=None,
 
     Notes
     -----
-    This function requires either nibabel (in Python) or Freesurfer
-    (with utility "mri_info") to be correctly installed.
+    This function requires either nibabel.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
