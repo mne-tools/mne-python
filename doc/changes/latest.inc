@@ -101,6 +101,8 @@ Changelog
 
 - Add function :func:`mne.viz.link_brains` to link time properties of multiple brain objects interactively by `Guillaume Favelier`_
 
+ - Add function :func:`mne.preprocessing.annotate_movement` to annotate periods with head motion and :func:`mne.preprocessing.compute_average_dev_head_t` to re-estimate the device to head transform with average head position during segments with acceptable head movement. by `Adonay Nunes`_
+
 Bug
 ~~~
 
@@ -114,7 +116,11 @@ Bug
 
 - Fix :func:`mne.io.read_raw_cnt` for version 1 of format in the presence of annotations by `Alex Gramfort`_.
 
+- Fix :class:`mne.decoding.GeneralizingEstimator` and related classes to support multi-class sklearn scorers such as ``'roc_auc_ovo'`` and ``'roc_auc_ovo_weighted'`` by `Eric Larson`_
+
 - Fix :meth:`mne.io.read_raw_ctf` to set measurement date from CTF ds files by `Luke Bloy`_.
+
+- Fix :meth:`mne.read_epochs_eeglab` that ignored channel locations by `Alex Gramfort`_.
 
 - Fix :meth:`mne.io.read_raw_brainvision` when channel names have spaces by `Sebastian Major`_.
 

@@ -368,7 +368,7 @@ for name, arr in dict(EOG=eog_data, MEG=meg_data, Slice=channel_4_6_8).items():
 # aggregating data; for example, here we select any epochs numbered 10 or less
 # from the ``auditory/left`` condition, and extract times between 100 and 107
 # ms on channels ``EEG 056`` through ``EEG 058`` (note that slice indexing
-# within Pandas' :attr:`~pandas.DataFrame.loc` is inclusive of the endpoint):
+# within Pandas' :obj:`~pandas.DataFrame.loc` is inclusive of the endpoint):
 
 df = epochs.to_data_frame()
 df.sort_index(inplace=True)

@@ -26,10 +26,9 @@ fif_path = os.path.join(kit_data_dir, 'test_bin_raw.fif')
 def _check_ci():
     osx = (os.getenv('TRAVIS', 'false').lower() == 'true' and
            sys.platform == 'darwin')
-    win = (os.getenv('APPVEYOR', 'false').lower() == 'true' and
-           sys.platform.startswith('win'))
+    win = os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true'
     if win or osx:
-        raise SkipTest('Skipping GUI tests on Travis OSX and AppVeyor')
+        raise SkipTest('Skipping GUI tests on Travis OSX and Azure Windows')
 
 
 @requires_mayavi

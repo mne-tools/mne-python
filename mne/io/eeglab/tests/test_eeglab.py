@@ -76,7 +76,7 @@ def test_io_set_raw(fname):
     # test that using uint16_codec does not break stuff
     raw0 = read_raw_eeglab(input_fname=fname,
                            preload=False, uint16_codec='ascii')
-    raw0.set_montage(montage, update_ch_names=True)
+    raw0.set_montage(montage)
 
 
 @testing.requires_testing_data
@@ -347,8 +347,8 @@ def test_position_information(one_chanpos_fname):
     """Test reading file with 3 channels - one without position information."""
     nan = np.nan
     EXPECTED_LOCATIONS_FROM_FILE = np.array([
-        [-4.,  1.,  7.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],  # noqa: E241,E501
-        [-5.,  2.,  8.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.],  # noqa: E241,E501
+        [-4.,  1.,  7.,  0.,  0.,  0., nan, nan, nan, nan, nan, nan],  # noqa: E241,E501
+        [-5.,  2.,  8.,  0.,  0.,  0., nan, nan, nan, nan, nan, nan],  # noqa: E241,E501
         [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
     ])
 
@@ -358,7 +358,6 @@ def test_position_information(one_chanpos_fname):
         [nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan, nan],
     ])
 
-    montage = _read_eeglab_montage(montage_path)
     raw = read_raw_eeglab(input_fname=one_chanpos_fname, preload=True)
     assert_array_equal(np.array([ch['loc'] for ch in raw.info['chs']]),
                        EXPECTED_LOCATIONS_FROM_FILE)
@@ -374,9 +373,6 @@ def test_position_information(one_chanpos_fname):
 
     _assert_array_allclose_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
                                EXPECTED_LOCATIONS_FROM_MONTAGE)
-
-    with pytest.raises(ValueError):
-        raw.set_montage(montage, update_ch_names=False)
 
     _assert_array_allclose_nan(np.array([ch['loc'] for ch in raw.info['chs']]),
                                EXPECTED_LOCATIONS_FROM_MONTAGE)

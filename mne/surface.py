@@ -14,7 +14,7 @@ from glob import glob
 from functools import partial
 import os
 from os import path as op
-import sys
+import warnings
 from struct import pack
 
 import numpy as np
@@ -962,25 +962,45 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
 
 def _decimate_surface(points, triangles, reduction):
     """Aux function."""
-    if 'DISPLAY' not in os.environ and sys.platform != 'win32':
-        os.environ['ETS_TOOLKIT'] = 'null'
     try:
-        from tvtk.api import tvtk
-        from tvtk.common import configure_input
+        from vtk.util.numpy_support import \
+            numpy_to_vtk, numpy_to_vtkIdTypeArray
+        from vtk.numpy_interface.dataset_adapter import WrapDataObject
+        from vtk import \
+            vtkPolyData, vtkQuadricDecimation, vtkPoints, vtkCellArray
     except ImportError:
-        raise ValueError('This function requires the TVTK package to be '
+        raise ValueError('This function requires the VTK package to be '
                          'installed')
     if triangles.max() > len(points) - 1:
         raise ValueError('The triangles refer to undefined points. '
                          'Please check your mesh.')
-    src = tvtk.PolyData(points=points, polys=triangles)
-    decimate = tvtk.QuadricDecimation(target_reduction=reduction)
-    configure_input(decimate, src)
-    decimate.update()
-    out = decimate.output
-    tris = out.polys.to_array()
-    # n-tuples + interleaved n-next -- reshape trick
-    return out.points.to_array(), tris.reshape(tris.size // 4, 4)[:, 1:]
+    src = vtkPolyData()
+    vtkpoints = vtkPoints()
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        vtkpoints.SetData(numpy_to_vtk(points.astype(np.float64)))
+    src.SetPoints(vtkpoints)
+    vtkcells = vtkCellArray()
+    triangles_ = np.pad(
+        triangles, ((0, 0), (1, 0)), 'constant', constant_values=3)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        idarr = numpy_to_vtkIdTypeArray(triangles_.ravel().astype(np.int64))
+    vtkcells.SetCells(triangles.shape[0], idarr)
+    src.SetPolys(vtkcells)
+    # Eventually we should test:
+    # vtkDecimatePro with PreserveTopologyOn, SplittingOff
+    # vtkQuadricDecimation with AttributeErrorMetricOn
+    decimate = vtkQuadricDecimation()
+    decimate.SetInputData(src)
+    # decimate.AttributeErrorMetricOn()
+    decimate.SetTargetReduction(reduction)
+    # decimate.VolumePreservationOn()
+    decimate.Update()
+    out = WrapDataObject(decimate.GetOutput())
+    rrs = out.Points
+    tris = out.Polygons.reshape(-1, 4)[:, 1:]
+    return rrs, tris
 
 
 def decimate_surface(points, triangles, n_triangles):
