@@ -1459,7 +1459,8 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
     @copy_function_doc_to_method_doc(plot_source_estimates)
     def plot(self, subject=None, surface='inflated', hemi='lh',
              colormap='auto', time_label='auto', smoothing_steps=10,
-             transparent=True, alpha=1.0, time_viewer='auto', subjects_dir=None,
+             transparent=True, alpha=1.0, time_viewer='auto',
+             subjects_dir=None,
              figure=None, views='lat', colorbar=True, clim='auto',
              cortex="classic", size=800, background="black",
              foreground="white", initial_time=None, time_unit='s',
