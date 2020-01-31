@@ -2815,4 +2815,16 @@ def test_file_like(kind, preload, tmpdir):
     assert file_fid.closed
 
 
+def test_epochs_get_data_item():
+    """Test epochs.get_data(item=...)."""
+    raw, events, _ = _get_data()
+    epochs = Epochs(raw, events[:10], event_id, tmin, tmax)
+    with pytest.raises(ValueError, match='item must be None'):
+        epochs.get_data(item=0)
+    epochs.drop_bad()
+    one_data = epochs.get_data(item=0)
+    one_epo = epochs[0]
+    assert_array_equal(one_data, one_epo.get_data())
+
+
 run_tests_if_main()
