@@ -1570,12 +1570,12 @@ def link_brains(brains):
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='auto', time_label='auto',
                           smoothing_steps=10, transparent=True, alpha=1.0,
-                          time_viewer=False, subjects_dir=None, figure=None,
+                          time_viewer='auto', subjects_dir=None, figure=None,
                           views='lat', colorbar=True, clim='auto',
                           cortex="classic", size=800, background="black",
                           foreground="white", initial_time=None,
                           time_unit='s', backend='auto', spacing='oct6',
-                          title=None, show_traces=False, verbose=None):
+                          title=None, show_traces='auto', verbose=None):
     """Plot SourceEstimate with PySurfer.
 
     By default this function uses :mod:`mayavi.mlab` to plot the source
@@ -1610,8 +1610,12 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     alpha : float
         Alpha value to apply globally to the overlay. Has no effect with mpl
         backend.
-    time_viewer : bool
-        Display time viewer GUI.
+    time_viewer : bool | str
+        Display time viewer GUI. Can also be 'auto', which will mean True
+        for the PyVista backend and False otherwise.
+
+        .. versionchanged:: 0.20.0
+           "auto" mode added.
     %(subjects_dir)s
     figure : instance of mayavi.core.api.Scene | instance of matplotlib.figure.Figure | list | int | None
         If None, a new figure will be created. If multiple views or a
@@ -1664,13 +1668,15 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     title : str | None
         Title for the figure. If None, the subject name will be used.
 
-    show_traces : bool
-        If True, enable interactive picking of a point on the surface of the
-        brain and plot it's time course in a dedicated matplotlib figure.
-        This feature is only available with the pyvista 3d backend when
-        `time_viewer=True`. Defaults to false.
-
         .. versionadded:: 0.17.0
+    show_traces : bool | str
+        If True, enable interactive picking of a point on the surface of the
+        brain and plot it's time course using the bottom 1/3 of the figure.
+        This feature is only available with the PyVista 3d backend when
+        ``time_viewer=True``. Defaults to 'auto', which will use True if and
+        only if ``time_viewer=True`` and the backend is PyVista.
+
+        .. versionadded:: 0.20.0
     %(verbose)s
 
     Returns
@@ -1683,6 +1689,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
     _validate_type(stc, SourceEstimate, "stc", "Surface Source Estimate")
+    _check_option('time_viewer', time_viewer, (True, False, 'auto'))
+    _check_option('show_traces', show_traces, (True, False, 'auto'))
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
@@ -1707,12 +1715,17 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              time_unit=time_unit, background=background,
                              spacing=spacing, time_viewer=time_viewer,
                              colorbar=colorbar, transparent=transparent)
-    if get_3d_backend() == "mayavi":
+    using_mayavi = get_3d_backend() == "mayavi"
+    if time_viewer == 'auto':
+        time_viewer = not using_mayavi
+    if show_traces == 'auto':
+        show_traces = not using_mayavi and time_viewer
+    if using_mayavi:
         if not check_version('surfer', '0.9'):
             raise RuntimeError('This function requires pysurfer version '
                                '>= 0.9')
         from surfer import Brain, TimeViewer
-    else:
+    else:  # PyVista
         from ._brain import _Brain as Brain
         from ._brain import _TimeViewer as TimeViewer
     _check_option('hemi', hemi, ['lh', 'rh', 'split', 'both'])
