@@ -1716,10 +1716,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              spacing=spacing, time_viewer=time_viewer,
                              colorbar=colorbar, transparent=transparent)
     using_mayavi = get_3d_backend() == "mayavi"
-    if show_traces == 'auto':
-        show_traces = not using_mayavi
     if time_viewer == 'auto':
         time_viewer = not using_mayavi
+    if show_traces == 'auto':
+        show_traces = not using_mayavi and time_viewer
     if using_mayavi:
         if not check_version('surfer', '0.9'):
             raise RuntimeError('This function requires pysurfer version '
