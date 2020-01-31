@@ -545,7 +545,9 @@ class _TimeViewer(object):
             self.act_data = smooth_mat.dot(self.act_data)
 
         # use a matplotlib canvas
-        self.color_cycle = cycle(_get_color_list())
+        self.color_ptr = 0
+        self.color_list = _get_color_list()
+        self.color_cycle = cycle(self.color_list)
         win = self.plotter.app_window
         dpi = win.windowHandle().screen().logicalDotsPerInch()
         w, h = win.geometry().width() / dpi, win.geometry().height() / dpi
@@ -561,7 +563,7 @@ class _TimeViewer(object):
 
         # initialize the default point
         self.picked_points = list()
-        color = next(self.color_cycle)
+        color = self.next_color()
         ind = np.unravel_index(
             np.argmax(self.act_data, axis=None),
             self.act_data.shape
@@ -601,6 +603,7 @@ class _TimeViewer(object):
 
         if not hasattr(mesh, "_hemi"):
             self.remove_point(mesh)
+            self.prev_color()
         elif self._mouse_no_mvt:
             pos = vtk_picker.GetPickPosition()
             cell = mesh.faces[cell_id][1:]
@@ -609,7 +612,7 @@ class _TimeViewer(object):
             vertex_id = cell[idx[0]]
 
             if vertex_id not in self.picked_points:
-                color = next(self.color_cycle)
+                color = self.next_color()
 
                 # update associated time course
                 line = self.plot_time_course(vertex_id, color)
@@ -648,6 +651,19 @@ class _TimeViewer(object):
             color=color
         )
         return line
+
+    def next_color(self):
+        color = next(self.color_cycle)
+        self.color_ptr = (self.color_ptr + 1) % len(self.color_list)
+        return color
+
+    def prev_color(self):
+        self.color_ptr -= 1
+        if self.color_ptr < 0:
+            self.color_ptr = 0
+        self.color_cycle = cycle(self.color_list)
+        for i in range(self.color_ptr):
+            next(self.color_cycle)
 
 
 class _LinkViewer(object):
