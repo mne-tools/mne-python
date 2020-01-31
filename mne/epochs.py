@@ -1396,7 +1396,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             The items to get. See :meth:`mne.Epochs.__getitem__` for
             a description of valid options. This can be substantially faster
             for obtaining an ndarray than :meth:`~mne.Epochs.__getitem__`
-            for repeated access on  large Epochs objects.
+            for repeated access on large Epochs objects.
             None (default) is an alias for ``slice(None)``.
 
             .. versionadded:: 0.20
