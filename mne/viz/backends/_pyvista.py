@@ -629,10 +629,12 @@ def _update_slider_callback(slider, callback, event_type):
     slider.AddObserver(event, _the_callback)
 
 
-def _update_picking_callback(interactor,
+def _update_picking_callback(plotter,
                              on_mouse_move,
                              on_button_press,
-                             on_button_release):
+                             on_button_release,
+                             on_pick):
+    interactor = plotter.iren
     interactor.AddObserver(
         vtk.vtkCommand.RenderEvent,
         on_mouse_move
@@ -645,3 +647,9 @@ def _update_picking_callback(interactor,
         vtk.vtkCommand.EndInteractionEvent,
         on_button_release
     )
+    picker = vtk.vtkCellPicker()
+    picker.AddObserver(
+        vtk.vtkCommand.EndPickEvent,
+        on_pick
+    )
+    plotter.picker = picker
