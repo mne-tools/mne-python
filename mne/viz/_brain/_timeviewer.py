@@ -35,12 +35,12 @@ class MplCanvas(FigCanvas):
         """Plot a curve."""
         line, = self.axes.plot(
             x, y, label='vertex id = {}'.format(vertex_id), **kwargs)
-        self.axes.legend()
         self.update_plot()
         return line
 
     def update_plot(self):
         """Update the plot."""
+        self.axes.legend()
         self.draw()
 
 
