@@ -249,12 +249,16 @@ def _check_pandas_index_arguments(index, valid):
         return
     if isinstance(index, str):
         index = [index]
+    if not isinstance(index, list):
+        raise TypeError('index must be `None` or a string or list of strings,'
+                        ' got type {}.'.format(type(index)))
     invalid = set(index) - set(valid)
     if invalid:
         plural = ('is not a valid option',
                   'are not valid options')[int(len(invalid) > 1)]
-        raise ValueError('"{}" {}. Valid index options are `None`, {}'
-                         .format(', '.join(invalid), plural, ', '.join(valid)))
+        raise ValueError('"{}" {}. Valid index options are `None`, "{}".'
+                         .format('", "'.join(invalid), plural,
+                                 '", "'.join(valid)))
     return index
 
 
