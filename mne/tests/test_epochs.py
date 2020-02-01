@@ -1737,7 +1737,6 @@ def test_access_by_name(tmpdir):
 @requires_pandas
 def test_to_data_frame():
     """Test epochs Pandas exporter."""
-    from pandas import MultiIndex
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
     # test index checking
@@ -1754,39 +1753,23 @@ def test_to_data_frame():
     expected = ('condition', 'epoch', 'time', 'channel', 'ch_type', 'value')
     assert set(expected) == set(df_long.columns)
     assert set(epochs.ch_names) == set(df_long['channel'])
+    assert(len(df_long) == epochs.get_data().size)
     del df_wide, df_long
-    # test multiindex
-    index = ['condition', 'epoch', 'time']
-    df = epochs.to_data_frame(index=index)
-    assert all(np.in1d(df.index.names, index))
-    assert isinstance(df.index, MultiIndex)
     # test scalings
+    df = epochs.to_data_frame(index=['condition', 'epoch', 'time'])
     data = np.hstack(epochs.get_data())
     assert_array_equal(df.values[:, 0], data[0] * 1e13)
     assert_array_equal(df.values[:, 2], data[2] * 1e15)
 
-    for ind in ['time', ['condition', 'time'], ['condition', 'time', 'epoch']]:
-        df = epochs.to_data_frame(picks=[11, 12, 14], index=ind)
-        assert (df.index.names == ind if isinstance(ind, list) else [ind])
-        # test that non-indexed data were present as categorial variables
-        assert_array_equal(sorted(df.reset_index().columns[:3]),
-                           sorted(['time', 'condition', 'epoch']))
-
-    df = epochs.to_data_frame(long_format=True)
-    assert(len(df) == epochs.get_data().size)
-
 
 @requires_pandas
-@pytest.mark.parametrize('index', ('time', ['condition', 'time'],
-                                   ['epoch', 'time'], ['time', 'epoch'],
-                                   ['condition', 'time', 'epoch']))
+@pytest.mark.parametrize('index', ('time', ['condition', 'time', 'epoch'],
+                                   ['epoch', 'time'], ['time', 'epoch']))
 def test_to_data_frame_index(index):
     """Test index creation in epochs Pandas exporter."""
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
     df = epochs.to_data_frame(picks=[11, 12, 14], index=index)
-    if isinstance(index, str):
-        index = [index]
     # test index order/heirarchy preservation
     assert (df.index.names == index)
     # test that non-indexed data were present as categorial variables

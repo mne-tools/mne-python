@@ -593,7 +593,7 @@ docdict['df_index_raw'] = docdict['df_index'].format(*raw)
 docdict['df_index_epo'] = docdict['df_index'].format(*epo)
 docdict['df_index_evk'] = docdict['df_index'].format(*evk)
 docdict['df_time_format'] = """
-time_format : str
+time_format : str | None
     Desired time format. If ``None``, no conversion is applied, and time values
     remain as float values in seconds. If ``'ms'``, time values will be rounded
     to the nearest millisecond and converted to integers. If ``'timedelta'``,
