@@ -252,10 +252,6 @@ print(epochs[1:8:2])  # epochs 1, 3, 5, 7
 
 print(epochs['buttonpress'][:4])            # first 4 "buttonpress" epochs
 print(epochs['buttonpress'][[0, 1, 2, 3]])  # same as previous line
-# epochs.get_data(item=2) will be much faster than epochs[2].get_data() in
-# cases where single epochs are repeatedly extracted from the original epochs
-# object as it returns a NumPy array directly:
-print(epochs.get_data(item=2))
 
 ###############################################################################
 # Selecting, dropping, and reordering channels
@@ -363,6 +359,11 @@ for name, arr in dict(EOG=eog_data, MEG=meg_data, Slice=channel_4_6_8).items():
     print('{} contains {} channels'.format(name, arr.shape[1]))
 
 ###############################################################################
+# Note that if your analysis requires repeatedly extracting single epochs from
+# an :class:`~mne.Epochs` object, ``epochs.get_data(item=2)`` will be much
+# faster than ``epochs[2].get_data()``, because it avoids the step of
+# subsetting the :class:`~mne.Epochs` object first.
+#
 # You can also export :class:`~mne.Epochs` data to :class:`Pandas DataFrames
 # <pandas.DataFrame>`. The :class:`~pandas.DataFrame` index will be constructed
 # by converting the time of each sample into milliseconds and rounding it to
