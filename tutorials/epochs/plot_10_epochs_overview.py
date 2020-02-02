@@ -252,6 +252,10 @@ print(epochs[1:8:2])  # epochs 1, 3, 5, 7
 
 print(epochs['buttonpress'][:4])            # first 4 "buttonpress" epochs
 print(epochs['buttonpress'][[0, 1, 2, 3]])  # same as previous line
+# epochs.get_data(item=2) will be much faster than epochs[2].get_data() in
+# cases where single epochs are repeatedly extracted from the original epochs
+# object as it returns a NumPy array directly:
+print(epochs.get_data(item=2))
 
 ###############################################################################
 # Selecting, dropping, and reordering channels
