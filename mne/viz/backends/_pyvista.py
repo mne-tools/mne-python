@@ -114,8 +114,7 @@ class _Renderer(_BaseRenderer):
 
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
                  name="PyVista Scene", show=False, shape=(1, 1)):
-        from pyvista import OFF_SCREEN
-        from .renderer import MNE_3D_BACKEND_TESTING
+        from .renderer import MNE_3D_BACKEND_TESTING, MNE_3D_OFF_SCREEN
         figure = _Figure(title=name, size=size, shape=shape,
                          background_color=bgcolor, notebook=None)
         self.font_family = "arial"
@@ -133,7 +132,7 @@ class _Renderer(_BaseRenderer):
             self.figure = fig
 
         # Enable off_screen if sphinx-gallery or testing
-        if OFF_SCREEN:
+        if MNE_3D_OFF_SCREEN:
             self.figure.store['off_screen'] = True
 
         with warnings.catch_warnings():

@@ -15,6 +15,7 @@ from ...utils import logger, verbose, get_config, _check_option
 
 MNE_3D_BACKEND = None
 MNE_3D_BACKEND_TESTING = False
+MNE_3D_OFF_SCREEN = False
 
 
 _fromlist = ('_Renderer', '_Projection', '_close_all', '_check_3d_figure',
@@ -167,14 +168,19 @@ def _use_test_3d_backend(backend_name):
     backend_name : str
         The 3d backend to use in the context.
     """
+    global MNE_3D_OFF_SCREEN
     global MNE_3D_BACKEND_TESTING
+    orig_offscreen = MNE_3D_OFF_SCREEN
+    orig_testing = MNE_3D_BACKEND_TESTING
+    MNE_3D_OFF_SCREEN = True
     MNE_3D_BACKEND_TESTING = True
     try:
         with use_3d_backend(backend_name):
             with _testing_context():  # noqa: F821
                 yield
     finally:
-        MNE_3D_BACKEND_TESTING = False
+        MNE_3D_OFF_SCREEN = orig_offscreen
+        MNE_3D_BACKEND_TESTING = orig_testing
 
 
 def set_3d_view(figure, azimuth=None, elevation=None,

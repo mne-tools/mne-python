@@ -142,9 +142,8 @@ def test_brain_timeviewer(renderer):
     if renderer.get_3d_backend() == "mayavi":
         pytest.skip()  # Skip PySurfer.TimeViewer
     else:
-        # Disable testing to allow interactive window-
-        import pyvista
-        pyvista.OFF_SCREEN = False
+        # Disable testing to allow interactive window
+        renderer.MNE_3D_OFF_SCREEN = False
         renderer.MNE_3D_BACKEND_TESTING = False
 
     sample_src = read_source_spaces(src_fname)
