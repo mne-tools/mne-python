@@ -159,25 +159,3 @@ class Surface(object):
         color = 0.5 - (color - 0.5) / 3
         color = color[:, np.newaxis] * [1, 1, 1]
         self.grey_curv = color
-
-    def load_label(self, name):
-        """Load in a Freesurfer .label file.
-
-        Label files are just text files indicating the vertices included
-        in the label. Each Surface instance has a dictionary of labels, keyed
-        by the name (which is taken from the file name if not given as an
-        argument.
-
-        """
-        label = read_label(path.join(self.data_path,
-                                     'label',
-                                     '%s.%s.label' %
-                                     (self.hemi, name)))
-        label_array = np.zeros_like(self.x).astype(np.int)
-        label_array[label] = 1
-        self.labels[name] = label_array
-
-    def apply_xfm(self, mtx):
-        """Apply an affine transformation matrix to the x,y,z vectors."""
-        self.coords = np.dot(np.c_[self.coords, np.ones(len(self.coords))],
-                             mtx.T)[:, :3]
