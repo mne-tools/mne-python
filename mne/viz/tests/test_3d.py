@@ -672,10 +672,12 @@ def test_link_brains(renderer):
     """Test plotting linked brains."""
     if renderer.get_3d_backend() == "mayavi":
         pytest.skip()  # Skip PySurfer.TimeViewer
-    else:
-        # Disable testing to allow interactive window
+    elif renderer.get_3d_backend() == "pyvista":
+        # Widgets are not available offscreen
         import pyvista
+        orig_offscreen = pyvista.OFF_SCREEN
         pyvista.OFF_SCREEN = False
+        # Disable testing to allow interactive window
         renderer.MNE_3D_BACKEND_TESTING = False
     with pytest.raises(ValueError, match='is empty'):
         link_brains([])
@@ -701,6 +703,9 @@ def test_link_brains(renderer):
         clim='auto'
     )
     link_brains(brain)
+
+    if renderer.get_3d_backend() == "pyvista":
+        pyvista.OFF_SCREEN = orig_offscreen
 
 
 run_tests_if_main()

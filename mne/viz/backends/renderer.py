@@ -168,13 +168,14 @@ def _use_test_3d_backend(backend_name):
         The 3d backend to use in the context.
     """
     global MNE_3D_BACKEND_TESTING
+    orig_testing = MNE_3D_BACKEND_TESTING
     MNE_3D_BACKEND_TESTING = True
     try:
         with use_3d_backend(backend_name):
             with _testing_context():  # noqa: F821
                 yield
     finally:
-        MNE_3D_BACKEND_TESTING = False
+        MNE_3D_BACKEND_TESTING = orig_testing
 
 
 def set_3d_view(figure, azimuth=None, elevation=None,
