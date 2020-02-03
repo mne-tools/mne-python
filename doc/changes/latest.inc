@@ -97,13 +97,15 @@ Changelog
 
 - Add function to convert events to annotations :func:`mne.annotations_from_events` by `Nicolas Barascud`_
 
+- Add ``item`` argument to :meth:`mne.Epochs.get_data` for faster access to NumPy data arrays compared to :meth:`mne.Epochs.__getitem__` for frequent access on large :class:`mne.Epochs` objects, by `Eric Larson`_
+
 - More accurate coordinate system for Easycap montages in :func:`mne.channels.make_standard_montage` by `Christian Brodbeck`_
 
 - Add ``border`` argument to :func:`mne.viz.plot_topomap`. ``border`` controls the value of the edge points to which topomap values are extrapolated. ``border='mean'`` sets these points value to the average of their neighbours. By `Mikołaj Magnuski`_
 
 - Add function :func:`mne.viz.link_brains` to link time properties of multiple brain objects interactively by `Guillaume Favelier`_
 
- - Add function :func:`mne.preprocessing.annotate_movement` to annotate periods with head motion and :func:`mne.preprocessing.compute_average_dev_head_t` to re-estimate the device to head transform with average head position during segments with acceptable head movement. by `Adonay Nunes`_
+- Add function :func:`mne.preprocessing.annotate_movement` to annotate periods with head motion and :func:`mne.preprocessing.compute_average_dev_head_t` to re-estimate the device to head transform with average head position during segments with acceptable head movement. by `Adonay Nunes`_
 
 Bug
 ~~~
