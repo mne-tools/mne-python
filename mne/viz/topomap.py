@@ -2155,7 +2155,7 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads, sphere):
                    aspect='equal', extent=extent,
                    interpolation='bilinear')
     ax.autoscale(enable=True, tight=True)
-    plt.colorbar(im, cax=ax_cbar, cmap=cmap)
+    plt.colorbar(im, cax=ax_cbar)
     cont = ax.contour(Xi, Yi, Zi, levels=cont_lims, colors='k', linewidths=1)
 
     patch_ = patches.Ellipse((0, 0),
