@@ -1151,20 +1151,18 @@ def test_to_data_frame():
     """Test raw Pandas exporter."""
     raw = read_raw_fif(test_fif_fname, preload=True)
     _, times = raw[0, :10]
-    df = raw.to_data_frame()
+    df = raw.to_data_frame(index='time')
     assert ((df.columns == raw.ch_names).all())
     assert_array_equal(np.round(times * 1e3), df.index.values[:10])
     df = raw.to_data_frame(index=None)
-    assert ('time' in df.index.names)
-    assert_array_equal(df.values[:, 0], raw._data[0] * 1e13)
-    assert_array_equal(df.values[:, 2], raw._data[2] * 1e15)
+    assert ('time' in df.columns)
+    assert_array_equal(df.values[:, 1], raw._data[0] * 1e13)
+    assert_array_equal(df.values[:, 3], raw._data[2] * 1e15)
 
-    df = raw.to_data_frame(long_format=True)
-    assert(len(df) == raw.get_data().size)
-    assert("time" in df.columns)
-    assert("channel" in df.columns)
-    assert("ch_type" in df.columns)
-    assert("observation" in df.columns)
+    df_long = raw.to_data_frame(long_format=True)
+    assert(len(df_long) == raw.get_data().size)
+    expected = ('time', 'channel', 'ch_type', 'value')
+    assert set(expected) == set(df_long.columns)
 
 
 def test_add_channels():

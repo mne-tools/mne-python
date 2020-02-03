@@ -1764,15 +1764,17 @@ def test_to_data_frame():
 
 @requires_pandas
 @pytest.mark.parametrize('index', ('time', ['condition', 'time', 'epoch'],
-                                   ['epoch', 'time'], ['time', 'epoch']))
+                                   ['epoch', 'time'], ['time', 'epoch'], None))
 def test_to_data_frame_index(index):
     """Test index creation in epochs Pandas exporter."""
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
     df = epochs.to_data_frame(picks=[11, 12, 14], index=index)
     # test index order/heirarchy preservation
+    if not isinstance(index, list):
+        index = [index]
     assert (df.index.names == index)
-    # test that non-indexed data were present as categorial variables
+    # test that non-indexed data were present as columns
     non_index = list(set(['condition', 'time', 'epoch']) - set(index))
     if len(non_index):
         assert all(np.in1d(non_index, df.columns))
