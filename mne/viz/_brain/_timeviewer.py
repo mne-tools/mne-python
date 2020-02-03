@@ -8,8 +8,6 @@ from itertools import cycle
 import time
 import numpy as np
 
-from PyQt5 import QtWidgets
-from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigCanvas
 
 from ..utils import _get_color_list, tight_layout
@@ -19,6 +17,8 @@ class MplCanvas(FigCanvas):
     """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
 
     def __init__(self, parent, width, height, dpi):
+        from PyQt5 import QtWidgets
+        from matplotlib.figure import Figure
         fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = fig.add_subplot(111)
         self.axes.set(xlabel='Time (sec)', ylabel='Activation (AU)')
