@@ -107,9 +107,11 @@ def test_plot_head_positions():
 def test_plot_sparse_source_estimates(renderer):
     """Test plotting of (sparse) source estimates."""
     if renderer.get_3d_backend() == "pyvista":
-        # Disable testing to allow interactive window
+        # Widgets are not available offscreen
         import pyvista
+        orig_offscreen = pyvista.OFF_SCREEN
         pyvista.OFF_SCREEN = False
+        # Disable testing to allow interactive window
         renderer.MNE_3D_BACKEND_TESTING = False
     sample_src = read_source_spaces(src_fname)
 
@@ -146,6 +148,8 @@ def test_plot_sparse_source_estimates(renderer):
     if renderer.get_3d_backend() == 'mayavi':
         import mayavi  # noqa: F401 analysis:ignore
         assert isinstance(surf, mayavi.modules.surface.Surface)
+    elif renderer.get_3d_backend() == "pyvista":
+        pyvista.OFF_SCREEN = orig_offscreen
 
 
 @testing.requires_testing_data
