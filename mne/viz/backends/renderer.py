@@ -19,7 +19,8 @@ MNE_3D_BACKEND_TESTING = False
 
 _fromlist = ('_Renderer', '_Projection', '_close_all', '_check_3d_figure',
              '_set_3d_view', '_set_3d_title', '_close_3d_figure',
-             '_take_3d_screenshot', '_testing_context')
+             '_take_3d_screenshot', '_testing_context',
+             '_not_off_screen')
 _name_map = dict(mayavi='_pysurfer_mayavi', pyvista='_pyvista')
 
 

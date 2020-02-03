@@ -465,3 +465,8 @@ def _testing_context():
         yield
     finally:
         mlab.options.backend = orig_backend
+
+
+@contextmanager
+def _not_off_screen():
+    yield
