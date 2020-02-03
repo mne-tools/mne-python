@@ -3,6 +3,7 @@
 Generate simulated evoked data
 ==============================
 
+Use :func:`~mne.simulation.simulate_sparse_stc` to simulate evoked data.
 """
 # Author: Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #         Alexandre Gramfort <alexandre.gramfort@inria.fr>

@@ -1271,7 +1271,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return epoch
 
     @verbose
-    def _get_data(self, out=True, picks=None, verbose=None):
+    def _get_data(self, out=True, picks=None, item=None, verbose=None):
         """Load all data, dropping bad epochs along the way.
 
         Parameters
@@ -1282,7 +1282,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         %(picks_all)s
         %(verbose_meth)s
         """
-        n_events = len(self.events)
+        if item is None:
+            item = slice(None)
+        elif not self._bad_dropped:
+            raise ValueError(
+                'item must be None in epochs.get_data() unless bads have been '
+                'dropped. Consider using epochs.drop_bad().')
+        select = self._item_to_select(item)  # indices or slice
+        use_idx = np.arange(len(self.events))[select]
+        n_events = len(use_idx)
         # in case there are no good events
         if self.preload:
             # we will store our result in our existing array
@@ -1296,6 +1304,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             if not out:
                 return
             if self.preload:
+                data = data[select]
                 if picks is None:
                     return data
                 else:
@@ -1303,7 +1312,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                     return data[:, picks]
 
             # we need to load from disk, drop, and return data
-            for idx in range(n_events):
+            for ii, idx in enumerate(use_idx):
                 # faster to pre-allocate memory here
                 epoch_noproj = self._get_epoch_from_raw(idx)
                 epoch_noproj = self._detrend_offset_decim(epoch_noproj)
@@ -1311,10 +1320,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                     epoch_out = epoch_noproj
                 else:
                     epoch_out = self._project_epoch(epoch_noproj)
-                if idx == 0:
+                if ii == 0:
                     data = np.empty((n_events, len(self.ch_names),
                                      len(self.times)), dtype=epoch_out.dtype)
-                data[idx] = epoch_out
+                data[ii] = epoch_out
         else:
             # bads need to be dropped, this might occur after a preload
             # e.g., when calling drop_bad w/new params
@@ -1377,19 +1386,27 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             return None
 
     @fill_doc
-    def get_data(self, picks=None):
+    def get_data(self, picks=None, item=None):
         """Get all epochs as a 3D array.
 
         Parameters
         ----------
         %(picks_all)s
+        item : slice | array-like | str | list | None
+            The items to get. See :meth:`mne.Epochs.__getitem__` for
+            a description of valid options. This can be substantially faster
+            for obtaining an ndarray than :meth:`~mne.Epochs.__getitem__`
+            for repeated access on large Epochs objects.
+            None (default) is an alias for ``slice(None)``.
+
+            .. versionadded:: 0.20
 
         Returns
         -------
         data : array of shape (n_epochs, n_channels, n_times)
             A view on epochs data.
         """
-        return self._get_data(picks=picks)
+        return self._get_data(picks=picks, item=item)
 
     @property
     def times(self):
