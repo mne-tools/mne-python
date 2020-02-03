@@ -19,8 +19,7 @@ MNE_3D_BACKEND_TESTING = False
 
 _fromlist = ('_Renderer', '_Projection', '_close_all', '_check_3d_figure',
              '_set_3d_view', '_set_3d_title', '_close_3d_figure',
-             '_take_3d_screenshot', '_testing_context',
-             '_not_off_screen')
+             '_take_3d_screenshot', '_testing_context')
 _name_map = dict(mayavi='_pysurfer_mayavi', pyvista='_pyvista')
 
 
@@ -160,20 +159,22 @@ def use_3d_backend(backend_name):
 
 
 @contextmanager
-def _use_test_3d_backend(backend_name):
+def _use_test_3d_backend(backend_name, interactive=False):
     """Create a testing viz context.
 
     Parameters
     ----------
     backend_name : str
         The 3d backend to use in the context.
+    interactive : bool
+        If True, ensure interactive elements are accessible.
     """
     global MNE_3D_BACKEND_TESTING
     orig_testing = MNE_3D_BACKEND_TESTING
     MNE_3D_BACKEND_TESTING = True
     try:
         with use_3d_backend(backend_name):
-            with _testing_context():  # noqa: F821
+            with _testing_context(interactive):  # noqa: F821
                 yield
     finally:
         MNE_3D_BACKEND_TESTING = orig_testing

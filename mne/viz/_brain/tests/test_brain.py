@@ -137,56 +137,53 @@ def test_brain_add_text(renderer):
 
 
 @testing.requires_testing_data
-def test_brain_timeviewer(renderer):
+def test_brain_timeviewer(renderer_interactive):
     """Test _TimeViewer primitives."""
-    if renderer.get_3d_backend() == "mayavi":
-        pytest.skip('No need to test PySurfer')  # Skip PySurfer.TimeViewer
-    with renderer._not_off_screen():
-        sample_src = read_source_spaces(src_fname)
+    sample_src = read_source_spaces(src_fname)
 
-        # dense version
-        vertices = [s['vertno'] for s in sample_src]
-        n_time = 5
-        n_verts = sum(len(v) for v in vertices)
-        stc_data = np.zeros((n_verts * n_time))
-        stc_size = stc_data.size
-        stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = \
-            np.random.RandomState(0).rand(stc_data.size // 20)
-        stc_data.shape = (n_verts, n_time)
-        stc = SourceEstimate(stc_data, vertices, 1, 1)
+    # dense version
+    vertices = [s['vertno'] for s in sample_src]
+    n_time = 5
+    n_verts = sum(len(v) for v in vertices)
+    stc_data = np.zeros((n_verts * n_time))
+    stc_size = stc_data.size
+    stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = \
+        np.random.RandomState(0).rand(stc_data.size // 20)
+    stc_data.shape = (n_verts, n_time)
+    stc = SourceEstimate(stc_data, vertices, 1, 1)
 
-        fmin = stc.data.min()
-        fmax = stc.data.max()
-        brain_data = _Brain(subject_id, 'split', surf, size=300,
-                            subjects_dir=subjects_dir)
-        for hemi in ['lh', 'rh']:
-            hemi_idx = 0 if hemi == 'lh' else 1
-            data = getattr(stc, hemi + '_data')
-            vertices = stc.vertices[hemi_idx]
-            brain_data.add_data(data, fmin=fmin, hemi=hemi, fmax=fmax,
-                                colormap='hot', vertices=vertices,
-                                colorbar=True)
+    fmin = stc.data.min()
+    fmax = stc.data.max()
+    brain_data = _Brain(subject_id, 'split', surf, size=300,
+                        subjects_dir=subjects_dir)
+    for hemi in ['lh', 'rh']:
+        hemi_idx = 0 if hemi == 'lh' else 1
+        data = getattr(stc, hemi + '_data')
+        vertices = stc.vertices[hemi_idx]
+        brain_data.add_data(data, fmin=fmin, hemi=hemi, fmax=fmax,
+                            colormap='hot', vertices=vertices,
+                            colorbar=True)
 
-        time_viewer = _TimeViewer(brain_data)
-        time_viewer.time_call(value=0)
-        time_viewer.orientation_call(value='lat', update_widget=True)
-        time_viewer.orientation_call(value='medial', update_widget=True)
-        time_viewer.smoothing_call(value=1)
-        time_viewer.fmin_call(value=12.0)
-        time_viewer.fmax_call(value=4.0)
-        time_viewer.fmid_call(value=6.0)
-        time_viewer.fmid_call(value=4.0)
-        time_viewer.fscale_call(value=1.1)
-        time_viewer.toggle_interface()
-        time_viewer.playback_speed_call(value=0.1)
-        time_viewer.toggle_playback()
-        time_viewer.apply_auto_scaling()
-        time_viewer.restore_user_scaling()
+    time_viewer = _TimeViewer(brain_data)
+    time_viewer.time_call(value=0)
+    time_viewer.orientation_call(value='lat', update_widget=True)
+    time_viewer.orientation_call(value='medial', update_widget=True)
+    time_viewer.smoothing_call(value=1)
+    time_viewer.fmin_call(value=12.0)
+    time_viewer.fmax_call(value=4.0)
+    time_viewer.fmid_call(value=6.0)
+    time_viewer.fmid_call(value=4.0)
+    time_viewer.fscale_call(value=1.1)
+    time_viewer.toggle_interface()
+    time_viewer.playback_speed_call(value=0.1)
+    time_viewer.toggle_playback()
+    time_viewer.apply_auto_scaling()
+    time_viewer.restore_user_scaling()
 
-        link_viewer = _LinkViewer([brain_data])
-        link_viewer.set_time_point(value=0)
-        link_viewer.set_playback_speed(value=0.1)
-        link_viewer.toggle_playback()
+    link_viewer = _LinkViewer([brain_data])
+    link_viewer.set_time_point(value=0)
+    link_viewer.set_playback_speed(value=0.1)
+    link_viewer.toggle_playback()
 
 
 def test_brain_colormap():

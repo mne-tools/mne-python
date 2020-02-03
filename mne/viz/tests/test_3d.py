@@ -668,35 +668,32 @@ def test_mixed_sources_plot_surface():
 
 @testing.requires_testing_data
 @traits_test
-def test_link_brains(renderer):
+def test_link_brains(renderer_interactive):
     """Test plotting linked brains."""
-    if renderer.get_3d_backend() == "mayavi":
-        pytest.skip('Not available in PySurfer')  # Skip PySurfer.TimeViewer
-    with renderer._not_off_screen():
-        with pytest.raises(ValueError, match='is empty'):
-            link_brains([])
-        with pytest.raises(TypeError, match='type is Brain'):
-            link_brains('foo')
+    with pytest.raises(ValueError, match='is empty'):
+        link_brains([])
+    with pytest.raises(TypeError, match='type is Brain'):
+        link_brains('foo')
 
-        sample_src = read_source_spaces(src_fname)
-        vertices = [s['vertno'] for s in sample_src]
-        n_time = 5
-        n_verts = sum(len(v) for v in vertices)
-        stc_data = np.zeros((n_verts * n_time))
-        stc_size = stc_data.size
-        stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = \
-            np.random.RandomState(0).rand(stc_data.size // 20)
-        stc_data.shape = (n_verts, n_time)
-        stc = SourceEstimate(stc_data, vertices, 1, 1)
+    sample_src = read_source_spaces(src_fname)
+    vertices = [s['vertno'] for s in sample_src]
+    n_time = 5
+    n_verts = sum(len(v) for v in vertices)
+    stc_data = np.zeros((n_verts * n_time))
+    stc_size = stc_data.size
+    stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = \
+        np.random.RandomState(0).rand(stc_data.size // 20)
+    stc_data.shape = (n_verts, n_time)
+    stc = SourceEstimate(stc_data, vertices, 1, 1)
 
-        colormap = 'mne_analyze'
-        brain = plot_source_estimates(
-            stc, 'sample', colormap=colormap,
-            background=(1, 1, 0),
-            subjects_dir=subjects_dir, colorbar=True,
-            clim='auto'
-        )
-        link_brains(brain)
+    colormap = 'mne_analyze'
+    brain = plot_source_estimates(
+        stc, 'sample', colormap=colormap,
+        background=(1, 1, 0),
+        subjects_dir=subjects_dir, colorbar=True,
+        clim='auto'
+    )
+    link_brains(brain)
 
 
 run_tests_if_main()

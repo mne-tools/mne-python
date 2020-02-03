@@ -615,22 +615,15 @@ def _update_slider_callback(slider, callback, event_type):
 
 
 @contextmanager
-def _testing_context():
-    orig_offscreen = pyvista.OFF_SCREEN
-    pyvista.OFF_SCREEN = True
-    try:
-        yield
-    finally:
-        pyvista.OFF_SCREEN = orig_offscreen
-
-
-@contextmanager
-def _not_off_screen():
+def _testing_context(interactive):
     from . import renderer
     orig_offscreen = pyvista.OFF_SCREEN
     orig_testing = renderer.MNE_3D_BACKEND_TESTING
-    pyvista.OFF_SCREEN = False
-    renderer.MNE_3D_BACKEND_TESTING = False
+    if interactive:
+        pyvista.OFF_SCREEN = False
+        renderer.MNE_3D_BACKEND_TESTING = False
+    else:
+        pyvista.OFF_SCREEN = True
     try:
         yield
     finally:
