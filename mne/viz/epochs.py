@@ -1074,7 +1074,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         if len(colors) - 1 < ch_idx:
             break
         lc = LineCollection(list(), antialiased=True, linewidths=0.5,
-                            zorder=3, picker=3.)
+                            zorder=3, picker=True)
+        lc.set_pickradius(3.)
         ax.add_collection(lc)
         lines.append(lc)
 
@@ -1668,7 +1669,8 @@ def _plot_onkey(event, params):
         params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
         params['n_channels'] = n_channels
         lc = LineCollection(list(), antialiased=True, linewidths=0.5,
-                            zorder=3, picker=3.)
+                            zorder=3, picker=True)
+        lc.set_pickradius(3.)
         params['ax'].add_collection(lc)
         params['ax'].set_yticks(params['offsets'])
         params['lines'].append(lc)
@@ -1773,7 +1775,8 @@ def _prepare_butterfly(params):
             used_types += 1
         while len(params['lines']) < len(params['picks']):
             lc = LineCollection(list(), antialiased=True, linewidths=.5,
-                                zorder=3, picker=3.)
+                                zorder=3, picker=True)
+            lc.set_pickradius(3.)
             ax.add_collection(lc)
             params['lines'].append(lc)
     else:  # change back to default view
@@ -1828,7 +1831,8 @@ def _update_channels_epochs(event, params):
         params['lines'].pop()
     while len(params['lines']) < n_channels:
         lc = LineCollection(list(), linewidths=0.5, antialiased=True,
-                            zorder=3, picker=3.)
+                            zorder=3, picker=True)
+        lc.set_pickradius(3.)
         params['ax'].add_collection(lc)
         params['lines'].append(lc)
     params['ax'].set_yticks(params['offsets'])
