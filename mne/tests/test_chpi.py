@@ -14,7 +14,7 @@ from mne.io import (read_raw_fif, read_raw_artemis123, read_raw_ctf, read_info,
                     RawArray)
 from mne.io.constants import FIFF
 from mne.chpi import (calculate_head_pos_chpi_coil_locs,
-                      calculate_chpi_coil_locs,
+                      calculate_chpi_coil_locs, _chpi_locs_to_times_dig,
                       calculate_head_pos_ctf, head_pos_to_trans_rot_t,
                       read_head_pos, write_head_pos, filter_chpi,
                       _get_hpi_info, _get_hpi_initial_fit)
@@ -51,12 +51,12 @@ art_mc_fname = op.join(data_path, 'ARTEMIS123', 'Artemis_Data_2017-04-04' +
 def _calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
                              t_window='auto', too_close='raise',
                              dist_limit=0.005, gof_limit=0.98,
-                             ext_order=1, verbose=None):
-    times, chpi_locs = calculate_chpi_coil_locs(
+                             ext_order=3, verbose=None):
+    chpi_locs = calculate_chpi_coil_locs(
         raw, t_step_min=t_step_min, t_step_max=t_step_max,
         t_window=t_window, too_close=too_close, ext_order=ext_order)
     return calculate_head_pos_chpi_coil_locs(
-        raw.info, times, chpi_locs, dist_limit, gof_limit)
+        raw.info, chpi_locs, dist_limit, gof_limit)
 
 
 @testing.requires_testing_data
@@ -350,7 +350,8 @@ def test_calculate_chpi_coil_locs():
     # for testing purposes only. We can relax this later if we find it breaks
     # something.
     raw_dec = _decimate_chpi(raw, 15)
-    times, cHPI_digs = calculate_chpi_coil_locs(raw_dec, verbose='debug')
+    times, cHPI_digs = _chpi_locs_to_times_dig(
+        calculate_chpi_coil_locs(raw_dec, verbose='debug'))
 
     # spot check
     assert_allclose(times[0], 9., atol=1e-2)
@@ -363,7 +364,8 @@ def test_calculate_chpi_coil_locs():
 
     # test on 5k artemis data
     raw = read_raw_artemis123(art_fname, preload=True)
-    times, cHPI_digs = calculate_chpi_coil_locs(raw, verbose='debug')
+    times, cHPI_digs = _chpi_locs_to_times_dig(
+        calculate_chpi_coil_locs(raw, verbose='debug'))
 
     assert_allclose(times[5], 1.5, atol=1e-3)
     assert_allclose(cHPI_digs[5][0]['gof'], 0.995, atol=5e-3)

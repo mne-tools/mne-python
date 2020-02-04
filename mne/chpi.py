@@ -471,6 +471,9 @@ def _setup_hpi_fitting(info, t_window, remove_aliased=False, ext_order=1,
             raise ValueError('t_window must be "auto" if a string, got %r'
                              % (t_window,))
         t_window = max(5. / min(hpi_freqs), 1. / np.diff(hpi_freqs).min())
+    t_window = float(t_window)
+    if t_window <= 0:
+        raise ValueError('t_window (%s) must be > 0' % (t_window,))
     logger.info('Using time window: %0.1f ms' % (1000 * t_window,))
     model_n_window = int(round(float(t_window) * info['sfreq']))
     # worry about resampled/filtered data.
@@ -521,7 +524,8 @@ def _setup_hpi_fitting(info, t_window, remove_aliased=False, ext_order=1,
     mf_coils = _prep_mf_coils(
         pick_info(info, pick_types(info)), verbose='error')
     ext = _sss_basis(
-        dict(origin=(0., 0., 0.), int_order=0, ext_order=1), mf_coils).T
+        dict(origin=(0., 0., 0.), int_order=0, ext_order=ext_order),
+        mf_coils).T
     out_removes = _regularize_out(0, 1, mag_or_fine)
     ext = ext[~np.in1d(np.arange(len(ext)), out_removes)]
     if len(ext):
@@ -650,7 +654,7 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
 
 @verbose
 def calculate_head_pos_chpi_coil_locs(
-        info, times, coil_locs, dist_limit=0.005, gof_limit=0.98,
+        info, coil_locs, dist_limit=0.005, gof_limit=0.98,
         adjust_dig=False, verbose=None):
     """Calculate head positions using cHPI coil locations.
 
@@ -658,9 +662,7 @@ def calculate_head_pos_chpi_coil_locs(
     ----------
     info : instance of Info
         Measurement information.
-    times : ndarray, shape (n_pos,)
-        Fit times.
-    coil_locs : list
+    coil_locs : dict
         Time-varying coil locations.
     dist_limit : float
         Minimum distance (m) to accept for coil position fitting.
@@ -696,9 +698,8 @@ def calculate_head_pos_chpi_coil_locs(
                                      dev_head_t[:3, 3]]))
     del coil_dev_rrs
     quats = []
-    for fit_time, coils in zip(times, coil_locs):
-        this_coil_dev_rrs = np.array([coil['r'] for coil in coils])
-        g_coils = np.array([coil['gof'] for coil in coils])
+    for fit_time, this_coil_dev_rrs, g_coils in zip(
+            *(coil_locs[key] for key in ('times', 'rrs', 'gofs'))):
         use_idx = np.where(g_coils >= gof_limit)[0]
 
         #
@@ -831,11 +832,9 @@ def calculate_chpi_coil_locs(raw, t_step_min=0.01, t_step_max=1.,
 
     Returns
     -------
-    times : ndarray, shape (n_pos,)
-        Fit times.
-    chpi_locs : list
-        The localizaed cHPI coils as dig points (cHPI locations),
-        including goodness of fit.
+    chpi_locs : dict
+        The localizaed cHPI coils dictionary, with entries
+        "times", "rrs", and "gofs"..
 
     See Also
     --------
@@ -903,8 +902,7 @@ def calculate_chpi_coil_locs(raw, t_step_min=0.01, t_step_max=1.,
             sin_fits.append(_fit_cHPI_amplitudes(raw, time_sl, hpi))
 
     iter_ = list(zip(fit_times, sin_fits))
-    times = list()
-    chpi_locs = list()
+    chpi_locs = dict(times=[], rrs=[], gofs=[])
     with ProgressBar(iter_, mesg='Pass 2: Locations') as pb:
         for fit_time, sin_fit in pb:
             # skip this window if bad
@@ -933,16 +931,27 @@ def calculate_chpi_coil_locs(raw, t_step_min=0.01, t_step_max=1.,
             rrs, gofs = zip(
                 *[_fit_magnetic_dipole(f, pos, too_close, hpi)
                   for f, pos in zip(sin_fit, last['coil_dev_rrs'])])
-            dig = [{'r': rr, 'ident': idx + 1, 'gof': gof,
-                    'kind': FIFF.FIFFV_POINT_HPI,
-                    'coord_frame': FIFF.FIFFV_COORD_DEVICE}
-                   for idx, (rr, gof) in enumerate(zip(rrs, gofs))]
-            times.append(fit_time)
-            chpi_locs.append(dig)
+            chpi_locs['times'].append(fit_time)
+            chpi_locs['rrs'].append(rrs)
+            chpi_locs['gofs'].append(gofs)
             last['coil_fit_time'] = fit_time
             last['coil_dev_rrs'] = rrs
+    chpi_locs['times'] = np.array(chpi_locs['times'], float)
+    chpi_locs['rrs'] = np.array(chpi_locs['rrs'], float).reshape(
+        len(chpi_locs['times']), len(hpi['freqs']), 3)
+    chpi_locs['gofs'] = np.array(chpi_locs['gofs'], float)
+    return chpi_locs
 
-    return np.array(times, float), chpi_locs
+
+def _chpi_locs_to_times_dig(chpi_locs):
+    """Reformat chpi_locs as list of dig (dict)."""
+    dig = list()
+    for rrs, gofs in zip(*(chpi_locs[key] for key in ('rrs', 'gofs'))):
+        dig.append([{'r': rr, 'ident': idx, 'gof': gof,
+                     'kind': FIFF.FIFFV_POINT_HPI,
+                     'coord_frame': FIFF.FIFFV_COORD_DEVICE}
+                    for idx, (rr, gof) in enumerate(zip(rrs, gofs), 1)])
+    return chpi_locs['times'], dig
 
 
 @verbose
@@ -982,14 +991,11 @@ def filter_chpi(raw, include_line=True, t_step=0.01, t_window=0.2,
     if not raw.preload:
         raise RuntimeError('raw data must be preloaded')
     t_step = float(t_step)
-    t_window = float(t_window)
-    if not (t_step > 0 and t_window > 0):
-        raise ValueError('t_step (%s) and t_window (%s) must both be > 0.'
-                         % (t_step, t_window))
+    if t_step <= 0:
+        raise ValueError('t_step (%s) must be > 0' % (t_step,))
     n_step = int(np.ceil(t_step * raw.info['sfreq']))
     hpi = _setup_hpi_fitting(raw.info, t_window, remove_aliased=True,
                              verbose=False)
-    del t_window
 
     fit_idxs = np.arange(0, len(raw.times) + hpi['n_window'] // 2, n_step)
     n_freqs = len(hpi['freqs'])
