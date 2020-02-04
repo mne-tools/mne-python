@@ -37,7 +37,7 @@ def _convert_times(inst, times, time_format):
     # private function; pandas already checked in calling function
     from pandas import to_timedelta
     if time_format == 'ms':
-        times = np.round(times * 1e3).astype(int)
+        times = np.round(times * 1e3).astype(np.int64)
     elif time_format == 'timedelta':
         times = to_timedelta(times, unit='s')
     elif time_format == 'datetime':
