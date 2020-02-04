@@ -1746,9 +1746,11 @@ def test_to_data_frame():
         epochs.to_data_frame(index='qux')
     with pytest.raises(TypeError, match='index must be `None` or a string or'):
         epochs.to_data_frame(np.arange(400))
-    # test wide and long formats
+    # test wide format
     df_wide = epochs.to_data_frame()
     assert all(np.in1d(epochs.ch_names, df_wide.columns))
+    assert all(np.in1d(['time', 'epoch', 'condition'], df_wide.columns))
+    # test long format
     df_long = epochs.to_data_frame(long_format=True)
     expected = ('condition', 'epoch', 'time', 'channel', 'ch_type', 'value')
     assert set(expected) == set(df_long.columns)
