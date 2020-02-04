@@ -670,13 +670,15 @@ except AttributeError:  # Python < 3.7
         try:
             date_components = _parse_isoformat_date(dstr)
         except ValueError:
-            raise ValueError(f'Invalid isoformat string: {date_string!r}')
+            raise ValueError(
+                'Invalid isoformat string: {!r}'.format(date_string))
 
         if tstr:
             try:
                 time_components = _parse_isoformat_time(tstr)
             except ValueError:
-                raise ValueError(f'Invalid isoformat string: {date_string!r}')
+                raise ValueError(
+                    'Invalid isoformat string: {!r}'.format(date_string))
         else:
             time_components = [0, 0, 0, 0, None]
 
