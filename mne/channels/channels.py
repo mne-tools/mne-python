@@ -429,19 +429,28 @@ class SetChannelsMixin(MontageMixin):
     def set_channel_types(self, mapping, verbose=None):
         """Define the sensor type of channels.
 
-        Note: The following sensor types are accepted:
-            ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, stim, syst, ecog,
-            hbo, hbr, fnirs_raw, fnirs_od
-
         Parameters
         ----------
         mapping : dict
-            A dictionary mapping a channel to a sensor type (str)
-            {'EEG061': 'eog'}.
+            A dictionary mapping a channel to a sensor type (str), e.g.,
+            ``{'EEG061': 'eog'}``.
         %(verbose_meth)s
+
+        Returns
+        -------
+        inst : instance of Raw | Epochs | Evoked
+            The instance (modified in place).
+
+            .. versionchanged:: 0.20
+               Return the instance.
 
         Notes
         -----
+        The following sensor types are accepted:
+
+            ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, stim, syst, ecog,
+            hbo, hbr, fnirs_raw, fnirs_od
+
         .. versionadded:: 0.9.0
         """
         ch_names = self.info['ch_names']
@@ -490,6 +499,7 @@ class SetChannelsMixin(MontageMixin):
         msg = "The unit for channel(s) {0} has changed from {1} to {2}."
         for this_change, names in unit_changes.items():
             warn(msg.format(", ".join(sorted(names)), *this_change))
+        return self
 
     def rename_channels(self, mapping):
         """Rename channels.
@@ -501,11 +511,20 @@ class SetChannelsMixin(MontageMixin):
             e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
             that takes and returns a string (new in version 0.10.0).
 
+        Returns
+        -------
+        inst : instance of Raw | Epochs | Evoked
+            The instance (modified in place).
+
+            .. versionchanged:: 0.20
+               Return the instance.
+
         Notes
         -----
         .. versionadded:: 0.9.0
         """
         rename_channels(self.info, mapping)
+        return self
 
     @verbose
     def plot_sensors(self, kind='topomap', ch_type=None, title=None,
