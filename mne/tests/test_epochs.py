@@ -1772,7 +1772,7 @@ def test_to_data_frame_index(index):
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
     df = epochs.to_data_frame(picks=[11, 12, 14], index=index)
-    # test index order/heirarchy preservation
+    # test index order/hierarchy preservation
     if not isinstance(index, list):
         index = [index]
     assert (df.index.names == index)
