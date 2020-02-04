@@ -109,6 +109,15 @@ def matplotlib_config():
         ETSConfig.toolkit = 'qt4'
 
 
+@pytest.fixture()
+def check_gui_ci():
+    osx = (os.getenv('TRAVIS', 'false').lower() == 'true' and
+           sys.platform == 'darwin')
+    win = os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true'
+    if win or osx:
+        pytest.skip('Skipping GUI tests on Travis OSX and Azure Windows')
+
+
 def _replace(mod, key):
     orig = getattr(mod, key)
 

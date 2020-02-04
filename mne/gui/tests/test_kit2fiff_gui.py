@@ -3,17 +3,15 @@
 # License: BSD (3-clause)
 
 import os
-import sys
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
-from unittest import SkipTest
 
 import mne
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.io import read_raw_fif
-from mne.utils import (_TempDir, requires_mayavi, run_tests_if_main,
-                       traits_test)
+from mne.utils import (requires_mayavi, run_tests_if_main, traits_test,
+                       modified_env)
 
 mrk_pre_path = os.path.join(kit_data_dir, 'test_mrk_pre.sqd')
 mrk_post_path = os.path.join(kit_data_dir, 'test_mrk_post.sqd')
@@ -23,20 +21,12 @@ fid_path = os.path.join(kit_data_dir, 'test_elp.txt')
 fif_path = os.path.join(kit_data_dir, 'test_bin_raw.fif')
 
 
-def _check_ci():
-    osx = (os.getenv('TRAVIS', 'false').lower() == 'true' and
-           sys.platform == 'darwin')
-    win = os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true'
-    if win or osx:
-        raise SkipTest('Skipping GUI tests on Travis OSX and Azure Windows')
-
-
 @requires_mayavi
 @traits_test
-def test_kit2fiff_model():
+def test_kit2fiff_model(tmpdir):
     """Test Kit2Fiff model."""
     from mne.gui._kit2fiff_gui import Kit2FiffModel
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     tgt_fname = os.path.join(tempdir, 'test-raw.fif')
 
     model = Kit2FiffModel()
@@ -125,13 +115,11 @@ def test_kit2fiff_model():
 
 @requires_mayavi
 @traits_test
-def test_kit2fiff_gui():
+def test_kit2fiff_gui(check_gui_ci, tmpdir):
     """Test Kit2Fiff GUI."""
-    _check_ci()
-    home_dir = _TempDir()
-    os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
-    os.environ['_MNE_FAKE_HOME_DIR'] = home_dir
-    try:
+    home_dir = str(tmpdir)
+    with modified_env(_MNE_GUI_TESTING_MODE='true',
+                      _MNE_FAKE_HOME_DIR=home_dir):
         from pyface.api import GUI
         gui = GUI()
         gui.process_events()
@@ -170,9 +158,6 @@ def test_kit2fiff_gui():
         ui.dispose()
 
         gui.process_events()
-    finally:
-        del os.environ['_MNE_GUI_TESTING_MODE']
-        del os.environ['_MNE_FAKE_HOME_DIR']
 
 
 run_tests_if_main()

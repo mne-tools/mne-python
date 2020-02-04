@@ -6,8 +6,6 @@ import os
 import os.path as op
 import re
 import shutil
-import sys
-from unittest import SkipTest
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_almost_equal
@@ -159,17 +157,10 @@ def test_coreg_model(subjects_dir_tmp):
                     [model.trans_x, model.trans_y, model.trans_z])
 
 
-def _check_ci():
-    if os.getenv('TRAVIS', 'false').lower() == 'true' and \
-            sys.platform == 'darwin':
-        raise SkipTest('Skipping GUI tests on Travis OSX')
-
-
 @requires_mayavi
 @traits_test
-def test_coreg_gui_display(subjects_dir_tmp):
+def test_coreg_gui_display(subjects_dir_tmp, check_gui_ci):
     """Test CoregFrame."""
-    _check_ci()
     from mayavi import mlab
     from tvtk.api import tvtk
     home_dir = subjects_dir_tmp
@@ -178,8 +169,8 @@ def test_coreg_gui_display(subjects_dir_tmp):
                       'sample-fiducials.fif'))
     os.remove(op.join(subjects_dir_tmp, 'sample', 'mri', 'transforms',
                       'talairach.xfm'))
-    with modified_env(**{'_MNE_GUI_TESTING_MODE': 'true',
-                         '_MNE_FAKE_HOME_DIR': home_dir}):
+    with modified_env(_MNE_GUI_TESTING_MODE='true',
+                      _MNE_FAKE_HOME_DIR=home_dir):
         with pytest.raises(ValueError, match='not a valid subject'):
             mne.gui.coregistration(
                 subject='Elvis', subjects_dir=subjects_dir_tmp)
