@@ -132,6 +132,8 @@ Bug
 
 - Fix :meth:`mne.io.Raw.anonymize` to correctly avoid shifting ``raw.annotations.onset`` relative to ``raw.first_samp`` by `Eric Larson`_
 
+- Fix :meth:`mne.io.Raw.set_channel_types` and :meth:`mne.io.Raw.rename_channels` and related methods to return the instance instead of ``None`` by `Eric Larson`_
+
 - :meth:`mne.Epochs.iter_evoked` now does not return a copy of info when ``copy=False`` (default parameter) by `Alex Gramfort`_
 
 - The attribute :class:`mne.Annotations.orig_time <mne.Annotations>` is now read-only, and is a :class:`~python:datetime.datetime` object (or None) rather than float, by `Eric Larson`_
