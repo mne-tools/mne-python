@@ -1244,6 +1244,14 @@ def rot_to_quat(rot):
     return np.apply_along_axis(_one_rot_to_quat, -1, rot)
 
 
+def _quat_to_affine(quat):
+    assert quat.shape == (6,)
+    affine = np.eye(4)
+    affine[:3, :3] = quat_to_rot(quat[:3])
+    affine[:3, 3] = quat[3:]
+    return affine
+
+
 def _angle_between_quats(x, y):
     """Compute the ang between two quaternions w/3-element representations."""
     # z = conj(x) * y

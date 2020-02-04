@@ -52,7 +52,8 @@ from .fixes import jit
 from .preprocessing.maxwell import (_sss_basis, _prep_mf_coils, _get_mf_picks,
                                     _regularize_out)
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
-                         quat_to_rot, rot_to_quat, _fit_matched_points)
+                         quat_to_rot, rot_to_quat, _fit_matched_points,
+                         _quat_to_affine)
 from .utils import (verbose, logger, use_log_level, _check_fname, warn,
                     _check_option, _validate_type, ProgressBar)
 
@@ -423,14 +424,6 @@ def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs):
     quat = _fit_matched_points(coil_dev_rrs, coil_head_rrs)
     gof = 1. - _chpi_objective(quat, coil_dev_rrs, coil_head_rrs) / denom
     return quat, gof
-
-
-def _quat_to_affine(quat):
-    assert quat.shape == (6,)
-    affine = np.eye(4)
-    affine[:3, :3] = quat_to_rot(quat[:3])
-    affine[:3, 3] = quat[3:]
-    return affine
 
 
 def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts):

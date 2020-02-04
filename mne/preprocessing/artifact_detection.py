@@ -6,8 +6,8 @@
 import numpy as np
 
 from ..annotations import (Annotations, _annotations_starts_stops)
-from ..chpi import _apply_quat
-from ..transforms import (quat_to_rot, _average_quats, _angle_between_quats)
+from ..transforms import (quat_to_rot, _average_quats, _angle_between_quats,
+                          apply_trans, _quat_to_affine)
 from .. import Transform
 from ..utils import (_mask_to_onsets_offsets, logger)
 
@@ -98,7 +98,7 @@ def annotate_movement(raw, pos, rotation_velocity_limit=None,
         chpi_pos = np.array([d['r'] for d in chpi_pos])
         # CTF: chpi_pos[0]-> LPA, chpi_pos[1]-> NASION, chpi_pos[2]-> RPA
         # Get head pos changes during recording
-        chpi_pos_mov = np.array([_apply_quat(quat, chpi_pos, move=True)
+        chpi_pos_mov = np.array([apply_trans(_quat_to_affine(quat), chpi_pos)
                                 for quat in pos[:, 1:7]])
 
         # get average position
