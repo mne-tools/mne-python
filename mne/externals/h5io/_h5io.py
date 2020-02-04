@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+import datetime
 import json
 import sys
 import tempfile
@@ -61,7 +62,7 @@ def _create_pandas_dataset(fname, root, key, title, data):
 
 def write_hdf5(fname, data, overwrite=False, compression=4,
                title='h5io', slash='error', use_json=False):
-    """Write python object to HDF5 format using h5py
+    """Write python object to HDF5 format using h5py.
 
     Parameters
     ----------
@@ -69,7 +70,9 @@ def write_hdf5(fname, data, overwrite=False, compression=4,
         Filename to use.
     data : object
         Object to write. Can be of any of these types:
-            {ndarray, dict, list, tuple, int, float, str}
+
+            {ndarray, dict, list, tuple, int, float, str, Datetime}
+
         Note that dict objects must only have ``str`` keys. It is recommended
         to use ndarrays where possible, as it is handled most efficiently.
     overwrite : True | False | 'update'
@@ -135,7 +138,7 @@ def _triage_write(key, value, root, comp_kw, where,
             raise ValueError("slash must be one of ['error', 'replace'")
 
     if use_json and isinstance(value, (list, dict)) and \
-            json_compatible(value, slash=slash):
+            _json_compatible(value, slash=slash):
         value = np.frombuffer(json.dumps(value).encode('utf-8'), np.uint8)
         _create_titled_dataset(root, key, 'json', value, comp_kw)
     elif isinstance(value, dict):
@@ -161,6 +164,10 @@ def _triage_write(key, value, root, comp_kw, where,
         else:  # isinstance(value, float):
             title = 'float'
         _create_titled_dataset(root, key, title, np.atleast_1d(value))
+    elif isinstance(value, datetime.datetime):
+        title = 'datetime'
+        value = np.frombuffer(value.isoformat().encode('utf-8'), np.uint8)
+        _create_titled_dataset(root, key, title, value)
     elif isinstance(value, (np.integer, np.floating, np.bool_)):
         title = 'np_{0}'.format(value.__class__.__name__)
         _create_titled_dataset(root, key, title, np.atleast_1d(value))
@@ -325,6 +332,9 @@ def _triage_read(node, slash='ignore'):
     elif type_str in ('int', 'float'):
         cast = int if type_str == 'int' else float
         data = cast(np.array(node)[0])
+    elif type_str == 'datetime':
+        data = text_type(np.array(node).tostring().decode('utf-8'))
+        data = datetime.datetime.fromisoformat(data)
     elif type_str.startswith('np_'):
         np_type = type_str.split('_')[1]
         cast = getattr(np, np_type)
@@ -513,19 +523,20 @@ def list_file_contents(h5file):
         _list_file_contents(h5file)
 
 
-def json_compatible(obj, slash='error'):
+def _json_compatible(obj, slash='error'):
     if isinstance(obj, (string_types, int, float, bool, type(None))):
         return True
     elif isinstance(obj, list):
-        return all([json_compatible(item) for item in obj])
+        return all([_json_compatible(item) for item in obj])
     elif isinstance(obj, dict):
         _check_keys_in_dict(obj, slash=slash)
-        return all([json_compatible(item) for item in obj.values()])
+        return all([_json_compatible(item) for item in obj.values()])
     else:
         return False
 
 
 def _check_keys_in_dict(obj, slash='error'):
+    repl = list()
     for key in obj.keys():
         if '/' in key:
             key_prev = key
@@ -536,9 +547,11 @@ def _check_keys_in_dict(obj, slash='error'):
                 # Auto-replace keys with proper values
                 for key_spec, val_spec in special_chars.items():
                     key = key.replace(val_spec, key_spec)
-                obj[key] = obj.pop(key_prev)
+                repl.append((key, key_prev))
             else:
                 raise ValueError("slash must be one of ['error', 'replace'")
+    for key, key_prev in repl:
+        obj[key] = obj.pop(key_prev)
 
 
 ##############################################################################
