@@ -111,6 +111,7 @@ def matplotlib_config():
 
 @pytest.fixture()
 def check_gui_ci():
+    """Skip tests that are not reliable on CIs."""
     osx = (os.getenv('TRAVIS', 'false').lower() == 'true' and
            sys.platform == 'darwin')
     win = os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true'

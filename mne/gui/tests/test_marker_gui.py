@@ -73,6 +73,7 @@ def test_combine_markers_model(tmpdir):
 @requires_mayavi
 @traits_test
 def test_combine_markers_panel(check_gui_ci):
+    """Test CombineMarkersPanel."""
     from mne.gui._marker_gui import CombineMarkersPanel
     with modified_env(_MNE_GUI_TESTING_MODE='true'):
         CombineMarkersPanel()
