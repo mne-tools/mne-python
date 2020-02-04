@@ -1158,11 +1158,24 @@ def test_to_data_frame():
     assert ('time' in df.columns)
     assert_array_equal(df.values[:, 1], raw._data[0] * 1e13)
     assert_array_equal(df.values[:, 3], raw._data[2] * 1e15)
-
+    # test long format
     df_long = raw.to_data_frame(long_format=True)
     assert(len(df_long) == raw.get_data().size)
     expected = ('time', 'channel', 'ch_type', 'value')
     assert set(expected) == set(df_long.columns)
+
+
+@requires_pandas
+@pytest.mark.parametrize('time_format', (None, 'ms', 'timedelta', 'datetime'))
+def test_to_data_frame_time_format(time_format):
+    """Test time conversion in epochs Pandas exporter."""
+    from pandas import Timedelta, Timestamp
+    raw = read_raw_fif(test_fif_fname, preload=True)
+    # test time_format
+    df = raw.to_data_frame(time_format=time_format)
+    dtypes = {None: np.float64, 'ms': np.int64, 'timedelta': Timedelta,
+              'datetime': Timestamp}
+    assert isinstance(df['time'].iloc[0], dtypes[time_format])
 
 
 def test_add_channels():
