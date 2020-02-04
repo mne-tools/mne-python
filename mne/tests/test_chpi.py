@@ -13,13 +13,14 @@ from mne import pick_types, pick_info
 from mne.io import (read_raw_fif, read_raw_artemis123, read_raw_ctf, read_info,
                     RawArray)
 from mne.io.constants import FIFF
-from mne.chpi import (calculate_head_pos_chpi, _calculate_chpi_coil_locs,
+from mne.chpi import (calculate_head_pos_chpi_coil_locs,
+                      calculate_chpi_coil_locs,
                       calculate_head_pos_ctf, head_pos_to_trans_rot_t,
                       read_head_pos, write_head_pos, filter_chpi,
                       _get_hpi_info, _get_hpi_initial_fit)
 from mne.transforms import rot_to_quat, _angle_between_quats
 from mne.simulation import add_chpi
-from mne.utils import run_tests_if_main, catch_logging, assert_meg_snr
+from mne.utils import run_tests_if_main, catch_logging, assert_meg_snr, verbose
 from mne.datasets import testing
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -43,6 +44,19 @@ art_fname = op.join(data_path, 'ARTEMIS123', 'Artemis_Data_2017-04-04' +
                     '-15h-44m-22s_Motion_Translation-z.bin')
 art_mc_fname = op.join(data_path, 'ARTEMIS123', 'Artemis_Data_2017-04-04' +
                        '-15h-44m-22s_Motion_Translation-z_mc.pos')
+
+
+# A shortcut method for testing that does both steps
+@verbose
+def _calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
+                             t_window='auto', too_close='raise',
+                             dist_limit=0.005, gof_limit=0.98,
+                             ext_order=1, verbose=None):
+    times, chpi_locs = calculate_chpi_coil_locs(
+        raw, t_step_min=t_step_min, t_step_max=t_step_max,
+        t_window=t_window, too_close=too_close, ext_order=ext_order)
+    return calculate_head_pos_chpi_coil_locs(
+        raw.info, times, chpi_locs, dist_limit, gof_limit)
 
 
 @testing.requires_testing_data
@@ -183,7 +197,7 @@ def test_calculate_head_pos_chpi():
     # something.
     raw_dec = _decimate_chpi(raw, 15)
     with catch_logging() as log:
-        py_quats = calculate_head_pos_chpi(
+        py_quats = _calculate_head_pos_chpi(
             raw_dec, t_step_min=0.1, t_window=0.2, t_step_max=1.,
             gof_limit=0.9, verbose='debug')
     assert log.getvalue().startswith('HPIFIT')
@@ -191,16 +205,16 @@ def test_calculate_head_pos_chpi():
 
     # degenerate conditions
     raw_no_chpi = read_raw_fif(test_fif_fname)
-    pytest.raises(RuntimeError, calculate_head_pos_chpi, raw_no_chpi)
+    pytest.raises(RuntimeError, _calculate_head_pos_chpi, raw_no_chpi)
     raw_bad = raw.copy()
     del raw_bad.info['hpi_meas'][0]['hpi_coils'][0]['coil_freq']
-    pytest.raises(RuntimeError, calculate_head_pos_chpi, raw_bad)
+    pytest.raises(RuntimeError, _calculate_head_pos_chpi, raw_bad)
     raw_bad = raw.copy()
     for d in raw_bad.info['dig']:
         if d['kind'] == FIFF.FIFFV_POINT_HPI:
             d['coord_frame'] = FIFF.FIFFV_COORD_UNKNOWN
             break
-    pytest.raises(RuntimeError, calculate_head_pos_chpi, raw_bad)
+    pytest.raises(RuntimeError, _calculate_head_pos_chpi, raw_bad)
     for d in raw_bad.info['dig']:
         if d['kind'] == FIFF.FIFFV_POINT_HPI:
             d['coord_frame'] = FIFF.FIFFV_COORD_HEAD
@@ -211,20 +225,21 @@ def test_calculate_head_pos_chpi():
     raw_bad.pick_channels([raw_bad.ch_names[pick] for pick in picks])
     with pytest.warns(RuntimeWarning, match='Discrepancy'):
         with catch_logging() as log_file:
-            calculate_head_pos_chpi(raw_bad, t_step_min=1., verbose=True)
+            _calculate_head_pos_chpi(raw_bad, t_step_min=1., verbose=True)
     # ignore HPI info header and [done] footer
     assert '0/5 good HPI fits' in log_file.getvalue()
 
     # half the rate cuts off cHPI coils
     raw.info['lowpass'] /= 2.
     with pytest.raises(RuntimeError, match='above the'):
-        calculate_head_pos_chpi(raw, t_step_min=0.1)
+        _calculate_head_pos_chpi(raw, t_step_min=0.1)
 
     # test on 5k artemis data
     raw = read_raw_artemis123(art_fname, preload=True)
     mf_quats = read_head_pos(art_mc_fname)
     with catch_logging() as log:
-        py_quats = calculate_head_pos_chpi(raw, t_step_min=2., verbose='debug')
+        py_quats = _calculate_head_pos_chpi(
+            raw, t_step_min=2., verbose='debug')
     _assert_quats(py_quats, mf_quats, dist_tol=0.004, angle_tol=2.5)
 
 
@@ -239,8 +254,8 @@ def test_calculate_head_pos_chpi_on_chpi5_in_one_second_steps():
     # maxfilter estimates a wrong head position for interval 16: 41.-42. sec
     raw = _decimate_chpi(raw.crop(0., 15.).load_data(), decim=8)
     # needs no interpolation, because maxfilter pos files comes with 1 s steps
-    py_quats = calculate_head_pos_chpi(raw, t_step_min=1.0, t_step_max=1.0,
-                                       t_window=1.0, verbose='debug')
+    py_quats = _calculate_head_pos_chpi(raw, t_step_min=1.0, t_step_max=1.0,
+                                        t_window=1.0, verbose='debug')
     _assert_quats(py_quats, mf_quats, dist_tol=0.0022, angle_tol=3.4)
 
 
@@ -252,8 +267,8 @@ def test_calculate_head_pos_chpi_on_chpi5_in_shorter_steps():
     mf_quats = read_head_pos(chpi5_pos_fname)
     raw = read_raw_fif(chpi5_fif_fname, allow_maxshield='yes')
     raw = _decimate_chpi(raw.crop(0., 15.).load_data(), decim=8)
-    py_quats = calculate_head_pos_chpi(raw, t_step_min=0.1, t_step_max=0.1,
-                                       t_window=0.1, verbose='debug')
+    py_quats = _calculate_head_pos_chpi(raw, t_step_min=0.1, t_step_max=0.1,
+                                        t_window=0.1, verbose='debug')
     # needs interpolation, tolerance must be increased
     _assert_quats(py_quats, mf_quats, dist_tol=0.0025, angle_tol=1.8)
 
@@ -321,7 +336,7 @@ def test_simulate_calculate_head_pos_chpi():
     raw_data = np.zeros((len(picks), int(duration * info['sfreq'] + 0.5)))
     raw = RawArray(raw_data, info)
     add_chpi(raw, dev_head_pos)
-    quats = calculate_head_pos_chpi(
+    quats = _calculate_head_pos_chpi(
         raw, t_step_min=raw.info['sfreq'] * head_pos_sfreq_quotient,
         t_step_max=raw.info['sfreq'] * head_pos_sfreq_quotient, t_window=1.0)
     _assert_quats(quats, dev_head_pos, dist_tol=0.001, angle_tol=1.)
@@ -335,7 +350,7 @@ def test_calculate_chpi_coil_locs():
     # for testing purposes only. We can relax this later if we find it breaks
     # something.
     raw_dec = _decimate_chpi(raw, 15)
-    times, cHPI_digs = _calculate_chpi_coil_locs(raw_dec, verbose='debug')
+    times, cHPI_digs = calculate_chpi_coil_locs(raw_dec, verbose='debug')
 
     # spot check
     assert_allclose(times[0], 9., atol=1e-2)
@@ -348,13 +363,13 @@ def test_calculate_chpi_coil_locs():
 
     # test on 5k artemis data
     raw = read_raw_artemis123(art_fname, preload=True)
-    times, cHPI_digs = _calculate_chpi_coil_locs(raw, verbose='debug')
+    times, cHPI_digs = calculate_chpi_coil_locs(raw, verbose='debug')
 
     assert_allclose(times[5], 1.5, atol=1e-3)
     assert_allclose(cHPI_digs[5][0]['gof'], 0.995, atol=5e-3)
     assert_allclose(cHPI_digs[5][0]['r'], [-0.0158, 0.0655, 0.0021], atol=1e-3)
     with pytest.raises(ValueError, match='too_close'):
-        _calculate_chpi_coil_locs(raw, too_close='foo')
+        calculate_chpi_coil_locs(raw, too_close='foo')
 
 
 @testing.requires_testing_data
