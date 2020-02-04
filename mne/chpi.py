@@ -48,6 +48,7 @@ from .io.ctf.trans import _make_ctf_coord_trans_set
 from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
                       _concatenate_coils)
 from .cov import make_ad_hoc_cov, compute_whitener
+from .dipole import _make_guesses
 from .fixes import jit
 from .preprocessing.maxwell import (_sss_basis, _prep_mf_coils, _get_mf_picks,
                                     _regularize_out)
@@ -380,7 +381,7 @@ def _get_hpi_initial_fit(info, adjust_dig=False, verbose=None):
 
 def _magnetic_dipole_objective(x, B, B2, coils, whitener, too_close):
     """Project data onto right eigenvectors of whitened forward."""
-    fwd = _magnetic_dipole_field_vec(x[np.newaxis, :], coils, too_close)
+    fwd = _magnetic_dipole_field_vec(x[np.newaxis], coils, too_close)
     return _magnetic_dipole_delta(fwd, whitener, B, B2)
 
 
@@ -394,7 +395,14 @@ def _magnetic_dipole_delta(fwd, whitener, B, B2):
     return B2 - Bm2
 
 
-def _fit_magnetic_dipole(B_orig, x0, too_close, hpi):
+def _magnetic_dipole_delta_multi(whitened_fwd_svd, B, B2):
+    # Here we use .T to get whitener to Fortran order, which speeds things up
+    one = np.matmul(whitened_fwd_svd, B)
+    Bm2 = np.sum(one * one, axis=1)
+    return B2 - Bm2
+
+
+def _fit_magnetic_dipole(B_orig, x0, too_close, hpi, guesses=None):
     """Fit a single bit of data (x0 = pos)."""
     from scipy.optimize import fmin_cobyla
     B = np.dot(hpi['whitener'], B_orig)
@@ -402,6 +410,13 @@ def _fit_magnetic_dipole(B_orig, x0, too_close, hpi):
     objective = partial(_magnetic_dipole_objective, B=B, B2=B2,
                         coils=hpi['coils'], whitener=hpi['whitener'],
                         too_close=too_close)
+    if guesses is not None:
+        res0 = objective(x0)
+        res = _magnetic_dipole_delta_multi(guesses['whitened_fwd_svd'], B, B2)
+        assert res.shape == (guesses['rr'].shape[0],)
+        idx = np.argmin(res)
+        if res[idx] < res0:
+            x0 = guesses['rr'][idx]
     x = fmin_cobyla(objective, x0, (), rhobeg=1e-3, rhoend=1e-5, disp=False)
     return x, 1. - objective(x) / B2
 
@@ -528,6 +543,7 @@ def _setup_hpi_fitting(info, t_window, remove_aliased=False, ext_order=1,
         mf_coils).T
     out_removes = _regularize_out(0, 1, mag_or_fine)
     ext = ext[~np.in1d(np.arange(len(ext)), out_removes)]
+    ext = linalg.orth(ext.T).T
     if len(ext):
         ext /= np.linalg.norm(ext, axis=-1, keepdims=True)
         projs.append(Projection(
@@ -903,6 +919,16 @@ def calculate_chpi_coil_locs(raw, t_step_min=0.01, t_step_max=1.,
 
     iter_ = list(zip(fit_times, sin_fits))
     chpi_locs = dict(times=[], rrs=[], gofs=[])
+    # Make some guesses
+    R = np.linalg.norm(hpi['coils'][0], axis=1).min()
+    guesses = _make_guesses(dict(R=R, r0=np.zeros(3)), 0.01, 0., 0.005,
+                            verbose=False)[0]['rr']
+    logger.info('Computing %d HPI location guesses' % (len(guesses),))
+    fwd = _magnetic_dipole_field_vec(guesses, hpi['coils'], too_close)
+    fwd = np.dot(fwd, hpi['whitener'].T)
+    fwd.shape = (guesses.shape[0], 3, -1)
+    fwd = np.linalg.svd(fwd, full_matrices=False)[2]
+    guesses = dict(rr=guesses, whitened_fwd_svd=fwd)
     with ProgressBar(iter_, mesg='Pass 2: Locations') as pb:
         for fit_time, sin_fit in pb:
             # skip this window if bad
@@ -929,8 +955,8 @@ def calculate_chpi_coil_locs(raw, t_step_min=0.01, t_step_max=1.,
             #    in device coordinates
             #
             rrs, gofs = zip(
-                *[_fit_magnetic_dipole(f, pos, too_close, hpi)
-                  for f, pos in zip(sin_fit, last['coil_dev_rrs'])])
+                *[_fit_magnetic_dipole(f, x0, too_close, hpi, guesses)
+                  for f, x0 in zip(sin_fit, last['coil_dev_rrs'])])
             chpi_locs['times'].append(fit_time)
             chpi_locs['rrs'].append(rrs)
             chpi_locs['gofs'].append(gofs)

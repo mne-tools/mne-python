@@ -728,7 +728,8 @@ def _dipole_forwards(fwd_data, whitener, rr, n_jobs=1):
     return B, B_orig, scales
 
 
-def _make_guesses(surf, grid, exclude, mindist, n_jobs):
+@verbose
+def _make_guesses(surf, grid, exclude, mindist, n_jobs=1, verbose=None):
     """Make a guess space inside a sphere or BEM surface."""
     if 'rr' in surf:
         logger.info('Guess surface (%s) is in %s coordinates'

@@ -51,7 +51,7 @@ art_mc_fname = op.join(data_path, 'ARTEMIS123', 'Artemis_Data_2017-04-04' +
 def _calculate_head_pos_chpi(raw, t_step_min=0.01, t_step_max=1.,
                              t_window='auto', too_close='raise',
                              dist_limit=0.005, gof_limit=0.98,
-                             ext_order=3, verbose=None):
+                             ext_order=1, verbose=None):
     chpi_locs = calculate_chpi_coil_locs(
         raw, t_step_min=t_step_min, t_step_max=t_step_max,
         t_window=t_window, too_close=too_close, ext_order=ext_order)
@@ -359,8 +359,8 @@ def test_calculate_chpi_coil_locs():
     assert_allclose(cHPI_digs[0][2]['gof'], 0.99, atol=1e-2)
 
     assert_allclose(cHPI_digs[0][4]['r'],
-                    [0.0563, 0.0142, 0.0408], atol=3e-3)
-    assert_allclose(cHPI_digs[0][4]['gof'], 0.07, atol=1e-2)
+                    [-0.0655, 0.0755, 0.0004], atol=3e-3)
+    assert_allclose(cHPI_digs[0][4]['gof'], 0.93, atol=1e-2)
 
     # test on 5k artemis data
     raw = read_raw_artemis123(art_fname, preload=True)
