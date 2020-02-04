@@ -7,27 +7,27 @@
 from itertools import cycle
 import time
 import numpy as np
-
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigCanvas
-
 from ..utils import _get_color_list, tight_layout
 
 
-class MplCanvas(FigCanvas):
+class MplCanvas(object):
     """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
 
     def __init__(self, parent, width, height, dpi):
         from PyQt5 import QtWidgets
         from matplotlib.figure import Figure
-        fig = Figure(figsize=(width, height), dpi=dpi)
-        self.axes = fig.add_subplot(111)
+        from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+        self.fig = Figure(figsize=(width, height), dpi=dpi)
+        self.canvas = FigureCanvasQTAgg(self.fig)
+        self.axes = self.fig.add_subplot(111)
         self.axes.set(xlabel='Time (sec)', ylabel='Activation (AU)')
-        FigCanvas.__init__(self, fig)
-        self.setParent(parent)
-        FigCanvas.setSizePolicy(self,
-                                QtWidgets.QSizePolicy.Expanding,
-                                QtWidgets.QSizePolicy.Expanding)
-        FigCanvas.updateGeometry(self)
+        self.canvas.setParent(parent)
+        FigureCanvasQTAgg.setSizePolicy(
+            self.canvas,
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Expanding
+        )
+        FigureCanvasQTAgg.updateGeometry(self.canvas)
         # XXX eventually this should be called in the window resize callback
         tight_layout(fig=self.axes.figure)
 
@@ -41,7 +41,7 @@ class MplCanvas(FigCanvas):
     def update_plot(self):
         """Update the plot."""
         self.axes.legend()
-        self.draw()
+        self.canvas.draw()
 
 
 class IntSlider(object):
@@ -557,7 +557,7 @@ class _TimeViewer(object):
                 np.max(self.brain._data['time'])]
         self.mpl_canvas.axes.set(xlim=xlim)
         vlayout = self.plotter.frame.layout()
-        vlayout.addWidget(self.mpl_canvas)
+        vlayout.addWidget(self.mpl_canvas.canvas)
         vlayout.setStretch(0, 2)
         vlayout.setStretch(1, 1)
 
