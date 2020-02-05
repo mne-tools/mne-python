@@ -137,18 +137,8 @@ def test_brain_add_text(renderer):
 
 
 @testing.requires_testing_data
-def test_brain_timeviewer(renderer):
+def test_brain_timeviewer(renderer_interactive):
     """Test _TimeViewer primitives."""
-    if renderer.get_3d_backend() == "mayavi":
-        pytest.skip()  # Skip PySurfer.TimeViewer
-    elif renderer.get_3d_backend() == "pyvista":
-        # Widgets are not available offscreen
-        import pyvista
-        orig_offscreen = pyvista.OFF_SCREEN
-        pyvista.OFF_SCREEN = False
-        # Disable testing to allow interactive window
-        renderer.MNE_3D_BACKEND_TESTING = False
-
     sample_src = read_source_spaces(src_fname)
 
     # dense version
@@ -194,9 +184,6 @@ def test_brain_timeviewer(renderer):
     link_viewer.set_time_point(value=0)
     link_viewer.set_playback_speed(value=0.1)
     link_viewer.toggle_playback()
-
-    if renderer.get_3d_backend() == "pyvista":
-        pyvista.OFF_SCREEN = orig_offscreen
 
 
 def test_brain_colormap():

@@ -10,7 +10,7 @@ from os import path as path
 
 import numpy as np
 from ...utils import _check_option, get_subjects_dir
-from ...surface import complete_surface_info
+from ...surface import complete_surface_info, read_surface, read_curvature
 
 
 class Surface(object):
@@ -108,11 +108,9 @@ class Surface(object):
         -------
         None
         """
-        from nibabel import freesurfer
-
         surf_path = path.join(self.data_path, 'surf',
                               '%s.%s' % (self.hemi, self.surf))
-        coords, faces = freesurfer.read_geometry(surf_path)
+        coords, faces = read_surface(surf_path)
         if self.units == 'm':
             coords /= 1000.
         if self.offset is not None:
@@ -151,9 +149,8 @@ class Surface(object):
 
     def load_curvature(self):
         """Load in curvature values from the ?h.curv file."""
-        from nibabel import freesurfer
         curv_path = path.join(self.data_path, 'surf', '%s.curv' % self.hemi)
-        self.curv = freesurfer.read_morph_data(curv_path)
+        self.curv = read_curvature(curv_path)
         self.bin_curv = np.array(self.curv > 0, np.int)
         # morphometry (curvature) normalization in order to get gray cortex
         # TODO: delete self.grey_curv after cortex parameter
@@ -162,26 +159,3 @@ class Surface(object):
         color = 0.5 - (color - 0.5) / 3
         color = color[:, np.newaxis] * [1, 1, 1]
         self.grey_curv = color
-
-    def load_label(self, name):
-        """Load in a Freesurfer .label file.
-
-        Label files are just text files indicating the vertices included
-        in the label. Each Surface instance has a dictionary of labels, keyed
-        by the name (which is taken from the file name if not given as an
-        argument.
-
-        """
-        from nibabel import freesurfer
-        label = freesurfer.read_label(path.join(self.data_path,
-                                                'label',
-                                                '%s.%s.label' %
-                                                (self.hemi, name)))
-        label_array = np.zeros_like(self.x).astype(np.int)
-        label_array[label] = 1
-        self.labels[name] = label_array
-
-    def apply_xfm(self, mtx):
-        """Apply an affine transformation matrix to the x,y,z vectors."""
-        self.coords = np.dot(np.c_[self.coords, np.ones(len(self.coords))],
-                             mtx.T)[:, :3]

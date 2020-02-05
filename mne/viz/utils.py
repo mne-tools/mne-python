@@ -2228,7 +2228,8 @@ def _on_hover(event, params):
             if params['segment_line'] is None:
                 modify_callback = partial(_annotation_modify, params=params)
                 line = params['ax'].plot([x, x], ylim, color=color,
-                                         linewidth=2., picker=5.)[0]
+                                         linewidth=2., picker=True)[0]
+                line.set_pickradius(5.)
                 dl = DraggableLine(line, modify_callback, drag_callback)
                 params['segment_line'] = dl
             else:

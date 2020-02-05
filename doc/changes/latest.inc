@@ -132,6 +132,8 @@ Bug
 
 - Fix :meth:`mne.io.Raw.anonymize` to correctly avoid shifting ``raw.annotations.onset`` relative to ``raw.first_samp`` by `Eric Larson`_
 
+- Fix :meth:`mne.io.Raw.set_channel_types` and :meth:`mne.io.Raw.rename_channels` and related methods to return the instance instead of ``None`` by `Eric Larson`_
+
 - :meth:`mne.Epochs.iter_evoked` now does not return a copy of info when ``copy=False`` (default parameter) by `Alex Gramfort`_
 
 - The attribute :class:`mne.Annotations.orig_time <mne.Annotations>` is now read-only, and is a :class:`~python:datetime.datetime` object (or None) rather than float, by `Eric Larson`_
@@ -141,6 +143,8 @@ Bug
 - Unify behavior of ``raw.annotations.append(...)`` when ``raw.info['meas_date']`` is None to make onsets absolute relative to ``first_samp`` as they are when ``raw.info['meas_date']`` is not None; i.e., you might need to do ``raw.annotations.append(old_time + raw.first_time)``, by `Eric Larson`_
 
 - The :class:`info['meas_date'] <mne.Info>` entry is now a :class:`~python:datetime.datetime` object (or None) rather than float, by `Eric Larson`_
+
+- Fix :meth:`mne.time_frequency.AverageTFR.save` and related functions to deal with :class:`~python:datetime.datetime` objects properly by `Eric Larson`_
 
 - Fix date reading before Unix time zero (1970 Jan 1) on Windows by `Alex Rockhill`_.
 

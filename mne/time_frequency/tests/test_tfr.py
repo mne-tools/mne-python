@@ -1,4 +1,5 @@
 from itertools import product
+import datetime
 import os.path as op
 
 import numpy as np
@@ -171,8 +172,9 @@ def test_time_frequency():
     assert (np.sum(itc.data <= 0) == 0)
 
     tfr = tfr_morlet(epochs[0], freqs, use_fft=True, n_cycles=2, average=False,
-                     return_itc=False).data[0]
-    assert (tfr.shape == (len(picks), len(freqs), len(times)))
+                     return_itc=False)
+    tfr_data = tfr.data[0]
+    assert (tfr_data.shape == (len(picks), len(freqs), len(times)))
     tfr2 = tfr_morlet(epochs[0], freqs, use_fft=True, n_cycles=2,
                       decim=slice(0, 2), average=False,
                       return_itc=False).data[0]
@@ -406,6 +408,7 @@ def test_io():
 
     info = mne.create_info(['MEG 001', 'MEG 002', 'MEG 003'], 1000.,
                            ['mag', 'mag', 'mag'])
+    info['meas_date'] = datetime.datetime(year=2020, month=2, day=5)
     tfr = AverageTFR(info, data=data, times=times, freqs=freqs,
                      nave=20, comment='test', method='crazy-tfr')
     tfr.save(fname)

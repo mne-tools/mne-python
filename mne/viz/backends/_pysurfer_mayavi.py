@@ -457,7 +457,7 @@ def _take_3d_screenshot(figure, mode='rgb', filename=None):
 
 
 @contextmanager
-def _testing_context():
+def _testing_context(interactive):
     mlab = _import_mlab()
     orig_backend = mlab.options.backend
     mlab.options.backend = 'test'
