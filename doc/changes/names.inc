@@ -291,3 +291,5 @@
 .. _Fu-Te Wong: https://github.com/zuxfoucault
 
 .. _Sebastian Major: https://github.com/major-s
+
+.. _Geoff Brookshire: https://github.com/gbrookshire

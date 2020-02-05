@@ -208,6 +208,8 @@ Bug
 
 - Fix bug in :func:`mne.channels.make_standard_montage` which would return `easycap-M1` even when requesting `easycap-M10` by `Christian Brodbeck`_
 
+- Fix the way planar gradiometers are combined in :func:`mne.viz.topomap.plot_tfr_topomap` and :func:`mne.viz.topomap.plot_epochs_psd_topomap` by `Geoff Brookshire`_
+
 API
 ~~~
 
