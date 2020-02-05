@@ -21,6 +21,7 @@ loading the data:
 import os
 import numpy as np
 import pandas as pd
+import seaborn as sns
 import mne
 
 sample_data_folder = mne.datasets.sample.data_path()
@@ -59,132 +60,59 @@ epochs = mne.Epochs(raw, events, event_dict, tmin, tmax, proj=True,
 # Once we have our :class:`~mne.Epochs` object, converting it to a
 # :class:`~pandas.DataFrame` is simple: just call :meth:`epochs.to_data_frame()
 # <mne.Epochs.to_data_frame>`. Each channel's data will be a column of the new
-# :class:`~pandas.DataFrame`; by default, the :attr:`pandas.DataFrame.index`
-# will be a :class:`~pandas.MultiIndex` of event name, epoch number, and sample
-# time (converted from seconds to milliseconds and then rounded to an integer):
+# :class:`~pandas.DataFrame`, alongside three additional columns of event name,
+# epoch number, and sample time (converted from seconds to milliseconds and
+# then rounded to an integer):
 
 df = epochs.to_data_frame()
 df.head()
 
 ###############################################################################
-# If you don't want a :class:`~pandas.MultiIndex`, you can pass
-# ``index='time'``, and the resulting :class:`~pandas.DataFrame` will have
-# additional columns ``condition`` and ``epoch``:
+# Note that, by default, channel measurement values are scaled so that EEG data
+# are converted to μV, magnetometer data are converted to fT, and gradiometer
+# data are converted to fT/cm. These scalings can be customized through the
+# ``scalings`` parameter, or suppressed by passing ``scalings=dict(eeg=1,
+# mag=1, grad=1)``.
+#
+# If you don't want time converted to milliseconds, you can pass
+# ``time_format=None`` to keep time as a :class:`float` value in seconds, or
+# convert it to a :class:`~pandas.Timedelta` value via
+# ``time_format='timedelta'``.
 
-df = epochs.to_data_frame(index='time')
+df = epochs.to_data_frame(time_format=None,
+                          scalings=dict(eeg=1, mag=1, grad=1))
+
+###############################################################################
+# It is also possible to move one or more of the indicator columns (event name,
+# epoch number, and sample time) into the :ref:`index <pandas:indexing>`, by
+# passing a string or list of strings as the ``index`` parameter.
+
+df = epochs.to_data_frame(index=['condition', 'epoch'],
+                          time_format='timedelta')
 df.head()
 
 ###############################################################################
-# You can also pass a list of any two of these values (``time``, ``epoch``, or
-# ``condition``) to get a corresponding two-level :class:`~pandas.MultiIndex`
-# with the remaining variable as a column in the :class:`~pandas.DataFrame`:
+# Another parameter, ``long_format``, determines whether each channel's data is
+# in a separate column of the :class:`~pandas.DataFrame`
+# (``long_format=False``), or whether the measured values are pivoted into a
+# single ``'value'`` column with an extra indicator column for the channel name
+# (``long_format=True``).
 
-df = epochs.to_data_frame(index=['condition', 'epoch'])
+df = epochs.to_data_frame(time_format=None, index='condition',
+                          long_format=True)
 df.head()
 
 ###############################################################################
-# Other optional parameters include ``picks`` (for extracting only certain
-# channels) and ``scalings`` (for converting signal units from SI units to more
-# common analysis units like μV or fT/cm). See the documentation of
-# :meth:`~mne.Epochs.to_data_frame` for details.
+# This can be helpful when passing the :class:`~pandas.DataFrame` to other
+# modules for subsequent analysis or plotting. For example:
 
-"""
-.. note:: Equivalent methods are available for raw and evoked data objects.
+# plot a line for mean (across epochs in the chosen condition) in each channel,
+# with confidence band for variability across epochs:
+sns.lineplot(x='time', y='value', hue='channel', data=df.loc['auditory/left'],
+             legend=False)
 
-More information and additional introductory materials can be found at the
-pandas doc sites: http://pandas.pydata.org/pandas-docs/stable/
+# TODO resume revisions here
 
-Short Pandas Primer
--------------------
-
-Pandas Data Frames
-~~~~~~~~~~~~~~~~~~
-A data frame can be thought of as a combination of matrix, list and dict:
-It knows about linear algebra and element-wise operations but is size mutable
-and allows for labeled access to its data. In addition, the pandas data frame
-class provides many useful methods for restructuring, reshaping and visualizing
-data. As most methods return data frame instances, operations can be chained
-with ease; this allows to write efficient one-liners. Technically a DataFrame
-can be seen as a high-level container for numpy arrays and hence switching
-back and forth between numpy arrays and DataFrames is very easy.
-Taken together, these features qualify data frames for inter operation with
-databases and for interactive data exploration / analysis.
-Additionally, pandas interfaces with the R statistical computing language that
-covers a huge amount of statistical functionality.
-
-Export Options
-~~~~~~~~~~~~~~
-The pandas exporter comes with a few options worth being commented.
-
-Pandas DataFrame objects use a so called hierarchical index. This can be
-thought of as an array of unique tuples, in our case, representing the higher
-dimensional MEG data in a 2D data table. The column names are the channel names
-from the epoch object. The channels can be accessed like entries of a
-dictionary::
-
-    >>> df['MEG 2333']
-
-Epochs and time slices can be accessed with the .loc method::
-
-    >>> epochs_df.loc[(1, 2), 'MEG 2333']
-
-However, it is also possible to include this index as regular categorial data
-columns which yields a long table format typically used for repeated measure
-designs. To take control of this feature, on export, you can specify which
-of the three dimensions 'condition', 'epoch' and 'time' is passed to the Pandas
-index using the index parameter. Note that this decision is revertible any
-time, as demonstrated below.
-
-Similarly, for convenience, it is possible to scale the times, e.g. from
-seconds to milliseconds.
-
-Some Instance Methods
-~~~~~~~~~~~~~~~~~~~~~
-Most numpy methods and many ufuncs can be found as instance methods, e.g.
-mean, median, var, std, mul, , max, argmax etc.
-Below an incomplete listing of additional useful data frame instance methods:
-
-apply : apply function to data.
-    Any kind of custom function can be applied to the data. In combination with
-    lambda this can be very useful.
-describe : quickly generate summary stats
-    Very useful for exploring data.
-groupby : generate subgroups and initialize a 'split-apply-combine' operation.
-    Creates a group object. Subsequently, methods like apply, agg, or transform
-    can be used to manipulate the underlying data separately but
-    simultaneously. Finally, reset_index can be used to combine the results
-    back into a data frame.
-plot : wrapper around plt.plot
-    However it comes with some special options. For examples see below.
-shape : shape attribute
-    gets the dimensions of the data frame.
-values :
-    return underlying numpy array.
-to_records :
-    export data as numpy record array.
-to_dict :
-    export data as dict of arrays.
-"""
-
-###############################################################################
-# Export DataFrame
-
-# The following parameters will scale the channels and times plotting
-# friendly. The info columns 'epoch' and 'time' will be used as hierarchical
-# index whereas the condition is treated as categorial data. Note that
-# this is optional. By passing None you could also print out all nesting
-# factors in a long table style commonly used for analyzing repeated measure
-# designs.
-
-index, scaling_time, scalings = ['epoch', 'time'], 1e3, dict(grad=1e13)
-
-df = epochs.to_data_frame(picks=None, scalings=scalings,
-                          scaling_time=scaling_time, index=index)
-
-# Create MEG channel selector and drop EOG channel.
-meg_chs = [c for c in df.columns if 'MEG' in c]
-
-df.pop('EOG 061')  # this works just like with a list.
 
 ###############################################################################
 # Explore Pandas MultiIndex
