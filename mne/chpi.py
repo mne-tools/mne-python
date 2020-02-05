@@ -890,6 +890,19 @@ def calculate_chpi_coil_locs(raw, t_step_min=0.01, t_step_max=1.,
                 coil_dev_rrs=hpi_dig_dev_rrs)
     del hpi_dig_dev_rrs, hpi_dig_head_rrs
 
+    # Make some location guesses (1 cm grid)
+    R = np.linalg.norm(hpi['coils'][0], axis=1).min()
+    guesses = _make_guesses(dict(R=R, r0=np.zeros(3)), 0.01, 0., 0.005,
+                            verbose=False)[0]['rr']
+    logger.info('Computing %d HPI location guesses (1 cm grid in a %0.1f cm '
+                'sphere)' % (len(guesses), R * 100))
+    fwd = _magnetic_dipole_field_vec(guesses, hpi['coils'], too_close)
+    fwd = np.dot(fwd, hpi['whitener'].T)
+    fwd.shape = (guesses.shape[0], 3, -1)
+    fwd = np.linalg.svd(fwd, full_matrices=False)[2]
+    guesses = dict(rr=guesses, whitened_fwd_svd=fwd)
+    del fwd, R
+
     t_begin = raw.times[0]
     t_end = raw.times[-1]
     fit_idxs = raw.time_as_index(np.arange(
@@ -919,16 +932,6 @@ def calculate_chpi_coil_locs(raw, t_step_min=0.01, t_step_max=1.,
 
     iter_ = list(zip(fit_times, sin_fits))
     chpi_locs = dict(times=[], rrs=[], gofs=[])
-    # Make some guesses (1 cm grid)
-    R = np.linalg.norm(hpi['coils'][0], axis=1).min()
-    guesses = _make_guesses(dict(R=R, r0=np.zeros(3)), 0.01, 0., 0.005,
-                            verbose=False)[0]['rr']
-    logger.info('Computing %d HPI location guesses' % (len(guesses),))
-    fwd = _magnetic_dipole_field_vec(guesses, hpi['coils'], too_close)
-    fwd = np.dot(fwd, hpi['whitener'].T)
-    fwd.shape = (guesses.shape[0], 3, -1)
-    fwd = np.linalg.svd(fwd, full_matrices=False)[2]
-    guesses = dict(rr=guesses, whitened_fwd_svd=fwd)
     with ProgressBar(iter_, mesg='Pass 2: Locations') as pb:
         for fit_time, sin_fit in pb:
             # skip this window if bad

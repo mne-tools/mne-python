@@ -21,7 +21,7 @@ Changelog
 
 - Add :func:`mne.chpi.calculate_head_pos_ctf` to extract head positions from CTF data  by `Luke Bloy`_
 
-- Add :func:`mne.chpi.calculate_head_pos_chpi` to compute head positions from cHPI signals in data by `Eric Larson`_ and `Luke Bloy`_
+- Add :func:`mne.chpi.calculate_chpi_coil_locs` and :func:`mne.chpi.calculate_head_pos_chpi_coil_locs` to compute head positions from cHPI signals in data by `Eric Larson`_ and `Luke Bloy`_
 
 - Add :func:`mne.io.Raw.set_meas_date` by `Eric Larson`_
 
