@@ -159,20 +159,22 @@ def use_3d_backend(backend_name):
 
 
 @contextmanager
-def _use_test_3d_backend(backend_name):
+def _use_test_3d_backend(backend_name, interactive=False):
     """Create a testing viz context.
 
     Parameters
     ----------
     backend_name : str
         The 3d backend to use in the context.
+    interactive : bool
+        If True, ensure interactive elements are accessible.
     """
     global MNE_3D_BACKEND_TESTING
     orig_testing = MNE_3D_BACKEND_TESTING
     MNE_3D_BACKEND_TESTING = True
     try:
         with use_3d_backend(backend_name):
-            with _testing_context():  # noqa: F821
+            with _testing_context(interactive):  # noqa: F821
                 yield
     finally:
         MNE_3D_BACKEND_TESTING = orig_testing

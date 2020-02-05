@@ -23,6 +23,7 @@ from ...utils import copy_base_doc_to_subclass_doc
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
+    import pyvista
     from pyvista import (Plotter, BackgroundPlotter, PolyData,
                          Line, close_all, UnstructuredGrid)
     from pyvista.utilities import try_callback
@@ -114,7 +115,6 @@ class _Renderer(_BaseRenderer):
 
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
                  name="PyVista Scene", show=False, shape=(1, 1)):
-        from pyvista import OFF_SCREEN
         from .renderer import MNE_3D_BACKEND_TESTING
         figure = _Figure(title=name, size=size, shape=shape,
                          background_color=bgcolor, notebook=None)
@@ -133,7 +133,7 @@ class _Renderer(_BaseRenderer):
             self.figure = fig
 
         # Enable off_screen if sphinx-gallery or testing
-        if OFF_SCREEN:
+        if pyvista.OFF_SCREEN:
             self.figure.store['off_screen'] = True
 
         with warnings.catch_warnings():
@@ -615,11 +615,17 @@ def _update_slider_callback(slider, callback, event_type):
 
 
 @contextmanager
-def _testing_context():
-    import pyvista
+def _testing_context(interactive):
+    from . import renderer
     orig_offscreen = pyvista.OFF_SCREEN
-    pyvista.OFF_SCREEN = True
+    orig_testing = renderer.MNE_3D_BACKEND_TESTING
+    if interactive:
+        pyvista.OFF_SCREEN = False
+        renderer.MNE_3D_BACKEND_TESTING = False
+    else:
+        pyvista.OFF_SCREEN = True
     try:
         yield
     finally:
         pyvista.OFF_SCREEN = orig_offscreen
+        renderer.MNE_3D_BACKEND_TESTING = orig_testing
