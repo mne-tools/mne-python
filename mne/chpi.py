@@ -412,7 +412,8 @@ def _fit_magnetic_dipole(B_orig, x0, too_close, hpi, guesses=None):
                         too_close=too_close)
     if guesses is not None:
         res0 = objective(x0)
-        res = _magnetic_dipole_delta_multi(guesses['whitened_fwd_svd'], B, B2)
+        res = _magnetic_dipole_delta_multi(
+            guesses['whitened_fwd_svd'], B, B2)
         assert res.shape == (guesses['rr'].shape[0],)
         idx = np.argmin(res)
         if res[idx] < res0:
@@ -567,7 +568,7 @@ def _time_prefix(fit_time):
     return ('    t=%0.3f:' % fit_time).ljust(17)
 
 
-def _fit_cHPI_amplitudes(raw, time_sl, hpi):
+def _fit_chpi_amplitudes(raw, time_sl, hpi):
     """Fit amplitudes for each channel from each of the N cHPI sinusoids.
 
     Returns
@@ -650,7 +651,7 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
             initial_dev_rrs.append([0.0, 0.0, 0.0])
 
     # 1. Fit amplitudes for each channel from each of the N cHPI sinusoids
-    sin_fit = _fit_cHPI_amplitudes(raw, time_sl, hpi)
+    sin_fit = _fit_chpi_amplitudes(raw, time_sl, hpi)
 
     # skip this window if it bad.
     # logging has already been done! Maybe turn this into an Exception
@@ -915,7 +916,7 @@ def calculate_chpi_coil_locs(raw, t_step_min=0.01, t_step_max=1.,
             #
             # 1. Fit amplitudes for each channel from each of the N sinusoids
             #
-            sin_fits.append(_fit_cHPI_amplitudes(raw, time_sl, hpi))
+            sin_fits.append(_fit_chpi_amplitudes(raw, time_sl, hpi))
 
     iter_ = list(zip(fit_times, sin_fits))
     chpi_locs = dict(times=[], rrs=[], gofs=[])
