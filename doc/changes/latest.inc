@@ -89,7 +89,8 @@ Changelog
 
 - Allow returning vector source estimates from sparse inverse solvers through ``pick_ori='vector'`` by `Christian Brodbeck`_
 
-- Add NIRS support to :func:`mne.viz.plot_topomap` by `Robert Luke`_
+- Add NIRS support to :func:`
+   plot_topomap` by `Robert Luke`_
 
 - Add the ability to :func:`mne.channels.equalize_channels` to also re-order the channels and also operate on instances of :class:`mne.Info`, :class:`mne.Forward`, :class:`mne.Covariance` and :class:`mne.time_frequency.CrossSpectralDensity` by `Marijn van Vliet`_
 
@@ -208,7 +209,7 @@ Bug
 
 - Fix bug in :func:`mne.channels.make_standard_montage` which would return `easycap-M1` even when requesting `easycap-M10` by `Christian Brodbeck`_
 
-- Fix the way planar gradiometers are combined in :func:`mne.viz.topomap.plot_tfr_topomap` and :func:`mne.viz.topomap.plot_epochs_psd_topomap` by `Geoff Brookshire`_
+- Fix the way planar gradiometers are combined in :func:`mne.viz.plot_tfr_topomap` and :func:`mne.viz.plot_epochs_psd_topomap` by `Geoff Brookshire`_
 
 API
 ~~~
