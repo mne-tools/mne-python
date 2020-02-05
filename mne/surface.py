@@ -607,7 +607,17 @@ def _fread3_many(fobj, n):
 
 
 def read_curvature(filepath, binary=True):
-    """Load in curavature values from the ?h.curv file."""
+    """Load in curvature values from the ?h.curv file.
+
+    Parameters
+    ----------
+
+    filepath: str
+        Input path to the .curv file.
+    binary: bool
+        Specify if the output array is to hold binary values. Defaults to True.
+
+    """
     with open(filepath, "rb") as fobj:
         magic = _fread3(fobj)
         if magic == 16777215:
@@ -617,9 +627,8 @@ def read_curvature(filepath, binary=True):
             vnum = magic
             _fread3(fobj)
             curv = np.fromfile(fobj, ">i2", vnum) / 100
-        bin_curv = 1 - np.array(curv != 0, np.int)
     if binary:
-        return bin_curv
+        return 1 - np.array(curv != 0, np.int)
     else:
         return curv
 
