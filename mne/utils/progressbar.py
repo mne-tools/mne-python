@@ -80,6 +80,10 @@ class ProgressBar(object):
         with tempfile.NamedTemporaryFile('wb', prefix='tmp_mne_prog') as tf:
             self._mmap_fname = tf.name
         del tf  # should remove the file
+        try:
+            self.stdout = open(sys.stdout.fileno(), mode='w', encoding='utf8')
+        except Exception:
+            self.stdout = sys.stdout  # IPython, maybe
         self._mmap = None
 
     def update(self, cur_value, mesg=None):
@@ -136,8 +140,8 @@ class ProgressBar(object):
         # Force a flush because sometimes when using bash scripts and pipes,
         # the output is not printed until after the program exits.
         if self._do_print:
-            sys.stdout.write(bar)
-            sys.stdout.flush()
+            self.stdout.write(bar.encode('utf-8'))
+            self.stdout.flush()
         # Increment the spinner
         if self.spinner:
             self.spinner_index = (self.spinner_index + 1) % self.n_spinner
@@ -227,8 +231,10 @@ class ProgressBar(object):
     def done(self):
         """Print a newline."""
         if self._do_print:
-            sys.stdout.write('\n')
-            sys.stdout.flush()
+            self.stdout.write('\n')
+            self.stdout.flush()
+        if self.stdout is not sys.stdout:
+            self.stdout.close()
 
 
 class _PBSubsetUpdater(object):
