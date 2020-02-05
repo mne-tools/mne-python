@@ -144,6 +144,8 @@ Bug
 
 - The :class:`info['meas_date'] <mne.Info>` entry is now a :class:`~python:datetime.datetime` object (or None) rather than float, by `Eric Larson`_
 
+- Fix :meth:`mne.time_frequency.AverageTFR.save` and related functions to deal with :class:`~python:datetime.datetime` objects properly by `Eric Larson`_
+
 - Fix date reading before Unix time zero (1970 Jan 1) on Windows by `Alex Rockhill`_.
 
 - Fix bug running subprocesses (e.g., in :func:`mne.bem.make_watershed_bem`) in Jupyter notebooks, by `Eric Larson`_
