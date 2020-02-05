@@ -23,33 +23,15 @@ _fromlist = ('_Renderer', '_Projection', '_close_all', '_check_3d_figure',
 _name_map = dict(mayavi='_pysurfer_mayavi', pyvista='_pyvista')
 
 
-def _reload_backend():
-    global MNE_3D_BACKEND
-    if MNE_3D_BACKEND is None:
-        MNE_3D_BACKEND = get_config(key='MNE_3D_BACKEND', default=None)
-    if MNE_3D_BACKEND is not None:
-        _check_option('MNE_3D_BACKEND', MNE_3D_BACKEND, VALID_3D_BACKENDS)
-    if MNE_3D_BACKEND is None:  # try them in order
-        for name in VALID_3D_BACKENDS:
-            MNE_3D_BACKEND = name
-            try:
-                _reload_backend()
-            except ImportError:
-                pass
-            else:
-                break
-        else:
-            raise RuntimeError('Could not load any valid 3D backend: %s'
-                               % (VALID_3D_BACKENDS))
-    _check_option('backend', MNE_3D_BACKEND, VALID_3D_BACKENDS)
-    logger.info('Using %s 3d backend.\n' % MNE_3D_BACKEND)
+def _reload_backend(backend_name):
     # This is (hopefully) the equivalent to:
     #    from ._whatever_name import ...
     _mod = importlib.__import__(
-        _name_map[MNE_3D_BACKEND], {'__name__': __name__},
+        _name_map[backend_name], {'__name__': __name__},
         level=1, fromlist=_fromlist)
     for key in _fromlist:
         globals()[key] = getattr(_mod, key)
+    logger.info('Using %s 3d backend.\n' % backend_name)
 
 
 def _get_renderer(*args, **kwargs):
@@ -123,8 +105,14 @@ def set_3d_backend(backend_name, verbose=None):
        +--------------------------------------+--------+---------+
     """
     global MNE_3D_BACKEND
-    MNE_3D_BACKEND = backend_name
-    _reload_backend()
+    try:
+        MNE_3D_BACKEND
+    except NameError:
+        MNE_3D_BACKEND = backend_name
+    _check_option('backend_name', backend_name, VALID_3D_BACKENDS)
+    if MNE_3D_BACKEND != backend_name:
+        _reload_backend(backend_name)
+        MNE_3D_BACKEND = backend_name
 
 
 def get_3d_backend():
@@ -135,6 +123,26 @@ def get_3d_backend():
     backend_used : str
         The 3d backend currently in use.
     """
+    global MNE_3D_BACKEND
+    if MNE_3D_BACKEND is None:
+        MNE_3D_BACKEND = get_config(key='MNE_3D_BACKEND', default=None)
+        if MNE_3D_BACKEND is None:  # try them in order
+            for name in VALID_3D_BACKENDS:
+                MNE_3D_BACKEND = name
+                try:
+                    _reload_backend(name)
+                except ImportError:
+                    pass
+                else:
+                    break
+            else:
+                raise RuntimeError('Could not load any valid 3D backend: %s'
+                                   % (VALID_3D_BACKENDS))
+        else:
+            _check_option('MNE_3D_BACKEND', MNE_3D_BACKEND, VALID_3D_BACKENDS)
+            _reload_backend(MNE_3D_BACKEND)
+    else:
+        _check_option('MNE_3D_BACKEND', MNE_3D_BACKEND, VALID_3D_BACKENDS)
     return MNE_3D_BACKEND
 
 

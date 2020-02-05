@@ -10,7 +10,6 @@ import os
 import pytest
 import numpy as np
 
-from mne.viz.backends.renderer import get_3d_backend, set_3d_backend
 from mne.viz.backends.tests._utils import (skips_if_not_mayavi,
                                            skips_if_not_pyvista)
 
@@ -37,9 +36,9 @@ def test_backend_environment_setup(backend, backend_mocker, monkeypatch):
     # reload the renderer to check if the 3d backend selection by
     # environment variable has been updated correctly
     from mne.viz.backends import renderer
-    set_3d_backend(backend)
+    renderer.set_3d_backend(backend)
     assert renderer.MNE_3D_BACKEND == backend
-    assert get_3d_backend() == backend
+    assert renderer.get_3d_backend() == backend
 
 
 def test_3d_functions(renderer):
