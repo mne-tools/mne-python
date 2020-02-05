@@ -1189,7 +1189,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         used.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are collected in
-        pairs and the RMS for each pair is plotted. If None, then channels are
+        pairs and the mean for each pair is plotted. If None, then channels are
         chosen in the order given above.
     baseline : tuple or list of length 2
         The time interval to apply rescaling / baseline correction. If None do
@@ -1288,7 +1288,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
     # merging grads before rescaling makes ERDs visible
     if merge_grads:
-        data = _merge_grad_data(data)
+        data = _merge_grad_data(data, method='mean')
 
     data = rescale(data, tfr.times, baseline, mode, copy=True)
 
@@ -1807,7 +1807,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         the signal (as in nitime).
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are collected in
-        pairs and the RMS for each pair is plotted. If None, then first
+        pairs and the mean for each pair is plotted. If None, then first
         available channel type from order given above is used. Defaults to
         None.
     %(layout_dep)s
@@ -1862,7 +1862,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     psds = np.mean(psds, axis=0)
 
     if merge_grads:
-        psds = _merge_grad_data(psds)
+        psds = _merge_grad_data(psds, method='mean')
 
     return plot_psds_topomap(
         psds=psds, freqs=freqs, pos=pos, agg_fun=agg_fun, vmin=vmin,
