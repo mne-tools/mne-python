@@ -178,8 +178,10 @@ raw_sss.pick(['meg']).plot(duration=2, butterfly=True)
 # If you have information about subject head position relative to the sensors
 # (i.e., continuous head position indicator coils, or :term:`cHPI <hpi>`), SSS
 # can take that into account when projecting sensor data onto the internal
-# subspace. Head position data is loaded with the
-# :func:`~mne.chpi.read_head_pos` function. The :ref:`example data
+# subspace. Head position data can be computed using
+# :func:`mne.chpi.calculate_chpi_coil_locs` and
+# :func:`mne.chpi.calculate_head_pos_chpi_coil_locs`, or loaded with the
+# :func:`mne.chpi.read_head_pos` function. The :ref:`example data
 # <sample-dataset>` doesn't include cHPI, so here we'll load a :file:`.pos`
 # file used for testing, just to demonstrate:
 
