@@ -19,8 +19,6 @@ to its EEG channels. As usual we'll start by importing the modules we need and
 loading the data:
 """
 import os
-import numpy as np
-import pandas as pd
 import seaborn as sns
 import mne
 
@@ -40,7 +38,7 @@ sample_data_events_file = os.path.join(sample_data_folder, 'MEG', 'sample',
 events = mne.read_events(sample_data_events_file)
 
 event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
-              'visual/right': 4, 'smiley': 5, 'buttonpress': 32}
+              'visual/right': 4}
 
 reject_criteria = dict(mag=3000e-15,     # 3000 fT
                        grad=3000e-13,    # 3000 fT/cm
@@ -52,6 +50,7 @@ baseline = (None, 0)      # baseline period from start of epoch to time=0
 
 epochs = mne.Epochs(raw, events, event_dict, tmin, tmax, proj=True,
                     baseline=baseline, reject=reject_criteria, preload=True)
+del raw
 
 ###############################################################################
 # Converting an ``Epochs`` object to a ``DataFrame``
@@ -61,23 +60,23 @@ epochs = mne.Epochs(raw, events, event_dict, tmin, tmax, proj=True,
 # :class:`~pandas.DataFrame` is simple: just call :meth:`epochs.to_data_frame()
 # <mne.Epochs.to_data_frame>`. Each channel's data will be a column of the new
 # :class:`~pandas.DataFrame`, alongside three additional columns of event name,
-# epoch number, and sample time (converted from seconds to milliseconds and
-# then rounded to an integer):
+# epoch number, and sample time:
 
 df = epochs.to_data_frame()
 df.head()
 
 ###############################################################################
-# Note that, by default, channel measurement values are scaled so that EEG data
-# are converted to μV, magnetometer data are converted to fT, and gradiometer
-# data are converted to fT/cm. These scalings can be customized through the
-# ``scalings`` parameter, or suppressed by passing ``scalings=dict(eeg=1,
-# mag=1, grad=1)``.
-#
-# If you don't want time converted to milliseconds, you can pass
+# By default, time values are converted from seconds to milliseconds and
+# then rounded to the nearest integer; if you don't want this, you can pass
 # ``time_format=None`` to keep time as a :class:`float` value in seconds, or
 # convert it to a :class:`~pandas.Timedelta` value via
 # ``time_format='timedelta'``.
+#
+# Note also that, by default, channel measurement values are scaled so that EEG
+# data are converted to μV, magnetometer data are converted to fT, and
+# gradiometer data are converted to fT/cm. These scalings can be customized
+# through the ``scalings`` parameter, or suppressed by passing
+# ``scalings=dict(eeg=1, mag=1, grad=1)``.
 
 df = epochs.to_data_frame(time_format=None,
                           scalings=dict(eeg=1, mag=1, grad=1))
@@ -96,130 +95,42 @@ df.head()
 # in a separate column of the :class:`~pandas.DataFrame`
 # (``long_format=False``), or whether the measured values are pivoted into a
 # single ``'value'`` column with an extra indicator column for the channel name
-# (``long_format=True``).
+# (``long_format=True``). Passing ``long_format=True`` will also create an
+# extra column ``ch_type`` indicating the channel type.
 
-df = epochs.to_data_frame(time_format=None, index='condition',
-                          long_format=True)
-df.head()
-
-###############################################################################
-# This can be helpful when passing the :class:`~pandas.DataFrame` to other
-# modules for subsequent analysis or plotting. For example:
-
-# plot a line for mean (across epochs in the chosen condition) in each channel,
-# with confidence band for variability across epochs:
-sns.lineplot(x='time', y='value', hue='channel', data=df.loc['auditory/left'],
-             legend=False)
-
-# TODO resume revisions here
-
+long_df = epochs.to_data_frame(time_format=None, index='condition',
+                               long_format=True)
+long_df.head()
 
 ###############################################################################
-# Explore Pandas MultiIndex
+# Generating the :class:`~pandas.DataFrame` in long format can be helpful when
+# using other modules for subsequent analysis or plotting. For example, here
+# we'll take data from the "auditory/left" condition, pick a couple MEG
+# channels, and use :func:`seaborn.lineplot` to automatically plot the mean and
+# confidence band for each channel, with confidence computed across the epochs
+# in the chosen condition:
 
-# Pandas is using a MultiIndex or hierarchical index to handle higher
-# dimensionality while at the same time representing data in a flat 2d manner.
+channels = ['MEG 1332', 'MEG 1342']
+data = long_df.loc['auditory/left'].query('channel in @channels')
+# convert channel column from CategoryDtype to strings (for better legend)
+data['channel'] = data['channel'].astype(str)
+sns.lineplot(x='time', y='value', hue='channel', data=data)
 
-print(df.index.names, df.index.levels)
+###############################################################################
+# We can also now use all the power of Pandas for grouping and transforming our
+# data. Here, we find the latency of peak activation of 2 gradiometers (one
+# near auditory cortex and one near visual cortex), and plot the distribution
+# of the timing of the peak in each channel as a :func:`~seaborn.violinplot`:
 
-# Inspecting the index object unveils that 'epoch', 'time' are used
-# for subsetting data. We can take advantage of that by using the
-# .loc attribute, where in this case the first position indexes the MultiIndex
-# and the second the columns, that is, channels.
+df = epochs.to_data_frame(time_format=None)
+peak_latency = (df.filter(regex=r'condition|epoch|MEG 1332|MEG 2123')  # 1922
+                .groupby(['condition', 'epoch'])
+                .aggregate(lambda x: df['time'].iloc[x.idxmax()])
+                .reset_index()
+                .melt(id_vars=['condition', 'epoch'],
+                      var_name='channel',
+                      value_name='latency of peak')
+                )
 
-# Plot some channels across the first three epochs
-xticks, sel = np.arange(3, 600, 120), meg_chs[:15]
-df.loc[:3, sel].plot(xticks=xticks)
-mne.viz.tight_layout()
-
-# slice the time starting at t0 in epoch 2 and ending 500ms after
-# the base line in epoch 3. Note that the second part of the tuple
-# represents time in milliseconds from stimulus onset.
-df.loc[(1, 0):(3, 500), sel].plot(xticks=xticks)
-mne.viz.tight_layout()
-
-# Note: For convenience the index was converted from floating point values
-# to integer values. To restore the original values you can e.g. say
-# df['times'] = np.tile(epoch.times, len(epochs_times)
-
-# We now reset the index of the DataFrame to expose some Pandas
-# pivoting functionality. To simplify the groupby operation we
-# we drop the indices to treat epoch and time as categroial factors.
-
-df = df.reset_index()
-
-# The ensuing DataFrame then is split into subsets reflecting a crossing
-# between condition and trial number. The idea is that we can broadcast
-# operations into each cell simultaneously.
-
-factors = ['condition', 'epoch']
-sel = factors + ['MEG 1332', 'MEG 1342']
-grouped = df[sel].groupby(factors)
-
-# To make the plot labels more readable let's edit the values of 'condition'.
-df.condition = df.condition.apply(lambda name: name + ' ')
-
-# Now we compare the mean of two channels response across conditions.
-grouped.mean().plot(kind='bar', stacked=True, title='Mean MEG Response',
-                    color=['steelblue', 'orange'])
-mne.viz.tight_layout()
-
-# We can even accomplish more complicated tasks in a few lines calling
-# apply method and passing a function. Assume we wanted to know the time
-# slice of the maximum response for each condition.
-
-max_latency = grouped[sel[2]].apply(lambda x: df.time[x.idxmax()])
-
-print(max_latency)
-
-# Then make the plot labels more readable let's edit the values of 'condition'.
-df.condition = df.condition.apply(lambda name: name + ' ')
-
-plt.figure()
-max_latency.plot(kind='barh', title='Latency of Maximum Response',
-                 color=['steelblue'])
-mne.viz.tight_layout()
-
-# Finally, we will again remove the index to create a proper data table that
-# can be used with statistical packages like statsmodels or R.
-
-final_df = max_latency.reset_index()
-final_df.rename(columns={0: sel[2]})  # as the index is oblivious of names.
-
-# The index is now written into regular columns so it can be used as factor.
-print(final_df)
-
-plt.show()
-
-# To save as csv file, uncomment the next line.
-# final_df.to_csv('my_epochs.csv')
-
-# Note. Data Frames can be easily concatenated, e.g., across subjects.
-# E.g. say:
-#
-# import pandas as pd
-# group = pd.concat([df_1, df_2])
-# group['subject'] = np.r_[np.ones(len(df_1)), np.ones(len(df_2)) + 1]
-
-##############################################################################
-# Long-format dataframes
-
-# Many statistical modelling functions expect data in a long format
-# where each row is one observation at a unique coordinate of factors
-# such as sensors, conditions, subjects etc.
-df_long = epochs.to_data_frame(long_format=True)
-print(df_long.head())
-
-# Here the MEG or EEG signal appears in the column "observation".
-# The total length is therefore the number of channels times the time points.
-print(len(df_long), "=", epochs.get_data().size)
-
-# To simplify subsetting and filtering a channwel type column is added.
-print(df_long.query("ch_type == 'eeg'").head())
-
-# Note that some of the columns are transformed to "category" data types.
-print(df_long.dtypes)
-
-##############################################################################
-# The pandas exporter facilitates processing MNE outputs in R:
-# https://mne-tools.github.io/mne-r/articles/plot_evoked_multilevel_model.html
+ax = sns.violinplot(x='channel', y='latency of peak', hue='condition',
+                    data=peak_latency, palette='deep', saturation=1)
