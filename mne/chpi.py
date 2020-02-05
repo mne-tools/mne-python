@@ -310,7 +310,7 @@ def _get_hpi_info(info, verbose=None):
 
 
 @verbose
-def _get_hpi_initial_fit(info, adjust_dig=False, verbose=None):
+def _get_hpi_initial_fit(info, adjust=False, verbose=None):
     """Get HPI fit locations from raw."""
     if info['hpi_results'] is None:
         raise RuntimeError('no initial cHPI head localization performed')
@@ -354,14 +354,14 @@ def _get_hpi_initial_fit(info, adjust_dig=False, verbose=None):
                  % ', '.join('%0.1f' % (1000. * e) for e in errors))
     if errors.sum() < len(errors) * hpi_result['dist_limit']:
         logger.info('HPI consistency of isotrak and hpifit is OK.')
-    elif not adjust_dig and (len(hpi_result['used']) == len(hpi_coils)):
+    elif not adjust and (len(hpi_result['used']) == len(hpi_coils)):
         warn('HPI consistency of isotrak and hpifit is poor.')
     else:
         # adjust HPI coil locations using the hpifit transformation
         for hi, (err, r_fit) in enumerate(zip(errors, hpi_rrs_fit)):
             # transform to head frame
             d = 1000 * err
-            if not adjust_dig:
+            if not adjust:
                 if err >= hpi_result['dist_limit']:
                     warn('Discrepancy of HPI coil %d isotrak and hpifit is '
                          '%.1f mm!' % (hi + 1, d))
@@ -546,7 +546,6 @@ def _setup_hpi_fitting(info, t_window, remove_aliased=False, ext_order=1,
     ext = ext[~np.in1d(np.arange(len(ext)), out_removes)]
     ext = linalg.orth(ext.T).T
     if len(ext):
-        ext /= np.linalg.norm(ext, axis=-1, keepdims=True)
         projs.append(Projection(
             kind=FIFF.FIFFV_PROJ_ITEM_HOMOG_FIELD, desc='SSS', active=False,
             data=dict(data=ext, ncol=info['nchan'], col_names=info['ch_names'],
@@ -703,7 +702,7 @@ def calculate_head_pos_chpi_coil_locs(
     -----
     .. versionadded:: 0.20
     """
-    hpi_dig_head_rrs = _get_hpi_initial_fit(info, adjust_dig=adjust_dig,
+    hpi_dig_head_rrs = _get_hpi_initial_fit(info, adjust=adjust_dig,
                                             verbose='error')
     hpi_freqs, _, _ = _get_hpi_info(info)
     coil_dev_rrs = apply_trans(invert_transform(info['dev_head_t']),
@@ -876,7 +875,7 @@ def calculate_chpi_coil_locs(raw, t_step_min=0.01, t_step_max=1.,
     _check_option('too_close', too_close, ['raise', 'warning', 'info'])
 
     # extract initial geometry from info['hpi_results']
-    hpi_dig_head_rrs = _get_hpi_initial_fit(raw.info, adjust_dig=adjust_dig)
+    hpi_dig_head_rrs = _get_hpi_initial_fit(raw.info, adjust=adjust_dig)
 
     # extract hpi system information
     hpi = _setup_hpi_fitting(raw.info, t_window, ext_order=ext_order)
@@ -920,7 +919,7 @@ def calculate_chpi_coil_locs(raw, t_step_min=0.01, t_step_max=1.,
 
     iter_ = list(zip(fit_times, sin_fits))
     chpi_locs = dict(times=[], rrs=[], gofs=[])
-    # Make some guesses
+    # Make some guesses (1 cm grid)
     R = np.linalg.norm(hpi['coils'][0], axis=1).min()
     guesses = _make_guesses(dict(R=R, r0=np.zeros(3)), 0.01, 0., 0.005,
                             verbose=False)[0]['rr']
@@ -982,7 +981,7 @@ def _chpi_locs_to_times_dig(chpi_locs):
 
 
 @verbose
-def filter_chpi(raw, include_line=True, t_step=0.01, t_window=0.2,
+def filter_chpi(raw, include_line=True, t_step=0.01, t_window=None,
                 ext_order=1, verbose=None):
     """Remove cHPI and line noise from data.
 
@@ -1017,6 +1016,11 @@ def filter_chpi(raw, include_line=True, t_step=0.01, t_window=0.2,
     """
     if not raw.preload:
         raise RuntimeError('raw data must be preloaded')
+    if t_window is None:
+        warn('The default for t_window is 0.2 in MNE 0.20 but will change '
+             'to "auto" in 0.21, set it explicitly to avoid this warning',
+             DeprecationWarning)
+        t_window = 0.2
     t_step = float(t_step)
     if t_step <= 0:
         raise ValueError('t_step (%s) must be > 0' % (t_step,))
