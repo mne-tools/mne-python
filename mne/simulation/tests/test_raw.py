@@ -19,7 +19,8 @@ from mne import (read_source_spaces, pick_types, read_trans, read_cov,
                  convert_forward_solution, VolSourceEstimate,
                  make_bem_solution)
 from mne.bem import _surfaces_to_bem
-from mne.chpi import calculate_head_pos_chpi, read_head_pos, _get_hpi_info
+from mne.chpi import (calculate_head_pos_chpi_coil_locs, read_head_pos,
+                      calculate_chpi_coil_locs, _get_hpi_info)
 from mne.tests.test_chpi import _assert_quats
 from mne.datasets import testing
 from mne.simulation import (simulate_sparse_stc, simulate_raw, add_eog,
@@ -469,7 +470,8 @@ def test_simulate_raw_chpi():
             assert_allclose(psd_sim, psd_chpi, atol=1e-20)
 
     # test localization based on cHPI information
-    quats_sim = calculate_head_pos_chpi(raw_chpi, t_step_min=10.)
+    quats_sim = calculate_head_pos_chpi_coil_locs(
+        raw_chpi.info, calculate_chpi_coil_locs(raw_chpi, t_step_min=10.))
     quats = read_head_pos(pos_fname)
     _assert_quats(quats, quats_sim, dist_tol=5e-3, angle_tol=3.5)
 
