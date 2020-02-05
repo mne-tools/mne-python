@@ -9,36 +9,56 @@
 
 from contextlib import contextmanager
 import importlib
-import sys
 
-from ._utils import _get_backend_based_on_env_and_defaults, VALID_3D_BACKENDS
-from ...utils import logger
-from ...utils.check import _check_option
+from ._utils import VALID_3D_BACKENDS
+from ...utils import logger, verbose, get_config, _check_option
 
-try:
-    MNE_3D_BACKEND
-    MNE_3D_BACKEND_TESTING
-except NameError:
-    MNE_3D_BACKEND = _get_backend_based_on_env_and_defaults()
-    MNE_3D_BACKEND_TESTING = False
+MNE_3D_BACKEND = None
+MNE_3D_BACKEND_TESTING = False
 
-logger.info('Using %s 3d backend.\n' % MNE_3D_BACKEND)
 
 _fromlist = ('_Renderer', '_Projection', '_close_all', '_check_3d_figure',
              '_set_3d_view', '_set_3d_title', '_close_3d_figure',
-             '_take_3d_screenshot', '_try_3d_backend')
+             '_take_3d_screenshot', '_testing_context')
 _name_map = dict(mayavi='_pysurfer_mayavi', pyvista='_pyvista')
-if MNE_3D_BACKEND in VALID_3D_BACKENDS:
+
+
+def _reload_backend():
+    global MNE_3D_BACKEND
+    if MNE_3D_BACKEND is None:
+        MNE_3D_BACKEND = get_config(key='MNE_3D_BACKEND', default=None)
+    if MNE_3D_BACKEND is not None:
+        _check_option('MNE_3D_BACKEND', MNE_3D_BACKEND, VALID_3D_BACKENDS)
+    if MNE_3D_BACKEND is None:  # try them in order
+        for name in VALID_3D_BACKENDS:
+            MNE_3D_BACKEND = name
+            try:
+                _reload_backend()
+            except ImportError:
+                pass
+            else:
+                break
+        else:
+            raise RuntimeError('Could not load any valid 3D backend: %s'
+                               % (VALID_3D_BACKENDS))
+    _check_option('backend', MNE_3D_BACKEND, VALID_3D_BACKENDS)
+    logger.info('Using %s 3d backend.\n' % MNE_3D_BACKEND)
     # This is (hopefully) the equivalent to:
     #    from ._whatever_name import ...
     _mod = importlib.__import__(
         _name_map[MNE_3D_BACKEND], {'__name__': __name__},
         level=1, fromlist=_fromlist)
     for key in _fromlist:
-        locals()[key] = getattr(_mod, key)
+        globals()[key] = getattr(_mod, key)
 
 
-def set_3d_backend(backend_name):
+def _get_renderer(*args, **kwargs):
+    set_3d_backend(get_3d_backend(), verbose=False)
+    return _Renderer(*args, **kwargs)  # noqa: F821
+
+
+@verbose
+def set_3d_backend(backend_name, verbose=None):
     """Set the backend for MNE.
 
     The backend will be set as specified and operations will use
@@ -49,6 +69,7 @@ def set_3d_backend(backend_name):
     backend_name : str
         The 3d backend to select. See Notes for the capabilities of each
         backend.
+    %(verbose)s
 
     Notes
     -----
@@ -75,6 +96,8 @@ def set_3d_backend(backend_name):
        +--------------------------------------+--------+---------+
        | :func:`snapshot_brain_montage`       | ✓      | ✓       |
        +--------------------------------------+--------+---------+
+       | :func:`link_brains`                  |        | ✓       |
+       +--------------------------------------+--------+---------+
        +--------------------------------------+--------+---------+
        | **3D feature:**                                         |
        +--------------------------------------+--------+---------+
@@ -99,10 +122,9 @@ def set_3d_backend(backend_name):
        | Exports to movie/GIF                 |        |         |
        +--------------------------------------+--------+---------+
     """
-    _check_option('backend_name', backend_name, VALID_3D_BACKENDS)
     global MNE_3D_BACKEND
     MNE_3D_BACKEND = backend_name
-    importlib.reload(sys.modules[__name__])
+    _reload_backend()
 
 
 def get_3d_backend():
@@ -130,7 +152,10 @@ def use_3d_backend(backend_name):
     try:
         yield
     finally:
-        set_3d_backend(old_backend)
+        try:
+            set_3d_backend(old_backend)
+        except Exception:
+            pass
 
 
 @contextmanager
@@ -142,10 +167,15 @@ def _use_test_3d_backend(backend_name):
     backend_name : str
         The 3d backend to use in the context.
     """
-    with use_3d_backend(backend_name):
-        global MNE_3D_BACKEND_TESTING
-        MNE_3D_BACKEND_TESTING = True
-        yield
+    global MNE_3D_BACKEND_TESTING
+    orig_testing = MNE_3D_BACKEND_TESTING
+    MNE_3D_BACKEND_TESTING = True
+    try:
+        with use_3d_backend(backend_name):
+            with _testing_context():  # noqa: F821
+                yield
+    finally:
+        MNE_3D_BACKEND_TESTING = orig_testing
 
 
 def set_3d_view(figure, azimuth=None, elevation=None,
@@ -165,9 +195,9 @@ def set_3d_view(figure, azimuth=None, elevation=None,
     distance : float
         The distance to the focal point.
     """
-    _mod._set_3d_view(figure=figure, azimuth=azimuth,
-                      elevation=elevation, focalpoint=focalpoint,
-                      distance=distance)
+    _set_3d_view(figure=figure, azimuth=azimuth,  # noqa: F821
+                 elevation=elevation, focalpoint=focalpoint,
+                 distance=distance)
 
 
 def set_3d_title(figure, title, size=40):
@@ -182,7 +212,7 @@ def set_3d_title(figure, title, size=40):
     size : int
         The size of the title.
     """
-    _mod._set_3d_title(figure=figure, title=title, size=size)
+    _set_3d_title(figure=figure, title=title, size=size)  # noqa: F821
 
 
 def create_3d_figure(size, bgcolor=(0, 0, 0), handle=None):
@@ -202,12 +232,5 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), handle=None):
     figure : object
         The requested empty scene.
     """
-    renderer = _mod._Renderer(fig=handle, size=size, bgcolor=bgcolor)
+    renderer = _Renderer(fig=handle, size=size, bgcolor=bgcolor)  # noqa: F821
     return renderer.scene()
-
-
-def _enable_3d_backend_testing():
-    """Enable the testing mode for the current 3d backend."""
-    _mod._try_3d_backend()
-    global MNE_3D_BACKEND_TESTING
-    MNE_3D_BACKEND_TESTING = True

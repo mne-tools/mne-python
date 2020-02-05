@@ -546,11 +546,12 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show, ica,
                 key = exc_label
             color = label_colors[key]
             # ... but display component number too
-            lines.extend(ax.plot(times, evoked.data[ii].T, picker=3.,
+            lines.extend(ax.plot(times, evoked.data[ii].T, picker=True,
                                  zorder=2, color=color, label=exc_label))
         else:
-            lines.extend(ax.plot(times, evoked.data[ii].T, picker=3.,
+            lines.extend(ax.plot(times, evoked.data[ii].T, picker=True,
                                  color='k', zorder=1))
+        lines[-1].set_pickradius(3.)
 
     ax.set(title=title, xlim=times[[0, -1]], xlabel='Time (ms)', ylabel='(NA)')
     if len(exclude) > 0:

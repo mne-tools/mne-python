@@ -6,24 +6,22 @@
 # License: Simplified BSD
 
 import os
+
 import pytest
-import importlib
 import numpy as np
-from mne.viz.backends.renderer import get_3d_backend
+
+from mne.viz.backends.renderer import get_3d_backend, set_3d_backend
 from mne.viz.backends.tests._utils import (skips_if_not_mayavi,
                                            skips_if_not_pyvista)
-
-DEFAULT_3D_BACKEND = 'mayavi'  # This should be done with the import
 
 
 @pytest.fixture
 def backend_mocker():
     """Help to test set up 3d backend."""
     from mne.viz.backends import renderer
-    assert renderer.MNE_3D_BACKEND == DEFAULT_3D_BACKEND  # just double-check
     del renderer.MNE_3D_BACKEND
     yield
-    renderer.MNE_3D_BACKEND = DEFAULT_3D_BACKEND
+    renderer.MNE_3D_BACKEND = None
 
 
 @pytest.mark.parametrize('backend', [
@@ -39,15 +37,17 @@ def test_backend_environment_setup(backend, backend_mocker, monkeypatch):
     # reload the renderer to check if the 3d backend selection by
     # environment variable has been updated correctly
     from mne.viz.backends import renderer
-    importlib.reload(renderer)
+    set_3d_backend(backend)
     assert renderer.MNE_3D_BACKEND == backend
     assert get_3d_backend() == backend
 
 
 def test_3d_functions(renderer):
     """Test figure management functions."""
-    renderer._try_3d_backend()
     fig = renderer.create_3d_figure((300, 300))
+    # Mayavi actually needs something in the display to set the title
+    wrap_renderer = renderer._Renderer(fig=fig)
+    wrap_renderer.sphere(np.array([0., 0., 0.]), 'w', 1.)
     renderer._check_3d_figure(fig)
     renderer._set_3d_view(figure=fig, azimuth=None, elevation=None,
                           focalpoint=(0., 0., 0.), distance=None)

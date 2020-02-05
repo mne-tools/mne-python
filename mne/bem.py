@@ -1042,7 +1042,7 @@ def _check_origin(origin, info, coord_frame='head', disp=False):
 @verbose
 def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                        volume='T1', atlas=False, gcaatlas=False, preflood=None,
-                       show=False, copy=False, T1=None, brainmask='ws',
+                       show=False, copy=False, T1=None, brainmask='ws.mgz',
                        verbose=None):
     """Create BEM surfaces using the FreeSurfer watershed algorithm.
 
@@ -1085,26 +1085,32 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
         .. versionadded:: 0.19
     %(verbose)s
 
+    See Also
+    --------
+    mne.viz.plot_bem
+
     Notes
     -----
+    If your BEM meshes do not look correct when viewed in
+    :func:`mne.viz.plot_alignment` or :func:`mne.viz.plot_bem`, consider
+    potential solutions from the :ref:`FAQ <faq_watershed_bem_meshes>`.
+
     .. versionadded:: 0.10
     """
     from .viz.misc import plot_bem
-    env, mri_dir = _prepare_env(subject, subjects_dir,
-                                requires_freesurfer=True)[:2]
+    env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
     tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env,
                                  cwd=tempdir)
 
-    subjects_dir = env['SUBJECTS_DIR']
+    subjects_dir = env['SUBJECTS_DIR']  # Set by _prepare_env() above.
     subject_dir = op.join(subjects_dir, subject)
-    mri_dir = op.join(subject_dir, 'mri')
+    ws_dir = op.join(bem_dir, 'watershed')
     T1_dir = op.join(mri_dir, volume)
     T1_mgz = T1_dir
     if not T1_dir.endswith('.mgz'):
         T1_mgz += '.mgz'
-    bem_dir = op.join(subject_dir, 'bem')
-    ws_dir = op.join(subject_dir, 'bem', 'watershed')
+
     if not op.isdir(bem_dir):
         os.makedirs(bem_dir)
     if not op.isdir(T1_dir) and not op.isfile(T1_mgz):
@@ -1116,6 +1122,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                                ' to recreate it.' % ws_dir)
         else:
             shutil.rmtree(ws_dir)
+
     # put together the command
     cmd = ['mri_watershed']
     if preflood:
@@ -1570,7 +1577,7 @@ def write_bem_solution(fname, bem):
 # #############################################################################
 # Create 3-Layers BEM model from Flash MRI images
 
-def _prepare_env(subject, subjects_dir, requires_freesurfer):
+def _prepare_env(subject, subjects_dir):
     """Prepare an env object for subprocess calls."""
     env = os.environ.copy()
     fs_home = get_config('FREESURFER_HOME')
@@ -1642,8 +1649,7 @@ def convert_flash_mris(subject, flash30=True, convert=True, unwarp=False,
     has been completed. In particular, the T1.mgz and brain.mgz MRI volumes
     should be, as usual, in the subject's mri directory.
     """
-    env, mri_dir = _prepare_env(subject, subjects_dir,
-                                requires_freesurfer=True)[:2]
+    env, mri_dir = _prepare_env(subject, subjects_dir)[:2]
     tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env,
                                  cwd=tempdir)
@@ -1790,8 +1796,7 @@ def make_flash_bem(subject, overwrite=False, show=True, subjects_dir=None,
 
     is_test = os.environ.get('MNE_SKIP_FS_FLASH_CALL', False)
 
-    env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir,
-                                         requires_freesurfer=True)
+    env, mri_dir, bem_dir = _prepare_env(subject, subjects_dir)
     tempdir = _TempDir()  # fsl and Freesurfer create some random junk in CWD
     run_subprocess_env = partial(run_subprocess, env=env,
                                  cwd=tempdir)

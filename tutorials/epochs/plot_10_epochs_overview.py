@@ -359,6 +359,11 @@ for name, arr in dict(EOG=eog_data, MEG=meg_data, Slice=channel_4_6_8).items():
     print('{} contains {} channels'.format(name, arr.shape[1]))
 
 ###############################################################################
+# Note that if your analysis requires repeatedly extracting single epochs from
+# an :class:`~mne.Epochs` object, ``epochs.get_data(item=2)`` will be much
+# faster than ``epochs[2].get_data()``, because it avoids the step of
+# subsetting the :class:`~mne.Epochs` object first.
+#
 # You can also export :class:`~mne.Epochs` data to :class:`Pandas DataFrames
 # <pandas.DataFrame>`. The :class:`~pandas.DataFrame` index will be constructed
 # by converting the time of each sample into milliseconds and rounding it to
@@ -368,7 +373,7 @@ for name, arr in dict(EOG=eog_data, MEG=meg_data, Slice=channel_4_6_8).items():
 # aggregating data; for example, here we select any epochs numbered 10 or less
 # from the ``auditory/left`` condition, and extract times between 100 and 107
 # ms on channels ``EEG 056`` through ``EEG 058`` (note that slice indexing
-# within Pandas' :attr:`~pandas.DataFrame.loc` is inclusive of the endpoint):
+# within Pandas' :obj:`~pandas.DataFrame.loc` is inclusive of the endpoint):
 
 df = epochs.to_data_frame()
 df.sort_index(inplace=True)

@@ -10,6 +10,7 @@
 import numpy as np
 import os
 from os.path import join as pjoin
+from .._3d import _limits_to_control_points
 from ...label import read_label
 from .colormap import calculate_lut
 from .view import lh_views_dict, rh_views_dict, View
@@ -184,6 +185,9 @@ class _Brain(object):
         # for now only one color bar can be added
         # since it is the same for all figures
         self._colorbar_added = False
+        # for now only one time label can be added
+        # since it is the same for all figures
+        self._time_label_added = False
         # array of data used by TimeViewer
         self._data = {}
         self.geo, self._hemi_meshes, self._overlays = {}, {}, {}
@@ -228,7 +232,7 @@ class _Brain(object):
                  time_label="time index=%d", colorbar=True,
                  hemi=None, remove_existing=None, time_label_size=None,
                  initial_time=None, scale_factor=None, vector_alpha=None,
-                 verbose=None):
+                 clim=None, user_colormap=None, verbose=None):
         u"""Display data from a numpy array on the surface.
 
         This provides a similar interface to
@@ -389,14 +393,19 @@ class _Brain(object):
             fmin, fmid, fmax, center, array
         )
 
+        self._data['clim'] = clim
+        self._data['user_colormap'] = user_colormap
         self._data['time'] = time
         self._data['initial_time'] = initial_time
         self._data['time_label'] = time_label
         self._data['time_idx'] = time_idx
         self._data['transparent'] = transparent
         # data specific for a hemi
-        self._data[hemi + '_array'] = array
-        self._data[hemi + '_vertices'] = vertices
+        self._data[hemi] = dict()
+        self._data[hemi]['actor'] = list()
+        self._data[hemi]['mesh'] = list()
+        self._data[hemi]['array'] = array
+        self._data[hemi]['vertices'] = vertices
 
         self._data['alpha'] = alpha
         self._data['colormap'] = colormap
@@ -416,7 +425,7 @@ class _Brain(object):
                                           adj_mat,
                                           smoothing_steps)
             act_data = smooth_mat.dot(act_data)
-            self._data[hemi + '_smooth_mat'] = smooth_mat
+            self._data[hemi]['smooth_mat'] = smooth_mat
 
         dt_max = fmax
         dt_min = fmin if center is None else -1 * fmax
@@ -445,16 +454,18 @@ class _Brain(object):
                 actor, mesh = mesh_data
             else:
                 actor, mesh = mesh_data, None
-            self._data[hemi + '_actor'] = actor
-            self._data[hemi + '_mesh'] = mesh
+            self._data[hemi]['actor'].append(actor)
+            self._data[hemi]['mesh'].append(mesh)
             if array.ndim >= 2 and callable(time_label):
-                time_actor = self._renderer.text2d(
-                    x_window=0.95, y_window=y_txt,
-                    size=time_label_size,
-                    text=time_label(time[time_idx]),
-                    justification='right'
-                )
-                self._data[hemi + '_time_actor'] = time_actor
+                if not self._time_label_added:
+                    time_actor = self._renderer.text2d(
+                        x_window=0.95, y_window=y_txt,
+                        size=time_label_size,
+                        text=time_label(time[time_idx]),
+                        justification='right'
+                    )
+                    self._data['time_actor'] = time_actor
+                    self._time_label_added = True
             if colorbar and not self._colorbar_added:
                 self._renderer.scalarbar(source=actor, n_labels=8,
                                          bgcolor=(0.5, 0.5, 0.5))
@@ -487,8 +498,7 @@ class _Brain(object):
             as part of the border definition.
         hemi : str | None
             If None, it is assumed to belong to the hemipshere being
-            shown. If two hemispheres are being shown, an error will
-            be thrown.
+            shown.
         subdir : None | str
             If a label is specified as name, subdir can be used to indicate
             that the label file is in a sub-directory of the subject's
@@ -502,14 +512,16 @@ class _Brain(object):
         """
         from matplotlib.colors import colorConverter
         if isinstance(label, str):
-            hemi = self._check_hemi(hemi)
             if color is None:
                 color = "crimson"
 
             if os.path.isfile(label):
                 filepath = label
+                label = read_label(filepath)
+                hemi = label.hemi
                 label_name = os.path.basename(filepath).split('.')[1]
             else:
+                hemi = self._check_hemi(hemi)
                 label_name = label
                 label_fname = ".".join([hemi, label_name, 'label'])
                 if subdir is None:
@@ -521,7 +533,7 @@ class _Brain(object):
                 if not os.path.exists(filepath):
                     raise ValueError('Label file %s does not exist'
                                      % filepath)
-            label = read_label(filepath)
+                label = read_label(filepath)
             ids = label.vertices
             scalars = label.values
         else:
@@ -738,14 +750,17 @@ class _Brain(object):
         """Close all figures and cleanup data structure."""
         self._renderer.close()
 
-    def show_view(self, view=None, roll=None, distance=None):
+    def show_view(self, view=None, roll=None, distance=None, row=0, col=0,
+                  hemi=None):
         """Orient camera to display view."""
-        views_dict = lh_views_dict if self._hemi == 'lh' else rh_views_dict
+        hemi = self._hemi if hemi is None else hemi
+        views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
         if isinstance(view, str):
             view = views_dict.get(view)
         elif isinstance(view, dict):
             view = View(azim=view['azimuth'],
                         elev=view['elevation'])
+        self._renderer.subplot(row, col)
         self._renderer.set_camera(azimuth=view.azim,
                                   elevation=view.elev)
 
@@ -793,14 +808,18 @@ class _Brain(object):
         center = self._data['center']
         colormap = self._data['colormap']
         transparent = self._data['transparent']
-        fmin = self._data['fmin'] if fmin is None else fmin
-        fmid = self._data['fmid'] if fmid is None else fmid
-        fmax = self._data['fmax'] if fmax is None else fmax
-
+        lims = dict(fmin=fmin, fmid=fmid, fmax=fmax)
+        lims = {key: self._data[key] if val is None else val
+                for key, val in lims.items()}
+        assert all(val is not None for val in lims.values())
+        if lims['fmin'] > lims['fmid']:
+            lims['fmin'] = lims['fmid']
+        if lims['fmax'] < lims['fmid']:
+            lims['fmax'] = lims['fmid']
+        self._data.update(lims)
         self._data['ctable'] = \
-            calculate_lut(colormap, alpha=alpha, fmin=fmin, fmid=fmid,
-                          fmax=fmax, center=center, transparent=transparent)
-
+            calculate_lut(colormap, alpha=alpha, center=center,
+                          transparent=transparent, **lims)
         return self._data['ctable']
 
     def set_data_smoothing(self, n_steps):
@@ -812,66 +831,70 @@ class _Brain(object):
             Number of smoothing steps
         """
         from ..backends._pyvista import _set_mesh_scalars
+        from scipy.interpolate import interp1d
+        time_idx = self._data['time_idx']
         for hemi in ['lh', 'rh']:
-            pd = self._data.get(hemi + '_mesh')
-            if pd is not None:
-                array = self._data[hemi + '_array']
-                vertices = self._data[hemi + '_vertices']
-                if pd is not None:
-                    time_idx = self._data['time_idx']
-                    if self._data['array'].ndim == 1:
-                        act_data = array
-                    elif self._data['array'].ndim == 2:
-                        act_data = array[:, time_idx]
+            hemi_data = self._data.get(hemi)
+            if hemi_data is not None:
+                array = hemi_data['array']
+                vertices = hemi_data['vertices']
+                for mesh in hemi_data['mesh']:
+                    if array.ndim == 2:
+                        if isinstance(time_idx, int):
+                            act_data = array[:, time_idx]
+                        else:
+                            times = np.arange(self._n_times)
+                            act_data = interp1d(
+                                times, array, 'linear', axis=1,
+                                assume_sorted=True)(time_idx)
 
                     adj_mat = mesh_edges(self.geo[hemi].faces)
                     smooth_mat = smoothing_matrix(vertices,
                                                   adj_mat, int(n_steps),
                                                   verbose=False)
                     act_data = smooth_mat.dot(act_data)
-                    _set_mesh_scalars(pd, act_data, 'Data')
-                    self._data[hemi + '_smooth_mat'] = smooth_mat
+                    _set_mesh_scalars(mesh, act_data, 'Data')
+                    self._data[hemi]['smooth_mat'] = smooth_mat
 
     def set_time_point(self, time_idx):
         """Set the time point shown."""
         from ..backends._pyvista import _set_mesh_scalars
-        time_idx = int(time_idx)
+        from scipy.interpolate import interp1d
+        time = self._data['time']
         for hemi in ['lh', 'rh']:
-            pd = self._data.get(hemi + '_mesh')
-            if pd is not None:
-                array = self._data[hemi + '_array']
-                time = self._data['time']
-                time_label = self._data['time_label']
-                time_actor = self._data.get(hemi + '_time_actor')
-                if array.ndim == 1:
-                    continue  # skip data without time axis
-                # interpolation
-                if array.ndim == 2:
-                    act_data = array
+            hemi_data = self._data.get(hemi)
+            if hemi_data is not None:
+                array = hemi_data['array']
+                for mesh in hemi_data['mesh']:
+                    # interpolation
+                    if array.ndim == 2:
+                        if isinstance(time_idx, int):
+                            act_data = array[:, time_idx]
+                            self._current_time = time[time_idx]
+                        else:
+                            times = np.arange(self._n_times)
+                            act_data = interp1d(times, array, 'linear', axis=1,
+                                                assume_sorted=True)(time_idx)
+                            ifunc = interp1d(times, self._data['time'])
+                            self._current_time = ifunc(time_idx)
 
-                if isinstance(time_idx, int):
-                    act_data = act_data[:, time_idx]
-
-                smooth_mat = self._data[hemi + '_smooth_mat']
-                if smooth_mat is not None:
-                    act_data = smooth_mat.dot(act_data)
-                _set_mesh_scalars(pd, act_data, 'Data')
-                if callable(time_label) and time_actor is not None:
-                    time_actor.SetInput(time_label(time[time_idx]))
-                self._data['time_idx'] = time_idx
+                    smooth_mat = hemi_data['smooth_mat']
+                    if smooth_mat is not None:
+                        act_data = smooth_mat.dot(act_data)
+                    _set_mesh_scalars(mesh, act_data, 'Data')
+                    self._data['time_idx'] = time_idx
 
     def update_fmax(self, fmax):
         """Set the colorbar max point."""
         from ..backends._pyvista import _set_colormap_range
-        if fmax > self._data['fmid']:
-            ctable = self.update_lut(fmax=fmax)
-            ctable = (ctable * 255).astype(np.uint8)
-            center = self._data['center']
-            for hemi in ['lh', 'rh']:
-                actor = self._data.get(hemi + '_actor')
-                if actor is not None:
-                    fmin = self._data['fmin']
-                    center = self._data['center']
+        ctable = self.update_lut(fmax=fmax)
+        ctable = (ctable * 255).astype(np.uint8)
+        center = self._data['center']
+        fmin = self._data['fmin']
+        for hemi in ['lh', 'rh']:
+            hemi_data = self._data.get(hemi)
+            if hemi_data is not None:
+                for actor in hemi_data['actor']:
                     dt_max = fmax
                     dt_min = fmin if center is None else -1 * fmax
                     rng = [dt_min, dt_max]
@@ -886,12 +909,12 @@ class _Brain(object):
     def update_fmid(self, fmid):
         """Set the colorbar mid point."""
         from ..backends._pyvista import _set_colormap_range
-        if self._data['fmin'] < fmid < self._data['fmax']:
-            ctable = self.update_lut(fmid=fmid)
-            ctable = (ctable * 255).astype(np.uint8)
-            for hemi in ['lh', 'rh']:
-                actor = self._data.get(hemi + '_actor')
-                if actor is not None:
+        ctable = self.update_lut(fmid=fmid)
+        ctable = (ctable * 255).astype(np.uint8)
+        for hemi in ['lh', 'rh']:
+            hemi_data = self._data.get(hemi)
+            if hemi_data is not None:
+                for actor in hemi_data['actor']:
                     if self._colorbar_added:
                         scalar_bar = self._renderer.plotter.scalar_bar
                     else:
@@ -903,14 +926,14 @@ class _Brain(object):
     def update_fmin(self, fmin):
         """Set the colorbar min point."""
         from ..backends._pyvista import _set_colormap_range
-        if fmin < self._data['fmid']:
-            ctable = self.update_lut(fmin=fmin)
-            ctable = (ctable * 255).astype(np.uint8)
-            for hemi in ['lh', 'rh']:
-                actor = self._data.get(hemi + '_actor')
-                if actor is not None:
-                    fmax = self._data['fmax']
-                    center = self._data['center']
+        ctable = self.update_lut(fmin=fmin)
+        ctable = (ctable * 255).astype(np.uint8)
+        center = self._data['center']
+        fmax = self._data['fmax']
+        for hemi in ['lh', 'rh']:
+            hemi_data = self._data.get(hemi)
+            if hemi_data is not None:
+                for actor in hemi_data['actor']:
                     dt_max = fmax
                     dt_min = fmin if center is None else -1 * fmax
                     rng = [dt_min, dt_max]
@@ -925,24 +948,76 @@ class _Brain(object):
     def update_fscale(self, fscale):
         """Scale the colorbar points."""
         from ..backends._pyvista import _set_colormap_range
+        center = self._data['center']
         fmin = self._data['fmin'] * fscale
         fmid = self._data['fmid'] * fscale
         fmax = self._data['fmax'] * fscale
         ctable = self.update_lut(fmin=fmin, fmid=fmid, fmax=fmax)
         ctable = (ctable * 255).astype(np.uint8)
         for hemi in ['lh', 'rh']:
-            actor = self._data.get(hemi + '_actor')
-            if actor is not None:
-                center = self._data['center']
-                dt_max = fmax
-                dt_min = fmin if center is None else -1 * fmax
-                rng = [dt_min, dt_max]
-                if self._colorbar_added:
-                    scalar_bar = self._renderer.plotter.scalar_bar
-                else:
-                    scalar_bar = None
-                _set_colormap_range(actor, ctable, scalar_bar, rng)
-                self._data['ctable'] = ctable
+            hemi_data = self._data.get(hemi)
+            if hemi_data is not None:
+                for actor in hemi_data['actor']:
+                    dt_max = fmax
+                    dt_min = fmin if center is None else -1 * fmax
+                    rng = [dt_min, dt_max]
+                    if self._colorbar_added:
+                        scalar_bar = self._renderer.plotter.scalar_bar
+                    else:
+                        scalar_bar = None
+                    _set_colormap_range(actor, ctable, scalar_bar, rng)
+                    self._data['ctable'] = ctable
+                    self._data['fmin'] = fmin
+                    self._data['fmid'] = fmid
+                    self._data['fmax'] = fmax
+
+    def update_auto_scaling(self, restore=False):
+        from ..backends._pyvista import _set_colormap_range
+        from scipy.interpolate import interp1d
+        user_clim = self._data['clim']
+        if user_clim is not None and 'lims' in user_clim:
+            allow_pos_lims = False
+        else:
+            allow_pos_lims = True
+        if user_clim is not None and restore:
+            clim = user_clim
+        else:
+            clim = 'auto'
+        colormap = self._data['colormap']
+        user_colormap = self._data['user_colormap']
+        transparent = self._data['transparent']
+        time_idx = self._data['time_idx']
+        array = self._data['array']
+        if isinstance(time_idx, int):
+            act_data = array[:, time_idx]
+        else:
+            times = np.arange(self._n_times)
+            act_data = interp1d(
+                times, array, 'linear', axis=1,
+                assume_sorted=True)(time_idx)
+        colormap, scale_pts, diverging, transparent, _ = \
+            _limits_to_control_points(clim, act_data, user_colormap,
+                                      transparent, allow_pos_lims)
+        fmin, fmid, fmax = scale_pts
+        center = 0. if diverging else None
+        self._data['center'] = center
+        self._data['colormap'] = colormap
+        self._data['transparent'] = transparent
+        ctable = self.update_lut(fmin=fmin, fmid=fmid, fmax=fmax)
+        ctable = (ctable * 255).astype(np.uint8)
+        for hemi in ['lh', 'rh']:
+            hemi_data = self._data.get(hemi)
+            if hemi_data is not None:
+                for actor in hemi_data['actor']:
+                    dt_max = fmax
+                    dt_min = fmin if center is None else -1 * fmax
+                    rng = [dt_min, dt_max]
+                    if self._colorbar_added:
+                        scalar_bar = self._renderer.plotter.scalar_bar
+                    else:
+                        scalar_bar = None
+                    _set_colormap_range(actor, ctable, scalar_bar, rng)
+                    self._data['ctable'] = ctable
 
     @property
     def data(self):

@@ -1,3 +1,4 @@
+import os
 import os.path as op
 
 import numpy as np
@@ -12,7 +13,7 @@ from mne import (read_dipole, read_forward_solution,
                  pick_info, EvokedArray, read_source_spaces, make_ad_hoc_cov,
                  make_forward_solution, Dipole, DipoleFixed, Epochs,
                  make_fixed_length_events, Evoked)
-from mne.dipole import get_phantom_dipoles
+from mne.dipole import get_phantom_dipoles, _BDIP_ERROR_KEYS
 from mne.simulation import simulate_evoked
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, requires_mne, run_subprocess
@@ -27,9 +28,12 @@ from mne.transforms import apply_trans, _get_trans
 
 data_path = testing.data_path(download=False)
 meg_path = op.join(data_path, 'MEG', 'sample')
-fname_dip_xfit = op.join(meg_path, 'sample_audvis-ave_xfit.dip')
+fname_dip_xfit_80 = op.join(meg_path, 'sample_audvis-ave_xfit.dip')
 fname_raw = op.join(meg_path, 'sample_audvis_trunc_raw.fif')
 fname_dip = op.join(meg_path, 'sample_audvis_trunc_set1.dip')
+fname_bdip = op.join(meg_path, 'sample_audvis_trunc_set1.bdip')
+fname_dip_xfit = op.join(meg_path, 'sample_audvis_trunc_xfit.dip')
+fname_bdip_xfit = op.join(meg_path, 'sample_audvis_trunc_xfit.bdip')
 fname_evo = op.join(meg_path, 'sample_audvis_trunc-ave.fif')
 fname_evo_full = op.join(meg_path, 'sample_audvis-ave.fif')
 fname_cov = op.join(meg_path, 'sample_audvis_trunc-cov.fif')
@@ -405,7 +409,7 @@ def test_confidence(tmpdir):
     dip_py.save(fname_test)
     dip_read = read_dipole(fname_test)
     with pytest.warns(RuntimeWarning, match="'noise/ft/cm', 'prob'"):
-        dip_xfit = read_dipole(fname_dip_xfit)
+        dip_xfit = read_dipole(fname_dip_xfit_80)
     for dip_check in (dip_py, dip_read):
         assert_allclose(dip_check.pos, dip_xfit.pos, atol=5e-4)  # < 0.5 mm
         assert_allclose(dip_check.gof, dip_xfit.gof, atol=5e-1)  # < 0.5%
@@ -415,6 +419,64 @@ def test_confidence(tmpdir):
         for key in sorted(dip_check.conf.keys()):
             assert_allclose(dip_check.conf[key], dip_xfit.conf[key],
                             rtol=1.5e-1, err_msg=key)
+
+
+# bdip created with:
+# mne_dipole_fit --meas sample_audvis_trunc-ave.fif --set 1 --meg --tmin 40 --tmax 95 --bmin -200 --bmax 0 --noise sample_audvis_trunc-cov.fif --bem ../../subjects/sample/bem/sample-1280-1280-1280-bem-sol.fif --origin 0\:0\:40 --mri sample_audvis_trunc-trans.fif --bdip sample_audvis_trunc_set1.bdip  # noqa: E501
+# It gives equivalent results to .dip in non-dipole mode.
+# xfit bdip created by taking sample_audvis_trunc-ave.fif, picking MEG
+# channels, writitng to disk (with MNE), then running xfit on 40-95 ms
+# with a 3.3 ms step
+@testing.requires_testing_data
+@pytest.mark.parametrize('fname_dip_, fname_bdip_', [
+    (fname_dip, fname_bdip),
+    (fname_dip_xfit, fname_bdip_xfit),
+])
+def test_bdip(fname_dip_, fname_bdip_, tmpdir):
+    """Test bdip I/O."""
+    # use text as veridical
+    with pytest.warns(None):  # ignored fields
+        dip = read_dipole(fname_dip_)
+    # read binary
+    orig_size = os.stat(fname_bdip_).st_size
+    bdip = read_dipole(fname_bdip_)
+    # test round-trip by writing and reading, too
+    fname = tmpdir.join('test.bdip')
+    bdip.save(fname)
+    bdip_read = read_dipole(fname)
+    write_size = os.stat(str(fname)).st_size
+    assert orig_size == write_size
+    assert len(dip) == len(bdip) == len(bdip_read) == 17
+    dip_has_conf = fname_dip_ == fname_dip_xfit
+    for kind, this_bdip in (('orig', bdip), ('read', bdip_read)):
+        for key, atol in (
+                ('pos', 5e-5),
+                ('ori', 5e-3),
+                ('gof', 0.5e-1),
+                ('times', 5e-5),
+                ('khi2', 1e-2)):
+            d = getattr(dip, key)
+            b = getattr(this_bdip, key)
+            if key == 'khi2' and dip_has_conf:
+                if d is not None:
+                    assert_allclose(d, b, atol=atol,
+                                    err_msg='%s: %s' % (kind, key))
+                else:
+                    assert b is None
+        if dip_has_conf:
+            # conf
+            conf_keys = _BDIP_ERROR_KEYS + ('vol',)
+            assert (set(this_bdip.conf.keys()) ==
+                    set(dip.conf.keys()) ==
+                    set(conf_keys))
+            for key in conf_keys:
+                d = dip.conf[key]
+                b = this_bdip.conf[key]
+                assert_allclose(d, b, rtol=0.12,  # no so great, text I/O
+                                err_msg='%s: %s' % (kind, key))
+        # Not stored
+        assert this_bdip.name is None
+        assert_allclose(this_bdip.nfree, 0.)
 
 
 run_tests_if_main()

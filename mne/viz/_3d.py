@@ -16,6 +16,7 @@ from io import BytesIO
 from itertools import cycle
 import os.path as op
 import warnings
+import collections
 from functools import partial
 
 import numpy as np
@@ -325,7 +326,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         The mayavi figure.
     """
     # Update the backend
-    from .backends.renderer import _Renderer
+    from .backends.renderer import _get_renderer
     types = [t for t in ['eeg', 'grad', 'mag'] if t in evoked]
 
     time_idx = None
@@ -345,7 +346,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
                                      np.tile([0., 0., 0., 255.], (2, 1)),
                                      np.tile([255., 0., 0., 255.], (127, 1))])
 
-    renderer = _Renderer(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
+    renderer = _get_renderer(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
 
     for ii, this_map in enumerate(surf_maps):
         surf = this_map['surf']
@@ -627,7 +628,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     """
     from ..forward import _create_meg_coils, Forward
     # Update the backend
-    from .backends.renderer import _Renderer
+    from .backends.renderer import _get_renderer
 
     if eeg is False:
         eeg = list()
@@ -1018,7 +1019,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                         % (len(other_loc[key]), key, _pl(other_loc[key])))
 
     # initialize figure
-    renderer = _Renderer(fig, bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
+    renderer = _get_renderer(fig, bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
     if interaction == 'terrain':
         renderer.set_interactive()
 
@@ -1536,6 +1537,35 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     return fig
 
 
+def link_brains(brains):
+    """Plot multiple SourceEstimate objects with PyVista.
+
+    Parameters
+    ----------
+    brains : list, tuple or np.ndarray
+        The collection of brains to plot.
+    """
+    from .backends.renderer import get_3d_backend
+    if get_3d_backend() != 'pyvista':
+        raise NotImplementedError("Expected 3d backend is pyvista but"
+                                  " {} was given.".format(get_3d_backend()))
+    from ._brain import _Brain, _TimeViewer, _LinkViewer
+    if not isinstance(brains, collections.Iterable):
+        brains = [brains]
+    if len(brains) == 0:
+        raise ValueError("The collection of brains is empty.")
+    for brain in brains:
+        if isinstance(brain, _Brain):
+            # check if the _TimeViewer wrapping is not already applied
+            if not hasattr(brain, 'time_viewer') or brain.time_viewer is None:
+                brain = _TimeViewer(brain)
+        else:
+            raise TypeError("Expected type is Brain but"
+                            " {} was given.".format(type(brain)))
+    # link brains properties
+    _LinkViewer(brains)
+
+
 @verbose
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='auto', time_label='auto',
@@ -1562,8 +1592,11 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         is None, the environment will be used.
     surface : str
         The type of surface (inflated, white etc.).
-    hemi : str, 'lh' | 'rh' | 'split' | 'both'
-        The hemisphere to display.
+    hemi : str
+        Hemisphere id (ie 'lh', 'rh', 'both', or 'split'). In the case
+        of 'both', both hemispheres are shown in the same window.
+        In the case of 'split' hemispheres are displayed side-by-side
+        in different viewing panes.
     %(colormap)s
         The default ('auto') uses 'hot' for one-sided data and
         'mne' for two-sided data.
@@ -1640,7 +1673,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         An instance of :class:`surfer.Brain` from PySurfer or
         matplotlib figure.
     """  # noqa: E501
-    from .backends.renderer import get_3d_backend
+    from .backends.renderer import get_3d_backend, set_3d_backend
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
     _validate_type(stc, SourceEstimate, "stc", "Surface Source Estimate")
@@ -1650,14 +1683,11 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     _check_option('backend', backend, ['auto', 'matplotlib', 'mayavi'])
     plot_mpl = backend == 'matplotlib'
     if not plot_mpl:
-        if not check_version('surfer', '0.9'):
-            raise RuntimeError('This function requires pysurfer version '
-                               '>= 0.9')
         try:
-            from mayavi import mlab  # noqa: F401
-        except ImportError:
+            set_3d_backend(get_3d_backend())
+        except (ImportError, ModuleNotFoundError):
             if backend == 'auto':
-                warn('Mayavi not found. Resorting to matplotlib 3d.')
+                warn('No 3D backend found. Resorting to matplotlib 3d.')
                 plot_mpl = True
             else:  # 'mayavi'
                 raise
@@ -1672,6 +1702,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              spacing=spacing, time_viewer=time_viewer,
                              colorbar=colorbar, transparent=transparent)
     if get_3d_backend() == "mayavi":
+        if not check_version('surfer', '0.9'):
+            raise RuntimeError('This function requires pysurfer version '
+                               '>= 0.9')
         from surfer import Brain, TimeViewer
     else:
         from ._brain import _Brain as Brain
@@ -1680,6 +1713,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     # convert control points to locations in colormap
+    user_colormap = colormap  # save the original colormap
     colormap, scale_pts, diverging, transparent, _ = _limits_to_control_points(
         clim, stc.data, colormap, transparent)
 
@@ -1722,6 +1756,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 kwargs["fmin"] = scale_pts[0]
                 kwargs["fmid"] = scale_pts[1]
                 kwargs["fmax"] = scale_pts[2]
+                kwargs["clim"] = clim
+                kwargs["user_colormap"] = user_colormap
             with warnings.catch_warnings(record=True):  # traits warnings
                 brain.add_data(**kwargs)
     if time_viewer:
@@ -2405,7 +2441,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     import matplotlib.pyplot as plt
     from matplotlib.colors import ColorConverter
     # Update the backend
-    from .backends.renderer import _Renderer
+    from .backends.renderer import _get_renderer
 
     known_modes = ['cone', 'sphere']
     if not isinstance(modes, (list, tuple)) or \
@@ -2448,7 +2484,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
     color_converter = ColorConverter()
 
-    renderer = _Renderer(bgcolor=bgcolor, size=(600, 600), name=fig_name)
+    renderer = _get_renderer(bgcolor=bgcolor, size=(600, 600), name=fig_name)
     surface = renderer.mesh(x=points[:, 0], y=points[:, 1],
                             z=points[:, 2], triangles=use_faces,
                             color=brain_color, opacity=opacity,
@@ -2614,9 +2650,9 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
             ax=ax, block=block, show=show, color=color,
             highlight_color=highlight_color)
     elif mode in ['arrow', 'sphere']:
-        from .backends.renderer import _Renderer
+        from .backends.renderer import _get_renderer
         color = (1., 0., 0.) if color is None else color
-        renderer = _Renderer(fig=fig, size=(600, 600))
+        renderer = _get_renderer(fig=fig, size=(600, 600))
         pos = dipoles.pos
         ori = dipoles.ori
         if coord_frame != 'head':
@@ -2668,7 +2704,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     from ..channels import DigMontage
     from .. import Info
     # Update the backend
-    from .backends.renderer import _Renderer
+    from .backends.renderer import _get_renderer
 
     if fig is None:
         raise ValueError('The figure must have a scene')
@@ -2687,7 +2723,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
                         ' or `dict`')
 
     # initialize figure
-    renderer = _Renderer(fig, show=True)
+    renderer = _get_renderer(fig, show=True)
 
     xyz = np.vstack(xyz)
     proj = renderer.project(xyz=xyz, ch_names=ch_names)
@@ -2719,9 +2755,9 @@ def plot_sensors_connectivity(info, con, picks=None):
     """
     _validate_type(info, "info")
 
-    from .backends.renderer import _Renderer
+    from .backends.renderer import _get_renderer
 
-    renderer = _Renderer(size=(600, 600), bgcolor=(0.5, 0.5, 0.5))
+    renderer = _get_renderer(size=(600, 600), bgcolor=(0.5, 0.5, 0.5))
 
     picks = _picks_to_idx(info, picks)
     if len(picks) != len(con):

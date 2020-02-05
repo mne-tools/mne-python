@@ -83,7 +83,9 @@ def _read_annotations_cnt(fname, data_format='int16'):
                                       n_channels=n_channels,
                                       event_type=type(my_events[0]),
                                       data_format=data_format)
-        duration = np.array([e.Latency for e in my_events], dtype=float)
+        duration = np.array([getattr(e, 'Latency', 0.) for e in my_events],
+                            dtype=float)
+
         description = np.array([str(e.StimType) for e in my_events])
         return Annotations(onset=onset / sfreq,
                            duration=duration,

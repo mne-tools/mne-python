@@ -287,3 +287,7 @@
 .. _Christian O'Reilly: https://scholar.google.ca/citations?user=NllRAkwAAAAJ&hl=en
 
 .. _Yu-Han Luo: https://github.com/yh-luo
+
+.. _Fu-Te Wong: https://github.com/zuxfoucault
+
+.. _Sebastian Major: https://github.com/major-s

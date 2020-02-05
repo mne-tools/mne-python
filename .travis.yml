@@ -1,8 +1,11 @@
-language: c
+language: generic
 dist: xenial
 cache:
-  apt: true
   pip: true
+addons:
+  apt:
+    packages:
+      - libxkbcommon-x11-0
 env:
     # TRAVIS_PYTHON_VERSION is only needed for neo's setup.py
     # OPENBLAS_NUM_THREADS=1 avoid slowdowns:
@@ -26,10 +29,7 @@ matrix:
           env: MNE_STIM_CHANNEL=STI101
           language: python
           python: "3.7"
-          addons:
-            apt:
-              packages:
-                - qt5-default  # Qt 5.12 release needs this to avoid a missing library bug
+
         # Old dependencies
         - os: linux
           env: PYTHON_VERSION=3.5
