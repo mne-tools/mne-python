@@ -109,6 +109,10 @@ def test_annot_sanitizing(tmpdir):
     annot_read = read_annotations(fname)
     _assert_annotations_equal(annot, annot_read)
 
+    # make sure pytest raises error on char-sequence that is not allowed
+    with pytest.raises(ValueError, match='in descriptions not supported'):
+        Annotations([0], [1], ['a{COLON}b'])
+
 
 def test_raw_array_orig_times():
     """Test combining with RawArray and orig_times."""
