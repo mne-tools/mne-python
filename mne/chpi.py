@@ -166,7 +166,7 @@ def head_pos_to_trans_rot_t(quats):
 
 @verbose
 def extract_chpi_locs_ctf(raw, verbose=None):
-    r"""Extract head position parameters from ctf dataset.
+    r"""Extract cHPI locations from CTF data.
 
     Parameters
     ----------
