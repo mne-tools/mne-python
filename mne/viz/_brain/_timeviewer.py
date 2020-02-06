@@ -656,27 +656,33 @@ class _TimeViewer(object):
 
         # from the picked renderer to the subplot coords
         rindex = self.plotter.renderers.index(self.picked_renderer)
-        loc = self.plotter.index_to_loc(rindex)
-        self.plotter.subplot(*loc)
+        row, col = self.plotter.index_to_loc(rindex)
 
-        actor, sphere = self.brain._renderer.sphere(
-            center=np.array(center),
-            color=color,
-            scale=1.0,
-            radius=4.0
-        )
+        actors = list()
+        spheres = list()
+        for ri, view in enumerate(self.brain._views):
+            self.plotter.subplot(ri, col)
+            actor, sphere = self.brain._renderer.sphere(
+                center=np.array(center),
+                color=color,
+                scale=1.0,
+                radius=4.0
+            )
+            actors.append(actor)
+            spheres.append(sphere)
 
         # add metadata for picking
-        sphere._line = line
-        sphere._actor = actor
-        sphere._vertex_id = vertex_id
+        for sphere in spheres:
+            sphere._line = line
+            sphere._actors = actors
+            sphere._vertex_id = vertex_id
         self.picked_points.append(vertex_id)
 
     def remove_point(self, mesh):
         mesh._line.remove()
         self.mpl_canvas.update_plot()
         self.picked_points.remove(mesh._vertex_id)
-        self.plotter.remove_actor(mesh._actor)
+        self.plotter.remove_actor(mesh._actors)
 
     def plot_time_course(self, hemi, vertex_id, color):
         time = self.brain._data['time']
