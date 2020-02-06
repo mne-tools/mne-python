@@ -44,6 +44,14 @@ class MplCanvas(object):
         self.axes.legend()
         self.canvas.draw()
 
+    def show(self):
+        """Show the canvas."""
+        self.canvas.show()
+
+    def close(self):
+        """Close the canvas."""
+        self.canvas.close()
+
 
 class IntSlider(object):
     """Class to set a integer slider."""
@@ -455,7 +463,13 @@ class _TimeViewer(object):
         self.set_slider_style(playback_speed_slider)
         self.set_slider_style(time_slider)
 
-        if show_traces:
+        # Point Picking and MplCanvas plotting
+        if isinstance(show_traces, str) and show_traces == "separate":
+            show_traces = True
+            self.separate_canvas = True
+        else:
+            self.separate_canvas = False
+        if isinstance(show_traces, bool) and show_traces:
             self.act_data = {'lh': None, 'rh': None}
             self.color_cycle = None
             self.picked_points = list()
@@ -543,14 +557,22 @@ class _TimeViewer(object):
         dpi = win.windowHandle().screen().logicalDotsPerInch()
         w, h = win.geometry().width() / dpi, win.geometry().height() / dpi
         h /= 3  # one third of the window
-        self.mpl_canvas = MplCanvas(win, w, h, dpi)
+        if self.separate_canvas:
+            parent = None
+        else:
+            parent = win
+        self.mpl_canvas = MplCanvas(parent, w, h, dpi)
         xlim = [np.min(self.brain._data['time']),
                 np.max(self.brain._data['time'])]
         self.mpl_canvas.axes.set(xlim=xlim)
         vlayout = self.plotter.frame.layout()
-        vlayout.addWidget(self.mpl_canvas.canvas)
-        vlayout.setStretch(0, 2)
-        vlayout.setStretch(1, 1)
+        if self.separate_canvas:
+            self.plotter.app_window.signal_close.connect(self.mpl_canvas.close)
+            self.mpl_canvas.show()
+        else:
+            vlayout.addWidget(self.mpl_canvas.canvas)
+            vlayout.setStretch(0, 2)
+            vlayout.setStretch(1, 1)
 
         # get brain data
         for idx, hemi in enumerate(['lh', 'rh']):

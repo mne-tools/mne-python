@@ -1714,7 +1714,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     from ..source_estimate import SourceEstimate
     _validate_type(stc, SourceEstimate, "stc", "Surface Source Estimate")
     _check_option('time_viewer', time_viewer, (True, False, 'auto'))
-    _check_option('show_traces', show_traces, (True, False, 'auto'))
+    _check_option('show_traces', show_traces,
+                  (True, False, 'auto', 'separate'))
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
