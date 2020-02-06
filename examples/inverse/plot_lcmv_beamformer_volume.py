@@ -3,8 +3,8 @@
 Compute LCMV inverse solution in volume source space
 ====================================================
 
-Compute LCMV beamformer on an auditory evoked dataset in a volume source space,
-and show activation on ``fsaverage``.
+Compute LCMV beamformers on an auditory evoked dataset in a volume source
+space, and show activation on ``fsaverage``.
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #

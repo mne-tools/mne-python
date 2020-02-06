@@ -10,7 +10,7 @@
 import numpy as np
 import os
 from os.path import join as pjoin
-from .._3d import _limits_to_control_points
+from .._3d import _process_clim
 from ...label import read_label
 from .colormap import calculate_lut
 from .view import lh_views_dict, rh_views_dict, View
@@ -143,7 +143,7 @@ class _Brain(object):
                  foreground=None, figure=None, subjects_dir=None,
                  views=['lateral'], offset=True, show_toolbar=False,
                  offscreen=False, interaction=None, units='mm'):
-        from ..backends.renderer import _Renderer, _check_3d_figure
+        from ..backends.renderer import _get_renderer, _check_3d_figure
         from matplotlib.colors import colorConverter
 
         if interaction is not None:
@@ -197,8 +197,8 @@ class _Brain(object):
 
         if figure is not None and not isinstance(figure, int):
             _check_3d_figure(figure)
-        self._renderer = _Renderer(size=fig_size, bgcolor=background,
-                                   shape=(n_row, n_col), fig=figure)
+        self._renderer = _get_renderer(size=fig_size, bgcolor=background,
+                                       shape=(n_row, n_col), fig=figure)
 
         for h in self._hemis:
             # Initialize a Surface object as the geometry
@@ -240,7 +240,7 @@ class _Brain(object):
                  time_label="time index=%d", colorbar=True,
                  hemi=None, remove_existing=None, time_label_size=None,
                  initial_time=None, scale_factor=None, vector_alpha=None,
-                 clim=None, user_colormap=None, verbose=None):
+                 clim=None, verbose=None):
         u"""Display data from a numpy array on the surface.
 
         This provides a similar interface to
@@ -402,7 +402,6 @@ class _Brain(object):
         )
 
         self._data['clim'] = clim
-        self._data['user_colormap'] = user_colormap
         self._data['time'] = time
         self._data['initial_time'] = initial_time
         self._data['time_label'] = time_label
@@ -992,7 +991,6 @@ class _Brain(object):
         else:
             clim = 'auto'
         colormap = self._data['colormap']
-        user_colormap = self._data['user_colormap']
         transparent = self._data['transparent']
         time_idx = self._data['time_idx']
         array = self._data['array']
@@ -1003,9 +1001,13 @@ class _Brain(object):
             act_data = interp1d(
                 times, array, 'linear', axis=1,
                 assume_sorted=True)(time_idx)
-        colormap, scale_pts, diverging, transparent, _ = \
-            _limits_to_control_points(clim, act_data, user_colormap,
-                                      transparent, allow_pos_lims)
+        mapdata = _process_clim(clim, colormap, transparent, act_data,
+                                allow_pos_lims)
+        diverging = 'pos_lims' in mapdata['clim']
+        colormap = mapdata['colormap']
+        scale_pts = mapdata['clim']['pos_lims' if diverging else 'lims']
+        transparent = mapdata['transparent']
+        del mapdata
         fmin, fmid, fmax = scale_pts
         center = 0. if diverging else None
         self._data['center'] = center

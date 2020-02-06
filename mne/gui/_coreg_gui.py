@@ -485,12 +485,12 @@ class CoregModel(HasPrivateTraits):
         return points
 
     def _nearest_calc_default(self):
-        return _DistanceQuery(np.zeros((1, 3)))
+        return _DistanceQuery(
+            self.processed_high_res_mri_points * self.parameters[6:9])
 
     @on_trait_change('processed_high_res_mri_points')
     def _update_nearest_calc(self):
-        self.nearest_calc = _DistanceQuery(
-            self.processed_high_res_mri_points * self.parameters[6:9])
+        self.nearest_calc = self._nearest_calc_default()
 
     @cached_property
     def _get_transformed_high_res_mri_points(self):

@@ -1,7 +1,7 @@
 """
 .. _tut_viz_stcs:
 
-Visualize Source time courses
+Visualize source time courses
 =============================
 
 This tutorial focuses on visualization of stcs.

@@ -138,6 +138,8 @@ Bug
 
 - The attribute :class:`mne.Annotations.orig_time <mne.Annotations>` is now read-only, and is a :class:`~python:datetime.datetime` object (or None) rather than float, by `Eric Larson`_
 
+- Fix bug where MRI distances were not properly initialized in :ref:`gen_mne_coreg` by `Eric Larson`_
+
 - Fix ``xscale='log'`` in :meth:`mne.io.Raw.plot_psd` and related functions by `Alex Gramfort`_
 
 - Unify behavior of ``raw.annotations.append(...)`` when ``raw.info['meas_date']`` is None to make onsets absolute relative to ``first_samp`` as they are when ``raw.info['meas_date']`` is not None; i.e., you might need to do ``raw.annotations.append(old_time + raw.first_time)``, by `Eric Larson`_
@@ -211,6 +213,8 @@ Bug
 - Fix missing `brainmask` file type in :func:`mne.bem.make_watershed_bem` by changing its default value to `ws.mgz` by `Fu-Te Wong`_
 
 - Fix bug in :func:`mne.channels.make_standard_montage` which would return `easycap-M1` even when requesting `easycap-M10` by `Christian Brodbeck`_
+
+- Fix the way planar gradiometers are combined in :func:`mne.viz.plot_tfr_topomap` and :meth:`mne.Epochs.plot_psd_topomap` by `Geoff Brookshire`_
 
 API
 ~~~
