@@ -455,9 +455,9 @@ class _TimeViewer(object):
         self.set_slider_style(time_slider)
 
         if show_traces:
-            self.act_data = None
+            self.act_data = {'lh': None, 'rh': None}
             self.color_cycle = None
-            self.picked_points = None
+            self.picked_points = list()
             self._mouse_no_mvt = -1
             self.enable_point_picking()
 
@@ -536,14 +536,6 @@ class _TimeViewer(object):
 
     def enable_point_picking(self):
         from ..backends._pyvista import _update_picking_callback
-        # get brain data
-        self.act_data = self.brain._data['array']
-        hemi = self.brain._hemi
-        hemi_data = self.brain._data.get(hemi)
-        smooth_mat = hemi_data['smooth_mat']
-        if smooth_mat is not None:
-            self.act_data = smooth_mat.dot(self.act_data)
-
         # use a matplotlib canvas
         self.color_cycle = cycle(_get_color_list())
         win = self.plotter.app_window
@@ -559,17 +551,25 @@ class _TimeViewer(object):
         vlayout.setStretch(0, 2)
         vlayout.setStretch(1, 1)
 
-        # initialize the default point
-        self.picked_points = list()
-        color = next(self.color_cycle)
-        ind = np.unravel_index(
-            np.argmax(self.act_data, axis=None),
-            self.act_data.shape
-        )
-        vertex_id = ind[0]
-        mesh = hemi_data['mesh'][-1]
-        line = self.plot_time_course(vertex_id, color)
-        self.add_point(mesh, vertex_id, line, color)
+        # get brain data
+        for hemi in ['lh', 'rh']:
+            hemi_data = self.brain._data.get(hemi)
+            if hemi_data is not None:
+                self.act_data[hemi] = hemi_data['array']
+                smooth_mat = hemi_data['smooth_mat']
+                if smooth_mat is not None:
+                    self.act_data[hemi] = smooth_mat.dot(self.act_data[hemi])
+
+                # initialize the default point
+                color = next(self.color_cycle)
+                ind = np.unravel_index(
+                    np.argmax(self.act_data[hemi], axis=None),
+                    self.act_data[hemi].shape
+                )
+                vertex_id = ind[0]
+                mesh = hemi_data['mesh'][-1]
+                line = self.plot_time_course(hemi, vertex_id, color)
+                self.add_point(mesh, vertex_id, line, color)
 
         _update_picking_callback(
             self.plotter,
@@ -602,6 +602,7 @@ class _TimeViewer(object):
         if not hasattr(mesh, "_hemi"):
             self.remove_point(mesh)
         elif self._mouse_no_mvt:
+            hemi = mesh._hemi
             pos = vtk_picker.GetPickPosition()
             cell = mesh.faces[cell_id][1:]
             vertices = mesh.points[cell]
@@ -612,7 +613,7 @@ class _TimeViewer(object):
                 color = next(self.color_cycle)
 
                 # update associated time course
-                line = self.plot_time_course(vertex_id, color)
+                line = self.plot_time_course(hemi, vertex_id, color)
 
                 # add glyph at picked point
                 self.add_point(mesh, vertex_id, line, color)
@@ -638,11 +639,11 @@ class _TimeViewer(object):
         self.picked_points.remove(mesh._vertex_id)
         self.plotter.remove_actor(mesh._actor)
 
-    def plot_time_course(self, vertex_id, color):
+    def plot_time_course(self, hemi, vertex_id, color):
         time = self.brain._data['time']
         line = self.mpl_canvas.plot(
             time,
-            self.act_data[vertex_id, :],
+            self.act_data[hemi][vertex_id, :],
             vertex_id,
             lw=1.,
             color=color
