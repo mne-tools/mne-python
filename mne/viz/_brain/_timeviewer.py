@@ -41,7 +41,8 @@ class MplCanvas(object):
 
     def update_plot(self):
         """Update the plot."""
-        self.axes.legend()
+        self.axes.legend(prop={'family': 'monospace', 'size': 'small'},
+                         framealpha=0.5, handlelength=1.)
         self.canvas.draw()
 
     def show(self):
@@ -687,7 +688,9 @@ class _TimeViewer(object):
             subject=self.brain._subject_id,
             subjects_dir=self.brain._subjects_dir
         )
-        label = "{}-{} (MNI: {})".format(hemi_str, vertex_id, mni)
+        label = "{}:{} MNI: {}".format(
+            hemi_str, str(vertex_id).ljust(6),
+            ', '.join('%5.1f' % m for m in mni))
         line = self.mpl_canvas.plot(
             time,
             self.act_data[hemi][vertex_id, :],
