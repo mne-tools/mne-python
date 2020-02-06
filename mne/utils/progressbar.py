@@ -38,6 +38,8 @@ class ProgressBar(object):
         This does not include characters used for the message or percent
         complete. Can be "auto" (default) to try to set a sane value based
         on the terminal width.
+    progress_character : char
+        Character in the progress bar that indicates the portion completed.
     spinner : bool
         Show a spinner.  Useful for long-running processes that may not
         increment the progress bar very often.  This provides the user with
@@ -47,14 +49,28 @@ class ProgressBar(object):
         a sane value based on the current terminal width.
     verbose_bool : bool | 'auto'
         If True, show progress. 'auto' will use the current MNE verbose level.
+
+    Example
+    -------
+    >>> progress = ProgressBar(13000)
+    >>> progress.update(3000) # doctest: +SKIP
+    [.........                               ] 23.07692 |
+    >>> progress.update(6000) # doctest: +SKIP
+    [..................                      ] 46.15385 |
+
+    >>> progress = ProgressBar(13000, spinner=True)
+    >>> progress.update(3000) # doctest: +SKIP
+    [.........                               ] 23.07692 |
+    >>> progress.update(6000) # doctest: +SKIP
+    [..................                      ] 46.15385 /
     """
 
     spinner_symbols = ['|', '/', '-', '\\']
-    template = '\r{2}▕{0}{1}▏{3} {4}'
+    template = '\r[{0}{1}] {2} {3} {4}'
 
     def __init__(self, max_value, initial_value=0, mesg='', max_chars='auto',
-                 spinner=False, max_total_width='auto',
-                 verbose_bool='auto'):  # noqa: D102
+                 progress_character='.', spinner=False,
+                 max_total_width='auto', verbose_bool=True):  # noqa: D102
         self.cur_value = initial_value
         if isinstance(max_value, Iterable):
             self.max_value = len(max_value)
@@ -63,6 +79,7 @@ class ProgressBar(object):
             self.max_value = max_value
             self.iterable = None
         self.mesg = mesg
+        self.progress_character = progress_character
         self.spinner = spinner
         self.spinner_index = 0
         self.n_spinner = len(self.spinner_symbols)
@@ -90,7 +107,7 @@ class ProgressBar(object):
         cur_value : number
             Current value of process.  Should be <= max_value (but this is not
             enforced).  The percent of the progressbar will be computed as
-            ``(cur_value / max_value) * 100``.
+            (cur_value / max_value) * 100
         mesg : str
             Message to display to the right of the progressbar.  If None, the
             last message provided will be used.  To clear the current message,
@@ -126,20 +143,14 @@ class ProgressBar(object):
         # display in the console window.
         progress = '%6.02f%%' % (progress * 100,)
         progress = progress if self.cur_value <= max_value else 'unknown'
-        if self.spinner:
-            spinner = self.spinner_symbols[self.spinner_index]
-        else:
-            spinner = ''
-        bar = self.template.format('█' * num_chars, '░' * num_left,
-                                   progress, self.mesg, spinner)
+        bar = self.template.format(
+            self.progress_character * num_chars, ' ' * num_left,
+            progress, self.mesg, self.spinner_symbols[self.spinner_index])
         bar = bar[:self.max_total_width]
         # Force a flush because sometimes when using bash scripts and pipes,
         # the output is not printed until after the program exits.
         if self._do_print:
-            try:
-                sys.stdout.buffer.write(bar.encode('utf-8'))
-            except AttributeError:
-                sys.stdout.write(bar)
+            sys.stdout.write(bar)
             sys.stdout.flush()
         # Increment the spinner
         if self.spinner:
@@ -153,7 +164,7 @@ class ProgressBar(object):
         increment_value : int
             Value of the increment of process.  The percent of the progressbar
             will be computed as
-            ``(self.cur_value + increment_value / max_value) * 100``.
+            (self.cur_value + increment_value / max_value) * 100
         mesg : str
             Message to display to the right of the progressbar.  If None, the
             last message provided will be used.  To clear the current message,
@@ -171,13 +182,7 @@ class ProgressBar(object):
             self.update_with_increment_value(1)
 
     def __call__(self, seq):
-        """Call the ProgressBar in a joblib-friendly way.
-
-        Parameters
-        ----------
-        seq : ndarray
-            The sequence.
-        """
+        """Call the ProgressBar in a joblib-friendly way."""
         while True:
             try:
                 yield next(seq)
@@ -246,4 +251,7 @@ class _PBSubsetUpdater(object):
 
 def _get_terminal_width():
     """Get the terminal width."""
-    return shutil.get_terminal_size((80, 20)).columns
+    if sys.version[0] == '2':
+        return 80
+    else:
+        return shutil.get_terminal_size((80, 20)).columns
