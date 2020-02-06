@@ -552,13 +552,16 @@ class _TimeViewer(object):
         vlayout.setStretch(1, 1)
 
         # get brain data
-        for hemi in ['lh', 'rh']:
+        for idx, hemi in enumerate(['lh', 'rh']):
             hemi_data = self.brain._data.get(hemi)
             if hemi_data is not None:
                 self.act_data[hemi] = hemi_data['array']
                 smooth_mat = hemi_data['smooth_mat']
                 if smooth_mat is not None:
                     self.act_data[hemi] = smooth_mat.dot(self.act_data[hemi])
+
+                # simulate a picked renderer
+                self.picked_renderer = self.plotter.renderers[idx]
 
                 # initialize the default point
                 color = next(self.color_cycle)
@@ -589,7 +592,10 @@ class _TimeViewer(object):
     def on_button_release(self, vtk_picker, event):
         if self._mouse_no_mvt:
             x, y = vtk_picker.GetEventPosition()
-            self.plotter.picker.Pick(x, y, 0, self.plotter.renderer)
+            # programmatically detect the picked the renderer
+            self.picked_renderer = self.plotter.iren.FindPokedRenderer(x, y)
+            # trigger the pick
+            self.plotter.picker.Pick(x, y, 0, self.picked_renderer)
         self._mouse_no_mvt = 0
 
     def on_pick(self, vtk_picker, event):
@@ -620,6 +626,12 @@ class _TimeViewer(object):
 
     def add_point(self, mesh, vertex_id, line, color):
         center = mesh.GetPoints().GetPoint(vertex_id)
+
+        # from the picked renderer to the subplot coords
+        rindex = self.plotter.renderers.index(self.picked_renderer)
+        loc = self.plotter.index_to_loc(rindex)
+        self.plotter.subplot(*loc)
+
         actor, sphere = self.brain._renderer.sphere(
             center=np.array(center),
             color=color,
