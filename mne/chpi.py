@@ -2,7 +2,7 @@
 """Functions for fitting head positions with (c)HPI coils."""
 
 # To fit head positions (continuously), the procedure using
-# ``calculate_head_pos_chpi`` is:
+# ``compute_chpi_locs`` is:
 #
 #     1. Get HPI coil locations (as digitized in info['dig'] in head coords
 #        using ``_get_hpi_initial_fit``.
@@ -19,11 +19,16 @@
 #        (and Δt < t_step_max), skip fitting.
 #     6. Fit magnetic dipoles using the amplitudes for each coil frequency
 #        (calling ``_fit_magnetic_dipole``).
-#     7. Drop coils whose GOF are below ``gof_limit``. If fewer than 3 coils
+#
+# This gives time-varying cHPI coil locations. These can then be used with
+# ``compute_head_pos`` to:
+#
+#     1. Drop coils whose GOF are below ``gof_limit``. If fewer than 3 coils
 #        remain, abandon fitting for the chunk.
-#     8. Fit dev_head_t quaternion (using ``_fit_chpi_quat``), iteratively
-#        dropping coils (as long as 3 remain) to find the best GOF.
-#     9. If fewer than 3 coils meet the ``dist_limit`` criteria following
+#     2. Fit dev_head_t quaternion (using ``_fit_chpi_quat_subset``),
+#        iteratively dropping coils (as long as 3 remain) to find the best GOF
+#        (using ``_fit_chpi_quat``).
+#     3. If fewer than 3 coils meet the ``dist_limit`` criteria following
 #        projection of the fitted device coil locations into the head frame,
 #        abandon fitting for the chunk.
 #
@@ -159,20 +164,17 @@ def head_pos_to_trans_rot_t(quats):
     return translation, rotation, t
 
 
-def calculate_head_pos_ctf(raw, quat_gof_limit=0.98):
+def extract_chpi_locs_ctf(raw):
     r"""Extract head position parameters from ctf dataset.
 
     Parameters
     ----------
     raw : instance of Raw
         Raw data with CTF cHPI information.
-    quat_gof_limit : float
-        Minimum goodness of fit to accept.
 
     Returns
     -------
-    pos : array, shape (N, 10)
-        The position and quaternion parameters from cHPI fitting.
+    %(chpi_locs)s
 
     Notes
     -----
@@ -183,14 +185,13 @@ def calculate_head_pos_ctf(raw, quat_gof_limit=0.98):
     - ``HLC002[123]\\*`` - lpa
     - ``HLC003[123]\\*`` - rpa
 
-    This uses those positions to compute the head position as a function of
-    time.
+    This extracts these positions for use with
+    :func:`~mne.chpi.compute_head_pos`.
 
     .. versionadded:: 0.20
     """
     # Pick channels corresponding to the cHPI positions
-    hpi_picks = pick_channels_regexp(raw.info['ch_names'],
-                                     'HLC00[123][123].*')
+    hpi_picks = pick_channels_regexp(raw.info['ch_names'], 'HLC00[123][123].*')
 
     # make sure we get 9 channels
     if len(hpi_picks) != 9:
@@ -209,65 +210,22 @@ def calculate_head_pos_ctf(raw, quat_gof_limit=0.98):
     time_sl = slice(0, len(raw.times))
     chpi_data = raw[hpi_picks, time_sl][0]
 
-    # grab initial cHPI locations
-    # point sorted in hpi_results are in mne device coords
-    chpi_locs_dev = sorted([d for d in raw.info['hpi_results'][-1]
-                            ['dig_points']], key=lambda x: x['ident'])
-    chpi_locs_dev = np.array([d['r'] for d in chpi_locs_dev])
-
     # transforms
-    dev_head_t = raw.info['dev_head_t']
     tmp_trans = _make_ctf_coord_trans_set(None, None)
     ctf_dev_dev_t = tmp_trans['t_ctf_dev_dev']
     del tmp_trans
 
-    # move to head coords
-    chpi_locs_head = apply_trans(dev_head_t, chpi_locs_dev)
-
     # find indices where chpi locations change
     indices = [0]
-    indices.extend(np.where(np.all(chpi_data[:, :-1] != chpi_data[:, 1:],
-                                   axis=0))[0] + 1)
+    indices.extend(np.where(np.all(np.diff(chpi_data, axis=1), axis=0))[0] + 1)
+    # data in channels are in ctf device coordinates (cm)
+    rrs = chpi_data[:, indices].T.reshape(len(indices), 3, 3)  # m
+    # map to mne device coords
+    rrs = apply_trans(ctf_dev_dev_t, rrs)
+    gofs = np.ones(rrs.shape[:2])  # not encoded, assume all good
+    times = raw.times[indices] + raw._first_time
+    return dict(rrs=rrs, gofs=gofs, times=times)
 
-    # initialized quaternion
-    last_quat = np.concatenate([rot_to_quat(dev_head_t['trans'][:3, :3]),
-                                dev_head_t['trans'][:3, 3]])
-
-    quats = []
-    last_time = -0.001
-    for idx in indices:
-        # data in channels are in ctf device coordinates (cm)
-        this_ctf_dev = chpi_data[:, idx].reshape(3, 3)  # m
-
-        # map to mne device coords
-        this_dev = apply_trans(ctf_dev_dev_t, this_ctf_dev)
-
-        # fit quaternion
-        this_quat, g = _fit_chpi_quat(this_dev, chpi_locs_head)
-        if g < quat_gof_limit:
-            raise RuntimeError('Bad coil fit! (g=%7.3f)' % (g,))
-
-        dt = raw.times[idx] - last_time
-        this_dev_head_t = _quat_to_affine(this_quat)
-        this_locs_head = apply_trans(this_dev_head_t, this_dev)
-        errs = 1000. * np.linalg.norm(chpi_locs_head - this_locs_head, axis=-1)
-        e = errs.mean() / 1000.  # mm -> m
-        d = 100 * np.linalg.norm(last_quat[3:] - this_quat[3:])  # cm
-        v = d / dt  # cm/sec
-
-        quats.append(np.concatenate(([raw.times[idx]], this_quat, [g],
-                                     [e * 100], [v])))  # e in centimeters
-        last_quat = this_quat
-        last_time = raw.times[idx]
-
-    quats = np.array(quats, np.float64)
-    quats = np.zeros((0, 10)) if quats.size == 0 else quats
-    quats[:, 0] += raw._first_time
-    return quats
-
-
-# facilitate transition for people who had used the private one (bloyl)
-_calculate_head_pos_ctf = calculate_head_pos_ctf
 
 # ############################################################################
 # Estimate positions from data
@@ -316,12 +274,25 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
         raise RuntimeError('no initial cHPI head localization performed')
 
     hpi_result = info['hpi_results'][-1]
-    hpi_coils = sorted(info['hpi_meas'][-1]['hpi_coils'],
-                       key=lambda x: x['number'])  # ascending (info) order
     hpi_dig = sorted([d for d in info['dig']
                       if d['kind'] == FIFF.FIFFV_POINT_HPI],
                      key=lambda x: x['ident'])  # ascending (dig) order
-    pos_order = hpi_result['order'] - 1  # zero-based indexing, dig->info
+    if len(hpi_dig) == 0:  # CTF data, probably
+        hpi_dig = sorted(hpi_result['dig_points'], key=lambda x: x['ident'])
+        if all(d['coord_frame'] in (FIFF.FIFFV_COORD_DEVICE,
+                                    FIFF.FIFFV_COORD_UNKNOWN)
+               for d in hpi_dig):
+            for dig in hpi_dig:
+                dig.update(r=apply_trans(info['dev_head_t'], dig['r']),
+                           coord_frame=FIFF.FIFFV_COORD_HEAD)
+
+    # zero-based indexing, dig->info
+    # CTF does not populate some entries so we use .get here
+    pos_order = hpi_result.get('order', np.arange(1, len(hpi_dig) + 1)) - 1
+    used = hpi_result.get('used', np.arange(len(hpi_dig)))
+    dist_limit = hpi_result.get('dist_limit', 0.005)
+    good_limit = hpi_result.get('good_limit', 0.98)
+    goodness = hpi_result.get('goodness', np.ones(len(hpi_dig)))
 
     # this shouldn't happen, eventually we could add the transforms
     # necessary to put it in head coords
@@ -331,9 +302,9 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
     logger.info('HPIFIT: %s coils digitized in order %s'
                 % (len(pos_order), ' '.join(str(o + 1) for o in pos_order)))
     logger.debug('HPIFIT: %s coils accepted: %s'
-                 % (len(hpi_result['used']),
-                    ' '.join(str(h) for h in hpi_result['used'])))
+                 % (len(used), ' '.join(str(h) for h in used)))
     hpi_rrs = np.array([d['r'] for d in hpi_dig])[pos_order]
+    assert len(hpi_rrs) >= 3
 
     # Fitting errors
     hpi_rrs_fit = sorted([d for d in info['hpi_results'][-1]['dig_points']],
@@ -352,9 +323,9 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
     errors = np.linalg.norm(hpi_rrs - hpi_rrs_fit, axis=1)
     logger.debug('HPIFIT errors:  %s mm.'
                  % ', '.join('%0.1f' % (1000. * e) for e in errors))
-    if errors.sum() < len(errors) * hpi_result['dist_limit']:
+    if errors.sum() < len(errors) * dist_limit:
         logger.info('HPI consistency of isotrak and hpifit is OK.')
-    elif not adjust and (len(hpi_result['used']) == len(hpi_coils)):
+    elif not adjust and (len(used) == len(hpi_dig)):
         warn('HPI consistency of isotrak and hpifit is poor.')
     else:
         # adjust HPI coil locations using the hpifit transformation
@@ -362,11 +333,11 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
             # transform to head frame
             d = 1000 * err
             if not adjust:
-                if err >= hpi_result['dist_limit']:
+                if err >= dist_limit:
                     warn('Discrepancy of HPI coil %d isotrak and hpifit is '
                          '%.1f mm!' % (hi + 1, d))
-            elif hi + 1 not in hpi_result['used']:
-                if hpi_result['goodness'][hi] >= hpi_result['good_limit']:
+            elif hi + 1 not in used:
+                if goodness[hi] >= good_limit:
                     logger.info('Note: HPI coil %d isotrak is adjusted by '
                                 '%.1f mm!' % (hi + 1, d))
                     hpi_rrs[hi] = r_fit
@@ -374,7 +345,7 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
                     warn('Discrepancy of HPI coil %d isotrak and hpifit of '
                          '%.1f mm was not adjusted!' % (hi + 1, d))
     logger.debug('HP fitting limits: err = %.1f mm, gval = %.3f.'
-                 % (1000 * hpi_result['dist_limit'], hpi_result['good_limit']))
+                 % (1000 * dist_limit, good_limit))
 
     return hpi_rrs.astype(float)
 
@@ -621,7 +592,7 @@ def _fast_fit(this_data, proj, n_freqs, model, inv_model):
 
 def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
                               too_close='raise', ext_order=1):
-    """Calculate location of HPI coils in device coords for 1 time window.
+    """Compute location of HPI coils in device coords for 1 time window.
 
     Returns
     -------
@@ -668,18 +639,47 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
     return coil_dev_rrs, coil_g
 
 
+def _check_chpi_locs(chpi_locs):
+    _validate_type(chpi_locs, dict, 'chpi_locs')
+    want_ndims = dict(times=1, rrs=3, gofs=2)
+    want_keys = want_ndims.keys()
+    if set(want_keys).symmetric_difference(chpi_locs):
+        raise ValueError('chpi_locs must be a dict with entries %s, got %s'
+                         % (want_keys, sorted(chpi_locs.keys())))
+    n_times = None
+    for key, want_ndim in want_ndims.items():
+        key_str = 'chpi_locs[%s]' % (key,)
+        val = chpi_locs[key]
+        _validate_type(val, np.ndarray, key_str)
+        shape = val.shape
+        if val.ndim != want_ndim:
+            raise ValueError('%s must have ndim=%d, got %d'
+                             % (key_str, want_ndim, val.ndim))
+        if n_times is None:
+            n_times = shape[0]
+        if n_times != shape[0]:
+            raise ValueError('chpi_locs have inconsistent number of time '
+                             'points in %s' % (want_keys,))
+    gofs, rrs = chpi_locs['gofs'], chpi_locs['rrs']
+    if gofs.shape[1] != rrs.shape[1]:
+        raise ValueError('chpi_locs["rrs"] had values for %d coils but '
+                         'chpi_locs["gofs"] had values for %d coils'
+                         % (rrs.shape[1], gofs.shape[1]))
+    if rrs.shape[2] != 3:
+        raise ValueError('chpi_locs["rrs"].shape[2] must be 3, got shape %s'
+                         % (key_str, shape))
+
+
 @verbose
-def calculate_head_pos_chpi_coil_locs(
-        info, coil_locs, dist_limit=0.005, gof_limit=0.98,
-        adjust_dig=False, verbose=None):
-    """Calculate head positions using cHPI coil locations.
+def compute_head_pos(info, chpi_locs, dist_limit=0.005, gof_limit=0.98,
+                     adjust_dig=False, verbose=None):
+    """Compute time-varying head positions.
 
     Parameters
     ----------
     info : instance of Info
         Measurement information.
-    coil_locs : dict
-        Time-varying coil locations.
+    %(chpi_locs)s
     dist_limit : float
         Minimum distance (m) to accept for coil position fitting.
     gof_limit : float
@@ -694,7 +694,8 @@ def calculate_head_pos_chpi_coil_locs(
 
     See Also
     --------
-    calculate_chpi_coil_locs
+    compute_chpi_locs
+    extract_chpi_locs_ctf
     read_head_pos
     write_head_pos
 
@@ -702,9 +703,10 @@ def calculate_head_pos_chpi_coil_locs(
     -----
     .. versionadded:: 0.20
     """
+    _check_chpi_locs(chpi_locs)
     hpi_dig_head_rrs = _get_hpi_initial_fit(info, adjust=adjust_dig,
                                             verbose='error')
-    hpi_freqs, _, _ = _get_hpi_info(info)
+    n_coils = len(hpi_dig_head_rrs)
     coil_dev_rrs = apply_trans(invert_transform(info['dev_head_t']),
                                hpi_dig_head_rrs)
     dev_head_t = info['dev_head_t']['trans']
@@ -715,27 +717,31 @@ def calculate_head_pos_chpi_coil_locs(
     del coil_dev_rrs
     quats = []
     for fit_time, this_coil_dev_rrs, g_coils in zip(
-            *(coil_locs[key] for key in ('times', 'rrs', 'gofs'))):
+            *(chpi_locs[key] for key in ('times', 'rrs', 'gofs'))):
         use_idx = np.where(g_coils >= gof_limit)[0]
 
         #
-        # 3. Check number of good ones
+        # 1. Check number of good ones
         #
         if len(use_idx) < 3:
             msg = (_time_prefix(fit_time) + '%s/%s good HPI fits, cannot '
                    'determine the transformation (%s)!'
-                   % (len(use_idx), len(hpi_freqs),
+                   % (len(use_idx), n_coils,
                       ', '.join('%0.2f' % g for g in g_coils)))
             warn(msg)
             continue
 
         #
-        # 4. Fit the head translation and rotation params (minimize error
+        # 2. Fit the head translation and rotation params (minimize error
         #    between coil positions and the head coil digitization
         #    positions) iteratively using different sets of coils.
         #
         this_quat, g, use_idx = _fit_chpi_quat_subset(
             this_coil_dev_rrs, hpi_dig_head_rrs, use_idx)
+
+        #
+        # 3. Stop if < 3 good
+        #
 
         # Convert quaterion to transform
         this_dev_head_t = _quat_to_affine(this_quat)
@@ -745,8 +751,7 @@ def calculate_head_pos_chpi_coil_locs(
         if n_good < 3:
             warn(_time_prefix(fit_time) + '%s/%s good HPI fits, cannot '
                  'determine the transformation (%s)!'
-                 % (n_good, len(hpi_freqs),
-                    ', '.join('%0.2f' % g for g in g_coils)))
+                 % (n_good, n_coils, ', '.join('%0.2f' % g for g in g_coils)))
             continue
 
         # velocities, in device coords, of HPI coils
@@ -755,11 +760,12 @@ def calculate_head_pos_chpi_coil_locs(
                                           this_coil_dev_rrs, axis=1) / dt)
         logger.info(_time_prefix(fit_time) +
                     ('%s/%s good HPI fits, movements [mm/s] = ' +
-                    ' / '.join(['% 8.1f'] * len(hpi_freqs)))
-                    % ((n_good, len(hpi_freqs)) + vs))
+                    ' / '.join(['% 8.1f'] * n_coils))
+                    % ((n_good, n_coils) + vs))
 
+        # Log results
         # MaxFilter averages over a 200 ms window for display, but we don't
-        for ii in range(len(hpi_freqs)):
+        for ii in range(n_coils):
             if ii in use_idx:
                 start, end = ' ', '/'
             else:
@@ -824,10 +830,10 @@ def _unit_quat_constraint(x):
 
 
 @verbose
-def calculate_chpi_coil_locs(raw, t_step_min=0.01, t_step_max=1.,
-                             t_window='auto', too_close='raise',
-                             adjust_dig=False, ext_order=1, verbose=None):
-    """Calculate locations of each cHPI coils over time.
+def compute_chpi_locs(raw, t_step_min=0.01, t_step_max=1.,
+                      t_window='auto', too_close='raise',
+                      adjust_dig=False, ext_order=1, verbose=None):
+    """Compute locations of each cHPI coils over time.
 
     Parameters
     ----------
@@ -848,15 +854,14 @@ def calculate_chpi_coil_locs(raw, t_step_min=0.01, t_step_max=1.,
 
     Returns
     -------
-    chpi_locs : dict
-        The localizaed cHPI coils dictionary, with entries
-        "times", "rrs", and "gofs"..
+    %(chpi_locs)s
 
     See Also
     --------
     read_head_pos
     write_head_pos
-    calculate_head_pos_chpi_coil_locs
+    compute_head_pos
+    extract_chpi_locs_ctf
 
     Notes
     -----

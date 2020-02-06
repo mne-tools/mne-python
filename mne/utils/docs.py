@@ -276,6 +276,11 @@ adjust_dig : bool
     If True, adjust the digitization locations used for fitting based on
     the positions localized at the start of the file.
 """
+docdict['chpi_locs'] = """
+chpi_locs : dict
+    The time-varying cHPI coils locations, with entries
+    "times", "rrs", and "gofs".
+"""
 
 # Rank
 docdict['rank'] = """

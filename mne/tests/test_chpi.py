@@ -13,9 +13,9 @@ from mne import pick_types, pick_info
 from mne.io import (read_raw_fif, read_raw_artemis123, read_raw_ctf, read_info,
                     RawArray)
 from mne.io.constants import FIFF
-from mne.chpi import (calculate_head_pos_chpi_coil_locs,
-                      calculate_chpi_coil_locs, _chpi_locs_to_times_dig,
-                      calculate_head_pos_ctf, head_pos_to_trans_rot_t,
+from mne.chpi import (compute_head_pos, compute_chpi_locs,
+                      _chpi_locs_to_times_dig,
+                      extract_chpi_locs_ctf, head_pos_to_trans_rot_t,
                       read_head_pos, write_head_pos, filter_chpi,
                       _get_hpi_info, _get_hpi_initial_fit)
 from mne.transforms import rot_to_quat, _angle_between_quats
@@ -178,11 +178,10 @@ def _calculate_chpi_positions(raw, t_step_min=0.01, t_step_max=1.,
                               t_window='auto', too_close='raise',
                               dist_limit=0.005, gof_limit=0.98,
                               ext_order=1, verbose=None):
-    chpi_locs = calculate_chpi_coil_locs(
+    chpi_locs = compute_chpi_locs(
         raw, t_step_min=t_step_min, t_step_max=t_step_max,
         t_window=t_window, too_close=too_close, ext_order=ext_order)
-    return calculate_head_pos_chpi_coil_locs(
-        raw.info, chpi_locs, dist_limit, gof_limit)
+    return compute_head_pos(raw.info, chpi_locs, dist_limit, gof_limit)
 
 
 @pytest.mark.slowtest
@@ -346,8 +345,7 @@ def test_simulate_calculate_head_pos_chpi():
 
 def _calculate_chpi_coil_locs(raw, verbose):
     """Wrap to facilitate change diff."""
-    return _chpi_locs_to_times_dig(
-        calculate_chpi_coil_locs(raw, verbose=verbose))
+    return _chpi_locs_to_times_dig(compute_chpi_locs(raw, verbose=verbose))
 
 
 @testing.requires_testing_data
@@ -379,7 +377,7 @@ def test_calculate_chpi_coil_locs():
     assert_allclose(cHPI_digs[5][0]['r'],
                     [-0.0157, 0.0655, 0.0018], atol=1e-3)
     with pytest.raises(ValueError, match='too_close'):
-        calculate_chpi_coil_locs(raw, too_close='foo')
+        compute_chpi_locs(raw, too_close='foo')
 
 
 @testing.requires_testing_data
@@ -421,6 +419,12 @@ def test_chpi_subtraction():
     with pytest.raises(ValueError, match='must be > 0'):
         filter_chpi(raw, t_window=-1)
     assert '2 cHPI' in log.getvalue()
+
+
+def calculate_head_pos_ctf(raw):
+    """Wrap to facilitate API change."""
+    chpi_locs = extract_chpi_locs_ctf(raw)
+    return compute_head_pos(raw.info, chpi_locs)
 
 
 @testing.requires_testing_data

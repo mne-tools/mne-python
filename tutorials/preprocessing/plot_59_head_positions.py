@@ -41,13 +41,12 @@ raw.plot_psd()
 #
 # Next let's extract the HPI coil locations as a function of time:
 
-coil_locs = mne.chpi.calculate_chpi_coil_locs(raw)
+chpi_locs = mne.chpi.compute_chpi_locs(raw)
 
 ###############################################################################
 # And then compute head positions from these:
 
-head_pos = mne.chpi.calculate_head_pos_chpi_coil_locs(
-    raw.info, coil_locs, verbose=True)
+head_pos = mne.chpi.compute_head_pos(raw.info, chpi_locs, verbose=True)
 
 ###############################################################################
 # Note that these can then be written to disk or read from disk with
