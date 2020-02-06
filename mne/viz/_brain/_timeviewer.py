@@ -8,6 +8,7 @@ from itertools import cycle
 import time
 import numpy as np
 from ..utils import _get_color_list, tight_layout
+from ...source_space import vertex_to_mni
 
 
 class MplCanvas(object):
@@ -31,10 +32,10 @@ class MplCanvas(object):
         # XXX eventually this should be called in the window resize callback
         tight_layout(fig=self.axes.figure)
 
-    def plot(self, x, y, vertex_id, **kwargs):
+    def plot(self, x, y, label, **kwargs):
         """Plot a curve."""
         line, = self.axes.plot(
-            x, y, label='vertex id = {}'.format(vertex_id), **kwargs)
+            x, y, label=label, **kwargs)
         self.update_plot()
         return line
 
@@ -656,10 +657,19 @@ class _TimeViewer(object):
 
     def plot_time_course(self, hemi, vertex_id, color):
         time = self.brain._data['time']
+        hemi_str = 'L' if hemi == 'lh' else 'R'
+        hemi_int = 0 if hemi == 'lh' else 1
+        mni = vertex_to_mni(
+            vertices=vertex_id,
+            hemis=hemi_int,
+            subject=self.brain._subject_id,
+            subjects_dir=self.brain._subjects_dir
+        )
+        label = "{}-{} (MNI: {})".format(hemi_str, vertex_id, mni)
         line = self.mpl_canvas.plot(
             time,
             self.act_data[hemi][vertex_id, :],
-            vertex_id,
+            label=label,
             lw=1.,
             color=color
         )
