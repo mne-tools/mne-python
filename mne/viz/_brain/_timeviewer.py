@@ -561,7 +561,10 @@ class _TimeViewer(object):
                     self.act_data[hemi] = smooth_mat.dot(self.act_data[hemi])
 
                 # simulate a picked renderer
-                self.picked_renderer = self.plotter.renderers[idx]
+                if self.brain._hemi == 'split':
+                    self.picked_renderer = self.plotter.renderers[idx]
+                else:
+                    self.picked_renderer = self.plotter.renderers[0]
 
                 # initialize the default point
                 color = next(self.color_cycle)
@@ -592,7 +595,7 @@ class _TimeViewer(object):
     def on_button_release(self, vtk_picker, event):
         if self._mouse_no_mvt:
             x, y = vtk_picker.GetEventPosition()
-            # programmatically detect the picked the renderer
+            # programmatically detect the picked renderer
             self.picked_renderer = self.plotter.iren.FindPokedRenderer(x, y)
             # trigger the pick
             self.plotter.picker.Pick(x, y, 0, self.picked_renderer)
