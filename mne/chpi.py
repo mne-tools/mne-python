@@ -164,13 +164,15 @@ def head_pos_to_trans_rot_t(quats):
     return translation, rotation, t
 
 
-def extract_chpi_locs_ctf(raw):
+@verbose
+def extract_chpi_locs_ctf(raw, verbose=None):
     r"""Extract head position parameters from ctf dataset.
 
     Parameters
     ----------
     raw : instance of Raw
         Raw data with CTF cHPI information.
+    %(verbose)s
 
     Returns
     -------
