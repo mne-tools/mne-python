@@ -1,7 +1,7 @@
 numpy
 scipy
 matplotlib
-mayavi
+https://api.github.com/repos/larsoner/mayavi/zipball/crash
 pyqt5!=5.14.1
 pyqt5-sip
 sip

@@ -34,7 +34,7 @@ dependencies:
   - https://api.github.com/repos/numpy/numpydoc/zipball/master
   - vtk
   - https://api.github.com/repos/pyvista/pyvista/zipball/master
-  - mayavi
+  - https://api.github.com/repos/larsoner/mayavi/zipball/crash
   - PySurfer[save_movie]
   - dipy --only-binary dipy
   - nibabel
