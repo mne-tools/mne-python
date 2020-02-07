@@ -39,6 +39,7 @@ from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi, _set_source_space_vertices,
                             _write_source_spaces_to_fid)
 from ..source_estimate import _BaseSourceEstimate
+from ..surface import _normal_orth
 from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
@@ -696,16 +697,13 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
                     #  Project out the surface normal and compute SVD
                     if use_ave_nn and s.get('patch_inds') is not None:
                         nn = s['nn'][s['pinfo'][s['patch_inds'][p]], :]
-                        nn = np.sum(nn, axis=0)[:, np.newaxis]
+                        nn = np.sum(nn, axis=0)
                         nn /= linalg.norm(nn)
                     else:
-                        nn = s['nn'][s['vertno'][p], :][:, np.newaxis]
-                    U, S, _ = linalg.svd(np.eye(3, 3) - nn * nn.T)
-                    #  Make sure that ez is in the direction of nn
-                    if np.sum(nn.ravel() * U[:, 2].ravel()) < 0:
-                        U *= -1.0
-                    fwd['source_nn'][pp:pp + 3, :] = U.T
+                        nn = s['nn'][s['vertno'][p], :]
+                    fwd['source_nn'][pp:pp + 3, :] = _normal_orth(nn)
                     pp += 3
+                    del nn
             else:
                 pp += 3 * s['nuse']
 
