@@ -1,7 +1,7 @@
 numpy
 scipy
 matplotlib
-https://api.github.com/repos/larsoner/mayavi/zipball/crash
+mayavi
 pyqt5!=5.14.1
 pyqt5-sip
 sip
@@ -23,7 +23,8 @@ joblib
 psutil
 dipy
 https://api.github.com/repos/numpy/numpydoc/zipball/master
-PySurfer[save_movie]
+https://api.github.com/repos/larsoner/PySurfer/zipball/safer
+imageio
 nilearn
 neo
 xlrd
