@@ -35,8 +35,7 @@ dependencies:
   - vtk
   - https://api.github.com/repos/pyvista/pyvista/zipball/master
   - mayavi
-  - https://api.github.com/repos/larsoner/PySurfer/zipball/safer
-  - imageio
+  - PySurfer[save_movie]
   - dipy --only-binary dipy
   - nibabel
   - nilearn
