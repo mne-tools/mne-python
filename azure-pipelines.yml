@@ -120,7 +120,6 @@ jobs:
       set -e
       pip install --upgrade numpy scipy vtk
       pip install --upgrade -r requirements.txt
-      pip uninstall -yq pyvista
       pip install codecov
     condition: eq(variables['TEST_MODE'], 'pip')
     displayName: 'Install dependencies with pip'
@@ -147,7 +146,6 @@ jobs:
       conda install numpy scipy matplotlib scikit-learn
       conda env update --file $env:CONDA_ENV
       pip uninstall -yq mne
-      pip uninstall -yq pyvista
       pip install codecov
       Write-Host ("##vso[task.setvariable variable=PATH]" + $env:PATH)
     condition: eq(variables['TEST_MODE'], 'conda')
