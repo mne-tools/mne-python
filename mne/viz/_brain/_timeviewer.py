@@ -351,6 +351,8 @@ class _TimeViewer(object):
             pointb=(0.77, 0.1),
             event_type='always'
         )
+        time_slider.GetRepresentation().SetLabelFormat('idx=%0.1f')
+
         time_slider.name = "time"
         # set the default value
         self.time_call(value=brain._data['time_idx'])
@@ -521,7 +523,6 @@ class _TimeViewer(object):
         self.playback_speed = speed
 
     def play(self):
-        from scipy.interpolate import interp1d
         if self.playback:
             this_time = time.time()
             delta = this_time - self._last_tick
@@ -531,8 +532,10 @@ class _TimeViewer(object):
             time_shift = delta * self.playback_speed
             max_time = np.max(time_data)
             time_point = min(self.brain._current_time + time_shift, max_time)
-            ifunc = interp1d(time_data, times)
-            idx = ifunc(time_point)
+            # always use linear here -- this does not determine the data
+            # interpolation mode, it just finds where we are (in time) in
+            # terms of the time indices
+            idx = np.interp(time_point, time_data, times)
             self.time_call(idx, update_widget=True)
             if time_point == max_time:
                 self.playback = False
