@@ -16,7 +16,7 @@ from ..tag import _coil_trans_to_loc
 from ..utils import _read_segments_file, _mult_cal_one
 from ..constants import FIFF
 from ...surface import _normal_orth
-from ...transforms import apply_trans, Transform
+from ...transforms import apply_trans, Transform, get_ras_to_neuromag_trans
 from ...utils import check_fname, check_version, logger, verbose, warn
 from ...annotations import Annotations
 
@@ -166,7 +166,9 @@ def _read_curry_info(curry_paths):
     curry_params = _read_curry_parameters(curry_paths['info'])
     R = np.eye(4)
     R[1, 1] = -1  # reverse front/back
-    R[:3, 3] = [0., -0.02, -0.12]  # shift down and back
+    # shift down and back
+    # (chosen by eyeballing to make the CTF helmet look roughly correct)
+    R[:3, 3] = [0., -0.02, -0.12]
     curry_dev_dev_t = Transform(FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
                                 FIFF.FIFFV_COORD_DEVICE, R)
 
@@ -200,6 +202,7 @@ def _read_curry_info(curry_paths):
                 pos = np.array(sensors["SENSORS" + CHANTYPES[key]][ind], float)
                 pos /= 1000.  # to meters
                 pos = pos[:3]  # just the inner coil
+                # XXX should do something about the outer coils, too
                 pos = apply_trans(curry_dev_dev_t, pos)
                 nn = np.array(normals["NORMALS" + CHANTYPES[key]][ind], float)
                 assert np.isclose(np.linalg.norm(nn), 1., atol=1e-4)
@@ -209,13 +212,13 @@ def _read_curry_info(curry_paths):
                 trans[:3, 3] = pos
                 trans[:3, :3] = _normal_orth(nn).T
                 ch['loc'] = _coil_trans_to_loc(trans)
-                # XXX need to check this, too
                 ch['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
 
             all_chans.append(ch)
 
     ch_names = [chan["ch_name"] for chan in all_chans]
     info = create_info(ch_names, curry_params.sfreq)
+    _make_trans_dig(label_fname, info, curry_dev_dev_t)
 
     for ind, ch_dict in enumerate(info["chs"]):
         ch_dict["kind"] = all_chans[ind]["kind"]
@@ -227,6 +230,73 @@ def _read_curry_info(curry_paths):
         ch_dict['coil_type'] = FIFF.FIFFV_COIL_CTF_GRAD
 
     return info, curry_params.n_samples, curry_params.is_ascii
+
+
+_card_dict = {'Left ear': FIFF.FIFFV_POINT_LPA,
+              'Nasion': FIFF.FIFFV_POINT_NASION,
+              'Right ear': FIFF.FIFFV_POINT_RPA}
+
+
+def _make_trans_dig(label_fname, info, curry_dev_dev_t):
+    # Coordinate frame transformations and definitions
+    key = 'LANDMARKS' + CHANTYPES['meg']
+    lm = _read_curry_lines(label_fname, [key])[key]
+    lm = np.array(lm, float)
+    lm.shape = (-1, 3)
+    if len(lm) == 0:
+        # no dig
+        return
+    lm /= 1000.
+    lm = apply_trans(curry_dev_dev_t, lm)
+    key = 'LM_REMARKS' + CHANTYPES['meg']
+    remarks = _read_curry_lines(label_fname, [key])[key]
+    assert len(remarks) == len(lm)
+    info['dig'] = list()
+    cards = dict()
+    for remark, r in zip(remarks, lm):
+        kind = ident = None
+        if remark in _card_dict:
+            kind = FIFF.FIFFV_POINT_CARDINAL
+            ident = _card_dict[remark]
+            cards[ident] = r
+        elif remark.startswith('HPI'):
+            kind = FIFF.FIFFV_POINT_HPI
+            ident = int(remark[3:]) - 1
+        if kind is not None:
+            info['dig'].append(dict(
+                kind=kind, ident=ident, r=r,
+                coord_frame=FIFF.FIFFV_COORD_DEVICE))
+    if len(cards) == 3:  # have all three
+        # Left and right are switched in their coords (?)
+        info['dev_head_t'] = Transform(
+            'meg', 'head',
+            get_ras_to_neuromag_trans(
+                *(cards[key] for key in (FIFF.FIFFV_POINT_NASION,
+                                         FIFF.FIFFV_POINT_RPA,
+                                         FIFF.FIFFV_POINT_LPA))))
+        for d in info['dig']:
+            d.update(coord_frame=FIFF.FIFFV_COORD_HEAD,
+                     r=apply_trans(info['dev_head_t'], d['r']))
+    info['dig'] = sorted(info['dig'], key=lambda x: (x['kind'], x['ident']))
+
+
+# XXX remove this
+def _first_hpi(fname):
+    # Get the first HPI result
+    with open(fname, 'r') as fid:
+        for line in fid:
+            line = line.strip()
+            if any(x in line for x in ('FileVersion', 'NumCoils')) or not line:
+                continue
+            hpi = np.array(line.split(), float)
+            break
+        else:
+            raise RuntimeError('Could not find valid HPI in %s' % (fname,))
+    # t is the first enttry
+    assert hpi.ndim == 1
+    hpi = hpi[1:]
+    hpi.shape = (-1, 5)
+    return hpi
 
 
 def _read_events_curry(fname):

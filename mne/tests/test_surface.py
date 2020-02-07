@@ -223,7 +223,7 @@ def test_normal_orth():
     nns = np.eye(3)
     for nn in nns:
         ori = _normal_orth(nn)
-        assert_allclose(ori[:, 2], nn, atol=1e-12)
+        assert_allclose(ori[2], nn, atol=1e-12)
 
 
 run_tests_if_main()
