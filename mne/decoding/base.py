@@ -329,12 +329,16 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
     while hasattr(est, 'steps'):
         est = est.steps[-1][1]
 
+    squeeze_first_dim = False
+
     # If SlidingEstimator, loop across estimators
     if hasattr(est, 'estimators_'):
         coef = list()
         for this_est in est.estimators_:
             coef.append(get_coef(this_est, attr, inverse_transform))
         coef = np.transpose(coef)
+        coef = coef[np.newaxis]  # fake a sample dimension
+        squeeze_first_dim = True
     elif not hasattr(est, attr):
         raise ValueError('This estimator does not have a %s attribute:\n%s'
                          % (attr, est))
@@ -344,6 +348,7 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
     ndim_is_one = (coef.ndim == 1)
     if ndim_is_one:
         coef = coef[np.newaxis]
+        squeeze_first_dim = True
 
     # inverse pattern e.g. to get back physical units
     if inverse_transform:
@@ -355,7 +360,7 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
         for inverse_func in _get_inverse_funcs(estimator)[::-1]:
             coef = inverse_func(coef)
 
-    if ndim_is_one:
+    if squeeze_first_dim:
         coef = coef[0]
 
     return coef
