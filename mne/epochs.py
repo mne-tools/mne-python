@@ -1252,7 +1252,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         keep = np.setdiff1d(np.arange(len(self.events)), try_idx)
         self._getitem(keep, reason, copy=False, drop_event_id=False)
         count = len(try_idx)
-        logger.info('Dropped %d epoch%s' % (count, _pl(count)))
+        logger.info('Dropped %d epoch%s: %s' % (count, _pl(count), 
+                                                np.array2string(np.sort(try_idx), 
+                                                                precision=0, 
+                                                                separator=',')))
         return self
 
     def _get_epoch_from_raw(self, idx, verbose=None):
