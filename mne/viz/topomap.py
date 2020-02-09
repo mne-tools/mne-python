@@ -520,7 +520,7 @@ def _get_extra_points(pos, extrapolate, sphere):
         points_x = np.cos(points_l) * use_radius + x
         points_y = np.sin(points_l) * use_radius + y
         new_pos = np.stack([points_x, points_y], axis=1)
-        if colinear:
+        if colinear or pos.shape[0] == 3:
             tri = Delaunay(np.concatenate([pos, new_pos], axis=0))
             return new_pos, tri
     tri.add_points(new_pos)
