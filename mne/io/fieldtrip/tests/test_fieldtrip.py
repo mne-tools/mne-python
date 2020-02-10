@@ -260,7 +260,8 @@ def test_evoked_with_missing_channels():
     cur_system = 'neuromag306'
     test_data_folder_ft = get_data_paths(cur_system)
     info = get_raw_info(cur_system)
-    del info['ch_names'][1:20]
+    del info['chs'][1:20]
+    info._update_redundant()
 
     with pytest.warns(RuntimeWarning):
         mne.read_evoked_fieldtrip(
