@@ -2044,11 +2044,14 @@ class SelectFromCollection(object):
 
         # Ensure that we have separate colors for each object
         self.fc = collection.get_facecolors()
+        self.ec = collection.get_edgecolors()
         if len(self.fc) == 0:
             raise ValueError('Collection must have a facecolor')
         elif len(self.fc) == 1:
             self.fc = np.tile(self.fc, self.Npts).reshape(self.Npts, -1)
+            self.ec = np.tile(self.ec, self.Npts).reshape(self.Npts, -1)
         self.fc[:, -1] = self.alpha_other  # deselect in the beginning
+        self.ec[:, -1] = self.alpha_other
 
         self.lasso = LassoSelector(ax, onselect=self.on_select,
                                    lineprops={'color': 'red', 'linewidth': .5})
@@ -2073,6 +2076,10 @@ class SelectFromCollection(object):
         self.fc[:, -1] = self.alpha_other
         self.fc[inds, -1] = 1
         self.collection.set_facecolors(self.fc)
+
+        self.ec[:, -1] = self.alpha_other
+        self.ec[inds, -1] = 1
+        self.collection.set_edgecolors(self.ec)
         self.canvas.draw_idle()
         self.canvas.callbacks.process('lasso_event')
 
@@ -2087,7 +2094,9 @@ class SelectFromCollection(object):
             self.selection.append(ch_name)
             this_alpha = 1
         self.fc[ind, -1] = this_alpha
+        self.ec[ind, -1] = this_alpha
         self.collection.set_facecolors(self.fc)
+        self.collection.set_edgecolors(self.ec)
         self.canvas.draw_idle()
         self.canvas.callbacks.process('lasso_event')
 
@@ -2095,7 +2104,9 @@ class SelectFromCollection(object):
         """Disconnect the lasso selector."""
         self.lasso.disconnect_events()
         self.fc[:, -1] = 1
+        self.ec[:, -1] = 1
         self.collection.set_facecolors(self.fc)
+        self.collection.set_edgecolors(self.ec)
         self.canvas.draw_idle()
 
 
