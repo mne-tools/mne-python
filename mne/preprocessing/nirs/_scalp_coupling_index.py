@@ -11,7 +11,6 @@ from ...utils import _validate_type, verbose
 from ..nirs import _channel_frequencies, _check_channels_ordered
 from ...filter import filter_data
 
-
 @verbose
 def scalp_coupling_index(raw, l_freq=0.7, h_freq=1.5,
                          l_trans_bandwidth=0.3, h_trans_bandwidth=0.3,
@@ -42,10 +41,14 @@ def scalp_coupling_index(raw, l_freq=0.7, h_freq=1.5,
     .. footbibliography::
     """
     raw = raw.copy().load_data()
-    _validate_type(raw, BaseRaw, 'fnirs_od')
+    _validate_type(raw, BaseRaw, 'raw')
 
     freqs = np.unique(_channel_frequencies(raw))
     picks = _check_channels_ordered(raw, freqs)
+
+    if not len(picks):
+        raise RuntimeError('Scalp coupling index '
+                           'should be run on optical density data.')
 
     filtered_data = filter_data(raw._data, raw.info['sfreq'], l_freq, h_freq,
                                 picks=picks, verbose=verbose,
