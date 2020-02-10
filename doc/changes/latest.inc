@@ -15,7 +15,7 @@ Current (0.20.dev0)
 Changelog
 ~~~~~~~~~
 
-- Improved :func:`mne.plot_evokeds` to label epoch counts starting from 0 `Sophie Herbst`_
+- Improved :func:`mne.viz.plot_epochs` to label epoch counts starting from 0 `Sophie Herbst`_
 
 - Add :func:`mne.minimum_norm.resolution_metrics` to compute various resolution metrics for inverse solutions, by `Olaf Hauk`_
 
