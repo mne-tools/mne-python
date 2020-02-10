@@ -11,6 +11,7 @@ from ...utils import _validate_type, verbose
 from ..nirs import _channel_frequencies, _check_channels_ordered
 from ...filter import filter_data
 
+
 @verbose
 def scalp_coupling_index(raw, l_freq=0.7, h_freq=1.5,
                          l_trans_bandwidth=0.3, h_trans_bandwidth=0.3,
