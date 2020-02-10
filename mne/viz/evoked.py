@@ -453,10 +453,11 @@ def _plot_lines(data, info, picks, fig, axes, spatial_colors, unit, units,
                 # plot channels
                 for ch_idx, z in enumerate(z_ord):
                     line_list.append(
-                        ax.plot(times, D[ch_idx], picker=3.,
+                        ax.plot(times, D[ch_idx], picker=True,
                                 zorder=z + 1 if spatial_colors is True else 1,
                                 color=colors[ch_idx], alpha=line_alpha,
                                 linewidth=0.5)[0])
+                    line_list[-1].set_pickradius(3.)
 
             if gfp:  # 'only' or boolean True
                 gfp_color = 3 * (0.,) if spatial_colors is True else (0., 1.,

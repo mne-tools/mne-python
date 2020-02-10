@@ -160,8 +160,7 @@ requires_freesurfer = partial(requires_module, name='Freesurfer',
 requires_neuromag2ft = partial(requires_module, name='neuromag2ft',
                                call=_n2ft_call)
 
-requires_tvtk = partial(requires_module, name='TVTK',
-                        call='from tvtk.api import tvtk')
+requires_vtk = partial(requires_module, name='vtk')
 requires_pysurfer = partial(requires_module, name='PySurfer',
                             call="""import warnings
 with warnings.catch_warnings(record=True):

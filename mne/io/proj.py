@@ -38,7 +38,7 @@ class Projection(dict):
                      colorbar=False, res=64, size=1, show=True,
                      outlines='head', contours=6, image_interp='bilinear',
                      axes=None, vlim=(None, None), layout=None,
-                     sphere=None):
+                     sphere=None, border=0):
         """Plot topographic maps of SSP projections.
 
         Parameters
@@ -49,6 +49,7 @@ class Projection(dict):
             precedence.
         %(proj_topomap_kwargs)s
         %(topomap_sphere_auto)s
+        %(topomap_border)s
 
         Returns
         -------
@@ -63,7 +64,7 @@ class Projection(dict):
         return plot_projs_topomap(self, info, cmap, sensors, colorbar,
                                   res, size, show, outlines,
                                   contours, image_interp, axes, vlim, layout,
-                                  sphere=sphere)
+                                  sphere=sphere, border=border)
 
 
 class ProjMixin(object):
@@ -237,7 +238,8 @@ class ProjMixin(object):
                            sensors=True, colorbar=False, res=64, size=1,
                            show=True, outlines='head', contours=6,
                            image_interp='bilinear', axes=None,
-                           vlim=(None, None), sphere=None):
+                           vlim=(None, None), sphere=None, extrapolate='box',
+                           border=0):
         """Plot SSP vector.
 
         Parameters
@@ -251,6 +253,10 @@ class ProjMixin(object):
             Deprecated, do not use.
         %(proj_topomap_kwargs)s
         %(topomap_sphere_auto)s
+        %(topomap_extrapolate)s
+
+            .. versionadded:: 0.20
+        %(topomap_border)s
 
         Returns
         -------
@@ -259,13 +265,13 @@ class ProjMixin(object):
         """
         if self.info['projs'] is not None or len(self.info['projs']) != 0:
             from ..viz.topomap import plot_projs_topomap
-            fig = plot_projs_topomap(self.info['projs'], layout=layout,
-                                     cmap=cmap, sensors=sensors,
-                                     colorbar=colorbar, res=res, size=size,
-                                     show=show, outlines=outlines,
-                                     contours=contours,
+            fig = plot_projs_topomap(self.info['projs'], self.info, cmap=cmap,
+                                     sensors=sensors, colorbar=colorbar,
+                                     res=res, size=size, show=show,
+                                     outlines=outlines, contours=contours,
                                      image_interp=image_interp, axes=axes,
-                                     vlim=vlim, info=self.info)
+                                     vlim=vlim, sphere=sphere,
+                                     extrapolate=extrapolate, border=border)
         else:
             raise ValueError("Info is missing projs. Nothing to plot.")
         return fig

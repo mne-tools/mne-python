@@ -2815,4 +2815,18 @@ def test_file_like(kind, preload, tmpdir):
     assert file_fid.closed
 
 
+@pytest.mark.parametrize('preload', (True, False))
+def test_epochs_get_data_item(preload):
+    """Test epochs.get_data(item=...)."""
+    raw, events, _ = _get_data()
+    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, preload=preload)
+    if not preload:
+        with pytest.raises(ValueError, match='item must be None'):
+            epochs.get_data(item=0)
+        epochs.drop_bad()
+    one_data = epochs.get_data(item=0)
+    one_epo = epochs[0]
+    assert_array_equal(one_data, one_epo.get_data())
+
+
 run_tests_if_main()

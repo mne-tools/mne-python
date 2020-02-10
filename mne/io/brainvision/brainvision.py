@@ -619,16 +619,21 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
         lp_s = '[s]' in header[lp_col]
 
         for i, ch in enumerate(ch_names, 1):
-            line = re.split(divider, settings[idx + i])
             # double check alignment with channel by using the hw settings
             if idx == idx_amp:
-                line_amp = line
+                line_amp = settings[idx + i]
             else:
-                line_amp = re.split(divider, settings[idx_amp + i])
-            assert ch in line_amp
+                line_amp = settings[idx_amp + i]
+            assert line_amp.find(ch) > -1
 
-            highpass.append(line[hp_col + shift])
-            lowpass.append(line[lp_col + shift])
+            # Correct shift for channel names with spaces
+            # Header already gives 1 therefore has to be subtracted
+            ch_name_parts = re.split(divider, ch)
+            real_shift = shift + len(ch_name_parts) - 1
+
+            line = re.split(divider, settings[idx + i])
+            highpass.append(line[hp_col + real_shift])
+            lowpass.append(line[lp_col + real_shift])
         if len(highpass) == 0:
             pass
         elif len(set(highpass)) == 1:

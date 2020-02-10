@@ -62,12 +62,12 @@ epochs.metadata
 ###############################################################################
 # Viewing the metadata values for a given epoch and metadata variable is done
 # using any of the :ref:`Pandas indexing <pandas:/reference/indexing.rst>`
-# methods such as :attr:`~pandas.DataFrame.loc`,
-# :attr:`~pandas.DataFrame.iloc`, :attr:`~pandas.DataFrame.at`,
-# and :attr:`~pandas.DataFrame.iat`. Because the
+# methods such as :obj:`~pandas.DataFrame.loc`,
+# :obj:`~pandas.DataFrame.iloc`, :obj:`~pandas.DataFrame.at`,
+# and :obj:`~pandas.DataFrame.iat`. Because the
 # index of the dataframe is the integer epoch number, the name- and index-based
 # selection methods will work similarly for selecting rows, except that
-# name-based selection (with :attr:`~pandas.DataFrame.loc`) is inclusive of the
+# name-based selection (with :obj:`~pandas.DataFrame.loc`) is inclusive of the
 # endpoint:
 
 print('Name-based selection with .loc')

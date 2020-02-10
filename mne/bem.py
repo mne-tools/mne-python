@@ -1042,7 +1042,7 @@ def _check_origin(origin, info, coord_frame='head', disp=False):
 @verbose
 def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                        volume='T1', atlas=False, gcaatlas=False, preflood=None,
-                       show=False, copy=False, T1=None, brainmask='ws',
+                       show=False, copy=False, T1=None, brainmask='ws.mgz',
                        verbose=None):
     """Create BEM surfaces using the FreeSurfer watershed algorithm.
 
@@ -1085,8 +1085,16 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
         .. versionadded:: 0.19
     %(verbose)s
 
+    See Also
+    --------
+    mne.viz.plot_bem
+
     Notes
     -----
+    If your BEM meshes do not look correct when viewed in
+    :func:`mne.viz.plot_alignment` or :func:`mne.viz.plot_bem`, consider
+    potential solutions from the :ref:`FAQ <faq_watershed_bem_meshes>`.
+
     .. versionadded:: 0.10
     """
     from .viz.misc import plot_bem

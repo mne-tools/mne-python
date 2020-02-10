@@ -14,9 +14,10 @@ import pytest
 import numpy as np
 from numpy.testing import assert_allclose
 
-from mne import read_source_estimate
+from mne import SourceEstimate, read_source_estimate
+from mne.source_space import read_source_spaces
 from mne.datasets import testing
-from mne.viz._brain import _Brain, _TimeViewer
+from mne.viz._brain import _Brain, _TimeViewer, _LinkViewer
 from mne.viz._brain.colormap import calculate_lut
 
 from matplotlib import cm
@@ -26,6 +27,8 @@ subject_id = 'sample'
 subjects_dir = path.join(data_path, 'subjects')
 fname_stc = path.join(data_path, 'MEG/sample/sample_audvis_trunc-meg')
 fname_label = path.join(data_path, 'MEG/sample/labels/Vis-lh.label')
+src_fname = path.join(data_path, 'subjects', 'sample', 'bem',
+                      'sample-oct-6-src.fif')
 surf = 'inflated'
 
 
@@ -43,8 +46,10 @@ def test_brain_init(renderer):
     with pytest.raises(KeyError):
         _Brain(subject_id=subject_id, hemi='foo', surf=surf)
 
-    _Brain(subject_id, hemi, surf, size=(300, 300),
-           subjects_dir=subjects_dir)
+    brain = _Brain(subject_id, hemi, surf, size=(300, 300),
+                   subjects_dir=subjects_dir)
+    brain.show_view(view=dict(azimuth=180., elevation=90.))
+    brain.close()
 
 
 @testing.requires_testing_data
@@ -54,6 +59,7 @@ def test_brain_screenshot(renderer):
                    surf=surf, subjects_dir=subjects_dir)
     img = brain.screenshot(mode='rgb')
     assert(img.shape == (600, 600, 3))
+    brain.close()
 
 
 @testing.requires_testing_data
@@ -91,7 +97,8 @@ def test_brain_add_data(renderer):
                         smoothing_steps=0, colorbar=False, time=None)
     brain_data.add_data(hemi_data, fmin=fmin, hemi=hemi, fmax=fmax,
                         colormap='hot', vertices=hemi_vertices,
-                        initial_time=0., colorbar=True, time=None)
+                        initial_time=0., colorbar=False, time=None)
+    brain_data.close()
 
 
 @testing.requires_testing_data
@@ -101,8 +108,13 @@ def test_brain_add_label(renderer):
     brain = _Brain(subject_id, hemi='lh', size=500,
                    surf=surf, subjects_dir=subjects_dir)
     label = read_label(fname_label)
-    brain.add_label(fname_label)
     brain.add_label(label, scalar_thresh=0.)
+    brain.close()
+
+    brain = _Brain(subject_id, hemi='split', size=500,
+                   surf=surf, subjects_dir=subjects_dir)
+    brain.add_label(fname_label)
+    brain.close()
 
 
 @testing.requires_testing_data
@@ -112,6 +124,7 @@ def test_brain_add_foci(renderer):
                    surf=surf, subjects_dir=subjects_dir)
     brain.add_foci([0], coords_as_verts=True,
                    hemi='lh', color='blue')
+    brain.close()
 
 
 @testing.requires_testing_data
@@ -120,40 +133,57 @@ def test_brain_add_text(renderer):
     brain = _Brain(subject_id, hemi='lh', size=250,
                    surf=surf, subjects_dir=subjects_dir)
     brain.add_text(x=0, y=0, text='foo')
+    brain.close()
 
 
 @testing.requires_testing_data
-def test_brain_timeviewer(renderer):
+def test_brain_timeviewer(renderer_interactive):
     """Test _TimeViewer primitives."""
-    if renderer.get_3d_backend() == "mayavi":
-        pytest.skip()  # Skip PySurfer.TimeViewer
-    else:
-        # Disable testing to allow interactive window
-        renderer.MNE_3D_BACKEND_TESTING = False
+    sample_src = read_source_spaces(src_fname)
 
-    stc = read_source_estimate(fname_stc)
+    # dense version
+    vertices = [s['vertno'] for s in sample_src]
+    n_time = 5
+    n_verts = sum(len(v) for v in vertices)
+    stc_data = np.zeros((n_verts * n_time))
+    stc_size = stc_data.size
+    stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = \
+        np.random.RandomState(0).rand(stc_data.size // 20)
+    stc_data.shape = (n_verts, n_time)
+    stc = SourceEstimate(stc_data, vertices, 1, 1)
 
-    hemi = 'lh'
-    hemi_data = stc.data[:len(stc.vertices[0]), 10]
-    hemi_vertices = stc.vertices[0]
     fmin = stc.data.min()
     fmax = stc.data.max()
-
-    brain_data = _Brain(subject_id, hemi, surf, size=300,
+    brain_data = _Brain(subject_id, 'split', surf, size=300,
                         subjects_dir=subjects_dir)
-
-    brain_data.add_data(hemi_data, fmin=fmin, hemi=hemi, fmax=fmax,
-                        colormap='hot', vertices=hemi_vertices,
-                        colorbar=False, time=[0])
-
-    brain_data.set_time_point(time_idx=0)
+    for hemi in ['lh', 'rh']:
+        hemi_idx = 0 if hemi == 'lh' else 1
+        data = getattr(stc, hemi + '_data')
+        vertices = stc.vertices[hemi_idx]
+        brain_data.add_data(data, fmin=fmin, hemi=hemi, fmax=fmax,
+                            colormap='hot', vertices=vertices,
+                            colorbar=True)
 
     time_viewer = _TimeViewer(brain_data)
-    time_viewer.set_smoothing(value=1)
-    time_viewer.update_fmin(value=12.0)
-    time_viewer.update_fmax(value=4.0)
-    time_viewer.update_fmid(value=6.0)
-    time_viewer.update_fmid(value=4.0)
+    time_viewer.time_call(value=0)
+    time_viewer.orientation_call(value='lat', update_widget=True)
+    time_viewer.orientation_call(value='medial', update_widget=True)
+    time_viewer.smoothing_call(value=1)
+    time_viewer.fmin_call(value=12.0)
+    time_viewer.fmax_call(value=4.0)
+    time_viewer.fmid_call(value=6.0)
+    time_viewer.fmid_call(value=4.0)
+    time_viewer.fscale_call(value=1.1)
+    time_viewer.toggle_interface()
+    time_viewer.playback_speed_call(value=0.1)
+    time_viewer.toggle_playback()
+    time_viewer.apply_auto_scaling()
+    time_viewer.restore_user_scaling()
+
+    link_viewer = _LinkViewer([brain_data])
+    link_viewer.set_time_point(value=0)
+    link_viewer.set_playback_speed(value=0.1)
+    link_viewer.toggle_playback()
 
 
 def test_brain_colormap():

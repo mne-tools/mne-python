@@ -11,9 +11,10 @@ import os.path as op
 from pathlib import Path
 
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_allclose
 import pytest
 import matplotlib.pyplot as plt
+from matplotlib.colors import Colormap
 
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole, SourceEstimate, VectorSourceEstimate,
@@ -29,7 +30,9 @@ from mne.io.constants import FIFF
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      snapshot_brain_montage, plot_head_positions,
                      plot_alignment, plot_volume_source_estimates,
-                     plot_sensors_connectivity, plot_brain_colorbar)
+                     plot_sensors_connectivity, plot_brain_colorbar,
+                     link_brains, mne_analyze_colormap)
+from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
                        requires_nibabel, check_version, requires_dipy,
@@ -345,8 +348,8 @@ def test_plot_alignment(tmpdir, renderer):
 @testing.requires_testing_data
 @requires_pysurfer
 @traits_test
-def test_limits_to_control_points(renderer):
-    """Test functionality for determining control points."""
+def test_process_clim_plot(renderer):
+    """Test functionality for determining control points with stc.plot."""
     sample_src = read_source_spaces(src_fname)
     kwargs = dict(subjects_dir=subjects_dir, smoothing_steps=1)
 
@@ -387,6 +390,71 @@ def test_limits_to_control_points(renderer):
     with pytest.warns(RuntimeWarning, match='All data were zero'):
         plot_source_estimates(stc, **kwargs)
     renderer._close_all()
+
+
+def _assert_mapdata_equal(a, b):
+    __tracebackhide__ = True
+    assert set(a.keys()) == {'clim', 'colormap', 'transparent'}
+    assert a.keys() == b.keys()
+    assert a['transparent'] == b['transparent'], 'transparent'
+    aa, bb = a['clim'], b['clim']
+    assert aa.keys() == bb.keys(), 'clim keys'
+    assert aa['kind'] == bb['kind'] == 'value'
+    key = 'pos_lims' if 'pos_lims' in aa else 'lims'
+    assert_array_equal(aa[key], bb[key], err_msg=key)
+    assert isinstance(a['colormap'], Colormap), 'Colormap'
+    assert isinstance(b['colormap'], Colormap), 'Colormap'
+    assert a['colormap'].name == b['colormap'].name
+
+
+def test_process_clim_round_trip():
+    """Test basic input-output support."""
+    # With some negative data
+    out = _process_clim('auto', 'auto', True, -1.)
+    want = dict(
+        colormap=mne_analyze_colormap([0, 0.5, 1], 'matplotlib'),
+        clim=dict(kind='value', pos_lims=[1, 1, 1]),
+        transparent=True,)
+    _assert_mapdata_equal(out, want)
+    out2 = _process_clim(**out)
+    _assert_mapdata_equal(out, out2)
+    _linearize_map(out)  # smoke test
+    ticks = _get_map_ticks(out)
+    assert_allclose(ticks, [-1, 0, 1])
+
+    # With some positive data
+    out = _process_clim('auto', 'auto', True, 1.)
+    want = dict(
+        colormap=plt.get_cmap('hot'),
+        clim=dict(kind='value', lims=[1, 1, 1]),
+        transparent=True,)
+    _assert_mapdata_equal(out, want)
+    out2 = _process_clim(**out)
+    _assert_mapdata_equal(out, out2)
+    _linearize_map(out)
+    ticks = _get_map_ticks(out)
+    assert_allclose(ticks, [1])
+
+    # With some actual inputs
+    clim = dict(kind='value', pos_lims=[0, 0.5, 1])
+    out = _process_clim(clim, 'auto', True)
+    want = dict(
+        colormap=mne_analyze_colormap([0, 0.5, 1], 'matplotlib'),
+        clim=clim, transparent=True)
+    _assert_mapdata_equal(out, want)
+    _linearize_map(out)
+    ticks = _get_map_ticks(out)
+    assert_allclose(ticks, [-1, -0.5, 0, 0.5, 1])
+
+    clim = dict(kind='value', pos_lims=[0.25, 0.5, 1])
+    out = _process_clim(clim, 'auto', True)
+    want = dict(
+        colormap=mne_analyze_colormap([0, 0.5, 1], 'matplotlib'),
+        clim=clim, transparent=True)
+    _assert_mapdata_equal(out, want)
+    _linearize_map(out)
+    ticks = _get_map_ticks(out)
+    assert_allclose(ticks, [-1, -0.5, -0.25, 0, 0.25, 0.5, 1])
 
 
 @testing.requires_testing_data
@@ -568,7 +636,7 @@ def test_plot_volume_source_estimates_morph():
 @requires_pysurfer
 @requires_mayavi
 @traits_test
-def test_plot_vec_source_estimates():
+def test_plot_vector_source_estimates():
     """Test plotting of vector source estimates."""
     sample_src = read_source_spaces(src_fname)
 
@@ -663,6 +731,36 @@ def test_mixed_sources_plot_surface():
     stc.plot_surface(views='lat', hemi='split', src=src,
                      subject='fsaverage', subjects_dir=subjects_dir,
                      colorbar=False)
+
+
+@testing.requires_testing_data
+@traits_test
+def test_link_brains(renderer_interactive):
+    """Test plotting linked brains."""
+    with pytest.raises(ValueError, match='is empty'):
+        link_brains([])
+    with pytest.raises(TypeError, match='type is Brain'):
+        link_brains('foo')
+
+    sample_src = read_source_spaces(src_fname)
+    vertices = [s['vertno'] for s in sample_src]
+    n_time = 5
+    n_verts = sum(len(v) for v in vertices)
+    stc_data = np.zeros((n_verts * n_time))
+    stc_size = stc_data.size
+    stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = \
+        np.random.RandomState(0).rand(stc_data.size // 20)
+    stc_data.shape = (n_verts, n_time)
+    stc = SourceEstimate(stc_data, vertices, 1, 1)
+
+    colormap = 'mne_analyze'
+    brain = plot_source_estimates(
+        stc, 'sample', colormap=colormap,
+        background=(1, 1, 0),
+        subjects_dir=subjects_dir, colorbar=True,
+        clim='auto'
+    )
+    link_brains(brain)
 
 
 run_tests_if_main()

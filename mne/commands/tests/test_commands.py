@@ -22,7 +22,7 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
 from mne.datasets import testing, sample
 from mne.io import read_raw_fif, read_info
 from mne.utils import (run_tests_if_main, requires_mne,
-                       requires_mayavi, requires_tvtk, requires_freesurfer,
+                       requires_mayavi, requires_vtk, requires_freesurfer,
                        traits_test, ArgvSetter, modified_env, _stamp_to_dt)
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -128,7 +128,7 @@ def test_kit2fiff():
 
 
 @pytest.mark.slowtest  # slow on Travis OSX
-@requires_tvtk
+@requires_vtk
 @testing.requires_testing_data
 def test_make_scalp_surfaces(tmpdir):
     """Test mne make_scalp_surfaces."""

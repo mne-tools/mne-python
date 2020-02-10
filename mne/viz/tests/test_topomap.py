@@ -21,11 +21,11 @@ from mne import (read_evokeds, read_proj, make_fixed_length_events, Epochs,
                  compute_proj_evoked, find_layout, pick_types, create_info,
                  EvokedArray)
 from mne.io.proj import make_eeg_average_ref_proj, Projection
-from mne.io import read_raw_fif, read_info
+from mne.io import read_raw_fif, read_info, RawArray
 from mne.io.constants import FIFF
 from mne.io.pick import pick_info, channel_indices_by_type
 from mne.io.compensator import get_current_comp
-from mne.channels import read_layout, make_standard_montage
+from mne.channels import read_layout, make_standard_montage, make_dig_montage
 from mne.datasets import testing
 from mne.time_frequency.tfr import AverageTFR
 from mne.utils import run_tests_if_main
@@ -191,6 +191,45 @@ def test_plot_topomap_basic():
     plot_topomap(temp_data, info_sel, extrapolate='local', res=res)
     plot_topomap(temp_data, info_sel, extrapolate='head', res=res)
 
+    # border=0 and border='mean':
+    # ---------------------------
+    ch_names = list('abcde')
+    ch_pos = np.array([[0, 0, 1], [1, 0, 0], [-1, 0, 0],
+                       [0, -1, 0], [0, 1, 0]])
+    ch_pos_dict = {name: pos for name, pos in zip(ch_names, ch_pos)}
+    dig = make_dig_montage(ch_pos_dict, coord_frame='head')
+
+    data = np.full(5, 5) + np.random.RandomState(23).randn(5)
+    info = create_info(ch_names, 250, ['eeg'] * 5)
+    info.set_montage(dig)
+
+    # border=0
+    ax, _ = plot_topomap(data, info, extrapolate='head', border=0, sphere=1)
+    img_data = ax.get_array().data
+
+    assert np.abs(img_data[31, 31] - data[0]) < 0.12
+    assert np.abs(img_data[10, 54]) < 0.3
+
+    # border='mean'
+    ax, _ = plot_topomap(data, info, extrapolate='head', border='mean',
+                         sphere=1)
+    img_data = ax.get_array().data
+
+    assert np.abs(img_data[31, 31] - data[0]) < 0.12
+    assert img_data[10, 54] > 5
+
+    # error when not numeric or str:
+    error_msg = 'border must be an instance of numeric or str'
+    with pytest.raises(TypeError, match=error_msg):
+        plot_topomap(data, info, extrapolate='head', border=[1, 2, 3])
+
+    # error when str is not 'mean':
+    error_msg = 'border must be numeric or "mean", got \'fancy\''
+    with pytest.raises(ValueError, match=error_msg):
+        plot_topomap(data, info, extrapolate='head', border='fancy')
+
+    # other:
+    # ------
     plt_topomap = partial(evoked.plot_topomap, **fast_test)
     with pytest.deprecated_call(match='layout'):
         plt_topomap(0.1, layout=layout, scalings=dict(mag=0.1))
@@ -480,6 +519,20 @@ def test_plot_topomap_neuromag122():
     plot_projs_topomap([proj], evoked.info, **fast_test)
     with pytest.deprecated_call(match='layout'):
         plot_projs_topomap([proj], evoked.info, layout=layout, **fast_test)
+
+
+def test_plot_topomap_bads():
+    """Test plotting topomap with bad channels (gh-7213)."""
+    import matplotlib.pyplot as plt
+    data = np.random.RandomState(0).randn(3, 1000)
+    raw = RawArray(data, create_info(3, 1000., 'eeg'))
+    ch_pos_dict = {name: pos for name, pos in zip(raw.ch_names, np.eye(3))}
+    raw.info.set_montage(make_dig_montage(ch_pos_dict, coord_frame='head'))
+    for count in range(3):
+        raw.info['bads'] = raw.ch_names[:count]
+        raw.info._check_consistency()
+        plot_topomap(data[:, 0], raw.info)
+    plt.close('all')
 
 
 run_tests_if_main()
