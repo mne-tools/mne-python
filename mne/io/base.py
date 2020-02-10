@@ -1353,10 +1353,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        tmin : float
-            New start time in seconds (must be >= 0).
-        tmax : float | None
-            New end time in seconds of the data (cannot exceed data duration).
+        %(raw_tmin)s
+        %(raw_tmax)s
         %(include_tmax)s
 
         Returns
@@ -1422,12 +1420,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif,
             raw_tsss.fif.gz, or _meg.fif.
         %(picks_all)s
-        tmin : float | None
-            Time in seconds of first sample to save. If None first sample
-            is used.
-        tmax : float | None
-            Time in seconds of last sample to save. If None last sample
-            is used.
+        %(raw_tmin)s
+        %(raw_tmax)s
         buffer_size_sec : float | None
             Size of data chunks in seconds. If None (default), the buffer
             size of the original file is used.
@@ -1522,14 +1516,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         #
 
         #   Convert to samples
-        start = int(np.floor(tmin * self.info['sfreq']))
-
-        # "stop" is the first sample *not* to save, so we need +1's here
-        if tmax is None:
-            stop = np.inf
-        else:
-            stop = self.time_as_index(float(tmax), use_rounding=True)[0] + 1
-        stop = min(stop, self.last_samp - self.first_samp + 1)
+        start, stop = self._tmin_tmax_to_start_stop(tmin, tmax)
         buffer_size = self._get_buffer_size(buffer_size_sec)
 
         # write the raw file
@@ -1544,6 +1531,20 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         _write_raw(fname, self, info, picks, fmt, data_type, reset_range,
                    start, stop, buffer_size, projector, drop_small_buffer,
                    split_size, split_naming, part_idx, None, overwrite)
+
+    def _tmin_tmax_to_start_stop(self, tmin, tmax):
+        start = int(np.floor(tmin * self.info['sfreq']))
+
+        # "stop" is the first sample *not* to save, so we need +1's here
+        if tmax is None:
+            stop = np.inf
+        else:
+            stop = self.time_as_index(float(tmax), use_rounding=True)[0] + 1
+        stop = min(stop, self.last_samp - self.first_samp + 1)
+        if stop <= start or stop <= 0:
+            raise ValueError('tmin (%s) and tmax (%s) yielded no samples'
+                             % (tmin, tmax))
+        return start, stop
 
     @copy_function_doc_to_method_doc(plot_raw)
     def plot(self, events=None, duration=10.0, start=0.0, n_channels=20,

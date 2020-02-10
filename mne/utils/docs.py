@@ -46,6 +46,14 @@ include_tmax : bool
 
     .. versionadded:: 0.19
 """
+docdict['raw_tmin'] = """
+tmin : float
+    Start time of the raw data to use in seconds (must be >= 0).
+"""
+docdict['raw_tmax'] = """
+tmax : float
+    End time of the raw data to use in seconds (cannot exceed data duration).
+"""
 
 # General plotting
 docdict["show"] = """
@@ -275,6 +283,11 @@ docdict['chpi_adjust_dig'] = """
 adjust_dig : bool
     If True, adjust the digitization locations used for fitting based on
     the positions localized at the start of the file.
+"""
+docdict['chpi_amplitudes'] = """
+chpi_amplitudes : dict
+    The time-varying cHPI coil amplitudes, with entries
+    "times", "proj", and "slopes".
 """
 docdict['chpi_locs'] = """
 chpi_locs : dict

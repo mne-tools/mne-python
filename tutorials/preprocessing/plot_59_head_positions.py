@@ -39,12 +39,17 @@ raw.plot_psd()
 # Estimating continuous head position
 # -----------------------------------
 #
-# Next let's extract the HPI coil locations as a function of time:
+# First, let's extract the HPI coil amplitudes as a function of time:
 
-chpi_locs = mne.chpi.compute_chpi_locs(raw)
+chpi_amplitudes = mne.chpi_compute_chpi_amplitudes(raw)
 
 ###############################################################################
-# And then compute head positions from these:
+# Second, let's compute time-varying HPI coil locations from these:
+
+chpi_locs = mne.chpi.compute_chpi_locs(raw.info, chpi_amplitudes)
+
+###############################################################################
+# Lastly, compute head positions from the coil locations:
 
 head_pos = mne.chpi.compute_head_pos(raw.info, chpi_locs, verbose=True)
 
