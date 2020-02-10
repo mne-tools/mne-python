@@ -228,3 +228,27 @@ def test_one_channel_elec_bug(version):
 
     with pytest.warns(**no_info_warning):
         mne.io.read_raw_fieldtrip(fname, info=None)
+
+
+@testing.requires_testing_data
+# Reading the sample CNT data results in a RuntimeWarning because it cannot
+# parse the measurement date. We need to ignore that warning.
+@pytest.mark.filterwarnings('ignore::RuntimeWarning')
+@pytest.mark.parametrize('version', all_versions)
+@pytest.mark.parametrize('type', ['averaged', 'epoched', 'raw'])
+@requires_h5py
+def test_throw_exception_on_cellarray(version, type):
+    """Test for a meaningful exception when the data is a cell array."""
+    fname = os.path.join(get_data_paths('cellarray'),
+                         '%s_%s.mat' % (type, version))
+
+    info = get_raw_info('CNT')
+
+    with pytest.raises(RuntimeError, match='Loading of data in cell arrays '
+                                           'is not supported'):
+        if type == 'averaged':
+            mne.read_evoked_fieldtrip(fname, info)
+        elif type == 'epoched':
+            mne.read_epochs_fieldtrip(fname, info)
+        elif type == 'raw':
+            mne.io.read_raw_fieldtrip(fname, info)
