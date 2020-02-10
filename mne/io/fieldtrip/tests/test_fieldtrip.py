@@ -252,3 +252,16 @@ def test_throw_exception_on_cellarray(version, type):
             mne.read_epochs_fieldtrip(fname, info)
         elif type == 'raw':
             mne.io.read_raw_fieldtrip(fname, info)
+
+
+@testing.requires_testing_data
+def test_evoked_with_missing_channels():
+    """Test _create_info on evoked data when channels are missing from info"""
+    cur_system = 'neuromag306'
+    test_data_folder_ft = get_data_paths(cur_system)
+    info = get_raw_info(cur_system)
+    del info['ch_names'][1:20]
+
+    with pytest.warns(RuntimeWarning):
+        mne.read_evoked_fieldtrip(
+            os.path.join(test_data_folder_ft, 'averaged_v7.mat'), info)
