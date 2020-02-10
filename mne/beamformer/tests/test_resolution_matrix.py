@@ -63,6 +63,7 @@ def test_resolution_matrix_lcmv():
                         reduce_rank=False,
                         verbose=False)
 
+    # Compute resolution matrix for beamformer
     resmat_lcmv = make_lcmv_resolution_matrix(filters, forward_fxd, info)
 
     # for noise_cov==data_cov, the filter weights should be the transpose of
