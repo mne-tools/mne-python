@@ -1149,6 +1149,7 @@ def test_raw_copy():
 @requires_pandas
 def test_to_data_frame():
     """Test raw Pandas exporter."""
+    from pandas import Timedelta
     raw = read_raw_fif(test_fif_fname, preload=True)
     _, times = raw[0, :10]
     df = raw.to_data_frame(index='time')
@@ -1163,6 +1164,14 @@ def test_to_data_frame():
     assert(len(df_long) == raw.get_data().size)
     expected = ('time', 'channel', 'ch_type', 'value')
     assert set(expected) == set(df_long.columns)
+    # test bad time format
+    with pytest.raises(ValueError, match='not a valid time format. Valid'):
+        raw.to_data_frame(time_format='foo')
+    # test time format error handling
+    raw.set_meas_date(None)
+    with pytest.warns(RuntimeWarning, match='Cannot convert to Datetime when'):
+        df = raw.to_data_frame(time_format='datetime')
+    assert isinstance(df['time'].iloc[0], Timedelta)
 
 
 @requires_pandas

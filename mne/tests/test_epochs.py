@@ -1756,6 +1756,8 @@ def test_to_data_frame():
     assert set(expected) == set(df_long.columns)
     assert set(epochs.ch_names) == set(df_long['channel'])
     assert(len(df_long) == epochs.get_data().size)
+    # test long format w/ index
+    df_long = epochs.to_data_frame(long_format=True, index=['epoch'])
     del df_wide, df_long
     # test scalings
     df = epochs.to_data_frame(index=['condition', 'epoch', 'time'])
