@@ -17,7 +17,8 @@ from ..utils import _read_segments_file, _mult_cal_one
 from ..constants import FIFF
 from ...surface import _normal_orth
 from ...transforms import apply_trans, Transform, get_ras_to_neuromag_trans
-from ...utils import check_fname, check_version, logger, verbose, warn
+from ...utils import (check_fname, check_version, logger, verbose, warn,
+                      _check_fname)
 from ...annotations import Annotations
 
 FILE_EXTENSIONS = {
@@ -55,6 +56,7 @@ def _get_curry_file_structure(fname, required=()):
     """Store paths to a dict and check for required files."""
     _msg = "The following required files cannot be found: {0}.\nPlease make " \
            "sure all required files are located in the same directory as {1}."
+    _check_fname(fname, overwrite='read', must_exist=True)
 
     # we don't use os.path.splitext to also handle extensions like .cdt.dpa
     fname_base, ext = fname.split(".", maxsplit=1)

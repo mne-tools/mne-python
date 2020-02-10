@@ -140,12 +140,12 @@ def _check_fname(fname, overwrite=False, must_exist=False, name='File'):
     _validate_type(fname, 'path-like', 'fname')
     if op.isfile(fname):
         if not overwrite:
-            raise IOError('Destination file exists. Please use option '
-                          '"overwrite=True" to force overwriting.')
+            raise FileExistsError('Destination file exists. Please use option '
+                                  '"overwrite=True" to force overwriting.')
         elif overwrite != 'read':
             logger.info('Overwriting existing file.')
     elif must_exist:
-        raise IOError('%s "%s" does not exist' % (name, fname))
+        raise FileNotFoundError('%s "%s" does not exist' % (name, fname))
     return str(fname)
 
 

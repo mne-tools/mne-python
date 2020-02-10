@@ -131,8 +131,10 @@ def test_check_missing_files():
     with pytest.raises(IOError, match="file type .*? must end with"):
         _read_events_curry(invalid_fname)
 
-    with pytest.raises(FileNotFoundError, match="files cannot be found"):
+    with pytest.raises(FileNotFoundError, match='does not exist'):
         _get_curry_file_structure(invalid_fname)
+
+    with pytest.raises(FileNotFoundError, match="files cannot be found"):
         _get_curry_file_structure(missing_event_file,
                                   required=["info", "events"])
 
