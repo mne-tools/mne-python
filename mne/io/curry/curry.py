@@ -15,8 +15,11 @@ from ..meas_info import create_info
 from ..tag import _coil_trans_to_loc
 from ..utils import _read_segments_file, _mult_cal_one
 from ..constants import FIFF
+from ..ctf.trans import _quaternion_align
 from ...surface import _normal_orth
-from ...transforms import apply_trans, Transform, get_ras_to_neuromag_trans
+from ...transforms import (apply_trans, Transform, get_ras_to_neuromag_trans,
+                           combine_transforms, invert_transform,
+                           _angle_between_quats, rot_to_quat)
 from ...utils import (check_fname, check_version, logger, verbose, warn,
                       _check_fname)
 from ...annotations import Annotations
@@ -170,9 +173,8 @@ def _read_curry_info(curry_paths):
     R[[0, 1], [0, 1]] = -1  # rotate 180 deg
     # shift down and back
     # (chosen by eyeballing to make the CTF helmet look roughly correct)
-    R[:3, 3] = [0., -0.02, -0.12]
-    curry_dev_dev_t = Transform(FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
-                                FIFF.FIFFV_COORD_DEVICE, R)
+    R[:3, 3] = [0., -0.015, -0.12]
+    curry_dev_dev_t = Transform('ctf_meg', 'meg', R)
 
     # read labels from label files
     label_fname = curry_paths['labels']
@@ -204,7 +206,6 @@ def _read_curry_info(curry_paths):
                 pos = np.array(sensors["SENSORS" + CHANTYPES[key]][ind], float)
                 pos /= 1000.  # to meters
                 pos = pos[:3]  # just the inner coil
-                # XXX should do something about the outer coils, too
                 pos = apply_trans(curry_dev_dev_t, pos)
                 nn = np.array(normals["NORMALS" + CHANTYPES[key]][ind], float)
                 assert np.isclose(np.linalg.norm(nn), 1., atol=1e-4)
@@ -220,7 +221,7 @@ def _read_curry_info(curry_paths):
 
     ch_names = [chan["ch_name"] for chan in all_chans]
     info = create_info(ch_names, curry_params.sfreq)
-    _make_trans_dig(label_fname, info, curry_dev_dev_t)
+    _make_trans_dig(curry_paths, info, curry_dev_dev_t)
 
     for ind, ch_dict in enumerate(info["chs"]):
         ch_dict["kind"] = all_chans[ind]["kind"]
@@ -239,8 +240,10 @@ _card_dict = {'Left ear': FIFF.FIFFV_POINT_LPA,
               'Right ear': FIFF.FIFFV_POINT_RPA}
 
 
-def _make_trans_dig(label_fname, info, curry_dev_dev_t):
+def _make_trans_dig(curry_paths, info, curry_dev_dev_t):
     # Coordinate frame transformations and definitions
+    info['dev_head_t'] = None
+    label_fname = curry_paths['labels']
     key = 'LANDMARKS' + CHANTYPES['meg']
     lm = _read_curry_lines(label_fname, [key])[key]
     lm = np.array(lm, float)
@@ -249,7 +252,6 @@ def _make_trans_dig(label_fname, info, curry_dev_dev_t):
         # no dig
         return
     lm /= 1000.
-    lm = apply_trans(curry_dev_dev_t, lm)
     key = 'LM_REMARKS' + CHANTYPES['meg']
     remarks = _read_curry_lines(label_fname, [key])[key]
     assert len(remarks) == len(lm)
@@ -267,21 +269,36 @@ def _make_trans_dig(label_fname, info, curry_dev_dev_t):
         if kind is not None:
             info['dig'].append(dict(
                 kind=kind, ident=ident, r=r,
-                coord_frame=FIFF.FIFFV_COORD_DEVICE))
-    if len(cards) == 3:  # have all three
-        info['dev_head_t'] = Transform(
-            'meg', 'head',
+                coord_frame=FIFF.FIFFV_COORD_UNKNOWN))
+    info['dig'].sort(key=lambda x: (x['kind'], x['ident']))
+    if len(cards) == 3 and 'hpi' in curry_paths:  # have all three
+        logger.info('Composing device<->head transformation from dig points')
+        hpi_u = np.array([d['r'] for d in info['dig']
+                          if d['kind'] == FIFF.FIFFV_POINT_HPI], float)
+        hpi_c = np.ascontiguousarray(
+            _first_hpi(curry_paths['hpi'])[:len(hpi_u), 1:4])
+        unknown_curry_t = _quaternion_align(
+            'unknown', 'ctf_meg', hpi_u, hpi_c, 1e-2)
+        angle = np.rad2deg(_angle_between_quats(
+            np.zeros(3), rot_to_quat(unknown_curry_t['trans'][:3, :3])))
+        dist = 1000 * np.linalg.norm(unknown_curry_t['trans'][:3, 3])
+        logger.info('   Fit a %0.1f° rotation, %0.1f mm translation'
+                    % (angle, dist))
+        unknown_dev_t = combine_transforms(
+            unknown_curry_t, curry_dev_dev_t, 'unknown', 'meg')
+        unknown_head_t = Transform(
+            'unknown', 'head',
             get_ras_to_neuromag_trans(
                 *(cards[key] for key in (FIFF.FIFFV_POINT_NASION,
                                          FIFF.FIFFV_POINT_LPA,
                                          FIFF.FIFFV_POINT_RPA))))
+        info['dev_head_t'] = combine_transforms(
+            invert_transform(unknown_dev_t), unknown_head_t, 'meg', 'head')
         for d in info['dig']:
             d.update(coord_frame=FIFF.FIFFV_COORD_HEAD,
-                     r=apply_trans(info['dev_head_t'], d['r']))
-    info['dig'] = sorted(info['dig'], key=lambda x: (x['kind'], x['ident']))
+                     r=apply_trans(unknown_head_t, d['r']))
 
 
-# XXX remove this
 def _first_hpi(fname):
     # Get the first HPI result
     with open(fname, 'r') as fid:
@@ -297,6 +314,7 @@ def _first_hpi(fname):
     assert hpi.ndim == 1
     hpi = hpi[1:]
     hpi.shape = (-1, 5)
+    hpi /= 1000.
     return hpi
 
 

@@ -88,6 +88,7 @@ def test_read_raw_curry(fname, tol, preload, bdf_curry_ref):
         raw.get_data(picks=picks, start=start, stop=stop),
         bdf_curry_ref.get_data(picks=picks, start=start, stop=stop),
         rtol=tol)
+    assert raw.info['dev_head_t'] is None
 
 
 @testing.requires_testing_data
@@ -107,6 +108,8 @@ def test_read_raw_curry_rfDC(fname, tol):
 
     assert_allclose(raw.get_data(eeg_names),
                     bti_rfDC.get_data(eeg_names), rtol=tol)
+    assert raw.info['dev_head_t'] is None
+    assert bti_rfDC.info['dev_head_t'] is not None  # XXX probably a BTI bug
 
 
 @testing.requires_testing_data
@@ -122,6 +125,7 @@ def test_read_events_curry_are_same_as_bdf(fname):
     raw = read_raw_curry(fname)
     events, _ = events_from_annotations(raw, event_id=EVENT_ID)
     assert_allclose(events, REF_EVENTS)
+    assert raw.info['dev_head_t'] is None
 
 
 def test_check_missing_files():
