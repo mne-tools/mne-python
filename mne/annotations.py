@@ -47,7 +47,7 @@ def _check_o_d_s(onset, duration, description):
         raise ValueError('Description must be a one dimensional array, '
                          'got %d.' % (description.ndim,))
     if any(['{COLON}' in desc for desc in description]):
-        raise ValueError('{COLON} character '
+        raise ValueError('The substring "{COLON}" '
                          'in descriptions not supported.')
 
     if not (len(onset) == len(duration) == len(description)):
