@@ -30,6 +30,12 @@ NOINFO_WARNING = 'Importing FieldTrip data without an info dict from the ' \
                  'source analysis, channel interpolation etc.'
 
 
+def _validate_ft_struct(ft_struct):
+    """Run validation checks on the ft_structure"""
+    if isinstance(ft_struct, list):
+        raise RuntimeError('Loading of data in cell arrays is not supported')
+
+
 def _create_info(ft_struct, raw_info):
     """Create MNE info structure from a FieldTrip structure."""
     if raw_info is None:
