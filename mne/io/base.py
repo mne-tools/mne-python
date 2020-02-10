@@ -1666,10 +1666,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         ----------
         %(df_index_raw)s
             Defaults to ``None``.
-        %(df_time_format)s
-            If ``'datetime'``, time values will be converted to
-            :class:`pandas.Timestamp` values, relative to
-            ``raw.info['meas_date']`` and offset by ``raw.first_samp``.
+        %(df_time_format_raw)s
         %(picks_all)s
         start : int | None
             Starting sample index for creating the DataFrame from a temporal

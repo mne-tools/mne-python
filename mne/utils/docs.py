@@ -592,14 +592,19 @@ evk = ("'time'", '', '')
 docdict['df_index_raw'] = docdict['df_index'].format(*raw)
 docdict['df_index_epo'] = docdict['df_index'].format(*epo)
 docdict['df_index_evk'] = docdict['df_index'].format(*evk)
-docdict['df_time_format'] = """
+docdict['df_tf'] = """
 time_format : str | None
     Desired time format. If ``None``, no conversion is applied, and time values
     remain as float values in seconds. If ``'ms'``, time values will be rounded
     to the nearest millisecond and converted to integers. If ``'timedelta'``,
-    time values will be converted to :class:`pandas.Timedelta` values. Defaults
-    to ``'ms'``.
+    time values will be converted to :class:`pandas.Timedelta` values. {}
+    Defaults to ``'ms'``.
 """
+raw_tf = ("If ``'datetime'``, time values will be converted to "
+          ":class:`pandas.Timestamp` values, relative to "
+          "``raw.info['meas_date']`` and offset by ``raw.first_samp``. ")
+docdict['df_time_format_raw'] = docdict['df_tf'].format(raw_tf)
+docdict['df_time_format'] = docdict['df_tf'].format('')
 docdict['df_scalings'] = """
 scalings : dict | None
     Scaling factor applied to the channels picked. If ``None``, defaults to
