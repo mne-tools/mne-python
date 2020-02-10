@@ -167,7 +167,7 @@ def _read_curry_info(curry_paths):
     """Extract info from curry parameter files."""
     curry_params = _read_curry_parameters(curry_paths['info'])
     R = np.eye(4)
-    R[1, 1] = -1  # reverse front/back
+    R[[0, 1], [0, 1]] = -1  # rotate 180 deg
     # shift down and back
     # (chosen by eyeballing to make the CTF helmet look roughly correct)
     R[:3, 3] = [0., -0.02, -0.12]
@@ -269,13 +269,12 @@ def _make_trans_dig(label_fname, info, curry_dev_dev_t):
                 kind=kind, ident=ident, r=r,
                 coord_frame=FIFF.FIFFV_COORD_DEVICE))
     if len(cards) == 3:  # have all three
-        # Left and right are switched in their coords (?)
         info['dev_head_t'] = Transform(
             'meg', 'head',
             get_ras_to_neuromag_trans(
                 *(cards[key] for key in (FIFF.FIFFV_POINT_NASION,
-                                         FIFF.FIFFV_POINT_RPA,
-                                         FIFF.FIFFV_POINT_LPA))))
+                                         FIFF.FIFFV_POINT_LPA,
+                                         FIFF.FIFFV_POINT_RPA))))
         for d in info['dig']:
             d.update(coord_frame=FIFF.FIFFV_COORD_HEAD,
                      r=apply_trans(info['dev_head_t'], d['r']))
