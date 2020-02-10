@@ -6,6 +6,7 @@
 
 import time
 import numpy as np
+from ..utils import plt_show, figure_nobar
 
 
 class IntSlider(object):
@@ -409,6 +410,12 @@ class _TimeViewer(object):
         # restore user scaling action
         self.plotter.add_key_event('u', self.restore_user_scaling)
 
+        # display help
+        self.help_actor = self.plotter.add_text(
+            text="Press h to show help window"
+        )
+        self.plotter.add_key_event('h', self.help)
+
         # set the slider style
         self.set_slider_style(smoothing_slider)
         self.set_slider_style(fmin_slider)
@@ -420,6 +427,13 @@ class _TimeViewer(object):
 
     def toggle_interface(self):
         self.visibility = not self.visibility
+
+        # manage help text
+        if self.visibility:
+            self.help_actor.VisibilityOn()
+        else:
+            self.help_actor.VisibilityOff()
+
         # manage sliders
         for slider in self.plotter.slider_widgets:
             slider_rep = slider.GetRepresentation()
@@ -490,6 +504,37 @@ class _TimeViewer(object):
             slider_rep.GetSliderProperty().SetColor((0.5, 0.5, 0.5))
             if not show_label:
                 slider_rep.ShowSliderLabelOff()
+
+    def help(self):
+        shortcuts = {
+            'h': 'Display help window',
+            'y': 'Toggle interface',
+            't': 'Apply auto-scaling',
+            'u': 'Restore original clim',
+            'Space': 'Start/Pause playback'
+        }
+        text = [str(s) + " : \n" for s in shortcuts.keys()]
+        text2 = [str(s) + "\n" for s in shortcuts.values()]
+        text, text2 = ''.join(text), ''.join(text2)
+        width, height = 9, 5
+
+        fig_help = figure_nobar(figsize=(width, height), dpi=80)
+        fig_help.canvas.set_window_title('Help')
+
+        ax = fig_help.add_subplot(111)
+        celltext = [[c1, c2] for c1, c2 in zip(text.strip().split("\n"),
+                                               text2.strip().split("\n"))]
+        table = ax.table(cellText=celltext, loc="center", cellLoc="left")
+        table.auto_set_font_size(False)
+        table.set_fontsize(12)
+        ax.set_axis_off()
+        for (row, col), cell in table.get_celld().items():
+            cell.set_edgecolor(None)  # remove cell borders
+            if col == 0:
+                cell._loc = 'right'
+
+        fig_help.canvas.draw()
+        plt_show(fig=fig_help, warn=False)
 
 
 class _LinkViewer(object):
