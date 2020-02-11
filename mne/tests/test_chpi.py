@@ -261,6 +261,10 @@ def test_initial_fit_redo():
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes')
     slopes = np.array(
         [[c['slopes'] for c in raw.info['hpi_meas'][0]['hpi_coils']]])
+    amps = np.linalg.norm(slopes, axis=-1)
+    amps /= slopes.shape[-1]
+    assert_array_less(amps, 5e-11)
+    assert_array_less(1e-12, amps)
     proj, _, _ = _setup_ext_proj(raw.info, ext_order=1)
     chpi_amplitudes = dict(times=np.zeros(1), slopes=slopes, proj=proj)
     chpi_locs = compute_chpi_locs(raw.info, chpi_amplitudes)
@@ -439,6 +443,12 @@ def test_calculate_chpi_coil_locs_artemis():
     coil_amplitudes = compute_chpi_amplitudes(raw)
     with pytest.raises(ValueError, match='too_close'):
         compute_chpi_locs(raw, coil_amplitudes, too_close='foo')
+    # ensure values are in a reasonable range
+    amps = np.linalg.norm(coil_amplitudes['slopes'], axis=-1)
+    amps /= coil_amplitudes['slopes'].shape[-1]
+    assert amps.shape == (len(coil_amplitudes['times']), 3)
+    assert_array_less(amps, 1e-11)
+    assert_array_less(1e-13, amps)
 
 
 @testing.requires_testing_data

@@ -558,7 +558,7 @@ def _fast_fit(this_data, proj, n_freqs, model, inv_model):
                                  full_matrices=False)
         # the first component holds the predominant phase direction
         # (so ignore the second, effectively doing s[1] = 0):
-        sin_fit[fi, :] = vt[0]
+        sin_fit[fi, :] = vt[0] * s[0]
 
     return sin_fit
 
