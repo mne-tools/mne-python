@@ -15,6 +15,8 @@ Current (0.20.dev0)
 Changelog
 ~~~~~~~~~
 
+- Improved :func:`mne.viz.plot_epochs` to label epoch counts starting from 0 `Sophie Herbst`_
+
 - Add :func:`mne.minimum_norm.resolution_metrics` to compute various resolution metrics for inverse solutions, by `Olaf Hauk`_
 
 - Add current source density :func:`mne.preprocessing.compute_current_source_density` to compute the surface Laplacian in order to reduce volume conduction in data by `Alex Rockhill`_

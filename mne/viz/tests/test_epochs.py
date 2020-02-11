@@ -57,7 +57,7 @@ def test_plot_epochs_basic(capsys):
     epochs.info['lowpass'] = 10.  # allow heavy decim during plotting
     fig = epochs.plot(scalings=None, title='Epochs')
     ticks = [x.get_text() for x in fig.axes[0].get_xticklabels()]
-    assert ticks == ['1']
+    assert ticks == ['0']
     plt.close('all')
     # covariance / whitening
     cov = read_cov(cov_fname)
