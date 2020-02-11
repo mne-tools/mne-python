@@ -795,7 +795,7 @@ def compute_chpi_amplitudes(raw, t_step_min=0.01, t_window='auto',
 
     See Also
     --------
-    mne.chpi.compute_chpi_locations
+    mne.chpi.compute_chpi_locs
 
     Notes
     -----
@@ -809,8 +809,7 @@ def compute_chpi_amplitudes(raw, t_step_min=0.01, t_window='auto',
        sinusoidal amplitudes to MEG channels.
        It uses SVD to determine the phase/amplitude of the sinusoids.
 
-    Its output is meant to be used with
-    :func:`~mne.chpi.compute_chpi_locations`.
+    The output is meant to be used with :func:`~mne.chpi.compute_chpi_locs`.
 
     .. versionadded:: 0.20
     """
@@ -884,7 +883,7 @@ def compute_chpi_locs(info, chpi_amplitudes, t_step_max=1., too_close='raise',
     Notes
     -----
     This function is designed to take the output of
-    :func:`mne.chpi.compute_coil_amplitudes` and:
+    :func:`mne.chpi.compute_chpi_amplitudes` and:
 
     1. Get HPI coil locations (as digitized in ``info['dig']``) in head coords.
     2. If the amplitudes are 98%% correlated with last position
@@ -893,7 +892,7 @@ def compute_chpi_locs(info, chpi_amplitudes, t_step_max=1., too_close='raise',
 
     The number of fitted points ``n_pos`` will depend on the velocity of head
     movements as well as ``t_step_max`` (and ``t_step_min`` from
-    :func:`mne.chpi.compute_coil_amplitudes`).
+    :func:`mne.chpi.compute_chpi_amplitudes`).
 
     In "auto" mode, ``t_window`` will be set to the longer of:
 
