@@ -43,6 +43,8 @@ FILE_EXTENSIONS = {
 CHANTYPES = {"meg": "_MAG1", "eeg": "", "misc": "_OTHERS"}
 FIFFV_CHANTYPES = {"meg": FIFF.FIFFV_MEG_CH, "eeg": FIFF.FIFFV_EEG_CH,
                    "misc": FIFF.FIFFV_MISC_CH}
+FIFFV_COILTYPES = {"meg": FIFF.FIFFV_COIL_CTF_GRAD, "eeg": FIFF.FIFFV_COIL_EEG,
+                   "misc": FIFF.FIFFV_COIL_NONE}
 SI_UNITS = dict(V=FIFF.FIFF_UNIT_V, T=FIFF.FIFF_UNIT_T)
 SI_UNIT_SCALE = dict(c=1e-2, m=1e-3, u=1e-6, μ=1e-6, n=1e-9, p=1e-12, f=1e-15)
 
@@ -192,7 +194,9 @@ def _read_curry_info(curry_paths):
         for ind, chan in enumerate(labels["LABELS" + CHANTYPES[key]]):
             ch = {"ch_name": chan,
                   "unit": curry_params.unit_dict[key],
-                  "kind": FIFFV_CHANTYPES[key]}
+                  "kind": FIFFV_CHANTYPES[key],
+                  "coil_type": FIFFV_COILTYPES[key],
+                  }
             if key == "eeg":
                 loc = np.array(sensors["SENSORS" + CHANTYPES[key]][ind], float)
                 # XXX just the sensor, where is ref (next 3)?
@@ -216,7 +220,6 @@ def _read_curry_info(curry_paths):
                 trans[:3, :3] = _normal_orth(nn).T
                 ch['loc'] = _coil_trans_to_loc(trans)
                 ch['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
-
             all_chans.append(ch)
 
     ch_names = [chan["ch_name"] for chan in all_chans]
@@ -224,13 +227,10 @@ def _read_curry_info(curry_paths):
     _make_trans_dig(curry_paths, info, curry_dev_dev_t)
 
     for ind, ch_dict in enumerate(info["chs"]):
-        ch_dict["kind"] = all_chans[ind]["kind"]
+        ch_dict.update(all_chans[ind])
+        assert ch_dict['loc'].shape == (12,)
         ch_dict['unit'] = SI_UNITS[all_chans[ind]['unit'][1]]
         ch_dict['cal'] = SI_UNIT_SCALE[all_chans[ind]['unit'][0]]
-        if ch_dict["kind"] in (FIFF.FIFFV_MEG_CH,
-                               FIFF.FIFFV_EEG_CH):
-            ch_dict["loc"][:] = all_chans[ind]["loc"]
-        ch_dict['coil_type'] = FIFF.FIFFV_COIL_CTF_GRAD
 
     return info, curry_params.n_samples, curry_params.is_ascii
 
@@ -242,6 +242,7 @@ _card_dict = {'Left ear': FIFF.FIFFV_POINT_LPA,
 
 def _make_trans_dig(curry_paths, info, curry_dev_dev_t):
     # Coordinate frame transformations and definitions
+    no_msg = 'Leaving device<->head transform as None'
     info['dev_head_t'] = None
     label_fname = curry_paths['labels']
     key = 'LANDMARKS' + CHANTYPES['meg']
@@ -250,6 +251,7 @@ def _make_trans_dig(curry_paths, info, curry_dev_dev_t):
     lm.shape = (-1, 3)
     if len(lm) == 0:
         # no dig
+        logger.info(no_msg + ' (no landmarks found)')
         return
     lm /= 1000.
     key = 'LM_REMARKS' + CHANTYPES['meg']
@@ -271,7 +273,9 @@ def _make_trans_dig(curry_paths, info, curry_dev_dev_t):
                 kind=kind, ident=ident, r=r,
                 coord_frame=FIFF.FIFFV_COORD_UNKNOWN))
     info['dig'].sort(key=lambda x: (x['kind'], x['ident']))
-    if len(cards) == 3 and 'hpi' in curry_paths:  # have all three
+    has_cards = len(cards) == 3
+    has_hpi = 'hpi' in curry_paths
+    if has_cards and has_hpi:  # have all three
         logger.info('Composing device<->head transformation from dig points')
         hpi_u = np.array([d['r'] for d in info['dig']
                           if d['kind'] == FIFF.FIFFV_POINT_HPI], float)
@@ -297,6 +301,14 @@ def _make_trans_dig(curry_paths, info, curry_dev_dev_t):
         for d in info['dig']:
             d.update(coord_frame=FIFF.FIFFV_COORD_HEAD,
                      r=apply_trans(unknown_head_t, d['r']))
+    else:
+        if has_cards:
+            no_msg += ' (no .hpi file found)'
+        elif has_hpi:
+            no_msg += ' (not all cardinal points found)'
+        else:
+            no_msg += ' (neither cardinal points nor .hpi file found)'
+        logger.info(no_msg)
 
 
 def _first_hpi(fname):
