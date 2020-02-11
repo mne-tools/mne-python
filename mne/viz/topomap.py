@@ -442,11 +442,10 @@ def _get_extra_points(pos, extrapolate, sphere):
     diffs = np.diff(pos, axis=0)
     with np.errstate(divide='ignore'):
         slopes = diffs[:, 1] / diffs[:, 0]
-    colinear = ((slopes == slopes[0]).all() or np.isinf(slopes).all() or
-                pos.shape[0] < 4)
+    colinear = ((slopes == slopes[0]).all() or np.isinf(slopes).all())
 
     # compute median inter-electrode distance
-    if colinear:
+    if colinear or pos.shape[0] < 4:
         dim = 1 if diffs[:, 1].sum() > diffs[:, 0].sum() else 0
         sorting = np.argsort(pos[:, dim])
         pos_sorted = pos[sorting, :]
@@ -462,8 +461,9 @@ def _get_extra_points(pos, extrapolate, sphere):
         distance = np.median(distances)
 
     if extrapolate == 'local':
-        if colinear:
-            # special case for colinear points
+        if colinear or pos.shape[0] < 4:
+            # special case for colinear points and when there is too
+            # little points for Delaunay (needs at least 3)
             edge_points = sorting[[0, -1]]
             line_len = np.diff(pos[edge_points, :], axis=0)
             unit_vec = line_len / np.linalg.norm(line_len) * distance
@@ -473,6 +473,15 @@ def _get_extra_points(pos, extrapolate, sphere):
                         np.concatenate([-unit_vec, unit_vec], axis=0))
             new_pos = np.concatenate([pos + unit_vec_par,
                                       pos - unit_vec_par, edge_pos], axis=0)
+
+            if pos.shape[0] == 3:
+                # there may be some new_pos points that are too close
+                # to the original points
+                new_pos_diff = pos[..., np.newaxis] - new_pos.T[np.newaxis, :]
+                new_pos_diff = np.linalg.norm(new_pos_diff, axis=1)
+                good_extra = (new_pos_diff > 0.5 * distance).all(axis=0)
+                new_pos = new_pos[good_extra]
+
             tri = Delaunay(np.concatenate([pos, new_pos], axis=0))
             return new_pos, tri
 
@@ -511,7 +520,7 @@ def _get_extra_points(pos, extrapolate, sphere):
         points_x = np.cos(points_l) * use_radius + x
         points_y = np.sin(points_l) * use_radius + y
         new_pos = np.stack([points_x, points_y], axis=1)
-        if colinear:
+        if colinear or pos.shape[0] == 3:
             tri = Delaunay(np.concatenate([pos, new_pos], axis=0))
             return new_pos, tri
     tri.add_points(new_pos)
