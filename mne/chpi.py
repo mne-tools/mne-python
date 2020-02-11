@@ -820,7 +820,7 @@ def compute_chpi_amplitudes(raw, t_step_min=0.01, t_window='auto',
     tmax = tmax / raw.info['sfreq']
     need_win = hpi['t_window'] / 2.
     fit_idxs = raw.time_as_index(np.arange(
-        tmin + need_win, tmax - need_win, t_step_min), use_rounding=True)
+        tmin + need_win, tmax, t_step_min), use_rounding=True)
     logger.info('Fitting %d HPI coil locations at up to %s time points '
                 '(%0.1f sec duration)'
                 % (len(hpi['freqs']), len(fit_idxs), tmax - tmin))
@@ -887,7 +887,7 @@ def compute_chpi_locs(info, chpi_amplitudes, t_step_max=1., too_close='raise',
     :func:`mne.chpi.compute_coil_amplitudes` and:
 
     1. Get HPI coil locations (as digitized in ``info['dig']``) in head coords.
-    2. If the amplitudes are 98% correlated with last position
+    2. If the amplitudes are 98%% correlated with last position
        (and Δt < t_step_max), skip fitting.
     3. Fit magnetic dipoles using the amplitudes for each coil frequency.
 

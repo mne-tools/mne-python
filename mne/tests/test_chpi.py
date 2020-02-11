@@ -10,7 +10,7 @@ from scipy.interpolate import interp1d
 from scipy.spatial.distance import cdist
 import pytest
 
-from mne import pick_types, pick_info, Projection
+from mne import pick_types, pick_info
 from mne.io import (read_raw_fif, read_raw_artemis123, read_raw_ctf, read_info,
                     RawArray)
 from mne.io.constants import FIFF
@@ -165,7 +165,6 @@ def _decimate_chpi(raw, decim=4):
     raw_dec = RawArray(
         raw._data[:, ::decim], raw.info, first_samp=raw.first_samp // decim)
     raw_dec.info['sfreq'] /= decim
-    raw_dec._update_times()
     for coil in raw_dec.info['hpi_meas'][0]['hpi_coils']:
         if coil['coil_freq'] > raw_dec.info['sfreq']:
             coil['coil_freq'] = np.mod(coil['coil_freq'],
@@ -199,15 +198,19 @@ def test_calculate_chpi_positions_vv():
     """Test calculation of cHPI positions."""
     # Check to make sure our fits match MF decently
     mf_quats = read_head_pos(pos_fname)
-    raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes', preload=True)
+    raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes')
+    raw.crop(0, 5).load_data()
     # This is a little hack (aliasing while decimating) to make it much faster
     # for testing purposes only. We can relax this later if we find it breaks
     # something.
     raw_dec = _decimate_chpi(raw, 15)
     with catch_logging() as log:
-        py_quats = _calculate_chpi_positions(raw_dec, t_window=0.2,
-                                             verbose='debug')
-    assert '\nHPIFIT' in log.getvalue()
+        with pytest.warns(RuntimeWarning, match='cannot determine'):
+            py_quats = _calculate_chpi_positions(raw_dec, t_window=0.2,
+                                                 verbose='debug')
+    log = log.getvalue()
+    assert '\nHPIFIT' in log
+    assert 'Computing 4385 HPI location guesses' in log
     _assert_quats(py_quats, mf_quats, dist_tol=0.001, angle_tol=0.7)
 
     # degenerate conditions
@@ -284,11 +287,11 @@ def test_calculate_head_pos_chpi_on_chpi5_in_one_second_steps():
     # the last two seconds contain a maxfilter problem!
     # fiff file timing: 26. to 43. seconds
     # maxfilter estimates a wrong head position for interval 16: 41.-42. sec
-    raw = _decimate_chpi(raw.crop(0., 15.).load_data(), decim=8)
+    raw = _decimate_chpi(raw.crop(0., 10.).load_data(), decim=8)
     # needs no interpolation, because maxfilter pos files comes with 1 s steps
-    py_quats = _calculate_chpi_positions(raw, t_step_min=1.0, t_step_max=1.0,
-                                         t_window=1.0, verbose='debug')
-    _assert_quats(py_quats, mf_quats, dist_tol=0.001, angle_tol=1.3)
+    py_quats = _calculate_chpi_positions(
+        raw, t_step_min=1.0, t_step_max=1.0, t_window=1.0, verbose='debug')
+    _assert_quats(py_quats, mf_quats, dist_tol=0.002, angle_tol=1.2)
 
 
 @pytest.mark.slowtest
@@ -298,11 +301,12 @@ def test_calculate_head_pos_chpi_on_chpi5_in_shorter_steps():
     # Check to make sure our fits match MF decently
     mf_quats = read_head_pos(chpi5_pos_fname)
     raw = read_raw_fif(chpi5_fif_fname, allow_maxshield='yes')
-    raw = _decimate_chpi(raw.crop(0., 15.).load_data(), decim=8)
-    py_quats = _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=0.1,
-                                         t_window=0.1, verbose='debug')
+    raw = _decimate_chpi(raw.crop(0., 5.).load_data(), decim=8)
+    with pytest.warns(RuntimeWarning, match='cannot determine'):
+        py_quats = _calculate_chpi_positions(
+            raw, t_step_min=0.1, t_step_max=0.1, t_window=0.1, verbose='debug')
     # needs interpolation, tolerance must be increased
-    _assert_quats(py_quats, mf_quats, dist_tol=0.001, angle_tol=1.2)
+    _assert_quats(py_quats, mf_quats, dist_tol=0.002, angle_tol=1.2)
 
 
 def test_simulate_calculate_head_pos_chpi():

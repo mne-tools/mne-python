@@ -41,7 +41,7 @@ raw.plot_psd()
 #
 # First, let's extract the HPI coil amplitudes as a function of time:
 
-chpi_amplitudes = mne.chpi_compute_chpi_amplitudes(raw)
+chpi_amplitudes = mne.chpi.compute_chpi_amplitudes(raw)
 
 ###############################################################################
 # Second, let's compute time-varying HPI coil locations from these:

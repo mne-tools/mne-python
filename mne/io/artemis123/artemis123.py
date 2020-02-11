@@ -307,7 +307,7 @@ class RawArtemis123(BaseRaw):
                  pos_fname=None, add_head_trans=True):  # noqa: D102
         from scipy.spatial.distance import cdist
         from ...chpi import (compute_chpi_amplitudes, compute_chpi_locs,
-                            _fit_coil_order_dev_head_trans)
+                             _fit_coil_order_dev_head_trans)
         fname, ext = op.splitext(input_fname)
         if ext == '.txt':
             input_fname = fname + '.bin'
