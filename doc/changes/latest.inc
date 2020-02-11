@@ -122,6 +122,8 @@ Bug
 
 - Fix incorrect scaling of cluster temporal extent in :func:`mne.stats.summarize_clusters_stc` by `Daniel McCloy`_.
 
+- Fix :func:`mne.time_frequency.read_tfrs` to properly read :class:`~mne.Info` transforms by `Eric Larson`_
+
 - Fix :func:`mne.viz.plot_sensors` to always plot in head coordinate frame by `Daniel McCloy`_.
 
 - Fix :func:`mne.io.read_raw_cnt` for version 1 of format in the presence of annotations by `Alex Gramfort`_.

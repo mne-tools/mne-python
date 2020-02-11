@@ -9,7 +9,8 @@ import pytest
 import matplotlib.pyplot as plt
 
 import mne
-from mne import Epochs, read_events, pick_types, create_info, EpochsArray
+from mne import (Epochs, read_events, pick_types, create_info, EpochsArray,
+                 Info, Transform)
 from mne.io import read_raw_fif
 from mne.utils import (_TempDir, run_tests_if_main, requires_h5py,
                        requires_pandas, grand_average)
@@ -413,6 +414,8 @@ def test_io():
                      nave=20, comment='test', method='crazy-tfr')
     tfr.save(fname)
     tfr2 = read_tfrs(fname, condition='test')
+    assert isinstance(tfr2.info, Info)
+    assert isinstance(tfr2.info['dev_head_t'], Transform)
 
     assert_array_equal(tfr.data, tfr2.data)
     assert_array_equal(tfr.times, tfr2.times)
