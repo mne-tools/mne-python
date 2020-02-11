@@ -101,6 +101,19 @@ def test_basics():
     assert_array_equal(raw.annotations.description, np.repeat('test', 10))
 
 
+def test_annot_sanitizing(tmpdir):
+    """Test description sanitizing."""
+    annot = Annotations([0], [1], ['a;:b'])
+    fname = str(tmpdir.join('custom-annot.fif'))
+    annot.save(fname)
+    annot_read = read_annotations(fname)
+    _assert_annotations_equal(annot, annot_read)
+
+    # make sure pytest raises error on char-sequence that is not allowed
+    with pytest.raises(ValueError, match='in descriptions not supported'):
+        Annotations([0], [1], ['a{COLON}b'])
+
+
 def test_raw_array_orig_times():
     """Test combining with RawArray and orig_times."""
     data = np.random.randn(2, 1000) * 10e-12
