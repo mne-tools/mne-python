@@ -191,6 +191,12 @@ def test_plot_topomap_basic():
     plot_topomap(temp_data, info_sel, extrapolate='local', res=res)
     plot_topomap(temp_data, info_sel, extrapolate='head', res=res)
 
+    # make sure extrapolation works for 3 channels with border='mean'
+    # (if extra points are placed incorrectly some of them have only
+    #  other extra points as neighbours and border='mean' fails)
+    plot_topomap(temp_data, info_sel, extrapolate='local', border='mean',
+                 res=res)
+
     # border=0 and border='mean':
     # ---------------------------
     ch_names = list('abcde')

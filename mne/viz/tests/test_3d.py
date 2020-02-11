@@ -7,6 +7,7 @@
 #
 # License: Simplified BSD
 
+import gc
 import os.path as op
 from pathlib import Path
 
@@ -646,12 +647,20 @@ def test_plot_vector_source_estimates():
     data = np.random.RandomState(0).rand(n_verts, 3, n_time)
     stc = VectorSourceEstimate(data, vertices, 1, 1)
 
-    stc.plot('sample', subjects_dir=subjects_dir)
+    brain = stc.plot('sample', subjects_dir=subjects_dir)
+    brain.close()
+    del brain
+    gc.collect()
 
     with pytest.raises(ValueError, match='use "pos_lims"'):
         stc.plot('sample', subjects_dir=subjects_dir,
                  clim=dict(pos_lims=[1, 2, 3]))
-    stc.plot('sample', subjects_dir=subjects_dir, hemi='both')
+    gc.collect()
+
+    brain = stc.plot('sample', subjects_dir=subjects_dir, hemi='both')
+    brain.close()
+    del brain
+    gc.collect()
 
 
 @testing.requires_testing_data

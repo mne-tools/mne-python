@@ -467,6 +467,12 @@ def test_plot_sensors():
     _fake_click(fig, ax, (0, 0.65), xform='ax', kind='release')
     assert fig.lasso.selection == ['MEG 0121']
 
+    # check that point appearance changes
+    fc = fig.lasso.collection.get_facecolors()
+    ec = fig.lasso.collection.get_edgecolors()
+    assert (fc[:, -1] == [0.3, 1., 0.3]).all()
+    assert (ec[:, -1] == [0.3, 1., 0.3]).all()
+
     _fake_click(fig, ax, (0.7, 1), xform='ax', kind='motion')
     xy = ax.collections[0].get_offsets()
     _fake_click(fig, ax, xy[2], xform='data')  # single selection

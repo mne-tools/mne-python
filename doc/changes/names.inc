@@ -293,3 +293,5 @@
 .. _Sebastian Major: https://github.com/major-s
 
 .. _Geoff Brookshire: https://github.com/gbrookshire
+
+.. _Sophie Herbst: https://github.com/SophieHerbst

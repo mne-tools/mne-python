@@ -46,8 +46,9 @@ def _check_o_d_s(onset, duration, description):
     if description.ndim != 1:
         raise ValueError('Description must be a one dimensional array, '
                          'got %d.' % (description.ndim,))
-    if any([';' in desc for desc in description]):
-        raise ValueError('Semicolons in descriptions not supported.')
+    if any(['{COLON}' in desc for desc in description]):
+        raise ValueError('The substring "{COLON}" '
+                         'in descriptions not supported.')
 
     if not (len(onset) == len(duration) == len(description)):
         raise ValueError('Onset, duration and description must be '
@@ -550,7 +551,8 @@ def _write_annotations(fid, annotations):
     write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX,
                 annotations.duration + annotations.onset)
     # To allow : in description, they need to be replaced for serialization
-    write_name_list(fid, FIFF.FIFF_COMMENT, [d.replace(':', ';') for d in
+    # -> replace with "{COLON}". When read back in, replace it back with ":"
+    write_name_list(fid, FIFF.FIFF_COMMENT, [d.replace(':', '{COLON}') for d in
                                              annotations.description])
     if annotations.orig_time is not None:
         write_double(fid, FIFF.FIFF_MEAS_DATE,
@@ -807,7 +809,10 @@ def _read_annotations_fif(fid, tree):
                 duration = list() if duration is None else duration - onset
             elif kind == FIFF.FIFF_COMMENT:
                 description = tag.data.split(':')
-                description = [d.replace(';', ':') for d in
+
+                # replace all "{COLON}" in FIF files with necessary
+                # : character
+                description = [d.replace('{COLON}', ':') for d in
                                description]
             elif kind == FIFF.FIFF_MEAS_DATE:
                 orig_time = tag.data
