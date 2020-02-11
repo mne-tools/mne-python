@@ -6,7 +6,7 @@
 
 import time
 import numpy as np
-from ..utils import plt_show, figure_nobar
+from ..utils import _show_help
 
 
 class IntSlider(object):
@@ -516,25 +516,12 @@ class _TimeViewer(object):
         text = [str(s) + " : \n" for s in shortcuts.keys()]
         text2 = [str(s) + "\n" for s in shortcuts.values()]
         text, text2 = ''.join(text), ''.join(text2)
-        width, height = 9, 5
-
-        fig_help = figure_nobar(figsize=(width, height), dpi=80)
-        fig_help.canvas.set_window_title('Help')
-
-        ax = fig_help.add_subplot(111)
-        celltext = [[c1, c2] for c1, c2 in zip(text.strip().split("\n"),
-                                               text2.strip().split("\n"))]
-        table = ax.table(cellText=celltext, loc="center", cellLoc="left")
-        table.auto_set_font_size(False)
-        table.set_fontsize(12)
-        ax.set_axis_off()
-        for (row, col), cell in table.get_celld().items():
-            cell.set_edgecolor(None)  # remove cell borders
-            if col == 0:
-                cell._loc = 'right'
-
-        fig_help.canvas.draw()
-        plt_show(fig=fig_help, warn=False)
+        _show_help(
+            col1=text,
+            col2=text2,
+            width=5,
+            height=2,
+        )
 
 
 class _LinkViewer(object):
