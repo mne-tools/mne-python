@@ -506,18 +506,18 @@ class _TimeViewer(object):
                 slider_rep.ShowSliderLabelOff()
 
     def help(self):
-        shortcuts = {
-            'h': 'Display help window',
-            'y': 'Toggle interface',
-            't': 'Apply auto-scaling',
-            'u': 'Restore original clim',
-            'Space': 'Start/Pause playback'
-        }
-        text = [str(s) + " : \n" for s in shortcuts.keys()]
-        text2 = [str(s) + "\n" for s in shortcuts.values()]
-        text, text2 = ''.join(text), ''.join(text2)
+        pairs = [
+            ('h', 'Display help window'),
+            ('y', 'Toggle interface'),
+            ('t', 'Apply auto-scaling'),
+            ('u', 'Restore original clim'),
+            ('Space', 'Start/Pause playback'),
+        ]
+        text1, text2 = zip(*pairs)
+        text1 = '\n'.join(text1)
+        text2 = '\n'.join(text2)
         _show_help(
-            col1=text,
+            col1=text1,
             col2=text2,
             width=5,
             height=2,
