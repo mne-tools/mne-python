@@ -99,6 +99,8 @@ Changelog
 
 - Add function to convert events to annotations :func:`mne.annotations_from_events` by `Nicolas Barascud`_
 
+- Add function to calculate scalp coupling index for fNIRS data :func:`mne.preprocessing.nirs.scalp_coupling_index` by `Robert Luke`_
+
 - Add ``item`` argument to :meth:`mne.Epochs.get_data` for faster access to NumPy data arrays compared to :meth:`mne.Epochs.__getitem__` for frequent access on large :class:`mne.Epochs` objects, by `Eric Larson`_
 
 - More accurate coordinate system for Easycap montages in :func:`mne.channels.make_standard_montage` by `Christian Brodbeck`_
