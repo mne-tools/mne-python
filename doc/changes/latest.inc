@@ -21,7 +21,7 @@ Changelog
 
 - Add :func:`mne.chpi.extract_chpi_locs_ctf` to extract cHPI coil locations from CTF data  by `Luke Bloy`_
 
-- Add :func:`mne.chpi.compute_chpi_locs` and :func:`mne.chpi.compute_head_pos` to compute head positions from cHPI coil locations by `Eric Larson`_ and `Luke Bloy`_
+- Add :func:`mne.chpi.compute_chpi_amplitudes`, :func:`mne.chpi.compute_chpi_locs`, and :func:`mne.chpi.compute_head_pos` to compute head positions from cHPI coil locations by `Eric Larson`_ and `Luke Bloy`_
 
 - Add :func:`mne.io.Raw.set_meas_date` by `Eric Larson`_
 
