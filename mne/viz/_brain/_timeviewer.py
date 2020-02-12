@@ -428,9 +428,13 @@ class _TimeViewer(object):
         }
 
     def keyPressEvent(self, event):
-        callback = self.key_bindings.get(event.text())
-        if callback is not None:
-            callback()
+        from PyQt5 import QtCore
+        if event.key() == QtCore.Qt.Key_Question:
+            self.help()
+        else:
+            callback = self.key_bindings.get(event.text())
+            if callback is not None:
+                callback()
 
     def toggle_interface(self):
         self.visibility = not self.visibility
