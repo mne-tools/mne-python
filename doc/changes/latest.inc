@@ -224,7 +224,7 @@ Bug
 
 - Fix placement of extrapolation points in :meth:`mne.Evoked.plot_topomap` and related functions when exactly three channels were used by `Mikołaj Magnuski`_.
 
-- Fix bug in reading annotations in :func:`read_annotations`, which would not accept ";" character.
+- Fix bug in reading annotations in :func:`read_annotations`, which would not accept ";" character by `Adam Li`_
 
 API
 ~~~
