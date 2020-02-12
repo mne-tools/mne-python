@@ -429,7 +429,7 @@ class _TimeViewer(object):
 
     def keyPressEvent(self, event):
         from PyQt5 import QtCore
-        if event.key() == QtCore.Qt.Key_Question:
+        if event.key() == QtCore.Qt.Key_questiondown:
             self.help()
         else:
             callback = self.key_bindings.get(event.text())
