@@ -239,6 +239,7 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
     csd_picks = [csd.ch_names.index(ch) for ch in ch_names]
 
     if noise_csd is not None:
+        # Use the same noise CSD for all frequencies
         if len(noise_csd.frequencies) > 1:
             noise_csd = noise_csd.mean()
         noise_csd = noise_csd.get_data(as_cov=True)
@@ -247,12 +248,11 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
 
     _, _, proj, vertices, G, whitener, nn, orient_std = \
         _prepare_beamformer_input(
-            info, forward, label, pick_ori, noise_csd,
-            combine_xyz=combine_xyz, exp=exp)
+            info, forward, label, pick_ori, noise_cov=noise_csd, rank=rank,
+            pca=False, combine_xyz=combine_xyz, exp=exp)
 
     logger.info('Computing DICS spatial filters...')
     Ws = []
-    whiteners = []
     for i, freq in enumerate(frequencies):
         if n_freqs > 1:
             logger.info('    computing DICS spatial filter at %sHz (%d/%d)' %
@@ -273,10 +273,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
                                 reduce_rank, rank=rank, inversion=inversion,
                                 nn=nn, orient_std=orient_std)
         Ws.append(W)
-        whiteners.append(whitener)
 
     Ws = np.array(Ws)
-    whiteners = np.array(whiteners)
 
     src_type = _get_src_type(forward['src'], vertices)
     filters = Beamformer(
@@ -284,7 +282,7 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
         vertices=vertices, subject=subject, pick_ori=pick_ori,
         inversion=inversion, weight_norm=weight_norm,
         normalize_fwd=bool(normalize_fwd), src_type=src_type,
-        n_orient=n_orient if pick_ori is None else 1, whiteners=whiteners)
+        n_orient=n_orient if pick_ori is None else 1, whitener=whitener)
 
     return filters
 
@@ -487,6 +485,7 @@ def apply_dics_csd(csd, filters, verbose=None):
     vertices = filters['vertices']
     n_orient = filters['n_orient']
     subject = filters['subject']
+    whitener = filters['whitener']
     n_sources = np.sum([len(v) for v in vertices])
 
     # If CSD is summed over multiple frequencies, take the average frequency
@@ -509,7 +508,6 @@ def apply_dics_csd(csd, filters, verbose=None):
         W = filters['weights'][i]
 
         # Whiten the CSD
-        whitener = filters['whiteners'][i]
         Cm = np.dot(whitener, np.dot(Cm, whitener.conj().T))
 
         source_power[:, i] = _compute_power(Cm, W, n_orient)
