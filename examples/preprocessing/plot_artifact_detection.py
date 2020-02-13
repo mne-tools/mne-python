@@ -47,12 +47,13 @@ raw.resample(100, npad="auto")
 # --------------------------------------------------------------------------
 
 # get cHPI time series and compute average
-pos = mne.chpi.calculate_head_pos_ctf(raw)
+chpi_locs = mne.chpi.extract_chpi_locs_ctf(raw)
+head_pos = mne.chpi.compute_head_pos(raw.info, chpi_locs)
 original_head_dev_t = mne.transforms.invert_transform(
     raw.info['dev_head_t'])
 average_head_dev_t = mne.transforms.invert_transform(
-    compute_average_dev_head_t(raw, pos))
-fig = mne.viz.plot_head_positions(pos)
+    compute_average_dev_head_t(raw, head_pos))
+fig = mne.viz.plot_head_positions(head_pos)
 for ax, val, val_ori in zip(fig.axes[::2], average_head_dev_t['trans'][:3, 3],
                             original_head_dev_t['trans'][:3, 3]):
     ax.axhline(1000 * val, color='r')
@@ -67,14 +68,14 @@ for ax, val, val_ori in zip(fig.axes[::2], average_head_dev_t['trans'][:3, 3],
 
 mean_distance_limit = .0015  # in meters
 annotation_movement, hpi_disp = annotate_movement(
-    raw, pos, mean_distance_limit=mean_distance_limit)
+    raw, head_pos, mean_distance_limit=mean_distance_limit)
 raw.set_annotations(annotation_movement)
 raw.plot(n_channels=100, duration=20)
 
 ##############################################################################
 # After checking the annotated movement artifacts, calculate the new transform
 # and plot it:
-new_dev_head_t = compute_average_dev_head_t(raw, pos)
+new_dev_head_t = compute_average_dev_head_t(raw, head_pos)
 raw.info['dev_head_t'] = new_dev_head_t
 mne.viz.plot_alignment(
     raw.info, show_axes=True, subject=subject, trans=trans_fname,

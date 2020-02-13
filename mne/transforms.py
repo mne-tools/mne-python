@@ -14,7 +14,7 @@ import numpy as np
 from copy import deepcopy
 from scipy import linalg
 
-from .fixes import einsum
+from .fixes import einsum, mean
 from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
@@ -1191,31 +1191,34 @@ def _one_rot_to_quat(rot):
     """Convert a rotation matrix to quaternions."""
     # see e.g. http://www.euclideanspace.com/maths/geometry/rotations/
     #                 conversions/matrixToQuaternion/
+    det = np.linalg.det(np.reshape(rot, (3, 3)))
+    if np.abs(det - 1.) > 1e-3:
+        raise ValueError('Matrix is not a pure rotation, got determinant != 1')
     t = 1. + rot[0] + rot[4] + rot[8]
     if t > np.finfo(rot.dtype).eps:
         s = np.sqrt(t) * 2.
+        # qw = 0.25 * s
         qx = (rot[7] - rot[5]) / s
         qy = (rot[2] - rot[6]) / s
         qz = (rot[3] - rot[1]) / s
-        # qw = 0.25 * s
     elif rot[0] > rot[4] and rot[0] > rot[8]:
         s = np.sqrt(1. + rot[0] - rot[4] - rot[8]) * 2.
+        # qw = (rot[7] - rot[5]) / s
         qx = 0.25 * s
         qy = (rot[1] + rot[3]) / s
         qz = (rot[2] + rot[6]) / s
-        # qw = (rot[7] - rot[5]) / s
     elif rot[4] > rot[8]:
         s = np.sqrt(1. - rot[0] + rot[4] - rot[8]) * 2
+        # qw = (rot[2] - rot[6]) / s
         qx = (rot[1] + rot[3]) / s
         qy = 0.25 * s
         qz = (rot[5] + rot[7]) / s
-        # qw = (rot[2] - rot[6]) / s
     else:
         s = np.sqrt(1. - rot[0] - rot[4] + rot[8]) * 2.
+        # qw = (rot[3] - rot[1]) / s
         qx = (rot[2] + rot[6]) / s
         qy = (rot[5] + rot[7]) / s
         qz = 0.25 * s
-        # qw = (rot[3] - rot[1]) / s
     return np.array((qx, qy, qz))
 
 
@@ -1239,6 +1242,14 @@ def rot_to_quat(rot):
     """
     rot = rot.reshape(rot.shape[:-2] + (9,))
     return np.apply_along_axis(_one_rot_to_quat, -1, rot)
+
+
+def _quat_to_affine(quat):
+    assert quat.shape == (6,)
+    affine = np.eye(4)
+    affine[:3, :3] = quat_to_rot(quat[:3])
+    affine[:3, 3] = quat[3:]
+    return affine
 
 
 def _angle_between_quats(x, y):
@@ -1299,6 +1310,41 @@ def _find_vector_rotation(a, b):
     vx = _skew_symmetric_cross(v)
     R += vx + np.dot(vx, vx) * (1 - c) / s
     return R
+
+
+@jit()
+def _fit_matched_points(p, x):
+    """Fit matched points using an analytical formula."""
+    # Follow notation of P.J. Besl and N.D. McKay, A Method for
+    # Registration of 3-D Shapes, IEEE Trans. Patt. Anal. Machine Intell., 14,
+    # 239 - 255, 1992.
+    #
+    # Caution: This can be dangerous if there are 3 points, or 4 points in
+    #          a symmetric layout, as the geometry can be explained
+    #          equivalently under 180 degree rotations.
+    #
+    # XXX eventually we should use this in coreg to speed things up.
+    assert p.shape == x.shape
+    assert p.ndim == 2
+    assert p.shape[1] == 3
+    mu_p = mean(p, axis=0)  # eq 23
+    mu_x = mean(x, axis=0)
+    Sigma_px = np.dot(p.T, x) / p.shape[0] - np.outer(mu_p, mu_x)  # eq 24
+    A_ij = Sigma_px - Sigma_px.T
+    Delta = np.array([A_ij[1, 2], A_ij[2, 0], A_ij[0, 1]])
+    tr_Sigma_px = np.trace(Sigma_px)
+    Q = np.empty((4, 4))
+    Q[0, 0] = tr_Sigma_px
+    Q[0, 1:] = Delta
+    Q[1:, 0] = Delta
+    Q[1:, 1:] = Sigma_px + Sigma_px.T - tr_Sigma_px * np.eye(3)
+    _, v = np.linalg.eigh(Q)  # sorted ascending
+    quat = np.empty(6)
+    quat[:3] = v[1:, -1]
+    if v[0, -1] != 0:
+        quat[:3] *= np.sign(v[0, -1])
+    quat[3:] = mu_x - np.dot(quat_to_rot(quat[:3]), mu_p)
+    return quat
 
 
 def _average_quats(quats, weights=None):

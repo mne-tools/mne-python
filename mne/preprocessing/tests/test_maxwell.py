@@ -157,7 +157,7 @@ def test_movement_compensation(tmpdir):
     #
     # Movement compensation,    regularization,    tSSS at the end
     #
-    raw_nohpi = filter_chpi(raw.copy())
+    raw_nohpi = filter_chpi(raw.copy(), t_window=0.2)
     with pytest.warns(RuntimeWarning, match='untested'):
         raw_sss_mv = maxwell_filter(raw_nohpi, head_pos=head_pos,
                                     st_duration=4., origin=mf_head_origin,

@@ -714,7 +714,7 @@ def _compute_mdfv(rrs, rmags, cosmags, ws, bins, too_close):
         sum_ = ws2 * (3 * diff * t - dist2 * cosmags) / (dist2 * dist2 * dist)
         for ii in range(3):
             fwd[3 * ri + ii] = bincount(bins, sum_[:, ii], bins[-1] + 1)
-    fwd *= 1e-7
+    fwd *= _MAG_FACTOR
     return fwd, min_dist
 
 

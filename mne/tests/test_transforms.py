@@ -18,7 +18,7 @@ from mne.transforms import (invert_transform, _get_trans,
                             _topo_to_sph, _average_quats,
                             _SphericalSurfaceWarp as SphericalSurfaceWarp,
                             rotation3d_align_z_axis, _read_fs_xfm,
-                            _write_fs_xfm, _quat_real)
+                            _write_fs_xfm, _quat_real, _fit_matched_points)
 
 data_path = testing.data_path(download=False)
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-trans.fif')
@@ -304,6 +304,13 @@ def test_quaternions():
             expected = np.pi if ii != jj else 0.
             assert_allclose(_angle_between_quats(a, b), expected, atol=1e-5)
 
+    y_180 = np.array([[-1, 0, 0], [0, 1, 0], [0, 0, -1.]])
+    assert_allclose(_angle_between_quats(rot_to_quat(y_180),
+                                         np.zeros(3)), np.pi)
+    h_180_attitude_90 = np.array([[0, 1, 0], [1, 0, 0], [0, 0, -1.]])
+    assert_allclose(_angle_between_quats(rot_to_quat(h_180_attitude_90),
+                                         np.zeros(3)), np.pi)
+
 
 def test_vector_rotation():
     """Test basic rotation matrix math."""
@@ -384,6 +391,12 @@ def test_fs_xfm():
         _write_fs_xfm(fname_out, xfm[:2], 'foo')
         with pytest.raises(ValueError, match='Could not find'):
             _read_fs_xfm(fname_out)
+
+
+def test_fit_matched_points():
+    """Test analytical least-squares matched point fitting."""
+    quat = _fit_matched_points(np.eye(3), np.eye(3))
+    assert_allclose(quat, 0., atol=1e-14)
 
 
 run_tests_if_main()

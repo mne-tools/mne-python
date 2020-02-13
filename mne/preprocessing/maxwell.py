@@ -16,11 +16,11 @@ from scipy import linalg
 from .. import __version__
 from ..annotations import _annotations_starts_stops
 from ..bem import _check_origin
-from ..chpi import quat_to_rot, rot_to_quat
 from ..transforms import (_str_to_frame, _get_trans, Transform, apply_trans,
                           _find_vector_rotation, _cart_to_sph, _get_n_moments,
                           _sph_to_cart_partials, _deg_ord_idx, _average_quats,
-                          _sh_complex_to_real, _sh_real_to_complex, _sh_negate)
+                          _sh_complex_to_real, _sh_real_to_complex, _sh_negate,
+                          quat_to_rot, rot_to_quat)
 from ..forward import _concatenate_coils, _prep_meg_channels, _create_meg_coils
 from ..surface import _normalize_vectors
 from ..io.constants import FIFF, FWD
@@ -31,7 +31,7 @@ from ..io import _loc_to_coil_trans, _coil_trans_to_loc, BaseRaw
 from ..io.pick import pick_types, pick_info
 from ..utils import (verbose, logger, _clean_names, warn, _time_mask, _pl,
                      _check_option)
-from ..fixes import _get_args, _safe_svd, einsum
+from ..fixes import _get_args, _safe_svd, einsum, bincount
 from ..channels.channels import _get_T1T2_mag_inds
 
 
@@ -224,7 +224,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
        +-----------------------------------------------------------------------------+-----+-----------+
        | Automatic bad channel detection                                             |     | ✓         |
        +-----------------------------------------------------------------------------+-----+-----------+
-       | Head position estimation                                                    |     | ✓         |
+       | Head position estimation (:func:`~mne.chpi.compute_head_pos`)               | ✓   | ✓         |
        +-----------------------------------------------------------------------------+-----+-----------+
 
     Epoch-based movement compensation is described in [1]_.
@@ -650,7 +650,8 @@ def _check_destination(destination, info, head_frame):
     return recon_trans
 
 
-def _prep_mf_coils(info, ignore_ref=True):
+@verbose
+def _prep_mf_coils(info, ignore_ref=True, verbose=None):
     """Get all coil integration information loaded and sorted."""
     coils, comp_coils = _prep_meg_channels(
         info, accurate=True, head_frame=False,
@@ -913,7 +914,8 @@ def _regularize(regularize, exp, S_decomp, mag_or_fine, t, verbose=None):
     return S_decomp, pS_decomp, sing, reg_moments, n_use_in
 
 
-def _get_mf_picks(info, int_order, ext_order, ignore_ref=False):
+@verbose
+def _get_mf_picks(info, int_order, ext_order, ignore_ref=False, verbose=None):
     """Pick types for Maxwell filtering."""
     # Check for T1/T2 mag types
     mag_inds_T1T2 = _get_T1T2_mag_inds(info)
@@ -1172,11 +1174,7 @@ def _sss_basis(exp, all_coils):
     rmags, cosmags, bins, n_coils = all_coils[:4]
     int_order, ext_order = exp['int_order'], exp['ext_order']
     n_in, n_out = _get_n_moments([int_order, ext_order])
-    S_tot = np.empty((n_coils, n_in + n_out), np.float64)
-
     rmags = rmags - exp['origin']
-    S_in = S_tot[:, :n_in]
-    S_out = S_tot[:, n_in:]
 
     # do the heavy lifting
     max_order = max(int_order, ext_order)
@@ -1187,16 +1185,20 @@ def _sss_basis(exp, all_coils):
     cos_pol = rmags[:, 2] / r_n  # cos(theta); theta 0...pi
     sin_pol = np.sqrt(1. - cos_pol * cos_pol)  # sin(theta)
     z_only = (r_xy <= 1e-16)
+    sin_pol_nz = sin_pol.copy()
+    sin_pol_nz[z_only] = 1.  # will be overwritten later
     r_xy[z_only] = 1.
     cos_az = rmags[:, 0] / r_xy  # cos(phi)
     cos_az[z_only] = 1.
     sin_az = rmags[:, 1] / r_xy  # sin(phi)
     sin_az[z_only] = 0.
-    del rmags
     # Appropriate vector spherical harmonics terms
     #  JNE 2012-02-08: modified alm -> 2*alm, blm -> -2*blm
     r_nn2 = r_n.copy()
     r_nn1 = 1.0 / (r_n * r_n)
+    S_tot = np.empty((n_coils, n_in + n_out), np.float64)
+    S_in = S_tot[:, :n_in]
+    S_out = S_tot[:, n_in:]
     for degree in range(max_order + 1):
         if degree <= ext_order:
             r_nn1 *= r_n  # r^(l-1)
@@ -1239,7 +1241,7 @@ def _sss_basis(exp, all_coils):
             # alpha
             if degree <= int_order:
                 b_r = (degree + 1) * r_fact / r_nn2
-                b_az = az_fact / (sin_pol * r_nn2)
+                b_az = az_fact / (sin_pol_nz * r_nn2)
                 b_az[z_only] = 0.
                 b_pol = pol_fact / (2 * r_nn2)
                 S_in[:, idx] = _integrate_points(
@@ -1248,7 +1250,7 @@ def _sss_basis(exp, all_coils):
             # beta
             if degree <= ext_order:
                 b_r = -degree * r_fact * r_nn1
-                b_az = az_fact * r_nn1 / sin_pol
+                b_az = az_fact * r_nn1 / sin_pol_nz
                 b_az[z_only] = 0.
                 b_pol = pol_fact * r_nn1 / 2.
                 S_out[:, idx] = _integrate_points(
@@ -1265,7 +1267,7 @@ def _sss_basis(exp, all_coils):
             # alpha
             if degree <= int_order:
                 b_r = -(degree + 1) * r_fact / r_nn2
-                b_az = az_fact / (sin_pol * r_nn2)
+                b_az = az_fact / (sin_pol_nz * r_nn2)
                 b_az[z_only] = 0.
                 b_pol = pol_fact / (2 * r_nn2)
                 S_in[:, idx] = _integrate_points(
@@ -1274,7 +1276,7 @@ def _sss_basis(exp, all_coils):
             # beta
             if degree <= ext_order:
                 b_r = degree * r_fact * r_nn1
-                b_az = az_fact * r_nn1 / sin_pol
+                b_az = az_fact * r_nn1 / sin_pol_nz
                 b_az[z_only] = 0.
                 b_pol = pol_fact * r_nn1 / 2.
                 S_out[:, idx] = _integrate_points(
@@ -1287,8 +1289,8 @@ def _integrate_points(cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol,
                       cosmags, bins, n_coils):
     """Integrate points in spherical coords."""
     grads = _sp_to_cart(cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol).T
-    grads = einsum('ij,ij->i', grads, cosmags)
-    return np.bincount(bins, grads, n_coils)
+    grads = (grads * cosmags).sum(axis=1)
+    return bincount(bins, grads, n_coils)
 
 
 def _tabular_legendre(r, nind):
@@ -1299,7 +1301,7 @@ def _tabular_legendre(r, nind):
     for degree in range(nind + 1):
         L.append(np.zeros((degree + 2, len(r))))
     L[0][0] = 1.
-    pnn = 1.
+    pnn = np.ones(x.shape)
     fact = 1.
     sx2 = np.sqrt((1. - x) * (1. + x))
     for degree in range(nind + 1):
@@ -1319,11 +1321,11 @@ def _tabular_legendre(r, nind):
 
 def _sp_to_cart(cos_az, sin_az, cos_pol, sin_pol, b_r, b_az, b_pol):
     """Convert spherical coords to cartesian."""
-    return np.array([(sin_pol * cos_az * b_r +
-                      cos_pol * cos_az * b_pol - sin_az * b_az),
-                     (sin_pol * sin_az * b_r +
-                      cos_pol * sin_az * b_pol + cos_az * b_az),
-                     cos_pol * b_r - sin_pol * b_pol])
+    out = np.empty((3,) + sin_pol.shape)
+    out[0] = sin_pol * cos_az * b_r + cos_pol * cos_az * b_pol - sin_az * b_az
+    out[1] = sin_pol * sin_az * b_r + cos_pol * sin_az * b_pol + cos_az * b_az
+    out[2] = cos_pol * b_r - sin_pol * b_pol
+    return out
 
 
 def _get_degrees_orders(order):

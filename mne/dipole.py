@@ -728,7 +728,8 @@ def _dipole_forwards(fwd_data, whitener, rr, n_jobs=1):
     return B, B_orig, scales
 
 
-def _make_guesses(surf, grid, exclude, mindist, n_jobs):
+@verbose
+def _make_guesses(surf, grid, exclude, mindist, n_jobs=1, verbose=None):
     """Make a guess space inside a sphere or BEM surface."""
     if 'rr' in surf:
         logger.info('Guess surface (%s) is in %s coordinates'
@@ -792,16 +793,17 @@ def _fit_Q(fwd_data, whitener, B, B2, B_orig, rd, ori=None):
         uu, sing, vv = fwd_svd
         gof, one = _dipole_gof(uu, sing, vv, B, B2)
         ncomp = len(one)
-        # Counteract the effect of column normalization
-        Q = scales[0] * np.sum(uu.T[:ncomp] *
-                               (one / sing[:ncomp])[:, np.newaxis], axis=0)
+        one /= sing[:ncomp]
+        Q = np.dot(one, uu.T[:ncomp])
     else:
         fwd = np.dot(ori[np.newaxis], fwd)
         sing = np.linalg.norm(fwd)
         one = np.dot(fwd / sing, B)
         gof = (one * one)[0] / B2
-        Q = ori * (scales[0] * np.sum(one / sing))
+        Q = ori * np.sum(one / sing)
         ncomp = 3
+    # Counteract the effect of column normalization
+    Q *= scales[0]
     B_residual_noproj = B_orig - np.dot(fwd_orig.T, Q)
     return Q, gof, B_residual_noproj, ncomp
 

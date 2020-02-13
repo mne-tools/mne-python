@@ -46,6 +46,14 @@ include_tmax : bool
 
     .. versionadded:: 0.19
 """
+docdict['raw_tmin'] = """
+tmin : float
+    Start time of the raw data to use in seconds (must be >= 0).
+"""
+docdict['raw_tmax'] = """
+tmax : float
+    End time of the raw data to use in seconds (cannot exceed data duration).
+"""
 
 # General plotting
 docdict["show"] = """
@@ -254,6 +262,37 @@ docdict['window-resample'] = """
 window : str | tuple
     Frequency-domain window to use in resampling.
     See :func:`scipy.signal.resample`.
+"""
+
+# cHPI
+docdict['chpi_t_window'] = """
+t_window : float
+    Time window to use to estimate the amplitudes, default is
+    0.2 (200 ms).
+"""
+docdict['chpi_ext_order'] = """
+ext_order : int
+    The external order for SSS-like interfence suppression.
+    The SSS bases are used as projection vectors during fitting.
+
+    .. versionchanged:: 0.20
+        Added ``ext_order=1`` by default, which should improve
+        detection of true HPI signals.
+"""
+docdict['chpi_adjust_dig'] = """
+adjust_dig : bool
+    If True, adjust the digitization locations used for fitting based on
+    the positions localized at the start of the file.
+"""
+docdict['chpi_amplitudes'] = """
+chpi_amplitudes : dict
+    The time-varying cHPI coil amplitudes, with entries
+    "times", "proj", and "slopes".
+"""
+docdict['chpi_locs'] = """
+chpi_locs : dict
+    The time-varying cHPI coils locations, with entries
+    "times", "rrs", "moments", and "gofs".
 """
 
 # Rank
