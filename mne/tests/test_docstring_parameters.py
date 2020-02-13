@@ -68,6 +68,7 @@ docstring_ignores = {
 char_limit = 800  # XX eventually we should probably get this lower
 tab_ignores = [
     'mne.channels.tests.test_montage',
+    'mne.io.curry.tests.test_curry',
 ]
 error_ignores = {
     # These we do not live by:

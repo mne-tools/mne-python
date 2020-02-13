@@ -19,6 +19,7 @@ from struct import pack
 
 import numpy as np
 from scipy.sparse import coo_matrix, csr_matrix, eye as speye
+from scipy import linalg
 
 from .io.constants import FIFF
 from .io.open import fiff_open
@@ -321,6 +322,16 @@ def _project_onto_surface(rrs, surf, project_rrs=False, return_nn=False,
                                      len(surf['rr']))
             out += (nn[idx],)
     return out
+
+
+def _normal_orth(nn):
+    """Compute orthogonal basis given a normal."""
+    assert nn.shape == (3,)
+    u, _, _ = linalg.svd(np.eye(3) - np.outer(nn, nn))
+    #  Make sure that ez is in the direction of nn
+    if np.dot(nn, u[:, 2]) < 0:
+        u *= -1.0
+    return u.T
 
 
 @verbose
