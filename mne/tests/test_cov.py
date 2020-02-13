@@ -197,7 +197,6 @@ def test_ad_hoc_cov(tmpdir):
         cov._get_square()
 
 
-
 def test_io_cov(tmpdir):
     """Test IO for noise covariance matrices."""
     cov = read_cov(cov_fname)
