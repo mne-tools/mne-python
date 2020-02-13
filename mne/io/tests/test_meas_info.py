@@ -88,8 +88,9 @@ def test_make_info():
     pytest.raises(TypeError, create_info, ['Test Ch'], sfreq=1000,
                   ch_types=None, montage=np.array([1]))
     m = make_standard_montage('biosemi32')
-    info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
-                       montage=m)
+    with pytest.deprecated_call():
+        info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
+                           montage=m)
     ch_pos = [ch['loc'][:3] for ch in info['chs']]
     ch_pos_mon = m._get_ch_pos()
     ch_pos_mon = np.array(
@@ -254,6 +255,13 @@ def test_read_write_info(tmpdir):
     assert info['meas_date'] is None
     info2 = read_info(tmp_fname_3)
     assert info2['meas_date'] is None
+
+    # Check that having a very old date in fine until you try to save it to fif
+    info['meas_date'] = datetime(1800, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    info._check_consistency()
+    fname = tmpdir.join('test.fif')
+    with pytest.raises(RuntimeError, match='must be between '):
+        write_info(fname, info)
 
 
 def test_io_dig_points(tmpdir):

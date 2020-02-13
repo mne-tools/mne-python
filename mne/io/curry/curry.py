@@ -12,9 +12,9 @@ import numpy as np
 
 from ..base import BaseRaw
 from ..meas_info import create_info
-from ..utils import _read_segments_file, _mult_cal_one, warn
+from ..utils import _read_segments_file, _mult_cal_one
 from ..constants import FIFF
-from ...utils import check_fname, check_version, logger, verbose
+from ...utils import check_fname, check_version, logger, verbose, warn
 from ...annotations import Annotations
 
 FILE_EXTENSIONS = {"Curry 7": {"info": ".dap",

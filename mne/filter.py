@@ -1784,10 +1784,11 @@ class FilterMixin(object):
         ----------
         h_freq : float
             Approximate high cut-off frequency in Hz. Note that this
-            is not an exact cutoff, since Savitzky-Golay filtering [1]_ is
-            done using polynomial fits instead of FIR/IIR filtering.
-            This parameter is thus used to determine the length of the
-            window over which a 5th-order polynomial smoothing is used.
+            is not an exact cutoff, since Savitzky-Golay filtering
+            :footcite:`SavitzkyGolay1964` is done using polynomial fits
+            instead of FIR/IIR filtering. This parameter is thus used to
+            determine the length of the window over which a 5th-order
+            polynomial smoothing is used.
         %(verbose_meth)s
 
         Returns
@@ -1809,9 +1810,7 @@ class FilterMixin(object):
 
         References
         ----------
-        .. [1] Savitzky, A., Golay, M.J.E. (1964). "Smoothing and
-               Differentiation of Data by Simplified Least Squares
-               Procedures". Analytical Chemistry 36 (8): 1627-39.
+        .. footbibliography::
 
         Examples
         --------

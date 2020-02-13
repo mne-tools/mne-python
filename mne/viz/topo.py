@@ -363,7 +363,8 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
     for data_, color_, times_ in zip(data, color, times):
         if not picker_flag:
             # use large tol for picker so we can click anywhere in the axes
-            ax.plot(times_, data_[ch_idx], color=color_, picker=1e9)
+            line = ax.plot(times_, data_[ch_idx], color=color_, picker=True)[0]
+            line.set_pickradius(1e9)
             picker_flag = True
         else:
             ax.plot(times_, data_[ch_idx], color=color_)

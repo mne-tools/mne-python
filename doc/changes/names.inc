@@ -283,3 +283,15 @@
 .. _Alex Rockhill: https://github.com/alexrockhill/
 
 .. _Chun-Hui Li: https://github.com/iamsc
+
+.. _Christian O'Reilly: https://scholar.google.ca/citations?user=NllRAkwAAAAJ&hl=en
+
+.. _Yu-Han Luo: https://github.com/yh-luo
+
+.. _Fu-Te Wong: https://github.com/zuxfoucault
+
+.. _Sebastian Major: https://github.com/major-s
+
+.. _Geoff Brookshire: https://github.com/gbrookshire
+
+.. _Sophie Herbst: https://github.com/SophieHerbst

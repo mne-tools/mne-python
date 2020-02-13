@@ -261,6 +261,7 @@ Visualization
    plot_sensors_connectivity
    plot_snr_estimate
    plot_source_estimates
+   link_brains
    plot_volume_source_estimates
    plot_vector_source_estimates
    plot_sparse_source_estimates
@@ -345,6 +346,8 @@ Projections:
 
    ICA
    Xdawn
+   annotate_movement
+   compute_average_dev_head_t
    compute_current_source_density
    compute_proj_ecg
    compute_proj_eog
@@ -363,6 +366,7 @@ Projections:
    read_ica
    run_ica
    corrmap
+   read_ica_eeglab
 
 :py:mod:`mne.preprocessing.nirs`:
 
@@ -379,6 +383,7 @@ Projections:
    beer_lambert_law
    source_detector_distances
    short_channels
+   scalp_coupling_index
 
 EEG referencing:
 
@@ -465,6 +470,7 @@ Events
    write_events
    concatenate_epochs
    events_from_annotations
+   annotations_from_events
 
 :py:mod:`mne.event`:
 

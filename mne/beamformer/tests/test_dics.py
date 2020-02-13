@@ -141,11 +141,9 @@ def test_make_dics(tmpdir, _load_forward):
         make_dics(epochs.info, fwd_vol, csd, pick_ori="normal")
 
     # Test invalid combinations of parameters
-    with pytest.raises(NotImplementedError, match='implemented with pick_ori'):
-        make_dics(epochs.info, fwd_free, csd, reduce_rank=True, pick_ori=None)
-    with pytest.raises(NotImplementedError, match='implemented with pick_ori'):
-        make_dics(epochs.info, fwd_free, csd, reduce_rank=True,
-                  pick_ori='max-power', inversion='single')
+    with pytest.raises(ValueError, match='reduce_rank cannot be used with'):
+        make_dics(epochs.info, fwd_free, csd, inversion='single',
+                  reduce_rank=True)
     with pytest.raises(ValueError, match='not stable with depth'):
         make_dics(epochs.info, fwd_free, csd, weight_norm='unit-noise-gain',
                   inversion='single', normalize_fwd=True)

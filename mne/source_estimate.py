@@ -2201,7 +2201,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
                      colormap='auto', time_label='time=%02.f ms',
                      smoothing_steps=10,
                      transparent=None, alpha=1.0, time_viewer=False,
-                     config_opts=None, subjects_dir=None, figure=None,
+                     subjects_dir=None, figure=None,
                      views='lat', colorbar=True, clim='auto'):
         """Plot surface source estimates with PySurfer.
 
@@ -2239,9 +2239,6 @@ class MixedSourceEstimate(_BaseSourceEstimate):
             Alpha value to apply globally to the overlay.
         time_viewer : bool
             Display time viewer GUI.
-        config_opts : dict
-            Keyword arguments for Brain initialization.
-            See pysurfer.viz.Brain.
         %(subjects_dir)s
         figure : instance of mayavi.mlab.Figure | None
             If None, the last figure will be cleaned and a new figure will
@@ -2273,7 +2270,6 @@ class MixedSourceEstimate(_BaseSourceEstimate):
                                      smoothing_steps=smoothing_steps,
                                      transparent=transparent, alpha=alpha,
                                      time_viewer=time_viewer,
-                                     config_opts=config_opts,
                                      subjects_dir=subjects_dir, figure=figure,
                                      views=views, colorbar=colorbar, clim=clim)
 

@@ -160,8 +160,7 @@ requires_freesurfer = partial(requires_module, name='Freesurfer',
 requires_neuromag2ft = partial(requires_module, name='neuromag2ft',
                                call=_n2ft_call)
 
-requires_tvtk = partial(requires_module, name='TVTK',
-                        call='from tvtk.api import tvtk')
+requires_vtk = partial(requires_module, name='vtk')
 requires_pysurfer = partial(requires_module, name='PySurfer',
                             call="""import warnings
 with warnings.catch_warnings(record=True):
@@ -172,7 +171,11 @@ requires_good_network = partial(
          '    raise ImportError')
 requires_nitime = partial(requires_module, name='nitime')
 requires_h5py = partial(requires_module, name='h5py')
-requires_numpydoc = partial(requires_module, name='numpydoc')
+
+
+def requires_numpydoc(func):
+    """Decorate tests that need numpydoc."""
+    return requires_version('numpydoc', '1.0')(func)  # validate needs 1.0
 
 
 def check_version(library, min_version):

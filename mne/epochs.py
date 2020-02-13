@@ -786,13 +786,19 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         epoch = epoch[:, self._decim_slice]
         return epoch
 
-    def iter_evoked(self):
+    def iter_evoked(self, copy=False):
         """Iterate over epochs as a sequence of Evoked objects.
 
         The Evoked objects yielded will each contain a single epoch (i.e., no
         averaging is performed).
 
         This method resets the object iteration state to the first epoch.
+
+        Parameters
+        ----------
+        copy : bool
+            If False copies of data and measurement info will be omitted
+            to save time.
         """
         self._current = 0
 
@@ -803,7 +809,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                 break
             data, event_id = out
             tmin = self.times[0]
-            info = deepcopy(self.info)
+            info = self.info
+            if copy:
+                info = deepcopy(self.info)
+                data = data.copy()
 
             yield EvokedArray(data, info, tmin, comment=str(event_id))
 
@@ -1243,7 +1252,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         keep = np.setdiff1d(np.arange(len(self.events)), try_idx)
         self._getitem(keep, reason, copy=False, drop_event_id=False)
         count = len(try_idx)
-        logger.info('Dropped %d epoch%s' % (count, _pl(count)))
+        logger.info('Dropped %d epoch%s: %s' %
+                    (count, _pl(count), ', '.join(map(str, np.sort(try_idx)))))
+
         return self
 
     def _get_epoch_from_raw(self, idx, verbose=None):
@@ -1262,7 +1273,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return epoch
 
     @verbose
-    def _get_data(self, out=True, picks=None, verbose=None):
+    def _get_data(self, out=True, picks=None, item=None, verbose=None):
         """Load all data, dropping bad epochs along the way.
 
         Parameters
@@ -1273,7 +1284,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         %(picks_all)s
         %(verbose_meth)s
         """
-        n_events = len(self.events)
+        if item is None:
+            item = slice(None)
+        elif not self._bad_dropped:
+            raise ValueError(
+                'item must be None in epochs.get_data() unless bads have been '
+                'dropped. Consider using epochs.drop_bad().')
+        select = self._item_to_select(item)  # indices or slice
+        use_idx = np.arange(len(self.events))[select]
+        n_events = len(use_idx)
         # in case there are no good events
         if self.preload:
             # we will store our result in our existing array
@@ -1287,6 +1306,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             if not out:
                 return
             if self.preload:
+                data = data[select]
                 if picks is None:
                     return data
                 else:
@@ -1294,7 +1314,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                     return data[:, picks]
 
             # we need to load from disk, drop, and return data
-            for idx in range(n_events):
+            for ii, idx in enumerate(use_idx):
                 # faster to pre-allocate memory here
                 epoch_noproj = self._get_epoch_from_raw(idx)
                 epoch_noproj = self._detrend_offset_decim(epoch_noproj)
@@ -1302,10 +1322,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                     epoch_out = epoch_noproj
                 else:
                     epoch_out = self._project_epoch(epoch_noproj)
-                if idx == 0:
+                if ii == 0:
                     data = np.empty((n_events, len(self.ch_names),
                                      len(self.times)), dtype=epoch_out.dtype)
-                data[idx] = epoch_out
+                data[ii] = epoch_out
         else:
             # bads need to be dropped, this might occur after a preload
             # e.g., when calling drop_bad w/new params
@@ -1368,19 +1388,27 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             return None
 
     @fill_doc
-    def get_data(self, picks=None):
+    def get_data(self, picks=None, item=None):
         """Get all epochs as a 3D array.
 
         Parameters
         ----------
         %(picks_all)s
+        item : slice | array-like | str | list | None
+            The items to get. See :meth:`mne.Epochs.__getitem__` for
+            a description of valid options. This can be substantially faster
+            for obtaining an ndarray than :meth:`~mne.Epochs.__getitem__`
+            for repeated access on large Epochs objects.
+            None (default) is an alias for ``slice(None)``.
+
+            .. versionadded:: 0.20
 
         Returns
         -------
         data : array of shape (n_epochs, n_channels, n_times)
             A view on epochs data.
         """
-        return self._get_data(picks=picks)
+        return self._get_data(picks=picks, item=item)
 
     @property
     def times(self):
@@ -1828,14 +1856,14 @@ class Epochs(BaseEpochs):
         overlapping with segments whose description begins with ``'bad'`` are
         rejected. If False, no rejection based on annotations is performed.
     metadata : instance of pandas.DataFrame | None
-        A :class:`pandas.DataFrame` specifying more complex metadata about
-        events. If given, ``len(metadata)`` must equal ``len(events)``.
-        The DataFrame may have values of type (str | int | float).
+        A :class:`pandas.DataFrame` specifying metadata about each epoch.
+        If given, ``len(metadata)`` must equal ``len(events)``. The DataFrame
+        may only contain values of type (str | int | float | bool).
         If metadata is given, then pandas-style queries may be used to select
         subsets of data, see :meth:`mne.Epochs.__getitem__`.
         When a subset of the epochs is created in this (or any other
-        supported) manner, the metadata object is subsetted in the same manner.
-        MNE will modify the row indices to match ``epochs.selection``.
+        supported) manner, the metadata object is subsetted accordingly, and
+        the row indices will be modified to match ``epochs.selection``.
 
         .. versionadded:: 0.16
     event_repeated : str

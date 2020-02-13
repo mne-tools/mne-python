@@ -46,8 +46,9 @@ def _check_o_d_s(onset, duration, description):
     if description.ndim != 1:
         raise ValueError('Description must be a one dimensional array, '
                          'got %d.' % (description.ndim,))
-    if any([';' in desc for desc in description]):
-        raise ValueError('Semicolons in descriptions not supported.')
+    if any(['{COLON}' in desc for desc in description]):
+        raise ValueError('The substring "{COLON}" '
+                         'in descriptions not supported.')
 
     if not (len(onset) == len(duration) == len(description)):
         raise ValueError('Onset, duration and description must be '
@@ -550,7 +551,8 @@ def _write_annotations(fid, annotations):
     write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX,
                 annotations.duration + annotations.onset)
     # To allow : in description, they need to be replaced for serialization
-    write_name_list(fid, FIFF.FIFF_COMMENT, [d.replace(':', ';') for d in
+    # -> replace with "{COLON}". When read back in, replace it back with ":"
+    write_name_list(fid, FIFF.FIFF_COMMENT, [d.replace(':', '{COLON}') for d in
                                              annotations.description])
     if annotations.orig_time is not None:
         write_double(fid, FIFF.FIFF_MEAS_DATE,
@@ -807,7 +809,10 @@ def _read_annotations_fif(fid, tree):
                 duration = list() if duration is None else duration - onset
             elif kind == FIFF.FIFF_COMMENT:
                 description = tag.data.split(':')
-                description = [d.replace(';', ':') for d in
+
+                # replace all "{COLON}" in FIF files with necessary
+                # : character
+                description = [d.replace('{COLON}', ':') for d in
                                description]
             elif kind == FIFF.FIFF_MEAS_DATE:
                 orig_time = tag.data
@@ -857,6 +862,24 @@ def _select_annotations_based_on_description(descriptions, event_id, regexp):
     return event_sel, event_id_
 
 
+def _select_events_based_on_id(events, event_desc):
+    """Get a collection of events and returns index of selected."""
+    event_desc_ = dict()
+    func = event_desc.get if isinstance(event_desc, dict) else event_desc
+    event_ids = events[np.unique(events[:, 2], return_index=True)[1], 2]
+    for e in event_ids:
+        trigger = func(e)
+        if trigger is not None:
+            event_desc_[e] = trigger
+
+    event_sel = [ii for ii, e in enumerate(events) if e[2] in event_desc_]
+
+    if len(event_sel) == 0:
+        raise ValueError('Could not find any of the events you specified.')
+
+    return event_sel, event_desc_
+
+
 def _check_event_id(event_id, raw):
     from .io.brainvision.brainvision import _BVEventParser
     from .io.brainvision.brainvision import _check_bv_annot
@@ -877,7 +900,32 @@ def _check_event_id(event_id, raw):
     elif callable(event_id) or isinstance(event_id, dict):
         return event_id
     else:
-        raise ValueError('Invalid input event_id')
+        raise ValueError('Invalid type for event_id (should be None, str, '
+                         'dict or callable). Got {}'.format(type(event_id)))
+
+
+def _check_event_description(event_desc, events):
+    """Check event_id and convert to default format."""
+    if event_desc is None:  # convert to int to make typing-checks happy
+        event_desc = list(np.unique(events[:, 2]))
+
+    if isinstance(event_desc, dict):
+        for val in event_desc.values():
+            _validate_type(val, (str, None), 'Event names')
+    elif isinstance(event_desc, collections.Iterable):
+        event_desc = np.asarray(event_desc)
+        if event_desc.ndim != 1:
+            raise ValueError('event_desc must be 1D, got shape {}'.format(
+                             event_desc.shape))
+        event_desc = dict(zip(event_desc, map(str, event_desc)))
+    elif callable(event_desc):
+        pass
+    else:
+        raise ValueError('Invalid type for event_desc (should be None, list, '
+                         '1darray, dict or callable). Got {}'.format(
+                             type(event_desc)))
+
+    return event_desc
 
 
 @verbose
@@ -896,8 +944,8 @@ def events_from_annotations(raw, event_id="auto",
 
         - **dict**: map descriptions (keys) to integer event codes (values).
           Only the descriptions present will be mapped, others will be ignored.
-        - **callable**: must take a string input and returns an integer event
-          code or None to ignore it.
+        - **callable**: must take a string input and return an integer event
+          code, or return ``None`` to ignore the event.
         - **None**: Map descriptions to unique integer values based on their
           ``sorted`` order.
         - **'auto' (default)**: prefer a raw-format-specific parser:
@@ -934,6 +982,14 @@ def events_from_annotations(raw, event_id="auto",
         The events.
     event_id : dict
         The event_id variable that can be passed to Epochs.
+
+    Notes
+    -----
+    For data formats that store integer events as strings (e.g., NeuroScan
+    ``.cnt`` files), passing the Python built-in function :class:`int` as the
+    ``event_id`` parameter will do what most users probably want in those
+    circumstances: return an ``event_id`` dictionary that maps event ``'1'`` to
+    integer event code ``1``, ``'2'`` to ``2``, etc.
     """
     if len(raw.annotations) == 0:
         event_id = dict() if not isinstance(event_id, dict) else event_id
@@ -977,3 +1033,59 @@ def events_from_annotations(raw, event_id="auto",
                 (list(event_id_.keys()),))
 
     return events, event_id_
+
+
+@verbose
+def annotations_from_events(events, sfreq, event_desc=None, first_samp=0,
+                            orig_time=None, verbose=None):
+    """Convert an event array to an Annotations object.
+
+    Parameters
+    ----------
+    events : ndarray, shape (n_events, 3)
+        The events.
+    sfreq : float
+        Sampling frequency.
+    event_desc : dict | array-like | callable | None
+        Events description. Can be:
+
+        - **dict**: map integer event codes (keys) to descriptions (values).
+          Only the descriptions present will be mapped, others will be ignored.
+        - **array-like**: list, or 1d array of integers event codes to include.
+          Only the event codes present will be mapped, others will be ignored.
+          Event codes will be passed as string descriptions.
+        - **callable**: must take a integer event code as input and return a
+          string description or None to ignore it.
+        - **None**: Use integer event codes as descriptions.
+    first_samp : int
+        The first data sample (default=0). See :attr:`mne.io.Raw.first_samp`
+        docstring.
+    orig_time : float | str | datetime | tuple of int | None
+        Determines the starting time of annotation acquisition. If None
+        (default), starting time is determined from beginning of raw data
+        acquisition. For details, see :meth:`mne.Annotations` docstring.
+    %(verbose)s
+
+    Returns
+    -------
+    annot : instance of Annotations
+        The annotations.
+
+    Notes
+    -----
+    Annotations returned by this function will all have zero (null) duration.
+    """
+    event_desc = _check_event_description(event_desc, events)
+    event_sel, event_desc_ = _select_events_based_on_id(events, event_desc)
+    events_sel = events[event_sel]
+    onsets = (events_sel[:, 0] - first_samp) / sfreq
+    descriptions = [event_desc_[e[2]] for e in events_sel]
+    durations = np.zeros(len(events_sel))  # dummy durations
+
+    # Create annotations
+    annots = Annotations(onset=onsets,
+                         duration=durations,
+                         description=descriptions,
+                         orig_time=orig_time)
+
+    return annots

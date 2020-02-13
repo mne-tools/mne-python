@@ -15,8 +15,14 @@ Actual implementation of _Renderer and _Projection classes.
 #
 # License: Simplified BSD
 
+from contextlib import contextmanager
 import warnings
 import numpy as np
+
+from mayavi.core.scene import Scene
+from mayavi.core.ui.mayavi_scene import MayaviScene
+from tvtk.pyface.tvtk_scene import TVTKScene
+
 from .base_renderer import _BaseRenderer
 from ._utils import _check_color
 from ...surface import _normalize_vectors
@@ -126,14 +132,14 @@ class _Renderer(_BaseRenderer):
             surface.actor.property.backface_culling = backface_culling
         return surface
 
-    def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
+    def contour(self, surface, scalars, contours, width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
-                normalized_colormap=False):
+                normalized_colormap=False, kind='line', color=None):
         mesh = _create_mesh_surf(surface, self.fig, scalars=scalars)
         with warnings.catch_warnings(record=True):  # traits
             cont = self.mlab.pipeline.contour_surface(
-                mesh, contours=contours, line_width=1.0, vmin=vmin, vmax=vmax,
-                opacity=opacity, figure=self.fig)
+                mesh, contours=contours, line_width=width, vmin=vmin,
+                vmax=vmax, opacity=opacity, figure=self.fig)
             cont.module_manager.scalar_lut_manager.lut.table = colormap
 
     def surface(self, surface, color=None, opacity=1.0,
@@ -287,8 +293,7 @@ class _Renderer(_BaseRenderer):
 
 def _mlab_figure(**kwargs):
     """Create a Mayavi figure using our defaults."""
-    from mayavi import mlab
-    fig = mlab.figure(**kwargs)
+    fig = _import_mlab().figure(**kwargs)
     # If using modern VTK/Mayavi, improve rendering with FXAA
     if hasattr(getattr(fig.scene, 'renderer', None), 'use_fxaa'):
         fig.scene.renderer.use_fxaa = True
@@ -325,8 +330,6 @@ def _create_mesh_surf(surf, fig=None, scalars=None, vtk_normals=True):
 
 def _3d_to_2d(fig, xyz):
     """Convert 3d points to a 2d perspective using a Mayavi Scene."""
-    from mayavi.core.scene import Scene
-
     _validate_type(fig, Scene, "fig", "Scene")
     xyz = np.column_stack([xyz, np.ones(xyz.shape[0])])
 
@@ -351,9 +354,6 @@ def _get_world_to_view_matrix(scene):
 
     This is a concatenation of the model view and perspective transforms.
     """
-    from mayavi.core.ui.mayavi_scene import MayaviScene
-    from tvtk.pyface.tvtk_scene import TVTKScene
-
     _validate_type(scene, (MayaviScene, TVTKScene), "scene",
                    "TVTKScene/MayaviScene")
     cam = scene.camera
@@ -377,9 +377,6 @@ def _get_view_to_display_matrix(scene):
     It's assumed that the view should take up the entire window and that the
     origin of the window is in the upper left corner.
     """  # noqa: E501
-    from mayavi.core.ui.mayavi_scene import MayaviScene
-    from tvtk.pyface.tvtk_scene import TVTKScene
-
     _validate_type(scene, (MayaviScene, TVTKScene), "scene",
                    "TVTKScene/MayaviScene")
 
@@ -410,7 +407,7 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
 
 def _set_3d_title(figure, title, size=40):
     from mayavi import mlab
-    text = mlab.title(text=title, figure=figure)
+    text = mlab.title(text='', figure=figure)
     text.property.vertical_justification = 'top'
     text.property.font_size = size
     mlab.draw(figure)
@@ -463,11 +460,12 @@ def _take_3d_screenshot(figure, mode='rgb', filename=None):
         return img
 
 
-def _try_3d_backend():
+@contextmanager
+def _testing_context(interactive):
+    mlab = _import_mlab()
+    orig_backend = mlab.options.backend
+    mlab.options.backend = 'test'
     try:
-        with warnings.catch_warnings(record=True):  # traits
-            from mayavi import mlab  # noqa F401
-    except Exception:
-        pass
-    else:
-        mlab.options.backend = 'test'
+        yield
+    finally:
+        mlab.options.backend = orig_backend

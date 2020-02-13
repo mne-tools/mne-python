@@ -449,7 +449,7 @@ def test_make_forward_no_meg(tmpdir):
     bem = make_sphere_model()
     trans = None
     montage = make_standard_montage('standard_1020')
-    info = create_info(['Cz'], 1000., 'eeg', montage=montage)
+    info = create_info(['Cz'], 1000., 'eeg').set_montage(montage)
     fwd = make_forward_solution(info, trans, src, bem)
     fname = tmpdir.join('test-fwd.fif')
     write_forward_solution(fname, fwd)

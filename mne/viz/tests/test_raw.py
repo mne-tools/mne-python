@@ -415,6 +415,10 @@ def test_plot_raw_psd():
     with pytest.raises(ValueError, match='not exceed one half the sampling'):
         raw.plot_psd(fmax=50000)
 
+    # test xscale value checking
+    with pytest.raises(ValueError, match="Invalid value for the 'xscale'"):
+        raw.plot_psd(xscale='blah')
+
     # gh-5046
     raw = read_raw_fif(raw_fname, preload=True).crop(0, 1)
     picks = pick_types(raw.info)
@@ -462,6 +466,12 @@ def test_plot_sensors():
     fig.canvas.key_press_event('control')
     _fake_click(fig, ax, (0, 0.65), xform='ax', kind='release')
     assert fig.lasso.selection == ['MEG 0121']
+
+    # check that point appearance changes
+    fc = fig.lasso.collection.get_facecolors()
+    ec = fig.lasso.collection.get_edgecolors()
+    assert (fc[:, -1] == [0.3, 1., 0.3]).all()
+    assert (ec[:, -1] == [0.3, 1., 0.3]).all()
 
     _fake_click(fig, ax, (0.7, 1), xform='ax', kind='motion')
     xy = ax.collections[0].get_offsets()

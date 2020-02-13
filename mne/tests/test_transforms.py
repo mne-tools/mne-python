@@ -18,7 +18,7 @@ from mne.transforms import (invert_transform, _get_trans,
                             _topo_to_sph, _average_quats,
                             _SphericalSurfaceWarp as SphericalSurfaceWarp,
                             rotation3d_align_z_axis, _read_fs_xfm,
-                            _write_fs_xfm)
+                            _write_fs_xfm, _quat_real)
 
 data_path = testing.data_path(download=False)
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-trans.fif')
@@ -341,6 +341,17 @@ def test_average_quats():
     assert_allclose(rot_0, rot_1, atol=1e-7)
     for lim, ex in enumerate(expected):
         assert_allclose(_average_quats(quats[:lim + 1]), ex, atol=1e-7)
+    # Assert some symmetry
+    count = 0
+    extras = [[sq2, sq2, 0]] + list(np.eye(3))
+    for quat in np.concatenate((quats, expected, extras)):
+        if np.isclose(_quat_real(quat), 0., atol=1e-7):  # can flip sign
+            count += 1
+            angle = _angle_between_quats(quat, -quat)
+            assert_allclose(angle, 0., atol=1e-7)
+            rot_0, rot_1 = quat_to_rot(np.array((quat, -quat)))
+            assert_allclose(rot_0, rot_1, atol=1e-7)
+    assert count == 4 + len(extras)
 
 
 @testing.requires_testing_data

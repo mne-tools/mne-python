@@ -336,7 +336,7 @@ def test_simulate_raw_bem(raw_data):
                          0, 1. / raw.info['sfreq'])
     stcs = [stc] * 15
     raw_sim_sph = simulate_raw(raw.info, stcs, trans, src, sphere)
-    raw_sim_bem = simulate_raw(raw.info, stcs, trans, src, bem_fname, n_jobs=2)
+    raw_sim_bem = simulate_raw(raw.info, stcs, trans, src, bem_fname)
     # some components (especially radial) might not match that well,
     # so just make sure that most components have high correlation
     assert_array_equal(raw_sim_sph.ch_names, raw_sim_bem.ch_names)

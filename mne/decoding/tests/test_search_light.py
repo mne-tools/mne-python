@@ -7,6 +7,7 @@ from numpy.testing import assert_array_equal, assert_equal
 import pytest
 
 from mne.utils import requires_version
+from mne.fixes import _get_args
 from mne.decoding.search_light import SlidingEstimator, GeneralizingEstimator
 from mne.decoding.transformer import Vectorizer
 
@@ -81,7 +82,16 @@ def test_search_light():
     sl = SlidingEstimator(logreg, scoring='roc_auc')
     y = np.arange(len(X)) % 3
     sl.fit(X, y)
-    pytest.raises(ValueError, sl.score, X, y)
+    with pytest.raises(ValueError, match='for two-class'):
+        sl.score(X, y)
+    # But check that valid ones should work with new enough sklearn
+    if 'multi_class' in _get_args(roc_auc_score):
+        scoring = make_scorer(
+            roc_auc_score, needs_proba=True, multi_class='ovo')
+        sl = SlidingEstimator(logreg, scoring=scoring)
+        sl.fit(X, y)
+        sl.score(X, y)  # smoke test
+
     # -- 2 class problem not in [0, 1]
     y = np.arange(len(X)) % 2 + 1
     sl.fit(X, y)

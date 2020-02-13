@@ -16,6 +16,7 @@ from io import BytesIO
 from itertools import cycle
 import os.path as op
 import warnings
+import collections
 from functools import partial
 
 import numpy as np
@@ -325,7 +326,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         The mayavi figure.
     """
     # Update the backend
-    from .backends.renderer import _Renderer
+    from .backends.renderer import _get_renderer
     types = [t for t in ['eeg', 'grad', 'mag'] if t in evoked]
 
     time_idx = None
@@ -345,7 +346,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
                                      np.tile([0., 0., 0., 255.], (2, 1)),
                                      np.tile([255., 0., 0., 255.], (127, 1))])
 
-    renderer = _Renderer(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
+    renderer = _get_renderer(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
 
     for ii, this_map in enumerate(surf_maps):
         surf = this_map['surf']
@@ -627,7 +628,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     """
     from ..forward import _create_meg_coils, Forward
     # Update the backend
-    from .backends.renderer import _Renderer
+    from .backends.renderer import _get_renderer
 
     if eeg is False:
         eeg = list()
@@ -1018,7 +1019,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                         % (len(other_loc[key]), key, _pl(other_loc[key])))
 
     # initialize figure
-    renderer = _Renderer(fig, bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
+    renderer = _get_renderer(fig, bgcolor=(0.5, 0.5, 0.5), size=(800, 800))
     if interaction == 'terrain':
         renderer.set_interactive()
 
@@ -1221,36 +1222,42 @@ def _sensor_shape(coil):
     return rrs, tris
 
 
-def _limits_to_control_points(clim, stc_data, colormap, transparent,
-                              allow_pos_lims=True, linearize=False):
-    """Convert limits (values or percentiles) to control points.
+def _process_clim(clim, colormap, transparent, data=0., allow_pos_lims=True):
+    """Convert colormap/clim options to dict.
 
-    This function also does the nonlinear scaling of the colormap in the
-    case of a diverging colormap, and it forces transparency in the
-    alpha channel.
+    This fills in any "auto" entries properly such that round-trip
+    calling gives the same results.
     """
     # Based on type of limits specified, get cmap control points
     import matplotlib.pyplot as plt
-    from matplotlib.colors import ListedColormap
-    if colormap == 'auto':
-        if clim == 'auto':
-            if allow_pos_lims and (stc_data < 0).any():
-                colormap = 'mne'
+    from matplotlib.colors import Colormap
+    _validate_type(colormap, (str, Colormap), 'colormap')
+    data = np.asarray(data)
+    if isinstance(colormap, str):
+        if colormap == 'auto':
+            if clim == 'auto':
+                if allow_pos_lims and (data < 0).any():
+                    colormap = 'mne'
+                else:
+                    colormap = 'hot'
             else:
-                colormap = 'hot'
+                if 'lims' in clim:
+                    colormap = 'hot'
+                else:  # 'pos_lims' in clim
+                    colormap = 'mne'
+        if colormap in ('mne', 'mne_analyze'):
+            colormap = mne_analyze_colormap([0, 1, 2], format='matplotlib')
         else:
-            if 'lims' in clim:
-                colormap = 'hot'
-            else:  # 'pos_lims' in clim
-                colormap = 'mne'
+            colormap = plt.get_cmap(colormap)
+    assert isinstance(colormap, Colormap)
     diverging_maps = ['PiYG', 'PRGn', 'BrBG', 'PuOr', 'RdGy', 'RdBu',
                       'RdYlBu', 'RdYlGn', 'Spectral', 'coolwarm', 'bwr',
                       'seismic']
     diverging_maps += [d + '_r' for d in diverging_maps]
-    diverging_maps += ['mne', 'mne_analyze', ]
+    diverging_maps += ['mne', 'mne_analyze']
     if clim == 'auto':
         # this is merely a heuristic!
-        if allow_pos_lims and colormap in diverging_maps:
+        if allow_pos_lims and colormap.name in diverging_maps:
             key = 'pos_lims'
         else:
             key = 'lims'
@@ -1264,8 +1271,8 @@ def _limits_to_control_points(clim, stc_data, colormap, transparent,
     if 'pos_lims' in clim and not allow_pos_lims:
         raise ValueError('Cannot use "pos_lims" for clim, use "lims" '
                          'instead')
-    diverging_lims = 'pos_lims' in clim
-    ctrl_pts = np.array(clim['pos_lims' if diverging_lims else 'lims'])
+    diverging = 'pos_lims' in clim
+    ctrl_pts = np.array(clim['pos_lims' if diverging else 'lims'])
     ctrl_pts = np.array(ctrl_pts, float)
     if ctrl_pts.shape != (3,):
         raise ValueError('clim has shape %s, it must be (3,)'
@@ -1276,60 +1283,77 @@ def _limits_to_control_points(clim, stc_data, colormap, transparent,
     clim_kind = clim.get('kind', 'percent')
     _check_option("clim['kind']", clim_kind, ['value', 'values', 'percent'])
     if clim_kind == 'percent':
-        perc_data = np.abs(stc_data) if diverging_lims else stc_data
+        perc_data = np.abs(data) if diverging else data
         ctrl_pts = np.percentile(perc_data, ctrl_pts)
         logger.info('Using control points %s' % (ctrl_pts,))
+    assert len(ctrl_pts) == 3
+    clim = dict(kind='value')
+    clim['pos_lims' if diverging else 'lims'] = ctrl_pts
+    mapdata = dict(clim=clim, colormap=colormap, transparent=transparent)
+    return mapdata
+
+
+def _separate_map(mapdata):
+    """Help plotters that cannot handle limit equality."""
+    diverging = 'pos_lims' in mapdata['clim']
+    key = 'pos_lims' if diverging else 'lims'
+    ctrl_pts = np.array(mapdata['clim'][key])
+    assert ctrl_pts.shape == (3,)
     if len(set(ctrl_pts)) == 1:  # three points match
         if ctrl_pts[0] == 0:  # all are zero
             warn('All data were zero')
             ctrl_pts = np.arange(3, dtype=float)
-            ticks = [0]
         else:
             ctrl_pts *= [0., 0.5, 1]  # all nonzero pts == max
-            ticks = ctrl_pts[-1:]
     elif len(set(ctrl_pts)) == 2:  # two points match
         # if points one and two are identical, add a tiny bit to the
         # control point two; if points two and three are identical,
         # subtract a tiny bit from point two.
         bump = 1e-5 if ctrl_pts[0] == ctrl_pts[1] else -1e-5
         ctrl_pts[1] = ctrl_pts[0] + bump * (ctrl_pts[2] - ctrl_pts[0])
-        ticks = ctrl_pts[::2]
-    else:
-        ticks = ctrl_pts
+    mapdata['clim'][key] = ctrl_pts
 
-    if colormap in ('mne', 'mne_analyze'):
-        colormap = mne_analyze_colormap([0, 1, 2], format='matplotlib')
-    # scale colormap so that the bounds given by scale_pts actually work
-    colormap = plt.get_cmap(colormap)
-    if diverging_lims:
-        # remap -ctrl_norm[2]->ctrl_norm[2] to 0->1
-        ctrl_norm = np.concatenate([-ctrl_pts[::-1] / ctrl_pts[2], [0],
-                                    ctrl_pts / ctrl_pts[2]]) / 2 + 0.5
+
+def _linearize_map(mapdata):
+    from matplotlib.colors import ListedColormap
+    diverging = 'pos_lims' in mapdata['clim']
+    scale_pts = mapdata['clim']['pos_lims' if diverging else 'lims']
+    if diverging:
+        lims = [-scale_pts[2], scale_pts[2]]
+        ctrl_norm = np.concatenate([-scale_pts[::-1] / scale_pts[2], [0],
+                                    scale_pts / scale_pts[2]]) / 2 + 0.5
         linear_norm = [0, 0.25, 0.5, 0.5, 0.5, 0.75, 1]
         trans_norm = [1, 1, 0, 0, 0, 1, 1]
-        scale_pts = [-ctrl_pts[2], ctrl_pts[2]]
-        idx = int(ticks[0] == 0)
-        ticks = list(-np.array(ticks[idx:])[::-1]) + [0] + list(ticks[idx:])
     else:
-        # remap ctrl_norm[0]->ctrl_norm[2] to 0->1
-        ctrl_norm = [
-            0, (ctrl_pts[1] - ctrl_pts[0]) / (ctrl_pts[2] - ctrl_pts[0]), 1]
+        lims = [scale_pts[0], scale_pts[2]]
+        range_ = scale_pts[2] - scale_pts[0]
+        mid = (scale_pts[1] - scale_pts[0]) / range_ if range_ > 0 else 0.5
+        ctrl_norm = [0, mid, 1]
         linear_norm = [0, 0.5, 1]
         trans_norm = [0, 1, 1]
-        scale_pts = [ctrl_pts[0], ctrl_pts[2]]
-    if linearize:  # matplotlib
-        # do the piecewise linear transformation
-        interp_to = np.linspace(0, 1, 256)
-        colormap = np.array(colormap(
-            np.interp(interp_to, ctrl_norm, linear_norm)))
-        if transparent:
-            colormap[:, 3] = np.interp(interp_to, ctrl_norm, trans_norm)
-        assert len(scale_pts) == 2
-        scale_pts = np.array([scale_pts[0], np.mean(scale_pts), scale_pts[1]])
-        colormap = ListedColormap(colormap)
-    else:  # mayavi / PySurfer will do the transformation for us
-        scale_pts = ctrl_pts
-    return colormap, scale_pts, diverging_lims, transparent, ticks
+    # do the piecewise linear transformation
+    interp_to = np.linspace(0, 1, 256)
+    colormap = np.array(mapdata['colormap'](
+        np.interp(interp_to, ctrl_norm, linear_norm)))
+    if mapdata['transparent']:
+        colormap[:, 3] = np.interp(interp_to, ctrl_norm, trans_norm)
+    lims = np.array([lims[0], np.mean(lims), lims[1]])
+    colormap = ListedColormap(colormap)
+    return colormap, lims
+
+
+def _get_map_ticks(mapdata):
+    diverging = 'pos_lims' in mapdata['clim']
+    ticks = mapdata['clim']['pos_lims' if diverging else 'lims']
+    delta = 1e-2 * (ticks[2] - ticks[0])
+    if ticks[1] <= ticks[0] + delta:  # Only two worth showing
+        ticks = ticks[::2]
+    if ticks[1] <= ticks[0] + delta:  # Actually only one
+        ticks = ticks[::2]
+    if diverging:
+        idx = int(ticks[0] == 0)
+        ticks = list(-np.array(ticks[idx:])[::-1]) + [0] + list(ticks[idx:])
+    return np.array(ticks)
 
 
 def _handle_time(time_label, time_unit, times):
@@ -1447,9 +1471,10 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
                  'par': {'elev': 30, 'azim': -60}}
     kwargs = dict(lh=lh_kwargs, rh=rh_kwargs)
     _check_option('views', views, sorted(lh_kwargs.keys()))
-    colormap, scale_pts, _, _, _ = _limits_to_control_points(
-        clim, stc.data, colormap, transparent, linearize=True)
-    del transparent
+    mapdata = _process_clim(clim, colormap, transparent, stc.data)
+    _separate_map(mapdata)
+    colormap, scale_pts = _linearize_map(mapdata)
+    del transparent, mapdata
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     fig = plt.figure(figsize=(6, 6)) if figure is None else figure
@@ -1536,6 +1561,35 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
     return fig
 
 
+def link_brains(brains):
+    """Plot multiple SourceEstimate objects with PyVista.
+
+    Parameters
+    ----------
+    brains : list, tuple or np.ndarray
+        The collection of brains to plot.
+    """
+    from .backends.renderer import get_3d_backend
+    if get_3d_backend() != 'pyvista':
+        raise NotImplementedError("Expected 3d backend is pyvista but"
+                                  " {} was given.".format(get_3d_backend()))
+    from ._brain import _Brain, _TimeViewer, _LinkViewer
+    if not isinstance(brains, collections.Iterable):
+        brains = [brains]
+    if len(brains) == 0:
+        raise ValueError("The collection of brains is empty.")
+    for brain in brains:
+        if isinstance(brain, _Brain):
+            # check if the _TimeViewer wrapping is not already applied
+            if not hasattr(brain, 'time_viewer') or brain.time_viewer is None:
+                brain = _TimeViewer(brain)
+        else:
+            raise TypeError("Expected type is Brain but"
+                            " {} was given.".format(type(brain)))
+    # link brains properties
+    _LinkViewer(brains)
+
+
 @verbose
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='auto', time_label='auto',
@@ -1562,8 +1616,11 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         is None, the environment will be used.
     surface : str
         The type of surface (inflated, white etc.).
-    hemi : str, 'lh' | 'rh' | 'split' | 'both'
-        The hemisphere to display.
+    hemi : str
+        Hemisphere id (ie 'lh', 'rh', 'both', or 'split'). In the case
+        of 'both', both hemispheres are shown in the same window.
+        In the case of 'split' hemispheres are displayed side-by-side
+        in different viewing panes.
     %(colormap)s
         The default ('auto') uses 'hot' for one-sided data and
         'mne' for two-sided data.
@@ -1640,7 +1697,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         An instance of :class:`surfer.Brain` from PySurfer or
         matplotlib figure.
     """  # noqa: E501
-    from .backends.renderer import get_3d_backend
+    from .backends.renderer import get_3d_backend, set_3d_backend
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
     _validate_type(stc, SourceEstimate, "stc", "Surface Source Estimate")
@@ -1651,10 +1708,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     plot_mpl = backend == 'matplotlib'
     if not plot_mpl:
         try:
-            from mayavi import mlab  # noqa: F401
-        except ImportError:
+            set_3d_backend(get_3d_backend())
+        except (ImportError, ModuleNotFoundError):
             if backend == 'auto':
-                warn('Mayavi not found. Resorting to matplotlib 3d.')
+                warn('No 3D backend found. Resorting to matplotlib 3d.')
                 plot_mpl = True
             else:  # 'mayavi'
                 raise
@@ -1669,15 +1726,30 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              spacing=spacing, time_viewer=time_viewer,
                              colorbar=colorbar, transparent=transparent)
     if get_3d_backend() == "mayavi":
+        if not check_version('surfer', '0.9'):
+            raise RuntimeError('This function requires pysurfer version '
+                               '>= 0.9')
         from surfer import Brain, TimeViewer
     else:
         from ._brain import _Brain as Brain
+        from ._brain import _TimeViewer as TimeViewer
     _check_option('hemi', hemi, ['lh', 'rh', 'split', 'both'])
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
     # convert control points to locations in colormap
-    colormap, scale_pts, diverging, transparent, _ = _limits_to_control_points(
-        clim, stc.data, colormap, transparent)
+    mapdata = _process_clim(clim, colormap, transparent, stc.data)
+    # XXX we should only need to do this for PySurfer/Mayavi, the PyVista
+    # plotter should be smart enough to do this separation in the cmap-to-ctab
+    # conversion. But this will need to be another refactoring that will
+    # hopefully restore this line:
+    #
+    # if get_3d_backend() == 'mayavi':
+    _separate_map(mapdata)
+    colormap = mapdata['colormap']
+    diverging = 'pos_lims' in mapdata['clim']
+    scale_pts = mapdata['clim']['pos_lims' if diverging else 'lims']
+    transparent = mapdata['transparent']
+    del mapdata
 
     if hemi in ['both', 'split']:
         hemis = ['lh', 'rh']
@@ -1698,6 +1770,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         data = getattr(stc, hemi + '_data')
         vertices = stc.vertices[hemi_idx]
         if len(data) > 0:
+            if transparent is None:
+                transparent = True
             kwargs = {
                 "array": data, "colormap": colormap,
                 "vertices": vertices,
@@ -1716,6 +1790,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 kwargs["fmin"] = scale_pts[0]
                 kwargs["fmid"] = scale_pts[1]
                 kwargs["fmax"] = scale_pts[2]
+                kwargs["clim"] = clim
             with warnings.catch_warnings(record=True):  # traits warnings
                 brain.add_data(**kwargs)
     if time_viewer:
@@ -2078,8 +2153,14 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     fig.tight_layout()
 
     allow_pos_lims = (mode != 'glass_brain')
-    colormap, scale_pts, diverging, _, ticks = _limits_to_control_points(
-        clim, stc.data, colormap, transparent, allow_pos_lims, linearize=True)
+    mapdata = _process_clim(clim, colormap, transparent, stc.data,
+                            allow_pos_lims)
+    _separate_map(mapdata)
+    diverging = 'pos_lims' in mapdata['clim']
+    ticks = _get_map_ticks(mapdata)
+    colormap, scale_pts = _linearize_map(mapdata)
+    del mapdata
+
     ylim = [min((scale_pts[0], ydata.min())),
             max((scale_pts[-1], ydata.max()))]
     ylim = np.array(ylim) + np.array([-1, 1]) * 0.05 * np.diff(ylim)[0]
@@ -2278,8 +2359,12 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     time_label, times = _handle_time(time_label, time_unit, stc.times)
 
     # convert control points to locations in colormap
-    colormap, scale_pts, _, transparent, _ = _limits_to_control_points(
-        clim, stc.data, colormap, transparent, allow_pos_lims=False)
+    mapdata = _process_clim(clim, colormap, transparent, stc.data,
+                            allow_pos_lims=False)
+    colormap = mapdata['colormap']
+    scale_pts = mapdata['clim']['lims']  # pos_lims not allowed
+    transparent = mapdata['transparent']
+    del mapdata
 
     if hemi in ['both', 'split']:
         hemis = ['lh', 'rh']
@@ -2437,7 +2522,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     import matplotlib.pyplot as plt
     from matplotlib.colors import ColorConverter
     # Update the backend
-    from .backends.renderer import _Renderer
+    from .backends.renderer import _get_renderer
 
     known_modes = ['cone', 'sphere']
     if not isinstance(modes, (list, tuple)) or \
@@ -2480,7 +2565,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
     color_converter = ColorConverter()
 
-    renderer = _Renderer(bgcolor=bgcolor, size=(600, 600), name=fig_name)
+    renderer = _get_renderer(bgcolor=bgcolor, size=(600, 600), name=fig_name)
     surface = renderer.mesh(x=points[:, 0], y=points[:, 1],
                             z=points[:, 2], triangles=use_faces,
                             color=brain_color, opacity=opacity,
@@ -2646,9 +2731,9 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
             ax=ax, block=block, show=show, color=color,
             highlight_color=highlight_color)
     elif mode in ['arrow', 'sphere']:
-        from .backends.renderer import _Renderer
+        from .backends.renderer import _get_renderer
         color = (1., 0., 0.) if color is None else color
-        renderer = _Renderer(fig=fig, size=(600, 600))
+        renderer = _get_renderer(fig=fig, size=(600, 600))
         pos = dipoles.pos
         ori = dipoles.ori
         if coord_frame != 'head':
@@ -2700,7 +2785,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
     from ..channels import DigMontage
     from .. import Info
     # Update the backend
-    from .backends.renderer import _Renderer
+    from .backends.renderer import _get_renderer
 
     if fig is None:
         raise ValueError('The figure must have a scene')
@@ -2719,7 +2804,7 @@ def snapshot_brain_montage(fig, montage, hide_sensors=True):
                         ' or `dict`')
 
     # initialize figure
-    renderer = _Renderer(fig, show=True)
+    renderer = _get_renderer(fig, show=True)
 
     xyz = np.vstack(xyz)
     proj = renderer.project(xyz=xyz, ch_names=ch_names)
@@ -2751,9 +2836,9 @@ def plot_sensors_connectivity(info, con, picks=None):
     """
     _validate_type(info, "info")
 
-    from .backends.renderer import _Renderer
+    from .backends.renderer import _get_renderer
 
-    renderer = _Renderer(size=(600, 600), bgcolor=(0.5, 0.5, 0.5))
+    renderer = _get_renderer(size=(600, 600), bgcolor=(0.5, 0.5, 0.5))
 
     picks = _picks_to_idx(info, picks)
     if len(picks) != len(con):
@@ -3050,10 +3135,12 @@ def plot_brain_colorbar(ax, clim, colormap='auto', transparent=True,
     """
     from matplotlib.colorbar import ColorbarBase
     from matplotlib.colors import Normalize
-    cmap, scale_pts, diverging, _, ticks = _limits_to_control_points(
-        clim, 0., colormap, transparent=True, linearize=True)
-    norm = Normalize(vmin=scale_pts[0], vmax=scale_pts[-1])
-    cbar = ColorbarBase(ax, cmap, norm=norm, ticks=ticks,
+    mapdata = _process_clim(clim, colormap, transparent)
+    ticks = _get_map_ticks(mapdata)
+    colormap, lims = _linearize_map(mapdata)
+    del mapdata
+    norm = Normalize(vmin=lims[0], vmax=lims[2])
+    cbar = ColorbarBase(ax, colormap, norm=norm, ticks=ticks,
                         label=label, orientation=orientation)
     # make the colorbar background match the brain color
     cbar.patch.set(facecolor=bgcolor)

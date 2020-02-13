@@ -39,7 +39,7 @@ subject's :file:`bem/watershed` directory:
 - :file:`{<subject>}_outer_skin_surface` contains the scalp triangulation.
 
 All of these surfaces are in the FreeSurfer format. In addition, there will be
-a directory called :file:`bem/watershed/ws` which contains the brain MRI
+a file called :file:`bem/watershed/ws.mgz` which contains the brain MRI
 volume. Furthermore, ``mne watershed_bem`` script converts the scalp surface to
 fif format and saves the result to :file:`bem/{<subject>}-head.fif`.
 

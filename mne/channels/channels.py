@@ -19,13 +19,10 @@ from ..utils import (verbose, logger, warn, copy_function_doc_to_method_doc,
                      _check_preload, _validate_type, fill_doc, _check_option)
 from ..io.compensator import get_current_comp
 from ..io.constants import FIFF
-from ..io.meas_info import anonymize_info, Info
+from ..io.meas_info import anonymize_info, Info, MontageMixin
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _contains_ch_type,
                        channel_indices_by_type, pick_channels, _picks_to_idx)
-
-
-DEPRECATED_PARAM = object()
 
 
 def _get_meg_system(info):
@@ -277,7 +274,7 @@ def _check_set(ch, projs, ch_type):
     ch['kind'] = new_kind
 
 
-class SetChannelsMixin(object):
+class SetChannelsMixin(MontageMixin):
     """Mixin class for Raw, Evoked, Epochs."""
 
     @verbose
@@ -432,19 +429,28 @@ class SetChannelsMixin(object):
     def set_channel_types(self, mapping, verbose=None):
         """Define the sensor type of channels.
 
-        Note: The following sensor types are accepted:
-            ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, stim, syst, ecog,
-            hbo, hbr, fnirs_raw, fnirs_od
-
         Parameters
         ----------
         mapping : dict
-            A dictionary mapping a channel to a sensor type (str)
-            {'EEG061': 'eog'}.
+            A dictionary mapping a channel to a sensor type (str), e.g.,
+            ``{'EEG061': 'eog'}``.
         %(verbose_meth)s
+
+        Returns
+        -------
+        inst : instance of Raw | Epochs | Evoked
+            The instance (modified in place).
+
+            .. versionchanged:: 0.20
+               Return the instance.
 
         Notes
         -----
+        The following sensor types are accepted:
+
+            ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, stim, syst, ecog,
+            hbo, hbr, fnirs_raw, fnirs_od
+
         .. versionadded:: 0.9.0
         """
         ch_names = self.info['ch_names']
@@ -493,6 +499,7 @@ class SetChannelsMixin(object):
         msg = "The unit for channel(s) {0} has changed from {1} to {2}."
         for this_change, names in unit_changes.items():
             warn(msg.format(", ".join(sorted(names)), *this_change))
+        return self
 
     def rename_channels(self, mapping):
         """Rename channels.
@@ -504,48 +511,19 @@ class SetChannelsMixin(object):
             e.g. {'EEG061' : 'EEG161'}. Can also be a callable function
             that takes and returns a string (new in version 0.10.0).
 
+        Returns
+        -------
+        inst : instance of Raw | Epochs | Evoked
+            The instance (modified in place).
+
+            .. versionchanged:: 0.20
+               Return the instance.
+
         Notes
         -----
         .. versionadded:: 0.9.0
         """
         rename_channels(self.info, mapping)
-
-    @verbose
-    def set_montage(
-        self, montage, raise_if_subset=DEPRECATED_PARAM, verbose=None
-    ):
-        """Set EEG sensor configuration and head digitization.
-
-        Parameters
-        ----------
-        %(montage)s
-        raise_if_subset : bool
-            If True, ValueError will be raised when montage.ch_names is a
-            subset of info['ch_names']. This parameter was introduced for
-            backward compatibility when set to False.
-
-            Defaults to False in 0.19, it will change to default to True in
-            0.20, and will be removed in 0.21.
-
-            .. versionadded:: 0.19
-        %(verbose_meth)s
-
-        Returns
-        -------
-        inst : instance of Raw | Epochs | Evoked
-            The instance.
-
-        Notes
-        -----
-        Operates in place.
-
-        .. versionadded:: 0.9.0
-        """
-        # How to set up a montage to old named fif file (walk through example)
-        # https://gist.github.com/massich/f6a9f4799f1fbeb8f5e8f8bc7b07d3df
-
-        from .montage import _set_montage
-        _set_montage(self.info, montage, raise_if_subset=raise_if_subset)
         return self
 
     @verbose

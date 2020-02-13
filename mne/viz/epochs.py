@@ -394,7 +394,8 @@ def _validate_fig_and_axes(fig, axes, group_by, evoked, colorbar, clear=False):
         rowspan = 2 if evoked else 3
         shape = (3, 10)
         for this_group in group_by:
-            this_fig = figure(this_group)
+            this_fig = figure()
+            this_fig.canvas.set_window_title(this_group)
             kwargs = dict()
             if check_version('matplotlib', '2.2'):
                 kwargs['fig'] = this_fig  # unavailable on earlier mpl
@@ -544,7 +545,7 @@ def _plot_epochs_image(image, style_axes=True, epochs=None, picks=None,
         from . import plot_compare_evokeds
         pass_combine = (combine if combine_given else None)
         _picks = [0] if len(picks) == 1 else None  # prevent applying GFP
-        plot_compare_evokeds({'cond': list(epochs.iter_evoked())},
+        plot_compare_evokeds({'cond': list(epochs.iter_evoked(copy=False))},
                              picks=_picks, axes=ax['evoked'],
                              combine=pass_combine, **ts_args)
         ax['evoked'].set_xlim(tmin, tmax)  # don't multiply by 1e3 here
@@ -937,8 +938,8 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     """
     from .utils import _set_psd_plot_params, _plot_psd
     fig, picks_list, titles_list, units_list, scalings_list, ax_list, \
-        make_label = _set_psd_plot_params(epochs.info, proj, picks, ax,
-                                          area_mode)
+        make_label, xlabels_list = \
+        _set_psd_plot_params(epochs.info, proj, picks, ax, area_mode)
     _check_psd_fmax(epochs, fmax)
     del ax
     psd_list = list()
@@ -956,7 +957,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, tmin=None, tmax=None,
     fig = _plot_psd(epochs, fig, freqs, psd_list, picks_list, titles_list,
                     units_list, scalings_list, ax_list, make_label, color,
                     area_mode, area_alpha, dB, estimate, average,
-                    spatial_colors, xscale, line_alpha, sphere)
+                    spatial_colors, xscale, line_alpha, sphere, xlabels_list)
     plt_show(show)
     return fig
 
@@ -1073,7 +1074,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         if len(colors) - 1 < ch_idx:
             break
         lc = LineCollection(list(), antialiased=True, linewidths=0.5,
-                            zorder=3, picker=3.)
+                            zorder=3, picker=True)
+        lc.set_pickradius(3.)
         ax.add_collection(lc)
         lines.append(lc)
 
@@ -1093,7 +1095,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     ticks = epoch_times + 0.5 * n_times
     ax.set_xticks(ticks)
     ax2.set_xticks(ticks[:n_epochs])
-    labels = list(range(1, len(ticks) + 1))  # epoch numbers
+    labels = list(range(0, len(ticks)))  # epoch numbers
     ax.set_xticklabels(labels)
     xlim = epoch_times[-1] + len(orig_epoch_times)
     ax_hscroll.set_xlim(0, xlim)
@@ -1105,7 +1107,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     hticks = list()
     for tick in hscroll_ticks:
         hticks.append(epoch_times.flat[np.abs(epoch_times - tick).argmin()])
-    hlabels = [x // n_times + 1 for x in hticks]
+    hlabels = [x // n_times for x in hticks]
     ax_hscroll.set_xticks(hticks)
     ax_hscroll.set_xticklabels(hlabels)
 
@@ -1667,7 +1669,8 @@ def _plot_onkey(event, params):
         params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
         params['n_channels'] = n_channels
         lc = LineCollection(list(), antialiased=True, linewidths=0.5,
-                            zorder=3, picker=3.)
+                            zorder=3, picker=True)
+        lc.set_pickradius(3.)
         params['ax'].add_collection(lc)
         params['ax'].set_yticks(params['offsets'])
         params['lines'].append(lc)
@@ -1772,7 +1775,8 @@ def _prepare_butterfly(params):
             used_types += 1
         while len(params['lines']) < len(params['picks']):
             lc = LineCollection(list(), antialiased=True, linewidths=.5,
-                                zorder=3, picker=3.)
+                                zorder=3, picker=True)
+            lc.set_pickradius(3.)
             ax.add_collection(lc)
             params['lines'].append(lc)
     else:  # change back to default view
@@ -1827,7 +1831,8 @@ def _update_channels_epochs(event, params):
         params['lines'].pop()
     while len(params['lines']) < n_channels:
         lc = LineCollection(list(), linewidths=0.5, antialiased=True,
-                            zorder=3, picker=3.)
+                            zorder=3, picker=True)
+        lc.set_pickradius(3.)
         params['ax'].add_collection(lc)
         params['lines'].append(lc)
     params['ax'].set_yticks(params['offsets'])

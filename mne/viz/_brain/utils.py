@@ -36,6 +36,23 @@ def mesh_edges(faces):
     return edges
 
 
+def _nearest(vertices, adj_mat):
+    from scipy.sparse.csgraph import dijkstra
+    # Vertices can be out of order, so sort them to start ...
+    order = np.argsort(vertices)
+    vertices = vertices[order]
+    _, _, sources = dijkstra(adj_mat, False, indices=vertices, min_only=True,
+                             return_predecessors=True)
+    col = np.searchsorted(vertices, sources)
+    # ... then get things back to the correct configuration.
+    col = order[col]
+    row = np.arange(len(col))
+    data = np.ones(len(col))
+    mat = sparse.coo_matrix((data, (row, col)))
+    assert mat.shape == (adj_mat.shape[0], len(vertices)), mat.shape
+    return mat
+
+
 @verbose
 def smoothing_matrix(vertices, adj_mat, smoothing_steps=20, verbose=None):
     """Create a smoothing matrix.
@@ -66,6 +83,9 @@ def smoothing_matrix(vertices, adj_mat, smoothing_steps=20, verbose=None):
     from scipy import sparse
 
     logger.info("Updating smoothing matrix, be patient..")
+
+    if smoothing_steps == 0:
+        return _nearest(vertices, adj_mat)
 
     e = adj_mat.copy()
     e.data[e.data == 2] = 1

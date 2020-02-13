@@ -228,7 +228,7 @@ def load_data(subject, path=None, force_update=False, update_path=None,
 
     # -- 5) Create custom info for mne epochs structure
     # create info
-    info = create_info(ch_names, sfreq, types, montage)
+    info = create_info(ch_names, sfreq, types).set_montage(montage)
     # get faces and noise variables from design matrix
     event_list = list(events[:, 2])
     faces = ['B' if event else 'A' for event in event_list]

@@ -5,7 +5,7 @@ Source localization with MNE/dSPM/sLORETA/eLORETA
 =================================================
 
 The aim of this tutorial is to teach you how to compute and apply a linear
-inverse method such as MNE/dSPM/sLORETA/eLORETA on evoked/raw/epochs data.
+minimum-norm inverse method on evoked/raw/epochs data.
 """
 
 # sphinx_gallery_thumbnail_number = 10

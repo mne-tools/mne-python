@@ -46,7 +46,7 @@ if not os.path.isdir('_images'):
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-needs_sphinx = '1.5'
+needs_sphinx = '2.0'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
@@ -65,8 +65,11 @@ extensions = [
     'sphinx_gallery.gen_gallery',
     'sphinx_fontawesome',
     'gen_commands',
+    'gh_substitutions',
     'sphinx_bootstrap_theme',
     'sphinx_bootstrap_divs',
+    'sphinxcontrib.bibtex',
+    'sphinxcontrib.bibtex2',
 ]
 
 linkcheck_ignore = [
@@ -319,7 +322,8 @@ intersphinx_mapping = {
     'nilearn': ('http://nilearn.github.io', None),
     'surfer': ('https://pysurfer.github.io/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
-    'statsmodels': ('http://www.statsmodels.org/stable/', None),
+    'statsmodels': ('http://www.statsmodels.org/dev', None),
+    'patsy': ('https://patsy.readthedocs.io/en/latest', None),
     # There are some problems with dipy's redirect:
     # https://github.com/nipy/dipy/issues/1955
     'dipy': ('https://dipy.org/documentation/latest',
@@ -327,6 +331,14 @@ intersphinx_mapping = {
     'mne_realtime': ('https://mne.tools/mne-realtime', None),
     'picard': ('https://pierreablin.github.io/picard/', None),
 }
+
+
+##############################################################################
+# sphinxcontrib-bibtex
+
+bibtex_bibfiles = ['./references.bib']
+bibtex_style = 'unsrt'
+bibtex_footbibliography_header = ''
 
 ##############################################################################
 # sphinx-gallery
@@ -352,7 +364,7 @@ try:
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=DeprecationWarning)
         import pyvista
-    pyvista.OFF_SCREEN = True
+    pyvista.OFF_SCREEN = False
 except Exception:
     pass
 else:
@@ -450,6 +462,7 @@ def reset_warnings(gallery_conf, fname):
                 "'U' mode is deprecated",  # sphinx io
                 r"joblib is deprecated in 0\.21",  # nilearn
                 'The usage of `cmp` is deprecated and will',  # sklearn/pytest
+                'scipy.* is deprecated and will be removed in',  # dipy
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
@@ -519,7 +532,7 @@ sphinx_gallery_conf = {
     'show_memory': True,
     'line_numbers': False,  # XXX currently (0.3.dev0) messes with style
     'within_subsection_order': FileNameSortKey,
-    'capture_repr': (),
+    'capture_repr': ('_repr_html_',),
     'junit': op.join('..', 'test-results', 'sphinx-gallery', 'junit.xml'),
 }
 
