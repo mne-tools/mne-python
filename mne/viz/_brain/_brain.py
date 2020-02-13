@@ -416,7 +416,6 @@ class _Brain(object):
             fmin, fmid, fmax, center, array
         )
 
-        self._data['array'] = act_data
         self._data['magnitude'] = magnitude
         self._data['clim'] = clim
         self._data['time'] = time
