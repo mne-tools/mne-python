@@ -295,3 +295,5 @@
 .. _Geoff Brookshire: https://github.com/gbrookshire
 
 .. _Sophie Herbst: https://github.com/SophieHerbst
+
+.. _Adam Li: http://github.com/adam2392

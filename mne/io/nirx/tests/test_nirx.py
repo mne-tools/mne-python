@@ -4,6 +4,7 @@
 #          simplified BSD-3 license
 
 import os.path as op
+import shutil
 
 import pytest
 from numpy.testing import assert_allclose, assert_array_equal
@@ -111,6 +112,23 @@ def test_nirx_15_2_short():
     assert raw.info['ch_names'][21][3:5] == 'D7'
     assert_allclose(
         mni_locs[21], [0.0388, -0.0477, 0.0932], atol=allowed_dist_error)
+
+
+@requires_testing_data
+def test_encoding(tmpdir):
+    """Test NIRx encoding."""
+    fname = str(tmpdir.join('latin'))
+    shutil.copytree(fname_nirx_15_2, fname)
+    hdr_fname = op.join(fname, 'NIRS-2019-10-02_003.hdr')
+    hdr = list()
+    with open(hdr_fname, 'rb') as fid:
+        hdr.extend(line for line in fid)
+    hdr[2] = b'Date="jeu. 13 f\xe9vr. 2020"\r\n'
+    with open(hdr_fname, 'wb') as fid:
+        for line in hdr:
+            fid.write(line)
+    # smoke test
+    read_raw_nirx(fname)
 
 
 @requires_testing_data

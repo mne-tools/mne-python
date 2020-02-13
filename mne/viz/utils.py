@@ -1235,19 +1235,13 @@ def _select_bads(event, params, bads):
     return bads
 
 
-def _onclick_help(event, params):
-    """Draw help window."""
-    text, text2 = _get_help_text(params)
-
-    width, height = 9, 5
-
+def _show_help(col1, col2, width, height):
     fig_help = figure_nobar(figsize=(width, height), dpi=80)
     fig_help.canvas.set_window_title('Help')
-    params['fig_help'] = fig_help
 
     ax = fig_help.add_subplot(111)
-    celltext = [[c1, c2] for c1, c2 in zip(text.strip().split("\n"),
-                                           text2.strip().split("\n"))]
+    celltext = [[c1, c2] for c1, c2 in zip(col1.strip().split("\n"),
+                                           col2.strip().split("\n"))]
     table = ax.table(cellText=celltext, loc="center", cellLoc="left")
     table.auto_set_font_size(False)
     table.set_fontsize(12)
@@ -1267,6 +1261,17 @@ def _onclick_help(event, params):
         plt_show(fig=fig_help, warn=False)
     except Exception:
         pass
+
+
+def _onclick_help(event, params):
+    """Draw help window."""
+    col1, col2 = _get_help_text(params)
+    params['fig_help'] = _show_help(
+        col1=col1,
+        col2=col2,
+        width=9,
+        height=5,
+    )
 
 
 def _key_press(event):

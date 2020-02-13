@@ -7,7 +7,7 @@
 from itertools import cycle
 import time
 import numpy as np
-from ..utils import _get_color_list, tight_layout
+from ..utils import _show_help, _get_color_list, tight_layout
 from ...source_space import vertex_to_mni
 
 
@@ -255,6 +255,8 @@ class _TimeViewer(object):
         self.brain = brain
         self.brain.time_viewer = self
         self.plotter = brain._renderer.plotter
+        self.interactor = self.plotter.interactor
+        self.interactor.keyPressEvent = self.keyPressEvent
 
         # orientation slider
         orientation = [
@@ -445,17 +447,9 @@ class _TimeViewer(object):
         self.playback_speed = default_playback_speed
         self.refresh_rate_ms = max(int(round(1000. / 60.)), 1)
         self.plotter.add_callback(self.play, self.refresh_rate_ms)
-        self.plotter.add_key_event('space', self.toggle_playback)
 
         # add toggle to show/hide interface
         self.visibility = True
-        self.plotter.add_key_event('y', self.toggle_interface)
-
-        # apply auto-scaling action
-        self.plotter.add_key_event('t', self.apply_auto_scaling)
-
-        # restore user scaling action
-        self.plotter.add_key_event('u', self.restore_user_scaling)
 
         # set the slider style
         self.set_slider_style(smoothing_slider)
@@ -479,8 +473,25 @@ class _TimeViewer(object):
             self._mouse_no_mvt = -1
             self.enable_point_picking()
 
+        # setup key bindings
+        self.key_bindings = {
+            '?': self.help,
+            'i': self.toggle_interface,
+            's': self.apply_auto_scaling,
+            'r': self.restore_user_scaling,
+            ' ': self.toggle_playback,
+        }
+        menu = self.plotter.main_menu.addMenu('Help')
+        menu.addAction('Show MNE key bindings\t?', self.help)
+
+    def keyPressEvent(self, event):
+        callback = self.key_bindings.get(event.text())
+        if callback is not None:
+            callback()
+
     def toggle_interface(self):
         self.visibility = not self.visibility
+
         # manage sliders
         for slider in self.plotter.slider_widgets:
             slider_rep = slider.GetRepresentation()
@@ -709,6 +720,24 @@ class _TimeViewer(object):
         )
         return line
 
+    def help(self):
+        pairs = [
+            ('?', 'Display help window'),
+            ('i', 'Toggle interface'),
+            ('s', 'Apply auto-scaling'),
+            ('r', 'Restore original clim'),
+            ('Space', 'Start/Pause playback'),
+        ]
+        text1, text2 = zip(*pairs)
+        text1 = '\n'.join(text1)
+        text2 = '\n'.join(text2)
+        _show_help(
+            col1=text1,
+            col2=text2,
+            width=5,
+            height=2,
+        )
+
 
 class _LinkViewer(object):
     """Class to link multiple _TimeViewer objects."""
@@ -733,9 +762,7 @@ class _LinkViewer(object):
 
         # link toggle to start/pause playback
         for time_viewer in self.time_viewers:
-            plotter = time_viewer.plotter
-            plotter.clear_events_for_key('space')
-            plotter.add_key_event('space', self.toggle_playback)
+            time_viewer.key_bindings[' '] = self.toggle_playback
 
     def set_time_point(self, value):
         for time_viewer in self.time_viewers:

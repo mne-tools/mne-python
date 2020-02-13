@@ -97,6 +97,8 @@ Changelog
 
 - Allow `mne.channels.read_custom_montage` to handle fiducial points for BESA spherical (``.elp``) files by `Richard Höchenberger`_
 
+- Add ``rank`` argument to :func:`mne.fit_dipole` by `Eric Larson`_
+
 - Add function to convert events to annotations :func:`mne.annotations_from_events` by `Nicolas Barascud`_
 
 - Add function to calculate scalp coupling index for fNIRS data :func:`mne.preprocessing.nirs.scalp_coupling_index` by `Robert Luke`_
@@ -121,6 +123,8 @@ Bug
 - Fix missing xlabel for :func:`mne.io.Raw.plot_psd` and similar functions when passing a subset of axes from a figure by `Alex Gramfort`_
 
 - Fix incorrect scaling of cluster temporal extent in :func:`mne.stats.summarize_clusters_stc` by `Daniel McCloy`_.
+
+- Fix :func:`mne.time_frequency.read_tfrs` to properly read :class:`~mne.Info` transforms by `Eric Larson`_
 
 - Fix :func:`mne.viz.plot_sensors` to always plot in head coordinate frame by `Daniel McCloy`_.
 
@@ -223,6 +227,8 @@ Bug
 - Fix the way planar gradiometers are combined in :func:`mne.viz.plot_tfr_topomap` and :meth:`mne.Epochs.plot_psd_topomap` by `Geoff Brookshire`_
 
 - Fix placement of extrapolation points in :meth:`mne.Evoked.plot_topomap` and related functions when exactly three channels were used by `Mikołaj Magnuski`_.
+
+- Fix bug in reading annotations in :func:`read_annotations`, which would not accept ";" character by `Adam Li`_
 
 API
 ~~~

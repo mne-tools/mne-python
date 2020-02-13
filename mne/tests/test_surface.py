@@ -13,7 +13,7 @@ from mne import (read_surface, write_surface, decimate_surface, pick_types,
                  dig_mri_distances)
 from mne.surface import (read_morph_map, _compute_nearest,
                          fast_cross_3d, get_head_surf, read_curvature,
-                         get_meg_helmet_surf)
+                         get_meg_helmet_surf, _normal_orth)
 from mne.utils import (_TempDir, requires_vtk, catch_logging,
                        run_tests_if_main, object_diff)
 from mne.io import read_info
@@ -216,6 +216,14 @@ def test_dig_mri_distances(dig_kinds, exclude, count, bounds, outliers):
     assert dists.shape == (count,)
     assert bounds[0] < np.mean(dists) < bounds[1]
     assert np.sum(dists > 0.03) == outliers
+
+
+def test_normal_orth():
+    """Test _normal_orth."""
+    nns = np.eye(3)
+    for nn in nns:
+        ori = _normal_orth(nn)
+        assert_allclose(ori[2], nn, atol=1e-12)
 
 
 run_tests_if_main()

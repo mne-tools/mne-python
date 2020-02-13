@@ -31,7 +31,7 @@ def _make_transform_card(fro, to, r_lpa, r_nasion, r_rpa):
     return Transform(fro, to, trans)
 
 
-def _quaternion_align(from_frame, to_frame, from_pts, to_pts):
+def _quaternion_align(from_frame, to_frame, from_pts, to_pts, diff_tol=1e-4):
     """Perform an alignment using the unit quaternions (modifies points)."""
     assert from_pts.shape[1] == to_pts.shape[1] == 3
 
@@ -85,7 +85,7 @@ def _quaternion_align(from_frame, to_frame, from_pts, to_pts):
                     '(orig : %7.2f %7.2f %7.2f mm) diff = %8.3f mm'
                     % (tuple(1000 * to) + tuple(1000 * rr) +
                        tuple(1000 * fro) + (1000 * diff,)))
-        if diff > 1e-4:
+        if diff > diff_tol:
             raise RuntimeError('Something is wrong: quaternion matching did '
                                'not work (see above)')
     return Transform(from_frame, to_frame, trans)

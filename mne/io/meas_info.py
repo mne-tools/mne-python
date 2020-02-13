@@ -530,6 +530,12 @@ class Info(dict, MontageMixin):
             The helium level meas date.
     """
 
+    def __init__(self, *args, **kwargs):
+        super(Info, self).__init__(*args, **kwargs)
+        t = self.get('dev_head_t', None)
+        if t is not None and not isinstance(t, Transform):
+            self['dev_head_t'] = Transform(t['from'], t['to'], t['trans'])
+
     def copy(self):
         """Copy the instance.
 
