@@ -292,7 +292,7 @@ chpi_amplitudes : dict
 docdict['chpi_locs'] = """
 chpi_locs : dict
     The time-varying cHPI coils locations, with entries
-    "times", "rrs", and "gofs".
+    "times", "rrs", "moments", and "gofs".
 """
 
 # Rank

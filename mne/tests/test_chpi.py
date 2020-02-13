@@ -11,6 +11,7 @@ from scipy.spatial.distance import cdist
 import pytest
 
 from mne import pick_types, pick_info
+from mne.forward._compute_forward import _MAG_FACTOR
 from mne.io import (read_raw_fif, read_raw_artemis123, read_raw_ctf, read_info,
                     RawArray)
 from mne.io.constants import FIFF
@@ -268,8 +269,24 @@ def test_initial_fit_redo():
     proj, _, _ = _setup_ext_proj(raw.info, ext_order=1)
     chpi_amplitudes = dict(times=np.zeros(1), slopes=slopes, proj=proj)
     chpi_locs = compute_chpi_locs(raw.info, chpi_amplitudes)
+
+    # check GOF
     coil_gof = raw.info['hpi_results'][0]['goodness']
-    assert_allclose(chpi_locs['gofs'][0], coil_gof, atol=3e-1)  # XXX not good
+    assert_allclose(chpi_locs['gofs'][0], coil_gof, atol=0.3)  # XXX not good
+
+    # check moment
+    # XXX our forward and theirs differ by an extra mult by _MAG_FACTOR
+    coil_moment = raw.info['hpi_results'][0]['moments'] / _MAG_FACTOR
+    py_moment = chpi_locs['moments'][0]
+    coil_amp = np.linalg.norm(coil_moment, axis=-1, keepdims=True)
+    py_amp = np.linalg.norm(py_moment, axis=-1, keepdims=True)
+    assert_allclose(coil_amp, py_amp, rtol=0.2)
+    coil_ori = coil_moment / coil_amp
+    py_ori = py_moment / py_amp
+    angles = np.rad2deg(np.arccos(np.abs(np.sum(coil_ori * py_ori, axis=1))))
+    assert_array_less(angles, 20)
+
+    # check resulting dev_head_t
     head_pos = compute_head_pos(raw.info, chpi_locs)
     assert head_pos.shape == (1, 10)
     nm_pos = raw.info['dev_head_t']['trans']

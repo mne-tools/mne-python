@@ -205,9 +205,10 @@ def extract_chpi_locs_ctf(raw, verbose=None):
     rrs = chpi_data[:, indices].T.reshape(len(indices), 3, 3)  # m
     # map to mne device coords
     rrs = apply_trans(ctf_dev_dev_t, rrs)
-    gofs = np.ones(rrs.shape[:2])  # not encoded, assume all good
+    gofs = np.ones(rrs.shape[:2])  # not encoded, set all good
+    moments = np.zeros(rrs.shape)  # not encoded, set all zero
     times = raw.times[indices] + raw._first_time
-    return dict(rrs=rrs, gofs=gofs, times=times)
+    return dict(rrs=rrs, gofs=gofs, times=times, moments=moments)
 
 
 # ############################################################################
@@ -333,20 +334,26 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
     return hpi_rrs.astype(float)
 
 
-def _magnetic_dipole_objective(x, B, B2, coils, whitener, too_close):
+def _magnetic_dipole_objective(x, B, B2, coils, whitener, too_close,
+                               return_moment=False):
     """Project data onto right eigenvectors of whitened forward."""
     fwd = _magnetic_dipole_field_vec(x[np.newaxis], coils, too_close)
-    return _magnetic_dipole_delta(fwd, whitener, B, B2)
+    out, u, s, one = _magnetic_dipole_delta(fwd, whitener, B, B2)
+    if return_moment:
+        one /= s
+        Q = np.dot(one, u.T)
+        out = (out, Q)
+    return out
 
 
 @jit()
 def _magnetic_dipole_delta(fwd, whitener, B, B2):
     # Here we use .T to get whitener to Fortran order, which speeds things up
     fwd = np.dot(fwd, whitener.T)
-    one = np.linalg.svd(fwd, full_matrices=False)[2]
-    one = np.dot(one, B)
+    u, s, v = np.linalg.svd(fwd, full_matrices=False)
+    one = np.dot(v, B)
     Bm2 = np.dot(one, one)
-    return B2 - Bm2
+    return B2 - Bm2, u, s, one
 
 
 def _magnetic_dipole_delta_multi(whitened_fwd_svd, B, B2):
@@ -373,7 +380,9 @@ def _fit_magnetic_dipole(B_orig, x0, too_close, whitener, coils, guesses):
         if res[idx] < res0:
             x0 = guesses['rr'][idx]
     x = fmin_cobyla(objective, x0, (), rhobeg=1e-3, rhoend=1e-5, disp=False)
-    return x, 1. - objective(x) / B2
+    gof, moment = objective(x, return_moment=True)
+    gof = 1. - gof / B2
+    return x, gof, moment
 
 
 @jit()
@@ -470,15 +479,24 @@ def _setup_hpi_amplitude_fitting(info, t_window, remove_aliased=False,
     model += [np.sin(l_t), np.cos(l_t)]  # line freqs
     model += [slope, np.ones(slope.shape)]
     model = np.concatenate(model, axis=1)
-    inv_model = np.array(linalg.pinv(model))  # ensure aligned, etc.
+    inv_model = linalg.pinv(model)
+    inv_model_reord = _reorder_inv_model(inv_model, len(hpi_freqs))
     proj, proj_op, meg_picks = _setup_ext_proj(info, ext_order)
 
     # Set up magnetic dipole fits
     hpi = dict(meg_picks=meg_picks, hpi_pick=hpi_pick,
                model=model, inv_model=inv_model, t_window=t_window,
+               inv_model_reord=inv_model_reord,
                on=hpi_ons, n_window=model_n_window, proj=proj, proj_op=proj_op,
                freqs=hpi_freqs, line_freqs=line_freqs)
     return hpi
+
+
+@jit()
+def _reorder_inv_model(inv_model, n_freqs):
+    # Reorder for faster computation
+    idx = np.arange(2 * n_freqs).reshape(2, n_freqs).T.ravel()
+    return inv_model[idx]
 
 
 def _setup_ext_proj(info, ext_order):
@@ -537,35 +555,31 @@ def _fit_chpi_amplitudes(raw, time_sl, hpi):
         if not (n_on >= 3).all():
             return None
     return _fast_fit(this_data, hpi['proj_op'], len(hpi['freqs']),
-                     hpi['model'], hpi['inv_model'])
+                     hpi['model'], hpi['inv_model_reord'])
 
 
 @jit()
-def _fast_fit(this_data, proj, n_freqs, model, inv_model):
-    if this_data.shape[1] == model.shape[0]:
-        model, inv_model = model, inv_model
-    else:  # first or last window
+def _fast_fit(this_data, proj, n_freqs, model, inv_model_reord):
+    # first or last window
+    if this_data.shape[1] != model.shape[0]:
         model = model[:this_data.shape[1]]
-        inv_model = np.linalg.pinv(model)
+        inv_model_reord = _reorder_inv_model(np.linalg.pinv(model), n_freqs)
     proj_data = np.dot(proj, this_data)
-    X = np.dot(inv_model, proj_data.T)
-    X_sin, X_cos = X[:n_freqs], X[n_freqs:2 * n_freqs]
+    X = np.dot(inv_model_reord, proj_data.T)
 
-    # use SVD across all sensors to estimate the sinusoid phase
-    sin_fit = np.zeros((n_freqs, X_sin.shape[1]))
+    sin_fit = np.zeros((n_freqs, X.shape[1]))
     for fi in range(n_freqs):
-        u, s, vt = np.linalg.svd(np.vstack((X_sin[fi, :], X_cos[fi, :])),
-                                 full_matrices=False)
+        # use SVD across all sensors to estimate the sinusoid phase
+        u, s, vt = np.linalg.svd(X[2 * fi:2 * fi + 2], full_matrices=False)
         # the first component holds the predominant phase direction
         # (so ignore the second, effectively doing s[1] = 0):
-        sin_fit[fi, :] = vt[0] * s[0]
-
+        sin_fit[fi] = vt[0] * s[0]
     return sin_fit
 
 
 def _check_chpi_param(chpi_, name):
     if name == 'chpi_locs':
-        want_ndims = dict(times=1, rrs=3, gofs=2)
+        want_ndims = dict(times=1, rrs=3, moments=3, gofs=2)
         extra_keys = list()
     else:
         assert name == 'chpi_amplitudes'
@@ -592,14 +606,18 @@ def _check_chpi_param(chpi_, name):
             raise ValueError('%s have inconsistent number of time '
                              'points in %s' % (name, want_keys))
     if name == 'chpi_locs':
-        gofs, rrs = chpi_['gofs'], chpi_['rrs']
-        if gofs.shape[1] != rrs.shape[1]:
-            raise ValueError('chpi_locs["rrs"] had values for %d coils but '
-                             'chpi_locs["gofs"] had values for %d coils'
-                             % (rrs.shape[1], gofs.shape[1]))
-        if rrs.shape[2] != 3:
-            raise ValueError('chpi_locs["rrs"].shape[2] must be 3, got shape '
-                             '%s' % (key_str, shape))
+        n_coils = chpi_['rrs'].shape[1]
+        for key in ('gofs', 'moments'):
+            val = chpi_[key]
+            if val.shape[1] != n_coils:
+                raise ValueError('chpi_locs["rrs"] had values for %d coils but'
+                                 ' chpi_locs["%s"] had values for %d coils'
+                                 % (n_coils, key, val.shape[1]))
+        for key in ('rrs', 'moments'):
+            val = chpi_[key]
+            if val.shape[2] != 3:
+                raise ValueError('chpi_locs["%s"].shape[2] must be 3, got '
+                                 'shape %s' % (key, shape))
     else:
         assert name == 'chpi_amplitudes'
         slopes, proj = chpi_['slopes'], chpi_['proj']
@@ -934,14 +952,13 @@ def compute_chpi_locs(info, chpi_amplitudes, t_step_max=1., too_close='raise',
     del fwd, R
 
     iter_ = list(zip(sin_fits['times'], sin_fits['slopes']))
-    chpi_locs = dict(times=[], rrs=[], gofs=[])
+    chpi_locs = dict(times=[], rrs=[], gofs=[], moments=[])
     # setup last iteration structure
     hpi_dig_dev_rrs = apply_trans(
         invert_transform(info['dev_head_t'])['trans'],
         _get_hpi_initial_fit(info, adjust=adjust_dig))
     last = dict(sin_fit=None, coil_fit_time=sin_fits['times'][0] - 1,
                 coil_dev_rrs=hpi_dig_dev_rrs)
-    n_freqs = len(hpi_dig_dev_rrs)
     del hpi_dig_dev_rrs
     with ProgressBar(iter_, mesg='cHPI locations ') as pb:
         for fit_time, sin_fit in pb:
@@ -971,16 +988,15 @@ def compute_chpi_locs(info, chpi_amplitudes, t_step_max=1., too_close='raise',
             coil_fits = [_fit_magnetic_dipole(f, x0, too_close, whitener,
                                               meg_coils, guesses)
                          for f, x0 in zip(sin_fit, last['coil_dev_rrs'])]
-            rrs, gofs = zip(*coil_fits)
+            rrs, gofs, moments = zip(*coil_fits)
             chpi_locs['times'].append(fit_time)
             chpi_locs['rrs'].append(rrs)
             chpi_locs['gofs'].append(gofs)
+            chpi_locs['moments'].append(moments)
             last['coil_fit_time'] = fit_time
             last['coil_dev_rrs'] = rrs
-    chpi_locs['times'] = np.array(chpi_locs['times'], float)
-    chpi_locs['rrs'] = np.array(chpi_locs['rrs'], float).reshape(
-        len(chpi_locs['times']), n_freqs, 3)
-    chpi_locs['gofs'] = np.array(chpi_locs['gofs'], float)
+    for key, val in chpi_locs.items():
+        chpi_locs[key] = np.array(val, float)
     return chpi_locs
 
 
