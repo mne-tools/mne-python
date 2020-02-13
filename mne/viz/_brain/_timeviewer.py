@@ -404,11 +404,6 @@ class _TimeViewer(object):
         # add toggle to show/hide interface
         self.visibility = True
 
-        # display help
-        self.help_actor = self.plotter.add_text(
-            text="Press ? to show help window"
-        )
-
         # set the slider style
         self.set_slider_style(smoothing_slider)
         self.set_slider_style(fmin_slider)
@@ -426,6 +421,8 @@ class _TimeViewer(object):
             'u': self.restore_user_scaling,
             ' ': self.toggle_playback,
         }
+        menu = self.plotter.main_menu.addMenu('Help')
+        menu.addAction('Show MNE key bindings\t?', self.help)
 
     def keyPressEvent(self, event):
         callback = self.key_bindings.get(event.text())
@@ -434,12 +431,6 @@ class _TimeViewer(object):
 
     def toggle_interface(self):
         self.visibility = not self.visibility
-
-        # manage help text
-        if self.visibility:
-            self.help_actor.VisibilityOn()
-        else:
-            self.help_actor.VisibilityOff()
 
         # manage sliders
         for slider in self.plotter.slider_widgets:
