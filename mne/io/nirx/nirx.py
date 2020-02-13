@@ -2,7 +2,6 @@
 #
 # License: BSD (3-clause)
 
-import codecs
 from configparser import ConfigParser, RawConfigParser
 import glob as glob
 import re as re
@@ -41,7 +40,7 @@ def read_raw_nirx(fname, preload=False, verbose=None):
 
 
 def _open(fname):
-    return codecs.open(fname, 'r', 'latin-1')
+    return open(fname, 'r', encoding='latin-1')
 
 
 @fill_doc
