@@ -1097,7 +1097,7 @@ def _fit_dipole_fixed(min_dist_to_inner_skull, B_orig, t, guess_rrs,
 
 @verbose
 def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
-               pos=None, ori=None, verbose=None):
+               pos=None, ori=None, rank=None, verbose=None):
     """Fit a dipole.
 
     Parameters
@@ -1134,6 +1134,9 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
         for each time instant.
 
         .. versionadded:: 0.12
+    %(rank_None)s
+
+        .. versionadded:: 0.20
     %(verbose)s
 
     Returns
@@ -1310,7 +1313,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     # whitener = np.dot(whitener, cov['eigvec'])
 
     whitener, _, rank = compute_whitener(cov, info, picks=picks,
-                                         return_rank=True)
+                                         rank=rank, return_rank=True)
 
     # Proceed to computing the fits (make_guess_data)
     if fixed_position:

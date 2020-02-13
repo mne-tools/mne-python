@@ -30,6 +30,8 @@ In particular, the new API should:
 4. Not introduce any significant speed penalty (e.g., < 10% slower) compared
    to the existing, more specialized/limited functions.
 
+More details are in :gh:`4859`.
+
 
 3D visualization
 ^^^^^^^^^^^^^^^^
