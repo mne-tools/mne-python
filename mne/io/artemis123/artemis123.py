@@ -12,7 +12,7 @@ from ...utils import logger, warn, verbose
 from ..utils import _read_segments_file
 from ..base import BaseRaw
 from ..meas_info import _empty_info
-from .._digitization import _make_dig_points
+from .._digitization import _make_dig_points, DigPoint
 from ..constants import FIFF
 from ...chpi import _fit_device_hpi_positions, _fit_coil_order_dev_head_trans
 from ...transforms import get_ras_to_neuromag_trans, apply_trans, Transform
@@ -338,14 +338,22 @@ class RawArtemis123(BaseRaw):
                 warn('%d HPIs active. At least 3 needed to perform' % n_hpis +
                      'head localization\n *NO* head localization performed')
             else:
-                # Localized HPIs using the 1st seconds of data.
+                # Localized HPIs using the 1st 250 milliseconds of data.
                 hpi_dev, hpi_g = _fit_device_hpi_positions(self,
                                                            t_win=[0, 0.25])
-                if pos_fname is not None:
-                    logger.info('No Digitized cHPI locations found.\n' +
-                                'Assuming cHPIs are placed at cardinal ' +
-                                'fiducial locations. (Nasion, LPA, RPA')
 
+                # only use HPI coils with localizaton goodness_of_fit > 0.98
+                bad_idx = []
+                for i, g in enumerate(hpi_g):
+                    msg = 'HPI coil %d - location goodness of fit (%0.3f)'
+                    if g < 0.98:
+                        bad_idx.append(i)
+                        msg += ' *Removed from coregistration*'
+                    logger.info(msg % (i + 1, g))
+                hpi_dev = np.delete(hpi_dev, bad_idx, axis=0)
+                hpi_g = np.delete(hpi_g, bad_idx, axis=0)
+
+                if pos_fname is not None:
                     # Digitized HPI points are needed.
                     hpi_head = np.array([d['r']
                                          for d in self.info.get('dig', [])
@@ -359,7 +367,7 @@ class RawArtemis123(BaseRaw):
                                                    len(hpi_dev)))
 
                     # compute initial head to dev transform and hpi ordering
-                    head_to_dev_t, order = \
+                    head_to_dev_t, order, trans_g = \
                         _fit_coil_order_dev_head_trans(hpi_dev, hpi_head)
 
                     # set the device to head transform
@@ -367,10 +375,23 @@ class RawArtemis123(BaseRaw):
                         Transform(FIFF.FIFFV_COORD_DEVICE,
                                   FIFF.FIFFV_COORD_HEAD, head_to_dev_t)
 
-                    dig_dists = cdist(hpi_head, hpi_head)
+                    # add hpi_meg_dev to dig...
+                    for idx, point in enumerate(hpi_dev):
+                        d = {'r': point, 'ident': idx + 1,
+                             'kind': FIFF.FIFFV_POINT_HPI,
+                             'coord_frame': FIFF.FIFFV_COORD_DEVICE}
+                        self.info['dig'].append(DigPoint(d))
+
+                    dig_dists = cdist(hpi_head[order], hpi_head[order])
                     dev_dists = cdist(hpi_dev, hpi_dev)
                     tmp_dists = np.abs(dig_dists - dev_dists)
                     dist_limit = tmp_dists.max() * 1.1
+
+                    msg = 'HPI-Dig corrregsitration\n'
+                    msg += '\tGOF : %0.3f\n' % trans_g
+                    msg += '\tMax Coil Error : %0.3f cm\n' % (100 *
+                                                              tmp_dists.max())
+                    logger.info(msg)
 
                 else:
                     logger.info('Assuming Cardinal HPIs')
@@ -387,7 +408,7 @@ class RawArtemis123(BaseRaw):
                     lpa = apply_trans(t, lpa)
                     rpa = apply_trans(t, rpa)
 
-                    hpi = [nas, rpa, lpa]
+                    hpi = apply_trans(self.info['dev_head_t'], hpi_dev)
                     self.info['dig'] = _make_dig_points(nasion=nas, lpa=lpa,
                                                         rpa=rpa, hpi=hpi)
                     order = np.array([0, 1, 2])

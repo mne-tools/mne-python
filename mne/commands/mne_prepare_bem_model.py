@@ -52,4 +52,5 @@ def run():
     bem_solution = mne.make_bem_solution(bem_model, verbose=verbose)
     mne.write_bem_solution(bem_sol_fname, bem_solution)
 
+
 mne.utils.run_command_if_main()

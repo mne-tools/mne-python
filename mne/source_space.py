@@ -33,7 +33,7 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _CheckInside)
 from .utils import (get_subjects_dir, check_fname, logger, verbose,
                     _ensure_int, check_version, _get_call_line, warn,
-                    _check_fname, _check_path_like, has_nibabel)
+                    _check_fname, _check_path_like, has_nibabel, _check_sphere)
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
@@ -117,7 +117,7 @@ class SourceSpaces(list):
             The subjects bem and bem/flash folders are searched for the 'surf'
             files. Defaults to None, which is False for surface source spaces,
             and True otherwise.
-        subjects_dir : string, or None
+        subjects_dir : str | None
             Path to SUBJECTS_DIR if it is not set in the environment.
         trans : str | 'auto' | dict | None
             The full path to the head<->MRI transform ``*-trans.fif`` file
@@ -560,8 +560,7 @@ def _add_patch_info(s):
 
 
 @verbose
-def _read_source_spaces_from_tree(fid, tree, patch_stats=False,
-                                  verbose=None):
+def _read_source_spaces_from_tree(fid, tree, patch_stats=False, verbose=None):
     """Read the source spaces from a FIF file.
 
     Parameters
@@ -647,8 +646,7 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
     return src
 
 
-@verbose
-def _read_one_source_space(fid, this, verbose=None):
+def _read_one_source_space(fid, this):
     """Read one source space."""
     FIFF_BEM_SURF_NTRI = 3104
     FIFF_BEM_SURF_TRIANGLES = 3106
@@ -1391,7 +1389,7 @@ def setup_source_space(subject, spacing='oct6', surface='white',
     spacing : str
         The spacing to use. Can be ``'ico#'`` for a recursively subdivided
         icosahedron, ``'oct#'`` for a recursively subdivided octahedron,
-        ``'all'`` for all points, or an integer to use appoximate
+        ``'all'`` for all points, or an integer to use approximate
         distance-based spacing (in mm).
 
         .. versionchanged:: 0.18
@@ -1399,11 +1397,15 @@ def setup_source_space(subject, spacing='oct6', surface='white',
     surface : str
         The surface to use.
     %(subjects_dir)s
-    add_dist : bool
+    add_dist : bool | str
         Add distance and patch information to the source space. This takes some
-        time so precomputing it is recommended.
+        time so precomputing it is recommended. Can also be 'patch' to only
+        compute patch information (requires SciPy 1.3+).
+
+        .. versionchanged:: 0.20
+           Support for add_dist='patch'.
     %(n_jobs)s
-        Will use at most 2 jobs (one for each hemisphere).
+        Ignored if ``add_dist=='patch'``.
     %(verbose)s
 
     Returns
@@ -1474,7 +1476,9 @@ def setup_source_space(subject, spacing='oct6', surface='white',
     src = SourceSpaces(src, dict(working_dir=os.getcwd(), command_line=cmd))
 
     if add_dist:
-        add_source_space_distances(src, n_jobs=n_jobs, verbose=verbose)
+        dist_limit = 0. if add_dist == 'patch' else np.inf
+        add_source_space_distances(src, dist_limit=dist_limit,
+                                   n_jobs=n_jobs, verbose=verbose)
 
     # write out if requested, then return the data
     logger.info('You are now one step closer to computing the gain matrix')
@@ -1483,10 +1487,11 @@ def setup_source_space(subject, spacing='oct6', surface='white',
 
 @verbose
 def setup_volume_source_space(subject=None, pos=5.0, mri=None,
-                              sphere=(0.0, 0.0, 0.0, 90.0), bem=None,
+                              sphere=None, bem=None,
                               surface=None, mindist=5.0, exclude=0.0,
                               subjects_dir=None, volume_label=None,
-                              add_interpolator=True, verbose=None):
+                              add_interpolator=True, sphere_units=None,
+                              verbose=None):
     """Set up a volume source space with grid spacing or discrete source space.
 
     Parameters
@@ -1513,9 +1518,11 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         else it will stay None.
     sphere : ndarray, shape (4,) | ConductorModel
         Define spherical source space bounds using origin and radius given
-        by (ox, oy, oz, rad) in mm. Only used if ``bem`` and ``surface``
-        are both None. Can also be a spherical ConductorModel, which will
-        use the origin and radius.
+        by (ox, oy, oz, rad) in ``sphere_units``.
+        Only used if ``bem`` and ``surface`` are both None. Can also be a
+        spherical ConductorModel, which will use the origin and radius.
+        The default (None) is a temporary alias for ``(0.0, 0.0, 0.0, 0.09)``
+        in meters.
     bem : str | None | ConductorModel
         Define source space bounds using a BEM file (specifically the inner
         skull surface) or a ConductorModel for a 1-layer of 3-layers BEM.
@@ -1534,6 +1541,11 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
     add_interpolator : bool
         If True and ``mri`` is not None, then an interpolation matrix
         will be produced.
+    sphere_units : str
+        Defaults to ``"mm"`` in 0.20 but will change to ``"m"`` in 0.21.
+        Set it explicitly to avoid warnings.
+
+        .. versionadded:: 0.20
     %(verbose)s
 
     Returns
@@ -1613,17 +1625,14 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
                                  'check  freesurfer lookup table.'
                                  % (label, mri))
 
-    if isinstance(sphere, ConductorModel):
-        if not sphere['is_sphere'] or len(sphere['layers']) == 0:
-            raise ValueError('sphere, if a ConductorModel, must be spherical '
-                             'with multiple layers, not a BEM or single-layer '
-                             'sphere (got %s)' % (sphere,))
-        sphere = tuple(1000 * sphere['r0']) + (1000 *
-                                               sphere['layers'][0]['rad'],)
-    sphere = np.asarray(sphere, dtype=float)
-    if sphere.size != 4:
-        raise ValueError('"sphere" must be array_like with 4 elements, got: %s'
-                         % (sphere,))
+    if sphere is None:  # just allow this until deprecation is over
+        sphere = np.array((0.0, 0.0, 0.0, 90.0))
+        if isinstance(sphere_units, str) and sphere_units == 'm':
+            sphere /= 1000.
+        else:
+            sphere_units = 'mm'
+    need_warn = sphere_units is None and not isinstance(sphere, ConductorModel)
+    sphere = _check_sphere(sphere, sphere_units=sphere_units)
 
     # triage bounding argument
     if bem is not None:
@@ -1643,8 +1652,12 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         logger.info('Boundary surface file : %s', surf_extra)
     else:
         logger.info('Sphere                : origin at (%.1f %.1f %.1f) mm'
-                    % (sphere[0], sphere[1], sphere[2]))
-        logger.info('              radius  : %.1f mm' % sphere[3])
+                    % (1000 * sphere[0], 1000 * sphere[1], 1000 * sphere[2]))
+        logger.info('              radius  : %.1f mm' % (1000 * sphere[3],))
+        if need_warn:
+            warn('sphere_units defaults to mm in 0.20 but will change to m in '
+                 '0.21, set it explicitly to avoid this warning',
+                 DeprecationWarning)
 
     # triage pos argument
     if isinstance(pos, dict):
@@ -1709,7 +1722,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
             surf['rr'] *= 1e-3  # must be converted to meters
         else:  # Load an icosahedron and use that as the surface
             logger.info('Setting up the sphere...')
-            surf = dict(R=sphere[3] / 1000., r0=sphere[:3] / 1000.)
+            surf = dict(R=sphere[3], r0=sphere[:3])
         # Make the grid of sources in MRI space
         if volume_label is not None:
             sp = []
@@ -1721,6 +1734,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         else:
             sp = [_make_volume_source_space(surf, pos, exclude, mindist, mri,
                                             volume_label)]
+    del sphere
     if volume_label is None:
         volume_label = ['the whole brain']
     assert len(volume_label) == len(sp)
@@ -2346,9 +2360,10 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     dist_limit : float
         The upper limit of distances to include (in meters).
         Note: if limit < np.inf, scipy > 0.13 (bleeding edge as of
-        10/2013) must be installed.
+        10/2013) must be installed. If 0, then only patch (nearest vertex)
+        information is added.
     %(n_jobs)s
-        Will only use (up to) as many cores as there are source spaces.
+        Ignored if ``dist_limit==0.``.
     %(verbose)s
 
     Returns
@@ -2369,14 +2384,19 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     the source space to disk, as the computed distances will automatically be
     stored along with the source space data for future use.
     """
+    from scipy.sparse.csgraph import dijkstra
     n_jobs = check_n_jobs(n_jobs)
     src = _ensure_src(src)
-    if not np.isscalar(dist_limit):
-        raise ValueError('limit must be a scalar, got %s' % repr(dist_limit))
-    if not check_version('scipy', '0.11'):
-        raise RuntimeError('scipy >= 0.11 must be installed (or > 0.13 '
-                           'if dist_limit < np.inf')
-
+    dist_limit = float(dist_limit)
+    if dist_limit < 0:
+        raise ValueError('dist_limit must be non-negative, got %s'
+                         % (dist_limit,))
+    patch_only = (dist_limit == 0)
+    if patch_only and not check_version('scipy', '1.3'):
+        raise RuntimeError('scipy >= 1.3 is required to calculate patch '
+                           'information only, consider upgrading SciPy or '
+                           'using dist_limit=np.inf when running '
+                           'add_source_space_distances')
     if src.kind != 'surface':
         raise RuntimeError('Currently all source spaces must be of surface '
                            'type')
@@ -2384,38 +2404,46 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     parallel, p_fun, _ = parallel_func(_do_src_distances, n_jobs)
     min_dists = list()
     min_idxs = list()
-    logger.info('Calculating source space distances (limit=%s mm)...'
-                % (1000 * dist_limit))
+    msg = 'patch information' if patch_only else 'source space distances'
+    logger.info('Calculating %s (limit=%s mm)...' % (msg, 1000 * dist_limit))
     max_n = max(s['nuse'] for s in src)
-    if max_n > _DIST_WARN_LIMIT:
+    if not patch_only and max_n > _DIST_WARN_LIMIT:
         warn('Computing distances for %d source space points (in one '
              'hemisphere) will be very slow, consider using add_dist=False'
              % (max_n,))
     for s in src:
         connectivity = mesh_dist(s['tris'], s['rr'])
-        d = parallel(p_fun(connectivity, s['vertno'], r, dist_limit)
-                     for r in np.array_split(np.arange(len(s['vertno'])),
-                                             n_jobs))
-        # deal with indexing so we can add patch info
-        min_idx = np.array([dd[1] for dd in d])
-        min_dist = np.array([dd[2] for dd in d])
-        midx = np.argmin(min_dist, axis=0)
-        range_idx = np.arange(len(s['rr']))
-        min_dist = min_dist[midx, range_idx]
-        min_idx = min_idx[midx, range_idx]
-        min_dists.append(min_dist)
-        min_idxs.append(min_idx)
-        # now actually deal with distances, convert to sparse representation
-        d = np.concatenate([dd[0] for dd in d]).ravel()  # already float32
-        idx = d > 0
-        d = d[idx]
-        i, j = np.meshgrid(s['vertno'], s['vertno'])
-        i = i.ravel()[idx]
-        j = j.ravel()[idx]
-        d = sparse.csr_matrix((d, (i, j)),
-                              shape=(s['np'], s['np']), dtype=np.float32)
-        s['dist'] = d
-        s['dist_limit'] = np.array([dist_limit], np.float32)
+        if patch_only:
+            min_dist, _, min_idx = dijkstra(
+                connectivity, indices=s['vertno'],
+                min_only=True, return_predecessors=True)
+            min_dists.append(min_dist.astype(np.float32))
+            min_idxs.append(min_idx)
+            for key in ('dist', 'dist_limit'):
+                s[key] = None
+        else:
+            d = parallel(p_fun(connectivity, s['vertno'], r, dist_limit)
+                         for r in np.array_split(np.arange(len(s['vertno'])),
+                                                 n_jobs))
+            # deal with indexing so we can add patch info
+            min_idx = np.array([dd[1] for dd in d])
+            min_dist = np.array([dd[2] for dd in d])
+            midx = np.argmin(min_dist, axis=0)
+            range_idx = np.arange(len(s['rr']))
+            min_dist = min_dist[midx, range_idx]
+            min_idx = min_idx[midx, range_idx]
+            min_dists.append(min_dist)
+            min_idxs.append(min_idx)
+            # convert to sparse representation
+            d = np.concatenate([dd[0] for dd in d]).ravel()  # already float32
+            idx = d > 0
+            d = d[idx]
+            i, j = np.meshgrid(s['vertno'], s['vertno'])
+            i = i.ravel()[idx]
+            j = j.ravel()[idx]
+            s['dist'] = sparse.csr_matrix(
+                (d, (i, j)), shape=(s['np'], s['np']), dtype=np.float32)
+            s['dist_limit'] = np.array([dist_limit], np.float32)
 
     # Let's see if our distance was sufficient to allow for patch info
     if not any(np.any(np.isinf(md)) for md in min_dists):
@@ -2432,10 +2460,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
 def _do_src_distances(con, vertno, run_inds, limit):
     """Compute source space distances in chunks."""
     from scipy.sparse.csgraph import dijkstra
-    if limit < np.inf:
-        func = partial(dijkstra, limit=limit)
-    else:
-        func = dijkstra
+    func = partial(dijkstra, limit=limit)
     chunk_size = 20  # save memory by chunking (only a little slower)
     lims = np.r_[np.arange(0, len(run_inds), chunk_size), len(run_inds)]
     n_chunks = len(lims) - 1
@@ -2810,7 +2835,9 @@ def _compare_source_spaces(src0, src1, mode='exact', nearest=True,
                 if s0[name] is None:
                     assert_(s1[name] is None, name)
                 else:
-                    assert_array_equal(s0[name], s1[name])
+                    atol = 0 if mode == 'exact' else 1e-6
+                    assert_allclose(s0[name], s1[name],
+                                    atol=atol, err_msg=name)
             for name in ['pinfo']:
                 if s0[name] is None:
                     assert_(s1[name] is None, name)

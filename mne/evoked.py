@@ -18,7 +18,7 @@ from .channels.layout import _merge_grad_data, _pair_grad_sensors
 from .filter import detrend, FilterMixin
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc, _validate_type,
-                    fill_doc, _check_option)
+                    fill_doc, _check_option, ShiftTimeMixin)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
@@ -34,7 +34,7 @@ from .io.meas_info import read_meas_info, write_meas_info
 from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_string, write_float_matrix,
-                       write_id)
+                       write_id, write_float)
 from .io.base import ToDataFrameMixin, TimeMixin, _check_maxshield
 
 _aspect_dict = {
@@ -56,7 +56,7 @@ _aspect_rev = {val: key for key, val in _aspect_dict.items()}
 @fill_doc
 class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              InterpolationMixin, FilterMixin, ToDataFrameMixin, TimeMixin,
-             SizeMixin):
+             SizeMixin, ShiftTimeMixin):
     """Evoked data.
 
     Parameters
@@ -117,9 +117,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                  verbose=None):  # noqa: D102
         _validate_type(proj, bool, "'proj'")
         # Read the requested data
-        self.info, self.nave, self._aspect_kind, self.first, self.last, \
-            self.comment, self.times, self.data = _read_evoked(
-                fname, condition, kind, allow_maxshield)
+        self.info, self.nave, self._aspect_kind, self.comment, self.times, \
+            self.data = _read_evoked(fname, condition, kind, allow_maxshield)
+        self._update_first_last()
         self.verbose = verbose
         self.preload = True
         # project and baseline correct
@@ -230,8 +230,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'],
                           include_tmax=include_tmax)
         self.times = self.times[mask]
-        self.first = int(self.times[0] * self.info['sfreq'])
-        self.last = len(self.times) + self.first - 1
+        self._update_first_last()
         self.data = self.data[:, mask]
         return self
 
@@ -276,42 +275,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self.info['sfreq'] = new_sfreq
         self.data = self.data[:, decim_slice].copy()
         self.times = self.times[decim_slice].copy()
-        self.first = int(self.times[0] * self.info['sfreq'])
-        self.last = len(self.times) + self.first - 1
-        return self
-
-    def shift_time(self, tshift, relative=True):
-        """Shift time scale in evoked data.
-
-        Parameters
-        ----------
-        tshift : float
-            The amount of time shift to be applied if relative is True
-            else the first time point. When relative is True, positive value
-            of tshift moves the data forward while negative tshift moves it
-            backward.
-        relative : bool
-            If true, move the time backwards or forwards by specified amount.
-            Else, set the starting time point to the value of tshift.
-
-        Returns
-        -------
-        evoked : instance of Evoked
-            The modified Evoked instance.
-
-        Notes
-        -----
-        Maximum accuracy of time shift is 1 / evoked.info['sfreq']
-        """
-        times = self.times
-        sfreq = self.info['sfreq']
-
-        offset = self.first if relative else 0
-
-        self.first = int(tshift * sfreq) + offset
-        self.last = self.first + len(times) - 1
-        self.times = np.arange(self.first, self.last + 1,
-                               dtype=np.float) / sfreq
+        self._update_first_last()
         return self
 
     @copy_function_doc_to_method_doc(plot_evoked)
@@ -319,14 +283,14 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              xlim='tight', proj=False, hline=None, units=None, scalings=None,
              titles=None, axes=None, gfp=False, window_title=None,
              spatial_colors=False, zorder='unsorted', selectable=True,
-             noise_cov=None, time_unit='s', verbose=None):
+             noise_cov=None, time_unit='s', sphere=None, verbose=None):
         return plot_evoked(
             self, picks=picks, exclude=exclude, unit=unit, show=show,
             ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
             scalings=scalings, titles=titles, axes=axes, gfp=gfp,
             window_title=window_title, spatial_colors=spatial_colors,
             zorder=zorder, selectable=selectable, noise_cov=noise_cov,
-            time_unit=time_unit, verbose=verbose)
+            time_unit=time_unit, sphere=sphere, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_evoked_image)
     def plot_image(self, picks=None, exclude='bads', unit=True, show=True,
@@ -334,13 +298,14 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                    scalings=None, titles=None, axes=None, cmap='RdBu_r',
                    colorbar=True, mask=None, mask_style=None,
                    mask_cmap='Greys', mask_alpha=.25, time_unit='s',
-                   show_names=None, group_by=None):
+                   show_names=None, group_by=None, sphere=None):
         return plot_evoked_image(
             self, picks=picks, exclude=exclude, unit=unit, show=show,
             clim=clim, xlim=xlim, proj=proj, units=units, scalings=scalings,
             titles=titles, axes=axes, cmap=cmap, colorbar=colorbar, mask=mask,
             mask_style=mask_style, mask_cmap=mask_cmap, mask_alpha=mask_alpha,
-            time_unit=time_unit, show_names=show_names, group_by=group_by)
+            time_unit=time_unit, show_names=show_names, group_by=group_by,
+            sphere=sphere)
 
     @copy_function_doc_to_method_doc(plot_evoked_topo)
     def plot_topo(self, layout=None, layout_scale=0.945, color=None,
@@ -349,7 +314,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                   merge_grads=False, legend=True, axes=None,
                   background_color='w', noise_cov=None, show=True):
         """
-
         Notes
         -----
         .. versionadded:: 0.10.0
@@ -370,7 +334,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                      proj=False, show=True, show_names=False, title=None,
                      mask=None, mask_params=None, outlines='head',
                      contours=6, image_interp='bilinear', average=None,
-                     head_pos=None, axes=None, extrapolate='box'):
+                     head_pos=None, axes=None, extrapolate='box', sphere=None,
+                     border=0):
         return plot_evoked_topomap(
             self, times=times, ch_type=ch_type, layout=layout, vmin=vmin,
             vmax=vmax, cmap=cmap, sensors=sensors, colorbar=colorbar,
@@ -380,7 +345,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             show_names=show_names, title=title, mask=mask,
             mask_params=mask_params, outlines=outlines, contours=contours,
             image_interp=image_interp, average=average, head_pos=head_pos,
-            axes=axes, extrapolate=extrapolate)
+            axes=axes, extrapolate=extrapolate, sphere=sphere, border=border)
 
     @copy_function_doc_to_method_doc(plot_evoked_field)
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
@@ -390,10 +355,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @copy_function_doc_to_method_doc(plot_evoked_white)
     def plot_white(self, noise_cov, show=True, rank=None, time_unit='s',
-                   verbose=None):
+                   sphere=None, verbose=None):
         return plot_evoked_white(
             self, noise_cov=noise_cov, rank=rank, show=show,
-            time_unit=time_unit, verbose=verbose)
+            time_unit=time_unit, sphere=sphere, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_evoked_joint)
     def plot_joint(self, times="peaks", title='', picks=None,
@@ -403,8 +368,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                  exclude=exclude, show=show, ts_args=ts_args,
                                  topomap_args=topomap_args)
 
+    @fill_doc
     def animate_topomap(self, ch_type=None, times=None, frame_rate=None,
-                        butterfly=False, blit=True, show=True, time_unit='s'):
+                        butterfly=False, blit=True, show=True, time_unit='s',
+                        sphere=None):
         """Make animation of evoked data as topomap timeseries.
 
         The animation can be paused/resumed with left mouse button.
@@ -414,9 +381,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Parameters
         ----------
         ch_type : str | None
-            Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg'.
-            If None, first available channel type from ('mag', 'grad', 'eeg')
-            is used. Defaults to None.
+            Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg',
+            'hbo', 'hbr', 'fnirs_od, and 'fnirs_raw'.
+            If None, first available channel type from ('mag', 'grad', 'eeg',
+            'hbo', 'hbr', 'fnirs_od, 'fnirs_raw') is used. Defaults to None.
         times : array of float | None
             The time points to plot. If None, 10 evenly spaced samples are
             calculated over the evoked time series. Defaults to None.
@@ -438,6 +406,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             or "s" (will become the default in 0.17).
 
             .. versionadded:: 0.16
+        %(topomap_sphere_auto)s
 
         Returns
         -------
@@ -452,7 +421,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """
         return _topomap_animation(
             self, ch_type=ch_type, times=times, frame_rate=frame_rate,
-            butterfly=butterfly, blit=blit, show=show, time_unit=time_unit)
+            butterfly=butterfly, blit=blit, show=show, time_unit=time_unit,
+            sphere=sphere)
 
     def as_type(self, ch_type='grad', mode='fast'):
         """Compute virtual evoked using interpolated fields.
@@ -511,6 +481,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Returns
         -------
         evoked : instance of Evoked
+            A copy of the object.
         """
         evoked = deepcopy(self)
         return evoked
@@ -709,7 +680,7 @@ class EvokedArray(Evoked):
 
         if data.ndim != 2:
             raise ValueError('Data must be a 2D array of shape (n_channels, '
-                             'n_samples)')
+                             'n_samples), got shape %s' % (data.shape,))
 
         if len(info['ch_names']) != np.shape(data)[0]:
             raise ValueError('Info (%s) and data (%s) must have same number '
@@ -718,8 +689,7 @@ class EvokedArray(Evoked):
 
         self.data = data
 
-        # XXX: this should use round and be tested
-        self.first = int(tmin * info['sfreq'])
+        self.first = int(round(tmin * info['sfreq']))
         self.last = self.first + np.shape(data)[-1] - 1
         self.times = np.arange(self.first, self.last + 1,
                                dtype=np.float) / info['sfreq']
@@ -1088,22 +1058,20 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
             data = np.concatenate([e.data[None, :] for e in epoch], axis=0)
         data = data.astype(np.float)
 
-        if first is not None:
+        if first_time is not None and nsamp is not None:
+            times = first_time + np.arange(nsamp) / info['sfreq']
+        elif first is not None:
             nsamp = last - first + 1
-        elif first_time is not None:
-            first = int(round(first_time * info['sfreq']))
-            last = first + nsamp
+            times = np.arange(first, last + 1) / info['sfreq']
         else:
             raise RuntimeError('Could not read time parameters')
+        del first, last
         if nsamp is not None and data.shape[1] != nsamp:
             raise ValueError('Incorrect number of samples (%d instead of '
                              ' %d)' % (data.shape[1], nsamp))
-        nsamp = data.shape[1]
-        last = first + nsamp - 1
         logger.info('    Found the data of interest:')
         logger.info('        t = %10.2f ... %10.2f ms (%s)'
-                    % (1000 * first / info['sfreq'],
-                       1000 * last / info['sfreq'], comment))
+                    % (1000 * times[0], 1000 * times[-1], comment))
         if info['comps'] is not None:
             logger.info('        %d CTF compensation matrices available'
                         % len(info['comps']))
@@ -1116,8 +1084,7 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
                      for k in range(info['nchan'])])
     data *= cals[:, np.newaxis]
 
-    times = np.arange(first, last + 1, dtype=np.float) / info['sfreq']
-    return info, nave, aspect_kind, first, last, comment, times, data
+    return info, nave, aspect_kind, comment, times, data
 
 
 def write_evokeds(fname, evoked):
@@ -1169,7 +1136,9 @@ def _write_evokeds(fname, evoked, check=True):
             if e.comment is not None and len(e.comment) > 0:
                 write_string(fid, FIFF.FIFF_COMMENT, e.comment)
 
-            # First and last sample
+            # First time, num. samples, first and last sample
+            write_float(fid, FIFF.FIFF_FIRST_TIME, e.times[0])
+            write_int(fid, FIFF.FIFF_NO_SAMPLES, len(e.times))
             write_int(fid, FIFF.FIFF_FIRST_SAMPLE, e.first)
             write_int(fid, FIFF.FIFF_LAST_SAMPLE, e.last)
 

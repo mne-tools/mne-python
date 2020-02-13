@@ -30,23 +30,34 @@ raw = mne.io.read_raw_fif(sample_data_raw_file, preload=True, verbose=False)
 # About montages and layouts
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# MNE-Python comes pre-loaded with information about the sensor positions of
-# many MEG and EEG systems. This information is stored in *layout files* and
-# *montages*. :class:`Layouts <mne.channels.Layout>` give sensor positions in 2
-# dimensions (defined by ``x``, ``y``, ``width``, and ``height`` values for
-# each sensor), and are primarily used for illustrative purposes (i.e., making
-# diagrams of approximate sensor positions in top-down diagrams of the head).
-# In contrast, :class:`montages <mne.channels.DigMontage>` contain sensor
-# positions in 3D (``x``, ``y``, ``z``, in meters). Many layout and montage
-# files are included during MNE-Python installation, and are stored in your
-# ``mne-python`` directory, in the :file:`mne/channels/data/layouts` and
-# :file:`mne/channels/data/montages` folders, respectively:
+# :class:`Montages <mne.channels.DigMontage>` contain sensor
+# positions in 3D (``x``, ``y``, ``z``, in meters), and can be used to set
+# the physical positions of sensors. By specifying the location of sensors
+# relative to the brain, :class:`Montages <mne.channels.DigMontage>` play an
+# important role in computing the forward solution and computing inverse
+# estimates.
+#
+# In contrast, :class:`Layouts <mne.channels.Layout>` are *idealized* 2-D
+# representations of sensor positions, and are primarily used for arranging
+# individual sensor subplots in a topoplot, or for showing the *approximate*
+# relative arrangement of sensors as seen from above.
+#
+# Working with built-in montages
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# The 3D coordinates of MEG sensors are included in the raw recordings from MEG
+# systems, and are automatically stored in the ``info`` attribute of the
+# :class:`~mne.io.Raw` file upon loading. EEG electrode locations are much more
+# variable because of differences in head shape. Idealized montages for many
+# EEG systems are included during MNE-Python installation; these files are
+# stored in your ``mne-python`` directory, in the
+# :file:`mne/channels/data/montages` folder:
 
-data_dir = os.path.join(os.path.dirname(mne.__file__), 'channels', 'data')
-for subfolder in ['layouts', 'montages']:
-    print('\nBUILT-IN {} FILES'.format(subfolder[:-1].upper()))
-    print('======================')
-    print(sorted(os.listdir(os.path.join(data_dir, subfolder))))
+montage_dir = os.path.join(os.path.dirname(mne.__file__),
+                           'channels', 'data', 'montages')
+print('\nBUILT-IN MONTAGE FILES')
+print('======================')
+print(sorted(os.listdir(montage_dir)))
 
 ###############################################################################
 # .. sidebar:: Computing sensor locations
@@ -55,35 +66,138 @@ for subfolder in ['layouts', 'montages']:
 #     are computed on a spherical head model, the `eeg_positions`_ repository
 #     provides code and documentation to this end.
 #
-# As you may be able to tell from the filenames shown above, the included
-# montage files are all for EEG systems. These are *idealized* sensor positions
-# based on a spherical head model. Montage files for MEG systems are not
-# provided because the 3D coordinates of MEG sensors are included in the raw
-# recordings from MEG systems, and are automatically stored in the ``info``
-# attribute of the :class:`~mne.io.Raw` file upon loading. In contrast, layout
-# files *are* included for MEG systems (to facilitate easy plotting of MEG
-# sensor location diagrams).
+# These built-in EEG montages can be loaded via
+# :func:`mne.channels.make_standard_montage`. Note that when loading via
+# :func:`~mne.channels.make_standard_montage`, provide the filename *without*
+# its file extension:
+
+ten_twenty_montage = mne.channels.make_standard_montage('standard_1020')
+print(ten_twenty_montage)
+
+###############################################################################
+# Once loaded, a montage can be applied to data via one of the instance methods
+# such as :meth:`raw.set_montage <mne.io.Raw.set_montage>`. It is also possible
+# to skip the loading step by passing the filename string directly to the
+# :meth:`~mne.io.Raw.set_montage` method. This won't work with our sample
+# data, because it's channel names don't match the channel names in the
+# standard 10-20 montage, so these commands are not run here:
+
+# these will be equivalent:
+# raw_1020 = raw.copy().set_montage(ten_twenty_montage)
+# raw_1020 = raw.copy().set_montage('standard_1020')
+
+###############################################################################
+# :class:`Montage <mne.channels.DigMontage>` objects have a
+# :meth:`~mne.channels.DigMontage.plot` method for visualization of the sensor
+# locations in 3D; 2D projections are also possible by passing
+# ``kind='topomap'``:
+
+fig = ten_twenty_montage.plot(kind='3d')
+fig.gca().view_init(azim=70, elev=15)
+ten_twenty_montage.plot(kind='topomap', show_names=False)
+
+###############################################################################
+# .. _reading-dig-montages:
 #
-# You may also have noticed that the file formats and filename extensions of
-# layout and montage files vary considerably. This reflects different
-# manufacturers' conventions; to simplify this, the montage and layout loading
-# functions in MNE-Python take the filename *without its extension* so you
-# don't have to keep track of which file format is used by which manufacturer.
-# Examples of this can be seen in the following sections.
+# Reading sensor digitization files
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# If you have digitized the locations of EEG sensors on the scalp during your
-# recording session (e.g., with a Polhemus Fastrak digitizer), these can be
-# loaded in MNE-Python as :class:`~mne.channels.DigMontage` objects; see
-# :ref:`reading-dig-montages` (below).
+# In the sample data, setting the digitized EEG montage was done prior to
+# saving the :class:`~mne.io.Raw` object to disk, so the sensor positions are
+# already incorporated into the ``info`` attribute of the :class:`~mne.io.Raw`
+# object (see the documentation of the reading functions and
+# :meth:`~mne.io.Raw.set_montage` for details on how that works). Because of
+# that, we can plot sensor locations directly from the :class:`~mne.io.Raw`
+# object using the :meth:`~mne.io.Raw.plot_sensors` method, which provides
+# similar functionality to
+# :meth:`montage.plot() <mne.channels.DigMontage.plot>`.
+# :meth:`~mne.io.Raw.plot_sensors` also allows channel selection by type, can
+# color-code channels in various ways (by default, channels listed in
+# ``raw.info['bads']`` will be plotted in red), and allows drawing into an
+# existing matplotlib ``axes`` object (so the channel positions can easily be
+# made as a subplot in a multi-panel figure):
+
+# sphinx_gallery_thumbnail_number = 3
+fig = plt.figure()
+ax2d = fig.add_subplot(121)
+ax3d = fig.add_subplot(122, projection='3d')
+raw.plot_sensors(ch_type='eeg', axes=ax2d)
+raw.plot_sensors(ch_type='eeg', axes=ax3d, kind='3d')
+ax3d.view_init(azim=70, elev=15)
+
+###############################################################################
+# It's probably evident from the 2D topomap above that there is some
+# irregularity in the EEG sensor positions in the :ref:`sample dataset
+# <sample-dataset>` — this is because the sensor positions in that dataset are
+# digitizations of the sensor positions on an actual subject's head, rather
+# than idealized sensor positions based on a spherical head model. Depending on
+# what system was used to digitize the electrode positions (e.g., a Polhemus
+# Fastrak digitizer), you must use different montage reading functions (see
+# :ref:`dig-formats`). The resulting :class:`montage <mne.channels.DigMontage>`
+# can then be added to :class:`~mne.io.Raw` objects by passing it to the
+# :meth:`~mne.io.Raw.set_montage` method (just as we did above with the name of
+# the idealized montage ``'standard_1020'``). Once loaded, locations can be
+# plotted with :meth:`~mne.channels.DigMontage.plot` and saved with
+# :meth:`~mne.channels.DigMontage.save`, like when working with a standard
+# montage.
+#
+# .. note::
+#
+#     When setting a montage with :meth:`~mne.io.Raw.set_montage`
+#     the measurement info is updated in two places (the ``chs``
+#     and ``dig`` entries are updated). See :ref:`tut-info-class`.
+#     ``dig`` may contain HPI, fiducial, or head shape points in
+#     addition to electrode locations.
+#
+#
+# Rendering sensor position with mayavi
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#
+# It is also possible to render an image of a MEG sensor helmet in 3D, using
+# mayavi instead of matplotlib, by calling the :func:`mne.viz.plot_alignment`
+# function:
+
+fig = mne.viz.plot_alignment(raw.info, trans=None, dig=False, eeg=False,
+                             surfaces=[], meg=['helmet', 'sensors'],
+                             coord_frame='meg')
+mne.viz.set_3d_view(fig, azimuth=50, elevation=90, distance=0.5)
+
+###############################################################################
+# :func:`~mne.viz.plot_alignment` requires an :class:`~mne.Info` object, and
+# can also render MRI surfaces of the scalp, skull, and brain (by passing
+# keywords like ``'head'``, ``'outer_skull'``, or ``'brain'`` to the
+# ``surfaces`` parameter) making it useful for :ref:`assessing coordinate frame
+# transformations <plot_source_alignment>`. For examples of various uses of
+# :func:`~mne.viz.plot_alignment`, see
+# :doc:`../../auto_examples/visualization/plot_montage`,
+# :doc:`../../auto_examples/visualization/plot_eeg_on_scalp`, and
+# :doc:`../../auto_examples/visualization/plot_meg_sensors`.
 #
 #
 # Working with layout files
-# ~~~~~~~~~~~~~~~~~~~~~~~~~
+# ^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# To load a layout file, use the :func:`mne.channels.read_layout`
-# function, and provide the filename *without* its file extension. You can then
-# visualize the layout using its :meth:`~mne.channels.Layout.plot` method, or
-# (equivalently) by passing it to :func:`mne.viz.plot_layout`:
+# As with montages, many layout files are included during MNE-Python
+# installation, and are stored in the :file:`mne/channels/data/layouts` folder:
+
+layout_dir = os.path.join(os.path.dirname(mne.__file__),
+                          'channels', 'data', 'layouts')
+print('\nBUILT-IN LAYOUT FILES')
+print('=====================')
+print(sorted(os.listdir(layout_dir)))
+
+###############################################################################
+# You may have noticed that the file formats and filename extensions of the
+# built-in layout and montage files vary considerably. This reflects different
+# manufacturers' conventions; to make loading easier the montage and layout
+# loading functions in MNE-Python take the filename *without its extension* so
+# you don't have to keep track of which file format is used by which
+# manufacturer.
+#
+# To load a layout file, use the :func:`mne.channels.read_layout` function, and
+# provide the filename *without* its file extension. You can then visualize the
+# layout using its :meth:`~mne.channels.Layout.plot` method, or (equivalently)
+# by passing it to :func:`mne.viz.plot_layout`:
 
 biosemi_layout = mne.channels.read_layout('biosemi')
 biosemi_layout.plot()  # same result as: mne.viz.plot_layout(biosemi_layout)
@@ -129,95 +243,6 @@ layout_from_raw.plot()
 # matters if you need to load the layout file in some other software
 # (MNE-Python can read either format equally well).
 #
-#
-# Working with montage files
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~
-#
-# Built-in montages are loaded and plotted in a very similar way to layouts.
-# However, the :meth:`~mne.channels.DigMontage.plot` method of
-# :class:`~mne.channels.DigMontage` objects has some additional parameters,
-# such as whether to display channel names or just points (the ``show_names``
-# parameter) and whether to display sensor positions in 3D or as a 2D topomap
-# (the ``kind`` parameter):
-
-ten_twenty_montage = mne.channels.make_standard_montage('standard_1020')
-ten_twenty_montage.plot(show_names=False)
-fig = ten_twenty_montage.plot(kind='3d')
-fig.gca().view_init(azim=70, elev=15)
-
-###############################################################################
-# Similar functionality is also available with the
-# :meth:`~mne.io.Raw.plot_sensors` method of :class:`~mne.io.Raw` objects,
-# again with the option to plot in either 2D or 3D.
-# :meth:`~mne.io.Raw.plot_sensors` also allows channel selection by type, can
-# color-code channels in various ways (by default, channels listed in
-# ``raw.info['bads']`` will be plotted in red), and allows drawing into an
-# existing matplotlib ``axes`` object (so the channel positions can easily be
-# made as a subplot in a multi-panel figure):
-
-fig = plt.figure()
-ax2d = fig.add_subplot(121)
-ax3d = fig.add_subplot(122, projection='3d')
-raw.plot_sensors(ch_type='eeg', axes=ax2d)
-raw.plot_sensors(ch_type='eeg', axes=ax3d, kind='3d')
-ax3d.view_init(azim=70, elev=15)
-
-###############################################################################
-# .. _reading-dig-montages:
-#
-# Reading sensor digitization files
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#
-# It's probably evident from the 2D topomap above that there is some
-# irregularity in the EEG sensor positions in the :ref:`sample dataset
-# <sample-dataset>` — this is because the sensor positions in that dataset are
-# digitizations of the sensor positions on an actual subject's head. Depending
-# on what system was used to scan the positions one can use different
-# reading functions (see :ref:`dig-formats`).
-# The read :class:`montage <mne.channels.DigMontage>` can then be added
-# to :class:`~mne.io.Raw` objects with the :meth:`~mne.io.Raw.set_montage`
-# method; in the sample data this was done prior to saving the
-# :class:`~mne.io.Raw` object to disk, so the sensor positions are already
-# incorporated into the ``info`` attribute of the :class:`~mne.io.Raw` object.
-# See the documentation of the reading functions and
-# :meth:`~mne.io.Raw.set_montage` for further details. Once loaded,
-# locations can be plotted with :meth:`~mne.channels.DigMontage.plot` and
-# saved with :meth:`~mne.channels.DigMontage.save`, like when working
-# with a standard montage.
-#
-# The possibilities to read in digitized montage files are summarized
-# in :ref:`dig-formats`.
-#
-# .. note::
-#
-#     When setting a montage with :meth:`~mne.io.Raw.set_montage`
-#     the measurement info is updated at two places (the `chs`
-#     and `dig` entries are updated). See :ref:`tut-info-class`.
-#     `dig` will potentially contain more than channel locations,
-#     such HPI, head shape points or fiducials 3D coordinates.
-#
-# Rendering sensor position with mayavi
-# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#
-# It is also possible to render an image of a MEG sensor helmet in 3D, using
-# mayavi instead of matplotlib, by calling the :func:`mne.viz.plot_alignment`
-# function:
-
-fig = mne.viz.plot_alignment(raw.info, trans=None, dig=False, eeg=False,
-                             surfaces=[], meg=['helmet', 'sensors'],
-                             coord_frame='meg')
-mne.viz.set_3d_view(fig, azimuth=50, elevation=90, distance=0.5)
-
-###############################################################################
-# :func:`~mne.viz.plot_alignment` requires an :class:`~mne.Info` object, and
-# can also render MRI surfaces of the scalp, skull, and brain (by passing
-# keywords like ``'head'``, ``'outer_skull'``, or ``'brain'`` to the
-# ``surfaces`` parameter) making it useful for :ref:`assessing coordinate frame
-# transformations <plot_source_alignment>`. For examples of various uses of
-# :func:`~mne.viz.plot_alignment`, see
-# :doc:`../../auto_examples/visualization/plot_montage`,
-# :doc:`../../auto_examples/visualization/plot_eeg_on_scalp`, and
-# :doc:`../../auto_examples/visualization/plot_meg_sensors`.
 #
 # .. LINKS
 #

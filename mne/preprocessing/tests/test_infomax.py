@@ -45,7 +45,7 @@ def test_infomax_blowup():
 
     # Mixing angle
     phi = 0.6
-    mixing = np.array([[np.cos(phi),  np.sin(phi)],
+    mixing = np.array([[np.cos(phi),  np.sin(phi)],  # noqa: E241
                        [np.sin(phi), -np.cos(phi)]])
     m = np.dot(mixing, s)
 
@@ -85,7 +85,7 @@ def test_infomax_simple():
 
     # Mixing angle
     phi = 0.6
-    mixing = np.array([[np.cos(phi),  np.sin(phi)],
+    mixing = np.array([[np.cos(phi),  np.sin(phi)],  # noqa: E241
                        [np.sin(phi), -np.cos(phi)]])
     for add_noise in (False, True):
         m = np.dot(mixing, s)

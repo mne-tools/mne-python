@@ -198,7 +198,7 @@ class RawNIRX(BaseRaw):
             list = [str.format(i) for i in list]
             return(list)
         snames = prepend(sources[req_ind], 'S')
-        dnames = prepend(detectors[req_ind], '-D')
+        dnames = prepend(detectors[req_ind], '_D')
         sdnames = [m + str(n) for m, n in zip(snames, dnames)]
         sd1 = [s + ' ' + str(fnirs_wavelengths[0]) for s in sdnames]
         sd2 = [s + ' ' + str(fnirs_wavelengths[1]) for s in sdnames]
@@ -215,6 +215,7 @@ class RawNIRX(BaseRaw):
         # The source location is stored in the second 3 entries of loc.
         # The detector location is stored in the third 3 entries of loc.
         # NIRx NIRSite uses MNI coordinates.
+        # Also encode the light frequency in the structure.
         for ch_idx2 in range(requested_channels.shape[0]):
             # Find source and store location
             src = int(requested_channels[ch_idx2, 0]) - 1
@@ -233,6 +234,8 @@ class RawNIRX(BaseRaw):
             else:
                 info['chs'][ch_idx2 * 2]['loc'][:3] = ch_locs[ch_idx2, :]
                 info['chs'][ch_idx2 * 2 + 1]['loc'][:3] = ch_locs[ch_idx2, :]
+            info['chs'][ch_idx2 * 2]['loc'][9] = fnirs_wavelengths[0]
+            info['chs'][ch_idx2 * 2 + 1]['loc'][9] = fnirs_wavelengths[1]
         raw_extras = {"sd_index": req_ind, 'files': files}
 
         super(RawNIRX, self).__init__(

@@ -6,6 +6,7 @@ import numpy as np
 
 from .mixin import TransformerMixin
 from .base import BaseEstimator, _check_estimator
+from ..fixes import _get_check_scoring
 from ..parallel import parallel_func
 from ..utils import (_validate_type, array_split_idx, ProgressBar,
                      verbose, fill_doc)
@@ -69,7 +70,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             The training input samples. For each data slice, a clone estimator
             is fitted independently. The feature dimension can be
             multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_tasks)
+            X.shape = (n_samples, n_features_1, n_features_2, n_tasks).
         y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
         **fit_params : dict of string -> object
@@ -165,7 +166,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             estimator makes a transformation of the data, e.g.
             ``[estimators[ii].transform(X[..., ii]) for ii in range(n_estimators)]``.
             The feature dimension can be multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_tasks)
+            X.shape = (n_samples, n_features_1, n_features_2, n_tasks).
 
         Returns
         -------
@@ -187,7 +188,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             makes the sample predictions, e.g.:
             ``[estimators[ii].predict(X[..., ii]) for ii in range(n_estimators)]``.
             The feature dimension can be multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_tasks)
+            X.shape = (n_samples, n_features_1, n_features_2, n_tasks).
 
         Returns
         -------
@@ -209,7 +210,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             makes the sample probabilistic predictions, e.g.:
             ``[estimators[ii].predict_proba(X[..., ii]) for ii in range(n_estimators)]``.
             The feature dimension can be multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_tasks)
+            X.shape = (n_samples, n_features_1, n_features_2, n_tasks).
 
         Returns
         -------
@@ -228,7 +229,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             outputs the distance to the hyperplane, e.g.:
             ``[estimators[ii].decision_function(X[..., ii]) for ii in range(n_estimators)]``.
             The feature dimension can be multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
+            X.shape = (n_samples, n_features_1, n_features_2, n_estimators).
 
         Returns
         -------
@@ -263,8 +264,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
             scores the prediction, e.g.:
             ``[estimators[ii].score(X[..., ii], y) for ii in range(n_estimators)]``.
             The feature dimension can be multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_tasks)
-
+            X.shape = (n_samples, n_features_1, n_features_2, n_tasks).
         y : array, shape (n_samples,) | (n_samples, n_targets)
             The target values.
 
@@ -273,7 +273,7 @@ class SlidingEstimator(BaseEstimator, TransformerMixin):
         score : array, shape (n_samples, n_estimators)
             Score for each estimator/task.
         """  # noqa: E501
-        from sklearn.metrics.scorer import check_scoring
+        check_scoring = _get_check_scoring()
 
         self._check_Xy(X)
         if X.shape[-1] != len(self.estimators_):
@@ -477,7 +477,7 @@ class GeneralizingEstimator(SlidingEstimator):
             The input samples. For estimator the corresponding data slice is
             used to make a transformation. The feature dimension can be
             multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
+            X.shape = (n_samples, n_features_1, n_features_2, n_estimators).
 
         Returns
         -------
@@ -495,7 +495,7 @@ class GeneralizingEstimator(SlidingEstimator):
             The training input samples. For each data slice, a fitted estimator
             predicts each slice of the data independently. The feature
             dimension can be multidimensional e.g.
-            X.shape = (n_samples, n_features_1, n_features_2, n_estimators)
+            X.shape = (n_samples, n_features_1, n_features_2, n_estimators).
 
         Returns
         -------
@@ -569,7 +569,7 @@ class GeneralizingEstimator(SlidingEstimator):
         score : array, shape (n_samples, n_estimators, n_slices)
             Score for each estimator / data slice couple.
         """  # noqa: E501
-        from sklearn.metrics.scorer import check_scoring
+        check_scoring = _get_check_scoring()
         self._check_Xy(X)
         # For predictions/transforms the parallelization is across the data and
         # not across the estimators to avoid memory load.
@@ -684,11 +684,10 @@ def _fix_auc(scoring, y):
     # This fixes sklearn's inability to compute roc_auc when y not in [0, 1]
     # scikit-learn/scikit-learn#6874
     if scoring is not None:
-        if (
-            hasattr(scoring, '_score_func') and
-            hasattr(scoring._score_func, '__name__') and
-            scoring._score_func.__name__ == 'roc_auc_score'
-        ):
+        score_func = getattr(scoring, '_score_func', None)
+        kwargs = getattr(scoring, '_kwargs', {})
+        if (getattr(score_func, '__name__', '') == 'roc_auc_score' and
+                kwargs.get('multi_class', 'raise') == 'raise'):
             if np.ndim(y) != 1 or len(set(y)) != 2:
                 raise ValueError('roc_auc scoring can only be computed for '
                                  'two-class problems.')

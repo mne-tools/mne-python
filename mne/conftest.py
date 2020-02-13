@@ -50,7 +50,7 @@ def pytest_configure(config):
     #   we should remove them from here.
     # - This list should also be considered alongside reset_warnings in
     #   doc/conf.py.
-    warning_lines = """
+    warning_lines = r"""
     error::
     ignore::ImportWarning
     ignore:the matrix subclass:PendingDeprecationWarning
@@ -73,6 +73,10 @@ def pytest_configure(config):
     ignore:numpy.ufunc size changed:RuntimeWarning
     ignore:.*mne-realtime.*:DeprecationWarning
     ignore:.*imp.*:DeprecationWarning
+    ignore:Exception creating Regex for oneOf.*:SyntaxWarning
+    ignore:scipy\.gradient is deprecated.*:DeprecationWarning
+    ignore:sklearn\.externals\.joblib is deprecated.*:FutureWarning
+    ignore:The sklearn.*module.*deprecated.*:FutureWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
@@ -103,13 +107,16 @@ def matplotlib_config():
         pass
     else:
         ETSConfig.toolkit = 'qt4'
-    try:
-        with warnings.catch_warnings(record=True):  # traits
-            from mayavi import mlab
-    except Exception:
-        pass
-    else:
-        mlab.options.backend = 'test'
+
+
+@pytest.fixture()
+def check_gui_ci():
+    """Skip tests that are not reliable on CIs."""
+    osx = (os.getenv('TRAVIS', 'false').lower() == 'true' and
+           sys.platform == 'darwin')
+    win = os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true'
+    if win or osx:
+        pytest.skip('Skipping GUI tests on Travis OSX and Azure Windows')
 
 
 def _replace(mod, key):
@@ -195,17 +202,40 @@ def backend_name(request):
 def renderer(backend_name):
     """Yield the 3D backends."""
     from mne.viz.backends.renderer import _use_test_3d_backend
-    from mne.viz.backends.tests._utils import has_mayavi, has_pyvista
-    if backend_name == 'mayavi':
-        if not has_mayavi():
-            pytest.skip("Test skipped, requires mayavi.")
-    elif backend_name == 'pyvista':
-        if not has_pyvista():
-            pytest.skip("Test skipped, requires pyvista.")
+    _check_skip_backend(backend_name)
     with _use_test_3d_backend(backend_name):
         from mne.viz.backends import renderer
         yield renderer
         renderer._close_all()
+
+
+@pytest.fixture(scope="module", params=[
+    "pyvista",
+])
+def backend_name_interactive(request):
+    """Get the backend name."""
+    yield request.param
+
+
+@pytest.yield_fixture
+def renderer_interactive(backend_name_interactive):
+    """Yield the 3D backends."""
+    from mne.viz.backends.renderer import _use_test_3d_backend
+    _check_skip_backend(backend_name_interactive)
+    with _use_test_3d_backend(backend_name_interactive, interactive=True):
+        from mne.viz.backends import renderer
+        yield renderer
+        renderer._close_all()
+
+
+def _check_skip_backend(name):
+    from mne.viz.backends.tests._utils import has_mayavi, has_pyvista
+    if name == 'mayavi':
+        if not has_mayavi():
+            pytest.skip("Test skipped, requires mayavi.")
+    elif name == 'pyvista':
+        if not has_pyvista():
+            pytest.skip("Test skipped, requires pyvista.")
 
 
 @pytest.fixture(scope='function', params=[testing._pytest_param()])

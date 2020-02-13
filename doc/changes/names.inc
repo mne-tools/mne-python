@@ -276,4 +276,24 @@
 
 .. _Victor Ferat: https://github.com/vferat
 
+.. _Dmitrii Altukhov: https://www.hse.ru/en/org/persons/190873905
+
 .. _Demetres Kostas: https://github.com/kostasde
+
+.. _Alex Rockhill: https://github.com/alexrockhill/
+
+.. _Chun-Hui Li: https://github.com/iamsc
+
+.. _Christian O'Reilly: https://scholar.google.ca/citations?user=NllRAkwAAAAJ&hl=en
+
+.. _Yu-Han Luo: https://github.com/yh-luo
+
+.. _Fu-Te Wong: https://github.com/zuxfoucault
+
+.. _Sebastian Major: https://github.com/major-s
+
+.. _Geoff Brookshire: https://github.com/gbrookshire
+
+.. _Sophie Herbst: https://github.com/SophieHerbst
+
+.. _Adam Li: http://github.com/adam2392

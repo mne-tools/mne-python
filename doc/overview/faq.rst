@@ -43,7 +43,7 @@ magic ``%gui qt`` after importing MNE/Mayavi/PySurfer should `help
 Python runs on macOS extremely slow even on simple commands!
 ------------------------------------------------------------
 
-Python uses some backends that interfere with the macOS energy saver when 
+Python uses some backends that interfere with the macOS energy saver when
 using an IDE such as Spyder or PyCharm. To test it, import ``time`` and run::
 
     start = time.time(); time.sleep(0.0005); print(time.time() - start)
@@ -81,27 +81,52 @@ isn't out there already.
 I think I found a bug, what do I do?
 ------------------------------------
 
-If you're *confident* that you've found a bug, head over to the `GitHub issues
-page`_ and do a quick search to see if it's already been reported, and if not,
-`open a new issue
-<https://github.com/mne-tools/mne-python/issues/new?template=bug_report.md>`__.
-If you're *not sure* whether it's a bug, user error, bad data file, etc., try
-asking on the `MNE mailing list`_ or the `MNE gitter channel`_ first. In either
-case, you should:
+When you encounter an error message or unexpected results, it can be hard to
+tell whether it happened because of a bug in MNE-Python, a mistake in user
+code, a corrupted data file, or irregularities in the data itself. Your first
+step when asking for help should be the `MNE mailing list`_ or the
+`MNE Gitter channel`_, not GitHub. This bears repeating: *the GitHub issue
+tracker is not for usage help* — it is for software bugs, feature requests, and
+improvements to documentation. If you open an issue that contains only a usage
+question, we will close the issue and direct you to the mailing list or Gitter
+channel. If you're pretty sure the problem you've encountered is a software bug
+(not bad data or user error):
 
-- Try :ref:`using the latest master version <installing_master>` to see if the
-  problem persists before reporting the bug, as it may have been fixed since
-  the latest release.
+- Make sure you're using `the most current version`_. You can check it locally
+  at a shell prompt with:
+
+  .. code-block:: console
+
+      $ mne sys_info
+
+  which will also give you version info about important MNE-Python
+  dependencies.
+
+- If you're already on the most current version, if possible try using
+  :ref:`the latest development version <installing_master>`, as the bug may
+  have been fixed already since the latest release. If you can't try the latest
+  development version, search the GitHub issues page to see if the problem has
+  already been reported and/or fixed.
 
 - Try to replicate the problem with one of the :ref:`MNE sample datasets
-  <datasets>`. If you can't, provide a link to the data file that does yield
-  the error.
+  <datasets>`. If you can't replicate it with a built-in dataset, provide a
+  link to a small, anonymized portion of your data that does yield the error.
 
-- Provide the *smallest possible* code sample that replicates the error you're
-  seeing. Using a `GitHub Public Gist <https://gist.github.com>`_ for the code
-  sample is recommended when using the mailing list; on Gitter use three
-  backticks (`\`\`\``) at the beginning and end of the code block to separate
-  it from your question or explanation.
+If the problem persists, `open a new issue
+<https://github.com/mne-tools/mne-python/issues/new?template=bug_report.md>`__
+and include the *smallest possible* code sample that replicates the error
+you're seeing. Paste the code sample into the issue, with a line containing
+three backticks (`\`\`\``) above and below the lines of code. This
+`minimal working example`_ should be self-contained, which means that
+MNE-Python contributors should be able to copy and paste the provided snippet
+and replicate the bug on their own computers.
+
+If you post to the
+[mailing list](https://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis)
+instead, a `GitHub Public Gist <https://gist.github.com>`_ for the code sample
+is recommended; if you use the
+[Gitter channel](https://gitter.im/mne-tools/mne-python) the three backticks
+(`\`\`\``) trick works there too.
 
 
 Why is it dangerous to "pickle" my MNE-Python objects and data for later use?
@@ -262,8 +287,8 @@ sometimes speed up filtering and resampling operations by an order of
 magnitude.
 
 
-Inverse Solution
-================
+Forward and Inverse Solution
+============================
 
 
 How should I regularize the covariance matrix?
@@ -275,9 +300,9 @@ available. It is thus suggested to regularize the noise covariance
 matrix (see :ref:`cov_regularization_math`), especially if only few samples
 are available. Unfortunately it is not easy to tell the effective number of
 samples, hence, to choose the appropriate regularization. In MNE-Python,
-regularization is done using advanced regularization methods described in [1]_.
-For this the 'auto' option can be used. With this option cross-validation will
-be used to learn the optimal regularization::
+regularization is done using advanced regularization methods described in
+:footcite:`EngemannGramfort2015`. For this the 'auto' option can be used. With
+this option cross-validation will be used to learn the optimal regularization::
 
     >>> import mne
     >>> epochs = mne.read_epochs(epochs_path) # doctest: +SKIP
@@ -304,11 +329,11 @@ by which the squared sum across sensors is divided when computing the whitened
 :term:`GFP`. The whitened :term:`GFP` also helps detecting spurious late evoked
 components which can be the consequence of over- or under-regularization.
 
-Note that if data have been processed using signal space separation (SSS) [2]_,
-gradiometers and magnetometers will be displayed jointly because both are
-reconstructed from the same SSS basis vectors with the same numerical rank.
-This also implies that both sensor types are not any longer linearly
-independent.
+Note that if data have been processed using signal space separation (SSS)
+:footcite:`TauluEtAl2005`, gradiometers and magnetometers will be displayed
+jointly because both are reconstructed from the same SSS basis vectors with the
+same numerical rank. This also implies that both sensor types are not any
+longer linearly independent.
 
 These methods for evaluation can be used to assess model violations. Additional
 introductory materials can be found `here
@@ -324,12 +349,87 @@ compared::
 This will plot the whitened evoked for the optimal estimator and display the
 :term:`GFPs <GFP>` for all estimators as separate lines in the related panel.
 
+
+.. _faq_watershed_bem_meshes:
+
+My watershed BEM meshes look incorrect
+--------------------------------------
+
+After using :ref:`gen_mne_watershed_bem` or :func:`mne.bem.make_watershed_bem`
+you might find that the BEM meshes for the brain, inner skull, outer skull,
+and/or scalp surfaces do not look correct in :func:`mne.viz.plot_alignment`
+and :func:`mne.viz.plot_bem`.
+
+MNE relies on FreeSurfer's mri_watershed_ to compute the BEM meshes.
+Freesurfer's watershed bem strategy is to:
+
+1. Compute the outer skin (scalp) surface
+2. Shrink outer skin inward make the "outer skull"
+3. Compute brain surface
+4. Expand brain surface outward to make the "inner skull"
+
+A common problem is to see:
+
+    the surface inner skull is not completely inside surface outer skull
+
+When looking at the meshes, the inner skull surface (expanded brain surface)
+will have defects, and these defects will protrude into the outer skull surface
+(shrunken scalp surface). In these cases, you can try (in rough ascending
+order of difficulty):
+
+.. highlight:: console
+
+1. Changing the ``--preflood`` / ``-p`` parameter in
+   :ref:`gen_mne_watershed_bem`.
+2. Changing the ``--atlas`` and ``--gcaatlas`` options of
+   :ref:`gen_mne_watershed_bem`.
+3. Manually editing the meshes (see `this tutorial
+   <https://github.com/ezemikulan/blender_freesurfer>`__.
+4. Manually running mri_watershed_ with various FreeSurfer flags (e.g.,
+   ``-less`` to fix the output).
+5. Going farther back in your Freesurfer pipeline to fix the problem.
+   In particular, ``mri/brainmask.mgz`` could be incorrectly generated by the
+   autorecon1_ step and contain some dura and/or skull within the brain mask.
+   You can check by using freeview_ or some other MRI-viewing tool.
+
+   - Consult the Freesurfer docs on `fixing errors
+     <https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/TroubleshootingDataV6.0#Fixingerrors>`__.
+   - Try tweaking the mri_normalize_ parameters `via xopts
+     <https://www.mail-archive.com/freesurfer@nmr.mgh.harvard.edu/msg20991.html>`__,
+     e.g.::
+
+         $ mri_normalize -mprage -b 20 -n 5
+
+   - Try `manually setting the control points and/or using -gentle
+     <https://www.mail-archive.com/freesurfer@nmr.mgh.harvard.edu/msg11658.html>`__.
+   - Examine the talairach transformation to see if it's not quite right,
+     and if it's not, `adjust it manually
+     <https://surfer.nmr.mgh.harvard.edu/fswiki/Edits>`__.
+   - Search the `FreeSurfer listserv`_ for other ideas
+
+   It can be helpful to run ``recon_all -autorecon1 -xopts xopts.txt`` in a
+   clean directory first to see if this fixes everything, and, if not, then
+   resorting to manual control point setting and/or talairach adjustment.
+   Once everything looks good at the end of `-autorecon1`, you can then run
+   :ref:`gen_mne_watershed_bem` to see if the output is good. Once it is
+   (and once brainmask.mgz is correct), you can then proceed with
+   ``recon_all -autorecon2`` and ``recon_all -autorecon3`` to effectively
+   complete all ``recon_all`` steps.
+
+.. highlight:: python
+
+
 References
 ----------
 
-.. [1] Engemann D. and Gramfort A. (2015) Automated model selection in
-       covariance estimation and spatial whitening of MEG and EEG signals,
-       vol. 108, 328-342, NeuroImage.
+.. footbibliography::
 
-.. [2] Taulu, S., Simola, J., Kajola, M., 2005. Applications of the signal
-       space separation method. IEEE Trans. Signal Proc. 53, 3359–3372.
+.. LINKS
+
+.. _`the most current version`: https://github.com/mne-tools/mne-python/releases/latest
+.. _`minimal working example`: https://en.wikipedia.org/wiki/Minimal_Working_Example
+.. _mri_watershed: http://freesurfer.net/fswiki/mri_watershed
+.. _mri_normalize: https://surfer.nmr.mgh.harvard.edu/fswiki/mri_normalize
+.. _freeview: https://surfer.nmr.mgh.harvard.edu/fswiki/FreeviewGuide/FreeviewIntroduction
+.. _`FreeSurfer listserv`: https://www.mail-archive.com/freesurfer@nmr.mgh.harvard.edu/
+.. _autorecon1: https://surfer.nmr.mgh.harvard.edu/fswiki/ReconAllDevTable

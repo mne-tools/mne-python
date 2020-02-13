@@ -14,7 +14,7 @@ from glob import glob
 from functools import partial
 import os
 from os import path as op
-import sys
+import warnings
 from struct import pack
 
 import numpy as np
@@ -33,7 +33,7 @@ from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
                          _get_trans, apply_trans, Transform)
 from .utils import logger, verbose, get_subjects_dir, warn, _check_fname
 from .fixes import (_serialize_volume_info, _get_read_geometry, einsum, jit,
-                    prange)
+                    prange, bincount)
 
 
 ###############################################################################
@@ -218,17 +218,23 @@ def fast_cross_3d(x, y):
     assert y.shape[-1] == 3
     if max(x.size, y.size) >= 500:
         out = np.empty(np.broadcast(x, y).shape)
-        np.multiply(x[..., 1], y[..., 2], out=out[..., 0])
-        out[..., 0] -= x[..., 2] * y[..., 1]
-        np.multiply(x[..., 2], y[..., 0], out=out[..., 1])
-        out[..., 1] -= x[..., 0] * y[..., 2]
-        np.multiply(x[..., 0], y[..., 1], out=out[..., 2])
-        out[..., 2] -= x[..., 1] * y[..., 0]
+        _jit_cross(out, x, y)
         return out
     else:
         return np.cross(x, y)
 
 
+@jit()
+def _jit_cross(out, x, y):
+    out[..., 0] = x[..., 1] * y[..., 2]
+    out[..., 0] -= x[..., 2] * y[..., 1]
+    out[..., 1] = x[..., 2] * y[..., 0]
+    out[..., 1] -= x[..., 0] * y[..., 2]
+    out[..., 2] = x[..., 0] * y[..., 1]
+    out[..., 2] -= x[..., 1] * y[..., 0]
+
+
+@jit()
 def _fast_cross_nd_sum(a, b, c):
     """Fast cross and sum."""
     return ((a[..., 1] * b[..., 2] - a[..., 2] * b[..., 1]) * c[..., 0] +
@@ -236,6 +242,7 @@ def _fast_cross_nd_sum(a, b, c):
             (a[..., 0] * b[..., 1] - a[..., 1] * b[..., 0]) * c[..., 2])
 
 
+@jit()
 def _accumulate_normals(tris, tri_nn, npts):
     """Efficiently accumulate triangle normals."""
     # this code replaces the following, but is faster (vectorized):
@@ -246,10 +253,11 @@ def _accumulate_normals(tris, tri_nn, npts):
     #     this['nn'][verts, :] += this['tri_nn'][p, :]
     #
     nn = np.zeros((npts, 3))
-    for verts in tris.T:  # note this only loops 3x (number of verts per tri)
+    for vi in range(3):
+        verts = tris[:, vi]
         for idx in range(3):  # x, y, z
-            nn[:, idx] += np.bincount(verts, weights=tri_nn[:, idx],
-                                      minlength=npts)
+            nn[:, idx] += bincount(verts, weights=tri_nn[:, idx],
+                                   minlength=npts)
     return nn
 
 
@@ -309,7 +317,7 @@ def _project_onto_surface(rrs, surf, project_rrs=False, return_nn=False,
         idx = _compute_nearest(surf['rr'], rrs)
         out = (None, None, surf['rr'][idx])
         if return_nn:
-            nn = _accumulate_normals(surf['tris'], surf_geom['nn'],
+            nn = _accumulate_normals(surf['tris'].astype(int), surf_geom['nn'],
                                      len(surf['rr']))
             out += (nn[idx],)
     return out
@@ -358,7 +366,8 @@ def complete_surface_info(surf, do_neighbor_vert=False, copy=True,
     #    Find neighboring triangles, accumulate vertex normals, normalize
     logger.info('    Triangle neighbors and vertex normals...')
     surf['neighbor_tri'] = _triangle_neighbors(surf['tris'], surf['np'])
-    surf['nn'] = _accumulate_normals(surf['tris'], surf['tri_nn'], surf['np'])
+    surf['nn'] = _accumulate_normals(surf['tris'].astype(int),
+                                     surf['tri_nn'], surf['np'])
     _normalize_vectors(surf['nn'])
 
     #   Check for topological defects
@@ -597,8 +606,22 @@ def _fread3_many(fobj, n):
     return (b1 << 16) + (b2 << 8) + b3
 
 
-def read_curvature(filepath):
-    """Load in curavature values from the ?h.curv file."""
+def read_curvature(filepath, binary=True):
+    """Load in curvature values from the ?h.curv file.
+
+    Parameters
+    ----------
+    filepath: str
+        Input path to the .curv file.
+    binary: bool
+        Specify if the output array is to hold binary values. Defaults to True.
+
+    Returns
+    -------
+    curv: array, shape=(n_vertices,)
+        The curvature values loaded from the user given file.
+
+    """
     with open(filepath, "rb") as fobj:
         magic = _fread3(fobj)
         if magic == 16777215:
@@ -608,8 +631,10 @@ def read_curvature(filepath):
             vnum = magic
             _fread3(fobj)
             curv = np.fromfile(fobj, ">i2", vnum) / 100
-        bin_curv = 1 - np.array(curv != 0, np.int)
-    return bin_curv
+    if binary:
+        return 1 - np.array(curv != 0, np.int)
+    else:
+        return curv
 
 
 @verbose
@@ -953,25 +978,45 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
 
 def _decimate_surface(points, triangles, reduction):
     """Aux function."""
-    if 'DISPLAY' not in os.environ and sys.platform != 'win32':
-        os.environ['ETS_TOOLKIT'] = 'null'
     try:
-        from tvtk.api import tvtk
-        from tvtk.common import configure_input
+        from vtk.util.numpy_support import \
+            numpy_to_vtk, numpy_to_vtkIdTypeArray
+        from vtk.numpy_interface.dataset_adapter import WrapDataObject
+        from vtk import \
+            vtkPolyData, vtkQuadricDecimation, vtkPoints, vtkCellArray
     except ImportError:
-        raise ValueError('This function requires the TVTK package to be '
+        raise ValueError('This function requires the VTK package to be '
                          'installed')
     if triangles.max() > len(points) - 1:
         raise ValueError('The triangles refer to undefined points. '
                          'Please check your mesh.')
-    src = tvtk.PolyData(points=points, polys=triangles)
-    decimate = tvtk.QuadricDecimation(target_reduction=reduction)
-    configure_input(decimate, src)
-    decimate.update()
-    out = decimate.output
-    tris = out.polys.to_array()
-    # n-tuples + interleaved n-next -- reshape trick
-    return out.points.to_array(), tris.reshape(tris.size // 4, 4)[:, 1:]
+    src = vtkPolyData()
+    vtkpoints = vtkPoints()
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        vtkpoints.SetData(numpy_to_vtk(points.astype(np.float64)))
+    src.SetPoints(vtkpoints)
+    vtkcells = vtkCellArray()
+    triangles_ = np.pad(
+        triangles, ((0, 0), (1, 0)), 'constant', constant_values=3)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        idarr = numpy_to_vtkIdTypeArray(triangles_.ravel().astype(np.int64))
+    vtkcells.SetCells(triangles.shape[0], idarr)
+    src.SetPolys(vtkcells)
+    # Eventually we should test:
+    # vtkDecimatePro with PreserveTopologyOn, SplittingOff
+    # vtkQuadricDecimation with AttributeErrorMetricOn
+    decimate = vtkQuadricDecimation()
+    decimate.SetInputData(src)
+    # decimate.AttributeErrorMetricOn()
+    decimate.SetTargetReduction(reduction)
+    # decimate.VolumePreservationOn()
+    decimate.Update()
+    out = WrapDataObject(decimate.GetOutput())
+    rrs = out.Points
+    tris = out.Polygons.reshape(-1, 4)[:, 1:]
+    return rrs, tris
 
 
 def decimate_surface(points, triangles, n_triangles):
@@ -1475,38 +1520,27 @@ def read_tri(fname_in, swap=False, verbose=None):
     return (rr, tris)
 
 
+@jit()
 def _get_solids(tri_rrs, fros):
     """Compute _sum_solids_div total angle in chunks."""
     # NOTE: This incorporates the division by 4PI that used to be separate
-    # for tri_rr in tri_rrs:
-    #     v1 = fros - tri_rr[0]
-    #     v2 = fros - tri_rr[1]
-    #     v3 = fros - tri_rr[2]
-    #     triple = np.sum(fast_cross_3d(v1, v2) * v3, axis=1)
-    #     l1 = np.sqrt(np.sum(v1 * v1, axis=1))
-    #     l2 = np.sqrt(np.sum(v2 * v2, axis=1))
-    #     l3 = np.sqrt(np.sum(v3 * v3, axis=1))
-    #     s = (l1 * l2 * l3 +
-    #          np.sum(v1 * v2, axis=1) * l3 +
-    #          np.sum(v1 * v3, axis=1) * l2 +
-    #          np.sum(v2 * v3, axis=1) * l1)
-    #     tot_angle -= np.arctan2(triple, s)
-
-    # This is the vectorized version, but with a slicing heuristic to
-    # prevent memory explosion
     tot_angle = np.zeros((len(fros)))
-    slices = np.r_[np.arange(0, len(fros), 100), [len(fros)]]
-    for i1, i2 in zip(slices[:-1], slices[1:]):
-        # shape (3 verts, n_tri, n_fro, 3 X/Y/Z)
-        vs = (fros[np.newaxis, np.newaxis, i1:i2] -
-              tri_rrs.transpose([1, 0, 2])[:, :, np.newaxis])
-        triples = _fast_cross_nd_sum(vs[0], vs[1], vs[2])
-        ls = np.linalg.norm(vs, axis=3)
-        ss = np.prod(ls, axis=0)
-        ss += einsum('ijk,ijk,ij->ij', vs[0], vs[1], ls[2])
-        ss += einsum('ijk,ijk,ij->ij', vs[0], vs[2], ls[1])
-        ss += einsum('ijk,ijk,ij->ij', vs[1], vs[2], ls[0])
-        tot_angle[i1:i2] = -np.sum(np.arctan2(triples, ss), axis=0)
+    for ti in range(len(tri_rrs)):
+        tri_rr = tri_rrs[ti]
+        v1 = fros - tri_rr[0]
+        v2 = fros - tri_rr[1]
+        v3 = fros - tri_rr[2]
+        v4 = np.empty((v1.shape[0], 3))
+        _jit_cross(v4, v1, v2)
+        triple = np.sum(v4 * v3, axis=1)
+        l1 = np.sqrt(np.sum(v1 * v1, axis=1))
+        l2 = np.sqrt(np.sum(v2 * v2, axis=1))
+        l3 = np.sqrt(np.sum(v3 * v3, axis=1))
+        s = (l1 * l2 * l3 +
+             np.sum(v1 * v2, axis=1) * l3 +
+             np.sum(v1 * v3, axis=1) * l2 +
+             np.sum(v2 * v3, axis=1) * l1)
+        tot_angle -= np.arctan2(triple, s)
     return tot_angle
 
 

@@ -45,11 +45,11 @@ from .io.ctf.trans import _make_ctf_coord_trans_set
 from .forward import (_magnetic_dipole_field_vec, _create_meg_coils,
                       _concatenate_coils)
 from .cov import make_ad_hoc_cov, compute_whitener
+from .fixes import jit
 from .transforms import (apply_trans, invert_transform, _angle_between_quats,
                          quat_to_rot, rot_to_quat)
 from .utils import (verbose, logger, use_log_level, _check_fname, warn,
-                    _check_option, _svd_lwork, _repeated_svd,
-                    ddot, dgemm, dgemv)
+                    _check_option)
 
 # Eventually we should add:
 #   hpicons
@@ -161,13 +161,13 @@ def _apply_quat(quat, pts, move=True):
     return(apply_trans(trans, pts, move=move))
 
 
-def _calculate_head_pos_ctf(raw, gof_limit=0.98):
+def calculate_head_pos_ctf(raw, gof_limit=0.98):
     r"""Extract head position parameters from ctf dataset.
 
     Parameters
     ----------
-    raw : instance of raw
-        Raw data with cHPI information. HLC00 channels
+    raw : instance of Raw
+        Raw data with CTF cHPI information.
     gof_limit : float
         Minimum goodness of fit to accept.
 
@@ -179,12 +179,16 @@ def _calculate_head_pos_ctf(raw, gof_limit=0.98):
     Notes
     -----
     CTF continuous head monitoring stores the x,y,z location (m) of each chpi
-    coil as separate channels in the dataset.
-    HLC001[123]\\* - nasion
-    HLC002[123]\\* - lpa
-    HLC003[123]\\* - rpa
+    coil as separate channels in the dataset:
+
+    - ``HLC001[123]\\*`` - nasion
+    - ``HLC002[123]\\*`` - lpa
+    - ``HLC003[123]\\*`` - rpa
+
+    This uses those positions to compute the head position as a function of
+    time.
     """
-    # Pick channels cooresponding to the cHPI positions
+    # Pick channels corresponding to the cHPI positions
     hpi_picks = pick_channels_regexp(raw.info['ch_names'],
                                      'HLC00[123][123].*')
 
@@ -263,6 +267,9 @@ def _calculate_head_pos_ctf(raw, gof_limit=0.98):
     quats[:, 0] += raw._first_time
     return quats
 
+
+# facilitate transition for people who had used the private one (bloyl)
+_calculate_head_pos_ctf = calculate_head_pos_ctf
 
 # ############################################################################
 # Estimate positions from data
@@ -373,8 +380,7 @@ def _get_hpi_initial_fit(info, adjust=False, verbose=None):
     return hpi_rrs
 
 
-def _magnetic_dipole_objective(x, B, B2, coils, scale, method, too_close,
-                               lwork):
+def _magnetic_dipole_objective(x, B, B2, coils, scale, method, too_close):
     """Project data onto right eigenvectors of whitened forward."""
     if method == 'forward':
         fwd = _magnetic_dipole_field_vec(x[np.newaxis, :], coils, too_close)
@@ -383,27 +389,32 @@ def _magnetic_dipole_objective(x, B, B2, coils, scale, method, too_close,
         # Eventually we can try incorporating external bases here, which
         # is why the :3 is on the SVD below
         fwd = _sss_basis(dict(origin=x, int_order=1, ext_order=0), coils).T
+    return _magnetic_dipole_delta(fwd, scale, B, B2)
+
+
+@jit()
+def _magnetic_dipole_delta(fwd, scale, B, B2):
     # Here we use .T to get scale to Fortran order, which speeds things up
-    fwd = dgemm(alpha=1., a=fwd, b=scale.T)  # np.dot(fwd, scale.T)
-    one = _repeated_svd(fwd, lwork, overwrite_a=True)[2]
-    one = dgemv(alpha=1, a=one, x=B)
-    Bm2 = ddot(one, one)
+    fwd = np.dot(fwd, scale.T)
+    one = np.linalg.svd(fwd, full_matrices=False)[2]
+    one = np.dot(one, B)
+    Bm2 = np.dot(one, one)
     return B2 - Bm2
 
 
 def _fit_magnetic_dipole(B_orig, x0, coils, scale, method, too_close):
     """Fit a single bit of data (x0 = pos)."""
     from scipy.optimize import fmin_cobyla
-    B = dgemv(alpha=1, a=scale, x=B_orig)  # np.dot(scale, B_orig)
-    B2 = ddot(B, B)  # np.dot(B, B)
-    lwork = _svd_lwork((3, B_orig.shape[0]))
+    B = np.dot(scale, B_orig)
+    B2 = np.dot(B, B)
     objective = partial(_magnetic_dipole_objective, B=B, B2=B2,
                         coils=coils, scale=scale, method=method,
-                        too_close=too_close, lwork=lwork)
-    x = fmin_cobyla(objective, x0, (), rhobeg=1e-4, rhoend=1e-5, disp=False)
+                        too_close=too_close)
+    x = fmin_cobyla(objective, x0, (), rhobeg=1e-3, rhoend=1e-5, disp=False)
     return x, 1. - objective(x) / B2
 
 
+@jit()
 def _chpi_objective(x, coil_dev_rrs, coil_head_rrs):
     """Compute objective function."""
     d = np.dot(coil_dev_rrs, quat_to_rot(x[:3]).T)
@@ -421,7 +432,8 @@ def _unit_quat_constraint(x):
 def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs, x0):
     """Fit rotation and translation (quaternion) parameters for cHPI coils."""
     from scipy.optimize import fmin_cobyla
-    denom = np.sum((coil_head_rrs - np.mean(coil_head_rrs, axis=0)) ** 2)
+    denom = np.linalg.norm(coil_head_rrs - np.mean(coil_head_rrs, axis=0))
+    denom *= denom
     objective = partial(_chpi_objective, coil_dev_rrs=coil_dev_rrs,
                         coil_head_rrs=coil_head_rrs)
     x0 = x0.copy()
@@ -452,7 +464,7 @@ def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts):
         (quat_to_rot(best_quat[:3]),
          best_quat[3:][:, np.newaxis]), axis=1)
     dev_head_t = np.concatenate((dev_head_t, [[0, 0, 0, 1.]]))
-    return dev_head_t, best_order
+    return dev_head_t, best_order, best_g
 
 
 @verbose
@@ -672,7 +684,7 @@ def _fit_device_hpi_positions(raw, t_win=None, initial_dev_rrs=None,
             if on > 0]
 
     coil_dev_rrs = np.array([o[0] for o in outs])
-    coil_g = np.array([o[0] for o in outs])
+    coil_g = np.array([o[1] for o in outs])
 
     return coil_dev_rrs, coil_g
 

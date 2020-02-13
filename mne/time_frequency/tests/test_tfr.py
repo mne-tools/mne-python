@@ -1,4 +1,5 @@
 from itertools import product
+import datetime
 import os.path as op
 
 import numpy as np
@@ -8,7 +9,8 @@ import pytest
 import matplotlib.pyplot as plt
 
 import mne
-from mne import Epochs, read_events, pick_types, create_info, EpochsArray
+from mne import (Epochs, read_events, pick_types, create_info, EpochsArray,
+                 Info, Transform)
 from mne.io import read_raw_fif
 from mne.utils import (_TempDir, run_tests_if_main, requires_h5py,
                        requires_pandas, grand_average)
@@ -171,8 +173,9 @@ def test_time_frequency():
     assert (np.sum(itc.data <= 0) == 0)
 
     tfr = tfr_morlet(epochs[0], freqs, use_fft=True, n_cycles=2, average=False,
-                     return_itc=False).data[0]
-    assert (tfr.shape == (len(picks), len(freqs), len(times)))
+                     return_itc=False)
+    tfr_data = tfr.data[0]
+    assert (tfr_data.shape == (len(picks), len(freqs), len(times)))
     tfr2 = tfr_morlet(epochs[0], freqs, use_fft=True, n_cycles=2,
                       decim=slice(0, 2), average=False,
                       return_itc=False).data[0]
@@ -202,7 +205,7 @@ def test_time_frequency():
     assert_equal(power_drop.ch_names, power_pick.ch_names)
     assert_equal(power_pick.data.shape[0], len(power_drop.ch_names))
 
-    mne.equalize_channels([power_pick, power_drop])
+    power_pick, power_drop = mne.equalize_channels([power_pick, power_drop])
     assert_equal(power_pick.ch_names, power_drop.ch_names)
     assert_equal(power_pick.data.shape, power_drop.data.shape)
 
@@ -406,10 +409,13 @@ def test_io():
 
     info = mne.create_info(['MEG 001', 'MEG 002', 'MEG 003'], 1000.,
                            ['mag', 'mag', 'mag'])
+    info['meas_date'] = datetime.datetime(year=2020, month=2, day=5)
     tfr = AverageTFR(info, data=data, times=times, freqs=freqs,
                      nave=20, comment='test', method='crazy-tfr')
     tfr.save(fname)
     tfr2 = read_tfrs(fname, condition='test')
+    assert isinstance(tfr2.info, Info)
+    assert isinstance(tfr2.info['dev_head_t'], Transform)
 
     assert_array_equal(tfr.data, tfr2.data)
     assert_array_equal(tfr.times, tfr2.times)
@@ -784,5 +790,6 @@ def test_getitem_epochsTFR():
 
     # Test that current state is maintained
     assert_array_equal(power.next(), power.data[ind + 1])
+
 
 run_tests_if_main()

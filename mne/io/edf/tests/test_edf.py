@@ -52,7 +52,8 @@ edf_overlap_annot_path = op.join(data_path, 'EDF',
                                  'test_edf_overlapping_annotations.edf')
 edf_reduced = op.join(data_path, 'EDF', 'test_reduced.edf')
 bdf_stim_channel_path = op.join(data_path, 'BDF', 'test_bdf_stim_channel.bdf')
-
+bdf_multiple_annotations_path = op.join(data_path, 'BDF',
+                                        'multiple_annotation_chans.bdf')
 test_generator_bdf = op.join(data_path, 'BDF', 'test_generator_2.bdf')
 test_generator_edf = op.join(data_path, 'EDF', 'test_generator_2.edf')
 
@@ -338,12 +339,25 @@ def test_load_generator(fname, recwarn):
                  [0, 1], id='int list')])
 def test_edf_stim_ch_pick_up(test_input, EXPECTED):
     """Test stim_channel."""
-    TYPE_LUT = {v[0]: k for k, v in _KIND_DICT.items()}
+    # This is fragile for EEG/EEG-CSD, so just omit csd
+    TYPE_LUT = {v[0]: k for k, v in _KIND_DICT.items() if k != 'csd'}
     fname = op.join(data_dir, 'test_stim_channel.edf')
 
     raw = read_raw_edf(fname, stim_channel=test_input)
     ch_types = {ch['ch_name']: TYPE_LUT[ch['kind']] for ch in raw.info['chs']}
     assert ch_types == EXPECTED
+
+
+@testing.requires_testing_data
+def test_bdf_multiple_annotation_channels():
+    """Test BDF with multiple annotation channels."""
+    raw = read_raw_bdf(bdf_multiple_annotations_path)
+    assert len(raw.annotations) == 10
+    descriptions = np.array(['signal_start', 'EEG-check#1', 'TestStim#1',
+                             'TestStim#2', 'TestStim#3', 'TestStim#4',
+                             'TestStim#5', 'TestStim#6', 'TestStim#7',
+                             'Ligths-Off#1'], dtype='<U12')
+    assert_array_equal(descriptions, raw.annotations.description)
 
 
 run_tests_if_main()

@@ -15,7 +15,7 @@ import operator
 import numpy as np
 from scipy import linalg
 
-from .pick import channel_type
+from .pick import channel_type, pick_channels, pick_info
 from .constants import FIFF
 from .open import fiff_open
 from .tree import dir_tree_find
@@ -28,7 +28,8 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_julian, write_float_matrix, write_id, DATE_NONE)
 from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import invert_transform, Transform
-from ..utils import logger, verbose, warn, object_diff, _validate_type
+from ..utils import (logger, verbose, warn, object_diff, _validate_type,
+                     _stamp_to_dt, _dt_to_stamp)
 from ._digitization import (_format_dig_points, _dig_kind_proper,
                             _dig_kind_rev, _dig_kind_ints, _read_dig_fif)
 from ._digitization import write_dig as _dig_write_dig
@@ -55,7 +56,8 @@ _kind_dict = dict(
     fnirs_od=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_OD,
               FIFF.FIFF_UNIT_NONE),
     hbo=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_HBO, FIFF.FIFF_UNIT_MOL),
-    hbr=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_HBR, FIFF.FIFF_UNIT_MOL)
+    hbr=(FIFF.FIFFV_FNIRS_CH, FIFF.FIFFV_COIL_FNIRS_HBR, FIFF.FIFF_UNIT_MOL),
+    csd=(FIFF.FIFFV_EEG_CH, FIFF.FIFFV_COIL_EEG_CSD, FIFF.FIFF_UNIT_V_M2),
 )
 
 
@@ -119,22 +121,6 @@ def _summarize_str(st):
     return st[:56][::-1].split(',', 1)[-1][::-1] + ', ...'
 
 
-def _dt_to_stamp(inp_date):
-    """Convert a datetime object to a meas_date."""
-    return int(inp_date.timestamp() // 1), inp_date.microsecond
-
-
-def _stamp_to_dt(utc_stamp):
-    """Convert timestamp to datetime object in Windows-friendly way."""
-    # The min on windows is 86400
-    stamp = [int(s) for s in utc_stamp]
-    if len(stamp) == 1:  # In case there is no microseconds information
-        stamp.append(0)
-    return (datetime.datetime.fromtimestamp(stamp[0],
-                                            tz=datetime.timezone.utc) +
-            datetime.timedelta(0, 0, stamp[1]))  # day, sec, μs
-
-
 def _unique_channel_names(ch_names):
     """Ensure unique channel names."""
     FIFF_CH_NAME_MAX_LENGTH = 15
@@ -164,8 +150,52 @@ def _unique_channel_names(ch_names):
     return ch_names
 
 
+DEPRECATED_PARAM = object()
+
+
+class MontageMixin(object):
+    """Mixin for Montage setting."""
+
+    @verbose
+    def set_montage(self, montage, raise_if_subset=DEPRECATED_PARAM,
+                    match_case=True, verbose=None):
+        """Set EEG sensor configuration and head digitization.
+
+        Parameters
+        ----------
+        %(montage)s
+        raise_if_subset : bool
+            If True, ValueError will be raised when montage.ch_names is a
+            subset of info['ch_names']. This parameter was introduced for
+            backward compatibility when set to False.
+
+            Defaults to False in 0.19, it will change to default to True in
+            0.20, and will be removed in 0.21.
+
+            .. versionadded:: 0.19
+        %(match_case)s
+        %(verbose_meth)s
+
+        Returns
+        -------
+        inst : instance of Raw | Epochs | Evoked
+            The instance.
+
+        Notes
+        -----
+        Operates in place.
+        """
+        # How to set up a montage to old named fif file (walk through example)
+        # https://gist.github.com/massich/f6a9f4799f1fbeb8f5e8f8bc7b07d3df
+
+        from ..channels.montage import _set_montage
+        info = self if isinstance(self, Info) else self.info
+        _set_montage(info, montage, raise_if_subset, match_case)
+        return self
+
+
 # XXX Eventually this should be de-duplicated with the MNE-MATLAB stuff...
-class Info(dict):
+class Info(dict, MontageMixin):
     """Measurement information.
 
     This data structure behaves like a dictionary. It contains all metadata
@@ -199,7 +229,7 @@ class Info(dict):
     ctf_head_t : dict | None
         The transformation from 4D/CTF head coordinates to Neuromag head
         coordinates. This is only present in 4D/CTF data.
-    custom_ref_applied : bool
+    custom_ref_applied : int
         Whether a custom (=other than average) reference has been applied to
         the EEG data. This flag is checked by some algorithms that require an
         average reference to be set.
@@ -242,11 +272,12 @@ class Info(dict):
         Tilt angle of the gantry in degrees.
     lowpass : float
         Lowpass corner frequency in Hertz.
-    meas_date : tuple of int
-        The first element of this list is a UNIX timestamp (seconds since
-        1970-01-01 00:00:00) denoting the date and time at which the
-        measurement was taken. The second element is the additional number of
-        microseconds.
+    meas_date : datetime
+        The time (UTC) of the recording.
+
+        .. versionchanged:: 0.20
+           This is stored as a :class:`~python:datetime.datetime` object
+           instead of a tuple of seconds/microseconds.
     utc_offset : str
         "UTC offset of related meas_date (sHH:MM).
 
@@ -499,6 +530,12 @@ class Info(dict):
             The helium level meas date.
     """
 
+    def __init__(self, *args, **kwargs):
+        super(Info, self).__init__(*args, **kwargs)
+        t = self.get('dev_head_t', None)
+        if t is not None and not isinstance(t, Transform):
+            self['dev_head_t'] = Transform(t['from'], t['to'], t['trans'])
+
     def copy(self):
         """Copy the instance.
 
@@ -546,8 +583,7 @@ class Info(dict):
                     entr = 'unspecified'
                 else:
                     # first entry in meas_date is meaningful
-                    entr = (_stamp_to_dt(v).strftime('%Y-%m-%d %H:%M:%S') +
-                            ' GMT')
+                    entr = v.strftime('%Y-%m-%d %H:%M:%S') + ' GMT'
             elif k == 'kit_system_id' and v is not None:
                 from .kit.constants import KIT_SYSNAMES
                 entr = '%i (%s)' % (v, KIT_SYSNAMES.get(v, 'unknown'))
@@ -582,26 +618,28 @@ class Info(dict):
         st %= non_empty
         return st
 
-    def _check_consistency(self):
+    def _check_consistency(self, prepend_error=''):
         """Do some self-consistency checks and datatype tweaks."""
         missing = [bad for bad in self['bads'] if bad not in self['ch_names']]
         if len(missing) > 0:
-            raise RuntimeError('bad channel(s) %s marked do not exist in info'
-                               % (missing,))
+            msg = '%sbad channel(s) %s marked do not exist in info'
+            raise RuntimeError(msg % (prepend_error, missing,))
         meas_date = self.get('meas_date')
-        if meas_date is not None and (
-                not isinstance(self['meas_date'], tuple) or
-                len(self['meas_date']) != 2):
-            raise RuntimeError('info["meas_date"] must be a tuple of length '
-                               '2 or None, got "%r"'
-                               % (repr(self['meas_date']),))
+        if meas_date is not None:
+            if (not isinstance(self['meas_date'], datetime.datetime) or
+                    self['meas_date'].tzinfo is None or
+                    self['meas_date'].tzinfo is not datetime.timezone.utc):
+                raise RuntimeError('%sinfo["meas_date"] must be a datetime '
+                                   'object in UTC or None, got "%r"'
+                                   % (prepend_error, repr(self['meas_date']),))
 
         chs = [ch['ch_name'] for ch in self['chs']]
         if len(self['ch_names']) != len(chs) or any(
                 ch_1 != ch_2 for ch_1, ch_2 in zip(self['ch_names'], chs)) or \
                 self['nchan'] != len(chs):
-            raise RuntimeError('info channel name inconsistency detected, '
-                               'please notify mne-python developers')
+            raise RuntimeError('%sinfo channel name inconsistency detected, '
+                               'please notify mne-python developers'
+                               % (prepend_error,))
 
         # make sure we have the proper datatypes
         for key in ('sfreq', 'highpass', 'lowpass'):
@@ -636,6 +674,36 @@ class Info(dict):
         """Update the redundant entries."""
         self['ch_names'] = [ch['ch_name'] for ch in self['chs']]
         self['nchan'] = len(self['chs'])
+
+    def pick_channels(self, ch_names, ordered=False):
+        """Pick channels from this Info object.
+
+        Parameters
+        ----------
+        ch_names : list of str
+            List of channels to keep. All other channels are dropped.
+        ordered : bool
+            If True (default False), ensure that the order of the channels
+            matches the order of ``ch_names``.
+
+        Returns
+        -------
+        info : instance of Info.
+            The modified Info object.
+
+        Notes
+        -----
+        Operates in-place.
+
+        .. versionadded:: 0.20.0
+        """
+        sel = pick_channels(self.ch_names, ch_names, exclude=[],
+                            ordered=ordered)
+        return pick_info(self, sel, copy=False, verbose=False)
+
+    @property
+    def ch_names(self):
+        return self['ch_names']
 
 
 def _simplify_info(info):
@@ -832,7 +900,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     proj_name = None
     line_freq = None
     gantry_angle = None
-    custom_ref_applied = False
+    custom_ref_applied = FIFF.FIFFV_MNE_CUSTOM_REF_OFF
     xplotter_layout = None
     kit_system_id = None
     for k in range(meas_info['nent']):
@@ -900,7 +968,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             gantry_angle = float(tag.data)
         elif kind in [FIFF.FIFF_MNE_CUSTOM_REF, 236]:  # 236 used before v0.11
             tag = read_tag(fid, pos)
-            custom_ref_applied = bool(tag.data)
+            custom_ref_applied = int(tag.data)
         elif kind == FIFF.FIFF_XPLOTTER_LAYOUT:
             tag = read_tag(fid, pos)
             xplotter_layout = str(tag.data)
@@ -1206,6 +1274,8 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
         meas_date = (info['meas_id']['secs'], info['meas_id']['usecs'])
     if np.array_equal(meas_date, DATE_NONE):
         meas_date = None
+    else:
+        meas_date = _stamp_to_dt(meas_date)
     info['meas_date'] = meas_date
     info['utc_offset'] = utc_offset
 
@@ -1248,6 +1318,40 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
     return info, meas
 
 
+def _check_dates(info, prepend_error=''):
+    """Check dates before writing as fif files.
+
+    It's needed because of the limited integer precision
+    of the fix standard.
+    """
+    for key in ('file_id', 'meas_id'):
+        value = info.get(key)
+        if value is not None:
+            assert 'msecs' not in value
+            for key_2 in ('secs', 'usecs'):
+                if (value[key_2] < np.iinfo('>i4').min or
+                        value[key_2] > np.iinfo('>i4').max):
+                    raise RuntimeError('%sinfo[%s][%s] must be between '
+                                       '"%r" and "%r", got "%r"'
+                                       % (prepend_error, key, key_2,
+                                          np.iinfo('>i4').min,
+                                          np.iinfo('>i4').max,
+                                          value[key_2]),)
+
+    meas_date = info.get('meas_date')
+    if meas_date is None:
+        return
+
+    meas_date_stamp = _dt_to_stamp(meas_date)
+    if (meas_date_stamp[0] < np.iinfo('>i4').min or
+            meas_date_stamp[0] > np.iinfo('>i4').max):
+        raise RuntimeError(
+            '%sinfo["meas_date"] seconds must be between "%r" '
+            'and "%r", got "%r"'
+            % (prepend_error, (np.iinfo('>i4').min, 0),
+               (np.iinfo('>i4').max, 0), meas_date_stamp[0],))
+
+
 def write_meas_info(fid, info, data_type=None, reset_range=True):
     """Write measurement info into a file id (from a fif file).
 
@@ -1269,6 +1373,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     Tags are written in a particular order for compatibility with maxfilter.
     """
     info._check_consistency()
+    _check_dates(info)
 
     # Measurement info
     start_block(fid, FIFF.FIFFB_MEAS_INFO)
@@ -1389,7 +1494,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     if info.get('proj_name') is not None:
         write_string(fid, FIFF.FIFF_PROJ_NAME, info['proj_name'])
     if info.get('meas_date') is not None:
-        write_int(fid, FIFF.FIFF_MEAS_DATE, info['meas_date'])
+        write_int(fid, FIFF.FIFF_MEAS_DATE, _dt_to_stamp(info['meas_date']))
     if info.get('utc_offset') is not None:
         write_string(fid, FIFF.FIFF_UTC_OFFSET, info['utc_offset'])
     write_int(fid, FIFF.FIFF_NCHAN, info['nchan'])
@@ -1728,7 +1833,8 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
         Currently supported fields are 'ecg', 'bio', 'stim', 'eog', 'misc',
         'seeg', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'emg', 'hbr' or 'hbo'.
         If str, then all channels are assumed to be of the same type.
-    %(montage)s
+    montage : None
+        Deprecated. Use :meth:`mne.Info.set_montage` instead.
     %(verbose)s
 
     Returns
@@ -1763,8 +1869,11 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
         ch_names = list(np.arange(ch_names).astype(str))
     _validate_type(ch_names, (list, tuple), "ch_names",
                    ("list, tuple, or int"))
-    _validate_type(montage, types=(type(None), str, DigMontage),
-                   item_name='montage')
+    _validate_type(montage, (None, str, DigMontage), 'montage')
+    if montage is not None:
+        warn('Passing montage to create_info is deprecated and will be '
+             'removed in 0.21, use raw.set_montage (or epochs.set_montage, '
+             'etc.) instead', DeprecationWarning)
     sfreq = float(sfreq)
     if sfreq <= 0:
         raise ValueError('sfreq must be positive')
@@ -1827,7 +1936,7 @@ def _empty_info(sfreq):
         info[k] = None
     for k in _list_keys:
         info[k] = list()
-    info['custom_ref_applied'] = False
+    info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_OFF
     info['highpass'] = 0.
     info['sfreq'] = float(sfreq)
     info['lowpass'] = info['sfreq'] / 2.
@@ -1866,7 +1975,15 @@ def _force_update_info(info_base, info_target):
             i_targ[key] = val
 
 
-def anonymize_info(info, daysback=None, keep_his=False):
+def _add_timedelta_to_stamp(meas_date_stamp, delta_t):
+    """Add a timedelta to a meas_date tuple."""
+    if meas_date_stamp is not None:
+        meas_date_stamp = _dt_to_stamp(_stamp_to_dt(meas_date_stamp) + delta_t)
+    return meas_date_stamp
+
+
+@verbose
+def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
     """Anonymize measurement information in place.
 
     Parameters
@@ -1876,9 +1993,14 @@ def anonymize_info(info, daysback=None, keep_his=False):
     daysback : int | None
         Number of days to subtract from all dates.
         If None (default) the date of service will be set to Jan 1ˢᵗ 2000.
+        This parameter is ignored if ``info['meas_date'] is None``.
     keep_his : bool
         If True his_id of subject_info will NOT be overwritten.
         Defaults to False.
+
+        .. warning:: This could mean that ``info`` is not fully
+                     anonymized. Use with caution.
+    %(verbose)s
 
     Returns
     -------
@@ -1906,6 +2028,9 @@ def anonymize_info(info, daysback=None, keep_his=False):
     - helium_info, device_info
           Dates use the meas_date logic, meta info uses defaults.
 
+    If ``info['meas_date']`` is None, it will remain None during processing
+    the above fields.
+
     Operates in place.
     """
     _validate_type(info, 'info', "self")
@@ -1917,25 +2042,39 @@ def anonymize_info(info, daysback=None, keep_his=False):
     default_desc = ("Anonymized using a time shift"
                     " to preserve age at acquisition")
 
-    # datetime object representing meas_date
-    meas_date_datetime = _stamp_to_dt(info['meas_date'])
+    none_meas_date = info['meas_date'] is None
 
-    if daysback is None:
-        delta_t = meas_date_datetime - default_anon_dos
+    if none_meas_date:
+        warn('Input info has \'meas_date\' set to None.'
+             ' Removing all information from time/date structures.'
+             ' *NOT* performing any time shifts')
+        info['meas_date'] = None
     else:
-        delta_t = datetime.timedelta(days=daysback)
-
-    # adjust meas_date
-    info['meas_date'] = _dt_to_stamp(meas_date_datetime - delta_t)
+        # compute timeshift delta
+        if daysback is None:
+            delta_t = info['meas_date'] - default_anon_dos
+        else:
+            delta_t = datetime.timedelta(days=daysback)
+        # adjust meas_date
+        info['meas_date'] = info['meas_date'] - delta_t
 
     # file_id and meas_id
     for key in ('file_id', 'meas_id'):
         value = info.get(key)
         if value is not None:
             assert 'msecs' not in value
-            value['secs'] = info['meas_date'][0]
-            value['usecs'] = info['meas_date'][1]
-            value['machid'][:] = 0
+            if none_meas_date:
+                tmp = DATE_NONE
+            else:
+                tmp = _add_timedelta_to_stamp(
+                    (value['secs'], value['usecs']), -delta_t)
+            value['secs'] = tmp[0]
+            value['usecs'] = tmp[1]
+            # The following copy is needed for a test CTF dataset
+            # otherwise value['machid'][:] = 0 would suffice
+            _tmp = value['machid'].copy()
+            _tmp[:] = 0
+            value['machid'] = _tmp
 
     # subject info
     subject_info = info.get('subject_info')
@@ -1943,7 +2082,7 @@ def anonymize_info(info, daysback=None, keep_his=False):
         if subject_info.get('id') is not None:
             subject_info['id'] = default_subject_id
         if keep_his:
-            logger.warning('Not fully anonymizing info - keeping \'his_id\'')
+            logger.info('Not fully anonymizing info - keeping \'his_id\'')
         elif subject_info.get('his_id') is not None:
             subject_info['his_id'] = str(default_subject_id)
 
@@ -1951,7 +2090,10 @@ def anonymize_info(info, daysback=None, keep_his=False):
             if subject_info.get(key) is not None:
                 subject_info[key] = default_str
 
-        if subject_info.get('birthday') is not None:
+        # anonymize the subject birthday
+        if none_meas_date:
+            subject_info.pop('birthday', None)
+        elif subject_info.get('birthday') is not None:
             dob = datetime.datetime(subject_info['birthday'][0],
                                     subject_info['birthday'][1],
                                     subject_info['birthday'][2])
@@ -1966,7 +2108,7 @@ def anonymize_info(info, daysback=None, keep_his=False):
     info['description'] = default_desc
 
     if info['proj_id'] is not None:
-        info['proj_id'][:] = 0
+        info['proj_id'] = np.zeros_like(info['proj_id'])
     if info['proj_name'] is not None:
         info['proj_name'] = default_str
     if info['utc_offset'] is not None:
@@ -1975,25 +2117,45 @@ def anonymize_info(info, daysback=None, keep_his=False):
     proc_hist = info.get('proc_history')
     if proc_hist is not None:
         for record in proc_hist:
-            record['block_id']['secs'] = info['meas_date'][0]
-            record['block_id']['usecs'] = info['meas_date'][1]
             record['block_id']['machid'][:] = 0
-            record['date'] = info['meas_date']
             record['experimenter'] = default_str
+            if none_meas_date:
+                record['block_id']['secs'] = DATE_NONE[0]
+                record['block_id']['usecs'] = DATE_NONE[1]
+                record['date'] = DATE_NONE
+            else:
+                this_t0 = (record['block_id']['secs'],
+                           record['block_id']['usecs'])
+                this_t1 = _add_timedelta_to_stamp(
+                    this_t0, -delta_t)
+                record['block_id']['secs'] = this_t1[0]
+                record['block_id']['usecs'] = this_t1[1]
+                record['date'] = _add_timedelta_to_stamp(
+                    record['date'], -delta_t)
 
     hi = info.get('helium_info')
     if hi is not None:
         if hi.get('orig_file_guid') is not None:
             hi['orig_file_guid'] = default_str
-        if hi.get('meas_date') is not None:
-            hi['meas_date'] = [info['meas_date'][0],
-                               info['meas_date'][1]]
+        if none_meas_date and hi.get('meas_date') is not None:
+            hi['meas_date'] = DATE_NONE
+        elif hi.get('meas_date') is not None:
+            hi['meas_date'] = _add_timedelta_to_stamp(
+                hi['meas_date'], -delta_t)
 
     di = info.get('device_info')
     if di is not None:
         for k in ('serial', 'site'):
             if di.get(k) is not None:
                 di[k] = default_str
+
+    err_mesg = ('anonymize_info generated an inconsistent info object. '
+                'Underlying Error:\n')
+    info._check_consistency(prepend_error=err_mesg)
+    err_mesg = ('anonymize_info generated an inconsistent info object. '
+                'daysback parameter was too large.'
+                'Underlying Error:\n')
+    _check_dates(info, prepend_error=err_mesg)
 
     return info
 

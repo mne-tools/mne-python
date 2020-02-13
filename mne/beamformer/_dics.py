@@ -29,7 +29,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
     """Compute a Dynamic Imaging of Coherent Sources (DICS) spatial filter.
 
     This is a beamformer filter that can be used to estimate the source power
-    at a specific frequency range [1]_. It does this by constructing a spatial
+    at a specific frequency range :footcite:`GrossEtAl2001`. It does this by
+    constructing a spatial
     filter for each source point.  The computation of these filters is very
     similar to those of the LCMV beamformer (:func:`make_lcmv`), but instead of
     operating on a covariance matrix, the CSD matrix is used. When applying
@@ -91,11 +92,13 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
         three dipoles at a source vertex are considered as a group and the
         spatial filters are computed jointly using a matrix inversion. While
         ``inversion='single'`` is more stable, ``inversion='matrix'`` is more
-        precise. See section 5 of [5]_.  Defaults to 'single'.
+        precise. See section 5 of :footcite:`vanVlietEtAl2018`.  Defaults to
+        'single'.
     weight_norm : 'unit-noise-gain' | 'nai' | None
         If 'unit-noise-gain', the unit-noise gain minimum variance beamformer
-        will be computed (Borgiotti-Kaplan beamformer) [2]_,
-        If 'nai', the Neural Activity Index [4]_ will be computed.
+        will be computed (Borgiotti-Kaplan beamformer)
+        :footcite:`SekiharaNagarajan2008`. If 'nai', the Neural Activity Index
+        :footcite:`VanVeenEtAl1997` will be computed.
         Defaults to ``None``, in which case no normalization is performed.
     normalize_fwd : bool
         Whether to normalize the forward solution. Defaults to ``True``. Note
@@ -104,11 +107,7 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
     real_filter : bool
         If ``True``, take only the real part of the cross-spectral-density
         matrices to compute real filters. Defaults to ``False``.
-    reduce_rank : bool
-        If ``True``, the rank of the forward operator will be reduced by 1 for
-        each spatial location, prior to inversion. This may be necessary when
-        you use a single sphere model for MEG and ``mode='vertex'``.
-        Defaults to ``False``.
+    %(reduce_rank)s
     %(verbose)s
 
     Returns
@@ -149,8 +148,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
 
     Notes
     -----
-    The original reference is [1]_. See [5]_ for a tutorial style paper on the
-    topic.
+    The original reference is :footcite:`GrossEtAl2001`. See
+    :footcite:`vanVlietEtAl2018` for a tutorial style paper on the topic.
 
     The DICS beamformer is very similar to the LCMV (:func:`make_lcmv`)
     beamformer and many of the parameters are shared. However,
@@ -160,7 +159,8 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
     searching), and it remains to be seen how functionally interchangeable they
     could be.
 
-    The default setting reproduce the DICS beamformer as described in [5]_::
+    The default setting reproduce the DICS beamformer as described in
+    :footcite:`vanVlietEtAl2018`::
 
         inversion='single', weight_norm=None, normalize_fwd=True
 
@@ -169,46 +169,16 @@ def make_dics(info, forward, csd, reg=0.05, noise_csd=None, label=None,
         inversion='matrix', weight_norm='unit-gain', normalize_fwd=False
 
     For more information about ``real_filter``, see the
-    supplemental information from [3]_.
+    supplemental information from :footcite:`HippEtAl2011`.
 
     References
     ----------
-    .. [1] Gross et al. (2001) Dynamic imaging of coherent sources: Studying
-           neural interactions in the human brain. PNAS vol. 98 (2)
-           pp. 694-699. https://doi.org/10.1073/pnas.98.2.694
-    .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
-           brain imaging (2008) Springer Science & Business Media
-    .. [3] Hipp JF, Engel AK, Siegel M (2011) Oscillatory Synchronization
-           in Large-Scale Cortical Networks Predicts Perception.
-           Neuron (2011) vol 69 pp. 387-396.
-           https://doi.org/10.1016/j.neuron.2010.12.027
-    .. [4] Van Veen et al. Localization of brain electrical activity via
-           linearly constrained minimum variance spatial filtering.
-           Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
-    .. [5] van Vliet, et al. (2018) Analysis of functional connectivity and
-           oscillatory power using DICS: from raw MEG data to group-level
-           statistics in Python. bioRxiv, 245530.
-           https://doi.org/10.1101/245530
+    .. footbibliography::
     """  # noqa: E501
     rank = _check_rank(rank)
     _check_option('pick_ori', pick_ori, [None, 'normal', 'max-power'])
     _check_option('inversion', inversion, ['single', 'matrix'])
     _check_option('weight_norm', weight_norm, ['unit-noise-gain', 'nai', None])
-
-    picks = _check_info_inv(info, forward)
-    info = pick_info(info, picks)
-
-    # Leadfield rank and optional rank reduction
-    # (to deal with problems with complex eigenvalues within the computation
-    # of the optimal orientation when using pinv if the leadfield was only
-    # rank 2 (e.g., with the spherical headmodel of the phantom data),
-    # see gh-4568 and gh-4628.
-    if reduce_rank and not (pick_ori == 'max-power' and inversion == 'matrix'):
-        raise NotImplementedError(
-            'The computation of spatial filters with rank reduction using '
-            'reduce_rank=True is only implemented with pick_ori=="max-power" '
-            'and inversion="matrix".'
-        )
 
     frequencies = [np.mean(freq_bin) for freq_bin in csd.frequencies]
     n_freqs = len(frequencies)
@@ -454,7 +424,7 @@ def apply_dics_csd(csd, filters, verbose=None):
 
     Apply a previously computed DICS beamformer to a cross-spectral density
     (CSD) object to estimate source power in time and frequency windows
-    specified in the CSD object [1]_.
+    specified in the CSD object :footcite:`GrossEtAl2001`.
 
     Parameters
     ----------
@@ -478,8 +448,7 @@ def apply_dics_csd(csd, filters, verbose=None):
 
     References
     ----------
-    .. [1] Gross et al. Dynamic imaging of coherent sources: Studying neural
-           interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
+    .. footbibliography::
     """  # noqa: E501
     ch_names = filters['ch_names']
     vertices = filters['vertices']
@@ -535,9 +504,9 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
 
     Calculate source power in time-frequency windows using a spatial filter
     based on the Dynamic Imaging of Coherent Sources (DICS) beamforming
-    approach [1]_. For each time window and frequency bin combination,
-    cross-spectral density (CSD) is computed and used to create a DICS
-    beamformer spatial filter.
+    approach :footcite:`DalalEtAl2008`. For each time window and frequency bin
+    combination, cross-spectral density (CSD) is computed and used to create a
+    DICS beamformer spatial filter.
 
     Parameters
     ----------
@@ -644,8 +613,8 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
     weight_norm : None | 'unit-noise-gain'
         How to normalize the beamformer weights. None means no normalization is
         performed.  If 'unit-noise-gain', the unit-noise gain minimum variance
-        beamformer will be computed (Borgiotti-Kaplan beamformer) [2]_.
-        Defaults to ``None``.
+        beamformer will be computed (Borgiotti-Kaplan beamformer)
+        :footcite:`SekiharaNagarajan2008`. Defaults to ``None``.
     normalize_fwd : bool
         Whether to normalize the forward solution. Defaults to ``True``. Note
         that this normalization is not required when weight normalization
@@ -653,11 +622,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
     real_filter : bool
         If ``True``, take only the real part of the cross-spectral-density
         matrices to compute real filters. Defaults to ``False``.
-    reduce_rank : bool
-        If ``True``, the rank of the forward operator will be reduced by 1 for
-        each spatial location, prior to inversion. This may be necessary when
-        you use a single sphere model for MEG and ``mode='vertex'``.
-        Defaults to ``False``.
+    %(reduce_rank)s
     %(verbose)s
 
     Returns
@@ -668,8 +633,9 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
 
     Notes
     -----
-    Dalal et al. [1]_ used a synthetic aperture magnetometry beamformer (SAM)
-    in each time-frequency window instead of DICS.
+    Dalal et al. :footcite:`DalalEtAl2008` used a synthetic aperture
+    magnetometry beamformer (SAM) in each time-frequency window instead of
+    DICS.
 
     An alternative to using noise CSDs is to normalize the forward solution
     (``normalize_fwd``) or the beamformer weights (``weight_norm``). In
@@ -677,11 +643,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
 
     References
     ----------
-    .. [1] Dalal et al. Five-dimensional neuroimaging: Localization of the
-           time-frequency dynamics of cortical activity.
-           NeuroImage (2008) vol. 40 (4) pp. 1686-1700
-    .. [2] Sekihara & Nagarajan. Adaptive spatial filters for electromagnetic
-           brain imaging (2008) Springer Science & Business Media
+    .. footbibliography::
     """
     _check_reference(epochs)
     rank = _check_rank(rank)

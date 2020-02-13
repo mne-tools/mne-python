@@ -3,8 +3,8 @@
 Compute LCMV inverse solution in volume source space
 ====================================================
 
-Compute LCMV beamformer on an auditory evoked dataset in a volume source space,
-and show activation on ``fsaverage``.
+Compute LCMV beamformers on an auditory evoked dataset in a volume source
+space, and show activation on ``fsaverage``.
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
@@ -51,14 +51,26 @@ evoked = epochs.average()
 evoked.plot_joint()
 
 ###############################################################################
-# Compute covariance matrices, fit and apply  spatial filter.
+# Compute covariance matrices
+# ---------------------------
+#
+# These matrices need to be inverted at some point, but since they are rank
+# deficient, some regularization needs to be done for them to be invertable.
+# Regularization can be added either by the :func:`mne.compute_covariance`
+# function or later by the :func:`mne.beamformer.make_lcmv` function. In this
+# example, we'll go with the latter option, so we specify ``method='empirical``
+# here.
 
 # Read regularized noise covariance and compute regularized data covariance
-noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0, method='shrunk',
-                                   rank=None)
+noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0,
+                                   method='empirical')
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
-                                  method='shrunk', rank=None)
+                                  method='empirical')
 
+###############################################################################
+# Compute beamformer filters
+# --------------------------
+#
 # Compute weights of free orientation (vector) beamformer with weight
 # normalization (neural activity index, NAI). Providing a noise covariance
 # matrix enables whitening of the data and forward solution. Source orientation
@@ -79,7 +91,8 @@ print(filters)
 stc = apply_lcmv(evoked, filters, max_ori_out='signed')
 
 ###############################################################################
-# Plot source space activity:
+# Plot source space activity
+# --------------------------
 
 # You can save result in stc files with:
 # stc.save('lcmv-vol')

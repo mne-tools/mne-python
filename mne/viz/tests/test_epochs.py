@@ -57,7 +57,7 @@ def test_plot_epochs_basic(capsys):
     epochs.info['lowpass'] = 10.  # allow heavy decim during plotting
     fig = epochs.plot(scalings=None, title='Epochs')
     ticks = [x.get_text() for x in fig.axes[0].get_xticklabels()]
-    assert ticks == ['1']
+    assert ticks == ['0']
     plt.close('all')
     # covariance / whitening
     cov = read_cov(cov_fname)
@@ -174,9 +174,14 @@ def test_plot_epochs_image():
     `plt.close('all')` just before the offending test seems to prevent this
     warning, though it's unclear why.
     """
+    plt.close('all')
     epochs = _get_epochs()
     figs = epochs.plot_image()
     assert len(figs) == 2  # one fig per ch_type (test data has mag, grad)
+    assert len(plt.get_fignums()) == 2
+    figs = epochs.plot_image()
+    assert len(figs) == 2
+    assert len(plt.get_fignums()) == 4  # should create new figures
     epochs.plot_image(picks='mag', sigma=0.1)
     epochs.plot_image(picks=[0, 1], combine='mean',
                       ts_args=dict(show_sensors=False))

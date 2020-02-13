@@ -231,6 +231,31 @@ class Covariance(dict):
         return viz.misc.plot_cov(self, info, exclude, colorbar, proj, show_svd,
                                  show, verbose)
 
+    def pick_channels(self, ch_names, ordered=False):
+        """Pick channels from this covariance matrix.
+
+        Parameters
+        ----------
+        ch_names : list of str
+            List of channels to keep. All other channels are dropped.
+        ordered : bool
+            If True (default False), ensure that the order of the channels
+            matches the order of ``ch_names``.
+
+        Returns
+        -------
+        cov : instance of Covariance.
+            The modified covariance matrix.
+
+        Notes
+        -----
+        Operates in-place.
+
+        .. versionadded:: 0.20.0
+        """
+        return pick_channels_cov(self, ch_names, exclude=[], ordered=ordered,
+                                 copy=False)
+
 
 ###############################################################################
 # IO
@@ -1137,7 +1162,7 @@ class _RegCovariance(BaseEstimator):
 
     def __init__(self, info, grad=0.1, mag=0.1, eeg=0.1, seeg=0.1, ecog=0.1,
                  hbo=0.1, hbr=0.1, fnirs_raw=0.1, fnirs_od=0.1,
-                 store_precision=False, assume_centered=False):
+                 csd=0.1, store_precision=False, assume_centered=False):
         self.info = info
         # For sklearn compat, these cannot (easily?) be combined into
         # a single dictionary
@@ -1150,6 +1175,7 @@ class _RegCovariance(BaseEstimator):
         self.hbr = hbr
         self.fnirs_raw = fnirs_raw
         self.fnirs_od = fnirs_od
+        self.csd = csd
         self.store_precision = store_precision
         self.assume_centered = assume_centered
 
@@ -1433,7 +1459,7 @@ def _smart_eigh(C, info, rank, scalings=None, projs=None,
 @verbose
 def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
                proj=True, seeg=0.1, ecog=0.1, hbo=0.1, hbr=0.1,
-               fnirs_raw=0.1, fnirs_od=0.1,
+               fnirs_raw=0.1, fnirs_od=0.1, csd=0.1,
                rank=None, scalings=None, verbose=None):
     """Regularize noise covariance matrix.
 
@@ -1478,6 +1504,8 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
         Regularization factor for fNIRS raw signals.
     fnirs_od : float (default 0.1)
         Regularization factor for fNIRS optical density signals.
+    csd : float (default 0.1)
+        Regularization factor for EEG-CSD signals.
     %(rank_None)s
 
         .. versionadded:: 0.17
@@ -1503,7 +1531,8 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     cov = cov.copy()
     info._check_consistency()
     scalings = _handle_default('scalings_cov_rank', scalings)
-    regs = dict(eeg=eeg, seeg=seeg, ecog=ecog, hbo=hbo, hbr=hbr)
+    regs = dict(eeg=eeg, seeg=seeg, ecog=ecog, hbo=hbo, hbr=hbr,
+                fnirs_raw=fnirs_raw, fnirs_od=fnirs_od, csd=csd)
 
     if exclude is None:
         raise ValueError('exclude must be a list of strings or "bads"')

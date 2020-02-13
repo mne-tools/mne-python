@@ -14,7 +14,8 @@ from mayavi.sources.vtk_data_source import VTKDataSource
 from mayavi.tools.mlab_scene_model import MlabSceneModel
 from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
                         Instance, Array, Bool, Button, Enum, Float, Int, List,
-                        Range, Str, RGBColor, Property, cached_property)
+                        Range, Str, RGBColor, Property, cached_property,
+                        ArrayOrNone)
 from traitsui.api import (View, Item, HGroup, VGrid, VGroup, Spring,
                           TextEditor)
 from tvtk.api import tvtk
@@ -208,7 +209,7 @@ class PointObject(Object):
     # projection onto a surface
     nearest = Instance(_DistanceQuery)
     check_inside = Instance(_CheckInside)
-    project_to_trans = Array(float, shape=(4, 4))
+    project_to_trans = ArrayOrNone(float, shape=(4, 4))
     project_to_surface = Bool(False, label='Project', desc='project points '
                               'onto the surface')
     orient_to_surface = Bool(False, label='Orient', desc='orient points '

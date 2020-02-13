@@ -5,8 +5,8 @@
 Reading an event file
 =====================
 
-Read events from a file. For a more detailed guide on how to read events
-using MNE-Python, see :ref:`tut_epoching_and_averaging`.
+Read events from a file. For a more detailed discussion of events in
+MNE-Python, see :ref:`tut-events-vs-annotations` and :ref:`tut-event-arrays`.
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Chris Holdgraf <choldgraf@berkeley.edu>

@@ -185,9 +185,11 @@ Datasets
    brainstorm.bst_resting.data_path
    brainstorm.bst_raw.data_path
    eegbci.load_data
+   eegbci.standardize
    fetch_aparc_sub_parcellation
    fetch_fsaverage
    fetch_hcp_mmp_parcellation
+   fnirs_motor.data_path
    hf_sef.data_path
    kiloword.data_path
    limo.load_data
@@ -259,6 +261,7 @@ Visualization
    plot_sensors_connectivity
    plot_snr_estimate
    plot_source_estimates
+   link_brains
    plot_volume_source_estimates
    plot_vector_source_estimates
    plot_sparse_source_estimates
@@ -343,6 +346,9 @@ Projections:
 
    ICA
    Xdawn
+   annotate_movement
+   compute_average_dev_head_t
+   compute_current_source_density
    compute_proj_ecg
    compute_proj_eog
    create_ecg_epochs
@@ -360,8 +366,24 @@ Projections:
    read_ica
    run_ica
    corrmap
+   read_ica_eeglab
+
+:py:mod:`mne.preprocessing.nirs`:
+
+.. currentmodule:: mne.preprocessing.nirs
+
+.. automodule:: mne.preprocessing.nirs
+   :no-members:
+   :no-inherited-members:
+
+.. autosummary::
+   :toctree: generated/
+
    optical_density
    beer_lambert_law
+   source_detector_distances
+   short_channels
+   scalp_coupling_index
 
 EEG referencing:
 
@@ -403,6 +425,7 @@ EEG referencing:
 .. autosummary::
    :toctree: generated/
 
+   calculate_head_pos_ctf
    filter_chpi
    head_pos_to_trans_rot_t
    read_head_pos
@@ -447,6 +470,7 @@ Events
    write_events
    concatenate_epochs
    events_from_annotations
+   annotations_from_events
 
 :py:mod:`mne.event`:
 
@@ -637,6 +661,7 @@ Inverse Solutions
    source_induced_power
    write_inverse_operator
    make_resolution_matrix
+   resolution_metrics
    get_cross_talk
    get_point_spread
 

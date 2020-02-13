@@ -226,6 +226,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         'brainstorm': 'MNE_DATASETS_BRAINSTORM_PATH',
         'testing': 'MNE_DATASETS_TESTING_PATH',
         'multimodal': 'MNE_DATASETS_MULTIMODAL_PATH',
+        'fnirs_motor': 'MNE_DATASETS_FNIRS_MOTOR_PATH',
         'opm': 'MNE_DATASETS_OPM_PATH',
         'visual_92_categories': 'MNE_DATASETS_VISUAL_92_CATEGORIES_PATH',
         'kiloword': 'MNE_DATASETS_KILOWORD_PATH',
@@ -238,7 +239,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.77', misc='0.5')
+    releases = dict(testing='0.79', misc='0.5')
     # And also update the "md5_hashes['testing']" variable below.
 
     # To update any other dataset, update the data archive itself (upload
@@ -256,12 +257,13 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
              'datasets/foo.tgz',
         misc='https://codeload.github.com/mne-tools/mne-misc-data/'
              'tar.gz/%s' % releases['misc'],
-        sample='https://osf.io/86qa2/download?version=4',
+        sample='https://osf.io/86qa2/download?version=5',
         somato='https://osf.io/tp4sg/download?version=5',
         spm='https://osf.io/je4s8/download?version=2',
         testing='https://codeload.github.com/mne-tools/mne-testing-data/'
                 'tar.gz/%s' % releases['testing'],
         multimodal='https://ndownloader.figshare.com/files/5999598',
+        fnirs_motor='https://osf.io/dj3eh/download?version=1',
         opm='https://osf.io/p6ae7/download?version=2',
         visual_92_categories=[
             'https://osf.io/8ejrs/download?version=1',
@@ -279,6 +281,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         misc='mne-misc-data-%s.tar.gz' % releases['misc'],
         mtrf='mTRF_1.5.zip',
         multimodal='MNE-multimodal-data.tar.gz',
+        fnirs_motor='MNE-fNIRS-motor-data.tgz',
         opm='MNE-OPM-data.tar.gz',
         sample='MNE-sample-data-processed.tar.gz',
         somato='MNE-somato-data.tar.gz',
@@ -317,11 +320,12 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
             bst_resting='70fc7bf9c3b97c4f2eab6260ee4a0430'),
         fake='3194e9f7b46039bb050a74f3e1ae9908',
         misc='84e606998ac379ef53029b3b1cf37918',
-        sample='fc2d5b9eb0a144b1d6ba84dc3b983602',
+        sample='12b75d1cb7df9dfb4ad73ed82f61094f',
         somato='f08f17924e23c57a751b3bed4a05fe02',
         spm='9f43f67150e3b694b523a21eb929ea75',
-        testing='e825eec08cfd75e85f33ed2b06fc82f1',
+        testing='7a8f1804a38e72394cd64aca1dad7cd3',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
+        fnirs_motor='c4935d19ddab35422a69f3326a01fef8',
         opm='370ad1dcfd5c47e029e692c85358a374',
         visual_92_categories=['74f50bbeb65740903eadc229c9fa759f',
                               '203410a98afc9df9ae8ba9f933370e20'],
@@ -538,6 +542,7 @@ def has_dataset(name):
             'somato': 'MNE-somato-data',
             'spm': 'MNE-spm-face',
             'multimodal': 'MNE-multimodal-data',
+            'fnirs_motor': 'MNE-fNIRS-motor-data',
             'opm': 'MNE-OPM-data',
             'testing': 'MNE-testing-data',
             'visual_92_categories': 'MNE-visual_92_categories-data',
@@ -564,7 +569,8 @@ def _download_all_example_data(verbose=True):
     # Consider adding datasets from here to CircleCI for PR-auto-build
     from . import (sample, testing, misc, spm_face, somato, brainstorm,
                    eegbci, multimodal, opm, hf_sef, mtrf, fieldtrip_cmc,
-                   kiloword, phantom_4dbti, sleep_physionet, limo)
+                   kiloword, phantom_4dbti, sleep_physionet, limo,
+                   fnirs_motor)
     sample.data_path()
     testing.data_path()
     misc.data_path()
@@ -572,6 +578,7 @@ def _download_all_example_data(verbose=True):
     somato.data_path()
     hf_sef.data_path()
     multimodal.data_path()
+    fnirs_motor.data_path()
     opm.data_path()
     mtrf.data_path()
     fieldtrip_cmc.data_path()

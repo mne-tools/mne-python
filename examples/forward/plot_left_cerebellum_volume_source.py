@@ -33,10 +33,10 @@ lh_surf = surf[0]
 
 # setup a volume source space of the left cerebellum cortex
 volume_label = 'Left-Cerebellum-Cortex'
-sphere = (0, 0, 0, 120)
-lh_cereb = setup_volume_source_space(subject, mri=aseg_fname, sphere=sphere,
-                                     volume_label=volume_label,
-                                     subjects_dir=subjects_dir)
+sphere = (0, 0, 0, 0.12)
+lh_cereb = setup_volume_source_space(
+    subject, mri=aseg_fname, sphere=sphere, volume_label=volume_label,
+    subjects_dir=subjects_dir, sphere_units='m')
 
 # Combine the source spaces
 src = surf + lh_cereb

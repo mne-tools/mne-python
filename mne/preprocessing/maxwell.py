@@ -1146,7 +1146,7 @@ def _sss_basis(exp, all_coils):
         Must contain the following keys:
 
             origin : ndarray, shape (3,)
-                Origin of the multipolar moment space in millimeters
+                Origin of the multipolar moment space in meters
             int_order : int
                 Order of the internal multipolar moment space
             ext_order : int
@@ -1421,7 +1421,7 @@ def _check_info(info, sss=True, tsss=True, calibration=True, ctc=True):
         for msg, key, doing in (('SSS', 'sss_info', sss),
                                 ('tSSS', 'max_st', tsss),
                                 ('fine calibration', 'sss_cal', calibration),
-                                ('cross-talk cancellation',  'sss_ctc', ctc)):
+                                ('cross-talk cancellation', 'sss_ctc', ctc)):
             if not doing:
                 continue
             if len(ent['max_info'][key]) > 0:
@@ -1439,7 +1439,7 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
         Data to be filtered
     origin : array-like, shape (3,)
         Origin of internal and external multipolar moment space in head coords
-        and in millimeters
+        (in meters)
     int_order : int
         Order of internal component of spherical expansion
     ext_order : int

@@ -11,12 +11,23 @@ Actual implementation of _Renderer and _Projection classes.
 #
 # License: Simplified BSD
 
-import numpy as np
+from contextlib import contextmanager
 import warnings
+
+import numpy as np
 import vtk
+
 from .base_renderer import _BaseRenderer
 from ._utils import _get_colormap_from_array
 from ...utils import copy_base_doc_to_subclass_doc
+
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    import pyvista
+    from pyvista import (Plotter, BackgroundPlotter, PolyData,
+                         Line, close_all, UnstructuredGrid)
+    from pyvista.utilities import try_callback
+
 
 _FIGURES = dict()
 
@@ -28,7 +39,7 @@ class _Figure(object):
                  title='PyVista Scene',
                  size=(600, 600),
                  shape=(1, 1),
-                 background_color=(0., 0., 0.),
+                 background_color='black',
                  smooth_shading=True,
                  off_screen=False,
                  notebook=False):
@@ -45,12 +56,9 @@ class _Figure(object):
         self.store['shape'] = shape
         self.store['off_screen'] = off_screen
         self.store['border'] = False
+        self.store['auto_update'] = False
 
     def build(self):
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=DeprecationWarning)
-            from pyvista import Plotter, BackgroundPlotter
-
         if self.plotter_class is None:
             self.plotter_class = BackgroundPlotter
         if self.notebook:
@@ -58,6 +66,7 @@ class _Figure(object):
 
         if self.plotter_class == Plotter:
             self.store.pop('title', None)
+            self.store.pop('auto_update', None)
 
         if self.plotter is None:
             plotter = self.plotter_class(**self.store)
@@ -104,12 +113,11 @@ class _Renderer(_BaseRenderer):
         Name of the window.
     """
 
-    def __init__(self, fig=None, size=(600, 600), bgcolor=(0., 0., 0.),
+    def __init__(self, fig=None, size=(600, 600), bgcolor='black',
                  name="PyVista Scene", show=False, shape=(1, 1)):
-        from pyvista import OFF_SCREEN
-        from mne.viz.backends.renderer import MNE_3D_BACKEND_TEST_DATA
+        from .renderer import MNE_3D_BACKEND_TESTING
         figure = _Figure(title=name, size=size, shape=shape,
-                         background_color=bgcolor, notebook=_check_notebook())
+                         background_color=bgcolor, notebook=None)
         self.font_family = "arial"
         if isinstance(fig, int):
             saved_fig = _FIGURES.get(fig)
@@ -125,22 +133,23 @@ class _Renderer(_BaseRenderer):
             self.figure = fig
 
         # Enable off_screen if sphinx-gallery or testing
-        if OFF_SCREEN or MNE_3D_BACKEND_TEST_DATA:
+        if pyvista.OFF_SCREEN:
             self.figure.store['off_screen'] = True
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            if MNE_3D_BACKEND_TEST_DATA:
-                from pyvista import Plotter
+            if MNE_3D_BACKEND_TESTING:
                 self.figure.plotter_class = Plotter
 
             self.plotter = self.figure.build()
             self.plotter.hide_axes()
+            self.plotter.disable_depth_peeling()
 
     def subplot(self, x, y):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             self.plotter.subplot(x, y)
+            self.plotter.disable_depth_peeling()
 
     def scene(self):
         return self.figure
@@ -153,7 +162,6 @@ class _Renderer(_BaseRenderer):
              vmin=None, vmax=None, **kwargs):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            from pyvista import PolyData
             smooth_shading = self.figure.smooth_shading
             vertices = np.c_[x, y, z]
             n_vertices = len(vertices)
@@ -178,30 +186,39 @@ class _Renderer(_BaseRenderer):
                 from matplotlib.colors import ListedColormap
                 colormap = ListedColormap(colormap)
 
-            self.plotter.add_mesh(mesh=pd, color=color, scalars=scalars,
-                                  rgba=rgba, opacity=opacity, cmap=colormap,
-                                  backface_culling=backface_culling,
-                                  rng=[vmin, vmax], show_scalar_bar=False,
-                                  smooth_shading=smooth_shading)
+            actor = self.plotter.add_mesh(
+                mesh=pd, color=color, scalars=scalars,
+                rgba=rgba, opacity=opacity, cmap=colormap,
+                backface_culling=backface_culling,
+                rng=[vmin, vmax], show_scalar_bar=False,
+                smooth_shading=smooth_shading
+            )
+            return actor, pd
 
-    def contour(self, surface, scalars, contours, line_width=1.0, opacity=1.0,
+    def contour(self, surface, scalars, contours, width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
-                normalized_colormap=False):
+                normalized_colormap=False, kind='line', color=None):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            from pyvista import PolyData
-            cmap = _get_colormap_from_array(colormap, normalized_colormap)
+            if colormap is not None:
+                colormap = _get_colormap_from_array(colormap,
+                                                    normalized_colormap)
             vertices = np.array(surface['rr'])
             triangles = np.array(surface['tris'])
             n_triangles = len(triangles)
             triangles = np.c_[np.full(n_triangles, 3), triangles]
             pd = PolyData(vertices, triangles)
             pd.point_arrays['scalars'] = scalars
-            self.plotter.add_mesh(pd.contour(isosurfaces=contours,
-                                             rng=(vmin, vmax)),
+            mesh = pd.contour(isosurfaces=contours, rng=(vmin, vmax))
+            line_width = width
+            if kind == 'tube':
+                mesh = mesh.tube(radius=width)
+                line_width = 1.0
+            self.plotter.add_mesh(mesh,
                                   show_scalar_bar=False,
                                   line_width=line_width,
-                                  cmap=cmap,
+                                  color=color,
+                                  cmap=colormap,
                                   opacity=opacity,
                                   smooth_shading=self.figure.smooth_shading)
 
@@ -211,7 +228,6 @@ class _Renderer(_BaseRenderer):
                 backface_culling=False):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            from pyvista import PolyData
             cmap = _get_colormap_from_array(colormap, normalized_colormap)
             vertices = np.array(surface['rr'])
             triangles = np.array(surface['tris'])
@@ -229,28 +245,30 @@ class _Renderer(_BaseRenderer):
                                   smooth_shading=self.figure.smooth_shading)
 
     def sphere(self, center, color, scale, opacity=1.0,
-               resolution=8, backface_culling=False):
+               resolution=8, backface_culling=False,
+               radius=None):
+        factor = 1.0 if radius is not None else scale
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            from pyvista import PolyData
             sphere = vtk.vtkSphereSource()
             sphere.SetThetaResolution(resolution)
             sphere.SetPhiResolution(resolution)
+            if radius is not None:
+                sphere.SetRadius(radius)
             sphere.Update()
             geom = sphere.GetOutput()
             pd = PolyData(center)
             self.plotter.add_mesh(pd.glyph(orient=False, scale=False,
-                                           factor=scale, geom=geom),
+                                           factor=factor, geom=geom),
                                   color=color, opacity=opacity,
                                   backface_culling=backface_culling,
                                   smooth_shading=self.figure.smooth_shading)
 
-    def tube(self, origin, destination, radius=1.0, color=(1.0, 1.0, 1.0),
+    def tube(self, origin, destination, radius=0.001, color='white',
              scalars=None, vmin=None, vmax=None, colormap='RdBu',
              normalized_colormap=False, reverse_lut=False):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            from pyvista import Line
             cmap = _get_colormap_from_array(colormap, normalized_colormap)
             for (pointa, pointb) in zip(origin, destination):
                 line = Line(pointa, pointb)
@@ -278,7 +296,6 @@ class _Renderer(_BaseRenderer):
                  backface_culling=False):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            from pyvista import UnstructuredGrid
             factor = scale
             vectors = np.c_[u, v, w]
             points = np.vstack(np.c_[x, y, z])
@@ -350,10 +367,10 @@ class _Renderer(_BaseRenderer):
                                       smooth_shading=self.figure.
                                       smooth_shading)
 
-    def text2d(self, x, y, text, size=14, color=(1.0, 1.0, 1.0),
+    def text2d(self, x_window, y_window, text, size=14, color='white',
                justification=None):
         size = 14 if size is None else size
-        position = (x, y)
+        position = (x_window, y_window)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             actor = self.plotter.add_text(text, position=position,
@@ -372,8 +389,9 @@ class _Renderer(_BaseRenderer):
                     raise ValueError('Expected values for `justification`'
                                      'are `left`, `center` or `right` but '
                                      'got {} instead.'.format(justification))
+        return actor
 
-    def text3d(self, x, y, z, text, scale, color=(1.0, 1.0, 1.0)):
+    def text3d(self, x, y, z, text, scale, color='white'):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             self.plotter.add_point_labels(points=[x, y, z],
@@ -389,7 +407,8 @@ class _Renderer(_BaseRenderer):
             warnings.filterwarnings("ignore", category=FutureWarning)
             self.plotter.add_scalar_bar(title=title, n_labels=n_labels,
                                         use_opacity=False, n_colors=256,
-                                        position_x=0.15, width=0.7,
+                                        position_x=0.15,
+                                        position_y=0.05, width=0.7,
                                         label_font_size=22,
                                         font_family=self.font_family,
                                         background_color=bgcolor)
@@ -399,7 +418,7 @@ class _Renderer(_BaseRenderer):
         return self.scene()
 
     def close(self):
-        self.plotter.close()
+        _close_3d_figure(figure=self.figure)
 
     def set_camera(self, azimuth=None, elevation=None, distance=None,
                    focalpoint=None):
@@ -407,8 +426,8 @@ class _Renderer(_BaseRenderer):
                      distance=distance, focalpoint=focalpoint)
 
     def screenshot(self, mode='rgb', filename=None):
-        return self.plotter.screenshot(transparent_background=(mode == 'rgba'),
-                                       filename=filename)
+        return _take_3d_screenshot(figure=self.figure, mode=mode,
+                                   filename=filename)
 
     def project(self, xyz, ch_names):
         xy = _3d_to_2d(self.plotter, xyz)
@@ -469,34 +488,17 @@ def _get_world_to_view_matrix(plotter):
 
 def _get_view_to_display_matrix(size):
     x, y = size
-    view_to_disp_mat = np.array([[x / 2.0,       0.,   0.,   x / 2.0],
-                                 [0.,      -y / 2.0,   0.,   y / 2.0],
-                                 [0.,            0.,   1.,        0.],
-                                 [0.,            0.,   0.,        1.]])
+    view_to_disp_mat = np.array([[x / 2.0,       0.,   0.,   x / 2.0],  # noqa: E241,E501
+                                 [0.,      -y / 2.0,   0.,   y / 2.0],  # noqa: E241,E501
+                                 [0.,            0.,   1.,        0.],  # noqa: E241,E501
+                                 [0.,            0.,   0.,        1.]])  # noqa: E241,E501
     return view_to_disp_mat
 
 
 def _close_all():
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=DeprecationWarning)
-        from pyvista import close_all
         close_all()
-
-
-def _check_notebook():
-    if _run_from_ipython():
-        try:
-            return type(get_ipython()).__module__.startswith('ipykernel.')
-        except NameError:
-            return False
-
-
-def _run_from_ipython():
-    try:
-        __IPYTHON__
-        return True
-    except NameError:
-        return False
 
 
 def _get_camera_direction(focalpoint, position):
@@ -528,20 +530,102 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
     if focalpoint is not None:
         cen = np.asarray(focalpoint)
 
+    # Now calculate the view_up vector of the camera.  If the view up is
+    # close to the 'z' axis, the view plane normal is parallel to the
+    # camera which is unacceptable, so we use a different view up.
+    if elevation is None or 5. <= abs(elevation) <= 175.:
+        view_up = [0, 0, 1]
+    else:
+        view_up = [np.sin(phi), np.cos(phi), 0]
+
     position = [
         r * np.cos(phi) * np.sin(theta),
         r * np.sin(phi) * np.sin(theta),
         r * np.cos(theta)]
     figure.plotter.camera_position = [
-        position, cen, [0, 0, 1]]
+        position, cen, view_up]
 
 
 def _set_3d_title(figure, title, size=40):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
-        figure.plotter.add_text(title, font_size=32, color=(1.0, 1.0, 1.0))
+        figure.plotter.add_text(title, font_size=size, color='white')
 
 
-def _check_figure(figure):
+def _check_3d_figure(figure):
     if not isinstance(figure, _Figure):
-        raise TypeError('figure must be an instance of _Figure')
+        raise TypeError('figure must be an instance of _Figure.')
+
+
+def _close_3d_figure(figure):
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=FutureWarning)
+        figure.plotter.close()
+
+
+def _take_3d_screenshot(figure, mode='rgb', filename=None):
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=FutureWarning)
+        return figure.plotter.screenshot(
+            transparent_background=(mode == 'rgba'),
+            filename=filename)
+
+
+def _set_colormap_range(actor, ctable, scalar_bar, rng=None):
+    from vtk.util.numpy_support import numpy_to_vtk
+    mapper = actor.GetMapper()
+    lut = mapper.GetLookupTable()
+    # Catch:  FutureWarning: Conversion of the second argument of
+    # issubdtype from `complex` to `np.complexfloating` is deprecated.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=FutureWarning)
+        lut.SetTable(numpy_to_vtk(ctable))
+    if rng is not None:
+        mapper.SetScalarRange(rng[0], rng[1])
+        lut.SetRange(rng[0], rng[1])
+    if scalar_bar is not None:
+        scalar_bar.SetLookupTable(actor.GetMapper().GetLookupTable())
+
+
+def _set_mesh_scalars(mesh, scalars, name):
+    # Catch:  FutureWarning: Conversion of the second argument of
+    # issubdtype from `complex` to `np.complexfloating` is deprecated.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=FutureWarning)
+        mesh.point_arrays[name] = scalars
+
+
+def _update_slider_callback(slider, callback, event_type):
+
+    def _the_callback(widget, event):
+        value = widget.GetRepresentation().GetValue()
+        if hasattr(callback, '__call__'):
+            try_callback(callback, value)
+        return
+
+    if event_type == 'start':
+        event = vtk.vtkCommand.StartInteractionEvent
+    elif event_type == 'end':
+        event = vtk.vtkCommand.EndInteractionEvent
+    elif event_type == 'always':
+        event = vtk.vtkCommand.InteractionEvent
+
+    slider.RemoveObserver(event)
+    slider.AddObserver(event, _the_callback)
+
+
+@contextmanager
+def _testing_context(interactive):
+    from . import renderer
+    orig_offscreen = pyvista.OFF_SCREEN
+    orig_testing = renderer.MNE_3D_BACKEND_TESTING
+    if interactive:
+        pyvista.OFF_SCREEN = False
+        renderer.MNE_3D_BACKEND_TESTING = False
+    else:
+        pyvista.OFF_SCREEN = True
+    try:
+        yield
+    finally:
+        pyvista.OFF_SCREEN = orig_offscreen
+        renderer.MNE_3D_BACKEND_TESTING = orig_testing

@@ -83,7 +83,9 @@ def _read_annotations_cnt(fname, data_format='int16'):
                                       n_channels=n_channels,
                                       event_type=type(my_events[0]),
                                       data_format=data_format)
-        duration = np.array([e.Latency for e in my_events], dtype=float)
+        duration = np.array([getattr(e, 'Latency', 0.) for e in my_events],
+                            dtype=float)
+
         description = np.array([str(e.StimType) for e in my_events])
         return Annotations(onset=onset / sfreq,
                            duration=duration,
@@ -298,6 +300,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
                       FIFF.FIFFV_EEG_CH, eog, ecg, emg, misc)
     eegs = [idx for idx, ch in enumerate(chs) if
             ch['coil_type'] == FIFF.FIFFV_COIL_EEG]
+    # XXX this should probably use mne.transforms._topo_to_sph and _sph_to_cart
     coords = _topo_to_sphere(pos, eegs)
     locs = np.full((len(chs), 12), np.nan)
     locs[:, :3] = coords

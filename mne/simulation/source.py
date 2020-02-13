@@ -367,14 +367,14 @@ class SourceSimulator(object):
 
         Parameters
         ----------
-        label : Label
+        label : instance of Label
             The label (as created for example by mne.read_label). If the label
             does not match any sources in the SourceEstimate, a ValueError is
             raised.
         waveform : array, shape (n_times,) or (n_events, n_times) | list
             The waveform(s) describing the activity on the label vertices.
-            If list, it must have the same length as events
-        events: array of int, shape (n_events, 3)
+            If list, it must have the same length as events.
+        events : array of int, shape (n_events, 3)
             Events associated to the waveform(s) to specify when the activity
             should occur.
         """

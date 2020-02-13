@@ -15,6 +15,7 @@ at which the fix is no longer needed.
 import inspect
 from distutils.version import LooseVersion
 from math import log
+import os
 from pathlib import Path
 import warnings
 
@@ -59,16 +60,6 @@ def _safe_svd(A, **kwargs):
             return linalg.svd(A, lapack_driver='gesvd', **kwargs)
         else:
             raise
-
-
-# SciPy 1.0+
-def _check_info(info, driver, positive='did not converge (LAPACK info=%d)'):
-    """Check info return value."""
-    if info < 0:
-        raise ValueError('illegal value in argument %d of internal %s'
-                         % (-info, driver))
-    if info > 0 and positive:
-        raise LinAlgError(("%s " + positive) % (driver, info,))
 
 
 ###############################################################################
@@ -334,6 +325,33 @@ try:
     from scipy.fft import fft, ifft, fftfreq, rfft, irfft, rfftfreq, ifftshift
 except ImportError:
     from numpy.fft import fft, ifft, fftfreq, rfft, irfft, rfftfreq, ifftshift
+
+
+###############################################################################
+# np.linalg.pinv (NumPy 1.13)
+
+if LooseVersion(np.__version__) >= LooseVersion('1.13'):
+    pinv = np.linalg.pinv
+else:
+    def _makearray(a):
+        new = np.asarray(a)
+        wrap = getattr(a, "__array_prepare__", new.__array_wrap__)
+        return new, wrap
+
+    def pinv(a, rcond=1e-15):
+        """Pseudoinverse."""
+        a, wrap = _makearray(a)
+        rcond = np.asarray(rcond)
+        a = a.conjugate()
+        u, s, vt = np.linalg.svd(a, full_matrices=False)
+        cutoff = rcond[..., np.newaxis] * np.amax(s, axis=-1, keepdims=True)
+        large = s > cutoff
+        s = np.divide(1, s, where=large, out=s)
+        s[~large] = 0
+        res = np.matmul(np.swapaxes(vt, -1, -2),
+                        np.multiply(s[..., np.newaxis],
+                                    np.swapaxes(u, -1, -2)))
+        return wrap(res)
 
 
 ###############################################################################
@@ -650,6 +668,50 @@ class BaseEstimator(object):
     # __getstate__ and __setstate__ are omitted because they only contain
     # conditionals that are not satisfied by our objects (e.g.,
     # ``if type(self).__module__.startswith('sklearn.')``.
+
+
+# newer sklearn deprecates importing from sklearn.metrics.scoring,
+# but older sklearn does not expose check_scoring in sklearn.metrics.
+def _get_check_scoring():
+    try:
+        from sklearn.metrics import check_scoring  # noqa
+    except ImportError:
+        from sklearn.metrics.scorer import check_scoring  # noqa
+    return check_scoring
+
+
+def _check_fit_params(X, fit_params, indices=None):
+    """Check and validate the parameters passed during `fit`.
+
+    Parameters
+    ----------
+    X : array-like of shape (n_samples, n_features)
+        Data array.
+
+    fit_params : dict
+        Dictionary containing the parameters passed at fit.
+
+    indices : array-like of shape (n_samples,), default=None
+        Indices to be selected if the parameter has the same size as
+        `X`.
+
+    Returns
+    -------
+    fit_params_validated : dict
+        Validated parameters. We ensure that the values support
+        indexing.
+    """
+    try:
+        from sklearn.utils.validation import \
+            _check_fit_params as _sklearn_check_fit_params
+        return _sklearn_check_fit_params(X, fit_params, indices)
+    except ImportError:
+        from sklearn.model_selection import _validation
+
+        fit_params_validated = \
+            {k: _validation._index_param_value(X, v, indices)
+             for k, v in fit_params.items()}
+        return fit_params_validated
 
 
 ###############################################################################
@@ -1168,14 +1230,25 @@ try:
         return numba.jit(nopython=nopython, nogil=nogil, fastmath=fastmath,
                          cache=cache, **kwargs)
 except ImportError:
+    has_numba = False
+else:
+    has_numba = (os.getenv('MNE_USE_NUMBA', 'true').lower() == 'true')
+
+
+if not has_numba:
     def jit(**kwargs):  # noqa
         def _jit(func):
             return func
         return _jit
     prange = range
-    has_numba = False
+    bincount = np.bincount
 else:
-    has_numba = True
+    @jit()
+    def bincount(x, weights, minlength):  # noqa: D103
+        out = np.zeros(minlength)
+        for idx, w in zip(x, weights):
+            out[idx] += w
+        return out
 
 
 ###############################################################################

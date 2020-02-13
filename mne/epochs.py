@@ -16,6 +16,7 @@ from copy import deepcopy
 import json
 import operator
 import os.path as op
+import warnings
 from distutils.version import LooseVersion
 
 import numpy as np
@@ -54,7 +55,7 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _check_pandas_installed, _check_preload, GetEpochsMixin,
                     _prepare_read_metadata, _prepare_write_metadata,
                     _check_event_id, _gen_events, _check_option,
-                    _check_combine)
+                    _check_combine, ShiftTimeMixin)
 from .utils.docs import fill_doc
 
 
@@ -294,7 +295,7 @@ def _handle_event_repeated(events, event_id, event_repeated, selection,
 
 
 @fill_doc
-class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
+class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
                  ToDataFrameMixin, TimeMixin, SizeMixin, GetEpochsMixin):
     """Abstract base class for Epochs-type classes.
@@ -382,7 +383,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         if events is not None:  # RtEpochs can have events=None
             events_type = type(events)
-            events = np.asarray(events)
+            with warnings.catch_warnings(record=True):
+                warnings.simplefilter('ignore')  # deprecation for object array
+                events = np.asarray(events)
             if not np.issubdtype(events.dtype, np.integer):
                 raise TypeError('events should be a NumPy array of integers, '
                                 'got {}'.format(events_type))
@@ -578,7 +581,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             current sampling rate.
 
             .. versionadded:: 0.12
-
         %(verbose_meth)s
 
         Returns
@@ -784,13 +786,19 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         epoch = epoch[:, self._decim_slice]
         return epoch
 
-    def iter_evoked(self):
+    def iter_evoked(self, copy=False):
         """Iterate over epochs as a sequence of Evoked objects.
 
         The Evoked objects yielded will each contain a single epoch (i.e., no
         averaging is performed).
 
         This method resets the object iteration state to the first epoch.
+
+        Parameters
+        ----------
+        copy : bool
+            If False copies of data and measurement info will be omitted
+            to save time.
         """
         self._current = 0
 
@@ -801,7 +809,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                 break
             data, event_id = out
             tmin = self.times[0]
-            info = deepcopy(self.info)
+            info = self.info
+            if copy:
+                info = deepcopy(self.info)
+                data = data.copy()
 
             yield EvokedArray(data, info, tmin, comment=str(event_id))
 
@@ -809,12 +820,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Subtract an evoked response from each epoch.
 
         Can be used to exclude the evoked response when analyzing induced
-        activity, see e.g. [1].
-
-        References
-        ----------
-        [1] David et al. "Mechanisms of evoked and induced responses in
-        MEG/EEG", NeuroImage, vol. 31, no. 4, pp. 1580-1591, July 2006.
+        activity, see e.g. [1]_.
 
         Parameters
         ----------
@@ -826,6 +832,11 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         -------
         self : instance of Epochs
             The modified instance (instance is also modified inplace).
+
+        References
+        ----------
+        .. [1] David et al. "Mechanisms of evoked and induced responses in
+               MEG/EEG", NeuroImage, vol. 31, no. 4, pp. 1580-1591, July 2006.
         """
         logger.info('Subtracting Evoked from Epochs')
         if evoked is None:
@@ -917,7 +928,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             >>> epochs.average(method=trim)  # doctest:+SKIP
 
         This would compute the trimmed mean.
-
         """
         return self._compute_aggregate(picks=picks, mode=method)
 
@@ -1042,7 +1052,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def plot(self, picks=None, scalings=None, n_epochs=20, n_channels=20,
              title=None, events=None, event_colors=None, order=None,
              show=True, block=False, decim='auto', noise_cov=None,
-             butterfly=False, show_scrollbars=True, epoch_colors=None):
+             butterfly=False, show_scrollbars=True, epoch_colors=None,
+             event_id=None):
         return plot_epochs(self, picks=picks, scalings=scalings,
                            n_epochs=n_epochs, n_channels=n_channels,
                            title=title, events=events,
@@ -1050,7 +1061,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                            show=show, block=block, decim=decim,
                            noise_cov=noise_cov, butterfly=butterfly,
                            show_scrollbars=show_scrollbars,
-                           epoch_colors=epoch_colors)
+                           epoch_colors=epoch_colors, event_id=event_id)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd)
     def plot_psd(self, fmin=0, fmax=np.inf, tmin=None, tmax=None,
@@ -1059,7 +1070,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                  xscale='linear', area_mode='std', area_alpha=0.33,
                  dB=True, estimate='auto', show=True, n_jobs=1,
                  average=False, line_alpha=None, spatial_colors=True,
-                 verbose=None):
+                 sphere=None, verbose=None):
         return plot_epochs_psd(self, fmin=fmin, fmax=fmax, tmin=tmin,
                                tmax=tmax, proj=proj, bandwidth=bandwidth,
                                adaptive=adaptive, low_bias=low_bias,
@@ -1068,7 +1079,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                area_alpha=area_alpha, dB=dB, estimate=estimate,
                                show=show, n_jobs=n_jobs, average=average,
                                line_alpha=line_alpha,
-                               spatial_colors=spatial_colors, verbose=verbose)
+                               spatial_colors=spatial_colors, sphere=sphere,
+                               verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_epochs_psd_topomap)
     def plot_psd_topomap(self, bands=None, vmin=None, vmax=None, tmin=None,
@@ -1076,14 +1088,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                          low_bias=True, normalization='length', ch_type=None,
                          layout=None, cmap='RdBu_r', agg_fun=None, dB=True,
                          n_jobs=1, normalize=False, cbar_fmt='%0.3f',
-                         outlines='head', axes=None, show=True, verbose=None):
+                         outlines='head', axes=None, show=True,
+                         sphere=None, verbose=None):
         return plot_epochs_psd_topomap(
             self, bands=bands, vmin=vmin, vmax=vmax, tmin=tmin, tmax=tmax,
             proj=proj, bandwidth=bandwidth, adaptive=adaptive,
             low_bias=low_bias, normalization=normalization, ch_type=ch_type,
             layout=layout, cmap=cmap, agg_fun=agg_fun, dB=dB, n_jobs=n_jobs,
             normalize=normalize, cbar_fmt=cbar_fmt, outlines=outlines,
-            axes=axes, show=show, verbose=verbose)
+            axes=axes, show=show, sphere=sphere, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_topo_image_epochs)
     def plot_topo_image(self, layout=None, sigma=0., vmin=None, vmax=None,
@@ -1239,7 +1252,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         keep = np.setdiff1d(np.arange(len(self.events)), try_idx)
         self._getitem(keep, reason, copy=False, drop_event_id=False)
         count = len(try_idx)
-        logger.info('Dropped %d epoch%s' % (count, _pl(count)))
+        logger.info('Dropped %d epoch%s: %s' %
+                    (count, _pl(count), ', '.join(map(str, np.sort(try_idx)))))
+
         return self
 
     def _get_epoch_from_raw(self, idx, verbose=None):
@@ -1258,7 +1273,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return epoch
 
     @verbose
-    def _get_data(self, out=True, picks=None, verbose=None):
+    def _get_data(self, out=True, picks=None, item=None, verbose=None):
         """Load all data, dropping bad epochs along the way.
 
         Parameters
@@ -1269,7 +1284,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         %(picks_all)s
         %(verbose_meth)s
         """
-        n_events = len(self.events)
+        if item is None:
+            item = slice(None)
+        elif not self._bad_dropped:
+            raise ValueError(
+                'item must be None in epochs.get_data() unless bads have been '
+                'dropped. Consider using epochs.drop_bad().')
+        select = self._item_to_select(item)  # indices or slice
+        use_idx = np.arange(len(self.events))[select]
+        n_events = len(use_idx)
         # in case there are no good events
         if self.preload:
             # we will store our result in our existing array
@@ -1283,6 +1306,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             if not out:
                 return
             if self.preload:
+                data = data[select]
                 if picks is None:
                     return data
                 else:
@@ -1290,7 +1314,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                     return data[:, picks]
 
             # we need to load from disk, drop, and return data
-            for idx in range(n_events):
+            for ii, idx in enumerate(use_idx):
                 # faster to pre-allocate memory here
                 epoch_noproj = self._get_epoch_from_raw(idx)
                 epoch_noproj = self._detrend_offset_decim(epoch_noproj)
@@ -1298,10 +1322,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                     epoch_out = epoch_noproj
                 else:
                     epoch_out = self._project_epoch(epoch_noproj)
-                if idx == 0:
+                if ii == 0:
                     data = np.empty((n_events, len(self.ch_names),
                                      len(self.times)), dtype=epoch_out.dtype)
-                data[idx] = epoch_out
+                data[ii] = epoch_out
         else:
             # bads need to be dropped, this might occur after a preload
             # e.g., when calling drop_bad w/new params
@@ -1364,19 +1388,27 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             return None
 
     @fill_doc
-    def get_data(self, picks=None):
+    def get_data(self, picks=None, item=None):
         """Get all epochs as a 3D array.
 
         Parameters
         ----------
         %(picks_all)s
+        item : slice | array-like | str | list | None
+            The items to get. See :meth:`mne.Epochs.__getitem__` for
+            a description of valid options. This can be substantially faster
+            for obtaining an ndarray than :meth:`~mne.Epochs.__getitem__`
+            for repeated access on large Epochs objects.
+            None (default) is an alias for ``slice(None)``.
+
+            .. versionadded:: 0.20
 
         Returns
         -------
         data : array of shape (n_epochs, n_channels, n_times)
             A view on epochs data.
         """
-        return self._get_data(picks=picks)
+        return self._get_data(picks=picks, item=item)
 
     @property
     def times(self):
@@ -1476,7 +1508,13 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         return self
 
     def copy(self):
-        """Return copy of Epochs instance."""
+        """Return copy of Epochs instance.
+
+        Returns
+        -------
+        epochs : instance of Epochs
+            A copy of the object.
+        """
         raw = self._raw
         del self._raw
         new = deepcopy(self)
@@ -1495,7 +1533,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         fname : str
             The name of the file, which should end with -epo.fif or
             -epo.fif.gz.
-        split_size : string | int
+        split_size : str | int
             Large raw files are automatically split into multiple pieces. This
             parameter specifies the maximum size of each piece. If the
             parameter is an integer, it specifies the size in Bytes. It is
@@ -1668,41 +1706,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         # actually remove the indices
         return self, indices
 
-    def shift_time(self, tshift, relative=True):
-        """Shift time scale in epoched data.
-
-        Parameters
-        ----------
-        tshift : float
-            The amount of time shift to be applied if relative is True
-            else the first time point. When relative is True, positive value
-            of tshift moves the data forward while negative tshift moves it
-            backward.
-        relative : bool
-            If true, move the time backwards or forwards by specified amount.
-            Else, set the starting time point to the value of tshift.
-
-        Returns
-        -------
-        epochs : instance of Epochs
-            The modified Epochs instance.
-
-        Notes
-        -----
-        Maximum accuracy of time shift is 1 / epochs.info['sfreq']
-        """
-        _check_preload(self, 'shift_time')
-        times = self.times
-        sfreq = self.info['sfreq']
-        old_first = int(self.tmin * sfreq)
-
-        offset = old_first if relative else 0
-
-        first = int(tshift * sfreq) + offset
-        last = first + len(times) - 1
-        self._set_times(np.arange(first, last + 1, dtype=np.float) / sfreq)
-        return self
-
 
 def _check_baseline(baseline, tmin, tmax, sfreq):
     """Check for a valid baseline."""
@@ -1853,14 +1856,14 @@ class Epochs(BaseEpochs):
         overlapping with segments whose description begins with ``'bad'`` are
         rejected. If False, no rejection based on annotations is performed.
     metadata : instance of pandas.DataFrame | None
-        A :class:`pandas.DataFrame` specifying more complex metadata about
-        events. If given, ``len(metadata)`` must equal ``len(events)``.
-        The DataFrame may have values of type (str | int | float).
+        A :class:`pandas.DataFrame` specifying metadata about each epoch.
+        If given, ``len(metadata)`` must equal ``len(events)``. The DataFrame
+        may only contain values of type (str | int | float | bool).
         If metadata is given, then pandas-style queries may be used to select
         subsets of data, see :meth:`mne.Epochs.__getitem__`.
         When a subset of the epochs is created in this (or any other
-        supported) manner, the metadata object is subsetted in the same manner.
-        MNE will modify the row indices to match ``epochs.selection``.
+        supported) manner, the metadata object is subsetted accordingly, and
+        the row indices will be modified to match ``epochs.selection``.
 
         .. versionadded:: 0.16
     event_repeated : str
@@ -2336,6 +2339,7 @@ def _read_one_epoch_file(f, tree, preload):
 
         #   Locate the data of interest
         processed = dir_tree_find(meas, FIFF.FIFFB_PROCESSED_DATA)
+        del meas
         if len(processed) == 0:
             raise ValueError('Could not find processed data')
 

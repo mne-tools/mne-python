@@ -25,24 +25,24 @@ from distutils.version import LooseVersion
 from itertools import cycle
 import warnings
 
-from ..channels.layout import _auto_topomap_coords
-from ..channels.channels import _contains_ch_type
 from ..defaults import _handle_default
 from ..fixes import _get_status
 from ..io import show_fiff, Info
+from ..io.constants import FIFF
 from ..io.pick import (channel_type, channel_indices_by_type, pick_channels,
                        _pick_data_channels, _DATA_CH_TYPES_SPLIT, pick_types,
                        pick_info, _picks_by_type, pick_channels_cov,
-                       _picks_to_idx)
+                       _picks_to_idx, _contains_ch_type)
 from ..io.meas_info import create_info
 from ..rank import compute_rank
 from ..io.proj import setup_proj
 from ..utils import (verbose, get_config, set_config, warn, _check_ch_locs,
-                     _check_option, logger, fill_doc, _pl)
+                     _check_option, logger, fill_doc, _pl, _check_sphere)
 
 from ..selection import (read_selection, _SELECTIONS, _EEG_SELECTIONS,
                          _divide_to_regions)
 from ..annotations import _sync_onset
+from ..transforms import apply_trans
 
 
 _channel_type_prettyprint = {'eeg': "EEG channel", 'grad': "Gradiometer",
@@ -58,8 +58,8 @@ def _setup_vmin_vmax(data, vmin, vmax, norm=False):
     For the normal use-case (when `vmin` and `vmax` are None), the parameter
     `norm` drives the computation. When norm=False, data is supposed to come
     from a mag and the output tuple (vmin, vmax) is symmetric range
-    (-x, x) where x is the max(abs(data)). When norm=True (aka data is the L2
-    norm of a gradiometer pair) the output tuple corresponds to (0, x).
+    (-x, x) where x is the max(abs(data)). When norm=True (a.k.a. data is the
+    L2 norm of a gradiometer pair) the output tuple corresponds to (0, x).
 
     Otherwise, vmin and vmax are callables that drive the operation.
     """
@@ -578,7 +578,7 @@ def _update_borders(params, new_width, new_height):
 
 
 def _toggle_scrollbars(params):
-    """Show or hide scrollbars (AKA zen mode) in mne_browse-style plots."""
+    """Show or hide scrollbars (A.K.A. zen mode) in mne_browse-style plots."""
     if params.get('show_scrollbars', None) is not None:
         # grow/shrink main axes to take up space from/make room for scrollbars
         # can't use ax.set_position() because axes are locatable, so we have to
@@ -1004,7 +1004,7 @@ def _plot_raw_onkey(event, params):
         params['update_fun']()
         params['plot_fun']()
     elif event.key == 's':
-        params['use_scalebars'] = not params['use_scalebars']
+        params['show_scalebars'] = not params['show_scalebars']
         params['plot_fun']()
     elif event.key == 'p':
         params['snap_annotations'] = not params['snap_annotations']
@@ -1371,7 +1371,12 @@ class ClickableImage(object):
         Parameters
         ----------
         **kwargs : dict
-            Arguments are passed to generate_2d_layout
+            Arguments are passed to generate_2d_layout.
+
+        Returns
+        -------
+        layout : instance of Layout
+            The layout.
         """
         from ..channels.layout import generate_2d_layout
         coords = np.array(self.coords)
@@ -1494,9 +1499,10 @@ def _process_times(inst, use_times, n_peaks=None, few=False):
     return use_times
 
 
+@verbose
 def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                  show_names=False, ch_groups=None, to_sphere=True, axes=None,
-                 block=False, show=True):
+                 block=False, show=True, sphere=None, verbose=None):
     """Plot sensors positions.
 
     Parameters
@@ -1517,7 +1523,7 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         are chosen in the order given above.
     title : str | None
         Title for the figure. If None (default), equals to
-        ``'Sensor positions (%s)' % ch_type``.
+        ``'Sensor positions (%%s)' %% ch_type``.
     show_names : bool | array of str
         Whether to display all channel names. If an array, only the channel
         names in the array are shown. Defaults to False.
@@ -1546,6 +1552,8 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
         .. versionadded:: 0.13.0
     show : bool
         Show figure if True. Defaults to True.
+    %(topomap_sphere_auto)s
+    %(verbose)s
 
     Returns
     -------
@@ -1594,7 +1602,9 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     chs = [info['chs'][pick] for pick in picks]
     if not _check_ch_locs(chs):
         raise RuntimeError('No valid channel positions found')
-    pos = np.array([ch['loc'][:3] for ch in chs])
+    pos = np.array([apply_trans(info['dev_head_t'], ch['loc'][:3])
+                    if ch['coord_frame'] == FIFF.FIFFV_COORD_DEVICE else
+                    ch['loc'][:3] for ch in chs])
     ch_names = np.array([ch['ch_name'] for ch in chs])
     bads = [idx for idx, name in enumerate(ch_names) if name in info['bads']]
     if ch_groups is None:
@@ -1634,13 +1644,10 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
                 if pick in value:
                     colors[pick_idx] = color_vals[ind]
                     break
-    if kind in ('topomap', 'select'):
-        pos = _auto_topomap_coords(info, picks, True, to_sphere=to_sphere)
-
     title = 'Sensor positions (%s)' % ch_type if title is None else title
-    fig = _plot_sensors(pos, colors, bads, ch_names, title, show_names, axes,
-                        show, kind == 'select', block=block,
-                        to_sphere=to_sphere)
+    fig = _plot_sensors(pos, info, picks, colors, bads, ch_names, title,
+                        show_names, axes, show, kind, block,
+                        to_sphere, sphere)
     if kind == 'select':
         return fig, fig.lasso.selection
     return fig
@@ -1676,17 +1683,19 @@ def _close_event(event, fig):
         fig.lasso.disconnect()
 
 
-def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
-                  select, block, to_sphere):
+def _plot_sensors(pos, info, picks, colors, bads, ch_names, title, show_names,
+                  ax, show, kind, block, to_sphere, sphere):
     """Plot sensors."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
-    from .topomap import _check_outlines, _draw_outlines
+    from .topomap import _get_pos_outlines, _draw_outlines
+    sphere = _check_sphere(sphere, info)
+
     edgecolors = np.repeat('black', len(colors))
     edgecolors[bads] = 'red'
     if ax is None:
         fig = plt.figure(figsize=(max(plt.rcParams['figure.figsize']),) * 2)
-        if pos.shape[1] == 3:
+        if kind == '3d':
             Axes3D(fig)
             ax = fig.gca(projection='3d')
         else:
@@ -1694,39 +1703,35 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
     else:
         fig = ax.get_figure()
 
-    if pos.shape[1] == 3:
+    if kind == '3d':
         ax.text(0, 0, 0, '', zorder=1)
         ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2], picker=True, c=colors,
                    s=75, edgecolor=edgecolors, linewidth=2)
 
         ax.azim = 90
         ax.elev = 0
-        ax.xaxis.set_label_text('x')
-        ax.yaxis.set_label_text('y')
-        ax.zaxis.set_label_text('z')
-    else:
+        ax.xaxis.set_label_text('x (m)')
+        ax.yaxis.set_label_text('y (m)')
+        ax.zaxis.set_label_text('z (m)')
+    else:  # kind in 'select', 'topomap'
         ax.text(0, 0, '', zorder=1)
-        # Equal aspect for 3D looks bad, so only use for 2D
-        ax.set(xticks=[], yticks=[], aspect='equal')
-        fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
-                            hspace=None)
-        if to_sphere:
-            pos, outlines = _check_outlines(pos, 'head')
-        else:
-            pos, outlines = _check_outlines(pos, np.array([0.5, 0.5]),
-                                            {'center': (0, 0),
-                                             'scale': (4.5, 4.5)})
+
+        pos, outlines = _get_pos_outlines(info, picks, sphere,
+                                          to_sphere=to_sphere)
         _draw_outlines(ax, outlines)
-
-        pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, c=colors, s=25,
-                         edgecolor=edgecolors, linewidth=2, clip_on=False)
-
-        if select:
+        pts = ax.scatter(pos[:, 0], pos[:, 1], picker=True, clip_on=False,
+                         c=colors, edgecolors=edgecolors, s=25, lw=2)
+        if kind == 'select':
             fig.lasso = SelectFromCollection(ax, pts, ch_names)
         else:
             fig.lasso = None
 
+        # Equal aspect for 3D looks bad, so only use for 2D
+        ax.set(aspect='equal')
+        fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None,
+                            hspace=None)
         ax.axis("off")  # remove border around figure
+    del sphere
 
     connect_picker = True
     if show_names:
@@ -1736,11 +1741,12 @@ def _plot_sensors(pos, colors, bads, ch_names, title, show_names, ax, show,
             indices = range(len(pos))
         for idx in indices:
             this_pos = pos[idx]
-            if pos.shape[1] == 3:
+            if kind == '3d':
                 ax.text(this_pos[0], this_pos[1], this_pos[2], ch_names[idx])
             else:
-                ax.text(this_pos[0] + 0.015, this_pos[1], ch_names[idx])
-        connect_picker = select
+                ax.text(this_pos[0] + 0.0025, this_pos[1], ch_names[idx],
+                        ha='left', va='center')
+        connect_picker = (kind == 'select')
     if connect_picker:
         picker = partial(_onpick_sensor, fig=fig, ax=ax, pos=pos,
                          ch_names=ch_names, show_names=show_names)
@@ -2038,11 +2044,14 @@ class SelectFromCollection(object):
 
         # Ensure that we have separate colors for each object
         self.fc = collection.get_facecolors()
+        self.ec = collection.get_edgecolors()
         if len(self.fc) == 0:
             raise ValueError('Collection must have a facecolor')
         elif len(self.fc) == 1:
             self.fc = np.tile(self.fc, self.Npts).reshape(self.Npts, -1)
+            self.ec = np.tile(self.ec, self.Npts).reshape(self.Npts, -1)
         self.fc[:, -1] = self.alpha_other  # deselect in the beginning
+        self.ec[:, -1] = self.alpha_other
 
         self.lasso = LassoSelector(ax, onselect=self.on_select,
                                    lineprops={'color': 'red', 'linewidth': .5})
@@ -2067,6 +2076,10 @@ class SelectFromCollection(object):
         self.fc[:, -1] = self.alpha_other
         self.fc[inds, -1] = 1
         self.collection.set_facecolors(self.fc)
+
+        self.ec[:, -1] = self.alpha_other
+        self.ec[inds, -1] = 1
+        self.collection.set_edgecolors(self.ec)
         self.canvas.draw_idle()
         self.canvas.callbacks.process('lasso_event')
 
@@ -2081,7 +2094,9 @@ class SelectFromCollection(object):
             self.selection.append(ch_name)
             this_alpha = 1
         self.fc[ind, -1] = this_alpha
+        self.ec[ind, -1] = this_alpha
         self.collection.set_facecolors(self.fc)
+        self.collection.set_edgecolors(self.ec)
         self.canvas.draw_idle()
         self.canvas.callbacks.process('lasso_event')
 
@@ -2089,7 +2104,9 @@ class SelectFromCollection(object):
         """Disconnect the lasso selector."""
         self.lasso.disconnect_events()
         self.fc[:, -1] = 1
+        self.ec[:, -1] = 1
         self.collection.set_facecolors(self.fc)
+        self.collection.set_edgecolors(self.ec)
         self.canvas.draw_idle()
 
 
@@ -2222,7 +2239,8 @@ def _on_hover(event, params):
             if params['segment_line'] is None:
                 modify_callback = partial(_annotation_modify, params=params)
                 line = params['ax'].plot([x, x], ylim, color=color,
-                                         linewidth=2., picker=5.)[0]
+                                         linewidth=2., picker=True)[0]
+                line.set_pickradius(5.)
                 dl = DraggableLine(line, modify_callback, drag_callback)
                 params['segment_line'] = dl
             else:
@@ -2877,6 +2895,7 @@ def _plot_masked_image(ax, data, times, mask=None, yvals=None,
             im = ax.imshow(
                 np.ma.masked_where(~mask, data), cmap=cmap, **im_args)
         else:
+            ax.imshow(data, cmap=cmap, **im_args)  # see #6481
             im = ax.imshow(data, cmap=cmap, **im_args)
 
         if draw_contour and np.unique(mask).size == 2:
@@ -2978,17 +2997,11 @@ def center_cmap(cmap, vmin, vmax, name="cmap_centered"):
 def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     """Set PSD plot params."""
     import matplotlib.pyplot as plt
-    _data_types = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'fnirs_raw')
     _check_option('area_mode', area_mode, [None, 'std', 'range'])
     picks = _picks_to_idx(info, picks)
 
     # XXX this could be refactored more with e.g., plot_evoked
     # XXX when it's refactored, Report._render_raw will need to be updated
-    megs = ['mag', 'grad', False, False, False, False]
-    eegs = [False, False, True, False, False, False]
-    seegs = [False, False, False, True, False, False]
-    ecogs = [False, False, False, False, True, False]
-    fnirss = [False, False, False, False, False, 'fnirs_raw']
     titles = _handle_default('titles', None)
     units = _handle_default('units', None)
     scalings = _handle_default('scalings', None)
@@ -2996,10 +3009,15 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     titles_list = list()
     units_list = list()
     scalings_list = list()
-    for meg, eeg, seeg, ecog, fnirs, name in zip(megs, eegs, seegs, ecogs,
-                                                 fnirss, _data_types):
-        these_picks = pick_types(info, meg=meg, eeg=eeg, seeg=seeg, ecog=ecog,
-                                 ref_meg=False, fnirs=fnirs, exclude=[])
+    for name in _DATA_CH_TYPES_SPLIT:
+        kwargs = dict(meg=False, ref_meg=False, exclude=[])
+        if name in ('mag', 'grad'):
+            kwargs['meg'] = name
+        elif name in ('fnirs_raw', 'fnirs_od', 'hbo', 'hbr'):
+            kwargs['fnirs'] = name
+        else:
+            kwargs[name] = True
+        these_picks = pick_types(info, **kwargs)
         these_picks = np.intersect1d(these_picks, picks)
         if len(these_picks) > 0:
             picks_list.append(these_picks)
@@ -3020,22 +3038,21 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
 
     fig = None
     if ax is None:
-        fig = plt.figure()
-        ax_list = list()
-        for ii in range(len(picks_list)):
-            # Make x-axes change together
-            if ii > 0:
-                ax_list.append(plt.subplot(len(picks_list), 1, ii + 1,
-                                           sharex=ax_list[0]))
-            else:
-                ax_list.append(plt.subplot(len(picks_list), 1, ii + 1))
-        make_label = True
+        fig, ax_list = plt.subplots(len(picks_list), 1, sharex=True,
+                                    squeeze=False)
+        ax_list = list(ax_list[:, 0])
     else:
         fig = ax_list[0].get_figure()
-        make_label = len(ax_list) == len(fig.axes)
+
+    # make_label decides if ylabel and titles are displayed
+    make_label = len(ax_list) == len(fig.axes)
+
+    # Plot Frequency [Hz] xlabel on the last axis
+    xlabels_list = [False] * len(picks_list)
+    xlabels_list[-1] = True
 
     return (fig, picks_list, titles_list, units_list, scalings_list,
-            ax_list, make_label)
+            ax_list, make_label, xlabels_list)
 
 
 def _convert_psds(psds, dB, estimate, scaling, unit, ch_names=None,
@@ -3110,10 +3127,12 @@ def _check_psd_fmax(inst, fmax):
 def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
               units_list, scalings_list, ax_list, make_label, color, area_mode,
               area_alpha, dB, estimate, average, spatial_colors, xscale,
-              line_alpha):
+              line_alpha, sphere, xlabels_list):
     # helper function for plot_raw_psd and plot_epochs_psd
     from matplotlib.ticker import ScalarFormatter
     from .evoked import _plot_lines
+    sphere = _check_sphere(sphere, inst.info)
+    _check_option('xscale', xscale, ('log', 'linear'))
 
     for key, ls in zip(['lowpass', 'highpass', 'line_freq'],
                        ['--', '--', '-.']):
@@ -3160,9 +3179,10 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
         info = create_info([inst.ch_names[p] for p in picks],
                            inst.info['sfreq'], types)
         info['chs'] = [inst.info['chs'][p] for p in picks]
-        valid_channel_types = ['mag', 'grad', 'eeg', 'seeg', 'eog', 'ecg',
-                               'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
-                               'hbr', 'misc', 'fnirs_raw', 'fnirs_od']
+        valid_channel_types = [
+            'mag', 'grad', 'eeg', 'csd', 'seeg', 'eog', 'ecg',
+            'emg', 'dipole', 'gof', 'bio', 'ecog', 'hbo',
+            'hbr', 'misc', 'fnirs_raw', 'fnirs_od']
         ch_types_used = list()
         for this_type in valid_channel_types:
             if this_type in types:
@@ -3179,19 +3199,22 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
                     types=types, zorder='std', xlim=(freqs[0], freqs[-1]),
                     ylim=None, times=freqs, bad_ch_idx=[], titles=titles,
                     ch_types_used=ch_types_used, selectable=True, psd=True,
-                    line_alpha=line_alpha, nave=None)
-    for ii, ax in enumerate(ax_list):
+                    line_alpha=line_alpha, nave=None, time_unit='ms',
+                    sphere=sphere)
+
+    for ii, (ax, xlabel) in enumerate(zip(ax_list, xlabels_list)):
         ax.grid(True, linestyle=':')
         if xscale == 'log':
             ax.set(xscale='log')
             ax.set(xlim=[freqs[1] if freqs[0] == 0 else freqs[0], freqs[-1]])
             ax.get_xaxis().set_major_formatter(ScalarFormatter())
-        else:
+        else:  # xscale == 'linear'
             ax.set(xlim=(freqs[0], freqs[-1]))
         if make_label:
-            if ii == len(picks_list) - 1:
-                ax.set_xlabel('Frequency (Hz)')
             ax.set(ylabel=ylabels[ii], title=titles_list[ii])
+            if xlabel:
+                ax.set_xlabel('Frequency (Hz)')
+
     if make_label:
         fig.subplots_adjust(left=.1, bottom=.1, right=.9, top=.9, wspace=0.3,
                             hspace=0.5)

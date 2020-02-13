@@ -14,5 +14,6 @@ def data_path(path=None, force_update=False, update_path=True,
                       update_path=update_path, name='misc',
                       download=download)
 
+
 data_path.__doc__ = _data_path_doc.format(name='misc',
                                           conf='MNE_DATASETS_MISC_PATH')

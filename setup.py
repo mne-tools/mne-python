@@ -96,5 +96,7 @@ if __name__ == "__main__":
               op.join('html', '*.css'),
               op.join('io', 'artemis123', 'resources', '*.csv'),
               op.join('io', 'edf', 'gdf_encodes.txt')
-              ]},
-          scripts=['bin/mne'])
+          ]},
+          entry_points={'console_scripts': [
+              'mne = mne.commands.utils:main',
+          ]})
