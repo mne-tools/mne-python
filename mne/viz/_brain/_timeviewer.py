@@ -416,9 +416,9 @@ class _TimeViewer(object):
         # setup key bindings
         self.key_bindings = {
             '?': self.help,
-            'y': self.toggle_interface,
-            't': self.apply_auto_scaling,
-            'u': self.restore_user_scaling,
+            'i': self.toggle_interface,
+            's': self.apply_auto_scaling,
+            'r': self.restore_user_scaling,
             ' ': self.toggle_playback,
         }
         menu = self.plotter.main_menu.addMenu('Help')
@@ -506,9 +506,9 @@ class _TimeViewer(object):
     def help(self):
         pairs = [
             ('?', 'Display help window'),
-            ('y', 'Toggle interface'),
-            ('t', 'Apply auto-scaling'),
-            ('u', 'Restore original clim'),
+            ('i', 'Toggle interface'),
+            ('s', 'Apply auto-scaling'),
+            ('r', 'Restore original clim'),
             ('Space', 'Start/Pause playback'),
         ]
         text1, text2 = zip(*pairs)
