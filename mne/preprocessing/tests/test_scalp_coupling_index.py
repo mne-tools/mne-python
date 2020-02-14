@@ -49,6 +49,12 @@ def test_scalp_coupling_index(fname, fmt, tmpdir):
     # Set next two channels to anti correlation
     raw._data[4] = new_data
     raw._data[5] = new_data * -1.0
+    # Set next two channels to be uncorrelated
+    rng = np.random.RandomState(0)
+    raw._data[6] = new_data
+    raw._data[7] = rng.rand(raw._data[0].shape[0])
     # Check values
     sci = scalp_coupling_index(raw)
     assert_allclose(sci[0:6], [1, 1, 1, 1, -1, -1], atol=0.01)
+    assert np.abs(sci[6]) < 0.5
+    assert np.abs(sci[7]) < 0.5
