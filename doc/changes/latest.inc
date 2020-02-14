@@ -238,7 +238,7 @@ Bug
 
 - Improve error message when trying to load FieldTrip data from a cell array by `Thomas Hartmann`_
 
-- Fix bug in :fun:`mne.read_evoked_fieldtrip` causing it to crash when channels were present in the provided Info object but were not present in the data by `Thomas Hartmann`_
+- Fix bug in :func:`mne.read_evoked_fieldtrip` causing it to crash when channels were present in the provided Info object but were not present in the data by `Thomas Hartmann`_
 
 - Fix placement of extrapolation points in :meth:`mne.Evoked.plot_topomap` and related functions when exactly three channels were used by `Mikołaj Magnuski`_.
 
