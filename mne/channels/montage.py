@@ -965,10 +965,11 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m',
         '.sfp' (BESA/EGI files), '.csd',
         ‘.elc’, ‘.txt’, ‘.csd’, ‘.elp’ (BESA spherical),
         .bvef (BrainVision files).
-
     head_size : float | None
         The size of the head in [m]. If none, returns the values read from the
-        file with no modification. Defaults to 95mm.
+        file with no modification. Defaults to 0.095m.
+    unit : 'm' | 'cm' | 'mm'
+        Unit of the head size. Defaults to 'm'.
     coord_frame : str | None
         The coordinate frame of the points. Usually this is "unknown"
         for native digitizer space. Defaults to None, which is "unknown" for
@@ -1041,6 +1042,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m',
             raise ValueError(
                 "``head_size`` cannot be None for '{}'".format(ext))
         montage = _read_theta_phi_in_degrees(fname, head_size=head_size,
+                                             unit=unit,
                                              fid_names=('Nz', 'LPA', 'RPA'))
 
     elif ext in SUPPORTED_FILE_EXT['standard BESA spherical']:

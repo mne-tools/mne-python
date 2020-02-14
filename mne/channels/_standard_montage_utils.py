@@ -9,7 +9,7 @@ import numpy as np
 from functools import partial
 import xml.etree.ElementTree as ElementTree
 
-from .montage import make_dig_montage
+from .montage import make_dig_montage, _check_unit_and_get_scaling
 from ..transforms import _sph_to_cart
 from . import __file__ as _CHANNELS_INIT_FILE
 
@@ -236,7 +236,7 @@ def _read_elc(fname, head_size):
 
 
 def _read_theta_phi_in_degrees(fname, head_size, fid_names=None,
-                               add_fiducials=False):
+                               add_fiducials=False, unit='m'):
     ch_names, theta, phi = _safe_np_loadtxt(fname, skip_header=1,
                                             dtype=(_str, 'i4', 'i4'))
     if add_fiducials:
@@ -252,8 +252,12 @@ def _read_theta_phi_in_degrees(fname, head_size, fid_names=None,
         theta = np.append(theta, [115, -115, 115])
         phi = np.append(phi, [90, 0, 0])
 
+    VALID_SCALES = dict(mm=1e-3, cm=1e-2, m=1)
+    scale = _check_unit_and_get_scaling(unit, VALID_SCALES)
+
     radii = np.full(len(phi), head_size)
     pos = _sph_to_cart(np.array([radii, np.deg2rad(phi), np.deg2rad(theta)]).T)
+    pos *= scale
     ch_pos = OrderedDict(zip(ch_names, pos))
 
     nasion, lpa, rpa = None, None, None

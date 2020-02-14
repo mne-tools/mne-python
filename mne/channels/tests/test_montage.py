@@ -220,7 +220,7 @@ def test_documented():
         'elc', id='ASA electrode'),
 
     pytest.param(
-        partial(read_custom_montage, head_size=1, unit='n/a'),
+        partial(read_custom_montage, head_size=1, unit='m'),
         ('Site  Theta  Phi\n'
          'Fp1  -92    -72\n'
          'Fp2   92     72\n'
@@ -337,6 +337,36 @@ def test_montage_readers(
         assert_allclose(actual_ch_pos[kk], expected_ch_pos[kk], atol=1e-5)
     for d1, d2 in zip(dig_montage.dig, expected_dig.dig):
         assert d1['coord_frame'] == d2['coord_frame']
+
+
+@pytest.mark.parametrize('unit, head_size',
+                         [('m', 0.085),
+                          ('cm', 8.5),
+                          ('mm', 85.),
+                          ('invalid', 1)])
+def test_read_theta_phi_in_degrees_unit(unit, head_size, tmpdir):
+    """Test the unit kwarg is correctly handled for Theta-phi montages."""
+    fname = op.join(tmpdir, 'test.txt')
+    file_content = ('Site  Theta  Phi\n'
+                    'Cz        0    0\n'
+                    'Fpz      90   90\n'
+                    'Oz       90  -90\n')
+
+    with open(fname, 'w') as fid:
+        fid.write(file_content)
+
+    sensors = ('Cz', 'Fpz', 'Oz')
+    expected_pos = ([0, 0, 0.085],
+                    [0, 0.085, 0],
+                    [0, -0.085, 0])
+
+    if unit == 'invalid':
+        with pytest.raises(ValueError):
+            read_custom_montage(fname, unit=unit)
+    else:
+        montage = read_custom_montage(fname, head_size=head_size, unit=unit)
+        for sensor, pos in zip(sensors, expected_pos):
+            assert_allclose(montage._get_ch_pos()[sensor], pos, atol=1e-17)
 
 
 @testing.requires_testing_data
