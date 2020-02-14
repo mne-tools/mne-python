@@ -798,53 +798,61 @@ def test_io_inverse_operator():
 
 
 @testing.requires_testing_data
-def test_apply_mne_inverse_cov():
+def test_apply_inverse_cov():
     """Test MNE with precomputed inverse operator on cov."""
     raw = read_raw_fif(fname_raw, preload=True)
-    # use 10 sec of data
-    raw.crop(0, 10)
+    # # use 10 sec of data
+    # raw.crop(0, 10)
     raw.filter(1, None)
     label_lh = read_label(fname_label % 'Aud-lh')
     inverse_operator = read_inverse_operator(fname_full)
 
     data_cov = compute_raw_covariance(raw, tmin=raw.times[0],
                                       tmax=raw.times[-1], tstep=None)
+
     with pytest.raises(ValueError, match='has not been prepared'):
         apply_inverse_cov(data_cov, raw.info, 1, inverse_operator,
                           lambda2=lambda2, prepared=True)
-    inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
-                                                lambda2=lambda2, method="dSPM")
 
-    # only test pick_ori="normal" as that has a clear expectation of results
-    pick_ori = "normal"
     first_test_flag = True
+    # pick_ori='normal' is not tested because apply_inverse_raw returns
+    # unsigned magnitudes which can't be compared with apply_inverse_cov output
+    # cov_scale compensates for the 3 orientations returned with
+    # pick_ori='vector'
+    # TODO 'eLORETA is not tested due to ?bug? in _assemble_kernel
     for method in ['MNE', 'dSPM', 'sLORETA']:
-        stc_raw = apply_inverse_raw(raw, inverse_operator, lambda2, method,
-                                    label=label_lh, nave=1, pick_ori=pick_ori,
-                                    prepared=True)
+        this_inv_op = prepare_inverse_operator(inverse_operator, nave=1,
+                                               lambda2=lambda2, method=method)
+        for pick_ori, cov_scale in zip(['normal', 'vector'], [1, 3]):
+            stc_raw = apply_inverse_raw(raw, this_inv_op, lambda2, method,
+                                        label=label_lh, nave=1,
+                                        pick_ori=pick_ori, prepared=True)
 
-        stc_cov = apply_inverse_cov(data_cov, raw.info, 1, inverse_operator,
-                                    method=method, pick_ori=pick_ori,
-                                    label=label_lh, prepared=True,
-                                    lambda2=lambda2, dB=False)
+            stc_cov = apply_inverse_cov(data_cov, raw.info, 1, this_inv_op,
+                                        method=method, pick_ori=pick_ori,
+                                        label=label_lh, prepared=True,
+                                        lambda2=lambda2, dB=False)
 
-        # only do this test one
-        if first_test_flag:
-            first_test_flag = False
-            stc_cov_db = apply_inverse_cov(data_cov, raw.info, 1,
-                                           inverse_operator,
-                                           method=method, pick_ori=pick_ori,
-                                           label=label_lh, prepared=True,
-                                           lambda2=lambda2, dB=True)
-            assert (stc_cov.subject == 'sample')
-            assert (stc_cov_db.subject == 'sample')
-            assert_array_almost_equal(stc_cov_db.data,
-                                      10 * np.log10(stc_cov.data))
+            # only do this test once
+            if first_test_flag:
+                first_test_flag = False
+                stc_cov_db = apply_inverse_cov(data_cov, raw.info, 1,
+                                               this_inv_op, method=method,
+                                               pick_ori=pick_ori, dB=True,
+                                               label=label_lh, prepared=True,
+                                               lambda2=lambda2)
+                assert (stc_cov.subject == 'sample')
+                assert (stc_cov_db.subject == 'sample')
+                assert_array_almost_equal(stc_cov_db.data,
+                                          10 * np.log10(stc_cov.data))
 
-        n_sources = stc_raw.data.shape[0]
-        exp_res = np.diag(np.cov(stc_raw.data.reshape(n_sources, -1)))
-        assert_allclose(exp_res, stc_cov.data.ravel(), atol=1e-2, rtol=1e-2,
-                        err_msg='Failed for pick_ori=%s' % pick_ori)
+            n_sources = stc_raw.data.shape[0]
+            raw_data = stc_raw.data.reshape(n_sources, -1)
+            exp_res = cov_scale * np.diag(np.cov(raw_data))
+            assert_allclose(exp_res, stc_cov.data.ravel(), atol=1e-26,
+                            rtol=1e-3,
+                            err_msg=('Failed for pick_ori=%s method=%s'
+                                     % (pick_ori, method)))
 
 
 @testing.requires_testing_data

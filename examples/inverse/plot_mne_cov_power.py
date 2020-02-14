@@ -9,6 +9,7 @@ covariance matrix.
 
 """
 # Author: Denis A. Engemann <denis-alexander.engemann@inria.fr>
+#         Luke Bloy <luke.bloy@gmail.com>
 #
 # License: BSD (3-clause)
 
