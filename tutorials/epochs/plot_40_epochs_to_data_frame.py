@@ -13,10 +13,10 @@ latencies of the response maxima across epochs and conditions.
    :local:
    :depth: 2
 
-We'll use the :ref:`sample-dataset`, but load a version of the raw file that
-has already been filtered and downsampled, and has an average reference applied
-to its EEG channels. As usual we'll start by importing the modules we need and
-loading the data:
+We'll use the :ref:`sample-dataset` dataset, but load a version of the raw file
+that has already been filtered and downsampled, and has an average reference
+applied to its EEG channels. As usual we'll start by importing the modules we
+need and loading the data:
 """
 import os
 import seaborn as sns
@@ -87,16 +87,23 @@ df = epochs.to_data_frame(time_format=None,
 df.iloc[:5, :10]
 
 ###############################################################################
+# Notice that the time values are no longer integers, and the channel values
+# have changed by several orders of magnitude compared to the earlier
+# DataFrame.
+#
+#
 # Setting the ``index``
 # ~~~~~~~~~~~~~~~~~~~~~
 #
 # It is also possible to move one or more of the indicator columns (event name,
 # epoch number, and sample time) into the :ref:`index <pandas:indexing>`, by
-# passing a string or list of strings as the ``index`` parameter.
+# passing a string or list of strings as the ``index`` parameter. We'll also
+# demonstrate here the effect of ``time_format='timedelta'``, yielding
+# :class:`~pandas.Timedelta` values in the "time" column.
 
 df = epochs.to_data_frame(index=['condition', 'epoch'],
                           time_format='timedelta')
-df.head()
+df.iloc[:5, :10]
 
 ###############################################################################
 # Wide- versus long-format DataFrames
@@ -115,15 +122,15 @@ long_df.head()
 
 ###############################################################################
 # Generating the :class:`~pandas.DataFrame` in long format can be helpful when
-# using other modules for subsequent analysis or plotting. For example, here
-# we'll take data from the "auditory/left" condition, pick a couple MEG
+# using other Python modules for subsequent analysis or plotting. For example,
+# here we'll take data from the "auditory/left" condition, pick a couple MEG
 # channels, and use :func:`seaborn.lineplot` to automatically plot the mean and
 # confidence band for each channel, with confidence computed across the epochs
 # in the chosen condition:
 
 channels = ['MEG 1332', 'MEG 1342']
 data = long_df.loc['auditory/left'].query('channel in @channels')
-# convert channel column from CategoryDtype to strings (for better legend)
+# convert channel column (CategoryDtype → string; for a nicer-looking legend)
 data['channel'] = data['channel'].astype(str)
 sns.lineplot(x='time', y='value', hue='channel', data=data)
 
