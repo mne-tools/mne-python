@@ -20,7 +20,8 @@ from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc, _validate_type,
                     fill_doc, _check_option, ShiftTimeMixin, _build_data_frame,
                     _check_pandas_installed, _check_pandas_index_arguments,
-                    _convert_times, _scale_dataframe_data, _check_time_format)
+                    _convert_times, _scale_dataframe_data, _check_time_format,
+                    _check_scaling_time)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
@@ -614,8 +615,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return out
 
     @fill_doc
-    def to_data_frame(self, index=None, time_format='ms', picks=None,
-                      scalings=None, copy=True, long_format=False):
+    def to_data_frame(self, picks=None, index=None, scaling_time=None,
+                      scalings=None, copy=True, long_format=False,
+                      time_format='ms'):
         """Export data in tabular structure as a pandas DataFrame.
 
         Channels are converted to columns in the DataFrame. By default,
@@ -624,18 +626,23 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
+        %(picks_all)s
         %(df_index_evk)s
             Defaults to ``None``.
-        %(df_time_format)s
-        %(picks_all)s
+        %(df_scaling_time_deprecated)s
         %(df_scalings)s
         %(df_copy)s
         %(df_longform_raw)s
+        %(df_time_format)s
+
+            .. versionadded:: 0.20
 
         Returns
         -------
         %(df_return)s
         """
+        # check deprecation
+        _check_scaling_time(scaling_time)
         # check pandas once here, instead of in each private utils function
         pd = _check_pandas_installed()  # noqa
         # arg checking

@@ -41,7 +41,7 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      copy_function_doc_to_method_doc, _validate_type,
                      _check_preload, _get_argvalues, _check_option,
                      _build_data_frame, _convert_times, _scale_dataframe_data,
-                     _check_time_format)
+                     _check_time_format, _check_scaling_time)
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..event import find_events, concatenate_events
 from ..annotations import Annotations, _combine_annotations, _sync_onset
@@ -1654,9 +1654,9 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return int(np.ceil(buffer_size_sec * self.info['sfreq']))
 
     @fill_doc
-    def to_data_frame(self, index=None, time_format='ms', picks=None,
-                      start=None, stop=None, scalings=None, copy=True,
-                      long_format=False):
+    def to_data_frame(self, picks=None, index=None, scaling_time=None,
+                      scalings=None, copy=True, start=None, stop=None,
+                      long_format=False, time_format='ms'):
         """Export data in tabular structure as a pandas DataFrame.
 
         Channels are converted to columns in the DataFrame. By default, an
@@ -1665,24 +1665,30 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
+        %(picks_all)s
         %(df_index_raw)s
             Defaults to ``None``.
-        %(df_time_format_raw)s
-        %(picks_all)s
-        start : int | None
-            Starting sample index for creating the DataFrame from a temporal
-            span of the Raw object.
-        stop : int | None
-            Ending sample index for creating the DataFrame from a temporal span
-            of the Raw object.
+        %(df_scaling_time_deprecated)s
         %(df_scalings)s
         %(df_copy)s
+        start : int | None
+            Starting sample index for creating the DataFrame from a temporal
+            span of the Raw object. ``None`` (the default) uses the first
+            sample.
+        stop : int | None
+            Ending sample index for creating the DataFrame from a temporal span
+            of the Raw object. ``None`` (the default) uses the last sample.
         %(df_longform_raw)s
+        %(df_time_format_raw)s
+
+            .. versionadded:: 0.20
 
         Returns
         -------
         %(df_return)s
         """
+        # check deprecation
+        _check_scaling_time(scaling_time)
         # check pandas once here, instead of in each private utils function
         pd = _check_pandas_installed()  # noqa
         # arg checking
