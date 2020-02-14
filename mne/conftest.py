@@ -78,6 +78,7 @@ def pytest_configure(config):
     ignore:sklearn\.externals\.joblib is deprecated.*:FutureWarning
     ignore:The sklearn.*module.*deprecated.*:FutureWarning
     ignore:.*TraitTuple.*trait.*handler.*deprecated.*:DeprecationWarning
+    ignore:.*rich_compare.*metadata.*deprecated.*:DeprecationWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
