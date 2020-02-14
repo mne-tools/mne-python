@@ -356,6 +356,8 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
     # very common use case, rigid transformation (maybe with one scale factor,
     # with or without weighted errors)
     if param_info in ((True, True, 0), (True, True, 1)) and _ALLOW_ANALITICAL:
+        src_pts = np.asarray(src_pts, float)
+        tgt_pts = np.asarray(tgt_pts, float)
         x, s = _fit_matched_points(
             src_pts, tgt_pts, weights, bool(param_info[2]))
         x[:3] = _quat_to_euler(x[:3])
