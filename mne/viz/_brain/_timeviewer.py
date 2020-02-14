@@ -210,7 +210,7 @@ class _TimeViewer(object):
         self.brain = brain
         self.brain.time_viewer = self
         self.plotter = brain._renderer.plotter
-        self.interactor = self.plotter.interactor
+        self.interactor = self.plotter
         self.interactor.keyPressEvent = self.keyPressEvent
 
         # orientation slider
