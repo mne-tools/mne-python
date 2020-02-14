@@ -50,9 +50,9 @@ def test_scalp_coupling_index(fname, fmt, tmpdir):
     raw._data[4] = new_data
     raw._data[5] = new_data * -1.0
     # Set next two channels to be uncorrelated
-    # TODO: this might be a bad idea as sometimes random noise might correlate
+    rng = np.random.RandomState(0)
     raw._data[6] = new_data
-    raw._data[7] = np.random.rand(raw._data[0].shape[0])
+    raw._data[7] = rng.rand(raw._data[0].shape[0])
     # Check values
     sci = scalp_coupling_index(raw)
     assert_allclose(sci[0:6], [1, 1, 1, 1, -1, -1], atol=0.01)
