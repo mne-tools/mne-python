@@ -60,12 +60,16 @@ del raw
 # :class:`~pandas.DataFrame` is simple: just call :meth:`epochs.to_data_frame()
 # <mne.Epochs.to_data_frame>`. Each channel's data will be a column of the new
 # :class:`~pandas.DataFrame`, alongside three additional columns of event name,
-# epoch number, and sample time:
+# epoch number, and sample time. Here we'll just show the first few rows and
+# columns:
 
 df = epochs.to_data_frame()
-df.head()
+df.iloc[:5, :10]
 
 ###############################################################################
+# Scaling time and channel values
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
 # By default, time values are converted from seconds to milliseconds and
 # then rounded to the nearest integer; if you don't want this, you can pass
 # ``time_format=None`` to keep time as a :class:`float` value in seconds, or
@@ -80,8 +84,12 @@ df.head()
 
 df = epochs.to_data_frame(time_format=None,
                           scalings=dict(eeg=1, mag=1, grad=1))
+df.iloc[:5, :10]
 
 ###############################################################################
+# Setting the ``index``
+# ~~~~~~~~~~~~~~~~~~~~~
+#
 # It is also possible to move one or more of the indicator columns (event name,
 # epoch number, and sample time) into the :ref:`index <pandas:indexing>`, by
 # passing a string or list of strings as the ``index`` parameter.
@@ -91,6 +99,9 @@ df = epochs.to_data_frame(index=['condition', 'epoch'],
 df.head()
 
 ###############################################################################
+# Wide- versus long-format DataFrames
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
 # Another parameter, ``long_format``, determines whether each channel's data is
 # in a separate column of the :class:`~pandas.DataFrame`
 # (``long_format=False``), or whether the measured values are pivoted into a
@@ -122,8 +133,9 @@ sns.lineplot(x='time', y='value', hue='channel', data=data)
 # near auditory cortex and one near visual cortex), and plot the distribution
 # of the timing of the peak in each channel as a :func:`~seaborn.violinplot`:
 
+# sphinx_gallery_thumbnail_number = 2
 df = epochs.to_data_frame(time_format=None)
-peak_latency = (df.filter(regex=r'condition|epoch|MEG 1332|MEG 2123')  # 1922
+peak_latency = (df.filter(regex=r'condition|epoch|MEG 1332|MEG 2123')
                 .groupby(['condition', 'epoch'])
                 .aggregate(lambda x: df['time'].iloc[x.idxmax()])
                 .reset_index()
