@@ -425,7 +425,10 @@ EEG referencing:
 .. autosummary::
    :toctree: generated/
 
-   calculate_head_pos_ctf
+   compute_chpi_amplitudes
+   compute_chpi_locs
+   compute_head_pos
+   extract_chpi_locs_ctf
    filter_chpi
    head_pos_to_trans_rot_t
    read_head_pos

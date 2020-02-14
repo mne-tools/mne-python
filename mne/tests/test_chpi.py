@@ -5,21 +5,25 @@
 import os.path as op
 
 import numpy as np
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_less
 from scipy.interpolate import interp1d
+from scipy.spatial.distance import cdist
 import pytest
 
 from mne import pick_types, pick_info
+from mne.forward._compute_forward import _MAG_FACTOR
 from mne.io import (read_raw_fif, read_raw_artemis123, read_raw_ctf, read_info,
                     RawArray)
 from mne.io.constants import FIFF
-from mne.chpi import (_calculate_chpi_positions, _calculate_chpi_coil_locs,
-                      calculate_head_pos_ctf, head_pos_to_trans_rot_t,
+from mne.chpi import (compute_chpi_amplitudes, compute_chpi_locs,
+                      compute_head_pos, _setup_ext_proj,
+                      _chpi_locs_to_times_dig, _compute_good_distances,
+                      extract_chpi_locs_ctf, head_pos_to_trans_rot_t,
                       read_head_pos, write_head_pos, filter_chpi,
                       _get_hpi_info, _get_hpi_initial_fit)
 from mne.transforms import rot_to_quat, _angle_between_quats
 from mne.simulation import add_chpi
-from mne.utils import run_tests_if_main, catch_logging, assert_meg_snr
+from mne.utils import run_tests_if_main, catch_logging, assert_meg_snr, verbose
 from mne.datasets import testing
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -118,6 +122,7 @@ def test_hpi_info(tmpdir):
 
 def _assert_quats(actual, desired, dist_tol=0.003, angle_tol=5.):
     """Compare estimated cHPI positions."""
+    __tracebackhide__ = True
     trans_est, rot_est, t_est = head_pos_to_trans_rot_t(actual)
     trans, rot, t = head_pos_to_trans_rot_t(desired)
     quats_est = rot_to_quat(rot_est)
@@ -140,6 +145,7 @@ def _assert_quats(actual, desired, dist_tol=0.003, angle_tol=5.):
     # limit translation difference between MF and our estimation
     trans_est_interp = interp1d(t_est, trans_est, axis=0)(t)
     distances = np.sqrt(np.sum((trans - trans_est_interp) ** 2, axis=1))
+    assert np.isfinite(distances).all()
     arg_worst = np.argmax(distances)
     assert distances[arg_worst] <= dist_tol, (
         '@ %0.3f seconds: %0.3f > %0.3f mm'
@@ -169,35 +175,60 @@ def _decimate_chpi(raw, decim=4):
     return raw_dec
 
 
+# A shortcut method for testing that does both steps
+@verbose
+def _calculate_chpi_positions(raw, t_step_min=0.01, t_step_max=1.,
+                              t_window='auto', too_close='raise',
+                              dist_limit=0.005, gof_limit=0.98,
+                              ext_order=1, verbose=None):
+    chpi_amplitudes = compute_chpi_amplitudes(
+        raw, t_step_min=t_step_min, t_window=t_window,
+        ext_order=ext_order, verbose=verbose)
+    chpi_locs = compute_chpi_locs(
+        raw.info, chpi_amplitudes, t_step_max=t_step_max,
+        too_close=too_close, verbose=verbose)
+    head_pos = compute_head_pos(
+        raw.info, chpi_locs, dist_limit=dist_limit, gof_limit=gof_limit,
+        verbose=verbose)
+    return head_pos
+
+
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_calculate_chpi_positions():
+def test_calculate_chpi_positions_vv():
     """Test calculation of cHPI positions."""
     # Check to make sure our fits match MF decently
     mf_quats = read_head_pos(pos_fname)
-    raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes', preload=True)
+    raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes')
+    raw.crop(0, 5).load_data()
     # This is a little hack (aliasing while decimating) to make it much faster
     # for testing purposes only. We can relax this later if we find it breaks
     # something.
     raw_dec = _decimate_chpi(raw, 15)
     with catch_logging() as log:
-        py_quats = _calculate_chpi_positions(raw_dec, t_step_max=1.,
-                                             verbose='debug')
-    assert log.getvalue().startswith('HPIFIT')
-    _assert_quats(py_quats, mf_quats, dist_tol=0.004, angle_tol=2.5)
+        with pytest.warns(RuntimeWarning, match='cannot determine'):
+            py_quats = _calculate_chpi_positions(raw_dec, t_window=0.2,
+                                                 verbose='debug')
+    log = log.getvalue()
+    assert '\nHPIFIT' in log
+    assert 'Computing 4385 HPI location guesses' in log
+    _assert_quats(py_quats, mf_quats, dist_tol=0.001, angle_tol=0.7)
 
     # degenerate conditions
     raw_no_chpi = read_raw_fif(test_fif_fname)
-    pytest.raises(RuntimeError, _calculate_chpi_positions, raw_no_chpi)
+    with pytest.raises(RuntimeError, match='cHPI information not found'):
+        _calculate_chpi_positions(raw_no_chpi)
     raw_bad = raw.copy()
     del raw_bad.info['hpi_meas'][0]['hpi_coils'][0]['coil_freq']
-    pytest.raises(RuntimeError, _calculate_chpi_positions, raw_bad)
+    with pytest.raises(RuntimeError, match='cHPI information not found'):
+        _calculate_chpi_positions(raw_bad)
     raw_bad = raw.copy()
     for d in raw_bad.info['dig']:
         if d['kind'] == FIFF.FIFFV_POINT_HPI:
             d['coord_frame'] = FIFF.FIFFV_COORD_UNKNOWN
             break
-    pytest.raises(RuntimeError, _calculate_chpi_positions, raw_bad)
+    with pytest.raises(RuntimeError, match='coordinate frame incorrect'):
+        _calculate_chpi_positions(raw_bad)
     for d in raw_bad.info['dig']:
         if d['kind'] == FIFF.FIFFV_POINT_HPI:
             d['coord_frame'] = FIFF.FIFFV_COORD_HEAD
@@ -210,24 +241,66 @@ def test_calculate_chpi_positions():
         with catch_logging() as log_file:
             _calculate_chpi_positions(raw_bad, t_step_min=1., verbose=True)
     # ignore HPI info header and [done] footer
-    assert '0/5 good' in log_file.getvalue().strip().split('\n')[-2]
+    assert '0/5 good HPI fits' in log_file.getvalue()
 
     # half the rate cuts off cHPI coils
     raw.info['lowpass'] /= 2.
     with pytest.raises(RuntimeError, match='above the'):
         _calculate_chpi_positions(raw)
 
-    # test on 5k artemis data
+
+def test_calculate_chpi_positions_artemis():
+    """Test on 5k artemis data."""
     raw = read_raw_artemis123(art_fname, preload=True)
     mf_quats = read_head_pos(art_mc_fname)
-    with catch_logging() as log:
-        py_quats = _calculate_chpi_positions(raw, t_step_min=2.,
-                                             verbose='debug')
-    _assert_quats(py_quats, mf_quats, dist_tol=0.004, angle_tol=2.5)
+    py_quats = _calculate_chpi_positions(raw, t_step_min=2., verbose='debug')
+    _assert_quats(py_quats, mf_quats, dist_tol=0.001, angle_tol=1.)
+
+
+def test_initial_fit_redo():
+    """Test that initial fits can be redone based on moments."""
+    raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes')
+    slopes = np.array(
+        [[c['slopes'] for c in raw.info['hpi_meas'][0]['hpi_coils']]])
+    amps = np.linalg.norm(slopes, axis=-1)
+    amps /= slopes.shape[-1]
+    assert_array_less(amps, 5e-11)
+    assert_array_less(1e-12, amps)
+    proj, _, _ = _setup_ext_proj(raw.info, ext_order=1)
+    chpi_amplitudes = dict(times=np.zeros(1), slopes=slopes, proj=proj)
+    chpi_locs = compute_chpi_locs(raw.info, chpi_amplitudes)
+
+    # check GOF
+    coil_gof = raw.info['hpi_results'][0]['goodness']
+    assert_allclose(chpi_locs['gofs'][0], coil_gof, atol=0.3)  # XXX not good
+
+    # check moment
+    # XXX our forward and theirs differ by an extra mult by _MAG_FACTOR
+    coil_moment = raw.info['hpi_results'][0]['moments'] / _MAG_FACTOR
+    py_moment = chpi_locs['moments'][0]
+    coil_amp = np.linalg.norm(coil_moment, axis=-1, keepdims=True)
+    py_amp = np.linalg.norm(py_moment, axis=-1, keepdims=True)
+    assert_allclose(coil_amp, py_amp, rtol=0.2)
+    coil_ori = coil_moment / coil_amp
+    py_ori = py_moment / py_amp
+    angles = np.rad2deg(np.arccos(np.abs(np.sum(coil_ori * py_ori, axis=1))))
+    assert_array_less(angles, 20)
+
+    # check resulting dev_head_t
+    head_pos = compute_head_pos(raw.info, chpi_locs)
+    assert head_pos.shape == (1, 10)
+    nm_pos = raw.info['dev_head_t']['trans']
+    dist = 1000 * np.linalg.norm(nm_pos[:3, 3] - head_pos[0, 4:7])
+    assert 0.1 < dist < 2
+    angle = np.rad2deg(_angle_between_quats(
+        rot_to_quat(nm_pos[:3, :3]), head_pos[0, 1:4]))
+    assert 0.1 < angle < 2
+    gof = head_pos[0, 7]
+    assert_allclose(gof, 0.9999, atol=1e-4)
 
 
 @testing.requires_testing_data
-def test_calculate_chpi_positions_on_chpi5_in_one_second_steps():
+def test_calculate_head_pos_chpi_on_chpi5_in_one_second_steps():
     """Comparing estimated cHPI positions with MF results (one second)."""
     # Check to make sure our fits match MF decently
     mf_quats = read_head_pos(chpi5_pos_fname)
@@ -235,28 +308,29 @@ def test_calculate_chpi_positions_on_chpi5_in_one_second_steps():
     # the last two seconds contain a maxfilter problem!
     # fiff file timing: 26. to 43. seconds
     # maxfilter estimates a wrong head position for interval 16: 41.-42. sec
-    raw = _decimate_chpi(raw.crop(0., 15.).load_data(), decim=8)
+    raw = _decimate_chpi(raw.crop(0., 10.).load_data(), decim=8)
     # needs no interpolation, because maxfilter pos files comes with 1 s steps
-    py_quats = _calculate_chpi_positions(raw, t_step_min=1.0, t_step_max=1.0,
-                                         t_window=1.0, verbose='debug')
-    _assert_quats(py_quats, mf_quats, dist_tol=0.0008, angle_tol=.5)
+    py_quats = _calculate_chpi_positions(
+        raw, t_step_min=1.0, t_step_max=1.0, t_window=1.0, verbose='debug')
+    _assert_quats(py_quats, mf_quats, dist_tol=0.002, angle_tol=1.2)
 
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_calculate_chpi_positions_on_chpi5_in_shorter_steps():
+def test_calculate_head_pos_chpi_on_chpi5_in_shorter_steps():
     """Comparing estimated cHPI positions with MF results (smaller steps)."""
     # Check to make sure our fits match MF decently
     mf_quats = read_head_pos(chpi5_pos_fname)
     raw = read_raw_fif(chpi5_fif_fname, allow_maxshield='yes')
-    raw = _decimate_chpi(raw.crop(0., 15.).load_data(), decim=8)
-    py_quats = _calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=0.1,
-                                         t_window=0.1, verbose='debug')
+    raw = _decimate_chpi(raw.crop(0., 5.).load_data(), decim=8)
+    with pytest.warns(RuntimeWarning, match='cannot determine'):
+        py_quats = _calculate_chpi_positions(
+            raw, t_step_min=0.1, t_step_max=0.1, t_window=0.1, verbose='debug')
     # needs interpolation, tolerance must be increased
-    _assert_quats(py_quats, mf_quats, dist_tol=0.001, angle_tol=0.6)
+    _assert_quats(py_quats, mf_quats, dist_tol=0.002, angle_tol=1.2)
 
 
-def test_simulate_calculate_chpi_positions():
+def test_simulate_calculate_head_pos_chpi():
     """Test calculation of cHPI positions with simulated data."""
     # Read info dict from raw FIF file
     info = read_info(raw_fname)
@@ -325,8 +399,36 @@ def test_simulate_calculate_chpi_positions():
     _assert_quats(quats, dev_head_pos, dist_tol=0.001, angle_tol=1.)
 
 
+def _calculate_chpi_coil_locs(raw, verbose):
+    """Wrap to facilitate change diff."""
+    chpi_amplitudes = compute_chpi_amplitudes(raw, verbose=verbose)
+    chpi_locs = compute_chpi_locs(raw.info, chpi_amplitudes, verbose=verbose)
+    return _chpi_locs_to_times_dig(chpi_locs)
+
+
+def _check_dists(info, cHPI_digs, n_bad=0, bad_low=0.02, bad_high=0.04):
+    __tracebackhide__ = True
+    orig = _get_hpi_initial_fit(info)
+    hpi_coil_distances = cdist(orig, orig)
+    new_pos = np.array([d['r'] for d in cHPI_digs])
+    mask, distances = _compute_good_distances(hpi_coil_distances, new_pos)
+    good_idx = np.where(mask)[0]
+    assert len(good_idx) >= 3
+    meds = np.empty(len(orig))
+    for ii in range(len(orig)):
+        idx = np.setdiff1d(good_idx, ii)
+        meds[ii] = np.median(distances[ii][idx])
+    meds = np.array(meds)
+    assert_array_less(meds[good_idx], 0.003)
+    bad_idx = np.where(~mask)[0]
+    if len(bad_idx):
+        bads = meds[bad_idx]
+        assert_array_less(bad_low, bads)
+        assert_array_less(bads, bad_high)
+
+
 @testing.requires_testing_data
-def test_calculate_chpi_coil_locs():
+def test_calculate_chpi_coil_locs_artemis():
     """Test computing just cHPI locations."""
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes', preload=True)
     # This is a little hack (aliasing while decimating) to make it much faster
@@ -336,25 +438,34 @@ def test_calculate_chpi_coil_locs():
     times, cHPI_digs = _calculate_chpi_coil_locs(raw_dec, verbose='debug')
 
     # spot check
-    assert_allclose(times[9], 9.9, atol=1e-3)
-    assert_allclose(cHPI_digs[9][2]['r'],
+    assert_allclose(times[0], 9., atol=1e-2)
+    assert_allclose(cHPI_digs[0][2]['r'],
                     [-0.01937833, 0.00346804, 0.06331209], atol=1e-3)
-    assert_allclose(cHPI_digs[9][2]['gof'], 0.9957976, atol=1e-3)
+    assert_allclose(cHPI_digs[0][2]['gof'], 0.9957, atol=1e-3)
 
-    assert_allclose(cHPI_digs[9][4]['r'],
-                    [0.05442122, 0.00997692, 0.03721696], atol=1e-3)
-    assert_allclose(cHPI_digs[9][4]['gof'], 0.075700080794629199, atol=1e-3)
+    assert_allclose(cHPI_digs[0][4]['r'],
+                    [-0.0655, 0.0755, 0.0004], atol=3e-3)
+    assert_allclose(cHPI_digs[0][4]['gof'], 0.9323, atol=1e-3)
+    _check_dists(raw.info, cHPI_digs[0], n_bad=1)
 
     # test on 5k artemis data
     raw = read_raw_artemis123(art_fname, preload=True)
     times, cHPI_digs = _calculate_chpi_coil_locs(raw, verbose='debug')
 
-    assert_allclose(times[2], 2.9, atol=1e-3)
-    assert_allclose(cHPI_digs[2][0]['gof'], 0.9980471794552791, atol=1e-3)
-    assert_allclose(cHPI_digs[2][0]['r'],
-                    [-0.0157762, 0.06655744, 0.00545172], atol=1e-3)
+    assert_allclose(times[5], 1.5, atol=1e-3)
+    assert_allclose(cHPI_digs[5][0]['gof'], 0.995, atol=5e-3)
+    assert_allclose(cHPI_digs[5][0]['r'],
+                    [-0.0157, 0.0655, 0.0018], atol=1e-3)
+    _check_dists(raw.info, cHPI_digs[5])
+    coil_amplitudes = compute_chpi_amplitudes(raw)
     with pytest.raises(ValueError, match='too_close'):
-        _calculate_chpi_coil_locs(raw, too_close='foo')
+        compute_chpi_locs(raw, coil_amplitudes, too_close='foo')
+    # ensure values are in a reasonable range
+    amps = np.linalg.norm(coil_amplitudes['slopes'], axis=-1)
+    amps /= coil_amplitudes['slopes'].shape[-1]
+    assert amps.shape == (len(coil_amplitudes['times']), 3)
+    assert_array_less(amps, 1e-11)
+    assert_array_less(1e-13, amps)
 
 
 @testing.requires_testing_data
@@ -364,7 +475,8 @@ def test_chpi_subtraction():
     raw.info['bads'] = ['MEG0111']
     raw.del_proj()
     with catch_logging() as log:
-        filter_chpi(raw, include_line=False, verbose=True)
+        with pytest.deprecated_call(match='"auto"'):
+            filter_chpi(raw, include_line=False, verbose=True)
     assert 'No average EEG' not in log.getvalue()
     assert '5 cHPI' in log.getvalue()
     # MaxFilter doesn't do quite as well as our algorithm with the last bit
@@ -377,7 +489,8 @@ def test_chpi_subtraction():
 
     # Degenerate cases
     raw_nohpi = read_raw_fif(test_fif_fname, preload=True)
-    pytest.raises(RuntimeError, filter_chpi, raw_nohpi)
+    with pytest.raises(RuntimeError, match='cHPI information not found'):
+        filter_chpi(raw_nohpi, t_window=0.2)
 
     # When MaxFliter downsamples, like::
     #     $ maxfilter -nosss -ds 2 -f test_move_anon_raw.fif \
@@ -390,9 +503,16 @@ def test_chpi_subtraction():
     del raw.info['hpi_results'][0]['moments']
     del raw.info['hpi_subsystem']['event_channel']
     with catch_logging() as log:
-        filter_chpi(raw, verbose=True)
-    pytest.raises(ValueError, filter_chpi, raw, t_window=-1)
+        filter_chpi(raw, t_window='auto', verbose=True)
+    with pytest.raises(ValueError, match='must be > 0'):
+        filter_chpi(raw, t_window=-1)
     assert '2 cHPI' in log.getvalue()
+
+
+def calculate_head_pos_ctf(raw):
+    """Wrap to facilitate API change."""
+    chpi_locs = extract_chpi_locs_ctf(raw)
+    return compute_head_pos(raw.info, chpi_locs)
 
 
 @testing.requires_testing_data

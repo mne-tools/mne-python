@@ -18,8 +18,7 @@ import numpy as np
 
 from .constants import FIFF
 from .utils import _construct_bids_filename, _check_orig_units
-from .pick import (pick_types, channel_type, pick_channels, pick_info,
-                   _picks_to_idx)
+from .pick import (pick_types, pick_channels, pick_info, _picks_to_idx)
 from .meas_info import write_meas_info
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, UpdateChannelsMixin,
@@ -40,194 +39,12 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      check_fname, _get_stim_channel, _stamp_to_dt,
                      logger, verbose, _time_mask, warn, SizeMixin,
                      copy_function_doc_to_method_doc, _validate_type,
-                     _check_preload, _get_argvalues, _check_option)
+                     _check_preload, _get_argvalues, _check_option,
+                     _build_data_frame, _convert_times, _scale_dataframe_data,
+                     _check_time_format)
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
-from ..defaults import _handle_default
 from ..event import find_events, concatenate_events
 from ..annotations import Annotations, _combine_annotations, _sync_onset
-
-
-def _set_pandas_dtype(df, columns, dtype):
-    """Try to set the right columns to dtype."""
-    for column in columns:
-        df[column] = df[column].astype(dtype)
-        logger.info('Converting "%s" to "%s"...' % (column, dtype))
-
-
-class ToDataFrameMixin(object):
-    """Class to add to_data_frame capabilities to certain classes."""
-
-    @fill_doc
-    def to_data_frame(self, picks=None, index=None, scaling_time=1e3,
-                      scalings=None, copy=True, start=None, stop=None,
-                      long_format=False):
-        """Export data in tabular structure as a pandas DataFrame.
-
-        Columns and indices will depend on the object being converted.
-        Generally this will include as much relevant information as
-        possible for the data type being converted. This makes it easy
-        to convert data for use in packages that utilize dataframes,
-        such as statsmodels or seaborn.
-
-        Parameters
-        ----------
-        %(picks_all)s
-        index : tuple of str | None
-            Column to be used as index for the data. Valid string options
-            are 'epoch', 'time' and 'condition'. If None, all three info
-            columns will be included in the table as categorial data.
-        scaling_time : float
-            Scaling to be applied to time units.
-        scalings : dict | None
-            Scaling to be applied to the channels picked. If None, defaults to
-            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)``.
-        copy : bool
-            If true, data will be copied. Else data may be modified in place.
-        start : int | None
-            If it is a Raw object, this defines a starting index for creating
-            the dataframe from a slice. The times will be interpolated from the
-            index and the sampling rate of the signal.
-        stop : int | None
-            If it is a Raw object, this defines a stop index for creating
-            the dataframe from a slice. The times will be interpolated from the
-            index and the sampling rate of the signal.
-        long_format : bool
-            If True, the dataframe is returned in long format where each row
-            is one observation of the signal at a unique coordinate of
-            channels, time points, epochs and conditions. The number of
-            factors depends on the data container. For convenience,
-            a `ch_type` column is added when using this option that will
-            facilitate subsetting the resulting dataframe.
-            Defaults to False.
-
-        Returns
-        -------
-        df : instance of pandas.DataFrame
-            A dataframe suitable for usage with other
-            statistical/plotting/analysis packages. Column/Index values will
-            depend on the object type being converted, but should be
-            human-readable.
-        """
-        from ..epochs import BaseEpochs
-        from ..evoked import Evoked
-        from ..source_estimate import _BaseSourceEstimate
-
-        pd = _check_pandas_installed()
-        mindex = list()
-        ch_map = None
-        # Treat SourceEstimates special because they don't have the same info
-        if isinstance(self, _BaseSourceEstimate):
-            if self.subject is None:
-                default_index = ['time']
-            else:
-                default_index = ['subject', 'time']
-            data = self.data.T
-            times = self.times
-            shape = data.shape
-            mindex.append(('subject', np.repeat(self.subject, shape[0])))
-
-            if isinstance(self.vertices, list):
-                # surface source estimates
-                col_names = [i for e in [
-                    ['{} {}'.format('LH' if ii < 1 else 'RH', vert)
-                     for vert in vertno]
-                    for ii, vertno in enumerate(self.vertices)]
-                    for i in e]
-            else:
-                # volume source estimates
-                col_names = ['VOL {}'.format(vert) for vert in self.vertices]
-        elif isinstance(self, (BaseEpochs, BaseRaw, Evoked)):
-            picks = _picks_to_idx(self.info, picks, 'all', exclude=())
-            if isinstance(self, BaseEpochs):
-                default_index = ['condition', 'epoch', 'time']
-                data = self.get_data()[:, picks, :]
-                times = self.times
-                n_epochs, n_picks, n_times = data.shape
-                data = np.hstack(data).T  # (time*epochs) x signals
-
-                # Multi-index creation
-                times = np.tile(times, n_epochs)
-                id_swapped = {v: k for k, v in self.event_id.items()}
-                names = [id_swapped[k] for k in self.events[:, 2]]
-                mindex.append(('condition', np.repeat(names, n_times)))
-                mindex.append(('epoch',
-                               np.repeat(np.arange(n_epochs), n_times)))
-                col_names = [self.ch_names[k] for k in picks]
-
-            elif isinstance(self, (BaseRaw, Evoked)):
-                default_index = ['time']
-                if isinstance(self, BaseRaw):
-                    data, times = self[picks, start:stop]
-                elif isinstance(self, Evoked):
-                    data = self.data[picks, :]
-                    times = self.times
-                data = data.T
-                col_names = [self.ch_names[k] for k in picks]
-
-            ch_types = [channel_type(self.info, idx) for idx in picks]
-            ch_map = dict(
-                zip([self.info['ch_names'][pp] for pp in picks],
-                    ch_types))
-
-            ch_types_used = list()
-            scalings = _handle_default('scalings', scalings)
-            for tt in scalings.keys():
-                if tt in ch_types:
-                    ch_types_used.append(tt)
-
-            for tt in ch_types_used:
-                scaling = scalings[tt]
-                idx = [ii for ii in range(len(picks)) if ch_types[ii] == tt]
-                if len(idx) > 0:
-                    data[:, idx] *= scaling
-        else:
-            # In case some other object gets this mixin w/o an explicit check
-            raise NameError('Object must be one of Raw, Epochs, Evoked,  or ' +
-                            'SourceEstimate. This is {}'.format(type(self)))
-
-        # Make sure that the time index is scaled correctly
-        times = np.round(times * scaling_time)
-        mindex.append(('time', times))
-
-        if index is not None:
-            _check_pandas_index_arguments(index, default_index)
-        else:
-            index = default_index
-
-        if copy is True:
-            data = data.copy()
-
-        assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
-
-        df = pd.DataFrame(data, columns=col_names)
-        for i, (k, v) in enumerate(mindex):
-            df.insert(i, k, v)
-        if index is not None:
-            if 'time' in index and not long_format:
-                _set_pandas_dtype(df, ['time'], np.int64)
-            df.set_index(index, inplace=True)
-        if all(i in default_index for i in index):
-            if isinstance(self, _BaseSourceEstimate):
-                df.columns.name = 'source'
-            else:
-                df.columns.name = 'channel'
-
-        if long_format:
-            df = df.stack().reset_index()
-            columns = list(df.columns)
-            sig_idx = columns.index(0)
-            columns[sig_idx] = 'observation'
-            df.columns = columns
-
-            if not isinstance(self, _BaseSourceEstimate):
-                df['ch_type'] = df.channel.map(ch_map)
-
-            columns = list(df.columns)
-            to_factor = [
-                cc for cc in columns if cc not in ['observation', 'time']]
-            _set_pandas_dtype(df, to_factor, 'category')
-
-        return df
 
 
 class TimeMixin(object):
@@ -263,8 +80,7 @@ class TimeMixin(object):
 
 @fill_doc
 class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
-              InterpolationMixin, ToDataFrameMixin, TimeMixin, SizeMixin,
-              FilterMixin):
+              InterpolationMixin, TimeMixin, SizeMixin, FilterMixin):
     """Base class for Raw data.
 
     Parameters
@@ -1353,10 +1169,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Parameters
         ----------
-        tmin : float
-            New start time in seconds (must be >= 0).
-        tmax : float | None
-            New end time in seconds of the data (cannot exceed data duration).
+        %(raw_tmin)s
+        %(raw_tmax)s
         %(include_tmax)s
 
         Returns
@@ -1422,12 +1236,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif,
             raw_tsss.fif.gz, or _meg.fif.
         %(picks_all)s
-        tmin : float | None
-            Time in seconds of first sample to save. If None first sample
-            is used.
-        tmax : float | None
-            Time in seconds of last sample to save. If None last sample
-            is used.
+        %(raw_tmin)s
+        %(raw_tmax)s
         buffer_size_sec : float | None
             Size of data chunks in seconds. If None (default), the buffer
             size of the original file is used.
@@ -1522,14 +1332,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         #
 
         #   Convert to samples
-        start = int(np.floor(tmin * self.info['sfreq']))
-
-        # "stop" is the first sample *not* to save, so we need +1's here
-        if tmax is None:
-            stop = np.inf
-        else:
-            stop = self.time_as_index(float(tmax), use_rounding=True)[0] + 1
-        stop = min(stop, self.last_samp - self.first_samp + 1)
+        start, stop = self._tmin_tmax_to_start_stop(tmin, tmax)
         buffer_size = self._get_buffer_size(buffer_size_sec)
 
         # write the raw file
@@ -1544,6 +1347,20 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         _write_raw(fname, self, info, picks, fmt, data_type, reset_range,
                    start, stop, buffer_size, projector, drop_small_buffer,
                    split_size, split_naming, part_idx, None, overwrite)
+
+    def _tmin_tmax_to_start_stop(self, tmin, tmax):
+        start = int(np.floor(tmin * self.info['sfreq']))
+
+        # "stop" is the first sample *not* to save, so we need +1's here
+        if tmax is None:
+            stop = np.inf
+        else:
+            stop = self.time_as_index(float(tmax), use_rounding=True)[0] + 1
+        stop = min(stop, self.last_samp - self.first_samp + 1)
+        if stop <= start or stop <= 0:
+            raise ValueError('tmin (%s) and tmax (%s) yielded no samples'
+                             % (tmin, tmax))
+        return start, stop
 
     @copy_function_doc_to_method_doc(plot_raw)
     def plot(self, events=None, duration=10.0, start=0.0, n_channels=20,
@@ -1835,6 +1652,60 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             buffer_size_sec = self.buffer_size_sec
         buffer_size_sec = float(buffer_size_sec)
         return int(np.ceil(buffer_size_sec * self.info['sfreq']))
+
+    @fill_doc
+    def to_data_frame(self, index=None, time_format='ms', picks=None,
+                      start=None, stop=None, scalings=None, copy=True,
+                      long_format=False):
+        """Export data in tabular structure as a pandas DataFrame.
+
+        Channels are converted to columns in the DataFrame. By default, an
+        additional column "time" is added, unless ``index`` is not ``None``
+        (in which case time values form the DataFrame's index).
+
+        Parameters
+        ----------
+        %(df_index_raw)s
+            Defaults to ``None``.
+        %(df_time_format_raw)s
+        %(picks_all)s
+        start : int | None
+            Starting sample index for creating the DataFrame from a temporal
+            span of the Raw object.
+        stop : int | None
+            Ending sample index for creating the DataFrame from a temporal span
+            of the Raw object.
+        %(df_scalings)s
+        %(df_copy)s
+        %(df_longform_raw)s
+
+        Returns
+        -------
+        %(df_return)s
+        """
+        # check pandas once here, instead of in each private utils function
+        pd = _check_pandas_installed()  # noqa
+        # arg checking
+        valid_index_args = ['time']
+        valid_time_formats = ['ms', 'timedelta', 'datetime']
+        index = _check_pandas_index_arguments(index, valid_index_args)
+        time_format = _check_time_format(time_format, valid_time_formats,
+                                         self.info['meas_date'])
+        # get data
+        picks = _picks_to_idx(self.info, picks, 'all', exclude=())
+        data, times = self[picks, start:stop]
+        data = data.T
+        if copy:
+            data = data.copy()
+        data = _scale_dataframe_data(self, data, picks, scalings)
+        # prepare extra columns / multiindex
+        mindex = list()
+        times = _convert_times(self, times, time_format)
+        mindex.append(('time', times))
+        # build DataFrame
+        df = _build_data_frame(self, data, picks, long_format, mindex, index,
+                               default_index=['time'])
+        return df
 
 
 def _allocate_data(preload, shape, dtype):

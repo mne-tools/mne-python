@@ -1739,37 +1739,62 @@ def test_to_data_frame():
     """Test epochs Pandas exporter."""
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
-    pytest.raises(ValueError, epochs.to_data_frame, index=['foo', 'bar'])
-    pytest.raises(ValueError, epochs.to_data_frame, index='qux')
-    pytest.raises(ValueError, epochs.to_data_frame, np.arange(400))
-
-    df = epochs.to_data_frame(index=['condition', 'epoch', 'time'],
-                              picks=list(range(epochs.info['nchan'])))
-
-    # Default index and picks
-    df2 = epochs.to_data_frame()
-    assert_equal(df.index.names, df2.index.names)
-    assert_array_equal(df.columns.values, epochs.ch_names)
-
+    # test index checking
+    with pytest.raises(ValueError, match='options. Valid index options are'):
+        epochs.to_data_frame(index=['foo', 'bar'])
+    with pytest.raises(ValueError, match='"qux" is not a valid option'):
+        epochs.to_data_frame(index='qux')
+    with pytest.raises(TypeError, match='index must be `None` or a string or'):
+        epochs.to_data_frame(np.arange(400))
+    # test wide format
+    df_wide = epochs.to_data_frame()
+    assert all(np.in1d(epochs.ch_names, df_wide.columns))
+    assert all(np.in1d(['time', 'epoch', 'condition'], df_wide.columns))
+    # test long format
+    df_long = epochs.to_data_frame(long_format=True)
+    expected = ('condition', 'epoch', 'time', 'channel', 'ch_type', 'value')
+    assert set(expected) == set(df_long.columns)
+    assert set(epochs.ch_names) == set(df_long['channel'])
+    assert(len(df_long) == epochs.get_data().size)
+    # test long format w/ index
+    df_long = epochs.to_data_frame(long_format=True, index=['epoch'])
+    del df_wide, df_long
+    # test scalings
+    df = epochs.to_data_frame(index=['condition', 'epoch', 'time'])
     data = np.hstack(epochs.get_data())
-    assert ((df.columns == epochs.ch_names).all())
     assert_array_equal(df.values[:, 0], data[0] * 1e13)
     assert_array_equal(df.values[:, 2], data[2] * 1e15)
-    for ind in ['time', ['condition', 'time'], ['condition', 'time', 'epoch']]:
-        df = epochs.to_data_frame(picks=[11, 12, 14], index=ind)
-        assert (df.index.names == ind if isinstance(ind, list) else [ind])
-        # test that non-indexed data were present as categorial variables
-        assert_array_equal(sorted(df.reset_index().columns[:3]),
-                           sorted(['time', 'condition', 'epoch']))
 
-    df = epochs.to_data_frame(long_format=True)
-    assert(len(df) == epochs.get_data().size)
-    assert("time" in df.columns)
-    assert("condition" in df.columns)
-    assert("channel" in df.columns)
-    assert("epoch" in df.columns)
-    assert("ch_type" in df.columns)
-    assert("observation" in df.columns)
+
+@requires_pandas
+@pytest.mark.parametrize('index', ('time', ['condition', 'time', 'epoch'],
+                                   ['epoch', 'time'], ['time', 'epoch'], None))
+def test_to_data_frame_index(index):
+    """Test index creation in epochs Pandas exporter."""
+    raw, events, picks = _get_data()
+    epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
+    df = epochs.to_data_frame(picks=[11, 12, 14], index=index)
+    # test index order/hierarchy preservation
+    if not isinstance(index, list):
+        index = [index]
+    assert (df.index.names == index)
+    # test that non-indexed data were present as columns
+    non_index = list(set(['condition', 'time', 'epoch']) - set(index))
+    if len(non_index):
+        assert all(np.in1d(non_index, df.columns))
+
+
+@requires_pandas
+@pytest.mark.parametrize('time_format', (None, 'ms', 'timedelta'))
+def test_to_data_frame_time_format(time_format):
+    """Test time conversion in epochs Pandas exporter."""
+    from pandas import Timedelta
+    raw, events, picks = _get_data()
+    epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
+    # test time_format
+    df = epochs.to_data_frame(time_format=time_format)
+    dtypes = {None: np.float64, 'ms': np.int64, 'timedelta': Timedelta}
+    assert isinstance(df['time'].iloc[0], dtypes[time_format])
 
 
 def test_epochs_proj_mixin():

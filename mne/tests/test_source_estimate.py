@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+#
+# License: BSD (3-clause)
+
 from copy import deepcopy
 import os.path as op
 
@@ -774,21 +778,34 @@ def test_to_data_frame():
     stc_vol = VolSourceEstimate(data, vertices=vertices[0], tmin=0, tstep=1,
                                 subject='sample')
     for stc in [stc_surf, stc_vol]:
-        pytest.raises(ValueError, stc.to_data_frame, index=['foo', 'bar'])
-        for ncat, ind in zip([1, 0], ['time', ['subject', 'time']]):
-            df = stc.to_data_frame(index=ind)
-            assert (df.index.names == ind
-                    if isinstance(ind, list) else [ind])
-            assert_array_equal(df.values.T[ncat:], stc.data)
-            # test that non-indexed data were present as categorial variables
-            assert all([c in ['time', 'subject'] for c in
-                        df.reset_index().columns][:2])
+        df = stc.to_data_frame()
+        # test data preservation (first 2 dataframe elements are subj & time)
+        assert_array_equal(df.values.T[2:], stc.data)
+        # test long format
+        df_long = stc.to_data_frame(long_format=True)
+        assert(len(df_long) == stc.data.size)
+        expected = ('subject', 'time', 'source', 'value')
+        assert set(expected) == set(df_long.columns)
 
-        df = stc.to_data_frame(long_format=True)
-        assert(len(df) == stc.data.size)
-        assert("time" in df.columns)
-        assert("source" in df.columns)
-        assert("observation" in df.columns)
+
+@requires_pandas
+@pytest.mark.parametrize('index', ('time', ['time', 'subject'], None))
+def test_to_data_frame_index(index):
+    """Test index creation in stc Pandas exporter."""
+    n_vert, n_times = 10, 5
+    vertices = [np.arange(n_vert, dtype=np.int), np.empty(0, dtype=np.int)]
+    data = rng.randn(n_vert, n_times)
+    stc = SourceEstimate(data, vertices=vertices, tmin=0, tstep=1,
+                         subject='sample')
+    df = stc.to_data_frame(index=index)
+    # test index setting
+    if not isinstance(index, list):
+        index = [index]
+    assert (df.index.names == index)
+    # test that non-indexed data were present as columns
+    non_index = list(set(['time', 'subject']) - set(index))
+    if len(non_index):
+        assert all(np.in1d(non_index, df.columns))
 
 
 def test_get_peak():

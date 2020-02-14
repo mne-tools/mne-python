@@ -50,8 +50,8 @@ class ProgressBar(object):
     verbose_bool : bool | 'auto'
         If True, show progress. 'auto' will use the current MNE verbose level.
 
-    Example
-    -------
+    Examples
+    --------
     >>> progress = ProgressBar(13000)
     >>> progress.update(3000) # doctest: +SKIP
     [.........                               ] 23.07692 |
@@ -107,7 +107,7 @@ class ProgressBar(object):
         cur_value : number
             Current value of process.  Should be <= max_value (but this is not
             enforced).  The percent of the progressbar will be computed as
-            (cur_value / max_value) * 100
+            ``(cur_value / max_value) * 100``.
         mesg : str
             Message to display to the right of the progressbar.  If None, the
             last message provided will be used.  To clear the current message,
@@ -164,7 +164,7 @@ class ProgressBar(object):
         increment_value : int
             Value of the increment of process.  The percent of the progressbar
             will be computed as
-            (self.cur_value + increment_value / max_value) * 100
+            ``(self.cur_value + increment_value / max_value) * 100``.
         mesg : str
             Message to display to the right of the progressbar.  If None, the
             last message provided will be used.  To clear the current message,
@@ -182,7 +182,13 @@ class ProgressBar(object):
             self.update_with_increment_value(1)
 
     def __call__(self, seq):
-        """Call the ProgressBar in a joblib-friendly way."""
+        """Call the ProgressBar in a joblib-friendly way.
+
+        Parameters
+        ----------
+        seq : iterable
+            The sequence.
+        """
         while True:
             try:
                 yield next(seq)
