@@ -943,7 +943,7 @@ def read_polhemus_fastscan(fname, unit='mm'):
     return points
 
 
-def _read_eeglab_locations(fname, unit):
+def _read_eeglab_locations(fname):
     ch_names = np.genfromtxt(fname, dtype=str, usecols=3).tolist()
     topo = np.loadtxt(fname, dtype=float, usecols=[1, 2])
     sph = _topo_to_sph(topo)
@@ -1025,7 +1025,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='auto',
         if head_size is None:
             raise ValueError(
                 "``head_size`` cannot be None for '{}'".format(ext))
-        ch_names, pos = _read_eeglab_locations(fname, unit)
+        ch_names, pos = _read_eeglab_locations(fname)
         scale = head_size / np.median(np.linalg.norm(pos, axis=-1))
         pos *= scale
 
