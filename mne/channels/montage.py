@@ -953,8 +953,7 @@ def _read_eeglab_locations(fname):
     return ch_names, pos
 
 
-def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='auto',
-                        coord_frame=None):
+def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
     """Read a montage from a file.
 
     Parameters
@@ -968,14 +967,6 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='auto',
     head_size : float | None
         The size of the head in meters. If `None`, returns the values read from
         the montage file with no modification. Defaults to 0.095m.
-    unit : 'mm' | 'auto'
-        Unit of the locations in the montage file. Currently only respected
-        when loading a BrainVision montage. Defaults to `'auto'`.
-
-        .. note::
-            This parameter is ignored for all montage types except for
-            BrainVision. Please note that regardless of the value specified
-            here, `head_size` must always be given in meters.
     coord_frame : str | None
         The coordinate frame of the points. Usually this is "unknown"
         for native digitizer space. Defaults to None, which is "unknown" for
@@ -1054,7 +1045,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='auto',
         montage = _read_elp_besa(fname, head_size)
 
     elif ext in SUPPORTED_FILE_EXT['brainvision']:
-        montage = _read_brainvision(fname, head_size, unit)
+        montage = _read_brainvision(fname, head_size)
 
     if coord_frame is not None:
         coord_frame = _coord_frame_const(coord_frame)
