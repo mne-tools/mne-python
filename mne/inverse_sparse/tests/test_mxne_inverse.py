@@ -31,7 +31,7 @@ label = 'Aud-rh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
 
-@pytest.mark.timeout(120)  # ~30 sec on Travis Linux
+@pytest.mark.timeout(150)  # ~30 sec on Travis Linux
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_mxne_inverse_standard():
