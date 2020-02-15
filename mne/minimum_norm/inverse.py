@@ -679,7 +679,7 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
     if label is not None:
         vertno, src_sel = label_src_vertno_sel(label, inv['src'])
 
-        if method != "MNE":
+        if method not in ["MNE", "eLORETA"]:
             noise_norm = noise_norm[src_sel]
 
         if inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
