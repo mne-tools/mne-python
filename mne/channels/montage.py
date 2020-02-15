@@ -963,8 +963,8 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='auto',
         File extension is expected to be:
         '.loc' or '.locs' or '.eloc' (for EEGLAB files),
         '.sfp' (BESA/EGI files), '.csd',
-        ‘.elc’, ‘.txt’, ‘.csd’, ‘.elp’ (BESA spherical),
-        .bvef (BrainVision files).
+        '.elc', '.txt', '.csd', '.elp' (BESA spherical),
+        '.bvef' (BrainVision files).
     head_size : float | None
         The size of the head in meters. If `None`, returns the values read from
         the montage file with no modification. Defaults to 0.095m.
