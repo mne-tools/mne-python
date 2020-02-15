@@ -973,9 +973,9 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='auto',
         when loading a BrainVision montage. Defaults to `'auto'`.
 
         .. note::
-            This parameter is ignored for all montages except for BrainVision.
-            Please note that regardless of the value specified here,
-            `head_size` must always be given in meters.
+            This parameter is ignored for all montage types except for
+            BrainVision. Please note that regardless of the value specified
+            here, `head_size` must always be given in meters.
     coord_frame : str | None
         The coordinate frame of the points. Usually this is "unknown"
         for native digitizer space. Defaults to None, which is "unknown" for
