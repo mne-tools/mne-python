@@ -8,6 +8,7 @@ import numpy as np
 
 from ._logging import logger
 from ..defaults import _handle_default
+from ..utils import warn
 
 
 def _set_pandas_dtype(df, columns, dtype):
@@ -30,6 +31,16 @@ def _scale_dataframe_data(inst, data, picks, scalings):
         if len(idx):
             data[:, idx] *= scaling
     return data
+
+
+def _check_scaling_time(scaling_time):
+    """Check deprecated parameter."""
+    if scaling_time is not None:
+        warn('scaling_time is deprecated in version 0.20 and will be '
+             'removed in version 0.21. To replicate old behavior, use '
+             'time_format="ms" to get time in milliseconds, or use '
+             'time_format=None and scale the time column (in seconds) '
+             'after DataFrame creation.', DeprecationWarning)
 
 
 def _convert_times(inst, times, time_format):

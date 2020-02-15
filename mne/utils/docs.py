@@ -614,6 +614,12 @@ transparent : bool | None
     None will choose automatically based on colormap type.
 """
 # DataFrames
+docdict['df_scaling_time_deprecated'] = """
+scaling_time : None
+    Deprecated; use ``time_format`` instead. If you need to scale time values
+    by a factor other than 1000 (seconds → milliseconds), create the DataFrame
+    first, then scale its ``time`` column afterwards.
+"""
 docdict['df_index'] = """
 index : {} | None
     Kind of index to use for the DataFrame. If ``None``, a sequential

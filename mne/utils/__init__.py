@@ -60,4 +60,4 @@ from .mixin import (SizeMixin, GetEpochsMixin, _prepare_read_metadata,
 from .linalg import (_svd_lwork, _repeated_svd,
                      dgesdd, dgemm, zgemm, dgemv, ddot, LinAlgError, eigh)
 from .dataframe import (_set_pandas_dtype, _scale_dataframe_data,
-                        _convert_times, _build_data_frame)
+                        _convert_times, _build_data_frame, _check_scaling_time)

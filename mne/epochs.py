@@ -57,7 +57,8 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _check_event_id, _gen_events, _check_option,
                     _check_combine, ShiftTimeMixin, _build_data_frame,
                     _check_pandas_index_arguments, _convert_times,
-                    _scale_dataframe_data, _check_time_format)
+                    _scale_dataframe_data, _check_time_format,
+                    _check_scaling_time)
 from .utils.docs import fill_doc
 
 
@@ -1709,8 +1710,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return self, indices
 
     @fill_doc
-    def to_data_frame(self, index=None, time_format='ms', picks=None,
-                      scalings=None, copy=True, long_format=False):
+    def to_data_frame(self, picks=None, index=None, scaling_time=None,
+                      scalings=None, copy=True, long_format=False,
+                      time_format='ms'):
         """Export data in tabular structure as a pandas DataFrame.
 
         Channels are converted to columns in the DataFrame. By default,
@@ -1721,19 +1723,24 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Parameters
         ----------
+        %(picks_all)s
         %(df_index_epo)s
             Valid string values are 'time', 'epoch', and 'condition'.
             Defaults to ``None``.
-        %(df_time_format)s
-        %(picks_all)s
+        %(df_scaling_time_deprecated)s
         %(df_scalings)s
         %(df_copy)s
         %(df_longform_epo)s
+        %(df_time_format)s
+
+            .. versionadded:: 0.20
 
         Returns
         -------
         %(df_return)s
         """
+        # check deprecation
+        _check_scaling_time(scaling_time)
         # check pandas once here, instead of in each private utils function
         pd = _check_pandas_installed()  # noqa
         # arg checking
