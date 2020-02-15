@@ -233,7 +233,8 @@ def test_one_channel_elec_bug(version):
 @testing.requires_testing_data
 # Reading the sample CNT data results in a RuntimeWarning because it cannot
 # parse the measurement date. We need to ignore that warning.
-@pytest.mark.filterwarnings('ignore::RuntimeWarning')
+@pytest.mark.filterwarnings('ignore:.*parse meas date.*:RuntimeWarning')
+@pytest.mark.filterwarnings('ignore:.*number of bytes.*:RuntimeWarning')
 @pytest.mark.parametrize('version', all_versions)
 @pytest.mark.parametrize('type', ['averaged', 'epoched', 'raw'])
 @requires_h5py
