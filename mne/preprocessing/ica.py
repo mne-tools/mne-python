@@ -133,7 +133,7 @@ class ICA(ContainsMixin):
                  Typically, a cutoff frequency of 1 Hz is recommended.
 
     .. note:: For users coming from EEGLAB: A dimensionality reduction via PCA,
-              equivalent to ``runica(..., 'pca', n)`` can be achieved by
+              equivalent to ``runica(..., 'pca', n)``, can be achieved by
               passing ``max_pca_components=n``, while leaving ``n_components``
               and ``n_pca_components`` at their respective default values.
 
