@@ -705,7 +705,8 @@ def test_ica_additional(method):
 
 
 @requires_sklearn
-@pytest.mark.parametrize("method", ["fastica", "picard"])
+@pytest.mark.parametrize("method", ["fastica", "picard", "infomax",
+                                    "extended-infomax"])
 def test_run_ica(method):
     """Test run_ica function."""
     _skip_check_picard(method)
@@ -714,9 +715,16 @@ def test_run_ica(method):
     params += [(None, -1, slice(2), [0, 1])]  # varicance, kurtosis idx
     params += [(None, 'MEG 1531')]  # ECG / EOG channel params
     for idx, ch_name in product(*params):
-        run_ica(raw, n_components=2, start=0, stop=0.5, start_find=0,
-                stop_find=5, ecg_ch=ch_name, eog_ch=ch_name, method=method,
-                skew_criterion=idx, var_criterion=idx, kurt_criterion=idx)
+        ica = run_ica(raw, n_components=2, start=0, stop=0.5, start_find=0,
+                      stop_find=5, ecg_ch=ch_name, eog_ch=ch_name,
+                      method=method, skew_criterion=idx, var_criterion=idx,
+                      kurt_criterion=idx)
+
+        if method == 'extended-infomax':
+            assert ica.method == 'infomax'
+            assert ica.fit_params['extended'] is True
+        else:
+            assert ica.method == method
 
 
 @requires_sklearn

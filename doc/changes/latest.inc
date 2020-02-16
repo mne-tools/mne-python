@@ -238,6 +238,8 @@ Bug
 
 - Fix bug in reading annotations in :func:`read_annotations`, which would not accept ";" character by `Adam Li`_
 
+- Fix Extended Infomax support of :func:`mne.preprocessing.run_ica` by `Richard Höchenberger`_
+
 API
 ~~~
 

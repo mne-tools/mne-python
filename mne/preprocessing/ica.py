@@ -671,7 +671,7 @@ class ICA(ContainsMixin):
                           **self.fit_params)
             ica.fit(data[:, sel])
             self.unmixing_matrix_ = ica.components_
-        elif self.method in ('infomax', 'extended-infomax'):
+        elif self.method == 'infomax':
             self.unmixing_matrix_, n_iter = infomax(data[:, sel],
                                                     random_state=random_state,
                                                     return_n_iter=True,
@@ -2376,10 +2376,16 @@ def run_ica(raw, n_components, max_pca_components=100,
     ica : instance of ICA
         The ICA object with detected artifact sources marked for exclusion.
     """
+    if method == 'extended-infomax':
+        method = 'infomax'
+        fit_params = dict(extended=True)
+    else:
+        fit_params = None
+        
     ica = ICA(n_components=n_components, max_pca_components=max_pca_components,
               n_pca_components=n_pca_components, method=method,
               noise_cov=noise_cov, random_state=random_state, verbose=verbose,
-              allow_ref_meg=allow_ref_meg)
+              allow_ref_meg=allow_ref_meg, fit_params=fit_params)
 
     ica.fit(raw, start=start, stop=stop, picks=picks)
     logger.info('%s' % ica)
