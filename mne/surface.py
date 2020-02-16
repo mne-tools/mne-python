@@ -19,7 +19,6 @@ from struct import pack
 
 import numpy as np
 from scipy.sparse import coo_matrix, csr_matrix, eye as speye
-from scipy import linalg
 
 from .io.constants import FIFF
 from .io.open import fiff_open
