@@ -103,7 +103,7 @@ raw.crop(tmax=60.)
 #     reconstruct using the 50 ICs plus the first 70 PCs in the PCA residual
 #     (numbers 51-120).
 #
-#     If you have previously been using **EEGLAB's ``runica()``** and are
+#     If you have previously been using **EEGLAB's** ``runica()`` and are
 #     looking for the equivalent of its ``'pca', n`` option to reduce
 #     dimensionality via PCA before the ICA step, set ``max_pca_components=n``,
 #     while leaving ``n_components`` and ``n_pca_components`` at their default
