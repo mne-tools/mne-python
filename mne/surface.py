@@ -1112,7 +1112,7 @@ def decimate_surface(points, triangles, n_triangles, method='quadric',
     -----
     **"quadric" mode**
 
-    This requires VTK. If an if an odd target number was requested,
+    This requires VTK. If an odd target number was requested,
     the ``'decimation'`` algorithm used results in the
     next even number of triangles. For example a reduction request
     to 30001 triangles may result in 30000 triangles.
@@ -1125,7 +1125,7 @@ def decimate_surface(points, triangles, n_triangles, method='quadric',
     ``[8, 32, 128, 512, 2048, 8192, 32768]`` for oct (1-7) downsampling.
 
     This mode is slower, but could be more suitable for decimating meshes for
-    BEM creation (recommended ``n_tringles=5120``) due to better topological
+    BEM creation (recommended ``n_triangles=5120``) due to better topological
     property preservation.
     """
     n_triangles = _ensure_int(n_triangles)
