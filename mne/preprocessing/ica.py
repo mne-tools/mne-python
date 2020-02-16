@@ -132,6 +132,11 @@ class ICA(ContainsMixin):
                  requires the data to be high-pass filtered prior to fitting.
                  Typically, a cutoff frequency of 1 Hz is recommended.
 
+    .. note:: For users coming from EEGLAB: A dimensionality reduction via PCA,
+              equivalent to ``runica(..., 'pca', n)`` can be achieved by
+              passing ``max_pca_components=n``, while leaving ``n_components``
+              and ``n_pca_components`` at their respective default values.
+
     Parameters
     ----------
     n_components : int | float | None
@@ -146,11 +151,12 @@ class ICA(ContainsMixin):
     max_pca_components : int | None
         Number of principal components (from the pre-whitening PCA step) that
         are retained for later use (i.e., for signal reconstruction in
-        :meth:`ICA.apply`; see the ``n_pca_components`` parameter). If
-        ``None``, no dimensionality reduction occurs and ``max_pca_components``
-        will equal the number of channels in the :class:`mne.io.Raw`,
-        :class:`mne.Epochs`, or :class:`mne.Evoked` object passed to
-        :meth:`ICA.fit`.
+        :meth:`ICA.apply`; see the ``n_pca_components`` parameter). Use this
+        parameter to reduce the dimensionality of the input data before it gets
+        passed to the ICA algorithm. If ``None``, no  dimensionality reduction
+        occurs and ``max_pca_components`` will equal the number of channels in
+        the :class:`mne.io.Raw`, :class:`mne.Epochs`, or :class:`mne.Evoked`
+        object passed to :meth:`ICA.fit`. Defaults to ``None``.
     n_pca_components : int | float | None
         Total number of components (ICA + PCA) used for signal reconstruction
         in :meth:`ICA.apply`. At minimum, at least ``n_components`` will be

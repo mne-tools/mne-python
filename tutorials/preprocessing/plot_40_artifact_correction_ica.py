@@ -90,7 +90,9 @@ raw.crop(tmax=60.)
 #     the number of Independent Components (ICs) given in ``n_components``, and
 #     any subsequent exclusion of ICs you specify in ``ICA.exclude``), pass
 #     ``max_pca_components=None`` and ``n_pca_components=None`` (these are the
-#     default values). If you want to reduce dimensionality, consider this
+#     default values).
+#
+#     However, if you *do* want to reduce dimensionality, consider this
 #     example: if you have 300 sensor channels and you set
 #     ``max_pca_components=200``, ``n_components=50`` and
 #     ``n_pca_components=None``, then the PCA step yields 200 PCs, the first 50
@@ -100,6 +102,11 @@ raw.crop(tmax=60.)
 #     ``n_pca_components=120`` then :meth:`~mne.preprocessing.ICA.apply` will
 #     reconstruct using the 50 ICs plus the first 70 PCs in the PCA residual
 #     (numbers 51-120).
+#
+#     If you have previously been using **EEGLAB** and are looking for the
+#     equivalent of ``runica()``s ``'pca', n`` option, set
+#     ``max_pca_components=n``, while leaving ``n_components`` and
+#     ``n_pca_components`` at their default (``None``).
 #
 # As is typically done with ICA, the data are first scaled to unit variance and
 # whitened using principal components analysis (PCA) before performing the ICA
