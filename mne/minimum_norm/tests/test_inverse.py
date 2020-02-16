@@ -819,8 +819,7 @@ def test_apply_inverse_cov():
     # unsigned magnitudes which can't be compared with apply_inverse_cov output
     # cov_scale compensates for the 3 orientations returned with
     # pick_ori='vector'
-    # TODO 'eLORETA is not tested due to ?bug? in _assemble_kernel
-    for method in ['MNE', 'dSPM', 'sLORETA']:
+    for method in INVERSE_METHODS:
         this_inv_op = prepare_inverse_operator(inverse_operator, nave=1,
                                                lambda2=lambda2, method=method)
         for pick_ori, cov_scale in zip(['normal', 'vector'], [1, 3]):
