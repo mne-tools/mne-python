@@ -326,12 +326,14 @@ def _project_onto_surface(rrs, surf, project_rrs=False, return_nn=False,
 
 def _normal_orth(nn):
     """Compute orthogonal basis given a normal."""
-    assert nn.shape == (3,)
-    u, _, _ = linalg.svd(np.eye(3) - np.outer(nn, nn))
+    assert nn.shape[-1:] == (3,)
+    prod = np.einsum('...i,...j->...ij', nn, nn)
+    u, _, _ = np.linalg.svd(np.eye(3) - prod, full_matrices=False)
     #  Make sure that ez is in the direction of nn
-    if np.dot(nn, u[:, 2]) < 0:
-        u *= -1.0
-    return u.T
+    signs = np.sign(np.matmul(nn[..., np.newaxis, :], u[..., -1:]))
+    signs[signs == 0] = 1
+    u *= signs
+    return u.swapaxes(-1, -2)
 
 
 @verbose
