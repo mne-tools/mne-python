@@ -117,6 +117,8 @@ Changelog
 
 - Make selected channels more distinguishable in :meth:`mne.Epochs.plot_sensors` when using ``kind='select'`` by `Mikołaj Magnuski`_
 
+- Allow retrieval of the number of Infomax ICA iterations via the new ``return_n_iter`` keyword argument of :func:`mne.preprocessing.infomax` by `Richard Höchenberger`_
+
 Bug
 ~~~
 

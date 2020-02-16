@@ -672,9 +672,10 @@ class ICA(ContainsMixin):
             ica.fit(data[:, sel])
             self.unmixing_matrix_ = ica.components_
         elif self.method in ('infomax', 'extended-infomax'):
-            self.unmixing_matrix_ = infomax(data[:, sel],
-                                            random_state=random_state,
-                                            **self.fit_params)
+            self.unmixing_matrix_, n_iter = infomax(data[:, sel],
+                                                    random_state=random_state,
+                                                    return_n_iter=True,
+                                                    **self.fit_params)
         elif self.method == 'picard':
             from picard import picard
             _, W, _ = picard(data[:, sel].T, whiten=False,
