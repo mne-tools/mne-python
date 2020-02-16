@@ -328,7 +328,8 @@ def _normal_orth(nn):
     """Compute orthogonal basis given a normal."""
     assert nn.shape[-1:] == (3,)
     prod = np.einsum('...i,...j->...ij', nn, nn)
-    u, _, _ = np.linalg.svd(np.eye(3) - prod, full_matrices=False)
+    _, u = np.linalg.eigh(np.eye(3) - prod)
+    u = u[..., ::-1]
     #  Make sure that ez is in the direction of nn
     signs = np.sign(np.matmul(nn[..., np.newaxis, :], u[..., -1:]))
     signs[signs == 0] = 1
