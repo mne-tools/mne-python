@@ -86,7 +86,7 @@ raw.crop(tmax=60.)
 #
 # .. sidebar:: ICA and dimensionality reduction
 #
-#     If you want to perform ICA with no dimensionality reduction (other than
+#     If you want to perform ICA with *no* dimensionality reduction (other than
 #     the number of Independent Components (ICs) given in ``n_components``, and
 #     any subsequent exclusion of ICs you specify in ``ICA.exclude``), pass
 #     ``max_pca_components=None`` and ``n_pca_components=None`` (these are the
@@ -103,10 +103,11 @@ raw.crop(tmax=60.)
 #     reconstruct using the 50 ICs plus the first 70 PCs in the PCA residual
 #     (numbers 51-120).
 #
-#     If you have previously been using **EEGLAB** and are looking for the
-#     equivalent of ``runica()``s ``'pca', n`` option, set
-#     ``max_pca_components=n``, while leaving ``n_components`` and
-#     ``n_pca_components`` at their default (``None``).
+#     If you have previously been using **EEGLAB's ``runica()``** and are
+#     looking for the equivalent of its ``'pca', n`` option to reduce
+#     dimensionality via PCA before the ICA step, set ``max_pca_components=n``,
+#     while leaving ``n_components`` and ``n_pca_components`` at their default
+#     (i.e., ``None``).
 #
 # As is typically done with ICA, the data are first scaled to unit variance and
 # whitened using principal components analysis (PCA) before performing the ICA
