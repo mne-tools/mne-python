@@ -320,7 +320,7 @@ def test_localization_bias_fixed(bias_params_fixed, method, lower, upper,
 
 
 @pytest.mark.parametrize('method, lower, upper, depth', [
-    ('MNE', 32, 35, dict(limit=None, combine_xyz=False, exp=1.)),  # DICS def
+    ('MNE', 32, 36, dict(limit=None, combine_xyz=False, exp=1.)),  # DICS def
     ('MNE', 78, 81, 0.8),  # MNE default
     ('MNE', 89, 92, dict(limit_depth_chs='whiten')),  # sparse default
     ('dSPM', 85, 87, 0.8),
