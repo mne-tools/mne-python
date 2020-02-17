@@ -95,6 +95,7 @@ jobs:
             command: |
                which python
                QT_DEBUG_PLUGINS=1 mne sys_info
+               python -c "import numpy; numpy.show_config()"
                LIBGL_DEBUG=verbose python -c "from mayavi import mlab; import matplotlib.pyplot as plt; mlab.figure(); plt.figure()"
                python -c "import mne; mne.set_config('MNE_USE_CUDA', 'false')"  # this is needed for the config tutorial
                python -c "import mne; mne.set_config('MNE_LOGGING_LEVEL', 'info')"
