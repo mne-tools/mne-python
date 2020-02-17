@@ -152,11 +152,12 @@ class ICA(ContainsMixin):
         Number of principal components (from the pre-whitening PCA step) that
         are retained for later use (i.e., for signal reconstruction in
         :meth:`ICA.apply`; see the ``n_pca_components`` parameter). Use this
-        parameter to reduce the dimensionality of the input data before it gets
-        passed to the ICA algorithm. If ``None``, no  dimensionality reduction
-        occurs and ``max_pca_components`` will equal the number of channels in
-        the :class:`mne.io.Raw`, :class:`mne.Epochs`, or :class:`mne.Evoked`
-        object passed to :meth:`ICA.fit`. Defaults to ``None``.
+        parameter to reduce the dimensionality of the input data via PCA before
+        any further processing is performed. If ``None``, no  dimensionality
+        reduction occurs and ``max_pca_components`` will equal the number of
+        channels in the :class:`mne.io.Raw`, :class:`mne.Epochs`, or
+        :class:`mne.Evoked` object passed to :meth:`ICA.fit`. Defaults to
+        ``None``.
     n_pca_components : int | float | None
         Total number of components (ICA + PCA) used for signal reconstruction
         in :meth:`ICA.apply`. At minimum, at least ``n_components`` will be
