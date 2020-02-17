@@ -1321,7 +1321,7 @@ def _fit_matched_points(p, x, weights=None, scale=False):
     # The original method is actually by Horn, Closed-form solution of absolute
     # orientation using unit quaternions, J Opt. Soc. Amer. A vol 4 no 4
     # pp 629-642, Apr. 1987. This paper describes how weights can be
-    # incorporated (by modifying centroids and )
+    # easily incorporated, and a uniform scale factor can be computed.
     #
     # Caution: This can be dangerous if there are 3 points, or 4 points in
     #          a symmetric layout, as the geometry can be explained
