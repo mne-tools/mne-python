@@ -166,7 +166,7 @@ def test_ica_n_iter_(method):
             ica.fit(raw)
 
     assert_equal(ica.n_iter_, max_iter)
-    
+
     # Test I/O roundtrip.
     tempdir = _TempDir()
     output_fname = op.join(tempdir, 'test_ica-ica.fif')
