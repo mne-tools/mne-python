@@ -943,7 +943,7 @@ def read_polhemus_fastscan(fname, unit='mm'):
     return points
 
 
-def _read_eeglab_locations(fname, unit):
+def _read_eeglab_locations(fname):
     ch_names = np.genfromtxt(fname, dtype=str, usecols=3).tolist()
     topo = np.loadtxt(fname, dtype=float, usecols=[1, 2])
     sph = _topo_to_sph(topo)
@@ -953,8 +953,7 @@ def _read_eeglab_locations(fname, unit):
     return ch_names, pos
 
 
-def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m',
-                        coord_frame=None):
+def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
     """Read a montage from a file.
 
     Parameters
@@ -963,12 +962,11 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m',
         File extension is expected to be:
         '.loc' or '.locs' or '.eloc' (for EEGLAB files),
         '.sfp' (BESA/EGI files), '.csd',
-        ‘.elc’, ‘.txt’, ‘.csd’, ‘.elp’ (BESA spherical),
-        .bvef (BrainVision files).
-
+        '.elc', '.txt', '.csd', '.elp' (BESA spherical),
+        '.bvef' (BrainVision files).
     head_size : float | None
-        The size of the head in [m]. If none, returns the values read from the
-        file with no modification. Defaults to 95mm.
+        The size of the head in meters. If `None`, returns the values read from
+        the montage file with no modification. Defaults to 0.095m.
     coord_frame : str | None
         The coordinate frame of the points. Usually this is "unknown"
         for native digitizer space. Defaults to None, which is "unknown" for
@@ -1018,7 +1016,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m',
         if head_size is None:
             raise ValueError(
                 "``head_size`` cannot be None for '{}'".format(ext))
-        ch_names, pos = _read_eeglab_locations(fname, unit)
+        ch_names, pos = _read_eeglab_locations(fname)
         scale = head_size / np.median(np.linalg.norm(pos, axis=-1))
         pos *= scale
 
@@ -1047,7 +1045,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m',
         montage = _read_elp_besa(fname, head_size)
 
     elif ext in SUPPORTED_FILE_EXT['brainvision']:
-        montage = _read_brainvision(fname, head_size, unit)
+        montage = _read_brainvision(fname, head_size)
 
     if coord_frame is not None:
         coord_frame = _coord_frame_const(coord_frame)
