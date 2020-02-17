@@ -97,6 +97,7 @@ install:
     - python setup.py build
     - python setup.py install
     - mne sys_info
+    - python -c "import numpy; numpy.show_config()"
     - SRC_DIR=$(pwd)
     - cd ~
     # Trigger download of testing data
