@@ -165,7 +165,17 @@ def test_ica_n_iter_(method):
         with pytest.warns(UserWarning, match='did not converge'):
             ica.fit(raw)
 
-    assert ica.n_iter_ == max_iter
+    assert_equal(ica.n_iter_, max_iter)
+    
+    # Test I/O roundtrip.
+    tempdir = _TempDir()
+    output_fname = op.join(tempdir, 'test_ica-ica.fif')
+    _assert_ica_attributes(ica)
+    ica.save(output_fname)
+    ica = read_ica(output_fname)
+    _assert_ica_attributes(ica)
+
+    assert_equal(ica.n_iter_, max_iter)
 
 
 @requires_sklearn

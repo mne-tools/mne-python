@@ -2042,7 +2042,8 @@ def _write_ica(fid, ica):
     n_samples = getattr(ica, 'n_samples_', None)
     ica_misc = {'n_samples_': (None if n_samples is None else int(n_samples)),
                 'labels_': getattr(ica, 'labels_', None),
-                'method': getattr(ica, 'method', None)}
+                'method': getattr(ica, 'method', None),
+                'n_iter_': getattr(ica, 'n_iter_', None)}
 
     write_string(fid, FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS,
                  _serialize(ica_init))
@@ -2069,7 +2070,6 @@ def _write_ica(fid, ica):
     write_double_matrix(fid, FIFF.FIFF_MNE_ICA_MATRIX, ica.unmixing_matrix_)
 
     #   Write bad components
-
     write_int(fid, FIFF.FIFF_MNE_ICA_BADS, list(ica.exclude))
 
     # Done!
@@ -2182,6 +2182,8 @@ def read_ica(fname, verbose=None):
             ica.labels_ = labels_
     if 'method' in ica_misc:
         ica.method = ica_misc['method']
+    if 'n_iter_' in ica_misc:
+        ica.n_iter_ = ica_misc['n_iter_']
 
     logger.info('Ready.')
 
