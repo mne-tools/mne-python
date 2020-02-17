@@ -78,6 +78,8 @@ before_install:
           curl https://staff.washington.edu/larsoner/minimal_cmds.tar.gz | tar xz;
           export LD_LIBRARY_PATH=${MNE_ROOT}/lib:$LD_LIBRARY_PATH;
           export NEUROMAG2FT_ROOT="${PWD}/minimal_cmds/bin";
+          export FREESURFER_HOME="${PWD}/minimal_cmds";
+          export MNE_SKIP_FS_FLASH_CALL=1;
         else
           curl https://staff.washington.edu/larsoner/minimal_cmds_osx.tar.gz | tar xz;
           export DYLD_LIBRARY_PATH=${MNE_ROOT}/lib:$DYLD_LIBRARY_PATH;
@@ -97,15 +99,9 @@ install:
     - mne sys_info
     - SRC_DIR=$(pwd)
     - cd ~
-    # Trigger download of testing data. Note that
-    # the testing dataset has been constructed to contain the necessary
-    # files to act as a FREESURFER_HOME for the coreg tests
+    # Trigger download of testing data
     - if [ "${DEPS}" != "minimal" ]; then
         python -c 'import mne; mne.datasets.testing.data_path(verbose=True)';
-      fi;
-    - if [ "${DEPS}" != "minimal" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-        export FREESURFER_HOME=$(python -c 'import mne; print(mne.datasets.testing.data_path())');
-        export MNE_SKIP_FS_FLASH_CALL=1;
       fi;
     - cd ${SRC_DIR}
 

@@ -77,6 +77,8 @@ Changelog
 
 - Add support for ``reduce_rank=True`` for vector beamformers by `Eric Larson`_
 
+- Add ``method='sphere'`` support for using Freesurfer spherical inflation in :func:`mne.decimate_surface` to facilitate mesh downsampling for use with :func:`mne.make_bem_model` by `Eric Larson`_
+
 - Speed up :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.make_dics` calculations by vectorizing linear algebra calls by `Dmitrii Altukhov`_ and `Eric Larson`_
 
 - Speed up :func:`mne.make_forward_solution` using Numba, by `Eric Larson`_

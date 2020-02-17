@@ -359,7 +359,7 @@ def test_fit_sphere_to_headshape():
 
 
 @requires_nibabel()
-@requires_freesurfer
+@requires_freesurfer('mri_convert')
 @testing.requires_testing_data
 def test_make_flash_bem():
     """Test computing bem from flash images."""

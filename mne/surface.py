@@ -32,7 +32,9 @@ from .channels.channels import _get_meg_system
 from .parallel import parallel_func
 from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
                          _get_trans, apply_trans, Transform)
-from .utils import logger, verbose, get_subjects_dir, warn, _check_fname
+from .utils import (logger, verbose, get_subjects_dir, warn, _check_fname,
+                    _check_option, _ensure_int, _TempDir, run_subprocess,
+                    _check_freesurfer_home)
 from .fixes import (_serialize_volume_info, _get_read_geometry, einsum, jit,
                     prange, bincount)
 
@@ -987,7 +989,7 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
 ###############################################################################
 # Decimation
 
-def _decimate_surface(points, triangles, reduction):
+def _decimate_surface_vtk(points, triangles, n_triangles):
     """Aux function."""
     try:
         from vtk.util.numpy_support import \
@@ -1015,14 +1017,13 @@ def _decimate_surface(points, triangles, reduction):
         idarr = numpy_to_vtkIdTypeArray(triangles_.ravel().astype(np.int64))
     vtkcells.SetCells(triangles.shape[0], idarr)
     src.SetPolys(vtkcells)
-    # Eventually we should test:
-    # vtkDecimatePro with PreserveTopologyOn, SplittingOff
-    # vtkQuadricDecimation with AttributeErrorMetricOn
+    # vtkDecimatePro was not very good, even with SplittingOff and
+    # PreserveTopologyOn
     decimate = vtkQuadricDecimation()
+    decimate.VolumePreservationOn()
     decimate.SetInputData(src)
-    # decimate.AttributeErrorMetricOn()
+    reduction = 1 - (float(n_triangles) / len(triangles))
     decimate.SetTargetReduction(reduction)
-    # decimate.VolumePreservationOn()
     decimate.Update()
     out = WrapDataObject(decimate.GetOutput())
     rrs = out.Points
@@ -1030,15 +1031,59 @@ def _decimate_surface(points, triangles, reduction):
     return rrs, tris
 
 
-def decimate_surface(points, triangles, n_triangles):
+def _decimate_surface_sphere(rr, tris, n_triangles):
+    _check_freesurfer_home()
+    map_ = {}
+    ico_levels = [20, 80, 320, 1280, 5120, 20480]
+    map_.update({n_tri: ('ico', ii) for ii, n_tri in enumerate(ico_levels)})
+    oct_levels = 2 ** (2 * np.arange(7) + 3)
+    map_.update({n_tri: ('oct', ii) for ii, n_tri in enumerate(oct_levels, 1)})
+    _check_option('n_triangles', n_triangles, sorted(map_),
+                  extra=' when method="sphere"')
+    func_map = dict(ico=_get_ico_surface, oct=_tessellate_sphere_surf)
+    kind, level = map_[n_triangles]
+    logger.info('Decimating using Freesurfer spherical %s%s downsampling'
+                % (kind, level))
+    ico_surf = func_map[kind](level)
+    assert len(ico_surf['tris']) == n_triangles
+    tempdir = _TempDir()
+    orig = op.join(tempdir, 'lh.temp')
+    write_surface(orig, rr, tris)
+    logger.info('    Extracting main mesh component ...')
+    run_subprocess(
+        ['mris_extract_main_component', orig, orig],
+        verbose='error')
+    logger.info('    Smoothing ...')
+    smooth = orig + '.smooth'
+    run_subprocess(
+        ['mris_smooth', '-nw', orig, smooth],
+        verbose='error')
+    logger.info('    Inflating ...')
+    inflated = orig + '.inflated'
+    run_subprocess(
+        ['mris_inflate', '-no-save-sulc', smooth, inflated],
+        verbose='error')
+    logger.info('    Sphere ...')
+    qsphere = orig + '.qsphere'
+    run_subprocess(
+        ['mris_sphere', '-q', inflated, qsphere], verbose='error')
+    sphere_rr, _ = read_surface(qsphere)
+    norms = np.linalg.norm(sphere_rr, axis=1, keepdims=True)
+    sphere_rr /= norms
+    idx = _compute_nearest(sphere_rr, ico_surf['rr'], method='cKDTree')
+    n_dup = len(idx) - len(np.unique(idx))
+    if n_dup:
+        raise RuntimeError('Could not reduce to %d triangles using ico, '
+                           '%d/%d vertices were duplicates'
+                           % (n_triangles, n_dup, len(idx)))
+    logger.info('[done]')
+    return rr[idx], ico_surf['tris']
+
+
+@verbose
+def decimate_surface(points, triangles, n_triangles, method='quadric',
+                     verbose=None):
     """Decimate surface data.
-
-    .. note:: Requires TVTK to be installed for this to function.
-
-    .. note:: If an if an odd target number was requested,
-              the ``'decimation'`` algorithm used results in the
-              next even number of triangles. For example a reduction request
-              to 30001 triangles may result in 30000 triangles.
 
     Parameters
     ----------
@@ -1048,6 +1093,13 @@ def decimate_surface(points, triangles, n_triangles):
         The surface to be decimated, a 3 x number of triangles array.
     n_triangles : int
         The desired number of triangles.
+    method : str
+        Can be "quadric" or "sphere". "sphere" will inflate the surface to a
+        sphere using Freesurfer and downsample to an icosahedral or
+        octahedral mesh.
+
+        .. versionadded:: 0.20
+    %(verbose)s
 
     Returns
     -------
@@ -1055,9 +1107,36 @@ def decimate_surface(points, triangles, n_triangles):
         The decimated points.
     triangles : ndarray
         The decimated triangles.
+
+    Notes
+    -----
+    **"quadric" mode**
+
+    This requires VTK. If an odd target number was requested,
+    the ``'decimation'`` algorithm used results in the
+    next even number of triangles. For example a reduction request
+    to 30001 triangles may result in 30000 triangles.
+
+    **"sphere" mode**
+
+    This requires Freesurfer to be installed and available in the
+    environment. The destination number of triangles must be one of
+    ``[20, 80, 320, 1280, 5120, 20480]`` for ico (0-5) downsampling or one of
+    ``[8, 32, 128, 512, 2048, 8192, 32768]`` for oct (1-7) downsampling.
+
+    This mode is slower, but could be more suitable for decimating meshes for
+    BEM creation (recommended ``n_triangles=5120``) due to better topological
+    property preservation.
     """
-    reduction = 1 - (float(n_triangles) / len(triangles))
-    return _decimate_surface(points, triangles, reduction)
+    n_triangles = _ensure_int(n_triangles)
+    method_map = dict(quadric=_decimate_surface_vtk,
+                      sphere=_decimate_surface_sphere)
+    _check_option('method', method, sorted(method_map))
+    if n_triangles > len(triangles):
+        raise ValueError('Requested n_triangles (%s) exceeds number of '
+                         'original triangles (%s)'
+                         % (n_triangles, len(triangles)))
+    return method_map[method](points, triangles, n_triangles)
 
 
 ###############################################################################
