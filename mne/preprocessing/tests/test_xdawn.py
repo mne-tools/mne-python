@@ -64,6 +64,7 @@ def test_xdawn_fit():
     """Test Xdawn fit."""
     # Get data
     raw, events, picks = _get_data()
+    raw.del_proj()
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     preload=True, baseline=None, verbose=False)
     # =========== Basic Fit test =================

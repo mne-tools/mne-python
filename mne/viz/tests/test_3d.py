@@ -647,7 +647,8 @@ def test_plot_vector_source_estimates():
     data = np.random.RandomState(0).rand(n_verts, 3, n_time)
     stc = VectorSourceEstimate(data, vertices, 1, 1)
 
-    brain = stc.plot('sample', subjects_dir=subjects_dir)
+    brain = stc.plot('sample', subjects_dir=subjects_dir, hemi='both',
+                     smoothing_steps=1, verbose='error')
     brain.close()
     del brain
     gc.collect()
@@ -655,11 +656,6 @@ def test_plot_vector_source_estimates():
     with pytest.raises(ValueError, match='use "pos_lims"'):
         stc.plot('sample', subjects_dir=subjects_dir,
                  clim=dict(pos_lims=[1, 2, 3]))
-    gc.collect()
-
-    brain = stc.plot('sample', subjects_dir=subjects_dir, hemi='both')
-    brain.close()
-    del brain
     gc.collect()
 
 

@@ -1003,7 +1003,7 @@ def test_transform_to_head_and_compute_dev_head_t():
         assert_allclose(fids[kk], EXPECTED_FID_IN_HEAD[kk], atol=1e-5)
 
     dev_head_t = compute_dev_head_t(montage)
-    assert_allclose(dev_head_t['trans'], EXPECTED_DEV_HEAD_T, atol=1e-7)
+    assert_allclose(dev_head_t['trans'], EXPECTED_DEV_HEAD_T, atol=5e-7)
 
     # Test errors when number of HPI points do not match
     EXPECTED_ERR_MSG = 'Device-to-Head .*Got 0 .*device and 5 points in head'

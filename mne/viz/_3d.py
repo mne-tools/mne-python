@@ -2245,7 +2245,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     return fig
 
 
-@fill_doc
+@verbose
 def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  time_label='auto', smoothing_steps=10,
                                  transparent=None, brain_alpha=0.4,
@@ -2255,7 +2255,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  colorbar=True, clim='auto', cortex='classic',
                                  size=800, background='black',
                                  foreground='white', initial_time=None,
-                                 time_unit='s'):
+                                 time_unit='s', verbose=None):
     """Plot VectorSourceEstimate with PySurfer.
 
     A "glass brain" is drawn and all dipoles defined in the source estimate
@@ -2326,6 +2326,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     time_unit : 's' | 'ms'
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
+    %(verbose)s
 
     Returns
     -------

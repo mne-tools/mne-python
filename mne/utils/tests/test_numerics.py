@@ -251,11 +251,11 @@ def test_reg_pinv():
     a_inv_mne, loading_factor, rank = _reg_pinv(a, rank=2)
     assert loading_factor == 0
     assert rank == 2
-    assert_array_equal(a_inv_np, a_inv_mne)
+    assert_allclose(a_inv_np, a_inv_mne, atol=1e-14)
 
     # Test inversion with automatic rank detection
     a_inv_mne, _, estimated_rank = _reg_pinv(a, rank=None)
-    assert_array_equal(a_inv_np, a_inv_mne)
+    assert_allclose(a_inv_np, a_inv_mne, atol=1e-14)
     assert estimated_rank == 2
 
     # Test adding regularization
@@ -267,12 +267,12 @@ def test_reg_pinv():
     assert estimated_rank == 2
     # Test result against the NumPy version
     a_inv_np = np.linalg.pinv(a + loading_factor * np.eye(3))
-    assert_array_equal(a_inv_np, a_inv_mne)
+    assert_allclose(a_inv_np, a_inv_mne, atol=1e-14)
 
     # Test setting rcond
     a_inv_np = np.linalg.pinv(a, rcond=0.5)
     a_inv_mne, _, estimated_rank = _reg_pinv(a, rcond=0.5)
-    assert_array_equal(a_inv_np, a_inv_mne)
+    assert_allclose(a_inv_np, a_inv_mne, atol=1e-14)
     assert estimated_rank == 1
 
     # Test inverting an all zero cov

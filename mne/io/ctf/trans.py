@@ -5,9 +5,10 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from scipy import linalg
 
-from ...transforms import combine_transforms, invert_transform, Transform
+from ...transforms import (combine_transforms, invert_transform, Transform,
+                           _quat_to_affine, _fit_matched_points, apply_trans,
+                           get_ras_to_neuromag_trans)
 from ...utils import logger
 from ..constants import FIFF
 from .constants import CTF
@@ -15,72 +16,20 @@ from .constants import CTF
 
 def _make_transform_card(fro, to, r_lpa, r_nasion, r_rpa):
     """Make a transform from cardinal landmarks."""
-    # XXX de-duplicate this with code from Montage somewhere?
-    diff_1 = r_nasion - r_lpa
-    ex = r_rpa - r_lpa
-    alpha = np.dot(diff_1, ex) / np.dot(ex, ex)
-    ex /= np.sqrt(np.sum(ex * ex))
-    trans = np.eye(4)
-    move = (1. - alpha) * r_lpa + alpha * r_rpa
-    trans[:3, 3] = move
-    trans[:3, 0] = ex
-    ey = r_nasion - move
-    ey /= np.sqrt(np.sum(ey * ey))
-    trans[:3, 1] = ey
-    trans[:3, 2] = np.cross(ex, ey)  # ez
-    return Transform(fro, to, trans)
+    return invert_transform(Transform(
+        to, fro, get_ras_to_neuromag_trans(r_nasion, r_lpa, r_rpa)))
 
 
 def _quaternion_align(from_frame, to_frame, from_pts, to_pts, diff_tol=1e-4):
     """Perform an alignment using the unit quaternions (modifies points)."""
     assert from_pts.shape[1] == to_pts.shape[1] == 3
-
-    # Calculate the centroids and subtract
-    from_c, to_c = from_pts.mean(axis=0), to_pts.mean(axis=0)
-    from_ = from_pts - from_c
-    to_ = to_pts - to_c
-
-    # Compute the dot products
-    S = np.dot(from_.T, to_)
-
-    # Compute the magical N matrix
-    N = np.array([[S[0, 0] + S[1, 1] + S[2, 2], 0., 0., 0.],
-                  [S[1, 2] - S[2, 1], S[0, 0] - S[1, 1] - S[2, 2], 0., 0.],
-                  [S[2, 0] - S[0, 2], S[0, 1] + S[1, 0],
-                   -S[0, 0] + S[1, 1] - S[2, 2], 0.],
-                  [S[0, 1] - S[1, 0], S[2, 0] + S[0, 2],
-                   S[1, 2] + S[2, 1], -S[0, 0] - S[1, 1] + S[2, 2]]])
-
-    # Compute the eigenvalues and eigenvectors
-    # Use the eigenvector corresponding to the largest eigenvalue as the
-    # unit quaternion defining the rotation
-    eig_vals, eig_vecs = linalg.eigh(N, overwrite_a=True)
-    which = np.argmax(eig_vals)
-    if eig_vals[which] < 0:
-        raise RuntimeError('No positive eigenvalues. Cannot do the alignment.')
-    q = eig_vecs[:, which]
-
-    # Write out the rotation
-    trans = np.eye(4)
-    trans[0, 0] = q[0] * q[0] + q[1] * q[1] - q[2] * q[2] - q[3] * q[3]
-    trans[0, 1] = 2.0 * (q[1] * q[2] - q[0] * q[3])
-    trans[0, 2] = 2.0 * (q[1] * q[3] + q[0] * q[2])
-    trans[1, 0] = 2.0 * (q[2] * q[1] + q[0] * q[3])
-    trans[1, 1] = q[0] * q[0] - q[1] * q[1] + q[2] * q[2] - q[3] * q[3]
-    trans[1, 2] = 2.0 * (q[2] * q[3] - q[0] * q[1])
-    trans[2, 0] = 2.0 * (q[3] * q[1] - q[0] * q[2])
-    trans[2, 1] = 2.0 * (q[3] * q[2] + q[0] * q[1])
-    trans[2, 2] = q[0] * q[0] - q[1] * q[1] - q[2] * q[2] + q[3] * q[3]
-
-    # Now we need to generate a transformed translation vector
-    trans[:3, 3] = to_c - np.dot(trans[:3, :3], from_c)
-    del to_c, from_c
+    trans = _quat_to_affine(_fit_matched_points(from_pts, to_pts)[0])
 
     # Test the transformation and print the results
     logger.info('    Quaternion matching (desired vs. transformed):')
     for fro, to in zip(from_pts, to_pts):
-        rr = np.dot(trans[:3, :3], fro) + trans[:3, 3]
-        diff = np.sqrt(np.sum((to - rr) ** 2))
+        rr = apply_trans(trans, fro)
+        diff = np.linalg.norm(to - rr)
         logger.info('    %7.2f %7.2f %7.2f mm <-> %7.2f %7.2f %7.2f mm '
                     '(orig : %7.2f %7.2f %7.2f mm) diff = %8.3f mm'
                     % (tuple(1000 * to) + tuple(1000 * rr) +
@@ -108,8 +57,7 @@ def _make_ctf_coord_trans_set(res4, coils):
         if lpa is None or rpa is None or nas is None:
             raise RuntimeError('Some of the mandatory HPI device-coordinate '
                                'info was not there.')
-        t = _make_transform_card(FIFF.FIFFV_COORD_HEAD,
-                                 FIFF.FIFFV_MNE_COORD_CTF_HEAD,
+        t = _make_transform_card('head', 'ctf_head',
                                  lpa['r'], nas['r'], rpa['r'])
         T3 = invert_transform(t)
 
@@ -125,8 +73,7 @@ def _make_ctf_coord_trans_set(res4, coils):
     R[0, 1] = -val
     R[1, 0] = val
     R[1, 1] = val
-    T4 = Transform(FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
-                   FIFF.FIFFV_COORD_DEVICE, R)
+    T4 = Transform('ctf_meg', 'meg', R)
 
     # CTF device -> CTF head
     # We need to make the implicit transform explicit!
@@ -155,15 +102,12 @@ def _make_ctf_coord_trans_set(res4, coils):
                      if (kind in h_pts and kind in d_pts)]
         r_head = np.array([h_pts[kind] for kind in use_kinds])
         r_dev = np.array([d_pts[kind] for kind in use_kinds])
-        T2 = _quaternion_align(FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
-                               FIFF.FIFFV_MNE_COORD_CTF_HEAD, r_dev, r_head)
+        T2 = _quaternion_align('ctf_meg', 'ctf_head', r_dev, r_head)
 
     # The final missing transform
     if T3 is not None and T2 is not None:
-        T5 = combine_transforms(T2, T3, FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
-                                FIFF.FIFFV_COORD_HEAD)
-        T1 = combine_transforms(invert_transform(T4), T5,
-                                FIFF.FIFFV_COORD_DEVICE, FIFF.FIFFV_COORD_HEAD)
+        T5 = combine_transforms(T2, T3, 'ctf_meg', 'head')
+        T1 = combine_transforms(invert_transform(T4), T5, 'meg', 'head')
     s = dict(t_dev_head=T1, t_ctf_dev_ctf_head=T2, t_ctf_head_head=T3,
              t_ctf_dev_dev=T4, t_ctf_dev_head=T5)
     logger.info('    Coordinate transformations established.')
