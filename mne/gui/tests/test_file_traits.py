@@ -10,7 +10,7 @@ import pytest
 
 from mne.datasets import testing
 from mne.utils import (requires_mayavi, run_tests_if_main, traits_test,
-                       modified_env)
+                       modified_env, get_config)
 from mne.channels import read_dig_fif
 
 data_path = testing.data_path(download=False)
@@ -115,9 +115,12 @@ def test_subject_source_with_fsaverage(tmpdir):
     assert mri.can_create_fsaverage
     assert not op.isdir(op.join(tempdir, 'fsaverage'))
     # fake FREESURFER_HOME
+    orig_config = get_config('FREESURFER_HOME')
     with modified_env(FREESURFER_HOME=data_path):
         mri.create_fsaverage()
     assert op.isdir(op.join(tempdir, 'fsaverage'))
+    end_config = get_config('FREESURFER_HOME')
+    assert orig_config == end_config
 
 
 run_tests_if_main()

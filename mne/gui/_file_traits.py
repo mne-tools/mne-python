@@ -80,29 +80,6 @@ def _get_root_home(cfg, name, check_fun):
     return root
 
 
-def set_fs_home():
-    """Set the FREESURFER_HOME environment variable.
-
-    Returns
-    -------
-    success : bool
-        True if the environment variable could be set, False if FREESURFER_HOME
-        could not be found.
-
-    Notes
-    -----
-    If FREESURFER_HOME can't be found, the user is prompted with a file dialog.
-    If specified successfully, the resulting path is stored with
-    mne.set_config().
-    """
-    fs_home = get_fs_home()
-    if fs_home is None:
-        return False
-    else:
-        os.environ['FREESURFER_HOME'] = fs_home
-        return True
-
-
 def _fs_home_problem(fs_home):
     """Check FREESURFER_HOME path.
 
