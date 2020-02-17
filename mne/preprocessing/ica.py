@@ -2045,10 +2045,7 @@ def _write_ica(fid, ica):
                 'method': getattr(ica, 'method', None),
                 'n_iter_': getattr(ica, 'n_iter_', None)}
 
-    write_string(fid, FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS,
-                 _serialize(ica_init))
-
-    #   ICA misct params
+    #   ICA misc params
     write_string(fid, FIFF.FIFF_MNE_ICA_MISC_PARAMS,
                  _serialize(ica_misc))
 
