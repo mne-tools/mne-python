@@ -1607,9 +1607,18 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     chs = [info['chs'][pick] for pick in picks]
     if not _check_ch_locs(chs):
         raise RuntimeError('No valid channel positions found')
-    pos = np.array([apply_trans(info['dev_head_t'], ch['loc'][:3])
-                    if ch['coord_frame'] == FIFF.FIFFV_COORD_DEVICE else
-                    ch['loc'][:3] for ch in chs])
+    dev_head_t = info['dev_head_t']
+    pos = np.empty((len(chs), 3))
+    for ci, ch in enumerate(chs):
+        pos[ci] = ch['loc'][:3]
+        if ch['coord_frame'] == FIFF.FIFFV_COORD_DEVICE:
+            if dev_head_t is None:
+                warn('dev_head_t is None, transforming MEG sensors to head '
+                     'coordinate frame using identity transform')
+                dev_head_t = np.eye(4)
+            pos[ci] = apply_trans(dev_head_t, pos[ci])
+    del dev_head_t
+
     ch_names = np.array([ch['ch_name'] for ch in chs])
     bads = [idx for idx, name in enumerate(ch_names) if name in info['bads']]
     if ch_groups is None:
