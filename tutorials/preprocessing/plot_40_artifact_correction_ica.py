@@ -103,14 +103,6 @@ raw.crop(tmax=60.)
 # :class:`~mne.preprocessing.ICA` object's :meth:`~mne.preprocessing.ICA.apply`
 # method.
 #
-# .. sidebar:: Migrating from EEGLAB
-#
-#     If you have previously been using EEGLAB's ``runica()`` and are
-#     looking for the equivalent of its ``'pca', n`` option to reduce
-#     dimensionality via PCA before the ICA step, set ``max_pca_components=n``,
-#     while leaving ``n_components`` and ``n_pca_components`` at their default
-#     (i.e., ``None``).
-#
 # As is typically done with ICA, the data are first scaled to unit variance and
 # whitened using principal components analysis (PCA) before performing the ICA
 # decomposition. You can impose an optional dimensionality reduction at this
@@ -118,6 +110,14 @@ raw.crop(tmax=60.)
 # Components (PCs), the first ``n_components`` are then passed to the ICA
 # algorithm (``n_components`` may be an integer number of components to use, or
 # a fraction of explained variance that used components should capture).
+#
+# .. sidebar:: Migrating from EEGLAB
+#
+#     If you have previously been using EEGLAB's ``runica()`` and are
+#     looking for the equivalent of its ``'pca', n`` option to reduce
+#     dimensionality via PCA before the ICA step, set ``max_pca_components=n``,
+#     while leaving ``n_components`` and ``n_pca_components`` at their default
+#     (i.e., ``None``).
 #
 # After visualizing the Independent Components (ICs) and excluding any that
 # capture artifacts you want to repair, the sensor signal can be reconstructed
