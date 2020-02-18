@@ -25,11 +25,13 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     import pyvista
     from pyvista import (Plotter, BackgroundPlotter, PolyData,
-                         Line, close_all, UnstructuredGrid)
+                         Line, close_all, UnstructuredGrid,
+                         rcParams)
     from pyvista.utilities import try_callback
 
 
 _FIGURES = dict()
+rcParams["depth_peeling"]["enabled"] = False
 
 
 class _Figure(object):
@@ -143,13 +145,11 @@ class _Renderer(_BaseRenderer):
 
             self.plotter = self.figure.build()
             self.plotter.hide_axes()
-            self.plotter.disable_depth_peeling()
 
     def subplot(self, x, y):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             self.plotter.subplot(x, y)
-            self.plotter.disable_depth_peeling()
 
     def scene(self):
         return self.figure
