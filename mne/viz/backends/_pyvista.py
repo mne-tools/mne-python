@@ -140,16 +140,14 @@ class _Renderer(_BaseRenderer):
             warnings.filterwarnings("ignore", category=FutureWarning)
             if MNE_3D_BACKEND_TESTING:
                 self.figure.plotter_class = Plotter
-
-            self.plotter = self.figure.build()
+            with _disabled_depth_peeling():
+                self.plotter = self.figure.build()
             self.plotter.hide_axes()
-            self.plotter.disable_depth_peeling()
 
     def subplot(self, x, y):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             self.plotter.subplot(x, y)
-            self.plotter.disable_depth_peeling()
 
     def scene(self):
         return self.figure
@@ -629,3 +627,14 @@ def _testing_context(interactive):
     finally:
         pyvista.OFF_SCREEN = orig_offscreen
         renderer.MNE_3D_BACKEND_TESTING = orig_testing
+
+
+@contextmanager
+def _disabled_depth_peeling():
+    from pyvista import rcParams
+    depth_peeling_enabled = rcParams["depth_peeling"]["enabled"]
+    rcParams["depth_peeling"]["enabled"] = False
+    try:
+        yield
+    finally:
+        rcParams["depth_peeling"]["enabled"] = depth_peeling_enabled
