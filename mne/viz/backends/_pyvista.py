@@ -25,13 +25,11 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     import pyvista
     from pyvista import (Plotter, BackgroundPlotter, PolyData,
-                         Line, close_all, UnstructuredGrid,
-                         rcParams)
+                         Line, close_all, UnstructuredGrid)
     from pyvista.utilities import try_callback
 
 
 _FIGURES = dict()
-rcParams["depth_peeling"]["enabled"] = False
 
 
 class _Figure(object):
@@ -142,8 +140,8 @@ class _Renderer(_BaseRenderer):
             warnings.filterwarnings("ignore", category=FutureWarning)
             if MNE_3D_BACKEND_TESTING:
                 self.figure.plotter_class = Plotter
-
-            self.plotter = self.figure.build()
+            with _disabled_depth_peeling():
+                self.plotter = self.figure.build()
             self.plotter.hide_axes()
 
     def subplot(self, x, y):
@@ -629,3 +627,14 @@ def _testing_context(interactive):
     finally:
         pyvista.OFF_SCREEN = orig_offscreen
         renderer.MNE_3D_BACKEND_TESTING = orig_testing
+
+
+@contextmanager
+def _disabled_depth_peeling():
+    from pyvista import rcParams
+    old_params = rcParams
+    rcParams["depth_peeling"]["enabled"] = False
+    try:
+        yield
+    finally:
+        rcParams = old_params
