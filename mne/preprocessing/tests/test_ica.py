@@ -794,13 +794,39 @@ def test_ica_twice(method):
 
 
 @requires_sklearn
-@pytest.mark.parametrize("method", ["fastica", "picard"])
-def test_fit_params(method):
+@pytest.mark.parametrize("method", ["fastica", "picard", "infomax"])
+def test_fit_params(method, tmpdir):
     """Test fit_params for ICA."""
     _skip_check_picard(method)
     fit_params = {}
     ICA(fit_params=fit_params, method=method)  # test no side effects
-    assert_equal(fit_params, {})
+    assert fit_params == {}
+
+    # Test I/O roundtrip.
+    # Only picard and infomax support the "extended" keyword, so limit the
+    # tests to those.
+    if method in ['picard', 'infomax']:
+        tmpdir = str(tmpdir)
+        output_fname = op.join(tmpdir, 'test_ica-ica.fif')
+
+        raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
+        n_components = 3
+        max_iter = 1
+        fit_params = dict(extended=True)
+        ica = ICA(fit_params=fit_params, n_components=n_components,
+                  max_iter=max_iter, method=method)
+        fit_params_after_instantiation = ica.fit_params
+
+        if method == 'infomax':
+            ica.fit(raw)
+        else:
+            with pytest.warns(UserWarning, match='did not converge'):
+                ica.fit(raw)
+
+        ica.save(output_fname)
+        ica = read_ica(output_fname)
+
+        assert ica.fit_params == fit_params_after_instantiation
 
 
 @requires_sklearn

@@ -2043,12 +2043,10 @@ def _write_ica(fid, ica):
     ica_misc = {'n_samples_': (None if n_samples is None else int(n_samples)),
                 'labels_': getattr(ica, 'labels_', None),
                 'method': getattr(ica, 'method', None),
-                'n_iter_': getattr(ica, 'n_iter_', None)}
+                'n_iter_': getattr(ica, 'n_iter_', None),
+                'fit_params': getattr(ica, 'fit_params', None)}
 
-    write_string(fid, FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS,
-                 _serialize(ica_init))
-
-    #   ICA misct params
+    #   ICA misc params
     write_string(fid, FIFF.FIFF_MNE_ICA_MISC_PARAMS,
                  _serialize(ica_misc))
 
@@ -2184,6 +2182,8 @@ def read_ica(fname, verbose=None):
         ica.method = ica_misc['method']
     if 'n_iter_' in ica_misc:
         ica.n_iter_ = ica_misc['n_iter_']
+    if 'fit_params' in ica_misc:
+        ica.fit_params = ica_misc['fit_params']
 
     logger.info('Ready.')
 

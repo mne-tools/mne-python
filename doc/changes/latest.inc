@@ -246,6 +246,8 @@ Bug
 
 - Fix bug in reading annotations in :func:`read_annotations`, which would not accept ";" character by `Adam Li`_
 
+- Include ``fit_params`` when saving an :class:`~mne.preprocessing.ICA` instance to disk by `Richard Höchenberger`_
+
 API
 ~~~
 
