@@ -632,9 +632,9 @@ def _testing_context(interactive):
 @contextmanager
 def _disabled_depth_peeling():
     from pyvista import rcParams
-    old_params = rcParams
+    depth_peeling_enabled = rcParams["depth_peeling"]["enabled"]
     rcParams["depth_peeling"]["enabled"] = False
     try:
         yield
     finally:
-        rcParams = old_params
+        rcParams["depth_peeling"]["enabled"] = depth_peeling_enabled
