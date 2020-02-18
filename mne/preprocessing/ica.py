@@ -268,9 +268,9 @@ class ICA(ContainsMixin):
               interpolated channel) for optimal ICA performance (see the
               `EEGLAB wiki <eeglab_wiki_>`_).
 
-    For users coming from EEGLAB: A dimensionality reduction via PCA,
-    equivalent to ``runica(..., 'pca', n)``, can be achieved by passing
-    ``max_pca_components=n``, while leaving ``n_components`` and
+    If you are migrating from EEGLAB and intend to reduce dimensionality via
+    PCA, similarly to EEGLAB's ``runica(..., 'pca', n)`` functionality, simply
+    pass ``max_pca_components=n``, while leaving ``n_components`` and
     ``n_pca_components`` at their respective default values.
 
     Caveat! If supplying a noise covariance, keep track of the projections
