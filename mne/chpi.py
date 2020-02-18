@@ -763,7 +763,7 @@ def compute_head_pos(info, chpi_locs, dist_limit=0.005, gof_limit=0.98,
                      % (fit_time, ' '.join(map('{:8.5f}'.format, this_quat))))
 
         quats.append(np.concatenate(([fit_time], this_quat, [g],
-                                     [errs.mean() * 100], [v])))
+                                     [errs[use_idx].mean()], [v])))
         last['quat_fit_time'] = fit_time
         last['quat'] = this_quat
         last['coil_dev_rrs'] = this_coil_dev_rrs

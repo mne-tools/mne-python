@@ -120,12 +120,14 @@ def test_hpi_info(tmpdir):
         assert len(info['hpi_subsystem']) == len(raw.info['hpi_subsystem'])
 
 
-def _assert_quats(actual, desired, dist_tol=0.003, angle_tol=5.):
+def _assert_quats(actual, desired, dist_tol=0.003, angle_tol=5., err_rtol=0.5):
     """Compare estimated cHPI positions."""
     __tracebackhide__ = True
     trans_est, rot_est, t_est = head_pos_to_trans_rot_t(actual)
     trans, rot, t = head_pos_to_trans_rot_t(desired)
     quats_est = rot_to_quat(rot_est)
+    errs = desired[:, 8]
+    errs_est = actual[:, 8]
 
     # maxfilter produces some times that are implausibly large (weird)
     if not np.isclose(t[0], t_est[0], atol=1e-1):  # within 100 ms
@@ -136,6 +138,7 @@ def _assert_quats(actual, desired, dist_tol=0.003, angle_tol=5.):
     trans = trans[use_mask]
     quats = rot_to_quat(rot)
     quats = quats[use_mask]
+    errs = errs[use_mask]
 
     # double-check our angle function
     for q in (quats, quats_est):
@@ -159,6 +162,10 @@ def _assert_quats(actual, desired, dist_tol=0.003, angle_tol=5.):
     assert angles[arg_worst] <= angle_tol, (
         '@ %0.3f seconds: %0.3f > %0.3f deg'
         % (t[arg_worst], angles[arg_worst], angle_tol))
+
+    # Limit error calculation difference between our estimation and MF
+    errs_est_interp = interp1d(t_est, errs_est, axis=0)(t)
+    assert_allclose(errs_est_interp, errs, rtol=err_rtol, atol=1e-3)
 
 
 def _decimate_chpi(raw, decim=4):
@@ -253,8 +260,10 @@ def test_calculate_chpi_positions_artemis():
     """Test on 5k artemis data."""
     raw = read_raw_artemis123(art_fname, preload=True)
     mf_quats = read_head_pos(art_mc_fname)
+    mf_quats[:, 8] /= 100  # old code errantly had this factor
     py_quats = _calculate_chpi_positions(raw, t_step_min=2., verbose='debug')
-    _assert_quats(py_quats, mf_quats, dist_tol=0.001, angle_tol=1.)
+    _assert_quats(
+        py_quats, mf_quats, dist_tol=0.001, angle_tol=1., err_rtol=0.7)
 
 
 def test_initial_fit_redo():
@@ -521,7 +530,7 @@ def test_calculate_head_pos_ctf():
     raw = read_raw_ctf(ctf_chpi_fname)
     quats = calculate_head_pos_ctf(raw)
     mc_quats = read_head_pos(ctf_chpi_pos_fname)
-    _assert_quats(quats, mc_quats, dist_tol=0.004, angle_tol=2.5)
+    _assert_quats(quats, mc_quats, dist_tol=0.004, angle_tol=2.5, err_rtol=1.)
 
     raw = read_raw_fif(ctf_fname)
     with pytest.raises(RuntimeError, match='Could not find'):
