@@ -355,7 +355,7 @@ def test_to_data_frame():
     with pytest.raises(ValueError, match='"qux" is not a valid option'):
         ave.to_data_frame(index='qux')
     with pytest.raises(TypeError, match='index must be `None` or a string or'):
-        ave.to_data_frame(np.arange(400))
+        ave.to_data_frame(index=np.arange(400))
     # test setting index
     df = ave.to_data_frame(index='time')
     assert 'time' not in df.columns

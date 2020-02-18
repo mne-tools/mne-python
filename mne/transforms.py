@@ -14,12 +14,11 @@ import numpy as np
 from copy import deepcopy
 from scipy import linalg
 
-from .fixes import einsum, mean
+from .fixes import einsum, jit, mean
 from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
-from .fixes import jit
 from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
                     _check_path_like, get_subjects_dir, fill_doc, _check_fname)
 
@@ -1264,7 +1263,7 @@ def _angle_between_quats(x, y):
 
 def _quat_real(quat):
     """Get the real part of our 3-element quat."""
-    assert quat.shape[-1] == 3
+    assert quat.shape[-1] == 3, quat.shape[-1]
     return np.sqrt(np.maximum(1. -
                               quat[..., 0] * quat[..., 0] -
                               quat[..., 1] * quat[..., 1] -
@@ -1313,26 +1312,43 @@ def _find_vector_rotation(a, b):
 
 
 @jit()
-def _fit_matched_points(p, x):
+def _fit_matched_points(p, x, weights=None, scale=False):
     """Fit matched points using an analytical formula."""
     # Follow notation of P.J. Besl and N.D. McKay, A Method for
     # Registration of 3-D Shapes, IEEE Trans. Patt. Anal. Machine Intell., 14,
     # 239 - 255, 1992.
     #
+    # The original method is actually by Horn, Closed-form solution of absolute
+    # orientation using unit quaternions, J Opt. Soc. Amer. A vol 4 no 4
+    # pp 629-642, Apr. 1987. This paper describes how weights can be
+    # easily incorporated, and a uniform scale factor can be computed.
+    #
     # Caution: This can be dangerous if there are 3 points, or 4 points in
     #          a symmetric layout, as the geometry can be explained
     #          equivalently under 180 degree rotations.
     #
-    # XXX eventually we should use this in coreg to speed things up.
+    # Eventually this can be extended to also handle a uniform scale factor,
+    # as well.
     assert p.shape == x.shape
     assert p.ndim == 2
     assert p.shape[1] == 3
-    mu_p = mean(p, axis=0)  # eq 23
-    mu_x = mean(x, axis=0)
-    Sigma_px = np.dot(p.T, x) / p.shape[0] - np.outer(mu_p, mu_x)  # eq 24
+    # (weighted) centroids
+    if weights is None:
+        mu_p = mean(p, axis=0)  # eq 23
+        mu_x = mean(x, axis=0)
+        dots = np.dot(p.T, x)
+        dots /= p.shape[0]
+    else:
+        weights_ = np.reshape(weights / weights.sum(), (weights.size, 1))
+        mu_p = np.dot(weights_.T, p)[0]
+        mu_x = np.dot(weights_.T, x)[0]
+        dots = np.dot(p.T, weights_ * x)
+    Sigma_px = dots - np.outer(mu_p, mu_x)  # eq 24
+    # x and p should no longer be used
     A_ij = Sigma_px - Sigma_px.T
     Delta = np.array([A_ij[1, 2], A_ij[2, 0], A_ij[0, 1]])
     tr_Sigma_px = np.trace(Sigma_px)
+    # "N" in Horn:
     Q = np.empty((4, 4))
     Q[0, 0] = tr_Sigma_px
     Q[0, 1:] = Delta
@@ -1343,8 +1359,22 @@ def _fit_matched_points(p, x):
     quat[:3] = v[1:, -1]
     if v[0, -1] != 0:
         quat[:3] *= np.sign(v[0, -1])
-    quat[3:] = mu_x - np.dot(quat_to_rot(quat[:3]), mu_p)
-    return quat
+    rot = quat_to_rot(quat[:3])
+    # scale factor is easy once we know the rotation
+    if scale:  # p is "right" (from), x is "left" (to) in Horn 1987
+        dev_x = x - mu_x
+        dev_p = p - mu_p
+        dev_x *= dev_x
+        dev_p *= dev_p
+        if weights is not None:
+            dev_x *= weights_
+            dev_p *= weights_
+        s = np.sqrt(np.sum(dev_x) / np.sum(dev_p))
+    else:
+        s = 1.
+    # translation is easy once rotation and scale are known
+    quat[3:] = mu_x - s * np.dot(rot, mu_p)
+    return quat, s
 
 
 def _average_quats(quats, weights=None):
@@ -1454,3 +1484,35 @@ def _write_fs_xfm(fname, xfm, kind):
             line = ' '.join(['%0.6f' % l for l in line])
             line += '\n' if li < 2 else ';\n'
             fid.write(line.encode('ascii'))
+
+
+def _quat_to_euler(quat):
+    euler = np.empty(quat.shape)
+    x, y, z = quat[..., 0], quat[..., 1], quat[..., 2]
+    w = _quat_real(quat)
+    np.arctan2(2 * (w * x + y * z), 1 - 2 * (x * x + y * y), out=euler[..., 0])
+    np.arcsin(2 * (w * y - x * z), out=euler[..., 1])
+    np.arctan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z), out=euler[..., 2])
+    return euler
+
+
+def _euler_to_quat(euler):
+    quat = np.empty(euler.shape)
+    phi, theta, psi = euler[..., 0] / 2, euler[..., 1] / 2, euler[..., 2] / 2
+    cphi, sphi = np.cos(phi), np.sin(phi)
+    del phi
+    ctheta, stheta = np.cos(theta), np.sin(theta)
+    del theta
+    cpsi, spsi = np.cos(psi), np.sin(psi)
+    del psi
+    mult = np.sign(cphi * ctheta * cpsi + sphi * stheta * spsi)
+    if np.isscalar(mult):
+        mult = 1. if mult == 0 else mult
+    else:
+        mult[mult == 0] = 1.
+    mult = mult[..., np.newaxis]
+    quat[..., 0] = sphi * ctheta * cpsi - cphi * stheta * spsi
+    quat[..., 1] = cphi * stheta * cpsi + sphi * ctheta * spsi
+    quat[..., 2] = cphi * ctheta * spsi - sphi * stheta * cpsi
+    quat *= mult
+    return quat

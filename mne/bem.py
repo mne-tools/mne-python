@@ -31,7 +31,7 @@ from .surface import (read_surface, write_surface, complete_surface_info,
                       _fast_cross_nd_sum, _get_solids)
 from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
-                    _pl, _validate_type, _TempDir, get_config)
+                    _pl, _validate_type, _TempDir, _check_freesurfer_home)
 from .fixes import einsum
 
 
@@ -1580,10 +1580,8 @@ def write_bem_solution(fname, bem):
 def _prepare_env(subject, subjects_dir):
     """Prepare an env object for subprocess calls."""
     env = os.environ.copy()
-    fs_home = get_config('FREESURFER_HOME')
-    if fs_home is None:
-        raise RuntimeError('I cannot find freesurfer. The FREESURFER_HOME '
-                           'environment variable is not set.')
+
+    fs_home = _check_freesurfer_home()
 
     _validate_type(subject, "str")
 

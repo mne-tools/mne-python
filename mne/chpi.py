@@ -400,7 +400,9 @@ def _fit_chpi_quat(coil_dev_rrs, coil_head_rrs):
     denom = np.linalg.norm(coil_head_rrs - np.mean(coil_head_rrs, axis=0))
     denom *= denom
     # We could try to solve it the analytic way:
-    quat = _fit_matched_points(coil_dev_rrs, coil_head_rrs)
+    # XXX someday we could choose to weight these points by their goodness
+    # of fit somehow.
+    quat = _fit_matched_points(coil_dev_rrs, coil_head_rrs)[0]
     gof = 1. - _chpi_objective(quat, coil_dev_rrs, coil_head_rrs) / denom
     return quat, gof
 

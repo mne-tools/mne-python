@@ -365,17 +365,18 @@ for name, arr in dict(EOG=eog_data, MEG=meg_data, Slice=channel_4_6_8).items():
 # subsetting the :class:`~mne.Epochs` object first.
 #
 # You can also export :class:`~mne.Epochs` data to :class:`Pandas DataFrames
-# <pandas.DataFrame>`. The :class:`~pandas.DataFrame` index will be constructed
-# by converting the time of each sample into milliseconds and rounding it to
-# the nearest integer, and combining it with the event types and epoch numbers
-# to form a hierarchical :class:`~pandas.MultiIndex`. Each channel will appear
-# in a separate column. Then you can use any of Pandas' tools for grouping and
-# aggregating data; for example, here we select any epochs numbered 10 or less
-# from the ``auditory/left`` condition, and extract times between 100 and 107
-# ms on channels ``EEG 056`` through ``EEG 058`` (note that slice indexing
-# within Pandas' :obj:`~pandas.DataFrame.loc` is inclusive of the endpoint):
+# <pandas.DataFrame>`. Here, the :class:`~pandas.DataFrame` index will be
+# constructed by converting the time of each sample into milliseconds and
+# rounding it to the nearest integer, and combining it with the event types and
+# epoch numbers to form a hierarchical :class:`~pandas.MultiIndex`. Each
+# channel will appear in a separate column. Then you can use any of Pandas'
+# tools for grouping and aggregating data; for example, here we select any
+# epochs numbered 10 or less from the ``auditory/left`` condition, and extract
+# times between 100 and 107 ms on channels ``EEG 056`` through ``EEG 058``
+# (note that slice indexing within Pandas' :obj:`~pandas.DataFrame.loc` is
+# inclusive of the endpoint):
 
-df = epochs.to_data_frame()
+df = epochs.to_data_frame(index=['condition', 'epoch', 'time'])
 df.sort_index(inplace=True)
 print(df.loc[('auditory/left', slice(0, 10), slice(100, 107)),
              'EEG 056':'EEG 058'])
@@ -383,6 +384,10 @@ print(df.loc[('auditory/left', slice(0, 10), slice(100, 107)),
 del df
 
 ###############################################################################
+# See the :ref:`tut-epochs-dataframe` tutorial for many more examples of the
+# :meth:`~mne.Epochs.to_data_frame` method.
+#
+#
 # Loading and saving ``Epochs`` objects to disk
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #

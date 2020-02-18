@@ -29,7 +29,7 @@ from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       apply_inverse_raw, apply_inverse_epochs,
                                       make_inverse_operator,
                                       write_inverse_operator,
-                                      compute_rank_inverse,
+                                      compute_rank_inverse, INVERSE_METHODS,
                                       prepare_inverse_operator)
 from mne.utils import _TempDir, run_tests_if_main, catch_logging
 
@@ -320,7 +320,7 @@ def test_localization_bias_fixed(bias_params_fixed, method, lower, upper,
 
 
 @pytest.mark.parametrize('method, lower, upper, depth', [
-    ('MNE', 32, 35, dict(limit=None, combine_xyz=False, exp=1.)),  # DICS def
+    ('MNE', 32, 36, dict(limit=None, combine_xyz=False, exp=1.)),  # DICS def
     ('MNE', 78, 81, 0.8),  # MNE default
     ('MNE', 89, 92, dict(limit_depth_chs='whiten')),  # sparse default
     ('dSPM', 85, 87, 0.8),
@@ -442,13 +442,14 @@ def test_apply_inverse_operator(evoked):
 
     # test without using a label (so delayed computation is used)
     label = read_label(fname_label % 'Aud-lh')
-    stc = apply_inverse(evoked, inv_op, lambda2, "MNE")
-    stc_label = apply_inverse(evoked, inv_op, lambda2, "MNE",
-                              label=label)
-    assert_equal(stc_label.subject, 'sample')
-    label_stc = stc.in_label(label)
-    assert label_stc.subject == 'sample'
-    assert_allclose(stc_label.data, label_stc.data)
+    for method in INVERSE_METHODS:
+        stc = apply_inverse(evoked, inv_op, lambda2, method)
+        stc_label = apply_inverse(evoked, inv_op, lambda2, method,
+                                  label=label)
+        assert_equal(stc_label.subject, 'sample')
+        label_stc = stc.in_label(label)
+        assert label_stc.subject == 'sample'
+        assert_allclose(stc_label.data, label_stc.data)
 
     # Test that no errors are raised with loose inverse ops and picking normals
     noise_cov = read_cov(fname_cov)
