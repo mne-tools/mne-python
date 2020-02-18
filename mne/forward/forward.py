@@ -39,6 +39,7 @@ from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi, _set_source_space_vertices,
                             _write_source_spaces_to_fid)
 from ..source_estimate import _BaseSourceEstimate
+from ..surface import _normal_orth
 from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
@@ -692,20 +693,19 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         pp = 0
         for s in fwd['src']:
             if s['type'] in ['surf', 'discrete']:
-                for p in range(s['nuse']):
-                    #  Project out the surface normal and compute SVD
-                    if use_ave_nn and s.get('patch_inds') is not None:
-                        nn = s['nn'][s['pinfo'][s['patch_inds'][p]], :]
-                        nn = np.sum(nn, axis=0)[:, np.newaxis]
-                        nn /= linalg.norm(nn)
-                    else:
-                        nn = s['nn'][s['vertno'][p], :][:, np.newaxis]
-                    U, S, _ = linalg.svd(np.eye(3, 3) - nn * nn.T)
-                    #  Make sure that ez is in the direction of nn
-                    if np.sum(nn.ravel() * U[:, 2].ravel()) < 0:
-                        U *= -1.0
-                    fwd['source_nn'][pp:pp + 3, :] = U.T
-                    pp += 3
+                if use_ave_nn and s.get('patch_inds') is not None:
+                    nn = np.empty((s['nuse'], 3))
+                    for p in range(s['nuse']):
+                        #  Project out the surface normal and compute SVD
+                        nn[p] = np.sum(
+                            s['nn'][s['pinfo'][s['patch_inds'][p]], :], axis=0)
+                    nn /= linalg.norm(nn, axis=-1, keepdims=True)
+                else:
+                    nn = s['nn'][s['vertno'], :]
+                stop = pp + 3 * s['nuse']
+                fwd['source_nn'][pp:stop] = _normal_orth(nn).reshape(-1, 3)
+                pp = stop
+                del nn
             else:
                 pp += 3 * s['nuse']
 

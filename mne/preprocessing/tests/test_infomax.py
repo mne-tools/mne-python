@@ -4,6 +4,8 @@
 
 # Parts of this code are taken from scikit-learn
 
+import pytest
+
 import numpy as np
 from numpy.testing import assert_almost_equal
 
@@ -176,6 +178,21 @@ def test_non_square_infomax():
         if not add_noise:
             assert_almost_equal(np.dot(s1_, s1) / n_samples, 1, decimal=2)
             assert_almost_equal(np.dot(s2_, s2) / n_samples, 1, decimal=2)
+
+
+@pytest.mark.parametrize("return_n_iter", [True, False])
+def test_infomax_n_iter(return_n_iter):
+    """Test the return_n_iter kwarg."""
+    X = np.random.random((3, 100))
+    max_iter = 1
+    r = infomax(X, max_iter=max_iter, extended=True,
+                return_n_iter=return_n_iter)
+
+    if return_n_iter:
+        assert isinstance(r, tuple)
+        assert r[1] == max_iter
+    else:
+        assert isinstance(r, np.ndarray)
 
 
 def _get_pca(rng=None):

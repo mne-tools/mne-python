@@ -65,8 +65,8 @@ def prox_l21(Y, alpha, n_orient, shape=None, is_stft=False):
     active_set : array of bool, shape (n_sources, )
         Mask of active sources
 
-    Example
-    -------
+    Examples
+    --------
     >>> Y = np.tile(np.array([0, 4, 3, 0, 0], dtype=np.float), (2, 1))
     >>> Y = np.r_[Y, np.zeros_like(Y)]
     >>> print(Y)  # doctest:+SKIP
@@ -139,8 +139,8 @@ def prox_l1(Y, alpha, n_orient):
        Neuroimage, Volume 70, pp. 410-422, 15 April 2013.
        DOI: 10.1016/j.neuroimage.2012.12.051
 
-    Example
-    -------
+    Examples
+    --------
     >>> Y = np.tile(np.array([1, 2, 3, 2, 0], dtype=np.float), (2, 1))
     >>> Y = np.r_[Y, np.zeros_like(Y)]
     >>> print(Y)  # doctest:+SKIP

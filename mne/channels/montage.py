@@ -24,7 +24,8 @@ from ..defaults import HEAD_SIZE_DEFAULT
 from ..viz import plot_montage
 from ..transforms import (apply_trans, get_ras_to_neuromag_trans, _sph_to_cart,
                           _topo_to_sph, _frame_to_str, Transform,
-                          _verbose_frames)
+                          _verbose_frames, _fit_matched_points,
+                          _quat_to_affine)
 from ..io._digitization import (_count_points_by_type,
                                 _get_dig_eeg, _make_dig_points, write_dig,
                                 _read_dig_fif, _format_dig_points,
@@ -943,7 +944,7 @@ def read_polhemus_fastscan(fname, unit='mm'):
     return points
 
 
-def _read_eeglab_locations(fname, unit):
+def _read_eeglab_locations(fname):
     ch_names = np.genfromtxt(fname, dtype=str, usecols=3).tolist()
     topo = np.loadtxt(fname, dtype=float, usecols=[1, 2])
     sph = _topo_to_sph(topo)
@@ -953,8 +954,7 @@ def _read_eeglab_locations(fname, unit):
     return ch_names, pos
 
 
-def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m',
-                        coord_frame=None):
+def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
     """Read a montage from a file.
 
     Parameters
@@ -963,12 +963,11 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m',
         File extension is expected to be:
         '.loc' or '.locs' or '.eloc' (for EEGLAB files),
         '.sfp' (BESA/EGI files), '.csd',
-        ‘.elc’, ‘.txt’, ‘.csd’, ‘.elp’ (BESA spherical),
-        .bvef (BrainVision files).
-
+        '.elc', '.txt', '.csd', '.elp' (BESA spherical),
+        '.bvef' (BrainVision files).
     head_size : float | None
-        The size of the head in [m]. If none, returns the values read from the
-        file with no modification. Defaults to 95mm.
+        The size of the head in meters. If `None`, returns the values read from
+        the montage file with no modification. Defaults to 0.095m.
     coord_frame : str | None
         The coordinate frame of the points. Usually this is "unknown"
         for native digitizer space. Defaults to None, which is "unknown" for
@@ -1018,7 +1017,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m',
         if head_size is None:
             raise ValueError(
                 "``head_size`` cannot be None for '{}'".format(ext))
-        ch_names, pos = _read_eeglab_locations(fname, unit)
+        ch_names, pos = _read_eeglab_locations(fname)
         scale = head_size / np.median(np.linalg.norm(pos, axis=-1))
         pos *= scale
 
@@ -1047,7 +1046,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, unit='m',
         montage = _read_elp_besa(fname, head_size)
 
     elif ext in SUPPORTED_FILE_EXT['brainvision']:
-        montage = _read_brainvision(fname, head_size, unit)
+        montage = _read_brainvision(fname, head_size)
 
     if coord_frame is not None:
         coord_frame = _coord_frame_const(coord_frame)
@@ -1072,19 +1071,19 @@ def compute_dev_head_t(montage):
     dev_head_t : instance of Transform
         A Device-to-Head transformation matrix.
     """
-    from ..coreg import fit_matched_points
-
     _, coord_frame = _get_fid_coords(montage.dig)
     if coord_frame != FIFF.FIFFV_COORD_HEAD:
         raise ValueError('montage should have been set to head coordinate '
                          'system with transform_to_head function.')
 
-    hpi_head = [d['r'] for d in montage.dig
-                if (d['kind'] == FIFF.FIFFV_POINT_HPI and
-                    d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)]
-    hpi_dev = [d['r'] for d in montage.dig
-               if (d['kind'] == FIFF.FIFFV_POINT_HPI and
-                   d['coord_frame'] == FIFF.FIFFV_COORD_DEVICE)]
+    hpi_head = np.array(
+        [d['r'] for d in montage.dig
+         if (d['kind'] == FIFF.FIFFV_POINT_HPI and
+             d['coord_frame'] == FIFF.FIFFV_COORD_HEAD)], float)
+    hpi_dev = np.array(
+        [d['r'] for d in montage.dig
+         if (d['kind'] == FIFF.FIFFV_POINT_HPI and
+         d['coord_frame'] == FIFF.FIFFV_COORD_DEVICE)], float)
 
     if not (len(hpi_head) == len(hpi_dev) and len(hpi_dev) > 0):
         raise ValueError((
@@ -1093,7 +1092,7 @@ def compute_dev_head_t(montage):
             " points in device and {head} points in head coordinate systems)"
         ).format(dev=len(hpi_dev), head=len(hpi_head)))
 
-    trans = fit_matched_points(tgt_pts=hpi_head, src_pts=hpi_dev, out='trans')
+    trans = _quat_to_affine(_fit_matched_points(hpi_dev, hpi_head)[0])
     return Transform(fro='meg', to='head', trans=trans)
 
 

@@ -44,15 +44,16 @@ short_words = epochs[name + " < " + median_value]
 
 time_windows = ((.2, .25), (.35, .45))
 elecs = ["Fz", "Cz", "Pz"]
+index = ['condition', 'epoch', 'time']
 
 # display the EEG data in Pandas format (first 5 rows)
-print(epochs.to_data_frame()[elecs].head())
+print(epochs.to_data_frame(index=index)[elecs].head())
 
 report = "{elec}, time: {tmin}-{tmax} s; t({df})={t_val:.3f}, p={p:.3f}"
 print("\nTargeted statistical test results:")
 for (tmin, tmax) in time_windows:
-    long_df = long_words.copy().crop(tmin, tmax).to_data_frame()
-    short_df = short_words.copy().crop(tmin, tmax).to_data_frame()
+    long_df = long_words.copy().crop(tmin, tmax).to_data_frame(index=index)
+    short_df = short_words.copy().crop(tmin, tmax).to_data_frame(index=index)
     for elec in elecs:
         # extract data
         A = long_df[elec].groupby("condition").mean()

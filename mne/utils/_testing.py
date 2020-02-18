@@ -155,8 +155,25 @@ requires_pylsl = partial(requires_module, name='pylsl')
 requires_sklearn = partial(requires_module, name='sklearn', call=_sklearn_call)
 requires_mayavi = partial(requires_module, name='mayavi', call=_mayavi_call)
 requires_mne = partial(requires_module, name='MNE-C', call=_mne_call)
-requires_freesurfer = partial(requires_module, name='Freesurfer',
-                              call=_fs_call)
+
+
+def requires_freesurfer(arg):
+    """Require Freesurfer."""
+    if isinstance(arg, str):
+        # Calling as  @requires_freesurfer('progname'): return decorator
+        # after checking for progname existence
+        call = """
+from . import run_subprocess
+run_subprocess([%r, '--version'])
+""" % (arg,)
+        return partial(
+            requires_module, name='Freesurfer (%s)' % (arg,), call=call)
+    else:
+        # Calling directly as @requires_freesurfer: return decorated function
+        # and just check env var existence
+        return requires_module(arg, name='Freesurfer', call=_fs_call)
+
+
 requires_neuromag2ft = partial(requires_module, name='neuromag2ft',
                                call=_n2ft_call)
 

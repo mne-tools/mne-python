@@ -154,6 +154,8 @@ jobs:
     displayName: 'Install MNE-Python dev'
   - script: mne sys_info
     displayName: 'Print config and test access to commands'
+  - script: python -c "import numpy; numpy.show_config()"
+    displayName: Print NumPy config
   - script: python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
     displayName: 'Get test data'
   - script: pytest -m "not ultraslowtest" --tb=short --cov=mne mne

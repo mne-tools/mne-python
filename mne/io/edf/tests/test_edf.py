@@ -197,18 +197,18 @@ def test_find_events_backward_compatibility():
 @pytest.mark.parametrize('fname', [edf_path, bdf_path])
 def test_to_data_frame(fname):
     """Test EDF/BDF Raw Pandas exporter."""
-    ext = op.splitext(fname)[1][1:].lower()
+    ext = op.splitext(fname)[1].lstrip('.').lower()
     if ext == 'edf':
         raw = read_raw_edf(fname, preload=True, verbose='error')
     elif ext == 'bdf':
         raw = read_raw_bdf(fname, preload=True, verbose='error')
     _, times = raw[0, :10]
-    df = raw.to_data_frame()
+    df = raw.to_data_frame(index='time')
     assert (df.columns == raw.ch_names).all()
     assert_array_equal(np.round(times * 1e3), df.index.values[:10])
     df = raw.to_data_frame(index=None, scalings={'eeg': 1e13})
-    assert 'time' in df.index.names
-    assert_array_equal(df.values[:, 0], raw._data[0] * 1e13)
+    assert 'time' in df.columns
+    assert_array_equal(df.values[:, 1], raw._data[0] * 1e13)
 
 
 def test_read_raw_edf_stim_channel_input_parameters():

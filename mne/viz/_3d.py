@@ -2245,7 +2245,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     return fig
 
 
-@fill_doc
+@verbose
 def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  time_label='auto', smoothing_steps=10,
                                  transparent=None, brain_alpha=0.4,
@@ -2255,7 +2255,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  colorbar=True, clim='auto', cortex='classic',
                                  size=800, background='black',
                                  foreground='white', initial_time=None,
-                                 time_unit='s', glyph='arrow2d'):
+                                 time_unit='s', glyph='arrow2d', verbose=None):
     """Plot VectorSourceEstimate with PySurfer.
 
     A "glass brain" is drawn and all dipoles defined in the source estimate
@@ -2330,6 +2330,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         The type of glyphs to use. If 'arrow2d', the glyphs belong to a plan
         and if 'arrow3d', the glyphs are composite 3d objects (cone +
         cylinder).
+    %(verbose)s
 
     Returns
     -------

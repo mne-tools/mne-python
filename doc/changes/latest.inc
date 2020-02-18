@@ -21,7 +21,9 @@ Changelog
 
 - Add current source density :func:`mne.preprocessing.compute_current_source_density` to compute the surface Laplacian in order to reduce volume conduction in data by `Alex Rockhill`_
 
-- Add :func:`mne.chpi.calculate_head_pos_ctf` by `Luke Bloy`_
+- Add :func:`mne.chpi.extract_chpi_locs_ctf` to extract cHPI coil locations from CTF data  by `Luke Bloy`_
+
+- Add :func:`mne.chpi.compute_chpi_amplitudes`, :func:`mne.chpi.compute_chpi_locs`, and :func:`mne.chpi.compute_head_pos` to compute head positions from cHPI coil locations by `Eric Larson`_ and `Luke Bloy`_
 
 - Add :func:`mne.io.Raw.set_meas_date` by `Eric Larson`_
 
@@ -75,6 +77,8 @@ Changelog
 
 - Add support for ``reduce_rank=True`` for vector beamformers by `Eric Larson`_
 
+- Add ``method='sphere'`` support for using Freesurfer spherical inflation in :func:`mne.decimate_surface` to facilitate mesh downsampling for use with :func:`mne.make_bem_model` by `Eric Larson`_
+
 - Speed up :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.make_dics` calculations by vectorizing linear algebra calls by `Dmitrii Altukhov`_ and `Eric Larson`_
 
 - Speed up :func:`mne.make_forward_solution` using Numba, by `Eric Larson`_
@@ -97,6 +101,8 @@ Changelog
 
 - Allow `mne.channels.read_custom_montage` to handle fiducial points for BESA spherical (``.elp``) files by `Richard Höchenberger`_
 
+- Add ``rank`` argument to :func:`mne.fit_dipole` by `Eric Larson`_
+
 - Add function to convert events to annotations :func:`mne.annotations_from_events` by `Nicolas Barascud`_
 
 - Add function to calculate scalp coupling index for fNIRS data :func:`mne.preprocessing.nirs.scalp_coupling_index` by `Robert Luke`_
@@ -113,12 +119,18 @@ Changelog
 
 - Make selected channels more distinguishable in :meth:`mne.Epochs.plot_sensors` when using ``kind='select'`` by `Mikołaj Magnuski`_
 
+- Allow retrieval of the number of Infomax ICA iterations via the new ``return_n_iter`` keyword argument of :func:`mne.preprocessing.infomax` by `Richard Höchenberger`_
+
 Bug
 ~~~
 
 - Fix a bug in :meth:`mne.MixedSourceEstimate.plot_surface` that prevented plotting in latest PySurfer by `Christian O'Reilly`_.
 
+- Fix bug in ``method='eLORETA'`` for :func:`mne.minimum_norm.apply_inverse` (and variants) to allow restricting source estimation to a label by `Luke Bloy`_
+
 - Fix missing xlabel for :func:`mne.io.Raw.plot_psd` and similar functions when passing a subset of axes from a figure by `Alex Gramfort`_
+
+- Fix wrong DataFrame index when ``index=None`` in methods :meth:`mne.io.Raw.to_data_frame`, :meth:`mne.Epochs.to_data_frame`, :meth:`mne.Evoked.to_data_frame`, and :meth:`mne.SourceEstimate.to_data_frame`, by `Daniel McCloy`_.
 
 - Fix incorrect scaling of cluster temporal extent in :func:`mne.stats.summarize_clusters_stc` by `Daniel McCloy`_.
 
@@ -224,12 +236,20 @@ Bug
 
 - Fix the way planar gradiometers are combined in :func:`mne.viz.plot_tfr_topomap` and :meth:`mne.Epochs.plot_psd_topomap` by `Geoff Brookshire`_
 
+- Improve error message when trying to load FieldTrip data from a cell array by `Thomas Hartmann`_
+
+- Fix bug in :func:`mne.read_evoked_fieldtrip` causing it to crash when channels were present in the provided Info object but were not present in the data by `Thomas Hartmann`_
+
 - Fix placement of extrapolation points in :meth:`mne.Evoked.plot_topomap` and related functions when exactly three channels were used by `Mikołaj Magnuski`_.
+
+- Fix bug in reading annotations in :func:`read_annotations`, which would not accept ";" character by `Adam Li`_
 
 API
 ~~~
 
 - :meth:`mne.Epochs.plot` now accepts an ``event_id`` parameter (useful in tandem with ``event_colors`` for specifying event colors by name) by `Daniel McCloy`_.
+
+- New time conversion options for methods :meth:`mne.io.Raw.to_data_frame`, :meth:`mne.Epochs.to_data_frame`, :meth:`mne.Evoked.to_data_frame`, and :meth:`mne.SourceEstimate.to_data_frame`, by `Daniel McCloy`_.
 
 - :meth:`mne.Epochs.shift_time` and :meth:`mne.Evoked.shift_time` now allow shifting times by arbitrary amounts (previously only by integer multiples of the sampling period), by `Daniel McCloy`_ and `Eric Larson`_.
 
@@ -262,3 +282,5 @@ API
 - New attributes ``mne.Forward.ch_names`` and ``mne.Info.ch_names`` by `Marijn van Vliet`_
 
 - In :class:`~mne.preprocessing.Xdawn`, the components are stored in the rows of attributes ``filters_`` and ``patterns_`` to be consistent with :class:`~mne.decoding.CSP` and :class:`~mne.preprocessing.ICA` by `Henrich Kolkhorst`_
+
+- Drop ``unit`` keyword argument from :func:`mne.channels.read_custom_montage`, as it was unused by `Richard Höchenberger`_

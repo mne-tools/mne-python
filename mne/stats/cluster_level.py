@@ -1420,7 +1420,8 @@ def spatio_temporal_cluster_test(
         See permutation_cluster_test.
     stat_fun : callable | None
         Function called to calculate statistics, must accept 1d-arrays as
-        arguments (default None uses :func:`mne.stats.f_oneway`).
+        arguments (default None uses :func:`mne.stats.f_oneway`). It
+        should also return a 1-d array.
     connectivity : scipy.sparse.spmatrix or None
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.

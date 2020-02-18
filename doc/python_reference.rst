@@ -99,7 +99,6 @@ File I/O
 .. autosummary::
    :toctree: generated
 
-   decimate_surface
    channel_type
    channel_indices_by_type
    get_head_surf
@@ -425,7 +424,10 @@ EEG referencing:
 .. autosummary::
    :toctree: generated/
 
-   calculate_head_pos_ctf
+   compute_chpi_amplitudes
+   compute_chpi_locs
+   compute_head_pos
+   extract_chpi_locs_ctf
    filter_chpi
    head_pos_to_trans_rot_t
    read_head_pos
@@ -588,6 +590,7 @@ Forward Modeling
    apply_forward_raw
    average_forward_solutions
    convert_forward_solution
+   decimate_surface
    dig_mri_distances
    forward.compute_depth_prior
    forward.compute_orient_prior

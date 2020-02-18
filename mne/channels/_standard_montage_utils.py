@@ -294,14 +294,12 @@ def _read_elp_besa(fname, head_size):
     return make_dig_montage(ch_pos=ch_pos, nasion=nasion, lpa=lpa, rpa=rpa)
 
 
-def _read_brainvision(fname, head_size, unit):
+def _read_brainvision(fname, head_size):
     # 'BrainVision Electrodes File' format
     # Based on BrainVision Analyzer coordinate system: Defined between
     # standard electrode positions: X-axis from T7 to T8, Y-axis from Oz to
     # Fpz, Z-axis orthogonal from XY-plane through Cz, fit to a sphere if
     # idealized (when radius=1), specified in millimeters
-    if unit not in ['auto', 'mm']:
-        raise ValueError('`unit` must be "auto" or "mm" for .bvef files.')
     root = ElementTree.parse(fname).getroot()
     ch_names = [s.text for s in root.findall("./Electrode/Name")]
     theta = [float(s.text) for s in root.findall("./Electrode/Theta")]

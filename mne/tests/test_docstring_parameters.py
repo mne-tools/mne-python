@@ -68,6 +68,7 @@ docstring_ignores = {
 char_limit = 800  # XX eventually we should probably get this lower
 tab_ignores = [
     'mne.channels.tests.test_montage',
+    'mne.io.curry.tests.test_curry',
 ]
 error_ignores = {
     # These we do not live by:
@@ -143,8 +144,9 @@ def test_docstring_parameters():
             for method_name in cdoc.methods:
                 method = getattr(cls, method_name)
                 incorrect += check_parameters_match(method, cls=cls)
-            if hasattr(cls, '__call__'):
-                incorrect += check_parameters_match(cls.__call__)
+            if hasattr(cls, '__call__') and \
+                    'of type object' not in str(cls.__call__):
+                incorrect += check_parameters_match(cls.__call__, cls)
         functions = inspect.getmembers(module, inspect.isfunction)
         for fname, func in functions:
             if fname.startswith('_'):
@@ -246,6 +248,7 @@ read_fiducials
 read_tag
 requires_sample_data
 rescale
+setup_proj
 source_estimate_quantification
 whiten_evoked
 write_fiducials

@@ -56,8 +56,8 @@ general neuroimaging concepts. If you think a term is missing, please consider
 
     dSPM
         Dynamic statistical parametric mapping (abbr. ``dSPM``) gives a noise-
-        normalized minimum-norm estimate at a given source location. dSPM is 
-        calculated by dividing the activity estimate at each source location by 
+        normalized minimum-norm estimate at a given source location. dSPM is
+        calculated by dividing the activity estimate at each source location by
         the baseline standard deviation of the noise.
 
     eLORETA and sLORETA
@@ -143,7 +143,7 @@ general neuroimaging concepts. If you think a term is missing, please consider
         and can be used to infer the head position. With cHPI, the sinusoidal
         signals are typically set at frequencies above any neural signal of
         interest, and thus can be removed after head position correction via
-        low-pass filtering. See :ref:`example-head-pos`.
+        low-pass filtering. See :ref:`tut-head-pos`.
 
     info
         Also called ``measurement info``, it is a collection of metadata regarding

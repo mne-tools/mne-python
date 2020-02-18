@@ -14,7 +14,6 @@ from ..base import BaseRaw
 from ..meas_info import _empty_info
 from .._digitization import _make_dig_points, DigPoint
 from ..constants import FIFF
-from ...chpi import _fit_device_hpi_positions, _fit_coil_order_dev_head_trans
 from ...transforms import get_ras_to_neuromag_trans, apply_trans, Transform
 
 
@@ -307,7 +306,8 @@ class RawArtemis123(BaseRaw):
     def __init__(self, input_fname, preload=False, verbose=None,
                  pos_fname=None, add_head_trans=True):  # noqa: D102
         from scipy.spatial.distance import cdist
-
+        from ...chpi import (compute_chpi_amplitudes, compute_chpi_locs,
+                             _fit_coil_order_dev_head_trans)
         fname, ext = op.splitext(input_fname)
         if ext == '.txt':
             input_fname = fname + '.bin'
@@ -327,7 +327,6 @@ class RawArtemis123(BaseRaw):
             info, preload, filenames=[input_fname], raw_extras=[header_info],
             last_samps=last_samps, orig_format=np.float32,
             verbose=verbose)
-        self.info['hpi_results'] = []
 
         if add_head_trans:
             n_hpis = 0
@@ -339,8 +338,19 @@ class RawArtemis123(BaseRaw):
                      'head localization\n *NO* head localization performed')
             else:
                 # Localized HPIs using the 1st 250 milliseconds of data.
-                hpi_dev, hpi_g = _fit_device_hpi_positions(self,
-                                                           t_win=[0, 0.25])
+                info['hpi_results'] = [
+                    dict(
+                        dig_points=[dict(
+                            r=np.zeros(3), coord_frame=FIFF.FIFFV_COORD_DEVICE,
+                            ident=ii + 1) for ii in range(n_hpis)],
+                        coord_trans=Transform('meg', 'head'))]
+                coil_amplitudes = compute_chpi_amplitudes(
+                    self, tmin=0, tmax=0.25, t_window=0.25, t_step_min=0.25)
+                assert len(coil_amplitudes['times']) == 1
+                coil_locs = compute_chpi_locs(self.info, coil_amplitudes)
+                info['hpi_results'] = None
+                hpi_g = coil_locs['gofs'][0]
+                hpi_dev = coil_locs['rrs'][0]
 
                 # only use HPI coils with localizaton goodness_of_fit > 0.98
                 bad_idx = []

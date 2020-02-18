@@ -322,6 +322,7 @@ intersphinx_mapping = {
     'nilearn': ('http://nilearn.github.io', None),
     'surfer': ('https://pysurfer.github.io/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
+    'seaborn': ('https://seaborn.pydata.org/', None),
     'statsmodels': ('http://www.statsmodels.org/dev', None),
     'patsy': ('https://patsy.readthedocs.io/en/latest', None),
     # There are some problems with dipy's redirect:

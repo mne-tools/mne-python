@@ -92,7 +92,7 @@ def test_dipole_fitting_ctf():
     # for now our CTF phantom fitting tutorials will have to do
     # (otherwise we need to add that to the testing dataset, which is
     # a bit too big)
-    fit_dipole(evoked, cov, sphere)
+    fit_dipole(evoked, cov, sphere, rank=dict(meg=len(evoked.data)))
 
 
 @pytest.mark.slowtest
@@ -136,7 +136,8 @@ def test_dipole_fitting(tmpdir):
     # Run mne-python version
     sphere = make_sphere_model(head_radius=0.1)
     with pytest.warns(RuntimeWarning, match='projection'):
-        dip, residual = fit_dipole(evoked, cov, sphere, fname_fwd)
+        dip, residual = fit_dipole(evoked, cov, sphere, fname_fwd,
+                                   rank='info')  # just to test rank support
     assert isinstance(residual, Evoked)
 
     # Sanity check: do our residuals have less power than orig data?

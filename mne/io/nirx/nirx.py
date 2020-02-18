@@ -39,6 +39,10 @@ def read_raw_nirx(fname, preload=False, verbose=None):
     return RawNIRX(fname, preload, verbose)
 
 
+def _open(fname):
+    return open(fname, 'r', encoding='latin-1')
+
+
 @fill_doc
 class RawNIRX(BaseRaw):
     """Raw object from a NIRX fNIRS file.
@@ -74,7 +78,7 @@ class RawNIRX(BaseRaw):
 
         # Read number of rows/samples of wavelength data
         last_sample = -1
-        for line in open(files['wl1']):
+        for line in _open(files['wl1']):
             last_sample += 1
 
         # Read participant information file
@@ -109,7 +113,7 @@ class RawNIRX(BaseRaw):
         # Read header file
         # The header file isn't compliant with the configparser. So all the
         # text between comments must be removed before passing to parser
-        with open(files['hdr']) as f:
+        with _open(files['hdr']) as f:
             hdr_str = f.read()
         hdr_str = re.sub('#.*?#', '', hdr_str, flags=re.DOTALL)
         hdr = RawConfigParser()
@@ -243,7 +247,8 @@ class RawNIRX(BaseRaw):
             raw_extras=[raw_extras], verbose=verbose)
 
         # Read triggers from event file
-        t = [re.findall(r'(\d+)', line) for line in open(files['evt'])]
+        with _open(files['evt']) as fid:
+            t = [re.findall(r'(\d+)', line) for line in fid]
         onset = np.zeros(len(t), float)
         duration = np.zeros(len(t), float)
         description = [''] * len(t)
@@ -290,7 +295,7 @@ def _read_csv_rows_cols(fname, start, stop, cols, n_cols):
     # reading should be done in C (CPython), as should the conversion to float
     # (NumPy).
     x = np.zeros((stop - start, n_cols))
-    with open(fname, 'r') as fid:
+    with _open(fname) as fid:
         for li, line in enumerate(fid):
             if li >= start:
                 if li >= stop:
