@@ -149,6 +149,36 @@ def test_ica_simple(method):
 
 
 @requires_sklearn
+@pytest.mark.parametrize("method", ["infomax", "fastica", "picard"])
+def test_ica_n_iter_(method):
+    """Test that ICA.n_iter_ is set after fitting."""
+    _skip_check_picard(method)
+
+    raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
+    n_components = 3
+    max_iter = 1
+    ica = ICA(n_components=n_components, max_iter=max_iter, method=method)
+
+    if method == 'infomax':
+        ica.fit(raw)
+    else:
+        with pytest.warns(UserWarning, match='did not converge'):
+            ica.fit(raw)
+
+    assert_equal(ica.n_iter_, max_iter)
+
+    # Test I/O roundtrip.
+    tempdir = _TempDir()
+    output_fname = op.join(tempdir, 'test_ica-ica.fif')
+    _assert_ica_attributes(ica)
+    ica.save(output_fname)
+    ica = read_ica(output_fname)
+    _assert_ica_attributes(ica)
+
+    assert_equal(ica.n_iter_, max_iter)
+
+
+@requires_sklearn
 @pytest.mark.parametrize("method", ["fastica", "picard"])
 def test_ica_rank_reduction(method):
     """Test recovery ICA rank reduction."""
@@ -195,7 +225,8 @@ def test_ica_reset(method):
         'n_samples_',
         'pca_components_',
         'pca_explained_variance_',
-        'pca_mean_'
+        'pca_mean_',
+        'n_iter_'
     )
     with pytest.warns(UserWarning, match='did not converge'):
         ica = ICA(

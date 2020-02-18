@@ -179,7 +179,9 @@ class ICA(ContainsMixin):
         Additional parameters passed to the ICA estimator as specified by
         `method`.
     max_iter : int
-        Maximum number of iterations during fit. Defaults to 200.
+        Maximum number of iterations during fit. Defaults to 200. The actual
+        number of iterations it took :meth:`ICA.fit` to complete will be stored
+        in the ``n_iter_`` attribute.
     allow_ref_meg : bool
         Allow ICA on MEG reference channels. Defaults to False.
 
@@ -232,6 +234,8 @@ class ICA(ContainsMixin):
         A dictionary of independent component indices, grouped by types of
         independent components. This attribute is set by some of the artifact
         detection functions.
+    n_iter_ : int
+        If fit, the number of iterations required to complete ICA.
 
     Notes
     -----
@@ -495,6 +499,7 @@ class ICA(ContainsMixin):
         del self.pca_components_
         del self.pca_explained_variance_
         del self.pca_mean_
+        del self.n_iter_
         if hasattr(self, 'drop_inds_'):
             del self.drop_inds_
         if hasattr(self, 'reject_'):
@@ -671,17 +676,24 @@ class ICA(ContainsMixin):
                           **self.fit_params)
             ica.fit(data[:, sel])
             self.unmixing_matrix_ = ica.components_
+            self.n_iter_ = ica.n_iter_
         elif self.method in ('infomax', 'extended-infomax'):
-            self.unmixing_matrix_, n_iter = infomax(data[:, sel],
-                                                    random_state=random_state,
-                                                    return_n_iter=True,
-                                                    **self.fit_params)
+            unmixing_matrix, n_iter = infomax(data[:, sel],
+                                              random_state=random_state,
+                                              return_n_iter=True,
+                                              **self.fit_params)
+            self.unmixing_matrix_ = unmixing_matrix
+            self.n_iter_ = n_iter
+            del unmixing_matrix, n_iter
         elif self.method == 'picard':
             from picard import picard
-            _, W, _ = picard(data[:, sel].T, whiten=False,
-                             random_state=random_state, **self.fit_params)
-            del _
+            _, W, _, n_iter = picard(data[:, sel].T, whiten=False,
+                                     return_n_iter=True,
+                                     random_state=random_state,
+                                     **self.fit_params)
             self.unmixing_matrix_ = W
+            self.n_iter_ = n_iter + 1  # picard() starts counting at 0
+            del _, n_iter
         assert self.unmixing_matrix_.shape == (self.n_components_,) * 2
         self.unmixing_matrix_ /= np.sqrt(
             self.pca_explained_variance_[sel])[None, :]  # whitening
@@ -2030,7 +2042,8 @@ def _write_ica(fid, ica):
     n_samples = getattr(ica, 'n_samples_', None)
     ica_misc = {'n_samples_': (None if n_samples is None else int(n_samples)),
                 'labels_': getattr(ica, 'labels_', None),
-                'method': getattr(ica, 'method', None)}
+                'method': getattr(ica, 'method', None),
+                'n_iter_': getattr(ica, 'n_iter_', None)}
 
     write_string(fid, FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS,
                  _serialize(ica_init))
@@ -2057,7 +2070,6 @@ def _write_ica(fid, ica):
     write_double_matrix(fid, FIFF.FIFF_MNE_ICA_MATRIX, ica.unmixing_matrix_)
 
     #   Write bad components
-
     write_int(fid, FIFF.FIFF_MNE_ICA_BADS, list(ica.exclude))
 
     # Done!
@@ -2170,6 +2182,8 @@ def read_ica(fname, verbose=None):
             ica.labels_ = labels_
     if 'method' in ica_misc:
         ica.method = ica_misc['method']
+    if 'n_iter_' in ica_misc:
+        ica.n_iter_ = ica_misc['n_iter_']
 
     logger.info('Ready.')
 
