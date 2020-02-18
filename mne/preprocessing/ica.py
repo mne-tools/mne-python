@@ -132,11 +132,6 @@ class ICA(ContainsMixin):
                  requires the data to be high-pass filtered prior to fitting.
                  Typically, a cutoff frequency of 1 Hz is recommended.
 
-    .. note:: For users coming from EEGLAB: A dimensionality reduction via PCA,
-              equivalent to ``runica(..., 'pca', n)``, can be achieved by
-              passing ``max_pca_components=n``, while leaving ``n_components``
-              and ``n_pca_components`` at their respective default values.
-
     Parameters
     ----------
     n_components : int | float | None
@@ -272,6 +267,11 @@ class ICA(ContainsMixin):
               the dimensionality (by 1 for average reference and 1 for each
               interpolated channel) for optimal ICA performance (see the
               `EEGLAB wiki <eeglab_wiki_>`_).
+
+    For users coming from EEGLAB: A dimensionality reduction via PCA,
+    equivalent to ``runica(..., 'pca', n)``, can be achieved by passing
+    ``max_pca_components=n``, while leaving ``n_components`` and
+    ``n_pca_components`` at their respective default values.
 
     Caveat! If supplying a noise covariance, keep track of the projections
     available in the cov or in the raw object. For example, if you are
