@@ -83,6 +83,12 @@ raw.crop(tmax=60.)
 #     reconstruct using the 50 ICs plus the first 70 PCs in the PCA residual
 #     (numbers 51-120).
 #
+#     **If you have previously been using EEGLAB**'s ``runica()`` and are
+#     looking for the equivalent of its ``'pca', n`` option to reduce
+#     dimensionality via PCA before the ICA step, set ``max_pca_components=n``,
+#     while leaving ``n_components`` and ``n_pca_components`` at their default
+#     (i.e., ``None``).
+#
 # MNE-Python implements three different ICA algorithms: ``fastica`` (the
 # default), ``picard``, and ``infomax``. FastICA and Infomax are both in fairly
 # widespread use; Picard is a newer (2017) algorithm that is expected to
@@ -110,14 +116,6 @@ raw.crop(tmax=60.)
 # Components (PCs), the first ``n_components`` are then passed to the ICA
 # algorithm (``n_components`` may be an integer number of components to use, or
 # a fraction of explained variance that used components should capture).
-#
-# .. sidebar:: Migrating from EEGLAB
-#
-#     If you have previously been using EEGLAB's ``runica()`` and are
-#     looking for the equivalent of its ``'pca', n`` option to reduce
-#     dimensionality via PCA before the ICA step, set ``max_pca_components=n``,
-#     while leaving ``n_components`` and ``n_pca_components`` at their default
-#     (i.e., ``None``).
 #
 # After visualizing the Independent Components (ICs) and excluding any that
 # capture artifacts you want to repair, the sensor signal can be reconstructed
