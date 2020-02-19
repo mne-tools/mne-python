@@ -146,11 +146,13 @@ class ICA(ContainsMixin):
     max_pca_components : int | None
         Number of principal components (from the pre-whitening PCA step) that
         are retained for later use (i.e., for signal reconstruction in
-        :meth:`ICA.apply`; see the ``n_pca_components`` parameter). If
-        ``None``, no dimensionality reduction occurs and ``max_pca_components``
-        will equal the number of channels in the :class:`mne.io.Raw`,
-        :class:`mne.Epochs`, or :class:`mne.Evoked` object passed to
-        :meth:`ICA.fit`.
+        :meth:`ICA.apply`; see the ``n_pca_components`` parameter). Use this
+        parameter to reduce the dimensionality of the input data via PCA before
+        any further processing is performed. If ``None``, no  dimensionality
+        reduction occurs and ``max_pca_components`` will equal the number of
+        channels in the :class:`mne.io.Raw`, :class:`mne.Epochs`, or
+        :class:`mne.Evoked` object passed to :meth:`ICA.fit`. Defaults to
+        ``None``.
     n_pca_components : int | float | None
         Total number of components (ICA + PCA) used for signal reconstruction
         in :meth:`ICA.apply`. At minimum, at least ``n_components`` will be
@@ -269,6 +271,11 @@ class ICA(ContainsMixin):
               the dimensionality (by 1 for average reference and 1 for each
               interpolated channel) for optimal ICA performance (see the
               `EEGLAB wiki <eeglab_wiki_>`_).
+
+    If you are migrating from EEGLAB and intend to reduce dimensionality via
+    PCA, similarly to EEGLAB's ``runica(..., 'pca', n)`` functionality, simply
+    pass ``max_pca_components=n``, while leaving ``n_components`` and
+    ``n_pca_components`` at their respective default values.
 
     Caveat! If supplying a noise covariance, keep track of the projections
     available in the cov or in the raw object. For example, if you are
