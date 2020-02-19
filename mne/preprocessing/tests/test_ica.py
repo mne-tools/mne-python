@@ -740,7 +740,7 @@ def test_ica_additional(method):
 @pytest.mark.parametrize("idx", (None, -1, slice(2), [0, 1]))
 @pytest.mark.parametrize("ch_name", (None, 'MEG 1531'))
 def test_detect_artifacts_replacement_of_run_ica(method, idx, ch_name):
-    """Test run_ica function."""
+    """Test replacement workflow for deprecated run_ica() function."""
     _skip_check_picard(method)
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
     ica = ICA(n_components=2, method=method)
