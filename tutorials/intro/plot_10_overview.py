@@ -190,8 +190,8 @@ event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
 # attribute to get the sampling frequency of the recording (so our x-axis will
 # be in seconds instead of in samples).
 
-fig = mne.viz.plot_events(events, event_id=event_dict, sfreq=raw.info['sfreq'])
-fig.subplots_adjust(right=0.7)  # make room for the legend
+fig = mne.viz.plot_events(events, event_id=event_dict, sfreq=raw.info['sfreq'],
+                          first_samp=raw.first_samp)
 
 ###############################################################################
 # For paradigms that are not event-related (e.g., analysis of resting-state
