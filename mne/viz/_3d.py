@@ -554,10 +554,17 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         ``('helmet', 'sensors')`` (same as None, default). True translates to
         ``('helmet', 'sensors', 'ref')``.
     eeg : bool | str | list
-        Can be "original" (default; equivalent to True) or "projected" to
-        show EEG sensors in their digitized locations or projected onto the
-        scalp, or a list of these options including ``[]`` (equivalent of
-        False).
+        String options are:
+
+        - "original" (default; equivalent to ``True``)
+            Shows EEG sensors using their digitized locations (after
+            transformation to the chosen ``coord_frame``)
+        - "projected"
+            The EEG locations projected onto the scalp, as is done in forward
+            modeling
+
+        Can also be a list of these options, or an empty list (``[]``,
+        equivalent of ``False``).
     fwd : instance of Forward
         The forward solution. If present, the orientations of the dipoles
         present in the forward solution are displayed.
