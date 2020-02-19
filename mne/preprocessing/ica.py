@@ -51,7 +51,7 @@ from ..utils import (check_version, logger, check_fname, verbose,
                      compute_corr, _get_inst_data, _ensure_int,
                      copy_function_doc_to_method_doc, _pl, warn, Bunch,
                      _check_preload, _check_compensation_grade, fill_doc,
-                     _check_option, _PCA)
+                     _check_option, _PCA, deprecated)
 from ..utils.check import _check_all_same_channel_names
 
 from ..fixes import _get_args, _safe_svd
@@ -2255,6 +2255,8 @@ def _detect_artifacts(ica, raw, start_find, stop_find, ecg_ch, ecg_score_func,
     logger.info('Ready.')
 
 
+@deprecated('run_ica() is deprecated and will be removed in 0.21, use '
+            'ICA.detect_artifacts() instead')
 @verbose
 def run_ica(raw, n_components, max_pca_components=100,
             n_pca_components=64, noise_cov=None,

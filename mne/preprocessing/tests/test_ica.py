@@ -736,15 +736,16 @@ def test_ica_additional(method):
 
 
 @requires_sklearn
-@pytest.mark.parametrize("method", ["fastica", "picard"])
-def test_run_ica(method):
+@pytest.mark.parametrize("method", ("fastica", "picard", "infomax"))
+# varicance, kurtosis idx
+@pytest.mark.parametrize("idx", (None, -1, slice(2), [0, 1]))
+# ECG / EOG channel params
+@pytest.mark.parametrize("ch_name", (None, 'MEG 1531'))
+def test_run_ica(method, idx, ch_name):
     """Test run_ica function."""
     _skip_check_picard(method)
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
-    params = []
-    params += [(None, -1, slice(2), [0, 1])]  # varicance, kurtosis idx
-    params += [(None, 'MEG 1531')]  # ECG / EOG channel params
-    for idx, ch_name in product(*params):
+    with pytest.warns(DeprecationWarning, match='run_ica() is deprecated'):
         run_ica(raw, n_components=2, start=0, stop=0.5, start_find=0,
                 stop_find=5, ecg_ch=ch_name, eog_ch=ch_name, method=method,
                 skew_criterion=idx, var_criterion=idx, kurt_criterion=idx)
