@@ -73,6 +73,8 @@ Changelog
 
 - Add reader for ``*.dat`` electrode position files :func:`mne.channels.read_dig_dat` by `Christian Brodbeck`_
 
+- Improved :func:`mne.viz.plot_events` to always show event counts by `Eric Larson`_
+
 - Improved :ref:`limo-dataset` usage and :ref:`example <ex-limo-data>` for usage of :func:`mne.stats.linear_regression` by `Jose Alanis`_
 
 - Add support for ``reduce_rank=True`` for vector beamformers by `Eric Larson`_

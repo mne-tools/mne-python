@@ -124,13 +124,15 @@ def test_plot_events():
     color = {1: 'green', 2: 'yellow', 3: 'red', 4: 'c'}
     raw = _get_raw()
     events = _get_events()
-    plot_events(events, raw.info['sfreq'], raw.first_samp)
+    fig = plot_events(events, raw.info['sfreq'], raw.first_samp)
+    assert fig.axes[0].get_legend() is not None  # legend even with no event_id
     plot_events(events, raw.info['sfreq'], raw.first_samp, equal_spacing=False)
     # Test plotting events without sfreq
     plot_events(events, first_samp=raw.first_samp)
     with pytest.warns(RuntimeWarning, match='will be ignored'):
-        plot_events(events, raw.info['sfreq'], raw.first_samp,
-                    event_id=event_labels)
+        fig = plot_events(events, raw.info['sfreq'], raw.first_samp,
+                          event_id=event_labels)
+    assert fig.axes[0].get_legend() is not None
     with pytest.warns(RuntimeWarning, match='Color was not assigned'):
         plot_events(events, raw.info['sfreq'], raw.first_samp,
                     color=color)

@@ -596,21 +596,27 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     unique_events_id = np.array(unique_events_id)
     min_event = np.min(unique_events_id)
     max_event = np.max(unique_events_id)
+    max_x = (events[np.in1d(events[:, 2], unique_events_id), 0].max() -
+             first_samp) / sfreq
 
+    handles, labels = list(), list()
     for idx, ev in enumerate(unique_events_id):
         ev_mask = events[:, 2] == ev
-        kwargs = {}
+        count = ev_mask.sum()
+        if count == 0:
+            continue
+        y = np.full(count, idx + 1 if equal_spacing else events[ev_mask, 2][0])
         if event_id is not None:
-            event_label = '{} ({})'.format(event_id_rev[ev], np.sum(ev_mask))
-            kwargs['label'] = event_label
+            event_label = '%s (%s)' % (event_id_rev[ev], count)
+        else:
+            event_label = 'N=%d' % (count,)
+        labels.append(event_label)
+        kwargs = {}
         if ev in color:
             kwargs['color'] = color[ev]
-        if equal_spacing:
+        handles.append(
             ax.plot((events[ev_mask, 0] - first_samp) / sfreq,
-                    (idx + 1) * np.ones(ev_mask.sum()), '.', **kwargs)
-        else:
-            ax.plot((events[ev_mask, 0] - first_samp) / sfreq,
-                    events[ev_mask, 2], '.', **kwargs)
+                    y, '.', clip_on=False, **kwargs)[0])
 
     if equal_spacing:
         ax.set_ylim(0, unique_events_id.size + 1)
@@ -619,16 +625,20 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     else:
         ax.set_ylim([min_event - 1, max_event + 1])
 
-    ax.set(xlabel=xlabel, ylabel='Events id')
+    ax.set(xlabel=xlabel, ylabel='Events id', xlim=[0, max_x])
 
     ax.grid(True)
 
     fig = fig if fig is not None else plt.gcf()
-    if event_id is not None:
-        box = ax.get_position()
-        ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        fig.canvas.draw()
+    # reverse order so that the highest numbers are at the top
+    # (match plot order)
+    handles, labels = handles[::-1], labels[::-1]
+    box = ax.get_position()
+    factor = 0.8 if event_id is not None else 0.9
+    ax.set_position([box.x0, box.y0, box.width * factor, box.height])
+    ax.legend(handles, labels, loc='center left', bbox_to_anchor=(1, 0.5),
+              fontsize='small')
+    fig.canvas.draw()
     plt_show(show)
     return fig
 
