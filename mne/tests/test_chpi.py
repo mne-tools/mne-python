@@ -167,15 +167,18 @@ def _assert_quats(actual, desired, dist_tol=0.003, angle_tol=5., err_rtol=0.5,
 
     # error calculation difference
     errs_est_interp = interp1d(t_est, errs_est)(t)
-    assert_allclose(errs_est_interp, errs, rtol=err_rtol, atol=1e-3)  # 1 mm
+    assert_allclose(errs_est_interp, errs, rtol=err_rtol, atol=1e-3,
+                    err_msg='err')  # 1 mm
 
     # gof calculation difference
     gof_est_interp = interp1d(t_est, gofs_est)(t)
-    assert_allclose(gof_est_interp, gofs, rtol=gof_rtol, atol=1e-7)
+    assert_allclose(gof_est_interp, gofs, rtol=gof_rtol, atol=1e-7,
+                    err_msg='gof')
 
     # velocity calculation difference
     vel_est_interp = interp1d(t_est, vels_est)(t)
-    assert_allclose(vel_est_interp, vels, atol=vel_atol)
+    assert_allclose(vel_est_interp, vels, atol=vel_atol,
+                    err_msg='velocity')
 
 
 def _decimate_chpi(raw, decim=4):
