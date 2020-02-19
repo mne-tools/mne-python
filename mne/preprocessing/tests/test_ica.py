@@ -737,7 +737,7 @@ def test_ica_additional(method):
 
 @requires_sklearn
 @pytest.mark.parametrize("method", ("fastica", "picard", "infomax"))
-# varicance, kurtosis idx
+# variance, kurtosis idx
 @pytest.mark.parametrize("idx", (None, -1, slice(2), [0, 1]))
 # ECG / EOG channel params
 @pytest.mark.parametrize("ch_name", (None, 'MEG 1531'))
