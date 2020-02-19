@@ -630,8 +630,9 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     ax.grid(True)
 
     fig = fig if fig is not None else plt.gcf()
-    hs = hs[::-1]
-
+    # reverse order so that the highest numbers are at the top
+    # (match plot order)
+    hs, labels = hs[::-1], labels[::-1]
     box = ax.get_position()
     factor = 0.8 if event_id is not None else 0.9
     ax.set_position([box.x0, box.y0, box.width * factor, box.height])
