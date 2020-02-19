@@ -599,7 +599,7 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     max_x = (events[np.in1d(events[:, 2], unique_events_id), 0].max() -
              first_samp) / sfreq
 
-    hs, labels = list(), list()
+    handles, labels = list(), list()
     for idx, ev in enumerate(unique_events_id):
         ev_mask = events[:, 2] == ev
         count = ev_mask.sum()
@@ -614,7 +614,7 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
         kwargs = {}
         if ev in color:
             kwargs['color'] = color[ev]
-        hs.append(
+        handles.append(
             ax.plot((events[ev_mask, 0] - first_samp) / sfreq,
                     y, '.', clip_on=False, **kwargs)[0])
 
@@ -632,11 +632,11 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     fig = fig if fig is not None else plt.gcf()
     # reverse order so that the highest numbers are at the top
     # (match plot order)
-    hs, labels = hs[::-1], labels[::-1]
+    handles, labels = handles[::-1], labels[::-1]
     box = ax.get_position()
     factor = 0.8 if event_id is not None else 0.9
     ax.set_position([box.x0, box.y0, box.width * factor, box.height])
-    ax.legend(hs, labels, loc='center left', bbox_to_anchor=(1, 0.5),
+    ax.legend(handles, labels, loc='center left', bbox_to_anchor=(1, 0.5),
               fontsize='small')
     fig.canvas.draw()
     plt_show(show)
