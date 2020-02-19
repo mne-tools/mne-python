@@ -737,14 +737,26 @@ def test_ica_additional(method):
 
 @requires_sklearn
 @pytest.mark.parametrize("method", ("fastica", "picard", "infomax"))
-# variance, kurtosis idx
 @pytest.mark.parametrize("idx", (None, -1, slice(2), [0, 1]))
-# ECG / EOG channel params
 @pytest.mark.parametrize("ch_name", (None, 'MEG 1531'))
-def test_run_ica(method, idx, ch_name):
+def test_detect_artifacts_replacement_of_run_ica(method, idx, ch_name):
     """Test run_ica function."""
     _skip_check_picard(method)
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
+    ica = ICA(n_components=2, method=method)
+    ica.fit(raw)
+    ica.detect_artifacts(raw, start_find=0, stop_find=5, ecg_ch=ch_name,
+                         eog_ch=ch_name, skew_criterion=idx,
+                         var_criterion=idx, kurt_criterion=idx)
+
+
+@requires_sklearn
+def test_run_ica_deprecation():
+    """Test that run_ica() has been deprecated."""
+    raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
+    method = 'fastica'
+    idx = None
+    ch_name = None
     with pytest.warns(DeprecationWarning, match='run_ica() is deprecated'):
         run_ica(raw, n_components=2, start=0, stop=0.5, start_find=0,
                 stop_find=5, ecg_ch=ch_name, eog_ch=ch_name, method=method,
