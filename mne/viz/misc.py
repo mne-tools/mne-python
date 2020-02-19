@@ -616,7 +616,7 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
             kwargs['color'] = color[ev]
         hs.append(
             ax.plot((events[ev_mask, 0] - first_samp) / sfreq,
-                    y, '.', **kwargs)[0])
+                    y, '.', clip_on=False, **kwargs)[0])
 
     if equal_spacing:
         ax.set_ylim(0, unique_events_id.size + 1)
