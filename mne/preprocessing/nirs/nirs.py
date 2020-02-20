@@ -30,7 +30,7 @@ def source_detector_distances(info, picks=None):
     """
     dist = [linalg.norm(ch['loc'][3:6] - ch['loc'][6:9])
             for ch in info['chs']]
-    picks = _picks_to_idx(info, picks)
+    picks = _picks_to_idx(info, picks, exclude=[])
     return np.array(dist, float)[picks]
 
 
@@ -58,7 +58,7 @@ def short_channels(info, threshold=0.01):
 
 def _channel_frequencies(raw):
     """Return the light frequency for each channel."""
-    picks = _picks_to_idx(raw.info, 'fnirs_od')
+    picks = _picks_to_idx(raw.info, 'fnirs_od', exclude=[])
     freqs = np.empty(picks.size, int)
     for ii in picks:
         freqs[ii] = raw.info['chs'][ii]['loc'][9]
@@ -69,7 +69,7 @@ def _check_channels_ordered(raw, freqs):
     """Check channels followed expected fNIRS format."""
     # Every second channel should be same SD pair
     # and have the specified light frequencies.
-    picks = _picks_to_idx(raw.info, 'fnirs_od')
+    picks = _picks_to_idx(raw.info, 'fnirs_od', exclude=[])
     for ii in picks[::2]:
         ch1_name_info = re.match(r'S(\d+)_D(\d+) (\d+)',
                                  raw.info['chs'][ii]['ch_name'])
