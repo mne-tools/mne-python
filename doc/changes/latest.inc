@@ -73,6 +73,8 @@ Changelog
 
 - Add reader for ``*.dat`` electrode position files :func:`mne.channels.read_dig_dat` by `Christian Brodbeck`_
 
+- Improved :func:`mne.viz.plot_events` to always show event counts by `Eric Larson`_
+
 - Improved :ref:`limo-dataset` usage and :ref:`example <ex-limo-data>` for usage of :func:`mne.stats.linear_regression` by `Jose Alanis`_
 
 - Add support for ``reduce_rank=True`` for vector beamformers by `Eric Larson`_
@@ -120,6 +122,8 @@ Changelog
 - Make selected channels more distinguishable in :meth:`mne.Epochs.plot_sensors` when using ``kind='select'`` by `Mikołaj Magnuski`_
 
 - Allow retrieval of the number of Infomax ICA iterations via the new ``return_n_iter`` keyword argument of :func:`mne.preprocessing.infomax` by `Richard Höchenberger`_
+
+- Expose the number of ICA iterations during the fitting procedure via the ``n_iter_`` attribute of :class:`mne.preprocessing.ICA` by `Richard Höchenberger`_
 
 Bug
 ~~~
@@ -244,6 +248,8 @@ Bug
 
 - Fix bug in reading annotations in :func:`read_annotations`, which would not accept ";" character by `Adam Li`_
 
+- Include ``fit_params`` when saving an :class:`~mne.preprocessing.ICA` instance to disk by `Richard Höchenberger`_
+
 API
 ~~~
 
@@ -284,3 +290,5 @@ API
 - In :class:`~mne.preprocessing.Xdawn`, the components are stored in the rows of attributes ``filters_`` and ``patterns_`` to be consistent with :class:`~mne.decoding.CSP` and :class:`~mne.preprocessing.ICA` by `Henrich Kolkhorst`_
 
 - Drop ``unit`` keyword argument from :func:`mne.channels.read_custom_montage`, as it was unused by `Richard Höchenberger`_
+
+- Deprecate :func:`mne.preprocessing.run_ica`, use :meth:`mne.preprocessing.ICA.detect_artifacts` instead by `Richard Höchenberger`_

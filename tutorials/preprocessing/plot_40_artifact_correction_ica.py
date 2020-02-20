@@ -64,6 +64,31 @@ raw.crop(tmax=60.)
 # ICA in MNE-Python
 # ~~~~~~~~~~~~~~~~~
 #
+# .. sidebar:: ICA and dimensionality reduction
+#
+#     If you want to perform ICA with *no* dimensionality reduction (other than
+#     the number of Independent Components (ICs) given in ``n_components``, and
+#     any subsequent exclusion of ICs you specify in ``ICA.exclude``), pass
+#     ``max_pca_components=None`` and ``n_pca_components=None`` (these are the
+#     default values).
+#
+#     However, if you *do* want to reduce dimensionality, consider this
+#     example: if you have 300 sensor channels and you set
+#     ``max_pca_components=200``, ``n_components=50`` and
+#     ``n_pca_components=None``, then the PCA step yields 200 PCs, the first 50
+#     PCs are sent to the ICA algorithm (yielding 50 ICs), and during
+#     reconstruction :meth:`~mne.preprocessing.ICA.apply` will use the 50 ICs
+#     plus PCs number 51-200 (the full PCA residual). If instead you specify
+#     ``n_pca_components=120`` then :meth:`~mne.preprocessing.ICA.apply` will
+#     reconstruct using the 50 ICs plus the first 70 PCs in the PCA residual
+#     (numbers 51-120).
+#
+#     **If you have previously been using EEGLAB**'s ``runica()`` and are
+#     looking for the equivalent of its ``'pca', n`` option to reduce
+#     dimensionality via PCA before the ICA step, set ``max_pca_components=n``,
+#     while leaving ``n_components`` and ``n_pca_components`` at their default
+#     (i.e., ``None``).
+#
 # MNE-Python implements three different ICA algorithms: ``fastica`` (the
 # default), ``picard``, and ``infomax``. FastICA and Infomax are both in fairly
 # widespread use; Picard is a newer (2017) algorithm that is expected to
@@ -83,23 +108,6 @@ raw.crop(tmax=60.)
 # :class:`~mne.io.Raw` or :class:`~mne.Epochs` object using the
 # :class:`~mne.preprocessing.ICA` object's :meth:`~mne.preprocessing.ICA.apply`
 # method.
-#
-# .. sidebar:: ICA and dimensionality reduction
-#
-#     If you want to perform ICA with no dimensionality reduction (other than
-#     the number of Independent Components (ICs) given in ``n_components``, and
-#     any subsequent exclusion of ICs you specify in ``ICA.exclude``), pass
-#     ``max_pca_components=None`` and ``n_pca_components=None`` (these are the
-#     default values). If you want to reduce dimensionality, consider this
-#     example: if you have 300 sensor channels and you set
-#     ``max_pca_components=200``, ``n_components=50`` and
-#     ``n_pca_components=None``, then the PCA step yields 200 PCs, the first 50
-#     PCs are sent to the ICA algorithm (yielding 50 ICs), and during
-#     reconstruction :meth:`~mne.preprocessing.ICA.apply` will use the 50 ICs
-#     plus PCs number 51-200 (the full PCA residual). If instead you specify
-#     ``n_pca_components=120`` then :meth:`~mne.preprocessing.ICA.apply` will
-#     reconstruct using the 50 ICs plus the first 70 PCs in the PCA residual
-#     (numbers 51-120).
 #
 # As is typically done with ICA, the data are first scaled to unit variance and
 # whitened using principal components analysis (PCA) before performing the ICA
@@ -130,7 +138,6 @@ raw.crop(tmax=60.)
 # See the Notes section of the :class:`~mne.preprocessing.ICA` documentation
 # for further details. Next we'll walk through an extended example that
 # illustrates each of these steps in greater detail.
-#
 #
 # Example: EOG and ECG artifact repair
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
