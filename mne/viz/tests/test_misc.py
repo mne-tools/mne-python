@@ -146,6 +146,8 @@ def test_plot_events():
     with pytest.raises(ValueError, match='from event_id is not present in'):
         plot_events(events, raw.info['sfreq'], raw.first_samp,
                     event_id={'aud_l': 111}, color=color)
+    with pytest.raises(ValueError, match='No events'):
+        plot_events(np.empty((0, 3)))
     plt.close('all')
 
 

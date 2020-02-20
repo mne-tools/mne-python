@@ -481,5 +481,9 @@ def test_plot_sensors():
     assert fig.lasso.selection == ['MEG 0121']
     plt.close('all')
 
+    raw.info['dev_head_t'] = None  # like empty room
+    with pytest.warns(RuntimeWarning, match='identity'):
+        raw.plot_sensors()
+
 
 run_tests_if_main()

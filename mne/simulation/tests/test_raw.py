@@ -474,7 +474,8 @@ def test_simulate_raw_chpi():
     coil_locs = compute_chpi_locs(raw.info, chpi_amplitudes)
     quats_sim = compute_head_pos(raw_chpi.info, coil_locs)
     quats = read_head_pos(pos_fname)
-    _assert_quats(quats, quats_sim, dist_tol=5e-3, angle_tol=3.5)
+    _assert_quats(quats, quats_sim, dist_tol=5e-3, angle_tol=3.5,
+                  vel_atol=0.03)  # velicity huge because of t_step_min above
 
 
 run_tests_if_main()
