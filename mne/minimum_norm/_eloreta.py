@@ -3,9 +3,10 @@
 # License: BSD (3-clause)
 
 import numpy as np
+from scipy import linalg
 
 from ..defaults import _handle_default
-from ..fixes import _safe_svd, pinv
+from ..fixes import _safe_svd
 from ..utils import (warn, logger, _svd_lwork, _repeated_svd, sqrtm_sym)
 
 
@@ -33,16 +34,10 @@ def _compute_eloreta(inv, lambda2, options):
         # We can probably relax this if we ever need to
         raise RuntimeError('eLORETA cannot be computed with weighted eigen '
                            'leads')
-    # This "G" is really "A" in our forumalation:
-    # A = G @ R_sqrt
-    # But let's proceed with eLORETA as if this weighted gain matrix
-    # were the correct one (it makes things like lambda reasonable).
-    G = np.dot(inv['eigen_fields']['data'].T * inv['sing'],
+    A = np.dot(inv['eigen_fields']['data'].T * inv['sing'],
                inv['eigen_leads']['data'].T).astype(np.float64)
-    n_nzero = int(round((G * G).sum()))
-    orig_R = inv['source_cov']['data']
-    # G /= np.sqrt(orig_R)
-    del orig_R
+    n_nzero = int(round((A * A).sum()))
+    G = A / np.sqrt(inv['source_cov']['data'])
     n_src = inv['nsource']
     n_chan, n_orient = G.shape
     n_orient //= n_src
@@ -55,43 +50,48 @@ def _compute_eloreta(inv, lambda2, options):
     else:
         G_3 = None
 
+    def _normalize_R(G, R):
+        """Normalize R so that lambda2 is consistent."""
+        if n_orient == 1 or force_equal:
+            R_Gt = np.repeat(R, n_orient)[:, np.newaxis] * G.T
+        else:
+            R_Gt = np.matmul(R, G_3).reshape(n_src * 3, -1)
+        G_R_Gt = np.dot(G, R_Gt)
+        norm = np.trace(G_R_Gt) / n_nzero
+        G_R_Gt /= norm
+        R /= norm
+        return G_R_Gt
+
     # The following was adapted under BSD license by permission of Guido Nolte
     shape = (n_src,)
     shape += () if force_equal or n_orient == 1 else (n_orient, n_orient)
-    W = np.empty(shape)
-    W[:] = 1. if force_equal or n_orient == 1 else np.eye(n_orient)[np.newaxis]
+    R = np.empty(shape)
+    R[:] = 1. if force_equal or n_orient == 1 else np.eye(n_orient)[np.newaxis]
+    G_R_Gt = _normalize_R(G, R)
     extra = ' (this make take a while)' if n_orient == 3 else ''
     logger.info('        Fitting up to %d iterations%s...'
                 % (max_iter, extra))
     svd_lwork = _svd_lwork((G.shape[0], G.shape[0]))
     for kk in range(max_iter):
         # 1. Compute inverse of the weights (stabilized) and C
-        R = _w_inv(W, n_orient, force_equal)
-        if n_orient == 1 or force_equal:
-            R_Gt = G.T * np.repeat(R, n_orient)[:, np.newaxis]
-        else:
-            R_Gt = np.matmul(R, G_3).reshape(n_src * 3, -1)
-        G_R_Gt = np.dot(G, R_Gt)
-        loading_factor = np.trace(G_R_Gt) / n_nzero
         u, s, v = _repeated_svd(G_R_Gt, lwork=svd_lwork)
-        s = s[:n_nzero] / (s[:n_nzero] ** 2 + lambda2 * loading_factor ** 2)
+        s = s[:n_nzero] / (s[:n_nzero] ** 2 + lambda2)
         N = np.dot(v.T[:, :n_nzero] * s, u.T[:n_nzero])
 
         # Update the weights
-        W_last = W.copy()
+        R_last = R.copy()
         if n_orient == 1:
-            W[:] = np.sqrt((np.dot(N, G) * G).sum(0))
+            R[:] = 1. / np.sqrt((np.dot(N, G) * G).sum(0))
         else:
-            w, s, = sqrtm_sym(
-                np.matmul(np.matmul(G_3, N[np.newaxis]), G_3.swapaxes(-2, -1)))
+            M = np.matmul(np.matmul(G_3, N[np.newaxis]), G_3.swapaxes(-2, -1))
+            R, s = sqrtm_sym(M, inv=True)
             if force_equal:
-                W[:] = np.mean(s, axis=-1)
-            else:
-                W[:] = w
+                R = 1. / np.mean(1. / s, axis=-1)
+        G_R_Gt = _normalize_R(G, R)
 
         # Check for weight convergence
-        delta = (np.linalg.norm(W.ravel() - W_last.ravel()) /
-                 np.linalg.norm(W_last.ravel()))
+        delta = (np.linalg.norm(R.ravel() - R_last.ravel()) /
+                 np.linalg.norm(R_last.ravel()))
         logger.debug('            Iteration %s / %s ...%s (%0.1e)'
                      % (kk + 1, max_iter, extra, delta))
         if delta < eps:
@@ -102,67 +102,45 @@ def _compute_eloreta(inv, lambda2, options):
         warn('eLORETA weight fitting did not converge (>= %s)' % eps)
     logger.info('        Assembling eLORETA kernel and modifying inverse')
 
-    R = _w_inv(W, n_orient, force_equal)
     if n_orient == 1 or force_equal:
-        R_Gt = G.T * np.repeat(R, n_orient)[:, np.newaxis]
+        R_sqrt = np.sqrt(np.repeat(R, n_orient))
+        A = G * R_sqrt
     else:
-        R_Gt = np.matmul(R, G_3).reshape(n_src * 3, -1)
-    G_R_Gt = np.dot(G, R_Gt)
-    """
-    if n_orient == 1 or force_equal:
-        G *= np.sqrt(R)
-    else:
-        G = np.matmul(G_3.swapaxes(1, 2),
-                      sqrtm_sym(R)[0]).swapaxes(0, 1).reshape(n_chan, -1)
-    inv['source_cov']['data'] = R
-    del R
-    eigen_fields, sing, eigen_leads = _safe_svd(G, full_matrices=False)
-    loading_factor = np.trace(np.dot(G, G.T)) / n_nzero
-    del G
+        R_sqrt = sqrtm_sym(R)[0]
+        A = np.matmul(R_sqrt, G_3).reshape(n_src * 3, -1).T
+    u, s, v = _safe_svd(A, full_matrices=False)
     with np.errstate(invalid='ignore'):  # if lambda2==0
-        reginv = np.where(sing > 0, sing / (sing ** 2 + lambda2 * loading_factor ** 2), 0)
-    inv['eigen_leads']['data'][:] = eigen_leads.T
-    inv['sing'][:] = sing
-    inv['reginv'][:] = reginv
-    inv['eigen_fields']['data'][:] = eigen_fields.T
-    "" = np.zeros((n_src * n_orient, n_chan))
-    for ii in range(n_src):
-        sl = slice(n_orient * ii, n_orient * (ii + 1))
-        K[sl] = np.dot(W_inv[ii], np.dot(G.T[sl], M))
-    # Avoid the scaling to get to currents
-    K /= np.sqrt(inv['source_cov']['data'])[:, np.newaxis]
-    # eLORETA seems to break our simple relationships with noisenorm etc.,
-    # but we can get around it by making our eventual dots do the right thing
-    eigen_leads, reginv, eigen_fields = _safe_svd(K, full_matrices=False)
-    inv['eigen_leads']['data'] = eigen_leads
-    inv['reginv'] = reginv
-    inv['eigen_fields']['data'] = eigen_fields
-    """
-    inv['source_cov']['data'].fill(1.)
-    K = np.zeros((n_src * n_orient, n_chan))
-    loading_factor = np.trace(G_R_Gt) / n_nzero
-    u, s, v = _repeated_svd(G_R_Gt, lwork=svd_lwork)
-    s = s[:n_nzero] / (s[:n_nzero] ** 2 + lambda2 * loading_factor ** 2)
-    N = np.dot(v.T[:, :n_nzero] * s, u.T[:n_nzero])
-    for ii in range(n_src):
-        sl = slice(n_orient * ii, n_orient * (ii + 1))
-        K[sl] = np.dot(R[ii], np.dot(G.T[sl], N))
-    # eLORETA seems to break our simple relationships with noisenorm etc.,
-    # but we can get around it by making our eventual dots do the right thing
-    eigen_leads, reginv, eigen_fields = _safe_svd(K, full_matrices=False)
-    inv['eigen_leads']['data'] = eigen_leads
-    inv['reginv'] = reginv
-    inv['eigen_fields']['data'] = eigen_fields
-    logger.info('[done]')
-
-
-def _w_inv(W, n_orient, force_equal):
-    """Invert weights to compute the source covariance matrix."""
+        reginv = np.where(s > 0, s / (s ** 2 + lambda2), 0)
+    inv['eigen_leads_weighted'] = True
+    eigen_leads, eigen_fields = v.T, u.T
     if n_orient == 1 or force_equal:
-        R = 1. / W
+        eigen_leads *= R_sqrt[:, np.newaxis]
     else:
-        # Here we use a single-precision-suitable `rcond` (given our
-        # 3x3 matrix size) because the inv could be saved in single
-        # precision.
-        R = pinv(W, rcond=1e-7, hermitian=True)
-    return R
+        eigen_leads_3 = eigen_leads.reshape(
+            n_chan, n_src, n_orient).transpose(1, 2, 0)
+        eigen_leads[:] = np.matmul(
+            R_sqrt, eigen_leads_3).reshape(n_src * n_orient, n_chan)
+    inv['sing'][:] = s
+    inv['eigen_leads']['data'][:] = eigen_leads
+    inv['reginv'][:] = reginv
+    inv['eigen_fields']['data'][:] = eigen_fields
+    M = np.dot(eigen_leads, reginv[:, np.newaxis] * eigen_fields)
+    # The direct way from their paper
+    u, s, v = _repeated_svd(G_R_Gt, lwork=svd_lwork)
+    s = s[:n_nzero] / (s[:n_nzero] ** 2 + lambda2)
+    N = np.dot(v.T[:, :n_nzero] * s, u.T[:n_nzero])
+    if n_orient == 1 or force_equal:
+        R_Gt = np.repeat(R, n_orient)[:, np.newaxis] * G.T
+    else:
+        R_Gt = np.matmul(R, G_3)
+        R_Gt.shape = (n_src * n_orient, n_chan)
+    M_ = np.dot(R_Gt, N)
+    # 1. Fix here:
+    # np.testing.assert_allclose(M_, M)  # XXX FIX HERE, del delow
+    eigen_leads, reginv, eigen_fields = _safe_svd(M_, full_matrices=False)
+    inv['eigen_leads']['data'][:] = eigen_leads
+    inv['reginv'][:] = reginv
+    inv['eigen_fields']['data'][:] = eigen_fields
+    # 2. Fix loose
+    # 3. Fix force_fixed=True
+    logger.info('[done]')

@@ -30,7 +30,8 @@ from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       make_inverse_operator,
                                       write_inverse_operator,
                                       compute_rank_inverse,
-                                      prepare_inverse_operator)
+                                      prepare_inverse_operator,
+                                      INVERSE_METHODS)
 from mne.utils import _TempDir, run_tests_if_main, catch_logging
 
 test_path = testing.data_path(download=False)
@@ -305,6 +306,7 @@ def test_inverse_operator_channel_ordering(evoked, noise_cov):
     #('MNE', 89, 92, dict(limit_depth_chs='whiten')),  # sparse default
     #('dSPM', 96, 98, 0.8),
     #('sLORETA', 100, 100, 0.8),
+    ('eLORETA', 100, 100, None),
     ('eLORETA', 100, 100, 0.8),
 ])
 def test_localization_bias_fixed(bias_params_fixed, method, lower, upper,
@@ -326,8 +328,8 @@ def test_localization_bias_fixed(bias_params_fixed, method, lower, upper,
     #('MNE', 89, 92, dict(limit_depth_chs='whiten')),  # sparse default
     #('dSPM', 85, 87, 0.8),
     #('sLORETA', 100, 100, 0.8),
-    ('eLORETA', 97, 100, None),
-    ('eLORETA', 97, 100, 0.8),
+    #('eLORETA', 97, 100, None),
+    #('eLORETA', 97, 100, 0.8),
 ])
 def test_localization_bias_loose(bias_params_fixed, method, lower, upper,
                                  depth):
@@ -351,9 +353,9 @@ def test_localization_bias_loose(bias_params_fixed, method, lower, upper,
     #('MNE', 65, 70, {}, dict(limit_depth_chs='whiten')),  # sparse default
     #('dSPM', 40, 45, {}, 0.8),
     #('sLORETA', 90, 95, {}, 0.8),
-    ('eLORETA', 85, 100, dict(method_params=dict(force_equal=True)), None),
-    ('eLORETA', 99, 100, {}, None),
-    ('eLORETA', 99, 100, {}, 0.8),
+    #('eLORETA', 85, 100, dict(method_params=dict(force_equal=True)), None),
+    ('eLORETA', 100, 100, {}, None),
+    ('eLORETA', 100, 100, {}, 0.8),
 ])
 def test_localization_bias_free(bias_params_free, method, lower, upper,
                                 kwargs, depth):
@@ -451,13 +453,14 @@ def test_apply_inverse_operator(evoked, inv, min_, max_):
 
     # test without using a label (so delayed computation is used)
     label = read_label(fname_label % 'Aud-lh')
-    stc = apply_inverse(evoked, inv_op, lambda2, "MNE")
-    stc_label = apply_inverse(evoked, inv_op, lambda2, "MNE",
-                              label=label)
-    assert_equal(stc_label.subject, 'sample')
-    label_stc = stc.in_label(label)
-    assert label_stc.subject == 'sample'
-    assert_allclose(stc_label.data, label_stc.data)
+    for method in INVERSE_METHODS:
+        stc = apply_inverse(evoked, inv_op, lambda2, method)
+        stc_label = apply_inverse(evoked, inv_op, lambda2, method,
+                                  label=label)
+        assert_equal(stc_label.subject, 'sample')
+        label_stc = stc.in_label(label)
+        assert label_stc.subject == 'sample'
+        assert_allclose(stc_label.data, label_stc.data)
 
     # Test that no errors are raised with loose inverse ops and picking normals
     noise_cov = read_cov(fname_cov)

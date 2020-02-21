@@ -330,8 +330,6 @@ def write_inverse_operator(fname, inv, verbose=None):
     check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz',
                                             '_inv.fif', '_inv.fif.gz'))
     _validate_type(inv, InverseOperator, 'inv')
-    if inv['source_cov']['data'].ndim != 1:
-        raise RuntimeError('Cannot write prepared eLORETA inverse')
 
     #
     #   Open the file, create directory
@@ -744,13 +742,7 @@ def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
         #     R^0.5 has to be factored in
         #
         logger.info('    Eigenleads need to be weighted ...')
-        if source_cov.ndim == 3:
-            R_sqrt, _ = sqrtm_sym(source_cov)
-            K.shape = (R_sqrt.shape[0], 3, -1)
-            K = np.matmul(R_sqrt, K)
-            K.shape = (R_sqrt.shape[0] * 3, -1)
-        else:
-            K *= np.sqrt(source_cov)[:, np.newaxis]
+        K *= np.sqrt(source_cov)[:, np.newaxis]
 
     if pick_ori == 'normal':
         K = K[2::3]

@@ -147,13 +147,10 @@ def sqrtm_sym(A, rcond=1e-7, inv=False):
         The resulting singular values.
     """
     # Same as linalg.sqrtm(C) but faster, also yields the eigenvalues
-    s, u = np.linalg.eigh(A)
-    val = np.inf if inv else 0.
-    s[s < s[..., 0][..., np.newaxis] * rcond] = val
-    s = np.sqrt(s)
+    s, u = np.linalg.eigh(A)  # eigenvalues in ascending order
+    s[s < s[..., -1:] * rcond] = np.inf if inv else 0
+    np.sqrt(s, out=s)
     if inv:
         s = 1. / s
-        a = np.matmul(u.swapaxes(-2, -1), s[..., np.newaxis, :] * u)
-    else:
-        a = np.matmul(u * s[..., np.newaxis, :], u.swapaxes(-2, -1))
+    a = np.matmul(u * s[..., np.newaxis, :], u.swapaxes(-2, -1))
     return a, s
