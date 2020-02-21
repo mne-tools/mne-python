@@ -394,7 +394,30 @@ solutions the resulting matrix :math:`R` will be a diagonal matrix, and for
 free-orientation solutions it will be a block-diagonal matrix with
 :math:`3 \times 3` blocks.
 
-XXX algorithm
+.. In https://royalsocietypublishing.org/doi/full/10.1098/rsta.2011.0081
+.. eq. 2.10 (classical min norm), their values map onto our values as:
+..
+.. - α=λ²
+.. - W=R⁻¹ (pos semidef weight matrix)
+.. - K=G
+.. - ϕ=x
+.. - C=H
+..
+
+In :footcite:`Pascual-Marqui2011` eq. 2.13 states that the following system
+of equations can be used to find the weights, :math:`\forall i \in {1, ..., P}`
+(note that here we represent the equations from that paper using our notation):
+
+.. math:: r_i = \left[ G_i^\top \left( GRG^\top + \lambda^2C \right)^{-1} G_i \right] ^{-^1/_2}
+
+And an iterative algorithm can be used to find the values for the weights
+:math:`r_i` that satisfy these equations as:
+
+1. Initialize identity weights.
+2. Compute :math:`N= \left( GRG^\top + \lambda^2C \right)^{-1}`.
+3. Holding :math:`N` fixed, compute new weights :math:`r_i = \left[ G_i^\top N G_i \right]^{-^1/_2}`.
+4. Using new weights, go to step (2) until convergence.
+
 
 Predicted data
 ~~~~~~~~~~~~~~

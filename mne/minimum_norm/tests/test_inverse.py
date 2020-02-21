@@ -29,7 +29,7 @@ from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       apply_inverse_raw, apply_inverse_epochs,
                                       make_inverse_operator,
                                       write_inverse_operator,
-                                      compute_rank_inverse, INVERSE_METHODS,
+                                      compute_rank_inverse,
                                       prepare_inverse_operator)
 from mne.utils import _TempDir, run_tests_if_main, catch_logging
 
@@ -314,8 +314,7 @@ def test_localization_bias_fixed(bias_params_fixed, method, lower, upper,
     fwd_use = convert_forward_solution(fwd, force_fixed=False)
     inv_fixed = make_inverse_operator(evoked.info, fwd_use, noise_cov,
                                       loose=0., depth=depth)
-    loc = np.abs(apply_inverse(evoked, inv_fixed, lambda2, method,
-                               verbose='debug').data)
+    loc = np.abs(apply_inverse(evoked, inv_fixed, lambda2, method).data)
     # Compute the percentage of sources for which there is no loc bias:
     perc = (want == np.argmax(loc, axis=0)).mean() * 100
     assert lower <= perc <= upper, method
@@ -327,6 +326,7 @@ def test_localization_bias_fixed(bias_params_fixed, method, lower, upper,
     #('MNE', 89, 92, dict(limit_depth_chs='whiten')),  # sparse default
     #('dSPM', 85, 87, 0.8),
     #('sLORETA', 100, 100, 0.8),
+    ('eLORETA', 97, 100, None),
     ('eLORETA', 97, 100, 0.8),
 ])
 def test_localization_bias_loose(bias_params_fixed, method, lower, upper,
@@ -337,8 +337,7 @@ def test_localization_bias_loose(bias_params_fixed, method, lower, upper,
     assert not is_fixed_orient(fwd)
     inv_loose = make_inverse_operator(evoked.info, fwd, noise_cov, loose=0.2,
                                       depth=depth)
-    loc = apply_inverse(evoked, inv_loose, lambda2, method,
-                        verbose='debug').data
+    loc = apply_inverse(evoked, inv_loose, lambda2, method).data
     assert (loc >= 0).all()
     # Compute the percentage of sources for which there is no loc bias:
     perc = (want == np.argmax(loc, axis=0)).mean() * 100
@@ -352,7 +351,8 @@ def test_localization_bias_loose(bias_params_fixed, method, lower, upper,
     #('MNE', 65, 70, {}, dict(limit_depth_chs='whiten')),  # sparse default
     #('dSPM', 40, 45, {}, 0.8),
     #('sLORETA', 90, 95, {}, 0.8),
-    ('eLORETA', 99, 100, dict(method_params=dict(force_equal=True)), 0.8),
+    ('eLORETA', 85, 100, dict(method_params=dict(force_equal=True)), None),
+    ('eLORETA', 99, 100, {}, None),
     ('eLORETA', 99, 100, {}, 0.8),
 ])
 def test_localization_bias_free(bias_params_free, method, lower, upper,
@@ -362,7 +362,7 @@ def test_localization_bias_free(bias_params_free, method, lower, upper,
     inv_free = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1.,
                                      depth=depth)
     loc = apply_inverse(evoked, inv_free, lambda2, method,
-                        pick_ori='vector', verbose='debug', **kwargs).data
+                        pick_ori='vector', **kwargs).data
     loc = np.linalg.norm(loc, axis=1)
     # Compute the percentage of sources for which there is no loc bias:
     perc = (want == np.argmax(loc, axis=0)).mean() * 100
@@ -394,7 +394,7 @@ def test_apply_inverse_sphere(evoked):
     write_inverse_operator(temp_fname, inv)
     inv = read_inverse_operator(temp_fname)
     stc = apply_inverse(evoked, inv, method='eLORETA',
-                        method_params=dict(eps=1e-2), verbose='debug')
+                        method_params=dict(eps=1e-2))
     # assert zero localization bias
     assert_array_equal(np.argmax(stc.data, axis=0),
                        np.repeat(np.arange(101), 3))
@@ -437,8 +437,7 @@ def test_apply_inverse_operator(evoked, inv, min_, max_):
     assert 2 < stc.data.max() < 7
     assert abs(stc).data.mean() > 0.1
 
-    stc = apply_inverse(evoked, inverse_operator, lambda2, "eLORETA",
-                        verbose='debug')
+    stc = apply_inverse(evoked, inverse_operator, lambda2, "eLORETA")
     assert stc.subject == 'sample'
     assert stc.data.min() > min_
     assert stc.data.max() < max_

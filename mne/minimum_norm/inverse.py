@@ -330,7 +330,7 @@ def write_inverse_operator(fname, inv, verbose=None):
     check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz',
                                             '_inv.fif', '_inv.fif.gz'))
     _validate_type(inv, InverseOperator, 'inv')
-    if inv['source_cov'].ndim != 1:
+    if inv['source_cov']['data'].ndim != 1:
         raise RuntimeError('Cannot write prepared eLORETA inverse')
 
     #

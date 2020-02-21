@@ -129,8 +129,8 @@ def eigh(a, overwrite_a=False, check_finite=True):
                           " to zero." % info)
 
 
-def sqrtm_sym(A, rcond=1e-7):
-    """Compute the square root of a symmetric matrix.
+def sqrtm_sym(A, rcond=1e-7, inv=False):
+    """Compute the square root of a symmetric matrix (or its inverse).
 
     Parameters
     ----------
@@ -148,7 +148,12 @@ def sqrtm_sym(A, rcond=1e-7):
     """
     # Same as linalg.sqrtm(C) but faster, also yields the eigenvalues
     s, u = np.linalg.eigh(A)
-    s[s < s[..., 0][..., np.newaxis] * rcond] = 0.
+    val = np.inf if inv else 0.
+    s[s < s[..., 0][..., np.newaxis] * rcond] = val
     s = np.sqrt(s)
-    a = np.matmul(u * s[..., np.newaxis, :], u.swapaxes(-2, -1))
+    if inv:
+        s = 1. / s
+        a = np.matmul(u.swapaxes(-2, -1), s[..., np.newaxis, :] * u)
+    else:
+        a = np.matmul(u * s[..., np.newaxis, :], u.swapaxes(-2, -1))
     return a, s
