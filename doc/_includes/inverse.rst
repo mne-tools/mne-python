@@ -82,12 +82,11 @@ inverse operator
       &= R G^\top (G R G^\top + \lambda^2 C)^{-1}\ ,
 
 where the unknown current amplitude is now interpreted in terms of the
-regularization parameter :math:`\lambda^2`. Small :math:`\lambda^2` corresponds
-to large current amplitudes and complex estimated current patterns while a
-large :math:`\lambda^2` means the amplitude of the current is limited and a
-simpler, smoother current estimate is obtained.
+regularization parameter :math:`\lambda^2`. Larger :math:`\lambda^2` values
+correspond to spatially smoother and weaker current amplitudes, whereas smaller
+:math:`\lambda^2` values lead to the opposite.
 
-We can arrive in the regularized linear inverse operator also by minimizing a
+We can arrive at the regularized linear inverse operator also by minimizing a
 cost function :math:`S` with respect to the estimated current :math:`\hat{j}`
 (given the measurement vector :math:`x` at any given time :math:`t`) as
 
@@ -220,8 +219,8 @@ regularizing the channel covariance matrix.
 Computation of the solution
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The most straightforward approach to calculate the MNE is to employ expression
-for the original or whitened inverse operator directly. However, for
+The most straightforward approach to calculate the MNE is to employ the
+expression of the original or whitened inverse operator directly. However, for
 computational convenience we prefer to take another route, which employs the
 singular-value decomposition (SVD) of the matrix
 
