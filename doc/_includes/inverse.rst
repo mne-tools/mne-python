@@ -3,15 +3,9 @@
 The minimum-norm current estimates
 ==================================
 
-This page describes the mathematical concepts and the computation of the
-minimum-norm estimates needed in order to obtain the linear inverse operator.
-
 .. contents:: Page contents
    :local:
    :depth: 2
-
-Overview
-~~~~~~~~
 
 .. NOTE: part of this file is included in doc/overview/implementation.rst.
    Changes here are reflected there. If you want to link to this content, link
@@ -20,16 +14,6 @@ Overview
    the include:
    inverse-begin-content
 
-
-Computing the inverse operator is accomplished using
-:func:`mne.minimum_norm.make_inverse_operator` and
-:func:`mne.minimum_norm.apply_inverse`. The use of these functions is presented
-in the tutorial :ref:`tut-inverse-methods`.
-
-.. _minimum_norm_estimates:
-
-Minimum-norm estimates
-~~~~~~~~~~~~~~~~~~~~~~
 
 This section describes the mathematical details of the calculation of
 minimum-norm estimates. In Bayesian sense, the ensuing current distribution is
@@ -45,55 +29,71 @@ the maximum a posteriori (MAP) estimate under the following assumptions:
 - The measured data contain additive noise with a Gaussian distribution with a
   known covariance matrix. The noise is not correlated over time.
 
+Computing the inverse operator is accomplished using
+:func:`mne.minimum_norm.make_inverse_operator` and
+:func:`mne.minimum_norm.apply_inverse`. The use of these functions is presented
+in the tutorial :ref:`tut-inverse-methods`.
+
 The linear inverse operator
----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The measured data in the source estimation procedure consists of MEG and EEG
-data, recorded on a total of N channels. The task is to estimate a total of M
+data, recorded on a total of N channels. The task is to estimate a total of
+:math:`Q`
 strengths of sources located on the cortical mantle. If the number of source
-locations is P, M = P for fixed-orientation sources and M = 3P if the source
+locations is :math:`P`, :math:`Q = P` for fixed-orientation sources and
+:math:`Q = 3P` if the source
 orientations are unconstrained. The regularized linear inverse operator
-following from the Bayesian approach is given by the :math:`M \times N` matrix
+following from regularized maximal likelihood of the above probabilistic model
+is given by the :math:`Q \times N` matrix
 
-.. math::    M = R' G^T (G R' G^T + C)^{-1}\ ,
+.. math::    M = R' G^\top (G R' G^\top + C)^{-1}\ ,
 
-.. sidebar:: Inverse operators in MNE-Python
-
-   For computational convenience, in MNE-Python the linear inverse operator is
-   not computed explicitly. See :ref:`mne_solution` for mathematical
-   details, and :ref:`CIHCFJEI` for a detailed example.
-
-where G is the gain matrix relating the source strengths to the measured
+where :math:`G` is the gain matrix relating the source strengths to the measured
 MEG/EEG data, :math:`C` is the data noise-covariance matrix and :math:`R'` is
 the source covariance matrix. The dimensions of these matrices are :math:`N
-\times M`, :math:`N \times N`, and :math:`M \times M`, respectively. The
-:math:`M \times 1` source-strength vector is obtained by multiplying the
-:math:`N \times 1` data vector by :math:`M`.
+\times Q`, :math:`N \times N`, and :math:`Q \times Q`, respectively. The
+:math:`Q \times 1` source-strength vector is obtained by multiplying the
+:math:`Q \times 1` data vector by :math:`Q`.
 
 The expected value of the current amplitudes at time *t* is then given by
 :math:`\hat{j}(t) = Mx(t)`, where :math:`x(t)` is a vector containing the
 measured MEG and EEG data values at time *t*.
 
+For computational convenience, the linear inverse operator is
+not computed explicitly. See :ref:`mne_solution` for mathematical
+details, and :ref:`CIHCFJEI` for a detailed example.
+
 .. _mne_regularization:
 
 Regularization
---------------
+~~~~~~~~~~~~~~
 
-The a priori variance of the currents is, in practise, unknown. We can express
-this by writing :math:`R' = R/ \lambda^2`, which yields the inverse operator
+The a priori variance of the currents is, in practice, unknown. We can express
+this by writing :math:`R' = R/ \lambda^2 = R \lambda^{-2}`, which yields the
+inverse operator
 
-.. math::    M = R G^T (G R G^T + \lambda^2 C)^{-1}\ ,
+.. math::
+   :label: inv_m
+
+    M &= R' G^\top (G R' G^\top + C)^{-1} \\
+      &= R \lambda^{-2} G^\top (G R \lambda^{-2} G^\top + C)^{-1} \\
+      &= R \lambda^{-2} G^\top \lambda^2 (G R G^\top + \lambda^2 C)^{-1} \\
+      &= R G^\top (G R G^\top + \lambda^2 C)^{-1}\ ,
 
 where the unknown current amplitude is now interpreted in terms of the
-regularization parameter :math:`\lambda^2`. Small :math:`\lambda^2` corresponds
-to large current amplitudes and complex estimate current patterns while a large
-:math:`\lambda^2` means the amplitude of the current is limited and a simpler,
-smooth, current estimate is obtained.
+regularization parameter :math:`\lambda^2`. Larger :math:`\lambda^2` values
+correspond to spatially smoother and weaker current amplitudes, whereas smaller
+:math:`\lambda^2` values lead to the opposite.
 
-We can arrive in the regularized linear inverse operator
-also by minimizing the cost function
+We can arrive at the regularized linear inverse operator also by minimizing a
+cost function :math:`S` with respect to the estimated current :math:`\hat{j}`
+(given the measurement vector :math:`x` at any given time :math:`t`) as
 
-.. math::    S = \tilde{e}^T \tilde{e} + \lambda^2 j^T R^{-1} j\ ,
+.. math::
+
+    \min_\hat{j} \Bigl\{ S \Bigr\} &= \min_\hat{j} \Bigl\{ \tilde{e}^\top \tilde{e} + \lambda^2 \hat{j}^\top R^{-1} \hat{j} \Bigr\} \\
+                                   &= \min_\hat{j} \Bigl\{ (x - G\hat{j})^\top C^{-1} (x - G\hat{j}) + \lambda^2 \hat{j}^\top R^{-1} \hat{j} \Bigr\} \,
 
 where the first term consists of the difference between the whitened measured
 data (see :ref:`whitening_and_scaling`) and those predicted by the model while the
@@ -104,18 +104,51 @@ discrepancy between the measured and predicted data is tolerable.
 .. _whitening_and_scaling:
 
 Whitening and scaling
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 
 The MNE software employs data whitening so that a 'whitened' inverse operator
 assumes the form
 
-.. math::    \tilde{M} = R \tilde{G}^T (\tilde{G} R \tilde{G}^T + I)^{-1}\ ,
+.. math::    \tilde{M} = M C^{^1/_2} = R \tilde{G}^\top (\tilde{G} R \tilde{G}^\top + \lambda^2 I)^{-1}\ ,
+   :label: inv_m_tilde
 
-where :math:`\tilde{G} = C^{-^1/_2}G` is the spatially whitened gain matrix.
-The expected current values are :math:`\hat{j} = Mx(t)`, where :math:`x(t) =
-C^{-^1/_2}x(t)` is a the whitened measurement vector at *t*. The spatial
-whitening operator is obtained with the help of the eigenvalue decomposition
-:math:`C = U_C \Lambda_C^2 U_C^T` as :math:`C^{-^1/_2} = \Lambda_C^{-1} U_C^T`.
+where
+
+.. math:: \tilde{G} = C^{-^1/_2}G
+   :label: inv_g_tilde
+
+is the spatially whitened gain matrix. We arrive at the whitened inverse
+operator equation :eq:`inv_m_tilde` by making the substitution for
+`G` from :eq:`inv_g_tilde` in :eq:`inv_m` as
+
+.. math::
+
+    \tilde{M} = M C^{^1/_2} &= R G^\top (G R G^\top + \lambda^2 C)^{-1} C^{^1/_2} \\
+                             &= R \tilde{G}^\top C^{^1/_2} (C^{^1/_2} \tilde{G} R \tilde{G}^\top C^{^1/_2} + \lambda^2 C)^{-1} C^{^1/_2} \\
+                             &= R \tilde{G}^\top C^{^1/_2} (C^{^1/_2} (\tilde{G} R \tilde{G}^\top + \lambda^2 I) C^{^1/_2})^{-1} C^{^1/_2} \\
+                             &= R \tilde{G}^\top C^{^1/_2} C^{-^1/_2} (\tilde{G} R \tilde{G}^\top + \lambda^2 I)^{-1} C^{-^1/_2} C^{^1/_2} \\
+                             &= R \tilde{G}^\top (\tilde{G} R \tilde{G}^\top + \lambda^2 I)^{-1}\ .
+
+The expected current values are
+
+.. math::
+   :label: inv_j_hat_t
+
+    \hat{j}(t) &= Mx(t) \\
+               &= M C^{^1/_2} C^{-^1/_2} x(t) \\
+               &= \tilde{M} \tilde{x}(t)
+
+knowing :eq:`inv_m_tilde` and taking
+
+.. math::
+   :label: inv_tilde_x_t
+
+    \tilde{x}(t) = C^{-^1/_2}x(t)
+
+as the whitened measurement vector at time *t*. The spatial
+whitening operator :math:`C^{-^1/_2}` is obtained with the help of the
+eigenvalue decomposition
+:math:`C = U_C \Lambda_C^2 U_C^\top` as :math:`C^{-^1/_2} = \Lambda_C^{-1} U_C^\top`.
 In the MNE software the noise-covariance matrix is stored as the one applying
 to raw data. To reflect the decrease of noise due to averaging, this matrix,
 :math:`C_0`, is scaled by the number of averages, :math:`L`, *i.e.*, :math:`C =
@@ -126,14 +159,14 @@ change in the variance of the current amplitudes in the Bayesian *a priori*
 distribution.
 
 A convenient choice for the source-covariance matrix :math:`R` is such that
-:math:`\text{trace}(\tilde{G} R \tilde{G}^T) / \text{trace}(I) = 1`. With this
+:math:`\text{trace}(\tilde{G} R \tilde{G}^\top) / \text{trace}(I) = 1`. With this
 choice we can approximate :math:`\lambda^2 \sim 1/SNR`, where SNR is the
 (power) signal-to-noise ratio of the whitened data.
 
 .. note::
    The definition of the signal to noise-ratio/ :math:`\lambda^2` relationship
    given above works nicely for the whitened forward solution. In the
-   un-whitened case scaling with the trace ratio :math:`\text{trace}(GRG^T) /
+   un-whitened case scaling with the trace ratio :math:`\text{trace}(GRG^\top) /
    \text{trace}(C)` does not make sense, since the diagonal elements summed
    have, in general, different units of measure. For example, the MEG data are
    expressed in T or T/m whereas the unit of EEG is Volts.
@@ -144,7 +177,7 @@ and whitening.
 .. _cov_regularization_math:
 
 Regularization of the noise-covariance matrix
----------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Since finite amount of data is usually available to compute an estimate of the
 noise-covariance matrix :math:`C`, the smallest eigenvalues of its estimate are
@@ -184,58 +217,85 @@ regularizing the channel covariance matrix.
 .. _mne_solution:
 
 Computation of the solution
----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The most straightforward approach to calculate the MNE is to employ expression
-for the original or whitened inverse operator directly. However, for
+The most straightforward approach to calculate the MNE is to employ the
+expression of the original or whitened inverse operator directly. However, for
 computational convenience we prefer to take another route, which employs the
 singular-value decomposition (SVD) of the matrix
 
-.. math::    A = \tilde{G} R^{^1/_2} = U \Lambda V^T
+.. math::
+   :label: inv_a
+
+    A &= \tilde{G} R^{^1/_2} \\
+      &= U \Lambda V^\top
 
 where the superscript :math:`^1/_2` indicates a square root of :math:`R`. For a
 diagonal matrix, one simply takes the square root of :math:`R` while in the
-more general case one can use the Cholesky factorization :math:`R = R_C R_C^T`
+more general case one can use the Cholesky factorization :math:`R = R_C R_C^\top`
 and thus :math:`R^{^1/_2} = R_C`.
 
-With the above SVD it is easy to show that
+Combining the SVD from :eq:`inv_a` with the inverse equation :eq:`inv_m` it is
+easy to show that
 
-.. math::    \tilde{M} = R^{^1/_2} V \Gamma U^T
+.. math::
+   :label: inv_m_tilde_svd
 
-where the elements of the diagonal matrix :math:`\Gamma` are
+    \tilde{M} &= R \tilde{G}^\top (\tilde{G} R \tilde{G}^\top + \lambda^2 I)^{-1} \\
+              &= R^{^1/_2} A^\top (A A^\top + \lambda^2 I)^{-1} \\
+              &= R^{^1/_2} V \Lambda U^\top (U \Lambda V^\top V \Lambda U^\top + \lambda^2 I)^{-1} \\
+              &= R^{^1/_2} V \Lambda U^\top (U (\Lambda^2 + \lambda^2 I) U^\top)^{-1} \\
+              &= R^{^1/_2} V \Lambda U^\top U (\Lambda^2 + \lambda^2 I)^{-1} U^\top \\
+              &= R^{^1/_2} V \Lambda (\Lambda^2 + \lambda^2 I)^{-1} U^\top \\
+              &= R^{^1/_2} V \Gamma U^\top
 
-.. math::    \gamma_k = \frac{1}{\lambda_k} \frac{\lambda_k^2}{\lambda_k^2 + \lambda^2}\ .
+where the elements of the diagonal matrix :math:`\Gamma` are simply
 
-With :math:`w(t) = U^T C^{-^1/_2} x(t)` the expression for the expected current
-is
+.. `reginv` in our code:
 
-.. math::    \hat{j}(t) = R^C V \Gamma w(t) = \sum_k {\bar{v_k} \gamma_k w_k(t)}\ ,
+.. math::
+   :label: inv_gamma_k
 
-where :math:`\bar{v_k} = R^C v_k`, :math:`v_k` being the :math:`k` th column of
-:math:`V`. It is thus seen that the current estimate is a weighted sum of the
-'modified' eigenleads :math:`v_k`.
+    \gamma_k = \frac{\lambda_k}{\lambda_k^2 + \lambda^2}\ .
+
+From our expected current equation :eq:`inv_j_hat_t` and our whitened
+measurement equation :eq:`inv_tilde_x_t`, if we take
+
+.. math::
+   :label: inv_w_t
+
+    w(t) &= U^\top \tilde{x}(t) \\
+         &= U^\top C^{-^1/_2} x(t)\ ,
+
+we can see that the expression for the expected current is just
+
+.. math::
+   :label: inv_j_hat_t_svd
+
+    \hat{j}(t) &= R^{^1/_2} V \Gamma w(t) \\
+               &= \sum_k {\bar{v_k} \gamma_k w_k(t)}\ ,
+
+where :math:`\bar{v_k} = R^{^1/_2} v_k`, with :math:`v_k` being the
+:math:`k` th column of :math:`V`. It is thus seen that the current estimate is
+a weighted sum of the "weighted" eigenleads :math:`v_k`.
 
 It is easy to see that :math:`w(t) \propto \sqrt{L}`. To maintain the relation
-:math:`(\tilde{G} R \tilde{G}^T) / \text{trace}(I) = 1` when :math:`L` changes
+:math:`(\tilde{G} R \tilde{G}^\top) / \text{trace}(I) = 1` when :math:`L` changes
 we must have :math:`R \propto 1/L`. With this approach, :math:`\lambda_k` is
 independent of  :math:`L` and, for fixed :math:`\lambda`, we see directly that
 :math:`j(t)` is independent of :math:`L`.
 
-.. sidebar:: Computing the solution in MNE-Python
-
-   In MNE-Python the minimum-norm estimate is computed using
-   :func:`mne.minimum_norm.make_inverse_operator` and its usage is illustrated
-   in :ref:`CIHCFJEI`.
+The minimum-norm estimate is computed using this procedure in
+:func:`mne.minimum_norm.make_inverse_operator`, and its usage is illustrated
+in :ref:`CIHCFJEI`.
 
 
 .. _noise_normalization:
 
 Noise normalization
--------------------
+~~~~~~~~~~~~~~~~~~~
 
-The noise-normalized linear estimates introduced by Dale et al.
-:footcite:`DaleEtAl1999` require division of the expected current amplitude by
-its variance. Noise normalization serves three purposes:
+Noise normalization serves three purposes:
 
 - It converts the expected current value into a dimensionless statistical test
   variable. Thus the resulting time and location dependent values are often
@@ -249,14 +309,38 @@ its variance. Noise normalization serves three purposes:
   resulting from the signals coming from a point current source (a current
   dipole) located at a certain point on the cortex.
 
-In practice, noise normalization requires the computation of the diagonal
-elements of the matrix
+In practice, noise normalization is implemented as a division by the square
+root of the estimated variance of each voxel. In computing these noise
+normalization factors, it's convenient to reuse our "weighted eigenleads"
+definition from equation :eq:`inv_j_hat_t` in matrix form as
 
-.. math::    M C M^T = \tilde{M} \tilde{M}^T\ .
+.. math::
+   :label: inv_eigenleads_weighted
 
-With help of the singular-value decomposition approach we see directly that
+    \bar{V} = R^{^1/_2} V\ .
 
-.. math::    \tilde{M} \tilde{M}^T\ = \bar{V} \Gamma^2 \bar{V}^T\ .
+dSPM
+----
+
+Noise-normalized linear estimates introduced by Dale et al.
+:footcite:`DaleEtAl1999` require division of the expected current amplitude by
+its variance. In practice, this requires the computation of the diagonal
+elements of the following matrix, using SVD equation :eq:`inv_m_tilde` and
+:eq:`inv_eigenleads_weighted`:
+
+.. math::
+
+    M C M^\top &= M C^{^1/_2} C^{^1/_2} M^\top \\
+            &= \tilde{M} \tilde{M}^\top \\
+            &= R^{^1/_2} V \Gamma U^\top U \Gamma V^\top R^{^1/_2} \\
+            &= \bar{V} \Gamma^2 \bar{V}^\top\ .
+
+Because we only care about the diagonal entries here, we can find the
+variances for each source as
+
+.. math::
+
+    \sigma_k^2 = \gamma_k^2
 
 Under the conditions expressed at the end of :ref:`mne_solution`, it
 follows that the *t*-statistic values associated with fixed-orientation
@@ -269,8 +353,42 @@ correspondingly.
    be displayed on the inflated cortical surfaces. These are also proportional
    to :math:`\sqrt{L}`.
 
+sLORETA
+-------
+sLORETA :footcite:`Pascual-Marqui2002` estimates the current variances as the
+diagonal entries of the
+resolution matrix, which is the product of the inverse and forward operators.
+In other words, the diagonal entries of (using :eq:`inv_m_tilde_svd`,
+:eq:`inv_g_tilde`, and :eq:`inv_a`)
+
+.. math::
+
+    M G &= M C^{^1/_2} C^{-^1/_2} G \\
+        &= \tilde{M} \tilde{G} \\
+        &= R^{^1/_2} V \Gamma U^\top \tilde{G} R^{^1/_2} R^{-^1/_2} \\
+        &= R^{^1/_2} V \Gamma U^\top U \Lambda V^\top R^{-^1/_2} \\
+        &= R^{^1/_2} V \Gamma U^\top U \Lambda V^\top R^{^1/_2} R^{-1} \\
+        &= \bar{V} \Gamma U^\top U \Lambda \bar{V}^\top R^{-1} \\
+        &= \bar{V} \Gamma \Lambda \bar{V}^\top R^{-1}\ .
+
+Because :math:`R` is diagonal and we only care about the diagonal entries,
+we can find our variance estimates as
+
+.. math::
+
+    \sigma_k^2 &= \gamma_k \lambda_k R_{k,k}^{-1} \\
+               &= \left(\frac{\lambda_k}{(\lambda_k^2 + \lambda^2)}\right) \left(\frac{\lambda_k}{1}\right) \left(\frac{1}{\lambda^2}\right) \\
+               &= \frac{\lambda_k^2}{(\lambda_k^2 + \lambda^2) \lambda^2} \\
+               &= \left(\frac{\lambda_k^2}{(\lambda_k^2 + \lambda^2)^2}\right) \left(\frac{\lambda^2 + \lambda_k^2}{\lambda^2}\right) \\
+               &= \left(\frac{\lambda_k}{\lambda_k^2 + \lambda^2}\right)^2 \left(1 + \frac{\lambda_k^2}{\lambda^2}\right) \\
+               &= \gamma_k^2 \left(1 + \frac{\lambda_k^2}{\lambda^2}\right)\ .
+
+eLORETA
+~~~~~~~
+The mathematics behind eLORETA are described in :footcite:`Pascual-Marqui2011`.
+
 Predicted data
---------------
+~~~~~~~~~~~~~~
 
 Under noiseless conditions the SNR is infinite and thus leads to
 :math:`\lambda^2 = 0` and the minimum-norm estimate explains the measured data
@@ -288,15 +406,7 @@ where the diagonal matrix :math:`\Pi` has elements :math:`\pi_k = \lambda_k
 'recolored eigenfields' in :math:`C^{^1/_2} U`.
 
 Cortical patch statistics
--------------------------
-
-.. sidebar:: Cortical patch statistics in MNE-Python
-
-   In MNE-Python, the ``use_cps`` parameter in
-   :func:`mne.convert_forward_solution`, and
-   :func:`mne.minimum_norm.make_inverse_operator` controls whether to use
-   cortical patch statistics (CPS) to define normal orientations or not (see
-   :ref:`CHDBBCEJ`).
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If the ``add_dists=True`` option was used in source space creation,
 the source space file will contain
@@ -316,30 +426,15 @@ source location :math:`d`:
 - The average deviation of the vertex normals in a patch from their average,
   :math:`\sigma_d`, given in degrees.
 
+``use_cps`` parameter in :func:`mne.convert_forward_solution`, and
+:func:`mne.minimum_norm.make_inverse_operator` controls whether to use
+cortical patch statistics (CPS) to define normal orientations or not (see
+:ref:`CHDBBCEJ`).
+
 .. _inverse_orientation_constrains:
 
-The orientation constraints
----------------------------
-
-.. sidebar:: Orientation constraints in MNE-Python
-
-   In MNE-Python, rigid orientation is employed by specifying ``fixed=True`` in
-   :func:`mne.minimum_norm.make_inverse_operator` (forcing dipole orientation
-   to be orthogonal to the cortical surface, pointing outwards). If cortical
-   patch statistics are available the average normal over each patch,
-   :math:`\bar{n_d}`, are used to define the source orientation. Otherwise, the
-   vertex normal at the source space location is employed. See
-   :ref:`plot_dipole_orientations_fixed_orientations`.
-
-   The *fLOC* is employed by specifying ``fixed=False`` and ``loose=1.0`` when
-   calling :func:`mne.minimum_norm.make_inverse_operator`. See
-   :ref:`plot_dipole_orientations_fLOC_orientations`.
-
-   The *vLOC* is employed by specifying ``fixed=False`` and ``loose``
-   parameters when calling :func:`mne.minimum_norm.make_inverse_operator`. This
-   is similar to *fLOC* except that the value given with the ``loose``
-   parameter will be multiplied by :math:`\sigma_d`, defined above. See
-   :ref:`plot_dipole_orientations_vLOC_orientations`.
+Orientation constraints
+~~~~~~~~~~~~~~~~~~~~~~~
 
 The principal sources of MEG and EEG signals are generally believed to be
 postsynaptic currents in the cortical pyramidal neurons. Since the net primary
@@ -349,14 +444,18 @@ constraint in source estimation. In addition to allowing completely free source
 orientations, the MNE software implements three orientation constraints based
 of the surface normal data:
 
-- Source orientation can be rigidly fixed to the surface normal direction (the
-  ``--fixed`` option). If cortical patch statistics are available the average
+- Source orientation can be rigidly fixed to the surface normal direction by
+  specifying ``fixed=True`` in :func:`mne.minimum_norm.make_inverse_operator`.
+  If cortical patch statistics are available the average
   normal over each patch, :math:`\bar{n_d}`, are used to define the source
   orientation. Otherwise, the vertex normal at the source space location is
   employed.
 
 - A *location independent or fixed loose orientation constraint* (fLOC) can be
-  employed (the ``--loose`` option). In this approach, a source coordinate
+  employed by specifying ``fixed=False`` and ``loose=1.0`` when
+  calling :func:`mne.minimum_norm.make_inverse_operator` (see
+  :ref:`plot_dipole_orientations_fLOC_orientations`).
+  In this approach, a source coordinate
   system based on the local surface orientation at the source location is
   employed. By default, the three columns of the gain matrix G, associated with
   a given source location, are the fields of unit dipoles pointing to the
@@ -368,18 +467,15 @@ of the surface normal data:
   Thereafter, the variance of the source components tangential to the cortical
   surface are reduced by a factor defined by the ``--loose`` option.
 
-- A *variable loose orientation constraint* (vLOC) can be employed (the
-  ``--loosevar`` option). This is similar to fLOC except that the value given
-  with the ``--loosevar`` option will be multiplied by :math:`\sigma_d`,
-  defined above.
+- A *variable loose orientation constraint* (vLOC) can be employed by
+  specifying ``fixed=False`` and ``loose`` parameters when calling
+  :func:`mne.minimum_norm.make_inverse_operator` (see
+  :ref:`plot_dipole_orientations_vLOC_orientations`). This
+  is similar to *fLOC* except that the value given with the ``loose``
+  parameter will be multiplied by :math:`\sigma_d`, defined above.
 
 Depth weighting
----------------
-
-.. sidebar:: Adjusting depth weighting in MNE-Python
-
-   The maximal amount of depth weighting can be adjusted with ``depth``
-   parameter in :func:`mne.minimum_norm.make_inverse_operator`.
+~~~~~~~~~~~~~~~
 
 The minimum-norm estimates have a bias towards superficial currents. This
 tendency can be alleviated by adjusting the source covariance matrix :math:`R`
@@ -387,11 +483,12 @@ to favor deeper source locations. In the depth weighting scheme employed in MNE
 analyze, the elements of :math:`R` corresponding to the :math:`p` th source
 location are be scaled by a factor
 
-.. math::    f_p = (g_{1p}^T g_{1p} + g_{2p}^T g_{2p} + g_{3p}^T g_{3p})^{-\gamma}\ ,
+.. math::    f_p = (g_{1p}^\top g_{1p} + g_{2p}^\top g_{2p} + g_{3p}^\top g_{3p})^{-\gamma}\ ,
 
 where :math:`g_{1p}`, :math:`g_{2p}`, and :math:`g_{3p}` are the three columns
 of :math:`G` corresponding to source location :math:`p` and :math:`\gamma` is
-the order of the depth weighting, which is specified via the ``depth`` option.
+the order of the depth weighting, which is specified via the ``depth`` option
+in :func:`mne.minimum_norm.make_inverse_operator`.
 
 Effective number of averages
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~

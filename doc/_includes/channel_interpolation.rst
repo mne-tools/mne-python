@@ -41,7 +41,7 @@ To estimate the constants :math:`C`, we must solve the following two equations s
 .. math:: {T_s}^{T}C = 0
    :label: constraint
 
-where :math:`G_{ss} \in R^{N \times N}` is a matrix whose entries are :math:`G_{ss}[i, j] = g_{m}(cos(\boldsymbol{r_i}, \boldsymbol{r_j}))` and :math:`X \in R^{N \times 1}` are the potentials :math:`V(\boldsymbol{r_i})` measured at the good channels. :math:`T_{s} = (1, 1, ..., 1)^T` is a column vector of dimension :math:`N`. Equation :eq:`matrix_form` is the matrix formulation of Equation :eq:`model` and equation :eq:`constraint` is like applying an average reference to the data. From equation :eq:`matrix_form` and :eq:`constraint`, we get:
+where :math:`G_{ss} \in R^{N \times N}` is a matrix whose entries are :math:`G_{ss}[i, j] = g_{m}(cos(\boldsymbol{r_i}, \boldsymbol{r_j}))` and :math:`X \in R^{N \times 1}` are the potentials :math:`V(\boldsymbol{r_i})` measured at the good channels. :math:`T_{s} = (1, 1, ..., 1)^\top` is a column vector of dimension :math:`N`. Equation :eq:`matrix_form` is the matrix formulation of Equation :eq:`model` and equation :eq:`constraint` is like applying an average reference to the data. From equation :eq:`matrix_form` and :eq:`constraint`, we get:
 
 .. math:: \begin{bmatrix} c_0 \\ C \end{bmatrix} = {\begin{bmatrix} {T_s}^{T} && 0 \\ T_s && G_{ss} \end{bmatrix}}^{-1} \begin{bmatrix} 0 \\ X \end{bmatrix} = C_{i}X
    :label: estimate_constant
@@ -53,7 +53,7 @@ Now, to estimate the potentials :math:`\hat{X} \in R^{M \times 1}` at the bad ch
 .. math:: \hat{X} = G_{ds}C + T_{d}c_0
    :label: estimate_data
 
-where :math:`G_{ds} \in R^{M \times N}` computes :math:`g_{m}(\boldsymbol{r_i}, \boldsymbol{r_j})` between the bad and good channels. :math:`T_{d} = (1, 1, ..., 1)^T` is a column vector of dimension :math:`M`. Plugging in equation :eq:`estimate_constant` in :eq:`estimate_data`, we get
+where :math:`G_{ds} \in R^{M \times N}` computes :math:`g_{m}(\boldsymbol{r_i}, \boldsymbol{r_j})` between the bad and good channels. :math:`T_{d} = (1, 1, ..., 1)^\top` is a column vector of dimension :math:`M`. Plugging in equation :eq:`estimate_constant` in :eq:`estimate_data`, we get
 
 .. math:: \hat{X} = \begin{bmatrix} T_d && G_{ds} \end{bmatrix} \begin{bmatrix} c_0 \\ C \end{bmatrix} = \underbrace{\begin{bmatrix} T_d && G_{ds} \end{bmatrix} C_{i}}_\text{mapping matrix}X
 
