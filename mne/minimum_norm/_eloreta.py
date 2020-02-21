@@ -100,19 +100,23 @@ def _compute_eloreta(inv, lambda2, options):
             break
     else:
         warn('eLORETA weight fitting did not converge (>= %s)' % eps)
-    logger.info('        Assembling eLORETA kernel and modifying inverse')
-
+    logger.info('        Updating inverse with weighted eigen leads')
     if n_orient == 1 or force_equal:
         R_sqrt = np.sqrt(np.repeat(R, n_orient))
         A = G * R_sqrt
+        R_Gt = R_sqrt[:, np.newaxis] * A.T
     else:
         R_sqrt = sqrtm_sym(R)[0]
         A = np.matmul(R_sqrt, G_3).reshape(n_src * 3, -1).T
-    u, s, v = _safe_svd(A, full_matrices=False)
+        R_Gt = np.matmul(
+            R_sqrt, A.reshape(n_chan, n_src, n_orient).transpose(1, 2, 0)
+        ).reshape(n_src * n_orient, n_chan)
+    del R, G
+    eigen_fields, sing, eigen_leads = _safe_svd(A, full_matrices=False)
     with np.errstate(invalid='ignore'):  # if lambda2==0
-        reginv = np.where(s > 0, s / (s ** 2 + lambda2), 0)
+        reginv = np.where(sing > 0, sing / (sing ** 2 + lambda2), 0)
     inv['eigen_leads_weighted'] = True
-    eigen_leads, eigen_fields = v.T, u.T
+    eigen_leads, eigen_fields = eigen_leads.T, eigen_fields.T
     if n_orient == 1 or force_equal:
         eigen_leads *= R_sqrt[:, np.newaxis]
     else:
@@ -120,24 +124,18 @@ def _compute_eloreta(inv, lambda2, options):
             n_chan, n_src, n_orient).transpose(1, 2, 0)
         eigen_leads[:] = np.matmul(
             R_sqrt, eigen_leads_3).reshape(n_src * n_orient, n_chan)
-    inv['sing'][:] = s
-    inv['eigen_leads']['data'][:] = eigen_leads
-    inv['reginv'][:] = reginv
-    inv['eigen_fields']['data'][:] = eigen_fields
+    inv['sing'][:] = sing
     M = np.dot(eigen_leads, reginv[:, np.newaxis] * eigen_fields)
     # The direct way from their paper
     u, s, v = _repeated_svd(G_R_Gt, lwork=svd_lwork)
     s = s[:n_nzero] / (s[:n_nzero] ** 2 + lambda2)
     N = np.dot(v.T[:, :n_nzero] * s, u.T[:n_nzero])
-    if n_orient == 1 or force_equal:
-        R_Gt = np.repeat(R, n_orient)[:, np.newaxis] * G.T
-    else:
-        R_Gt = np.matmul(R, G_3)
-        R_Gt.shape = (n_src * n_orient, n_chan)
-    M_ = np.dot(R_Gt, N)
+    M_ = np.dot(R_Gt, N).T
+    assert M_.shape == (n_chan, n_src * n_orient)
     # 1. Fix here:
     # np.testing.assert_allclose(M_, M)  # XXX FIX HERE, del delow
-    eigen_leads, reginv, eigen_fields = _safe_svd(M_, full_matrices=False)
+    eigen_fields, reginv, eigen_leads = _safe_svd(M_, full_matrices=False)
+    eigen_leads, eigen_fields = eigen_leads.T, eigen_fields.T
     inv['eigen_leads']['data'][:] = eigen_leads
     inv['reginv'][:] = reginv
     inv['eigen_fields']['data'][:] = eigen_fields
