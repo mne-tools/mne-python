@@ -113,8 +113,6 @@ def _compute_eloreta(inv, lambda2, options):
     inv['eigen_leads_weighted'] = True
     eigen_leads, eigen_fields = v.T, u.T
     eigen_leads[:] = _R_sqrt_mult(R_sqrt, eigen_leads.T)
-    assert eigen_leads.shape == (n_src * n_orient,
-                                 min(n_src * n_orient, n_chan))
     inv['eigen_leads']['data'][:] = eigen_leads
     inv['sing'][:] = s
     inv['reginv'][:] = reginv
@@ -125,16 +123,17 @@ def _compute_eloreta(inv, lambda2, options):
     u, s, v = np.linalg.svd(G_R_Gt, hermitian=True)
     s = s[:n_nzero] / (s[:n_nzero] ** 2 + lambda2)
     N = np.dot(v.T[:, :n_nzero] * s, u.T[:n_nzero])
-    R_Gt = _R_sqrt_mult(R_sqrt, A)
     assert N.shape == (n_chan, n_chan)
-    M_ = np.dot(N, R_Gt.T)
-    #M_2 = _R_sqrt_mult(R_sqrt, np.dot(N, A).T).T
-    #np.testing.assert_allclose(M_, M_2)
+    assert A.shape == (n_chan, n_src * n_orient)
+    M_ = np.dot(N, A)
     assert M_.shape == (n_chan, n_src * n_orient)
-    # 1. Fix here:
     # np.testing.assert_allclose(M_, M)  # XXX FIX HERE, del delow
+    # 1. Fix here:
     u, reginv, v = _safe_svd(M_, full_matrices=False)
     eigen_leads, eigen_fields = v.T, u.T
+    eigen_leads = _R_sqrt_mult(R_sqrt, eigen_leads.T)
+    assert eigen_leads.shape == (n_src * n_orient,
+                                 min(n_src * n_orient, n_chan))
     inv['eigen_leads']['data'][:] = eigen_leads
     inv['reginv'][:] = reginv
     inv['eigen_fields']['data'][:] = eigen_fields
