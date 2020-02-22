@@ -130,7 +130,11 @@ Bug
 
 - Fix a bug in :meth:`mne.MixedSourceEstimate.plot_surface` that prevented plotting in latest PySurfer by `Christian O'Reilly`_.
 
-- Fix ``method='eLORETA'`` units (now properly returns nAm instead of normalized), explained variance, and residual computation by `Eric Larson`_
+- Fix ``method='eLORETA'`` in :func:`mne.minimum_norm.apply_inverse`, by `Eric Larson`_:
+
+  1. regularization, which was off by roughly a factor of a square root
+  2. units, which are now nAm instead of being arbitrary
+  3. explained variance and residuals, which were previously unavailable
 
 - Fix bug in ``method='eLORETA'`` for :func:`mne.minimum_norm.apply_inverse` (and variants) to allow restricting source estimation to a label by `Luke Bloy`_
 
