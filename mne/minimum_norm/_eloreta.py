@@ -75,7 +75,7 @@ def _compute_eloreta(inv, lambda2, options):
     for kk in range(max_iter):
         # 1. Compute inverse of the weights (stabilized) and C
         u, s, v = _repeated_svd(G_R_Gt, lwork=svd_lwork)
-        s = s[:n_nzero] / (s[:n_nzero] ** 2 + lambda2)
+        s = 1 / (s[:n_nzero] + lambda2)
         N = np.dot(v.T[:, :n_nzero] * s, u.T[:n_nzero])
 
         # Update the weights
@@ -117,25 +117,6 @@ def _compute_eloreta(inv, lambda2, options):
     inv['reginv'][:] = reginv
     inv['eigen_fields']['data'][:] = eigen_fields
     M = np.dot(eigen_leads, reginv[:, np.newaxis] * eigen_fields).T
-
-    # The direct way from their paper, using G_R_Gt = A @ A.T and SVD:
-    # u, s, v = np.linalg.svd(G_R_Gt, hermitian=True)
-    s = s ** 2
-    v = u.T
-    with np.errstate(invalid='ignore'):  # if lambda2==0
-        reginv = np.where(s > 0, s / (s ** 2 + lambda2), 0)
-    N = np.dot(v.T * reginv, u.T)
-    assert N.shape == (n_chan, n_chan)
-    assert A.shape == (n_chan, n_src * n_orient)
-    M_ = np.dot(N, A)
-    assert M_.shape == (n_chan, n_src * n_orient)
-    # np.testing.assert_allclose(M_, M)  # XXX FIX HERE, del delow
-    # 1. Fix here:
-    u, reginv, v = _safe_svd(M_, full_matrices=False)
-    eigen_leads, eigen_fields = v.T, u.T
-    inv['eigen_leads']['data'][:] = _R_sqrt_mult(eigen_leads.T, R_sqrt).T
-    inv['reginv'][:] = reginv
-    inv['eigen_fields']['data'][:] = eigen_fields
     # 2. Fix loose
     # 3. Fix force_fixed=True
     # 4. Fix exp var
