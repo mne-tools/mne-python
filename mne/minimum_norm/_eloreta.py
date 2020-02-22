@@ -105,24 +105,26 @@ def _compute_eloreta(inv, lambda2, options):
         R_sqrt = np.sqrt(np.repeat(R, n_orient))
     else:
         R_sqrt = sqrtm_sym(R)[0]
-    A = _R_sqrt_mult(R_sqrt, G).T
+    A = _R_sqrt_mult(G, R_sqrt)
     del R, G  # the rest will be done in terms of R_sqrt and A
     u, s, v = _safe_svd(A, full_matrices=False)
     with np.errstate(invalid='ignore'):  # if lambda2==0
         reginv = np.where(s > 0, s / (s ** 2 + lambda2), 0)
     inv['eigen_leads_weighted'] = True
     eigen_leads, eigen_fields = v.T, u.T
-    eigen_leads[:] = _R_sqrt_mult(R_sqrt, eigen_leads.T)
-    inv['eigen_leads']['data'][:] = eigen_leads
+    inv['eigen_leads']['data'][:] = _R_sqrt_mult(eigen_leads.T, R_sqrt).T
     inv['sing'][:] = s
     inv['reginv'][:] = reginv
     inv['eigen_fields']['data'][:] = eigen_fields
-    M = np.dot(eigen_leads, reginv[:, np.newaxis] * eigen_fields)
+    M = np.dot(eigen_leads, reginv[:, np.newaxis] * eigen_fields).T
 
-    # The direct way from their paper
-    u, s, v = np.linalg.svd(G_R_Gt, hermitian=True)
-    s = s[:n_nzero] / (s[:n_nzero] ** 2 + lambda2)
-    N = np.dot(v.T[:, :n_nzero] * s, u.T[:n_nzero])
+    # The direct way from their paper, using G_R_Gt = A @ A.T and SVD:
+    # u, s, v = np.linalg.svd(G_R_Gt, hermitian=True)
+    s = s ** 2
+    v = u.T
+    with np.errstate(invalid='ignore'):  # if lambda2==0
+        reginv = np.where(s > 0, s / (s ** 2 + lambda2), 0)
+    N = np.dot(v.T * reginv, u.T)
     assert N.shape == (n_chan, n_chan)
     assert A.shape == (n_chan, n_src * n_orient)
     M_ = np.dot(N, A)
@@ -131,22 +133,21 @@ def _compute_eloreta(inv, lambda2, options):
     # 1. Fix here:
     u, reginv, v = _safe_svd(M_, full_matrices=False)
     eigen_leads, eigen_fields = v.T, u.T
-    eigen_leads = _R_sqrt_mult(R_sqrt, eigen_leads.T)
-    assert eigen_leads.shape == (n_src * n_orient,
-                                 min(n_src * n_orient, n_chan))
-    inv['eigen_leads']['data'][:] = eigen_leads
+    inv['eigen_leads']['data'][:] = _R_sqrt_mult(eigen_leads.T, R_sqrt).T
     inv['reginv'][:] = reginv
     inv['eigen_fields']['data'][:] = eigen_fields
     # 2. Fix loose
     # 3. Fix force_fixed=True
+    # 4. Fix exp var
+    # 5. Fix residual
     logger.info('[done]')
 
 
-def _R_sqrt_mult(R_sqrt, other):
-    """Do R ** 0.5 @ other."""
+def _R_sqrt_mult(other, R_sqrt):
+    """Do other @ R ** 0.5."""
     if R_sqrt.ndim == 1:
         assert other.shape[1] == R_sqrt.size
-        return R_sqrt[:, np.newaxis] * other.T
+        out = R_sqrt * other
     else:
         assert R_sqrt.shape[1:3] == (3, 3)
         assert other.shape[1] == np.prod(R_sqrt.shape[:2])
@@ -155,5 +156,5 @@ def _R_sqrt_mult(R_sqrt, other):
         n_chan = other.shape[0]
         out = np.matmul(
             R_sqrt, other.reshape(n_chan, n_src, 3).transpose(1, 2, 0)
-        ).reshape(n_src * 3, n_chan)
-        return out
+        ).reshape(n_src * 3, n_chan).T
+    return out
