@@ -171,7 +171,7 @@ del stc_vec
 #
 # For more information about dipole orientations, see
 # :ref:`tut-dipole-orientations`.
-#
+
 ###############################################################################
 # Now let's look at each solver:
 
