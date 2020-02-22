@@ -300,12 +300,12 @@ def test_inverse_operator_channel_ordering(evoked, noise_cov):
 
 
 @pytest.mark.parametrize('method, lower, upper, depth', [
-    #('MNE', 54, 57, dict(limit=None, combine_xyz=False, exp=1.)),  # DICS def
-    #('MNE', 75, 80, dict(limit_depth_chs=False)),  # ancient MNE default
-    #('MNE', 83, 87, 0.8),  # MNE default
-    #('MNE', 89, 92, dict(limit_depth_chs='whiten')),  # sparse default
-    #('dSPM', 96, 98, 0.8),
-    #('sLORETA', 100, 100, 0.8),
+    ('MNE', 54, 57, dict(limit=None, combine_xyz=False, exp=1.)),  # DICS def
+    ('MNE', 75, 80, dict(limit_depth_chs=False)),  # ancient MNE default
+    ('MNE', 83, 87, 0.8),  # MNE default
+    ('MNE', 89, 92, dict(limit_depth_chs='whiten')),  # sparse default
+    ('dSPM', 96, 98, 0.8),
+    ('sLORETA', 100, 100, 0.8),
     ('eLORETA', 100, 100, None),
     ('eLORETA', 100, 100, 0.8),
 ])
@@ -316,28 +316,30 @@ def test_localization_bias_fixed(bias_params_fixed, method, lower, upper,
     fwd_use = convert_forward_solution(fwd, force_fixed=False)
     inv_fixed = make_inverse_operator(evoked.info, fwd_use, noise_cov,
                                       loose=0., depth=depth)
-    loc = np.abs(apply_inverse(evoked, inv_fixed, lambda2, method).data)
+    loc = np.abs(apply_inverse(evoked, inv_fixed, lambda2, method,
+                               verbose='debug').data)
     # Compute the percentage of sources for which there is no loc bias:
     perc = (want == np.argmax(loc, axis=0)).mean() * 100
     assert lower <= perc <= upper, method
 
 
-@pytest.mark.parametrize('method, lower, upper, depth', [
-    #('MNE', 32, 36, dict(limit=None, combine_xyz=False, exp=1.)),  # DICS def
-    #('MNE', 78, 81, 0.8),  # MNE default
-    #('MNE', 89, 92, dict(limit_depth_chs='whiten')),  # sparse default
-    #('dSPM', 85, 87, 0.8),
-    #('sLORETA', 100, 100, 0.8),
-    #('eLORETA', 97, 100, None),
-    #('eLORETA', 97, 100, 0.8),
+@pytest.mark.parametrize('method, lower, upper, depth, loose', [
+    ('MNE', 32, 36, dict(limit=None, combine_xyz=False, exp=1.), 0.2),  # DICS
+    ('MNE', 78, 81, 0.8, 0.2),  # MNE default
+    ('MNE', 89, 92, dict(limit_depth_chs='whiten'), 0.2),  # sparse default
+    ('dSPM', 85, 87, 0.8, 0.2),
+    ('sLORETA', 100, 100, 0.8, 0.2),
+    ('eLORETA', 99, 100, None, 0.2),
+    ('eLORETA', 99, 100, 0.8, 0.2),
+    ('eLORETA', 99, 100, 0.8, 0.001),
 ])
 def test_localization_bias_loose(bias_params_fixed, method, lower, upper,
-                                 depth):
+                                 depth, loose):
     """Test inverse localization bias for loose minimum-norm solvers."""
     evoked, fwd, noise_cov, _, want = bias_params_fixed
     fwd = convert_forward_solution(fwd, surf_ori=False, force_fixed=False)
     assert not is_fixed_orient(fwd)
-    inv_loose = make_inverse_operator(evoked.info, fwd, noise_cov, loose=0.2,
+    inv_loose = make_inverse_operator(evoked.info, fwd, noise_cov, loose=loose,
                                       depth=depth)
     loc = apply_inverse(evoked, inv_loose, lambda2, method).data
     assert (loc >= 0).all()
@@ -346,25 +348,26 @@ def test_localization_bias_loose(bias_params_fixed, method, lower, upper,
     assert lower <= perc <= upper, method
 
 
-@pytest.mark.parametrize('method, lower, upper, kwargs, depth', [
-    #('MNE', 21, 24, {}, dict(limit=None, combine_xyz=False, exp=1.)),  # DICS
-    #('MNE', 35, 40, {}, dict(limit_depth_chs=False)),  # ancient default
-    #('MNE', 45, 55, {}, 0.8),  # MNE default
-    #('MNE', 65, 70, {}, dict(limit_depth_chs='whiten')),  # sparse default
-    #('dSPM', 40, 45, {}, 0.8),
-    #('sLORETA', 90, 95, {}, 0.8),
-    #('eLORETA', 85, 100, dict(method_params=dict(force_equal=True)), None),
-    ('eLORETA', 100, 100, {}, None),
-    ('eLORETA', 100, 100, {}, 0.8),
+@pytest.mark.parametrize('method, lower, upper, kwargs, depth, loose', [
+    ('MNE', 21, 24, {}, dict(limit=None, combine_xyz=False, exp=1.), 1),
+    ('MNE', 35, 40, {}, dict(limit_depth_chs=False), 1),  # ancient default
+    ('MNE', 45, 55, {}, 0.8, 1),  # MNE default
+    ('MNE', 65, 70, {}, dict(limit_depth_chs='whiten'), 1),  # sparse default
+    ('dSPM', 40, 45, {}, 0.8, 1),
+    ('sLORETA', 90, 95, {}, 0.8, 1),
+    ('eLORETA', 93, 100, dict(method_params=dict(force_equal=True)), None, 1),
+    ('eLORETA', 100, 100, {}, None, 1.0),
+    ('eLORETA', 100, 100, {}, 0.8, 1.0),
+    ('eLORETA', 100, 100, {}, 0.8, 0.999),
 ])
 def test_localization_bias_free(bias_params_free, method, lower, upper,
-                                kwargs, depth):
+                                kwargs, depth, loose):
     """Test inverse localization bias for free minimum-norm solvers."""
     evoked, fwd, noise_cov, _, want = bias_params_free
     inv_free = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1.,
                                      depth=depth)
     loc = apply_inverse(evoked, inv_free, lambda2, method,
-                        pick_ori='vector', **kwargs).data
+                        pick_ori='vector', verbose='debug', **kwargs).data
     loc = np.linalg.norm(loc, axis=1)
     # Compute the percentage of sources for which there is no loc bias:
     perc = (want == np.argmax(loc, axis=0)).mean() * 100
@@ -441,8 +444,8 @@ def test_apply_inverse_operator(evoked, inv, min_, max_):
 
     stc = apply_inverse(evoked, inverse_operator, lambda2, "eLORETA")
     assert stc.subject == 'sample'
-    assert stc.data.min() > min_
-    assert stc.data.max() < max_
+    assert abs(stc).data.min() > min_
+    assert stc.data.max() < max_ * 2
     assert abs(stc).data.mean() > 1e-11
 
     stc = apply_inverse(evoked, inverse_operator, lambda2, "dSPM")
@@ -481,7 +484,29 @@ def test_apply_inverse_operator(evoked, inv, min_, max_):
     apply_inverse(evoked, inv_op_meg, 1. / 9.)
 
 
-def test_inverse_residual(evoked):
+@pytest.mark.parametrize('method', INVERSE_METHODS)
+@pytest.mark.parametrize('looses, pick_oris', [
+    ((1., 0.999), ('vector', 'vector')),  # almost the same as free
+    ((0., 0.001), (None, 'normal')),  # almost the same as fixed
+])
+def test_orientation_prior(bias_params_free, method, looses, pick_oris):
+    """Test that orientation priors are handled properly."""
+    evoked, fwd, noise_cov, _, _ = bias_params_free
+    stcs = list()
+    for loose, pick_ori in zip(looses, pick_oris):
+        inv = make_inverse_operator(evoked.info, fwd, noise_cov, loose=loose)
+        stcs.append(apply_inverse(
+            evoked, inv, method=method, pick_ori=pick_ori))
+    corr = np.corrcoef(stcs[0].data.ravel(), stcs[1].data.ravel())[0, 1]
+    if method == 'eLORETA' and 1. in looses:
+        min_, max_ = 0.98, 0.99  # because we force_equal=True for loose
+    else:
+        min_, max_ = 0.9999, 1.
+    assert min_ < corr < max_
+
+
+@pytest.mark.parametrize('method', INVERSE_METHODS)
+def test_inverse_residual(evoked, method):
     """Test MNE inverse application."""
     # use fname_inv as it will be faster than fname_full (fewer verts and chs)
     evoked = evoked.pick_types()
@@ -490,37 +515,35 @@ def test_inverse_residual(evoked):
     pick_channels_forward(fwd, evoked.ch_names, copy=False)
     fwd = convert_forward_solution(fwd, force_fixed=True, surf_ori=True)
     matcher = re.compile(r'.* ([0-9]?[0-9]?[0-9]?\.[0-9])% variance.*')
-    for method in ('MNE', 'dSPM', 'sLORETA'):
-        with catch_logging() as log:
-            stc, residual = apply_inverse(
-                evoked, inv, method=method, return_residual=True, verbose=True)
-        log = log.getvalue()
-        match = matcher.match(log.replace('\n', ' '))
-        assert match is not None
-        match = float(match.group(1))
-        assert 45 < match < 50
-        if method == 'MNE':  # must be first!
-            recon = apply_forward(fwd, stc, evoked.info)
-            proj_op = make_projector(evoked.info['projs'], evoked.ch_names)[0]
-            recon.data[:] = np.dot(proj_op, recon.data)
-            residual_fwd = evoked.copy()
-            residual_fwd.data -= recon.data
-        corr = np.corrcoef(residual_fwd.data.ravel(),
-                           residual.data.ravel())[0, 1]
-        assert corr > 0.999
+
     with catch_logging() as log:
-        _, residual = apply_inverse(
-            evoked, inv, 0., 'MNE', return_residual=True, verbose=True)
+        stc, residual = apply_inverse(
+            evoked, inv, method=method, return_residual=True, verbose=True)
     log = log.getvalue()
     match = matcher.match(log.replace('\n', ' '))
     assert match is not None
     match = float(match.group(1))
-    assert match == 100.
-    assert_array_less(np.abs(residual.data), 1e-15)
+    assert 45 < match < 50
+    if method not in ('dSPM', 'sLORETA'):
+        recon = apply_forward(fwd, stc, evoked.info)
+        proj_op = make_projector(evoked.info['projs'], evoked.ch_names)[0]
+        recon.data[:] = np.dot(proj_op, recon.data)
+        residual_fwd = evoked.copy()
+        residual_fwd.data -= recon.data
+        corr = np.corrcoef(residual_fwd.data.ravel(),
+                           residual.data.ravel())[0, 1]
+        assert corr > 0.999
 
-    # Degenerate: we don't have the right representation for eLORETA for this
-    with pytest.raises(ValueError, match='eLORETA does not .* support .*'):
-        apply_inverse(evoked, inv, method="eLORETA", return_residual=True)
+    if method != 'sLORETA':  # XXX divide by zero error
+        with catch_logging() as log:
+            _, residual = apply_inverse(
+                evoked, inv, 0., method, return_residual=True, verbose=True)
+        log = log.getvalue()
+        match = matcher.match(log.replace('\n', ' '))
+        assert match is not None
+        match = float(match.group(1))
+        assert match == 100.
+        assert_array_less(np.abs(residual.data), 1e-15)
 
 
 def test_make_inverse_operator_fixed(evoked, noise_cov):

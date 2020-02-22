@@ -39,7 +39,7 @@ from ..transforms import _ensure_trans, transform_surface_to
 from ..source_estimate import _make_stc, _get_src_type
 from ..utils import (check_fname, logger, verbose, warn, _validate_type,
                      _check_compensation_grade, _check_option,
-                     _check_depth, _check_src_normal, sqrtm_sym)
+                     _check_depth, _check_src_normal)
 
 
 INVERSE_METHODS = ['MNE', 'dSPM', 'sLORETA', 'eLORETA']
@@ -885,8 +885,6 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     """
     _check_reference(evoked, inverse_operator['info']['ch_names'])
     _check_option('method', method, INVERSE_METHODS)
-    if method == 'eLORETA' and return_residual:
-        raise ValueError('eLORETA does not currently support return_residual')
     _check_ori(pick_ori, inverse_operator['source_ori'],
                inverse_operator['src'])
     #
@@ -921,11 +919,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
                              Pi[:, np.newaxis] * w_t))
     data_est_w = np.dot(inv['whitener'], np.dot(inv['proj'], data_est))
     var_exp = 1 - ((data_est_w - data_w) ** 2).sum() / (data_w ** 2).sum()
-
-    if method == 'eLORETA':
-        logger.info('    Explained variance unknown')
-    else:
-        logger.info('    Explained %5.1f%% variance' % (100 * var_exp,))
+    logger.info('    Explained %5.1f%% variance' % (100 * var_exp,))
 
     if return_residual:
         residual = evoked.copy()

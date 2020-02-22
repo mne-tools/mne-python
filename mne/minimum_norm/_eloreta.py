@@ -3,7 +3,6 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from scipy import linalg
 
 from ..defaults import _handle_default
 from ..fixes import _safe_svd
@@ -34,10 +33,17 @@ def _compute_eloreta(inv, lambda2, options):
         # We can probably relax this if we ever need to
         raise RuntimeError('eLORETA cannot be computed with weighted eigen '
                            'leads')
-    A = np.dot(inv['eigen_fields']['data'].T * inv['sing'],
+    G = np.dot(inv['eigen_fields']['data'].T * inv['sing'],
                inv['eigen_leads']['data'].T).astype(np.float64)
-    n_nzero = int(round((A * A).sum()))
-    G = A / np.sqrt(inv['source_cov']['data'])
+    n_nzero = int(round((G * G).sum()))
+    G /= np.sqrt(inv['source_cov']['data'])
+    if inv['orient_prior'] is not None:
+        G *= inv['orient_prior']['data']  # restore orientation prior
+    # XXX not clear if we should multiply by the depth prior, but probably not
+    # (eLORETA should compensate for depth bias)
+    # if inv['depth_prior'] is not None:
+    #     G *= inv['depth_prior']['data']
+    inv['source_cov']['data'].fill(1.)
     n_src = inv['nsource']
     n_chan, n_orient = G.shape
     n_orient //= n_src
@@ -86,7 +92,9 @@ def _compute_eloreta(inv, lambda2, options):
             M = np.matmul(np.matmul(G_3, N[np.newaxis]), G_3.swapaxes(-2, -1))
             R, s = sqrtm_sym(M, inv=True)
             if force_equal:
-                R = 1. / np.mean(1. / s, axis=-1)
+                with np.errstate(divide='ignore'):
+                    s = np.where(s > 0, 1. / s, 0)
+                R = 1. / np.mean(s, axis=-1)
         G_R_Gt = _normalize_R(G, R)
 
         # Check for weight convergence
@@ -107,20 +115,21 @@ def _compute_eloreta(inv, lambda2, options):
         R_sqrt = sqrtm_sym(R)[0]
     A = _R_sqrt_mult(G, R_sqrt)
     del R, G  # the rest will be done in terms of R_sqrt and A
-    u, s, v = _safe_svd(A, full_matrices=False)
+    eigen_fields, sing, eigen_leads = _safe_svd(A, full_matrices=False)
     with np.errstate(invalid='ignore'):  # if lambda2==0
-        reginv = np.where(s > 0, s / (s ** 2 + lambda2), 0)
+        reginv = np.where(sing > 0, sing / (sing ** 2 + lambda2), 0)
     inv['eigen_leads_weighted'] = True
-    eigen_leads, eigen_fields = v.T, u.T
-    inv['eigen_leads']['data'][:] = _R_sqrt_mult(eigen_leads.T, R_sqrt).T
-    inv['sing'][:] = s
+    inv['eigen_leads']['data'][:] = _R_sqrt_mult(eigen_leads, R_sqrt).T
+    inv['sing'][:] = sing
     inv['reginv'][:] = reginv
-    inv['eigen_fields']['data'][:] = eigen_fields
-    M = np.dot(eigen_leads, reginv[:, np.newaxis] * eigen_fields).T
-    # 2. Fix loose
-    # 3. Fix force_fixed=True
-    # 4. Fix exp var
-    # 5. Fix residual
+    inv['eigen_fields']['data'][:] = eigen_fields.T
+    # XXX in theory we should set this properly.
+    # For fixed ori, we can.
+    # For free ori with force_fixed=True, we can.
+    # But for free ori without force_fixed, we can't. So let's not for now.
+    # It's not used downstream anyway now that we set
+    # eigen_leads_weighted = True.
+    inv['source_cov']['data'].fill(1.)
     logger.info('[done]')
 
 

@@ -418,6 +418,41 @@ And an iterative algorithm can be used to find the values for the weights
 3. Holding :math:`N` fixed, compute new weights :math:`r_i = \left[ G_i^\top N G_i \right]^{-^1/_2}`.
 4. Using new weights, go to step (2) until convergence.
 
+In particular, for step (2) we can use our substitution from :eq:`inv_g_tilde`
+as:
+
+.. math::
+
+    N &= (G R G^\top + \lambda^2 C)^{-1} \\
+      &= (C^{^1/_2} \tilde{G} R \tilde{G}^\top C^{^1/_2} + \lambda^2 C)^{-1} \\
+      &= (C^{^1/_2} (\tilde{G} R \tilde{G}^\top + \lambda^2 I) C^{^1/_2})^{-1} \\
+      &= C^{-^1/_2} (\tilde{G} R \tilde{G}^\top + \lambda^2 I)^{-1} C^{-^1/_2} \\
+      &= C^{-^1/_2} (\tilde{G} R \tilde{G}^\top + \lambda^2 I)^{-1} C^{-^1/_2}\ .
+
+Then defining :math:`\tilde{N}` as the whitened version of :math:`N`, i.e.,
+the regularized pseudoinverse of :math:`\tilde{G}R\tilde{G}^\top`, we can
+compute :math:`N` as:
+
+.. math::
+
+    N &= C^{-^1/_2} (U_{\tilde{G}R\tilde{G}^\top} \Lambda_{\tilde{G}R\tilde{G}^\top} V_{\tilde{G}R\tilde{G}^\top}^\top + \lambda^2 I)^{-1} C^{-^1/_2} \\
+      &= C^{-^1/_2} (U_{\tilde{G}R\tilde{G}^\top} (\Lambda_{\tilde{G}R\tilde{G}^\top} + \lambda^2 I) V_{\tilde{G}R\tilde{G}^\top}^\top)^{-1} C^{-^1/_2} \\
+      &= C^{-^1/_2} V_{\tilde{G}R\tilde{G}^\top} (\Lambda_{\tilde{G}R\tilde{G}^\top} + \lambda^2 I)^{-1} U_{\tilde{G}R\tilde{G}^\top}^\top C^{-^1/_2} \\
+      &= C^{-^1/_2} \tilde{N} C^{-^1/_2}\ .
+
+In step (3) we left and right multiply with subsets of :math:`G`, but making
+the substitution :eq:`inv_g_tilde` we see that we equivalently compute:
+
+.. math::
+
+    r_i &= \left[ G_i^\top N G_i \right]^{-^1/_2} \\
+        &= \left[ (C^{^1/_2} \tilde{G}_i)^\top N C^{^1/_2} \tilde{G}_i \right]^{-^1/_2} \\
+        &= \left[ \tilde{G}_i^\top C^{^1/_2} N C^{^1/_2} \tilde{G}_i \right]^{-^1/_2} \\
+        &= \left[ \tilde{G}_i^\top C^{^1/_2} C^{-^1/_2} \tilde{N} C^{-^1/_2} C^{^1/_2} \tilde{G}_i \right]^{-^1/_2} \\
+        &= \left[ \tilde{G}_i^\top \tilde{N} \tilde{G}_i \right]^{-^1/_2}\ .
+
+For convenience, we thus never need to compute :math:`N` itself but can instead
+compute the whitened version :math:`\tilde{N}`.
 
 Predicted data
 ~~~~~~~~~~~~~~
