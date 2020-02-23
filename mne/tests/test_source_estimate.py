@@ -944,7 +944,9 @@ def invs():
     assert_allclose(free['source_nn'],
                     np.kron(np.ones(fwd['nsource']), np.eye(3)).T,
                     atol=1e-7)
+    # This is the one execption...
     assert not np.allclose(free['source_nn'], free_surf['source_nn'])
+    # All others are similar.
     for other in (freeish, fixedish):
         assert_allclose(free_surf['source_nn'], other['source_nn'], atol=1e-7)
     assert_allclose(
