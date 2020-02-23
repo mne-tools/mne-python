@@ -141,7 +141,7 @@ def _compute_eloreta(inv, lambda2, options):
     # XXX in theory we should source_cov properly.
     # For fixed ori (or free ori with force_equal=True), we can as these
     # are diagonal matrices. But for free ori without force_equal, it's a
-    # block diagonal 3x3 and we have no efficent way of storing this (and
+    # block diagonal 3x3 and we have no efficient way of storing this (and
     # storing a covariance matrix with (20484 * 3) ** 2 elements is not going
     # to work. So let's just set to nan for now.
     # It's not used downstream anyway now that we set
