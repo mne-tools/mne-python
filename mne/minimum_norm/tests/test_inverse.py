@@ -488,19 +488,40 @@ def test_apply_inverse_operator(evoked, inv, min_, max_):
 
 
 @pytest.mark.parametrize('method', INVERSE_METHODS)
-@pytest.mark.parametrize('looses, min_, max_, pick_oris', [
-    ((1., 0.99), 0.99, 1., ('vector', 'vector')),  # almost the same as free
-    ((0., 0.01), 0.89, 0.94, (None, 'normal')),  # almost the same as fixed
+@pytest.mark.parametrize('looses, min_, max_', [
+    ((1., 0.99), 0.99, 1.),  # almost the same as free
+    ((0., 0.01), 0.89, 0.94),  # almost the same as fixed
 ])
-def test_orientation_prior(bias_params_free, method, looses, min_, max_,
-                           pick_oris):
+def test_orientation_prior(bias_params_free, method, looses, min_, max_):
     """Test that orientation priors are handled properly."""
     evoked, fwd, noise_cov, _, _ = bias_params_free
+    fwd = convert_forward_solution(fwd, surf_ori=True)
     stcs = list()
-    for loose, pick_ori in zip(looses, pick_oris):
+    vec_stc = None
+    for loose in looses:
         inv = make_inverse_operator(evoked.info, fwd, noise_cov, loose=loose)
+        if looses[0] == 0.:
+            pick_ori = None if loose == 0 else 'normal'
+        else:
+            pick_ori = 'vector'
         stcs.append(apply_inverse(
             evoked, inv, method=method, pick_ori=pick_ori))
+        if loose == 0.01:
+            vec_stc = apply_inverse(
+                evoked, inv, method=method, pick_ori='vector')
+    if 0. in looses:
+        vec_stc_normal = vec_stc.normal(inv['src'])
+        assert_allclose(vec_stc_normal.data, vec_stc.data[:, 2])
+        assert_allclose(vec_stc_normal.data, stcs[1].data)
+        # Ensure that our relative strengths are reasonable
+        # (normal should be much larger than tangential)
+        large = np.linalg.norm(vec_stc.data[:, 2].ravel())
+        for ii in range(2):
+            small = np.linalg.norm(vec_stc.data[:, ii].ravel())
+            ratio = large / small
+            assert 20 < ratio < 100
+        assert_allclose(stcs[1].data, vec_stc_normal.data)
+    assert stcs[0].data.shape == stcs[1].data.shape
     R2 = 1. - (
         np.linalg.norm(stcs[0].data.ravel() - stcs[1].data.ravel()) /
         np.linalg.norm(stcs[0].data.ravel()))

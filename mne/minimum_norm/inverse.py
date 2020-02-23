@@ -940,7 +940,6 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     tstep = 1.0 / evoked.info['sfreq']
     tmin = float(evoked.times[0])
     subject = _subject_from_inverse(inverse_operator)
-
     src_type = _get_src_type(inverse_operator['src'], vertno)
     stc = _make_stc(sol, vertno, tmin=tmin, tstep=tstep, subject=subject,
                     vector=(pick_ori == 'vector'), source_nn=source_nn,
