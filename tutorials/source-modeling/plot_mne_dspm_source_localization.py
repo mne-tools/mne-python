@@ -125,7 +125,7 @@ subjects_dir = data_path + '/subjects'
 surfer_kwargs = dict(
     hemi='rh', subjects_dir=subjects_dir,
     clim=dict(kind='value', lims=[8, 12, 15]), views='lateral',
-    initial_time=time_max, time_unit='s', size=(800, 800), smoothing_steps=7)
+    initial_time=time_max, time_unit='s', size=(800, 800), smoothing_steps=10)
 brain = stc.plot(**surfer_kwargs)
 brain.add_foci(vertno_max, coords_as_verts=True, hemi='rh', color='blue',
                scale_factor=0.6, alpha=0.5)
@@ -177,7 +177,7 @@ del stc_vec
 
 for mi, (method, lims) in enumerate((('dSPM', [8, 12, 15]),
                                      ('sLORETA', [3, 5, 7]),
-                                     ('eLORETA', [2e-10, 3e-10, 4e-10]),)):
+                                     ('eLORETA', [2e-10, 4.5e-10, 7e-10]),)):
     surfer_kwargs['clim']['lims'] = lims
     stc = apply_inverse(evoked, inverse_operator, lambda2,
                         method=method, pick_ori=None)

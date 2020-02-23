@@ -366,8 +366,11 @@ def test_localization_bias_free(bias_params_free, method, lower, upper,
     evoked, fwd, noise_cov, _, want = bias_params_free
     inv_free = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1.,
                                      depth=depth)
-    loc = apply_inverse(evoked, inv_free, lambda2, method,
-                        pick_ori='vector', verbose='debug', **kwargs).data
+    with pytest.warns(None) as w:
+        loc = apply_inverse(evoked, inv_free, lambda2, method,
+                            pick_ori='vector', verbose='debug', **kwargs).data
+    count = int(kwargs.get('method_params', {}).get('force_equal', False))
+    assert len(w) == count  # 1 warning only in the case of force_equal=True
     loc = np.linalg.norm(loc, axis=1)
     # Compute the percentage of sources for which there is no loc bias:
     perc = (want == np.argmax(loc, axis=0)).mean() * 100
@@ -485,11 +488,12 @@ def test_apply_inverse_operator(evoked, inv, min_, max_):
 
 
 @pytest.mark.parametrize('method', INVERSE_METHODS)
-@pytest.mark.parametrize('looses, pick_oris', [
-    ((1., 0.999), ('vector', 'vector')),  # almost the same as free
-    ((0., 0.001), (None, 'normal')),  # almost the same as fixed
+@pytest.mark.parametrize('looses, min_, max_, pick_oris', [
+    ((1., 0.99), 0.99, 1., ('vector', 'vector')),  # almost the same as free
+    ((0., 0.01), 0.89, 0.94, (None, 'normal')),  # almost the same as fixed
 ])
-def test_orientation_prior(bias_params_free, method, looses, pick_oris):
+def test_orientation_prior(bias_params_free, method, looses, min_, max_,
+                           pick_oris):
     """Test that orientation priors are handled properly."""
     evoked, fwd, noise_cov, _, _ = bias_params_free
     stcs = list()
@@ -497,12 +501,10 @@ def test_orientation_prior(bias_params_free, method, looses, pick_oris):
         inv = make_inverse_operator(evoked.info, fwd, noise_cov, loose=loose)
         stcs.append(apply_inverse(
             evoked, inv, method=method, pick_ori=pick_ori))
-    corr = np.corrcoef(stcs[0].data.ravel(), stcs[1].data.ravel())[0, 1]
-    if method == 'eLORETA' and 1. in looses:
-        min_, max_ = 0.98, 0.99  # because we force_equal=True for loose
-    else:
-        min_, max_ = 0.9999, 1.
-    assert min_ < corr < max_
+    R2 = 1. - (
+        np.linalg.norm(stcs[0].data.ravel() - stcs[1].data.ravel()) /
+        np.linalg.norm(stcs[0].data.ravel()))
+    assert min_ < R2 < max_
 
 
 @pytest.mark.parametrize('method', INVERSE_METHODS)
