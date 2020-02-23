@@ -1307,7 +1307,6 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
             raise ValueError('loose parameter has to be 1 or "auto" for '
                              'non-surface source space (Got loose=%s for %s '
                              'source space).' % (loose, src_kind))
-    del src_kind
 
     # Deal with "depth"
     if exp is not None:
@@ -1338,10 +1337,16 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
                 'Forward operator has fixed orientation and can only '
                 'be used to make a fixed-orientation inverse '
                 'operator.')
-        if loose < 1. and not forward['surf_ori']:  # loose ori
+        if not forward['surf_ori'] and loose < 1.:  # loose ori
             logger.info('Converting forward solution to surface orientation')
             convert_forward_solution(
                 forward, surf_ori=True, use_cps=True, copy=False)
+    if not forward['surf_ori'] and src_kind == 'surface' and loose == 1.:
+        warn('Forward not in surface orientation with loose=1. will not be '
+             'converted to surface orientation automatically, use with '
+             'caution. VectorSourceEstimate.normal will not work properly. '
+             'Consider using convert_forward_solution.')
+    del src_kind
 
     forward, info_picked = _select_orient_forward(forward, info, noise_cov,
                                                   copy=False)
@@ -1429,10 +1434,7 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
         the loose parameter must be "auto" or 0. If 'auto', the loose value
         is used.
     %(rank_None)s
-    use_cps : None | bool (default True)
-        Whether to use cortical patch statistics to define normal
-        orientations. Only used when converting to surface orientation
-        (i.e., for surface source spaces and ``loose < 1``).
+    %(use_cps)s
     %(verbose)s
 
     Returns
@@ -1449,31 +1451,34 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     of **loose** = 0.2 and **depth** = 0.8 shown in the table in various
     places, as these are the defaults for those parameters):
 
-        +---------------------+-----------+-----------+-----------+-----------------+--------------+
-        | Inverse desired                             | Forward parameters allowed                 |
-        +=====================+===========+===========+===========+=================+==============+
-        |                     | **loose** | **depth** | **fixed** | **force_fixed** | **surf_ori** |
-        +---------------------+-----------+-----------+-----------+-----------------+--------------+
-        | | Loose constraint, | 0.2       | 0.8       | False     | False           | True         |
-        | | Depth weighted    |           |           |           |                 |              |
-        +---------------------+-----------+-----------+-----------+-----------------+--------------+
-        | | Loose constraint  | 0.2       | None      | False     | False           | True         |
-        +---------------------+-----------+-----------+-----------+-----------------+--------------+
-        | | Free orientation, | 1.0       | 0.8       | False     | False           | True         |
-        | | Depth weighted    |           |           |           |                 |              |
-        +---------------------+-----------+-----------+-----------+-----------------+--------------+
-        | | Free orientation  | 1.0       | None      | False     | False           | True | False |
-        +---------------------+-----------+-----------+-----------+-----------------+--------------+
-        | | Fixed constraint, | 0.0       | 0.8       | True      | False           | True         |
-        | | Depth weighted    |           |           |           |                 |              |
-        +---------------------+-----------+-----------+-----------+-----------------+--------------+
-        | | Fixed constraint  | 0.0       | None      | True      | True            | True         |
-        +---------------------+-----------+-----------+-----------+-----------------+--------------+
+        +---------------------+-----------+-----------+-----------+-----------------+
+        | Inverse desired                             | Forward parameters allowed  |
+        +=====================+===========+===========+===========+=================+
+        |                     | **loose** | **depth** | **fixed** | **force_fixed** |
+        +---------------------+-----------+-----------+-----------+-----------------+
+        | | Loose constraint, | 0.2       | 0.8       | False     | False           |
+        | | Depth weighted    |           |           |           |                 |
+        +---------------------+-----------+-----------+-----------+-----------------+
+        | | Loose constraint  | 0.2       | None      | False     | False           |
+        +---------------------+-----------+-----------+-----------+-----------------+
+        | | Free orientation, | 1.0       | 0.8       | False     | False           |
+        | | Depth weighted    |           |           |           |                 |
+        +---------------------+-----------+-----------+-----------+-----------------+
+        | | Free orientation  | 1.0       | None      | False     | False           |
+        +---------------------+-----------+-----------+-----------+-----------------+
+        | | Fixed constraint, | 0.0       | 0.8       | True      | False           |
+        | | Depth weighted    |           |           |           |                 |
+        +---------------------+-----------+-----------+-----------+-----------------+
+        | | Fixed constraint  | 0.0       | None      | True      | True            |
+        +---------------------+-----------+-----------+-----------+-----------------+
 
     Also note that, if the source space (as stored in the forward solution)
     has patch statistics computed, these are used to improve the depth
     weighting. Thus slightly different results are to be expected with
     and without this information.
+
+    .. versionchanged:: 0.20
+       Surface orientation is always used to ensure consistency.
     """  # noqa: E501
     # For now we always have pca='white'. It does not seem to affect
     # calculations and is also backward-compatible with MNE-C

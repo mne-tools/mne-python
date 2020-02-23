@@ -2899,3 +2899,16 @@ def _set_source_space_vertices(src, vertices):
         # This will fix 'patch_info' and 'pinfo'
         _adjust_patch_info(s, verbose=False)
     return src
+
+
+def _get_src_nn(s, use_cps=True):
+    if use_cps and s.get('patch_inds') is not None:
+        nn = np.empty((s['nuse'], 3))
+        for p in range(s['nuse']):
+            #  Project out the surface normal and compute SVD
+            nn[p] = np.sum(
+                s['nn'][s['pinfo'][s['patch_inds'][p]], :], axis=0)
+        nn /= linalg.norm(nn, axis=-1, keepdims=True)
+    else:
+        nn = s['nn'][s['vertno'], :]
+    return nn

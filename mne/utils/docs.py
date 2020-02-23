@@ -333,6 +333,11 @@ reduce_rank : bool
         Support for reducing rank in all modes (previously only supported
         ``pick='max_power'`` with weight normalization).
 """
+docdict['use_cps'] = """
+use_cps : bool
+    Whether to use cortical patch statistics to define normal orientations for
+    surfaces (default True).
+"""
 
 # Forward
 docdict['on_missing'] = """

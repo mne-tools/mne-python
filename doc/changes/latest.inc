@@ -132,6 +132,8 @@ Bug
 
 - Fix bug in ``method='eLORETA'`` for :func:`mne.minimum_norm.apply_inverse` (and variants) to allow restricting source estimation to a label by `Luke Bloy`_
 
+- Fix :func:`mne.VectorSourceEstimate.normal` to account for cortical patch statistics using ``use_cps=True`` by `Eric Larson`_
+
 - Fix missing xlabel for :func:`mne.io.Raw.plot_psd` and similar functions when passing a subset of axes from a figure by `Alex Gramfort`_
 
 - Fix wrong DataFrame index when ``index=None`` in methods :meth:`mne.io.Raw.to_data_frame`, :meth:`mne.Epochs.to_data_frame`, :meth:`mne.Evoked.to_data_frame`, and :meth:`mne.SourceEstimate.to_data_frame`, by `Daniel McCloy`_.
