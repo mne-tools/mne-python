@@ -358,8 +358,9 @@ def test_localization_bias_free(bias_params_free, method, lower, upper,
                                 kwargs, depth):
     """Test inverse localization bias for free minimum-norm solvers."""
     evoked, fwd, noise_cov, _, want = bias_params_free
-    inv_free = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1.,
-                                     depth=depth)
+    with pytest.warns(RuntimeWarning, match='surface orientation'):
+        inv_free = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1.,
+                                         depth=depth)
     loc = apply_inverse(evoked, inv_free, lambda2, method,
                         pick_ori='vector', verbose='debug', **kwargs).data
     loc = np.linalg.norm(loc, axis=1)
@@ -388,7 +389,8 @@ def test_apply_inverse_sphere(evoked):
     assert fwd['sol']['ncol'] == 303
     tempdir = _TempDir()
     temp_fname = op.join(tempdir, 'temp-inv.fif')
-    inv = make_inverse_operator(evoked.info, fwd, cov, loose=1.)
+    with pytest.warns(RuntimeWarning, match='surface orientation'):
+        inv = make_inverse_operator(evoked.info, fwd, cov, loose=1.)
     # This forces everything to be float32
     write_inverse_operator(temp_fname, inv)
     inv = read_inverse_operator(temp_fname)
@@ -458,8 +460,10 @@ def test_apply_inverse_operator(evoked):
     # Test that no errors are raised with loose inverse ops and picking normals
     noise_cov = read_cov(fname_cov)
     fwd = read_forward_solution_meg(fname_fwd)
-    inv_op_meg = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1,
-                                       fixed='auto', depth=None)
+    with pytest.warns(RuntimeWarning, match='surface orientation'):
+        inv_op_meg = make_inverse_operator(
+            evoked.info, fwd, noise_cov, loose=1,
+            fixed='auto', depth=None)
     apply_inverse(evoked, inv_op_meg, 1 / 9., method='MNE', pick_ori='normal')
 
     # Test we get errors when using custom ref or no average proj is present
@@ -568,16 +572,25 @@ def test_make_inverse_operator_free(evoked, noise_cov):
                                          use_cps=True)
 
     # can't make free inv with fixed fwd
-    pytest.raises(ValueError, make_inverse_operator, evoked.info, fwd_fixed,
-                  noise_cov, depth=None)
+    with pytest.raises(ValueError, match='can only be used'):
+        make_inverse_operator(evoked.info, fwd_fixed, noise_cov, depth=None)
 
-    # for depth=None, surf_ori of the fwd should not matter
-    inv_3 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, depth=None,
-                                  loose=1.)
-    inv_4 = make_inverse_operator(evoked.info, fwd, noise_cov,
-                                  depth=None, loose=1.)
-    _compare_inverses_approx(inv_3, inv_4, evoked, rtol=1e-5, atol=1e-8,
+    # for depth=None (or depth=0.8), surf_ori of the fwd should not matter
+    inv_surf = make_inverse_operator(evoked.info, fwd_surf, noise_cov,
+                                     depth=None, loose=1.)
+    with pytest.warns(RuntimeWarning, match='surface orientation'):
+        inv = make_inverse_operator(evoked.info, fwd, noise_cov,
+                                    depth=None, loose=1.)
+    _compare_inverses_approx(inv, inv_surf, evoked, rtol=1e-5, atol=1e-8,
                              check_nn=False, check_K=False)
+    for pick_ori in (None, 'vector', 'normal'):
+        stc_surf = apply_inverse(evoked, inv_surf, pick_ori=pick_ori)
+        stc = apply_inverse(evoked, inv, pick_ori=pick_ori)
+        if pick_ori == 'normal':
+            # Badness here...
+            assert not np.allclose(stc_surf.data, stc.data, atol=1.)
+        else:
+            assert_allclose(stc_surf.data, stc.data, atol=1e-2)
 
 
 def test_make_inverse_operator_vector(evoked, noise_cov):

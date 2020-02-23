@@ -927,14 +927,14 @@ def test_vec_stc_basic(klass, kind):
 def invs():
     fwd = read_forward_solution(fname_fwd)
     fwd = pick_types_forward(fwd, meg=True, eeg=False)
-    fwd_so = convert_forward_solution(fwd, surf_ori=True)
+    fwd_surf = convert_forward_solution(fwd, surf_ori=True)
     evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0]
     noise_cov = read_cov(fname_cov)
     with pytest.warns(RuntimeWarning, match='surface orientation'):
         free = make_inverse_operator(
             evoked.info, fwd, noise_cov, loose=1.)
-    free_so = make_inverse_operator(
-        evoked.info, fwd_so, noise_cov, loose=1.)
+    free_surf = make_inverse_operator(
+        evoked.info, fwd_surf, noise_cov, loose=1.)
     freeish = make_inverse_operator(
         evoked.info, fwd, noise_cov, loose=0.9999)
     fixed = make_inverse_operator(
@@ -944,13 +944,14 @@ def invs():
     assert_allclose(free['source_nn'],
                     np.kron(np.ones(fwd['nsource']), np.eye(3)).T,
                     atol=1e-7)
-    assert not np.allclose(free['source_nn'], free_so['source_nn'])
+    assert not np.allclose(free['source_nn'], free_surf['source_nn'])
     for other in (freeish, fixedish):
-        assert_allclose(free_so['source_nn'], other['source_nn'], atol=1e-7)
-    assert_allclose(free_so['source_nn'][2::3], fixed['source_nn'], atol=1e-7)
+        assert_allclose(free_surf['source_nn'], other['source_nn'], atol=1e-7)
+    assert_allclose(
+        free_surf['source_nn'][2::3], fixed['source_nn'], atol=1e-7)
     expected_nn = np.concatenate([_get_src_nn(s) for s in fwd['src']])
     assert_allclose(fixed['source_nn'], expected_nn, atol=1e-7)
-    return evoked, free, free_so, freeish, fixed, fixedish
+    return evoked, free, free_surf, freeish, fixed, fixedish
 
 
 bad_normal = pytest.param(
@@ -958,24 +959,23 @@ bad_normal = pytest.param(
 
 
 @pytest.mark.parametrize('pick_ori', [None, bad_normal, 'vector'])
-def test_vec_stc_inv_free_so(invs, pick_ori):
-    """Test vector STC behavior with two free-orientation inverses."""
-    evoked, free, free_so, _, _, _ = invs
-    stc_free = apply_inverse(evoked, free, pick_ori=pick_ori)
-    # same thing with a surface oriented forward
-    stc_free_so = apply_inverse(evoked, free_so, pick_ori=pick_ori)
-    assert_allclose(stc_free.data, stc_free_so.data, atol=1e-5)
-
-
-@pytest.mark.parametrize('pick_ori', [None, bad_normal, 'vector'])
 def test_vec_stc_inv_free(invs, pick_ori):
-    """Test vector STC behavior with free and free-ish orientation invs."""
-    evoked, free, _, freeish, _, _ = invs
+    """Test vector STC behavior with two free-orientation inverses."""
+    evoked, free, free_surf, _, _, _ = invs
     stc_free = apply_inverse(evoked, free, pick_ori=pick_ori)
+    # pick_ori='normal' is broken for free orientation inv when not in
+    # surface orientation (needs to do more than just pick K[2::3]) or we
+    # need to always convert to surf ori...
+    stc_free_surf = apply_inverse(evoked, free_surf, pick_ori=pick_ori)
+    assert_allclose(stc_free.data, stc_free_surf.data, atol=1e-5)
+
+
+@pytest.mark.parametrize('pick_ori', [None, 'normal', 'vector'])
+def test_vec_stc_inv_free_surf(invs, pick_ori):
+    """Test vector STC behavior with free and free-ish orientation invs."""
+    evoked, _, free_surf, freeish, _, _ = invs
+    stc_free = apply_inverse(evoked, free_surf, pick_ori=pick_ori)
     stc_freeish = apply_inverse(evoked, freeish, pick_ori=pick_ori)
-    # This is broken for pick_ori='normal' on master:
-    # normal picking for free orientation inv is broken (needs to do more
-    # than just pick K[2::3]) or we need to always convert to surf ori...
     assert_allclose(stc_free.data, stc_freeish.data, atol=1e-3)
 
 

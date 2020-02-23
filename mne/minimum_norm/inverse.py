@@ -1344,7 +1344,8 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
     if not forward['surf_ori'] and src_kind == 'surface' and loose == 1.:
         warn('Forward not in surface orientation with loose=1. will not be '
              'converted to surface orientation automatically, use with '
-             'caution. VectorSourceEstimate.normal will not work properly. '
+             'caution. apply_inverse(..., pick_ori="normal") and '
+             'VectorSourceEstimate.normal will not work properly. '
              'Consider using convert_forward_solution.')
     del src_kind
 
