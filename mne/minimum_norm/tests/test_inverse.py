@@ -18,6 +18,8 @@ from mne.event import read_events
 from mne.epochs import Epochs
 from mne.forward import restrict_forward_to_stc, apply_forward, is_fixed_orient
 from mne.source_estimate import read_source_estimate, VolSourceEstimate
+from mne.source_space import _get_src_nn
+from mne.surface import _normal_orth
 from mne import (read_cov, read_forward_solution, read_evokeds, pick_types,
                  pick_types_forward, make_forward_solution, EvokedArray,
                  convert_forward_solution, Covariance, combine_evoked,
@@ -488,14 +490,14 @@ def test_apply_inverse_operator(evoked, inv, min_, max_):
 
 
 @pytest.mark.parametrize('method', INVERSE_METHODS)
-@pytest.mark.parametrize('looses, min_, max_', [
-    ((1., 0.99), 0.99, 1.),  # almost the same as free
-    ((0., 0.01), 0.89, 0.94),  # almost the same as fixed
+@pytest.mark.parametrize('looses, vmin, vmax, nmin, nmax', [
+    ((1., 0.99), 0.99, 1., 0.9, 1.1),  # almost the same as free
+    ((0., 0.01), 0.89, 0.94, 40, 65),  # almost the same as fixed
 ])
-def test_orientation_prior(bias_params_free, method, looses, min_, max_):
+def test_orientation_prior(bias_params_free, method, looses, vmin, vmax,
+                           nmin, nmax):
     """Test that orientation priors are handled properly."""
     evoked, fwd, noise_cov, _, _ = bias_params_free
-    fwd = convert_forward_solution(fwd, surf_ori=True)
     stcs = list()
     vec_stc = None
     for loose in looses:
@@ -506,26 +508,32 @@ def test_orientation_prior(bias_params_free, method, looses, min_, max_):
             pick_ori = 'vector'
         stcs.append(apply_inverse(
             evoked, inv, method=method, pick_ori=pick_ori))
-        if loose == 0.01:
+        if loose in (1., 0.01):
+            assert vec_stc is None
             vec_stc = apply_inverse(
                 evoked, inv, method=method, pick_ori='vector')
+    assert vec_stc is not None
+    rot = _normal_orth(np.concatenate(
+        [_get_src_nn(s) for s in inv['src']]))
+    vec_stc_surf = np.matmul(rot, vec_stc.data)
     if 0. in looses:
         vec_stc_normal = vec_stc.normal(inv['src'])
-        assert_allclose(vec_stc_normal.data, vec_stc.data[:, 2])
-        assert_allclose(vec_stc_normal.data, stcs[1].data)
-        # Ensure that our relative strengths are reasonable
-        # (normal should be much larger than tangential)
-        large = np.linalg.norm(vec_stc.data[:, 2].ravel())
-        for ii in range(2):
-            small = np.linalg.norm(vec_stc.data[:, ii].ravel())
-            ratio = large / small
-            assert 20 < ratio < 100
         assert_allclose(stcs[1].data, vec_stc_normal.data)
+        del vec_stc
+        assert_allclose(vec_stc_normal.data, vec_stc_surf[:, 2])
+        assert_allclose(vec_stc_normal.data, stcs[1].data)
+    # Ensure that our relative strengths are reasonable
+    # (normal should be much larger than tangential)
+    normal = np.linalg.norm(vec_stc_surf[:, 2].ravel())
+    for ii in range(2):
+        tangential = np.linalg.norm(vec_stc_surf[:, ii].ravel())
+        ratio = normal / tangential
+        assert nmin < ratio < nmax
     assert stcs[0].data.shape == stcs[1].data.shape
     R2 = 1. - (
         np.linalg.norm(stcs[0].data.ravel() - stcs[1].data.ravel()) /
         np.linalg.norm(stcs[0].data.ravel()))
-    assert min_ < R2 < max_
+    assert vmin < R2 < vmax
 
 
 @pytest.mark.parametrize('method', INVERSE_METHODS)

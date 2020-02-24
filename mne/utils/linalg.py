@@ -142,15 +142,17 @@ def sqrtm_sym(A, rcond=1e-7, inv=False):
     Returns
     -------
     A_sqrt : ndarray, shape (..., n, n)
-        The square root of A.
+        The (possibly inverted) square root of A.
     s : ndarray, shape (..., n)
-        The resulting singular values.
+        The original square root singular values (not inverted).
     """
     # Same as linalg.sqrtm(C) but faster, also yields the eigenvalues
     s, u = np.linalg.eigh(A)  # eigenvalues in ascending order
     s[s < s[..., -1:] * rcond] = np.inf if inv else 0
     np.sqrt(s, out=s)
     if inv:
-        s = 1. / s
-    a = np.matmul(u * s[..., np.newaxis, :], u.swapaxes(-2, -1))
+        use_s = 1. / s
+    else:
+        use_s = s
+    a = np.matmul(u * use_s[..., np.newaxis, :], u.swapaxes(-2, -1))
     return a, s

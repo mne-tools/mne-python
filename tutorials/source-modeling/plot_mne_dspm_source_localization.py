@@ -175,10 +175,8 @@ del stc_vec
 ###############################################################################
 # Now let's look at each solver:
 
-for mi, (method, lims) in enumerate((('dSPM', [8, 12, 15]),
-                                     ('sLORETA', [3, 5, 7]),
-                                     ('eLORETA', [2e-10, 4.5e-10, 7e-10]),)):
-    surfer_kwargs['clim']['lims'] = lims
+surfer_kwargs['clim'].update(kind='percent', lims=[96, 97.5, 99.95])
+for mi, method in enumerate(['dSPM', 'sLORETA', 'eLORETA']):
     stc = apply_inverse(evoked, inverse_operator, lambda2,
                         method=method, pick_ori=None)
     brain = stc.plot(figure=mi, **surfer_kwargs)

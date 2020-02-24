@@ -328,39 +328,33 @@ except ImportError:
 
 
 ###############################################################################
-# np.linalg.pinv (NumPy 1.13)
+# np.linalg.svd with hermitian kwarg (NumPy 1.18 is even broken)
 
-if LooseVersion(np.__version__) >= LooseVersion('1.17'):  # hermitian kwarg
-    pinv = np.linalg.pinv
+if LooseVersion(np.__version__) >= LooseVersion('1.19'):
+    svd = np.linalg.svd
 else:
     def _makearray(a):
         new = np.asarray(a)
         wrap = getattr(a, "__array_prepare__", new.__array_wrap__)
         return new, wrap
 
-    def pinv(a, rcond=1e-15, hermitian=False):
+    def svd(a, full_matrices=True, hermitian=False):
         """Pseudoinverse."""
         a, wrap = _makearray(a)
-        rcond = np.asarray(rcond)
         if hermitian:
             s, u = np.linalg.eigh(a)
-            s = s[..., ::-1]
-            u = u[..., ::-1]
+            sgn = np.sign(s)
+            s = abs(s)
+            sidx = argsort(s)[..., ::-1]
+            sgn = _nx.take_along_axis(sgn, sidx, axis=-1)
+            s = _nx.take_along_axis(s, sidx, axis=-1)
+            u = _nx.take_along_axis(u, sidx[..., None, :], axis=-1)
             # singular values are unsigned, move the sign into v
             vt = (u * np.sign(s)[..., np.newaxis, :]
                   ).swapaxes(-2, -1).conjugate()
-            s = np.abs(s)
+            return wrap(u), s, wrap(vt)
         else:
-            a = a.conjugate()
-            u, s, vt = np.linalg.svd(a, full_matrices=False)
-        cutoff = rcond[..., np.newaxis] * np.amax(s, axis=-1, keepdims=True)
-        large = s > cutoff
-        s = np.divide(1, s, where=large, out=s)
-        s[~large] = 0
-        res = np.matmul(np.swapaxes(vt, -1, -2),
-                        np.multiply(s[..., np.newaxis],
-                                    np.swapaxes(u, -1, -2)))
-        return wrap(res)
+            return np.linalg.svd(a, full_matrices=full_matrices)
 
 
 ###############################################################################

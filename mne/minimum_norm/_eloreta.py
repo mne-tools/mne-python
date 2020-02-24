@@ -6,7 +6,8 @@ import numpy as np
 
 from ..defaults import _handle_default
 from ..fixes import _safe_svd
-from ..utils import (warn, logger, _svd_lwork, _repeated_svd, sqrtm_sym)
+from ..utils import warn, logger, sqrtm_sym
+from ..fixes import svd
 
 
 # For the reference implementation of eLORETA (force_equal=False),
@@ -89,12 +90,11 @@ def _compute_eloreta(inv, lambda2, options):
     extra = ' (this make take a while)' if n_orient == 3 else ''
     logger.info('        Fitting up to %d iterations%s...'
                 % (max_iter, extra))
-    svd_lwork = _svd_lwork((G.shape[0], G.shape[0]))
     for kk in range(max_iter):
         # 1. Compute inverse of the weights (stabilized) and C
-        u, s, v = _repeated_svd(G_R_Gt, lwork=svd_lwork)
+        u, s, _ = svd(G_R_Gt, hermitian=True, full_matrices=False)
         s = 1 / (s[:n_nzero] + lambda2)
-        N = np.dot(v.T[:, :n_nzero] * s, u.T[:n_nzero])
+        N = np.dot(u[:, :n_nzero] * s, u.T[:n_nzero])
 
         # Update the weights
         R_last = R.copy()
@@ -104,8 +104,6 @@ def _compute_eloreta(inv, lambda2, options):
             M = np.matmul(np.matmul(G_3, N[np.newaxis]), G_3.swapaxes(-2, -1))
             if force_equal:
                 _, s = sqrtm_sym(M, inv=True)
-                with np.errstate(divide='ignore'):
-                    s = np.where(s > 0, 1. / s, 0)
                 R[:] = np.repeat(1. / np.mean(s, axis=-1), 3)
             else:
                 R[:], _ = sqrtm_sym(M, inv=True)
