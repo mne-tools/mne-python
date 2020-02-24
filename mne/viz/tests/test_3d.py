@@ -8,7 +8,6 @@
 # License: Simplified BSD
 
 import gc
-import os
 import os.path as op
 from pathlib import Path
 
@@ -640,8 +639,6 @@ def test_plot_volume_source_estimates_morph():
 @traits_test
 def test_plot_vector_source_estimates():
     """Test plotting of vector source estimates."""
-    if os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true':
-        pytest.skip('This test breaks Azure')
     sample_src = read_source_spaces(src_fname)
 
     vertices = [s['vertno'] for s in sample_src]
