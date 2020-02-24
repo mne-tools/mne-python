@@ -822,11 +822,10 @@ def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
     if not use_cov:
         evoked.pick_types('grad')
         noise_cov = None
-    with pytest.warns(None):  # surf ori, sometimes
-        loc = apply_lcmv(evoked, make_lcmv(evoked.info, fwd, data_cov, reg,
-                                           noise_cov, pick_ori=pick_ori,
-                                           weight_norm=weight_norm,
-                                           depth=depth)).data
+    loc = apply_lcmv(evoked, make_lcmv(evoked.info, fwd, data_cov, reg,
+                                       noise_cov, pick_ori=pick_ori,
+                                       weight_norm=weight_norm,
+                                       depth=depth)).data
     loc = np.linalg.norm(loc, axis=1) if pick_ori == 'vector' else np.abs(loc)
     # Compute the percentage of sources for which there is no loc bias:
     perc = (want == np.argmax(loc, axis=0)).mean() * 100
@@ -838,13 +837,12 @@ def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
 def test_depth_does_not_matter(bias_params_free, weight_norm, pick_ori):
     """Test that depth weighting does not matter for normalized filters."""
     evoked, fwd, noise_cov, data_cov, _ = bias_params_free
-    with pytest.warns(None):  # vector pick ori, surf ori
-        data = apply_lcmv(evoked, make_lcmv(
-            evoked.info, fwd, data_cov, 0.05, noise_cov, pick_ori=pick_ori,
-            weight_norm=weight_norm, depth=0.)).data
-        data_depth = apply_lcmv(evoked, make_lcmv(
-            evoked.info, fwd, data_cov, 0.05, noise_cov, pick_ori=pick_ori,
-            weight_norm=weight_norm, depth=1.)).data
+    data = apply_lcmv(evoked, make_lcmv(
+        evoked.info, fwd, data_cov, 0.05, noise_cov, pick_ori=pick_ori,
+        weight_norm=weight_norm, depth=0.)).data
+    data_depth = apply_lcmv(evoked, make_lcmv(
+        evoked.info, fwd, data_cov, 0.05, noise_cov, pick_ori=pick_ori,
+        weight_norm=weight_norm, depth=1.)).data
     assert data.shape == data_depth.shape
     for d1, d2 in zip(data, data_depth):
         # Sign flips can change when nearly orthogonal to the normal direction

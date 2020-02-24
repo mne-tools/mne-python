@@ -1478,34 +1478,31 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     of **loose** = 0.2 and **depth** = 0.8 shown in the table in various
     places, as these are the defaults for those parameters):
 
-        +---------------------+-----------+-----------+-----------+-----------------+
-        | Inverse desired                             | Forward parameters allowed  |
-        +=====================+===========+===========+===========+=================+
-        |                     | **loose** | **depth** | **fixed** | **force_fixed** |
-        +---------------------+-----------+-----------+-----------+-----------------+
-        | | Loose constraint, | 0.2       | 0.8       | False     | False           |
-        | | Depth weighted    |           |           |           |                 |
-        +---------------------+-----------+-----------+-----------+-----------------+
-        | | Loose constraint  | 0.2       | None      | False     | False           |
-        +---------------------+-----------+-----------+-----------+-----------------+
-        | | Free orientation, | 1.0       | 0.8       | False     | False           |
-        | | Depth weighted    |           |           |           |                 |
-        +---------------------+-----------+-----------+-----------+-----------------+
-        | | Free orientation  | 1.0       | None      | False     | False           |
-        +---------------------+-----------+-----------+-----------+-----------------+
-        | | Fixed constraint, | 0.0       | 0.8       | True      | False           |
-        | | Depth weighted    |           |           |           |                 |
-        +---------------------+-----------+-----------+-----------+-----------------+
-        | | Fixed constraint  | 0.0       | None      | True      | True            |
-        +---------------------+-----------+-----------+-----------+-----------------+
+        +---------------------+-----------+-----------+-----------+-----------------+--------------+
+        | Inverse desired                             | Forward parameters allowed                 |
+        +=====================+===========+===========+===========+=================+==============+
+        |                     | **loose** | **depth** | **fixed** | **force_fixed** | **surf_ori** |
+        +---------------------+-----------+-----------+-----------+-----------------+--------------+
+        | | Loose constraint, | 0.2       | 0.8       | False     | False           | True         |
+        | | Depth weighted    |           |           |           |                 |              |
+        +---------------------+-----------+-----------+-----------+-----------------+--------------+
+        | | Loose constraint  | 0.2       | None      | False     | False           | True         |
+        +---------------------+-----------+-----------+-----------+-----------------+--------------+
+        | | Free orientation, | 1.0       | 0.8       | False     | False           | True         |
+        | | Depth weighted    |           |           |           |                 |              |
+        +---------------------+-----------+-----------+-----------+-----------------+--------------+
+        | | Free orientation  | 1.0       | None      | False     | False           | True | False |
+        +---------------------+-----------+-----------+-----------+-----------------+--------------+
+        | | Fixed constraint, | 0.0       | 0.8       | True      | False           | True         |
+        | | Depth weighted    |           |           |           |                 |              |
+        +---------------------+-----------+-----------+-----------+-----------------+--------------+
+        | | Fixed constraint  | 0.0       | None      | True      | True            | True         |
+        +---------------------+-----------+-----------+-----------+-----------------+--------------+
 
     Also note that, if the source space (as stored in the forward solution)
     has patch statistics computed, these are used to improve the depth
     weighting. Thus slightly different results are to be expected with
     and without this information.
-
-    .. versionchanged:: 0.20
-       Surface orientation is always used to ensure consistency.
     """  # noqa: E501
     # For now we always have pca='white'. It does not seem to affect
     # calculations and is also backward-compatible with MNE-C

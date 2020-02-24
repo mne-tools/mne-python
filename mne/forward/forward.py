@@ -12,7 +12,7 @@ from copy import deepcopy
 import re
 
 import numpy as np
-from scipy import linalg, sparse
+from scipy import sparse
 
 import shutil
 import os
