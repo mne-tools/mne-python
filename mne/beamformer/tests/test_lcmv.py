@@ -150,7 +150,8 @@ def test_lcmv_vector():
     del forward_sim
 
     # Let's do minimum norm as a sanity check (dipole_fit is slower)
-    inv = make_inverse_operator(info, forward, noise_cov, loose=1.)
+    with pytest.warns(RuntimeWarning, match='surface orientation'):
+        inv = make_inverse_operator(info, forward, noise_cov, loose=1.)
     stc_vector_mne = apply_inverse(evoked, inv, pick_ori='vector')
     mne_ori = stc_vector_mne.data[mapping, :, np.arange(n_vertices)]
     mne_ori /= np.linalg.norm(mne_ori, axis=-1)[:, np.newaxis]
@@ -176,9 +177,10 @@ def test_lcmv_vector():
         log = log.getvalue()
         assert '498 sources' in log
         with catch_logging() as log:
-            filters_vector = make_lcmv(info, forward, data_cov, 0.05,
-                                       noise_cov, pick_ori='vector',
-                                       verbose=True)
+            with pytest.warns(RuntimeWarning, match='surface orientation'):
+                filters_vector = make_lcmv(info, forward, data_cov, 0.05,
+                                           noise_cov, pick_ori='vector',
+                                           verbose=True)
         log = log.getvalue()
         assert '498 sources' in log
         stc = apply_lcmv(this_evoked, filters)
@@ -822,10 +824,11 @@ def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
     if not use_cov:
         evoked.pick_types('grad')
         noise_cov = None
-    loc = apply_lcmv(evoked, make_lcmv(evoked.info, fwd, data_cov, reg,
-                                       noise_cov, pick_ori=pick_ori,
-                                       weight_norm=weight_norm,
-                                       depth=depth)).data
+    with pytest.warns(None):  # surf ori, sometimes
+        loc = apply_lcmv(evoked, make_lcmv(evoked.info, fwd, data_cov, reg,
+                                           noise_cov, pick_ori=pick_ori,
+                                           weight_norm=weight_norm,
+                                           depth=depth)).data
     loc = np.linalg.norm(loc, axis=1) if pick_ori == 'vector' else np.abs(loc)
     # Compute the percentage of sources for which there is no loc bias:
     perc = (want == np.argmax(loc, axis=0)).mean() * 100
@@ -837,12 +840,13 @@ def test_localization_bias_free(bias_params_free, reg, pick_ori, weight_norm,
 def test_depth_does_not_matter(bias_params_free, weight_norm, pick_ori):
     """Test that depth weighting does not matter for normalized filters."""
     evoked, fwd, noise_cov, data_cov, _ = bias_params_free
-    data = apply_lcmv(evoked, make_lcmv(
-        evoked.info, fwd, data_cov, 0.05, noise_cov, pick_ori=pick_ori,
-        weight_norm=weight_norm, depth=0.)).data
-    data_depth = apply_lcmv(evoked, make_lcmv(
-        evoked.info, fwd, data_cov, 0.05, noise_cov, pick_ori=pick_ori,
-        weight_norm=weight_norm, depth=1.)).data
+    with pytest.warns(None):  # vector pick ori, surf ori
+        data = apply_lcmv(evoked, make_lcmv(
+            evoked.info, fwd, data_cov, 0.05, noise_cov, pick_ori=pick_ori,
+            weight_norm=weight_norm, depth=0.)).data
+        data_depth = apply_lcmv(evoked, make_lcmv(
+            evoked.info, fwd, data_cov, 0.05, noise_cov, pick_ori=pick_ori,
+            weight_norm=weight_norm, depth=1.)).data
     assert data.shape == data_depth.shape
     for d1, d2 in zip(data, data_depth):
         # Sign flips can change when nearly orthogonal to the normal direction

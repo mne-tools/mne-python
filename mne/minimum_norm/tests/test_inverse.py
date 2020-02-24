@@ -596,15 +596,16 @@ def test_make_inverse_operator_free(evoked, noise_cov):
 def test_make_inverse_operator_vector(evoked, noise_cov):
     """Test MNE inverse computation (vector result)."""
     fwd_surf = read_forward_solution_meg(fname_fwd, surf_ori=True)
-    fwd_fixed = read_forward_solution_meg(fname_fwd, surf_ori=False)
+    fwd = read_forward_solution_meg(fname_fwd, surf_ori=False)
 
     # Make different version of the inverse operator
-    inv_1 = make_inverse_operator(evoked.info, fwd_fixed, noise_cov, loose=1)
+    with pytest.warns(RuntimeWarning, match='surface orientation'):
+        inv_1 = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1)
     inv_2 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, depth=None,
                                   use_cps=True)
     inv_3 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, fixed=True,
                                   use_cps=True)
-    inv_4 = make_inverse_operator(evoked.info, fwd_fixed, noise_cov,
+    inv_4 = make_inverse_operator(evoked.info, fwd, noise_cov,
                                   loose=.2, depth=None)
 
     # Apply the inverse operators and check the result
@@ -618,8 +619,8 @@ def test_make_inverse_operator_vector(evoked, noise_cov):
             assert_allclose(stc.data, stc_vec.magnitude().data)
 
     # Vector estimates don't work when using fixed orientations
-    pytest.raises(RuntimeError, apply_inverse, evoked, inv_3,
-                  pick_ori='vector')
+    with pytest.raises(RuntimeError, match='fixed orientation'):
+        apply_inverse(evoked, inv_3, pick_ori='vector')
 
     # When computing with vector fields, computing the difference between two
     # evokeds and then performing the inverse should yield the same result as

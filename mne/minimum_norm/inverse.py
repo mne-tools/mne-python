@@ -1257,7 +1257,7 @@ def _xyz2lf(Lf_xyz, normals):
 
 def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
                      use_cps, exp, limit_depth_chs, combine_xyz,
-                     allow_fixed_depth, limit):
+                     allow_fixed_depth, limit, pick_ori=None):
     """Prepare a gain matrix and noise covariance for localization."""
     # Steps (according to MNE-C, we change the order of various steps
     # because our I/O is already done, and we create the objects
@@ -1341,7 +1341,8 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
             logger.info('Converting forward solution to surface orientation')
             convert_forward_solution(
                 forward, surf_ori=True, use_cps=True, copy=False)
-    if not forward['surf_ori'] and src_kind == 'surface' and loose == 1.:
+    if not forward['surf_ori'] and src_kind == 'surface' and loose == 1. and \
+            pick_ori == 'vector':
         warn('Forward not in surface orientation with loose=1. will not be '
              'converted to surface orientation automatically, use with '
              'caution. apply_inverse(..., pick_ori="normal") and '
@@ -1487,7 +1488,7 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     forward, gain_info, gain, depth_prior, orient_prior, source_std, \
         trace_GRGT, noise_cov, _ = _prepare_forward(
             forward, info, noise_cov, fixed, loose, rank, pca='white',
-            use_cps=use_cps, **depth)
+            use_cps=use_cps, pick_ori='vector', **depth)
     del fixed, loose, depth, use_cps
 
     # Decompose the combined matrix
