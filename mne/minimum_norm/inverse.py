@@ -695,23 +695,22 @@ def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
         source_nn = source_nn[src_sel]
 
     # vector or normal, might need to rotate
-    if pick_ori is not None and all(s['type'] == 'surf' for s in src):
-        # Requires rotation (loose=1. and not surf ori)
-        if np.allclose(inv['source_nn'].reshape(inv['nsource'], 3, 3),
-                       np.eye(3), atol=1e-6):
-            offset = 0
-            eigen_leads = np.reshape(
-                eigen_leads, (-1, 3, eigen_leads.shape[1])).copy()
-            source_nn = np.reshape(source_nn, (-1, 3, 3)).copy()
-            for s, v in zip(src, vertno):
-                sl = slice(offset, offset + len(v))
-                source_nn[sl] = _normal_orth(_get_src_nn(s, use_cps, v))
-                eigen_leads[sl] = np.matmul(source_nn[sl], eigen_leads[sl])
-                # No need to rotate source_cov because it should be uniform
-                # (loose=1., and depth weighting is uniform across columns)
-                offset = sl.stop
-            eigen_leads.shape = (-1, eigen_leads.shape[2])
-            source_nn.shape = (-1, 3)
+    if pick_ori is not None and all(s['type'] == 'surf' for s in src) and \
+            np.allclose(inv['source_nn'].reshape(inv['nsource'], 3, 3),
+                        np.eye(3), atol=1e-6):
+        offset = 0
+        eigen_leads = np.reshape(
+            eigen_leads, (-1, 3, eigen_leads.shape[1])).copy()
+        source_nn = np.reshape(source_nn, (-1, 3, 3)).copy()
+        for s, v in zip(src, vertno):
+            sl = slice(offset, offset + len(v))
+            source_nn[sl] = _normal_orth(_get_src_nn(s, use_cps, v))
+            eigen_leads[sl] = np.matmul(source_nn[sl], eigen_leads[sl])
+            # No need to rotate source_cov because it should be uniform
+            # (loose=1., and depth weighting is uniform across columns)
+            offset = sl.stop
+        eigen_leads.shape = (-1, eigen_leads.shape[2])
+        source_nn.shape = (-1, 3)
 
     if pick_ori == "normal":
         if not inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
