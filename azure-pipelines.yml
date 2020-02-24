@@ -121,6 +121,7 @@ jobs:
       pip install --upgrade numpy scipy vtk
       pip install --upgrade -r requirements.txt
       pip install codecov
+      pip uninstall -yq pysurfer mayavi
     condition: eq(variables['TEST_MODE'], 'pip')
     displayName: 'Install dependencies with pip'
   # VTK does not have wheels (scheduled Q1 2020):
@@ -147,6 +148,7 @@ jobs:
       conda env update --file $env:CONDA_ENV
       pip uninstall -yq mne
       pip install codecov
+      pip uninstall -yq pysurfer mayavi
       Write-Host ("##vso[task.setvariable variable=PATH]" + $env:PATH)
     condition: eq(variables['TEST_MODE'], 'conda')
     displayName: 'Install dependencies with conda'
