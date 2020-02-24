@@ -345,7 +345,7 @@ def test_localization_bias_loose(bias_params_fixed, method, lower, upper,
 
 
 @pytest.mark.parametrize('method, lower, upper, kwargs, depth', [
-    ('MNE', 21, 24, {}, dict(limit=None, combine_xyz=False, exp=1.)),  # DICS
+    ('MNE', 21, 25, {}, dict(limit=None, combine_xyz=False, exp=1.)),  # DICS
     ('MNE', 35, 40, {}, dict(limit_depth_chs=False)),  # ancient default
     ('MNE', 45, 55, {}, 0.8),  # MNE default
     ('MNE', 65, 70, {}, dict(limit_depth_chs='whiten')),  # sparse default
@@ -458,8 +458,9 @@ def test_apply_inverse_operator(evoked):
     # Test that no errors are raised with loose inverse ops and picking normals
     noise_cov = read_cov(fname_cov)
     fwd = read_forward_solution_meg(fname_fwd)
-    inv_op_meg = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1,
-                                       fixed='auto', depth=None)
+    inv_op_meg = make_inverse_operator(
+        evoked.info, fwd, noise_cov, loose=1,
+        fixed='auto', depth=None)
     apply_inverse(evoked, inv_op_meg, 1 / 9., method='MNE', pick_ori='normal')
 
     # Test we get errors when using custom ref or no average proj is present
@@ -568,30 +569,34 @@ def test_make_inverse_operator_free(evoked, noise_cov):
                                          use_cps=True)
 
     # can't make free inv with fixed fwd
-    pytest.raises(ValueError, make_inverse_operator, evoked.info, fwd_fixed,
-                  noise_cov, depth=None)
+    with pytest.raises(ValueError, match='can only be used'):
+        make_inverse_operator(evoked.info, fwd_fixed, noise_cov, depth=None)
 
-    # for depth=None, surf_ori of the fwd should not matter
-    inv_3 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, depth=None,
-                                  loose=1.)
-    inv_4 = make_inverse_operator(evoked.info, fwd, noise_cov,
-                                  depth=None, loose=1.)
-    _compare_inverses_approx(inv_3, inv_4, evoked, rtol=1e-5, atol=1e-8,
+    # for depth=None (or depth=0.8), surf_ori of the fwd should not matter
+    inv_surf = make_inverse_operator(evoked.info, fwd_surf, noise_cov,
+                                     depth=None, loose=1.)
+    inv = make_inverse_operator(evoked.info, fwd, noise_cov,
+                                depth=None, loose=1.)
+    _compare_inverses_approx(inv, inv_surf, evoked, rtol=1e-5, atol=1e-8,
                              check_nn=False, check_K=False)
+    for pick_ori in (None, 'vector', 'normal'):
+        stc = apply_inverse(evoked, inv, pick_ori=pick_ori)
+        stc_surf = apply_inverse(evoked, inv_surf, pick_ori=pick_ori)
+        assert_allclose(stc_surf.data, stc.data, atol=1e-2)
 
 
 def test_make_inverse_operator_vector(evoked, noise_cov):
     """Test MNE inverse computation (vector result)."""
     fwd_surf = read_forward_solution_meg(fname_fwd, surf_ori=True)
-    fwd_fixed = read_forward_solution_meg(fname_fwd, surf_ori=False)
+    fwd = read_forward_solution_meg(fname_fwd, surf_ori=False)
 
     # Make different version of the inverse operator
-    inv_1 = make_inverse_operator(evoked.info, fwd_fixed, noise_cov, loose=1)
+    inv_1 = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1)
     inv_2 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, depth=None,
                                   use_cps=True)
     inv_3 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, fixed=True,
                                   use_cps=True)
-    inv_4 = make_inverse_operator(evoked.info, fwd_fixed, noise_cov,
+    inv_4 = make_inverse_operator(evoked.info, fwd, noise_cov,
                                   loose=.2, depth=None)
 
     # Apply the inverse operators and check the result
@@ -605,8 +610,8 @@ def test_make_inverse_operator_vector(evoked, noise_cov):
             assert_allclose(stc.data, stc_vec.magnitude().data)
 
     # Vector estimates don't work when using fixed orientations
-    pytest.raises(RuntimeError, apply_inverse, evoked, inv_3,
-                  pick_ori='vector')
+    with pytest.raises(RuntimeError, match='fixed orientation'):
+        apply_inverse(evoked, inv_3, pick_ori='vector')
 
     # When computing with vector fields, computing the difference between two
     # evokeds and then performing the inverse should yield the same result as

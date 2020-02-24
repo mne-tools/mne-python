@@ -12,7 +12,7 @@ from copy import deepcopy
 import re
 
 import numpy as np
-from scipy import linalg, sparse
+from scipy import sparse
 
 import shutil
 import os
@@ -37,7 +37,7 @@ from ..evoked import Evoked, EvokedArray
 from ..epochs import BaseEpochs
 from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi, _set_source_space_vertices,
-                            _write_source_spaces_to_fid)
+                            _write_source_spaces_to_fid, _get_src_nn)
 from ..source_estimate import _BaseSourceEstimate
 from ..surface import _normal_orth
 from ..transforms import (transform_surface_to, invert_transform,
@@ -174,52 +174,6 @@ def _block_diag(A, n):
 
     if na % n > 0:
         raise ValueError('Width of matrix must be a multiple of n')
-
-    tmp = np.arange(ma * bdn, dtype=np.int).reshape(bdn, ma)
-    tmp = np.tile(tmp, (1, n))
-    ii = tmp.ravel()
-
-    jj = np.arange(na, dtype=np.int)[None, :]
-    jj = jj * np.ones(ma, dtype=np.int)[:, None]
-    jj = jj.T.ravel()  # column indices foreach sparse bd
-
-    bd = sparse.coo_matrix((A.T.ravel(), np.c_[ii, jj].T)).tocsc()
-
-    return bd
-
-
-def _inv_block_diag(A, n):
-    """Construct an inverse block diagonal from a packed structure.
-
-    You have to try it on a matrix to see what it's doing.
-
-    "A" is ma x na, comprising bdn=(na/"n") blocks of submatrices.
-    Each submatrix is ma x "n", and the inverses of these submatrices
-    are placed down the diagonal of the matrix.
-
-    Parameters
-    ----------
-    A : array
-        The matrix.
-    n : int
-        The block size.
-
-    Returns
-    -------
-    bd : sparse matrix
-        The block diagonal matrix.
-    """
-    ma, na = A.shape
-    bdn = na // int(n)  # number of submatrices
-
-    if na % n > 0:
-        raise ValueError('Width of matrix must be a multiple of n')
-
-    # modify A in-place to invert each sub-block
-    A = A.copy()
-    for start in range(0, na, 3):
-        # this is a view
-        A[:, start:start + 3] = linalg.inv(A[:, start:start + 3])
 
     tmp = np.arange(ma * bdn, dtype=np.int).reshape(bdn, ma)
     tmp = np.tile(tmp, (1, n))
@@ -620,9 +574,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         If True, force fixed source orientation mode.
     copy : bool
         Whether to return a new instance or modify in place.
-    use_cps : bool (default True)
-        Whether to use cortical patch statistics to define normal
-        orientations. Only used when surf_ori and/or force_fixed are True.
+    %(use_cps)s
     %(verbose)s
 
     Returns
@@ -642,20 +594,16 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
             'possible. Consider using a discrete source space if you have '
             'meaningful normal orientations.')
 
-    if surf_ori:
-        if use_cps:
-            if any(s.get('patch_inds') is not None for s in fwd['src']):
-                use_ave_nn = True
-                logger.info('    Average patch normals will be employed in '
-                            'the rotation to the local surface coordinates..'
-                            '..')
-            else:
-                use_ave_nn = False
-                logger.info('    No patch info available. The standard source '
-                            'space normals will be employed in the rotation '
-                            'to the local surface coordinates....')
+    if surf_ori and use_cps:
+        if any(s.get('patch_inds') is not None for s in fwd['src']):
+            logger.info('    Average patch normals will be employed in '
+                        'the rotation to the local surface coordinates..'
+                        '..')
         else:
-            use_ave_nn = False
+            use_cps = False
+            logger.info('    No patch info available. The standard source '
+                        'space normals will be employed in the rotation '
+                        'to the local surface coordinates....')
 
     # We need to change these entries (only):
     # 1. source_nn
@@ -665,9 +613,9 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     # 5. sol_grad['ncol']
     # 6. source_ori
 
-    if is_fixed_orient(fwd, orig=True) or (force_fixed and not use_ave_nn):
+    if is_fixed_orient(fwd, orig=True) or (force_fixed and not use_cps):
         # Fixed
-        fwd['source_nn'] = np.concatenate([s['nn'][s['vertno'], :]
+        fwd['source_nn'] = np.concatenate([_get_src_nn(s, use_cps)
                                            for s in fwd['src']], axis=0)
         if not is_fixed_orient(fwd, orig=True):
             logger.info('    Changing to fixed-orientation forward '
@@ -693,15 +641,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         pp = 0
         for s in fwd['src']:
             if s['type'] in ['surf', 'discrete']:
-                if use_ave_nn and s.get('patch_inds') is not None:
-                    nn = np.empty((s['nuse'], 3))
-                    for p in range(s['nuse']):
-                        #  Project out the surface normal and compute SVD
-                        nn[p] = np.sum(
-                            s['nn'][s['pinfo'][s['patch_inds'][p]], :], axis=0)
-                    nn /= linalg.norm(nn, axis=-1, keepdims=True)
-                else:
-                    nn = s['nn'][s['vertno'], :]
+                nn = _get_src_nn(s, use_cps)
                 stop = pp + 3 * s['nuse']
                 fwd['source_nn'][pp:stop] = _normal_orth(nn).reshape(-1, 3)
                 pp = stop
@@ -737,7 +677,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
 
     else:  # Free, cartesian
         logger.info('    Cartesian source orientations...')
-        fwd['source_nn'] = np.kron(np.ones((fwd['nsource'], 1)), np.eye(3))
+        fwd['source_nn'] = np.tile(np.eye(3), (fwd['nsource'], 1))
         fwd['sol']['data'] = fwd['_orig_sol'].copy()
         fwd['sol']['ncol'] = 3 * fwd['nsource']
         if fwd['sol_grad'] is not None:
@@ -1381,9 +1321,7 @@ def apply_forward(fwd, stc, info, start=None, stop=None, use_cps=True,
         Index of first time sample (index not time is seconds).
     stop : int, optional
         Index of first time sample not to include (index not time is seconds).
-    use_cps : bool (default True)
-        Whether to use cortical patch statistics to define normal
-        orientations when converting to fixed orientation (if necessary).
+    %(use_cps)s
 
         .. versionadded:: 0.15
     %(on_missing)s Default is "raise".

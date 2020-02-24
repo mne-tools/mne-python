@@ -31,9 +31,10 @@ from ..forward import (compute_depth_prior, _read_forward_meas_info,
                        is_fixed_orient, compute_orient_prior,
                        convert_forward_solution, _select_orient_forward)
 from ..forward.forward import write_forward_meas_info
-from ..source_space import (_read_source_spaces_from_tree,
+from ..source_space import (_read_source_spaces_from_tree, _get_src_nn,
                             find_source_space_hemi, _get_vertno,
                             _write_source_spaces_to_fid, label_src_vertno_sel)
+from ..surface import _normal_orth
 from ..transforms import _ensure_trans, transform_surface_to
 from ..source_estimate import _make_stc, _get_src_type
 from ..utils import (check_fname, logger, verbose, warn,
@@ -629,7 +630,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
 
 
 @verbose
-def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
+def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
     """Assemble the kernel.
 
     Simple matrix multiplication followed by combination of the current
@@ -648,6 +649,7 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
         Use minimum norm, dSPM, sLORETA, or eLORETA.
     pick_ori : None | "normal" | "vector"
         Which orientation to pick (only matters in the case of 'normal').
+    %(use_cps_restricted)s
 
     Returns
     -------
@@ -691,6 +693,24 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
         eigen_leads = eigen_leads[src_sel]
         source_cov = source_cov[src_sel]
         source_nn = source_nn[src_sel]
+
+    # vector or normal, might need to rotate
+    if pick_ori == 'normal' and all(s['type'] == 'surf' for s in src) and \
+            np.allclose(inv['source_nn'].reshape(inv['nsource'], 3, 3),
+                        np.eye(3), atol=1e-6):
+        offset = 0
+        eigen_leads = np.reshape(
+            eigen_leads, (-1, 3, eigen_leads.shape[1])).copy()
+        source_nn = np.reshape(source_nn, (-1, 3, 3)).copy()
+        for s, v in zip(src, vertno):
+            sl = slice(offset, offset + len(v))
+            source_nn[sl] = _normal_orth(_get_src_nn(s, use_cps, v))
+            eigen_leads[sl] = np.matmul(source_nn[sl], eigen_leads[sl])
+            # No need to rotate source_cov because it should be uniform
+            # (loose=1., and depth weighting is uniform across columns)
+            offset = sl.stop
+        eigen_leads.shape = (-1, eigen_leads.shape[2])
+        source_nn.shape = (-1, 3)
 
     if pick_ori == "normal":
         if not inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
@@ -762,7 +782,8 @@ def _subject_from_inverse(inverse_operator):
 @verbose
 def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
                   pick_ori=None, prepared=False, label=None,
-                  method_params=None, return_residual=False, verbose=None):
+                  method_params=None, return_residual=False, use_cps=True,
+                  verbose=None):
     """Apply inverse operator to evoked data.
 
     Parameters
@@ -802,6 +823,9 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
         Cannot be used with ``method=='eLORETA'``.
 
         .. versionadded:: 0.17
+    %(use_cps_restricted)s
+
+        .. versionadded:: 0.20
     %(verbose)s
 
     Returns
@@ -882,8 +906,8 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     logger.info('Applying inverse operator to "%s"...' % (evoked.comment,))
     logger.info('    Picked %d channels from the data' % len(sel))
     logger.info('    Computing inverse...')
-    K, noise_norm, vertno, source_nn = _assemble_kernel(inv, label, method,
-                                                        pick_ori)
+    K, noise_norm, vertno, source_nn = _assemble_kernel(
+        inv, label, method, pick_ori, use_cps=use_cps)
     sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
     logger.info('    Computing residual...')
     # x̂(t) = G ĵ(t) = C ** 1/2 U Π w(t)
@@ -936,7 +960,8 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
 def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
                       label=None, start=None, stop=None, nave=1,
                       time_func=None, pick_ori=None, buffer_size=None,
-                      prepared=False, method_params=None, verbose=None):
+                      prepared=False, method_params=None, use_cps=True,
+                      verbose=None):
     """Apply inverse operator to Raw data.
 
     Parameters
@@ -983,6 +1008,9 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
         Additional options for eLORETA. See Notes of :func:`apply_inverse`.
 
         .. versionadded:: 0.16
+    %(use_cps_restricted)s
+
+        .. versionadded:: 0.20
     %(verbose)s
 
     Returns
@@ -1020,8 +1048,8 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     if time_func is not None:
         data = time_func(data)
 
-    K, noise_norm, vertno, source_nn = _assemble_kernel(inv, label, method,
-                                                        pick_ori)
+    K, noise_norm, vertno, source_nn = _assemble_kernel(
+        inv, label, method, pick_ori, use_cps)
 
     is_free_ori = (inverse_operator['source_ori'] ==
                    FIFF.FIFFV_MNE_FREE_ORI and pick_ori != 'normal')
@@ -1072,7 +1100,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                               label=None, nave=1, pick_ori=None,
                               prepared=False, method_params=None,
-                              verbose=None):
+                              use_cps=True, verbose=None):
     """Generate inverse solutions for epochs. Used in apply_inverse_epochs."""
     _check_option('method', method, INVERSE_METHODS)
     _check_ori(pick_ori, inverse_operator['source_ori'],
@@ -1091,8 +1119,8 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
     sel = _pick_channels_inverse_operator(epochs.ch_names, inv)
     logger.info('Picked %d channels from the data' % len(sel))
     logger.info('Computing inverse...')
-    K, noise_norm, vertno, source_nn = _assemble_kernel(inv, label, method,
-                                                        pick_ori)
+    K, noise_norm, vertno, source_nn = _assemble_kernel(
+        inv, label, method, pick_ori, use_cps)
 
     tstep = 1.0 / epochs.info['sfreq']
     tmin = epochs.times[0]
@@ -1145,7 +1173,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
 def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
                          label=None, nave=1, pick_ori=None,
                          return_generator=False, prepared=False,
-                         method_params=None, verbose=None):
+                         method_params=None, use_cps=True, verbose=None):
     """Apply inverse operator to Epochs.
 
     Parameters
@@ -1181,6 +1209,9 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
         Additional options for eLORETA. See Notes of :func:`apply_inverse`.
 
         .. versionadded:: 0.16
+    %(use_cps_restricted)s
+
+        .. versionadded:: 0.20
     %(verbose)s
 
     Returns
@@ -1196,7 +1227,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     stcs = _apply_inverse_epochs_gen(
         epochs, inverse_operator, lambda2, method=method, label=label,
         nave=nave, pick_ori=pick_ori, verbose=verbose, prepared=prepared,
-        method_params=method_params)
+        method_params=method_params, use_cps=use_cps)
 
     if not return_generator:
         # return a list
@@ -1307,7 +1338,6 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
             raise ValueError('loose parameter has to be 1 or "auto" for '
                              'non-surface source space (Got loose=%s for %s '
                              'source space).' % (loose, src_kind))
-    del src_kind
 
     # Deal with "depth"
     if exp is not None:
@@ -1342,6 +1372,7 @@ def _prepare_forward(forward, info, noise_cov, fixed, loose, rank, pca,
             logger.info('Converting forward solution to surface orientation')
             convert_forward_solution(
                 forward, surf_ori=True, use_cps=True, copy=False)
+    del src_kind
 
     forward, info_picked = _select_orient_forward(forward, info, noise_cov,
                                                   copy=False)
@@ -1429,10 +1460,7 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
         the loose parameter must be "auto" or 0. If 'auto', the loose value
         is used.
     %(rank_None)s
-    use_cps : None | bool (default True)
-        Whether to use cortical patch statistics to define normal
-        orientations. Only used when converting to surface orientation
-        (i.e., for surface source spaces and ``loose < 1``).
+    %(use_cps)s
     %(verbose)s
 
     Returns

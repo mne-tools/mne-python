@@ -18,7 +18,7 @@ from .filter import resample
 from .fixes import einsum
 from .surface import read_surface, _get_ico_surface, mesh_edges
 from .source_space import (_ensure_src, _get_morph_src_reordering,
-                           _ensure_src_subject, SourceSpaces)
+                           _ensure_src_subject, SourceSpaces, _get_src_nn)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     _time_mask, warn as warn_, copy_function_doc_to_method_doc,
                     fill_doc, _check_option, _validate_type, _check_src_normal,
@@ -1826,13 +1826,19 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             data_mag, self.vertices, self.tmin, self.tstep, self.subject,
             self.verbose)
 
-    def normal(self, src):
+    @fill_doc
+    def normal(self, src, use_cps=True):
         """Compute activity orthogonal to the cortex.
 
         Parameters
         ----------
         src : instance of SourceSpaces
             The source space for which this source estimate is specified.
+        %(use_cps)s
+            Should be the same value that was used when the forward model
+            was computed (typically True).
+
+            .. versionadded:: 0.20
 
         Returns
         -------
@@ -1841,7 +1847,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             cortex.
         """
         _check_src_normal('normal', src)
-        normals = np.vstack([s['nn'][v] for s, v in
+        normals = np.vstack([_get_src_nn(s, use_cps, v) for s, v in
                              zip(src, self._vertices_list)])
         data_norm = einsum('ijk,ij->ik', self.data, normals)
         return self._scalar_class(
