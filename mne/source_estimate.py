@@ -1826,6 +1826,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             data_mag, self.vertices, self.tmin, self.tstep, self.subject,
             self.verbose)
 
+    @fill_doc
     def normal(self, src, use_cps=True):
         """Compute activity orthogonal to the cortex.
 
