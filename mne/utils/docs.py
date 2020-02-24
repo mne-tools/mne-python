@@ -338,6 +338,10 @@ use_cps : bool
     Whether to use cortical patch statistics to define normal orientations for
     surfaces (default True).
 """
+docdict['use_cps_restricted'] = docdict['use_cps'] + """
+    Only used when the inverse is free orientation (``loose=1.``),
+    not in surface orientation, and ``pick_ori='normal'``.
+"""
 
 # Forward
 docdict['on_missing'] = """

@@ -931,9 +931,8 @@ def invs():
     fwd_surf = convert_forward_solution(fwd, surf_ori=True)
     evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0]
     noise_cov = read_cov(fname_cov)
-    with pytest.warns(RuntimeWarning, match='surface orientation'):
-        free = make_inverse_operator(
-            evoked.info, fwd, noise_cov, loose=1.)
+    free = make_inverse_operator(
+        evoked.info, fwd, noise_cov, loose=1.)
     free_surf = make_inverse_operator(
         evoked.info, fwd_surf, noise_cov, loose=1.)
     freeish = make_inverse_operator(
@@ -961,14 +960,11 @@ bad_normal = pytest.param(
     'normal', marks=pytest.mark.xfail(raises=AssertionError))
 
 
-@pytest.mark.parametrize('pick_ori', [None, bad_normal, 'vector'])
+@pytest.mark.parametrize('pick_ori', [None, 'normal', 'vector'])
 def test_vec_stc_inv_free(invs, pick_ori):
     """Test vector STC behavior with two free-orientation inverses."""
     evoked, free, free_surf, _, _, _ = invs
     stc_free = apply_inverse(evoked, free, pick_ori=pick_ori)
-    # pick_ori='normal' is broken for free orientation inv when not in
-    # surface orientation (needs to do more than just pick K[2::3]) or we
-    # need to always convert to surf ori...
     stc_free_surf = apply_inverse(evoked, free_surf, pick_ori=pick_ori)
     assert_allclose(stc_free.data, stc_free_surf.data, atol=1e-5)
 

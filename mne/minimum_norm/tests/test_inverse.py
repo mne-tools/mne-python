@@ -345,7 +345,7 @@ def test_localization_bias_loose(bias_params_fixed, method, lower, upper,
 
 
 @pytest.mark.parametrize('method, lower, upper, kwargs, depth', [
-    ('MNE', 21, 24, {}, dict(limit=None, combine_xyz=False, exp=1.)),  # DICS
+    ('MNE', 21, 25, {}, dict(limit=None, combine_xyz=False, exp=1.)),  # DICS
     ('MNE', 35, 40, {}, dict(limit_depth_chs=False)),  # ancient default
     ('MNE', 45, 55, {}, 0.8),  # MNE default
     ('MNE', 65, 70, {}, dict(limit_depth_chs='whiten')),  # sparse default
@@ -358,9 +358,8 @@ def test_localization_bias_free(bias_params_free, method, lower, upper,
                                 kwargs, depth):
     """Test inverse localization bias for free minimum-norm solvers."""
     evoked, fwd, noise_cov, _, want = bias_params_free
-    with pytest.warns(RuntimeWarning, match='surface orientation'):
-        inv_free = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1.,
-                                         depth=depth)
+    inv_free = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1.,
+                                     depth=depth)
     loc = apply_inverse(evoked, inv_free, lambda2, method,
                         pick_ori='vector', verbose='debug', **kwargs).data
     loc = np.linalg.norm(loc, axis=1)
@@ -389,8 +388,7 @@ def test_apply_inverse_sphere(evoked):
     assert fwd['sol']['ncol'] == 303
     tempdir = _TempDir()
     temp_fname = op.join(tempdir, 'temp-inv.fif')
-    with pytest.warns(RuntimeWarning, match='surface orientation'):
-        inv = make_inverse_operator(evoked.info, fwd, cov, loose=1.)
+    inv = make_inverse_operator(evoked.info, fwd, cov, loose=1.)
     # This forces everything to be float32
     write_inverse_operator(temp_fname, inv)
     inv = read_inverse_operator(temp_fname)
@@ -460,10 +458,9 @@ def test_apply_inverse_operator(evoked):
     # Test that no errors are raised with loose inverse ops and picking normals
     noise_cov = read_cov(fname_cov)
     fwd = read_forward_solution_meg(fname_fwd)
-    with pytest.warns(RuntimeWarning, match='surface orientation'):
-        inv_op_meg = make_inverse_operator(
-            evoked.info, fwd, noise_cov, loose=1,
-            fixed='auto', depth=None)
+    inv_op_meg = make_inverse_operator(
+        evoked.info, fwd, noise_cov, loose=1,
+        fixed='auto', depth=None)
     apply_inverse(evoked, inv_op_meg, 1 / 9., method='MNE', pick_ori='normal')
 
     # Test we get errors when using custom ref or no average proj is present
@@ -578,19 +575,14 @@ def test_make_inverse_operator_free(evoked, noise_cov):
     # for depth=None (or depth=0.8), surf_ori of the fwd should not matter
     inv_surf = make_inverse_operator(evoked.info, fwd_surf, noise_cov,
                                      depth=None, loose=1.)
-    with pytest.warns(RuntimeWarning, match='surface orientation'):
-        inv = make_inverse_operator(evoked.info, fwd, noise_cov,
-                                    depth=None, loose=1.)
+    inv = make_inverse_operator(evoked.info, fwd, noise_cov,
+                                depth=None, loose=1.)
     _compare_inverses_approx(inv, inv_surf, evoked, rtol=1e-5, atol=1e-8,
                              check_nn=False, check_K=False)
     for pick_ori in (None, 'vector', 'normal'):
-        stc_surf = apply_inverse(evoked, inv_surf, pick_ori=pick_ori)
         stc = apply_inverse(evoked, inv, pick_ori=pick_ori)
-        if pick_ori == 'normal':
-            # Badness here...
-            assert not np.allclose(stc_surf.data, stc.data, atol=1.)
-        else:
-            assert_allclose(stc_surf.data, stc.data, atol=1e-2)
+        stc_surf = apply_inverse(evoked, inv_surf, pick_ori=pick_ori)
+        assert_allclose(stc_surf.data, stc.data, atol=1e-2)
 
 
 def test_make_inverse_operator_vector(evoked, noise_cov):
@@ -599,8 +591,7 @@ def test_make_inverse_operator_vector(evoked, noise_cov):
     fwd = read_forward_solution_meg(fname_fwd, surf_ori=False)
 
     # Make different version of the inverse operator
-    with pytest.warns(RuntimeWarning, match='surface orientation'):
-        inv_1 = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1)
+    inv_1 = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1)
     inv_2 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, depth=None,
                                   use_cps=True)
     inv_3 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, fixed=True,

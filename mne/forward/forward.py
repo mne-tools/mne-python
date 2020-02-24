@@ -723,7 +723,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
 
     else:  # Free, cartesian
         logger.info('    Cartesian source orientations...')
-        fwd['source_nn'] = np.kron(np.ones((fwd['nsource'], 1)), np.eye(3))
+        fwd['source_nn'] = np.tile(np.eye(3), (fwd['nsource'], 1))
         fwd['sol']['data'] = fwd['_orig_sol'].copy()
         fwd['sol']['ncol'] = 3 * fwd['nsource']
         if fwd['sol_grad'] is not None:

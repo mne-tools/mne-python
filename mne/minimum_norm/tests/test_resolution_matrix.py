@@ -9,7 +9,6 @@ import os.path as op
 import numpy as np
 from numpy.testing import (assert_equal, assert_array_almost_equal,
                            assert_array_equal)
-import pytest
 
 import mne
 from mne.datasets import testing
@@ -63,10 +62,9 @@ def test_resolution_matrix():
 
     # make inverse operator from forward solution
     # free source orientation
-    with pytest.warns(RuntimeWarning, match='surface orientation'):
-        inverse_operator = mne.minimum_norm.make_inverse_operator(
-            info=evoked.info, forward=forward, noise_cov=noise_cov, loose=1.,
-            depth=None)
+    inverse_operator = mne.minimum_norm.make_inverse_operator(
+        info=evoked.info, forward=forward, noise_cov=noise_cov, loose=1.,
+        depth=None)
     # fixed source orientation
     inverse_operator_fxd = mne.minimum_norm.make_inverse_operator(
         info=evoked.info, forward=forward, noise_cov=noise_cov, loose=0.,

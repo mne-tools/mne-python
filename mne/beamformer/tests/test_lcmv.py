@@ -150,8 +150,7 @@ def test_lcmv_vector():
     del forward_sim
 
     # Let's do minimum norm as a sanity check (dipole_fit is slower)
-    with pytest.warns(RuntimeWarning, match='surface orientation'):
-        inv = make_inverse_operator(info, forward, noise_cov, loose=1.)
+    inv = make_inverse_operator(info, forward, noise_cov, loose=1.)
     stc_vector_mne = apply_inverse(evoked, inv, pick_ori='vector')
     mne_ori = stc_vector_mne.data[mapping, :, np.arange(n_vertices)]
     mne_ori /= np.linalg.norm(mne_ori, axis=-1)[:, np.newaxis]
@@ -177,10 +176,9 @@ def test_lcmv_vector():
         log = log.getvalue()
         assert '498 sources' in log
         with catch_logging() as log:
-            with pytest.warns(RuntimeWarning, match='surface orientation'):
-                filters_vector = make_lcmv(info, forward, data_cov, 0.05,
-                                           noise_cov, pick_ori='vector',
-                                           verbose=True)
+            filters_vector = make_lcmv(info, forward, data_cov, 0.05,
+                                       noise_cov, pick_ori='vector',
+                                       verbose=True)
         log = log.getvalue()
         assert '498 sources' in log
         stc = apply_lcmv(this_evoked, filters)

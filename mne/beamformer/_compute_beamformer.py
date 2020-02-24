@@ -67,7 +67,7 @@ def _prepare_beamformer_input(info, forward, label=None, pick_ori=None,
             forward, info, noise_cov, 'auto', loose, rank=rank, pca=pca,
             use_cps=True, exp=exp, limit_depth_chs=limit_depth_chs,
             combine_xyz=combine_xyz, limit=limit,
-            allow_fixed_depth=allow_fixed_depth, pick_ori=pick_ori)
+            allow_fixed_depth=allow_fixed_depth)
     is_free_ori = not is_fixed_orient(forward)  # could have been changed
     nn = forward['source_nn']
     if is_free_ori:  # take Z coordinate
