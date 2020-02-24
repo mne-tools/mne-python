@@ -188,52 +188,6 @@ def _block_diag(A, n):
     return bd
 
 
-def _inv_block_diag(A, n):
-    """Construct an inverse block diagonal from a packed structure.
-
-    You have to try it on a matrix to see what it's doing.
-
-    "A" is ma x na, comprising bdn=(na/"n") blocks of submatrices.
-    Each submatrix is ma x "n", and the inverses of these submatrices
-    are placed down the diagonal of the matrix.
-
-    Parameters
-    ----------
-    A : array
-        The matrix.
-    n : int
-        The block size.
-
-    Returns
-    -------
-    bd : sparse matrix
-        The block diagonal matrix.
-    """
-    ma, na = A.shape
-    bdn = na // int(n)  # number of submatrices
-
-    if na % n > 0:
-        raise ValueError('Width of matrix must be a multiple of n')
-
-    # modify A in-place to invert each sub-block
-    A = A.copy()
-    for start in range(0, na, 3):
-        # this is a view
-        A[:, start:start + 3] = linalg.inv(A[:, start:start + 3])
-
-    tmp = np.arange(ma * bdn, dtype=np.int).reshape(bdn, ma)
-    tmp = np.tile(tmp, (1, n))
-    ii = tmp.ravel()
-
-    jj = np.arange(na, dtype=np.int)[None, :]
-    jj = jj * np.ones(ma, dtype=np.int)[:, None]
-    jj = jj.T.ravel()  # column indices foreach sparse bd
-
-    bd = sparse.coo_matrix((A.T.ravel(), np.c_[ii, jj].T)).tocsc()
-
-    return bd
-
-
 def _get_tag_int(fid, node, name, id_):
     """Check we have an appropriate tag."""
     tag = find_tag(fid, node, id_)
