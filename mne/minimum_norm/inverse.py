@@ -695,7 +695,7 @@ def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
         source_nn = source_nn[src_sel]
 
     # vector or normal, might need to rotate
-    if pick_ori is not None and all(s['type'] == 'surf' for s in src) and \
+    if pick_ori == 'normal' and all(s['type'] == 'surf' for s in src) and \
             np.allclose(inv['source_nn'].reshape(inv['nsource'], 3, 3),
                         np.eye(3), atol=1e-6):
         offset = 0
