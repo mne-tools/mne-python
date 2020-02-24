@@ -894,12 +894,12 @@ def test_vec_stc_basic(klass, kind):
         [1, 1, 1],
     ])[:, :, np.newaxis]
     if klass is VolVectorSourceEstimate:
+        src = SourceSpaces([dict(nn=nn, type=kind)])
         verts = np.arange(4)
-        src = SourceSpaces([dict(nn=nn, type=kind, vertno=verts)])
     else:
+        src = SourceSpaces([dict(nn=nn[:2], type=kind),
+                            dict(nn=nn[2:], type=kind)])
         verts = [np.array([0, 1]), np.array([0, 1])]
-        src = SourceSpaces([dict(nn=nn[:2], type=kind, vertno=verts[0]),
-                            dict(nn=nn[2:], type=kind, vertno=verts[1])])
     stc = klass(data, verts, 0, 1, 'foo')
 
     # Magnitude of the vectors
@@ -945,7 +945,7 @@ def invs():
     assert_allclose(free['source_nn'],
                     np.kron(np.ones(fwd['nsource']), np.eye(3)).T,
                     atol=1e-7)
-    # This is the one exeception...
+    # This is the one exception...
     assert not np.allclose(free['source_nn'], free_surf['source_nn'])
     # All others are similar.
     for other in (freeish, fixedish):

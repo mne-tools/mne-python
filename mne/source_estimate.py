@@ -1846,7 +1846,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             cortex.
         """
         _check_src_normal('normal', src)
-        normals = np.vstack([_get_src_nn(s, use_cps) for s, v in
+        normals = np.vstack([_get_src_nn(s, use_cps, v) for s, v in
                              zip(src, self._vertices_list)])
         data_norm = einsum('ijk,ij->ik', self.data, normals)
         return self._scalar_class(
