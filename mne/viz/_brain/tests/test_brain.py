@@ -162,7 +162,13 @@ def test_brain_timeviewer(renderer_interactive):
 def test_brain_timeviewer_traces(renderer_interactive):
     """Test _TimeViewer traces."""
     brain_data = _create_testing_brain(hemi='lh')
-    _TimeViewer(brain_data, show_traces=True)
+    time_viewer = _TimeViewer(brain_data, show_traces=True)
+    assert len(time_viewer.picked_points) == 1
+
+    for hemi in ['split', 'both']:
+        brain_data = _create_testing_brain(hemi=hemi)
+        time_viewer = _TimeViewer(brain_data, show_traces=True)
+        assert len(time_viewer.picked_points) == 2
 
 
 @testing.requires_testing_data
