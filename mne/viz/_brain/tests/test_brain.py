@@ -159,6 +159,13 @@ def test_brain_timeviewer(renderer_interactive):
 
 
 @testing.requires_testing_data
+def test_brain_timeviewer_traces(renderer_interactive):
+    """Test _TimeViewer traces."""
+    brain_data = _create_testing_brain(hemi='lh')
+    _TimeViewer(brain_data, show_traces=True)
+
+
+@testing.requires_testing_data
 def test_brain_linkviewer(renderer_interactive):
     """Test _LinkViewer primitives."""
     brain_data = _create_testing_brain(hemi='split')
@@ -275,7 +282,7 @@ def test_brain_colormap():
         calculate_lut(colormap, alpha, 1, 0, 2)
 
 
-def _create_testing_brain(hemi, views):
+def _create_testing_brain(hemi):
     sample_src = read_source_spaces(src_fname)
 
     # dense version
