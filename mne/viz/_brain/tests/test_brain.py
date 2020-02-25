@@ -159,16 +159,13 @@ def test_brain_timeviewer(renderer_interactive):
 
 
 @testing.requires_testing_data
-def test_brain_timeviewer_traces(renderer_interactive):
+@pytest.mark.parametrize('hemi', ['lh', 'rh', 'split', 'both'])
+def test_brain_timeviewer_traces(renderer_interactive, hemi):
     """Test _TimeViewer traces."""
-    brain_data = _create_testing_brain(hemi='lh')
+    brain_data = _create_testing_brain(hemi=hemi)
     time_viewer = _TimeViewer(brain_data, show_traces=True)
-    assert len(time_viewer.picked_points) == 1
-
-    for hemi in ['split', 'both']:
-        brain_data = _create_testing_brain(hemi=hemi)
-        time_viewer = _TimeViewer(brain_data, show_traces=True)
-        assert len(time_viewer.picked_points) == 2
+    want = 1 if hemi in ('lh', 'rh') else 2
+    assert len(time_viewer.picked_points) == want
 
 
 @testing.requires_testing_data
