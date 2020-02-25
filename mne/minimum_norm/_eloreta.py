@@ -6,8 +6,7 @@ import numpy as np
 
 from ..defaults import _handle_default
 from ..fixes import _safe_svd
-from ..utils import warn, logger, sqrtm_sym
-from ..fixes import svd
+from ..utils import warn, logger, sqrtm_sym, eigh
 
 
 # For the reference implementation of eLORETA (force_equal=False),
@@ -89,10 +88,12 @@ def _compute_eloreta(inv, lambda2, options):
                 % (max_iter, extra))
     for kk in range(max_iter):
         # 1. Compute inverse of the weights (stabilized) and C
-        u, s, _ = svd(G_R_Gt, hermitian=True, full_matrices=False)
-        u, s = u[:, :n_nzero], s[:n_nzero]
+        s, u = eigh(G_R_Gt)
+        s = abs(s)
+        sidx = np.argsort(s)[::-1][:n_nzero]
+        s, u = s[sidx], u[:, sidx]
         with np.errstate(invalid='ignore'):
-            s = np.where(s > 0, 1 / (s[:n_nzero] + lambda2), 0)
+            s = np.where(s > 0, 1 / (s + lambda2), 0)
         N = np.dot(u * s, u.T)
         del s
 

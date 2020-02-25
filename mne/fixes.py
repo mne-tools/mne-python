@@ -328,36 +328,6 @@ except ImportError:
 
 
 ###############################################################################
-# np.linalg.svd with hermitian kwarg (NumPy 1.18 is even broken)
-
-if LooseVersion(np.__version__) >= LooseVersion('1.19'):
-    svd = np.linalg.svd
-else:
-    def _makearray(a):
-        new = np.asarray(a)
-        wrap = getattr(a, "__array_prepare__", new.__array_wrap__)
-        return new, wrap
-
-    def svd(a, full_matrices=True, hermitian=False):
-        """Pseudoinverse."""
-        a, wrap = _makearray(a)
-        if hermitian:
-            s, u = np.linalg.eigh(a)
-            sgn = np.sign(s)
-            s = abs(s)
-            sidx = np.argsort(s)[..., ::-1]
-            sgn = np.take_along_axis(sgn, sidx, axis=-1)
-            s = np.take_along_axis(s, sidx, axis=-1)
-            u = np.take_along_axis(u, sidx[..., None, :], axis=-1)
-            # singular values are unsigned, move the sign into v
-            vt = (u * np.sign(s)[..., np.newaxis, :]
-                  ).swapaxes(-2, -1).conjugate()
-            return wrap(u), s, wrap(vt)
-        else:
-            return np.linalg.svd(a, full_matrices=full_matrices)
-
-
-###############################################################################
 # NumPy Generator (NumPy 1.17)
 
 def rng_uniform(rng):
