@@ -774,9 +774,9 @@ def test_renderer(renderer):
     """Test that renderers are available on demand."""
     backend = renderer.get_3d_backend()
     cmd = [sys.executable, '-uc',
-            'import mne; mne.viz.create_3d_figure((800, 600)); '
-            'backend = mne.viz.get_3d_backend(); '
-            'assert backend == %r, backend' % (backend,)]
+           'import mne; mne.viz.create_3d_figure((800, 600)); '
+           'backend = mne.viz.get_3d_backend(); '
+           'assert backend == %r, backend' % (backend,)]
     with modified_env(MNE_3D_BACKEND=backend):
         run_subprocess(cmd)
 
