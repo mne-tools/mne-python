@@ -46,8 +46,6 @@ epochs = mne.Epochs(raw, events, tmin=-0.3, tmax=0.7, event_id=event_dict,
                     preload=True)
 evoked = epochs['auditory/left'].average()
 
-###############################################################################
-
 del raw  # reduce memory usage
 
 ###############################################################################
@@ -115,7 +113,6 @@ print(evoked.data[:2, :3])  # first 2 channels, first 3 timepoints
 # :meth:`~mne.Evoked.pick`, :meth:`~mne.Evoked.pick_channels`,
 # :meth:`~mne.Evoked.pick_types`, and :meth:`~mne.Evoked.drop_channels` methods
 # to modify which channels are included in an :class:`~mne.Evoked` object.
-#
 # You can also use :meth:`~mne.Evoked.reorder_channels` for this purpose; any
 # channel names not provided to :meth:`~mne.Evoked.reorder_channels` will be
 # dropped. Note that *channel* selection methods modify the object in-place, so
@@ -142,7 +139,7 @@ print(evoked_subset.ch_names)
 #   method). :class:`Pandas DataFrame <pandas.DataFrame>` export is also
 #   available through the :meth:`~mne.Evoked.to_data_frame` method.
 #
-# - You can also change the name or type of a channel using
+# - You can change the name or type of a channel using
 #   :meth:`evoked.rename_channels() <mne.Evoked.rename_channels>` or
 #   :meth:`evoked.set_channel_types() <mne.Evoked.set_channel_types>`.
 #   Both methods take :class:`dictionaries <dict>` where the keys are existing
@@ -180,7 +177,7 @@ print(evoked_subset.ch_names)
 
 sample_data_evk_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis-ave.fif')
-evokeds_list = mne.read_evokeds(sample_data_evk_file)
+evokeds_list = mne.read_evokeds(sample_data_evk_file, verbose=False)
 print(evokeds_list)
 print(type(evokeds_list))
 
@@ -190,7 +187,8 @@ print(type(evokeds_list))
 # attribute describing the experimental condition that was averaged to
 # generate the estimate:
 
-_ = [print(e.comment) for e in evokeds_list]
+for evok in evokeds_list:
+    print(evok.comment)
 
 ###############################################################################
 # If you want to load only some of the conditions present in a ``.fif`` file,
@@ -236,7 +234,7 @@ evokeds_list[0].plot(picks='eeg')
 #
 # One way to pool data across multiple conditions when estimating evoked
 # responses is to do so *prior to averaging* (recall that MNE-Python can select
-# based on partial matching of `/`-separated epoch labels; see
+# based on partial matching of ``/``-separated epoch labels; see
 # :ref:`tut-section-subselect-epochs` for more info):
 
 left_right_aud = epochs['auditory'].average()
@@ -251,7 +249,7 @@ print(left_right_aud)
 
 left_aud = epochs['auditory/left'].average()
 right_aud = epochs['auditory/right'].average()
-_ = print([evk.nave for evk in (left_aud, right_aud)])
+_ = print([evok.nave for evok in (left_aud, right_aud)])
 
 ###############################################################################
 # However, this may not always be the case; if for statistical reasons it is
@@ -305,9 +303,12 @@ assert left_right_aud.nave == left_aud.nave + right_aud.nave
 # :class:`~mne.Epochs` objects) to get the peak response in each trial:
 
 for ix, trial in enumerate(epochs[:3].iter_evoked()):
-    channel, value = trial.get_peak(ch_type='eeg')
-    print('Trial {}: peak of {} V in channel {}'.format(ix, round(value, 3),
-                                                        channel))
+    channel, latency, value = trial.get_peak(ch_type='eeg',
+                                             return_amplitude=True)
+    latency = int(round(latency * 1e3))  # convert to milliseconds
+    value = int(round(value * 1e6))      # convert to μV
+    print('Trial {}: peak of {} μV at {} ms in channel {}'
+          .format(ix, value, latency, channel))
 
 ###############################################################################
 # .. REFERENCES
