@@ -770,7 +770,7 @@ def test_link_brains(renderer_interactive):
     link_brains(brain)
 
 
-def test_renderer():
+def test_renderer(renderer):
     """Test that renderers are available on demand."""
     cmd = [sys.executable, '-uc',
            'import mne; mne.viz.create_3d_figure((800, 600))']
