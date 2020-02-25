@@ -139,30 +139,7 @@ def test_brain_add_text(renderer):
 @testing.requires_testing_data
 def test_brain_timeviewer(renderer_interactive):
     """Test _TimeViewer primitives."""
-    sample_src = read_source_spaces(src_fname)
-
-    # dense version
-    vertices = [s['vertno'] for s in sample_src]
-    n_time = 5
-    n_verts = sum(len(v) for v in vertices)
-    stc_data = np.zeros((n_verts * n_time))
-    stc_size = stc_data.size
-    stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = \
-        np.random.RandomState(0).rand(stc_data.size // 20)
-    stc_data.shape = (n_verts, n_time)
-    stc = SourceEstimate(stc_data, vertices, 1, 1)
-
-    fmin = stc.data.min()
-    fmax = stc.data.max()
-    brain_data = _Brain(subject_id, 'split', surf, size=300,
-                        subjects_dir=subjects_dir)
-    for hemi in ['lh', 'rh']:
-        hemi_idx = 0 if hemi == 'lh' else 1
-        data = getattr(stc, hemi + '_data')
-        vertices = stc.vertices[hemi_idx]
-        brain_data.add_data(data, fmin=fmin, hemi=hemi, fmax=fmax,
-                            colormap='hot', vertices=vertices,
-                            colorbar=True)
+    brain_data = _create_testing_brain(hemi='both')
 
     time_viewer = _TimeViewer(brain_data)
     time_viewer.time_call(value=0)
@@ -179,6 +156,13 @@ def test_brain_timeviewer(renderer_interactive):
     time_viewer.toggle_playback()
     time_viewer.apply_auto_scaling()
     time_viewer.restore_user_scaling()
+
+
+@testing.requires_testing_data
+def test_brain_linkviewer(renderer_interactive):
+    """Test _LinkViewer primitives."""
+    brain_data = _create_testing_brain(hemi='split')
+    _TimeViewer(brain_data)
 
     link_viewer = _LinkViewer([brain_data])
     link_viewer.set_time_point(value=0)
@@ -289,3 +273,32 @@ def test_brain_colormap():
 
     with pytest.raises(ValueError, match=r'.*fmin \(1\) <= fmid \(0\) <= fma'):
         calculate_lut(colormap, alpha, 1, 0, 2)
+
+
+def _create_testing_brain(hemi, views):
+    sample_src = read_source_spaces(src_fname)
+
+    # dense version
+    vertices = [s['vertno'] for s in sample_src]
+    n_time = 5
+    n_verts = sum(len(v) for v in vertices)
+    stc_data = np.zeros((n_verts * n_time))
+    stc_size = stc_data.size
+    stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = \
+        np.random.RandomState(0).rand(stc_data.size // 20)
+    stc_data.shape = (n_verts, n_time)
+    stc = SourceEstimate(stc_data, vertices, 1, 1)
+
+    fmin = stc.data.min()
+    fmax = stc.data.max()
+    brain_data = _Brain(subject_id, hemi, surf, size=300,
+                        subjects_dir=subjects_dir)
+    hemi_list = ['lh', 'rh'] if hemi in ['both', 'split'] else [hemi]
+    for hemi_str in hemi_list:
+        hemi_idx = 0 if hemi_str == 'lh' else 1
+        data = getattr(stc, hemi_str + '_data')
+        vertices = stc.vertices[hemi_idx]
+        brain_data.add_data(data, fmin=fmin, hemi=hemi_str, fmax=fmax,
+                            colormap='hot', vertices=vertices,
+                            colorbar=True)
+    return brain_data
