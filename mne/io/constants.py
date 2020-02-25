@@ -235,6 +235,7 @@ FIFF.FIFF_SUBJ_HIS_ID       = 410  # ID used in the Hospital Information System
 
 FIFF.FIFFV_SUBJ_HAND_RIGHT  = 1    # Righthanded
 FIFF.FIFFV_SUBJ_HAND_LEFT   = 2    # Lefthanded
+FIFF.FIFFV_SUBJ_HAND_AMBI   = 3    # Ambidextrous
 
 FIFF.FIFFV_SUBJ_SEX_UNKNOWN = 0    # Unknown gender
 FIFF.FIFFV_SUBJ_SEX_MALE    = 1    # Male
