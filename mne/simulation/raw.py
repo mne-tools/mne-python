@@ -171,9 +171,7 @@ def simulate_raw(info, stc=None, trans=None, src=None, bem=None, head_pos=None,
         to use during forward calculation.
     %(interp)s
     %(n_jobs)s
-    use_cps : None | bool (default True)
-        Whether to use cortical patch statistics to define normal
-        orientations. Only used when surf_ori and/or force_fixed are True.
+    %(use_cps)s
     forward : instance of Forward | None
         The forward operator to use. If None (default) it will be computed
         using ``bem``, ``trans``, and ``src``. If not None,

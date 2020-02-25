@@ -564,6 +564,8 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
         xlabel = 'Time (s)'
 
     events = np.asarray(events)
+    if len(events) == 0:
+        raise ValueError('No events in events array, cannot plot.')
     unique_events = np.unique(events[:, 2])
 
     if event_id is not None:

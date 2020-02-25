@@ -30,7 +30,7 @@ def source_detector_distances(info, picks=None):
     """
     dist = [linalg.norm(ch['loc'][3:6] - ch['loc'][6:9])
             for ch in info['chs']]
-    picks = _picks_to_idx(info, picks)
+    picks = _picks_to_idx(info, picks, exclude=[])
     return np.array(dist, float)[picks]
 
 
@@ -58,7 +58,7 @@ def short_channels(info, threshold=0.01):
 
 def _channel_frequencies(raw):
     """Return the light frequency for each channel."""
-    picks = _picks_to_idx(raw.info, 'fnirs_od')
+    picks = _picks_to_idx(raw.info, 'fnirs', exclude=[])
     freqs = np.empty(picks.size, int)
     for ii in picks:
         freqs[ii] = raw.info['chs'][ii]['loc'][9]
@@ -69,7 +69,7 @@ def _check_channels_ordered(raw, freqs):
     """Check channels followed expected fNIRS format."""
     # Every second channel should be same SD pair
     # and have the specified light frequencies.
-    picks = _picks_to_idx(raw.info, 'fnirs_od')
+    picks = _picks_to_idx(raw.info, 'fnirs', exclude=[])
     for ii in picks[::2]:
         ch1_name_info = re.match(r'S(\d+)_D(\d+) (\d+)',
                                  raw.info['chs'][ii]['ch_name'])
@@ -83,3 +83,31 @@ def _check_channels_ordered(raw, freqs):
             raise RuntimeError('NIRS channels not ordered correctly')
 
     return picks
+
+
+def _fnirs_check_bads(raw):
+    """Check consistent labeling of bads across fnirs optodes."""
+    # For an optode pair, if one component (light frequency or chroma) is
+    # marked as bad then they all should be. This function checks that all
+    # optodes are marked bad consistently.
+    picks = _picks_to_idx(raw.info, 'fnirs', exclude=[])
+    for ii in picks[::2]:
+        bad_opto = set(raw.info['bads']).intersection(raw.ch_names[ii:ii + 2])
+        if len(bad_opto) == 1:
+            raise RuntimeError('NIRS bad labelling is not consistent')
+
+
+def _fnirs_spread_bads(raw):
+    """Spread bad labeling across fnirs channels."""
+    # For an optode if any component (light frequency or chroma) is marked
+    # as bad, then they all should be. This function will find any pairs marked
+    # as bad and spread the bad marking to all components of the optode pair.
+    picks = _picks_to_idx(raw.info, 'fnirs', exclude=[])
+    new_bads = list()
+    for ii in picks[::2]:
+        bad_opto = set(raw.info['bads']).intersection(raw.ch_names[ii:ii + 2])
+        if len(bad_opto) > 0:
+            new_bads.extend(raw.ch_names[ii:ii + 2])
+    raw.info['bads'] = new_bads
+
+    return raw

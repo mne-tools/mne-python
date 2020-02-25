@@ -752,18 +752,18 @@ def compute_head_pos(info, chpi_locs, dist_limit=0.005, gof_limit=0.98,
             logger.debug(log_str.format(*vals))
 
         # resulting errors in head coil positions
-        d = 100 * np.linalg.norm(last['quat'][3:] - this_quat[3:])  # cm
+        d = np.linalg.norm(last['quat'][3:] - this_quat[3:])  # m
         r = _angle_between_quats(last['quat'][:3], this_quat[:3]) / dt
-        v = d / dt  # cm/sec
+        v = d / dt  # m/sec
         d = 100 * np.linalg.norm(this_quat[3:] - pos_0)  # dis from 1st
         logger.debug('    #t = %0.3f, #e = %0.2f cm, #g = %0.3f, '
                      '#v = %0.2f cm/s, #r = %0.2f rad/s, #d = %0.2f cm'
-                     % (fit_time, 100 * errs.mean(), g, v, r, d))
+                     % (fit_time, 100 * errs.mean(), g, 100 * v, r, d))
         logger.debug('    #t = %0.3f, #q = %s '
                      % (fit_time, ' '.join(map('{:8.5f}'.format, this_quat))))
 
         quats.append(np.concatenate(([fit_time], this_quat, [g],
-                                     [errs.mean() * 100], [v])))
+                                     [errs[use_idx].mean()], [v])))
         last['quat_fit_time'] = fit_time
         last['quat'] = this_quat
         last['coil_dev_rrs'] = this_coil_dev_rrs
