@@ -175,7 +175,7 @@ del stc_vec
 ###############################################################################
 # Now let's look at each solver:
 
-surfer_kwargs['clim'].update(kind='percent', lims=[96, 97.5, 99.95])
+surfer_kwargs['clim'].update(kind='percent', lims=[99, 99.9, 99.99])
 for mi, method in enumerate(['dSPM', 'sLORETA', 'eLORETA']):
     stc = apply_inverse(evoked, inverse_operator, lambda2,
                         method=method, pick_ori=None)
