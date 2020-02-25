@@ -136,8 +136,8 @@ Bug
   2. units, which are now nAm instead of being arbitrary
   3. explained variance and residuals, which were previously unavailable
   4. ``force_equal`` in the case of loose orientations, which previously
-     defaulted to ``True`` now defaults to ``False``;
-     reapplying orientation priors at each iteration of the algorithm
+     defaulted to ``True`` now defaults to ``False``.
+     Reapplying orientation priors at each iteration of the algorithm
      sufficiently preserves a smooth transition between loose=0. to loose=1.
      without compromising localization accuracy in testing.
 

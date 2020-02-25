@@ -546,9 +546,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
     #
     #   Create the diagonal matrix for computing the regularized inverse
     #
-    sing = np.array(inv['sing'], dtype=np.float64)
-    with np.errstate(invalid='ignore'):  # if lambda2==0
-        inv['reginv'] = np.where(sing > 0, sing / (sing ** 2 + lambda2), 0)
+    inv['reginv'] = _compute_reginv(inv, lambda2)
     logger.info('    Created the regularized inverter')
     #
     #   Create the projection operator
@@ -1506,8 +1504,7 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     del fixed, loose, depth, use_cps
 
     # Decompose the combined matrix
-    logger.info('Computing SVD of whitened and weighted lead field '
-                'matrix.')
+    logger.info('Computing SVD of whitened and weighted lead field matrix.')
     eigen_fields, sing, eigen_leads = _safe_svd(gain, full_matrices=False)
     del gain
     logger.info('    largest singular value = %g' % np.max(sing))
@@ -1573,6 +1570,18 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     inv_op['info'] = inv_info
 
     return InverseOperator(inv_op)
+
+
+def _compute_reginv(inv, lambda2):
+    """Safely compute reginv from sing."""
+    sing = np.array(inv['sing'], dtype=np.float64)
+    reginv = np.zeros_like(sing)
+    n_nzero = compute_rank_inverse(inv)
+    sing = sing[:n_nzero]
+    with np.errstate(invalid='ignore'):  # if lambda2==0
+        reginv[:n_nzero] = np.where(
+            sing > 0, sing / (sing ** 2 + lambda2), 0)
+    return reginv
 
 
 def compute_rank_inverse(inv):
@@ -1678,8 +1687,8 @@ def estimate_snr(evoked, inv, verbose=None):
     n_ch, n_times = data_white.shape
 
     # Adapted from mne_analyze/regularization.c, compute_regularization
-    n_zero = (inv['noise_cov']['eig'] <= 0).sum()
-    n_ch_eff = n_ch - n_zero
+    n_ch_eff = compute_rank_inverse(inv)
+    n_zero = n_ch - n_ch_eff
     logger.info('Effective nchan = %d - %d = %d'
                 % (n_ch, n_zero, n_ch_eff))
     del n_ch

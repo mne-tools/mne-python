@@ -17,22 +17,18 @@ from ..fixes import svd
 # transition from 0->1. This is probably because this mode behaves more like
 # sLORETA and dSPM in that it weights each orientation for a given source
 # uniformly (which is not the case for the reference eLORETA implementation).
-# However, if we *reapply the orientation prior* after each eLORETA iteration,
+#
+# If we *reapply the orientation prior* after each eLORETA iteration,
 # we can preserve the smooth transition without requiring force_equal=True,
-# which is probably more representative of what eLORETA should do.
-# So in 0.20, we no longer set force_equal=True for loose orientations.
+# which is probably more representative of what eLORETA should do. But this
+# does not produce results that pass the eye test.
 
 def _compute_eloreta(inv, lambda2, options):
     """Compute the eLORETA solution."""
+    from .inverse import compute_rank_inverse, _compute_reginv
     options = _handle_default('eloreta_options', options)
     eps, max_iter = options['eps'], options['max_iter']
-    force_equal = options['force_equal']
-    force_equal = bool(force_equal)
-    if force_equal:
-        warn('force_equal is deprecated and will be removed in 0.21. '
-             'There is no established way to force equal weighting '
-             'and localization bias performance is suboptimal.',
-             DeprecationWarning)
+    force_equal = bool(options['force_equal'])  # None means False
 
     # Reassemble the gain matrix (should be fast enough)
     if inv['eigen_leads_weighted']:
@@ -41,15 +37,15 @@ def _compute_eloreta(inv, lambda2, options):
                            'leads')
     G = np.dot(inv['eigen_fields']['data'].T * inv['sing'],
                inv['eigen_leads']['data'].T).astype(np.float64)
-    n_nzero = int(round((G * G).sum()))
+    n_nzero = compute_rank_inverse(inv)
     G /= np.sqrt(inv['source_cov']['data'])
     # restore orientation prior
-    prior = np.ones(G.shape[1])
+    source_std = np.ones(G.shape[1])
     if inv['orient_prior'] is not None:
-        prior *= inv['orient_prior']['data']
+        source_std *= np.sqrt(inv['orient_prior']['data'])
+    G *= source_std
     # We do not multiply by the depth prior, as eLORETA should compensate for
     # depth bias.
-    inv['source_cov']['data'].fill(1.)
     n_src = inv['nsource']
     n_chan, n_orient = G.shape
     n_orient //= n_src
@@ -57,17 +53,17 @@ def _compute_eloreta(inv, lambda2, options):
     if n_orient == 3:
         logger.info('        Using %s orientation weights'
                     % ('uniform' if force_equal else 'independent',))
-        # src, sens, 3
-        G_3 = np.ascontiguousarray(G.reshape(-1, n_src, 3).transpose(1, 2, 0))
-    else:
-        G_3 = None
+    # src, sens, 3
+    G_3 = _get_G_3(G, n_orient)
     if n_orient != 1 and not force_equal:
-        np.sqrt(prior, out=prior)
-        prior = prior.reshape(n_src, 1, 3) * prior.reshape(n_src, 3, 1)
+        # Outer product
+        R_prior = (source_std.reshape(n_src, 1, 3) *
+                   source_std.reshape(n_src, 3, 1))
+    else:
+        R_prior = source_std ** 2
 
     def _normalize_R(G, R):
         """Normalize R so that lambda2 is consistent."""
-        R *= prior
         if n_orient == 1 or force_equal:
             R_Gt = R[:, np.newaxis] * G.T
         else:
@@ -86,6 +82,7 @@ def _compute_eloreta(inv, lambda2, options):
         R_shape = (n_src, n_orient, n_orient)
         R = np.empty(R_shape)
         R[:] = np.eye(n_orient)[np.newaxis]
+    R *= R_prior
     G_R_Gt = _normalize_R(G, R)
     extra = ' (this make take a while)' if n_orient == 3 else ''
     logger.info('        Fitting up to %d iterations%s...'
@@ -93,8 +90,11 @@ def _compute_eloreta(inv, lambda2, options):
     for kk in range(max_iter):
         # 1. Compute inverse of the weights (stabilized) and C
         u, s, _ = svd(G_R_Gt, hermitian=True, full_matrices=False)
-        s = 1 / (s[:n_nzero] + lambda2)
-        N = np.dot(u[:, :n_nzero] * s, u.T[:n_nzero])
+        u, s = u[:, :n_nzero], s[:n_nzero]
+        with np.errstate(invalid='ignore'):
+            s = np.where(s > 0, 1 / (s[:n_nzero] + lambda2), 0)
+        N = np.dot(u * s, u.T)
+        del s
 
         # Update the weights
         R_last = R.copy()
@@ -107,6 +107,7 @@ def _compute_eloreta(inv, lambda2, options):
                 R[:] = np.repeat(1. / np.mean(s, axis=-1), 3)
             else:
                 R[:], _ = sqrtm_sym(M, inv=True)
+        R *= R_prior  # reapply our prior, eLORETA undoes it
         G_R_Gt = _normalize_R(G, R)
 
         # Check for weight convergence
@@ -121,6 +122,9 @@ def _compute_eloreta(inv, lambda2, options):
     else:
         warn('eLORETA weight fitting did not converge (>= %s)' % eps)
     logger.info('        Updating inverse with weighted eigen leads')
+    G /= source_std  # undo our biasing
+    G_3 = _get_G_3(G, n_orient)
+    _normalize_R(G, R)
     if n_orient == 1 or force_equal:
         R_sqrt = np.sqrt(R)
     else:
@@ -129,14 +133,12 @@ def _compute_eloreta(inv, lambda2, options):
     A = _R_sqrt_mult(G, R_sqrt)
     del R, G  # the rest will be done in terms of R_sqrt and A
     eigen_fields, sing, eigen_leads = _safe_svd(A, full_matrices=False)
-    with np.errstate(invalid='ignore'):  # if lambda2==0
-        reginv = np.where(sing > 0, sing / (sing ** 2 + lambda2), 0)
+    inv['sing'][:] = sing
+    inv['reginv'][:] = _compute_reginv(inv, lambda2)
     inv['eigen_leads_weighted'] = True
     inv['eigen_leads']['data'][:] = _R_sqrt_mult(eigen_leads, R_sqrt).T
-    inv['sing'][:] = sing
-    inv['reginv'][:] = reginv
     inv['eigen_fields']['data'][:] = eigen_fields.T
-    # XXX in theory we should source_cov properly.
+    # XXX in theory we should set inv['source_cov'] properly.
     # For fixed ori (or free ori with force_equal=True), we can as these
     # are diagonal matrices. But for free ori without force_equal, it's a
     # block diagonal 3x3 and we have no efficient way of storing this (and
@@ -146,6 +148,14 @@ def _compute_eloreta(inv, lambda2, options):
     # eigen_leads_weighted = True.
     inv['source_cov']['data'].fill(np.nan)
     logger.info('[done]')
+
+
+def _get_G_3(G, n_orient):
+    if n_orient == 1:
+        return None
+    else:
+        return np.ascontiguousarray(
+            G.reshape(G.shape[0], -1, n_orient).transpose(1, 2, 0))
 
 
 def _R_sqrt_mult(other, R_sqrt):

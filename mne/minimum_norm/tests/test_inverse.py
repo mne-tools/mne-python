@@ -368,11 +368,8 @@ def test_localization_bias_free(bias_params_free, method, lower, upper,
     evoked, fwd, noise_cov, _, want = bias_params_free
     inv_free = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1.,
                                      depth=depth)
-    with pytest.warns(None) as w:
-        loc = apply_inverse(evoked, inv_free, lambda2, method,
-                            pick_ori='vector', verbose='debug', **kwargs).data
-    count = int(kwargs.get('method_params', {}).get('force_equal', False))
-    assert len(w) == count  # 1 warning only in the case of force_equal=True
+    loc = apply_inverse(evoked, inv_free, lambda2, method,
+                        pick_ori='vector', verbose='debug', **kwargs).data
     loc = np.linalg.norm(loc, axis=1)
     # Compute the percentage of sources for which there is no loc bias:
     perc = (want == np.argmax(loc, axis=0)).mean() * 100
@@ -408,6 +405,27 @@ def test_apply_inverse_sphere(evoked):
     # assert zero localization bias
     assert_array_equal(np.argmax(stc.data, axis=0),
                        np.repeat(np.arange(101), 3))
+
+
+@pytest.mark.parametrize('loose', [0., 0.2, 1.])
+@pytest.mark.parametrize('lambda2', [1. / 9., 0.])
+def test_apply_inverse_eLORETA_MNE_equiv(bias_params_free, loose, lambda2):
+    """Test that eLORETA with no iterations is the same as MNE."""
+    method_params = dict(max_iter=0, force_equal=False)
+    pick_ori = None if loose == 0 else 'vector'
+    evoked, fwd, noise_cov, _, _ = bias_params_free
+    inv = make_inverse_operator(
+        evoked.info, fwd, noise_cov, loose=loose, depth=None,
+        verbose='debug')
+    stc_mne = apply_inverse(evoked, inv, lambda2, 'MNE', pick_ori=pick_ori,
+                            verbose='debug')
+    with pytest.warns(RuntimeWarning, match='converge'):
+        stc_e = apply_inverse(evoked, inv, lambda2, 'eLORETA',
+                              method_params=method_params, pick_ori=pick_ori,
+                              verbose='debug')
+    atol = np.mean(np.abs(stc_mne.data)) * 1e-6
+    assert 3e-9 < atol < 3e-6  # nothing has blown up
+    assert_allclose(stc_mne.data, stc_e.data, atol=atol, rtol=1e-4)
 
 
 @pytest.mark.slowtest
@@ -491,8 +509,8 @@ def test_apply_inverse_operator(evoked, inv, min_, max_):
 
 @pytest.mark.parametrize('method', INVERSE_METHODS)
 @pytest.mark.parametrize('looses, vmin, vmax, nmin, nmax', [
-    ((1., 0.99), 0.99, 1., 0.9, 1.1),  # almost the same as free
-    ((0., 0.01), 0.89, 0.94, 40, 65),  # almost the same as fixed
+    ((1., 0.8), 0.87, 0.94, 0.9, 1.1),  # almost the same as free
+    ((0., 0.2), 0.3, 0.6, 2, 4),  # similar to fixed
 ])
 def test_orientation_prior(bias_params_free, method, looses, vmin, vmax,
                            nmin, nmax):
@@ -508,7 +526,7 @@ def test_orientation_prior(bias_params_free, method, looses, vmin, vmax,
             pick_ori = 'vector'
         stcs.append(apply_inverse(
             evoked, inv, method=method, pick_ori=pick_ori))
-        if loose in (1., 0.01):
+        if loose in (1., 0.2):
             assert vec_stc is None
             vec_stc = apply_inverse(
                 evoked, inv, method=method, pick_ori='vector')

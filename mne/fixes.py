@@ -345,10 +345,10 @@ else:
             s, u = np.linalg.eigh(a)
             sgn = np.sign(s)
             s = abs(s)
-            sidx = argsort(s)[..., ::-1]
-            sgn = _nx.take_along_axis(sgn, sidx, axis=-1)
-            s = _nx.take_along_axis(s, sidx, axis=-1)
-            u = _nx.take_along_axis(u, sidx[..., None, :], axis=-1)
+            sidx = np.argsort(s)[..., ::-1]
+            sgn = np.take_along_axis(sgn, sidx, axis=-1)
+            s = np.take_along_axis(s, sidx, axis=-1)
+            u = np.take_along_axis(u, sidx[..., None, :], axis=-1)
             # singular values are unsigned, move the sign into v
             vt = (u * np.sign(s)[..., np.newaxis, :]
                   ).swapaxes(-2, -1).conjugate()
