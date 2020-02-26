@@ -112,7 +112,11 @@ script:
     - locale
     - echo "Other stuff"
     # OSX runs ~2x slower than Linux on Travis, so skip any slow ones there
+    # Until https://github.com/numpy/numpy/issues/15580 is resolved we also
+    # need the --pre wheels to skip slow ones.
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+        CONDITION='not slowtest';
+      elif [ -z "$CONDA_ENV" ] && [ -z "$CONDA_DEPENDENCIES" ]; then
         CONDITION='not slowtest';
       else
         CONDITION='not ultraslowtest';
