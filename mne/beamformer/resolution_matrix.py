@@ -19,7 +19,7 @@ def make_lcmv_resolution_matrix(filters, forward, info):
     filters : instance of Beamformer
          Dictionary containing filter weights from LCMV beamformer
          (see mne.beamformer.make_lcmv).
-    forward : dict
+    forward : instance of Forward
         Forward Solution with leadfield matrix.
     info : instance of Info
         Measurement info used to compute LCMV filters.
@@ -29,8 +29,9 @@ def make_lcmv_resolution_matrix(filters, forward, info):
     resmat : array, shape (n_dipoles_lcmv, n_dipoles_fwd)
         Resolution matrix (filter matrix multiplied to leadfield from
         forward solution). Numbers of rows (n_dipoles_lcmv) and columns
-        (n_dipoles_fwd) may differ depending on orientation constraints of
-        filter and forward solution, respectively.
+        (n_dipoles_fwd) may differ by a factor depending on orientation
+        constraints of filter and forward solution, respectively (e.g. factor 3
+        for free dipole orientation versus factor 1 for scalar beamformers).
     """
     # don't include bad channels from noise covariance matrix
     bads_filt = filters['noise_cov']['bads']
@@ -66,12 +67,12 @@ def _get_matrix_from_lcmv(filters, forward, info, max_ori_out='signed',
     ----------
     filters : instance of Beamformer
         LCMV spatial filter.
-    forward : dict
+    forward : instance of Forward
         The forward solution.
     info : instance of Info
         Measurement info used to compute the LCMV filters.
-    max_ori_out : ‘signed’
-        Specify in case of pick_ori=’max-power’.
+    max_ori_out : str
+        As for beamformer.apply_lcmv(). Default 'signed'.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose() and
         Logging documentation for more).

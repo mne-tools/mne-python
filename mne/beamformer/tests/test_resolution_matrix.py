@@ -46,9 +46,10 @@ def test_resolution_matrix_lcmv():
     # evoked info
     info = mne.io.read_info(fname_evoked)
     mne.pick_info(info, mne.pick_types(info), copy=False)  # good MEG channels
-    info['projs'] = []
 
     # noise covariance matrix
+    # ad-hoc to avoid discrepancies due to regularisation of real noise
+    # covariance matrix
     noise_cov = mne.make_ad_hoc_cov(info)
 
     # Resolution matrix for Beamformer
@@ -66,8 +67,8 @@ def test_resolution_matrix_lcmv():
     # Compute resolution matrix for beamformer
     resmat_lcmv = make_lcmv_resolution_matrix(filters, forward_fxd, info)
 
-    # for noise_cov==data_cov, the filter weights should be the transpose of
-    # leadfield
+    # for noise_cov==data_cov and whitening, the filter weights should be the
+    # transpose of leadfield
 
     # create filters with transposed whitened leadfield as weights
     forward_fxd = mne.pick_channels_forward(forward_fxd, info['ch_names'])
@@ -77,11 +78,10 @@ def test_resolution_matrix_lcmv():
     # compute resolution matrix for filters with transposed leadfield
     resmat_fwd = make_lcmv_resolution_matrix(filters_lfd, forward_fxd, info)
 
-    # This correlation should be exactly 1.0, but it isn't
-    # probably due to different treatment of noise_cov and data_cov under the
-    # hood.
-    for mat in (resmat_fwd, resmat_lcmv):
-        mat -= np.mean(resmat_fwd, axis=1, keepdims=True)
-        mat /= np.std(mat, axis=1, keepdims=True)
-    corrs = np.mean(resmat_fwd * resmat_lcmv, axis=1)
-    assert_allclose(corrs, 1., atol=0.12)
+    # pairwise correlation for rows (CTFs) of resolution matrices for whitened
+    # LCMV beamformer and transposed leadfield should be 1
+    for (f, l) in zip(resmat_fwd, resmat_lcmv):
+
+        corr = np.corrcoef(f, l)[0, 0]
+
+        assert_allclose(corr, 1.)
