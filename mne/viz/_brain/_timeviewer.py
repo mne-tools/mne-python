@@ -692,6 +692,12 @@ class _TimeViewer(object):
             sphere._vertex_id = vertex_id
         self.picked_points.append(vertex_id)
 
+        # this is used for testing only
+        if hasattr(self, "_spheres"):
+            self._spheres += spheres
+        else:
+            self._spheres = spheres
+
     def remove_point(self, mesh):
         mesh._line.remove()
         self.mpl_canvas.update_plot()

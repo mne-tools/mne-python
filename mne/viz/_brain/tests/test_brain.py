@@ -167,6 +167,11 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi):
     want = 1 if hemi in ('lh', 'rh') else 2
     assert len(time_viewer.picked_points) == want
 
+    spheres = time_viewer._spheres
+    for sphere in spheres:
+        time_viewer.remove_point(sphere)
+    assert len(time_viewer.picked_points) == 0
+
 
 @testing.requires_testing_data
 def test_brain_linkviewer(renderer_interactive):
