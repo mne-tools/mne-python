@@ -148,7 +148,6 @@ jobs:
       conda env update --file $env:CONDA_ENV
       pip uninstall -yq mne
       pip install codecov
-      pip uninstall -yq pysurfer mayavi
       Write-Host ("##vso[task.setvariable variable=PATH]" + $env:PATH)
     condition: eq(variables['TEST_MODE'], 'conda')
     displayName: 'Install dependencies with conda'

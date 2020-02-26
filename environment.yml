@@ -35,7 +35,7 @@ dependencies:
   - vtk
   - pyvista>=0.23.1
   - mayavi
-  - PySurfer[save_movie]
+  - PySurfer[save_movie] @ https://api.github.com/repos/larsoner/PySurfer/zipball/force
   - dipy --only-binary dipy
   - nibabel
   - nilearn
