@@ -242,5 +242,5 @@ def create_3d_figure(size, bgcolor=(0, 0, 0), handle=None):
     figure : object
         The requested empty scene.
     """
-    renderer = _Renderer(fig=handle, size=size, bgcolor=bgcolor)  # noqa: F821
+    renderer = _get_renderer(fig=handle, size=size, bgcolor=bgcolor)
     return renderer.scene()
