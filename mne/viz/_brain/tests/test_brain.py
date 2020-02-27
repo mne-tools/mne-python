@@ -33,7 +33,7 @@ surf = 'inflated'
 
 
 class TstVTKPicker(object):
-    """This tests cell picking."""
+    """Class to test cell picking."""
 
     def __init__(self, mesh, cell_id):
         self.mesh = mesh
@@ -41,12 +41,15 @@ class TstVTKPicker(object):
         self.point_id = None
 
     def GetCellId(self):
+        """Return the picked cell."""
         return self.cell_id
 
     def GetDataSet(self):
+        """Return the picked mesh."""
         return self.mesh
 
     def GetPickPosition(self):
+        """Return the picked position."""
         cell = self.mesh.faces[self.cell_id][1:]
         self.point_id = cell[0]
         return self.mesh.points[self.point_id]
