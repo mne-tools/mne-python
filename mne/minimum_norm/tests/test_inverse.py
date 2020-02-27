@@ -805,6 +805,8 @@ def test_apply_inverse_cov():
     # raw.crop(0, 10)
     raw.filter(1, None)
     label_lh = read_label(fname_label % 'Aud-lh')
+
+    # test with a free ori inverse
     inverse_operator = read_inverse_operator(fname_full)
 
     data_cov = compute_raw_covariance(raw, tmin=raw.times[0],
@@ -814,44 +816,42 @@ def test_apply_inverse_cov():
         apply_inverse_cov(data_cov, raw.info, 1, inverse_operator,
                           lambda2=lambda2, prepared=True)
 
-    first_test_flag = True
-    # pick_ori='normal' is not tested because apply_inverse_raw returns
-    # unsigned magnitudes which can't be compared with apply_inverse_cov output
-    # cov_scale compensates for the 3 orientations returned with
-    # pick_ori='vector'
+    # don't support pick_ori='vector'
+    with pytest.raises(ValueError, match='Invalid value for the \'pick_ori\''):
+        apply_inverse_cov(data_cov, raw.info, 1, inverse_operator,
+                          lambda2=lambda2, prepared=False, pick_ori='vector')
+
+    cov_oris = ['normal', None]
+    raw_oris = ['normal', 'vector']
+    # cov_scales = [1.000333024, 3.00098815]
+    cov_scales = [1., 3.]
     for method in INVERSE_METHODS:
         this_inv_op = prepare_inverse_operator(inverse_operator, nave=1,
                                                lambda2=lambda2, method=method)
-        for pick_ori, cov_scale in zip(['normal', 'vector'], [1, 3]):
+        for cov_ori, raw_ori, cov_scale in zip(cov_oris, raw_oris, cov_scales):
             stc_raw = apply_inverse_raw(raw, this_inv_op, lambda2, method,
                                         label=label_lh, nave=1,
-                                        pick_ori=pick_ori, prepared=True)
+                                        pick_ori=raw_ori, prepared=True)
 
             stc_cov = apply_inverse_cov(data_cov, raw.info, 1, this_inv_op,
-                                        method=method, pick_ori=pick_ori,
+                                        method=method, pick_ori=cov_ori,
                                         label=label_lh, prepared=True,
-                                        lambda2=lambda2, dB=False)
-
-            # only do this test once
-            if first_test_flag:
-                first_test_flag = False
-                stc_cov_db = apply_inverse_cov(data_cov, raw.info, 1,
-                                               this_inv_op, method=method,
-                                               pick_ori=pick_ori, dB=True,
-                                               label=label_lh, prepared=True,
-                                               lambda2=lambda2)
-                assert (stc_cov.subject == 'sample')
-                assert (stc_cov_db.subject == 'sample')
-                assert_array_almost_equal(stc_cov_db.data,
-                                          10 * np.log10(stc_cov.data))
+                                        lambda2=lambda2)
 
             n_sources = stc_raw.data.shape[0]
             raw_data = stc_raw.data.reshape(n_sources, -1)
-            exp_res = cov_scale * np.diag(np.cov(raw_data))
+            exp_res = cov_scale * np.diag(np.cov(raw_data, ddof=0))
+            print(cov_ori, method)
+            print(np.mean(stc_cov.data.ravel() / exp_res))
+            print(np.max(stc_cov.data.ravel() / exp_res))
+            print(np.std(stc_cov.data.ravel() / exp_res))
             assert_allclose(exp_res, stc_cov.data.ravel(), atol=1e-26,
-                            rtol=1e-3,
+                            rtol=1e-8,
                             err_msg=('Failed for pick_ori=%s method=%s'
-                                     % (pick_ori, method)))
+                                     % (cov_ori, method)))
+            assert_allclose(exp_res, stc_cov.data.ravel(), atol=1e-26, rtol=1e-8)
+
+
 
 
 @testing.requires_testing_data

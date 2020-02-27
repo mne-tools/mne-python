@@ -905,6 +905,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     K, noise_norm, vertno, source_nn = _assemble_kernel(
         inv, label, method, pick_ori, use_cps=use_cps)
     sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
+    raise RuntimeError('dd')
     logger.info('    Computing residual...')
     # x̂(t) = G ĵ(t) = C ** 1/2 U Π w(t)
     # where the diagonal matrix Π has elements πk = λk γk
@@ -1229,8 +1230,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
 @verbose
 def apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
                       method="dSPM", pick_ori=None, prepared=False,
-                      label=None, method_params=None,
-                      dB=True, verbose=None):
+                      label=None, method_params=None, verbose=None):
     """Apply inverse operator to covariance data.
 
     Parameters
@@ -1248,14 +1248,14 @@ def apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
     method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
         Use minimum norm [1]_, dSPM (default) [2]_, sLORETA [3]_, or
         eLORETA [4]_.
-    pick_ori : None | "normal" | "vector"
+    pick_ori : None | "normal"
+        XXXX this needs to be REPHRASED
         By default (None) pooling is performed by taking the norm of loose/free
         orientations. In case of a fixed source space no norm is computed
         leading to signed source activity.
         If "normal" only the radial component is kept. This is only implemented
         when working with loose orientations.
-        If "vector", no pooling of the orientations is done
-        This is only implemented when working with loose orientations.
+        XXXXX
     prepared : bool
         If True, do not call :func:`prepare_inverse_operator`.
     label : Label | None
@@ -1263,12 +1263,11 @@ def apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
         source estimates will be computed for the entire source space.
     method_params : dict | None
         Additional options for eLORETA. See Notes for details.
-    dB : bool
-        If True (default), transform data to decibels.
     %(verbose)s
 
     Returns
     -------
+    XXXX
     stc : SourceEstimate | VectorSourceEstimate | VolSourceEstimate
         The source estimates.
 
@@ -1338,6 +1337,7 @@ def apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
 
     _check_reference(FakeEvoked(info), inverse_operator['info']['ch_names'])
     _check_option('method', method, INVERSE_METHODS)
+    _check_option('pick_ori', pick_ori, [None, 'normal'])
     _check_ori(pick_ori, inverse_operator['source_ori'],
                inverse_operator['src'])
     #
@@ -1380,8 +1380,6 @@ def apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
     subject = _subject_from_inverse(inverse_operator)
 
     src_type = _get_src_type(inverse_operator['src'], vertno)
-    if dB:
-        sol = 10 * np.log10(sol, out=sol)
 
     stc = _make_stc(sol, vertno, tmin=tmin, tstep=tstep, subject=subject,
                     vector=False, source_nn=source_nn,
