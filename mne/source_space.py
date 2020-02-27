@@ -1195,7 +1195,9 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
     coordinates : array, shape (n_vertices, 3)
         The MNI coordinates (in mm) of the vertices.
     """
+    singleton = False
     if not isinstance(vertices, list) and not isinstance(vertices, np.ndarray):
+        singleton = True
         vertices = [vertices]
 
     if not isinstance(hemis, list) and not isinstance(hemis, np.ndarray):
@@ -1215,6 +1217,8 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
     # take point locations in MRI space and convert to MNI coordinates
     xfm = _read_talxfm(subject, subjects_dir, mode)
     data = np.array([rr[h][v, :] for h, v in zip(hemis, vertices)])
+    if singleton:
+        data = data[0]
     return apply_trans(xfm['trans'], data)
 
 

@@ -15,7 +15,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 
 from mne import SourceEstimate, read_source_estimate
-from mne.source_space import read_source_spaces
+from mne.source_space import read_source_spaces, vertex_to_mni
 from mne.datasets import testing
 from mne.viz._brain import _Brain, _TimeViewer, _LinkViewer
 from mne.viz._brain.colormap import calculate_lut
@@ -30,6 +30,29 @@ fname_label = path.join(data_path, 'MEG/sample/labels/Vis-lh.label')
 src_fname = path.join(data_path, 'subjects', 'sample', 'bem',
                       'sample-oct-6-src.fif')
 surf = 'inflated'
+
+
+class TstVTKPicker(object):
+    """Class to test cell picking."""
+
+    def __init__(self, mesh, cell_id):
+        self.mesh = mesh
+        self.cell_id = cell_id
+        self.point_id = None
+
+    def GetCellId(self):
+        """Return the picked cell."""
+        return self.cell_id
+
+    def GetDataSet(self):
+        """Return the picked mesh."""
+        return self.mesh
+
+    def GetPickPosition(self):
+        """Return the picked position."""
+        cell = self.mesh.faces[self.cell_id][1:]
+        self.point_id = cell[0]
+        return self.mesh.points[self.point_id]
 
 
 @testing.requires_testing_data
@@ -139,30 +162,7 @@ def test_brain_add_text(renderer):
 @testing.requires_testing_data
 def test_brain_timeviewer(renderer_interactive):
     """Test _TimeViewer primitives."""
-    sample_src = read_source_spaces(src_fname)
-
-    # dense version
-    vertices = [s['vertno'] for s in sample_src]
-    n_time = 5
-    n_verts = sum(len(v) for v in vertices)
-    stc_data = np.zeros((n_verts * n_time))
-    stc_size = stc_data.size
-    stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = \
-        np.random.RandomState(0).rand(stc_data.size // 20)
-    stc_data.shape = (n_verts, n_time)
-    stc = SourceEstimate(stc_data, vertices, 1, 1)
-
-    fmin = stc.data.min()
-    fmax = stc.data.max()
-    brain_data = _Brain(subject_id, 'split', surf, size=300,
-                        subjects_dir=subjects_dir)
-    for hemi in ['lh', 'rh']:
-        hemi_idx = 0 if hemi == 'lh' else 1
-        data = getattr(stc, hemi + '_data')
-        vertices = stc.vertices[hemi_idx]
-        brain_data.add_data(data, fmin=fmin, hemi=hemi, fmax=fmax,
-                            colormap='hot', vertices=vertices,
-                            colorbar=True)
+    brain_data = _create_testing_brain(hemi='both')
 
     time_viewer = _TimeViewer(brain_data)
     time_viewer.time_call(value=0)
@@ -179,6 +179,69 @@ def test_brain_timeviewer(renderer_interactive):
     time_viewer.toggle_playback()
     time_viewer.apply_auto_scaling()
     time_viewer.restore_user_scaling()
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('hemi', ['lh', 'rh', 'split', 'both'])
+def test_brain_timeviewer_traces(renderer_interactive, hemi):
+    """Test _TimeViewer traces."""
+    brain_data = _create_testing_brain(hemi=hemi)
+    time_viewer = _TimeViewer(brain_data, show_traces=True)
+    assert hasattr(time_viewer, "picked_points")
+    assert hasattr(time_viewer, "_spheres")
+
+    # test points picked by default
+    picked_points = time_viewer.picked_points
+    spheres = time_viewer._spheres
+    hemi_str = [hemi] if hemi in ('lh', 'rh') else ['lh', 'rh']
+    for current_hemi in hemi_str:
+        assert len(picked_points[current_hemi]) == 1
+    assert len(spheres) == len(hemi_str)
+
+    # test removing points
+    for sphere in spheres:
+        time_viewer.remove_point(sphere)
+    assert len(picked_points['lh']) == 0
+    assert len(picked_points['rh']) == 0
+    spheres.clear()  # necessary for the rest of the test
+
+    # test picking a cell at random
+    for idx, current_hemi in enumerate(hemi_str):
+        current_mesh = brain_data._hemi_meshes[current_hemi]
+        cell_id = np.random.randint(0, current_mesh.n_cells)
+        test_picker = TstVTKPicker(current_mesh, cell_id)
+        assert cell_id == test_picker.cell_id
+        assert test_picker.point_id is None
+        time_viewer.on_pick(test_picker, None)
+        assert test_picker.point_id is not None
+        assert len(picked_points[current_hemi]) == 1
+        assert picked_points[current_hemi][0] == test_picker.point_id
+        sphere = spheres[idx]
+        vertex_id = sphere._vertex_id
+        assert vertex_id == test_picker.point_id
+        line = sphere._line
+
+        hemi_prefix = 'L' if current_hemi == 'lh' else 'R'
+        hemi_int = 0 if current_hemi == 'lh' else 1
+        mni = vertex_to_mni(
+            vertices=vertex_id,
+            hemis=hemi_int,
+            subject=brain_data._subject_id,
+            subjects_dir=brain_data._subjects_dir
+        )
+        label = "{}:{} MNI: {}".format(
+            hemi_prefix, str(vertex_id).ljust(6),
+            ', '.join('%5.1f' % m for m in mni))
+
+        assert line.get_label() == label
+    assert len(spheres) == len(hemi_str)
+
+
+@testing.requires_testing_data
+def test_brain_linkviewer(renderer_interactive):
+    """Test _LinkViewer primitives."""
+    brain_data = _create_testing_brain(hemi='split')
+    _TimeViewer(brain_data)
 
     link_viewer = _LinkViewer([brain_data])
     link_viewer.set_time_point(value=0)
@@ -289,3 +352,32 @@ def test_brain_colormap():
 
     with pytest.raises(ValueError, match=r'.*fmin \(1\) <= fmid \(0\) <= fma'):
         calculate_lut(colormap, alpha, 1, 0, 2)
+
+
+def _create_testing_brain(hemi):
+    sample_src = read_source_spaces(src_fname)
+
+    # dense version
+    vertices = [s['vertno'] for s in sample_src]
+    n_time = 5
+    n_verts = sum(len(v) for v in vertices)
+    stc_data = np.zeros((n_verts * n_time))
+    stc_size = stc_data.size
+    stc_data[(np.random.rand(stc_size // 20) * stc_size).astype(int)] = \
+        np.random.RandomState(0).rand(stc_data.size // 20)
+    stc_data.shape = (n_verts, n_time)
+    stc = SourceEstimate(stc_data, vertices, 1, 1)
+
+    fmin = stc.data.min()
+    fmax = stc.data.max()
+    brain_data = _Brain(subject_id, hemi, surf, size=300,
+                        subjects_dir=subjects_dir)
+    hemi_list = ['lh', 'rh'] if hemi in ['both', 'split'] else [hemi]
+    for hemi_str in hemi_list:
+        hemi_idx = 0 if hemi_str == 'lh' else 1
+        data = getattr(stc, hemi_str + '_data')
+        vertices = stc.vertices[hemi_idx]
+        brain_data.add_data(data, fmin=fmin, hemi=hemi_str, fmax=fmax,
+                            colormap='hot', vertices=vertices,
+                            colorbar=True)
+    return brain_data

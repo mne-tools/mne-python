@@ -4,9 +4,54 @@
 #
 # License: Simplified BSD
 
+from itertools import cycle
 import time
 import numpy as np
-from ..utils import _show_help
+from ..utils import _show_help, _get_color_list, tight_layout
+from ...source_space import vertex_to_mni
+
+
+class MplCanvas(object):
+    """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
+
+    def __init__(self, parent, width, height, dpi):
+        from PyQt5 import QtWidgets
+        from matplotlib.figure import Figure
+        from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+        self.fig = Figure(figsize=(width, height), dpi=dpi)
+        self.canvas = FigureCanvasQTAgg(self.fig)
+        self.axes = self.fig.add_subplot(111)
+        self.axes.set(xlabel='Time (sec)', ylabel='Activation (AU)')
+        self.canvas.setParent(parent)
+        FigureCanvasQTAgg.setSizePolicy(
+            self.canvas,
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Expanding
+        )
+        FigureCanvasQTAgg.updateGeometry(self.canvas)
+        # XXX eventually this should be called in the window resize callback
+        tight_layout(fig=self.axes.figure)
+
+    def plot(self, x, y, label, **kwargs):
+        """Plot a curve."""
+        line, = self.axes.plot(
+            x, y, label=label, **kwargs)
+        self.update_plot()
+        return line
+
+    def update_plot(self):
+        """Update the plot."""
+        self.axes.legend(prop={'family': 'monospace', 'size': 'small'},
+                         framealpha=0.5, handlelength=1.)
+        self.canvas.draw()
+
+    def show(self):
+        """Show the canvas."""
+        self.canvas.show()
+
+    def close(self):
+        """Close the canvas."""
+        self.canvas.close()
 
 
 class IntSlider(object):
@@ -206,7 +251,7 @@ class SmartSlider(object):
 class _TimeViewer(object):
     """Class to interact with _Brain."""
 
-    def __init__(self, brain):
+    def __init__(self, brain, show_traces=False):
         self.brain = brain
         self.brain.time_viewer = self
         self.plotter = brain._renderer.plotter
@@ -230,9 +275,9 @@ class _TimeViewer(object):
             self.plotter.subplot(0, 0)
 
         for hemi in self.brain._hemis:
-            ci = 0 if hemi == 'lh' else 1
-            # with both, all hemis are on the same view
-            if self.brain._hemi == 'both':
+            if self.brain._hemi == 'split':
+                ci = 0 if hemi == 'lh' else 1
+            else:
                 ci = 0
             for ri, view in enumerate(self.brain._views):
                 self.plotter.subplot(ri, ci)
@@ -308,6 +353,8 @@ class _TimeViewer(object):
             pointb=(0.77, 0.1),
             event_type='always'
         )
+        time_slider.GetRepresentation().SetLabelFormat('idx=%0.1f')
+
         time_slider.name = "time"
         # set the default value
         self.time_call(value=brain._data['time_idx'])
@@ -413,6 +460,19 @@ class _TimeViewer(object):
         self.set_slider_style(playback_speed_slider)
         self.set_slider_style(time_slider)
 
+        # Point Picking and MplCanvas plotting
+        if isinstance(show_traces, str) and show_traces == "separate":
+            show_traces = True
+            self.separate_canvas = True
+        else:
+            self.separate_canvas = False
+        if isinstance(show_traces, bool) and show_traces:
+            self.act_data = {'lh': None, 'rh': None}
+            self.color_cycle = None
+            self.picked_points = {'lh': list(), 'rh': list()}
+            self._mouse_no_mvt = -1
+            self.enable_point_picking()
+
         # setup key bindings
         self.key_bindings = {
             '?': self.help,
@@ -474,7 +534,6 @@ class _TimeViewer(object):
         self.playback_speed = speed
 
     def play(self):
-        from scipy.interpolate import interp1d
         if self.playback:
             this_time = time.time()
             delta = this_time - self._last_tick
@@ -484,8 +543,10 @@ class _TimeViewer(object):
             time_shift = delta * self.playback_speed
             max_time = np.max(time_data)
             time_point = min(self.brain._current_time + time_shift, max_time)
-            ifunc = interp1d(time_data, times)
-            idx = ifunc(time_point)
+            # always use linear here -- this does not determine the data
+            # interpolation mode, it just finds where we are (in time) in
+            # terms of the time indices
+            idx = np.interp(time_point, time_data, times)
             self.time_call(idx, update_widget=True)
             if time_point == max_time:
                 self.playback = False
@@ -502,6 +563,171 @@ class _TimeViewer(object):
             slider_rep.GetSliderProperty().SetColor((0.5, 0.5, 0.5))
             if not show_label:
                 slider_rep.ShowSliderLabelOff()
+
+    def enable_point_picking(self):
+        from ..backends._pyvista import _update_picking_callback
+        # use a matplotlib canvas
+        self.color_cycle = cycle(_get_color_list())
+        win = self.plotter.app_window
+        dpi = win.windowHandle().screen().logicalDotsPerInch()
+        w, h = win.geometry().width() / dpi, win.geometry().height() / dpi
+        h /= 3  # one third of the window
+        if self.separate_canvas:
+            parent = None
+        else:
+            parent = win
+        self.mpl_canvas = MplCanvas(parent, w, h, dpi)
+        xlim = [np.min(self.brain._data['time']),
+                np.max(self.brain._data['time'])]
+        self.mpl_canvas.axes.set(xlim=xlim)
+        vlayout = self.plotter.frame.layout()
+        if self.separate_canvas:
+            self.plotter.app_window.signal_close.connect(self.mpl_canvas.close)
+            self.mpl_canvas.show()
+        else:
+            vlayout.addWidget(self.mpl_canvas.canvas)
+            vlayout.setStretch(0, 2)
+            vlayout.setStretch(1, 1)
+
+        # get brain data
+        for idx, hemi in enumerate(['lh', 'rh']):
+            hemi_data = self.brain._data.get(hemi)
+            if hemi_data is not None:
+                self.act_data[hemi] = hemi_data['array']
+                smooth_mat = hemi_data['smooth_mat']
+                if smooth_mat is not None:
+                    self.act_data[hemi] = smooth_mat.dot(self.act_data[hemi])
+
+                # simulate a picked renderer
+                if self.brain._hemi == 'split':
+                    self.picked_renderer = self.plotter.renderers[idx]
+                else:
+                    self.picked_renderer = self.plotter.renderers[0]
+
+                # initialize the default point
+                color = next(self.color_cycle)
+                ind = np.unravel_index(
+                    np.argmax(self.act_data[hemi], axis=None),
+                    self.act_data[hemi].shape
+                )
+                vertex_id = ind[0]
+                mesh = hemi_data['mesh'][-1]
+                line = self.plot_time_course(hemi, vertex_id, color)
+                self.add_point(hemi, mesh, vertex_id, line, color)
+
+        _update_picking_callback(
+            self.plotter,
+            self.on_mouse_move,
+            self.on_button_press,
+            self.on_button_release,
+            self.on_pick
+        )
+
+    def on_mouse_move(self, vtk_picker, event):
+        if self._mouse_no_mvt:
+            self._mouse_no_mvt -= 1
+
+    def on_button_press(self, vtk_picker, event):
+        self._mouse_no_mvt = 2
+
+    def on_button_release(self, vtk_picker, event):
+        if self._mouse_no_mvt:
+            x, y = vtk_picker.GetEventPosition()
+            # programmatically detect the picked renderer
+            self.picked_renderer = self.plotter.iren.FindPokedRenderer(x, y)
+            # trigger the pick
+            self.plotter.picker.Pick(x, y, 0, self.picked_renderer)
+        self._mouse_no_mvt = 0
+
+    def on_pick(self, vtk_picker, event):
+        cell_id = vtk_picker.GetCellId()
+        mesh = vtk_picker.GetDataSet()
+
+        if mesh is None or cell_id == -1:
+            return
+
+        if hasattr(mesh, "_is_point"):
+            self.remove_point(mesh)
+        elif self._mouse_no_mvt:
+            hemi = mesh._hemi
+            pos = vtk_picker.GetPickPosition()
+            cell = mesh.faces[cell_id][1:]
+            vertices = mesh.points[cell]
+            idx = np.argmin(abs(vertices - pos), axis=0)
+            vertex_id = cell[idx[0]]
+
+            if vertex_id not in self.picked_points[hemi]:
+                color = next(self.color_cycle)
+
+                # update associated time course
+                line = self.plot_time_course(hemi, vertex_id, color)
+
+                # add glyph at picked point
+                self.add_point(hemi, mesh, vertex_id, line, color)
+
+    def add_point(self, hemi, mesh, vertex_id, line, color):
+        center = mesh.GetPoints().GetPoint(vertex_id)
+
+        # from the picked renderer to the subplot coords
+        rindex = self.plotter.renderers.index(self.picked_renderer)
+        row, col = self.plotter.index_to_loc(rindex)
+
+        actors = list()
+        spheres = list()
+        for ri, view in enumerate(self.brain._views):
+            self.plotter.subplot(ri, col)
+            actor, sphere = self.brain._renderer.sphere(
+                center=np.array(center),
+                color=color,
+                scale=1.0,
+                radius=4.0
+            )
+            actors.append(actor)
+            spheres.append(sphere)
+
+        # add metadata for picking
+        for sphere in spheres:
+            sphere._is_point = True
+            sphere._hemi = hemi
+            sphere._line = line
+            sphere._actors = actors
+            sphere._vertex_id = vertex_id
+
+        self.picked_points[hemi].append(vertex_id)
+
+        # this is used for testing only
+        if hasattr(self, "_spheres"):
+            self._spheres += spheres
+        else:
+            self._spheres = spheres
+
+    def remove_point(self, mesh):
+        mesh._line.remove()
+        self.mpl_canvas.update_plot()
+        self.picked_points[mesh._hemi].remove(mesh._vertex_id)
+        self.plotter.remove_actor(mesh._actors)
+
+    def plot_time_course(self, hemi, vertex_id, color):
+        time = self.brain._data['time']
+        hemi_str = 'L' if hemi == 'lh' else 'R'
+        hemi_int = 0 if hemi == 'lh' else 1
+        mni = vertex_to_mni(
+            vertices=vertex_id,
+            hemis=hemi_int,
+            subject=self.brain._subject_id,
+            subjects_dir=self.brain._subjects_dir
+        )
+        label = "{}:{} MNI: {}".format(
+            hemi_str, str(vertex_id).ljust(6),
+            ', '.join('%5.1f' % m for m in mni))
+        line = self.mpl_canvas.plot(
+            time,
+            self.act_data[hemi][vertex_id, :],
+            label=label,
+            lw=1.,
+            color=color
+        )
+        return line
 
     def help(self):
         pairs = [

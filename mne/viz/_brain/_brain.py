@@ -191,6 +191,8 @@ class _Brain(object):
         # array of data used by TimeViewer
         self._data = {}
         self.geo, self._hemi_meshes, self._overlays = {}, {}, {}
+        # can by anything scipy.interpolate.interp1d accepts
+        self.interp_kind = 'linear'
 
         # load geometry for one or both hemispheres as necessary
         offset = None if (not offset or hemi != 'both') else 0.0
@@ -215,11 +217,20 @@ class _Brain(object):
                 if not (hemi in ['lh', 'rh'] and h != hemi):
                     ci = hi if hemi == 'split' else 0
                     self._renderer.subplot(ri, ci)
-                    self._renderer.mesh(x=self.geo[h].coords[:, 0],
-                                        y=self.geo[h].coords[:, 1],
-                                        z=self.geo[h].coords[:, 2],
-                                        triangles=self.geo[h].faces,
-                                        color=self.geo[h].grey_curv)
+                    mesh_data = self._renderer.mesh(
+                        x=self.geo[h].coords[:, 0],
+                        y=self.geo[h].coords[:, 1],
+                        z=self.geo[h].coords[:, 2],
+                        triangles=self.geo[h].faces,
+                        color=self.geo[h].grey_curv
+                    )
+                    if isinstance(mesh_data, tuple):
+                        _, mesh = mesh_data
+                        # add metadata to the mesh for picking
+                        mesh._hemi = h
+                    else:
+                        _, mesh = mesh_data, None
+                    self._hemi_meshes[h] = mesh
                     self._renderer.set_camera(azimuth=views_dict[v].azim,
                                               elevation=views_dict[v].elev)
         # Force rendering
@@ -451,6 +462,8 @@ class _Brain(object):
             )
             if isinstance(mesh_data, tuple):
                 actor, mesh = mesh_data
+                # add metadata to the mesh for picking
+                mesh._hemi = hemi
             else:
                 actor, mesh = mesh_data, None
             self._data[hemi]['actor'].append(actor)
@@ -829,31 +842,17 @@ class _Brain(object):
         n_steps : int
             Number of smoothing steps
         """
-        from ..backends._pyvista import _set_mesh_scalars
-        from scipy.interpolate import interp1d
-        time_idx = self._data['time_idx']
         for hemi in ['lh', 'rh']:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
-                array = hemi_data['array']
+                adj_mat = mesh_edges(self.geo[hemi].faces)
                 vertices = hemi_data['vertices']
                 for mesh in hemi_data['mesh']:
-                    if array.ndim == 2:
-                        if isinstance(time_idx, int):
-                            act_data = array[:, time_idx]
-                        else:
-                            times = np.arange(self._n_times)
-                            act_data = interp1d(
-                                times, array, 'linear', axis=1,
-                                assume_sorted=True)(time_idx)
-
-                    adj_mat = mesh_edges(self.geo[hemi].faces)
                     smooth_mat = smoothing_matrix(vertices,
                                                   adj_mat, int(n_steps),
                                                   verbose=False)
-                    act_data = smooth_mat.dot(act_data)
-                    _set_mesh_scalars(mesh, act_data, 'Data')
                     self._data[hemi]['smooth_mat'] = smooth_mat
+        self.set_time_point(self._data['time_idx'])
 
     def set_time_point(self, time_idx):
         """Set the time point shown."""
@@ -872,8 +871,9 @@ class _Brain(object):
                             self._current_time = time[time_idx]
                         else:
                             times = np.arange(self._n_times)
-                            act_data = interp1d(times, array, 'linear', axis=1,
-                                                assume_sorted=True)(time_idx)
+                            act_data = interp1d(
+                                times, array, self.interp_kind, axis=1,
+                                assume_sorted=True)(time_idx)
                             ifunc = interp1d(times, self._data['time'])
                             self._current_time = ifunc(time_idx)
 
@@ -881,7 +881,7 @@ class _Brain(object):
                     if smooth_mat is not None:
                         act_data = smooth_mat.dot(act_data)
                     _set_mesh_scalars(mesh, act_data, 'Data')
-                    self._data['time_idx'] = time_idx
+        self._data['time_idx'] = time_idx
 
     def update_fmax(self, fmax):
         """Set the colorbar max point."""
@@ -973,6 +973,8 @@ class _Brain(object):
     def update_auto_scaling(self, restore=False):
         from ..backends._pyvista import _set_colormap_range
         from scipy.interpolate import interp1d
+        # XXX this should be refactored with set_time_point so that interp1d
+        # is only used in one place...
         user_clim = self._data['clim']
         if user_clim is not None and 'lims' in user_clim:
             allow_pos_lims = False
@@ -991,7 +993,7 @@ class _Brain(object):
         else:
             times = np.arange(self._n_times)
             act_data = interp1d(
-                times, array, 'linear', axis=1,
+                times, array, self.interp_kind, axis=1,
                 assume_sorted=True)(time_idx)
         mapdata = _process_clim(clim, colormap, transparent, act_data,
                                 allow_pos_lims)

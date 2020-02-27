@@ -1606,7 +1606,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           cortex="classic", size=800, background="black",
                           foreground="white", initial_time=None,
                           time_unit='s', backend='auto', spacing='oct6',
-                          title=None, verbose=None):
+                          title=None, show_traces=False, verbose=None):
     """Plot SourceEstimate with PySurfer.
 
     By default this function uses :mod:`mayavi.mlab` to plot the source
@@ -1641,8 +1641,12 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     alpha : float
         Alpha value to apply globally to the overlay. Has no effect with mpl
         backend.
-    time_viewer : bool
-        Display time viewer GUI.
+    time_viewer : bool | str
+        Display time viewer GUI. Can also be 'auto', which will mean True
+        for the PyVista backend and False otherwise.
+
+        .. versionchanged:: 0.20.0
+           "auto" mode added.
     %(subjects_dir)s
     figure : instance of mayavi.core.api.Scene | instance of matplotlib.figure.Figure | list | int | None
         If None, a new figure will be created. If multiple views or a
@@ -1696,6 +1700,14 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         Title for the figure. If None, the subject name will be used.
 
         .. versionadded:: 0.17.0
+    show_traces : bool | str
+        If True, enable interactive picking of a point on the surface of the
+        brain and plot it's time course using the bottom 1/3 of the figure.
+        This feature is only available with the PyVista 3d backend when
+        ``time_viewer=True``. Defaults to 'auto', which will use True if and
+        only if ``time_viewer=True`` and the backend is PyVista.
+
+        .. versionadded:: 0.20.0
     %(verbose)s
 
     Returns
@@ -1708,6 +1720,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
     _validate_type(stc, SourceEstimate, "stc", "Surface Source Estimate")
+    _check_option('time_viewer', time_viewer, (True, False, 'auto'))
+    _check_option('show_traces', show_traces,
+                  (True, False, 'auto', 'separate'))
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
@@ -1732,12 +1747,17 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              time_unit=time_unit, background=background,
                              spacing=spacing, time_viewer=time_viewer,
                              colorbar=colorbar, transparent=transparent)
-    if get_3d_backend() == "mayavi":
+    using_mayavi = get_3d_backend() == "mayavi"
+    if time_viewer == 'auto':
+        time_viewer = not using_mayavi
+    if show_traces == 'auto':
+        show_traces = not using_mayavi and time_viewer
+    if using_mayavi:
         if not check_version('surfer', '0.9'):
             raise RuntimeError('This function requires pysurfer version '
                                '>= 0.9')
         from surfer import Brain, TimeViewer
-    else:
+    else:  # PyVista
         from ._brain import _Brain as Brain
         from ._brain import _TimeViewer as TimeViewer
     _check_option('hemi', hemi, ['lh', 'rh', 'split', 'both'])
@@ -1801,7 +1821,13 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
             with warnings.catch_warnings(record=True):  # traits warnings
                 brain.add_data(**kwargs)
     if time_viewer:
-        TimeViewer(brain)
+        if get_3d_backend() == "mayavi":
+            if show_traces:
+                raise NotImplementedError("Point picking is not available"
+                                          " for the mayavi 3d backend.")
+            TimeViewer(brain)
+        else:
+            TimeViewer(brain, show_traces=show_traces)
     return brain
 
 
