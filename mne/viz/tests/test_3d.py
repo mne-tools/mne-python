@@ -639,7 +639,7 @@ def test_plot_volume_source_estimates_morph():
 @requires_pysurfer
 @requires_mayavi
 @traits_test
-def test_plot_vector_source_estimates():
+def test_plot_vector_source_estimates(garbage_collect):
     """Test plotting of vector source estimates."""
     sample_src = read_source_spaces(src_fname)
 
@@ -721,7 +721,7 @@ def test_brain_colorbar(orientation, diverging, lims):
 @requires_pysurfer
 @testing.requires_testing_data
 @traits_test
-def test_mixed_sources_plot_surface():
+def test_mixed_sources_plot_surface(garbage_collect):
     """Test plot_surface() for  mixed source space."""
     src = read_source_spaces(fwd_fname2)
     N = np.sum([s['nuse'] for s in src])  # number of sources

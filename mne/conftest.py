@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+import gc
 import os
 import os.path as op
 import shutil
@@ -201,7 +202,7 @@ def backend_name(request):
 
 
 @pytest.yield_fixture
-def renderer(backend_name):
+def renderer(backend_name, garbage_collect):
     """Yield the 3D backends."""
     from mne.viz.backends.renderer import _use_test_3d_backend
     _check_skip_backend(backend_name)
@@ -209,6 +210,13 @@ def renderer(backend_name):
         from mne.viz.backends import renderer
         yield renderer
         renderer._close_all()
+
+
+@pytest.yield_fixture
+def garbage_collect():
+    """Garbage collect on exit."""
+    yield
+    gc.collect()
 
 
 @pytest.fixture(scope="module", params=[
