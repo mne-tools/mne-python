@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 """
+=================================================
 Compute cross-talk functions for LCMV beamformers
-==============================================================
+=================================================
 
-Visualise cross-talk functions at one vertex for different LCMV beamformers.
+Visualise cross-talk functions at one vertex for LCMV beamformers computed
+with different data covariance matrices, which affects their cross-talk
+functions.
 """
 # Author: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #
