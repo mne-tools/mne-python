@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+from distutils.version import LooseVersion
 import gc
 import os
 import os.path as op
@@ -118,7 +119,10 @@ def matplotlib_config():
 
     class CallbackRegistryReraise(orig):
         def __init__(self, exception_handler=None):
-            super(CallbackRegistryReraise, self).__init__(exception_handler)
+            args = ()
+            if LooseVersion(matplotlib.__version__) >= LooseVersion('2.1'):
+                args += (exception_handler,)
+            super(CallbackRegistryReraise, self).__init__(*args)
 
     cbook.CallbackRegistry = CallbackRegistryReraise
 
