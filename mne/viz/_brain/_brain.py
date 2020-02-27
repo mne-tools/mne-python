@@ -230,6 +230,7 @@ class _Brain(object):
                         mesh._hemi = h
                     else:
                         _, mesh = mesh_data, None
+                    self._hemi_meshes[h] = mesh
                     self._renderer.set_camera(azimuth=views_dict[v].azim,
                                               elevation=views_dict[v].elev)
         # Force rendering
@@ -461,6 +462,8 @@ class _Brain(object):
             )
             if isinstance(mesh_data, tuple):
                 actor, mesh = mesh_data
+                # add metadata to the mesh for picking
+                mesh._hemi = hemi
             else:
                 actor, mesh = mesh_data, None
             self._data[hemi]['actor'].append(actor)

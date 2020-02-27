@@ -15,7 +15,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 
 from mne import SourceEstimate, read_source_estimate
-from mne.source_space import read_source_spaces
+from mne.source_space import read_source_spaces, vertex_to_mni
 from mne.datasets import testing
 from mne.viz._brain import _Brain, _TimeViewer, _LinkViewer
 from mne.viz._brain.colormap import calculate_lut
@@ -30,6 +30,26 @@ fname_label = path.join(data_path, 'MEG/sample/labels/Vis-lh.label')
 src_fname = path.join(data_path, 'subjects', 'sample', 'bem',
                       'sample-oct-6-src.fif')
 surf = 'inflated'
+
+
+class TstVTKPicker(object):
+    """This tests cell picking."""
+
+    def __init__(self, mesh, cell_id):
+        self.mesh = mesh
+        self.cell_id = cell_id
+        self.point_id = None
+
+    def GetCellId(self):
+        return self.cell_id
+
+    def GetDataSet(self):
+        return self.mesh
+
+    def GetPickPosition(self):
+        cell = self.mesh.faces[self.cell_id][1:]
+        self.point_id = cell[0]
+        return self.mesh.points[self.point_id]
 
 
 @testing.requires_testing_data
@@ -164,13 +184,54 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi):
     """Test _TimeViewer traces."""
     brain_data = _create_testing_brain(hemi=hemi)
     time_viewer = _TimeViewer(brain_data, show_traces=True)
-    want = 1 if hemi in ('lh', 'rh') else 2
-    assert len(time_viewer.picked_points) == want
+    assert hasattr(time_viewer, "picked_points")
+    assert hasattr(time_viewer, "_spheres")
 
+    # test points picked by default
+    picked_points = time_viewer.picked_points
     spheres = time_viewer._spheres
+    hemi_str = [hemi] if hemi in ('lh', 'rh') else ['lh', 'rh']
+    for current_hemi in hemi_str:
+        assert len(picked_points[current_hemi]) == 1
+    assert len(spheres) == len(hemi_str)
+
+    # test removing points
     for sphere in spheres:
         time_viewer.remove_point(sphere)
-    assert len(time_viewer.picked_points) == 0
+    assert len(picked_points['lh']) == 0
+    assert len(picked_points['rh']) == 0
+    spheres.clear()  # necessary for the rest of the test
+
+    # test picking a cell at random
+    for idx, current_hemi in enumerate(hemi_str):
+        current_mesh = brain_data._hemi_meshes[current_hemi]
+        cell_id = np.random.randint(0, current_mesh.n_cells)
+        test_picker = TstVTKPicker(current_mesh, cell_id)
+        assert cell_id == test_picker.cell_id
+        assert test_picker.point_id is None
+        time_viewer.on_pick(test_picker, None)
+        assert test_picker.point_id is not None
+        assert len(picked_points[current_hemi]) == 1
+        assert picked_points[current_hemi][0] == test_picker.point_id
+        sphere = spheres[idx]
+        vertex_id = sphere._vertex_id
+        assert vertex_id == test_picker.point_id
+        line = sphere._line
+
+        hemi_prefix = 'L' if current_hemi == 'lh' else 'R'
+        hemi_int = 0 if current_hemi == 'lh' else 1
+        mni = vertex_to_mni(
+            vertices=vertex_id,
+            hemis=hemi_int,
+            subject=brain_data._subject_id,
+            subjects_dir=brain_data._subjects_dir
+        )
+        label = "{}:{} MNI: {}".format(
+            hemi_prefix, str(vertex_id).ljust(6),
+            ', '.join('%5.1f' % m for m in mni))
+
+        assert line.get_label() == label
+    assert len(spheres) == len(hemi_str)
 
 
 @testing.requires_testing_data

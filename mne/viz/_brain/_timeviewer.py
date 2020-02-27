@@ -469,7 +469,7 @@ class _TimeViewer(object):
         if isinstance(show_traces, bool) and show_traces:
             self.act_data = {'lh': None, 'rh': None}
             self.color_cycle = None
-            self.picked_points = list()
+            self.picked_points = {'lh': list(), 'rh': list()}
             self._mouse_no_mvt = -1
             self.enable_point_picking()
 
@@ -613,7 +613,7 @@ class _TimeViewer(object):
                 vertex_id = ind[0]
                 mesh = hemi_data['mesh'][-1]
                 line = self.plot_time_course(hemi, vertex_id, color)
-                self.add_point(mesh, vertex_id, line, color)
+                self.add_point(hemi, mesh, vertex_id, line, color)
 
         _update_picking_callback(
             self.plotter,
@@ -646,26 +646,26 @@ class _TimeViewer(object):
         if mesh is None or cell_id == -1:
             return
 
-        if not hasattr(mesh, "_hemi"):
+        if hasattr(mesh, "_is_point"):
             self.remove_point(mesh)
         elif self._mouse_no_mvt:
             hemi = mesh._hemi
             pos = vtk_picker.GetPickPosition()
             cell = mesh.faces[cell_id][1:]
             vertices = mesh.points[cell]
-            idx = np.argmin(vertices - pos, axis=0)
+            idx = np.argmin(abs(vertices - pos), axis=0)
             vertex_id = cell[idx[0]]
 
-            if vertex_id not in self.picked_points:
+            if vertex_id not in self.picked_points[hemi]:
                 color = next(self.color_cycle)
 
                 # update associated time course
                 line = self.plot_time_course(hemi, vertex_id, color)
 
                 # add glyph at picked point
-                self.add_point(mesh, vertex_id, line, color)
+                self.add_point(hemi, mesh, vertex_id, line, color)
 
-    def add_point(self, mesh, vertex_id, line, color):
+    def add_point(self, hemi, mesh, vertex_id, line, color):
         center = mesh.GetPoints().GetPoint(vertex_id)
 
         # from the picked renderer to the subplot coords
@@ -687,10 +687,13 @@ class _TimeViewer(object):
 
         # add metadata for picking
         for sphere in spheres:
+            sphere._is_point = True
+            sphere._hemi = hemi
             sphere._line = line
             sphere._actors = actors
             sphere._vertex_id = vertex_id
-        self.picked_points.append(vertex_id)
+
+        self.picked_points[hemi].append(vertex_id)
 
         # this is used for testing only
         if hasattr(self, "_spheres"):
@@ -701,7 +704,7 @@ class _TimeViewer(object):
     def remove_point(self, mesh):
         mesh._line.remove()
         self.mpl_canvas.update_plot()
-        self.picked_points.remove(mesh._vertex_id)
+        self.picked_points[mesh._hemi].remove(mesh._vertex_id)
         self.plotter.remove_actor(mesh._actors)
 
     def plot_time_course(self, hemi, vertex_id, color):
