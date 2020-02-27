@@ -80,8 +80,15 @@ def test_resolution_matrix_lcmv():
 
     # pairwise correlation for rows (CTFs) of resolution matrices for whitened
     # LCMV beamformer and transposed leadfield should be 1
+    # Some rows are off by about 0.1 - not yet clear why
+    corr = []
+
     for (f, l) in zip(resmat_fwd, resmat_lcmv):
 
-        corr = np.corrcoef(f, l)[0, 0]
+        corr.append(np.corrcoef(f, l)[0, 1])
 
-        assert_allclose(corr, 1.)
+    # all row correlations should at least be above ~0.8
+    assert_allclose(corr, 1., atol=0.2)
+
+    # Maximum row correlation should at least be close to 1
+    assert_allclose(np.max(corr), 1., atol=0.01)
