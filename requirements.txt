@@ -22,7 +22,7 @@ joblib
 psutil
 dipy
 https://api.github.com/repos/numpy/numpydoc/zipball/master
-https://api.github.com/repos/larsoner/mayavi/zipball/crash
+mayavi
 PySurfer[save_movie]
 nilearn
 neo

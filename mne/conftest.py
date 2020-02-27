@@ -80,6 +80,7 @@ def pytest_configure(config):
     ignore:The sklearn.*module.*deprecated.*:FutureWarning
     ignore:.*TraitTuple.*trait.*handler.*deprecated.*:DeprecationWarning
     ignore:.*rich_compare.*metadata.*deprecated.*:DeprecationWarning
+    ignore:.*In future, it will be an error for 'np.bool_'.*:DeprecationWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
@@ -92,6 +93,7 @@ def pytest_configure(config):
 def matplotlib_config():
     """Configure matplotlib for viz tests."""
     import matplotlib
+    from matplotlib import cbook
     # "force" should not really be necessary but should not hurt
     kwargs = dict()
     with warnings.catch_warnings(record=True):  # ignore warning
@@ -110,6 +112,15 @@ def matplotlib_config():
         pass
     else:
         ETSConfig.toolkit = 'qt4'
+
+    # Make sure that we always reraise exceptions in handlers
+    orig = cbook.CallbackRegistry
+
+    class CallbackRegistryReraise(orig):
+        def __init__(self, exception_handler=None):
+            super(CallbackRegistryReraise, self).__init__(exception_handler)
+
+    cbook.CallbackRegistry = CallbackRegistryReraise
 
 
 @pytest.fixture()
