@@ -91,9 +91,8 @@ filters_post = make_lcmv(info, forward, cov_post, reg=0.05,
                          verbose=False)
 
 ##############################################################################
-# Compute resolution matrices for LCMV beamformers with different data
-# covariance matrices
-# --------------------------------------------------------------------
+# Compute resolution matrices for the two LCMV beamformers
+# --------------------------------------------------------
 
 rm_pre = make_lcmv_resolution_matrix(filters_pre, forward, info)
 
