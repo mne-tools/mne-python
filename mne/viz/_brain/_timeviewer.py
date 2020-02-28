@@ -473,6 +473,15 @@ class _TimeViewer(object):
             self._mouse_no_mvt = -1
             self.enable_point_picking()
 
+        # remove default picking menu
+        main_menu = self.plotter.main_menu
+        to_remove = list()
+        for action in main_menu.actions():
+            if action.text() == "Tools":
+                to_remove.append(action)
+        for action in to_remove:
+            main_menu.removeAction(action)
+
         # setup key bindings
         self.key_bindings = {
             '?': self.help,
