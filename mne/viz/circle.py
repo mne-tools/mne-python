@@ -163,7 +163,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         Color to use for lines around nodes. See matplotlib.colors.
     linewidth : float
         Line width to use for connections.
-    colormap : str
+    colormap : str | instance of matplotlib.colors.LinearSegmentedColormap
         Colormap to use for coloring the connections.
     vmin : float | None
         Minimum value for colormap. If None, it is determined automatically.
