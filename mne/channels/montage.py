@@ -507,6 +507,7 @@ def read_dig_hpts(fname, unit='mm'):
     out = np.genfromtxt(fname, comments='#',
                         dtype=(_str, _str, 'f8', 'f8', 'f8'))
     kind, label = _str_names(out['f0']), _str_names(out['f1'])
+    kind = [k.lower() for k in kind]
     xyz = np.array([out['f%d' % ii] for ii in range(2, 5)]).T
     xyz *= _scale
     del _scale
