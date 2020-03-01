@@ -328,33 +328,6 @@ except ImportError:
 
 
 ###############################################################################
-# np.linalg.pinv (NumPy 1.13)
-
-if LooseVersion(np.__version__) >= LooseVersion('1.13'):
-    pinv = np.linalg.pinv
-else:
-    def _makearray(a):
-        new = np.asarray(a)
-        wrap = getattr(a, "__array_prepare__", new.__array_wrap__)
-        return new, wrap
-
-    def pinv(a, rcond=1e-15):
-        """Pseudoinverse."""
-        a, wrap = _makearray(a)
-        rcond = np.asarray(rcond)
-        a = a.conjugate()
-        u, s, vt = np.linalg.svd(a, full_matrices=False)
-        cutoff = rcond[..., np.newaxis] * np.amax(s, axis=-1, keepdims=True)
-        large = s > cutoff
-        s = np.divide(1, s, where=large, out=s)
-        s[~large] = 0
-        res = np.matmul(np.swapaxes(vt, -1, -2),
-                        np.multiply(s[..., np.newaxis],
-                                    np.swapaxes(u, -1, -2)))
-        return wrap(res)
-
-
-###############################################################################
 # NumPy Generator (NumPy 1.17)
 
 def rng_uniform(rng):

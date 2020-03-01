@@ -312,7 +312,11 @@ depth : None | float | dict
     to use, which must be between 0 and 1. None is equivalent to 0, meaning
     no depth weighting is performed. It can also be a `dict` containing
     keyword arguments to pass to :func:`mne.forward.compute_depth_prior`
-    (see docstring for details and defaults).
+    (see docstring for details and defaults). This is effectively ignored
+    when ``method='eLORETA'``.
+
+    .. versionchanged:: 0.20
+       Depth bias ignored for ``method='eLORETA'``.
 """
 docdict['pick_ori-vec'] = """
     pick_ori : None | "vector"

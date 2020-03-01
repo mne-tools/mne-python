@@ -37,7 +37,7 @@ from ..source_space import (_read_source_spaces_from_tree, _get_src_nn,
 from ..surface import _normal_orth
 from ..transforms import _ensure_trans, transform_surface_to
 from ..source_estimate import _make_stc, _get_src_type
-from ..utils import (check_fname, logger, verbose, warn,
+from ..utils import (check_fname, logger, verbose, warn, _validate_type,
                      _check_compensation_grade, _check_option,
                      _check_depth, _check_src_normal)
 
@@ -329,6 +329,7 @@ def write_inverse_operator(fname, inv, verbose=None):
     """
     check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz',
                                             '_inv.fif', '_inv.fif.gz'))
+    _validate_type(inv, InverseOperator, 'inv')
 
     #
     #   Open the file, create directory
@@ -545,9 +546,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
     #
     #   Create the diagonal matrix for computing the regularized inverse
     #
-    sing = np.array(inv['sing'], dtype=np.float64)
-    with np.errstate(invalid='ignore'):  # if lambda2==0
-        inv['reginv'] = np.where(sing > 0, sing / (sing ** 2 + lambda2), 0)
+    inv['reginv'] = _compute_reginv(inv, lambda2)
     logger.info('    Created the regularized inverter')
     #
     #   Create the projection operator
@@ -669,9 +668,9 @@ def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
         dipoles.
     """  # noqa: E501
     eigen_leads = inv['eigen_leads']['data']
-    source_cov = inv['source_cov']['data'][:, None]
+    source_cov = inv['source_cov']['data']
     if method in ('dSPM', 'sLORETA'):
-        noise_norm = inv['noisenorm'][:, None]
+        noise_norm = inv['noisenorm'][:, np.newaxis]
     else:
         noise_norm = None
 
@@ -722,10 +721,6 @@ def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
             raise ValueError('Picking normal orientation can only be done '
                              'when working with loose orientations.')
 
-        # keep only the normal components
-        eigen_leads = eigen_leads[2::3]
-        source_cov = source_cov[2::3]
-
     trans = np.dot(inv['eigen_fields']['data'],
                    np.dot(inv['whitener'], inv['proj']))
     trans *= inv['reginv'][:, None]
@@ -734,18 +729,21 @@ def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
     #   Transformation into current distributions by weighting the eigenleads
     #   with the weights computed above
     #
+    K = np.dot(eigen_leads, trans)
     if inv['eigen_leads_weighted']:
         #
         #     R^0.5 has been already factored in
         #
         logger.info('    Eigenleads already weighted ... ')
-        K = np.dot(eigen_leads, trans)
     else:
         #
         #     R^0.5 has to be factored in
         #
         logger.info('    Eigenleads need to be weighted ...')
-        K = np.sqrt(source_cov) * np.dot(eigen_leads, trans)
+        K *= np.sqrt(source_cov)[:, np.newaxis]
+
+    if pick_ori == 'normal':
+        K = K[2::3]
 
     return K, noise_norm, vertno, source_nn
 
@@ -885,8 +883,6 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     """
     _check_reference(evoked, inverse_operator['info']['ch_names'])
     _check_option('method', method, INVERSE_METHODS)
-    if method == 'eLORETA' and return_residual:
-        raise ValueError('eLORETA does not currently support return_residual')
     _check_ori(pick_ori, inverse_operator['source_ori'],
                inverse_operator['src'])
     #
@@ -921,11 +917,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
                              Pi[:, np.newaxis] * w_t))
     data_est_w = np.dot(inv['whitener'], np.dot(inv['proj'], data_est))
     var_exp = 1 - ((data_est_w - data_w) ** 2).sum() / (data_w ** 2).sum()
-
-    if method == 'eLORETA':
-        logger.info('    Explained variance unknown')
-    else:
-        logger.info('    Explained %5.1f%% variance' % (100 * var_exp,))
+    logger.info('    Explained %5.1f%% variance' % (100 * var_exp,))
 
     if return_residual:
         residual = evoked.copy()
@@ -946,7 +938,6 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     tstep = 1.0 / evoked.info['sfreq']
     tmin = float(evoked.times[0])
     subject = _subject_from_inverse(inverse_operator)
-
     src_type = _get_src_type(inverse_operator['src'], vertno)
     stc = _make_stc(sol, vertno, tmin=tmin, tstep=tstep, subject=subject,
                     vector=(pick_ori == 'vector'), source_nn=source_nn,
@@ -1513,8 +1504,7 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     del fixed, loose, depth, use_cps
 
     # Decompose the combined matrix
-    logger.info('Computing SVD of whitened and weighted lead field '
-                'matrix.')
+    logger.info('Computing SVD of whitened and weighted lead field matrix.')
     eigen_fields, sing, eigen_leads = _safe_svd(gain, full_matrices=False)
     del gain
     logger.info('    largest singular value = %g' % np.max(sing))
@@ -1580,6 +1570,18 @@ def make_inverse_operator(info, forward, noise_cov, loose='auto', depth=0.8,
     inv_op['info'] = inv_info
 
     return InverseOperator(inv_op)
+
+
+def _compute_reginv(inv, lambda2):
+    """Safely compute reginv from sing."""
+    sing = np.array(inv['sing'], dtype=np.float64)
+    reginv = np.zeros_like(sing)
+    n_nzero = compute_rank_inverse(inv)
+    sing = sing[:n_nzero]
+    with np.errstate(invalid='ignore'):  # if lambda2==0
+        reginv[:n_nzero] = np.where(
+            sing > 0, sing / (sing ** 2 + lambda2), 0)
+    return reginv
 
 
 def compute_rank_inverse(inv):
@@ -1685,8 +1687,8 @@ def estimate_snr(evoked, inv, verbose=None):
     n_ch, n_times = data_white.shape
 
     # Adapted from mne_analyze/regularization.c, compute_regularization
-    n_zero = (inv['noise_cov']['eig'] <= 0).sum()
-    n_ch_eff = n_ch - n_zero
+    n_ch_eff = compute_rank_inverse(inv)
+    n_zero = n_ch - n_ch_eff
     logger.info('Effective nchan = %d - %d = %d'
                 % (n_ch, n_zero, n_ch_eff))
     del n_ch

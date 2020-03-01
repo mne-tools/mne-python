@@ -385,7 +385,74 @@ we can find our variance estimates as
 
 eLORETA
 ~~~~~~~
-The mathematics behind eLORETA are described in :footcite:`Pascual-Marqui2011`.
+While dSPM and sLORETA solve for noise normalization weights
+:math:`\sigma^2_k` that are applied to standard minimum-norm estimates
+:math:`\hat{j}(t)`, eLORETA :footcite:`Pascual-Marqui2011` instead solves for
+a source covariance
+matrix :math:`R` that achieves zero localization bias. For fixed-orientation
+solutions the resulting matrix :math:`R` will be a diagonal matrix, and for
+free-orientation solutions it will be a block-diagonal matrix with
+:math:`3 \times 3` blocks.
+
+.. In https://royalsocietypublishing.org/doi/full/10.1098/rsta.2011.0081
+.. eq. 2.10 (classical min norm), their values map onto our values as:
+..
+.. - α=λ²
+.. - W=R⁻¹ (pos semidef weight matrix)
+.. - K=G
+.. - ϕ=x
+.. - C=H
+..
+
+In :footcite:`Pascual-Marqui2011` eq. 2.13 states that the following system
+of equations can be used to find the weights, :math:`\forall i \in {1, ..., P}`
+(note that here we represent the equations from that paper using our notation):
+
+.. math:: r_i = \left[ G_i^\top \left( GRG^\top + \lambda^2C \right)^{-1} G_i \right] ^{-^1/_2}
+
+And an iterative algorithm can be used to find the values for the weights
+:math:`r_i` that satisfy these equations as:
+
+1. Initialize identity weights.
+2. Compute :math:`N= \left( GRG^\top + \lambda^2C \right)^{-1}`.
+3. Holding :math:`N` fixed, compute new weights :math:`r_i = \left[ G_i^\top N G_i \right]^{-^1/_2}`.
+4. Using new weights, go to step (2) until convergence.
+
+In particular, for step (2) we can use our substitution from :eq:`inv_g_tilde`
+as:
+
+.. math::
+
+    N &= (G R G^\top + \lambda^2 C)^{-1} \\
+      &= (C^{^1/_2} \tilde{G} R \tilde{G}^\top C^{^1/_2} + \lambda^2 C)^{-1} \\
+      &= (C^{^1/_2} (\tilde{G} R \tilde{G}^\top + \lambda^2 I) C^{^1/_2})^{-1} \\
+      &= C^{-^1/_2} (\tilde{G} R \tilde{G}^\top + \lambda^2 I)^{-1} C^{-^1/_2} \\
+      &= C^{-^1/_2} (\tilde{G} R \tilde{G}^\top + \lambda^2 I)^{-1} C^{-^1/_2}\ .
+
+Then defining :math:`\tilde{N}` as the whitened version of :math:`N`, i.e.,
+the regularized pseudoinverse of :math:`\tilde{G}R\tilde{G}^\top`, we can
+compute :math:`N` as:
+
+.. math::
+
+    N &= C^{-^1/_2} (U_{\tilde{G}R\tilde{G}^\top} \Lambda_{\tilde{G}R\tilde{G}^\top} V_{\tilde{G}R\tilde{G}^\top}^\top + \lambda^2 I)^{-1} C^{-^1/_2} \\
+      &= C^{-^1/_2} (U_{\tilde{G}R\tilde{G}^\top} (\Lambda_{\tilde{G}R\tilde{G}^\top} + \lambda^2 I) V_{\tilde{G}R\tilde{G}^\top}^\top)^{-1} C^{-^1/_2} \\
+      &= C^{-^1/_2} V_{\tilde{G}R\tilde{G}^\top} (\Lambda_{\tilde{G}R\tilde{G}^\top} + \lambda^2 I)^{-1} U_{\tilde{G}R\tilde{G}^\top}^\top C^{-^1/_2} \\
+      &= C^{-^1/_2} \tilde{N} C^{-^1/_2}\ .
+
+In step (3) we left and right multiply with subsets of :math:`G`, but making
+the substitution :eq:`inv_g_tilde` we see that we equivalently compute:
+
+.. math::
+
+    r_i &= \left[ G_i^\top N G_i \right]^{-^1/_2} \\
+        &= \left[ (C^{^1/_2} \tilde{G}_i)^\top N C^{^1/_2} \tilde{G}_i \right]^{-^1/_2} \\
+        &= \left[ \tilde{G}_i^\top C^{^1/_2} N C^{^1/_2} \tilde{G}_i \right]^{-^1/_2} \\
+        &= \left[ \tilde{G}_i^\top C^{^1/_2} C^{-^1/_2} \tilde{N} C^{-^1/_2} C^{^1/_2} \tilde{G}_i \right]^{-^1/_2} \\
+        &= \left[ \tilde{G}_i^\top \tilde{N} \tilde{G}_i \right]^{-^1/_2}\ .
+
+For convenience, we thus never need to compute :math:`N` itself but can instead
+compute the whitened version :math:`\tilde{N}`.
 
 Predicted data
 ~~~~~~~~~~~~~~

@@ -125,7 +125,7 @@ subjects_dir = data_path + '/subjects'
 surfer_kwargs = dict(
     hemi='rh', subjects_dir=subjects_dir,
     clim=dict(kind='value', lims=[8, 12, 15]), views='lateral',
-    initial_time=time_max, time_unit='s', size=(800, 800), smoothing_steps=5)
+    initial_time=time_max, time_unit='s', size=(800, 800), smoothing_steps=10)
 brain = stc.plot(**surfer_kwargs)
 brain.add_foci(vertno_max, coords_as_verts=True, hemi='rh', color='blue',
                scale_factor=0.6, alpha=0.5)
@@ -175,10 +175,8 @@ del stc_vec
 ###############################################################################
 # Now let's look at each solver:
 
-for mi, (method, lims) in enumerate((('dSPM', [8, 12, 15]),
-                                     ('sLORETA', [3, 5, 7]),
-                                     ('eLORETA', [0.75, 1.25, 1.75]),)):
-    surfer_kwargs['clim']['lims'] = lims
+surfer_kwargs['clim'].update(kind='percent', lims=[99, 99.9, 99.99])
+for mi, method in enumerate(['dSPM', 'sLORETA', 'eLORETA']):
     stc = apply_inverse(evoked, inverse_operator, lambda2,
                         method=method, pick_ori=None)
     brain = stc.plot(figure=mi, **surfer_kwargs)

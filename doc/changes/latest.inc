@@ -132,6 +132,17 @@ Bug
 
 - Fix a bug in :meth:`mne.MixedSourceEstimate.plot_surface` that prevented plotting in latest PySurfer by `Christian O'Reilly`_.
 
+- Fix ``method='eLORETA'`` in :func:`mne.minimum_norm.apply_inverse`, by `Eric Larson`_:
+
+  1. regularization, which was off by roughly a factor of a square root
+  2. units, which are now nAm instead of being arbitrary
+  3. explained variance and residuals, which were previously unavailable
+  4. ``force_equal`` in the case of loose orientations, which previously
+     defaulted to ``True`` now defaults to ``False``.
+     Reapplying orientation priors at each iteration of the algorithm
+     sufficiently preserves a smooth transition between loose=0. to loose=1.
+     without compromising localization accuracy in testing.
+
 - Fix bug in ``method='eLORETA'`` for :func:`mne.minimum_norm.apply_inverse` (and variants) to allow restricting source estimation to a label by `Luke Bloy`_
 
 - Fix :func:`mne.VectorSourceEstimate.normal` to account for cortical patch statistics using ``use_cps=True`` by `Eric Larson`_
