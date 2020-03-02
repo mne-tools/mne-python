@@ -801,8 +801,9 @@ def test_io_inverse_operator():
 def test_apply_inverse_cov():
     """Test MNE with precomputed inverse operator on cov."""
     raw = read_raw_fif(fname_raw, preload=True)
-    # # use 10 sec of data
-    # raw.crop(0, 10)
+    # use 10 sec of data
+    raw.crop(0, 10)
+
     raw.filter(1, None)
     label_lh = read_label(fname_label % 'Aud-lh')
 
@@ -840,18 +841,11 @@ def test_apply_inverse_cov():
 
             n_sources = stc_raw.data.shape[0]
             raw_data = stc_raw.data.reshape(n_sources, -1)
-            exp_res = cov_scale * np.diag(np.cov(raw_data, ddof=0))
-            print(cov_ori, method)
-            print(np.mean(stc_cov.data.ravel() / exp_res))
-            print(np.max(stc_cov.data.ravel() / exp_res))
-            print(np.std(stc_cov.data.ravel() / exp_res))
+            exp_res = cov_scale * np.diag(np.cov(raw_data, ddof=1))
             assert_allclose(exp_res, stc_cov.data.ravel(), atol=1e-26,
                             rtol=1e-8,
                             err_msg=('Failed for pick_ori=%s method=%s'
                                      % (cov_ori, method)))
-            assert_allclose(exp_res, stc_cov.data.ravel(), atol=1e-26, rtol=1e-8)
-
-
 
 
 @testing.requires_testing_data
