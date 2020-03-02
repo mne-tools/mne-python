@@ -24,9 +24,10 @@ from ..io.write import (write_int, write_float_matrix, start_file,
                         start_block, end_block, end_file, write_float,
                         write_coord_trans, write_string)
 
-from ..io.pick import channel_type, pick_info, pick_types
+from ..io.pick import channel_type, pick_info, pick_types, pick_channels
 from ..cov import (compute_whitener, _read_cov, _write_cov, Covariance,
                    prepare_noise_cov)
+from ..evoked import EvokedArray
 from ..forward import (compute_depth_prior, _read_forward_meas_info,
                        is_fixed_orient, compute_orient_prior,
                        convert_forward_solution, _select_orient_forward)
@@ -797,16 +798,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
         dSPM (default) :footcite:`DaleEtAl2000`,
         sLORETA :footcite:`Pascual-Marqui2002`, or
         eLORETA :footcite:`Pascual-Marqui2011`.
-    pick_ori : None | "normal" | "vector"
-        By default (None) pooling is performed by taking the norm of loose/free
-        orientations. In case of a fixed source space no norm is computed
-        leading to signed source activity.
-        If "normal" only the radial component is kept. This is only implemented
-        when working with loose orientations.
-        If "vector", no pooling of the orientations is done and the vector
-        result will be returned in the form of a
-        :class:`mne.VectorSourceEstimate` object. This is only implemented when
-        working with loose orientations.
+    %(pick_ori)s
     prepared : bool
         If True, do not call :func:`prepare_inverse_operator`.
     label : Label | None
@@ -905,7 +897,6 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     K, noise_norm, vertno, source_nn = _assemble_kernel(
         inv, label, method, pick_ori, use_cps=use_cps)
     sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
-    raise RuntimeError('dd')
     logger.info('    Computing residual...')
     # x̂(t) = G ĵ(t) = C ** 1/2 U Π w(t)
     # where the diagonal matrix Π has elements πk = λk γk
@@ -978,14 +969,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
         Set to 1 on raw data.
     time_func : callable
         Linear function applied to sensor space time series.
-    pick_ori : None | "normal" | "vector"
-        If "normal", rather than pooling the orientations by taking the norm,
-        only the radial component is kept. This is only implemented
-        when working with loose orientations.
-        If "vector", no pooling of the orientations is done and the vector
-        result will be returned in the form of a
-        :class:`mne.VectorSourceEstimate` object. This does not work when using
-        an inverse operator with fixed orientations.
+    %(pick_ori)s
     buffer_size : int (or None)
         If not None, the computation of the inverse and the combination of the
         current components is performed in segments of length buffer_size
@@ -1183,14 +1167,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     nave : int
         Number of averages used to regularize the solution.
         Set to 1 on single Epoch by default.
-    pick_ori : None | "normal" | "vector"
-        If "normal", rather than pooling the orientations by taking the norm,
-        only the radial component is kept. This is only implemented
-        when working with loose orientations.
-        If "vector", no pooling of the orientations is done and the vector
-        result will be returned in the form of a
-        :class:`mne.VectorSourceEstimate` object. This does not work when using
-        an inverse operator with fixed orientations.
+    %(pick_ori)s
     return_generator : bool
         Return a generator object instead of a list. This allows iterating
         over the stcs without having to keep them all in memory.
@@ -1228,9 +1205,10 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
 
 
 @verbose
-def apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
+def apply_inverse_cov(cov, info, inverse_operator, nave=1, lambda2=1 / 9,
                       method="dSPM", pick_ori=None, prepared=False,
-                      label=None, method_params=None, verbose=None):
+                      label=None, method_params=None, use_cps=True,
+                      verbose=None):
     """Apply inverse operator to covariance data.
 
     Parameters
@@ -1240,21 +1218,15 @@ def apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
         source power.
     info : dict
         The measurement info to specify the channels to include.
-    nave : int
-        Number of averages used to regularize the solution.
     inverse_operator : instance of InverseOperator
         Inverse operator.
+    nave : int
+        Number of averages used to regularize the solution.
     lambda2 : float
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
         Use minimum norm, dSPM (default), sLORETA, or eLORETA.
-    pick_ori : None | "normal"
-        XXXX this needs to be REPHRASED
-        By default (None) pooling is performed by taking the norm of loose/free
-        orientations. In case of a fixed source space no norm is computed
-        leading to signed source activity.
-        If "normal" only the radial component is kept. This is only implemented
-        when working with loose orientations. XXXXX.
+    %(pick_ori)s
     prepared : bool
         If True, do not call :func:`prepare_inverse_operator`.
     label : Label | None
@@ -1262,6 +1234,7 @@ def apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
         source estimates will be computed for the entire source space.
     method_params : dict | None
         Additional options for eLORETA. See Notes for details.
+    %(use_cps)s
     %(verbose)s
 
     Returns
@@ -1279,61 +1252,36 @@ def apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
     -----
     .. versionadded:: 0.20
     """
-    # Dummy evoked class
-    class FakeEvoked:
-        def __init__(self, _info):
-            self.info = _info
-
-    _check_reference(FakeEvoked(info), inverse_operator['info']['ch_names'])
-    _check_option('method', method, INVERSE_METHODS)
-    _check_option('pick_ori', pick_ori, [None, 'normal'])
-    _check_ori(pick_ori, inverse_operator['source_ori'],
-               inverse_operator['src'])
-    #
-    #   Set up the inverse according to the parameters
-    #
-    _check_ch_names(inverse_operator, info)
-
-    inv = _check_or_prepare(inverse_operator, nave, lambda2, method,
-                            method_params, prepared)
-
-    #
-    #   Pick the correct channels from the data
-    #
-    sel = _pick_channels_inverse_operator(cov['names'], inv)
-    logger.info('Applying inverse operator to cov...')
-    logger.info('    Picked %d channels from the data' % len(sel))
-    logger.info('    Computing inverse...')
-
-    K, noise_norm, vertno, source_nn = _assemble_kernel(inv, label, method,
-                                                        pick_ori)
-
-    # apply imaging kernel
-    sol = np.einsum('ij,ij->i', K, (cov.data[sel][:, sel] @ K.T).T)[:, None]
-
-    is_free_ori = (inverse_operator['source_ori'] ==
-                   FIFF.FIFFV_MNE_FREE_ORI and pick_ori != 'normal')
-
-    # always combine vector components
-    if is_free_ori:
+    _validate_type(cov, Covariance, cov)
+    _validate_type(inverse_operator, InverseOperator, 'inverse_operator')
+    sel = _pick_channels_inverse_operator(cov['names'], inverse_operator)
+    use_names = [cov['names'][idx] for idx in sel]
+    info = pick_info(
+        info, pick_channels(info['ch_names'], use_names, ordered=True))
+    evoked = EvokedArray(
+        np.eye(len(info['ch_names'])), info, nave=nave, comment='cov')
+    is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI)
+    if is_free_ori and pick_ori is None:
+        use_ori = 'vector'
+        combine = True
+    else:
+        use_ori = pick_ori
+        combine = False
+    stc = apply_inverse(
+        evoked, inverse_operator, lambda2, method, use_ori, prepared, label,
+        method_params, use_cps=use_cps)
+    # apply (potentially rotated in the vector case) operator twice
+    K = np.reshape(stc.data, (-1, stc.data.shape[-1]))
+    sol = cov.data[sel][:, sel] @ K.T
+    sol = np.sum(K * sol.T, axis=1, keepdims=True)
+    sol.shape = stc.data.shape[:-1] + (1,)
+    stc = stc.__class__(
+        sol, stc.vertices, stc.tmin, stc.tstep, stc.subject, stc.verbose)
+    if combine:  # combine the three directions
         logger.info('    Combining the current components...')
-        sol = sol[0::3] + sol[1::3] + sol[2::3]
-
-    # kernel is being applied twice so apply noise_norm twice
-    if noise_norm is not None:
-        logger.info('    %s...' % (method,))
-        sol *= noise_norm**2
-
-    tstep = 1.0 / info['sfreq']
-    tmin = 0.0
-    subject = _subject_from_inverse(inverse_operator)
-
-    src_type = _get_src_type(inverse_operator['src'], vertno)
-
-    stc = _make_stc(sol, vertno, tmin=tmin, tstep=tstep, subject=subject,
-                    vector=False, source_nn=source_nn,
-                    src_type=src_type)
-    logger.info('[done]')
+        np.sqrt(stc.data, out=stc.data)
+        stc = stc.magnitude()
+        stc.data *= stc.data
     return stc
 
 

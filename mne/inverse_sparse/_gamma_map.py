@@ -217,7 +217,7 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose="auto", depth=0.8,
     %(rank_None)s
 
         .. versionadded:: 0.18
-    %(pick_ori-vec)s
+    %(pick_ori)s
     %(verbose)s
 
     Returns

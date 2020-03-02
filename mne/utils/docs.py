@@ -318,13 +318,21 @@ depth : None | float | dict
     .. versionchanged:: 0.20
        Depth bias ignored for ``method='eLORETA'``.
 """
-docdict['pick_ori-vec'] = """
-    pick_ori : None | "vector"
-        Only applies to loose/free orientation. By default (None) pooling is
-        performed by taking the norm of the current vectors. Use
-        pick_ori="vector" to return vector source estimate.
+docdict['pick_ori'] = """
+pick_ori : None | "normal" | "vector"
+    Options:
 
-        .. versionadded:: 0.20
+    - ``None``
+        Pooling is performed by taking the norm of loose/free
+        orientations. In case of a fixed source space no norm is computed
+        leading to signed source activity.
+    - ``"normal"``
+        Only the normal to the cortical surface is kept. This is only
+        implemented when working with loose orientations.
+    - ``"vector"``
+        No pooling of the orientations is done, and the vector result
+        will be returned in the form of a :class:`mne.VectorSourceEstimate`
+        object. This is only implemented when working with loose orientations.
 """
 docdict['reduce_rank'] = """
 reduce_rank : bool

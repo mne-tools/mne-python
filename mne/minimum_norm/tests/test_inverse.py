@@ -798,8 +798,12 @@ def test_io_inverse_operator():
 
 
 @testing.requires_testing_data
-def test_apply_inverse_cov():
+@pytest.mark.parametrize('method', INVERSE_METHODS)
+@pytest.mark.parametrize('pick_ori', ['normal', 'vector', None])
+def test_apply_inverse_cov(method, pick_ori):
     """Test MNE with precomputed inverse operator on cov."""
+    if method == 'eLORETA':  # too slow
+        return
     raw = read_raw_fif(fname_raw, preload=True)
     # use 10 sec of data
     raw.crop(0, 10)
@@ -808,44 +812,31 @@ def test_apply_inverse_cov():
     label_lh = read_label(fname_label % 'Aud-lh')
 
     # test with a free ori inverse
-    inverse_operator = read_inverse_operator(fname_full)
+    inverse_operator = read_inverse_operator(fname_inv)
 
     data_cov = compute_raw_covariance(raw, tmin=raw.times[0],
                                       tmax=raw.times[-1], tstep=None)
 
     with pytest.raises(ValueError, match='has not been prepared'):
-        apply_inverse_cov(data_cov, raw.info, 1, inverse_operator,
+        apply_inverse_cov(data_cov, raw.info, inverse_operator,
                           lambda2=lambda2, prepared=True)
 
-    # don't support pick_ori='vector'
-    with pytest.raises(ValueError, match='Invalid value for the \'pick_ori\''):
-        apply_inverse_cov(data_cov, raw.info, 1, inverse_operator,
-                          lambda2=lambda2, prepared=False, pick_ori='vector')
+    this_inv_op = prepare_inverse_operator(inverse_operator, nave=1,
+                                           lambda2=lambda2, method=method)
 
-    cov_oris = ['normal', None]
-    raw_oris = ['normal', 'vector']
-    # cov_scales = [1.000333024, 3.00098815]
-    cov_scales = [1., 3.]
-    for method in INVERSE_METHODS:
-        this_inv_op = prepare_inverse_operator(inverse_operator, nave=1,
-                                               lambda2=lambda2, method=method)
-        for cov_ori, raw_ori, cov_scale in zip(cov_oris, raw_oris, cov_scales):
-            stc_raw = apply_inverse_raw(raw, this_inv_op, lambda2, method,
-                                        label=label_lh, nave=1,
-                                        pick_ori=raw_ori, prepared=True)
-
-            stc_cov = apply_inverse_cov(data_cov, raw.info, 1, this_inv_op,
-                                        method=method, pick_ori=cov_ori,
-                                        label=label_lh, prepared=True,
-                                        lambda2=lambda2)
-
-            n_sources = stc_raw.data.shape[0]
-            raw_data = stc_raw.data.reshape(n_sources, -1)
-            exp_res = cov_scale * np.diag(np.cov(raw_data, ddof=1))
-            assert_allclose(exp_res, stc_cov.data.ravel(), atol=1e-26,
-                            rtol=1e-8,
-                            err_msg=('Failed for pick_ori=%s method=%s'
-                                     % (cov_ori, method)))
+    raw_ori = 'normal' if pick_ori == 'normal' else 'vector'
+    stc_raw = apply_inverse_raw(
+        raw, this_inv_op, lambda2, method, label=label_lh, nave=1,
+        pick_ori=raw_ori, prepared=True)
+    stc_cov = apply_inverse_cov(
+        data_cov, raw.info, this_inv_op, method=method, pick_ori=pick_ori,
+        label=label_lh, prepared=True, lambda2=lambda2)
+    n_sources = np.prod(stc_cov.data.shape[:-1])
+    raw_data = stc_raw.data.reshape(n_sources, -1)
+    exp_res = np.diag(np.cov(raw_data, ddof=1)).copy()
+    exp_res *= 1 if raw_ori == pick_ori else 3.
+    # XXX not great, see gh-7369
+    assert_allclose(exp_res, stc_cov.data.ravel(), rtol=1e-3)
 
 
 @testing.requires_testing_data
