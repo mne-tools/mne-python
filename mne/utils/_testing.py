@@ -452,8 +452,9 @@ def assert_meg_snr(actual, desired, min_tol, med_tol=500., chpi_med_tol=500.,
 
 def assert_snr(actual, desired, tol):
     """Assert actual and desired arrays are within some SNR tolerance."""
-    snr = (linalg.norm(desired, ord='fro') /
-           linalg.norm(desired - actual, ord='fro'))
+    with np.errstate(divide='ignore'):  # allow infinite
+        snr = (linalg.norm(desired, ord='fro') /
+               linalg.norm(desired - actual, ord='fro'))
     assert snr >= tol, '%f < %f' % (snr, tol)
 
 
