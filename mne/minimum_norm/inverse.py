@@ -1278,7 +1278,7 @@ def apply_inverse_cov(cov, info, inverse_operator, nave=1, lambda2=1 / 9,
     stc = stc.__class__(
         sol, stc.vertices, stc.tmin, stc.tstep, stc.subject, stc.verbose)
     if combine:  # combine the three directions
-        logger.info('    Combining the current components...')
+        logger.info('Combining the current components...')
         np.sqrt(stc.data, out=stc.data)
         stc = stc.magnitude()
         stc.data *= stc.data

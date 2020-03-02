@@ -110,14 +110,12 @@ def _gen_lcmv(active_cov, baseline_cov, common_cov):
 
 
 # generate mne/dSPM source estimate
-def _gen_mne(active_cov, baseline_cov, common_cov, fwd, info, method):
+def _gen_mne(active_cov, baseline_cov, common_cov, fwd, info, method='dSPM'):
     inverse_operator = make_inverse_operator(info, fwd, common_cov)
-    stc_act = apply_inverse_cov(active_cov, info, 1, inverse_operator,
-                                method=method, pick_ori=None, lambda2=1. / 9.,
-                                verbose=True)
-    stc_base = apply_inverse_cov(baseline_cov, info, 1, inverse_operator,
-                                 method=method, pick_ori=None, lambda2=1. / 9.,
-                                 verbose=True)
+    stc_act = apply_inverse_cov(active_cov, info, inverse_operator,
+                                method=method, verbose=True)
+    stc_base = apply_inverse_cov(baseline_cov, info, inverse_operator,
+                                 method=method, verbose=True)
     stc_act /= stc_base
     return stc_act
 
@@ -125,17 +123,14 @@ def _gen_mne(active_cov, baseline_cov, common_cov, fwd, info, method):
 # Compute source estimates
 stc_dics = _gen_dics(active_win, baseline_win, epochs)
 stc_lcmv = _gen_lcmv(active_cov, baseline_cov, common_cov)
-stc_mne = _gen_mne(active_cov, baseline_cov, common_cov, fwd, epochs.info,
-                   'MNE')
-stc_dspm = _gen_mne(active_cov, baseline_cov, common_cov, fwd, epochs.info,
-                    'dSPM')
+stc_dspm = _gen_mne(active_cov, baseline_cov, common_cov, fwd, epochs.info)
 
 ###############################################################################
 # Plot source estimates
 # ---------------------
 
-for method, stc in zip(['DICS', 'LCMV', 'MNE', 'dSPM'],
-                       [stc_dics, stc_lcmv, stc_mne, stc_dspm]):
+for method, stc in zip(['DICS', 'LCMV', 'dSPM'],
+                       [stc_dics, stc_lcmv, stc_dspm]):
     title = '%s source power in the 12-30 Hz frequency band' % method
     brain = stc.plot(hemi='rh', subjects_dir=subjects_dir,
                      subject=subject, time_label=title)

@@ -48,9 +48,10 @@ epochs_noise = mne.Epochs(raw, events, event_id, tmin, tmax=0., proj=True,
 noise_cov = mne.compute_raw_covariance(
     raw_empty_room, method=['empirical', 'shrunk'])
 
+raw.filter(4, 12)
 epochs = mne.Epochs(raw.copy().filter(4, 12), events, event_id, tmin, tmax,
                     proj=True, picks=('meg', 'eog'), baseline=None,
-                    reject=reject)
+                    reject=reject, decim=5, preload=True)
 
 data_cov = mne.compute_covariance(
     epochs, tmin=0., tmax=0.2, method=['shrunk', 'empirical'], rank=None,
@@ -100,14 +101,12 @@ info = evoked.info
 inverse_operator = make_inverse_operator(info, fwd, noise_cov,
                                          loose=0.2, depth=0.8)
 
-stc_act = apply_inverse_cov(data_cov, evoked.info, 1 / 9, inverse_operator,
-                            method='dSPM', pick_ori=None, lambda2=1.,
-                            verbose=True)
-stc_base = apply_inverse_cov(base_cov, evoked.info, 1 / 9, inverse_operator,
-                             method='dSPM', pick_ori=None, lambda2=1.,
-                             verbose=True)
+stc_act = apply_inverse_cov(data_cov, evoked.info, inverse_operator,
+                            nave=len(epochs), method='dSPM', verbose=True)
+stc_base = apply_inverse_cov(base_cov, evoked.info, inverse_operator,
+                             nave=len(epochs), method='dSPM', verbose=True)
 
 # Power is relative to the baseline
 stc_act /= stc_base
-stc_act.plot(subject='sample', subjects_dir=subjects_dir, hemi='both',
-             clim=dict(kind='percent', lims=(50, 90, 98)))
+brain = stc_act.plot(subject='sample', subjects_dir=subjects_dir,
+                     clim=dict(kind='percent', lims=(50, 90, 98)))
