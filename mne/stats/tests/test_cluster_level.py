@@ -215,53 +215,61 @@ def test_cluster_permutation_test(numba_conditional):
                                  stat_fun=stat_fun)
 
 
-def test_cluster_permutation_t_test(numba_conditional):
+@pytest.mark.parametrize('stat_fun', [
+    ttest_1samp_no_p,
+    partial(ttest_1samp_no_p, sigma=1e-1)
+])
+def test_cluster_permutation_t_test(numba_conditional, stat_fun):
     """Test cluster level permutations T-test."""
     condition1_1d, condition2_1d, condition1_2d, condition2_2d = \
         _get_conditions()
 
     # use a very large sigma to make sure Ts are not independent
-    stat_funs = [ttest_1samp_no_p,
-                 partial(ttest_1samp_no_p, sigma=1e-1)]
+    for condition1, p in ((condition1_1d, 0.01),
+                          (condition1_2d, 0.01)):
+        # these are so significant we can get away with fewer perms
+        T_obs, clusters, cluster_p_values, hist =\
+            permutation_cluster_1samp_test(condition1, n_permutations=100,
+                                           tail=0, seed=1,
+                                           buffer_size=None)
+        assert_equal(np.sum(cluster_p_values < 0.05), 1)
+        p_min = np.min(cluster_p_values)
+        assert_allclose(p_min, p, atol=1e-6)
 
-    for stat_fun in stat_funs:
-        for condition1, p in ((condition1_1d, 0.01),
-                              (condition1_2d, 0.01)):
-            # these are so significant we can get away with fewer perms
-            T_obs, clusters, cluster_p_values, hist =\
-                permutation_cluster_1samp_test(condition1, n_permutations=100,
-                                               tail=0, seed=1,
-                                               buffer_size=None)
-            assert_equal(np.sum(cluster_p_values < 0.05), 1)
-            p_min = np.min(cluster_p_values)
-            assert_allclose(p_min, p, atol=1e-6)
+        T_obs_pos, c_1, cluster_p_values_pos, _ =\
+            permutation_cluster_1samp_test(condition1, n_permutations=100,
+                                           tail=1, threshold=1.67, seed=1,
+                                           stat_fun=stat_fun,
+                                           buffer_size=None)
 
-            T_obs_pos, c_1, cluster_p_values_pos, _ =\
-                permutation_cluster_1samp_test(condition1, n_permutations=100,
-                                               tail=1, threshold=1.67, seed=1,
-                                               stat_fun=stat_fun,
-                                               buffer_size=None)
+        T_obs_neg, _, cluster_p_values_neg, _ =\
+            permutation_cluster_1samp_test(-condition1, n_permutations=100,
+                                           tail=-1, threshold=-1.67,
+                                           seed=1, stat_fun=stat_fun,
+                                           buffer_size=None)
+        assert_array_equal(T_obs_pos, -T_obs_neg)
+        assert_array_equal(cluster_p_values_pos < 0.05,
+                           cluster_p_values_neg < 0.05)
 
-            T_obs_neg, _, cluster_p_values_neg, _ =\
-                permutation_cluster_1samp_test(-condition1, n_permutations=100,
-                                               tail=-1, threshold=-1.67,
-                                               seed=1, stat_fun=stat_fun,
-                                               buffer_size=None)
-            assert_array_equal(T_obs_pos, -T_obs_neg)
-            assert_array_equal(cluster_p_values_pos < 0.05,
-                               cluster_p_values_neg < 0.05)
+        # test with 2 jobs and buffer_size enabled
+        buffer_size = condition1.shape[1] // 10
+        with pytest.warns(None):  # sometimes "independently"
+            T_obs_neg_buff, _, cluster_p_values_neg_buff, _ = \
+                permutation_cluster_1samp_test(
+                    -condition1, n_permutations=100, tail=-1,
+                    threshold=-1.67, seed=1, n_jobs=2, stat_fun=stat_fun,
+                    buffer_size=buffer_size)
 
-            # test with 2 jobs and buffer_size enabled
-            buffer_size = condition1.shape[1] // 10
-            with pytest.warns(None):  # sometimes "independently"
-                T_obs_neg_buff, _, cluster_p_values_neg_buff, _ = \
-                    permutation_cluster_1samp_test(
-                        -condition1, n_permutations=100, tail=-1,
-                        threshold=-1.67, seed=1, n_jobs=2, stat_fun=stat_fun,
-                        buffer_size=buffer_size)
+        assert_array_equal(T_obs_neg, T_obs_neg_buff)
+        assert_array_equal(cluster_p_values_neg, cluster_p_values_neg_buff)
 
-            assert_array_equal(T_obs_neg, T_obs_neg_buff)
-            assert_array_equal(cluster_p_values_neg, cluster_p_values_neg_buff)
+        # Bad stat_fun
+        with pytest.raises(TypeError, match='must be .* ndarray'):
+            permutation_cluster_1samp_test(
+                condition1, threshold=1, stat_fun=lambda x: None)
+        with pytest.raises(ValueError, match='not compatible'):
+            permutation_cluster_1samp_test(
+                condition1, threshold=1, stat_fun=lambda x: stat_fun(x)[:-1])
 
 
 def test_cluster_permutation_with_connectivity(numba_conditional):
@@ -416,6 +424,13 @@ def test_cluster_permutation_with_connectivity(numba_conditional):
                                                   threshold=dict(start=1,
                                                                  step=1))
         assert np.min(out_connectivity_6[2]) < 0.05
+
+        with pytest.raises(ValueError, match='not compatible'):
+            with pytest.warns(RuntimeWarning, match='No clusters'):
+                spatio_temporal_func(
+                    X1d_3, n_permutations=50, connectivity=connectivity,
+                    threshold=1e-3, stat_fun=lambda *x: f_oneway(*x)[:-1],
+                    buffer_size=None)
 
 
 def test_permutation_connectivity_equiv(numba_conditional):
