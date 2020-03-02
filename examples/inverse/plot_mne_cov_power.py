@@ -51,7 +51,7 @@ noise_cov = mne.compute_raw_covariance(
 raw.filter(4, 12)
 epochs = mne.Epochs(raw.copy().filter(4, 12), events, event_id, tmin, tmax,
                     proj=True, picks=('meg', 'eog'), baseline=None,
-                    reject=reject, decim=5, preload=True)
+                    reject=reject, preload=True)
 
 data_cov = mne.compute_covariance(
     epochs, tmin=0., tmax=0.2, method=['shrunk', 'empirical'], rank=None,
