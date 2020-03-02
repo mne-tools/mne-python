@@ -238,6 +238,11 @@ def test_io_cov(tmpdir):
 @pytest.mark.parametrize('method', (None, 'empirical', 'shrunk'))
 def test_cov_estimation_on_raw(method, tmpdir):
     """Test estimation from raw (typically empty room)."""
+    if method == 'shrunk':
+        try:
+            import sklearn
+        except Exception as exp:
+            pytest.skip('sklearn is required, got %s' % (exp,))
     raw = read_raw_fif(raw_fname, preload=True)
     cov_mne = read_cov(erm_cov_fname)
     method_params = dict(shrunk=dict(shrinkage=[0]))
