@@ -39,7 +39,8 @@ from .utils import (check_fname, logger, verbose, check_version, _time_mask,
                     _check_option, eigh)
 from . import viz
 
-from .fixes import BaseEstimator, _logdet
+from .fixes import (BaseEstimator, EmpiricalCovariance, _logdet,
+                    empirical_covariance, log_likelihood)
 
 
 def _check_covs_algebra(cov1, cov2):
@@ -945,7 +946,6 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                              scalings, n_jobs, stop_early, picks_list, rank):
     """Compute covariance auto mode."""
     # rescale to improve numerical stability
-    from sklearn.covariance import EmpiricalCovariance
     orig_rank = rank
     rank = compute_rank(RawArray(data.T, info, copy=None, verbose=False),
                         rank, scalings, info)
@@ -1195,7 +1195,6 @@ class _RegCovariance(BaseEstimator):
 
     def fit(self, X):
         """Fit covariance model with classical diagonal regularization."""
-        from sklearn.covariance import EmpiricalCovariance
         self.estimator_ = EmpiricalCovariance(
             store_precision=self.store_precision,
             assume_centered=self.assume_centered)
@@ -1236,7 +1235,6 @@ class _ShrunkCovariance(BaseEstimator):
     def fit(self, X):
         """Fit covariance model with oracle shrinkage regularization."""
         from sklearn.covariance import shrunk_covariance
-        from sklearn.covariance import EmpiricalCovariance
         self.estimator_ = EmpiricalCovariance(
             store_precision=self.store_precision,
             assume_centered=self.assume_centered)
@@ -1281,7 +1279,6 @@ class _ShrunkCovariance(BaseEstimator):
 
     def score(self, X_test, y=None):
         """Delegate to modified EmpiricalCovariance instance."""
-        from sklearn.covariance import empirical_covariance, log_likelihood
         # compute empirical covariance of the test set
         test_cov = empirical_covariance(X_test - self.estimator_.location_,
                                         assume_centered=True)
