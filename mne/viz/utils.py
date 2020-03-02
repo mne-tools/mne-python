@@ -1974,7 +1974,7 @@ class DraggableColorbar(object):
         elif self.index >= len(self.cycle):
             self.index = 0
         cmap = self.cycle[self.index]
-        self.cbar.set_cmap(cmap)
+        self.cbar.mappable.set_cmap(cmap)
         self.cbar.draw_all()
         self.mappable.set_cmap(cmap)
         self.mappable.set_norm(self.cbar.norm)

@@ -78,8 +78,9 @@ class RawNIRX(BaseRaw):
 
         # Read number of rows/samples of wavelength data
         last_sample = -1
-        for line in _open(files['wl1']):
-            last_sample += 1
+        with _open(files['wl1']) as fid:
+            for line in fid:
+                last_sample += 1
 
         # Read participant information file
         inf = ConfigParser(allow_no_value=True)
