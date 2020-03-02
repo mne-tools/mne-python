@@ -1202,7 +1202,6 @@ class _RegCovariance(BaseEstimator):
 
         self.covariance_ = self.estimator_.fit(X).covariance_
         self.covariance_ = 0.5 * (self.covariance_ + self.covariance_.T)
-        self.covariance_ *= X.shape[0] / (X.shape[0] - 1)
         cov_ = Covariance(
             data=self.covariance_, names=self.info['ch_names'],
             bads=self.info['bads'], projs=self.info['projs'],
@@ -1282,11 +1281,10 @@ class _ShrunkCovariance(BaseEstimator):
 
     def score(self, X_test, y=None):
         """Delegate to modified EmpiricalCovariance instance."""
-        # compute empirical covariance of the test set
         from sklearn.covariance import empirical_covariance, log_likelihood
+        # compute empirical covariance of the test set
         test_cov = empirical_covariance(X_test - self.estimator_.location_,
                                         assume_centered=True)
-        test_cov *= X_test.shape[0] / (X_test.shape[0] - 1)
         if np.any(self.zero_cross_cov_):
             test_cov[self.zero_cross_cov_] = 0.
         res = log_likelihood(test_cov, self.estimator_.get_precision())
