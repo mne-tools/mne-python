@@ -91,13 +91,15 @@ del rm_meg
 
 brain_ple_emeg = ple_psf_emeg.plot('sample', 'inflated', 'lh',
                                    subjects_dir=subjects_dir, figure=1,
-                                   clim=dict(kind='value', lims=(0, 2, 4)),
-                                   title='PLE PSF EMEG')
+                                   clim=dict(kind='value', lims=(0, 2, 4)))
+
+brain_ple_emeg.add_text(0.1, 0.9, 'PLE PSF EMEG', 'title', font_size=16)
 
 brain_ple_meg = ple_psf_meg.plot('sample', 'inflated', 'lh',
                                  subjects_dir=subjects_dir, figure=2,
-                                 clim=dict(kind='value', lims=(0, 2, 4)),
-                                 title='PLE PSF MEG')
+                                 clim=dict(kind='value', lims=(0, 2, 4)))
+
+brain_ple_meg.add_text(0.1, 0.9, 'PLE PSF MEG', 'title', font_size=16)
 
 # Subtract the two distributions and plot this difference
 diff_ple = ple_psf_emeg - ple_psf_meg
@@ -105,8 +107,9 @@ diff_ple = ple_psf_emeg - ple_psf_meg
 brain_ple_diff = diff_ple.plot('sample', 'inflated', 'lh',
                                subjects_dir=subjects_dir, figure=3,
                                clim=dict(kind='value', pos_lims=(0., .5, 1.)),
-                               smoothing_steps=20,
-                               title='PLE EMEG-MEG')
+                               smoothing_steps=20)
+
+brain_ple_diff.add_text(0.1, 0.9, 'PLE EMEG-MEG', 'title', font_size=16)
 
 ###############################################################################
 # These plots show that with respect to peak localization error, adding EEG to
@@ -115,13 +118,15 @@ brain_ple_diff = diff_ple.plot('sample', 'inflated', 'lh',
 
 brain_sd_emeg = sd_psf_emeg.plot('sample', 'inflated', 'lh',
                                  subjects_dir=subjects_dir, figure=4,
-                                 clim=dict(kind='value', lims=(0, 2, 4)),
-                                 title='SD PSF EMEG')
+                                 clim=dict(kind='value', lims=(0, 2, 4)))
+
+brain_sd_emeg.add_text(0.1, 0.9, 'SD PSF EMEG', 'title', font_size=16)
 
 brain_sd_meg = sd_psf_meg.plot('sample', 'inflated', 'lh',
                                subjects_dir=subjects_dir, figure=5,
-                               clim=dict(kind='value', lims=(0, 2, 4)),
-                               title='SD PSF MEG')
+                               clim=dict(kind='value', lims=(0, 2, 4)))
+
+brain_sd_meg.add_text(0.1, 0.9, 'SD PSF MEG', 'title', font_size=16)
 
 # Subtract the two distributions and plot this difference
 diff_sd = sd_psf_emeg - sd_psf_meg
@@ -129,8 +134,9 @@ diff_sd = sd_psf_emeg - sd_psf_meg
 brain_sd_diff = diff_sd.plot('sample', 'inflated', 'lh',
                              subjects_dir=subjects_dir, figure=6,
                              clim=dict(kind='value', pos_lims=(0., .5, 1.)),
-                             smoothing_steps=20,
-                             title='SD EMEG-MEG')
+                             smoothing_steps=20)
+
+brain_sd_diff.add_text(0.1, 0.9, 'SD EMEG-MEG', 'title', font_size=16)
 
 ###############################################################################
 # Adding EEG to MEG decreases the spatial extent of point-spread
