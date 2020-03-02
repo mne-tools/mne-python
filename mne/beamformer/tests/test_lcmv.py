@@ -165,6 +165,7 @@ def test_lcmv_vector():
     lcmv_ori = list()
     for ti in range(n_vertices):
         this_evoked = evoked.copy().crop(evoked.times[ti], evoked.times[ti])
+        data_cov['diag'] = False
         data_cov['data'] = (np.outer(this_evoked.data, this_evoked.data) +
                             noise_cov['data'])
         vals = linalg.svdvals(data_cov['data'])

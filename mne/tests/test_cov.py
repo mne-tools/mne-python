@@ -187,6 +187,14 @@ def test_ad_hoc_cov(tmpdir):
     assert 'Covariance' in repr(cov)
     cov2 = read_cov(out_fname)
     assert_array_almost_equal(cov['data'], cov2['data'])
+    cov['data'] = np.diag(cov['data'])
+    with pytest.raises(RuntimeError, match='attributes inconsistent'):
+        cov._get_square()
+    cov['diag'] = False
+    cov._get_square()
+    cov['data'] = np.diag(cov['data'])
+    with pytest.raises(RuntimeError, match='attributes inconsistent'):
+        cov._get_square()
 
 
 def test_io_cov(tmpdir):

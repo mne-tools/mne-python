@@ -492,8 +492,9 @@ class _BaseSourceEstimate(TimeMixin):
             kernel, sens_data = data
             data = None
             if kernel.shape[1] != sens_data.shape[0]:
-                raise ValueError('kernel and sens_data have invalid '
-                                 'dimensions')
+                raise ValueError('kernel (%s) and sens_data (%s) have invalid '
+                                 'dimensions'
+                                 % (kernel.shape, sens_data.shape))
             if sens_data.ndim != 2:
                 raise ValueError('The sensor data must have 2 dimensions, got '
                                  '%s' % (sens_data.ndim,))

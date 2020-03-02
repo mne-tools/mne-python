@@ -150,7 +150,7 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     ch_names = list(info['ch_names'])
 
     data_cov = pick_channels_cov(data_cov, include=ch_names)
-    Cm = data_cov['data']
+    Cm = data_cov._get_square()
     if 'estimator' in data_cov:
         del data_cov['estimator']
 
