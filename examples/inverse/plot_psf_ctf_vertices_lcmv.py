@@ -112,15 +112,17 @@ vertno_lh = forward['src'][0]['vertno']  # vertex of selected source
 verttrue = [vertno_lh[sources[0]]]  # pick one vertex
 
 brain_pre = stc_pre.plot('sample', 'inflated', 'lh', subjects_dir=subjects_dir,
-                         figure=1,
-                         title='LCMV with pre-stimulus Covariance',
-                         clim=dict(kind='value', lims=(0, .2, .4)))
+                         figure=1, clim=dict(kind='value', lims=(0, .2, .4)))
+
+brain_pre.add_text(0.1, 0.9, 'LCMV beamformer with pre-stimulus\ndata '
+                   'covariance matrix', 'title', font_size=16)
 
 brain_post = stc_post.plot('sample', 'inflated', 'lh',
                            subjects_dir=subjects_dir,
-                           figure=2,
-                           title='LCMV with post-stimulus Covariance',
-                           clim=dict(kind='value', lims=(0, .2, .4)))
+                           figure=2, clim=dict(kind='value', lims=(0, .2, .4)))
+
+brain_post.add_text(0.1, 0.9, 'LCMV beamformer with post-stimulus\ndata '
+                    'covariance matrix', 'title', font_size=16)
 
 # Mark true source location for CTFs
 brain_pre.add_foci(verttrue, coords_as_verts=True, scale_factor=1., hemi='lh',
