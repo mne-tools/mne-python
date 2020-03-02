@@ -38,10 +38,11 @@ raw_fname = op.join(data_path, 'sub-{}'.format(subject), 'meg',
 
 raw = mne.io.read_raw_fif(raw_fname)
 
-# We are interested in the beta band. So we can filter
+# We are interested in the beta band (12-30 Hz)
 raw.load_data().filter(12, 30)
 
-# Set picks, use a single sensor type
+# The DICS beamformer currently only supports a single sensor type.
+# We'll use the gradiometers in this example.
 picks = mne.pick_types(raw.info, meg='grad', exclude='bads')
 
 # Read epochs
@@ -55,23 +56,35 @@ fname_fwd = op.join(data_path, 'derivatives', 'sub-{}'.format(subject),
 subjects_dir = op.join(data_path, 'derivatives', 'freesurfer', 'subjects')
 
 fwd = mne.read_forward_solution(fname_fwd)
-
-# fix the subject in fwd['src']
+# fix the subject in fwd['src'] (it's mis-labeled in the dataset)
 for src in fwd['src']:
     src['subject_his_id'] = subject
 
 ###############################################################################
-# now we can compute some source estimates using different methods.
-#
-# define the active and baseline windows in seconds
-# ERS activity starts at 0.5 seconds after stimulus onset
+# Compute covariances
+# -------------------
+# ERS activity starts at 0.5 seconds after stimulus onset.
+
 active_win = (0.5, 1.5)
 baseline_win = (-1, 0)
 
+baseline_cov = compute_covariance(epochs, tmin=baseline_win[0],
+                                  tmax=baseline_win[1], method='shrunk',
+                                  rank=None)
+active_cov = compute_covariance(epochs, tmin=active_win[0], tmax=active_win[1],
+                                method='shrunk', rank=None)
+
+# Weighted averaging is already in the addition of covariance objects.
+common_cov = baseline_cov + active_cov
+
 
 ###############################################################################
-# generate a dics source estimate - see :ref:`ex-inverse-source-power` for
-# more information
+# Compute some source estimates
+# -----------------------------
+# Here we will use DICS, LCMV, and dSPM.
+#
+# See :ref:`ex-inverse-source-power` for more information about DICS.
+
 def _gen_dics(active_win, baseline_win, epochs):
     freqs = np.logspace(np.log10(12), np.log10(30), 9)
     csd = csd_morlet(epochs, freqs, tmin=-1, tmax=1.5, decim=20)
@@ -80,17 +93,16 @@ def _gen_dics(active_win, baseline_win, epochs):
     csd_ers = csd_morlet(epochs, freqs, tmin=active_win[0], tmax=active_win[1],
                          decim=20)
     filters = make_dics(epochs.info, fwd, csd.mean(), pick_ori='max-power')
-    baseline_source_power, freqs = apply_dics_csd(csd_baseline.mean(), filters)
-    beta_source_power, freqs = apply_dics_csd(csd_ers.mean(), filters)
-    stc = beta_source_power / baseline_source_power
-    return stc
+    stc_base, freqs = apply_dics_csd(csd_baseline.mean(), filters)
+    stc_act, freqs = apply_dics_csd(csd_ers.mean(), filters)
+    stc_act /= stc_base
+    return stc_act
 
 
 # generate lcmv source estimate
 def _gen_lcmv(active_cov, baseline_cov, common_cov):
     filters = make_lcmv(epochs.info, fwd, common_cov, reg=0.05,
-                        noise_cov=None, pick_ori='max-power',
-                        weight_norm='nai', rank=None)
+                        noise_cov=None, pick_ori='max-power')
     stc_base = apply_lcmv_cov(baseline_cov, filters)
     stc_act = apply_lcmv_cov(active_cov, filters)
     stc_act /= stc_base
@@ -99,34 +111,16 @@ def _gen_lcmv(active_cov, baseline_cov, common_cov):
 
 # generate mne/dSPM source estimate
 def _gen_mne(active_cov, baseline_cov, common_cov, fwd, info, method):
-    inverse_operator = make_inverse_operator(info, fwd, common_cov,
-                                             loose=0.2, depth=0.8)
-
-    stc_act = apply_inverse_cov(
-        active_cov, info, 1, inverse_operator,
-        method=method, pick_ori=None,
-        lambda2=1. / 9.,
-        verbose=True, dB=False)
-
-    stc_base = apply_inverse_cov(
-        baseline_cov, info, 1, inverse_operator,
-        method=method, pick_ori=None,
-        lambda2=1. / 9.,
-        verbose=True, dB=False)
+    inverse_operator = make_inverse_operator(info, fwd, common_cov)
+    stc_act = apply_inverse_cov(active_cov, info, 1, inverse_operator,
+                                method=method, pick_ori=None, lambda2=1. / 9.,
+                                verbose=True)
+    stc_base = apply_inverse_cov(baseline_cov, info, 1, inverse_operator,
+                                 method=method, pick_ori=None, lambda2=1. / 9.,
+                                 verbose=True)
     stc_act /= stc_base
     return stc_act
 
-
-###############################################################################
-# compute covariances needed for the lcmv and MNE methods.
-baseline_cov = compute_covariance(epochs, tmin=baseline_win[0],
-                                  tmax=baseline_win[1], method='shrunk',
-                                  rank=None)
-active_cov = compute_covariance(epochs, tmin=active_win[0], tmax=active_win[1],
-                                method='shrunk', rank=None)
-
-# weighted averaging is already in the addition of covariance objects.
-common_cov = baseline_cov + active_cov
 
 # Compute source estimates
 stc_dics = _gen_dics(active_win, baseline_win, epochs)
@@ -136,7 +130,10 @@ stc_mne = _gen_mne(active_cov, baseline_cov, common_cov, fwd, epochs.info,
 stc_dspm = _gen_mne(active_cov, baseline_cov, common_cov, fwd, epochs.info,
                     'dSPM')
 
-# plot source estimates
+###############################################################################
+# Plot source estimates
+# ---------------------
+
 for method, stc in zip(['DICS', 'LCMV', 'MNE', 'dSPM'],
                        [stc_dics, stc_lcmv, stc_mne, stc_dspm]):
     title = '%s source power in the 12-30 Hz frequency band' % method

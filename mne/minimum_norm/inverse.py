@@ -1236,7 +1236,8 @@ def apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
     Parameters
     ----------
     cov : Covariance object
-        Covariance data.
+        Covariance data, computed on the time segment for which to compute
+        source power.
     info : dict
         The measurement info to specify the channels to include.
     nave : int
@@ -1246,16 +1247,14 @@ def apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
     lambda2 : float
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
-        Use minimum norm [1]_, dSPM (default) [2]_, sLORETA [3]_, or
-        eLORETA [4]_.
+        Use minimum norm, dSPM (default), sLORETA, or eLORETA.
     pick_ori : None | "normal"
         XXXX this needs to be REPHRASED
         By default (None) pooling is performed by taking the norm of loose/free
         orientations. In case of a fixed source space no norm is computed
         leading to signed source activity.
         If "normal" only the radial component is kept. This is only implemented
-        when working with loose orientations.
-        XXXXX
+        when working with loose orientations. XXXXX.
     prepared : bool
         If True, do not call :func:`prepare_inverse_operator`.
     label : Label | None
@@ -1267,7 +1266,6 @@ def apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
 
     Returns
     -------
-    XXXX
     stc : SourceEstimate | VectorSourceEstimate | VolSourceEstimate
         The source estimates.
 
@@ -1279,56 +1277,7 @@ def apply_inverse_cov(cov, info, nave, inverse_operator, lambda2=1 / 9,
 
     Notes
     -----
-    Currently only the ``method='eLORETA'`` has additional options.
-    It performs an iterative fit with a convergence criterion, so you can
-    pass a ``method_params`` :class:`dict` with string keys mapping to values
-    for:
-
-        'eps' : float
-            The convergence epsilon (default 1e-6).
-        'max_iter' : int
-            The maximum number of iterations (default 20).
-            If less regularization is applied, more iterations may be
-            necessary.
-        'force_equal' : bool
-            Force all eLORETA weights for each direction for a given
-            location equal. The default is None, which means ``True`` for
-            loose-orientation inverses and ``False`` for free- and
-            fixed-orientation inverses. See below.
-
-    The eLORETA paper [4]_ defines how to compute inverses for fixed- and
-    free-orientation inverses. In the free orientation case, the X/Y/Z
-    orientation triplet for each location is effectively multiplied by a
-    3x3 weight matrix. This is the behavior obtained with
-    ``force_equal=False`` parameter.
-
-    However, other noise normalization methods (dSPM, sLORETA) multiply all
-    orientations for a given location by a single value.
-    Using ``force_equal=True`` mimics this behavior by modifying the iterative
-    algorithm to choose uniform weights (equivalent to a 3x3 diagonal matrix
-    with equal entries).
-
-    It is necessary to use ``force_equal=True``
-    with loose orientation inverses (e.g., ``loose=0.2``), otherwise the
-    solution resembles a free-orientation inverse (``loose=1.0``).
-    It is thus recommended to use ``force_equal=True`` for loose orientation
-    and ``force_equal=False`` for free orientation inverses. This is the
-    behavior used when the parameter ``force_equal=None`` (default behavior).
-
-    References
-    ----------
-    .. [1] Hämäläinen M S and Ilmoniemi R. Interpreting magnetic fields of
-           the brain: minimum norm estimates. Medical & Biological Engineering
-           & Computing, 32(1):35-42, 1994.
-    .. [2] Dale A, Liu A, Fischl B, Buckner R. (2000) Dynamic statistical
-           parametric mapping: combining fMRI and MEG for high-resolution
-           imaging of cortical activity. Neuron, 26:55-67.
-    .. [3] Pascual-Marqui RD (2002), Standardized low resolution brain
-           electromagnetic tomography (sLORETA): technical details. Methods
-           Find. Exp. Clin. Pharmacology, 24(D):5-12.
-    .. [4] Pascual-Marqui RD (2007). Discrete, 3D distributed, linear imaging
-           methods of electric neuronal activity. Part 1: exact, zero error
-           localization. arXiv:0710.3341
+    .. versionadded:: 0.20
     """
     # Dummy evoked class
     class FakeEvoked:

@@ -3,10 +3,9 @@
 Compute source power estimate by projecting the covariance with MNE
 ===================================================================
 
-We can use the MNE operator like a beamformer to get a power
-estimate by source localizing the bandpass filtered
-covariance matrix.
-
+We can apply the MNE inverse operator to a covariance matrix to obtain
+an estimate of source power. This is computationally more efficient than first
+estimating the source timecourses and then computing their power.
 """
 # Author: Denis A. Engemann <denis-alexander.engemann@inria.fr>
 #         Luke Bloy <luke.bloy@gmail.com>
@@ -38,8 +37,7 @@ events = mne.find_events(raw, stim_channel='STI 014')
 
 # event trigger and conditions
 event_id = dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4)
-tmin = -0.2  # start of each epoch (200ms before the trigger)
-tmax = 0.5  # end of each epoch (500ms after the trigger)
+tmin, tmax = -0.2, 0.5
 raw.info['bads'] = ['MEG 2443', 'EEG 053']
 baseline = (None, 0)  # means from the first instant to t = 0
 reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
@@ -102,20 +100,14 @@ info = evoked.info
 inverse_operator = make_inverse_operator(info, fwd, noise_cov,
                                          loose=0.2, depth=0.8)
 
-stc_er = apply_inverse_cov(
-    data_cov, evoked.info, 1 / 9, inverse_operator,
-    method='dSPM', pick_ori=None,
-    lambda2=1.,
-    verbose=True, dB=False)
-
-stc_base = apply_inverse_cov(
-    base_cov, evoked.info, 1 / 9, inverse_operator,
-    method='dSPM', pick_ori=None,
-    lambda2=1.,
-    verbose=True, dB=False)
+stc_act = apply_inverse_cov(data_cov, evoked.info, 1 / 9, inverse_operator,
+                            method='dSPM', pick_ori=None, lambda2=1.,
+                            verbose=True)
+stc_base = apply_inverse_cov(base_cov, evoked.info, 1 / 9, inverse_operator,
+                             method='dSPM', pick_ori=None, lambda2=1.,
+                             verbose=True)
 
 # Power is relative to the baseline
-stc = stc_er / stc_base
-
-stc.plot(subject='sample', subjects_dir=subjects_dir, hemi='both',
-         clim=dict(kind='percent', lims=(50, 90, 98)))
+stc_act /= stc_base
+stc_act.plot(subject='sample', subjects_dir=subjects_dir, hemi='both',
+             clim=dict(kind='percent', lims=(50, 90, 98)))

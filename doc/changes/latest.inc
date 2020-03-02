@@ -17,7 +17,7 @@ Changelog
 
 - Improved :func:`mne.viz.plot_epochs` to label epoch counts starting from 0 `Sophie Herbst`_
 
-- Add :func:`minimum_norm.apply_inverse_cov` to compute static power by applying inverse solutions to a data covariance matrix by `Denis Engemann`_.
+- Add :func:`minimum_norm.apply_inverse_cov` to compute static power by applying inverse solutions to a data covariance matrix by `Denis Engemann`_ and `Luke Bloy`_
 
 - Add :func:`mne.minimum_norm.resolution_metrics` to compute various resolution metrics for inverse solutions, by `Olaf Hauk`_
 
