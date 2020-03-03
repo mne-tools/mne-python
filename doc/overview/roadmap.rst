@@ -110,9 +110,9 @@ of by MNE. Subgoals consist of:
 
 - Develop a (short as possible) example that shows people how to run a minimal
   task remotely, including setting up access, cluster, nodes, etc.
-- Adapt
-  MNE-study-template_ code to use cloud computing (optionally, based on
-  config) rather than local resources.
+- Adapt `MNE-study-template <https://github.com/mne-tools/mne-study-template>`__
+  code to use cloud computing (optionally, based on config) rather than local
+  resources.
 
 
 Tutorial / example overhaul
@@ -177,5 +177,24 @@ as well as:
 - `BNCI Horizon <http://bnci-horizon-2020.eu/database/data-sets>`__
     BCI datasets.
 
-.. LINKS
-.. _MNE-study-template: https://github.com/mne-tools/mne-study-template
+
+Integrate OpenMEEG via improved Python bindings
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+`OpenMEEG <http://openmeeg.github.io>`__ is a state-of-the art solver for
+forward modeling in the field of brain imaging with MEG/EEG. It solves
+numerically partial differential equations (PDE). It is written in C++ with
+Python bindings written in `SWIG <https://github.com/openmeeg/openmeeg>`__.
+The ambition of the project is to integrate OpenMEEG into MNE offering to MNE
+the ability to solve more forward problems (cortical mapping, intracranial
+recordings, etc.). Some software tasks that shall be completed:
+
+- Cleanup Python bindings (remove useless functions, check memory managements,
+  etc.)
+- Write example scripts for OpenMEEG that automatically generate web pages as
+  for `MNE <http://martinos.org/mne/stable/auto_examples/index.html>`__
+- Understand how MNE encodes info about sensors (location, orientation,
+  integration points etc.) and allow OpenMEEG to be used.
+- Help package OpenMEEG for Debian/Ubuntu
+- Help manage `the continuous integration system
+  <https://ci.inria.fr/openmeeg/>`__
