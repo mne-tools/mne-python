@@ -134,7 +134,7 @@ Coregistration / 3D viewer
 by being tied to Mayavi, Traits, and TraitsUI. We should first refactor in
 several (mostly) separable steps:
 
-1. Responsive code to use traitlets
+1. Refactor code to use traitlets
 2. GUI elements to use PyQt5 (rather than TraitsUI/pyface)
 3. 3D plotting to use our abstracted 3D viz functions rather than Mayavi
 
@@ -174,6 +174,8 @@ as well as:
     and MEG sensor data and source current reconstructions.
 - `BrainSignals <http://www.brainsignals.de>`__
     A website that lists a number of MEG datasets available for download.
+- `BNCI Horizon <http://bnci-horizon-2020.eu/database/data-sets>`__
+    BCI datasets.
 
 .. LINKS
 .. _MNE-study-template: https://github.com/mne-tools/mne-study-template
