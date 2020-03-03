@@ -6,6 +6,7 @@
 import os
 import os.path as op
 import shutil
+import sys
 
 import numpy as np
 import pytest
@@ -38,8 +39,9 @@ def test_check(tmpdir):
     assert op.isfile(fname)
     _check_fname(fname, overwrite='read', must_exist=True)
     os.chmod(fname, 0)
-    with pytest.raises(PermissionError, match='read permissions'):
-        _check_fname(fname, overwrite='read', must_exist=True)
+    if not sys.platform.startswith('win'):
+        with pytest.raises(PermissionError, match='read permissions'):
+            _check_fname(fname, overwrite='read', must_exist=True)
     os.remove(fname)
     assert not op.isfile(fname)
     pytest.raises(IOError, check_fname, 'foo', 'tets-dip.x', (), ('.fif',))

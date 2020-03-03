@@ -152,7 +152,7 @@ def fix_pytest_tmpdir_35():
     if sys.version_info >= (3, 6):
         return
 
-    for key in ('stat', 'mkdir', 'makedirs'):
+    for key in ('stat', 'mkdir', 'makedirs', 'access'):
         _replace(os, key)
     for key in ('split', 'splitext', 'realpath', 'join'):
         _replace(op, key)
