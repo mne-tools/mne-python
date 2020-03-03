@@ -29,7 +29,7 @@ from mne.io import read_raw_fif, RawArray, read_raw_ctf
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.preprocessing import maxwell_filter
 from mne.rank import _compute_rank_int
-from mne.utils import (requires_version, run_tests_if_main,
+from mne.utils import (requires_sklearn, run_tests_if_main,
                        catch_logging, assert_snr)
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -235,27 +235,48 @@ def test_io_cov(tmpdir):
         read_cov(cov_badname)
 
 
-@pytest.mark.parametrize('method', (None, ['empirical']))
+@pytest.mark.parametrize('method', (None, 'empirical', 'shrunk'))
 def test_cov_estimation_on_raw(method, tmpdir):
     """Test estimation from raw (typically empty room)."""
+    if method == 'shrunk':
+        try:
+            import sklearn  # noqa: F401
+        except Exception as exp:
+            pytest.skip('sklearn is required, got %s' % (exp,))
     raw = read_raw_fif(raw_fname, preload=True)
     cov_mne = read_cov(erm_cov_fname)
+    method_params = dict(shrunk=dict(shrinkage=[0]))
 
     # The pure-string uses the more efficient numpy-based method, the
     # the list gets triaged to compute_covariance (should be equivalent
     # but use more memory)
     with pytest.warns(None):  # can warn about EEG ref
-        cov = compute_raw_covariance(raw, tstep=None, method=method,
-                                     rank='full')
+        cov = compute_raw_covariance(
+            raw, tstep=None, method=method, rank='full',
+            method_params=method_params)
     assert_equal(cov.ch_names, cov_mne.ch_names)
     assert_equal(cov.nfree, cov_mne.nfree)
-    assert_snr(cov.data, cov_mne.data, 1e4)
+    assert_snr(cov.data, cov_mne.data, 1e6)
+
+    # test equivalence with np.cov
+    cov_np = np.cov(raw.copy().pick_channels(cov['names']).get_data(), ddof=1)
+    if method != 'shrunk':  # can check all
+        off_diag = np.triu_indices(cov_np.shape[0])
+    else:
+        # We explicitly zero out off-diag entries between channel types,
+        # so let's just check MEG off-diag entries
+        off_diag = np.triu_indices(len(pick_types(raw.info, exclude=())))
+    for other in (cov_mne, cov):
+        assert_allclose(np.diag(cov_np), np.diag(other.data), rtol=5e-6)
+        assert_allclose(cov_np[off_diag], other.data[off_diag], rtol=4e-3)
+        assert_snr(cov.data, other.data, 1e6)
 
     # tstep=0.2 (default)
     with pytest.warns(None):  # can warn about EEG ref
-        cov = compute_raw_covariance(raw, method=method, rank='full')
-    assert_equal(cov.nfree, cov_mne.nfree - 119)  # cutoff some samples
-    assert_snr(cov.data, cov_mne.data, 1e2)
+        cov = compute_raw_covariance(raw, method=method, rank='full',
+                                     method_params=method_params)
+    assert_equal(cov.nfree, cov_mne.nfree - 120)  # cutoff some samples
+    assert_snr(cov.data, cov_mne.data, 170)
 
     # test IO when computation done in Python
     cov.save(tmpdir.join('test-cov.fif'))  # test saving
@@ -268,27 +289,30 @@ def test_cov_estimation_on_raw(method, tmpdir):
     raw_pick = raw.copy().pick_channels(raw.ch_names[:5])
     raw_pick.info.normalize_proj()
     cov = compute_raw_covariance(raw_pick, tstep=None, method=method,
-                                 rank='full')
+                                 rank='full', method_params=method_params)
     assert cov_mne.ch_names[:5] == cov.ch_names
-    assert_snr(cov.data, cov_mne.data[:5, :5], 1e4)
-    cov = compute_raw_covariance(raw_pick, method=method, rank='full')
+    assert_snr(cov.data, cov_mne.data[:5, :5], 5e6)
+    cov = compute_raw_covariance(raw_pick, method=method, rank='full',
+                                 method_params=method_params)
     assert_snr(cov.data, cov_mne.data[:5, :5], 90)  # cutoff samps
     # make sure we get a warning with too short a segment
     raw_2 = read_raw_fif(raw_fname).crop(0, 1)
     with pytest.warns(RuntimeWarning, match='Too few samples'):
-        cov = compute_raw_covariance(raw_2, method=method)
+        cov = compute_raw_covariance(raw_2, method=method,
+                                     method_params=method_params)
     # no epochs found due to rejection
     pytest.raises(ValueError, compute_raw_covariance, raw, tstep=None,
                   method='empirical', reject=dict(eog=200e-6))
     # but this should work
-    cov = compute_raw_covariance(raw.copy().crop(0, 10.),
-                                 tstep=None, method=method,
-                                 reject=dict(eog=1000e-6),
-                                 verbose='error')
+    with pytest.warns(None):  # sklearn
+        cov = compute_raw_covariance(
+            raw.copy().crop(0, 10.), tstep=None, method=method,
+            reject=dict(eog=1000e-6), method_params=method_params,
+            verbose='error')
 
 
 @pytest.mark.slowtest
-@requires_version('sklearn', '0.15')
+@requires_sklearn
 def test_cov_estimation_on_raw_reg():
     """Test estimation from raw with regularization."""
     raw = read_raw_fif(raw_fname, preload=True)
@@ -328,7 +352,10 @@ def test_cov_estimation_with_triggers(rank, tmpdir):
                     reject=reject, preload=True)
 
     cov = compute_covariance(epochs, keep_sample_mean=True)
-    _assert_cov(cov, read_cov(cov_km_fname))
+    cov_km = read_cov(cov_km_fname)
+    # adjust for nfree bug
+    cov_km['nfree'] -= 1
+    _assert_cov(cov, cov_km)
 
     # Test with tmin and tmax (different but not too much)
     cov_tmin_tmax = compute_covariance(epochs, tmin=-0.19, tmax=-0.01)
@@ -347,6 +374,7 @@ def test_cov_estimation_with_triggers(rank, tmpdir):
 
     # cov with keep_sample_mean=False using a list of epochs
     cov = compute_covariance(epochs, keep_sample_mean=False)
+    assert cov_km.nfree == cov.nfree
     _assert_cov(cov, read_cov(cov_fname), nfree=False)
 
     method_params = {'empirical': {'assume_centered': False}}
@@ -450,7 +478,7 @@ def test_regularized_covariance():
     assert_allclose(data, evoked.data, atol=1e-20)
 
 
-@requires_version('sklearn', '0.15')
+@requires_sklearn
 def test_auto_low_rank():
     """Test probabilistic low rank estimators."""
     n_samples, n_features, rank = 400, 10, 5
@@ -492,7 +520,7 @@ def test_auto_low_rank():
 
 @pytest.mark.slowtest
 @pytest.mark.parametrize('rank', ('full', None, 'info'))
-@requires_version('sklearn', '0.15')
+@requires_sklearn
 def test_compute_covariance_auto_reg(rank):
     """Test automated regularization."""
     raw = read_raw_fif(raw_fname, preload=True)
@@ -530,8 +558,8 @@ def test_compute_covariance_auto_reg(rank):
                               cov_b['data'][diag_mask])
 
             # but the rest is the same
-            assert_array_equal(cov_a['data'][off_diag_mask],
-                               cov_b['data'][off_diag_mask])
+            assert_allclose(cov_a['data'][off_diag_mask],
+                            cov_b['data'][off_diag_mask], rtol=1e-12)
 
         else:
             # and here we have shrinkage everywhere.
@@ -604,7 +632,7 @@ def raw_epochs_events():
     return (raw, epochs, events)
 
 
-@requires_version('sklearn', '0.15')
+@requires_sklearn
 @pytest.mark.parametrize('rank', (None, 'full', 'info'))
 def test_low_rank_methods(rank, raw_epochs_events):
     """Test low-rank covariance matrix estimation."""
@@ -639,7 +667,7 @@ def test_low_rank_methods(rank, raw_epochs_events):
             (rank, method)
 
 
-@requires_version('sklearn', '0.15')
+@requires_sklearn
 def test_low_rank_cov(raw_epochs_events):
     """Test additional properties of low rank computations."""
     raw, epochs, events = raw_epochs_events
@@ -713,7 +741,7 @@ def test_low_rank_cov(raw_epochs_events):
 
 
 @testing.requires_testing_data
-@requires_version('sklearn', '0.15')
+@requires_sklearn
 def test_cov_ctf():
     """Test basic cov computation on ctf data with/without compensation."""
     raw = read_raw_ctf(ctf_fname).crop(0., 2.).load_data()

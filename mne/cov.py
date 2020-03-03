@@ -39,7 +39,8 @@ from .utils import (check_fname, logger, verbose, check_version, _time_mask,
                     _check_option, eigh)
 from . import viz
 
-from .fixes import BaseEstimator, EmpiricalCovariance, _logdet
+from .fixes import (BaseEstimator, EmpiricalCovariance, _logdet,
+                    empirical_covariance, log_likelihood)
 
 
 def _check_covs_algebra(cov1, cov2):
@@ -463,9 +464,10 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
     (instead of across epochs) for each channel.
     """
     tmin = 0. if tmin is None else float(tmin)
-    tmax = raw.times[-1] if tmax is None else float(tmax)
+    dt = 1. / raw.info['sfreq']
+    tmax = raw.times[-1] + dt if tmax is None else float(tmax)
     tstep = tmax - tmin if tstep is None else float(tstep)
-    tstep_m1 = tstep - 1. / raw.info['sfreq']  # inclusive!
+    tstep_m1 = tstep - dt  # inclusive!
     events = make_fixed_length_events(raw, 1, tmin, tmax, tstep)
     logger.info('Using up to %s segment%s' % (len(events), _pl(events)))
 
@@ -504,7 +506,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
         ch_names = [raw.info['ch_names'][k] for k in picks]
         bads = [b for b in raw.info['bads'] if b in ch_names]
         return Covariance(data, ch_names, bads, raw.info['projs'],
-                          nfree=n_samples)
+                          nfree=n_samples - 1)
     del picks, pick_mask
 
     # This makes it equivalent to what we used to do (and do above for
@@ -878,7 +880,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     if keep_sample_mean is False:
         cov = cov_data['empirical']['data']
         # undo scaling
-        cov *= n_samples_tot
+        cov *= (n_samples_tot - 1)
         # ... apply pre-computed class-wise normalization
         for mean_cov in data_mean:
             cov -= mean_cov
@@ -887,7 +889,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     covs = list()
     for this_method, data in cov_data.items():
         cov = Covariance(data.pop('data'), ch_names, info['bads'], projs,
-                         nfree=n_samples_tot)
+                         nfree=n_samples_tot - 1)
 
         # add extra info
         cov.update(method=this_method, **data)
@@ -1073,6 +1075,8 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                 loglik = None
             # project back
             cov = np.dot(eigvec.T, np.dot(cov, eigvec))
+            # undo bias
+            cov *= data.shape[0] / (data.shape[0] - 1)
             # undo scaling
             _undo_scaling_cov(cov, picks_list, scalings)
             method_ = method[ei]
@@ -1191,7 +1195,6 @@ class _RegCovariance(BaseEstimator):
 
     def fit(self, X):
         """Fit covariance model with classical diagonal regularization."""
-        from sklearn.covariance import EmpiricalCovariance
         self.estimator_ = EmpiricalCovariance(
             store_precision=self.store_precision,
             assume_centered=self.assume_centered)
@@ -1232,7 +1235,6 @@ class _ShrunkCovariance(BaseEstimator):
     def fit(self, X):
         """Fit covariance model with oracle shrinkage regularization."""
         from sklearn.covariance import shrunk_covariance
-        from sklearn.covariance import EmpiricalCovariance
         self.estimator_ = EmpiricalCovariance(
             store_precision=self.store_precision,
             assume_centered=self.assume_centered)
@@ -1277,7 +1279,6 @@ class _ShrunkCovariance(BaseEstimator):
 
     def score(self, X_test, y=None):
         """Delegate to modified EmpiricalCovariance instance."""
-        from sklearn.covariance import empirical_covariance, log_likelihood
         # compute empirical covariance of the test set
         test_cov = empirical_covariance(X_test - self.estimator_.location_,
                                         assume_centered=True)
