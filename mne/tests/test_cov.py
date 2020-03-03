@@ -240,7 +240,7 @@ def test_cov_estimation_on_raw(method, tmpdir):
     """Test estimation from raw (typically empty room)."""
     if method == 'shrunk':
         try:
-            import sklearn
+            import sklearn  # noqa: F401
         except Exception as exp:
             pytest.skip('sklearn is required, got %s' % (exp,))
     raw = read_raw_fif(raw_fname, preload=True)
