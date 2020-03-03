@@ -1272,8 +1272,11 @@ def apply_inverse_cov(cov, info, inverse_operator, nave=1, lambda2=1 / 9,
         method_params, use_cps=use_cps)
     # apply (potentially rotated in the vector case) operator twice
     K = np.reshape(stc.data, (-1, stc.data.shape[-1]))
+    # diagonal entries of A @ B are given by (A * B.T).sum(axis=1), so this is
+    # equivalent to np.diag(K @ cov.data[sel][:, sel] @ K.T)[:, np.newaxis]:
     sol = cov.data[sel][:, sel] @ K.T
     sol = np.sum(K * sol.T, axis=1, keepdims=True)
+    # Reshape back to (n_src, ..., 1)
     sol.shape = stc.data.shape[:-1] + (1,)
     stc = stc.__class__(
         sol, stc.vertices, stc.tmin, stc.tstep, stc.subject, stc.verbose)
