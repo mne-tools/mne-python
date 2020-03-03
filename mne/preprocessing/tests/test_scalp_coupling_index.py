@@ -39,7 +39,8 @@ def test_scalp_coupling_index(fname, fmt, tmpdir):
     assert_array_less(sci * -1.0, 1.0)
 
     # Fill in some data with known correlation values
-    new_data = np.random.rand(raw._data[0].shape[0])
+    rng = np.random.RandomState(0)
+    new_data = rng.rand(raw._data[0].shape[0])
     # Set first two channels to perfect correlation
     raw._data[0] = new_data
     raw._data[1] = new_data
@@ -50,7 +51,6 @@ def test_scalp_coupling_index(fname, fmt, tmpdir):
     raw._data[4] = new_data
     raw._data[5] = new_data * -1.0
     # Set next two channels to be uncorrelated
-    rng = np.random.RandomState(0)
     raw._data[6] = new_data
     raw._data[7] = rng.rand(raw._data[0].shape[0])
     # Check values
