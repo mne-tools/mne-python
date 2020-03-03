@@ -38,10 +38,12 @@ def test_check(tmpdir):
         pass
     assert op.isfile(fname)
     _check_fname(fname, overwrite='read', must_exist=True)
+    orig_perms = os.stat(fname).st_mode
     os.chmod(fname, 0)
     if not sys.platform.startswith('win'):
         with pytest.raises(PermissionError, match='read permissions'):
             _check_fname(fname, overwrite='read', must_exist=True)
+    os.chmod(fname, orig_perms)
     os.remove(fname)
     assert not op.isfile(fname)
     pytest.raises(IOError, check_fname, 'foo', 'tets-dip.x', (), ('.fif',))
