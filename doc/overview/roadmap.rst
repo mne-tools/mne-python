@@ -167,7 +167,7 @@ as well as:
     task MEG data.
 - `MMN dataset <http://www.fil.ion.ucl.ac.uk/spm/data/eeg_mmn>`__
     Used for tutorial/publications applying DCM for ERP analysis using SPM.
-- `Kymata Datasets <https://kymata-atlas.org/datasets>`__.
+- `Kymata Datasets <https://kymata-atlas.org/datasets>`__
     Current and archived EMEG measurement data, used to test hypotheses in the
     Kymata atlas. The participants are healthy human adults listening to the
     radio and/or watching films, and the data is comprised of (averaged) EEG
