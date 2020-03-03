@@ -71,15 +71,7 @@ evoked.plot()
 # Subselecting ``Evoked`` data
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# Unlike :class:`~mne.io.Raw` and :class:`~mne.Epochs` objects,
-# :class:`~mne.Evoked` objects do not support selection by square-bracket
-# indexing. Instead, data can be subselected by indexing the
-# :attr:`~mne.Evoked.data` attribute:
-
-print(evoked.data[:2, :3])  # first 2 channels, first 3 timepoints
-
-###############################################################################
-# .. note::
+# .. sidebar:: Evokeds are not memory-mapped
 #
 #   :class:`~mne.Evoked` objects use a :attr:`~mne.Evoked.data` *attribute*
 #   rather than a :meth:`~mne.Epochs.get_data` *method*; this reflects the fact
@@ -89,9 +81,19 @@ print(evoked.data[:2, :3])  # first 2 channels, first 3 timepoints
 #   :class:`~mne.Epochs` objects).
 #
 #
-# Other useful attributes of :class:`~mne.Evoked` objects include
-# ``evoked.first`` and ``evoked.last`` (sample indices; where
-# sample ``0`` is the sample at time=0, so ``evoked.first`` may be negative).
+# Unlike :class:`~mne.io.Raw` and :class:`~mne.Epochs` objects,
+# :class:`~mne.Evoked` objects do not support selection by square-bracket
+# indexing. Instead, data can be subselected by indexing the
+# :attr:`~mne.Evoked.data` attribute:
+
+print(evoked.data[:2, :3])  # first 2 channels, first 3 timepoints
+
+###############################################################################
+# To select based on time in seconds, the :meth:`~mne.Evoked.time_as_index`
+# method can be useful, although beware that depending on the sampling
+# frequency, the number of samples in a span of given duration may not always
+# be the same (see the :ref:`time-as-index` section of the
+# :ref:`tutorial about Raw data <tut-raw-class>` for details).
 #
 #
 # Selecting, dropping, and reordering channels
