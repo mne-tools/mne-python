@@ -99,11 +99,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Last time sample.
     comment : str
         Comment on dataset. Can be the condition.
-    times : array
-        Array of time instants in seconds.
     data : array of shape (n_channels, n_times)
         Evoked response.
-    times :  ndarray
+    times :  array
         Time vector in seconds. Goes from `tmin` to `tmax`. Time interval
         between consecutive time samples is equal to the inverse of the
         sampling frequency.
