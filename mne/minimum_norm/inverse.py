@@ -1288,53 +1288,6 @@ def apply_inverse_cov(cov, info, inverse_operator, nave=1, lambda2=1 / 9,
     return stc
 
 
-# XXX what is this???
-'''
-def _xyz2lf(Lf_xyz, normals):
-    """Reorient leadfield to one component matching the normal to the cortex
-
-    This program takes a leadfield matrix computed for dipole components
-    pointing in the x, y, and z directions, and outputs a new lead field
-    matrix for dipole components pointing in the normal direction of the
-    cortical surfaces and in the two tangential directions to the cortex
-    (that is on the tangent cortical space). These two tangential dipole
-    components are uniquely determined by the SVD (reduction of variance).
-
-    Parameters
-    ----------
-    Lf_xyz: array of shape [n_sensors, n_positions x 3]
-        Leadfield
-    normals : array of shape [n_positions, 3]
-        Normals to the cortex
-
-    Returns
-    -------
-    Lf_cortex : array of shape [n_sensors, n_positions x 3]
-        Lf_cortex is a leadfield matrix for dipoles in rotated orientations, so
-        that the first column is the gain vector for the cortical normal dipole
-        and the following two column vectors are the gain vectors for the
-        tangential orientations (tangent space of cortical surface).
-    """
-    n_sensors, n_dipoles = Lf_xyz.shape
-    n_positions = n_dipoles // 3
-    Lf_xyz = Lf_xyz.reshape(n_sensors, n_positions, 3)
-    n_sensors, n_positions, _ = Lf_xyz.shape
-    Lf_cortex = np.zeros_like(Lf_xyz)
-
-    for k in range(n_positions):
-        lf_normal = np.dot(Lf_xyz[:, k, :], normals[k])
-        lf_normal_n = lf_normal[:, None] / linalg.norm(lf_normal)
-        P = np.eye(n_sensors, n_sensors) - np.dot(lf_normal_n, lf_normal_n.T)
-        lf_p = np.dot(P, Lf_xyz[:, k, :])
-        U, s, Vh = linalg.svd(lf_p)
-        Lf_cortex[:, k, 0] = lf_normal
-        Lf_cortex[:, k, 1:] = np.c_[U[:, 0] * s[0], U[:, 1] * s[1]]
-
-    Lf_cortex = Lf_cortex.reshape(n_sensors, n_dipoles)
-    return Lf_cortex
-'''
-
-
 ###############################################################################
 # Assemble the inverse operator
 
