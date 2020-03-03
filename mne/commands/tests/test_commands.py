@@ -219,20 +219,21 @@ def test_watershed_bem(tmpdir):
     mridata_path = op.join(subjects_dir, 'sample', 'mri')
     subject_path_new = op.join(tempdir, 'sample')
     mridata_path_new = op.join(subject_path_new, 'mri')
-    os.mkdir(op.join(tempdir, 'sample'))
-    os.mkdir(mridata_path_new)
-    if op.exists(op.join(mridata_path, 'T1')):
-        shutil.copytree(op.join(mridata_path, 'T1'), op.join(mridata_path_new,
-                                                             'T1'))
-    if op.exists(op.join(mridata_path, 'T1.mgz')):
-        shutil.copyfile(op.join(mridata_path, 'T1.mgz'),
-                        op.join(mridata_path_new, 'T1.mgz'))
+    os.makedirs(mridata_path_new)
+    new_fname = op.join(mridata_path_new, 'T1.mgz')
+    shutil.copyfile(op.join(mridata_path, 'T1.mgz'), new_fname)
+    old_mode = os.stat(new_fname).st_mode
+    os.chmod(new_fname, 0)
+    args = ('-d', tempdir, '-s', 'sample', '-o')
+    with pytest.raises(PermissionError, match=r'read permissions.*T1\.mgz'):
+        with ArgvSetter(args):
+            mne_watershed_bem.run()
+    os.chmod(new_fname, old_mode)
     out_fnames = list()
     for kind in ('outer_skin', 'outer_skull', 'inner_skull'):
         out_fnames.append(op.join(subject_path_new, 'bem', 'inner_skull.surf'))
     assert not any(op.isfile(out_fname) for out_fname in out_fnames)
-    with ArgvSetter(('-d', tempdir, '-s', 'sample', '-o'),
-                    disable_stdout=False, disable_stderr=False):
+    with ArgvSetter(args):
         mne_watershed_bem.run()
     for out_fname in out_fnames:
         _, tris = read_surface(out_fname)
