@@ -814,8 +814,7 @@ def test_apply_inverse_cov(method, pick_ori):
     # test with a free ori inverse
     inverse_operator = read_inverse_operator(fname_inv)
 
-    data_cov = compute_raw_covariance(raw, tmin=raw.times[0],
-                                      tmax=raw.times[-1], tstep=None)
+    data_cov = compute_raw_covariance(raw, tstep=None)
 
     with pytest.raises(ValueError, match='has not been prepared'):
         apply_inverse_cov(data_cov, raw.info, inverse_operator,
@@ -835,8 +834,10 @@ def test_apply_inverse_cov(method, pick_ori):
     raw_data = stc_raw.data.reshape(n_sources, -1)
     exp_res = np.diag(np.cov(raw_data, ddof=1)).copy()
     exp_res *= 1 if raw_ori == pick_ori else 3.
-    # XXX not great, see gh-7369
-    assert_allclose(exp_res, stc_cov.data.ravel(), rtol=1e-3)
+    # There seems to be some precision penalty when combining orientations,
+    # but it's probably acceptable
+    rtol = 5e-4 if pick_ori is None else 1e-12
+    assert_allclose(exp_res, stc_cov.data.ravel(), rtol=rtol)
 
 
 @testing.requires_testing_data
