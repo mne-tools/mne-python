@@ -246,7 +246,7 @@ print(left_right_aud)
 
 left_aud = epochs['auditory/left'].average()
 right_aud = epochs['auditory/right'].average()
-_ = print([evok.nave for evok in (left_aud, right_aud)])
+print([evok.nave for evok in (left_aud, right_aud)])
 
 ###############################################################################
 # However, this may not always be the case; if for statistical reasons it is
