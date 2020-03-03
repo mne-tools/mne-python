@@ -29,7 +29,7 @@ from mne.io import read_raw_fif, RawArray, read_raw_ctf
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.preprocessing import maxwell_filter
 from mne.rank import _compute_rank_int
-from mne.utils import (requires_version, run_tests_if_main,
+from mne.utils import (requires_sklearn, run_tests_if_main,
                        catch_logging, assert_snr)
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -312,7 +312,7 @@ def test_cov_estimation_on_raw(method, tmpdir):
 
 
 @pytest.mark.slowtest
-@requires_version('sklearn', '0.15')
+@requires_sklearn
 def test_cov_estimation_on_raw_reg():
     """Test estimation from raw with regularization."""
     raw = read_raw_fif(raw_fname, preload=True)
@@ -478,7 +478,7 @@ def test_regularized_covariance():
     assert_allclose(data, evoked.data, atol=1e-20)
 
 
-@requires_version('sklearn', '0.15')
+@requires_sklearn
 def test_auto_low_rank():
     """Test probabilistic low rank estimators."""
     n_samples, n_features, rank = 400, 10, 5
@@ -520,7 +520,7 @@ def test_auto_low_rank():
 
 @pytest.mark.slowtest
 @pytest.mark.parametrize('rank', ('full', None, 'info'))
-@requires_version('sklearn', '0.15')
+@requires_sklearn
 def test_compute_covariance_auto_reg(rank):
     """Test automated regularization."""
     raw = read_raw_fif(raw_fname, preload=True)
@@ -632,7 +632,7 @@ def raw_epochs_events():
     return (raw, epochs, events)
 
 
-@requires_version('sklearn', '0.15')
+@requires_sklearn
 @pytest.mark.parametrize('rank', (None, 'full', 'info'))
 def test_low_rank_methods(rank, raw_epochs_events):
     """Test low-rank covariance matrix estimation."""
@@ -667,7 +667,7 @@ def test_low_rank_methods(rank, raw_epochs_events):
             (rank, method)
 
 
-@requires_version('sklearn', '0.15')
+@requires_sklearn
 def test_low_rank_cov(raw_epochs_events):
     """Test additional properties of low rank computations."""
     raw, epochs, events = raw_epochs_events
@@ -741,7 +741,7 @@ def test_low_rank_cov(raw_epochs_events):
 
 
 @testing.requires_testing_data
-@requires_version('sklearn', '0.15')
+@requires_sklearn
 def test_cov_ctf():
     """Test basic cov computation on ctf data with/without compensation."""
     raw = read_raw_ctf(ctf_fname).crop(0., 2.).load_data()
