@@ -50,7 +50,7 @@ del raw  # reduce memory usage
 
 ###############################################################################
 # Basic visualization of ``Evoked`` objects
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # We can visualize the average evoked response for left-auditory stimuli using
 # the :meth:`~mne.Evoked.plot` method, which yields a butterfly plot of each
@@ -125,7 +125,7 @@ print(evoked_subset.ch_names)
 
 ###############################################################################
 # Similarities among the core data structures
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
 # :class:`~mne.Evoked` objects have many similarities with :class:`~mne.io.Raw`
 # and :class:`~mne.Epochs` objects, including:
