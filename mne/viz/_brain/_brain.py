@@ -199,7 +199,8 @@ class _Brain(object):
 
         if figure is not None and not isinstance(figure, int):
             _check_3d_figure(figure)
-        self._renderer = _get_renderer(size=fig_size, bgcolor=background,
+        self._renderer = _get_renderer(name=title, size=fig_size,
+                                       bgcolor=background,
                                        shape=(n_row, n_col), fig=figure)
 
         for h in self._hemis:
