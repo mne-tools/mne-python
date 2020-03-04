@@ -25,6 +25,7 @@ References
        PhysioToolkit, and PhysioNet: Components of a New Research Resource for
        Complex Physiologic Signals. Circulation 101(23):e215-e220.
 """
+
 # Authors: Martin Billinger <martin.billinger@tugraz.at>
 #
 # License: BSD (3-clause)
