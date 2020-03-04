@@ -158,3 +158,4 @@ av_tfr = AverageTFR(create_info(['freq'], sfreq), tf_scores[np.newaxis, :],
 chance = np.mean(y)  # set chance level to white in the plot
 av_tfr.plot([0], vmin=chance, title="Time-Frequency Decoding Scores",
             cmap=plt.cm.Reds)
+
