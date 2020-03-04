@@ -162,6 +162,7 @@ as well as:
 
 - `OpenNEURO <https://openneuro.org>`__
     "A free and open platform for sharing MRI, MEG, EEG, iEEG, and ECoG data."
+    See for example :gh:`6687`.
 - `Human Connectome Project Datasets <http://www.humanconnectome.org/data>`__
     Over a 3-year span (2012-2015), the Human Connectome Project (HCP) scanned
     1,200 healthy adult subjects. The available data includes MR structural
