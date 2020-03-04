@@ -53,9 +53,6 @@ fname_fwd = op.join(data_path, 'derivatives', 'sub-{}'.format(subject),
 subjects_dir = op.join(data_path, 'derivatives', 'freesurfer', 'subjects')
 
 fwd = mne.read_forward_solution(fname_fwd)
-# fix the subject in fwd['src'] (it's mis-labeled in the dataset)
-for src in fwd['src']:
-    src['subject_his_id'] = subject
 
 ###############################################################################
 # Compute covariances
