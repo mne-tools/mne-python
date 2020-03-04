@@ -297,3 +297,5 @@
 .. _Sophie Herbst: https://github.com/SophieHerbst
 
 .. _Adam Li: http://github.com/adam2392
+
+.. _Ramiro Gatti: https://github.com/ragatti
