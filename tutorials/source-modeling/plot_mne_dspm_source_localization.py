@@ -60,7 +60,7 @@ evoked.plot_topomap(times=np.linspace(0.05, 0.15, 5), ch_type='mag',
 # Show whitening
 evoked.plot_white(noise_cov, time_unit='s')
 
-del epochs  # to save memory
+del epochs, raw  # to save memory
 
 ###############################################################################
 # Inverse modeling: MNE/dSPM on evoked and raw data
@@ -71,9 +71,8 @@ fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
 fwd = mne.read_forward_solution(fname_fwd)
 
 # make an MEG inverse operator
-info = evoked.info
-inverse_operator = make_inverse_operator(info, fwd, noise_cov,
-                                         loose=0.2, depth=0.8)
+inverse_operator = make_inverse_operator(
+    evoked.info, fwd, noise_cov, loose=0.2, depth=0.8)
 del fwd
 
 # You can write it to disk with::
@@ -98,11 +97,9 @@ stc, residual = apply_inverse(evoked, inverse_operator, lambda2,
 # -------------
 # View activation time-series
 
-plt.figure()
-plt.plot(1e3 * stc.times, stc.data[::100, :].T)
-plt.xlabel('time (ms)')
-plt.ylabel('%s value' % method)
-plt.show()
+fig, ax = plt.subplots()
+ax.plot(1e3 * stc.times, stc.data[::100, :].T)
+ax.set(xlabel='time (ms)', ylabel='%s value' % method)
 
 ###############################################################################
 # Examine the original data and the residual after fitting:
@@ -178,7 +175,8 @@ del stc_vec
 surfer_kwargs['clim'].update(kind='percent', lims=[99, 99.9, 99.99])
 for mi, method in enumerate(['dSPM', 'sLORETA', 'eLORETA']):
     stc = apply_inverse(evoked, inverse_operator, lambda2,
-                        method=method, pick_ori=None)
+                        method=method, pick_ori=None,
+                        verbose=True)
     brain = stc.plot(figure=mi, **surfer_kwargs)
     brain.add_text(0.1, 0.9, method, 'title', font_size=20)
     del stc

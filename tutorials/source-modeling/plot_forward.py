@@ -106,19 +106,18 @@ mne.viz.plot_alignment(info, trans, subject=subject, dig=True,
 # :func:`mne.setup_source_space`, while **volumetric** source space is computed
 # using :func:`mne.setup_volume_source_space`.
 #
-# We will now compute a surface-based source space with an OCT-6 resolution.
-# See :ref:`setting_up_source_space` for details on source space definition
-# and spacing parameter.
+# We will now compute a surface-based source space with an ``'oct6'``
+# resolution. See :ref:`setting_up_source_space` for details on source space
+# definition and spacing parameter.
 
-src = mne.setup_source_space(subject, spacing='oct6',
-                             subjects_dir=subjects_dir, add_dist=False)
+src = mne.setup_source_space(subject, spacing='oct6', add_dist='patch',
+                             subjects_dir=subjects_dir)
 print(src)
 
 ###############################################################################
 # The surface based source space ``src`` contains two parts, one for the left
-# hemisphere (4098 locations) and one for the right hemisphere
-# (4098 locations). Sources can be visualized on top of the BEM surfaces
-# in purple.
+# hemisphere (4098 locations) and one for the right hemisphere (4098
+# locations). Sources can be visualized on top of the BEM surfaces in purple.
 
 mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
                  brain_surfaces='white', src=src, orientation='coronal')
@@ -222,16 +221,15 @@ print("Leadfield size : %d sensors x %d dipoles" % leadfield.shape)
 
 ###############################################################################
 # This is equivalent to the following code that explicitly applies the
-# forward operator to a source estimate composed of the identity operator:
-
-import numpy as np  # noqa
-
-n_dipoles = leadfield.shape[1]
-vertices = [src_hemi['vertno'] for src_hemi in fwd_fixed['src']]
-stc = mne.SourceEstimate(1e-9 * np.eye(n_dipoles), vertices, tmin=0., tstep=1)
-leadfield = mne.apply_forward(fwd_fixed, stc, info).data / 1e-9
-
-###############################################################################
+# forward operator to a source estimate composed of the identity operator
+# (which we omit here because it uses a lot of memory)::
+#
+#     >>> import numpy as np
+#     >>> n_dipoles = leadfield.shape[1]
+#     >>> vertices = [src_hemi['vertno'] for src_hemi in fwd_fixed['src']]
+#     >>> stc = mne.SourceEstimate(1e-9 * np.eye(n_dipoles), vertices)
+#     >>> leadfield = mne.apply_forward(fwd_fixed, stc, info).data / 1e-9
+#
 # To save to disk a forward solution you can use
 # :func:`mne.write_forward_solution` and to read it back from disk
 # :func:`mne.read_forward_solution`. Don't forget that FIF files containing
@@ -240,8 +238,7 @@ leadfield = mne.apply_forward(fwd_fixed, stc, info).data / 1e-9
 # To get a fixed-orientation forward solution, use
 # :func:`mne.convert_forward_solution` to convert the free-orientation
 # solution to (surface-oriented) fixed orientation.
-
-###############################################################################
+#
 # Exercise
 # --------
 #
