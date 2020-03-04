@@ -202,7 +202,8 @@ class _Brain(object):
             _check_3d_figure(figure)
         self._renderer = _get_renderer(size=fig_size, bgcolor=background,
                                        shape=(n_row, n_col), fig=figure)
-        _set_3d_title(figure=self._renderer.figure, title=self._title)
+        if self._title is not None:
+            _set_3d_title(figure=self._renderer.figure, title=self._title)
 
         for h in self._hemis:
             # Initialize a Surface object as the geometry
