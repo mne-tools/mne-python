@@ -269,6 +269,8 @@ Bug
 
 - Include ``fit_params`` when saving an :class:`~mne.preprocessing.ICA` instance to disk by `Richard Höchenberger`_
 
+- Update old url link in :func:`mne.datasets.eegbci.load_data` to ``EEGMI_URL = 'https://physionet.org/files/eegmmidb/1.0.0/'`` by `Ramiro Gatti`_
+
 API
 ~~~
 
