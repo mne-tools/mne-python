@@ -1221,7 +1221,7 @@ def apply_inverse_cov(cov, info, inverse_operator, nave=1, lambda2=1 / 9,
 
     Parameters
     ----------
-    cov : Covariance object
+    cov : instance of Covariance
         Covariance data, computed on the time segment for which to compute
         source power.
     info : dict

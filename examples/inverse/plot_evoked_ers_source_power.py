@@ -1,18 +1,15 @@
 """
-==========================================================================
-Compute evoked ERS source power using DICS, LCMV beamfomer and MNE inverse
-==========================================================================
+====================================================================
+Compute evoked ERS source power using DICS, LCMV beamfomer, and dSPM
+====================================================================
 
 Here we examine 3 ways of localizing event-related synchronization (ERS) of
-beta band activity in this dataset: :ref:`somato-dataset`
-
-The first is using a Dynamic Imaging of Coherent Sources (DICS) filter, more
-fully discussed in example: :ref:`ex-inverse-source-power`. The second uses an
-LCMV beamformer applied to active and baseline covariance matrices. Similarly
-the third approach computes minimum norm (MNE/dSPM) inverses and applies them
-to active and baseline covariance matrices.
+beta band activity in this dataset: :ref:`somato-dataset` using
+:term:`DICS`, :term:`LCMV beamformer`, and :term:`dSPM` applied to active and
+baseline covariance matrices.
 """
-# Author: Luke Bloy <luke.bloy@gmail.com>
+# Authors: Luke Bloy <luke.bloy@gmail.com>
+#          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
 import os.path as op
@@ -81,7 +78,7 @@ common_cov = baseline_cov + active_cov
 ###############################################################################
 # Compute some source estimates
 # -----------------------------
-# Here we will use DICS, LCMV, and dSPM.
+# Here we will use DICS, LCMV beamformer, and dSPM.
 #
 # See :ref:`ex-inverse-source-power` for more information about DICS.
 

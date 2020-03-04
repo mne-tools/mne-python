@@ -137,6 +137,8 @@ several (mostly) separable steps:
 1. Refactor code to use traitlets
 2. GUI elements to use PyQt5 (rather than TraitsUI/pyface)
 3. 3D plotting to use our abstracted 3D viz functions rather than Mayavi
+4. Refactor distance/fitting classes to public ones to enable the example
+   from :gh:`6693`.
 
 Once this is done, we can effectively switch to a PyVista backend.
 

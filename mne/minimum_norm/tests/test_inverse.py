@@ -797,13 +797,17 @@ def test_io_inverse_operator():
     _compare(inv_prep, inv_prep_prep)
 
 
+# eLORETA is slow and we can trust that it will work because we just route
+# through apply_inverse
+_fast_methods = list(INVERSE_METHODS)
+_fast_methods.pop(_fast_methods.index('eLORETA'))
+
+
 @testing.requires_testing_data
-@pytest.mark.parametrize('method', INVERSE_METHODS)
+@pytest.mark.parametrize('method', _fast_methods)
 @pytest.mark.parametrize('pick_ori', ['normal', None])
 def test_apply_inverse_cov(method, pick_ori):
     """Test MNE with precomputed inverse operator on cov."""
-    if method == 'eLORETA':  # too slow
-        return
     raw = read_raw_fif(fname_raw, preload=True)
     # use 10 sec of data
     raw.crop(0, 10)
