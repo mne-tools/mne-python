@@ -494,6 +494,7 @@ class _TimeViewer(object):
             'i': self.toggle_interface,
             's': self.apply_auto_scaling,
             'r': self.restore_user_scaling,
+            'c': self.clear_points,
             ' ': self.toggle_playback,
         }
         menu = self.plotter.main_menu.addMenu('Help')
@@ -722,6 +723,14 @@ class _TimeViewer(object):
         self.picked_points[mesh._hemi].remove(mesh._vertex_id)
         self.plotter.remove_actor(mesh._actors)
 
+    def clear_points(self):
+        for sphere in self._spheres:
+            vertex_id = sphere._vertex_id
+            hemi = sphere._hemi
+            if vertex_id in self.picked_points[hemi]:
+                self.remove_point(sphere)
+        self._spheres.clear()
+
     def plot_time_course(self, hemi, vertex_id, color):
         time = self.brain._data['time']
         hemi_str = 'L' if hemi == 'lh' else 'R'
@@ -750,6 +759,7 @@ class _TimeViewer(object):
             ('i', 'Toggle interface'),
             ('s', 'Apply auto-scaling'),
             ('r', 'Restore original clim'),
+            ('c', 'Clear all traces'),
             ('Space', 'Start/Pause playback'),
         ]
         text1, text2 = zip(*pairs)
