@@ -348,6 +348,7 @@ class _TimeViewer(object):
         )
         time_slider = self.plotter.add_slider_widget(
             self.time_call,
+            value=self.brain._data['time_idx'],
             rng=[0, max_time],
             pointa=(0.23, 0.1),
             pointb=(0.77, 0.1),
