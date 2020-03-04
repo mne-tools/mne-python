@@ -199,11 +199,9 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi):
     assert len(spheres) == len(hemi_str)
 
     # test removing points
-    for sphere in spheres:
-        time_viewer.remove_point(sphere)
+    time_viewer.clear_points()
     assert len(picked_points['lh']) == 0
     assert len(picked_points['rh']) == 0
-    spheres.clear()  # necessary for the rest of the test
 
     # test picking a cell at random
     for idx, current_hemi in enumerate(hemi_str):
