@@ -318,8 +318,7 @@ depth : None | float | dict
     .. versionchanged:: 0.20
        Depth bias ignored for ``method='eLORETA'``.
 """
-docdict['pick_ori'] = """
-pick_ori : None | "normal" | "vector"
+_pick_ori_novec = """
     Options:
 
     - ``None``
@@ -329,6 +328,13 @@ pick_ori : None | "normal" | "vector"
     - ``"normal"``
         Only the normal to the cortical surface is kept. This is only
         implemented when working with loose orientations.
+"""
+docdict['pick_ori-novec'] = """
+pick_ori : None | "normal"
+""" + _pick_ori_novec
+docdict['pick_ori'] = """
+pick_ori : None | "normal" | "vector"
+""" + _pick_ori_novec + """
     - ``"vector"``
         No pooling of the orientations is done, and the vector result
         will be returned in the form of a :class:`mne.VectorSourceEstimate`

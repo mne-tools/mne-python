@@ -749,7 +749,7 @@ def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
     return K, noise_norm, vertno, source_nn
 
 
-def _check_ori(pick_ori, source_ori, src):
+def _check_ori(pick_ori, source_ori, src, allow_vector=True):
     """Check pick_ori."""
     _check_option('pick_ori', pick_ori, [None, 'normal', 'vector'])
     if pick_ori == 'vector' and source_ori != FIFF.FIFFV_MNE_FREE_ORI:
@@ -873,6 +873,15 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     ----------
     .. footbibliography::
     """
+    out = _apply_inverse(
+        evoked, inverse_operator, lambda2, method, pick_ori, prepared, label,
+        method_params, return_residual, use_cps)
+    logger.info('[done]')
+    return out
+
+
+def _apply_inverse(evoked, inverse_operator, lambda2, method, pick_ori,
+                   prepared, label, method_params, return_residual, use_cps):
     _check_reference(evoked, inverse_operator['info']['ch_names'])
     _check_option('method', method, INVERSE_METHODS)
     _check_ori(pick_ori, inverse_operator['source_ori'],
@@ -934,7 +943,6 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     stc = _make_stc(sol, vertno, tmin=tmin, tstep=tstep, subject=subject,
                     vector=(pick_ori == 'vector'), source_nn=source_nn,
                     src_type=src_type)
-    logger.info('[done]')
 
     return (stc, residual) if return_residual else stc
 
@@ -1226,7 +1234,7 @@ def apply_inverse_cov(cov, info, inverse_operator, nave=1, lambda2=1 / 9,
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
         Use minimum norm, dSPM (default), sLORETA, or eLORETA.
-    %(pick_ori)s
+    %(pick_ori-novec)s
     prepared : bool
         If True, do not call :func:`prepare_inverse_operator`.
     label : Label | None
@@ -1261,15 +1269,16 @@ def apply_inverse_cov(cov, info, inverse_operator, nave=1, lambda2=1 / 9,
     evoked = EvokedArray(
         np.eye(len(info['ch_names'])), info, nave=nave, comment='cov')
     is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI)
+    _check_option('pick_ori', pick_ori, (None, 'normal'))
     if is_free_ori and pick_ori is None:
         use_ori = 'vector'
         combine = True
     else:
         use_ori = pick_ori
         combine = False
-    stc = apply_inverse(
+    stc = _apply_inverse(
         evoked, inverse_operator, lambda2, method, use_ori, prepared, label,
-        method_params, use_cps=use_cps)
+        method_params, return_residual=False, use_cps=use_cps)
     # apply (potentially rotated in the vector case) operator twice
     K = np.reshape(stc.data, (-1, stc.data.shape[-1]))
     # diagonal entries of A @ B are given by (A * B.T).sum(axis=1), so this is
@@ -1281,10 +1290,11 @@ def apply_inverse_cov(cov, info, inverse_operator, nave=1, lambda2=1 / 9,
     stc = stc.__class__(
         sol, stc.vertices, stc.tmin, stc.tstep, stc.subject, stc.verbose)
     if combine:  # combine the three directions
-        logger.info('Combining the current components...')
+        logger.info('    Combining the current components...')
         np.sqrt(stc.data, out=stc.data)
         stc = stc.magnitude()
         stc.data *= stc.data
+    logger.info('[done]')
     return stc
 
 

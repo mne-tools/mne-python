@@ -799,7 +799,7 @@ def test_io_inverse_operator():
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('method', INVERSE_METHODS)
-@pytest.mark.parametrize('pick_ori', ['normal', 'vector', None])
+@pytest.mark.parametrize('pick_ori', ['normal', None])
 def test_apply_inverse_cov(method, pick_ori):
     """Test MNE with precomputed inverse operator on cov."""
     if method == 'eLORETA':  # too slow
@@ -838,6 +838,10 @@ def test_apply_inverse_cov(method, pick_ori):
     # but it's probably acceptable
     rtol = 5e-4 if pick_ori is None else 1e-12
     assert_allclose(exp_res, stc_cov.data.ravel(), rtol=rtol)
+
+    with pytest.raises(ValueError, match='Invalid value'):
+        apply_inverse_cov(
+            data_cov, raw.info, this_inv_op, method=method, pick_ori='vector')
 
 
 @testing.requires_testing_data
