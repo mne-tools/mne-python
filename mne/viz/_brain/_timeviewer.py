@@ -271,10 +271,15 @@ class _TimeViewer(object):
         ]
 
         # default: put orientation slider on the first view
-        if self.brain._hemi == 'split':
+        if self.brain._hemi in ('split', 'both'):
             self.plotter.subplot(0, 0)
 
-        for hemi in self.brain._hemis:
+        # Use 'lh' as a reference for orientation for 'both'
+        if self.brain._hemi == 'both':
+            hemis_ref = ['lh']
+        else:
+            hemis_ref = self.brain._hemis
+        for hemi in hemis_ref:
             if self.brain._hemi == 'split':
                 ci = 0 if hemi == 'lh' else 1
             else:
@@ -304,7 +309,7 @@ class _TimeViewer(object):
                 self.orientation_call(view, update_widget=True)
 
         # necessary because show_view modified subplot
-        if self.brain._hemi == 'split':
+        if self.brain._hemi in ('split', 'both'):
             self.plotter.subplot(0, 0)
 
         # scalar bar
