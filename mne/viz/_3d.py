@@ -1601,12 +1601,12 @@ def link_brains(brains):
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='auto', time_label='auto',
                           smoothing_steps=10, transparent=True, alpha=1.0,
-                          time_viewer=False, subjects_dir=None, figure=None,
+                          time_viewer='auto', subjects_dir=None, figure=None,
                           views='lat', colorbar=True, clim='auto',
                           cortex="classic", size=800, background="black",
                           foreground="white", initial_time=None,
                           time_unit='s', backend='auto', spacing='oct6',
-                          title=None, show_traces=False, verbose=None):
+                          title=None, show_traces='auto', verbose=None):
     """Plot SourceEstimate with PySurfer.
 
     By default this function uses :mod:`mayavi.mlab` to plot the source
