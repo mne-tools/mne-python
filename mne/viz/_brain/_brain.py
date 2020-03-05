@@ -1027,7 +1027,7 @@ class _Brain(object):
                     _set_colormap_range(actor, ctable, scalar_bar, rng)
                     self._data['ctable'] = ctable
 
-    def save_movie(self, fname, time_dilation=4., tmin=None, tmax=None,
+    def save_movie(self, filename, time_dilation=4., tmin=None, tmax=None,
                    framerate=24, interpolation='quadratic', codec=None,
                    bitrate=None, **kwargs):
         """Save a movie (for data with a time axis).
@@ -1045,7 +1045,7 @@ class _Brain(object):
 
         Parameters
         ----------
-        fname : str
+        filename : str
             Path at which to save the movie. The extension determines the
             format (e.g., `'*.mov'`, `'*.gif'`, ...; see the :mod:`imageio`
             documenttion for available formats).
@@ -1117,7 +1117,7 @@ class _Brain(object):
         images = [self.screenshot() for _ in
                   self._iter_time(time_idx, interpolation)]
         if has_imageio:
-            imageio.mimwrite(fname, images, **kwargs)
+            imageio.mimwrite(filename, images, **kwargs)
         else:
             return images
 

@@ -5,6 +5,7 @@
 # License: Simplified BSD
 
 from itertools import cycle
+import os
 import time
 import numpy as np
 from ..utils import _show_help, _get_color_list, tight_layout
@@ -479,14 +480,7 @@ class _TimeViewer(object):
             self._mouse_no_mvt = -1
             self.enable_point_picking()
 
-        # remove default picking menu
-        main_menu = self.plotter.main_menu
-        to_remove = list()
-        for action in main_menu.actions():
-            if action.text() == "Tools":
-                to_remove.append(action)
-        for action in to_remove:
-            main_menu.removeAction(action)
+        self.update_menu()
 
         # setup key bindings
         self.key_bindings = {
@@ -497,8 +491,43 @@ class _TimeViewer(object):
             'c': self.clear_points,
             ' ': self.toggle_playback,
         }
-        menu = self.plotter.main_menu.addMenu('Help')
-        menu.addAction('Show MNE key bindings\t?', self.help)
+
+    def update_menu(self):
+        main_menu = self.plotter.main_menu
+        file_menu = None
+
+        # add help menu
+        help_menu = main_menu.addMenu('Help')
+        help_menu.addAction('Show MNE key bindings\t?', self.help)
+
+        # remove default picking menu
+        to_remove = list()
+        for action in main_menu.actions():
+            if action.text() == "Tools":
+                to_remove.append(action)
+            elif action.text() == "File":
+                file_menu = action.menu()
+        for action in to_remove:
+            main_menu.removeAction(action)
+        to_remove.clear()
+
+        # order the file menu
+        if file_menu is not None:
+            for action in file_menu.actions():
+                if action.text() == "Take Screenshot":
+                    movie_action = file_menu.addAction(
+                        'Save movie',
+                        self.save_movie
+                    )
+                    # insert at the right place
+                    file_menu.insertAction(action, movie_action)
+                    break
+
+    def save_movie(self):
+        from pyvista.plotting.qt_plotting import FileDialog
+        return FileDialog(self.plotter.app_window,
+                          directory=os.getcwd(),
+                          callback=self.brain.save_movie)
 
     def keyPressEvent(self, event):
         callback = self.key_bindings.get(event.text())
