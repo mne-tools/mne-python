@@ -349,6 +349,11 @@ class _BaseRenderer(metaclass=ABCMeta):
         pass
 
     @abstractclassmethod
+    def reset_camera(self):
+        """Reset the camera properties."""
+        pass
+
+    @abstractclassmethod
     def screenshot(self, mode='rgb', filename=None):
         """Take a screenshot of the scene.
 
