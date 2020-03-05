@@ -21,7 +21,7 @@ from mne.io import read_raw_fif, read_info, read_raw_bti, read_raw_kit, BaseRaw
 from mne.preprocessing.maxwell import (
     maxwell_filter, _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
-    _bases_real_to_complex, _prep_mf_coils, maxwell_autobad)
+    _bases_real_to_complex, _prep_mf_coils, find_bad_channels_maxwell)
 from mne.rank import _get_rank_sss, _compute_rank_int
 from mne.utils import (assert_meg_snr, run_tests_if_main, catch_logging,
                        requires_version, object_diff, buggy_mkl_svd)
@@ -1019,7 +1019,7 @@ def test_mf_skips():
         # skips decrease acceptable duration
         maxwell_filter(raw, st_duration=17., **kwargs)
     onsets, ends = _annotations_starts_stops(
-        raw, ('edge', 'bad_acq_skip'), 'skip_by_annotation', invert=True)
+        raw, ('edge', 'bad_acq_skip'), invert=True)
     assert (ends - onsets).min() / raw.info['sfreq'] == 2.
     assert (ends - onsets).max() / raw.info['sfreq'] == 3.
     for st_duration in (2., 3.):
@@ -1053,13 +1053,13 @@ def test_mf_skips():
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('bads', [[], ['MEG 0111']])  # just to test picking
-def test_maxwell_autobad(bads):
+def test_find_bad_channels_maxwell(bads):
     """Test automatic bad channel detection."""
     raw = mne.io.read_raw_fif(sample_fname, allow_maxshield='yes')
     raw.fix_mag_coil_types().load_data().pick_types(exclude=())
     raw.info['bads'] = bads
     # maxfilter -autobad on -v -f test_raw.fif -force -cal off -ctc off -regularize off -list -o test_raw.fif -f ~/mne_data/MNE-testing-data/MEG/sample/sample_audvis_trunc_raw.fif  # noqa: E501
-    got_bads = maxwell_autobad(
+    got_bads = find_bad_channels_maxwell(
         raw, origin=(0., 0., 0.04), regularize=None,
         bad_condition='ignore', verbose='debug')
     assert got_bads == ['MEG 2443']  # from MaxFilter

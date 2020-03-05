@@ -352,6 +352,7 @@ Projections:
    compute_proj_eog
    create_ecg_epochs
    create_eog_epochs
+   find_bad_channels_maxwell
    find_ecg_events
    find_eog_events
    fix_stim_artifact
@@ -359,7 +360,6 @@ Projections:
    ica_find_eog_events
    infomax
    mark_flat
-   maxwell_autobad
    maxwell_filter
    oversampled_temporal_projection
    peak_finder

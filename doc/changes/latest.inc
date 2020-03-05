@@ -47,7 +47,7 @@ Changelog
 
 - Add command line tool :ref:`gen_mne_anonymize` for anonymizing raw fiff files by `Luke Bloy`_
 
-- Add :func:`mne.preprocessing.maxwell_autobad` for automatic bad channel detection by `Eric Larson`_
+- Add :func:`mne.preprocessing.find_bad_channels_maxwell` for automatic bad channel detection via Maxwell filtering by `Eric Larson`_
 
 - Add support to :func:`mne.io.anonymize_info` to allow time offset to be applied to dates by `Luke Bloy`_
 

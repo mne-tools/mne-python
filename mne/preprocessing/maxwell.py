@@ -41,6 +41,7 @@ from ..channels.channels import _get_T1T2_mag_inds
 # differences between algorithms
 
 
+# Changes to arguments here should also be made in find_bad_channels_maxwell
 @verbose
 def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                    calibration=None, cross_talk=None, st_duration=None,
@@ -55,29 +56,11 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     raw : instance of mne.io.Raw
         Data to be filtered.
 
-        .. warning:: Automatic bad channel detection is not currently
-                     implemented. It is critical to mark bad channels in
+        .. warning:: It is critical to mark bad channels in
                      ``raw.info['bads']`` prior to processing in order to
-                     prevent artifact spreading.
-    origin : array-like, shape (3,) | str
-        Origin of internal and external multipolar moment space in meters.
-        The default is ``'auto'``, which means ``(0., 0., 0.)`` when
-        ``coord_frame='meg'``, and a head-digitization-based
-        origin fit using :func:`~mne.bem.fit_sphere_to_headshape`
-        when ``coord_frame='head'``. If automatic fitting fails (e.g., due
-        to having too few digitization points),
-        consider separately calling the fitting function with different
-        options or specifying the origin manually.
-    int_order : int
-        Order of internal component of spherical expansion.
-    ext_order : int
-        Order of external component of spherical expansion.
-    calibration : str | None
-        Path to the ``'.dat'`` file with fine calibration coefficients.
-        File can have 1D or 3D gradiometer imbalance correction.
-        This file is machine/site-specific.
-    cross_talk : str | None
-        Path to the FIF file with cross-talk correction information.
+                     prevent artifact spreading. Manual inspection and use
+                     of :func:`~find_bad_channels_maxwell` is recommended.
+    %(maxwell_origin_int_ext_calibration_cross)s
     st_duration : float | None
         If not None, apply spatiotemporal SSS with specified buffer duration
         (in seconds). MaxFilter™'s default is 10.0 seconds in v2.2.
@@ -91,11 +74,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     st_correlation : float
         Correlation limit between inner and outer subspaces used to reject
         ovwrlapping intersecting inner/outer signals during spatiotemporal SSS.
-    coord_frame : str
-        The coordinate frame that the ``origin`` is specified in, either
-        ``'meg'`` or ``'head'``. For empty-room recordings that do not have
-        a head<->meg transform ``info['dev_head_t']``, the MEG coordinate
-        frame should be used.
+    %(maxwell_coord)s
     destination : str | array-like, shape (3,) | None
         The destination location for the head. Can be ``None``, which
         will not change the head position, or a string path to a FIF file
@@ -104,60 +83,14 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         For example, ``destination=(0, 0, 0.04)`` would translate the bases
         as ``--trans default`` would in MaxFilter™ (i.e., to the default
         head location).
-    regularize : str | None
-        Basis regularization type, must be "in" or None.
-        "in" is the same algorithm as the "-regularize in" option in
-        MaxFilter™.
-    ignore_ref : bool
-        If True, do not include reference channels in compensation. This
-        option should be True for KIT files, since Maxwell filtering
-        with reference channels is not currently supported.
-    bad_condition : str
-        How to deal with ill-conditioned SSS matrices. Can be "error"
-        (default), "warning", "info", or "ignore".
-    head_pos : array | None
-        If array, movement compensation will be performed.
-        The array should be of shape (N, 10), holding the position
-        parameters as returned by e.g. `read_head_pos`.
+    %(maxwell_reg_ref_cond_pos)s
 
         .. versionadded:: 0.12
-    st_fixed : bool
-        If True (default), do tSSS using the median head position during the
-        ``st_duration`` window. This is the default behavior of MaxFilter
-        and has been most extensively tested.
-
-        .. versionadded:: 0.12
-    st_only : bool
-        If True, only tSSS (temporal) projection of MEG data will be
-        performed on the output data. The non-tSSS parameters (e.g.,
-        ``int_order``, ``calibration``, ``head_pos``, etc.) will still be
-        used to form the SSS bases used to calculate temporal projectors,
-        but the output MEG data will *only* have temporal projections
-        performed. Noise reduction from SSS basis multiplication,
-        cross-talk cancellation, movement compensation, and so forth
-        will not be applied to the data. This is useful, for example, when
-        evoked movement compensation will be performed with
-        :func:`~mne.epochs.average_movements`.
-
-        .. versionadded:: 0.12
-    mag_scale : float | str
-        The magenetometer scale-factor used to bring the magnetometers
-        to approximately the same order of magnitude as the gradiometers
-        (default 100.), as they have different units (T vs T/m).
-        Can be ``'auto'`` to use the reciprocal of the physical distance
-        between the gradiometer pickup loops (e.g., 0.0168 m yields
-        59.5 for VectorView).
+    %(maxwell_st_fixed_only)s
+    %(maxwell_mag)s
 
         .. versionadded:: 0.13
-    skip_by_annotation : str | list of str
-        If a string (or list of str), any annotation segment that begins
-        with the given string will not be included in filtering, and
-        segments on either side of the given excluded annotated segment
-        will be filtered separately (i.e., as independent signals).
-        The default ``('edge', 'bad_acq_skip')`` will separately filter
-        any segments that were concatenated by :func:`mne.concatenate_raws`
-        or :meth:`mne.io.Raw.append`, or separated during acquisition.
-        To disable, provide an empty list.
+    %(maxwell_skip)s
 
         .. versionadded:: 0.17
     %(verbose)s
@@ -170,7 +103,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     See Also
     --------
     mne.preprocessing.mark_flat
-    mne.preprocessing.maxwell_autobad
+    mne.preprocessing.find_bad_channels_maxwell
     mne.chpi.filter_chpi
     mne.chpi.read_head_pos
     mne.epochs.average_movements
@@ -222,7 +155,7 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
        +-----------------------------------------------------------------------------+-----+-----------+
        | Seamless processing of split (``-1.fif``) and concatenated files            | ✓   |           |
        +-----------------------------------------------------------------------------+-----+-----------+
-       | Automatic bad channel detection (:func:`~maxwell_autobad`)                  | ✓   | ✓         |
+       | Automatic bad channel detection (:func:`~find_bad_channels_maxwell`)        | ✓   | ✓         |
        +-----------------------------------------------------------------------------+-----+-----------+
        | Head position estimation (:func:`~mne.chpi.compute_head_pos`)               | ✓   | ✓         |
        +-----------------------------------------------------------------------------+-----+-----------+
@@ -312,7 +245,7 @@ def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     head_frame = True if coord_frame == 'head' else False
     recon_trans = _check_destination(destination, raw.info, head_frame)
     onsets, ends = _annotations_starts_stops(
-        raw, skip_by_annotation, 'skip_by_annotation', invert=True)
+        raw, skip_by_annotation, invert=True)
     max_samps = (ends - onsets).max()
     if st_duration is not None:
         st_duration = float(st_duration)
@@ -1889,8 +1822,15 @@ def _trans_sss_basis(exp, all_coils, trans=None, coil_scale=100.):
     return S_tot
 
 
+# intentionally omitted: st_duration, st_correlation, destination, st_fixed,
+# st_only
 @verbose
-def maxwell_autobad(raw, limit=7., duration=5., min_count=5, **kwargs):
+def find_bad_channels_maxwell(
+        raw, limit=7., duration=5., min_count=5,
+        origin='auto', int_order=8, ext_order=3, calibration=None,
+        cross_talk=None, coord_frame='head', regularize='in', ignore_ref=False,
+        bad_condition='error', head_pos=None, mag_scale=100.,
+        skip_by_annotation=('edge', 'bad_acq_skip'), verbose=None):
     r"""Find bad channels using Maxwell filtering.
 
     Parameters
@@ -1905,11 +1845,12 @@ def maxwell_autobad(raw, limit=7., duration=5., min_count=5, **kwargs):
     min_count : int
         Minimum number of times a channel must show up as bad in a chunk.
         Default is 5.
-    **kwargs : dict
-        Keyword arguments to use when running
-        :func:`~mne.preprocessing.maxwell_filter`.
-        ``st_duration`` and ``destination`` are ignored, as these are not
-        used by the algorithm.
+    %(maxwell_origin_int_ext_calibration_cross)s
+    %(maxwell_coord)s
+    %(maxwell_reg_ref_cond_pos)s
+    %(maxwell_mag)s
+    %(maxwell_skip)s
+    %(verbose)s
 
     Returns
     -------
@@ -1924,6 +1865,10 @@ def maxwell_autobad(raw, limit=7., duration=5., min_count=5, **kwargs):
 
     Notes
     -----
+    All arguments after ``raw``, ``limit``, ``duration``, and ``min_count``
+    are the same as :func:`~maxwell_filter`, except that ``st_duration`` and
+    ``destination`` are not allowed in this function.
+
     This algorithm, for a given chunk of data:
 
     1. Runs SSS on the data, without removing external components.
@@ -1953,10 +1898,9 @@ def maxwell_autobad(raw, limit=7., duration=5., min_count=5, **kwargs):
     """
     from scipy.signal import get_window
     limit = float(limit)
-    kwargs.update(st_duration=None, destination=None, verbose=False)
-    skip_by = kwargs.get('skip_by_annotation', ('edge', 'bad'))
     onsets, ends = _annotations_starts_stops(
-        raw, skip_by, 'skip_by_annotation', invert=True)
+        raw, skip_by_annotation, invert=True)
+    del skip_by_annotation
     # operate on chunks
     starts = list()
     stops = list()
@@ -1974,7 +1918,6 @@ def maxwell_autobad(raw, limit=7., duration=5., min_count=5, **kwargs):
     bads = Counter()
     meg_picks, mag_picks, grad_picks, good_picks, _ = \
         _get_mf_picks(raw.info, 8, 3, ignore_ref=True)
-    mag_scale = kwargs.get('mag_scale', 100.)
     coil_scale_, _ = _get_coil_scale(
         meg_picks, mag_picks, grad_picks, mag_scale, raw.info)
     coil_scale = np.ones(len(raw.ch_names))
@@ -1983,13 +1926,23 @@ def maxwell_autobad(raw, limit=7., duration=5., min_count=5, **kwargs):
     these_limits = np.array([
         flat_limits['grad'] if pick in grad_picks else flat_limits['mag']
         for pick in good_picks])
-    del meg_picks, mag_picks, grad_picks, coil_scale_, mag_scale
+    del meg_picks, mag_picks, grad_picks, coil_scale_
     flat_step = max(20, int(30 * raw.info['sfreq'] / 1000.))
     all_flats = set()
     # filtered version
     ds = max(int(round(duration)), 1)
     h_freq = raw.info['sfreq'] / (ds * 3.)
     logger.info('    Low-pass filtering data at %0.1f Hz' % (h_freq,))
+    mf_kwargs = dict(
+        verbose=False, skip_by_annotation=[],  # already accounted for
+        origin=origin, int_order=int_order, ext_order=ext_order,
+        calibration=calibration, cross_talk=cross_talk,
+        coord_frame=coord_frame, regularize=regularize,
+        ignore_ref=ignore_ref, bad_condition=bad_condition, head_pos=head_pos,
+        mag_scale=mag_scale,
+    )
+    del origin, int_order, ext_order, calibration, cross_talk, coord_frame
+    del regularize, ignore_ref, bad_condition, head_pos, mag_scale
     for si, (start, stop) in enumerate(zip(starts, stops)):
         prefix = '%03d:' % (si,)
         n_iter = 0
@@ -2027,7 +1980,7 @@ def maxwell_autobad(raw, limit=7., duration=5., min_count=5, **kwargs):
             assert set(raw.info['bads']) & set(chunk_bads) == set()
             chunk_raw.info['bads'] = raw.info['bads'] + chunk_bads + flats
             chunk_raw_sss = _maxwell_filter(
-                chunk_raw, reconstruct='orig', **kwargs)
+                chunk_raw, reconstruct='orig', **mf_kwargs)
             delta = chunk_raw.get_data(these_picks)
             delta -= chunk_raw_sss.get_data(these_picks)
             # p2p

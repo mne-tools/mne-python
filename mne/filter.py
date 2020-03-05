@@ -1928,7 +1928,7 @@ class FilterMixin(object):
         if isinstance(self, BaseRaw):
             # Deal with annotations
             onsets, ends = _annotations_starts_stops(
-                self, skip_by_annotation, 'skip_by_annotation', invert=True)
+                self, skip_by_annotation, invert=True)
             logger.info('Filtering raw data in %d contiguous segment%s'
                         % (len(onsets), _pl(onsets)))
         else:

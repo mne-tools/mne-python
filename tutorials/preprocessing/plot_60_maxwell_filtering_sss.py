@@ -58,7 +58,8 @@ raw.crop(tmax=60).load_data()
 # The MNE-Python implementation of SSS / Maxwell filtering currently provides
 # the following features:
 #
-# - Basic bad channel detection (:func:`~mne.preprocessing.maxwell_autobad`)
+# - Basic bad channel detection
+#   (:func:`~mne.preprocessing.find_bad_channels_maxwell`)
 # - Bad channel reconstruction
 # - Cross-talk cancellation
 # - Fine calibration correction
@@ -102,7 +103,7 @@ crosstalk_file = os.path.join(sample_data_folder, 'SSS', 'ct_sparse_mgh.fif')
 
 raw_check = raw.copy().pick_types(exclude=()).resample(100)
 raw_check.filter(0.1, None)
-auto_bads = mne.preprocessing.maxwell_autobad(
+auto_bads = mne.preprocessing.find_bad_channels_maxwell(
     raw_check, cross_talk=crosstalk_file, calibration=fine_cal_file,
     min_count=3, verbose=True)  # shorter recording, lower min_count
 print(auto_bads)  # we should find them!
