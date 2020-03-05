@@ -253,6 +253,15 @@ class _TimeViewer(object):
     """Class to interact with _Brain."""
 
     def __init__(self, brain, show_traces=False):
+        # setup key bindings
+        self.key_bindings = {
+            'i': self.toggle_interface,
+            's': self.apply_auto_scaling,
+            'r': self.restore_user_scaling,
+            'c': self.clear_points,
+            ' ': self.toggle_playback,
+        }
+
         self.brain = brain
         self.brain.time_viewer = self
         self.plotter = brain._renderer.plotter
@@ -482,23 +491,13 @@ class _TimeViewer(object):
 
         self.update_menu()
 
-        # setup key bindings
-        self.key_bindings = {
-            '?': self.help,
-            'i': self.toggle_interface,
-            's': self.apply_auto_scaling,
-            'r': self.restore_user_scaling,
-            'c': self.clear_points,
-            ' ': self.toggle_playback,
-        }
-
     def update_menu(self):
         main_menu = self.plotter.main_menu
         file_menu = None
 
         # add help menu
         help_menu = main_menu.addMenu('Help')
-        help_menu.addAction('Show MNE key bindings\t?', self.help)
+        help_menu.addAction('Show MNE key bindings', self.help, '?')
 
         # remove default picking menu
         to_remove = list()
@@ -517,7 +516,8 @@ class _TimeViewer(object):
                 if action.text() == "Take Screenshot":
                     movie_action = file_menu.addAction(
                         'Save movie',
-                        self.save_movie
+                        self.save_movie,
+                        "ctrl+shift+s"
                     )
                     # insert at the right place
                     file_menu.insertAction(action, movie_action)
@@ -789,6 +789,7 @@ class _TimeViewer(object):
             ('s', 'Apply auto-scaling'),
             ('r', 'Restore original clim'),
             ('c', 'Clear all traces'),
+            ('ctrl+shift+s', 'Save movie'),
             ('Space', 'Start/Pause playback'),
         ]
         text1, text2 = zip(*pairs)
