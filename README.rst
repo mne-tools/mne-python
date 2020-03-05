@@ -96,7 +96,8 @@ For full functionality, some functions require:
 - Picard >= 0.3
 - CuPy >= 4.0 (for NVIDIA CUDA acceleration)
 - DIPY >= 0.10.1
-- PyVista >= 0.20.1
+- Imageio >= 2.6.1
+- PyVista >= 0.23.1
 
 Contributing to MNE-Python
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
