@@ -16,7 +16,7 @@ from .colormap import calculate_lut
 from .view import lh_views_dict, rh_views_dict, View
 from .surface import Surface
 from .utils import mesh_edges, smoothing_matrix
-from ..utils import _check_option, logger, verbose
+from ..utils import _check_option, logger, verbose, warn
 
 
 class _Brain(object):
@@ -192,7 +192,7 @@ class _Brain(object):
         self._data = {}
         self.geo, self._hemi_meshes, self._overlays = {}, {}, {}
         # can by anything scipy.interpolate.interp1d accepts
-        self.interp_kind = 'linear'
+        self.interp_kind = 'nearest'
 
         # load geometry for one or both hemispheres as necessary
         offset = None if (not offset or hemi != 'both') else 0.0
@@ -854,10 +854,12 @@ class _Brain(object):
                     self._data[hemi]['smooth_mat'] = smooth_mat
         self.set_time_point(self._data['time_idx'])
 
-    def set_time_point(self, time_idx):
+    def set_time_point(self, time_idx, interpolation=None):
         """Set the time point shown."""
         from ..backends._pyvista import _set_mesh_scalars
         from scipy.interpolate import interp1d
+        if interpolation is None:
+            interpolation = self.interp_kind
         time = self._data['time']
         for hemi in ['lh', 'rh']:
             hemi_data = self._data.get(hemi)
@@ -872,7 +874,7 @@ class _Brain(object):
                         else:
                             times = np.arange(self._n_times)
                             act_data = interp1d(
-                                times, array, self.interp_kind, axis=1,
+                                times, array, interpolation, axis=1,
                                 assume_sorted=True)(time_idx)
                             ifunc = interp1d(times, self._data['time'])
                             self._current_time = ifunc(time_idx)
@@ -1023,6 +1025,64 @@ class _Brain(object):
                     _set_colormap_range(actor, ctable, scalar_bar, rng)
                     self._data['ctable'] = ctable
 
+    def save_movie(self, fname, time_dilation=4., tmin=None, tmax=None,
+                   framerate=24, interpolation='quadratic', codec=None,
+                   bitrate=None, **kwargs):
+        from scipy.interpolate import interp1d
+        from math import floor
+
+        try:
+            import imageio
+            has_imageio = True
+        except (ImportError, ModuleNotFoundError):
+            has_imageio = False
+            warn("The imageio module is not found, "
+                 "save_movie() will return the image sequence instead")
+
+        # find imageio FFMPEG parameters
+        if 'fps' not in kwargs:
+            kwargs['fps'] = framerate
+        if codec is not None:
+            kwargs['codec'] = codec
+        if bitrate is not None:
+            kwargs['bitrate'] = bitrate
+
+        # find tmin
+        if tmin is None:
+            tmin = self._times[0]
+        elif tmin < self._times[0]:
+            raise ValueError("tmin=%r is smaller than the first time point "
+                             "(%r)" % (tmin, self._times[0]))
+
+        # find indexes at which to create frames
+        if tmax is None:
+            tmax = self._times[-1]
+        elif tmax > self._times[-1]:
+            raise ValueError("tmax=%r is greater than the latest time point "
+                             "(%r)" % (tmax, self._times[-1]))
+        n_frames = floor((tmax - tmin) * time_dilation * framerate)
+        times = np.arange(n_frames, dtype=float)
+        times /= framerate * time_dilation
+        times += tmin
+        interp_func = interp1d(self._times, np.arange(self._n_times))
+        time_idx = interp_func(times)
+
+        n_times = len(time_idx)
+        if n_times == 0:
+            raise ValueError("No time points selected")
+
+        logger.debug("Save movie for time points/samples\n%s\n%s"
+                     % (times, time_idx))
+        # Sometimes the first screenshot is rendered with a different
+        # resolution on OS X
+        self.screenshot()
+        images = [self.screenshot() for _ in
+                  self._iter_time(time_idx, interpolation)]
+        if has_imageio:
+            imageio.mimwrite(fname, images, **kwargs)
+        else:
+            return images
+
     @property
     def data(self):
         u"""Data used by time viewer and color bar widgets."""
@@ -1056,6 +1116,36 @@ class _Brain(object):
             raise ValueError('hemi must be either "lh" or "rh"' +
                              extra + ", got " + str(hemi))
         return hemi
+
+    def _iter_time(self, time_idx, interpolation):
+        """Iterate through time points, then reset to current time
+
+        Parameters
+        ----------
+        time_idx : array_like
+            Time point indexes through which to iterate.
+        interpolation : str
+            Interpolation method (``scipy.interpolate.interp1d`` parameter,
+            one of 'linear' | 'nearest' | 'zero' | 'slinear' | 'quadratic' |
+            'cubic'). Interpolation is only used for non-integer indexes.
+
+        Yields
+        ------
+        idx : int | float
+            Current index.
+
+        Notes
+        -----
+        Used by movie and image sequence saving functions.
+        """
+        current_time_idx = self._data["time_idx"]
+        for idx in time_idx:
+            print(idx)
+            self.set_time_point(idx, interpolation)
+            yield idx
+
+        # Restore original time index
+        self.set_time_point(current_time_idx)
 
 
 def _update_limits(fmin, fmid, fmax, center, array):
