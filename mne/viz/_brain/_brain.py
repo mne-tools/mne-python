@@ -778,6 +778,7 @@ class _Brain(object):
         self._renderer.subplot(row, col)
         self._renderer.set_camera(azimuth=view.azim,
                                   elevation=view.elev)
+        self._renderer.reset_camera()
 
     def save_image(self, filename, mode='rgb'):
         """Save view from all panels to disk.

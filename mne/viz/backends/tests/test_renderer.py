@@ -150,4 +150,5 @@ def test_3d_backend(renderer):
     rend.set_camera(azimuth=180.0, elevation=90.0,
                     distance=cam_distance,
                     focalpoint=center)
+    rend.reset_camera()
     rend.show()

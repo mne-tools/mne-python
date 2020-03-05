@@ -426,6 +426,9 @@ class _Renderer(_BaseRenderer):
         _set_3d_view(self.figure, azimuth=azimuth, elevation=elevation,
                      distance=distance, focalpoint=focalpoint)
 
+    def reset_camera(self):
+        self.plotter.reset_camera()
+
     def screenshot(self, mode='rgb', filename=None):
         return _take_3d_screenshot(figure=self.figure, mode=mode,
                                    filename=filename)
