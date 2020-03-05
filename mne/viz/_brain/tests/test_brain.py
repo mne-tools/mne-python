@@ -70,7 +70,7 @@ def test_brain_init(renderer):
         _Brain(subject_id=subject_id, hemi='foo', surf=surf)
 
     brain = _Brain(subject_id, hemi, surf, size=(300, 300),
-                   subjects_dir=subjects_dir)
+                   subjects_dir=subjects_dir, title='test')
     brain.show_view(view=dict(azimuth=180., elevation=90.))
     brain.close()
 
