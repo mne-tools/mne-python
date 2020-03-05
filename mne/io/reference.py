@@ -117,7 +117,7 @@ def _apply_reference(inst, ref_from, ref_to=None, ch_type='auto'):
 
     ch_dict = {ch_type: True, 'meg': False, 'ref_meg': False}
     eeg_idx = pick_types(inst.info, **ch_dict)
-    
+
     if ref_to is None:
         ref_to = [inst.ch_names[i] for i in eeg_idx]
         extra = 'EEG channels found'
@@ -172,8 +172,8 @@ def _apply_reference(inst, ref_from, ref_to=None, ch_type='auto'):
         data[..., ref_to, :] -= ref_data
         ref_data = ref_data[..., 0, :]
 
-        # If the reference touches EEG/ECoG/sEEG electrodes, note in the info that a
-        # non-CAR has been applied.
+        # If the reference touches EEG/ECoG/sEEG electrodes, note in the info
+        # that a non-CAR has been applied.
         if len(np.intersect1d(ref_to, eeg_idx)) > 0:
             inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
     else:
