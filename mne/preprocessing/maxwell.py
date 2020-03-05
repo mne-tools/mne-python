@@ -1866,8 +1866,9 @@ def find_bad_channels_maxwell(
     Notes
     -----
     All arguments after ``raw``, ``limit``, ``duration``, and ``min_count``
-    are the same as :func:`~maxwell_filter`, except that ``st_duration`` and
-    ``destination`` are not allowed in this function.
+    are the same as :func:`~maxwell_filter`, except that the following are
+    not allowed in this function because they are unused: ``st_duration``,
+    ``st_correlation``, ``destination``, ``st_fixed``, and ``st_only``.
 
     This algorithm, for a given chunk of data:
 
