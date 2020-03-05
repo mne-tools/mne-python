@@ -254,6 +254,7 @@
 
 .. _Milan Rybář: http://milanrybar.cz
 
+<<<<<<< HEAD
 .. _Joshua Bear: https://github.com/joshbear
 
 .. _Eberhard Eich: https://github.com/ebeich
@@ -299,3 +300,5 @@
 .. _Adam Li: http://github.com/adam2392
 
 .. _Ramiro Gatti: https://github.com/ragatti
+
+.. _Liberty Hamilton: https://github.com/libertyh
