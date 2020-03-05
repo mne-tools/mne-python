@@ -30,10 +30,10 @@ dependencies:
 - pyface>=6
 - traitsui>=6
 - imageio>=2.6.1
+- vtk
 - pip:
   - mne
   - https://api.github.com/repos/numpy/numpydoc/zipball/master
-  - vtk
   - pyvista>=0.23.1
   - mayavi
   - PySurfer[save_movie]
