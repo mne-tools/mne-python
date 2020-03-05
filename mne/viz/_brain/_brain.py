@@ -101,13 +101,13 @@ class _Brain(object):
        +---------------------------+--------------+-----------------------+
        | 3D function:              | surfer.Brain | mne.viz._brain._Brain |
        +===========================+==============+=======================+
-       | add_data                  | ✓            | -                     |
+       | add_data                  | ✓            | ✓                     |
        +---------------------------+--------------+-----------------------+
-       | add_foci                  | ✓            | -                     |
+       | add_foci                  | ✓            | ✓                     |
        +---------------------------+--------------+-----------------------+
-       | add_label                 | ✓            | -                     |
+       | add_label                 | ✓            | ✓                     |
        +---------------------------+--------------+-----------------------+
-       | add_text                  | ✓            | -                     |
+       | add_text                  | ✓            | ✓                     |
        +---------------------------+--------------+-----------------------+
        | close                     | ✓            | ✓                     |
        +---------------------------+--------------+-----------------------+
@@ -129,9 +129,11 @@ class _Brain(object):
        +---------------------------+--------------+-----------------------+
        | save_image                | ✓            | ✓                     |
        +---------------------------+--------------+-----------------------+
+       | save_movie                | ✓            | ✓                     |
+       +---------------------------+--------------+-----------------------+
        | screenshot                | ✓            | ✓                     |
        +---------------------------+--------------+-----------------------+
-       | show_view                 | ✓            | -                     |
+       | show_view                 | ✓            | ✓                     |
        +---------------------------+--------------+-----------------------+
        | TimeViewer                | ✓            | ✓                     |
        +---------------------------+--------------+-----------------------+
@@ -1028,7 +1030,7 @@ class _Brain(object):
     def save_movie(self, fname, time_dilation=4., tmin=None, tmax=None,
                    framerate=24, interpolation='quadratic', codec=None,
                    bitrate=None, **kwargs):
-        """Save a movie (for data with a time axis)
+        """Save a movie (for data with a time axis).
 
         The movie is created through the :mod:`imageio` module. The format is
         determined by the extension, and additional options can be specified
@@ -1154,7 +1156,7 @@ class _Brain(object):
         return hemi
 
     def _iter_time(self, time_idx, interpolation):
-        """Iterate through time points, then reset to current time
+        """Iterate through time points, then reset to current time.
 
         Parameters
         ----------
