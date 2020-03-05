@@ -47,6 +47,8 @@ Changelog
 
 - Add command line tool :ref:`gen_mne_anonymize` for anonymizing raw fiff files by `Luke Bloy`_
 
+- Add :func:`mne.preprocessing.find_bad_channels_maxwell` for automatic bad channel detection via Maxwell filtering by `Eric Larson`_
+
 - Add support to :func:`mne.io.anonymize_info` to allow time offset to be applied to dates by `Luke Bloy`_
 
 - Add support for computing resolution matrix to get point spread functions (PSF) and cross-talk functions (CTF) in :func:`mne.minimum_norm.make_inverse_resolution_matrix`, :func:`mne.beamformer.make_lcmv_resolution_matrix`, :func:`mne.minimum_norm.get_cross_talk`, :func:`mne.minimum_norm.get_point_spread` by `Olaf Hauk`_
