@@ -16,7 +16,7 @@ from .colormap import calculate_lut
 from .view import lh_views_dict, rh_views_dict, View
 from .surface import Surface
 from .utils import mesh_edges, smoothing_matrix
-from ..utils import _check_option, logger, verbose, warn
+from ..utils import _check_option, logger, verbose
 
 
 class _Brain(object):
@@ -1066,16 +1066,9 @@ class _Brain(object):
         **kwargs :
             Specify additional options for :mod:`imageio`.
         """
+        import imageio
         from scipy.interpolate import interp1d
         from math import floor
-
-        try:
-            import imageio
-            has_imageio = True
-        except (ImportError, ModuleNotFoundError):
-            has_imageio = False
-            warn("The imageio module is not found, "
-                 "save_movie() will return the image sequence instead")
 
         # find imageio FFMPEG parameters
         if 'fps' not in kwargs:
@@ -1102,7 +1095,9 @@ class _Brain(object):
         times = np.arange(n_frames, dtype=float)
         times /= framerate * time_dilation
         times += tmin
-        interp_func = interp1d(self._times, np.arange(self._n_times))
+        interp_func = interp1d(self._times,
+                               np.arange(self._n_times),
+                               interpolation)
         time_idx = interp_func(times)
 
         n_times = len(time_idx)
@@ -1116,10 +1111,7 @@ class _Brain(object):
         self.screenshot()
         images = [self.screenshot() for _ in
                   self._iter_time(time_idx, interpolation)]
-        if has_imageio:
-            imageio.mimwrite(filename, images, **kwargs)
-        else:
-            return images
+        imageio.mimwrite(filename, images, **kwargs)
 
     @property
     def data(self):
