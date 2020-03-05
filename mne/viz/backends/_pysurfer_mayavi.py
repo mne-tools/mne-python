@@ -276,7 +276,8 @@ class _Renderer(_BaseRenderer):
                      focalpoint=focalpoint)
 
     def reset_camera(self):
-        self.fig.scene.renderer.reset_camera()
+        if self.fig is not None:
+            self.fig.scene.renderer.reset_camera()
 
     def screenshot(self, mode='rgb', filename=None):
         return _take_3d_screenshot(figure=self.fig, mode=mode,
