@@ -30,6 +30,12 @@ NOINFO_WARNING = 'Importing FieldTrip data without an info dict from the ' \
                  'source analysis, channel interpolation etc.'
 
 
+def _validate_ft_struct(ft_struct):
+    """Run validation checks on the ft_structure."""
+    if isinstance(ft_struct, list):
+        raise RuntimeError('Loading of data in cell arrays is not supported')
+
+
 def _create_info(ft_struct, raw_info):
     """Create MNE info structure from a FieldTrip structure."""
     if raw_info is None:
@@ -50,10 +56,18 @@ def _create_info(ft_struct, raw_info):
             new_chs = [ch for ch in ch_names if ch not in missing_channels]
             ch_names = new_chs
             ft_struct['label'] = ch_names
-            if ft_struct['trial'].ndim == 2:
-                ft_struct['trial'] = np.delete(ft_struct['trial'],
-                                               missing_chan_idx,
-                                               axis=0)
+
+            if 'trial' in ft_struct:
+                if ft_struct['trial'].ndim == 2:
+                    ft_struct['trial'] = np.delete(ft_struct['trial'],
+                                                   missing_chan_idx,
+                                                   axis=0)
+
+            if 'avg' in ft_struct:
+                if ft_struct['avg'].ndim == 2:
+                    ft_struct['avg'] = np.delete(ft_struct['avg'],
+                                                 missing_chan_idx,
+                                                 axis=0)
 
         info['sfreq'] = sfreq
         ch_idx = [info['ch_names'].index(ch) for ch in ch_names]

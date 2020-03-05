@@ -31,7 +31,8 @@ from .surface import (read_surface, write_surface, complete_surface_info,
                       _fast_cross_nd_sum, _get_solids)
 from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
-                    _pl, _validate_type, _TempDir, get_config)
+                    _pl, _validate_type, _TempDir, _check_freesurfer_home,
+                    _check_fname)
 from .fixes import einsum
 
 
@@ -1113,9 +1114,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
 
     if not op.isdir(bem_dir):
         os.makedirs(bem_dir)
-    if not op.isdir(T1_dir) and not op.isfile(T1_mgz):
-        raise RuntimeError('Could not find the MRI data:\n%s\nor\n%s'
-                           % (T1_dir, T1_mgz))
+    _check_fname(T1_mgz, overwrite='read', must_exist=True, name='MRI data')
     if op.isdir(ws_dir):
         if not overwrite:
             raise RuntimeError('%s already exists. Use the --overwrite option'
@@ -1580,10 +1579,8 @@ def write_bem_solution(fname, bem):
 def _prepare_env(subject, subjects_dir):
     """Prepare an env object for subprocess calls."""
     env = os.environ.copy()
-    fs_home = get_config('FREESURFER_HOME')
-    if fs_home is None:
-        raise RuntimeError('I cannot find freesurfer. The FREESURFER_HOME '
-                           'environment variable is not set.')
+
+    fs_home = _check_freesurfer_home()
 
     _validate_type(subject, "str")
 

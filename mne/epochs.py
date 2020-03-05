@@ -38,7 +38,7 @@ from .io.pick import (pick_types, channel_indices_by_type, channel_type,
                       _pick_aux_channels, _DATA_CH_TYPES_SPLIT,
                       _picks_to_idx)
 from .io.proj import setup_proj, ProjMixin, _proj_equal
-from .io.base import BaseRaw, ToDataFrameMixin, TimeMixin
+from .io.base import BaseRaw, TimeMixin
 from .bem import _check_origin
 from .evoked import EvokedArray, _check_decim
 from .baseline import rescale, _log_rescale
@@ -55,7 +55,10 @@ from .utils import (_check_fname, check_fname, logger, verbose,
                     _check_pandas_installed, _check_preload, GetEpochsMixin,
                     _prepare_read_metadata, _prepare_write_metadata,
                     _check_event_id, _gen_events, _check_option,
-                    _check_combine, ShiftTimeMixin)
+                    _check_combine, ShiftTimeMixin, _build_data_frame,
+                    _check_pandas_index_arguments, _convert_times,
+                    _scale_dataframe_data, _check_time_format,
+                    _check_scaling_time)
 from .utils.docs import fill_doc
 
 
@@ -297,7 +300,7 @@ def _handle_event_repeated(events, event_id, event_repeated, selection,
 @fill_doc
 class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
-                 ToDataFrameMixin, TimeMixin, SizeMixin, GetEpochsMixin):
+                 TimeMixin, SizeMixin, GetEpochsMixin):
     """Abstract base class for Epochs-type classes.
 
     This class provides basic functionality and should never be instantiated
@@ -1252,7 +1255,9 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         keep = np.setdiff1d(np.arange(len(self.events)), try_idx)
         self._getitem(keep, reason, copy=False, drop_event_id=False)
         count = len(try_idx)
-        logger.info('Dropped %d epoch%s' % (count, _pl(count)))
+        logger.info('Dropped %d epoch%s: %s' %
+                    (count, _pl(count), ', '.join(map(str, np.sort(try_idx)))))
+
         return self
 
     def _get_epoch_from_raw(self, idx, verbose=None):
@@ -1271,7 +1276,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         return epoch
 
     @verbose
-    def _get_data(self, out=True, picks=None, verbose=None):
+    def _get_data(self, out=True, picks=None, item=None, verbose=None):
         """Load all data, dropping bad epochs along the way.
 
         Parameters
@@ -1282,7 +1287,15 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         %(picks_all)s
         %(verbose_meth)s
         """
-        n_events = len(self.events)
+        if item is None:
+            item = slice(None)
+        elif not self._bad_dropped:
+            raise ValueError(
+                'item must be None in epochs.get_data() unless bads have been '
+                'dropped. Consider using epochs.drop_bad().')
+        select = self._item_to_select(item)  # indices or slice
+        use_idx = np.arange(len(self.events))[select]
+        n_events = len(use_idx)
         # in case there are no good events
         if self.preload:
             # we will store our result in our existing array
@@ -1296,6 +1309,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             if not out:
                 return
             if self.preload:
+                data = data[select]
                 if picks is None:
                     return data
                 else:
@@ -1303,7 +1317,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                     return data[:, picks]
 
             # we need to load from disk, drop, and return data
-            for idx in range(n_events):
+            for ii, idx in enumerate(use_idx):
                 # faster to pre-allocate memory here
                 epoch_noproj = self._get_epoch_from_raw(idx)
                 epoch_noproj = self._detrend_offset_decim(epoch_noproj)
@@ -1311,10 +1325,10 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                     epoch_out = epoch_noproj
                 else:
                     epoch_out = self._project_epoch(epoch_noproj)
-                if idx == 0:
+                if ii == 0:
                     data = np.empty((n_events, len(self.ch_names),
                                      len(self.times)), dtype=epoch_out.dtype)
-                data[idx] = epoch_out
+                data[ii] = epoch_out
         else:
             # bads need to be dropped, this might occur after a preload
             # e.g., when calling drop_bad w/new params
@@ -1377,19 +1391,27 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
             return None
 
     @fill_doc
-    def get_data(self, picks=None):
+    def get_data(self, picks=None, item=None):
         """Get all epochs as a 3D array.
 
         Parameters
         ----------
         %(picks_all)s
+        item : slice | array-like | str | list | None
+            The items to get. See :meth:`mne.Epochs.__getitem__` for
+            a description of valid options. This can be substantially faster
+            for obtaining an ndarray than :meth:`~mne.Epochs.__getitem__`
+            for repeated access on large Epochs objects.
+            None (default) is an alias for ``slice(None)``.
+
+            .. versionadded:: 0.20
 
         Returns
         -------
         data : array of shape (n_epochs, n_channels, n_times)
             A view on epochs data.
         """
-        return self._get_data(picks=picks)
+        return self._get_data(picks=picks, item=item)
 
     @property
     def times(self):
@@ -1686,6 +1708,69 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self.drop(indices, reason='EQUALIZED_COUNT')
         # actually remove the indices
         return self, indices
+
+    @fill_doc
+    def to_data_frame(self, picks=None, index=None, scaling_time=None,
+                      scalings=None, copy=True, long_format=False,
+                      time_format='ms'):
+        """Export data in tabular structure as a pandas DataFrame.
+
+        Channels are converted to columns in the DataFrame. By default,
+        additional columns "time", "epoch" (epoch number), and "condition"
+        (epoch event description) are added, unless ``index`` is not ``None``
+        (in which case the columns specified in ``index`` will be used to form
+        the DataFrame's index instead).
+
+        Parameters
+        ----------
+        %(picks_all)s
+        %(df_index_epo)s
+            Valid string values are 'time', 'epoch', and 'condition'.
+            Defaults to ``None``.
+        %(df_scaling_time_deprecated)s
+        %(df_scalings)s
+        %(df_copy)s
+        %(df_longform_epo)s
+        %(df_time_format)s
+
+            .. versionadded:: 0.20
+
+        Returns
+        -------
+        %(df_return)s
+        """
+        # check deprecation
+        _check_scaling_time(scaling_time)
+        # check pandas once here, instead of in each private utils function
+        pd = _check_pandas_installed()  # noqa
+        # arg checking
+        valid_index_args = ['time', 'epoch', 'condition']
+        valid_time_formats = ['ms', 'timedelta']
+        index = _check_pandas_index_arguments(index, valid_index_args)
+        time_format = _check_time_format(time_format, valid_time_formats)
+        # get data
+        picks = _picks_to_idx(self.info, picks, 'all', exclude=())
+        data = self.get_data()[:, picks, :]
+        times = self.times
+        n_epochs, n_picks, n_times = data.shape
+        data = np.hstack(data).T  # (time*epochs) x signals
+        if copy:
+            data = data.copy()
+        data = _scale_dataframe_data(self, data, picks, scalings)
+        # prepare extra columns / multiindex
+        mindex = list()
+        times = np.tile(times, n_epochs)
+        times = _convert_times(self, times, time_format)
+        mindex.append(('time', times))
+        rev_event_id = {v: k for k, v in self.event_id.items()}
+        conditions = [rev_event_id[k] for k in self.events[:, 2]]
+        mindex.append(('condition', np.repeat(conditions, n_times)))
+        mindex.append(('epoch', np.repeat(self.selection, n_times)))
+        assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
+        # build DataFrame
+        df = _build_data_frame(self, data, picks, long_format, mindex, index,
+                               default_index=['condition', 'epoch', 'time'])
+        return df
 
 
 def _check_baseline(baseline, tmin, tmax, sfreq):

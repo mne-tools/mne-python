@@ -130,6 +130,22 @@ class GetEpochsMixin(object):
         """
         return self._getitem(item)
 
+    def _item_to_select(self, item):
+        if isinstance(item, str):
+            item = [item]
+
+        # Convert string to indices
+        if isinstance(item, (list, tuple)) and len(item) > 0 and \
+                isinstance(item[0], str):
+            select = self._keys_to_idx(item)
+        elif isinstance(item, slice):
+            select = item
+        else:
+            select = np.atleast_1d(item)
+            if len(select) == 0:
+                select = np.array([], int)
+        return select
+
     def _getitem(self, item, reason='IGNORED', copy=True, drop_event_id=True,
                  select_data=True, return_indices=False):
         """
@@ -163,19 +179,7 @@ class GetEpochsMixin(object):
         self._data = inst._data = data
         del self
 
-        if isinstance(item, str):
-            item = [item]
-
-        # Convert string to indices
-        if isinstance(item, (list, tuple)) and len(item) > 0 and \
-                isinstance(item[0], str):
-            select = inst._keys_to_idx(item)
-        elif isinstance(item, slice):
-            select = item
-        else:
-            select = np.atleast_1d(item)
-            if len(select) == 0:
-                select = np.array([], int)
+        select = inst._item_to_select(item)
         has_selection = hasattr(inst, 'selection')
         if has_selection:
             key_selection = inst.selection[select]

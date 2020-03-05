@@ -25,7 +25,8 @@ from ..utils import logger, verbose, ProgressBar, _check_option
 def _prepare_source_params(inst, inverse_operator, label=None,
                            lambda2=1.0 / 9.0, method="dSPM", nave=1,
                            decim=1, pca=True, pick_ori="normal",
-                           prepared=False, method_params=None, verbose=None):
+                           prepared=False, method_params=None,
+                           use_cps=True, verbose=None):
     """Prepare inverse operator and params for spectral / TFR analysis."""
     inv = _check_or_prepare(inverse_operator, nave, lambda2, method,
                             method_params, prepared)
@@ -43,7 +44,8 @@ def _prepare_source_params(inst, inverse_operator, label=None,
     #   This does all the data transformations to compute the weights for the
     #   eigenleads
     #
-    K, noise_norm, vertno, _ = _assemble_kernel(inv, label, method, pick_ori)
+    K, noise_norm, vertno, _ = _assemble_kernel(
+        inv, label, method, pick_ori, use_cps=use_cps)
 
     if pca:
         U, s, Vh = linalg.svd(K, full_matrices=False)
@@ -64,7 +66,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
                               n_cycles=5, df=1, use_fft=False, decim=1,
                               baseline=None, baseline_mode='logratio',
                               pca=True, n_jobs=1, prepared=False,
-                              method_params=None, verbose=None):
+                              method_params=None, use_cps=True, verbose=None):
     """Compute source space induced power in given frequency bands.
 
     Parameters
@@ -123,6 +125,9 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         Additional options for eLORETA. See Notes of :func:`apply_inverse`.
 
         .. versionadded:: 0.16
+    %(use_cps_restricted)s
+
+        .. versionadded:: 0.20
     %(verbose)s
 
     Returns
@@ -139,7 +144,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         epochs, inverse_operator, freqs, label=label, lambda2=lambda2,
         method=method, nave=nave, n_cycles=n_cycles, decim=decim,
         use_fft=use_fft, pca=pca, n_jobs=n_jobs, with_plv=False,
-        prepared=prepared, method_params=method_params)
+        prepared=prepared, method_params=method_params, use_cps=use_cps)
 
     Fs = epochs.info['sfreq']  # sampling in Hz
     stcs = dict()
@@ -261,13 +266,15 @@ def _source_induced_power(epochs, inverse_operator, freqs, label=None,
                           lambda2=1.0 / 9.0, method="dSPM", nave=1, n_cycles=5,
                           decim=1, use_fft=False, pca=True, pick_ori="normal",
                           n_jobs=1, with_plv=True, zero_mean=False,
-                          prepared=False, method_params=None, verbose=None):
+                          prepared=False, method_params=None, use_cps=True,
+                          verbose=None):
     """Aux function for source induced power."""
     epochs_data = epochs.get_data()
     K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
         inst=epochs, inverse_operator=inverse_operator, label=label,
         lambda2=lambda2, method=method, nave=nave, pca=pca, pick_ori=pick_ori,
-        prepared=prepared, method_params=method_params, verbose=verbose)
+        prepared=prepared, method_params=method_params, use_cps=use_cps,
+        verbose=verbose)
 
     inv = inverse_operator
     parallel, my_compute_source_tfrs, n_jobs = parallel_func(
@@ -307,7 +314,7 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
                          decim=1, use_fft=False, pick_ori=None,
                          baseline=None, baseline_mode='logratio', pca=True,
                          n_jobs=1, zero_mean=False, prepared=False,
-                         method_params=None, verbose=None):
+                         method_params=None, use_cps=True, verbose=None):
     """Compute induced power and phase lock.
 
     Computation can optionally be restricted in a label.
@@ -372,6 +379,9 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
         If True, do not call :func:`prepare_inverse_operator`.
     method_params : dict | None
         Additional options for eLORETA. See Notes of :func:`apply_inverse`.
+    %(use_cps_restricted)s
+
+        .. versionadded:: 0.20
     %(verbose)s
 
     Returns
@@ -388,7 +398,7 @@ def source_induced_power(epochs, inverse_operator, freqs, label=None,
         method=method, nave=nave, n_cycles=n_cycles, decim=decim,
         use_fft=use_fft, pick_ori=pick_ori, pca=pca, n_jobs=n_jobs,
         method_params=method_params, zero_mean=zero_mean,
-        prepared=prepared)
+        prepared=prepared, use_cps=use_cps)
 
     # Run baseline correction
     power = rescale(power, epochs.times[::decim], baseline, baseline_mode,
@@ -552,14 +562,15 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                                pca=True, inv_split=None, bandwidth=4.,
                                adaptive=False, low_bias=True, n_jobs=1,
                                prepared=False, method_params=None,
-                               return_sensor=False):
+                               return_sensor=False, use_cps=True):
     """Generate compute_source_psd_epochs."""
     logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
 
     K, sel, Vh, vertno, is_free_ori, noise_norm = _prepare_source_params(
         inst=epochs, inverse_operator=inverse_operator, label=label,
         lambda2=lambda2, method=method, nave=nave, pca=pca, pick_ori=pick_ori,
-        prepared=prepared, method_params=method_params, verbose=verbose)
+        prepared=prepared, method_params=method_params, use_cps=use_cps,
+        verbose=verbose)
     # Simplify code with a tiny (rel. to other computations) penalty for eye
     # mult
     Vh = np.eye(K.shape[0]) if Vh is None else Vh
@@ -688,7 +699,7 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                               adaptive=False, low_bias=True,
                               return_generator=False, n_jobs=1,
                               prepared=False, method_params=None,
-                              return_sensor=False, verbose=None):
+                              return_sensor=False, use_cps=True, verbose=None):
     """Compute source power spectral density (PSD) from Epochs.
 
     This uses the multi-taper method to compute the PSD for each epoch.
@@ -745,6 +756,9 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         If True, also return the sensor PSD for each epoch as an EvokedArray.
 
         .. versionadded:: 0.17
+    %(use_cps_restricted)s
+
+        .. versionadded:: 0.20
     %(verbose)s
 
     Returns
@@ -763,7 +777,8 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         fmin=fmin, fmax=fmax, pick_ori=pick_ori, label=label,
         nave=nave, pca=pca, inv_split=inv_split, bandwidth=bandwidth,
         adaptive=adaptive, low_bias=low_bias, n_jobs=n_jobs, prepared=prepared,
-        method_params=method_params, return_sensor=return_sensor)
+        method_params=method_params, return_sensor=return_sensor,
+        use_cps=use_cps)
 
     if return_generator:
         # return generator object

@@ -203,7 +203,8 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
     Returns
     -------
     cmap : instance of colormap | array
-        A teal->blue->gray->red->yellow colormap.
+        A teal->blue->gray->red->yellow colormap. See docstring of the 'format'
+        argument for further details.
 
     Notes
     -----
@@ -1235,19 +1236,13 @@ def _select_bads(event, params, bads):
     return bads
 
 
-def _onclick_help(event, params):
-    """Draw help window."""
-    text, text2 = _get_help_text(params)
-
-    width, height = 9, 5
-
+def _show_help(col1, col2, width, height):
     fig_help = figure_nobar(figsize=(width, height), dpi=80)
     fig_help.canvas.set_window_title('Help')
-    params['fig_help'] = fig_help
 
     ax = fig_help.add_subplot(111)
-    celltext = [[c1, c2] for c1, c2 in zip(text.strip().split("\n"),
-                                           text2.strip().split("\n"))]
+    celltext = [[c1, c2] for c1, c2 in zip(col1.strip().split("\n"),
+                                           col2.strip().split("\n"))]
     table = ax.table(cellText=celltext, loc="center", cellLoc="left")
     table.auto_set_font_size(False)
     table.set_fontsize(12)
@@ -1267,6 +1262,17 @@ def _onclick_help(event, params):
         plt_show(fig=fig_help, warn=False)
     except Exception:
         pass
+
+
+def _onclick_help(event, params):
+    """Draw help window."""
+    col1, col2 = _get_help_text(params)
+    params['fig_help'] = _show_help(
+        col1=col1,
+        col2=col2,
+        width=9,
+        height=5,
+    )
 
 
 def _key_press(event):
@@ -1602,9 +1608,18 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     chs = [info['chs'][pick] for pick in picks]
     if not _check_ch_locs(chs):
         raise RuntimeError('No valid channel positions found')
-    pos = np.array([apply_trans(info['dev_head_t'], ch['loc'][:3])
-                    if ch['coord_frame'] == FIFF.FIFFV_COORD_DEVICE else
-                    ch['loc'][:3] for ch in chs])
+    dev_head_t = info['dev_head_t']
+    pos = np.empty((len(chs), 3))
+    for ci, ch in enumerate(chs):
+        pos[ci] = ch['loc'][:3]
+        if ch['coord_frame'] == FIFF.FIFFV_COORD_DEVICE:
+            if dev_head_t is None:
+                warn('dev_head_t is None, transforming MEG sensors to head '
+                     'coordinate frame using identity transform')
+                dev_head_t = np.eye(4)
+            pos[ci] = apply_trans(dev_head_t, pos[ci])
+    del dev_head_t
+
     ch_names = np.array([ch['ch_name'] for ch in chs])
     bads = [idx for idx, name in enumerate(ch_names) if name in info['bads']]
     if ch_groups is None:
@@ -1959,7 +1974,7 @@ class DraggableColorbar(object):
         elif self.index >= len(self.cycle):
             self.index = 0
         cmap = self.cycle[self.index]
-        self.cbar.set_cmap(cmap)
+        self.cbar.mappable.set_cmap(cmap)
         self.cbar.draw_all()
         self.mappable.set_cmap(cmap)
         self.mappable.set_norm(self.cbar.norm)
@@ -2044,11 +2059,14 @@ class SelectFromCollection(object):
 
         # Ensure that we have separate colors for each object
         self.fc = collection.get_facecolors()
+        self.ec = collection.get_edgecolors()
         if len(self.fc) == 0:
             raise ValueError('Collection must have a facecolor')
         elif len(self.fc) == 1:
             self.fc = np.tile(self.fc, self.Npts).reshape(self.Npts, -1)
+            self.ec = np.tile(self.ec, self.Npts).reshape(self.Npts, -1)
         self.fc[:, -1] = self.alpha_other  # deselect in the beginning
+        self.ec[:, -1] = self.alpha_other
 
         self.lasso = LassoSelector(ax, onselect=self.on_select,
                                    lineprops={'color': 'red', 'linewidth': .5})
@@ -2073,6 +2091,10 @@ class SelectFromCollection(object):
         self.fc[:, -1] = self.alpha_other
         self.fc[inds, -1] = 1
         self.collection.set_facecolors(self.fc)
+
+        self.ec[:, -1] = self.alpha_other
+        self.ec[inds, -1] = 1
+        self.collection.set_edgecolors(self.ec)
         self.canvas.draw_idle()
         self.canvas.callbacks.process('lasso_event')
 
@@ -2087,7 +2109,9 @@ class SelectFromCollection(object):
             self.selection.append(ch_name)
             this_alpha = 1
         self.fc[ind, -1] = this_alpha
+        self.ec[ind, -1] = this_alpha
         self.collection.set_facecolors(self.fc)
+        self.collection.set_edgecolors(self.ec)
         self.canvas.draw_idle()
         self.canvas.callbacks.process('lasso_event')
 
@@ -2095,7 +2119,9 @@ class SelectFromCollection(object):
         """Disconnect the lasso selector."""
         self.lasso.disconnect_events()
         self.fc[:, -1] = 1
+        self.ec[:, -1] = 1
         self.collection.set_facecolors(self.fc)
+        self.collection.set_edgecolors(self.ec)
         self.canvas.draw_idle()
 
 
@@ -2228,7 +2254,8 @@ def _on_hover(event, params):
             if params['segment_line'] is None:
                 modify_callback = partial(_annotation_modify, params=params)
                 line = params['ax'].plot([x, x], ylim, color=color,
-                                         linewidth=2., picker=5.)[0]
+                                         linewidth=2., picker=True)[0]
+                line.set_pickradius(5.)
                 dl = DraggableLine(line, modify_callback, drag_callback)
                 params['segment_line'] = dl
             else:

@@ -19,7 +19,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 
 import mne
 from mne.datasets import testing
-from mne.minimum_norm.resolution_matrix import make_resolution_matrix
+from mne.minimum_norm.resolution_matrix import make_inverse_resolution_matrix
 from mne.minimum_norm.spatial_resolution import (resolution_metrics,
                                                  _rectify_resolution_matrix)
 from mne.utils import run_tests_if_main
@@ -65,16 +65,16 @@ def test_resolution_metrics():
     # resolution matrices for fixed source orientation
 
     # compute resolution matrix for MNE
-    rm_mne = make_resolution_matrix(fwd, inv,
-                                    method='MNE', lambda2=lambda2)
+    rm_mne = make_inverse_resolution_matrix(fwd, inv,
+                                            method='MNE', lambda2=lambda2)
 
     # compute very smooth MNE
-    rm_mne_smooth = make_resolution_matrix(fwd, inv,
-                                           method='MNE', lambda2=100.)
+    rm_mne_smooth = make_inverse_resolution_matrix(fwd, inv,
+                                                   method='MNE', lambda2=100.)
 
     # compute resolution matrix for sLORETA
-    rm_lor = make_resolution_matrix(fwd, inv,
-                                    method='sLORETA', lambda2=lambda2)
+    rm_lor = make_inverse_resolution_matrix(fwd, inv,
+                                            method='sLORETA', lambda2=lambda2)
 
     # Compute localisation error (STCs)
     # Peak

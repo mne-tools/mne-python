@@ -159,8 +159,11 @@ factor_levels = [2, 2]
 
 ###############################################################################
 # Finally we will pick the interaction effect by passing 'A:B'.
-# (this notation is borrowed from the R formula language). Without this also
-# the main effects will be returned.
+# (this notation is borrowed from the R formula language).
+# As an aside, note that in this particular example, we cannot use the A*B
+# notation which return both the main and the interaction effect. The reason
+# is that the clustering function expects ``stat_fun`` to return a 1-D array.
+# To get clusters for both, you must create a loop.
 effects = 'A:B'
 # Tell the ANOVA not to compute p-values which we don't need for clustering
 return_pvals = False

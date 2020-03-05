@@ -17,7 +17,7 @@ from .parametric import f_oneway, ttest_1samp_no_p
 from ..parallel import parallel_func, check_n_jobs
 from ..fixes import jit, has_numba
 from ..utils import (split_list, logger, verbose, ProgressBar, warn, _pl,
-                     check_random_state, _check_option)
+                     check_random_state, _check_option, _validate_type)
 from ..source_estimate import SourceEstimate
 
 
@@ -847,6 +847,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     # Step 1: Calculate t-stat for original data
     # -------------------------------------------------------------
     t_obs = stat_fun(*X)
+    _validate_type(t_obs, np.ndarray, 'return value of stat_fun')
     logger.info('stat_fun(H1): min=%f max=%f' % (np.min(t_obs), np.max(t_obs)))
 
     # test if stat_fun treats variables independently
@@ -862,6 +863,10 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
             buffer_size = None
 
     # The stat should have the same shape as the samples for no conn.
+    if t_obs.size != np.prod(sample_shape):
+        raise ValueError('t_obs.shape %s provided by stat_fun %s is not '
+                         'compatible with the sample shape %s'
+                         % (t_obs.shape, stat_fun, sample_shape))
     if connectivity is None or connectivity is False:
         t_obs.shape = sample_shape
 
@@ -1420,7 +1425,8 @@ def spatio_temporal_cluster_test(
         See permutation_cluster_test.
     stat_fun : callable | None
         Function called to calculate statistics, must accept 1d-arrays as
-        arguments (default None uses :func:`mne.stats.f_oneway`).
+        arguments (default None uses :func:`mne.stats.f_oneway`). It
+        should also return a 1-d array.
     connectivity : scipy.sparse.spmatrix or None
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.

@@ -122,14 +122,6 @@ if version < '0.8.0':
     raise ImportError
 """
 
-_sklearn_call = """
-required_version = '0.14'
-import sklearn
-version = LooseVersion(sklearn.__version__)
-if version < required_version:
-    raise ImportError
-"""
-
 _mayavi_call = """
 with warnings.catch_warnings(record=True):  # traits
     from mayavi import mlab
@@ -152,16 +144,32 @@ if 'NEUROMAG2FT_ROOT' not in os.environ:
 
 requires_pandas = partial(requires_module, name='pandas', call=_pandas_call)
 requires_pylsl = partial(requires_module, name='pylsl')
-requires_sklearn = partial(requires_module, name='sklearn', call=_sklearn_call)
+requires_sklearn = partial(requires_module, name='sklearn')
 requires_mayavi = partial(requires_module, name='mayavi', call=_mayavi_call)
 requires_mne = partial(requires_module, name='MNE-C', call=_mne_call)
-requires_freesurfer = partial(requires_module, name='Freesurfer',
-                              call=_fs_call)
+
+
+def requires_freesurfer(arg):
+    """Require Freesurfer."""
+    if isinstance(arg, str):
+        # Calling as  @requires_freesurfer('progname'): return decorator
+        # after checking for progname existence
+        call = """
+from . import run_subprocess
+run_subprocess([%r, '--version'])
+""" % (arg,)
+        return partial(
+            requires_module, name='Freesurfer (%s)' % (arg,), call=call)
+    else:
+        # Calling directly as @requires_freesurfer: return decorated function
+        # and just check env var existence
+        return requires_module(arg, name='Freesurfer', call=_fs_call)
+
+
 requires_neuromag2ft = partial(requires_module, name='neuromag2ft',
                                call=_n2ft_call)
 
-requires_tvtk = partial(requires_module, name='TVTK',
-                        call='from tvtk.api import tvtk')
+requires_vtk = partial(requires_module, name='vtk')
 requires_pysurfer = partial(requires_module, name='PySurfer',
                             call="""import warnings
 with warnings.catch_warnings(record=True):
@@ -436,8 +444,9 @@ def assert_meg_snr(actual, desired, min_tol, med_tol=500., chpi_med_tol=500.,
 
 def assert_snr(actual, desired, tol):
     """Assert actual and desired arrays are within some SNR tolerance."""
-    snr = (linalg.norm(desired, ord='fro') /
-           linalg.norm(desired - actual, ord='fro'))
+    with np.errstate(divide='ignore'):  # allow infinite
+        snr = (linalg.norm(desired, ord='fro') /
+               linalg.norm(desired - actual, ord='fro'))
     assert snr >= tol, '%f < %f' % (snr, tol)
 
 

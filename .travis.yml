@@ -78,6 +78,8 @@ before_install:
           curl https://staff.washington.edu/larsoner/minimal_cmds.tar.gz | tar xz;
           export LD_LIBRARY_PATH=${MNE_ROOT}/lib:$LD_LIBRARY_PATH;
           export NEUROMAG2FT_ROOT="${PWD}/minimal_cmds/bin";
+          export FREESURFER_HOME="${PWD}/minimal_cmds";
+          export MNE_SKIP_FS_FLASH_CALL=1;
         else
           curl https://staff.washington.edu/larsoner/minimal_cmds_osx.tar.gz | tar xz;
           export DYLD_LIBRARY_PATH=${MNE_ROOT}/lib:$DYLD_LIBRARY_PATH;
@@ -95,17 +97,12 @@ install:
     - python setup.py build
     - python setup.py install
     - mne sys_info
+    - python -c "import numpy; numpy.show_config()"
     - SRC_DIR=$(pwd)
     - cd ~
-    # Trigger download of testing data. Note that
-    # the testing dataset has been constructed to contain the necessary
-    # files to act as a FREESURFER_HOME for the coreg tests
+    # Trigger download of testing data
     - if [ "${DEPS}" != "minimal" ]; then
         python -c 'import mne; mne.datasets.testing.data_path(verbose=True)';
-      fi;
-    - if [ "${DEPS}" != "minimal" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-        export FREESURFER_HOME=$(python -c 'import mne; print(mne.datasets.testing.data_path())');
-        export MNE_SKIP_FS_FLASH_CALL=1;
       fi;
     - cd ${SRC_DIR}
 
@@ -115,7 +112,11 @@ script:
     - locale
     - echo "Other stuff"
     # OSX runs ~2x slower than Linux on Travis, so skip any slow ones there
+    # Until https://github.com/numpy/numpy/issues/15580 is resolved we also
+    # need the --pre wheels to skip slow ones.
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+        CONDITION='not slowtest';
+      elif [ -z "$CONDA_ENV" ] && [ -z "$CONDA_DEPENDENCIES" ]; then
         CONDITION='not slowtest';
       else
         CONDITION='not ultraslowtest';

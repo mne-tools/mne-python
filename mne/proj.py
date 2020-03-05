@@ -5,17 +5,19 @@
 import numpy as np
 from scipy import linalg
 
-from . import io, Epochs
+from .epochs import Epochs
 from .utils import check_fname, logger, verbose, _check_option
+from .io.open import fiff_open
 from .io.pick import pick_types, pick_types_forward
-from .io.proj import Projection, _has_eeg_average_ref_proj
+from .io.proj import (Projection, _has_eeg_average_ref_proj, _read_proj,
+                      make_projector, make_eeg_average_ref_proj, _write_proj)
+from .io.write import start_file, end_file
 from .event import make_fixed_length_events
 from .parallel import parallel_func
 from .cov import _check_n_samples
 from .forward import (is_fixed_orient, _subject_from_forward,
                       convert_forward_solution)
 from .source_estimate import SourceEstimate, VolSourceEstimate
-from .io.proj import make_projector, make_eeg_average_ref_proj
 from .rank import _get_rank_sss
 
 
@@ -40,9 +42,9 @@ def read_proj(fname):
     check_fname(fname, 'projection', ('-proj.fif', '-proj.fif.gz',
                                       '_proj.fif', '_proj.fif.gz'))
 
-    ff, tree, _ = io.fiff_open(fname)
+    ff, tree, _ = fiff_open(fname)
     with ff as fid:
-        projs = io.proj._read_proj(fid, tree)
+        projs = _read_proj(fid, tree)
     return projs
 
 
@@ -65,9 +67,9 @@ def write_proj(fname, projs):
     check_fname(fname, 'projection', ('-proj.fif', '-proj.fif.gz',
                                       '_proj.fif', '_proj.fif.gz'))
 
-    fid = io.write.start_file(fname)
-    io.proj._write_proj(fid, projs)
-    io.write.end_file(fid)
+    with start_file(fname) as fid:
+        _write_proj(fid, projs)
+        end_file(fid)
 
 
 @verbose

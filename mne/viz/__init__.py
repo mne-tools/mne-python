@@ -10,7 +10,8 @@ from ._3d import (plot_sparse_source_estimates, plot_source_estimates,
                   plot_vector_source_estimates, plot_evoked_field,
                   plot_dipole_locations, snapshot_brain_montage,
                   plot_head_positions, plot_alignment, plot_brain_colorbar,
-                  plot_volume_source_estimates, plot_sensors_connectivity)
+                  plot_volume_source_estimates, plot_sensors_connectivity,
+                  link_brains)
 from .misc import (plot_cov, plot_csd, plot_bem, plot_events,
                    plot_source_spectrogram, _get_presser,
                    plot_dipole_amplitudes, plot_ideal_filter, plot_filter,

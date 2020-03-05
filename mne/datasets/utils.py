@@ -239,7 +239,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.79', misc='0.5')
+    releases = dict(testing='0.80', misc='0.5')
     # And also update the "md5_hashes['testing']" variable below.
 
     # To update any other dataset, update the data archive itself (upload
@@ -258,7 +258,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         misc='https://codeload.github.com/mne-tools/mne-misc-data/'
              'tar.gz/%s' % releases['misc'],
         sample='https://osf.io/86qa2/download?version=5',
-        somato='https://osf.io/tp4sg/download?version=5',
+        somato='https://osf.io/tp4sg/download?version=6',
         spm='https://osf.io/je4s8/download?version=2',
         testing='https://codeload.github.com/mne-tools/mne-testing-data/'
                 'tar.gz/%s' % releases['testing'],
@@ -321,9 +321,9 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         fake='3194e9f7b46039bb050a74f3e1ae9908',
         misc='84e606998ac379ef53029b3b1cf37918',
         sample='12b75d1cb7df9dfb4ad73ed82f61094f',
-        somato='f08f17924e23c57a751b3bed4a05fe02',
+        somato='ea825966c0a1e9b2f84e3826c5500161',
         spm='9f43f67150e3b694b523a21eb929ea75',
-        testing='7a8f1804a38e72394cd64aca1dad7cd3',
+        testing='de51a47739798064fd20bd3345d5eba0',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
         fnirs_motor='c4935d19ddab35422a69f3326a01fef8',
         opm='370ad1dcfd5c47e029e692c85358a374',

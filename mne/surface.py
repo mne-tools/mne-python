@@ -14,7 +14,7 @@ from glob import glob
 from functools import partial
 import os
 from os import path as op
-import sys
+import warnings
 from struct import pack
 
 import numpy as np
@@ -31,7 +31,9 @@ from .channels.channels import _get_meg_system
 from .parallel import parallel_func
 from .transforms import (transform_surface_to, _pol_to_cart, _cart_to_sph,
                          _get_trans, apply_trans, Transform)
-from .utils import logger, verbose, get_subjects_dir, warn, _check_fname
+from .utils import (logger, verbose, get_subjects_dir, warn, _check_fname,
+                    _check_option, _ensure_int, _TempDir, run_subprocess,
+                    _check_freesurfer_home)
 from .fixes import (_serialize_volume_info, _get_read_geometry, einsum, jit,
                     prange, bincount)
 
@@ -323,6 +325,19 @@ def _project_onto_surface(rrs, surf, project_rrs=False, return_nn=False,
     return out
 
 
+def _normal_orth(nn):
+    """Compute orthogonal basis given a normal."""
+    assert nn.shape[-1:] == (3,)
+    prod = np.einsum('...i,...j->...ij', nn, nn)
+    _, u = np.linalg.eigh(np.eye(3) - prod)
+    u = u[..., ::-1]
+    #  Make sure that ez is in the direction of nn
+    signs = np.sign(np.matmul(nn[..., np.newaxis, :], u[..., -1:]))
+    signs[signs == 0] = 1
+    u *= signs
+    return u.swapaxes(-1, -2)
+
+
 @verbose
 def complete_surface_info(surf, do_neighbor_vert=False, copy=True,
                           verbose=None):
@@ -606,8 +621,22 @@ def _fread3_many(fobj, n):
     return (b1 << 16) + (b2 << 8) + b3
 
 
-def read_curvature(filepath):
-    """Load in curavature values from the ?h.curv file."""
+def read_curvature(filepath, binary=True):
+    """Load in curvature values from the ?h.curv file.
+
+    Parameters
+    ----------
+    filepath: str
+        Input path to the .curv file.
+    binary: bool
+        Specify if the output array is to hold binary values. Defaults to True.
+
+    Returns
+    -------
+    curv: array, shape=(n_vertices,)
+        The curvature values loaded from the user given file.
+
+    """
     with open(filepath, "rb") as fobj:
         magic = _fread3(fobj)
         if magic == 16777215:
@@ -617,8 +646,10 @@ def read_curvature(filepath):
             vnum = magic
             _fread3(fobj)
             curv = np.fromfile(fobj, ">i2", vnum) / 100
-        bin_curv = 1 - np.array(curv != 0, np.int)
-    return bin_curv
+    if binary:
+        return 1 - np.array(curv != 0, np.int)
+    else:
+        return curv
 
 
 @verbose
@@ -960,38 +991,101 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
 ###############################################################################
 # Decimation
 
-def _decimate_surface(points, triangles, reduction):
+def _decimate_surface_vtk(points, triangles, n_triangles):
     """Aux function."""
-    if 'DISPLAY' not in os.environ and sys.platform != 'win32':
-        os.environ['ETS_TOOLKIT'] = 'null'
     try:
-        from tvtk.api import tvtk
-        from tvtk.common import configure_input
+        from vtk.util.numpy_support import \
+            numpy_to_vtk, numpy_to_vtkIdTypeArray
+        from vtk.numpy_interface.dataset_adapter import WrapDataObject
+        from vtk import \
+            vtkPolyData, vtkQuadricDecimation, vtkPoints, vtkCellArray
     except ImportError:
-        raise ValueError('This function requires the TVTK package to be '
+        raise ValueError('This function requires the VTK package to be '
                          'installed')
     if triangles.max() > len(points) - 1:
         raise ValueError('The triangles refer to undefined points. '
                          'Please check your mesh.')
-    src = tvtk.PolyData(points=points, polys=triangles)
-    decimate = tvtk.QuadricDecimation(target_reduction=reduction)
-    configure_input(decimate, src)
-    decimate.update()
-    out = decimate.output
-    tris = out.polys.to_array()
-    # n-tuples + interleaved n-next -- reshape trick
-    return out.points.to_array(), tris.reshape(tris.size // 4, 4)[:, 1:]
+    src = vtkPolyData()
+    vtkpoints = vtkPoints()
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        vtkpoints.SetData(numpy_to_vtk(points.astype(np.float64)))
+    src.SetPoints(vtkpoints)
+    vtkcells = vtkCellArray()
+    triangles_ = np.pad(
+        triangles, ((0, 0), (1, 0)), 'constant', constant_values=3)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('ignore')
+        idarr = numpy_to_vtkIdTypeArray(triangles_.ravel().astype(np.int64))
+    vtkcells.SetCells(triangles.shape[0], idarr)
+    src.SetPolys(vtkcells)
+    # vtkDecimatePro was not very good, even with SplittingOff and
+    # PreserveTopologyOn
+    decimate = vtkQuadricDecimation()
+    decimate.VolumePreservationOn()
+    decimate.SetInputData(src)
+    reduction = 1 - (float(n_triangles) / len(triangles))
+    decimate.SetTargetReduction(reduction)
+    decimate.Update()
+    out = WrapDataObject(decimate.GetOutput())
+    rrs = out.Points
+    tris = out.Polygons.reshape(-1, 4)[:, 1:]
+    return rrs, tris
 
 
-def decimate_surface(points, triangles, n_triangles):
+def _decimate_surface_sphere(rr, tris, n_triangles):
+    _check_freesurfer_home()
+    map_ = {}
+    ico_levels = [20, 80, 320, 1280, 5120, 20480]
+    map_.update({n_tri: ('ico', ii) for ii, n_tri in enumerate(ico_levels)})
+    oct_levels = 2 ** (2 * np.arange(7) + 3)
+    map_.update({n_tri: ('oct', ii) for ii, n_tri in enumerate(oct_levels, 1)})
+    _check_option('n_triangles', n_triangles, sorted(map_),
+                  extra=' when method="sphere"')
+    func_map = dict(ico=_get_ico_surface, oct=_tessellate_sphere_surf)
+    kind, level = map_[n_triangles]
+    logger.info('Decimating using Freesurfer spherical %s%s downsampling'
+                % (kind, level))
+    ico_surf = func_map[kind](level)
+    assert len(ico_surf['tris']) == n_triangles
+    tempdir = _TempDir()
+    orig = op.join(tempdir, 'lh.temp')
+    write_surface(orig, rr, tris)
+    logger.info('    Extracting main mesh component ...')
+    run_subprocess(
+        ['mris_extract_main_component', orig, orig],
+        verbose='error')
+    logger.info('    Smoothing ...')
+    smooth = orig + '.smooth'
+    run_subprocess(
+        ['mris_smooth', '-nw', orig, smooth],
+        verbose='error')
+    logger.info('    Inflating ...')
+    inflated = orig + '.inflated'
+    run_subprocess(
+        ['mris_inflate', '-no-save-sulc', smooth, inflated],
+        verbose='error')
+    logger.info('    Sphere ...')
+    qsphere = orig + '.qsphere'
+    run_subprocess(
+        ['mris_sphere', '-q', inflated, qsphere], verbose='error')
+    sphere_rr, _ = read_surface(qsphere)
+    norms = np.linalg.norm(sphere_rr, axis=1, keepdims=True)
+    sphere_rr /= norms
+    idx = _compute_nearest(sphere_rr, ico_surf['rr'], method='cKDTree')
+    n_dup = len(idx) - len(np.unique(idx))
+    if n_dup:
+        raise RuntimeError('Could not reduce to %d triangles using ico, '
+                           '%d/%d vertices were duplicates'
+                           % (n_triangles, n_dup, len(idx)))
+    logger.info('[done]')
+    return rr[idx], ico_surf['tris']
+
+
+@verbose
+def decimate_surface(points, triangles, n_triangles, method='quadric',
+                     verbose=None):
     """Decimate surface data.
-
-    .. note:: Requires TVTK to be installed for this to function.
-
-    .. note:: If an if an odd target number was requested,
-              the ``'decimation'`` algorithm used results in the
-              next even number of triangles. For example a reduction request
-              to 30001 triangles may result in 30000 triangles.
 
     Parameters
     ----------
@@ -1001,6 +1095,13 @@ def decimate_surface(points, triangles, n_triangles):
         The surface to be decimated, a 3 x number of triangles array.
     n_triangles : int
         The desired number of triangles.
+    method : str
+        Can be "quadric" or "sphere". "sphere" will inflate the surface to a
+        sphere using Freesurfer and downsample to an icosahedral or
+        octahedral mesh.
+
+        .. versionadded:: 0.20
+    %(verbose)s
 
     Returns
     -------
@@ -1008,9 +1109,36 @@ def decimate_surface(points, triangles, n_triangles):
         The decimated points.
     triangles : ndarray
         The decimated triangles.
+
+    Notes
+    -----
+    **"quadric" mode**
+
+    This requires VTK. If an odd target number was requested,
+    the ``'decimation'`` algorithm used results in the
+    next even number of triangles. For example a reduction request
+    to 30001 triangles may result in 30000 triangles.
+
+    **"sphere" mode**
+
+    This requires Freesurfer to be installed and available in the
+    environment. The destination number of triangles must be one of
+    ``[20, 80, 320, 1280, 5120, 20480]`` for ico (0-5) downsampling or one of
+    ``[8, 32, 128, 512, 2048, 8192, 32768]`` for oct (1-7) downsampling.
+
+    This mode is slower, but could be more suitable for decimating meshes for
+    BEM creation (recommended ``n_triangles=5120``) due to better topological
+    property preservation.
     """
-    reduction = 1 - (float(n_triangles) / len(triangles))
-    return _decimate_surface(points, triangles, reduction)
+    n_triangles = _ensure_int(n_triangles)
+    method_map = dict(quadric=_decimate_surface_vtk,
+                      sphere=_decimate_surface_sphere)
+    _check_option('method', method, sorted(method_map))
+    if n_triangles > len(triangles):
+        raise ValueError('Requested n_triangles (%s) exceeds number of '
+                         'original triangles (%s)'
+                         % (n_triangles, len(triangles)))
+    return method_map[method](points, triangles, n_triangles)
 
 
 ###############################################################################

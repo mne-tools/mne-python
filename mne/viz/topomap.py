@@ -170,7 +170,7 @@ def _add_colorbar(ax, im, cmap, side="right", pad=.05, title=None,
     from mpl_toolkits.axes_grid1 import make_axes_locatable  # noqa: F401
     divider = make_axes_locatable(ax)
     cax = divider.append_axes(side, size=size, pad=pad)
-    cbar = plt.colorbar(im, cax=cax, cmap=cmap, format=format)
+    cbar = plt.colorbar(im, cax=cax, format=format)
     if cmap is not None and cmap[1]:
         ax.CB = DraggableColorbar(cbar, im)
     if title is not None:
@@ -442,11 +442,10 @@ def _get_extra_points(pos, extrapolate, sphere):
     diffs = np.diff(pos, axis=0)
     with np.errstate(divide='ignore'):
         slopes = diffs[:, 1] / diffs[:, 0]
-    colinear = ((slopes == slopes[0]).all() or np.isinf(slopes).all() or
-                pos.shape[0] < 4)
+    colinear = ((slopes == slopes[0]).all() or np.isinf(slopes).all())
 
     # compute median inter-electrode distance
-    if colinear:
+    if colinear or pos.shape[0] < 4:
         dim = 1 if diffs[:, 1].sum() > diffs[:, 0].sum() else 0
         sorting = np.argsort(pos[:, dim])
         pos_sorted = pos[sorting, :]
@@ -462,8 +461,9 @@ def _get_extra_points(pos, extrapolate, sphere):
         distance = np.median(distances)
 
     if extrapolate == 'local':
-        if colinear:
-            # special case for colinear points
+        if colinear or pos.shape[0] < 4:
+            # special case for colinear points and when there is too
+            # little points for Delaunay (needs at least 3)
             edge_points = sorting[[0, -1]]
             line_len = np.diff(pos[edge_points, :], axis=0)
             unit_vec = line_len / np.linalg.norm(line_len) * distance
@@ -473,6 +473,15 @@ def _get_extra_points(pos, extrapolate, sphere):
                         np.concatenate([-unit_vec, unit_vec], axis=0))
             new_pos = np.concatenate([pos + unit_vec_par,
                                       pos - unit_vec_par, edge_pos], axis=0)
+
+            if pos.shape[0] == 3:
+                # there may be some new_pos points that are too close
+                # to the original points
+                new_pos_diff = pos[..., np.newaxis] - new_pos.T[np.newaxis, :]
+                new_pos_diff = np.linalg.norm(new_pos_diff, axis=1)
+                good_extra = (new_pos_diff > 0.5 * distance).all(axis=0)
+                new_pos = new_pos[good_extra]
+
             tri = Delaunay(np.concatenate([pos, new_pos], axis=0))
             return new_pos, tri
 
@@ -505,12 +514,13 @@ def _get_extra_points(pos, extrapolate, sphere):
         new_pos = np.concatenate([hull_extended] + add_points)
     else:
         # return points on the head circle
-        angle = np.arcsin(distance / 2 / head_radius) * 2
+        angle = np.arcsin(distance / 2 / head_radius)
         points_l = np.arange(0, 2 * np.pi, angle)
-        points_x = np.cos(points_l) * head_radius + x
-        points_y = np.sin(points_l) * head_radius + y
+        use_radius = head_radius * 1.1
+        points_x = np.cos(points_l) * use_radius + x
+        points_y = np.sin(points_l) * use_radius + y
         new_pos = np.stack([points_x, points_y], axis=1)
-        if colinear:
+        if colinear or pos.shape[0] == 3:
             tri = Delaunay(np.concatenate([pos, new_pos], axis=0))
             return new_pos, tri
     tri.add_points(new_pos)
@@ -754,7 +764,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
             data = _merge_grad_data(data[picks]).reshape(-1)
         else:
             picks = list(range(data.shape[0]))
-            pos = _find_topomap_coords(pos, picks=picks)
+            pos = _find_topomap_coords(pos, picks=picks, sphere=sphere)
 
     if data.ndim > 1:
         raise ValueError("Data needs to be array of shape (n_sensors,); got "
@@ -1188,7 +1198,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         used.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are collected in
-        pairs and the RMS for each pair is plotted. If None, then channels are
+        pairs and the mean for each pair is plotted. If None, then channels are
         chosen in the order given above.
     baseline : tuple or list of length 2
         The time interval to apply rescaling / baseline correction. If None do
@@ -1287,7 +1297,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
     # merging grads before rescaling makes ERDs visible
     if merge_grads:
-        data = _merge_grad_data(data)
+        data = _merge_grad_data(data, method='mean')
 
     data = rescale(data, tfr.times, baseline, mode, copy=True)
 
@@ -1806,7 +1816,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         the signal (as in nitime).
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are collected in
-        pairs and the RMS for each pair is plotted. If None, then first
+        pairs and the mean for each pair is plotted. If None, then first
         available channel type from order given above is used. Defaults to
         None.
     %(layout_dep)s
@@ -1861,7 +1871,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     psds = np.mean(psds, axis=0)
 
     if merge_grads:
-        psds = _merge_grad_data(psds)
+        psds = _merge_grad_data(psds, method='mean')
 
     return plot_psds_topomap(
         psds=psds, freqs=freqs, pos=pos, agg_fun=agg_fun, vmin=vmin,
@@ -2154,7 +2164,7 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads, sphere):
                    aspect='equal', extent=extent,
                    interpolation='bilinear')
     ax.autoscale(enable=True, tight=True)
-    plt.colorbar(im, cax=ax_cbar, cmap=cmap)
+    plt.colorbar(im, cax=ax_cbar)
     cont = ax.contour(Xi, Yi, Zi, levels=cont_lims, colors='k', linewidths=1)
 
     patch_ = patches.Ellipse((0, 0),

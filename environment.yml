@@ -33,7 +33,7 @@ dependencies:
   - mne
   - https://api.github.com/repos/numpy/numpydoc/zipball/master
   - vtk
-  - https://api.github.com/repos/pyvista/pyvista/zipball/master
+  - pyvista>=0.23.1
   - mayavi
   - PySurfer[save_movie]
   - dipy --only-binary dipy

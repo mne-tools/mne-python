@@ -65,6 +65,7 @@ extensions = [
     'sphinx_gallery.gen_gallery',
     'sphinx_fontawesome',
     'gen_commands',
+    'gh_substitutions',
     'sphinx_bootstrap_theme',
     'sphinx_bootstrap_divs',
     'sphinxcontrib.bibtex',
@@ -321,7 +322,9 @@ intersphinx_mapping = {
     'nilearn': ('http://nilearn.github.io', None),
     'surfer': ('https://pysurfer.github.io/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
+    'seaborn': ('https://seaborn.pydata.org/', None),
     'statsmodels': ('http://www.statsmodels.org/dev', None),
+    'patsy': ('https://patsy.readthedocs.io/en/latest', None),
     # There are some problems with dipy's redirect:
     # https://github.com/nipy/dipy/issues/1955
     'dipy': ('https://dipy.org/documentation/latest',
@@ -615,7 +618,9 @@ numpydoc_xref_ignore = {
     'n_splits', 'n_scores', 'n_outputs', 'n_trials', 'n_estimators', 'n_tasks',
     'nd_features', 'n_classes', 'n_targets', 'n_slices', 'n_hpi', 'n_fids',
     'n_elp', 'n_pts', 'n_tris', 'n_nodes', 'n_nonzero', 'n_events_out',
-    'n_segments', 'n_orient_inv', 'n_orient_fwd', 'n_orient',
+    'n_segments', 'n_orient_inv', 'n_orient_fwd', 'n_orient', 'n_dipoles_lcmv',
+    'n_dipoles_fwd',
+
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
     'RawBrainVision', 'RawCurry', 'RawNIRX', 'RawGDF',

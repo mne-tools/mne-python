@@ -3,34 +3,26 @@
 # License: BSD (3-clause)
 
 import os
-import sys
-from unittest import SkipTest
 
 import numpy as np
 from numpy.testing import assert_array_equal
 
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.io.kit import read_mrk
-from mne.utils import (_TempDir, requires_mayavi, run_tests_if_main,
-                       traits_test)
+from mne.utils import (requires_mayavi, run_tests_if_main, traits_test,
+                       modified_env)
 
 mrk_pre_path = os.path.join(kit_data_dir, 'test_mrk_pre.sqd')
 mrk_post_path = os.path.join(kit_data_dir, 'test_mrk_post.sqd')
 mrk_avg_path = os.path.join(kit_data_dir, 'test_mrk.sqd')
 
 
-def _check_ci():
-    if os.getenv('TRAVIS', 'false').lower() == 'true' and \
-            sys.platform == 'darwin':
-        raise SkipTest('Skipping GUI tests on Travis OSX')
-
-
 @requires_mayavi
 @traits_test
-def test_combine_markers_model():
+def test_combine_markers_model(tmpdir):
     """Test CombineMarkersModel Traits Model."""
-    from mne.gui._marker_gui import CombineMarkersModel, CombineMarkersPanel
-    tempdir = _TempDir()
+    from mne.gui._marker_gui import CombineMarkersModel
+    tempdir = str(tmpdir)
     tgt_fname = os.path.join(tempdir, 'test.txt')
 
     model = CombineMarkersModel()
@@ -77,12 +69,14 @@ def test_combine_markers_model():
     model.mrk2.file = mrk_post_path
     assert_array_equal(model.mrk3.points, points_interpolate_mrk1_mrk2)
 
-    _check_ci()
-    os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
-    try:
+
+@requires_mayavi
+@traits_test
+def test_combine_markers_panel(check_gui_ci):
+    """Test CombineMarkersPanel."""
+    from mne.gui._marker_gui import CombineMarkersPanel
+    with modified_env(_MNE_GUI_TESTING_MODE='true'):
         CombineMarkersPanel()
-    finally:
-        del os.environ['_MNE_GUI_TESTING_MODE']
 
 
 run_tests_if_main()

@@ -16,7 +16,7 @@ L2-MNE vs dSPM).
 
 import mne
 from mne.datasets import sample
-from mne.minimum_norm import make_resolution_matrix
+from mne.minimum_norm import make_inverse_resolution_matrix
 from mne.minimum_norm import resolution_metrics
 
 print(__doc__)
@@ -55,8 +55,8 @@ lambda2 = 1.0 / snr ** 2
 # Compute resolution matrices, peak localisation error (PLE) for point spread
 # functions (PSFs), spatial deviation (SD) for PSFs:
 
-rm_mne = make_resolution_matrix(forward, inverse_operator,
-                                method='MNE', lambda2=lambda2)
+rm_mne = make_inverse_resolution_matrix(forward, inverse_operator,
+                                        method='MNE', lambda2=lambda2)
 ple_mne_psf = resolution_metrics(rm_mne, inverse_operator['src'],
                                  function='psf', metric='peak_err')
 sd_mne_psf = resolution_metrics(rm_mne, inverse_operator['src'],
@@ -68,8 +68,8 @@ del rm_mne
 # ----
 # Do the same for dSPM:
 
-rm_dspm = make_resolution_matrix(forward, inverse_operator,
-                                 method='dSPM', lambda2=lambda2)
+rm_dspm = make_inverse_resolution_matrix(forward, inverse_operator,
+                                         method='dSPM', lambda2=lambda2)
 ple_dspm_psf = resolution_metrics(rm_dspm, inverse_operator['src'],
                                   function='psf', metric='peak_err')
 sd_dspm_psf = resolution_metrics(rm_dspm, inverse_operator['src'],

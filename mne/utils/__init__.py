@@ -15,7 +15,8 @@ from .check import (check_fname, check_version, check_random_state,
                     _check_channels_spatial_filter, _check_one_ch_type,
                     _check_rank, _check_option, _check_depth, _check_combine,
                     _check_path_like, _check_src_normal, _check_stc_units,
-                    _check_pyqt5_version, _check_sphere)
+                    _check_pyqt5_version, _check_sphere, _check_time_format,
+                    _check_freesurfer_home)
 from .config import (set_config, get_config, get_config_path, set_cache_dir,
                      set_memmap_min_size, get_subjects_dir, _get_stim_channel,
                      sys_info, _get_extra_data_path, _get_root_dir,
@@ -37,7 +38,7 @@ from ._testing import (run_tests_if_main, run_command_if_main,
                        requires_h5py, traits_test, requires_pysurfer,
                        ArgvSetter, SilenceStdout, has_freesurfer, has_mne_c,
                        _TempDir, has_nibabel, _import_mlab, buggy_mkl_svd,
-                       requires_numpydoc, requires_tvtk, requires_freesurfer,
+                       requires_numpydoc, requires_vtk, requires_freesurfer,
                        requires_nitime, requires_dipy,
                        requires_neuromag2ft, requires_pylsl, assert_object_equal,
                        assert_and_remove_boundary_annot, _raw_annot,
@@ -57,5 +58,7 @@ from .numerics import (hashfunc, _compute_row_norms,
                        _check_dt)
 from .mixin import (SizeMixin, GetEpochsMixin, _prepare_read_metadata,
                     _prepare_write_metadata, _FakeNoPandas, ShiftTimeMixin)
-from .linalg import (_svd_lwork, _repeated_svd,
+from .linalg import (_svd_lwork, _repeated_svd, sqrtm_sym,
                      dgesdd, dgemm, zgemm, dgemv, ddot, LinAlgError, eigh)
+from .dataframe import (_set_pandas_dtype, _scale_dataframe_data,
+                        _convert_times, _build_data_frame, _check_scaling_time)

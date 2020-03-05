@@ -8,7 +8,7 @@ from ..utils import _get_path, _do_path_update
 from ...utils import _fetch_file, _url_to_local_path, verbose
 
 
-EEGMI_URL = 'http://www.physionet.org/physiobank/database/eegmmidb/'
+EEGMI_URL = 'https://physionet.org/files/eegmmidb/1.0.0/'
 
 
 @verbose

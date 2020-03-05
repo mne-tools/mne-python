@@ -1158,8 +1158,7 @@ def head_to_mri(pos, subject, mri_head_t, subjects_dir=None,
 
     Notes
     -----
-    This function requires either nibabel (in Python) or Freesurfer
-    (with utility "mri_info") to be correctly installed.
+    This function requires nibabel.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     t1_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
@@ -1196,7 +1195,9 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
     coordinates : array, shape (n_vertices, 3)
         The MNI coordinates (in mm) of the vertices.
     """
+    singleton = False
     if not isinstance(vertices, list) and not isinstance(vertices, np.ndarray):
+        singleton = True
         vertices = [vertices]
 
     if not isinstance(hemis, list) and not isinstance(hemis, np.ndarray):
@@ -1216,6 +1217,8 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
     # take point locations in MRI space and convert to MNI coordinates
     xfm = _read_talxfm(subject, subjects_dir, mode)
     data = np.array([rr[h][v, :] for h, v in zip(hemis, vertices)])
+    if singleton:
+        data = data[0]
     return apply_trans(xfm['trans'], data)
 
 
@@ -1245,8 +1248,7 @@ def head_to_mni(pos, subject, mri_head_t, subjects_dir=None,
 
     Notes
     -----
-    This function requires either nibabel (in Python) or Freesurfer
-    (with utility "mri_info") to be correctly installed.
+    This function requires either nibabel.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
@@ -2901,3 +2903,17 @@ def _set_source_space_vertices(src, vertices):
         # This will fix 'patch_info' and 'pinfo'
         _adjust_patch_info(s, verbose=False)
     return src
+
+
+def _get_src_nn(s, use_cps=True, vertices=None):
+    vertices = s['vertno'] if vertices is None else vertices
+    if use_cps and s.get('patch_inds') is not None:
+        nn = np.empty((len(vertices), 3))
+        for p in np.searchsorted(s['vertno'], vertices):
+            #  Project out the surface normal and compute SVD
+            nn[p] = np.sum(
+                s['nn'][s['pinfo'][s['patch_inds'][p]], :], axis=0)
+        nn /= linalg.norm(nn, axis=-1, keepdims=True)
+    else:
+        nn = s['nn'][vertices, :]
+    return nn

@@ -140,12 +140,15 @@ def _check_fname(fname, overwrite=False, must_exist=False, name='File'):
     _validate_type(fname, 'path-like', 'fname')
     if op.isfile(fname):
         if not overwrite:
-            raise IOError('Destination file exists. Please use option '
-                          '"overwrite=True" to force overwriting.')
+            raise FileExistsError('Destination file exists. Please use option '
+                                  '"overwrite=True" to force overwriting.')
         elif overwrite != 'read':
             logger.info('Overwriting existing file.')
+        if must_exist and not os.access(fname, os.R_OK):
+            raise PermissionError(
+                '%s does not have read permissions: %s' % (name, fname))
     elif must_exist:
-        raise IOError('%s "%s" does not exist' % (name, fname))
+        raise FileNotFoundError('%s "%s" does not exist' % (name, fname))
     return str(fname)
 
 
@@ -243,15 +246,37 @@ def _check_pandas_installed(strict=True):
             return False
 
 
-def _check_pandas_index_arguments(index, defaults):
+def _check_pandas_index_arguments(index, valid):
     """Check pandas index arguments."""
-    if not any(isinstance(index, k) for k in (list, tuple)):
+    if index is None:
+        return
+    if isinstance(index, str):
         index = [index]
-    invalid_choices = [e for e in index if e not in defaults]
-    if invalid_choices:
-        options = [', '.join(e) for e in [invalid_choices, defaults]]
-        raise ValueError('[%s] is not an valid option. Valid index'
-                         'values are \'None\' or %s' % tuple(options))
+    if not isinstance(index, list):
+        raise TypeError('index must be `None` or a string or list of strings,'
+                        ' got type {}.'.format(type(index)))
+    invalid = set(index) - set(valid)
+    if invalid:
+        plural = ('is not a valid option',
+                  'are not valid options')[int(len(invalid) > 1)]
+        raise ValueError('"{}" {}. Valid index options are `None`, "{}".'
+                         .format('", "'.join(invalid), plural,
+                                 '", "'.join(valid)))
+    return index
+
+
+def _check_time_format(time_format, valid, meas_date=None):
+    """Check time_format argument."""
+    if time_format not in valid and time_format is not None:
+        valid_str = '", "'.join(valid)
+        raise ValueError('"{}" is not a valid time format. Valid options are '
+                         '"{}" and None.'.format(time_format, valid_str))
+    # allow datetime only if meas_date available
+    if time_format == 'datetime' and meas_date is None:
+        warn("Cannot convert to Datetime when raw.info['meas_date'] is "
+             "None. Falling back to Timedelta.")
+        time_format = 'timedelta'
+    return time_format
 
 
 def _check_ch_locs(chs):
@@ -482,7 +507,7 @@ def _check_depth(depth, kind='depth_mne'):
     return _handle_default(kind, depth)
 
 
-def _check_option(parameter, value, allowed_values):
+def _check_option(parameter, value, allowed_values, extra=''):
     """Check the value of a parameter against a list of valid options.
 
     Raises a ValueError with a readable error message if the value was invalid.
@@ -495,6 +520,9 @@ def _check_option(parameter, value, allowed_values):
         The value of the parameter to check.
     allowed_values : list
         The list of allowed values for the parameter.
+    extra : str
+        Extra string to append to the invalid value sentence, e.g.
+        "when using ico mode".
 
     Raises
     ------
@@ -505,7 +533,8 @@ def _check_option(parameter, value, allowed_values):
         return True
 
     # Prepare a nice error message for the user
-    msg = ("Invalid value for the '{parameter}' parameter. "
+    extra = ' ' + extra if extra else extra
+    msg = ("Invalid value for the '{parameter}' parameter{extra}. "
            '{options}, but got {value!r} instead.')
     if len(allowed_values) == 1:
         options = 'The only allowed value is %r' % allowed_values[0]
@@ -514,7 +543,7 @@ def _check_option(parameter, value, allowed_values):
         options += ', '.join(['%r' % v for v in allowed_values[:-1]])
         options += ' and %r' % allowed_values[-1]
     raise ValueError(msg.format(parameter=parameter, options=options,
-                                value=value))
+                                value=value, extra=extra))
 
 
 def _check_all_same_channel_names(instances):
@@ -624,3 +653,12 @@ def _check_sphere(sphere, info=None, sphere_units='m'):
 
     sphere = np.array(sphere, float)
     return sphere
+
+
+def _check_freesurfer_home():
+    from .config import get_config
+    fs_home = get_config('FREESURFER_HOME')
+    if fs_home is None:
+        raise RuntimeError(
+            'The FREESURFER_HOME environment variable is not set.')
+    return fs_home

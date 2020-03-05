@@ -3,6 +3,8 @@
 #
 # License: BSD (3-clause)
 
+from distutils.version import LooseVersion
+import gc
 import os
 import os.path as op
 import shutil
@@ -77,6 +79,9 @@ def pytest_configure(config):
     ignore:scipy\.gradient is deprecated.*:DeprecationWarning
     ignore:sklearn\.externals\.joblib is deprecated.*:FutureWarning
     ignore:The sklearn.*module.*deprecated.*:FutureWarning
+    ignore:.*TraitTuple.*trait.*handler.*deprecated.*:DeprecationWarning
+    ignore:.*rich_compare.*metadata.*deprecated.*:DeprecationWarning
+    ignore:.*In future, it will be an error for 'np.bool_'.*:DeprecationWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
@@ -89,6 +94,7 @@ def pytest_configure(config):
 def matplotlib_config():
     """Configure matplotlib for viz tests."""
     import matplotlib
+    from matplotlib import cbook
     # "force" should not really be necessary but should not hurt
     kwargs = dict()
     with warnings.catch_warnings(record=True):  # ignore warning
@@ -107,8 +113,28 @@ def matplotlib_config():
         pass
     else:
         ETSConfig.toolkit = 'qt4'
-    from mne.viz.backends.renderer import _enable_3d_backend_testing
-    _enable_3d_backend_testing()
+
+    # Make sure that we always reraise exceptions in handlers
+    orig = cbook.CallbackRegistry
+
+    class CallbackRegistryReraise(orig):
+        def __init__(self, exception_handler=None):
+            args = ()
+            if LooseVersion(matplotlib.__version__) >= LooseVersion('2.1'):
+                args += (exception_handler,)
+            super(CallbackRegistryReraise, self).__init__(*args)
+
+    cbook.CallbackRegistry = CallbackRegistryReraise
+
+
+@pytest.fixture()
+def check_gui_ci():
+    """Skip tests that are not reliable on CIs."""
+    osx = (os.getenv('TRAVIS', 'false').lower() == 'true' and
+           sys.platform == 'darwin')
+    win = os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true'
+    if win or osx:
+        pytest.skip('Skipping GUI tests on Travis OSX and Azure Windows')
 
 
 def _replace(mod, key):
@@ -126,7 +152,7 @@ def fix_pytest_tmpdir_35():
     if sys.version_info >= (3, 6):
         return
 
-    for key in ('stat', 'mkdir', 'makedirs'):
+    for key in ('stat', 'mkdir', 'makedirs', 'access'):
         _replace(os, key)
     for key in ('split', 'splitext', 'realpath', 'join'):
         _replace(op, key)
@@ -191,20 +217,50 @@ def backend_name(request):
 
 
 @pytest.yield_fixture
-def renderer(backend_name):
+def renderer(backend_name, garbage_collect):
     """Yield the 3D backends."""
     from mne.viz.backends.renderer import _use_test_3d_backend
-    from mne.viz.backends.tests._utils import has_mayavi, has_pyvista
-    if backend_name == 'mayavi':
-        if not has_mayavi():
-            pytest.skip("Test skipped, requires mayavi.")
-    elif backend_name == 'pyvista':
-        if not has_pyvista():
-            pytest.skip("Test skipped, requires pyvista.")
+    _check_skip_backend(backend_name)
     with _use_test_3d_backend(backend_name):
         from mne.viz.backends import renderer
         yield renderer
         renderer._close_all()
+
+
+@pytest.yield_fixture
+def garbage_collect():
+    """Garbage collect on exit."""
+    yield
+    gc.collect()
+
+
+@pytest.fixture(scope="module", params=[
+    "pyvista",
+])
+def backend_name_interactive(request):
+    """Get the backend name."""
+    yield request.param
+
+
+@pytest.yield_fixture
+def renderer_interactive(backend_name_interactive):
+    """Yield the 3D backends."""
+    from mne.viz.backends.renderer import _use_test_3d_backend
+    _check_skip_backend(backend_name_interactive)
+    with _use_test_3d_backend(backend_name_interactive, interactive=True):
+        from mne.viz.backends import renderer
+        yield renderer
+        renderer._close_all()
+
+
+def _check_skip_backend(name):
+    from mne.viz.backends.tests._utils import has_mayavi, has_pyvista
+    if name == 'mayavi':
+        if not has_mayavi():
+            pytest.skip("Test skipped, requires mayavi.")
+    elif name == 'pyvista':
+        if not has_pyvista():
+            pytest.skip("Test skipped, requires pyvista.")
 
 
 @pytest.fixture(scope='function', params=[testing._pytest_param()])

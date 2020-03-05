@@ -19,6 +19,7 @@ Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+from itertools import compress
 
 import mne
 
@@ -51,6 +52,31 @@ raw_intensity.plot(n_channels=len(raw_intensity.ch_names), duration=500)
 
 raw_od = mne.preprocessing.nirs.optical_density(raw_intensity)
 raw_od.plot(n_channels=len(raw_od.ch_names), duration=500)
+
+
+###############################################################################
+# Evaluating the quality of the data
+# ----------------------------------
+#
+# At this stage we can quantify the quality of the coupling
+# between the scalp and the optodes using the scalp coupling index. This
+# method looks at the presence of a prominent synchronous signal in the
+# frequency range of cardiac signals across both photodetected signals.
+#
+# As this data is clean and the coupling is good for all channels we will
+# not mark any channels as bad based on the scalp coupling index.
+
+sci = mne.preprocessing.nirs.scalp_coupling_index(raw_od)
+fig, ax = plt.subplots()
+ax.hist(sci)
+ax.set(xlabel='Scalp Coupling Index', ylabel='Count', xlim=[0, 1])
+
+
+###############################################################################
+# In this example we will mark all channels with a SCI less than 0.5 as bad
+# (this dataset is quite clean, so no channels are marked as bad).
+
+raw_od.info['bads'] = list(compress(raw_od.ch_names, sci < 0.5))
 
 
 ###############################################################################

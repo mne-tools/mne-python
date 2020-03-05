@@ -18,14 +18,16 @@ from .filter import resample
 from .fixes import einsum
 from .surface import read_surface, _get_ico_surface, mesh_edges
 from .source_space import (_ensure_src, _get_morph_src_reordering,
-                           _ensure_src_subject, SourceSpaces)
+                           _ensure_src_subject, SourceSpaces, _get_src_nn)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     _time_mask, warn as warn_, copy_function_doc_to_method_doc,
                     fill_doc, _check_option, _validate_type, _check_src_normal,
-                    _check_stc_units)
+                    _check_stc_units, _check_pandas_installed,
+                    _check_pandas_index_arguments, _convert_times,
+                    _build_data_frame, _check_time_format, _check_scaling_time)
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
-from .io.base import ToDataFrameMixin, TimeMixin
+from .io.base import TimeMixin
 from .io.meas_info import Info
 from .externals.h5io import read_hdf5, write_hdf5
 
@@ -442,7 +444,7 @@ def _verify_source_estimate_compat(a, b):
                          'names, %r and %r' % (a.subject, b.subject))
 
 
-class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
+class _BaseSourceEstimate(TimeMixin):
     """Base class for all source estimates.
 
     Parameters
@@ -490,8 +492,9 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             kernel, sens_data = data
             data = None
             if kernel.shape[1] != sens_data.shape[0]:
-                raise ValueError('kernel and sens_data have invalid '
-                                 'dimensions')
+                raise ValueError('kernel (%s) and sens_data (%s) have invalid '
+                                 'dimensions'
+                                 % (kernel.shape, sens_data.shape))
             if sens_data.ndim != 2:
                 raise ValueError('The sensor data must have 2 dimensions, got '
                                  '%s' % (sens_data.ndim,))
@@ -1116,6 +1119,64 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
 
         return stcs
 
+    @fill_doc
+    def to_data_frame(self, index=None, scaling_time=None, scalings=None,
+                      long_format=False, time_format='ms'):
+        """Export data in tabular structure as a pandas DataFrame.
+
+        Vertices are converted to columns in the DataFrame. By default,
+        an additional column "time" is added, unless ``index='time'``
+        (in which case time values form the DataFrame's index).
+
+        Parameters
+        ----------
+        %(df_index_evk)s
+            Defaults to ``None``.
+        %(df_scaling_time_deprecated)s
+        %(df_scalings)s
+        %(df_longform_stc)s
+        %(df_time_format)s
+
+            .. versionadded:: 0.20
+
+        Returns
+        -------
+        %(df_return)s
+        """
+        # check deprecation
+        _check_scaling_time(scaling_time)
+        # check pandas once here, instead of in each private utils function
+        pd = _check_pandas_installed()  # noqa
+        # arg checking
+        valid_index_args = ['time', 'subject']
+        valid_time_formats = ['ms', 'timedelta']
+        index = _check_pandas_index_arguments(index, valid_index_args)
+        time_format = _check_time_format(time_format, valid_time_formats)
+        # get data
+        data = self.data.T
+        times = self.times
+        # prepare extra columns / multiindex
+        mindex = list()
+        default_index = ['time']
+        if self.subject is not None:
+            default_index = ['subject', 'time']
+            mindex.append(('subject', np.repeat(self.subject, data.shape[0])))
+        times = _convert_times(self, times, time_format)
+        mindex.append(('time', times))
+        # triage surface vs volume source estimates
+        if isinstance(self.vertices, list):
+            col_names = list()
+            for ii, vertno in enumerate(self.vertices):
+                col_names.extend(['{}_{}'.format(('LH', 'RH')[ii], vert)
+                                  for vert in vertno])
+        else:
+            col_names = ['VOL_{}'.format(vert) for vert in self.vertices]
+        # build DataFrame
+        df = _build_data_frame(self, data, None, long_format, mindex, index,
+                               default_index=default_index,
+                               col_names=col_names, col_kind='source')
+        return df
+
 
 def _center_of_mass(vertices, values, hemi, surf, subject, subjects_dir,
                     restrict_vertices):
@@ -1459,11 +1520,13 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
     @copy_function_doc_to_method_doc(plot_source_estimates)
     def plot(self, subject=None, surface='inflated', hemi='lh',
              colormap='auto', time_label='auto', smoothing_steps=10,
-             transparent=True, alpha=1.0, time_viewer=False, subjects_dir=None,
+             transparent=True, alpha=1.0, time_viewer=False,
+             subjects_dir=None,
              figure=None, views='lat', colorbar=True, clim='auto',
              cortex="classic", size=800, background="black",
              foreground="white", initial_time=None, time_unit='s',
-             backend='auto', spacing='oct6', title=None, verbose=None):
+             backend='auto', spacing='oct6', title=None,
+             show_traces=False, verbose=None):
         brain = plot_source_estimates(
             self, subject, surface=surface, hemi=hemi, colormap=colormap,
             time_label=time_label, smoothing_steps=smoothing_steps,
@@ -1472,7 +1535,8 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             colorbar=colorbar, clim=clim, cortex=cortex, size=size,
             background=background, foreground=foreground,
             initial_time=initial_time, time_unit=time_unit, backend=backend,
-            spacing=spacing, title=title, verbose=verbose)
+            spacing=spacing, title=title, show_traces=show_traces,
+            verbose=verbose)
         return brain
 
     @verbose
@@ -1766,13 +1830,19 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             data_mag, self.vertices, self.tmin, self.tstep, self.subject,
             self.verbose)
 
-    def normal(self, src):
+    @fill_doc
+    def normal(self, src, use_cps=True):
         """Compute activity orthogonal to the cortex.
 
         Parameters
         ----------
         src : instance of SourceSpaces
             The source space for which this source estimate is specified.
+        %(use_cps)s
+            Should be the same value that was used when the forward model
+            was computed (typically True).
+
+            .. versionadded:: 0.20
 
         Returns
         -------
@@ -1781,7 +1851,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             cortex.
         """
         _check_src_normal('normal', src)
-        normals = np.vstack([s['nn'][v] for s, v in
+        normals = np.vstack([_get_src_nn(s, use_cps, v) for s, v in
                              zip(src, self._vertices_list)])
         data_norm = einsum('ijk,ij->ik', self.data, normals)
         return self._scalar_class(
@@ -2117,7 +2187,7 @@ class VectorSourceEstimate(_BaseVectorSourceEstimate,
              time_viewer=False, subjects_dir=None, figure=None, views='lat',
              colorbar=True, clim='auto', cortex='classic', size=800,
              background='black', foreground='white', initial_time=None,
-             time_unit='s'):  # noqa: D102
+             time_unit='s', verbose=None):  # noqa: D102
 
         return plot_vector_source_estimates(
             self, subject=subject, hemi=hemi, colormap=colormap,
@@ -2128,7 +2198,8 @@ class VectorSourceEstimate(_BaseVectorSourceEstimate,
             subjects_dir=subjects_dir, figure=figure, views=views,
             colorbar=colorbar, clim=clim, cortex=cortex, size=size,
             background=background, foreground=foreground,
-            initial_time=initial_time, time_unit=time_unit
+            initial_time=initial_time, time_unit=time_unit,
+            verbose=verbose,
         )
 
 

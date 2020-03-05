@@ -1149,22 +1149,42 @@ def test_raw_copy():
 @requires_pandas
 def test_to_data_frame():
     """Test raw Pandas exporter."""
+    from pandas import Timedelta
     raw = read_raw_fif(test_fif_fname, preload=True)
     _, times = raw[0, :10]
-    df = raw.to_data_frame()
+    df = raw.to_data_frame(index='time')
     assert ((df.columns == raw.ch_names).all())
     assert_array_equal(np.round(times * 1e3), df.index.values[:10])
     df = raw.to_data_frame(index=None)
-    assert ('time' in df.index.names)
-    assert_array_equal(df.values[:, 0], raw._data[0] * 1e13)
-    assert_array_equal(df.values[:, 2], raw._data[2] * 1e15)
+    assert ('time' in df.columns)
+    assert_array_equal(df.values[:, 1], raw._data[0] * 1e13)
+    assert_array_equal(df.values[:, 3], raw._data[2] * 1e15)
+    # test long format
+    df_long = raw.to_data_frame(long_format=True)
+    assert(len(df_long) == raw.get_data().size)
+    expected = ('time', 'channel', 'ch_type', 'value')
+    assert set(expected) == set(df_long.columns)
+    # test bad time format
+    with pytest.raises(ValueError, match='not a valid time format. Valid'):
+        raw.to_data_frame(time_format='foo')
+    # test time format error handling
+    raw.set_meas_date(None)
+    with pytest.warns(RuntimeWarning, match='Cannot convert to Datetime when'):
+        df = raw.to_data_frame(time_format='datetime')
+    assert isinstance(df['time'].iloc[0], Timedelta)
 
-    df = raw.to_data_frame(long_format=True)
-    assert(len(df) == raw.get_data().size)
-    assert("time" in df.columns)
-    assert("channel" in df.columns)
-    assert("ch_type" in df.columns)
-    assert("observation" in df.columns)
+
+@requires_pandas
+@pytest.mark.parametrize('time_format', (None, 'ms', 'timedelta', 'datetime'))
+def test_to_data_frame_time_format(time_format):
+    """Test time conversion in epochs Pandas exporter."""
+    from pandas import Timedelta, Timestamp
+    raw = read_raw_fif(test_fif_fname, preload=True)
+    # test time_format
+    df = raw.to_data_frame(time_format=time_format)
+    dtypes = {None: np.float64, 'ms': np.int64, 'timedelta': Timedelta,
+              'datetime': Timestamp}
+    assert isinstance(df['time'].iloc[0], dtypes[time_format])
 
 
 def test_add_channels():
