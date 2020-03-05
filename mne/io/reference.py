@@ -46,7 +46,7 @@ def _copy_channel(inst, ch_name, new_ch_name):
     return inst
 
 
-def _apply_reference(inst, ref_from, ref_to=None):
+def _apply_reference(inst, ref_from, ref_to=None, ch_type='auto'):
     """Apply a custom EEG referencing scheme.
 
     This function modifies the instance in-place.
@@ -66,6 +66,10 @@ def _apply_reference(inst, ref_from, ref_to=None):
     ref_to : list of str | None
         The names of the channels to apply the reference to. If None (which is
         the default), all EEG channels are chosen.
+    ch_type : 'auto' | 'eeg' | 'ecog' | 'seeg'
+        The name of the channel type to apply the reference to. If 'auto', the
+        first channel type of eeg, ecog or seeg that is found (in that order)
+        will be selected.
 
     Returns
     -------
@@ -95,8 +99,25 @@ def _apply_reference(inst, ref_from, ref_to=None):
     # Check to see that data is preloaded
     _check_preload(inst, "Applying a reference")
 
-    eeg_idx = pick_types(inst.info, eeg=True, meg=False, ref_meg=False)
+    _check_option('ch_type', ch_type, ('auto', 'eeg', 'ecog', 'seeg'))
+    # if ch_type is 'auto', search through list to find first reasonable
+    # reference-able channel type.
+    possible_types = ['eeg', 'ecog', 'seeg']
+    if ch_type == 'auto':
+        for type_ in possible_types:
+            if type_ in inst:
+                ch_type = type_
+                logger.info('%s channel type selected for '
+                            're-referencing' % DEFAULTS['titles'][type_])
+                break
+        # if auto comes up empty, or the user specifies a bad ch_type.
+        else:
+            raise ValueError('No EEG, ECoG or sEEG channels found '
+                             'to rereference.')
 
+    ch_dict = {ch_type: True, 'meg': False, 'ref_meg': False}
+    eeg_idx = pick_types(inst.info, **ch_dict)
+    
     if ref_to is None:
         ref_to = [inst.ch_names[i] for i in eeg_idx]
         extra = 'EEG channels found'
@@ -151,7 +172,7 @@ def _apply_reference(inst, ref_from, ref_to=None):
         data[..., ref_to, :] -= ref_data
         ref_data = ref_data[..., 0, :]
 
-        # If the reference touches EEG electrodes, note in the info that a
+        # If the reference touches EEG/ECoG/sEEG electrodes, note in the info that a
         # non-CAR has been applied.
         if len(np.intersect1d(ref_to, eeg_idx)) > 0:
             inst.info['custom_ref_applied'] = FIFF.FIFFV_MNE_CUSTOM_REF_ON
@@ -443,7 +464,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
         logger.info('Applying a custom %s '
                     'reference.' % DEFAULTS['titles'][type_])
 
-    return _apply_reference(inst, ref_channels, ch_sel)
+    return _apply_reference(inst, ref_channels, ch_sel, ch_type=ch_type)
 
 
 @verbose
