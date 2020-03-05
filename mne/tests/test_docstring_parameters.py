@@ -220,7 +220,6 @@ detrend
 dir_tree_find
 fast_cross_3d
 fiff_open
-find_outliers
 find_source_space_hemi
 find_tag
 get_score_funcs

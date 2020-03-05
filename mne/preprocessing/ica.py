@@ -56,7 +56,7 @@ from ..utils.check import _check_all_same_channel_names
 
 from ..fixes import _get_args, _safe_svd
 from ..filter import filter_data
-from .bads import find_outliers
+from .bads import _find_outliers
 from .ctps_ import ctps
 from ..io.pick import channel_type, pick_channels_regexp
 
@@ -1087,7 +1087,7 @@ class ICA(ContainsMixin):
                 stop=stop, l_freq=l_freq, h_freq=h_freq,
                 reject_by_annotation=reject_by_annotation)]
             # pick last scores
-            this_idx = find_outliers(scores[-1], threshold=threshold)
+            this_idx = _find_outliers(scores[-1], threshold=threshold)
             idx += [this_idx]
             self.labels_['%s/%i/' % (prefix, ii) + ch] = list(this_idx)
 
@@ -2452,7 +2452,7 @@ def _find_max_corrs(all_maps, target, threshold):
         max_corrs = [list(np.nonzero(s_corr > threshold)[0])
                      for s_corr in abs_corrs]
     else:
-        max_corrs = [list(find_outliers(s_corr, threshold=threshold))
+        max_corrs = [list(_find_outliers(s_corr, threshold=threshold))
                      for s_corr in abs_corrs]
 
     am = [l[i] for l, i_s in zip(abs_corrs, max_corrs)
@@ -2526,7 +2526,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         If list of floats, search for the best map in the specified range of
         correlation strengths. As correlation values, must be between 0 and 1
         If float > 0, select ICs correlating better than this.
-        If float > 1, use find_outliers to identify ICs within subjects (not in
+        If float > 1, use z-scoring to identify ICs within subjects (not in
         original Corrmap)
         Defaults to "auto".
     label : None | str
@@ -2614,8 +2614,8 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
 
     # first run: use user-selected map
     threshold = np.atleast_1d(np.array(threshold, float)).ravel()
-    threshold_err = ('No component detected using find_outliers when '
-                     'using threshold%s %s, consider using a more lenient '
+    threshold_err = ('No component detected using when z-scoring '
+                     'threshold%s %s, consider using a more lenient '
                      'threshold' % (threshold_extra, threshold))
     if len(all_maps) == 0:
         raise RuntimeError(threshold_err)
