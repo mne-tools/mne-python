@@ -18,7 +18,7 @@ from ..io.proj import make_projector, Projection
 from ..minimum_norm.inverse import _get_vertno, _prepare_forward
 from ..source_space import label_src_vertno_sel
 from ..utils import (verbose, check_fname, _reg_pinv, _check_option, logger,
-                     _pl, _check_src_normal, check_version, warn)
+                     _pl, _check_src_normal, check_version)
 from ..time_frequency.csd import CrossSpectralDensity
 
 from ..externals.h5io import read_hdf5, write_hdf5
@@ -282,8 +282,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
             raise ValueError(
                 'Singular matrix detected when estimating spatial filters. '
                 'Consider reducing the rank of the forward operator by using '
-                'reduce_rank="leadfield" or of the beamformer denominator by '
-                'using reduce_rank="denominator".')
+                'reduce_rank=True.')
 
     # rank reduction of the lead field
     if reduce_rank is True:
