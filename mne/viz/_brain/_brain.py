@@ -222,15 +222,19 @@ class _Brain(object):
                 if not (hemi in ['lh', 'rh'] and h != hemi):
                     ci = hi if hemi == 'split' else 0
                     self._renderer.subplot(ri, ci)
-                    _, mesh = self._renderer.mesh(
+                    mesh_data = self._renderer.mesh(
                         x=self.geo[h].coords[:, 0],
                         y=self.geo[h].coords[:, 1],
                         z=self.geo[h].coords[:, 2],
                         triangles=self.geo[h].faces,
                         color=self.geo[h].grey_curv
                     )
-                    # add metadata to the mesh for picking
-                    mesh._hemi = h
+                    if isinstance(mesh_data, tuple):
+                        _, mesh = mesh_data
+                        # add metadata to the mesh for picking
+                        mesh._hemi = h
+                    else:
+                        _, mesh = mesh_data, None
                     self._hemi_meshes[h] = mesh
                     self._renderer.set_camera(azimuth=views_dict[v].azim,
                                               elevation=views_dict[v].elev)
@@ -450,7 +454,7 @@ class _Brain(object):
             else:
                 ci = 0 if hemi == 'lh' else 1
             self._renderer.subplot(ri, ci)
-            actor, mesh = self._renderer.mesh(
+            mesh_data = self._renderer.mesh(
                 x=self.geo[hemi].coords[:, 0],
                 y=self.geo[hemi].coords[:, 1],
                 z=self.geo[hemi].coords[:, 2],
@@ -461,7 +465,12 @@ class _Brain(object):
                 vmax=dt_max,
                 scalars=act_data
             )
-            mesh._hemi = hemi
+            if isinstance(mesh_data, tuple):
+                actor, mesh = mesh_data
+                # add metadata to the mesh for picking
+                mesh._hemi = hemi
+            else:
+                actor, mesh = mesh_data, None
             self._data[hemi]['actor'].append(actor)
             self._data[hemi]['mesh'].append(mesh)
             if array.ndim >= 2 and callable(time_label):
@@ -475,7 +484,7 @@ class _Brain(object):
                     self._data['time_actor'] = time_actor
                     self._time_label_added = True
             if colorbar and not self._colorbar_added:
-                self._renderer.scalarbar(source=mesh, n_labels=8,
+                self._renderer.scalarbar(source=actor, n_labels=8,
                                          bgcolor=(0.5, 0.5, 0.5))
                 self._colorbar_added = True
             self._renderer.set_camera(azimuth=views_dict[v].azim,

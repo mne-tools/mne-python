@@ -160,19 +160,6 @@ def test_brain_add_text(renderer):
 
 
 @testing.requires_testing_data
-def test_brain_save_movie(tmpdir, renderer):
-    """Test saving a movie of a _Brain instance."""
-    if renderer.get_3d_backend() == "mayavi":
-        pytest.skip()
-    brain_data = _create_testing_brain(hemi='lh')
-    filename = str(path.join(tmpdir, "test.mp4"))
-    brain_data.save_movie(filename, time_dilation=1,
-                          interpolation='nearest')
-    assert path.isfile(filename)
-    brain_data.close()
-
-
-@testing.requires_testing_data
 def test_brain_timeviewer(renderer_interactive):
     """Test _TimeViewer primitives."""
     brain_data = _create_testing_brain(hemi='both')
