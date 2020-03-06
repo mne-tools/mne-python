@@ -275,7 +275,7 @@ Bug
 
 - Update old url link in :func:`mne.datasets.eegbci.load_data` to ``EEGMI_URL = 'https://physionet.org/files/eegmmidb/1.0.0/'`` by `Ramiro Gatti`_
 
-- Fix bug in :func:`mne.io.reference._apply_reference` to set `info.custom_ref_applied` to `True` for 'ecog' and 'seeg' channels in addition to 'eeg' by `Liberty Hamilton`_
+- Fix bug in :func:`mne.io.reference._apply_reference` to set `info.custom_ref_applied` to ``True`` for 'ecog' and 'seeg' channels in addition to 'eeg' by `Liberty Hamilton`_
 
 API
 ~~~
