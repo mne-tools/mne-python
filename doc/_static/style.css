@@ -484,3 +484,6 @@ a[class^="sphx-glr-backref-module-mne"]:hover {
 div[id^="mne-"] h1 {
     word-break: break-word;
 }
+div[id^="examples-using-"] h2 {
+    word-break: break-word;
+}
