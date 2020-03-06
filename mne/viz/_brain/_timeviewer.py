@@ -516,7 +516,7 @@ class _TimeViewer(object):
             for action in file_menu.actions():
                 if action.text() == "Take Screenshot":
                     movie_action = file_menu.addAction(
-                        'Save movie',
+                        'Save movie...',
                         self.save_movie,
                         "ctrl+shift+s"
                     )
