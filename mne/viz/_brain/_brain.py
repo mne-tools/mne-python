@@ -200,10 +200,9 @@ class _Brain(object):
 
         if figure is not None and not isinstance(figure, int):
             _check_3d_figure(figure)
-        self._renderer = _get_renderer(size=fig_size, bgcolor=background,
+        self._renderer = _get_renderer(name=subject_id, size=fig_size,
+                                       bgcolor=background,
                                        shape=(n_row, n_col), fig=figure)
-        if self._title is not None:
-            _set_3d_title(figure=self._renderer.scene(), title=self._title)
 
         for h in self._hemis:
             # Initialize a Surface object as the geometry
@@ -236,6 +235,10 @@ class _Brain(object):
                     self._hemi_meshes[h] = mesh
                     self._renderer.set_camera(azimuth=views_dict[v].azim,
                                               elevation=views_dict[v].elev)
+
+        if self._title is not None:
+            _set_3d_title(figure=self._renderer.scene(), title=self._title)
+
         # Force rendering
         self._renderer.show()
 
