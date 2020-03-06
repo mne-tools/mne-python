@@ -134,7 +134,7 @@ def _reduce_leadfield_rank(G):
     return G
 
 
-def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk):
+def _normalized_weights(Wk, Gk, Cm_inv_sq, nn, sk):
     """Compute the normalized weights in max-power orientation.
 
     Uses Eq. 4.47 from [1]_. Operates in place on Wk.
@@ -164,7 +164,7 @@ def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk):
                          np.matmul(Cm_inv_sq[np.newaxis], Gk))
 
     # invert this using an eigenvalue decomposition
-    norm = _sym_inv(norm_inv, reduce_rank)
+    norm = _sym_inv(norm_inv, reduce_rank=False)
 
     # Reapply source covariance after inversion
     norm *= sk[:, :, np.newaxis]
@@ -265,14 +265,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     if check_version('numpy', '1.17'):
         pinv_kwargs['hermitian'] = True
 
-    # leadfield rank and optional rank reduction
-    if reduce_rank is True:
-        reduce_rank = 'denominator'
-        warn('reduce_rank=True will reduce the rank of the denominator of the '
-             'beamformer formula. If you meant to reduce the rank of the '
-             'leadfield instead, set reduce_rank to "leadfield".')
-    _check_option('reduce_rank', reduce_rank, ('leadfield', 'denominator',
-                                               False))
+    _check_option('reduce_rank', reduce_rank, (True, False))
 
     # inversion of the denominator
     _check_option('inversion', inversion, ('matrix', 'single'))
@@ -293,14 +286,14 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                 'using reduce_rank="denominator".')
 
     # rank reduction of the lead field
-    if reduce_rank == 'leadfield':
+    if reduce_rank is True:
         Gk = _reduce_leadfield_rank(Gk)
 
     with _noop_indentation_context():
         if (inversion == 'matrix' and pick_ori == 'max-power' and
                 weight_norm in ['unit-noise-gain', 'nai']):
             # In this case, take a shortcut to compute the filter
-            _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk)
+            _normalized_weights(Wk, Gk, Cm_inv_sq, nn, sk)
         else:
             # Compute power at the source
             Ck = np.matmul(Wk, Gk)  # np.dot for each source
@@ -322,7 +315,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                     assert Ck.shape[1:] == (3, 3)
                     # Invert for all dipoles simultaneously using matrix
                     # inversion.
-                    norm = _sym_inv(Ck, reduce_rank)
+                    norm = _sym_inv(Ck, reduce_rank=False)
                 # Reapply source covariance after inversion
                 norm *= sk[:, :, np.newaxis]
                 norm *= sk[:, np.newaxis, :]
