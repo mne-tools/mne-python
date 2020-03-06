@@ -348,6 +348,7 @@ def test_plot_alignment(tmpdir, renderer):
     renderer._close_all()
 
 
+@pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 @requires_pysurfer
 @traits_test
@@ -635,6 +636,7 @@ def test_plot_volume_source_estimates_morph():
                  clim=dict(lims=[-1, 2, 3], kind='value'))
 
 
+@pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 @requires_pysurfer
 @requires_mayavi

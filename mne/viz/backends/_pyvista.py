@@ -550,7 +550,7 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
         position, cen, view_up]
 
 
-def _set_3d_title(figure, title, size=40):
+def _set_3d_title(figure, title, size=16):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
         figure.plotter.add_text(title, font_size=size, color='white')

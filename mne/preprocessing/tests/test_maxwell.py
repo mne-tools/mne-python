@@ -21,7 +21,7 @@ from mne.io import read_raw_fif, read_info, read_raw_bti, read_raw_kit, BaseRaw
 from mne.preprocessing.maxwell import (
     maxwell_filter, _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
-    _bases_real_to_complex, _prep_mf_coils)
+    _bases_real_to_complex, _prep_mf_coils, find_bad_channels_maxwell)
 from mne.rank import _get_rank_sss, _compute_rank_int
 from mne.utils import (assert_meg_snr, run_tests_if_main, catch_logging,
                        requires_version, object_diff, buggy_mkl_svd)
@@ -57,7 +57,8 @@ sss_erm_st1FineCalCrossTalk_fname = pre + 'erm_st1FineCalCrossTalk_raw_sss.fif'
 sss_erm_st1FineCalCrossTalkRegIn_fname = \
     pre + 'erm_st1FineCalCrossTalkRegIn_raw_sss.fif'
 
-sample_fname = op.join(data_path, 'MEG', 'sample_audvis_trunc_raw.fif')
+sample_fname = op.join(
+    data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 sss_samp_reg_in_fname = op.join(data_path, 'SSS',
                                 'sample_audvis_trunc_regIn_raw_sss.fif')
 sss_samp_fname = op.join(data_path, 'SSS', 'sample_audvis_trunc_raw_sss.fif')
@@ -70,9 +71,6 @@ fine_cal_fname_3d = op.join(sss_path, 'sss_cal_3053_3d.dat')
 ctc_fname = op.join(sss_path, 'ct_sparse.fif')
 fine_cal_mgh_fname = op.join(sss_path, 'sss_cal_mgh.dat')
 ctc_mgh_fname = op.join(sss_path, 'ct_sparse_mgh.fif')
-
-sample_fname = op.join(data_path, 'MEG', 'sample',
-                       'sample_audvis_trunc_raw.fif')
 
 triux_path = op.join(data_path, 'SSS', 'TRIUX')
 tri_fname = op.join(triux_path, 'triux_bmlhus_erm_raw.fif')
@@ -1021,7 +1019,7 @@ def test_mf_skips():
         # skips decrease acceptable duration
         maxwell_filter(raw, st_duration=17., **kwargs)
     onsets, ends = _annotations_starts_stops(
-        raw, ('edge', 'bad_acq_skip'), 'skip_by_annotation', invert=True)
+        raw, ('edge', 'bad_acq_skip'), invert=True)
     assert (ends - onsets).min() / raw.info['sfreq'] == 2.
     assert (ends - onsets).max() / raw.info['sfreq'] == 3.
     for st_duration in (2., 3.):
@@ -1051,6 +1049,20 @@ def test_mf_skips():
     assert not np.allclose(data_cs, data_c, atol=1e-20)
     assert not np.allclose(data_cs, data_csb, atol=1e-20)
     assert_allclose(data_sc, data_cs, atol=1e-20)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('bads', [[], ['MEG 0111']])  # just to test picking
+def test_find_bad_channels_maxwell(bads):
+    """Test automatic bad channel detection."""
+    raw = mne.io.read_raw_fif(sample_fname, allow_maxshield='yes')
+    raw.fix_mag_coil_types().load_data().pick_types(exclude=())
+    raw.info['bads'] = bads
+    # maxfilter -autobad on -v -f test_raw.fif -force -cal off -ctc off -regularize off -list -o test_raw.fif -f ~/mne_data/MNE-testing-data/MEG/sample/sample_audvis_trunc_raw.fif  # noqa: E501
+    got_bads = find_bad_channels_maxwell(
+        raw, origin=(0., 0., 0.04), regularize=None,
+        bad_condition='ignore', verbose='debug')
+    assert got_bads == ['MEG 2443']  # from MaxFilter
 
 
 run_tests_if_main()

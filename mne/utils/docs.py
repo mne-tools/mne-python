@@ -295,6 +295,94 @@ chpi_locs : dict
     "times", "rrs", "moments", and "gofs".
 """
 
+# Maxwell filtering
+docdict['maxwell_origin_int_ext_calibration_cross'] = """
+origin : array-like, shape (3,) | str
+    Origin of internal and external multipolar moment space in meters.
+    The default is ``'auto'``, which means ``(0., 0., 0.)`` when
+    ``coord_frame='meg'``, and a head-digitization-based
+    origin fit using :func:`~mne.bem.fit_sphere_to_headshape`
+    when ``coord_frame='head'``. If automatic fitting fails (e.g., due
+    to having too few digitization points),
+    consider separately calling the fitting function with different
+    options or specifying the origin manually.
+int_order : int
+    Order of internal component of spherical expansion.
+ext_order : int
+    Order of external component of spherical expansion.
+calibration : str | None
+    Path to the ``'.dat'`` file with fine calibration coefficients.
+    File can have 1D or 3D gradiometer imbalance correction.
+    This file is machine/site-specific.
+cross_talk : str | None
+    Path to the FIF file with cross-talk correction information.
+"""
+docdict['maxwell_coord'] = """
+coord_frame : str
+    The coordinate frame that the ``origin`` is specified in, either
+    ``'meg'`` or ``'head'``. For empty-room recordings that do not have
+    a head<->meg transform ``info['dev_head_t']``, the MEG coordinate
+    frame should be used.
+"""
+docdict['maxwell_reg_ref_cond_pos'] = """
+regularize : str | None
+    Basis regularization type, must be "in" or None.
+    "in" is the same algorithm as the "-regularize in" option in
+    MaxFilter™.
+ignore_ref : bool
+    If True, do not include reference channels in compensation. This
+    option should be True for KIT files, since Maxwell filtering
+    with reference channels is not currently supported.
+bad_condition : str
+    How to deal with ill-conditioned SSS matrices. Can be "error"
+    (default), "warning", "info", or "ignore".
+head_pos : array | None
+    If array, movement compensation will be performed.
+    The array should be of shape (N, 10), holding the position
+    parameters as returned by e.g. `read_head_pos`.
+"""
+docdict['maxwell_st_fixed_only'] = """
+st_fixed : bool
+    If True (default), do tSSS using the median head position during the
+    ``st_duration`` window. This is the default behavior of MaxFilter
+    and has been most extensively tested.
+
+    .. versionadded:: 0.12
+st_only : bool
+    If True, only tSSS (temporal) projection of MEG data will be
+    performed on the output data. The non-tSSS parameters (e.g.,
+    ``int_order``, ``calibration``, ``head_pos``, etc.) will still be
+    used to form the SSS bases used to calculate temporal projectors,
+    but the output MEG data will *only* have temporal projections
+    performed. Noise reduction from SSS basis multiplication,
+    cross-talk cancellation, movement compensation, and so forth
+    will not be applied to the data. This is useful, for example, when
+    evoked movement compensation will be performed with
+    :func:`~mne.epochs.average_movements`.
+
+    .. versionadded:: 0.12
+"""
+docdict['maxwell_mag'] = """
+mag_scale : float | str
+    The magenetometer scale-factor used to bring the magnetometers
+    to approximately the same order of magnitude as the gradiometers
+    (default 100.), as they have different units (T vs T/m).
+    Can be ``'auto'`` to use the reciprocal of the physical distance
+    between the gradiometer pickup loops (e.g., 0.0168 m yields
+    59.5 for VectorView).
+"""
+docdict['maxwell_skip'] = """
+skip_by_annotation : str | list of str
+    If a string (or list of str), any annotation segment that begins
+    with the given string will not be included in filtering, and
+    segments on either side of the given excluded annotated segment
+    will be filtered separately (i.e., as independent signals).
+    The default ``('edge', 'bad_acq_skip')`` will separately filter
+    any segments that were concatenated by :func:`mne.concatenate_raws`
+    or :meth:`mne.io.Raw.append`, or separated during acquisition.
+    To disable, provide an empty list.
+"""
+
 # Rank
 docdict['rank'] = """
 rank : None | dict | 'info' | 'full'
