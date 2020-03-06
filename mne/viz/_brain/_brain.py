@@ -1174,7 +1174,6 @@ class _Brain(object):
         """
         current_time_idx = self._data["time_idx"]
         for idx in time_idx:
-            print(idx)
             self.set_time_point(idx, interpolation)
             yield idx
 

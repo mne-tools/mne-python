@@ -5,6 +5,7 @@
 # License: Simplified BSD
 
 from itertools import cycle
+from functools import partial
 import os
 import time
 import numpy as np
@@ -525,9 +526,13 @@ class _TimeViewer(object):
 
     def save_movie(self):
         from pyvista.plotting.qt_plotting import FileDialog
+        _save_movie = partial(
+            self.brain.save_movie,
+            time_dilation=(1. / self.playback_speed),
+        )
         return FileDialog(self.plotter.app_window,
                           directory=os.getcwd(),
-                          callback=self.brain.save_movie)
+                          callback=_save_movie)
 
     def keyPressEvent(self, event):
         callback = self.key_bindings.get(event.text())
