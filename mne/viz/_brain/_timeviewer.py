@@ -265,6 +265,7 @@ class _TimeViewer(object):
         self.brain.time_viewer = self
         self.plotter = brain._renderer.plotter
         self.window = self.plotter.app_window
+        self.status_bar = self.window.statusBar()
         self.interactor = self.plotter
         self.interactor.keyPressEvent = self.keyPressEvent
 
@@ -490,6 +491,7 @@ class _TimeViewer(object):
             self.enable_point_picking()
 
         self.update_menu()
+        self.update_status_bar()
 
     def update_menu(self):
         main_menu = self.plotter.main_menu
@@ -523,15 +525,22 @@ class _TimeViewer(object):
                     file_menu.insertAction(action, movie_action)
                     break
 
+    def update_status_bar(self):
+        from PyQt5.QtWidgets import QLabel
+        self.status_msg = QLabel()
+        self.status_bar.addWidget(self.status_msg)
+        self.status_msg.hide()
+
+        # display help message for 3 seconds
+        self.status_bar.showMessage("Press ? for help", 3000)
+
     def save_movie(self):
         from pyvista.plotting.qt_plotting import FileDialog
         from PyQt5.QtCore import Qt
         from PyQt5.QtGui import QCursor
-        from PyQt5.QtWidgets import QLabel
 
-        status_bar = self.window.statusBar()
-        status_msg = QLabel("Saving movie ...")
-        status_bar.addWidget(status_msg)
+        self.status_msg.setText("Saving movie ...")
+        self.status_msg.show()
 
         def _save_movie(filename):
             default_cursor = self.interactor.cursor()
@@ -544,8 +553,7 @@ class _TimeViewer(object):
 
         def _clean(unused):
             del unused
-            status_bar.removeWidget(status_msg)
-            status_bar.close()
+            self.status_msg.hide()
 
         dialog = FileDialog(self.plotter.app_window,
                             callback=_save_movie)
