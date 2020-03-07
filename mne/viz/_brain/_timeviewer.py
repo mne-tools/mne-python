@@ -6,7 +6,6 @@
 
 from itertools import cycle
 from functools import partial
-import os
 import time
 import numpy as np
 from ..utils import _show_help, _get_color_list, tight_layout
@@ -531,7 +530,6 @@ class _TimeViewer(object):
             time_dilation=(1. / self.playback_speed),
         )
         return FileDialog(self.plotter.app_window,
-                          directory=os.getcwd(),
                           callback=_save_movie)
 
     def keyPressEvent(self, event):
