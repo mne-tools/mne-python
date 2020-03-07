@@ -534,7 +534,7 @@ class _TimeViewer(object):
         # display help message for 3 seconds
         self.status_bar.showMessage("Press ? for help", 3000)
 
-    def save_movie(self):
+    def save_movie(self, **kwargs):
         from pyvista.plotting.qt_plotting import FileDialog
         from PyQt5.QtCore import Qt
         from PyQt5.QtGui import QCursor
@@ -548,6 +548,7 @@ class _TimeViewer(object):
             self.brain.save_movie(
                 filename=filename,
                 time_dilation=(1. / self.playback_speed),
+                **kwargs
             )
             self.interactor.setCursor(default_cursor)
 
@@ -558,6 +559,7 @@ class _TimeViewer(object):
         dialog = FileDialog(self.plotter.app_window,
                             callback=_save_movie)
         dialog.finished.connect(_clean)
+        return dialog
 
     def keyPressEvent(self, event):
         callback = self.key_bindings.get(event.text())
