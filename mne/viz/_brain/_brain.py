@@ -1035,7 +1035,7 @@ class _Brain(object):
                     self._data['ctable'] = ctable
 
     def save_movie(self, filename, time_dilation=4., tmin=None, tmax=None,
-                   framerate=24, interpolation='quadratic', codec=None,
+                   framerate=24, interpolation=None, codec=None,
                    bitrate=None, **kwargs):
         """Save a movie (for data with a time axis).
 
@@ -1066,10 +1066,11 @@ class _Brain(object):
             Last time point to include (default: all data).
         framerate : float
             Framerate of the movie (frames per second, default 24).
-        interpolation : str
+        interpolation : str | None
             Interpolation method (``scipy.interpolate.interp1d`` parameter,
             one of 'linear' | 'nearest' | 'zero' | 'slinear' | 'quadratic' |
-            'cubic', default 'quadratic').
+            'cubic'). If None, it is set internally ('nearest').
+            Defaults to None.
         **kwargs :
             Specify additional options for :mod:`imageio`.
         """
@@ -1084,6 +1085,9 @@ class _Brain(object):
             kwargs['codec'] = codec
         if bitrate is not None:
             kwargs['bitrate'] = bitrate
+
+        if interpolation is None:
+            interpolation = self.interp_kind
 
         # find tmin
         if tmin is None:
