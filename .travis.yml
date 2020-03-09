@@ -116,8 +116,6 @@ script:
     # need the --pre wheels to skip slow ones.
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
         CONDITION='not slowtest';
-      elif [ -z "$CONDA_ENV" ] && [ -z "$CONDA_DEPENDENCIES" ]; then
-        CONDITION='not slowtest';
       else
         CONDITION='not ultraslowtest';
       fi;
