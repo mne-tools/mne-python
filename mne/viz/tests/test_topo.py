@@ -80,6 +80,8 @@ def _gen_nirs_data():
     evoked_data = np.random.randn(16, 30)
     evokeds = EvokedArray(evoked_data, info=info, tmin=-0.2, nave=4)
     evokeds.set_montage(montage)
+    evokeds.set_channel_types({'Fp1': 'hbo', 'Fp2': 'hbo', 'F4': 'hbo',
+                               'Fz': 'hbo'}, verbose='error')
     return evokeds
 
 
@@ -176,8 +178,6 @@ def test_plot_topo():
 
     # Test plotting of fnirs types
     evokeds = _gen_nirs_data()
-    evokeds.set_channel_types({'Fp1': 'hbo', 'Fp2': 'hbo', 'F4': 'hbo',
-                               'Fz': 'hbo'}, verbose='error')
     evokeds.pick(picks='hbo')
     fig = plot_evoked_topo(evokeds)
     assert len(fig.axes) == 1

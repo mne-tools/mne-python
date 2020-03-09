@@ -139,8 +139,6 @@ def test_plot_topomap_animation():
 
     # Test plotting of fnirs types
     evokeds = _gen_nirs_data()
-    evokeds.set_channel_types({'Fp1': 'hbo', 'Fp2': 'hbo', 'F4': 'hbo',
-                               'Fz': 'hbo'}, verbose='error')
     fig, anim = evokeds.animate_topomap(ch_type='hbo')
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     assert len(fig.axes) == 2
