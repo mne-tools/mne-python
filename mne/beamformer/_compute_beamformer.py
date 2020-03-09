@@ -106,7 +106,7 @@ def _sym_inv(x, reduce_rank):
     """Symmetric inversion with optional rank reduction."""
     s, u = np.linalg.eigh(x)
     # mimic default np.linalg.pinv behavior
-    cutoff = 1e-15 * s[:, -1][:, np.newaxis]
+    cutoff = 1e-15 * s[:, -1:]
     s[s <= cutoff] = np.inf
     if reduce_rank:
         # These are ordered smallest to largest, so we set the first one
@@ -119,16 +119,16 @@ def _sym_inv(x, reduce_rank):
 def _reduce_leadfield_rank(G):
     """Reduce the rank of the leadfield."""
     # decompose lead field
-    u, s, v = np.linalg.svd(G)
-    s[:, -1] = 0.  # set the smallest singular value to 0.
+    u, s, v = np.linalg.svd(G, full_matrices=False)
 
-    # backproject
-    G = np.matmul(u[..., :3], s[..., None] * v)
+    # backproject, omitting one direction (equivalent to setting the smallest
+    # singular value to zero)
+    G = np.matmul(u[:, :, :-1], s[:, :-1, np.newaxis] * v[:, :-1, :])
 
     return G
 
 
-def _normalized_weights(Wk, Gk, Cm_inv_sq, nn, sk):
+def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk):
     """Compute the normalized weights in max-power orientation.
 
     Uses Eq. 4.47 from [1]_. Operates in place on Wk.
@@ -158,7 +158,7 @@ def _normalized_weights(Wk, Gk, Cm_inv_sq, nn, sk):
                          np.matmul(Cm_inv_sq[np.newaxis], Gk))
 
     # invert this using an eigenvalue decomposition
-    norm = _sym_inv(norm_inv, reduce_rank=False)
+    norm = _sym_inv(norm_inv, reduce_rank)
 
     # Reapply source covariance after inversion
     norm *= sk[:, :, np.newaxis]
@@ -279,14 +279,14 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                 'reduce_rank=True.')
 
     # rank reduction of the lead field
-    if reduce_rank is True:
+    if reduce_rank:
         Gk = _reduce_leadfield_rank(Gk)
 
     with _noop_indentation_context():
         if (inversion == 'matrix' and pick_ori == 'max-power' and
                 weight_norm in ['unit-noise-gain', 'nai']):
             # In this case, take a shortcut to compute the filter
-            _normalized_weights(Wk, Gk, Cm_inv_sq, nn, sk)
+            _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk)
         else:
             # Compute power at the source
             Ck = np.matmul(Wk, Gk)  # np.dot for each source
@@ -308,7 +308,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                     assert Ck.shape[1:] == (3, 3)
                     # Invert for all dipoles simultaneously using matrix
                     # inversion.
-                    norm = _sym_inv(Ck, reduce_rank=False)
+                    norm = _sym_inv(Ck, reduce_rank)
                 # Reapply source covariance after inversion
                 norm *= sk[:, :, np.newaxis]
                 norm *= sk[:, np.newaxis, :]
