@@ -20,7 +20,7 @@ from ._peak_finder import peak_finder
 from .bads import find_outliers
 from .infomax_ import infomax
 from .stim import fix_stim_artifact
-from .maxwell import maxwell_filter
+from .maxwell import maxwell_filter, find_bad_channels_maxwell
 from .xdawn import Xdawn
 from ._csd import compute_current_source_density
 from . import nirs

@@ -8,7 +8,7 @@ from numpy.testing import assert_array_almost_equal, assert_equal
 import pytest
 
 from mne import io, Epochs, read_events, pick_types
-from mne.utils import requires_version, check_version, run_tests_if_main
+from mne.utils import requires_sklearn, run_tests_if_main
 from mne.decoding import compute_ems, EMS
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -21,9 +21,10 @@ tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
 
 
-@requires_version('sklearn', '0.15')
+@requires_sklearn
 def test_ems():
     """Test event-matched spatial filters."""
+    from sklearn.model_selection import StratifiedKFold
     raw = io.read_raw_fif(raw_fname, preload=False)
 
     # create unequal number of events
@@ -58,12 +59,7 @@ def test_ems():
     # test compute_ems cv
     epochs = epochs['aud_r', 'vis_l']
     epochs.equalize_event_counts(epochs.event_id)
-    if check_version('sklearn', '0.18'):
-        from sklearn.model_selection import StratifiedKFold
-        cv = StratifiedKFold(n_splits=3)
-    else:
-        from sklearn.cross_validation import StratifiedKFold
-        cv = StratifiedKFold(epochs.events[:, 2])
+    cv = StratifiedKFold(n_splits=3)
     compute_ems(epochs, cv=cv)
     compute_ems(epochs, cv=2)
     pytest.raises(ValueError, compute_ems, epochs, cv='foo')

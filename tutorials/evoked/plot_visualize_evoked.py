@@ -1,4 +1,6 @@
 """
+.. _tut-visualize-evoked:
+
 =====================
 Visualize Evoked data
 =====================

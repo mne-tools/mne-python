@@ -3,8 +3,10 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
+import os
 import os.path as op
 import shutil
+import sys
 
 import numpy as np
 import pytest
@@ -26,11 +28,24 @@ reject = dict(grad=4000e-13, mag=4e-12)
 
 
 @testing.requires_testing_data
-def test_check():
+def test_check(tmpdir):
     """Test checking functions."""
     pytest.raises(ValueError, check_random_state, 'foo')
     pytest.raises(TypeError, _check_fname, 1)
     _check_fname(Path('./'))
+    fname = str(tmpdir.join('foo'))
+    with open(fname, 'wb'):
+        pass
+    assert op.isfile(fname)
+    _check_fname(fname, overwrite='read', must_exist=True)
+    orig_perms = os.stat(fname).st_mode
+    os.chmod(fname, 0)
+    if not sys.platform.startswith('win'):
+        with pytest.raises(PermissionError, match='read permissions'):
+            _check_fname(fname, overwrite='read', must_exist=True)
+    os.chmod(fname, orig_perms)
+    os.remove(fname)
+    assert not op.isfile(fname)
     pytest.raises(IOError, check_fname, 'foo', 'tets-dip.x', (), ('.fif',))
     pytest.raises(ValueError, _check_subject, None, None)
     pytest.raises(TypeError, _check_subject, None, 1)
@@ -43,8 +58,10 @@ def test_check():
         check_random_state(np.random.default_rng(0)).choice(1)
 
     # _meg.fif is a valid ending and should not raise an error
-    shutil.copyfile(fname_raw, fname_raw.replace('_raw.', '_meg.'))
-    mne.io.read_raw_fif(fname_raw.replace('_raw.', '_meg.'))
+    new_fname = str(
+        tmpdir.join(op.basename(fname_raw).replace('_raw.', '_meg.')))
+    shutil.copyfile(fname_raw, new_fname)
+    mne.io.read_raw_fif(new_fname)
 
 
 @requires_mayavi

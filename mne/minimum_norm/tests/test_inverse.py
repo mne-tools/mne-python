@@ -24,14 +24,14 @@ from mne import (read_cov, read_forward_solution, read_evokeds, pick_types,
                  pick_types_forward, make_forward_solution, EvokedArray,
                  convert_forward_solution, Covariance, combine_evoked,
                  SourceEstimate, make_sphere_model, make_ad_hoc_cov,
-                 pick_channels_forward)
+                 pick_channels_forward, compute_raw_covariance)
 from mne.io import read_raw_fif
 from mne.io.proj import make_projector
 from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       apply_inverse_raw, apply_inverse_epochs,
                                       make_inverse_operator,
                                       write_inverse_operator,
-                                      compute_rank_inverse,
+                                      compute_rank_inverse, apply_inverse_cov,
                                       prepare_inverse_operator,
                                       INVERSE_METHODS)
 from mne.utils import _TempDir, run_tests_if_main, catch_logging
@@ -795,6 +795,57 @@ def test_io_inverse_operator():
     _compare(inv_prep, inv_read_prep)
     inv_prep_prep = prepare_inverse_operator(inv_prep, *args)
     _compare(inv_prep, inv_prep_prep)
+
+
+# eLORETA is slow and we can trust that it will work because we just route
+# through apply_inverse
+_fast_methods = list(INVERSE_METHODS)
+_fast_methods.pop(_fast_methods.index('eLORETA'))
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('method', _fast_methods)
+@pytest.mark.parametrize('pick_ori', ['normal', None])
+def test_apply_inverse_cov(method, pick_ori):
+    """Test MNE with precomputed inverse operator on cov."""
+    raw = read_raw_fif(fname_raw, preload=True)
+    # use 10 sec of data
+    raw.crop(0, 10)
+
+    raw.filter(1, None)
+    label_lh = read_label(fname_label % 'Aud-lh')
+
+    # test with a free ori inverse
+    inverse_operator = read_inverse_operator(fname_inv)
+
+    data_cov = compute_raw_covariance(raw, tstep=None)
+
+    with pytest.raises(ValueError, match='has not been prepared'):
+        apply_inverse_cov(data_cov, raw.info, inverse_operator,
+                          lambda2=lambda2, prepared=True)
+
+    this_inv_op = prepare_inverse_operator(inverse_operator, nave=1,
+                                           lambda2=lambda2, method=method)
+
+    raw_ori = 'normal' if pick_ori == 'normal' else 'vector'
+    stc_raw = apply_inverse_raw(
+        raw, this_inv_op, lambda2, method, label=label_lh, nave=1,
+        pick_ori=raw_ori, prepared=True)
+    stc_cov = apply_inverse_cov(
+        data_cov, raw.info, this_inv_op, method=method, pick_ori=pick_ori,
+        label=label_lh, prepared=True, lambda2=lambda2)
+    n_sources = np.prod(stc_cov.data.shape[:-1])
+    raw_data = stc_raw.data.reshape(n_sources, -1)
+    exp_res = np.diag(np.cov(raw_data, ddof=1)).copy()
+    exp_res *= 1 if raw_ori == pick_ori else 3.
+    # There seems to be some precision penalty when combining orientations,
+    # but it's probably acceptable
+    rtol = 5e-4 if pick_ori is None else 1e-12
+    assert_allclose(exp_res, stc_cov.data.ravel(), rtol=rtol)
+
+    with pytest.raises(ValueError, match='Invalid value'):
+        apply_inverse_cov(
+            data_cov, raw.info, this_inv_op, method=method, pick_ori='vector')
 
 
 @testing.requires_testing_data

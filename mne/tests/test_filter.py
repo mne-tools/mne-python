@@ -5,10 +5,10 @@ from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
                            assert_array_equal, assert_allclose,
                            assert_array_less)
 import pytest
-from scipy.signal import resample as sp_resample, butter, freqz
+from scipy.signal import resample as sp_resample, butter, freqz, sosfreqz
 
 from mne import create_info
-from mne.fixes import _sosfreqz, fft, fftfreq
+from mne.fixes import fft, fftfreq
 from mne.io import RawArray, read_raw_fif
 from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.filter import (filter_data, resample, _resample_stim_channels,
@@ -17,8 +17,7 @@ from mne.filter import (filter_data, resample, _resample_stim_channels,
                         estimate_ringing_samples, create_filter, _Interp2)
 
 from mne.utils import (sum_squared, run_tests_if_main,
-                       catch_logging, requires_version, _TempDir,
-                       requires_mne, run_subprocess)
+                       catch_logging, requires_mne, run_subprocess)
 
 rng = np.random.RandomState(0)
 
@@ -31,9 +30,9 @@ def test_filter_array():
 
 
 @requires_mne
-def test_mne_c_design():
+def test_mne_c_design(tmpdir):
     """Test MNE-C filter design."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     temp_fname = op.join(tempdir, 'test_raw.fif')
     out_fname = op.join(tempdir, 'test_c_raw.fif')
     x = np.zeros((1, 10001))
@@ -254,7 +253,6 @@ def test_resample():
     assert_array_equal(resample([0., 0.], 2, 1), [0., 0., 0., 0.])
 
 
-@requires_version('scipy', '1.0')  # earlier versions have a Nyquist bug
 def test_resample_scipy():
     """Test resampling against SciPy."""
     n_jobs_test = (1, 'cuda')
@@ -629,7 +627,7 @@ def test_reporting_iir(ftype, btype, order, output):
     if output == 'ba':
         w, h = freqz(x['b'], x['a'], worN=10000)
     else:
-        w, h = _sosfreqz(x['sos'], worN=10000)
+        w, h = sosfreqz(x['sos'], worN=10000)
     w *= fs / (2 * np.pi)
     h = np.abs(h)
     # passband

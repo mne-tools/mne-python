@@ -9,7 +9,7 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
 import pytest
 
 from mne.fixes import is_regressor, is_classifier
-from mne.utils import requires_version, check_version
+from mne.utils import requires_sklearn, check_version
 from mne.decoding.base import (_get_inverse_funcs, LinearModel, get_coef,
                                cross_val_multiscore)
 from mne.decoding.search_light import SlidingEstimator
@@ -55,7 +55,7 @@ def _make_data(n_samples=1000, n_features=5, n_targets=3):
     return X, Y, A
 
 
-@requires_version('sklearn', '0.17')
+@requires_sklearn
 def test_get_coef():
     """Test getting linear coefficients (filters/patterns) from estimators."""
     from sklearn.base import TransformerMixin, BaseEstimator
@@ -206,7 +206,7 @@ def test_get_coef():
     lm.fit(X, Y, sample_weight=np.ones(len(Y)))
 
 
-@requires_version('sklearn', '0.15')
+@requires_sklearn
 def test_linearmodel():
     """Test LinearModel class for computing filters and patterns."""
     # check categorical target fit in standard linear model
@@ -260,7 +260,7 @@ def test_linearmodel():
         clf.fit(X, wrong_y)
 
 
-@requires_version('sklearn', '0.18')
+@requires_sklearn
 def test_cross_val_multiscore():
     """Test cross_val_multiscore for computing scores on decoding over time."""
     from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score

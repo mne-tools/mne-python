@@ -82,6 +82,7 @@ def pytest_configure(config):
     ignore:.*TraitTuple.*trait.*handler.*deprecated.*:DeprecationWarning
     ignore:.*rich_compare.*metadata.*deprecated.*:DeprecationWarning
     ignore:.*In future, it will be an error for 'np.bool_'.*:DeprecationWarning
+    ignore:.*Converting `np\.character` to a dtype is deprecated.*:DeprecationWarning
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
@@ -152,7 +153,7 @@ def fix_pytest_tmpdir_35():
     if sys.version_info >= (3, 6):
         return
 
-    for key in ('stat', 'mkdir', 'makedirs'):
+    for key in ('stat', 'mkdir', 'makedirs', 'access'):
         _replace(os, key)
     for key in ('split', 'splitext', 'realpath', 'join'):
         _replace(op, key)

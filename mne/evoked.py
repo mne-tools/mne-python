@@ -99,11 +99,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Last time sample.
     comment : str
         Comment on dataset. Can be the condition.
-    times : array
-        Array of time instants in seconds.
     data : array of shape (n_channels, n_times)
         Evoked response.
-    times :  ndarray
+    times :  array
         Time vector in seconds. Goes from `tmin` to `tmax`. Time interval
         between consecutive time samples is equal to the inverse of the
         sampling frequency.
@@ -352,9 +350,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @copy_function_doc_to_method_doc(plot_evoked_field)
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
-                   n_jobs=1):
+                   n_jobs=1, fig=None, verbose=None):
         return plot_evoked_field(self, surf_maps, time=time,
-                                 time_label=time_label, n_jobs=n_jobs)
+                                 time_label=time_label, n_jobs=n_jobs,
+                                 fig=fig, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_evoked_white)
     def plot_white(self, noise_cov, show=True, rank=None, time_unit='s',

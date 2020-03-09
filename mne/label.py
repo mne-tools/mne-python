@@ -14,7 +14,6 @@ import re
 import numpy as np
 from scipy import linalg, sparse
 
-from .fixes import _sparse_argmax
 from .parallel import parallel_func, check_n_jobs
 from .source_estimate import (SourceEstimate, _center_of_mass,
                               spatial_src_connectivity)
@@ -2120,7 +2119,7 @@ def morph_labels(labels, subject_to, subject_from=None, subjects_dir=None,
     vert_poss = [_load_vert_pos(subject_to, subjects_dir, surf_name, hemi,
                                 mmap.shape[0])
                  for hemi, mmap in zip(('lh', 'rh'), mmaps)]
-    idxs = [_sparse_argmax(mmap, axis=1) for mmap in mmaps]
+    idxs = [mmap.argmax(axis=1) for mmap in mmaps]
     out_labels = list()
     values = filename = None
     for label in labels:

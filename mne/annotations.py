@@ -498,13 +498,13 @@ def _sync_onset(raw, onset, inverse=False):
     return annot_start
 
 
-def _annotations_starts_stops(raw, kinds, name='unknown', invert=False):
+def _annotations_starts_stops(raw, kinds, name='skip_by_annotation',
+                              invert=False):
     """Get starts and stops from given kinds.
 
     onsets and ends are inclusive.
     """
-    _validate_type(kinds, (str, list, tuple), str(type(kinds)),
-                   "str, list or tuple")
+    _validate_type(kinds, (str, list, tuple), name)
     if isinstance(kinds, str):
         kinds = [kinds]
     else:

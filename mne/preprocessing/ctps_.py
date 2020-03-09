@@ -4,7 +4,6 @@
 # License: Simplified BSD
 import math
 import numpy as np
-from ..fixes import _get_logsumexp
 
 
 def _compute_normalized_phase(data):
@@ -142,6 +141,7 @@ def _prob_kuiper(d, n_eff, dtype='f8'):
     [2] Kuiper NH 1962. Proceedings of the Koninklijke Nederlands Akademie
     van Wetenschappen, ser Vol 63 pp 38-47
     """
+    from scipy.special import logsumexp
     n_time_slices = np.size(d)  # single value or vector
     n_points = 100
 
@@ -153,7 +153,6 @@ def _prob_kuiper(d, n_eff, dtype='f8'):
     fact = 4. * j2 * l2 - 1.
 
     # compute normalized pK value in range [0,1]
-    logsumexp = _get_logsumexp()  # increases numerical accuracy
     a = -2. * j2 * l2
     b = 2. * fact
     pk_norm = -logsumexp(a, b=b, axis=0) / (2. * n_eff)

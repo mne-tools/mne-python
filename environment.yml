@@ -29,10 +29,10 @@ dependencies:
 - traits>=4.6.0
 - pyface>=6
 - traitsui>=6
+- vtk
 - pip:
   - mne
   - https://api.github.com/repos/numpy/numpydoc/zipball/master
-  - vtk
   - pyvista>=0.23.1
   - mayavi
   - PySurfer[save_movie]

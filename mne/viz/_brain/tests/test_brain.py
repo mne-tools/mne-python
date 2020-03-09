@@ -70,7 +70,7 @@ def test_brain_init(renderer):
         _Brain(subject_id=subject_id, hemi='foo', surf=surf)
 
     brain = _Brain(subject_id, hemi, surf, size=(300, 300),
-                   subjects_dir=subjects_dir)
+                   subjects_dir=subjects_dir, title='test')
     brain.show_view(view=dict(azimuth=180., elevation=90.))
     brain.close()
 
@@ -199,11 +199,9 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi):
     assert len(spheres) == len(hemi_str)
 
     # test removing points
-    for sphere in spheres:
-        time_viewer.remove_point(sphere)
+    time_viewer.clear_points()
     assert len(picked_points['lh']) == 0
     assert len(picked_points['rh']) == 0
-    spheres.clear()  # necessary for the rest of the test
 
     # test picking a cell at random
     for idx, current_hemi in enumerate(hemi_str):

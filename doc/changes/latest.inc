@@ -17,6 +17,8 @@ Changelog
 
 - Improved :func:`mne.viz.plot_epochs` to label epoch counts starting from 0 `Sophie Herbst`_
 
+- Add :func:`minimum_norm.apply_inverse_cov` to compute static power by applying inverse solutions to a data covariance matrix by `Denis Engemann`_,`Luke Bloy`_, and `Eric Larson`_
+
 - Add :func:`mne.minimum_norm.resolution_metrics` to compute various resolution metrics for inverse solutions, by `Olaf Hauk`_
 
 - Add current source density :func:`mne.preprocessing.compute_current_source_density` to compute the surface Laplacian in order to reduce volume conduction in data by `Alex Rockhill`_
@@ -41,9 +43,11 @@ Changelog
 
 - Add support for passing a destination source space ``src_to`` in :func:`mne.compute_source_morph` to ensure morphing for multiple subjects results in consistent STCs, by `Eric Larson`_
 
-- Add support for plotting fNIRS channels in :func:`mne.viz.plot_alignment` and :func:`mne.Evoked.animate_topomap` by `Eric Larson`_ and `Robert Luke`_
+- Add support for plotting fNIRS channels in :func:`mne.viz.plot_alignment`, :func:`mne.viz.plot_evoked_topo` and :func:`mne.Evoked.animate_topomap` by `Eric Larson`_ and `Robert Luke`_
 
 - Add command line tool :ref:`gen_mne_anonymize` for anonymizing raw fiff files by `Luke Bloy`_
+
+- Add :func:`mne.preprocessing.find_bad_channels_maxwell` for automatic bad channel detection via Maxwell filtering by `Eric Larson`_
 
 - Add support to :func:`mne.io.anonymize_info` to allow time offset to be applied to dates by `Luke Bloy`_
 
@@ -68,6 +72,8 @@ Changelog
 - Add function to convert NIRS data to optical density :func:`mne.preprocessing.nirs.optical_density` by `Robert Luke`_
 
 - Add function to convert NIRS data to haemoglobin concentration :func:`mne.preprocessing.nirs.beer_lambert_law` by `Robert Luke`_
+
+- Add ``fig`` argument to :func:`mne.viz.plot_evoked_field` by `Eric Larson`_
 
 - Add functions to calculate spatial information of NIRS channels :func:`mne.preprocessing.nirs.source_detector_distances` and :func:`mne.preprocessing.nirs.short_channels` by `Robert Luke`_
 
@@ -144,6 +150,8 @@ Bug
      without compromising localization accuracy in testing.
 
 - Fix bug in ``method='eLORETA'`` for :func:`mne.minimum_norm.apply_inverse` (and variants) to allow restricting source estimation to a label by `Luke Bloy`_
+
+- Fix bug in :func:`mne.compute_covariance` and :func:`mne.compute_raw_covariance` where biased normalization (based on degrees of freedom) was used and ``cov.nfree`` was not set properly by `Eric Larson`_
 
 - Fix :func:`mne.VectorSourceEstimate.normal` to account for cortical patch statistics using ``use_cps=True`` by `Eric Larson`_
 
@@ -267,8 +275,20 @@ Bug
 
 - Include ``fit_params`` when saving an :class:`~mne.preprocessing.ICA` instance to disk by `Richard Höchenberger`_
 
+- Update old url link in :func:`mne.datasets.eegbci.load_data` to ``EEGMI_URL = 'https://physionet.org/files/eegmmidb/1.0.0/'`` by `Ramiro Gatti`_
+
+- Ensure corrected p-values calculated by :func:`mne.stats.bonferroni_correction` never exceed the value of 1.0 by `Richard Höchenberger`_
+
 API
 ~~~
+
+- Bumped minimum requirements to fall 2017 versions by `Eric Larson`_:
+
+  - NumPy 1.13.3
+  - SciPy 1.0.0
+  - matplotlib 2.1
+  - scikit-learn 1.19.1 (optional requirement)
+  - pandas 0.21 (optional requirement)
 
 - :meth:`mne.Epochs.plot` now accepts an ``event_id`` parameter (useful in tandem with ``event_colors`` for specifying event colors by name) by `Daniel McCloy`_.
 

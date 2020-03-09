@@ -1,9 +1,9 @@
-"""Compatibility fixes for older version of python, numpy and scipy
+"""Compatibility fixes for older versions of libraries
 
 If you add content to this file, please give the version of the package
 at which the fix is no longer needed.
 
-# XXX : originally copied from scikit-learn
+# originally copied from scikit-learn
 
 """
 # Authors: Emmanuelle Gouillart <emmanuelle.gouillart@normalesup.org>
@@ -138,19 +138,6 @@ def _read_geometry(filepath, read_metadata=False, read_stamp=False):
         ret += (create_stamp,)
 
     return ret
-
-
-###############################################################################
-# Backporting logsumexp from scipy which is imported from scipy.special
-# (1.0.0) instead of scipy.misc
-
-
-def _get_logsumexp():
-    try:
-        from scipy.special import logsumexp
-    except ImportError:  # old SciPy
-        from scipy.misc import logsumexp
-    return logsumexp
 
 
 ###############################################################################
@@ -336,20 +323,6 @@ def rng_uniform(rng):
     return getattr(rng, 'integers', getattr(rng, 'randint', None))
 
 
-# SciPy 0.19
-def _sosfreqz(sos, worN=512, whole=False):
-    """Do sosfreqz from SciPy."""
-    from scipy.signal import freqz
-    sos, n_sections = _validate_sos(sos)
-    if n_sections == 0:
-        raise ValueError('Cannot compute frequencies with no sections')
-    h = 1.
-    for row in sos:
-        w, rowh = freqz(row[:3], row[3:], worN=worN, whole=whole)
-        h *= rowh
-    return w, h
-
-
 def _validate_sos(sos):
     """Helper to validate a SOS input"""
     sos = np.atleast_2d(sos)
@@ -361,60 +334,6 @@ def _validate_sos(sos):
     if not (sos[:, 3] == 1).all():
         raise ValueError('sos[:, 3] should be all ones')
     return sos, n_sections
-
-
-# SciPy 0.19
-def minimum_phase(h):
-    """Convert a linear-phase FIR filter to minimum phase.
-
-    Parameters
-    ----------
-    h : array
-        Linear-phase FIR filter coefficients.
-
-    Returns
-    -------
-    h_minimum : array
-        The minimum-phase version of the filter, with length
-        ``(length(h) + 1) // 2``.
-    """
-    try:
-        from scipy.signal import minimum_phase
-    except Exception:
-        pass
-    else:
-        return minimum_phase(h)
-    h = np.asarray(h)
-    if np.iscomplexobj(h):
-        raise ValueError('Complex filters not supported')
-    if h.ndim != 1 or h.size <= 2:
-        raise ValueError('h must be 1D and at least 2 samples long')
-    n_half = len(h) // 2
-    if not np.allclose(h[-n_half:][::-1], h[:n_half]):
-        warnings.warn('h does not appear to by symmetric, conversion may '
-                      'fail', RuntimeWarning)
-    n_fft = 2 ** int(np.ceil(np.log2(2 * (len(h) - 1) / 0.01)))
-    # zero-pad; calculate the DFT
-    h_temp = np.abs(fft(h, n_fft))
-    # take 0.25*log(|H|**2) = 0.5*log(|H|)
-    h_temp += 1e-7 * h_temp[h_temp > 0].min()  # don't let log blow up
-    np.log(h_temp, out=h_temp)
-    h_temp *= 0.5
-    # IDFT
-    h_temp = ifft(h_temp).real
-    # multiply pointwise by the homomorphic filter
-    # lmin[n] = 2u[n] - d[n]
-    win = np.zeros(n_fft)
-    win[0] = 1
-    stop = (len(h) + 1) // 2
-    win[1:stop] = 2
-    if len(h) % 2:
-        win[stop] = 1
-    h_temp *= win
-    h_temp = ifft(np.exp(fft(h_temp)))
-    h_minimum = h_temp.real
-    n_out = n_half + len(h) % 2
-    return h_minimum[:n_out]
 
 
 ###############################################################################
@@ -1061,94 +980,10 @@ def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
 # NumPy einsum backward compat (allow "optimize" arg and fix 1.14.0 bug)
 # XXX eventually we should hand-tune our `einsum` calls given our array sizes!
 
-_has_optimize = (LooseVersion(np.__version__) >= '1.12')
-
-
 def einsum(*args, **kwargs):
-    if 'optimize' in kwargs:
-        if not _has_optimize:
-            kwargs.pop('optimize')
-    elif _has_optimize:
+    if 'optimize' not in kwargs:
         kwargs['optimize'] = False
     return np.einsum(*args, **kwargs)
-
-
-# np.unique has axis kwarg only since 1.13.0. This is used only once in
-# topomap interpolation code to remove duplicates from 2d array along axis 0
-# can be removed once we require NumPy 1.13.0
-
-_has_unique_axis = (LooseVersion(np.__version__) >= '1.13.0')
-
-
-def _remove_duplicate_rows(arr):
-    if _has_unique_axis:
-        return np.unique(arr, axis=0)
-    else:
-        remove = np.zeros(arr.shape[0], dtype='bool')
-        for idx in range(arr.shape[0] - 1):
-            remove[idx + 1:] = ((arr[idx + 1:, :] == arr[[idx], :]).all(axis=1)
-                                | remove[idx + 1:])
-        return arr[~remove, :]
-
-
-###############################################################################
-# csr_matrix.argmax from SciPy 0.19+
-
-def _find_missing_index(ind, n):
-    for k, a in enumerate(ind):
-        if k != a:
-            return k
-
-    k += 1
-    if k < n:
-        return k
-    else:
-        return -1
-
-
-def _sparse_argmax(mat, axis):
-    import scipy
-    if LooseVersion(scipy.__version__) >= '0.19':
-        return mat.argmax(axis)
-    else:
-        op = np.argmax
-        compare = np.greater
-        self = mat
-        if self.shape[axis] == 0:
-            raise ValueError("Can't apply the operation along a zero-sized "
-                             "dimension.")
-
-        if axis < 0:
-            axis += 2
-
-        zero = self.dtype.type(0)
-
-        mat = self.tocsc() if axis == 0 else self.tocsr()
-        mat.sum_duplicates()
-
-        ret_size, line_size = mat._swap(mat.shape)
-        ret = np.zeros(ret_size, dtype=int)
-
-        nz_lines, = np.nonzero(np.diff(mat.indptr))
-        for i in nz_lines:
-            p, q = mat.indptr[i:i + 2]
-            data = mat.data[p:q]
-            indices = mat.indices[p:q]
-            am = op(data)
-            m = data[am]
-            if compare(m, zero) or q - p == line_size:
-                ret[i] = indices[am]
-            else:
-                zero_ind = _find_missing_index(indices, line_size)
-                if m == zero:
-                    ret[i] = min(am, zero_ind)
-                else:
-                    ret[i] = zero_ind
-
-        if axis == 1:
-            ret = ret.reshape(-1, 1)
-
-        return np.asmatrix(ret)
 
 
 ###############################################################################

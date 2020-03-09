@@ -24,9 +24,10 @@ from ..io.write import (write_int, write_float_matrix, start_file,
                         start_block, end_block, end_file, write_float,
                         write_coord_trans, write_string)
 
-from ..io.pick import channel_type, pick_info, pick_types
+from ..io.pick import channel_type, pick_info, pick_types, pick_channels
 from ..cov import (compute_whitener, _read_cov, _write_cov, Covariance,
                    prepare_noise_cov)
+from ..evoked import EvokedArray
 from ..forward import (compute_depth_prior, _read_forward_meas_info,
                        is_fixed_orient, compute_orient_prior,
                        convert_forward_solution, _select_orient_forward)
@@ -748,7 +749,7 @@ def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
     return K, noise_norm, vertno, source_nn
 
 
-def _check_ori(pick_ori, source_ori, src):
+def _check_ori(pick_ori, source_ori, src, allow_vector=True):
     """Check pick_ori."""
     _check_option('pick_ori', pick_ori, [None, 'normal', 'vector'])
     if pick_ori == 'vector' and source_ori != FIFF.FIFFV_MNE_FREE_ORI:
@@ -797,16 +798,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
         dSPM (default) :footcite:`DaleEtAl2000`,
         sLORETA :footcite:`Pascual-Marqui2002`, or
         eLORETA :footcite:`Pascual-Marqui2011`.
-    pick_ori : None | "normal" | "vector"
-        By default (None) pooling is performed by taking the norm of loose/free
-        orientations. In case of a fixed source space no norm is computed
-        leading to signed source activity.
-        If "normal" only the radial component is kept. This is only implemented
-        when working with loose orientations.
-        If "vector", no pooling of the orientations is done and the vector
-        result will be returned in the form of a
-        :class:`mne.VectorSourceEstimate` object. This is only implemented when
-        working with loose orientations.
+    %(pick_ori)s
     prepared : bool
         If True, do not call :func:`prepare_inverse_operator`.
     label : Label | None
@@ -881,6 +873,15 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     ----------
     .. footbibliography::
     """
+    out = _apply_inverse(
+        evoked, inverse_operator, lambda2, method, pick_ori, prepared, label,
+        method_params, return_residual, use_cps)
+    logger.info('[done]')
+    return out
+
+
+def _apply_inverse(evoked, inverse_operator, lambda2, method, pick_ori,
+                   prepared, label, method_params, return_residual, use_cps):
     _check_reference(evoked, inverse_operator['info']['ch_names'])
     _check_option('method', method, INVERSE_METHODS)
     _check_ori(pick_ori, inverse_operator['source_ori'],
@@ -942,7 +943,6 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9., method="dSPM",
     stc = _make_stc(sol, vertno, tmin=tmin, tstep=tstep, subject=subject,
                     vector=(pick_ori == 'vector'), source_nn=source_nn,
                     src_type=src_type)
-    logger.info('[done]')
 
     return (stc, residual) if return_residual else stc
 
@@ -977,14 +977,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
         Set to 1 on raw data.
     time_func : callable
         Linear function applied to sensor space time series.
-    pick_ori : None | "normal" | "vector"
-        If "normal", rather than pooling the orientations by taking the norm,
-        only the radial component is kept. This is only implemented
-        when working with loose orientations.
-        If "vector", no pooling of the orientations is done and the vector
-        result will be returned in the form of a
-        :class:`mne.VectorSourceEstimate` object. This does not work when using
-        an inverse operator with fixed orientations.
+    %(pick_ori)s
     buffer_size : int (or None)
         If not None, the computation of the inverse and the combination of the
         current components is performed in segments of length buffer_size
@@ -1070,7 +1063,6 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
         if is_free_ori and pick_ori != 'vector':
             logger.info('    combining the current components...')
             sol = combine_xyz(sol)
-
     if noise_norm is not None:
         if pick_ori == 'vector' and is_free_ori:
             noise_norm = noise_norm.repeat(3, axis=0)
@@ -1183,14 +1175,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     nave : int
         Number of averages used to regularize the solution.
         Set to 1 on single Epoch by default.
-    pick_ori : None | "normal" | "vector"
-        If "normal", rather than pooling the orientations by taking the norm,
-        only the radial component is kept. This is only implemented
-        when working with loose orientations.
-        If "vector", no pooling of the orientations is done and the vector
-        result will be returned in the form of a
-        :class:`mne.VectorSourceEstimate` object. This does not work when using
-        an inverse operator with fixed orientations.
+    %(pick_ori)s
     return_generator : bool
         Return a generator object instead of a list. This allows iterating
         over the stcs without having to keep them all in memory.
@@ -1227,51 +1212,90 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     return stcs
 
 
-# XXX what is this???
-'''
-def _xyz2lf(Lf_xyz, normals):
-    """Reorient leadfield to one component matching the normal to the cortex
-
-    This program takes a leadfield matrix computed for dipole components
-    pointing in the x, y, and z directions, and outputs a new lead field
-    matrix for dipole components pointing in the normal direction of the
-    cortical surfaces and in the two tangential directions to the cortex
-    (that is on the tangent cortical space). These two tangential dipole
-    components are uniquely determined by the SVD (reduction of variance).
+@verbose
+def apply_inverse_cov(cov, info, inverse_operator, nave=1, lambda2=1 / 9,
+                      method="dSPM", pick_ori=None, prepared=False,
+                      label=None, method_params=None, use_cps=True,
+                      verbose=None):
+    """Apply inverse operator to covariance data.
 
     Parameters
     ----------
-    Lf_xyz: array of shape [n_sensors, n_positions x 3]
-        Leadfield
-    normals : array of shape [n_positions, 3]
-        Normals to the cortex
+    cov : instance of Covariance
+        Covariance data, computed on the time segment for which to compute
+        source power.
+    info : dict
+        The measurement info to specify the channels to include.
+    inverse_operator : instance of InverseOperator
+        Inverse operator.
+    nave : int
+        Number of averages used to regularize the solution.
+    lambda2 : float
+        The regularization parameter.
+    method : "MNE" | "dSPM" | "sLORETA" | "eLORETA"
+        Use minimum norm, dSPM (default), sLORETA, or eLORETA.
+    %(pick_ori-novec)s
+    prepared : bool
+        If True, do not call :func:`prepare_inverse_operator`.
+    label : Label | None
+        Restricts the source estimates to a given label. If None,
+        source estimates will be computed for the entire source space.
+    method_params : dict | None
+        Additional options for eLORETA. See Notes for details.
+    %(use_cps)s
+    %(verbose)s
 
     Returns
     -------
-    Lf_cortex : array of shape [n_sensors, n_positions x 3]
-        Lf_cortex is a leadfield matrix for dipoles in rotated orientations, so
-        that the first column is the gain vector for the cortical normal dipole
-        and the following two column vectors are the gain vectors for the
-        tangential orientations (tangent space of cortical surface).
+    stc : SourceEstimate | VectorSourceEstimate | VolSourceEstimate
+        The source estimates.
+
+    See Also
+    --------
+    apply_inverse : Apply inverse operator to evoked object.
+    apply_inverse_raw : Apply inverse operator to raw object.
+    apply_inverse_epochs : Apply inverse operator to epochs object.
+
+    Notes
+    -----
+    .. versionadded:: 0.20
     """
-    n_sensors, n_dipoles = Lf_xyz.shape
-    n_positions = n_dipoles // 3
-    Lf_xyz = Lf_xyz.reshape(n_sensors, n_positions, 3)
-    n_sensors, n_positions, _ = Lf_xyz.shape
-    Lf_cortex = np.zeros_like(Lf_xyz)
-
-    for k in range(n_positions):
-        lf_normal = np.dot(Lf_xyz[:, k, :], normals[k])
-        lf_normal_n = lf_normal[:, None] / linalg.norm(lf_normal)
-        P = np.eye(n_sensors, n_sensors) - np.dot(lf_normal_n, lf_normal_n.T)
-        lf_p = np.dot(P, Lf_xyz[:, k, :])
-        U, s, Vh = linalg.svd(lf_p)
-        Lf_cortex[:, k, 0] = lf_normal
-        Lf_cortex[:, k, 1:] = np.c_[U[:, 0] * s[0], U[:, 1] * s[1]]
-
-    Lf_cortex = Lf_cortex.reshape(n_sensors, n_dipoles)
-    return Lf_cortex
-'''
+    _validate_type(cov, Covariance, cov)
+    _validate_type(inverse_operator, InverseOperator, 'inverse_operator')
+    sel = _pick_channels_inverse_operator(cov['names'], inverse_operator)
+    use_names = [cov['names'][idx] for idx in sel]
+    info = pick_info(
+        info, pick_channels(info['ch_names'], use_names, ordered=True))
+    evoked = EvokedArray(
+        np.eye(len(info['ch_names'])), info, nave=nave, comment='cov')
+    is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI)
+    _check_option('pick_ori', pick_ori, (None, 'normal'))
+    if is_free_ori and pick_ori is None:
+        use_ori = 'vector'
+        combine = True
+    else:
+        use_ori = pick_ori
+        combine = False
+    stc = _apply_inverse(
+        evoked, inverse_operator, lambda2, method, use_ori, prepared, label,
+        method_params, return_residual=False, use_cps=use_cps)
+    # apply (potentially rotated in the vector case) operator twice
+    K = np.reshape(stc.data, (-1, stc.data.shape[-1]))
+    # diagonal entries of A @ B are given by (A * B.T).sum(axis=1), so this is
+    # equivalent to np.diag(K @ cov.data[sel][:, sel] @ K.T)[:, np.newaxis]:
+    sol = cov.data[sel][:, sel] @ K.T
+    sol = np.sum(K * sol.T, axis=1, keepdims=True)
+    # Reshape back to (n_src, ..., 1)
+    sol.shape = stc.data.shape[:-1] + (1,)
+    stc = stc.__class__(
+        sol, stc.vertices, stc.tmin, stc.tstep, stc.subject, stc.verbose)
+    if combine:  # combine the three directions
+        logger.info('    Combining the current components...')
+        np.sqrt(stc.data, out=stc.data)
+        stc = stc.magnitude()
+        stc.data *= stc.data
+    logger.info('[done]')
+    return stc
 
 
 ###############################################################################

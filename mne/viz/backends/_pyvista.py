@@ -426,6 +426,9 @@ class _Renderer(_BaseRenderer):
         _set_3d_view(self.figure, azimuth=azimuth, elevation=elevation,
                      distance=distance, focalpoint=focalpoint)
 
+    def reset_camera(self):
+        self.plotter.reset_camera()
+
     def screenshot(self, mode='rgb', filename=None):
         return _take_3d_screenshot(figure=self.figure, mode=mode,
                                    filename=filename)
@@ -547,7 +550,7 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
         position, cen, view_up]
 
 
-def _set_3d_title(figure, title, size=40):
+def _set_3d_title(figure, title, size=16):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
         figure.plotter.add_text(title, font_size=size, color='white')
