@@ -120,7 +120,7 @@ def _reduce_leadfield_rank(G):
     """Reduce the rank of the leadfield."""
     # decompose lead field
     u, s, v = np.linalg.svd(G)
-    s[:, np.argmin(s, axis=1)] = 0.  # set the smallest singular value to 0.
+    s[:, -1] = 0.  # set the smallest singular value to 0.
 
     # expand s to match dimension of u
     s_full = np.zeros(G.shape)
