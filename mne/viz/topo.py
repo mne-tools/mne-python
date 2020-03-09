@@ -715,9 +715,15 @@ def _plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
         # one check for all vendors
         meg_types = {'mag', 'grad'}
         is_meg = len(set.intersection(types_used, meg_types)) > 0
+        nirs_types = {'hbo', 'hbr', 'fnirs_raw', 'fnirs_od'}
+        is_nirs = len(set.intersection(types_used, nirs_types)) > 0
         if is_meg:
             types_used = list(types_used)[::-1]  # -> restore kwarg order
             picks = [pick_types(info, meg=kk, ref_meg=False, exclude=[])
+                     for kk in types_used]
+        elif is_nirs:
+            types_used = list(types_used)[::-1]  # -> restore kwarg order
+            picks = [pick_types(info, fnirs=kk, ref_meg=False, exclude=[])
                      for kk in types_used]
         else:
             types_used_kwargs = {t: True for t in types_used}

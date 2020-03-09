@@ -13,8 +13,9 @@ import pytest
 import matplotlib
 import matplotlib.pyplot as plt
 
-from mne import read_events, Epochs, pick_channels_evoked, read_cov
-from mne.channels import read_layout
+from mne import read_events, Epochs, pick_channels_evoked, read_cov,\
+    create_info, EvokedArray
+from mne.channels import read_layout, make_standard_montage
 from mne.io import read_raw_fif
 from mne.time_frequency.tfr import AverageTFR
 from mne.utils import run_tests_if_main
@@ -159,6 +160,21 @@ def test_plot_topo():
     for ax, idx in iter_topography(evoked.info):  # brief test with false
         ax.plot([0, 1, 2])
         break
+    plt.close('all')
+
+    # Test plotting of fnirs types
+    montage = make_standard_montage('biosemi16')
+    ch_names = montage.ch_names
+    ch_types = ['eeg'] * 16
+    info = create_info(ch_names=ch_names, sfreq=20, ch_types=ch_types)
+    evoked_data = np.random.randn(16, 30)
+    evokeds = EvokedArray(evoked_data, info=info, tmin=-0.2, nave=4)
+    evokeds.set_montage(montage)
+    evokeds.set_channel_types({'Fp1': 'hbo', 'Fp2': 'hbo', 'F4': 'hbo',
+                               'Fz': 'hbo'}, verbose='error')
+    evokeds.pick(picks='hbo')
+    fig = plot_evoked_topo(evokeds)
+    assert len(fig.axes) == 1
     plt.close('all')
 
 
