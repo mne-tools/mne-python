@@ -67,7 +67,8 @@ def _deprecate_layout(layout):
              'in 0.21', DeprecationWarning)
 
 
-def _prepare_topomap_plot(inst, ch_type, layout=None, sphere=None):
+def _prepare_topomap_plot(inst, ch_type, layout=None, sphere=None,
+                          ignore_overlap=False):
     """Prepare topo plot."""
     info = copy.deepcopy(inst if isinstance(inst, Info) else inst.info)
     sphere, clip_origin = _adjust_meg_sphere(sphere, info, ch_type)
@@ -111,7 +112,8 @@ def _prepare_topomap_plot(inst, ch_type, layout=None, sphere=None):
         if len(picks) == 0:
             raise ValueError("No channels of type %r" % ch_type)
 
-        pos = _find_topomap_coords(info, picks, sphere=sphere)
+        pos = _find_topomap_coords(info, picks, sphere=sphere,
+                                   ignore_overlap=ignore_overlap)
 
     ch_names = [info['ch_names'][k] for k in picks]
     if merge_grads:
@@ -602,9 +604,8 @@ def _topomap_plot_sensors(pos_x, pos_y, sensors, ax):
 def _get_pos_outlines(info, picks, sphere, to_sphere=True):
     ch_type = _get_ch_type(pick_info(_simplify_info(info), picks), None)
     sphere, clip_origin = _adjust_meg_sphere(sphere, info, ch_type)
-    pos = _find_topomap_coords(
-        info, picks, ignore_overlap=True, to_sphere=to_sphere,
-        sphere=sphere)
+    pos = _find_topomap_coords(info, picks, ignore_overlap=True,
+                               to_sphere=to_sphere, sphere=sphere)
     outlines = _make_head_outlines(sphere, pos, 'head', clip_origin)
     return pos, outlines
 
@@ -1378,7 +1379,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                         show=True, show_names=False, title=None, mask=None,
                         mask_params=None, outlines='head', contours=6,
                         image_interp='bilinear', average=None, head_pos=None,
-                        axes=None, extrapolate='box', sphere=None, border=0):
+                        axes=None, extrapolate='box', sphere=None, border=0,
+                        ignore_overlap=False):
     """Plot topographic maps of specific time points of evoked data.
 
     Parameters
@@ -1502,6 +1504,9 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         .. versionadded:: 0.18
     %(topomap_sphere_auto)s
     %(topomap_border)s
+    ignore_overlap : bool
+        Should overlapping channels be ignored, and allow to be plotted.
+        Overlapping channels can cause distorted figures. Defaults to False.
 
     Returns
     -------
@@ -1531,7 +1536,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     mask_params['markeredgewidth'] *= size / 2.
 
     picks, pos, merge_grads, names, ch_type, sphere, clip_origin = \
-        _prepare_topomap_plot(evoked, ch_type, layout, sphere=sphere)
+        _prepare_topomap_plot(evoked, ch_type, layout, sphere=sphere,
+                              ignore_overlap=ignore_overlap)
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin,
                                    head_pos)
 
