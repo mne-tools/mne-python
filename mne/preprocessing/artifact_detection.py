@@ -31,7 +31,7 @@ def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1):
         Data to compute head position.
     threshold : float
         The threshod for selecting segments with muscle activity artifacts.
-    picks:
+    picks : array
         Channels to use for artifact detection.
     min_length_good : int | float | None
         The minimal good segment length between annotations, smaller segments
