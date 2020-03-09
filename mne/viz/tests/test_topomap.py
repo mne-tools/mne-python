@@ -18,14 +18,13 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Circle
 
 from mne import (read_evokeds, read_proj, make_fixed_length_events, Epochs,
-                 compute_proj_evoked, find_layout, pick_types, create_info,
-                 EvokedArray)
+                 compute_proj_evoked, find_layout, pick_types, create_info)
 from mne.io.proj import make_eeg_average_ref_proj, Projection
 from mne.io import read_raw_fif, read_info, RawArray
 from mne.io.constants import FIFF
 from mne.io.pick import pick_info, channel_indices_by_type
 from mne.io.compensator import get_current_comp
-from mne.channels import read_layout, make_standard_montage, make_dig_montage
+from mne.channels import read_layout, make_dig_montage
 from mne.datasets import testing
 from mne.time_frequency.tfr import AverageTFR
 from mne.utils import run_tests_if_main

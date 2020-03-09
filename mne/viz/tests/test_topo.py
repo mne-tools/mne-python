@@ -70,9 +70,9 @@ def _get_epochs_delayed_ssp():
             proj='delayed', reject=reject)
     return epochs_delayed_ssp
 
+
 def _gen_nirs_data():
     """Generate test NIRS data."""
-    # Test plotting of fnirs types
     montage = make_standard_montage('biosemi16')
     ch_names = montage.ch_names
     ch_types = ['eeg'] * 16
@@ -81,6 +81,7 @@ def _gen_nirs_data():
     evokeds = EvokedArray(evoked_data, info=info, tmin=-0.2, nave=4)
     evokeds.set_montage(montage)
     return evokeds
+
 
 def test_plot_joint():
     """Test joint plot."""
