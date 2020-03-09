@@ -52,7 +52,7 @@ def test_movement_annotation_head_correction():
 
 @testing.requires_testing_data
 def test_muscle_annotation():
-    """Test correct detection muscle artifacts"""
+    """Test correct detection muscle artifacts."""
     raw = read_raw_fif(raw_fname, allow_maxshield='yes').load_data()
     raw.pick_types(meg='grad', ref_meg=False)
     raw.notch_filter([50, 110, 150])

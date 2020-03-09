@@ -33,15 +33,15 @@ def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1):
         The threshod for selecting segments with muscle activity artifacts.
     picks:
         Channels to use for artifact detection.
-    min_length_good : int | float | None, in seconds
-    The minimal good segment length between annotations, smaller segments will
-        be included in the movement annotation.
+    min_length_good : int | float | None
+        The minimal good segment length between annotations, smaller segments
+        will be included in the movement annotation.
 
     Returns
     -------
     annot : mne.Annotations
         Periods with muscle artifacts.
-    scores_muscle : array shape (1 x n samples)
+    scores_muscle : array
         Z-score values averaged accros channels for each sample.
     """
     raw_copy = raw.copy()
