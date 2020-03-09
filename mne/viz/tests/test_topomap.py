@@ -234,6 +234,18 @@ def test_plot_topomap_basic():
     with pytest.raises(ValueError, match=error_msg):
         plot_topomap(data, info, extrapolate='head', border='fancy')
 
+    # test channel placement when only 'grad' are picked:
+    # ---------------------------------------------------
+    info_grad = evoked.copy().pick('grad').info
+    n_grads = len(info_grad['ch_names'])
+    data = np.random.randn(n_grads)
+    img, _ = plot_topomap(data, info_grad)
+
+    # check that channels are scattered around x == 0
+    pos = img.axes.collections[-1].get_offsets()
+    prop_channels_on_the_right = (pos[:, 0] > 0).mean()
+    assert prop_channels_on_the_right < 0.6
+
     # other:
     # ------
     plt_topomap = partial(evoked.plot_topomap, **fast_test)

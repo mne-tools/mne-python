@@ -759,7 +759,8 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
         if any(type_ in ch_type for type_ in ('planar', 'grad')):
             # deal with grad pairs
-            picks, pos = _pair_grad_sensors(pos, find_layout(pos))
+            picks = _pair_grad_sensors(pos, topomap_coords=False)
+            pos = _find_topomap_coords(pos, picks=picks[::2], sphere=sphere)
             data = _merge_grad_data(data[picks]).reshape(-1)
         else:
             picks = list(range(data.shape[0]))
