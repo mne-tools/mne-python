@@ -7,6 +7,13 @@ import pytest
 from mne.stats import fdr_correction, bonferroni_correction
 
 
+def test_bonferroni_pval_clip():
+    """Test that p-values are never exceed 1.0."""
+    p = (0.2, 0.9)
+    _, p_corrected = bonferroni_correction(p)
+    assert p_corrected.max() <= 1.0
+
+
 def test_multi_pval_correction():
     """Test pval correction for multi comparison (FDR and Bonferroni)."""
     rng = np.random.RandomState(0)
@@ -24,7 +31,7 @@ def test_multi_pval_correction():
     thresh_bonferroni = stats.t.ppf(1.0 - alpha / n_tests, n_samples - 1)
     assert pval_bonferroni.ndim == 2
     assert reject_bonferroni.ndim == 2
-    assert_allclose(pval_bonferroni / 10000, pval)
+    assert_allclose(pval_bonferroni, (pval * 10000).clip(max=1))
     reject_expected = pval_bonferroni < alpha
     assert_array_equal(reject_bonferroni, reject_expected)
 
@@ -44,10 +51,3 @@ def test_multi_pval_correction():
     thresh_fdr = np.min(np.abs(T)[reject_fdr])
     assert 0 <= (reject_fdr.sum() - 50) <= 50 * 1.05
     assert thresh_uncorrected <= thresh_fdr <= thresh_bonferroni
-
-
-def test_bonferroni_pval_clip():
-    """Test that p-values are never exceed 1.0."""
-    p = (0.2, 0.9)
-    _, p_corrected = bonferroni_correction(p)
-    assert p_corrected.max() <= 1.0
