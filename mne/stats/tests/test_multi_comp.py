@@ -44,3 +44,10 @@ def test_multi_pval_correction():
     thresh_fdr = np.min(np.abs(T)[reject_fdr])
     assert 0 <= (reject_fdr.sum() - 50) <= 50 * 1.05
     assert thresh_uncorrected <= thresh_fdr <= thresh_bonferroni
+
+
+def test_bonferroni_pval_clip():
+    """Test that p-values are never exceed 1.0."""
+    p = (0.2, 0.9)
+    _, p_corrected = bonferroni_correction(p)
+    assert p_corrected.max() <= 1.0
