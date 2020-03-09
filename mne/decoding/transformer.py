@@ -13,7 +13,7 @@ from .base import BaseEstimator
 from .. import pick_types
 from ..filter import filter_data, _triage_filter_params
 from ..time_frequency.psd import psd_array_multitaper
-from ..utils import check_version, fill_doc, _check_option
+from ..utils import fill_doc, _check_option
 from ..io.pick import (pick_info, _pick_data_channels, _picks_by_type,
                        _picks_to_idx)
 from ..cov import _check_scalings_user
@@ -125,9 +125,6 @@ class Scaler(TransformerMixin, BaseEstimator):
             from sklearn.preprocessing import StandardScaler
             self._scaler = StandardScaler(self.with_mean, self.with_std)
         else:  # scalings == 'median':
-            if not check_version('sklearn', '0.17'):
-                raise ValueError("median requires version 0.17 of "
-                                 "sklearn library")
             from sklearn.preprocessing import RobustScaler
             self._scaler = RobustScaler(self.with_mean, self.with_std)
 

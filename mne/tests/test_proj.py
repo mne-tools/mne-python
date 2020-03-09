@@ -20,7 +20,7 @@ from mne.preprocessing import maxwell_filter
 from mne.proj import (read_proj, write_proj, make_eeg_average_ref_proj,
                       _has_eeg_average_ref_proj)
 from mne.rank import _compute_rank_int
-from mne.utils import _TempDir, run_tests_if_main, requires_version
+from mne.utils import _TempDir, run_tests_if_main
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -284,7 +284,6 @@ def test_compute_proj_raw():
         assert U.shape == (len(raw.ch_names), nproj)
 
 
-@requires_version('scipy', '1.0')
 @pytest.mark.parametrize('duration', [1, np.pi / 2.])
 @pytest.mark.parametrize('sfreq', [600.614990234375, 1000.])
 def test_proj_raw_duration(duration, sfreq):

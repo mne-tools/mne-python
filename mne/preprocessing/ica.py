@@ -342,9 +342,9 @@ class ICA(ContainsMixin):
         _validate_type(method, str, 'method')
         if method != 'imported_eeglab':  # internal use only
             _check_option('method', method, ['fastica', 'infomax', 'picard'])
-        if method == 'fastica' and not check_version('sklearn', '0.15'):
-            raise RuntimeError('The scikit-learn package (version >= 0.15) '
-                               'is required for FastICA.')
+        if method == 'fastica' and not check_version('sklearn'):
+            raise RuntimeError(
+                'The scikit-learn package is required for FastICA.')
 
         self.noise_cov = noise_cov
 

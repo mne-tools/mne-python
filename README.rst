@@ -81,22 +81,22 @@ Dependencies
 The minimum required dependencies to run MNE-Python are:
 
 - Python >= 3.5
-- NumPy >= 1.12.1
-- SciPy >= 0.18.1
+- NumPy >= 1.13.3
+- SciPy >= 1.0.0
 
 For full functionality, some functions require:
 
-- Matplotlib >= 2.0.2
+- Matplotlib >= 2.1
 - Mayavi >= 4.6
 - PySurfer >= 0.8
-- Scikit-learn >= 0.18.2
+- Scikit-learn >= 0.19.1
 - Numba >= 0.40
 - NiBabel >= 2.1.0
-- Pandas >= 0.19.2
+- Pandas >= 0.21
 - Picard >= 0.3
 - CuPy >= 4.0 (for NVIDIA CUDA acceleration)
 - DIPY >= 0.10.1
-- PyVista >= 0.20.1
+- PyVista >= 0.23.1
 
 Contributing to MNE-Python
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
