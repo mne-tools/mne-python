@@ -122,14 +122,8 @@ def _reduce_leadfield_rank(G):
     u, s, v = np.linalg.svd(G)
     s[:, -1] = 0.  # set the smallest singular value to 0.
 
-    # expand s to match dimension of u
-    s_full = np.zeros(G.shape)
-    # TODO: vectorize?
-    for s_full_vox, s_vox in zip(s_full, s):
-        np.fill_diagonal(s_full_vox, s_vox)
-
     # backproject
-    G = np.matmul(u, np.matmul(s_full, v))
+    G = np.matmul(u[..., :3], s[..., None] * v)
 
     return G
 
