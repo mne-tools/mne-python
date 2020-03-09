@@ -34,6 +34,7 @@ from mne.viz import plot_evoked_topomap, plot_projs_topomap
 from mne.viz.topomap import (_get_pos_outlines, _onselect, plot_topomap,
                              plot_arrowmap, plot_psds_topomap)
 from mne.viz.utils import _find_peaks, _fake_click
+from mne.viz.tests.test_topo import _gen_nirs_data
 
 
 data_dir = testing.data_path(download=False)
@@ -138,13 +139,7 @@ def test_plot_topomap_animation():
     plt.close('all')
 
     # Test plotting of fnirs types
-    montage = make_standard_montage('biosemi16')
-    ch_names = montage.ch_names
-    ch_types = ['eeg'] * 16
-    info = create_info(ch_names=ch_names, sfreq=20, ch_types=ch_types)
-    evoked_data = np.random.randn(16, 30)
-    evokeds = EvokedArray(evoked_data, info=info, tmin=-0.2, nave=4)
-    evokeds.set_montage(montage)
+    evokeds = _gen_nirs_data()
     evokeds.set_channel_types({'Fp1': 'hbo', 'Fp2': 'hbo', 'F4': 'hbo',
                                'Fz': 'hbo'}, verbose='error')
     fig, anim = evokeds.animate_topomap(ch_type='hbo')

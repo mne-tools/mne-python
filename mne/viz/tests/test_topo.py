@@ -70,6 +70,17 @@ def _get_epochs_delayed_ssp():
             proj='delayed', reject=reject)
     return epochs_delayed_ssp
 
+def _gen_nirs_data():
+    """Generate test NIRS data."""
+    # Test plotting of fnirs types
+    montage = make_standard_montage('biosemi16')
+    ch_names = montage.ch_names
+    ch_types = ['eeg'] * 16
+    info = create_info(ch_names=ch_names, sfreq=20, ch_types=ch_types)
+    evoked_data = np.random.randn(16, 30)
+    evokeds = EvokedArray(evoked_data, info=info, tmin=-0.2, nave=4)
+    evokeds.set_montage(montage)
+    return evokeds
 
 def test_plot_joint():
     """Test joint plot."""
@@ -163,13 +174,7 @@ def test_plot_topo():
     plt.close('all')
 
     # Test plotting of fnirs types
-    montage = make_standard_montage('biosemi16')
-    ch_names = montage.ch_names
-    ch_types = ['eeg'] * 16
-    info = create_info(ch_names=ch_names, sfreq=20, ch_types=ch_types)
-    evoked_data = np.random.randn(16, 30)
-    evokeds = EvokedArray(evoked_data, info=info, tmin=-0.2, nave=4)
-    evokeds.set_montage(montage)
+    evokeds = _gen_nirs_data()
     evokeds.set_channel_types({'Fp1': 'hbo', 'Fp2': 'hbo', 'F4': 'hbo',
                                'Fz': 'hbo'}, verbose='error')
     evokeds.pick(picks='hbo')
