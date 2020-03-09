@@ -239,7 +239,7 @@ def test_plot_topomap_basic():
     info_grad = evoked.copy().pick('grad').info
     n_grads = len(info_grad['ch_names'])
     data = np.random.randn(n_grads)
-    img, cnt = plot_topomap(data, info_grad)
+    fig, _ = plot_topomap(data, info_grad)
 
     # check that channels are scattered around x == 0
     pos = img.axes.collections[-1].get_offsets()
