@@ -4,12 +4,72 @@
 
 
 import numpy as np
-
+from scipy.stats import zscore
+from scipy.ndimage.measurements import label
 from ..annotations import (Annotations, _annotations_starts_stops)
 from ..transforms import (quat_to_rot, _average_quats, _angle_between_quats,
                           apply_trans, _quat_to_affine)
+from ..filter import filter_data
 from .. import Transform
 from ..utils import (_mask_to_onsets_offsets, logger)
+
+
+def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1):
+    """Detect segments with muscle artifacts.
+
+    Detects segments periods that contains high frequency activity beyond the
+    specified threshold. Muscle artifacts are most notable in the range of 110-
+    140Hz.
+
+    Raw data is band pass filtered between 110 and 140 Hz, the signal envelope
+    computed, z-scored across samples, channel averaged and low-pass
+    filtered to smooth transient peaks.
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        Data to compute head position.
+    threshold : float
+        The threshod for selecting segments with muscle activity artifacts.
+    picks:
+        Channels to use for artifact detection.
+    min_length_good : int | float | None, in seconds
+    The minimal good segment length between annotations, smaller segments will
+        be included in the movement annotation.
+
+    Returns
+    -------
+    annot : mne.Annotations
+        Periods with muscle artifacts.
+    scores_muscle : array shape (1 x n samples)
+        Z-score values averaged accros channels for each sample.
+    """
+    raw_copy = raw.copy()
+    raw_copy.pick(picks)
+    raw_copy.pick_types(ref_meg=False)  # Remove ref chans just in case
+    # Only one type of channel, otherwise z-score will be biased
+    assert(len(set(raw_copy.get_channel_types())) == 1), 'Different channel ' \
+        'types, pick one type'
+
+    raw_copy.filter(110, 140, fir_design='firwin')
+    raw_copy.apply_hilbert(envelope=True)
+    sfreq = raw_copy.info['sfreq']
+
+    art_scores = zscore(raw_copy._data, axis=1)
+    scores_muscle = filter_data(art_scores.mean(axis=0), sfreq, None, 4)
+    art_mask = scores_muscle > threshold
+
+    # remove artifact free periods shorter than min_length_good
+    idx_min = min_length_good * sfreq
+    comps, num_comps = label(art_mask == 0)
+    for l in range(1, num_comps + 1):
+        l_idx = np.nonzero(comps == l)[0]
+        if len(l_idx) < idx_min:
+            art_mask[l_idx] = True
+
+    annot = _annotations_from_mask(raw_copy.times, art_mask, 'BAD_muscle')
+
+    return annot, scores_muscle
 
 
 def annotate_movement(raw, pos, rotation_velocity_limit=None,
