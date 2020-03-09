@@ -9,14 +9,6 @@ activity.
 .. contents:: Page contents
    :local:
    :depth: 2
-
-A beamformer is a spatial filter that reconstructs source activity by scanning
-through a grid of pre-defined source points and estimating activity at each of
-those source points independently.
-The beamforming method applied in this tutorial is the linearly constrained
-minimum variance (LCMV) beamformer [1]_ which operates on time series.
-Frequency-resolved data can be reconstructed with the dynamic imaging of
-coherent sources (DICS) beamforming method [2]_.
 """
 # Author: Britta Westner <britta.wstnr@gmail.com>
 #
@@ -31,7 +23,13 @@ from mne.beamformer import make_lcmv, apply_lcmv
 ###############################################################################
 # Introduction to beamformers
 # ---------------------------
-# TODO: What are spatial filters? Depth bias explanation.
+# A beamformer is a spatial filter that reconstructs source activity by
+# scanning through a grid of pre-defined source points and estimating activity
+# at each of those source points independently.
+# The beamforming method applied in this tutorial is the linearly constrained
+# minimum variance (LCMV) beamformer [1]_ which operates on time series.
+# Frequency-resolved data can be reconstructed with the dynamic imaging of
+# coherent sources (DICS) beamforming method [2]_.
 
 
 ###############################################################################
