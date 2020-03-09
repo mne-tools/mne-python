@@ -2,6 +2,7 @@
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
+#          Robert Luke <mail@robertluke.net>
 #
 # License: Simplified BSD
 
@@ -13,9 +14,8 @@ import pytest
 import matplotlib
 import matplotlib.pyplot as plt
 
-from mne import read_events, Epochs, pick_channels_evoked, read_cov,\
-    create_info, EvokedArray
-from mne.channels import read_layout, make_standard_montage
+from mne import read_events, Epochs, pick_channels_evoked, read_cov
+from mne.channels import read_layout
 from mne.io import read_raw_fif
 from mne.time_frequency.tfr import AverageTFR
 from mne.utils import run_tests_if_main
@@ -69,20 +69,6 @@ def _get_epochs_delayed_ssp():
             raw, events[:10], event_id, tmin, tmax, picks=picks,
             proj='delayed', reject=reject)
     return epochs_delayed_ssp
-
-
-def _gen_nirs_data():
-    """Generate test NIRS data."""
-    montage = make_standard_montage('biosemi16')
-    ch_names = montage.ch_names
-    ch_types = ['eeg'] * 16
-    info = create_info(ch_names=ch_names, sfreq=20, ch_types=ch_types)
-    evoked_data = np.random.randn(16, 30)
-    evokeds = EvokedArray(evoked_data, info=info, tmin=-0.2, nave=4)
-    evokeds.set_montage(montage)
-    evokeds.set_channel_types({'Fp1': 'hbo', 'Fp2': 'hbo', 'F4': 'hbo',
-                               'Fz': 'hbo'}, verbose='error')
-    return evokeds
 
 
 def test_plot_joint():
@@ -176,10 +162,11 @@ def test_plot_topo():
         break
     plt.close('all')
 
-    # Test plotting of fnirs types
-    evokeds = _gen_nirs_data()
-    evokeds.pick(picks='hbo')
-    fig = plot_evoked_topo(evokeds)
+
+def test_plot_topo_nirs(fnirs_evoked):
+    """Test plotting of ERP topography for nirs data."""
+    fnirs_evoked.pick(picks='hbo')
+    fig = plot_evoked_topo(fnirs_evoked)
     assert len(fig.axes) == 1
     plt.close('all')
 

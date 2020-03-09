@@ -2,6 +2,7 @@
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
+#          Robert Luke <mail@robertluke.net>
 #
 # License: Simplified BSD
 
@@ -33,7 +34,6 @@ from mne.viz import plot_evoked_topomap, plot_projs_topomap
 from mne.viz.topomap import (_get_pos_outlines, _onselect, plot_topomap,
                              plot_arrowmap, plot_psds_topomap)
 from mne.viz.utils import _find_peaks, _fake_click
-from mne.viz.tests.test_topo import _gen_nirs_data
 
 
 data_dir = testing.data_path(download=False)
@@ -137,11 +137,13 @@ def test_plot_topomap_animation():
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     plt.close('all')
 
-    # Test plotting of fnirs types
-    evokeds = _gen_nirs_data()
-    fig, anim = evokeds.animate_topomap(ch_type='hbo')
+
+def test_plot_topomap_animation_nirs(fnirs_evoked):
+    """Test topomap plotting for nirs data."""
+    fig, anim = fnirs_evoked.animate_topomap(ch_type='hbo')
     anim._func(1)  # _animate has to be tested separately on 'Agg' backend.
     assert len(fig.axes) == 2
+    plt.close('all')
 
 
 @pytest.mark.slowtest
