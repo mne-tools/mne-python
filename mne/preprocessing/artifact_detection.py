@@ -21,7 +21,7 @@ def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1):
     specified threshold. Muscle artifacts are most notable in the range of 110-
     140Hz.
 
-    Raw data is band pass filtered between 110 and 140 Hz, the signal envelope
+    Raw data is band-pass filtered between 110 and 140 Hz, the signal envelope
     computed, z-scored across samples, channel averaged and low-pass
     filtered to smooth transient peaks.
 
@@ -30,7 +30,7 @@ def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1):
     raw : instance of Raw
         Data to compute head position.
     threshold : float
-        The threshod for selecting segments with muscle activity artifacts.
+        The threshold for selecting segments with muscle activity artifacts.
     picks : array
         Channels to use for artifact detection.
     min_length_good : int | float | None
@@ -42,7 +42,7 @@ def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1):
     annot : mne.Annotations
         Periods with muscle artifacts.
     scores_muscle : array
-        Z-score values averaged accros channels for each sample.
+        Z-score values averaged across channels for each sample.
     """
     raw_copy = raw.copy()
     raw_copy.pick(picks)
