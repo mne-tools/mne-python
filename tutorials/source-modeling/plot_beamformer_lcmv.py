@@ -29,21 +29,20 @@ from mne.datasets import sample
 from mne.beamformer import make_lcmv, apply_lcmv
 
 ###############################################################################
+# Introduction to beamformers
+# ---------------------------
+# TODO: What are spatial filters? Depth bias explanation.
+
+
+###############################################################################
 # Data processing
 # ---------------
 # We will use the sample data set for this tutorial and reconstruct source
-# activity on the trials with left auditory stimulation. Note that
-# beamformers are usually computed in a :class:`volume source space
-# <mne.VolSourceEstimate>`, as a visualization
-# of only the surface activation can misrepresent the data.
+# activity on the trials with left auditory stimulation.
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-vol-7-fwd.fif'
-
-# Read forward model
-forward = mne.read_forward_solution(fwd_fname)
 
 # Read the raw data
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
@@ -79,6 +78,7 @@ evoked.plot_joint()
 # gradiometers), we need to account for the different amplitude scales of these
 # channel types. To do this we will supply a noise covariance matrix to the
 # beamformer, which will be used for whitening.
+# TODO: tmin, tmax
 
 data_cov = mne.compute_covariance(epochs, tmin=0.05, tmax=0.25,
                                   method='empirical')
@@ -86,6 +86,20 @@ noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0,
                                    method='empirical')
 
 data_cov.plot(epochs.info)
+
+###############################################################################
+# The forward model
+# -----------------
+# TODO: add some more info + reference to tutorial on fwd model
+# Note that beamformers are usually computed in a :class:`volume source space
+# <mne.VolSourceEstimate>`, as a visualization of only the surface activation
+# can misrepresent the data.
+
+
+# Read forward model
+fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-vol-7-fwd.fif'
+forward = mne.read_forward_solution(fwd_fname)
+
 
 ###############################################################################
 # Compute the spatial filter
@@ -153,6 +167,8 @@ stc.plot(
     src=forward['src'], subject='sample', subjects_dir=subjects_dir,
     mode='glass_brain', clim=dict(kind='value', lims=lims),
     initial_time=0.087, verbose=True)
+
+# TODO: does this fit our expecations?
 
 ###############################################################################
 # References
