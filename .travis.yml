@@ -33,7 +33,7 @@ matrix:
         # Old dependencies
         - os: linux
           env: PYTHON_VERSION=3.5
-               CONDA_DEPENDENCIES="numpy=1.12 scipy=0.18 matplotlib=2.0 pandas=0.19 scikit-learn=0.18"
+               CONDA_DEPENDENCIES="numpy=1.13 scipy=0.18 matplotlib=2.0 pandas=0.19 scikit-learn=0.18"
                CONDA_CHANNELS="conda-forge"
 
         # Minimal (runs with and without testing data)

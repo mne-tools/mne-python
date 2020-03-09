@@ -81,7 +81,7 @@ Dependencies
 The minimum required dependencies to run MNE-Python are:
 
 - Python >= 3.5
-- NumPy >= 1.12.1
+- NumPy >= 1.13.3
 - SciPy >= 0.18.1
 
 For full functionality, some functions require:
