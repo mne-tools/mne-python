@@ -277,6 +277,8 @@ Bug
 
 - Update old url link in :func:`mne.datasets.eegbci.load_data` to ``EEGMI_URL = 'https://physionet.org/files/eegmmidb/1.0.0/'`` by `Ramiro Gatti`_
 
+- Ensure corrected p-values calculated by :func:`mne.stats.bonferroni_correction` never exceed the value of 1.0 by `Richard Höchenberger`_
+
 API
 ~~~
 
