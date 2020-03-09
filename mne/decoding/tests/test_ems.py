@@ -6,7 +6,6 @@ import os.path as op
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal
 import pytest
-from sklearn.model_selection import StratifiedKFold
 
 from mne import io, Epochs, read_events, pick_types
 from mne.utils import requires_sklearn, run_tests_if_main
@@ -25,6 +24,7 @@ event_id = dict(aud_l=1, vis_l=3)
 @requires_sklearn
 def test_ems():
     """Test event-matched spatial filters."""
+    from sklearn.model_selection import StratifiedKFold
     raw = io.read_raw_fif(raw_fname, preload=False)
 
     # create unequal number of events
