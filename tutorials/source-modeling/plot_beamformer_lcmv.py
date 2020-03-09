@@ -34,7 +34,7 @@ from mne.beamformer import make_lcmv, apply_lcmv
 # We will use the sample data set for this tutorial and reconstruct source
 # activity on the trials with left auditory stimulation. Note that
 # beamformers are usually computed in a :class:`volume source space
-# <mne.VolSourceEsitmate>`, as a visualization
+# <mne.VolSourceEstimate>`, as a visualization
 # of only the surface activation can misrepresent the data.
 
 data_path = sample.data_path()
@@ -114,7 +114,8 @@ data_cov.plot(epochs.info)
 # as a scalar beamformer. It is also possible to compute a vector beamformer,
 # which gives back three estimates per voxel, corresponding to the three
 # directions of the source. This can be achieved by setting
-# ``pick_ori='vector'``.
+# ``pick_ori='vector'``and will yield a :class:`volume vector source estimate
+# <mne.VolVectorSourceEstimate>`.
 
 filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
                     noise_cov=noise_cov, pick_ori='max-power',
@@ -147,6 +148,7 @@ stc.plot(
     src=forward['src'], subject='sample', subjects_dir=subjects_dir,
     clim=dict(kind='value', pos_lims=lims), mode='stat_map',
     initial_time=0.087, verbose=True)
+###############################################################################
 stc.plot(
     src=forward['src'], subject='sample', subjects_dir=subjects_dir,
     mode='glass_brain', clim=dict(kind='value', lims=lims),
@@ -155,13 +157,13 @@ stc.plot(
 ###############################################################################
 # References
 # ----------
-# .. _[1] Van Veen et al. Localization of brain electrical activity via
-#         linearly constrained minimum variance spatial filtering.
-#         Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
+# .. [1] Van Veen et al. Localization of brain electrical activity via
+#        linearly constrained minimum variance spatial filtering.
+#        Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
 #
-# .. _[2] Gross et al. (2001) Dynamic imaging of coherent sources: Studying
-#         neural interactions in the human brain.
-#         PNAS vol. 98 (2) pp. 694-699. https://doi.org/10.1073/pnas.98.2.694
+# .. [2] Gross et al. (2001) Dynamic imaging of coherent sources: Studying
+#        neural interactions in the human brain.
+#        PNAS vol. 98 (2) pp. 694-699. https://doi.org/10.1073/pnas.98.2.694
 #
 #
 # .. LINKS
