@@ -10,7 +10,7 @@ from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
 from mne import io, pick_types
 from mne.fixes import einsum, rfft, irfft
-from mne.utils import requires_version, requires_sklearn, run_tests_if_main
+from mne.utils import requires_sklearn, run_tests_if_main
 from mne.decoding import ReceptiveField, TimeDelayingRidge
 from mne.decoding.receptive_field import (_delay_time_series, _SCORERS,
                                           _times_to_delays, _delays_to_slice)
@@ -537,7 +537,6 @@ def test_inverse_coef():
 
 
 @requires_sklearn
-@requires_version('scipy', '1.0')
 def test_linalg_warning():
     """Test that warnings are issued when no regularization is applied."""
     from sklearn.linear_model import Ridge

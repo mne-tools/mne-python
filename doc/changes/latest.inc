@@ -280,6 +280,8 @@ Bug
 API
 ~~~
 
+- Bumped minimum requirements for NumPy to 1.13.3, SciPy to 1.0.0, and scikit-learn to 1.19.1 by `Eric Larson`_
+
 - :meth:`mne.Epochs.plot` now accepts an ``event_id`` parameter (useful in tandem with ``event_colors`` for specifying event colors by name) by `Daniel McCloy`_.
 
 - New time conversion options for methods :meth:`mne.io.Raw.to_data_frame`, :meth:`mne.Epochs.to_data_frame`, :meth:`mne.Evoked.to_data_frame`, and :meth:`mne.SourceEstimate.to_data_frame`, by `Daniel McCloy`_.
