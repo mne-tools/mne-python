@@ -1822,15 +1822,13 @@ class FilterMixin(object):
         >>> evoked.savgol_filter(10.)  # low-pass at around 10 Hz # doctest:+SKIP
         >>> evoked.plot()  # doctest:+SKIP
         """  # noqa: E501
+        from scipy.signal import savgol_filter
         _check_preload(self, 'inst.savgol_filter')
         h_freq = float(h_freq)
         if h_freq >= self.info['sfreq'] / 2.:
             raise ValueError('h_freq must be less than half the sample rate')
 
         # savitzky-golay filtering
-        if not check_version('scipy', '0.14'):
-            raise RuntimeError('scipy >= 0.14 must be installed for savgol')
-        from scipy.signal import savgol_filter
         window_length = (int(np.round(self.info['sfreq'] /
                                       h_freq)) // 2) * 2 + 1
         logger.info('Using savgol length %d' % window_length)

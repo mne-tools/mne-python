@@ -42,10 +42,7 @@ def test_scaler():
     infos = (epochs.info, epochs.info, None, None)
     epochs_data_t = epochs_data.transpose([1, 0, 2])
     for method, info in zip(methods, infos):
-        if method == 'median' and not check_version('sklearn', '0.17'):
-            pytest.raises(ValueError, Scaler, info, method)
-            continue
-        if method == 'mean' and not check_version('sklearn', ''):
+        if method == 'mean' and not check_version('sklearn'):
             pytest.raises(ImportError, Scaler, info, method)
             continue
         scaler = Scaler(info, method)

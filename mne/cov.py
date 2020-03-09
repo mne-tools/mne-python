@@ -964,7 +964,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
         estimator_cov_info = list()
         msg = 'Estimating covariance using %s'
 
-        ok_sklearn = check_version('sklearn', '0.15')
+        ok_sklearn = check_version('sklearn')
         if not ok_sklearn and (len(method) != 1 or method[0] != 'empirical'):
             raise ValueError('scikit-learn is not installed, `method` must be '
                              '`empirical`, got %s' % (method,))

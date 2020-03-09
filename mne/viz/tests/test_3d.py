@@ -37,7 +37,7 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
-                       requires_nibabel, check_version, requires_dipy,
+                       requires_nibabel, requires_dipy,
                        traits_test, requires_version, catch_logging,
                        run_subprocess, modified_env)
 from mne.datasets import testing
@@ -91,12 +91,8 @@ def test_plot_head_positions():
     destination = (0., 0., 0.04)
     with pytest.warns(None):  # old MPL will cause a warning
         plot_head_positions(pos)
-        if check_version('matplotlib', '1.4'):
-            plot_head_positions(pos, mode='field', info=info,
-                                destination=destination)
-        else:
-            pytest.raises(RuntimeError, plot_head_positions, pos, mode='field',
-                          info=info, destination=destination)
+        plot_head_positions(pos, mode='field', info=info,
+                            destination=destination)
         plot_head_positions([pos, pos])  # list support
         pytest.raises(ValueError, plot_head_positions, ['pos'])
         pytest.raises(ValueError, plot_head_positions, pos[:, :9])
