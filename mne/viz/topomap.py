@@ -16,7 +16,6 @@ from numbers import Integral
 import warnings
 
 import numpy as np
-from scipy.spatial.distance import pdist, squareform
 
 from ..baseline import rescale
 from ..defaults import HEAD_SIZE_DEFAULT
@@ -37,6 +36,9 @@ from ..defaults import _handle_default
 from ..transforms import apply_trans, invert_transform
 from ..io.meas_info import Info, _simplify_info
 from ..io.proj import Projection
+
+
+_fnirs_types = ('hbo', 'hbr', 'fnirs_raw', 'fnirs_od')
 
 
 def _adjust_meg_sphere(sphere, info, ch_type):
@@ -94,46 +96,10 @@ def _prepare_topomap_plot(inst, ch_type, layout=None, sphere=None):
         picks, _ = _pair_grad_sensors(info, layout)
         pos = _find_topomap_coords(info, picks[::2], sphere=sphere)
         merge_grads = True
-    elif ch_type in ['hbo', 'hbr', 'fnirs_raw', 'fnirs_od']:
-        # Special case for merging nirs channels
-        picks = pick_types(info, meg=False, ref_meg=False, fnirs=ch_type,
-                           exclude='bads')
-        chs = [info['chs'][i] for i in picks]
-        locs3d = np.array([ch['loc'][:3] for ch in chs])
-        dist = pdist(locs3d)
-        # Store the sets of channels to be merged
-        overlapping_channels = list()
-        # Channels to be excluded from picks, as will be removed after merging
-        channels_to_exclude = list()
-        if len(locs3d) > 1 and np.min(dist) < 1e-10:
-            overlapping_mask = np.triu(squareform(dist < 1e-10))
-            for chan_idx in range(overlapping_mask.shape[0]):
-                already_overlapped = list(itertools.chain.from_iterable(
-                    overlapping_channels))
-                if overlapping_mask[chan_idx].any() and \
-                        (chs[chan_idx]['ch_name'] not in already_overlapped):
-                    # Determine the set of channels to be combined. Ensure the
-                    # first listed channel is the one to be replaced with merge
-                    overlapping_set = [chs[i]['ch_name'] for i in
-                                       np.where(overlapping_mask[chan_idx])[0]]
-                    overlapping_set = np.insert(overlapping_set, 0,
-                                                (chs[chan_idx]['ch_name']))
-                    overlapping_channels.append(overlapping_set)
-                    channels_to_exclude.append(overlapping_set[1:])
-            exclude = list(itertools.chain.from_iterable(channels_to_exclude))
-            [exclude.append(bad) for bad in info['bads']]
-            picks = pick_types(info, meg=False, ref_meg=False, fnirs=ch_type,
-                               exclude=exclude)
-            pos = _find_topomap_coords(info, picks, sphere=sphere)
-            picks = pick_types(info, meg=False, ref_meg=False, fnirs=ch_type)
-            # Overload the merge_grads variable as this is returned to calling
-            # function and indicates that merging of data is required
-            merge_grads = overlapping_channels
-        else:
-            picks = pick_types(info, meg=False, ref_meg=False,
-                               fnirs=ch_type, exclude='bads')
-            merge_grads = False
-            pos = _find_topomap_coords(info, picks, sphere=sphere)
+    elif ch_type in _fnirs_types:
+        # fNIRS data commonly has overlapping channels, so deal with separately
+        picks, pos, merge_grads, overlapping_channels = \
+            _average_fnirs_overlaps(info, ch_type, sphere)
     else:
         merge_grads = False
         if ch_type == 'eeg':
@@ -152,25 +118,79 @@ def _prepare_topomap_plot(inst, ch_type, layout=None, sphere=None):
         pos = _find_topomap_coords(info, picks, sphere=sphere)
 
     ch_names = [info['ch_names'][k] for k in picks]
-    if ch_type in ['hbo', 'hbr', 'fnirs_raw', 'fnirs_od']:
+    if ch_type in _fnirs_types:
         # Remove the chroma label type for cleaner labeling.
         ch_names = [k[:-4] for k in ch_names]
 
-    if merge_grads and ch_type == 'grad':
-        # change names so that vectorview combined grads appear as MEG014x
-        # instead of MEG0142 or MEG0143 which are the 2 planar grads.
-        ch_names = [ch_names[k][:-1] + 'x' for k in range(0, len(ch_names), 2)]
-    elif merge_grads and ch_type in ['hbo', 'hbr', 'fnirs_raw', 'fnirs_od']:
-        # Modify the nirs channel names to indicate they are to be merged
-        # New names will have the form  S1_D1xS2_D2
-        # More than two channels can overlap and be merged
-        for set in overlapping_channels:
-            idx = ch_names.index(set[0][:-4])
-            new_name = 'x'.join(s[:-4] for s in set)
-            ch_names[idx] = new_name
+    if merge_grads:
+        if ch_type == 'grad':
+            # change names so that vectorview combined grads appear as MEG014x
+            # instead of MEG0142 or MEG0143 which are the 2 planar grads.
+            ch_names = [ch_names[k][:-1] + 'x' for k in
+                        range(0, len(ch_names), 2)]
+        else:
+            assert ch_type in _fnirs_types
+            # Modify the nirs channel names to indicate they are to be merged
+            # New names will have the form  S1_D1xS2_D2
+            # More than two channels can overlap and be merged
+            for set in overlapping_channels:
+                idx = ch_names.index(set[0][:-4])
+                new_name = 'x'.join(s[:-4] for s in set)
+                ch_names[idx] = new_name
 
     pos = np.array(pos)[:, :2]  # 2D plot, otherwise interpolation bugs
     return picks, pos, merge_grads, ch_names, ch_type, sphere, clip_origin
+
+
+def _average_fnirs_overlaps(info, ch_type, sphere):
+
+    from scipy.spatial.distance import pdist, squareform
+
+    picks = pick_types(info, meg=False, ref_meg=False,
+                       fnirs=ch_type, exclude='bads')
+    chs = [info['chs'][i] for i in picks]
+    locs3d = np.array([ch['loc'][:3] for ch in chs])
+    dist = pdist(locs3d)
+
+    # Store the sets of channels to be merged
+    overlapping_channels = list()
+    # Channels to be excluded from picks, as will be removed after merging
+    channels_to_exclude = list()
+
+    if len(locs3d) > 1 and np.min(dist) < 1e-10:
+
+        overlapping_mask = np.triu(squareform(dist < 1e-10))
+        for chan_idx in range(overlapping_mask.shape[0]):
+            already_overlapped = list(itertools.chain.from_iterable(
+                overlapping_channels))
+            if overlapping_mask[chan_idx].any() and \
+                    (chs[chan_idx]['ch_name'] not in already_overlapped):
+                # Determine the set of channels to be combined. Ensure the
+                # first listed channel is the one to be replaced with merge
+                overlapping_set = [chs[i]['ch_name'] for i in
+                                   np.where(overlapping_mask[chan_idx])[0]]
+                overlapping_set = np.insert(overlapping_set, 0,
+                                            (chs[chan_idx]['ch_name']))
+                overlapping_channels.append(overlapping_set)
+                channels_to_exclude.append(overlapping_set[1:])
+
+        exclude = list(itertools.chain.from_iterable(channels_to_exclude))
+        [exclude.append(bad) for bad in info['bads']]
+        picks = pick_types(info, meg=False, ref_meg=False, fnirs=ch_type,
+                           exclude=exclude)
+        pos = _find_topomap_coords(info, picks, sphere=sphere)
+        picks = pick_types(info, meg=False, ref_meg=False, fnirs=ch_type)
+        # Overload the merge_grads variable as this is returned to calling
+        # function and indicates that merging of data is required
+        merge_grads = overlapping_channels
+
+    else:
+        picks = pick_types(info, meg=False, ref_meg=False, fnirs=ch_type,
+                           exclude='bads')
+        merge_grads = False
+        pos = _find_topomap_coords(info, picks, sphere=sphere)
+
+    return picks, pos, merge_grads, overlapping_channels
 
 
 def _plot_update_evoked_topomap(params, bools):
@@ -1685,7 +1705,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     data *= scaling
     if merge_grads and ch_type == 'grad':
         data = _merge_grad_data(data)
-    elif merge_grads and ch_type in ['hbo', 'hbr', 'fnirs_raw', 'fnirs_od']:
+    elif merge_grads and ch_type in _fnirs_types:
         data, ch_names = _merge_nirs_data(data, ch_names)
         merge_grads = False
 
