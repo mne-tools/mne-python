@@ -134,6 +134,8 @@ Changelog
 Bug
 ~~~
 
+- Fix the ``reduce_rank`` parameter in :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.make_dics` to reduce the rank of the leadfield first before then reducing the rank of the denominator of the beamformer formula for the inversion by `Britta Westner`_ and `Eric Larson`_.
+
 - Allow :func:`mne.channels.read_dig_hpts` to accept point categories (eg. EEG) to be specified in upper case by `Alex Gramfort`_.
 
 - Fix a bug in :meth:`mne.MixedSourceEstimate.plot_surface` that prevented plotting in latest PySurfer by `Christian O'Reilly`_.
