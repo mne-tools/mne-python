@@ -4,17 +4,17 @@
 
 
 import numpy as np
-from scipy.stats import zscore
-from scipy.ndimage.measurements import label
 from ..annotations import (Annotations, _annotations_starts_stops)
 from ..transforms import (quat_to_rot, _average_quats, _angle_between_quats,
                           apply_trans, _quat_to_affine)
 from ..filter import filter_data
 from .. import Transform
-from ..utils import (_mask_to_onsets_offsets, logger)
+from ..utils import (_mask_to_onsets_offsets, logger, verbose)
 
 
-def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1):
+@verbose
+def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1,
+                    verbose=None):
     """Detect segments with muscle artifacts.
 
     Detects segments periods that contains high frequency activity beyond the
@@ -30,32 +30,41 @@ def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1):
     raw : instance of Raw
         Data to compute head position.
     threshold : float
-        The threshold for selecting segments with muscle activity artifacts.
-    picks : array
-        Channels to use for artifact detection.
+        The threshold in z-scores for selecting segments with muscle activity
+        artifacts.
+    %(picks_all)s
     min_length_good : int | float | None
         The minimal good segment length between annotations, smaller segments
         will be included in the movement annotation.
+    %(verbose)s
 
     Returns
     -------
     annot : mne.Annotations
-        Periods with muscle artifacts.
+        Periods with muscle artifacts. If the z-score of 
     scores_muscle : array
         Z-score values averaged across channels for each sample.
     """
+    from scipy.stats import zscore
+    from scipy.ndimage.measurements import label
+    
     raw_copy = raw.copy()
     raw_copy.pick(picks)
-    raw_copy.pick_types(ref_meg=False)  # Remove ref chans just in case
+    chan_type = raw_copy.get_channel_types()
+
+    # Remove ref chans if MEG data just in case
+    meg = [True for e in ['mag', 'grad'] if (e in chan_type)]
+    if meg is True:
+        raw_copy.pick_types(ref_meg=False)  
+
     # Only one type of channel, otherwise z-score will be biased
-    assert(len(set(raw_copy.get_channel_types())) == 1), 'Different channel ' \
-        'types, pick one type'
+    assert(len(set(chan_type)) == 1), 'Different channel types, pick one type'
 
     raw_copy.filter(110, 140, fir_design='firwin')
     raw_copy.apply_hilbert(envelope=True)
     sfreq = raw_copy.info['sfreq']
 
-    art_scores = zscore(raw_copy._data, axis=1)
+    art_scores = zscore(raw_copy.get_data(), axis=1)
     scores_muscle = filter_data(art_scores.mean(axis=0), sfreq, None, 4)
     art_mask = scores_muscle > threshold
 

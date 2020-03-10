@@ -32,29 +32,31 @@ import os.path as op
 import matplotlib.pyplot as plt
 from mne import pick_types
 from mne.datasets.brainstorm import bst_auditory
-from mne.io import read_raw_ctf
+from mne.datasets import eegbci
+from mne.io import read_raw_ctf, read_raw_edf
 from mne.preprocessing import annotate_muscle
 from mne.io import concatenate_raws
 
 # Load data
+dataset = 'brainstorm'
 
-data_path = bst_auditory.data_path()
-data_path_MEG = op.join(data_path, 'MEG')
-subject = 'bst_auditory'
-subjects_dir = op.join(data_path, 'subjects')
-trans_fname = op.join(data_path, 'MEG', 'bst_auditory',
-                      'bst_auditory-trans.fif')
-raw_fname1 = op.join(data_path_MEG, 'bst_auditory', 'S01_AEF_20131218_01.ds')
-raw_fname2 = op.join(data_path_MEG, 'bst_auditory', 'S01_AEF_20131218_02.ds')
-
-raw = read_raw_ctf(raw_fname1, preload=False)
-
-raw = concatenate_raws([raw, read_raw_ctf(raw_fname2, preload=False)])
-raw.crop(350, 410).load_data()
+if dataset == 'eegbci':
+    fname = eegbci.load_data(2, runs=[3])[0]
+    raw = read_raw_edf(fname).load_data()
+    picks = pick_types(raw.info, eeg=True)
+elif dataset == 'brainstorm':
+    data_path = bst_auditory.data_path()
+    data_path_MEG = op.join(data_path, 'MEG')
+    raw_fname1 = op.join(data_path_MEG, 'bst_auditory', 'S01_AEF_20131218_01.ds')
+    raw_fname2 = op.join(data_path_MEG, 'bst_auditory', 'S01_AEF_20131218_02.ds')
+    
+    raw = read_raw_ctf(raw_fname1, preload=False)
+    raw = concatenate_raws([raw, read_raw_ctf(raw_fname2, preload=False)])
+    raw.crop(350, 410).load_data()
+    picks = pick_types(raw.info, meg=True, ref_meg=False)
+    
 raw.resample(300, npad="auto")
-raw.notch_filter([50, 110, 140])
-
-picks = pick_types(raw.info, meg=True, ref_meg=False)
+raw.notch_filter([50, 100])
 
 # detect muscle artifacts
 threshold_muscle = 1.5  # z-score
