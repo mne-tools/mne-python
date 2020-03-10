@@ -1107,8 +1107,7 @@ class _Brain(object):
         times /= framerate * time_dilation
         times += tmin
         interp_func = interp1d(self._times,
-                               np.arange(self._n_times),
-                               interpolation)
+                               np.arange(self._n_times))
         time_idx = interp_func(times)
 
         n_times = len(time_idx)
