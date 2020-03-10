@@ -907,6 +907,42 @@ def _merge_grad_data(data, method='rms'):
     return data.reshape(data.shape[:1] + orig_shape[1:])
 
 
+def _merge_nirs_data(data, merged_names):
+    """Merge data from multiple nirs channel using the mean.
+
+    Channel names that have an x in them will be merged. The first channel in
+    the name is replaced with the mean of all listed channels. The other
+    channels are removed.
+
+    Parameters
+    ----------
+    data : array, shape = (n_channels, ..., n_times)
+        Data for channels.
+    merged_names : list
+        List of strings containing the channel names. Channels that are to be
+        merged contain an x between them.
+
+    Returns
+    -------
+    data : array
+        Data for channels with requested channels merged. Channels used in the
+        merge are removed from the array.
+    """
+    to_remove = np.empty(0, dtype=np.int32)
+    for idx, ch in enumerate(merged_names):
+        if 'x' in ch:
+            indices = np.empty(0, dtype=np.int32)
+            channels = ch.split("x")
+            for sub_ch in channels[1:]:
+                indices = np.append(indices, merged_names.index(sub_ch))
+            data[idx] = np.mean(data[np.append(idx, indices)], axis=0)
+            to_remove = np.append(to_remove, indices)
+    for rem in sorted(to_remove, reverse=True):
+        del merged_names[rem]
+        data = np.delete(data, rem, 0)
+    return data, merged_names
+
+
 def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
                        ch_indices=None, name='ecog', bg_image=None,
                        normalize=True):
