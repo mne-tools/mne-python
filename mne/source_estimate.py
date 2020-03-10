@@ -1566,7 +1566,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         Notes
         -----
-        @(eltc_mode_notes)s
+        %(eltc_mode_notes)s
         """
         label_tc = extract_label_time_course(
             self, labels, src, mode=mode, return_generator=False,
@@ -2835,7 +2835,7 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
 
     Notes
     -----
-    @(eltc_mode_notes)s
+    %(eltc_mode_notes)s
 
     If encountering a ``ValueError`` due to mismatch between number of
     source points in the subject source space and computed ``stc`` object set
