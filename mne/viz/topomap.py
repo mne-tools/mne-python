@@ -95,13 +95,13 @@ def _prepare_topomap_plot(inst, ch_type, layout=None, sphere=None):
              layout.kind.startswith('Neuromag_122'))):
         picks, _ = _pair_grad_sensors(info, layout)
         pos = _find_topomap_coords(info, picks[::2], sphere=sphere)
-        merge_grads = True
+        merge_channels = True
     elif ch_type in _fnirs_types:
         # fNIRS data commonly has overlapping channels, so deal with separately
-        picks, pos, merge_grads, overlapping_channels = \
+        picks, pos, merge_channels, overlapping_channels = \
             _average_fnirs_overlaps(info, ch_type, sphere)
     else:
-        merge_grads = False
+        merge_channels = False
         if ch_type == 'eeg':
             picks = pick_types(info, meg=False, eeg=True, ref_meg=False,
                                exclude='bads')
@@ -122,7 +122,7 @@ def _prepare_topomap_plot(inst, ch_type, layout=None, sphere=None):
         # Remove the chroma label type for cleaner labeling.
         ch_names = [k[:-4] for k in ch_names]
 
-    if merge_grads:
+    if merge_channels:
         if ch_type == 'grad':
             # change names so that vectorview combined grads appear as MEG014x
             # instead of MEG0142 or MEG0143 which are the 2 planar grads.
@@ -139,7 +139,7 @@ def _prepare_topomap_plot(inst, ch_type, layout=None, sphere=None):
                 ch_names[idx] = new_name
 
     pos = np.array(pos)[:, :2]  # 2D plot, otherwise interpolation bugs
-    return picks, pos, merge_grads, ch_names, ch_type, sphere, clip_origin
+    return picks, pos, merge_channels, ch_names, ch_type, sphere, clip_origin
 
 
 def _average_fnirs_overlaps(info, ch_type, sphere):
@@ -180,17 +180,17 @@ def _average_fnirs_overlaps(info, ch_type, sphere):
                            exclude=exclude)
         pos = _find_topomap_coords(info, picks, sphere=sphere)
         picks = pick_types(info, meg=False, ref_meg=False, fnirs=ch_type)
-        # Overload the merge_grads variable as this is returned to calling
+        # Overload the merge_channels variable as this is returned to calling
         # function and indicates that merging of data is required
-        merge_grads = overlapping_channels
+        merge_channels = overlapping_channels
 
     else:
         picks = pick_types(info, meg=False, ref_meg=False, fnirs=ch_type,
                            exclude='bads')
-        merge_grads = False
+        merge_channels = False
         pos = _find_topomap_coords(info, picks, sphere=sphere)
 
-    return picks, pos, merge_grads, overlapping_channels
+    return picks, pos, merge_channels, overlapping_channels
 
 
 def _plot_update_evoked_topomap(params, bools):
