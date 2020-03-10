@@ -1602,7 +1602,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     mask_params['markersize'] *= size / 2.
     mask_params['markeredgewidth'] *= size / 2.
 
-    picks, pos, merge_grads, names, ch_type, sphere, clip_origin = \
+    picks, pos, merge_channels, names, ch_type, sphere, clip_origin = \
         _prepare_topomap_plot(evoked, ch_type, layout, sphere=sphere)
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin,
                                    head_pos)
@@ -1703,11 +1703,13 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                          'Check your input.')
 
     data *= scaling
-    if merge_grads and ch_type == 'grad':
-        data = _merge_grad_data(data)
-    elif merge_grads and ch_type in _fnirs_types:
-        data, ch_names = _merge_nirs_data(data, ch_names)
-        merge_grads = False
+    if merge_channels:
+        if ch_type == 'grad':
+            data = _merge_grad_data(data)
+        else:
+            assert ch_type in _fnirs_types
+            data, ch_names = _merge_nirs_data(data, ch_names)
+            merge_channels = False
 
     images, contours_ = [], []
 
@@ -1718,7 +1720,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         else:  # mag, eeg, planar1, planar2
             mask_ = mask[np.ix_(picks, time_idx)]
 
-    vlims = [_setup_vmin_vmax(data[:, i], vmin, vmax, norm=merge_grads)
+    vlims = [_setup_vmin_vmax(data[:, i], vmin, vmax, norm=merge_channels)
              for i in range(len(times))]
     vmin = np.min(vlims)
     vmax = np.max(vlims)
@@ -1748,7 +1750,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         slider = Slider(axes[-1], 'Time', evoked.times[0], evoked.times[-1],
                         times[0], valfmt='%1.2fs')
         slider.vline.remove()  # remove initial point indicator
-        func = _merge_grad_data if merge_grads else lambda x: x
+        func = _merge_grad_data if merge_channels else lambda x: x
         changed_callback = partial(_slider_changed, ax=axes[0],
                                    data=evoked.data, times=evoked.times,
                                    pos=pos, scaling=scaling, func=func,
@@ -1783,7 +1785,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
             evoked=evoked, fig=fig, projs=evoked.info['projs'], picks=picks,
             images=images, contours_=contours_, pos=pos, time_idx=time_idx,
             res=res, plot_update_proj_callback=_plot_update_evoked_topomap,
-            merge_grads=merge_grads, scale=scaling, axes=axes,
+            merge_grads=merge_channels, scale=scaling, axes=axes,
             contours=contours, interp=interp, extrapolate=extrapolate)
         _draw_proj_checkbox(None, params)
 
