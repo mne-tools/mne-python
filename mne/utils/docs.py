@@ -756,10 +756,10 @@ Valid values for ``mode`` are:
     Average across vertices at each time point within each label. Ignores
     orientation of sources.
 ``'mean_flip'``
-    Finds the dominant direction of source orientations within each label,
-    applies a sign-flip to time series at vertices whose orientation is more
-    than 180° different from the dominant direction, and then averages across
-    vertices at each time point within each label.
+    Finds the dominant direction of source space normal vector orientations
+    within each label, applies a sign-flip to time series at vertices whose
+    orientation is more than 180° different from the dominant direction, and
+    then averages across vertices at each time point within each label.
 ``'pca_flip'``
     Applies singular value decomposition to the time courses within each label,
     and uses the first right-singular vector as the representative label time
@@ -770,7 +770,6 @@ Valid values for ``mode`` are:
     sign-flip ensures that extracting time courses from the same label in
     similar STCs does not result in 180° direction/phase changes.
 """
-
 
 # DataFrames
 docdict['df_scaling_time_deprecated'] = """
