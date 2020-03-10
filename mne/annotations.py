@@ -13,7 +13,8 @@ import numpy as np
 
 from .utils import (_pl, check_fname, _validate_type, verbose, warn, logger,
                     _check_pandas_installed, _mask_to_onsets_offsets,
-                    _DefaultEventParser, _check_dt, _stamp_to_dt, _dt_to_stamp)
+                    _DefaultEventParser, _check_dt, _stamp_to_dt, _dt_to_stamp,
+                    _check_fname)
 
 from .io.write import (start_block, end_block, write_float, write_name_list,
                        write_double, start_file)
@@ -632,6 +633,7 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
     from .io.curry.curry import _read_annotations_curry
     from .io.ctf.markers import _read_annotations_ctf
 
+    fname = _check_fname(fname, overwrite='read', must_exist=True)
     name = op.basename(fname)
     if name.endswith(('fif', 'fif.gz')):
         # Read FiF files
