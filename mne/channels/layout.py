@@ -5,6 +5,7 @@
 #          Marijn van Vliet <w.m.vanvliet@gmail.com>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
+#          Robert Luke <mail@robertluke.net>
 #
 # License: Simplified BSD
 

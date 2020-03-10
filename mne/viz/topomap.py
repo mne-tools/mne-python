@@ -4,6 +4,7 @@
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
+#          Robert Luke <mail@robertluke.net>
 #
 # License: Simplified BSD
 
@@ -125,6 +126,8 @@ def _prepare_topomap_plot(inst, ch_type, layout=None, sphere=None):
                                exclude=exclude)
             pos = _find_topomap_coords(info, picks, sphere=sphere)
             picks = pick_types(info, meg=False, ref_meg=False, fnirs=ch_type)
+            # Overload the merge_grads variable as this is returned to calling
+            # function and indicates that merging of data is required
             merge_grads = overlapping_channels
         else:
             picks = pick_types(info, meg=False, ref_meg=False,
@@ -159,6 +162,8 @@ def _prepare_topomap_plot(inst, ch_type, layout=None, sphere=None):
         ch_names = [ch_names[k][:-1] + 'x' for k in range(0, len(ch_names), 2)]
     elif merge_grads and ch_type in ['hbo', 'hbr', 'fnirs_raw', 'fnirs_od']:
         # Modify the nirs channel names to indicate they are to be merged
+        # New names will have the form  S1_D1xS2_D2
+        # More than two channels can overlap and be merged
         for set in overlapping_channels:
             idx = ch_names.index(set[0][:-4])
             new_name = 'x'.join(s[:-4] for s in set)
