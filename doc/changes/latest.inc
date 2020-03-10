@@ -43,7 +43,7 @@ Changelog
 
 - Add support for passing a destination source space ``src_to`` in :func:`mne.compute_source_morph` to ensure morphing for multiple subjects results in consistent STCs, by `Eric Larson`_
 
-- Add support for plotting fNIRS channels in :func:`mne.viz.plot_alignment` and :func:`mne.Evoked.animate_topomap` by `Eric Larson`_ and `Robert Luke`_
+- Add support for plotting fNIRS channels in :func:`mne.viz.plot_alignment`, :func:`mne.viz.plot_evoked_topo` and :func:`mne.Evoked.animate_topomap` by `Eric Larson`_ and `Robert Luke`_
 
 - Add command line tool :ref:`gen_mne_anonymize` for anonymizing raw fiff files by `Luke Bloy`_
 
@@ -277,8 +277,18 @@ Bug
 
 - Update old url link in :func:`mne.datasets.eegbci.load_data` to ``EEGMI_URL = 'https://physionet.org/files/eegmmidb/1.0.0/'`` by `Ramiro Gatti`_
 
+- Ensure corrected p-values calculated by :func:`mne.stats.bonferroni_correction` never exceed the value of 1.0 by `Richard Höchenberger`_
+
 API
 ~~~
+
+- Bumped minimum requirements to fall 2017 versions by `Eric Larson`_:
+
+  - NumPy 1.13.3
+  - SciPy 1.0.0
+  - matplotlib 2.1
+  - scikit-learn 1.19.1 (optional requirement)
+  - pandas 0.21 (optional requirement)
 
 - :meth:`mne.Epochs.plot` now accepts an ``event_id`` parameter (useful in tandem with ``event_colors`` for specifying event colors by name) by `Daniel McCloy`_.
 

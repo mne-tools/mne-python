@@ -24,7 +24,7 @@ from mne.preprocessing.maxwell import (
     _bases_real_to_complex, _prep_mf_coils, find_bad_channels_maxwell)
 from mne.rank import _get_rank_sss, _compute_rank_int
 from mne.utils import (assert_meg_snr, run_tests_if_main, catch_logging,
-                       requires_version, object_diff, buggy_mkl_svd)
+                       object_diff, buggy_mkl_svd)
 
 data_path = testing.data_path(download=False)
 sss_path = op.join(data_path, 'SSS')
@@ -97,9 +97,6 @@ elekta_def_fname = op.join(op.dirname(mne.__file__), 'data',
 int_order, ext_order = 8, 3
 mf_head_origin = (0., 0., 0.04)
 mf_meg_origin = (0., 0.013, -0.006)
-
-# otherwise we can get SVD error
-requires_svd_convergence = requires_version('scipy', '0.12')
 
 # 30 random bad MEG channels (20 grad, 10 mag) that were used in generation
 bads = ['MEG0912', 'MEG1722', 'MEG2213', 'MEG0132', 'MEG1312', 'MEG0432',
@@ -508,7 +505,6 @@ def test_bads_reconstruction():
 
 
 @buggy_mkl_svd
-@requires_svd_convergence
 @testing.requires_testing_data
 def test_spatiotemporal():
     """Test Maxwell filter (tSSS) spatiotemporal processing."""
@@ -555,7 +551,6 @@ def test_spatiotemporal():
 
 
 @pytest.mark.slowtest
-@requires_svd_convergence
 @testing.requires_testing_data
 def test_spatiotemporal_only():
     """Test tSSS-only processing."""
@@ -800,7 +795,6 @@ def _assert_shielding(raw_sss, erm_power, shielding_factor, meg='mag'):
 
 @buggy_mkl_svd
 @pytest.mark.slowtest
-@requires_svd_convergence
 @testing.requires_testing_data
 def test_shielding_factor(tmpdir):
     """Test Maxwell filter shielding factor using empty room."""
@@ -917,7 +911,6 @@ def test_shielding_factor(tmpdir):
 
 
 @pytest.mark.slowtest
-@requires_svd_convergence
 @testing.requires_testing_data
 def test_all():
     """Test maxwell filter using all options."""
@@ -952,7 +945,6 @@ def test_all():
 
 
 @pytest.mark.slowtest
-@requires_svd_convergence
 @testing.requires_testing_data
 def test_triux():
     """Test TRIUX system support."""

@@ -31,7 +31,7 @@ from mne.epochs import (
     EpochsArray, concatenate_epochs, BaseEpochs, average_movements,
     _handle_event_repeated)
 from mne.utils import (requires_pandas, run_tests_if_main, object_diff,
-                       requires_version, catch_logging, _FakeNoPandas,
+                       catch_logging, _FakeNoPandas,
                        assert_meg_snr, check_version, _dt_to_stamp)
 from mne.chpi import read_head_pos, head_pos_to_trans_rot_t
 
@@ -562,7 +562,6 @@ def test_base_epochs():
         BaseEpochs(raw.info, None, (np.ones((1, 3), int), {'foo': 1}))
 
 
-@requires_version('scipy', '0.14')
 def test_savgol_filter():
     """Test savgol filtering."""
     h_freq = 20.

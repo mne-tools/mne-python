@@ -967,8 +967,8 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
         '.elc', '.txt', '.csd', '.elp' (BESA spherical),
         '.bvef' (BrainVision files).
     head_size : float | None
-        The size of the head in meters. If `None`, returns the values read from
-        the montage file with no modification. Defaults to 0.095m.
+        The size of the head (radius, in [m]). If ``None``, returns the values
+        read from the montage file with no modification. Defaults to 0.095m.
     coord_frame : str | None
         The coordinate frame of the points. Usually this is "unknown"
         for native digitizer space. Defaults to None, which is "unknown" for
@@ -1142,7 +1142,7 @@ def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
     kind : str
         The name of the montage to use. See notes for valid kinds.
     head_size : float
-        The head size (in meters) to use for spherical montages.
+        The head size (radius, in meters) to use for spherical montages.
         Defaults to 95mm.
 
     Returns

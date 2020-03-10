@@ -22,7 +22,6 @@ from ..channels.channels import _get_ch_type
 from ..channels.layout import (
     _find_topomap_coords, _merge_grad_data, find_layout, _pair_grad_sensors,
     Layout)
-from ..fixes import _remove_duplicate_rows
 from ..io.pick import (pick_types, _picks_by_type, channel_type, pick_info,
                        _pick_data_channels, pick_channels, _picks_to_idx)
 from ..utils import (_clean_names, _time_mask, verbose, logger, warn, fill_doc,
@@ -510,7 +509,7 @@ def _get_extra_points(pos, extrapolate, sphere):
                                steps).reshape((-1, 2)))
 
         # remove duplicates from hull_extended
-        hull_extended = _remove_duplicate_rows(hull_extended.reshape((-1, 2)))
+        hull_extended = np.unique(hull_extended.reshape((-1, 2)), axis=0)
         new_pos = np.concatenate([hull_extended] + add_points)
     else:
         # return points on the head circle
@@ -760,7 +759,8 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
 
         if any(type_ in ch_type for type_ in ('planar', 'grad')):
             # deal with grad pairs
-            picks, pos = _pair_grad_sensors(pos, find_layout(pos))
+            picks = _pair_grad_sensors(pos, topomap_coords=False)
+            pos = _find_topomap_coords(pos, picks=picks[::2], sphere=sphere)
             data = _merge_grad_data(data[picks]).reshape(-1)
         else:
             picks = list(range(data.shape[0]))

@@ -33,7 +33,7 @@ matrix:
         # Old dependencies
         - os: linux
           env: PYTHON_VERSION=3.5
-               CONDA_DEPENDENCIES="numpy=1.12 scipy=0.18 matplotlib=2.0 pandas=0.19 scikit-learn=0.18"
+               CONDA_DEPENDENCIES="numpy=1.13 scipy=1.0 matplotlib=2.1 pandas=0.21 scikit-learn=0.19"
                CONDA_CHANNELS="conda-forge"
 
         # Minimal (runs with and without testing data)
@@ -115,8 +115,6 @@ script:
     # Until https://github.com/numpy/numpy/issues/15580 is resolved we also
     # need the --pre wheels to skip slow ones.
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-        CONDITION='not slowtest';
-      elif [ -z "$CONDA_ENV" ] && [ -z "$CONDA_DEPENDENCIES" ]; then
         CONDITION='not slowtest';
       else
         CONDITION='not ultraslowtest';

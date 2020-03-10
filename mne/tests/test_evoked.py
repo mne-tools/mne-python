@@ -21,7 +21,7 @@ from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
 from mne.evoked import _get_peak, Evoked, EvokedArray
 from mne.io import read_raw_fif
 from mne.io.constants import FIFF
-from mne.utils import (_TempDir, requires_pandas, requires_version,
+from mne.utils import (_TempDir, requires_pandas,
                        run_tests_if_main, grand_average)
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -90,7 +90,6 @@ def test_decim():
         assert_array_equal(ev_decim.times, expected_times)
 
 
-@requires_version('scipy', '0.14')
 def test_savgol_filter():
     """Test savgol filtering."""
     h_freq = 10.

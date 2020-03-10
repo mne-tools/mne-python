@@ -9,7 +9,7 @@ from .annotations import _annotations_starts_stops
 from .io.pick import _picks_to_idx
 from .cuda import (_setup_cuda_fft_multiply_repeated, _fft_multiply_repeated,
                    _setup_cuda_fft_resample, _fft_resample, _smart_pad)
-from .fixes import minimum_phase, _sosfreqz, irfft, ifftshift, fftfreq
+from .fixes import irfft, ifftshift, fftfreq
 from .parallel import parallel_func, check_n_jobs
 from .time_frequency.multitaper import _mt_spectra, _compute_mt_params
 from .utils import (logger, verbose, sum_squared, check_version, warn, _pl,
@@ -363,6 +363,7 @@ def _construct_fir_filter(sfreq, freq, gain, filter_length, phase, fir_window,
     else:
         assert fir_design == 'firwin'
         fir_design = partial(_firwin_design, sfreq=sfreq)
+    from scipy.signal import minimum_phase
 
     # issue a warning if attenuation is less than this
     min_att_db = 12 if phase == 'minimum' else 20
@@ -624,7 +625,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
     For more information, see the tutorials
     :ref:`disc-filtering` and :ref:`tut-filter-resample`.
     """  # noqa: E501
-    from scipy.signal import iirfilter, iirdesign, freqz
+    from scipy.signal import iirfilter, iirdesign, freqz, sosfreqz
     known_filters = ('bessel', 'butter', 'butterworth', 'cauer', 'cheby1',
                      'cheby2', 'chebyshev1', 'chebyshev2', 'chebyshevi',
                      'chebyshevii', 'ellip', 'elliptic')
@@ -691,7 +692,7 @@ def construct_iir_filter(iir_params, f_pass=None, f_stop=None, sfreq=None,
     # get the gains at the cutoff frequencies
     if Wp is not None:
         if output == 'sos':
-            cutoffs = _sosfreqz(system, worN=Wp * np.pi)[1]
+            cutoffs = sosfreqz(system, worN=Wp * np.pi)[1]
         else:
             cutoffs = freqz(system[0], system[1], worN=Wp * np.pi)[1]
         # 2 * 20 here because we do forward-backward filtering
@@ -1821,15 +1822,13 @@ class FilterMixin(object):
         >>> evoked.savgol_filter(10.)  # low-pass at around 10 Hz # doctest:+SKIP
         >>> evoked.plot()  # doctest:+SKIP
         """  # noqa: E501
+        from scipy.signal import savgol_filter
         _check_preload(self, 'inst.savgol_filter')
         h_freq = float(h_freq)
         if h_freq >= self.info['sfreq'] / 2.:
             raise ValueError('h_freq must be less than half the sample rate')
 
         # savitzky-golay filtering
-        if not check_version('scipy', '0.14'):
-            raise RuntimeError('scipy >= 0.14 must be installed for savgol')
-        from scipy.signal import savgol_filter
         window_length = (int(np.round(self.info['sfreq'] /
                                       h_freq)) // 2) * 2 + 1
         logger.info('Using savgol length %d' % window_length)

@@ -277,3 +277,18 @@ for column, condition in enumerate(
         ['Tapping Left', 'Tapping Right', 'Left-Right']):
     for row, chroma in enumerate(['HbO', 'HbR']):
         axes[row, column].set_title('{}: {}'.format(chroma, condition))
+
+###############################################################################
+# We can also look at the individual waveforms to see what is driving the
+# topographic plot above.
+
+fig, axes = plt.subplots(nrows=1, ncols=1, figsize=(6, 4))
+mne.viz.plot_evoked_topo(epochs['Left'].average(picks='hbo'), color='b',
+                         axes=axes, legend=False)
+mne.viz.plot_evoked_topo(epochs['Right'].average(picks='hbo'), color='r',
+                         axes=axes, legend=False)
+
+# Tidy the legend
+leg_lines = [line for line in axes.lines if line.get_c() == 'b'][:1]
+leg_lines.append([line for line in axes.lines if line.get_c() == 'r'][0])
+fig.legend(leg_lines, ['Left', 'Right'], loc='lower right')

@@ -14,7 +14,7 @@ from mne import io, read_events, Epochs, pick_types
 from mne.decoding import (Scaler, FilterEstimator, PSDEstimator, Vectorizer,
                           UnsupervisedSpatialFilter, TemporalFilter)
 from mne.defaults import DEFAULTS
-from mne.utils import requires_version, run_tests_if_main, check_version
+from mne.utils import requires_sklearn, run_tests_if_main, check_version
 
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
@@ -42,11 +42,9 @@ def test_scaler():
     infos = (epochs.info, epochs.info, None, None)
     epochs_data_t = epochs_data.transpose([1, 0, 2])
     for method, info in zip(methods, infos):
-        if method == 'median' and not check_version('sklearn', '0.17'):
-            pytest.raises(ValueError, Scaler, info, method)
-            continue
-        if method == 'mean' and not check_version('sklearn', ''):
-            pytest.raises(ImportError, Scaler, info, method)
+        if method in ('mean', 'median') and not check_version('sklearn'):
+            with pytest.raises(ImportError, match='No module'):
+                Scaler(info, method)
             continue
         scaler = Scaler(info, method)
         X = scaler.fit_transform(epochs_data, y)
@@ -172,7 +170,7 @@ def test_vectorizer():
                   np.random.rand(102, 12, 12))
 
 
-@requires_version('sklearn', '0.16')
+@requires_sklearn
 def test_unsupervised_spatial_filter():
     """Test unsupervised spatial filter."""
     from sklearn.decomposition import PCA
