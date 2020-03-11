@@ -47,7 +47,7 @@ class ProgressBar(object):
         from ..externals.tqdm import tqdm  # currently 4.40.2
         defaults = dict(
             leave=True, mininterval=0.016, miniters=0, smoothing=0.9,
-            bar_format='{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt:>11}{postfix}]',  # noqa: E501
+            bar_format='{percentage:3.0f}%|{bar}| {desc} : {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt:>11}{postfix}]',  # noqa: E501
         )
         for key, val in defaults.items():
             if key not in kwargs:
