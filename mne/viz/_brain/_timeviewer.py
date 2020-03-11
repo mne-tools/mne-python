@@ -947,7 +947,7 @@ def _normalize(point, shape):
 
 def _sanitize(text):
     from PyQt5.Qt import PYQT_VERSION_STR
-    version = PYQT_VERSION_STR.split('.')
-    if int(version[1]) <= 12:
+    from distutils.version import LooseVersion
+    if LooseVersion(PYQT_VERSION_STR) < LooseVersion('5.12'):
         text = text[2:]
     return text
