@@ -728,6 +728,13 @@ transparent : bool | None
     If True, use a linear transparency between fmin and fmid.
     None will choose automatically based on colormap type.
 """
+docdict["brain_time_interpolation"] = """
+interpolation : str | None
+    Interpolation method (:func:`scipy.interpolate.interp1d` parameter).
+    Must be one of 'linear', 'nearest', 'zero', 'slinear', 'quadratic',
+    or 'cubic'.
+"""
+
 # DataFrames
 docdict['df_scaling_time_deprecated'] = """
 scaling_time : None

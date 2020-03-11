@@ -16,7 +16,7 @@ from .colormap import calculate_lut
 from .view import lh_views_dict, rh_views_dict, View
 from .surface import Surface
 from .utils import mesh_edges, smoothing_matrix
-from ..utils import _check_option, logger, verbose
+from ..utils import _check_option, logger, verbose, fill_doc
 
 
 class _Brain(object):
@@ -184,7 +184,7 @@ class _Brain(object):
         self._subject_id = subject_id
         self._subjects_dir = subjects_dir
         self._views = views
-        self._n_times = None
+        self._times = None
         # for now only one color bar can be added
         # since it is the same for all figures
         self._colorbar_added = False
@@ -194,8 +194,7 @@ class _Brain(object):
         # array of data used by TimeViewer
         self._data = {}
         self.geo, self._hemi_meshes, self._overlays = {}, {}, {}
-        # can by anything scipy.interpolate.interp1d accepts
-        self.interp_kind = 'nearest'
+        self.set_time_interpolation('nearest')
 
         # load geometry for one or both hemispheres as necessary
         offset = None if (not offset or hemi != 'both') else 0.0
@@ -358,7 +357,6 @@ class _Brain(object):
 
         hemi = self._check_hemi(hemi)
         array = np.asarray(array)
-        self._data['array'] = array
 
         # Create time array and add label if > 1D
         if array.ndim <= 1:
@@ -375,7 +373,6 @@ class _Brain(object):
                                      (time.shape, (array.shape[-1],)))
 
             if self._n_times is None:
-                self._n_times = len(time)
                 self._times = time
             elif len(time) != self._n_times:
                 raise ValueError("New n_times is different from previous "
@@ -424,6 +421,7 @@ class _Brain(object):
         self._data[hemi]['mesh'] = list()
         self._data[hemi]['array'] = array
         self._data[hemi]['vertices'] = vertices
+        self.set_time_interpolation(self.time_interpolation)
 
         self._data['alpha'] = alpha
         self._data['colormap'] = colormap
@@ -863,13 +861,46 @@ class _Brain(object):
                     self._data[hemi]['smooth_mat'] = smooth_mat
         self.set_time_point(self._data['time_idx'])
 
-    def set_time_point(self, time_idx, interpolation=None):
-        """Set the time point shown."""
-        from ..backends._pyvista import _set_mesh_scalars
+    @property
+    def _n_times(self):
+        return len(self._times) if self._times is not None else None
+
+    @property
+    def time_interpolation(self):
+        """The interpolation mode."""
+        return self._time_interpolation
+
+    @fill_doc
+    def set_time_interpolation(self, interpolation):
+        """Set the interpolation mode.
+
+        Parameters
+        ----------
+        %(brain_time_interpolation)s
+        """
         from scipy.interpolate import interp1d
-        if interpolation is None:
-            interpolation = self.interp_kind
-        time = self._data['time']
+        _check_option('interpolation', interpolation,
+                      ('linear', 'nearest', 'zero', 'slinear', 'quadratic',
+                       'cubic'))
+        self._time_interpolation = str(interpolation)
+        del interpolation
+        self._time_interp_funcs = dict()
+        self._time_interp_inv = None
+        if self._times is not None:
+            idx = np.arange(self._n_times)
+            for hemi in ['lh', 'rh']:
+                hemi_data = self._data.get(hemi)
+                if hemi_data is not None:
+                    array = hemi_data['array']
+                    self._time_interp_funcs[hemi] = interp1d(
+                        idx, array, self._time_interpolation, axis=1,
+                        assume_sorted=True)
+            self._time_interp_inv = interp1d(idx, self._times)
+
+    def set_time_point(self, time_idx):
+        """Set the time point shown (can be a float to interpolate)."""
+        from ..backends._pyvista import _set_mesh_scalars
+        current_act_data = list()
         time_actor = self._data.get('time_actor', None)
         time_label = self._data.get('time_label', None)
         for hemi in ['lh', 'rh']:
@@ -877,25 +908,20 @@ class _Brain(object):
             if hemi_data is not None:
                 array = hemi_data['array']
                 for mesh in hemi_data['mesh']:
-                    # interpolation
+                    # interpolate in time
                     if array.ndim == 2:
-                        if isinstance(time_idx, int):
-                            act_data = array[:, time_idx]
-                            self._current_time = time[time_idx]
-                        else:
-                            times = np.arange(self._n_times)
-                            act_data = interp1d(
-                                times, array, interpolation, axis=1,
-                                assume_sorted=True)(time_idx)
-                            ifunc = interp1d(times, self._data['time'])
-                            self._current_time = ifunc(time_idx)
-
+                        act_data = self._time_interp_funcs[hemi](time_idx)
+                        self._current_time = self._time_interp_inv(time_idx)
+                        current_act_data.append(act_data)
                     if time_actor is not None and time_label is not None:
                         time_actor.SetInput(time_label(self._current_time))
+
+                    # interpolate in space
                     smooth_mat = hemi_data['smooth_mat']
                     if smooth_mat is not None:
                         act_data = smooth_mat.dot(act_data)
                     _set_mesh_scalars(mesh, act_data, 'Data')
+        self._current_act_data = np.concatenate(current_act_data)
         self._data['time_idx'] = time_idx
 
     def update_fmax(self, fmax):
@@ -987,9 +1013,6 @@ class _Brain(object):
 
     def update_auto_scaling(self, restore=False):
         from ..backends._pyvista import _set_colormap_range
-        from scipy.interpolate import interp1d
-        # XXX this should be refactored with set_time_point so that interp1d
-        # is only used in one place...
         user_clim = self._data['clim']
         if user_clim is not None and 'lims' in user_clim:
             allow_pos_lims = False
@@ -1001,17 +1024,9 @@ class _Brain(object):
             clim = 'auto'
         colormap = self._data['colormap']
         transparent = self._data['transparent']
-        time_idx = self._data['time_idx']
-        array = self._data['array']
-        if isinstance(time_idx, int):
-            act_data = array[:, time_idx]
-        else:
-            times = np.arange(self._n_times)
-            act_data = interp1d(
-                times, array, self.interp_kind, axis=1,
-                assume_sorted=True)(time_idx)
-        mapdata = _process_clim(clim, colormap, transparent, act_data,
-                                allow_pos_lims)
+        mapdata = _process_clim(
+            clim, colormap, transparent, self._current_act_data,
+            allow_pos_lims)
         diverging = 'pos_lims' in mapdata['clim']
         colormap = mapdata['colormap']
         scale_pts = mapdata['clim']['pos_lims' if diverging else 'lims']
@@ -1070,16 +1085,13 @@ class _Brain(object):
             Last time point to include (default: all data).
         framerate : float
             Framerate of the movie (frames per second, default 24).
-        interpolation : str | None
-            Interpolation method (``scipy.interpolate.interp1d`` parameter,
-            one of 'linear' | 'nearest' | 'zero' | 'slinear' | 'quadratic' |
-            'cubic'). If None, it is set internally ('nearest').
-            Defaults to None.
+        %(brain_time_interpolation)s
+            If None, it uses the current ``brain.interpolation``,
+            which defaults to ``'nearest'``. Defaults to None.
         **kwargs :
             Specify additional options for :mod:`imageio`.
         """
         import imageio
-        from scipy.interpolate import interp1d
         from math import floor
 
         # find imageio FFMPEG parameters
@@ -1089,9 +1101,6 @@ class _Brain(object):
             kwargs['codec'] = codec
         if bitrate is not None:
             kwargs['bitrate'] = bitrate
-
-        if interpolation is None:
-            interpolation = self.interp_kind
 
         # find tmin
         if tmin is None:
@@ -1110,9 +1119,7 @@ class _Brain(object):
         times = np.arange(n_frames, dtype=float)
         times /= framerate * time_dilation
         times += tmin
-        interp_func = interp1d(self._times,
-                               np.arange(self._n_times))
-        time_idx = interp_func(times)
+        time_idx = np.interp(times, self._times, np.arange(self._n_times))
 
         n_times = len(time_idx)
         if n_times == 0:
@@ -1123,8 +1130,13 @@ class _Brain(object):
         # Sometimes the first screenshot is rendered with a different
         # resolution on OS X
         self.screenshot()
-        images = [self.screenshot() for _ in
-                  self._iter_time(time_idx, interpolation)]
+        old_mode = self.time_interpolation
+        if interpolation is not None:
+            self.set_time_interpolation(interpolation)
+        try:
+            images = [self.screenshot() for _ in self._iter_time(time_idx)]
+        finally:
+            self.set_time_interpolation(old_mode)
         imageio.mimwrite(filename, images, **kwargs)
 
     @property
@@ -1161,17 +1173,13 @@ class _Brain(object):
                              extra + ", got " + str(hemi))
         return hemi
 
-    def _iter_time(self, time_idx, interpolation):
+    def _iter_time(self, time_idx):
         """Iterate through time points, then reset to current time.
 
         Parameters
         ----------
         time_idx : array_like
             Time point indexes through which to iterate.
-        interpolation : str
-            Interpolation method (``scipy.interpolate.interp1d`` parameter,
-            one of 'linear' | 'nearest' | 'zero' | 'slinear' | 'quadratic' |
-            'cubic'). Interpolation is only used for non-integer indexes.
 
         Yields
         ------
@@ -1184,7 +1192,7 @@ class _Brain(object):
         """
         current_time_idx = self._data["time_idx"]
         for idx in time_idx:
-            self.set_time_point(idx, interpolation)
+            self.set_time_point(idx)
             yield idx
 
         # Restore original time index

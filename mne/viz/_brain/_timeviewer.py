@@ -614,7 +614,7 @@ class _TimeViewer(object):
             time_data = self.brain._data['time']
             max_time = np.max(time_data)
             if self.brain._current_time == max_time:  # start over
-                self.brain.set_time_point(np.min(time_data))
+                self.brain.set_time_point(0)  # first index
             self._last_tick = time.time()
 
     def set_playback_speed(self, speed):
@@ -855,7 +855,7 @@ class _LinkViewer(object):
         # link time sliders
         self.link_sliders(
             name="time",
-            callback=self.set_time_point,
+            callback=self.set_time_index,
             event_type="always"
         )
 
@@ -870,7 +870,7 @@ class _LinkViewer(object):
         for time_viewer in self.time_viewers:
             time_viewer.key_bindings[' '] = self.toggle_playback
 
-    def set_time_point(self, value):
+    def set_time_index(self, value):
         for time_viewer in self.time_viewers:
             time_viewer.time_call(value, update_widget=True)
 
@@ -897,7 +897,9 @@ class _LinkViewer(object):
 
 
 def _get_range(brain):
-    val = np.abs(brain._data['array'])
+    data = [brain._data.get(hemi, {}).get('array') for hemi in ('lh', 'rh')]
+    data = np.concatenate([d for d in data if d is not None])
+    val = np.abs(data)
     return [np.min(val), np.max(val)]
 
 
