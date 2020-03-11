@@ -39,6 +39,12 @@ class MplCanvas(object):
         self.update_plot()
         return line
 
+    def plot_time_line(self, x, label, **kwargs):
+        """Plot the vertical line."""
+        line = self.axes.axvline(x, label=label, **kwargs)
+        self.update_plot()
+        return line
+
     def update_plot(self):
         """Update the plot."""
         self.axes.legend(prop={'family': 'monospace', 'size': 'small'},
@@ -781,18 +787,14 @@ class _TimeViewer(object):
         if isinstance(self.show_traces, bool) and self.show_traces:
             # add time information
             current_time = self.brain._current_time
-            xdata = [current_time, current_time]
-            if not hasattr(self, "time_line_height"):
-                self.time_line_height = np.max(self.brain._data["array"])
             if not hasattr(self, "time_line"):
-                self.time_line = self.mpl_canvas.plot(
-                    x=xdata,
-                    y=[0, self.time_line_height],
+                self.time_line = self.mpl_canvas.plot_time_line(
+                    x=current_time,
                     label='time',
                     color='black',
                 )
             else:
-                self.time_line.set_xdata(xdata)
+                self.time_line.set_xdata(current_time)
                 self.mpl_canvas.update_plot()
 
     def help(self):
