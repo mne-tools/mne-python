@@ -632,8 +632,11 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
     from .io.cnt.cnt import _read_annotations_cnt
     from .io.curry.curry import _read_annotations_curry
     from .io.ctf.markers import _read_annotations_ctf
-
-    fname = _check_fname(fname, overwrite='read', must_exist=True)
+    _validate_type(fname, 'path-like', 'fname')
+    fname = _check_fname(
+        fname, overwrite='read', must_exist=True,
+        allow_dir=str(fname).endswith('.ds'),  # allow_dir for CTF
+        name='fname')
     name = op.basename(fname)
     if name.endswith(('fif', 'fif.gz')):
         # Read FiF files

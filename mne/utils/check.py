@@ -135,10 +135,11 @@ def _check_event_id(event_id, events):
     return event_id
 
 
-def _check_fname(fname, overwrite=False, must_exist=False, name='File'):
+def _check_fname(fname, overwrite=False, must_exist=False, name='File',
+                 allow_dir=False):
     """Check for file existence."""
     _validate_type(fname, 'path-like', 'fname')
-    if op.isfile(fname):
+    if op.isfile(fname) or (allow_dir and op.isdir(fname)):
         if not overwrite:
             raise FileExistsError('Destination file exists. Please use option '
                                   '"overwrite=True" to force overwriting.')
