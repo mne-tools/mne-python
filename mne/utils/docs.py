@@ -750,17 +750,17 @@ allow_empty : bool
 docdict['eltc_mode_notes'] = """
 Valid values for ``mode`` are:
 
-``'max'``
+- ``'max'``
     Maximum value across vertices at each time point within each label.
-``'mean'``
+- ``'mean'``
     Average across vertices at each time point within each label. Ignores
     orientation of sources.
-``'mean_flip'``
+- ``'mean_flip'``
     Finds the dominant direction of source space normal vector orientations
     within each label, applies a sign-flip to time series at vertices whose
     orientation is more than 180° different from the dominant direction, and
     then averages across vertices at each time point within each label.
-``'pca_flip'``
+- ``'pca_flip'``
     Applies singular value decomposition to the time courses within each label,
     and uses the first right-singular vector as the representative label time
     course. This signal is scaled so that its power matches the average
