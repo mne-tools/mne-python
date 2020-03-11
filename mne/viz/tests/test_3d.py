@@ -105,7 +105,7 @@ def test_plot_head_positions():
 @testing.requires_testing_data
 @requires_pysurfer
 @traits_test
-def test_plot_sparse_source_estimates(renderer):
+def test_plot_sparse_source_estimates(renderer_interactive):
     """Test plotting of (sparse) source estimates."""
     sample_src = read_source_spaces(src_fname)
 
@@ -137,11 +137,8 @@ def test_plot_sparse_source_estimates(renderer):
     stc_data[1, 4] = 2.
     vertices = [vertices[inds], np.empty(0, dtype=np.int)]
     stc = SourceEstimate(stc_data, vertices, 1, 1)
-    surf = plot_sparse_source_estimates(sample_src, stc, bgcolor=(1, 1, 1),
-                                        opacity=0.5, high_resolution=False)
-    if renderer.get_3d_backend() == 'mayavi':
-        import mayavi  # noqa: F401 analysis:ignore
-        assert isinstance(surf, mayavi.modules.surface.Surface)
+    plot_sparse_source_estimates(sample_src, stc, bgcolor=(1, 1, 1),
+                                 opacity=0.5, high_resolution=False)
 
 
 @testing.requires_testing_data
@@ -348,7 +345,7 @@ def test_plot_alignment(tmpdir, renderer):
 @testing.requires_testing_data
 @requires_pysurfer
 @traits_test
-def test_process_clim_plot(renderer):
+def test_process_clim_plot(renderer_interactive):
     """Test functionality for determining control points with stc.plot."""
     sample_src = read_source_spaces(src_fname)
     kwargs = dict(subjects_dir=subjects_dir, smoothing_steps=1)
@@ -389,7 +386,6 @@ def test_process_clim_plot(renderer):
     stc._data.fill(0.)
     with pytest.warns(RuntimeWarning, match='All data were zero'):
         plot_source_estimates(stc, **kwargs)
-    renderer._close_all()
 
 
 def _assert_mapdata_equal(a, b):
