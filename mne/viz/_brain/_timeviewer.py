@@ -349,7 +349,7 @@ class _TimeViewer(object):
         max_time = len(brain._data['time']) - 1
         self.time_call = TimeSlider(
             plotter=self.plotter,
-            brain=self.brain
+            brain=self.brain,
         )
         time_slider = self.plotter.add_slider_widget(
             self.time_call,
@@ -472,7 +472,8 @@ class _TimeViewer(object):
             self.separate_canvas = True
         else:
             self.separate_canvas = False
-        if isinstance(show_traces, bool) and show_traces:
+        self.show_traces = show_traces
+        if isinstance(self.show_traces, bool) and self.show_traces:
             self.act_data = {'lh': None, 'rh': None}
             self.color_cycle = None
             self.picked_points = {'lh': list(), 'rh': list()}
@@ -631,6 +632,8 @@ class _TimeViewer(object):
                 line = self.plot_time_course(hemi, vertex_id, color)
                 self.add_point(hemi, mesh, vertex_id, line, color)
 
+        self.plot_time_line()
+
         _update_picking_callback(
             self.plotter,
             self.on_mouse_move,
@@ -752,6 +755,23 @@ class _TimeViewer(object):
             color=color
         )
         return line
+
+    def plot_time_line(self):
+        if isinstance(self.show_traces, bool) and self.show_traces:
+            # add time information
+            current_time = self.brain._current_time
+            xdata = [current_time, current_time]
+            if not hasattr(self, "time_line_height"):
+                self.time_line_height = np.max(self.brain._data["array"])
+            if not hasattr(self, "time_line"):
+                self.time_line = self.mpl_canvas.plot(
+                    x=xdata,
+                    y=[0, self.time_line_height],
+                    label='time',
+                    color='black',
+                )
+            else:
+                self.time_line.set_xdata(xdata)
 
     def help(self):
         pairs = [
