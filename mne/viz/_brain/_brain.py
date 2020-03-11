@@ -870,6 +870,8 @@ class _Brain(object):
         if interpolation is None:
             interpolation = self.interp_kind
         time = self._data['time']
+        time_actor = self._data.get('time_actor', None)
+        time_label = self._data.get('time_label', None)
         for hemi in ['lh', 'rh']:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
@@ -888,6 +890,8 @@ class _Brain(object):
                             ifunc = interp1d(times, self._data['time'])
                             self._current_time = ifunc(time_idx)
 
+                    if time_actor is not None and time_label is not None:
+                        time_actor.SetInput(time_label(self._current_time))
                     smooth_mat = hemi_data['smooth_mat']
                     if smooth_mat is not None:
                         act_data = smooth_mat.dot(act_data)

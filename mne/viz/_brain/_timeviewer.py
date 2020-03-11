@@ -543,13 +543,24 @@ class _TimeViewer(object):
         self.status_msg.show()
 
         def _save_movie(filename):
+            # temporarily hide interface
+            default_visibility = self.visibility
+            self.visibility = True
+            self.toggle_interface()
+            # set cursor to busy
             default_cursor = self.interactor.cursor()
             self.interactor.setCursor(QCursor(Qt.WaitCursor))
+
             self.brain.save_movie(
                 filename=filename,
                 time_dilation=(1. / self.playback_speed),
                 **kwargs
             )
+
+            # restore visibility
+            self.visibility = not default_visibility
+            self.toggle_interface()
+            # restore cursor
             self.interactor.setCursor(default_cursor)
 
         def _clean(unused):
@@ -583,7 +594,6 @@ class _TimeViewer(object):
             if self.visibility:
                 self.time_actor.VisibilityOff()
             else:
-                self.time_actor.SetInput(time_label(self.brain._current_time))
                 self.time_actor.VisibilityOn()
 
     def apply_auto_scaling(self):
