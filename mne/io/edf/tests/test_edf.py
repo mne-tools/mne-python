@@ -361,3 +361,10 @@ def test_bdf_multiple_annotation_channels():
 
 
 run_tests_if_main()
+
+
+@testing.requires_testing_data
+def test_edf_lowpass_zero():
+    """Test if a lowpass filter of 0Hz is mapped to the Nyquist frequency."""
+    raw = read_raw_edf(edf_stim_resamp_path)
+    assert np.isclose(raw.info["lowpass"], raw.info["sfreq"] / 2)
