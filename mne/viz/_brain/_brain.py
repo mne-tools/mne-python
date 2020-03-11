@@ -143,7 +143,8 @@ class _Brain(object):
                  foreground=None, figure=None, subjects_dir=None,
                  views=['lateral'], offset=True, show_toolbar=False,
                  offscreen=False, interaction=None, units='mm'):
-        from ..backends.renderer import _get_renderer, _check_3d_figure
+        from ..backends.renderer import (_get_renderer, _check_3d_figure,
+                                         _set_3d_title)
         from matplotlib.colors import colorConverter
 
         if interaction is not None:
@@ -199,7 +200,8 @@ class _Brain(object):
 
         if figure is not None and not isinstance(figure, int):
             _check_3d_figure(figure)
-        self._renderer = _get_renderer(size=fig_size, bgcolor=background,
+        self._renderer = _get_renderer(name=subject_id, size=fig_size,
+                                       bgcolor=background,
                                        shape=(n_row, n_col), fig=figure)
 
         for h in self._hemis:
@@ -233,6 +235,10 @@ class _Brain(object):
                     self._hemi_meshes[h] = mesh
                     self._renderer.set_camera(azimuth=views_dict[v].azim,
                                               elevation=views_dict[v].elev)
+
+        if self._title is not None:
+            _set_3d_title(figure=self._renderer.scene(), title=self._title)
+
         # Force rendering
         self._renderer.show()
 
@@ -775,6 +781,7 @@ class _Brain(object):
         self._renderer.subplot(row, col)
         self._renderer.set_camera(azimuth=view.azim,
                                   elevation=view.elev)
+        self._renderer.reset_camera()
 
     def save_image(self, filename, mode='rgb'):
         """Save view from all panels to disk.

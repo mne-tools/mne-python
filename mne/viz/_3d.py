@@ -302,9 +302,9 @@ def _set_aspect_equal(ax):
         pass
 
 
-@fill_doc
+@verbose
 def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
-                      n_jobs=1):
+                      n_jobs=1, fig=None, verbose=None):
     """Plot MEG/EEG fields on head surface and helmet in 3D.
 
     Parameters
@@ -319,6 +319,12 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     time_label : str
         How to print info about the time instant visualized.
     %(n_jobs)s
+    fig : instance of mayavi.core.api.Scene | None
+        If None (default), a new figure will be created, otherwise it will
+        plot into the given figure.
+
+        .. versionadded:: 0.20
+    %(verbose)s
 
     Returns
     -------
@@ -346,7 +352,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
                                      np.tile([0., 0., 0., 255.], (2, 1)),
                                      np.tile([255., 0., 0., 255.], (127, 1))])
 
-    renderer = _get_renderer(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
+    renderer = _get_renderer(fig, bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
 
     for ii, this_map in enumerate(surf_maps):
         surf = this_map['surf']
@@ -1279,7 +1285,7 @@ def _process_clim(clim, colormap, transparent, data=0., allow_pos_lims=True):
         raise ValueError('Cannot use "pos_lims" for clim, use "lims" '
                          'instead')
     diverging = 'pos_lims' in clim
-    ctrl_pts = np.array(clim['pos_lims' if diverging else 'lims'])
+    ctrl_pts = np.array(clim['pos_lims' if diverging else 'lims'], float)
     ctrl_pts = np.array(ctrl_pts, float)
     if ctrl_pts.shape != (3,):
         raise ValueError('clim has shape %s, it must be (3,)'

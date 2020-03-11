@@ -275,6 +275,11 @@ class _Renderer(_BaseRenderer):
                      elevation=elevation, distance=distance,
                      focalpoint=focalpoint)
 
+    def reset_camera(self):
+        renderer = getattr(self.fig.scene, 'renderer', None)
+        if renderer is not None:
+            renderer.reset_camera()
+
     def screenshot(self, mode='rgb', filename=None):
         return _take_3d_screenshot(figure=self.fig, mode=mode,
                                    filename=filename)

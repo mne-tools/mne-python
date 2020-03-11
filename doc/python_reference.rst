@@ -352,6 +352,7 @@ Projections:
    compute_proj_eog
    create_ecg_epochs
    create_eog_epochs
+   find_bad_channels_maxwell
    find_ecg_events
    find_eog_events
    fix_stim_artifact
@@ -651,6 +652,7 @@ Inverse Solutions
 
    InverseOperator
    apply_inverse
+   apply_inverse_cov
    apply_inverse_epochs
    apply_inverse_raw
    compute_source_psd

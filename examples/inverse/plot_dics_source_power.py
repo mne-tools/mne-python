@@ -84,7 +84,6 @@ beta_source_power, freqs = apply_dics_csd(csd_ers.mean(), filters)
 ###############################################################################
 # Visualizing source power during ERS activity relative to the baseline power.
 stc = beta_source_power / baseline_source_power
-stc.subject = '01'  # it's mis-coded in fwd['src']
 message = 'DICS source power in the 12-30 Hz frequency band'
 brain = stc.plot(hemi='both', views='par', subjects_dir=subjects_dir,
                  subject=subject, time_label=message)

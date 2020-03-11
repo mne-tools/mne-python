@@ -271,10 +271,15 @@ class _TimeViewer(object):
         ]
 
         # default: put orientation slider on the first view
-        if self.brain._hemi == 'split':
+        if self.brain._hemi in ('split', 'both'):
             self.plotter.subplot(0, 0)
 
-        for hemi in self.brain._hemis:
+        # Use 'lh' as a reference for orientation for 'both'
+        if self.brain._hemi == 'both':
+            hemis_ref = ['lh']
+        else:
+            hemis_ref = self.brain._hemis
+        for hemi in hemis_ref:
             if self.brain._hemi == 'split':
                 ci = 0 if hemi == 'lh' else 1
             else:
@@ -304,7 +309,7 @@ class _TimeViewer(object):
                 self.orientation_call(view, update_widget=True)
 
         # necessary because show_view modified subplot
-        if self.brain._hemi == 'split':
+        if self.brain._hemi in ('split', 'both'):
             self.plotter.subplot(0, 0)
 
         # scalar bar
@@ -348,6 +353,7 @@ class _TimeViewer(object):
         )
         time_slider = self.plotter.add_slider_widget(
             self.time_call,
+            value=self.brain._data['time_idx'],
             rng=[0, max_time],
             pointa=(0.23, 0.1),
             pointb=(0.77, 0.1),
@@ -488,6 +494,7 @@ class _TimeViewer(object):
             'i': self.toggle_interface,
             's': self.apply_auto_scaling,
             'r': self.restore_user_scaling,
+            'c': self.clear_points,
             ' ': self.toggle_playback,
         }
         menu = self.plotter.main_menu.addMenu('Help')
@@ -716,6 +723,14 @@ class _TimeViewer(object):
         self.picked_points[mesh._hemi].remove(mesh._vertex_id)
         self.plotter.remove_actor(mesh._actors)
 
+    def clear_points(self):
+        for sphere in self._spheres:
+            vertex_id = sphere._vertex_id
+            hemi = sphere._hemi
+            if vertex_id in self.picked_points[hemi]:
+                self.remove_point(sphere)
+        self._spheres.clear()
+
     def plot_time_course(self, hemi, vertex_id, color):
         time = self.brain._data['time']
         hemi_str = 'L' if hemi == 'lh' else 'R'
@@ -744,6 +759,7 @@ class _TimeViewer(object):
             ('i', 'Toggle interface'),
             ('s', 'Apply auto-scaling'),
             ('r', 'Restore original clim'),
+            ('c', 'Clear all traces'),
             ('Space', 'Start/Pause playback'),
         ]
         text1, text2 = zip(*pairs)

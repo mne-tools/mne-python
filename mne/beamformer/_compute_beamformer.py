@@ -18,7 +18,7 @@ from ..io.proj import make_projector, Projection
 from ..minimum_norm.inverse import _get_vertno, _prepare_forward
 from ..source_space import label_src_vertno_sel
 from ..utils import (verbose, check_fname, _reg_pinv, _check_option, logger,
-                     _pl, _check_src_normal, check_version, _validate_type)
+                     _pl, _check_src_normal, check_version)
 from ..time_frequency.csd import CrossSpectralDensity
 
 from ..externals.h5io import read_hdf5, write_hdf5
@@ -106,7 +106,7 @@ def _sym_inv(x, reduce_rank):
     """Symmetric inversion with optional rank reduction."""
     s, u = np.linalg.eigh(x)
     # mimic default np.linalg.pinv behavior
-    cutoff = 1e-15 * s[:, -1][:, np.newaxis]
+    cutoff = 1e-15 * s[:, -1:]
     s[s <= cutoff] = np.inf
     if reduce_rank:
         # These are ordered smallest to largest, so we set the first one
@@ -114,6 +114,18 @@ def _sym_inv(x, reduce_rank):
         s[:, 0] = np.inf
     s = 1. / s
     return np.matmul(u * s[:, np.newaxis], u.transpose(0, 2, 1))
+
+
+def _reduce_leadfield_rank(G):
+    """Reduce the rank of the leadfield."""
+    # decompose lead field
+    u, s, v = np.linalg.svd(G, full_matrices=False)
+
+    # backproject, omitting one direction (equivalent to setting the smallest
+    # singular value to zero)
+    G = np.matmul(u[:, :, :-1], s[:, :-1, np.newaxis] * v[:, :-1, :])
+
+    return G
 
 
 def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk):
@@ -247,8 +259,9 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     if check_version('numpy', '1.17'):
         pinv_kwargs['hermitian'] = True
 
-    # leadfield rank and optional rank reduction
-    _validate_type(reduce_rank, bool, "reduce_rank", "a boolean")
+    _check_option('reduce_rank', reduce_rank, (True, False))
+
+    # inversion of the denominator
     _check_option('inversion', inversion, ('matrix', 'single'))
     if reduce_rank and inversion == 'single':
         raise ValueError('reduce_rank cannot be used with inversion="single"; '
@@ -264,6 +277,10 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                 'Singular matrix detected when estimating spatial filters. '
                 'Consider reducing the rank of the forward operator by using '
                 'reduce_rank=True.')
+
+    # rank reduction of the lead field
+    if reduce_rank:
+        Gk = _reduce_leadfield_rank(Gk)
 
     with _noop_indentation_context():
         if (inversion == 'matrix' and pick_ori == 'max-power' and

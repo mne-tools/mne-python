@@ -62,8 +62,7 @@ def mark_flat(raw, bad_percent=5., min_duration=0.005, picks=None,
     any_flat = np.zeros(len(raw.times), bool)
     bads = list()
     time_thresh = int(np.round(min_duration * raw.info['sfreq']))
-    onsets, ends = _annotations_starts_stops(
-        raw, 'bad_acq_skip', 'skip_by_annotation', invert=True)
+    onsets, ends = _annotations_starts_stops(raw, 'bad_acq_skip', invert=True)
     idx = np.concatenate([np.arange(onset, end)
                           for onset, end in zip(onsets, ends)])
     with ProgressBar(picks, mesg='Finding flat segments', spinner=True,
