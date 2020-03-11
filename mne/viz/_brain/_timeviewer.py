@@ -7,7 +7,7 @@
 from itertools import cycle
 import time
 import numpy as np
-from ..utils import _show_help, _get_color_list, tight_layout
+from ..utils import _check_option, _show_help, _get_color_list, tight_layout
 from ...source_space import vertex_to_mni
 
 
@@ -252,14 +252,20 @@ class _TimeViewer(object):
     """Class to interact with _Brain."""
 
     def __init__(self, brain, show_traces=False):
-        self.brain = brain
-        self.brain.time_viewer = self
-        self.plotter = brain._renderer.plotter
-        self.interactor = self.plotter
-        self.interactor.keyPressEvent = self.keyPressEvent
-
-        # orientation slider
-        orientation = [
+        # Default configuration
+        self.playback = False
+        self.visibility = True
+        self.refresh_rate_ms = max(int(round(1000. / 60.)), 1)
+        self.default_scaling_range = [0.2, 2.0]
+        self.default_smoothing_range = [0, 15]
+        self.default_smoothing_value = 7
+        self.default_playback_speed_range = [0.01, 1]
+        self.default_playback_speed_value = 0.05
+        self.act_data = {'lh': None, 'rh': None}
+        self.color_cycle = None
+        self.picked_points = {'lh': list(), 'rh': list()}
+        self._mouse_no_mvt = -1
+        self.orientation = [
             'lateral',
             'medial',
             'rostral',
@@ -269,227 +275,6 @@ class _TimeViewer(object):
             'frontal',
             'parietal'
         ]
-
-        # default: put orientation slider on the first view
-        if self.brain._hemi in ('split', 'both'):
-            self.plotter.subplot(0, 0)
-
-        # Use 'lh' as a reference for orientation for 'both'
-        if self.brain._hemi == 'both':
-            hemis_ref = ['lh']
-        else:
-            hemis_ref = self.brain._hemis
-        for hemi in hemis_ref:
-            if self.brain._hemi == 'split':
-                ci = 0 if hemi == 'lh' else 1
-            else:
-                ci = 0
-            for ri, view in enumerate(self.brain._views):
-                self.plotter.subplot(ri, ci)
-                name = "orientation_" + str(ri) + "_" + str(ci)
-                self.orientation_call = ShowView(
-                    plotter=self.plotter,
-                    brain=self.brain,
-                    orientation=orientation,
-                    hemi=hemi,
-                    row=ri,
-                    col=ci,
-                    name=name
-                )
-                orientation_slider = self.plotter.add_text_slider_widget(
-                    self.orientation_call,
-                    value=0,
-                    data=orientation,
-                    pointa=(0.82, 0.74),
-                    pointb=(0.98, 0.74),
-                    event_type='always'
-                )
-                orientation_slider.name = name
-                self.set_slider_style(orientation_slider, show_label=False)
-                self.orientation_call(view, update_widget=True)
-
-        # necessary because show_view modified subplot
-        if self.brain._hemi in ('split', 'both'):
-            self.plotter.subplot(0, 0)
-
-        # scalar bar
-        if brain._colorbar_added:
-            scalar_bar = self.plotter.scalar_bar
-            scalar_bar.SetOrientationToVertical()
-            scalar_bar.SetHeight(0.6)
-            scalar_bar.SetWidth(0.05)
-            scalar_bar.SetPosition(0.02, 0.2)
-
-        # smoothing slider
-        default_smoothing_value = 7
-        self.smoothing_call = IntSlider(
-            plotter=self.plotter,
-            callback=brain.set_data_smoothing,
-            name="smoothing"
-        )
-        smoothing_slider = self.plotter.add_slider_widget(
-            self.smoothing_call,
-            value=default_smoothing_value,
-            rng=[0, 15], title="smoothing",
-            pointa=(0.82, 0.90),
-            pointb=(0.98, 0.90)
-        )
-        smoothing_slider.name = 'smoothing'
-        self.smoothing_call(default_smoothing_value)
-
-        # time label
-        self.time_actor = brain._data.get('time_actor')
-        if self.time_actor is not None:
-            self.time_actor.SetPosition(0.5, 0.03)
-            self.time_actor.GetTextProperty().SetJustificationToCentered()
-            self.time_actor.GetTextProperty().BoldOn()
-            self.time_actor.VisibilityOff()
-
-        # time slider
-        max_time = len(brain._data['time']) - 1
-        self.time_call = TimeSlider(
-            plotter=self.plotter,
-            brain=self.brain,
-        )
-        time_slider = self.plotter.add_slider_widget(
-            self.time_call,
-            value=self.brain._data['time_idx'],
-            rng=[0, max_time],
-            pointa=(0.23, 0.1),
-            pointb=(0.77, 0.1),
-            event_type='always'
-        )
-        time_slider.GetRepresentation().SetLabelFormat('idx=%0.1f')
-
-        time_slider.name = "time"
-        # set the default value
-        self.time_call(value=brain._data['time_idx'])
-
-        # playback speed
-        default_playback_speed = 0.05
-        self.playback_speed_call = SmartSlider(
-            plotter=self.plotter,
-            callback=self.set_playback_speed,
-            name="playback_speed"
-        )
-        playback_speed_slider = self.plotter.add_slider_widget(
-            self.playback_speed_call,
-            value=default_playback_speed,
-            rng=[0.01, 1], title="speed",
-            pointa=(0.02, 0.1),
-            pointb=(0.18, 0.1),
-            event_type='always'
-        )
-        playback_speed_slider.name = "playback_speed"
-
-        # colormap slider
-        scaling_limits = [0.2, 2.0]
-        pointa = np.array((0.82, 0.26))
-        pointb = np.array((0.98, 0.26))
-        shift = np.array([0, 0.08])
-        fmin = brain._data["fmin"]
-        self.fmin_call = BumpColorbarPoints(
-            plotter=self.plotter,
-            brain=brain,
-            name="fmin"
-        )
-        fmin_slider = self.plotter.add_slider_widget(
-            self.fmin_call,
-            value=fmin,
-            rng=_get_range(brain), title="clim",
-            pointa=pointa,
-            pointb=pointb,
-            event_type="always",
-        )
-        fmin_slider.name = "fmin"
-        self.fmin_slider_rep = fmin_slider.GetRepresentation()
-        fmid = brain._data["fmid"]
-        self.fmid_call = BumpColorbarPoints(
-            plotter=self.plotter,
-            brain=brain,
-            name="fmid",
-        )
-        fmid_slider = self.plotter.add_slider_widget(
-            self.fmid_call,
-            value=fmid,
-            rng=_get_range(brain), title="",
-            pointa=pointa + shift,
-            pointb=pointb + shift,
-            event_type="always",
-        )
-        fmid_slider.name = "fmid"
-        self.fmid_slider_rep = fmid_slider.GetRepresentation()
-        fmax = brain._data["fmax"]
-        self.fmax_call = BumpColorbarPoints(
-            plotter=self.plotter,
-            brain=brain,
-            name="fmax",
-        )
-        fmax_slider = self.plotter.add_slider_widget(
-            self.fmax_call,
-            value=fmax,
-            rng=_get_range(brain), title="",
-            pointa=pointa + 2 * shift,
-            pointb=pointb + 2 * shift,
-            event_type="always",
-        )
-        fmax_slider.name = "fmax"
-        self.fmax_slider_rep = fmax_slider.GetRepresentation()
-        self.fscale_call = UpdateColorbarScale(
-            plotter=self.plotter,
-            brain=brain,
-        )
-        fscale_slider = self.plotter.add_slider_widget(
-            self.fscale_call,
-            value=1.0,
-            rng=scaling_limits, title="fscale",
-            pointa=(0.82, 0.10),
-            pointb=(0.98, 0.10)
-        )
-        fscale_slider.name = "fscale"
-
-        # add toggle to start/pause playback
-        self.playback = False
-        self.playback_speed = default_playback_speed
-        self.refresh_rate_ms = max(int(round(1000. / 60.)), 1)
-        self.plotter.add_callback(self.play, self.refresh_rate_ms)
-
-        # add toggle to show/hide interface
-        self.visibility = True
-
-        # set the slider style
-        self.set_slider_style(smoothing_slider)
-        self.set_slider_style(fmin_slider)
-        self.set_slider_style(fmid_slider)
-        self.set_slider_style(fmax_slider)
-        self.set_slider_style(fscale_slider)
-        self.set_slider_style(playback_speed_slider)
-        self.set_slider_style(time_slider)
-
-        # Point Picking and MplCanvas plotting
-        if isinstance(show_traces, str) and show_traces == "separate":
-            show_traces = True
-            self.separate_canvas = True
-        else:
-            self.separate_canvas = False
-        self.show_traces = show_traces
-        if isinstance(self.show_traces, bool) and self.show_traces:
-            self.act_data = {'lh': None, 'rh': None}
-            self.color_cycle = None
-            self.picked_points = {'lh': list(), 'rh': list()}
-            self._mouse_no_mvt = -1
-            self.enable_point_picking()
-
-        # remove default picking menu
-        main_menu = self.plotter.main_menu
-        to_remove = list()
-        for action in main_menu.actions():
-            if action.text() == "Tools":
-                to_remove.append(action)
-        for action in to_remove:
-            main_menu.removeAction(action)
-
-        # setup key bindings
         self.key_bindings = {
             '?': self.help,
             'i': self.toggle_interface,
@@ -498,8 +283,31 @@ class _TimeViewer(object):
             'c': self.clear_points,
             ' ': self.toggle_playback,
         }
-        menu = self.plotter.main_menu.addMenu('Help')
-        menu.addAction('Show MNE key bindings\t?', self.help)
+
+        # Direct access parameters:
+        self.brain = brain
+        self.brain.time_viewer = self
+        self.plotter = brain._renderer.plotter
+        self.main_menu = self.plotter.main_menu
+        self.interactor = self.plotter
+        self.interactor.keyPressEvent = self.keyPressEvent
+
+        # Derived parameters:
+        self.playback_speed = self.default_playback_speed_value
+        _check_option('show_traces', type(show_traces), [bool, str])
+        if isinstance(show_traces, str) and show_traces == "separate":
+            self.show_traces = True
+            self.separate_canvas = True
+        else:
+            self.show_traces = show_traces
+            self.separate_canvas = False
+
+        self.configure_time_label()
+        self.configure_sliders()
+        self.configure_scalar_bar()
+        self.configure_playback()
+        self.configure_point_picking()
+        self.configure_menu()
 
     def keyPressEvent(self, event):
         callback = self.key_bindings.get(event.text())
@@ -581,66 +389,271 @@ class _TimeViewer(object):
             if not show_label:
                 slider_rep.ShowSliderLabelOff()
 
-    def enable_point_picking(self):
-        from ..backends._pyvista import _update_picking_callback
-        # use a matplotlib canvas
-        self.color_cycle = cycle(_get_color_list())
-        win = self.plotter.app_window
-        dpi = win.windowHandle().screen().logicalDotsPerInch()
-        w, h = win.geometry().width() / dpi, win.geometry().height() / dpi
-        h /= 3  # one third of the window
-        if self.separate_canvas:
-            parent = None
+    def configure_time_label(self):
+        self.time_actor = self.brain._data.get('time_actor')
+        if self.time_actor is not None:
+            self.time_actor.SetPosition(0.5, 0.03)
+            self.time_actor.GetTextProperty().SetJustificationToCentered()
+            self.time_actor.GetTextProperty().BoldOn()
+            self.time_actor.VisibilityOff()
+
+    def configure_scalar_bar(self):
+        if self.brain._colorbar_added:
+            scalar_bar = self.plotter.scalar_bar
+            scalar_bar.SetOrientationToVertical()
+            scalar_bar.SetHeight(0.6)
+            scalar_bar.SetWidth(0.05)
+            scalar_bar.SetPosition(0.02, 0.2)
+
+    def configure_sliders(self):
+        rng = _get_range(self.brain)
+        # Orientation slider
+        # default: put orientation slider on the first view
+        if self.brain._hemi in ('split', 'both'):
+            self.plotter.subplot(0, 0)
+
+        # Use 'lh' as a reference for orientation for 'both'
+        if self.brain._hemi == 'both':
+            hemis_ref = ['lh']
         else:
-            parent = win
-        self.mpl_canvas = MplCanvas(parent, w, h, dpi)
-        xlim = [np.min(self.brain._data['time']),
-                np.max(self.brain._data['time'])]
-        self.mpl_canvas.axes.set(xlim=xlim)
-        vlayout = self.plotter.frame.layout()
-        if self.separate_canvas:
-            self.plotter.app_window.signal_close.connect(self.mpl_canvas.close)
-            self.mpl_canvas.show()
-        else:
-            vlayout.addWidget(self.mpl_canvas.canvas)
-            vlayout.setStretch(0, 2)
-            vlayout.setStretch(1, 1)
-
-        # get brain data
-        for idx, hemi in enumerate(['lh', 'rh']):
-            hemi_data = self.brain._data.get(hemi)
-            if hemi_data is not None:
-                self.act_data[hemi] = hemi_data['array']
-                smooth_mat = hemi_data['smooth_mat']
-                if smooth_mat is not None:
-                    self.act_data[hemi] = smooth_mat.dot(self.act_data[hemi])
-
-                # simulate a picked renderer
-                if self.brain._hemi == 'split':
-                    self.picked_renderer = self.plotter.renderers[idx]
-                else:
-                    self.picked_renderer = self.plotter.renderers[0]
-
-                # initialize the default point
-                color = next(self.color_cycle)
-                ind = np.unravel_index(
-                    np.argmax(self.act_data[hemi], axis=None),
-                    self.act_data[hemi].shape
+            hemis_ref = self.brain._hemis
+        for hemi in hemis_ref:
+            if self.brain._hemi == 'split':
+                ci = 0 if hemi == 'lh' else 1
+            else:
+                ci = 0
+            for ri, view in enumerate(self.brain._views):
+                self.plotter.subplot(ri, ci)
+                name = "orientation_" + str(ri) + "_" + str(ci)
+                self.orientation_call = ShowView(
+                    plotter=self.plotter,
+                    brain=self.brain,
+                    orientation=self.orientation,
+                    hemi=hemi,
+                    row=ri,
+                    col=ci,
+                    name=name
                 )
-                vertex_id = ind[0]
-                mesh = hemi_data['mesh'][-1]
-                line = self.plot_time_course(hemi, vertex_id, color)
-                self.add_point(hemi, mesh, vertex_id, line, color)
+                orientation_slider = self.plotter.add_text_slider_widget(
+                    self.orientation_call,
+                    value=0,
+                    data=self.orientation,
+                    pointa=(0.82, 0.74),
+                    pointb=(0.98, 0.74),
+                    event_type='always'
+                )
+                orientation_slider.name = name
+                self.set_slider_style(orientation_slider, show_label=False)
+                self.orientation_call(view, update_widget=True)
 
-        self.plot_time_line()
+        # necessary because show_view modified subplot
+        if self.brain._hemi in ('split', 'both'):
+            self.plotter.subplot(0, 0)
 
-        _update_picking_callback(
-            self.plotter,
-            self.on_mouse_move,
-            self.on_button_press,
-            self.on_button_release,
-            self.on_pick
+        # Smoothing slider
+        self.smoothing_call = IntSlider(
+            plotter=self.plotter,
+            callback=self.brain.set_data_smoothing,
+            name="smoothing"
         )
+        smoothing_slider = self.plotter.add_slider_widget(
+            self.smoothing_call,
+            value=self.default_smoothing_value,
+            rng=self.default_smoothing_range, title="smoothing",
+            pointa=(0.82, 0.90),
+            pointb=(0.98, 0.90)
+        )
+        smoothing_slider.name = 'smoothing'
+        self.smoothing_call(self.default_smoothing_value)
+
+        # Time slider
+        max_time = len(self.brain._data['time']) - 1
+        self.time_call = TimeSlider(
+            plotter=self.plotter,
+            brain=self.brain,
+        )
+        time_slider = self.plotter.add_slider_widget(
+            self.time_call,
+            value=self.brain._data['time_idx'],
+            rng=[0, max_time],
+            pointa=(0.23, 0.1),
+            pointb=(0.77, 0.1),
+            event_type='always'
+        )
+        time_slider.GetRepresentation().SetLabelFormat('idx=%0.1f')
+        time_slider.name = "time"
+        # set the default value
+        self.time_call(value=self.brain._data['time_idx'])
+
+        # Playback speed slider
+        self.playback_speed_call = SmartSlider(
+            plotter=self.plotter,
+            callback=self.set_playback_speed,
+            name="playback_speed"
+        )
+        playback_speed_slider = self.plotter.add_slider_widget(
+            self.playback_speed_call,
+            value=self.default_playback_speed_value,
+            rng=self.default_playback_speed_range, title="speed",
+            pointa=(0.02, 0.1),
+            pointb=(0.18, 0.1),
+            event_type='always'
+        )
+        playback_speed_slider.name = "playback_speed"
+
+        # Colormap slider
+        pointa = np.array((0.82, 0.26))
+        pointb = np.array((0.98, 0.26))
+        shift = np.array([0, 0.08])
+        fmin = self.brain._data["fmin"]
+        self.fmin_call = BumpColorbarPoints(
+            plotter=self.plotter,
+            brain=self.brain,
+            name="fmin"
+        )
+        fmin_slider = self.plotter.add_slider_widget(
+            self.fmin_call,
+            value=fmin,
+            rng=rng, title="clim",
+            pointa=pointa,
+            pointb=pointb,
+            event_type="always",
+        )
+        fmin_slider.name = "fmin"
+        self.fmin_slider_rep = fmin_slider.GetRepresentation()
+        fmid = self.brain._data["fmid"]
+        self.fmid_call = BumpColorbarPoints(
+            plotter=self.plotter,
+            brain=self.brain,
+            name="fmid",
+        )
+        fmid_slider = self.plotter.add_slider_widget(
+            self.fmid_call,
+            value=fmid,
+            rng=rng, title="",
+            pointa=pointa + shift,
+            pointb=pointb + shift,
+            event_type="always",
+        )
+        fmid_slider.name = "fmid"
+        self.fmid_slider_rep = fmid_slider.GetRepresentation()
+        fmax = self.brain._data["fmax"]
+        self.fmax_call = BumpColorbarPoints(
+            plotter=self.plotter,
+            brain=self.brain,
+            name="fmax",
+        )
+        fmax_slider = self.plotter.add_slider_widget(
+            self.fmax_call,
+            value=fmax,
+            rng=rng, title="",
+            pointa=pointa + 2 * shift,
+            pointb=pointb + 2 * shift,
+            event_type="always",
+        )
+        fmax_slider.name = "fmax"
+        self.fmax_slider_rep = fmax_slider.GetRepresentation()
+        self.fscale_call = UpdateColorbarScale(
+            plotter=self.plotter,
+            brain=self.brain,
+        )
+        fscale_slider = self.plotter.add_slider_widget(
+            self.fscale_call,
+            value=1.0,
+            rng=self.default_scaling_range, title="fscale",
+            pointa=(0.82, 0.10),
+            pointb=(0.98, 0.10)
+        )
+        fscale_slider.name = "fscale"
+
+        # set the slider style
+        self.set_slider_style(smoothing_slider)
+        self.set_slider_style(fmin_slider)
+        self.set_slider_style(fmid_slider)
+        self.set_slider_style(fmax_slider)
+        self.set_slider_style(fscale_slider)
+        self.set_slider_style(playback_speed_slider)
+        self.set_slider_style(time_slider)
+
+    def configure_playback(self):
+        self.plotter.add_callback(self.play, self.refresh_rate_ms)
+
+    def configure_point_picking(self):
+        from ..backends._pyvista import _update_picking_callback
+        if self.show_traces:
+            # use a matplotlib canvas
+            self.color_cycle = cycle(_get_color_list())
+            win = self.plotter.app_window
+            dpi = win.windowHandle().screen().logicalDotsPerInch()
+            w, h = win.geometry().width() / dpi, win.geometry().height() / dpi
+            h /= 3  # one third of the window
+            if self.separate_canvas:
+                parent = None
+            else:
+                parent = win
+            self.mpl_canvas = MplCanvas(parent, w, h, dpi)
+            xlim = [np.min(self.brain._data['time']),
+                    np.max(self.brain._data['time'])]
+            self.mpl_canvas.axes.set(xlim=xlim)
+            vlayout = self.plotter.frame.layout()
+            if self.separate_canvas:
+                self.plotter.app_window.signal_close.connect(
+                    self.mpl_canvas.close)
+                self.mpl_canvas.show()
+            else:
+                vlayout.addWidget(self.mpl_canvas.canvas)
+                vlayout.setStretch(0, 2)
+                vlayout.setStretch(1, 1)
+
+            # get brain data
+            for idx, hemi in enumerate(['lh', 'rh']):
+                hemi_data = self.brain._data.get(hemi)
+                if hemi_data is not None:
+                    self.act_data[hemi] = hemi_data['array']
+                    smooth_mat = hemi_data['smooth_mat']
+                    if smooth_mat is not None:
+                        self.act_data[hemi] = smooth_mat.dot(
+                            self.act_data[hemi])
+
+                    # simulate a picked renderer
+                    if self.brain._hemi == 'split':
+                        self.picked_renderer = self.plotter.renderers[idx]
+                    else:
+                        self.picked_renderer = self.plotter.renderers[0]
+
+                    # initialize the default point
+                    color = next(self.color_cycle)
+                    ind = np.unravel_index(
+                        np.argmax(self.act_data[hemi], axis=None),
+                        self.act_data[hemi].shape
+                    )
+                    vertex_id = ind[0]
+                    mesh = hemi_data['mesh'][-1]
+                    line = self.plot_time_course(hemi, vertex_id, color)
+                    self.add_point(hemi, mesh, vertex_id, line, color)
+
+            self.plot_time_line()
+
+            _update_picking_callback(
+                self.plotter,
+                self.on_mouse_move,
+                self.on_button_press,
+                self.on_button_release,
+                self.on_pick
+            )
+
+    def configure_menu(self):
+        # remove default picking menu
+        to_remove = list()
+        for action in self.main_menu.actions():
+            if action.text() == "Tools":
+                to_remove.append(action)
+        for action in to_remove:
+            self.main_menu.removeAction(action)
+
+        # add help menu
+        menu = self.main_menu.addMenu('Help')
+        menu.addAction('Show MNE key bindings\t?', self.help)
 
     def on_mouse_move(self, vtk_picker, event):
         if self._mouse_no_mvt:
