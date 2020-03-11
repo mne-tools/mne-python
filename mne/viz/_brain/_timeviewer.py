@@ -546,7 +546,7 @@ class _TimeViewer(object):
         from PyQt5.QtCore import Qt
         from PyQt5.QtGui import QCursor
 
-        self.status_msg.setText("📁 Choose movie path ...")
+        self.status_msg.setText(_sanitize("📁 Choose movie path ..."))
         self.status_msg.show()
         self.status_progress.setValue(0)
 
@@ -554,14 +554,18 @@ class _TimeViewer(object):
             if frame == n_frames:
                 # On the ImageIO step
                 self.status_msg.setText(
-                    "💾 Saving with ImageIO: %s" % (dialog.selectedFiles()[0],)
+                    _sanitize("💾 Saving with ImageIO: %s"
+                              % (dialog.selectedFiles()[0],))
                 )
+                self.status_msg.show()
                 self.status_progress.hide()
                 self.status_bar.layout().update()
             else:
                 self.status_msg.setText(
-                    "📝 Rendering images (frame %d / %d) ..."
-                    % (frame + 1, n_frames))
+                    _sanitize("📽  Rendering images (frame %d / %d) ..."
+                              % (frame + 1, n_frames))
+                )
+                self.status_msg.show()
                 self.status_progress.show()
                 self.status_progress.setRange(0, n_frames - 1)
                 self.status_progress.setValue(frame)
@@ -939,3 +943,11 @@ def _get_range(brain):
 
 def _normalize(point, shape):
     return (point[0] / shape[1], point[1] / shape[0])
+
+
+def _sanitize(text):
+    from PyQt5.Qt import PYQT_VERSION_STR
+    version = PYQT_VERSION_STR.split('.')
+    if int(version[1]) <= 12:
+        text = text[2:]
+    return text
