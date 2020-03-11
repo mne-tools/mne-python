@@ -368,5 +368,4 @@ def test_edf_lowpass_zero():
     """Test if a lowpass filter of 0Hz is mapped to the Nyquist frequency."""
     with pytest.warns(RuntimeWarning, match='too long.*truncated'):
         raw = read_raw_edf(edf_stim_resamp_path)
-    print(raw.info["lowpass"])
     assert_allclose(raw.info["lowpass"], raw.info["sfreq"] / 2)
