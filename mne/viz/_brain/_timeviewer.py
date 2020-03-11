@@ -14,7 +14,7 @@ from ...source_space import vertex_to_mni
 class MplCanvas(object):
     """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
 
-    def __init__(self, parent, width, height, dpi):
+    def __init__(self, timeviewer, parent, width, height, dpi):
         from PyQt5 import QtWidgets
         from matplotlib.figure import Figure
         from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
@@ -31,6 +31,10 @@ class MplCanvas(object):
         FigureCanvasQTAgg.updateGeometry(self.canvas)
         # XXX eventually this should be called in the window resize callback
         tight_layout(fig=self.axes.figure)
+        self.timeviewer = timeviewer
+        for event in ('button_press', 'motion_notify'):
+            self.canvas.mpl_connect(
+                event + '_event', getattr(self, 'on_' + event))
 
     def plot(self, x, y, label, **kwargs):
         """Plot a curve."""
@@ -58,6 +62,17 @@ class MplCanvas(object):
     def close(self):
         """Close the canvas."""
         self.canvas.close()
+
+    def on_button_press(self, event):
+        """Handle button presses."""
+        # left click (and maybe drag) in progress in axes
+        if (event.inaxes != self.axes or
+                event.button != 1):
+            return
+        self.timeviewer.time_call(
+            event.xdata, update_widget=True, time_as_index=False)
+
+    on_motion_notify = on_button_press  # for now they can be the same
 
 
 class IntSlider(object):
@@ -96,8 +111,13 @@ class TimeSlider(object):
             if callable(self.brain._data['time_label']):
                 self.time_label = self.brain._data['time_label']
 
-    def __call__(self, value, update_widget=False):
+    def __call__(self, value, update_widget=False, time_as_index=True):
         """Update the time slider."""
+        value = float(value)
+        # XXX this should probably use some brain method
+        if not time_as_index:
+            time = self.brain._data['time']
+            value = np.interp(value, time, np.arange(len(time)))
         self.brain.set_time_point(value)
         if self.callback is not None:
             self.callback()
@@ -601,7 +621,7 @@ class _TimeViewer(object):
                 parent = None
             else:
                 parent = win
-            self.mpl_canvas = MplCanvas(parent, w, h, dpi)
+            self.mpl_canvas = MplCanvas(self, parent, w, h, dpi)
             xlim = [np.min(self.brain._data['time']),
                     np.max(self.brain._data['time'])]
             self.mpl_canvas.axes.set(xlim=xlim)
@@ -792,6 +812,7 @@ class _TimeViewer(object):
                     x=current_time,
                     label='time',
                     color='black',
+                    lw=1,
                 )
             else:
                 self.time_line.set_xdata(current_time)
