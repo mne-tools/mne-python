@@ -41,13 +41,13 @@ def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1,
     Returns
     -------
     annot : mne.Annotations
-        Periods with muscle artifacts. If the z-score of 
+        Periods with muscle artifacts annotated as BAD_muscle.
     scores_muscle : array
         Z-score values averaged across channels for each sample.
     """
     from scipy.stats import zscore
     from scipy.ndimage.measurements import label
-    
+
     raw_copy = raw.copy()
     raw_copy.pick(picks)
     chan_type = raw_copy.get_channel_types()
@@ -55,12 +55,13 @@ def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1,
     # Remove ref chans if MEG data just in case
     meg = [True for e in ['mag', 'grad'] if (e in chan_type)]
     if meg is True:
-        raw_copy.pick_types(ref_meg=False)  
+        raw_copy.pick_types(ref_meg=False)
 
     # Only one type of channel, otherwise z-score will be biased
     assert(len(set(chan_type)) == 1), 'Different channel types, pick one type'
 
-    raw_copy.filter(110, 140, fir_design='firwin')
+    raw_copy.filter(110, 140, fir_design='firwin',
+                    skip_by_annotation=['edge', 'BAD_'])
     raw_copy.apply_hilbert(envelope=True)
     sfreq = raw_copy.info['sfreq']
 

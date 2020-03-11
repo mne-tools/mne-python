@@ -11,7 +11,7 @@ in the range of 110-140Hz.
 This example uses `annotate_muscle` to annotate segments where muscle activity
 likely occurred. This is done by band-pass filtering the data in the 110-140 Hz
 range. Then, the envelope is taken to account for peaks and troughs. The
-envelope is z-scored and averaged across channels. To remove noisy tansient
+envelope is z-scored and averaged across channels. To remove noisy transient
 peaks, the z-scored average is low-pass filtered to 4 Hz. Segments above a set
 threshold are annotated as BAD_motion. In addition, `min_length_good` allows to
 discard god segments of data between bad segments that are to transient.
@@ -47,14 +47,15 @@ if dataset == 'eegbci':
 elif dataset == 'brainstorm':
     data_path = bst_auditory.data_path()
     data_path_MEG = op.join(data_path, 'MEG')
-    raw_fname1 = op.join(data_path_MEG, 'bst_auditory', 'S01_AEF_20131218_01.ds')
-    raw_fname2 = op.join(data_path_MEG, 'bst_auditory', 'S01_AEF_20131218_02.ds')
-    
+    subject = 'bst_auditory'
+    raw_fname1 = op.join(data_path_MEG, subject, 'S01_AEF_20131218_01.ds')
+    raw_fname2 = op.join(data_path_MEG, subject, 'S01_AEF_20131218_02.ds')
+
     raw = read_raw_ctf(raw_fname1, preload=False)
     raw = concatenate_raws([raw, read_raw_ctf(raw_fname2, preload=False)])
     raw.crop(350, 410).load_data()
     picks = pick_types(raw.info, meg=True, ref_meg=False)
-    
+
 raw.resample(300, npad="auto")
 raw.notch_filter([50, 100])
 
