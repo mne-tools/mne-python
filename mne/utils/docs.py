@@ -735,6 +735,48 @@ interpolation : str | None
     or 'cubic'.
 """
 
+# STC label time course
+docdict['eltc_labels'] = """
+labels : Label | BiHemiLabel | list of Label or BiHemiLabel
+    The labels for which to extract the time course.
+"""
+docdict['eltc_src'] = """
+src : list
+    Source spaces for left and right hemisphere.
+"""
+docdict['eltc_mode'] = """
+mode : str
+    Extraction mode, see Notes.
+"""
+docdict['eltc_allow_empty'] = """
+allow_empty : bool
+    Instead of emitting an error, return all-zero time courses for labels
+    that do not have any vertices in the source estimate. Default is ``False``.
+"""
+docdict['eltc_mode_notes'] = """
+Valid values for ``mode`` are:
+
+- ``'max'``
+    Maximum value across vertices at each time point within each label.
+- ``'mean'``
+    Average across vertices at each time point within each label. Ignores
+    orientation of sources.
+- ``'mean_flip'``
+    Finds the dominant direction of source space normal vector orientations
+    within each label, applies a sign-flip to time series at vertices whose
+    orientation is more than 180° different from the dominant direction, and
+    then averages across vertices at each time point within each label.
+- ``'pca_flip'``
+    Applies singular value decomposition to the time courses within each label,
+    and uses the first right-singular vector as the representative label time
+    course. This signal is scaled so that its power matches the average
+    (per-vertex) power within the label, and sign-flipped by multiplying by
+    ``np.sign(u @ flip)``, where ``u`` is the first left-singular vector and
+    ``flip`` is the same sign-flip vector used when ``mode='mean_flip'``. This
+    sign-flip ensures that extracting time courses from the same label in
+    similar STCs does not result in 180° direction/phase changes.
+"""
+
 # DataFrames
 docdict['df_scaling_time_deprecated'] = """
 scaling_time : None
