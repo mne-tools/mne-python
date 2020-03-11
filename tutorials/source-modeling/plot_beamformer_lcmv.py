@@ -144,7 +144,7 @@ forward = mne.read_forward_solution(fwd_fname)
 # as a scalar beamformer. It is also possible to compute a vector beamformer,
 # which gives back three estimates per voxel, corresponding to the three
 # directions of the source. This can be achieved by setting
-# ``pick_ori='vector'``and will yield a :class:`volume vector source estimate
+# ``pick_ori='vector'`` and will yield a :class:`volume vector source estimate
 # <mne.VolVectorSourceEstimate>`.
 
 filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
