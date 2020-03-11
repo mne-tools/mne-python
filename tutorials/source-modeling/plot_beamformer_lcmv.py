@@ -30,7 +30,8 @@ from mne.beamformer import make_lcmv, apply_lcmv
 # minimum variance (LCMV) beamformer [1]_ which operates on time series.
 # Frequency-resolved data can be reconstructed with the dynamic imaging of
 # coherent sources (DICS) beamforming method [2]_.
-
+# The spatial filter is computed from two ingredients: the forward model
+# solution and the covariance matrix of the data.
 
 ###############################################################################
 # Data processing
@@ -67,18 +68,21 @@ evoked.plot_joint()
 ###############################################################################
 # Computation of covariance matrices
 # ----------------------------------
-# The spatial filter is computed from two ingredients: the forward model
-# solution that we read from disk above and the covariance matrix of the data.
-# The data covariance matrix will be `inverted`_ during the spatial filter
-# computation, so it is valuable to plot the covariance matrix and its
+# Spatial filters are using the data covariance in the estimation of the filter
+# weights. The data covariance matrix will be `inverted`_ during the spatial
+# filter computation, so it is valuable to plot the covariance matrix and its
 # eigenvalues to gauge whether matrix inversion will be possible.
 # Also, because we want to combine different channel types (magnetometers and
 # gradiometers), we need to account for the different amplitude scales of these
 # channel types. To do this we will supply a noise covariance matrix to the
 # beamformer, which will be used for whitening.
-# TODO: tmin, tmax
+# The data covariance matrix should be estimated from a relevant time window
+# and incorporate enough samples for a stable estimate. Here, we use a time
+# window incorporating the expected auditory response at around 100 ms post
+# stimulus and extend the period to account for a low number of trials (72) and
+# low sampling rate of 150 Hz.
 
-data_cov = mne.compute_covariance(epochs, tmin=0.05, tmax=0.25,
+data_cov = mne.compute_covariance(epochs, tmin=0.01, tmax=0.25,
                                   method='empirical')
 noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0,
                                    method='empirical')
@@ -88,11 +92,13 @@ data_cov.plot(epochs.info)
 ###############################################################################
 # The forward model
 # -----------------
-# TODO: add some more info + reference to tutorial on fwd model
+# The forward model is the other important ingredient for the computation of a
+# spatial filter. Here, we will load the forward model from disk, more
+# information on how to create a forward model can be found in this tutorial:
+# :ref:`tut-forward`.
 # Note that beamformers are usually computed in a :class:`volume source space
 # <mne.VolSourceEstimate>`, as a visualization of only the surface activation
 # can misrepresent the data.
-
 
 # Read forward model
 fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-vol-7-fwd.fif'
@@ -104,9 +110,10 @@ forward = mne.read_forward_solution(fwd_fname)
 # --------------------------
 # Now we can compute the spatial filter.
 # When looking at the covariance matrix plots, we can see that our data is
-# slightly rank-deficient. Thus, we will regularize the covariance matrix by
-# setting the parameter ``reg=0.05``. This corresponds to loading the
-# diagonal of the covariance matrix with 5% of the sensor power.
+# slightly rank-deficient as the rank is not equal to the number of channels.
+# Thus, we will regularize the covariance matrix by setting the parameter
+# ``reg=0.05``. This corresponds to loading the diagonal of the covariance
+# matrix with 5% of the sensor power.
 #
 # Different variants of the LCMV beamformer exist. We will compute a
 # unit-noise-gain beamformer, which normalizes the beamformer weights to take
