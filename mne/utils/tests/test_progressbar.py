@@ -37,7 +37,7 @@ def test_progressbar_parallel_basic(capsys):
                                        verbose=True)
     out = parallel(p_fun(x) for x in range(10))
     assert out == list(range(10))
-    assert '100.00%' in capsys.readouterr().out
+    assert '100.0%' in capsys.readouterr().out
 
 
 def _identity_block(x, pb):
@@ -63,7 +63,7 @@ def test_progressbar_parallel_advanced(capsys):
     assert not op.isfile(pb._mmap_fname), '__exit__ not called?'
     out = np.concatenate(out)
     assert_array_equal(out, arr)
-    assert '100.00%' in capsys.readouterr().out
+    assert '100.0%' in capsys.readouterr().out
 
 
 def _identity_block_wide(x, pb):
@@ -91,4 +91,4 @@ def test_progressbar_parallel_more(capsys):
                          shape=len(arr) * 2).sum()
         assert sum_ == len(arr) * 2
     assert not op.isfile(pb._mmap_fname), '__exit__ not called?'
-    assert '100.00%' in capsys.readouterr().out
+    assert '100.0%' in capsys.readouterr().out
