@@ -11,6 +11,7 @@ neural currents from different regions of the brain.
 
 To get started with forward modeling see :ref:`tut-forward`.
 """
+
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
