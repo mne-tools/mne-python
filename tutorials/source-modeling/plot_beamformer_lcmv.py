@@ -25,13 +25,18 @@ from mne.beamformer import make_lcmv, apply_lcmv
 # ---------------------------
 # A beamformer is a spatial filter that reconstructs source activity by
 # scanning through a grid of pre-defined source points and estimating activity
-# at each of those source points independently.
+# at each of those source points independently. A set of weights is
+# constructed for each defined source location which defines the contribution
+# of each sensor to this source.
+# Beamformers are often used for their focal reconstructions and their ability
+# to reconstruct deeper sources. They can also suppress external noise sources.
 # The beamforming method applied in this tutorial is the linearly constrained
 # minimum variance (LCMV) beamformer [1]_ which operates on time series.
 # Frequency-resolved data can be reconstructed with the dynamic imaging of
 # coherent sources (DICS) beamforming method [2]_.
-# The spatial filter is computed from two ingredients: the forward model
-# solution and the covariance matrix of the data.
+# As we will see in the following, the spatial filter is computed from two
+# ingredients: the forward model solution and the covariance matrix of the
+# data.
 
 ###############################################################################
 # Data processing
@@ -117,8 +122,11 @@ forward = mne.read_forward_solution(fwd_fname)
 #
 # Different variants of the LCMV beamformer exist. We will compute a
 # unit-noise-gain beamformer, which normalizes the beamformer weights to take
-# care of an inherent depth bias. To achieve this, we set
-# ``weight_norm='unit-noise-gain'``.
+# care of a depth bias, which is inherent to the forward model solution. To
+# achieve this, we set ``weight_norm='unit-noise-gain'``. Other possibilities
+# to cope with this depth bias are the normalization of the forward model
+# setting the ``depth`` parameter when computing the spatial filter or the
+# contrasting of conditions (then the depth bias will cancel out).
 # This parameter can also be set to ``'nai'`` (Neural Activity Index, see [1]_)
 # which implements
 # a further normalization with the estimated noise. An alternative way to take
@@ -160,6 +168,11 @@ stc = apply_lcmv(evoked, filters, max_ori_out='signed')
 ###############################################################################
 # Visualize the reconstructed source activity
 # -------------------------------------------
+# We can visualize the source estimate in different ways, e.g. as an overlay
+# onto the MRI or as a glass brain.
+# The plots show brain activity in the right temporal lobe around 100 ms post
+# stimulus. This is coherent with the left-ear auditory stimulation of the
+# experiment.
 
 lims = [0.3, 0.45, 0.6]
 
@@ -173,7 +186,6 @@ stc.plot(
     mode='glass_brain', clim=dict(kind='value', lims=lims),
     initial_time=0.087, verbose=True)
 
-# TODO: does this fit our expecations?
 
 ###############################################################################
 # References
