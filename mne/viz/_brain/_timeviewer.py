@@ -79,9 +79,10 @@ class IntSlider(object):
 class TimeSlider(object):
     """Class to update the time slider."""
 
-    def __init__(self, plotter=None, brain=None):
+    def __init__(self, plotter=None, brain=None, callback=None):
         self.plotter = plotter
         self.brain = brain
+        self.callback = callback
         self.slider_rep = None
         if brain is None:
             self.time_label = None
@@ -92,6 +93,8 @@ class TimeSlider(object):
     def __call__(self, value, update_widget=False):
         """Update the time slider."""
         self.brain.set_time_point(value)
+        if self.callback is not None:
+            self.callback()
         current_time = self.brain._current_time
         if self.slider_rep is None:
             for slider in self.plotter.slider_widgets:
@@ -471,6 +474,7 @@ class _TimeViewer(object):
         self.time_call = TimeSlider(
             plotter=self.plotter,
             brain=self.brain,
+            callback=self.plot_time_line,
         )
         time_slider = self.plotter.add_slider_widget(
             self.time_call,
@@ -748,6 +752,8 @@ class _TimeViewer(object):
         self._spheres.clear()
 
     def plot_time_course(self, hemi, vertex_id, color):
+        if not hasattr(self, "mpl_canvas"):
+            return
         time = self.brain._data['time']
         hemi_str = 'L' if hemi == 'lh' else 'R'
         hemi_int = 0 if hemi == 'lh' else 1
@@ -770,6 +776,8 @@ class _TimeViewer(object):
         return line
 
     def plot_time_line(self):
+        if not hasattr(self, "mpl_canvas"):
+            return
         if isinstance(self.show_traces, bool) and self.show_traces:
             # add time information
             current_time = self.brain._current_time
@@ -785,6 +793,7 @@ class _TimeViewer(object):
                 )
             else:
                 self.time_line.set_xdata(xdata)
+                self.mpl_canvas.update_plot()
 
     def help(self):
         pairs = [
