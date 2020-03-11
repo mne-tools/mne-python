@@ -1055,7 +1055,7 @@ class _Brain(object):
 
     def save_movie(self, filename, time_dilation=4., tmin=None, tmax=None,
                    framerate=24, interpolation=None, codec=None,
-                   bitrate=None, **kwargs):
+                   bitrate=None, callback=None, **kwargs):
         """Save a movie (for data with a time axis).
 
         The movie is created through the :mod:`imageio` module. The format is
@@ -1088,6 +1088,10 @@ class _Brain(object):
         %(brain_time_interpolation)s
             If None, it uses the current ``brain.interpolation``,
             which defaults to ``'nearest'``. Defaults to None.
+        callback : callable | None
+            A function to call on each iteration. Useful for status message
+            updates. It will be passed keyword arguments ``frame`` and
+            ``n_frames``.
         **kwargs :
             Specify additional options for :mod:`imageio`.
         """
@@ -1134,9 +1138,12 @@ class _Brain(object):
         if interpolation is not None:
             self.set_time_interpolation(interpolation)
         try:
-            images = [self.screenshot() for _ in self._iter_time(time_idx)]
+            images = [
+                self.screenshot() for _ in self._iter_time(time_idx, callback)]
         finally:
             self.set_time_interpolation(old_mode)
+        if callback is not None:
+            callback(frame=len(time_idx), n_frames=len(time_idx))
         imageio.mimwrite(filename, images, **kwargs)
 
     @property
@@ -1173,13 +1180,15 @@ class _Brain(object):
                              extra + ", got " + str(hemi))
         return hemi
 
-    def _iter_time(self, time_idx):
+    def _iter_time(self, time_idx, callback):
         """Iterate through time points, then reset to current time.
 
         Parameters
         ----------
         time_idx : array_like
             Time point indexes through which to iterate.
+        callback : callable | None
+            Callback to call before yielding each frame.
 
         Yields
         ------
@@ -1191,8 +1200,10 @@ class _Brain(object):
         Used by movie and image sequence saving functions.
         """
         current_time_idx = self._data["time_idx"]
-        for idx in time_idx:
+        for ii, idx in enumerate(time_idx):
             self.set_time_point(idx)
+            if callback is not None:
+                callback(frame=ii, n_frames=len(time_idx))
             yield idx
 
         # Restore original time index

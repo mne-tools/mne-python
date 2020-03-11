@@ -5,9 +5,13 @@
 # License: Simplified BSD
 
 from itertools import cycle
+import os
 import time
+import traceback
 import numpy as np
+
 from ..utils import _show_help, _get_color_list, tight_layout
+from ...utils import warn
 from ...source_space import vertex_to_mni
 
 
@@ -526,10 +530,13 @@ class _TimeViewer(object):
                     break
 
     def update_status_bar(self):
-        from PyQt5.QtWidgets import QLabel
+        from PyQt5.QtWidgets import QLabel, QProgressBar
         self.status_msg = QLabel()
-        self.status_bar.addWidget(self.status_msg)
+        self.status_progress = QProgressBar()
+        self.status_bar.layout().addWidget(self.status_msg, 1)
+        self.status_bar.layout().addWidget(self.status_progress, 0)
         self.status_msg.hide()
+        self.status_progress.hide()
 
         # display help message for 3 seconds
         self.status_bar.showMessage("Press ? for help", 3000)
@@ -539,8 +546,30 @@ class _TimeViewer(object):
         from PyQt5.QtCore import Qt
         from PyQt5.QtGui import QCursor
 
-        self.status_msg.setText("Saving movie ...")
+        self.status_msg.setText("📁 Choose movie path ...")
         self.status_msg.show()
+        self.status_progress.setValue(0)
+
+        def frame_callback(frame, n_frames):
+            if frame == n_frames:
+                # On the ImageIO step
+                self.status_msg.setText(
+                    "💾 Saving with ImageIO: %s" % (dialog.selectedFiles()[0],)
+                )
+                self.status_progress.hide()
+                self.status_bar.layout().update()
+            else:
+                self.status_msg.setText(
+                    "📝 Rendering images (frame %d / %d) ..."
+                    % (frame + 1, n_frames))
+                self.status_progress.show()
+                self.status_progress.setRange(0, n_frames - 1)
+                self.status_progress.setValue(frame)
+                self.status_progress.update()
+                self.status_progress.repaint()
+            self.status_msg.update()
+            self.status_msg.parent().update()
+            self.status_msg.repaint()
 
         def _save_movie(filename):
             # temporarily hide interface
@@ -551,11 +580,15 @@ class _TimeViewer(object):
             default_cursor = self.interactor.cursor()
             self.interactor.setCursor(QCursor(Qt.WaitCursor))
 
-            self.brain.save_movie(
-                filename=filename,
-                time_dilation=(1. / self.playback_speed),
-                **kwargs
-            )
+            try:
+                self.brain.save_movie(
+                    filename=filename,
+                    time_dilation=(1. / self.playback_speed),
+                    callback=frame_callback,
+                    **kwargs
+                )
+            except (Exception, KeyboardInterrupt):
+                warn('Movie saving aborted:\n' + traceback.format_exc())
 
             # restore visibility
             self.visibility = not default_visibility
@@ -566,9 +599,10 @@ class _TimeViewer(object):
         def _clean(unused):
             del unused
             self.status_msg.hide()
+            self.status_progress.hide()
 
-        dialog = FileDialog(self.plotter.app_window,
-                            callback=_save_movie)
+        dialog = FileDialog(self.plotter.app_window, callback=_save_movie)
+        dialog.setDirectory(os.getcwd())
         dialog.finished.connect(_clean)
         return dialog
 
@@ -855,7 +889,7 @@ class _LinkViewer(object):
         # link time sliders
         self.link_sliders(
             name="time",
-            callback=self.set_time_index,
+            callback=self.set_time_point,
             event_type="always"
         )
 
@@ -870,7 +904,7 @@ class _LinkViewer(object):
         for time_viewer in self.time_viewers:
             time_viewer.key_bindings[' '] = self.toggle_playback
 
-    def set_time_index(self, value):
+    def set_time_point(self, value):
         for time_viewer in self.time_viewers:
             time_viewer.time_call(value, update_widget=True)
 
