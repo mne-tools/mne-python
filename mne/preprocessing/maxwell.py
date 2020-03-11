@@ -1838,10 +1838,10 @@ def find_bad_channels_maxwell(
     raw : instance of Raw
         Raw data to process.
     limit : float
-        Detection limit (default 7.). Smaller values will find more bad
+        Detection limit (default is 7.). Smaller values will find more bad
         channels at increased risk of including good ones.
     duration : float
-        Duration into which to window the data for processing. Default is 1.
+        Duration into which to window the data for processing. Default is 5.
     min_count : int
         Minimum number of times a channel must show up as bad in a chunk.
         Default is 5.
