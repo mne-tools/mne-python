@@ -485,7 +485,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     if lowpass.size == 0:
         pass  # Placeholder for future use. Lowpass set in _empty_info.
     elif all(lowpass):
-        if lowpass[0] in ('NaN', '0'):
+        if lowpass[0] in ('NaN', '0', '0.0'):
             pass  # Placeholder for future use. Lowpass set in _empty_info.
         else:
             info['lowpass'] = float(lowpass[0])
