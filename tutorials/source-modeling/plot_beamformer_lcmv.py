@@ -86,6 +86,14 @@ evoked.plot_joint()
 # window incorporating the expected auditory response at around 100 ms post
 # stimulus and extend the period to account for a low number of trials (72) and
 # low sampling rate of 150 Hz.
+# When looking at the covariance matrix plots, we can see that our data is
+# slightly rank-deficient as the rank is not equal to the number of channels.
+# Thus, we will have to regularize the covariance matrix before inverting it
+# in the beamformer calculation. This can be achieved by setting the parameter
+# ``reg=0.05`` when calculating the spatial filter with
+# :func:`~mne.beamformer.make_lcmv`. This corresponds to loading the diagonal
+# of the covariance matrix with 5% of the sensor power.
+
 
 data_cov = mne.compute_covariance(epochs, tmin=0.01, tmax=0.25,
                                   method='empirical')
@@ -114,11 +122,6 @@ forward = mne.read_forward_solution(fwd_fname)
 # Compute the spatial filter
 # --------------------------
 # Now we can compute the spatial filter.
-# When looking at the covariance matrix plots, we can see that our data is
-# slightly rank-deficient as the rank is not equal to the number of channels.
-# Thus, we will regularize the covariance matrix by setting the parameter
-# ``reg=0.05``. This corresponds to loading the diagonal of the covariance
-# matrix with 5% of the sensor power.
 #
 # Different variants of the LCMV beamformer exist. We will compute a
 # unit-noise-gain beamformer, which normalizes the beamformer weights to take
