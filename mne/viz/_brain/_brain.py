@@ -1031,6 +1031,7 @@ class _Brain(object):
                     self._data['ctable'] = ctable
 
     def to_time_index(self, value):
+        """Return the interpolated time index of the given time value."""
         time = self._data['time']
         value = np.interp(value, time, np.arange(len(time)))
         return value
