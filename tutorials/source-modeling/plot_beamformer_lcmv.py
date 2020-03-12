@@ -31,9 +31,10 @@ from mne.beamformer import make_lcmv, apply_lcmv
 # Beamformers are often used for their focal reconstructions and their ability
 # to reconstruct deeper sources. They can also suppress external noise sources.
 # The beamforming method applied in this tutorial is the linearly constrained
-# minimum variance (LCMV) beamformer [1]_ which operates on time series.
+# minimum variance (LCMV) beamformer :footcite:`VanVeenEtAl1997` operates on
+# time series.
 # Frequency-resolved data can be reconstructed with the dynamic imaging of
-# coherent sources (DICS) beamforming method [2]_.
+# coherent sources (DICS) beamforming method :footcite:`GrossEtAl2001`.
 # As we will see in the following, the spatial filter is computed from two
 # ingredients: the forward model solution and the covariance matrix of the
 # data.
@@ -136,8 +137,8 @@ forward = mne.read_forward_solution(fwd_fname)
 #   weights of the spatial filter. Choose this by setting
 #   ``weight_norm='unit-noise-gain'``.
 # - "Neural activity index" beamformers handle depth bias by normalizing both
-#   the weights and the estimated noise (see [1]_). Choose this by setting
-#   ``weight_norm='nai'``.
+#   the weights and the estimated noise (see :footcite:`VanVeenEtAl1997`).
+#   Choose this by setting ``weight_norm='nai'``.
 #
 # Note that when comparing conditions, the depth bias will cancel out and it is
 # possible to set both parameters to ``None``.
@@ -199,13 +200,8 @@ stc.plot(mode='glass_brain', clim=dict(kind='value', lims=lims), **kwargs)
 ###############################################################################
 # References
 # ----------
-# .. [1] Van Veen et al. Localization of brain electrical activity via
-#        linearly constrained minimum variance spatial filtering.
-#        Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
 #
-# .. [2] Gross et al. (2001) Dynamic imaging of coherent sources: Studying
-#        neural interactions in the human brain.
-#        PNAS vol. 98 (2) pp. 694-699. https://doi.org/10.1073/pnas.98.2.694
+# .. footbibliography::
 #
 #
 # .. LINKS
