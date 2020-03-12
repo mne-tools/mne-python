@@ -114,10 +114,8 @@ class TimeSlider(object):
     def __call__(self, value, update_widget=False, time_as_index=True):
         """Update the time slider."""
         value = float(value)
-        # XXX this should probably use some brain method
         if not time_as_index:
-            time = self.brain._data['time']
-            value = np.interp(value, time, np.arange(len(time)))
+            value = self.brain.to_time_index(value)
         self.brain.set_time_point(value)
         if self.callback is not None:
             self.callback()

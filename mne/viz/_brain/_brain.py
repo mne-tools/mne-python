@@ -1030,6 +1030,11 @@ class _Brain(object):
                     _set_colormap_range(actor, ctable, scalar_bar, rng)
                     self._data['ctable'] = ctable
 
+    def to_time_index(self, value):
+        time = self._data['time']
+        value = np.interp(value, time, np.arange(len(time)))
+        return value
+
     @property
     def data(self):
         u"""Data used by time viewer and color bar widgets."""
