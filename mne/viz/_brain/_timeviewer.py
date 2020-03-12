@@ -578,8 +578,7 @@ class _TimeViewer(object):
         def _save_movie(filename):
             # temporarily hide interface
             default_visibility = self.visibility
-            self.visibility = True
-            self.toggle_interface()
+            self.toggle_interface(value=False)
             # set cursor to busy
             default_cursor = self.interactor.cursor()
             self.interactor.setCursor(QCursor(Qt.WaitCursor))
@@ -595,8 +594,7 @@ class _TimeViewer(object):
                 warn('Movie saving aborted:\n' + traceback.format_exc())
 
             # restore visibility
-            self.visibility = not default_visibility
-            self.toggle_interface()
+            self.toggle_interface(value=default_visibility)
             # restore cursor
             self.interactor.setCursor(default_cursor)
 
@@ -615,8 +613,11 @@ class _TimeViewer(object):
         if callback is not None:
             callback()
 
-    def toggle_interface(self):
-        self.visibility = not self.visibility
+    def toggle_interface(self, value=None):
+        if value is None:
+            self.visibility = not self.visibility
+        else:
+            self.visibility = value
 
         # manage sliders
         for slider in self.plotter.slider_widgets:
