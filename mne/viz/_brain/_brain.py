@@ -20,7 +20,7 @@ from ..utils import _check_option, logger, verbose
 
 
 class _Brain(object):
-    u"""Class for visualizing a brain.
+    """Class for visualizing a brain.
 
     It is used for creating meshes of the given subject's
     cortex. The activation data can be shown on a mesh using add_data
@@ -250,7 +250,7 @@ class _Brain(object):
                  hemi=None, remove_existing=None, time_label_size=None,
                  initial_time=None, scale_factor=None, vector_alpha=None,
                  clim=None, verbose=None):
-        u"""Display data from a numpy array on the surface.
+        """Display data from a numpy array on the surface.
 
         This provides a similar interface to
         :meth:`surfer.Brain.add_overlay`, but it displays
@@ -811,7 +811,7 @@ class _Brain(object):
         return self._renderer.screenshot(mode)
 
     def update_lut(self, fmin=None, fmid=None, fmax=None):
-        u"""Update color map.
+        """Update color map.
 
         Parameters
         ----------
@@ -1032,7 +1032,7 @@ class _Brain(object):
 
     @property
     def data(self):
-        u"""Data used by time viewer and color bar widgets."""
+        """Data used by time viewer and color bar widgets."""
         return self._data
 
     @property
@@ -1051,7 +1051,7 @@ class _Brain(object):
             logger.info("No active/running renderer available.")
 
     def _check_hemi(self, hemi):
-        u"""Check for safe single-hemi input, returns str."""
+        """Check for safe single-hemi input, returns str."""
         if hemi is None:
             if self._hemi not in ['lh', 'rh']:
                 raise ValueError('hemi must not be None when both '
