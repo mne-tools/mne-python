@@ -48,9 +48,9 @@ class _Brain(object):
         Setting this to ``None`` is equivalent to ``(0.5, 0.5, 0.5)``.
     alpha : float in [0, 1]
         Alpha level to control opacity of the cortical surface.
-    size : float | tuple(float, float)
+    size : int | array-like, shape (2,)
         The size of the window, in pixels. can be one number to specify
-        a square window, or the (width, height) of a rectangular window.
+        a square window, or a length-2 sequence to specify (width, height).
     background : tuple(int, int, int)
         The color definition of the background: (red, green, blue).
     foreground : matplotlib color
@@ -168,12 +168,14 @@ class _Brain(object):
         col_dict = dict(lh=1, rh=1, both=1, split=2)
         n_col = col_dict[hemi]
 
-        if isinstance(size, int):
-            fig_size = (size, size)
-        elif isinstance(size, tuple):
+        size = tuple(np.atleast_1d(size).round(0).astype(int).flat)
+        if len(size) == 1:
+            fig_size = size * 2  # 1-tuple to 2-tuple
+        elif len(size) == 2:
             fig_size = size
         else:
-            raise ValueError('"size" parameter must be int or tuple.')
+            raise ValueError('"size" parameter must be an int or length-2 '
+                             'sequence of ints.')
 
         self._foreground = foreground
         self._hemi = hemi
