@@ -49,7 +49,7 @@ subjects_dir = data_path + '/subjects'
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 # Read the raw data
-raw = mne.io.read_raw_fif(raw_fname, preload=True)
+raw = mne.io.read_raw_fif(raw_fname, preload=False)
 raw.info['bads'] = ['MEG 2443']  # bad MEG channel
 
 # Set up the epoching
@@ -188,15 +188,12 @@ stc = apply_lcmv(evoked, filters, max_ori_out='signed')
 
 lims = [0.3, 0.45, 0.6]
 
-stc.plot(
-    src=forward['src'], subject='sample', subjects_dir=subjects_dir,
-    clim=dict(kind='value', pos_lims=lims), mode='stat_map',
-    initial_time=0.087, verbose=True)
+kwargs = dict(src=forward['src'], subject='sample', subjects_dir=subjects_dir,
+              initial_time=0.087, verbose=True)
+
+stc.plot(mode='stat_map', clim=dict(kind='value', pos_lims=lims), **kwargs)
 ###############################################################################
-stc.plot(
-    src=forward['src'], subject='sample', subjects_dir=subjects_dir,
-    mode='glass_brain', clim=dict(kind='value', lims=lims),
-    initial_time=0.087, verbose=True)
+stc.plot(mode='glass_brain', clim=dict(kind='value', lims=lims), **kwargs)
 
 
 ###############################################################################
