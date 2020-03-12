@@ -993,14 +993,19 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
         return
 
     data = ica.get_components()[:, idx]
-    data_picks, pos, merge_grads, names, _, sphere, clip_origin = \
+    data_picks, pos, merge_channels, names, _, sphere, clip_origin = \
         _prepare_topomap_plot(ica, ch_type, layout, sphere=sphere)
     data = data[data_picks]
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin,
                                    head_pos)
 
-    if merge_grads:
-        data = _merge_grad_data(data)
+    if merge_channels:
+        if ch_type == 'grad':
+            data = _merge_grad_data(data)
+        else:
+            assert ch_type in _fnirs_types
+            data, names = _merge_nirs_data(data, names)
+
     axes.set_title(ica._ica_names[idx], fontsize=12)
     vmin_, vmax_ = _setup_vmin_vmax(data, vmin, vmax)
     im = plot_topomap(
