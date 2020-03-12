@@ -115,8 +115,6 @@ class _Brain(object):
        +---------------------------+--------------+-----------------------+
        | foci                      | ✓            |                       |
        +---------------------------+--------------+-----------------------+
-       | index_for_time            | ✓            | ✓                     |
-       +---------------------------+--------------+-----------------------+
        | labels                    | ✓            |                       |
        +---------------------------+--------------+-----------------------+
        | labels_dict               | ✓            |                       |
@@ -371,6 +369,7 @@ class _Brain(object):
                     raise ValueError('time has shape %s, but need shape %s '
                                      '(array.shape[-1])' %
                                      (time.shape, (array.shape[-1],)))
+            self._data["time"] = time
 
             if self._n_times is None:
                 self._n_times = len(time)
@@ -386,7 +385,8 @@ class _Brain(object):
             if initial_time is None:
                 time_idx = 0
             else:
-                time_idx = self.index_for_time(initial_time)
+                time_idx = self._to_time_index(initial_time)
+            self._data["time_idx"] = time_idx
 
             # time label
             if isinstance(time_label, str):
@@ -395,13 +395,12 @@ class _Brain(object):
                 def time_label(x):
                     return time_label_fmt % x
             self._data["time_label"] = time_label
-            self._data["time"] = time
-            self._data["time_idx"] = 0
             y_txt = 0.05 + 0.1 * bool(colorbar)
 
         if time is not None and len(array.shape) == 2:
             # we have scalar_data with time dimension
-            act_data = array[:, time_idx]
+            act_data, act_time = self._interpolate_data(array, time_idx)
+            self._current_time = act_time
         else:
             # we have scalar data without time
             act_data = array
@@ -479,7 +478,7 @@ class _Brain(object):
                     time_actor = self._renderer.text2d(
                         x_window=0.95, y_window=y_txt,
                         size=time_label_size,
-                        text=time_label(time[time_idx]),
+                        text=time_label(self._current_time),
                         justification='right'
                     )
                     self._data['time_actor'] = time_actor
@@ -724,46 +723,6 @@ class _Brain(object):
         """
         pass
 
-    def index_for_time(self, time, rounding='closest'):
-        """Find the data time index closest to a specific time point.
-
-        Parameters
-        ----------
-        time : scalar
-            Time.
-        rounding : 'closest' | 'up' | 'down'
-            How to round if the exact time point is not an index.
-
-        Returns
-        -------
-        index : int
-            Data time index closest to time.
-        """
-        if self._n_times is None:
-            raise RuntimeError("Brain has no time axis")
-        times = self._times
-
-        # Check that time is in range
-        tmin = np.min(times)
-        tmax = np.max(times)
-        max_diff = (tmax - tmin) / (len(times) - 1) / 2
-        if time < tmin - max_diff or time > tmax + max_diff:
-            err = ("time = %s lies outside of the time axis "
-                   "[%s, %s]" % (time, tmin, tmax))
-            raise ValueError(err)
-
-        if rounding == 'closest':
-            idx = np.argmin(np.abs(times - time))
-        elif rounding == 'up':
-            idx = np.nonzero(times >= time)[0][0]
-        elif rounding == 'down':
-            idx = np.nonzero(times <= time)[0][-1]
-        else:
-            err = "Invalid rounding parameter: %s" % repr(rounding)
-            raise ValueError(err)
-
-        return idx
-
     def close(self):
         """Close all figures and cleanup data structure."""
         self._renderer.close()
@@ -861,10 +820,19 @@ class _Brain(object):
                     self._data[hemi]['smooth_mat'] = smooth_mat
         self.set_time_point(self._data['time_idx'])
 
+    def _interpolate_data(self, array, time_idx):
+        from scipy.interpolate import interp1d
+        times = np.arange(self._n_times)
+        act_data = interp1d(
+            times, array, self.interp_kind, axis=1,
+            assume_sorted=True)(time_idx)
+        ifunc = interp1d(times, self._data['time'])
+        act_time = ifunc(time_idx)
+        return act_data, act_time
+
     def set_time_point(self, time_idx):
         """Set the time point shown."""
         from ..backends._pyvista import _set_mesh_scalars
-        from scipy.interpolate import interp1d
         time = self._data['time']
         for hemi in ['lh', 'rh']:
             hemi_data = self._data.get(hemi)
@@ -877,12 +845,9 @@ class _Brain(object):
                             act_data = array[:, time_idx]
                             self._current_time = time[time_idx]
                         else:
-                            times = np.arange(self._n_times)
-                            act_data = interp1d(
-                                times, array, self.interp_kind, axis=1,
-                                assume_sorted=True)(time_idx)
-                            ifunc = interp1d(times, self._data['time'])
-                            self._current_time = ifunc(time_idx)
+                            act_data, act_time = self._interpolate_data(
+                                array, time_idx)
+                            self._current_time = act_time
 
                     smooth_mat = hemi_data['smooth_mat']
                     if smooth_mat is not None:
@@ -1030,7 +995,7 @@ class _Brain(object):
                     _set_colormap_range(actor, ctable, scalar_bar, rng)
                     self._data['ctable'] = ctable
 
-    def to_time_index(self, value):
+    def _to_time_index(self, value):
         """Return the interpolated time index of the given time value."""
         time = self._data['time']
         value = np.interp(value, time, np.arange(len(time)))

@@ -115,7 +115,7 @@ class TimeSlider(object):
         """Update the time slider."""
         value = float(value)
         if not time_as_index:
-            value = self.brain.to_time_index(value)
+            value = self.brain._to_time_index(value)
         self.brain.set_time_point(value)
         if self.callback is not None:
             self.callback()
