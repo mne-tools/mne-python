@@ -98,7 +98,10 @@ crosstalk_file = os.path.join(sample_data_folder, 'SSS', 'ct_sparse_mgh.fif')
 #     bad channel noise from spreading.
 #
 # Let's see if we can automatically detect it. To do this we need to
-# operate on a low-passed signal:
+# operate on a signal without line noise or cHPI signals, which is most
+# easily achieved using :func:`mne.chpi.filter_chpi`,
+# :func:`mne.io.Raw.notch_filter`, or :meth:`mne.io.Raw.filter`. For simplicity
+# we just low-pass filter these data:
 
 raw.info['bads'] = []
 raw_check = raw.copy().pick_types(exclude=()).filter(None, 40)
