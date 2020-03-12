@@ -267,6 +267,8 @@ class _TimeViewer(object):
 
         self.brain = brain
         self.brain.time_viewer = self
+        self.brain._save_movie = self.brain.save_movie
+        self.brain.save_movie = self.save_movie
         self.plotter = brain._renderer.plotter
         self.window = self.plotter.app_window
         self.status_bar = self.window.statusBar()
@@ -584,7 +586,7 @@ class _TimeViewer(object):
             self.interactor.setCursor(QCursor(Qt.WaitCursor))
 
             try:
-                self.brain.save_movie(
+                self.brain._save_movie(
                     filename=filename,
                     time_dilation=(1. / self.playback_speed),
                     callback=frame_callback,
