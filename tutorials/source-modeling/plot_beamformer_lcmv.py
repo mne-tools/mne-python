@@ -17,7 +17,7 @@ activity.
 # sphinx_gallery_thumbnail_number = 5
 
 import mne
-from mne.datasets import sample
+from mne.datasets import sample, fetch_fsaverage
 from mne.beamformer import make_lcmv, apply_lcmv
 
 ###############################################################################
@@ -50,7 +50,7 @@ subjects_dir = data_path + '/subjects'
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 # Read the raw data
-raw = mne.io.read_raw_fif(raw_fname, preload=False)
+raw = mne.io.read_raw_fif(raw_fname, preload=True)
 raw.info['bads'] = ['MEG 2443']  # bad MEG channel
 
 # Set up the epoching
@@ -98,6 +98,7 @@ noise_cov = mne.compute_covariance(epochs, tmin=tmin, tmax=0,
 
 data_cov.plot(epochs.info)
 
+###############################################################################
 # When looking at the covariance matrix plots, we can see that our data is
 # slightly rank-deficient as the rank is not equal to the number of channels.
 # Thus, we will have to regularize the covariance matrix before inverting it
@@ -197,6 +198,27 @@ stc.plot(mode='stat_map', clim=dict(kind='value', pos_lims=lims), **kwargs)
 ###############################################################################
 stc.plot(mode='glass_brain', clim=dict(kind='value', lims=lims), **kwargs)
 
+###############################################################################
+# Morph the output to fsaverage
+#
+# We can also use volumetric morphing to get the data to fsaverage space. This
+# is for example necessary when comparing activity across subjects.
+# We pass a :class:`mne.SourceMorph` as the ``src`` argument to
+# `mne.VolSourceEstimate.plot`. To save some computational load when applying
+# the morph, we will crop the ``stc``:
+
+fetch_fsaverage(subjects_dir)  # ensure fsaverage src exists
+fname_fs_src = subjects_dir + '/fsaverage/bem/fsaverage-vol-5-src.fif'
+src_fs = mne.read_source_spaces(fname_fs_src)
+morph = mne.compute_source_morph(
+    forward['src'], subject_from='sample', src_to=src_fs,
+    subjects_dir=subjects_dir,
+    niter_sdr=[10, 10, 5], niter_affine=[10, 10, 5],  # just for speed
+    verbose=True)
+stc_fs = morph.apply(stc.copy().crop(0.05, 0.15))
+stc_fs.plot(
+    src=src_fs, mode='stat_map', initial_time=0.085, subjects_dir=subjects_dir,
+    clim=dict(kind='value', pos_lims=lims), verbose=True)
 
 ###############################################################################
 # References
