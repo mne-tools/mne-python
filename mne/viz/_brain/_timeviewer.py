@@ -5,6 +5,7 @@
 # License: Simplified BSD
 
 from itertools import cycle
+from functools import partial
 import os
 import time
 import traceback
@@ -543,21 +544,16 @@ class _TimeViewer(object):
         # display help message for 3 seconds
         self.status_bar.showMessage("Press ? for help", 3000)
 
-    def save_movie(self, **kwargs):
-        from pyvista.plotting.qt_plotting import FileDialog
+    def _save_movie(self, filename, **kwargs):
         from PyQt5.QtCore import Qt
         from PyQt5.QtGui import QCursor
-
-        self.status_msg.setText(_sanitize("📁 Choose movie path ..."))
-        self.status_msg.show()
-        self.status_progress.setValue(0)
 
         def frame_callback(frame, n_frames):
             if frame == n_frames:
                 # On the ImageIO step
                 self.status_msg.setText(
                     _sanitize("💾 Saving with ImageIO: %s"
-                              % (dialog.selectedFiles()[0],))
+                              % filename)
                 )
                 self.status_msg.show()
                 self.status_progress.hide()
@@ -577,38 +573,51 @@ class _TimeViewer(object):
             self.status_msg.parent().update()
             self.status_msg.repaint()
 
-        def _save_movie(filename):
-            # temporarily hide interface
-            default_visibility = self.visibility
-            self.toggle_interface(value=False)
-            # set cursor to busy
-            default_cursor = self.interactor.cursor()
-            self.interactor.setCursor(QCursor(Qt.WaitCursor))
+        # temporarily hide interface
+        default_visibility = self.visibility
+        self.toggle_interface(value=False)
+        # set cursor to busy
+        default_cursor = self.interactor.cursor()
+        self.interactor.setCursor(QCursor(Qt.WaitCursor))
 
-            try:
-                self.brain._save_movie(
-                    filename=filename,
-                    time_dilation=(1. / self.playback_speed),
-                    callback=frame_callback,
-                    **kwargs
-                )
-            except (Exception, KeyboardInterrupt):
-                warn('Movie saving aborted:\n' + traceback.format_exc())
+        try:
+            self.brain._save_movie(
+                filename=filename,
+                time_dilation=(1. / self.playback_speed),
+                callback=frame_callback,
+                **kwargs
+            )
+        except (Exception, KeyboardInterrupt):
+            warn('Movie saving aborted:\n' + traceback.format_exc())
 
-            # restore visibility
-            self.toggle_interface(value=default_visibility)
-            # restore cursor
-            self.interactor.setCursor(default_cursor)
+        # restore visibility
+        self.toggle_interface(value=default_visibility)
+        # restore cursor
+        self.interactor.setCursor(default_cursor)
 
-        def _clean(unused):
-            del unused
-            self.status_msg.hide()
-            self.status_progress.hide()
+    def save_movie(self, filename=None, **kwargs):
+        from pyvista.plotting.qt_plotting import FileDialog
 
-        dialog = FileDialog(self.plotter.app_window, callback=_save_movie)
-        dialog.setDirectory(os.getcwd())
-        dialog.finished.connect(_clean)
-        return dialog
+        if filename is None:
+            self.status_msg.setText(_sanitize("📁 Choose movie path ..."))
+            self.status_msg.show()
+            self.status_progress.setValue(0)
+
+            def _clean(unused):
+                del unused
+                self.status_msg.hide()
+                self.status_progress.hide()
+
+            dialog = FileDialog(
+                self.plotter.app_window,
+                callback=partial(self._save_movie, **kwargs)
+            )
+            dialog.setDirectory(os.getcwd())
+            dialog.finished.connect(_clean)
+            return dialog
+        else:
+            self._save_movie(filename=filename, **kwargs)
+            return
 
     def keyPressEvent(self, event):
         callback = self.key_bindings.get(event.text())
