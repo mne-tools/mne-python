@@ -70,10 +70,12 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
 evoked = epochs.average()
 evoked.plot_joint()
 
+del raw  # save memory
+
 ###############################################################################
-# Computation of covariance matrices
-# ----------------------------------
-# Spatial filters are using the data covariance in the estimation of the filter
+# Computing the covariance matrices
+# ---------------------------------
+# Spatial filters use the data covariance to estimate the filter
 # weights. The data covariance matrix will be `inverted`_ during the spatial
 # filter computation, so it is valuable to plot the covariance matrix and its
 # eigenvalues to gauge whether matrix inversion will be possible.
@@ -81,7 +83,8 @@ evoked.plot_joint()
 # gradiometers), we need to account for the different amplitude scales of these
 # channel types. To do this we will supply a noise covariance matrix to the
 # beamformer, which will be used for whitening.
-# The data covariance matrix should be estimated from a relevant time window
+# The data covariance matrix should be estimated from a time window that
+# includes the brain signal of interest,
 # and incorporate enough samples for a stable estimate. Here, we use a time
 # window incorporating the expected auditory response at around 100 ms post
 # stimulus and extend the period to account for a low number of trials (72) and
@@ -106,12 +109,12 @@ data_cov.plot(epochs.info)
 # The forward model
 # -----------------
 # The forward model is the other important ingredient for the computation of a
-# spatial filter. Here, we will load the forward model from disk, more
+# spatial filter. Here, we will load the forward model from disk; more
 # information on how to create a forward model can be found in this tutorial:
 # :ref:`tut-forward`.
 # Note that beamformers are usually computed in a :class:`volume source space
-# <mne.VolSourceEstimate>`, as a visualization of only the surface activation
-# can misrepresent the data.
+# <mne.VolSourceEstimate>`, because estimating only cortical surface
+# activation can misrepresent the data.
 
 # Read forward model
 fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-vol-7-fwd.fif'
@@ -119,31 +122,37 @@ forward = mne.read_forward_solution(fwd_fname)
 
 
 ###############################################################################
+# Handling depth bias
+# -------------------
+#
+# The forward model solution is inherently biased toward superficial sources.
+# When analyzing single conditions it is best to mitigate the depth bias
+# somehow. There are several ways to do this:
+#
+# - :func:`mne.beamformer.make_lcmv` has a ``depth`` parameter that normalizes
+#   the forward model prior to computing the spatial filters. See the docstring
+#   for details.
+# - "Unit noise gain" beamformers handle depth bias by normalizing the
+#   weights of the spatial filter. Choose this by setting
+#   ``weight_norm='unit-noise-gain'``.
+# - "Neural activity index" beamformers handle depth bias by normalizing both
+#   the weights and the estimated noise (see [1]_). Choose this by setting
+#   ``weight_norm='nai'``.
+#
+# Note that when comparing conditions, the depth bias will cancel out and it is
+# possible to set both parameters to ``None``.
+#
+#
 # Compute the spatial filter
 # --------------------------
-# Now we can compute the spatial filter.
-#
-# Different variants of the LCMV beamformer exist. We will compute a
-# unit-noise-gain beamformer, which normalizes the beamformer weights to take
-# care of a depth bias, which is inherent to the forward model solution. To
-# achieve this, we set ``weight_norm='unit-noise-gain'``. Other possibilities
-# to cope with this depth bias are the normalization of the forward model
-# setting the ``depth`` parameter when computing the spatial filter or the
-# contrasting of conditions (then the depth bias will cancel out).
-# This parameter can also be set to ``'nai'`` (Neural Activity Index, see [1]_)
-# which implements
-# a further normalization with the estimated noise. An alternative way to take
-# care of this depth bias is to use the ``depth`` parameter and normalize the
-# forward solution instead of the weights. Note that if you compare conditions,
-# the depth bias will cancel out and it is possible to set both parameters to
-# ``None``.
-#
-# Furthermore, we will optimize the orientation of the sources such that output
+# Now we can compute the spatial filter. We'll use "unit noise gain" to deal
+# with depth bias, and will also
+# optimize the orientation of the sources such that output
 # power is maximized. This is achieved by setting ``pick_ori='max-power'``.
 # This gives us one source estimate per source (i.e., voxel), which is known
 # as a scalar beamformer. It is also possible to compute a vector beamformer,
 # which gives back three estimates per voxel, corresponding to the three
-# directions of the source. This can be achieved by setting
+# direction components of the source. This can be achieved by setting
 # ``pick_ori='vector'`` and will yield a :class:`volume vector source estimate
 # <mne.VolVectorSourceEstimate>`.
 
@@ -174,7 +183,7 @@ stc = apply_lcmv(evoked, filters, max_ori_out='signed')
 # We can visualize the source estimate in different ways, e.g. as an overlay
 # onto the MRI or as a glass brain.
 # The plots show brain activity in the right temporal lobe around 100 ms post
-# stimulus. This is coherent with the left-ear auditory stimulation of the
+# stimulus. This is expected given the left-ear auditory stimulation of the
 # experiment.
 
 lims = [0.3, 0.45, 0.6]
