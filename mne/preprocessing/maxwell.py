@@ -205,7 +205,8 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
            Physics in Medicine and Biology, vol. 51, pp. 1759-1768, 2006.
            https://doi.org/10.1088/0031-9155/51/7/008
     """  # noqa: E501
-    return _maxwell_filter(
+    logger.info('Maxwell filtering raw data')
+    params, update_kwargs = _prep_maxwell_filter(
         raw=raw, origin=origin, int_order=int_order, ext_order=ext_order,
         calibration=calibration, cross_talk=cross_talk,
         st_duration=st_duration, st_correlation=st_correlation,
@@ -214,17 +215,23 @@ def maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         bad_condition=bad_condition, head_pos=head_pos, st_fixed=st_fixed,
         st_only=st_only, mag_scale=mag_scale,
         skip_by_annotation=skip_by_annotation)
+    raw_sss = _run_maxwell_filter(reconstruct='in', **params)
+    # Update info
+    _update_sss_info(raw_sss, **update_kwargs)
+    logger.info('[done]')
+    return raw_sss
 
 
 @verbose
-def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
-                    calibration=None, cross_talk=None, st_duration=None,
-                    st_correlation=0.98, coord_frame='head', destination=None,
-                    regularize='in', ignore_ref=False, bad_condition='error',
-                    head_pos=None, st_fixed=True, st_only=False,
-                    mag_scale=100.,
-                    skip_by_annotation=('edge', 'bad_acq_skip'),
-                    reconstruct='in', proc_msg=True, verbose=None):
+def _prep_maxwell_filter(
+        raw, origin='auto', int_order=8, ext_order=3,
+        calibration=None, cross_talk=None, st_duration=None,
+        st_correlation=0.98, coord_frame='head', destination=None,
+        regularize='in', ignore_ref=False, bad_condition='error',
+        head_pos=None, st_fixed=True, st_only=False,
+        mag_scale=100.,
+        skip_by_annotation=('edge', 'bad_acq_skip'),
+        reconstruct='in', verbose=None):
     # There are an absurd number of different possible notations for spherical
     # coordinates, which confounds the notation for spherical harmonics.  Here,
     # we purposefully stay away from shorthand notation in both and use
@@ -244,16 +251,8 @@ def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     _check_option('coord_frame', coord_frame, ['head', 'meg'])
     head_frame = True if coord_frame == 'head' else False
     recon_trans = _check_destination(destination, raw.info, head_frame)
-    onsets, ends = _annotations_starts_stops(
-        raw, skip_by_annotation, invert=True)
-    max_samps = (ends - onsets).max()
     if st_duration is not None:
         st_duration = float(st_duration)
-        if not 0. < st_duration * raw.info['sfreq'] <= max_samps + 1.:
-            raise ValueError('st_duration (%0.1fs) must be between 0 and the '
-                             'longest contiguous duration of the data '
-                             '(%0.1fs).' % (st_duration,
-                                            max_samps / raw.info['sfreq']))
         st_correlation = float(st_correlation)
         st_duration = int(round(st_duration * raw.info['sfreq']))
         if not 0. < st_correlation <= 1:
@@ -274,9 +273,6 @@ def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                 ctc=not st_only and cross_talk is not None)
 
     # Now we can actually get moving
-
-    if proc_msg:
-        logger.info('Maxwell filtering raw data')
     add_channels = (head_pos[0] is not None) and not st_only
     raw_sss, pos_picks = _copy_preload_add_channels(
         raw, add_channels=add_channels)
@@ -286,8 +282,7 @@ def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         _remove_meg_projs(raw_sss)
     info = raw_sss.info
     meg_picks, mag_picks, grad_picks, good_picks, mag_or_fine = \
-        _get_mf_picks(info, int_order, ext_order, ignore_ref,
-                      proc_msg=proc_msg)
+        _get_mf_picks(info, int_order, ext_order, ignore_ref)
 
     # Magnetometers are scaled to improve numerical stability
     coil_scale, mag_scale = _get_coil_scale(
@@ -309,13 +304,17 @@ def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         origin_head = apply_trans(info['dev_head_t'], origin)
     else:
         origin_head = origin
-    orig_origin, orig_coord_frame = origin, coord_frame
-    del origin, coord_frame
+    update_kwargs = dict(
+        origin=origin, coord_frame=coord_frame, sss_cal=sss_cal,
+        int_order=int_order, ext_order=ext_order)
+    del origin, coord_frame, sss_cal
     origin_head.setflags(write=False)
 
     #
     # Cross-talk processing
     #
+    sss_ctc = dict()
+    ctc = None
     if cross_talk is not None:
         sss_ctc = _read_ctc(cross_talk)
         ctc_chs = sss_ctc['proj_items_chs']
@@ -337,8 +336,8 @@ def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         ctc = sss_ctc['decoupler'][ctc_picks][:, ctc_picks]
         # I have no idea why, but MF transposes this for storage..
         sss_ctc['decoupler'] = sss_ctc['decoupler'].T.tocsc()
-    else:
-        sss_ctc = dict()
+    update_kwargs['sss_ctc'] = sss_ctc
+    del sss_ctc
 
     #
     # Translate to destination frame (always use non-fine-cal bases)
@@ -372,45 +371,12 @@ def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         st_when = 'before' if st_fixed else 'after'  # relative to movecomp
     else:
         # st_duration from here on will act like the chunk size
-        st_duration = max(int(round(10. * info['sfreq'])), 1)
+        st_duration = min(max(int(round(10. * info['sfreq'])), 1),
+                          len(raw_sss.times))
         st_correlation = None
         st_when = 'never'
-    st_duration = min(max_samps, st_duration)
-    del st_fixed
-
-    # Generate time points to break up data into equal-length windows
-    starts, stops = list(), list()
-    for onset, end in zip(onsets, ends):
-        read_lims = np.arange(onset, end + 1, st_duration)
-        if len(read_lims) == 1:
-            read_lims = np.concatenate([read_lims, [end]])
-        if read_lims[-1] != end:
-            read_lims[-1] = end
-            # fold it into the previous buffer
-            n_last_buf = read_lims[-1] - read_lims[-2]
-            if st_correlation is not None and len(read_lims) > 2:
-                if n_last_buf >= st_duration:
-                    logger.info(
-                        '    Spatiotemporal window did not fit evenly into'
-                        'contiguous data segment. %0.2f seconds were lumped '
-                        'into the previous window.'
-                        % ((n_last_buf - st_duration) / info['sfreq'],))
-                else:
-                    logger.info(
-                        '    Contiguous data segment of duration %0.2f '
-                        'seconds is too short to be processed with tSSS '
-                        'using duration %0.2f'
-                        % (n_last_buf / info['sfreq'],
-                           st_duration / info['sfreq']))
-        assert len(read_lims) >= 2
-        assert read_lims[0] == onset and read_lims[-1] == end
-        starts.extend(read_lims[:-1])
-        stops.extend(read_lims[1:])
-        del read_lims
-
-    #
-    # Do the heavy lifting
-    #
+    update_kwargs['max_st'] = max_st
+    del st_fixed, max_st
 
     # Figure out which transforms we need for each tSSS block
     # (and transform pos[1] to times)
@@ -433,9 +399,71 @@ def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     S_decomp, S_decomp_full, pS_decomp, reg_moments, n_use_in = \
         _get_this_decomp_trans(info['dev_head_t'], t=0.)
     reg_moments_0 = reg_moments.copy()
+    update_kwargs.update(
+        nchan=len(good_picks), reg_moments=reg_moments_0, st_only=st_only,
+        recon_trans=recon_trans)
+    params = dict(
+        raw_sss=raw_sss, skip_by_annotation=skip_by_annotation,
+        st_duration=st_duration, st_correlation=st_correlation,
+        st_only=st_only, st_when=st_when, ctc=ctc,
+        this_pos_quat=this_pos_quat, meg_picks=meg_picks,
+        good_picks=good_picks, pos_picks=pos_picks, head_pos=head_pos,
+        _get_this_decomp_trans=_get_this_decomp_trans, S_recon=S_recon,
+        S_decomp=S_decomp, S_decomp_full=S_decomp_full,
+        pS_decomp=pS_decomp, n_use_in=n_use_in, reg_moments=reg_moments)
+    return params, update_kwargs
+
+
+def _run_maxwell_filter(
+        raw_sss, skip_by_annotation, st_duration, st_correlation, st_only,
+        st_when, ctc, this_pos_quat, meg_picks, good_picks,
+        pos_picks, head_pos, _get_this_decomp_trans, S_recon, S_decomp,
+        S_decomp_full, pS_decomp, n_use_in, reg_moments,
+        reconstruct='in', count_msg=True):
+    # Figure out which segments of data we can use
+    onsets, ends = _annotations_starts_stops(
+        raw_sss, skip_by_annotation, invert=True)
+    max_samps = (ends - onsets).max()
+    if not 0. < st_duration <= max_samps + 1.:
+        raise ValueError('st_duration (%0.1fs) must be between 0 and the '
+                         'longest contiguous duration of the data '
+                         '(%0.1fs).' % (st_duration / raw_sss.info['sfreq'],
+                                        max_samps / raw_sss.info['sfreq']))
+    # Generate time points to break up data into equal-length windows
+    starts, stops = list(), list()
+    for onset, end in zip(onsets, ends):
+        read_lims = np.arange(onset, end + 1, st_duration)
+        if len(read_lims) == 1:
+            read_lims = np.concatenate([read_lims, [end]])
+        if read_lims[-1] != end:
+            read_lims[-1] = end
+            # fold it into the previous buffer
+            n_last_buf = read_lims[-1] - read_lims[-2]
+            if st_correlation is not None and len(read_lims) > 2:
+                if n_last_buf >= st_duration:
+                    logger.info(
+                        '    Spatiotemporal window did not fit evenly into'
+                        'contiguous data segment. %0.2f seconds were lumped '
+                        'into the previous window.'
+                        % ((n_last_buf - st_duration) /
+                           raw_sss.info['sfreq'],))
+                else:
+                    logger.info(
+                        '    Contiguous data segment of duration %0.2f '
+                        'seconds is too short to be processed with tSSS '
+                        'using duration %0.2f'
+                        % (n_last_buf / raw_sss.info['sfreq'],
+                           st_duration / raw_sss.info['sfreq']))
+        assert len(read_lims) >= 2
+        assert read_lims[0] == onset and read_lims[-1] == end
+        starts.extend(read_lims[:-1])
+        stops.extend(read_lims[1:])
+        del read_lims
+    st_duration = min(max_samps, st_duration)
+
     # Loop through buffer windows of data
     n_sig = int(np.floor(np.log10(max(len(starts), 0)))) + 1
-    if proc_msg:
+    if count_msg:
         logger.info(
             '    Processing %s data chunk%s' % (len(starts), _pl(starts)))
     for ii, (start, stop) in enumerate(zip(starts, stops)):
@@ -450,7 +478,7 @@ def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         # this way so might as well just always take the original data
         out_meg_data = raw_sss._data[meg_picks, start:stop]
         # Apply cross-talk correction
-        if cross_talk is not None:
+        if ctc is not None:
             orig_data = ctc.dot(orig_data)
         out_pos_data = np.empty((len(pos_picks), stop - start))
 
@@ -539,15 +567,6 @@ def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                         % (n_positions, _pl(n_positions), t_str))
         raw_sss._data[meg_picks, start:stop] = out_meg_data
         raw_sss._data[pos_picks, start:stop] = out_pos_data
-
-    # Update info
-    if not st_only:
-        info['dev_head_t'] = recon_trans  # set the reconstruction transform
-    _update_sss_info(raw_sss, orig_origin, int_order, ext_order,
-                     len(good_picks), orig_coord_frame, sss_ctc, sss_cal,
-                     max_st, reg_moments_0, st_only)
-    if proc_msg:
-        logger.info('[done]')
     return raw_sss
 
 
@@ -887,8 +906,7 @@ def _regularize(regularize, exp, S_decomp, mag_or_fine, t, verbose=None):
 
 
 @verbose
-def _get_mf_picks(info, int_order, ext_order, ignore_ref=False, proc_msg=True,
-                  verbose=None):
+def _get_mf_picks(info, int_order, ext_order, ignore_ref=False, verbose=None):
     """Pick types for Maxwell filtering."""
     # Check for T1/T2 mag types
     mag_inds_T1T2 = _get_T1T2_mag_inds(info)
@@ -907,12 +925,11 @@ def _get_mf_picks(info, int_order, ext_order, ignore_ref=False, proc_msg=True,
         raise ValueError('Number of requested bases (%s) exceeds number of '
                          'good sensors (%s)' % (str(n_bases), len(good_picks)))
     recons = [ch for ch in meg_info['bads']]
-    if proc_msg:
-        if len(recons) > 0:
-            msg = '    Bad MEG channels being reconstructed: %s' % recons
-        else:
-            msg = '    No bad MEG channels'
-        logger.info(msg)
+    if len(recons) > 0:
+        msg = '    Bad MEG channels being reconstructed: %s' % recons
+    else:
+        msg = '    No bad MEG channels'
+    logger.info(msg)
     ref_meg = False if ignore_ref else 'mag'
     mag_picks = pick_types(meg_info, meg='mag', ref_meg=ref_meg, exclude=[])
     ref_meg = False if ignore_ref else 'grad'
@@ -1407,7 +1424,8 @@ def _check_info(info, sss=True, tsss=True, calibration=True, ctc=True):
 
 
 def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
-                     sss_ctc, sss_cal, max_st, reg_moments, st_only):
+                     sss_ctc, sss_cal, max_st, reg_moments, st_only,
+                     recon_trans):
     """Update info inplace after Maxwell filtering.
 
     Parameters
@@ -1433,6 +1451,8 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
         The moments that were used.
     st_only : bool
         Whether tSSS only was performed.
+    recon_trans : instance of Transformation
+        The reconstruction trans.
     """
     n_in, n_out = _get_n_moments([int_order, ext_order])
     raw.info['maxshield'] = False
@@ -1452,6 +1472,8 @@ def _update_sss_info(raw, origin, int_order, ext_order, nchan, coord_frame,
                              sss_ctc=sss_ctc)
         # Reset 'bads' for any MEG channels since they've been reconstructed
         _reset_meg_bads(raw.info)
+        # set the reconstruction transform
+        raw.info['dev_head_t'] = recon_trans
     block_id = _generate_meas_id()
     raw.info['proc_history'].insert(0, dict(
         max_info=max_info_dict, block_id=block_id, date=DATE_NONE,
@@ -1926,7 +1948,7 @@ def find_bad_channels_maxwell(
                 % (len(starts), _pl(starts), step / raw.info['sfreq']))
     bads = Counter()
     meg_picks, mag_picks, grad_picks, good_picks, _ = \
-        _get_mf_picks(raw.info, 8, 3, ignore_ref=True, proc_msg=False)
+        _get_mf_picks(raw.info, 8, 3, ignore_ref=True)
     coil_scale_, _ = _get_coil_scale(
         meg_picks, mag_picks, grad_picks, mag_scale, raw.info)
     coil_scale = np.ones(len(raw.ch_names))
@@ -1944,7 +1966,7 @@ def find_bad_channels_maxwell(
         calibration=calibration, cross_talk=cross_talk,
         coord_frame=coord_frame, regularize=regularize,
         ignore_ref=ignore_ref, bad_condition=bad_condition, head_pos=head_pos,
-        mag_scale=mag_scale, proc_msg=False,
+        mag_scale=mag_scale,
     )
     del origin, int_order, ext_order, calibration, cross_talk, coord_frame
     del regularize, ignore_ref, bad_condition, head_pos, mag_scale
@@ -1973,9 +1995,12 @@ def find_bad_channels_maxwell(
         for n_iter in range(1, 101):  # iteratively exclude the worst ones
             assert set(raw.info['bads']) & set(chunk_bads) == set()
             chunk_raw.info['bads'] = raw.info['bads'] + chunk_bads + flats
-            chunk_raw_sss = _maxwell_filter(
-                chunk_raw, reconstruct='orig', **mf_kwargs)
+
+            params, _ = _prep_maxwell_filter(chunk_raw, **mf_kwargs)
+            chunk_raw_sss = _run_maxwell_filter(
+                reconstruct='orig', count_msg=False, **params)
             mf_kwargs['verbose'] = False
+
             if n_iter == 1 and len(flats):
                 logger.info('    %s Flat (%2d): %s'
                             % (prefix, len(flats), ' '.join(flats)))
