@@ -13,7 +13,6 @@ import logging
 import os.path as op
 import warnings
 
-from ..fixes import _get_args
 from ..externals.decorator import FunctionMaker
 
 
@@ -62,36 +61,27 @@ def verbose(function):
     # See https://decorator.readthedocs.io/en/latest/tests.documentation.html
     # #dealing-with-third-party-decorators
     from .docs import fill_doc
-    arg_names = _get_args(function)
     try:
         fill_doc(function)
     except TypeError:  # nothing to add
         pass
 
-    def wrapper(*args, **kwargs):
-        default_level = verbose_level = None
-        if len(arg_names) > 0 and arg_names[0] == 'self':
-            default_level = getattr(args[0], 'verbose', None)
-        if 'verbose' in kwargs:
-            verbose_level = kwargs.pop('verbose')
-        else:
-            try:
-                verbose_level = args[arg_names.index('verbose')]
-            except (IndexError, ValueError):
-                pass
-
-        # This ensures that object.method(verbose=None) will use object.verbose
-        if verbose_level is None:
-            verbose_level = default_level
-        if verbose_level is not None:
-            # set it back if we get an exception
-            with use_log_level(verbose_level):
-                return function(*args, **kwargs)
-        return function(*args, **kwargs)
+    wrap_src = """\
+if verbose is None:
+    try:
+        verbose = self.verbose
+    except (NameError, AttributeError):
+        pass
+if verbose is not None:
+    with use_log_level(verbose):
+        return function(%(signature)s)
+return function(%(signature)s)"""
+    evaldict = dict(
+        use_log_level=use_log_level, function=function)
     return FunctionMaker.create(
-        function, 'return decfunc(%(signature)s)',
-        dict(decfunc=wrapper), __wrapped__=function,
-        __qualname__=function.__qualname__)
+        function, wrap_src, evaldict,
+        __wrapped__=function, __qualname__=function.__qualname__,
+        module=function.__module__)
 
 
 class use_log_level(object):
