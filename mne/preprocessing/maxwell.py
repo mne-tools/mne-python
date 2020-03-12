@@ -28,7 +28,7 @@ from ..io.constants import FIFF, FWD
 from ..io.meas_info import _simplify_info
 from ..io.proc_history import _read_ctc
 from ..io.write import _generate_meas_id, DATE_NONE
-from ..io import _loc_to_coil_trans, _coil_trans_to_loc, BaseRaw, RawArray
+from ..io import _loc_to_coil_trans, _coil_trans_to_loc, BaseRaw
 from ..io.pick import pick_types, pick_info
 from ..utils import (verbose, logger, _clean_names, warn, _time_mask, _pl,
                      _check_option, _ensure_int)
@@ -224,7 +224,7 @@ def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
                     head_pos=None, st_fixed=True, st_only=False,
                     mag_scale=100.,
                     skip_by_annotation=('edge', 'bad_acq_skip'),
-                    reconstruct='in', verbose=None):
+                    reconstruct='in', proc_msg=True, verbose=None):
     # There are an absurd number of different possible notations for spherical
     # coordinates, which confounds the notation for spherical harmonics.  Here,
     # we purposefully stay away from shorthand notation in both and use
@@ -275,7 +275,8 @@ def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
 
     # Now we can actually get moving
 
-    logger.info('Maxwell filtering raw data')
+    if proc_msg:
+        logger.info('Maxwell filtering raw data')
     add_channels = (head_pos[0] is not None) and not st_only
     raw_sss, pos_picks = _copy_preload_add_channels(
         raw, add_channels=add_channels)
@@ -285,7 +286,8 @@ def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
         _remove_meg_projs(raw_sss)
     info = raw_sss.info
     meg_picks, mag_picks, grad_picks, good_picks, mag_or_fine = \
-        _get_mf_picks(info, int_order, ext_order, ignore_ref)
+        _get_mf_picks(info, int_order, ext_order, ignore_ref,
+                      proc_msg=proc_msg)
 
     # Magnetometers are scaled to improve numerical stability
     coil_scale, mag_scale = _get_coil_scale(
@@ -433,7 +435,9 @@ def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     reg_moments_0 = reg_moments.copy()
     # Loop through buffer windows of data
     n_sig = int(np.floor(np.log10(max(len(starts), 0)))) + 1
-    logger.info('    Processing %s data chunk%s' % (len(starts), _pl(starts)))
+    if proc_msg:
+        logger.info(
+            '    Processing %s data chunk%s' % (len(starts), _pl(starts)))
     for ii, (start, stop) in enumerate(zip(starts, stops)):
         tsss_valid = (stop - start) >= st_duration
         rel_times = raw_sss.times[start:stop]
@@ -542,7 +546,8 @@ def _maxwell_filter(raw, origin='auto', int_order=8, ext_order=3,
     _update_sss_info(raw_sss, orig_origin, int_order, ext_order,
                      len(good_picks), orig_coord_frame, sss_ctc, sss_cal,
                      max_st, reg_moments_0, st_only)
-    logger.info('[done]')
+    if proc_msg:
+        logger.info('[done]')
     return raw_sss
 
 
@@ -882,7 +887,8 @@ def _regularize(regularize, exp, S_decomp, mag_or_fine, t, verbose=None):
 
 
 @verbose
-def _get_mf_picks(info, int_order, ext_order, ignore_ref=False, verbose=None):
+def _get_mf_picks(info, int_order, ext_order, ignore_ref=False, proc_msg=True,
+                  verbose=None):
     """Pick types for Maxwell filtering."""
     # Check for T1/T2 mag types
     mag_inds_T1T2 = _get_T1T2_mag_inds(info)
@@ -901,10 +907,12 @@ def _get_mf_picks(info, int_order, ext_order, ignore_ref=False, verbose=None):
         raise ValueError('Number of requested bases (%s) exceeds number of '
                          'good sensors (%s)' % (str(n_bases), len(good_picks)))
     recons = [ch for ch in meg_info['bads']]
-    if len(recons) > 0:
-        logger.info('    Bad MEG channels being reconstructed: %s' % recons)
-    else:
-        logger.info('    No bad MEG channels')
+    if proc_msg:
+        if len(recons) > 0:
+            msg = '    Bad MEG channels being reconstructed: %s' % recons
+        else:
+            msg = '    No bad MEG channels'
+        logger.info(msg)
     ref_meg = False if ignore_ref else 'mag'
     mag_picks = pick_types(meg_info, meg='mag', ref_meg=ref_meg, exclude=[])
     ref_meg = False if ignore_ref else 'grad'
@@ -1836,7 +1844,9 @@ def find_bad_channels_maxwell(
     Parameters
     ----------
     raw : instance of Raw
-        Raw data to process.
+        Raw data to process. For equivalence with MaxFilter, it's recommended
+        to low-pass filter your data (e.g., at 40 Hz) prior to running
+        this function.
     limit : float
         Detection limit (default is 7.). Smaller values will find more bad
         channels at increased risk of including good ones.
@@ -1875,13 +1885,12 @@ def find_bad_channels_maxwell(
     1. Runs SSS on the data, without removing external components.
     2. Exclude channels as flat that have had low variance (< 0.01 fT or fT/cm
        in a 30 ms window) in the given or any previous chunk.
-    3. Low-pass and decimate (by a factor of ``duration``) the data.
-    4. For each channel :math:`k`, computes the peak-to-peak :math:`d_k`
+    3. For each channel :math:`k`, computes the peak-to-peak :math:`d_k`
        of the difference between the reconstructed and original data.
-    5. Computes the average :math:`\mu_d` and standard deviation
+    4. Computes the average :math:`\mu_d` and standard deviation
        :math:`\sigma_d` of the deltas (after scaling magnetometer data
        to roughly match the scale of the gradiometer data using ``mag_scale``).
-    6. Channels are marked as bad for the chunk when
+    5. Channels are marked as bad for the chunk when
        :math:`d_k > \mu_d + \textrm{limit} \times \sigma_d`.
 
     Data are processed in chunks of the given ``duration``, and channels that
@@ -1897,7 +1906,6 @@ def find_bad_channels_maxwell(
 
     .. versionadded:: 0.20
     """
-    from scipy.signal import get_window
     limit = float(limit)
     onsets, ends = _annotations_starts_stops(
         raw, skip_by_annotation, invert=True)
@@ -1918,7 +1926,7 @@ def find_bad_channels_maxwell(
                 % (len(starts), _pl(starts), step / raw.info['sfreq']))
     bads = Counter()
     meg_picks, mag_picks, grad_picks, good_picks, _ = \
-        _get_mf_picks(raw.info, 8, 3, ignore_ref=True)
+        _get_mf_picks(raw.info, 8, 3, ignore_ref=True, proc_msg=False)
     coil_scale_, _ = _get_coil_scale(
         meg_picks, mag_picks, grad_picks, mag_scale, raw.info)
     coil_scale = np.ones(len(raw.ch_names))
@@ -1930,20 +1938,17 @@ def find_bad_channels_maxwell(
     del meg_picks, mag_picks, grad_picks, coil_scale_
     flat_step = max(20, int(30 * raw.info['sfreq'] / 1000.))
     all_flats = set()
-    # filtered version
-    ds = max(int(round(duration)), 1)
-    h_freq = raw.info['sfreq'] / (ds * 3.)
-    logger.info('    Low-pass filtering data at %0.1f Hz' % (h_freq,))
     mf_kwargs = dict(
-        verbose=False, skip_by_annotation=[],  # already accounted for
+        verbose=None, skip_by_annotation=[],  # already accounted for
         origin=origin, int_order=int_order, ext_order=ext_order,
         calibration=calibration, cross_talk=cross_talk,
         coord_frame=coord_frame, regularize=regularize,
         ignore_ref=ignore_ref, bad_condition=bad_condition, head_pos=head_pos,
-        mag_scale=mag_scale,
+        mag_scale=mag_scale, proc_msg=False,
     )
     del origin, int_order, ext_order, calibration, cross_talk, coord_frame
     del regularize, ignore_ref, bad_condition, head_pos, mag_scale
+    logger.info('    Processing %d segments' % (len(starts),))
     for si, (start, stop) in enumerate(zip(starts, stops)):
         prefix = '%03d:' % (si,)
         n_iter = 0
@@ -1961,27 +1966,20 @@ def find_bad_channels_maxwell(
                        for chunk_flat in chunk_flats]
         all_flats |= set(chunk_flats)
         flats = sorted(all_flats)
-        if len(flats):
-            logger.info('    %s Flat (%2d): %s'
-                        % (prefix, len(flats), ' '.join(flats)))
-            prefix = '    '
         these_picks = [pick for pick in good_picks
                        if raw.ch_names[pick] not in flats]
         # Bad pass
         chunk_bads = list()
-        # downsample, windowing in time to avoid edge artifacts
-        chunk_raw._data *= get_window(('tukey', 0.1), n, False)
-        chunk_raw.filter(None, h_freq, h_trans_bandwidth=1., verbose='error')
-        chunk_raw = RawArray(
-            chunk_raw._data[:, ::ds],
-            chunk_raw.info, first_samp=chunk_raw.first_samp // ds,
-            verbose=False)
-        while True and n_iter < 100:  # iteratively exclude the worst ones
-            n_iter += 1
+        for n_iter in range(1, 101):  # iteratively exclude the worst ones
             assert set(raw.info['bads']) & set(chunk_bads) == set()
             chunk_raw.info['bads'] = raw.info['bads'] + chunk_bads + flats
             chunk_raw_sss = _maxwell_filter(
                 chunk_raw, reconstruct='orig', **mf_kwargs)
+            mf_kwargs['verbose'] = False
+            if n_iter == 1 and len(flats):
+                logger.info('    %s Flat (%2d): %s'
+                            % (prefix, len(flats), ' '.join(flats)))
+                prefix = '    '
             delta = chunk_raw.get_data(these_picks)
             delta -= chunk_raw_sss.get_data(these_picks)
             # p2p

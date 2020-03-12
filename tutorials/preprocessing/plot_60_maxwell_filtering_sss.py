@@ -88,9 +88,8 @@ fine_cal_file = os.path.join(sample_data_folder, 'SSS', 'sss_cal_mgh.dat')
 crosstalk_file = os.path.join(sample_data_folder, 'SSS', 'ct_sparse_mgh.fif')
 
 ###############################################################################
-# Before we perform SSS we'll set a couple additional bad channels — ``MEG
-# 2313`` has some DC jumps and ``MEG 1032`` has some large-ish low-frequency
-# drifts.
+# Before we perform SSS we'll look for bad channels — ``MEG 2443`` is quite
+# noisy.
 #
 # .. warning::
 #
@@ -98,22 +97,30 @@ crosstalk_file = os.path.join(sample_data_folder, 'SSS', 'ct_sparse_mgh.fif')
 #     calling :func:`~mne.preprocessing.maxwell_filter` in order to prevent
 #     bad channel noise from spreading.
 #
-# Let's see if we can automatically detect them. To do this we will
-# operate on a downsampled (lowpassed and decimated) signal:
+# Let's see if we can automatically detect it. To do this we need to
+# operate on a low-passed signal:
 
-raw_check = raw.copy().pick_types(exclude=()).resample(100)
-raw_check.filter(0.1, None)
+raw.info['bads'] = []
+raw_check = raw.copy().pick_types(exclude=()).filter(None, 40)
 auto_bads = mne.preprocessing.find_bad_channels_maxwell(
     raw_check, cross_talk=crosstalk_file, calibration=fine_cal_file,
-    min_count=3, verbose=True)  # shorter recording, lower min_count
+    verbose=True)
 print(auto_bads)  # we should find them!
+raw.info['bads'].extend(auto_bads)
+
+###############################################################################
+# But this algorithm is not perfect. For example, it misses ``MEG 2313``,
+# which has some flux jumps, because there are not enough flux jumps in the
+# recording. So it can still be useful to manually inspect and mark bad
+# channels:
+
+raw.info['bads'] += ['MEG 2313']  # from manual inspection
 
 ###############################################################################
 # After that, performing SSS and Maxwell filtering is done with a
 # single call to :func:`~mne.preprocessing.maxwell_filter`, with the crosstalk
 # and fine calibration filenames provided (if available):
 
-raw.info['bads'].extend(auto_bads)
 raw_sss = mne.preprocessing.maxwell_filter(
     raw, cross_talk=crosstalk_file, calibration=fine_cal_file, verbose=True)
 

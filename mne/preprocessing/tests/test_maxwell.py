@@ -1049,6 +1049,7 @@ def test_find_bad_channels_maxwell(bads):
     """Test automatic bad channel detection."""
     raw = mne.io.read_raw_fif(sample_fname, allow_maxshield='yes')
     raw.fix_mag_coil_types().load_data().pick_types(exclude=())
+    raw.filter(None, 40)
     raw.info['bads'] = bads
     # maxfilter -autobad on -v -f test_raw.fif -force -cal off -ctc off -regularize off -list -o test_raw.fif -f ~/mne_data/MNE-testing-data/MEG/sample/sample_audvis_trunc_raw.fif  # noqa: E501
     got_bads = find_bad_channels_maxwell(
