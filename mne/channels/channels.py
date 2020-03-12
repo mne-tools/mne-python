@@ -962,7 +962,7 @@ class InterpolationMixin(object):
 
     @verbose
     def interpolate_bads(self, reset_bads=True, mode='accurate',
-                         origin='auto', verbose=None):
+                         fnirs_method='nearest', origin='auto', verbose=None):
         """Interpolate bad MEG and EEG channels.
 
         Operates in place.
@@ -975,6 +975,9 @@ class InterpolationMixin(object):
             Either ``'accurate'`` or ``'fast'``, determines the quality of the
             Legendre polynomial expansion used for interpolation of MEG
             channels.
+        fnirs_method : str
+            Method to be used for fNIRS interpolation. Currently only 'nearest'
+            is supported.
         origin : array-like, shape (3,) | str
             Origin of the sphere in the head coordinate frame and in meters.
             Can be ``'auto'`` (default), which means a head-digitization-based
@@ -993,7 +996,8 @@ class InterpolationMixin(object):
         .. versionadded:: 0.9.0
         """
         from ..bem import _check_origin
-        from .interpolation import _interpolate_bads_eeg, _interpolate_bads_meg
+        from .interpolation import _interpolate_bads_eeg,\
+            _interpolate_bads_meg, _interpolate_bads_nirs
 
         _check_preload(self, "interpolation")
 
@@ -1003,6 +1007,7 @@ class InterpolationMixin(object):
         origin = _check_origin(origin, self.info)
         _interpolate_bads_eeg(self, origin=origin)
         _interpolate_bads_meg(self, mode=mode, origin=origin)
+        _interpolate_bads_nirs(self, method=fnirs_method)
 
         if reset_bads is True:
             self.info['bads'] = []
