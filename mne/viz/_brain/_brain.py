@@ -169,13 +169,10 @@ class _Brain(object):
         n_col = col_dict[hemi]
 
         size = tuple(np.atleast_1d(size).round(0).astype(int).flat)
-        if len(size) == 1:
-            fig_size = size * 2  # 1-tuple to 2-tuple
-        elif len(size) == 2:
-            fig_size = size
-        else:
+        if len(size) not in (1, 2):
             raise ValueError('"size" parameter must be an int or length-2 '
                              'sequence of ints.')
+        fig_size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
 
         self._foreground = foreground
         self._hemi = hemi
