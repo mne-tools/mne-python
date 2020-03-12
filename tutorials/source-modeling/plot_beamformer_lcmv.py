@@ -215,7 +215,7 @@ morph = mne.compute_source_morph(
     subjects_dir=subjects_dir,
     niter_sdr=[10, 10, 5], niter_affine=[10, 10, 5],  # just for speed
     verbose=True)
-stc_fs = morph.apply(stc.copy().crop(0.05, 0.15))
+stc_fs = morph.apply(stc.crop(0.05, 0.15))
 stc_fs.plot(
     src=src_fs, mode='stat_map', initial_time=0.085, subjects_dir=subjects_dir,
     clim=dict(kind='value', pos_lims=lims), verbose=True)
