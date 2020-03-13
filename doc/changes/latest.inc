@@ -131,7 +131,7 @@ Changelog
 
 - Expose the number of ICA iterations during the fitting procedure via the ``n_iter_`` attribute of :class:`mne.preprocessing.ICA` by `Richard Höchenberger`_
 
-- Produce brain movies with ``save_movie`` by `Guillaume Favelier`_
+- Support for saving movies of source time courses (STCs) with ``brain.save_movie`` method and from graphical user interface by `Guillaume Favelier`_
 
 Bug
 ~~~
