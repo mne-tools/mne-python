@@ -177,7 +177,9 @@ Bug
 
 - Fix :meth:`mne.read_epochs_eeglab` that ignored channel locations by `Alex Gramfort`_.
 
-- Fix :meth:`mne.io.read_raw_brainvision` when channel names have spaces by `Sebastian Major`_.
+- Fix :func:`mne.io.read_raw_brainvision` when channel names have spaces by `Sebastian Major`_.
+
+- Fix :func:`mne.io.read_raw_brainvision` when ``"Core"`` is in the data header by `Eric Larson`_
 
 - Fix :meth:`mne.io.Raw.anonymize` to correctly reset ``raw.annotations.orig_time`` by `Luke Bloy`_.
 

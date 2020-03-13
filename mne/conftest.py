@@ -155,7 +155,7 @@ def fix_pytest_tmpdir_35():
 
     for key in ('stat', 'mkdir', 'makedirs', 'access'):
         _replace(os, key)
-    for key in ('split', 'splitext', 'realpath', 'join'):
+    for key in ('split', 'splitext', 'realpath', 'join', 'basename'):
         _replace(op, key)
 
 

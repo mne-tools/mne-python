@@ -4,6 +4,7 @@
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
+#          Robert Luke <mail@robertluke.net>
 #
 # License: Simplified BSD
 
@@ -21,7 +22,7 @@ from ..defaults import HEAD_SIZE_DEFAULT
 from ..channels.channels import _get_ch_type
 from ..channels.layout import (
     _find_topomap_coords, _merge_grad_data, find_layout, _pair_grad_sensors,
-    Layout)
+    Layout, _merge_nirs_data)
 from ..io.pick import (pick_types, _picks_by_type, channel_type, pick_info,
                        _pick_data_channels, pick_channels, _picks_to_idx)
 from ..utils import (_clean_names, _time_mask, verbose, logger, warn, fill_doc,
@@ -35,6 +36,9 @@ from ..defaults import _handle_default
 from ..transforms import apply_trans, invert_transform
 from ..io.meas_info import Info, _simplify_info
 from ..io.proj import Projection
+
+
+_fnirs_types = ('hbo', 'hbr', 'fnirs_raw', 'fnirs_od')
 
 
 def _adjust_meg_sphere(sphere, info, ch_type):
@@ -91,18 +95,19 @@ def _prepare_topomap_plot(inst, ch_type, layout=None, sphere=None):
              layout.kind.startswith('Neuromag_122'))):
         picks, _ = _pair_grad_sensors(info, layout)
         pos = _find_topomap_coords(info, picks[::2], sphere=sphere)
-        merge_grads = True
+        merge_channels = True
+    elif ch_type in _fnirs_types:
+        # fNIRS data commonly has overlapping channels, so deal with separately
+        picks, pos, merge_channels, overlapping_channels = \
+            _average_fnirs_overlaps(info, ch_type, sphere)
     else:
-        merge_grads = False
+        merge_channels = False
         if ch_type == 'eeg':
             picks = pick_types(info, meg=False, eeg=True, ref_meg=False,
                                exclude='bads')
         elif ch_type == 'csd':
             picks = pick_types(info, meg=False, csd=True, ref_meg=False,
                                exclude='bads')
-        elif ch_type in ['hbo', 'hbr', 'fnirs_raw', 'fnirs_od']:
-            picks = pick_types(info, meg=False, ref_meg=False,
-                               fnirs=ch_type, exclude='bads')
         else:
             picks = pick_types(info, meg=ch_type, ref_meg=False,
                                exclude='bads')
@@ -113,12 +118,79 @@ def _prepare_topomap_plot(inst, ch_type, layout=None, sphere=None):
         pos = _find_topomap_coords(info, picks, sphere=sphere)
 
     ch_names = [info['ch_names'][k] for k in picks]
-    if merge_grads:
-        # change names so that vectorview combined grads appear as MEG014x
-        # instead of MEG0142 or MEG0143 which are the 2 planar grads.
-        ch_names = [ch_names[k][:-1] + 'x' for k in range(0, len(ch_names), 2)]
+    if ch_type in _fnirs_types:
+        # Remove the chroma label type for cleaner labeling.
+        ch_names = [k[:-4] for k in ch_names]
+
+    if merge_channels:
+        if ch_type == 'grad':
+            # change names so that vectorview combined grads appear as MEG014x
+            # instead of MEG0142 or MEG0143 which are the 2 planar grads.
+            ch_names = [ch_names[k][:-1] + 'x' for k in
+                        range(0, len(ch_names), 2)]
+        else:
+            assert ch_type in _fnirs_types
+            # Modify the nirs channel names to indicate they are to be merged
+            # New names will have the form  S1_D1xS2_D2
+            # More than two channels can overlap and be merged
+            for set in overlapping_channels:
+                idx = ch_names.index(set[0][:-4])
+                new_name = 'x'.join(s[:-4] for s in set)
+                ch_names[idx] = new_name
+
     pos = np.array(pos)[:, :2]  # 2D plot, otherwise interpolation bugs
-    return picks, pos, merge_grads, ch_names, ch_type, sphere, clip_origin
+    return picks, pos, merge_channels, ch_names, ch_type, sphere, clip_origin
+
+
+def _average_fnirs_overlaps(info, ch_type, sphere):
+
+    from scipy.spatial.distance import pdist, squareform
+
+    picks = pick_types(info, meg=False, ref_meg=False,
+                       fnirs=ch_type, exclude='bads')
+    chs = [info['chs'][i] for i in picks]
+    locs3d = np.array([ch['loc'][:3] for ch in chs])
+    dist = pdist(locs3d)
+
+    # Store the sets of channels to be merged
+    overlapping_channels = list()
+    # Channels to be excluded from picks, as will be removed after merging
+    channels_to_exclude = list()
+
+    if len(locs3d) > 1 and np.min(dist) < 1e-10:
+
+        overlapping_mask = np.triu(squareform(dist < 1e-10))
+        for chan_idx in range(overlapping_mask.shape[0]):
+            already_overlapped = list(itertools.chain.from_iterable(
+                overlapping_channels))
+            if overlapping_mask[chan_idx].any() and \
+                    (chs[chan_idx]['ch_name'] not in already_overlapped):
+                # Determine the set of channels to be combined. Ensure the
+                # first listed channel is the one to be replaced with merge
+                overlapping_set = [chs[i]['ch_name'] for i in
+                                   np.where(overlapping_mask[chan_idx])[0]]
+                overlapping_set = np.insert(overlapping_set, 0,
+                                            (chs[chan_idx]['ch_name']))
+                overlapping_channels.append(overlapping_set)
+                channels_to_exclude.append(overlapping_set[1:])
+
+        exclude = list(itertools.chain.from_iterable(channels_to_exclude))
+        [exclude.append(bad) for bad in info['bads']]
+        picks = pick_types(info, meg=False, ref_meg=False, fnirs=ch_type,
+                           exclude=exclude)
+        pos = _find_topomap_coords(info, picks, sphere=sphere)
+        picks = pick_types(info, meg=False, ref_meg=False, fnirs=ch_type)
+        # Overload the merge_channels variable as this is returned to calling
+        # function and indicates that merging of data is required
+        merge_channels = overlapping_channels
+
+    else:
+        picks = pick_types(info, meg=False, ref_meg=False, fnirs=ch_type,
+                           exclude='bads')
+        merge_channels = False
+        pos = _find_topomap_coords(info, picks, sphere=sphere)
+
+    return picks, pos, merge_channels, overlapping_channels
 
 
 def _plot_update_evoked_topomap(params, bools):
@@ -1530,7 +1602,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     mask_params['markersize'] *= size / 2.
     mask_params['markeredgewidth'] *= size / 2.
 
-    picks, pos, merge_grads, names, ch_type, sphere, clip_origin = \
+    picks, pos, merge_channels, names, ch_type, sphere, clip_origin = \
         _prepare_topomap_plot(evoked, ch_type, layout, sphere=sphere)
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin,
                                    head_pos)
@@ -1596,6 +1668,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     scaling = _handle_default('scalings', scalings)[key]
     unit = _handle_default('units', units)[key]
 
+    ch_names = names  # required for nirs processing
     if not show_names:
         names = None
 
@@ -1630,8 +1703,13 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                          'Check your input.')
 
     data *= scaling
-    if merge_grads:
-        data = _merge_grad_data(data)
+    if merge_channels:
+        if ch_type == 'grad':
+            data = _merge_grad_data(data)
+        else:
+            assert ch_type in _fnirs_types
+            data, ch_names = _merge_nirs_data(data, ch_names)
+            merge_channels = False
 
     images, contours_ = [], []
 
@@ -1642,7 +1720,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         else:  # mag, eeg, planar1, planar2
             mask_ = mask[np.ix_(picks, time_idx)]
 
-    vlims = [_setup_vmin_vmax(data[:, i], vmin, vmax, norm=merge_grads)
+    vlims = [_setup_vmin_vmax(data[:, i], vmin, vmax, norm=merge_channels)
              for i in range(len(times))]
     vmin = np.min(vlims)
     vmax = np.max(vlims)
@@ -1672,7 +1750,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         slider = Slider(axes[-1], 'Time', evoked.times[0], evoked.times[-1],
                         times[0], valfmt='%1.2fs')
         slider.vline.remove()  # remove initial point indicator
-        func = _merge_grad_data if merge_grads else lambda x: x
+        func = _merge_grad_data if merge_channels else lambda x: x
         changed_callback = partial(_slider_changed, ax=axes[0],
                                    data=evoked.data, times=evoked.times,
                                    pos=pos, scaling=scaling, func=func,
@@ -1707,7 +1785,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
             evoked=evoked, fig=fig, projs=evoked.info['projs'], picks=picks,
             images=images, contours_=contours_, pos=pos, time_idx=time_idx,
             res=res, plot_update_proj_callback=_plot_update_evoked_topomap,
-            merge_grads=merge_grads, scale=scaling, axes=axes,
+            merge_grads=merge_channels, scale=scaling, axes=axes,
             contours=contours, interp=interp, extrapolate=extrapolate)
         _draw_proj_checkbox(None, params)
 

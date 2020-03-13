@@ -20,7 +20,7 @@ from ..utils import _check_option, logger, verbose
 
 
 class _Brain(object):
-    u"""Class for visualizing a brain.
+    """Class for visualizing a brain.
 
     It is used for creating meshes of the given subject's
     cortex. The activation data can be shown on a mesh using add_data
@@ -48,9 +48,9 @@ class _Brain(object):
         Setting this to ``None`` is equivalent to ``(0.5, 0.5, 0.5)``.
     alpha : float in [0, 1]
         Alpha level to control opacity of the cortical surface.
-    size : float | tuple(float, float)
+    size : int | array-like, shape (2,)
         The size of the window, in pixels. can be one number to specify
-        a square window, or the (width, height) of a rectangular window.
+        a square window, or a length-2 sequence to specify (width, height).
     background : tuple(int, int, int)
         The color definition of the background: (red, green, blue).
     foreground : matplotlib color
@@ -168,12 +168,11 @@ class _Brain(object):
         col_dict = dict(lh=1, rh=1, both=1, split=2)
         n_col = col_dict[hemi]
 
-        if isinstance(size, int):
-            fig_size = (size, size)
-        elif isinstance(size, tuple):
-            fig_size = size
-        else:
-            raise ValueError('"size" parameter must be int or tuple.')
+        size = tuple(np.atleast_1d(size).round(0).astype(int).flat)
+        if len(size) not in (1, 2):
+            raise ValueError('"size" parameter must be an int or length-2 '
+                             'sequence of ints.')
+        fig_size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
 
         self._foreground = foreground
         self._hemi = hemi
@@ -250,7 +249,7 @@ class _Brain(object):
                  hemi=None, remove_existing=None, time_label_size=None,
                  initial_time=None, scale_factor=None, vector_alpha=None,
                  clim=None, verbose=None):
-        u"""Display data from a numpy array on the surface.
+        """Display data from a numpy array on the surface.
 
         This provides a similar interface to
         :meth:`surfer.Brain.add_overlay`, but it displays
@@ -811,7 +810,7 @@ class _Brain(object):
         return self._renderer.screenshot(mode)
 
     def update_lut(self, fmin=None, fmid=None, fmax=None):
-        u"""Update color map.
+        """Update color map.
 
         Parameters
         ----------
@@ -1032,7 +1031,7 @@ class _Brain(object):
 
     @property
     def data(self):
-        u"""Data used by time viewer and color bar widgets."""
+        """Data used by time viewer and color bar widgets."""
         return self._data
 
     @property
@@ -1051,7 +1050,7 @@ class _Brain(object):
             logger.info("No active/running renderer available.")
 
     def _check_hemi(self, hemi):
-        u"""Check for safe single-hemi input, returns str."""
+        """Check for safe single-hemi input, returns str."""
         if hemi is None:
             if self._hemi not in ['lh', 'rh']:
                 raise ValueError('hemi must not be None when both '

@@ -696,7 +696,7 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     hsel_patch = mpl.patches.Rectangle((params['t_start'], 0),
                                        params['duration'], 1, edgecolor='k',
                                        facecolor=(0.75, 0.75, 0.75),
-                                       alpha=0.25, linewidth=1, clip_on=False)
+                                       alpha=0.25, linewidth=4, clip_on=False)
     ax_hscroll.add_patch(hsel_patch)
     params['hsel_patch'] = hsel_patch
     ax_hscroll.set_xlim(params['first_time'], params['first_time'] +
