@@ -334,54 +334,28 @@ class Raw(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a segment of data from a file."""
-        stop -= 1
-        offset = 0
         with _fiff_get_fid(self._filenames[fi]) as fid:
             bounds = self._raw_extras[fi]['bounds']
-            ent = self._raw_extras[fi]['ent']
-            for last, first, ent in zip(bounds[1:] - 1, bounds[:-1],
-                                        self._raw_extras[fi]['ent']):
-                #  Do we need this buffer
-                if last >= start:
-                    nsamp = last - first + 1
-                    #  The picking logic is a bit complicated
-                    if stop > last and start < first:
-                        #    We need the whole buffer
-                        first_pick = 0
-                        last_pick = nsamp
-                        logger.debug('W')
-                    elif start >= first:
-                        first_pick = start - first
-                        if stop <= last:
-                            #   Something from the middle
-                            last_pick = nsamp + stop - last
-                            logger.debug('M')
-                        else:
-                            #   From the middle to the end
-                            last_pick = nsamp
-                            logger.debug('E')
-                    else:
-                        #    From the beginning to the middle
-                        first_pick = 0
-                        last_pick = stop - first + 1
-                        logger.debug('B')
-
-                    #   Now we are ready to pick
-                    picksamp = last_pick - first_pick
-                    if picksamp > 0:
-                        # only read data if it exists
-                        if ent is not None:
-                            one = read_tag(fid, ent.pos,
-                                           shape=(nsamp, self.info['nchan']),
-                                           rlims=(first_pick, last_pick)).data
-                            one.shape = (picksamp, self.info['nchan'])
-                            _mult_cal_one(data[:, offset:(offset + picksamp)],
-                                          one.T, idx, cals, mult)
-                        offset += picksamp
-
-                #   Done?
-                if last >= stop:
-                    break
+            ents = self._raw_extras[fi]['ent']
+            use = (stop > bounds[:-1]) & (start < bounds[1:])
+            offset = 0
+            for ei in np.where(use)[0]:
+                first, last = bounds[ei:ei + 2]
+                nsamp = last - first
+                ent = ents[ei]
+                first_pick = max(start - first, 0)
+                last_pick = min(nsamp, stop - first)
+                picksamp = last_pick - first_pick
+                # only read data if it exists
+                if ent is not None:
+                    one = read_tag(fid, ent.pos,
+                                   shape=(nsamp, self.info['nchan']),
+                                   rlims=(first_pick, last_pick)).data
+                    one.shape = (picksamp, self.info['nchan'])
+                    _mult_cal_one(data[:, offset:(offset + picksamp)],
+                                  one.T, idx, cals, mult)
+                offset += picksamp
+            assert offset == stop - start
 
     def fix_mag_coil_types(self):
         """Fix Elekta magnetometer coil types.
