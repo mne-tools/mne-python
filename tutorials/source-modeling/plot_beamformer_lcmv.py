@@ -135,12 +135,12 @@ forward = mne.read_forward_solution(fwd_fname)
 # - :func:`mne.beamformer.make_lcmv` has a ``depth`` parameter that normalizes
 #   the forward model prior to computing the spatial filters. See the docstring
 #   for details.
-# - "Unit noise gain" beamformers handle depth bias by normalizing the
+# - Unit-noise gain beamformers handle depth bias by normalizing the
 #   weights of the spatial filter. Choose this by setting
 #   ``weight_norm='unit-noise-gain'``.
-# - "Neural activity index" beamformers handle depth bias by normalizing both
-#   the weights and the estimated noise (see :footcite:`VanVeenEtAl1997`).
-#   Choose this by setting ``weight_norm='nai'``.
+# - When computing the Neural activity index, the depth bias is handled by
+#   normalizing both the weights and the estimated noise (see
+#   :footcite:`VanVeenEtAl1997`). Choose this by setting ``weight_norm='nai'``.
 #
 # Note that when comparing conditions, the depth bias will cancel out and it is
 # possible to set both parameters to ``None``.
@@ -148,10 +148,10 @@ forward = mne.read_forward_solution(fwd_fname)
 #
 # Compute the spatial filter
 # --------------------------
-# Now we can compute the spatial filter. We'll use "unit noise gain" to deal
-# with depth bias, and will also
-# optimize the orientation of the sources such that output
-# power is maximized. This is achieved by setting ``pick_ori='max-power'``.
+# Now we can compute the spatial filter. We'll use a unit-noise gain beamformer
+# to deal with depth bias, and will also optimize the orientation of the
+# sources such that output power is maximized.
+# This is achieved by setting ``pick_ori='max-power'``.
 # This gives us one source estimate per source (i.e., voxel), which is known
 # as a scalar beamformer. It is also possible to compute a vector beamformer,
 # which gives back three estimates per voxel, corresponding to the three
@@ -209,6 +209,7 @@ stc.plot(mode='glass_brain', clim=dict(kind='value', lims=lims), **kwargs)
 
 fetch_fsaverage(subjects_dir)  # ensure fsaverage src exists
 fname_fs_src = subjects_dir + '/fsaverage/bem/fsaverage-vol-5-src.fif'
+
 src_fs = mne.read_source_spaces(fname_fs_src)
 morph = mne.compute_source_morph(
     forward['src'], subject_from='sample', src_to=src_fs,
@@ -216,6 +217,7 @@ morph = mne.compute_source_morph(
     niter_sdr=[10, 10, 5], niter_affine=[10, 10, 5],  # just for speed
     verbose=True)
 stc_fs = morph.apply(stc.crop(0.05, 0.15))
+
 stc_fs.plot(
     src=src_fs, mode='stat_map', initial_time=0.085, subjects_dir=subjects_dir,
     clim=dict(kind='value', pos_lims=lims), verbose=True)
