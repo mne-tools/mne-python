@@ -67,6 +67,10 @@ def verbose(function):
         pass
 
     wrap_src = """\
+try:
+    verbose
+except NameError:
+    verbose = None
 if verbose is None:
     try:
         verbose = self.verbose
