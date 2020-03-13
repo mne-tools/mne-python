@@ -738,11 +738,6 @@ def test_mixed_sources_plot_surface(garbage_collect):
 @traits_test
 def test_link_brains(renderer_interactive):
     """Test plotting linked brains."""
-    with pytest.raises(ValueError, match='is empty'):
-        link_brains([])
-    with pytest.raises(TypeError, match='type is Brain'):
-        link_brains('foo')
-
     sample_src = read_source_spaces(src_fname)
     vertices = [s['vertno'] for s in sample_src]
     n_time = 5
@@ -761,7 +756,15 @@ def test_link_brains(renderer_interactive):
         subjects_dir=subjects_dir, colorbar=True,
         clim='auto'
     )
-    link_brains(brain)
+    if renderer_interactive.get_3d_backend() != 'pyvista':
+        with pytest.raises(NotImplementedError, match='backend is pyvista'):
+            link_brains(brain)
+    else:
+        with pytest.raises(ValueError, match='is empty'):
+            link_brains([])
+        with pytest.raises(TypeError, match='type is Brain'):
+            link_brains('foo')
+        link_brains(brain)
 
 
 def test_renderer(renderer):

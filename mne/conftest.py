@@ -237,6 +237,7 @@ def garbage_collect():
 
 @pytest.fixture(scope="module", params=[
     "pyvista",
+    "mayavi",
 ])
 def backend_name_interactive(request):
     """Get the backend name."""
