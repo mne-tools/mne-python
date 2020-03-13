@@ -102,10 +102,10 @@ class Raw(BaseRaw):
 
         # Add annotations for in-data skips
         for extra in self._raw_extras:
-            start = np.array([e['first'] for e in extra if e['ent'] is None])
-            stop = np.array([e['last'] for e in extra if e['ent'] is None])
+            mask = [ent is None for ent in extra['ent']]
+            start = extra['first'][mask]
+            stop = extra['last'][mask]
             duration = (stop - start + 1.) / self.info['sfreq']
-
             annot = Annotations(onset=(start / self.info['sfreq']),
                                 duration=duration,
                                 description='BAD_ACQ_SKIP',
@@ -263,6 +263,14 @@ class Raw(BaseRaw):
 
             next_fname = _get_next_fname(fid, fname_rep, tree)
 
+        # reformat raw_extras to be a dict of list/ndarray rather than
+        # list of dict (faster access)
+        raw_extras = {key: [r[key] for r in raw_extras]
+                      for key in raw_extras[0]}
+        for key in raw_extras:
+            if key != 'ent':  # dict or None
+                raw_extras[key] = np.array(raw_extras[key], int)
+
         raw.last_samp = first_samp - 1
         raw.orig_format = orig_format
 
@@ -279,8 +287,7 @@ class Raw(BaseRaw):
                     float(raw.last_samp) / info['sfreq']))
 
         # store the original buffer size
-        buffer_size_sec = np.median(
-            [r['nsamp'] for r in raw_extras]) / info['sfreq']
+        buffer_size_sec = np.median(raw_extras['nsamp']) / info['sfreq']
 
         raw.info = info
         raw.verbose = verbose
@@ -296,10 +303,10 @@ class Raw(BaseRaw):
             return self._dtype_
         dtype = None
         for raw_extra, filename in zip(self._raw_extras, self._filenames):
-            for this in raw_extra:
-                if this['ent'] is not None:
+            for ent in raw_extra['ent']:
+                if ent is not None:
                     with _fiff_get_fid(filename) as fid:
-                        fid.seek(this['ent'].pos, 0)
+                        fid.seek(ent.pos, 0)
                         tag = read_tag_info(fid)
                         if tag is not None:
                             if tag.type in (FIFF.FIFFT_COMPLEX_FLOAT,
@@ -321,40 +328,40 @@ class Raw(BaseRaw):
         stop -= 1
         offset = 0
         with _fiff_get_fid(self._filenames[fi]) as fid:
-            for this in self._raw_extras[fi]:
+            for last, first, nsamp, ent in zip(
+                    *(self._raw_extras[fi][key] for key in (
+                        'last', 'first', 'nsamp', 'ent'))):
                 #  Do we need this buffer
-                if this['last'] >= start:
+                if last >= start:
                     #  The picking logic is a bit complicated
-                    if stop > this['last'] and start < this['first']:
+                    if stop > last and start < first:
                         #    We need the whole buffer
                         first_pick = 0
-                        last_pick = this['nsamp']
+                        last_pick = nsamp
                         logger.debug('W')
-
-                    elif start >= this['first']:
-                        first_pick = start - this['first']
-                        if stop <= this['last']:
+                    elif start >= first:
+                        first_pick = start - first
+                        if stop <= last:
                             #   Something from the middle
-                            last_pick = this['nsamp'] + stop - this['last']
+                            last_pick = nsamp + stop - last
                             logger.debug('M')
                         else:
                             #   From the middle to the end
-                            last_pick = this['nsamp']
+                            last_pick = nsamp
                             logger.debug('E')
                     else:
                         #    From the beginning to the middle
                         first_pick = 0
-                        last_pick = stop - this['first'] + 1
+                        last_pick = stop - first + 1
                         logger.debug('B')
 
                     #   Now we are ready to pick
                     picksamp = last_pick - first_pick
                     if picksamp > 0:
                         # only read data if it exists
-                        if this['ent'] is not None:
-                            one = read_tag(fid, this['ent'].pos,
-                                           shape=(this['nsamp'],
-                                                  self.info['nchan']),
+                        if ent is not None:
+                            one = read_tag(fid, ent.pos,
+                                           shape=(nsamp, self.info['nchan']),
                                            rlims=(first_pick, last_pick)).data
                             one.shape = (picksamp, self.info['nchan'])
                             _mult_cal_one(data[:, offset:(offset + picksamp)],
@@ -362,7 +369,7 @@ class Raw(BaseRaw):
                         offset += picksamp
 
                 #   Done?
-                if this['last'] >= stop:
+                if last >= stop:
                     break
 
     def fix_mag_coil_types(self):
