@@ -89,7 +89,7 @@ del raw  # save memory
 # includes the brain signal of interest,
 # and incorporate enough samples for a stable estimate. A rule of thumb is to
 # use more samples than there are channels in the data set; see
-# :footcite:`BrookesEtAl2008`for more detailed advice on covariance estimation
+# :footcite:`BrookesEtAl2008` for more detailed advice on covariance estimation
 # for beamformer. Here, we use a time
 # window incorporating the expected auditory response at around 100 ms post
 # stimulus and extend the period to account for a low number of trials (72) and
@@ -213,7 +213,7 @@ stc.plot(mode='glass_brain', clim=dict(kind='value', lims=lims), **kwargs)
 
 ###############################################################################
 # Now let's visualize the vector beamformer case. Here we get three source time
-# courses out per voxel (one for each component of the dipole moment - x, y,
+# courses out per voxel (one for each component of the dipole moment: x, y,
 # and z). To be able to visualize this, the plotting function combines those
 # estimates into one:
 
@@ -238,6 +238,7 @@ mne.viz.utils.plt_show()
 
 ###############################################################################
 # Morph the output to fsaverage
+# -----------------------------
 #
 # We can also use volumetric morphing to get the data to fsaverage space. This
 # is for example necessary when comparing activity across subjects. Here, we
