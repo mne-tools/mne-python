@@ -91,6 +91,17 @@ fig.text(0.5, 0.05, 'average from 40-140 ms', ha='center')
 # :ref:`ex-evoked-topomap`.
 #
 #
+# Current flow maps
+# ^^^^^^^^^^^^^^^^^
+#
+# Scalp topographies at a given time point can be augmented with arrows to show
+# the estimated direction of current flow, using the function
+# :func:`mne.viz.plot_arrowmap`:
+
+mags = evks['aud/left'].copy().pick_types(meg='mag')
+mne.viz.plot_arrowmap(mags.data[:, 175], mags.info, extrapolate='local')
+
+###############################################################################
 # Joint plots
 # ^^^^^^^^^^^
 #
@@ -119,9 +130,13 @@ evks['vis/right'].plot_joint()
 # same type by calculating the :term:`global field power <GFP>`. Information
 # may be combined across channels in other ways too; support for combining via
 # mean, median, or standard deviation are built-in, and custom callable
-# functions may also be used:
+# functions may also be used, as shown here:
 
-custom_func = lambda x: x.max(axis=1)
+
+def custom_func(x):
+    return x.max(axis=1)
+
+
 for combine in ('mean', 'median', 'gfp', custom_func):
     mne.viz.plot_compare_evokeds(evks, picks='eeg', combine=combine)
 
@@ -153,51 +168,69 @@ evks['vis/right'].plot_image(picks='meg')
 # Topographical subplots
 # ^^^^^^^^^^^^^^^^^^^^^^
 #
-# TODO RESUME HERE TODO RESUME HERE TODO RESUME HERE TODO RESUME HERE TODO
+# For sensor-level analyses it can be useful to plot the response at each
+# sensor in a topographical layout. The :func:`~mne.viz.plot_compare_evokeds`
+# function can do this if you pass ``axes='topo'``, but it can be quite slow
+# if the number of sensors is too large:
+
+mne.viz.plot_compare_evokeds(evks, picks='eeg', colors=dict(aud=0, vis=1),
+                             linestyles=dict(left='solid', right='dashed'),
+                             axes='topo', styles = dict(aud=dict(linewidth=1),
+                                                        vis=dict(linewidth=1)))
+
+###############################################################################
+# For larger numbers of sensors, the method :meth:`evoked.plot_topo()
+# <mne.Evoked.plot_topo>` and the function :func:`mne.viz.plot_evoked_topo`
+# can both be used for this purpose. The method will plot only a single
+# condition, while the function can plot one or more conditions on the same
+# axes, if passed a list of :class:`~mne.Evoked` objects:
+
+mne.viz.plot_evoked_topo(list(evks.values()))
+
+###############################################################################
+# By default, :func:`~mne.viz.plot_evoked_topo` will plot all MEG sensors (if
+# present), so to get EEG sensors you would need to modify the evoked objects
+# first (e.g., using :func:`mne.pick_types`). In interactive plotting, both
+# approaches to topographical plotting allow you to click one of the sensor
+# subplots to pop open a larger version of the evoked plot at that sensor.
 #
-# Finally we plot the sensor data as a topographical view. In the simple case
-# we plot only left auditory responses, and then we plot them all in the same
-# figure for comparison. Click on the individual plots to open them bigger.
-
-title = 'MNE sample data\n(condition : %s)'
-evoked_l_aud.plot_topo(title=title % evoked_l_aud.comment,
-                       background_color='k', color=['white'])
-mne.viz.plot_evoked_topo(evoked, title=title % 'Left/Right Auditory/Visual',
-                         background_color='w')
-
-###############################################################################
-# For small numbers of sensors, it is also possible to create a more refined
-# topoplot. Again, clicking on a sensor opens a single-sensor plot.
-
-mne.viz.plot_compare_evokeds(evoked_dict, picks="eeg", colors=colors,
-                             linestyles=linestyles, split_legend=True,
-                             axes="topo")
-
-###############################################################################
-# We can also plot the activations as arrow maps on top of the topoplot.
-# The arrows represent an estimation of the current flow underneath the MEG
-# sensors. Here, sample number 175 corresponds to the time of the maximum
-# sensor space activity.
-evoked_l_aud_mag = evoked_l_aud.copy().pick_types(meg='mag')
-mne.viz.plot_arrowmap(evoked_l_aud_mag.data[:, 175], evoked_l_aud_mag.info)
-
-###############################################################################
-# Visualizing field lines in 3D
-# -----------------------------
-# We now compute the field maps to project MEG and EEG data to the MEG helmet
-# and scalp surface.
 #
-# To do this, we need coregistration information. See
-# :ref:`tut-forward` for more details. Here we just illustrate usage.
+# 3D Field Maps
+# ^^^^^^^^^^^^^
+#
+# The scalp topographies above were all projected into 2-dimensional overhead
+# views of the field, but it is also possible to plot field maps in 3D. To do
+# this requires a :term:`trans` file to transform locations between the
+# coordinate systems of the MEG device and the head surface (based on the MRI).
 
-subjects_dir = data_path + '/subjects'
-trans_fname = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
+subjects_dir = os.path.join(sample_data_folder, 'subjects')
+sample_data_trans_file = os.path.join(sample_data_folder, 'MEG', 'sample',
+                                      'sample_audvis_raw-trans.fif')
 
-maps = mne.make_field_map(evoked_l_aud, trans=trans_fname, subject='sample',
-                          subjects_dir=subjects_dir, n_jobs=1)
+###############################################################################
+# By default, MEG sensors will be used to estimate the field on the helmet
+# surface, while EEG sensors will be used to estimate the field on the scalp.
+# Once the maps are computed, you can plot them with :meth:`evoked.plot_field()
+# <mne.Evoked.plot_field>`:
 
-# Finally, explore several points in time
-field_map = evoked_l_aud.plot_field(maps, time=.1)
+maps = mne.make_field_map(evks['aud/left'], trans=sample_data_trans_file,
+                          subject='sample', subjects_dir=subjects_dir)
+evks['aud/left'].plot_field(maps, time=0.1)
+
+###############################################################################
+# You can also use MEG sensors to estimate the *scalp* field by passing
+# ``meg_surf='head'``. By selecting each sensor type in turn, you can compare
+# the scalp field estimates from each.
+
+mags = evks['aud/right'].copy().pick_types(meg='mag')
+grads = evks['aud/right'].copy().pick_types(meg='grad')
+eegs = evks['aud/right'].copy().pick_types(meg=False, eeg=True)
+
+for sensor_type in (mags, grads, eegs):
+    _map = mne.make_field_map(sensor_type, trans=sample_data_trans_file,
+                              subject='sample', subjects_dir=subjects_dir,
+                              meg_surf='head')
+    sensor_type.plot_field(_map, time=0.1)
 
 ###############################################################################
 # .. note::
