@@ -431,25 +431,25 @@ def test_split_files(tmpdir):
     raw_crop = raw_1.copy().crop(0, 1)
     raw_crop.save(split_fname, buffer_size_sec=1., overwrite=True)
     raw_read = read_raw_fif(split_fname)
-    assert_array_equal(raw_read._raw_extras[0]['nsamp'], (301,))
+    assert_array_equal(np.diff(raw_read._raw_extras[0]['bounds']), (301,))
     assert_allclose(raw_crop[:][0], raw_read[:][0])
     # 2 buffers required
     raw_crop.save(split_fname, buffer_size_sec=0.5, overwrite=True)
     raw_read = read_raw_fif(split_fname)
-    assert_array_equal(raw_read._raw_extras[0]['nsamp'], (151, 150))
+    assert_array_equal(np.diff(raw_read._raw_extras[0]['bounds']), (151, 150))
     assert_allclose(raw_crop[:][0], raw_read[:][0])
     # 2 buffers required
     raw_crop.save(split_fname,
                   buffer_size_sec=1. - 1.01 / raw_crop.info['sfreq'],
                   overwrite=True)
     raw_read = read_raw_fif(split_fname)
-    assert_array_equal(raw_read._raw_extras[0]['nsamp'], (300, 1))
+    assert_array_equal(np.diff(raw_read._raw_extras[0]['bounds']), (300, 1))
     assert_allclose(raw_crop[:][0], raw_read[:][0])
     raw_crop.save(split_fname,
                   buffer_size_sec=1. - 2.01 / raw_crop.info['sfreq'],
                   overwrite=True)
     raw_read = read_raw_fif(split_fname)
-    assert_array_equal(raw_read._raw_extras[0]['nsamp'], (299, 2))
+    assert_array_equal(np.diff(raw_read._raw_extras[0]['bounds']), (299, 2))
     assert_allclose(raw_crop[:][0], raw_read[:][0])
 
 

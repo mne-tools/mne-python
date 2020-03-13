@@ -103,8 +103,8 @@ class Raw(BaseRaw):
         # Add annotations for in-data skips
         for extra in self._raw_extras:
             mask = [ent is None for ent in extra['ent']]
-            start = extra['first'][mask]
-            stop = extra['last'][mask]
+            start = extra['bounds'][:-1][mask]
+            stop = extra['bounds'][1:][mask] - 1
             duration = (stop - start + 1.) / self.info['sfreq']
             annot = Annotations(onset=(start / self.info['sfreq']),
                                 duration=duration,
@@ -270,6 +270,18 @@ class Raw(BaseRaw):
         for key in raw_extras:
             if key != 'ent':  # dict or None
                 raw_extras[key] = np.array(raw_extras[key], int)
+        if not np.array_equal(raw_extras['last'][:-1],
+                              raw_extras['first'][1:] - 1):
+            raise RuntimeError('FIF file appears to be broken')
+        bounds = np.cumsum(np.concatenate(
+            [raw_extras['first'][:1], raw_extras['nsamp']]))
+        raw_extras['bounds'] = bounds
+        assert len(raw_extras['bounds']) == len(raw_extras['ent']) + 1
+        # store the original buffer size
+        buffer_size_sec = np.median(raw_extras['nsamp']) / info['sfreq']
+        del raw_extras['first']
+        del raw_extras['last']
+        del raw_extras['nsamp']
 
         raw.last_samp = first_samp - 1
         raw.orig_format = orig_format
@@ -285,9 +297,6 @@ class Raw(BaseRaw):
                     raw.first_samp, raw.last_samp,
                     float(raw.first_samp) / info['sfreq'],
                     float(raw.last_samp) / info['sfreq']))
-
-        # store the original buffer size
-        buffer_size_sec = np.median(raw_extras['nsamp']) / info['sfreq']
 
         raw.info = info
         raw.verbose = verbose
@@ -328,11 +337,13 @@ class Raw(BaseRaw):
         stop -= 1
         offset = 0
         with _fiff_get_fid(self._filenames[fi]) as fid:
-            for last, first, nsamp, ent in zip(
-                    *(self._raw_extras[fi][key] for key in (
-                        'last', 'first', 'nsamp', 'ent'))):
+            bounds = self._raw_extras[fi]['bounds']
+            ent = self._raw_extras[fi]['ent']
+            for last, first, ent in zip(bounds[1:] - 1, bounds[:-1],
+                                        self._raw_extras[fi]['ent']):
                 #  Do we need this buffer
                 if last >= start:
+                    nsamp = last - first + 1
                     #  The picking logic is a bit complicated
                     if stop > last and start < first:
                         #    We need the whole buffer
