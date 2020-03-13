@@ -877,7 +877,6 @@ class _Brain(object):
         ----------
         %(brain_time_interpolation)s
         """
-        from scipy.interpolate import interp1d
         _check_option('interpolation', interpolation,
                       ('linear', 'nearest', 'zero', 'slinear', 'quadratic',
                        'cubic'))
@@ -891,10 +890,10 @@ class _Brain(object):
                 hemi_data = self._data.get(hemi)
                 if hemi_data is not None:
                     array = hemi_data['array']
-                    self._time_interp_funcs[hemi] = interp1d(
+                    self._time_interp_funcs[hemi] = _safe_interp1d(
                         idx, array, self._time_interpolation, axis=1,
                         assume_sorted=True)
-            self._time_interp_inv = interp1d(idx, self._times)
+            self._time_interp_inv = _safe_interp1d(idx, self._times)
 
     def set_time_point(self, time_idx):
         """Set the time point shown (can be a float to interpolate)."""
@@ -1207,6 +1206,18 @@ class _Brain(object):
 
         # Restore original time index
         self.set_time_point(current_time_idx)
+
+
+def _safe_interp1d(x, y, kind='linear', axis=-1, assume_sorted=False):
+    """Work around interp1d not liking singleton dimensions."""
+    from scipy.interpolate import interp1d
+    if y.shape[axis] == 1:
+        def func(x):
+            return y.copy()
+        return func
+    else:
+        return interp1d(x, y, kind, axis=axis, assume_sorted=assume_sorted)
+
 
 
 def _update_limits(fmin, fmid, fmax, center, array):
