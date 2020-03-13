@@ -340,7 +340,8 @@ class Raw(BaseRaw):
             use = (stop > bounds[:-1]) & (start < bounds[1:])
             offset = 0
             for ei in np.where(use)[0]:
-                first, last = bounds[ei:ei + 2]
+                first = bounds[ei]
+                last = bounds[ei + 1]
                 nsamp = last - first
                 ent = ents[ei]
                 first_pick = max(start - first, 0)
