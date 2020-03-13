@@ -1679,14 +1679,17 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     if axes is None:
         figure_nobar(figsize=(width * 1.5, height * 1.5))
         axes = list()
-        for ax_idx in range(len(times)):
+        naxes = len(times)
+        if colorbar:
+            naxes += nrows - 1
+        for ax_idx in range(naxes):
             axes.append(plt.subplot(gs[ax_idx]))
+    elif len(axes) != n_times:
+        raise RuntimeError('Axes and times must be equal in sizes.')
     elif colorbar and colorbar_warn:
         warn('Colorbar is drawn to the rightmost column of the figure. Be '
              'sure to provide enough space for it or turn it off with '
              'colorbar=False.')
-    if len(axes) != n_times:
-        raise RuntimeError('Axes and times must be equal in sizes.')
 
     if ch_type.startswith('planar'):
         key = 'grad'
@@ -1763,15 +1766,18 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                   image_interp=image_interp, show=False,
                   extrapolate=extrapolate, sphere=sphere, border=border)
     for idx, time in enumerate(times):
+        ax_idx = idx
+        if colorbar:
+            ax_idx += idx // (ncols - 1)
         tp, cn, interp = _plot_topomap(
-            data[:, idx], pos, axes=axes[idx],
+            data[:, idx], pos, axes=axes[ax_idx],
             mask=mask_[:, idx] if mask is not None else None, **kwargs)
 
         images.append(tp)
         if cn is not None:
             contours_.append(cn)
         if time_format is not None:
-            axes[idx].set_title(time_format % (time * scaling_time))
+            axes[ax_idx].set_title(time_format % (time * scaling_time))
 
     if interactive:
         axes.append(plt.subplot(gs[2]))
