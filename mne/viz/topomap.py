@@ -1451,7 +1451,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                         mask_params=None, outlines='head', contours=6,
                         image_interp='bilinear', average=None, head_pos=None,
                         axes=None, extrapolate='box', sphere=None, border=0,
-                        max_cols=None):
+                        nrows=1, ncols='auto'):
     """Plot topographic maps of specific time points of evoked data.
 
     Parameters
@@ -1575,7 +1575,14 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         .. versionadded:: 0.18
     %(topomap_sphere_auto)s
     %(topomap_border)s
-
+    nrows : int | 'auto'
+        The number of rows of topographies to plot. Defaults to 1. If 'auto',
+        obtains the number of rows depending on the amount of times to plot
+        and the number of cols. Not valid when times == 'interactive'.
+    ncols : int | 'auto'
+        The number of columns of topographies to plot. If 'auto' (default),
+        obtains the number of columns depending on the amount of times to plot
+        and the number of rows. Not valid when times == 'interactive'.
     Returns
     -------
     fig : instance of matplotlib.figure.Figure
@@ -1637,28 +1644,38 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     width = size * nax
     height = size + max(0, 0.1 * (4 - size)) + bool(title) * 0.5
 
-    cols = n_times + 1 if colorbar else n_times  # room for the colorbar
     if interactive:
         if axes is not None:
             raise ValueError("User provided axes not allowed when "
                              "times='interactive'.")
         height_ratios = [5, 1]
-        rows = 2
+        nrows = 2
+        ncols = n_times + 1 if colorbar else n_times  # room for the colorbar
         g_kwargs = {'left': 0.2, 'right': 1., 'bottom': 0.05, 'top': 0.95}
     else:
-        if max_cols is not None:
-            rows = int(np.ceil(float(n_times) / max_cols))
-            cols = min(n_times, max_cols) + bool(colorbar)
-            nax = cols + bool(colorbar)
-            width = size * cols
-            height = (size + max(0, 0.1 * (4 - size))) * \
-                rows + bool(title) * 0.5
-            height_ratios = None
-            g_kwargs = {}
+        if ncols == 'auto':
+            if nrows == 'auto':
+                raise ValueError("At least one of 'nrows' and 'ncols' must be "
+                                "a numeric value")
+            ncols = int(np.ceil(n_times / nrows))
+        elif nrows == 'auto':
+            nrows = int(np.ceil(n_times / ncols))
         else:
-            rows, height_ratios, g_kwargs = 1, None, {}
+            naxes = ncols * nrows
+            if naxes < n_times:
+                raise ValueError("Cannot plot {} topographies in a {} by {} "
+                                 "figure.".format(n_times, nrows, ncols))
+        if colorbar:
+            ncols += 1
+        width = size * ncols
+        height = (size + max(0, 0.1 * (4 - size))) * \
+            nrows + bool(title) * 0.5
 
-    gs = gridspec.GridSpec(rows, cols, height_ratios=height_ratios, **g_kwargs)
+        height_ratios = None
+        g_kwargs = {}
+
+    gs = gridspec.GridSpec(
+        nrows, ncols, height_ratios=height_ratios, **g_kwargs)
     if axes is None:
         figure_nobar(figsize=(width * 1.5, height * 1.5))
         axes = list()
