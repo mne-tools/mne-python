@@ -17,7 +17,6 @@ As usual we'll start by importing the modules we need:
 import os
 import numpy as np
 import mne
-from mayavi import mlab
 
 ###############################################################################
 # Instead of creating the :class:`~mne.Evoked` object from an
@@ -239,7 +238,7 @@ for title, evk in sensor_dict.items():
                               subject='sample', subjects_dir=subjects_dir,
                               meg_surf='head')
     fig = evk.plot_field(_map, time=0.1)
-    mlab.title(title)
+    mne.viz.set_3d_title(fig, title)
 
 
 ###############################################################################
