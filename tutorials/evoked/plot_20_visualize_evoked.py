@@ -17,6 +17,7 @@ As usual we'll start by importing the modules we need:
 import os
 import numpy as np
 import mne
+from mayavi import mlab
 
 ###############################################################################
 # Instead of creating the :class:`~mne.Evoked` object from an
@@ -107,7 +108,7 @@ mne.viz.plot_arrowmap(mags.data[:, 175], mags.info, extrapolate='local')
 #
 # Joint plots combine butterfly plots with scalp topographies, and provide an
 # excellent first-look at evoked data; topographies will be automatically
-# placed based on peak finding; here we plot the right-visual-field condition:
+# placed based on peak finding. Here we plot the right-visual-field condition:
 
 # sphinx_gallery_thumbnail_number = 7
 evks['vis/right'].plot_joint()
@@ -175,24 +176,30 @@ evks['vis/right'].plot_image(picks='meg')
 
 mne.viz.plot_compare_evokeds(evks, picks='eeg', colors=dict(aud=0, vis=1),
                              linestyles=dict(left='solid', right='dashed'),
-                             axes='topo', styles = dict(aud=dict(linewidth=1),
-                                                        vis=dict(linewidth=1)))
+                             axes='topo', styles=dict(aud=dict(linewidth=1),
+                                                      vis=dict(linewidth=1)))
 
 ###############################################################################
 # For larger numbers of sensors, the method :meth:`evoked.plot_topo()
 # <mne.Evoked.plot_topo>` and the function :func:`mne.viz.plot_evoked_topo`
 # can both be used for this purpose. The method will plot only a single
 # condition, while the function can plot one or more conditions on the same
-# axes, if passed a list of :class:`~mne.Evoked` objects:
+# axes, if passed a list of :class:`~mne.Evoked` objects. The legend entries
+# will be automatically drawn from the :class:`~mne.Evoked` objects'
+# ``comment`` attribute:
 
-mne.viz.plot_evoked_topo(list(evks.values()))
+mne.viz.plot_evoked_topo(evokeds_list)
 
 ###############################################################################
 # By default, :func:`~mne.viz.plot_evoked_topo` will plot all MEG sensors (if
 # present), so to get EEG sensors you would need to modify the evoked objects
-# first (e.g., using :func:`mne.pick_types`). In interactive plotting, both
-# approaches to topographical plotting allow you to click one of the sensor
-# subplots to pop open a larger version of the evoked plot at that sensor.
+# first (e.g., using :func:`mne.pick_types`).
+#
+# .. note::
+#
+#     In interactive sessions, both approaches to topographical plotting allow
+#     you to click one of the sensor subplots to pop open a larger version of
+#     the evoked plot at that sensor.
 #
 #
 # 3D Field Maps
@@ -225,12 +232,15 @@ evks['aud/left'].plot_field(maps, time=0.1)
 mags = evks['aud/right'].copy().pick_types(meg='mag')
 grads = evks['aud/right'].copy().pick_types(meg='grad')
 eegs = evks['aud/right'].copy().pick_types(meg=False, eeg=True)
+sensor_dict = dict(magnetometers=mags, gradiometers=grads, EEG=eegs)
 
-for sensor_type in (mags, grads, eegs):
-    _map = mne.make_field_map(sensor_type, trans=sample_data_trans_file,
+for title, evk in sensor_dict.items():
+    _map = mne.make_field_map(evk, trans=sample_data_trans_file,
                               subject='sample', subjects_dir=subjects_dir,
                               meg_surf='head')
-    sensor_type.plot_field(_map, time=0.1)
+    fig = evk.plot_field(_map, time=0.1)
+    mlab.title(title)
+
 
 ###############################################################################
 # .. note::
