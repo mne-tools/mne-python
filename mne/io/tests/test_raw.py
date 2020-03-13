@@ -7,6 +7,7 @@
 
 from os import path as op
 import math
+import re
 
 import pytest
 import numpy as np
@@ -331,9 +332,8 @@ def test_5839():
 
 def test_repr():
     """Test repr of Raw."""
-
-    fs = 256
-    ch_names = ["C3", "Cz", "C4"]
-    info = create_info(ch_names, sfreq=fs)
-    r = repr(RawArray(np.zeros((len(ch_names), 10 * fs)), info))
-    assert r == '<RawArray | 3 x 2560 (10.0 s), ~70 kB, data loaded>'
+    sfreq = 256
+    info = create_info(3, sfreq)
+    r = repr(RawArray(np.zeros((3, 10 * sfreq)), info))
+    assert re.search('<RawArray | 3 x 2560 (10.0 s), ~.* kB, data loaded>',
+                     r) is not None, r
