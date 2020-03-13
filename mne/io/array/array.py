@@ -53,7 +53,7 @@ class RawArray(BaseRaw):
     @verbose
     def __init__(self, data, info, first_samp=0, copy='auto',
                  verbose=None):  # noqa: D102
-        _validate_type(info, "info")
+        _validate_type(info, 'info', 'info')
         _check_option('copy', copy, ('data', 'info', 'both', 'auto', None))
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         orig_data = data
