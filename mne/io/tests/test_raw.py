@@ -327,3 +327,13 @@ def test_5839():
     assert_array_equal(raw_A.annotations.duration, EXPECTED_DURATION)
     assert_array_equal(raw_A.annotations.description, EXPECTED_DESCRIPTION)
     assert raw_A.annotations.orig_time == _stamp_to_dt((0, 0))
+
+
+def test_repr():
+    """Test repr of Raw."""
+
+    fs = 256
+    ch_names = ["C3", "Cz", "C4"]
+    info = create_info(ch_names, sfreq=fs)
+    r = repr(RawArray(np.zeros((len(ch_names), 10 * fs)), info))
+    assert r == '<RawArray | 3 x 2560 (10.0 s), ~70 kB, data loaded>'
