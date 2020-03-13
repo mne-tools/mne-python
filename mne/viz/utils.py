@@ -13,7 +13,6 @@
 # License: Simplified BSD
 
 from contextlib import contextmanager
-import math
 from functools import partial
 import difflib
 import webbrowser
