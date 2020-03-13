@@ -1191,7 +1191,6 @@ def test_annotations_from_events():
 
 def test_repr():
     """Test repr of Annotations."""
-
     # short annotation repr (< 79 characters)
     r = repr(Annotations(range(3), [0] * 3, list("abc")))
     assert r == '<Annotations | 3 segments: a (1), b (1), c (1)>'

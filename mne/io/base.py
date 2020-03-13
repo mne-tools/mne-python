@@ -1596,13 +1596,13 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     def __repr__(self):  # noqa: D105
         name = self.filenames[0]
-        name = 'None' if name is None else op.basename(name)
+        name = '' if name is None else op.basename(name) + ', '
         size_str = str(sizeof_fmt(self._size))  # str in case it fails -> None
         size_str += ', data%s loaded' % ('' if self.preload else ' not')
-        s = ('%s, n_channels x n_times : %s x %s (%0.1f sec), ~%s'
+        s = ('%s%s x %s (%0.1f s), ~%s'
              % (name, len(self.ch_names), self.n_times, self.times[-1],
                 size_str))
-        return "<%s  |  %s>" % (self.__class__.__name__, s)
+        return "<%s | %s>" % (self.__class__.__name__, s)
 
     def add_events(self, events, stim_channel=None, replace=False):
         """Add events to stim channel.
