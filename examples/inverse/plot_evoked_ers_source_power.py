@@ -1,6 +1,6 @@
 """
 ====================================================================
-Compute evoked ERS source power using DICS, LCMV beamfomer, and dSPM
+Compute evoked ERS source power using DICS, LCMV beamformer, and dSPM
 ====================================================================
 
 Here we examine 3 ways of localizing event-related synchronization (ERS) of

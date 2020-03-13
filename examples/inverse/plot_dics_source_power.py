@@ -2,7 +2,7 @@
 .. _ex-inverse-source-power:
 
 =========================================
-Compute source power using DICS beamfomer
+Compute source power using DICS beamformer
 =========================================
 
 Compute a Dynamic Imaging of Coherent Sources (DICS) [1]_ filter from
