@@ -87,7 +87,10 @@ del raw  # save memory
 # beamformer, which will be used for whitening.
 # The data covariance matrix should be estimated from a time window that
 # includes the brain signal of interest,
-# and incorporate enough samples for a stable estimate. Here, we use a time
+# and incorporate enough samples for a stable estimate. A rule of thumb is to
+# use more samples than there are channels in the data set; see
+# :footcite:`BrookesEtAl2008`for more detailed advice on covariance estimation
+# for beamformer. Here, we use a time
 # window incorporating the expected auditory response at around 100 ms post
 # stimulus and extend the period to account for a low number of trials (72) and
 # low sampling rate of 150 Hz.
