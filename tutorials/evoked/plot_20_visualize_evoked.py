@@ -64,7 +64,7 @@ evks['aud/left'].plot(exclude=[])
 # select channels to plot by name, index, or type. Here we'll show only
 # magnetometer channels, and also color-code the channel traces by their
 # location by passing ``spatial_colors=True``. Finally, we'll superimpose a
-# trace of the :ref:`global field power <GFP>` across channels:
+# trace of the :term:`global field power <GFP>` across channels:
 
 evks['aud/left'].plot(picks='mag', spatial_colors=True, gfp=True)
 
