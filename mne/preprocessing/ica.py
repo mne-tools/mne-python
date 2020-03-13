@@ -1554,7 +1554,7 @@ class ICA(ContainsMixin):
         return data
 
     @verbose
-    def save(self, fname):
+    def save(self, fname, verbose=None):
         """Store ICA solution into a fiff file.
 
         Parameters
@@ -1562,6 +1562,7 @@ class ICA(ContainsMixin):
         fname : str
             The absolute path of the file name to save the ICA solution into.
             The file name should end with -ica.fif or -ica.fif.gz.
+        %(verbose_meth)s
 
         Returns
         -------
