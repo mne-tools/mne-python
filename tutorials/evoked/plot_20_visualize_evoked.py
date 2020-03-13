@@ -20,13 +20,13 @@ import mne
 
 ###############################################################################
 # Instead of creating the :class:`~mne.Evoked` object from an
-# :class:`~mne.Epochs` object we'll load an existing :class:`~mne.Evoked`
+# :class:`~mne.Epochs` object, we'll load an existing :class:`~mne.Evoked`
 # object from disk. Remember, the :file:`.fif` format can store multiple
-# :class:`~mne.Evoked` objects, so here we'll end up with a :class:`list` of
+# :class:`~mne.Evoked` objects, so we'll end up with a :class:`list` of
 # :class:`~mne.Evoked` objects after loading. Recall also from the
 # :ref:`tut-section-load-evk` section of :ref:`the introductory Evoked tutorial
 # <tut-evoked-class>` that the sample :class:`~mne.Evoked` objects have not
-# been baseline-corrected and have unapplied projectors so we'll take care of
+# been baseline-corrected and have unapplied projectors, so we'll take care of
 # that when loading:
 
 sample_data_folder = mne.datasets.sample.data_path()
@@ -40,7 +40,10 @@ for e in evokeds_list:
 
 ###############################################################################
 # To make our life easier, let's convert that list of :class:`~mne.Evoked`
-# objects into a :class:`dictionary <dict>` (make sure the order is correct!):
+# objects into a :class:`dictionary <dict>` (make sure the order is correct!).
+# We'll use ``/``-separated dictionary keys to encode the conditions, like is
+# often done when epoching, because some of the plotting methods can take
+# advantage of that style of coding.
 
 conds = ('aud/left', 'aud/right', 'vis/left', 'vis/right')
 evks = dict(zip(conds, evokeds_list))
@@ -61,8 +64,8 @@ evks['aud/left'].plot(exclude=[])
 # Notice the completely flat EEG channel and the noisy gradiometer channel
 # plotted in red color. Like many MNE-Python plotting functions,
 # :meth:`evoked.plot() <mne.Evoked.plot>` has a ``picks`` parameter that can
-# select channels to plot by name, index, or type. Here we'll show only
-# magnetometer channels, and also color-code the channel traces by their
+# select channels to plot by name, index, or type. In the next plot we'll show
+# only magnetometer channels, and also color-code the channel traces by their
 # location by passing ``spatial_colors=True``. Finally, we'll superimpose a
 # trace of the :term:`global field power <GFP>` across channels:
 
@@ -106,8 +109,10 @@ mne.viz.plot_arrowmap(mags.data[:, 175], mags.info, extrapolate='local')
 # ^^^^^^^^^^^
 #
 # Joint plots combine butterfly plots with scalp topographies, and provide an
-# excellent first-look at evoked data; topographies will be automatically
-# placed based on peak finding. Here we plot the right-visual-field condition:
+# excellent first-look at evoked data; by default, topographies will be
+# automatically placed based on peak finding. Here we plot the
+# right-visual-field condition; if no ``picks`` are specified we get a separate
+# figure for each channel type:
 
 # sphinx_gallery_thumbnail_number = 7
 evks['vis/right'].plot_joint()
@@ -171,7 +176,8 @@ evks['vis/right'].plot_image(picks='meg')
 # For sensor-level analyses it can be useful to plot the response at each
 # sensor in a topographical layout. The :func:`~mne.viz.plot_compare_evokeds`
 # function can do this if you pass ``axes='topo'``, but it can be quite slow
-# if the number of sensors is too large:
+# if the number of sensors is too large, so here we'll plot only the EEG
+# channels:
 
 mne.viz.plot_compare_evokeds(evks, picks='eeg', colors=dict(aud=0, vis=1),
                              linestyles=dict(left='solid', right='dashed'),
@@ -181,11 +187,11 @@ mne.viz.plot_compare_evokeds(evks, picks='eeg', colors=dict(aud=0, vis=1),
 ###############################################################################
 # For larger numbers of sensors, the method :meth:`evoked.plot_topo()
 # <mne.Evoked.plot_topo>` and the function :func:`mne.viz.plot_evoked_topo`
-# can both be used for this purpose. The method will plot only a single
-# condition, while the function can plot one or more conditions on the same
-# axes, if passed a list of :class:`~mne.Evoked` objects. The legend entries
-# will be automatically drawn from the :class:`~mne.Evoked` objects'
-# ``comment`` attribute:
+# can both be used. The :meth:`~mne.Evoked.plot_topo` method will plot only a
+# single condition, while the :func:`~mne.viz.plot_evoked_topo` function can
+# plot one or more conditions on the same axes, if passed a list of
+# :class:`~mne.Evoked` objects. The legend entries will be automatically drawn
+# from the :class:`~mne.Evoked` objects' ``comment`` attribute:
 
 mne.viz.plot_evoked_topo(evokeds_list)
 
@@ -208,6 +214,8 @@ mne.viz.plot_evoked_topo(evokeds_list)
 # views of the field, but it is also possible to plot field maps in 3D. To do
 # this requires a :term:`trans` file to transform locations between the
 # coordinate systems of the MEG device and the head surface (based on the MRI).
+# You *can* compute 3D field maps without a ``trans`` file, but it will only
+# work for calculating the field *on the MEG helmet from the MEG sensors*.
 
 subjects_dir = os.path.join(sample_data_folder, 'subjects')
 sample_data_trans_file = os.path.join(sample_data_folder, 'MEG', 'sample',
@@ -239,8 +247,3 @@ for title, evk in sensor_dict.items():
                               meg_surf='head')
     fig = evk.plot_field(_map, time=0.1)
     mne.viz.set_3d_title(fig, title, size=20)
-
-
-###############################################################################
-# .. note::
-#     If trans_fname is set to None then only MEG estimates can be visualized.
