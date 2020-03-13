@@ -206,7 +206,7 @@ class Annotations(object):
     def __repr__(self):
         """Show the representation."""
         counter = collections.Counter(self.description)
-        kinds = ', '.join(['%s (%s)' % k for k in counter.items()])
+        kinds = ', '.join(['%s (%s)' % k for k in sorted(counter.items())])
         kinds = (': ' if len(kinds) > 0 else '') + kinds
         s = ('Annotations  |  %s segment%s%s' %
              (len(self.onset), _pl(len(self.onset)), kinds))
