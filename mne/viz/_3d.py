@@ -468,7 +468,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
         surfs.append(surf)
 
     if img_output is None:
-        fig, axs = _prepare_trellis(len(slices), 4)
+        fig, axs, _, _ = _prepare_trellis(len(slices), 4)
     else:
         fig, ax = plt.subplots(1, 1, figsize=(7.0, 7.0))
         axs = [ax] * len(slices)

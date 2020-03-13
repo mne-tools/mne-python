@@ -447,24 +447,55 @@ def _get_help_text(params):
     return ''.join(text), ''.join(text2)
 
 
-def _prepare_trellis(n_cells, max_col):
+def _prepare_trellis(n_cells, ncols, nrows='auto', title=False, colorbar=False,
+                     size=1.3):
     import matplotlib.pyplot as plt
+    from matplotlib import gridspec
+    if ncols == 'auto' and nrows == 'auto':
+            raise ValueError("At least one of 'nrows' and 'ncols' must be "
+                             "a numeric value")
     if n_cells == 1:
-        nrow = ncol = 1
-    elif n_cells <= max_col:
-        nrow, ncol = 1, n_cells
+        nrows = ncols = 1
+    elif n_cells <= ncols:
+        nrows, ncols = 1, n_cells
     else:
-        nrow, ncol = int(math.ceil(n_cells / float(max_col))), max_col
+        if ncols == 'auto':
+            ncols = int(np.ceil(n_cells / nrows))
+        elif nrows == 'auto':
+            nrows = int(np.ceil(n_cells / ncols))
+        else:
+            naxes = ncols * nrows
+            if naxes < n_cells:
+                raise ValueError("Cannot plot {} axes in a {} by {} "
+                                 "figure.".format(n_cells, nrows, ncols))
 
-    fig, axes = plt.subplots(nrow, ncol, figsize=(1.3 * ncol + 1,
-                                                  1.5 * nrow + 1))
-    axes = [axes] if ncol == nrow == 1 else axes.flatten()
-    for ax in axes[n_cells:]:  # hide unused axes
-        # XXX: Previously done by ax.set_visible(False), but because of mpl
-        # bug, we just hide the frame.
-        from .topomap import _hide_frame
-        _hide_frame(ax)
-    return fig, axes
+    if colorbar:
+        ncols += 1
+    width = size * ncols
+    height = (size + max(0, 0.1 * (4 - size))) * nrows + bool(title) * 0.5
+    height_ratios = None
+    g_kwargs = {}
+    figure_nobar(figsize=(width * 1.5, height * 1.5))
+    gs = gridspec.GridSpec(
+        nrows, ncols, height_ratios=height_ratios, **g_kwargs)
+
+    axes = []
+    naxes = n_cells
+    if colorbar:
+        naxes += nrows - 1
+    for ax_idx in range(naxes):
+        axes.append(plt.subplot(gs[ax_idx]))
+
+    fig = axes[0].get_figure()
+    # fig, axes = plt.subplots(nrow, ncol, figsize=(1.3 * ncol + 1,
+    #                                               1.5 * nrow + 1))
+    # axes = [axes] if ncol == nrow == 1 else axes.flatten()
+    # for ax in axes[n_cells:]:  # hide unused axes
+    #     # XXX: Previously done by ax.set_visible(False), but because of mpl
+    #     # bug, we just hide the frame.
+    #     from .topomap import _hide_frame
+    #     _hide_frame(ax)
+    return fig, axes, ncols, nrows
 
 
 def _draw_proj_checkbox(event, params, draw_current_state=True):
@@ -1498,9 +1529,6 @@ def _process_times(inst, use_times, n_peaks=None, few=False):
     if use_times.ndim != 1:
         raise ValueError('times must be 1D, got %d dimensions'
                          % use_times.ndim)
-    # if len(use_times) > 20:
-    #     raise RuntimeError('Too many plots requested. Please pass fewer '
-    #                        'than 20 time instants.')
 
     return use_times
 

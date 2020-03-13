@@ -355,12 +355,8 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
     nrows = math.floor(math.sqrt(n_projs))
     ncols = math.ceil(n_projs / nrows)
     if axes is None:
-        _, axes = plt.subplots(nrows, ncols, squeeze=False,
-                               figsize=(ncols * 2, nrows * 2))
-        axes = axes.ravel()
-        if len(axes[n_projs:]):
-            [ax.remove() for ax in axes[n_projs:]]
-            axes = axes[:n_projs]
+        fig, axes, ncols, nrows = _prepare_trellis(
+            n_projs, ncols=ncols, nrows=nrows)
     elif isinstance(axes, plt.Axes):
         axes = [axes]
     if len(axes) != len(projs):
@@ -1173,7 +1169,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     data = data[:, data_picks]
 
     # prepare data for iteration
-    fig, axes = _prepare_trellis(len(data), max_col=5)
+    fig, axes, _, _ = _prepare_trellis(len(data), ncols=5)
     if title is None:
         title = 'ICA components'
     fig.suptitle(title)
@@ -1641,8 +1637,6 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                          '{:0.3f}.'.format(evoked.times[0], evoked.times[-1]))
     n_times = len(times)
     nax = n_times + bool(colorbar)
-    width = size * nax
-    height = size + max(0, 0.1 * (4 - size)) + bool(title) * 0.5
 
     if interactive:
         if axes is not None:
@@ -1652,44 +1646,25 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         nrows = 2
         ncols = n_times + 1 if colorbar else n_times  # room for the colorbar
         g_kwargs = {'left': 0.2, 'right': 1., 'bottom': 0.05, 'top': 0.95}
-    else:
-        if ncols == 'auto':
-            if nrows == 'auto':
-                raise ValueError("At least one of 'nrows' and 'ncols' must be "
-                                "a numeric value")
-            ncols = int(np.ceil(n_times / nrows))
-        elif nrows == 'auto':
-            nrows = int(np.ceil(n_times / ncols))
-        else:
-            naxes = ncols * nrows
-            if naxes < n_times:
-                raise ValueError("Cannot plot {} topographies in a {} by {} "
-                                 "figure.".format(n_times, nrows, ncols))
-        if colorbar:
-            ncols += 1
-        width = size * ncols
-        height = (size + max(0, 0.1 * (4 - size))) * \
-            nrows + bool(title) * 0.5
-
-        height_ratios = None
-        g_kwargs = {}
-
-    gs = gridspec.GridSpec(
-        nrows, ncols, height_ratios=height_ratios, **g_kwargs)
-    if axes is None:
+        width = size * nax
+        height = size + max(0, 0.1 * (4 - size)) + bool(title) * 0.5
         figure_nobar(figsize=(width * 1.5, height * 1.5))
-        axes = list()
-        naxes = len(times)
-        if colorbar:
-            naxes += nrows - 1
-        for ax_idx in range(naxes):
+        gs = gridspec.GridSpec(
+            nrows, ncols, height_ratios=height_ratios, **g_kwargs)
+        axes = []
+        for ax_idx in range(n_times):
             axes.append(plt.subplot(gs[ax_idx]))
-    elif len(axes) != n_times:
-        raise RuntimeError('Axes and times must be equal in sizes.')
-    elif colorbar and colorbar_warn:
-        warn('Colorbar is drawn to the rightmost column of the figure. Be '
-             'sure to provide enough space for it or turn it off with '
-             'colorbar=False.')
+    else:
+        if axes is None:
+            fig, axes, ncols, nrows = _prepare_trellis(
+                n_times, ncols=ncols, nrows=nrows, title=title,
+                colorbar=colorbar, size=size)
+        elif len(axes) != n_times:
+            raise RuntimeError('Axes and times must be equal in sizes.')
+        elif colorbar and colorbar_warn:
+            warn('Colorbar is drawn to the rightmost column of the figure. Be '
+                'sure to provide enough space for it or turn it off with '
+                'colorbar=False.')
 
     if ch_type.startswith('planar'):
         key = 'grad'
@@ -2487,7 +2462,7 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
     data = data[:, data_picks]
 
     # prepare data for iteration
-    fig, axes = _prepare_trellis(len(picks), max_col=5)
+    fig, axes, _, _ = _prepare_trellis(len(picks), ncols=5)
     fig.suptitle(title)
 
     for ii, data_, ax, subject, idx in zip(picks, data, axes, subjs, indices):
