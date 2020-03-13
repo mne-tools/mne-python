@@ -9,6 +9,7 @@ from copy import deepcopy
 from itertools import takewhile
 import collections
 import warnings
+from textwrap import shorten
 import numpy as np
 
 from .utils import (_pl, check_fname, _validate_type, verbose, warn, logger,
@@ -205,15 +206,11 @@ class Annotations(object):
     def __repr__(self):
         """Show the representation."""
         counter = collections.Counter(self.description)
-        kinds = ['%s (%s)' % k for k in counter.items()]
-        kinds = ', '.join(kinds[:3]) + ('' if len(kinds) <= 3 else '...')
+        kinds = ', '.join(['%s (%s)' % k for k in sorted(counter.items())])
         kinds = (': ' if len(kinds) > 0 else '') + kinds
-        if self.orig_time is None:
-            orig = 'orig_time : None'
-        else:
-            orig = 'orig_time : %s' % self.orig_time
-        return ('<Annotations  |  %s segment%s %s, %s>'
-                % (len(self.onset), _pl(len(self.onset)), kinds, orig))
+        s = ('Annotations  |  %s segment%s%s' %
+             (len(self.onset), _pl(len(self.onset)), kinds))
+        return '<' + shorten(s, width=77, placeholder=' ...') + '>'
 
     def __len__(self):
         """Return the number of annotations."""

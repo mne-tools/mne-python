@@ -1189,4 +1189,21 @@ def test_annotations_from_events():
     assert len(annots) == events[events[:, 2] <= 3].shape[0]
 
 
+def test_repr():
+    """Test repr of Annotations."""
+
+    # short annotation repr (< 79 characters)
+    r = repr(Annotations(range(3), [0] * 3, list("abc")))
+    assert r == '<Annotations | 3 segments: a (1), b (1), c (1)>'
+
+    # long annotation repr (> 79 characters, will be shortened)
+    r = repr(Annotations(range(14), [0] * 14, list("abcdefghijklmn")))
+    assert r == ('<Annotations | 14 segments: a (1), b (1), c (1), d (1), '
+                 'e (1), f (1), g ...>')
+
+    # empty Annotations
+    r = repr(Annotations([], [], []))
+    assert r == '<Annotations | 0 segments>'
+
+
 run_tests_if_main()
