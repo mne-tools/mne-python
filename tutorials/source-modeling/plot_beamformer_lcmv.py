@@ -16,6 +16,7 @@ activity.
 
 # sphinx_gallery_thumbnail_number = 5
 
+import matplotlib.pyplot as plt
 import mne
 from mne.datasets import sample, fetch_fsaverage
 from mne.beamformer import make_lcmv, apply_lcmv
@@ -153,11 +154,7 @@ forward = mne.read_forward_solution(fwd_fname)
 # sources such that output power is maximized.
 # This is achieved by setting ``pick_ori='max-power'``.
 # This gives us one source estimate per source (i.e., voxel), which is known
-# as a scalar beamformer. It is also possible to compute a vector beamformer,
-# which gives back three estimates per voxel, corresponding to the three
-# direction components of the source. This can be achieved by setting
-# ``pick_ori='vector'`` and will yield a :class:`volume vector source estimate
-# <mne.VolVectorSourceEstimate>`.
+# as a scalar beamformer.
 
 filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
                     noise_cov=noise_cov, pick_ori='max-power',
@@ -165,6 +162,18 @@ filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
 
 # You can save the filter for later use with:
 # filters.save('filters-lcmv.h5')
+
+###############################################################################
+# It is also possible to compute a vector beamformer, which gives back three
+# estimates per voxel, corresponding to the three direction components of the
+# source. This can be achieved by setting
+# ``pick_ori='vector'`` and will yield a :class:`volume vector source estimate
+# <mne.VolVectorSourceEstimate>`. So we will compute another set of filters
+# using the vector beamformer approach:
+
+filters_vec = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
+                        noise_cov=noise_cov, pick_ori='vector',
+                        weight_norm='unit-noise-gain', rank=None)
 
 ###############################################################################
 # Apply the spatial filter
@@ -179,15 +188,16 @@ filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
 # :func:`~mne.beamformer.apply_lcmv_cov`.
 
 stc = apply_lcmv(evoked, filters, max_ori_out='signed')
+stc_vec = apply_lcmv(evoked, filters_vec, max_ori_out='signed')
 
 ###############################################################################
 # Visualize the reconstructed source activity
 # -------------------------------------------
 # We can visualize the source estimate in different ways, e.g. as an overlay
 # onto the MRI or as a glass brain.
-# The plots show brain activity in the right temporal lobe around 100 ms post
-# stimulus. This is expected given the left-ear auditory stimulation of the
-# experiment.
+# The plots for the scalar beamformer show brain activity in the right temporal
+# lobe around 100 ms post stimulus. This is expected given the left-ear
+# auditory stimulation of the experiment.
 
 lims = [0.3, 0.45, 0.6]
 
@@ -199,10 +209,36 @@ stc.plot(mode='stat_map', clim=dict(kind='value', pos_lims=lims), **kwargs)
 stc.plot(mode='glass_brain', clim=dict(kind='value', lims=lims), **kwargs)
 
 ###############################################################################
+# Now let's visualize the vector beamformer case. Here we get three source time
+# courses out per voxel (one for each component of the dipole moment - x, y,
+# and z). To be able to visualize this, the plotting function combines those
+# estimates into one:
+
+stc_vec.plot(mode='stat_map', clim=dict(kind='value', pos_lims=lims), **kwargs)
+
+###############################################################################
+# Visualize the activity of the maximum voxel with all three components
+# ---------------------------------------------------------------------
+# We can also visualize all three components in the peak voxel. For this, we
+# will first find the peak voxel and then plot the time courses of this voxel.
+
+peak_vox, _ = stc_vec.get_peak(tmin=0.08, tmax=0.1, vert_as_index=True)
+
+ori_labels = ['x', 'y', 'z']
+fig, ax = plt.subplots(1)
+for ori, label in zip(stc_vec.data[peak_vox, :, :], ori_labels):
+    ax.plot(stc_vec.times, ori, label='%s component' % label)
+ax.legend(loc='lower right')
+ax.set(title='Activity per orientation in the peak voxel', xlabel='Time (ms)',
+       ylabel='Amplitude (a. u.)')
+mne.viz.utils.plt_show()
+
+###############################################################################
 # Morph the output to fsaverage
 #
 # We can also use volumetric morphing to get the data to fsaverage space. This
-# is for example necessary when comparing activity across subjects.
+# is for example necessary when comparing activity across subjects. Here, we
+# will use the scalar beamformer example.
 # We pass a :class:`mne.SourceMorph` as the ``src`` argument to
 # `mne.VolSourceEstimate.plot`. To save some computational load when applying
 # the morph, we will crop the ``stc``:
