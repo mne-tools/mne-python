@@ -1,9 +1,9 @@
 """
 .. _ex-inverse-source-power:
 
-=========================================
+==========================================
 Compute source power using DICS beamformer
-=========================================
+==========================================
 
 Compute a Dynamic Imaging of Coherent Sources (DICS) [1]_ filter from
 single-trial activity to estimate source power across a frequency band. This
