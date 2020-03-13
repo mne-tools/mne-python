@@ -5,6 +5,7 @@
 # License: Simplified BSD
 
 from itertools import cycle
+import warnings
 import time
 import numpy as np
 from ..utils import _show_help, _get_color_list, tight_layout
@@ -83,11 +84,9 @@ class TimeSlider(object):
         self.plotter = plotter
         self.brain = brain
         self.slider_rep = None
-        if brain is None:
-            self.time_label = None
-        else:
-            if callable(self.brain._data['time_label']):
-                self.time_label = self.brain._data['time_label']
+        self.time_label = None
+        if self.brain is not None and callable(self.brain._data['time_label']):
+            self.time_label = self.brain._data['time_label']
 
     def __call__(self, value, update_widget=False):
         """Update the time slider."""
@@ -595,7 +594,9 @@ class _TimeViewer(object):
         self.mpl_canvas = MplCanvas(parent, w, h, dpi)
         xlim = [np.min(self.brain._data['time']),
                 np.max(self.brain._data['time'])]
-        self.mpl_canvas.axes.set(xlim=xlim)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=UserWarning)
+            self.mpl_canvas.axes.set(xlim=xlim)
         vlayout = self.plotter.frame.layout()
         if self.separate_canvas:
             self.plotter.app_window.signal_close.connect(self.mpl_canvas.close)
