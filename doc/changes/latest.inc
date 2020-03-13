@@ -131,6 +131,8 @@ Changelog
 
 - Expose the number of ICA iterations during the fitting procedure via the ``n_iter_`` attribute of :class:`mne.preprocessing.ICA` by `Richard Höchenberger`_
 
+- Produce brain movies with ``save_movie`` by `Guillaume Favelier`_
+
 Bug
 ~~~
 
