@@ -69,7 +69,7 @@ def verbose(function):
     wrap_src = """\
 try:
     verbose
-except NameError:
+except (NameError, UnboundLocalError):
     verbose = None
 if verbose is None:
     try:
