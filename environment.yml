@@ -17,7 +17,7 @@ dependencies:
 - pillow
 - statsmodels
 - jupyter
-- pytest!=5.4.0
+- pytest<5.4.0
 - pytest-cov
 - pytest-mock
 - pytest-timeout
