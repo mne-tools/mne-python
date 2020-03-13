@@ -11,8 +11,9 @@ import time
 import traceback
 import numpy as np
 
+from . import _Brain
 from ..utils import _show_help, _get_color_list, tight_layout
-from ...utils import warn
+from ...utils import warn, copy_doc
 from ...source_space import vertex_to_mni
 
 
@@ -595,6 +596,7 @@ class _TimeViewer(object):
         # restore cursor
         self.interactor.setCursor(default_cursor)
 
+    @copy_doc(_Brain.save_movie)
     def save_movie(self, filename=None, **kwargs):
         from pyvista.plotting.qt_plotting import FileDialog
 
