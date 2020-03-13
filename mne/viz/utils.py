@@ -1498,9 +1498,9 @@ def _process_times(inst, use_times, n_peaks=None, few=False):
     if use_times.ndim != 1:
         raise ValueError('times must be 1D, got %d dimensions'
                          % use_times.ndim)
-    if len(use_times) > 20:
-        raise RuntimeError('Too many plots requested. Please pass fewer '
-                           'than 20 time instants.')
+    # if len(use_times) > 20:
+    #     raise RuntimeError('Too many plots requested. Please pass fewer '
+    #                        'than 20 time instants.')
 
     return use_times
 

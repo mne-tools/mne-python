@@ -1450,7 +1450,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                         show=True, show_names=False, title=None, mask=None,
                         mask_params=None, outlines='head', contours=6,
                         image_interp='bilinear', average=None, head_pos=None,
-                        axes=None, extrapolate='box', sphere=None, border=0):
+                        axes=None, extrapolate='box', sphere=None, border=0,
+                        max_cols=None):
     """Plot topographic maps of specific time points of evoked data.
 
     Parameters
@@ -1645,7 +1646,17 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         rows = 2
         g_kwargs = {'left': 0.2, 'right': 1., 'bottom': 0.05, 'top': 0.95}
     else:
-        rows, height_ratios, g_kwargs = 1, None, {}
+        if max_cols is not None:
+            rows = int(np.ceil(float(n_times) / max_cols))
+            cols = min(n_times, max_cols) + bool(colorbar)
+            nax = cols + bool(colorbar)
+            width = size * cols
+            height = (size + max(0, 0.1 * (4 - size))) * \
+                rows + bool(title) * 0.5
+            height_ratios = None
+            g_kwargs = {}
+        else:
+            rows, height_ratios, g_kwargs = 1, None, {}
 
     gs = gridspec.GridSpec(rows, cols, height_ratios=height_ratios, **g_kwargs)
     if axes is None:
