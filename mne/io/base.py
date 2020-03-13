@@ -1602,7 +1602,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         s = ('%s%s x %s (%0.1f s), ~%s'
              % (name, len(self.ch_names), self.n_times, self.times[-1],
                 size_str))
-        return "<%s  |  %s>" % (self.__class__.__name__, s)
+        return "<%s | %s>" % (self.__class__.__name__, s)
 
     def add_events(self, events, stim_channel=None, replace=False):
         """Add events to stim channel.
