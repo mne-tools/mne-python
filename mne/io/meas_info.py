@@ -28,7 +28,7 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_coord_trans, write_ch_info, write_name_list,
                     write_julian, write_float_matrix, write_id, DATE_NONE)
 from .proc_history import _read_proc_history, _write_proc_history
-from ..transforms import invert_transform, Transform
+from ..transforms import invert_transform, Transform, _coord_frame_name
 from ..utils import (logger, verbose, warn, object_diff, _validate_type,
                      _stamp_to_dt, _dt_to_stamp)
 from ._digitization import (_format_dig_points, _dig_kind_proper,
@@ -585,6 +585,14 @@ class Info(dict, MontageMixin):
                           for ii in _dig_kind_ints if ii in counts]
                 counts = (' (%s)' % (', '.join(counts))) if len(counts) else ''
                 entr = '%d items%s' % (len(v), counts)
+            elif k == 'dev_head_t':
+                # show entry only for non-identity transform
+                if not np.allclose(v["trans"], np.eye(v["trans"].shape[0])):
+                    frame1 = _coord_frame_name(v['from'])
+                    frame2 = _coord_frame_name(v['to'])
+                    entr = '%s -> %s transform' % (frame1, frame2)
+                else:
+                    entr = ''
             else:
                 this_len = (len(v) if hasattr(v, '__len__') else
                             ('%s' % v if v is not None else None))
