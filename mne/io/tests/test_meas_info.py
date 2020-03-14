@@ -28,6 +28,7 @@ from mne.io.meas_info import (Info, create_info, _merge_info,
 from mne.io._digitization import (_write_dig_points, _read_dig_points,
                                   _make_dig_points,)
 from mne.io import read_raw_ctf
+from mne.transforms import Transform
 from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
 from mne.channels import make_standard_montage, equalize_channels
 
@@ -692,6 +693,15 @@ def test_equalize_channels():
 
     assert info1.ch_names == ['CH1', 'CH2']
     assert info2.ch_names == ['CH1', 'CH2']
+
+
+def test_repr():
+    info = create_info(1, 1000, 'eeg')
+    assert '8 non-empty values' in repr(info)
+
+    t = Transform(1, 2, np.ones((4, 4)))
+    info['dev_head_t'] = t
+    assert 'dev_head_t: MEG device -> isotrak transform' in repr(info)
 
 
 run_tests_if_main()
