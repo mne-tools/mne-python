@@ -2721,8 +2721,7 @@ def morph_source_spaces(src_from, subject_to, surf='white', subject_from=None,
                   rr=to['rr'] / 1000.)
         src_out.append(to)
         logger.info('[done]\n')
-    info = dict(working_dir=os.getcwd(),
-                command_line=_get_call_line(in_verbose=True))
+    info = dict(working_dir=os.getcwd(), command_line=_get_call_line())
     return SourceSpaces(src_out, info=info)
 
 

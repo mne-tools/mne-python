@@ -15,7 +15,7 @@ from mne.utils import logger, verbose
 
 @verbose
 def resolution_metrics(resmat, src, function='psf', metric='peak_err',
-                       threshold=0.5):
+                       threshold=0.5, verbose=None):
     """Compute spatial resolution metrics for linear solvers.
 
     Parameters
@@ -45,7 +45,7 @@ def resolution_metrics(resmat, src, function='psf', metric='peak_err',
         Spatial-extent-based metrics:
 
         - ``'sd_ext'`` spatial deviation (e.g. [1,2]_).
-        - ``'maxrad_ext'`` maximum radius to 50% of max amplitude.
+        - ``'maxrad_ext'`` maximum radius to 50%% of max amplitude.
 
         Amplitude-based metrics:
 
@@ -56,6 +56,7 @@ def resolution_metrics(resmat, src, function='psf', metric='peak_err',
     threshold : float
         Amplitude fraction threshold for spatial extent metric 'maxrad_ext'.
         Defaults to 0.5.
+    %(verbose)s
 
     Returns
     -------

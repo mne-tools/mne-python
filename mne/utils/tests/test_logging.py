@@ -6,7 +6,7 @@ import pytest
 
 from mne import read_evokeds
 from mne.utils import (warn, set_log_level, set_log_file, filter_out_warnings,
-                       )
+                       verbose, _get_call_line)
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 fname_evoked = op.join(base_dir, 'test-ave.fif')
@@ -112,3 +112,42 @@ def test_warn(capsys):
     captured = capsys.readouterr()
     assert captured.out == ''  # gh-5592
     assert captured.err == ''  # this is because pytest.warns took it already
+
+
+def test_get_call_line():
+    """Test getting a call line."""
+    @verbose
+    def foo(verbose=None):
+        return _get_call_line()
+
+    for v in (None, True):
+        my_line = foo(verbose=v)  # testing
+        assert my_line == 'my_line = foo(verbose=v)  # testing'
+
+    def bar():
+        return _get_call_line()
+
+    my_line = bar()  # testing more
+    assert my_line == 'my_line = bar()  # testing more'
+
+
+def test_verbose_strictness():
+    """Test that the verbose decorator is strict about usability."""
+    @verbose
+    def bad_verbose():
+        pass
+
+    with pytest.raises(RuntimeError, match='does not accept'):
+        bad_verbose()
+
+    class Okay:
+
+        @verbose
+        def meth(self):  # allowed because it should just use self.verbose
+            pass
+
+    o = Okay()
+    with pytest.raises(RuntimeError, match=r'does not have self\.verbose'):
+        o.meth()  # should raise, no verbose attr yet
+    o.verbose = None
+    o.meth()
