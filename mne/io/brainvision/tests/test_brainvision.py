@@ -83,16 +83,16 @@ def test_orig_units(recwarn):
 DATE_TEST_CASES = np.array([
     ('Mk1=New Segment,,1,1,0,20131113161403794232\n',  # content
      [1384359243, 794232],  # meas_date internal representation
-     '2013-11-13 16:14:03 GMT'),  # meas_date representation
+     '2013-11-13 16:14:03 UTC'),  # meas_date representation
 
     (('Mk1=New Segment,,1,1,0,20070716122240937454\n'
       'Mk2=New Segment,,2,1,0,20070716122240937455\n'),
      [1184588560, 937454],
-     '2007-07-16 12:22:40 GMT'),
+     '2007-07-16 12:22:40 UTC'),
 
     ('Mk1=New Segment,,1,1,0,\nMk2=New Segment,,2,1,0,20070716122240937454\n',
      [1184588560, 937454],
-     '2007-07-16 12:22:40 GMT'),
+     '2007-07-16 12:22:40 UTC'),
 
     ('Mk1=STATUS,,1,1,0\n', None, 'unspecified'),
     ('Mk1=New Segment,,1,1,0,\n', None, 'unspecified'),
