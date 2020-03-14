@@ -152,11 +152,8 @@ def test_info():
     # Test info attribute in API objects
     for obj in [raw, epochs, evoked]:
         assert (isinstance(obj.info, Info))
-        info_str = '%s' % obj.info
-        assert len(info_str.split('\n')) == len(obj.info.keys()) + 2
-        assert all(k in info_str for k in obj.info.keys())
         rep = repr(obj.info)
-        assert '2002-12-03 19:01:10 GMT' in rep, rep
+        assert '2002-12-03 19:01:10 UTC' in rep, rep
         assert '146 items (3 Cardinal, 4 HPI, 61 EEG, 78 Extra)' in rep
         dig_rep = repr(obj.info['dig'][0])
         assert 'LPA' in dig_rep, dig_rep

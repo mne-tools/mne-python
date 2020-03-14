@@ -11,6 +11,7 @@ from copy import deepcopy
 import datetime
 from io import BytesIO
 import operator
+from textwrap import shorten
 
 import numpy as np
 from scipy import linalg
@@ -114,11 +115,6 @@ def _get_valid_units():
     valid_units += ["n/a"]
 
     return tuple(valid_units)
-
-
-def _summarize_str(st):
-    """Make summary string."""
-    return st[:56][::-1].split(',', 1)[-1][::-1] + ', ...'
 
 
 def _unique_channel_names(ch_names):
@@ -564,26 +560,21 @@ class Info(dict, MontageMixin):
 
     def __repr__(self):
         """Summarize info instead of printing all."""
-        strs = ['<Info | %s non-empty fields']
+        strs = ['<Info | %s non-empty values']
         non_empty = 0
         for k, v in self.items():
             if k in ['bads', 'ch_names']:
-                entr = (', '.join(b for ii, b in enumerate(v) if ii < 10)
-                        if v else '0 items')
-                if len(v) > 10:
-                    # get rid of of half printed ch names
-                    entr = _summarize_str(entr)
+                entr = ', '.join(v) if v else ''
+                entr = shorten(entr, width=68, placeholder=' ...')
             elif k == 'projs' and v:
                 entr = ', '.join(p['desc'] + ': o%s' %
                                  {0: 'ff', 1: 'n'}[p['active']] for p in v)
-                if len(entr) >= 56:
-                    entr = _summarize_str(entr)
+                entr = shorten(entr, width=68, placeholder=' ...')
             elif k == 'meas_date':
                 if v is None:
                     entr = 'unspecified'
                 else:
-                    # first entry in meas_date is meaningful
-                    entr = v.strftime('%Y-%m-%d %H:%M:%S') + ' GMT'
+                    entr = v.strftime('%Y-%m-%d %H:%M:%S %Z')
             elif k == 'kit_system_id' and v is not None:
                 from .kit.constants import KIT_SYSNAMES
                 entr = '%i (%s)' % (v, KIT_SYSNAMES.get(v, 'unknown'))
@@ -599,21 +590,18 @@ class Info(dict, MontageMixin):
                             ('%s' % v if v is not None else None))
                 entr = (('%d items' % this_len) if isinstance(this_len, int)
                         else ('%s' % this_len if this_len else ''))
-            if entr:
-                non_empty += 1
-                entr = ' | ' + entr
             if k == 'chs':
                 ch_types = [channel_type(self, idx) for idx in range(len(v))]
                 ch_counts = Counter(ch_types)
                 entr += " (%s)" % ', '.join("%s: %d" % (ch_type.upper(), count)
                                             for ch_type, count
                                             in ch_counts.items())
-            strs.append('%s : %s%s' % (k, type(v).__name__, entr))
             if k in ['sfreq', 'lowpass', 'highpass']:
-                strs[-1] += ' Hz'
-        strs_non_empty = sorted(s for s in strs if '|' in s)
-        strs_empty = sorted(s for s in strs if '|' not in s)
-        st = '\n    '.join(strs_non_empty + strs_empty)
+                entr += ' Hz'
+            if entr != '' and entr != '0 items':
+                non_empty += 1
+                strs.append('%s: %s' % (k, entr))
+        st = '\n '.join(sorted(strs))
         st += '\n>'
         st %= non_empty
         return st
