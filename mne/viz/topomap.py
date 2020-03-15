@@ -1169,7 +1169,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     data = np.dot(ica.mixing_matrix_[:, picks].T,
                   ica.pca_components_[:ica.n_components_])
 
-    data_picks, pos, merge_grads, names, _, sphere, clip_origin = \
+    data_picks, pos, merge_channels, names, _, sphere, clip_origin = \
         _prepare_topomap_plot(ica, ch_type, layout, sphere=sphere)
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin,
                                    head_pos)
@@ -1187,7 +1187,12 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     for ii, data_, ax in zip(picks, data, axes):
         kwargs = dict(color='gray') if ii in ica.exclude else dict()
         titles.append(ax.set_title(ica._ica_names[ii], fontsize=12, **kwargs))
-        data_ = _merge_grad_data(data_) if merge_grads else data_
+        if merge_channels:
+            if ch_type == 'grad':
+                data_ = _merge_grad_data(data_)
+            else:
+                assert ch_type in _fnirs_types
+                data_, names_ = _merge_nirs_data(data_, names.copy())
         vmin_, vmax_ = _setup_vmin_vmax(data_, vmin, vmax)
         im = plot_topomap(
             data_.flatten(), pos, vmin=vmin_, vmax=vmax_, res=res, axes=ax,

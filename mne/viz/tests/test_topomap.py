@@ -557,9 +557,11 @@ def test_plot_topomap_nirs_overlap(fnirs_epochs):
 def test_plot_topomap_nirs_ica(fnirs_epochs):
     """Test plotting nirs ica topomap."""
     from mne.preprocessing import ICA
-    ica = ICA().fit(fnirs_epochs.load_data().pick('hbo'))
+    fnirs_epochs = fnirs_epochs.load_data().pick(picks='hbo')
+    fnirs_epochs = fnirs_epochs.pick(picks=range(30))
+    ica = ICA().fit(fnirs_epochs)
     fig = ica.plot_components()
-    assert len(fig[0].axes) == 15
+    assert len(fig[0].axes) == 20
     plt.close('all')
 
 
