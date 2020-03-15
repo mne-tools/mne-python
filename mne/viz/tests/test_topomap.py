@@ -19,10 +19,9 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Circle
 
 from mne import (read_evokeds, read_proj, make_fixed_length_events, Epochs,
-                 compute_proj_evoked, find_layout, pick_types, create_info,
-                 events_from_annotations)
+                 compute_proj_evoked, find_layout, pick_types, create_info)
 from mne.io.proj import make_eeg_average_ref_proj, Projection
-from mne.io import read_raw_fif, read_info, RawArray, read_raw_nirx
+from mne.io import read_raw_fif, read_info, RawArray
 from mne.io.constants import FIFF
 from mne.io.pick import pick_info, channel_indices_by_type
 from mne.io.compensator import get_current_comp
@@ -30,13 +29,11 @@ from mne.channels import read_layout, make_dig_montage
 from mne.datasets import testing
 from mne.time_frequency.tfr import AverageTFR
 from mne.utils import run_tests_if_main
-from mne.datasets.testing import data_path
 
 from mne.viz import plot_evoked_topomap, plot_projs_topomap
 from mne.viz.topomap import (_get_pos_outlines, _onselect, plot_topomap,
                              plot_arrowmap, plot_psds_topomap)
 from mne.viz.utils import _find_peaks, _fake_click
-from mne.preprocessing.nirs import optical_density, beer_lambert_law
 
 
 data_dir = testing.data_path(download=False)
@@ -550,19 +547,19 @@ def test_plot_topomap_bads():
     plt.close('all')
 
 
-def test_plot_topomap_nirs_overlap():
+def test_plot_topomap_nirs_overlap(fnirs_epochs):
     """Test plotting nirs topomap with overlapping channels (gh-7414)."""
-    fname = op.join(data_path(download=False),
-                    'NIRx', 'nirx_15_2_recording_w_overlap')
-    raw_intensity = read_raw_nirx(fname, preload=False)
-    raw_od = optical_density(raw_intensity)
-    raw_haemo = beer_lambert_law(raw_od)
-    evts, _ = events_from_annotations(raw_haemo, event_id={'1.0': 1})
-    evts_dct = {'A': 1}
-    tn, tx = -1, 2
-    epochs = Epochs(raw_haemo, evts, event_id=evts_dct, tmin=tn, tmax=tx)
-    fig = epochs['A'].average(picks='hbo').plot_topomap()
+    fig = fnirs_epochs['A'].average(picks='hbo').plot_topomap()
     assert len(fig.axes) == 5
+    plt.close('all')
+
+
+def test_plot_topomap_nirsica(fnirs_epochs):
+    """Test plotting nirs ica topomap."""
+    from mne.preprocessing import ICA
+    ica = ICA().fit(fnirs_epochs.load_data().pick('hbo'))
+    fig = ica.plot_components()
+    assert len(fig[0].axes) == 15
     plt.close('all')
 
 
