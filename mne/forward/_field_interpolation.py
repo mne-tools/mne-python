@@ -24,7 +24,8 @@ from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
                          _do_cross_dots)
 from ..parallel import check_n_jobs
 from ..utils import logger, verbose, _check_option
-from ..epochs import EpochsArray
+from ..epochs import EpochsArray, BaseEpochs
+from ..evoked import Evoked, EvokedArray
 
 
 def _is_axial_coil(coil):
@@ -168,13 +169,13 @@ def _map_meg_channels(info_from, info_to, mode='fast', origin=(0., 0., 0.04)):
     return mapping
 
 
-def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
+def _as_meg_type_inst(inst, ch_type='grad', mode='fast'):
     """Compute virtual evoked using interpolated fields in mag/grad channels.
 
     Parameters
     ----------
-    evoked : instance of mne.Evoked
-        The evoked object.
+    inst : instance of mne.Evoked or mne.Epochs
+        The evoked or epochs object.
     ch_type : str
         The destination channel type. It can be 'mag' or 'grad'.
     mode : str
@@ -184,16 +185,15 @@ def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
 
     Returns
     -------
-    evoked : instance of mne.Evoked
+    inst : instance of mne.EvokedArray or mne.EpochsArray
         The transformed evoked object containing only virtual channels.
     """
-    evoked = evoked.copy()
     _check_option('ch_type', ch_type, ['mag', 'grad'])
 
     # pick the original and destination channels
-    pick_from = pick_types(evoked.info, meg=True, eeg=False,
+    pick_from = pick_types(inst.info, meg=True, eeg=False,
                            ref_meg=False)
-    pick_to = pick_types(evoked.info, meg=ch_type, eeg=False,
+    pick_to = pick_types(inst.info, meg=ch_type, eeg=False,
                          ref_meg=False)
 
     if len(pick_to) == 0:
@@ -203,92 +203,47 @@ def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
                          ' locations of the destination channels will be used'
                          ' for interpolation.')
 
-    info_from = pick_info(evoked.info, pick_from)
-    info_to = pick_info(evoked.info, pick_to)
+    info_from = pick_info(inst.info, pick_from)
+    info_to = pick_info(inst.info, pick_to)
     mapping = _map_meg_channels(info_from, info_to, mode=mode)
 
-    # compute evoked data by multiplying by the 'gain matrix' from
+    # compute data by multiplying by the 'gain matrix' from
     # original sensors to virtual sensors
-    data = np.dot(mapping, evoked.data[pick_from])
+    if hasattr(inst, 'get_data'):
+        data = inst.get_data()
+    else:
+        data = inst.data
+
+    ndim = data.ndim
+    if ndim == 2:
+        data = data[np.newaxis, :, :]
+
+    data_ = np.empty((data.shape[0], len(mapping), data.shape[2]),
+                     dtype=data.dtype)
+    for d, d_ in zip(data, data_):
+        d_[:] = np.dot(mapping, d[pick_from])
 
     # keep only the destination channel types
-    evoked.pick_types(meg=ch_type, eeg=False, ref_meg=False)
-    evoked.data = data
+    info = pick_info(inst.info, sel=pick_to, copy=True)
 
     # change channel names to emphasize they contain interpolated data
-    for ch in evoked.info['chs']:
+    for ch in info['chs']:
         ch['ch_name'] += '_v'
-    evoked.info._update_redundant()
-    evoked.info._check_consistency()
-    return evoked
+    info._update_redundant()
+    info._check_consistency()
+    if isinstance(inst, Evoked):
+        assert ndim == 2
+        data_ = data_[0]  # undo new axis
+        inst_ = EvokedArray(data_, info, tmin=inst.times[0],
+                            comment=inst.comment, nave=inst.nave)
+    else:
+        assert isinstance(inst, BaseEpochs)
+        inst_ = EpochsArray(data_, info, tmin=inst.tmin,
+                            events=inst.events,
+                            event_id=inst.event_id,
+                            metadata=inst.metadata)
 
-
-def _as_meg_type_epochs(epochs, ch_type='grad', mode='fast'):
-    """Compute virtual epochs using interpolated fields in mag/grad channels.
-
-    Parameters
-    ----------
-    epochs : instance of mne.Epochs
-        The evoked object.
-    ch_type : str
-        The destination channel type. It can be 'mag' or 'grad'.
-    mode : str
-        Either `'accurate'` or `'fast'`, determines the quality of the
-        Legendre polynomial expansion used. `'fast'` should be sufficient
-        for most applications.
-
-    Returns
-    -------
-    epochs : instance of mne.Epochs
-        The transformed evoked object containing only virtual channels.
-    """
-    epochs = epochs.copy()
-    _check_option('ch_type', ch_type, ['mag', 'grad'])
-
-    # pick the original and destination channels
-    pick_from = pick_types(epochs.info, meg=True, eeg=False,
-                           ref_meg=False)
-    pick_to = pick_types(epochs.info, meg=ch_type, eeg=False,
-                         ref_meg=False)
-
-    if len(pick_to) == 0:
-        raise ValueError('No channels matching the destination channel type'
-                         ' found in info. Please pass an evoked containing'
-                         'both the original and destination channels. Only the'
-                         ' locations of the destination channels will be used'
-                         ' for interpolation.')
-
-    info_from = pick_info(epochs.info, pick_from)
-    info_to = pick_info(epochs.info, pick_to)
-    mapping = _map_meg_channels(info_from, info_to, mode=mode)
-
-    # compute epochs data by multiplying by the 'gain matrix' from
-    # original sensors to virtual sensors
-    data_from = epochs.get_data()
-    data_from = data_from[:,pick_from]
-    data_to = np.zeros((len(epochs),len(pick_to),data_from.shape[-1]))
-
-    # compute dot product per epoch
-    for ep, epoch in enumerate(epochs):
-        data_to[ep,:,:] = np.dot(mapping, data_from[ep,:,:])
-
-    # keep only the destination channel types
-    epochs.pick_types(meg=ch_type, eeg=False, ref_meg=False)
-
-    # this does not change the data in epochs
-    # epochs.data = data_to
-
-    # this is a work-around
-    epochs = EpochsArray(data_to, epochs.info, tmin = epochs.times[0],
-                             events=epochs.events, event_id=epochs.event_id,
-                             metadata = epochs.metadata)
-
-    # change channel names to emphasize they contain interpolated data
-    for ch in epochs.info['chs']:
-        ch['ch_name'] += '_v'
-    epochs.info._update_redundant()
-    epochs.info._check_consistency()
-    return epochs
+    return inst_
 
 
 @verbose

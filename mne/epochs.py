@@ -1772,7 +1772,6 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                                default_index=['condition', 'epoch', 'time'])
         return df
 
-
     def as_type(self, ch_type='grad', mode='fast'):
         """Compute virtual epochs using interpolated fields.
 
@@ -1792,15 +1791,18 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
 
         Returns
         -------
-        epochs : instance of mne.Epochs
-            The transformed evoked object containing only virtual channels.
+        epochs : instance of mne.EpochsArray
+            The transformed epochs object containing only virtual channels.
 
         Notes
         -----
-        .. versionadded:: 0.9.0
+        This method returns a copy and does not modify the data it
+        operates on. It also returns an EpochsArraw instance.
+
+        .. versionadded:: 0.20.0
         """
-        from .forward import _as_meg_type_epochs
-        return _as_meg_type_epochs(self, ch_type=ch_type, mode=mode)
+        from .forward import _as_meg_type_inst
+        return _as_meg_type_inst(self, ch_type=ch_type, mode=mode)
 
 
 def _check_baseline(baseline, tmin, tmax, sfreq):
