@@ -455,7 +455,7 @@ def _prepare_trellis(n_cells, ncols, nrows='auto', title=False, colorbar=False,
                              "a numeric value")
     if n_cells == 1:
         nrows = ncols = 1
-    elif n_cells <= ncols:
+    elif isinstance(ncols, int) and n_cells <= ncols:
         nrows, ncols = 1, n_cells
     else:
         if ncols == 'auto':
@@ -486,14 +486,7 @@ def _prepare_trellis(n_cells, ncols, nrows='auto', title=False, colorbar=False,
         axes.append(plt.subplot(gs[ax_idx]))
 
     fig = axes[0].get_figure()
-    # fig, axes = plt.subplots(nrow, ncol, figsize=(1.3 * ncol + 1,
-    #                                               1.5 * nrow + 1))
-    # axes = [axes] if ncol == nrow == 1 else axes.flatten()
-    # for ax in axes[n_cells:]:  # hide unused axes
-    #     # XXX: Previously done by ax.set_visible(False), but because of mpl
-    #     # bug, we just hide the frame.
-    #     from .topomap import _hide_frame
-    #     _hide_frame(ax)
+
     return fig, axes, ncols, nrows
 
 

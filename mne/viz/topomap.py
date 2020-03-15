@@ -1579,6 +1579,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         The number of columns of topographies to plot. If 'auto' (default),
         obtains the number of columns depending on the amount of times to plot
         and the number of rows. Not valid when times == 'interactive'.
+
     Returns
     -------
     fig : instance of matplotlib.figure.Figure
