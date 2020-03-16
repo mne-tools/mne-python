@@ -22,7 +22,7 @@ from ..defaults import HEAD_SIZE_DEFAULT
 from ..channels.channels import _get_ch_type
 from ..channels.layout import (
     _find_topomap_coords, _merge_grad_data, find_layout, _pair_grad_sensors,
-    Layout, _merge_nirs_data)
+    Layout, _merge_ch_data)
 from ..io.pick import (pick_types, _picks_by_type, channel_type, pick_info,
                        _pick_data_channels, pick_channels, _picks_to_idx)
 from ..utils import (_clean_names, _time_mask, verbose, logger, warn, fill_doc,
@@ -1000,11 +1000,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64, layout=None,
                                    head_pos)
 
     if merge_channels:
-        if ch_type == 'grad':
-            data = _merge_grad_data(data)
-        else:
-            assert ch_type in _fnirs_types
-            data, names = _merge_nirs_data(data, names)
+        data, names = _merge_ch_data(data, ch_type, names)
 
     axes.set_title(ica._ica_names[idx], fontsize=12)
     vmin_, vmax_ = _setup_vmin_vmax(data, vmin, vmax)
@@ -1188,11 +1184,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         kwargs = dict(color='gray') if ii in ica.exclude else dict()
         titles.append(ax.set_title(ica._ica_names[ii], fontsize=12, **kwargs))
         if merge_channels:
-            if ch_type == 'grad':
-                data_ = _merge_grad_data(data_)
-            else:
-                assert ch_type in _fnirs_types
-                data_, names_ = _merge_nirs_data(data_, names.copy())
+            data_, names_ = _merge_ch_data(data_, ch_type, names.copy())
         vmin_, vmax_ = _setup_vmin_vmax(data_, vmin, vmax)
         im = plot_topomap(
             data_.flatten(), pos, vmin=vmin_, vmax=vmax_, res=res, axes=ax,
@@ -1714,11 +1706,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
 
     data *= scaling
     if merge_channels:
-        if ch_type == 'grad':
-            data = _merge_grad_data(data)
-        else:
-            assert ch_type in _fnirs_types
-            data, ch_names = _merge_nirs_data(data, ch_names)
+        data, ch_names = _merge_ch_data(data, ch_type, ch_names)
+        if ch_type in _fnirs_types:
             merge_channels = False
 
     images, contours_ = [], []
