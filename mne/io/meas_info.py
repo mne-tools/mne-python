@@ -601,6 +601,8 @@ class Info(dict, MontageMixin):
                     entr = '%s -> %s transform' % (frame1, frame2)
                 else:
                     entr = ''
+            elif k in ['sfreq', 'lowpass', 'highpass']:
+                entr = '{:.1f} Hz'.format(v)
             elif isinstance(v, str):
                 entr = shorten(v, MAX_WIDTH, placeholder=' ...')
             else:
@@ -615,8 +617,6 @@ class Info(dict, MontageMixin):
                 entr += " (%s)" % ', '.join("%s: %d" % (ch_type.upper(), count)
                                             for ch_type, count
                                             in ch_counts.items())
-            if k in ['sfreq', 'lowpass', 'highpass']:
-                entr += ' Hz'
             if entr != '' and entr != '0 items':
                 non_empty += 1
                 strs.append('%s: %s' % (k, entr))
