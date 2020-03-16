@@ -561,14 +561,6 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     grand_average : Evoked | AverageTFR
         The grand average data. Same type as input.
 
-    Raises
-    ------
-    If ``all_inst`` is empty, or if not all elements are evokeds.
-
-    Warns
-    -----
-    If ``all_inst`` contains only a single element.
-
     Notes
     -----
     .. versionadded:: 0.11.0
