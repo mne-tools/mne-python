@@ -395,14 +395,6 @@ class _Brain(object):
             self._data["time_label"] = time_label
             y_txt = 0.05 + 0.1 * bool(colorbar)
 
-        if time is not None and len(array.shape) == 2:
-            # we have scalar_data with time dimension
-            act_data, act_time = self._interpolate_data(array, time_idx)
-            self._current_time = act_time
-        else:
-            # we have scalar data without time
-            act_data = array
-
         fmin, fmid, fmax = _update_limits(
             fmin, fmid, fmax, center, array
         )
@@ -427,6 +419,14 @@ class _Brain(object):
         self._data['fmin'] = fmin
         self._data['fmid'] = fmid
         self._data['fmax'] = fmax
+
+        if time is not None and len(array.shape) == 2:
+            # we have scalar_data with time dimension
+            act_data, act_time = self._interpolate_data(hemi, time_idx)
+            self._current_time = act_time
+        else:
+            # we have scalar data without time
+            act_data = array
 
         # Create smoothing matrix if necessary
         if len(act_data) < self.geo[hemi].x.shape[0]:
@@ -854,14 +854,9 @@ class _Brain(object):
                         assume_sorted=True)
             self._time_interp_inv = _safe_interp1d(idx, self._times)
 
-    def _interpolate_data(self, array, time_idx):
-        from scipy.interpolate import interp1d
-        times = np.arange(self._n_times)
-        act_data = interp1d(
-            times, array, self.time_interpolation, axis=1,
-            assume_sorted=True)(time_idx)
-        ifunc = interp1d(times, self._data['time'])
-        act_time = ifunc(time_idx)
+    def _interpolate_data(self, hemi, time_idx):
+        act_data = self._time_interp_funcs[hemi](time_idx)
+        act_time = self._time_interp_inv(time_idx)
         return act_data, act_time
 
     def set_time_point(self, time_idx):
