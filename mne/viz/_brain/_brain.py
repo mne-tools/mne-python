@@ -395,13 +395,14 @@ class _Brain(object):
             self._data["time_label"] = time_label
             y_txt = 0.05 + 0.1 * bool(colorbar)
 
-        if time is not None and len(array.shape) == 2:
+        if time is not None and len(array.shape) == 2 and array.shape[1] > 1:
             # we have scalar_data with time dimension
             act_data, act_time = self._interpolate_data(array, time_idx)
             self._current_time = act_time
         else:
             # we have scalar data without time
             act_data = array
+            self._current_time = None
 
         fmin, fmid, fmax = _update_limits(
             fmin, fmid, fmax, center, array
@@ -472,8 +473,8 @@ class _Brain(object):
                 actor, mesh = mesh_data, None
             self._data[hemi]['actor'].append(actor)
             self._data[hemi]['mesh'].append(mesh)
-            if array.ndim >= 2 and callable(time_label):
-                if not self._time_label_added:
+            if array.ndim >= 2 and self._current_time is not None:
+                if not self._time_label_added and callable(time_label):
                     time_actor = self._renderer.text2d(
                         x_window=0.95, y_window=y_txt,
                         size=time_label_size,
