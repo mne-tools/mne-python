@@ -528,19 +528,20 @@ def _freq_mask(freqs, sfreq, fmin=None, fmax=None, raise_error=True):
 
 
 def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
-    """Make grand average of a list evoked or AverageTFR data.
+    """Make grand average of a list of Evoked or AverageTFR data.
 
-    For evoked data, the function interpolates bad channels based on the
-    ``interpolate_bads`` parameter. If ``interpolate_bads`` is True, the grand
-    average file will contain good channels and the bad channels interpolated
-    from the good MEG/EEG channels.
-    For AverageTFR data, the function takes the subset of channels not marked
-    as bad in any of the instances.
+    For :class:`mne.Evoked` data, the function interpolates bad channels based
+    on the ``interpolate_bads`` parameter. If ``interpolate_bads`` is True,
+    the grand average file will contain good channels and the bad channels
+    interpolated from the good MEG/EEG channels.
+    For :class:`mne.time_frequency.AverageTFR` data, the function takes the
+    subset of channels not marked as bad in any of the instances.
 
-    The grand_average.nave attribute will be equal to the number
+    The ``grand_average.nave`` attribute will be equal to the number
     of evoked datasets used to calculate the grand average.
 
-    Note: Grand average evoked should not be used for source localization.
+    .. note:: A grand average evoked should not be used for source
+              localization.
 
     Parameters
     ----------
@@ -560,6 +561,14 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     grand_average : Evoked | AverageTFR
         The grand average data. Same type as input.
 
+    Raises
+    ------
+    If ``all_inst`` is empty, or if not all elements are evokeds.
+
+    Warns
+    -----
+    If ``all_inst`` contains only a single element.
+
     Notes
     -----
     .. versionadded:: 0.11.0
@@ -568,7 +577,12 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     from ..evoked import Evoked
     from ..time_frequency import AverageTFR
     from ..channels.channels import equalize_channels
-    assert len(all_inst) > 1
+
+    if not all_inst:
+        raise ValueError('Please pass a list of Evoked or AverageTFR objects.')
+    elif len(all_inst) == 1:
+        warn('Only a single dataset was passed to mne.grand_average().')
+
     inst_type = type(all_inst[0])
     _validate_type(all_inst[0], (Evoked, AverageTFR), 'All elements')
     for inst in all_inst:
