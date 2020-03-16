@@ -261,12 +261,12 @@ def _clean_names(names, remove_whitespace=False, before_dash=True):
 def _get_argvalues():
     """Return all arguments (except self) and values of read_raw_xxx."""
     # call stack
-    # read_raw_xxx -> EOF -> verbose() -> BaseRaw.__init__ -> get_argvalues
+    # read_raw_xxx -> <decorator-gen-000> -> BaseRaw.__init__ -> _get_argvalues
 
     # This is equivalent to `frame = inspect.stack(0)[4][0]` but faster
     frame = inspect.currentframe()
     try:
-        for _ in range(4):
+        for _ in range(3):
             frame = frame.f_back
         fname = frame.f_code.co_filename
         if not fnmatch.fnmatch(fname, '*/mne/io/*'):

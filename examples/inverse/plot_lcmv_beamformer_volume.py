@@ -77,7 +77,7 @@ data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
 # is optimized by setting pick_ori to 'max-power'.
 # weight_norm can also be set to 'unit-noise-gain'. Source orientation can also
 # be 'normal' (but only when using a surface-based source space) or None,
-# which computes a vector beamfomer. Note, however, that not all combinations
+# which computes a vector beamformer. Note, however, that not all combinations
 # of orientation selection and weight normalization are implemented yet.
 filters = make_lcmv(evoked.info, forward, data_cov, reg=0.05,
                     noise_cov=noise_cov, pick_ori='max-power',

@@ -160,7 +160,20 @@ def test_brain_add_text(renderer):
 
 
 @testing.requires_testing_data
-def test_brain_timeviewer(renderer_interactive):
+def test_brain_save_movie(tmpdir, renderer):
+    """Test saving a movie of a _Brain instance."""
+    if renderer.get_3d_backend() == "mayavi":
+        pytest.skip()
+    brain_data = _create_testing_brain(hemi='lh')
+    filename = str(path.join(tmpdir, "brain_test.gif"))
+    brain_data.save_movie(filename, time_dilation=1,
+                          interpolation='nearest')
+    assert path.isfile(filename)
+    brain_data.close()
+
+
+@testing.requires_testing_data
+def test_brain_timeviewer(tmpdir, renderer_interactive):
     """Test _TimeViewer primitives."""
     if renderer_interactive.get_3d_backend() != 'pyvista':
         pytest.skip()
@@ -181,6 +194,19 @@ def test_brain_timeviewer(renderer_interactive):
     time_viewer.toggle_playback()
     time_viewer.apply_auto_scaling()
     time_viewer.restore_user_scaling()
+
+    filename = str(path.join(tmpdir, "timeviewer_test.gif"))
+
+    def _check_result():
+        assert path.isfile(filename)
+
+    dialog = time_viewer.save_movie(
+        tmin=0.1,
+        tmax=0.15,
+    )
+    dialog.selectFile(filename)
+    dialog.accepted.connect(_check_result)
+    dialog.accept()
 
 
 @testing.requires_testing_data
