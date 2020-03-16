@@ -135,7 +135,7 @@ Changelog
 
 - Support for saving movies of source time courses (STCs) with ``brain.save_movie`` method and from graphical user interface by `Guillaume Favelier`_
 
-- :func:`mne.grand_average` now produces a warning when only a single dataset was passed, instead of raising by `Richard Höchenberger`_
+- :func:`mne.grand_average` now produces a warning when only a single dataset was passed, instead of raising an error by `Richard Höchenberger`_
 
 Bug
 ~~~
