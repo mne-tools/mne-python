@@ -478,7 +478,7 @@ def test_grand_average_len_1():
     # returns a list of length 1
     evokeds = read_evokeds(ave_fname, condition=[0], proj=True)
 
-    with pytest.warns(RuntimeWarning, match='Only a single evoked'):
+    with pytest.warns(RuntimeWarning, match='Only a single dataset'):
         gave = grand_average(evokeds)
 
     assert_allclose(gave.data, evokeds[0].data)
