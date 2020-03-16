@@ -561,6 +561,14 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     grand_average : Evoked | AverageTFR
         The grand average data. Same type as input.
 
+    Warns
+    -----
+    If ``all_inst`` contains only a single element.
+
+    Raises
+    ------
+    If ``all_inst`` is empty, or if not all elements are evokeds.
+
     Notes
     -----
     .. versionadded:: 0.11.0
@@ -569,7 +577,12 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     from ..evoked import Evoked
     from ..time_frequency import AverageTFR
     from ..channels.channels import equalize_channels
-    assert len(all_inst) > 1
+
+    if not all_inst:
+        raise ValueError('Please pass a list of Evoked or AverageTFR objects.')
+    elif len(all_inst) == 1:
+        warn('Only a single evoked object was passed to mne.grand_average().')
+
     inst_type = type(all_inst[0])
     _validate_type(all_inst[0], (Evoked, AverageTFR), 'All elements')
     for inst in all_inst:
