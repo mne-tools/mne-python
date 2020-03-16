@@ -30,7 +30,7 @@ from .write import (start_file, end_file, start_block, end_block,
 from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import invert_transform, Transform, _coord_frame_name
 from ..utils import (logger, verbose, warn, object_diff, _validate_type,
-                     _stamp_to_dt, _dt_to_stamp)
+                     _stamp_to_dt, _dt_to_stamp, _pl)
 from ._digitization import (_format_dig_points, _dig_kind_proper,
                             _dig_kind_rev, _dig_kind_ints, _read_dig_fif)
 from ._digitization import write_dig as _dig_write_dig
@@ -592,7 +592,7 @@ class Info(dict, MontageMixin):
                                      _dig_kind_proper[_dig_kind_rev[ii]])
                           for ii in _dig_kind_ints if ii in counts]
                 counts = (' (%s)' % (', '.join(counts))) if len(counts) else ''
-                entr = '%d items%s' % (len(v), counts)
+                entr = '%d item%s%s' % (len(v), _pl(len(v)), counts)
             elif k == 'dev_head_t':
                 # show entry only for non-identity transform
                 if not np.allclose(v["trans"], np.eye(v["trans"].shape[0])):
@@ -606,7 +606,8 @@ class Info(dict, MontageMixin):
             else:
                 this_len = (len(v) if hasattr(v, '__len__') else
                             ('%s' % v if v is not None else None))
-                entr = (('%d items' % this_len) if isinstance(this_len, int)
+                entr = (('%d item%s' % (this_len, _pl(this_len)))
+                        if isinstance(this_len, int)
                         else ('%s' % this_len if this_len else ''))
             if k == 'chs':
                 ch_types = [channel_type(self, idx) for idx in range(len(v))]
