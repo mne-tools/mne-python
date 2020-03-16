@@ -468,16 +468,17 @@ def test_julian_conversions():
 
 
 def test_grand_average_empty_sequence():
+    """Test if mne.grand_average handles an empty sequence correctly."""
     with pytest.raises(ValueError, match='Please pass a list of Evoked'):
         grand_average([])
 
 
 def test_grand_average_len_1():
-    base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
-                       'data')
-    fname = op.join(base_dir, 'test-ave.fif')
-    evokeds = read_evokeds(fname, condition=[0], proj=True)  # list of length 0
+    """Test if mne.grand_average handles a sequence of length 1 correctly."""
+    # returns a list of length 1
+    evokeds = read_evokeds(ave_fname, condition=[0], proj=True)
 
     with pytest.warns(RuntimeWarning, match='Only a single evoked'):
         gave = grand_average(evokeds)
-        assert_allclose(gave.data, evokeds[0].data)
+
+    assert_allclose(gave.data, evokeds[0].data)
