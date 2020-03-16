@@ -245,11 +245,6 @@ evks['aud/left'].plot_field(maps, time=0.1)
 # ``meg_surf='head'``. By selecting each sensor type in turn, you can compare
 # the scalp field estimates from each.
 
-mags = evks['aud/right'].copy().pick_types(meg='mag')
-grads = evks['aud/right'].copy().pick_types(meg='grad')
-eegs = evks['aud/right'].copy().pick_types(meg=False, eeg=True)
-sensor_dict = dict(magnetometers=mags, gradiometers=grads, EEG=eegs)
-
 for ch_type in ('mag', 'grad', 'eeg'):
     evk = evks['aud/right'].copy().pick(ch_type)
     _map = mne.make_field_map(evk, trans=sample_data_trans_file,
