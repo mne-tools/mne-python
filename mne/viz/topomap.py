@@ -1625,12 +1625,14 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     evoked = evoked._pick_drop_channels(picks)
 
     interactive = isinstance(times, str) and times == 'interactive'
+    multiline = nrows == 'auto' or nrows > 1
     if axes is not None:
         if isinstance(axes, plt.Axes):
             axes = [axes]
-        times = _process_times(evoked, times, n_peaks=len(axes))
+        times = _process_times(evoked, times, n_peaks=len(axes),
+                               multiline=multiline)
     else:
-        times = _process_times(evoked, times, n_peaks=None)
+        times = _process_times(evoked, times, n_peaks=None, multiline=multiline)
     space = 1 / (2. * evoked.info['sfreq'])
     if (max(times) > max(evoked.times) + space or
             min(times) < min(evoked.times) - space):

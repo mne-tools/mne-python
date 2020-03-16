@@ -1496,7 +1496,7 @@ def _find_peaks(evoked, npeaks):
     return times
 
 
-def _process_times(inst, use_times, n_peaks=None, few=False):
+def _process_times(inst, use_times, n_peaks=None, few=False, multiline=False):
     """Return a list of times for topomaps."""
     if isinstance(use_times, str):
         if use_times == 'interactive':
@@ -1521,6 +1521,10 @@ def _process_times(inst, use_times, n_peaks=None, few=False):
     if use_times.ndim != 1:
         raise ValueError('times must be 1D, got %d dimensions'
                          % use_times.ndim)
+
+    if len(use_times) > 20 and multiline is False:
+        raise RuntimeError('Too many plots requested. Please pass fewer '		
+                           'than 20 time instants or use a multiline plot.')
 
     return use_times
 
