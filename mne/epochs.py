@@ -3069,7 +3069,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
                 % (len(epochs.events)))
     if not np.array_equal(epochs.events[:, 0], np.unique(epochs.events[:, 0])):
         raise RuntimeError('Epochs must have monotonically increasing events')
-    meg_picks, mag_picks, grad_picks, good_picks, _ = \
+    meg_picks, mag_picks, grad_picks, good_mask, _ = \
         _get_mf_picks(epochs.info, int_order, ext_order, ignore_ref)
     coil_scale, mag_scale = _get_coil_scale(
         meg_picks, mag_picks, grad_picks, mag_scale, epochs.info)
@@ -3078,7 +3078,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
     data = np.zeros((n_channels, n_times))
     count = 0
     # keep only MEG w/bad channels marked in "info_from"
-    info_from = pick_info(epochs.info, good_picks, copy=True)
+    info_from = pick_info(epochs.info, meg_picks[good_mask], copy=True)
     all_coils_recon = _prep_mf_coils(epochs.info, ignore_ref=ignore_ref)
     all_coils = _prep_mf_coils(info_from, ignore_ref=ignore_ref)
     # remove MEG bads in "to" info
@@ -3089,7 +3089,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
     n_in, n_out = _get_n_moments([int_order, ext_order])
     S_decomp = 0.  # this will end up being a weighted average
     last_trans = None
-    decomp_coil_scale = coil_scale[good_picks]
+    decomp_coil_scale = coil_scale[good_mask]
     exp = dict(int_order=int_order, ext_order=ext_order, head_frame=True,
                origin=origin)
     for ei, epoch in enumerate(epochs):
@@ -3150,7 +3150,7 @@ def average_movements(epochs, head_pos=None, orig_sfreq=None, picks=None,
         # Get mapping matrix
         mapping = np.dot(S_recon, pS_ave)
         # Apply mapping
-        data[meg_picks] = np.dot(mapping, data[good_picks])
+        data[meg_picks] = np.dot(mapping, data[meg_picks[good_mask]])
     info_to['dev_head_t'] = recon_trans  # set the reconstruction transform
     evoked = epochs._evoked_from_epoch_data(data, info_to, picks,
                                             n_events=count, kind='average',
