@@ -3,8 +3,8 @@ trigger:
   batch: False
   branches:
     include:
-      - master
-      - maint/*
+      - 'master'
+      - 'maint/*'
 
 jobs:
 
