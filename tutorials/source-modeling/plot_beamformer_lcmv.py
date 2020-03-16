@@ -90,7 +90,7 @@ del raw  # save memory
 # and incorporate enough samples for a stable estimate. A rule of thumb is to
 # use more samples than there are channels in the data set; see
 # :footcite:`BrookesEtAl2008` for more detailed advice on covariance estimation
-# for beamformer. Here, we use a time
+# for beamformers. Here, we use a time
 # window incorporating the expected auditory response at around 100 ms post
 # stimulus and extend the period to account for a low number of trials (72) and
 # low sampling rate of 150 Hz.
@@ -232,7 +232,7 @@ fig, ax = plt.subplots(1)
 for ori, label in zip(stc_vec.data[peak_vox, :, :], ori_labels):
     ax.plot(stc_vec.times, ori, label='%s component' % label)
 ax.legend(loc='lower right')
-ax.set(title='Activity per orientation in the peak voxel', xlabel='Time (ms)',
+ax.set(title='Activity per orientation in the peak voxel', xlabel='Time (s)',
        ylabel='Amplitude (a. u.)')
 mne.viz.utils.plt_show()
 
