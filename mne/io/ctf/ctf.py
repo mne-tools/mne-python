@@ -155,7 +155,6 @@ class RawCTF(BaseRaw):
         if clean_names:
             self._clean_names()
 
-    @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         si = self._raw_extras[fi]

@@ -8,7 +8,7 @@ from os import path
 
 import numpy as np
 
-from ...utils import warn, verbose, fill_doc, _check_option
+from ...utils import warn, fill_doc, _check_option
 from ...channels.layout import _topo_to_sphere
 from ..constants import FIFF
 from ..utils import (_mult_cal_one, _find_channels, _create_chs, read_str)
@@ -398,7 +398,6 @@ class RawCNT(BaseRaw):
         self.set_annotations(
             _read_annotations_cnt(input_fname, data_format=data_format))
 
-    @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Take a chunk of raw data, multiply by mult or cals, and store."""
         if 'stim_channel' in self._raw_extras[0]:

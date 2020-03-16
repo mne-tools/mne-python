@@ -208,7 +208,7 @@ class Annotations(object):
         counter = collections.Counter(self.description)
         kinds = ', '.join(['%s (%s)' % k for k in sorted(counter.items())])
         kinds = (': ' if len(kinds) > 0 else '') + kinds
-        s = ('Annotations  |  %s segment%s%s' %
+        s = ('Annotations | %s segment%s%s' %
              (len(self.onset), _pl(len(self.onset)), kinds))
         return '<' + shorten(s, width=77, placeholder=' ...') + '>'
 

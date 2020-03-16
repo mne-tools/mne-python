@@ -91,6 +91,8 @@ Changelog
 
 - Speed up :func:`mne.make_forward_solution` using Numba, by `Eric Larson`_
 
+- Speed up :func:`mne.io.read_raw_fif` data reading when the recording is long and there are many data tags repeatedly accessed, by `Eric Larson`_
+
 - For KIT systems without built-in layout, :func:`mne.channels.find_layout` now falls back on an automatically generated layout, by `Christian Brodbeck`_
 
 - :meth:`mne.Epochs.plot` now takes a ``epochs_colors`` parameter to color specific epoch segments by `Mainak Jas`_

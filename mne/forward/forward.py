@@ -1816,7 +1816,7 @@ def _do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
 
 
 @verbose
-def average_forward_solutions(fwds, weights=None):
+def average_forward_solutions(fwds, weights=None, verbose=None):
     """Average forward solutions.
 
     Parameters
@@ -1828,6 +1828,7 @@ def average_forward_solutions(fwds, weights=None):
         Weights to apply to each forward solution in averaging. If None,
         forward solutions will be equally weighted. Weights must be
         non-negative, and will be adjusted to sum to one.
+    %(verbose)s
 
     Returns
     -------
