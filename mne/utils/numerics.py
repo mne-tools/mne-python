@@ -581,7 +581,7 @@ def grand_average(all_inst, interpolate_bads=True, drop_bads=True):
     if not all_inst:
         raise ValueError('Please pass a list of Evoked or AverageTFR objects.')
     elif len(all_inst) == 1:
-        warn('Only a single evoked object was passed to mne.grand_average().')
+        warn('Only a single dataset was passed to mne.grand_average().')
 
     inst_type = type(all_inst[0])
     _validate_type(all_inst[0], (Evoked, AverageTFR), 'All elements')
