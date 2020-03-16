@@ -450,10 +450,13 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Notes
         -----
+        This method returns a copy and does not modify the data it
+        operates on. It also returns an EvokedArraw instance.
+
         .. versionadded:: 0.9.0
         """
-        from .forward import _as_meg_type_evoked
-        return _as_meg_type_evoked(self, ch_type=ch_type, mode=mode)
+        from .forward import _as_meg_type_inst
+        return _as_meg_type_inst(self, ch_type=ch_type, mode=mode)
 
     @fill_doc
     def detrend(self, order=1, picks=None):
