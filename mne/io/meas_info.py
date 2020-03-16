@@ -564,12 +564,15 @@ class Info(dict, MontageMixin):
         non_empty = 0
         for k, v in self.items():
             if k in ['bads', 'ch_names']:
-                entr = ', '.join(v) if v else ''
+                entr = ', '.join(v) if v else '[]'  # always show bads
                 entr = shorten(entr, width=68, placeholder=' ...')
-            elif k == 'projs' and v:
-                entr = ', '.join(p['desc'] + ': o%s' %
-                                 {0: 'ff', 1: 'n'}[p['active']] for p in v)
-                entr = shorten(entr, width=68, placeholder=' ...')
+            elif k == 'projs':
+                if v:
+                    entr = ', '.join(p['desc'] + ': o%s' %
+                                     {0: 'ff', 1: 'n'}[p['active']] for p in v)
+                    entr = shorten(entr, width=68, placeholder=' ...')
+                else:
+                    entr = '[]'  # always show projs
             elif k == 'meas_date':
                 if v is None:
                     entr = 'unspecified'
