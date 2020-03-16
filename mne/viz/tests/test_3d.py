@@ -719,7 +719,7 @@ def test_brain_colorbar(orientation, diverging, lims):
 @requires_pysurfer
 @testing.requires_testing_data
 @traits_test
-def test_mixed_sources_plot_surface(garbage_collect):
+def test_mixed_sources_plot_surface(renderer):
     """Test plot_surface() for  mixed source space."""
     src = read_source_spaces(fwd_fname2)
     N = np.sum([s['nuse'] for s in src])  # number of sources
