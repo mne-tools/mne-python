@@ -20,10 +20,14 @@ from ...source_space import vertex_to_mni
 class MplCanvas(object):
     """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
 
-    def __init__(self, timeviewer, parent, width, height, dpi):
+    def __init__(self, timeviewer, width, height, dpi):
         from PyQt5 import QtWidgets
         from matplotlib.figure import Figure
         from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+        if timeviewer.separate_canvas:
+            parent = None
+        else:
+            parent = timeviewer.window
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         self.canvas = FigureCanvasQTAgg(self.fig)
         self.axes = self.fig.add_subplot(111)
@@ -326,7 +330,7 @@ class _TimeViewer(object):
         self.main_menu = self.plotter.main_menu
         self.window = self.plotter.app_window
         self.status_bar = self.window.statusBar()
-        self.interactor = self.plotter
+        self.interactor = self.plotter.interactor
         self.interactor.keyPressEvent = self.keyPressEvent
 
         # Derived parameters:
@@ -415,7 +419,7 @@ class _TimeViewer(object):
             self.time_call(idx, update_widget=True)
             if time_point == max_time:
                 self.playback = False
-            self.plotter.update()  # critical for smooth animation
+        self.plotter.update()  # critical for smooth animation
 
     def _save_movie(self, filename, **kwargs):
         from PyQt5.QtCore import Qt
@@ -704,11 +708,7 @@ class _TimeViewer(object):
             dpi = win.windowHandle().screen().logicalDotsPerInch()
             w, h = win.geometry().width() / dpi, win.geometry().height() / dpi
             h /= 3  # one third of the window
-            if self.separate_canvas:
-                parent = None
-            else:
-                parent = win
-            self.mpl_canvas = MplCanvas(self, parent, w, h, dpi)
+            self.mpl_canvas = MplCanvas(self, w, h, dpi)
             xlim = [np.min(self.brain._data['time']),
                     np.max(self.brain._data['time'])]
             self.mpl_canvas.axes.set(xlim=xlim)
