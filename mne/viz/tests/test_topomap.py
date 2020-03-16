@@ -34,6 +34,7 @@ from mne.viz import plot_evoked_topomap, plot_projs_topomap
 from mne.viz.topomap import (_get_pos_outlines, _onselect, plot_topomap,
                              plot_arrowmap, plot_psds_topomap)
 from mne.viz.utils import _find_peaks, _fake_click
+from mne.utils import requires_sklearn
 
 
 data_dir = testing.data_path(download=False)
@@ -554,6 +555,7 @@ def test_plot_topomap_nirs_overlap(fnirs_epochs):
     plt.close('all')
 
 
+@requires_sklearn
 def test_plot_topomap_nirs_ica(fnirs_epochs):
     """Test plotting nirs ica topomap."""
     from mne.preprocessing import ICA
