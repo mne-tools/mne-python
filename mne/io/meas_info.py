@@ -564,8 +564,11 @@ class Info(dict, MontageMixin):
         non_empty = 0
         for k, v in self.items():
             if k in ['bads', 'ch_names']:
-                entr = ', '.join(v) if v else '[]'  # always show bads
-                entr = shorten(entr, width=68, placeholder=' ...')
+                if v:
+                    entr = shorten(', '.join(v), width=68, placeholder=' ...')
+                else:
+                    entr = '[]'  # always show bads
+                    non_empty -= 1  # don't count as non-empty
             elif k == 'projs':
                 if v:
                     entr = ', '.join(p['desc'] + ': o%s' %
@@ -573,6 +576,7 @@ class Info(dict, MontageMixin):
                     entr = shorten(entr, width=68, placeholder=' ...')
                 else:
                     entr = '[]'  # always show projs
+                    non_empty -= 1  # don't count as non-empty
             elif k == 'meas_date':
                 if v is None:
                     entr = 'unspecified'
