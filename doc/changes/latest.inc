@@ -27,6 +27,8 @@ Changelog
 
 - Add :func:`mne.chpi.compute_chpi_amplitudes`, :func:`mne.chpi.compute_chpi_locs`, and :func:`mne.chpi.compute_head_pos` to compute head positions from cHPI coil locations by `Eric Larson`_ and `Luke Bloy`_
 
+- Add ``allow_line_only`` option to :func:`mne.chpi.filter_chpi` to allow filtering line frequencies only in files that do not have cHPI information by `Eric Larson`_
+
 - Add :func:`mne.io.Raw.set_meas_date` by `Eric Larson`_
 
 - Add ``copy`` parameter to :meth:`mne.Epochs.iter_evoked` by `Alex Gramfort`_
