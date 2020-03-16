@@ -396,7 +396,12 @@ else:
                 else:
                     plotter.screenshot(fname)
                 image_names.append(fname)
-            pyvista.close_all()  # close and clear all plotters
+            # close and clear all plotters
+            for p in seen_plotters:
+                p.close()
+                p.deep_clean()
+            seen_plotters.clear()
+            pyvista.plotting._ALL_PLOTTERS.clear()
             return figure_rst(image_names, gallery_conf["src_dir"])
     scrapers += (Scraper(),)  # eventually just ('pyvista',)
 if any(x in scrapers for x in ('pyvista', 'mayavi')) or \
