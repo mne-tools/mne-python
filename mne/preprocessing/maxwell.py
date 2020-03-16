@@ -845,8 +845,6 @@ def _get_decomp(trans, all_coils, cal, regularize, exp, ignore_ref,
 
     # Pseudo-inverse of total multipolar moment basis set (Part of Eq. 37)
     cond = sing[0] / sing[-1]
-    # logger.debug('    Decomposition matrix condition (%0.3f/%0.3f): %0.1f'
-    #              % (sing[0], sing[-1], cond))
     if bad_condition != 'ignore' and cond >= 1000.:
         msg = 'Matrix is badly conditioned: %0.0f >= 1000' % cond
         if bad_condition == 'error':
