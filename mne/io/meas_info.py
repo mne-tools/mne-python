@@ -560,12 +560,13 @@ class Info(dict, MontageMixin):
 
     def __repr__(self):
         """Summarize info instead of printing all."""
+        MAX_WIDTH = 68
         strs = ['<Info | %s non-empty values']
         non_empty = 0
         for k, v in self.items():
             if k in ['bads', 'ch_names']:
                 if v:
-                    entr = shorten(', '.join(v), width=68, placeholder=' ...')
+                    entr = shorten(', '.join(v), MAX_WIDTH, placeholder=' ...')
                 else:
                     entr = '[]'  # always show bads
                     non_empty -= 1  # don't count as non-empty
@@ -573,7 +574,7 @@ class Info(dict, MontageMixin):
                 if v:
                     entr = ', '.join(p['desc'] + ': o%s' %
                                      {0: 'ff', 1: 'n'}[p['active']] for p in v)
-                    entr = shorten(entr, width=68, placeholder=' ...')
+                    entr = shorten(entr, MAX_WIDTH, placeholder=' ...')
                 else:
                     entr = '[]'  # always show projs
                     non_empty -= 1  # don't count as non-empty
@@ -600,6 +601,8 @@ class Info(dict, MontageMixin):
                     entr = '%s -> %s transform' % (frame1, frame2)
                 else:
                     entr = ''
+            elif isinstance(v, str):
+                entr = shorten(v, MAX_WIDTH, placeholder=' ...')
             else:
                 this_len = (len(v) if hasattr(v, '__len__') else
                             ('%s' % v if v is not None else None))
