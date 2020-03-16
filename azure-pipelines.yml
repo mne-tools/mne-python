@@ -3,6 +3,11 @@ trigger:
   batch: False
   branches:
     include:
+      - 'master'
+      - 'maint/*'
+pr:
+  branches:
+    include:
       - '*'  # must quote since "*" is a YAML reserved character; we want a string
 
 jobs:
