@@ -2487,7 +2487,7 @@ def _trigradient(x, y, z):
 
 
 @fill_doc
-def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
+def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
                   vmax=None, cmap=None, sensors=True, res=64, axes=None,
                   names=None, show_names=False, mask=None, mask_params=None,
                   outlines='head', contours=6, image_interp='bilinear',
@@ -2515,7 +2515,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=1e-10, vmin=None,
     info_to : instance of Info | None
         The measurement info to interpolate to. If None, it is assumed
         to be the same as info_from.
-    scale : float, default 1e-10
+    scale : float, default 3e-10
         To scale the arrows.
     vmin : float | callable | None
         The value specifying the lower bound of the color range.
