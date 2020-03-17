@@ -102,6 +102,7 @@ mne.viz.plot_filter(filter_params, raw.info['sfreq'], flim=(0.01, 5))
 
 ###############################################################################
 # .. _tut-section-line-noise:
+#
 # Power line noise
 # ~~~~~~~~~~~~~~~~
 #

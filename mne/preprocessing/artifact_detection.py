@@ -14,7 +14,7 @@ from ..utils import (_mask_to_onsets_offsets, logger, verbose)
 
 @verbose
 def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1,
-                    filter_freq=[110, 140], verbose=None):
+                    filter_freq=[110, 140], n_jobs=1, verbose=None):
     """Detect segments with muscle artifacts.
 
     Detects segments periods that contains high frequency activity beyond the
@@ -33,7 +33,8 @@ def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1,
         Data to compute head position.
     threshold : float
         The threshold in z-scores for selecting segments with muscle activity
-        artifacts.
+        artifacts. Check ``scores_muscle`` to see optimal thesholding for the
+        data.
     %(picks_all)s
     min_length_good : int | float | None
         The minimal good segment length between annotations, smaller segments
@@ -41,6 +42,7 @@ def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1,
     filter_freq : list
         The lower and upper high frequency to filter the signal for muscle
         detection.
+    %(n_jobs)s
     %(verbose)s
 
     Returns
@@ -66,8 +68,8 @@ def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1,
     assert(len(set(ch_type)) == 1), 'Different channel types, pick one type'
 
     raw_copy.filter(filter_freq[0], filter_freq[1], fir_design='firwin',
-                    pad="reflect_limited")
-    raw_copy.apply_hilbert(envelope=True)
+                    pad="reflect_limited", n_jobs=n_jobs)
+    raw_copy.apply_hilbert(envelope=True, n_jobs=n_jobs)
     sfreq = raw_copy.info['sfreq']
 
     art_scores = zscore(raw_copy.get_data(reject_by_annotation="NaN"), axis=1)

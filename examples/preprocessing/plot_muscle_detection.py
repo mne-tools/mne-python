@@ -33,6 +33,7 @@ included in the surrounding "BAD" annotation.
 
 import os.path as op
 import matplotlib.pyplot as plt
+from numpy import arange
 from mne import pick_types
 from mne.datasets.brainstorm import bst_auditory
 from mne.io import read_raw_ctf
@@ -81,6 +82,6 @@ ax.set_ylabel('zscore')
 ###############################################################################
 # Plot raw with annotated muscles
 # --------------------------------------------------------------------------
-
+order = arange(220, 240)
 raw.set_annotations(annotation_muscle)
-raw.plot(n_channels=150, duration=60)
+raw.plot( duration=30, order=order)
