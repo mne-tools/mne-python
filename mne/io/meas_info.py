@@ -620,7 +620,7 @@ class Info(dict, MontageMixin):
                                         for ch_type, count
                                         in ch_counts.items())
             elif k == 'custom_ref_applied':
-                entr = str(v) if v else ''
+                entr = str(bool(v))
             else:
                 this_len = (len(v) if hasattr(v, '__len__') else
                             ('%s' % v if v is not None else None))
