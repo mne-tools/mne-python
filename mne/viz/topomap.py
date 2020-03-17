@@ -21,8 +21,8 @@ from ..baseline import rescale
 from ..defaults import HEAD_SIZE_DEFAULT
 from ..channels.channels import _get_ch_type
 from ..channels.layout import (
-    _find_topomap_coords, _merge_grad_data, find_layout, _pair_grad_sensors,
-    Layout, _merge_ch_data)
+    _find_topomap_coords, find_layout, _pair_grad_sensors, Layout,
+    _merge_ch_data)
 from ..io.pick import (pick_types, _picks_by_type, channel_type, pick_info,
                        _pick_data_channels, pick_channels, _picks_to_idx)
 from ..utils import (_clean_names, _time_mask, verbose, logger, warn, fill_doc,
@@ -205,8 +205,8 @@ def _plot_update_evoked_topomap(params, bools):
     new_evoked.apply_proj()
 
     data = new_evoked.data[:, params['time_idx']] * params['scale']
-    if params['merge_grads']:
-        data = _merge_grad_data(data)
+    if params['merge_channels']:
+        data, _ = _merge_ch_data(data, 'grad', [])
 
     interp = params['interp']
     new_contours = list()
@@ -334,14 +334,15 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
         data = proj['data']['data'].ravel()
         info_names = _clean_names(info['ch_names'], remove_whitespace=True)
         use_info = pick_info(info, pick_channels(info_names, ch_names))
-        data_picks, pos, merge_grads, names, _, this_sphere, clip_origin = \
+        data_picks, pos, merge_channels, names, _, this_sphere, clip_origin = \
             _prepare_topomap_plot(
                 use_info, _get_ch_type(use_info, None), sphere=sphere)
         these_outlines = _make_head_outlines(
             sphere, pos, outlines, clip_origin)
         data = data[data_picks]
-        if merge_grads:
-            data = _merge_grad_data(data).ravel()
+        if merge_channels:
+            data, _ = _merge_ch_data(data, 'grad', [])
+            data = data.ravel()
 
         # populate containers
         datas.append(data)
@@ -833,7 +834,8 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
             # deal with grad pairs
             picks = _pair_grad_sensors(pos, topomap_coords=False)
             pos = _find_topomap_coords(pos, picks=picks[::2], sphere=sphere)
-            data = _merge_grad_data(data[picks]).reshape(-1)
+            data, _ = _merge_ch_data(data, ch_type, [])
+            data = data.reshape(-1)
         else:
             picks = list(range(data.shape[0]))
             pos = _find_topomap_coords(pos, picks=picks, sphere=sphere)
@@ -1359,7 +1361,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     import matplotlib.pyplot as plt
     ch_type = _get_ch_type(tfr, ch_type)
 
-    picks, pos, merge_grads, names, _, sphere, clip_origin = \
+    picks, pos, merge_channels, names, _, sphere, clip_origin = \
         _prepare_topomap_plot(tfr, ch_type, layout, sphere=sphere)
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin,
                                    head_pos)
@@ -1370,8 +1372,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     data = tfr.data[picks, :, :]
 
     # merging grads before rescaling makes ERDs visible
-    if merge_grads:
-        data = _merge_grad_data(data, method='mean')
+    if merge_channels:
+        data, names = _merge_ch_data(data, ch_type, names, method='mean')
 
     data = rescale(data, tfr.times, baseline, mode, copy=True)
 
@@ -1749,7 +1751,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         slider = Slider(axes[-1], 'Time', evoked.times[0], evoked.times[-1],
                         times[0], valfmt='%1.2fs')
         slider.vline.remove()  # remove initial point indicator
-        func = _merge_grad_data if merge_channels else lambda x: x
+        func = _merge_ch_data if merge_channels else lambda x: x
         changed_callback = partial(_slider_changed, ax=axes[0],
                                    data=evoked.data, times=evoked.times,
                                    pos=pos, scaling=scaling, func=func,
@@ -1784,7 +1786,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
             evoked=evoked, fig=fig, projs=evoked.info['projs'], picks=picks,
             images=images, contours_=contours_, pos=pos, time_idx=time_idx,
             res=res, plot_update_proj_callback=_plot_update_evoked_topomap,
-            merge_grads=merge_channels, scale=scaling, axes=axes,
+            merge_channels=merge_channels, scale=scaling, axes=axes,
             contours=contours, interp=interp, extrapolate=extrapolate)
         _draw_proj_checkbox(None, params)
 
@@ -1936,7 +1938,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     """
     ch_type = _get_ch_type(epochs, ch_type)
 
-    picks, pos, merge_grads, names, ch_type, sphere, clip_origin = \
+    picks, pos, merge_channels, names, ch_type, sphere, clip_origin = \
         _prepare_topomap_plot(epochs, ch_type, layout, sphere=sphere)
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
 
@@ -1947,8 +1949,8 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
                                  proj=proj, n_jobs=n_jobs)
     psds = np.mean(psds, axis=0)
 
-    if merge_grads:
-        psds = _merge_grad_data(psds, method='mean')
+    if merge_channels:
+        psds, names = _merge_ch_data(psds, ch_type, names, method='mean')
 
     return plot_psds_topomap(
         psds=psds, freqs=freqs, pos=pos, agg_fun=agg_fun, vmin=vmin,
@@ -2198,7 +2200,7 @@ def _hide_frame(ax):
     ax.set_frame_on(False)
 
 
-def _init_anim(ax, ax_line, ax_cbar, params, merge_grads, sphere):
+def _init_anim(ax, ax_line, ax_cbar, params, merge_channels, sphere):
     """Initialize animated topomap."""
     from matplotlib import pyplot as plt, patches
     logger.info('Initializing animation...')
@@ -2213,9 +2215,9 @@ def _init_anim(ax, ax_line, ax_cbar, params, merge_grads, sphere):
                     xlim=all_times[[0, -1]])
         params['line'] = ax_line.axvline(all_times[0], color='r')
         items.append(params['line'])
-    if merge_grads:
-        from mne.channels.layout import _merge_grad_data
-        data = _merge_grad_data(data)
+    if merge_channels:
+        from mne.channels.layout import _merge_ch_data
+        data, _ = _merge_ch_data(data, 'grad', [])
     norm = True if np.min(data) > 0 else False
     cmap = 'Reds' if norm else 'RdBu_r'
 
@@ -2361,7 +2363,7 @@ def _topomap_animation(evoked, ch_type, times, frame_rate, butterfly, blit,
     frames = [np.abs(evoked.times - time).argmin() for time in times]
 
     blit = False if plt.get_backend() == 'MacOSX' else blit
-    picks, pos, merge_grads, _, ch_type, sphere, clip_origin = \
+    picks, pos, merge_channels, _, ch_type, sphere, clip_origin = \
         _prepare_topomap_plot(evoked, ch_type, sphere=sphere)
     data = evoked.data[picks, :]
     data *= _handle_default('scalings')[ch_type]
@@ -2385,7 +2387,7 @@ def _topomap_animation(evoked, ch_type, times, frame_rate, butterfly, blit,
                   pause=False, times=times, time_unit=time_unit,
                   clip_origin=clip_origin)
     init_func = partial(_init_anim, ax=ax, ax_cbar=ax_cbar, ax_line=ax_line,
-                        params=params, merge_grads=merge_grads,
+                        params=params, merge_channels=merge_channels,
                         sphere=sphere)
     animate_func = partial(_animate, ax=ax, ax_line=ax_line, params=params)
     pause_func = partial(_pause_anim, params=params)
@@ -2444,7 +2446,7 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
     elif np.isscalar(picks):
         picks = [picks]
 
-    data_picks, pos, merge_grads, names, _, sphere, clip_origin = \
+    data_picks, pos, merge_channels, names, _, sphere, clip_origin = \
         _prepare_topomap_plot(ica, ch_type, layout, sphere=sphere)
     outlines = _make_head_outlines(sphere, pos, outlines, clip_origin)
 
@@ -2461,7 +2463,8 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
             ax.set_title(ttl, fontsize=12)
         else:
             ax.set_title('Subj. {}'.format(subject))
-        data_ = _merge_grad_data(data_) if merge_grads else data_
+        if merge_channels:
+            data_, _ = _merge_ch_data(data_, ch_type, [])
         vmin_, vmax_ = _setup_vmin_vmax(data_, None, None)
         plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
                      res=64, axes=ax, cmap=cmap, outlines=outlines,
