@@ -329,8 +329,6 @@ def test_plot_topomap_basic():
     # make sure projector gets toggled
     assert (np.max(fig1.axes[0].images[0]._A) != data_max)
 
-    # pytest.raises(RuntimeError, plot_evoked_topomap, evoked,
-    #               np.repeat(.1, 50), time_unit='s')
     pytest.raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6],
                   time_unit='s')
 
