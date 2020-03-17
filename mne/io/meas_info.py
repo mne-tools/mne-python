@@ -576,7 +576,7 @@ class Info(dict, MontageMixin):
                     entr += ', '.join(v)
                     entr = shorten(entr, MAX_WIDTH, placeholder=' ...') + ')'
                 else:
-                    entr = '[]'  # always show
+                    entr = '0 items'  # always show
                     non_empty -= 1  # don't count as non-empty
             elif k == 'projs':
                 if v:
@@ -622,13 +622,17 @@ class Info(dict, MontageMixin):
             elif k == 'custom_ref_applied':
                 entr = str(bool(v))
             else:
-                this_len = (len(v) if hasattr(v, '__len__') else
-                            ('%s' % v if v is not None else None))
-                entr = (('%d item%s (%s)' % (this_len, _pl(this_len),
-                                             type(v).__name__))
-                        if isinstance(this_len, int)
-                        else ('%s' % this_len if this_len else ''))
-            if entr != '' and not entr.startswith('0 items'):
+                try:
+                    this_len = len(v)
+                except TypeError:
+                    entr = '{}'.format(v) if v is not None else ''
+                else:
+                    if this_len > 0:
+                        entr = ('%d item%s (%s)' % (this_len, _pl(this_len),
+                                                    type(v).__name__))
+                    else:
+                        entr = ''
+            if entr != '':
                 non_empty += 1
                 strs.append('%s: %s' % (k, entr))
         st = '\n '.join(sorted(strs))
