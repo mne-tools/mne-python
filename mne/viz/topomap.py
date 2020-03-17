@@ -1627,7 +1627,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
 
     interactive = isinstance(times, str) and times == 'interactive'
     if axes is not None:
-        nrows, ncols = None, None  # Deactive ncols when axes were passed
+        nrows, ncols = None, None  # Deactivate ncols when axes were passed
         if isinstance(axes, plt.Axes):
             axes = [axes]
         times = _process_times(evoked, times, n_peaks=len(axes))
