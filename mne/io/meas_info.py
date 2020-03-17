@@ -605,19 +605,22 @@ class Info(dict, MontageMixin):
                 entr = '{:.1f} Hz'.format(v)
             elif isinstance(v, str):
                 entr = shorten(v, MAX_WIDTH, placeholder=' ...')
+            elif k == 'chs':
+                ch_types = [channel_type(self, idx) for idx in range(len(v))]
+                ch_counts = Counter(ch_types)
+                entr = "%s" % ', '.join("%d %s" % (count, ch_type.upper())
+                                        for ch_type, count
+                                        in ch_counts.items())
+            elif k == 'custom_ref_applied':
+                entr = str(v) if v else ''
             else:
                 this_len = (len(v) if hasattr(v, '__len__') else
                             ('%s' % v if v is not None else None))
-                entr = (('%d item%s' % (this_len, _pl(this_len)))
+                entr = (('%d item%s (%s)' % (this_len, _pl(this_len),
+                                             type(v).__name__))
                         if isinstance(this_len, int)
                         else ('%s' % this_len if this_len else ''))
-            if k == 'chs':
-                ch_types = [channel_type(self, idx) for idx in range(len(v))]
-                ch_counts = Counter(ch_types)
-                entr += " (%s)" % ', '.join("%s: %d" % (ch_type.upper(), count)
-                                            for ch_type, count
-                                            in ch_counts.items())
-            if entr != '' and entr != '0 items':
+            if entr != '' and not entr.startswith('0 items'):
                 non_empty += 1
                 strs.append('%s: %s' % (k, entr))
         st = '\n '.join(sorted(strs))
