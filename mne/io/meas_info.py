@@ -621,6 +621,8 @@ class Info(dict, MontageMixin):
                                         in ch_counts.items())
             elif k == 'custom_ref_applied':
                 entr = str(bool(v))
+                if not v:
+                    non_empty -= 1  # don't count if 0
             else:
                 try:
                     this_len = len(v)
