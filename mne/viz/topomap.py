@@ -8,7 +8,6 @@
 #
 # License: Simplified BSD
 
-import math
 import copy
 import itertools
 from functools import partial
@@ -352,14 +351,12 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
 
     # setup axes
     n_projs = len(projs)
-    nrows = math.floor(math.sqrt(n_projs))
-    ncols = math.ceil(n_projs / nrows)
     if axes is None:
         fig, axes, ncols, nrows = _prepare_trellis(
-            n_projs, ncols=ncols, nrows=nrows)
+            n_projs, ncols='auto', nrows='auto')
     elif isinstance(axes, plt.Axes):
         axes = [axes]
-    if len(axes) != len(projs):
+    if len(axes) != n_projs:
         raise RuntimeError('There must be an axes for each picked projector.')
 
     # handle vmin/vmax
@@ -1575,10 +1572,14 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         The number of rows of topographies to plot. Defaults to 1. If 'auto',
         obtains the number of rows depending on the amount of times to plot
         and the number of cols. Not valid when times == 'interactive'.
+
+        .. versionadded:: 0.20
     ncols : int | 'auto'
         The number of columns of topographies to plot. If 'auto' (default),
         obtains the number of columns depending on the amount of times to plot
         and the number of rows. Not valid when times == 'interactive'.
+
+        .. versionadded:: 0.20
 
     Returns
     -------
@@ -1625,14 +1626,14 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     evoked = evoked._pick_drop_channels(picks)
 
     interactive = isinstance(times, str) and times == 'interactive'
-    multiline = nrows == 'auto' or nrows > 1
     if axes is not None:
+        nrows, ncols = None, None  # Deactive ncols when axes were passed
         if isinstance(axes, plt.Axes):
             axes = [axes]
-        times = _process_times(evoked, times, n_peaks=len(axes),
-                               multiline=multiline)
+        times = _process_times(evoked, times, n_peaks=len(axes))
     else:
-        times = _process_times(evoked, times, n_peaks=None, multiline=multiline)
+        times = _process_times(evoked, times, n_peaks=None)
+
     space = 1 / (2. * evoked.info['sfreq'])
     if (max(times) > max(evoked.times) + space or
             min(times) < min(evoked.times) - space):
@@ -1666,8 +1667,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
             raise RuntimeError('Axes and times must be equal in sizes.')
         elif colorbar and colorbar_warn:
             warn('Colorbar is drawn to the rightmost column of the figure. Be '
-                'sure to provide enough space for it or turn it off with '
-                'colorbar=False.')
+                 'sure to provide enough space for it or turn it off with '
+                 'colorbar=False.')
 
     if ch_type.startswith('planar'):
         key = 'grad'
@@ -1745,7 +1746,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                   extrapolate=extrapolate, sphere=sphere, border=border)
     for idx, time in enumerate(times):
         ax_idx = idx
-        if colorbar:
+        if colorbar and ncols is not None:
             ax_idx += idx // (ncols - 1)
         tp, cn, interp = _plot_topomap(
             data[:, idx], pos, axes=axes[ax_idx],
@@ -1778,7 +1779,16 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     if colorbar:
         # works both when fig axes pre-defined and when not
         n_fig_axes = max(nax, len(fig.get_axes()))
-        cax = plt.subplot(1, n_fig_axes + 1, n_fig_axes + 1)
+        if nrows is None or ncols is None or interactive:
+            # If nrows or ncols is None, this means axes were given by the user
+            cax = plt.subplot(1, n_fig_axes + 1, n_fig_axes + 1)
+        else:
+            # Use the last axis from first row
+            n_fig_axes = ncols
+            cax = plt.subplot(nrows, ncols, ncols)
+            for i_row in range(2, nrows):
+                _hide_frame(axes[(i_row * ncols) - 1])
+
         # resize the colorbar (by default the color fills the whole axes)
         _resize_cbar(cax, n_fig_axes, size)
         if unit is not None:

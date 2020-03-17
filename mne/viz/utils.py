@@ -17,6 +17,7 @@ from functools import partial
 import difflib
 import webbrowser
 import tempfile
+import math
 import numpy as np
 import platform
 from copy import deepcopy
@@ -450,18 +451,19 @@ def _prepare_trellis(n_cells, ncols, nrows='auto', title=False, colorbar=False,
                      size=1.3):
     import matplotlib.pyplot as plt
     from matplotlib import gridspec
-    if ncols == 'auto' and nrows == 'auto':
-            raise ValueError("At least one of 'nrows' and 'ncols' must be "
-                             "a numeric value")
+
     if n_cells == 1:
         nrows = ncols = 1
     elif isinstance(ncols, int) and n_cells <= ncols:
         nrows, ncols = 1, n_cells
     else:
-        if ncols == 'auto':
-            ncols = int(np.ceil(n_cells / nrows))
+        if ncols == 'auto' and nrows == 'auto':
+            nrows = math.floor(math.sqrt(n_cells))
+            ncols = math.ceil(n_cells / nrows)
+        elif ncols == 'auto':
+            ncols = math.ceil(n_cells / nrows)
         elif nrows == 'auto':
-            nrows = int(np.ceil(n_cells / ncols))
+            nrows = math.ceil(n_cells / ncols)
         else:
             naxes = ncols * nrows
             if naxes < n_cells:
@@ -1496,7 +1498,7 @@ def _find_peaks(evoked, npeaks):
     return times
 
 
-def _process_times(inst, use_times, n_peaks=None, few=False, multiline=False):
+def _process_times(inst, use_times, n_peaks=None, few=False):
     """Return a list of times for topomaps."""
     if isinstance(use_times, str):
         if use_times == 'interactive':
@@ -1522,9 +1524,8 @@ def _process_times(inst, use_times, n_peaks=None, few=False, multiline=False):
         raise ValueError('times must be 1D, got %d dimensions'
                          % use_times.ndim)
 
-    if len(use_times) > 20 and multiline is False:
-        raise RuntimeError('Too many plots requested. Please pass fewer '		
-                           'than 20 time instants or use a multiline plot.')
+    if len(use_times) > 25:
+        warn('More than 25 topomaps plots requested. This might take a while.')
 
     return use_times
 
