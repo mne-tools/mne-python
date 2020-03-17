@@ -888,7 +888,7 @@ class _LinkViewer(object):
 
 
 def _get_range(brain):
-    val = np.abs(brain._data['array'])
+    val = np.abs(brain._current_act_data)
     return [np.min(val), np.max(val)]
 
 
