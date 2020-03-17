@@ -52,9 +52,9 @@ evoked.plot_topomap(ch_type='mag', time_unit='s')
 ###############################################################################
 # We can use ``nrows`` and ``ncols`` parameter to create multiline plots
 # with more timepoints.
-all_times = np.arange(-0.2, 0.5, 0.02)
+all_times = np.arange(-0.2, 0.5, 0.03)
 evoked.plot_topomap(all_times, ch_type='mag', time_unit='s',
-                    ncols=10, nrows='auto')
+                    ncols=8, nrows='auto')
 
 ###############################################################################
 # Instead of showing topographies at specific time points we can compute
