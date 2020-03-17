@@ -27,6 +27,8 @@ Changelog
 
 - Add :func:`mne.chpi.compute_chpi_amplitudes`, :func:`mne.chpi.compute_chpi_locs`, and :func:`mne.chpi.compute_head_pos` to compute head positions from cHPI coil locations by `Eric Larson`_ and `Luke Bloy`_
 
+- Add ``allow_line_only`` option to :func:`mne.chpi.filter_chpi` to allow filtering line frequencies only in files that do not have cHPI information by `Eric Larson`_
+
 - Add :func:`mne.io.Raw.set_meas_date` by `Eric Larson`_
 
 - Add :meth:`mne.Epochs.as_type` to  allow remapping data in MEG channels to virtual magnetometer or gradiometer channels by `Sophie Herbst`_ and `Alex Gramfort`_
@@ -134,8 +136,6 @@ Changelog
 - Allow retrieval of the number of Infomax ICA iterations via the new ``return_n_iter`` keyword argument of :func:`mne.preprocessing.infomax` by `Richard Höchenberger`_
 
 - Expose the number of ICA iterations during the fitting procedure via the ``n_iter_`` attribute of :class:`mne.preprocessing.ICA` by `Richard Höchenberger`_
-
-- Support for saving movies of source time courses (STCs) with ``brain.save_movie`` method and from graphical user interface by `Guillaume Favelier`_
 
 - :func:`mne.grand_average` now produces a warning when only a single dataset was passed, instead of raising an error by `Richard Höchenberger`_
 
