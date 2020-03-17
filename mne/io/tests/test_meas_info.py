@@ -28,6 +28,7 @@ from mne.io.meas_info import (Info, create_info, _merge_info,
 from mne.io._digitization import (_write_dig_points, _read_dig_points,
                                   _make_dig_points,)
 from mne.io import read_raw_ctf
+from mne.transforms import Transform
 from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
 from mne.channels import make_standard_montage, equalize_channels
 
@@ -152,11 +153,8 @@ def test_info():
     # Test info attribute in API objects
     for obj in [raw, epochs, evoked]:
         assert (isinstance(obj.info, Info))
-        info_str = '%s' % obj.info
-        assert len(info_str.split('\n')) == len(obj.info.keys()) + 2
-        assert all(k in info_str for k in obj.info.keys())
         rep = repr(obj.info)
-        assert '2002-12-03 19:01:10 GMT' in rep, rep
+        assert '2002-12-03 19:01:10 UTC' in rep, rep
         assert '146 items (3 Cardinal, 4 HPI, 61 EEG, 78 Extra)' in rep
         dig_rep = repr(obj.info['dig'][0])
         assert 'LPA' in dig_rep, dig_rep
@@ -695,6 +693,16 @@ def test_equalize_channels():
 
     assert info1.ch_names == ['CH1', 'CH2']
     assert info2.ch_names == ['CH1', 'CH2']
+
+
+def test_repr():
+    """Test Info repr."""
+    info = create_info(1, 1000, 'eeg')
+    assert '7 non-empty values' in repr(info)
+
+    t = Transform(1, 2, np.ones((4, 4)))
+    info['dev_head_t'] = t
+    assert 'dev_head_t: MEG device -> isotrak transform' in repr(info)
 
 
 run_tests_if_main()
