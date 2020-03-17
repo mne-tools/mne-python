@@ -422,7 +422,7 @@ class _Brain(object):
 
         if time is not None and len(array.shape) == 2:
             # we have scalar_data with time dimension
-            act_data, act_time = self._interpolate_data(hemi, time_idx)
+            act_data, act_time = self._interpolate_data(array, time_idx)
             self._current_time = act_time
         else:
             # we have scalar data without time
