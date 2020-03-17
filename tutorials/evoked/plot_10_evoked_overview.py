@@ -162,6 +162,8 @@ print(evoked_subset.ch_names)
 #   attributes.
 #
 #
+# .. _tut-section-load-evk:
+#
 # Loading and saving ``Evoked`` data
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
