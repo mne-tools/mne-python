@@ -696,6 +696,7 @@ def test_equalize_channels():
 
 
 def test_repr():
+    """Test Info repr."""
     info = create_info(1, 1000, 'eeg')
     assert '8 non-empty values' in repr(info)
 
