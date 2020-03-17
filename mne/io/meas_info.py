@@ -593,7 +593,7 @@ class Info(dict, MontageMixin):
                           for ii in _dig_kind_ints if ii in counts]
                 counts = (' (%s)' % (', '.join(counts))) if len(counts) else ''
                 entr = '%d item%s%s' % (len(v), _pl(len(v)), counts)
-            elif k == 'dev_head_t':
+            elif isinstance(v, Transform):
                 # show entry only for non-identity transform
                 if not np.allclose(v["trans"], np.eye(v["trans"].shape[0])):
                     frame1 = _coord_frame_name(v['from'])
