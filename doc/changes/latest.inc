@@ -141,6 +141,8 @@ Changelog
 
 - Add ``nrows`` and ``ncols`` parameters to :func:`mne.viz.plot_evoked_topomap`, which allows to create multiline topomap plots for Evoked. By `Federico Raimondo`_
 
+- Improve repr of :class:`mne.Info` (empty items are not shown anymore) by `Clemens Brunner`_
+
 Bug
 ~~~
 
