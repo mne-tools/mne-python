@@ -3,8 +3,6 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: Simplified BSD
 
-from os import path as op
-
 import numpy as np
 from scipy.sparse import csc_matrix
 
