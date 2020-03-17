@@ -438,8 +438,8 @@ def test_get_peak():
     assert_allclose(max_amp, 7.17057e-13, rtol=1e-5)
 
     pytest.raises(ValueError, evoked.get_peak, ch_type='mag',
-                  merge_channels=True)
-    ch_name, time_idx = evoked.get_peak(ch_type='grad', merge_channels=True)
+                  merge_grads=True)
+    ch_name, time_idx = evoked.get_peak(ch_type='grad', merge_grads=True)
     assert_equal(ch_name, 'MEG 244X')
 
     data = np.array([[0., 1., 2.],

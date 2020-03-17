@@ -312,7 +312,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     def plot_topo(self, layout=None, layout_scale=0.945, color=None,
                   border='none', ylim=None, scalings=None, title=None,
                   proj=False, vline=[0.0], fig_background=None,
-                  merge_channels=False, legend=True, axes=None,
+                  merge_grads=False, legend=True, axes=None,
                   background_color='w', noise_cov=None, show=True):
         """
         Notes
@@ -323,7 +323,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             self, layout=layout, layout_scale=layout_scale, color=color,
             border=border, ylim=ylim, scalings=scalings, title=title,
             proj=proj, vline=vline, fig_background=fig_background,
-            merge_channels=merge_channels, legend=legend, axes=axes,
+            merge_grads=merge_grads, legend=legend, axes=axes,
             background_color=background_color, noise_cov=noise_cov, show=show)
 
     @copy_function_doc_to_method_doc(plot_evoked_topomap)
@@ -503,7 +503,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return out
 
     def get_peak(self, ch_type=None, tmin=None, tmax=None,
-                 mode='abs', time_as_index=False, merge_channels=False,
+                 mode='abs', time_as_index=False, merge_grads=False,
                  return_amplitude=False):
         """Get location and latency of peak amplitude.
 
@@ -526,7 +526,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             Defaults to 'abs'.
         time_as_index : bool
             Whether to return the time index instead of the latency in seconds.
-        merge_channels : bool
+        merge_grads : bool
             If True, compute peak from merged gradiometer data.
         return_amplitude : bool
             If True, return also the amplitude at the maximum response.
@@ -562,13 +562,12 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                'must not be `None`, pass a sensor type '
                                'value instead')
 
-        if merge_channels:
+        if merge_grads:
             if ch_type != 'grad':
-                raise ValueError('Channel type must be '
-                                 'grad for merge_channels')
+                raise ValueError('Channel type must be grad for merge_grads')
             elif mode == 'neg':
                 raise ValueError('Negative mode (mode=neg) does not make '
-                                 'sense with merge_channels=True')
+                                 'sense with merge_grads=True')
 
         meg = eeg = misc = seeg = ecog = fnirs = False
         picks = None
@@ -586,7 +585,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             fnirs = ch_type
 
         if ch_type is not None:
-            if merge_channels:
+            if merge_grads:
                 picks = _pair_grad_sensors(self.info, topomap_coords=False)
             else:
                 picks = pick_types(self.info, meg=meg, eeg=eeg, misc=misc,
@@ -599,7 +598,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             data = data[picks]
             ch_names = [ch_names[k] for k in picks]
 
-        if merge_channels:
+        if merge_grads:
             data, _ = _merge_ch_data(data, ch_type, [])
             ch_names = [ch_name[:-1] + 'X' for ch_name in ch_names[::2]]
 

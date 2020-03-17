@@ -737,7 +737,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
 def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                      border='none', ylim=None, scalings=None, title=None,
                      proj=False, vline=[0.0], fig_background=None,
-                     merge_channels=False, legend=True, axes=None,
+                     merge_grads=False, legend=True, axes=None,
                      background_color='w', noise_cov=None, show=True):
     """Plot 2D topography of evoked responses.
 
@@ -781,7 +781,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     fig_background : None | ndarray
         A background image for the figure. This must work with a call to
         plt.imshow. Defaults to None.
-    merge_channels : bool
+    merge_grads : bool
         Whether to use RMS value of gradiometer pairs. Only works for Neuromag
         data. Defaults to False.
     legend : bool | int | str | tuple
@@ -842,7 +842,7 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                              fig_background=fig_background,
                              axis_facecolor=axis_facecolor,
                              font_color=font_color,
-                             merge_channels=merge_channels,
+                             merge_channels=merge_grads,
                              legend=legend, axes=axes, show=show,
                              noise_cov=noise_cov)
 

@@ -100,7 +100,7 @@ def test_plot_topo():
     # Show topography
     evoked = _get_epochs().average()
     # should auto-find layout
-    plot_evoked_topo([evoked, evoked], merge_channels=True,
+    plot_evoked_topo([evoked, evoked], merge_grads=True,
                      background_color='w')
 
     picked_evoked = evoked.copy().pick_channels(evoked.ch_names[:3])
@@ -138,7 +138,7 @@ def test_plot_topo():
                      fig_background=np.zeros((4, 3, 3)), proj=True,
                      background_color='k')
     # Test RMS plot of grad pairs
-    picked_evoked.plot_topo(merge_channels=True, background_color='w')
+    picked_evoked.plot_topo(merge_grads=True, background_color='w')
     plt.close('all')
     for ax, idx in iter_topography(evoked.info, legend=True):
         ax.plot(evoked.data[idx], color='red')
