@@ -29,6 +29,8 @@ Changelog
 
 - Add :func:`mne.io.Raw.set_meas_date` by `Eric Larson`_
 
+- Add :meth:`mne.Epochs.as_type` to  allow remapping data in MEG channels to virtual magnetometer or gradiometer channels by `Sophie Herbst`_ and `Alex Gramfort`_
+
 - Add ``copy`` parameter to :meth:`mne.Epochs.iter_evoked` by `Alex Gramfort`_
 
 - Add command :ref:`gen_mne_setup_source_space` to quickly set up bilateral hemisphere surface-based source space with subsampling by `Victor Ferat`_.
@@ -134,6 +136,8 @@ Changelog
 - Expose the number of ICA iterations during the fitting procedure via the ``n_iter_`` attribute of :class:`mne.preprocessing.ICA` by `Richard Höchenberger`_
 
 - Support for saving movies of source time courses (STCs) with ``brain.save_movie`` method and from graphical user interface by `Guillaume Favelier`_
+
+- :func:`mne.grand_average` now produces a warning when only a single dataset was passed, instead of raising an error by `Richard Höchenberger`_
 
 Bug
 ~~~
@@ -289,6 +293,8 @@ Bug
 
 API
 ~~~
+
+- :meth:`mne.Evoked.as_type` now returns an instance of :class:`mne.EvokedArray` by `Sophie Herbst`_ and `Alex Gramfort`_
 
 - Bumped minimum requirements to fall 2017 versions by `Eric Larson`_:
 

@@ -10,7 +10,6 @@ indicate how well different sensor types will be able to detect
 neural currents from different regions of the brain.
 
 To get started with forward modeling see :ref:`tut-forward`.
-
 """
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
@@ -56,18 +55,16 @@ for ax, picks, ch_type in zip(axes, [picks_meg, picks_eeg], ['meg', 'eeg']):
     ax.set_title(ch_type.upper())
     ax.set_xlabel('sources')
     ax.set_ylabel('sensors')
-    plt.colorbar(im, ax=ax, cmap='RdBu_r')
-plt.show()
+    fig.colorbar(im, ax=ax, cmap='RdBu_r')
 
-plt.figure()
-plt.hist([grad_map.data.ravel(), mag_map.data.ravel(), eeg_map.data.ravel()],
-         bins=20, label=['Gradiometers', 'Magnetometers', 'EEG'],
-         color=['c', 'b', 'k'])
-plt.legend()
-plt.title('Normal orientation sensitivity')
-plt.xlabel('sensitivity')
-plt.ylabel('count')
-plt.show()
+fig_2, ax = plt.subplots()
+ax.hist([grad_map.data.ravel(), mag_map.data.ravel(), eeg_map.data.ravel()],
+        bins=20, label=['Gradiometers', 'Magnetometers', 'EEG'],
+        color=['c', 'b', 'k'])
+fig_2.legend()
+ax.set(title='Normal orientation sensitivity',
+       xlabel='sensitivity', ylabel='count')
 
+# sphinx_gallery_thumbnail_number = 3
 grad_map.plot(time_label='Gradiometer sensitivity', subjects_dir=subjects_dir,
               clim=dict(lims=[0, 50, 100]))

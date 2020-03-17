@@ -1772,6 +1772,38 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                                default_index=['condition', 'epoch', 'time'])
         return df
 
+    def as_type(self, ch_type='grad', mode='fast'):
+        """Compute virtual epochs using interpolated fields.
+
+        .. Warning:: Using virtual epochs to compute inverse can yield
+            unexpected results. The virtual channels have `'_v'` appended
+            at the end of the names to emphasize that the data contained in
+            them are interpolated.
+
+        Parameters
+        ----------
+        ch_type : str
+            The destination channel type. It can be 'mag' or 'grad'.
+        mode : str
+            Either `'accurate'` or `'fast'`, determines the quality of the
+            Legendre polynomial expansion used. `'fast'` should be sufficient
+            for most applications.
+
+        Returns
+        -------
+        epochs : instance of mne.EpochsArray
+            The transformed epochs object containing only virtual channels.
+
+        Notes
+        -----
+        This method returns a copy and does not modify the data it
+        operates on. It also returns an EpochsArraw instance.
+
+        .. versionadded:: 0.20.0
+        """
+        from .forward import _as_meg_type_inst
+        return _as_meg_type_inst(self, ch_type=ch_type, mode=mode)
+
 
 def _check_baseline(baseline, tmin, tmax, sfreq):
     """Check for a valid baseline."""
