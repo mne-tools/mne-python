@@ -3,8 +3,9 @@
 # License: BSD (3-clause)
 
 import os.path as op
-import numpy as np
+import pathlib
 
+import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
 import pytest
 from scipy import sparse
@@ -701,13 +702,14 @@ def test_cross_talk(tmpdir):
     raw.info['bads'] = bads
     sss_ctc = read_crop(sss_ctc_fname)
     with use_coil_def(elekta_def_fname):
-        raw_sss = maxwell_filter(raw, cross_talk=ctc_fname,
+        raw_sss = maxwell_filter(raw, cross_talk=pathlib.Path(ctc_fname),
                                  origin=mf_head_origin, regularize=None,
                                  bad_condition='ignore')
     assert_meg_snr(raw_sss, sss_ctc, 275.)
     py_ctc = raw_sss.info['proc_history'][0]['max_info']['sss_ctc']
     assert (len(py_ctc) > 0)
-    pytest.raises(ValueError, maxwell_filter, raw, cross_talk=raw)
+    with pytest.raises(TypeError, match='path-like'):
+        maxwell_filter(raw, cross_talk=raw)
     pytest.raises(ValueError, maxwell_filter, raw, cross_talk=raw_fname)
     mf_ctc = sss_ctc.info['proc_history'][0]['max_info']['sss_ctc']
     del mf_ctc['block_id']  # we don't write this
@@ -828,7 +830,7 @@ def test_shielding_factor(tmpdir):
     _assert_shielding(read_crop(sss_erm_fine_cal_fname), erm_power, 12)  # 2.0)
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              origin=mf_meg_origin,
-                             calibration=fine_cal_fname)
+                             calibration=pathlib.Path(fine_cal_fname))
     _assert_shielding(raw_sss, erm_power, 12)  # 2.0)
 
     # Crosstalk
@@ -1049,6 +1051,7 @@ def test_find_bad_channels_maxwell(bads):
     """Test automatic bad channel detection."""
     raw = mne.io.read_raw_fif(sample_fname, allow_maxshield='yes')
     raw.fix_mag_coil_types().load_data().pick_types(exclude=())
+    raw.filter(None, 40)
     raw.info['bads'] = bads
     # maxfilter -autobad on -v -f test_raw.fif -force -cal off -ctc off -regularize off -list -o test_raw.fif -f ~/mne_data/MNE-testing-data/MEG/sample/sample_audvis_trunc_raw.fif  # noqa: E501
     got_bads = find_bad_channels_maxwell(
