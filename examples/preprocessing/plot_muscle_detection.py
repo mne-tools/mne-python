@@ -84,4 +84,4 @@ ax.set_ylabel('zscore')
 # --------------------------------------------------------------------------
 order = arange(220, 240)
 raw.set_annotations(annotation_muscle)
-raw.plot( duration=30, order=order)
+raw.plot(duration=30, order=order)
