@@ -1054,24 +1054,10 @@ def permutation_cluster_test(
         with X1.shape = (20, 50, 4) and X2.shape = (17, 50, 4) one has
         2 groups with respectively 20 and 17 observations in each.
         Each data point is of shape (50, 4).
-    threshold : float | dict | None
-        If threshold is None, it will choose an F-threshold equivalent to
-        p < 0.05 for the given number of observations (only valid when
-        using an F-statistic). If a dict is used, then threshold-free
-        cluster enhancement (TFCE) will be used, and it must have keys
-        ``'start'`` and ``'step'`` to specify the integration parameters,
-        see the :ref:`TFCE example <tfce_example>`.
-    n_permutations : int
-        The number of permutations to compute.
-    tail : -1 or 0 or 1 (default = 0)
-        If tail is 0, the statistic is thresholded on both sides of
-        the distribution.
-        If tail is 1, the statistic is thresholded above threshold.
-        If tail is -1, the statistic is thresholded below threshold, and
-        the values in ``threshold`` must correspondingly be negative.
-    stat_fun : callable | None
-        Function called to calculate statistics, must accept 1d-arrays as
-        arguments (default None uses :func:`mne.stats.f_oneway`).
+    %(clust_thresh_f)s
+    %(clust_nperm_int)s
+    %(clust_tail)s
+    %(clust_stat_f)s
     connectivity : scipy.sparse.spmatrix
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
@@ -1079,44 +1065,16 @@ def permutation_cluster_test(
         Can also be False to assume no connectivity.
     %(n_jobs)s
     %(seed)s
-    max_step : int
-        When connectivity is a n_vertices x n_vertices matrix, specify the
-        maximum number of steps between vertices along the second dimension
-        (typically time) to be considered connected. This is not used for full
-        or None connectivity matrices.
+    %(clust_maxstep)s
     exclude : bool array or None
         Mask to apply to the data to exclude certain points from clustering
         (e.g., medial wall vertices). Should be the same shape as X. If None,
         no points are excluded.
-    step_down_p : float
-        To perform a step-down-in-jumps test, pass a p-value for clusters to
-        exclude from each successive iteration. Default is zero, perform no
-        step-down test (since no clusters will be smaller than this value).
-        Setting this to a reasonable value, e.g. 0.05, can increase sensitivity
-        but costs computation time.
-    t_power : float
-        Power to raise the statistical values (usually F-values) by before
-        summing (sign will be retained). Note that t_power == 0 will give a
-        count of nodes in each cluster, t_power == 1 will weight each node by
-        its statistical score.
-    out_type : str
-        For arrays with connectivity, this sets the output format for clusters.
-        If 'mask', it will pass back a list of boolean mask arrays.
-        If 'indices', it will pass back a list of lists, where each list is the
-        set of vertices in a given cluster. Note that the latter may use far
-        less memory for large datasets.
-    check_disjoint : bool
-        If True, the connectivity matrix (or list) will be examined to
-        determine of it can be separated into disjoint sets. In some cases
-        (usually with connectivity as a list and many "time" points), this
-        can lead to faster clustering, but results should be identical.
-    buffer_size : int or None
-        The statistics will be computed for blocks of variables of size
-        "buffer_size" at a time. This is option significantly reduces the
-        memory requirements when n_jobs > 1 and memory sharing between
-        processes is enabled (see set_cache_dir()), as X will be shared
-        between processes and each process only needs to allocate space
-        for a small block of variables.
+    %(clust_stepdown)s
+    %(clust_power_f)s
+    %(clust_out)s
+    %(clust_disjoint)s
+    %(clust_buffer)s
     %(verbose)s
 
     Returns
@@ -1160,24 +1118,10 @@ def permutation_cluster_1samp_test(
         difference in paired samples (observations) in two conditions.
         ``X[k]`` can be a 1D or 2D array (time series
         or TF image) associated to the kth observation.
-    threshold : float | dict | None
-        If threshold is None, it will choose a t-threshold equivalent to
-        p < 0.05 for the given number of observations (only valid when
-        using an t-statistic). If a dict is used, then threshold-free
-        cluster enhancement (TFCE) will be used, and it must have keys
-        ``'start'`` and ``'step'`` to specify the integration parameters,
-        see the :ref:`TFCE example <tfce_example>`.
-    n_permutations : int | 'all'
-        The maximum number of permutations to compute. Can be 'all'
-        to perform an exact test.
-    tail : -1 or 0 or 1 (default = 0)
-        If tail is 1, the statistic is thresholded above threshold.
-        If tail is -1, the statistic is thresholded below threshold.
-        If tail is 0, the statistic is thresholded on both sides of
-        the distribution.
-    stat_fun : callable | None
-        Function used to compute the statistical map (default None will use
-        :func:`mne.stats.ttest_1samp_no_p`).
+    %(clust_thresh_t)s
+    %(clust_nperm_all)s
+    %(clust_tail)s
+    %(clust_stat_t)s
     connectivity : scipy.sparse.spmatrix | None | False
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
@@ -1189,44 +1133,17 @@ def permutation_cluster_1samp_test(
     %(verbose)s
     %(n_jobs)s
     %(seed)s
-    max_step : int
-        When connectivity is a n_vertices x n_vertices matrix, specify the
-        maximum number of steps between vertices along the second dimension
-        (typically time) to be considered connected. This is not used for full
-        or None connectivity matrices.
+    %(clust_maxstep)s
     exclude : bool array or None
         Mask to apply to the data to exclude certain points from clustering
         (e.g., medial wall vertices). Should be the same shape as X. If None,
         no points are excluded.
-    step_down_p : float
-        To perform a step-down-in-jumps test, pass a p-value for clusters to
-        exclude from each successive iteration. Default is zero, perform no
-        step-down test (since no clusters will be smaller than this value).
-        Setting this to a reasonable value, e.g. 0.05, can increase sensitivity
-        but costs computation time.
-    t_power : float
-        Power to raise the statistical values (usually t-values) by before
-        summing (sign will be retained). Note that t_power == 0 will give a
-        count of nodes in each cluster, t_power == 1 will weight each node by
-        its statistical score.
-    out_type : str
-        For arrays with connectivity, this sets the output format for clusters.
-        If 'mask', it will pass back a list of boolean mask arrays.
-        If 'indices', it will pass back a list of lists, where each list is the
-        set of vertices in a given cluster. Note that the latter may use far
-        less memory for large datasets.
-    check_disjoint : bool
-        If True, the connectivity matrix (or list) will be examined to
-        determine of it can be separated into disjoint sets. In some cases
-        (usually with connectivity as a list and many "time" points), this
-        can lead to faster clustering, but results should be identical.
-    buffer_size : int or None
-        The statistics will be computed for blocks of variables of size
-        "buffer_size" at a time. This is option significantly reduces the
-        memory requirements when n_jobs > 1 and memory sharing between
-        processes is enabled (see set_cache_dir()), as X will be shared
-        between processes and each process only needs to allocate space
-        for a small block of variables.
+    %(clust_stepdown)s
+    %(clust_power_t)s
+    %(clust_out)s
+    %(clust_disjoint)s
+    %(clust_buffer)s
+    %(verbose)s
 
     Returns
     -------
@@ -1295,24 +1212,10 @@ def spatio_temporal_cluster_1samp_test(
     ----------
     X : array, shape (n_observations, n_times, n_vertices)
         Array data of the difference between two conditions.
-    threshold : float | dict | None
-        If threshold is None, it will choose a t-threshold equivalent to
-        p < 0.05 for the given number of observations (only valid when
-        using an t-statistic). If a dict is used, then threshold-free
-        cluster enhancement (TFCE) will be used, and it must have keys
-        ``'start'`` and ``'step'`` to specify the integration parameters,
-        see the :ref:`TFCE example <tfce_example>`.
-    n_permutations : int | 'all'
-        The number of permutations to compute. Can be "all" to perform
-        an exact test.
-    tail : -1 or 0 or 1 (default = 0)
-        If tail is 1, the statistic is thresholded above threshold.
-        If tail is -1, the statistic is thresholded below threshold.
-        If tail is 0, the statistic is thresholded on both sides of
-        the distribution.
-    stat_fun : callable | None
-        Function used to compute the statistical map (default None will use
-        :func:`mne.stats.ttest_1samp_no_p`).
+    %(clust_thresh_t)s
+    %(clust_nperm_all)s
+    %(clust_tail)s
+    %(clust_stat_t)s
     connectivity : scipy.sparse.spmatrix or None
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
@@ -1322,42 +1225,15 @@ def spatio_temporal_cluster_1samp_test(
         extent to save on memory and computation time.
     %(n_jobs)s
     %(seed)s
-    max_step : int
-        When connectivity is a n_vertices x n_vertices matrix, specify the
-        maximum number of steps between vertices along the second dimension
-        (typically time) to be considered connected. This is not used for full
-        or None connectivity matrices.
+    %(clust_maxstep)s
     spatial_exclude : list of int or None
         List of spatial indices to exclude from clustering.
-    step_down_p : float
-        To perform a step-down-in-jumps test, pass a p-value for clusters to
-        exclude from each successive iteration. Default is zero, perform no
-        step-down test (since no clusters will be smaller than this value).
-        Setting this to a reasonable value, e.g. 0.05, can increase sensitivity
-        but costs computation time.
-    t_power : float
-        Power to raise the statistical values (usually t-values) by before
-        summing (sign will be retained). Note that t_power == 0 will give a
-        count of nodes in each cluster, t_power == 1 will weight each node by
-        its statistical score.
-    out_type : str
-        For arrays with connectivity, this sets the output format for clusters.
-        If 'mask', it will pass back a list of boolean mask arrays.
-        If 'indices', it will pass back a list of lists, where each list is the
-        set of vertices in a given cluster. Note that the latter may use far
-        less memory for large datasets.
-    check_disjoint : bool
-        If True, the connectivity matrix (or list) will be examined to
-        determine of it can be separated into disjoint sets. In some cases
-        (usually with connectivity as a list and many "time" points), this
-        can lead to faster clustering, but results should be identical.
-    buffer_size : int or None
-        The statistics will be computed for blocks of variables of size
-        "buffer_size" at a time. This is option significantly reduces the
-        memory requirements when n_jobs > 1 and memory sharing between
-        processes is enabled (see set_cache_dir()), as X will be shared
-        between processes and each process only needs to allocate space
-        for a small block of variables.
+    %(clust_stepdown)s
+    %(clust_power_t)s
+    %(clust_out)s
+    %(clust_disjoint)s
+    %(clust_buffer)s
+    %(verbose)s
     %(verbose)s
 
     Returns
@@ -1412,21 +1288,10 @@ def spatio_temporal_cluster_test(
     X : list of array
         List of data arrays, shape ``(n_observations, n_times, n_vertices)``
         in each group.
-    threshold : float | dict | None
-        If threshold is None, it will choose an F-threshold equivalent to
-        p < 0.05 for the given number of observations (only valid when
-        using an F-statistic). If a dict is used, then threshold-free
-        cluster enhancement (TFCE) will be used, and it must have keys
-        ``'start'`` and ``'step'`` to specify the integration parameters,
-        see the :ref:`TFCE example <tfce_example>`.
-    n_permutations : int
-        See permutation_cluster_test.
-    tail : -1 or 0 or 1 (default = 0)
-        See permutation_cluster_test.
-    stat_fun : callable | None
-        Function called to calculate statistics, must accept 1d-arrays as
-        arguments (default None uses :func:`mne.stats.f_oneway`). It
-        should also return a 1-d array.
+    %(clust_thresh_f)s
+    %(clust_nperm_int)s
+    %(clust_tail)s
+    %(clust_stat_f)s
     connectivity : scipy.sparse.spmatrix or None
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
@@ -1434,42 +1299,14 @@ def spatio_temporal_cluster_test(
     %(verbose)s
     %(n_jobs)s
     %(seed)s
-    max_step : int
-        When connectivity is a n_vertices x n_vertices matrix, specify the
-        maximum number of steps between vertices along the second dimension
-        (typically time) to be considered connected. This is not used for full
-        or None connectivity matrices.
+    %(clust_maxstep)s
     spatial_exclude : list of int or None
         List of spatial indices to exclude from clustering.
-    step_down_p : float
-        To perform a step-down-in-jumps test, pass a p-value for clusters to
-        exclude from each successive iteration. Default is zero, perform no
-        step-down test (since no clusters will be smaller than this value).
-        Setting this to a reasonable value, e.g. 0.05, can increase sensitivity
-        but costs computation time.
-    t_power : float
-        Power to raise the statistical values (usually F-values) by before
-        summing (sign will be retained). Note that t_power == 0 will give a
-        count of nodes in each cluster, t_power == 1 will weight each node by
-        its statistical score.
-    out_type : str
-        For arrays with connectivity, this sets the output format for clusters.
-        If 'mask', it will pass back a list of boolean mask arrays.
-        If 'indices', it will pass back a list of lists, where each list is the
-        set of vertices in a given cluster. Note that the latter may use far
-        less memory for large datasets.
-    check_disjoint : bool
-        If True, the connectivity matrix (or list) will be examined to
-        determine of it can be separated into disjoint sets. In some cases
-        (usually with connectivity as a list and many "time" points), this
-        can lead to faster clustering, but results should be identical.
-    buffer_size : int or None
-        The statistics will be computed for blocks of variables of size
-        "buffer_size" at a time. This is option significantly reduces the
-        memory requirements when n_jobs > 1 and memory sharing between
-        processes is enabled (see set_cache_dir()), as X will be shared
-        between processes and each process only needs to allocate space
-        for a small block of variables.
+    %(clust_stepdown)s
+    %(clust_power_f)s
+    %(clust_out)s
+    %(clust_disjoint)s
+    %(clust_buffer)s
 
     Returns
     -------
