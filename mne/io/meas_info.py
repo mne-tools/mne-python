@@ -576,7 +576,7 @@ class Info(dict, MontageMixin):
                     entr += ', '.join(v)
                     entr = shorten(entr, MAX_WIDTH, placeholder=' ...') + ')'
                 else:
-                    entr = '0 items'  # always show
+                    entr = '[]'  # always show
                     non_empty -= 1  # don't count as non-empty
             elif k == 'projs':
                 if v:
