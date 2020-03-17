@@ -52,9 +52,7 @@ brain = stc.plot(subjects_dir=subjects_dir, initial_time=initial_time,
 ###############################################################################
 #
 # Note that here we used ``initial_time=0.1``, but we can also browse through
-# time using ``time_viewer=True``. It's also possible to produce a movie by
-# selecting in the menu: ``File > Save movie`` or alternatively with:
-# brain.save_movie("movie.mp4")
+# time using ``time_viewer=True``.
 #
 # In case ``mayavi`` is not available, we also offer a ``matplotlib``
 # backend. Here we use verbose='error' to ignore a warning that not all
