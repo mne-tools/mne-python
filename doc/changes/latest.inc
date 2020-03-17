@@ -139,6 +139,8 @@ Changelog
 
 - :func:`mne.grand_average` now produces a warning when only a single dataset was passed, instead of raising an error by `Richard Höchenberger`_
 
+- Add ``nrows`` and ``ncols`` parameters to :func:`mne.viz.plot_evoked_topomap`, which allows to create multiline topomap plots for Evoked. By `Federico Raimondo`_
+
 Bug
 ~~~
 

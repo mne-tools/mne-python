@@ -8,7 +8,6 @@
 #
 # License: Simplified BSD
 
-import math
 import copy
 import itertools
 from functools import partial
@@ -353,18 +352,12 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
 
     # setup axes
     n_projs = len(projs)
-    nrows = math.floor(math.sqrt(n_projs))
-    ncols = math.ceil(n_projs / nrows)
     if axes is None:
-        _, axes = plt.subplots(nrows, ncols, squeeze=False,
-                               figsize=(ncols * 2, nrows * 2))
-        axes = axes.ravel()
-        if len(axes[n_projs:]):
-            [ax.remove() for ax in axes[n_projs:]]
-            axes = axes[:n_projs]
+        fig, axes, ncols, nrows = _prepare_trellis(
+            n_projs, ncols='auto', nrows='auto')
     elif isinstance(axes, plt.Axes):
         axes = [axes]
-    if len(axes) != len(projs):
+    if len(axes) != n_projs:
         raise RuntimeError('There must be an axes for each picked projector.')
 
     # handle vmin/vmax
@@ -1176,7 +1169,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     data = data[:, data_picks]
 
     # prepare data for iteration
-    fig, axes = _prepare_trellis(len(data), max_col=5)
+    fig, axes, _, _ = _prepare_trellis(len(data), ncols=5)
     if title is None:
         title = 'ICA components'
     fig.suptitle(title)
@@ -1454,7 +1447,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                         show=True, show_names=False, title=None, mask=None,
                         mask_params=None, outlines='head', contours=6,
                         image_interp='bilinear', average=None, head_pos=None,
-                        axes=None, extrapolate='box', sphere=None, border=0):
+                        axes=None, extrapolate='box', sphere=None, border=0,
+                        nrows=1, ncols='auto'):
     """Plot topographic maps of specific time points of evoked data.
 
     Parameters
@@ -1578,6 +1572,18 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         .. versionadded:: 0.18
     %(topomap_sphere_auto)s
     %(topomap_border)s
+    nrows : int | 'auto'
+        The number of rows of topographies to plot. Defaults to 1. If 'auto',
+        obtains the number of rows depending on the amount of times to plot
+        and the number of cols. Not valid when times == 'interactive'.
+
+        .. versionadded:: 0.20
+    ncols : int | 'auto'
+        The number of columns of topographies to plot. If 'auto' (default),
+        obtains the number of columns depending on the amount of times to plot
+        and the number of rows. Not valid when times == 'interactive'.
+
+        .. versionadded:: 0.20
 
     Returns
     -------
@@ -1625,11 +1631,13 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
 
     interactive = isinstance(times, str) and times == 'interactive'
     if axes is not None:
+        nrows, ncols = None, None  # Deactivate ncols when axes were passed
         if isinstance(axes, plt.Axes):
             axes = [axes]
         times = _process_times(evoked, times, n_peaks=len(axes))
     else:
         times = _process_times(evoked, times, n_peaks=None)
+
     space = 1 / (2. * evoked.info['sfreq'])
     if (max(times) > max(evoked.times) + space or
             min(times) < min(evoked.times) - space):
@@ -1637,32 +1645,34 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                          '{:0.3f}.'.format(evoked.times[0], evoked.times[-1]))
     n_times = len(times)
     nax = n_times + bool(colorbar)
-    width = size * nax
-    height = size + max(0, 0.1 * (4 - size)) + bool(title) * 0.5
 
-    cols = n_times + 1 if colorbar else n_times  # room for the colorbar
     if interactive:
         if axes is not None:
             raise ValueError("User provided axes not allowed when "
                              "times='interactive'.")
         height_ratios = [5, 1]
-        rows = 2
+        nrows = 2
+        ncols = n_times + 1 if colorbar else n_times  # room for the colorbar
         g_kwargs = {'left': 0.2, 'right': 1., 'bottom': 0.05, 'top': 0.95}
-    else:
-        rows, height_ratios, g_kwargs = 1, None, {}
-
-    gs = gridspec.GridSpec(rows, cols, height_ratios=height_ratios, **g_kwargs)
-    if axes is None:
+        width = size * nax
+        height = size + max(0, 0.1 * (4 - size)) + bool(title) * 0.5
         figure_nobar(figsize=(width * 1.5, height * 1.5))
-        axes = list()
-        for ax_idx in range(len(times)):
+        gs = gridspec.GridSpec(
+            nrows, ncols, height_ratios=height_ratios, **g_kwargs)
+        axes = []
+        for ax_idx in range(n_times):
             axes.append(plt.subplot(gs[ax_idx]))
-    elif colorbar and colorbar_warn:
-        warn('Colorbar is drawn to the rightmost column of the figure. Be '
-             'sure to provide enough space for it or turn it off with '
-             'colorbar=False.')
-    if len(axes) != n_times:
-        raise RuntimeError('Axes and times must be equal in sizes.')
+    else:
+        if axes is None:
+            fig, axes, ncols, nrows = _prepare_trellis(
+                n_times, ncols=ncols, nrows=nrows, title=title,
+                colorbar=colorbar, size=size)
+        elif len(axes) != n_times:
+            raise RuntimeError('Axes and times must be equal in sizes.')
+        elif colorbar and colorbar_warn:
+            warn('Colorbar is drawn to the rightmost column of the figure. Be '
+                 'sure to provide enough space for it or turn it off with '
+                 'colorbar=False.')
 
     if ch_type.startswith('planar'):
         key = 'grad'
@@ -1736,15 +1746,18 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
                   image_interp=image_interp, show=False,
                   extrapolate=extrapolate, sphere=sphere, border=border)
     for idx, time in enumerate(times):
+        ax_idx = idx
+        if colorbar and ncols is not None:
+            ax_idx += idx // (ncols - 1)
         tp, cn, interp = _plot_topomap(
-            data[:, idx], pos, axes=axes[idx],
+            data[:, idx], pos, axes=axes[ax_idx],
             mask=mask_[:, idx] if mask is not None else None, **kwargs)
 
         images.append(tp)
         if cn is not None:
             contours_.append(cn)
         if time_format is not None:
-            axes[idx].set_title(time_format % (time * scaling_time))
+            axes[ax_idx].set_title(time_format % (time * scaling_time))
 
     if interactive:
         axes.append(plt.subplot(gs[2]))
@@ -1767,7 +1780,16 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
     if colorbar:
         # works both when fig axes pre-defined and when not
         n_fig_axes = max(nax, len(fig.get_axes()))
-        cax = plt.subplot(1, n_fig_axes + 1, n_fig_axes + 1)
+        if nrows is None or ncols is None or interactive:
+            # If nrows or ncols is None, this means axes were given by the user
+            cax = plt.subplot(1, n_fig_axes + 1, n_fig_axes + 1)
+        else:
+            # Use the last axis from first row
+            n_fig_axes = ncols
+            cax = plt.subplot(nrows, ncols, ncols)
+            for i_row in range(2, nrows):
+                _hide_frame(axes[(i_row * ncols) - 1])
+
         # resize the colorbar (by default the color fills the whole axes)
         _resize_cbar(cax, n_fig_axes, size)
         if unit is not None:
@@ -2454,7 +2476,7 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
     data = data[:, data_picks]
 
     # prepare data for iteration
-    fig, axes = _prepare_trellis(len(picks), max_col=5)
+    fig, axes, _, _ = _prepare_trellis(len(picks), ncols=5)
     fig.suptitle(title)
 
     for ii, data_, ax, subject, idx in zip(picks, data, axes, subjs, indices):

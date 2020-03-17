@@ -1065,7 +1065,7 @@ def _label_clicked(pos, params):
     data = np.dot(ica.mixing_matrix_[:, ic_idx].T,
                   ica.pca_components_[:ica.n_components_])
     data = np.atleast_2d(data)
-    fig, axes = _prepare_trellis(len(types), max_col=3)
+    fig, axes, _, _ = _prepare_trellis(len(types), ncols=3)
     for ch_idx, ch_type in enumerate(types):
         try:
             data_picks, pos, merge_channels, _, _, this_sphere, clip_origin = \

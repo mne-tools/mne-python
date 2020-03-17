@@ -30,7 +30,7 @@ from mne.datasets import testing
 from mne.time_frequency.tfr import AverageTFR
 from mne.utils import run_tests_if_main
 
-from mne.viz import plot_evoked_topomap, plot_projs_topomap
+from mne.viz import plot_evoked_topomap, plot_projs_topomap, topomap
 from mne.viz.topomap import (_get_pos_outlines, _onselect, plot_topomap,
                              plot_arrowmap, plot_psds_topomap)
 from mne.viz.utils import _find_peaks, _fake_click
@@ -148,7 +148,7 @@ def test_plot_topomap_animation_nirs(fnirs_evoked):
 
 
 @pytest.mark.slowtest
-def test_plot_topomap_basic():
+def test_plot_topomap_basic(monkeypatch):
     """Test basics of topomap plotting."""
     evoked = read_evokeds(evoked_fname, 'Left Auditory',
                           baseline=(None, 0))
@@ -327,8 +327,12 @@ def test_plot_topomap_basic():
     # make sure projector gets toggled
     assert (np.max(fig1.axes[0].images[0]._A) != data_max)
 
-    pytest.raises(RuntimeError, plot_evoked_topomap, evoked,
-                  np.repeat(.1, 50), time_unit='s')
+    with monkeypatch.context() as m:  # speed it up by not actually plotting
+        m.setattr(topomap, '_plot_topomap',
+                  lambda *args, **kwargs: (None, None, None))
+        with pytest.warns(RuntimeWarning, match='More than 25 topomaps plots'):
+            plot_evoked_topomap(evoked, [0.1] * 26, colorbar=False)
+
     pytest.raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6],
                   time_unit='s')
 
