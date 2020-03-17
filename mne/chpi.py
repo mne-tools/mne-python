@@ -1031,7 +1031,7 @@ def filter_chpi(raw, include_line=True, t_step=0.01, t_window=None,
     ----------
     raw : instance of Raw
         Raw data with cHPI information. Must be preloaded. Operates in-place.
-    include_line : bool | int
+    include_line : bool
         If True, also filter line noise.
     t_step : float
         Time step to use for estimation, default is 0.01 (10 ms).
