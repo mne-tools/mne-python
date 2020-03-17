@@ -5,15 +5,9 @@
 # License: Simplified BSD
 
 from itertools import cycle
-from functools import partial
-import os
 import time
-import traceback
 import numpy as np
-
-from . import _Brain
 from ..utils import _check_option, _show_help, _get_color_list, tight_layout
-from ...utils import warn, copy_doc
 from ...source_space import vertex_to_mni
 
 
@@ -320,12 +314,8 @@ class _TimeViewer(object):
         # Direct access parameters:
         self.brain = brain
         self.brain.time_viewer = self
-        self.brain._save_movie = self.brain.save_movie
-        self.brain.save_movie = self.save_movie
         self.plotter = brain._renderer.plotter
         self.main_menu = self.plotter.main_menu
-        self.window = self.plotter.app_window
-        self.status_bar = self.window.statusBar()
         self.interactor = self.plotter
         self.interactor.keyPressEvent = self.keyPressEvent
 
@@ -345,18 +335,14 @@ class _TimeViewer(object):
         self.configure_playback()
         self.configure_point_picking()
         self.configure_menu()
-        self.configure_status_bar()
 
     def keyPressEvent(self, event):
         callback = self.key_bindings.get(event.text())
         if callback is not None:
             callback()
 
-    def toggle_interface(self, value=None):
-        if value is None:
-            self.visibility = not self.visibility
-        else:
-            self.visibility = value
+    def toggle_interface(self):
+        self.visibility = not self.visibility
 
         # manage sliders
         for slider in self.plotter.slider_widgets:
@@ -372,6 +358,7 @@ class _TimeViewer(object):
             if self.visibility:
                 self.time_actor.VisibilityOff()
             else:
+                self.time_actor.SetInput(time_label(self.brain._current_time))
                 self.time_actor.VisibilityOn()
 
     def apply_auto_scaling(self):
@@ -392,7 +379,7 @@ class _TimeViewer(object):
             time_data = self.brain._data['time']
             max_time = np.max(time_data)
             if self.brain._current_time == max_time:  # start over
-                self.brain.set_time_point(0)  # first index
+                self.brain.set_time_point(np.min(time_data))
             self._last_tick = time.time()
 
     def set_playback_speed(self, speed):
@@ -416,82 +403,6 @@ class _TimeViewer(object):
             if time_point == max_time:
                 self.playback = False
             self.plotter.update()  # critical for smooth animation
-
-    def _save_movie(self, filename, **kwargs):
-        from PyQt5.QtCore import Qt
-        from PyQt5.QtGui import QCursor
-
-        def frame_callback(frame, n_frames):
-            if frame == n_frames:
-                # On the ImageIO step
-                self.status_msg.setText(
-                    _sanitize("💾 Saving with ImageIO: %s"
-                              % filename)
-                )
-                self.status_msg.show()
-                self.status_progress.hide()
-                self.status_bar.layout().update()
-            else:
-                self.status_msg.setText(
-                    _sanitize("📽  Rendering images (frame %d / %d) ..."
-                              % (frame + 1, n_frames))
-                )
-                self.status_msg.show()
-                self.status_progress.show()
-                self.status_progress.setRange(0, n_frames - 1)
-                self.status_progress.setValue(frame)
-                self.status_progress.update()
-                self.status_progress.repaint()
-            self.status_msg.update()
-            self.status_msg.parent().update()
-            self.status_msg.repaint()
-
-        # temporarily hide interface
-        default_visibility = self.visibility
-        self.toggle_interface(value=False)
-        # set cursor to busy
-        default_cursor = self.interactor.cursor()
-        self.interactor.setCursor(QCursor(Qt.WaitCursor))
-
-        try:
-            self.brain._save_movie(
-                filename=filename,
-                time_dilation=(1. / self.playback_speed),
-                callback=frame_callback,
-                **kwargs
-            )
-        except (Exception, KeyboardInterrupt):
-            warn('Movie saving aborted:\n' + traceback.format_exc())
-
-        # restore visibility
-        self.toggle_interface(value=default_visibility)
-        # restore cursor
-        self.interactor.setCursor(default_cursor)
-
-    @copy_doc(_Brain.save_movie)
-    def save_movie(self, filename=None, **kwargs):
-        from pyvista.plotting.qt_plotting import FileDialog
-
-        if filename is None:
-            self.status_msg.setText(_sanitize("📁 Choose movie path ..."))
-            self.status_msg.show()
-            self.status_progress.setValue(0)
-
-            def _clean(unused):
-                del unused
-                self.status_msg.hide()
-                self.status_progress.hide()
-
-            dialog = FileDialog(
-                self.plotter.app_window,
-                callback=partial(self._save_movie, **kwargs)
-            )
-            dialog.setDirectory(os.getcwd())
-            dialog.finished.connect(_clean)
-            return dialog
-        else:
-            self._save_movie(filename=filename, **kwargs)
-            return
 
     def set_slider_style(self, slider, show_label=True):
         if slider is not None:
@@ -759,50 +670,18 @@ class _TimeViewer(object):
                 self.on_pick
             )
 
-    def configure_status_bar(self):
-        from PyQt5.QtWidgets import QLabel, QProgressBar
-        self.status_msg = QLabel()
-        self.status_progress = QProgressBar()
-        self.status_bar.layout().addWidget(self.status_msg, 1)
-        self.status_bar.layout().addWidget(self.status_progress, 0)
-        self.status_msg.hide()
-        self.status_progress.hide()
-
-        # display help message for 3 seconds
-        self.status_bar.showMessage("Press ? for help", 3000)
-
     def configure_menu(self):
-        main_menu = self.plotter.main_menu
-        file_menu = None
-
-        # add help menu
-        help_menu = main_menu.addMenu('Help')
-        help_menu.addAction('Show MNE key bindings', self.help, '?')
-
         # remove default picking menu
         to_remove = list()
         for action in self.main_menu.actions():
             if action.text() == "Tools":
                 to_remove.append(action)
-            elif action.text() == "File":
-                file_menu = action.menu()
         for action in to_remove:
-            main_menu.removeAction(action)
-        to_remove.clear()
-
-        # order the file menu
-        if file_menu is not None:
-            for action in file_menu.actions():
-                if action.text() == "Take Screenshot":
-                    movie_action = file_menu.addAction(
-                        'Save movie...',
-                        self.save_movie,
-                        "ctrl+shift+s"
-                    )
-                    # insert at the right place
-                    file_menu.insertAction(action, movie_action)
-                    break
             self.main_menu.removeAction(action)
+
+        # add help menu
+        menu = self.main_menu.addMenu('Help')
+        menu.addAction('Show MNE key bindings\t?', self.help)
 
     def on_mouse_move(self, vtk_picker, event):
         if self._mouse_no_mvt:
@@ -944,7 +823,6 @@ class _TimeViewer(object):
             ('s', 'Apply auto-scaling'),
             ('r', 'Restore original clim'),
             ('c', 'Clear all traces'),
-            ('ctrl+shift+s', 'Save movie'),
             ('Space', 'Start/Pause playback'),
         ]
         text1, text2 = zip(*pairs)
@@ -1010,19 +888,9 @@ class _LinkViewer(object):
 
 
 def _get_range(brain):
-    data = [brain._data.get(hemi, {}).get('array') for hemi in ('lh', 'rh')]
-    data = np.concatenate([d for d in data if d is not None])
-    val = np.abs(data)
+    val = np.abs(brain._data['array'])
     return [np.min(val), np.max(val)]
 
 
 def _normalize(point, shape):
     return (point[0] / shape[1], point[1] / shape[0])
-
-
-def _sanitize(text):
-    from PyQt5.Qt import PYQT_VERSION_STR
-    from distutils.version import LooseVersion
-    if LooseVersion(PYQT_VERSION_STR) < LooseVersion('5.12'):
-        text = text[2:]
-    return text
