@@ -100,8 +100,8 @@ filter_params = mne.filter.create_filter(raw.get_data(), raw.info['sfreq'],
 
 mne.viz.plot_filter(filter_params, raw.info['sfreq'], flim=(0.01, 5))
 
-# .. _tut-section-line-noise:
 ###############################################################################
+# .. _tut-section-line-noise:
 # Power line noise
 # ~~~~~~~~~~~~~~~~
 #
