@@ -14,16 +14,18 @@ from ..utils import (_mask_to_onsets_offsets, logger, verbose)
 
 @verbose
 def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1,
-                    verbose=None):
+                    filter_freq=[110, 140], verbose=None):
     """Detect segments with muscle artifacts.
 
     Detects segments periods that contains high frequency activity beyond the
-    specified threshold. Muscle artifacts are most notable in the range of 110-
-    140Hz.
+    specified threshold. Muscle artifacts are most notable in the range of
+    110-140 Hz.
 
-    Raw data is band-pass filtered between 110 and 140 Hz, the signal envelope
-    computed, z-scored across samples, channel averaged and low-pass
-    filtered to smooth transient peaks.
+    Raw data is band-pass filtered between ``filter_freq`` especified
+    frequencies (default is 110 - 140 Hz), the signal envelope computed,
+    z-scored across samples, channel averaged and low-pass filtered to better
+    capture beggining and end of muscle activity and false positive transient
+    peaks.
 
     Parameters
     ----------
@@ -36,6 +38,9 @@ def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1,
     min_length_good : int | float | None
         The minimal good segment length between annotations, smaller segments
         will be included in the movement annotation.
+    filter_freq : list
+        The lower and upper high frequency to filter the signal for muscle
+        detection.
     %(verbose)s
 
     Returns
@@ -50,30 +55,30 @@ def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1,
 
     raw_copy = raw.copy()
     raw_copy.pick(picks)
-    chan_type = raw_copy.get_channel_types()
+    ch_type = raw_copy.get_channel_types()
 
     # Remove ref chans if MEG data just in case
-    meg = [True for e in ['mag', 'grad'] if (e in chan_type)]
+    meg = [True for e in ['mag', 'grad'] if (e in ch_type)]
     if meg is True:
         raw_copy.pick_types(ref_meg=False)
 
     # Only one type of channel, otherwise z-score will be biased
-    assert(len(set(chan_type)) == 1), 'Different channel types, pick one type'
+    assert(len(set(ch_type)) == 1), 'Different channel types, pick one type'
 
-    raw_copy.filter(110, 140, fir_design='firwin',
-                    skip_by_annotation=['edge', 'BAD_'])
+    raw_copy.filter(filter_freq[0], filter_freq[1], fir_design='firwin',
+                    pad="reflect_limited")
     raw_copy.apply_hilbert(envelope=True)
     sfreq = raw_copy.info['sfreq']
 
-    art_scores = zscore(raw_copy.get_data(), axis=1)
+    art_scores = zscore(raw_copy.get_data(reject_by_annotation="NaN"), axis=1)
     scores_muscle = filter_data(art_scores.mean(axis=0), sfreq, None, 4)
     art_mask = scores_muscle > threshold
 
     # remove artifact free periods shorter than min_length_good
     idx_min = min_length_good * sfreq
     comps, num_comps = label(art_mask == 0)
-    for l in range(1, num_comps + 1):
-        l_idx = np.nonzero(comps == l)[0]
+    for ith in range(1, num_comps + 1):
+        l_idx = np.nonzero(comps == ith)[0]
         if len(l_idx) < idx_min:
             art_mask[l_idx] = True
 
