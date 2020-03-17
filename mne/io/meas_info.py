@@ -564,11 +564,19 @@ class Info(dict, MontageMixin):
         strs = ['<Info | %s non-empty values']
         non_empty = 0
         for k, v in self.items():
-            if k in ['bads', 'ch_names']:
+            if k == 'ch_names':
                 if v:
                     entr = shorten(', '.join(v), MAX_WIDTH, placeholder=' ...')
                 else:
-                    entr = '[]'  # always show bads
+                    entr = '[]'  # always show
+                    non_empty -= 1  # don't count as non-empty
+            elif k == 'bads':
+                if v:
+                    entr = '{} items ('.format(len(v))
+                    entr += ', '.join(v)
+                    entr = shorten(entr, MAX_WIDTH, placeholder=' ...') + ')'
+                else:
+                    entr = '[]'  # always show
                     non_empty -= 1  # don't count as non-empty
             elif k == 'projs':
                 if v:
