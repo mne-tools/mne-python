@@ -329,6 +329,9 @@ def test_plot_topomap_basic():
     # make sure projector gets toggled
     assert (np.max(fig1.axes[0].images[0]._A) != data_max)
 
+    with pytest.warns(RuntimeWarning, match='More than 25 topomaps plots'):
+        plot_evoked_topomap(evoked, [0.1] * 26, res=4)
+
     pytest.raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6],
                   time_unit='s')
 
