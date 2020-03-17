@@ -24,7 +24,7 @@ def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1,
     Raw data is band-pass filtered between ``filter_freq`` especified
     frequencies (default is 110 - 140 Hz), the signal envelope computed,
     z-scored across samples, channel averaged and low-pass filtered to better
-    capture beggining and end of muscle activity and false positive transient
+    capture beginning and end of muscle activity and false positive transient
     peaks.
 
     Parameters
@@ -77,8 +77,8 @@ def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1,
     # remove artifact free periods shorter than min_length_good
     idx_min = min_length_good * sfreq
     comps, num_comps = label(art_mask == 0)
-    for ith in range(1, num_comps + 1):
-        l_idx = np.nonzero(comps == ith)[0]
+    for com in range(1, num_comps + 1):
+        l_idx = np.nonzero(comps == com)[0]
         if len(l_idx) < idx_min:
             art_mask[l_idx] = True
 
