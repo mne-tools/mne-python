@@ -14,7 +14,7 @@ import numpy as np
 from .baseline import rescale
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
-from .channels.layout import _merge_grad_data, _pair_grad_sensors
+from .channels.layout import _merge_ch_data, _pair_grad_sensors
 from .filter import detrend, FilterMixin
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc, _validate_type,
@@ -602,7 +602,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             ch_names = [ch_names[k] for k in picks]
 
         if merge_grads:
-            data = _merge_grad_data(data)
+            data, _ = _merge_ch_data(data, ch_type, [])
             ch_names = [ch_name[:-1] + 'X' for ch_name in ch_names[::2]]
 
         ch_idx, time_idx, max_amp = _get_peak(data, self.times, tmin,

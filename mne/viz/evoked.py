@@ -114,17 +114,18 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
     for idx, ch_type in enumerate(ch_types):
         if ch_type not in ('eeg', 'grad', 'mag'):
             continue
-        picks, pos, merge_grads, _, ch_type, this_sphere, clip_origin = \
+        picks, pos, merge_channels, _, ch_type, this_sphere, clip_origin = \
             _prepare_topomap_plot(info, ch_type, sphere=sphere)
         outlines = _make_head_outlines(this_sphere, pos, 'head', clip_origin)
         if len(pos) < 2:
             fig.delaxes(axarr[0][idx])
             continue
         this_data = data[picks, minidx:maxidx]
-        if merge_grads:
-            from ..channels.layout import _merge_grad_data
+        if merge_channels:
+            from ..channels.layout import _merge_ch_data
             method = 'mean' if psd else 'rms'
-            this_data = _merge_grad_data(this_data, method=method)
+            this_data, _ = _merge_ch_data(this_data, ch_type, [],
+                                          method=method)
             title = '%s %s' % (ch_type, method.upper())
         else:
             title = ch_type
@@ -840,7 +841,8 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                              fig_facecolor=fig_facecolor,
                              fig_background=fig_background,
                              axis_facecolor=axis_facecolor,
-                             font_color=font_color, merge_grads=merge_grads,
+                             font_color=font_color,
+                             merge_channels=merge_grads,
                              legend=legend, axes=axes, show=show,
                              noise_cov=noise_cov)
 

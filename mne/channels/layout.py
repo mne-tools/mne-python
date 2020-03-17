@@ -883,6 +883,35 @@ def _pair_grad_sensors_ch_names_neuromag122(ch_names):
     return grad_chs
 
 
+def _merge_ch_data(data, ch_type, names, method='rms'):
+    """Merge data from channel pairs.
+
+    Parameters
+    ----------
+    data : array, shape = (n_channels, ..., n_times)
+        Data for channels, ordered in pairs.
+    ch_type : str
+        Channel type.
+    names : list
+        List of channel names.
+    method : str
+        Can be 'rms' or 'mean'.
+
+    Returns
+    -------
+    data : array, shape = (n_channels / 2, ..., n_times)
+        The root mean square or mean for each pair.
+    names : list
+        List of channel names.
+    """
+    if ch_type == 'grad':
+        data = _merge_grad_data(data, method)
+    else:
+        assert ch_type in ('hbo', 'hbr', 'fnirs_raw', 'fnirs_od')
+        data, names = _merge_nirs_data(data, names)
+    return data, names
+
+
 def _merge_grad_data(data, method='rms'):
     """Merge data from channel pairs using the RMS or mean.
 
