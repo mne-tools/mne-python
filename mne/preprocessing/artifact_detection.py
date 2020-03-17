@@ -17,7 +17,7 @@ def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1,
                     filter_freq=[110, 140], n_jobs=1, verbose=None):
     """Detect segments with muscle artifacts.
 
-    Detects segments periods that contains high frequency activity beyond the
+    Detects segments periods that contain high frequency activity beyond the
     specified threshold. Muscle artifacts are most notable in the range of
     110-140 Hz.
 
@@ -39,7 +39,7 @@ def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1,
     min_length_good : int | float | None
         The minimal good segment length between annotations, smaller segments
         will be included in the movement annotation.
-    filter_freq : list
+    filter_freq : list | tuple, default (110, 140)
         The lower and upper high frequency to filter the signal for muscle
         detection.
     %(n_jobs)s
