@@ -1046,14 +1046,14 @@ def permutation_cluster_test(
 
     Parameters
     ----------
-    X : list
-        List of nd-arrays containing the data. Each element of X contains
-        the samples for one group. First dimension of each element is the
-        number of samples/observations in this group. The other dimensions
-        are for the size of the observations. For example if X = [X1, X2]
-        with X1.shape = (20, 50, 4) and X2.shape = (17, 50, 4) one has
-        2 groups with respectively 20 and 17 observations in each.
-        Each data point is of shape (50, 4).
+    X : list of array, shape (n_observations, p[, q])
+        The data to be clustered. Each array in ``X`` should contain the
+        observations for one group. The first dimension of each array is the
+        number of observations from that group; remaining dimensions comprise
+        the size of a single observation. For example if X = [X1, X2]
+        with X1.shape = (20, 50, 4) and X2.shape = (17, 50, 4), then X has
+        2 groups with respectively 20 and 17 observations in each, and
+        each data point is of shape (50, 4).
     %(clust_thresh_f)s
     %(clust_nperm_int)s
     %(clust_tail)s
@@ -1113,11 +1113,13 @@ def permutation_cluster_1samp_test(
 
     Parameters
     ----------
-    X : array, shape=(n_samples, p[, q])
-        Array where the first dimension corresponds to the
-        difference in paired samples (observations) in two conditions.
-        ``X[k]`` can be a 1D or 2D array (time series
-        or TF image) associated to the kth observation.
+    X : array, shape (n_observations, p[, q])
+        The data to be clustered. The first dimension should correspond to the
+        difference between paired samples (observations) in two conditions.
+        The subarrays ``X[k]`` can be 1D (e.g., time series) or 2D (e.g.,
+        time-frequency image) associated with the kth observation. For
+        spatiotemporal data, see also
+        :func:`mne.stats.spatio_temporal_cluster_1samp_test`.
     %(clust_thresh_t)s
     %(clust_nperm_all)s
     %(clust_tail)s
@@ -1203,15 +1205,15 @@ def spatio_temporal_cluster_1samp_test(
         verbose=None):
     """Non-parametric cluster-level paired t-test for spatio-temporal data.
 
-    This function provides a convenient wrapper for data organized in the form
-    (observations x time x space) to use
-    :func:`mne.stats.permutation_cluster_1samp_test`, which contains more
-    complete documentation.
+    This function provides a convenient wrapper for
+    :func:`mne.stats.permutation_cluster_1samp_test`, for use with data
+    organized in the form (observations × time × space).
 
     Parameters
     ----------
     X : array, shape (n_observations, n_times, n_vertices)
-        Array data of the difference between two conditions.
+        The data to be clustered. The first dimension should correspond to the
+        difference between paired samples (observations) in two conditions.
     %(clust_thresh_t)s
     %(clust_nperm_all)s
     %(clust_tail)s
@@ -1279,15 +1281,19 @@ def spatio_temporal_cluster_test(
         check_disjoint=False, buffer_size=1000):
     """Non-parametric cluster-level test for spatio-temporal data.
 
-    This function provides a convenient wrapper for data organized in the form
-    (observations x time x space) to use
-    :func:`mne.stats.permutation_cluster_test`. See [1]_ for more information.
+    This function provides a convenient wrapper for
+    :func:`mne.stats.permutation_cluster_test`, for use with data
+    organized in the form (observations × time × space).
+    See [1]_ for more information.
 
     Parameters
     ----------
-    X : list of array
-        List of data arrays, shape ``(n_observations, n_times, n_vertices)``
-        in each group.
+    X : list of array, shape (n_observations, n_times, n_vertices)
+        The data to be clustered. Each array in ``X`` should contain the
+        observations for one group. The first dimension of each array is the
+        number of observations from that group (and may vary between groups);
+        the remaining dimensions (times and vertices) should match across all
+        groups.
     %(clust_thresh_f)s
     %(clust_nperm_int)s
     %(clust_tail)s
