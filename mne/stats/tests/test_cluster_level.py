@@ -152,10 +152,6 @@ def test_permutation_large_n_samples(numba_conditional):
 
 def test_permutation_step_down_p(numba_conditional):
     """Test cluster level permutations with step_down_p."""
-    try:
-        from sklearn.feature_extraction.image import grid_to_graph
-    except ImportError:
-        return
     rng = np.random.RandomState(0)
     # subjects, time points, spatial points
     X = rng.randn(9, 2, 10)
