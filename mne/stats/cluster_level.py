@@ -1263,7 +1263,7 @@ def spatio_temporal_cluster_test(
     This function provides a convenient wrapper for
     :func:`mne.stats.permutation_cluster_test`, for use with data
     organized in the form (observations × time × space).
-    See :footcite::`MarisOostenveld2007` for more information.
+    See :footcite:`MarisOostenveld2007` for more information.
 
     Parameters
     ----------
