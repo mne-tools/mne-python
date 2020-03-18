@@ -282,39 +282,10 @@ class SetChannelsMixin(MontageMixin):
                           ch_type='auto', verbose=None):
         """Specify which reference to use for EEG data.
 
-        By default, MNE-Python will automatically re-reference the EEG signal
-        to use an average reference (see below). Use this function to
-        explicitly specify the desired reference for EEG. This can be either an
-        existing electrode or a new virtual channel. This function will
-        re-reference the data according to the desired reference and prevent
-        MNE-Python from automatically adding an average reference projection.
-
-        Some common referencing schemes and the corresponding value for the
-        ``ref_channels`` parameter:
-
-        No re-referencing:
-            If the EEG data is already using the proper reference, set
-            ``ref_channels=[]``. This will prevent MNE-Python from
-            automatically adding an average reference projection.
-
-        Average reference:
-            A new virtual reference electrode is created by averaging the
-            current EEG signal by setting ``ref_channels='average'``. Bad EEG
-            channels are automatically excluded if they are properly set in
-            ``info['bads']``.
-
-        A single electrode:
-            Set ``ref_channels`` to a list containing the name of the channel
-            that will act as the new reference, for example
-            ``ref_channels=['Cz']``.
-
-        The mean of multiple electrodes:
-            A new virtual reference electrode is created by computing the
-            average of the current EEG signal recorded from two or more
-            selected channels. Set ``ref_channels`` to a list of channel names,
-            indicating which channels to use. For example, to apply an average
-            mastoid reference, when using the 10-20 naming scheme, set
-            ``ref_channels=['M1', 'M2']``.
+        Use this function to explicitly specify the desired reference for EEG.
+        This can be either an existing electrode or a new virtual channel.
+        This function will re-reference the data according to the desired
+        reference.
 
         Parameters
         ----------
@@ -348,26 +319,7 @@ class SetChannelsMixin(MontageMixin):
             and ``projection=True`` a projection will be added instead of
             directly re-referencing the data.
 
-        See Also
-        --------
-        mne.set_bipolar_reference : Convenience function for creating bipolar
-                                    references.
-
-        Notes
-        -----
-        1. If a reference is requested that is not the average reference, this
-           function removes any pre-existing average reference projections.
-
-        2. During source localization, the EEG signal should have an average
-           reference.
-
-        3. In order to apply a reference, the data must be preloaded. This is
-           not necessary if ``ref_channels='average'`` and ``projection=True``.
-
-        4. For an average reference, bad EEG channels are automatically
-           excluded if they are properly set in ``info['bads']``.
-
-        .. versionadded:: 0.9.0
+        %(set_eeg_reference_see_also_notes)s
         """
         from ..io.reference import set_eeg_reference
         return set_eeg_reference(self, ref_channels=ref_channels, copy=False,

@@ -295,6 +295,50 @@ chpi_locs : dict
     "times", "rrs", "moments", and "gofs".
 """
 
+# EEG reference: set_eeg_reference
+docdict['set_eeg_reference_see_also_notes'] = """
+See Also
+--------
+set_bipolar_reference : Convenience function for creating bipolar
+                        references.
+
+Notes
+-----
+Some common referencing schemes and the corresponding value for the
+``ref_channels`` parameter:
+
+Average reference:
+    A new virtual reference electrode is created by averaging the current
+    EEG signal by setting ``ref_channels='average'``. Bad EEG channels are
+    automatically excluded if they are properly set in ``info['bads']``.
+
+A single electrode:
+    Set ``ref_channels`` to a list containing the name of the channel that
+    will act as the new reference, for example ``ref_channels=['Cz']``.
+
+The mean of multiple electrodes:
+    A new virtual reference electrode is created by computing the average
+    of the current EEG signal recorded from two or more selected channels.
+    Set ``ref_channels`` to a list of channel names, indicating which
+    channels to use. For example, to apply an average mastoid reference,
+    when using the 10-20 naming scheme, set ``ref_channels=['M1', 'M2']``.
+
+1. If a reference is requested that is not the average reference, this
+   function removes any pre-existing average reference projections.
+
+2. During source localization, the EEG signal should have an average
+   reference.
+
+3. In order to apply a reference, the data must be preloaded. This is not
+   necessary if ``ref_channels='average'`` and ``projection=True``.
+
+4. For an average reference, bad EEG channels are automatically excluded if
+   they are properly set in ``info['bads']``.
+
+.. versionadded:: 0.9.0
+"""
+
+
 # Maxwell filtering
 docdict['maxwell_origin_int_ext_calibration_cross'] = """
 origin : array-like, shape (3,) | str
