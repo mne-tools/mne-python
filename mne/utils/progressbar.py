@@ -11,7 +11,6 @@ import logging
 import tempfile
 from threading import Thread
 import time
-import warnings
 
 import numpy as np
 
