@@ -1405,7 +1405,7 @@ class AverageTFR(_BaseTFR):
         .. versionadded:: 0.16.0
         """  # noqa: E501
         from ..viz.topomap import _set_contour_locator, plot_topomap
-        from ..channels.layout import (find_layout, _merge_grad_data,
+        from ..channels.layout import (find_layout, _merge_ch_data,
                                        _pair_grad_sensors)
         import matplotlib.pyplot as plt
 
@@ -1549,7 +1549,8 @@ class AverageTFR(_BaseTFR):
                 if layout is None:
                     pos = new_pos
                 method = combine or 'rms'
-                data = _merge_grad_data(data[pair_picks], method=method)
+                data, _ = _merge_ch_data(data[pair_picks], ch_type, [],
+                                         method=method)
 
             all_pos.append(pos)
 

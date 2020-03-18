@@ -500,6 +500,7 @@ def reset_warnings(gallery_conf, fname):
                 'The usage of `cmp` is deprecated and will',  # sklearn/pytest
                 'scipy.* is deprecated and will be removed in',  # dipy
                 r'Converting `np\.character` to a dtype is deprecated',  # vtk
+                r'sphinx\.util\.smartypants is deprecated',
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
@@ -582,7 +583,7 @@ numpydoc_class_members_toctree = False
 numpydoc_attributes_as_param_list = True
 numpydoc_xref_param_type = True
 numpydoc_xref_aliases = {
-    'Popen': 'python:subprocess.Popen',
+    # Python
     'file-like': ':term:`file-like <python:file object>`',
     # Matplotlib
     'colormap': ':doc:`colormap <matplotlib:tutorials/colors/colormaps>`',

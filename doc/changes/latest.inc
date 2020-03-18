@@ -27,7 +27,11 @@ Changelog
 
 - Add :func:`mne.chpi.compute_chpi_amplitudes`, :func:`mne.chpi.compute_chpi_locs`, and :func:`mne.chpi.compute_head_pos` to compute head positions from cHPI coil locations by `Eric Larson`_ and `Luke Bloy`_
 
+- Add ``allow_line_only`` option to :func:`mne.chpi.filter_chpi` to allow filtering line frequencies only in files that do not have cHPI information by `Eric Larson`_
+
 - Add :func:`mne.io.Raw.set_meas_date` by `Eric Larson`_
+
+- Add :meth:`mne.Epochs.as_type` to  allow remapping data in MEG channels to virtual magnetometer or gradiometer channels by `Sophie Herbst`_ and `Alex Gramfort`_
 
 - Add ``copy`` parameter to :meth:`mne.Epochs.iter_evoked` by `Alex Gramfort`_
 
@@ -105,7 +109,7 @@ Changelog
 
 - Allow returning vector source estimates from sparse inverse solvers through ``pick_ori='vector'`` by `Christian Brodbeck`_
 
-- Add NIRS support to :func:`mne.viz.plot_topomap` by `Robert Luke`_
+- Add NIRS support to :func:`mne.viz.plot_topomap` and :func:`mne.viz.plot_ica_components` by `Robert Luke`_
 
 - Add the ability to :func:`mne.channels.equalize_channels` to also re-order the channels and also operate on instances of :class:`mne.Info`, :class:`mne.Forward`, :class:`mne.Covariance` and :class:`mne.time_frequency.CrossSpectralDensity` by `Marijn van Vliet`_
 
@@ -133,7 +137,11 @@ Changelog
 
 - Expose the number of ICA iterations during the fitting procedure via the ``n_iter_`` attribute of :class:`mne.preprocessing.ICA` by `Richard Höchenberger`_
 
-- Support for saving movies of source time courses (STCs) with ``brain.save_movie`` method and from graphical user interface by `Guillaume Favelier`_
+- :func:`mne.grand_average` now produces a warning when only a single dataset was passed, instead of raising an error by `Richard Höchenberger`_
+
+- Add ``nrows`` and ``ncols`` parameters to :func:`mne.viz.plot_evoked_topomap`, which allows to create multiline topomap plots for Evoked. By `Federico Raimondo`_
+
+- Improve repr of :class:`mne.Info` (empty items are not shown anymore) by `Clemens Brunner`_
 
 Bug
 ~~~
@@ -289,6 +297,8 @@ Bug
 
 API
 ~~~
+
+- :meth:`mne.Evoked.as_type` now returns an instance of :class:`mne.EvokedArray` by `Sophie Herbst`_ and `Alex Gramfort`_
 
 - Bumped minimum requirements to fall 2017 versions by `Eric Larson`_:
 

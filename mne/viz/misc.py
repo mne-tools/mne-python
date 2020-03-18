@@ -360,7 +360,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         raise TypeError("src needs to be None or SourceSpaces instance, not "
                         "%s" % repr(src))
 
-    fig, axs = _prepare_trellis(len(slices), 4)
+    fig, axs, _, _ = _prepare_trellis(len(slices), 4)
     fig.set_facecolor('k')
     bounds = np.concatenate(
         [[-np.inf], slices[:-1] + np.diff(slices) / 2., [np.inf]])  # float

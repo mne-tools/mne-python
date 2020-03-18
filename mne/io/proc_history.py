@@ -3,8 +3,6 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: Simplified BSD
 
-from os import path as op
-
 import numpy as np
 from scipy.sparse import csc_matrix
 
@@ -15,7 +13,7 @@ from .write import (start_block, end_block, write_int, write_float,
                     write_float_sparse, write_id)
 from .tag import find_tag
 from .constants import FIFF
-from ..utils import warn
+from ..utils import warn, _check_fname
 
 _proc_keys = ['parent_file_id', 'block_id', 'parent_block_id',
               'date', 'experimenter', 'creator']
@@ -165,8 +163,7 @@ _sss_cal_casters = (np.array, np.array)
 
 def _read_ctc(fname):
     """Read cross-talk correction matrix."""
-    if not isinstance(fname, str) or not op.isfile(fname):
-        raise ValueError('fname must be a file that exists, not %s' % fname)
+    fname = _check_fname(fname, overwrite='read', must_exist=True)
     f, tree, _ = fiff_open(fname)
     with f as fid:
         sss_ctc = _read_maxfilter_record(fid, tree)['sss_ctc']

@@ -27,7 +27,7 @@ def check_cola(win, nperseg, noverlap, tol=1e-10):
     return np.max(np.abs(deviation)) < tol
 
 
-def _get_lims_cola(n_samp, n_times, sfreq, picks):
+def _get_lims_cola(n_samp, n_times, sfreq):
     from scipy.signal import get_window
     if n_samp > n_times:
         raise ValueError('Effective duration (%s) must be at most the '
