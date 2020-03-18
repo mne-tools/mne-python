@@ -33,6 +33,19 @@ class Projection(dict):
         s += ", n_channels : %s" % self['data']['ncol']
         return "<Projection  |  %s>" % s
 
+    # speed up info copy by taking advantage of mutability
+    def __deepcopy__(self, memodict):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        for k, v in self.items():
+            if k == 'data':
+                v = v.copy()
+                v['data'] = v['data'].copy()
+                result[k] = v
+            else:
+                result[k] = v  # kind, active, desc, explained_var immutable
+        return result
+
     @fill_doc
     def plot_topomap(self, info, cmap=None, sensors=True,
                      colorbar=False, res=64, size=1, show=True,

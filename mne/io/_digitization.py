@@ -101,6 +101,12 @@ class DigPoint(dict):
         pos = ('(%0.1f, %0.1f, %0.1f) mm' % tuple(1000 * self['r'])).ljust(25)
         return ('<DigPoint | %s : %s : %s frame>' % (id_, pos, cf))
 
+    # speed up info copy by only deep copying the mutable item
+    def __deepcopy__(self, memodict):
+        return DigPoint(
+            kind=self['kind'], r=self['r'].copy(),
+            ident=self['ident'], coord_frame=self['coord_frame'])
+
     def __eq__(self, other):  # noqa: D105
         """Compare two DigPoints.
 
