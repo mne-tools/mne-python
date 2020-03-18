@@ -98,7 +98,8 @@ class ProgressBar(object):
 
     def __iter__(self):
         """Iterate to auto-increment the pbar with 1."""
-        return iter(self._tqdm)
+        for x in self._tqdm:
+            yield x
 
     def subset(self, idx):
         """Make a joblib-friendly index subset updater.
@@ -138,6 +139,11 @@ class ProgressBar(object):
         self._mmap = None
         if op.isfile(self._mmap_fname):
             os.remove(self._mmap_fname)
+
+    def __del__(self):
+        """Ensure output completes."""
+        if getattr(self, '_tqdm') is not None:
+            self._tqdm.close()
 
 
 class _UpdateThread(Thread):
