@@ -1050,10 +1050,10 @@ def permutation_cluster_test(
         The data to be clustered. Each array in ``X`` should contain the
         observations for one group. The first dimension of each array is the
         number of observations from that group; remaining dimensions comprise
-        the size of a single observation. For example if X = [X1, X2]
-        with X1.shape = (20, 50, 4) and X2.shape = (17, 50, 4), then X has
-        2 groups with respectively 20 and 17 observations in each, and
-        each data point is of shape (50, 4).
+        the size of a single observation. For example if ``X = [X1, X2]``
+        with ``X1.shape = (20, 50, 4)`` and ``X2.shape = (17, 50, 4)``, then
+        ``X`` has 2 groups with respectively 20 and 17 observations in each,
+        and each data point is of shape ``(50, 4)``.
     %(clust_thresh_f)s
     %(clust_nperm_int)s
     %(clust_tail)s
