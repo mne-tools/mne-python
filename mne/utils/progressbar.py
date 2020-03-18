@@ -45,12 +45,6 @@ class ProgressBar(object):
                  **kwargs):  # noqa: D102
         from ..externals.tqdm import auto
         tqdm = auto.tqdm
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter('ignore')
-            tqdm.pandas()
-        # from time import sleep
-        # for j in tqdm(range(100), desc='2nd loop'):
-        #     sleep(0.01)
         defaults = dict(
             leave=True, mininterval=0.016, miniters=0, smoothing=0.9,
             bar_format='{percentage:3.0f}%|{bar}| {desc} : {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt:>11}{postfix}]',  # noqa: E501
