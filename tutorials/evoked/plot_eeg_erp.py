@@ -20,6 +20,10 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
 
+# This particular dataset already has an average reference projection added
+# that we now want to remove for the sake of this example.
+raw.set_eeg_reference([])
+
 ###############################################################################
 # Let's restrict the data to the EEG channels
 raw.pick_types(meg=False, eeg=True, eog=True)
@@ -65,8 +69,8 @@ raw.plot_sensors('3d')  # in 3D
 # Setting EEG reference
 # ---------------------
 #
-# Let's first inspect our Raw object with its original reference
-# (i.e., after loading).
+# Let's first inspect our Raw object with its original reference that was
+# applied during the recording of the data.
 # We define Epochs and compute an ERP for the left auditory condition.
 reject = dict(eeg=180e-6, eog=150e-6)
 event_id, tmin, tmax = {'left/auditory': 1}, -0.2, 0.5
@@ -81,7 +85,9 @@ evoked_no_ref.plot(titles=dict(eeg=title), time_unit='s')
 evoked_no_ref.plot_topomap(times=[0.1], size=3., title=title, time_unit='s')
 
 ###############################################################################
-# **Common average reference** (car)
+# **Common average reference (car)**: We add back the average reference
+# projection that we removed at the beginning of this example (right after
+# loading the data.)
 raw_car, _ = mne.set_eeg_reference(raw, 'average', projection=True)
 evoked_car = mne.Epochs(raw_car, **epochs_params).average()
 del raw_car  # save memory
