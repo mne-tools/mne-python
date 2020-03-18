@@ -45,7 +45,7 @@ epochs_params = dict(events=events, event_id=event_id, tmin=tmin, tmax=tmax,
 fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, sharex=True)
 
 # We first want to plot the data without any added reference (i.e., using only
-# the reference that was applied during recording of the data.)
+# the reference that was applied during recording of the data).
 # However, this particular data already has an average reference projection
 # applied that we now need to remove again using :func:`mne.set_eeg_reference`
 raw, _ = mne.set_eeg_reference(raw, [])  # use [] to remove average projection

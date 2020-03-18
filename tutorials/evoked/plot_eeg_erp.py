@@ -87,7 +87,7 @@ evoked_no_ref.plot_topomap(times=[0.1], size=3., title=title, time_unit='s')
 ###############################################################################
 # **Common average reference (car)**: We add back the average reference
 # projection that we removed at the beginning of this example (right after
-# loading the data.)
+# loading the data).
 raw_car, _ = mne.set_eeg_reference(raw, 'average', projection=True)
 evoked_car = mne.Epochs(raw_car, **epochs_params).average()
 del raw_car  # save memory

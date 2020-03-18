@@ -192,17 +192,6 @@ for title, proj in zip(['Original', 'Average'], [False, True]):
 # the source modeling is performed. In contrast, applying an average reference
 # by the traditional subtraction method offers no such guarantee.
 #
-# XXX: IS THIS TRUE?
-# For these reasons, when performing inverse imaging, *MNE-Python will
-# automatically average-reference the EEG channels if they are present and no
-# reference strategy has been specified*. If you want to perform inverse
-# imaging and do not want to use an average reference (and hence you accept the
-# risks presented in the previous paragraphs), you can force MNE-Python to
-# relax its average reference requirement by passing an empty list to
-# :meth:`~mne.io.Raw.set_eeg_reference` (i.e., by calling
-# ``raw.set_eeg_reference(ref_channels=[])``) prior to performing inverse
-# imaging.
-#
 #
 # .. LINKS
 #
