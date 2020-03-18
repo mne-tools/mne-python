@@ -818,10 +818,10 @@ connectivity : scipy.sparse.spmatrix | None | False
     ``{x}``{lastdim}.
     If ``connectivity`` is a matrix, it is assumed to be symmetric (only the
     upper triangular half is used) and must be square with dimension equal to
-    ``{x}.shape[-1]`` {parone} or ``{x}.shape[-1] * {x}.shape[-2]`` {partwo}.
-    {memory}
+    ``{x}.shape[-1]`` {parone} or ``{x}.shape[-1] * {x}.shape[-2]``
+    {partwo}.{memory}
 """
-mem = ('If spatial connectivity is uniform in time, it is recommended to use '
+mem = (' If spatial connectivity is uniform in time, it is recommended to use '
        'a square matrix with dimension ``{x}.shape[-1]`` (n_vertices) to save '
        'memory and computation, and to use ``max_step`` to define the extent '
        'of temporal adjacency to consider when clustering.')
