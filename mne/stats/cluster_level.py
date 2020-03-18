@@ -1042,7 +1042,7 @@ def permutation_cluster_test(
     multiple comparisons using permutations and cluster level correction.
     Each element of the list X contains the data for one group of
     observations. Randomized data are generated with random partitions
-    of the data.
+    of the data. See :footcite:`MarisOostenveld2007` for details.
 
     Parameters
     ----------
@@ -1090,9 +1090,7 @@ def permutation_cluster_test(
 
     References
     ----------
-    .. [1] Maris/Oostenveld (2007), "Nonparametric statistical testing of
-       EEG- and MEG-data" Journal of Neuroscience Methods,
-       Vol. 164, No. 1., pp. 177-190. doi:10.1016/j.jneumeth.2007.03.024.
+    .. footbibliography::
     """
     stat_fun, threshold = _check_fun(X, stat_fun, threshold, tail, 'between')
     return _permutation_cluster_test(
@@ -1165,7 +1163,8 @@ def permutation_cluster_1samp_test(
     distributions in the two conditions are significantly different.
     The procedure uses a cluster analysis with permutation test
     for calculating corrected p-values. Randomized data are generated with
-    random sign flips. See [1]_ for more information.
+    random sign flips. See :footcite:`MarisOostenveld2007` for more
+    information.
 
     Because a 1-sample t-test on the difference in observations is
     mathematically equivalent to a paired t-test, internally this function
@@ -1183,9 +1182,7 @@ def permutation_cluster_1samp_test(
 
     References
     ----------
-    .. [1] Maris/Oostenveld (2007), "Nonparametric statistical testing of
-       EEG- and MEG-data" Journal of Neuroscience Methods,
-       Vol. 164, No. 1., pp. 177-190. doi:10.1016/j.jneumeth.2007.03.024.
+    .. footbibliography::
     """
     stat_fun, threshold = _check_fun(X, stat_fun, threshold, tail)
     return _permutation_cluster_test(
@@ -1207,7 +1204,8 @@ def spatio_temporal_cluster_1samp_test(
 
     This function provides a convenient wrapper for
     :func:`mne.stats.permutation_cluster_1samp_test`, for use with data
-    organized in the form (observations × time × space).
+    organized in the form (observations × time × space). See
+    :footcite:`MarisOostenveld2007` for details.
 
     Parameters
     ----------
@@ -1251,12 +1249,7 @@ def spatio_temporal_cluster_1samp_test(
 
     References
     ----------
-    .. [1] Maris/Oostenveld, "Nonparametric statistical testing of
-       EEG- and MEG-data" Journal of Neuroscience Methods,
-       Vol. 164, No. 1., pp. 177-190. doi:10.1016/j.jneumeth.2007.03.024
-    .. [2] Smith/Nichols (2009), "Threshold-free cluster enhancement:
-       Addressing problems of smoothing, threshold dependence, and
-       localisation in cluster inference", NeuroImage 44 (2009) 83-98.
+    .. footbibliography::
     """
     n_samples, n_times, n_vertices = X.shape
     # convert spatial_exclude before passing on if necessary
@@ -1284,7 +1277,7 @@ def spatio_temporal_cluster_test(
     This function provides a convenient wrapper for
     :func:`mne.stats.permutation_cluster_test`, for use with data
     organized in the form (observations × time × space).
-    See [1]_ for more information.
+    See :footcite::`MarisOostenveld2007` for more information.
 
     Parameters
     ----------
@@ -1327,9 +1320,7 @@ def spatio_temporal_cluster_test(
 
     References
     ----------
-    .. [1] Maris/Oostenveld (2007), "Nonparametric statistical testing of
-       EEG- and MEG-data", Journal of Neuroscience Methods,
-       Vol. 164, No. 1., pp. 177-190. doi:10.1016/j.jneumeth.2007.03.024.
+    .. footbibliography::
     """
     n_samples, n_times, n_vertices = X[0].shape
     # convert spatial_exclude before passing on if necessary

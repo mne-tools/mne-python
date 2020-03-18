@@ -780,7 +780,7 @@ threshold : float | dict | None
     observations (only valid when using {}). If ``threshold`` is a
     :class:`dict` (with keys ``'start'`` and ``'step'``) then threshold-free
     cluster enhancement (TFCE) will be used (see the
-    :ref:`TFCE example <tfce_example>`).
+    :ref:`TFCE example <tfce_example>` and :footcite:`SmithNichols2009`).
 """
 f_test = ('an F-threshold', 'an F-statistic')
 t_test = ('a t-threshold', 'a t-statistic')
