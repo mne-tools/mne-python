@@ -21,7 +21,7 @@ event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
 
 # This particular dataset already has an average reference projection added
-# that we now want to remove for the sake of this example.
+# that we now want to remove it for the sake of this example.
 raw.set_eeg_reference([])
 
 ###############################################################################
