@@ -643,6 +643,7 @@ class Info(dict, MontageMixin):
         return st
 
     def __deepcopy__(self, memodict):
+        """Make a deepcopy."""
         result = Info.__new__(Info)
         for k, v in self.items():
             # chs is roughly half the time but most are immutable

@@ -103,6 +103,7 @@ class DigPoint(dict):
 
     # speed up info copy by only deep copying the mutable item
     def __deepcopy__(self, memodict):
+        """Make a deepcopy."""
         return DigPoint(
             kind=self['kind'], r=self['r'].copy(),
             ident=self['ident'], coord_frame=self['coord_frame'])

@@ -35,6 +35,7 @@ class Projection(dict):
 
     # speed up info copy by taking advantage of mutability
     def __deepcopy__(self, memodict):
+        """Make a deepcopy."""
         cls = self.__class__
         result = cls.__new__(cls)
         for k, v in self.items():
