@@ -299,7 +299,7 @@ chpi_locs : dict
 docdict['set_eeg_reference_see_also_notes'] = """
 See Also
 --------
-set_bipolar_reference : Convenience function for creating bipolar
+mne.set_bipolar_reference : Convenience function for creating bipolar
                         references.
 
 Notes
