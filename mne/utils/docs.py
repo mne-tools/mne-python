@@ -307,16 +307,16 @@ Notes
 Some common referencing schemes and the corresponding value for the
 ``ref_channels`` parameter:
 
-Average reference:
+- Average reference:
     A new virtual reference electrode is created by averaging the current
     EEG signal by setting ``ref_channels='average'``. Bad EEG channels are
     automatically excluded if they are properly set in ``info['bads']``.
 
-A single electrode:
+- A single electrode:
     Set ``ref_channels`` to a list containing the name of the channel that
     will act as the new reference, for example ``ref_channels=['Cz']``.
 
-The mean of multiple electrodes:
+- The mean of multiple electrodes:
     A new virtual reference electrode is created by computing the average
     of the current EEG signal recorded from two or more selected channels.
     Set ``ref_channels`` to a list of channel names, indicating which
