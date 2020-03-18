@@ -1199,9 +1199,6 @@ class deprecated(object):
     # Adapted from http://wiki.python.org/moin/PythonDecoratorLibrary,
     # but with many changes.
 
-    # scikit-learn will not import on all platforms b/c it can be
-    # sklearn or scikits.learn, so a self-contained example is used above
-
     def __init__(self, extra=''):  # noqa: D102
         self.extra = extra
 

@@ -153,10 +153,7 @@ def test_permutation_large_n_samples(numba_conditional):
 def test_permutation_step_down_p(numba_conditional):
     """Test cluster level permutations with step_down_p."""
     try:
-        try:
-            from sklearn.feature_extraction.image import grid_to_graph
-        except ImportError:
-            from scikits.learn.feature_extraction.image import grid_to_graph  # noqa: F401,E501 analysis:ignore
+        from sklearn.feature_extraction.image import grid_to_graph
     except ImportError:
         return
     rng = np.random.RandomState(0)
@@ -275,10 +272,7 @@ def test_cluster_permutation_t_test(numba_conditional, stat_fun):
 def test_cluster_permutation_with_connectivity(numba_conditional):
     """Test cluster level permutations with connectivity matrix."""
     try:
-        try:
-            from sklearn.feature_extraction.image import grid_to_graph
-        except ImportError:
-            from scikits.learn.feature_extraction.image import grid_to_graph
+        from sklearn.feature_extraction.image import grid_to_graph
     except ImportError:
         return
     condition1_1d, condition2_1d, condition1_2d, condition2_2d = \
@@ -436,10 +430,7 @@ def test_cluster_permutation_with_connectivity(numba_conditional):
 def test_permutation_connectivity_equiv(numba_conditional):
     """Test cluster level permutations with and without connectivity."""
     try:
-        try:
-            from sklearn.feature_extraction.image import grid_to_graph
-        except ImportError:
-            from scikits.learn.feature_extraction.image import grid_to_graph
+        from sklearn.feature_extraction.image import grid_to_graph
     except ImportError:
         return
     rng = np.random.RandomState(0)
@@ -512,10 +503,7 @@ def test_permutation_connectivity_equiv(numba_conditional):
 def test_spatio_temporal_cluster_connectivity(numba_conditional):
     """Test spatio-temporal cluster permutations."""
     try:
-        try:
-            from sklearn.feature_extraction.image import grid_to_graph
-        except ImportError:
-            from scikits.learn.feature_extraction.image import grid_to_graph
+        from sklearn.feature_extraction.image import grid_to_graph
     except ImportError:
         return
     condition1_1d, condition2_1d, condition1_2d, condition2_2d = \
