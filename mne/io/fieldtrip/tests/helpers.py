@@ -122,11 +122,6 @@ def get_raw_data(system, drop_extra_chs=False):
     if system == 'eximia':
         crop -= 0.5 * (1.0 / raw_data.info['sfreq'])
     raw_data.crop(0, crop)
-    if any([type_ in raw_data for type_ in ['eeg', 'ecog', 'seeg']]):
-        raw_data.set_eeg_reference([])
-    else:
-        with pytest.raises(ValueError, match='No EEG, ECoG or sEEG channels'):
-            raw_data.set_eeg_reference([])
     raw_data.del_proj('all')
     raw_data.info['comps'] = []
     raw_data.drop_channels(cfg_local['removed_chan_names'])

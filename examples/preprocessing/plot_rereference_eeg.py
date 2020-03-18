@@ -44,17 +44,14 @@ epochs_params = dict(events=events, event_id=event_id, tmin=tmin, tmax=tmax,
 
 fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, sharex=True)
 
-# No reference. This assumes that the EEG has already been referenced properly.
-# This explicitly prevents MNE from adding a default EEG reference. Any average
-# reference projector is automatically removed.
-raw.set_eeg_reference([])
+# We start with no reference, assuming that the EEG is already referenced
+# properly after reading in the data.
 evoked_no_ref = mne.Epochs(raw, **epochs_params).average()
 
 evoked_no_ref.plot(axes=ax1, titles=dict(eeg='Original reference'), show=False,
                    time_unit='s')
 
-# Average reference. This is normally added by default, but can also be added
-# explicitly.
+# Add an average reference.
 raw.set_eeg_reference('average', projection=True)
 evoked_car = mne.Epochs(raw, **epochs_params).average()
 

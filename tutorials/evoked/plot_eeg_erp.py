@@ -18,7 +18,6 @@ from mne.datasets import sample
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-# these data already have an EEG average reference
 raw = mne.io.read_raw_fif(raw_fname, preload=True)
 
 ###############################################################################
@@ -50,7 +49,6 @@ raw.set_channel_types(mapping={'EOG': 'eog'})
 # The EEG channels in the sample dataset already have locations.
 # These locations are available in the 'loc' of each channel description.
 # For the first channel we get
-
 print(raw.info['chs'][0]['loc'])
 
 ###############################################################################
@@ -67,32 +65,23 @@ raw.plot_sensors('3d')  # in 3D
 # Setting EEG reference
 # ---------------------
 #
-# Let's first remove the reference from our Raw object.
-#
-# This explicitly prevents MNE from adding a default EEG average reference
-# required for source localization.
-
-raw_no_ref, _ = mne.set_eeg_reference(raw, [])
-
-###############################################################################
-# We next define Epochs and compute an ERP for the left auditory condition.
+# Let's first inspect our Raw object with its original reference
+# (i.e., after loading).
+# We define Epochs and compute an ERP for the left auditory condition.
 reject = dict(eeg=180e-6, eog=150e-6)
 event_id, tmin, tmax = {'left/auditory': 1}, -0.2, 0.5
 events = mne.read_events(event_fname)
 epochs_params = dict(events=events, event_id=event_id, tmin=tmin, tmax=tmax,
                      reject=reject)
 
-evoked_no_ref = mne.Epochs(raw_no_ref, **epochs_params).average()
-del raw_no_ref  # save memory
+evoked_no_ref = mne.Epochs(raw, **epochs_params).average()
 
 title = 'EEG Original reference'
 evoked_no_ref.plot(titles=dict(eeg=title), time_unit='s')
 evoked_no_ref.plot_topomap(times=[0.1], size=3., title=title, time_unit='s')
 
 ###############################################################################
-# **Average reference**: This is normally added by default, but can also
-# be added explicitly.
-raw.del_proj()
+# **Common average reference** (car)
 raw_car, _ = mne.set_eeg_reference(raw, 'average', projection=True)
 evoked_car = mne.Epochs(raw_car, **epochs_params).average()
 del raw_car  # save memory

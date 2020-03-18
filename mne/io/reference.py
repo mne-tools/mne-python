@@ -287,12 +287,10 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
                       projection=False, ch_type='auto', verbose=None):
     """Specify which reference to use for EEG data.
 
-    By default, MNE-Python will automatically re-reference the EEG signal to
-    use an average reference (see below). Use this function to explicitly
-    specify the desired reference for EEG. This can be either an existing
-    electrode or a new virtual channel. This function will re-reference the
-    data according to the desired reference and prevent MNE-Python from
-    automatically adding an average reference projection.
+    Use this function to explicitly specify the desired reference for EEG.
+    This can be either an existing electrode or a new virtual channel.
+    This function will re-reference the data according to the desired
+    reference.
 
     Parameters
     ----------
@@ -300,10 +298,9 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
         Instance of Raw or Epochs with EEG channels and reference channel(s).
     ref_channels : list of str | str
         The name(s) of the channel(s) used to construct the reference. To apply
-        an average reference, specify ``'average'`` here (default). If an empty
-        list is specified, the data is assumed to already have a proper
-        reference and MNE will not attempt any re-referencing of the data.
-        Defaults to an average reference.
+        an average reference, specify ``'average'`` here (default). Specify an
+        empty list to remove a potentially existing average reference
+        projection. Defaults to an average reference.
     copy : bool
         Specifies whether the data will be copied (True) or modified in-place
         (False). Defaults to True.
@@ -343,11 +340,6 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     -----
     Some common referencing schemes and the corresponding value for the
     ``ref_channels`` parameter:
-
-    No re-referencing:
-        If the EEG data is already using the proper reference, set
-        ``ref_channels=[]``. This will prevent MNE-Python from automatically
-        adding an average reference projection.
 
     Average reference:
         A new virtual reference electrode is created by averaging the current
@@ -436,9 +428,7 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
         ref_channels = ch_sel
 
     if ref_channels == []:
-        logger.info('EEG data marked as already having the desired reference. '
-                    'Preventing automatic future re-referencing to an average '
-                    'reference.')
+        logger.info('EEG data marked as already having the desired reference.')
     else:
         logger.info('Applying a custom %s '
                     'reference.' % DEFAULTS['titles'][type_])
