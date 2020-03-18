@@ -808,6 +808,33 @@ stat_fun : callable | None
 """
 docdict['clust_stat_f'] = docdict['clust_stat'].format('f_oneway')
 docdict['clust_stat_t'] = docdict['clust_stat'].format('ttest_1samp_no_p')
+docdict['clust_conn'] = """
+connectivity : scipy.sparse.spmatrix | None | False
+    Defines connectivity between locations in the data, where "locations" can
+    be spatial vertices, frequency bins, etc. If ``False``, assumes no
+    connectivity (each location is treated as independent and unconnected).
+    If ``None``, a regular lattice connectivity is assumed, connecting each
+    {sp} location to its neighbor(s) along the last dimension of {eachgrp}
+    ``{x}``{lastdim}.
+    If ``connectivity`` is a matrix, it is assumed to be symmetric (only the
+    upper triangular half is used) and must be square with dimension equal to
+    ``{x}.shape[-1]`` {parone} or ``{x}.shape[-1] * {x}.shape[-2]`` {partwo}.
+    {memory}
+"""
+mem = ('If spatial connectivity is uniform in time, it is recommended to use '
+       'a square matrix with dimension ``{x}.shape[-1]`` (n_vertices) to save '
+       'memory and computation, and to use ``max_step`` to define the extent '
+       'of temporal adjacency to consider when clustering.')
+st = dict(sp='spatial', lastdim='', parone='(n_vertices)',
+          partwo='(n_times * n_vertices)', memory=mem)
+tf = dict(sp='', lastdim=' (or the last two dimensions if {x} is 2D)',
+          parone='', partwo='', memory='')
+nogroups = dict(eachgrp='', x='X')
+groups = dict(eachgrp='each group ', x='X[k]')
+docdict['clust_conn_st_1samp'] = docdict['clust_conn'].format(**st, **nogroups)
+docdict['clust_conn_st_nsamp'] = docdict['clust_conn'].format(**st, **groups)
+docdict['clust_conn_1samp'] = docdict['clust_conn'].format(**tf, **nogroups)
+docdict['clust_conn_nsamp'] = docdict['clust_conn'].format(**tf, **groups)
 docdict['clust_maxstep'] = """
 max_step : int
     Maximum distance along the second dimension (typically this is the "time"

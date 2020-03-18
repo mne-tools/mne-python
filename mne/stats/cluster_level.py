@@ -1058,11 +1058,7 @@ def permutation_cluster_test(
     %(clust_nperm_int)s
     %(clust_tail)s
     %(clust_stat_f)s
-    connectivity : scipy.sparse.spmatrix
-        Defines connectivity between features. The matrix is assumed to
-        be symmetric and only the upper triangular half is used.
-        Default is None, i.e, a regular lattice connectivity.
-        Can also be False to assume no connectivity.
+    %(clust_conn_nsamp)s
     %(n_jobs)s
     %(seed)s
     %(clust_maxstep)s
@@ -1122,14 +1118,7 @@ def permutation_cluster_1samp_test(
     %(clust_nperm_all)s
     %(clust_tail)s
     %(clust_stat_t)s
-    connectivity : scipy.sparse.spmatrix | None | False
-        Defines connectivity between features. The matrix is assumed to
-        be symmetric and only the upper triangular half is used.
-        This matrix must be square with dimension (n_vertices * n_times) or
-        (n_vertices). Default is None, i.e, a regular lattice connectivity.
-        Use square n_vertices matrix for datasets with a large temporal
-        extent to save on memory and computation time. Can also be False
-        to assume no connectivity.
+    %(clust_conn_1samp)s
     %(verbose)s
     %(n_jobs)s
     %(seed)s
@@ -1216,13 +1205,7 @@ def spatio_temporal_cluster_1samp_test(
     %(clust_nperm_all)s
     %(clust_tail)s
     %(clust_stat_t)s
-    connectivity : scipy.sparse.spmatrix or None
-        Defines connectivity between features. The matrix is assumed to
-        be symmetric and only the upper triangular half is used.
-        This matrix must be square with dimension (n_vertices * n_times) or
-        (n_vertices). Default is None, i.e, a regular lattice connectivity.
-        Use square n_vertices matrix for datasets with a large temporal
-        extent to save on memory and computation time.
+    %(clust_conn_st_1samp)s
     %(n_jobs)s
     %(seed)s
     %(clust_maxstep)s
@@ -1291,10 +1274,7 @@ def spatio_temporal_cluster_test(
     %(clust_nperm_int)s
     %(clust_tail)s
     %(clust_stat_f)s
-    connectivity : scipy.sparse.spmatrix or None
-        Defines connectivity between features. The matrix is assumed to
-        be symmetric and only the upper triangular half is used.
-        Default is None, i.e, a regular lattice connectivity.
+    %(clust_conn_st_nsamp)s
     %(verbose)s
     %(n_jobs)s
     %(seed)s
