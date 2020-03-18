@@ -813,8 +813,8 @@ connectivity : scipy.sparse.spmatrix | None | False
     Defines connectivity between locations in the data, where "locations" can
     be spatial vertices, frequency bins, etc. If ``False``, assumes no
     connectivity (each location is treated as independent and unconnected).
-    If ``None``, a regular lattice connectivity is assumed, connecting each
-    {sp} location to its neighbor(s) along the last dimension of {eachgrp}
+    If ``None``, a regular lattice connectivity is assumed, connecting
+    each {sp} location to its neighbor(s) along the last dimension of {eachgrp}
     ``{x}``{lastdim}.
     If ``connectivity`` is a matrix, it is assumed to be symmetric (only the
     upper triangular half is used) and must be square with dimension equal to
@@ -865,7 +865,7 @@ out_type : 'mask' | 'indices'
     part of a cluster. If ``'indices'``, returns a list of lists, where each
     sublist contains the indices of locations that together form a cluster.
     Note that for large datasets, ``'indices'`` may use far less memory than
-    ``'mask'``. Default is ``'indices'``.
+    ``'mask'``.
 """
 docdict['clust_disjoint'] = """
 check_disjoint : bool
