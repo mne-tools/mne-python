@@ -330,7 +330,6 @@ def set_eeg_reference(inst, ref_channels='average', copy=True,
     ref_data : array
         Array of reference data subtracted from EEG channels. This will be
         ``None`` if ``ref_channels='average'`` and ``projection=True``.
-
     %(set_eeg_reference_see_also_notes)s
     """
     _check_can_reref(inst)

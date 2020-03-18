@@ -318,7 +318,6 @@ class SetChannelsMixin(MontageMixin):
             Data with EEG channels re-referenced. If ``ref_channels='average'``
             and ``projection=True`` a projection will be added instead of
             directly re-referencing the data.
-
         %(set_eeg_reference_see_also_notes)s
         """
         from ..io.reference import set_eeg_reference
