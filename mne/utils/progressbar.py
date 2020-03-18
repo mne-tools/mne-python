@@ -88,10 +88,6 @@ class ProgressBar(object):
             Current value of process.  Should be <= max_value (but this is not
             enforced).  The percent of the progressbar will be computed as
             ``(cur_value / max_value) * 100``.
-        mesg : str
-            Message to display to the right of the progressbar.  If None, the
-            last message provided will be used.  To clear the current message,
-            pass a null string, ''.
         """
         self.update_with_increment_value(cur_value - self._tqdm.n)
 
@@ -104,10 +100,6 @@ class ProgressBar(object):
             Value of the increment of process.  The percent of the progressbar
             will be computed as
             ``(self.cur_value + increment_value / max_value) * 100``.
-        mesg : str
-            Message to display to the right of the progressbar.  If None, the
-            last message provided will be used.  To clear the current message,
-            pass a null string, ''.
         """
         self._tqdm.update(increment_value)
 
