@@ -1058,7 +1058,7 @@ def permutation_cluster_test(
     %(clust_nperm_int)s
     %(clust_tail)s
     %(clust_stat_f)s
-    %(clust_conn_nsamp)s
+    %(clust_con_n)s
     %(n_jobs)s
     %(seed)s
     %(clust_maxstep)s
@@ -1119,7 +1119,7 @@ def permutation_cluster_1samp_test(
     %(clust_nperm_all)s
     %(clust_tail)s
     %(clust_stat_t)s
-    %(clust_conn_1samp)s
+    %(clust_con_1)s
     %(verbose)s
     %(n_jobs)s
     %(seed)s
@@ -1207,7 +1207,7 @@ def spatio_temporal_cluster_1samp_test(
     %(clust_nperm_all)s
     %(clust_tail)s
     %(clust_stat_t)s
-    %(clust_conn_st_1samp)s
+    %(clust_con_st1)s
     %(n_jobs)s
     %(seed)s
     %(clust_maxstep)s
@@ -1277,7 +1277,7 @@ def spatio_temporal_cluster_test(
     %(clust_nperm_int)s
     %(clust_tail)s
     %(clust_stat_f)s
-    %(clust_conn_st_nsamp)s
+    %(clust_con_stn)s
     %(verbose)s
     %(n_jobs)s
     %(seed)s
