@@ -48,7 +48,8 @@ def _get_http(url, temp_file_name, initial_size, timeout, verbose_bool):
     del url
     mode = 'ab' if initial_size > 0 else 'wb'
     progress = ProgressBar(file_size, initial_size, unit='B',
-                           unit_scale=True, unit_divisor=1024)
+                           mesg='Downloading', unit_scale=True,
+                           unit_divisor=1024)
     del file_size
     chunk_size = 8192  # 2 ** 13
     with open(temp_file_name, mode) as local_file:

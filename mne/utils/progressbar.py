@@ -7,14 +7,15 @@
 from collections.abc import Iterable
 import os
 import os.path as op
+import logging
 import tempfile
-from threading import RLock
+from threading import Thread
+import time
+import warnings
 
 import numpy as np
 
-
-def _noop():
-    pass
+from ._logging import logger
 
 
 class ProgressBar(object):
@@ -33,8 +34,6 @@ class ProgressBar(object):
     max_total_width : int | str
         Maximum total message width. Can use "auto" (default) to try to set
         a sane value based on the current terminal width.
-    disable : bool | None
-        If True, disable the bar. If None, autodetect based on TTY.
     max_value : int | None
         The max value. If None, the length of ``iterable`` will be used.
     **kwargs : dict
@@ -42,9 +41,16 @@ class ProgressBar(object):
     """
 
     def __init__(self, iterable=None, initial_value=0, mesg=None,
-                 max_total_width='auto', disable=None, max_value=None,
+                 max_total_width='auto', max_value=None,
                  **kwargs):  # noqa: D102
-        from ..externals.tqdm import tqdm  # currently 4.40.2
+        from ..externals.tqdm import auto
+        tqdm = auto.tqdm
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter('ignore')
+            tqdm.pandas()
+        # from time import sleep
+        # for j in tqdm(range(100), desc='2nd loop'):
+        #     sleep(0.01)
         defaults = dict(
             leave=True, mininterval=0.016, miniters=0, smoothing=0.9,
             bar_format='{percentage:3.0f}%|{bar}| {desc} : {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt:>11}{postfix}]',  # noqa: E501
@@ -67,13 +73,13 @@ class ProgressBar(object):
             self._mmap_fname = tf.name
         del tf  # should remove the file
         self._mmap = None
+        disable = logger.level > logging.INFO
         self._tqdm = tqdm(
             iterable=self.iterable, desc=mesg, total=self.max_value,
-            initial=initial_value, disable=disable, ncols=max_total_width,
-            **kwargs)
-        self._tqdm.set_lock(RLock())
+            initial=initial_value, ncols=max_total_width,
+            disable=disable, **kwargs)
 
-    def update(self, cur_value, mesg=None):
+    def update(self, cur_value):
         """Update progressbar with current value of process.
 
         Parameters
@@ -87,10 +93,9 @@ class ProgressBar(object):
             last message provided will be used.  To clear the current message,
             pass a null string, ''.
         """
-        with self._tqdm.get_lock():
-            self.update_with_increment_value(cur_value - self._tqdm.n, mesg)
+        self.update_with_increment_value(cur_value - self._tqdm.n)
 
-    def update_with_increment_value(self, increment_value, mesg=None):
+    def update_with_increment_value(self, increment_value):
         """Update progressbar with an increment.
 
         Parameters
@@ -105,8 +110,6 @@ class ProgressBar(object):
             pass a null string, ''.
         """
         self._tqdm.update(increment_value)
-        if mesg is not None:
-            self._tqdm.set_description(mesg)
 
     def __iter__(self):
         """Iterate to auto-increment the pbar with 1."""
@@ -127,12 +130,6 @@ class ProgressBar(object):
         """
         return _PBSubsetUpdater(self, idx)
 
-    def __setitem__(self, idx, val):
-        """Use alternative, mmap-based incrementing (max_value must be int)."""
-        assert val is True
-        self._mmap[idx] = True
-        self.update(self._mmap.sum())
-
     def __enter__(self):  # noqa: D105
         # This should only be used with pb.subset and parallelization
         if op.isfile(self._mmap_fname):
@@ -143,25 +140,39 @@ class ProgressBar(object):
         self.update(0)  # must be zero as we just created the memmap
 
         # We need to control how the pickled bars exit: remove print statements
-        self._tqdm_close = self._tqdm.close
-        self._tqdm.close = _noop
+        self._thread = _UpdateThread(self)
+        self._thread.start()
         return self
 
     def __exit__(self, type_, value, traceback):  # noqa: D105
         # Restore exit behavior for our one from the main thread
-        self._tqdm.close = self._tqdm_close
         self.update(self._mmap.sum())
         self._tqdm.close()
+        self._thread._mne_run = False
+        self._thread.join()
         self._mmap = None
         if op.isfile(self._mmap_fname):
             os.remove(self._mmap_fname)
 
 
+class _UpdateThread(Thread):
+
+    def __init__(self, pb):
+        super(_UpdateThread, self).__init__(daemon=True)
+        self._mne_run = True
+        self._mne_pb = pb
+
+    def run(self):
+        while self._mne_run:
+            self._mne_pb.update(self._mne_pb._mmap.sum())
+            time.sleep(1. / 30.)  # 30 Hz refresh is plenty
+
+
 class _PBSubsetUpdater(object):
 
     def __init__(self, pb, idx):
-        self.pb = pb
+        self.mmap = pb._mmap
         self.idx = idx
 
     def update(self, ii):
-        self.pb[self.idx[:ii]] = True
+        self.mmap[self.idx[ii - 1]] = True
