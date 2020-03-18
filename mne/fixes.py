@@ -20,6 +20,7 @@ from pathlib import Path
 import warnings
 
 import numpy as np
+import scipy
 from scipy import linalg
 from scipy.linalg import LinAlgError
 
@@ -313,6 +314,22 @@ try:
 except ImportError:
     from numpy.fft import fft, ifft, fftfreq, rfft, irfft, rfftfreq, ifftshift
 
+
+###############################################################################
+# Orth with rcond argument (SciPy 1.1)
+
+if LooseVersion(scipy.__version__) >= '1.1':
+    from scipy.linalg import orth
+else:
+    def orth(A, rcond=None):  # noqa
+        u, s, vh = linalg.svd(A, full_matrices=False)
+        M, N = u.shape[0], vh.shape[1]
+        if rcond is None:
+            rcond = numpy.finfo(s.dtype).eps * max(M, N)
+        tol = np.amax(s) * rcond
+        num = np.sum(s > tol, dtype=int)
+        Q = u[:, :num]
+        return Q
 
 ###############################################################################
 # NumPy Generator (NumPy 1.17)
