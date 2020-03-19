@@ -15,14 +15,14 @@ from ...source_space import vertex_to_mni
 class MplCanvas(object):
     """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
 
-    def __init__(self, timeviewer, width, height, dpi):
+    def __init__(self, time_viewer, width, height, dpi):
         from PyQt5 import QtWidgets
         from matplotlib.figure import Figure
         from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
-        if timeviewer.separate_canvas:
+        if time_viewer.separate_canvas:
             parent = None
         else:
-            parent = timeviewer.window
+            parent = time_viewer.window
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         self.canvas = FigureCanvasQTAgg(self.fig)
         self.axes = self.fig.add_subplot(111)
@@ -36,7 +36,7 @@ class MplCanvas(object):
         FigureCanvasQTAgg.updateGeometry(self.canvas)
         # XXX eventually this should be called in the window resize callback
         tight_layout(fig=self.axes.figure)
-        self.timeviewer = timeviewer
+        self.time_viewer = time_viewer
         for event in ('button_press', 'motion_notify'):
             self.canvas.mpl_connect(
                 event + '_event', getattr(self, 'on_' + event))
@@ -74,7 +74,7 @@ class MplCanvas(object):
         if (event.inaxes != self.axes or
                 event.button != 1):
             return
-        self.timeviewer.time_call(
+        self.time_viewer.time_call(
             event.xdata, update_widget=True, time_as_index=False)
 
     on_motion_notify = on_button_press  # for now they can be the same
@@ -323,6 +323,7 @@ class _TimeViewer(object):
         self.status_bar = self.window.statusBar()
         self.interactor = self.plotter.interactor
         self.interactor.keyPressEvent = self.keyPressEvent
+        self.window.signal_close.connect(self.clean)
 
         # Derived parameters:
         self.playback_speed = self.default_playback_speed_value
@@ -628,8 +629,6 @@ class _TimeViewer(object):
                 self.mpl_canvas.axes.set(xlim=xlim)
             vlayout = self.plotter.frame.layout()
             if self.separate_canvas:
-                self.plotter.app_window.signal_close.connect(
-                    self.mpl_canvas.close)
                 self.mpl_canvas.show()
             else:
                 vlayout.addWidget(self.mpl_canvas.canvas)
@@ -769,14 +768,16 @@ class _TimeViewer(object):
         self.mpl_canvas.update_plot()
         self.picked_points[mesh._hemi].remove(mesh._vertex_id)
         self.plotter.remove_actor(mesh._actors)
+        mesh._actors = None
 
     def clear_points(self):
-        for sphere in self._spheres:
-            vertex_id = sphere._vertex_id
-            hemi = sphere._hemi
-            if vertex_id in self.picked_points[hemi]:
-                self.remove_point(sphere)
-        self._spheres.clear()
+        if hasattr(self, "_spheres"):
+            for sphere in self._spheres:
+                vertex_id = sphere._vertex_id
+                hemi = sphere._hemi
+                if vertex_id in self.picked_points[hemi]:
+                    self.remove_point(sphere)
+            self._spheres.clear()
 
     def plot_time_course(self, hemi, vertex_id, color):
         if not hasattr(self, "mpl_canvas"):
@@ -837,6 +838,50 @@ class _TimeViewer(object):
             width=5,
             height=2,
         )
+
+    def clean(self):
+        # resolve the reference cycle
+        self.clear_points()
+        self.orientation_call.plotter = None
+        self.orientation_call.brain = None
+        self.orientation_call = None
+        self.smoothing_call.plotter = None
+        self.smoothing_call = None
+        self.time_call.plotter = None
+        self.time_call.brain = None
+        self.time_call = None
+        self.playback_speed_call.plotter = None
+        self.playback_speed_call = None
+        self.fmin_call.plotter = None
+        self.fmin_call.brain = None
+        self.fmin_call = None
+        self.fmid_call.plotter = None
+        self.fmid_call.brain = None
+        self.fmid_call = None
+        self.fmax_call.plotter = None
+        self.fmax_call.brain = None
+        self.fmax_call = None
+        self.fscale_call.plotter = None
+        self.fscale_call.brain = None
+        self.fscale_call = None
+        self.key_bindings = None
+        self.brain.time_viewer = None
+        self.brain = None
+        self.plotter = None
+        self.main_menu = None
+        self.window = None
+        self.status_bar = None
+        self.interactor = None
+        if hasattr(self, "mpl_canvas"):
+            self.mpl_canvas.close()
+            self.mpl_canvas.time_viewer = None
+            self.mpl_canvas.canvas = None
+            self.mpl_canvas = None
+        self.time_actor = None
+        self.picked_renderer = None
+        self.act_data["lh"] = None
+        self.act_data["rh"] = None
+        self.act_data = None
 
 
 class _LinkViewer(object):
