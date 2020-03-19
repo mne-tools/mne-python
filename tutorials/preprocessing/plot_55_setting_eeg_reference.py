@@ -192,6 +192,9 @@ for title, proj in zip(['Original', 'Average'], [False, True]):
 # the source modeling is performed. In contrast, applying an average reference
 # by the traditional subtraction method offers no such guarantee.
 #
+# For these reasons, when performing inverse imaging, *MNE-Python will raise
+# a ``ValueError`` if there are EEG channels present and something other than
+# an average reference strategy has been specified*.
 #
 # .. LINKS
 #
