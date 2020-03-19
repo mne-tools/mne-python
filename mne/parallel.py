@@ -114,8 +114,7 @@ def parallel_func(func, n_jobs, max_nbytes='auto', pre_dispatch='n_jobs',
 
     if total is not None:
         def parallel_progress(op_iter):
-            pb = ProgressBar(total, verbose_bool=should_print)
-            return parallel(pb(op_iter))
+            return parallel(ProgressBar(iterable=op_iter, max_value=total))
         parallel_out = parallel_progress
     else:
         parallel_out = parallel

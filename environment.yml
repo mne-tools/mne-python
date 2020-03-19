@@ -33,7 +33,7 @@ dependencies:
 - pip:
   - mne
   - https://api.github.com/repos/numpy/numpydoc/zipball/master
-  - pyvista>=0.23.1
+  - pyvista>=0.24
   - mayavi
   - PySurfer[save_movie]
   - dipy --only-binary dipy
@@ -45,3 +45,4 @@ dependencies:
   - pydocstyle
   - codespell
   - python-picard
+  - tqdm
