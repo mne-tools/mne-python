@@ -474,10 +474,8 @@ class _Brain(object):
         self.set_data_smoothing(smoothing_steps)
         for ri, v in enumerate(self._views):
             if array.ndim == 3:
-                smooth_mat = self._data[hemi]['smooth_mat']
                 vectors = self.vectors
                 vector_values = self.vector_values
-                scalar_data = smooth_mat * magnitude
                 vertices = slice(None) if vertices is None else vertices
                 x, y, z = np.array(self.geo[hemi].coords)[vertices].T
 
@@ -488,7 +486,7 @@ class _Brain(object):
                     if self._units == 'm':
                         scale_factor = scale_factor / 1000.
                     scale_factor_norm = scale_factor / magnitude_max
-                    final_scale_factor = scale_factor_norm * scalar_data.max()
+                    final_scale_factor = scale_factor_norm * magnitude.max()
 
                 self._renderer.quiver3d(
                     x, y, z,
