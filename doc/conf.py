@@ -323,7 +323,7 @@ intersphinx_mapping = {
     'surfer': ('https://pysurfer.github.io/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
     'seaborn': ('https://seaborn.pydata.org/', None),
-    'statsmodels': ('http://www.statsmodels.org/dev', None),
+    'statsmodels': ('https://www.statsmodels.org/dev', None),
     'patsy': ('https://patsy.readthedocs.io/en/latest', None),
     # There are some problems with dipy's redirect:
     # https://github.com/nipy/dipy/issues/1955
@@ -369,8 +369,38 @@ try:
 except Exception:
     pass
 else:
-    scrapers += ('pyvista',)
-if any(x in scrapers for x in ('pyvista', 'mayavi')):
+    # XXX hack, adapted from PyVista to work around
+    # https://github.com/mne-tools/mne-python/issues/7228
+    # https://github.com/pyvista/pyvista/pull/548
+    import shutil
+
+    class Scraper(object):  # noqa:D101
+
+        def __repr__(self):  # noqa:D101
+            return 'PyVista Scraper'
+
+        def __call__(self, block, block_vars, gallery_conf):  # noqa:D101
+            from sphinx_gallery.scrapers import figure_rst
+            image_names = list()
+            image_path_iterator = block_vars["image_path_iterator"]
+            figures = pyvista.plotting._ALL_PLOTTERS
+            seen_plotters = list()
+            for address, plotter in figures.items():
+                if plotter in seen_plotters:
+                    continue
+                seen_plotters += [plotter]
+                fname = next(image_path_iterator)
+                if hasattr(plotter, '_gif_filename'):
+                    # move gif to fname
+                    shutil.move(plotter._gif_filename, fname)
+                else:
+                    plotter.screenshot(fname)
+                image_names.append(fname)
+            pyvista.close_all()  # close and clear all plotters
+            return figure_rst(image_names, gallery_conf["src_dir"])
+    scrapers += (Scraper(),)  # eventually just ('pyvista',)
+if any(x in scrapers for x in ('pyvista', 'mayavi')) or \
+        any('PyVista' in repr(s) for s in scrapers):  # just for our hack
     from traits.api import push_exception_handler
     push_exception_handler(reraise_exceptions=True)
     report_scraper = mne.report._ReportScraper()
@@ -464,6 +494,8 @@ def reset_warnings(gallery_conf, fname):
                 r"joblib is deprecated in 0\.21",  # nilearn
                 'The usage of `cmp` is deprecated and will',  # sklearn/pytest
                 'scipy.* is deprecated and will be removed in',  # dipy
+                r'Converting `np\.character` to a dtype is deprecated',  # vtk
+                r'sphinx\.util\.smartypants is deprecated',
                 ):
         warnings.filterwarnings(  # deal with other modules having bad imports
             'ignore', message=".*%s.*" % key, category=DeprecationWarning)
@@ -546,7 +578,7 @@ numpydoc_class_members_toctree = False
 numpydoc_attributes_as_param_list = True
 numpydoc_xref_param_type = True
 numpydoc_xref_aliases = {
-    'Popen': 'python:subprocess.Popen',
+    # Python
     'file-like': ':term:`file-like <python:file object>`',
     # Matplotlib
     'colormap': ':doc:`colormap <matplotlib:tutorials/colors/colormaps>`',
@@ -618,7 +650,9 @@ numpydoc_xref_ignore = {
     'n_splits', 'n_scores', 'n_outputs', 'n_trials', 'n_estimators', 'n_tasks',
     'nd_features', 'n_classes', 'n_targets', 'n_slices', 'n_hpi', 'n_fids',
     'n_elp', 'n_pts', 'n_tris', 'n_nodes', 'n_nonzero', 'n_events_out',
-    'n_segments', 'n_orient_inv', 'n_orient_fwd', 'n_orient',
+    'n_segments', 'n_orient_inv', 'n_orient_fwd', 'n_orient', 'n_dipoles_lcmv',
+    'n_dipoles_fwd',
+
     # Undocumented (on purpose)
     'RawKIT', 'RawEximia', 'RawEGI', 'RawEEGLAB', 'RawEDF', 'RawCTF', 'RawBTi',
     'RawBrainVision', 'RawCurry', 'RawNIRX', 'RawGDF',

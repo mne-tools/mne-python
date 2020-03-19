@@ -295,6 +295,94 @@ chpi_locs : dict
     "times", "rrs", "moments", and "gofs".
 """
 
+# Maxwell filtering
+docdict['maxwell_origin_int_ext_calibration_cross'] = """
+origin : array-like, shape (3,) | str
+    Origin of internal and external multipolar moment space in meters.
+    The default is ``'auto'``, which means ``(0., 0., 0.)`` when
+    ``coord_frame='meg'``, and a head-digitization-based
+    origin fit using :func:`~mne.bem.fit_sphere_to_headshape`
+    when ``coord_frame='head'``. If automatic fitting fails (e.g., due
+    to having too few digitization points),
+    consider separately calling the fitting function with different
+    options or specifying the origin manually.
+int_order : int
+    Order of internal component of spherical expansion.
+ext_order : int
+    Order of external component of spherical expansion.
+calibration : str | None
+    Path to the ``'.dat'`` file with fine calibration coefficients.
+    File can have 1D or 3D gradiometer imbalance correction.
+    This file is machine/site-specific.
+cross_talk : str | None
+    Path to the FIF file with cross-talk correction information.
+"""
+docdict['maxwell_coord'] = """
+coord_frame : str
+    The coordinate frame that the ``origin`` is specified in, either
+    ``'meg'`` or ``'head'``. For empty-room recordings that do not have
+    a head<->meg transform ``info['dev_head_t']``, the MEG coordinate
+    frame should be used.
+"""
+docdict['maxwell_reg_ref_cond_pos'] = """
+regularize : str | None
+    Basis regularization type, must be "in" or None.
+    "in" is the same algorithm as the "-regularize in" option in
+    MaxFilter™.
+ignore_ref : bool
+    If True, do not include reference channels in compensation. This
+    option should be True for KIT files, since Maxwell filtering
+    with reference channels is not currently supported.
+bad_condition : str
+    How to deal with ill-conditioned SSS matrices. Can be "error"
+    (default), "warning", "info", or "ignore".
+head_pos : array | None
+    If array, movement compensation will be performed.
+    The array should be of shape (N, 10), holding the position
+    parameters as returned by e.g. `read_head_pos`.
+"""
+docdict['maxwell_st_fixed_only'] = """
+st_fixed : bool
+    If True (default), do tSSS using the median head position during the
+    ``st_duration`` window. This is the default behavior of MaxFilter
+    and has been most extensively tested.
+
+    .. versionadded:: 0.12
+st_only : bool
+    If True, only tSSS (temporal) projection of MEG data will be
+    performed on the output data. The non-tSSS parameters (e.g.,
+    ``int_order``, ``calibration``, ``head_pos``, etc.) will still be
+    used to form the SSS bases used to calculate temporal projectors,
+    but the output MEG data will *only* have temporal projections
+    performed. Noise reduction from SSS basis multiplication,
+    cross-talk cancellation, movement compensation, and so forth
+    will not be applied to the data. This is useful, for example, when
+    evoked movement compensation will be performed with
+    :func:`~mne.epochs.average_movements`.
+
+    .. versionadded:: 0.12
+"""
+docdict['maxwell_mag'] = """
+mag_scale : float | str
+    The magenetometer scale-factor used to bring the magnetometers
+    to approximately the same order of magnitude as the gradiometers
+    (default 100.), as they have different units (T vs T/m).
+    Can be ``'auto'`` to use the reciprocal of the physical distance
+    between the gradiometer pickup loops (e.g., 0.0168 m yields
+    59.5 for VectorView).
+"""
+docdict['maxwell_skip'] = """
+skip_by_annotation : str | list of str
+    If a string (or list of str), any annotation segment that begins
+    with the given string will not be included in filtering, and
+    segments on either side of the given excluded annotated segment
+    will be filtered separately (i.e., as independent signals).
+    The default ``('edge', 'bad_acq_skip')`` will separately filter
+    any segments that were concatenated by :func:`mne.concatenate_raws`
+    or :meth:`mne.io.Raw.append`, or separated during acquisition.
+    To disable, provide an empty list.
+"""
+
 # Rank
 docdict['rank'] = """
 rank : None | dict | 'info' | 'full'
@@ -312,15 +400,33 @@ depth : None | float | dict
     to use, which must be between 0 and 1. None is equivalent to 0, meaning
     no depth weighting is performed. It can also be a `dict` containing
     keyword arguments to pass to :func:`mne.forward.compute_depth_prior`
-    (see docstring for details and defaults).
-"""
-docdict['pick_ori-vec'] = """
-    pick_ori : None | "vector"
-        Only applies to loose/free orientation. By default (None) pooling is
-        performed by taking the norm of the current vectors. Use
-        pick_ori="vector" to return vector source estimate.
+    (see docstring for details and defaults). This is effectively ignored
+    when ``method='eLORETA'``.
 
-        .. versionadded:: 0.20
+    .. versionchanged:: 0.20
+       Depth bias ignored for ``method='eLORETA'``.
+"""
+_pick_ori_novec = """
+    Options:
+
+    - ``None``
+        Pooling is performed by taking the norm of loose/free
+        orientations. In case of a fixed source space no norm is computed
+        leading to signed source activity.
+    - ``"normal"``
+        Only the normal to the cortical surface is kept. This is only
+        implemented when working with loose orientations.
+"""
+docdict['pick_ori-novec'] = """
+pick_ori : None | "normal"
+""" + _pick_ori_novec
+docdict['pick_ori'] = """
+pick_ori : None | "normal" | "vector"
+""" + _pick_ori_novec + """
+    - ``"vector"``
+        No pooling of the orientations is done, and the vector result
+        will be returned in the form of a :class:`mne.VectorSourceEstimate`
+        object. This is only implemented when working with loose orientations.
 """
 docdict['reduce_rank'] = """
 reduce_rank : bool
@@ -332,6 +438,15 @@ reduce_rank : bool
     .. versionchanged:: 0.20
         Support for reducing rank in all modes (previously only supported
         ``pick='max_power'`` with weight normalization).
+"""
+docdict['use_cps'] = """
+use_cps : bool
+    Whether to use cortical patch statistics to define normal orientations for
+    surfaces (default True).
+"""
+docdict['use_cps_restricted'] = docdict['use_cps'] + """
+    Only used when the inverse is free orientation (``loose=1.``),
+    not in surface orientation, and ``pick_ori='normal'``.
 """
 
 # Forward
@@ -613,6 +728,55 @@ transparent : bool | None
     If True, use a linear transparency between fmin and fmid.
     None will choose automatically based on colormap type.
 """
+docdict["brain_time_interpolation"] = """
+interpolation : str | None
+    Interpolation method (:func:`scipy.interpolate.interp1d` parameter).
+    Must be one of 'linear', 'nearest', 'zero', 'slinear', 'quadratic',
+    or 'cubic'.
+"""
+
+# STC label time course
+docdict['eltc_labels'] = """
+labels : Label | BiHemiLabel | list of Label or BiHemiLabel
+    The labels for which to extract the time course.
+"""
+docdict['eltc_src'] = """
+src : list
+    Source spaces for left and right hemisphere.
+"""
+docdict['eltc_mode'] = """
+mode : str
+    Extraction mode, see Notes.
+"""
+docdict['eltc_allow_empty'] = """
+allow_empty : bool
+    Instead of emitting an error, return all-zero time courses for labels
+    that do not have any vertices in the source estimate. Default is ``False``.
+"""
+docdict['eltc_mode_notes'] = """
+Valid values for ``mode`` are:
+
+- ``'max'``
+    Maximum value across vertices at each time point within each label.
+- ``'mean'``
+    Average across vertices at each time point within each label. Ignores
+    orientation of sources.
+- ``'mean_flip'``
+    Finds the dominant direction of source space normal vector orientations
+    within each label, applies a sign-flip to time series at vertices whose
+    orientation is more than 180° different from the dominant direction, and
+    then averages across vertices at each time point within each label.
+- ``'pca_flip'``
+    Applies singular value decomposition to the time courses within each label,
+    and uses the first right-singular vector as the representative label time
+    course. This signal is scaled so that its power matches the average
+    (per-vertex) power within the label, and sign-flipped by multiplying by
+    ``np.sign(u @ flip)``, where ``u`` is the first left-singular vector and
+    ``flip`` is the same sign-flip vector used when ``mode='mean_flip'``. This
+    sign-flip ensures that extracting time courses from the same label in
+    similar STCs does not result in 180° direction/phase changes.
+"""
+
 # DataFrames
 docdict['df_scaling_time_deprecated'] = """
 scaling_time : None

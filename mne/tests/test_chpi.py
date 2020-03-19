@@ -27,13 +27,14 @@ from mne.utils import run_tests_if_main, catch_logging, assert_meg_snr, verbose
 from mne.datasets import testing
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
-test_fif_fname = op.join(base_dir, 'test_raw.fif')
 ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 
 data_path = testing.data_path(download=False)
+sample_fname = op.join(
+    data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 chpi_fif_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.fif')
 pos_fname = op.join(data_path, 'SSS', 'test_move_anon_raw.pos')
 sss_fif_fname = op.join(data_path, 'SSS', 'test_move_anon_raw_sss.fif')
@@ -120,12 +121,16 @@ def test_hpi_info(tmpdir):
         assert len(info['hpi_subsystem']) == len(raw.info['hpi_subsystem'])
 
 
-def _assert_quats(actual, desired, dist_tol=0.003, angle_tol=5.):
+def _assert_quats(actual, desired, dist_tol=0.003, angle_tol=5., err_rtol=0.5,
+                  gof_rtol=0.001, vel_atol=2e-3):  # 2 mm/s
     """Compare estimated cHPI positions."""
     __tracebackhide__ = True
     trans_est, rot_est, t_est = head_pos_to_trans_rot_t(actual)
     trans, rot, t = head_pos_to_trans_rot_t(desired)
     quats_est = rot_to_quat(rot_est)
+    gofs, errs, vels = desired[:, 7:].T
+    gofs_est, errs_est, vels_est = actual[:, 7:].T
+    del actual, desired
 
     # maxfilter produces some times that are implausibly large (weird)
     if not np.isclose(t[0], t_est[0], atol=1e-1):  # within 100 ms
@@ -136,6 +141,7 @@ def _assert_quats(actual, desired, dist_tol=0.003, angle_tol=5.):
     trans = trans[use_mask]
     quats = rot_to_quat(rot)
     quats = quats[use_mask]
+    gofs, errs, vels = gofs[use_mask], errs[use_mask], vels[use_mask]
 
     # double-check our angle function
     for q in (quats, quats_est):
@@ -159,6 +165,21 @@ def _assert_quats(actual, desired, dist_tol=0.003, angle_tol=5.):
     assert angles[arg_worst] <= angle_tol, (
         '@ %0.3f seconds: %0.3f > %0.3f deg'
         % (t[arg_worst], angles[arg_worst], angle_tol))
+
+    # error calculation difference
+    errs_est_interp = interp1d(t_est, errs_est)(t)
+    assert_allclose(errs_est_interp, errs, rtol=err_rtol, atol=1e-3,
+                    err_msg='err')  # 1 mm
+
+    # gof calculation difference
+    gof_est_interp = interp1d(t_est, gofs_est)(t)
+    assert_allclose(gof_est_interp, gofs, rtol=gof_rtol, atol=1e-7,
+                    err_msg='gof')
+
+    # velocity calculation difference
+    vel_est_interp = interp1d(t_est, vels_est)(t)
+    assert_allclose(vel_est_interp, vels, atol=vel_atol,
+                    err_msg='velocity')
 
 
 def _decimate_chpi(raw, decim=4):
@@ -215,7 +236,7 @@ def test_calculate_chpi_positions_vv():
     _assert_quats(py_quats, mf_quats, dist_tol=0.001, angle_tol=0.7)
 
     # degenerate conditions
-    raw_no_chpi = read_raw_fif(test_fif_fname)
+    raw_no_chpi = read_raw_fif(sample_fname)
     with pytest.raises(RuntimeError, match='cHPI information not found'):
         _calculate_chpi_positions(raw_no_chpi)
     raw_bad = raw.copy()
@@ -253,8 +274,11 @@ def test_calculate_chpi_positions_artemis():
     """Test on 5k artemis data."""
     raw = read_raw_artemis123(art_fname, preload=True)
     mf_quats = read_head_pos(art_mc_fname)
+    mf_quats[:, 8:] /= 100  # old code errantly had this factor
     py_quats = _calculate_chpi_positions(raw, t_step_min=2., verbose='debug')
-    _assert_quats(py_quats, mf_quats, dist_tol=0.001, angle_tol=1.)
+    _assert_quats(
+        py_quats, mf_quats,
+        dist_tol=0.001, angle_tol=1., err_rtol=0.7, vel_atol=1e-2)
 
 
 def test_initial_fit_redo():
@@ -312,7 +336,8 @@ def test_calculate_head_pos_chpi_on_chpi5_in_one_second_steps():
     # needs no interpolation, because maxfilter pos files comes with 1 s steps
     py_quats = _calculate_chpi_positions(
         raw, t_step_min=1.0, t_step_max=1.0, t_window=1.0, verbose='debug')
-    _assert_quats(py_quats, mf_quats, dist_tol=0.002, angle_tol=1.2)
+    _assert_quats(py_quats, mf_quats, dist_tol=0.002, angle_tol=1.2,
+                  vel_atol=3e-3)  # 3 mm/s
 
 
 @pytest.mark.slowtest
@@ -327,7 +352,8 @@ def test_calculate_head_pos_chpi_on_chpi5_in_shorter_steps():
         py_quats = _calculate_chpi_positions(
             raw, t_step_min=0.1, t_step_max=0.1, t_window=0.1, verbose='debug')
     # needs interpolation, tolerance must be increased
-    _assert_quats(py_quats, mf_quats, dist_tol=0.002, angle_tol=1.2)
+    _assert_quats(py_quats, mf_quats, dist_tol=0.002, angle_tol=1.2,
+                  vel_atol=0.02)  # 2 cm/s is not great but probably fine
 
 
 def test_simulate_calculate_head_pos_chpi():
@@ -386,8 +412,8 @@ def test_simulate_calculate_head_pos_chpi():
         np.outer(np.arange(S) * dz, ez)
     dev_head_pos[:, 7] = 1.0
 
-    # cm/s
-    dev_head_pos[:, 9] = 100 * dz / (info['sfreq'] * head_pos_sfreq_quotient)
+    # m/s
+    dev_head_pos[:, 9] = dz / (info['sfreq'] * head_pos_sfreq_quotient)
 
     # Round number of samples to the next integer
     raw_data = np.zeros((len(picks), int(duration * info['sfreq'] + 0.5)))
@@ -396,7 +422,8 @@ def test_simulate_calculate_head_pos_chpi():
     quats = _calculate_chpi_positions(
         raw, t_step_min=raw.info['sfreq'] * head_pos_sfreq_quotient,
         t_step_max=raw.info['sfreq'] * head_pos_sfreq_quotient, t_window=1.0)
-    _assert_quats(quats, dev_head_pos, dist_tol=0.001, angle_tol=1.)
+    _assert_quats(quats, dev_head_pos, dist_tol=0.001, angle_tol=1.,
+                  vel_atol=4e-3)  # 4 mm/s
 
 
 def _calculate_chpi_coil_locs(raw, verbose):
@@ -468,12 +495,34 @@ def test_calculate_chpi_coil_locs_artemis():
     assert_array_less(1e-13, amps)
 
 
+def assert_suppressed(new, old, suppressed, retained):
+    """Assert that some frequencies are suppressed and others aren't."""
+    __tracebackhide__ = True
+    from scipy.signal import welch
+    picks = pick_types(new.info, meg='grad')
+    sfreq = new.info['sfreq']
+    new = new.get_data(picks)
+    old = old.get_data(picks)
+    f, new = welch(new, sfreq, 'hann', nperseg=1024)
+    _, old = welch(old, sfreq, 'hann', nperseg=1024)
+    new = np.median(new, axis=0)
+    old = np.median(old, axis=0)
+    for freqs, lim in ((suppressed, (10, 60)), (retained, (-3, 3))):
+        for freq in freqs:
+            fidx = np.argmin(np.abs(f - freq))
+            this_new = np.median(new[fidx])
+            this_old = np.median(old[fidx])
+            suppression = -10 * np.log10(this_new / this_old)
+            assert lim[0] < suppression < lim[1], freq
+
+
 @testing.requires_testing_data
-def test_chpi_subtraction():
+def test_chpi_subtraction_filter_chpi():
     """Test subtraction of cHPI signals."""
     raw = read_raw_fif(chpi_fif_fname, allow_maxshield='yes', preload=True)
     raw.info['bads'] = ['MEG0111']
     raw.del_proj()
+    raw_orig = raw.copy().crop(0, 16)
     with catch_logging() as log:
         with pytest.deprecated_call(match='"auto"'):
             filter_chpi(raw, include_line=False, verbose=True)
@@ -486,11 +535,38 @@ def test_chpi_subtraction():
     raw_c.pick_types(
         meg=True, eeg=True, eog=True, ecg=True, stim=True, misc=True)
     assert_meg_snr(raw, raw_c, 143, 624)
+    # cHPI suppressed but not line freqs (or others)
+    assert_suppressed(raw, raw_orig, np.arange(83, 324, 60), [30, 60, 150])
+    raw = raw_orig.copy()
+    with catch_logging() as log:
+        with pytest.deprecated_call(match='"auto"'):
+            filter_chpi(raw, include_line=True, verbose=True)
+    log = log.getvalue()
+    assert '5 cHPI' in log
+    assert '6 line' in log
+    # cHPI and line freqs suppressed
+    suppressed = np.sort(np.concatenate([
+        np.arange(83, 324, 60), np.arange(60, 301, 60),
+    ]))
+    assert_suppressed(raw, raw_orig, suppressed, [30, 150])
 
-    # Degenerate cases
-    raw_nohpi = read_raw_fif(test_fif_fname, preload=True)
+    # No HPI information
+    raw = read_raw_fif(sample_fname, preload=True)
+    raw_orig = raw.copy()
+    assert raw.info['line_freq'] is None
+    with pytest.raises(RuntimeError, match='line_freq.*consider setting it'):
+        filter_chpi(raw, t_window=0.2)
+    raw.info['line_freq'] = 60.
     with pytest.raises(RuntimeError, match='cHPI information not found'):
-        filter_chpi(raw_nohpi, t_window=0.2)
+        filter_chpi(raw, t_window=0.2)
+    # but this is allowed
+    with catch_logging() as log:
+        filter_chpi(raw, t_window='auto', allow_line_only=True, verbose=True)
+    log = log.getvalue()
+    assert '0 cHPI' in log
+    assert '1 line' in log
+    # Our one line freq suppressed but not others
+    assert_suppressed(raw, raw_orig, [60], [30, 45, 75])
 
     # When MaxFliter downsamples, like::
     #     $ maxfilter -nosss -ds 2 -f test_move_anon_raw.fif \
@@ -521,7 +597,9 @@ def test_calculate_head_pos_ctf():
     raw = read_raw_ctf(ctf_chpi_fname)
     quats = calculate_head_pos_ctf(raw)
     mc_quats = read_head_pos(ctf_chpi_pos_fname)
-    _assert_quats(quats, mc_quats, dist_tol=0.004, angle_tol=2.5)
+    mc_quats[:, 9] /= 10000  # had old factor in there twice somehow...
+    _assert_quats(quats, mc_quats, dist_tol=0.004, angle_tol=2.5, err_rtol=1.,
+                  vel_atol=7e-3)  # 7 mm/s
 
     raw = read_raw_fif(ctf_fname)
     with pytest.raises(RuntimeError, match='Could not find'):

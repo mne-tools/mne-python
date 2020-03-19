@@ -7,6 +7,7 @@
 
 from os import path as op
 import math
+import re
 
 import pytest
 import numpy as np
@@ -327,3 +328,12 @@ def test_5839():
     assert_array_equal(raw_A.annotations.duration, EXPECTED_DURATION)
     assert_array_equal(raw_A.annotations.description, EXPECTED_DESCRIPTION)
     assert raw_A.annotations.orig_time == _stamp_to_dt((0, 0))
+
+
+def test_repr():
+    """Test repr of Raw."""
+    sfreq = 256
+    info = create_info(3, sfreq)
+    r = repr(RawArray(np.zeros((3, 10 * sfreq)), info))
+    assert re.search('<RawArray | 3 x 2560 (10.0 s), ~.* kB, data loaded>',
+                     r) is not None, r

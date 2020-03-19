@@ -7,20 +7,24 @@
 #
 # License: Simplified BSD
 
-import numpy as np
 import os
-from os.path import join as pjoin
-from .._3d import _process_clim
-from ...label import read_label
+import os.path as op
+
+import numpy as np
+
 from .colormap import calculate_lut
 from .view import lh_views_dict, rh_views_dict, View
 from .surface import Surface
 from .utils import mesh_edges, smoothing_matrix
-from ..utils import _check_option, logger, verbose
+
+from .._3d import _process_clim
+from ..utils import _check_option, logger, verbose, fill_doc
+
+from ...label import read_label
 
 
 class _Brain(object):
-    u"""Class for visualizing a brain.
+    """Class for visualizing a brain.
 
     It is used for creating meshes of the given subject's
     cortex. The activation data can be shown on a mesh using add_data
@@ -48,9 +52,9 @@ class _Brain(object):
         Setting this to ``None`` is equivalent to ``(0.5, 0.5, 0.5)``.
     alpha : float in [0, 1]
         Alpha level to control opacity of the cortical surface.
-    size : float | tuple(float, float)
+    size : int | array-like, shape (2,)
         The size of the window, in pixels. can be one number to specify
-        a square window, or the (width, height) of a rectangular window.
+        a square window, or a length-2 sequence to specify (width, height).
     background : tuple(int, int, int)
         The color definition of the background: (red, green, blue).
     foreground : matplotlib color
@@ -115,8 +119,6 @@ class _Brain(object):
        +---------------------------+--------------+-----------------------+
        | foci                      | ✓            |                       |
        +---------------------------+--------------+-----------------------+
-       | index_for_time            | ✓            | ✓                     |
-       +---------------------------+--------------+-----------------------+
        | labels                    | ✓            |                       |
        +---------------------------+--------------+-----------------------+
        | labels_dict               | ✓            |                       |
@@ -143,7 +145,8 @@ class _Brain(object):
                  foreground=None, figure=None, subjects_dir=None,
                  views=['lateral'], offset=True, show_toolbar=False,
                  offscreen=False, interaction=None, units='mm'):
-        from ..backends.renderer import _get_renderer, _check_3d_figure
+        from ..backends.renderer import (_get_renderer, _check_3d_figure,
+                                         _set_3d_title)
         from matplotlib.colors import colorConverter
 
         if interaction is not None:
@@ -167,12 +170,11 @@ class _Brain(object):
         col_dict = dict(lh=1, rh=1, both=1, split=2)
         n_col = col_dict[hemi]
 
-        if isinstance(size, int):
-            fig_size = (size, size)
-        elif isinstance(size, tuple):
-            fig_size = size
-        else:
-            raise ValueError('"size" parameter must be int or tuple.')
+        size = tuple(np.atleast_1d(size).round(0).astype(int).flat)
+        if len(size) not in (1, 2):
+            raise ValueError('"size" parameter must be an int or length-2 '
+                             'sequence of ints.')
+        fig_size = size if len(size) == 2 else size * 2  # 1-tuple to 2-tuple
 
         self._foreground = foreground
         self._hemi = hemi
@@ -181,9 +183,8 @@ class _Brain(object):
         self._subject_id = subject_id
         self._subjects_dir = subjects_dir
         self._views = views
-        self._n_times = None
+        self._times = None
         self._depth_peeling = False
-        self._surfaces = []
         # for now only one color bar can be added
         # since it is the same for all figures
         self._colorbar_added = False
@@ -193,13 +194,15 @@ class _Brain(object):
         # array of data used by TimeViewer
         self._data = {}
         self.geo, self._hemi_meshes, self._overlays = {}, {}, {}
+        self.set_time_interpolation('nearest')
 
         # load geometry for one or both hemispheres as necessary
         offset = None if (not offset or hemi != 'both') else 0.0
 
         if figure is not None and not isinstance(figure, int):
             _check_3d_figure(figure)
-        self._renderer = _get_renderer(size=fig_size, bgcolor=background,
+        self._renderer = _get_renderer(name=subject_id, size=fig_size,
+                                       bgcolor=background,
                                        shape=(n_row, n_col), fig=figure)
 
         for h in self._hemis:
@@ -217,14 +220,27 @@ class _Brain(object):
                 if not (hemi in ['lh', 'rh'] and h != hemi):
                     ci = hi if hemi == 'split' else 0
                     self._renderer.subplot(ri, ci)
-                    self._renderer.mesh(x=self.geo[h].coords[:, 0],
-                                        y=self.geo[h].coords[:, 1],
-                                        z=self.geo[h].coords[:, 2],
-                                        triangles=self.geo[h].faces,
-                                        color=self.geo[h].grey_curv,
-                                        opacity=alpha)
+                    mesh_data = self._renderer.mesh(
+                        x=self.geo[h].coords[:, 0],
+                        y=self.geo[h].coords[:, 1],
+                        z=self.geo[h].coords[:, 2],
+                        triangles=self.geo[h].faces,
+                        color=self.geo[h].grey_curv,
+                        opacity=alpha,
+                    )
+                    if isinstance(mesh_data, tuple):
+                        _, mesh = mesh_data
+                        # add metadata to the mesh for picking
+                        mesh._hemi = h
+                    else:
+                        _, mesh = mesh_data, None
+                    self._hemi_meshes[h] = mesh
                     self._renderer.set_camera(azimuth=views_dict[v].azim,
                                               elevation=views_dict[v].elev)
+
+        if self._title is not None:
+            _set_3d_title(figure=self._renderer.scene(), title=self._title)
+
         # Force rendering
         self._renderer.show()
 
@@ -236,7 +252,7 @@ class _Brain(object):
                  hemi=None, remove_existing=None, time_label_size=None,
                  initial_time=None, scale_factor=None, vector_alpha=None,
                  clim=None, glyph='arrow2d', verbose=None):
-        u"""Display data from a numpy array on the surface.
+        """Display data from a numpy array on the surface.
 
         This provides a similar interface to
         :meth:`surfer.Brain.add_overlay`, but it displays
@@ -346,7 +362,6 @@ class _Brain(object):
 
         hemi = self._check_hemi(hemi)
         array = np.asarray(array)
-        self._data['array'] = array
         vector_alpha = alpha if vector_alpha is None else vector_alpha
 
         # Create time array and add label if > 1D
@@ -362,9 +377,9 @@ class _Brain(object):
                     raise ValueError('time has shape %s, but need shape %s '
                                      '(array.shape[-1])' %
                                      (time.shape, (array.shape[-1],)))
+            self._data["time"] = time
 
             if self._n_times is None:
-                self._n_times = len(time)
                 self._times = time
             elif len(time) != self._n_times:
                 raise ValueError("New n_times is different from previous "
@@ -377,7 +392,8 @@ class _Brain(object):
             if initial_time is None:
                 time_idx = 0
             else:
-                time_idx = self.index_for_time(initial_time)
+                time_idx = self._to_time_index(initial_time)
+            self._data["time_idx"] = time_idx
 
             # time label
             if isinstance(time_label, str):
@@ -386,8 +402,6 @@ class _Brain(object):
                 def time_label(x):
                     return time_label_fmt % x
             self._data["time_label"] = time_label
-            self._data["time"] = time
-            self._data["time_idx"] = 0
             y_txt = 0.05 + 0.1 * bool(colorbar)
 
         magnitude = None
@@ -398,25 +412,10 @@ class _Brain(object):
                                  'must equal 3, got %s' % (array.shape[1],))
             magnitude = np.linalg.norm(array, axis=1)
             magnitude_max = magnitude.max()
-
-        if time is not None and len(array.shape) == 2:
-            # we have scalar_data with time dimension
-            act_data = array[:, time_idx]
-        else:
-            # Calculate initial data to plot
-            if array.ndim == 1:
-                act_data = array
-            elif array.ndim == 2:
-                act_data = array[:, 0]
-            elif array.ndim == 3:
-                assert magnitude is not None
-                act_data = magnitude[:, time_idx]
-
         fmin, fmid, fmax = _update_limits(
             fmin, fmid, fmax, center, array
         )
 
-        self._data['magnitude'] = magnitude
         self._data['clim'] = clim
         self._data['time'] = time
         self._data['initial_time'] = initial_time
@@ -428,27 +427,14 @@ class _Brain(object):
         self._data[hemi]['actor'] = list()
         self._data[hemi]['mesh'] = list()
         self._data[hemi]['array'] = array
+        self._data[hemi]['magnitude'] = magnitude
         self._data[hemi]['vertices'] = vertices
-
         self._data['alpha'] = alpha
         self._data['colormap'] = colormap
         self._data['center'] = center
         self._data['fmin'] = fmin
         self._data['fmid'] = fmid
         self._data['fmax'] = fmax
-
-        # Create smoothing matrix if necessary
-        if len(act_data) < self.geo[hemi].x.shape[0]:
-            if vertices is None:
-                raise ValueError('len(data) < nvtx (%s < %s): the vertices '
-                                 'parameter must not be None'
-                                 % (len(act_data), self.geo[hemi].x.shape[0]))
-            adj_mat = mesh_edges(self.geo[hemi].faces)
-            smooth_mat = smoothing_matrix(vertices,
-                                          adj_mat,
-                                          smoothing_steps)
-            act_data = smooth_mat.dot(act_data)
-            self._data[hemi]['smooth_mat'] = smooth_mat
 
         dt_max = fmax
         dt_min = fmin if center is None else -1 * fmax
@@ -457,9 +443,43 @@ class _Brain(object):
         self._data['ctable'] = ctable
 
         for ri, v in enumerate(self._views):
+            views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
+            if self._hemi != 'split':
+                ci = 0
+            else:
+                ci = 0 if hemi == 'lh' else 1
+            self._renderer.subplot(ri, ci)
+            mesh_data = self._renderer.mesh(
+                x=self.geo[hemi].coords[:, 0],
+                y=self.geo[hemi].coords[:, 1],
+                z=self.geo[hemi].coords[:, 2],
+                triangles=self.geo[hemi].faces,
+                color=None,
+                colormap=ctable,
+                vmin=dt_min,
+                vmax=dt_max,
+                opacity=alpha,
+                scalars=np.zeros(len(self.geo[hemi].coords)),
+            )
+            if isinstance(mesh_data, tuple):
+                actor, mesh = mesh_data
+                # add metadata to the mesh for picking
+                mesh._hemi = hemi
+            else:
+                actor, mesh = mesh_data, None
+            self._data[hemi]['actor'].append(actor)
+            self._data[hemi]['mesh'].append(mesh)
+        # set_data_smoothing calls "set_time_point" for us, which will set
+        # _current_time
+        self.set_time_interpolation(self.time_interpolation)
+        self.set_data_smoothing(smoothing_steps)
+        for ri, v in enumerate(self._views):
             if array.ndim == 3:
-                vectors = array[:, :, time_idx]
-                vector_values = magnitude[:, time_idx]
+                smooth_mat = self._data[hemi]['smooth_mat']
+                # vectors = array[:, :, time_idx]
+                vectors = self.vectors
+                # vector_values = magnitude[:, time_idx]
+                vector_values = self.vector_values
                 scalar_data = smooth_mat * magnitude
                 vertices = slice(None) if vertices is None else vertices
                 x, y, z = np.array(self.geo[hemi].coords)[vertices].T
@@ -486,37 +506,12 @@ class _Brain(object):
                     scale=final_scale_factor,
                     opacity=vector_alpha
                 )
-
-            views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
-            if self._hemi != 'split':
-                ci = 0
-            else:
-                ci = 0 if hemi == 'lh' else 1
-            self._renderer.subplot(ri, ci)
-            mesh_data = self._renderer.mesh(
-                x=self.geo[hemi].coords[:, 0],
-                y=self.geo[hemi].coords[:, 1],
-                z=self.geo[hemi].coords[:, 2],
-                triangles=self.geo[hemi].faces,
-                color=None,
-                colormap=ctable,
-                vmin=dt_min,
-                vmax=dt_max,
-                scalars=act_data,
-                opacity=alpha,
-            )
-            if isinstance(mesh_data, tuple):
-                actor, mesh = mesh_data
-            else:
-                actor, mesh = mesh_data, None
-            self._data[hemi]['actor'].append(actor)
-            self._data[hemi]['mesh'].append(mesh)
             if array.ndim >= 2 and callable(time_label):
                 if not self._time_label_added:
                     time_actor = self._renderer.text2d(
                         x_window=0.95, y_window=y_txt,
                         size=time_label_size,
-                        text=time_label(time[time_idx]),
+                        text=time_label(self._current_time),
                         justification='right'
                     )
                     self._data['time_actor'] = time_actor
@@ -527,7 +522,6 @@ class _Brain(object):
                 self._colorbar_added = True
             self._renderer.set_camera(azimuth=views_dict[v].azim,
                                       elevation=views_dict[v].elev)
-            self._surfaces.append(actor)
 
     def add_label(self, label, color=None, alpha=1, scalar_thresh=None,
                   borders=False, hemi=None, subdir=None):
@@ -581,11 +575,11 @@ class _Brain(object):
                 label_name = label
                 label_fname = ".".join([hemi, label_name, 'label'])
                 if subdir is None:
-                    filepath = pjoin(self._subjects_dir, self._subject_id,
-                                     'label', label_fname)
+                    filepath = op.join(self._subjects_dir, self._subject_id,
+                                       'label', label_fname)
                 else:
-                    filepath = pjoin(self._subjects_dir, self._subject_id,
-                                     'label', subdir, label_fname)
+                    filepath = op.join(self._subjects_dir, self._subject_id,
+                                       'label', subdir, label_fname)
                 if not os.path.exists(filepath):
                     raise ValueError('Label file %s does not exist'
                                      % filepath)
@@ -762,46 +756,6 @@ class _Brain(object):
         """
         pass
 
-    def index_for_time(self, time, rounding='closest'):
-        """Find the data time index closest to a specific time point.
-
-        Parameters
-        ----------
-        time : scalar
-            Time.
-        rounding : 'closest' | 'up' | 'down'
-            How to round if the exact time point is not an index.
-
-        Returns
-        -------
-        index : int
-            Data time index closest to time.
-        """
-        if self._n_times is None:
-            raise RuntimeError("Brain has no time axis")
-        times = self._times
-
-        # Check that time is in range
-        tmin = np.min(times)
-        tmax = np.max(times)
-        max_diff = (tmax - tmin) / (len(times) - 1) / 2
-        if time < tmin - max_diff or time > tmax + max_diff:
-            err = ("time = %s lies outside of the time axis "
-                   "[%s, %s]" % (time, tmin, tmax))
-            raise ValueError(err)
-
-        if rounding == 'closest':
-            idx = np.argmin(np.abs(times - time))
-        elif rounding == 'up':
-            idx = np.nonzero(times >= time)[0][0]
-        elif rounding == 'down':
-            idx = np.nonzero(times <= time)[0][-1]
-        else:
-            err = "Invalid rounding parameter: %s" % repr(rounding)
-            raise ValueError(err)
-
-        return idx
-
     def close(self):
         """Close all figures and cleanup data structure."""
         self._renderer.close()
@@ -819,6 +773,7 @@ class _Brain(object):
         self._renderer.subplot(row, col)
         self._renderer.set_camera(azimuth=view.azim,
                                   elevation=view.elev)
+        self._renderer.reset_camera()
 
     def save_image(self, filename, mode='rgb'):
         """Save view from all panels to disk.
@@ -848,7 +803,7 @@ class _Brain(object):
         return self._renderer.screenshot(mode)
 
     def update_lut(self, fmin=None, fmid=None, fmax=None):
-        u"""Update color map.
+        """Update color map.
 
         Parameters
         ----------
@@ -886,59 +841,106 @@ class _Brain(object):
         n_steps : int
             Number of smoothing steps
         """
-        from ..backends._pyvista import _set_mesh_scalars
-        from scipy.interpolate import interp1d
-        time_idx = self._data['time_idx']
         for hemi in ['lh', 'rh']:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
-                array = hemi_data['array']
+                if len(hemi_data['array']) >= self.geo[hemi].x.shape[0]:
+                    continue
                 vertices = hemi_data['vertices']
+                if vertices is None:
+                    raise ValueError(
+                        'len(data) < nvtx (%s < %s): the vertices '
+                        'parameter must not be None'
+                        % (len(hemi_data), self.geo[hemi].x.shape[0]))
+                adj_mat = mesh_edges(self.geo[hemi].faces)
                 for mesh in hemi_data['mesh']:
-                    if array.ndim == 2:
-                        if isinstance(time_idx, int):
-                            act_data = array[:, time_idx]
-                        else:
-                            times = np.arange(self._n_times)
-                            act_data = interp1d(
-                                times, array, 'linear', axis=1,
-                                assume_sorted=True)(time_idx)
-
-                    adj_mat = mesh_edges(self.geo[hemi].faces)
                     smooth_mat = smoothing_matrix(vertices,
-                                                  adj_mat, int(n_steps),
+                                                  adj_mat, n_steps,
                                                   verbose=False)
-                    act_data = smooth_mat.dot(act_data)
-                    _set_mesh_scalars(mesh, act_data, 'Data')
                     self._data[hemi]['smooth_mat'] = smooth_mat
+        self.set_time_point(self._data['time_idx'])
+
+    @property
+    def _n_times(self):
+        return len(self._times) if self._times is not None else None
+
+    @property
+    def time_interpolation(self):
+        """The interpolation mode."""
+        return self._time_interpolation
+
+    @fill_doc
+    def set_time_interpolation(self, interpolation):
+        """Set the interpolation mode.
+
+        Parameters
+        ----------
+        %(brain_time_interpolation)s
+        """
+        _check_option('interpolation', interpolation,
+                      ('linear', 'nearest', 'zero', 'slinear', 'quadratic',
+                       'cubic'))
+        self._time_interpolation = str(interpolation)
+        del interpolation
+        self._time_interp_funcs = dict()
+        self._mag_interp_funcs = dict()
+        self._time_interp_inv = None
+        if self._times is not None:
+            idx = np.arange(self._n_times)
+            for hemi in ['lh', 'rh']:
+                hemi_data = self._data.get(hemi)
+                if hemi_data is not None:
+                    array = hemi_data['array']
+                    magnitude = hemi_data['magnitude']
+                    if array.ndim == 2:
+                        self._time_interp_funcs[hemi] = _safe_interp1d(
+                            idx, array, self._time_interpolation, axis=1,
+                            assume_sorted=True)
+                    elif array.ndim == 3:
+                        self._time_interp_funcs[hemi] = _safe_interp1d(
+                            idx, array, self._time_interpolation, axis=2,
+                            assume_sorted=True)
+                        self._mag_interp_funcs[hemi] = _safe_interp1d(
+                            idx, magnitude, self._time_interpolation, axis=1,
+                            assume_sorted=True)
+            self._time_interp_inv = _safe_interp1d(idx, self._times)
 
     def set_time_point(self, time_idx):
-        """Set the time point shown."""
+        """Set the time point shown (can be a float to interpolate)."""
         from ..backends._pyvista import _set_mesh_scalars
-        from scipy.interpolate import interp1d
-        time = self._data['time']
+        current_act_data = list()
+        time_actor = self._data.get('time_actor', None)
+        time_label = self._data.get('time_label', None)
         for hemi in ['lh', 'rh']:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
                 array = hemi_data['array']
-                for mesh in hemi_data['mesh']:
-                    # interpolation
-                    if array.ndim == 2:
-                        if isinstance(time_idx, int):
-                            act_data = array[:, time_idx]
-                            self._current_time = time[time_idx]
-                        else:
-                            times = np.arange(self._n_times)
-                            act_data = interp1d(times, array, 'linear', axis=1,
-                                                assume_sorted=True)(time_idx)
-                            ifunc = interp1d(times, self._data['time'])
-                            self._current_time = ifunc(time_idx)
+                magnitude = hemi_data['magnitude']
+                # interpolate in time
+                if array.ndim == 2:
+                    act_data = self._time_interp_funcs[hemi](time_idx)
+                    self._current_time = self._time_interp_inv(time_idx)
+                elif array.ndim == 3:
+                    act_data = magnitude
+                    self.vectors = self._time_interp_funcs[hemi](time_idx)
+                    self.vector_values = self._mag_interp_funcs[hemi](time_idx)
+                    self._current_time = self._time_interp_inv(time_idx)
+                else:
+                    act_data = array
+                    self._current_time = 0
+                current_act_data.append(act_data)
+                if time_actor is not None and time_label is not None:
+                    time_actor.SetInput(time_label(self._current_time))
 
-                    smooth_mat = hemi_data['smooth_mat']
-                    if smooth_mat is not None:
-                        act_data = smooth_mat.dot(act_data)
-                    _set_mesh_scalars(mesh, act_data, 'Data')
-                    self._data['time_idx'] = time_idx
+                # interpolate in space
+                smooth_mat = hemi_data['smooth_mat']
+                if smooth_mat is not None:
+                    act_data = smooth_mat.dot(act_data)
+                for mesh in hemi_data['mesh']:
+                    if mesh is not None:
+                        _set_mesh_scalars(mesh, act_data, 'Data')
+        self._current_act_data = np.concatenate(current_act_data)
+        self._data['time_idx'] = time_idx
 
     def update_fmax(self, fmax):
         """Set the colorbar max point."""
@@ -1029,7 +1031,6 @@ class _Brain(object):
 
     def update_auto_scaling(self, restore=False):
         from ..backends._pyvista import _set_colormap_range
-        from scipy.interpolate import interp1d
         user_clim = self._data['clim']
         if user_clim is not None and 'lims' in user_clim:
             allow_pos_lims = False
@@ -1041,17 +1042,9 @@ class _Brain(object):
             clim = 'auto'
         colormap = self._data['colormap']
         transparent = self._data['transparent']
-        time_idx = self._data['time_idx']
-        array = self._data['array']
-        if isinstance(time_idx, int):
-            act_data = array[:, time_idx]
-        else:
-            times = np.arange(self._n_times)
-            act_data = interp1d(
-                times, array, 'linear', axis=1,
-                assume_sorted=True)(time_idx)
-        mapdata = _process_clim(clim, colormap, transparent, act_data,
-                                allow_pos_lims)
+        mapdata = _process_clim(
+            clim, colormap, transparent, self._current_act_data,
+            allow_pos_lims)
         diverging = 'pos_lims' in mapdata['clim']
         colormap = mapdata['colormap']
         scale_pts = mapdata['clim']['pos_lims' if diverging else 'lims']
@@ -1078,9 +1071,15 @@ class _Brain(object):
                     _set_colormap_range(actor, ctable, scalar_bar, rng)
                     self._data['ctable'] = ctable
 
+    def _to_time_index(self, value):
+        """Return the interpolated time index of the given time value."""
+        time = self._data['time']
+        value = np.interp(value, time, np.arange(len(time)))
+        return value
+
     @property
     def data(self):
-        u"""Data used by time viewer and color bar widgets."""
+        """Data used by time viewer and color bar widgets."""
         return self._data
 
     @property
@@ -1099,7 +1098,7 @@ class _Brain(object):
             logger.info("No active/running renderer available.")
 
     def _check_hemi(self, hemi):
-        u"""Check for safe single-hemi input, returns str."""
+        """Check for safe single-hemi input, returns str."""
         if hemi is None:
             if self._hemi not in ['lh', 'rh']:
                 raise ValueError('hemi must not be None when both '
@@ -1119,20 +1118,34 @@ class _Brain(object):
         n_col = len(lut_lst)
 
         # apply the lut on every surfaces
-        for surf in self._surfaces:
-            vtk_lut = surf.GetMapper().GetLookupTable()
-            vtk_lut.SetNumberOfColors(n_col)
-            vtk_lut.SetRange([fmin, fmax])
-            vtk_lut.Build()
-            for i in range(0, n_col):
-                lt = lut_lst[i]
-                vtk_lut.SetTableValue(i, lt[0], lt[1], lt[2], alpha)
+        for hemi in ['lh', 'rh']:
+            hemi_data = self._data.get(hemi)
+            if hemi_data is not None:
+                for actor in hemi_data['actor']:
+                    vtk_lut = actor.GetMapper().GetLookupTable()
+                    vtk_lut.SetNumberOfColors(n_col)
+                    vtk_lut.SetRange([fmin, fmax])
+                    vtk_lut.Build()
+                    for i in range(0, n_col):
+                        lt = lut_lst[i]
+                        vtk_lut.SetTableValue(i, lt[0], lt[1], lt[2], alpha)
 
     def enable_depth_peeling(self):
         """Enable depth peeling."""
         if not self._depth_peeling:
             self._renderer.enable_depth_peeling()
             self._depth_peeling = True
+
+
+def _safe_interp1d(x, y, kind='linear', axis=-1, assume_sorted=False):
+    """Work around interp1d not liking singleton dimensions."""
+    from scipy.interpolate import interp1d
+    if y.shape[axis] == 1:
+        def func(x):
+            return y.copy()
+        return func
+    else:
+        return interp1d(x, y, kind, axis=axis, assume_sorted=assume_sorted)
 
 
 def _update_limits(fmin, fmid, fmax, center, array):

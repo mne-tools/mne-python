@@ -110,7 +110,7 @@ The forward solution
    :start-after: forward-begin-content
    :end-before: forward-end-content
 
-.. _ch_mne:
+.. _minimum_norm_estimates:
 
 The minimum-norm current estimates
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

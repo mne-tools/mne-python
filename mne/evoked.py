@@ -14,7 +14,7 @@ import numpy as np
 from .baseline import rescale
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
-from .channels.layout import _merge_grad_data, _pair_grad_sensors
+from .channels.layout import _merge_ch_data, _pair_grad_sensors
 from .filter import detrend, FilterMixin
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc, _validate_type,
@@ -99,11 +99,9 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         Last time sample.
     comment : str
         Comment on dataset. Can be the condition.
-    times : array
-        Array of time instants in seconds.
     data : array of shape (n_channels, n_times)
         Evoked response.
-    times :  ndarray
+    times :  array
         Time vector in seconds. Goes from `tmin` to `tmax`. Time interval
         between consecutive time samples is equal to the inverse of the
         sampling frequency.
@@ -338,7 +336,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                      mask=None, mask_params=None, outlines='head',
                      contours=6, image_interp='bilinear', average=None,
                      head_pos=None, axes=None, extrapolate='box', sphere=None,
-                     border=0):
+                     border=0, nrows=1, ncols='auto'):
         return plot_evoked_topomap(
             self, times=times, ch_type=ch_type, layout=layout, vmin=vmin,
             vmax=vmax, cmap=cmap, sensors=sensors, colorbar=colorbar,
@@ -348,13 +346,15 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             show_names=show_names, title=title, mask=mask,
             mask_params=mask_params, outlines=outlines, contours=contours,
             image_interp=image_interp, average=average, head_pos=head_pos,
-            axes=axes, extrapolate=extrapolate, sphere=sphere, border=border)
+            axes=axes, extrapolate=extrapolate, sphere=sphere, border=border,
+            nrows=nrows, ncols=ncols)
 
     @copy_function_doc_to_method_doc(plot_evoked_field)
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
-                   n_jobs=1):
+                   n_jobs=1, fig=None, verbose=None):
         return plot_evoked_field(self, surf_maps, time=time,
-                                 time_label=time_label, n_jobs=n_jobs)
+                                 time_label=time_label, n_jobs=n_jobs,
+                                 fig=fig, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_evoked_white)
     def plot_white(self, noise_cov, show=True, rank=None, time_unit='s',
@@ -451,10 +451,13 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
         Notes
         -----
+        This method returns a copy and does not modify the data it
+        operates on. It also returns an EvokedArraw instance.
+
         .. versionadded:: 0.9.0
         """
-        from .forward import _as_meg_type_evoked
-        return _as_meg_type_evoked(self, ch_type=ch_type, mode=mode)
+        from .forward import _as_meg_type_inst
+        return _as_meg_type_inst(self, ch_type=ch_type, mode=mode)
 
     @fill_doc
     def detrend(self, order=1, picks=None):
@@ -600,7 +603,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             ch_names = [ch_names[k] for k in picks]
 
         if merge_grads:
-            data = _merge_grad_data(data)
+            data, _ = _merge_ch_data(data, ch_type, [])
             ch_names = [ch_name[:-1] + 'X' for ch_name in ch_names[::2]]
 
         ch_idx, time_idx, max_amp = _get_peak(data, self.times, tmin,

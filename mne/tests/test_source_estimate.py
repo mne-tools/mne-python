@@ -19,12 +19,14 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
                  spatio_temporal_src_connectivity, read_cov,
                  spatial_inter_hemi_connectivity, read_forward_solution,
                  spatial_src_connectivity, spatial_tris_connectivity,
-                 SourceSpaces, VolVectorSourceEstimate)
+                 SourceSpaces, VolVectorSourceEstimate,
+                 convert_forward_solution, pick_types_forward)
 from mne.datasets import testing
 from mne.fixes import fft, _get_img_fdata
 from mne.source_estimate import grade_to_tris, _get_vol_mask
+from mne.source_space import _get_src_nn
 from mne.minimum_norm import (read_inverse_operator, apply_inverse,
-                              apply_inverse_epochs)
+                              apply_inverse_epochs, make_inverse_operator)
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (requires_pandas, requires_sklearn,
                        requires_h5py, run_tests_if_main, requires_nibabel)
@@ -876,7 +878,7 @@ def test_mixed_stc(tmpdir):
                          ((VectorSourceEstimate, 'surf'),
                           (VolVectorSourceEstimate, 'vol'),
                           (VolVectorSourceEstimate, 'discrete')))
-def test_vec_stc(klass, kind):
+def test_vec_stc_basic(klass, kind):
     """Test (vol)vector source estimate."""
     nn = np.array([
         [1, 0, 0],
@@ -919,6 +921,82 @@ def test_vec_stc(klass, kind):
     data = data[:, :, np.newaxis]
     with pytest.raises(ValueError, match='3 dimensions for .*VectorSource'):
         klass(data, verts, 0, 1)
+
+
+@pytest.fixture(scope='module', params=[testing._pytest_param()])
+def invs():
+    """Inverses of various amounts of loose."""
+    fwd = read_forward_solution(fname_fwd)
+    fwd = pick_types_forward(fwd, meg=True, eeg=False)
+    fwd_surf = convert_forward_solution(fwd, surf_ori=True)
+    evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0]
+    noise_cov = read_cov(fname_cov)
+    free = make_inverse_operator(
+        evoked.info, fwd, noise_cov, loose=1.)
+    free_surf = make_inverse_operator(
+        evoked.info, fwd_surf, noise_cov, loose=1.)
+    freeish = make_inverse_operator(
+        evoked.info, fwd, noise_cov, loose=0.9999)
+    fixed = make_inverse_operator(
+        evoked.info, fwd, noise_cov, loose=0.)
+    fixedish = make_inverse_operator(
+        evoked.info, fwd, noise_cov, loose=0.0001)
+    assert_allclose(free['source_nn'],
+                    np.kron(np.ones(fwd['nsource']), np.eye(3)).T,
+                    atol=1e-7)
+    # This is the one exception:
+    assert not np.allclose(free['source_nn'], free_surf['source_nn'])
+    assert_allclose(free['source_nn'],
+                    np.tile(np.eye(3), (free['nsource'], 1)), atol=1e-7)
+    # All others are similar:
+    for other in (freeish, fixedish):
+        assert_allclose(free_surf['source_nn'], other['source_nn'], atol=1e-7)
+    assert_allclose(
+        free_surf['source_nn'][2::3], fixed['source_nn'], atol=1e-7)
+    expected_nn = np.concatenate([_get_src_nn(s) for s in fwd['src']])
+    assert_allclose(fixed['source_nn'], expected_nn, atol=1e-7)
+    return evoked, free, free_surf, freeish, fixed, fixedish
+
+
+bad_normal = pytest.param(
+    'normal', marks=pytest.mark.xfail(raises=AssertionError))
+
+
+@pytest.mark.parametrize('pick_ori', [None, 'normal', 'vector'])
+def test_vec_stc_inv_free(invs, pick_ori):
+    """Test vector STC behavior with two free-orientation inverses."""
+    evoked, free, free_surf, _, _, _ = invs
+    stc_free = apply_inverse(evoked, free, pick_ori=pick_ori)
+    stc_free_surf = apply_inverse(evoked, free_surf, pick_ori=pick_ori)
+    assert_allclose(stc_free.data, stc_free_surf.data, atol=1e-5)
+
+
+@pytest.mark.parametrize('pick_ori', [None, 'normal', 'vector'])
+def test_vec_stc_inv_free_surf(invs, pick_ori):
+    """Test vector STC behavior with free and free-ish orientation invs."""
+    evoked, _, free_surf, freeish, _, _ = invs
+    stc_free = apply_inverse(evoked, free_surf, pick_ori=pick_ori)
+    stc_freeish = apply_inverse(evoked, freeish, pick_ori=pick_ori)
+    assert_allclose(stc_free.data, stc_freeish.data, atol=1e-3)
+
+
+@pytest.mark.parametrize('pick_ori', (None, 'normal', 'vector'))
+def test_vec_stc_inv_fixed(invs, pick_ori):
+    """Test vector STC behavior with fixed-orientation inverses."""
+    evoked, _, _, _, fixed, fixedish = invs
+    stc_fixed = apply_inverse(evoked, fixed)
+    stc_fixedish = apply_inverse(evoked, fixedish, pick_ori=pick_ori)
+    if pick_ori == 'vector':
+        # two ways here: with magnitude...
+        assert_allclose(
+            abs(stc_fixed).data, stc_fixedish.magnitude().data, atol=1e-2)
+        # ... and when picking the normal (signed)
+        stc_fixedish = stc_fixedish.normal(fixedish['src'])
+    elif pick_ori is None:
+        stc_fixed = abs(stc_fixed)
+    else:
+        assert pick_ori == 'normal'  # no need to modify
+    assert_allclose(stc_fixed.data, stc_fixedish.data, atol=1e-2)
 
 
 @testing.requires_testing_data

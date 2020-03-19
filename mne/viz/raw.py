@@ -12,7 +12,7 @@ from functools import partial
 import numpy as np
 
 from ..annotations import _annotations_starts_stops
-from ..filter import create_filter, _overlap_add_filter
+from ..filter import create_filter, _overlap_add_filter, _filtfilt
 from ..io.pick import (pick_types, _pick_data_channels, pick_info,
                        _PICK_TYPES_KEYS, pick_channels)
 from ..utils import verbose, _ensure_int, _validate_type, _check_option
@@ -64,14 +64,13 @@ def _update_raw_data(params):
         starts = np.maximum(starts[mask], start) - start
         stops = np.minimum(stops[mask], stop) - start
         for start_, stop_ in zip(starts, stops):
+            this_data = data[data_picks, start_:stop_]
             if isinstance(params['ba'], np.ndarray):  # FIR
-                data[data_picks, start_:stop_] = _overlap_add_filter(
-                    data[data_picks, start_:stop_], params['ba'], copy=False)
+                this_data = _overlap_add_filter(
+                    this_data, params['ba'], copy=False)
             else:  # IIR
-                from scipy.signal import sosfiltfilt
-                data[data_picks, start_:stop_] = sosfiltfilt(
-                    params['ba']['sos'], data[data_picks, start_:stop_],
-                    axis=1, padlen=0)
+                this_data = _filtfilt(this_data, params['ba'], None, 1, False)
+            data[data_picks, start_:stop_] = this_data
     # scale
     for di in range(data.shape[0]):
         ch_name = params['info']['ch_names'][di]
@@ -696,7 +695,7 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     hsel_patch = mpl.patches.Rectangle((params['t_start'], 0),
                                        params['duration'], 1, edgecolor='k',
                                        facecolor=(0.75, 0.75, 0.75),
-                                       alpha=0.25, linewidth=1, clip_on=False)
+                                       alpha=0.25, linewidth=4, clip_on=False)
     ax_hscroll.add_patch(hsel_patch)
     params['hsel_patch'] = hsel_patch
     ax_hscroll.set_xlim(params['first_time'], params['first_time'] +

@@ -149,6 +149,36 @@ def test_ica_simple(method):
 
 
 @requires_sklearn
+@pytest.mark.parametrize("method", ["infomax", "fastica", "picard"])
+def test_ica_n_iter_(method):
+    """Test that ICA.n_iter_ is set after fitting."""
+    _skip_check_picard(method)
+
+    raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
+    n_components = 3
+    max_iter = 1
+    ica = ICA(n_components=n_components, max_iter=max_iter, method=method)
+
+    if method == 'infomax':
+        ica.fit(raw)
+    else:
+        with pytest.warns(UserWarning, match='did not converge'):
+            ica.fit(raw)
+
+    assert_equal(ica.n_iter_, max_iter)
+
+    # Test I/O roundtrip.
+    tempdir = _TempDir()
+    output_fname = op.join(tempdir, 'test_ica-ica.fif')
+    _assert_ica_attributes(ica)
+    ica.save(output_fname)
+    ica = read_ica(output_fname)
+    _assert_ica_attributes(ica)
+
+    assert_equal(ica.n_iter_, max_iter)
+
+
+@requires_sklearn
 @pytest.mark.parametrize("method", ["fastica", "picard"])
 def test_ica_rank_reduction(method):
     """Test recovery ICA rank reduction."""
@@ -195,7 +225,8 @@ def test_ica_reset(method):
         'n_samples_',
         'pca_components_',
         'pca_explained_variance_',
-        'pca_mean_'
+        'pca_mean_',
+        'n_iter_'
     )
     with pytest.warns(UserWarning, match='did not converge'):
         ica = ICA(
@@ -705,15 +736,28 @@ def test_ica_additional(method):
 
 
 @requires_sklearn
-@pytest.mark.parametrize("method", ["fastica", "picard"])
-def test_run_ica(method):
-    """Test run_ica function."""
+@pytest.mark.parametrize("method", ("fastica", "picard", "infomax"))
+@pytest.mark.parametrize("idx", (None, -1, slice(2), [0, 1]))
+@pytest.mark.parametrize("ch_name", (None, 'MEG 1531'))
+def test_detect_artifacts_replacement_of_run_ica(method, idx, ch_name):
+    """Test replacement workflow for deprecated run_ica() function."""
     _skip_check_picard(method)
     raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
-    params = []
-    params += [(None, -1, slice(2), [0, 1])]  # varicance, kurtosis idx
-    params += [(None, 'MEG 1531')]  # ECG / EOG channel params
-    for idx, ch_name in product(*params):
+    ica = ICA(n_components=2, method=method)
+    ica.fit(raw)
+    ica.detect_artifacts(raw, start_find=0, stop_find=5, ecg_ch=ch_name,
+                         eog_ch=ch_name, skew_criterion=idx,
+                         var_criterion=idx, kurt_criterion=idx)
+
+
+@requires_sklearn
+def test_run_ica_deprecation():
+    """Test that run_ica() has been deprecated."""
+    raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
+    method = 'fastica'
+    idx = None
+    ch_name = None
+    with pytest.warns(DeprecationWarning, match='run_ica() is deprecated'):
         run_ica(raw, n_components=2, start=0, stop=0.5, start_find=0,
                 stop_find=5, ecg_ch=ch_name, eog_ch=ch_name, method=method,
                 skew_criterion=idx, var_criterion=idx, kurt_criterion=idx)
@@ -763,13 +807,39 @@ def test_ica_twice(method):
 
 
 @requires_sklearn
-@pytest.mark.parametrize("method", ["fastica", "picard"])
-def test_fit_params(method):
+@pytest.mark.parametrize("method", ["fastica", "picard", "infomax"])
+def test_fit_params(method, tmpdir):
     """Test fit_params for ICA."""
     _skip_check_picard(method)
     fit_params = {}
     ICA(fit_params=fit_params, method=method)  # test no side effects
-    assert_equal(fit_params, {})
+    assert fit_params == {}
+
+    # Test I/O roundtrip.
+    # Only picard and infomax support the "extended" keyword, so limit the
+    # tests to those.
+    if method in ['picard', 'infomax']:
+        tmpdir = str(tmpdir)
+        output_fname = op.join(tmpdir, 'test_ica-ica.fif')
+
+        raw = read_raw_fif(raw_fname).crop(0.5, stop).load_data()
+        n_components = 3
+        max_iter = 1
+        fit_params = dict(extended=True)
+        ica = ICA(fit_params=fit_params, n_components=n_components,
+                  max_iter=max_iter, method=method)
+        fit_params_after_instantiation = ica.fit_params
+
+        if method == 'infomax':
+            ica.fit(raw)
+        else:
+            with pytest.warns(UserWarning, match='did not converge'):
+                ica.fit(raw)
+
+        ica.save(output_fname)
+        ica = read_ica(output_fname)
+
+        assert ica.fit_params == fit_params_after_instantiation
 
 
 @requires_sklearn

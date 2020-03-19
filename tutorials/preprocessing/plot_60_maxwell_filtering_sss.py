@@ -58,6 +58,8 @@ raw.crop(tmax=60).load_data()
 # The MNE-Python implementation of SSS / Maxwell filtering currently provides
 # the following features:
 #
+# - Basic bad channel detection
+#   (:func:`~mne.preprocessing.find_bad_channels_maxwell`)
 # - Bad channel reconstruction
 # - Cross-talk cancellation
 # - Fine calibration correction
@@ -86,24 +88,46 @@ fine_cal_file = os.path.join(sample_data_folder, 'SSS', 'sss_cal_mgh.dat')
 crosstalk_file = os.path.join(sample_data_folder, 'SSS', 'ct_sparse_mgh.fif')
 
 ###############################################################################
-# Before we perform SSS we'll set a couple additional bad channels — ``MEG
-# 2313`` has some DC jumps and ``MEG 1032`` has some large-ish low-frequency
-# drifts. After that, performing SSS and Maxwell filtering is done with a
+# Before we perform SSS we'll look for bad channels — ``MEG 2443`` is quite
+# noisy.
+#
+# .. warning::
+#
+#     It is critical to mark bad channels in ``raw.info['bads']`` *before*
+#     calling :func:`~mne.preprocessing.maxwell_filter` in order to prevent
+#     bad channel noise from spreading.
+#
+# Let's see if we can automatically detect it. To do this we need to
+# operate on a signal without line noise or cHPI signals, which is most
+# easily achieved using :func:`mne.chpi.filter_chpi`,
+# :func:`mne.io.Raw.notch_filter`, or :meth:`mne.io.Raw.filter`. For simplicity
+# we just low-pass filter these data:
+
+raw.info['bads'] = []
+raw_check = raw.copy().pick_types(exclude=()).filter(None, 40)
+auto_bads = mne.preprocessing.find_bad_channels_maxwell(
+    raw_check, cross_talk=crosstalk_file, calibration=fine_cal_file,
+    verbose=True)
+print(auto_bads)  # we should find them!
+raw.info['bads'].extend(auto_bads)
+
+###############################################################################
+# But this algorithm is not perfect. For example, it misses ``MEG 2313``,
+# which has some flux jumps, because there are not enough flux jumps in the
+# recording. So it can still be useful to manually inspect and mark bad
+# channels:
+
+raw.info['bads'] += ['MEG 2313']  # from manual inspection
+
+###############################################################################
+# After that, performing SSS and Maxwell filtering is done with a
 # single call to :func:`~mne.preprocessing.maxwell_filter`, with the crosstalk
 # and fine calibration filenames provided (if available):
 
-raw.info['bads'].extend(['MEG 1032', 'MEG 2313'])
-raw_sss = mne.preprocessing.maxwell_filter(raw, cross_talk=crosstalk_file,
-                                           calibration=fine_cal_file)
+raw_sss = mne.preprocessing.maxwell_filter(
+    raw, cross_talk=crosstalk_file, calibration=fine_cal_file, verbose=True)
 
 ###############################################################################
-#  .. warning::
-#
-#      Automatic bad channel detection is not currently implemented. It is
-#      critical to mark bad channels in ``raw.info['bads']`` *before* calling
-#      :func:`~mne.preprocessing.maxwell_filter` in order to prevent bad
-#      channel noise from spreading.
-#
 # To see the effect, we can plot the data before and after SSS / Maxwell
 # filtering.
 

@@ -25,6 +25,7 @@ import numpy as np
 from scipy import linalg
 import itertools
 
+from .io.base import BaseRaw
 from .io.meas_info import _simplify_info
 from .io.pick import (pick_types, pick_channels, pick_channels_regexp,
                       pick_info)
@@ -214,10 +215,12 @@ def extract_chpi_locs_ctf(raw, verbose=None):
 # ############################################################################
 # Estimate positions from data
 @verbose
-def _get_hpi_info(info, verbose=None):
+def _get_hpi_info(info, allow_empty=False, verbose=None):
     """Get HPI information from raw."""
     if len(info['hpi_meas']) == 0 or \
             ('coil_freq' not in info['hpi_meas'][0]['hpi_coils'][0]):
+        if allow_empty:
+            return np.empty(0), None, np.empty(0)
         raise RuntimeError('Appropriate cHPI information not found in'
                            'info["hpi_meas"] and info["hpi_subsystem"], '
                            'cannot process cHPI')
@@ -435,16 +438,19 @@ def _fit_coil_order_dev_head_trans(dev_pnts, head_pnts):
 
 @verbose
 def _setup_hpi_amplitude_fitting(info, t_window, remove_aliased=False,
-                                 ext_order=1, verbose=None):
+                                 ext_order=1, allow_empty=False, verbose=None):
     """Generate HPI structure for HPI localization."""
     # grab basic info.
-    hpi_freqs, hpi_pick, hpi_ons = _get_hpi_info(info)
+    hpi_freqs, hpi_pick, hpi_ons = _get_hpi_info(info, allow_empty=allow_empty)
     _validate_type(t_window, (str, 'numeric'), 't_window')
     if isinstance(t_window, str):
         if t_window != 'auto':
             raise ValueError('t_window must be "auto" if a string, got %r'
                              % (t_window,))
-        t_window = max(5. / min(hpi_freqs), 1. / np.diff(hpi_freqs).min())
+        if len(hpi_freqs):
+            t_window = max(5. / min(hpi_freqs), 1. / np.diff(hpi_freqs).min())
+        else:
+            t_window = 0.2
     t_window = float(t_window)
     if t_window <= 0:
         raise ValueError('t_window (%s) must be > 0' % (t_window,))
@@ -752,18 +758,18 @@ def compute_head_pos(info, chpi_locs, dist_limit=0.005, gof_limit=0.98,
             logger.debug(log_str.format(*vals))
 
         # resulting errors in head coil positions
-        d = 100 * np.linalg.norm(last['quat'][3:] - this_quat[3:])  # cm
+        d = np.linalg.norm(last['quat'][3:] - this_quat[3:])  # m
         r = _angle_between_quats(last['quat'][:3], this_quat[:3]) / dt
-        v = d / dt  # cm/sec
+        v = d / dt  # m/sec
         d = 100 * np.linalg.norm(this_quat[3:] - pos_0)  # dis from 1st
         logger.debug('    #t = %0.3f, #e = %0.2f cm, #g = %0.3f, '
                      '#v = %0.2f cm/s, #r = %0.2f rad/s, #d = %0.2f cm'
-                     % (fit_time, 100 * errs.mean(), g, v, r, d))
+                     % (fit_time, 100 * errs.mean(), g, 100 * v, r, d))
         logger.debug('    #t = %0.3f, #q = %s '
                      % (fit_time, ' '.join(map('{:8.5f}'.format, this_quat))))
 
         quats.append(np.concatenate(([fit_time], this_quat, [g],
-                                     [errs.mean() * 100], [v])))
+                                     [errs[use_idx].mean()], [v])))
         last['quat_fit_time'] = fit_time
         last['quat'] = this_quat
         last['coil_dev_rrs'] = this_coil_dev_rrs
@@ -1015,7 +1021,7 @@ def _chpi_locs_to_times_dig(chpi_locs):
 
 @verbose
 def filter_chpi(raw, include_line=True, t_step=0.01, t_window=None,
-                ext_order=1, verbose=None):
+                ext_order=1, allow_line_only=False, verbose=None):
     """Remove cHPI and line noise from data.
 
     .. note:: This function will only work properly if cHPI was on
@@ -1031,6 +1037,11 @@ def filter_chpi(raw, include_line=True, t_step=0.01, t_window=None,
         Time step to use for estimation, default is 0.01 (10 ms).
     %(chpi_t_window)s
     %(chpi_ext_order)s
+    allow_line_only : bool
+        If True, allow filtering line noise only. The default is False,
+        which only allows the function to run when cHPI information is present.
+
+        .. versionadded:: 0.20
     %(verbose)s
 
     Returns
@@ -1047,6 +1058,7 @@ def filter_chpi(raw, include_line=True, t_step=0.01, t_window=None,
 
     .. versionadded:: 0.12
     """
+    _validate_type(raw, BaseRaw, 'raw')
     if not raw.preload:
         raise RuntimeError('raw data must be preloaded')
     if t_window is None:
@@ -1058,8 +1070,12 @@ def filter_chpi(raw, include_line=True, t_step=0.01, t_window=None,
     if t_step <= 0:
         raise ValueError('t_step (%s) must be > 0' % (t_step,))
     n_step = int(np.ceil(t_step * raw.info['sfreq']))
-    hpi = _setup_hpi_amplitude_fitting(raw.info, t_window, remove_aliased=True,
-                                       ext_order=ext_order, verbose=False)
+    if include_line and raw.info['line_freq'] is None:
+        raise RuntimeError('include_line=True but raw.info["line_freq"] is '
+                           'None, consider setting it to the line frequency')
+    hpi = _setup_hpi_amplitude_fitting(
+        raw.info, t_window, remove_aliased=True, ext_order=ext_order,
+        allow_empty=allow_line_only, verbose=False)
 
     fit_idxs = np.arange(0, len(raw.times) + hpi['n_window'] // 2, n_step)
     n_freqs = len(hpi['freqs'])

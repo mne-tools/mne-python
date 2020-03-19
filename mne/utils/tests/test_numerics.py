@@ -21,7 +21,7 @@ from mne.utils import (_get_inst_data, hashfunc,
                        _undo_scaling_cov, _apply_scaling_array,
                        _undo_scaling_array, _PCA, requires_sklearn,
                        _array_equal_nan, _julian_to_cal, _cal_to_julian,
-                       _dt_to_julian, _julian_to_dt)
+                       _dt_to_julian, _julian_to_dt, grand_average)
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -465,3 +465,20 @@ def test_julian_conversions():
 
         assert (jd == _dt_to_julian(dd))
         assert (jd == _cal_to_julian(cal[0], cal[1], cal[2]))
+
+
+def test_grand_average_empty_sequence():
+    """Test if mne.grand_average handles an empty sequence correctly."""
+    with pytest.raises(ValueError, match='Please pass a list of Evoked'):
+        grand_average([])
+
+
+def test_grand_average_len_1():
+    """Test if mne.grand_average handles a sequence of length 1 correctly."""
+    # returns a list of length 1
+    evokeds = read_evokeds(ave_fname, condition=[0], proj=True)
+
+    with pytest.warns(RuntimeWarning, match='Only a single dataset'):
+        gave = grand_average(evokeds)
+
+    assert_allclose(gave.data, evokeds[0].data)

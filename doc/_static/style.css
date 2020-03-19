@@ -480,3 +480,10 @@ a[class^="sphx-glr-backref-module-mne"] {  /* make all MNE things bold */
 a[class^="sphx-glr-backref-module-mne"]:hover {
     color: var(--a-color-light);
 }
+/* Long API titles need to wrap for mobile */
+div[id^="mne-"] h1 {
+    word-break: break-word;
+}
+div[id^="examples-using-"] h2 {
+    word-break: break-word;
+}

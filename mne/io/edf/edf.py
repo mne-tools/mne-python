@@ -133,7 +133,6 @@ class RawEDF(BaseRaw):
         self.set_annotations(Annotations(onset=onset, duration=duration,
                                          description=desc, orig_time=None))
 
-    @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         return _read_segment_file(data, idx, fi, start, stop,
@@ -204,7 +203,6 @@ class RawGDF(BaseRaw):
         self.set_annotations(Annotations(onset=onset, duration=duration,
                                          description=desc, orig_time=None))
 
-    @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         return _read_segment_file(data, idx, fi, start, stop,
@@ -485,7 +483,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     if lowpass.size == 0:
         pass  # Placeholder for future use. Lowpass set in _empty_info.
     elif all(lowpass):
-        if lowpass[0] == 'NaN':
+        if lowpass[0] in ('NaN', '0', '0.0'):
             pass  # Placeholder for future use. Lowpass set in _empty_info.
         else:
             info['lowpass'] = float(lowpass[0])

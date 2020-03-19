@@ -33,7 +33,7 @@ matrix:
         # Old dependencies
         - os: linux
           env: PYTHON_VERSION=3.5
-               CONDA_DEPENDENCIES="numpy=1.12 scipy=0.18 matplotlib=2.0 pandas=0.19 scikit-learn=0.18"
+               CONDA_DEPENDENCIES="numpy=1.13 scipy=1.0 matplotlib=2.1 pandas=0.21 scikit-learn=0.19"
                CONDA_CHANNELS="conda-forge"
 
         # Minimal (runs with and without testing data)
@@ -66,7 +66,7 @@ before_install:
         fi;
       fi
     # Always install these via pip so we get the latest possible versions (testing bugfixes)
-    - pip install --upgrade pytest pytest-sugar pytest-cov pytest-mock pytest-timeout codecov
+    - pip install --upgrade "pytest<5.4" pytest-sugar pytest-cov pytest-mock pytest-timeout codecov
     - if [ "${DEPS}" != "minimal" ]; then
         pip install nitime;
       fi
@@ -112,6 +112,8 @@ script:
     - locale
     - echo "Other stuff"
     # OSX runs ~2x slower than Linux on Travis, so skip any slow ones there
+    # Until https://github.com/numpy/numpy/issues/15580 is resolved we also
+    # need the --pre wheels to skip slow ones.
     - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
         CONDITION='not slowtest';
       else

@@ -3,6 +3,8 @@
 #
 # License: BSD (3-clause)
 
+from distutils.version import LooseVersion
+import gc
 import os
 import os.path as op
 import shutil
@@ -79,6 +81,9 @@ def pytest_configure(config):
     ignore:The sklearn.*module.*deprecated.*:FutureWarning
     ignore:.*TraitTuple.*trait.*handler.*deprecated.*:DeprecationWarning
     ignore:.*rich_compare.*metadata.*deprecated.*:DeprecationWarning
+    ignore:.*In future, it will be an error for 'np.bool_'.*:DeprecationWarning
+    ignore:.*Converting `np\.character` to a dtype is deprecated.*:DeprecationWarning
+    ignore:.*sphinx\.util\.smartypants is deprecated.*:
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
@@ -91,6 +96,7 @@ def pytest_configure(config):
 def matplotlib_config():
     """Configure matplotlib for viz tests."""
     import matplotlib
+    from matplotlib import cbook
     # "force" should not really be necessary but should not hurt
     kwargs = dict()
     with warnings.catch_warnings(record=True):  # ignore warning
@@ -109,6 +115,18 @@ def matplotlib_config():
         pass
     else:
         ETSConfig.toolkit = 'qt4'
+
+    # Make sure that we always reraise exceptions in handlers
+    orig = cbook.CallbackRegistry
+
+    class CallbackRegistryReraise(orig):
+        def __init__(self, exception_handler=None):
+            args = ()
+            if LooseVersion(matplotlib.__version__) >= LooseVersion('2.1'):
+                args += (exception_handler,)
+            super(CallbackRegistryReraise, self).__init__(*args)
+
+    cbook.CallbackRegistry = CallbackRegistryReraise
 
 
 @pytest.fixture()
@@ -136,9 +154,9 @@ def fix_pytest_tmpdir_35():
     if sys.version_info >= (3, 6):
         return
 
-    for key in ('stat', 'mkdir', 'makedirs'):
+    for key in ('stat', 'mkdir', 'makedirs', 'access'):
         _replace(os, key)
-    for key in ('split', 'splitext', 'realpath', 'join'):
+    for key in ('split', 'splitext', 'realpath', 'join', 'basename'):
         _replace(op, key)
 
 
@@ -201,7 +219,7 @@ def backend_name(request):
 
 
 @pytest.yield_fixture
-def renderer(backend_name):
+def renderer(backend_name, garbage_collect):
     """Yield the 3D backends."""
     from mne.viz.backends.renderer import _use_test_3d_backend
     _check_skip_backend(backend_name)
@@ -209,6 +227,13 @@ def renderer(backend_name):
         from mne.viz.backends import renderer
         yield renderer
         renderer._close_all()
+
+
+@pytest.yield_fixture
+def garbage_collect():
+    """Garbage collect on exit."""
+    yield
+    gc.collect()
 
 
 @pytest.fixture(scope="module", params=[

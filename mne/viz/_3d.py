@@ -302,9 +302,9 @@ def _set_aspect_equal(ax):
         pass
 
 
-@fill_doc
+@verbose
 def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
-                      n_jobs=1):
+                      n_jobs=1, fig=None, verbose=None):
     """Plot MEG/EEG fields on head surface and helmet in 3D.
 
     Parameters
@@ -319,6 +319,12 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     time_label : str
         How to print info about the time instant visualized.
     %(n_jobs)s
+    fig : instance of mayavi.core.api.Scene | None
+        If None (default), a new figure will be created, otherwise it will
+        plot into the given figure.
+
+        .. versionadded:: 0.20
+    %(verbose)s
 
     Returns
     -------
@@ -346,7 +352,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
                                      np.tile([0., 0., 0., 255.], (2, 1)),
                                      np.tile([255., 0., 0., 255.], (127, 1))])
 
-    renderer = _get_renderer(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
+    renderer = _get_renderer(fig, bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
 
     for ii, this_map in enumerate(surf_maps):
         surf = this_map['surf']
@@ -462,7 +468,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
         surfs.append(surf)
 
     if img_output is None:
-        fig, axs = _prepare_trellis(len(slices), 4)
+        fig, axs, _, _ = _prepare_trellis(len(slices), 4)
     else:
         fig, ax = plt.subplots(1, 1, figsize=(7.0, 7.0))
         axs = [ax] * len(slices)
@@ -554,10 +560,17 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         ``('helmet', 'sensors')`` (same as None, default). True translates to
         ``('helmet', 'sensors', 'ref')``.
     eeg : bool | str | list
-        Can be "original" (default; equivalent to True) or "projected" to
-        show EEG sensors in their digitized locations or projected onto the
-        scalp, or a list of these options including ``[]`` (equivalent of
-        False).
+        String options are:
+
+        - "original" (default; equivalent to ``True``)
+            Shows EEG sensors using their digitized locations (after
+            transformation to the chosen ``coord_frame``)
+        - "projected"
+            The EEG locations projected onto the scalp, as is done in forward
+            modeling
+
+        Can also be a list of these options, or an empty list (``[]``,
+        equivalent of ``False``).
     fwd : instance of Forward
         The forward solution. If present, the orientations of the dipoles
         present in the forward solution are displayed.
@@ -1272,7 +1285,7 @@ def _process_clim(clim, colormap, transparent, data=0., allow_pos_lims=True):
         raise ValueError('Cannot use "pos_lims" for clim, use "lims" '
                          'instead')
     diverging = 'pos_lims' in clim
-    ctrl_pts = np.array(clim['pos_lims' if diverging else 'lims'])
+    ctrl_pts = np.array(clim['pos_lims' if diverging else 'lims'], float)
     ctrl_pts = np.array(ctrl_pts, float)
     if ctrl_pts.shape != (3,):
         raise ValueError('clim has shape %s, it must be (3,)'
@@ -1599,7 +1612,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           cortex="classic", size=800, background="black",
                           foreground="white", initial_time=None,
                           time_unit='s', backend='auto', spacing='oct6',
-                          title=None, verbose=None):
+                          title=None, show_traces=False, verbose=None):
     """Plot SourceEstimate with PySurfer.
 
     By default this function uses :mod:`mayavi.mlab` to plot the source
@@ -1634,8 +1647,12 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     alpha : float
         Alpha value to apply globally to the overlay. Has no effect with mpl
         backend.
-    time_viewer : bool
-        Display time viewer GUI.
+    time_viewer : bool | str
+        Display time viewer GUI. Can also be 'auto', which will mean True
+        for the PyVista backend and False otherwise.
+
+        .. versionchanged:: 0.20.0
+           "auto" mode added.
     %(subjects_dir)s
     figure : instance of mayavi.core.api.Scene | instance of matplotlib.figure.Figure | list | int | None
         If None, a new figure will be created. If multiple views or a
@@ -1689,6 +1706,14 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         Title for the figure. If None, the subject name will be used.
 
         .. versionadded:: 0.17.0
+    show_traces : bool | str
+        If True, enable interactive picking of a point on the surface of the
+        brain and plot it's time course using the bottom 1/3 of the figure.
+        This feature is only available with the PyVista 3d backend when
+        ``time_viewer=True``. Defaults to 'auto', which will use True if and
+        only if ``time_viewer=True`` and the backend is PyVista.
+
+        .. versionadded:: 0.20.0
     %(verbose)s
 
     Returns
@@ -1701,6 +1726,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
     _validate_type(stc, SourceEstimate, "stc", "Surface Source Estimate")
+    _check_option('time_viewer', time_viewer, (True, False, 'auto'))
+    _check_option('show_traces', show_traces,
+                  (True, False, 'auto', 'separate'))
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
@@ -1725,12 +1753,17 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              time_unit=time_unit, background=background,
                              spacing=spacing, time_viewer=time_viewer,
                              colorbar=colorbar, transparent=transparent)
-    if get_3d_backend() == "mayavi":
+    using_mayavi = get_3d_backend() == "mayavi"
+    if time_viewer == 'auto':
+        time_viewer = not using_mayavi
+    if show_traces == 'auto':
+        show_traces = not using_mayavi and time_viewer
+    if using_mayavi:
         if not check_version('surfer', '0.9'):
             raise RuntimeError('This function requires pysurfer version '
                                '>= 0.9')
         from surfer import Brain, TimeViewer
-    else:
+    else:  # PyVista
         from ._brain import _Brain as Brain
         from ._brain import _TimeViewer as TimeViewer
     _check_option('hemi', hemi, ['lh', 'rh', 'split', 'both'])
@@ -1794,7 +1827,13 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
             with warnings.catch_warnings(record=True):  # traits warnings
                 brain.add_data(**kwargs)
     if time_viewer:
-        TimeViewer(brain)
+        if get_3d_backend() == "mayavi":
+            if show_traces:
+                raise NotImplementedError("Point picking is not available"
+                                          " for the mayavi 3d backend.")
+            TimeViewer(brain)
+        else:
+            TimeViewer(brain, show_traces=show_traces)
     return brain
 
 

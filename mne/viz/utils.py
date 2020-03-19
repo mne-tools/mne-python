@@ -13,11 +13,11 @@
 # License: Simplified BSD
 
 from contextlib import contextmanager
-import math
 from functools import partial
 import difflib
 import webbrowser
 import tempfile
+import math
 import numpy as np
 import platform
 from copy import deepcopy
@@ -203,7 +203,8 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
     Returns
     -------
     cmap : instance of colormap | array
-        A teal->blue->gray->red->yellow colormap.
+        A teal->blue->gray->red->yellow colormap. See docstring of the 'format'
+        argument for further details.
 
     Notes
     -----
@@ -446,24 +447,49 @@ def _get_help_text(params):
     return ''.join(text), ''.join(text2)
 
 
-def _prepare_trellis(n_cells, max_col):
+def _prepare_trellis(n_cells, ncols, nrows='auto', title=False, colorbar=False,
+                     size=1.3):
     import matplotlib.pyplot as plt
-    if n_cells == 1:
-        nrow = ncol = 1
-    elif n_cells <= max_col:
-        nrow, ncol = 1, n_cells
-    else:
-        nrow, ncol = int(math.ceil(n_cells / float(max_col))), max_col
+    from matplotlib import gridspec
 
-    fig, axes = plt.subplots(nrow, ncol, figsize=(1.3 * ncol + 1,
-                                                  1.5 * nrow + 1))
-    axes = [axes] if ncol == nrow == 1 else axes.flatten()
-    for ax in axes[n_cells:]:  # hide unused axes
-        # XXX: Previously done by ax.set_visible(False), but because of mpl
-        # bug, we just hide the frame.
-        from .topomap import _hide_frame
-        _hide_frame(ax)
-    return fig, axes
+    if n_cells == 1:
+        nrows = ncols = 1
+    elif isinstance(ncols, int) and n_cells <= ncols:
+        nrows, ncols = 1, n_cells
+    else:
+        if ncols == 'auto' and nrows == 'auto':
+            nrows = math.floor(math.sqrt(n_cells))
+            ncols = math.ceil(n_cells / nrows)
+        elif ncols == 'auto':
+            ncols = math.ceil(n_cells / nrows)
+        elif nrows == 'auto':
+            nrows = math.ceil(n_cells / ncols)
+        else:
+            naxes = ncols * nrows
+            if naxes < n_cells:
+                raise ValueError("Cannot plot {} axes in a {} by {} "
+                                 "figure.".format(n_cells, nrows, ncols))
+
+    if colorbar:
+        ncols += 1
+    width = size * ncols
+    height = (size + max(0, 0.1 * (4 - size))) * nrows + bool(title) * 0.5
+    height_ratios = None
+    g_kwargs = {}
+    figure_nobar(figsize=(width * 1.5, height * 1.5))
+    gs = gridspec.GridSpec(
+        nrows, ncols, height_ratios=height_ratios, **g_kwargs)
+
+    axes = []
+    naxes = n_cells
+    if colorbar:
+        naxes += nrows - 1
+    for ax_idx in range(naxes):
+        axes.append(plt.subplot(gs[ax_idx]))
+
+    fig = axes[0].get_figure()
+
+    return fig, axes, ncols, nrows
 
 
 def _draw_proj_checkbox(event, params, draw_current_state=True):
@@ -1497,9 +1523,9 @@ def _process_times(inst, use_times, n_peaks=None, few=False):
     if use_times.ndim != 1:
         raise ValueError('times must be 1D, got %d dimensions'
                          % use_times.ndim)
-    if len(use_times) > 20:
-        raise RuntimeError('Too many plots requested. Please pass fewer '
-                           'than 20 time instants.')
+
+    if len(use_times) > 25:
+        warn('More than 25 topomaps plots requested. This might take a while.')
 
     return use_times
 
@@ -1607,9 +1633,18 @@ def plot_sensors(info, kind='topomap', ch_type=None, title=None,
     chs = [info['chs'][pick] for pick in picks]
     if not _check_ch_locs(chs):
         raise RuntimeError('No valid channel positions found')
-    pos = np.array([apply_trans(info['dev_head_t'], ch['loc'][:3])
-                    if ch['coord_frame'] == FIFF.FIFFV_COORD_DEVICE else
-                    ch['loc'][:3] for ch in chs])
+    dev_head_t = info['dev_head_t']
+    pos = np.empty((len(chs), 3))
+    for ci, ch in enumerate(chs):
+        pos[ci] = ch['loc'][:3]
+        if ch['coord_frame'] == FIFF.FIFFV_COORD_DEVICE:
+            if dev_head_t is None:
+                warn('dev_head_t is None, transforming MEG sensors to head '
+                     'coordinate frame using identity transform')
+                dev_head_t = np.eye(4)
+            pos[ci] = apply_trans(dev_head_t, pos[ci])
+    del dev_head_t
+
     ch_names = np.array([ch['ch_name'] for ch in chs])
     bads = [idx for idx, name in enumerate(ch_names) if name in info['bads']]
     if ch_groups is None:
@@ -1964,7 +1999,7 @@ class DraggableColorbar(object):
         elif self.index >= len(self.cycle):
             self.index = 0
         cmap = self.cycle[self.index]
-        self.cbar.set_cmap(cmap)
+        self.cbar.mappable.set_cmap(cmap)
         self.cbar.draw_all()
         self.mappable.set_cmap(cmap)
         self.mappable.set_norm(self.cbar.norm)

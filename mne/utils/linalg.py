@@ -127,3 +127,32 @@ def eigh(a, overwrite_a=False, check_finite=True):
                           "%i off-diagonal elements of an "
                           "intermediate tridiagonal form did not converge"
                           " to zero." % info)
+
+
+def sqrtm_sym(A, rcond=1e-7, inv=False):
+    """Compute the square root of a symmetric matrix (or its inverse).
+
+    Parameters
+    ----------
+    A : ndarray, shape (..., n, n)
+        The array to take the square root of.
+    rcond : float
+        The relative condition number used during reconstruction.
+
+    Returns
+    -------
+    A_sqrt : ndarray, shape (..., n, n)
+        The (possibly inverted) square root of A.
+    s : ndarray, shape (..., n)
+        The original square root singular values (not inverted).
+    """
+    # Same as linalg.sqrtm(C) but faster, also yields the eigenvalues
+    s, u = np.linalg.eigh(A)  # eigenvalues in ascending order
+    s[s < s[..., -1:] * rcond] = np.inf if inv else 0
+    np.sqrt(s, out=s)
+    if inv:
+        use_s = 1. / s
+    else:
+        use_s = s
+    a = np.matmul(u * use_s[..., np.newaxis, :], u.swapaxes(-2, -1))
+    return a, s

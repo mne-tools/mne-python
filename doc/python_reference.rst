@@ -352,6 +352,7 @@ Projections:
    compute_proj_eog
    create_ecg_epochs
    create_eog_epochs
+   find_bad_channels_maxwell
    find_ecg_events
    find_eog_events
    fix_stim_artifact
@@ -651,6 +652,7 @@ Inverse Solutions
 
    InverseOperator
    apply_inverse
+   apply_inverse_cov
    apply_inverse_epochs
    apply_inverse_raw
    compute_source_psd
@@ -663,7 +665,7 @@ Inverse Solutions
    source_band_induced_power
    source_induced_power
    write_inverse_operator
-   make_resolution_matrix
+   make_inverse_resolution_matrix
    resolution_metrics
    get_cross_talk
    get_point_spread
@@ -709,6 +711,7 @@ Inverse Solutions
    rap_music
    tf_dics
    tf_lcmv
+   make_lcmv_resolution_matrix
 
 .. currentmodule:: mne
 

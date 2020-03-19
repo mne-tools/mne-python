@@ -3,8 +3,9 @@
 # License: BSD (3-clause)
 
 import os.path as op
-import numpy as np
+import pathlib
 
+import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
 import pytest
 from scipy import sparse
@@ -21,10 +22,10 @@ from mne.io import read_raw_fif, read_info, read_raw_bti, read_raw_kit, BaseRaw
 from mne.preprocessing.maxwell import (
     maxwell_filter, _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
-    _bases_real_to_complex, _prep_mf_coils)
+    _bases_real_to_complex, _prep_mf_coils, find_bad_channels_maxwell)
 from mne.rank import _get_rank_sss, _compute_rank_int
 from mne.utils import (assert_meg_snr, run_tests_if_main, catch_logging,
-                       requires_version, object_diff, buggy_mkl_svd)
+                       object_diff, buggy_mkl_svd)
 
 data_path = testing.data_path(download=False)
 sss_path = op.join(data_path, 'SSS')
@@ -57,7 +58,8 @@ sss_erm_st1FineCalCrossTalk_fname = pre + 'erm_st1FineCalCrossTalk_raw_sss.fif'
 sss_erm_st1FineCalCrossTalkRegIn_fname = \
     pre + 'erm_st1FineCalCrossTalkRegIn_raw_sss.fif'
 
-sample_fname = op.join(data_path, 'MEG', 'sample_audvis_trunc_raw.fif')
+sample_fname = op.join(
+    data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 sss_samp_reg_in_fname = op.join(data_path, 'SSS',
                                 'sample_audvis_trunc_regIn_raw_sss.fif')
 sss_samp_fname = op.join(data_path, 'SSS', 'sample_audvis_trunc_raw_sss.fif')
@@ -70,9 +72,6 @@ fine_cal_fname_3d = op.join(sss_path, 'sss_cal_3053_3d.dat')
 ctc_fname = op.join(sss_path, 'ct_sparse.fif')
 fine_cal_mgh_fname = op.join(sss_path, 'sss_cal_mgh.dat')
 ctc_mgh_fname = op.join(sss_path, 'ct_sparse_mgh.fif')
-
-sample_fname = op.join(data_path, 'MEG', 'sample',
-                       'sample_audvis_trunc_raw.fif')
 
 triux_path = op.join(data_path, 'SSS', 'TRIUX')
 tri_fname = op.join(triux_path, 'triux_bmlhus_erm_raw.fif')
@@ -99,9 +98,6 @@ elekta_def_fname = op.join(op.dirname(mne.__file__), 'data',
 int_order, ext_order = 8, 3
 mf_head_origin = (0., 0., 0.04)
 mf_meg_origin = (0., 0.013, -0.006)
-
-# otherwise we can get SVD error
-requires_svd_convergence = requires_version('scipy', '0.12')
 
 # 30 random bad MEG channels (20 grad, 10 mag) that were used in generation
 bads = ['MEG0912', 'MEG1722', 'MEG2213', 'MEG0132', 'MEG1312', 'MEG0432',
@@ -510,7 +506,6 @@ def test_bads_reconstruction():
 
 
 @buggy_mkl_svd
-@requires_svd_convergence
 @testing.requires_testing_data
 def test_spatiotemporal():
     """Test Maxwell filter (tSSS) spatiotemporal processing."""
@@ -557,7 +552,6 @@ def test_spatiotemporal():
 
 
 @pytest.mark.slowtest
-@requires_svd_convergence
 @testing.requires_testing_data
 def test_spatiotemporal_only():
     """Test tSSS-only processing."""
@@ -708,13 +702,14 @@ def test_cross_talk(tmpdir):
     raw.info['bads'] = bads
     sss_ctc = read_crop(sss_ctc_fname)
     with use_coil_def(elekta_def_fname):
-        raw_sss = maxwell_filter(raw, cross_talk=ctc_fname,
+        raw_sss = maxwell_filter(raw, cross_talk=pathlib.Path(ctc_fname),
                                  origin=mf_head_origin, regularize=None,
                                  bad_condition='ignore')
     assert_meg_snr(raw_sss, sss_ctc, 275.)
     py_ctc = raw_sss.info['proc_history'][0]['max_info']['sss_ctc']
     assert (len(py_ctc) > 0)
-    pytest.raises(ValueError, maxwell_filter, raw, cross_talk=raw)
+    with pytest.raises(TypeError, match='path-like'):
+        maxwell_filter(raw, cross_talk=raw)
     pytest.raises(ValueError, maxwell_filter, raw, cross_talk=raw_fname)
     mf_ctc = sss_ctc.info['proc_history'][0]['max_info']['sss_ctc']
     del mf_ctc['block_id']  # we don't write this
@@ -802,7 +797,6 @@ def _assert_shielding(raw_sss, erm_power, shielding_factor, meg='mag'):
 
 @buggy_mkl_svd
 @pytest.mark.slowtest
-@requires_svd_convergence
 @testing.requires_testing_data
 def test_shielding_factor(tmpdir):
     """Test Maxwell filter shielding factor using empty room."""
@@ -836,7 +830,7 @@ def test_shielding_factor(tmpdir):
     _assert_shielding(read_crop(sss_erm_fine_cal_fname), erm_power, 12)  # 2.0)
     raw_sss = maxwell_filter(raw_erm, coord_frame='meg', regularize=None,
                              origin=mf_meg_origin,
-                             calibration=fine_cal_fname)
+                             calibration=pathlib.Path(fine_cal_fname))
     _assert_shielding(raw_sss, erm_power, 12)  # 2.0)
 
     # Crosstalk
@@ -919,7 +913,6 @@ def test_shielding_factor(tmpdir):
 
 
 @pytest.mark.slowtest
-@requires_svd_convergence
 @testing.requires_testing_data
 def test_all():
     """Test maxwell filter using all options."""
@@ -954,7 +947,6 @@ def test_all():
 
 
 @pytest.mark.slowtest
-@requires_svd_convergence
 @testing.requires_testing_data
 def test_triux():
     """Test TRIUX system support."""
@@ -1021,7 +1013,7 @@ def test_mf_skips():
         # skips decrease acceptable duration
         maxwell_filter(raw, st_duration=17., **kwargs)
     onsets, ends = _annotations_starts_stops(
-        raw, ('edge', 'bad_acq_skip'), 'skip_by_annotation', invert=True)
+        raw, ('edge', 'bad_acq_skip'), invert=True)
     assert (ends - onsets).min() / raw.info['sfreq'] == 2.
     assert (ends - onsets).max() / raw.info['sfreq'] == 3.
     for st_duration in (2., 3.):
@@ -1051,6 +1043,21 @@ def test_mf_skips():
     assert not np.allclose(data_cs, data_c, atol=1e-20)
     assert not np.allclose(data_cs, data_csb, atol=1e-20)
     assert_allclose(data_sc, data_cs, atol=1e-20)
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('bads', [[], ['MEG 0111']])  # just to test picking
+def test_find_bad_channels_maxwell(bads):
+    """Test automatic bad channel detection."""
+    raw = mne.io.read_raw_fif(sample_fname, allow_maxshield='yes')
+    raw.fix_mag_coil_types().load_data().pick_types(exclude=())
+    raw.filter(None, 40)
+    raw.info['bads'] = bads
+    # maxfilter -autobad on -v -f test_raw.fif -force -cal off -ctc off -regularize off -list -o test_raw.fif -f ~/mne_data/MNE-testing-data/MEG/sample/sample_audvis_trunc_raw.fif  # noqa: E501
+    got_bads = find_bad_channels_maxwell(
+        raw, origin=(0., 0., 0.04), regularize=None,
+        bad_condition='ignore', verbose='debug')
+    assert got_bads == ['MEG 2443']  # from MaxFilter
 
 
 run_tests_if_main()

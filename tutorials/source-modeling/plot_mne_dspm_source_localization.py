@@ -60,7 +60,7 @@ evoked.plot_topomap(times=np.linspace(0.05, 0.15, 5), ch_type='mag',
 # Show whitening
 evoked.plot_white(noise_cov, time_unit='s')
 
-del epochs  # to save memory
+del epochs, raw  # to save memory
 
 ###############################################################################
 # Inverse modeling: MNE/dSPM on evoked and raw data
@@ -71,9 +71,8 @@ fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
 fwd = mne.read_forward_solution(fname_fwd)
 
 # make an MEG inverse operator
-info = evoked.info
-inverse_operator = make_inverse_operator(info, fwd, noise_cov,
-                                         loose=0.2, depth=0.8)
+inverse_operator = make_inverse_operator(
+    evoked.info, fwd, noise_cov, loose=0.2, depth=0.8)
 del fwd
 
 # You can write it to disk with::
@@ -98,11 +97,9 @@ stc, residual = apply_inverse(evoked, inverse_operator, lambda2,
 # -------------
 # View activation time-series
 
-plt.figure()
-plt.plot(1e3 * stc.times, stc.data[::100, :].T)
-plt.xlabel('time (ms)')
-plt.ylabel('%s value' % method)
-plt.show()
+fig, ax = plt.subplots()
+ax.plot(1e3 * stc.times, stc.data[::100, :].T)
+ax.set(xlabel='time (ms)', ylabel='%s value' % method)
 
 ###############################################################################
 # Examine the original data and the residual after fitting:
@@ -125,7 +122,7 @@ subjects_dir = data_path + '/subjects'
 surfer_kwargs = dict(
     hemi='rh', subjects_dir=subjects_dir,
     clim=dict(kind='value', lims=[8, 12, 15]), views='lateral',
-    initial_time=time_max, time_unit='s', size=(800, 800), smoothing_steps=5)
+    initial_time=time_max, time_unit='s', size=(800, 800), smoothing_steps=10)
 brain = stc.plot(**surfer_kwargs)
 brain.add_foci(vertno_max, coords_as_verts=True, hemi='rh', color='blue',
                scale_factor=0.6, alpha=0.5)
@@ -175,12 +172,11 @@ del stc_vec
 ###############################################################################
 # Now let's look at each solver:
 
-for mi, (method, lims) in enumerate((('dSPM', [8, 12, 15]),
-                                     ('sLORETA', [3, 5, 7]),
-                                     ('eLORETA', [0.75, 1.25, 1.75]),)):
-    surfer_kwargs['clim']['lims'] = lims
+surfer_kwargs['clim'].update(kind='percent', lims=[99, 99.9, 99.99])
+for mi, method in enumerate(['dSPM', 'sLORETA', 'eLORETA']):
     stc = apply_inverse(evoked, inverse_operator, lambda2,
-                        method=method, pick_ori=None)
+                        method=method, pick_ori=None,
+                        verbose=True)
     brain = stc.plot(figure=mi, **surfer_kwargs)
     brain.add_text(0.1, 0.9, method, 'title', font_size=20)
     del stc

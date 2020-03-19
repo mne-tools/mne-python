@@ -7,9 +7,9 @@
 #
 # License: Simplified BSD
 
-import gc
 import os.path as op
 from pathlib import Path
+import sys
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
@@ -36,8 +36,9 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_pysurfer, run_tests_if_main,
-                       requires_nibabel, check_version, requires_dipy,
-                       traits_test, requires_version, catch_logging)
+                       requires_nibabel, requires_dipy,
+                       traits_test, requires_version, catch_logging,
+                       run_subprocess, modified_env)
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 from mne.bem import read_bem_solution, read_bem_surfaces
@@ -89,12 +90,8 @@ def test_plot_head_positions():
     destination = (0., 0., 0.04)
     with pytest.warns(None):  # old MPL will cause a warning
         plot_head_positions(pos)
-        if check_version('matplotlib', '1.4'):
-            plot_head_positions(pos, mode='field', info=info,
-                                destination=destination)
-        else:
-            pytest.raises(RuntimeError, plot_head_positions, pos, mode='field',
-                          info=info, destination=destination)
+        plot_head_positions(pos, mode='field', info=info,
+                            destination=destination)
         plot_head_positions([pos, pos])  # list support
         pytest.raises(ValueError, plot_head_positions, ['pos'])
         pytest.raises(ValueError, plot_head_positions, pos[:, :9])
@@ -346,6 +343,7 @@ def test_plot_alignment(tmpdir, renderer):
     renderer._close_all()
 
 
+@pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 @requires_pysurfer
 @traits_test
@@ -633,6 +631,7 @@ def test_plot_volume_source_estimates_morph():
                  clim=dict(lims=[-1, 2, 3], kind='value'))
 
 
+@pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 @requires_pysurfer
 @traits_test
@@ -650,12 +649,10 @@ def test_plot_vector_source_estimates(renderer):
                      smoothing_steps=1, verbose='error')
     brain.close()
     del brain
-    gc.collect()
 
     with pytest.raises(ValueError, match='use "pos_lims"'):
         stc.plot('sample', subjects_dir=subjects_dir,
                  clim=dict(pos_lims=[1, 2, 3]))
-    gc.collect()
 
 
 @testing.requires_testing_data
@@ -718,7 +715,7 @@ def test_brain_colorbar(orientation, diverging, lims):
 @requires_pysurfer
 @testing.requires_testing_data
 @traits_test
-def test_mixed_sources_plot_surface():
+def test_mixed_sources_plot_surface(renderer):
     """Test plot_surface() for  mixed source space."""
     src = read_source_spaces(fwd_fname2)
     N = np.sum([s['nuse'] for s in src])  # number of sources
@@ -765,6 +762,17 @@ def test_link_brains(renderer_interactive):
         clim='auto'
     )
     link_brains(brain)
+
+
+def test_renderer(renderer):
+    """Test that renderers are available on demand."""
+    backend = renderer.get_3d_backend()
+    cmd = [sys.executable, '-uc',
+           'import mne; mne.viz.create_3d_figure((800, 600)); '
+           'backend = mne.viz.get_3d_backend(); '
+           'assert backend == %r, backend' % (backend,)]
+    with modified_env(MNE_3D_BACKEND=backend):
+        run_subprocess(cmd)
 
 
 run_tests_if_main()

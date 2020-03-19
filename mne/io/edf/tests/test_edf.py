@@ -13,7 +13,7 @@ import inspect
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_equal)
+                           assert_equal, assert_allclose)
 from scipy.io import loadmat
 
 import pytest
@@ -361,3 +361,11 @@ def test_bdf_multiple_annotation_channels():
 
 
 run_tests_if_main()
+
+
+@testing.requires_testing_data
+def test_edf_lowpass_zero():
+    """Test if a lowpass filter of 0Hz is mapped to the Nyquist frequency."""
+    with pytest.warns(RuntimeWarning, match='too long.*truncated'):
+        raw = read_raw_edf(edf_stim_resamp_path)
+    assert_allclose(raw.info["lowpass"], raw.info["sfreq"] / 2)

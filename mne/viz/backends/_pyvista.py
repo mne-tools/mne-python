@@ -140,16 +140,14 @@ class _Renderer(_BaseRenderer):
             warnings.filterwarnings("ignore", category=FutureWarning)
             if MNE_3D_BACKEND_TESTING:
                 self.figure.plotter_class = Plotter
-
-            self.plotter = self.figure.build()
+            with _disabled_depth_peeling():
+                self.plotter = self.figure.build()
             self.plotter.hide_axes()
-            self.plotter.disable_depth_peeling()
 
     def subplot(self, x, y):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             self.plotter.subplot(x, y)
-            self.plotter.disable_depth_peeling()
 
     def scene(self):
         return self.figure
@@ -166,7 +164,7 @@ class _Renderer(_BaseRenderer):
             vertices = np.c_[x, y, z]
             n_vertices = len(vertices)
             triangles = np.c_[np.full(len(triangles), 3), triangles]
-            pd = PolyData(vertices, triangles)
+            mesh = PolyData(vertices, triangles)
             rgba = False
             if color is not None and len(color) == n_vertices:
                 if color.shape[1] == 3:
@@ -187,13 +185,13 @@ class _Renderer(_BaseRenderer):
                 colormap = ListedColormap(colormap)
 
             actor = self.plotter.add_mesh(
-                mesh=pd, color=color, scalars=scalars,
+                mesh=mesh, color=color, scalars=scalars,
                 rgba=rgba, opacity=opacity, cmap=colormap,
                 backface_culling=backface_culling,
                 rng=[vmin, vmax], show_scalar_bar=False,
                 smooth_shading=smooth_shading
             )
-            return actor, pd
+            return actor, mesh
 
     def contour(self, surface, scalars, contours, width=1.0, opacity=1.0,
                 vmin=None, vmax=None, colormap=None,
@@ -207,14 +205,14 @@ class _Renderer(_BaseRenderer):
             triangles = np.array(surface['tris'])
             n_triangles = len(triangles)
             triangles = np.c_[np.full(n_triangles, 3), triangles]
-            pd = PolyData(vertices, triangles)
-            pd.point_arrays['scalars'] = scalars
-            mesh = pd.contour(isosurfaces=contours, rng=(vmin, vmax))
+            mesh = PolyData(vertices, triangles)
+            mesh.point_arrays['scalars'] = scalars
+            contour = mesh.contour(isosurfaces=contours, rng=(vmin, vmax))
             line_width = width
             if kind == 'tube':
-                mesh = mesh.tube(radius=width)
+                contour = contour.tube(radius=width)
                 line_width = 1.0
-            self.plotter.add_mesh(mesh,
+            self.plotter.add_mesh(mesh=contour,
                                   show_scalar_bar=False,
                                   line_width=line_width,
                                   color=color,
@@ -233,10 +231,10 @@ class _Renderer(_BaseRenderer):
             triangles = np.array(surface['tris'])
             n_triangles = len(triangles)
             triangles = np.c_[np.full(n_triangles, 3), triangles]
-            pd = PolyData(vertices, triangles)
+            mesh = PolyData(vertices, triangles)
             if scalars is not None:
-                pd.point_arrays['scalars'] = scalars
-            self.plotter.add_mesh(mesh=pd, color=color,
+                mesh.point_arrays['scalars'] = scalars
+            self.plotter.add_mesh(mesh=mesh, color=color,
                                   rng=[vmin, vmax],
                                   show_scalar_bar=False,
                                   opacity=opacity,
@@ -257,12 +255,15 @@ class _Renderer(_BaseRenderer):
                 sphere.SetRadius(radius)
             sphere.Update()
             geom = sphere.GetOutput()
-            pd = PolyData(center)
-            self.plotter.add_mesh(pd.glyph(orient=False, scale=False,
-                                           factor=factor, geom=geom),
-                                  color=color, opacity=opacity,
-                                  backface_culling=backface_culling,
-                                  smooth_shading=self.figure.smooth_shading)
+            mesh = PolyData(center)
+            glyph = mesh.glyph(orient=False, scale=False,
+                               factor=factor, geom=geom)
+            actor = self.plotter.add_mesh(
+                glyph, color=color, opacity=opacity,
+                backface_culling=backface_culling,
+                smooth_shading=self.figure.smooth_shading
+            )
+            return actor, glyph
 
     def tube(self, origin, destination, radius=0.001, color='white',
              scalars=None, vmin=None, vmax=None, colormap='RdBu',
@@ -456,6 +457,9 @@ class _Renderer(_BaseRenderer):
         _set_3d_view(self.figure, azimuth=azimuth, elevation=elevation,
                      distance=distance, focalpoint=focalpoint)
 
+    def reset_camera(self):
+        self.plotter.reset_camera()
+
     def screenshot(self, mode='rgb', filename=None):
         return _take_3d_screenshot(figure=self.figure, mode=mode,
                                    filename=filename)
@@ -581,7 +585,7 @@ def _set_3d_view(figure, azimuth, elevation, focalpoint, distance):
         position, cen, view_up]
 
 
-def _set_3d_title(figure, title, size=40):
+def _set_3d_title(figure, title, size=16):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
         figure.plotter.add_text(title, font_size=size, color='white')
@@ -649,6 +653,32 @@ def _update_slider_callback(slider, callback, event_type):
     slider.AddObserver(event, _the_callback)
 
 
+def _update_picking_callback(plotter,
+                             on_mouse_move,
+                             on_button_press,
+                             on_button_release,
+                             on_pick):
+    interactor = plotter.iren
+    interactor.AddObserver(
+        vtk.vtkCommand.RenderEvent,
+        on_mouse_move
+    )
+    interactor.AddObserver(
+        vtk.vtkCommand.LeftButtonPressEvent,
+        on_button_press
+    )
+    interactor.AddObserver(
+        vtk.vtkCommand.EndInteractionEvent,
+        on_button_release
+    )
+    picker = vtk.vtkCellPicker()
+    picker.AddObserver(
+        vtk.vtkCommand.EndPickEvent,
+        on_pick
+    )
+    plotter.picker = picker
+
+
 @contextmanager
 def _testing_context(interactive):
     from . import renderer
@@ -664,3 +694,14 @@ def _testing_context(interactive):
     finally:
         pyvista.OFF_SCREEN = orig_offscreen
         renderer.MNE_3D_BACKEND_TESTING = orig_testing
+
+
+@contextmanager
+def _disabled_depth_peeling():
+    from pyvista import rcParams
+    depth_peeling_enabled = rcParams["depth_peeling"]["enabled"]
+    rcParams["depth_peeling"]["enabled"] = False
+    try:
+        yield
+    finally:
+        rcParams["depth_peeling"]["enabled"] = depth_peeling_enabled

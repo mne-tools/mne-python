@@ -11,6 +11,7 @@ from copy import deepcopy
 import datetime
 from io import BytesIO
 import operator
+from textwrap import shorten
 
 import numpy as np
 from scipy import linalg
@@ -27,9 +28,9 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_coord_trans, write_ch_info, write_name_list,
                     write_julian, write_float_matrix, write_id, DATE_NONE)
 from .proc_history import _read_proc_history, _write_proc_history
-from ..transforms import invert_transform, Transform
+from ..transforms import invert_transform, Transform, _coord_frame_name
 from ..utils import (logger, verbose, warn, object_diff, _validate_type,
-                     _stamp_to_dt, _dt_to_stamp)
+                     _stamp_to_dt, _dt_to_stamp, _pl)
 from ._digitization import (_format_dig_points, _dig_kind_proper,
                             _dig_kind_rev, _dig_kind_ints, _read_dig_fif)
 from ._digitization import write_dig as _dig_write_dig
@@ -114,11 +115,6 @@ def _get_valid_units():
     valid_units += ["n/a"]
 
     return tuple(valid_units)
-
-
-def _summarize_str(st):
-    """Make summary string."""
-    return st[:56][::-1].split(',', 1)[-1][::-1] + ', ...'
 
 
 def _unique_channel_names(ch_names):
@@ -564,26 +560,37 @@ class Info(dict, MontageMixin):
 
     def __repr__(self):
         """Summarize info instead of printing all."""
-        strs = ['<Info | %s non-empty fields']
+        MAX_WIDTH = 68
+        strs = ['<Info | %s non-empty values']
         non_empty = 0
         for k, v in self.items():
-            if k in ['bads', 'ch_names']:
-                entr = (', '.join(b for ii, b in enumerate(v) if ii < 10)
-                        if v else '0 items')
-                if len(v) > 10:
-                    # get rid of of half printed ch names
-                    entr = _summarize_str(entr)
-            elif k == 'projs' and v:
-                entr = ', '.join(p['desc'] + ': o%s' %
-                                 {0: 'ff', 1: 'n'}[p['active']] for p in v)
-                if len(entr) >= 56:
-                    entr = _summarize_str(entr)
+            if k == 'ch_names':
+                if v:
+                    entr = shorten(', '.join(v), MAX_WIDTH, placeholder=' ...')
+                else:
+                    entr = '[]'  # always show
+                    non_empty -= 1  # don't count as non-empty
+            elif k == 'bads':
+                if v:
+                    entr = '{} items ('.format(len(v))
+                    entr += ', '.join(v)
+                    entr = shorten(entr, MAX_WIDTH, placeholder=' ...') + ')'
+                else:
+                    entr = '[]'  # always show
+                    non_empty -= 1  # don't count as non-empty
+            elif k == 'projs':
+                if v:
+                    entr = ', '.join(p['desc'] + ': o%s' %
+                                     {0: 'ff', 1: 'n'}[p['active']] for p in v)
+                    entr = shorten(entr, MAX_WIDTH, placeholder=' ...')
+                else:
+                    entr = '[]'  # always show projs
+                    non_empty -= 1  # don't count as non-empty
             elif k == 'meas_date':
                 if v is None:
                     entr = 'unspecified'
                 else:
-                    # first entry in meas_date is meaningful
-                    entr = v.strftime('%Y-%m-%d %H:%M:%S') + ' GMT'
+                    entr = v.strftime('%Y-%m-%d %H:%M:%S %Z')
             elif k == 'kit_system_id' and v is not None:
                 from .kit.constants import KIT_SYSNAMES
                 entr = '%i (%s)' % (v, KIT_SYSNAMES.get(v, 'unknown'))
@@ -593,27 +600,44 @@ class Info(dict, MontageMixin):
                                      _dig_kind_proper[_dig_kind_rev[ii]])
                           for ii in _dig_kind_ints if ii in counts]
                 counts = (' (%s)' % (', '.join(counts))) if len(counts) else ''
-                entr = '%d items%s' % (len(v), counts)
-            else:
-                this_len = (len(v) if hasattr(v, '__len__') else
-                            ('%s' % v if v is not None else None))
-                entr = (('%d items' % this_len) if isinstance(this_len, int)
-                        else ('%s' % this_len if this_len else ''))
-            if entr:
-                non_empty += 1
-                entr = ' | ' + entr
-            if k == 'chs':
+                entr = '%d item%s%s' % (len(v), _pl(len(v)), counts)
+            elif isinstance(v, Transform):
+                # show entry only for non-identity transform
+                if not np.allclose(v["trans"], np.eye(v["trans"].shape[0])):
+                    frame1 = _coord_frame_name(v['from'])
+                    frame2 = _coord_frame_name(v['to'])
+                    entr = '%s -> %s transform' % (frame1, frame2)
+                else:
+                    entr = ''
+            elif k in ['sfreq', 'lowpass', 'highpass']:
+                entr = '{:.1f} Hz'.format(v)
+            elif isinstance(v, str):
+                entr = shorten(v, MAX_WIDTH, placeholder=' ...')
+            elif k == 'chs':
                 ch_types = [channel_type(self, idx) for idx in range(len(v))]
                 ch_counts = Counter(ch_types)
-                entr += " (%s)" % ', '.join("%s: %d" % (ch_type.upper(), count)
-                                            for ch_type, count
-                                            in ch_counts.items())
-            strs.append('%s : %s%s' % (k, type(v).__name__, entr))
-            if k in ['sfreq', 'lowpass', 'highpass']:
-                strs[-1] += ' Hz'
-        strs_non_empty = sorted(s for s in strs if '|' in s)
-        strs_empty = sorted(s for s in strs if '|' not in s)
-        st = '\n    '.join(strs_non_empty + strs_empty)
+                entr = "%s" % ', '.join("%d %s" % (count, ch_type.upper())
+                                        for ch_type, count
+                                        in ch_counts.items())
+            elif k == 'custom_ref_applied':
+                entr = str(bool(v))
+                if not v:
+                    non_empty -= 1  # don't count if 0
+            else:
+                try:
+                    this_len = len(v)
+                except TypeError:
+                    entr = '{}'.format(v) if v is not None else ''
+                else:
+                    if this_len > 0:
+                        entr = ('%d item%s (%s)' % (this_len, _pl(this_len),
+                                                    type(v).__name__))
+                    else:
+                        entr = ''
+            if entr != '':
+                non_empty += 1
+                strs.append('%s: %s' % (k, entr))
+        st = '\n '.join(sorted(strs))
         st += '\n>'
         st %= non_empty
         return st

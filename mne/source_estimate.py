@@ -18,7 +18,7 @@ from .filter import resample
 from .fixes import einsum
 from .surface import read_surface, _get_ico_surface, mesh_edges
 from .source_space import (_ensure_src, _get_morph_src_reordering,
-                           _ensure_src_subject, SourceSpaces)
+                           _ensure_src_subject, SourceSpaces, _get_src_nn)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     _time_mask, warn as warn_, copy_function_doc_to_method_doc,
                     fill_doc, _check_option, _validate_type, _check_src_normal,
@@ -492,8 +492,9 @@ class _BaseSourceEstimate(TimeMixin):
             kernel, sens_data = data
             data = None
             if kernel.shape[1] != sens_data.shape[0]:
-                raise ValueError('kernel and sens_data have invalid '
-                                 'dimensions')
+                raise ValueError('kernel (%s) and sens_data (%s) have invalid '
+                                 'dimensions'
+                                 % (kernel.shape, sens_data.shape))
             if sens_data.ndim != 2:
                 raise ValueError('The sensor data must have 2 dimensions, got '
                                  '%s' % (sens_data.ndim,))
@@ -1519,11 +1520,13 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
     @copy_function_doc_to_method_doc(plot_source_estimates)
     def plot(self, subject=None, surface='inflated', hemi='lh',
              colormap='auto', time_label='auto', smoothing_steps=10,
-             transparent=True, alpha=1.0, time_viewer=False, subjects_dir=None,
+             transparent=True, alpha=1.0, time_viewer=False,
+             subjects_dir=None,
              figure=None, views='lat', colorbar=True, clim='auto',
              cortex="classic", size=800, background="black",
              foreground="white", initial_time=None, time_unit='s',
-             backend='auto', spacing='oct6', title=None, verbose=None):
+             backend='auto', spacing='oct6', title=None,
+             show_traces=False, verbose=None):
         brain = plot_source_estimates(
             self, subject, surface=surface, hemi=hemi, colormap=colormap,
             time_label=time_label, smoothing_steps=smoothing_steps,
@@ -1532,7 +1535,8 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             colorbar=colorbar, clim=clim, cortex=cortex, size=size,
             background=background, foreground=foreground,
             initial_time=initial_time, time_unit=time_unit, backend=backend,
-            spacing=spacing, title=title, verbose=verbose)
+            spacing=spacing, title=title, show_traces=show_traces,
+            verbose=verbose)
         return brain
 
     @verbose
@@ -1545,15 +1549,10 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         Parameters
         ----------
-        labels : Label | BiHemiLabel | list of Label or BiHemiLabel
-            The labels for which to extract the time courses.
-        src : list
-            Source spaces for left and right hemisphere.
-        mode : str
-            Extraction mode, see explanation below.
-        allow_empty : bool
-            Instead of emitting an error, return all-zero time course for
-            labels that do not have any vertices in the source estimate.
+        %(eltc_labels)s
+        %(eltc_src)s
+        %(eltc_mode)s
+        %(eltc_allow_empty)s
         %(verbose_meth)s
 
         Returns
@@ -1567,26 +1566,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         Notes
         -----
-        Valid values for mode are:
-
-        - 'mean'
-              Average within each label.
-        - 'mean_flip'
-              Average within each label with sign flip depending
-              on source orientation.
-        - 'pca_flip'
-              Apply an SVD to the time courses within each label
-              and use the scaled and sign-flipped first right-singular vector
-              as the label time course. The scaling is performed such that the
-              power of the label time course is the same as the average
-              per-vertex time course power within the label. The sign of the
-              resulting time course is adjusted by multiplying it with
-              "sign(dot(u, flip))" where u is the first left-singular vector,
-              and flip is a sing-flip vector based on the vertex normals. This
-              procedure assures that the phase does not randomly change by 180
-              degrees from one stc to the next.
-        - 'max'
-              Max value within each label.
+        %(eltc_mode_notes)s
         """
         label_tc = extract_label_time_course(
             self, labels, src, mode=mode, return_generator=False,
@@ -1826,13 +1806,19 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             data_mag, self.vertices, self.tmin, self.tstep, self.subject,
             self.verbose)
 
-    def normal(self, src):
+    @fill_doc
+    def normal(self, src, use_cps=True):
         """Compute activity orthogonal to the cortex.
 
         Parameters
         ----------
         src : instance of SourceSpaces
             The source space for which this source estimate is specified.
+        %(use_cps)s
+            Should be the same value that was used when the forward model
+            was computed (typically True).
+
+            .. versionadded:: 0.20
 
         Returns
         -------
@@ -1841,7 +1827,7 @@ class _BaseVectorSourceEstimate(_BaseSourceEstimate):
             cortex.
         """
         _check_src_normal('normal', src)
-        normals = np.vstack([s['nn'][v] for s, v in
+        normals = np.vstack([_get_src_nn(s, use_cps, v) for s, v in
                              zip(src, self._vertices_list)])
         data_norm = einsum('ijk,ij->ik', self.data, normals)
         return self._scalar_class(
@@ -2834,15 +2820,10 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
     ----------
     stcs : SourceEstimate | list (or generator) of SourceEstimate
         The source estimates from which to extract the time course.
-    labels : Label | BiHemiLabel | list of Label or BiHemiLabel
-        The labels for which to extract the time course.
-    src : list
-        Source spaces for left and right hemisphere.
-    mode : str
-        Extraction mode, see explanation above.
-    allow_empty : bool
-        Instead of emitting an error, return all-zero time courses for labels
-        that do not have any vertices in the source estimate.
+    %(eltc_labels)s
+    %(eltc_src)s
+    %(eltc_mode)s
+    %(eltc_allow_empty)s
     return_generator : bool
         If True, a generator instead of a list is returned.
     %(verbose)s
@@ -2854,26 +2835,7 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
 
     Notes
     -----
-    Valid values for mode are:
-
-    ``'mean'``
-        Average within each label.
-    ``'mean_flip'``
-        Average within each label with sign flip depending
-        on source orientation.
-    ``'pca_flip'``
-        Apply an SVD to the time courses within each label
-        and use the scaled and sign-flipped first right-singular vector
-        as the label time course. The scaling is performed such that the
-        power of the label time course is the same as the average
-        per-vertex time course power within the label. The sign of the
-        resulting time course is adjusted by multiplying it with
-        "sign(dot(u, flip))" where u is the first left-singular vector,
-        and flip is a sing-flip vector based on the vertex normals. This
-        procedure assures that the phase does not randomly change by 180
-        degrees from one stc to the next.
-    ``'max'``
-        Max value within each label.
+    %(eltc_mode_notes)s
 
     If encountering a ``ValueError`` due to mismatch between number of
     source points in the subject source space and computed ``stc`` object set

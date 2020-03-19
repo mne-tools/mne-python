@@ -51,12 +51,12 @@ from ..utils import (check_version, logger, check_fname, verbose,
                      compute_corr, _get_inst_data, _ensure_int,
                      copy_function_doc_to_method_doc, _pl, warn, Bunch,
                      _check_preload, _check_compensation_grade, fill_doc,
-                     _check_option, _PCA)
+                     _check_option, _PCA, deprecated)
 from ..utils.check import _check_all_same_channel_names
 
 from ..fixes import _get_args, _safe_svd
 from ..filter import filter_data
-from .bads import find_outliers
+from .bads import _find_outliers
 from .ctps_ import ctps
 from ..io.pick import channel_type, pick_channels_regexp
 
@@ -146,11 +146,13 @@ class ICA(ContainsMixin):
     max_pca_components : int | None
         Number of principal components (from the pre-whitening PCA step) that
         are retained for later use (i.e., for signal reconstruction in
-        :meth:`ICA.apply`; see the ``n_pca_components`` parameter). If
-        ``None``, no dimensionality reduction occurs and ``max_pca_components``
-        will equal the number of channels in the :class:`mne.io.Raw`,
-        :class:`mne.Epochs`, or :class:`mne.Evoked` object passed to
-        :meth:`ICA.fit`.
+        :meth:`ICA.apply`; see the ``n_pca_components`` parameter). Use this
+        parameter to reduce the dimensionality of the input data via PCA before
+        any further processing is performed. If ``None``, no  dimensionality
+        reduction occurs and ``max_pca_components`` will equal the number of
+        channels in the :class:`mne.io.Raw`, :class:`mne.Epochs`, or
+        :class:`mne.Evoked` object passed to :meth:`ICA.fit`. Defaults to
+        ``None``.
     n_pca_components : int | float | None
         Total number of components (ICA + PCA) used for signal reconstruction
         in :meth:`ICA.apply`. At minimum, at least ``n_components`` will be
@@ -179,7 +181,9 @@ class ICA(ContainsMixin):
         Additional parameters passed to the ICA estimator as specified by
         `method`.
     max_iter : int
-        Maximum number of iterations during fit. Defaults to 200.
+        Maximum number of iterations during fit. Defaults to 200. The actual
+        number of iterations it took :meth:`ICA.fit` to complete will be stored
+        in the ``n_iter_`` attribute.
     allow_ref_meg : bool
         Allow ICA on MEG reference channels. Defaults to False.
 
@@ -232,6 +236,8 @@ class ICA(ContainsMixin):
         A dictionary of independent component indices, grouped by types of
         independent components. This attribute is set by some of the artifact
         detection functions.
+    n_iter_ : int
+        If fit, the number of iterations required to complete ICA.
 
     Notes
     -----
@@ -265,6 +271,11 @@ class ICA(ContainsMixin):
               the dimensionality (by 1 for average reference and 1 for each
               interpolated channel) for optimal ICA performance (see the
               `EEGLAB wiki <eeglab_wiki_>`_).
+
+    If you are migrating from EEGLAB and intend to reduce dimensionality via
+    PCA, similarly to EEGLAB's ``runica(..., 'pca', n)`` functionality, simply
+    pass ``max_pca_components=n``, while leaving ``n_components`` and
+    ``n_pca_components`` at their respective default values.
 
     Caveat! If supplying a noise covariance, keep track of the projections
     available in the cov or in the raw object. For example, if you are
@@ -331,9 +342,9 @@ class ICA(ContainsMixin):
         _validate_type(method, str, 'method')
         if method != 'imported_eeglab':  # internal use only
             _check_option('method', method, ['fastica', 'infomax', 'picard'])
-        if method == 'fastica' and not check_version('sklearn', '0.15'):
-            raise RuntimeError('The scikit-learn package (version >= 0.15) '
-                               'is required for FastICA.')
+        if method == 'fastica' and not check_version('sklearn'):
+            raise RuntimeError(
+                'The scikit-learn package is required for FastICA.')
 
         self.noise_cov = noise_cov
 
@@ -495,6 +506,7 @@ class ICA(ContainsMixin):
         del self.pca_components_
         del self.pca_explained_variance_
         del self.pca_mean_
+        del self.n_iter_
         if hasattr(self, 'drop_inds_'):
             del self.drop_inds_
         if hasattr(self, 'reject_'):
@@ -671,17 +683,24 @@ class ICA(ContainsMixin):
                           **self.fit_params)
             ica.fit(data[:, sel])
             self.unmixing_matrix_ = ica.components_
+            self.n_iter_ = ica.n_iter_
         elif self.method in ('infomax', 'extended-infomax'):
-            self.unmixing_matrix_, n_iter = infomax(data[:, sel],
-                                                    random_state=random_state,
-                                                    return_n_iter=True,
-                                                    **self.fit_params)
+            unmixing_matrix, n_iter = infomax(data[:, sel],
+                                              random_state=random_state,
+                                              return_n_iter=True,
+                                              **self.fit_params)
+            self.unmixing_matrix_ = unmixing_matrix
+            self.n_iter_ = n_iter
+            del unmixing_matrix, n_iter
         elif self.method == 'picard':
             from picard import picard
-            _, W, _ = picard(data[:, sel].T, whiten=False,
-                             random_state=random_state, **self.fit_params)
-            del _
+            _, W, _, n_iter = picard(data[:, sel].T, whiten=False,
+                                     return_n_iter=True,
+                                     random_state=random_state,
+                                     **self.fit_params)
             self.unmixing_matrix_ = W
+            self.n_iter_ = n_iter + 1  # picard() starts counting at 0
+            del _, n_iter
         assert self.unmixing_matrix_.shape == (self.n_components_,) * 2
         self.unmixing_matrix_ /= np.sqrt(
             self.pca_explained_variance_[sel])[None, :]  # whitening
@@ -1068,7 +1087,7 @@ class ICA(ContainsMixin):
                 stop=stop, l_freq=l_freq, h_freq=h_freq,
                 reject_by_annotation=reject_by_annotation)]
             # pick last scores
-            this_idx = find_outliers(scores[-1], threshold=threshold)
+            this_idx = _find_outliers(scores[-1], threshold=threshold)
             idx += [this_idx]
             self.labels_['%s/%i/' % (prefix, ii) + ch] = list(this_idx)
 
@@ -1535,7 +1554,7 @@ class ICA(ContainsMixin):
         return data
 
     @verbose
-    def save(self, fname):
+    def save(self, fname, verbose=None):
         """Store ICA solution into a fiff file.
 
         Parameters
@@ -1543,6 +1562,7 @@ class ICA(ContainsMixin):
         fname : str
             The absolute path of the file name to save the ICA solution into.
             The file name should end with -ica.fif or -ica.fif.gz.
+        %(verbose_meth)s
 
         Returns
         -------
@@ -2030,12 +2050,11 @@ def _write_ica(fid, ica):
     n_samples = getattr(ica, 'n_samples_', None)
     ica_misc = {'n_samples_': (None if n_samples is None else int(n_samples)),
                 'labels_': getattr(ica, 'labels_', None),
-                'method': getattr(ica, 'method', None)}
+                'method': getattr(ica, 'method', None),
+                'n_iter_': getattr(ica, 'n_iter_', None),
+                'fit_params': getattr(ica, 'fit_params', None)}
 
-    write_string(fid, FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS,
-                 _serialize(ica_init))
-
-    #   ICA misct params
+    #   ICA misc params
     write_string(fid, FIFF.FIFF_MNE_ICA_MISC_PARAMS,
                  _serialize(ica_misc))
 
@@ -2057,7 +2076,6 @@ def _write_ica(fid, ica):
     write_double_matrix(fid, FIFF.FIFF_MNE_ICA_MATRIX, ica.unmixing_matrix_)
 
     #   Write bad components
-
     write_int(fid, FIFF.FIFF_MNE_ICA_BADS, list(ica.exclude))
 
     # Done!
@@ -2170,6 +2188,10 @@ def read_ica(fname, verbose=None):
             ica.labels_ = labels_
     if 'method' in ica_misc:
         ica.method = ica_misc['method']
+    if 'n_iter_' in ica_misc:
+        ica.n_iter_ = ica_misc['n_iter_']
+    if 'fit_params' in ica_misc:
+        ica.fit_params = ica_misc['fit_params']
 
     logger.info('Ready.')
 
@@ -2234,6 +2256,8 @@ def _detect_artifacts(ica, raw, start_find, stop_find, ecg_ch, ecg_score_func,
     logger.info('Ready.')
 
 
+@deprecated('run_ica() is deprecated and will be removed in 0.21, use '
+            'ICA.detect_artifacts() instead')
 @verbose
 def run_ica(raw, n_components, max_pca_components=100,
             n_pca_components=64, noise_cov=None,
@@ -2429,7 +2453,7 @@ def _find_max_corrs(all_maps, target, threshold):
         max_corrs = [list(np.nonzero(s_corr > threshold)[0])
                      for s_corr in abs_corrs]
     else:
-        max_corrs = [list(find_outliers(s_corr, threshold=threshold))
+        max_corrs = [list(_find_outliers(s_corr, threshold=threshold))
                      for s_corr in abs_corrs]
 
     am = [l[i] for l, i_s in zip(abs_corrs, max_corrs)
@@ -2503,7 +2527,7 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
         If list of floats, search for the best map in the specified range of
         correlation strengths. As correlation values, must be between 0 and 1
         If float > 0, select ICs correlating better than this.
-        If float > 1, use find_outliers to identify ICs within subjects (not in
+        If float > 1, use z-scoring to identify ICs within subjects (not in
         original Corrmap)
         Defaults to "auto".
     label : None | str
@@ -2591,8 +2615,8 @@ def corrmap(icas, template, threshold="auto", label=None, ch_type="eeg",
 
     # first run: use user-selected map
     threshold = np.atleast_1d(np.array(threshold, float)).ravel()
-    threshold_err = ('No component detected using find_outliers when '
-                     'using threshold%s %s, consider using a more lenient '
+    threshold_err = ('No component detected using when z-scoring '
+                     'threshold%s %s, consider using a more lenient '
                      'threshold' % (threshold_extra, threshold))
     if len(all_maps) == 0:
         raise RuntimeError(threshold_err)

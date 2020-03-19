@@ -30,7 +30,6 @@ def _check_ori(pick_ori, forward):
                          'orientation forward solution.')
 
 
-@verbose
 def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
     mask = None
     if isinstance(weights, _BaseSourceEstimate):
@@ -319,7 +318,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose='auto', depth=0.8,
     %(rank_None)s
 
         .. versionadded:: 0.18
-    %(pick_ori-vec)s
+    %(pick_ori)s
     %(verbose)s
 
     Returns
@@ -557,7 +556,7 @@ def tf_mixed_norm(evoked, forward, noise_cov,
     %(rank_None)s
 
         .. versionadded:: 0.18
-    %(pick_ori-vec)s
+    %(pick_ori)s
     n_tfmxne_iter : int
         Number of TF-MxNE iterations. If > 1, iterative reweighting is applied.
     %(verbose)s

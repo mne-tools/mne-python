@@ -37,7 +37,8 @@ below which and above which to filter out data.
 +---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
 | Filter data         | ``EEG = pop_eegfiltnew(EEG, l_freq, h_freq);``           | :func:`raw.filter(l_freq, h_freq) <mne.io.Raw.filter>`                                           |
 +---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
-| Run ICA             | ``EEG = pop_runica(EEG);``                               | :func:`ica.fit(raw) <mne.preprocessing.ICA.fit>`                                                 |
+| Run ICA             | ``EEG = pop_runica(EEG, 'pca', n);``                     | | :class:`ica = ICA(max_pca_components=n) <mne.preprocessing.ICA>`                               |
+|                     |                                                          | | :func:`ica.fit(raw) <mne.preprocessing.ICA.fit>`                                               |
 +---------------------+----------------------------------------------------------+--------------------------------------------------------------------------------------------------+
 | Epoch data          | | ``event_id = {'cond1', 'cond2'};``                     | | :func:`events = mne.find_events(raw) <mne.find_events>`                                        |
 |                     | | ``Epochs = pop_epochs(EEG, event_id, [tmin, tmax]);``  | | :py:class:`event_id = dict(cond1=32, cond2=64) <dict>`                                         |

@@ -3,8 +3,10 @@
 
 
 import numpy as np
+from ..utils import deprecated
 
 
+@deprecated('find_outliers is deprecated and will be removed in 0.20')
 def find_outliers(X, threshold=3.0, max_iter=2):
     """Find outliers based on iterated Z-scoring.
 
@@ -26,6 +28,10 @@ def find_outliers(X, threshold=3.0, max_iter=2):
     bad_idx : np.ndarray of int, shape (n_features)
         The outlier indices.
     """
+    return _find_outliers(X, threshold, max_iter)
+
+
+def _find_outliers(X, threshold=3.0, max_iter=2):
     from scipy.stats import zscore
     my_mask = np.zeros(len(X), dtype=np.bool)
     for _ in range(max_iter):

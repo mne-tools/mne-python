@@ -55,7 +55,7 @@ def check_fname(fname, filetype, endings, endings_err=()):
              % (fname, filetype, print_endings))
 
 
-def check_version(library, min_version):
+def check_version(library, min_version='0.0'):
     r"""Check minimum library version required.
 
     Parameters
@@ -135,15 +135,19 @@ def _check_event_id(event_id, events):
     return event_id
 
 
-def _check_fname(fname, overwrite=False, must_exist=False, name='File'):
+def _check_fname(fname, overwrite=False, must_exist=False, name='File',
+                 allow_dir=False):
     """Check for file existence."""
     _validate_type(fname, 'path-like', 'fname')
-    if op.isfile(fname):
+    if op.isfile(fname) or (allow_dir and op.isdir(fname)):
         if not overwrite:
             raise FileExistsError('Destination file exists. Please use option '
                                   '"overwrite=True" to force overwriting.')
         elif overwrite != 'read':
             logger.info('Overwriting existing file.')
+        if must_exist and not os.access(fname, os.R_OK):
+            raise PermissionError(
+                '%s does not have read permissions: %s' % (name, fname))
     elif must_exist:
         raise FileNotFoundError('%s "%s" does not exist' % (name, fname))
     return str(fname)

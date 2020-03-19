@@ -9,11 +9,13 @@ from copy import deepcopy
 from itertools import takewhile
 import collections
 import warnings
+from textwrap import shorten
 import numpy as np
 
 from .utils import (_pl, check_fname, _validate_type, verbose, warn, logger,
                     _check_pandas_installed, _mask_to_onsets_offsets,
-                    _DefaultEventParser, _check_dt, _stamp_to_dt, _dt_to_stamp)
+                    _DefaultEventParser, _check_dt, _stamp_to_dt, _dt_to_stamp,
+                    _check_fname)
 
 from .io.write import (start_block, end_block, write_float, write_name_list,
                        write_double, start_file)
@@ -204,15 +206,11 @@ class Annotations(object):
     def __repr__(self):
         """Show the representation."""
         counter = collections.Counter(self.description)
-        kinds = ['%s (%s)' % k for k in counter.items()]
-        kinds = ', '.join(kinds[:3]) + ('' if len(kinds) <= 3 else '...')
+        kinds = ', '.join(['%s (%s)' % k for k in sorted(counter.items())])
         kinds = (': ' if len(kinds) > 0 else '') + kinds
-        if self.orig_time is None:
-            orig = 'orig_time : None'
-        else:
-            orig = 'orig_time : %s' % self.orig_time
-        return ('<Annotations  |  %s segment%s %s, %s>'
-                % (len(self.onset), _pl(len(self.onset)), kinds, orig))
+        s = ('Annotations | %s segment%s%s' %
+             (len(self.onset), _pl(len(self.onset)), kinds))
+        return '<' + shorten(s, width=77, placeholder=' ...') + '>'
 
     def __len__(self):
         """Return the number of annotations."""
@@ -498,13 +496,13 @@ def _sync_onset(raw, onset, inverse=False):
     return annot_start
 
 
-def _annotations_starts_stops(raw, kinds, name='unknown', invert=False):
+def _annotations_starts_stops(raw, kinds, name='skip_by_annotation',
+                              invert=False):
     """Get starts and stops from given kinds.
 
     onsets and ends are inclusive.
     """
-    _validate_type(kinds, (str, list, tuple), str(type(kinds)),
-                   "str, list or tuple")
+    _validate_type(kinds, (str, list, tuple), name)
     if isinstance(kinds, str):
         kinds = [kinds]
     else:
@@ -631,7 +629,11 @@ def read_annotations(fname, sfreq='auto', uint16_codec=None):
     from .io.cnt.cnt import _read_annotations_cnt
     from .io.curry.curry import _read_annotations_curry
     from .io.ctf.markers import _read_annotations_ctf
-
+    _validate_type(fname, 'path-like', 'fname')
+    fname = _check_fname(
+        fname, overwrite='read', must_exist=True,
+        allow_dir=str(fname).endswith('.ds'),  # allow_dir for CTF
+        name='fname')
     name = op.basename(fname)
     if name.endswith(('fif', 'fif.gz')):
         # Read FiF files
