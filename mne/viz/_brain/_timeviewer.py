@@ -874,9 +874,13 @@ class _TimeViewer(object):
         if hasattr(self, "mpl_canvas"):
             self.mpl_canvas.close()
             self.mpl_canvas.time_viewer = None
+            self.mpl_canvas.canvas = None
             self.mpl_canvas = None
         self.time_actor = None
         self.picked_renderer = None
+        self.act_data["lh"] = None
+        self.act_data["rh"] = None
+        self.act_data = None
 
 
 class _LinkViewer(object):
