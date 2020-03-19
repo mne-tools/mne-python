@@ -12,7 +12,7 @@ the cortex. These dipoles have both a position and an orientation. In this
 tutorial, we will look at the various options available to restrict the
 orientation of the dipoles and the impact on the resulting source estimate.
 
-See :ref:`inverse_orientation_constrains`
+See :ref:`inverse_orientation_constraints` for related information.
 """
 
 ###############################################################################
