@@ -184,7 +184,6 @@ class _Brain(object):
         self._subjects_dir = subjects_dir
         self._views = views
         self._times = None
-        self._depth_peeling = False
         # for now only one color bar can be added
         # since it is the same for all figures
         self._colorbar_added = False
@@ -476,9 +475,7 @@ class _Brain(object):
         for ri, v in enumerate(self._views):
             if array.ndim == 3:
                 smooth_mat = self._data[hemi]['smooth_mat']
-                # vectors = array[:, :, time_idx]
                 vectors = self.vectors
-                # vector_values = magnitude[:, time_idx]
                 vector_values = self.vector_values
                 scalar_data = smooth_mat * magnitude
                 vertices = slice(None) if vertices is None else vertices
@@ -1129,12 +1126,6 @@ class _Brain(object):
                     for i in range(0, n_col):
                         lt = lut_lst[i]
                         vtk_lut.SetTableValue(i, lt[0], lt[1], lt[2], alpha)
-
-    def enable_depth_peeling(self):
-        """Enable depth peeling."""
-        if not self._depth_peeling:
-            self._renderer.enable_depth_peeling()
-            self._depth_peeling = True
 
 
 def _safe_interp1d(x, y, kind='linear', axis=-1, assume_sorted=False):

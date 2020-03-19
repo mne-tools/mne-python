@@ -2385,10 +2385,17 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     """
     from .backends.renderer import get_3d_backend
     # Import here to avoid circular imports
-    if get_3d_backend() == "mayavi":
+    using_mayavi = get_3d_backend() == "mayavi"
+    if time_viewer == 'auto':
+        time_viewer = not using_mayavi
+    if using_mayavi:
+        if not check_version('surfer', '0.9'):
+            raise RuntimeError('This function requires pysurfer version '
+                               '>= 0.9')
         from surfer import Brain, TimeViewer
-    else:
+    else:  # PyVista
         from ._brain import _Brain as Brain
+        from ._brain import _TimeViewer as TimeViewer
     from ..source_estimate import VectorSourceEstimate
 
     _validate_type(stc, VectorSourceEstimate, "stc", "Vector Source Estimate")
@@ -2489,9 +2496,6 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                 for f in ff:
                     if f.scene is not None:
                         f.scene.renderer.use_depth_peeling = True
-    else:
-        if brain_alpha < 1.0:
-            brain.enable_depth_peeling()
 
     if time_viewer:
         TimeViewer(brain)
