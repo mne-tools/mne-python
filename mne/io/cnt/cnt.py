@@ -278,7 +278,7 @@ def _get_cnt_info(input_fname, eog, ecg, emg, misc, data_format, date_format):
             fid.seek(data_offset + 75 * ch_idx + 59)
             sensitivity = np.fromfile(fid, dtype='f4', count=1)[0]
             fid.seek(data_offset + 75 * ch_idx + 71)
-            cal = np.fromfile(fid, dtype='f4', count=1)
+            cal = np.fromfile(fid, dtype='f4', count=1)[0]
             cals.append(cal * sensitivity * 1e-6 / 204.8)
 
     info = _empty_info(sfreq)

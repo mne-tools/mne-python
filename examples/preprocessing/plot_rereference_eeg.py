@@ -44,17 +44,19 @@ epochs_params = dict(events=events, event_id=event_id, tmin=tmin, tmax=tmax,
 
 fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, sharex=True)
 
-# No reference. This assumes that the EEG has already been referenced properly.
-# This explicitly prevents MNE from adding a default EEG reference. Any average
-# reference projector is automatically removed.
-raw.set_eeg_reference([])
+# We first want to plot the data without any added reference (i.e., using only
+# the reference that was applied during recording of the data).
+# However, this particular data already has an average reference projection
+# applied that we now need to remove again using :func:`mne.set_eeg_reference`
+raw, _ = mne.set_eeg_reference(raw, [])  # use [] to remove average projection
 evoked_no_ref = mne.Epochs(raw, **epochs_params).average()
 
 evoked_no_ref.plot(axes=ax1, titles=dict(eeg='Original reference'), show=False,
                    time_unit='s')
 
-# Average reference. This is normally added by default, but can also be added
-# explicitly.
+# Now we want to plot the data with an average reference, so let's add the
+# projection we removed earlier back to the data. Note that we can use
+# "set_eeg_reference" as a method on the ``raw`` object as well.
 raw.set_eeg_reference('average', projection=True)
 evoked_car = mne.Epochs(raw, **epochs_params).average()
 

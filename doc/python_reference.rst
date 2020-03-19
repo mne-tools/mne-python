@@ -1033,6 +1033,7 @@ Logging and Configuration
    set_log_level
    set_log_file
    set_config
+   set_cache_dir
    sys_info
    verbose
 

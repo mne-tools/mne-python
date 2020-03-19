@@ -30,7 +30,7 @@ from .write import (start_file, end_file, start_block, end_block,
 from .proc_history import _read_proc_history, _write_proc_history
 from ..transforms import invert_transform, Transform, _coord_frame_name
 from ..utils import (logger, verbose, warn, object_diff, _validate_type,
-                     _stamp_to_dt, _dt_to_stamp, _pl)
+                     _stamp_to_dt, _dt_to_stamp, _pl, _is_numeric)
 from ._digitization import (_format_dig_points, _dig_kind_proper,
                             _dig_kind_rev, _dig_kind_ints, _read_dig_fif)
 from ._digitization import write_dig as _dig_write_dig
@@ -540,7 +540,7 @@ class Info(dict, MontageMixin):
         info : instance of Info
             The copied info.
         """
-        return Info(deepcopy(self))
+        return deepcopy(self)
 
     def normalize_proj(self):
         """(Re-)Normalize projection vectors after subselection.
@@ -642,6 +642,41 @@ class Info(dict, MontageMixin):
         st %= non_empty
         return st
 
+    def __deepcopy__(self, memodict):
+        """Make a deepcopy."""
+        result = Info.__new__(Info)
+        for k, v in self.items():
+            # chs is roughly half the time but most are immutable
+            if k == 'chs':
+                # dict shallow copy is fast, so use it then overwrite
+                result[k] = list()
+                for ch in v:
+                    ch = ch.copy()  # shallow
+                    ch['loc'] = ch['loc'].copy()
+                    result[k].append(ch)
+            elif k == 'ch_names':
+                # we know it's list of str, shallow okay and saves ~100 µs
+                result[k] = v.copy()
+            elif k == 'hpi_meas':
+                hms = list()
+                for hm in v:
+                    hm = hm.copy()
+                    # the only mutable thing here is some entries in coils
+                    hm['hpi_coils'] = [coil.copy() for coil in hm['hpi_coils']]
+                    # There is a *tiny* risk here that someone could write
+                    # raw.info['hpi_meas'][0]['hpi_coils'][1]['epoch'] = ...
+                    # and assume that info.copy() will make an actual copy,
+                    # but copying these entries has a 2x slowdown penalty so
+                    # probably not worth it for such a deep corner case:
+                    # for coil in hpi_coils:
+                    #     for key in ('epoch', 'slopes', 'corr_coeff'):
+                    #         coil[key] = coil[key].copy()
+                    hms.append(hm)
+                result[k] = hms
+            else:
+                result[k] = deepcopy(v, memodict)
+        return result
+
     def _check_consistency(self, prepend_error=''):
         """Do some self-consistency checks and datatype tweaks."""
         missing = [bad for bad in self['bads'] if bad not in self['ch_names']]
@@ -669,6 +704,27 @@ class Info(dict, MontageMixin):
         for key in ('sfreq', 'highpass', 'lowpass'):
             if self.get(key) is not None:
                 self[key] = float(self[key])
+
+        # Ensure info['chs'] has immutable entries (copies much faster)
+        scalar_keys = ('unit_mul range cal kind coil_type unit '
+                       'coord_frame scanno logno').split()
+        for ci, ch in enumerate(self['chs']):
+            ch_name = ch['ch_name']
+            if not isinstance(ch_name, str):
+                raise TypeError(
+                    'Bad info: info["chs"][%d]["ch_name"] is not a string, '
+                    'got type %s' % (ci, type(ch_name)))
+            for key in scalar_keys:
+                val = ch.get(key, 1)
+                if not _is_numeric(val):
+                    raise TypeError(
+                        'Bad info: info["chs"][%d][%r] = %s is type %s, must '
+                        'be float or int' % (ci, key, val, type(val)))
+            loc = ch['loc']
+            if not (isinstance(loc, np.ndarray) and loc.shape == (12,)):
+                raise TypeError(
+                    'Bad info: info["chs"][%d]["loc"] must be ndarray with '
+                    '12 elements, got %r' % (ci, loc))
 
         # make sure channel names are not too long
         self._check_ch_name_length()
@@ -1146,12 +1202,15 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                     hc['number'] = int(read_tag(fid, pos).data)
                 elif kind == FIFF.FIFF_EPOCH:
                     hc['epoch'] = read_tag(fid, pos).data
+                    hc['epoch'].flags.writeable = False
                 elif kind == FIFF.FIFF_HPI_SLOPES:
                     hc['slopes'] = read_tag(fid, pos).data
+                    hc['slopes'].flags.writeable = False
                 elif kind == FIFF.FIFF_HPI_CORR_COEFF:
                     hc['corr_coeff'] = read_tag(fid, pos).data
+                    hc['corr_coeff'].flags.writeable = False
                 elif kind == FIFF.FIFF_HPI_COIL_FREQ:
-                    hc['coil_freq'] = read_tag(fid, pos).data
+                    hc['coil_freq'] = float(read_tag(fid, pos).data)
             hcs.append(hc)
         hm['hpi_coils'] = hcs
         hms.append(hm)
