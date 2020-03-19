@@ -443,6 +443,23 @@ def test_check_consistency():
         info3 = create_info(ch_names=['a', 'b', 'b', 'c', 'b'], sfreq=1000.)
     assert_array_equal(info3['ch_names'], ['a', 'b-0', 'b-1', 'c', 'b-2'])
 
+    # a few bad ones
+    idx = 0
+    ch = info['chs'][idx]
+    for key, bad, match in (('ch_name', 1., 'not a string'),
+                            ('loc', np.zeros(15), '12 elements'),
+                            ('cal', np.ones(1), 'float or int')):
+        info._check_consistency()  # okay
+        old = ch[key]
+        ch[key] = bad
+        if key == 'ch_name':
+            info['ch_names'][idx] = bad
+        with pytest.raises(TypeError, match=match):
+            info._check_consistency()
+        ch[key] = old
+        if key == 'ch_name':
+            info['ch_names'][idx] = old
+
 
 def _test_anonymize_info(base_info):
     """Test that sensitive information can be anonymized."""
