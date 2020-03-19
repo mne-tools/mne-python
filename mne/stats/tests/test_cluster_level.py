@@ -20,7 +20,8 @@ from mne.stats.cluster_level import (permutation_cluster_test, f_oneway,
                                      spatio_temporal_cluster_test,
                                      spatio_temporal_cluster_1samp_test,
                                      ttest_1samp_no_p, summarize_clusters_stc)
-from mne.utils import run_tests_if_main, catch_logging, check_version
+from mne.utils import (run_tests_if_main, catch_logging, check_version,
+                       requires_sklearn)
 
 
 @pytest.fixture(scope="function", params=('Numba', 'NumPy'))
@@ -152,13 +153,6 @@ def test_permutation_large_n_samples(numba_conditional):
 
 def test_permutation_step_down_p(numba_conditional):
     """Test cluster level permutations with step_down_p."""
-    try:
-        try:
-            from sklearn.feature_extraction.image import grid_to_graph
-        except ImportError:
-            from scikits.learn.feature_extraction.image import grid_to_graph  # noqa: F401,E501 analysis:ignore
-    except ImportError:
-        return
     rng = np.random.RandomState(0)
     # subjects, time points, spatial points
     X = rng.randn(9, 2, 10)
@@ -272,15 +266,10 @@ def test_cluster_permutation_t_test(numba_conditional, stat_fun):
                 condition1, threshold=1, stat_fun=lambda x: stat_fun(x)[:-1])
 
 
+@requires_sklearn
 def test_cluster_permutation_with_connectivity(numba_conditional):
     """Test cluster level permutations with connectivity matrix."""
-    try:
-        try:
-            from sklearn.feature_extraction.image import grid_to_graph
-        except ImportError:
-            from scikits.learn.feature_extraction.image import grid_to_graph
-    except ImportError:
-        return
+    from sklearn.feature_extraction.image import grid_to_graph
     condition1_1d, condition2_1d, condition1_2d, condition2_2d = \
         _get_conditions()
 
@@ -433,15 +422,10 @@ def test_cluster_permutation_with_connectivity(numba_conditional):
                     buffer_size=None)
 
 
+@requires_sklearn
 def test_permutation_connectivity_equiv(numba_conditional):
     """Test cluster level permutations with and without connectivity."""
-    try:
-        try:
-            from sklearn.feature_extraction.image import grid_to_graph
-        except ImportError:
-            from scikits.learn.feature_extraction.image import grid_to_graph
-    except ImportError:
-        return
+    from sklearn.feature_extraction.image import grid_to_graph
     rng = np.random.RandomState(0)
     # subjects, time points, spatial points
     n_time = 2
@@ -509,15 +493,10 @@ def test_permutation_connectivity_equiv(numba_conditional):
         assert_array_equal(stat_map, this_stat_map)
 
 
+@requires_sklearn
 def test_spatio_temporal_cluster_connectivity(numba_conditional):
     """Test spatio-temporal cluster permutations."""
-    try:
-        try:
-            from sklearn.feature_extraction.image import grid_to_graph
-        except ImportError:
-            from scikits.learn.feature_extraction.image import grid_to_graph
-    except ImportError:
-        return
+    from sklearn.feature_extraction.image import grid_to_graph
     condition1_1d, condition2_1d, condition1_2d, condition2_2d = \
         _get_conditions()
 

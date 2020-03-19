@@ -305,7 +305,7 @@ API
   - NumPy 1.13.3
   - SciPy 1.0.0
   - matplotlib 2.1
-  - scikit-learn 1.19.1 (optional requirement)
+  - scikit-learn 0.19.1 (optional requirement)
   - pandas 0.21 (optional requirement)
 
 - :meth:`mne.Epochs.plot` now accepts an ``event_id`` parameter (useful in tandem with ``event_colors`` for specifying event colors by name) by `Daniel McCloy`_.
