@@ -954,7 +954,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         else:
             this_include = step_down_include
         logger.info('Permuting %d times%s...' % (len(orders), extra))
-        with ProgressBar(len(orders), verbose_bool='auto') as progress_bar:
+        with ProgressBar(len(orders)) as progress_bar:
             H0 = parallel(
                 my_do_perm_func(X_full, slices, threshold, tail, connectivity,
                                 stat_fun, max_step, this_include, partitions,
