@@ -1124,7 +1124,6 @@ def filter_chpi(raw, include_line=True, t_step=0.01, t_window=None,
             right_edge, chunk = chunks.pop(0)
             raw._data[meg_picks,
                       right_edge - chunk.shape[1]:right_edge] -= chunk
-    pb.done()
     return raw
 
 

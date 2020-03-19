@@ -6,7 +6,6 @@
 
 import os
 import shutil
-import sys
 import time
 from urllib import parse, request
 from urllib.error import HTTPError, URLError
@@ -48,9 +47,9 @@ def _get_http(url, temp_file_name, initial_size, timeout, verbose_bool):
     logger.info('Downloading %s (%s%s)' % (url, sizeof_fmt(file_size), extra))
     del url
     mode = 'ab' if initial_size > 0 else 'wb'
-    progress = ProgressBar(file_size, initial_value=initial_size,
-                           spinner=True, mesg='file_sizes',
-                           verbose_bool=verbose_bool)
+    progress = ProgressBar(file_size, initial_size, unit='B',
+                           mesg='Downloading', unit_scale=True,
+                           unit_divisor=1024)
     del file_size
     chunk_size = 8192  # 2 ** 13
     with open(temp_file_name, mode) as local_file:
@@ -58,24 +57,14 @@ def _get_http(url, temp_file_name, initial_size, timeout, verbose_bool):
             t0 = time.time()
             chunk = response.read(chunk_size)
             dt = time.time() - t0
-            if dt < 0.005:
+            if dt < 0.01:
                 chunk_size *= 2
             elif dt > 0.1 and chunk_size > 8192:
                 chunk_size = chunk_size // 2
             if not chunk:
-                if verbose_bool:
-                    sys.stdout.write('\n')
-                    sys.stdout.flush()
                 break
             local_file.write(chunk)
-            progress.update_with_increment_value(len(chunk),
-                                                 mesg='file_sizes')
-
-
-def _chunk_write(chunk, local_file, progress):
-    """Write a chunk to file and update the progress bar."""
-    local_file.write(chunk)
-    progress.update_with_increment_value(len(chunk))
+            progress.update_with_increment_value(len(chunk))
 
 
 @verbose
