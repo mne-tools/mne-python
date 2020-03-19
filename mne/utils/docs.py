@@ -777,6 +777,117 @@ Valid values for ``mode`` are:
     similar STCs does not result in 180° direction/phase changes.
 """
 
+# Clustering
+docdict['clust_thresh'] = """
+threshold : float | dict | None
+    If numeric, vertices with data values more extreme than ``threshold`` will
+    be used to form clusters. If threshold is ``None``, {} will be chosen
+    automatically that corresponds to a p-value of 0.05 for the given number of
+    observations (only valid when using {}). If ``threshold`` is a
+    :class:`dict` (with keys ``'start'`` and ``'step'``) then threshold-free
+    cluster enhancement (TFCE) will be used (see the
+    :ref:`TFCE example <tfce_example>` and :footcite:`SmithNichols2009`).
+"""
+f_test = ('an F-threshold', 'an F-statistic')
+t_test = ('a t-threshold', 'a t-statistic')
+docdict['clust_thresh_f'] = docdict['clust_thresh'].format(*f_test)
+docdict['clust_thresh_t'] = docdict['clust_thresh'].format(*t_test)
+docdict['clust_nperm'] = """
+n_permutations : int{}
+    The number of permutations to compute.{}
+"""
+nperm_all = (" | 'all'", " Can be 'all' to perform an exact test.")
+docdict['clust_nperm_all'] = docdict['clust_nperm'].format(*nperm_all)
+docdict['clust_nperm_int'] = docdict['clust_nperm'].format('', '')
+docdict['clust_tail'] = """
+tail : int
+    If tail is 1, the statistic is thresholded above threshold.
+    If tail is -1, the statistic is thresholded below threshold.
+    If tail is 0, the statistic is thresholded on both sides of
+    the distribution.
+"""
+docdict['clust_stat'] = """
+stat_fun : callable | None
+    Function called to calculate the test statistic. Must accept 1D-array as
+    input and return a 1D array. If ``None`` (the default), uses
+    :func:`mne.stats.{}`.
+"""
+docdict['clust_stat_f'] = docdict['clust_stat'].format('f_oneway')
+docdict['clust_stat_t'] = docdict['clust_stat'].format('ttest_1samp_no_p')
+docdict['clust_con'] = """
+connectivity : scipy.sparse.spmatrix | None | False
+    Defines connectivity between locations in the data, where "locations" can
+    be spatial vertices, frequency bins, etc. If ``False``, assumes no
+    connectivity (each location is treated as independent and unconnected).
+    If ``None``, a regular lattice connectivity is assumed, connecting
+    each {sp} location to its neighbor(s) along the last dimension
+    of {{eachgrp}} ``{{x}}``{lastdim}.
+    If ``connectivity`` is a matrix, it is assumed to be symmetric (only the
+    upper triangular half is used) and must be square with dimension equal to
+    ``{{x}}.shape[-1]`` {parone} or ``{{x}}.shape[-1] * {{x}}.shape[-2]``
+    {partwo}.{memory}
+"""
+mem = (' If spatial connectivity is uniform in time, it is recommended to use '
+       'a square matrix with dimension ``{x}.shape[-1]`` (n_vertices) to save '
+       'memory and computation, and to use ``max_step`` to define the extent '
+       'of temporal adjacency to consider when clustering.')
+st = dict(sp='spatial', lastdim='', parone='(n_vertices)',
+          partwo='(n_times * n_vertices)', memory=mem)
+tf = dict(sp='', lastdim=' (or the last two dimensions if ``{x}`` is 2D)',
+          parone='', partwo='', memory='')
+nogroups = dict(eachgrp='', x='X')
+groups = dict(eachgrp='each group ', x='X[k]')
+docdict['clust_con_st1'] = docdict['clust_con'].format(**st).format(**nogroups)
+docdict['clust_con_stn'] = docdict['clust_con'].format(**st).format(**groups)
+docdict['clust_con_1'] = docdict['clust_con'].format(**tf).format(**nogroups)
+docdict['clust_con_n'] = docdict['clust_con'].format(**tf).format(**groups)
+docdict['clust_maxstep'] = """
+max_step : int
+    Maximum distance along the second dimension (typically this is the "time"
+    axis) between samples that are considered "connected". Only used
+    when ``connectivity`` has shape (n_vertices, n_vertices).
+"""
+docdict['clust_stepdown'] = """
+step_down_p : float
+    To perform a step-down-in-jumps test, pass a p-value for clusters to
+    exclude from each successive iteration. Default is zero, perform no
+    step-down test (since no clusters will be smaller than this value).
+    Setting this to a reasonable value, e.g. 0.05, can increase sensitivity
+    but costs computation time.
+"""
+docdict['clust_power'] = """
+t_power : float
+    Power to raise the statistical values (usually {}-values) by before
+    summing (sign will be retained). Note that ``t_power=0`` will give a
+    count of locations in each cluster, ``t_power=1`` will weight each location
+    by its statistical score.
+"""
+docdict['clust_power_t'] = docdict['clust_power'].format('t')
+docdict['clust_power_f'] = docdict['clust_power'].format('F')
+docdict['clust_out'] = """
+out_type : 'mask' | 'indices'
+    Output format of clusters. If ``'mask'``, returns boolean arrays the same
+    shape as the input data, with ``True`` values indicating locations that are
+    part of a cluster. If ``'indices'``, returns a list of lists, where each
+    sublist contains the indices of locations that together form a cluster.
+    Note that for large datasets, ``'indices'`` may use far less memory than
+    ``'mask'``.
+"""
+docdict['clust_disjoint'] = """
+check_disjoint : bool
+    Whether to check if the connectivity matrix can be separated into disjoint
+    sets before clustering. This may lead to faster clustering, especially if
+    the second dimension of ``X`` (usually the "time" dimension) is large.
+"""
+docdict['clust_buffer'] = """
+buffer_size : int | None
+    Block size to use when computing test statistics. This can significantly
+    reduce memory usage when n_jobs > 1 and memory sharing between processes is
+    enabled (see :func:`mne.set_cache_dir`), because ``X`` will be shared
+    between processes and each process only needs to allocate space for a small
+    block of locations at a time.
+"""
+
 # DataFrames
 docdict['df_scaling_time_deprecated'] = """
 scaling_time : None
