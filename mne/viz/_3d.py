@@ -14,6 +14,7 @@ import base64
 from distutils.version import LooseVersion
 from io import BytesIO
 from itertools import cycle
+import os
 import os.path as op
 import warnings
 import collections
@@ -1482,6 +1483,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
                  'ven': {'elev': -90, 'azim': -90},
                  'fro': {'elev': 16.739, 'azim': 60},
                  'par': {'elev': 30, 'azim': -60}}
+    time_viewer = False if time_viewer == 'auto' else time_viewer
     kwargs = dict(lh=lh_kwargs, rh=rh_kwargs)
     _check_option('views', views, sorted(lh_kwargs.keys()))
     mapdata = _process_clim(clim, colormap, transparent, stc.data)
@@ -1612,7 +1614,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           cortex="classic", size=800, background="black",
                           foreground="white", initial_time=None,
                           time_unit='s', backend='auto', spacing='oct6',
-                          title=None, show_traces=False, verbose=None):
+                          title=None, show_traces='auto', verbose=None):
     """Plot SourceEstimate with PySurfer.
 
     By default this function uses :mod:`mayavi.mlab` to plot the source
@@ -1757,7 +1759,11 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     if time_viewer == 'auto':
         time_viewer = not using_mayavi
     if show_traces == 'auto':
-        show_traces = not using_mayavi and time_viewer
+        show_traces = (
+            not using_mayavi and
+            time_viewer and
+            # XXX temporary hidden workaround for memory problems on CircleCI
+            os.getenv('_MNE_BRAIN_TRACES_AUTO', 'true').lower() != 'false')
     if using_mayavi:
         if not check_version('surfer', '0.9'):
             raise RuntimeError('This function requires pysurfer version '
@@ -2289,7 +2295,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  time_label='auto', smoothing_steps=10,
                                  transparent=None, brain_alpha=0.4,
                                  overlay_alpha=None, vector_alpha=1.0,
-                                 scale_factor=None, time_viewer=False,
+                                 scale_factor=None, time_viewer='auto',
                                  subjects_dir=None, figure=None, views='lat',
                                  colorbar=True, clim='auto', cortex='classic',
                                  size=800, background='black',
@@ -2331,8 +2337,12 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     scale_factor : float | None
         Scaling factor for the vector glyphs. By default, an attempt is made to
         automatically determine a sane value.
-    time_viewer : bool
-        Display time viewer GUI.
+    time_viewer : bool | str
+        Display time viewer GUI. Can be "auto", which is True for the PyVista
+        backend and False otherwise.
+
+        .. versionchanged:: 0.20
+           Added "auto" option and default.
     subjects_dir : str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.

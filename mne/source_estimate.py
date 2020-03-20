@@ -1526,7 +1526,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
              cortex="classic", size=800, background="black",
              foreground="white", initial_time=None, time_unit='s',
              backend='auto', spacing='oct6', title=None,
-             show_traces=False, verbose=None):
+             show_traces='auto', verbose=None):
         brain = plot_source_estimates(
             self, subject, surface=surface, hemi=hemi, colormap=colormap,
             time_label=time_label, smoothing_steps=smoothing_steps,
