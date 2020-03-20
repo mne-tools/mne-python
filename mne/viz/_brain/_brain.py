@@ -441,10 +441,7 @@ class _Brain(object):
         ctable = self.update_lut()
         self._data['ctable'] = ctable
 
-        # set_data_smoothing calls "set_time_point" for us, which will set
-        # _current_time
-        self.set_time_interpolation(self.time_interpolation)
-        self.set_data_smoothing(smoothing_steps)
+        # 1) add the surfaces first
         for ri, v in enumerate(self._views):
             views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
             if self._hemi != 'split':
@@ -453,6 +450,36 @@ class _Brain(object):
                 ci = 0 if hemi == 'lh' else 1
             self._renderer.subplot(ri, ci)
 
+            mesh_data = self._renderer.mesh(
+                x=self.geo[hemi].coords[:, 0],
+                y=self.geo[hemi].coords[:, 1],
+                z=self.geo[hemi].coords[:, 2],
+                triangles=self.geo[hemi].faces,
+                color=None,
+                colormap=ctable,
+                vmin=dt_min,
+                vmax=dt_max,
+                opacity=alpha,
+                scalars=np.zeros(len(self.geo[hemi].coords)),
+            )
+            if isinstance(mesh_data, tuple):
+                actor, mesh = mesh_data
+                # add metadata to the mesh for picking
+                mesh._hemi = hemi
+            else:
+                actor, mesh = mesh_data, None
+            self._data[hemi]['actor'].append(actor)
+            self._data[hemi]['mesh'].append(mesh)
+
+        # 2) udpate time and smoothing properties
+        # set_data_smoothing calls "set_time_point" for us, which will set
+        # _current_time
+        self.set_time_interpolation(self.time_interpolation)
+        self.set_data_smoothing(smoothing_steps)
+
+        # 3) add the glyphs and other actors
+        for ri, v in enumerate(self._views):
+            views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
             if array.ndim == 3:
                 vectors = self.vectors
                 vector_values = self.vector_values
@@ -481,27 +508,6 @@ class _Brain(object):
                     scale=final_scale_factor,
                     opacity=vector_alpha
                 )
-
-            mesh_data = self._renderer.mesh(
-                x=self.geo[hemi].coords[:, 0],
-                y=self.geo[hemi].coords[:, 1],
-                z=self.geo[hemi].coords[:, 2],
-                triangles=self.geo[hemi].faces,
-                color=None,
-                colormap=ctable,
-                vmin=dt_min,
-                vmax=dt_max,
-                opacity=alpha,
-                scalars=np.zeros(len(self.geo[hemi].coords)),
-            )
-            if isinstance(mesh_data, tuple):
-                actor, mesh = mesh_data
-                # add metadata to the mesh for picking
-                mesh._hemi = hemi
-            else:
-                actor, mesh = mesh_data, None
-            self._data[hemi]['actor'].append(actor)
-            self._data[hemi]['mesh'].append(mesh)
 
             if array.ndim >= 2 and callable(time_label):
                 if not self._time_label_added:
