@@ -84,6 +84,7 @@ def pytest_configure(config):
     ignore:.*In future, it will be an error for 'np.bool_'.*:DeprecationWarning
     ignore:.*Converting `np\.character` to a dtype is deprecated.*:DeprecationWarning
     ignore:.*sphinx\.util\.smartypants is deprecated.*:
+    ignore:.*pandas\.util\.testing is deprecated.*:
     always:.*get_data.* is deprecated in favor of.*:DeprecationWarning
     """  # noqa: E501
     for warning_line in warning_lines.split('\n'):
