@@ -10,7 +10,7 @@ from mne.chpi import read_head_pos
 from mne.datasets import testing
 from mne.io import read_raw_fif
 from mne.preprocessing import (annotate_movement, compute_average_dev_head_t,
-                               annotate_muscle)
+                               annotate_muscle_zscore)
 
 data_path = testing.data_path(download=False)
 sss_path = op.join(data_path, 'SSS')
@@ -54,8 +54,8 @@ def test_movement_annotation_head_correction():
 def test_muscle_annotation():
     """Test correct detection muscle artifacts."""
     raw = read_raw_fif(raw_fname, allow_maxshield='yes').load_data()
-    raw.pick_types(meg='grad', ref_meg=False)
+    raw.pick_types(meg='mag', ref_meg=False)
     raw.notch_filter([50, 110, 150])
     # Check 2 muscle segments are detected
-    annot_muscle, scores = annotate_muscle(raw, threshold=1)
+    annot_muscle, scores = annotate_muscle_zscore(raw, threshold=10)
     assert(annot_muscle.duration.size == 2)
