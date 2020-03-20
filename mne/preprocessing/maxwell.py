@@ -1892,6 +1892,9 @@ def find_bad_channels_maxwell(
     bads : list
         List of bad MEG channels that were automatically detected among
         the good MEG channels.
+    flats : list
+        List of MEG channels that were detected as being flat at least
+        ``min_count`` times.
 
     See Also
     --------
@@ -1960,6 +1963,7 @@ def find_bad_channels_maxwell(
     del regularize, ignore_ref, bad_condition, head_pos, mag_scale
     good_meg_picks = params['meg_picks'][params['good_mask']]
     bads = Counter()
+    flats = Counter()
     flat_limits = dict(grad=0.01e-13, mag=0.01e-15)
     these_limits = np.array([
         flat_limits['grad']
@@ -1985,10 +1989,11 @@ def find_bad_channels_maxwell(
         chunk_flats = np.where(chunk_flats)[0]
         chunk_flats = [raw.ch_names[good_meg_picks[chunk_flat]]
                        for chunk_flat in chunk_flats]
+        flats.update(chunk_flats)
         all_flats |= set(chunk_flats)
-        flats = sorted(all_flats)
+        chunk_flats = sorted(all_flats)
         these_picks = [pick for pick in good_meg_picks
-                       if raw.ch_names[pick] not in flats]
+                       if raw.ch_names[pick] not in chunk_flats]
         # Bad pass
         chunk_bads = list()
         params['st_duration'] = int(round(
@@ -1997,7 +2002,7 @@ def find_bad_channels_maxwell(
             assert set(raw.info['bads']) & set(chunk_bads) == set()
             params['good_mask'][:] = np.array([
                 chunk_raw.ch_names[pick] not in
-                raw.info['bads'] + chunk_bads + flats
+                raw.info['bads'] + chunk_bads + chunk_flats
                 for pick in params['meg_picks']], int)
             chunk_raw._data[:] = orig_data
             delta = chunk_raw.get_data(these_picks)
@@ -2005,9 +2010,10 @@ def find_bad_channels_maxwell(
                 chunk_raw, reconstruct='orig', count_msg=False, copy=False,
                 **params)
 
-            if n_iter == 1 and len(flats):
+            if n_iter == 1 and len(chunk_flats):
                 logger.info('    %s Flat (%2d): %s'
-                            % (prefix, len(flats), ' '.join(flats)))
+                            % (prefix, len(chunk_flats),
+                               ' '.join(chunk_flats)))
                 prefix = '    '
             delta -= chunk_raw.get_data(these_picks)
             # p2p
@@ -2028,6 +2034,9 @@ def find_bad_channels_maxwell(
         bads.update(chunk_bads)
     bads = [b for b, c in bads.items() if c >= min_count]
     bads = sorted(bads, key=lambda x: raw.ch_names.index(x))
-    logger.info('    Static bad channels: %s' % (bads,))
+    flats = [f for f, c in flats.items() if c >= min_count]
+    flats = sorted(flats, key=lambda x: raw.ch_names.index(x))
+    logger.info('    Static bad channels:  %s' % (bads,))
+    logger.info('    Static flat channels: %s' % (flats,))
     logger.info('[done]')
-    return bads
+    return bads, flats
