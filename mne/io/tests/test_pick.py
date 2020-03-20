@@ -15,7 +15,8 @@ from mne.io import (read_raw_fif, RawArray, read_raw_bti, read_raw_kit,
 from mne.io.pick import (channel_indices_by_type, channel_type,
                          pick_types_forward, _picks_by_type, _picks_to_idx,
                          get_channel_types, _DATA_CH_TYPES_SPLIT,
-                         _contains_ch_type, pick_channels_cov)
+                         _contains_ch_type, pick_channels_cov,
+                         _get_channel_types)
 from mne.io.constants import FIFF
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
@@ -245,7 +246,7 @@ def test_pick_chpi():
     # Make sure we don't mis-classify cHPI channels
     info = read_info(op.join(io_dir, 'tests', 'data', 'test_chpi_raw_sss.fif'))
     _assert_channel_types(info)
-    channel_types = {channel_type(info, idx) for idx in range(info['nchan'])}
+    channel_types = _get_channel_types(info)
     assert 'chpi' in channel_types
     assert 'seeg' not in channel_types
     assert 'ecog' not in channel_types

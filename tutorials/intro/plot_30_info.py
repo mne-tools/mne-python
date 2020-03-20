@@ -154,9 +154,13 @@ print(mne.channel_type(info, 25))
 
 ###############################################################################
 # To obtain several channel types at once, you could embed
-# :func:`~mne.channel_type` in a :term:`list comprehension`:
+# :func:`~mne.channel_type` in a :term:`list comprehension`, or use the
+# :meth:`~mne.io.Raw.get_channel_types` method of a :class:`~mne.io.Raw`,
+# :class:`~mne.Epochs`, or :class:`~mne.Evoked` instance:
 
-print([mne.channel_type(info, x) for x in (25, 76, 77, 319)])
+picks = (25, 76, 77, 319)
+print([mne.channel_type(info, x) for x in picks])
+print(raw.get_channel_types(picks=picks))
 
 ###############################################################################
 # Alternatively, you can get the indices of all channels of *all* channel types

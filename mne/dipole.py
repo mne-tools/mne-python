@@ -1283,7 +1283,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     logger.info('%d bad channels total' % len(info['bads']))
 
     # Forward model setup (setup_forward_model from setup.c)
-    ch_types = [channel_type(info, idx) for idx in range(info['nchan'])]
+    ch_types = evoked.get_channel_types()
 
     megcoils, compcoils, megnames, meg_info = [], [], [], None
     eegels, eegnames = [], []

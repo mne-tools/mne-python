@@ -22,7 +22,8 @@ from ..io.constants import FIFF
 from ..io.meas_info import anonymize_info, Info, MontageMixin
 from ..io.pick import (channel_type, pick_info, pick_types, _picks_by_type,
                        _check_excludes_includes, _contains_ch_type,
-                       channel_indices_by_type, pick_channels, _picks_to_idx)
+                       channel_indices_by_type, pick_channels, _picks_to_idx,
+                       _get_channel_types)
 
 
 def _get_meg_system(info):
@@ -207,16 +208,25 @@ class ContainsMixin(object):
         """The current gradient compensation grade."""
         return get_current_comp(self.info)
 
-    def get_channel_types(self):
+    @fill_doc
+    def get_channel_types(self, picks=None, unique=False, only_data_chs=False):
         """Get a list of channel type for each channel.
+
+        Parameters
+        ----------
+        %(picks_nostr)s
+        unique : bool
+            Whether to return only unique channel types. Default is ``False``.
+        only_data_chs : bool
+            Whether to ignore non-data channels. Default is ``False``.
 
         Returns
         -------
         channel_types : list
             The channel types.
         """
-        return [channel_type(self.info, n)
-                for n in range(len(self.info['ch_names']))]
+        return _get_channel_types(self.info, picks=picks, unique=unique,
+                                  only_data_chs=only_data_chs)
 
 
 # XXX Eventually de-duplicate with _kind_dict of mne/io/meas_info.py

@@ -905,9 +905,8 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     ch_names = set(layout.names) & set(epochs.ch_names)
     idxs = [epochs.ch_names.index(ch_name) for ch_name in ch_names]
     epochs = epochs.pick(idxs)
-    # iterate over a sequential index to get lists of chan. type & scale coef.
-    ch_idxs = range(epochs.info['nchan'])
-    ch_types = [channel_type(epochs.info, idx) for idx in ch_idxs]
+    # get lists of channel type & scale coefficient
+    ch_types = epochs.get_channel_types()
     scale_coeffs = [scalings.get(ch_type, 1) for ch_type in ch_types]
     # scale the data
     epochs._data *= np.array(scale_coeffs)[:, np.newaxis]

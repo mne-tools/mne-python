@@ -552,8 +552,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """  # noqa: E501
         supported = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'misc', 'hbo',
                      'hbr', 'None', 'fnirs_raw', 'fnirs_od')
-        data_picks = _pick_data_channels(self.info, with_ref_meg=False)
-        types_used = {channel_type(self.info, idx) for idx in data_picks}
+        types_used = self.get_channel_types(unique=True, only_data_chs=True)
 
         _check_option('ch_type', str(ch_type), supported)
 
