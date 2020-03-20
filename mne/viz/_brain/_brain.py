@@ -1125,6 +1125,7 @@ class _Brain(object):
                     for i in range(0, n_col):
                         lt = lut_lst[i]
                         vtk_lut.SetTableValue(i, lt[0], lt[1], lt[2], alpha)
+        self.update_fscale(1.0)
 
 
 def _safe_interp1d(x, y, kind='linear', axis=-1, assume_sorted=False):

@@ -477,7 +477,6 @@ class _TimeViewer(object):
                     event_type='always'
                 )
                 orientation_slider.name = name
-                self.set_slider_style(orientation_slider, show_label=False)
                 self.orientation_call(view, update_widget=True)
 
         # necessary because show_view modified subplot
@@ -602,6 +601,7 @@ class _TimeViewer(object):
         fscale_slider.name = "fscale"
 
         # set the slider style
+        self.set_slider_style(orientation_slider, show_label=False)
         self.set_slider_style(smoothing_slider)
         self.set_slider_style(fmin_slider)
         self.set_slider_style(fmid_slider)
