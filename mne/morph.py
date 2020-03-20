@@ -888,21 +888,9 @@ def _compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
     morpher = []
     for hemi_to in range(2):  # iterate over to / block-rows of CSR matrix
         hemi_from = (1 - hemi_to) if xhemi else hemi_to
-        idx_use = vertices_from[hemi_from]
-        if len(idx_use) == 0:
-            morpher.append(
-                sparse.csr_matrix((len(vertices_to[hemi_to]), 0)))
-            continue
-        e = mesh_edges(tris[hemi_from])
-        e.data[e.data == 2] = 1
-        n_vertices = e.shape[0]
-        e = e + sparse.eye(n_vertices, n_vertices)
-        m = sparse.eye(len(idx_use), len(idx_use), format='csr')
-        mm = _morph_buffer(m, idx_use, e, smooth, n_vertices,
-                           vertices_to[hemi_to], maps[hemi_from], warn=warn)
-        assert mm.shape == (len(vertices_to[hemi_to]),
-                            len(vertices_from[hemi_from]))
-        morpher.append(mm)
+        morpher.append(_hemi_morph(
+            tris[hemi_from], vertices_to[hemi_to], vertices_from[hemi_from],
+            smooth, maps[hemi_from], warn))
 
     shape = (sum(len(v) for v in vertices_to),
              sum(len(v) for v in vertices_from))
@@ -922,6 +910,20 @@ def _compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
     morpher = sparse.csr_matrix((data, indices, indptr), shape=shape)
     logger.info('[done]')
     return morpher
+
+
+def _hemi_morph(tris, vertices_to, vertices_from, smooth, maps, warn):
+    if len(vertices_from) == 0:
+        return sparse.csr_matrix((len(vertices_to), 0))
+    e = mesh_edges(tris)
+    e.data[e.data == 2] = 1
+    n_vertices = e.shape[0]
+    e = e + sparse.eye(n_vertices)
+    m = sparse.eye(len(vertices_from), format='csr')
+    mm = _morph_buffer(m, vertices_from, e, smooth, n_vertices,
+                       vertices_to, maps, warn=warn)
+    assert mm.shape == (len(vertices_to), len(vertices_from))
+    return mm
 
 
 @verbose
@@ -996,6 +998,23 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
     return vertices
 
 
+def _nearest(vertices, adj_mat):
+    from scipy.sparse.csgraph import dijkstra
+    # Vertices can be out of order, so sort them to start ...
+    order = np.argsort(vertices)
+    vertices = vertices[order]
+    _, _, sources = dijkstra(adj_mat, False, indices=vertices, min_only=True,
+                             return_predecessors=True)
+    col = np.searchsorted(vertices, sources)
+    # ... then get things back to the correct configuration.
+    col = order[col]
+    row = np.arange(len(col))
+    data = np.ones(len(col))
+    mat = sparse.coo_matrix((data, (row, col)))
+    assert mat.shape == (adj_mat.shape[0], len(vertices)), mat.shape
+    return mat
+
+
 def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
                   warn=True):
     """Morph data from one subject's source space to another.
@@ -1039,6 +1058,8 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
 
     n_iter = 99  # max nb of smoothing iterations (minus one)
     if smooth is not None:
+        if smooth == 'nearest':
+            return _nearest(idx_use, e)
         if smooth <= 0:
             raise ValueError('The number of smoothing operations ("smooth") '
                              'has to be at least 1.')

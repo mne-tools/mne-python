@@ -11,11 +11,12 @@ import os
 import os.path as op
 
 import numpy as np
+from scipy import sparse
 
 from .colormap import calculate_lut
 from .view import lh_views_dict, rh_views_dict, View
 from .surface import Surface
-from .utils import mesh_edges, smoothing_matrix
+from ...morph import _hemi_morph
 
 from .._3d import _process_clim
 from ..utils import _check_option, logger, verbose, fill_doc
@@ -486,15 +487,6 @@ class _Brain(object):
                 vertices = slice(None) if vertices is None else vertices
                 x, y, z = np.array(self.geo[hemi].coords)[vertices].T
 
-                if scale_factor is None:
-                    width = np.ptp(self.geo[hemi].coords[:, 1])
-                    final_scale_factor = width * 0.1
-                else:
-                    if self._units == 'm':
-                        scale_factor = scale_factor / 1000.
-                    scale_factor_norm = scale_factor / magnitude_max
-                    final_scale_factor = scale_factor_norm * magnitude.max()
-
                 self._renderer.quiver3d(
                     x, y, z,
                     vectors[:, 0], vectors[:, 1], vectors[:, 2],
@@ -505,7 +497,7 @@ class _Brain(object):
                     mode=glyph,
                     scale_mode='scalar',
                     scalars=vector_values,
-                    scale=final_scale_factor,
+                    scale=scale_factor,
                     opacity=vector_alpha
                 )
 
@@ -855,10 +847,13 @@ class _Brain(object):
                         'len(data) < nvtx (%s < %s): the vertices '
                         'parameter must not be None'
                         % (len(hemi_data), self.geo[hemi].x.shape[0]))
-                adj_mat = mesh_edges(self.geo[hemi].faces)
-                smooth_mat = smoothing_matrix(vertices,
-                                              adj_mat, n_steps,
-                                              verbose=False)
+                # local alias
+                n_steps = 'nearest' if n_steps == 0 else n_steps
+                maps = sparse.eye(len(self.geo[hemi].coords), format='csr')
+                smooth_mat = _hemi_morph(
+                    self.geo[hemi].faces,
+                    np.arange(len(self.geo[hemi].coords)),
+                    vertices, n_steps, maps, warn=False)
                 self._data[hemi]['smooth_mat'] = smooth_mat
         self.set_time_point(self._data['time_idx'])
 
