@@ -15,7 +15,7 @@ from scipy import linalg
 
 from .cov import read_cov, compute_whitener
 from .io.constants import FIFF
-from .io.pick import pick_types, channel_type
+from .io.pick import pick_types
 from .io.proj import make_projector, _needs_eeg_average_ref_proj
 from .bem import _fit_sphere
 from .evoked import _read_evoked, _aspect_rev, _write_evokeds
