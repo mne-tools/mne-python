@@ -471,7 +471,7 @@ class _Brain(object):
             self._data[hemi]['actor'].append(actor)
             self._data[hemi]['mesh'].append(mesh)
 
-        # 2) udpate time and smoothing properties
+        # 2) update time and smoothing properties
         # set_data_smoothing calls "set_time_point" for us, which will set
         # _current_time
         self.set_time_interpolation(self.time_interpolation)
