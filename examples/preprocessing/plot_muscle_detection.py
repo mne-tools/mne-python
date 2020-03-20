@@ -37,7 +37,7 @@ from numpy import arange
 from mne import pick_types
 from mne.datasets.brainstorm import bst_auditory
 from mne.io import read_raw_ctf
-from mne.preprocessing import annotate_muscle
+from mne.preprocessing import annotate_muscle_zscore
 
 
 # Load data
@@ -58,15 +58,20 @@ raw.resample(300, npad="auto")
 # they are more sensitive to muscle activity
 picks = pick_types(raw.info, meg=True, ref_meg=False)
 
-# Remove line noise as line activity changes could bias the artifact detection.
+"""
+.. note::
+    If line noise is present, you should perform notch-filtering *before*
+    detecting muscle artifacts. See :ref:`tut-section-line-noise` for an
+    example.
+"""
 raw.notch_filter([50, 100])
 
-# The threshold of 1.5 is generally well suited for magnetometer, axial
+# The threshold of 4 is generally well suited for magnetometer, axial
 # gradiometer and eeg data. Planar gradiometers will need a lower threshold.
-threshold_muscle = 1.5  # z-score
-annotation_muscle, scores_muscle = annotate_muscle(raw, picks=picks,
-                                                   threshold=threshold_muscle,
-                                                   min_length_good=0.2)
+threshold_muscle = 4  # z-score
+out = annotate_muscle_zscore(raw, picks=picks, threshold=threshold_muscle,
+                             min_length_good=0.2, filter_freq=[90, 120])
+annot_muscle, scores_muscle = out
 
 ###############################################################################
 # Plot movement z-scores across recording
@@ -83,5 +88,5 @@ ax.set_ylabel('zscore')
 # Plot raw with annotated muscles
 # --------------------------------------------------------------------------
 order = arange(220, 240)
-raw.set_annotations(annotation_muscle)
+raw.set_annotations(annot_muscle)
 raw.plot(duration=30, order=order)

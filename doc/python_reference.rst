@@ -346,7 +346,7 @@ Projections:
    ICA
    Xdawn
    annotate_movement
-   annotate_muscle
+   annotate_muscle_zscore
    compute_average_dev_head_t
    compute_current_source_density
    compute_proj_ecg

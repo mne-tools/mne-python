@@ -13,12 +13,12 @@ from ..utils import (_mask_to_onsets_offsets, logger, verbose)
 
 
 @verbose
-def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1,
-                    filter_freq=[110, 140], n_jobs=1, verbose=None):
+def annotate_muscle_zscore(raw, threshold=4, picks=None, min_length_good=.1,
+                           filter_freq=[110, 140], n_jobs=1, verbose=None):
     """Detect segments with muscle artifacts.
 
     Detects segments periods that contain high frequency activity beyond the
-    specified threshold. Muscle artifacts are most notable in the range of
+    specified threshold. Muscle artifacts are most detectable in the range of
     110-140 Hz.
 
     Raw data is band-pass filtered between ``filter_freq`` especified
@@ -52,7 +52,7 @@ def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1,
     scores_muscle : array
         Z-score values averaged across channels for each sample.
     """
-    from scipy.stats import zscore
+    from scipy.stats.mstats import zscore
     from scipy.ndimage.measurements import label
 
     raw_copy = raw.copy()
@@ -72,8 +72,13 @@ def annotate_muscle(raw, threshold=1.5, picks=None, min_length_good=.1,
     raw_copy.apply_hilbert(envelope=True, n_jobs=n_jobs)
     sfreq = raw_copy.info['sfreq']
 
-    art_scores = zscore(raw_copy.get_data(reject_by_annotation="NaN"), axis=1)
-    scores_muscle = filter_data(art_scores.mean(axis=0), sfreq, None, 4)
+    art_scores = zscore(raw_copy.get_data(reject_by_annotation="NaN"), axis=1,
+                        nan_policy='omit')
+
+    art_scores = art_scores.sum(axis=0) / np.sqrt(art_scores.shape[0])
+
+    scores_muscle = filter_data(art_scores, sfreq, None, 4)
+    scores_muscle[np.isnan(scores_muscle)] = threshold
     art_mask = scores_muscle > threshold
 
     # remove artifact free periods shorter than min_length_good
