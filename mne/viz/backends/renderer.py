@@ -108,8 +108,8 @@ def set_3d_backend(backend_name, verbose=None):
 
     .. note::
         In the case of `plot_vector_source_estimates` with PyVista, the glyph
-        size is not consistent with Mayavi, it is also possible that a grey
-        filter is applied on the colorbar.
+        size is not consistent with Mayavi, it is also possible that a dark
+        filter is visible on the mesh when depth peeling is not available.
     """
     global MNE_3D_BACKEND
     try:
