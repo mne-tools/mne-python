@@ -1,5 +1,4 @@
 from copy import deepcopy
-from distutils.version import LooseVersion
 from io import StringIO
 import os.path as op
 from datetime import datetime, timezone
