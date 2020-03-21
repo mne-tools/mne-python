@@ -15,7 +15,7 @@ from ..utils import (logger, verbose, _validate_type, fill_doc, _ensure_int,
                      _check_option)
 
 
-def get_channel_types():
+def get_channel_type_constants():
     """Return all known channel types.
 
     Returns

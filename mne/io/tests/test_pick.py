@@ -14,7 +14,7 @@ from mne.io import (read_raw_fif, RawArray, read_raw_bti, read_raw_kit,
                     read_info)
 from mne.io.pick import (channel_indices_by_type, channel_type,
                          pick_types_forward, _picks_by_type, _picks_to_idx,
-                         get_channel_types, _DATA_CH_TYPES_SPLIT,
+                         get_channel_type_constants, _DATA_CH_TYPES_SPLIT,
                          _contains_ch_type, pick_channels_cov,
                          _get_channel_types)
 from mne.io.constants import FIFF
@@ -71,7 +71,7 @@ def _channel_type_old(info, idx):
     # iterate through all defined channel types until we find a match with ch
     # go in order from most specific (most rules entries) to least specific
     channel_types = sorted(
-        get_channel_types().items(), key=lambda x: len(x[1]))[::-1]
+        get_channel_type_constants().items(), key=lambda x: len(x[1]))[::-1]
     for t, rules in channel_types:
         for key, vals in rules.items():  # all keys must match the values
             if ch.get(key, None) not in np.array(vals):
