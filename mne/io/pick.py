@@ -1123,7 +1123,8 @@ def _pick_inst(inst, picks, exclude, copy=True):
 
 def _get_channel_types(info, picks=None, unique=False, only_data_chs=False):
     """Get the data channel types in an info instance."""
-    picks = range(info['nchan']) if picks is None else picks
+    none = 'data' if only_data_chs else 'data'
+    picks = _picks_to_idx(info, picks, none, (), allow_empty=False)
     ch_types = [channel_type(info, idx) for idx in range(info['nchan'])
                 if idx in picks]
     if only_data_chs:
