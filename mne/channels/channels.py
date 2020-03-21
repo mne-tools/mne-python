@@ -214,7 +214,7 @@ class ContainsMixin(object):
 
         Parameters
         ----------
-        %(picks)s
+        %(picks_all)s
         unique : bool
             Whether to return only unique channel types. Default is ``False``.
         only_data_chs : bool
