@@ -550,6 +550,7 @@ def test_pick_channels_cov():
 
 
 def test_deprecation():
+    """Test deprecated call."""
     with pytest.deprecated_call():
         _ = get_channel_types()
 
