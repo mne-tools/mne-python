@@ -66,8 +66,9 @@ class Annotations(object):
     ----------
     onset : array of float, shape (n_annotations,)
         The starting time of annotations in seconds after ``orig_time``.
-    duration : array of float, shape (n_annotations,)
-        Durations of the annotations in seconds.
+    duration : array of float, shape (n_annotations,) | float
+        Durations of the annotations in seconds. If a float, all the
+        annotations are given the same duration.
     description : array of str, shape (n_annotations,) | str
         Array of strings containing description for each annotation. If a
         string, all the annotations are given the same description. To reject
