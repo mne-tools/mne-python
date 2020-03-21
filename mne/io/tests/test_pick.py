@@ -14,9 +14,9 @@ from mne.io import (read_raw_fif, RawArray, read_raw_bti, read_raw_kit,
                     read_info)
 from mne.io.pick import (channel_indices_by_type, channel_type,
                          pick_types_forward, _picks_by_type, _picks_to_idx,
-                         get_channel_type_constants, _DATA_CH_TYPES_SPLIT,
+                         get_channel_types, _DATA_CH_TYPES_SPLIT,
                          _contains_ch_type, pick_channels_cov,
-                         _get_channel_types)
+                         _get_channel_types, get_channel_type_constants)
 from mne.io.constants import FIFF
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
@@ -547,6 +547,11 @@ def test_pick_channels_cov():
     cov_copy = pick_channels_cov(cov, ['CH1', 'CH2'], copy=True)
     assert 'method' not in cov_copy
     assert 'loglik' not in cov_copy
+
+
+def test_deprecation():
+    with pytest.deprecated_call():
+        _ = get_channel_types()
 
 
 run_tests_if_main()
