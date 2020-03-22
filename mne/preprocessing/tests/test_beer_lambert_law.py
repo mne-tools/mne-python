@@ -51,6 +51,16 @@ def test_beer_lambert(fname, fmt, tmpdir):
 
 
 @testing.requires_testing_data
+def test_beer_lambert_unordered_errors():
+    """NIRS data requires specific ordering and naming of channels."""
+    raw = read_raw_nirx(fname_nirx_15_0)
+    raw = optical_density(raw)
+    raw.pick([0, 1, 2])
+    with pytest.raises(RuntimeError, match='ordered'):
+        beer_lambert_law(raw)
+
+
+@testing.requires_testing_data
 def test_beer_lambert_v_matlab():
     """Compare MNE results to MATLAB toolbox."""
     raw = read_raw_nirx(fname_nirx_15_0)
