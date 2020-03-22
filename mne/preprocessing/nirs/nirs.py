@@ -81,14 +81,17 @@ def _check_channels_ordered(raw, freqs):
                (ch1_name_info.groups()[1] != ch2_name_info.groups()[1]) or \
                (int(ch1_name_info.groups()[2]) != freqs[0]) or \
                (int(ch2_name_info.groups()[2]) != freqs[1]):
-                raise ValueError('NIRS channels not ordered correctly. '
-                                 'Channels must be ordered as source '
-                                 'detector pairs with frequencies:',
-                                 freqs)
+                err = ('NIRS channels not ordered correctly. '
+                       'Channels must be ordered as source '
+                       'detector pairs with frequencies: %d & %d'
+                       % (freqs[0], freqs[1]))
+                raise ValueError(err)
     else:
-        raise ValueError('NIRS channels not ordered correctly. '
-                         'An even number of NIRS channels is required.',
-                         raw.ch_names)
+        err = ('NIRS channels not ordered correctly. '
+               'An even number of NIRS channels is required. '
+               '%d channels were provided: %r'
+               % (len(raw.ch_names), raw.ch_names))
+        raise ValueError(err)
 
     return picks
 
