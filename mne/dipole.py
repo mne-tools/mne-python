@@ -15,7 +15,7 @@ from scipy import linalg
 
 from .cov import read_cov, compute_whitener
 from .io.constants import FIFF
-from .io.pick import pick_types, channel_type
+from .io.pick import pick_types
 from .io.proj import make_projector, _needs_eeg_average_ref_proj
 from .bem import _fit_sphere
 from .evoked import _read_evoked, _aspect_rev, _write_evokeds
@@ -1283,7 +1283,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5., n_jobs=1,
     logger.info('%d bad channels total' % len(info['bads']))
 
     # Forward model setup (setup_forward_model from setup.c)
-    ch_types = [channel_type(info, idx) for idx in range(info['nchan'])]
+    ch_types = evoked.get_channel_types()
 
     megcoils, compcoils, megnames, meg_info = [], [], [], None
     eegels, eegnames = [], []

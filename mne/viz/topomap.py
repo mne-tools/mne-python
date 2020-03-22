@@ -22,8 +22,8 @@ from ..channels.channels import _get_ch_type
 from ..channels.layout import (
     _find_topomap_coords, find_layout, _pair_grad_sensors, Layout,
     _merge_ch_data)
-from ..io.pick import (pick_types, _picks_by_type, channel_type, pick_info,
-                       _pick_data_channels, pick_channels, _picks_to_idx)
+from ..io.pick import (pick_types, _picks_by_type, pick_info, pick_channels,
+                       _pick_data_channels, _picks_to_idx, _get_channel_types)
 from ..utils import (_clean_names, _time_mask, verbose, logger, warn, fill_doc,
                      _validate_type, _check_sphere)
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
@@ -326,7 +326,7 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
         if vlim == 'joint':
             ch_idxs = np.where(np.in1d(info['ch_names'],
                                        proj['data']['col_names']))[0]
-            these_ch_types = set([channel_type(info, n) for n in ch_idxs])
+            these_ch_types = _get_channel_types(info, ch_idxs, unique=True)
             # each projector should have only one channel type
             assert len(these_ch_types) == 1
             types.append(list(these_ch_types)[0])
@@ -809,8 +809,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         pos = pick_info(pos, picks)
 
         # check if there is only 1 channel type, and n_chans matches the data
-        ch_type = {channel_type(pos, idx)
-                   for idx, _ in enumerate(pos["chs"])}
+        ch_type = _get_channel_types(pos, unique=True)
         info_help = ("Pick Info with e.g. mne.pick_info and "
                      "mne.io.pick.channel_indices_by_type.")
         if len(ch_type) > 1:

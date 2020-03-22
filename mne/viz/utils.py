@@ -3214,7 +3214,7 @@ def _plot_psd(inst, fig, freqs, psd_list, picks_list, titles_list,
     if not average:
         picks = np.concatenate(picks_list)
         psd_list = np.concatenate(psd_list)
-        types = np.array([channel_type(inst.info, idx) for idx in picks])
+        types = np.array(inst.get_channel_types(picks=picks))
         # Needed because the data do not match the info anymore.
         info = create_info([inst.ch_names[p] for p in picks],
                            inst.info['sfreq'], types)

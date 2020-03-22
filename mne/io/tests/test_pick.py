@@ -15,7 +15,8 @@ from mne.io import (read_raw_fif, RawArray, read_raw_bti, read_raw_kit,
 from mne.io.pick import (channel_indices_by_type, channel_type,
                          pick_types_forward, _picks_by_type, _picks_to_idx,
                          get_channel_types, _DATA_CH_TYPES_SPLIT,
-                         _contains_ch_type, pick_channels_cov)
+                         _contains_ch_type, pick_channels_cov,
+                         _get_channel_types, get_channel_type_constants)
 from mne.io.constants import FIFF
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, catch_logging, assert_object_equal
@@ -70,7 +71,7 @@ def _channel_type_old(info, idx):
     # iterate through all defined channel types until we find a match with ch
     # go in order from most specific (most rules entries) to least specific
     channel_types = sorted(
-        get_channel_types().items(), key=lambda x: len(x[1]))[::-1]
+        get_channel_type_constants().items(), key=lambda x: len(x[1]))[::-1]
     for t, rules in channel_types:
         for key, vals in rules.items():  # all keys must match the values
             if ch.get(key, None) not in np.array(vals):
@@ -245,7 +246,7 @@ def test_pick_chpi():
     # Make sure we don't mis-classify cHPI channels
     info = read_info(op.join(io_dir, 'tests', 'data', 'test_chpi_raw_sss.fif'))
     _assert_channel_types(info)
-    channel_types = {channel_type(info, idx) for idx in range(info['nchan'])}
+    channel_types = _get_channel_types(info)
     assert 'chpi' in channel_types
     assert 'seeg' not in channel_types
     assert 'ecog' not in channel_types
@@ -546,6 +547,12 @@ def test_pick_channels_cov():
     cov_copy = pick_channels_cov(cov, ['CH1', 'CH2'], copy=True)
     assert 'method' not in cov_copy
     assert 'loglik' not in cov_copy
+
+
+def test_deprecation():
+    """Test deprecated call."""
+    with pytest.deprecated_call():
+        _ = get_channel_types()
 
 
 run_tests_if_main()
