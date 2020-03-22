@@ -262,6 +262,7 @@ def test_len_index_dipoles():
     _compare_dipoles(d_mask, dipole[idx])
 
 
+@pytest.mark.slowtest  # slow-ish on Travis OSX
 @testing.requires_testing_data
 def test_min_distance_fit_dipole():
     """Test dipole min_dist to inner_skull."""

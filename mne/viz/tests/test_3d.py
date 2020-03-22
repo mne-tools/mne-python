@@ -716,6 +716,7 @@ def test_brain_colorbar(orientation, diverging, lims):
     plt.close('all')
 
 
+@pytest.mark.slowtest  # slow-ish on Travis OSX
 @requires_pysurfer
 @testing.requires_testing_data
 @traits_test

@@ -204,6 +204,7 @@ def test_io_set_raw_more(tmpdir):
                            np.array([np.nan, np.nan, np.nan]))
 
 
+@pytest.mark.slowtest  # slow-ish on Travis OSX
 @pytest.mark.timeout(60)  # ~60 sec on Travis OSX
 @requires_h5py
 @testing.requires_testing_data
