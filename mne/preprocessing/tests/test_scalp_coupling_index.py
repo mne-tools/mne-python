@@ -32,7 +32,8 @@ def test_scalp_coupling_index(fname, fmt, tmpdir):
     """Test converting NIRX files."""
     assert fmt in ('nirx', 'fif')
     raw = read_raw_nirx(fname).load_data()
-    pytest.raises(RuntimeError, scalp_coupling_index, raw)
+    with pytest.raises(RuntimeError, match='Scalp'):
+        scalp_coupling_index(raw)
 
     raw = optical_density(raw)
     sci = scalp_coupling_index(raw)
@@ -64,4 +65,5 @@ def test_scalp_coupling_index(fname, fmt, tmpdir):
 
     # Ensure function errors if wrong type is passed in
     raw = beer_lambert_law(raw)
-    pytest.raises(RuntimeError, scalp_coupling_index, raw)
+    with pytest.raises(RuntimeError, match='Scalp'):
+        scalp_coupling_index(raw)
