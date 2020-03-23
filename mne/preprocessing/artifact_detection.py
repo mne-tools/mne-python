@@ -14,7 +14,7 @@ from ..utils import (_mask_to_onsets_offsets, logger, verbose)
 
 @verbose
 def annotate_muscle_zscore(raw, threshold=4, picks=None, min_length_good=.1,
-                           filter_freq=[110, 140], n_jobs=1, verbose=None):
+                           filter_freq=(110, 140), n_jobs=1, verbose=None):
     """Detect segments with muscle artifacts.
 
     Detects segments periods that contain high frequency activity beyond the
@@ -23,9 +23,9 @@ def annotate_muscle_zscore(raw, threshold=4, picks=None, min_length_good=.1,
 
     Raw data is band-pass filtered between ``filter_freq`` especified
     frequencies (default is 110 - 140 Hz), the signal envelope computed,
-    z-scored across samples, channel averaged and low-pass filtered to better
-    capture beginning and end of muscle activity and false positive transient
-    peaks.
+    z-scored across samples, channel summation and division by the square root
+    of the channel number, and low-pass filtered to better capture beginning
+    and end of muscle activity and false positive transient peaks.
 
     Parameters
     ----------

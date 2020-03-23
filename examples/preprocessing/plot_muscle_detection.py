@@ -8,23 +8,17 @@ of interest. Muscle artifacts can be produced when clenching the jaw,
 swallowing, or twitching a head muscle. Muscle artifacts are most notable
 in the range of 110-140 Hz.
 
-This example uses :func:`~mne.preprocessing.annotate_muscle` to annotate
+This example uses :func:`~mne.preprocessing.annotate_muscle_zscore` to annotate
 segments where muscle activity is likely present. This is done by band-pass
 filtering the data in the 110-140 Hz range. Then, the envelope is taken using
 the hilbert analytical signal to only consider the absolute amplitude and not
-the phase of the high frequency signal. The envelope is z-scored and averaged
-across channels. To remove noisy transient peaks (muscle artifacts last
-several hundred milliseconds), the channel averaged z-scored is low-pass
-filtered to 4 Hz. Segments above a set threshold are annotated as
-``BAD_muscle``. In addition, ``min_length_good`` parameter determines the
-cutoff for whether short spans of "good data" in between muscle artifacts are
-included in the surrounding "BAD" annotation.
-
-
-.. note::
-    If line noise is present, you should perform notch-filtering *before*
-    detecting muscle artifacts. See :ref:`tut-section-line-noise` for an
-    example.
+the phase of the high frequency signal. The envelope is z-scored and summed
+across channels and divedid by the square root of the channel numer. To remove
+noisy transient peaks (muscle artifacts last several hundred milliseconds),
+the channel averaged z-scored is low-pass filtered to 4 Hz. Segments above a
+set threshold are annotated as ``BAD_muscle``. In addition, ``min_length_good``
+parameter determines the cutoff for whether short spans of "good data" in
+between muscle artifacts are included in the surrounding "BAD" annotation.
 
 """
 # Authors: Adonay Nunes <adonay.s.nunes@gmail.com>
@@ -33,7 +27,7 @@ included in the surrounding "BAD" annotation.
 
 import os.path as op
 import matplotlib.pyplot as plt
-from numpy import arange
+import numpy as np
 from mne import pick_types
 from mne.datasets.brainstorm import bst_auditory
 from mne.io import read_raw_ctf
@@ -49,7 +43,6 @@ raw_fname = op.join(data_path_MEG, subject, 'S01_AEF_20131218_01.ds')
 raw = read_raw_ctf(raw_fname, preload=False)
 
 raw.crop(130, 160).load_data()  # just use a fraction of data for speed here
-raw.filter(1, 150)
 raw.resample(300, npad="auto")
 
 # The inputted raw data has to be from a single channel type as there might be
@@ -58,16 +51,17 @@ raw.resample(300, npad="auto")
 # they are more sensitive to muscle activity
 picks = pick_types(raw.info, meg=True, ref_meg=False)
 
+###############################################################################
+raw.notch_filter([50, 100])
 """
 .. note::
     If line noise is present, you should perform notch-filtering *before*
     detecting muscle artifacts. See :ref:`tut-section-line-noise` for an
     example.
 """
-raw.notch_filter([50, 100])
 
-# The threshold of 4 is generally well suited for magnetometer, axial
-# gradiometer and eeg data. Planar gradiometers will need a lower threshold.
+# The threshold is data dependent, check the optimal threshold by plotting
+# ``threshold_muscle``
 threshold_muscle = 4  # z-score
 out = annotate_muscle_zscore(raw, picks=picks, threshold=threshold_muscle,
                              min_length_good=0.2, filter_freq=[90, 120])
@@ -80,13 +74,10 @@ annot_muscle, scores_muscle = out
 fig, ax = plt.subplots()
 ax.plot(raw.times, scores_muscle)
 ax.axhline(y=threshold_muscle, color='r')
-ax.set_title('Muscle activity')
-ax.set_xlabel('time, s.')
-ax.set_ylabel('zscore')
-
+ax.set(xlabel='time, s.', ylabel='zscore', title='Muscle activity')
 ###############################################################################
 # Plot raw with annotated muscles
 # --------------------------------------------------------------------------
-order = arange(220, 240)
+order = np.arange(220, 240)
 raw.set_annotations(annot_muscle)
-raw.plot(duration=30, order=order)
+raw.plot(duration=20, order=order)
