@@ -295,7 +295,7 @@ class _Renderer(_BaseRenderer):
                  resolution=8, glyph_height=None, glyph_center=None,
                  glyph_resolution=None, opacity=1.0, scale_mode='none',
                  scalars=None, backface_culling=False,
-                 colormap=None, vmin=None, vmax=None):
+                 colormap=None, vmin=None, vmax=None, line_width=2.):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             factor = scale
@@ -346,11 +346,13 @@ class _Renderer(_BaseRenderer):
                            orient='vec',
                            factor=factor,
                            geom=geom,
-                           rng=rng),
+                           rng=rng
+                           ),
                     color=color,
                     cmap=colormap,
                     opacity=opacity,
                     show_scalar_bar=False,
+                    line_width=line_width,
                 )
                 return actor
 

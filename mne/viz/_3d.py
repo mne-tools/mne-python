@@ -2430,6 +2430,11 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                       background=background, foreground=foreground,
                       figure=figure, subjects_dir=subjects_dir,
                       views=views, alpha=brain_alpha)
+    if scale_factor is None:
+        # Configure the glyphs scale directly
+        width = np.mean([np.ptp(brain.geo[hemi].coords[:, 1])
+                         for hemi in hemis if hemi in brain.geo])
+        scale_factor = 0.025 * width / scale_pts[-1]
 
     ad_kwargs, sd_kwargs = _get_ps_kwargs(
         initial_time, False, scale_pts[1], transparent)
@@ -2482,14 +2487,13 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                     source = glyph_source.glyph_dict['arrow_source']
                 glyph_source.glyph_source = source
 
-            if scale_factor is None:
-                # Compute the width of the brain
-                width = np.mean([np.ptp(brain.geo[hemi].coords[:, 1])
-                                 for hemi in hemis])
-                # Configure the glyphs scale directly
-                for layer in found_hemi.data.values():
+            for b in brain._brain_list:
+                for layer in b['brain'].data.values():
                     glyphs = layer['glyphs']
-                    glyphs.glyph.glyph.scale_factor = width * 0.1
+                    glyphs.glyph.glyph.scale_factor = scale_factor
+                    glyphs.glyph.glyph.clamping = False
+                    glyphs.glyph.glyph.range = (0., 1.)
+
         # depth peeling patch
         if brain_alpha < 1.0:
             for ff in brain._figures:

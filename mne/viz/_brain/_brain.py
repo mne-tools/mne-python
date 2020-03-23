@@ -14,14 +14,14 @@ import numpy as np
 from scipy import sparse
 
 from .colormap import calculate_lut
-from .view import lh_views_dict, rh_views_dict, View
 from .surface import Surface
-from ...morph import _hemi_morph
+from .view import lh_views_dict, rh_views_dict, View
 
 from .._3d import _process_clim
-from ..utils import _check_option, logger, verbose, fill_doc
 
+from ...morph import _hemi_morph
 from ...label import read_label
+from ...utils import _check_option, logger, verbose, fill_doc, _validate_type
 
 
 class _Brain(object):
@@ -351,9 +351,9 @@ class _Brain(object):
         Due to a Mayavi (or VTK) alpha rendering bug, ``vector_alpha`` is
         clamped to be strictly < 1.
         """
-        _check_option('transparent', type(transparent), [bool])
-        _check_option('vector_alpha', type(vector_alpha), [float, type(None)])
-        _check_option('scale_factor', type(scale_factor), [float, type(None)])
+        _validate_type(transparent, bool, 'transparent')
+        _validate_type(vector_alpha, ('numeric', None), 'vector_alpha')
+        _validate_type(scale_factor, ('numeric', None), 'scale_factor')
 
         # those parameters are not supported yet, only None is allowed
         _check_option('thresh', thresh, [None])
