@@ -52,7 +52,7 @@ def annotate_muscle_zscore(raw, threshold=4, picks=None, min_length_good=.1,
     scores_muscle : array
         Z-score values averaged across channels for each sample.
     """
-    from scipy.stats.mstats import zscore
+    from scipy.stats import zscore
     from scipy.ndimage.measurements import label
 
     raw_copy = raw.copy()
@@ -72,14 +72,19 @@ def annotate_muscle_zscore(raw, threshold=4, picks=None, min_length_good=.1,
     raw_copy.apply_hilbert(envelope=True, n_jobs=n_jobs)
     sfreq = raw_copy.info['sfreq']
 
-    art_scores = zscore(raw_copy.get_data(reject_by_annotation="NaN"), axis=1,
-                        nan_policy='omit')
+    data = raw_copy.get_data(reject_by_annotation="NaN")
+    nan_mask = ~np.isnan(data[0, :])
 
+    art_scores = zscore(data[:, nan_mask], axis=1)
     art_scores = art_scores.sum(axis=0) / np.sqrt(art_scores.shape[0])
+    art_scores = filter_data(art_scores, sfreq, None, 4)
 
-    scores_muscle = filter_data(art_scores, sfreq, None, 4)
-    scores_muscle[np.isnan(scores_muscle)] = threshold
+    scores_muscle = np.zeros(data.shape[1])
+    scores_muscle[nan_mask] = art_scores
+
     art_mask = scores_muscle > threshold
+    # return muscle scores with NaNs
+    scores_muscle[~nan_mask] = np.nan
 
     # remove artifact free periods shorter than min_length_good
     idx_min = min_length_good * sfreq

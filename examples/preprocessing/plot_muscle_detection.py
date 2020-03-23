@@ -52,13 +52,13 @@ raw.resample(300, npad="auto")
 picks = pick_types(raw.info, meg=True, ref_meg=False)
 
 ###############################################################################
+# Notch filter the data.
+# .. note::
+#     If line noise is present, you should perform notch-filtering *before*
+#     detecting muscle artifacts. See :ref:`tut-section-line-noise` for an
+#     example.
+
 raw.notch_filter([50, 100])
-"""
-.. note::
-    If line noise is present, you should perform notch-filtering *before*
-    detecting muscle artifacts. See :ref:`tut-section-line-noise` for an
-    example.
-"""
 
 # The threshold is data dependent, check the optimal threshold by plotting
 # ``threshold_muscle``
@@ -78,6 +78,6 @@ ax.set(xlabel='time, s.', ylabel='zscore', title='Muscle activity')
 ###############################################################################
 # Plot raw with annotated muscles
 # --------------------------------------------------------------------------
-order = np.arange(220, 240)
+order = np.arange(144, 164)
 raw.set_annotations(annot_muscle)
-raw.plot(duration=20, order=order)
+raw.plot(start=5, duration=20, order=order)
