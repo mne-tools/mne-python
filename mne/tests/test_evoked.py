@@ -261,7 +261,7 @@ def test_shift_time_evoked():
     assert_equal(ave_absolute.first, int(-0.3 * ave.info['sfreq']))
 
     # subsample shift
-    shift = 1e-6  # 1 μs, should be well below 1/sfreq
+    shift = 1e-6  # 1 µs, should be well below 1/sfreq
     ave = read_evokeds(fname, 0)
     times = ave.times
     ave.shift_time(shift)

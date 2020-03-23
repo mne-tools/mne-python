@@ -184,7 +184,7 @@ for ax, title, epochs in zip([ax1, ax2],
                                fmin=0.1, fmax=20., show=False,
                                average=True, spatial_colors=False)
     ax.set(title=title, xlabel='Frequency (Hz)')
-ax2.set(ylabel='uV^2/hz (dB)')
+ax2.set(ylabel='µV^2/Hz (dB)')
 ax2.legend(ax2.lines[2::3], stages)
 plt.show()
 

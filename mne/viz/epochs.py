@@ -58,14 +58,14 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         the epochs axis of the image. If 0, no smoothing is applied.
         Defaults to 0.
     vmin : None | float | callable
-        The min value in the image (and the ER[P/F]). The unit is uV for
+        The min value in the image (and the ER[P/F]). The unit is µV for
         EEG channels, fT for magnetometers and fT/cm for gradiometers.
         If vmin is None and multiple plots are returned, the limit is
         equalized within channel types.
         Hint: to specify the lower limit of the data, use
         ``vmin=lambda data: data.min()``.
     vmax : None | float | callable
-        The max value in the image (and the ER[P/F]). The unit is uV for
+        The max value in the image (and the ER[P/F]). The unit is µV for
         EEG channels, fT for magnetometers and fT/cm for gradiometers.
         If vmin is None and multiple plots are returned, the limit is
         equalized within channel types.
@@ -83,7 +83,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         Show figure if True.
     units : dict | None
         The units of the channel types used for axes labels. If None,
-        defaults to ``units=dict(eeg='uV', grad='fT/cm', mag='fT')``.
+        defaults to ``units=dict(eeg='µV', grad='fT/cm', mag='fT')``.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting.
         If None, defaults to ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15,

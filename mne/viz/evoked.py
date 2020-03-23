@@ -654,7 +654,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         The values at which to show an horizontal line.
     units : dict | None
         The units of the channel types used for axes labels. If None,
-        defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
+        defaults to ``dict(eeg='µV', grad='fT/cm', mag='fT')``.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If None,
         defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
@@ -883,7 +883,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
         be shown.
     units : dict | None
         The units of the channel types used for axes labels. If None,
-        defaults to ``dict(eeg='uV', grad='fT/cm', mag='fT')``.
+        defaults to ``dict(eeg='µV', grad='fT/cm', mag='fT')``.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If None,`
         defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.

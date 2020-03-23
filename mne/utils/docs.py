@@ -972,7 +972,7 @@ docdict['df_time_format'] = docdict['df_tf'].format('')
 docdict['df_scalings'] = """
 scalings : dict | None
     Scaling factor applied to the channels picked. If ``None``, defaults to
-    ``dict(eeg=1e6, mag=1e15, grad=1e13)`` — i.e., converts EEG to μV,
+    ``dict(eeg=1e6, mag=1e15, grad=1e13)`` — i.e., converts EEG to µV,
     magnetometers to fT, and gradiometers to fT/cm.
 """
 docdict['df_copy'] = """

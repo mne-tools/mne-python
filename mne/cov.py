@@ -323,7 +323,7 @@ def make_ad_hoc_cov(info, std=None, verbose=None):
 
     Notes
     -----
-    The default noise values are 5 fT/cm, 20 fT, and 0.2 uV for gradiometers,
+    The default noise values are 5 fT/cm, 20 fT, and 0.2 µV for gradiometers,
     magnetometers, and EEG channels respectively.
 
     .. versionadded:: 0.9.0

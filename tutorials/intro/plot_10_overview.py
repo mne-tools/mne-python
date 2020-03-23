@@ -218,8 +218,8 @@ fig = mne.viz.plot_events(events, event_id=event_dict, sfreq=raw.info['sfreq'],
 
 reject_criteria = dict(mag=4000e-15,     # 4000 fT
                        grad=4000e-13,    # 4000 fT/cm
-                       eeg=150e-6,       # 150 μV
-                       eog=250e-6)       # 250 μV
+                       eeg=150e-6,       # 150 µV
+                       eog=250e-6)       # 250 µV
 
 ###############################################################################
 # We'll also pass the event dictionary as the ``event_id`` parameter (so we can

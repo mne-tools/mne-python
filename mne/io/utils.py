@@ -50,8 +50,8 @@ def _check_orig_units(orig_units):
 
         # Common "invalid units" can be remapped to their valid equivalent
         remap_dict = dict()
-        remap_dict['uv'] = u'µV'
-        remap_dict[u'μv'] = u'µV'  # greek letter mu vs micro sign. use micro
+        remap_dict['uv'] = 'µV'
+        remap_dict['μv'] = 'µV'  # greek letter mu vs micro sign. use micro
         if unit.lower() in remap_dict:
             orig_units_remapped[ch_name] = remap_dict[unit.lower()]
             continue

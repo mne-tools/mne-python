@@ -1119,7 +1119,7 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
 
         if mode == 'csd':
             # The units in which to plot the CSD
-            units = dict(eeg=u'μV²', grad=u'fT²/cm²', mag=u'fT²')
+            units = dict(eeg='µV²', grad='fT²/cm²', mag='fT²')
             scalings = dict(eeg=1e12, grad=1e26, mag=1e30)
     else:
         indices = [np.arange(len(csd.ch_names))]

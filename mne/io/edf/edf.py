@@ -249,7 +249,7 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, chs, filenames):
     cal = np.atleast_2d(physical_range / cal)  # physical / digital
     gains = np.atleast_2d(raw_extras['units'])
 
-    # physical dimension in uV
+    # physical dimension in µV
     physical_min = raw_extras['physical_min']
     digital_min = raw_extras['digital_min']
 
@@ -576,7 +576,7 @@ def _read_edf_header(fname, exclude):
         for i, unit in enumerate(units):
             if i in exclude:
                 continue
-            if unit == 'uV':
+            if unit in ('uV', 'µV'):
                 edf_info['units'].append(1e-6)
             elif unit == 'mV':
                 edf_info['units'].append(1e-3)
@@ -723,7 +723,7 @@ def _read_gdf_header(fname, exclude):
             exclude = _find_exclude_idx(ch_names, exclude)
             sel = list()
             for i, unit in enumerate(units):
-                if unit[:2] == 'uV':
+                if unit[:2] in ('uV', 'µV'):
                     units[i] = 1e-6
                 else:
                     units[i] = 1

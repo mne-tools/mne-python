@@ -187,7 +187,7 @@ epochs['auditory'].plot_image(picks=['MEG 0242', 'MEG 0243'], combine='gfp')
 
 reject_criteria = dict(mag=3000e-15,     # 3000 fT
                        grad=3000e-13,    # 3000 fT/cm
-                       eeg=150e-6)       # 150 μV
+                       eeg=150e-6)       # 150 µV
 epochs.drop_bad(reject=reject_criteria)
 
 for ch_type, title in dict(mag='Magnetometers', grad='Gradiometers').items():

@@ -171,8 +171,8 @@ event_id = {'auditory/left': 1}
 # NOTE: appropriate rejection criteria are highly data-dependent
 reject = dict(mag=4000e-15,     # 4000 fT
               grad=4000e-13,    # 4000 fT/cm
-              eeg=150e-6,       # 150 μV
-              eog=250e-6)       # 250 μV
+              eeg=150e-6,       # 150 µV
+              eog=250e-6)       # 250 µV
 
 # time range where we expect to see the auditory N100: 50-150 ms post-stimulus
 times = np.linspace(0.05, 0.15, 5)
@@ -304,7 +304,7 @@ for title, proj in [('Without', empty_room_projs), ('With', ecg_projs)]:
 # detected ECG epochs would be used when computing the projectors (regardless
 # of signal quality in the data sensors during those epochs). The default
 # behavior is to reject epochs based on signal amplitude: epochs with
-# peak-to-peak amplitudes exceeding 50 μV in EEG channels, 250 μV in EOG
+# peak-to-peak amplitudes exceeding 50 µV in EEG channels, 250 µV in EOG
 # channels, 2000 fT/cm in gradiometer channels, or 3000 fT in magnetometer
 # channels. You can change these thresholds by passing a dictionary with keys
 # ``eeg``, ``eog``, ``mag``, and ``grad`` (though be sure to pass the threshold

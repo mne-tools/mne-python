@@ -45,5 +45,5 @@ print("Number of detected EOG artifacts : %d" % len(data))
 # Plot EOG artifacts
 plt.plot(1e3 * epochs.times, np.squeeze(data).T)
 plt.xlabel('Times (ms)')
-plt.ylabel('EOG (muV)')
+plt.ylabel('EOG (µV)')
 plt.show()

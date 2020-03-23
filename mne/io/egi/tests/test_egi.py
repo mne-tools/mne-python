@@ -64,7 +64,7 @@ def test_io_egi():
         data = np.loadtxt(fid)
     t = data[0]
     data = data[1:]
-    data *= 1e-6  # μV
+    data *= 1e-6  # µV
 
     with pytest.warns(RuntimeWarning, match='Did not find any event code'):
         raw = read_raw_egi(egi_fname, include=None)
