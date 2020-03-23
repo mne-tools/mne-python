@@ -1004,14 +1004,7 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
             if not np.isnan(tag.data):
                 highpass = float(tag.data)
         elif kind == FIFF.FIFF_MEAS_DATE:
-            try:
-                tag = read_tag(fid, pos)
-            except OverflowError:
-                warn('Encountered an error while trying to read the '
-                     'measurement date from the input data. No measurement '
-                     'date will be set. Please check the integrity of the '
-                     'measurement date in the input data.')
-                continue
+            tag = read_tag(fid, pos)
             meas_date = tuple(tag.data)
             if len(meas_date) == 1:  # can happen from old C conversions
                 meas_date = (meas_date[0], 0)
