@@ -314,9 +314,9 @@ class _Renderer(_BaseRenderer):
             if scale_mode == 'scalar':
                 grid.point_arrays['mag'] = np.array(scalars)
                 clamping = True
-                scale = 'mag'
+                scalars = 'mag'
             else:
-                scale = False
+                scalars = False
                 clamping = False
             if isinstance(colormap, np.ndarray):
                 if colormap.dtype == np.uint8:
@@ -343,8 +343,9 @@ class _Renderer(_BaseRenderer):
 
                 actor = self.plotter.add_mesh(
                     _glyph(grid,
+                           scale_mode=scale_mode,
+                           scalars=scalars,
                            orient='vec',
-                           scale_mode='vector',
                            factor=factor,
                            geom=geom,
                            rng=rng,
@@ -705,17 +706,16 @@ def _glyph(dataset, scale_mode='scalar', orient=True, scalars=True, factor=1.0,
         dataset.active_vectors_name = orient
         orient = True
     if scale_mode == 'scalar':
-        alg.SetScaleModeToScaleByVector()
-    elif scale_mode == 'vector':
         alg.SetScaleModeToScaleByScalar()
+    elif scale_mode == 'vector':
+        alg.SetScaleModeToScaleByVector()
     else:
         alg.SetScaleModeToDataScalingOff()
     if rng is not None:
         alg.SetRange(rng)
     alg.SetOrient(orient)
-    alg.SetInputData(dataset)
-    alg.SetScaleModeToScaleByVector()
     alg.SetVectorModeToUseVector()
+    alg.SetInputData(dataset)
     alg.SetScaleFactor(factor)
     alg.SetClamping(clamping)
     alg.Update()

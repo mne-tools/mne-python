@@ -487,6 +487,15 @@ class _Brain(object):
                 vertices = slice(None) if vertices is None else vertices
                 x, y, z = np.array(self.geo[hemi].coords)[vertices].T
 
+                if scale_factor is None:
+                    width = np.ptp(self.geo[hemi].coords[:, 1])
+                    final_scale_factor = width * 0.1
+                else:
+                    if self._units == 'm':
+                        scale_factor = scale_factor / 1000.
+                    scale_factor_norm = scale_factor / magnitude_max
+                    final_scale_factor = scale_factor_norm * magnitude.max()
+
                 self._renderer.quiver3d(
                     x, y, z,
                     vectors[:, 0], vectors[:, 1], vectors[:, 2],
@@ -497,7 +506,7 @@ class _Brain(object):
                     mode=glyph,
                     scale_mode='scalar',
                     scalars=vector_values,
-                    scale=scale_factor,
+                    scale=final_scale_factor,
                     opacity=vector_alpha
                 )
 
