@@ -143,6 +143,8 @@ class _Renderer(_BaseRenderer):
             with _disabled_depth_peeling():
                 self.plotter = self.figure.build()
             self.plotter.hide_axes()
+            self.plotter.ren_win.LineSmoothingOn()
+            self.plotter.enable_anti_aliasing()
 
     def subplot(self, x, y):
         with warnings.catch_warnings():
