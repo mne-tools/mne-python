@@ -2496,6 +2496,9 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                 for f in ff:
                     if f.scene is not None:
                         f.scene.renderer.use_depth_peeling = True
+    else:
+        if brain_alpha < 1.0:
+            brain.enable_depth_peeling()
 
     if time_viewer:
         TimeViewer(brain)

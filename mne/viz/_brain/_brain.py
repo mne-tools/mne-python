@@ -1133,6 +1133,10 @@ class _Brain(object):
                 for actor in hemi_data['glyph']:
                     _set_colormap_range(actor, ctable, None, rng)
 
+    def enable_depth_peeling(self):
+        """Enable depth peeling."""
+        self._renderer.enable_depth_peeling()
+
 
 def _safe_interp1d(x, y, kind='linear', axis=-1, assume_sorted=False):
     """Work around interp1d not liking singleton dimensions."""
