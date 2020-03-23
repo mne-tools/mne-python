@@ -70,6 +70,11 @@ def _check_channels_ordered(raw, freqs):
     # Every second channel should be same SD pair
     # and have the specified light frequencies.
     picks = _picks_to_idx(raw.info, 'fnirs', exclude=[])
+    if len(picks) % 2 != 0:
+        raise ValueError(
+            'NIRS channels not ordered correctly. An even number of NIRS '
+            'channels is required. %d channels were provided: %r'
+            % (len(raw.ch_names), raw.ch_names))
     for ii in picks[::2]:
         ch1_name_info = re.match(r'S(\d+)_D(\d+) (\d+)',
                                  raw.info['chs'][ii]['ch_name'])
@@ -80,7 +85,10 @@ def _check_channels_ordered(raw, freqs):
            (ch1_name_info.groups()[1] != ch2_name_info.groups()[1]) or \
            (int(ch1_name_info.groups()[2]) != freqs[0]) or \
            (int(ch2_name_info.groups()[2]) != freqs[1]):
-            raise RuntimeError('NIRS channels not ordered correctly')
+            raise ValueError(
+                'NIRS channels not ordered correctly. Channels must be ordered'
+                ' as source detector pairs with frequencies: %d & %d'
+                % (freqs[0], freqs[1]))
 
     return picks
 

@@ -51,6 +51,22 @@ def test_beer_lambert(fname, fmt, tmpdir):
 
 
 @testing.requires_testing_data
+def test_beer_lambert_unordered_errors():
+    """NIRS data requires specific ordering and naming of channels."""
+    raw = read_raw_nirx(fname_nirx_15_0)
+    raw_od = optical_density(raw)
+    raw_od.pick([0, 1, 2])
+    with pytest.raises(ValueError, match='ordered'):
+        beer_lambert_law(raw_od)
+
+    # Test that an error is thrown if inconsistent frequencies used in data
+    raw_od = optical_density(raw)
+    raw_od.rename_channels({'S2_D2 760': 'S2_D2 770'})
+    with pytest.raises(ValueError, match='ordered'):
+        beer_lambert_law(raw_od)
+
+
+@testing.requires_testing_data
 def test_beer_lambert_v_matlab():
     """Compare MNE results to MATLAB toolbox."""
     raw = read_raw_nirx(fname_nirx_15_0)
