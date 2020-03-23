@@ -2294,7 +2294,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  colorbar=True, clim='auto', cortex='classic',
                                  size=800, background='black',
                                  foreground='white', initial_time=None,
-                                 time_unit='s', glyph='2darrow', verbose=None):
+                                 time_unit='s', verbose=None):
     """Plot VectorSourceEstimate with PySurfer.
 
     A "glass brain" is drawn and all dipoles defined in the source estimate
@@ -2365,10 +2365,6 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     time_unit : 's' | 'ms'
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
-    glyph : '2darrow' | '3darrow'
-        The type of glyphs to use. If '2darrow', the glyphs belong to a plan
-        and if '3darrow', the glyphs are composite 3d objects (cone +
-        cylinder).
     %(verbose)s
 
     Returns
@@ -2464,7 +2460,6 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                 kwargs["fmin"] = scale_pts[0]
                 kwargs["fmid"] = scale_pts[1]
                 kwargs["fmax"] = scale_pts[2]
-                kwargs["glyph"] = glyph
             with warnings.catch_warnings(record=True):  # traits warnings
                 brain.add_data(**kwargs)
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
@@ -2472,21 +2467,6 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
 
     if get_3d_backend() == "mayavi":
         for hemi in hemis:
-            # Retrieve the current hemi
-            for b in brain._brain_list:
-                if b['hemi'] == hemi:
-                    found_hemi = b['brain']
-
-            # Update the glyph type
-            for layer in found_hemi.data.values():
-                glyphs = layer['glyphs']
-                glyph_source = glyphs.glyph.glyph_source
-                if glyph == '2darrow':
-                    source = glyph_source.glyph_dict['glyph_source2d']
-                elif glyph == '3darrow':
-                    source = glyph_source.glyph_dict['arrow_source']
-                glyph_source.glyph_source = source
-
             for b in brain._brain_list:
                 for layer in b['brain'].data.values():
                     glyphs = layer['glyphs']
