@@ -313,11 +313,9 @@ class _Renderer(_BaseRenderer):
                 rng = None
             if scale_mode == 'scalar':
                 grid.point_arrays['mag'] = np.array(scalars)
-                clamping = True
                 scalars = 'mag'
             else:
                 scalars = False
-                clamping = False
             if isinstance(colormap, np.ndarray):
                 if colormap.dtype == np.uint8:
                     colormap = colormap.astype(np.float) / 255.
@@ -348,14 +346,14 @@ class _Renderer(_BaseRenderer):
                            orient='vec',
                            factor=factor,
                            geom=geom,
-                           rng=rng,
-                           clamping=clamping),
+                           rng=rng),
                     color=color,
                     cmap=colormap,
                     opacity=opacity,
                     show_scalar_bar=False,
                 )
                 actor.GetProperty().SetLineWidth(2)
+                return actor
 
             elif mode == 'arrow' or mode == '3darrow':
                 self.plotter.add_mesh(grid.glyph(orient='vec',
@@ -714,7 +712,6 @@ def _glyph(dataset, scale_mode='scalar', orient=True, scalars=True, factor=1.0,
     if rng is not None:
         alg.SetRange(rng)
     alg.SetOrient(orient)
-    alg.SetVectorModeToUseVector()
     alg.SetInputData(dataset)
     alg.SetScaleFactor(factor)
     alg.SetClamping(clamping)

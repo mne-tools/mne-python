@@ -405,13 +405,11 @@ class _Brain(object):
             y_txt = 0.05 + 0.1 * bool(colorbar)
 
         magnitude = None
-        magnitude_max = None
         if array.ndim == 3:
             if array.shape[1] != 3:
                 raise ValueError('If array has 3 dimensions, array.shape[1] '
                                  'must equal 3, got %s' % (array.shape[1],))
             magnitude = np.linalg.norm(array, axis=1)
-            magnitude_max = magnitude.max()
         fmin, fmid, fmax = _update_limits(
             fmin, fmid, fmax, center, array
         )
@@ -483,30 +481,17 @@ class _Brain(object):
             views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
             if array.ndim == 3:
                 vectors = self.vectors
-                vector_values = self.vector_values
                 vertices = slice(None) if vertices is None else vertices
                 x, y, z = np.array(self.geo[hemi].coords)[vertices].T
 
-                if scale_factor is None:
-                    width = np.ptp(self.geo[hemi].coords[:, 1])
-                    final_scale_factor = width * 0.1
-                else:
-                    if self._units == 'm':
-                        scale_factor = scale_factor / 1000.
-                    scale_factor_norm = scale_factor / magnitude_max
-                    final_scale_factor = scale_factor_norm * magnitude.max()
-
-                self._renderer.quiver3d(
+                actor = self._renderer.quiver3d(
                     x, y, z,
                     vectors[:, 0], vectors[:, 1], vectors[:, 2],
                     color=None,
                     colormap=ctable[:, :3],
-                    vmin=fmin,
-                    vmax=fmax,
                     mode=glyph,
-                    scale_mode='scalar',
-                    scalars=vector_values,
-                    scale=final_scale_factor,
+                    scale_mode='vector',
+                    scale=1.0,
                     opacity=vector_alpha
                 )
 
@@ -929,7 +914,6 @@ class _Brain(object):
                 elif array.ndim == 3:
                     act_data = magnitude
                     self.vectors = self._time_interp_funcs[hemi](time_idx)
-                    self.vector_values = self._mag_interp_funcs[hemi](time_idx)
                     self._current_time = self._time_interp_inv(time_idx)
                 else:
                     act_data = array
