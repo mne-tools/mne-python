@@ -121,8 +121,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     """
     # check number of sensor types present in the data and ensure a noise cov
     info = _simplify_info(info)
-    noise_cov, _ = _check_one_ch_type('lcmv', info, forward,
-                                      data_cov, noise_cov)
+    noise_cov, _, allow_mismatch = _check_one_ch_type(
+        'lcmv', info, forward, data_cov, noise_cov)
     # XXX we need this extra picking step (can't just rely on minimum norm's
     # because there can be a mismatch. Should probably add an extra arg to
     # _prepare_beamformer_input at some point (later)
@@ -131,7 +131,8 @@ def make_lcmv(info, forward, data_cov, reg=0.05, noise_cov=None, label=None,
     data_rank = compute_rank(data_cov, rank=rank, info=info)
     noise_rank = compute_rank(noise_cov, rank=rank, info=info)
     for key in data_rank:
-        if key not in noise_rank or data_rank[key] != noise_rank[key]:
+        if (key not in noise_rank or data_rank[key] != noise_rank[key]) and \
+                not allow_mismatch:
             raise ValueError('%s data rank (%s) did not match the noise '
                              'rank (%s)'
                              % (key, data_rank[key],
@@ -611,7 +612,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     # check number of sensor types present in the data
     if noise_covs is None:
         noise_covs = [None] * len(win_lengths)
-    noise_covs, picks = zip(
+    noise_covs, picks, _ = zip(
         *(_check_one_ch_type('lcmv', epochs.info, forward,
                              noise_cov=noise_cov) for noise_cov in noise_covs))
     picks = picks[0]

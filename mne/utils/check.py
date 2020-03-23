@@ -490,14 +490,20 @@ def _check_one_ch_type(method, info, forward, data_cov=None, noise_cov=None):
             raise RuntimeError(
                 'The use of several sensor types with the DICS beamformer is '
                 'not supported yet.')
+    # Later in the code we use the data covariance rank for our computations,
+    # so we can allow_mismatch between the data and noise cov if we construct
+    # a known diagonal covariance (the correct/chosen subspace based on rank
+    # will still be used).
     if noise_cov is None:
         noise_cov = make_ad_hoc_cov(info_pick, std=1.)
+        allow_mismatch = True
     else:
         noise_cov = noise_cov.copy()
         if 'estimator' in noise_cov:
             del noise_cov['estimator']
+        allow_mismatch = False
     _validate_type(noise_cov, Covariance, 'noise_cov')
-    return noise_cov, picks
+    return noise_cov, picks, allow_mismatch
 
 
 def _check_depth(depth, kind='depth_mne'):
