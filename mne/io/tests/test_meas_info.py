@@ -38,6 +38,7 @@ base_dir = op.join(op.dirname(__file__), 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 chpi_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
+
 kit_data_dir = op.join(op.dirname(__file__), '..', 'kit', 'tests', 'data')
 hsp_fname = op.join(kit_data_dir, 'test_hsp.txt')
 elp_fname = op.join(kit_data_dir, 'test_elp.txt')
@@ -47,6 +48,8 @@ sss_path = op.join(data_path, 'SSS')
 pre = op.join(sss_path, 'test_move_anon_')
 sss_ctc_fname = pre + 'crossTalk_raw_sss.fif'
 ctf_fname = op.join(data_path, 'CTF', 'testdata_ctf.ds')
+raw_invalid_bday_fname = op.join(data_path, 'misc',
+                                 'test_invalid_birthday_raw.fif')
 
 
 def test_get_valid_units():
@@ -720,6 +723,13 @@ def test_repr():
     t = Transform(1, 2, np.ones((4, 4)))
     info['dev_head_t'] = t
     assert 'dev_head_t: MEG device -> isotrak transform' in repr(info)
+
+
+def test_invalid_subject_birthday():
+    """Test handling of an invalid birthday in the raw file."""
+    with pytest.warns(RuntimeWarning, match='No birthday will be set'):
+        raw = read_raw_fif(raw_invalid_bday_fname)
+    assert 'birthday' not in raw.info['subject_info']
 
 
 run_tests_if_main()
