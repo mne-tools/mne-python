@@ -352,7 +352,6 @@ class _Renderer(_BaseRenderer):
                     opacity=opacity,
                     show_scalar_bar=False,
                 )
-                actor.GetProperty().SetLineWidth(2)
                 return actor
 
             elif mode == 'arrow' or mode == '3darrow':

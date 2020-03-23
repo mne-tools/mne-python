@@ -424,6 +424,7 @@ class _Brain(object):
         self._data[hemi] = dict()
         self._data[hemi]['actor'] = list()
         self._data[hemi]['mesh'] = list()
+        self._data[hemi]['glyph'] = list()
         self._data[hemi]['array'] = array
         self._data[hemi]['magnitude'] = magnitude
         self._data[hemi]['vertices'] = vertices
@@ -494,6 +495,7 @@ class _Brain(object):
                     scale=1.0,
                     opacity=vector_alpha
                 )
+                self._data[hemi]['glyph'].append(actor)
 
             if array.ndim >= 2 and callable(time_label):
                 if not self._time_label_added:
@@ -1120,6 +1122,20 @@ class _Brain(object):
                         lt = lut_lst[i]
                         vtk_lut.SetTableValue(i, lt[0], lt[1], lt[2], alpha)
         self.update_fscale(1.0)
+
+        # apply the lut on every glyph
+        from vtk.util.numpy_support import numpy_to_vtk
+        ctable = self._data["ctable"]
+        rng = [fmin, fmax]
+        for hemi in ['lh', 'rh']:
+            hemi_data = self._data.get(hemi)
+            if hemi_data is not None:
+                for actor in hemi_data['glyph']:
+                    mapper = actor.GetMapper()
+                    lut = mapper.GetLookupTable()
+                    lut.SetRange(rng[0], rng[1])
+                    lut.SetTable(numpy_to_vtk(ctable))
+                    mapper.SetScalarRange(rng[0], rng[1])
 
 
 def _safe_interp1d(x, y, kind='linear', axis=-1, assume_sorted=False):
