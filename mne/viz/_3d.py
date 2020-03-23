@@ -2294,7 +2294,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  colorbar=True, clim='auto', cortex='classic',
                                  size=800, background='black',
                                  foreground='white', initial_time=None,
-                                 time_unit='s', glyph='arrow2d', verbose=None):
+                                 time_unit='s', glyph='2darrow', verbose=None):
     """Plot VectorSourceEstimate with PySurfer.
 
     A "glass brain" is drawn and all dipoles defined in the source estimate
@@ -2365,9 +2365,9 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     time_unit : 's' | 'ms'
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
-    glyph : 'arrow2d' | 'arrow3d'
-        The type of glyphs to use. If 'arrow2d', the glyphs belong to a plan
-        and if 'arrow3d', the glyphs are composite 3d objects (cone +
+    glyph : '2darrow' | '3darrow'
+        The type of glyphs to use. If '2darrow', the glyphs belong to a plan
+        and if '3darrow', the glyphs are composite 3d objects (cone +
         cylinder).
     %(verbose)s
 
@@ -2476,9 +2476,9 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
             for layer in found_hemi.data.values():
                 glyphs = layer['glyphs']
                 glyph_source = glyphs.glyph.glyph_source
-                if glyph == 'arrow2d':
+                if glyph == '2darrow':
                     source = glyph_source.glyph_dict['glyph_source2d']
-                elif glyph == 'arrow3d':
+                elif glyph == '3darrow':
                     source = glyph_source.glyph_dict['arrow_source']
                 glyph_source.glyph_source = source
 

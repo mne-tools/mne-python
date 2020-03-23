@@ -204,7 +204,7 @@ class _Renderer(_BaseRenderer):
                  backface_culling=False):
         color = _check_color(color)
         with warnings.catch_warnings(record=True):  # traits
-            if mode == 'arrow':
+            if mode in ('arrow', '2darrow', '3darrow'):
                 self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
                                    color=color, scale_factor=scale,
                                    scale_mode=scale_mode,

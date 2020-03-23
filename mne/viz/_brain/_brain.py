@@ -251,7 +251,7 @@ class _Brain(object):
                  time_label="time index=%d", colorbar=True,
                  hemi=None, remove_existing=None, time_label_size=None,
                  initial_time=None, scale_factor=None, vector_alpha=None,
-                 clim=None, glyph='arrow2d', verbose=None):
+                 clim=None, glyph='2darrow', verbose=None):
         """Display data from a numpy array on the surface.
 
         This provides a similar interface to
@@ -333,9 +333,9 @@ class _Brain(object):
             Not supported yet.
             alpha level to control opacity of the arrows. Only used for
             vector-valued data. If None (default), ``alpha`` is used.
-        glyph : 'arrow2d' | 'arrow3d'
-            The type of glyphs to use. If 'arrow2d', the glyphs belong to a
-            plan and if 'arrow3d', the glyphs are composite 3d objects (cone +
+        glyph : '2darrow' | '3darrow'
+            The type of glyphs to use. If '2darrow', the glyphs belong to a
+            plan and if '3darrow', the glyphs are composite 3d objects (cone +
             cylinder).
         %(verbose)s
 

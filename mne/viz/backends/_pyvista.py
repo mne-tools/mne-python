@@ -291,7 +291,7 @@ class _Renderer(_BaseRenderer):
                                       figure.smooth_shading)
         return tube
 
-    def quiver3d(self, x, y, z, u, v, w, color, scale, mode="arrow2d",
+    def quiver3d(self, x, y, z, u, v, w, color, scale, mode="2darrow",
                  resolution=8, glyph_height=None, glyph_center=None,
                  glyph_resolution=None, opacity=1.0, scale_mode='none',
                  scalars=None, backface_culling=False,
@@ -313,15 +313,17 @@ class _Renderer(_BaseRenderer):
                 rng = None
             if scale_mode == 'scalar':
                 grid.point_arrays['mag'] = np.array(scalars)
+                clamping = True
                 scale = 'mag'
             else:
                 scale = False
+                clamping = False
             if isinstance(colormap, np.ndarray):
                 if colormap.dtype == np.uint8:
                     colormap = colormap.astype(np.float) / 255.
                 from matplotlib.colors import ListedColormap
                 colormap = ListedColormap(colormap)
-            if mode == 'arrow2d':
+            if mode == '2darrow':
                 glyph = vtk.vtkGlyphSource2D()
                 glyph.SetGlyphTypeToArrow()
                 glyph.FilledOff()
@@ -330,13 +332,23 @@ class _Renderer(_BaseRenderer):
                 glyph.Update()
                 geom = glyph.GetOutput()
 
+                # fix position
+                tr = vtk.vtkTransform()
+                tr.Translate(0.5, 0., 0.)
+                trp = vtk.vtkTransformPolyDataFilter()
+                trp.SetInputData(geom)
+                trp.SetTransform(tr)
+                trp.Update()
+                geom = trp.GetOutput()
+
                 actor = self.plotter.add_mesh(
-                    grid.glyph(orient='vec',
-                               scale=scale,
-                               factor=factor,
-                               geom=geom,
-                               rng=rng,
-                               clamping=True),
+                    _glyph(grid,
+                           orient='vec',
+                           scale_mode='vector',
+                           factor=factor,
+                           geom=geom,
+                           rng=rng,
+                           clamping=clamping),
                     color=color,
                     cmap=colormap,
                     opacity=opacity,
@@ -344,7 +356,7 @@ class _Renderer(_BaseRenderer):
                 )
                 actor.GetProperty().SetLineWidth(2)
 
-            elif mode == 'arrow' or mode == 'arrow3d':
+            elif mode == 'arrow' or mode == '3darrow':
                 self.plotter.add_mesh(grid.glyph(orient='vec',
                                                  scale=scale,
                                                  factor=factor,
@@ -677,6 +689,37 @@ def _update_picking_callback(plotter,
         on_pick
     )
     plotter.picker = picker
+
+
+def _glyph(dataset, scale_mode='scalar', orient=True, scalars=True, factor=1.0,
+           geom=None, tolerance=0.0, absolute=False, clamping=False, rng=None):
+    if geom is None:
+        arrow = vtk.vtkArrowSource()
+        arrow.Update()
+        geom = arrow.GetOutput()
+    alg = vtk.vtkGlyph3D()
+    alg.SetSourceData(geom)
+    if isinstance(scalars, str):
+        dataset.active_scalars_name = scalars
+    if isinstance(orient, str):
+        dataset.active_vectors_name = orient
+        orient = True
+    if scale_mode == 'scalar':
+        alg.SetScaleModeToScaleByVector()
+    elif scale_mode == 'vector':
+        alg.SetScaleModeToScaleByScalar()
+    else:
+        alg.SetScaleModeToDataScalingOff()
+    if rng is not None:
+        alg.SetRange(rng)
+    alg.SetOrient(orient)
+    alg.SetInputData(dataset)
+    alg.SetScaleModeToScaleByVector()
+    alg.SetVectorModeToUseVector()
+    alg.SetScaleFactor(factor)
+    alg.SetClamping(clamping)
+    alg.Update()
+    return alg.GetOutput()
 
 
 @contextmanager
