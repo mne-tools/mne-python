@@ -49,7 +49,7 @@ pre = op.join(sss_path, 'test_move_anon_')
 sss_ctc_fname = pre + 'crossTalk_raw_sss.fif'
 ctf_fname = op.join(data_path, 'CTF', 'testdata_ctf.ds')
 raw_invalid_bday_fname = op.join(data_path, 'misc',
-                                 'test_invalid_birthday_raw.fif')
+                                 'sample_invalid_birthday_raw.fif')
 
 
 def test_get_valid_units():
