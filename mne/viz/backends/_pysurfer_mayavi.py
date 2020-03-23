@@ -201,7 +201,8 @@ class _Renderer(_BaseRenderer):
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
-                 backface_culling=False):
+                 backface_culling=False, colormap=None, vmin=None, vmax=None,
+                 line_width=2., name=None):
         color = _check_color(color)
         with warnings.catch_warnings(record=True):  # traits
             if mode in ('arrow', '2darrow', '3darrow'):

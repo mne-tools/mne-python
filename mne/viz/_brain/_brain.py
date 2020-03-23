@@ -359,6 +359,8 @@ class _Brain(object):
         hemi = self._check_hemi(hemi)
         array = np.asarray(array)
         vector_alpha = alpha if vector_alpha is None else vector_alpha
+        self._data['vector_alpha'] = vector_alpha
+        self._data['scale_factor'] = scale_factor
 
         # Create time array and add label if > 1D
         if array.ndim <= 1:
@@ -473,23 +475,6 @@ class _Brain(object):
         # 3) add the glyphs and other actors
         for ri, v in enumerate(self._views):
             views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
-            if array.ndim == 3:
-                vectors = self.vectors
-                vertices = slice(None) if vertices is None else vertices
-                x, y, z = np.array(self.geo[hemi].coords)[vertices].T
-
-                actor = self._renderer.quiver3d(
-                    x, y, z,
-                    vectors[:, 0], vectors[:, 1], vectors[:, 2],
-                    color=None,
-                    colormap=ctable[:, :3],
-                    mode='2darrow',
-                    scale_mode='vector',
-                    scale=scale_factor,
-                    opacity=vector_alpha
-                )
-                self._data[hemi]['glyph'].append(actor)
-
             if array.ndim >= 2 and callable(time_label):
                 if not self._time_label_added:
                     time_actor = self._renderer.text2d(
@@ -899,7 +884,7 @@ class _Brain(object):
                     act_data = self._time_interp_funcs[hemi](time_idx)
                     self._current_time = self._time_interp_inv(time_idx)
                     if array.ndim == 3:
-                        self.vectors = act_data
+                        vectors = act_data
                         act_data = np.linalg.norm(act_data, axis=1)
                     self._current_time = self._time_interp_inv(time_idx)
                 current_act_data.append(act_data)
@@ -910,9 +895,39 @@ class _Brain(object):
                 smooth_mat = hemi_data['smooth_mat']
                 if smooth_mat is not None:
                     act_data = smooth_mat.dot(act_data)
+
+                # update the mesh scalar values
                 for mesh in hemi_data['mesh']:
                     if mesh is not None:
                         _set_mesh_scalars(mesh, act_data, 'Data')
+
+                # update the glyphs
+                if array.ndim == 3:
+                    from ..backends._pyvista import _set_colormap_range
+                    vertices = hemi_data['vertices']
+                    fmin = self._data['fmin']
+                    fmid = self._data['fmid']
+                    fmax = self._data['fmax']
+                    ctable = self.update_lut(fmin=fmin, fmid=fmid, fmax=fmax)
+                    ctable = (ctable * 255).astype(np.uint8)
+                    vector_alpha = self._data['vector_alpha']
+                    scale_factor = self._data['scale_factor']
+                    rng = [fmin, fmax]
+                    vertices = slice(None) if vertices is None else vertices
+                    x, y, z = np.array(self.geo[hemi].coords)[vertices].T
+
+                    actor = self._renderer.quiver3d(
+                        x, y, z,
+                        vectors[:, 0], vectors[:, 1], vectors[:, 2],
+                        color=None,
+                        colormap=ctable[:, :3],
+                        mode='2darrow',
+                        scale_mode='vector',
+                        scale=scale_factor,
+                        opacity=vector_alpha,
+                        name=str(hemi) + "_glyph"
+                    )
+                    _set_colormap_range(actor, ctable, None, rng)
         self._current_act_data = np.concatenate(current_act_data)
         self._data['time_idx'] = time_idx
 
@@ -1088,7 +1103,6 @@ class _Brain(object):
     def scale_data_colormap(self, fmin, fmid, fmax, transparent,
                             center=None, alpha=1.0, data=None, verbose=None):
         """Scale the data colormap."""
-        from ..backends._pyvista import _set_colormap_range
         lut_lst = self._data['ctable']
         n_col = len(lut_lst)
 
@@ -1105,15 +1119,6 @@ class _Brain(object):
                         lt = lut_lst[i]
                         vtk_lut.SetTableValue(i, lt[0], lt[1], lt[2], alpha)
         self.update_fscale(1.0)
-
-        # apply the lut on every glyph
-        ctable = self._data["ctable"]
-        rng = [fmin, fmax]
-        for hemi in ['lh', 'rh']:
-            hemi_data = self._data.get(hemi)
-            if hemi_data is not None:
-                for actor in hemi_data['glyph']:
-                    _set_colormap_range(actor, ctable, None, rng)
 
     def enable_depth_peeling(self):
         """Enable depth peeling."""

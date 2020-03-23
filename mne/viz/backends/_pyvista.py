@@ -293,11 +293,11 @@ class _Renderer(_BaseRenderer):
                                       figure.smooth_shading)
         return tube
 
-    def quiver3d(self, x, y, z, u, v, w, color, scale, mode="2darrow",
-                 resolution=8, glyph_height=None, glyph_center=None,
-                 glyph_resolution=None, opacity=1.0, scale_mode='none',
-                 scalars=None, backface_culling=False,
-                 colormap=None, vmin=None, vmax=None, line_width=2.):
+    def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
+                 glyph_height=None, glyph_center=None, glyph_resolution=None,
+                 opacity=1.0, scale_mode='none', scalars=None,
+                 backface_culling=False, colormap=None, vmin=None, vmax=None,
+                 line_width=2., name=None):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             factor = scale
@@ -350,6 +350,7 @@ class _Renderer(_BaseRenderer):
                            geom=geom,
                            rng=rng
                            ),
+                    name=name,
                     color=color,
                     cmap=colormap,
                     opacity=opacity,
