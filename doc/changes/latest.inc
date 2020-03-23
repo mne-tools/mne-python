@@ -298,6 +298,8 @@ Bug
 API
 ~~~
 
+- ``mne.io.pick.get_channel_types`` is now called ``mne.io.pick.get_channel_type_constants`` to better reflect its return values, by `Daniel McCloy`_.
+
 - :meth:`mne.Evoked.as_type` now returns an instance of :class:`mne.EvokedArray` by `Sophie Herbst`_ and `Alex Gramfort`_
 
 - Bumped minimum requirements to fall 2017 versions by `Eric Larson`_:
