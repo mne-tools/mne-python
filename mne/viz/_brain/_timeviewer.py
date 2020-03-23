@@ -386,7 +386,7 @@ class _TimeViewer(object):
             time_data = self.brain._data['time']
             max_time = np.max(time_data)
             if self.brain._current_time == max_time:  # start over
-                self.brain.set_time_point(np.min(time_data))
+                self.brain.set_time_point(0)  # first index
             self._last_tick = time.time()
 
     def set_playback_speed(self, speed):
