@@ -53,6 +53,7 @@ picks = pick_types(raw.info, meg=True, ref_meg=False)
 
 ###############################################################################
 # Notch filter the data.
+#
 # .. note::
 #     If line noise is present, you should perform notch-filtering *before*
 #     detecting muscle artifacts. See :ref:`tut-section-line-noise` for an
