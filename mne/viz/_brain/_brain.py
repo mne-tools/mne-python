@@ -492,7 +492,7 @@ class _Brain(object):
                     colormap=ctable[:, :3],
                     mode=glyph,
                     scale_mode='vector',
-                    scale=1.0,
+                    scale=scale_factor,
                     opacity=vector_alpha
                 )
                 self._data[hemi]['glyph'].append(actor)
