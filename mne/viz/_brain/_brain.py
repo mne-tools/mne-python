@@ -1106,6 +1106,7 @@ class _Brain(object):
     def scale_data_colormap(self, fmin, fmid, fmax, transparent,
                             center=None, alpha=1.0, data=None, verbose=None):
         """Scale the data colormap."""
+        from ..backends._pyvista import _set_colormap_range
         lut_lst = self._data['ctable']
         n_col = len(lut_lst)
 
@@ -1124,18 +1125,13 @@ class _Brain(object):
         self.update_fscale(1.0)
 
         # apply the lut on every glyph
-        from vtk.util.numpy_support import numpy_to_vtk
         ctable = self._data["ctable"]
         rng = [fmin, fmax]
         for hemi in ['lh', 'rh']:
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
                 for actor in hemi_data['glyph']:
-                    mapper = actor.GetMapper()
-                    lut = mapper.GetLookupTable()
-                    lut.SetRange(rng[0], rng[1])
-                    lut.SetTable(numpy_to_vtk(ctable))
-                    mapper.SetScalarRange(rng[0], rng[1])
+                    _set_colormap_range(actor, ctable, None, rng)
 
 
 def _safe_interp1d(x, y, kind='linear', axis=-1, assume_sorted=False):

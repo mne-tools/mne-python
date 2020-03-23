@@ -255,7 +255,7 @@ class _Renderer(_BaseRenderer):
                 sphere.SetRadius(radius)
             sphere.Update()
             geom = sphere.GetOutput()
-            mesh = PolyData(center)
+            mesh = PolyData(np.array(center))
             glyph = mesh.glyph(orient=False, scale=False,
                                factor=factor, geom=geom)
             actor = self.plotter.add_mesh(
