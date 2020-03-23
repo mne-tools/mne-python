@@ -576,7 +576,7 @@ def _read_edf_header(fname, exclude):
         for i, unit in enumerate(units):
             if i in exclude:
                 continue
-            if unit in ('uV', 'µV'):
+            if unit == 'uV':
                 edf_info['units'].append(1e-6)
             elif unit == 'mV':
                 edf_info['units'].append(1e-3)
@@ -723,7 +723,7 @@ def _read_gdf_header(fname, exclude):
             exclude = _find_exclude_idx(ch_names, exclude)
             sel = list()
             for i, unit in enumerate(units):
-                if unit[:2] in ('uV', 'µV'):
+                if unit[:2] == 'uV':
                     units[i] = 1e-6
                 else:
                     units[i] = 1
