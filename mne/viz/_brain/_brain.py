@@ -404,12 +404,10 @@ class _Brain(object):
             self._data["time_label"] = time_label
             y_txt = 0.05 + 0.1 * bool(colorbar)
 
-        magnitude = None
         if array.ndim == 3:
             if array.shape[1] != 3:
                 raise ValueError('If array has 3 dimensions, array.shape[1] '
                                  'must equal 3, got %s' % (array.shape[1],))
-            magnitude = np.linalg.norm(array, axis=1)
         fmin, fmid, fmax = _update_limits(
             fmin, fmid, fmax, center, array
         )
@@ -426,7 +424,6 @@ class _Brain(object):
         self._data[hemi]['mesh'] = list()
         self._data[hemi]['glyph'] = list()
         self._data[hemi]['array'] = array
-        self._data[hemi]['magnitude'] = magnitude
         self._data[hemi]['vertices'] = vertices
         self._data['alpha'] = alpha
         self._data['colormap'] = colormap
@@ -806,7 +803,6 @@ class _Brain(object):
         fmax : float | None
             Maximum value in colormap.
         """
-        alpha = self._data['alpha']
         center = self._data['center']
         colormap = self._data['colormap']
         transparent = self._data['transparent']
@@ -819,8 +815,9 @@ class _Brain(object):
         if lims['fmax'] < lims['fmid']:
             lims['fmax'] = lims['fmid']
         self._data.update(lims)
+        # XXX Guillaume check this is the right place to avoid double-alpha'ing
         self._data['ctable'] = \
-            calculate_lut(colormap, alpha=alpha, center=center,
+            calculate_lut(colormap, alpha=1., center=center,
                           transparent=transparent, **lims)
         return self._data['ctable']
 
@@ -876,7 +873,6 @@ class _Brain(object):
         self._time_interpolation = str(interpolation)
         del interpolation
         self._time_interp_funcs = dict()
-        self._mag_interp_funcs = dict()
         self._time_interp_inv = None
         if self._times is not None:
             idx = np.arange(self._n_times)
@@ -884,18 +880,9 @@ class _Brain(object):
                 hemi_data = self._data.get(hemi)
                 if hemi_data is not None:
                     array = hemi_data['array']
-                    magnitude = hemi_data['magnitude']
-                    if array.ndim == 2:
-                        self._time_interp_funcs[hemi] = _safe_interp1d(
-                            idx, array, self._time_interpolation, axis=1,
-                            assume_sorted=True)
-                    elif array.ndim == 3:
-                        self._time_interp_funcs[hemi] = _safe_interp1d(
-                            idx, array, self._time_interpolation, axis=2,
-                            assume_sorted=True)
-                        self._mag_interp_funcs[hemi] = _safe_interp1d(
-                            idx, magnitude, self._time_interpolation, axis=1,
-                            assume_sorted=True)
+                    self._time_interp_funcs[hemi] = _safe_interp1d(
+                        idx, array, self._time_interpolation, axis=-1,
+                        assume_sorted=True)
             self._time_interp_inv = _safe_interp1d(idx, self._times)
 
     def set_time_point(self, time_idx):
@@ -908,18 +895,17 @@ class _Brain(object):
             hemi_data = self._data.get(hemi)
             if hemi_data is not None:
                 array = hemi_data['array']
-                magnitude = hemi_data['magnitude']
                 # interpolate in time
-                if array.ndim == 2:
-                    act_data = self._time_interp_funcs[hemi](time_idx)
-                    self._current_time = self._time_interp_inv(time_idx)
-                elif array.ndim == 3:
-                    act_data = magnitude
-                    self.vectors = self._time_interp_funcs[hemi](time_idx)
-                    self._current_time = self._time_interp_inv(time_idx)
-                else:
+                if array.ndim == 1:
                     act_data = array
                     self._current_time = 0
+                else:
+                    act_data = self._time_interp_funcs[hemi](time_idx)
+                    self._current_time = self._time_interp_inv(time_idx)
+                    if array.ndim == 3:
+                        self.vectors = act_data
+                        act_data = np.linalg.norm(act_data, axis=1)
+                    self._current_time = self._time_interp_inv(time_idx)
                 current_act_data.append(act_data)
                 if time_actor is not None and time_label is not None:
                     time_actor.SetInput(time_label(self._current_time))
