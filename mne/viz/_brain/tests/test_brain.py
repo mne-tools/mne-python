@@ -162,6 +162,8 @@ def test_brain_add_text(renderer):
 @testing.requires_testing_data
 def test_brain_timeviewer(renderer_interactive):
     """Test _TimeViewer primitives."""
+    if renderer_interactive.get_3d_backend() != 'pyvista':
+        pytest.skip()
     brain_data = _create_testing_brain(hemi='both')
 
     time_viewer = _TimeViewer(brain_data)
@@ -185,6 +187,8 @@ def test_brain_timeviewer(renderer_interactive):
 @pytest.mark.parametrize('hemi', ['lh', 'rh', 'split', 'both'])
 def test_brain_timeviewer_traces(renderer_interactive, hemi):
     """Test _TimeViewer traces."""
+    if renderer_interactive.get_3d_backend() != 'pyvista':
+        pytest.skip()
     brain_data = _create_testing_brain(hemi=hemi)
     time_viewer = _TimeViewer(brain_data, show_traces=True)
     assert hasattr(time_viewer, "picked_points")
@@ -238,6 +242,8 @@ def test_brain_timeviewer_traces(renderer_interactive, hemi):
 @testing.requires_testing_data
 def test_brain_linkviewer(renderer_interactive):
     """Test _LinkViewer primitives."""
+    if renderer_interactive.get_3d_backend() != 'pyvista':
+        pytest.skip()
     brain_data = _create_testing_brain(hemi='split')
     _TimeViewer(brain_data)
 
