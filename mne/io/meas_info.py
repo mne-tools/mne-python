@@ -1241,7 +1241,14 @@ def read_meas_info(fid, tree, clean_bads=False, verbose=None):
                 tag = read_tag(fid, pos)
                 si['middle_name'] = str(tag.data)
             elif kind == FIFF.FIFF_SUBJ_BIRTH_DAY:
-                tag = read_tag(fid, pos)
+                try:
+                    tag = read_tag(fid, pos)
+                except OverflowError:
+                    warn('Encountered an error while trying to read the '
+                         'birthday from the input data. No birthday will be '
+                         'set. Please check the integrity of the birthday '
+                         'information in the input data.')
+                    continue
                 si['birthday'] = tag.data
             elif kind == FIFF.FIFF_SUBJ_SEX:
                 tag = read_tag(fid, pos)
