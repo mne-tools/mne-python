@@ -1333,6 +1333,11 @@ def _check_filterable(x, kind='filtered'):
     return x
 
 
+def _resamp_ratio_len(up, down, n):
+    ratio = float(up) / down
+    return ratio, int(round(ratio * n))
+
+
 @verbose
 def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
              pad='reflect_limited', verbose=None):
@@ -1388,7 +1393,8 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
 
     # make sure our arithmetic will work
     x = _check_filterable(x, 'resampled')
-    ratio = float(up) / down
+    ratio, final_len = _resamp_ratio_len(up, down, x.shape[axis])
+    del up, down
     if axis < 0:
         axis = x.ndim + axis
     orig_last_axis = x.ndim - 1
@@ -1418,7 +1424,6 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
     x_flat = x.reshape((-1, x_len))
     orig_len = x_len + npads.sum()  # length after padding
     new_len = int(round(ratio * orig_len))  # length after resampling
-    final_len = int(round(ratio * x_len))
     to_removes = [int(round(ratio * npads[0]))]
     to_removes.append(new_len - final_len - to_removes[0])
     to_removes = np.array(to_removes)
@@ -1458,6 +1463,7 @@ def resample(x, up=1., down=1., npad=100, axis=-1, window='boxcar', n_jobs=1,
     y.shape = orig_shape[:-1] + (y.shape[1],)
     if axis != orig_last_axis:
         y = y.swapaxes(axis, orig_last_axis)
+    assert y.shape[axis] == final_len
 
     return y
 

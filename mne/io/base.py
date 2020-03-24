@@ -31,7 +31,7 @@ from .write import (start_file, end_file, start_block, end_block,
 
 from ..annotations import (_annotations_starts_stops, _write_annotations,
                            _handle_meas_date)
-from ..filter import (FilterMixin, notch_filter, resample,
+from ..filter import (FilterMixin, notch_filter, resample, _resamp_ratio_len,
                       _resample_stim_channels, _check_fun)
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
@@ -1015,9 +1015,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                  verbose=None):  # lgtm
         """Resample all channels.
 
-        The Raw object has to have the data loaded e.g. with ``preload=True``
-        or ``self.load_data()``.
-
         .. warning:: The intended purpose of this function is primarily to
                      speed up computations (e.g., projection calculation) when
                      precise timing of events is not required, as downsampling
@@ -1074,9 +1071,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         -----
         For some data, it may be more accurate to use ``npad=0`` to reduce
         artifacts. This is dataset dependent -- check your data!
-        """
-        _check_preload(self, 'raw.resample')
 
+        For optimum performance and to make use of ``n_jobs > 1``, the raw
+        object has to have the data loaded e.g. with ``preload=True`` or
+        ``self.load_data()``, but this increases memory requirements. The
+        resulting raw object will have the data loaded into memory.
+        """
         # When no event object is supplied, some basic detection of dropped
         # events is performed to generate a warning. Finding events can fail
         # for a variety of reasons, e.g. if no stim channel is present or it is
@@ -1092,9 +1092,6 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         o_sfreq = float(self.info['sfreq'])
 
         offsets = np.concatenate(([0], np.cumsum(self._raw_lengths)))
-        new_data = list()
-
-        ratio = sfreq / o_sfreq
 
         # set up stim channel processing
         if stim_picks is None:
@@ -1102,27 +1099,48 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                                     stim=True, exclude=[])
         stim_picks = np.asanyarray(stim_picks)
 
-        for ri in range(len(self._raw_lengths)):
-            data_chunk = self._data[:, offsets[ri]:offsets[ri + 1]]
-            new_data.append(resample(data_chunk, sfreq, o_sfreq, npad,
-                                     window=window, n_jobs=n_jobs, pad=pad))
-            new_ntimes = new_data[ri].shape[1]
+        kwargs = dict(up=sfreq, down=o_sfreq, npad=npad, window=window,
+                      n_jobs=n_jobs, pad=pad)
+        ratio, n_news = zip(*(_resamp_ratio_len(sfreq, o_sfreq, old_len)
+                              for old_len in self._raw_lengths))
+        ratio, n_news = ratio[0], np.array(n_news, int)
+        new_offsets = np.cumsum([0] + list(n_news))
+        if self.preload:
+            new_data = np.empty(
+                (len(self.ch_names), new_offsets[-1]), self._data.dtype)
+        for ri, (n_orig, n_new) in enumerate(zip(self._raw_lengths, n_news)):
+            this_sl = slice(new_offsets[ri], new_offsets[ri + 1])
+            if self.preload:
+                data_chunk = self._data[:, offsets[ri]:offsets[ri + 1]]
+                new_data[:, this_sl] = resample(data_chunk, **kwargs)
+                # In empirical testing, it was faster to resample all channels
+                # (above) and then replace the stim channels than it was to
+                # only resample the proper subset of channels and then use
+                # np.insert() to restore the stims.
+                if len(stim_picks) > 0:
+                    new_data[stim_picks, this_sl] = _resample_stim_channels(
+                        data_chunk[stim_picks], n_new, data_chunk.shape[1])
+            else:  # this will not be I/O efficient, but will be mem efficient
+                for ci in range(len(self.ch_names)):
+                    data_chunk = self.get_data(
+                        ci, offsets[ri], offsets[ri + 1], verbose='error')[0]
+                    if ci == 0 and ri == 0:
+                        new_data = np.empty(
+                            (len(self.ch_names), new_offsets[-1]),
+                            data_chunk.dtype)
+                    if ci in stim_picks:
+                        resamp = _resample_stim_channels(
+                            data_chunk, n_new, data_chunk.shape[-1])[0]
+                    else:
+                        resamp = resample(data_chunk, **kwargs)
+                    new_data[ci, this_sl] = resamp
 
-            # In empirical testing, it was faster to resample all channels
-            # (above) and then replace the stim channels than it was to only
-            # resample the proper subset of channels and then use np.insert()
-            # to restore the stims.
-            if len(stim_picks) > 0:
-                stim_resampled = _resample_stim_channels(
-                    data_chunk[stim_picks], new_data[ri].shape[1],
-                    data_chunk.shape[1])
-                new_data[ri][stim_picks] = stim_resampled
-
-            self._first_samps[ri] = int(self._first_samps[ri] * ratio)
-            self._last_samps[ri] = self._first_samps[ri] + new_ntimes - 1
-            self._raw_lengths[ri] = new_ntimes
-
-        self._data = np.concatenate(new_data, axis=1)
+        self._first_samps = (self._first_samps * ratio).astype(int)
+        self._last_samps = (np.array(self._first_samps) + n_news - 1).tolist()
+        self._raw_lengths[ri] = list(n_news)
+        assert np.array_equal(n_news, self._last_samps - self._first_samps + 1)
+        self._data = new_data
+        self.preload = True
         self.info['sfreq'] = sfreq
         lowpass = self.info.get('lowpass')
         lowpass = np.inf if lowpass is None else lowpass

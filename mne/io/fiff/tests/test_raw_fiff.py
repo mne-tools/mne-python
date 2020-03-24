@@ -965,10 +965,12 @@ def test_crop():
 
 
 @testing.requires_testing_data
-def test_resample(tmpdir):
+@pytest.mark.parametrize('preload', (True, False))
+def test_resample(tmpdir, preload):
     """Test resample (with I/O and multiple files)."""
     raw = read_raw_fif(fif_fname).crop(0, 3)
-    raw.load_data()
+    if preload:
+        raw.load_data()
     raw_resamp = raw.copy()
     sfreq = raw.info['sfreq']
     # test parallel on upsample
@@ -979,22 +981,22 @@ def test_resample(tmpdir):
                               preload=True)
     assert sfreq == raw_resamp.info['sfreq'] / 2
     assert raw.n_times == raw_resamp.n_times // 2
-    assert raw_resamp._data.shape[1] == raw_resamp.n_times
-    assert raw._data.shape[0] == raw_resamp._data.shape[0]
+    assert raw_resamp.get_data().shape[1] == raw_resamp.n_times
+    assert raw.get_data().shape[0] == raw_resamp._data.shape[0]
     # test non-parallel on downsample
     raw_resamp.resample(sfreq, n_jobs=1, npad='auto')
     assert raw_resamp.info['sfreq'] == sfreq
-    assert raw._data.shape == raw_resamp._data.shape
+    assert raw.get_data().shape == raw_resamp._data.shape
     assert raw.first_samp == raw_resamp.first_samp
     assert raw.last_samp == raw.last_samp
     # upsampling then downsampling doubles resampling error, but this still
     # works (hooray). Note that the stim channels had to be sub-sampled
     # without filtering to be accurately preserved
     # note we have to treat MEG and EEG+STIM channels differently (tols)
-    assert_allclose(raw._data[:306, 200:-200],
+    assert_allclose(raw.get_data()[:306, 200:-200],
                     raw_resamp._data[:306, 200:-200],
                     rtol=1e-2, atol=1e-12)
-    assert_allclose(raw._data[306:, 200:-200],
+    assert_allclose(raw.get_data()[306:, 200:-200],
                     raw_resamp._data[306:, 200:-200],
                     rtol=1e-2, atol=1e-7)
 
