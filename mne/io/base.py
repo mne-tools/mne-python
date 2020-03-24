@@ -105,9 +105,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
     filenames : tuple
         Tuple of length one (for unsplit raw files) or length > 1 (for split
         raw files).
-    raw_extras : list
-        Whatever data is necessary for on-demand reads for the given
-        reader format.
+    raw_extras : list of dict
+        The data necessary for on-demand reads for the given reader format.
+        Should be the same length as ``filenames``. Will have the entry
+        ``raw_extras['orig_nchan']`` added to it for convenience.
     orig_format : str
         The data format of the original raw file (e.g., ``'double'``).
     dtype : dtype | None
@@ -186,7 +187,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                              % {ii: self.ch_names[ii] for ii in bad})
         self.verbose = verbose
         self._cals = cals
-        self._raw_extras = list(raw_extras)
+        self._raw_extras = list(dict() if r is None else r for r in raw_extras)
+        for r in self._raw_extras:
+            r['orig_nchan'] = info['nchan']
+        self._read_picks = [np.arange(info['nchan'])
+                            for _ in range(len(raw_extras))]
         # deal with compensation (only relevant for CTF data, either CTF
         # reader or MNE-C converted CTF->FIF files)
         self._read_comp_grade = self.compensation_grade  # read property
@@ -331,13 +336,10 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             raise ValueError('No data in this range')
 
         #  Initialize the data and calibration vector
-        n_sel_channels = self.info['nchan'] if sel is None else len(sel)
-        assert n_sel_channels <= self.info['nchan']
-        # convert sel to a slice if possible for efficiency
-        if sel is not None and len(sel) > 1 and np.all(np.diff(sel) == 1):
-            sel = slice(sel[0], sel[-1] + 1)
-        idx = slice(None, None, None) if sel is None else sel
-        data_shape = (n_sel_channels, stop - start)
+        idx = np.arange(self.info['nchan']) if sel is None else sel
+        n_out = len(idx)
+        assert n_out <= self.info['nchan']
+        data_shape = (n_out, stop - start)
         dtype = self._dtype
         if isinstance(data_buffer, np.ndarray):
             if data_buffer.shape != data_shape:
@@ -382,9 +384,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                 raise ValueError('Bad array indexing, could be a bug')
             n_read = stop_file - start_file
             this_sl = slice(offset, offset + n_read)
-            self._read_segment_file(data[:, this_sl], idx, fi,
-                                    int(start_file), int(stop_file),
-                                    cals, mult)
+            # reindex back to original file
+            orig_idx = self._read_picks[fi][idx]
+            _ReadSegmentFileProtector(self)._read_segment_file(
+                data[:, this_sl], orig_idx, fi,
+                int(start_file), int(stop_file), cals, mult)
             offset += n_read
         return data
 
@@ -392,7 +396,15 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """Read a segment of data from a file.
 
         Only needs to be implemented for readers that support
-        ``preload=False``.
+        ``preload=False``. Any implementation should only make use of:
+
+        - self._raw_extras[fi]
+        - self._filenames[fi]
+
+        So be sure to store any information necessary for reading raw data
+        in self._raw_extras[fi]. Things like ``info`` can be decoupled
+        from the original data (e.g., different subsets of channels) due
+        to picking before preload, for example.
 
         Parameters
         ----------
@@ -1203,10 +1215,11 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         self._first_samps[0] += smin - cumul_lens[keepers[0]]
         self._last_samps = np.atleast_1d(self._last_samps[keepers])
         self._last_samps[-1] -= cumul_lens[keepers[-1] + 1] - 1 - smax
-        self._raw_extras = [r for ri, r in enumerate(self._raw_extras)
-                            if ri in keepers]
-        self._filenames = [r for ri, r in enumerate(self._filenames)
-                           if ri in keepers]
+        self._read_picks = [self._read_picks[ri] for ri in keepers]
+        assert all(len(r) == len(self._read_picks[0])
+                   for r in self._read_picks)
+        self._raw_extras = [self._raw_extras[ri] for ri in keepers]
+        self._filenames = [self._filenames[ri] for ri in keepers]
         if self.preload:
             # slice and copy to avoid the reference to large array
             self._data = self._data[:, smin:smax + 1].copy()
@@ -1561,6 +1574,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                               sum(self._first_samps) + (ri + 1))
             self._first_samps = np.r_[self._first_samps, r._first_samps]
             self._last_samps = np.r_[self._last_samps, r._last_samps]
+            self._read_picks += r._read_picks
             self._raw_extras += r._raw_extras
             self._filenames += r._filenames
         assert annotations.orig_time == self.info['meas_date']
@@ -1571,7 +1585,8 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             self.annotations.append(onset, 0., 'BAD boundary')
             self.annotations.append(onset, 0., 'EDGE boundary')
         if not (len(self._first_samps) == len(self._last_samps) ==
-                len(self._raw_extras) == len(self._filenames)):
+                len(self._raw_extras) == len(self._filenames) ==
+                len(self._read_picks)):
             raise RuntimeError('Append error')  # should never happen
 
     def close(self):
@@ -1737,6 +1752,18 @@ def _index_as_time(index, sfreq, first_samp=0, use_first_samp=False):
     """
     times = np.atleast_1d(index) + (first_samp if use_first_samp else 0)
     return times / sfreq
+
+
+class _ReadSegmentFileProtector(object):
+    """Ensure only _filenames, _raw_extras, and _read_segment_file are used."""
+
+    def __init__(self, raw):
+        self.__raw = raw
+        self._filenames = raw._filenames
+        self._raw_extras = raw._raw_extras
+
+    def _read_segment_file(self, *args, **kwargs):
+        return self.__raw.__class__._read_segment_file(self, *args, **kwargs)
 
 
 class _RawShell(object):

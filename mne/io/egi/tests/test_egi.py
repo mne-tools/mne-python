@@ -149,12 +149,16 @@ def test_io_egi_pns_mff():
 
 
 @requires_testing_data
-def test_io_egi_pns_mff_bug():
+@pytest.mark.parametrize('preload', (True, False))
+def test_io_egi_pns_mff_bug(preload):
     """Test importing EGI MFF with PNS data (BUG)."""
     egi_fname_mff = op.join(data_path(), 'EGI', 'test_egi_pns_bug.mff')
     with pytest.warns(RuntimeWarning, match='EGI PSG sample bug'):
-        raw = read_raw_egi(egi_fname_mff, include=None, preload=True,
+        raw = read_raw_egi(egi_fname_mff, include=None, preload=preload,
                            verbose='warning')
+    assert len(raw.annotations) == 1
+    assert_allclose(raw.annotations.duration, [0.004])
+    assert_allclose(raw.annotations.onset, [13.948])
     egi_fname_mat = op.join(data_path(), 'EGI', 'test_egi_pns.mat')
     mc = sio.loadmat(egi_fname_mat)
     pns_chans = pick_types(raw.info, ecg=True, bio=True, emg=True)

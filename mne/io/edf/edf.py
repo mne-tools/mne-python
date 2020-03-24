@@ -126,8 +126,9 @@ class RawEDF(BaseRaw):
         onset, duration, desc = list(), list(), list()
         if len(edf_info['tal_idx']) > 0:
             # Read TAL data exploiting the header info (no regexp)
-            tal_data = self._read_segment_file([], [], 0, 0, int(self.n_times),
-                                               None, None)
+            idx = np.empty(0, int)
+            tal_data = self._read_segment_file(
+                [], idx, 0, 0, int(self.n_times), None, None)
             onset, duration, desc = _read_annotations_edf(tal_data[0])
 
         self.set_annotations(Annotations(onset=onset, duration=duration,
@@ -136,8 +137,7 @@ class RawEDF(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         return _read_segment_file(data, idx, fi, start, stop,
-                                  self._raw_extras[fi], self.info['chs'],
-                                  self._filenames[fi])
+                                  self._raw_extras[fi], self._filenames[fi])
 
 
 @fill_doc
@@ -206,8 +206,7 @@ class RawGDF(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         return _read_segment_file(data, idx, fi, start, stop,
-                                  self._raw_extras[fi], self.info['chs'],
-                                  self._filenames[fi])
+                                  self._raw_extras[fi], self._filenames[fi])
 
 
 def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
@@ -229,7 +228,7 @@ def _read_ch(fid, subtype, samp, dtype_byte, dtype=None):
     return ch_data
 
 
-def _read_segment_file(data, idx, fi, start, stop, raw_extras, chs, filenames):
+def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames):
     """Read a chunk of raw data."""
     from scipy.interpolate import interp1d
 
@@ -242,18 +241,16 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, chs, filenames):
     orig_sel = raw_extras['sel']
     tal_idx = raw_extras.get('tal_idx', [])
     subtype = raw_extras['subtype']
+    cal = raw_extras['cal']
 
     # gain constructor
-    physical_range = np.array([ch['range'] for ch in chs])
-    cal = np.array([ch['cal'] for ch in chs])
-    cal = np.atleast_2d(physical_range / cal)  # physical / digital
-    gains = np.atleast_2d(raw_extras['units'])
+    gains = raw_extras['units']
 
     # physical dimension in µV
     physical_min = raw_extras['physical_min']
     digital_min = raw_extras['digital_min']
 
-    offsets = np.atleast_2d(physical_min - (digital_min * cal)).T
+    offsets = physical_min - (digital_min * cal)
     this_sel = orig_sel[idx]
     if len(tal_idx):
         this_sel = np.concatenate([this_sel, tal_idx])
@@ -316,21 +313,20 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, chs, filenames):
     if stim_channel is None:  # avoid NumPy comparison to None
         stim_channel_idx = np.array([], int)
     else:
-        _idx = np.arange(len(chs))[idx]  # slice -> ints
         stim_channel_idx = list()
         for stim_ch in stim_channel:
-            stim_ch_idx = np.where(_idx == stim_ch)[0].tolist()
+            stim_ch_idx = np.where(idx == stim_ch)[0].tolist()
             if len(stim_ch_idx):
                 stim_channel_idx.append(stim_ch_idx)
         stim_channel_idx = np.array(stim_channel_idx).ravel()
 
     if subtype == 'bdf' and len(stim_channel_idx) > 0:
-        cal[0, stim_channel_idx] = 1
-        offsets[stim_channel_idx, 0] = 0
-        gains[0, stim_channel_idx] = 1
-    data *= cal.T[idx]
-    data += offsets[idx]
-    data *= gains.T[idx]
+        cal[stim_channel_idx] = 1
+        offsets[stim_channel_idx] = 0
+        gains[stim_channel_idx] = 1
+    data *= cal[idx][:, np.newaxis]
+    data += offsets[idx][:, np.newaxis]
+    data *= gains[idx][:, np.newaxis]
 
     if stim_channel is not None and len(stim_channel_idx) > 0:
         stim = np.bitwise_and(data[stim_channel_idx].astype(int),
@@ -500,6 +496,11 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
 
     info._update_redundant()
 
+    # Later used for reading
+    physical_range = np.array([ch['range'] for ch in chs])
+    cal = (physical_range / np.array([ch['cal'] for ch in chs]))
+    edf_info['cal'] = cal
+
     return info, edf_info, orig_units
 
 
@@ -582,6 +583,7 @@ def _read_edf_header(fname, exclude):
                 edf_info['units'].append(1e-3)
             else:
                 edf_info['units'].append(1)
+        edf_info['units'] = np.array(edf_info['units'], float)
 
         ch_names = [ch_names[idx] for idx in sel]
         units = [units[idx] for idx in sel]
@@ -728,6 +730,7 @@ def _read_gdf_header(fname, exclude):
                 else:
                     units[i] = 1
                 sel.append(i)
+            units = np.array(units, float)
 
             ch_names = [ch_names[idx] for idx in sel]
             physical_min = np.fromfile(fid, np.float64, len(channels))
@@ -927,6 +930,7 @@ def _read_gdf_header(fname, exclude):
                          'MNE-Python developers for support.' % i)
                     units[i] = 1
                 sel.append(i)
+            units = np.array(units, float)
 
             ch_names = [ch_names[idx] for idx in sel]
             physical_min = np.fromfile(fid, np.float64, len(channels))

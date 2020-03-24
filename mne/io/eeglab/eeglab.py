@@ -363,8 +363,8 @@ class RawEEGLAB(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
-        _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
-                            dtype=np.float32, n_channels=self.info['nchan'])
+        _read_segments_file(
+            self, data, idx, fi, start, stop, cals, mult, dtype='<f4')
 
 
 class EpochsEEGLAB(BaseEpochs):

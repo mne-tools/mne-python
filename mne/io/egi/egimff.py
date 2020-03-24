@@ -14,8 +14,8 @@ from ..base import BaseRaw
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..utils import _create_chs
+from ...annotations import Annotations
 from ...utils import verbose, logger, warn
-from ...annotations import _sync_onset
 
 
 def _read_mff_header(filepath):
@@ -346,15 +346,16 @@ class RawMff(BaseRaw):
                         ", ".join([k for i, k in enumerate(event_codes)
                                    if i not in include_]))
             events_ids = np.arange(len(include_)) + 1
-            self._new_trigger = _combine_triggers(egi_events[include_],
-                                                  remapping=events_ids)
+            egi_info['new_trigger'] = _combine_triggers(
+                egi_events[include_], remapping=events_ids)
             self.event_id = dict(zip([e for e in event_codes if e in
                                       include_names], events_ids))
-            if self._new_trigger is not None:
-                egi_events = np.vstack([egi_events, self._new_trigger])
+            if egi_info['new_trigger'] is not None:
+                egi_events = np.vstack([egi_events, egi_info['new_trigger']])
         else:
             # No events
             self.event_id = None
+            egi_info['new_trigger'] = None
             event_codes = []
         info = _empty_info(egi_info['sfreq'])
         my_time = datetime.datetime(
@@ -365,7 +366,7 @@ class RawMff(BaseRaw):
         ch_names = [channel_naming % (i + 1) for i in
                     range(egi_info['n_channels'])]
         ch_names.extend(list(egi_info['event_codes']))
-        if hasattr(self, '_new_trigger') and self._new_trigger is not None:
+        if egi_info['new_trigger'] is not None:
             ch_names.append('STI 014')  # channel for combined events
         ch_coil = FIFF.FIFFV_COIL_EEG
         ch_kind = FIFF.FIFFV_EEG_CH
@@ -408,9 +409,51 @@ class RawMff(BaseRaw):
         file_bin = op.join(input_fname, egi_info['eeg_fname'])
         egi_info['egi_events'] = egi_events
 
-        if 'pns_names' in egi_info:
+        # Check how many channels to read are from EEG
+        egi_info['eeg_mask'] = np.array(
+            [ch['kind'] in (FIFF.FIFFV_EEG_CH, FIFF.FIFFV_STIM_CH)
+             for ch in chs], int)
+        egi_info['pns_mask'] = np.array(
+            [ch['kind'] in (FIFF.FIFFV_ECG_CH, FIFF.FIFFV_EMG_CH,
+                            FIFF.FIFFV_BIO_CH) for ch in chs], int)
+        if egi_info['pns_mask'].any() and (
+                np.where(egi_info['eeg_mask'])[0].max() >=
+                np.where(egi_info['pns_mask'])[0].max()):
+            raise ValueError('Currently interlacing EEG and PNS channels'
+                             'is not supported')
+
+        annot = None
+        if 'pns_names' in egi_info and egi_info['pns_mask'].any():
+            # PNS Data is present and should be read:
             egi_info['pns_filepath'] = op.join(
                 input_fname, egi_info['pns_fname'])
+            # Check for PNS bug immediately
+            pns_filepath = egi_info['pns_filepath']
+            pns_info = egi_info['pns_sample_blocks']
+            n_channels = pns_info['n_channels']
+            samples_to_read = egi_info['n_samples']
+            with open(pns_filepath, 'rb') as fid:
+                # Check file size
+                fid.seek(0, 2)
+                file_size = fid.tell()
+                fid.seek(0)
+                current_data_sample = 0
+                while samples_to_read > 0:
+                    if samples_to_read == 1 and fid.tell() == file_size:
+                        # We are in the presence of the EEG bug
+                        warn('This file has the EGI PSG sample bug')
+                        annot = dict(
+                            onset=[current_data_sample / egi_info['sfreq']],
+                            duration=[1 / egi_info['sfreq']],
+                            description=['BAD_EGI_PSG'])
+                        break
+                    block_info = _block_r(fid)
+                    samples_read = block_info['nsamples']
+                    to_read = 4 * samples_read * n_channels
+                    assert block_info['nc'] == n_channels
+                    fid.seek(to_read, 1)  # f4
+                    samples_to_read -= samples_read
+                    current_data_sample += samples_read
 
         self._filenames = [file_bin]
         self._raw_extras = [egi_info]
@@ -419,6 +462,9 @@ class RawMff(BaseRaw):
             info, preload=preload, orig_format='float', filenames=[file_bin],
             last_samps=[egi_info['n_samples'] - 1], raw_extras=[egi_info],
             verbose=verbose)
+
+        if annot is not None:
+            self.set_annotations(Annotations(**annot, orig_time=None))
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of data."""
@@ -432,22 +478,9 @@ class RawMff(BaseRaw):
         samples_block = egi_info['samples_block']
 
         # Check how many channels to read are from EEG
-        if isinstance(idx, slice):
-            chs_to_read = self.info['chs'][idx]
-        else:
-            chs_to_read = [self.info['chs'][x] for x in idx]
-        eeg_chans = [i for i, x in enumerate(chs_to_read) if x['kind'] in
-                     (FIFF.FIFFV_EEG_CH, FIFF.FIFFV_STIM_CH)]
-        pns_chans = [i for i, x in enumerate(chs_to_read) if x['kind'] in
-                     (FIFF.FIFFV_ECG_CH, FIFF.FIFFV_EMG_CH, FIFF.FIFFV_BIO_CH)]
+        eeg_chans = np.where(egi_info['eeg_mask'][idx])[0]
+        pns_chans = np.where(egi_info['pns_mask'][idx])[0]
 
-        eeg_chans = np.array(eeg_chans)
-        pns_chans = np.array(pns_chans)
-
-        if len(pns_chans):
-            if not np.max(eeg_chans) < np.max(pns_chans):
-                raise ValueError('Currently interlacing EEG and PNS channels'
-                                 'is not supported')
         # Number of channels to be read from EEG
         n_data1_channels = len(eeg_chans)
 
@@ -467,21 +500,8 @@ class RawMff(BaseRaw):
         if len(egi_events) > 0:
             n_eeg_channels += egi_events.shape[0]
 
-        if len(pns_chans):
-            # Split idx slice into EEG and PNS
-            if isinstance(idx, slice):
-                if idx.start is not None or idx.stop is not None:
-                    eeg_idx = slice(idx.start, n_data1_channels)
-                    pns_idx = slice(0, idx.stop - n_eeg_channels)
-                else:
-                    eeg_idx = idx
-                    pns_idx = idx
-            else:
-                eeg_idx = idx[eeg_chans]
-                pns_idx = idx[pns_chans] - n_eeg_channels
-        else:
-            eeg_idx = idx
-            pns_idx = []
+        eeg_idx = idx[eeg_chans]
+        pns_idx = idx[pns_chans] - n_eeg_channels
 
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             # Go to starting block
@@ -570,12 +590,6 @@ class RawMff(BaseRaw):
                         # We are in the presence of the EEG bug
                         # fill with zeros and break the loop
                         data[n_data1_channels:, -1] = 0
-                        warn('This file has the EGI PSG sample bug')
-                        an_start = current_data_sample
-                        # XXX : use of _sync_onset should live in annotations
-                        self.annotations.append(
-                            _sync_onset(self, an_start / self.info['sfreq']),
-                            1 / self.info['sfreq'], 'BAD_EGI_PSG')
                         break
 
                     this_block_info = _block_r(fid)
