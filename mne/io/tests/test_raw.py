@@ -72,6 +72,9 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
         del kwargs['montage']
     if test_preloading:
         raw = reader(preload=True, **kwargs)
+        rep = repr(raw)
+        assert rep.count('<') == 1
+        assert rep.count('>') == 1
         if montage is not None:
             raw.set_montage(montage)
         # don't assume the first is preloaded
@@ -180,6 +183,7 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
         these_kwargs = kwargs.copy()
         these_kwargs.update(preload_kwarg)
         whole_raw = reader(**these_kwargs)
+        print(whole_raw)  # __repr__
         assert n_ch >= 2
         picks_1 = picks[:n_ch // 2]
         picks_2 = picks[n_ch // 2:]

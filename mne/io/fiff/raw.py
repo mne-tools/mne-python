@@ -408,7 +408,7 @@ def _get_fname_rep(fname):
     if not _file_like(fname):
         return fname
     else:
-        return 'File-like %r' % (fname,)
+        return 'File-like'
 
 
 def _check_entry(first, nent):

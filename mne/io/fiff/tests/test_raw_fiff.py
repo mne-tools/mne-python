@@ -1527,7 +1527,7 @@ def test_file_like(kind, preload, split, tmpdir):
     else:
         fname = test_fif_fname
     if preload is str:
-        preload = tmpdir.join('memmap')
+        preload = str(tmpdir.join('memmap'))
     with open(str(fname), 'rb') as file_fid:
         fid = BytesIO(file_fid.read()) if kind == 'bytes' else file_fid
         assert not fid.closed
@@ -1547,6 +1547,11 @@ def test_file_like(kind, preload, split, tmpdir):
             _test_raw_reader(read_raw_fif, **kwargs)
         assert not fid.closed
         assert not file_fid.closed
+        with pytest.warns(None):
+            raw = read_raw_fif(fid, preload=preload)
+        rep = repr(raw)
+        assert rep.count('<') == 1
+        assert rep.count('>') == 1
     assert file_fid.closed
 
 
