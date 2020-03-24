@@ -1547,11 +1547,6 @@ def test_file_like(kind, preload, split, tmpdir):
             _test_raw_reader(read_raw_fif, **kwargs)
         assert not fid.closed
         assert not file_fid.closed
-        with pytest.warns(None):
-            raw = read_raw_fif(fid, preload=preload)
-        rep = repr(raw)
-        assert rep.count('<') == 1
-        assert rep.count('>') == 1
     assert file_fid.closed
 
 
