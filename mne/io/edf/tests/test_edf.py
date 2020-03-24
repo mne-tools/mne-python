@@ -68,7 +68,7 @@ def test_orig_units():
     # Test original units
     orig_units = raw._orig_units
     assert len(orig_units) == len(raw.ch_names)
-    assert orig_units['A1'] == u'µV'  # formerly 'uV' edit by _check_orig_units
+    assert orig_units['A1'] == 'µV'  # formerly 'uV' edit by _check_orig_units
 
 
 def test_bdf_data():

@@ -249,7 +249,7 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, chs, filenames):
     cal = np.atleast_2d(physical_range / cal)  # physical / digital
     gains = np.atleast_2d(raw_extras['units'])
 
-    # physical dimension in uV
+    # physical dimension in µV
     physical_min = raw_extras['physical_min']
     digital_min = raw_extras['digital_min']
 

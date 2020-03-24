@@ -114,7 +114,7 @@ evoked.plot_image(axes=axes, group_by=selections, colorbar=False, show=False,
                   mask=significant_points, show_names="all", titles=None,
                   **time_unit)
 plt.colorbar(axes["Left"].images[-1], ax=list(axes.values()), shrink=.3,
-             label="uV")
+             label="µV")
 
 plt.show()
 

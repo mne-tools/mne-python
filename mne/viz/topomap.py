@@ -734,7 +734,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.
         If an array, the values represent the levels for the contours. The
-        values are in uV for EEG, fT for magnetometers and fT/m for
+        values are in µV for EEG, fT for magnetometers and fT/m for
         gradiometers. Defaults to 6.
     image_interp : str
         The image interpolation to be used. All matplotlib options are
@@ -1549,7 +1549,7 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None, layout=None,
         When an integer, matplotlib ticker locator is used to find suitable
         values for the contour thresholds (may sometimes be inaccurate, use
         array for accuracy). If an array, the values represent the levels for
-        the contours. The values are in uV for EEG, fT for magnetometers and
+        the contours. The values are in µV for EEG, fT for magnetometers and
         fT/m for gradiometers. If colorbar=True, the ticks in colorbar
         correspond to the contour levels. Defaults to 6.
     image_interp : str
@@ -2581,7 +2581,7 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
     contours : int | array of float
         The number of contour lines to draw. If 0, no contours will be drawn.
         If an array, the values represent the levels for the contours. The
-        values are in uV for EEG, fT for magnetometers and fT/m for
+        values are in µV for EEG, fT for magnetometers and fT/m for
         gradiometers. Defaults to 6.
     image_interp : str
         The image interpolation to be used. All matplotlib options are

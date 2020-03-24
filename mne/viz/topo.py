@@ -847,10 +847,10 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
         The standard deviation of the Gaussian smoothing to apply along
         the epoch axis to apply in the image. If 0., no smoothing is applied.
     vmin : float
-        The min value in the image. The unit is uV for EEG channels,
+        The min value in the image. The unit is µV for EEG channels,
         fT for magnetometers and fT/cm for gradiometers.
     vmax : float
-        The max value in the image. The unit is uV for EEG channels,
+        The max value in the image. The unit is µV for EEG channels,
         fT for magnetometers and fT/cm for gradiometers.
     colorbar : bool | None
         Whether to display a colorbar or not. If ``None`` a colorbar will be

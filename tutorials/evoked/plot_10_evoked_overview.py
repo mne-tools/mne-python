@@ -307,8 +307,8 @@ for ix, trial in enumerate(epochs[:3].iter_evoked()):
     channel, latency, value = trial.get_peak(ch_type='eeg',
                                              return_amplitude=True)
     latency = int(round(latency * 1e3))  # convert to milliseconds
-    value = int(round(value * 1e6))      # convert to μV
-    print('Trial {}: peak of {} μV at {} ms in channel {}'
+    value = int(round(value * 1e6))      # convert to µV
+    print('Trial {}: peak of {} µV at {} ms in channel {}'
           .format(ix, value, latency, channel))
 
 ###############################################################################
