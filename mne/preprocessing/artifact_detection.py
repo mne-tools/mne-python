@@ -13,13 +13,12 @@ from ..utils import (_mask_to_onsets_offsets, logger, verbose)
 
 
 @verbose
-def annotate_muscle_zscore(raw, threshold=4, picks=None, min_length_good=.1,
+def annotate_muscle_zscore(raw, threshold=4, picks=None, min_length_good=0.1,
                            filter_freq=(110, 140), n_jobs=1, verbose=None):
-    """Detect segments with muscle artifacts.
+    """Detect segments that likely contain muscle artifacts.
 
-    Detects segments periods that contain high frequency activity beyond the
-    specified threshold. Muscle artifacts are most detectable in the range of
-    110-140 Hz.
+    Detects data segments containing activity in the frequency range given by
+    ``filter_freq``, that exceeds the specified z-score threshold.
 
     Raw data is band-pass filtered between ``filter_freq`` especified
     frequencies (default is 110 - 140 Hz), the signal envelope computed,
@@ -32,16 +31,16 @@ def annotate_muscle_zscore(raw, threshold=4, picks=None, min_length_good=.1,
     raw : instance of Raw
         Data to compute head position.
     threshold : float
-        The threshold in z-scores for selecting segments with muscle activity
-        artifacts. Check ``scores_muscle`` to see optimal thesholding for the
-        data.
+        The threshold in z-scores for marking segments as containg muscle
+        activity artifacts.
     %(picks_all)s
     min_length_good : int | float | None
-        The minimal good segment length between annotations, smaller segments
-        will be included in the movement annotation.
-    filter_freq : list | tuple, default (110, 140)
-        The lower and upper high frequency to filter the signal for muscle
-        detection.
+        The shortest allowed duration of "good data" (in seconds) between
+        adjacent annotations; shorter segments will be incorporated into the
+        surrounding annotations.
+    filter_freq : array-like, shape (2,)
+        The lower and upper frequencies of the band-pass filter.
+        Default is ``(110, 140)``.
     %(n_jobs)s
     %(verbose)s
 
