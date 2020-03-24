@@ -455,7 +455,6 @@ class _Brain(object):
                 colormap=ctable,
                 vmin=dt_min,
                 vmax=dt_max,
-                opacity=alpha,
                 scalars=np.zeros(len(self.geo[hemi].coords)),
             )
             if isinstance(mesh_data, tuple):
@@ -476,6 +475,10 @@ class _Brain(object):
         # 3) add the other actors
         for ri, v in enumerate(self._views):
             views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
+            if self._hemi != 'split':
+                ci = 0
+            else:
+                ci = 0 if hemi == 'lh' else 1
             if array.ndim >= 2 and callable(time_label):
                 if not self._time_label_added:
                     time_actor = self._renderer.text2d(
@@ -772,7 +775,7 @@ class _Brain(object):
         """
         return self._renderer.screenshot(mode)
 
-    def update_lut(self, fmin=None, fmid=None, fmax=None):
+    def update_lut(self, fmin=None, fmid=None, fmax=None, alpha=None):
         """Update color map.
 
         Parameters
@@ -785,6 +788,7 @@ class _Brain(object):
         fmax : float | None
             Maximum value in colormap.
         """
+        alpha = alpha if alpha is not None else self._data['alpha']
         center = self._data['center']
         colormap = self._data['colormap']
         transparent = self._data['transparent']
@@ -797,9 +801,8 @@ class _Brain(object):
         if lims['fmax'] < lims['fmid']:
             lims['fmax'] = lims['fmid']
         self._data.update(lims)
-        # XXX Guillaume check this is the right place to avoid double-alpha'ing
         self._data['ctable'] = \
-            calculate_lut(colormap, alpha=1., center=center,
+            calculate_lut(colormap, alpha=alpha, center=center,
                           transparent=transparent, **lims)
         return self._data['ctable']
 
@@ -917,7 +920,7 @@ class _Brain(object):
             fmin = self._data['fmin']
             fmid = self._data['fmid']
             fmax = self._data['fmax']
-            ctable = self.update_lut(fmin=fmin, fmid=fmid, fmax=fmax)
+            ctable = self.update_lut(fmin=fmin, fmid=fmid, fmax=fmax, alpha=1)
             ctable = (ctable * 255).astype(np.uint8)
             vector_alpha = self._data['vector_alpha']
             scale_factor = self._data['scale_factor']

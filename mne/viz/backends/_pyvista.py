@@ -150,6 +150,7 @@ class _Renderer(_BaseRenderer):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             self.plotter.subplot(x, y)
+            self.plotter.enable_anti_aliasing()
 
     def scene(self):
         return self.figure
@@ -441,7 +442,8 @@ class _Renderer(_BaseRenderer):
 
     def enable_depth_peeling(self):
         if not self.figure.store['off_screen']:
-            self.plotter.enable_depth_peeling()
+            for renderer in self.plotter.renderers:
+                renderer.enable_depth_peeling()
 
 
 def _deg2rad(deg):
