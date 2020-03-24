@@ -99,16 +99,16 @@ def test_brain_add_data(renderer):
     brain_data = _Brain(subject_id, hemi, surf, size=300,
                         subjects_dir=subjects_dir)
 
+    with pytest.raises(TypeError, match='scale_factor'):
+        brain_data.add_data(hemi_data, scale_factor='foo')
+    with pytest.raises(TypeError, match='vector_alpha'):
+        brain_data.add_data(hemi_data, vector_alpha='foo')
     with pytest.raises(ValueError, match='thresh'):
         brain_data.add_data(hemi_data, thresh=-1)
     with pytest.raises(ValueError, match='remove_existing'):
         brain_data.add_data(hemi_data, remove_existing=-1)
     with pytest.raises(ValueError, match='time_label_size'):
         brain_data.add_data(hemi_data, time_label_size=-1)
-    with pytest.raises(ValueError, match='scale_factor'):
-        brain_data.add_data(hemi_data, scale_factor=-1)
-    with pytest.raises(ValueError, match='vector_alpha'):
-        brain_data.add_data(hemi_data, vector_alpha=-1)
     with pytest.raises(ValueError):
         brain_data.add_data(array=np.array([0, 1, 2]))
     with pytest.raises(ValueError):
