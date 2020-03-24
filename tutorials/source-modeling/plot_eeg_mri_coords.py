@@ -117,7 +117,7 @@ print(trans)  # should be mri->head, as the "native" space here is MRI
 # shown by :meth:`~mne.io.Raw.plot_sensors`.
 
 raw = mne.io.read_raw_fif(fname_raw)
-raw.load_data().pick_types(meg=False, eeg=True, stim=True, exclude=())
+raw.pick_types(meg=False, eeg=True, stim=True, exclude=()).load_data()
 raw.set_montage(dig_montage)
 raw.plot_sensors(show_names=True)
 

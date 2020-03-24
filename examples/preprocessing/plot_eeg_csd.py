@@ -27,11 +27,10 @@ data_path = sample.data_path()
 
 ###############################################################################
 # Load sample subject data
-raw = mne.io.read_raw_fif(data_path + '/MEG/sample/sample_audvis_raw.fif',
-                          preload=True)
+raw = mne.io.read_raw_fif(data_path + '/MEG/sample/sample_audvis_raw.fif')
+raw = raw.pick_types(meg=False, eeg=True, eog=True, ecg=True, stim=True,
+                     exclude=raw.info['bads']).load_data()
 events = mne.find_events(raw)
-raw = raw.pick_types(meg=False, eeg=True, eog=True, ecg=True, stim=False,
-                     exclude=raw.info['bads'])
 raw.set_eeg_reference(projection=True).apply_proj()
 
 ###############################################################################
