@@ -57,6 +57,7 @@ class _Figure(object):
         self.store['off_screen'] = off_screen
         self.store['border'] = False
         self.store['auto_update'] = False
+        self.store['line_smoothing'] = True
 
     def build(self):
         if self.plotter_class is None:
@@ -143,7 +144,6 @@ class _Renderer(_BaseRenderer):
             with _disabled_depth_peeling():
                 self.plotter = self.figure.build()
             self.plotter.hide_axes()
-            self.plotter.ren_win.LineSmoothingOn()
             self.plotter.enable_anti_aliasing()
 
     def subplot(self, x, y):
