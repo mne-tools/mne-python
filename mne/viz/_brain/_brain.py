@@ -926,7 +926,10 @@ class _Brain(object):
                         opacity=vector_alpha,
                         name=str(hemi) + "_glyph"
                     )
-                    _set_colormap_range(actor, ctable, None, rng)
+                    if actor is not None:
+                        _set_colormap_range(actor, ctable, None, rng)
+                        # the glyphs are not ready to be displayed
+                        actor.VisibilityOn()
         self._current_act_data = np.concatenate(current_act_data)
         self._data['time_idx'] = time_idx
 

@@ -314,37 +314,17 @@ class _Renderer(_BaseRenderer):
             else:
                 scale = False
             if mode == '2darrow':
-                glyph = vtk.vtkGlyphSource2D()
-                glyph.SetGlyphTypeToArrow()
-                glyph.FilledOff()
-                if glyph_center is not None:
-                    glyph.SetCenter(glyph_center)
-                glyph.Update()
-                geom = glyph.GetOutput()
-
-                # fix position
-                tr = vtk.vtkTransform()
-                tr.Translate(0.5, 0., 0.)
-                trp = vtk.vtkTransformPolyDataFilter()
-                trp.SetInputData(geom)
-                trp.SetTransform(tr)
-                trp.Update()
-                geom = trp.GetOutput()
-
-                actor = self.plotter.add_mesh(
-                    _glyph(grid,
-                           scale_mode=scale_mode,
-                           scalars=scale,
-                           orient='vec',
-                           factor=factor,
-                           geom=geom,
-                           ),
-                    name=name,
-                    color=color,
-                    opacity=opacity,
-                    show_scalar_bar=False,
-                    line_width=line_width,
-                )
+                # create the glyph dataset
+                polydata = _arrow_glyph(grid, factor)
+                # then we create it's corresponding actor in the scene
+                # in this function, we have the option to hide it by default
+                # before adding in the scene (for example, when some specific
+                # properties of the actor are not yet set and the actor is
+                # not ready to be displayed).
+                actor = _add_polydata_actor(plotter=self.plotter,
+                                            polydata=polydata,
+                                            name=name, hide=True)
+                actor.GetProperty().SetLineWidth(line_width)
                 return actor
 
             elif mode == 'arrow' or mode == '3darrow':
@@ -676,6 +656,47 @@ def _update_picking_callback(plotter,
         on_pick
     )
     plotter.picker = picker
+
+
+def _add_polydata_actor(plotter, polydata, name=None,
+                        hide=False):
+    mapper = vtk.vtkPolyDataMapper()
+    mapper.SetInputData(polydata)
+
+    actor = vtk.vtkActor()
+    actor.SetMapper(mapper)
+    if hide:
+        actor.VisibilityOff()
+
+    plotter.add_actor(actor, name=name)
+    return actor
+
+
+def _arrow_glyph(grid, factor):
+    glyph = vtk.vtkGlyphSource2D()
+    glyph.SetGlyphTypeToArrow()
+    glyph.FilledOff()
+    glyph.Update()
+    geom = glyph.GetOutput()
+
+    # fix position
+    tr = vtk.vtkTransform()
+    tr.Translate(0.5, 0., 0.)
+    trp = vtk.vtkTransformPolyDataFilter()
+    trp.SetInputData(geom)
+    trp.SetTransform(tr)
+    trp.Update()
+    geom = trp.GetOutput()
+
+    polydata = _glyph(
+        grid,
+        scale_mode='vector',
+        scalars=False,
+        orient='vec',
+        factor=factor,
+        geom=geom,
+    )
+    return polydata
 
 
 def _glyph(dataset, scale_mode='scalar', orient=True, scalars=True, factor=1.0,
