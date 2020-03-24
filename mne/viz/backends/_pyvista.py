@@ -296,8 +296,7 @@ class _Renderer(_BaseRenderer):
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
-                 backface_culling=False, colormap=None, vmin=None, vmax=None,
-                 line_width=2., name=None):
+                 backface_culling=False, line_width=2., name=None):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             factor = scale
@@ -309,20 +308,11 @@ class _Renderer(_BaseRenderer):
             cells = np.c_[np.full(n_points, 1), range(n_points)]
             grid = UnstructuredGrid(offset, cells, cell_type, points)
             grid.point_arrays['vec'] = vectors
-            if vmin is not None and vmax is not None:
-                rng = [vmin, vmax]
-            else:
-                rng = None
             if scale_mode == 'scalar':
                 grid.point_arrays['mag'] = np.array(scalars)
-                scalars = 'mag'
+                scale = 'mag'
             else:
-                scalars = False
-            if isinstance(colormap, np.ndarray):
-                if colormap.dtype == np.uint8:
-                    colormap = colormap.astype(np.float) / 255.
-                from matplotlib.colors import ListedColormap
-                colormap = ListedColormap(colormap)
+                scale = False
             if mode == '2darrow':
                 glyph = vtk.vtkGlyphSource2D()
                 glyph.SetGlyphTypeToArrow()
@@ -344,15 +334,13 @@ class _Renderer(_BaseRenderer):
                 actor = self.plotter.add_mesh(
                     _glyph(grid,
                            scale_mode=scale_mode,
-                           scalars=scalars,
+                           scalars=scale,
                            orient='vec',
                            factor=factor,
                            geom=geom,
-                           rng=rng
                            ),
                     name=name,
                     color=color,
-                    cmap=colormap,
                     opacity=opacity,
                     show_scalar_bar=False,
                     line_width=line_width,
@@ -362,13 +350,9 @@ class _Renderer(_BaseRenderer):
             elif mode == 'arrow' or mode == '3darrow':
                 self.plotter.add_mesh(grid.glyph(orient='vec',
                                                  scale=scale,
-                                                 factor=factor,
-                                                 rng=rng,
-                                                 clamping=True),
+                                                 factor=factor),
                                       color=color,
-                                      cmap=colormap,
                                       opacity=opacity,
-                                      show_scalar_bar=False,
                                       backface_culling=backface_culling)
             elif mode == 'cone':
                 cone = vtk.vtkConeSource()

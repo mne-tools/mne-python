@@ -920,7 +920,6 @@ class _Brain(object):
                         x, y, z,
                         vectors[:, 0], vectors[:, 1], vectors[:, 2],
                         color=None,
-                        colormap=ctable[:, :3],
                         mode='2darrow',
                         scale_mode='vector',
                         scale=scale_factor,
