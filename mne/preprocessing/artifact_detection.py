@@ -26,8 +26,8 @@ def annotate_muscle_zscore(raw, threshold=4, picks=None, min_length_good=0.1,
     of the channel number, and low-pass filtered to better capture beginning
     and end of muscle activity and false positive transient peaks.
 
- .. note::
-    Use a single channel type.
+    .. note::
+        Use a single channel type.
 
     Parameters
     ----------
