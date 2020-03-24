@@ -34,7 +34,7 @@ def annotate_muscle_zscore(raw, threshold=4, picks=None, min_length_good=0.1,
     raw : instance of Raw
         Data to estimate segments with muscle artifacts.
     threshold : float
-        The threshold in z-scores for marking segments as containg muscle
+        The threshold in z-scores for marking segments as containing muscle
         activity artifacts.
     %(picks_all)s
     min_length_good : float | None
