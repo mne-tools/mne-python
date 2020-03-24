@@ -476,6 +476,7 @@ class _TimeViewer(object):
                     pointb=(0.98, 0.74),
                     event_type='always'
                 )
+                self.set_slider_style(orientation_slider, show_label=False)
                 orientation_slider.name = name
                 self.orientation_call(view, update_widget=True)
 
@@ -601,7 +602,6 @@ class _TimeViewer(object):
         fscale_slider.name = "fscale"
 
         # set the slider style
-        self.set_slider_style(orientation_slider, show_label=False)
         self.set_slider_style(smoothing_slider)
         self.set_slider_style(fmin_slider)
         self.set_slider_style(fmid_slider)
