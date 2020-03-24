@@ -314,19 +314,7 @@ class _Renderer(_BaseRenderer):
             else:
                 scale = False
             if mode == '2darrow':
-                # create the glyph dataset
-                polydata = _arrow_glyph(grid, factor)
-                # then we create it's corresponding actor in the scene
-                # in this function, we have the option to hide it by default
-                # before adding in the scene (for example, when some specific
-                # properties of the actor are not yet set and the actor is
-                # not ready to be displayed).
-                actor = _add_polydata_actor(plotter=self.plotter,
-                                            polydata=polydata,
-                                            name=name, hide=True)
-                actor.GetProperty().SetLineWidth(line_width)
-                return actor
-
+                return _arrow_glyph(grid, factor)
             elif mode == 'arrow' or mode == '3darrow':
                 self.plotter.add_mesh(grid.glyph(orient='vec',
                                                  scale=scale,
@@ -696,7 +684,7 @@ def _arrow_glyph(grid, factor):
         factor=factor,
         geom=geom,
     )
-    return polydata
+    return pyvista.wrap(polydata)
 
 
 def _glyph(dataset, scale_mode='scalar', orient=True, scalars=True, factor=1.0,

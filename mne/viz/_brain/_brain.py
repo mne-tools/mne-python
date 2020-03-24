@@ -420,7 +420,8 @@ class _Brain(object):
         self._data[hemi] = dict()
         self._data[hemi]['actor'] = list()
         self._data[hemi]['mesh'] = list()
-        self._data[hemi]['glyph'] = list()
+        self._data[hemi]['glyph_actor'] = None
+        self._data[hemi]['glyph_mesh'] = None
         self._data[hemi]['array'] = array
         self._data[hemi]['vertices'] = vertices
         self._data['alpha'] = alpha
@@ -472,7 +473,7 @@ class _Brain(object):
         self.set_time_interpolation(self.time_interpolation)
         self.set_data_smoothing(smoothing_steps)
 
-        # 3) add the glyphs and other actors
+        # 3) add the other actors
         for ri, v in enumerate(self._views):
             views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
             if array.ndim >= 2 and callable(time_label):
@@ -903,35 +904,54 @@ class _Brain(object):
 
                 # update the glyphs
                 if array.ndim == 3:
-                    from ..backends._pyvista import _set_colormap_range
-                    vertices = hemi_data['vertices']
-                    fmin = self._data['fmin']
-                    fmid = self._data['fmid']
-                    fmax = self._data['fmax']
-                    ctable = self.update_lut(fmin=fmin, fmid=fmid, fmax=fmax)
-                    ctable = (ctable * 255).astype(np.uint8)
-                    vector_alpha = self._data['vector_alpha']
-                    scale_factor = self._data['scale_factor']
-                    rng = [fmin, fmax]
-                    vertices = slice(None) if vertices is None else vertices
-                    x, y, z = np.array(self.geo[hemi].coords)[vertices].T
-
-                    actor = self._renderer.quiver3d(
-                        x, y, z,
-                        vectors[:, 0], vectors[:, 1], vectors[:, 2],
-                        color=None,
-                        mode='2darrow',
-                        scale_mode='vector',
-                        scale=scale_factor,
-                        opacity=vector_alpha,
-                        name=str(hemi) + "_glyph"
-                    )
-                    if actor is not None:
-                        _set_colormap_range(actor, ctable, None, rng)
-                        # the glyphs are not ready to be displayed
-                        actor.VisibilityOn()
+                    self.update_glyphs(hemi, vectors)
         self._current_act_data = np.concatenate(current_act_data)
         self._data['time_idx'] = time_idx
+
+    def update_glyphs(self, hemi, vectors):
+        from ..backends._pyvista import (_set_colormap_range,
+                                         _add_polydata_actor)
+        hemi_data = self._data.get(hemi)
+        if hemi_data is not None:
+            vertices = hemi_data['vertices']
+            fmin = self._data['fmin']
+            fmid = self._data['fmid']
+            fmax = self._data['fmax']
+            ctable = self.update_lut(fmin=fmin, fmid=fmid, fmax=fmax)
+            ctable = (ctable * 255).astype(np.uint8)
+            vector_alpha = self._data['vector_alpha']
+            scale_factor = self._data['scale_factor']
+            rng = [fmin, fmax]
+            vertices = slice(None) if vertices is None else vertices
+            x, y, z = np.array(self.geo[hemi].coords)[vertices].T
+
+            polydata = self._renderer.quiver3d(
+                x, y, z,
+                vectors[:, 0], vectors[:, 1], vectors[:, 2],
+                color=None,
+                mode='2darrow',
+                scale_mode='vector',
+                scale=scale_factor,
+                opacity=vector_alpha,
+                name=str(hemi) + "_glyph"
+            )
+            if polydata is not None:
+                if hemi_data['glyph_mesh'] is None:
+                    hemi_data['glyph_mesh'] = polydata
+                    glyph_actor = _add_polydata_actor(
+                        plotter=self._renderer.plotter,
+                        polydata=polydata,
+                        hide=True
+                    )
+                    hemi_data['glyph_actor'] = glyph_actor
+                    glyph_actor.GetProperty().SetLineWidth(2.)
+                else:
+                    glyph_actor = hemi_data['glyph_actor']
+                    glyph_mesh = hemi_data['glyph_mesh']
+                    glyph_mesh.shallow_copy(polydata)
+                _set_colormap_range(glyph_actor, ctable, None, rng)
+                # the glyphs are now ready to be displayed
+                glyph_actor.VisibilityOn()
 
     def update_fmax(self, fmax):
         """Set the colorbar max point."""
