@@ -634,7 +634,7 @@ def test_plot_volume_source_estimates_morph():
 @testing.requires_testing_data
 @requires_pysurfer
 @traits_test
-def test_plot_vector_source_estimates(renderer):
+def test_plot_vector_source_estimates(renderer_interactive):
     """Test plotting of vector source estimates."""
     sample_src = read_source_spaces(src_fname)
 
