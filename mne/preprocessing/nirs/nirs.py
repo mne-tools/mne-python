@@ -81,6 +81,18 @@ def _check_channels_ordered(raw, freqs):
         ch2_name_info = re.match(r'S(\d+)_D(\d+) (\d+)',
                                  raw.info['chs'][ii + 1]['ch_name'])
 
+        if raw.info['chs'][ii]['loc'][9] != \
+                float(ch1_name_info.groups()[2]) or \
+                raw.info['chs'][ii + 1]['loc'][9] != \
+                float(ch2_name_info.groups()[2]):
+            raise ValueError(
+                'NIRS channels not ordered correctly. Channel name and NIRS'
+                ' frequency do not match: %s -> %s & %s -> %s'
+                % (raw.info['chs'][ii]['ch_name'],
+                   raw.info['chs'][ii]['loc'][9],
+                   raw.info['chs'][ii + 1]['ch_name'],
+                   raw.info['chs'][ii + 1]['loc'][9]))
+
         if (ch1_name_info.groups()[0] != ch2_name_info.groups()[0]) or \
            (ch1_name_info.groups()[1] != ch2_name_info.groups()[1]) or \
            (int(ch1_name_info.groups()[2]) != freqs[0]) or \

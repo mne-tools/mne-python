@@ -59,10 +59,16 @@ def test_beer_lambert_unordered_errors():
     with pytest.raises(ValueError, match='ordered'):
         beer_lambert_law(raw_od)
 
-    # Test that an error is thrown if inconsistent frequencies used in data
+    # Test that an error is thrown if channel naming frequency doesn't match
+    # what is stored in loc[9], which should hold the light frequency too.
     raw_od = optical_density(raw)
     raw_od.rename_channels({'S2_D2 760': 'S2_D2 770'})
-    with pytest.raises(ValueError, match='ordered'):
+    with pytest.raises(ValueError, match='frequency do not match'):
+        beer_lambert_law(raw_od)
+
+    # Test that an error is thrown if inconsistent frequencies used in data
+    raw_od.info['chs'][2]['loc'][9] = 770.0
+    with pytest.raises(ValueError, match='pairs with frequencies'):
         beer_lambert_law(raw_od)
 
 
