@@ -31,8 +31,7 @@ from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.tree import dir_tree_find
-from .io.pick import (channel_type, pick_types, _pick_data_channels,
-                      _picks_to_idx)
+from .io.pick import pick_types, _picks_to_idx
 from .io.meas_info import read_meas_info, write_meas_info
 from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
@@ -552,8 +551,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         """  # noqa: E501
         supported = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'misc', 'hbo',
                      'hbr', 'None', 'fnirs_raw', 'fnirs_od')
-        data_picks = _pick_data_channels(self.info, with_ref_meg=False)
-        types_used = {channel_type(self.info, idx) for idx in data_picks}
+        types_used = self.get_channel_types(unique=True, only_data_chs=True)
 
         _check_option('ch_type', str(ch_type), supported)
 

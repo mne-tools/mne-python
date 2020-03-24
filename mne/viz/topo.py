@@ -847,10 +847,10 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
         The standard deviation of the Gaussian smoothing to apply along
         the epoch axis to apply in the image. If 0., no smoothing is applied.
     vmin : float
-        The min value in the image. The unit is uV for EEG channels,
+        The min value in the image. The unit is µV for EEG channels,
         fT for magnetometers and fT/cm for gradiometers.
     vmax : float
-        The max value in the image. The unit is uV for EEG channels,
+        The max value in the image. The unit is µV for EEG channels,
         fT for magnetometers and fT/cm for gradiometers.
     colorbar : bool | None
         Whether to display a colorbar or not. If ``None`` a colorbar will be
@@ -905,9 +905,8 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0., vmin=None,
     ch_names = set(layout.names) & set(epochs.ch_names)
     idxs = [epochs.ch_names.index(ch_name) for ch_name in ch_names]
     epochs = epochs.pick(idxs)
-    # iterate over a sequential index to get lists of chan. type & scale coef.
-    ch_idxs = range(epochs.info['nchan'])
-    ch_types = [channel_type(epochs.info, idx) for idx in ch_idxs]
+    # get lists of channel type & scale coefficient
+    ch_types = epochs.get_channel_types()
     scale_coeffs = [scalings.get(ch_type, 1) for ch_type in ch_types]
     # scale the data
     epochs._data *= np.array(scale_coeffs)[:, np.newaxis]

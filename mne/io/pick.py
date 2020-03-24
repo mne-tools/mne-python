@@ -12,10 +12,16 @@ import numpy as np
 
 from .constants import FIFF
 from ..utils import (logger, verbose, _validate_type, fill_doc, _ensure_int,
-                     _check_option)
+                     _check_option, deprecated)
 
 
+@deprecated('The function mne.io.pick.get_channel_types() has changed names. '
+            'Please use mne.io.pick.get_channel_type_constants() instead.')
 def get_channel_types():
+    return get_channel_type_constants()
+
+
+def get_channel_type_constants():
     """Return all known channel types.
 
     Returns
@@ -1121,13 +1127,13 @@ def _pick_inst(inst, picks, exclude, copy=True):
     return inst
 
 
-def _get_channel_types(info, picks=None, unique=True,
-                       restrict_data_types=False):
+def _get_channel_types(info, picks=None, unique=False, only_data_chs=False):
     """Get the data channel types in an info instance."""
-    picks = range(info['nchan']) if picks is None else picks
+    none = 'data' if only_data_chs else 'all'
+    picks = _picks_to_idx(info, picks, none, (), allow_empty=False)
     ch_types = [channel_type(info, idx) for idx in range(info['nchan'])
                 if idx in picks]
-    if restrict_data_types is True:
+    if only_data_chs:
         ch_types = [ch_type for ch_type in ch_types
                     if ch_type in _DATA_CH_TYPES_SPLIT]
-    return set(ch_types) if unique is True else ch_types
+    return set(ch_types) if unique else ch_types

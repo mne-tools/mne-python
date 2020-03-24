@@ -23,8 +23,7 @@ from .evoked import _butterfly_on_button_press, _butterfly_onpick
 from ..utils import warn, _validate_type, fill_doc
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
-from ..io.pick import (pick_types, _picks_to_idx, _get_channel_types,
-                       _DATA_CH_TYPES_ORDER_DEFAULT)
+from ..io.pick import (pick_types, _picks_to_idx, _DATA_CH_TYPES_ORDER_DEFAULT)
 from ..time_frequency.psd import psd_multitaper
 from ..utils import _reject_data_segments
 
@@ -727,7 +726,7 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
         title = 'Signals before (red) and after (black) cleaning'
     picks = ica.ch_names if picks is None else picks
     picks = _picks_to_idx(inst.info, picks, exclude=())
-    ch_types_used = _get_channel_types(inst.info, picks=picks, unique=True)
+    ch_types_used = inst.get_channel_types(picks=picks, unique=True)
     if exclude is None:
         exclude = ica.exclude
     if not isinstance(exclude, (np.ndarray, list)):

@@ -1420,7 +1420,7 @@ class AverageTFR(_BaseTFR):
         # Nonetheless, it should be refactored for code reuse.
         copy = any(var is not None for var in (exclude, picks, baseline))
         tfr = _pick_inst(self, picks, exclude, copy=copy)
-        ch_types = _get_channel_types(tfr.info)
+        ch_types = _get_channel_types(tfr.info, unique=True)
 
         # if multiple sensor types: one plot per channel type, recursive call
         if len(ch_types) > 1:
@@ -1431,7 +1431,7 @@ class AverageTFR(_BaseTFR):
                 type_picks = [idx for idx in range(tfr.info['nchan'])
                               if channel_type(tfr.info, idx) == this_type]
                 tf_ = _pick_inst(tfr, type_picks, None, copy=True)
-                if len(_get_channel_types(tf_.info)) > 1:
+                if len(_get_channel_types(tf_.info, unique=True)) > 1:
                     raise RuntimeError(
                         'Possibly infinite loop due to channel selection '
                         'problem. This should never happen! Please check '

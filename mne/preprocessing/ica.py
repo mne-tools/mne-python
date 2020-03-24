@@ -26,7 +26,7 @@ from .infomax_ import infomax
 from ..cov import compute_whitener
 from .. import Covariance, Evoked
 from ..io.pick import (pick_types, pick_channels, pick_info,
-                       _picks_to_idx, _DATA_CH_TYPES_SPLIT)
+                       _picks_to_idx, _get_channel_types, _DATA_CH_TYPES_SPLIT)
 from ..io.write import (write_double_matrix, write_string,
                         write_name_list, write_int, start_block,
                         end_block)
@@ -58,7 +58,7 @@ from ..fixes import _get_args, _safe_svd
 from ..filter import filter_data
 from .bads import _find_outliers
 from .ctps_ import ctps
-from ..io.pick import channel_type, pick_channels_regexp
+from ..io.pick import pick_channels_regexp
 
 __all__ = ('ICA', 'ica_find_ecg_events', 'ica_find_eog_events',
            'get_score_funcs', 'read_ica', 'run_ica', 'read_ica_eeglab')
@@ -112,7 +112,7 @@ def _check_for_unsupported_ica_channels(picks, info, allow_ref_meg=False):
     """
     types = _DATA_CH_TYPES_SPLIT + ('eog',)
     types += ('ref_meg',) if allow_ref_meg else ()
-    chs = list({channel_type(info, j) for j in picks})
+    chs = _get_channel_types(info, picks, unique=True, only_data_chs=False)
     check = all([ch in types for ch in chs])
     if not check:
         raise ValueError('Invalid channel type%s passed for ICA: %s.'

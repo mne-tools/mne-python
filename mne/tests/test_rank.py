@@ -11,7 +11,7 @@ from mne import (read_evokeds, read_cov, compute_raw_covariance, pick_types,
 from mne.cov import prepare_noise_cov
 from mne.datasets import testing
 from mne.io import read_raw_fif
-from mne.io.pick import channel_type, _picks_by_type
+from mne.io.pick import _picks_by_type, _get_channel_types
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.proj import compute_proj_raw
 from mne.rank import (estimate_rank, compute_rank, _get_rank_sss,
@@ -154,8 +154,7 @@ def test_cov_rank_estimation(rank_method, proj, meg):
                                for proj in this_info['projs'])
 
             # count channel types
-            ch_types = [channel_type(this_info, idx)
-                        for idx in range(len(picks))]
+            ch_types = _get_channel_types(this_info)
             n_eeg, n_mag, n_grad = [ch_types.count(k) for k in
                                     ['eeg', 'mag', 'grad']]
             n_meg = n_mag + n_grad

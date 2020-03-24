@@ -100,6 +100,12 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
     assert raw.__class__.__name__ in repr(raw)  # to test repr
     assert raw.info.__class__.__name__ in repr(raw.info)
     assert isinstance(raw.info['dig'], (type(None), list))
+    data_max = full_data.max()
+    data_min = full_data.min()
+    # these limits could be relaxed if we actually find data with
+    # huge values (in SI units)
+    assert data_max < 1e5
+    assert data_min > -1e5
     if isinstance(raw.info['dig'], list):
         for di, d in enumerate(raw.info['dig']):
             assert isinstance(d, DigPoint), (di, d)

@@ -26,7 +26,7 @@ Thus the in-memory representation of data are always in:
 Note, however, that most MNE-Python plotting functions will scale the data when
 plotted to yield nice-looking axis annotations in a sensible range; for
 example, :meth:`mne.io.Raw.plot_psd` will convert teslas to femtoteslas (fT)
-and volts to microvolts (μV) when plotting MEG and EEG data.
+and volts to microvolts (µV) when plotting MEG and EEG data.
 
 The units used in internal data representation are particularly important to
 remember when extracting data from MNE-Python objects and manipulating it

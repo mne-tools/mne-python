@@ -52,7 +52,7 @@ jobs:
     displayName: make codespell-error
     condition: always()
   - bash: |
-      pip install https://api.github.com/repos/numpy/numpydoc/zipball/master pytest pytest-cov pytest-timeout pytest-sugar
+      pip install https://github.com/numpy/numpydoc/archive/master.zip pytest pytest-cov pytest-timeout pytest-sugar
     displayName: Install NumpyDoc validation
     condition: always()
   - bash: |
@@ -135,7 +135,7 @@ jobs:
       set -e
       python -m pip install --upgrade pip setuptools
       python -m pip install --upgrade --pre --only-binary ":all:" -f "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com" numpy scipy scikit-learn matplotlib h5py pandas Pillow
-      python -m pip install --upgrade nilearn pyqt5 pyqt5-sip nibabel pytest pytest-cov pytest-faulthandler pytest-mock pytest-sugar pytest-timeout joblib psutil https://api.github.com/repos/numpy/numpydoc/zipball/master neo xlrd codecov
+      python -m pip install --upgrade nilearn pyqt5 pyqt5-sip nibabel pytest pytest-cov pytest-faulthandler pytest-mock pytest-sugar pytest-timeout joblib psutil https://github.com/numpy/numpydoc/archive/master.zip neo xlrd codecov
       python -m pip install codecov
     condition: eq(variables['TEST_MODE'], 'pre-pip')
     displayName: 'Install dependencies with pip --pre'

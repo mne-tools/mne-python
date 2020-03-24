@@ -306,7 +306,7 @@ def test_add_slider_to_section(tmpdir):
     # Smoke test that SVG w/unicode can be added
     report = Report()
     fig, ax = plt.subplots()
-    ax.set_xlabel(u'μ')
+    ax.set_xlabel('µ')
     report.add_slider_to_section([fig] * 2, image_format='svg')
 
 

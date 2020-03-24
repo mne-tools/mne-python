@@ -105,11 +105,12 @@ crosstalk_file = os.path.join(sample_data_folder, 'SSS', 'ct_sparse_mgh.fif')
 
 raw.info['bads'] = []
 raw_check = raw.copy().pick_types(exclude=()).filter(None, 40)
-auto_bads = mne.preprocessing.find_bad_channels_maxwell(
+auto_noisy_chs, auto_flat_chs = mne.preprocessing.find_bad_channels_maxwell(
     raw_check, cross_talk=crosstalk_file, calibration=fine_cal_file,
     verbose=True)
-print(auto_bads)  # we should find them!
-raw.info['bads'].extend(auto_bads)
+print(auto_noisy_chs)  # we should find them!
+print(auto_flat_chs)  # none for this dataset
+raw.info['bads'].extend(auto_noisy_chs + auto_flat_chs)
 
 ###############################################################################
 # But this algorithm is not perfect. For example, it misses ``MEG 2313``,

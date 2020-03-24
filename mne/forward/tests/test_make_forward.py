@@ -117,6 +117,7 @@ def test_magnetic_dipole():
     assert not np.isfinite(fwd).any()
 
 
+@pytest.mark.slowtest  # slow-ish on Travis OSX
 @pytest.mark.timeout(60)  # can take longer than 30 sec on Travis
 @testing.requires_testing_data
 @requires_mne
