@@ -63,7 +63,7 @@ To install the latest version of the code using pip_ open a terminal and type:
 
 .. code-block:: bash
 
-    pip install -U https://api.github.com/repos/mne-tools/mne-python/zipball/master
+    pip install -U https://github.com/mne-tools/mne-python/archive/master.zip
 
 To get the latest code using `git <https://git-scm.com/>`__, open a terminal and type:
 
