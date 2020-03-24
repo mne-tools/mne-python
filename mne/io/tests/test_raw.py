@@ -182,6 +182,10 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
     for preload_kwarg in preload_kwargs:
         these_kwargs = kwargs.copy()
         these_kwargs.update(preload_kwarg)
+        # dont use the same filename or it could create problems
+        if isinstance(these_kwargs.get('preload', None), str) and \
+                op.isfile(these_kwargs['preload']):
+            these_kwargs['preload'] += '-1'
         whole_raw = reader(**these_kwargs)
         print(whole_raw)  # __repr__
         assert n_ch >= 2
