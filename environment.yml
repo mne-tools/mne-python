@@ -32,7 +32,7 @@ dependencies:
 - vtk
 - pip:
   - mne
-  - https://api.github.com/repos/numpy/numpydoc/zipball/master
+  - https://github.com/numpy/numpydoc/archive/master.zip
   - pyvista>=0.24
   - mayavi
   - PySurfer[save_movie]
