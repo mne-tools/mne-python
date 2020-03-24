@@ -26,18 +26,22 @@ def annotate_muscle_zscore(raw, threshold=4, picks=None, min_length_good=0.1,
     of the channel number, and low-pass filtered to better capture beginning
     and end of muscle activity and false positive transient peaks.
 
+ .. note::
+    Use a single channel type.
+
     Parameters
     ----------
     raw : instance of Raw
-        Data to compute head position.
+        Data to estimate segments with muscle artifacts.
     threshold : float
         The threshold in z-scores for marking segments as containg muscle
         activity artifacts.
     %(picks_all)s
-    min_length_good : int | float | None
+    min_length_good : float | None
         The shortest allowed duration of "good data" (in seconds) between
         adjacent annotations; shorter segments will be incorporated into the
-        surrounding annotations.
+        surrounding annotations.``None`` is equivalent to ``0``.
+        Default is ``0.1``.
     filter_freq : array-like, shape (2,)
         The lower and upper frequencies of the band-pass filter.
         Default is ``(110, 140)``.
@@ -60,11 +64,13 @@ def annotate_muscle_zscore(raw, threshold=4, picks=None, min_length_good=0.1,
 
     # Remove ref chans if MEG data just in case
     meg = [True for e in ['mag', 'grad'] if (e in ch_type)]
-    if meg is True:
+    if bool(meg) is True:
         raw_copy.pick_types(ref_meg=False)
+        ch_type = raw_copy.get_channel_types()
 
     # Only one type of channel, otherwise z-score will be biased
-    assert(len(set(ch_type)) == 1), 'Different channel types, pick one type'
+    assert(len(np.unique(ch_type)) == 1), \
+        'Different channel types, pick one type'
 
     raw_copy.filter(filter_freq[0], filter_freq[1], fir_design='firwin',
                     pad="reflect_limited", n_jobs=n_jobs)
@@ -72,7 +78,7 @@ def annotate_muscle_zscore(raw, threshold=4, picks=None, min_length_good=0.1,
     sfreq = raw_copy.info['sfreq']
 
     data = raw_copy.get_data(reject_by_annotation="NaN")
-    nan_mask = ~np.isnan(data[0, :])
+    nan_mask = ~np.isnan(data[0])
 
     art_scores = zscore(data[:, nan_mask], axis=1)
     art_scores = art_scores.sum(axis=0) / np.sqrt(art_scores.shape[0])
@@ -86,11 +92,12 @@ def annotate_muscle_zscore(raw, threshold=4, picks=None, min_length_good=0.1,
     scores_muscle[~nan_mask] = np.nan
 
     # remove artifact free periods shorter than min_length_good
-    idx_min = min_length_good * sfreq
+    min_length_good = 0 if min_length_good is None else min_length_good
+    min_samps = min_length_good * sfreq
     comps, num_comps = label(art_mask == 0)
     for com in range(1, num_comps + 1):
         l_idx = np.nonzero(comps == com)[0]
-        if len(l_idx) < idx_min:
+        if len(l_idx) < min_samps:
             art_mask[l_idx] = True
 
     annot = _annotations_from_mask(raw_copy.times, art_mask, 'BAD_muscle')

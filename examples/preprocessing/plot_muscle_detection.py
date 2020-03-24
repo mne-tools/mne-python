@@ -5,7 +5,7 @@ Annotate muscle artifacts
 
 Muscle contractions produce high frequency activity that can mask brain signal
 of interest. Muscle artifacts can be produced when clenching the jaw,
-swallowing, or twitching a head muscle. Muscle artifacts are most notable
+swallowing, or twitching a head muscle. Muscle artifacts are most noticeable
 in the range of 110-140 Hz.
 
 This example uses :func:`~mne.preprocessing.annotate_muscle_zscore` to annotate
@@ -16,11 +16,10 @@ the phase of the high frequency signal. The envelope is z-scored and summed
 across channels and divided by the square root of the number of channels.
 Because muscle artifacts last several hundred milliseconds, we then low-pass
 filter the averaged z-scores at 4 Hz, to remove transient peaks. Segments above
-a
-set threshold are annotated as ``BAD_muscle``. In addition, the
-``min_length_good``
-parameter determines the cutoff for whether short spans of "good data" in
-between muscle artifacts are included in the surrounding "BAD" annotation.
+a set threshold are annotated as ``BAD_muscle``. In addition, the
+``min_length_good`` parameter determines the cutoff for whether short spans of
+"good data" in between muscle artifacts are included in the surrounding "BAD"
+annotation.
 
 """
 # Authors: Adonay Nunes <adonay.s.nunes@gmail.com>
@@ -49,7 +48,7 @@ raw.resample(300, npad="auto")
 # The inputted raw data has to be from a single channel type as there might be
 # different channel type magnitudes.
 # If the MEG has axial gradiometers and magnetometers, select magnetometers as
-# they are more sensitive to muscle activity
+# they are more sensitive to muscle activity.
 picks = pick_types(raw.info, meg=True, ref_meg=False)
 
 ###############################################################################
@@ -63,20 +62,20 @@ picks = pick_types(raw.info, meg=True, ref_meg=False)
 raw.notch_filter([50, 100])
 
 # The threshold is data dependent, check the optimal threshold by plotting
-# ``threshold_muscle``
-threshold_muscle = 4  # z-score
+# ``scores_muscle``.
+threshold_muscle = 5  # z-score
 out = annotate_muscle_zscore(raw, picks=picks, threshold=threshold_muscle,
-                             min_length_good=0.2, filter_freq=[90, 120])
+                             min_length_good=0.2, filter_freq=[110, 140])
 annot_muscle, scores_muscle = out
 
 ###############################################################################
-# Plot movement z-scores across recording
+# Plot muscle z-scores across recording
 # --------------------------------------------------------------------------
 
 fig, ax = plt.subplots()
 ax.plot(raw.times, scores_muscle)
 ax.axhline(y=threshold_muscle, color='r')
-ax.set(xlabel='time, s.', ylabel='zscore', title='Muscle activity')
+ax.set(xlabel='time, (s)', ylabel='zscore', title='Muscle activity')
 ###############################################################################
 # View the annotations
 # --------------------------------------------------------------------------

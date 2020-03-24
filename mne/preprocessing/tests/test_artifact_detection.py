@@ -60,5 +60,6 @@ def test_muscle_annotation():
     annot_muscle, scores = annotate_muscle_zscore(raw, threshold=10)
     onset = annot_muscle.onset * raw.info['sfreq']
     onset = onset.astype(int)
-    assert(np.all(scores[onset].astype(int) == np.array([23, 10])))
+    np.testing.assert_array_equal(scores[onset].astype(int), np.array([23,
+                                                                       10]))
     assert(annot_muscle.duration.size == 2)
