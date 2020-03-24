@@ -106,9 +106,16 @@ def test_bdf_crop_save_stim_channel(tmpdir):
 
 
 @testing.requires_testing_data
-def test_edf_reduced():
-    """Test EDF with various sampling rates."""
-    _test_raw_reader(read_raw_edf, input_fname=edf_reduced, verbose='error')
+@pytest.mark.parametrize('fname', [
+    edf_reduced,
+    edf_overlap_annot_path,
+])
+@pytest.mark.parametrize('stim_channel', (None, False, 'auto'))
+def test_edf_others(fname, stim_channel):
+    """Test EDF with various sampling rates and overlapping annotations."""
+    _test_raw_reader(
+        read_raw_edf, input_fname=fname, stim_channel=stim_channel,
+        verbose='error')
 
 
 def test_edf_data():
