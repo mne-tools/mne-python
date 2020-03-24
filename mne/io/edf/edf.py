@@ -1032,8 +1032,11 @@ def _check_stim_channel(stim_channel, ch_names,
     """Check that the stimulus channel exists in the current datafile."""
     DEFAULT_STIM_CH_NAMES = ['status', 'trigger']
 
-    if stim_channel is None:
+    if stim_channel is None or stim_channel is False:
         return [], []
+
+    if stim_channel is True:  # convenient aliases
+        stim_channel = 'auto'
 
     elif isinstance(stim_channel, str):
         if stim_channel == 'auto':

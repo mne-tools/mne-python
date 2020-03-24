@@ -21,6 +21,10 @@ def _ensure_int(x, name='unknown', must_be='an int'):
     # This is preferred over numbers.Integral, see:
     # https://github.com/scipy/scipy/pull/7351#issuecomment-299713159
     try:
+        # someone passing True/False is much more likely to be an error than
+        # intentional usage
+        if isinstance(x, bool):
+            raise TypeError()
         x = int(operator.index(x))
     except TypeError:
         raise TypeError('%s must be %s, got %s' % (name, must_be, type(x)))
