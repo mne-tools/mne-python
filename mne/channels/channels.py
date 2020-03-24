@@ -846,12 +846,17 @@ class UpdateChannelsMixin(object):
 
     def _pick_drop_channels(self, idx):
         # avoid circular imports
+        from ..io import BaseRaw
         from ..time_frequency import AverageTFR, EpochsTFR
 
-        _check_preload(self, 'adding, dropping, or reordering channels')
+        if not isinstance(self, BaseRaw):
+            _check_preload(self, 'adding, dropping, or reordering channels')
 
         if getattr(self, 'picks', None) is not None:
             self.picks = self.picks[idx]
+
+        if getattr(self, '_read_picks', None) is not None:
+            self._read_picks = [r[idx] for r in self._read_picks]
 
         if hasattr(self, '_cals'):
             self._cals = self._cals[idx]
@@ -863,7 +868,10 @@ class UpdateChannelsMixin(object):
 
         # All others (Evoked, Epochs, Raw) have chs axis=-2
         axis = -3 if isinstance(self, (AverageTFR, EpochsTFR)) else -2
-        self._data = self._data.take(idx, axis=axis)
+        if hasattr(self, '_data'):  # skip non-preloaded Raw
+            self._data = self._data.take(idx, axis=axis)
+        else:
+            assert isinstance(self, BaseRaw) and not self.preload
         return self
 
     def add_channels(self, add_list, force_update_info=False):
@@ -954,6 +962,11 @@ class UpdateChannelsMixin(object):
         if isinstance(self, BaseRaw):
             self._cals = np.concatenate([getattr(inst, '_cals')
                                          for inst in [self] + add_list])
+            # We should never use these since data are preloaded, let's just
+            # set it to something large and likely to break (2 ** 31 - 1)
+            extra_idx = [2147483647] * len(add_list)
+            self._read_picks = [
+                np.concatenate([r, extra_idx]) for r in self._read_picks]
         return self
 
 

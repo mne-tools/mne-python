@@ -169,6 +169,30 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
         for ch_name, unit in raw._orig_units.items():
             assert unit.lower() in valid_units_lower, ch_name
 
+    # Test picking with and without preload
+    if test_preloading:
+        preload_kwargs = (dict(preload=True), dict(preload=False))
+    else:
+        preload_kwargs = (dict(),)
+    n_ch = len(raw.ch_names)
+    picks = rng.permutation(n_ch)
+    for preload_kwarg in preload_kwargs:
+        these_kwargs = kwargs.copy()
+        these_kwargs.update(preload_kwarg)
+        whole_raw = reader(**these_kwargs)
+        assert n_ch >= 2
+        picks_1 = picks[:n_ch // 2]
+        picks_2 = picks[n_ch // 2:]
+        raw_1 = whole_raw.copy().pick(picks_1)
+        raw_2 = whole_raw.copy().pick(picks_2)
+        data, times = whole_raw[:]
+        data_1, times_1 = raw_1[:]
+        data_2, times_2 = raw_2[:]
+        assert_array_equal(times, times_1)
+        assert_array_equal(data[picks_1], data_1)
+        assert_array_equal(times, times_2,)
+        assert_array_equal(data[picks_2], data_2)
+
     return raw
 
 

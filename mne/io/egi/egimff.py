@@ -13,7 +13,7 @@ from .general import (_get_signalfname, _get_ep_info, _extract, _get_blocks,
 from ..base import BaseRaw
 from ..constants import FIFF
 from ..meas_info import _empty_info
-from ..utils import _create_chs
+from ..utils import _create_chs, _mult_cal_one
 from ...annotations import Annotations
 from ...utils import verbose, logger, warn
 
@@ -71,6 +71,7 @@ def _read_mff_header(filepath):
         print("Error. Should never occur.")
 
     # Check presence of PNS data
+    pns_names = []
     if 'PNS' in all_files:
         pns_fpath = op.join(filepath, all_files['PNS']['signal'])
         pns_blocks = _get_blocks(pns_fpath)
@@ -78,7 +79,6 @@ def _read_mff_header(filepath):
         pns_file = op.join(filepath, 'pnsSet.xml')
         pns_obj = parse(pns_file)
         sensors = pns_obj.getElementsByTagName('sensor')
-        pns_names = []
         pns_types = []
         pns_units = []
         for sensor in sensors:
@@ -101,9 +101,9 @@ def _read_mff_header(filepath):
             pns_names.append(name)
 
         summaryinfo.update(pns_types=pns_types, pns_units=pns_units,
-                           pns_names=pns_names, n_pns_channels=len(pns_names),
                            pns_fname=all_files['PNS']['signal'],
                            pns_sample_blocks=pns_blocks)
+    summaryinfo.update(pns_names=pns_names)
 
     info_filepath = op.join(filepath, 'info.xml')  # add with filepath
     tags = ['mffVersion', 'recordTime']
@@ -363,19 +363,26 @@ class RawMff(BaseRaw):
             egi_info['hour'], egi_info['minute'], egi_info['second'])
         my_timestamp = time.mktime(my_time.timetuple())
         info['meas_date'] = (my_timestamp, 0)
+
+        # First: EEG
         ch_names = [channel_naming % (i + 1) for i in
                     range(egi_info['n_channels'])]
+
+        # Second: Stim
         ch_names.extend(list(egi_info['event_codes']))
         if egi_info['new_trigger'] is not None:
             ch_names.append('STI 014')  # channel for combined events
-        ch_coil = FIFF.FIFFV_COIL_EEG
-        ch_kind = FIFF.FIFFV_EEG_CH
         cals = np.concatenate(
             [cals, np.repeat(1, len(event_codes) + 1 + len(misc) + len(eog))])
-        if 'pns_names' in egi_info:
-            ch_names.extend(egi_info['pns_names'])
-            cals = np.concatenate(
-                [cals, np.repeat(1, len(egi_info['pns_names']))])
+
+        # Third: PNS
+        ch_names.extend(egi_info['pns_names'])
+        cals = np.concatenate(
+            [cals, np.repeat(1, len(egi_info['pns_names']))])
+
+        # Actually create channels as EEG, then update stim and PNS
+        ch_coil = FIFF.FIFFV_COIL_EEG
+        ch_kind = FIFF.FIFFV_EEG_CH
         chs = _create_chs(ch_names, cals, ch_coil, ch_kind, eog, (), (), misc)
         chs = _read_locs(input_fname, chs, egi_info)
         sti_ch_idx = [i for i, name in enumerate(ch_names) if
@@ -385,24 +392,22 @@ class RawMff(BaseRaw):
                              'kind': FIFF.FIFFV_STIM_CH,
                              'coil_type': FIFF.FIFFV_COIL_NONE,
                              'unit': FIFF.FIFF_UNIT_NONE})
-        if 'pns_names' in egi_info:
-            for i_ch, ch_name in enumerate(egi_info['pns_names']):
-                idx = ch_names.index(ch_name)
-                ch_type = egi_info['pns_types'][i_ch]
-                ch_kind = FIFF.FIFFV_BIO_CH
-                if ch_type == 'ecg':
-                    ch_kind = FIFF.FIFFV_ECG_CH
-                elif ch_type == 'emg':
-                    ch_kind = FIFF.FIFFV_EMG_CH
-                ch_unit = FIFF.FIFF_UNIT_V
-                ch_cal = 1e-6
-                if egi_info['pns_units'][i_ch] != 'uV':
-                    ch_unit = FIFF.FIFF_UNIT_NONE
-                    ch_cal = 1.0
-
-                chs[idx].update({'cal': ch_cal, 'kind': ch_kind,
-                                 'coil_type': FIFF.FIFFV_COIL_NONE,
-                                 'unit': ch_unit})
+        for i_ch, ch_name in enumerate(egi_info['pns_names']):
+            idx = ch_names.index(ch_name)
+            ch_type = egi_info['pns_types'][i_ch]
+            ch_kind = FIFF.FIFFV_BIO_CH
+            if ch_type == 'ecg':
+                ch_kind = FIFF.FIFFV_ECG_CH
+            elif ch_type == 'emg':
+                ch_kind = FIFF.FIFFV_EMG_CH
+            ch_unit = FIFF.FIFF_UNIT_V
+            ch_cal = 1e-6
+            if egi_info['pns_units'][i_ch] != 'uV':
+                ch_unit = FIFF.FIFF_UNIT_NONE
+                ch_cal = 1.0
+            chs[idx].update(
+                cal=ch_cal, kind=ch_kind, coil_type=FIFF.FIFFV_COIL_NONE,
+                unit=ch_unit)
 
         info['chs'] = chs
         info._update_redundant()
@@ -410,27 +415,36 @@ class RawMff(BaseRaw):
         egi_info['egi_events'] = egi_events
 
         # Check how many channels to read are from EEG
-        egi_info['eeg_mask'] = np.array(
-            [ch['kind'] in (FIFF.FIFFV_EEG_CH, FIFF.FIFFV_STIM_CH)
-             for ch in chs], int)
-        egi_info['pns_mask'] = np.array(
+        keys = ('eeg', 'sti', 'pns')
+        idx = dict()
+        idx['eeg'] = np.where(
+            [ch['kind'] == FIFF.FIFFV_EEG_CH for ch in chs])[0]
+        idx['sti'] = np.where(
+            [ch['kind'] == FIFF.FIFFV_STIM_CH for ch in chs])[0]
+        idx['pns'] = np.where(
             [ch['kind'] in (FIFF.FIFFV_ECG_CH, FIFF.FIFFV_EMG_CH,
-                            FIFF.FIFFV_BIO_CH) for ch in chs], int)
-        if egi_info['pns_mask'].any() and (
-                np.where(egi_info['eeg_mask'])[0].max() >=
-                np.where(egi_info['pns_mask'])[0].max()):
+                            FIFF.FIFFV_BIO_CH) for ch in chs])[0]
+        # By construction this should always be true, but check anyway
+        if not np.array_equal(
+                np.concatenate([idx[key] for key in keys]),
+                np.arange(len(chs))):
             raise ValueError('Currently interlacing EEG and PNS channels'
                              'is not supported')
+        egi_info['kind_bounds'] = [0]
+        for key in keys:
+            egi_info['kind_bounds'].append(len(idx[key]))
+        egi_info['kind_bounds'] = np.cumsum(egi_info['kind_bounds'])
+        assert egi_info['kind_bounds'][0] == 0
+        assert egi_info['kind_bounds'][-1] == info['nchan']
 
         annot = None
-        if 'pns_names' in egi_info and egi_info['pns_mask'].any():
+        if len(idx['pns']):
             # PNS Data is present and should be read:
             egi_info['pns_filepath'] = op.join(
                 input_fname, egi_info['pns_fname'])
             # Check for PNS bug immediately
             pns_filepath = egi_info['pns_filepath']
-            pns_info = egi_info['pns_sample_blocks']
-            n_channels = pns_info['n_channels']
+            n_channels = egi_info['pns_sample_blocks']['n_channels']
             samples_to_read = egi_info['n_samples']
             with open(pns_filepath, 'rb') as fid:
                 # Check file size
@@ -468,7 +482,6 @@ class RawMff(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of data."""
-        from ..utils import _mult_cal_one
         dtype = '<f4'  # Data read in four byte floats.
 
         egi_info = self._raw_extras[fi]
@@ -477,15 +490,14 @@ class RawMff(BaseRaw):
         n_channels = egi_info['n_channels']
         samples_block = egi_info['samples_block']
 
-        # Check how many channels to read are from EEG
-        eeg_chans = np.where(egi_info['eeg_mask'][idx])[0]
-        pns_chans = np.where(egi_info['pns_mask'][idx])[0]
-
-        # Number of channels to be read from EEG
-        n_data1_channels = len(eeg_chans)
-
-        # Number of channels expected in the EEG binary file
-        n_eeg_channels = n_channels
+        # Check how many channels to read are from each type
+        bounds = egi_info['kind_bounds']
+        eeg_out = np.where(idx < bounds[1])[0]
+        eeg_in = idx[eeg_out]
+        stim_out = np.where((idx >= bounds[1]) & (idx < bounds[2]))[0]
+        stim_in = idx[stim_out] - bounds[1]
+        pns_out = np.where((idx >= bounds[2]) & (idx < bounds[3]))[0]
+        pns_in = idx[pns_out] - bounds[2]
 
         # Get starting/stopping block/samples
         block_samples_offset = np.cumsum(samples_block)
@@ -494,15 +506,6 @@ class RawMff(BaseRaw):
                                   if offset_blocks > 0 else 0)
 
         samples_to_read = stop - start
-
-        # Now account for events
-        egi_events = egi_info['egi_events']
-        if len(egi_events) > 0:
-            n_eeg_channels += egi_events.shape[0]
-
-        eeg_idx = idx[eeg_chans]
-        pns_idx = idx[pns_chans] - n_eeg_channels
-
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             # Go to starting block
             current_block = 0
@@ -541,22 +544,16 @@ class RawMff(BaseRaw):
                 s_start = current_data_sample
                 s_end = s_start + samples_read
 
-                # take into account events
-                if len(egi_events) > 0:
-                    e_chs = egi_events[:, start + s_start:start + s_end]
-                    block_data = np.vstack([block_data, e_chs])
-
-                data_view = data[:n_data1_channels, s_start:s_end]
-
-                _mult_cal_one(data_view, block_data, eeg_idx,
-                              cals[:n_data1_channels], mult)
+                data[eeg_out, s_start:s_end] = block_data[eeg_in]
                 samples_to_read = samples_to_read - samples_read
                 current_data_sample = current_data_sample + samples_read
 
-        if 'pns_names' in egi_info and len(pns_chans) > 0:
+        # take into account events
+        data[stim_out, :] = egi_info['egi_events'][stim_in, start:stop]
+
+        if len(pns_out) > 0:
             # PNS Data is present and should be read:
             pns_filepath = egi_info['pns_filepath']
-            n_pns_channels = egi_info['n_pns_channels']
             pns_info = egi_info['pns_sample_blocks']
             n_channels = pns_info['n_channels']
             samples_block = pns_info['samples_block']
@@ -589,7 +586,7 @@ class RawMff(BaseRaw):
                     if samples_to_read == 1 and fid.tell() == file_size:
                         # We are in the presence of the EEG bug
                         # fill with zeros and break the loop
-                        data[n_data1_channels:, -1] = 0
+                        data[pns_out, -1] = 0
                         break
 
                     this_block_info = _block_r(fid)
@@ -617,10 +614,8 @@ class RawMff(BaseRaw):
                     s_start = current_data_sample
                     s_end = s_start + samples_read
 
-                    data_view = data[n_data1_channels:, s_start:s_end]
-                    _mult_cal_one(data_view, block_data[:n_pns_channels],
-                                  pns_idx,
-                                  cals[n_data1_channels:], mult)
-                    del data_view
+                    data[pns_out, s_start:s_end] = block_data[pns_in]
                     samples_to_read = samples_to_read - samples_read
                     current_data_sample = current_data_sample + samples_read
+
+        _mult_cal_one(data, data, slice(None), cals, mult)
