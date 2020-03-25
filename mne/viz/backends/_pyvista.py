@@ -12,6 +12,7 @@ Actual implementation of _Renderer and _Projection classes.
 # License: Simplified BSD
 
 from contextlib import contextmanager
+import os
 import warnings
 
 import numpy as np
@@ -101,6 +102,21 @@ class _Projection(object):
         self.pts.SetVisibility(state)
 
 
+def _enable_aa(figure, plotter):
+    """Enable it everywhere except Azure."""
+    # XXX for some reason doing this on Azure causes access violations:
+    #     ##[error]Cmd.exe exited with code '-1073741819'
+    # So for now don't use it there. Maybe has to do with setting these
+    # before the window has actually been made "active"...?
+    # For Mayavi we have an "on activated" event or so, we should look into
+    # using this for Azure at some point, too.
+    if os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true':
+        return
+    if figure.is_active():
+        plotter.enable_anti_aliasing()
+        plotter.ren_win.LineSmoothingOn()
+
+
 @copy_base_doc_to_subclass_doc
 class _Renderer(_BaseRenderer):
     """Class managing rendering scene.
@@ -143,15 +159,13 @@ class _Renderer(_BaseRenderer):
             with _disabled_depth_peeling():
                 self.plotter = self.figure.build()
             self.plotter.hide_axes()
-            self.plotter.enable_anti_aliasing()
-            if self.figure.is_active():
-                self.plotter.ren_win.LineSmoothingOn()
+            _enable_aa(self.figure, self.plotter)
 
     def subplot(self, x, y):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             self.plotter.subplot(x, y)
-            self.plotter.enable_anti_aliasing()
+            _enable_aa(self.figure, self.plotter)
 
     def scene(self):
         return self.figure
