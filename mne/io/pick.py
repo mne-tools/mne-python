@@ -17,7 +17,7 @@ from ..utils import (logger, verbose, _validate_type, fill_doc, _ensure_int,
 
 @deprecated('The function mne.io.pick.get_channel_types() has changed names. '
             'Please use mne.io.pick.get_channel_type_constants() instead.')
-def get_channel_types():
+def get_channel_types():  # noqa: D103
     return get_channel_type_constants()
 
 

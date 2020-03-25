@@ -19,7 +19,8 @@ from .source_space import SourceSpaces, _ensure_src
 from .surface import read_morph_map, mesh_edges, read_surface, _compute_nearest
 from .utils import (logger, verbose, check_version, get_subjects_dir,
                     warn as warn_, fill_doc, _check_option, _validate_type,
-                    BunchConst, wrapped_stdout, _check_fname, warn)
+                    BunchConst, wrapped_stdout, _check_fname, warn,
+                    _ensure_int)
 from .externals.h5io import read_hdf5, write_hdf5
 
 
@@ -75,10 +76,14 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
         If None, all vertices will be used (potentially filling the
         surface). If a list, then values will be morphed to the set of
         vertices specified in in ``spacing[0]`` and ``spacing[1]``.
-    smooth : int | None
+    smooth : int | str | None
         Number of iterations for the smoothing of the surface data.
         If None, smooth is automatically defined to fill the surface
-        with non-zero values. The default is spacing=None.
+        with non-zero values. Can also be ``'nearest'`` to use the nearest
+        vertices on the surface (requires SciPy >= 1.3).
+
+        .. versionchanged:: 0.20
+           Added support for 'nearest'.
     warn : bool
         If True, warn if not all vertices were used. The default is warn=True.
     xhemi : bool
@@ -296,10 +301,8 @@ class SourceMorph(object):
         transform [2]_.
     spacing : int | list | None
         See :func:`mne.compute_source_morph`.
-    smooth : int | None
-        Number of iterations for the smoothing of the surface data.
-        If None, smooth is automatically defined to fill the surface
-        with non-zero values.
+    smooth : int | str | None
+        See :func:`mne.compute_source_morph`.
     xhemi : bool
         Morph across hemisphere.
     morph_mat : scipy.sparse.csr_matrix
@@ -954,6 +957,7 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
     vertices : list of array of int
         Vertex numbers for LH and RH.
     """
+    _validate_type(grade, (list, 'int-like', None), 'grade')
     # add special case for fsaverage for speed
     if subject == 'fsaverage' and isinstance(grade, int) and grade == 5:
         return [np.arange(10242), np.arange(10242)]
@@ -970,6 +974,7 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
                                  '(arrays of output vertices)')
             vertices = grade
         else:
+            grade = _ensure_int(grade)
             # find which vertices to use in "to mesh"
             ico = _get_ico_tris(grade, return_surf=True)
             lhs /= np.sqrt(np.sum(lhs ** 2, axis=1))[:, None]
@@ -998,8 +1003,12 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
     return vertices
 
 
-def _nearest(vertices, adj_mat):
+def _surf_nearest(vertices, adj_mat):
     from scipy.sparse.csgraph import dijkstra
+    if not check_version('scipy', '1.3'):
+        raise ValueError('scipy >= 1.3 is required to use nearest smoothing, '
+                         'consider upgrading SciPy or using a different '
+                         'smoothing value')
     # Vertices can be out of order, so sort them to start ...
     order = np.argsort(vertices)
     vertices = vertices[order]
@@ -1057,9 +1066,14 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
         return data_morphed
 
     n_iter = 99  # max nb of smoothing iterations (minus one)
+    _validate_type(smooth, ('int-like', str, None), 'smooth')
+    if isinstance(smooth, str):
+        _check_option('smooth', smooth, ('nearest',),
+                      extra=' when used as a string.')
     if smooth is not None:
         if smooth == 'nearest':
-            return _nearest(idx_use, e)
+            return (maps[nearest, :] * _surf_nearest(idx_use, e)) * data
+        smooth = _ensure_int(smooth)
         if smooth <= 0:
             raise ValueError('The number of smoothing operations ("smooth") '
                              'has to be at least 1.')
