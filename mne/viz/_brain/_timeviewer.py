@@ -393,7 +393,7 @@ class _TimeViewer(object):
             time_data = self.brain._data['time']
             max_time = np.max(time_data)
             if self.brain._current_time == max_time:  # start over
-                self.brain.set_time_point(np.min(time_data))
+                self.brain.set_time_point(0)  # first index
             self._last_tick = time.time()
 
     def set_playback_speed(self, speed):
@@ -484,8 +484,8 @@ class _TimeViewer(object):
                     pointb=(0.98, 0.74),
                     event_type='always'
                 )
-                orientation_slider.name = name
                 self.set_slider_style(orientation_slider, show_label=False)
+                orientation_slider.name = name
                 self.orientation_call(view, update_widget=True)
 
         # necessary because show_view modified subplot
