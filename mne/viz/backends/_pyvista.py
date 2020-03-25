@@ -143,11 +143,15 @@ class _Renderer(_BaseRenderer):
             with _disabled_depth_peeling():
                 self.plotter = self.figure.build()
             self.plotter.hide_axes()
+            self.plotter.enable_anti_aliasing()
+            if self.figure.is_active():
+                self.plotter.ren_win.LineSmoothingOn()
 
     def subplot(self, x, y):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             self.plotter.subplot(x, y)
+            self.plotter.enable_anti_aliasing()
 
     def scene(self):
         return self.figure
@@ -255,7 +259,7 @@ class _Renderer(_BaseRenderer):
                 sphere.SetRadius(radius)
             sphere.Update()
             geom = sphere.GetOutput()
-            mesh = PolyData(center)
+            mesh = PolyData(np.array(center))
             glyph = mesh.glyph(orient=False, scale=False,
                                factor=factor, geom=geom)
             actor = self.plotter.add_mesh(
@@ -294,7 +298,7 @@ class _Renderer(_BaseRenderer):
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
-                 backface_culling=False):
+                 backface_culling=False, line_width=2., name=None):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
             factor = scale
@@ -306,21 +310,21 @@ class _Renderer(_BaseRenderer):
             cells = np.c_[np.full(n_points, 1), range(n_points)]
             grid = UnstructuredGrid(offset, cells, cell_type, points)
             grid.point_arrays['vec'] = vectors
-            if scale_mode == "scalar":
+            if scale_mode == 'scalar':
                 grid.point_arrays['mag'] = np.array(scalars)
                 scale = 'mag'
             else:
                 scale = False
-            if mode == "arrow":
+            if mode == '2darrow':
+                return _arrow_glyph(grid, factor)
+            elif mode == 'arrow' or mode == '3darrow':
                 self.plotter.add_mesh(grid.glyph(orient='vec',
                                                  scale=scale,
                                                  factor=factor),
                                       color=color,
                                       opacity=opacity,
-                                      backface_culling=backface_culling,
-                                      smooth_shading=self.figure.
-                                      smooth_shading)
-            elif mode == "cone":
+                                      backface_culling=backface_culling)
+            elif mode == 'cone':
                 cone = vtk.vtkConeSource()
                 if glyph_height is not None:
                     cone.SetHeight(glyph_height)
@@ -337,11 +341,9 @@ class _Renderer(_BaseRenderer):
                                                  geom=geom),
                                       color=color,
                                       opacity=opacity,
-                                      backface_culling=backface_culling,
-                                      smooth_shading=self.figure.
-                                      smooth_shading)
+                                      backface_culling=backface_culling)
 
-            elif mode == "cylinder":
+            elif mode == 'cylinder':
                 cylinder = vtk.vtkCylinderSource()
                 cylinder.SetHeight(glyph_height)
                 cylinder.SetRadius(0.15)
@@ -364,9 +366,7 @@ class _Renderer(_BaseRenderer):
                                                  geom=geom),
                                       color=color,
                                       opacity=opacity,
-                                      backface_culling=backface_culling,
-                                      smooth_shading=self.figure.
-                                      smooth_shading)
+                                      backface_culling=backface_culling)
 
     def text2d(self, x_window, y_window, text, size=14, color='white',
                justification=None):
@@ -440,6 +440,11 @@ class _Renderer(_BaseRenderer):
         pts = self.plotter.renderer.GetActors().GetLastItem()
 
         return _Projection(xy=xy, pts=pts)
+
+    def enable_depth_peeling(self):
+        if not self.figure.store['off_screen']:
+            for renderer in self.plotter.renderers:
+                renderer.enable_depth_peeling()
 
 
 def _deg2rad(deg):
@@ -642,6 +647,76 @@ def _update_picking_callback(plotter,
         on_pick
     )
     plotter.picker = picker
+
+
+def _add_polydata_actor(plotter, polydata, name=None,
+                        hide=False):
+    mapper = vtk.vtkPolyDataMapper()
+    mapper.SetInputData(polydata)
+
+    actor = vtk.vtkActor()
+    actor.SetMapper(mapper)
+    if hide:
+        actor.VisibilityOff()
+
+    plotter.add_actor(actor, name=name)
+    return actor
+
+
+def _arrow_glyph(grid, factor):
+    glyph = vtk.vtkGlyphSource2D()
+    glyph.SetGlyphTypeToArrow()
+    glyph.FilledOff()
+    glyph.Update()
+    geom = glyph.GetOutput()
+
+    # fix position
+    tr = vtk.vtkTransform()
+    tr.Translate(0.5, 0., 0.)
+    trp = vtk.vtkTransformPolyDataFilter()
+    trp.SetInputData(geom)
+    trp.SetTransform(tr)
+    trp.Update()
+    geom = trp.GetOutput()
+
+    polydata = _glyph(
+        grid,
+        scale_mode='vector',
+        scalars=False,
+        orient='vec',
+        factor=factor,
+        geom=geom,
+    )
+    return pyvista.wrap(polydata)
+
+
+def _glyph(dataset, scale_mode='scalar', orient=True, scalars=True, factor=1.0,
+           geom=None, tolerance=0.0, absolute=False, clamping=False, rng=None):
+    if geom is None:
+        arrow = vtk.vtkArrowSource()
+        arrow.Update()
+        geom = arrow.GetOutput()
+    alg = vtk.vtkGlyph3D()
+    alg.SetSourceData(geom)
+    if isinstance(scalars, str):
+        dataset.active_scalars_name = scalars
+    if isinstance(orient, str):
+        dataset.active_vectors_name = orient
+        orient = True
+    if scale_mode == 'scalar':
+        alg.SetScaleModeToScaleByScalar()
+    elif scale_mode == 'vector':
+        alg.SetScaleModeToScaleByVector()
+    else:
+        alg.SetScaleModeToDataScalingOff()
+    if rng is not None:
+        alg.SetRange(rng)
+    alg.SetOrient(orient)
+    alg.SetInputData(dataset)
+    alg.SetScaleFactor(factor)
+    alg.SetClamping(clamping)
+    alg.Update()
+    return alg.GetOutput()
 
 
 def _require_minimum_version(version_required):
