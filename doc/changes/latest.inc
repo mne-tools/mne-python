@@ -148,6 +148,8 @@ Bug
 
 - Fix the ``reduce_rank`` parameter in :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.make_dics` to reduce the rank of the leadfield first before then reducing the rank of the denominator of the beamformer formula for the inversion by `Britta Westner`_ and `Eric Larson`_.
 
+- Fix bug with :func:`mne.beamformer.make_lcmv` with data where rank was incorrectly checked by `Eric Larson`_.
+
 - Allow :func:`mne.channels.read_dig_hpts` to accept point categories (eg. EEG) to be specified in upper case by `Alex Gramfort`_.
 
 - Fix a bug in :meth:`mne.MixedSourceEstimate.plot_surface` that prevented plotting in latest PySurfer by `Christian O'Reilly`_.
@@ -288,6 +290,8 @@ Bug
 - Fix placement of extrapolation points in :meth:`mne.Evoked.plot_topomap` and related functions when exactly three channels were used by `Mikołaj Magnuski`_.
 
 - Fix bug in reading annotations in :func:`read_annotations`, which would not accept ";" character by `Adam Li`_
+
+- Fix bug in :func:`mne.Report.parse_folder`, which would not recognize `*meg.fif` files by `Dmitrii Altukhov`_.
 
 - Include ``fit_params`` when saving an :class:`~mne.preprocessing.ICA` instance to disk by `Richard Höchenberger`_
 

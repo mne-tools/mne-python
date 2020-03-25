@@ -40,7 +40,7 @@ VALID_EXTENSIONS = ['raw.fif', 'raw.fif.gz', 'sss.fif', 'sss.fif.gz',
                     '-eve.fif', '-eve.fif.gz', '-cov.fif', '-cov.fif.gz',
                     '-trans.fif', '-trans.fif.gz', '-fwd.fif', '-fwd.fif.gz',
                     '-epo.fif', '-epo.fif.gz', '-inv.fif', '-inv.fif.gz',
-                    '-ave.fif', '-ave.fif.gz', 'T1.mgz']
+                    '-ave.fif', '-ave.fif.gz', 'T1.mgz', 'meg.fif']
 SECTION_ORDER = ['raw', 'events', 'epochs', 'evoked', 'covariance', 'trans',
                  'mri', 'forward', 'inverse']
 
@@ -203,7 +203,7 @@ def _get_toc_property(fname):
         tooltip = fname
         text = op.basename(fname)
     elif fname.endswith(('raw.fif', 'raw.fif.gz',
-                         'sss.fif', 'sss.fif.gz')):
+                         'sss.fif', 'sss.fif.gz', 'meg.fif')):
         div_klass = 'raw'
         tooltip = fname
         text = op.basename(fname)
@@ -260,7 +260,7 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error,
                               fname))
         try:
             if fname.endswith(('raw.fif', 'raw.fif.gz',
-                               'sss.fif', 'sss.fif.gz')):
+                               'sss.fif', 'sss.fif.gz', 'meg.fif')):
                 html = report._render_raw(fname)
                 report_fname = fname
                 report_sectionlabel = 'raw'

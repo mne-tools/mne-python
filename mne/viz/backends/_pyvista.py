@@ -719,6 +719,15 @@ def _glyph(dataset, scale_mode='scalar', orient=True, scalars=True, factor=1.0,
     return alg.GetOutput()
 
 
+def _require_minimum_version(version_required):
+    from distutils.version import LooseVersion
+    version = LooseVersion(pyvista.__version__)
+    if version < version_required:
+        raise ImportError('pyvista>={} is required for this module but the '
+                          'version found is {}'.format(version_required,
+                                                       version))
+
+
 @contextmanager
 def _testing_context(interactive):
     from . import renderer

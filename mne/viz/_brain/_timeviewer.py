@@ -282,6 +282,9 @@ class _TimeViewer(object):
     """Class to interact with _Brain."""
 
     def __init__(self, brain, show_traces=False):
+        from ..backends._pyvista import _require_minimum_version
+        _require_minimum_version('0.24')
+
         # Default configuration
         self.playback = False
         self.visibility = True
