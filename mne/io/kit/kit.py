@@ -229,7 +229,6 @@ class RawKIT(BaseRaw):
         self._raw_extras[0]['stim'] = stim
         self._raw_extras[0]['stim_code'] = stim_code
 
-    @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         nchan = self._raw_extras[fi]['nchan']

@@ -1,5 +1,4 @@
 from copy import deepcopy
-from distutils.version import LooseVersion
 from io import StringIO
 import os.path as op
 from datetime import datetime, timezone
@@ -21,7 +20,7 @@ from mne.utils import (_get_inst_data, hashfunc,
                        _undo_scaling_cov, _apply_scaling_array,
                        _undo_scaling_array, _PCA, requires_sklearn,
                        _array_equal_nan, _julian_to_cal, _cal_to_julian,
-                       _dt_to_julian, _julian_to_dt)
+                       _dt_to_julian, _julian_to_dt, grand_average)
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -403,7 +402,6 @@ def test_hash():
 @pytest.mark.parametrize('whiten', (True, False))
 def test_pca(n_components, whiten):
     """Test PCA equivalence."""
-    import sklearn
     from sklearn.decomposition import PCA
     n_samples, n_dim = 1000, 10
     X = np.random.RandomState(0).randn(n_samples, n_dim)
@@ -415,15 +413,10 @@ def test_pca(n_components, whiten):
     assert_array_equal(X, X_orig)
     X_mne = pca_mne.fit_transform(X)
     assert_array_equal(X, X_orig)
-    old_sklearn = LooseVersion(sklearn.__version__) < LooseVersion('0.19')
-    if whiten and old_sklearn:
-        X_skl *= np.sqrt((n_samples - 1.) / n_samples)
     assert_allclose(X_skl, X_mne)
     for key in ('mean_', 'components_',
                 'explained_variance_', 'explained_variance_ratio_'):
         val_skl, val_mne = getattr(pca_skl, key), getattr(pca_mne, key)
-        if key == 'explained_variance_' and old_sklearn:
-            val_skl *= n_samples / (n_samples - 1.)  # old bug
         assert_allclose(val_skl, val_mne)
     if isinstance(n_components, float):
         assert 1 < pca_mne.n_components_ < n_dim
@@ -465,3 +458,20 @@ def test_julian_conversions():
 
         assert (jd == _dt_to_julian(dd))
         assert (jd == _cal_to_julian(cal[0], cal[1], cal[2]))
+
+
+def test_grand_average_empty_sequence():
+    """Test if mne.grand_average handles an empty sequence correctly."""
+    with pytest.raises(ValueError, match='Please pass a list of Evoked'):
+        grand_average([])
+
+
+def test_grand_average_len_1():
+    """Test if mne.grand_average handles a sequence of length 1 correctly."""
+    # returns a list of length 1
+    evokeds = read_evokeds(ave_fname, condition=[0], proj=True)
+
+    with pytest.warns(RuntimeWarning, match='Only a single dataset'):
+        gave = grand_average(evokeds)
+
+    assert_allclose(gave.data, evokeds[0].data)

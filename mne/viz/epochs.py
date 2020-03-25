@@ -58,14 +58,14 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         the epochs axis of the image. If 0, no smoothing is applied.
         Defaults to 0.
     vmin : None | float | callable
-        The min value in the image (and the ER[P/F]). The unit is uV for
+        The min value in the image (and the ER[P/F]). The unit is µV for
         EEG channels, fT for magnetometers and fT/cm for gradiometers.
         If vmin is None and multiple plots are returned, the limit is
         equalized within channel types.
         Hint: to specify the lower limit of the data, use
         ``vmin=lambda data: data.min()``.
     vmax : None | float | callable
-        The max value in the image (and the ER[P/F]). The unit is uV for
+        The max value in the image (and the ER[P/F]). The unit is µV for
         EEG channels, fT for magnetometers and fT/cm for gradiometers.
         If vmin is None and multiple plots are returned, the limit is
         equalized within channel types.
@@ -83,7 +83,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
         Show figure if True.
     units : dict | None
         The units of the channel types used for axes labels. If None,
-        defaults to ``units=dict(eeg='uV', grad='fT/cm', mag='fT')``.
+        defaults to ``units=dict(eeg='µV', grad='fT/cm', mag='fT')``.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting.
         If None, defaults to ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15,
@@ -207,7 +207,7 @@ def plot_epochs_image(epochs, picks=None, sigma=0., vmin=None,
 
     # is picks a channel type (or None)?
     picks, picked_types = _picks_to_idx(epochs.info, picks, return_kind=True)
-    ch_types = _get_channel_types(epochs.info, picks=picks, unique=False)
+    ch_types = _get_channel_types(epochs.info, picks)
 
     # `combine` defaults to 'gfp' unless picks are specific channels and
     # there was no group_by passed
@@ -980,17 +980,16 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     picks = _picks_to_idx(info, picks)
     picks = sorted(picks)
     # channel type string for every channel
-    types = [channel_type(info, ch) for ch in picks]
+    types = _get_channel_types(info, picks)
     # list of unique channel types
-    ch_types = list(_get_channel_types(info))
+    unique_types = _get_channel_types(info, unique=True)
     if order is None:
         order = _DATA_CH_TYPES_ORDER_DEFAULT
     inds = [pick_idx for order_type in order
             for pick_idx, ch_type in zip(picks, types)
             if order_type == ch_type]
-    if len(ch_types) > len(order):
-        ch_missing = [ch_type for ch_type in ch_types if ch_type not in order]
-        ch_missing = np.unique(ch_missing)
+    if len(unique_types) > len(order):
+        ch_missing = unique_types - set(order)
         raise RuntimeError('%s are in picks but not in order.'
                            ' Please specify all channel types picked.' %
                            (str(ch_missing)))
@@ -1174,7 +1173,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'ev_texts': list(),
                    'ann': list(),  # list for butterfly view annotations
                    'order': order,
-                   'ch_types': ch_types})
+                   'ch_types': unique_types})
 
     params['plot_fun'] = partial(_plot_traces, params=params)
 

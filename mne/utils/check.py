@@ -21,6 +21,10 @@ def _ensure_int(x, name='unknown', must_be='an int'):
     # This is preferred over numbers.Integral, see:
     # https://github.com/scipy/scipy/pull/7351#issuecomment-299713159
     try:
+        # someone passing True/False is much more likely to be an error than
+        # intentional usage
+        if isinstance(x, bool):
+            raise TypeError()
         x = int(operator.index(x))
     except TypeError:
         raise TypeError('%s must be %s, got %s' % (name, must_be, type(x)))
@@ -135,10 +139,11 @@ def _check_event_id(event_id, events):
     return event_id
 
 
-def _check_fname(fname, overwrite=False, must_exist=False, name='File'):
+def _check_fname(fname, overwrite=False, must_exist=False, name='File',
+                 allow_dir=False):
     """Check for file existence."""
     _validate_type(fname, 'path-like', 'fname')
-    if op.isfile(fname):
+    if op.isfile(fname) or (allow_dir and op.isdir(fname)):
         if not overwrite:
             raise FileExistsError('Destination file exists. Please use option '
                                   '"overwrite=True" to force overwriting.')
@@ -489,14 +494,20 @@ def _check_one_ch_type(method, info, forward, data_cov=None, noise_cov=None):
             raise RuntimeError(
                 'The use of several sensor types with the DICS beamformer is '
                 'not supported yet.')
+    # Later in the code we use the data covariance rank for our computations,
+    # so we can allow_mismatch between the data and noise cov if we construct
+    # a known diagonal covariance (the correct/chosen subspace based on rank
+    # will still be used).
     if noise_cov is None:
         noise_cov = make_ad_hoc_cov(info_pick, std=1.)
+        allow_mismatch = True
     else:
         noise_cov = noise_cov.copy()
         if 'estimator' in noise_cov:
             del noise_cov['estimator']
+        allow_mismatch = False
     _validate_type(noise_cov, Covariance, 'noise_cov')
-    return noise_cov, picks
+    return noise_cov, picks, allow_mismatch
 
 
 def _check_depth(depth, kind='depth_mne'):

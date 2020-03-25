@@ -12,9 +12,9 @@ DEFAULTS = dict(
                exci='k', ias='k', syst='k', seeg='saddlebrown', dipole='k',
                gof='k', bio='k', ecog='k', hbo='#AA3377', hbr='b',
                fnirs_raw='k', fnirs_od='k', csd='k'),
-    units=dict(mag='fT', grad='fT/cm', eeg='uV', eog='uV', ecg='uV', emg='uV',
-               misc='AU', seeg='mV', dipole='nAm', gof='GOF', bio='uV',
-               ecog='uV', hbo='uM', hbr='uM', ref_meg='fT', fnirs_raw='V',
+    units=dict(mag='fT', grad='fT/cm', eeg='µV', eog='µV', ecg='µV', emg='µV',
+               misc='AU', seeg='mV', dipole='nAm', gof='GOF', bio='µV',
+               ecog='µV', hbo='uM', hbr='uM', ref_meg='fT', fnirs_raw='V',
                fnirs_od='V', csd='V/m²'),
     # scalings for the units
     scalings=dict(mag=1e15, grad=1e13, eeg=1e6, eog=1e6, emg=1e6, ecg=1e6,

@@ -3,8 +3,7 @@ import os
 import pytest
 
 from mne.utils import (set_config, get_config, get_config_path,
-                       set_memmap_min_size, _get_stim_channel, sys_info,
-                       verbose, _get_call_line)
+                       set_memmap_min_size, _get_stim_channel, sys_info)
 
 
 def test_config(tmpdir):
@@ -76,20 +75,3 @@ def test_sys_info():
     sys_info(fid=out)
     out = out.getvalue()
     assert ('numpy:' in out)
-
-
-def test_get_call_line():
-    """Test getting a call line."""
-    @verbose
-    def foo(verbose=None):
-        return _get_call_line(in_verbose=True)
-
-    for v in (None, True):
-        my_line = foo(verbose=v)  # testing
-        assert my_line == 'my_line = foo(verbose=v)  # testing'
-
-    def bar():
-        return _get_call_line(in_verbose=False)
-
-    my_line = bar()  # testing more
-    assert my_line == 'my_line = bar()  # testing more'

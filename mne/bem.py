@@ -476,7 +476,7 @@ def _check_thicknesses(surfs):
     """Compute how close we are."""
     for surf_1, surf_2 in zip(surfs[:-1], surfs[1:]):
         min_dist = _compute_nearest(surf_1['rr'], surf_2['rr'],
-                                    return_dists=True)[0]
+                                    return_dists=True)[1]
         min_dist = min_dist.min()
         logger.info('Checking distance between %s and %s surfaces...' %
                     (_surf_name[surf_1['id']], _surf_name[surf_2['id']]))

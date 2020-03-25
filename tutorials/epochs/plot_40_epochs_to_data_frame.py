@@ -42,8 +42,8 @@ event_dict = {'auditory/left': 1, 'auditory/right': 2, 'visual/left': 3,
 
 reject_criteria = dict(mag=3000e-15,     # 3000 fT
                        grad=3000e-13,    # 3000 fT/cm
-                       eeg=100e-6,       # 100 μV
-                       eog=200e-6)       # 200 μV
+                       eeg=100e-6,       # 100 µV
+                       eog=200e-6)       # 200 µV
 
 tmin, tmax = (-0.2, 0.5)  # epoch from 200 ms before event to 500 ms after it
 baseline = (None, 0)      # baseline period from start of epoch to time=0
@@ -77,7 +77,7 @@ df.iloc[:5, :10]
 # ``time_format='timedelta'``.
 #
 # Note also that, by default, channel measurement values are scaled so that EEG
-# data are converted to μV, magnetometer data are converted to fT, and
+# data are converted to µV, magnetometer data are converted to fT, and
 # gradiometer data are converted to fT/cm. These scalings can be customized
 # through the ``scalings`` parameter, or suppressed by passing
 # ``scalings=dict(eeg=1, mag=1, grad=1)``.

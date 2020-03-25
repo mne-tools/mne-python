@@ -73,4 +73,4 @@ raw_ctf = mne.io.read_raw_ctf(raw_fname)
 raw_ctf_info = mne.pick_info(
     raw_ctf.info, mne.pick_types(raw_ctf.info, meg=True, ref_meg=False))
 plot_arrowmap(evoked_grad.data[:, max_time_idx], info_from=evoked_grad.info,
-              info_to=raw_ctf_info, scale=2e-10)
+              info_to=raw_ctf_info, scale=6e-10)

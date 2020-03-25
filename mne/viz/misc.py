@@ -360,7 +360,7 @@ def _plot_mri_contours(mri_fname, surfaces, src, orientation='coronal',
         raise TypeError("src needs to be None or SourceSpaces instance, not "
                         "%s" % repr(src))
 
-    fig, axs = _prepare_trellis(len(slices), 4)
+    fig, axs, _, _ = _prepare_trellis(len(slices), 4)
     fig.set_facecolor('k')
     bounds = np.concatenate(
         [[-np.inf], slices[:-1] + np.diff(slices) / 2., [np.inf]])  # float
@@ -1119,7 +1119,7 @@ def plot_csd(csd, info=None, mode='csd', colorbar=True, cmap=None,
 
         if mode == 'csd':
             # The units in which to plot the CSD
-            units = dict(eeg=u'μV²', grad=u'fT²/cm²', mag=u'fT²')
+            units = dict(eeg='µV²', grad='fT²/cm²', mag='fT²')
             scalings = dict(eeg=1e12, grad=1e26, mag=1e30)
     else:
         indices = [np.arange(len(csd.ch_names))]

@@ -23,8 +23,7 @@ from .evoked import _butterfly_on_button_press, _butterfly_onpick
 from ..utils import warn, _validate_type, fill_doc
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
-from ..io.pick import (pick_types, _picks_to_idx, _get_channel_types,
-                       _DATA_CH_TYPES_ORDER_DEFAULT)
+from ..io.pick import (pick_types, _picks_to_idx, _DATA_CH_TYPES_ORDER_DEFAULT)
 from ..time_frequency.psd import psd_multitaper
 from ..utils import _reject_data_segments
 
@@ -727,7 +726,7 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
         title = 'Signals before (red) and after (black) cleaning'
     picks = ica.ch_names if picks is None else picks
     picks = _picks_to_idx(inst.info, picks, exclude=())
-    ch_types_used = _get_channel_types(inst.info, picks=picks, unique=True)
+    ch_types_used = inst.get_channel_types(picks=picks, unique=True)
     if exclude is None:
         exclude = ica.exclude
     if not isinstance(exclude, (np.ndarray, list)):
@@ -1065,10 +1064,10 @@ def _label_clicked(pos, params):
     data = np.dot(ica.mixing_matrix_[:, ic_idx].T,
                   ica.pca_components_[:ica.n_components_])
     data = np.atleast_2d(data)
-    fig, axes = _prepare_trellis(len(types), max_col=3)
+    fig, axes, _, _ = _prepare_trellis(len(types), ncols=3)
     for ch_idx, ch_type in enumerate(types):
         try:
-            data_picks, pos, merge_grads, _, _, this_sphere, clip_origin = \
+            data_picks, pos, merge_channels, _, _, this_sphere, clip_origin = \
                 _prepare_topomap_plot(ica, ch_type)
         except Exception as exc:
             warn(str(exc))
@@ -1077,11 +1076,12 @@ def _label_clicked(pos, params):
         outlines = _make_head_outlines(this_sphere, pos, 'head', clip_origin)
         this_data = data[:, data_picks]
         ax = axes[ch_idx]
-        if merge_grads:
-            from ..channels.layout import _merge_grad_data
+        if merge_channels:
+            from ..channels.layout import _merge_ch_data
         for ii, data_ in zip(ic_idx, this_data):
             ax.set_title('%s %s' % (ica._ica_names[ii], ch_type), fontsize=12)
-            data_ = _merge_grad_data(data_) if merge_grads else data_
+            if merge_channels:
+                data_, _ = _merge_ch_data(data_, 'grad', [])
             plot_topomap(data_.flatten(), pos, axes=ax, show=False,
                          sphere=this_sphere, outlines=outlines)
             _hide_frame(ax)

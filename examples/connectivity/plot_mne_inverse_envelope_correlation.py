@@ -8,7 +8,6 @@ Compute envelope correlations in source space
 Compute envelope correlations of orthogonalized activity [1]_ [2]_ in source
 space using resting state CTF data.
 """
-# sphinx_gallery_thumbnail_number = 2
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 #          Sheraz Khan <sheraz@khansheraz.com>
@@ -89,6 +88,7 @@ fig.tight_layout()
 # Compute the degree and plot it
 # ------------------------------
 
+# sphinx_gallery_thumbnail_number = 2
 threshold_prop = 0.15  # percentage of strongest edges to keep in the graph
 degree = mne.connectivity.degree(corr, threshold_prop=threshold_prop)
 stc = mne.labels_to_stc(labels, degree)

@@ -55,12 +55,14 @@ def test_render_report(renderer, tmpdir):
     """Test rendering -*.fif files for mne report."""
     tempdir = str(tmpdir)
     raw_fname_new = op.join(tempdir, 'temp_raw.fif')
+    raw_fname_new_bids = op.join(tempdir, 'temp_meg.fif')
     ms_fname_new = op.join(tempdir, 'temp_ms_raw.fif')
     event_fname_new = op.join(tempdir, 'temp_raw-eve.fif')
     cov_fname_new = op.join(tempdir, 'temp_raw-cov.fif')
     fwd_fname_new = op.join(tempdir, 'temp_raw-fwd.fif')
     inv_fname_new = op.join(tempdir, 'temp_raw-inv.fif')
     for a, b in [[raw_fname, raw_fname_new],
+                 [raw_fname, raw_fname_new_bids],
                  [ms_fname, ms_fname_new],
                  [event_fname, event_fname_new],
                  [cov_fname, cov_fname_new],
@@ -306,7 +308,7 @@ def test_add_slider_to_section(tmpdir):
     # Smoke test that SVG w/unicode can be added
     report = Report()
     fig, ax = plt.subplots()
-    ax.set_xlabel(u'μ')
+    ax.set_xlabel('µ')
     report.add_slider_to_section([fig] * 2, image_format='svg')
 
 

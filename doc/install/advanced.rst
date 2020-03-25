@@ -79,7 +79,7 @@ instructions, this will be ``base``), and use ``pip`` to upgrade:
 .. code-block:: console
 
    $ conda activate name_of_my_mne_environment
-   $ pip install --upgrade --no-deps https://api.github.com/repos/mne-tools/mne-python/zipball/master
+   $ pip install --upgrade --no-deps https://github.com/mne-tools/mne-python/archive/master.zip
 
 If you plan to contribute to MNE-Python, or just prefer to use git rather than
 pip to make frequent updates, check out the :ref:`contributing guide

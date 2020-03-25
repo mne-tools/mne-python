@@ -609,8 +609,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         weights = np.sqrt(eigvals)[np.newaxis, :, np.newaxis]
 
     subject = _subject_from_inverse(inverse_operator)
-    iter_epochs = ProgressBar(n_epochs)
-    iter_epochs.iterable = epochs
+    iter_epochs = ProgressBar(epochs, max_value=n_epochs)
     evoked_info = pick_info(epochs.info, sel, verbose=False)
     for k, e in enumerate(iter_epochs):
         data = np.dot(Vh, e[sel])  # reducing data rank
@@ -688,7 +687,6 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         yield out
 
     iter_epochs.update(n_epochs)  # in case some were skipped
-    iter_epochs.__exit__(None, None, None)
 
 
 @verbose

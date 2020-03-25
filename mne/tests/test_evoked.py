@@ -261,7 +261,7 @@ def test_shift_time_evoked():
     assert_equal(ave_absolute.first, int(-0.3 * ave.info['sfreq']))
 
     # subsample shift
-    shift = 1e-6  # 1 μs, should be well below 1/sfreq
+    shift = 1e-6  # 1 µs, should be well below 1/sfreq
     ave = read_evokeds(fname, 0)
     times = ave.times
     ave.shift_time(shift)
@@ -437,7 +437,8 @@ def test_get_peak():
     assert_equal(ch_name, 'MEG 1421')
     assert_allclose(max_amp, 7.17057e-13, rtol=1e-5)
 
-    pytest.raises(ValueError, evoked.get_peak, ch_type='mag', merge_grads=True)
+    pytest.raises(ValueError, evoked.get_peak, ch_type='mag',
+                  merge_grads=True)
     ch_name, time_idx = evoked.get_peak(ch_type='grad', merge_grads=True)
     assert_equal(ch_name, 'MEG 244X')
 

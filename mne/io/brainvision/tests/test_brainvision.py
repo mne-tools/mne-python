@@ -5,16 +5,14 @@
 #
 # License: BSD (3-clause)
 import os.path as op
-from os import unlink
 import shutil
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
 import pytest
-from tempfile import NamedTemporaryFile
 
-from mne.utils import _TempDir, run_tests_if_main, _stamp_to_dt
+from mne.utils import run_tests_if_main, _stamp_to_dt
 from mne import pick_types, read_annotations, concatenate_raws
 from mne.io.constants import FIFF
 from mne.io import read_raw_fif, read_raw_brainvision
@@ -85,16 +83,16 @@ def test_orig_units(recwarn):
 DATE_TEST_CASES = np.array([
     ('Mk1=New Segment,,1,1,0,20131113161403794232\n',  # content
      [1384359243, 794232],  # meas_date internal representation
-     '2013-11-13 16:14:03 GMT'),  # meas_date representation
+     '2013-11-13 16:14:03 UTC'),  # meas_date representation
 
     (('Mk1=New Segment,,1,1,0,20070716122240937454\n'
       'Mk2=New Segment,,2,1,0,20070716122240937455\n'),
      [1184588560, 937454],
-     '2007-07-16 12:22:40 GMT'),
+     '2007-07-16 12:22:40 UTC'),
 
     ('Mk1=New Segment,,1,1,0,\nMk2=New Segment,,2,1,0,20070716122240937454\n',
      [1184588560, 937454],
-     '2007-07-16 12:22:40 GMT'),
+     '2007-07-16 12:22:40 UTC'),
 
     ('Mk1=STATUS,,1,1,0\n', None, 'unspecified'),
     ('Mk1=New Segment,,1,1,0,\n', None, 'unspecified'),
@@ -153,11 +151,11 @@ def test_meas_date(mocked_meas_date_file):
         assert raw.info['meas_date'] == expected_meas
 
 
-def test_vhdr_codepage_ansi():
+def test_vhdr_codepage_ansi(tmpdir):
     """Test BV reading with ANSI codepage."""
     raw_init = read_raw_brainvision(vhdr_path)
     data_expected, times_expected = raw_init[:]
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     ansi_vhdr_path = op.join(tempdir, op.split(vhdr_path)[-1])
     ansi_vmrk_path = op.join(tempdir, op.split(vmrk_path)[-1])
     ansi_eeg_path = op.join(tempdir, op.split(eeg_path)[-1])
@@ -188,11 +186,49 @@ def test_vhdr_codepage_ansi():
     assert_allclose(times_new, times_expected, atol=1e-15)
 
 
-def test_ascii():
+@pytest.mark.parametrize('header', [
+    b'BrainVision Data Exchange %s File Version 1.0\n',
+    # 2.0, space, core, comma
+    b'Brain Vision Core Data Exchange %s File, Version 2.0\n',
+    # bad
+    b'Brain Vision Core Data Exchange %s File, Version 3.0\n',
+])
+def test_vhdr_versions(tmpdir, header):
+    """Test BV reading with different header variants."""
+    raw_init = read_raw_brainvision(vhdr_path)
+    data_expected, times_expected = raw_init[:]
+    use_vhdr_path = op.join(tmpdir, op.split(vhdr_path)[-1])
+    use_vmrk_path = op.join(tmpdir, op.split(vmrk_path)[-1])
+    use_eeg_path = op.join(tmpdir, op.split(eeg_path)[-1])
+    shutil.copy(eeg_path, use_eeg_path)
+    with open(use_vhdr_path, 'wb') as fout:
+        with open(vhdr_path, 'rb') as fin:
+            for line in fin:
+                # Common Infos section
+                if line.startswith(b'Brain'):
+                    line = header % b'Header'
+                fout.write(line)
+    with open(use_vmrk_path, 'wb') as fout:
+        with open(vmrk_path, 'rb') as fin:
+            for line in fin:
+                # Common Infos section
+                if line.startswith(b'Brain'):
+                    line = header % b'Marker'
+                fout.write(line)
+
+    if b'3.0' in header:  # bad case
+        with pytest.raises(ValueError, match=r'3\.0.*Contact MNE-Python'):
+            read_raw_brainvision(use_vhdr_path)
+        return
+    raw = read_raw_brainvision(use_vhdr_path)
+    data_new, _ = raw[:]
+    assert_allclose(data_new, data_expected, atol=1e-15)
+
+
+def test_ascii(tmpdir):
     """Test ASCII BV reading."""
     raw = read_raw_brainvision(vhdr_path)
-    tempdir = _TempDir()
-    ascii_vhdr_path = op.join(tempdir, op.split(vhdr_path)[-1])
+    ascii_vhdr_path = op.join(tmpdir, op.split(vhdr_path)[-1])
     # copy marker file
     shutil.copy(vhdr_path.replace('.vhdr', '.vmrk'),
                 ascii_vhdr_path.replace('.vhdr', '.vmrk'))
@@ -508,7 +544,7 @@ def test_brainvision_neuroone_export():
 
 
 @testing.requires_testing_data
-def test_read_vmrk_annotations():
+def test_read_vmrk_annotations(tmpdir):
     """Test load brainvision annotations."""
     sfreq = 1000.0
 
@@ -516,16 +552,11 @@ def test_read_vmrk_annotations():
     # delete=False is for Windows compatibility
     with open(vmrk_path) as myfile:
         head = [next(myfile) for x in range(6)]
-    with NamedTemporaryFile(mode='w+', suffix='.vmrk', delete=False) as temp:
+    fname = tmpdir.join('temp.vmrk')
+    with open(str(fname), 'w') as temp:
         for item in head:
             temp.write(item)
-        temp.seek(0)
-        read_annotations(temp.name, sfreq=sfreq)
-    try:
-        temp.close()
-        unlink(temp.name)
-    except IOError:
-        pass
+    read_annotations(fname, sfreq=sfreq)
 
 
 @testing.requires_testing_data

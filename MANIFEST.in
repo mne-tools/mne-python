@@ -30,6 +30,7 @@ recursive-include mne/io/artemis123/resources *
 recursive-include mne mne/datasets *.csv
 include mne/io/edf/gdf_encodes.txt
 include mne/datasets/sleep_physionet/SHA1SUMS
+include mne/externals/tqdm/_tqdm/tqdm.1
 
 ### Exclude
 

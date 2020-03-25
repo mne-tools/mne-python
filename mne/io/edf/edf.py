@@ -133,7 +133,6 @@ class RawEDF(BaseRaw):
         self.set_annotations(Annotations(onset=onset, duration=duration,
                                          description=desc, orig_time=None))
 
-    @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         return _read_segment_file(data, idx, fi, start, stop,
@@ -204,7 +203,6 @@ class RawGDF(BaseRaw):
         self.set_annotations(Annotations(onset=onset, duration=duration,
                                          description=desc, orig_time=None))
 
-    @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         return _read_segment_file(data, idx, fi, start, stop,
@@ -251,7 +249,7 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, chs, filenames):
     cal = np.atleast_2d(physical_range / cal)  # physical / digital
     gains = np.atleast_2d(raw_extras['units'])
 
-    # physical dimension in uV
+    # physical dimension in µV
     physical_min = raw_extras['physical_min']
     digital_min = raw_extras['digital_min']
 
@@ -485,7 +483,7 @@ def _get_info(fname, stim_channel, eog, misc, exclude, preload):
     if lowpass.size == 0:
         pass  # Placeholder for future use. Lowpass set in _empty_info.
     elif all(lowpass):
-        if lowpass[0] == 'NaN':
+        if lowpass[0] in ('NaN', '0', '0.0'):
             pass  # Placeholder for future use. Lowpass set in _empty_info.
         else:
             info['lowpass'] = float(lowpass[0])
@@ -1034,8 +1032,11 @@ def _check_stim_channel(stim_channel, ch_names,
     """Check that the stimulus channel exists in the current datafile."""
     DEFAULT_STIM_CH_NAMES = ['status', 'trigger']
 
-    if stim_channel is None:
+    if stim_channel is None or stim_channel is False:
         return [], []
+
+    if stim_channel is True:  # convenient aliases
+        stim_channel = 'auto'
 
     elif isinstance(stim_channel, str):
         if stim_channel == 'auto':

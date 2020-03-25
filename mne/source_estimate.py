@@ -1520,13 +1520,13 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
     @copy_function_doc_to_method_doc(plot_source_estimates)
     def plot(self, subject=None, surface='inflated', hemi='lh',
              colormap='auto', time_label='auto', smoothing_steps=10,
-             transparent=True, alpha=1.0, time_viewer=False,
+             transparent=True, alpha=1.0, time_viewer='auto',
              subjects_dir=None,
              figure=None, views='lat', colorbar=True, clim='auto',
              cortex="classic", size=800, background="black",
              foreground="white", initial_time=None, time_unit='s',
              backend='auto', spacing='oct6', title=None,
-             show_traces=False, verbose=None):
+             show_traces='auto', verbose=None):
         brain = plot_source_estimates(
             self, subject, surface=surface, hemi=hemi, colormap=colormap,
             time_label=time_label, smoothing_steps=smoothing_steps,
@@ -1549,15 +1549,10 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         Parameters
         ----------
-        labels : Label | BiHemiLabel | list of Label or BiHemiLabel
-            The labels for which to extract the time courses.
-        src : list
-            Source spaces for left and right hemisphere.
-        mode : str
-            Extraction mode, see explanation below.
-        allow_empty : bool
-            Instead of emitting an error, return all-zero time course for
-            labels that do not have any vertices in the source estimate.
+        %(eltc_labels)s
+        %(eltc_src)s
+        %(eltc_mode)s
+        %(eltc_allow_empty)s
         %(verbose_meth)s
 
         Returns
@@ -1571,26 +1566,7 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
 
         Notes
         -----
-        Valid values for mode are:
-
-        - 'mean'
-              Average within each label.
-        - 'mean_flip'
-              Average within each label with sign flip depending
-              on source orientation.
-        - 'pca_flip'
-              Apply an SVD to the time courses within each label
-              and use the scaled and sign-flipped first right-singular vector
-              as the label time course. The scaling is performed such that the
-              power of the label time course is the same as the average
-              per-vertex time course power within the label. The sign of the
-              resulting time course is adjusted by multiplying it with
-              "sign(dot(u, flip))" where u is the first left-singular vector,
-              and flip is a sing-flip vector based on the vertex normals. This
-              procedure assures that the phase does not randomly change by 180
-              degrees from one stc to the next.
-        - 'max'
-              Max value within each label.
+        %(eltc_mode_notes)s
         """
         label_tc = extract_label_time_course(
             self, labels, src, mode=mode, return_generator=False,
@@ -2844,15 +2820,10 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
     ----------
     stcs : SourceEstimate | list (or generator) of SourceEstimate
         The source estimates from which to extract the time course.
-    labels : Label | BiHemiLabel | list of Label or BiHemiLabel
-        The labels for which to extract the time course.
-    src : list
-        Source spaces for left and right hemisphere.
-    mode : str
-        Extraction mode, see explanation above.
-    allow_empty : bool
-        Instead of emitting an error, return all-zero time courses for labels
-        that do not have any vertices in the source estimate.
+    %(eltc_labels)s
+    %(eltc_src)s
+    %(eltc_mode)s
+    %(eltc_allow_empty)s
     return_generator : bool
         If True, a generator instead of a list is returned.
     %(verbose)s
@@ -2864,26 +2835,7 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
 
     Notes
     -----
-    Valid values for mode are:
-
-    ``'mean'``
-        Average within each label.
-    ``'mean_flip'``
-        Average within each label with sign flip depending
-        on source orientation.
-    ``'pca_flip'``
-        Apply an SVD to the time courses within each label
-        and use the scaled and sign-flipped first right-singular vector
-        as the label time course. The scaling is performed such that the
-        power of the label time course is the same as the average
-        per-vertex time course power within the label. The sign of the
-        resulting time course is adjusted by multiplying it with
-        "sign(dot(u, flip))" where u is the first left-singular vector,
-        and flip is a sing-flip vector based on the vertex normals. This
-        procedure assures that the phase does not randomly change by 180
-        degrees from one stc to the next.
-    ``'max'``
-        Max value within each label.
+    %(eltc_mode_notes)s
 
     If encountering a ``ValueError`` due to mismatch between number of
     source points in the subject source space and computed ``stc`` object set

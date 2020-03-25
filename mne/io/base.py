@@ -295,6 +295,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         # most classes only store real data, they won't need anything special
         return self._dtype_
 
+    @verbose
     def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
                       projector=None, verbose=None):
         """Read a chunk of raw data.
@@ -728,8 +729,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             data = self._data[sel, start:stop]
         else:
             data = self._read_segment(start=start, stop=stop, sel=sel,
-                                      projector=self._projector,
-                                      verbose=self.verbose)
+                                      projector=self._projector)
         times = self.times[start:stop]
         return data, times
 
@@ -836,7 +836,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     @verbose
     def apply_function(self, fun, picks=None, dtype=None, n_jobs=1,
-                       channel_wise=True, *args, **kwargs):
+                       channel_wise=True, verbose=None, *args, **kwargs):
         """Apply a function to a subset of channels.
 
         The function "fun" is applied to the channels defined in "picks". The
@@ -876,14 +876,12 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             False, the function will be applied to all channels at once.
 
             .. versionadded:: 0.18
+        %(verbose_meth)s
         *args : list
             Additional positional arguments to pass to fun (first pos. argument
             of fun is the timeseries of a channel).
         **kwargs : dict
-            Keyword arguments to pass to fun. Note that if "verbose" is passed
-            as a member of ``kwargs``, it will be consumed and will override
-            the default mne-python verbose level (see :func:`mne.verbose` and
-            :ref:`Logging documentation <tut_logging>` for more).
+            Keyword arguments to pass to fun.
 
         Returns
         -------
@@ -1596,13 +1594,13 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
 
     def __repr__(self):  # noqa: D105
         name = self.filenames[0]
-        name = 'None' if name is None else op.basename(name)
+        name = '' if name is None else op.basename(name) + ', '
         size_str = str(sizeof_fmt(self._size))  # str in case it fails -> None
         size_str += ', data%s loaded' % ('' if self.preload else ' not')
-        s = ('%s, n_channels x n_times : %s x %s (%0.1f sec), ~%s'
+        s = ('%s%s x %s (%0.1f s), ~%s'
              % (name, len(self.ch_names), self.n_times, self.times[-1],
                 size_str))
-        return "<%s  |  %s>" % (self.__class__.__name__, s)
+        return "<%s | %s>" % (self.__class__.__name__, s)
 
     def add_events(self, events, stim_channel=None, replace=False):
         """Add events to stim channel.

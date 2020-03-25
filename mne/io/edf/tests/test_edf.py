@@ -13,7 +13,7 @@ import inspect
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_equal)
+                           assert_equal, assert_allclose)
 from scipy.io import loadmat
 
 import pytest
@@ -68,7 +68,7 @@ def test_orig_units():
     # Test original units
     orig_units = raw._orig_units
     assert len(orig_units) == len(raw.ch_names)
-    assert orig_units['A1'] == u'µV'  # formerly 'uV' edit by _check_orig_units
+    assert orig_units['A1'] == 'µV'  # formerly 'uV' edit by _check_orig_units
 
 
 def test_bdf_data():
@@ -106,9 +106,16 @@ def test_bdf_crop_save_stim_channel(tmpdir):
 
 
 @testing.requires_testing_data
-def test_edf_reduced():
-    """Test EDF with various sampling rates."""
-    _test_raw_reader(read_raw_edf, input_fname=edf_reduced, verbose='error')
+@pytest.mark.parametrize('fname', [
+    edf_reduced,
+    edf_overlap_annot_path,
+])
+@pytest.mark.parametrize('stim_channel', (None, False, 'auto'))
+def test_edf_others(fname, stim_channel):
+    """Test EDF with various sampling rates and overlapping annotations."""
+    _test_raw_reader(
+        read_raw_edf, input_fname=fname, stim_channel=stim_channel,
+        verbose='error')
 
 
 def test_edf_data():
@@ -361,3 +368,11 @@ def test_bdf_multiple_annotation_channels():
 
 
 run_tests_if_main()
+
+
+@testing.requires_testing_data
+def test_edf_lowpass_zero():
+    """Test if a lowpass filter of 0Hz is mapped to the Nyquist frequency."""
+    with pytest.warns(RuntimeWarning, match='too long.*truncated'):
+        raw = read_raw_edf(edf_stim_resamp_path)
+    assert_allclose(raw.info["lowpass"], raw.info["sfreq"] / 2)

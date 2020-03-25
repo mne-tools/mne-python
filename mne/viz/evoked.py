@@ -114,17 +114,18 @@ def _line_plot_onselect(xmin, xmax, ch_types, info, data, times, text=None,
     for idx, ch_type in enumerate(ch_types):
         if ch_type not in ('eeg', 'grad', 'mag'):
             continue
-        picks, pos, merge_grads, _, ch_type, this_sphere, clip_origin = \
+        picks, pos, merge_channels, _, ch_type, this_sphere, clip_origin = \
             _prepare_topomap_plot(info, ch_type, sphere=sphere)
         outlines = _make_head_outlines(this_sphere, pos, 'head', clip_origin)
         if len(pos) < 2:
             fig.delaxes(axarr[0][idx])
             continue
         this_data = data[picks, minidx:maxidx]
-        if merge_grads:
-            from ..channels.layout import _merge_grad_data
+        if merge_channels:
+            from ..channels.layout import _merge_ch_data
             method = 'mean' if psd else 'rms'
-            this_data = _merge_grad_data(this_data, method=method)
+            this_data, _ = _merge_ch_data(this_data, ch_type, [],
+                                          method=method)
             title = '%s %s' % (ch_type, method.upper())
         else:
             title = ch_type
@@ -228,11 +229,10 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
                                  "found in `axes`")
             ax = axes[sel]
             # the unwieldy dict comp below defaults the title to the sel
+            titles = ({channel_type(evoked.info, idx): sel
+                       for idx in group_by[sel]} if titles is None else titles)
             _plot_evoked(evoked, group_by[sel], exclude, unit, show, ylim,
-                         proj, xlim, hline, units, scalings,
-                         (titles if titles is not None else
-                          {channel_type(evoked.info, idx): sel
-                           for idx in group_by[sel]}),
+                         proj, xlim, hline, units, scalings, titles,
                          ax, plot_type, cmap=cmap, gfp=gfp,
                          window_title=window_title,
                          set_tight_layout=set_tight_layout,
@@ -289,7 +289,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show, ylim, proj, xlim, hline,
 
         picks = np.array([pick for pick in picks if pick not in exclude])
 
-    types = np.array([channel_type(info, idx) for idx in picks], np.unicode)
+    types = np.array(_get_channel_types(info, picks), np.unicode)
     ch_types_used = list()
     for this_type in _VALID_CHANNEL_TYPES:
         if this_type in types:
@@ -654,7 +654,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         The values at which to show an horizontal line.
     units : dict | None
         The units of the channel types used for axes labels. If None,
-        defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
+        defaults to ``dict(eeg='µV', grad='fT/cm', mag='fT')``.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If None,
         defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
@@ -840,7 +840,8 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
                              fig_facecolor=fig_facecolor,
                              fig_background=fig_background,
                              axis_facecolor=axis_facecolor,
-                             font_color=font_color, merge_grads=merge_grads,
+                             font_color=font_color,
+                             merge_channels=merge_grads,
                              legend=legend, axes=axes, show=show,
                              noise_cov=noise_cov)
 
@@ -882,7 +883,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True,
         be shown.
     units : dict | None
         The units of the channel types used for axes labels. If None,
-        defaults to ``dict(eeg='uV', grad='fT/cm', mag='fT')``.
+        defaults to ``dict(eeg='µV', grad='fT/cm', mag='fT')``.
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If None,`
         defaults to ``dict(eeg=1e6, grad=1e13, mag=1e15)``.
@@ -1344,7 +1345,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
     # simply create a new evoked object with the desired channel selection
     evoked = _pick_inst(evoked, picks, exclude, copy=True)
     info = evoked.info
-    ch_types = _get_channel_types(info, restrict_data_types=True)
+    ch_types = _get_channel_types(info, unique=True, only_data_chs=True)
 
     # if multiple sensor types: one plot per channel type, recursive call
     if len(ch_types) > 1:
@@ -1357,7 +1358,7 @@ def plot_evoked_joint(evoked, times="peaks", title='', picks=None,
             ev_ = evoked.copy().pick_channels(
                 [info['ch_names'][idx] for idx in range(info['nchan'])
                  if channel_type(info, idx) == this_type])
-            if len(_get_channel_types(ev_.info)) > 1:
+            if len(_get_channel_types(ev_.info, unique=True)) > 1:
                 raise RuntimeError('Possibly infinite loop due to channel '
                                    'selection problem. This should never '
                                    'happen! Please check your channel types.')

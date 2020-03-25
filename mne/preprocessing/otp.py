@@ -89,7 +89,7 @@ def oversampled_temporal_projection(raw, duration=10., picks=None,
 
     n_samp = int(round(float(duration) * raw.info['sfreq']))
     starts, stops, windows = _get_lims_cola(
-        n_samp, len(raw.times), raw.info['sfreq'], picks_good)
+        n_samp, len(raw.times), raw.info['sfreq'])
     min_samp = (stops - starts).min()
     if min_samp < len(picks_good) - 1:
         raise ValueError('duration (%s) yielded %s samples, which is fewer '

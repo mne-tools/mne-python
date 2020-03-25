@@ -30,7 +30,6 @@ def _check_ori(pick_ori, forward):
                          'orientation forward solution.')
 
 
-@verbose
 def _prepare_weights(forward, gain, source_weighting, weights, weights_min):
     mask = None
     if isinstance(weights, _BaseSourceEstimate):

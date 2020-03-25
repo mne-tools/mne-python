@@ -13,7 +13,6 @@ import logging
 import os.path as op
 import warnings
 
-from ..fixes import _get_args
 from ..externals.decorator import FunctionMaker
 
 
@@ -62,36 +61,41 @@ def verbose(function):
     # See https://decorator.readthedocs.io/en/latest/tests.documentation.html
     # #dealing-with-third-party-decorators
     from .docs import fill_doc
-    arg_names = _get_args(function)
     try:
         fill_doc(function)
     except TypeError:  # nothing to add
         pass
 
-    def wrapper(*args, **kwargs):
-        default_level = verbose_level = None
-        if len(arg_names) > 0 and arg_names[0] == 'self':
-            default_level = getattr(args[0], 'verbose', None)
-        if 'verbose' in kwargs:
-            verbose_level = kwargs.pop('verbose')
-        else:
-            try:
-                verbose_level = args[arg_names.index('verbose')]
-            except (IndexError, ValueError):
-                pass
-
-        # This ensures that object.method(verbose=None) will use object.verbose
-        if verbose_level is None:
-            verbose_level = default_level
-        if verbose_level is not None:
-            # set it back if we get an exception
-            with use_log_level(verbose_level):
-                return function(*args, **kwargs)
-        return function(*args, **kwargs)
+    # Anything using verbose should either have `verbose=None` in the signature
+    # or have a `self.verbose` attribute (if in a method). This code path
+    # will raise an error if neither is the case.
+    wrap_src = """\
+try:
+    verbose
+except UnboundLocalError:
+    try:
+        verbose = self.verbose
+    except NameError:
+        raise RuntimeError('Function %%s does not accept verbose parameter'
+                           %% (_function_,))
+    except AttributeError:
+        raise RuntimeError('Method %%s class does not have self.verbose'
+                           %% (_function_,))
+if verbose is None:
+    try:
+        verbose = self.verbose
+    except (NameError, AttributeError):
+        pass
+if verbose is not None:
+    with _use_log_level_(verbose):
+        return _function_(%(signature)s)
+return _function_(%(signature)s)"""
+    evaldict = dict(
+        _use_log_level_=use_log_level, _function_=function)
     return FunctionMaker.create(
-        function, 'return decfunc(%(signature)s)',
-        dict(decfunc=wrapper), __wrapped__=function,
-        __qualname__=function.__qualname__)
+        function, wrap_src, evaldict,
+        __wrapped__=function, __qualname__=function.__qualname__,
+        module=function.__module__)
 
 
 class use_log_level(object):
@@ -243,7 +247,7 @@ class WrapStdOut(object):
             raise AttributeError("'file' object has not attribute '%s'" % name)
 
 
-_verbose_dec_re = re.compile('^<.*decorator\\.py:decorator-gen.*>$')
+_verbose_dec_re = re.compile('^<decorator-gen-[0-9]+>$')
 
 
 def warn(message, category=RuntimeWarning, module='mne'):
@@ -268,24 +272,18 @@ def warn(message, category=RuntimeWarning, module='mne'):
     root_dir = op.dirname(mne.__file__)
     frame = None
     if logger.level <= logging.WARN:
-        last_fname = ''
         frame = inspect.currentframe()
         while frame:
             fname = frame.f_code.co_filename
             lineno = frame.f_lineno
             # in verbose dec
-            if _verbose_dec_re.match(fname) and \
-                    last_fname == op.basename(__file__):
-                last_fname = fname
-                frame = frame.f_back
-                continue
-            # treat tests as scripts
-            # and don't capture unittest/case.py (assert_raises)
-            if not (fname.startswith(root_dir) or
-                    ('unittest' in fname and 'case' in fname)) or \
-                    op.basename(op.dirname(fname)) == 'tests':
-                break
-            last_fname = op.basename(fname)
+            if not _verbose_dec_re.search(fname):
+                # treat tests as scripts
+                # and don't capture unittest/case.py (assert_raises)
+                if not (fname.startswith(root_dir) or
+                        ('unittest' in fname and 'case' in fname)) or \
+                        op.basename(op.dirname(fname)) == 'tests':
+                    break
             frame = frame.f_back
         del frame
         # We need to use this instead of warn(message, category, stacklevel)
@@ -300,6 +298,16 @@ def warn(message, category=RuntimeWarning, module='mne'):
                                                          False)
            for h in logger.handlers):
         logger.warning(message)
+
+
+def _get_call_line():
+    """Get the call line from within a function."""
+    frame = inspect.currentframe().f_back.f_back
+    if _verbose_dec_re.search(frame.f_code.co_filename):
+        frame = frame.f_back
+    context = inspect.getframeinfo(frame).code_context
+    context = 'unknown' if context is None else context[0].strip()
+    return context
 
 
 def filter_out_warnings(warn_record, category=None, match=None):

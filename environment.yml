@@ -17,7 +17,7 @@ dependencies:
 - pillow
 - statsmodels
 - jupyter
-- pytest
+- pytest<5.4
 - pytest-cov
 - pytest-mock
 - pytest-timeout
@@ -32,8 +32,8 @@ dependencies:
 - vtk
 - pip:
   - mne
-  - https://api.github.com/repos/numpy/numpydoc/zipball/master
-  - pyvista>=0.23.1
+  - https://github.com/numpy/numpydoc/archive/master.zip
+  - pyvista>=0.24
   - mayavi
   - PySurfer[save_movie]
   - dipy --only-binary dipy
@@ -45,3 +45,4 @@ dependencies:
   - pydocstyle
   - codespell
   - python-picard
+  - tqdm

@@ -7,6 +7,7 @@
 
 from os import path as op
 import math
+import re
 
 import pytest
 import numpy as np
@@ -99,6 +100,12 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
     assert raw.__class__.__name__ in repr(raw)  # to test repr
     assert raw.info.__class__.__name__ in repr(raw.info)
     assert isinstance(raw.info['dig'], (type(None), list))
+    data_max = full_data.max()
+    data_min = full_data.min()
+    # these limits could be relaxed if we actually find data with
+    # huge values (in SI units)
+    assert data_max < 1e5
+    assert data_min > -1e5
     if isinstance(raw.info['dig'], list):
         for di, d in enumerate(raw.info['dig']):
             assert isinstance(d, DigPoint), (di, d)
@@ -327,3 +334,12 @@ def test_5839():
     assert_array_equal(raw_A.annotations.duration, EXPECTED_DURATION)
     assert_array_equal(raw_A.annotations.description, EXPECTED_DESCRIPTION)
     assert raw_A.annotations.orig_time == _stamp_to_dt((0, 0))
+
+
+def test_repr():
+    """Test repr of Raw."""
+    sfreq = 256
+    info = create_info(3, sfreq)
+    r = repr(RawArray(np.zeros((3, 10 * sfreq)), info))
+    assert re.search('<RawArray | 3 x 2560 (10.0 s), ~.* kB, data loaded>',
+                     r) is not None, r

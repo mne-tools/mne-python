@@ -2287,7 +2287,6 @@ class _Interp2(object):
 
     """
 
-    @verbose
     def __init__(self, interp='hann'):
         # set up interpolation
         self._last = dict()

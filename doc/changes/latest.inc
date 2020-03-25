@@ -27,7 +27,11 @@ Changelog
 
 - Add :func:`mne.chpi.compute_chpi_amplitudes`, :func:`mne.chpi.compute_chpi_locs`, and :func:`mne.chpi.compute_head_pos` to compute head positions from cHPI coil locations by `Eric Larson`_ and `Luke Bloy`_
 
+- Add ``allow_line_only`` option to :func:`mne.chpi.filter_chpi` to allow filtering line frequencies only in files that do not have cHPI information by `Eric Larson`_
+
 - Add :func:`mne.io.Raw.set_meas_date` by `Eric Larson`_
+
+- Add :meth:`mne.Epochs.as_type` to  allow remapping data in MEG channels to virtual magnetometer or gradiometer channels by `Sophie Herbst`_ and `Alex Gramfort`_
 
 - Add ``copy`` parameter to :meth:`mne.Epochs.iter_evoked` by `Alex Gramfort`_
 
@@ -42,6 +46,8 @@ Changelog
 - Add :class:`mne.Label.restrict` to restrict a label to vertices within a source space by `Eric Larson`_
 
 - Add support for passing a destination source space ``src_to`` in :func:`mne.compute_source_morph` to ensure morphing for multiple subjects results in consistent STCs, by `Eric Larson`_
+
+- Add support for ``smooth='nearest'`` for surfaces in :func:`mne.compute_source_morph` by `Eric Larson`_
 
 - Add support for plotting fNIRS channels in :func:`mne.viz.plot_alignment`, :func:`mne.viz.plot_evoked_topo` and :func:`mne.Evoked.animate_topomap` by `Eric Larson`_ and `Robert Luke`_
 
@@ -91,6 +97,8 @@ Changelog
 
 - Speed up :func:`mne.make_forward_solution` using Numba, by `Eric Larson`_
 
+- Speed up :func:`mne.io.read_raw_fif` data reading when the recording is long and there are many data tags repeatedly accessed, by `Eric Larson`_
+
 - For KIT systems without built-in layout, :func:`mne.channels.find_layout` now falls back on an automatically generated layout, by `Christian Brodbeck`_
 
 - :meth:`mne.Epochs.plot` now takes a ``epochs_colors`` parameter to color specific epoch segments by `Mainak Jas`_
@@ -103,7 +111,7 @@ Changelog
 
 - Allow returning vector source estimates from sparse inverse solvers through ``pick_ori='vector'`` by `Christian Brodbeck`_
 
-- Add NIRS support to :func:`mne.viz.plot_topomap` by `Robert Luke`_
+- Add NIRS support to :func:`mne.viz.plot_topomap` and :func:`mne.viz.plot_ica_components` by `Robert Luke`_
 
 - Add the ability to :func:`mne.channels.equalize_channels` to also re-order the channels and also operate on instances of :class:`mne.Info`, :class:`mne.Forward`, :class:`mne.Covariance` and :class:`mne.time_frequency.CrossSpectralDensity` by `Marijn van Vliet`_
 
@@ -131,11 +139,20 @@ Changelog
 
 - Expose the number of ICA iterations during the fitting procedure via the ``n_iter_`` attribute of :class:`mne.preprocessing.ICA` by `Richard Höchenberger`_
 
-- Add function :func:`mne.preprocessing.annotate_muscle_zscore` to annotate periods with muscle artifacts. by `Adonay Nunes`_
+- :func:`mne.grand_average` now produces a warning when only a single dataset was passed, instead of raising an error by `Richard Höchenberger`_
 
+- Add ``nrows`` and ``ncols`` parameters to :func:`mne.viz.plot_evoked_topomap`, which allows to create multiline topomap plots for Evoked. By `Federico Raimondo`_
+
+- Improve repr of :class:`mne.Info` (empty items are not shown anymore) by `Clemens Brunner`_
+
+- Add function :func:`mne.preprocessing.annotate_muscle_zscore` to annotate periods with muscle artifacts. by `Adonay Nunes`_
 
 Bug
 ~~~
+
+- Fix the ``reduce_rank`` parameter in :func:`mne.beamformer.make_lcmv` and :func:`mne.beamformer.make_dics` to reduce the rank of the leadfield first before then reducing the rank of the denominator of the beamformer formula for the inversion by `Britta Westner`_ and `Eric Larson`_.
+
+- Fix bug with :func:`mne.beamformer.make_lcmv` with data where rank was incorrectly checked by `Eric Larson`_.
 
 - Allow :func:`mne.channels.read_dig_hpts` to accept point categories (eg. EEG) to be specified in upper case by `Alex Gramfort`_.
 
@@ -178,7 +195,9 @@ Bug
 
 - Fix :meth:`mne.read_epochs_eeglab` that ignored channel locations by `Alex Gramfort`_.
 
-- Fix :meth:`mne.io.read_raw_brainvision` when channel names have spaces by `Sebastian Major`_.
+- Fix :func:`mne.io.read_raw_brainvision` when channel names have spaces by `Sebastian Major`_.
+
+- Fix :func:`mne.io.read_raw_brainvision` when ``"Core"`` is in the data header by `Eric Larson`_
 
 - Fix :meth:`mne.io.Raw.anonymize` to correctly reset ``raw.annotations.orig_time`` by `Luke Bloy`_.
 
@@ -276,6 +295,8 @@ Bug
 
 - Fix bug in reading annotations in :func:`read_annotations`, which would not accept ";" character by `Adam Li`_
 
+- Fix bug in :func:`mne.Report.parse_folder`, which would not recognize `*meg.fif` files by `Dmitrii Altukhov`_.
+
 - Include ``fit_params`` when saving an :class:`~mne.preprocessing.ICA` instance to disk by `Richard Höchenberger`_
 
 - Update old url link in :func:`mne.datasets.eegbci.load_data` to ``EEGMI_URL = 'https://physionet.org/files/eegmmidb/1.0.0/'`` by `Ramiro Gatti`_
@@ -285,12 +306,16 @@ Bug
 API
 ~~~
 
+- ``mne.io.pick.get_channel_types`` is now called ``mne.io.pick.get_channel_type_constants`` to better reflect its return values, by `Daniel McCloy`_.
+
+- :meth:`mne.Evoked.as_type` now returns an instance of :class:`mne.EvokedArray` by `Sophie Herbst`_ and `Alex Gramfort`_
+
 - Bumped minimum requirements to fall 2017 versions by `Eric Larson`_:
 
   - NumPy 1.13.3
   - SciPy 1.0.0
   - matplotlib 2.1
-  - scikit-learn 1.19.1 (optional requirement)
+  - scikit-learn 0.19.1 (optional requirement)
   - pandas 0.21 (optional requirement)
 
 - :meth:`mne.Epochs.plot` now accepts an ``event_id`` parameter (useful in tandem with ``event_colors`` for specifying event colors by name) by `Daniel McCloy`_.

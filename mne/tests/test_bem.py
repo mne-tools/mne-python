@@ -5,6 +5,7 @@
 from copy import deepcopy
 from os import remove, makedirs
 import os.path as op
+import re
 from shutil import copy
 
 import numpy as np
@@ -19,7 +20,7 @@ from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.io.constants import FIFF
 from mne.transforms import translation
 from mne.datasets import testing
-from mne.utils import (run_tests_if_main, _TempDir, catch_logging,
+from mne.utils import (run_tests_if_main, catch_logging,
                        requires_freesurfer, requires_nibabel)
 from mne.bem import (_ico_downsample, _get_ico_map, _order_surfaces,
                      _assert_complete_surface, _assert_inside,
@@ -67,10 +68,9 @@ def _compare_bem_solutions(sol_a, sol_b):
 
 
 @testing.requires_testing_data
-def test_io_bem():
+def test_io_bem(tmpdir):
     """Test reading and writing of bem surfaces and solutions."""
-    tempdir = _TempDir()
-    temp_bem = op.join(tempdir, 'temp-bem.fif')
+    temp_bem = op.join(str(tmpdir), 'temp-bem.fif')
     pytest.raises(ValueError, read_bem_surfaces, fname_raw)
     pytest.raises(ValueError, read_bem_surfaces, fname_bem_3, s_id=10)
     surf = read_bem_surfaces(fname_bem_3, patch_stats=True)
@@ -80,7 +80,7 @@ def test_io_bem():
     _compare_bem_surfaces(surf, surf_read)
 
     pytest.raises(RuntimeError, read_bem_solution, fname_bem_3)
-    temp_sol = op.join(tempdir, 'temp-sol.fif')
+    temp_sol = op.join(str(tmpdir), 'temp-sol.fif')
     sol = read_bem_solution(fname_bem_sol_3)
     assert 'BEM' in repr(sol)
     write_bem_solution(temp_sol, sol)
@@ -121,19 +121,29 @@ def test_make_sphere_model():
 
 
 @testing.requires_testing_data
-def test_make_bem_model(tmpdir):
+@pytest.mark.parametrize('kwargs, fname', [
+    [dict(), fname_bem_3],
+    [dict(conductivity=[0.3]), fname_bem_1],
+])
+def test_make_bem_model(tmpdir, kwargs, fname):
     """Test BEM model creation from Python with I/O."""
     fname_temp = tmpdir.join('temp-bem.fif')
-    for kwargs, fname in zip((dict(), dict(conductivity=[0.3])),
-                             [fname_bem_3, fname_bem_1]):
+    with catch_logging() as log:
         model = make_bem_model('sample', ico=2, subjects_dir=subjects_dir,
-                               **kwargs)
-        model_c = read_bem_surfaces(fname)
-        _compare_bem_surfaces(model, model_c)
-        write_bem_surfaces(fname_temp, model)
-        model_read = read_bem_surfaces(fname_temp)
-        _compare_bem_surfaces(model, model_c)
-        _compare_bem_surfaces(model_read, model_c)
+                               verbose=True, **kwargs)
+    log = log.getvalue()
+    if len(kwargs.get('conductivity', (0, 0, 0))) == 1:
+        assert 'distance' not in log
+    else:
+        assert re.search(r'urfaces is approximately *3\.6 mm', log) is not None
+    assert re.search(r'inner skull CM is *0\.69 *-10\.00 *44\.26 mm',
+                     log) is not None
+    model_c = read_bem_surfaces(fname)
+    _compare_bem_surfaces(model, model_c)
+    write_bem_surfaces(fname_temp, model)
+    model_read = read_bem_surfaces(fname_temp)
+    _compare_bem_surfaces(model, model_c)
+    _compare_bem_surfaces(model_read, model_c)
     # bad conductivity
     with pytest.raises(ValueError, match='conductivity must be'):
         make_bem_model('sample', 4, [0.3, 0.006], subjects_dir=subjects_dir)
@@ -163,7 +173,11 @@ def test_bem_model_topology(tmpdir):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_bem_solution():
+@pytest.mark.parametrize('cond, fname', [
+    [(0.3,), fname_bem_sol_1],
+    [(0.3, 0.006, 0.3), fname_bem_sol_3],
+])
+def test_bem_solution(tmpdir, cond, fname):
     """Test making a BEM solution from Python with I/O."""
     # test degenerate conditions
     surf = read_bem_surfaces(fname_bem_1)[0]
@@ -188,25 +202,21 @@ def test_bem_solution():
     pytest.raises(RuntimeError, _check_surface_size, surfs[1])
 
     # actually test functionality
-    tempdir = _TempDir()
-    fname_temp = op.join(tempdir, 'temp-bem-sol.fif')
+    fname_temp = op.join(str(tmpdir), 'temp-bem-sol.fif')
     # use a model and solution made in Python
-    conductivities = [(0.3,), (0.3, 0.006, 0.3)]
-    fnames = [fname_bem_sol_1, fname_bem_sol_3]
-    for cond, fname in zip(conductivities, fnames):
-        for model_type in ('python', 'c'):
-            if model_type == 'python':
-                model = make_bem_model('sample', conductivity=cond, ico=2,
-                                       subjects_dir=subjects_dir)
-            else:
-                model = fname_bem_1 if len(cond) == 1 else fname_bem_3
-        solution = make_bem_solution(model)
-        solution_c = read_bem_solution(fname)
-        _compare_bem_solutions(solution, solution_c)
-        write_bem_solution(fname_temp, solution)
-        solution_read = read_bem_solution(fname_temp)
-        _compare_bem_solutions(solution, solution_c)
-        _compare_bem_solutions(solution_read, solution_c)
+    for model_type in ('python', 'c'):
+        if model_type == 'python':
+            model = make_bem_model('sample', conductivity=cond, ico=2,
+                                   subjects_dir=subjects_dir)
+        else:
+            model = fname_bem_1 if len(cond) == 1 else fname_bem_3
+    solution = make_bem_solution(model, verbose=True)
+    solution_c = read_bem_solution(fname)
+    _compare_bem_solutions(solution, solution_c)
+    write_bem_solution(fname_temp, solution)
+    solution_read = read_bem_solution(fname_temp)
+    _compare_bem_solutions(solution, solution_c)
+    _compare_bem_solutions(solution_read, solution_c)
 
 
 def test_fit_sphere_to_headshape():
@@ -361,9 +371,9 @@ def test_fit_sphere_to_headshape():
 @requires_nibabel()
 @requires_freesurfer('mri_convert')
 @testing.requires_testing_data
-def test_make_flash_bem():
+def test_make_flash_bem(tmpdir):
     """Test computing bem from flash images."""
-    tmp = _TempDir()
+    tmp = str(tmpdir)
     bemdir = op.join(subjects_dir, 'sample', 'bem')
     flash_path = op.join(subjects_dir, 'sample', 'mri', 'flash')
 
