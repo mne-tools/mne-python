@@ -2425,6 +2425,11 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                       background=background, foreground=foreground,
                       figure=figure, subjects_dir=subjects_dir,
                       views=views, alpha=brain_alpha)
+    if scale_factor is None:
+        # Configure the glyphs scale directly
+        width = np.mean([np.ptp(brain.geo[hemi].coords[:, 1])
+                         for hemi in hemis if hemi in brain.geo])
+        scale_factor = 0.025 * width / scale_pts[-1]
 
     ad_kwargs, sd_kwargs = _get_ps_kwargs(
         initial_time, False, scale_pts[1], transparent)
@@ -2434,36 +2439,49 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         data = getattr(stc, hemi + '_data')
         vertices = stc.vertices[hemi_idx]
         if len(data) > 0:
+            kwargs = {
+                "array": data, "colormap": colormap,
+                "vertices": vertices,
+                "smoothing_steps": smoothing_steps,
+                "time": times, "time_label": time_label,
+                "alpha": overlay_alpha, "hemi": hemi,
+                "colorbar": colorbar,
+                "vector_alpha": vector_alpha,
+                "scale_factor": scale_factor,
+            }
+            kwargs.update(ad_kwargs)
+            kwargs.pop('mid', None)
+            if True:  # noqa
+                kwargs["min"] = scale_pts[0]
+                kwargs["mid"] = scale_pts[1]
+                kwargs["max"] = scale_pts[2]
+            else:
+                kwargs["fmin"] = scale_pts[0]
+                kwargs["fmid"] = scale_pts[1]
+                kwargs["fmax"] = scale_pts[2]
             with warnings.catch_warnings(record=True):  # traits warnings
-                brain.add_data(data, colormap=colormap, vertices=vertices,
-                               smoothing_steps=smoothing_steps, time=times,
-                               time_label=time_label, alpha=overlay_alpha,
-                               hemi=hemi, colorbar=colorbar,
-                               vector_alpha=vector_alpha,
-                               scale_factor=scale_factor,
-                               min=scale_pts[0], max=scale_pts[2],
-                               **ad_kwargs)
-            # depth peeling patch
-            if brain_alpha < 1.0:
-                for ff in brain._figures:
-                    for f in ff:
-                        if f.scene is not None:
-                            f.scene.renderer.use_depth_peeling = True
+                brain.add_data(**kwargs)
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
                                   fmax=scale_pts[2], **sd_kwargs)
-    if scale_factor is None:
-        # Compute the width of the brain
-        width = np.mean([np.ptp(brain.geo[hemi].coords[:, 1])
-                         for hemi in hemis])
+
+    if True:  # noqa
         for hemi in hemis:
-            # Retrieve the current hemi
             for b in brain._brain_list:
-                if b['hemi'] == hemi:
-                    found_hemi = b['brain']
-            # Configure the glyphs scale directly
-            for layer in found_hemi.data.values():
-                glyphs = layer['glyphs']
-                glyphs.glyph.glyph.scale_factor = width * 0.1
+                for layer in b['brain'].data.values():
+                    glyphs = layer['glyphs']
+                    glyphs.glyph.glyph.scale_factor = scale_factor
+                    glyphs.glyph.glyph.clamping = False
+                    glyphs.glyph.glyph.range = (0., 1.)
+
+        # depth peeling patch
+        if brain_alpha < 1.0:
+            for ff in brain._figures:
+                for f in ff:
+                    if f.scene is not None:
+                        f.scene.renderer.use_depth_peeling = True
+    else:
+        if brain_alpha < 1.0:
+            brain.enable_depth_peeling()
 
     if time_viewer:
         TimeViewer(brain)
