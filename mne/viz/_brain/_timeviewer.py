@@ -4,12 +4,12 @@
 #
 # License: Simplified BSD
 
-from itertools import cycle
 import warnings
 import time
 import numpy as np
 from ..utils import _check_option, _show_help, _get_color_list, tight_layout
 from ...source_space import vertex_to_mni
+from ...utils import _ReuseCycle
 
 
 class MplCanvas(object):
@@ -625,7 +625,7 @@ class _TimeViewer(object):
         from ..backends._pyvista import _update_picking_callback
         if self.show_traces:
             # use a matplotlib canvas
-            self.color_cycle = cycle(_get_color_list())
+            self.color_cycle = _ReuseCycle(_get_color_list())
             win = self.plotter.app_window
             dpi = win.windowHandle().screen().logicalDotsPerInch()
             w, h = win.geometry().width() / dpi, win.geometry().height() / dpi
@@ -762,6 +762,7 @@ class _TimeViewer(object):
             sphere._hemi = hemi
             sphere._line = line
             sphere._actors = actors
+            sphere._color = color
             sphere._vertex_id = vertex_id
 
         self.picked_points[hemi].append(vertex_id)
@@ -776,6 +777,11 @@ class _TimeViewer(object):
         mesh._line.remove()
         self.mpl_canvas.update_plot()
         self.picked_points[mesh._hemi].remove(mesh._vertex_id)
+        with warnings.catch_warnings(record=True):
+            # We intentionally ignore these in case we have traversed the
+            # entire color cycle
+            warnings.simplefilter('ignore')
+            self.color_cycle.restore(mesh._color)
         self.plotter.remove_actor(mesh._actors)
         mesh._actors = None
 
