@@ -316,6 +316,11 @@ class _TimeViewer(object):
             'c': self.clear_points,
             ' ': self.toggle_playback,
         }
+        self.slider_length = 0.02
+        self.slider_width = 0.04
+        self.slider_color = (0.43137255, 0.44313725, 0.45882353)
+        self.slider_tube_width = 0.04
+        self.slider_tube_color = (0.69803922, 0.70196078, 0.70980392)
 
         # Direct access parameters:
         self.brain = brain
@@ -413,14 +418,16 @@ class _TimeViewer(object):
                 self.playback = False
         self.plotter.update()  # critical for smooth animation
 
-    def set_slider_style(self, slider, show_label=True):
+    def set_slider_style(self, slider, show_label=True, show_cap=False):
         if slider is not None:
             slider_rep = slider.GetRepresentation()
-            slider_rep.SetSliderLength(0.02)
-            slider_rep.SetSliderWidth(0.04)
-            slider_rep.SetTubeWidth(0.04)
-            slider_rep.GetCapProperty().SetOpacity(0)
-            slider_rep.GetSliderProperty().SetColor((0.5, 0.5, 0.5))
+            slider_rep.SetSliderLength(self.slider_length)
+            slider_rep.SetSliderWidth(self.slider_width)
+            slider_rep.SetTubeWidth(self.slider_tube_width)
+            slider_rep.GetSliderProperty().SetColor(self.slider_color)
+            slider_rep.GetTubeProperty().SetColor(self.slider_tube_color)
+            if not show_cap:
+                slider_rep.GetCapProperty().SetOpacity(0)
             if not show_label:
                 slider_rep.ShowSliderLabelOff()
 
