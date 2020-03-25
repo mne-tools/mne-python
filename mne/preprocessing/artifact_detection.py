@@ -13,21 +13,19 @@ from ..utils import (_mask_to_onsets_offsets, logger, verbose)
 
 
 @verbose
-def annotate_muscle_zscore(raw, threshold=4, picks=None, min_length_good=0.1,
+def annotate_muscle_zscore(raw, threshold=4, ch_type=None, min_length_good=0.1,
                            filter_freq=(110, 140), n_jobs=1, verbose=None):
-    """Detect segments that likely contain muscle artifacts.
+    """Create annotations for segments that likely contain muscle artifacts.
 
     Detects data segments containing activity in the frequency range given by
-    ``filter_freq``, that exceeds the specified z-score threshold.
-
-    Raw data is band-pass filtered between ``filter_freq`` especified
-    frequencies (default is 110 - 140 Hz), the signal envelope computed,
-    z-scored across samples, channel summation and division by the square root
-    of the channel number, and low-pass filtered to better capture beginning
-    and end of muscle activity and false positive transient peaks.
-
-    .. note::
-        Use a single channel type.
+    `filter_freq` whose envelope magnitude exceeds the specified z-score
+    threshold (when summed across channels and divided by `sqrt(n_channels)`).
+    False-positive transient peaks are prevented by low-pass filtering the
+    resulting z-score time series at 4 Hz. Only operates on a single channel
+    type, if `ch_type` is ``None`` it will select the first type in the list
+    ``mag`` ``grad`` ``eeg``.
+    See :footcite:`Muthukumaraswamy2013` for background on choosing
+    `filter_freq` and `threshold`.
 
     Parameters
     ----------
@@ -36,7 +34,9 @@ def annotate_muscle_zscore(raw, threshold=4, picks=None, min_length_good=0.1,
     threshold : float
         The threshold in z-scores for marking segments as containing muscle
         activity artifacts.
-    %(picks_all)s
+    ch_type : 'mag' | 'grad' | 'eeg' | None
+        The type of sensors to use. If ``None`` it will take the first type in
+        ``mag`` ``grad`` ``eeg``.
     min_length_good : float | None
         The shortest allowed duration of "good data" (in seconds) between
         adjacent annotations; shorter segments will be incorporated into the
@@ -54,31 +54,38 @@ def annotate_muscle_zscore(raw, threshold=4, picks=None, min_length_good=0.1,
         Periods with muscle artifacts annotated as BAD_muscle.
     scores_muscle : array
         Z-score values averaged across channels for each sample.
+
+    References
+    ----------
+    .. footbibliography::
     """
     from scipy.stats import zscore
     from scipy.ndimage.measurements import label
 
     raw_copy = raw.copy()
-    raw_copy.pick(picks)
-    ch_type = raw_copy.get_channel_types()
 
-    # Remove ref chans if MEG data just in case
-    meg = [True for e in ['mag', 'grad'] if (e in ch_type)]
-    if bool(meg) is True:
-        raw_copy.pick_types(ref_meg=False)
-        ch_type = raw_copy.get_channel_types()
+    if ch_type is None:
+        raw_ch_type = raw_copy.get_channel_types()
+        if 'mag' in raw_ch_type:
+            ch_type = 'mag'
+        elif 'grad' in raw_ch_type:
+            ch_type = 'grad'
+        elif 'eeg' in raw_ch_type:
+            ch_type = 'eeg'
+        logger.info(f"Using {ch_type} sensors for muscle artifact detection.")
 
-    # Only one type of channel, otherwise z-score will be biased
-    assert(len(np.unique(ch_type)) == 1), \
-        'Different channel types, pick one type'
+    if ch_type in ('mag', 'grad'):
+        raw_copy.pick_types(meg=ch_type, ref_meg=False)
+    elif ch_type == 'eeg':
+        raw_copy.pick_types(meg=False, eeg=True)
 
     raw_copy.filter(filter_freq[0], filter_freq[1], fir_design='firwin',
                     pad="reflect_limited", n_jobs=n_jobs)
     raw_copy.apply_hilbert(envelope=True, n_jobs=n_jobs)
-    sfreq = raw_copy.info['sfreq']
 
     data = raw_copy.get_data(reject_by_annotation="NaN")
     nan_mask = ~np.isnan(data[0])
+    sfreq = raw_copy.info['sfreq']
 
     art_scores = zscore(data[:, nan_mask], axis=1)
     art_scores = art_scores.sum(axis=0) / np.sqrt(art_scores.shape[0])

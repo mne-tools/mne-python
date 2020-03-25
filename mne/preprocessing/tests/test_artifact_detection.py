@@ -54,10 +54,10 @@ def test_movement_annotation_head_correction():
 def test_muscle_annotation():
     """Test correct detection muscle artifacts."""
     raw = read_raw_fif(raw_fname, allow_maxshield='yes').load_data()
-    raw.pick_types(meg='mag', ref_meg=False)
     raw.notch_filter([50, 110, 150])
     # Check 2 muscle segments are detected
-    annot_muscle, scores = annotate_muscle_zscore(raw, threshold=10)
+    annot_muscle, scores = annotate_muscle_zscore(raw, ch_type='mag',
+                                                  threshold=10)
     onset = annot_muscle.onset * raw.info['sfreq']
     onset = onset.astype(int)
     np.testing.assert_array_equal(scores[onset].astype(int), np.array([23,
