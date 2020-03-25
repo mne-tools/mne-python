@@ -418,7 +418,7 @@ class _TimeViewer(object):
             slider_rep = slider.GetRepresentation()
             slider_rep.SetSliderLength(0.02)
             slider_rep.SetSliderWidth(0.06)
-            slider_rep.SetTubeWidth(0.02)
+            slider_rep.SetTubeWidth(0.06)
             slider_rep.GetCapProperty().SetOpacity(0)
             slider_rep.GetSliderProperty().SetColor((0.5, 0.5, 0.5))
             if not show_label:
