@@ -417,10 +417,9 @@ class _TimeViewer(object):
         if slider is not None:
             slider_rep = slider.GetRepresentation()
             slider_rep.SetSliderLength(0.02)
-            slider_rep.SetSliderWidth(0.04)
-            slider_rep.SetTubeWidth(0.005)
-            slider_rep.SetEndCapLength(0.01)
-            slider_rep.SetEndCapWidth(0.02)
+            slider_rep.SetSliderWidth(0.06)
+            slider_rep.SetTubeWidth(0.02)
+            slider_rep.GetCapProperty().SetOpacity(0)
             slider_rep.GetSliderProperty().SetColor((0.5, 0.5, 0.5))
             if not show_label:
                 slider_rep.ShowSliderLabelOff()
@@ -541,7 +540,7 @@ class _TimeViewer(object):
         # Colormap slider
         pointa = np.array((0.82, 0.26))
         pointb = np.array((0.98, 0.26))
-        shift = np.array([0, 0.08])
+        shift = np.array([0, 0.12])
         fmin = self.brain._data["fmin"]
         self.fmin_call = BumpColorbarPoints(
             plotter=self.plotter,
