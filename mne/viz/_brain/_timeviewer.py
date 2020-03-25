@@ -648,11 +648,13 @@ class _TimeViewer(object):
             for idx, hemi in enumerate(['lh', 'rh']):
                 hemi_data = self.brain._data.get(hemi)
                 if hemi_data is not None:
-                    self.act_data[hemi] = hemi_data['array']
+                    act_data = hemi_data['array']
+                    if act_data.ndim == 3:
+                        act_data = np.linalg.norm(act_data, axis=1)
                     smooth_mat = hemi_data['smooth_mat']
                     if smooth_mat is not None:
-                        self.act_data[hemi] = smooth_mat.dot(
-                            self.act_data[hemi])
+                        act_data = smooth_mat.dot(act_data)
+                    self.act_data[hemi] = act_data
 
                     # simulate a picked renderer
                     if self.brain._hemi == 'split':

@@ -2300,7 +2300,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
                                  colorbar=True, clim='auto', cortex='classic',
                                  size=800, background='black',
                                  foreground='white', initial_time=None,
-                                 time_unit='s', verbose=None):
+                                 time_unit='s', show_traces='auto',
+                                 verbose=None):
     """Plot VectorSourceEstimate with PySurfer.
 
     A "glass brain" is drawn and all dipoles defined in the source estimate
@@ -2375,6 +2376,14 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     time_unit : 's' | 'ms'
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
+    show_traces : bool | str
+        If True, enable interactive picking of a point on the surface of the
+        brain and plot it's time course using the bottom 1/3 of the figure.
+        This feature is only available with the PyVista 3d backend when
+        ``time_viewer=True``. Defaults to 'auto', which will use True if and
+        only if ``time_viewer=True`` and the backend is PyVista.
+
+        .. versionadded:: 0.20.0
     %(verbose)s
 
     Returns
@@ -2391,9 +2400,18 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     """
     from .backends.renderer import get_3d_backend
     # Import here to avoid circular imports
+    _check_option('time_viewer', time_viewer, (True, False, 'auto'))
+    _check_option('show_traces', show_traces,
+                  (True, False, 'auto', 'separate'))
     using_mayavi = get_3d_backend() == "mayavi"
     if time_viewer == 'auto':
         time_viewer = not using_mayavi
+    if show_traces == 'auto':
+        show_traces = (
+            not using_mayavi and
+            time_viewer and
+            # XXX temporary hidden workaround for memory problems on CircleCI
+            os.getenv('_MNE_BRAIN_TRACES_AUTO', 'true').lower() != 'false')
     if using_mayavi:
         if not check_version('surfer', '0.9'):
             raise RuntimeError('This function requires pysurfer version '
@@ -2495,7 +2513,13 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
             brain.enable_depth_peeling()
 
     if time_viewer:
-        TimeViewer(brain)
+        if get_3d_backend() == "mayavi":
+            if show_traces:
+                raise NotImplementedError("Point picking is not available"
+                                          " for the mayavi 3d backend.")
+            TimeViewer(brain)
+        else:
+            TimeViewer(brain, show_traces=show_traces)
 
     return brain
 

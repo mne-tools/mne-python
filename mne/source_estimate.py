@@ -2163,7 +2163,7 @@ class VectorSourceEstimate(_BaseVectorSourceEstimate,
              time_viewer='auto', subjects_dir=None, figure=None, views='lat',
              colorbar=True, clim='auto', cortex='classic', size=800,
              background='black', foreground='white', initial_time=None,
-             time_unit='s', verbose=None):  # noqa: D102
+             time_unit='s', show_traces='auto', verbose=None):  # noqa: D102
 
         return plot_vector_source_estimates(
             self, subject=subject, hemi=hemi, colormap=colormap,
@@ -2175,7 +2175,7 @@ class VectorSourceEstimate(_BaseVectorSourceEstimate,
             colorbar=colorbar, clim=clim, cortex=cortex, size=size,
             background=background, foreground=foreground,
             initial_time=initial_time, time_unit=time_unit,
-            verbose=verbose,
+            show_traces=show_traces, verbose=verbose,
         )
 
 
