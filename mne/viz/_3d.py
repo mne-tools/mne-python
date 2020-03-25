@@ -1754,8 +1754,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              colorbar=colorbar, transparent=transparent)
     time_viewer, show_traces = _check_time_viewer_compatibility(time_viewer,
                                                                 show_traces)
-    using_mayavi = get_3d_backend() == "mayavi"
-    if using_mayavi:
+    if get_3d_backend() == "mayavi":
         from surfer import Brain, TimeViewer
     else:  # PyVista
         from ._brain import _Brain as Brain
@@ -2412,8 +2411,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     # Import here to avoid circular imports
     time_viewer, show_traces = _check_time_viewer_compatibility(time_viewer,
                                                                 show_traces)
-    using_mayavi = get_3d_backend() == "mayavi"
-    if using_mayavi:
+    if get_3d_backend() == "mayavi":
         from surfer import Brain, TimeViewer
     else:  # PyVista
         from ._brain import _Brain as Brain
