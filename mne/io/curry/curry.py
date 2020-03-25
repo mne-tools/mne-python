@@ -452,6 +452,8 @@ class RawCurry(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         if self._raw_extras[fi]['is_ascii']:
+            if isinstance(idx, slice):
+                idx = np.arange(idx.start, idx.stop)
             kwargs = dict(skiprows=start, usecols=idx)
             if check_version("numpy", "1.16.0"):
                 kwargs['max_rows'] = stop - start

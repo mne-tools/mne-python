@@ -314,8 +314,12 @@ def _read_segment_file(data, idx, fi, start, stop, raw_extras, filenames):
         stim_channel_idx = np.array([], int)
     else:
         stim_channel_idx = list()
+        if isinstance(idx, slice):
+            use_idx = np.arange(idx.start, idx.stop)
+        else:
+            use_idx = idx
         for stim_ch in stim_channel:
-            stim_ch_idx = np.where(idx == stim_ch)[0].tolist()
+            stim_ch_idx = np.where(use_idx == stim_ch)[0].tolist()
             if len(stim_ch_idx):
                 stim_channel_idx.append(stim_ch_idx)
         stim_channel_idx = np.array(stim_channel_idx).ravel()

@@ -129,6 +129,8 @@ def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
     n_channels = raw._raw_extras[fi]['orig_nchan']
     block = np.zeros((n_channels, stop - start))
     with open(raw._filenames[fi], 'rb', buffering=0) as fid:
+        if isinstance(idx, slice):
+            idx = np.arange(idx.start, idx.stop)
         for ch_id in idx:
             fid.seek(start * n_bytes + ch_id * n_bytes * n_samples)
             block[ch_id] = np.fromfile(fid, dtype, stop - start)

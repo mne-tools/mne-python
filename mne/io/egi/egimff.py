@@ -492,6 +492,8 @@ class RawMff(BaseRaw):
 
         # Check how many channels to read are from each type
         bounds = egi_info['kind_bounds']
+        if isinstance(idx, slice):
+            idx = np.arange(idx.start, idx.stop)
         eeg_out = np.where(idx < bounds[1])[0]
         eeg_in = idx[eeg_out]
         stim_out = np.where((idx >= bounds[1]) & (idx < bounds[2]))[0]

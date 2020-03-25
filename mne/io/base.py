@@ -336,8 +336,13 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             raise ValueError('No data in this range')
 
         #  Initialize the data and calibration vector
-        idx = np.arange(self.info['nchan']) if sel is None else sel
-        n_out = len(idx)
+        if sel is None:
+            n_out = self.info['nchan']
+            idx = slice(None)
+        else:
+            n_out = len(sel)
+            idx = _convert_slice(sel)
+        del sel
         assert n_out <= self.info['nchan']
         data_shape = (n_out, stop - start)
         dtype = self._dtype
@@ -385,7 +390,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             n_read = stop_file - start_file
             this_sl = slice(offset, offset + n_read)
             # reindex back to original file
-            orig_idx = self._read_picks[fi][idx]
+            orig_idx = _convert_slice(self._read_picks[fi][idx])
             _ReadSegmentFileProtector(self)._read_segment_file(
                 data[:, this_sl], orig_idx, fi,
                 int(start_file), int(stop_file), cals, mult)
@@ -1752,6 +1757,13 @@ def _index_as_time(index, sfreq, first_samp=0, use_first_samp=False):
     """
     times = np.atleast_1d(index) + (first_samp if use_first_samp else 0)
     return times / sfreq
+
+
+def _convert_slice(sel):
+    if len(sel) and (np.diff(sel) == 1).all():
+        return slice(sel[0], sel[-1] + 1)
+    else:
+        return sel
 
 
 class _ReadSegmentFileProtector(object):
