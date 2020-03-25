@@ -1728,9 +1728,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
     _validate_type(stc, SourceEstimate, "stc", "Surface Source Estimate")
-    _check_option('time_viewer', time_viewer, (True, False, 'auto'))
-    _check_option('show_traces', show_traces,
-                  (True, False, 'auto', 'separate'))
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
     subject = _check_subject(stc.subject, subject, True)
@@ -1755,19 +1752,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              time_unit=time_unit, background=background,
                              spacing=spacing, time_viewer=time_viewer,
                              colorbar=colorbar, transparent=transparent)
+    time_viewer, show_traces = _check_time_viewer_compatibility(time_viewer,
+                                                                show_traces)
     using_mayavi = get_3d_backend() == "mayavi"
-    if time_viewer == 'auto':
-        time_viewer = not using_mayavi
-    if show_traces == 'auto':
-        show_traces = (
-            not using_mayavi and
-            time_viewer and
-            # XXX temporary hidden workaround for memory problems on CircleCI
-            os.getenv('_MNE_BRAIN_TRACES_AUTO', 'true').lower() != 'false')
     if using_mayavi:
-        if not check_version('surfer', '0.9'):
-            raise RuntimeError('This function requires pysurfer version '
-                               '>= 0.9')
         from surfer import Brain, TimeViewer
     else:  # PyVista
         from ._brain import _Brain as Brain
@@ -1834,13 +1822,35 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 brain.add_data(**kwargs)
     if time_viewer:
         if get_3d_backend() == "mayavi":
-            if show_traces:
-                raise NotImplementedError("Point picking is not available"
-                                          " for the mayavi 3d backend.")
             TimeViewer(brain)
         else:
             TimeViewer(brain, show_traces=show_traces)
     return brain
+
+
+def _check_time_viewer_compatibility(time_viewer, show_traces):
+    from .backends.renderer import get_3d_backend
+    using_mayavi = get_3d_backend() == "mayavi"
+    _check_option('time_viewer', time_viewer, (True, False, 'auto'))
+    _check_option('show_traces', show_traces,
+                  (True, False, 'auto', 'separate'))
+    if time_viewer == 'auto':
+        time_viewer = not using_mayavi
+    if show_traces == 'auto':
+        show_traces = (
+            not using_mayavi and
+            time_viewer and
+            # XXX temporary hidden workaround for memory problems on CircleCI
+            os.getenv('_MNE_BRAIN_TRACES_AUTO', 'true').lower() != 'false')
+
+    if get_3d_backend() == "mayavi" and all([time_viewer, show_traces]):
+        raise NotImplementedError("Point picking is not available"
+                                  " for the mayavi 3d backend.")
+    if using_mayavi:
+        if not check_version('surfer', '0.9'):
+            raise RuntimeError('This function requires pysurfer version '
+                               '>= 0.9')
+    return time_viewer, show_traces
 
 
 def _get_ps_kwargs(initial_time, diverging, mid, transparent):
@@ -2400,22 +2410,10 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     """
     from .backends.renderer import get_3d_backend
     # Import here to avoid circular imports
-    _check_option('time_viewer', time_viewer, (True, False, 'auto'))
-    _check_option('show_traces', show_traces,
-                  (True, False, 'auto', 'separate'))
+    time_viewer, show_traces = _check_time_viewer_compatibility(time_viewer,
+                                                                show_traces)
     using_mayavi = get_3d_backend() == "mayavi"
-    if time_viewer == 'auto':
-        time_viewer = not using_mayavi
-    if show_traces == 'auto':
-        show_traces = (
-            not using_mayavi and
-            time_viewer and
-            # XXX temporary hidden workaround for memory problems on CircleCI
-            os.getenv('_MNE_BRAIN_TRACES_AUTO', 'true').lower() != 'false')
     if using_mayavi:
-        if not check_version('surfer', '0.9'):
-            raise RuntimeError('This function requires pysurfer version '
-                               '>= 0.9')
         from surfer import Brain, TimeViewer
     else:  # PyVista
         from ._brain import _Brain as Brain
@@ -2514,9 +2512,6 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
 
     if time_viewer:
         if get_3d_backend() == "mayavi":
-            if show_traces:
-                raise NotImplementedError("Point picking is not available"
-                                          " for the mayavi 3d backend.")
             TimeViewer(brain)
         else:
             TimeViewer(brain, show_traces=show_traces)
