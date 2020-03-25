@@ -21,7 +21,7 @@ from mne.datasets import testing
 from mne.minimum_norm import (apply_inverse, read_inverse_operator,
                               make_inverse_operator)
 from mne.source_space import get_volume_labels_from_aseg
-from mne.utils import (run_tests_if_main, requires_nibabel,
+from mne.utils import (run_tests_if_main, requires_nibabel, check_version,
                        requires_dipy, requires_h5py)
 from mne.fixes import _get_args
 
@@ -163,6 +163,34 @@ def test_xhemi_morph():
         assert_array_equal(stc_return.vertices[hi], stc.vertices[hi])
     correlation = np.corrcoef(stc.data.ravel(), stc_return.data.ravel())[0, 1]
     assert correlation > 0.9  # not great b/c of sparse grade + small smooth
+
+
+@testing.requires_testing_data
+@pytest.mark.parametrize('smooth, lower, upper, n_warn', [
+    (None, 0.959, 0.963, 0),
+    (3, 0.968, 0.971, 2),
+    ('nearest', 0.98, 0.99, 0),
+])
+def test_surface_source_morph_round_trip(smooth, lower, upper, n_warn):
+    """Test round-trip morphing yields similar STCs."""
+    kwargs = dict(smooth=smooth, warn=True, subjects_dir=subjects_dir)
+    stc = mne.read_source_estimate(fname_smorph)
+    if smooth == 'nearest' and not check_version('scipy', '1.3'):
+        with pytest.raises(ValueError, match='required to use nearest'):
+            morph = compute_source_morph(stc, 'sample', 'fsaverage', **kwargs)
+        return
+    with pytest.warns(None) as w:
+        morph = compute_source_morph(stc, 'sample', 'fsaverage', **kwargs)
+    w = [ww for ww in w if 'vertices not included' in str(ww.message)]
+    assert len(w) == n_warn
+    assert morph.morph_mat.shape == (20484, len(stc.data))
+    stc_fs = morph.apply(stc)
+    morph_back = compute_source_morph(
+        stc_fs, 'fsaverage', 'sample', spacing=stc.vertices, **kwargs)
+    assert morph_back.morph_mat.shape == (len(stc.data), 20484)
+    stc_back = morph_back.apply(stc_fs)
+    corr = np.corrcoef(stc.data.ravel(), stc_back.data.ravel())[0, 1]
+    assert lower <= corr <= upper
 
 
 @requires_h5py
