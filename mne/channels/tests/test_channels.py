@@ -270,7 +270,7 @@ def test_find_ch_adjacency():
     data_path = testing.data_path()
 
     raw = read_raw_fif(raw_fname, preload=True)
-    sizes = {'mag': 828, 'grad': 1700, 'eeg': 386}
+    sizes = {'mag': 828, 'grad': 1700, 'eeg': 384}
     nchans = {'mag': 102, 'grad': 204, 'eeg': 60}
     for ch_type in ['mag', 'grad', 'eeg']:
         conn, ch_names = find_ch_adjacency(raw.info, ch_type)
