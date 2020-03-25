@@ -1147,7 +1147,9 @@ class _Brain(object):
 
     def enable_depth_peeling(self):
         """Enable depth peeling."""
-        self._renderer.enable_depth_peeling()
+        # XXX Disabled for testing purpose
+        # self._renderer.enable_depth_peeling()
+        pass
 
 
 def _safe_interp1d(x, y, kind='linear', axis=-1, assume_sorted=False):
