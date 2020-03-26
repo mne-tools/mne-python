@@ -1753,7 +1753,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              spacing=spacing, time_viewer=time_viewer,
                              colorbar=colorbar, transparent=transparent)
     time_viewer, show_traces = _check_time_viewer_compatibility(time_viewer,
-                                                                show_traces)
+                                                                show_traces,
+                                                                stc, hemi)
     if get_3d_backend() == "mayavi":
         from surfer import Brain, TimeViewer
     else:  # PyVista
@@ -1827,7 +1828,22 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     return brain
 
 
-def _check_time_viewer_compatibility(time_viewer, show_traces):
+def _check_stc_time(stc, hemi):
+    # check if there is time info
+    if hemi in ['both', 'split']:
+        hemis = ['lh', 'rh']
+    else:
+        hemis = [hemi]
+    for hemi in hemis:
+        array = getattr(stc, hemi + '_data')
+        if array.ndim == 1:
+            return False
+        elif array.ndim == 2 and array.shape[1] == 1:
+            return False
+    return True
+
+
+def _check_time_viewer_compatibility(time_viewer, show_traces, stc, hemi):
     from .backends.renderer import get_3d_backend
     using_mayavi = get_3d_backend() == "mayavi"
     _check_option('time_viewer', time_viewer, (True, False, 'auto'))
@@ -1849,6 +1865,8 @@ def _check_time_viewer_compatibility(time_viewer, show_traces):
         if not check_version('surfer', '0.9'):
             raise RuntimeError('This function requires pysurfer version '
                                '>= 0.9')
+
+    time_viewer = _check_stc_time(stc, hemi)
     return time_viewer, show_traces
 
 
@@ -2410,7 +2428,8 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     from .backends.renderer import get_3d_backend
     # Import here to avoid circular imports
     time_viewer, show_traces = _check_time_viewer_compatibility(time_viewer,
-                                                                show_traces)
+                                                                show_traces,
+                                                                stc, hemi)
     if get_3d_backend() == "mayavi":
         from surfer import Brain, TimeViewer
     else:  # PyVista
