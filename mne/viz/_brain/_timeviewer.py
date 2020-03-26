@@ -302,6 +302,8 @@ class _TimeViewer(object):
     def __init__(self, brain, show_traces=False):
         from ..backends._pyvista import _require_minimum_version
         _require_minimum_version('0.24')
+        if not _check_brain_time(brain):
+            return
 
         # Default configuration
         self.playback = False
@@ -551,7 +553,7 @@ class _TimeViewer(object):
             time_label = self.brain._data['time_label']
             if callable(time_label):
                 current_time = time_label(current_time)
-            time_slider.GetRepresentation().SetTitleText(current_time)
+                time_slider.GetRepresentation().SetTitleText(current_time)
 
         # Playback speed slider
         self.playback_speed_call = SmartSlider(
@@ -975,6 +977,19 @@ class _LinkViewer(object):
                         callback=callback,
                         event_type=event_type
                     )
+
+
+def _check_brain_time(brain):
+    # check if there is time info
+    for hemi in ['lh', 'rh']:
+        hemi_data = brain._data.get(hemi)
+        if hemi_data is not None:
+            array = hemi_data['array']
+            if array.ndim == 1:
+                return False
+            elif array.ndim == 2 and array.shape[1] == 1:
+                return False
+    return True
 
 
 def _get_range(brain):
