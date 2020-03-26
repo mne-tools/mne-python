@@ -7,7 +7,6 @@
 #
 # License: Simplified BSD
 
-import gc
 import os.path as op
 from pathlib import Path
 import sys
@@ -36,7 +35,7 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      link_brains, mne_analyze_colormap)
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
 from mne.viz.utils import _fake_click
-from mne.utils import (requires_mayavi, requires_pysurfer, run_tests_if_main,
+from mne.utils import (requires_pysurfer, run_tests_if_main,
                        requires_nibabel, requires_dipy,
                        traits_test, requires_version, catch_logging,
                        run_subprocess, modified_env)
@@ -634,9 +633,8 @@ def test_plot_volume_source_estimates_morph():
 @pytest.mark.slowtest  # can be slow on OSX
 @testing.requires_testing_data
 @requires_pysurfer
-@requires_mayavi
 @traits_test
-def test_plot_vector_source_estimates(garbage_collect):
+def test_plot_vector_source_estimates(renderer_interactive):
     """Test plotting of vector source estimates."""
     sample_src = read_source_spaces(src_fname)
 
@@ -650,12 +648,10 @@ def test_plot_vector_source_estimates(garbage_collect):
                      smoothing_steps=1, verbose='error')
     brain.close()
     del brain
-    gc.collect()
 
     with pytest.raises(ValueError, match='use "pos_lims"'):
         stc.plot('sample', subjects_dir=subjects_dir,
                  clim=dict(pos_lims=[1, 2, 3]))
-    gc.collect()
 
 
 @testing.requires_testing_data
@@ -719,7 +715,7 @@ def test_brain_colorbar(orientation, diverging, lims):
 @requires_pysurfer
 @testing.requires_testing_data
 @traits_test
-def test_mixed_sources_plot_surface(renderer):
+def test_mixed_sources_plot_surface(renderer_interactive):
     """Test plot_surface() for  mixed source space."""
     src = read_source_spaces(fwd_fname2)
     N = np.sum([s['nuse'] for s in src])  # number of sources

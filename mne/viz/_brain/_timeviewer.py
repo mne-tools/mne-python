@@ -83,11 +83,14 @@ class MplCanvas(object):
 class IntSlider(object):
     """Class to set a integer slider."""
 
-    def __init__(self, plotter=None, callback=None, name=None):
+    def __init__(self, plotter=None, callback=None, first_call=True,
+                 name=None):
         self.plotter = plotter
         self.callback = callback
-        self.name = name
         self.slider_rep = None
+        self.first_call = first_call
+        self._first_time = True
+        self.name = name
 
     def __call__(self, value):
         """Round the label of the slider."""
@@ -99,17 +102,23 @@ class IntSlider(object):
                     self.slider_rep = slider.GetRepresentation()
         if self.slider_rep is not None:
             self.slider_rep.SetValue(idx)
-        self.callback(idx)
+        if not self._first_time or all([self._first_time, self.first_call]):
+            self.callback(idx)
+        if self._first_time:
+            self._first_time = False
 
 
 class TimeSlider(object):
     """Class to update the time slider."""
 
-    def __init__(self, plotter=None, brain=None, callback=None):
+    def __init__(self, plotter=None, brain=None, callback=None,
+                 first_call=True):
         self.plotter = plotter
         self.brain = brain
         self.callback = callback
         self.slider_rep = None
+        self.first_call = first_call
+        self._first_time = True
         self.time_label = None
         if self.brain is not None and callable(self.brain._data['time_label']):
             self.time_label = self.brain._data['time_label']
@@ -119,7 +128,8 @@ class TimeSlider(object):
         value = float(value)
         if not time_as_index:
             value = self.brain._to_time_index(value)
-        self.brain.set_time_point(value)
+        if not self._first_time or all([self._first_time, self.first_call]):
+            self.brain.set_time_point(value)
         if self.callback is not None:
             self.callback()
         current_time = self.brain._current_time
@@ -134,6 +144,8 @@ class TimeSlider(object):
             if self.time_label is not None:
                 current_time = self.time_label(current_time)
                 self.slider_rep.SetTitleText(current_time)
+        if self._first_time:
+            self._first_time = False
 
 
 class UpdateColorbarScale(object):
@@ -291,7 +303,6 @@ class _TimeViewer(object):
         self.refresh_rate_ms = max(int(round(1000. / 60.)), 1)
         self.default_scaling_range = [0.2, 2.0]
         self.default_smoothing_range = [0, 15]
-        self.default_smoothing_value = 7
         self.default_playback_speed_range = [0.01, 1]
         self.default_playback_speed_value = 0.05
         self.act_data = {'lh': None, 'rh': None}
@@ -393,7 +404,7 @@ class _TimeViewer(object):
             time_data = self.brain._data['time']
             max_time = np.max(time_data)
             if self.brain._current_time == max_time:  # start over
-                self.brain.set_time_point(np.min(time_data))
+                self.brain.set_time_point(0)  # first index
             self._last_tick = time.time()
 
     def set_playback_speed(self, speed):
@@ -484,8 +495,8 @@ class _TimeViewer(object):
                     pointb=(0.98, 0.74),
                     event_type='always'
                 )
-                orientation_slider.name = name
                 self.set_slider_style(orientation_slider, show_label=False)
+                orientation_slider.name = name
                 self.orientation_call(view, update_widget=True)
 
         # necessary because show_view modified subplot
@@ -496,23 +507,24 @@ class _TimeViewer(object):
         self.smoothing_call = IntSlider(
             plotter=self.plotter,
             callback=self.brain.set_data_smoothing,
+            first_call=False,
             name="smoothing"
         )
         smoothing_slider = self.plotter.add_slider_widget(
             self.smoothing_call,
-            value=self.default_smoothing_value,
+            value=self.brain._data['smoothing_steps'],
             rng=self.default_smoothing_range, title="smoothing",
             pointa=(0.82, 0.90),
             pointb=(0.98, 0.90)
         )
         smoothing_slider.name = 'smoothing'
-        self.smoothing_call(self.default_smoothing_value)
 
         # Time slider
         max_time = len(self.brain._data['time']) - 1
         self.time_call = TimeSlider(
             plotter=self.plotter,
             brain=self.brain,
+            first_call=False,
             callback=self.plot_time_line,
         )
         time_slider = self.plotter.add_slider_widget(
@@ -523,10 +535,15 @@ class _TimeViewer(object):
             pointb=(0.77, 0.1),
             event_type='always'
         )
-        time_slider.GetRepresentation().SetLabelFormat('idx=%0.1f')
         time_slider.name = "time"
-        # set the default value
-        self.time_call(value=self.brain._data['time_idx'])
+        # configure properties of the time slider
+        time_slider.GetRepresentation().SetLabelFormat('idx=%0.1f')
+        if self.brain._current_time is not None:
+            current_time = self.brain._current_time
+            time_label = self.brain._data['time_label']
+            if callable(time_label):
+                current_time = time_label(current_time)
+            time_slider.GetRepresentation().SetTitleText(current_time)
 
         # Playback speed slider
         self.playback_speed_call = SmartSlider(
@@ -648,11 +665,13 @@ class _TimeViewer(object):
             for idx, hemi in enumerate(['lh', 'rh']):
                 hemi_data = self.brain._data.get(hemi)
                 if hemi_data is not None:
-                    self.act_data[hemi] = hemi_data['array']
+                    act_data = hemi_data['array']
+                    if act_data.ndim == 3:
+                        act_data = np.linalg.norm(act_data, axis=1)
                     smooth_mat = hemi_data['smooth_mat']
                     if smooth_mat is not None:
-                        self.act_data[hemi] = smooth_mat.dot(
-                            self.act_data[hemi])
+                        act_data = smooth_mat.dot(act_data)
+                    self.act_data[hemi] = act_data
 
                     # simulate a picked renderer
                     if self.brain._hemi == 'split':

@@ -211,7 +211,8 @@ class _BaseRenderer(metaclass=ABCMeta):
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
-                 backface_culling=False):
+                 backface_culling=False, colormap=None, vmin=None, vmax=None,
+                 line_width=2., name=None):
         """Add quiver3d in the scene.
 
         Parameters
@@ -256,6 +257,16 @@ class _BaseRenderer(metaclass=ABCMeta):
             The optional scalar data to use.
         backface_culling: bool
             If True, enable backface culling on the quiver.
+        colormap:
+            The colormap to use.
+        vmin: float | None
+            vmin is used to scale the colormap.
+            If None, the min of the data will be used
+        vmax: float | None
+            vmax is used to scale the colormap.
+            If None, the max of the data will be used
+        line_width: float
+            The width of the 2d arrows.
         """
         pass
 

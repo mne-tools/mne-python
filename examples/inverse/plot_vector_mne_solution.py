@@ -1,12 +1,12 @@
 """
-==============================
-Plotting the full MNE solution
-==============================
+============================================
+Plotting the full vector-valued MNE solution
+============================================
 
 The source space that is used for the inverse computation defines a set of
 dipoles, distributed across the cortex. When visualizing a source estimate, it
-is sometimes useful to show the dipole directions in addiion to their estimated
-magnitude.
+is sometimes useful to show the dipole directions in addition to their
+estimated magnitude.
 """
 # Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #

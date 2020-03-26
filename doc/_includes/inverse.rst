@@ -498,7 +498,7 @@ source location :math:`d`:
 cortical patch statistics (CPS) to define normal orientations or not (see
 :ref:`CHDBBCEJ`).
 
-.. _inverse_orientation_constrains:
+.. _inverse_orientation_constraints:
 
 Orientation constraints
 ~~~~~~~~~~~~~~~~~~~~~~~
