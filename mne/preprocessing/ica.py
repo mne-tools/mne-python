@@ -247,7 +247,7 @@ class ICA(ContainsMixin):
 
     Prior to fitting and applying the ICA, data is whitened (de-correlated and
     scaled to unit variance, also called sphering transformation) by means of
-    a Principle Component Analysis (PCA). In addition to the whitening, this
+    a Principal Components Analysis (PCA). In addition to the whitening, this
     step introduces the option to reduce the dimensionality of the data, both
     prior to fitting the ICA (with the ``max_pca_components`` parameter) and
     prior to reconstructing the sensor signals (with the ``n_pca_components``
