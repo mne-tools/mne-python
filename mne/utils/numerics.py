@@ -1012,3 +1012,40 @@ def _stamp_to_dt(utc_stamp):
         stamp.append(0)
     return (datetime.fromtimestamp(0, tz=timezone.utc) +
             timedelta(0, stamp[0], stamp[1]))  # day, sec, µs
+
+
+class _ReuseCycle(object):
+    """Cycle over a variable, preferring to reuse earlier indices.
+
+    Requires the values in ``x`` to be hashable and unique. This holds
+    nicely for matplotlib's color cycle, which gives HTML hex color strings.
+    """
+
+    def __init__(self, x):
+        self.indices = list()
+        self.popped = dict()
+        assert len(x) > 0
+        self.x = x
+
+    def __iter__(self):
+        while True:
+            yield self.__next__()
+
+    def __next__(self):
+        if not len(self.indices):
+            self.indices = list(range(len(self.x)))
+            self.popped = dict()
+        idx = self.indices.pop(0)
+        val = self.x[idx]
+        assert val not in self.popped
+        self.popped[val] = idx
+        return val
+
+    def restore(self, val):
+        try:
+            idx = self.popped.pop(val)
+        except KeyError:
+            warn('Could not find value: %s' % (val,))
+        else:
+            loc = np.searchsorted(self.indices, idx)
+            self.indices.insert(loc, idx)
