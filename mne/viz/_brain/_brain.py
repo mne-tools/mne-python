@@ -841,13 +841,12 @@ class _Brain(object):
                         'len(data) < nvtx (%s < %s): the vertices '
                         'parameter must not be None'
                         % (len(hemi_data), self.geo[hemi].x.shape[0]))
-                # local alias
-                n_steps = 'nearest' if n_steps == 0 else n_steps
+                morph_n_steps = 'nearest' if n_steps == 0 else n_steps
                 maps = sparse.eye(len(self.geo[hemi].coords), format='csr')
                 smooth_mat = _hemi_morph(
                     self.geo[hemi].faces,
                     np.arange(len(self.geo[hemi].coords)),
-                    vertices, n_steps, maps, warn=False)
+                    vertices, morph_n_steps, maps, warn=False)
                 self._data[hemi]['smooth_mat'] = smooth_mat
         self.set_time_point(self._data['time_idx'])
         self._data['smoothing_steps'] = n_steps
@@ -888,6 +887,7 @@ class _Brain(object):
             self._time_interp_inv = _safe_interp1d(idx, self._times)
 
     def set_time_point(self, time_idx):
+        print("here")
         """Set the time point shown (can be a float to interpolate)."""
         from ..backends._pyvista import _set_mesh_scalars
         current_act_data = list()
