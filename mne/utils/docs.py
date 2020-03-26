@@ -789,6 +789,13 @@ show_traces : bool | str
 
     .. versionadded:: 0.20.0
 """
+docdict["time_label"] = """
+time_label : str | callable | None
+    Format of the time label (a format string, a function that maps
+    floating point time values to strings, or None for no label). The
+    default is ``'auto'``, which will use ``time=%%0.2f ms`` if there
+    is more than one time point.
+"""
 
 # STC label time course
 docdict['eltc_labels'] = """

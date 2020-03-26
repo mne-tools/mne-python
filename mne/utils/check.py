@@ -316,11 +316,18 @@ class _IntLike(object):
 int_like = _IntLike()
 
 
+class _Callable(object):
+    @classmethod
+    def __instancecheck__(cls, other):
+        return callable(other)
+
+
 _multi = {
     'str': (str,),
     'numeric': (np.floating, float, int_like),
     'path-like': (str, Path),
-    'int-like': (int_like,)
+    'int-like': (int_like,),
+    'callable': (_Callable(),),
 }
 try:
     _multi['path-like'] += (os.PathLike,)

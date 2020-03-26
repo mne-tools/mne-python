@@ -1372,12 +1372,27 @@ def _get_map_ticks(mapdata):
 
 def _handle_time(time_label, time_unit, times):
     """Handle time label string and units."""
+    _validate_type(time_label, (None, str, 'callable'), 'time_label')
     if time_label == 'auto':
-        if time_unit == 's':
-            time_label = 'time=%0.3fs'
-        elif time_unit == 'ms':
-            time_label = 'time=%0.1fms'
-    _, times = _check_time_unit(time_unit, times)
+        if times is not None and len(times) > 1:
+            if time_unit == 's':
+                time_label = 'time=%0.3fs'
+            elif time_unit == 'ms':
+                time_label = 'time=%0.1fms'
+        else:
+            time_label = None
+    # convert to callable
+    if isinstance(time_label, str):
+        time_label_fmt = time_label
+
+        def time_label(x):
+            try:
+                return time_label_fmt % x
+            except Exception:
+                return time_label  # in case it's static
+    assert time_label is None or callable(time_label)
+    if times is not None:
+        _, times = _check_time_unit(time_unit, times)
     return time_label, times
 
 
@@ -1639,10 +1654,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     %(colormap)s
         The default ('auto') uses 'hot' for one-sided data and
         'mne' for two-sided data.
-    time_label : str | callable | None
-        Format of the time label (a format string, a function that maps
-        floating point time values to strings, or None for no label). The
-        default is ``time=%%0.2f ms``.
+    %(time_label)s
     smoothing_steps : int
         The amount of smoothing.
     %(transparent)s
@@ -2328,10 +2340,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         The hemisphere to display.
     %(colormap)s
         This should be a sequential colormap.
-    time_label : str | callable | None
-        Format of the time label (a format string, a function that maps
-        floating point time values to strings, or None for no label). The
-        default is ``time=%%0.2f ms``.
+    %(time_label)s
     smoothing_steps : int
         The amount of smoothing.
     %(transparent)s

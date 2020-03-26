@@ -391,8 +391,11 @@ class _TimeViewer(object):
             callback()
 
     def _set_time_slider_visibility(self):
-        # no-op if we actually have time points
+        # if we actually have time points, we will show the slider so
+        # hide the time actor
         if self.brain._times is not None and len(self.brain._times) > 1:
+            if self.time_actor is not None:
+                self.time_actor.VisibilityOff()
             return
         # otherwise, hide the irrelevant sliders
         for slider in self.plotter.slider_widgets:
@@ -412,12 +415,12 @@ class _TimeViewer(object):
 
         # manage time label
         time_label = self.brain._data['time_label']
-        if callable(time_label) and self.time_actor is not None:
-            if self.visibility:
-                self.time_actor.VisibilityOff()
-            else:
+        if self.time_actor is not None:
+            if self.visibility and time_label is not None:
                 self.time_actor.SetInput(time_label(self.brain._current_time))
                 self.time_actor.VisibilityOn()
+            else:
+                self.time_actor.VisibilityOff()
 
         # hide time labels that are not relevant
         self._set_time_slider_visibility()
@@ -591,8 +594,10 @@ class _TimeViewer(object):
         if callable(time_label):
             current_time = time_label(current_time)
         else:
-            current_time = ''
+            current_time = time_label
         time_slider.GetRepresentation().SetTitleText(current_time)
+        if self.time_actor is not None:
+            self.time_actor.SetInput(current_time)
         del current_time
 
         # Playback speed slider
