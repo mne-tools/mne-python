@@ -535,8 +535,15 @@ class _TimeViewer(object):
             pointb=(0.77, 0.1),
             event_type='always'
         )
-        time_slider.GetRepresentation().SetLabelFormat('idx=%0.1f')
         time_slider.name = "time"
+        # configure properties of the time slider
+        time_slider.GetRepresentation().SetLabelFormat('idx=%0.1f')
+        if self.brain._current_time is not None:
+            current_time = self.brain._current_time
+            time_label = self.brain._data['time_label']
+            if callable(time_label):
+                current_time = time_label(current_time)
+            time_slider.GetRepresentation().SetTitleText(current_time)
 
         # Playback speed slider
         self.playback_speed_call = SmartSlider(

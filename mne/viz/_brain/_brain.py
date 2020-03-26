@@ -887,7 +887,6 @@ class _Brain(object):
             self._time_interp_inv = _safe_interp1d(idx, self._times)
 
     def set_time_point(self, time_idx):
-        print("here")
         """Set the time point shown (can be a float to interpolate)."""
         from ..backends._pyvista import _set_mesh_scalars
         current_act_data = list()
