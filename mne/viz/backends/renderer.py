@@ -20,17 +20,19 @@ MNE_3D_BACKEND_TESTING = False
 _fromlist = ('_Renderer', '_Projection', '_close_all', '_check_3d_figure',
              '_set_3d_view', '_set_3d_title', '_close_3d_figure',
              '_take_3d_screenshot', '_testing_context')
-_name_map = dict(mayavi='_pysurfer_mayavi', pyvista='_pyvista')
+_name_map = dict(mayavi='._pysurfer_mayavi', pyvista='._pyvista')
 
 
 def _reload_backend(backend_name):
     # This is (hopefully) the equivalent to:
     #    from ._whatever_name import ...
-    _mod = importlib.__import__(
-        _name_map[backend_name], {'__name__': __name__},
-        level=1, fromlist=_fromlist)
+    _mod = importlib.import_module(name=_name_map[backend_name],
+                                   package='mne.viz.backends')
+
     for key in _fromlist:
         globals()[key] = getattr(_mod, key)
+    del _mod
+
     logger.info('Using %s 3d backend.\n' % backend_name)
 
 
