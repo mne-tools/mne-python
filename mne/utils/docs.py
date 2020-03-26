@@ -133,7 +133,7 @@ docdict['picks_base'] = docdict['picks_header'] + """
     (e.g., ``['meg', 'eeg']``) will pick channels of those
     types, channel *name* strings (e.g., ``['MEG0111', 'MEG2623']``
     will pick the given channels. Can also be the string values
-    "all" to pick all channels, or "data" to pick data channels.
+    "all" to pick all channels, or "data" to pick :term:`data channels`.
     None (default) will pick """
 docdict['picks_all'] = docdict['picks_base'] + 'all channels.\n'
 docdict['picks_all_data'] = docdict['picks_base'] + 'all data channels.\n'

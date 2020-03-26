@@ -43,12 +43,22 @@ general neuroimaging concepts. If you think a term is missing, please consider
         Channels refer to MEG sensors, EEG electrodes or any extra electrode
         or sensor such as EOG, ECG or sEEG, ECoG etc. Channels usually have
         a type, such as gradiometer, and a unit, such as Tesla/Meter that
-        is used in the code base, e.g. for plotting.
+        is used in the code base, e.g. for plotting. See also
+        :term:`data channels`.
 
     DICS
         Dynamic Imaging of Coherent Sources, a method for computing source
         power in different frequency bands. see :ref:`ex-inverse-source-power`
         and :func:`mne.beamformer.make_dics`.
+
+    data channels
+        Many functions in MNE operate by default on "data channels". These are
+        channels that typically hold *brain electophysiological* data,
+        as opposed to other forms of data, such as EOG, ECG, stimulus trigger,
+        or acquisition system status data. The set of channels considered
+        "data channels" in MNE is:
+
+        .. mne:: data channels list
 
     digitization
         Digitization is a procedure of recording the headshape of a subject and
