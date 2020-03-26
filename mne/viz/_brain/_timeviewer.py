@@ -291,7 +291,6 @@ class _TimeViewer(object):
         self.refresh_rate_ms = max(int(round(1000. / 60.)), 1)
         self.default_scaling_range = [0.2, 2.0]
         self.default_smoothing_range = [0, 15]
-        self.default_smoothing_value = 7
         self.default_playback_speed_range = [0.01, 1]
         self.default_playback_speed_value = 0.05
         self.act_data = {'lh': None, 'rh': None}
@@ -500,13 +499,13 @@ class _TimeViewer(object):
         )
         smoothing_slider = self.plotter.add_slider_widget(
             self.smoothing_call,
-            value=self.default_smoothing_value,
+            value=self.brain._data['smoothing_steps'],
             rng=self.default_smoothing_range, title="smoothing",
             pointa=(0.82, 0.90),
             pointb=(0.98, 0.90)
         )
         smoothing_slider.name = 'smoothing'
-        self.smoothing_call(self.default_smoothing_value)
+        self.smoothing_call(value=self.brain._data['smoothing_steps'])
 
         # Time slider
         max_time = len(self.brain._data['time']) - 1

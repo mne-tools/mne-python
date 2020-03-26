@@ -303,7 +303,7 @@ class _Brain(object):
             vertices for which the data is defined (needed if len(data) < nvtx)
         smoothing_steps : int or None
             number of smoothing steps (smoothing is used if len(data) < nvtx)
-            Default : 20
+            Default : 7
         time : numpy array
             time points in the data array (if data is 2D or 3D)
         time_label : str | callable | None
@@ -410,6 +410,8 @@ class _Brain(object):
             fmin, fmid, fmax, center, array
         )
 
+        smoothing_steps = 7 if smoothing_steps is None else smoothing_steps
+        self._data['smoothing_steps'] = smoothing_steps
         self._data['clim'] = clim
         self._data['time'] = time
         self._data['initial_time'] = initial_time
@@ -834,6 +836,7 @@ class _Brain(object):
                     vertices, n_steps, maps, warn=False)
                 self._data[hemi]['smooth_mat'] = smooth_mat
         self.set_time_point(self._data['time_idx'])
+        self._data['smoothing_steps'] = n_steps
 
     @property
     def _n_times(self):
