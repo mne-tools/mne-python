@@ -102,6 +102,7 @@ class IntSlider(object):
                     self.slider_rep = slider.GetRepresentation()
         if self.slider_rep is not None:
             self.slider_rep.SetValue(idx)
+            self.plotter.update()
         if not self._first_time or all([self._first_time, self.first_call]):
             self.callback(idx)
         if self._first_time:
@@ -139,11 +140,12 @@ class TimeSlider(object):
                 if name == "time":
                     self.slider_rep = slider.GetRepresentation()
         if self.slider_rep is not None:
-            if update_widget:
-                self.slider_rep.SetValue(value)
             if self.time_label is not None:
                 current_time = self.time_label(current_time)
                 self.slider_rep.SetTitleText(current_time)
+            if update_widget:
+                self.slider_rep.SetValue(value)
+                self.plotter.update()
         if self._first_time:
             self._first_time = False
 
@@ -176,6 +178,7 @@ class UpdateColorbarScale(object):
             elif name == "fscale":
                 slider_rep = slider.GetRepresentation()
                 slider_rep.SetValue(1.0)
+        self.plotter.update()
 
 
 class BumpColorbarPoints(object):
@@ -228,6 +231,7 @@ class BumpColorbarPoints(object):
         if time.time() > self.last_update + 1. / 60.:
             self.callback[self.name](value)
             self.last_update = time.time()
+        self.plotter.update()
 
 
 class ShowView(object):
@@ -262,6 +266,7 @@ class ShowView(object):
             if self.slider_rep is not None:
                 self.slider_rep.SetValue(idx)
                 self.slider_rep.SetTitleText(self.orientation[idx])
+                self.plotter.update()
 
 
 class SmartSlider(object):
@@ -288,6 +293,7 @@ class SmartSlider(object):
                         self.slider_rep = slider.GetRepresentation()
             if self.slider_rep is not None:
                 self.slider_rep.SetValue(value)
+                self.plotter.update()
 
 
 class _TimeViewer(object):
@@ -385,18 +391,21 @@ class _TimeViewer(object):
             else:
                 self.time_actor.SetInput(time_label(self.brain._current_time))
                 self.time_actor.VisibilityOn()
+        self.plotter.update()
 
     def apply_auto_scaling(self):
         self.brain.update_auto_scaling()
         self.fmin_slider_rep.SetValue(self.brain._data['fmin'])
         self.fmid_slider_rep.SetValue(self.brain._data['fmid'])
         self.fmax_slider_rep.SetValue(self.brain._data['fmax'])
+        self.plotter.update()
 
     def restore_user_scaling(self):
         self.brain.update_auto_scaling(restore=True)
         self.fmin_slider_rep.SetValue(self.brain._data['fmin'])
         self.fmid_slider_rep.SetValue(self.brain._data['fmid'])
         self.fmax_slider_rep.SetValue(self.brain._data['fmax'])
+        self.plotter.update()
 
     def toggle_playback(self):
         self.playback = not self.playback
@@ -427,7 +436,6 @@ class _TimeViewer(object):
             self.time_call(idx, update_widget=True)
             if time_point == max_time:
                 self.playback = False
-        self.plotter.update()  # critical for smooth animation
 
     def set_slider_style(self, slider, show_label=True, show_cap=False):
         if slider is not None:
