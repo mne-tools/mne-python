@@ -1865,8 +1865,8 @@ def _check_time_viewer_compatibility(time_viewer, show_traces, stc, hemi):
         if not check_version('surfer', '0.9'):
             raise RuntimeError('This function requires pysurfer version '
                                '>= 0.9')
-
-    time_viewer = _check_stc_time(stc, hemi)
+    if time_viewer:
+        time_viewer = _check_stc_time(stc, hemi)
     return time_viewer, show_traces
 
 
