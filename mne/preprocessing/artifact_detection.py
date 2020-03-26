@@ -72,7 +72,8 @@ def annotate_muscle_zscore(raw, threshold=4, ch_type=None, min_length_good=0.1,
             ch_type = 'grad'
         elif 'eeg' in raw_ch_type:
             ch_type = 'eeg'
-        logger.info(f"Using {ch_type} sensors for muscle artifact detection.")
+        logger.info(u'Using %s sensors for muscle artifact detection'
+                    % (ch_type))
 
     if ch_type in ('mag', 'grad'):
         raw_copy.pick_types(meg=ch_type, ref_meg=False)
