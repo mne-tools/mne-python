@@ -11,16 +11,17 @@ import os
 import os.path as op
 
 import numpy as np
+from scipy import sparse
 
 from .colormap import calculate_lut
-from .view import lh_views_dict, rh_views_dict, View
 from .surface import Surface
-from .utils import mesh_edges, smoothing_matrix
+from .view import lh_views_dict, rh_views_dict, View
 
 from .._3d import _process_clim
-from ..utils import _check_option, logger, verbose, fill_doc
 
+from ...morph import _hemi_morph
 from ...label import read_label
+from ...utils import _check_option, logger, verbose, fill_doc, _validate_type
 
 
 class _Brain(object):
@@ -224,7 +225,8 @@ class _Brain(object):
                         y=self.geo[h].coords[:, 1],
                         z=self.geo[h].coords[:, 2],
                         triangles=self.geo[h].faces,
-                        color=self.geo[h].grey_curv
+                        color=self.geo[h].grey_curv,
+                        opacity=alpha,
                     )
                     if isinstance(mesh_data, tuple):
                         _, mesh = mesh_data
@@ -301,7 +303,8 @@ class _Brain(object):
             vertices for which the data is defined (needed if len(data) < nvtx)
         smoothing_steps : int or None
             number of smoothing steps (smoothing is used if len(data) < nvtx)
-            Default : 20
+            The value 'nearest' can be used too.
+            Default : 7
         time : numpy array
             time points in the data array (if data is 2D or 3D)
         time_label : str | callable | None
@@ -345,17 +348,20 @@ class _Brain(object):
         Due to a Mayavi (or VTK) alpha rendering bug, ``vector_alpha`` is
         clamped to be strictly < 1.
         """
-        _check_option('transparent', type(transparent), [bool])
+        _validate_type(transparent, bool, 'transparent')
+        _validate_type(vector_alpha, ('numeric', None), 'vector_alpha')
+        _validate_type(scale_factor, ('numeric', None), 'scale_factor')
 
         # those parameters are not supported yet, only None is allowed
         _check_option('thresh', thresh, [None])
         _check_option('remove_existing', remove_existing, [None])
         _check_option('time_label_size', time_label_size, [None])
-        _check_option('scale_factor', scale_factor, [None])
-        _check_option('vector_alpha', vector_alpha, [None])
 
         hemi = self._check_hemi(hemi)
         array = np.asarray(array)
+        vector_alpha = alpha if vector_alpha is None else vector_alpha
+        self._data['vector_alpha'] = vector_alpha
+        self._data['scale_factor'] = scale_factor
 
         # Create time array and add label if > 1D
         if array.ndim <= 1:
@@ -397,10 +403,29 @@ class _Brain(object):
             self._data["time_label"] = time_label
             y_txt = 0.05 + 0.1 * bool(colorbar)
 
+        if array.ndim == 3:
+            if array.shape[1] != 3:
+                raise ValueError('If array has 3 dimensions, array.shape[1] '
+                                 'must equal 3, got %s' % (array.shape[1],))
         fmin, fmid, fmax = _update_limits(
             fmin, fmid, fmax, center, array
         )
 
+        if smoothing_steps is None:
+            smoothing_steps = 7
+        elif smoothing_steps == 'nearest':
+            smoothing_steps = 0
+        elif isinstance(smoothing_steps, int):
+            if smoothing_steps < 0:
+                raise ValueError('Expected value of `smoothing_steps` is'
+                                 ' positive but {} was given.'.format(
+                                     smoothing_steps))
+        else:
+            raise TypeError('Expected type of `smoothing_steps` is int or'
+                            ' NoneType but {} was given.'.format(
+                                type(smoothing_steps)))
+
+        self._data['smoothing_steps'] = smoothing_steps
         self._data['clim'] = clim
         self._data['time'] = time
         self._data['initial_time'] = initial_time
@@ -411,6 +436,8 @@ class _Brain(object):
         self._data[hemi] = dict()
         self._data[hemi]['actor'] = list()
         self._data[hemi]['mesh'] = list()
+        self._data[hemi]['glyph_actor'] = None
+        self._data[hemi]['glyph_mesh'] = None
         self._data[hemi]['array'] = array
         self._data[hemi]['vertices'] = vertices
         self._data['alpha'] = alpha
@@ -424,7 +451,9 @@ class _Brain(object):
         dt_min = fmin if center is None else -1 * fmax
 
         ctable = self.update_lut()
+        self._data['ctable'] = ctable
 
+        # 1) add the surfaces first
         for ri, v in enumerate(self._views):
             views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
             if self._hemi != 'split':
@@ -432,6 +461,7 @@ class _Brain(object):
             else:
                 ci = 0 if hemi == 'lh' else 1
             self._renderer.subplot(ri, ci)
+
             mesh_data = self._renderer.mesh(
                 x=self.geo[hemi].coords[:, 0],
                 y=self.geo[hemi].coords[:, 1],
@@ -451,11 +481,20 @@ class _Brain(object):
                 actor, mesh = mesh_data, None
             self._data[hemi]['actor'].append(actor)
             self._data[hemi]['mesh'].append(mesh)
+
+        # 2) update time and smoothing properties
         # set_data_smoothing calls "set_time_point" for us, which will set
         # _current_time
         self.set_time_interpolation(self.time_interpolation)
         self.set_data_smoothing(smoothing_steps)
+
+        # 3) add the other actors
         for ri, v in enumerate(self._views):
+            views_dict = lh_views_dict if hemi == 'lh' else rh_views_dict
+            if self._hemi != 'split':
+                ci = 0
+            else:
+                ci = 0 if hemi == 'lh' else 1
             if array.ndim >= 2 and callable(time_label):
                 if not self._time_label_added:
                     time_actor = self._renderer.text2d(
@@ -752,7 +791,7 @@ class _Brain(object):
         """
         return self._renderer.screenshot(mode)
 
-    def update_lut(self, fmin=None, fmid=None, fmax=None):
+    def update_lut(self, fmin=None, fmid=None, fmax=None, alpha=None):
         """Update color map.
 
         Parameters
@@ -765,7 +804,7 @@ class _Brain(object):
         fmax : float | None
             Maximum value in colormap.
         """
-        alpha = self._data['alpha']
+        alpha = alpha if alpha is not None else self._data['alpha']
         center = self._data['center']
         colormap = self._data['colormap']
         transparent = self._data['transparent']
@@ -802,13 +841,15 @@ class _Brain(object):
                         'len(data) < nvtx (%s < %s): the vertices '
                         'parameter must not be None'
                         % (len(hemi_data), self.geo[hemi].x.shape[0]))
-                adj_mat = mesh_edges(self.geo[hemi].faces)
-                for mesh in hemi_data['mesh']:
-                    smooth_mat = smoothing_matrix(vertices,
-                                                  adj_mat, n_steps,
-                                                  verbose=False)
-                    self._data[hemi]['smooth_mat'] = smooth_mat
+                morph_n_steps = 'nearest' if n_steps == 0 else n_steps
+                maps = sparse.eye(len(self.geo[hemi].coords), format='csr')
+                smooth_mat = _hemi_morph(
+                    self.geo[hemi].faces,
+                    np.arange(len(self.geo[hemi].coords)),
+                    vertices, morph_n_steps, maps, warn=False)
+                self._data[hemi]['smooth_mat'] = smooth_mat
         self.set_time_point(self._data['time_idx'])
+        self._data['smoothing_steps'] = n_steps
 
     @property
     def _n_times(self):
@@ -841,7 +882,7 @@ class _Brain(object):
                 if hemi_data is not None:
                     array = hemi_data['array']
                     self._time_interp_funcs[hemi] = _safe_interp1d(
-                        idx, array, self._time_interpolation, axis=1,
+                        idx, array, self._time_interpolation, axis=-1,
                         assume_sorted=True)
             self._time_interp_inv = _safe_interp1d(idx, self._times)
 
@@ -856,12 +897,16 @@ class _Brain(object):
             if hemi_data is not None:
                 array = hemi_data['array']
                 # interpolate in time
-                if array.ndim == 2:
-                    act_data = self._time_interp_funcs[hemi](time_idx)
-                    self._current_time = self._time_interp_inv(time_idx)
-                else:
+                if array.ndim == 1:
                     act_data = array
                     self._current_time = 0
+                else:
+                    act_data = self._time_interp_funcs[hemi](time_idx)
+                    self._current_time = self._time_interp_inv(time_idx)
+                    if array.ndim == 3:
+                        vectors = act_data
+                        act_data = np.linalg.norm(act_data, axis=1)
+                    self._current_time = self._time_interp_inv(time_idx)
                 current_act_data.append(act_data)
                 if time_actor is not None and time_label is not None:
                     time_actor.SetInput(time_label(self._current_time))
@@ -870,11 +915,62 @@ class _Brain(object):
                 smooth_mat = hemi_data['smooth_mat']
                 if smooth_mat is not None:
                     act_data = smooth_mat.dot(act_data)
+
+                # update the mesh scalar values
                 for mesh in hemi_data['mesh']:
                     if mesh is not None:
                         _set_mesh_scalars(mesh, act_data, 'Data')
+
+                # update the glyphs
+                if array.ndim == 3:
+                    self.update_glyphs(hemi, vectors)
         self._current_act_data = np.concatenate(current_act_data)
         self._data['time_idx'] = time_idx
+
+    def update_glyphs(self, hemi, vectors):
+        from ..backends._pyvista import (_set_colormap_range,
+                                         _add_polydata_actor)
+        hemi_data = self._data.get(hemi)
+        if hemi_data is not None:
+            vertices = hemi_data['vertices']
+            fmin = self._data['fmin']
+            fmid = self._data['fmid']
+            fmax = self._data['fmax']
+            ctable = self.update_lut(fmin=fmin, fmid=fmid, fmax=fmax, alpha=1)
+            ctable = (ctable * 255).astype(np.uint8)
+            vector_alpha = self._data['vector_alpha']
+            scale_factor = self._data['scale_factor']
+            rng = [fmin, fmax]
+            vertices = slice(None) if vertices is None else vertices
+            x, y, z = np.array(self.geo[hemi].coords)[vertices].T
+
+            polydata = self._renderer.quiver3d(
+                x, y, z,
+                vectors[:, 0], vectors[:, 1], vectors[:, 2],
+                color=None,
+                mode='2darrow',
+                scale_mode='vector',
+                scale=scale_factor,
+                opacity=vector_alpha,
+                name=str(hemi) + "_glyph"
+            )
+            if polydata is not None:
+                if hemi_data['glyph_mesh'] is None:
+                    hemi_data['glyph_mesh'] = polydata
+                    glyph_actor = _add_polydata_actor(
+                        plotter=self._renderer.plotter,
+                        polydata=polydata,
+                        hide=True
+                    )
+                    hemi_data['glyph_actor'] = glyph_actor
+                    glyph_actor.GetProperty().SetLineWidth(2.)
+                else:
+                    glyph_actor = hemi_data['glyph_actor']
+                    glyph_mesh = hemi_data['glyph_mesh']
+                    glyph_mesh.shallow_copy(polydata)
+                _set_colormap_range(glyph_actor, ctable, None, rng)
+                # the glyphs are now ready to be displayed
+                glyph_actor.VisibilityOn()
 
     def update_fmax(self, fmax):
         """Set the colorbar max point."""
@@ -1044,6 +1140,30 @@ class _Brain(object):
             raise ValueError('hemi must be either "lh" or "rh"' +
                              extra + ", got " + str(hemi))
         return hemi
+
+    def scale_data_colormap(self, fmin, fmid, fmax, transparent,
+                            center=None, alpha=1.0, data=None, verbose=None):
+        """Scale the data colormap."""
+        lut_lst = self._data['ctable']
+        n_col = len(lut_lst)
+
+        # apply the lut on every surfaces
+        for hemi in ['lh', 'rh']:
+            hemi_data = self._data.get(hemi)
+            if hemi_data is not None:
+                for actor in hemi_data['actor']:
+                    vtk_lut = actor.GetMapper().GetLookupTable()
+                    vtk_lut.SetNumberOfColors(n_col)
+                    vtk_lut.SetRange([fmin, fmax])
+                    vtk_lut.Build()
+                    for i in range(0, n_col):
+                        lt = lut_lst[i]
+                        vtk_lut.SetTableValue(i, lt[0], lt[1], lt[2], alpha)
+        self.update_fscale(1.0)
+
+    def enable_depth_peeling(self):
+        """Enable depth peeling."""
+        self._renderer.enable_depth_peeling()
 
 
 def _safe_interp1d(x, y, kind='linear', axis=-1, assume_sorted=False):

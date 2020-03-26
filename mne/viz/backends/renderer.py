@@ -64,7 +64,7 @@ def set_3d_backend(backend_name, verbose=None):
        +--------------------------------------+--------+---------+
        | 3D function:                         | mayavi | pyvista |
        +======================================+========+=========+
-       | :func:`plot_vector_source_estimates` | ✓      |         |
+       | :func:`plot_vector_source_estimates` | ✓      | -       |
        +--------------------------------------+--------+---------+
        | :func:`plot_source_estimates`        | ✓      | ✓       |
        +--------------------------------------+--------+---------+
@@ -105,6 +105,11 @@ def set_3d_backend(backend_name, verbose=None):
        +--------------------------------------+--------+---------+
        | Exports to movie/GIF                 |        |         |
        +--------------------------------------+--------+---------+
+
+    .. note::
+        In the case of `plot_vector_source_estimates` with PyVista, the glyph
+        size is not consistent with Mayavi, it is also possible that a dark
+        filter is visible on the mesh when depth peeling is not available.
     """
     global MNE_3D_BACKEND
     try:

@@ -201,10 +201,11 @@ class _Renderer(_BaseRenderer):
     def quiver3d(self, x, y, z, u, v, w, color, scale, mode, resolution=8,
                  glyph_height=None, glyph_center=None, glyph_resolution=None,
                  opacity=1.0, scale_mode='none', scalars=None,
-                 backface_culling=False):
+                 backface_culling=False, colormap=None, vmin=None, vmax=None,
+                 line_width=2., name=None):
         color = _check_color(color)
         with warnings.catch_warnings(record=True):  # traits
-            if mode == 'arrow':
+            if mode in ('arrow', '2darrow', '3darrow'):
                 self.mlab.quiver3d(x, y, z, u, v, w, mode=mode,
                                    color=color, scale_factor=scale,
                                    scale_mode=scale_mode,
@@ -290,6 +291,10 @@ class _Renderer(_BaseRenderer):
         pts = self.fig.children[-1]
 
         return _Projection(xy=xy, pts=pts)
+
+    def enable_depth_peeling(self):
+        if self.fig.scene is not None:
+            self.fig.scene.renderer.use_depth_peeling = True
 
 
 def _mlab_figure(**kwargs):

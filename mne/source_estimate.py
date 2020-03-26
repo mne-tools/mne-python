@@ -2160,10 +2160,10 @@ class VectorSourceEstimate(_BaseVectorSourceEstimate,
     def plot(self, subject=None, hemi='lh', colormap='hot', time_label='auto',
              smoothing_steps=10, transparent=True, brain_alpha=0.4,
              overlay_alpha=None, vector_alpha=1.0, scale_factor=None,
-             time_viewer=False, subjects_dir=None, figure=None, views='lat',
+             time_viewer='auto', subjects_dir=None, figure=None, views='lat',
              colorbar=True, clim='auto', cortex='classic', size=800,
              background='black', foreground='white', initial_time=None,
-             time_unit='s', verbose=None):  # noqa: D102
+             time_unit='s', show_traces='auto', verbose=None):  # noqa: D102
 
         return plot_vector_source_estimates(
             self, subject=subject, hemi=hemi, colormap=colormap,
@@ -2175,7 +2175,7 @@ class VectorSourceEstimate(_BaseVectorSourceEstimate,
             colorbar=colorbar, clim=clim, cortex=cortex, size=size,
             background=background, foreground=foreground,
             initial_time=initial_time, time_unit=time_unit,
-            verbose=verbose,
+            show_traces=show_traces, verbose=verbose,
         )
 
 
@@ -2246,7 +2246,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
     def plot_surface(self, src, subject=None, surface='inflated', hemi='lh',
                      colormap='auto', time_label='time=%02.f ms',
                      smoothing_steps=10,
-                     transparent=None, alpha=1.0, time_viewer=False,
+                     transparent=None, alpha=1.0, time_viewer='auto',
                      subjects_dir=None, figure=None,
                      views='lat', colorbar=True, clim='auto'):
         """Plot surface source estimates with PySurfer.
