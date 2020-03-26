@@ -450,23 +450,31 @@ class _TimeViewer(object):
     def set_playback_speed(self, speed):
         self.playback_speed = speed
 
+    @safe_event
     def play(self):
         if self.playback:
-            this_time = time.time()
-            delta = this_time - self._last_tick
-            self._last_tick = time.time()
-            time_data = self.brain._data['time']
-            times = np.arange(self.brain._n_times)
-            time_shift = delta * self.playback_speed
-            max_time = np.max(time_data)
-            time_point = min(self.brain._current_time + time_shift, max_time)
-            # always use linear here -- this does not determine the data
-            # interpolation mode, it just finds where we are (in time) in
-            # terms of the time indices
-            idx = np.interp(time_point, time_data, times)
-            self.time_call(idx, update_widget=True)
-            if time_point == max_time:
+            try:
+                self._advance()
+            except Exception:
                 self.playback = False
+                raise
+
+    def _advance(self):
+        this_time = time.time()
+        delta = this_time - self._last_tick
+        self._last_tick = time.time()
+        time_data = self.brain._data['time']
+        times = np.arange(self.brain._n_times)
+        time_shift = delta * self.playback_speed
+        max_time = np.max(time_data)
+        time_point = min(self.brain._current_time + time_shift, max_time)
+        # always use linear here -- this does not determine the data
+        # interpolation mode, it just finds where we are (in time) in
+        # terms of the time indices
+        idx = np.interp(time_point, time_data, times)
+        self.time_call(idx, update_widget=True)
+        if time_point == max_time:
+            self.playback = False
 
     def set_slider_style(self, slider, show_label=True, show_cap=False):
         if slider is not None:
