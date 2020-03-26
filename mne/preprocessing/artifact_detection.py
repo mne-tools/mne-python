@@ -18,14 +18,14 @@ def annotate_muscle_zscore(raw, threshold=4, ch_type=None, min_length_good=0.1,
     """Create annotations for segments that likely contain muscle artifacts.
 
     Detects data segments containing activity in the frequency range given by
-    `filter_freq` whose envelope magnitude exceeds the specified z-score
-    threshold (when summed across channels and divided by `sqrt(n_channels)`).
+    ``filter_freq`` whose envelope magnitude exceeds the specified z-score
+    threshold, when summed across channels and divided by ``sqrt(n_channels)``.
     False-positive transient peaks are prevented by low-pass filtering the
     resulting z-score time series at 4 Hz. Only operates on a single channel
-    type, if `ch_type` is ``None`` it will select the first type in the list
-    ``mag`` ``grad`` ``eeg``.
+    type, if ``ch_type`` is ``None`` it will select the first type in the list
+    ``mag``, ``grad``, ``eeg``.
     See :footcite:`Muthukumaraswamy2013` for background on choosing
-    `filter_freq` and `threshold`.
+    ``filter_freq`` and ``threshold``.
 
     Parameters
     ----------
@@ -36,7 +36,7 @@ def annotate_muscle_zscore(raw, threshold=4, ch_type=None, min_length_good=0.1,
         activity artifacts.
     ch_type : 'mag' | 'grad' | 'eeg' | None
         The type of sensors to use. If ``None`` it will take the first type in
-        ``mag`` ``grad`` ``eeg``.
+        ``mag``, ``grad``, ``eeg``.
     min_length_good : float | None
         The shortest allowed duration of "good data" (in seconds) between
         adjacent annotations; shorter segments will be incorporated into the
@@ -72,7 +72,7 @@ def annotate_muscle_zscore(raw, threshold=4, ch_type=None, min_length_good=0.1,
             ch_type = 'grad'
         elif 'eeg' in raw_ch_type:
             ch_type = 'eeg'
-        logger.info(u'Using %s sensors for muscle artifact detection'
+        logger.info('Using %s sensors for muscle artifact detection'
                     % (ch_type))
 
     if ch_type in ('mag', 'grad'):
