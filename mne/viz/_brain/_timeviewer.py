@@ -305,7 +305,7 @@ class _TimeViewer(object):
 
         # Default configuration
         self.playback = False
-        self.visibility = True
+        self.visibility = False
         self.refresh_rate_ms = max(int(round(1000. / 60.)), 1)
         self.default_scaling_range = [0.2, 2.0]
         self.default_smoothing_range = [0, 15]
@@ -367,10 +367,22 @@ class _TimeViewer(object):
         self.configure_point_picking()
         self.configure_menu()
 
+        # show everything at the end
+        self.toggle_interface()
+
     def keyPressEvent(self, event):
         callback = self.key_bindings.get(event.text())
         if callback is not None:
             callback()
+
+    def _set_time_slider_visibility(self):
+        # no-op if we actually have time points
+        if self.brain._times is not None and len(self.brain._times) > 1:
+            return
+        # otherwise, hide the irrelevant sliders
+        for slider in self.plotter.slider_widgets:
+            if getattr(slider, "name", None) in {'playback_speed', 'time'}:
+                slider.GetRepresentation().VisibilityOff()
 
     def toggle_interface(self):
         self.visibility = not self.visibility
@@ -391,6 +403,10 @@ class _TimeViewer(object):
             else:
                 self.time_actor.SetInput(time_label(self.brain._current_time))
                 self.time_actor.VisibilityOn()
+
+        # hide time labels that are not relevant
+        self._set_time_slider_visibility()
+
         self.plotter.update()
 
     def apply_auto_scaling(self):
@@ -546,12 +562,15 @@ class _TimeViewer(object):
         time_slider.name = "time"
         # configure properties of the time slider
         time_slider.GetRepresentation().SetLabelFormat('idx=%0.1f')
-        if self.brain._current_time is not None:
-            current_time = self.brain._current_time
-            time_label = self.brain._data['time_label']
-            if callable(time_label):
-                current_time = time_label(current_time)
-            time_slider.GetRepresentation().SetTitleText(current_time)
+        current_time = self.brain._current_time
+        assert current_time is not None  # should never be the case, float
+        time_label = self.brain._data['time_label']
+        if callable(time_label):
+            current_time = time_label(current_time)
+        else:
+            current_time = ''
+        time_slider.GetRepresentation().SetTitleText(current_time)
+        del current_time
 
         # Playback speed slider
         self.playback_speed_call = SmartSlider(

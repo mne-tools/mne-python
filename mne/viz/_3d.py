@@ -1708,14 +1708,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         Title for the figure. If None, the subject name will be used.
 
         .. versionadded:: 0.17.0
-    show_traces : bool | str
-        If True, enable interactive picking of a point on the surface of the
-        brain and plot it's time course using the bottom 1/3 of the figure.
-        This feature is only available with the PyVista 3d backend when
-        ``time_viewer=True``. Defaults to 'auto', which will use True if and
-        only if ``time_viewer=True`` and the backend is PyVista.
-
-        .. versionadded:: 0.20.0
+    %(show_traces)s
     %(verbose)s
 
     Returns
@@ -1752,13 +1745,11 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              time_unit=time_unit, background=background,
                              spacing=spacing, time_viewer=time_viewer,
                              colorbar=colorbar, transparent=transparent)
-    time_viewer, show_traces = _check_time_viewer_compatibility(time_viewer,
-                                                                show_traces)
+
     if get_3d_backend() == "mayavi":
-        from surfer import Brain, TimeViewer
+        from surfer import Brain
     else:  # PyVista
         from ._brain import _Brain as Brain
-        from ._brain import _TimeViewer as TimeViewer
     _check_option('hemi', hemi, ['lh', 'rh', 'split', 'both'])
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
@@ -1819,15 +1810,12 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 kwargs["clim"] = clim
             with warnings.catch_warnings(record=True):  # traits warnings
                 brain.add_data(**kwargs)
-    if time_viewer:
-        if get_3d_backend() == "mayavi":
-            TimeViewer(brain)
-        else:
-            TimeViewer(brain, show_traces=show_traces)
+
+    _check_time_viewer_compatibility(brain, time_viewer, show_traces)
     return brain
 
 
-def _check_time_viewer_compatibility(time_viewer, show_traces):
+def _check_time_viewer_compatibility(brain, time_viewer, show_traces):
     from .backends.renderer import get_3d_backend
     using_mayavi = get_3d_backend() == "mayavi"
     _check_option('time_viewer', time_viewer, (True, False, 'auto'))
@@ -1839,8 +1827,11 @@ def _check_time_viewer_compatibility(time_viewer, show_traces):
         show_traces = (
             not using_mayavi and
             time_viewer and
+            brain._times is not None and
+            len(brain._times) > 1 and
             # XXX temporary hidden workaround for memory problems on CircleCI
-            os.getenv('_MNE_BRAIN_TRACES_AUTO', 'true').lower() != 'false')
+            os.getenv('_MNE_BRAIN_TRACES_AUTO', 'true').lower() != 'false'
+        )
 
     if get_3d_backend() == "mayavi" and all([time_viewer, show_traces]):
         raise NotImplementedError("Point picking is not available"
@@ -1849,7 +1840,14 @@ def _check_time_viewer_compatibility(time_viewer, show_traces):
         if not check_version('surfer', '0.9'):
             raise RuntimeError('This function requires pysurfer version '
                                '>= 0.9')
-    return time_viewer, show_traces
+
+    if time_viewer:
+        if using_mayavi:
+            from surfer import TimeViewer
+            TimeViewer(brain)
+        else:  # PyVista
+            from ._brain import _TimeViewer as TimeViewer
+            TimeViewer(brain, show_traces=show_traces)
 
 
 def _get_ps_kwargs(initial_time, diverging, mid, transparent):
@@ -2385,14 +2383,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     time_unit : 's' | 'ms'
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
-    show_traces : bool | str
-        If True, enable interactive picking of a point on the surface of the
-        brain and plot it's time course using the bottom 1/3 of the figure.
-        This feature is only available with the PyVista 3d backend when
-        ``time_viewer=True``. Defaults to 'auto', which will use True if and
-        only if ``time_viewer=True`` and the backend is PyVista.
-
-        .. versionadded:: 0.20.0
+    %(show_traces)s
     %(verbose)s
 
     Returns
@@ -2409,13 +2400,10 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     """
     from .backends.renderer import get_3d_backend
     # Import here to avoid circular imports
-    time_viewer, show_traces = _check_time_viewer_compatibility(time_viewer,
-                                                                show_traces)
     if get_3d_backend() == "mayavi":
-        from surfer import Brain, TimeViewer
+        from surfer import Brain
     else:  # PyVista
         from ._brain import _Brain as Brain
-        from ._brain import _TimeViewer as TimeViewer
     from ..source_estimate import VectorSourceEstimate
 
     _validate_type(stc, VectorSourceEstimate, "stc", "Vector Source Estimate")
@@ -2508,11 +2496,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         if brain_alpha < 1.0:
             brain.enable_depth_peeling()
 
-    if time_viewer:
-        if get_3d_backend() == "mayavi":
-            TimeViewer(brain)
-        else:
-            TimeViewer(brain, show_traces=show_traces)
+    _check_time_viewer_compatibility(brain, time_viewer, show_traces)
 
     return brain
 

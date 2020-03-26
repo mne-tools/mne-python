@@ -4,8 +4,8 @@ Use source space morphing
 =========================
 
 This example shows how to use source space morphing (as opposed to
-SourceEstimate morphing) to create data that can be compared between
-subjects.
+:class:`~mne.SourceEstimate` morphing) to create data that can be compared
+between subjects.
 
 .. warning:: Source space morphing will likely lead to source spaces that are
              less evenly sampled than source spaces created for individual
