@@ -7,6 +7,7 @@
 import warnings
 import time
 import traceback
+import sys
 
 import numpy as np
 
@@ -22,7 +23,7 @@ def safe_event(fun, *args, **kwargs):
     try:
         return fun(*args, **kwargs)
     except Exception:
-        traceback.print_exc()
+        traceback.print_exc(file=sys.stderr)
 
 
 class MplCanvas(object):
