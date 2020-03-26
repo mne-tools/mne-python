@@ -6,10 +6,23 @@
 
 import warnings
 import time
+import traceback
+
 import numpy as np
+
 from ..utils import _check_option, _show_help, _get_color_list, tight_layout
+from ...externals.decorator import decorator
 from ...source_space import vertex_to_mni
 from ...utils import _ReuseCycle
+
+
+@decorator
+def safe_event(fun, *args, **kwargs):
+    """Protect against PyQt5 exiting on event-handling errors."""
+    try:
+        return fun(*args, **kwargs)
+    except Exception:
+        traceback.print_exc()
 
 
 class MplCanvas(object):
@@ -370,6 +383,7 @@ class _TimeViewer(object):
         # show everything at the end
         self.toggle_interface()
 
+    @safe_event
     def keyPressEvent(self, event):
         callback = self.key_bindings.get(event.text())
         if callback is not None:
@@ -900,6 +914,7 @@ class _TimeViewer(object):
             height=2,
         )
 
+    @safe_event
     def clean(self):
         # resolve the reference cycle
         self.clear_points()
