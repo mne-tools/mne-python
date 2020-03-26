@@ -1458,7 +1458,9 @@ def _smooth_plot(this_time, params):
     colors[:, :3] += greymap(curv_ave)[:, :3] * (1. - colors[:, [3]])
     colors[:, 3] = 1.
     facecolors[:] = colors
-    ax.set_title(params['time_label'] % (times[time_idx] * scaler), color='w')
+    if params['time_label'] is not None:
+        ax.set_title(params['time_label'](times[time_idx] * scaler,),
+                     color='w')
     _set_aspect_equal(ax)
     ax.axis('off')
     ax.set(xlim=[-80, 80], ylim=(-80, 80), zlim=[-80, 80])
@@ -1561,8 +1563,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         if initial_time is None:
             initial_time = 0
         slider = Slider(ax=ax_time, label='Time', valmin=times[0],
-                        valmax=times[-1], valinit=initial_time,
-                        valfmt=time_label)
+                        valmax=times[-1], valinit=initial_time)
         time_viewer.slider = slider
         callback_slider = partial(_smooth_plot, params=params)
         slider.on_changed(callback_slider)

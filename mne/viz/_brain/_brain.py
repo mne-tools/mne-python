@@ -486,12 +486,11 @@ class _Brain(object):
                 ci = 0
             else:
                 ci = 0 if hemi == 'lh' else 1
-            if not self._time_label_added:
+            if not self._time_label_added and time_label is not None:
                 time_actor = self._renderer.text2d(
                     x_window=0.95, y_window=y_txt,
                     size=time_label_size,
-                    text=time_label(self._current_time)
-                    if time_label is not None else None,
+                    text=time_label(self._current_time),
                     justification='right'
                 )
                 self._data['time_actor'] = time_actor
