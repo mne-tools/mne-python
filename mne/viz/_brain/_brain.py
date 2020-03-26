@@ -303,6 +303,7 @@ class _Brain(object):
             vertices for which the data is defined (needed if len(data) < nvtx)
         smoothing_steps : int or None
             number of smoothing steps (smoothing is used if len(data) < nvtx)
+            The value 'nearest' can be used too.
             Default : 7
         time : numpy array
             time points in the data array (if data is 2D or 3D)
@@ -410,7 +411,20 @@ class _Brain(object):
             fmin, fmid, fmax, center, array
         )
 
-        smoothing_steps = 7 if smoothing_steps is None else smoothing_steps
+        if smoothing_steps is None:
+            smoothing_steps = 7
+        elif smoothing_steps == 'nearest':
+            smoothing_steps = 0
+        elif isinstance(smoothing_steps, int):
+            if smoothing_steps < 0:
+                raise ValueError('Expected value of `smoothing_steps` is'
+                                 ' positive but {} was given.'.format(
+                                     smoothing_steps))
+        else:
+            raise TypeError('Expected type of `smoothing_steps` is int or'
+                            ' NoneType but {} was given.'.format(
+                                type(smoothing_steps)))
+
         self._data['smoothing_steps'] = smoothing_steps
         self._data['clim'] = clim
         self._data['time'] = time
