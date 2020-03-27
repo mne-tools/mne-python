@@ -104,6 +104,7 @@ sphere : float | array-like | instance of ConductorModel
     meters, or a single float to give the radius (origin assumed 0, 0, 0).
     Can also be a spherical ConductorModel, which will use the origin and
     radius. Can also be None (default) which is an alias for %s.
+    Currently the head radius does not affect plotting.
 
     .. versionadded:: 0.20
 """ % (HEAD_SIZE_DEFAULT,)
@@ -116,6 +117,7 @@ sphere : float | array-like | str | None
     radius. Can be "auto" to use a digitization-based fit.
     Can also be None (default) to use 'auto' when enough extra digitization
     points are available, and %s otherwise.
+    Currently the head radius does not affect plotting.
 
     .. versionadded:: 0.20
 """ % (HEAD_SIZE_DEFAULT,)
