@@ -1969,6 +1969,10 @@ def create_info(ch_names, sfreq, ch_types='misc', montage=None, verbose=None):
     if sfreq <= 0:
         raise ValueError('sfreq must be positive')
     nchan = len(ch_names)
+    if ch_types is None:
+        warn('Passing ch_types=None is deprecated and will not be supported '
+             'in 0.21, pass ch_types="misc" instead.', DeprecationWarning)
+        ch_types = 'misc'  # just for backward compat
     if isinstance(ch_types, str):
         ch_types = [ch_types] * nchan
     ch_types = np.atleast_1d(np.array(ch_types, np.str))

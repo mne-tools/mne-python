@@ -11,8 +11,6 @@ domain using Morlet wavelets and the debiased squared weighted phase lag index
 .. [1] Vinck et al. "An improved index of phase-synchronization for electro-
        physiological data in the presence of volume-conduction, noise and
        sample-size bias" NeuroImage, vol. 55, no. 4, pp. 1548-1565, Apr. 2011.
-
-.. mne:: data channels list
 """
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #

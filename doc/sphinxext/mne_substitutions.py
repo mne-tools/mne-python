@@ -2,7 +2,9 @@ from docutils import nodes
 from docutils.parsers.rst import Directive
 from docutils.statemachine import StringList
 
-from mne.io.pick import _DATA_CH_TYPES_ORDER_DEFAULT
+from mne.defaults import DEFAULTS
+from mne.io.pick import (_PICK_TYPES_DATA_DICT, _DATA_CH_TYPES_SPLIT,
+                         _DATA_CH_TYPES_ORDER_DEFAULT)
 
 
 class MNESubstitution(Directive):  # noqa: D101
@@ -14,8 +16,18 @@ class MNESubstitution(Directive):  # noqa: D101
             raise ValueError('MNE directive should have a single argument, '
                              'got: %s' % (self.content,))
         if self.content[0] == 'data channels list':
-            rst = ('- ' + '\n- '.join(
-                '``%r``' % x for x in _DATA_CH_TYPES_ORDER_DEFAULT))
+            keys = list()
+            for key in _DATA_CH_TYPES_ORDER_DEFAULT:
+                if key in _DATA_CH_TYPES_SPLIT:
+                    keys.append(key)
+                elif key not in ('meg', 'fnirs') and \
+                        _PICK_TYPES_DATA_DICT.get(key, False):
+                    keys.append(key)
+            rst = '- ' + '\n- '.join(
+                '``%r``: **%s** (scaled by %g to plot in *%s*)'
+                % (key, DEFAULTS['titles'][key], DEFAULTS['scalings'][key],
+                   DEFAULTS['units'][key])
+                for key in keys)
         else:
             raise ValueError('MNE directive unknown: %r' % (self.content[0],))
         node = nodes.compound(rst)  # General(Body), Element

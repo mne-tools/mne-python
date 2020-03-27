@@ -56,7 +56,9 @@ general neuroimaging concepts. If you think a term is missing, please consider
         channels that typically hold *brain electophysiological* data,
         as opposed to other forms of data, such as EOG, ECG, stimulus trigger,
         or acquisition system status data. The set of channels considered
-        "data channels" in MNE is:
+        "data channels" in MNE is (along with their typical scale factors for
+        plotting, as they are stored in objects in SI units):
+
 
         .. mne:: data channels list
 
