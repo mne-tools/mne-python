@@ -68,17 +68,14 @@ def _fig_to_img(fig, image_format='png', scale=None, **kwargs):
         plt.close('all')
         fig = fig(**kwargs)
     elif not isinstance(fig, Figure):
-        from .viz.backends.renderer import (
-            _check_3d_figure, _take_3d_screenshot,
-            _close_3d_figure, MNE_3D_BACKEND_TESTING
-        )
-        _check_3d_figure(figure=fig)
+        from .viz.backends.renderer import (backend, MNE_3D_BACKEND_TESTING)
+        backend._check_3d_figure(figure=fig)
         if not MNE_3D_BACKEND_TESTING:
-            img = _take_3d_screenshot(figure=fig)
+            img = backend._take_3d_screenshot(figure=fig)
         else:  # Testing mode
             img = np.zeros((2, 2, 3))
 
-        _close_3d_figure(figure=fig)
+        backend._close_3d_figure(figure=fig)
         fig = _ndarray_to_fig(img)
 
     output = BytesIO()
@@ -139,27 +136,24 @@ def _figs_to_mrislices(sl, n_jobs, **kwargs):
 def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig."""
     import matplotlib.pyplot as plt
-    from .viz.backends.renderer import (
-        _check_3d_figure, _take_3d_screenshot, _close_all,
-        _set_3d_view, MNE_3D_BACKEND_TESTING
-    )
+    from .viz.backends.renderer import (backend, MNE_3D_BACKEND_TESTING)
 
     fig = function(**kwargs)
-    _check_3d_figure(fig)
+    backend._check_3d_figure(fig)
 
     views = [(90, 90), (0, 90), (0, -90)]
     fig2, axes = plt.subplots(1, len(views))
     for view, ax in zip(views, axes):
-        _set_3d_view(fig, azimuth=view[0], elevation=view[1],
-                     focalpoint=None, distance=None)
+        backend.__base___set_3d_view(fig, azimuth=view[0], elevation=view[1],
+                                     focalpoint=None, distance=None)
         if not MNE_3D_BACKEND_TESTING:
-            im = _take_3d_screenshot(figure=fig)
+            im = backend._take_3d_screenshot(figure=fig)
         else:  # Testing mode
             im = np.zeros((2, 2, 3))
         ax.imshow(im)
         ax.axis('off')
 
-    _close_all()
+    backend._close_all()
     img = _fig_to_img(fig2, image_format='png')
     return img
 
