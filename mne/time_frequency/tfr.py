@@ -27,7 +27,7 @@ from ..utils import (logger, verbose, _time_mask, _freq_mask, check_fname,
                      _gen_events, SizeMixin, _is_numeric, _check_option,
                      _validate_type)
 from ..channels.channels import ContainsMixin, UpdateChannelsMixin
-from ..channels.layout import _pair_grad_sensors
+from ..channels.layout import _merge_ch_data, _pair_grad_sensors
 from ..io.pick import (pick_info, _picks_to_idx, channel_type, _pick_inst,
                        _get_channel_types)
 from ..io.meas_info import Info
@@ -1403,9 +1403,8 @@ class AverageTFR(_BaseTFR):
 
         .. versionadded:: 0.16.0
         """  # noqa: E501
-        from ..viz.topomap import _set_contour_locator, plot_topomap
-        from ..channels.layout import (find_layout, _merge_ch_data,
-                                       _pair_grad_sensors)
+        from ..viz.topomap import (_set_contour_locator, plot_topomap,
+                                   _get_pos_outlines, _find_topomap_coords)
         import matplotlib.pyplot as plt
 
         #####################################
@@ -1419,6 +1418,7 @@ class AverageTFR(_BaseTFR):
         # Nonetheless, it should be refactored for code reuse.
         copy = any(var is not None for var in (exclude, picks, baseline))
         tfr = _pick_inst(self, picks, exclude, copy=copy)
+        del picks
         ch_types = _get_channel_types(tfr.info, unique=True)
 
         # if multiple sensor types: one plot per channel type, recursive call
@@ -1533,13 +1533,19 @@ class AverageTFR(_BaseTFR):
             data = tfr.data
 
             # merging grads here before rescaling makes ERDs visible
+
+            sphere = topomap_args.get('sphere')
             if ch_type == 'grad':
-                pair_picks, new_pos = _pair_grad_sensors(tfr.info,
-                                                         find_layout(tfr.info))
-                pos = new_pos
+                picks = _pair_grad_sensors(tfr.info, topomap_coords=False)
+                pos = _find_topomap_coords(
+                    tfr.info, picks=picks[::2], sphere=sphere)
                 method = combine or 'rms'
-                data, _ = _merge_ch_data(data[pair_picks], ch_type, [],
+                data, _ = _merge_ch_data(data[picks], ch_type, [],
                                          method=method)
+                del picks, method
+            else:
+                pos, _ = _get_pos_outlines(tfr.info, None, sphere)
+            del sphere
 
             all_pos.append(pos)
 
