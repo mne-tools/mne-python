@@ -90,7 +90,7 @@ def test_make_info():
     pytest.raises(KeyError, create_info, ch_names=['Test Ch'], sfreq=1000,
                   ch_types='awesome')
     pytest.raises(TypeError, create_info, ['Test Ch'], sfreq=1000,
-                  ch_types=None, montage=np.array([1]))
+                  montage=np.array([1]))
     m = make_standard_montage('biosemi32')
     with pytest.deprecated_call():
         info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
@@ -289,7 +289,7 @@ def test_io_dig_points(tmpdir):
 def test_make_dig_points():
     """Test application of Polhemus HSP to info."""
     extra_points = _read_dig_points(hsp_fname)
-    info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
+    info = create_info(ch_names=['Test Ch'], sfreq=1000.)
     assert info['dig'] is None
 
     info['dig'] = _make_dig_points(extra_points=extra_points)
@@ -298,7 +298,7 @@ def test_make_dig_points():
 
     elp_points = _read_dig_points(elp_fname)
     nasion, lpa, rpa = elp_points[:3]
-    info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
+    info = create_info(ch_names=['Test Ch'], sfreq=1000.)
     assert info['dig'] is None
 
     info['dig'] = _make_dig_points(nasion, lpa, rpa, elp_points[3:], None)
@@ -318,7 +318,7 @@ def test_make_dig_points():
 def test_redundant():
     """Test some of the redundant properties of info."""
     # Indexing
-    info = create_info(ch_names=['a', 'b', 'c'], sfreq=1000., ch_types=None)
+    info = create_info(ch_names=['a', 'b', 'c'], sfreq=1000.)
     assert info['ch_names'][0] == 'a'
     assert info['ch_names'][1] == 'b'
     assert info['ch_names'][2] == 'c'
@@ -328,24 +328,26 @@ def test_redundant():
     assert info['ch_names'] == ['a', 'b', 'c']
 
     # No channels in info
-    info = create_info(ch_names=[], sfreq=1000., ch_types=None)
+    info = create_info(ch_names=[], sfreq=1000.)
     assert info['ch_names'] == []
 
     # List should be read-only
-    info = create_info(ch_names=['a', 'b', 'c'], sfreq=1000., ch_types=None)
+    info = create_info(ch_names=['a', 'b', 'c'], sfreq=1000.)
 
 
 def test_merge_info():
     """Test merging of multiple Info objects."""
-    info_a = create_info(ch_names=['a', 'b', 'c'], sfreq=1000., ch_types=None)
-    info_b = create_info(ch_names=['d', 'e', 'f'], sfreq=1000., ch_types=None)
+    info_a = create_info(ch_names=['a', 'b', 'c'], sfreq=1000.)
+    with pytest.deprecated_call():
+        info_b = create_info(ch_names=['d', 'e', 'f'], sfreq=1000.,
+                             ch_types=None)
     info_merged = _merge_info([info_a, info_b])
     assert info_merged['nchan'], 6
     assert info_merged['ch_names'], ['a', 'b', 'c', 'd', 'e', 'f']
     pytest.raises(ValueError, _merge_info, [info_a, info_a])
 
     # Testing for force updates before merging
-    info_c = create_info(ch_names=['g', 'h', 'i'], sfreq=500., ch_types=None)
+    info_c = create_info(ch_names=['g', 'h', 'i'], sfreq=500.)
     # This will break because sfreq is not equal
     pytest.raises(RuntimeError, _merge_info, [info_a, info_c])
     _force_update_info(info_a, info_c)
@@ -365,7 +367,7 @@ def test_merge_info():
     pytest.raises(ValueError, _merge_info, (info_a, info_b))
 
     # hpi infos
-    info_d = create_info(ch_names=['d', 'e', 'f'], sfreq=1000., ch_types=None)
+    info_d = create_info(ch_names=['d', 'e', 'f'], sfreq=1000.)
     info_merged = _merge_info([info_a, info_d])
     assert not info_merged['hpi_meas']
     assert not info_merged['hpi_results']

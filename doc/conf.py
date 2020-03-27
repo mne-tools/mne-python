@@ -66,6 +66,7 @@ extensions = [
     'sphinx_fontawesome',
     'gen_commands',
     'gh_substitutions',
+    'mne_substitutions',
     'sphinx_bootstrap_theme',
     'sphinx_bootstrap_divs',
     'sphinxcontrib.bibtex',

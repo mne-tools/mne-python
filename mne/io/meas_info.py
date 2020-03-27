@@ -1908,7 +1908,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
 
 
 @verbose
-def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
+def create_info(ch_names, sfreq, ch_types='misc', montage=None, verbose=None):
     """Create a basic Info instance suitable for use with create_raw.
 
     Parameters
@@ -1919,7 +1919,8 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
     sfreq : float
         Sample rate of the data.
     ch_types : list of str | str
-        Channel types. If None, data are assumed to be misc.
+        Channel types, default is ``'misc'`` which is not a
+        :term:`data channel <data channels>`.
         Currently supported fields are 'ecg', 'bio', 'stim', 'eog', 'misc',
         'seeg', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'emg', 'hbr' or 'hbo'.
         If str, then all channels are assumed to be of the same type.
@@ -1969,7 +1970,9 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None, verbose=None):
         raise ValueError('sfreq must be positive')
     nchan = len(ch_names)
     if ch_types is None:
-        ch_types = ['misc'] * nchan
+        warn('Passing ch_types=None is deprecated and will not be supported '
+             'in 0.21, pass ch_types="misc" instead.', DeprecationWarning)
+        ch_types = 'misc'  # just for backward compat
     if isinstance(ch_types, str):
         ch_types = [ch_types] * nchan
     ch_types = np.atleast_1d(np.array(ch_types, np.str))
