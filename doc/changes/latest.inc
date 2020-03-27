@@ -15,6 +15,8 @@ Current (0.21.dev0)
 Changelog
 ~~~~~~~~~
 
+- Allow picking channels in raw instances (e.g., :meth:`mne.io.Raw.pick_types`) without preloading data, by `Eric Larson`_
+
 - Add support for signals in mV for :func:`mne.io.read_raw_brainvision` by `Clemens Brunner`_
 
 Bug
