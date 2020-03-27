@@ -45,14 +45,14 @@ def test_3d_functions(renderer):
     """Test figure management functions."""
     fig = renderer.create_3d_figure((300, 300))
     # Mayavi actually needs something in the display to set the title
-    wrap_renderer = renderer._Renderer(fig=fig)
+    wrap_renderer = renderer.backend._Renderer(fig=fig)
     wrap_renderer.sphere(np.array([0., 0., 0.]), 'w', 1.)
-    renderer._check_3d_figure(fig)
-    renderer._set_3d_view(figure=fig, azimuth=None, elevation=None,
-                          focalpoint=(0., 0., 0.), distance=None)
-    renderer._set_3d_title(figure=fig, title='foo')
-    renderer._take_3d_screenshot(figure=fig)
-    renderer._close_all()
+    renderer.backend._check_3d_figure(fig)
+    renderer.backend._set_3d_view(figure=fig, azimuth=None, elevation=None,
+                                  focalpoint=(0., 0., 0.), distance=None)
+    renderer.backend._set_3d_title(figure=fig, title='foo')
+    renderer.backend._take_3d_screenshot(figure=fig)
+    renderer.backend._close_all()
 
 
 def test_3d_backend(renderer):
@@ -102,7 +102,7 @@ def test_3d_backend(renderer):
     cam_distance = 5 * tet_size
 
     # init scene
-    rend = renderer._Renderer(size=win_size, bgcolor=win_color)
+    rend = renderer.backend._Renderer(size=win_size, bgcolor=win_color)
     rend.set_interactive()
 
     # use mesh
