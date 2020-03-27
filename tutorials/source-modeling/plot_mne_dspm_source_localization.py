@@ -57,7 +57,7 @@ evoked.plot(time_unit='s')
 evoked.plot_topomap(times=np.linspace(0.05, 0.15, 5), ch_type='mag',
                     time_unit='s')
 
-# Show whitening
+# Show whitening:
 evoked.plot_white(noise_cov, time_unit='s')
 
 del epochs, raw  # to save memory

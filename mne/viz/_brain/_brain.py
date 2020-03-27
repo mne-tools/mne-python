@@ -200,7 +200,11 @@ class _Brain(object):
 
         if figure is not None and not isinstance(figure, int):
             backend._check_3d_figure(figure)
-        self._renderer = _get_renderer(name=subject_id, size=fig_size,
+        if title is None:
+            self._title = subject_id
+        else:
+            self._title = title
+        self._renderer = _get_renderer(name=self._title, size=fig_size,
                                        bgcolor=background,
                                        shape=(n_row, n_col),
                                        fig=figure)
@@ -237,10 +241,6 @@ class _Brain(object):
                     self._hemi_meshes[h] = mesh
                     self._renderer.set_camera(azimuth=views_dict[v].azim,
                                               elevation=views_dict[v].elev)
-
-        if self._title is not None:
-            backend._set_3d_title(figure=self._renderer.scene(),
-                                  title=self._title)
 
         # Force rendering
         self._renderer.show()

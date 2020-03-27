@@ -124,7 +124,7 @@ brain_post = stc_post.plot('sample', 'inflated', 'lh',
 brain_post.add_text(0.1, 0.9, 'LCMV beamformer with post-stimulus\ndata '
                     'covariance matrix', 'title', font_size=16)
 
-# Mark true source location for CTFs
+# mark true source location for CTFs
 brain_pre.add_foci(verttrue, coords_as_verts=True, scale_factor=1., hemi='lh',
                    color='green')
 
