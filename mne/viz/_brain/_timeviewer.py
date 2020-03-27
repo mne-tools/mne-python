@@ -356,6 +356,8 @@ class _TimeViewer(object):
         # Direct access parameters:
         self.brain = brain
         self.brain.time_viewer = self
+        self.brain._screenshot = self.brain.screenshot
+        self.brain.screenshot = self.screenshot
         self.plotter = brain._renderer.plotter
         self.main_menu = self.plotter.main_menu
         self.window = self.plotter.app_window
@@ -402,8 +404,11 @@ class _TimeViewer(object):
             if getattr(slider, "name", None) in {'playback_speed', 'time'}:
                 slider.GetRepresentation().VisibilityOff()
 
-    def toggle_interface(self):
-        self.visibility = not self.visibility
+    def toggle_interface(self, value=None):
+        if value is None:
+            self.visibility = not self.visibility
+        else:
+            self.visibility = value
 
         # manage sliders
         for slider in self.plotter.slider_widgets:
@@ -426,6 +431,13 @@ class _TimeViewer(object):
         self._set_time_slider_visibility()
 
         self.plotter.update()
+
+    def screenshot(self, **kwargs):
+        old_visibility = self.visibility
+        self.toggle_interface(value=False)
+        img = self.brain._screenshot(**kwargs)
+        self.toggle_interface(value=old_visibility)
+        return img
 
     def apply_auto_scaling(self):
         self.brain.update_auto_scaling()
