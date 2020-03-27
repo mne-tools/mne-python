@@ -46,11 +46,6 @@ general neuroimaging concepts. If you think a term is missing, please consider
         is used in the code base, e.g. for plotting. See also
         :term:`data channels`.
 
-    DICS
-        Dynamic Imaging of Coherent Sources, a method for computing source
-        power in different frequency bands. see :ref:`ex-inverse-source-power`
-        and :func:`mne.beamformer.make_dics`.
-
     data channels
         Many functions in MNE operate by default on "data channels". These are
         channels that typically hold *brain electophysiological* data,
@@ -59,8 +54,12 @@ general neuroimaging concepts. If you think a term is missing, please consider
         "data channels" in MNE is (along with their typical scale factors for
         plotting, as they are stored in objects in SI units):
 
-
         .. mne:: data channels list
+
+    DICS
+        Dynamic Imaging of Coherent Sources, a method for computing source
+        power in different frequency bands. see :ref:`ex-inverse-source-power`
+        and :func:`mne.beamformer.make_dics`.
 
     digitization
         Digitization is a procedure of recording the headshape of a subject and
