@@ -69,12 +69,12 @@
           </div>
 
           <div class="item">
-            <div class="chopper container"><img src="_images/sphx_glr_plot_visualize_evoked_009.png" alt="Visualization" class="carousel-image"></div>
+            <div class="chopper container"><img src="_images/sphx_glr_plot_20_visualize_evoked_007.png" alt="Visualization" class="carousel-image"></div>
             <div class="container">
               <div class="carousel-caption">
                 <h2>Data visualization.</h2>
                 <p>Explore your data from multiple perspectives.</p>
-                <p><a class="btn btn-info btn-sm" href="auto_tutorials/evoked/plot_visualize_evoked.html" role="button">Check it out</a></p>
+                <p><a class="btn btn-info btn-sm" href="auto_tutorials/evoked/plot_20_visualize_evoked.html" role="button">Check it out</a></p>
               </div>
             </div>
           </div>
