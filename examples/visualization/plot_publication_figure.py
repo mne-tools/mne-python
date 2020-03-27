@@ -44,7 +44,7 @@ stc = mne.read_source_estimate(fname_stc)
 evoked.plot()
 
 stc.plot(views='lat', hemi='split', size=(800, 400), subject='sample',
-         subjects_dir=subjects_dir, initial_time=max_t)
+         subjects_dir=subjects_dir, initial_time=max_t, time_viewer=False)
 
 ###############################################################################
 # To make a publication-ready figure, first we'll re-plot the brain on a white
@@ -57,8 +57,9 @@ clim = dict(kind='value', lims=[4, 8, 12])
 
 # Plot the STC, get the brain image, crop it:
 brain = stc.plot(views='lat', hemi='split', size=(800, 400), subject='sample',
-                 subjects_dir=subjects_dir, initial_time=max_t,
-                 background='w', colorbar=False, clim=clim, colormap=colormap)
+                 subjects_dir=subjects_dir, initial_time=max_t, background='w',
+                 time_viewer=False, colorbar=False, clim=clim,
+                 colormap=colormap)
 screenshot = brain.screenshot()
 brain.close()
 
