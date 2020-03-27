@@ -146,7 +146,7 @@ class _Brain(object):
                  foreground=None, figure=None, subjects_dir=None,
                  views=['lateral'], offset=True, show_toolbar=False,
                  offscreen=False, interaction=None, units='mm'):
-        from ..backends.renderer import _get_renderer, _check_3d_figure
+        from ..backends.renderer import backend, _get_renderer
         from matplotlib.colors import colorConverter
 
         if interaction is not None:
@@ -199,14 +199,15 @@ class _Brain(object):
         offset = None if (not offset or hemi != 'both') else 0.0
 
         if figure is not None and not isinstance(figure, int):
-            _check_3d_figure(figure)
+            backend._check_3d_figure(figure)
         if title is None:
             self._title = subject_id
         else:
             self._title = title
         self._renderer = _get_renderer(name=self._title, size=fig_size,
                                        bgcolor=background,
-                                       shape=(n_row, n_col), fig=figure)
+                                       shape=(n_row, n_col),
+                                       fig=figure)
 
         for h in self._hemis:
             # Initialize a Surface object as the geometry

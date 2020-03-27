@@ -7,10 +7,10 @@
    - "Bug" for bug fixes
    - "API" for backward-incompatible changes
 
-.. _current:
+.. _changes_0_20:
 
-Current (0.20.dev0)
--------------------
+Version 0.20
+------------
 
 Changelog
 ~~~~~~~~~
@@ -357,3 +357,60 @@ API
 - Drop ``unit`` keyword argument from :func:`mne.channels.read_custom_montage`, as it was unused by `Richard Höchenberger`_
 
 - Deprecate :func:`mne.preprocessing.run_ica`, use :meth:`mne.preprocessing.ICA.detect_artifacts` instead by `Richard Höchenberger`_
+
+Authors
+~~~~~~~
+
+People who contributed to this release  (in alphabetical order):
+
+* Adam Li
+* Adonay Nunes
+* Alex Rockhill
+* Alexandre Gramfort
+* Ariel Rokem
+* Britta Westner
+* Carlos de la Torre
+* Christian Brodbeck
+* Christian O'Reilly
+* Chun-Hui Li
+* Clemens Brunner
+* Daniel McCloy
+* Demetres Kostas
+* Denis A. Engemann
+* Dmitrii Altukhov
+* Dominik Welke
+* Eric Larson
+* Ezequiel Mikulan
+* Fahimeh Mamashli
+* Fede Raimondo
+* Fu-Te Wong
+* Geoff Brookshire
+* Guillaume Favelier
+* Henrich Kolkhorst
+* Joan Massich
+* José C. García Alanis
+* Jussi Nurminen
+* Kaisu Lankinen
+* Luke Bloy
+* Mainak Jas
+* Marijn van Vliet
+* Mathurin Massias
+* Mikolaj Magnuski
+* Mohamed Sherif
+* Mohammad Daneshzand
+* Nataliia Kozhemiako
+* Nicolas Barascud
+* Nicolas Legrand
+* Olaf Hauk
+* Padma Sundaram
+* Ramiro Gatti
+* Richard Höchenberger
+* Robert Luke
+* Robert Oostenveld
+* Sebastian Major
+* Sophie Herbst
+* Stefan Appelhoff
+* Stefan Repplinger
+* Thomas Hartmann
+* Victor Férat
+* Yu-Han Luo
