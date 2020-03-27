@@ -87,7 +87,7 @@ BUG
 
 - Fix colorbar range on norm data by `Jaakko Leppakangas`_
 
-- Fix bug in :func:`mne.preprocessing.run_ica`, which used the ``ecg_criterion`` parameter for the EOG criterion instead of ``eog_criterion`` by `Christian Brodbeck`_
+- Fix bug in ``mne.preprocessing.run_ica``, which used the ``ecg_criterion`` parameter for the EOG criterion instead of ``eog_criterion`` by `Christian Brodbeck`_
 
 - Fix normals in CTF data reader by `Eric Larson`_
 
