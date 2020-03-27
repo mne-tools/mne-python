@@ -9,13 +9,13 @@ from mne.io.pick import (_PICK_TYPES_DATA_DICT, _DATA_CH_TYPES_SPLIT,
 
 class MNESubstitution(Directive):  # noqa: D101
 
-    has_content = True
+    has_content = False
+    required_arguments = 1
+    final_argument_whitespace = True
 
     def run(self, **kwargs):  # noqa: D102
-        if len(self.content) != 1:
-            raise ValueError('MNE directive should have a single argument, '
-                             'got: %s' % (self.content,))
-        if self.content[0] == 'data channels list':
+        env = self.state.document.settings.env
+        if self.arguments[0] == 'data channels list':
             keys = list()
             for key in _DATA_CH_TYPES_ORDER_DEFAULT:
                 if key in _DATA_CH_TYPES_SPLIT:
@@ -29,7 +29,10 @@ class MNESubstitution(Directive):  # noqa: D101
                    DEFAULTS['units'][key])
                 for key in keys)
         else:
-            raise ValueError('MNE directive unknown: %r' % (self.content[0],))
+            raise self.error(
+                'MNE directive unknown in %s: %r'
+                % (env.doc2path(env.docname, base=None),
+                   self.arguments[0],))
         node = nodes.compound(rst)  # General(Body), Element
         content = StringList(
             rst.split('\n'), parent=self.content.parent,
