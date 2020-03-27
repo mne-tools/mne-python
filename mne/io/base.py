@@ -1401,7 +1401,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
-             highpass=None, lowpass=None, filtorder=4, clipping=None,
+             highpass=None, lowpass=None, filtorder=4, clipping=1.5,
              show_first_samp=False, proj=True, group_by='type',
              butterfly=False, decim='auto', noise_cov=None, event_id=None,
              show_scrollbars=True, show_scalebars=True, verbose=None):

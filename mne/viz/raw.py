@@ -102,7 +102,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
-             highpass=None, lowpass=None, filtorder=4, clipping=None,
+             highpass=None, lowpass=None, filtorder=4, clipping=1.5,
              show_first_samp=False, proj=True, group_by='type',
              butterfly=False, decim='auto', noise_cov=None, event_id=None,
              show_scrollbars=True, show_scalebars=True, verbose=None):
@@ -185,11 +185,17 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
 
         .. versionchanged:: 0.18
            Support for ``filtorder=0`` to use FIR filtering.
-    clipping : str | None
+    clipping : str | float | None
         If None, channels are allowed to exceed their designated bounds in
         the plot. If "clamp", then values are clamped to the appropriate
         range for display, creating step-like artifacts. If "transparent",
         then excessive values are not shown, creating gaps in the traces.
+        If float, values are outside the float factor ``clipping`` beyond their
+        dedicated range, so ``clipping=1.`` is an alias for
+        ``clipping='transparent'``.
+
+        .. versionchanged:: 0.21
+           Support for float, and default changed from None to 1.5.
     show_first_samp : bool
         If True, show time axis relative to the ``raw.first_samp``.
     proj : bool
@@ -278,7 +284,13 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
                                  duration=duration)
     _validate_type(raw, BaseRaw, 'raw', 'Raw')
     n_channels = min(len(raw.info['chs']), n_channels)
-    _check_option('clipping', clipping, [None, 'clamp', 'transparent'])
+    _validate_type(clipping, (None, 'numeric', str), 'clipping')
+    if isinstance(clipping, str):
+        _check_option('clipping', clipping, ['clamp', 'transparent'],
+                      extra='when a string')
+        clipping = 1. if clipping == 'transparent' else clipping
+    elif clipping is not None:
+        clipping = float(clipping)
     duration = min(raw.times[-1], float(duration))
 
     # figure out the IIR filtering parameters
@@ -728,6 +740,7 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
 def _plot_raw_traces(params, color, bad_color, event_lines=None,
                      event_color=None):
     """Plot raw traces."""
+    from matplotlib.patches import Rectangle
     lines = params['lines']
     info = params['info']
     inds = params['inds']
@@ -768,12 +781,6 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             # apply user-supplied scale factor
             this_data = params['data'][inds[ch_ind]] * params['scale_factor']
 
-            # clip to range (if relevant)
-            if params['clipping'] == 'transparent':
-                this_data[np.abs(this_data) > 1] = np.nan
-            elif params['clipping'] == 'clamp':
-                np.clip(this_data, -1, 1, out=this_data)
-
             # set color
             this_color = bad_color if ch_name in info['bads'] else color
             if isinstance(this_color, dict):
@@ -784,6 +791,15 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             else:
                 this_decim = 1
             this_t = params['times'][::this_decim] + params['first_time']
+
+            # clip to range (if relevant)
+            if params['clipping'] == 'clamp':
+                np.clip(this_data, -1, 1, out=this_data)
+            elif params['clipping'] is not None:
+                l, w = this_t[0], this_t[-1] - this_t[0]
+                b, h = offset - params['clipping'], 2 * params['clipping']
+                rect = Rectangle((l, b), w, h, transform=ax.transData)
+                lines[ii].set_clip_path(rect)
 
             # subtraction here gets correct orientation for flipped ylim
             lines[ii].set_ydata(offset - this_data[..., ::this_decim])

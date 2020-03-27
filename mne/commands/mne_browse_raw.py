@@ -65,7 +65,7 @@ def run():
                       default=4)
     parser.add_option("--clipping", dest="clipping",
                       help="Enable trace clipping mode, either 'clamp' or "
-                      "'transparent'", default=None)
+                      "'transparent'", default=1.5)
     parser.add_option("--filterchpi", dest="filterchpi",
                       help="Enable filtering cHPI signals.", default=None,
                       action="store_true")
@@ -89,6 +89,10 @@ def run():
     lowpass = options.lowpass
     filtorder = options.filtorder
     clipping = options.clipping
+    try:
+        clipping = float(clipping)  # allow float and convert it
+    except Exception:
+        pass
     filterchpi = options.filterchpi
     verbose = options.verbose
 
