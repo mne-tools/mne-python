@@ -81,6 +81,7 @@ jobs:
             command: |
               python -m pip install --user --upgrade --progress-bar off pip numpy vtk setuptools
               python -m pip install --user --upgrade --progress-bar off -r requirements.txt
+              python -m pip install --user --upgrade --pre sphinx
               python -m pip install --user --upgrade --progress-bar off ipython sphinx_fontawesome sphinx_bootstrap_theme memory_profiler "https://github.com/sphinx-gallery/sphinx-gallery/archive/master.zip"
               python -m pip install --user --upgrade seaborn
               python -m pip install --user -e .
