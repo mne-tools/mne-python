@@ -780,6 +780,24 @@ interpolation : str | None
     Must be one of 'linear', 'nearest', 'zero', 'slinear', 'quadratic',
     or 'cubic'.
 """
+docdict["show_traces"] = """
+show_traces : bool | str
+    If True, enable interactive picking of a point on the surface of the
+    brain and plot it's time course using the bottom 1/3 of the figure.
+    This feature is only available with the PyVista 3d backend when
+    ``time_viewer=True``. Defaults to 'auto', which will use True if and
+    only if ``time_viewer=True``, the backend is PyVista, and there is more
+    than one time point.
+
+    .. versionadded:: 0.20.0
+"""
+docdict["time_label"] = """
+time_label : str | callable | None
+    Format of the time label (a format string, a function that maps
+    floating point time values to strings, or None for no label). The
+    default is ``'auto'``, which will use ``time=%%0.2f ms`` if there
+    is more than one time point.
+"""
 
 # STC label time course
 docdict['eltc_labels'] = """

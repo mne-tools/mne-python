@@ -6,10 +6,24 @@
 
 import warnings
 import time
+import traceback
+import sys
+
 import numpy as np
+
 from ..utils import _check_option, _show_help, _get_color_list, tight_layout
+from ...externals.decorator import decorator
 from ...source_space import vertex_to_mni
 from ...utils import _ReuseCycle
+
+
+@decorator
+def safe_event(fun, *args, **kwargs):
+    """Protect against PyQt5 exiting on event-handling errors."""
+    try:
+        return fun(*args, **kwargs)
+    except Exception:
+        traceback.print_exc(file=sys.stderr)
 
 
 class MplCanvas(object):
@@ -305,7 +319,7 @@ class _TimeViewer(object):
 
         # Default configuration
         self.playback = False
-        self.visibility = True
+        self.visibility = False
         self.refresh_rate_ms = max(int(round(1000. / 60.)), 1)
         self.default_scaling_range = [0.2, 2.0]
         self.default_smoothing_range = [0, 15]
@@ -367,10 +381,26 @@ class _TimeViewer(object):
         self.configure_point_picking()
         self.configure_menu()
 
+        # show everything at the end
+        self.toggle_interface()
+
+    @safe_event
     def keyPressEvent(self, event):
         callback = self.key_bindings.get(event.text())
         if callback is not None:
             callback()
+
+    def _set_time_slider_visibility(self):
+        # if we actually have time points, we will show the slider so
+        # hide the time actor
+        if self.brain._times is not None and len(self.brain._times) > 1:
+            if self.time_actor is not None:
+                self.time_actor.VisibilityOff()
+            return
+        # otherwise, hide the irrelevant sliders
+        for slider in self.plotter.slider_widgets:
+            if getattr(slider, "name", None) in {'playback_speed', 'time'}:
+                slider.GetRepresentation().VisibilityOff()
 
     def toggle_interface(self):
         self.visibility = not self.visibility
@@ -385,12 +415,16 @@ class _TimeViewer(object):
 
         # manage time label
         time_label = self.brain._data['time_label']
-        if callable(time_label) and self.time_actor is not None:
-            if self.visibility:
-                self.time_actor.VisibilityOff()
-            else:
+        if self.time_actor is not None:
+            if self.visibility and time_label is not None:
                 self.time_actor.SetInput(time_label(self.brain._current_time))
                 self.time_actor.VisibilityOn()
+            else:
+                self.time_actor.VisibilityOff()
+
+        # hide time labels that are not relevant
+        self._set_time_slider_visibility()
+
         self.plotter.update()
 
     def apply_auto_scaling(self):
@@ -419,23 +453,31 @@ class _TimeViewer(object):
     def set_playback_speed(self, speed):
         self.playback_speed = speed
 
+    @safe_event
     def play(self):
         if self.playback:
-            this_time = time.time()
-            delta = this_time - self._last_tick
-            self._last_tick = time.time()
-            time_data = self.brain._data['time']
-            times = np.arange(self.brain._n_times)
-            time_shift = delta * self.playback_speed
-            max_time = np.max(time_data)
-            time_point = min(self.brain._current_time + time_shift, max_time)
-            # always use linear here -- this does not determine the data
-            # interpolation mode, it just finds where we are (in time) in
-            # terms of the time indices
-            idx = np.interp(time_point, time_data, times)
-            self.time_call(idx, update_widget=True)
-            if time_point == max_time:
+            try:
+                self._advance()
+            except Exception:
                 self.playback = False
+                raise
+
+    def _advance(self):
+        this_time = time.time()
+        delta = this_time - self._last_tick
+        self._last_tick = time.time()
+        time_data = self.brain._data['time']
+        times = np.arange(self.brain._n_times)
+        time_shift = delta * self.playback_speed
+        max_time = np.max(time_data)
+        time_point = min(self.brain._current_time + time_shift, max_time)
+        # always use linear here -- this does not determine the data
+        # interpolation mode, it just finds where we are (in time) in
+        # terms of the time indices
+        idx = np.interp(time_point, time_data, times)
+        self.time_call(idx, update_widget=True)
+        if time_point == max_time:
+            self.playback = False
 
     def set_slider_style(self, slider, show_label=True, show_cap=False):
         if slider is not None:
@@ -546,12 +588,17 @@ class _TimeViewer(object):
         time_slider.name = "time"
         # configure properties of the time slider
         time_slider.GetRepresentation().SetLabelFormat('idx=%0.1f')
-        if self.brain._current_time is not None:
-            current_time = self.brain._current_time
-            time_label = self.brain._data['time_label']
-            if callable(time_label):
-                current_time = time_label(current_time)
-            time_slider.GetRepresentation().SetTitleText(current_time)
+        current_time = self.brain._current_time
+        assert current_time is not None  # should never be the case, float
+        time_label = self.brain._data['time_label']
+        if callable(time_label):
+            current_time = time_label(current_time)
+        else:
+            current_time = time_label
+        time_slider.GetRepresentation().SetTitleText(current_time)
+        if self.time_actor is not None:
+            self.time_actor.SetInput(current_time)
+        del current_time
 
         # Playback speed slider
         self.playback_speed_call = SmartSlider(
@@ -881,6 +928,7 @@ class _TimeViewer(object):
             height=2,
         )
 
+    @safe_event
     def clean(self):
         # resolve the reference cycle
         self.clear_points()

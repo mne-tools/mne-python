@@ -1372,12 +1372,27 @@ def _get_map_ticks(mapdata):
 
 def _handle_time(time_label, time_unit, times):
     """Handle time label string and units."""
+    _validate_type(time_label, (None, str, 'callable'), 'time_label')
     if time_label == 'auto':
-        if time_unit == 's':
-            time_label = 'time=%0.3fs'
-        elif time_unit == 'ms':
-            time_label = 'time=%0.1fms'
-    _, times = _check_time_unit(time_unit, times)
+        if times is not None and len(times) > 1:
+            if time_unit == 's':
+                time_label = 'time=%0.3fs'
+            elif time_unit == 'ms':
+                time_label = 'time=%0.1fms'
+        else:
+            time_label = None
+    # convert to callable
+    if isinstance(time_label, str):
+        time_label_fmt = time_label
+
+        def time_label(x):
+            try:
+                return time_label_fmt % x
+            except Exception:
+                return time_label  # in case it's static
+    assert time_label is None or callable(time_label)
+    if times is not None:
+        _, times = _check_time_unit(time_unit, times)
     return time_label, times
 
 
@@ -1443,7 +1458,9 @@ def _smooth_plot(this_time, params):
     colors[:, :3] += greymap(curv_ave)[:, :3] * (1. - colors[:, [3]])
     colors[:, 3] = 1.
     facecolors[:] = colors
-    ax.set_title(params['time_label'] % (times[time_idx] * scaler), color='w')
+    if params['time_label'] is not None:
+        ax.set_title(params['time_label'](times[time_idx] * scaler,),
+                     color='w')
     _set_aspect_equal(ax)
     ax.axis('off')
     ax.set(xlim=[-80, 80], ylim=(-80, 80), zlim=[-80, 80])
@@ -1546,8 +1563,7 @@ def _plot_mpl_stc(stc, subject=None, surface='inflated', hemi='lh',
         if initial_time is None:
             initial_time = 0
         slider = Slider(ax=ax_time, label='Time', valmin=times[0],
-                        valmax=times[-1], valinit=initial_time,
-                        valfmt=time_label)
+                        valmax=times[-1], valinit=initial_time)
         time_viewer.slider = slider
         callback_slider = partial(_smooth_plot, params=params)
         slider.on_changed(callback_slider)
@@ -1639,10 +1655,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     %(colormap)s
         The default ('auto') uses 'hot' for one-sided data and
         'mne' for two-sided data.
-    time_label : str | callable | None
-        Format of the time label (a format string, a function that maps
-        floating point time values to strings, or None for no label). The
-        default is ``time=%%0.2f ms``.
+    %(time_label)s
     smoothing_steps : int
         The amount of smoothing.
     %(transparent)s
@@ -1708,14 +1721,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         Title for the figure. If None, the subject name will be used.
 
         .. versionadded:: 0.17.0
-    show_traces : bool | str
-        If True, enable interactive picking of a point on the surface of the
-        brain and plot it's time course using the bottom 1/3 of the figure.
-        This feature is only available with the PyVista 3d backend when
-        ``time_viewer=True``. Defaults to 'auto', which will use True if and
-        only if ``time_viewer=True`` and the backend is PyVista.
-
-        .. versionadded:: 0.20.0
+    %(show_traces)s
     %(verbose)s
 
     Returns
@@ -1752,13 +1758,11 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                              time_unit=time_unit, background=background,
                              spacing=spacing, time_viewer=time_viewer,
                              colorbar=colorbar, transparent=transparent)
-    time_viewer, show_traces = _check_time_viewer_compatibility(time_viewer,
-                                                                show_traces)
+
     if get_3d_backend() == "mayavi":
-        from surfer import Brain, TimeViewer
+        from surfer import Brain
     else:  # PyVista
         from ._brain import _Brain as Brain
-        from ._brain import _TimeViewer as TimeViewer
     _check_option('hemi', hemi, ['lh', 'rh', 'split', 'both'])
 
     time_label, times = _handle_time(time_label, time_unit, stc.times)
@@ -1819,15 +1823,12 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 kwargs["clim"] = clim
             with warnings.catch_warnings(record=True):  # traits warnings
                 brain.add_data(**kwargs)
-    if time_viewer:
-        if get_3d_backend() == "mayavi":
-            TimeViewer(brain)
-        else:
-            TimeViewer(brain, show_traces=show_traces)
+
+    _check_time_viewer_compatibility(brain, time_viewer, show_traces)
     return brain
 
 
-def _check_time_viewer_compatibility(time_viewer, show_traces):
+def _check_time_viewer_compatibility(brain, time_viewer, show_traces):
     from .backends.renderer import get_3d_backend
     using_mayavi = get_3d_backend() == "mayavi"
     _check_option('time_viewer', time_viewer, (True, False, 'auto'))
@@ -1839,8 +1840,11 @@ def _check_time_viewer_compatibility(time_viewer, show_traces):
         show_traces = (
             not using_mayavi and
             time_viewer and
+            brain._times is not None and
+            len(brain._times) > 1 and
             # XXX temporary hidden workaround for memory problems on CircleCI
-            os.getenv('_MNE_BRAIN_TRACES_AUTO', 'true').lower() != 'false')
+            os.getenv('_MNE_BRAIN_TRACES_AUTO', 'true').lower() != 'false'
+        )
 
     if get_3d_backend() == "mayavi" and all([time_viewer, show_traces]):
         raise NotImplementedError("Point picking is not available"
@@ -1849,7 +1853,14 @@ def _check_time_viewer_compatibility(time_viewer, show_traces):
         if not check_version('surfer', '0.9'):
             raise RuntimeError('This function requires pysurfer version '
                                '>= 0.9')
-    return time_viewer, show_traces
+
+    if time_viewer:
+        if using_mayavi:
+            from surfer import TimeViewer
+            TimeViewer(brain)
+        else:  # PyVista
+            from ._brain import _TimeViewer as TimeViewer
+            TimeViewer(brain, show_traces=show_traces)
 
 
 def _get_ps_kwargs(initial_time, diverging, mid, transparent):
@@ -2330,10 +2341,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         The hemisphere to display.
     %(colormap)s
         This should be a sequential colormap.
-    time_label : str | callable | None
-        Format of the time label (a format string, a function that maps
-        floating point time values to strings, or None for no label). The
-        default is ``time=%%0.2f ms``.
+    %(time_label)s
     smoothing_steps : int
         The amount of smoothing.
     %(transparent)s
@@ -2385,14 +2393,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     time_unit : 's' | 'ms'
         Whether time is represented in seconds ("s", default) or
         milliseconds ("ms").
-    show_traces : bool | str
-        If True, enable interactive picking of a point on the surface of the
-        brain and plot it's time course using the bottom 1/3 of the figure.
-        This feature is only available with the PyVista 3d backend when
-        ``time_viewer=True``. Defaults to 'auto', which will use True if and
-        only if ``time_viewer=True`` and the backend is PyVista.
-
-        .. versionadded:: 0.20.0
+    %(show_traces)s
     %(verbose)s
 
     Returns
@@ -2409,13 +2410,10 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
     """
     from .backends.renderer import get_3d_backend
     # Import here to avoid circular imports
-    time_viewer, show_traces = _check_time_viewer_compatibility(time_viewer,
-                                                                show_traces)
     if get_3d_backend() == "mayavi":
-        from surfer import Brain, TimeViewer
+        from surfer import Brain
     else:  # PyVista
         from ._brain import _Brain as Brain
-        from ._brain import _TimeViewer as TimeViewer
     from ..source_estimate import VectorSourceEstimate
 
     _validate_type(stc, VectorSourceEstimate, "stc", "Vector Source Estimate")
@@ -2508,11 +2506,7 @@ def plot_vector_source_estimates(stc, subject=None, hemi='lh', colormap='hot',
         if brain_alpha < 1.0:
             brain.enable_depth_peeling()
 
-    if time_viewer:
-        if get_3d_backend() == "mayavi":
-            TimeViewer(brain)
-        else:
-            TimeViewer(brain, show_traces=show_traces)
+    _check_time_viewer_compatibility(brain, time_viewer, show_traces)
 
     return brain
 

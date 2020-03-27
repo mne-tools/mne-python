@@ -17,7 +17,7 @@ from .colormap import calculate_lut
 from .surface import Surface
 from .view import lh_views_dict, rh_views_dict, View
 
-from .._3d import _process_clim
+from .._3d import _process_clim, _handle_time
 
 from ...morph import _hemi_morph
 from ...label import read_label
@@ -248,7 +248,7 @@ class _Brain(object):
     def add_data(self, array, fmin=None, fmid=None, fmax=None,
                  thresh=None, center=None, transparent=False, colormap="auto",
                  alpha=1, vertices=None, smoothing_steps=None, time=None,
-                 time_label="time index=%d", colorbar=True,
+                 time_label="auto", colorbar=True,
                  hemi=None, remove_existing=None, time_label_size=None,
                  initial_time=None, scale_factor=None, vector_alpha=None,
                  clim=None, verbose=None):
@@ -307,9 +307,7 @@ class _Brain(object):
             Default : 7
         time : numpy array
             time points in the data array (if data is 2D or 3D)
-        time_label : str | callable | None
-            format of the time label (a format string, a function that maps
-            floating point time values to strings, or None for no label)
+        %(time_label)s
         colorbar : bool
             whether to add a colorbar to the figure
         hemi : str | None
@@ -321,7 +319,6 @@ class _Brain(object):
             Remove surface added by previous "add_data" call. Useful for
             conserving memory when displaying different data in a loop.
         time_label_size : int
-            Not supported yet.
             Font size of the time label (default 14)
         initial_time : float | None
             Time initially shown in the plot. ``None`` to use the first time
@@ -392,16 +389,10 @@ class _Brain(object):
                 time_idx = 0
             else:
                 time_idx = self._to_time_index(initial_time)
-            self._data["time_idx"] = time_idx
 
-            # time label
-            if isinstance(time_label, str):
-                time_label_fmt = time_label
-
-                def time_label(x):
-                    return time_label_fmt % x
-            self._data["time_label"] = time_label
-            y_txt = 0.05 + 0.1 * bool(colorbar)
+        # time label
+        time_label, _ = _handle_time(time_label, 's', time)
+        y_txt = 0.05 + 0.1 * bool(colorbar)
 
         if array.ndim == 3:
             if array.shape[1] != 3:
@@ -495,16 +486,15 @@ class _Brain(object):
                 ci = 0
             else:
                 ci = 0 if hemi == 'lh' else 1
-            if array.ndim >= 2 and callable(time_label):
-                if not self._time_label_added:
-                    time_actor = self._renderer.text2d(
-                        x_window=0.95, y_window=y_txt,
-                        size=time_label_size,
-                        text=time_label(self._current_time),
-                        justification='right'
-                    )
-                    self._data['time_actor'] = time_actor
-                    self._time_label_added = True
+            if not self._time_label_added and time_label is not None:
+                time_actor = self._renderer.text2d(
+                    x_window=0.95, y_window=y_txt,
+                    size=time_label_size,
+                    text=time_label(self._current_time),
+                    justification='right'
+                )
+                self._data['time_actor'] = time_actor
+                self._time_label_added = True
             if colorbar and not self._colorbar_added:
                 self._renderer.scalarbar(source=actor, n_labels=8,
                                          bgcolor=(0.5, 0.5, 0.5))
