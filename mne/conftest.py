@@ -227,7 +227,7 @@ def renderer(backend_name, garbage_collect):
     with _use_test_3d_backend(backend_name):
         from mne.viz.backends import renderer
         yield renderer
-        renderer._close_all()
+        renderer.backend._close_all()
 
 
 @pytest.yield_fixture
@@ -254,7 +254,7 @@ def renderer_interactive(backend_name_interactive):
     with _use_test_3d_backend(backend_name_interactive, interactive=True):
         from mne.viz.backends import renderer
         yield renderer
-        renderer._close_all()
+        renderer.backend._close_all()
 
 
 def _check_skip_backend(name):

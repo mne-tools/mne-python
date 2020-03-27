@@ -177,7 +177,7 @@ def test_plot_alignment(tmpdir, renderer):
             'r': [0.08436285, -0.02850276, -0.04127743]}]
     write_dig(fiducials_path, fid, 5)
 
-    renderer._close_all()
+    renderer.backend._close_all()
     evoked = read_evokeds(evoked_fname)[0]
     sample_src = read_source_spaces(src_fname)
     bti = read_raw_bti(pdf_fname, config_fname, hs_fname, convert=True,
@@ -194,10 +194,10 @@ def test_plot_alignment(tmpdir, renderer):
             meg.append('ref')
         fig = plot_alignment(info, read_trans(trans_fname), subject='sample',
                              subjects_dir=subjects_dir, meg=meg)
-        rend = renderer._Renderer(fig=fig)
+        rend = renderer.backend._Renderer(fig=fig)
         rend.close()
     # KIT ref sensor coil def is defined
-    renderer._close_all()
+    renderer.backend._close_all()
     info = infos['Neuromag']
     pytest.raises(TypeError, plot_alignment, 'foo', trans_fname,
                   subject='sample', subjects_dir=subjects_dir)
@@ -208,9 +208,9 @@ def test_plot_alignment(tmpdir, renderer):
                   src=sample_src)
     sample_src.plot(subjects_dir=subjects_dir, head=True, skull=True,
                     brain='white')
-    renderer._close_all()
+    renderer.backend._close_all()
     # no-head version
-    renderer._close_all()
+    renderer.backend._close_all()
     # all coord frames
     pytest.raises(ValueError, plot_alignment, info)
     plot_alignment(info, surfaces=[])
@@ -219,7 +219,7 @@ def test_plot_alignment(tmpdir, renderer):
                              coord_frame=coord_frame, trans=Path(trans_fname),
                              subject='sample', mri_fiducials=fiducials_path,
                              subjects_dir=subjects_dir, src=src_fname)
-    renderer._close_all()
+    renderer.backend._close_all()
     # EEG only with strange options
     evoked_eeg_ecog_seeg = evoked.copy().pick_types(meg=False, eeg=True)
     evoked_eeg_ecog_seeg.info['projs'] = []  # "remove" avg proj
@@ -231,7 +231,7 @@ def test_plot_alignment(tmpdir, renderer):
                        surfaces=['white', 'outer_skin', 'outer_skull'],
                        meg=['helmet', 'sensors'],
                        eeg=['original', 'projected'], ecog=True, seeg=True)
-    renderer._close_all()
+    renderer.backend._close_all()
 
     sphere = make_sphere_model(info=evoked.info, r0='auto', head_radius='auto')
     bem_sol = read_bem_solution(op.join(subjects_dir, 'sample', 'bem',
@@ -279,7 +279,7 @@ def test_plot_alignment(tmpdir, renderer):
     fig = plot_alignment(trans=trans_fname, subject='sample', meg=False,
                          coord_frame='mri', subjects_dir=subjects_dir,
                          surfaces=['brain'], bem=sphere, show_axes=True)
-    renderer._close_all()
+    renderer.backend._close_all()
     if renderer.get_3d_backend() == 'mayavi':
         import mayavi  # noqa: F401 analysis:ignore
         assert isinstance(fig, mayavi.core.scene.Scene)
@@ -340,7 +340,7 @@ def test_plot_alignment(tmpdir, renderer):
     log = log.getvalue()
     assert '26 fnirs locations' in log
 
-    renderer._close_all()
+    renderer.backend._close_all()
 
 
 @pytest.mark.slowtest  # can be slow on OSX
@@ -520,7 +520,7 @@ def test_plot_dipole_orientations(renderer):
         dipoles.plot_locations(trans=trans, subject='sample',
                                subjects_dir=subjects_dir,
                                mode=mode, coord_frame=coord_frame)
-    renderer._close_all()
+    renderer.backend._close_all()
 
 
 @testing.requires_testing_data
