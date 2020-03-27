@@ -144,8 +144,8 @@ def _iterate_trans_views(function, **kwargs):
     views = [(90, 90), (0, 90), (0, -90)]
     fig2, axes = plt.subplots(1, len(views))
     for view, ax in zip(views, axes):
-        backend.__base___set_3d_view(fig, azimuth=view[0], elevation=view[1],
-                                     focalpoint=None, distance=None)
+        backend._set_3d_view(fig, azimuth=view[0], elevation=view[1],
+                             focalpoint=None, distance=None)
         if not MNE_3D_BACKEND_TESTING:
             im = backend._take_3d_screenshot(figure=fig)
         else:  # Testing mode
