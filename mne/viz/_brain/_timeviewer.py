@@ -11,7 +11,9 @@ import sys
 
 import numpy as np
 
+from . import _Brain
 from ..utils import _check_option, _show_help, _get_color_list, tight_layout
+from ...utils import copy_doc
 from ...externals.decorator import decorator
 from ...source_space import vertex_to_mni
 from ...utils import _ReuseCycle
@@ -432,6 +434,7 @@ class _TimeViewer(object):
 
         self.plotter.update()
 
+    @copy_doc(_Brain.screenshot)
     def screenshot(self, **kwargs):
         old_visibility = self.visibility
         self.toggle_interface(value=False)
