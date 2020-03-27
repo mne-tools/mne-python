@@ -146,8 +146,7 @@ class _Brain(object):
                  foreground=None, figure=None, subjects_dir=None,
                  views=['lateral'], offset=True, show_toolbar=False,
                  offscreen=False, interaction=None, units='mm'):
-        from ..backends.renderer import (_get_renderer, _check_3d_figure,
-                                         _set_3d_title)
+        from ..backends.renderer import _get_renderer, _check_3d_figure
         from matplotlib.colors import colorConverter
 
         if interaction is not None:
@@ -201,7 +200,11 @@ class _Brain(object):
 
         if figure is not None and not isinstance(figure, int):
             _check_3d_figure(figure)
-        self._renderer = _get_renderer(name=subject_id, size=fig_size,
+        if title is None:
+            self._title = subject_id
+        else:
+            self._title = title
+        self._renderer = _get_renderer(name=self._title, size=fig_size,
                                        bgcolor=background,
                                        shape=(n_row, n_col), fig=figure)
 
@@ -237,9 +240,6 @@ class _Brain(object):
                     self._hemi_meshes[h] = mesh
                     self._renderer.set_camera(azimuth=views_dict[v].azim,
                                               elevation=views_dict[v].elev)
-
-        if self._title is not None:
-            _set_3d_title(figure=self._renderer.scene(), title=self._title)
 
         # Force rendering
         self._renderer.show()
