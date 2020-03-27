@@ -55,7 +55,7 @@ stc.plot(views='lat', hemi='split', size=(800, 400), subject='sample',
 colormap = 'viridis'
 clim = dict(kind='value', lims=[4, 8, 12])
 
-# Plot the STC, get the brain image, crop it
+# Plot the STC, get the brain image, crop it:
 brain = stc.plot(views='lat', hemi='split', size=(800, 400), subject='sample',
                  subjects_dir=subjects_dir, initial_time=max_t,
                  background='w', colorbar=False, clim=clim, colormap=colormap)
