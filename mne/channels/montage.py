@@ -30,7 +30,6 @@ from ..io._digitization import (_count_points_by_type,
                                 _get_dig_eeg, _make_dig_points, write_dig,
                                 _read_dig_fif, _format_dig_points,
                                 _get_fid_coords, _coord_frame_const)
-from ..io.meas_info import DEPRECATED_PARAM
 from ..io.open import fiff_open
 from ..io.pick import pick_types
 from ..io.constants import FIFF
@@ -607,56 +606,8 @@ def _get_montage_in_head(montage):
         return transform_to_head(montage.copy())
 
 
-def _set_montage_deprecation_helper(montage, update_ch_names, set_dig,
-                                    raise_if_subset):
-    """Manage deprecation policy for _set_montage.
-
-    montage : instance of DigMontage | 'kind' | None
-        The montage.
-    update_ch_names : bool | None
-        Whether to update or not ``ch_names`` in info. None in 0.20
-    set_dig : bool
-        Whether to copy or not ``montage.dig`` into ``info['dig']``.
-        None in 0.20
-    raise_if_subset: bool
-        Flag to grant raise/warn backward compatibility.
-
-    Notes
-    -----
-    v0.19:
-       - deprecate all montage types but DigMontage (or None, or valid 'kind')
-       - deprecate using update_ch_names and set_dig
-       - add raise_if_subset flag (defaults to False)
-
-    v0.20:
-       - montage is only DigMontage
-       - update_ch_names and set_dig disappear
-       - raise_if_subset defaults to True, still warns
-
-    v0.21:
-       - remove raise_if_subset
-    """
-    assert update_ch_names is None
-    assert set_dig is None
-
-    # This is unlikely to be trigger but it applies in all cases
-    if raise_if_subset is not DEPRECATED_PARAM:
-        if raise_if_subset:
-            warn((
-                'Using ``raise_if_subset`` to ``set_montage``  is deprecated'
-                ' and ``set_dig`` will be  removed in 0.21'
-            ), DeprecationWarning)
-        else:
-            raise ValueError(
-                'Using ``raise_if_subset`` to ``set_montage``  is deprecated'
-                ' and since 0.20 its value can only be True.'
-                ' It will be  removed in 0.21'
-            )
-
-
 @fill_doc
-def _set_montage(info, montage, raise_if_subset=DEPRECATED_PARAM,
-                 match_case=True):
+def _set_montage(info, montage, match_case=True):
     """Apply montage to data.
 
     With a DigMontage, this function will replace the digitizer info with
@@ -670,15 +621,6 @@ def _set_montage(info, montage, raise_if_subset=DEPRECATED_PARAM,
     info : instance of Info
         The measurement info to update.
     %(montage)s
-    raise_if_subset: bool
-        If True, ValueError will be raised when montage.ch_names is a
-        subset of info['ch_names']. This parameter was introduced for
-        backward compatibility when set to False.
-
-        Defaults to False in 0.19, it will change to default to True in
-        0.20, and will be removed in 0.21.
-
-        .. versionadded: 0.19
     %(match_case)s
 
     Notes
@@ -687,7 +629,6 @@ def _set_montage(info, montage, raise_if_subset=DEPRECATED_PARAM,
     """
     _validate_type(montage, types=(DigMontage, type(None), str),
                    item_name='montage')
-    _set_montage_deprecation_helper(montage, None, None, raise_if_subset)
 
     if isinstance(montage, str):  # load builtin montage
         _check_option('montage', montage, _BUILT_IN_MONTAGES)

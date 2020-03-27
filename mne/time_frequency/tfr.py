@@ -1289,7 +1289,7 @@ class AverageTFR(_BaseTFR):
     def plot_joint(self, timefreqs=None, picks=None, baseline=None,
                    mode='mean', tmin=None, tmax=None, fmin=None, fmax=None,
                    vmin=None, vmax=None, cmap='RdBu_r', dB=False,
-                   colorbar=True, show=True, title=None, layout=None,
+                   colorbar=True, show=True, title=None,
                    yscale='auto', combine='mean', exclude=[],
                    topomap_args=None, image_args=None, verbose=None):
         """Plot TFRs as a two-dimensional image with topomaps.
@@ -1352,7 +1352,6 @@ class AverageTFR(_BaseTFR):
             Call pyplot.show() at the end.
         title : str | None
             String for title. Defaults to None (blank/no title).
-        %(layout_dep)s
         yscale : 'auto' (default) | 'linear' | 'log'
             The scale of y (frequency) axis. 'linear' gives linear y axis,
             'log' leads to log-spaced y axis and 'auto' detects if frequencies
@@ -1442,7 +1441,7 @@ class AverageTFR(_BaseTFR):
                         mode=mode, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
                         vmin=vmin, vmax=vmax, cmap=cmap, dB=dB,
                         colorbar=colorbar, show=False, title=title,
-                        layout=layout, yscale=yscale, combine=combine,
+                        yscale=yscale, combine=combine,
                         exclude=None, topomap_args=topomap_args,
                         verbose=verbose))
             return figs
@@ -1476,7 +1475,7 @@ class AverageTFR(_BaseTFR):
         fig = tfr._plot(
             picks=None, baseline=baseline, mode=mode, tmin=tmin, tmax=tmax,
             fmin=fmin, fmax=fmax, vmin=vmin, vmax=vmax, cmap=cmap, dB=dB,
-            colorbar=False, show=False, title=title, axes=tf_ax, layout=layout,
+            colorbar=False, show=False, title=title, axes=tf_ax,
             yscale=yscale, combine=combine, exclude=None, copy=False,
             source_plot_joint=True, topomap_args=topomap_args_pass,
             ch_type=ch_type, **image_args)
@@ -1533,21 +1532,11 @@ class AverageTFR(_BaseTFR):
 
             data = tfr.data
 
-            if layout is None:
-                loaded_layout = find_layout(tfr.info)
-
-            # only use position information for channels from layout
-            # whose names appear as a substring in tfr.ch_names
-            idx = [any(ch_name in ch_name_tfr for ch_name_tfr in tfr.ch_names)
-                   for ch_name in loaded_layout.names]
-            pos = loaded_layout.pos[np.array(idx)]
-
             # merging grads here before rescaling makes ERDs visible
             if ch_type == 'grad':
                 pair_picks, new_pos = _pair_grad_sensors(tfr.info,
                                                          find_layout(tfr.info))
-                if layout is None:
-                    pos = new_pos
+                pos = new_pos
                 method = combine or 'rms'
                 data, _ = _merge_ch_data(data[pair_picks], ch_type, [],
                                          method=method)
@@ -1786,11 +1775,11 @@ class AverageTFR(_BaseTFR):
 
     @fill_doc
     def plot_topomap(self, tmin=None, tmax=None, fmin=None, fmax=None,
-                     ch_type=None, baseline=None, mode='mean', layout=None,
+                     ch_type=None, baseline=None, mode='mean',
                      vmin=None, vmax=None, cmap=None, sensors=True,
                      colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
-                     axes=None, show=True, outlines='head', head_pos=None,
+                     axes=None, show=True, outlines='head',
                      contours=6, sphere=None):
         """Plot topographic maps of time-frequency intervals of TFR data.
 
@@ -1835,7 +1824,6 @@ class AverageTFR(_BaseTFR):
             - dividing by the mean of baseline values, taking the log, and
               dividing by the standard deviation of log baseline values
               ('zlogratio')
-        %(layout_dep)s
         vmin : float | callable | None
             The value specifying the lower bound of the color range. If None,
             and vmax is None, -vmax is used. Else np.min(data) or in case
@@ -1883,7 +1871,6 @@ class AverageTFR(_BaseTFR):
         show : bool
             Call pyplot.show() at the end.
         %(topomap_outlines)s
-        %(topomap_head_pos)s
         contours : int | array of float
             The number of contour lines to draw. If 0, no contours will be
             drawn. When an integer, matplotlib ticker locator is used to find
@@ -1901,12 +1888,12 @@ class AverageTFR(_BaseTFR):
         from ..viz import plot_tfr_topomap
         return plot_tfr_topomap(self, tmin=tmin, tmax=tmax, fmin=fmin,
                                 fmax=fmax, ch_type=ch_type, baseline=baseline,
-                                mode=mode, layout=layout, vmin=vmin, vmax=vmax,
+                                mode=mode, vmin=vmin, vmax=vmax,
                                 cmap=cmap, sensors=sensors, colorbar=colorbar,
                                 unit=unit, res=res, size=size,
                                 cbar_fmt=cbar_fmt, show_names=show_names,
                                 title=title, axes=axes, show=show,
-                                outlines=outlines, head_pos=head_pos,
+                                outlines=outlines,
                                 contours=contours, sphere=sphere)
 
     def _check_compat(self, tfr):

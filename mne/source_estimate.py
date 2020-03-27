@@ -24,7 +24,7 @@ from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     fill_doc, _check_option, _validate_type, _check_src_normal,
                     _check_stc_units, _check_pandas_installed,
                     _check_pandas_index_arguments, _convert_times,
-                    _build_data_frame, _check_time_format, _check_scaling_time)
+                    _build_data_frame, _check_time_format)
 from .viz import (plot_source_estimates, plot_vector_source_estimates,
                   plot_volume_source_estimates)
 from .io.base import TimeMixin
@@ -1120,7 +1120,7 @@ class _BaseSourceEstimate(TimeMixin):
         return stcs
 
     @fill_doc
-    def to_data_frame(self, index=None, scaling_time=None, scalings=None,
+    def to_data_frame(self, index=None, scalings=None,
                       long_format=False, time_format='ms'):
         """Export data in tabular structure as a pandas DataFrame.
 
@@ -1132,7 +1132,6 @@ class _BaseSourceEstimate(TimeMixin):
         ----------
         %(df_index_evk)s
             Defaults to ``None``.
-        %(df_scaling_time_deprecated)s
         %(df_scalings)s
         %(df_longform_stc)s
         %(df_time_format)s
@@ -1143,8 +1142,6 @@ class _BaseSourceEstimate(TimeMixin):
         -------
         %(df_return)s
         """
-        # check deprecation
-        _check_scaling_time(scaling_time)
         # check pandas once here, instead of in each private utils function
         pd = _check_pandas_installed()  # noqa
         # arg checking

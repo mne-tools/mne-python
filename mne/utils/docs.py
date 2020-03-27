@@ -93,10 +93,6 @@ border : float | 'mean'
 
     .. versionadded:: 0.20
 """
-docdict['topomap_head_pos'] = """
-head_pos : dict | None
-    Deprecated and will be removed in 0.21. Use ``sphere`` instead.
-"""
 docdict['topomap_sphere'] = """
 sphere : float | array-like | instance of ConductorModel
     The sphere parameters to use for the cartoon head.
@@ -121,11 +117,6 @@ sphere : float | array-like | str | None
 
     .. versionadded:: 0.20
 """ % (HEAD_SIZE_DEFAULT,)
-docdict['layout_dep'] = """
-layout : None
-    Deprecated and will be removed in 0.21. Use ``sphere`` to control
-    head-sensor relationship instead.
-"""
 
 # Picks
 docdict['picks_header'] = 'picks : str | list | slice | None'
@@ -703,20 +694,9 @@ vlim : tuple of length 2 | 'joint'
     projectors of the same channel type, using the min/max of the projector
     data. If vlim is ``'joint'``, ``info`` must not be ``None``. Defaults
     to ``(None, None)``.
-layout : None
-    Deprecated, will be removed in 0.20. Use ``info`` instead.
 """ % docdict
 
 # Montage
-docdict["montage_deprecated"] = """
-montage : str | None | instance of Montage
-    Path or instance of montage containing electrode positions.
-    If None, sensor locations are (0,0,0). See the documentation of
-    :func:`mne.channels.read_montage` for more information.
-
-    DEPRECATED in version 0.19
-    Use the `set_montage` method.
-"""
 docdict["montage"] = """
 montage : None | str | DigMontage
     A montage containing channel positions. If str or DigMontage is
@@ -953,12 +933,6 @@ buffer_size : int | None
 """
 
 # DataFrames
-docdict['df_scaling_time_deprecated'] = """
-scaling_time : None
-    Deprecated; use ``time_format`` instead. If you need to scale time values
-    by a factor other than 1000 (seconds → milliseconds), create the DataFrame
-    first, then scale its ``time`` column afterwards.
-"""
 docdict['df_index'] = """
 index : {} | None
     Kind of index to use for the DataFrame. If ``None``, a sequential

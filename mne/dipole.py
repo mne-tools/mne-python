@@ -355,10 +355,6 @@ class DipoleFixed(ShiftTimeMixin):
         Number of averages.
     aspect_kind : int
         The kind of data.
-    first : int
-        First sample. Deprecated, will be removed in 0.21.
-    last : int
-        Last sample. Deprecated, will be removed in 0.21.
     comment : str
         The dipole comment.
     %(verbose)s
@@ -380,17 +376,13 @@ class DipoleFixed(ShiftTimeMixin):
 
     @verbose
     def __init__(self, info, data, times, nave, aspect_kind,
-                 first=None, last=None, comment='',
-                 verbose=None):  # noqa: D102
+                 comment='', verbose=None):  # noqa: D102
         self.info = info
         self.nave = nave
         self._aspect_kind = aspect_kind
         self.kind = _aspect_rev.get(aspect_kind, 'unknown')
         self.comment = comment
         self.times = times
-        if first is not None or last is not None:
-            warn(DeprecationWarning, 'first and last are deprecated, '
-                 'do not pass them')
         self.data = data
         self.verbose = verbose
         self.preload = True

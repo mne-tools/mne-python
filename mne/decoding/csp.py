@@ -291,13 +291,13 @@ class CSP(TransformerMixin, BaseEstimator):
         return X
 
     @fill_doc
-    def plot_patterns(self, info, components=None, ch_type=None, layout=None,
+    def plot_patterns(self, info, components=None, ch_type=None,
                       vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                       colorbar=True, scalings=None, units='a.u.', res=64,
                       size=1, cbar_fmt='%3.1f', name_format='CSP%01d',
                       show=True, show_names=False, title=None, mask=None,
                       mask_params=None, outlines='head', contours=6,
-                      image_interp='bilinear', average=None, head_pos=None,
+                      image_interp='bilinear', average=None,
                       sphere=None):
         """Plot topographic patterns of components.
 
@@ -316,11 +316,6 @@ class CSP(TransformerMixin, BaseEstimator):
             collected in pairs and the RMS for each pair is plotted.
             If None, then first available channel type from order given
             above is used. Defaults to None.
-        layout : None | Layout
-            Layout instance specifying sensor positions (does not need to be
-            specified for Neuromag data). If possible, the correct layout file
-            is inferred from the data; if no appropriate layout file was found
-            the layout is automatically generated from the sensor locations.
         vmin : float | callable
             The value specifying the lower bound of the color range.
             If None, and vmax is None, -vmax is used. Else np.min(data).
@@ -397,7 +392,6 @@ class CSP(TransformerMixin, BaseEstimator):
             (seconds). For example, 0.01 would translate into window that
             starts 5 ms before and ends 5 ms after a given time point.
             Defaults to None, which means no averaging.
-        %(topomap_head_pos)s
         %(topomap_sphere_auto)s
 
         Returns
@@ -416,23 +410,23 @@ class CSP(TransformerMixin, BaseEstimator):
         patterns = EvokedArray(self.patterns_.T, info, tmin=0)
         # the call plot_topomap
         return patterns.plot_topomap(
-            times=components, ch_type=ch_type, layout=layout,
+            times=components, ch_type=ch_type,
             vmin=vmin, vmax=vmax, cmap=cmap, colorbar=colorbar, res=res,
             cbar_fmt=cbar_fmt, sensors=sensors,
             scalings=scalings, units=units, time_unit='s',
             time_format=name_format, size=size, show_names=show_names,
             title=title, mask_params=mask_params, mask=mask, outlines=outlines,
             contours=contours, image_interp=image_interp, show=show,
-            average=average, head_pos=head_pos, sphere=sphere)
+            average=average, sphere=sphere)
 
     @fill_doc
-    def plot_filters(self, info, components=None, ch_type=None, layout=None,
+    def plot_filters(self, info, components=None, ch_type=None,
                      vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                      colorbar=True, scalings=None, units='a.u.', res=64,
                      size=1, cbar_fmt='%3.1f', name_format='CSP%01d',
                      show=True, show_names=False, title=None, mask=None,
                      mask_params=None, outlines='head', contours=6,
-                     image_interp='bilinear', average=None, head_pos=None):
+                     image_interp='bilinear', average=None):
         """Plot topographic filters of components.
 
         The filters are used to extract discriminant neural sources from
@@ -450,11 +444,6 @@ class CSP(TransformerMixin, BaseEstimator):
             collected in pairs and the RMS for each pair is plotted.
             If None, then first available channel type from order given
             above is used. Defaults to None.
-        layout : None | Layout
-            Layout instance specifying sensor positions (does not need to be
-            specified for Neuromag data). If possible, the correct layout file
-            is inferred from the data; if no appropriate layout file was found
-            the layout is automatically generated from the sensor locations.
         vmin : float | callable
             The value specifying the lower bound of the color range.
             If None, and vmax is None, -vmax is used. Else np.min(data).
@@ -531,7 +520,6 @@ class CSP(TransformerMixin, BaseEstimator):
             (seconds). For example, 0.01 would translate into window that
             starts 5 ms before and ends 5 ms after a given time point.
             Defaults to None, which means no averaging.
-        %(topomap_head_pos)s
 
         Returns
         -------
@@ -549,14 +537,13 @@ class CSP(TransformerMixin, BaseEstimator):
         filters = EvokedArray(self.filters_, info, tmin=0)
         # the call plot_topomap
         return filters.plot_topomap(
-            times=components, ch_type=ch_type, layout=layout, vmin=vmin,
+            times=components, ch_type=ch_type, vmin=vmin,
             vmax=vmax, cmap=cmap, colorbar=colorbar, res=res,
             cbar_fmt=cbar_fmt, sensors=sensors, scalings=scalings, units=units,
             time_unit='s', time_format=name_format, size=size,
             show_names=show_names, title=title, mask_params=mask_params,
             mask=mask, outlines=outlines, contours=contours,
-            image_interp=image_interp, show=show, average=average,
-            head_pos=head_pos)
+            image_interp=image_interp, show=show, average=average)
 
 
 def _ajd_pham(X, eps=1e-6, max_iter=15):

@@ -160,8 +160,6 @@ def test_plot_topomap_basic(monkeypatch):
     plt_topomap = partial(ev_bad.plot_topomap, **fast_test)
     plt_topomap(times=ev_bad.times[:2] - 1e-6)  # auto, plots EEG
     pytest.raises(ValueError, plt_topomap, ch_type='mag')
-    with pytest.deprecated_call(match='head_pos'):
-        plt_topomap(head_pos='foo')
     pytest.raises(ValueError, plt_topomap, times=[-100])  # bad time
     pytest.raises(ValueError, plt_topomap, times=[[0]])  # bad time
 
@@ -244,8 +242,6 @@ def test_plot_topomap_basic(monkeypatch):
     # other:
     # ------
     plt_topomap = partial(evoked.plot_topomap, **fast_test)
-    with pytest.deprecated_call(match='layout'):
-        plt_topomap(0.1, layout=layout, scalings=dict(mag=0.1))
     plt.close('all')
     axes = [plt.subplot(221), plt.subplot(222)]
     plt_topomap(axes=axes, colorbar=False)
@@ -310,7 +306,7 @@ def test_plot_topomap_basic(monkeypatch):
     plt.close('all')
 
     # delaunay triangulation warning
-    plt_topomap(times, ch_type='mag', layout=None)
+    plt_topomap(times, ch_type='mag')
     # projs have already been applied
     pytest.raises(RuntimeError, plot_evoked_topomap, evoked, 0.1, 'mag',
                   proj='interactive', time_unit='s')
@@ -534,8 +530,6 @@ def test_plot_topomap_neuromag122():
                       explained_var=0.5)
 
     plot_projs_topomap([proj], evoked.info, **fast_test)
-    with pytest.deprecated_call(match='layout'):
-        plot_projs_topomap([proj], evoked.info, layout=layout, **fast_test)
 
 
 def test_plot_topomap_bads():
