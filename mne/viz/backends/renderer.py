@@ -17,26 +17,20 @@ MNE_3D_BACKEND = None
 MNE_3D_BACKEND_TESTING = False
 
 
-_fromlist = ('_Renderer', '_Projection', '_close_all', '_check_3d_figure',
-             '_set_3d_view', '_set_3d_title', '_close_3d_figure',
-             '_take_3d_screenshot', '_testing_context')
-_name_map = dict(mayavi='_pysurfer_mayavi', pyvista='_pyvista')
+_backend_name_map = dict(mayavi='._pysurfer_mayavi', pyvista='._pyvista')
+backend = None
 
 
 def _reload_backend(backend_name):
-    # This is (hopefully) the equivalent to:
-    #    from ._whatever_name import ...
-    _mod = importlib.__import__(
-        _name_map[backend_name], {'__name__': __name__},
-        level=1, fromlist=_fromlist)
-    for key in _fromlist:
-        globals()[key] = getattr(_mod, key)
+    global backend
+    backend = importlib.import_module(name=_backend_name_map[backend_name],
+                                      package='mne.viz.backends')
     logger.info('Using %s 3d backend.\n' % backend_name)
 
 
 def _get_renderer(*args, **kwargs):
     set_3d_backend(get_3d_backend(), verbose=False)
-    return _Renderer(*args, **kwargs)  # noqa: F821
+    return backend._Renderer(*args, **kwargs)
 
 
 @verbose
@@ -189,7 +183,7 @@ def _use_test_3d_backend(backend_name, interactive=False):
     MNE_3D_BACKEND_TESTING = True
     try:
         with use_3d_backend(backend_name):
-            with _testing_context(interactive):  # noqa: F821
+            with backend._testing_context(interactive):
                 yield
     finally:
         MNE_3D_BACKEND_TESTING = orig_testing
@@ -212,9 +206,9 @@ def set_3d_view(figure, azimuth=None, elevation=None,
     distance : float
         The distance to the focal point.
     """
-    _set_3d_view(figure=figure, azimuth=azimuth,  # noqa: F821
-                 elevation=elevation, focalpoint=focalpoint,
-                 distance=distance)
+    backend._set_3d_view(figure=figure, azimuth=azimuth,
+                         elevation=elevation, focalpoint=focalpoint,
+                         distance=distance)
 
 
 def set_3d_title(figure, title, size=40):
@@ -229,7 +223,7 @@ def set_3d_title(figure, title, size=40):
     size : int
         The size of the title.
     """
-    _set_3d_title(figure=figure, title=title, size=size)  # noqa: F821
+    backend._set_3d_title(figure=figure, title=title, size=size)
 
 
 def create_3d_figure(size, bgcolor=(0, 0, 0), handle=None):
