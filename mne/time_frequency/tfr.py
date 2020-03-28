@@ -1599,8 +1599,7 @@ class AverageTFR(_BaseTFR):
         return fig
 
     def _onselect(self, eclick, erelease, baseline=None, mode=None,
-                  layout=None, cmap=None, source_plot_joint=False,
-                  topomap_args=None):
+                  cmap=None, source_plot_joint=False, topomap_args=None):
         """Handle rubber band selector in channel tfr."""
         from ..viz.topomap import plot_tfr_topomap, plot_topomap, _add_colorbar
         if abs(eclick.x - erelease.x) < .1 or abs(eclick.y - erelease.y) < .1:
@@ -1650,7 +1649,7 @@ class AverageTFR(_BaseTFR):
             for idx, ch_type in enumerate(types):
                 ax = fig.add_subplot(1, len(types), idx + 1)
                 plot_tfr_topomap(self, ch_type=ch_type, tmin=tmin, tmax=tmax,
-                                 fmin=fmin, fmax=fmax, layout=layout,
+                                 fmin=fmin, fmax=fmax,
                                  baseline=baseline, mode=mode, cmap=None,
                                  title=ch_type, vmin=None, vmax=None, axes=ax)
 
@@ -1760,7 +1759,7 @@ class AverageTFR(_BaseTFR):
             from mne import find_layout
             layout = find_layout(self.info)
         onselect_callback = partial(self._onselect, baseline=baseline,
-                                    mode=mode, layout=layout)
+                                    mode=mode)
 
         click_fun = partial(_imshow_tfr, tfr=data, freq=freqs, yscale=yscale,
                             cmap=(cmap, True), onselect=onselect_callback)
