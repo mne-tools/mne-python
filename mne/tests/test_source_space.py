@@ -294,8 +294,10 @@ def test_other_volume_source_spaces(tmpdir):
                     '--src', temp_name,
                     '--mri', fname_mri])
     src = read_source_spaces(temp_name)
+    sphere = (0., 0., 0., 0.09)
     src_new = setup_volume_source_space(None, pos=7.0, mri=fname_mri,
-                                        subjects_dir=subjects_dir)
+                                        subjects_dir=subjects_dir,
+                                        sphere=sphere)
     # we use a more accurate elimination criteria, so let's fix the MNE-C
     # source space
     assert len(src_new[0]['vertno']) == 7497
