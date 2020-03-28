@@ -607,6 +607,10 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         2. an Epochs object is created for multiple events and passed
            to this function.
 
+    .. note:: To compute the noise covariance from non-epoched raw data, such
+              as an empty-room recording, use
+              :func:`mne.compute_raw_covariance` instead.
+
     Parameters
     ----------
     epochs : instance of Epochs, or list of Epochs
