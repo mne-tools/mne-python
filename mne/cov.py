@@ -697,7 +697,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     See Also
     --------
-    compute_raw_covariance : Estimate noise covariance from raw data.
+    compute_raw_covariance : Estimate noise covariance from raw data, such as
+        empty-room recordings.
 
     Notes
     -----
