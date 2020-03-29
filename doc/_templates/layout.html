@@ -64,64 +64,30 @@ This documentation is for <strong>development version {{ release }}</strong>.
 {% block sidebar2 %}{% endblock %}
 
 {%- block footer %}
-<footer class="footer">
-  <div class="container"><div class="row"><div class="col-md-12 bottom-strip">
-    <div class="container col-md-3">
-      <ul class="list-group">
-        <li class="list-group-item d-flex"><a href="https://github.com/mne-tools/mne-python"><i class="fa fa-github"></i> GitHub</a></li>
-        <li class="list-group-item d-flex"><a href="{{ pathto('overview/get_help.html', 1) }}"><i class="fa fa-question-circle"></i> Get help</a></li>
-        <li class="list-group-item d-flex"><a href="{{ pathto('whats_new.html', 1) }}"><i class="fa fa-check-circle-o"></i> What's new</a></li>
-        <li class="list-group-item d-flex"><a href="{{ pathto('overview/cite.html', 1) }}"><i class="fa fa-book"></i> Cite MNE</a></li>
+<footer class="footer navbar-bottom navbar-inverse">
+  <div class="container"><div class="row">
+    <div class="container col-md-12 institutions">
+      <ul class="list-unstyled">
+        <li><a href="https://www.massgeneral.org/"><img class="institution" src="{{ pathto('_static/institution_logos/MGH.svg', 1) }}" title="Massachusetts General Hospital" alt="Massachusetts General Hospital"/></a></li>
+        <li><a href="https://martinos.org/"><img class="institution" src="{{ pathto('_static/institution_logos/Martinos.png', 1) }}" title="Athinoula A. Martinos Center for Biomedical Imaging" alt="Athinoula A. Martinos Center for Biomedical Imaging"/></a></li>
+        <li><a href="https://hms.harvard.edu/"><img class="institution" src="{{ pathto('_static/institution_logos/Harvard.png', 1) }}" title="Harvard Medical School" alt="Harvard Medical School"/></a></li>
+        <li><a href="https://web.mit.edu/"><img class="institution" src="{{ pathto('_static/institution_logos/MIT.svg', 1) }}" title="Massachusetts Institute of Technology" alt="Massachusetts Institute of Technology"/></a></li>
+        <li><a href="https://www.nyu.edu/"><img class="institution" src="{{ pathto('_static/institution_logos/NYU.png', 1) }}" title="New York University" alt="New York University"/></a></li>
+        <li><a href="http://www.cea.fr/"><img class="institution" src="{{ pathto('_static/institution_logos/CEA.png', 1) }}" title="Commissariat à l´énergie atomique et aux énergies alternatives" alt="Commissariat à l´énergie atomique et aux énergies alternatives"/></a></li>
+        <li><a href="https://sci.aalto.fi/"><img class="institution" src="{{ pathto('_static/institution_logos/Aalto.svg', 1) }}" title="Aalto-yliopiston perustieteiden korkeakoulu" alt="Aalto-yliopiston perustieteiden korkeakoulu"/></a></li>
+        <li><a href="https://www.telecom-paris.fr/"><img class="institution" src="{{ pathto('_static/institution_logos/Telecom_Paris_Tech.png', 1) }}" title="Télécom ParisTech" alt="Télécom ParisTech"/></a></li>
+        <li><a href="https://www.washington.edu/"><img class="institution" src="{{ pathto('_static/institution_logos/Washington.png', 1) }}" title="University of Washington" alt="University of Washington"/></a></li>
+        <li><a href="https://icm-institute.org/"><img class="institution" src="{{ pathto('_static/institution_logos/ICM.jpg', 1) }}" title="Institut du Cerveau et de la Moelle épinière" alt="Institut du Cerveau et de la Moelle épinière"/></a></li>
+        <li><a href="https://www.bu.edu/"><img class="institution" src="{{ pathto('_static/institution_logos/BU.svg', 1) }}" title="Boston University" alt="Boston University"/></a></li>
+        <li><a href="https://www.inserm.fr/"><img class="institution" src="{{ pathto('_static/institution_logos/Inserm.svg', 1) }}" title="Institut national de la santé et de la recherche médicale" alt="Institut national de la santé et de la recherche médicale"/></a></li>
+        <li><a href="https://www.fz-juelich.de/"><img class="institution" src="{{ pathto('_static/institution_logos/Julich.svg', 1) }}" title="Forschungszentrum Jülich" alt="Forschungszentrum Jülich"/></a></li>
+        <li><a href="https://www.tu-ilmenau.de/"><img class="institution" src="{{ pathto('_static/institution_logos/Ilmenau.gif', 1) }}" title="Technische Universität Ilmenau" alt="Technische Universität Ilmenau"/></a></li>
+        <li><a href="https://bids.berkeley.edu/"><img class="institution" src="{{ pathto('_static/institution_logos/BIDS.png', 1) }}" title="Berkeley Institute for Data Science" alt="Berkeley Institute for Data Science"/></a></li>
+        <li><a href="https://www.inria.fr/"><img class="institution" src="{{ pathto('_static/institution_logos/inria.png', 1) }}" title="Institut national de recherche en informatique et en automatique" alt="Institut national de recherche en informatique et en automatique"/></a></li>
+        <li><a href="https://www.au.dk/"><img class="institution" src="{{ pathto('_static/institution_logos/Aarhus.png', 1) }}" title="Aarhus Universitet" alt="Aarhus Universitet"/></a></li>
+        <li><a href="https://www.uni-graz.at/"><img class="institution" src="{{ pathto('_static/institution_logos/Graz.jpg', 1) }}" title="Karl-Franzens-Universität Graz" alt="Karl-Franzens-Universität Graz"/></a></li>
       </ul>
-    </div>
-    <div class="container col-md-6">
-      <div class="institutions list-group-item">
-        <ul class="list-unstyled">
-          <li><a href="https://www.massgeneral.org/"><img class="institution" src="{{ pathto('_static/institution_logos/MGH.svg', 1) }}" title="Massachusetts General Hospital" alt="Massachusetts General Hospital"/></a></li>
-          <li><a href="https://martinos.org/"><img class="institution" src="{{ pathto('_static/institution_logos/Martinos.png', 1) }}" title="Athinoula A. Martinos Center for Biomedical Imaging" alt="Athinoula A. Martinos Center for Biomedical Imaging"/></a></li>
-          <li><a href="https://hms.harvard.edu/"><img class="institution" src="{{ pathto('_static/institution_logos/Harvard.png', 1) }}" title="Harvard Medical School" alt="Harvard Medical School"/></a></li>
-          <li><a href="https://web.mit.edu/"><img class="institution" src="{{ pathto('_static/institution_logos/MIT.svg', 1) }}" title="Massachusetts Institute of Technology" alt="Massachusetts Institute of Technology"/></a></li>
-          <li><a href="https://www.nyu.edu/"><img class="institution" src="{{ pathto('_static/institution_logos/NYU.png', 1) }}" title="New York University" alt="New York University"/></a></li>
-          <li><a href="http://www.cea.fr/"><img class="institution" src="{{ pathto('_static/institution_logos/CEA.png', 1) }}" title="Commissariat à l´énergie atomique et aux énergies alternatives" alt="Commissariat à l´énergie atomique et aux énergies alternatives"/></a></li>
-          <li><a href="https://sci.aalto.fi/"><img class="institution" src="{{ pathto('_static/institution_logos/Aalto.svg', 1) }}" title="Aalto-yliopiston perustieteiden korkeakoulu" alt="Aalto-yliopiston perustieteiden korkeakoulu"/></a></li>
-          <li><a href="https://www.telecom-paris.fr/"><img class="institution" src="{{ pathto('_static/institution_logos/Telecom_Paris_Tech.png', 1) }}" title="Télécom ParisTech" alt="Télécom ParisTech"/></a></li>
-          <li><a href="https://www.washington.edu/"><img class="institution" src="{{ pathto('_static/institution_logos/Washington.png', 1) }}" title="University of Washington" alt="University of Washington"/></a></li>
-          <li><a href="https://icm-institute.org/"><img class="institution" src="{{ pathto('_static/institution_logos/ICM.jpg', 1) }}" title="Institut du Cerveau et de la Moelle épinière" alt="Institut du Cerveau et de la Moelle épinière"/></a></li>
-          <li><a href="https://www.bu.edu/"><img class="institution" src="{{ pathto('_static/institution_logos/BU.svg', 1) }}" title="Boston University" alt="Boston University"/></a></li>
-          <li><a href="https://www.inserm.fr/"><img class="institution" src="{{ pathto('_static/institution_logos/Inserm.svg', 1) }}" title="Institut national de la santé et de la recherche médicale" alt="Institut national de la santé et de la recherche médicale"/></a></li>
-          <li><a href="https://www.fz-juelich.de/"><img class="institution" src="{{ pathto('_static/institution_logos/Julich.svg', 1) }}" title="Forschungszentrum Jülich" alt="Forschungszentrum Jülich"/></a></li>
-          <li><a href="https://www.tu-ilmenau.de/"><img class="institution" src="{{ pathto('_static/institution_logos/Ilmenau.gif', 1) }}" title="Technische Universität Ilmenau" alt="Technische Universität Ilmenau"/></a></li>
-          <li><a href="https://bids.berkeley.edu/"><img class="institution" src="{{ pathto('_static/institution_logos/BIDS.png', 1) }}" title="Berkeley Institute for Data Science" alt="Berkeley Institute for Data Science"/></a></li>
-          <li><a href="https://www.inria.fr/"><img class="institution" src="{{ pathto('_static/institution_logos/inria.png', 1) }}" title="Institut national de recherche en informatique et en automatique" alt="Institut national de recherche en informatique et en automatique"/></a></li>
-          <li><a href="https://www.au.dk/"><img class="institution" src="{{ pathto('_static/institution_logos/Aarhus.png', 1) }}" title="Aarhus Universitet" alt="Aarhus Universitet"/></a></li>
-          <li><a href="https://www.uni-graz.at/"><img class="institution" src="{{ pathto('_static/institution_logos/Graz.jpg', 1) }}" title="Karl-Franzens-Universität Graz" alt="Karl-Franzens-Universität Graz"/></a></li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="container col-sm-3">
-      <div class="list-group">
-        <div class="list-group-item">
-          <p class="list-group-item-heading">Direct financial support:</h4>
-          <div class="list-group-item-text support-front text-small">
-            <ul>
-              <li><span class="flag-icon flag-icon-us"></span> <b>NIH</b> R01-EB009048, EB009048, EB006385, HD40712, NS44319, NS37462; P41-EB015896</li>
-              <li><span class="flag-icon flag-icon-us"></span> <b>NSF</b> 0958669, 1042134</li>
-              <li><span class="flag-icon flag-icon-us"></span> <b>NCRR</b> P41RR14075-06</li>
-              <li><span class="flag-icon flag-icon-us"></span> <b>DoE</b> DE-FG02-99ER62764 (MIND)</li>
-              <li><span class="flag-icon flag-icon-us"></span> <b>Amazon</b> - AWS Research Grants</li>
-              <li><span class="flag-icon flag-icon-fr"></span> <b>IDEX</b> Paris-Saclay, ANR-11-IDEX-0003-02</li>
-              <li><span class="flag-icon flag-icon-fr"></span> <b>CDS</b> <a href="http://www.datascience-paris-saclay.fr"/>PARIS-SACLAY</a></li>
-              <li><span class="flag-icon flag-icon-fr"></span> <b>ERC</b> ERC-YStG-263584, ERC-YStG-676943</li>
-              <li><span class="flag-icon flag-icon-fr"></span> <b>ANR</b> ANR-14-NEUC-0002-01</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="container col-md-12">
-      <p class="align-center">&copy; Copyright 2012-2020, MNE Developers. Last updated on 2020-03-27.</p>
-    </div>
-  </div></div></div>
-</footer>
+      <p class="align-center text-muted">&copy; Copyright 2012-2020, MNE Developers. Last updated on 2020-03-27.</p>
+    </div></div></div>
+  </footer>
 {%- endblock %}

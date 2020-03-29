@@ -1,5 +1,21 @@
 {% extends "!navbar.html" %}
 
+{% block navbartoc %}
+<li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="{{ pathto(master_doc) }}">More<b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc" role="menu" aria-labelledby="dLabelGlobalToc">
+    <li><a href="https://github.com/mne-tools/mne-python"><i class="fa fa-github"></i> GitHub</a></li>
+    <li><a href="{{ pathto('overview/get_help.html', 1) }}"><i class="fa fa-question-circle"></i> Get help</a></li>
+    <li><a href="{{ pathto('install/contributing.html', 1) }}"><i class="fa fa-code-fork"></i> Contribute</a></li>
+    <li><a href="{{ pathto('overview/cite.html', 1) }}"><i class="fa fa-book"></i> Cite MNE</a></li>
+  </ul>
+</li>
+{% endblock %}
+
 {% block navbarsearch %}
 <div class="navbar-form navbar-right navbar-btn dropdown btn-group-sm" style="margin-left: 20px; margin-top: 5px; margin-bottom: 5px">
   <button type="button" class="btn btn-{% if (build_dev_html|tobool) %}danger{% else %}primary{% endif %} navbar-btn dropdown-toggle" id="dropdownMenu1" data-toggle="dropdown">
