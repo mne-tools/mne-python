@@ -361,6 +361,9 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
     It is typically useful to estimate a noise covariance from empty room
     data or time intervals before starting the stimulation.
 
+    .. note:: To estimate the noise covariance from epoched data, use
+              :func:`mne.compute_covariance` instead.
+
     Parameters
     ----------
     raw : instance of Raw
@@ -446,7 +449,7 @@ def compute_raw_covariance(raw, tmin=0, tmax=None, tstep=0.2, reject=None,
 
     See Also
     --------
-    compute_covariance : Estimate noise covariance matrix from epochs.
+    compute_covariance : Estimate noise covariance matrix from epoched data.
 
     Notes
     -----
@@ -607,6 +610,10 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         2. an Epochs object is created for multiple events and passed
            to this function.
 
+    .. note:: To estimate the noise covariance from non-epoched raw data, such
+              as an empty-room recording, use
+              :func:`mne.compute_raw_covariance` instead.
+
     Parameters
     ----------
     epochs : instance of Epochs, or list of Epochs
@@ -693,7 +700,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     See Also
     --------
-    compute_raw_covariance : Estimate noise covariance from raw data.
+    compute_raw_covariance : Estimate noise covariance from raw data, such as
+        empty-room recordings.
 
     Notes
     -----
