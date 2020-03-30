@@ -25,8 +25,6 @@
 .. whats_new box (with spacer)
 .. raw:: html
 
-  <div class="col-xs-0 col-sm-0 col-md-3" style="height: 30px"></div>
-
   <div class="col-xs-12 col-sm-6 col-md-3">
     <div class="panel panel-default">
       <div class="panel-heading"><h3 class="panel-title">Version 0.21.dev0</h3></div>
@@ -42,8 +40,6 @@
 
 .. funding box
 .. raw:: html
-
-  <div class="col-xs-12 col-md-3" style="height: 30px"></div>
 
   <div class="col-xs-12 col-sm-6 col-md-3">
     <div class="panel panel-default">
