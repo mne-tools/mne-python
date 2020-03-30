@@ -23,7 +23,17 @@ html {
 
 /* overrides of bootstrap fonts */
 body {
+    max-width: unset !important;
+    min-width: unset !important;
     font-family:"Source Sans Pro", sans-serif;
+    margin-bottom: 150px;
+}
+.footer {
+    width: 100%;
+    background-color: #fff;
+    position: absolute;
+    bottom: 0;
+    height: 140px;
 }
 h1,h2,h3,h4,h5,h6,.h1,.h2,.h3,.h4,.h5,.h6 {
     font-family:"Source Sans Pro", sans-serif;
@@ -85,10 +95,6 @@ blockquote {
     margin-bottom: 5px;
 }
 
-#navbar a:hover {
-    color: rgb(242, 80, 80);
-}
-
 div.crop-wrapper {
 width: 380px;
 height: 190px;
@@ -136,7 +142,7 @@ a:hover code {
     border: none;
 }
 .warning {
-    background-color: rgb(230, 57, 57);
+    background-color: #e74c3c;
     color: white;
 }
 .warning a, .warning a code {
@@ -237,7 +243,13 @@ div.sidebar {
 /* our carousel */
 .chopper {
     overflow: hidden;
-    height: 250px;
+    height: 275px;
+
+}
+div.jumbotron {
+    background-color: #fff0;
+    padding-top: 24px;
+    padding-bottom: 12px;
 }
 .carousel-image {
     position: absolute;
@@ -263,19 +275,14 @@ div.sidebar {
     display: table-cell;
     width: 100%;
 }
-.footer {
-    width: 100%;
-    border-top: 0px;
-    margin-top: 20px;
-    background-color: #ecf0f1;
-}
 .carousel-caption {
     text-shadow: 0 1px 1px rgba(0,0,0,1.0);
     background-color: rgba(0,0,0,0.5);
+    border-radius: 12px;
     box-shadow: 0 0 5px rgba(0,0,0,0.5);
 }
 .carousel-caption p {
-    font-size: 16px;
+    font-size: 20px;
 }
 .topmargin {
     margin-top: 10px;
@@ -298,9 +305,6 @@ h4.list-group-item-heading {
     max-width: 1024px;
     float: none;
     margin: auto;
-}
-.tagline {
-    font-size: 20px;
 }
 /* Fix collapsing */
 @media (max-width: 991px) {
@@ -370,11 +374,6 @@ div.highlight-console div.highlight span.gp {
             user-select: none; /* Non-prefixed version, currently
                                 supported by Chrome and Opera */
 }
-/* Sizing */
-.body {
-    max-width: unset !important;
-    min-width: unset !important;
-}
 /* Callout */
 .callout {
     padding: 20px;
@@ -431,7 +430,7 @@ div.institutions ul {
 div.institutions a {
     border: 1px;
 }
-.institution {
+img.institution {
     vertical-align: middle;
     max-height: 42px;
     max-width: 52px;

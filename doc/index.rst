@@ -1,24 +1,35 @@
 .. title:: MNE
 
-.. container:: row
+.. container::
 
-    .. title image and description
+    .. title image, description
     .. raw:: html
 
-      <div class="col-lg-9">
-        <img src="_static/mne_logo.png" alt="MNE" class="center-block">
-        <p class="tagline">
-        Open-source Python software for exploring, visualizing, and
-        analyzing human neurophysiological data: MEG, EEG, sEEG, ECoG,
-        and more.
-        </p>
+      <div class="col-xs-12 col-md-9">
+        <div class="col-xs-12">
+          <div class="jumbotron align-center">
+            <img src="_static/mne_logo.png" alt="MNE">
+            <p>
+            Open-source Python software for exploring, visualizing, and
+            analyzing human neurophysiological data: MEG, EEG, sEEG, ECoG,
+            and more.
+            </p>
+          </div>
+        </div>
+        <div class="col-xs-12">
 
+    .. carousel
     .. include:: carousel.inc
 
     .. raw:: html
 
+        </div>
       </div>
-      <div class="col-sm-3">
+
+    .. whats_new box
+    .. raw:: html
+
+      <div class="col-xs-12 col-sm-6 col-md-3">
         <div class="panel panel-default">
           <div class="panel-heading"><h3 class="panel-title">Version 0.21.dev0</h3></div>
           <div class="panel-body">
@@ -26,10 +37,15 @@
             <li><a href="whats_new.html">What's new</a></li>
             <li><a href="install/mne_python.html">Installation<a></li>
             <li><a href="overview/index.html">Documentation</a></li>
+            <li><a href="overview/cite.html">Cite</a></li>
           </div>
         </div>
       </div>
-      <div class="col-sm-3">
+
+    .. funding box
+    .. raw:: html
+
+      <div class="col-xs-12 col-sm-6 col-md-3">
         <div class="panel panel-default">
           <div class="panel-heading"><h3 class="panel-title">Direct financial support</h3></div>
           <div class="panel-body funding">
