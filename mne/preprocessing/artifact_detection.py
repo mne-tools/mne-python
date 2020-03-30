@@ -72,13 +72,17 @@ def annotate_muscle_zscore(raw, threshold=4, ch_type=None, min_length_good=0.1,
             ch_type = 'grad'
         elif 'eeg' in raw_ch_type:
             ch_type = 'eeg'
+        else:
+            raise ValueError('No M/EEG channel types found, please specify a'
+                             ' ch_type or provide M/EEG sensor data')
         logger.info('Using %s sensors for muscle artifact detection'
                     % (ch_type))
 
     if ch_type in ('mag', 'grad'):
         raw_copy.pick_types(meg=ch_type, ref_meg=False)
-    elif ch_type == 'eeg':
-        raw_copy.pick_types(meg=False, eeg=True)
+    else:
+        ch_type = {'meg': False, ch_type: True}
+        raw_copy.pick_types(**ch_type)
 
     raw_copy.filter(filter_freq[0], filter_freq[1], fir_design='firwin',
                     pad="reflect_limited", n_jobs=n_jobs)

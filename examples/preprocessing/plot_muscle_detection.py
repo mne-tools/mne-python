@@ -60,9 +60,9 @@ raw.notch_filter([50, 100])
 threshold_muscle = 5  # z-score
 # Choose one channel type, if there are axial gradiometers and magnetometers,
 # select magnetometers as they are more sensitive to muscle activity.
-out = annotate_muscle_zscore(raw, ch_type="mag", threshold=threshold_muscle,
-                             min_length_good=0.2, filter_freq=[110, 140])
-annot_muscle, scores_muscle = out
+annot_muscle, scores_muscle = annotate_muscle_zscore(
+    raw, ch_type="mag", threshold=threshold_muscle, min_length_good=0.2,
+    filter_freq=[110, 140])
 
 ###############################################################################
 # Plot muscle z-scores across recording
