@@ -98,6 +98,10 @@ dd {
   display: none;
 }
 
+.navbar-collapse {
+  max-height: 600px !important;
+}
+
 a {
   color: var(--a-color);
   text-decoration: none;
@@ -115,6 +119,7 @@ blockquote {
   text-align: center;
   padding: 5px;
   margin-bottom: 5px;
+  border-radius: 0 0 4px 4px !important;
 }
 
 div.crop-wrapper {
@@ -430,7 +435,7 @@ div.highlight-console div.highlight span.gp {
   -moz-user-select: none; /* Firefox */
   -ms-user-select: none; /* Internet Explorer/Edge */
   user-select: none; /* Non-prefixed version, currently
-                                    supported by Chrome and Opera */
+                                      supported by Chrome and Opera */
 }
 /* Callout */
 .callout {
