@@ -54,8 +54,8 @@ def scalp_coupling_index(raw, l_freq=0.7, h_freq=1.5,
 
     filtered_data = filter_data(raw._data, raw.info['sfreq'], l_freq, h_freq,
                                 picks=picks, verbose=verbose,
-                                l_trans_bandwidth=h_trans_bandwidth,
-                                h_trans_bandwidth=l_trans_bandwidth)
+                                l_trans_bandwidth=l_trans_bandwidth,
+                                h_trans_bandwidth=h_trans_bandwidth)
 
     sci = np.zeros(picks.shape)
     for ii in picks[::2]:
