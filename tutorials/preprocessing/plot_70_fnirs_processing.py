@@ -14,7 +14,7 @@ deoxyhaemoglobin (HbR) concentration.
 
 Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 """
-# sphinx_gallery_thumbnail_number = 3
+# sphinx_gallery_thumbnail_number = 12
 
 import os
 import numpy as np
@@ -33,9 +33,9 @@ raw_intensity = mne.io.read_raw_nirx(fnirs_raw_dir, verbose=True).load_data()
 # Selecting channels appropriate for detecting neural responses
 # -------------------------------------------------------------
 #
-# First we remove channels that are too close together to detect a neural
-# response. To achieve this we pick all the channels that are not considered
-# to be short (less than 1 cm distance between optodes).
+# First we remove channels that are too close together (short channels) to
+# detect a neural response (less than 1 cm distance between optodes).
+# To achieve this we pick all the channels that are not considered to be short.
 
 picks = mne.pick_types(raw_intensity.info, meg=False, fnirs=True)
 dists = mne.preprocessing.nirs.source_detector_distances(
@@ -60,11 +60,12 @@ raw_od.plot(n_channels=len(raw_od.ch_names), duration=500)
 #
 # At this stage we can quantify the quality of the coupling
 # between the scalp and the optodes using the scalp coupling index. This
-# method looks at the presence of a prominent synchronous signal in the
+# method looks for the presence of a prominent synchronous signal in the
 # frequency range of cardiac signals across both photodetected signals.
 #
-# As this data is clean and the coupling is good for all channels we will
-# not mark any channels as bad based on the scalp coupling index.
+# In this example the data is clean and the coupling is good for all
+# channels, so we will not mark any channels as bad based on the scalp
+# coupling index.
 
 sci = mne.preprocessing.nirs.scalp_coupling_index(raw_od)
 fig, ax = plt.subplots()
@@ -95,9 +96,10 @@ raw_haemo.plot(n_channels=len(raw_haemo.ch_names), duration=500)
 # -------------------------------
 #
 # The haemodynamic response has frequency content predominantly below 0.5 Hz.
-# An increase in activity around 1 Hz can be seen that is due to the heart beat
-# and is unwanted. So we use a low pass filter to remove this.
-# A high pass filter is included to remove slow drifts in the data.
+# An increase in activity around 1 Hz can be seen in the data that is due to
+# the person's heart beat and is unwanted. So we use a low pass filter to
+# remove this. A high pass filter is also included to remove slow drifts
+# in the data.
 
 fig = raw_haemo.plot_psd(average=True)
 fig.suptitle('Before filtering', weight='bold', size='x-large')
@@ -172,8 +174,8 @@ epochs['Control'].plot_image(combine='mean', vmin=-30, vmax=30,
 # View consistency of responses across channels
 # ---------------------------------------------
 #
-# Similarly we can view how consistent the response was across the optode
-# pairs that we selected. All the channels in this data were located over the
+# Similarly we can view how consistent the response is across the optode
+# pairs that we selected. All the channels in this data are located over the
 # motor cortex, and all channels show a similar pattern in the data.
 
 fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(15, 6))
@@ -189,7 +191,7 @@ for column, condition in enumerate(['Control', 'Tapping']):
 # Plot standard fNIRS response image
 # ----------------------------------
 #
-# Next we generate the most common visualisation of fNIRS data, plotting
+# Next we generate the most common visualisation of fNIRS data: plotting
 # both the HbO and HbR on the same figure to illustrate the relation between
 # the two signals.
 
@@ -279,8 +281,8 @@ for column, condition in enumerate(
         axes[row, column].set_title('{}: {}'.format(chroma, condition))
 
 ###############################################################################
-# We can also look at the individual waveforms to see what is driving the
-# topographic plot above.
+# Lastly, we can also look at the individual waveforms to see what is
+# driving the topographic plot above.
 
 fig, axes = plt.subplots(nrows=1, ncols=1, figsize=(6, 4))
 mne.viz.plot_evoked_topo(epochs['Left'].average(picks='hbo'), color='b',
