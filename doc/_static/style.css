@@ -4,6 +4,7 @@
     --a-color-light: rgb(102, 179, 255);
     --a-color-lighter: rgb(204, 230, 255);
     --text-color: #2c3e50;
+    --carousel-radius: 12px;
   }
 html {
     position: relative;
@@ -241,23 +242,33 @@ div.sidebar {
     border-top-width: 2px;
 }
 /* our carousel */
-.chopper {
+div.carousel-outer {
+    padding-top: 10px;
+}
+div.slide{
+    border-radius: var(--carousel-radius);
     overflow: hidden;
-    height: 275px;
-
+}
+div.carousel .chopper {
+    border-radius: var(--carousel-radius);
+    overflow: hidden;
+    min-height: 275px;
+    width: 100%;
+    background-size: cover;
+    background-position: center;
 }
 div.jumbotron {
     background-color: #fff0;
-    padding-top: 24px;
+    padding-top: 12px;
     padding-bottom: 12px;
 }
-.carousel-image {
-    position: absolute;
-    width: 100%;
-    opacity: 1.0;
-    left: 50%;
-    top: 50%;
-    transform: translateY(-50%) translateX(-50%);
+.carousel-control.left {
+    background-image: linear-gradient(to right, #aaa 0, rgba(0,0,0,0.0001) 100%);
+    border-radius: var(--carousel-radius);
+}
+.carousel-control.right {
+    background-image: linear-gradient(to left, #aaa 0, rgba(0,0,0,0.0001) 100%);
+    border-radius: var(--carousel-radius);
 }
 
 .cont{
@@ -276,12 +287,14 @@ div.jumbotron {
     width: 100%;
 }
 .carousel-caption {
-    text-shadow: 0 1px 1px rgba(0,0,0,1.0);
-    background-color: rgba(0,0,0,0.5);
-    border-radius: 12px;
-    box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    background-color: #444a;
+    border-radius: var(--carousel-radius);
+    padding-left: 15px;
+    padding-right: 15px;
+    text-shadow: none;
 }
 .carousel-caption p {
+    font-weight: 300;
     font-size: 20px;
 }
 .topmargin {

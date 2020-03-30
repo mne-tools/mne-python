@@ -5,16 +5,14 @@
     .. title image, description
     .. raw:: html
 
-      <div class="col-xs-12 col-md-9">
+      <div class="col-xs-12 col-md-9 jumbotron align-center">
         <div class="col-xs-12">
-          <div class="jumbotron align-center">
-            <img src="_static/mne_logo.png" alt="MNE">
-            <p>
-            Open-source Python software for exploring, visualizing, and
-            analyzing human neurophysiological data: MEG, EEG, sEEG, ECoG,
-            and more.
-            </p>
-          </div>
+          <img src="_static/mne_logo.png" alt="MNE">
+          <p>
+          Open-source Python software for exploring, visualizing, and
+          analyzing human neurophysiological data: MEG, EEG, sEEG, ECoG,
+          and more.
+          </p>
         </div>
         <div class="col-xs-12">
 
@@ -26,8 +24,10 @@
         </div>
       </div>
 
-    .. whats_new box
+    .. whats_new box (with spacer)
     .. raw:: html
+
+      <div class="col-xs-0 col-sm-0 col-md-3" style="height: 30px"></div>
 
       <div class="col-xs-12 col-sm-6 col-md-3">
         <div class="panel panel-default">
