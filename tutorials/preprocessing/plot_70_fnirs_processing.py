@@ -14,7 +14,7 @@ deoxyhaemoglobin (HbR) concentration.
 
 Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
 """
-# sphinx_gallery_thumbnail_number = 12
+# sphinx_gallery_thumbnail_number = 14
 
 import os
 import numpy as np
