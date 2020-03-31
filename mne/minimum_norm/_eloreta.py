@@ -49,6 +49,7 @@ def _compute_eloreta(inv, lambda2, options):
     n_chan, n_orient = G.shape
     n_orient //= n_src
     assert n_orient in (1, 3)
+    logger.info('    Computing optimized source covariance (eLORETA)...')
     if n_orient == 3:
         logger.info('        Using %s orientation weights'
                     % ('uniform' if force_equal else 'independent',))
