@@ -463,18 +463,18 @@ def test_brainvision_data():
     )
     assert_equal(raw_units.info['chs'][0]['ch_name'], 'FP1')
     assert_equal(raw_units.info['chs'][0]['kind'], FIFF.FIFFV_EEG_CH)
-    data_nanovolt, _ = raw_units[0]
-    assert_array_almost_equal(data_py[0, :], data_nanovolt.squeeze())
+    data_units, _ = raw_units[0]
+    assert_array_almost_equal(data_py[0, :], data_units.squeeze())
 
     assert_equal(raw_units.info['chs'][1]['ch_name'], 'FP2')
     assert_equal(raw_units.info['chs'][1]['kind'], FIFF.FIFFV_EEG_CH)
-    data_nanovolt, _ = raw_units[1]
-    assert_array_almost_equal(data_py[1, :], data_nanovolt.squeeze())
+    data_units, _ = raw_units[1]
+    assert_array_almost_equal(data_py[1, :], data_units.squeeze())
 
     assert_equal(raw_units.info['chs'][2]['ch_name'], 'F3')
     assert_equal(raw_units.info['chs'][2]['kind'], FIFF.FIFFV_EEG_CH)
-    data_nanovolt, _ = raw_units[2]
-    assert_array_almost_equal(data_py[2, :], data_nanovolt.squeeze())
+    data_units, _ = raw_units[2]
+    assert_array_almost_equal(data_py[2, :], data_units.squeeze())
 
 
 def test_brainvision_vectorized_data():
