@@ -15,12 +15,12 @@ Current (0.21.dev0)
 Changelog
 ~~~~~~~~~
 
-- Nothing yet
+- Add support for signals in mV for :func:`mne.io.read_raw_brainvision` by `Clemens Brunner`_
 
 Bug
 ~~~
 
-- Fix bug with :func:`mne.preprocessing.nirs.scalp_coupling_index` where filter transition was incorrectly assigned by `Robert Luke`_.
+- Fix bug with :func:`mne.preprocessing.nirs.scalp_coupling_index` where filter transition was incorrectly assigned by `Robert Luke`_
 
 API
 ~~~
