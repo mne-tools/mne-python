@@ -288,6 +288,7 @@ _fmt_dtype_dict = dict(short='<i2', int='<i4', single='<f4')
 _unit_dict = {'V': 1.,  # V stands for Volt
               'µV': 1e-6,
               'uV': 1e-6,
+              'mV': 1e-3,
               'nV': 1e-9,
               'C': 1,  # C stands for celsius
               'µS': 1e-6,  # S stands for Siemens
