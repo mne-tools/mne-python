@@ -50,7 +50,7 @@ data_path = testing.data_path(download=False)
 neuroone_vhdr = op.join(data_path, 'Brainvision', 'test_NO.vhdr')
 
 # Test for nanovolts as unit
-vhdr_nV_path = op.join(data_dir, 'test_nV.vhdr')
+vhdr_units_path = op.join(data_dir, 'test_units.vhdr')
 
 # Test bad date
 vhdr_bad_date = op.join(data_dir, 'test_bad_date.vhdr')
@@ -457,15 +457,24 @@ def test_brainvision_data():
     # test loading v2
     read_raw_brainvision(vhdr_v2_path, eog=eog, preload=True,
                          verbose='error')
-    # For the nanovolt unit test we use the same data file with a different
-    # header file.
-    raw_nV = _test_raw_reader(
-        read_raw_brainvision, vhdr_fname=vhdr_nV_path, eog=eog, misc='auto'
+    # test different units with alternative header file
+    raw_units = _test_raw_reader(
+        read_raw_brainvision, vhdr_fname=vhdr_units_path, eog=eog, misc='auto'
     )
-    assert_equal(raw_nV.info['chs'][0]['ch_name'], 'FP1')
-    assert_equal(raw_nV.info['chs'][0]['kind'], FIFF.FIFFV_EEG_CH)
-    data_nanovolt, _ = raw_nV[0]
-    assert_array_almost_equal(data_py[0, :], data_nanovolt[0, :])
+    assert_equal(raw_units.info['chs'][0]['ch_name'], 'FP1')
+    assert_equal(raw_units.info['chs'][0]['kind'], FIFF.FIFFV_EEG_CH)
+    data_units, _ = raw_units[0]
+    assert_array_almost_equal(data_py[0, :], data_units.squeeze())
+
+    assert_equal(raw_units.info['chs'][1]['ch_name'], 'FP2')
+    assert_equal(raw_units.info['chs'][1]['kind'], FIFF.FIFFV_EEG_CH)
+    data_units, _ = raw_units[1]
+    assert_array_almost_equal(data_py[1, :], data_units.squeeze())
+
+    assert_equal(raw_units.info['chs'][2]['ch_name'], 'F3')
+    assert_equal(raw_units.info['chs'][2]['kind'], FIFF.FIFFV_EEG_CH)
+    data_units, _ = raw_units[2]
+    assert_array_almost_equal(data_py[2, :], data_units.squeeze())
 
 
 def test_brainvision_vectorized_data():

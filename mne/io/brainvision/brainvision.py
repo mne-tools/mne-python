@@ -288,6 +288,7 @@ _fmt_dtype_dict = dict(short='<i2', int='<i4', single='<f4')
 _unit_dict = {'V': 1.,  # V stands for Volt
               'µV': 1e-6,
               'uV': 1e-6,
+              'mV': 1e-3,
               'nV': 1e-9,
               'C': 1,  # C stands for celsius
               'µS': 1e-6,  # S stands for Siemens
@@ -501,7 +502,7 @@ def _get_vhdr_info(vhdr_fname, eog, misc, scale):
         orig_units[name] = unit  # Save the original units to expose later
         cals[n] = float(resolution)
         ranges[n] = _unit_dict.get(unit, 1) * scale
-        if unit not in ('V', 'nV', 'µV', 'uV'):
+        if unit not in ('V', 'mV', 'µV', 'uV', 'nV'):
             misc_chs[name] = (FIFF.FIFF_UNIT_CEL if unit == 'C'
                               else FIFF.FIFF_UNIT_NONE)
     misc = list(misc_chs.keys()) if misc == 'auto' else misc
