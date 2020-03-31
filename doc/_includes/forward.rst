@@ -40,7 +40,7 @@ to the right, the :math:`y` axis to the front, and the :math:`z` axis up.
 
 .. _coordinate_system_figure:
 
-.. figure:: ../_images/CoordinateSystems.png
+.. figure:: ../_static/CoordinateSystems.png
     :alt: MEG/EEG and MRI coordinate systems
 
     MEG/EEG and MRI coordinate systems
@@ -221,7 +221,7 @@ and
 The head and device coordinate systems
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. figure:: ../_images/HeadCS.png
+.. figure:: ../_static/HeadCS.png
     :alt: Head coordinate system
 
     The head coordinate system

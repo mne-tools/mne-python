@@ -21,10 +21,10 @@ from matplotlib.patches import PathPatch
 from matplotlib.colors import LinearSegmentedColormap
 
 # manually set values
-dpi = 72.
+dpi = 300.
 center_fudge = np.array([2, 0])  # compensate for font bounding box padding
-tagline_scale_fudge = 0.98  # to get justification right
-tagline_offset_fudge = np.array([0.4, 0])
+tagline_scale_fudge = 0.97  # to get justification right
+tagline_offset_fudge = np.array([0, -100.])
 
 # font, etc
 rcp = {'font.sans-serif': ['Primetime'], 'font.style': 'normal',
@@ -40,7 +40,7 @@ ax.set_axis_off()
 fig.add_axes(ax)
 
 # fake field data
-delta = 0.1
+delta = 0.01
 x = np.arange(-8.0, 8.0, delta)
 y = np.arange(-3.0, 3.0, delta)
 X, Y = np.meshgrid(x, y)
@@ -112,17 +112,17 @@ ax.set_ylim(np.ceil(yy), yl[-1])
 plt.draw()
 static_dir = op.join(op.dirname(__file__), '..', 'doc', '_static')
 assert op.isdir(static_dir)
-plt.savefig(op.join(static_dir, 'mne_logo.png'), transparent=True)
+plt.savefig(op.join(static_dir, 'mne_logo.svg'), transparent=True)
 plt.close()
 
 # 92x22 image
 w_px = 92
 h_px = 22
-center_fudge = np.array([12, 0.5])
+center_fudge = np.array([20, 0])
 scale_fudge = 2.1
 rcParams.update({'font.sans-serif': ['Primetime'], 'font.weight': 'black'})
-x = np.linspace(-8., 8., w_px / 2.)
-y = np.linspace(-3., 3., h_px / 2.)
+x = np.linspace(-1., 1., w_px // 2)
+y = np.linspace(-1., 1., h_px // 2)
 X, Y = np.meshgrid(x, y)
 # initialize figure (no axes, margins, etc)
 fig = plt.figure(1, figsize=(w_px / dpi, h_px / dpi), frameon=False, dpi=dpi)
@@ -156,5 +156,5 @@ ypad = np.abs(np.diff([ymax, ymin])) / 20.
 ax.set_xlim(xmin - xpad, xl[1] + xpad)
 ax.set_ylim(ymax + ypad, ymin - ypad)
 plt.draw()
-plt.savefig(op.join(static_dir, 'mne_logo_small.png'), transparent=True)
+plt.savefig(op.join(static_dir, 'mne_logo_small.svg'), transparent=True)
 plt.close()

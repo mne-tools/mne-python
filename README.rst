@@ -20,7 +20,7 @@
 .. |Zenodo| image:: https://zenodo.org/badge/5822/mne-tools/mne-python.svg
 .. _Zenodo: https://zenodo.org/badge/latestdoi/5822/mne-tools/mne-python
 
-.. |MNE| image:: https://mne.tools/stable/_static/mne_logo.png
+.. |MNE| image:: https://mne.tools/stable/_static/mne_logo.svg
 .. _MNE: https://mne.tools/dev/
 
 MNE-Python
