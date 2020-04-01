@@ -75,7 +75,8 @@ def _create_info(ft_struct, raw_info):
     else:
         montage = _create_montage(ft_struct)
 
-        info = create_info(ch_names, sfreq, montage=montage)
+        info = create_info(ch_names, sfreq)
+        info.set_montage(montage)
         chs = _create_info_chs(ft_struct)
         info['chs'] = chs
         info._update_redundant()

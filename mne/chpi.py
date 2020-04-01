@@ -1020,7 +1020,7 @@ def _chpi_locs_to_times_dig(chpi_locs):
 
 
 @verbose
-def filter_chpi(raw, include_line=True, t_step=0.01, t_window=None,
+def filter_chpi(raw, include_line=True, t_step=0.01, t_window='auto',
                 ext_order=1, allow_line_only=False, verbose=None):
     """Remove cHPI and line noise from data.
 
@@ -1061,11 +1061,6 @@ def filter_chpi(raw, include_line=True, t_step=0.01, t_window=None,
     _validate_type(raw, BaseRaw, 'raw')
     if not raw.preload:
         raise RuntimeError('raw data must be preloaded')
-    if t_window is None:
-        warn('The default for t_window is 0.2 in MNE 0.20 but will change '
-             'to "auto" in 0.21, set it explicitly to avoid this warning',
-             DeprecationWarning)
-        t_window = 0.2
     t_step = float(t_step)
     if t_step <= 0:
         raise ValueError('t_step (%s) must be > 0' % (t_step,))

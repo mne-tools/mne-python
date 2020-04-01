@@ -92,9 +92,8 @@ def test_make_info():
     pytest.raises(TypeError, create_info, ['Test Ch'], sfreq=1000,
                   montage=np.array([1]))
     m = make_standard_montage('biosemi32')
-    with pytest.deprecated_call():
-        info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
-                           montage=m)
+    info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg')
+    info.set_montage(m)
     ch_pos = [ch['loc'][:3] for ch in info['chs']]
     ch_pos_mon = m._get_ch_pos()
     ch_pos_mon = np.array(
@@ -338,9 +337,7 @@ def test_redundant():
 def test_merge_info():
     """Test merging of multiple Info objects."""
     info_a = create_info(ch_names=['a', 'b', 'c'], sfreq=1000.)
-    with pytest.deprecated_call():
-        info_b = create_info(ch_names=['d', 'e', 'f'], sfreq=1000.,
-                             ch_types=None)
+    info_b = create_info(ch_names=['d', 'e', 'f'], sfreq=1000.)
     info_merged = _merge_info([info_a, info_b])
     assert info_merged['nchan'], 6
     assert info_merged['ch_names'], ['a', 'b', 'c', 'd', 'e', 'f']

@@ -20,8 +20,7 @@ from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
                     SizeMixin, copy_function_doc_to_method_doc, _validate_type,
                     fill_doc, _check_option, ShiftTimeMixin, _build_data_frame,
                     _check_pandas_installed, _check_pandas_index_arguments,
-                    _convert_times, _scale_dataframe_data, _check_time_format,
-                    _check_scaling_time)
+                    _convert_times, _scale_dataframe_data, _check_time_format)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
@@ -326,7 +325,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
             background_color=background_color, noise_cov=noise_cov, show=show)
 
     @copy_function_doc_to_method_doc(plot_evoked_topomap)
-    def plot_topomap(self, times="auto", ch_type=None, layout=None, vmin=None,
+    def plot_topomap(self, times="auto", ch_type=None, vmin=None,
                      vmax=None, cmap=None, sensors=True, colorbar=True,
                      scalings=None, units=None, res=64,
                      size=1, cbar_fmt="%3.1f",
@@ -334,17 +333,17 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
                      proj=False, show=True, show_names=False, title=None,
                      mask=None, mask_params=None, outlines='head',
                      contours=6, image_interp='bilinear', average=None,
-                     head_pos=None, axes=None, extrapolate='box', sphere=None,
+                     axes=None, extrapolate='box', sphere=None,
                      border=0, nrows=1, ncols='auto'):
         return plot_evoked_topomap(
-            self, times=times, ch_type=ch_type, layout=layout, vmin=vmin,
+            self, times=times, ch_type=ch_type, vmin=vmin,
             vmax=vmax, cmap=cmap, sensors=sensors, colorbar=colorbar,
             scalings=scalings, units=units, res=res,
             size=size, cbar_fmt=cbar_fmt, time_unit=time_unit,
             time_format=time_format, proj=proj, show=show,
             show_names=show_names, title=title, mask=mask,
             mask_params=mask_params, outlines=outlines, contours=contours,
-            image_interp=image_interp, average=average, head_pos=head_pos,
+            image_interp=image_interp, average=average,
             axes=axes, extrapolate=extrapolate, sphere=sphere, border=border,
             nrows=nrows, ncols=ncols)
 
@@ -616,7 +615,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         return out
 
     @fill_doc
-    def to_data_frame(self, picks=None, index=None, scaling_time=None,
+    def to_data_frame(self, picks=None, index=None,
                       scalings=None, copy=True, long_format=False,
                       time_format='ms'):
         """Export data in tabular structure as a pandas DataFrame.
@@ -630,7 +629,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         %(picks_all)s
         %(df_index_evk)s
             Defaults to ``None``.
-        %(df_scaling_time_deprecated)s
         %(df_scalings)s
         %(df_copy)s
         %(df_longform_raw)s
@@ -642,8 +640,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         -------
         %(df_return)s
         """
-        # check deprecation
-        _check_scaling_time(scaling_time)
         # check pandas once here, instead of in each private utils function
         pd = _check_pandas_installed()  # noqa
         # arg checking

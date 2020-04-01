@@ -1738,9 +1738,6 @@ def test_to_data_frame():
     """Test epochs Pandas exporter."""
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
-    # test deprecation
-    with pytest.deprecated_call(match='scaling_time is deprecated'):
-        epochs.to_data_frame(scaling_time=1e2)
     # test index checking
     with pytest.raises(ValueError, match='options. Valid index options are'):
         epochs.to_data_frame(index=['foo', 'bar'])

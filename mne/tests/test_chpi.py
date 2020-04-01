@@ -524,8 +524,7 @@ def test_chpi_subtraction_filter_chpi():
     raw.del_proj()
     raw_orig = raw.copy().crop(0, 16)
     with catch_logging() as log:
-        with pytest.deprecated_call(match='"auto"'):
-            filter_chpi(raw, include_line=False, verbose=True)
+        filter_chpi(raw, include_line=False, t_window=0.2, verbose=True)
     assert 'No average EEG' not in log.getvalue()
     assert '5 cHPI' in log.getvalue()
     # MaxFilter doesn't do quite as well as our algorithm with the last bit
@@ -539,8 +538,7 @@ def test_chpi_subtraction_filter_chpi():
     assert_suppressed(raw, raw_orig, np.arange(83, 324, 60), [30, 60, 150])
     raw = raw_orig.copy()
     with catch_logging() as log:
-        with pytest.deprecated_call(match='"auto"'):
-            filter_chpi(raw, include_line=True, verbose=True)
+        filter_chpi(raw, include_line=True, t_window=0.2, verbose=True)
     log = log.getvalue()
     assert '5 cHPI' in log
     assert '6 line' in log

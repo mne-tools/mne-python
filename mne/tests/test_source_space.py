@@ -269,8 +269,7 @@ def test_volume_source_space(tmpdir):
     # Spheres
     sphere = make_sphere_model(r0=(0., 0., 0.), head_radius=0.1,
                                relative_radii=(0.9, 1.0), sigmas=(0.33, 1.0))
-    with pytest.deprecated_call(match='sphere_units'):
-        src = setup_volume_source_space(pos=10, sphere=(0., 0., 0., 90))
+    src = setup_volume_source_space(pos=10, sphere=(0., 0., 0., 0.09))
     src_new = setup_volume_source_space(pos=10, sphere=sphere)
     _compare_source_spaces(src, src_new, mode='exact')
     with pytest.raises(ValueError, match='sphere, if str'):
@@ -295,8 +294,10 @@ def test_other_volume_source_spaces(tmpdir):
                     '--src', temp_name,
                     '--mri', fname_mri])
     src = read_source_spaces(temp_name)
+    sphere = (0., 0., 0., 0.09)
     src_new = setup_volume_source_space(None, pos=7.0, mri=fname_mri,
-                                        subjects_dir=subjects_dir)
+                                        subjects_dir=subjects_dir,
+                                        sphere=sphere)
     # we use a more accurate elimination criteria, so let's fix the MNE-C
     # source space
     assert len(src_new[0]['vertno']) == 7497

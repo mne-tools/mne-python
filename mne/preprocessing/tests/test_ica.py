@@ -19,7 +19,7 @@ from mne import (Epochs, read_events, pick_types, create_info, EpochsArray,
                  EvokedArray, Annotations, pick_channels_regexp)
 from mne.cov import read_cov
 from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
-                               read_ica, run_ica)
+                               read_ica)
 from mne.preprocessing.ica import (get_score_funcs, corrmap, _sort_components,
                                    _ica_explained_variance, read_ica_eeglab)
 from mne.io import read_raw_fif, Info, RawArray, read_raw_ctf, read_raw_eeglab
@@ -748,19 +748,6 @@ def test_detect_artifacts_replacement_of_run_ica(method, idx, ch_name):
     ica.detect_artifacts(raw, start_find=0, stop_find=5, ecg_ch=ch_name,
                          eog_ch=ch_name, skew_criterion=idx,
                          var_criterion=idx, kurt_criterion=idx)
-
-
-@requires_sklearn
-def test_run_ica_deprecation():
-    """Test that run_ica() has been deprecated."""
-    raw = read_raw_fif(raw_fname).crop(1.5, stop).load_data()
-    method = 'fastica'
-    idx = None
-    ch_name = None
-    with pytest.warns(DeprecationWarning, match='run_ica() is deprecated'):
-        run_ica(raw, n_components=2, start=0, stop=0.5, start_find=0,
-                stop_find=5, ecg_ch=ch_name, eog_ch=ch_name, method=method,
-                skew_criterion=idx, var_criterion=idx, kurt_criterion=idx)
 
 
 @requires_sklearn

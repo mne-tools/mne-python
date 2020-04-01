@@ -51,16 +51,13 @@ class Projection(dict):
     def plot_topomap(self, info, cmap=None, sensors=True,
                      colorbar=False, res=64, size=1, show=True,
                      outlines='head', contours=6, image_interp='bilinear',
-                     axes=None, vlim=(None, None), layout=None,
-                     sphere=None, border=0):
+                     axes=None, vlim=(None, None), sphere=None, border=0):
         """Plot topographic maps of SSP projections.
 
         Parameters
         ----------
         info : instance of Info | None
-            The measurement information to use to determine the layout. If both
-            ``info`` and ``layout`` are provided, the layout will take
-            precedence.
+            The measurement information to use to determine the layout.
         %(proj_topomap_kwargs)s
         %(topomap_sphere_auto)s
         %(topomap_border)s
@@ -77,7 +74,7 @@ class Projection(dict):
         from ..viz.topomap import plot_projs_topomap
         return plot_projs_topomap(self, info, cmap, sensors, colorbar,
                                   res, size, show, outlines,
-                                  contours, image_interp, axes, vlim, layout,
+                                  contours, image_interp, axes, vlim,
                                   sphere=sphere, border=border)
 
 
@@ -248,7 +245,7 @@ class ProjMixin(object):
         return self
 
     @fill_doc
-    def plot_projs_topomap(self, ch_type=None, layout=None, cmap=None,
+    def plot_projs_topomap(self, ch_type=None, cmap=None,
                            sensors=True, colorbar=False, res=64, size=1,
                            show=True, outlines='head', contours=6,
                            image_interp='bilinear', axes=None,
@@ -263,8 +260,6 @@ class ProjMixin(object):
             ted in pairs and the RMS for each pair is plotted. If None
             (default), it will return all channel types present. If a list of
             ch_types is provided, it will return multiple figures.
-        layout : object
-            Deprecated, do not use.
         %(proj_topomap_kwargs)s
         %(topomap_sphere_auto)s
         %(topomap_extrapolate)s

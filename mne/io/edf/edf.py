@@ -1164,18 +1164,9 @@ def read_raw_edf(input_fname, eog=None, misc=None,
     """
     input_fname = os.path.abspath(input_fname)
     ext = os.path.splitext(input_fname)[1][1:].lower()
-    if ext == 'gdf':
-        warn('The use of read_raw_edf for GDF files is deprecated. Please use '
-             'read_raw_gdf instead.', DeprecationWarning)
-        return RawGDF(input_fname=input_fname, eog=eog,
-                      misc=misc, stim_channel=stim_channel, exclude=exclude,
-                      preload=preload, verbose=verbose)
-    elif ext == 'bdf':
-        warn('The use of read_raw_edf for BDF files is deprecated. Please use '
-             'read_raw_bdf instead.', DeprecationWarning)
-    elif ext not in ('edf', 'bdf'):
-        raise NotImplementedError('Only EDF and BDF files are supported, got '
-                                  '{}.'.format(ext))
+    if ext != 'edf':
+        raise NotImplementedError(
+            'Only EDF files are supported by read_raw_edf, got %s' % (ext,))
     return RawEDF(input_fname=input_fname, eog=eog, misc=misc,
                   stim_channel=stim_channel, exclude=exclude, preload=preload,
                   verbose=verbose)

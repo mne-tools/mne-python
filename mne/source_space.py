@@ -1172,8 +1172,7 @@ def head_to_mri(pos, subject, mri_head_t, subjects_dir=None,
 # Surface to MNI conversion
 
 @verbose
-def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
-                  verbose=None):
+def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
     """Convert the array of vertices for a hemisphere to MNI coordinates.
 
     Parameters
@@ -1186,8 +1185,6 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
         Name of the subject to load surfaces from.
     subjects_dir : str, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
-    mode : str | None
-        Deprecated, will be removed in 0.21.
     %(verbose)s
 
     Returns
@@ -1215,7 +1212,7 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
     rr = [read_surface(s)[0] for s in surfs]
 
     # take point locations in MRI space and convert to MNI coordinates
-    xfm = _read_talxfm(subject, subjects_dir, mode)
+    xfm = _read_talxfm(subject, subjects_dir)
     data = np.array([rr[h][v, :] for h, v in zip(hemis, vertices)])
     if singleton:
         data = data[0]
@@ -1262,14 +1259,12 @@ def head_to_mni(pos, subject, mri_head_t, subjects_dir=None,
 
 
 @verbose
-def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
+def _read_talxfm(subject, subjects_dir, verbose=None):
     """Compute MNI transform from FreeSurfer talairach.xfm file.
 
     Adapted from freesurfer m-files. Altered to deal with Norig
     and Torig correctly.
     """
-    if mode is not None:
-        warn('mode is deprecated and will be removed in 0.21, do not set it')
     # Setup the RAS to MNI transform
     ras_mni_t = read_ras_mni_t(subject, subjects_dir)
 
@@ -1492,7 +1487,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
                               sphere=None, bem=None,
                               surface=None, mindist=5.0, exclude=0.0,
                               subjects_dir=None, volume_label=None,
-                              add_interpolator=True, sphere_units=None,
+                              add_interpolator=True, sphere_units='m',
                               verbose=None):
     """Set up a volume source space with grid spacing or discrete source space.
 
@@ -1518,13 +1513,12 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         If subject name is provided, `pos` is a float or `volume_label`
         are not provided then the `mri` parameter will default to 'T1.mgz'
         else it will stay None.
-    sphere : ndarray, shape (4,) | ConductorModel
+    sphere : ndarray, shape (4,) | ConductorModel | None
         Define spherical source space bounds using origin and radius given
         by (ox, oy, oz, rad) in ``sphere_units``.
         Only used if ``bem`` and ``surface`` are both None. Can also be a
         spherical ConductorModel, which will use the origin and radius.
-        The default (None) is a temporary alias for ``(0.0, 0.0, 0.0, 0.09)``
-        in meters.
+        None (the default) uses a head-digitization fit.
     bem : str | None | ConductorModel
         Define source space bounds using a BEM file (specifically the inner
         skull surface) or a ConductorModel for a 1-layer of 3-layers BEM.
@@ -1544,8 +1538,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         If True and ``mri`` is not None, then an interpolation matrix
         will be produced.
     sphere_units : str
-        Defaults to ``"mm"`` in 0.20 but will change to ``"m"`` in 0.21.
-        Set it explicitly to avoid warnings.
+        Defaults to ``"m"``.
 
         .. versionadded:: 0.20
     %(verbose)s
@@ -1627,12 +1620,6 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
                                  'check  freesurfer lookup table.'
                                  % (label, mri))
 
-    if sphere is None:  # just allow this until deprecation is over
-        sphere = np.array((0.0, 0.0, 0.0, 90.0))
-        if isinstance(sphere_units, str) and sphere_units == 'm':
-            sphere /= 1000.
-        else:
-            sphere_units = 'mm'
     need_warn = sphere_units is None and not isinstance(sphere, ConductorModel)
     sphere = _check_sphere(sphere, sphere_units=sphere_units)
 

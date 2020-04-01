@@ -146,29 +146,16 @@ def _unique_channel_names(ch_names):
     return ch_names
 
 
-DEPRECATED_PARAM = object()
-
-
 class MontageMixin(object):
     """Mixin for Montage setting."""
 
     @verbose
-    def set_montage(self, montage, raise_if_subset=DEPRECATED_PARAM,
-                    match_case=True, verbose=None):
+    def set_montage(self, montage, match_case=True, verbose=None):
         """Set EEG sensor configuration and head digitization.
 
         Parameters
         ----------
         %(montage)s
-        raise_if_subset : bool
-            If True, ValueError will be raised when montage.ch_names is a
-            subset of info['ch_names']. This parameter was introduced for
-            backward compatibility when set to False.
-
-            Defaults to False in 0.19, it will change to default to True in
-            0.20, and will be removed in 0.21.
-
-            .. versionadded:: 0.19
         %(match_case)s
         %(verbose_meth)s
 
@@ -186,7 +173,7 @@ class MontageMixin(object):
 
         from ..channels.montage import _set_montage
         info = self if isinstance(self, Info) else self.info
-        _set_montage(info, montage, raise_if_subset, match_case)
+        _set_montage(info, montage, match_case)
         return self
 
 
@@ -1908,7 +1895,7 @@ def _merge_info(infos, force_update_to_first=False, verbose=None):
 
 
 @verbose
-def create_info(ch_names, sfreq, ch_types='misc', montage=None, verbose=None):
+def create_info(ch_names, sfreq, ch_types='misc', verbose=None):
     """Create a basic Info instance suitable for use with create_raw.
 
     Parameters
@@ -1924,8 +1911,6 @@ def create_info(ch_names, sfreq, ch_types='misc', montage=None, verbose=None):
         Currently supported fields are 'ecg', 'bio', 'stim', 'eog', 'misc',
         'seeg', 'ecog', 'mag', 'eeg', 'ref_meg', 'grad', 'emg', 'hbr' or 'hbo'.
         If str, then all channels are assumed to be of the same type.
-    montage : None
-        Deprecated. Use :meth:`mne.Info.set_montage` instead.
     %(verbose)s
 
     Returns
@@ -1951,7 +1936,6 @@ def create_info(ch_names, sfreq, ch_types='misc', montage=None, verbose=None):
     * Am: dipole
     * AU: misc
     """
-    from ..channels.montage import (DigMontage, _set_montage)
     try:
         ch_names = operator.index(ch_names)  # int-like
     except TypeError:
@@ -1960,19 +1944,10 @@ def create_info(ch_names, sfreq, ch_types='misc', montage=None, verbose=None):
         ch_names = list(np.arange(ch_names).astype(str))
     _validate_type(ch_names, (list, tuple), "ch_names",
                    ("list, tuple, or int"))
-    _validate_type(montage, (None, str, DigMontage), 'montage')
-    if montage is not None:
-        warn('Passing montage to create_info is deprecated and will be '
-             'removed in 0.21, use raw.set_montage (or epochs.set_montage, '
-             'etc.) instead', DeprecationWarning)
     sfreq = float(sfreq)
     if sfreq <= 0:
         raise ValueError('sfreq must be positive')
     nchan = len(ch_names)
-    if ch_types is None:
-        warn('Passing ch_types=None is deprecated and will not be supported '
-             'in 0.21, pass ch_types="misc" instead.', DeprecationWarning)
-        ch_types = 'misc'  # just for backward compat
     if isinstance(ch_types, str):
         ch_types = [ch_types] * nchan
     ch_types = np.atleast_1d(np.array(ch_types, np.str))
@@ -1997,7 +1972,6 @@ def create_info(ch_names, sfreq, ch_types='misc', montage=None, verbose=None):
         info['chs'].append(chan_info)
 
     info._update_redundant()
-    _set_montage(info, montage)
     info._check_consistency()
     return info
 

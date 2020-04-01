@@ -25,8 +25,7 @@ from mne.channels import (get_builtin_montages, DigMontage, read_dig_dat,
                           read_dig_polhemus_isotrak,
                           read_polhemus_fastscan,
                           read_dig_hpts)
-from mne.channels.montage import (_set_montage, transform_to_head,
-                                  _check_get_coord_frame)
+from mne.channels.montage import transform_to_head, _check_get_coord_frame
 from mne.utils import _TempDir, run_tests_if_main, assert_dig_allclose
 from mne.bem import _fit_sphere
 from mne.io.constants import FIFF
@@ -1147,31 +1146,6 @@ def test_set_montage_coord_frame_in_head_vs_unknown():
         _get_dig_montage_pos(montage_in_unknown_with_fid),
         [[0, 1, 2], [3, 4, 5], [6, 7, 8]],
     )
-
-
-def test_set_dig_montage_parameters_deprecation():
-    """Test parameter deprecation for set_montage."""
-    # XXX: This is testing deprecated behavior and should be removed in 0.21.
-    N_CHANNELS = 3
-    raw = _make_toy_raw(N_CHANNELS)
-    montage = _make_toy_dig_montage(N_CHANNELS, coord_frame='head')
-
-    # ok
-    raw.set_montage(montage)
-
-    with pytest.deprecated_call():
-        raw.set_montage(montage, raise_if_subset=True)
-
-    _msg = 'since 0.20 its value can only be True.'
-    with pytest.raises(ValueError, match=_msg):
-        raw.set_montage(montage, raise_if_subset=False)
-
-    # Already deleted parameters in 0.20, just for completeness
-    with pytest.raises(TypeError, match='unexpected keyword argument'):
-        raw.set_montage(montage, set_dig=True)
-
-    with pytest.raises(TypeError, match='unexpected keyword argument'):
-        _set_montage(raw.info, montage, update_ch_names=False)
 
 
 def test_read_dig_hpts():
