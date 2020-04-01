@@ -20,6 +20,7 @@ def run():
     """Run command."""
     import matplotlib.pyplot as plt
     from mne.commands.utils import get_optparser, _add_verbose_flag
+    from mne.viz import _RAW_CLIP_DEF
 
     parser = get_optparser(__file__, usage='usage: %prog raw [options]')
 
@@ -65,7 +66,7 @@ def run():
                       default=4)
     parser.add_option("--clipping", dest="clipping",
                       help="Enable trace clipping mode, either 'clamp' or "
-                      "'transparent'", default=1.5)
+                      "'transparent'", default=_RAW_CLIP_DEF)
     parser.add_option("--filterchpi", dest="filterchpi",
                       help="Enable filtering cHPI signals.", default=None,
                       action="store_true")

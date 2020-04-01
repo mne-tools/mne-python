@@ -97,12 +97,15 @@ def _pick_bad_channels(event, params):
     _plot_update_raw_proj(params, None)
 
 
+_RAW_CLIP_DEF = 3.
+
+
 @verbose
 def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
-             highpass=None, lowpass=None, filtorder=4, clipping=1.5,
+             highpass=None, lowpass=None, filtorder=4, clipping=_RAW_CLIP_DEF,
              show_first_samp=False, proj=True, group_by='type',
              butterfly=False, decim='auto', noise_cov=None, event_id=None,
              show_scrollbars=True, show_scalebars=True, verbose=None):
@@ -797,7 +800,9 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
                 np.clip(this_data, -1, 1, out=this_data)
             elif params['clipping'] is not None:
                 l, w = this_t[0], this_t[-1] - this_t[0]
-                b, h = offset - params['clipping'], 2 * params['clipping']
+                ylim = params['ax'].get_ylim()
+                b = max(offset - params['clipping'], ylim[0])
+                h = min(2 * params['clipping'], ylim[1] - b)
                 rect = Rectangle((l, b), w, h, transform=ax.transData)
                 lines[ii].set_clip_path(rect)
 

@@ -42,7 +42,7 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      _check_preload, _get_argvalues, _check_option,
                      _build_data_frame, _convert_times, _scale_dataframe_data,
                      _check_time_format)
-from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
+from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo, _RAW_CLIP_DEF
 from ..event import find_events, concatenate_events
 from ..annotations import Annotations, _combine_annotations, _sync_onset
 
@@ -1401,7 +1401,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order=None,
              show_options=False, title=None, show=True, block=False,
-             highpass=None, lowpass=None, filtorder=4, clipping=1.5,
+             highpass=None, lowpass=None, filtorder=4, clipping=_RAW_CLIP_DEF,
              show_first_samp=False, proj=True, group_by='type',
              butterfly=False, decim='auto', noise_cov=None, event_id=None,
              show_scrollbars=True, show_scalebars=True, verbose=None):
