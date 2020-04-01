@@ -623,7 +623,8 @@ def _check_pyqt5_version():
     bad &= sys.platform == 'darwin'
     if bad:
         warn('macOS users should use PyQt5 >= 5.10 for GUIs, got %s. '
-             'Please upgrade e.g. with:\n\n    pip install "PyQt5>=5.10"\n'
+             'Please upgrade e.g. with:\n\n'
+             '    pip install "PyQt5>=5.10,<5.14"\n'
              % (version,))
 
     return version
