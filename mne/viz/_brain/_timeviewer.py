@@ -390,18 +390,6 @@ class _TimeViewer(object):
         if callback is not None:
             callback()
 
-    def _set_time_slider_visibility(self):
-        # if we actually have time points, we will show the slider so
-        # hide the time actor
-        if self.brain._times is not None and len(self.brain._times) > 1:
-            if self.time_actor is not None:
-                self.time_actor.VisibilityOff()
-            return
-        # otherwise, hide the irrelevant sliders
-        for slider in self.plotter.slider_widgets:
-            if getattr(slider, "name", None) in {'playback_speed', 'time'}:
-                slider.GetRepresentation().VisibilityOff()
-
     def toggle_interface(self):
         self.visibility = not self.visibility
 
@@ -415,15 +403,15 @@ class _TimeViewer(object):
 
         # manage time label
         time_label = self.brain._data['time_label']
+        # if we actually have time points, we will show the slider so
+        # hide the time actor
+        have_ts = self.brain._times is not None and len(self.brain._times) > 1
         if self.time_actor is not None:
-            if self.visibility and time_label is not None:
+            if self.visibility and time_label is not None and not have_ts:
                 self.time_actor.SetInput(time_label(self.brain._current_time))
                 self.time_actor.VisibilityOn()
             else:
                 self.time_actor.VisibilityOff()
-
-        # hide time labels that are not relevant
-        self._set_time_slider_visibility()
 
         self.plotter.update()
 
@@ -571,23 +559,30 @@ class _TimeViewer(object):
 
         # Time slider
         max_time = len(self.brain._data['time']) - 1
-        self.time_call = TimeSlider(
-            plotter=self.plotter,
-            brain=self.brain,
-            first_call=False,
-            callback=self.plot_time_line,
-        )
-        time_slider = self.plotter.add_slider_widget(
-            self.time_call,
-            value=self.brain._data['time_idx'],
-            rng=[0, max_time],
-            pointa=(0.23, 0.1),
-            pointb=(0.77, 0.1),
-            event_type='always'
-        )
-        time_slider.name = "time"
-        # configure properties of the time slider
-        time_slider.GetRepresentation().SetLabelFormat('idx=%0.1f')
+        # VTK on macOS bombs if we create these then hide them, so don't
+        # even create them
+        if max_time < 1:
+            self.time_call = None
+            time_slider = None
+        else:
+            self.time_call = TimeSlider(
+                plotter=self.plotter,
+                brain=self.brain,
+                first_call=False,
+                callback=self.plot_time_line,
+            )
+            time_slider = self.plotter.add_slider_widget(
+                self.time_call,
+                value=self.brain._data['time_idx'],
+                rng=[0, max_time],
+                pointa=(0.23, 0.1),
+                pointb=(0.77, 0.1),
+                event_type='always'
+            )
+            time_slider.name = "time"
+            # configure properties of the time slider
+            time_slider.GetRepresentation().SetLabelFormat('idx=%0.1f')
+
         current_time = self.brain._current_time
         assert current_time is not None  # should never be the case, float
         time_label = self.brain._data['time_label']
@@ -595,26 +590,30 @@ class _TimeViewer(object):
             current_time = time_label(current_time)
         else:
             current_time = time_label
-        time_slider.GetRepresentation().SetTitleText(current_time)
+        if time_slider is not None:
+            time_slider.GetRepresentation().SetTitleText(current_time)
         if self.time_actor is not None:
             self.time_actor.SetInput(current_time)
         del current_time
 
         # Playback speed slider
-        self.playback_speed_call = SmartSlider(
-            plotter=self.plotter,
-            callback=self.set_playback_speed,
-            name="playback_speed"
-        )
-        playback_speed_slider = self.plotter.add_slider_widget(
-            self.playback_speed_call,
-            value=self.default_playback_speed_value,
-            rng=self.default_playback_speed_range, title="speed",
-            pointa=(0.02, 0.1),
-            pointb=(0.18, 0.1),
-            event_type='always'
-        )
-        playback_speed_slider.name = "playback_speed"
+        if time_slider is None:
+            self.playback_speed_call = None
+        else:
+            self.playback_speed_call = SmartSlider(
+                plotter=self.plotter,
+                callback=self.set_playback_speed,
+                name="playback_speed"
+            )
+            playback_speed_slider = self.plotter.add_slider_widget(
+                self.playback_speed_call,
+                value=self.default_playback_speed_value,
+                rng=self.default_playback_speed_range, title="speed",
+                pointa=(0.02, 0.1),
+                pointb=(0.18, 0.1),
+                event_type='always'
+            )
+            playback_speed_slider.name = "playback_speed"
 
         # Colormap slider
         pointa = np.array((0.82, 0.26))
@@ -687,8 +686,9 @@ class _TimeViewer(object):
         self.set_slider_style(fmid_slider)
         self.set_slider_style(fmax_slider)
         self.set_slider_style(fscale_slider)
-        self.set_slider_style(playback_speed_slider)
-        self.set_slider_style(time_slider)
+        if time_slider is not None:
+            self.set_slider_style(playback_speed_slider)
+            self.set_slider_style(time_slider)
 
     def configure_playback(self):
         self.plotter.add_callback(self.play, self.refresh_rate_ms)
@@ -937,11 +937,12 @@ class _TimeViewer(object):
         self.orientation_call = None
         self.smoothing_call.plotter = None
         self.smoothing_call = None
-        self.time_call.plotter = None
-        self.time_call.brain = None
-        self.time_call = None
-        self.playback_speed_call.plotter = None
-        self.playback_speed_call = None
+        if self.time_call is not None:
+            self.time_call.plotter = None
+            self.time_call.brain = None
+            self.time_call = None
+            self.playback_speed_call.plotter = None
+            self.playback_speed_call = None
         self.fmin_call.plotter = None
         self.fmin_call.brain = None
         self.fmin_call = None
