@@ -302,8 +302,8 @@ def _source_induced_power(epochs, inverse_operator, freqs, label=None,
     else:
         plv = None
 
-    if method != "MNE":
-        power *= noise_norm.ravel()[:, None, None] ** 2
+    if noise_norm is not None:
+        power *= noise_norm[:, :, np.newaxis] ** 2
 
     return power, plv, vertno
 
@@ -672,7 +672,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         if is_free_ori and pick_ori is None:
             psd = combine_xyz(psd, square=False)
 
-        if method != "MNE":
+        if noise_norm is not None:
             psd *= noise_norm ** 2
 
         out = _make_stc(psd, tmin=freqs[0], tstep=fstep, vertices=vertno,

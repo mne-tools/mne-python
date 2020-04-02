@@ -43,7 +43,7 @@ from ..utils import (check_fname, logger, verbose, warn, _validate_type,
                      _check_depth, _check_src_normal)
 
 
-INVERSE_METHODS = ['MNE', 'dSPM', 'sLORETA', 'eLORETA']
+INVERSE_METHODS = ('MNE', 'dSPM', 'sLORETA', 'eLORETA')
 
 
 class InverseOperator(dict):
@@ -572,12 +572,11 @@ def prepare_inverse_operator(orig, nave, lambda2, method='dSPM',
     #   Finally, compute the noise-normalization factors
     #
     inv['noisenorm'] = []
-    if method != 'MNE':
-        logger.info('    Computing noise-normalization factors (%s)...'
-                    % method)
     if method == 'eLORETA':
         _compute_eloreta(inv, lambda2, method_params)
     elif method != 'MNE':
+        logger.info('    Computing noise-normalization factors (%s)...'
+                    % method)
         # Here we have::
         #
         #     inv['reginv'] = sing / (sing ** 2 + lambda2)
