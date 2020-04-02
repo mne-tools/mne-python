@@ -130,6 +130,20 @@ def matplotlib_config():
     cbook.CallbackRegistry = CallbackRegistryReraise
 
 
+def pytest_collectreport(report):
+    """Check that no MNE classes were instantiated during collection."""
+    from mne.io.base import TrackingMixin
+    instances = list()
+    for key in TrackingMixin.__refs__:
+        instances.extend(key._get_instances())
+    if instances:
+        pytest.exit('\nLoaded data found during test collection:\n\n'
+                    '    %s\n\nPlease nest data loading in tests.\n'
+                    % ('\n    '.join('%s line %s: %s'
+                       % (inst[1], inst[2], inst[0])
+                       for inst in instances)))
+
+
 @pytest.fixture()
 def check_gui_ci():
     """Skip tests that are not reliable on CIs."""

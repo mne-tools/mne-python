@@ -36,7 +36,7 @@ from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_string, write_float_matrix,
                        write_id, write_float)
-from .io.base import TimeMixin, _check_maxshield
+from .io.base import TimeMixin, TrackingMixin, _check_maxshield
 
 _aspect_dict = {
     'average': FIFF.FIFFV_ASPECT_AVERAGE,
@@ -57,7 +57,7 @@ _aspect_rev = {val: key for key, val in _aspect_dict.items()}
 @fill_doc
 class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
              InterpolationMixin, FilterMixin, TimeMixin, SizeMixin,
-             ShiftTimeMixin):
+             ShiftTimeMixin, TrackingMixin):
     """Evoked data.
 
     Parameters
@@ -124,6 +124,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         # project and baseline correct
         if proj:
             self.apply_proj()
+        TrackingMixin.__init__(self, Evoked)
 
     @property
     def kind(self):

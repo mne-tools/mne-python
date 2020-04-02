@@ -38,7 +38,7 @@ from .io.pick import (pick_types, channel_indices_by_type, channel_type,
                       _pick_aux_channels, _DATA_CH_TYPES_SPLIT,
                       _picks_to_idx)
 from .io.proj import setup_proj, ProjMixin, _proj_equal
-from .io.base import BaseRaw, TimeMixin
+from .io.base import BaseRaw, TimeMixin, TrackingMixin
 from .bem import _check_origin
 from .evoked import EvokedArray, _check_decim
 from .baseline import rescale, _log_rescale
@@ -299,7 +299,7 @@ def _handle_event_repeated(events, event_id, event_repeated, selection,
 @fill_doc
 class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                  SetChannelsMixin, InterpolationMixin, FilterMixin,
-                 TimeMixin, SizeMixin, GetEpochsMixin):
+                 TimeMixin, SizeMixin, GetEpochsMixin, TrackingMixin):
     """Abstract base class for Epochs-type classes.
 
     This class provides basic functionality and should never be instantiated
@@ -531,6 +531,7 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
                 self._data[ii] = np.dot(self._projector, epoch)
         self._filename = str(filename) if filename is not None else filename
         self._check_consistency()
+        TrackingMixin.__init__(self, BaseEpochs)
 
     def _check_consistency(self):
         """Check invariants of epochs object."""

@@ -268,24 +268,8 @@ def warn(message, category=RuntimeWarning, module='mne'):
     module : str
         The name of the module emitting the warning.
     """
-    import mne
-    root_dir = op.dirname(mne.__file__)
-    frame = None
     if logger.level <= logging.WARN:
-        frame = inspect.currentframe()
-        while frame:
-            fname = frame.f_code.co_filename
-            lineno = frame.f_lineno
-            # in verbose dec
-            if not _verbose_dec_re.search(fname):
-                # treat tests as scripts
-                # and don't capture unittest/case.py (assert_raises)
-                if not (fname.startswith(root_dir) or
-                        ('unittest' in fname and 'case' in fname)) or \
-                        op.basename(op.dirname(fname)) == 'tests':
-                    break
-            frame = frame.f_back
-        del frame
+        fname, lineno = _get_calling_frame_info()
         # We need to use this instead of warn(message, category, stacklevel)
         # because we move out of the MNE stack, so warnings won't properly
         # recognize the module name (and our warnings.simplefilter will fail)
@@ -298,6 +282,25 @@ def warn(message, category=RuntimeWarning, module='mne'):
                                                          False)
            for h in logger.handlers):
         logger.warning(message)
+
+
+def _get_calling_frame_info():
+    import mne
+    root_dir = op.dirname(mne.__file__)
+    frame = inspect.currentframe()
+    while frame:
+        fname = frame.f_code.co_filename
+        lineno = frame.f_lineno
+        # in verbose dec
+        if not _verbose_dec_re.search(fname):
+            # treat tests as scripts
+            # and don't capture unittest/case.py (assert_raises)
+            if not (fname.startswith(root_dir) or
+                    ('unittest' in fname and 'case' in fname)) or \
+                    op.basename(op.dirname(fname)) == 'tests':
+                break
+        frame = frame.f_back
+    return fname, lineno
 
 
 def _get_call_line():

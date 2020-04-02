@@ -9,10 +9,13 @@
 #
 # License: BSD (3-clause)
 
+from collections import defaultdict
 from copy import deepcopy
 from datetime import timedelta
+import inspect
 import os
 import os.path as op
+import weakref
 
 import numpy as np
 
@@ -41,10 +44,34 @@ from ..utils import (_check_fname, _check_pandas_installed, sizeof_fmt,
                      copy_function_doc_to_method_doc, _validate_type,
                      _check_preload, _get_argvalues, _check_option,
                      _build_data_frame, _convert_times, _scale_dataframe_data,
-                     _check_time_format)
+                     _check_time_format, _get_calling_frame_info)
 from ..viz import plot_raw, plot_raw_psd, plot_raw_psd_topo
 from ..event import find_events, concatenate_events
 from ..annotations import Annotations, _combine_annotations, _sync_onset
+
+
+class TrackingMixin(object):
+    """Class to track instances."""
+
+    __refs__ = defaultdict(list)
+
+    def __init__(self, cls=None, stacklevel=2):
+        cls = self.__class__ if cls is None else cls
+        fname, lineno = _get_calling_frame_info()
+        self.__refs__[cls].append(
+            (weakref.ref(self), fname, lineno))
+
+    @classmethod
+    def _get_instances(cls):
+        refs = list()
+        out = list()
+        for ref, fname, lineno in cls.__refs__[cls]:
+            instance = ref()
+            if instance is not None:
+                refs.append((ref, fname, lineno))
+                out.append((instance, fname, lineno))
+        cls.__refs__[cls] = refs
+        return out
 
 
 class TimeMixin(object):
@@ -80,7 +107,8 @@ class TimeMixin(object):
 
 @fill_doc
 class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
-              InterpolationMixin, TimeMixin, SizeMixin, FilterMixin):
+              InterpolationMixin, TimeMixin, SizeMixin, FilterMixin,
+              TrackingMixin):
     """Base class for Raw data.
 
     Parameters
@@ -241,6 +269,7 @@ class BaseRaw(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
         if load_from_disk:
             self._preload_data(preload)
         self._init_kwargs = _get_argvalues()
+        TrackingMixin.__init__(self, BaseRaw)
 
     @verbose
     def apply_gradient_compensation(self, grade, verbose=None):

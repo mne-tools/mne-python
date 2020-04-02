@@ -16,7 +16,7 @@ from mne.surface import (read_morph_map, _compute_nearest, _tessellate_sphere,
                          get_meg_helmet_surf, _normal_orth)
 from mne.utils import (_TempDir, requires_vtk, catch_logging,
                        run_tests_if_main, object_diff, requires_freesurfer)
-from mne.io import read_info
+from mne.io import read_info, read_raw_fif
 from mne.io.constants import FIFF
 from mne.transforms import _get_trans
 
