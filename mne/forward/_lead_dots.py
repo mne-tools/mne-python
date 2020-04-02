@@ -77,7 +77,7 @@ def _get_legen_table(ch_type, volume_integral=False, n_coeff=100,
         lut = leg_fun(x_interp, n_coeff).astype(np.float32)
         if not force_calc:
             with open(fname, 'wb') as fid:
-                fid.write(lut.tostring())
+                fid.write(lut.tobytes())
     else:
         logger.info('Reading Legendre%s table...' % extra_str)
         with open(fname, 'rb', buffering=0) as fid:

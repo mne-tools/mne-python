@@ -683,27 +683,27 @@ def _read_dipole_bdip(fname):
 def _write_dipole_bdip(fname, dip):
     with open(fname, 'wb+') as fid:
         for ti, t in enumerate(dip.times):
-            fid.write(np.zeros(1, '>i4').tostring())  # int dipole
-            fid.write(np.array([t, 0]).astype('>f4').tostring())
-            fid.write(np.zeros(3, '>f4').tostring())  # r0
-            fid.write(dip.pos[ti].astype('>f4').tostring())  # pos
+            fid.write(np.zeros(1, '>i4').tobytes())  # int dipole
+            fid.write(np.array([t, 0]).astype('>f4').tobytes())
+            fid.write(np.zeros(3, '>f4').tobytes())  # r0
+            fid.write(dip.pos[ti].astype('>f4').tobytes())  # pos
             Q = dip.amplitude[ti] * dip.ori[ti]
-            fid.write(Q.astype('>f4').tostring())
-            fid.write(np.array(dip.gof[ti] / 100., '>f4').tostring())
+            fid.write(Q.astype('>f4').tobytes())
+            fid.write(np.array(dip.gof[ti] / 100., '>f4').tobytes())
             has_errors = int(bool(len(dip.conf)))
-            fid.write(np.array(has_errors, '>i4').tostring())  # has_errors
-            fid.write(np.zeros(1, '>f4').tostring())  # noise level
+            fid.write(np.array(has_errors, '>i4').tobytes())  # has_errors
+            fid.write(np.zeros(1, '>f4').tobytes())  # noise level
             for key in _BDIP_ERROR_KEYS:
                 val = dip.conf[key][ti] if key in dip.conf else 0.
                 assert val.shape == ()
-                fid.write(np.array(val, '>f4').tostring())
-            fid.write(np.zeros(25, '>f4').tostring())
+                fid.write(np.array(val, '>f4').tobytes())
+            fid.write(np.zeros(25, '>f4').tobytes())
             conf = dip.conf['vol'][ti] if 'vol' in dip.conf else 0.
-            fid.write(np.array(conf, '>f4').tostring())
+            fid.write(np.array(conf, '>f4').tobytes())
             khi2 = dip.khi2[ti] if dip.khi2 is not None else 0
-            fid.write(np.array(khi2, '>f4').tostring())
-            fid.write(np.zeros(1, '>f4').tostring())  # prob
-            fid.write(np.zeros(1, '>f4').tostring())  # total noise est
+            fid.write(np.array(khi2, '>f4').tobytes())
+            fid.write(np.zeros(1, '>f4').tobytes())  # prob
+            fid.write(np.zeros(1, '>f4').tobytes())  # total noise est
 
 
 # #############################################################################
