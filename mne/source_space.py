@@ -1744,6 +1744,11 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
             del s['vol_dims']
 
     # Save it
+    sp = _complete_vol_src(sp, subject)
+    return sp
+
+
+def _complete_vol_src(sp, subject=None):
     for s in sp:
         s.update(dict(nearest=None, dist=None, use_tris=None, patch_inds=None,
                       dist_limit=None, pinfo=None, ntri=0, nearest_dist=None,
