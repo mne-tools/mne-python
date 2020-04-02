@@ -858,20 +858,18 @@ def compute_chpi_amplitudes(raw, t_step_min=0.01, t_window='auto',
         (len(sin_fits['times']),
          len(hpi['freqs']),
          len(sin_fits['proj']['data']['col_names'])))
-    # Don't use a ProgressBar in debug mode
-    with ProgressBar(fit_idxs, mesg='cHPI amplitudes') as pb:
-        for mi, midpt in enumerate(pb):
-            #
-            # 0. determine samples to fit.
-            #
-            time_sl = midpt - hpi['n_window'] // 2
-            time_sl = slice(max(time_sl, 0),
-                            min(time_sl + hpi['n_window'], len(raw.times)))
+    for mi, midpt in enumerate(ProgressBar(fit_idxs, mesg='cHPI amplitudes')):
+        #
+        # 0. determine samples to fit.
+        #
+        time_sl = midpt - hpi['n_window'] // 2
+        time_sl = slice(max(time_sl, 0),
+                        min(time_sl + hpi['n_window'], len(raw.times)))
 
-            #
-            # 1. Fit amplitudes for each channel from each of the N sinusoids
-            #
-            sin_fits['slopes'][mi] = _fit_chpi_amplitudes(raw, time_sl, hpi)
+        #
+        # 1. Fit amplitudes for each channel from each of the N sinusoids
+        #
+        sin_fits['slopes'][mi] = _fit_chpi_amplitudes(raw, time_sl, hpi)
     return sin_fits
 
 
@@ -968,41 +966,40 @@ def compute_chpi_locs(info, chpi_amplitudes, t_step_max=1., too_close='raise',
     last = dict(sin_fit=None, coil_fit_time=sin_fits['times'][0] - 1,
                 coil_dev_rrs=hpi_dig_dev_rrs)
     del hpi_dig_dev_rrs
-    with ProgressBar(iter_, mesg='cHPI locations ') as pb:
-        for fit_time, sin_fit in pb:
-            # skip this window if bad
-            if not np.isfinite(sin_fit).all():
+    for fit_time, sin_fit in ProgressBar(iter_, mesg='cHPI locations '):
+        # skip this window if bad
+        if not np.isfinite(sin_fit).all():
+            continue
+
+        # check if data has sufficiently changed
+        if last['sin_fit'] is not None:  # first iteration
+            corrs = np.array(
+                [np.corrcoef(s, l)[0, 1]
+                    for s, l in zip(sin_fit, last['sin_fit'])])
+            corrs *= corrs
+            # check to see if we need to continue
+            if fit_time - last['coil_fit_time'] <= t_step_max - 1e-7 and \
+                    (corrs > 0.98).sum() >= 3:
+                # don't need to refit data
                 continue
 
-            # check if data has sufficiently changed
-            if last['sin_fit'] is not None:  # first iteration
-                corrs = np.array(
-                    [np.corrcoef(s, l)[0, 1]
-                     for s, l in zip(sin_fit, last['sin_fit'])])
-                corrs *= corrs
-                # check to see if we need to continue
-                if fit_time - last['coil_fit_time'] <= t_step_max - 1e-7 and \
-                        (corrs > 0.98).sum() >= 3:
-                    # don't need to refit data
-                    continue
+        # update 'last' sin_fit *before* inplace sign mult
+        last['sin_fit'] = sin_fit.copy()
 
-            # update 'last' sin_fit *before* inplace sign mult
-            last['sin_fit'] = sin_fit.copy()
-
-            #
-            # 2. Fit magnetic dipole for each coil to obtain coil positions
-            #    in device coordinates
-            #
-            coil_fits = [_fit_magnetic_dipole(f, x0, too_close, whitener,
-                                              meg_coils, guesses)
-                         for f, x0 in zip(sin_fit, last['coil_dev_rrs'])]
-            rrs, gofs, moments = zip(*coil_fits)
-            chpi_locs['times'].append(fit_time)
-            chpi_locs['rrs'].append(rrs)
-            chpi_locs['gofs'].append(gofs)
-            chpi_locs['moments'].append(moments)
-            last['coil_fit_time'] = fit_time
-            last['coil_dev_rrs'] = rrs
+        #
+        # 2. Fit magnetic dipole for each coil to obtain coil positions
+        #    in device coordinates
+        #
+        coil_fits = [_fit_magnetic_dipole(f, x0, too_close, whitener,
+                                          meg_coils, guesses)
+                     for f, x0 in zip(sin_fit, last['coil_dev_rrs'])]
+        rrs, gofs, moments = zip(*coil_fits)
+        chpi_locs['times'].append(fit_time)
+        chpi_locs['rrs'].append(rrs)
+        chpi_locs['gofs'].append(gofs)
+        chpi_locs['moments'].append(moments)
+        last['coil_fit_time'] = fit_time
+        last['coil_dev_rrs'] = rrs
     for key, val in chpi_locs.items():
         chpi_locs[key] = np.array(val, float)
     return chpi_locs
