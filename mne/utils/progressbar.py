@@ -45,7 +45,7 @@ class ProgressBar(object):
         from ..externals.tqdm import auto
         tqdm = auto.tqdm
         defaults = dict(
-            leave=True, mininterval=0.016, miniters=0, smoothing=0.9,
+            leave=True, mininterval=0.016, miniters=1, smoothing=0.05,
             bar_format='{percentage:3.0f}%|{bar}| {desc} : {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt:>11}{postfix}]',  # noqa: E501
         )
         for key, val in defaults.items():
