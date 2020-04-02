@@ -27,13 +27,11 @@ from mne import (read_cov, read_forward_solution, read_evokeds, pick_types,
                  pick_channels_forward, compute_raw_covariance)
 from mne.io import read_raw_fif
 from mne.io.proj import make_projector
-from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
-                                      apply_inverse_raw, apply_inverse_epochs,
-                                      make_inverse_operator,
-                                      write_inverse_operator,
-                                      compute_rank_inverse, apply_inverse_cov,
-                                      prepare_inverse_operator,
-                                      INVERSE_METHODS)
+from mne.minimum_norm import (apply_inverse, read_inverse_operator,
+                              apply_inverse_raw, apply_inverse_epochs,
+                              make_inverse_operator, apply_inverse_cov,
+                              write_inverse_operator, prepare_inverse_operator,
+                              compute_rank_inverse, INVERSE_METHODS)
 from mne.utils import _TempDir, run_tests_if_main, catch_logging
 
 test_path = testing.data_path(download=False)
