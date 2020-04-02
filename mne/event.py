@@ -181,7 +181,7 @@ def _read_events_fif(fid, tree):
         elif kind == FIFF.FIFF_MNE_EVENT_COMMENTS:
             tag = read_tag(fid, pos)
             event_id = tag.data
-            event_id = event_id.tostring().decode('latin-1').split('\x00')[:-1]
+            event_id = event_id.tobytes().decode('latin-1').split('\x00')[:-1]
             assert len(event_id) == len(event_list)
             event_id = {k: v[2] for k, v in zip(event_id, event_list)}
             break

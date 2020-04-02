@@ -97,20 +97,20 @@ def _write_stc(filename, tmin, tstep, vertices, data):
     fid = open(filename, 'wb')
 
     # write start time in ms
-    fid.write(np.array(1000 * tmin, dtype='>f4').tostring())
+    fid.write(np.array(1000 * tmin, dtype='>f4').tobytes())
     # write sampling rate in ms
-    fid.write(np.array(1000 * tstep, dtype='>f4').tostring())
+    fid.write(np.array(1000 * tstep, dtype='>f4').tobytes())
     # write number of vertices
-    fid.write(np.array(vertices.shape[0], dtype='>u4').tostring())
+    fid.write(np.array(vertices.shape[0], dtype='>u4').tobytes())
     # write the vertex indices
-    fid.write(np.array(vertices, dtype='>u4').tostring())
+    fid.write(np.array(vertices, dtype='>u4').tobytes())
 
     # write the number of timepts
-    fid.write(np.array(data.shape[1], dtype='>u4').tostring())
+    fid.write(np.array(data.shape[1], dtype='>u4').tobytes())
     #
     # write the data
     #
-    fid.write(np.array(data.T, dtype='>f4').tostring())
+    fid.write(np.array(data.T, dtype='>f4').tobytes())
 
     # close the file
     fid.close()
@@ -171,7 +171,7 @@ def _write_3(fid, val):
     f_bytes[0] = (val >> 16) & 255
     f_bytes[1] = (val >> 8) & 255
     f_bytes[2] = val & 255
-    fid.write(f_bytes.tostring())
+    fid.write(f_bytes.tobytes())
 
 
 def _write_w(filename, vertices, data):
@@ -194,7 +194,7 @@ def _write_w(filename, vertices, data):
     fid = open(filename, 'wb')
 
     # write 2 zero bytes
-    fid.write(np.zeros((2), dtype=np.uint8).tostring())
+    fid.write(np.zeros((2), dtype=np.uint8).tobytes())
 
     # write number of vertices/sources (3 byte integer)
     vertices_n = len(vertices)
@@ -204,7 +204,7 @@ def _write_w(filename, vertices, data):
     for i in range(vertices_n):
         _write_3(fid, vertices[i])
         # XXX: without float() endianness is wrong, not sure why
-        fid.write(np.array(float(data[i]), dtype='>f4').tostring())
+        fid.write(np.array(float(data[i]), dtype='>f4').tobytes())
 
     # close the file
     fid.close()

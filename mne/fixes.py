@@ -390,7 +390,7 @@ def _serialize_volume_info(volume_info):
             if not (np.array_equal(volume_info[key], [20]) or np.array_equal(
                     volume_info[key], [2, 0, 20])):
                 warnings.warn("Unknown extension code.")
-            strings.append(np.array(volume_info[key], dtype='>i4').tostring())
+            strings.append(np.array(volume_info[key], dtype='>i4').tobytes())
         elif key in ('valid', 'filename'):
             val = volume_info[key]
             strings.append('{} = {}\n'.format(key, val).encode('utf-8'))

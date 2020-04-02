@@ -333,7 +333,7 @@ def _triage_read(node, slash='ignore'):
         cast = int if type_str == 'int' else float
         data = cast(np.array(node)[0])
     elif type_str == 'datetime':
-        data = text_type(np.array(node).tostring().decode('utf-8'))
+        data = text_type(np.array(node).tobytes().decode('utf-8'))
         data = fromisoformat(data)
     elif type_str.startswith('np_'):
         np_type = type_str.split('_')[1]
@@ -342,9 +342,9 @@ def _triage_read(node, slash='ignore'):
     elif type_str in ('unicode', 'ascii', 'str'):  # 'str' for backward compat
         decoder = 'utf-8' if type_str == 'unicode' else 'ASCII'
         cast = text_type if type_str == 'unicode' else str
-        data = cast(np.array(node).tostring().decode(decoder))
+        data = cast(np.array(node).tobytes().decode(decoder))
     elif type_str == 'json':
-        node_unicode = str(np.array(node).tostring().decode('utf-8'))
+        node_unicode = str(np.array(node).tobytes().decode('utf-8'))
         data = json.loads(node_unicode)
     elif type_str == 'None':
         data = None
@@ -489,7 +489,7 @@ def _list_file_contents(h5file):
             desc = 'Text: %s'
             decoder = 'utf-8' if type_str == 'unicode' else 'ASCII'
             cast = text_type if type_str == 'unicode' else str
-            data = cast(np.array(data).tostring().decode(decoder))
+            data = cast(np.array(data).tobytes().decode(decoder))
             desc_val = data[:10] + '...' if len(data) > 10 else data
         else:
             desc = 'Items: %s'
