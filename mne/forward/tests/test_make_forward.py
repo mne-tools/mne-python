@@ -26,6 +26,8 @@ from mne.source_estimate import VolSourceEstimate
 from mne.source_space import (get_volume_labels_from_aseg, write_source_spaces,
                               _compare_source_spaces, setup_source_space)
 
+from mne.forward.tests.test_forward import assert_forward_allclose
+
 data_path = testing.data_path(download=False)
 fname_meeg = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
@@ -340,7 +342,7 @@ def test_forward_mixed_source_space(tmpdir):
 
 @pytest.mark.slowtest
 @testing.requires_testing_data
-def test_make_forward_dipole():
+def test_make_forward_dipole(tmpdir):
     """Test forward-projecting dipoles."""
     rng = np.random.RandomState(0)
 
@@ -435,6 +437,14 @@ def test_make_forward_dipole():
     gof = np.arange(len(times)) / len(times)  # arbitrary
 
     dip_even_samp = Dipole(times, pos, amplitude, ori, gof)
+
+    # I/O round-trip
+    fname = str(tmpdir.join('test-fwd.fif'))
+    with pytest.warns(RuntimeWarning, match='free orientation'):
+        write_forward_solution(fname, fwd)
+    fwd_read = convert_forward_solution(
+        read_forward_solution(fname), force_fixed=True)
+    assert_forward_allclose(fwd, fwd_read, rtol=1e-6)
 
     fwd, stc = make_forward_dipole(dip_even_samp, sphere, info,
                                    trans=fname_trans)
