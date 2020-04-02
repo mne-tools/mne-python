@@ -980,8 +980,8 @@ def write_surface(fname, coords, faces, create_stamp='', volume_info=None,
         vnum = len(coords)
         fnum = len(faces)
         fid.write(pack('>2i', vnum, fnum))
-        fid.write(np.array(coords, dtype='>f4').tostring())
-        fid.write(np.array(faces, dtype='>i4').tostring())
+        fid.write(np.array(coords, dtype='>f4').tobytes())
+        fid.write(np.array(faces, dtype='>i4').tobytes())
 
         # Add volume info, if given
         if volume_info is not None and len(volume_info) > 0:

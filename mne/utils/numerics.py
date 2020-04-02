@@ -644,7 +644,7 @@ def object_hash(x, h=None):
         x = np.asarray(x)
         h.update(str(x.shape).encode('utf-8'))
         h.update(str(x.dtype).encode('utf-8'))
-        h.update(x.tostring())
+        h.update(x.tobytes())
     elif isinstance(x, datetime):
         object_hash(_dt_to_stamp(x))
     elif hasattr(x, '__len__'):
