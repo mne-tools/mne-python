@@ -30,21 +30,22 @@ fname_evoked = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                        'data', 'test-ave.fif')
 
 
-def compare_forwards(f1, f2):
+def assert_forward_allclose(f1, f2, rtol=1e-7):
     """Compare two potentially converted forward solutions."""
-    assert_allclose(f1['sol']['data'], f2['sol']['data'])
-    assert_equal(f1['sol']['ncol'], f2['sol']['ncol'])
-    assert_equal(f1['sol']['ncol'], f1['sol']['data'].shape[1])
-    assert_allclose(f1['source_nn'], f2['source_nn'])
+    assert_allclose(f1['sol']['data'], f2['sol']['data'], rtol=rtol)
+    assert f1['sol']['ncol'] == f2['sol']['ncol']
+    assert f1['sol']['ncol'] == f1['sol']['data'].shape[1]
+    assert_allclose(f1['source_nn'], f2['source_nn'], rtol=rtol)
     if f1['sol_grad'] is not None:
         assert (f2['sol_grad'] is not None)
         assert_allclose(f1['sol_grad']['data'], f2['sol_grad']['data'])
-        assert_equal(f1['sol_grad']['ncol'], f2['sol_grad']['ncol'])
-        assert_equal(f1['sol_grad']['ncol'], f1['sol_grad']['data'].shape[1])
+        assert f1['sol_grad']['ncol'] == f2['sol_grad']['ncol']
+        assert f1['sol_grad']['ncol'] == f1['sol_grad']['data'].shape[1]
     else:
         assert (f2['sol_grad'] is None)
-    assert_equal(f1['source_ori'], f2['source_ori'])
-    assert_equal(f1['surf_ori'], f2['surf_ori'])
+    assert f1['source_ori'] == f2['source_ori']
+    assert f1['surf_ori'] == f2['surf_ori']
+    assert f1['src'][0]['coord_frame'] == f1['src'][0]['coord_frame']
 
 
 @testing.requires_testing_data
@@ -62,7 +63,7 @@ def test_convert_forward():
     fwd_new = convert_forward_solution(fwd_surf, surf_ori=False)
     assert (repr(fwd_new))
     assert (isinstance(fwd_new, Forward))
-    compare_forwards(fwd, fwd_new)
+    assert_forward_allclose(fwd, fwd_new)
     del fwd_new
     gc.collect()
 
@@ -79,7 +80,7 @@ def test_convert_forward():
                                        force_fixed=False)
     assert (repr(fwd_new))
     assert (isinstance(fwd_new, Forward))
-    compare_forwards(fwd, fwd_new)
+    assert_forward_allclose(fwd, fwd_new)
     del fwd, fwd_new, fwd_fixed
     gc.collect()
 
@@ -124,7 +125,7 @@ def test_io_forward(tmpdir):
     assert (repr(fwd_read))
     assert (isinstance(fwd_read, Forward))
     assert (is_fixed_orient(fwd_read))
-    compare_forwards(fwd, fwd_read)
+    assert_forward_allclose(fwd, fwd_read)
 
     fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
                                    use_cps=True)
@@ -143,7 +144,7 @@ def test_io_forward(tmpdir):
     assert (repr(fwd_read))
     assert (isinstance(fwd_read, Forward))
     assert (is_fixed_orient(fwd_read))
-    compare_forwards(fwd, fwd_read)
+    assert_forward_allclose(fwd, fwd_read)
 
     fwd = read_forward_solution(fname_meeg_grad)
     fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
@@ -163,7 +164,7 @@ def test_io_forward(tmpdir):
     assert (repr(fwd_read))
     assert (isinstance(fwd_read, Forward))
     assert (is_fixed_orient(fwd_read))
-    compare_forwards(fwd, fwd_read)
+    assert_forward_allclose(fwd, fwd_read)
 
     # test warnings on bad filenames
     fwd = read_forward_solution(fname_meeg_grad)
@@ -176,7 +177,7 @@ def test_io_forward(tmpdir):
     fwd = read_forward_solution(fname_meeg)
     write_forward_solution(fname_temp, fwd, overwrite=True)
     fwd_read = read_forward_solution(fname_temp)
-    compare_forwards(fwd, fwd_read)
+    assert_forward_allclose(fwd, fwd_read)
 
 
 @testing.requires_testing_data
@@ -280,7 +281,7 @@ def test_restrict_forward_to_stc(tmpdir):
     fwd_out_read = read_forward_solution(fname_copy)
     fwd_out_read = convert_forward_solution(fwd_out_read, surf_ori=True,
                                             force_fixed=False)
-    compare_forwards(fwd_out, fwd_out_read)
+    assert_forward_allclose(fwd_out, fwd_out_read)
 
 
 @testing.requires_testing_data
@@ -346,7 +347,7 @@ def test_restrict_forward_to_label(tmpdir):
     fname_copy = tmpdir.join('copy-fwd.fif')
     write_forward_solution(fname_copy, fwd_out, overwrite=True)
     fwd_out_read = read_forward_solution(fname_copy)
-    compare_forwards(fwd_out, fwd_out_read)
+    assert_forward_allclose(fwd_out, fwd_out_read)
 
 
 @testing.requires_testing_data
@@ -389,7 +390,7 @@ def test_average_forward_solution(tmpdir):
     # with gradient
     fwd = read_forward_solution(fname_meeg_grad)
     fwd_ave = average_forward_solutions([fwd, fwd])
-    compare_forwards(fwd, fwd_ave)
+    assert_forward_allclose(fwd, fwd_ave)
 
 
 @testing.requires_testing_data
