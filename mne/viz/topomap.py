@@ -1425,12 +1425,14 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         If None, then channels are chosen in the order given above.
     vmin : float | callable | None
         The value specifying the lower bound of the color range.
-        If None, and vmax is None, -vmax is used. Else np.min(data).
-        If callable, the output equals vmin(data). Defaults to None.
+        If None, and vmax is None too, will use the negative of the maximum
+        absolute value of the data (i.e., 0 will be the midpoint). Else
+        np.min(data). If callable, the output equals callable(data). Defaults
+        to None.
     vmax : float | callable | None
         The value specifying the upper bound of the color range.
         If None, the maximum absolute value is used. If callable, the output
-        equals vmax(data). Defaults to None.
+        equals callable(data). Defaults to None.
     cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
         Colormap to use. If tuple, the first value indicates the colormap to
         use and the second value is a boolean defining interactivity. In
