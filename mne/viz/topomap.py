@@ -1429,7 +1429,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         maximum absolute value of the data (yielding a colormap with midpoint
         at 0). If only one of ``vmin``, ``vmax`` is ``None``, will use
         ``min(data)`` or ``max(data)``, respectively. If callable, should
-        accept a :ref:`numpy array <numpy.ndarray>` of data and return a float.
+        accept a :class:`NumPy array <numpy.ndarray>` of data and return a
+        float.
     cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
         Colormap to use. If tuple, the first value indicates the colormap to
         use and the second value is a boolean defining interactivity. In
