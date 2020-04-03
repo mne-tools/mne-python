@@ -525,7 +525,7 @@ def test_plot_dipole_orientations(renderer):
 
 @testing.requires_testing_data
 def test_plot_dipole_locations_fig_title(renderer):
-    """Test dipole plotting in 3d."""
+    """Test setting figure title in dipole orthoview plotting."""
     dipole = read_dipole(dip_fname)[0]
     trans = read_trans(trans_fname)
     kwargs = dict(trans=trans, subject='sample', subjects_dir=subjects_dir,
