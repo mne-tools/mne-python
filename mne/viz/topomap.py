@@ -1423,16 +1423,13 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
         The channel type to plot. For 'grad', the gradiometers are collected in
         pairs and the RMS for each pair is plotted.
         If None, then channels are chosen in the order given above.
-    vmin : float | callable | None
-        The value specifying the lower bound of the color range.
-        If None, and vmax is None too, will use the negative of the maximum
-        absolute value of the data (i.e., 0 will be the midpoint). Else
-        np.min(data). If callable, the output equals callable(data). Defaults
-        to None.
-    vmax : float | callable | None
-        The value specifying the upper bound of the color range.
-        If None, the maximum absolute value is used. If callable, the output
-        equals callable(data). Defaults to None.
+    vmin, vmax : float | callable | None
+        Lower and upper bounds of the colormap, in the same units as the data.
+        If ``vmin`` and ``vmax`` are both ``None``, they are set at ± the
+        maximum absolute value of the data (yielding a colormap with midpoint
+        at 0). If only one of ``vmin``, ``vmax`` is ``None``, will use
+        ``min(data)`` or ``max(data)``, respectively. If callable, should
+        accept a :ref:`numpy array <numpy.ndarray>` of data and return a float.
     cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
         Colormap to use. If tuple, the first value indicates the colormap to
         use and the second value is a boolean defining interactivity. In
