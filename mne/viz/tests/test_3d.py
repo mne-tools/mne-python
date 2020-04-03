@@ -32,7 +32,7 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      snapshot_brain_montage, plot_head_positions,
                      plot_alignment, plot_volume_source_estimates,
                      plot_sensors_connectivity, plot_brain_colorbar,
-                     link_brains, mne_analyze_colormap)
+                     link_brains, mne_analyze_colormap, plot_dipole_locations)
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_pysurfer, run_tests_if_main,
@@ -521,6 +521,22 @@ def test_plot_dipole_orientations(renderer):
                                subjects_dir=subjects_dir,
                                mode=mode, coord_frame=coord_frame)
     renderer.backend._close_all()
+
+
+@testing.requires_testing_data
+def test_plot_dipole_locations_fig_title(renderer):
+    """Test dipole plotting in 3d."""
+    dipole = read_dipole(dip_fname)[0]
+    trans = read_trans(trans_fname)
+    kwargs = dict(trans=trans, subject='sample', subjects_dir=subjects_dir,
+                  coord_frame='mri', mode='orthoview')
+
+    for title in ['Test', None]:
+        fig = dipole.plot_locations(title=title, **kwargs)
+        fig = plot_dipole_locations(dipoles=dipole, title=title, **kwargs)
+        del fig
+
+    plt.close('all')
 
 
 @testing.requires_testing_data
