@@ -383,6 +383,7 @@ Projections:
    source_detector_distances
    short_channels
    scalp_coupling_index
+   temporal_derivative_distribution_repair
 
 EEG referencing:
 
