@@ -494,11 +494,14 @@ def test_plot_dipole_mri_orthoview():
     """Test mpl dipole plotting."""
     dipoles = read_dipole(dip_fname)
     trans = read_trans(trans_fname)
-    for coord_frame, idx, show_all in zip(['head', 'mri'],
-                                          ['gof', 'amplitude'], [True, False]):
+    for coord_frame, idx, show_all, title in zip(['head', 'mri'],
+                                                 ['gof', 'amplitude'],
+                                                 [True, False],
+                                                 ['Test', None]):
         fig = dipoles.plot_locations(trans, 'sample', subjects_dir,
                                      coord_frame=coord_frame, idx=idx,
-                                     show_all=show_all, mode='orthoview')
+                                     show_all=show_all, mode='orthoview',
+                                     title=title)
         fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
         fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
         fig.canvas.key_press_event('up')
@@ -521,22 +524,6 @@ def test_plot_dipole_orientations(renderer):
                                subjects_dir=subjects_dir,
                                mode=mode, coord_frame=coord_frame)
     renderer.backend._close_all()
-
-
-@testing.requires_testing_data
-def test_plot_dipole_locations_fig_title(renderer):
-    """Test setting figure title in dipole orthoview plotting."""
-    dipole = read_dipole(dip_fname)[0]
-    trans = read_trans(trans_fname)
-    kwargs = dict(trans=trans, subject='sample', subjects_dir=subjects_dir,
-                  coord_frame='mri', mode='orthoview')
-
-    for title in ['Test', None]:
-        fig = dipole.plot_locations(title=title, **kwargs)
-        fig = plot_dipole_locations(dipoles=dipole, title=title, **kwargs)
-        del fig
-
-    plt.close('all')
 
 
 @testing.requires_testing_data
