@@ -2685,7 +2685,7 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
                           mode='orthoview', coord_frame='mri', idx='gof',
                           show_all=True, ax=None, block=False, show=True,
                           scale=5e-3, color=None, highlight_color='r',
-                          fig=None, verbose=None):
+                          fig=None, verbose=None, title=None):
     """Plot dipole locations.
 
     If mode is set to 'arrow' or 'sphere', only the location of the first
@@ -2766,6 +2766,9 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
 
         .. versionadded:: 0.19.0
     %(verbose)s
+    %(dipole_locs_fig_title)s
+
+        .. versionadded:: 0.21.0
 
     Returns
     -------
@@ -2781,7 +2784,7 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
             dipoles, trans=trans, subject=subject, subjects_dir=subjects_dir,
             coord_frame=coord_frame, idx=idx, show_all=show_all,
             ax=ax, block=block, show=show, color=color,
-            highlight_color=highlight_color)
+            highlight_color=highlight_color, title=title)
     elif mode in ['arrow', 'sphere']:
         from .backends.renderer import _get_renderer
         color = (1., 0., 0.) if color is None else color
@@ -2955,7 +2958,7 @@ def plot_sensors_connectivity(info, con, picks=None):
 def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
                                coord_frame='head', idx='gof', show_all=True,
                                ax=None, block=False, show=True, color=None,
-                               highlight_color='r'):
+                               highlight_color='r', title=None):
     """Plot dipoles on top of MRI slices in 3-D."""
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
@@ -2993,7 +2996,8 @@ def _plot_dipole_mri_orthoview(dipole, trans, subject, subjects_dir=None,
               'vox': vox, 'gridx': gridx, 'gridy': gridy,
               'ori': ori, 'coord_frame': coord_frame,
               'show_all': show_all, 'pos': pos,
-              'color': color, 'highlight_color': highlight_color}
+              'color': color, 'highlight_color': highlight_color,
+              'title': title}
     _plot_dipole(**params)
     ax.view_init(elev=30, azim=-140)
 
@@ -3061,7 +3065,7 @@ def _get_dipole_loc(dipole, trans, subject, subjects_dir, coord_frame):
 
 
 def _plot_dipole(ax, data, vox, idx, dipole, gridx, gridy, ori, coord_frame,
-                 show_all, pos, color, highlight_color):
+                 show_all, pos, color, highlight_color, title):
     """Plot dipoles."""
     import matplotlib.pyplot as plt
     from matplotlib.colors import ColorConverter
@@ -3117,10 +3121,15 @@ def _plot_dipole(ax, data, vox, idx, dipole, gridx, gridy, ori, coord_frame,
 
     # These are the only two options
     coord_frame_name = 'Head' if coord_frame == 'head' else 'MRI'
-    plt.suptitle('Dipole #%s / %s @ %.3fs, GOF: %.1f%%, %.1fnAm\n%s: ' % (
-        idx + 1, len(dipole.times), dipole.times[idx], dipole.gof[idx],
-        dipole.amplitude[idx] * 1e9, coord_frame_name) +
-        '(%0.1f, %0.1f, %0.1f) mm' % tuple(xyz[idx]))
+
+    if title is None:
+        plt.suptitle('Dipole #%s / %s @ %.3fs, GOF: %.1f%%, %.1fnAm\n%s: ' % (
+            idx + 1, len(dipole.times), dipole.times[idx], dipole.gof[idx],
+            dipole.amplitude[idx] * 1e9, coord_frame_name) +
+            '(%0.1f, %0.1f, %0.1f) mm' % tuple(xyz[idx]))
+    else:
+        plt.suptitle(title)
+
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_zlabel('z')
