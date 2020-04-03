@@ -2727,7 +2727,7 @@ def plot_dipole_locations(dipoles, trans=None, subject=None, subjects_dir=None,
     show_all : bool
         Whether to always plot all the dipoles. If ``True`` (default), the
         active dipole is plotted as a red dot and its location determines the
-        shown MRI slices. The the non-active dipoles are plotted as small blue
+        shown MRI slices. The non-active dipoles are plotted as small blue
         dots. If ``False``, only the active dipole is plotted.
         Only used if ``mode='orthoview'``.
 
