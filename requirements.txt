@@ -1,7 +1,7 @@
 numpy
 scipy
 matplotlib
-pyqt5!=5.14.1
+pyqt5<5.14
 pyqt5-sip
 sip
 scikit-learn
