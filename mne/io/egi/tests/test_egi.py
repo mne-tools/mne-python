@@ -5,6 +5,8 @@
 
 import os.path as op
 import inspect
+import os
+import shutil
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
@@ -108,7 +110,7 @@ def test_io_egi():
 
 
 @requires_testing_data
-def test_io_egi_pns_mff():
+def test_io_egi_pns_mff(tmpdir):
     """Test importing EGI MFF with PNS data."""
     egi_fname_mff = op.join(data_path(), 'EGI', 'test_egi_pns.mff')
     raw = read_raw_egi(egi_fname_mff, include=None, preload=True,
@@ -146,6 +148,15 @@ def test_io_egi_pns_mff():
         mat_data = mc[mc_key] * cal
         raw_data = raw[ch_idx][0]
         assert_array_equal(mat_data, raw_data)
+
+    # EEG missing
+    new_mff = str(tmpdir.join('temp.mff'))
+    shutil.copytree(egi_fname_mff, new_mff)
+    read_raw_egi(new_mff, verbose='error')
+    os.remove(op.join(new_mff, 'info1.xml'))
+    os.remove(op.join(new_mff, 'signal1.bin'))
+    with pytest.raises(FileNotFoundError, match='Could not find any EEG'):
+        read_raw_egi(new_mff, verbose='error')
 
 
 @requires_testing_data
