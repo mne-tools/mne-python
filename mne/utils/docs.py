@@ -997,7 +997,7 @@ df : instance of pandas.DataFrame
 # Dipole
 docdict['dipole_locs_fig_title'] = """
 title : str | None
-    The title of the figure if ``mode='ortoview'`` (ignored for all other
+    The title of the figure if ``mode='orthoview'`` (ignored for all other
     modes). If ``None``, dipole number and its properties (amplitude,
     orientation etc.) will be shown. Defaults to ``None``.
 """
