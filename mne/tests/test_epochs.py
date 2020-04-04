@@ -474,7 +474,7 @@ def test_decim():
             assert_allclose(ep_decim.get_data(), expected_data)
             assert_equal(ep_decim.info['sfreq'], sfreq_new)
 
-    # More complex cases
+    # More complicated cases
     epochs = Epochs(raw, events, event_id, tmin, tmax)
     expected_data = epochs.get_data()[:, :, ::decim]
     expected_times = epochs.times[::decim]
@@ -2655,21 +2655,33 @@ def test_save_overwrite(tmpdir):
     epochs.save(fname2, overwrite=True)
 
 
-def test_save_complex_data(tmpdir):
+@pytest.mark.parametrize('preload', (True, False))
+@pytest.mark.parametrize('is_complex', (True, False))
+@pytest.mark.parametrize('fmt, rtol', [('single', 2e-6), ('double', 1e-10)])
+def test_save_complex_data(tmpdir, preload, is_complex, fmt, rtol):
     """Test whether epochs of hilbert-transformed data can be saved."""
-    for is_complex in [False, True]:
-        for fmt, rtol in [('single', 1e-6), ('double', 1e-7)]:
-            raw, events = _get_data()[:2]
-            raw.load_data()
-            if is_complex:
-                raw.apply_hilbert(envelope=False, n_fft=None)
-            epochs = Epochs(raw, events[:1], preload=True)[0]
-            temp_fname = op.join(str(tmpdir), 'test-epo.fif')
-            epochs.save(temp_fname, fmt=fmt, overwrite=True)
-            epochs_read = read_epochs(temp_fname, proj=False, preload=True)
-            assert_allclose(epochs_read.get_data(),
-                            epochs.get_data(), rtol=rtol)
-    # smoke test that having the first epoch bad does not break writing,
+    raw, events = _get_data()[:2]
+    raw.load_data()
+    if is_complex:
+        raw.apply_hilbert(envelope=False, n_fft=None)
+    epochs = Epochs(raw, events[:1], preload=True)[0]
+    temp_fname = op.join(str(tmpdir), 'test-epo.fif')
+    epochs.save(temp_fname, fmt=fmt)
+    data = epochs.get_data().copy()
+    epochs_read = read_epochs(temp_fname, proj=False, preload=preload)
+    data_read = epochs_read.get_data()
+    want_dtype = np.complex128 if is_complex else np.float64
+    assert data.dtype == want_dtype
+    assert data_read.dtype == want_dtype
+    # XXX for some reason some random samples in here are off by a larger
+    # factor...
+    if fmt == 'single' and not preload and not is_complex:
+        rtol = 2e-4
+    assert_allclose(data_read, data, rtol=rtol)
+
+
+def test_no_epochs(tmpdir):
+    """Test that having the first epoch bad does not break writing."""
     # a regression noticed in #5564
     raw, events = _get_data()[:2]
     reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)

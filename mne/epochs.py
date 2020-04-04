@@ -2514,16 +2514,19 @@ def _read_one_epoch_file(f, tree, preload):
         # on read double-precision is always used
         if data_tag.type == FIFF.FIFFT_FLOAT:
             datatype = np.float64
-            size_actual = data_tag.size // 4 - 4
+            fmt = '>f4'
         elif data_tag.type == FIFF.FIFFT_DOUBLE:
             datatype = np.float64
-            size_actual = data_tag.size // 8 - 2
+            fmt = '>f8'
         elif data_tag.type == FIFF.FIFFT_COMPLEX_FLOAT:
             datatype = np.complex128
-            size_actual = data_tag.size // 8 - 2
+            fmt = '>c8'
         elif data_tag.type == FIFF.FIFFT_COMPLEX_DOUBLE:
             datatype = np.complex128
-            size_actual = data_tag.size // 16 - 1
+            fmt = '>c16'
+        fmt_itemsize = np.dtype(fmt).itemsize
+        assert fmt_itemsize in (4, 8, 16)
+        size_actual = data_tag.size // fmt_itemsize - 16 // fmt_itemsize
 
         if not size_actual == size_expected:
             raise ValueError('Incorrect number of samples (%d instead of %d)'
@@ -2537,7 +2540,7 @@ def _read_one_epoch_file(f, tree, preload):
         # Read the data
         if preload:
             data = read_tag(fid, data_tag.pos).data.astype(datatype)
-            data *= cals[np.newaxis, :, :]
+            data *= cals
 
         # Put it all together
         tmin = first / info['sfreq']
@@ -2552,7 +2555,8 @@ def _read_one_epoch_file(f, tree, preload):
             drop_log = [[] for _ in range(len(events))]
 
     return (info, data, data_tag, events, event_id, metadata, tmin, tmax,
-            baseline, selection, drop_log, epoch_shape, cals, reject_params)
+            baseline, selection, drop_log, epoch_shape, cals, reject_params,
+            fmt)
 
 
 @verbose
@@ -2593,13 +2597,14 @@ class _RawContainer(object):
     """Helper for a raw data container."""
 
     def __init__(self, fid, data_tag, event_samps, epoch_shape,
-                 cals):  # noqa: D102
+                 cals, fmt):  # noqa: D102
         self.fid = fid
         self.data_tag = data_tag
         self.event_samps = event_samps
         self.epoch_shape = epoch_shape
         self.cals = cals
         self.proj = False
+        self.fmt = fmt
 
     def __del__(self):  # noqa: D105
         self.fid.close()
@@ -2656,7 +2661,7 @@ class EpochsFIF(BaseEpochs):
             next_fname = _get_next_fname(fid, fname, tree)
             (info, data, data_tag, events, event_id, metadata, tmin, tmax,
              baseline, selection, drop_log, epoch_shape, cals,
-             reject_params) = \
+             reject_params, fmt) = \
                 _read_one_epoch_file(fid, tree, preload)
 
             # here we ignore missing events, since users should already be
@@ -2671,7 +2676,7 @@ class EpochsFIF(BaseEpochs):
                 # store everything we need to index back to the original data
                 raw.append(_RawContainer(fiff_open(fname)[0], data_tag,
                                          events[:, 0].copy(), epoch_shape,
-                                         cals))
+                                         cals, fmt))
 
             if next_fname is not None:
                 fnames.append(next_fname)
@@ -2712,9 +2717,10 @@ class EpochsFIF(BaseEpochs):
         for raw in self._raw:
             idx = np.where(raw.event_samps == event_samp)[0]
             if len(idx) == 1:
+                fmt = raw.fmt
                 idx = idx[0]
-                size = np.prod(raw.epoch_shape) * 4
-                offset = idx * size
+                size = np.prod(raw.epoch_shape) * np.dtype(fmt).itemsize
+                offset = idx * size + 16  # 16 = Tag header
                 break
         else:
             # read the correct subset of the data
@@ -2728,9 +2734,20 @@ class EpochsFIF(BaseEpochs):
         #
         # Eventually this could be refactored in io/tag.py if other functions
         # could make use of it
+        raw.fid.seek(raw.data_tag.pos + offset, 0)
+        if fmt == '>c8':
+            read_fmt = '>f4'
+        elif fmt == '>c16':
+            read_fmt = '>f8'
+        else:
+            read_fmt = fmt
+        data = np.frombuffer(raw.fid.read(size), read_fmt)
+        if read_fmt != fmt:
+            data = data.view(fmt)
+            data = data.astype(np.complex128)
+        else:
+            data = data.astype(np.float64)
 
-        raw.fid.seek(raw.data_tag.pos + offset + 16, 0)  # 16 = Tag header
-        data = np.frombuffer(raw.fid.read(size), '>f4').astype(np.float64)
         data.shape = raw.epoch_shape
         data *= raw.cals
         return data
