@@ -32,7 +32,7 @@ from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      snapshot_brain_montage, plot_head_positions,
                      plot_alignment, plot_volume_source_estimates,
                      plot_sensors_connectivity, plot_brain_colorbar,
-                     link_brains, mne_analyze_colormap, plot_dipole_locations)
+                     link_brains, mne_analyze_colormap)
 from mne.viz._3d import _process_clim, _linearize_map, _get_map_ticks
 from mne.viz.utils import _fake_click
 from mne.utils import (requires_pysurfer, run_tests_if_main,
@@ -490,23 +490,23 @@ def test_stc_mpl():
 @pytest.mark.timeout(60)  # can sometimes take > 60 sec
 @testing.requires_testing_data
 @requires_nibabel()
-def test_plot_dipole_mri_orthoview():
+@pytest.mark.parametrize('coord_frame, idx, show_all, title',
+                         [('head', 'gof', True, 'Test'),
+                          ('mri', 'amplitude', False, None)])
+def test_plot_dipole_mri_orthoview(coord_frame, idx, show_all, title):
     """Test mpl dipole plotting."""
     dipoles = read_dipole(dip_fname)
     trans = read_trans(trans_fname)
-    for coord_frame, idx, show_all, title in zip(['head', 'mri'],
-                                                 ['gof', 'amplitude'],
-                                                 [True, False],
-                                                 ['Test', None]):
-        fig = dipoles.plot_locations(trans, 'sample', subjects_dir,
-                                     coord_frame=coord_frame, idx=idx,
-                                     show_all=show_all, mode='orthoview',
-                                     title=title)
-        fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
-        fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
-        fig.canvas.key_press_event('up')
-        fig.canvas.key_press_event('down')
-        fig.canvas.key_press_event('a')  # some other key
+    fig = dipoles.plot_locations(trans=trans, subject='sample',
+                                 subjects_dir=subjects_dir,
+                                 coord_frame=coord_frame, idx=idx,
+                                 show_all=show_all, title=title,
+                                 mode='orthoview')
+    fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
+    fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
+    fig.canvas.key_press_event('up')
+    fig.canvas.key_press_event('down')
+    fig.canvas.key_press_event('a')  # some other key
     ax = plt.subplot(111)
     pytest.raises(TypeError, dipoles.plot_locations, trans, 'sample',
                   subjects_dir, ax=ax)
