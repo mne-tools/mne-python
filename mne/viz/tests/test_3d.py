@@ -490,20 +490,23 @@ def test_stc_mpl():
 @pytest.mark.timeout(60)  # can sometimes take > 60 sec
 @testing.requires_testing_data
 @requires_nibabel()
-def test_plot_dipole_mri_orthoview():
+@pytest.mark.parametrize('coord_frame, idx, show_all, title',
+                         [('head', 'gof', True, 'Test'),
+                          ('mri', 'amplitude', False, None)])
+def test_plot_dipole_mri_orthoview(coord_frame, idx, show_all, title):
     """Test mpl dipole plotting."""
     dipoles = read_dipole(dip_fname)
     trans = read_trans(trans_fname)
-    for coord_frame, idx, show_all in zip(['head', 'mri'],
-                                          ['gof', 'amplitude'], [True, False]):
-        fig = dipoles.plot_locations(trans, 'sample', subjects_dir,
-                                     coord_frame=coord_frame, idx=idx,
-                                     show_all=show_all, mode='orthoview')
-        fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
-        fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
-        fig.canvas.key_press_event('up')
-        fig.canvas.key_press_event('down')
-        fig.canvas.key_press_event('a')  # some other key
+    fig = dipoles.plot_locations(trans=trans, subject='sample',
+                                 subjects_dir=subjects_dir,
+                                 coord_frame=coord_frame, idx=idx,
+                                 show_all=show_all, title=title,
+                                 mode='orthoview')
+    fig.canvas.scroll_event(0.5, 0.5, 1)  # scroll up
+    fig.canvas.scroll_event(0.5, 0.5, -1)  # scroll down
+    fig.canvas.key_press_event('up')
+    fig.canvas.key_press_event('down')
+    fig.canvas.key_press_event('a')  # some other key
     ax = plt.subplot(111)
     pytest.raises(TypeError, dipoles.plot_locations, trans, 'sample',
                   subjects_dir, ax=ax)

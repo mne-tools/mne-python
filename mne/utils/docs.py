@@ -994,6 +994,14 @@ df : instance of pandas.DataFrame
     packages.
 """
 
+# Dipole
+docdict['dipole_locs_fig_title'] = """
+title : str | None
+    The title of the figure if ``mode='orthoview'`` (ignored for all other
+    modes). If ``None``, dipole number and its properties (amplitude,
+    orientation etc.) will be shown. Defaults to ``None``.
+"""
+
 # Finalize
 docdict = unindent_dict(docdict)
 fill_doc = filldoc(docdict, unindent_params=False)

@@ -183,7 +183,7 @@ class Dipole(object):
                        mode='orthoview', coord_frame='mri', idx='gof',
                        show_all=True, ax=None, block=False, show=True,
                        scale=5e-3, color=(1.0, 0.0, 0.0), fig=None,
-                       verbose=None):
+                       verbose=None, title=None):
         """Plot dipole locations in 3d.
 
         Parameters
@@ -243,6 +243,9 @@ class Dipole(object):
 
             .. versionadded:: 0.14.0
         %(verbose_meth)s
+        %(dipole_locs_fig_title)s
+
+            .. versionadded:: 0.21.0
 
         Returns
         -------
@@ -258,7 +261,8 @@ class Dipole(object):
         from .viz import plot_dipole_locations
         return plot_dipole_locations(
             self, trans, subject, subjects_dir, mode, coord_frame, idx,
-            show_all, ax, block, show, scale=scale, color=color, fig=fig)
+            show_all, ax, block, show, scale=scale, color=color, fig=fig,
+            title=title)
 
     def plot_amplitudes(self, color='k', show=True):
         """Plot the dipole amplitudes as a function of time.
