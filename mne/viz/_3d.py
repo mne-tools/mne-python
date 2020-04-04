@@ -3123,12 +3123,12 @@ def _plot_dipole(ax, data, vox, idx, dipole, gridx, gridy, ori, coord_frame,
     coord_frame_name = 'Head' if coord_frame == 'head' else 'MRI'
 
     if title is None:
-        plt.suptitle('Dipole #%s / %s @ %.3fs, GOF: %.1f%%, %.1fnAm\n%s: ' % (
+        title = ('Dipole #%s / %s @ %.3fs, GOF: %.1f%%, %.1fnAm\n%s: ' % (
             idx + 1, len(dipole.times), dipole.times[idx], dipole.gof[idx],
             dipole.amplitude[idx] * 1e9, coord_frame_name) +
             '(%0.1f, %0.1f, %0.1f) mm' % tuple(xyz[idx]))
-    else:
-        plt.suptitle(title)
+
+    ax.get_figure().suptitle(title)
 
     ax.set_xlabel('x')
     ax.set_ylabel('y')
