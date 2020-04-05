@@ -41,7 +41,8 @@ picks = mne.pick_types(raw_intensity.info, meg=False, fnirs=True)
 dists = mne.preprocessing.nirs.source_detector_distances(
     raw_intensity.info, picks=picks)
 raw_intensity.pick(picks[dists > 0.01])
-raw_intensity.plot(n_channels=len(raw_intensity.ch_names), duration=500)
+raw_intensity.plot(n_channels=len(raw_intensity.ch_names),
+                   duration=500, show_scrollbars=False)
 
 
 ###############################################################################
@@ -51,7 +52,8 @@ raw_intensity.plot(n_channels=len(raw_intensity.ch_names), duration=500)
 # The raw intensity values are then converted to optical density.
 
 raw_od = mne.preprocessing.nirs.optical_density(raw_intensity)
-raw_od.plot(n_channels=len(raw_od.ch_names), duration=500)
+raw_od.plot(n_channels=len(raw_od.ch_names),
+            duration=500, show_scrollbars=False)
 
 
 ###############################################################################
@@ -81,6 +83,15 @@ raw_od.info['bads'] = list(compress(raw_od.ch_names, sci < 0.5))
 
 
 ###############################################################################
+# At this stage it is appropriate to inspect your data
+# (for instructions on how to use the interactive data visualisation tool
+# see :ref:`tut-visualize-raw`)
+# to ensure that channels with poor scalp coupling have been removed.
+# If your data contains lots of artifacts you may decide to apply
+# artifact reduction techniques as described in :ref:`ex-fnirs-artifacts`.
+
+
+###############################################################################
 # Converting from optical density to haemoglobin
 # ----------------------------------------------
 #
@@ -88,7 +99,8 @@ raw_od.info['bads'] = list(compress(raw_od.ch_names, sci < 0.5))
 # the modified Beer-Lambert law.
 
 raw_haemo = mne.preprocessing.nirs.beer_lambert_law(raw_od)
-raw_haemo.plot(n_channels=len(raw_haemo.ch_names), duration=500)
+raw_haemo.plot(n_channels=len(raw_haemo.ch_names),
+               duration=500, show_scrollbars=False)
 
 
 ###############################################################################
