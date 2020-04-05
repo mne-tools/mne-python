@@ -1087,7 +1087,7 @@ def read_ch_connectivity(fname, picks=None):
 
     More information on these neighbor definitions can be found on the related
     `FieldTrip documentation pages
-    <http://www.fieldtrip.org/template/neighbours>`__.
+    <http://www.fieldtriptoolbox.org/template/neighbours/>`_.
 
     Parameters
     ----------
