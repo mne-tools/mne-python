@@ -24,7 +24,7 @@ from mne.preprocessing.nirs import (
 # -----------
 #
 # Here we will work with the :ref:`fNIRS motor data <fnirs-motor-dataset>`.
-# We resample the data to make indexing exact times for convenient.
+# We resample the data to make indexing exact times more convenient.
 # We then convert the data to optical density to perform corrections on
 # and plot these signals.
 
