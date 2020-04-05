@@ -84,8 +84,8 @@ raw_od.info['bads'] = list(compress(raw_od.ch_names, sci < 0.5))
 
 ###############################################################################
 # At this stage it is appropriate to inspect your data
-# (for instructions to used the interactive tool,
-# see see :ref:`tut-visualize-raw`)
+# (for instructions on how to use the interactive data visualisation tool
+# see :ref:`tut-visualize-raw`)
 # to ensure that channels with poor scalp coupling have been removed.
 # If your data contains lots of artifacts you may decide to apply
 # artifact reduction techniques as described in :ref:`ex-fnirs-artifacts`.
