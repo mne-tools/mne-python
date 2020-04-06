@@ -44,8 +44,8 @@ jobs:
     displayName: make pydocstyle
     condition: always()
   - bash: |
-      pip install codespell
-    displayName: Install codespell
+      pip install https://github.com/codespell-project/codespell/zipball/master
+    displayName: Install latest codespell
     condition: always()
   - bash: |
       make codespell-error

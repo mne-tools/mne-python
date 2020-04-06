@@ -28,7 +28,7 @@ def test_movement_annotation_head_correction():
     annot_rot, [] = annotate_movement(raw, pos, rotation_velocity_limit=5)
     assert(annot_rot.duration.size == 5)
 
-    # Check 2 transalation vel. segments are detected
+    # Check 2 translation vel. segments are detected
     annot_tra, [] = annotate_movement(raw, pos, translation_velocity_limit=.05)
     assert(annot_tra.duration.size == 2)
 
