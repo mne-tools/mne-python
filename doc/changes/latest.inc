@@ -36,6 +36,8 @@ Bug
 
 - Fix bug with :func:`mne.make_forward_dipole` where :func:`mne.write_forward_solution` could not be used by `Eric Larson`_
 
+- Fix bug that prevents ``n_jobs`` from being a NumPy integer type, by `Daniel McCloy`_.
+
 API
 ~~~
 
