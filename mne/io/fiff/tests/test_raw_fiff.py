@@ -965,6 +965,16 @@ def test_crop():
 
 
 @testing.requires_testing_data
+def test_resample_equiv():
+    """Test resample (with I/O and multiple files)."""
+    raw = read_raw_fif(fif_fname).crop(0, 1)
+    raw_preload = raw.copy().load_data()
+    for r in (raw, raw_preload):
+        r.resample(r.info['sfreq'] / 4.)
+    assert_allclose(raw._data, raw_preload._data)
+
+
+@testing.requires_testing_data
 @pytest.mark.parametrize('preload', (True, False))
 def test_resample(tmpdir, preload):
     """Test resample (with I/O and multiple files)."""
