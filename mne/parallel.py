@@ -9,6 +9,7 @@ import os
 
 from . import get_config
 from .utils import logger, verbose, warn, ProgressBar
+from .utils.check import int_like
 from .fixes import _get_args
 
 if 'MNE_FORCE_SERIAL' in os.environ:
@@ -153,8 +154,7 @@ def check_n_jobs(n_jobs, allow_cuda=False):
         The checked number of jobs. Always positive (or 'cuda' if
         applicable).
     """
-    from numpy import integer
-    if not isinstance(n_jobs, (int, integer)):
+    if not isinstance(n_jobs, int_like):
         if not allow_cuda:
             raise ValueError('n_jobs must be an integer')
         elif not isinstance(n_jobs, str) or n_jobs != 'cuda':
