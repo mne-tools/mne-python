@@ -232,8 +232,12 @@ def test_interpolation_nirs():
     raw_od = optical_density(raw_intensity)
     sci = scalp_coupling_index(raw_od)
     raw_od.info['bads'] = list(compress(raw_od.ch_names, sci < 0.5))
+    bad_0 = np.where([name == raw_od.info['bads'][0] for
+                      name in raw_od.ch_names])[0][0]
+    bad_0_std_pre_interp = np.std(raw_od._data[bad_0])
     raw_od.interpolate_bads()
     assert raw_od.info['bads'] == []
+    assert bad_0_std_pre_interp > np.std(raw_od._data[bad_0])
 
 
 run_tests_if_main()

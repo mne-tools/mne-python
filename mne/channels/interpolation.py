@@ -248,12 +248,13 @@ def _interpolate_bads_nirs(inst, method='nearest', verbose=None):
 
     chs = [inst.info['chs'][i] for i in picks_nirs]
     locs3d = np.array([ch['loc'][:3] for ch in chs])
-    dist = pdist(locs3d)
-    dist = squareform(dist)
 
     _check_option('fnirs_method', method, ['nearest'])
 
     if method == 'nearest':
+
+        dist = pdist(locs3d)
+        dist = squareform(dist)
 
         for bad in picks_bad:
             dists_to_bad = dist[bad]
