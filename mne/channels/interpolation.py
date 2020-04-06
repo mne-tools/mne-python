@@ -11,6 +11,7 @@ from ..utils import logger, warn, verbose
 from ..io.pick import pick_types, pick_channels, pick_info
 from ..surface import _normalize_vectors
 from ..forward import _map_meg_channels
+from ..utils import _check_option
 
 
 def _calc_h(cosang, stiffness=4, n_legendre_terms=50):
@@ -213,3 +214,58 @@ def _interpolate_bads_meg(inst, mode='accurate', origin=(0., 0., 0.04),
     info_to = pick_info(inst.info, picks_bad)
     mapping = _map_meg_channels(info_from, info_to, mode=mode, origin=origin)
     _do_interp_dots(inst, mapping, picks_good, picks_bad)
+
+
+@verbose
+def _interpolate_bads_nirs(inst, method='nearest', verbose=None):
+    """Interpolate bad nirs channels. Simply replaces by closest non bad.
+
+    Parameters
+    ----------
+    inst : mne.io.Raw, mne.Epochs or mne.Evoked
+        The data to interpolate. Must be preloaded.
+    method : str
+        Only the method 'nearest' is currently available. This method replaces
+        each bad channel with the nearest non bad channel.
+    %(verbose)s
+    """
+    from scipy.spatial.distance import pdist, squareform
+    from mne.preprocessing.nirs import _channel_frequencies,\
+        _check_channels_ordered
+
+    # Returns pick of all nirs and ensures channels are correctly ordered
+    freqs = np.unique(_channel_frequencies(inst))
+    picks_nirs = _check_channels_ordered(inst, freqs)
+    if len(picks_nirs) == 0:
+        return
+
+    nirs_ch_names = [inst.info['ch_names'][p] for p in picks_nirs]
+    bads_nirs = [ch for ch in inst.info['bads'] if ch in nirs_ch_names]
+    if len(bads_nirs) == 0:
+        return
+    picks_bad = pick_channels(inst.info['ch_names'], bads_nirs, exclude=[])
+    bads_mask = [p in picks_bad for p in picks_nirs]
+
+    chs = [inst.info['chs'][i] for i in picks_nirs]
+    locs3d = np.array([ch['loc'][:3] for ch in chs])
+
+    _check_option('fnirs_method', method, ['nearest'])
+
+    if method == 'nearest':
+
+        dist = pdist(locs3d)
+        dist = squareform(dist)
+
+        for bad in picks_bad:
+            dists_to_bad = dist[bad]
+            # Ignore distances to self
+            dists_to_bad[dists_to_bad == 0] = np.inf
+            # Ignore distances to other bad channels
+            dists_to_bad[bads_mask] = np.inf
+            # Find closest remaining channels for same frequency
+            closest_idx = np.argmin(dists_to_bad) + (bad % 2)
+            inst._data[bad] = inst._data[closest_idx]
+
+        inst.info['bads'] = []
+
+    return inst

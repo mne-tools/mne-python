@@ -993,7 +993,8 @@ class InterpolationMixin(object):
         .. versionadded:: 0.9.0
         """
         from ..bem import _check_origin
-        from .interpolation import _interpolate_bads_eeg, _interpolate_bads_meg
+        from .interpolation import _interpolate_bads_eeg,\
+            _interpolate_bads_meg, _interpolate_bads_nirs
 
         _check_preload(self, "interpolation")
 
@@ -1003,6 +1004,7 @@ class InterpolationMixin(object):
         origin = _check_origin(origin, self.info)
         _interpolate_bads_eeg(self, origin=origin)
         _interpolate_bads_meg(self, mode=mode, origin=origin)
+        _interpolate_bads_nirs(self)
 
         if reset_bads is True:
             self.info['bads'] = []

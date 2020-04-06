@@ -21,6 +21,7 @@ Changelog
 
 - Added temporal derivative distribution repair :func:`mne.preprocessing.nirs.temporal_derivative_distribution_repair` by `Robert Luke`_
 
+- Add functionality to interpolate bad NIRS channels by `Robert Luke`_
 
 Bug
 ~~~
