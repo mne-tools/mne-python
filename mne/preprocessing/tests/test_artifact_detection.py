@@ -5,6 +5,7 @@
 
 import os.path as op
 import numpy as np
+import pytest
 from numpy.testing import assert_allclose
 from mne.chpi import read_head_pos
 from mne.datasets import testing
@@ -63,3 +64,14 @@ def test_muscle_annotation():
     np.testing.assert_array_equal(scores[onset].astype(int), np.array([23,
                                                                        10]))
     assert(annot_muscle.duration.size == 2)
+
+@testing.requires_testing_data
+def test_muscle_annotation_without_meeg_data():
+    """ Call annotate_muscle_zscore with data without meg or eeg."""
+    raw = read_raw_fif(raw_fname, allow_maxshield='yes')
+    raw.crop(0, .1).load_data()
+    raw.pick_types(meg=False, stim=True)
+    with pytest.raises(ValueError, match="No M/EEG channel types found"):
+        annot_muscle, scores = annotate_muscle_zscore(raw, threshold=10)
+        
+        
