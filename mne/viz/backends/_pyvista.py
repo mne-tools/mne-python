@@ -28,6 +28,7 @@ with warnings.catch_warnings():
     from pyvista import (Plotter, BackgroundPlotter, PolyData,
                          Line, close_all, UnstructuredGrid)
     from pyvista.utilities import try_callback
+    from pyvista.plotting.plotting import _ALL_PLOTTERS
 
 
 _FIGURES = dict()
@@ -583,7 +584,11 @@ def _check_3d_figure(figure):
 def _close_3d_figure(figure):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=FutureWarning)
+        # close the window
         figure.plotter.close()
+        # free memory and deregister from the scraper
+        figure.plotter.deep_clean()
+        del _ALL_PLOTTERS[figure.plotter._id_name]
 
 
 def _take_3d_screenshot(figure, mode='rgb', filename=None):
