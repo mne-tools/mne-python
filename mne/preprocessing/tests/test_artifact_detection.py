@@ -68,7 +68,7 @@ def test_muscle_annotation():
 
 @testing.requires_testing_data
 def test_muscle_annotation_without_meeg_data():
-    """ Call annotate_muscle_zscore with data without meg or eeg."""
+    """Call annotate_muscle_zscore with data without meg or eeg."""
     raw = read_raw_fif(raw_fname, allow_maxshield='yes')
     raw.crop(0, .1).load_data()
     raw.pick_types(meg=False, stim=True)
