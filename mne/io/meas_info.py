@@ -17,11 +17,12 @@ from textwrap import shorten
 import numpy as np
 from scipy import linalg
 
+from ._digitization import DigPoint
 from .pick import channel_type, pick_channels, pick_info
-from .constants import FIFF
+from .constants import FIFF, _coord_frame_named
 from .open import fiff_open
 from .tree import dir_tree_find
-from .tag import read_tag, find_tag, _coord_dict
+from .tag import read_tag, find_tag, _ch_coord_dict
 from .proj import (_read_proj, _write_proj, _uniquify_projs, _normalize_proj,
                    Projection)
 from .ctf_comp import read_ctf_comp, write_ctf_comp
@@ -854,10 +855,11 @@ def read_fiducials(fname, verbose=None):
             pos = isotrak['directory'][k].pos
             if kind == FIFF.FIFF_DIG_POINT:
                 tag = read_tag(fid, pos)
-                pts.append(tag.data)
+                pts.append(DigPoint(tag.data))
             elif kind == FIFF.FIFF_MNE_COORD_FRAME:
                 tag = read_tag(fid, pos)
                 coord_frame = tag.data[0]
+                coord_frame = _coord_frame_named.get(coord_frame, coord_frame)
 
     # coord_frame is not stored in the tag
     for pt in pts:
@@ -2008,8 +2010,9 @@ def create_info(ch_names, sfreq, ch_types='misc', verbose=None):
                            % (list(_kind_dict.keys()), kind))
         kind = _kind_dict[kind]
         # mirror what tag.py does here
-        coord_frame = _coord_dict.get(kind[0], FIFF.FIFFV_COORD_UNKNOWN)
-        chan_info = dict(loc=np.full(12, np.nan), unit_mul=0, range=1., cal=1.,
+        coord_frame = _ch_coord_dict.get(kind[0], FIFF.FIFFV_COORD_UNKNOWN)
+        chan_info = dict(loc=np.full(12, np.nan),
+                         unit_mul=FIFF.FIFF_UNITM_NONE, range=1., cal=1.,
                          kind=kind[0], coil_type=kind[1],
                          unit=kind[2], coord_frame=coord_frame,
                          ch_name=str(name), scanno=ci + 1, logno=ci + 1)

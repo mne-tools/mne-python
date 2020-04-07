@@ -28,12 +28,14 @@ from .read import (read_int32, read_int16, read_float, read_double,
                    read_int16_matrix, read_dev_header)
 
 FIFF_INFO_CHS_FIELDS = ('loc',
-                        'ch_name', 'unit_mul', 'coord_frame', 'coil_type',
+                        'ch_name', 'unit_mul', 'coord_frame',
+                        'coil_type',
                         'range', 'unit', 'cal',
                         'scanno', 'kind', 'logno')
 
 FIFF_INFO_CHS_DEFAULTS = (np.array([0, 0, 0, 1] * 3, dtype='f4'),
-                          None, 0, 0, 0,
+                          None, FIFF.FIFF_UNITM_NONE, FIFF.FIFFV_COORD_UNKNOWN,
+                          FIFF.FIFFV_COIL_NONE,
                           1.0, FIFF.FIFF_UNIT_V, 1.0,
                           None, FIFF.FIFFV_ECG_CH, None)
 

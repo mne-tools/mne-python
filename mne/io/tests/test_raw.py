@@ -24,6 +24,16 @@ from mne.io.meas_info import _get_valid_units
 from mne.io._digitization import DigPoint
 
 
+def assert_named_constants(info):
+    """Assert that info['chs'] has named constants."""
+    # for now we just check one
+    __tracebackhide__ = True
+    r = repr(info['chs'][0])
+    for check in ('.*FIFFV_COORD_.*', '.*FIFFV_COIL_.*', '.*FIFF_UNIT_.*',
+                  '.*FIFF_UNITM_.*',):
+        assert re.match(check, r, re.DOTALL) is not None, (check, r)
+
+
 def test_orig_units():
     """Test the error handling for original units."""
     # Should work fine
@@ -100,6 +110,7 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
                 assert_allclose(times1, times2)
     else:
         raw = reader(**kwargs)
+    assert_named_constants(raw.info)
 
     full_data = raw._data
     assert raw.__class__.__name__ in repr(raw)  # to test repr
@@ -130,6 +141,7 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
     raw = concatenate_raws([raw])
     raw.save(out_fname, tmax=raw.times[-1], overwrite=True, buffer_size_sec=1)
     raw3 = read_raw_fif(out_fname)
+    assert_named_constants(raw3.info)
     assert set(raw.info.keys()) == set(raw3.info.keys())
     assert_allclose(raw3[0:20][0], full_data[0:20], rtol=1e-6,
                     atol=1e-20)  # atol is very small but > 0
