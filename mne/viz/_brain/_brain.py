@@ -1111,6 +1111,122 @@ class _Brain(object):
     def hemis(self):
         return self._hemis
 
+    def save_movie(self, filename, time_dilation=4., tmin=None, tmax=None,
+                   framerate=24, interpolation=None, codec=None,
+                   bitrate=None, callback=None, **kwargs):
+        """Save a movie (for data with a time axis).
+        The movie is created through the :mod:`imageio` module. The format is
+        determined by the extension, and additional options can be specified
+        through keyword arguments that depend on the format. For available
+        formats and corresponding parameters see the imageio documentation:
+        http://imageio.readthedocs.io/en/latest/formats.html#multiple-images
+        .. Warning::
+            This method assumes that time is specified in seconds when adding
+            data. If time is specified in milliseconds this will result in
+            movies 1000 times longer than expected.
+        Parameters
+        ----------
+        filename : str
+            Path at which to save the movie. The extension determines the
+            format (e.g., `'*.mov'`, `'*.gif'`, ...; see the :mod:`imageio`
+            documenttion for available formats).
+        time_dilation : float
+            Factor by which to stretch time (default 4). For example, an epoch
+            from -100 to 600 ms lasts 700 ms. With ``time_dilation=4`` this
+            would result in a 2.8 s long movie.
+        tmin : float
+            First time point to include (default: all data).
+        tmax : float
+            Last time point to include (default: all data).
+        framerate : float
+            Framerate of the movie (frames per second, default 24).
+        %(brain_time_interpolation)s
+            If None, it uses the current ``brain.interpolation``,
+            which defaults to ``'nearest'``. Defaults to None.
+        callback : callable | None
+            A function to call on each iteration. Useful for status message
+            updates. It will be passed keyword arguments ``frame`` and
+            ``n_frames``.
+        **kwargs :
+            Specify additional options for :mod:`imageio`.
+        """
+        import imageio
+        from math import floor
+
+        # find imageio FFMPEG parameters
+        if 'fps' not in kwargs:
+            kwargs['fps'] = framerate
+        if codec is not None:
+            kwargs['codec'] = codec
+        if bitrate is not None:
+            kwargs['bitrate'] = bitrate
+
+        # find tmin
+        if tmin is None:
+            tmin = self._times[0]
+        elif tmin < self._times[0]:
+            raise ValueError("tmin=%r is smaller than the first time point "
+                             "(%r)" % (tmin, self._times[0]))
+
+        # find indexes at which to create frames
+        if tmax is None:
+            tmax = self._times[-1]
+        elif tmax > self._times[-1]:
+            raise ValueError("tmax=%r is greater than the latest time point "
+                             "(%r)" % (tmax, self._times[-1]))
+        n_frames = floor((tmax - tmin) * time_dilation * framerate)
+        times = np.arange(n_frames, dtype=float)
+        times /= framerate * time_dilation
+        times += tmin
+        time_idx = np.interp(times, self._times, np.arange(self._n_times))
+
+        n_times = len(time_idx)
+        if n_times == 0:
+            raise ValueError("No time points selected")
+
+        logger.debug("Save movie for time points/samples\n%s\n%s"
+                     % (times, time_idx))
+        # Sometimes the first screenshot is rendered with a different
+        # resolution on OS X
+        self.screenshot()
+        old_mode = self.time_interpolation
+        if interpolation is not None:
+            self.set_time_interpolation(interpolation)
+        try:
+            images = [
+                self.screenshot() for _ in self._iter_time(time_idx, callback)]
+        finally:
+            self.set_time_interpolation(old_mode)
+        if callback is not None:
+            callback(frame=len(time_idx), n_frames=len(time_idx))
+        imageio.mimwrite(filename, images, **kwargs)
+
+    def _iter_time(self, time_idx, callback):
+        """Iterate through time points, then reset to current time.
+        Parameters
+        ----------
+        time_idx : array_like
+            Time point indexes through which to iterate.
+        callback : callable | None
+            Callback to call before yielding each frame.
+        Yields
+        ------
+        idx : int | float
+            Current index.
+        Notes
+        -----
+        Used by movie and image sequence saving functions.
+        """
+        current_time_idx = self._data["time_idx"]
+        for ii, idx in enumerate(time_idx):
+            self.set_time_point(idx)
+            if callback is not None:
+                callback(frame=ii, n_frames=len(time_idx))
+            yield idx
+
+        # Restore original time index
+        self.set_time_point(current_time_idx)
+
     def _show(self):
         """Request rendering of the window."""
         try:
