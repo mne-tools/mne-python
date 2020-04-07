@@ -109,7 +109,7 @@ plt.rcParams.update({
 # :func:`~matplotlib.pyplot.subplot2grid`, or adding each axes manually) are
 # shown commented out, for reference.
 
-# sphinx_gallery_thumbnail_number = 5
+# sphinx_gallery_thumbnail_number = 4
 # figsize unit is inches
 fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(4.5, 3.),
                          gridspec_kw=dict(height_ratios=[3, 4]))
