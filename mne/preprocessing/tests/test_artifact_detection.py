@@ -65,6 +65,7 @@ def test_muscle_annotation():
                                                                        10]))
     assert(annot_muscle.duration.size == 2)
 
+
 @testing.requires_testing_data
 def test_muscle_annotation_without_meeg_data():
     """ Call annotate_muscle_zscore with data without meg or eeg."""
@@ -73,5 +74,3 @@ def test_muscle_annotation_without_meeg_data():
     raw.pick_types(meg=False, stim=True)
     with pytest.raises(ValueError, match="No M/EEG channel types found"):
         annot_muscle, scores = annotate_muscle_zscore(raw, threshold=10)
-        
-        
