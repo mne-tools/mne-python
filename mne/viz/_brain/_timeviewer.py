@@ -329,7 +329,6 @@ class _TimeViewer(object):
         self.color_cycle = None
         self.picked_points = {'lh': list(), 'rh': list()}
         self._mouse_no_mvt = -1
-        self._left_clicked = False
         self.orientation = [
             'lateral',
             'medial',
@@ -775,16 +774,14 @@ class _TimeViewer(object):
 
     def on_button_press(self, vtk_picker, event):
         self._mouse_no_mvt = 2
-        self._left_clicked = True
 
     def on_button_release(self, vtk_picker, event):
-        if self._mouse_no_mvt and self._left_clicked:
+        if self._mouse_no_mvt > 0:
             x, y = vtk_picker.GetEventPosition()
             # programmatically detect the picked renderer
             self.picked_renderer = self.plotter.iren.FindPokedRenderer(x, y)
             # trigger the pick
             self.plotter.picker.Pick(x, y, 0, self.picked_renderer)
-            self._left_clicked = False
         self._mouse_no_mvt = 0
 
     def on_pick(self, vtk_picker, event):
