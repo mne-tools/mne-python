@@ -160,6 +160,10 @@ class _Renderer(_BaseRenderer):
             with _disabled_depth_peeling():
                 self.plotter = self.figure.build()
             self.plotter.hide_axes()
+            if hasattr(self.plotter, "default_camera_tool_bar"):
+                self.plotter.default_camera_tool_bar.close()
+            if hasattr(self.plotter, "saved_cameras_tool_bar"):
+                self.plotter.saved_cameras_tool_bar.close()
             _enable_aa(self.figure, self.plotter)
 
     def subplot(self, x, y):
