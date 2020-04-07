@@ -776,7 +776,7 @@ class _TimeViewer(object):
         self._mouse_no_mvt = 2
 
     def on_button_release(self, vtk_picker, event):
-        if self._mouse_no_mvt:
+        if self._mouse_no_mvt > 0:
             x, y = vtk_picker.GetEventPosition()
             # programmatically detect the picked renderer
             self.picked_renderer = self.plotter.iren.FindPokedRenderer(x, y)
