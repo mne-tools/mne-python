@@ -218,8 +218,10 @@ def test_plot_raw():
     _fake_click(ssp_fig, ssp_fig.get_axes()[1], [0.5, 0.5])  # all off
     _fake_click(ssp_fig, ssp_fig.get_axes()[1], [0.5, 0.5], kind='release')
     assert _proj_status(ax) == [False] * 3
+    assert fig._mne_params['projector'] is None  # actually off
     _fake_click(ssp_fig, ssp_fig.get_axes()[1], [0.5, 0.5])  # all on
     _fake_click(ssp_fig, ssp_fig.get_axes()[1], [0.5, 0.5], kind='release')
+    assert fig._mne_params['projector'] is not None  # on
     assert _proj_status(ax) == [True] * 3
 
     # test keypresses

@@ -315,6 +315,7 @@ def _toggle_proj(event, params, all_=False):
                 for bi, (old, new) in enumerate(zip(bools, new_bools)):
                     if old != new:
                         params['proj_checks'].set_active(bi)
+                        bools[bi] = new
         for bi, (b, p) in enumerate(zip(bools, params['projs'])):
             # see if they tried to deactivate an active one
             if not b and p['active']:
