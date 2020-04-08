@@ -46,3 +46,4 @@ dependencies:
   - codespell
   - python-picard
   - tqdm
+  - PyQt5>=5.10,<5.14; platform_system == "Darwin"

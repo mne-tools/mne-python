@@ -60,9 +60,6 @@ before_install:
           conda activate base;
           conda env update --file $CONDA_ENV;
           pip uninstall -yq mne;
-          if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-            pip install "pyqt5>=5.10,<5.14";
-          fi;
         fi;
       fi
     # Always install these via pip so we get the latest possible versions (testing bugfixes)
