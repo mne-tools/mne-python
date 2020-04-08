@@ -546,7 +546,8 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
 def _simplify_float(label):
     # Heuristic to turn floats to ints where possible (e.g. -500.0 to -500)
-    if isinstance(label, float) and float(str(label)) != round(label):
+    if isinstance(label, float) and np.isfinite(label) and \
+            float(str(label)) != round(label):
         label = round(label, 2)
     return label
 
