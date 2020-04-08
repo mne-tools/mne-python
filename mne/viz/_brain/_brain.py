@@ -1117,15 +1117,18 @@ class _Brain(object):
                    framerate=24, interpolation=None, codec=None,
                    bitrate=None, callback=None, **kwargs):
         """Save a movie (for data with a time axis).
+
         The movie is created through the :mod:`imageio` module. The format is
         determined by the extension, and additional options can be specified
         through keyword arguments that depend on the format. For available
         formats and corresponding parameters see the imageio documentation:
         http://imageio.readthedocs.io/en/latest/formats.html#multiple-images
+
         .. Warning::
             This method assumes that time is specified in seconds when adding
             data. If time is specified in milliseconds this will result in
             movies 1000 times longer than expected.
+
         Parameters
         ----------
         filename : str
@@ -1205,16 +1208,19 @@ class _Brain(object):
 
     def _iter_time(self, time_idx, callback):
         """Iterate through time points, then reset to current time.
+
         Parameters
         ----------
         time_idx : array_like
             Time point indexes through which to iterate.
         callback : callable | None
             Callback to call before yielding each frame.
+
         Yields
         ------
         idx : int | float
             Current index.
+
         Notes
         -----
         Used by movie and image sequence saving functions.
