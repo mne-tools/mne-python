@@ -69,6 +69,7 @@ class _Figure(object):
             self.plotter_class = Plotter
 
         if self.plotter_class == Plotter:
+            self.store.pop('show', None)
             self.store.pop('title', None)
             self.store.pop('auto_update', None)
 
