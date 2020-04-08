@@ -1788,12 +1788,17 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     if title is None:
         title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
+    kwargs = {
+        "subject_id": subject, "hemi": hemi, "surf": surface,
+        "title": title, "cortex": cortex, "size": size,
+        "background": background, "foreground": foreground,
+        "figure": figure, "subjects_dir": subjects_dir,
+        "views": views
+    }
+    if get_3d_backend() == "pyvista":
+        kwargs["show"] = not time_viewer
     with warnings.catch_warnings(record=True):  # traits warnings
-        brain = Brain(subject, hemi=hemi, surf=surface,
-                      title=title, cortex=cortex, size=size,
-                      background=background, foreground=foreground,
-                      figure=figure, subjects_dir=subjects_dir,
-                      views=views)
+        brain = Brain(**kwargs)
     center = 0. if diverging else None
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
@@ -1816,7 +1821,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 kwargs["min"] = scale_pts[0]
                 kwargs["mid"] = scale_pts[1]
                 kwargs["max"] = scale_pts[2]
-            else:
+            else:  # pyvista
                 kwargs["fmin"] = scale_pts[0]
                 kwargs["fmid"] = scale_pts[1]
                 kwargs["fmax"] = scale_pts[2]

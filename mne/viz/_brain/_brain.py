@@ -87,6 +87,8 @@ class _Brain(object):
         camera.
     units : str
         Can be 'm' or 'mm' (default).
+    show : bool
+        Display the window as soon as it is ready. Defaults to True.
 
     Attributes
     ----------
@@ -145,7 +147,8 @@ class _Brain(object):
                  cortex=None, alpha=1.0, size=800, background="black",
                  foreground=None, figure=None, subjects_dir=None,
                  views=['lateral'], offset=True, show_toolbar=False,
-                 offscreen=False, interaction=None, units='mm'):
+                 offscreen=False, interaction=None, units='mm',
+                 show=True):
         from ..backends.renderer import backend, _get_renderer
         from matplotlib.colors import colorConverter
 
@@ -242,8 +245,8 @@ class _Brain(object):
                     self._renderer.set_camera(azimuth=views_dict[v].azim,
                                               elevation=views_dict[v].elev)
 
-        # Force rendering
-        self._renderer.show()
+        if show:
+            self._renderer.show()
 
     @verbose
     def add_data(self, array, fmin=None, fmid=None, fmax=None,
@@ -739,6 +742,10 @@ class _Brain(object):
     def close(self):
         """Close all figures and cleanup data structure."""
         self._renderer.close()
+
+    def show(self):
+        """Display the window."""
+        self._renderer.show()
 
     def show_view(self, view=None, roll=None, distance=None, row=0, col=0,
                   hemi=None):

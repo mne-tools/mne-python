@@ -383,6 +383,7 @@ class _TimeViewer(object):
 
         # show everything at the end
         self.toggle_interface()
+        self.brain.show()
 
     @safe_event
     def keyPressEvent(self, event):

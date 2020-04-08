@@ -38,6 +38,7 @@ class _Figure(object):
     def __init__(self, plotter=None,
                  plotter_class=None,
                  display=None,
+                 show=False,
                  title='PyVista Scene',
                  size=(600, 600),
                  shape=(1, 1),
@@ -53,6 +54,7 @@ class _Figure(object):
         self.notebook = notebook
 
         self.store = dict()
+        self.store['show'] = show
         self.store['title'] = title
         self.store['window_size'] = size
         self.store['shape'] = shape
@@ -133,7 +135,7 @@ class _Renderer(_BaseRenderer):
     def __init__(self, fig=None, size=(600, 600), bgcolor='black',
                  name="PyVista Scene", show=False, shape=(1, 1)):
         from .renderer import MNE_3D_BACKEND_TESTING
-        figure = _Figure(title=name, size=size, shape=shape,
+        figure = _Figure(show=show, title=name, size=size, shape=shape,
                          background_color=bgcolor, notebook=None)
         self.font_family = "arial"
         if isinstance(fig, int):
@@ -435,6 +437,8 @@ class _Renderer(_BaseRenderer):
 
     def show(self):
         self.figure.display = self.plotter.show()
+        if hasattr(self.plotter, "app_window"):
+            self.plotter.app_window.show()
         return self.scene()
 
     def close(self):
