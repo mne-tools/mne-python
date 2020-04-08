@@ -72,6 +72,8 @@ def test_gdf2_birthday(tmpdir):
         assert np.fromfile(fid, np.uint64, 1)[0] == d
     raw = read_raw_gdf(new_fname, eog=None, misc=None, preload=True)
     assert raw._raw_extras[0]['subject_info']['age'] == 44
+    # XXX this is a bug, it should be populated...
+    assert raw.info['subject_info'] is None
 
 
 @testing.requires_testing_data
