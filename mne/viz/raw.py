@@ -801,8 +801,11 @@ def _plot_raw_traces(params, color, bad_color, event_lines=None,
             elif params['clipping'] is not None:
                 l, w = this_t[0], this_t[-1] - this_t[0]
                 ylim = params['ax'].get_ylim()
-                b = max(offset - params['clipping'], ylim[0])
-                h = min(2 * params['clipping'], ylim[1] - b)
+                b = offset - params['clipping']  # max(, ylim[0])
+                h = 2 * params['clipping']  # min(, ylim[1] - b)
+                assert ylim[1] <= ylim[0]  # inverted
+                b = max(b, ylim[1])
+                h = min(h, ylim[0] - b)
                 rect = Rectangle((l, b), w, h, transform=ax.transData)
                 lines[ii].set_clip_path(rect)
 
