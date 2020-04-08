@@ -65,7 +65,7 @@ fname_mon = op.join(misc_path, 'sample_eeg_mri', 'sample_mri_montage.elc')
 # which does a maximum intensity projection (easy to see the fake electrodes).
 # This plotting function requires data to be in MNI space.
 # Because ``img.affine`` gives the voxel-to-world (RAS) mapping, if we apply a
-# RAS-to-MRI transform to it, it becomes the voxel-to-MNI transformation we
+# RAS-to-MNI transform to it, it becomes the voxel-to-MNI transformation we
 # need. Thus we create a "new" MRI image in MNI coordinates and plot it as:
 
 img = nibabel.load(fname_T1_electrodes)  # original subject MRI w/EEG
@@ -95,7 +95,7 @@ plot_glass_brain(img_mni, cmap='hot_black_bone', threshold=0., black_bg=True,
 #         >>> pos_vox = ...  # loaded from a file somehow
 #         >>> img = nibabel.load(fname_T1)
 #         >>> vox2mri = img.header.get_vox2ras_tkr()  # voxel -> mri
-#         >>> vox2mri[:3] /= 1000.  # mm -> m
+#         >>> vox2mri[:3, -1] /= 1000.  # translation column: mm -> m
 #         >>> pos_mri = mne.transforms.apply_trans(vox2mri, pos_vox)
 #
 #     You can also verify that these are correct (or manually convert voxels
