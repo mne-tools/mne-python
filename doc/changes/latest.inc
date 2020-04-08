@@ -25,6 +25,8 @@ Changelog
 
 - Add functionality to interpolate bad NIRS channels by `Robert Luke`_
 
+- Add function :func:`mne.preprocessing.annotate_muscle_zscore` to annotate periods with muscle artifacts. by `Adonay Nunes`_
+
 Bug
 ~~~
 

@@ -5,11 +5,13 @@
 
 import os.path as op
 import numpy as np
+import pytest
 from numpy.testing import assert_allclose
 from mne.chpi import read_head_pos
 from mne.datasets import testing
 from mne.io import read_raw_fif
-from mne.preprocessing import (annotate_movement, compute_average_dev_head_t)
+from mne.preprocessing import (annotate_movement, compute_average_dev_head_t,
+                               annotate_muscle_zscore)
 
 data_path = testing.data_path(download=False)
 sss_path = op.join(data_path, 'SSS')
@@ -47,3 +49,28 @@ def test_movement_annotation_head_correction():
                               [0., 0., 0., 1.]])
 
     assert_allclose(dev_head_t_ori, dev_head_t['trans'], rtol=1e-5, atol=0)
+
+
+@testing.requires_testing_data
+def test_muscle_annotation():
+    """Test correct detection muscle artifacts."""
+    raw = read_raw_fif(raw_fname, allow_maxshield='yes').load_data()
+    raw.notch_filter([50, 110, 150])
+    # Check 2 muscle segments are detected
+    annot_muscle, scores = annotate_muscle_zscore(raw, ch_type='mag',
+                                                  threshold=10)
+    onset = annot_muscle.onset * raw.info['sfreq']
+    onset = onset.astype(int)
+    np.testing.assert_array_equal(scores[onset].astype(int), np.array([23,
+                                                                       10]))
+    assert(annot_muscle.duration.size == 2)
+
+
+@testing.requires_testing_data
+def test_muscle_annotation_without_meeg_data():
+    """Call annotate_muscle_zscore with data without meg or eeg."""
+    raw = read_raw_fif(raw_fname, allow_maxshield='yes')
+    raw.crop(0, .1).load_data()
+    raw.pick_types(meg=False, stim=True)
+    with pytest.raises(ValueError, match="No M/EEG channel types found"):
+        annot_muscle, scores = annotate_muscle_zscore(raw, threshold=10)
