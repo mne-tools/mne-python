@@ -383,6 +383,7 @@ class _TimeViewer(object):
 
         # show everything at the end
         self.toggle_interface()
+        self.brain.show()
 
     @safe_event
     def keyPressEvent(self, event):
@@ -709,12 +710,11 @@ class _TimeViewer(object):
                 warnings.filterwarnings("ignore", category=UserWarning)
                 self.mpl_canvas.axes.set(xlim=xlim)
             vlayout = self.plotter.frame.layout()
-            if self.separate_canvas:
-                self.mpl_canvas.show()
-            else:
+            if not self.separate_canvas:
                 vlayout.addWidget(self.mpl_canvas.canvas)
                 vlayout.setStretch(0, 2)
                 vlayout.setStretch(1, 1)
+            self.mpl_canvas.show()
 
             # get brain data
             for idx, hemi in enumerate(['lh', 'rh']):
