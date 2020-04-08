@@ -1880,10 +1880,11 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
             this_data = this_data[:, :this_data.shape[1] // length * length]
             shape = this_data.shape  # original shape
             this_data = this_data.T.reshape(-1, length, shape[0])  # segment
-            this_data -= this_data.mean(0)  # subtract segment means
+            this_data -= np.nanmean(this_data, 0)  # subtract segment means
             this_data = this_data.T.reshape(shape)  # reshape into original
-
-        iqr = np.diff(np.percentile(this_data.ravel(), [25, 75]))
+        this_data = this_data.ravel()
+        this_data = this_data[np.isfinite(this_data)]
+        iqr = np.diff(np.percentile(this_data, [25, 75]))
         scalings[key] = iqr.item()
     return scalings
 
