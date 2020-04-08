@@ -94,9 +94,9 @@ plot_glass_brain(img_mni, cmap='hot_black_bone', threshold=0., black_bg=True,
 #
 #         >>> pos_vox = ...  # loaded from a file somehow
 #         >>> img = nibabel.load(fname_T1)
-#         >>> vox2mri = img.header.get_vox2ras_tkr()  # voxel -> mri
-#         >>> vox2mri[:3, -1] /= 1000.  # translation column: mm -> m
-#         >>> pos_mri = mne.transforms.apply_trans(vox2mri, pos_vox)
+#         >>> vox2mri_t = img.header.get_vox2ras_tkr()  # voxel -> mri trans
+#         >>> pos_mri = mne.transforms.apply_trans(vox2mri_t, pos_vox)
+#         >>> pos_mri /= 1000.  # mm -> m
 #
 #     You can also verify that these are correct (or manually convert voxels
 #     to MRI coords) by looking at the points in Freeview or tkmedit.
