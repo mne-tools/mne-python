@@ -42,6 +42,8 @@ Bug
 
 - Fix bug with :func:`mne.make_forward_dipole` where :func:`mne.write_forward_solution` could not be used by `Eric Larson`_
 
+- Fix bug with :func:`mne.io.read_raw_gdf` where birthdays were not parsed properly, leading to an error by `Eric Larson`_
+
 - Fix bug that prevents ``n_jobs`` from being a NumPy integer type, by `Daniel McCloy`_.
 
 - Fix bug with :func:`mne.io.read_raw_gdf` where birthdays were not parsed properly, leading to an error by `Svea Marie Meyer`_
