@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 
 import os.path as op
+import shutil
 
 import pytest
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -57,9 +58,29 @@ def test_gdf_data():
 
 
 @testing.requires_testing_data
+def test_gdf2_birthday(tmpdir):
+    """Test reading raw GDF 2.x files."""
+    new_fname = str(tmpdir.join('temp.gdf'))
+    shutil.copyfile(gdf2_path + '.gdf', new_fname)
+    d = int(3.1e15)  # chosen by trial and error to give a reasonable age
+    with open(new_fname, 'r+b') as fid:
+        fid.seek(176, 0)
+        assert np.fromfile(fid, np.uint64, 1)[0] == 0
+        fid.seek(176, 0)
+        fid.write(np.array([d], np.uint64).tobytes())
+        fid.seek(176, 0)
+        assert np.fromfile(fid, np.uint64, 1)[0] == d
+    raw = read_raw_gdf(new_fname, eog=None, misc=None, preload=True)
+    assert raw._raw_extras[0]['subject_info']['age'] == 44
+    # XXX this is a bug, it should be populated...
+    assert raw.info['subject_info'] is None
+
+
+@testing.requires_testing_data
 def test_gdf2_data():
     """Test reading raw GDF 2.x files."""
     raw = read_raw_gdf(gdf2_path + '.gdf', eog=None, misc=None, preload=True)
+    assert raw._raw_extras[0]['subject_info']['age'] is None
 
     picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
     data, _ = raw[picks]
