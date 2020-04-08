@@ -400,17 +400,14 @@ class RawCNT(BaseRaw):
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Take a chunk of raw data, multiply by mult or cals, and store."""
-        if 'stim_channel' in self._raw_extras[0]:
-            n_channels = self.info['nchan'] - 1  # Stim channel already read.
-            sel = np.arange(n_channels + 1)[idx]
-            stim_ch = self._raw_extras[0]['stim_channel']
-        else:
-            n_channels = self.info['nchan']
-            sel = np.arange(n_channels)[idx]
+        n_channels = self._raw_extras[fi]['orig_nchan']
+        if 'stim_channel' in self._raw_extras[fi]:
+            n_channels = n_channels - 1  # Stim channel already read.
+            stim_ch = self._raw_extras[fi]['stim_channel']
 
-        channel_offset = self._raw_extras[0]['channel_offset']
-        baselines = self._raw_extras[0]['baselines']
-        n_bytes = self._raw_extras[0]['n_bytes']
+        channel_offset = self._raw_extras[fi]['channel_offset']
+        baselines = self._raw_extras[fi]['baselines']
+        n_bytes = self._raw_extras[fi]['n_bytes']
         dtype = '<i4' if n_bytes == 4 else '<i2'
         chunk_size = channel_offset * n_channels  # Size of chunks in file.
         # The data is divided into blocks of samples / channel.
@@ -431,7 +428,7 @@ class RawCNT(BaseRaw):
                                                   sample_start))
                 n_samps = sample_stop - sample_start
 
-                if 'stim_channel' in self._raw_extras[0]:
+                if 'stim_channel' in self._raw_extras[fi]:
                     data_ = np.empty((n_channels + 1, n_samps))
                 else:
                     data_ = np.empty((n_channels, n_samps))
@@ -451,7 +448,7 @@ class RawCNT(BaseRaw):
                                       order='C')
 
                 # Intermediate shaping to chunk sizes.
-                if 'stim_channel' in self._raw_extras[0]:
+                if 'stim_channel' in self._raw_extras[fi]:
                     block = np.zeros((n_channels + 1,
                                       channel_offset * n_chunks))
                 else:
@@ -460,18 +457,18 @@ class RawCNT(BaseRaw):
                 for set_idx, row in enumerate(samps):  # Final shape.
                     block_slice = slice(set_idx * channel_offset,
                                         (set_idx + 1) * channel_offset)
-                    if 'stim_channel' in self._raw_extras[0]:
+                    if 'stim_channel' in self._raw_extras[fi]:
                         block[:-1, block_slice] = row
                     else:
                         block[:, block_slice] = row
 
-                block = block[sel, s_offset:n_samps + s_offset]
-                data_[sel] = block
-                if 'stim_channel' in self._raw_extras[0]:
+                block = block[idx, s_offset:n_samps + s_offset]
+                data_[idx] = block
+                if 'stim_channel' in self._raw_extras[fi]:
                     _data_start = start + sample_start
                     _data_stop = start + sample_stop
                     data_[-1] = stim_ch[_data_start:_data_stop]
 
-                data_[sel] -= baselines[sel][:, None]
+                data_[idx] -= baselines[idx][:, None]
                 _mult_cal_one(data[:, sample_start:sample_stop], data_, idx,
                               cals, mult=None)

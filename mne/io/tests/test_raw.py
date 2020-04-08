@@ -72,6 +72,9 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
         del kwargs['montage']
     if test_preloading:
         raw = reader(preload=True, **kwargs)
+        rep = repr(raw)
+        assert rep.count('<') == 1
+        assert rep.count('>') == 1
         if montage is not None:
             raw.set_montage(montage)
         # don't assume the first is preloaded
@@ -168,6 +171,35 @@ def _test_raw_reader(reader, test_preloading=True, test_kwargs=True,
         assert isinstance(raw._orig_units, dict)
         for ch_name, unit in raw._orig_units.items():
             assert unit.lower() in valid_units_lower, ch_name
+
+    # Test picking with and without preload
+    if test_preloading:
+        preload_kwargs = (dict(preload=True), dict(preload=False))
+    else:
+        preload_kwargs = (dict(),)
+    n_ch = len(raw.ch_names)
+    picks = rng.permutation(n_ch)
+    for preload_kwarg in preload_kwargs:
+        these_kwargs = kwargs.copy()
+        these_kwargs.update(preload_kwarg)
+        # don't use the same filename or it could create problems
+        if isinstance(these_kwargs.get('preload', None), str) and \
+                op.isfile(these_kwargs['preload']):
+            these_kwargs['preload'] += '-1'
+        whole_raw = reader(**these_kwargs)
+        print(whole_raw)  # __repr__
+        assert n_ch >= 2
+        picks_1 = picks[:n_ch // 2]
+        picks_2 = picks[n_ch // 2:]
+        raw_1 = whole_raw.copy().pick(picks_1)
+        raw_2 = whole_raw.copy().pick(picks_2)
+        data, times = whole_raw[:]
+        data_1, times_1 = raw_1[:]
+        data_2, times_2 = raw_2[:]
+        assert_array_equal(times, times_1)
+        assert_array_equal(data[picks_1], data_1)
+        assert_array_equal(times, times_2,)
+        assert_array_equal(data[picks_2], data_2)
 
     return raw
 

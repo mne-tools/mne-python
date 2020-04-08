@@ -337,6 +337,7 @@ class Raw(BaseRaw):
         with _fiff_get_fid(self._filenames[fi]) as fid:
             bounds = self._raw_extras[fi]['bounds']
             ents = self._raw_extras[fi]['ent']
+            nchan = self._raw_extras[fi]['orig_nchan']
             use = (stop > bounds[:-1]) & (start < bounds[1:])
             offset = 0
             for ei in np.where(use)[0]:
@@ -350,9 +351,9 @@ class Raw(BaseRaw):
                 # only read data if it exists
                 if ent is not None:
                     one = read_tag(fid, ent.pos,
-                                   shape=(nsamp, self.info['nchan']),
+                                   shape=(nsamp, nchan),
                                    rlims=(first_pick, last_pick)).data
-                    one.shape = (picksamp, self.info['nchan'])
+                    one.shape = (picksamp, nchan)
                     _mult_cal_one(data[:, offset:(offset + picksamp)],
                                   one.T, idx, cals, mult)
                 offset += picksamp
@@ -407,7 +408,7 @@ def _get_fname_rep(fname):
     if not _file_like(fname):
         return fname
     else:
-        return 'File-like %r' % (fname,)
+        return 'File-like'
 
 
 def _check_entry(first, nent):

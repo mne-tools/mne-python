@@ -51,7 +51,7 @@ subjects_dir = data_path + '/subjects'
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 # Read the raw data
-raw = mne.io.read_raw_fif(raw_fname, preload=True)
+raw = mne.io.read_raw_fif(raw_fname)
 raw.info['bads'] = ['MEG 2443']  # bad MEG channel
 
 # Set up the epoching

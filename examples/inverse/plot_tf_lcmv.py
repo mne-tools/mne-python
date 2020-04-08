@@ -36,7 +36,7 @@ fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
 
 ###############################################################################
 # Read raw data, preload to allow filtering
-raw = mne.io.read_raw_fif(raw_fname, preload=True)
+raw = mne.io.read_raw_fif(raw_fname)
 raw.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 
 # Pick a selection of magnetometer channels. A subset of all channels was used
@@ -46,7 +46,7 @@ raw.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 # but here we use raw.pick_types() to save memory.
 left_temporal_channels = mne.read_selection('Left-temporal')
 raw.pick_types(meg='mag', eeg=False, eog=False, stim=False, exclude='bads',
-               selection=left_temporal_channels)
+               selection=left_temporal_channels).load_data()
 reject = dict(mag=4e-12)
 # Re-normalize our empty-room projectors, which should be fine after
 # subselection

@@ -269,11 +269,12 @@ class RawNIRX(BaseRaw):
         The returned data interleaves the wavelengths.
         """
         sdindex = self._raw_extras[fi]['sd_index']
+        nchan = self._raw_extras[fi]['orig_nchan']
 
         wls = [
             _read_csv_rows_cols(
                 self._raw_extras[fi]['files'][key],
-                start, stop, sdindex, len(self.ch_names) // 2).T
+                start, stop, sdindex, nchan // 2).T
             for key in ('wl1', 'wl2')
         ]
 

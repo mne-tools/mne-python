@@ -1446,28 +1446,27 @@ def test_drop_channels_mixin():
 
 
 @testing.requires_testing_data
-def test_pick_channels_mixin():
+@pytest.mark.parametrize('preload', (True, False))
+def test_pick_channels_mixin(preload):
     """Test channel-picking functionality."""
-    # preload is True
-
-    raw = read_raw_fif(fif_fname, preload=True)
+    raw = read_raw_fif(fif_fname, preload=preload)
+    raw_orig = raw.copy()
     ch_names = raw.ch_names[:3]
 
     ch_names_orig = raw.ch_names
     dummy = raw.copy().pick_channels(ch_names)
     assert ch_names == dummy.ch_names
     assert ch_names_orig == raw.ch_names
-    assert len(ch_names_orig) == raw._data.shape[0]
+    assert len(ch_names_orig) == raw.get_data().shape[0]
 
     raw.pick_channels(ch_names)  # copy is False
     assert ch_names == raw.ch_names
     assert len(ch_names) == len(raw._cals)
-    assert len(ch_names) == raw._data.shape[0]
-    pytest.raises(ValueError, raw.pick_channels, ch_names[0])
+    assert len(ch_names) == raw.get_data().shape[0]
+    with pytest.raises(ValueError, match='must be'):
+        raw.pick_channels(ch_names[0])
 
-    raw = read_raw_fif(fif_fname, preload=False)
-    pytest.raises(RuntimeError, raw.pick_channels, ch_names)
-    pytest.raises(RuntimeError, raw.drop_channels, ch_names)
+    assert_allclose(raw[:][0], raw_orig[:3][0])
 
 
 @testing.requires_testing_data
@@ -1540,7 +1539,7 @@ def test_file_like(kind, preload, split, tmpdir):
     else:
         fname = test_fif_fname
     if preload is str:
-        preload = tmpdir.join('memmap')
+        preload = str(tmpdir.join('memmap'))
     with open(str(fname), 'rb') as file_fid:
         fid = BytesIO(file_fid.read()) if kind == 'bytes' else file_fid
         assert not fid.closed

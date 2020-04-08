@@ -90,7 +90,7 @@ print(raw)
 # :meth:`~mne.io.Raw.crop` the :class:`~mne.io.Raw` object to 60 seconds so it
 # uses less memory and runs more smoothly on our documentation server.
 
-raw.crop(tmax=60).load_data()
+raw.crop(tmax=60)
 
 ###############################################################################
 # Querying the Raw object
@@ -203,7 +203,7 @@ print(np.diff(raw.time_as_index([1, 2, 3])))
 # :class:`~mne.io.Raw` objects have a number of methods that modify the
 # :class:`~mne.io.Raw` instance in-place and return a reference to the modified
 # instance. This can be useful for `method chaining`_
-# (e.g., ``raw.crop(...).filter(...).pick_channels(...).plot()``)
+# (e.g., ``raw.crop(...).pick_channels(...).filter(...).plot()``)
 # but it also poses a problem during interactive analysis: if you modify your
 # :class:`~mne.io.Raw` object for an exploratory plot or analysis (say, by
 # dropping some channels), you will then need to re-load the data (and repeat
