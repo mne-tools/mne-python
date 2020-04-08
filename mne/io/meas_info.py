@@ -2053,6 +2053,13 @@ def _add_timedelta_to_stamp(meas_date_stamp, delta_t):
 def anonymize_info(info, daysback=None, keep_his=False, verbose=None):
     """Anonymize measurement information in place.
 
+    .. warning:: If ``info`` is part of an object like
+                 :class:`raw.info <mne.io.Raw>`, you should directly use
+                 the method :meth:`raw.anonymize() <mne.io.Raw.anonymize>`
+                 to ensure that all parts of the data are anonymized and
+                 stay synchronized (e.g.,
+                 :class:`raw.annotations <mne.Annotations>`).
+
     Parameters
     ----------
     info : dict, instance of Info
