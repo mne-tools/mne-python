@@ -134,11 +134,10 @@ MNE-Python with all dependencies is update your base Anaconda environment:
 
 .. collapse:: |apple| macOS
 
-   Use the base `environment file`_ and then update PyQt using :samp:`pip`, e.g.::
+   Use the base `environment file`_, e.g.::
 
        $ curl --remote-name https://raw.githubusercontent.com/mne-tools/mne-python/master/environment.yml
        $ conda env update --file environment.yml
-       $ pip install "PyQt5>=5.10,<5.14"
 
 .. collapse:: |windows| Windows
 
