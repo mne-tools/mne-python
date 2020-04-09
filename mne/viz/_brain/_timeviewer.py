@@ -329,6 +329,8 @@ class _TimeViewer(object):
         self.color_cycle = None
         self.picked_points = {'lh': list(), 'rh': list()}
         self._mouse_no_mvt = -1
+        self.icons = dict()
+        self.actions = dict()
         self.orientation = [
             'lateral',
             'medial',
@@ -359,6 +361,7 @@ class _TimeViewer(object):
         self.plotter = brain._renderer.plotter
         self.main_menu = self.plotter.main_menu
         self.window = self.plotter.app_window
+        self.tool_bar = self.window.addToolBar("toolbar")
         self.status_bar = self.window.statusBar()
         self.interactor = self.plotter.interactor
         self.interactor.keyPressEvent = self.keyPressEvent
@@ -374,12 +377,14 @@ class _TimeViewer(object):
             self.show_traces = show_traces
             self.separate_canvas = False
 
+        self.load_icons()
         self.configure_time_label()
         self.configure_sliders()
         self.configure_scalar_bar()
         self.configure_playback()
         self.configure_point_picking()
         self.configure_menu()
+        self.configure_tool_bar()
 
         # show everything at the end
         self.toggle_interface()
@@ -393,6 +398,12 @@ class _TimeViewer(object):
 
     def toggle_interface(self):
         self.visibility = not self.visibility
+
+        # update tool bar icon
+        if self.visibility:
+            self.actions["visibility"].setText(self.icons["visibility_on"])
+        else:
+            self.actions["visibility"].setText(self.icons["visibility_off"])
 
         # manage sliders
         for slider in self.plotter.slider_widgets:
@@ -432,6 +443,13 @@ class _TimeViewer(object):
 
     def toggle_playback(self):
         self.playback = not self.playback
+
+        # update tool bar icon
+        if self.playback:
+            self.actions["play"].setText(self.icons["pause"])
+        else:
+            self.actions["play"].setText(self.icons["play"])
+
         if self.playback:
             time_data = self.brain._data['time']
             max_time = np.max(time_data)
@@ -754,6 +772,47 @@ class _TimeViewer(object):
                 self.on_button_release,
                 self.on_pick
             )
+
+    def load_icons(self):
+        self.icons["help"] = "❓"
+        self.icons["play"] = "⏯️"
+        self.icons["pause"] = "⏸️"
+        self.icons["scale"] = "📏"
+        self.icons["clear"] = "🗑️"
+        self.icons["restore"] = "↩️"
+        self.icons["screenshot"] = "📷"
+        self.icons["visibility_on"] = "👀"
+        self.icons["visibility_off"] = "👀"
+
+    def configure_tool_bar(self):
+        self.actions["screenshot"] = self.tool_bar.addAction(
+            self.icons["screenshot"],
+            self.plotter._qt_screenshot
+        )
+        self.actions["visibility"] = self.tool_bar.addAction(
+            self.icons["visibility_on"],
+            self.toggle_interface
+        )
+        self.actions["play"] = self.tool_bar.addAction(
+            self.icons["play"],
+            self.toggle_playback
+        )
+        self.actions["scale"] = self.tool_bar.addAction(
+            self.icons["scale"],
+            self.apply_auto_scaling
+        )
+        self.actions["restore"] = self.tool_bar.addAction(
+            self.icons["restore"],
+            self.restore_user_scaling
+        )
+        self.actions["clear"] = self.tool_bar.addAction(
+            self.icons["clear"],
+            self.clear_points
+        )
+        self.actions["help"] = self.tool_bar.addAction(
+            self.icons["help"],
+            self.help
+        )
 
     def configure_menu(self):
         # remove default picking menu
