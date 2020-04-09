@@ -782,6 +782,8 @@ class _TimeViewer(object):
         self.icons["help"] = QIcon(":/help.svg")
         self.icons["play"] = QIcon(":/play.svg")
         self.icons["pause"] = QIcon(":/pause.svg")
+        self.icons["scale"] = QIcon(":/scale.svg")
+        self.icons["restore"] = QIcon(":/restore.svg")
         self.icons["visibility_on"] = QIcon(":/visibility_on.svg")
         self.icons["visibility_off"] = QIcon(":/visibility_off.svg")
 
@@ -795,6 +797,16 @@ class _TimeViewer(object):
             self.icons["play"],
             "Play/Pause",
             self.toggle_playback
+        )
+        self.actions["scale"] = self.tool_bar.addAction(
+            self.icons["scale"],
+            "Auto-Scale",
+            self.apply_auto_scaling
+        )
+        self.actions["restore"] = self.tool_bar.addAction(
+            self.icons["restore"],
+            "Restore scaling",
+            self.restore_user_scaling
         )
         self.actions["help"] = self.tool_bar.addAction(
             self.icons["help"],
