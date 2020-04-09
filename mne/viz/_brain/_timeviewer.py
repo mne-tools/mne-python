@@ -16,6 +16,10 @@ from ...externals.decorator import decorator
 from ...source_space import vertex_to_mni
 from ...utils import _ReuseCycle
 
+# all icons are stored in mne/resources.py, which must be automatically
+# generated with "pyrcc5 -o mne/resources.py mnelab.qrc"
+import mne.resources  # noqa
+
 
 @decorator
 def safe_event(fun, *args, **kwargs):
@@ -329,6 +333,8 @@ class _TimeViewer(object):
         self.color_cycle = None
         self.picked_points = {'lh': list(), 'rh': list()}
         self._mouse_no_mvt = -1
+        self.icons = dict()
+        self.actions = dict()
         self.orientation = [
             'lateral',
             'medial',
@@ -359,6 +365,7 @@ class _TimeViewer(object):
         self.plotter = brain._renderer.plotter
         self.main_menu = self.plotter.main_menu
         self.window = self.plotter.app_window
+        self.tool_bar = self.window.addToolBar("toolbar")
         self.status_bar = self.window.statusBar()
         self.interactor = self.plotter.interactor
         self.interactor.keyPressEvent = self.keyPressEvent
@@ -374,12 +381,14 @@ class _TimeViewer(object):
             self.show_traces = show_traces
             self.separate_canvas = False
 
+        self.load_icons()
         self.configure_time_label()
         self.configure_sliders()
         self.configure_scalar_bar()
         self.configure_playback()
         self.configure_point_picking()
         self.configure_menu()
+        self.configure_tool_bar()
 
         # show everything at the end
         self.toggle_interface()
@@ -393,6 +402,11 @@ class _TimeViewer(object):
 
     def toggle_interface(self):
         self.visibility = not self.visibility
+
+        if self.visibility:
+            self.actions["visibility"].setIcon(self.icons["visibility_on"])
+        else:
+            self.actions["visibility"].setIcon(self.icons["visibility_off"])
 
         # manage sliders
         for slider in self.plotter.slider_widgets:
@@ -754,6 +768,18 @@ class _TimeViewer(object):
                 self.on_button_release,
                 self.on_pick
             )
+
+    def load_icons(self):
+        from PyQt5.QtGui import QIcon
+        self.icons["visibility_on"] = QIcon(":/visibility_on.svg")
+        self.icons["visibility_off"] = QIcon(":/visibility_off.svg")
+
+    def configure_tool_bar(self):
+        self.actions["visibility"] = self.tool_bar.addAction(
+            self.icons["visibility_on"],
+            "Toggle Visibility",
+            self.toggle_interface
+        )
 
     def configure_menu(self):
         # remove default picking menu
