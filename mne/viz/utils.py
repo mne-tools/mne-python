@@ -1884,8 +1884,11 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
             this_data = this_data.T.reshape(shape)  # reshape into original
         this_data = this_data.ravel()
         this_data = this_data[np.isfinite(this_data)]
-        iqr = np.diff(np.percentile(this_data, [25, 75]))
-        scalings[key] = iqr.item()
+        if this_data.size:
+            iqr = np.diff(np.percentile(this_data, [25, 75]))[0]
+        else:
+            iqr = 1.
+        scalings[key] = iqr
     return scalings
 
 
