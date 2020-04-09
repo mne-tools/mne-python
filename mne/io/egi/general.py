@@ -49,7 +49,8 @@ def _get_ep_info(filepath):
     epochfile = filepath + '/epochs.xml'
     epochlist = parse(epochfile)
     epochs = epochlist.getElementsByTagName('epoch')
-    epoch_info = list()
+    keys = ('first_samps', 'last_samps', 'first_blocks', 'last_blocks')
+    epoch_info = {key: list() for key in keys}
     for epoch in epochs:
         ep_begin = int(epoch.getElementsByTagName('beginTime')[0]
                        .firstChild.data)
@@ -58,10 +59,12 @@ def _get_ep_info(filepath):
                           .firstChild.data)
         last_block = int(epoch.getElementsByTagName('lastBlock')[0]
                          .firstChild.data)
-        epoch_info.append({'first_samp': ep_begin,
-                           'last_samp': ep_end,
-                           'first_block': first_block,
-                           'last_block': last_block})
+        epoch_info['first_samps'].append(ep_begin)
+        epoch_info['last_samps'].append(ep_end)
+        epoch_info['first_blocks'].append(first_block)
+        epoch_info['last_blocks'].append(last_block)
+    for key in keys:
+        epoch_info[key] = np.array(epoch_info[key], int)
     return epoch_info
 
 

@@ -19,35 +19,50 @@ from ...utils import verbose, logger, warn
 
 
 def _read_mff_header(filepath):
-    """Read mff header.
-
-    Parameters
-    ----------
-    filepath : str
-        Path to the file.
-    """
+    """Read mff header."""
     all_files = _get_signalfname(filepath)
     eeg_file = all_files['EEG']['signal']
     eeg_info_file = all_files['EEG']['info']
 
     fname = op.join(filepath, eeg_file)
     signal_blocks = _get_blocks(fname)
-    samples_block = np.sum(signal_blocks['samples_block'])
-
-    epoch_info = _get_ep_info(filepath)
+    epochs = _get_ep_info(filepath)
     summaryinfo = dict(eeg_fname=eeg_file,
-                       info_fname=eeg_info_file,
-                       samples_block=samples_block)
+                       info_fname=eeg_info_file)
     summaryinfo.update(signal_blocks)
+    # sanity check and update relevant values
+    for key in ('last_samps', 'first_samps'):
+        # convert from times in µS to samples
+        epochs[key] = (epochs[key] * signal_blocks['sfreq']) // 1000000
+    n_samps_block = signal_blocks['samples_block'].sum()
+    n_samps_epochs = (epochs['last_samps'] - epochs['first_samps']).sum()
+    # XXX perhaps there is a way to detect micro versus nano (it is different
+    # in the recording time) but this should be safe enough...
+    if n_samps_epochs == n_samps_block * 1000:
+        for key in ('last_samps', 'first_samps'):
+            epochs[key] //= 1000
+    n_samps_epochs = (epochs['last_samps'] - epochs['first_samps']).sum()
+    bad = (n_samps_epochs != n_samps_block or
+           not (epochs['first_samps'] < epochs['last_samps']).all() or
+           not (epochs['first_samps'][1:] >= epochs['last_samps'][:-1]).all())
+    egi_internal_error = 'Internal EGI inconsistency'
+    if bad:
+        raise RuntimeError(egi_internal_error)
+    summaryinfo.update(epochs)
+    # index which samples in raw are actually readable from disk (i.e., not
+    # in a skip)
+    disk_samps = np.full(epochs['last_samps'][-1], -1)
+    offset = 0
+    for first, last in zip(epochs['first_samps'], epochs['last_samps']):
+        n_this = last - first
+        disk_samps[first:last] = np.arange(offset, offset + n_this)
+        offset += n_this
+    summaryinfo['disk_samps'] = disk_samps
 
     # Pull header info from the summary info.
     categfile = op.join(filepath, 'categories.xml')
     if op.isfile(categfile):  # epochtype = 'seg'
-        n_samples = epoch_info[0]['last_samp'] - epoch_info['first_samp']
-        n_trials = len(epoch_info)
-    else:  # 'cnt'
-        n_samples = np.sum(summaryinfo['samples_block'])
-        n_trials = 1
+        raise NotImplementedError('Only continuous files are supported')
 
     # Add the sensor info.
     sensor_layout_file = op.join(filepath, 'sensorLayout.xml')
@@ -68,13 +83,20 @@ def _read_mff_header(filepath):
             chan_unit.append('uV')
             n_chans = n_chans + 1
     if n_chans != summaryinfo['n_channels']:
-        print("Error. Should never occur.")
+        raise RuntimeError(egi_internal_error)
 
     # Check presence of PNS data
     pns_names = []
     if 'PNS' in all_files:
         pns_fpath = op.join(filepath, all_files['PNS']['signal'])
         pns_blocks = _get_blocks(pns_fpath)
+        pns_samples = pns_blocks['samples_block']
+        signal_samples = signal_blocks['samples_block']
+        same_blocks = (np.array_equal(pns_samples[:-1],
+                                      signal_samples[:-1]) and
+                       pns_samples[-1] in (signal_samples[-1] - np.arange(2)))
+        if not same_blocks:
+            raise RuntimeError(egi_internal_error)
 
         pns_file = op.join(filepath, 'pnsSet.xml')
         pns_obj = parse(pns_file)
@@ -113,9 +135,9 @@ def _read_mff_header(filepath):
         version = version_and_date['mffVersion'][0]
     summaryinfo.update(version=version,
                        date=version_and_date['recordTime'][0],
-                       n_samples=n_samples, n_trials=n_trials,
                        chan_type=chan_type, chan_unit=chan_unit,
                        numbers=numbers)
+
     return summaryinfo
 
 
@@ -175,18 +197,8 @@ def _read_header(input_fname):
         gain=0,
         bits=0,
         value_range=0)
-    unsegmented = 1 if mff_hdr['n_trials'] == 1 else 0
-    if unsegmented:
-        info.update(dict(n_categories=0,
-                         n_segments=1,
-                         n_events=0,
-                         event_codes=[],
-                         category_names=[],
-                         category_lengths=[],
-                         pre_baseline=0))
-    else:
-        raise NotImplementedError('Only continuous files are supported')
-    info['unsegmented'] = unsegmented
+    info.update(n_categories=0, n_segments=1, n_events=0, event_codes=[],
+                category_names=[], category_lengths=[], pre_baseline=0)
     info.update(mff_hdr)
     return info
 
@@ -352,6 +364,7 @@ class RawMff(BaseRaw):
                                       include_names], events_ids))
             if egi_info['new_trigger'] is not None:
                 egi_events = np.vstack([egi_events, egi_info['new_trigger']])
+            assert egi_events.shape[1] == egi_info['last_samps'][-1]
         else:
             # No events
             self.event_id = None
@@ -436,48 +449,47 @@ class RawMff(BaseRaw):
         egi_info['kind_bounds'] = np.cumsum(egi_info['kind_bounds'])
         assert egi_info['kind_bounds'][0] == 0
         assert egi_info['kind_bounds'][-1] == info['nchan']
+        first_samps = [0]
+        last_samps = [egi_info['last_samps'][-1] - 1]
 
-        annot = None
+        annot = dict(onset=list(), duration=list(), description=list())
         if len(idx['pns']):
             # PNS Data is present and should be read:
             egi_info['pns_filepath'] = op.join(
                 input_fname, egi_info['pns_fname'])
             # Check for PNS bug immediately
-            pns_filepath = egi_info['pns_filepath']
-            n_channels = egi_info['pns_sample_blocks']['n_channels']
-            samples_to_read = egi_info['n_samples']
-            with open(pns_filepath, 'rb') as fid:
-                # Check file size
-                fid.seek(0, 2)
-                file_size = fid.tell()
-                fid.seek(0)
-                current_data_sample = 0
-                while samples_to_read > 0:
-                    if samples_to_read == 1 and fid.tell() == file_size:
-                        # We are in the presence of the EEG bug
-                        warn('This file has the EGI PSG sample bug')
-                        annot = dict(
-                            onset=[current_data_sample / egi_info['sfreq']],
-                            duration=[1 / egi_info['sfreq']],
-                            description=['BAD_EGI_PSG'])
-                        break
-                    block_info = _block_r(fid)
-                    samples_read = block_info['nsamples']
-                    to_read = 4 * samples_read * n_channels
-                    assert block_info['nc'] == n_channels
-                    fid.seek(to_read, 1)  # f4
-                    samples_to_read -= samples_read
-                    current_data_sample += samples_read
+            pns_samples = np.sum(
+                egi_info['pns_sample_blocks']['samples_block'])
+            eeg_samples = np.sum(egi_info['samples_block'])
+            if pns_samples == eeg_samples - 1:
+                warn('This file has the EGI PSG sample bug')
+                annot['onset'].append(last_samps[-1] / egi_info['sfreq'])
+                annot['duration'].append(1 / egi_info['sfreq'])
+                annot['description'].append('BAD_EGI_PSG')
+            elif pns_samples != eeg_samples:
+                raise RuntimeError(
+                    'PNS samples (%d) did not match EEG samples (%d)'
+                    % (pns_samples, eeg_samples))
 
         self._filenames = [file_bin]
         self._raw_extras = [egi_info]
 
         super(RawMff, self).__init__(
             info, preload=preload, orig_format='float', filenames=[file_bin],
-            last_samps=[egi_info['n_samples'] - 1], raw_extras=[egi_info],
-            verbose=verbose)
+            first_samps=first_samps, last_samps=last_samps,
+            raw_extras=[egi_info], verbose=verbose)
 
-        if annot is not None:
+        # Annotate acquisition skips
+        for first, prev_last in zip(egi_info['first_samps'][1:],
+                                    egi_info['last_samps'][:-1]):
+            gap = first - prev_last
+            assert gap >= 0
+            if gap:
+                annot['onset'].append((prev_last - 0.5) / egi_info['sfreq'])
+                annot['duration'].append(gap / egi_info['sfreq'])
+                annot['description'].append('BAD_ACQ_SKIP')
+
+        if len(annot['onset']):
             self.set_annotations(Annotations(**annot, orig_time=None))
 
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
@@ -500,6 +512,22 @@ class RawMff(BaseRaw):
         stim_in = idx[stim_out] - bounds[1]
         pns_out = np.where((idx >= bounds[2]) & (idx < bounds[3]))[0]
         pns_in = idx[pns_out] - bounds[2]
+        eeg_out = eeg_out[:, np.newaxis]
+        pns_out = pns_out[:, np.newaxis]
+
+        # take into account events (already extended to correct size)
+        data[stim_out, :] = egi_info['egi_events'][stim_in, start:stop]
+        del stim_out
+
+        # Convert start and stop to limits in terms of the data
+        # actually on disk, plus an indexer (disk_use_idx) that populates
+        # the potentially larger `data` with it, taking skips into account
+        disk_samps = egi_info['disk_samps'][start:stop]
+        disk_use_idx = np.where(disk_samps > -1)[0]
+        if len(disk_use_idx):
+            start = disk_samps[disk_use_idx[0]]
+            stop = disk_samps[disk_use_idx[-1]] + 1
+            assert len(disk_use_idx) == stop - start
 
         # Get starting/stopping block/samples
         block_samples_offset = np.cumsum(samples_block)
@@ -546,12 +574,9 @@ class RawMff(BaseRaw):
                 s_start = current_data_sample
                 s_end = s_start + samples_read
 
-                data[eeg_out, s_start:s_end] = block_data[eeg_in]
+                data[eeg_out, disk_use_idx[s_start:s_end]] = block_data[eeg_in]
                 samples_to_read = samples_to_read - samples_read
                 current_data_sample = current_data_sample + samples_read
-
-        # take into account events
-        data[stim_out, :] = egi_info['egi_events'][stim_in, start:stop]
 
         if len(pns_out) > 0:
             # PNS Data is present and should be read:
@@ -616,8 +641,10 @@ class RawMff(BaseRaw):
                     s_start = current_data_sample
                     s_end = s_start + samples_read
 
-                    data[pns_out, s_start:s_end] = block_data[pns_in]
+                    data[pns_out, disk_use_idx[s_start:s_end]] = \
+                        block_data[pns_in]
                     samples_to_read = samples_to_read - samples_read
                     current_data_sample = current_data_sample + samples_read
 
+        # do the calibration
         _mult_cal_one(data, data, slice(None), cals, mult)

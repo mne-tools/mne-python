@@ -4,7 +4,6 @@
 
 
 import os.path as op
-import inspect
 import os
 import shutil
 
@@ -21,20 +20,44 @@ from mne.io.egi.egi import _combine_triggers
 from mne.utils import run_tests_if_main
 from mne.datasets.testing import data_path, requires_testing_data
 
-FILE = inspect.getfile(inspect.currentframe())
-base_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
+base_dir = op.join(op.dirname(op.abspath(__file__)), 'data')
 egi_fname = op.join(base_dir, 'test_egi.raw')
 egi_txt_fname = op.join(base_dir, 'test_egi.txt')
+egi_path = op.join(data_path(download=False), 'EGI')
+egi_mff_fname = op.join(egi_path, 'test_egi.mff')
+egi_mff_pns_fname = op.join(data_path(), 'EGI', 'test_egi_pns.mff')
+egi_pause_fname = op.join(egi_path, 'test_egi_multiepoch_paused.mff')
+egi_eprime_pause_fname = op.join(egi_path, 'test_egi_multiepoch_paused.mff')
+egi_pause_w1337_fname = op.join(egi_path, 'w1337_20191014_105416.mff')
+
+
+@requires_testing_data
+@pytest.mark.parametrize('fname, n_pause, n_events', [
+    (egi_pause_fname, 2, 18),
+    (egi_eprime_pause_fname, 2, 18),
+    (egi_pause_w1337_fname, 2, 0),
+])
+def test_egi_mff_pause(fname, n_pause, n_events):
+    """Test EGI MFF with pauses."""
+    with pytest.warns(RuntimeWarning, match='Acquisition skips detected'):
+        raw = _test_raw_reader(read_raw_egi, input_fname=fname)
+    assert len(raw.annotations) == n_pause
+    assert (raw.annotations.description == 'BAD_ACQ_SKIP').all()
+    if n_events == 0:
+        with pytest.raises(ValueError, match='Consider using .*events_from'):
+            find_events(raw)
+    else:
+        events = find_events(raw)
+        assert len(events) == n_events
 
 
 @requires_testing_data
 def test_io_egi_mff():
     """Test importing EGI MFF simple binary files."""
-    egi_fname_mff = op.join(data_path(), 'EGI', 'test_egi.mff')
-    raw = read_raw_egi(egi_fname_mff, include=None)
+    raw = read_raw_egi(egi_mff_fname, include=None)
     assert ('RawMff' in repr(raw))
     include = ['DIN1', 'DIN2', 'DIN3', 'DIN4', 'DIN5', 'DIN7']
-    raw = _test_raw_reader(read_raw_egi, input_fname=egi_fname_mff,
+    raw = _test_raw_reader(read_raw_egi, input_fname=egi_mff_fname,
                            include=include, channel_naming='EEG %03d')
 
     assert_equal('eeg' in raw, True)
@@ -50,9 +73,9 @@ def test_io_egi_mff():
     assert (np.unique(events[:, 0])[0] != 0)
     assert (np.unique(events[:, 2])[0] != 0)
 
-    pytest.raises(ValueError, read_raw_egi, egi_fname_mff, include=['Foo'],
+    pytest.raises(ValueError, read_raw_egi, egi_mff_fname, include=['Foo'],
                   preload=False)
-    pytest.raises(ValueError, read_raw_egi, egi_fname_mff, exclude=['Bar'],
+    pytest.raises(ValueError, read_raw_egi, egi_mff_fname, exclude=['Bar'],
                   preload=False)
     for ii, k in enumerate(include, 1):
         assert (k in raw.event_id)
@@ -112,8 +135,7 @@ def test_io_egi():
 @requires_testing_data
 def test_io_egi_pns_mff(tmpdir):
     """Test importing EGI MFF with PNS data."""
-    egi_fname_mff = op.join(data_path(), 'EGI', 'test_egi_pns.mff')
-    raw = read_raw_egi(egi_fname_mff, include=None, preload=True,
+    raw = read_raw_egi(egi_mff_pns_fname, include=None, preload=True,
                        verbose='error')
     assert ('RawMff' in repr(raw))
     pns_chans = pick_types(raw.info, ecg=True, bio=True, emg=True)
@@ -126,7 +148,7 @@ def test_io_egi_pns_mff(tmpdir):
                  'Resp. Effort Chest'[:15],
                  'Resp. Effort Abdomen'[:15],
                  'EMG-Leg']
-    _test_raw_reader(read_raw_egi, input_fname=egi_fname_mff,
+    _test_raw_reader(read_raw_egi, input_fname=egi_mff_pns_fname,
                      channel_naming='EEG %03d', verbose='error')
     assert_equal(names, pns_names)
     mat_names = [
@@ -151,7 +173,7 @@ def test_io_egi_pns_mff(tmpdir):
 
     # EEG missing
     new_mff = str(tmpdir.join('temp.mff'))
-    shutil.copytree(egi_fname_mff, new_mff)
+    shutil.copytree(egi_mff_pns_fname, new_mff)
     read_raw_egi(new_mff, verbose='error')
     os.remove(op.join(new_mff, 'info1.xml'))
     os.remove(op.join(new_mff, 'signal1.bin'))
