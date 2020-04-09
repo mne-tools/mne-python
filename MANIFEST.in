@@ -32,9 +32,6 @@ include mne/io/edf/gdf_encodes.txt
 include mne/datasets/sleep_physionet/SHA1SUMS
 include mne/externals/tqdm/_tqdm/tqdm.1
 
-include mne.qrc
-recursive-include mne/images *.svg
-
 ### Exclude
 
 recursive-exclude examples/MNE-sample-data *
@@ -59,6 +56,9 @@ exclude .github/ISSUE_TEMPLATE/blank.md
 exclude .github/ISSUE_TEMPLATE/bug_report.md
 exclude .github/ISSUE_TEMPLATE/feature_request.md
 exclude .github/PULL_REQUEST_TEMPLATE.md
+
+exclude mne.qrc
+recursive-exclude mne/images *.svg
 
 # Test files
 
