@@ -785,10 +785,16 @@ class _TimeViewer(object):
         self.icons["scale"] = QIcon(":/scale.svg")
         self.icons["clear"] = QIcon(":/clear.svg")
         self.icons["restore"] = QIcon(":/restore.svg")
+        self.icons["screenshot"] = QIcon(":/screenshot.svg")
         self.icons["visibility_on"] = QIcon(":/visibility_on.svg")
         self.icons["visibility_off"] = QIcon(":/visibility_off.svg")
 
     def configure_tool_bar(self):
+        self.actions["screenshot"] = self.tool_bar.addAction(
+            self.icons["screenshot"],
+            "Take a screenshot",
+            self.plotter._qt_screenshot
+        )
         self.actions["visibility"] = self.tool_bar.addAction(
             self.icons["visibility_on"],
             "Toggle Visibility",
