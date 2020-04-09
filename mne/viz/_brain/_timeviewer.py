@@ -380,6 +380,7 @@ class _TimeViewer(object):
         self.configure_playback()
         self.configure_point_picking()
         self.configure_menu()
+        self.configure_status_bar()
 
         # show everything at the end
         self.toggle_interface()
@@ -767,6 +768,18 @@ class _TimeViewer(object):
         # add help menu
         menu = self.main_menu.addMenu('Help')
         menu.addAction('Show MNE key bindings\t?', self.help)
+
+    def configure_status_bar(self):
+        from PyQt5.QtWidgets import QLabel, QProgressBar
+        self.status_msg = QLabel()
+        self.status_progress = QProgressBar()
+        self.status_bar.layout().addWidget(self.status_msg, 1)
+        self.status_bar.layout().addWidget(self.status_progress, 0)
+        self.status_msg.hide()
+        self.status_progress.hide()
+
+        # display help message for 3 seconds
+        self.status_bar.showMessage("Press ? for help", 5000)
 
     def on_mouse_move(self, vtk_picker, event):
         if self._mouse_no_mvt:
