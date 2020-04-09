@@ -857,12 +857,12 @@ def _read_gdf_header(fname, exclude):
             if birthday == 0:
                 birthday = datetime(1, 1, 1, tzinfo=timezone.utc)
             else:
-                birthday = (datetime(1, 1, 1) +
+                birthday = (datetime(1, 1, 1, tzinfo=timezone.utc) +
                             timedelta(birthday * pow(2, -32) - 367))
             patient['birthday'] = birthday
             if patient['birthday'] != datetime(1, 1, 1, 0, 0,
                                                tzinfo=timezone.utc):
-                today = datetime.today(tzinfo=timezone.utc)
+                today = datetime.now(tz=timezone.utc)
                 patient['age'] = today.year - patient['birthday'].year
                 today = today.replace(year=patient['birthday'].year)
                 if today < patient['birthday']:
