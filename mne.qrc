@@ -2,5 +2,6 @@
 <qresource>
     <file alias="visibility_on.svg">mne/images/visibility_on-black-18dp.svg</file>
     <file alias="visibility_off.svg">mne/images/visibility_off-black-18dp.svg</file>
+    <file alias="help.svg">mne/images/help-black-18dp.svg</file>
 </qresource>
 </RCC>

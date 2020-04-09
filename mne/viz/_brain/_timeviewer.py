@@ -17,7 +17,7 @@ from ...source_space import vertex_to_mni
 from ...utils import _ReuseCycle
 
 # all icons are stored in mne/resources.py, which must be automatically
-# generated with "pyrcc5 -o mne/resources.py mnelab.qrc"
+# generated with "pyrcc5 -o mne/resources.py mne.qrc"
 import mne.resources  # noqa
 
 
@@ -403,6 +403,7 @@ class _TimeViewer(object):
     def toggle_interface(self):
         self.visibility = not self.visibility
 
+        # update tool bar icon
         if self.visibility:
             self.actions["visibility"].setIcon(self.icons["visibility_on"])
         else:
@@ -773,12 +774,18 @@ class _TimeViewer(object):
         from PyQt5.QtGui import QIcon
         self.icons["visibility_on"] = QIcon(":/visibility_on.svg")
         self.icons["visibility_off"] = QIcon(":/visibility_off.svg")
+        self.icons["help"] = QIcon(":/help.svg")
 
     def configure_tool_bar(self):
         self.actions["visibility"] = self.tool_bar.addAction(
             self.icons["visibility_on"],
             "Toggle Visibility",
             self.toggle_interface
+        )
+        self.actions["help"] = self.tool_bar.addAction(
+            self.icons["help"],
+            "Help",
+            self.help
         )
 
     def configure_menu(self):
