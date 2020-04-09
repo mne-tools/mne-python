@@ -447,6 +447,13 @@ class _TimeViewer(object):
 
     def toggle_playback(self):
         self.playback = not self.playback
+
+        # update tool bar icon
+        if self.playback:
+            self.actions["play"].setIcon(self.icons["pause"])
+        else:
+            self.actions["play"].setIcon(self.icons["play"])
+
         if self.playback:
             time_data = self.brain._data['time']
             max_time = np.max(time_data)
@@ -772,15 +779,22 @@ class _TimeViewer(object):
 
     def load_icons(self):
         from PyQt5.QtGui import QIcon
+        self.icons["help"] = QIcon(":/help.svg")
+        self.icons["play"] = QIcon(":/play.svg")
+        self.icons["pause"] = QIcon(":/pause.svg")
         self.icons["visibility_on"] = QIcon(":/visibility_on.svg")
         self.icons["visibility_off"] = QIcon(":/visibility_off.svg")
-        self.icons["help"] = QIcon(":/help.svg")
 
     def configure_tool_bar(self):
         self.actions["visibility"] = self.tool_bar.addAction(
             self.icons["visibility_on"],
             "Toggle Visibility",
             self.toggle_interface
+        )
+        self.actions["play"] = self.tool_bar.addAction(
+            self.icons["play"],
+            "Play/Pause",
+            self.toggle_playback
         )
         self.actions["help"] = self.tool_bar.addAction(
             self.icons["help"],
