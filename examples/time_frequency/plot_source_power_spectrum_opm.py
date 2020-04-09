@@ -26,7 +26,7 @@ The steps we use are:
 Preprocessing
 -------------
 """
-# sphinx_gallery_thumbnail_number = 14
+# sphinx_gallery_thumbnail_number = 13
 
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Luke Bloy <luke.bloy@gmail.com>
@@ -114,7 +114,9 @@ for kind in kinds:
 # Alignment and forward
 # ---------------------
 
-src = mne.read_source_spaces(src_fname)
+# Here we use a reduced size source space (oct5) just for speed
+src = mne.setup_source_space(
+    subject, 'oct5', add_dist=False, subjects_dir=subjects_dir)
 # This line removes source-to-source distances that we will not need.
 # We only do it here to save a bit of memory, in general this is not required.
 del src[0]['dist'], src[1]['dist']
@@ -185,7 +187,7 @@ def plot_band(kind, band):
     brain = stcs[kind][band].plot(
         subject=subject, subjects_dir=subjects_dir, views='cau', hemi='both',
         time_label=title, title=title, colormap='inferno',
-        clim=dict(kind='percent', lims=(70, 85, 99)))
+        clim=dict(kind='percent', lims=(70, 85, 99)), smoothing_steps=10)
     brain.show_view(dict(azimuth=0, elevation=0), roll=0)
     return fig, brain
 
