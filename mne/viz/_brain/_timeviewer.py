@@ -18,7 +18,7 @@ from ...utils import _ReuseCycle
 
 # all icons are stored in mne/resources.py, which must be automatically
 # generated with "pyrcc5 -o mne/resources.py mne.qrc"
-import mne.resources  # noqa
+from ... import resources  # noqa
 
 
 @decorator

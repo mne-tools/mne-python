@@ -6,7 +6,11 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt5 import QtCore
+try:
+    from PyQt5 import QtCore
+    has_pyqt5 = True
+except ImportError:
+    has_pyqt5 = False
 
 qt_resource_data = b"\
 \x00\x00\x01\x77\
@@ -366,23 +370,28 @@ qt_resource_struct_v2 = b"\
 \x00\x00\x01\x71\x5e\x8b\xd3\x68\
 "
 
-qt_version = [int(v) for v in QtCore.qVersion().split('.')]
-if qt_version < [5, 8, 0]:
-    rcc_version = 1
-    qt_resource_struct = qt_resource_struct_v1
-else:
-    rcc_version = 2
-    qt_resource_struct = qt_resource_struct_v2
+if has_pyqt5:
+    qt_version = [int(v) for v in QtCore.qVersion().split('.')]
+    if qt_version < [5, 8, 0]:
+        rcc_version = 1
+        qt_resource_struct = qt_resource_struct_v1
+    else:
+        rcc_version = 2
+        qt_resource_struct = qt_resource_struct_v2
 
 
 def qInitResources():
     """Initialize the resources."""
+    if not has_pyqt5:
+        return
     QtCore.qRegisterResourceData(rcc_version, qt_resource_struct,
                                  qt_resource_name, qt_resource_data)
 
 
 def qCleanupResources():
     """Cleanup the resources."""
+    if not has_pyqt5:
+        return
     QtCore.qUnregisterResourceData(rcc_version, qt_resource_struct,
                                    qt_resource_name, qt_resource_data)
 
