@@ -325,6 +325,7 @@ class _TimeViewer(object):
         self.default_smoothing_range = [0, 15]
         self.default_playback_speed_range = [0.01, 1]
         self.default_playback_speed_value = 0.05
+        self.default_status_bar_msg = "ℹ️  Press ? for help"
         self.act_data = {'lh': None, 'rh': None}
         self.color_cycle = None
         self.picked_points = {'lh': list(), 'rh': list()}
@@ -771,15 +772,11 @@ class _TimeViewer(object):
 
     def configure_status_bar(self):
         from PyQt5.QtWidgets import QLabel, QProgressBar
-        self.status_msg = QLabel()
+        self.status_msg = QLabel(_sanitize(self.default_status_bar_msg))
         self.status_progress = QProgressBar()
         self.status_bar.layout().addWidget(self.status_msg, 1)
         self.status_bar.layout().addWidget(self.status_progress, 0)
-        self.status_msg.hide()
         self.status_progress.hide()
-
-        # display help message for 3 seconds
-        self.status_bar.showMessage("Press ? for help", 5000)
 
     def on_mouse_move(self, vtk_picker, event):
         if self._mouse_no_mvt:
@@ -1046,3 +1043,11 @@ def _get_range(brain):
 
 def _normalize(point, shape):
     return (point[0] / shape[1], point[1] / shape[0])
+
+
+def _sanitize(text):
+    from PyQt5.Qt import PYQT_VERSION_STR
+    from distutils.version import LooseVersion
+    if LooseVersion(PYQT_VERSION_STR) < LooseVersion('5.12'):
+        text = text[2:]
+    return text
