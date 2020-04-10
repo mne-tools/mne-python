@@ -732,9 +732,9 @@ def test_mixed_sources_plot_surface(renderer_interactive):
 
     stc = MixedSourceEstimate(data, vertno, 0, 1)
 
-    stc.plot_surface(views='lat', hemi='split', src=src,
-                     subject='fsaverage', subjects_dir=subjects_dir,
-                     colorbar=False)
+    stc.surface().plot(views='lat', hemi='split',
+                       subject='fsaverage', subjects_dir=subjects_dir,
+                       colorbar=False)
 
 
 @testing.requires_testing_data

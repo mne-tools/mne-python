@@ -749,6 +749,7 @@ Source Space Data
    BiHemiLabel
    Label
    MixedSourceEstimate
+   MixedVectorSourceEstimate
    SourceEstimate
    VectorSourceEstimate
    VolSourceEstimate

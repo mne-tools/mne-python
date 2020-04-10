@@ -1210,7 +1210,7 @@ def _stc_src_sel(src, stc, on_missing='raise',
         vertices = stc
     else:
         assert isinstance(stc, _BaseSourceEstimate)
-        vertices = stc._vertices_list
+        vertices = stc.vertices
     del stc
     if not len(src) == len(vertices):
         raise RuntimeError('Mismatch between number of source spaces (%s) and '

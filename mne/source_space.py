@@ -33,7 +33,9 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _CheckInside)
 from .utils import (get_subjects_dir, check_fname, logger, verbose,
                     _ensure_int, check_version, _get_call_line, warn,
-                    _check_fname, _check_path_like, has_nibabel, _check_sphere)
+                    _check_fname, _check_path_like, has_nibabel, _check_sphere,
+                    _validate_type, _check_option, _is_numeric,
+                    _suggest)
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_trans,
@@ -89,7 +91,31 @@ class SourceSpaces(list):
     """
 
     def __init__(self, source_spaces, info=None):  # noqa: D102
-        super(SourceSpaces, self).__init__(source_spaces)
+        # First check the types is actually a valid config
+        _validate_type(source_spaces, list, 'source_spaces')
+        super(SourceSpaces, self).__init__(source_spaces)  # list
+
+        types = list()
+        for si, s in enumerate(source_spaces):
+            _validate_type(s, dict, 'source_spaces[%d]' % (si,))
+            types.append(s.get('type', None))
+            _check_option('source_spaces[%d]["type"]' % (si,),
+                          types[-1], ('surf', 'discrete', 'vol'))
+        if all(k == 'surf' for k in types[:2]):
+            surf_check = 2
+            if len(types) == 2:
+                self.kind = 'surface'
+            else:
+                self.kind = 'mixed'
+        else:
+            surf_check = 0
+            if all(k == 'discrete' for k in types):
+                self.kind = 'discrete'
+            else:
+                self.kind = 'volume'
+        if any(k == 'surf' for k in types[surf_check:]):
+            raise RuntimeError('Invalid source space with kinds %s' % (types,))
+
         if info is None:
             self.info = dict()
         else:
@@ -213,14 +239,6 @@ class SourceSpaces(list):
     @property
     def _subject(self):
         return self[0].get('subject_his_id', None)
-
-    @property
-    def kind(self):
-        """The kind of source space (surface, volume, discrete, mixed)."""
-        ss_types = list({ss['type'] for ss in self})
-        if len(ss_types) != 1:
-            return 'mixed'
-        return _src_kind_dict[ss_types[0]]
 
     def __add__(self, other):
         """Combine source spaces."""
@@ -1503,8 +1521,10 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         with the spacing given by `pos` in mm, generating a volume source
         space. If dict, pos['rr'] and pos['nn'] will be used as the source
         space locations (in meters) and normals, respectively, creating a
-        discrete source space. NOTE: For a discrete source space (`pos` is
-        a dict), `mri` must be None.
+        discrete source space.
+
+        .. note:: For a discrete source space (`pos` is a dict),
+                  ``mri`` must be None.
     mri : str | None
         The filename of an MRI volume (mgh or mgz) to create the
         interpolation matrix over. Source estimates obtained in the
@@ -1512,7 +1532,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         using this interpolator. If pos is a dict, this cannot be None.
         If subject name is provided, `pos` is a float or `volume_label`
         are not provided then the `mri` parameter will default to 'T1.mgz'
-        else it will stay None.
+        or `aseg.mgz`, respectively, else it will stay None.
     sphere : ndarray, shape (4,) | ConductorModel | None
         Define spherical source space bounds using origin and radius given
         by (ox, oy, oz, rad) in ``sphere_units``.
@@ -1585,9 +1605,11 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         raise ValueError('Only one of "bem" and "surface" should be '
                          'specified')
 
-    if (mri is None and subject is not None and
-            volume_label is None and isinstance(pos, (float, int))):
-        mri = 'T1.mgz'
+    if mri is None and subject is not None:
+        if volume_label is not None:
+            mri = 'aseg.mgz'
+        elif _is_numeric(pos):
+            mri = 'T1.mgz'
 
     if volume_label is not None and mri == 'T1.mgz':
         raise RuntimeError('Cannot use T1.mgz with some volume_label.')
@@ -1608,7 +1630,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         if mri is None:
             raise RuntimeError('"mri" must be provided if "volume_label" is '
                                'not None')
-        if not isinstance(volume_label, list):
+        if not isinstance(volume_label, (list, tuple)):
             volume_label = [volume_label]
 
         # Check that volume label is found in .mgz file
@@ -1616,9 +1638,10 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
 
         for label in volume_label:
             if label not in volume_labels:
-                raise ValueError('Volume %s not found in file %s. Double '
-                                 'check  freesurfer lookup table.'
-                                 % (label, mri))
+                raise ValueError(
+                    'Volume %s not found in file %s. Double check freesurfer '
+                    'lookup table.%s'
+                    % (label, mri, _suggest(label, volume_labels)))
 
     need_warn = sphere_units is None and not isinstance(sphere, ConductorModel)
     sphere = _check_sphere(sphere, sphere_units=sphere_units)

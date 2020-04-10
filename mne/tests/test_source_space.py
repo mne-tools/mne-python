@@ -568,10 +568,6 @@ def test_source_space_from_label(tmpdir):
     pytest.raises(ValueError, setup_volume_source_space, 'sample', pos=pos,
                   volume_label=volume_label, mri=aseg_fname)
 
-    # Test no mri provided
-    pytest.raises(RuntimeError, setup_volume_source_space, 'sample', mri=None,
-                  volume_label=volume_label)
-
     # Test invalid volume label
     pytest.raises(ValueError, setup_volume_source_space, 'sample',
                   volume_label='Hello World!', mri=aseg_fname)
@@ -673,9 +669,9 @@ def test_combine_source_spaces(tmpdir):
     # unrecognized source type
     disc2 = disc.copy()
     disc2[0]['type'] = 'kitty'
-    src_unrecognized = src + disc2
-    pytest.raises(ValueError, src_unrecognized.export_volume, image_fname,
-                  verbose='error')
+    with pytest.raises(ValueError, match='Invalid value'):
+        src + disc2
+    del disc2
 
     # unrecognized file type
     bad_image_fname = tmpdir.join('temp-image.png')

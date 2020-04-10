@@ -326,12 +326,12 @@ def test_volume_source_morph(tmpdir):
     # check morph
     stc_vol_morphed = source_morph_vol.apply(stc_vol)
     # old way, verts do not match
-    assert not np.array_equal(stc_vol_morphed.vertices, stc_vol.vertices)
+    assert not np.array_equal(stc_vol_morphed.vertices[0], stc_vol.vertices[0])
 
     # vector
     stc_vol_vec = VolVectorSourceEstimate(
-        np.tile(stc_vol.data[:, np.newaxis], (1, 3, 1)), stc_vol.vertices,
-        0, 1)
+        np.tile(stc_vol.data[:, np.newaxis], (1, 3, 1)),
+        stc_vol.vertices, 0, 1)
     stc_vol_vec_morphed = source_morph_vol.apply(stc_vol_vec)
     assert isinstance(stc_vol_vec_morphed, VolVectorSourceEstimate)
     for ii in range(3):
@@ -417,9 +417,10 @@ def test_volume_source_morph(tmpdir):
         subject_to='sample', subjects_dir=subjects_dir, **kwargs)
     stc_vol_2 = source_morph_vol.apply(stc_vol)
     # new way, verts match
-    assert_array_equal(stc_vol.vertices, stc_vol_2.vertices)
+    assert_array_equal(stc_vol.vertices[0], stc_vol_2.vertices[0])
     stc_vol_bad = VolSourceEstimate(
-        stc_vol.data[:-1], stc_vol.vertices[:-1], stc_vol.tmin, stc_vol.tstep)
+        stc_vol.data[:-1], [stc_vol.vertices[0][:-1]],
+        stc_vol.tmin, stc_vol.tstep)
     with pytest.raises(ValueError, match='vertices do not match between morp'):
         source_morph_vol.apply(stc_vol_bad)
 
