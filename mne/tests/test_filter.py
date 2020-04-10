@@ -540,6 +540,7 @@ def test_cuda_fir():
 
 def test_cuda_resampling():
     """Test CUDA resampling."""
+    rng = np.random.RandomState(0)
     for window in ('boxcar', 'triang'):
         for N in (997, 1000):  # one prime, one even
             a = rng.randn(2, N)
