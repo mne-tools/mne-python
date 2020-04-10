@@ -170,7 +170,7 @@ def test_brain_save_movie(tmpdir, renderer):
     if renderer.get_3d_backend() == "mayavi":
         pytest.skip()
     brain_data = _create_testing_brain(hemi='lh')
-    filename = str(path.join(tmpdir, "brain_test.gif"))
+    filename = str(path.join(tmpdir, "brain_test.mov"))
     brain_data.save_movie(filename, time_dilation=1,
                           interpolation='nearest')
     assert path.isfile(filename)
