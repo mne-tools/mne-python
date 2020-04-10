@@ -6,12 +6,14 @@
 
 from time import strptime
 from calendar import timegm
+import os.path as op
 
 import numpy as np
 
-from ...utils import logger, warn
+from ...utils import logger, warn, _clean_names
 from ...transforms import (apply_trans, _coord_frame_name, invert_transform,
                            combine_transforms)
+from ...annotations import Annotations
 
 from ..meas_info import _empty_info
 from ..write import get_new_file_id
@@ -73,7 +75,7 @@ def _convert_time(date_str, time_str):
     """Convert date and time strings to float time."""
     for fmt in ("%d/%m/%Y", "%d-%b-%Y", "%a, %b %d, %Y"):
         try:
-            date = strptime(date_str, fmt)
+            date = strptime(date_str.strip(), fmt)
         except ValueError:
             pass
         else:
@@ -256,7 +258,8 @@ def _convert_channel_info(res4, t, use_eeg_pos):
                             t['t_ctf_head_head'], ch['loc'][:3])
             neeg += 1
             ch.update(logno=neeg, kind=FIFF.FIFFV_EEG_CH,
-                      unit=FIFF.FIFF_UNIT_V, coord_frame=coord_frame)
+                      unit=FIFF.FIFF_UNIT_V, coord_frame=coord_frame,
+                      coil_type=FIFF.FIFFV_COIL_EEG)
         elif cch['sensor_type_index'] == CTF.CTFV_STIM_CH:
             nstim += 1
             ch.update(logno=nstim, coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
@@ -421,6 +424,7 @@ def _compose_meas_info(res4, coils, trans, eeg):
     info['meas_id']['usecs'] = 0
     info['meas_id']['secs'] = _convert_time(res4['data_date'],
                                             res4['data_time'])
+    info['meas_date'] = (info['meas_id']['secs'], info['meas_id']['usecs'])
     info['experimenter'] = res4['nf_operator']
     info['subject_info'] = dict(his_id=res4['nf_subject_id'])
     for filt in res4['filters']:
@@ -448,3 +452,36 @@ def _compose_meas_info(res4, coils, trans, eeg):
     logger.info('    Measurement info composed.')
     info._update_redundant()
     return info
+
+
+def _read_bad_chans(directory, info):
+    """Read Bad channel list and match to internal names."""
+    fname = op.join(directory, 'BadChannels')
+    if not op.exists(fname):
+        return []
+    mapping = dict(zip(_clean_names(info['ch_names']), info['ch_names']))
+    with open(fname, 'r') as fid:
+        bad_chans = [mapping[f.strip()] for f in fid.readlines()]
+    return bad_chans
+
+
+def _annotate_bad_segments(directory, start_time, meas_date):
+    fname = op.join(directory, 'bad.segments')
+    if not op.exists(fname):
+        return None
+
+    # read in bad segment file
+    onsets = []
+    durations = []
+    desc = []
+    with open(fname, 'r') as fid:
+        for f in fid.readlines():
+            tmp = f.strip().split()
+            desc.append('bad_%s' % tmp[0])
+            onsets.append(np.float(tmp[1]) - start_time)
+            durations.append(np.float(tmp[2]) - np.float(tmp[1]))
+    # return None if there are no bad segments
+    if len(onsets) == 0:
+        return None
+
+    return Annotations(onsets, durations, desc, meas_date)

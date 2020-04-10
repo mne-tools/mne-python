@@ -9,8 +9,8 @@ from functools import partial
 import numpy as np
 from scipy import linalg
 
-from ..filter import _COLA, _Storer
-from ..io.pick import _pick_data_channels
+from .._ola import _COLA, _Storer
+from ..io.pick import _picks_to_idx
 from ..surface import _normalize_vectors
 from ..utils import logger, verbose
 
@@ -41,11 +41,8 @@ def oversampled_temporal_projection(raw, duration=10., picks=None,
     duration : float | str
         The window duration (in seconds; default 10.) to use. Can also
         be "min" to use as short a window as possible.
-    picks : list of int | None
-        The channels to process. If None, all data channels will be
-        processed together.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose)
+    %(picks_all_data)s
+    %(verbose)s
 
     Returns
     -------
@@ -81,8 +78,7 @@ def oversampled_temporal_projection(raw, duration=10., picks=None,
            IEEE Transactions on Biomedical Engineering.
     """
     logger.info('Processing MEG data using oversampled temporal projection')
-    if picks is None:
-        picks = _pick_data_channels(raw.info, exclude=())
+    picks = _picks_to_idx(raw.info, picks, exclude=())
     picks_good, picks_bad = list(), list()  # these are indices into picks
     for ii, pi in enumerate(picks):
         if raw.ch_names[pi] in raw.info['bads']:

@@ -26,7 +26,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
                    trans=None, scrollable=True, project_eeg=None,
                    orient_to_surface=None, scale_by_distance=None,
                    mark_inside=None, interaction=None, scale=None,
-                   verbose=None):
+                   advanced_rendering=None, verbose=None):
     """Coregister an MRI with a subject's head shape.
 
     The recommended way to use the GUI is through bash with:
@@ -34,7 +34,6 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     .. code-block::  bash
 
         $ mne coreg
-
 
     Parameters
     ----------
@@ -53,9 +52,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
         Raw, Epochs, and Evoked files.
     subject : None | str
         Name of the mri subject.
-    subjects_dir : None | path
-        Override the SUBJECTS_DIR environment variable
-        (sys.environ['SUBJECTS_DIR'])
+    %(subjects_dir)s
     guess_mri_subject : bool
         When selecting a new head shape file, guess the subject's name based
         on the filename and change the MRI subject accordingly (default True).
@@ -104,10 +101,19 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
     scale : float | None
         The scaling for the scene.
 
-        ..versionadded:: 0.16
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+        .. versionadded:: 0.16
+    advanced_rendering : bool
+        Use advanced OpenGL rendering techniques (default True).
+        For some renderers (such as MESA software) this can cause rendering
+        bugs.
+
+        .. versionadded:: 0.18
+    %(verbose)s
+
+    Returns
+    -------
+    frame : instance of CoregFrame
+        The coregistration frame.
 
     Notes
     -----
@@ -117,9 +123,9 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
 
     Step by step instructions for the coregistrations can be accessed as
     slides, `for subjects with structural MRI
-    <http://www.slideshare.net/mne-python/mnepython-coregistration>`_ and `for
+    <https://www.slideshare.net/mne-python/mnepython-coregistration>`_ and `for
     subjects for which no MRI is available
-    <http://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
+    <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
     """
     config = get_config(home_dir=os.environ.get('_MNE_FAKE_HOME_DIR'))
     if guess_mri_subject is None:
@@ -127,6 +133,9 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
             'MNE_COREG_GUESS_MRI_SUBJECT', 'true') == 'true'
     if head_high_res is None:
         head_high_res = config.get('MNE_COREG_HEAD_HIGH_RES', 'true') == 'true'
+    if advanced_rendering is None:
+        advanced_rendering = \
+            config.get('MNE_COREG_ADVANCED_RENDERING', 'true') == 'true'
     if head_opacity is None:
         head_opacity = config.get('MNE_COREG_HEAD_OPACITY', 1.)
     if width is None:
@@ -167,7 +176,7 @@ def coregistration(tabbed=False, split=True, width=None, inst=None,
                        orient_to_surface=orient_to_surface,
                        scale_by_distance=scale_by_distance,
                        mark_inside=mark_inside, interaction=interaction,
-                       scale=scale)
+                       scale=scale, advanced_rendering=advanced_rendering)
     return _initialize_gui(frame, view)
 
 
@@ -183,6 +192,11 @@ def fiducials(subject=None, fid_file=None, subjects_dir=None):
         ("{subjects_dir}/{subject}/bem/{subject}-fiducials.fif").
     subjects_dir : None | str
         Overrule the subjects_dir environment variable.
+
+    Returns
+    -------
+    frame : instance of FiducialsFrame
+        The GUI frame.
 
     Notes
     -----
@@ -204,6 +218,10 @@ def kit2fiff():
 
         $ mne kit2fiff
 
+    Returns
+    -------
+    frame : instance of Kit2FiffFrame
+        The GUI frame.
     """
     _check_mayavi_version()
     from ._backend import _check_backend

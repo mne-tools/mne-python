@@ -1,21 +1,25 @@
 #!/usr/bin/env python
 
 # Authors: Denis A. Engemann  <denis.engemann@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
 #          simplified bsd-3 license
 
 """Create high-resolution head surfaces for coordinate alignment.
 
-example usage: mne make_scalp_surfaces --overwrite --subject sample
-"""
-from __future__ import print_function
+Examples
+--------
+.. code-block:: console
 
-import os
+    $ mne make_scalp_surfaces --overwrite --subject sample
+
+"""
 import copy
+import os
 import os.path as op
 import sys
+
 import mne
 from mne.utils import (run_subprocess, verbose, logger, ETSContext,
                        get_subjects_dir)
@@ -30,7 +34,7 @@ def _check_file(fname, overwrite):
 
 def run():
     """Run command."""
-    from mne.commands.utils import get_optparser
+    from mne.commands.utils import get_optparser, _add_verbose_flag
 
     parser = get_optparser(__file__)
     subjects_dir = mne.get_config('SUBJECTS_DIR')
@@ -42,13 +46,12 @@ def run():
                       help='The name of the subject', type='str')
     parser.add_option('-f', '--force', dest='force', action='store_true',
                       help='Force transformation of surface into bem.')
-    parser.add_option('-v', '--verbose', dest='verbose', action='store_true',
-                      help='Print the debug messages.')
     parser.add_option("-d", "--subjects-dir", dest="subjects_dir",
                       help="Subjects directory", default=subjects_dir)
     parser.add_option("-n", "--no-decimate", dest="no_decimate",
                       help="Disable medium and sparse decimations "
                       "(dense only)", action='store_true')
+    _add_verbose_flag(parser)
     options, args = parser.parse_args()
 
     subject = vars(options).get('subject', os.getenv('SUBJECT'))
@@ -62,7 +65,7 @@ def run():
 
 @verbose
 def _run(subjects_dir, subject, force, overwrite, no_decimate, verbose=None):
-    this_env = copy.copy(os.environ)
+    this_env = copy.deepcopy(os.environ)
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     this_env['SUBJECTS_DIR'] = subjects_dir
     this_env['SUBJECT'] = subject
@@ -98,13 +101,17 @@ def _run(subjects_dir, subject, force, overwrite, no_decimate, verbose=None):
         raise RuntimeError('mkheadsurf did not produce the standard output '
                            'file.')
 
-    dense_fname = '{0}/{1}/bem/{1}-head-dense.fif'.format(subjects_dir,
-                                                          subject)
+    bem_dir = op.join(subjects_dir, subject, 'bem')
+    if not op.isdir(bem_dir):
+        os.mkdir(bem_dir)
+    dense_fname = op.join(bem_dir, '%s-head-dense.fif' % subject)
     logger.info('2. Creating %s ...' % dense_fname)
     _check_file(dense_fname, overwrite)
+    # Helpful message if we get a topology error
+    msg = '\n\nConsider using --force as an additional input parameter.'
     surf = mne.bem._surfaces_to_bem(
         [surf], [mne.io.constants.FIFF.FIFFV_BEM_SURF_ID_HEAD], [1],
-        incomplete=incomplete)[0]
+        incomplete=incomplete, extra=msg)[0]
     mne.write_bem_surfaces(dense_fname, surf)
     levels = 'medium', 'sparse'
     tris = [] if no_decimate else [30000, 2500]
@@ -123,9 +130,8 @@ def _run(subjects_dir, subject, force, overwrite, no_decimate, verbose=None):
         dec_surf = mne.bem._surfaces_to_bem(
             [dict(rr=points, tris=tris)],
             [mne.io.constants.FIFF.FIFFV_BEM_SURF_ID_HEAD], [1], rescale=False,
-            incomplete=incomplete)
+            incomplete=incomplete, extra=msg)
         mne.write_bem_surfaces(dec_fname, dec_surf)
 
 
-if (__name__ == '__main__'):
-    run()
+mne.utils.run_command_if_main()

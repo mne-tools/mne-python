@@ -6,16 +6,12 @@
 
 from collections import Counter
 import os
+import queue
 import sys
-from warnings import warn
 
 import numpy as np
 from scipy.linalg import inv
 from threading import Thread
-
-from ..externals.six.moves import queue
-from ..io.meas_info import _read_dig_points, _make_dig_points
-from ..utils import get_config, set_config, logger
 
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from mayavi.tools.mlab_scene_model import MlabSceneModel
@@ -31,25 +27,27 @@ from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
 from ..io.constants import FIFF
+from ..io._digitization import _read_dig_points, _make_dig_points
 from ..io.kit.kit import (RawKIT, KIT, _make_stim_channel, _default_stim_chs,
                           UnsupportedKITFormat)
 from ..transforms import (apply_trans, als_ras_trans,
                           get_ras_to_neuromag_trans, Transform)
 from ..coreg import _decimate_points, fit_matched_points
+from ..utils import get_config, set_config, logger, warn
+from ._backend import _get_pyface_backend
 from ..event import _find_events
 from ._marker_gui import CombineMarkersPanel, CombineMarkersModel
 from ._help import read_tooltips
 from ._viewer import HeadViewController, PointObject
 
-
 use_editor = CheckListEditor(cols=5, values=[(i, str(i)) for i in range(5)])
-backend_is_wx = False  # is there a way to determine this?
-if backend_is_wx:
+
+if _get_pyface_backend() == 'wx':
     # wx backend allows labels for wildcards
     hsp_wildcard = ['Head Shape Points (*.hsp;*.txt)|*.hsp;*.txt']
     elp_wildcard = ['Head Shape Fiducials (*.elp;*.txt)|*.elp;*.txt']
     kit_con_wildcard = ['Continuous KIT Files (*.sqd;*.con)|*.sqd;*.con']
-elif sys.platform in ('win32',  'linux2'):
+if sys.platform in ('win32', 'linux2'):
     # on Windows and Ubuntu, multiple wildcards does not seem to work
     hsp_wildcard = ['*.hsp', '*.txt']
     elp_wildcard = ['*.elp', '*.txt']
@@ -417,7 +415,8 @@ class Kit2FiffModel(HasPrivateTraits):
                     stim_code, self.stim_threshold)
         raw = RawKIT(self.sqd_file, preload=preload, stim=self.stim_chs_array,
                      slope=self.stim_slope, stim_code=stim_code,
-                     stimthresh=self.stim_threshold)
+                     stimthresh=self.stim_threshold,
+                     allow_unknown_format=self.allow_unknown_format)
 
         if np.any(self.fid):
             raw.info['dig'] = _make_dig_points(self.fid[0], self.fid[1],

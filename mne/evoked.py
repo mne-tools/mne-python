@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Andrew Dykstra <andrew.r.dykstra@gmail.com>
 #          Mads Jensen <mje.mads@gmail.com>
@@ -13,52 +13,63 @@ import numpy as np
 
 from .baseline import rescale
 from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
-                                SetChannelsMixin, InterpolationMixin,
-                                equalize_channels)
-from .channels.layout import _merge_grad_data, _pair_grad_sensors
+                                SetChannelsMixin, InterpolationMixin)
+from .channels.layout import _merge_ch_data, _pair_grad_sensors
 from .filter import detrend, FilterMixin
 from .utils import (check_fname, logger, verbose, _time_mask, warn, sizeof_fmt,
-                    SizeMixin, copy_function_doc_to_method_doc)
+                    SizeMixin, copy_function_doc_to_method_doc, _validate_type,
+                    fill_doc, _check_option, ShiftTimeMixin, _build_data_frame,
+                    _check_pandas_installed, _check_pandas_index_arguments,
+                    _convert_times, _scale_dataframe_data, _check_time_format)
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image, plot_evoked_topo)
 from .viz.evoked import plot_evoked_white, plot_evoked_joint
 from .viz.topomap import _topomap_animation
 
-from .externals.six import string_types
-
 from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.tree import dir_tree_find
-from .io.pick import channel_type, pick_types, _pick_data_channels
+from .io.pick import pick_types, _picks_to_idx
 from .io.meas_info import read_meas_info, write_meas_info
 from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_string, write_float_matrix,
-                       write_id)
-from .io.base import ToDataFrameMixin, TimeMixin, _check_maxshield
+                       write_id, write_float)
+from .io.base import TimeMixin, _check_maxshield
 
-_aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
-                'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}
-_aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
-               str(FIFF.FIFFV_ASPECT_STD_ERR): 'standard_error'}
+_aspect_dict = {
+    'average': FIFF.FIFFV_ASPECT_AVERAGE,
+    'standard_error': FIFF.FIFFV_ASPECT_STD_ERR,
+    'single_epoch': FIFF.FIFFV_ASPECT_SINGLE,
+    'partial_average': FIFF.FIFFV_ASPECT_SUBAVERAGE,
+    'alternating_subaverage': FIFF.FIFFV_ASPECT_ALTAVERAGE,
+    'sample_cut_out_by_graph': FIFF.FIFFV_ASPECT_SAMPLE,
+    'power_density_spectrum': FIFF.FIFFV_ASPECT_POWER_DENSITY,
+    'dipole_amplitude_cuvre': FIFF.FIFFV_ASPECT_DIPOLE_WAVE,
+    'squid_modulation_lower_bound': FIFF.FIFFV_ASPECT_IFII_LOW,
+    'squid_modulation_upper_bound': FIFF.FIFFV_ASPECT_IFII_HIGH,
+    'squid_gate_setting': FIFF.FIFFV_ASPECT_GATE,
+}
+_aspect_rev = {val: key for key, val in _aspect_dict.items()}
 
 
-class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
-             SetChannelsMixin, InterpolationMixin, FilterMixin,
-             ToDataFrameMixin, TimeMixin, SizeMixin):
+@fill_doc
+class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin, SetChannelsMixin,
+             InterpolationMixin, FilterMixin, TimeMixin, SizeMixin,
+             ShiftTimeMixin):
     """Evoked data.
 
     Parameters
     ----------
-    fname : string
+    fname : str
         Name of evoked/average FIF file to load.
         If None no data is loaded.
     condition : int, or str
         Dataset ID number (int) or comment/name (str). Optional if there is
         only one data set in file.
     proj : bool, optional
-        Apply SSP projection vectors
+        Apply SSP projection vectors.
     kind : str
         Either 'average' or 'standard_error'. The type of data to read.
         Only used if 'condition' is a str.
@@ -68,15 +79,13 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         generally not be loaded directly, but should first be processed using
         SSS/tSSS to remove the compensation signals that may also affect brain
         activity. Can also be "yes" to load without eliciting a warning.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Attributes
     ----------
     info : dict
         Measurement info.
-    ch_names : list of string
+    ch_names : list of str
         List of channels' names.
     nave : int
         Number of averaged epochs.
@@ -86,18 +95,15 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         First time sample.
     last : int
         Last time sample.
-    comment : string
+    comment : str
         Comment on dataset. Can be the condition.
-    times : array
-        Array of time instants in seconds.
     data : array of shape (n_channels, n_times)
         Evoked response.
-    times :  ndarray
+    times :  array
         Time vector in seconds. Goes from `tmin` to `tmax`. Time interval
         between consecutive time samples is equal to the inverse of the
         sampling frequency.
-    verbose : bool, str, int, or None.
-        See above.
+    %(verbose)s
 
     Notes
     -----
@@ -108,18 +114,26 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
     def __init__(self, fname, condition=None, proj=True,
                  kind='average', allow_maxshield=False,
                  verbose=None):  # noqa: D102
-        if not isinstance(proj, bool):
-            raise ValueError(r"'proj' must be 'True' or 'False'")
+        _validate_type(proj, bool, "'proj'")
         # Read the requested data
-        self.info, self.nave, self._aspect_kind, self.first, self.last, \
-            self.comment, self.times, self.data = _read_evoked(
-                fname, condition, kind, allow_maxshield)
-        self.kind = _aspect_rev.get(str(self._aspect_kind), 'Unknown')
+        self.info, self.nave, self._aspect_kind, self.comment, self.times, \
+            self.data = _read_evoked(fname, condition, kind, allow_maxshield)
+        self._update_first_last()
         self.verbose = verbose
         self.preload = True
         # project and baseline correct
         if proj:
             self.apply_proj()
+
+    @property
+    def kind(self):
+        """The data kind."""
+        return _aspect_rev[self._aspect_kind]
+
+    @kind.setter
+    def kind(self, kind):
+        _check_option('kind', kind, list(_aspect_dict.keys()))
+        self._aspect_kind = _aspect_dict[kind]
 
     @property
     def data(self):
@@ -146,10 +160,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             applied by computing mean of the baseline period and subtracting it
             from the data. The baseline (a, b) includes both endpoints, i.e.
             all timepoints t such that a <= t <= b.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------
@@ -170,7 +181,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        fname : string
+        fname : str
             The name of the file, which should end with -ave.fif or
             -ave.fif.gz.
 
@@ -182,9 +193,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         write_evokeds(fname, self)
 
     def __repr__(self):  # noqa: D105
-        _kind_swap = dict(average='mean', standard_error='SEM')
-        s = "'%s' (%s, N=%s)" % (self.comment, _kind_swap[self.kind],
-                                 self.nave)
+        s = "'%s' (%s, N=%s)" % (self.comment, self.kind, self.nave)
         s += ", [%0.5g, %0.5g] sec" % (self.times[0], self.times[-1])
         s += ", %s ch" % self.data.shape[0]
         s += ", ~%s" % (sizeof_fmt(self._size),)
@@ -195,7 +204,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """Channel names."""
         return self.info['ch_names']
 
-    def crop(self, tmin=None, tmax=None):
+    @fill_doc
+    def crop(self, tmin=None, tmax=None, include_tmax=True):
         """Crop data to a given time interval.
 
         Parameters
@@ -204,6 +214,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             Start time of selection in seconds.
         tmax : float | None
             End time of selection in seconds.
+        %(include_tmax)s
 
         Returns
         -------
@@ -215,10 +226,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Unlike Python slices, MNE time intervals include both their end points;
         crop(tmin, tmax) returns the interval tmin <= t <= tmax.
         """
-        mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'])
+        mask = _time_mask(self.times, tmin, tmax, sfreq=self.info['sfreq'],
+                          include_tmax=include_tmax)
         self.times = self.times[mask]
-        self.first = int(self.times[0] * self.info['sfreq'])
-        self.last = len(self.times) + self.first - 1
+        self._update_first_last()
         self.data = self.data[:, mask]
         return self
 
@@ -263,62 +274,37 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         self.info['sfreq'] = new_sfreq
         self.data = self.data[:, decim_slice].copy()
         self.times = self.times[decim_slice].copy()
+        self._update_first_last()
         return self
-
-    def shift_time(self, tshift, relative=True):
-        """Shift time scale in evoked data.
-
-        Parameters
-        ----------
-        tshift : float
-            The amount of time shift to be applied if relative is True
-            else the first time point. When relative is True, positive value
-            of tshift moves the data forward while negative tshift moves it
-            backward.
-        relative : bool
-            If true, move the time backwards or forwards by specified amount.
-            Else, set the starting time point to the value of tshift.
-
-        Notes
-        -----
-        Maximum accuracy of time shift is 1 / evoked.info['sfreq']
-        """
-        times = self.times
-        sfreq = self.info['sfreq']
-
-        offset = self.first if relative else 0
-
-        self.first = int(tshift * sfreq) + offset
-        self.last = self.first + len(times) - 1
-        self.times = np.arange(self.first, self.last + 1,
-                               dtype=np.float) / sfreq
 
     @copy_function_doc_to_method_doc(plot_evoked)
     def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
              xlim='tight', proj=False, hline=None, units=None, scalings=None,
              titles=None, axes=None, gfp=False, window_title=None,
              spatial_colors=False, zorder='unsorted', selectable=True,
-             noise_cov=None, time_unit='s', verbose=None):
+             noise_cov=None, time_unit='s', sphere=None, verbose=None):
         return plot_evoked(
             self, picks=picks, exclude=exclude, unit=unit, show=show,
             ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
             scalings=scalings, titles=titles, axes=axes, gfp=gfp,
             window_title=window_title, spatial_colors=spatial_colors,
             zorder=zorder, selectable=selectable, noise_cov=noise_cov,
-            time_unit=time_unit, verbose=verbose)
+            time_unit=time_unit, sphere=sphere, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_evoked_image)
     def plot_image(self, picks=None, exclude='bads', unit=True, show=True,
                    clim=None, xlim='tight', proj=False, units=None,
                    scalings=None, titles=None, axes=None, cmap='RdBu_r',
                    colorbar=True, mask=None, mask_style=None,
-                   mask_cmap='Greys', mask_alpha=.25, time_unit='s'):
+                   mask_cmap='Greys', mask_alpha=.25, time_unit='s',
+                   show_names=None, group_by=None, sphere=None):
         return plot_evoked_image(
             self, picks=picks, exclude=exclude, unit=unit, show=show,
             clim=clim, xlim=xlim, proj=proj, units=units, scalings=scalings,
             titles=titles, axes=axes, cmap=cmap, colorbar=colorbar, mask=mask,
             mask_style=mask_style, mask_cmap=mask_cmap, mask_alpha=mask_alpha,
-            time_unit=time_unit)
+            time_unit=time_unit, show_names=show_names, group_by=group_by,
+            sphere=sphere)
 
     @copy_function_doc_to_method_doc(plot_evoked_topo)
     def plot_topo(self, layout=None, layout_scale=0.945, color=None,
@@ -327,7 +313,6 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                   merge_grads=False, legend=True, axes=None,
                   background_color='w', noise_cov=None, show=True):
         """
-
         Notes
         -----
         .. versionadded:: 0.10.0
@@ -340,7 +325,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             background_color=background_color, noise_cov=noise_cov, show=show)
 
     @copy_function_doc_to_method_doc(plot_evoked_topomap)
-    def plot_topomap(self, times="auto", ch_type=None, layout=None, vmin=None,
+    def plot_topomap(self, times="auto", ch_type=None, vmin=None,
                      vmax=None, cmap=None, sensors=True, colorbar=True,
                      scalings=None, units=None, res=64,
                      size=1, cbar_fmt="%3.1f",
@@ -348,30 +333,33 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                      proj=False, show=True, show_names=False, title=None,
                      mask=None, mask_params=None, outlines='head',
                      contours=6, image_interp='bilinear', average=None,
-                     head_pos=None, axes=None):
+                     axes=None, extrapolate='box', sphere=None,
+                     border=0, nrows=1, ncols='auto'):
         return plot_evoked_topomap(
-            self, times=times, ch_type=ch_type, layout=layout, vmin=vmin,
+            self, times=times, ch_type=ch_type, vmin=vmin,
             vmax=vmax, cmap=cmap, sensors=sensors, colorbar=colorbar,
             scalings=scalings, units=units, res=res,
             size=size, cbar_fmt=cbar_fmt, time_unit=time_unit,
             time_format=time_format, proj=proj, show=show,
             show_names=show_names, title=title, mask=mask,
             mask_params=mask_params, outlines=outlines, contours=contours,
-            image_interp=image_interp, average=average, head_pos=head_pos,
-            axes=axes)
+            image_interp=image_interp, average=average,
+            axes=axes, extrapolate=extrapolate, sphere=sphere, border=border,
+            nrows=nrows, ncols=ncols)
 
     @copy_function_doc_to_method_doc(plot_evoked_field)
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
-                   n_jobs=1):
+                   n_jobs=1, fig=None, verbose=None):
         return plot_evoked_field(self, surf_maps, time=time,
-                                 time_label=time_label, n_jobs=n_jobs)
+                                 time_label=time_label, n_jobs=n_jobs,
+                                 fig=fig, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_evoked_white)
     def plot_white(self, noise_cov, show=True, rank=None, time_unit='s',
-                   verbose=None):
+                   sphere=None, verbose=None):
         return plot_evoked_white(
             self, noise_cov=noise_cov, rank=rank, show=show,
-            time_unit=time_unit, verbose=verbose)
+            time_unit=time_unit, sphere=sphere, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_evoked_joint)
     def plot_joint(self, times="peaks", title='', picks=None,
@@ -381,8 +369,10 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
                                  exclude=exclude, show=show, ts_args=ts_args,
                                  topomap_args=topomap_args)
 
+    @fill_doc
     def animate_topomap(self, ch_type=None, times=None, frame_rate=None,
-                        butterfly=False, blit=True, show=True, time_unit='s'):
+                        butterfly=False, blit=True, show=True, time_unit='s',
+                        sphere=None):
         """Make animation of evoked data as topomap timeseries.
 
         The animation can be paused/resumed with left mouse button.
@@ -392,10 +382,11 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Parameters
         ----------
         ch_type : str | None
-            Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg'.
-            If None, first available channel type from ('mag', 'grad', 'eeg')
-            is used. Defaults to None.
-        times : array of floats | None
+            Channel type to plot. Accepted data types: 'mag', 'grad', 'eeg',
+            'hbo', 'hbr', 'fnirs_od, and 'fnirs_raw'.
+            If None, first available channel type from ('mag', 'grad', 'eeg',
+            'hbo', 'hbr', 'fnirs_od, 'fnirs_raw') is used. Defaults to None.
+        times : array of float | None
             The time points to plot. If None, 10 evenly spaced samples are
             calculated over the evoked time series. Defaults to None.
         frame_rate : int | None
@@ -416,12 +407,13 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             or "s" (will become the default in 0.17).
 
             .. versionadded:: 0.16
+        %(topomap_sphere_auto)s
 
         Returns
         -------
-        fig : instance of matplotlib figure
+        fig : instance of matplotlib.figure.Figure
             The figure.
-        anim : instance of matplotlib FuncAnimation
+        anim : instance of matplotlib.animation.FuncAnimation
             Animation of the topomap.
 
         Notes
@@ -430,7 +422,8 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         """
         return _topomap_animation(
             self, ch_type=ch_type, times=times, frame_rate=frame_rate,
-            butterfly=butterfly, blit=blit, show=show, time_unit=time_unit)
+            butterfly=butterfly, blit=blit, show=show, time_unit=time_unit,
+            sphere=sphere)
 
     def as_type(self, ch_type='grad', mode='fast'):
         """Compute virtual evoked using interpolated fields.
@@ -456,11 +449,15 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Notes
         -----
+        This method returns a copy and does not modify the data it
+        operates on. It also returns an EvokedArraw instance.
+
         .. versionadded:: 0.9.0
         """
-        from .forward import _as_meg_type_evoked
-        return _as_meg_type_evoked(self, ch_type=ch_type, mode=mode)
+        from .forward import _as_meg_type_inst
+        return _as_meg_type_inst(self, ch_type=ch_type, mode=mode)
 
+    @fill_doc
     def detrend(self, order=1, picks=None):
         """Detrend data.
 
@@ -471,16 +468,14 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         order : int
             Either 0 or 1, the order of the detrending. 0 is a constant
             (DC) detrend, 1 is a linear detrend.
-        picks : array-like of int | None
-            If None only MEG, EEG, SEEG, ECoG and fNIRS channels are detrended.
+        %(picks_good_data)s
 
         Returns
         -------
         evoked : instance of Evoked
             The detrended evoked object.
         """
-        if picks is None:
-            picks = _pick_data_channels(self.info)
+        picks = _picks_to_idx(self.info, picks)
         self.data[picks] = detrend(self.data[picks], order, axis=-1)
         return self
 
@@ -490,6 +485,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         Returns
         -------
         evoked : instance of Evoked
+            A copy of the object.
         """
         evoked = deepcopy(self)
         return evoked
@@ -515,7 +511,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
 
         Parameters
         ----------
-        ch_type : 'mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', hbr', 'misc', None  # noqa
+        ch_type : 'mag', 'grad', 'eeg', 'seeg', 'ecog', 'hbo', hbr', 'misc', None
             The channel type to use. Defaults to None. If more than one sensor
             Type is present in the data the channel type has to be explicitly
             set.
@@ -551,19 +547,14 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             return_amplitude is True.
 
             .. versionadded:: 0.16
-        """
+        """  # noqa: E501
         supported = ('mag', 'grad', 'eeg', 'seeg', 'ecog', 'misc', 'hbo',
-                     'hbr', 'None')
-        data_picks = _pick_data_channels(self.info, with_ref_meg=False)
-        types_used = set([channel_type(self.info, idx) for idx in data_picks])
+                     'hbr', 'None', 'fnirs_raw', 'fnirs_od')
+        types_used = self.get_channel_types(unique=True, only_data_chs=True)
 
-        if str(ch_type) not in supported:
-            raise ValueError('Channel type must be `{supported}`. You gave me '
-                             '`{ch_type}` instead.'
-                             .format(ch_type=ch_type,
-                                     supported='` or `'.join(supported)))
+        _check_option('ch_type', str(ch_type), supported)
 
-        elif ch_type is not None and ch_type not in types_used:
+        if ch_type is not None and ch_type not in types_used:
             raise ValueError('Channel type `{ch_type}` not found in this '
                              'evoked object.'.format(ch_type=ch_type))
 
@@ -591,7 +582,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             seeg = True
         elif ch_type == 'ecog':
             ecog = True
-        elif ch_type in ('hbo', 'hbr'):
+        elif ch_type in ('hbo', 'hbr', 'fnirs_raw', 'fnirs_od'):
             fnirs = ch_type
 
         if ch_type is not None:
@@ -609,7 +600,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             ch_names = [ch_names[k] for k in picks]
 
         if merge_grads:
-            data = _merge_grad_data(data)
+            data, _ = _merge_ch_data(data, ch_type, [])
             ch_names = [ch_name[:-1] + 'X' for ch_name in ch_names[::2]]
 
         ch_idx, time_idx, max_amp = _get_peak(data, self.times, tmin,
@@ -622,6 +613,56 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
             out += (max_amp,)
 
         return out
+
+    @fill_doc
+    def to_data_frame(self, picks=None, index=None,
+                      scalings=None, copy=True, long_format=False,
+                      time_format='ms'):
+        """Export data in tabular structure as a pandas DataFrame.
+
+        Channels are converted to columns in the DataFrame. By default,
+        an additional column "time" is added, unless ``index='time'``
+        (in which case time values form the DataFrame's index).
+
+        Parameters
+        ----------
+        %(picks_all)s
+        %(df_index_evk)s
+            Defaults to ``None``.
+        %(df_scalings)s
+        %(df_copy)s
+        %(df_longform_raw)s
+        %(df_time_format)s
+
+            .. versionadded:: 0.20
+
+        Returns
+        -------
+        %(df_return)s
+        """
+        # check pandas once here, instead of in each private utils function
+        pd = _check_pandas_installed()  # noqa
+        # arg checking
+        valid_index_args = ['time']
+        valid_time_formats = ['ms', 'timedelta']
+        index = _check_pandas_index_arguments(index, valid_index_args)
+        time_format = _check_time_format(time_format, valid_time_formats)
+        # get data
+        picks = _picks_to_idx(self.info, picks, 'all', exclude=())
+        data = self.data[picks, :]
+        times = self.times
+        data = data.T
+        if copy:
+            data = data.copy()
+        data = _scale_dataframe_data(self, data, picks, scalings)
+        # prepare extra columns / multiindex
+        mindex = list()
+        times = _convert_times(self, times, time_format)
+        mindex.append(('time', times))
+        # build DataFrame
+        df = _build_data_frame(self, data, picks, long_format, mindex, index,
+                               default_index=['time'])
+        return df
 
 
 def _check_decim(info, decim, offset):
@@ -636,7 +677,7 @@ def _check_decim(info, decim, offset):
              'filtered. The decim=%i parameter will result in a sampling '
              'frequency of %g Hz, which can cause aliasing artifacts.'
              % (decim, new_sfreq))
-    elif decim > 1 and new_sfreq < 2.5 * lowpass:
+    elif decim > 1 and new_sfreq < 3 * lowpass:
         warn('The measurement information indicates a low-pass frequency '
              'of %g Hz. The decim=%i parameter will result in a sampling '
              'frequency of %g Hz, which can cause aliasing artifacts.'
@@ -648,6 +689,7 @@ def _check_decim(info, decim, offset):
     return decim, offset, new_sfreq
 
 
+@fill_doc
 class EvokedArray(Evoked):
     """Evoked object from numpy array.
 
@@ -660,15 +702,17 @@ class EvokedArray(Evoked):
         this structure.
     tmin : float
         Start time before event. Defaults to 0.
-    comment : string
+    comment : str
         Comment on dataset. Can be the condition. Defaults to ''.
     nave : int
         Number of averaged epochs. Defaults to 1.
     kind : str
         Type of data, either average or standard_error. Defaults to 'average'.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
+
+    See Also
+    --------
+    EpochsArray, io.RawArray, create_info
 
     Notes
     -----
@@ -679,10 +723,6 @@ class EvokedArray(Evoked):
     * M: hbo, hbr
     * Am: dipole
     * AU: misc
-
-    See Also
-    --------
-    EpochsArray, io.RawArray, create_info
     """
 
     @verbose
@@ -693,7 +733,7 @@ class EvokedArray(Evoked):
 
         if data.ndim != 2:
             raise ValueError('Data must be a 2D array of shape (n_channels, '
-                             'n_samples)')
+                             'n_samples), got shape %s' % (data.shape,))
 
         if len(info['ch_names']) != np.shape(data)[0]:
             raise ValueError('Info (%s) and data (%s) must have same number '
@@ -702,8 +742,7 @@ class EvokedArray(Evoked):
 
         self.data = data
 
-        # XXX: this should use round and be tested
-        self.first = int(tmin * info['sfreq'])
+        self.first = int(round(tmin * info['sfreq']))
         self.last = self.first + np.shape(data)[-1] - 1
         self.times = np.arange(self.first, self.last + 1,
                                dtype=np.float) / info['sfreq']
@@ -715,8 +754,7 @@ class EvokedArray(Evoked):
         self.verbose = verbose
         self.preload = True
         self._projector = None
-        if not isinstance(self.kind, string_types):
-            raise TypeError('kind must be a string, not "%s"' % (type(kind),))
+        _validate_type(self.kind, "str", "kind")
         if self.kind not in _aspect_dict:
             raise ValueError('unknown kind "%s", should be "average" or '
                              '"standard_error"' % (self.kind,))
@@ -747,7 +785,7 @@ def _get_entries(fid, evoked_node, allow_maxshield=False):
         fid.close()
         raise ValueError('Dataset names in FIF file '
                          'could not be found.')
-    t = [_aspect_rev.get(str(a), 'Unknown') for a in aspect_kinds]
+    t = [_aspect_rev[a] for a in aspect_kinds]
     t = ['"' + c + '" (' + tt + ')' for tt, c in zip(t, comments)]
     t = '\n'.join(t)
     return comments, aspect_kinds, t
@@ -759,7 +797,7 @@ def _get_aspect(evoked, allow_maxshield):
     aspect = dir_tree_find(evoked, FIFF.FIFFB_ASPECT)
     if len(aspect) == 0:
         _check_maxshield(allow_maxshield)
-        aspect = dir_tree_find(evoked, FIFF.FIFFB_SMSH_ASPECT)
+        aspect = dir_tree_find(evoked, FIFF.FIFFB_IAS_ASPECT)
         is_maxshield = True
     if len(aspect) > 1:
         logger.info('Multiple data aspects found. Taking first one.')
@@ -775,74 +813,37 @@ def _get_evoked_node(fname):
     return evoked_node
 
 
-def grand_average(all_evoked, interpolate_bads=True):
-    """Make grand average of a list evoked data.
-
-    The function interpolates bad channels based on `interpolate_bads`
-    parameter. If `interpolate_bads` is True, the grand average
-    file will contain good channels and the bad channels interpolated
-    from the good MEG/EEG channels.
-
-    The grand_average.nave attribute will be equal the number
-    of evoked datasets used to calculate the grand average.
-
-    Note: Grand average evoked shall not be used for source localization.
-
-    Parameters
-    ----------
-    all_evoked : list of Evoked data
-        The evoked datasets.
-    interpolate_bads : bool
-        If True, bad MEG and EEG channels are interpolated.
-
-    Returns
-    -------
-    grand_average : Evoked
-        The grand average data.
-
-    Notes
-    -----
-    .. versionadded:: 0.9.0
-    """
-    # check if all elements in the given list are evoked data
-    if not all(isinstance(e, Evoked) for e in all_evoked):
-        raise ValueError("Not all the elements in list are evoked data")
-
-    # Copy channels to leave the original evoked datasets intact.
-    all_evoked = [e.copy() for e in all_evoked]
-
-    # Interpolates if necessary
-    if interpolate_bads:
-        all_evoked = [e.interpolate_bads() if len(e.info['bads']) > 0
-                      else e for e in all_evoked]
-
-    equalize_channels(all_evoked)  # apply equalize_channels
-    # make grand_average object using combine_evoked
-    grand_average = combine_evoked(all_evoked, weights='equal')
-    # change the grand_average.nave to the number of Evokeds
-    grand_average.nave = len(all_evoked)
-    # change comment field
-    grand_average.comment = "Grand average (n = %d)" % grand_average.nave
-    return grand_average
-
-
 def _check_evokeds_ch_names_times(all_evoked):
     evoked = all_evoked[0]
     ch_names = evoked.ch_names
-    for ev in all_evoked[1:]:
+    for ii, ev in enumerate(all_evoked[1:]):
         if ev.ch_names != ch_names:
-            raise ValueError(
-                "%s and %s do not contain the same channels" % (evoked, ev))
+            if set(ev.ch_names) != set(ch_names):
+                raise ValueError(
+                    "%s and %s do not contain the same channels." % (evoked,
+                                                                     ev))
+            else:
+                warn("Order of channels differs, reordering channels ...")
+                ev = ev.copy()
+                ev.reorder_channels(ch_names)
+                all_evoked[ii + 1] = ev
         if not np.max(np.abs(ev.times - evoked.times)) < 1e-7:
             raise ValueError("%s and %s do not contain the same time instants"
                              % (evoked, ev))
+    return all_evoked
 
 
 def combine_evoked(all_evoked, weights):
     """Merge evoked data by weighted addition or subtraction.
 
     Data should have the same channels and the same time instants.
-    Subtraction can be performed by passing negative weights (e.g., [1, -1]).
+    Subtraction can be performed by calling
+    ``combine_evoked([evoked1, -evoked2], 'equal')``
+
+    .. Warning::
+        If you provide an array of weights instead of using `'equal'` or
+        `'nave'`, strange things may happen with your resulting signal
+        amplitude and/or `.nave` attribute.
 
     Parameters
     ----------
@@ -862,44 +863,45 @@ def combine_evoked(all_evoked, weights):
     -----
     .. versionadded:: 0.9.0
     """
-    evoked = all_evoked[0].copy()
-    if isinstance(weights, string_types):
-        if weights not in ('nave', 'equal'):
-            raise ValueError('weights must be a list of float, or "nave" or '
-                             '"equal"')
+    naves = np.array([evk.nave for evk in all_evoked], float)
+    if isinstance(weights, str):
+        _check_option('weights', weights, ['nave', 'equal'])
         if weights == 'nave':
-            weights = np.array([e.nave for e in all_evoked], float)
-            weights /= weights.sum()
-        else:  # == 'equal'
-            weights = [1. / len(all_evoked)] * len(all_evoked)
-    weights = np.array(weights, float)
+            weights = naves / naves.sum()
+        else:
+            weights = np.ones_like(naves)
+    else:
+        weights = np.array(weights, float)
+
     if weights.ndim != 1 or weights.size != len(all_evoked):
         raise ValueError('weights must be the same size as all_evoked')
 
-    _check_evokeds_ch_names_times(all_evoked)
+    # cf. https://en.wikipedia.org/wiki/Weighted_arithmetic_mean, section on
+    # how variances change when summing Gaussian random variables. The variance
+    # of a weighted sample mean is:
+    #
+    #    σ² = w₁² σ₁² + w₂² σ₂² + ... + wₙ² σₙ²
+    #
+    # We estimate the variance of each evoked instance as 1 / nave to get:
+    #
+    #    σ² = w₁² / nave₁ + w₂² / nave₂ + ... + wₙ² / naveₙ
+    #
+    # And our resulting nave is the reciprocal of this:
+    new_nave = 1. / np.sum(weights ** 2 / naves)
+    # This general formula is equivalent to formulae in Matti's manual
+    # (pp 128-129), where:
+    # new_nave = sum(naves) when weights='nave' and
+    # new_nave = 1. / sum(1. / naves) when weights='equal'
+
+    all_evoked = _check_evokeds_ch_names_times(all_evoked)
+    evoked = all_evoked[0].copy()
 
     # use union of bad channels
     bads = list(set(evoked.info['bads']).union(*(ev.info['bads']
                                                  for ev in all_evoked[1:])))
     evoked.info['bads'] = bads
-
     evoked.data = sum(w * e.data for w, e in zip(weights, all_evoked))
-    # We should set nave based on how variances change when summing Gaussian
-    # random variables. From:
-    #
-    #    https://en.wikipedia.org/wiki/Weighted_arithmetic_mean
-    #
-    # We know that the variance of a weighted sample mean is:
-    #
-    #    σ^2 = w_1^2 σ_1^2 + w_2^2 σ_2^2 + ... + w_n^2 σ_n^2
-    #
-    # We estimate the variance of each evoked instance as 1 / nave to get:
-    #
-    #    σ^2 = w_1^2 / nave_1 + w_2^2 / nave_2 + ... + w_n^2 / nave_n
-    #
-    # And our resulting nave is the reciprocal of this:
-    evoked.nave = max(int(round(
-        1. / sum(w ** 2 / e.nave for w, e in zip(weights, all_evoked)))), 1)
+    evoked.nave = new_nave
     evoked.comment = ' + '.join('%0.3f * %s' % (w, e.comment or 'unknown')
                                 for w, e in zip(weights, all_evoked))
     return evoked
@@ -912,7 +914,7 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The file name, which should end with -ave.fif or -ave.fif.gz.
     condition : int or str | list of int or str | None
         The index or list of indices of the evoked dataset to read. FIF files
@@ -937,15 +939,13 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         generally not be loaded directly, but should first be processed using
         SSS/tSSS to remove the compensation signals that may also affect brain
         activity. Can also be "yes" to load without eliciting a warning.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
-    evoked : Evoked (if condition is int or str) or list of Evoked (if
-        condition is None or list)
-        The evoked dataset(s).
+    evoked : Evoked or list of Evoked
+        The evoked dataset(s); one Evoked if condition is int or str,
+        or list of Evoked if condition is None or list.
 
     See Also
     --------
@@ -990,7 +990,7 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
             raise ValueError('Could not find evoked data')
 
         # find string-based entry
-        if isinstance(condition, string_types):
+        if isinstance(condition, str):
             if kind not in _aspect_dict.keys():
                 raise ValueError('kind must be "average" or '
                                  '"standard_error"')
@@ -1010,7 +1010,7 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
                 _, _, conditions = _get_entries(fid, evoked_node,
                                                 allow_maxshield)
                 raise TypeError("Evoked file has more than one "
-                                "conditions, the condition parameters "
+                                "condition, the condition parameters "
                                 "must be specified from:\n%s" % conditions)
             else:
                 condition = 0
@@ -1111,22 +1111,20 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
             data = np.concatenate([e.data[None, :] for e in epoch], axis=0)
         data = data.astype(np.float)
 
-        if first is not None:
+        if first_time is not None and nsamp is not None:
+            times = first_time + np.arange(nsamp) / info['sfreq']
+        elif first is not None:
             nsamp = last - first + 1
-        elif first_time is not None:
-            first = int(round(first_time * info['sfreq']))
-            last = first + nsamp
+            times = np.arange(first, last + 1) / info['sfreq']
         else:
             raise RuntimeError('Could not read time parameters')
+        del first, last
         if nsamp is not None and data.shape[1] != nsamp:
             raise ValueError('Incorrect number of samples (%d instead of '
                              ' %d)' % (data.shape[1], nsamp))
-        nsamp = data.shape[1]
-        last = first + nsamp - 1
         logger.info('    Found the data of interest:')
         logger.info('        t = %10.2f ... %10.2f ms (%s)'
-                    % (1000 * first / info['sfreq'],
-                       1000 * last / info['sfreq'], comment))
+                    % (1000 * times[0], 1000 * times[-1], comment))
         if info['comps'] is not None:
             logger.info('        %d CTF compensation matrices available'
                         % len(info['comps']))
@@ -1139,8 +1137,7 @@ def _read_evoked(fname, condition=None, kind='average', allow_maxshield=False):
                      for k in range(info['nchan'])])
     data *= cals[:, np.newaxis]
 
-    times = np.arange(first, last + 1, dtype=np.float) / info['sfreq']
-    return info, nave, aspect_kind, first, last, comment, times, data
+    return info, nave, aspect_kind, comment, times, data
 
 
 def write_evokeds(fname, evoked):
@@ -1148,7 +1145,7 @@ def write_evokeds(fname, evoked):
 
     Parameters
     ----------
-    fname : string
+    fname : str
         The file name, which should end with -ave.fif or -ave.fif.gz.
     evoked : Evoked instance, or list of Evoked instances
         The evoked dataset, or list of evoked datasets, to save in one file.
@@ -1171,6 +1168,7 @@ def _write_evokeds(fname, evoked, check=True):
     if not isinstance(evoked, list):
         evoked = [evoked]
 
+    warned = False
     # Create the file and save the essentials
     with start_file(fname) as fid:
 
@@ -1191,19 +1189,29 @@ def _write_evokeds(fname, evoked, check=True):
             if e.comment is not None and len(e.comment) > 0:
                 write_string(fid, FIFF.FIFF_COMMENT, e.comment)
 
-            # First and last sample
+            # First time, num. samples, first and last sample
+            write_float(fid, FIFF.FIFF_FIRST_TIME, e.times[0])
+            write_int(fid, FIFF.FIFF_NO_SAMPLES, len(e.times))
             write_int(fid, FIFF.FIFF_FIRST_SAMPLE, e.first)
             write_int(fid, FIFF.FIFF_LAST_SAMPLE, e.last)
 
             # The epoch itself
             if e.info.get('maxshield'):
-                aspect = FIFF.FIFFB_SMSH_ASPECT
+                aspect = FIFF.FIFFB_IAS_ASPECT
             else:
                 aspect = FIFF.FIFFB_ASPECT
             start_block(fid, aspect)
 
             write_int(fid, FIFF.FIFF_ASPECT_KIND, e._aspect_kind)
-            write_int(fid, FIFF.FIFF_NAVE, e.nave)
+            # convert nave to integer to comply with FIFF spec
+            nave_int = int(round(e.nave))
+            if nave_int != e.nave and not warned:
+                warn('converting "nave" to integer before saving evoked; this '
+                     'can have a minor effect on the scale of source '
+                     'estimates that are computed using "nave".')
+                warned = True
+            write_int(fid, FIFF.FIFF_NAVE, nave_int)
+            del nave_int
 
             decal = np.zeros((e.info['nchan'], 1))
             for k in range(e.info['nchan']):
@@ -1250,11 +1258,7 @@ def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
     max_amp : float
         Amplitude of the maximum response.
     """
-    modes = ('abs', 'neg', 'pos')
-    if mode not in modes:
-        raise ValueError('The `mode` parameter must be `{modes}`. You gave '
-                         'me `{mode}`'.format(modes='` or `'.join(modes),
-                                              mode=mode))
+    _check_option('mode', mode, ['abs', 'neg', 'pos'])
 
     if tmin is None:
         tmin = times[0]
@@ -1263,10 +1267,10 @@ def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
 
     if tmin < times.min():
         raise ValueError('The tmin value is out of bounds. It must be '
-                         'within {0} and {1}'.format(times.min(), times.max()))
+                         'within {} and {}'.format(times.min(), times.max()))
     if tmax > times.max():
         raise ValueError('The tmax value is out of bounds. It must be '
-                         'within {0} and {1}'.format(times.min(), times.max()))
+                         'within {} and {}'.format(times.min(), times.max()))
     if tmin > tmax:
         raise ValueError('The tmin must be smaller or equal to tmax')
 

@@ -32,7 +32,6 @@ Most-used classes
 
 .. autosummary::
    :toctree: generated/
-   :template: class.rst
 
    io.Raw
    Epochs
@@ -51,31 +50,31 @@ Reading raw data
    :no-inherited-members:
 
 .. autosummary::
-  :toctree: generated/
-  :template: function.rst
+   :toctree: generated/
 
-  anonymize_info
-  find_edf_events
-  read_events_eeglab
-  read_annotations_eeglab
-  read_raw_artemis123
-  read_raw_bti
-  read_raw_cnt
-  read_raw_ctf
-  read_raw_edf
-  read_raw_kit
-  read_raw_nicolet
-  read_raw_eeglab
-  read_raw_brainvision
-  read_raw_egi
-  read_raw_fif
-  read_raw_eximia
+   anonymize_info
+   read_raw_artemis123
+   read_raw_bti
+   read_raw_cnt
+   read_raw_ctf
+   read_raw_curry
+   read_raw_edf
+   read_raw_bdf
+   read_raw_gdf
+   read_raw_kit
+   read_raw_nicolet
+   read_raw_nirx
+   read_raw_eeglab
+   read_raw_brainvision
+   read_raw_egi
+   read_raw_fif
+   read_raw_eximia
+   read_raw_fieldtrip
 
 Base class:
 
 .. autosummary::
    :toctree: generated
-   :template: class.rst
 
    BaseRaw
 
@@ -88,8 +87,7 @@ Base class:
    :no-inherited-members:
 
 .. autosummary::
-  :toctree: generated/
-  :template: function.rst
+   :toctree: generated/
 
    read_mrk
 
@@ -100,9 +98,9 @@ File I/O
 
 .. autosummary::
    :toctree: generated
-   :template: function.rst
 
-   decimate_surface
+   channel_type
+   channel_indices_by_type
    get_head_surf
    get_meg_helmet_surf
    get_volume_labels_from_aseg
@@ -116,8 +114,10 @@ File I/O
    read_epochs
    read_epochs_kit
    read_epochs_eeglab
+   read_epochs_fieldtrip
    read_events
    read_evokeds
+   read_evoked_fieldtrip
    read_forward_solution
    read_label
    read_morph_map
@@ -129,7 +129,6 @@ File I/O
    read_surface
    read_trans
    read_tri
-   save_stc_as_volume
    write_labels_to_annot
    write_bem_solution
    write_bem_surfaces
@@ -142,6 +141,7 @@ File I/O
    write_source_spaces
    write_surface
    write_trans
+   what
    io.read_info
    io.show_fiff
 
@@ -149,7 +149,6 @@ Base class:
 
 .. autosummary::
    :toctree: generated
-   :template: class.rst
 
    BaseEpochs
 
@@ -160,19 +159,11 @@ Creating data objects from arrays
 
 .. autosummary::
    :toctree: generated/
-   :template: class.rst
 
    EvokedArray
    EpochsArray
    io.RawArray
-
-.. currentmodule:: mne
-
-.. autosummary::
-  :toctree: generated/
-  :template: function.rst
-
-  create_info
+   create_info
 
 
 Datasets
@@ -188,20 +179,25 @@ Datasets
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    brainstorm.bst_auditory.data_path
    brainstorm.bst_resting.data_path
    brainstorm.bst_raw.data_path
    eegbci.load_data
+   eegbci.standardize
+   fetch_aparc_sub_parcellation
+   fetch_fsaverage
    fetch_hcp_mmp_parcellation
+   fnirs_motor.data_path
    hf_sef.data_path
    kiloword.data_path
-   megsim.data_path
-   megsim.load_data
+   limo.load_data
    misc.data_path
    mtrf.data_path
    multimodal.data_path
+   opm.data_path
+   sleep_physionet.age.fetch_data
+   sleep_physionet.temazepam.fetch_data
    sample.data_path
    somato.data_path
    spm_face.data_path
@@ -222,19 +218,14 @@ Visualization
 
 .. autosummary::
    :toctree: generated/
-   :template: class.rst
 
    ClickableImage
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
    add_background_image
    compare_fiff
    circular_layout
    mne_analyze_colormap
    plot_bem
+   plot_brain_colorbar
    plot_connectivity_circle
    plot_cov
    plot_csd
@@ -266,8 +257,11 @@ Visualization
    plot_raw
    plot_raw_psd
    plot_sensors
+   plot_sensors_connectivity
    plot_snr_estimate
    plot_source_estimates
+   link_brains
+   plot_volume_source_estimates
    plot_vector_source_estimates
    plot_sparse_source_estimates
    plot_tfr_topomap
@@ -275,6 +269,13 @@ Visualization
    plot_topomap
    plot_alignment
    snapshot_brain_montage
+   plot_arrowmap
+   set_3d_backend
+   get_3d_backend
+   use_3d_backend
+   set_3d_view
+   set_3d_title
+   create_3d_figure
 
 
 Preprocessing
@@ -286,14 +287,8 @@ Projections:
 
 .. autosummary::
    :toctree: generated/
-   :template: class.rst
 
    Projection
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
    compute_proj_epochs
    compute_proj_evoked
    compute_proj_raw
@@ -310,20 +305,22 @@ Projections:
 
 .. autosummary::
    :toctree: generated/
-   :template: class.rst
 
    Layout
-   Montage
    DigMontage
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
    fix_mag_coil_types
-   read_montage
+   read_polhemus_fastscan
    get_builtin_montages
-   read_dig_montage
+   make_dig_montage
+   read_dig_polhemus_isotrak
+   read_dig_captrack
+   read_dig_dat
+   read_dig_egi
+   read_dig_fif
+   read_dig_hpts
+   make_standard_montage
+   read_custom_montage
+   compute_dev_head_t
    read_layout
    find_layout
    make_eeg_layout
@@ -333,6 +330,7 @@ Projections:
    equalize_channels
    rename_channels
    generate_2d_layout
+   make_1020_channel_selections
 
 :py:mod:`mne.preprocessing`:
 
@@ -344,30 +342,49 @@ Projections:
 
 .. autosummary::
    :toctree: generated/
-   :template: class.rst
 
    ICA
    Xdawn
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
+   annotate_movement
+   annotate_muscle_zscore
+   compute_average_dev_head_t
+   compute_current_source_density
    compute_proj_ecg
    compute_proj_eog
    create_ecg_epochs
    create_eog_epochs
+   find_bad_channels_maxwell
    find_ecg_events
    find_eog_events
    fix_stim_artifact
    ica_find_ecg_events
    ica_find_eog_events
    infomax
+   mark_flat
    maxwell_filter
    oversampled_temporal_projection
+   peak_finder
    read_ica
-   run_ica
    corrmap
+   read_ica_eeglab
+
+:py:mod:`mne.preprocessing.nirs`:
+
+.. currentmodule:: mne.preprocessing.nirs
+
+.. automodule:: mne.preprocessing.nirs
+   :no-members:
+   :no-inherited-members:
+
+.. autosummary::
+   :toctree: generated/
+
+   optical_density
+   beer_lambert_law
+   source_detector_distances
+   short_channels
+   scalp_coupling_index
+   temporal_derivative_distribution_repair
 
 EEG referencing:
 
@@ -375,7 +392,6 @@ EEG referencing:
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    add_reference_channels
    set_bipolar_reference
@@ -391,7 +407,6 @@ EEG referencing:
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    construct_iir_filter
    create_filter
@@ -410,8 +425,11 @@ EEG referencing:
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
+   compute_chpi_amplitudes
+   compute_chpi_locs
+   compute_head_pos
+   extract_chpi_locs_ctf
    filter_chpi
    head_pos_to_trans_rot_t
    read_head_pos
@@ -427,16 +445,11 @@ EEG referencing:
 
 .. autosummary::
    :toctree: generated/
-   :template: class.rst
 
    Transform
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
    quat_to_rot
    rot_to_quat
+   read_ras_mni_t
 
 Events
 ======
@@ -445,19 +458,14 @@ Events
 
 .. autosummary::
    :toctree: generated/
-   :template: class.rst
 
    Annotations
    AcqParserFIF
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
    concatenate_events
    find_events
    find_stim_steps
    make_fixed_length_events
+   make_fixed_length_epochs
    merge_events
    parse_config
    pick_events
@@ -465,6 +473,8 @@ Events
    read_events
    write_events
    concatenate_epochs
+   events_from_annotations
+   annotations_from_events
 
 :py:mod:`mne.event`:
 
@@ -475,10 +485,10 @@ Events
 .. currentmodule:: mne.event
 
 .. autosummary::
-  :toctree: generated/
-  :template: function.rst
+   :toctree: generated/
 
    define_target_events
+   shift_time_events
 
 :py:mod:`mne.epochs`:
 
@@ -490,7 +500,6 @@ Events
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    add_channels_epochs
    average_movements
@@ -505,7 +514,6 @@ Sensor Space Data
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    combine_evoked
    concatenate_raws
@@ -531,18 +539,14 @@ Covariance computation
 
 .. autosummary::
    :toctree: generated/
-   :template: class.rst
 
    Covariance
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
    compute_covariance
    compute_raw_covariance
-   cov.regularize
    cov.compute_whitener
+   cov.prepare_noise_cov
+   cov.regularize
+   compute_rank
    make_ad_hoc_cov
    read_cov
    write_cov
@@ -556,14 +560,14 @@ MRI Processing
 Step by step instructions for using :func:`gui.coregistration`:
 
  - `Coregistration for subjects with structural MRI
-   <http://www.slideshare.net/mne-python/mnepython-coregistration>`_
+   <https://www.slideshare.net/mne-python/mnepython-coregistration>`_
  - `Scaling a template MRI for subjects for which no MRI is available
-   <http://www.slideshare.net/mne-python/mnepython-scale-mri>`_
+   <https://www.slideshare.net/mne-python/mnepython-scale-mri>`_
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
+   coreg.get_mni_fiducials
    gui.coregistration
    gui.fiducials
    create_default_subject
@@ -580,20 +584,18 @@ Forward Modeling
 
 .. autosummary::
    :toctree: generated/
-   :template: class.rst
 
    Forward
    SourceSpaces
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
    add_source_space_distances
    apply_forward
    apply_forward_raw
    average_forward_solutions
    convert_forward_solution
+   decimate_surface
+   dig_mri_distances
+   forward.compute_depth_prior
+   forward.compute_orient_prior
    forward.restrict_forward_to_label
    forward.restrict_forward_to_stc
    make_bem_model
@@ -612,6 +614,7 @@ Forward Modeling
    setup_source_space
    setup_volume_source_space
    surface.complete_surface_info
+   use_coil_def
    write_bem_surfaces
    write_trans
 
@@ -625,14 +628,8 @@ Forward Modeling
 
 .. autosummary::
    :toctree: generated/
-   :template: class.rst
 
    ConductorModel
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
    fit_sphere_to_headshape
    get_fitting_dig
    make_watershed_bem
@@ -653,15 +650,10 @@ Inverse Solutions
 
 .. autosummary::
    :toctree: generated/
-   :template: class.rst
 
    InverseOperator
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
    apply_inverse
+   apply_inverse_cov
    apply_inverse_epochs
    apply_inverse_raw
    compute_source_psd
@@ -674,8 +666,10 @@ Inverse Solutions
    source_band_induced_power
    source_induced_power
    write_inverse_operator
-   point_spread_function
-   cross_talk_function
+   make_inverse_resolution_matrix
+   resolution_metrics
+   get_cross_talk
+   get_point_spread
 
 :py:mod:`mne.inverse_sparse`:
 
@@ -687,7 +681,6 @@ Inverse Solutions
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    mixed_norm
    tf_mixed_norm
@@ -704,15 +697,14 @@ Inverse Solutions
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
-   lcmv
-   lcmv_epochs
-   lcmv_raw
+   Beamformer
+   read_beamformer
    make_lcmv
    apply_lcmv
    apply_lcmv_epochs
    apply_lcmv_raw
+   apply_lcmv_cov
    make_dics
    apply_dics
    apply_dics_csd
@@ -720,20 +712,15 @@ Inverse Solutions
    rap_music
    tf_dics
    tf_lcmv
+   make_lcmv_resolution_matrix
 
 .. currentmodule:: mne
 
 .. autosummary::
    :toctree: generated/
-   :template: class.rst
 
    Dipole
    DipoleFixed
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
    fit_dipole
 
 :py:mod:`mne.dipole`:
@@ -746,7 +733,6 @@ Inverse Solutions
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    get_phantom_dipoles
 
@@ -758,7 +744,6 @@ Source Space Data
 
 .. autosummary::
    :toctree: generated/
-   :template: class.rst
 
    BiHemiLabel
    Label
@@ -766,26 +751,25 @@ Source Space Data
    SourceEstimate
    VectorSourceEstimate
    VolSourceEstimate
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
+   VolVectorSourceEstimate
+   SourceMorph
+   compute_source_morph
    head_to_mni
-   compute_morph_matrix
+   head_to_mri
    extract_label_time_course
    grade_to_tris
    grade_to_vertices
+   label.select_sources
    grow_labels
    label_sign_flip
-   morph_data
-   morph_data_precomputed
+   labels_to_stc
+   morph_labels
    random_parcellation
    read_labels_from_annot
    read_dipole
    read_label
    read_source_estimate
-   save_stc_as_volume
+   read_source_morph
    split_label
    stc_to_label
    transform_surface_to
@@ -807,7 +791,6 @@ Time-Frequency
 
 .. autosummary::
    :toctree: generated/
-   :template: class.rst
 
    AverageTFR
    EpochsTFR
@@ -817,7 +800,6 @@ Functions that operate on mne-python objects:
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    csd_fourier
    csd_multitaper
@@ -837,7 +819,6 @@ Functions that operate on ``np.ndarray`` objects:
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    csd_array_fourier
    csd_array_multitaper
@@ -864,7 +845,6 @@ Functions that operate on ``np.ndarray`` objects:
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    cwt
    morlet
@@ -883,11 +863,12 @@ Connectivity Estimation
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
+   degree
+   envelope_correlation
+   phase_slope_index
    seed_target_indices
    spectral_connectivity
-   phase_slope_index
 
 
 .. _api_reference_statistics:
@@ -908,7 +889,6 @@ options):
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    ttest_1samp_no_p
    f_oneway
@@ -921,7 +901,6 @@ Mass-univariate multiple comparison correction:
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    bonferroni_correction
    fdr_correction
@@ -930,7 +909,6 @@ Non-parametric (clustering) resampling methods:
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    permutation_cluster_test
    permutation_cluster_1samp_test
@@ -938,6 +916,7 @@ Non-parametric (clustering) resampling methods:
    spatio_temporal_cluster_test
    spatio_temporal_cluster_1samp_test
    summarize_clusters_stc
+   bootstrap_confidence_interval
 
 Compute ``connectivity`` matrices for cluster-level statistics:
 
@@ -945,7 +924,6 @@ Compute ``connectivity`` matrices for cluster-level statistics:
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    channels.find_ch_connectivity
    channels.read_ch_connectivity
@@ -971,14 +949,17 @@ Simulation
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
+   add_chpi
+   add_ecg
+   add_eog
+   add_noise
    simulate_evoked
    simulate_raw
    simulate_stc
    simulate_sparse_stc
    select_source_in_label
-
+   SourceSimulator
 
 .. _api_decoding:
 
@@ -993,7 +974,6 @@ Decoding
 
 .. autosummary::
    :toctree: generated/
-   :template: class.rst
 
    CSP
    EMS
@@ -1015,7 +995,6 @@ Functions that assist with decoding and model fitting:
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    compute_ems
    cross_val_multiscore
@@ -1025,40 +1004,20 @@ Functions that assist with decoding and model fitting:
 Realtime
 ========
 
-:py:mod:`mne.realtime`:
-
-.. automodule:: mne.realtime
-   :no-members:
-   :no-inherited-members:
-
-.. autosummary::
-   :toctree: generated/
-   :template: class.rst
-
-   RtEpochs
-   RtClient
-   MockRtClient
-   FieldTripClient
-   StimServer
-   StimClient
-
+Realtime functionality has moved to the standalone module :mod:`mne_realtime`.
 
 MNE-Report
 ==========
 
-:py:mod:`mne.report`:
+:py:mod:`mne`:
 
-.. currentmodule:: mne.report
-
-.. automodule:: mne.report
-   :no-members:
-   :no-inherited-members:
+.. currentmodule:: mne
 
 .. autosummary::
    :toctree: generated/
-   :template: class.rst
 
    Report
+   open_report
 
 
 Logging and Configuration
@@ -1068,7 +1027,6 @@ Logging and Configuration
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
    get_config_path
    get_config
@@ -1076,8 +1034,23 @@ Logging and Configuration
    set_log_level
    set_log_file
    set_config
+   set_cache_dir
    sys_info
    verbose
+
+:py:mod:`mne.utils`:
+
+.. currentmodule:: mne.utils
+
+.. automodule:: mne.utils
+   :no-members:
+   :no-inherited-members:
+
+.. autosummary::
+   :toctree: generated/
+
+   deprecated
+   warn
 
 :py:mod:`mne.cuda`:
 
@@ -1089,6 +1062,7 @@ Logging and Configuration
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
 
+   get_cuda_memory
    init_cuda
+   set_cuda_device

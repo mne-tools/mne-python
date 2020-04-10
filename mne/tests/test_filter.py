@@ -1,33 +1,36 @@
 import os.path as op
-import warnings
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
-                           assert_array_equal, assert_allclose)
-from nose.tools import assert_equal, assert_true, assert_raises
+                           assert_array_equal, assert_allclose,
+                           assert_array_less)
 import pytest
-from scipy.signal import resample as sp_resample, butter
-from scipy.fftpack import fft, fftfreq
+from scipy.signal import resample as sp_resample, butter, freqz, sosfreqz
 
 from mne import create_info
+from mne.fixes import fft, fftfreq
 from mne.io import RawArray, read_raw_fif
+from mne.io.pick import _DATA_CH_TYPES_SPLIT
 from mne.filter import (filter_data, resample, _resample_stim_channels,
                         construct_iir_filter, notch_filter, detrend,
                         _overlap_add_filter, _smart_pad, design_mne_c_filter,
-                        estimate_ringing_samples, create_filter, _Interp2,
-                        _Storer, _COLA)
+                        estimate_ringing_samples, create_filter)
 
 from mne.utils import (sum_squared, run_tests_if_main,
-                       catch_logging, requires_version, _TempDir,
-                       requires_mne, run_subprocess)
+                       catch_logging, requires_mne, run_subprocess)
 
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
+
+def test_filter_array():
+    """Test filtering an array."""
+    for data in (np.zeros((11, 1, 10)), np.zeros((9, 1, 10))):
+        filter_data(data, 512., 8, 12, method='iir',
+                    iir_params=dict(ftype='butterworth', order=2))
 
 
 @requires_mne
-def test_mne_c_design():
+def test_mne_c_design(tmpdir):
     """Test MNE-C filter design."""
-    tempdir = _TempDir()
+    tempdir = str(tmpdir)
     temp_fname = op.join(tempdir, 'test_raw.fif')
     out_fname = op.join(tempdir, 'test_c_raw.fif')
     x = np.zeros((1, 10001))
@@ -55,7 +58,6 @@ def test_mne_c_design():
     assert_allclose(h, h_c, **tols)
 
 
-@requires_version('scipy', '0.16')
 def test_estimate_ringing():
     """Test our ringing estimation function."""
     # Actual values might differ based on system, so let's be approximate
@@ -65,12 +67,11 @@ def test_estimate_ringing():
                              (0.001, (3000, 6000)),  # 4758
                              (0.0001, (30000, 60000))):  # 37993
             n_ring = estimate_ringing_samples(butter(3, thresh, output=kind))
-            assert_true(lims[0] <= n_ring <= lims[1],
-                        msg='%s %s: %s <= %s <= %s'
-                        % (kind, thresh, lims[0], n_ring, lims[1]))
-    with warnings.catch_warnings(record=True) as w:
-        assert_equal(estimate_ringing_samples(butter(4, 0.00001)), 100000)
-    assert_true(any('properly estimate' in str(ww.message) for ww in w))
+            assert lims[0] <= n_ring <= lims[1], (
+                '%s %s: %s <= %s <= %s'
+                % (kind, thresh, lims[0], n_ring, lims[1]))
+    with pytest.warns(RuntimeWarning, match='properly estimate'):
+        assert estimate_ringing_samples(butter(4, 0.00001)) == 100000
 
 
 def test_1d_filter():
@@ -93,7 +94,7 @@ def test_1d_filter():
                     if phase == 'zero':
                         # only allow zero-phase for odd-length filters
                         if n_filter % 2 == 0:
-                            assert_raises(RuntimeError, _overlap_add_filter,
+                            pytest.raises(RuntimeError, _overlap_add_filter,
                                           x[np.newaxis], h, phase=phase)
                             continue
                         shift = (len(h) - 1) // 2
@@ -112,7 +113,7 @@ def test_1d_filter():
                     # remove padding
                     if n_pad > 0:
                         x_expected = x_expected[n_pad:len(x_expected) - n_pad]
-                    assert_equal(len(x_expected), len(x))
+                    assert len(x_expected) == len(x)
                     # make sure we actually set things up reasonably
                     if filter_type == 'identity':
                         out = x_pad.copy()
@@ -120,9 +121,9 @@ def test_1d_filter():
                         out = out[:len(x)]
                         out = np.concatenate((out, np.zeros(max(len(x) -
                                                                 len(out), 0))))
-                        assert_equal(len(out), len(x))
+                        assert len(out) == len(x)
                         assert_allclose(out, x_expected)
-                    assert_equal(len(x_expected), len(x))
+                    assert len(x_expected) == len(x)
 
                     # compute our version
                     for n_fft in (None, 32, 128, 129, 1023, 1024, 1025, 2048):
@@ -132,7 +133,7 @@ def test_1d_filter():
                         if phase == 'zero-double':
                             min_fft = 2 * min_fft - 1
                         if n_fft is not None and n_fft < min_fft:
-                            assert_raises(ValueError, _overlap_add_filter,
+                            pytest.raises(ValueError, _overlap_add_filter,
                                           x_copy, h, n_fft, phase=phase)
                         else:
                             x_filtered = _overlap_add_filter(
@@ -140,48 +141,47 @@ def test_1d_filter():
                             assert_allclose(x_filtered, x_expected, atol=1e-13)
 
 
-@requires_version('scipy', '0.16')
 def test_iir_stability():
     """Test IIR filter stability check."""
-    sig = np.empty(1000)
+    sig = np.random.RandomState(0).rand(1000)
     sfreq = 1000
     # This will make an unstable filter, should throw RuntimeError
-    assert_raises(RuntimeError, filter_data, sig, sfreq, 0.6, None,
+    pytest.raises(RuntimeError, filter_data, sig, sfreq, 0.6, None,
                   method='iir', iir_params=dict(ftype='butter', order=8,
                                                 output='ba'))
     # This one should work just fine
     filter_data(sig, sfreq, 0.6, None, method='iir',
                 iir_params=dict(ftype='butter', order=8, output='sos'))
     # bad system type
-    assert_raises(ValueError, filter_data, sig, sfreq, 0.6, None, method='iir',
+    pytest.raises(ValueError, filter_data, sig, sfreq, 0.6, None, method='iir',
                   iir_params=dict(ftype='butter', order=8, output='foo'))
     # missing ftype
-    assert_raises(RuntimeError, filter_data, sig, sfreq, 0.6, None,
+    pytest.raises(RuntimeError, filter_data, sig, sfreq, 0.6, None,
                   method='iir', iir_params=dict(order=8, output='sos'))
     # bad ftype
-    assert_raises(RuntimeError, filter_data, sig, sfreq, 0.6, None,
+    pytest.raises(RuntimeError, filter_data, sig, sfreq, 0.6, None,
                   method='iir',
                   iir_params=dict(order=8, ftype='foo', output='sos'))
     # missing gstop
-    assert_raises(RuntimeError, filter_data, sig, sfreq, 0.6, None,
+    pytest.raises(RuntimeError, filter_data, sig, sfreq, 0.6, None,
                   method='iir', iir_params=dict(gpass=0.5, output='sos'))
     # can't pass iir_params if method='fft'
-    assert_raises(ValueError, filter_data, sig, sfreq, 0.1, None,
+    pytest.raises(ValueError, filter_data, sig, sfreq, 0.1, None,
                   method='fft', iir_params=dict(ftype='butter', order=2,
                                                 output='sos'))
     # method must be string
-    assert_raises(TypeError, filter_data, sig, sfreq, 0.1, None,
+    pytest.raises(TypeError, filter_data, sig, sfreq, 0.1, None,
                   method=1)
     # unknown method
-    assert_raises(ValueError, filter_data, sig, sfreq, 0.1, None,
+    pytest.raises(ValueError, filter_data, sig, sfreq, 0.1, None,
                   method='blah')
     # bad iir_params
-    assert_raises(TypeError, filter_data, sig, sfreq, 0.1, None,
+    pytest.raises(TypeError, filter_data, sig, sfreq, 0.1, None,
                   method='iir', iir_params='blah')
-    assert_raises(ValueError, filter_data, sig, sfreq, 0.1, None,
-                  method='fft', iir_params=dict())
+    pytest.raises(ValueError, filter_data, sig, sfreq, 0.1, None,
+                  method='fir', iir_params=dict())
 
-    # should pass because dafault trans_bandwidth is not relevant
+    # should pass because default trans_bandwidth is not relevant
     iir_params = dict(ftype='butter', order=2, output='sos')
     x_sos = filter_data(sig, 250, 0.5, None, method='iir',
                         iir_params=iir_params)
@@ -213,15 +213,15 @@ def test_notch_filters():
     a += np.sum([np.sin(2 * np.pi * f * t) for f in freqs], axis=0)
 
     # only allow None line_freqs with 'spectrum_fit' mode
-    assert_raises(ValueError, notch_filter, a, sfreq, None, 'fft')
-    assert_raises(ValueError, notch_filter, a, sfreq, None, 'iir')
+    pytest.raises(ValueError, notch_filter, a, sfreq, None, 'fft')
+    pytest.raises(ValueError, notch_filter, a, sfreq, None, 'iir')
     methods = ['spectrum_fit', 'spectrum_fit', 'fft', 'fft', 'iir']
     filter_lengths = ['auto', 'auto', 'auto', 8192, 'auto']
     line_freqs = [None, freqs, freqs, freqs, freqs]
     tols = [2, 1, 1, 1]
     for meth, lf, fl, tol in zip(methods, line_freqs, filter_lengths, tols):
         with catch_logging() as log_file:
-            with warnings.catch_warnings(record=True):
+            with pytest.warns(None):
                 b = notch_filter(a, sfreq, lf, fl, method=meth,
                                  fir_design='firwin', verbose=True)
         if lf is None:
@@ -239,8 +239,8 @@ def test_resample():
     rng = np.random.RandomState(0)
     x = rng.normal(0, 1, (10, 10, 10))
     x_rs = resample(x, 1, 2, 10)
-    assert_equal(x.shape, (10, 10, 10))
-    assert_equal(x_rs.shape, (10, 10, 5))
+    assert x.shape == (10, 10, 10)
+    assert x_rs.shape == (10, 10, 5)
 
     x_2 = x.swapaxes(0, 1)
     x_2_rs = resample(x_2, 1, 2, 10)
@@ -251,12 +251,41 @@ def test_resample():
     assert_array_equal(x_3_rs.swapaxes(0, 2), x_rs)
 
     # make sure we cast to array if necessary
-    assert_array_equal(resample([0, 0], 2, 1), [0., 0., 0., 0.])
+    assert_array_equal(resample([0., 0.], 2, 1), [0., 0., 0., 0.])
 
 
-def test_resample_stim_channel():
+def test_resample_scipy():
+    """Test resampling against SciPy."""
+    n_jobs_test = (1, 'cuda')
+    for window in ('boxcar', 'hann'):
+        for N in (100, 101, 102, 103):
+            x = np.arange(N).astype(float)
+            err_msg = '%s: %s' % (N, window)
+            x_2_sp = sp_resample(x, 2 * N, window=window)
+            for n_jobs in n_jobs_test:
+                x_2 = resample(x, 2, 1, 0, window=window, n_jobs=n_jobs)
+                assert_allclose(x_2, x_2_sp, atol=1e-12, err_msg=err_msg)
+            new_len = int(round(len(x) * (1. / 2.)))
+            x_p5_sp = sp_resample(x, new_len, window=window)
+            for n_jobs in n_jobs_test:
+                x_p5 = resample(x, 1, 2, 0, window=window, n_jobs=n_jobs)
+                assert_allclose(x_p5, x_p5_sp, atol=1e-12, err_msg=err_msg)
+
+
+@pytest.mark.parametrize('n_jobs', (2, 'cuda'))
+def test_n_jobs(n_jobs):
+    """Test resampling against SciPy."""
+    x = np.random.RandomState(0).randn(4, 100)
+    y1 = resample(x, 2, 1, n_jobs=1)
+    y2 = resample(x, 2, 1, n_jobs=n_jobs)
+    assert_allclose(y1, y2)
+    y1 = filter_data(x, 100., 0, 40, n_jobs=1)
+    y2 = filter_data(x, 100., 0, 40, n_jobs=n_jobs)
+    assert_allclose(y1, y2)
+
+
+def test_resamp_stim_channel():
     """Test resampling of stim channels."""
-
     # Downsampling
     assert_array_equal(
         _resample_stim_channels([1, 0, 0, 0, 2, 0, 0, 0], 1, 2),
@@ -279,10 +308,19 @@ def test_resample_stim_channel():
     for new_data_len in (52598, 52599, 52600, 52601, 315599, 315600):
         new_data = _resample_stim_channels(data_chunk, new_data_len,
                                            data_chunk.shape[1])
-        assert_equal(new_data.shape[1], new_data_len)
+        assert new_data.shape[1] == new_data_len
 
 
-@requires_version('scipy', '0.16')
+def test_resample_raw():
+    """Test resampling using RawArray."""
+    x = np.zeros((1, 1001))
+    sfreq = 2048.
+    raw = RawArray(x, create_info(1, sfreq, 'eeg'))
+    raw.resample(128, npad=10)
+    data = raw.get_data()
+    assert data.shape == (1, 63)
+
+
 @pytest.mark.slowtest
 def test_filters():
     """Test low-, band-, high-pass, and band-stop filters plus resampling."""
@@ -294,33 +332,32 @@ def test_filters():
 
     # let's test our catchers
     for fl in ['blah', [0, 1], 1000.5, '10ss', '10']:
-        assert_raises(ValueError, filter_data, a, sfreq, 4, 8, None, fl,
+        pytest.raises(ValueError, filter_data, a, sfreq, 4, 8, None, fl,
                       1.0, 1.0, fir_design='firwin')
     for nj in ['blah', 0.5]:
-        assert_raises(ValueError, filter_data, a, sfreq, 4, 8, None, 1000,
+        pytest.raises(ValueError, filter_data, a, sfreq, 4, 8, None, 1000,
                       1.0, 1.0, n_jobs=nj, phase='zero', fir_design='firwin')
-    assert_raises(ValueError, filter_data, a, sfreq, 4, 8, None, 100,
+    pytest.raises(ValueError, filter_data, a, sfreq, 4, 8, None, 100,
                   1., 1., fir_window='foo')
-    assert_raises(ValueError, filter_data, a, sfreq, 4, 8, None, 10,
+    pytest.raises(ValueError, filter_data, a, sfreq, 4, 8, None, 10,
                   1., 1., fir_design='firwin')  # too short
     # > Nyq/2
-    assert_raises(ValueError, filter_data, a, sfreq, 4, sfreq / 2., None,
+    pytest.raises(ValueError, filter_data, a, sfreq, 4, sfreq / 2., None,
                   100, 1.0, 1.0, fir_design='firwin')
-    assert_raises(ValueError, filter_data, a, sfreq, -1, None, None,
+    pytest.raises(ValueError, filter_data, a, sfreq, -1, None, None,
                   100, 1.0, 1.0, fir_design='firwin')
     # these should work
+    create_filter(None, sfreq, None, None)
     create_filter(a, sfreq, None, None, fir_design='firwin')
     create_filter(a, sfreq, None, None, method='iir')
 
     # check our short-filter warning:
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='attenuation'):
         # Warning for low attenuation
         filter_data(a, sfreq, 1, 8, filter_length=256, fir_design='firwin2')
-    assert_true(any('attenuation' in str(ww.message) for ww in w))
-    with warnings.catch_warnings(record=True) as w:
+    with pytest.warns(RuntimeWarning, match='Increase filter_length'):
         # Warning for too short a filter
         filter_data(a, sfreq, 1, 8, filter_length='0.5s', fir_design='firwin2')
-    assert_true(any('Increase filter_length' in str(ww.message) for ww in w))
 
     # try new default and old default
     freqs = fftfreq(a.shape[-1], 1. / sfreq)
@@ -380,19 +417,19 @@ def test_filters():
     iir_params = dict(ftype='cheby1', gpass=1, gstop=20, output='ba')
     iir_params = construct_iir_filter(iir_params, 40, 80, 1000, 'low')
     # this should be a third order filter
-    assert_equal(iir_params['a'].size - 1, 3)
-    assert_equal(iir_params['b'].size - 1, 3)
+    assert iir_params['a'].size - 1 == 3
+    assert iir_params['b'].size - 1 == 3
     iir_params = dict(ftype='butter', order=4, output='ba')
     iir_params = construct_iir_filter(iir_params, 40, None, 1000, 'low')
-    assert_equal(iir_params['a'].size - 1, 4)
-    assert_equal(iir_params['b'].size - 1, 4)
-    iir_params = dict(ftype='cheby1', gpass=1, gstop=20, output='sos')
+    assert iir_params['a'].size - 1 == 4
+    assert iir_params['b'].size - 1 == 4
+    iir_params = dict(ftype='cheby1', gpass=1, gstop=20)
     iir_params = construct_iir_filter(iir_params, 40, 80, 1000, 'low')
     # this should be a third order filter, which requires 2 SOS ((2, 6))
-    assert_equal(iir_params['sos'].shape, (2, 6))
+    assert iir_params['sos'].shape == (2, 6)
     iir_params = dict(ftype='butter', order=4, output='sos')
     iir_params = construct_iir_filter(iir_params, 40, None, 1000, 'low')
-    assert_equal(iir_params['sos'].shape, (2, 6))
+    assert iir_params['sos'].shape == (2, 6)
 
     # check that picks work for 3d array with one channel and picks=[0]
     a = rng.randn(5 * sfreq, 5 * sfreq)
@@ -407,8 +444,8 @@ def test_filters():
 
     # check for n-dimensional case
     a = rng.randn(2, 2, 2, 2)
-    with warnings.catch_warnings(record=True):  # filter too long
-        assert_raises(ValueError, filter_data, a, sfreq, 4, 8,
+    with pytest.warns(RuntimeWarning, match='longer'):
+        pytest.raises(ValueError, filter_data, a, sfreq, 4, 8,
                       np.array([0, 1]), 100, 1.0, 1.0)
 
     # check corner case (#4693)
@@ -420,7 +457,7 @@ def test_filters():
 
 
 def test_filter_auto():
-    """Test filter auto parameters"""
+    """Test filter auto parameters."""
     # test that our overlap-add filtering doesn't introduce strange
     # artifacts (from mne_analyze mailing list 2015/06/25)
     N = 300
@@ -451,17 +488,17 @@ def test_filter_auto():
             assert_array_equal(x, x_filt)
 
     # degenerate conditions
-    assert_raises(ValueError, filter_data, x, -sfreq, 1, 10)
-    assert_raises(ValueError, filter_data, x, sfreq, 1, sfreq * 0.75)
-    assert_raises(TypeError, filter_data, x.astype(np.float32), sfreq, None,
-                  10, filter_length='auto', h_trans_bandwidth='auto', **kwargs)
+    pytest.raises(ValueError, filter_data, x, -sfreq, 1, 10)
+    pytest.raises(ValueError, filter_data, x, sfreq, 1, sfreq * 0.75)
+    with pytest.raises(ValueError, match='Data to be filtered must be real'):
+        filter_data(x.astype(np.float32), sfreq, None, 10)
+    with pytest.raises(ValueError, match='Data to be filtered must be real'):
+        filter_data(1j, 1000., None, 40.)
 
 
-def test_cuda():
-    """Test CUDA-based filtering"""
-    # NOTE: don't make test_cuda() the last test, or pycuda might spew
-    # some warnings about clean-up failing
-    # Also, using `n_jobs='cuda'` on a non-CUDA system should be fine,
+def test_cuda_fir():
+    """Test CUDA-based filtering."""
+    # Using `n_jobs='cuda'` on a non-CUDA system should be fine,
     # as it should fall back to using n_jobs=1.
     rng = np.random.RandomState(0)
     sfreq = 500
@@ -496,10 +533,13 @@ def test_cuda():
     # triage based on whether or not we actually expected to use CUDA
     from mne.cuda import _cuda_capable  # allow above funs to set it
     tot = 12 if _cuda_capable else 0
-    assert_true(sum(['Using CUDA for FFT FIR filtering' in o
-                     for o in out]) == tot)
+    assert sum(['Using CUDA for FFT FIR filtering' in o for o in out]) == tot
+    if not _cuda_capable:
+        pytest.skip('CUDA not enabled')
 
-    # check resampling
+
+def test_cuda_resampling():
+    """Test CUDA resampling."""
     for window in ('boxcar', 'triang'):
         for N in (997, 1000):  # one prime, one even
             a = rng.randn(2, N)
@@ -510,9 +550,7 @@ def test_cuda():
                               window=window)
                 assert_allclose(a1, a2, rtol=1e-7, atol=1e-14)
     assert_array_almost_equal(a1, a2, 14)
-    assert_array_equal(resample([0, 0], 2, 1, n_jobs='cuda'), [0., 0., 0., 0.])
-    assert_array_equal(resample(np.zeros(2, np.float32), 2, 1, n_jobs='cuda'),
-                       [0., 0., 0., 0.])
+    assert_array_equal(resample(np.zeros(2), 2, 1, n_jobs='cuda'), np.zeros(4))
 
 
 def test_detrend():
@@ -523,112 +561,183 @@ def test_detrend():
     assert_array_almost_equal(detrend(x, 0), np.zeros_like(x))
 
 
-def test_interp_2pt():
-    """Test our two-point interpolator."""
-    n_pts = 200
-    assert n_pts % 50 == 0
-    feeds = [  # test a bunch of feeds to make sure they don't break things
-        [n_pts],
-        [50] * (n_pts // 50),
-        [10] * (n_pts // 10),
-        [5] * (n_pts // 5),
-        [2] * (n_pts // 2),
-        [1] * n_pts,
+@pytest.mark.parametrize('output', ('ba', 'sos'))
+@pytest.mark.parametrize('ftype', ('butter', 'bessel', 'ellip'))
+@pytest.mark.parametrize('btype', ('lowpass', 'bandpass'))
+@pytest.mark.parametrize('order', (1, 4))
+def test_reporting_iir(ftype, btype, order, output):
+    """Test IIR filter reporting."""
+    fs = 1000.
+    l_freq = 1. if btype == 'bandpass' else None
+    iir_params = dict(ftype=ftype, order=order, output=output)
+    rs = 20 if order == 1 else 80
+    if ftype == 'ellip':
+        iir_params['rp'] = 3  # dB
+        iir_params['rs'] = rs  # attenuation
+        pass_tol = np.log10(iir_params['rp']) + 0.01
+    else:
+        pass_tol = 0.2
+    with catch_logging() as log:
+        x = create_filter(None, fs, l_freq, 40., method='iir',
+                          iir_params=iir_params, verbose=True)
+    order_eff = order * (1 + (btype == 'bandpass'))
+    if output == 'ba':
+        assert len(x['b']) == order_eff + 1
+    log = log.getvalue()
+    keys = [
+        'IIR',
+        'zero-phase',
+        'two-pass forward and reverse',
+        'non-causal',
+        btype,
+        ftype,
+        'Filter order %d' % (order_eff * 2,),
+        'Cutoff ' if btype == 'lowpass' else 'Cutoffs ',
     ]
+    dB_decade = -27.74
+    if ftype == 'ellip':
+        dB_cutoff = -6.0
+    elif order == 1 or ftype == 'butter':
+        dB_cutoff = -6.02
+    else:
+        assert ftype == 'bessel'
+        assert order == 4
+        dB_cutoff = -15.16
+    if btype == 'lowpass':
+        keys += ['%0.2f dB' % (dB_cutoff,)]
+    for key in keys:
+        assert key.lower() in log.lower()
+    # Verify some of the filter properties
+    if output == 'ba':
+        w, h = freqz(x['b'], x['a'], worN=10000)
+    else:
+        w, h = sosfreqz(x['sos'], worN=10000)
+    w *= fs / (2 * np.pi)
+    h = np.abs(h)
+    # passband
+    passes = [np.argmin(np.abs(w - 20))]
+    # stopband
+    decades = [np.argmin(np.abs(w - 400.))]  # one decade
+    # transition
+    edges = [np.argmin(np.abs(w - 40.))]
+    # put these where they belong based on filter type
+    assert w[0] == 0.
+    idx_0p1 = np.argmin(np.abs(w - 0.1))
+    idx_1 = np.argmin(np.abs(w - 1.))
+    if btype == 'bandpass':
+        edges += [idx_1]
+        decades += [idx_0p1]
+    else:
+        passes += [idx_0p1, idx_1]
 
-    # ZOH
-    values = np.array([10, -10])
-    expected = np.full(n_pts, 10)
-    for feed in feeds:
-        expected[-1] = 10
-        interp = _Interp2([0, n_pts], values, 'zero')
-        out = np.concatenate([interp.feed(f)[0] for f in feed])
-        assert_allclose(out, expected)
-        interp = _Interp2([0, n_pts - 1], values, 'zero')
-        expected[-1] = -10
-        out = np.concatenate([interp.feed(f)[0] for f in feed])
-        assert_allclose(out, expected)
-
-    # linear and inputs of different sizes
-    values = [np.arange(2)[:, np.newaxis, np.newaxis], np.array([20, 10])]
-    expected = [
-        np.linspace(0, 1, n_pts, endpoint=False)[np.newaxis, np.newaxis, :],
-        np.linspace(20, 10, n_pts, endpoint=False)]
-    for feed in feeds:
-        interp = _Interp2([0, n_pts], values, 'linear')
-        outs = [interp.feed(f) for f in feed]
-        outs = [np.concatenate([o[0] for o in outs], axis=-1),
-                np.concatenate([o[1] for o in outs], axis=-1)]
-        assert_allclose(outs[0], expected[0], atol=1e-7)
-        assert_allclose(outs[1], expected[1], atol=1e-7)
-
-    # cos**2 and more interesting bounds
-    values = np.array([10, -10])
-    expected = np.full(n_pts, 10.)
-    expected[-5:] = -10
-    cos = np.cos(np.linspace(0, np.pi / 2., n_pts - 9,
-                             endpoint=False))
-    expected[4:-5] = cos ** 2 * 20 - 10
-    for feed in feeds:
-        interp = _Interp2([4, n_pts - 5], values, 'cos2')
-        out = np.concatenate([interp.feed(f)[0] for f in feed])
-        assert_allclose(out, expected, atol=1e-7)
-    out = interp.feed(10)[0]
-    assert_allclose(out, [values[-1]] * 10, atol=1e-7)
-
-    # hann and broadcasting
-    n_hann = n_pts - 9
-    expected[4:-5] = np.hanning(2 * n_hann + 1)[n_hann:-1] * 20 - 10
-    expected = np.array([expected, expected[::-1] * 0.5])
-    values = np.array([values, values[::-1] * 0.5]).T
-    for feed in feeds:
-        interp = _Interp2([4, n_pts - 5], values, 'hann')
-        out = np.concatenate([interp.feed(f)[0] for f in feed], axis=-1)
-        assert_allclose(out, expected, atol=1e-7)
-
-    # one control point and None support
-    values = [np.array([10]), None]
-    for start in [0, 50, 99, 100, 1000]:
-        interp = _Interp2([start], values, 'zero')
-        out, none = interp.feed(n_pts)
-        assert none is None
-        expected = np.full(n_pts, 10.)
-        assert_allclose(out, expected)
+    edge_val = 10 ** (dB_cutoff / 40.)
+    assert_allclose(h[edges], edge_val, atol=0.01)
+    assert_allclose(h[passes], 1., atol=pass_tol)
+    if ftype == 'butter' and btype == 'lowpass':
+        attenuation = dB_decade * order
+        assert_allclose(h[decades], 10 ** (attenuation / 20.), rtol=0.01)
+    elif ftype == 'ellip':
+        assert_array_less(h[decades], 10 ** (-rs / 20))
 
 
-def test_cola():
-    """Test COLA processing."""
+@pytest.mark.parametrize('phase', ('zero', 'zero-double', 'minimum'))
+@pytest.mark.parametrize('fir_window', ('hamming', 'blackman'))
+@pytest.mark.parametrize('btype', ('lowpass', 'bandpass'))
+def test_reporting_fir(phase, fir_window, btype):
+    """Test FIR filter reporting."""
+    l_freq = 1. if btype == 'bandpass' else None
+    fs = 1000.
+    with catch_logging() as log:
+        x = create_filter(None, fs, l_freq, 40, method='fir',
+                          phase=phase, fir_window=fir_window, verbose=True)
+    n_taps = len(x)
+    log = log.getvalue()
+    keys = ['FIR',
+            btype,
+            fir_window.capitalize(),
+            'Filter length: %d samples' % (n_taps,),
+            'passband ripple',
+            'stopband attenuation',
+            ]
+    if phase == 'minimum':
+        keys += [' causal ']
+    else:
+        keys += [' non-causal ', ' dB cutoff frequency: 45.00 Hz']
+        if btype == 'bandpass':
+            keys += [' dB cutoff frequency: 0.50 Hz']
+    for key in keys:
+        assert key in log
+    if phase == 'zero':
+        assert '-6 dB cutoff' in log
+    elif phase == 'zero-double':
+        assert '-12 dB cutoff' in log
+    else:
+        # XXX Eventually we should figure out where the resulting point is,
+        # since the minimum-phase process will change it. For now we don't
+        # report it.
+        assert phase == 'minimum'
+    # Verify some of the filter properties
+    if phase == 'zero-double':
+        x = np.convolve(x, x)  # effectively what happens
+    w, h = freqz(x, worN=10000)
+    w *= fs / (2 * np.pi)
+    h = np.abs(h)
+    # passband
+    passes = [np.argmin(np.abs(w - f)) for f in (1, 20, 40)]
+    # stopband
+    stops = [np.argmin(np.abs(w - 50.))]
+    # transition
+    mids = [np.argmin(np.abs(w - 45.))]
+    # put these where they belong based on filter type
+    assert w[0] == 0.
+    idx_0 = 0
+    idx_0p5 = np.argmin(np.abs(w - 0.5))
+    if btype == 'bandpass':
+        stops += [idx_0]
+        mids += [idx_0p5]
+    else:
+        passes += [idx_0, idx_0p5]
+    assert_allclose(h[passes], 1., atol=0.01)
+    attenuation = -20 if phase == 'minimum' else -50
+    assert_allclose(h[stops], 0., atol=10 ** (attenuation / 20.))
+    if phase != 'minimum':  # haven't worked out the math for this yet
+        expected = 0.25 if phase == 'zero-double' else 0.5
+        assert_allclose(h[mids], expected, atol=0.01)
 
-    def processor(x):
-        return (x / 2.,)  # halve the signal
 
-    sfreq = 1000.
-    rng = np.random.RandomState(0)
-    for n_total in (999, 1000, 1001):
-        signal = rng.randn(1, n_total)
-        out = rng.randn(1, n_total)  # shouldn't matter
-        for n_samples in (99, 100, 101, 102,
-                          n_total - n_total // 2 + 1, n_total):
-            for window in ('hann', 'bartlett', 'boxcar', 'triang'):
-                # A few example COLA possibilities
-                n_overlaps = ()
-                if window in ('hann', 'bartlett') or n_samples % 2 == 0:
-                    n_overlaps += ((n_samples + 1) // 2,)
-                if window == 'boxcar':
-                    n_overlaps += (0,)
-                for n_overlap in n_overlaps:
-                    # can pass callable or ndarray
-                    for storer in (out, _Storer(out)):
-                        cola = _COLA(processor, storer, n_total, n_samples,
-                                     n_overlap, sfreq, window)
-                        n_input = 0
-                        # feed data in an annoying way
-                        while n_input < n_total:
-                            next_len = min(rng.randint(1, 30),
-                                           n_total - n_input)
-                            cola.feed(signal[:, n_input:n_input + next_len])
-                            n_input += next_len
-                        assert_allclose(out, signal / 2., atol=1e-7)
+def test_filter_picks():
+    """Test filter picking."""
+    data = np.random.RandomState(0).randn(3, 1000)
+    fs = 1000.
+    kwargs = dict(l_freq=None, h_freq=40.)
+    filt = filter_data(data, fs, **kwargs)
+    # don't include seeg or stim in this list because they are in the one below
+    # to ensure default cases are treated properly
+    for kind in ('eeg', 'grad', 'emg', 'misc'):
+        for picks in (None, [-2], kind, 'k'):
+            # With always at least one data channel
+            info = create_info(['s', 'k', 't'], fs, ['seeg', kind, 'stim'])
+            raw = RawArray(data.copy(), info)
+            raw.filter(picks=picks, **kwargs)
+            if picks is None:
+                if kind in _DATA_CH_TYPES_SPLIT:  # should be included
+                    want = np.concatenate((filt[:2], data[2:]))
+                else:  # shouldn't
+                    want = np.concatenate((filt[:1], data[1:]))
+            else:  # just the kind of interest ([-2], kind, 'j' should be eq.)
+                want = np.concatenate((data[:1], filt[1:2], data[2:]))
+            assert_allclose(raw.get_data(), want)
+
+            # Now with sometimes no data channels
+            info = create_info(['k', 't'], fs, [kind, 'stim'])
+            raw = RawArray(data[1:].copy(), info.copy())
+            if picks is None and kind not in _DATA_CH_TYPES_SPLIT:
+                with pytest.raises(ValueError, match='yielded no channels'):
+                    raw.filter(picks=picks, **kwargs)
+            else:
+                raw.filter(picks=picks, **kwargs)
+                want = want[1:]
+                assert_allclose(raw.get_data(), want)
 
 
 run_tests_if_main()

@@ -1,5 +1,5 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
@@ -13,10 +13,9 @@ import numpy as np
 from scipy import linalg, sparse
 
 from .constants import FIFF
-from ..utils import logger
-from ..externals.jdcal import jcal2jd
-from ..externals.six import string_types, b
-
+from ..fixes import _fn35
+from ..utils import logger, _file_like
+from ..utils.numerics import _cal_to_julian
 
 # We choose a "magic" date to store (because meas_date is obligatory)
 # to treat as meas_date=None. This one should be impossible for systems
@@ -33,16 +32,16 @@ def _write(fid, data, kind, data_size, FIFFT_TYPE, dtype):
     # XXX for string types the data size is used as
     # computed in ``write_string``.
 
-    fid.write(np.array(kind, dtype='>i4').tostring())
-    fid.write(np.array(FIFFT_TYPE, dtype='>i4').tostring())
-    fid.write(np.array(data_size, dtype='>i4').tostring())
-    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tostring())
-    fid.write(np.array(data, dtype=dtype).tostring())
+    fid.write(np.array(kind, dtype='>i4').tobytes())
+    fid.write(np.array(FIFFT_TYPE, dtype='>i4').tobytes())
+    fid.write(np.array(data_size, dtype='>i4').tobytes())
+    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tobytes())
+    fid.write(np.array(data, dtype=dtype).tobytes())
 
 
 def _get_split_size(split_size):
     """Convert human-readable bytes to machine-readable bytes."""
-    if isinstance(split_size, string_types):
+    if isinstance(split_size, str):
         exp = dict(MB=20, GB=30).get(split_size[-2:], None)
         if exp is None:
             raise ValueError('split_size has to end with either'
@@ -56,11 +55,11 @@ def _get_split_size(split_size):
 
 def write_nop(fid, last=False):
     """Write a FIFF_NOP."""
-    fid.write(np.array(FIFF.FIFF_NOP, dtype='>i4').tostring())
-    fid.write(np.array(FIFF.FIFFT_VOID, dtype='>i4').tostring())
-    fid.write(np.array(0, dtype='>i4').tostring())
+    fid.write(np.array(FIFF.FIFF_NOP, dtype='>i4').tobytes())
+    fid.write(np.array(FIFF.FIFFT_VOID, dtype='>i4').tobytes())
+    fid.write(np.array(0, dtype='>i4').tobytes())
     next_ = FIFF.FIFFV_NEXT_NONE if last else FIFF.FIFFV_NEXT_SEQ
-    fid.write(np.array(next_, dtype='>i4').tostring())
+    fid.write(np.array(next_, dtype='>i4').tobytes())
 
 
 def write_int(fid, kind, data):
@@ -109,14 +108,14 @@ def write_julian(fid, kind, data):
     """Write a Julian-formatted date to a FIF file."""
     assert len(data) == 3
     data_size = 4
-    jd = np.sum(jcal2jd(*data))
+    jd = np.sum(_cal_to_julian(*data))
     data = np.array(jd, dtype='>i4')
     _write(fid, data, kind, data_size, FIFF.FIFFT_JULIAN, '>i4')
 
 
 def write_string(fid, kind, data):
     """Write a string tag."""
-    str_data = data.encode('utf-8')  # Use unicode or bytes depending on Py2/3
+    str_data = data.encode('latin1')
     data_size = len(str_data)  # therefore compute size here
     my_dtype = '>a'  # py2/3 compatible on writing -- don't ask me why
     if data_size > 0:
@@ -140,16 +139,16 @@ def write_float_matrix(fid, kind, mat):
 
     data_size = 4 * mat.size + 4 * (mat.ndim + 1)
 
-    fid.write(np.array(kind, dtype='>i4').tostring())
-    fid.write(np.array(FIFFT_MATRIX_FLOAT, dtype='>i4').tostring())
-    fid.write(np.array(data_size, dtype='>i4').tostring())
-    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tostring())
-    fid.write(np.array(mat, dtype='>f4').tostring())
+    fid.write(np.array(kind, dtype='>i4').tobytes())
+    fid.write(np.array(FIFFT_MATRIX_FLOAT, dtype='>i4').tobytes())
+    fid.write(np.array(data_size, dtype='>i4').tobytes())
+    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tobytes())
+    fid.write(np.array(mat, dtype='>f4').tobytes())
 
     dims = np.empty(mat.ndim + 1, dtype=np.int32)
     dims[:mat.ndim] = mat.shape[::-1]
     dims[-1] = mat.ndim
-    fid.write(np.array(dims, dtype='>i4').tostring())
+    fid.write(np.array(dims, dtype='>i4').tobytes())
     check_fiff_length(fid)
 
 
@@ -160,16 +159,16 @@ def write_double_matrix(fid, kind, mat):
 
     data_size = 8 * mat.size + 4 * (mat.ndim + 1)
 
-    fid.write(np.array(kind, dtype='>i4').tostring())
-    fid.write(np.array(FIFFT_MATRIX_DOUBLE, dtype='>i4').tostring())
-    fid.write(np.array(data_size, dtype='>i4').tostring())
-    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tostring())
-    fid.write(np.array(mat, dtype='>f8').tostring())
+    fid.write(np.array(kind, dtype='>i4').tobytes())
+    fid.write(np.array(FIFFT_MATRIX_DOUBLE, dtype='>i4').tobytes())
+    fid.write(np.array(data_size, dtype='>i4').tobytes())
+    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tobytes())
+    fid.write(np.array(mat, dtype='>f8').tobytes())
 
     dims = np.empty(mat.ndim + 1, dtype=np.int32)
     dims[:mat.ndim] = mat.shape[::-1]
     dims[-1] = mat.ndim
-    fid.write(np.array(dims, dtype='>i4').tostring())
+    fid.write(np.array(dims, dtype='>i4').tobytes())
     check_fiff_length(fid)
 
 
@@ -180,17 +179,57 @@ def write_int_matrix(fid, kind, mat):
 
     data_size = 4 * mat.size + 4 * 3
 
-    fid.write(np.array(kind, dtype='>i4').tostring())
-    fid.write(np.array(FIFFT_MATRIX_INT, dtype='>i4').tostring())
-    fid.write(np.array(data_size, dtype='>i4').tostring())
-    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tostring())
-    fid.write(np.array(mat, dtype='>i4').tostring())
+    fid.write(np.array(kind, dtype='>i4').tobytes())
+    fid.write(np.array(FIFFT_MATRIX_INT, dtype='>i4').tobytes())
+    fid.write(np.array(data_size, dtype='>i4').tobytes())
+    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tobytes())
+    fid.write(np.array(mat, dtype='>i4').tobytes())
 
     dims = np.empty(3, dtype=np.int32)
     dims[0] = mat.shape[1]
     dims[1] = mat.shape[0]
     dims[2] = 2
-    fid.write(np.array(dims, dtype='>i4').tostring())
+    fid.write(np.array(dims, dtype='>i4').tobytes())
+    check_fiff_length(fid)
+
+
+def write_complex_float_matrix(fid, kind, mat):
+    """Write complex 64 matrix tag."""
+    FIFFT_MATRIX = 1 << 30
+    FIFFT_MATRIX_COMPLEX_FLOAT = FIFF.FIFFT_COMPLEX_FLOAT | FIFFT_MATRIX
+
+    data_size = 4 * 2 * mat.size + 4 * (mat.ndim + 1)
+
+    fid.write(np.array(kind, dtype='>i4').tobytes())
+    fid.write(np.array(FIFFT_MATRIX_COMPLEX_FLOAT, dtype='>i4').tobytes())
+    fid.write(np.array(data_size, dtype='>i4').tobytes())
+    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tobytes())
+    fid.write(np.array(mat, dtype='>c8').tobytes())
+
+    dims = np.empty(mat.ndim + 1, dtype=np.int32)
+    dims[:mat.ndim] = mat.shape[::-1]
+    dims[-1] = mat.ndim
+    fid.write(np.array(dims, dtype='>i4').tobytes())
+    check_fiff_length(fid)
+
+
+def write_complex_double_matrix(fid, kind, mat):
+    """Write complex 128 matrix tag."""
+    FIFFT_MATRIX = 1 << 30
+    FIFFT_MATRIX_COMPLEX_DOUBLE = FIFF.FIFFT_COMPLEX_DOUBLE | FIFFT_MATRIX
+
+    data_size = 8 * 2 * mat.size + 4 * (mat.ndim + 1)
+
+    fid.write(np.array(kind, dtype='>i4').tobytes())
+    fid.write(np.array(FIFFT_MATRIX_COMPLEX_DOUBLE, dtype='>i4').tobytes())
+    fid.write(np.array(data_size, dtype='>i4').tobytes())
+    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tobytes())
+    fid.write(np.array(mat, dtype='>c16').tobytes())
+
+    dims = np.empty(mat.ndim + 1, dtype=np.int32)
+    dims[:mat.ndim] = mat.shape[::-1]
+    dims[-1] = mat.ndim
+    fid.write(np.array(dims, dtype='>i4').tobytes())
     check_fiff_length(fid)
 
 
@@ -202,7 +241,7 @@ def get_machid():
     ids : array (length 2, int32)
         The machine identifier used in MNE.
     """
-    mac = b('%012x' % uuid.getnode())  # byte conversion for Py3
+    mac = b'%012x' % uuid.getnode()  # byte conversion for Py3
     mac = re.findall(b'..', mac)  # split string
     mac += [b'00', b'00']  # add two more fields
 
@@ -226,16 +265,16 @@ def write_id(fid, kind, id_=None):
     id_ = _generate_meas_id() if id_ is None else id_
 
     data_size = 5 * 4                       # The id comprises five integers
-    fid.write(np.array(kind, dtype='>i4').tostring())
-    fid.write(np.array(FIFF.FIFFT_ID_STRUCT, dtype='>i4').tostring())
-    fid.write(np.array(data_size, dtype='>i4').tostring())
-    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tostring())
+    fid.write(np.array(kind, dtype='>i4').tobytes())
+    fid.write(np.array(FIFF.FIFFT_ID_STRUCT, dtype='>i4').tobytes())
+    fid.write(np.array(data_size, dtype='>i4').tobytes())
+    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tobytes())
 
     # Collect the bits together for one write
     arr = np.array([id_['version'],
                     id_['machid'][0], id_['machid'][1],
                     id_['secs'], id_['usecs']], dtype='>i4')
-    fid.write(arr.tostring())
+    fid.write(arr.tobytes())
 
 
 def start_block(fid, kind):
@@ -260,7 +299,12 @@ def start_file(fname, id_=None):
     id_ : dict | None
         ID to use for the FIFF_FILE_ID.
     """
-    if isinstance(fname, string_types):
+    if _file_like(fname):
+        logger.debug('Writing using %s I/O' % type(fname))
+        fid = fname
+        fid.seek(0)
+    else:
+        fname = _fn35(fname)
         if op.splitext(fname)[1].lower() == '.gz':
             logger.debug('Writing using gzip')
             # defaults to compression level 9, which is barely smaller but much
@@ -269,10 +313,6 @@ def start_file(fname, id_=None):
         else:
             logger.debug('Writing using normal I/O')
             fid = open(fname, "wb")
-    else:
-        logger.debug('Writing using %s I/O' % type(fname))
-        fid = fname
-        fid.seek(0)
     #   Write the compulsory items
     write_id(fid, FIFF.FIFF_FILE_ID, id_)
     write_int(fid, FIFF.FIFF_DIR_POINTER, -1)
@@ -299,53 +339,53 @@ def end_file(fid):
 def write_coord_trans(fid, trans):
     """Write a coordinate transformation structure."""
     data_size = 4 * 2 * 12 + 4 * 2
-    fid.write(np.array(FIFF.FIFF_COORD_TRANS, dtype='>i4').tostring())
-    fid.write(np.array(FIFF.FIFFT_COORD_TRANS_STRUCT, dtype='>i4').tostring())
-    fid.write(np.array(data_size, dtype='>i4').tostring())
-    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tostring())
-    fid.write(np.array(trans['from'], dtype='>i4').tostring())
-    fid.write(np.array(trans['to'], dtype='>i4').tostring())
+    fid.write(np.array(FIFF.FIFF_COORD_TRANS, dtype='>i4').tobytes())
+    fid.write(np.array(FIFF.FIFFT_COORD_TRANS_STRUCT, dtype='>i4').tobytes())
+    fid.write(np.array(data_size, dtype='>i4').tobytes())
+    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tobytes())
+    fid.write(np.array(trans['from'], dtype='>i4').tobytes())
+    fid.write(np.array(trans['to'], dtype='>i4').tobytes())
 
     #   The transform...
     rot = trans['trans'][:3, :3]
     move = trans['trans'][:3, 3]
-    fid.write(np.array(rot, dtype='>f4').tostring())
-    fid.write(np.array(move, dtype='>f4').tostring())
+    fid.write(np.array(rot, dtype='>f4').tobytes())
+    fid.write(np.array(move, dtype='>f4').tobytes())
 
     #   ...and its inverse
     trans_inv = linalg.inv(trans['trans'])
     rot = trans_inv[:3, :3]
     move = trans_inv[:3, 3]
-    fid.write(np.array(rot, dtype='>f4').tostring())
-    fid.write(np.array(move, dtype='>f4').tostring())
+    fid.write(np.array(rot, dtype='>f4').tobytes())
+    fid.write(np.array(move, dtype='>f4').tobytes())
 
 
 def write_ch_info(fid, ch):
     """Write a channel information record to a fif file."""
     data_size = 4 * 13 + 4 * 7 + 16
 
-    fid.write(np.array(FIFF.FIFF_CH_INFO, dtype='>i4').tostring())
-    fid.write(np.array(FIFF.FIFFT_CH_INFO_STRUCT, dtype='>i4').tostring())
-    fid.write(np.array(data_size, dtype='>i4').tostring())
-    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tostring())
+    fid.write(np.array(FIFF.FIFF_CH_INFO, dtype='>i4').tobytes())
+    fid.write(np.array(FIFF.FIFFT_CH_INFO_STRUCT, dtype='>i4').tobytes())
+    fid.write(np.array(data_size, dtype='>i4').tobytes())
+    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tobytes())
 
     #   Start writing fiffChInfoRec
-    fid.write(np.array(ch['scanno'], dtype='>i4').tostring())
-    fid.write(np.array(ch['logno'], dtype='>i4').tostring())
-    fid.write(np.array(ch['kind'], dtype='>i4').tostring())
-    fid.write(np.array(ch['range'], dtype='>f4').tostring())
-    fid.write(np.array(ch['cal'], dtype='>f4').tostring())
-    fid.write(np.array(ch['coil_type'], dtype='>i4').tostring())
-    fid.write(np.array(ch['loc'], dtype='>f4').tostring())  # writing 12 values
+    fid.write(np.array(ch['scanno'], dtype='>i4').tobytes())
+    fid.write(np.array(ch['logno'], dtype='>i4').tobytes())
+    fid.write(np.array(ch['kind'], dtype='>i4').tobytes())
+    fid.write(np.array(ch['range'], dtype='>f4').tobytes())
+    fid.write(np.array(ch['cal'], dtype='>f4').tobytes())
+    fid.write(np.array(ch['coil_type'], dtype='>i4').tobytes())
+    fid.write(np.array(ch['loc'], dtype='>f4').tobytes())  # writing 12 values
 
     #   unit and unit multiplier
-    fid.write(np.array(ch['unit'], dtype='>i4').tostring())
-    fid.write(np.array(ch['unit_mul'], dtype='>i4').tostring())
+    fid.write(np.array(ch['unit'], dtype='>i4').tobytes())
+    fid.write(np.array(ch['unit_mul'], dtype='>i4').tobytes())
 
     #   Finally channel name
     ch_name = ch['ch_name'][:15]
-    fid.write(np.array(ch_name, dtype='>c').tostring())
-    fid.write(b('\0') * (16 - len(ch_name)))
+    fid.write(np.array(ch_name, dtype='>c').tobytes())
+    fid.write(b'\0' * (16 - len(ch_name)))
 
 
 def write_dig_points(fid, dig, block=False, coord_frame=None):
@@ -357,14 +397,14 @@ def write_dig_points(fid, dig, block=False, coord_frame=None):
         if coord_frame is not None:
             write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, coord_frame)
         for d in dig:
-            fid.write(np.array(FIFF.FIFF_DIG_POINT, '>i4').tostring())
-            fid.write(np.array(FIFF.FIFFT_DIG_POINT_STRUCT, '>i4').tostring())
-            fid.write(np.array(data_size, dtype='>i4').tostring())
-            fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, '>i4').tostring())
+            fid.write(np.array(FIFF.FIFF_DIG_POINT, '>i4').tobytes())
+            fid.write(np.array(FIFF.FIFFT_DIG_POINT_STRUCT, '>i4').tobytes())
+            fid.write(np.array(data_size, dtype='>i4').tobytes())
+            fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, '>i4').tobytes())
             #   Start writing fiffDigPointRec
-            fid.write(np.array(d['kind'], '>i4').tostring())
-            fid.write(np.array(d['ident'], '>i4').tostring())
-            fid.write(np.array(d['r'][:3], '>f4').tostring())
+            fid.write(np.array(d['kind'], '>i4').tobytes())
+            fid.write(np.array(d['ident'], '>i4').tobytes())
+            fid.write(np.array(d['r'][:3], '>f4').tobytes())
         if block:
             end_block(fid, FIFF.FIFFB_ISOTRAK)
 
@@ -399,17 +439,17 @@ def write_float_sparse(fid, kind, mat, fmt='auto'):
     nrow = mat.shape[0]
     data_size = 4 * nnzm + 4 * nnzm + 4 * (nrow + 1) + 4 * 4
 
-    fid.write(np.array(kind, dtype='>i4').tostring())
-    fid.write(np.array(FIFFT_MATRIX_FLOAT_RCS, dtype='>i4').tostring())
-    fid.write(np.array(data_size, dtype='>i4').tostring())
-    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tostring())
+    fid.write(np.array(kind, dtype='>i4').tobytes())
+    fid.write(np.array(FIFFT_MATRIX_FLOAT_RCS, dtype='>i4').tobytes())
+    fid.write(np.array(data_size, dtype='>i4').tobytes())
+    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tobytes())
 
-    fid.write(np.array(mat.data, dtype='>f4').tostring())
-    fid.write(np.array(mat.indices, dtype='>i4').tostring())
-    fid.write(np.array(mat.indptr, dtype='>i4').tostring())
+    fid.write(np.array(mat.data, dtype='>f4').tobytes())
+    fid.write(np.array(mat.indices, dtype='>i4').tobytes())
+    fid.write(np.array(mat.indptr, dtype='>i4').tobytes())
 
     dims = [nnzm, mat.shape[0], mat.shape[1], 2]
-    fid.write(np.array(dims, dtype='>i4').tostring())
+    fid.write(np.array(dims, dtype='>i4').tobytes())
     check_fiff_length(fid)
 
 

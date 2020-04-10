@@ -21,7 +21,7 @@ References
        weight vectors of linear models in multivariate neuroimaging.
        NeuroImage, 87, 96–110. doi:10.1016/j.neuroimage.2013.10.067
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Romain Trachel <trachelr@gmail.com>
 #          Jean-Remi King <jeanremi.king@gmail.com>
 #
@@ -68,7 +68,7 @@ meg_data = meg_epochs.get_data().reshape(len(labels), -1)
 ###############################################################################
 # Decoding in sensor space using a LogisticRegression classifier
 
-clf = LogisticRegression()
+clf = LogisticRegression(solver='lbfgs')
 scaler = StandardScaler()
 
 # create a linear model with LogisticRegression
@@ -102,7 +102,8 @@ y = epochs.events[:, 2]
 clf = make_pipeline(
     Vectorizer(),                       # 1) vectorize across time and channels
     StandardScaler(),                   # 2) normalize features across trials
-    LinearModel(LogisticRegression()))  # 3) fits a logistic regression
+    LinearModel(
+        LogisticRegression(solver='lbfgs')))  # 3) fits a logistic regression
 clf.fit(X, y)
 
 # Extract and plot patterns and filters

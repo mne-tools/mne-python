@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Authors: Thorsten Kranz <thorstenkranz@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Denis Engemann <denis.engemann@gmail.com>
@@ -10,17 +10,104 @@
 #
 # License: Simplified BSD
 
-import logging
-
 import numpy as np
 from scipy import sparse
 
 from .parametric import f_oneway, ttest_1samp_no_p
 from ..parallel import parallel_func, check_n_jobs
+from ..fixes import jit, has_numba
 from ..utils import (split_list, logger, verbose, ProgressBar, warn, _pl,
-                     check_random_state)
+                     check_random_state, _check_option, _validate_type)
 from ..source_estimate import SourceEstimate
-from ..externals.six import string_types
+
+
+def _get_buddies_fallback(r, s, neighbors, indices=None):
+    if indices is None:
+        buddies = np.where(r)[0]
+    else:
+        buddies = indices[r[indices]]
+    buddies = buddies[np.in1d(s[buddies], neighbors, assume_unique=True)]
+    r[buddies] = False
+    return buddies.tolist()
+
+
+def _get_selves_fallback(r, s, ind, inds, t, t_border, max_step):
+    start = t_border[max(t[ind] - max_step, 0)]
+    stop = t_border[min(t[ind] + max_step + 1, len(t_border) - 1)]
+    indices = inds[start:stop]
+    selves = indices[r[indices]]
+    selves = selves[s[ind] == s[selves]]
+    r[selves] = False
+    return selves.tolist()
+
+
+def _where_first_fallback(x):
+    # this is equivalent to np.where(r)[0] for these purposes, but it's
+    # a little bit faster. Unfortunately there's no way to tell numpy
+    # just to find the first instance (to save checking every one):
+    next_ind = int(np.argmax(x))
+    if next_ind == 0:
+        next_ind = -1
+    return next_ind
+
+
+if has_numba:  # pragma: no cover
+    @jit()
+    def _get_buddies(r, s, neighbors, indices=None):
+        buddies = list()
+        # At some point we might be able to use the sorted-ness of s or
+        # neighbors to further speed this up
+        if indices is None:
+            n_check = len(r)
+        else:
+            n_check = len(indices)
+        for ii in range(n_check):
+            if indices is None:
+                this_idx = ii
+            else:
+                this_idx = indices[ii]
+            if r[this_idx]:
+                this_s = s[this_idx]
+                for ni in range(len(neighbors)):
+                    if this_s == neighbors[ni]:
+                        buddies.append(this_idx)
+                        r[this_idx] = False
+                        break
+        return buddies
+
+    @jit()
+    def _get_selves(r, s, ind, inds, t, t_border, max_step):
+        selves = list()
+        start = t_border[max(t[ind] - max_step, 0)]
+        stop = t_border[min(t[ind] + max_step + 1, len(t_border) - 1)]
+        for ii in range(start, stop):
+            this_idx = inds[ii]
+            if r[this_idx] and s[ind] == s[this_idx]:
+                selves.append(this_idx)
+                r[this_idx] = False
+        return selves
+
+    @jit()
+    def _where_first(x):
+        for ii in range(len(x)):
+            if x[ii]:
+                return ii
+        return -1
+else:  # pragma: no cover
+    # fastest ways we've found with NumPy
+    _get_buddies = _get_buddies_fallback
+    _get_selves = _get_selves_fallback
+    _where_first = _where_first_fallback
+
+
+@jit()
+def _masked_sum(x, c):
+    return np.sum(x[c])
+
+
+@jit()
+def _masked_sum_power(x, c, t_power):
+    return np.sum(np.sign(x[c]) * np.abs(x[c]) ** t_power)
 
 
 def _get_clusters_spatial(s, neighbors):
@@ -32,29 +119,21 @@ def _get_clusters_spatial(s, neighbors):
     # s is a vector of spatial indices that are significant, like:
     #     s = np.where(x_in)[0]
     # for x_in representing a single time-instant
-    r = np.ones(s.shape, dtype=bool)
+    r = np.ones(s.shape, np.bool)
     clusters = list()
-    next_ind = 0 if s.size > 0 else None
-    while next_ind is not None:
+    next_ind = 0 if s.size > 0 else -1
+    while next_ind >= 0:
         # put first point in a cluster, adjust remaining
         t_inds = [next_ind]
-        r[next_ind] = False
+        r[next_ind] = 0
         icount = 1  # count of nodes in the current cluster
         while icount <= len(t_inds):
             ind = t_inds[icount - 1]
             # look across other vertices
-            buddies = np.where(r)[0]
-            buddies = buddies[np.in1d(s[buddies], neighbors[s[ind]],
-                                      assume_unique=True)]
-            t_inds += buddies.tolist()
-            r[buddies] = False
+            buddies = _get_buddies(r, s, neighbors[s[ind]])
+            t_inds.extend(buddies)
             icount += 1
-        # this is equivalent to np.where(r)[0] for these purposes, but it's
-        # a little bit faster. Unfortunately there's no way to tell numpy
-        # just to find the first instance (to save checking every one):
-        next_ind = np.argmax(r)
-        if next_ind == 0:
-            next_ind = None
+        next_ind = _where_first(r)
         clusters.append(s[t_inds])
     return clusters
 
@@ -140,39 +219,27 @@ def _get_clusters_st_multistep(keepers, neighbors, max_step=1):
 
     r = np.ones(t.shape, dtype=bool)
     clusters = list()
-    next_ind = 0
     inds = np.arange(t_border[0], t_border[n_times])
-    if s.size > 0:
-        while next_ind is not None:
-            # put first point in a cluster, adjust remaining
-            t_inds = [next_ind]
-            r[next_ind] = False
-            icount = 1  # count of nodes in the current cluster
-            # look for significant values at the next time point,
-            # same sensor, not placed yet, and add those
-            while icount <= len(t_inds):
-                ind = t_inds[icount - 1]
-                selves = inds[t_border[max(t[ind] - max_step, 0)]:
-                              t_border[min(t[ind] + max_step + 1, n_times)]]
-                selves = selves[r[selves]]
-                selves = selves[s[ind] == s[selves]]
+    next_ind = 0 if s.size > 0 else -1
+    while next_ind >= 0:
+        # put first point in a cluster, adjust remaining
+        t_inds = [next_ind]
+        r[next_ind] = False
+        icount = 1  # count of nodes in the current cluster
+        # look for significant values at the next time point,
+        # same sensor, not placed yet, and add those
+        while icount <= len(t_inds):
+            ind = t_inds[icount - 1]
+            selves = _get_selves(r, s, ind, inds, t, t_border, max_step)
 
-                # look at current time point across other vertices
-                buddies = inds[t_border[t[ind]]:t_border[t[ind] + 1]]
-                buddies = buddies[r[buddies]]
-                buddies = buddies[np.in1d(s[buddies], neighbors[s[ind]],
-                                          assume_unique=True)]
-                buddies = np.concatenate((selves, buddies))
-                t_inds += buddies.tolist()
-                r[buddies] = False
-                icount += 1
-            # this is equivalent to np.where(r)[0] for these purposes, but it's
-            # a little bit faster. Unfortunately there's no way to tell numpy
-            # just to find the first instance (to save checking every one):
-            next_ind = np.argmax(r)
-            if next_ind == 0:
-                next_ind = None
-            clusters.append(v[t_inds])
+            # look at current time point across other vertices
+            these_inds = inds[t_border[t[ind]]:t_border[t[ind] + 1]]
+            buddies = _get_buddies(r, s, neighbors[s[ind]], these_inds)
+
+            t_inds += buddies + selves
+            icount += 1
+        next_ind = _where_first(r)
+        clusters.append(v[t_inds])
 
     return clusters
 
@@ -255,7 +322,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
         threshold-free cluster enhancement.
     tail : -1 | 0 | 1
         Type of comparison
-    connectivity : sparse matrix in COO format, None, or list
+    connectivity : scipy.sparse.coo_matrix, None, or list
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         If connectivity is a list, it is assumed that each entry stores the
@@ -286,12 +353,11 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
     clusters : list of slices or list of arrays (boolean masks)
         We use slices for 1D signals and mask to multidimensional
         arrays.
-    sums: array
+    sums : array
         Sum of x values in clusters.
     """
     from scipy import ndimage
-    if tail not in [-1, 0, 1]:
-        raise ValueError('invalid tail parameter')
+    _check_option('tail', tail, [-1, 0, 1])
 
     x = np.asanyarray(x)
 
@@ -462,10 +528,9 @@ def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power, ndimage):
         else:
             raise ValueError('Connectivity must be a sparse matrix or list')
         if t_power == 1:
-            sums = np.array([np.sum(x[c]) for c in clusters])
+            sums = [_masked_sum(x, c) for c in clusters]
         else:
-            sums = np.array([np.sum(np.sign(x[c]) * np.abs(x[c]) ** t_power)
-                            for c in clusters])
+            sums = [_masked_sum_power(x, c, t_power) for c in clusters]
 
     return clusters, np.atleast_1d(sums)
 
@@ -492,8 +557,7 @@ def _pval_from_histogram(T, H0, tail):
     For each stat compute a p-value as percentile of its statistics
     within all statistics in surrogate data
     """
-    if tail not in [-1, 0, 1]:
-        raise ValueError('invalid tail parameter')
+    _check_option('tail', tail, [-1, 0, 1])
 
     # from pct to fraction
     if tail == -1:  # up tail
@@ -506,21 +570,27 @@ def _pval_from_histogram(T, H0, tail):
     return pval
 
 
-def _setup_connectivity(connectivity, n_vertices, n_times):
+def _setup_connectivity(connectivity, n_tests, n_times):
     if not sparse.issparse(connectivity):
-        raise ValueError("If connectivity matrix is given, it must be a"
-                         "scipy sparse matrix.")
-    if connectivity.shape[0] == n_vertices:  # use global algorithm
+        raise ValueError("If connectivity matrix is given, it must be a "
+                         "SciPy sparse matrix.")
+    if connectivity.shape[0] == n_tests:  # use global algorithm
         connectivity = connectivity.tocoo()
-        n_times = None
     else:  # use temporal adjacency algorithm
-        if not round(n_vertices / float(connectivity.shape[0])) == n_times:
-            raise ValueError('connectivity must be of the correct size')
+        got_times, mod = divmod(n_tests, connectivity.shape[0])
+        if got_times != n_times or mod != 0:
+            raise ValueError(
+                'connectivity (len %d) must be of the correct size, i.e. be '
+                'equal to or evenly divide the number of tests (%d).\n\n'
+                'If connectivity was computed for a source space, try using '
+                'the fwd["src"] or inv["src"] as some original source space '
+                'vertices can be excluded during forward computation'
+                % (connectivity.shape[0], n_tests))
         # we claim to only use upper triangular part... not true here
         connectivity = (connectivity + connectivity.transpose()).tocsr()
         connectivity = [connectivity.indices[connectivity.indptr[i]:
-                        connectivity.indptr[i + 1]] for i in
-                        range(len(connectivity.indptr) - 1)]
+                                             connectivity.indptr[i + 1]]
+                        for i in range(len(connectivity.indptr) - 1)]
     return connectivity
 
 
@@ -541,10 +611,6 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
                     for s in slices]
 
     for seed_idx, order in enumerate(orders):
-        if progress_bar is not None:
-            if (not (seed_idx + 1) % 32) or (seed_idx == 0):
-                progress_bar.update(seed_idx + 1)
-
         # shuffle sample indices
         assert order is not None
         idx_shuffle_list = [order[s] for s in slices]
@@ -586,6 +652,8 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
         else:
             max_cluster_sums[seed_idx] = 0
 
+        progress_bar.update(seed_idx + 1)
+
     return max_cluster_sums
 
 
@@ -606,10 +674,6 @@ def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
         X_flip_buffer = np.empty((n_samp, buffer_size), dtype=X.dtype)
 
     for seed_idx, order in enumerate(orders):
-        if progress_bar is not None:
-            if not (seed_idx + 1) % 32 or seed_idx == 0:
-                progress_bar.update(seed_idx + 1)
-
         assert isinstance(order, np.ndarray)
         # new surrogate data with specified sign flip
         assert order.size == n_samp  # should be guaranteed by parent
@@ -659,6 +723,8 @@ def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
         else:
             max_cluster_sums[seed_idx] = 0
 
+        progress_bar.update(seed_idx + 1)
+
     return max_cluster_sums
 
 
@@ -702,7 +768,7 @@ def _get_1samp_orders(n_samples, n_permutations, tail, rng):
     """Get the 1samp orders."""
     max_perms = 2 ** (n_samples - (tail == 0)) - 1
     extra = ''
-    if isinstance(n_permutations, string_types):
+    if isinstance(n_permutations, str):
         if n_permutations != 'all':
             raise ValueError('n_permutations as a string must be "all"')
         n_permutations = max_perms
@@ -726,10 +792,10 @@ def _get_1samp_orders(n_samples, n_permutations, tail, rng):
         # to prevent positive/negative equivalent collisions
         use_samples = n_samples - (tail == 0)
         while ii < n_permutations - 1:
-            signs = tuple((rng.rand(use_samples) < 0.5).astype(int))
+            signs = tuple((rng.uniform(size=use_samples) < 0.5).astype(int))
             if signs not in hashes:
                 orders[ii, :use_samples] = signs
-                if tail == 0 and rng.rand() < 0.5:
+                if tail == 0 and rng.uniform() < 0.5:
                     # To undo the non-flipping of the last subject in the
                     # tail == 0 case, half the time we use the positive
                     # last subject, half the time negative last subject
@@ -750,13 +816,13 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     either a 1 sample t-test or an F test / more sample permutation scheme
     is elicited.
     """
-    if out_type not in ['mask', 'indices']:
-        raise ValueError('out_type must be either \'mask\' or \'indices\'')
-    if not isinstance(threshold, dict) and (tail < 0 and threshold > 0 or
-                                            tail > 0 and threshold < 0 or
-                                            tail == 0 and threshold < 0):
-        raise ValueError('incompatible tail and threshold signs, got %s and %s'
-                         % (tail, threshold))
+    _check_option('out_type', out_type, ['mask', 'indices'])
+    if not isinstance(threshold, dict):
+        threshold = float(threshold)
+        if (tail < 0 and threshold > 0 or tail > 0 and threshold < 0 or
+                tail == 0 and threshold < 0):
+            raise ValueError('incompatible tail and threshold signs, got '
+                             '%s and %s' % (tail, threshold))
 
     # check dimensions for each group in X (a list at this stage).
     X = [x[:, np.newaxis] if x.ndim == 1 else x for x in X]
@@ -781,6 +847,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     # Step 1: Calculate t-stat for original data
     # -------------------------------------------------------------
     t_obs = stat_fun(*X)
+    _validate_type(t_obs, np.ndarray, 'return value of stat_fun')
     logger.info('stat_fun(H1): min=%f max=%f' % (np.min(t_obs), np.max(t_obs)))
 
     # test if stat_fun treats variables independently
@@ -796,6 +863,10 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
             buffer_size = None
 
     # The stat should have the same shape as the samples for no conn.
+    if t_obs.size != np.prod(sample_shape):
+        raise ValueError('t_obs.shape %s provided by stat_fun %s is not '
+                         'compatible with the sample shape %s'
+                         % (t_obs.shape, stat_fun, sample_shape))
     if connectivity is None or connectivity is False:
         t_obs.shape = sample_shape
 
@@ -858,7 +929,8 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         orders = [rng.permutation(len(X_full))
                   for _ in range(n_permutations - 1)]
     del rng
-    parallel, my_do_perm_func, _ = parallel_func(do_perm_func, n_jobs)
+    parallel, my_do_perm_func, _ = parallel_func(
+        do_perm_func, n_jobs, verbose=False)
 
     if len(clusters) == 0:
         warn('No clusters found, returning empty H0, clusters, and cluster_pv')
@@ -866,12 +938,6 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
 
     # Step 2: If we have some clusters, repeat process on permuted data
     # -------------------------------------------------------------------
-
-    def get_progress_bar(seeds):
-        # make sure the progress bar adds to up 100% across n jobs
-        return (ProgressBar(len(seeds), spinner=True) if
-                logger.level <= logging.INFO else None)
-
     # Step 3: repeat permutations for step-down-in-jumps procedure
     n_removed = 1  # number of new clusters added
     total_removed = 0
@@ -888,11 +954,13 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         else:
             this_include = step_down_include
         logger.info('Permuting %d times%s...' % (len(orders), extra))
-        H0 = parallel(my_do_perm_func(X_full, slices, threshold, tail,
-                      connectivity, stat_fun, max_step, this_include,
-                      partitions, t_power, order, sample_shape, buffer_size,
-                      get_progress_bar(order))
-                      for order in split_list(orders, n_jobs))
+        with ProgressBar(len(orders)) as progress_bar:
+            H0 = parallel(
+                my_do_perm_func(X_full, slices, threshold, tail, connectivity,
+                                stat_fun, max_step, this_include, partitions,
+                                t_power, order, sample_shape, buffer_size,
+                                progress_bar.subset(idx))
+                for idx, order in split_list(orders, n_jobs, idx=True))
         # include original (true) ordering
         if tail == -1:  # up tail
             orig = cluster_stats.min()
@@ -930,8 +998,8 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
 def _check_fun(X, stat_fun, threshold, tail=0, kind='within'):
     """Check the stat_fun and threshold values."""
     from scipy import stats
-    ppf = stats.t.ppf
     if kind == 'within':
+        ppf = stats.t.ppf
         if threshold is None:
             if stat_fun is not None and stat_fun is not ttest_1samp_no_p:
                 warn('Automatic threshold is only valid for stat_fun=None '
@@ -945,15 +1013,17 @@ def _check_fun(X, stat_fun, threshold, tail=0, kind='within'):
         stat_fun = ttest_1samp_no_p if stat_fun is None else stat_fun
     else:
         assert kind == 'between'
+        ppf = stats.f.ppf
         if threshold is None:
             if stat_fun is not None and stat_fun is not f_oneway:
                 warn('Automatic threshold is only valid for stat_fun=None '
                      '(or f_oneway), got %s' % (stat_fun,))
-            p_thresh = 0.05 / (1 + (tail == 0))
-            n_samples_per_group = [len(x) for x in X]
-            threshold = ppf(1. - p_thresh, *n_samples_per_group)
-            if np.sign(tail) < 0:
-                threshold = -threshold
+            elif tail != 1:
+                warn('Ignoring argument "tail", performing 1-tailed F-test')
+            p_thresh = 0.05
+            dfn = len(X) - 1
+            dfd = np.sum([len(x) for x in X]) - len(X)
+            threshold = ppf(1. - p_thresh, dfn, dfd)
             logger.info("Using a threshold of {:.6f}".format(threshold))
         stat_fun = f_oneway if stat_fun is None else stat_fun
     return stat_fun, threshold
@@ -972,86 +1042,37 @@ def permutation_cluster_test(
     multiple comparisons using permutations and cluster level correction.
     Each element of the list X contains the data for one group of
     observations. Randomized data are generated with random partitions
-    of the data.
+    of the data. See :footcite:`MarisOostenveld2007` for details.
 
     Parameters
     ----------
-    X : list
-        List of nd-arrays containing the data. Each element of X contains
-        the samples for one group. First dimension of each element is the
-        number of samples/observations in this group. The other dimensions
-        are for the size of the observations. For example if X = [X1, X2]
-        with X1.shape = (20, 50, 4) and X2.shape = (17, 50, 4) one has
-        2 groups with respectively 20 and 17 observations in each.
-        Each data point is of shape (50, 4).
-    threshold : float | dict | None
-        If threshold is None, it will choose an F-threshold equivalent to
-        p < 0.05 for the given number of observations (only valid when
-        using an F-statistic). If a dict is used, then threshold-free
-        cluster enhancement (TFCE) will be used, and it must have keys
-        ``'start'`` and ``'step'`` to specify the integration parameters,
-        see the :ref:`TFCE example <tfce_example>`.
-    n_permutations : int
-        The number of permutations to compute.
-    tail : -1 or 0 or 1 (default = 0)
-        If tail is 0, the statistic is thresholded on both sides of
-        the distribution.
-        If tail is 1, the statistic is thresholded above threshold.
-        If tail is -1, the statistic is thresholded below threshold, and
-        the values in ``threshold`` must correspondingly be negative.
-    stat_fun : callable | None
-        Function called to calculate statistics, must accept 1d-arrays as
-        arguments (default None uses :func:`mne.stats.f_oneway`).
-    connectivity : sparse matrix.
-        Defines connectivity between features. The matrix is assumed to
-        be symmetric and only the upper triangular half is used.
-        Default is None, i.e, a regular lattice connectivity.
-        Can also be False to assume no connectivity.
-    n_jobs : int
-        Number of permutations to run in parallel (requires joblib package).
-    seed : int | instance of RandomState | None
-        Seed the random number generator for results reproducibility.
-    max_step : int
-        When connectivity is a n_vertices x n_vertices matrix, specify the
-        maximum number of steps between vertices along the second dimension
-        (typically time) to be considered connected. This is not used for full
-        or None connectivity matrices.
-    exclude : boolean array or None
+    X : list of array, shape (n_observations, p[, q])
+        The data to be clustered. Each array in ``X`` should contain the
+        observations for one group. The first dimension of each array is the
+        number of observations from that group; remaining dimensions comprise
+        the size of a single observation. For example if ``X = [X1, X2]``
+        with ``X1.shape = (20, 50, 4)`` and ``X2.shape = (17, 50, 4)``, then
+        ``X`` has 2 groups with respectively 20 and 17 observations in each,
+        and each data point is of shape ``(50, 4)``.
+    %(clust_thresh_f)s
+    %(clust_nperm_int)s
+    %(clust_tail)s
+    %(clust_stat_f)s
+    %(clust_con_n)s
+    %(n_jobs)s
+    %(seed)s
+    %(clust_maxstep)s
+    exclude : bool array or None
         Mask to apply to the data to exclude certain points from clustering
         (e.g., medial wall vertices). Should be the same shape as X. If None,
         no points are excluded.
-    step_down_p : float
-        To perform a step-down-in-jumps test, pass a p-value for clusters to
-        exclude from each successive iteration. Default is zero, perform no
-        step-down test (since no clusters will be smaller than this value).
-        Setting this to a reasonable value, e.g. 0.05, can increase sensitivity
-        but costs computation time.
-    t_power : float
-        Power to raise the statistical values (usually F-values) by before
-        summing (sign will be retained). Note that t_power == 0 will give a
-        count of nodes in each cluster, t_power == 1 will weight each node by
-        its statistical score.
-    out_type : str
-        For arrays with connectivity, this sets the output format for clusters.
-        If 'mask', it will pass back a list of boolean mask arrays.
-        If 'indices', it will pass back a list of lists, where each list is the
-        set of vertices in a given cluster. Note that the latter may use far
-        less memory for large datasets.
-    check_disjoint : bool
-        If True, the connectivity matrix (or list) will be examined to
-        determine of it can be separated into disjoint sets. In some cases
-        (usually with connectivity as a list and many "time" points), this
-        can lead to faster clustering, but results should be identical.
-    buffer_size: int or None
-        The statistics will be computed for blocks of variables of size
-        "buffer_size" at a time. This is option significantly reduces the
-        memory requirements when n_jobs > 1 and memory sharing between
-        processes is enabled (see set_cache_dir()), as X will be shared
-        between processes and each process only needs to allocate space
-        for a small block of variables.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(clust_stepdown)s
+    %(clust_power_f)s
+    %(clust_out)s
+        Default is ``'mask'``.
+    %(clust_disjoint)s
+    %(clust_buffer)s
+    %(verbose)s
 
     Returns
     -------
@@ -1060,15 +1081,13 @@ def permutation_cluster_test(
     clusters : list
         List type defined by out_type above.
     cluster_pv : array
-        P-value for each cluster
+        P-value for each cluster.
     H0 : array, shape (n_permutations,)
         Max cluster level stats observed under permutation.
 
     References
     ----------
-    .. [1] Maris/Oostenveld (2007), "Nonparametric statistical testing of
-       EEG- and MEG-data" Journal of Neuroscience Methods,
-       Vol. 164, No. 1., pp. 177-190. doi:10.1016/j.jneumeth.2007.03.024.
+    .. footbibliography::
     """
     stat_fun, threshold = _check_fun(X, stat_fun, threshold, tail, 'between')
     return _permutation_cluster_test(
@@ -1085,105 +1104,65 @@ def permutation_cluster_1samp_test(
         connectivity=None, verbose=None, n_jobs=1, seed=None, max_step=1,
         exclude=None, step_down_p=0, t_power=1, out_type='mask',
         check_disjoint=False, buffer_size=1000):
-    """Non-parametric cluster-level 1 sample t-test.
-
-    From a array of observations, e.g. signal amplitudes or power spectrum
-    estimates etc., calculate if the observed mean significantly deviates
-    from 0. The procedure uses a cluster analysis with permutation test
-    for calculating corrected p-values. Randomized data are generated with
-    random sign flips. See [1]_ for more information.
+    """Non-parametric cluster-level paired t-test.
 
     Parameters
     ----------
-    X : array, shape=(n_samples, p[, q])
-        Array where the first dimension corresponds to the
-        samples (observations). X[k] can be a 1D or 2D array (time series
-        or TF image) associated to the kth observation.
-    threshold : float | dict | None
-        If threshold is None, it will choose a t-threshold equivalent to
-        p < 0.05 for the given number of observations (only valid when
-        using an t-statistic). If a dict is used, then threshold-free
-        cluster enhancement (TFCE) will be used, and it must have keys
-        ``'start'`` and ``'step'`` to specify the integration parameters,
-        see the :ref:`TFCE example <tfce_example>`.
-    n_permutations : int | 'all'
-        The maximum number of permutations to compute. Can be 'all'
-        to perform an exact test.
-    tail : -1 or 0 or 1 (default = 0)
-        If tail is 1, the statistic is thresholded above threshold.
-        If tail is -1, the statistic is thresholded below threshold.
-        If tail is 0, the statistic is thresholded on both sides of
-        the distribution.
-    stat_fun : callable | None
-        Function used to compute the statistical map (default None will use
-        :func:`mne.stats.ttest_1samp_no_p`).
-    connectivity : sparse matrix | None | False
-        Defines connectivity between features. The matrix is assumed to
-        be symmetric and only the upper triangular half is used.
-        This matrix must be square with dimension (n_vertices * n_times) or
-        (n_vertices). Default is None, i.e, a regular lattice connectivity.
-        Use square n_vertices matrix for datasets with a large temporal
-        extent to save on memory and computation time. Can also be False
-        to assume no connectivity. Can also be False to assume no connectivity.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-    n_jobs : int
-        Number of permutations to run in parallel (requires joblib package).
-    seed : int | instance of RandomState | None
-        Seed the random number generator for results reproducibility.
-    max_step : int
-        When connectivity is a n_vertices x n_vertices matrix, specify the
-        maximum number of steps between vertices along the second dimension
-        (typically time) to be considered connected. This is not used for full
-        or None connectivity matrices.
-    exclude : boolean array or None
+    X : array, shape (n_observations, p[, q])
+        The data to be clustered. The first dimension should correspond to the
+        difference between paired samples (observations) in two conditions.
+        The subarrays ``X[k]`` can be 1D (e.g., time series) or 2D (e.g.,
+        time-frequency image) associated with the kth observation. For
+        spatiotemporal data, see also
+        :func:`mne.stats.spatio_temporal_cluster_1samp_test`.
+    %(clust_thresh_t)s
+    %(clust_nperm_all)s
+    %(clust_tail)s
+    %(clust_stat_t)s
+    %(clust_con_1)s
+    %(verbose)s
+    %(n_jobs)s
+    %(seed)s
+    %(clust_maxstep)s
+    exclude : bool array or None
         Mask to apply to the data to exclude certain points from clustering
         (e.g., medial wall vertices). Should be the same shape as X. If None,
         no points are excluded.
-    step_down_p : float
-        To perform a step-down-in-jumps test, pass a p-value for clusters to
-        exclude from each successive iteration. Default is zero, perform no
-        step-down test (since no clusters will be smaller than this value).
-        Setting this to a reasonable value, e.g. 0.05, can increase sensitivity
-        but costs computation time.
-    t_power : float
-        Power to raise the statistical values (usually t-values) by before
-        summing (sign will be retained). Note that t_power == 0 will give a
-        count of nodes in each cluster, t_power == 1 will weight each node by
-        its statistical score.
-    out_type : str
-        For arrays with connectivity, this sets the output format for clusters.
-        If 'mask', it will pass back a list of boolean mask arrays.
-        If 'indices', it will pass back a list of lists, where each list is the
-        set of vertices in a given cluster. Note that the latter may use far
-        less memory for large datasets.
-    check_disjoint : bool
-        If True, the connectivity matrix (or list) will be examined to
-        determine of it can be separated into disjoint sets. In some cases
-        (usually with connectivity as a list and many "time" points), this
-        can lead to faster clustering, but results should be identical.
-    buffer_size: int or None
-        The statistics will be computed for blocks of variables of size
-        "buffer_size" at a time. This is option significantly reduces the
-        memory requirements when n_jobs > 1 and memory sharing between
-        processes is enabled (see set_cache_dir()), as X will be shared
-        between processes and each process only needs to allocate space
-        for a small block of variables.
+    %(clust_stepdown)s
+    %(clust_power_t)s
+    %(clust_out)s
+        Default is ``'mask'``.
+    %(clust_disjoint)s
+    %(clust_buffer)s
+    %(verbose)s
 
     Returns
     -------
     t_obs : array, shape (n_tests,)
-        t-statistic observed for all variables
+        T-statistic observed for all variables.
     clusters : list
         List type defined by out_type above.
     cluster_pv : array
-        P-value for each cluster
+        P-value for each cluster.
     H0 : array, shape (n_permutations,)
         Max cluster level stats observed under permutation.
 
     Notes
     -----
+    From an array of paired observations, e.g. a difference in signal
+    amplitudes or power spectra in two conditions, calculate if the data
+    distributions in the two conditions are significantly different.
+    The procedure uses a cluster analysis with permutation test
+    for calculating corrected p-values. Randomized data are generated with
+    random sign flips. See :footcite:`MarisOostenveld2007` for more
+    information.
+
+    Because a 1-sample t-test on the difference in observations is
+    mathematically equivalent to a paired t-test, internally this function
+    computes a 1-sample t-test (by default) and uses sign flipping (always)
+    to perform permutations. This might not be suitable for the case where
+    there is truly a single observation under test; see :ref:`disc-stats`.
+
     If ``n_permutations >= 2 ** (n_samples - (tail == 0))``,
     ``n_permutations`` and ``seed`` will be ignored since an exact test
     (full permutation test) will be performed.
@@ -1194,9 +1173,7 @@ def permutation_cluster_1samp_test(
 
     References
     ----------
-    .. [1] Maris/Oostenveld (2007), "Nonparametric statistical testing of
-       EEG- and MEG-data" Journal of Neuroscience Methods,
-       Vol. 164, No. 1., pp. 177-190. doi:10.1016/j.jneumeth.2007.03.024.
+    .. footbibliography::
     """
     stat_fun, threshold = _check_fun(X, stat_fun, threshold, tail)
     return _permutation_cluster_test(
@@ -1214,115 +1191,51 @@ def spatio_temporal_cluster_1samp_test(
         max_step=1, spatial_exclude=None, step_down_p=0, t_power=1,
         out_type='indices', check_disjoint=False, buffer_size=1000,
         verbose=None):
-    """Non-parametric cluster-level 1 sample t-test for spatio-temporal data.
+    """Non-parametric cluster-level paired t-test for spatio-temporal data.
 
-    This function provides a convenient wrapper for data organized in the form
-    (observations x time x space) to use
-    :func:`mne.stats.permutation_cluster_1samp_test`. See [1]_ for more
-    information.
+    This function provides a convenient wrapper for
+    :func:`mne.stats.permutation_cluster_1samp_test`, for use with data
+    organized in the form (observations × time × space). See
+    :footcite:`MarisOostenveld2007` for details.
 
     Parameters
     ----------
     X : array, shape (n_observations, n_times, n_vertices)
-        Array data.
-    threshold : float | dict | None
-        If threshold is None, it will choose a t-threshold equivalent to
-        p < 0.05 for the given number of observations (only valid when
-        using an t-statistic). If a dict is used, then threshold-free
-        cluster enhancement (TFCE) will be used, and it must have keys
-        ``'start'`` and ``'step'`` to specify the integration parameters,
-        see the :ref:`TFCE example <tfce_example>`.
-    n_permutations : int | 'all'
-        The number of permutations to compute. Can be "all" to perform
-        an exact test.
-    tail : -1 or 0 or 1 (default = 0)
-        If tail is 1, the statistic is thresholded above threshold.
-        If tail is -1, the statistic is thresholded below threshold.
-        If tail is 0, the statistic is thresholded on both sides of
-        the distribution.
-    stat_fun : callable | None
-        Function used to compute the statistical map (default None will use
-        :func:`mne.stats.ttest_1samp_no_p`).
-    connectivity : sparse matrix or None
-        Defines connectivity between features. The matrix is assumed to
-        be symmetric and only the upper triangular half is used.
-        This matrix must be square with dimension (n_vertices * n_times) or
-        (n_vertices). Default is None, i.e, a regular lattice connectivity.
-        Use square n_vertices matrix for datasets with a large temporal
-        extent to save on memory and computation time.
-    n_jobs : int
-        Number of permutations to run in parallel (requires joblib package).
-    seed : int | instance of RandomState | None
-        Seed the random number generator for results reproducibility.
-    max_step : int
-        When connectivity is a n_vertices x n_vertices matrix, specify the
-        maximum number of steps between vertices along the second dimension
-        (typically time) to be considered connected. This is not used for full
-        or None connectivity matrices.
+        The data to be clustered. The first dimension should correspond to the
+        difference between paired samples (observations) in two conditions.
+    %(clust_thresh_t)s
+    %(clust_nperm_all)s
+    %(clust_tail)s
+    %(clust_stat_t)s
+    %(clust_con_st1)s
+    %(n_jobs)s
+    %(seed)s
+    %(clust_maxstep)s
     spatial_exclude : list of int or None
         List of spatial indices to exclude from clustering.
-    step_down_p : float
-        To perform a step-down-in-jumps test, pass a p-value for clusters to
-        exclude from each successive iteration. Default is zero, perform no
-        step-down test (since no clusters will be smaller than this value).
-        Setting this to a reasonable value, e.g. 0.05, can increase sensitivity
-        but costs computation time.
-    t_power : float
-        Power to raise the statistical values (usually t-values) by before
-        summing (sign will be retained). Note that t_power == 0 will give a
-        count of nodes in each cluster, t_power == 1 will weight each node by
-        its statistical score.
-    out_type : str
-        For arrays with connectivity, this sets the output format for clusters.
-        If 'mask', it will pass back a list of boolean mask arrays.
-        If 'indices', it will pass back a list of lists, where each list is the
-        set of vertices in a given cluster. Note that the latter may use far
-        less memory for large datasets.
-    check_disjoint : bool
-        If True, the connectivity matrix (or list) will be examined to
-        determine of it can be separated into disjoint sets. In some cases
-        (usually with connectivity as a list and many "time" points), this
-        can lead to faster clustering, but results should be identical.
-    buffer_size: int or None
-        The statistics will be computed for blocks of variables of size
-        "buffer_size" at a time. This is option significantly reduces the
-        memory requirements when n_jobs > 1 and memory sharing between
-        processes is enabled (see set_cache_dir()), as X will be shared
-        between processes and each process only needs to allocate space
-        for a small block of variables.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(clust_stepdown)s
+    %(clust_power_t)s
+    %(clust_out)s
+        Default is ``'indices'``.
+    %(clust_disjoint)s
+    %(clust_buffer)s
+    %(verbose)s
+    %(verbose)s
 
     Returns
     -------
     t_obs : array, shape (n_times * n_vertices,)
-        t-statistic observed for all variables.
+        T-statistic observed for all variables.
     clusters : list
         List type defined by out_type above.
-    cluster_pv: array
-        P-value for each cluster
+    cluster_pv : array
+        P-value for each cluster.
     H0 : array, shape (n_permutations,)
         Max cluster level stats observed under permutation.
 
-    Notes
-    -----
-    If ``n_permutations >= 2 ** (n_samples - (tail == 0))``,
-    ``n_permutations`` and ``seed`` will be ignored since an exact test
-    (full permutation test) will be performed.
-
-    If no initial clusters are found, i.e., all points in the true
-    distribution are below the threshold, then ``clusters``, ``cluster_pv``,
-    and ``H0`` will all be empty arrays.
-
     References
     ----------
-    .. [1] Maris/Oostenveld, "Nonparametric statistical testing of
-       EEG- and MEG-data" Journal of Neuroscience Methods,
-       Vol. 164, No. 1., pp. 177-190. doi:10.1016/j.jneumeth.2007.03.024
-    .. [2] Smith/Nichols (2009), "Threshold-free cluster enhancement:
-       Addressing problems of smoothing, threshold dependence, and
-       localisation in cluster inference", NeuroImage 44 (2009) 83-98.
+    .. footbibliography::
     """
     n_samples, n_times, n_vertices = X.shape
     # convert spatial_exclude before passing on if necessary
@@ -1347,93 +1260,51 @@ def spatio_temporal_cluster_test(
         check_disjoint=False, buffer_size=1000):
     """Non-parametric cluster-level test for spatio-temporal data.
 
-    This function provides a convenient wrapper for data organized in the form
-    (observations x time x space) to use
-    :func:`mne.stats.permutation_cluster_test`. See [1]_ for more information.
+    This function provides a convenient wrapper for
+    :func:`mne.stats.permutation_cluster_test`, for use with data
+    organized in the form (observations × time × space).
+    See :footcite:`MarisOostenveld2007` for more information.
 
     Parameters
     ----------
-    X: list of arrays
-        List of data arrays, shape ``(n_observations, n_times, n_vertices)``
-        in each group.
-    threshold : float | dict | None
-        If threshold is None, it will choose an F-threshold equivalent to
-        p < 0.05 for the given number of observations (only valid when
-        using an F-statistic). If a dict is used, then threshold-free
-        cluster enhancement (TFCE) will be used, and it must have keys
-        ``'start'`` and ``'step'`` to specify the integration parameters,
-        see the :ref:`TFCE example <tfce_example>`.
-    n_permutations: int
-        See permutation_cluster_test.
-    tail : -1 or 0 or 1 (default = 0)
-        See permutation_cluster_test.
-    stat_fun : callable | None
-        Function called to calculate statistics, must accept 1d-arrays as
-        arguments (default None uses :func:`mne.stats.f_oneway`).
-    connectivity : sparse matrix or None
-        Defines connectivity between features. The matrix is assumed to
-        be symmetric and only the upper triangular half is used.
-        Default is None, i.e, a regular lattice connectivity.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-    n_jobs : int
-        Number of permutations to run in parallel (requires joblib package).
-    seed : int | instance of RandomState | None
-        Seed the random number generator for results reproducibility.
-    max_step : int
-        When connectivity is a n_vertices x n_vertices matrix, specify the
-        maximum number of steps between vertices along the second dimension
-        (typically time) to be considered connected. This is not used for full
-        or None connectivity matrices.
+    X : list of array, shape (n_observations, n_times, n_vertices)
+        The data to be clustered. Each array in ``X`` should contain the
+        observations for one group. The first dimension of each array is the
+        number of observations from that group (and may vary between groups);
+        the remaining dimensions (times and vertices) should match across all
+        groups.
+    %(clust_thresh_f)s
+    %(clust_nperm_int)s
+    %(clust_tail)s
+    %(clust_stat_f)s
+    %(clust_con_stn)s
+    %(verbose)s
+    %(n_jobs)s
+    %(seed)s
+    %(clust_maxstep)s
     spatial_exclude : list of int or None
         List of spatial indices to exclude from clustering.
-    step_down_p : float
-        To perform a step-down-in-jumps test, pass a p-value for clusters to
-        exclude from each successive iteration. Default is zero, perform no
-        step-down test (since no clusters will be smaller than this value).
-        Setting this to a reasonable value, e.g. 0.05, can increase sensitivity
-        but costs computation time.
-    t_power : float
-        Power to raise the statistical values (usually F-values) by before
-        summing (sign will be retained). Note that t_power == 0 will give a
-        count of nodes in each cluster, t_power == 1 will weight each node by
-        its statistical score.
-    out_type : str
-        For arrays with connectivity, this sets the output format for clusters.
-        If 'mask', it will pass back a list of boolean mask arrays.
-        If 'indices', it will pass back a list of lists, where each list is the
-        set of vertices in a given cluster. Note that the latter may use far
-        less memory for large datasets.
-    check_disjoint : bool
-        If True, the connectivity matrix (or list) will be examined to
-        determine of it can be separated into disjoint sets. In some cases
-        (usually with connectivity as a list and many "time" points), this
-        can lead to faster clustering, but results should be identical.
-    buffer_size: int or None
-        The statistics will be computed for blocks of variables of size
-        "buffer_size" at a time. This is option significantly reduces the
-        memory requirements when n_jobs > 1 and memory sharing between
-        processes is enabled (see set_cache_dir()), as X will be shared
-        between processes and each process only needs to allocate space
-        for a small block of variables.
+    %(clust_stepdown)s
+    %(clust_power_f)s
+    %(clust_out)s
+        Default is ``'indices'``.
+    %(clust_disjoint)s
+    %(clust_buffer)s
 
     Returns
     -------
     t_obs : array, shape (n_times * n_vertices,)
-        Statistic (t by default) observed for all variables
+        Statistic (t by default) observed for all variables.
     clusters : list
         List type defined by out_type above.
     cluster_pv: array
-        P-value for each cluster
+        P-value for each cluster.
     H0 : array, shape (n_permutations,)
         Max cluster level stats observed under permutation.
 
     References
     ----------
-    .. [1] Maris/Oostenveld (2007), "Nonparametric statistical testing of
-       EEG- and MEG-data", Journal of Neuroscience Methods,
-       Vol. 164, No. 1., pp. 177-190. doi:10.1016/j.jneumeth.2007.03.024.
+    .. footbibliography::
     """
     n_samples, n_times, n_vertices = X[0].shape
     # convert spatial_exclude before passing on if necessary
@@ -1523,7 +1394,7 @@ def _reshape_clusters(clusters, sample_shape):
     return clusters
 
 
-def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
+def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1.0, tmin=0,
                            subject='fsaverage', vertices=None):
     """Assemble summary SourceEstimate from spatiotemporal cluster results.
 
@@ -1533,16 +1404,19 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
     Parameters
     ----------
     clu : tuple
-        the output from clustering permutation tests.
+        The output from clustering permutation tests.
     p_thresh : float
         The significance threshold for inclusion of clusters.
     tstep : float
-        The temporal difference between two time samples.
+        The time step between samples of the original :class:`STC
+        <mne.SourceEstimate>`, in seconds (i.e., ``1 / stc.sfreq``). Defaults
+        to ``1``, which will yield a colormap indicating cluster duration
+        measured in *samples* rather than *seconds*.
     tmin : float | int
         The time of the first sample.
     subject : str
         The name of the subject.
-    vertices : list of arrays | None
+    vertices : list of array | None
         The vertex numbers associated with the source space locations. Defaults
         to None. If None, equals ```[np.arange(10242), np.arange(10242)]```.
 
@@ -1552,7 +1426,8 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
         A summary of the clusters. The first time point in this SourceEstimate
         object is the summation of all the clusters. Subsequent time points
         contain each individual cluster. The magnitude of the activity
-        corresponds to the length the cluster spans in time (in samples).
+        corresponds to the duration spanned by the cluster (duration units are
+        determined by ``tstep``).
     """
     if vertices is None:
         vertices = [np.arange(10242), np.arange(10242)]
@@ -1576,7 +1451,7 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
         data[v_inds, t_inds] = t_obs[t_inds, v_inds]
         # Store a nice visualization of the cluster by summing across time
         data = np.sign(data) * np.logical_not(data == 0) * tstep
-        data_summary[:, ii + 1] = 1e3 * np.sum(data, axis=1)
+        data_summary[:, ii + 1] = np.sum(data, axis=1)
         # Make the first "time point" a sum across all clusters for easy
         # visualization
     data_summary[:, 0] = np.sum(data_summary, axis=1)

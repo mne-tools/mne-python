@@ -7,8 +7,8 @@ ICA is fit to MEG raw data.
 We assume that the non-stationary EOG artifacts have already been removed.
 The sources matching the ECG are automatically found and displayed.
 
-Note that this example does quite a bit of processing, so even on a
-fast machine it can take about a minute to complete.
+.. note:: This example does quite a bit of processing, so even on a
+          fast machine it can take about a minute to complete.
 """
 
 # Authors: Denis Engemann <denis.engemann@gmail.com>
@@ -31,8 +31,8 @@ print(__doc__)
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
-raw = mne.io.read_raw_fif(raw_fname, preload=True)
-raw.pick_types(meg=True, eeg=False, exclude='bads', stim=True)
+raw = mne.io.read_raw_fif(raw_fname)
+raw.pick_types(meg=True, eeg=False, exclude='bads', stim=True).load_data()
 raw.filter(1, 30, fir_design='firwin')
 
 # longer + more epochs for more artifact exposure

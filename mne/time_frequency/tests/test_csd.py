@@ -1,12 +1,13 @@
 import numpy as np
+import pytest
 from pytest import raises
 from numpy.testing import assert_array_equal, assert_allclose
 from os import path as op
-import warnings
 import pickle
 from itertools import product
 
 import mne
+from mne.channels import equalize_channels
 from mne.utils import sum_squared, run_tests_if_main, _TempDir, requires_h5py
 from mne.time_frequency import (csd_fourier, csd_multitaper,
                                 csd_morlet, csd_array_fourier,
@@ -281,8 +282,8 @@ def test_sym_mat_to_vector():
     # Test complex values: diagonals should be complex conjugates
     comp_vec = np.arange(3) + 1j
     assert_array_equal(_vector_to_sym_mat(comp_vec),
-                       [[0. + 0.j,  1. + 1.j],
-                        [1. - 1.j,  2. + 0.j]])
+                       [[0. + 0.j, 1. + 1.j],
+                        [1. - 1.j, 2. + 0.j]])
 
     # Test preservation of data type
     assert _sym_mat_to_vector(mat.astype(np.int8)).dtype == np.int8
@@ -533,13 +534,21 @@ def test_csd_morlet():
     assert_allclose(csd._data[[0, 3, 5]] * sfreq, power)
 
     # Test baselining warning
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        epochs_nobase = epochs.copy()
-        epochs_nobase.baseline = None
-        epochs_nobase.info['highpass'] = 0
+    epochs_nobase = epochs.copy()
+    epochs_nobase.baseline = None
+    epochs_nobase.info['highpass'] = 0
+    with pytest.warns(RuntimeWarning, match='baseline'):
         csd = csd_morlet(epochs_nobase, frequencies=[10], decim=20)
-    assert len(w) == 1
+
+
+def test_equalize_channels():
+    """Test equalization of channels for instances of CrossSpectralDensity."""
+    csd1 = _make_csd()
+    csd2 = csd1.copy().pick_channels(['CH2', 'CH1'], ordered=True)
+    csd1, csd2 = equalize_channels([csd1, csd2])
+
+    assert csd1.ch_names == ['CH1', 'CH2']
+    assert csd2.ch_names == ['CH1', 'CH2']
 
 
 run_tests_if_main()

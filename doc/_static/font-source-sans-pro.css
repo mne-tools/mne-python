@@ -1,0 +1,131 @@
+@font-face{
+    font-family: 'Source Sans Pro';
+    font-weight: 200;
+    font-style: normal;
+    font-stretch: normal;
+    src: url('./fonts/source_sans_pro/WOFF2/SourceSansPro-ExtraLight.ttf.woff2') format('woff2'),
+         url('./fonts/source_sans_pro/WOFF/SourceSansPro-ExtraLight.otf.woff') format('woff'),
+         url('./fonts/source_sans_pro/OTF/SourceSansPro-ExtraLight.otf') format('opentype'),
+         url('./fonts/source_sans_pro/TTF/SourceSansPro-ExtraLight.ttf') format('truetype');
+}
+
+@font-face{
+    font-family: 'Source Sans Pro';
+    font-weight: 200;
+    font-style: italic;
+    font-stretch: normal;
+    src: url('./fonts/source_sans_pro/WOFF2/SourceSansPro-ExtraLightIt.ttf.woff2') format('woff2'),
+         url('./fonts/source_sans_pro/WOFF/SourceSansPro-ExtraLightIt.otf.woff') format('woff'),
+         url('./fonts/source_sans_pro/OTF/SourceSansPro-ExtraLightIt.otf') format('opentype'),
+         url('./fonts/source_sans_pro/TTF/SourceSansPro-ExtraLightIt.ttf') format('truetype');
+}
+
+@font-face{
+    font-family: 'Source Sans Pro';
+    font-weight: 300;
+    font-style: normal;
+    font-stretch: normal;
+    src: url('./fonts/source_sans_pro/WOFF2/SourceSansPro-Light.ttf.woff2') format('woff2'),
+         url('./fonts/source_sans_pro/WOFF/SourceSansPro-Light.otf.woff') format('woff'),
+         url('./fonts/source_sans_pro/OTF/SourceSansPro-Light.otf') format('opentype'),
+         url('./fonts/source_sans_pro/TTF/SourceSansPro-Light.ttf') format('truetype');
+}
+
+@font-face{
+    font-family: 'Source Sans Pro';
+    font-weight: 300;
+    font-style: italic;
+    font-stretch: normal;
+    src: url('./fonts/source_sans_pro/WOFF2/SourceSansPro-LightIt.ttf.woff2') format('woff2'),
+         url('./fonts/source_sans_pro/WOFF/SourceSansPro-LightIt.otf.woff') format('woff'),
+         url('./fonts/source_sans_pro/OTF/SourceSansPro-LightIt.otf') format('opentype'),
+         url('./fonts/source_sans_pro/TTF/SourceSansPro-LightIt.ttf') format('truetype');
+}
+
+@font-face{
+    font-family: 'Source Sans Pro';
+    font-weight: 400;
+    font-style: normal;
+    font-stretch: normal;
+    src: url('./fonts/source_sans_pro/WOFF2/SourceSansPro-Regular.ttf.woff2') format('woff2'),
+         url('./fonts/source_sans_pro/WOFF/SourceSansPro-Regular.otf.woff') format('woff'),
+         url('./fonts/source_sans_pro/OTF/SourceSansPro-Regular.otf') format('opentype'),
+         url('./fonts/source_sans_pro/TTF/SourceSansPro-Regular.ttf') format('truetype');
+}
+
+@font-face{
+    font-family: 'Source Sans Pro';
+    font-weight: 400;
+    font-style: italic;
+    font-stretch: normal;
+    src: url('./fonts/source_sans_pro/WOFF2/SourceSansPro-It.ttf.woff2') format('woff2'),
+         url('./fonts/source_sans_pro/WOFF/SourceSansPro-It.otf.woff') format('woff'),
+         url('./fonts/source_sans_pro/OTF/SourceSansPro-It.otf') format('opentype'),
+         url('./fonts/source_sans_pro/TTF/SourceSansPro-It.ttf') format('truetype');
+}
+
+@font-face{
+    font-family: 'Source Sans Pro';
+    font-weight: 600;
+    font-style: normal;
+    font-stretch: normal;
+    src: url('./fonts/source_sans_pro/WOFF2/SourceSansPro-Semibold.ttf.woff2') format('woff2'),
+         url('./fonts/source_sans_pro/WOFF/SourceSansPro-Semibold.otf.woff') format('woff'),
+         url('./fonts/source_sans_pro/OTF/SourceSansPro-Semibold.otf') format('opentype'),
+         url('./fonts/source_sans_pro/TTF/SourceSansPro-Semibold.ttf') format('truetype');
+}
+
+@font-face{
+    font-family: 'Source Sans Pro';
+    font-weight: 600;
+    font-style: italic;
+    font-stretch: normal;
+    src: url('./fonts/source_sans_pro/WOFF2/SourceSansPro-SemiboldIt.ttf.woff2') format('woff2'),
+         url('./fonts/source_sans_pro/WOFF/SourceSansPro-SemiboldIt.otf.woff') format('woff'),
+         url('./fonts/source_sans_pro/OTF/SourceSansPro-SemiboldIt.otf') format('opentype'),
+         url('./fonts/source_sans_pro/TTF/SourceSansPro-SemiboldIt.ttf') format('truetype');
+}
+
+@font-face{
+    font-family: 'Source Sans Pro';
+    font-weight: 700;
+    font-style: normal;
+    font-stretch: normal;
+    src: url('./fonts/source_sans_pro/WOFF2/SourceSansPro-Bold.ttf.woff2') format('woff2'),
+         url('./fonts/source_sans_pro/WOFF/SourceSansPro-Bold.otf.woff') format('woff'),
+         url('./fonts/source_sans_pro/OTF/SourceSansPro-Bold.otf') format('opentype'),
+         url('./fonts/source_sans_pro/TTF/SourceSansPro-Bold.ttf') format('truetype');
+}
+
+@font-face{
+    font-family: 'Source Sans Pro';
+    font-weight: 700;
+    font-style: italic;
+    font-stretch: normal;
+    src: url('./fonts/source_sans_pro/WOFF2/SourceSansPro-BoldIt.ttf.woff2') format('woff2'),
+         url('./fonts/source_sans_pro/WOFF/SourceSansPro-BoldIt.otf.woff') format('woff'),
+         url('./fonts/source_sans_pro/OTF/SourceSansPro-BoldIt.otf') format('opentype'),
+         url('./fonts/source_sans_pro/TTF/SourceSansPro-BoldIt.ttf') format('truetype');
+}
+
+@font-face{
+    font-family: 'Source Sans Pro';
+    font-weight: 900;
+    font-style: normal;
+    font-stretch: normal;
+    src: url('./fonts/source_sans_pro/WOFF2/SourceSansPro-Black.ttf.woff2') format('woff2'),
+         url('./fonts/source_sans_pro/WOFF/SourceSansPro-Black.otf.woff') format('woff'),
+         url('./fonts/source_sans_pro/OTF/SourceSansPro-Black.otf') format('opentype'),
+         url('./fonts/source_sans_pro/TTF/SourceSansPro-Black.ttf') format('truetype');
+}
+
+@font-face{
+    font-family: 'Source Sans Pro';
+    font-weight: 900;
+    font-style: italic;
+    font-stretch: normal;
+    src: url('./fonts/source_sans_pro/WOFF2/SourceSansPro-BlackIt.ttf.woff2') format('woff2'),
+         url('./fonts/source_sans_pro/WOFF/SourceSansPro-BlackIt.otf.woff') format('woff'),
+         url('./fonts/source_sans_pro/OTF/SourceSansPro-BlackIt.otf') format('opentype'),
+         url('./fonts/source_sans_pro/TTF/SourceSansPro-BlackIt.ttf') format('truetype');
+}

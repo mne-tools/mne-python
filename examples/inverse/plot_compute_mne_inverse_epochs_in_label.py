@@ -6,7 +6,7 @@ Compute MNE-dSPM inverse solution on single epochs
 Compute dSPM inverse solution on single trial epochs restricted
 to a brain label.
 """
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 
@@ -63,11 +63,6 @@ evoked = epochs.average()
 # If you use a different nave, dSPM just scales by a factor sqrt(nave)
 stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method, label,
                             pick_ori="normal", nave=evoked.nave)
-
-stc_evoked = apply_inverse(evoked, inverse_operator, lambda2, method,
-                           pick_ori="normal")
-
-stc_evoked_label = stc_evoked.in_label(label)
 
 # Mean across trials but not across vertices in label
 mean_stc = sum(stcs) / len(stcs)

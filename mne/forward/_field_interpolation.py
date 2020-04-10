@@ -1,12 +1,18 @@
 # -*- coding: utf-8 -*-
+# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Eric Larson <larsoner@uw.edu>
+
+# The computations in this code were primarily derived from Matti Hämäläinen's
+# C code.
 
 from copy import deepcopy
 
 import numpy as np
 from scipy import linalg
 
+from ..io.constants import FWD
 from ..bem import _check_origin
-from ..io.constants import FIFF
 from ..io.pick import pick_types, pick_info
 from ..surface import get_head_surf, get_meg_helmet_surf
 
@@ -17,15 +23,15 @@ from ._make_forward import _create_meg_coils, _create_eeg_els, _read_coil_defs
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
                          _do_cross_dots)
 from ..parallel import check_n_jobs
-from ..utils import logger, verbose
-from ..externals.six import string_types
+from ..utils import logger, verbose, _check_option
+from ..epochs import EpochsArray, BaseEpochs
+from ..evoked import Evoked, EvokedArray
 
 
 def _is_axial_coil(coil):
     """Determine if the coil is axial."""
-    is_ax = coil['coil_class'] in (FIFF.FWD_COILC_MAG,
-                                   FIFF.FWD_COILC_AXIAL_GRAD,
-                                   FIFF.FWD_COILC_AXIAL_GRAD2)
+    is_ax = coil['coil_class'] in (
+        FWD.COILC_MAG, FWD.COILC_AXIAL_GRAD, FWD.COILC_AXIAL_GRAD2)
     return is_ax
 
 
@@ -119,6 +125,10 @@ def _map_meg_channels(info_from, info_to, mode='fast', origin=(0., 0., 0.04)):
         Either `'accurate'` or `'fast'`, determines the quality of the
         Legendre polynomial expansion used. `'fast'` should be sufficient
         for most applications.
+    origin : array-like, shape (3,) | str
+        Origin of the sphere in the head coordinate frame and in meters.
+        Can be ``'auto'``, which means a head-digitization-based origin
+        fit. Default is ``(0., 0., 0.04)``.
 
     Returns
     -------
@@ -159,13 +169,13 @@ def _map_meg_channels(info_from, info_to, mode='fast', origin=(0., 0., 0.04)):
     return mapping
 
 
-def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
+def _as_meg_type_inst(inst, ch_type='grad', mode='fast'):
     """Compute virtual evoked using interpolated fields in mag/grad channels.
 
     Parameters
     ----------
-    evoked : instance of mne.Evoked
-        The evoked object.
+    inst : instance of mne.Evoked or mne.Epochs
+        The evoked or epochs object.
     ch_type : str
         The destination channel type. It can be 'mag' or 'grad'.
     mode : str
@@ -175,18 +185,15 @@ def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
 
     Returns
     -------
-    evoked : instance of mne.Evoked
+    inst : instance of mne.EvokedArray or mne.EpochsArray
         The transformed evoked object containing only virtual channels.
     """
-    evoked = evoked.copy()
+    _check_option('ch_type', ch_type, ['mag', 'grad'])
 
-    if ch_type not in ['mag', 'grad']:
-        raise ValueError('to_type must be "mag" or "grad", not "%s"'
-                         % ch_type)
     # pick the original and destination channels
-    pick_from = pick_types(evoked.info, meg=True, eeg=False,
+    pick_from = pick_types(inst.info, meg=True, eeg=False,
                            ref_meg=False)
-    pick_to = pick_types(evoked.info, meg=ch_type, eeg=False,
+    pick_to = pick_types(inst.info, meg=ch_type, eeg=False,
                          ref_meg=False)
 
     if len(pick_to) == 0:
@@ -196,24 +203,47 @@ def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
                          ' locations of the destination channels will be used'
                          ' for interpolation.')
 
-    info_from = pick_info(evoked.info, pick_from)
-    info_to = pick_info(evoked.info, pick_to)
+    info_from = pick_info(inst.info, pick_from)
+    info_to = pick_info(inst.info, pick_to)
     mapping = _map_meg_channels(info_from, info_to, mode=mode)
 
-    # compute evoked data by multiplying by the 'gain matrix' from
+    # compute data by multiplying by the 'gain matrix' from
     # original sensors to virtual sensors
-    data = np.dot(mapping, evoked.data[pick_from])
+    if hasattr(inst, 'get_data'):
+        data = inst.get_data()
+    else:
+        data = inst.data
+
+    ndim = data.ndim
+    if ndim == 2:
+        data = data[np.newaxis, :, :]
+
+    data_ = np.empty((data.shape[0], len(mapping), data.shape[2]),
+                     dtype=data.dtype)
+    for d, d_ in zip(data, data_):
+        d_[:] = np.dot(mapping, d[pick_from])
 
     # keep only the destination channel types
-    evoked.pick_types(meg=ch_type, eeg=False, ref_meg=False)
-    evoked.data = data
+    info = pick_info(inst.info, sel=pick_to, copy=True)
 
     # change channel names to emphasize they contain interpolated data
-    for ch in evoked.info['chs']:
+    for ch in info['chs']:
         ch['ch_name'] += '_v'
-    evoked.info._update_redundant()
-    evoked.info._check_consistency()
-    return evoked
+    info._update_redundant()
+    info._check_consistency()
+    if isinstance(inst, Evoked):
+        assert ndim == 2
+        data_ = data_[0]  # undo new axis
+        inst_ = EvokedArray(data_, info, tmin=inst.times[0],
+                            comment=inst.comment, nave=inst.nave)
+    else:
+        assert isinstance(inst, BaseEpochs)
+        inst_ = EpochsArray(data_, info, tmin=inst.tmin,
+                            events=inst.events,
+                            event_id=inst.event_id,
+                            metadata=inst.metadata)
+
+    return inst_
 
 
 @verbose
@@ -237,15 +267,12 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
         Either `'accurate'` or `'fast'`, determines the quality of the
         Legendre polynomial expansion used. `'fast'` should be sufficient
         for most applications.
-    n_jobs : int
-        Number of permutations to run in parallel (requires joblib package).
+    %(n_jobs)s
     origin : array-like, shape (3,) | str
-        Origin of internal and external multipolar moment space in head
-        coords and in meters. The default is ``'auto'``, which means
-        a head-digitization-based origin fit.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+        Origin of the sphere in the head coordinate frame and in meters.
+        The default is ``'auto'``, which means a head-digitization-based
+        origin fit.
+    %(verbose)s
 
     Returns
     -------
@@ -258,8 +285,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     if 'coord_frame' not in surf:
         raise KeyError('The surface coordinate frame must be specified '
                        'in surf["coord_frame"]')
-    if mode not in ['accurate', 'fast']:
-        raise ValueError('mode must be "accurate" or "fast", not "%s"' % mode)
+    _check_option('mode', mode, ['accurate', 'fast'])
 
     # deal with coordinate frames here -- always go to "head" (easiest)
     orig_surf = surf
@@ -271,8 +297,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     # Step 1. Prepare the coil definitions
     # Do the dot products, assume surf in head coords
     #
-    if ch_type not in ('meg', 'eeg'):
-        raise ValueError('unknown coil type "%s"' % ch_type)
+    _check_option('ch_type', ch_type, ['meg', 'eeg'])
     if ch_type == 'meg':
         picks = pick_types(info, meg=True, eeg=False, ref_meg=False)
         logger.info('Prepare MEG mapping...')
@@ -281,7 +306,10 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
         logger.info('Prepare EEG mapping...')
     if len(picks) == 0:
         raise RuntimeError('cannot map, no channels found')
-    chs = pick_info(info, picks)['chs']
+    # XXX this code does not do any checking for compensation channels,
+    # but it seems like this must be intentional from the ref_meg=False
+    # (presumably from the C code)
+    chs = [info['chs'][pick] for pick in picks]
 
     # create coil defs in head coordinates
     if ch_type == 'meg':
@@ -353,27 +381,21 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
     ch_type : None | 'eeg' | 'meg'
         If None, a map for each available channel type will be returned.
         Else only the specified type will be used.
-    mode : str
+    mode : 'accurate' | 'fast'
         Either `'accurate'` or `'fast'`, determines the quality of the
         Legendre polynomial expansion used. `'fast'` should be sufficient
         for most applications.
-    meg_surf : str
+    meg_surf : 'helmet' | 'head'
         Should be ``'helmet'`` or ``'head'`` to specify in which surface
-        to compute the MEG field map. The default value is ``'helmet'``
-    origin : array-like, shape (3,) | str
-        Origin of internal and external multipolar moment space in head
-        coords and in meters. Can be ``'auto'``, which means
-        a head-digitization-based origin fit. Default is ``(0., 0., 0.04)``.
+        to compute the MEG field map. The default value is ``'helmet'``.
+    origin : array-like, shape (3,) | 'auto'
+        Origin of the sphere in the head coordinate frame and in meters.
+        Can be ``'auto'``, which means a head-digitization-based origin
+        fit. Default is ``(0., 0., 0.04)``.
 
         .. versionadded:: 0.11
-
-    n_jobs : int
-        The number of jobs to run in parallel.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
-
-        .. versionadded:: 0.11
+    %(n_jobs)s
+    %(verbose)s
 
     Returns
     -------
@@ -386,9 +408,7 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
     if ch_type is None:
         types = [t for t in ['eeg', 'meg'] if t in evoked]
     else:
-        if ch_type not in ['eeg', 'meg']:
-            raise ValueError("ch_type should be 'eeg' or 'meg' (got %s)"
-                             % ch_type)
+        _check_option('ch_type', ch_type, ['eeg', 'meg'])
         types = [ch_type]
 
     if trans == 'auto':
@@ -403,13 +423,11 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         raise RuntimeError('No data available for mapping.')
 
     if trans is not None:
-        if isinstance(trans, string_types):
+        if isinstance(trans, str):
             trans = read_trans(trans)
         trans = _ensure_trans(trans, 'head', 'mri')
 
-    if meg_surf not in ['helmet', 'head']:
-        raise ValueError('Surface to plot MEG fields must be '
-                         '"helmet" or "head"')
+    _check_option('meg_surf', meg_surf, ['helmet', 'head'])
 
     surfs = []
     for this_type in types:

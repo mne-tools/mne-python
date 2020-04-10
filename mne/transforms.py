@@ -1,28 +1,26 @@
 # -*- coding: utf-8 -*-
 """Helpers for various transformations."""
 
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD (3-clause)
 
 import os
-from os import path as op
+import os.path as op
 import glob
-import copy
 
 import numpy as np
 from copy import deepcopy
-from numpy import sin, cos
 from scipy import linalg
 
-from .fixes import _get_sph_harm, einsum
+from .fixes import einsum, jit, mean
 from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
-from .utils import check_fname, logger, verbose, _ensure_int
-from .externals.six import string_types
+from .utils import (check_fname, logger, verbose, _ensure_int, _validate_type,
+                    _check_path_like, get_subjects_dir, fill_doc, _check_fname)
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -41,7 +39,7 @@ _str_to_frame = dict(meg=FIFF.FIFFV_COORD_DEVICE,
                      ctf_head=FIFF.FIFFV_MNE_COORD_CTF_HEAD,
                      ctf_meg=FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
                      unknown=FIFF.FIFFV_COORD_UNKNOWN)
-_frame_to_str = dict((val, key) for key, val in _str_to_frame.items())
+_frame_to_str = {val: key for key, val in _str_to_frame.items()}
 
 _verbose_frames = {FIFF.FIFFV_COORD_UNKNOWN: 'unknown',
                    FIFF.FIFFV_COORD_DEVICE: 'MEG device',
@@ -63,7 +61,7 @@ _verbose_frames = {FIFF.FIFFV_COORD_UNKNOWN: 'unknown',
 
 def _to_const(cf):
     """Convert string or int coord frame into int."""
-    if isinstance(cf, string_types):
+    if isinstance(cf, str):
         if cf not in _str_to_frame:
             raise ValueError('Unknown cf %s' % cf)
         cf = _str_to_frame[cf]
@@ -78,12 +76,17 @@ class Transform(dict):
     Parameters
     ----------
     fro : str | int
-        The starting coordinate frame.
+        The starting coordinate frame. See notes for valid coordinate frames.
     to : str | int
-        The ending coordinate frame.
+        The ending coordinate frame. See notes for valid coordinate frames.
     trans : array-like, shape (4, 4) | None
         The transformation matrix. If None, an identity matrix will be
         used.
+
+    Notes
+    -----
+    Valid coordinate frames are 'meg','mri','mri_voxel','head','mri_tal','ras'
+    'fs_tal','ctf_head','ctf_meg','unknown'
     """
 
     def __init__(self, fro, to, trans=None):  # noqa: D102
@@ -168,7 +171,7 @@ class Transform(dict):
 
     def copy(self):
         """Make a copy of the transform."""
-        return copy.deepcopy(self)
+        return deepcopy(self)
 
 
 def _coord_frame_name(cframe):
@@ -176,14 +179,17 @@ def _coord_frame_name(cframe):
     return _verbose_frames.get(int(cframe), 'unknown')
 
 
-def _print_coord_trans(t, prefix='Coordinate transformation: '):
-    logger.info(prefix + '%s -> %s'
-                % (_coord_frame_name(t['from']), _coord_frame_name(t['to'])))
+def _print_coord_trans(t, prefix='Coordinate transformation: ', units='m',
+                       level='info'):
+    # Units gives the units of the transformation. This always prints in mm.
+    log_func = getattr(logger, level)
+    log_func(prefix + '%s -> %s'
+             % (_coord_frame_name(t['from']), _coord_frame_name(t['to'])))
     for ti, tt in enumerate(t['trans']):
-        scale = 1000. if ti != 3 else 1.
+        scale = 1000. if (ti != 3 and units != 'mm') else 1.
         text = ' mm' if ti != 3 else ''
-        logger.info('    % 8.6f % 8.6f % 8.6f    %7.2f%s' %
-                    (tt[0], tt[1], tt[2], scale * tt[3], text))
+        log_func('    % 8.6f % 8.6f % 8.6f    %7.2f%s' %
+                 (tt[0], tt[1], tt[2], scale * tt[3], text))
 
 
 def _find_trans(subject, subjects_dir=None):
@@ -193,8 +199,7 @@ def _find_trans(subject, subjects_dir=None):
         else:
             raise ValueError('SUBJECT environment variable not set')
 
-    trans_fnames = glob.glob(os.path.join(subjects_dir, subject,
-                                          '*-trans.fif'))
+    trans_fnames = glob.glob(op.join(subjects_dir, subject, '*-trans.fif'))
     if len(trans_fnames) < 1:
         raise RuntimeError('Could not find the transformation for '
                            '{subject}'.format(subject=subject))
@@ -249,12 +254,12 @@ def rotation(x=0, y=0, z=0):
     r : array, shape = (4, 4)
         The rotation matrix.
     """
-    cos_x = cos(x)
-    cos_y = cos(y)
-    cos_z = cos(z)
-    sin_x = sin(x)
-    sin_y = sin(y)
-    sin_z = sin(z)
+    cos_x = np.cos(x)
+    cos_y = np.cos(y)
+    cos_z = np.cos(z)
+    sin_x = np.sin(x)
+    sin_y = np.sin(y)
+    sin_z = np.sin(z)
     r = np.array([[cos_y * cos_z, -cos_x * sin_z + sin_x * sin_y * cos_z,
                    sin_x * sin_z + cos_x * sin_y * cos_z, 0],
                   [cos_y * sin_z, cos_x * cos_z + sin_x * sin_y * sin_z,
@@ -277,12 +282,12 @@ def rotation3d(x=0, y=0, z=0):
     r : array, shape = (3, 3)
         The rotation matrix.
     """
-    cos_x = cos(x)
-    cos_y = cos(y)
-    cos_z = cos(z)
-    sin_x = sin(x)
-    sin_y = sin(y)
-    sin_z = sin(z)
+    cos_x = np.cos(x)
+    cos_y = np.cos(y)
+    cos_z = np.cos(z)
+    sin_x = np.sin(x)
+    sin_y = np.sin(y)
+    sin_z = np.sin(z)
     r = np.array([[cos_y * cos_z, -cos_x * sin_z + sin_x * sin_y * cos_z,
                    sin_x * sin_z + cos_x * sin_y * cos_z],
                   [cos_y * sin_z, cos_x * cos_z + sin_x * sin_y * sin_z,
@@ -396,14 +401,14 @@ def translation(x=0, y=0, z=0):
 
 def _ensure_trans(trans, fro='mri', to='head'):
     """Ensure we have the proper transform."""
-    if isinstance(fro, string_types):
+    if isinstance(fro, str):
         from_str = fro
         from_const = _str_to_frame[fro]
     else:
         from_str = _frame_to_str[fro]
         from_const = fro
     del fro
-    if isinstance(to, string_types):
+    if isinstance(to, str):
         to_str = to
         to_const = _str_to_frame[to]
     else:
@@ -416,15 +421,16 @@ def _ensure_trans(trans, fro='mri', to='head'):
         trans = [trans]
     # Ensure that we have exactly one match
     idx = list()
+    misses = list()
     for ti, this_trans in enumerate(trans):
         if not isinstance(this_trans, Transform):
             raise ValueError('%s None' % err_str)
-        if set([this_trans['from'],
-                this_trans['to']]) == set([from_const, to_const]):
+        if {this_trans['from'],
+                this_trans['to']} == {from_const, to_const}:
             idx.append(ti)
         else:
-            misses = '%s->%s' % (_frame_to_str[this_trans['from']],
-                                 _frame_to_str[this_trans['to']])
+            misses += ['%s->%s' % (_frame_to_str[this_trans['from']],
+                                   _frame_to_str[this_trans['to']])]
     if len(idx) != 1:
         raise ValueError('%s %s' % (err_str, ', '.join(misses)))
     trans = trans[idx[0]]
@@ -435,7 +441,11 @@ def _ensure_trans(trans, fro='mri', to='head'):
 
 def _get_trans(trans, fro='mri', to='head'):
     """Get mri_head_t (from=mri, to=head) from mri filename."""
-    if isinstance(trans, string_types):
+    if _check_path_like(trans):
+        trans = str(trans)
+        if trans == 'fsaverage':
+            trans = op.join(op.dirname(__file__), 'data', 'fsaverage',
+                            'fsaverage-trans.fif')
         if not op.isfile(trans):
             raise IOError('trans file "%s" not found' % trans)
         if op.splitext(trans)[1] in ['.fif', '.gz']:
@@ -598,7 +608,7 @@ def transform_surface_to(surf, dest, trans, copy=False):
         Transformed source space.
     """
     surf = deepcopy(surf) if copy else surf
-    if isinstance(dest, string_types):
+    if isinstance(dest, str):
         if dest not in _str_to_frame:
             raise KeyError('dest must be one of %s, not "%s"'
                            % (list(_str_to_frame.keys()), dest))
@@ -686,22 +696,35 @@ def _cart_to_sph(cart):
     cart = np.atleast_2d(cart)
     out = np.empty((len(cart), 3))
     out[:, 0] = np.sqrt(np.sum(cart * cart, axis=1))
+    norm = np.where(out[:, 0] > 0, out[:, 0], 1)  # protect against / 0
     out[:, 1] = np.arctan2(cart[:, 1], cart[:, 0])
-    out[:, 2] = np.arccos(cart[:, 2] / out[:, 0])
+    out[:, 2] = np.arccos(cart[:, 2] / norm)
     out = np.nan_to_num(out)
     return out
 
 
-def _sph_to_cart(sph):
-    """Convert spherical coordinates to Cartesion coordinates."""
-    assert sph.ndim == 2 and sph.shape[1] == 3
-    sph = np.atleast_2d(sph)
-    out = np.empty((len(sph), 3))
-    out[:, 2] = sph[:, 0] * np.cos(sph[:, 2])
-    xy = sph[:, 0] * np.sin(sph[:, 2])
-    out[:, 0] = xy * np.cos(sph[:, 1])
-    out[:, 1] = xy * np.sin(sph[:, 1])
-    return out
+def _sph_to_cart(sph_pts):
+    """Convert spherical coordinates to Cartesion coordinates.
+
+    Parameters
+    ----------
+    sph_pts : ndarray, shape (n_points, 3)
+        Array containing points in spherical coordinates (rad, azimuth, polar)
+
+    Returns
+    -------
+    cart_pts : ndarray, shape (n_points, 3)
+        Array containing points in Cartesian coordinates (x, y, z)
+
+    """
+    assert sph_pts.ndim == 2 and sph_pts.shape[1] == 3
+    sph_pts = np.atleast_2d(sph_pts)
+    cart_pts = np.empty((len(sph_pts), 3))
+    cart_pts[:, 2] = sph_pts[:, 0] * np.cos(sph_pts[:, 2])
+    xy = sph_pts[:, 0] * np.sin(sph_pts[:, 2])
+    cart_pts[:, 0] = xy * np.cos(sph_pts[:, 1])
+    cart_pts[:, 1] = xy * np.sin(sph_pts[:, 1])
+    return cart_pts
 
 
 def _get_n_moments(order):
@@ -751,7 +774,6 @@ def _sph_to_cart_partials(az, pol, g_rad, g_az, g_pol):
         Array containing partial derivatives in Cartesian coordinates (x, y, z)
     """
     sph_grads = np.c_[g_rad, g_az, g_pol]
-    cart_grads = np.zeros_like(sph_grads)
     c_as, s_as = np.cos(az), np.sin(az)
     c_ps, s_ps = np.cos(pol), np.sin(pol)
     trans = np.array([[c_as * s_ps, -s_as, c_as * c_ps],
@@ -822,7 +844,7 @@ def _sh_real_to_complex(shs, order):
 
 def _compute_sph_harm(order, az, pol):
     """Compute complex spherical harmonics of spherical coordinates."""
-    sph_harm = _get_sph_harm()
+    from scipy.special import sph_harm
     out = np.empty((len(az), _get_n_moments(order) + 1))
     # _deg_ord_idx(0, 0) = -1 so we're actually okay to use it here
     for degree in range(order + 1):
@@ -1007,10 +1029,7 @@ class _SphericalSurfaceWarp(object):
             The uniformly-spaced points to match on the two surfaces.
             Can be "ico#" or "oct#" where "#" is an integer.
             The default is "oct5".
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose)s
 
         Returns
         -------
@@ -1085,10 +1104,7 @@ class _SphericalSurfaceWarp(object):
             points that were used to generate the model, although ideally
             they will be inside the convex hull formed by the original
             source points.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose)s
 
         Returns
         -------
@@ -1126,13 +1142,14 @@ def _topo_to_sph(topo):
 ###############################################################################
 # Quaternions
 
+@jit()
 def quat_to_rot(quat):
     """Convert a set of quaternions to rotations.
 
     Parameters
     ----------
     quat : array, shape (..., 3)
-        q1, q2, and q3 (x, y, z) parameters of a unit quaternion.
+        The q1, q2, and q3 (x, y, z) parameters of a unit quaternion.
 
     Returns
     -------
@@ -1155,45 +1172,52 @@ def quat_to_rot(quat):
     bc_2 = 2 * b * c
     bd_2 = 2 * b * d
     cd_2 = 2 * c * d
-    rotation = np.array([(aa + bb - cc - dd, bc_2 - ad_2, bd_2 + ac_2),
-                         (bc_2 + ad_2, aa + cc - bb - dd, cd_2 - ab_2),
-                         (bd_2 - ac_2, cd_2 + ab_2, aa + dd - bb - cc),
-                         ])
-    if quat.ndim > 1:
-        rotation = np.rollaxis(np.rollaxis(rotation, 1, quat.ndim + 1),
-                               0, quat.ndim)
+    rotation = np.empty(quat.shape[:-1] + (3, 3))
+    rotation[..., 0, 0] = aa + bb - cc - dd
+    rotation[..., 0, 1] = bc_2 - ad_2
+    rotation[..., 0, 2] = bd_2 + ac_2
+    rotation[..., 1, 0] = bc_2 + ad_2
+    rotation[..., 1, 1] = aa + cc - bb - dd
+    rotation[..., 1, 2] = cd_2 - ab_2
+    rotation[..., 2, 0] = bd_2 - ac_2
+    rotation[..., 2, 1] = cd_2 + ab_2
+    rotation[..., 2, 2] = aa + dd - bb - cc
     return rotation
 
 
+@jit()
 def _one_rot_to_quat(rot):
     """Convert a rotation matrix to quaternions."""
     # see e.g. http://www.euclideanspace.com/maths/geometry/rotations/
     #                 conversions/matrixToQuaternion/
+    det = np.linalg.det(np.reshape(rot, (3, 3)))
+    if np.abs(det - 1.) > 1e-3:
+        raise ValueError('Matrix is not a pure rotation, got determinant != 1')
     t = 1. + rot[0] + rot[4] + rot[8]
     if t > np.finfo(rot.dtype).eps:
         s = np.sqrt(t) * 2.
+        # qw = 0.25 * s
         qx = (rot[7] - rot[5]) / s
         qy = (rot[2] - rot[6]) / s
         qz = (rot[3] - rot[1]) / s
-        # qw = 0.25 * s
     elif rot[0] > rot[4] and rot[0] > rot[8]:
         s = np.sqrt(1. + rot[0] - rot[4] - rot[8]) * 2.
+        # qw = (rot[7] - rot[5]) / s
         qx = 0.25 * s
         qy = (rot[1] + rot[3]) / s
         qz = (rot[2] + rot[6]) / s
-        # qw = (rot[7] - rot[5]) / s
     elif rot[4] > rot[8]:
         s = np.sqrt(1. - rot[0] + rot[4] - rot[8]) * 2
+        # qw = (rot[2] - rot[6]) / s
         qx = (rot[1] + rot[3]) / s
         qy = 0.25 * s
         qz = (rot[5] + rot[7]) / s
-        # qw = (rot[2] - rot[6]) / s
     else:
         s = np.sqrt(1. - rot[0] - rot[4] + rot[8]) * 2.
+        # qw = (rot[3] - rot[1]) / s
         qx = (rot[2] + rot[6]) / s
         qy = (rot[5] + rot[7]) / s
         qz = 0.25 * s
-        # qw = (rot[3] - rot[1]) / s
     return np.array((qx, qy, qz))
 
 
@@ -1219,17 +1243,51 @@ def rot_to_quat(rot):
     return np.apply_along_axis(_one_rot_to_quat, -1, rot)
 
 
+def _quat_to_affine(quat):
+    assert quat.shape == (6,)
+    affine = np.eye(4)
+    affine[:3, :3] = quat_to_rot(quat[:3])
+    affine[:3, 3] = quat[3:]
+    return affine
+
+
 def _angle_between_quats(x, y):
     """Compute the ang between two quaternions w/3-element representations."""
-    # convert to complete quaternion representation
-    # use max() here to be safe in case roundoff errs put us over
-    x0 = np.sqrt(np.maximum(1. - x[..., 0] ** 2 -
-                            x[..., 1] ** 2 - x[..., 2] ** 2, 0.))
-    y0 = np.sqrt(np.maximum(1. - y[..., 0] ** 2 -
-                            y[..., 1] ** 2 - y[..., 2] ** 2, 0.))
-    # the difference z = x * conj(y), and theta = np.arccos(z0)
-    z0 = np.maximum(np.minimum(y0 * x0 + (x * y).sum(axis=-1), 1.), -1)
-    return 2 * np.arccos(z0)
+    # z = conj(x) * y
+    # conjugate just negates all but the first element in a 4-element quat,
+    # so it's just a negative for us
+    z = _quat_mult(-x, y)
+    z0 = _quat_real(z)
+    return 2 * np.arctan2(np.linalg.norm(z, axis=-1), z0)
+
+
+def _quat_real(quat):
+    """Get the real part of our 3-element quat."""
+    assert quat.shape[-1] == 3, quat.shape[-1]
+    return np.sqrt(np.maximum(1. -
+                              quat[..., 0] * quat[..., 0] -
+                              quat[..., 1] * quat[..., 1] -
+                              quat[..., 2] * quat[..., 2], 0.))
+
+
+def _quat_mult(one, two):
+    assert one.shape[-1] == two.shape[-1] == 3
+    w1 = _quat_real(one)
+    w2 = _quat_real(two)
+    out = np.empty(np.broadcast(one, two).shape)
+    # Most mathematical expressions use this sort of notation
+    x1, x2 = one[..., 0], two[..., 0]
+    y1, y2 = one[..., 1], two[..., 1]
+    z1, z2 = one[..., 2], two[..., 2]
+    out[..., 0] = w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2
+    out[..., 1] = w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2
+    out[..., 2] = w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2
+    # only need to compute w because we need signs from it
+    w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2
+    signs = np.sign(w)
+    signs = np.where(signs, signs, 1)
+    out *= signs[..., np.newaxis]
+    return out
 
 
 def _skew_symmetric_cross(a):
@@ -1251,6 +1309,72 @@ def _find_vector_rotation(a, b):
     vx = _skew_symmetric_cross(v)
     R += vx + np.dot(vx, vx) * (1 - c) / s
     return R
+
+
+@jit()
+def _fit_matched_points(p, x, weights=None, scale=False):
+    """Fit matched points using an analytical formula."""
+    # Follow notation of P.J. Besl and N.D. McKay, A Method for
+    # Registration of 3-D Shapes, IEEE Trans. Patt. Anal. Machine Intell., 14,
+    # 239 - 255, 1992.
+    #
+    # The original method is actually by Horn, Closed-form solution of absolute
+    # orientation using unit quaternions, J Opt. Soc. Amer. A vol 4 no 4
+    # pp 629-642, Apr. 1987. This paper describes how weights can be
+    # easily incorporated, and a uniform scale factor can be computed.
+    #
+    # Caution: This can be dangerous if there are 3 points, or 4 points in
+    #          a symmetric layout, as the geometry can be explained
+    #          equivalently under 180 degree rotations.
+    #
+    # Eventually this can be extended to also handle a uniform scale factor,
+    # as well.
+    assert p.shape == x.shape
+    assert p.ndim == 2
+    assert p.shape[1] == 3
+    # (weighted) centroids
+    if weights is None:
+        mu_p = mean(p, axis=0)  # eq 23
+        mu_x = mean(x, axis=0)
+        dots = np.dot(p.T, x)
+        dots /= p.shape[0]
+    else:
+        weights_ = np.reshape(weights / weights.sum(), (weights.size, 1))
+        mu_p = np.dot(weights_.T, p)[0]
+        mu_x = np.dot(weights_.T, x)[0]
+        dots = np.dot(p.T, weights_ * x)
+    Sigma_px = dots - np.outer(mu_p, mu_x)  # eq 24
+    # x and p should no longer be used
+    A_ij = Sigma_px - Sigma_px.T
+    Delta = np.array([A_ij[1, 2], A_ij[2, 0], A_ij[0, 1]])
+    tr_Sigma_px = np.trace(Sigma_px)
+    # "N" in Horn:
+    Q = np.empty((4, 4))
+    Q[0, 0] = tr_Sigma_px
+    Q[0, 1:] = Delta
+    Q[1:, 0] = Delta
+    Q[1:, 1:] = Sigma_px + Sigma_px.T - tr_Sigma_px * np.eye(3)
+    _, v = np.linalg.eigh(Q)  # sorted ascending
+    quat = np.empty(6)
+    quat[:3] = v[1:, -1]
+    if v[0, -1] != 0:
+        quat[:3] *= np.sign(v[0, -1])
+    rot = quat_to_rot(quat[:3])
+    # scale factor is easy once we know the rotation
+    if scale:  # p is "right" (from), x is "left" (to) in Horn 1987
+        dev_x = x - mu_x
+        dev_p = p - mu_p
+        dev_x *= dev_x
+        dev_p *= dev_p
+        if weights is not None:
+            dev_x *= weights_
+            dev_p *= weights_
+        s = np.sqrt(np.sum(dev_x) / np.sum(dev_p))
+    else:
+        s = 1.
+    # translation is easy once rotation and scale are known
+    quat[3:] = mu_x - s * np.dot(rot, mu_p)
+    return quat, s
 
 
 def _average_quats(quats, weights=None):
@@ -1275,18 +1399,46 @@ def _average_quats(quats, weights=None):
     #
     # We use unit quats and don't store the last element, so reconstruct it
     # to get our 4-element quaternions:
-    res = np.maximum(1. - np.sum(quats * quats, axis=-1, keepdims=True), 0.)
-    np.sqrt(res, out=res)
-    quats = np.concatenate((quats, res), axis=-1)
+    quats = np.concatenate((_quat_real(quats)[..., np.newaxis], quats), -1)
     quats *= weights[:, np.newaxis]
     A = np.einsum('ij,ik->jk', quats, quats)  # sum of outer product of each q
     avg_quat = linalg.eigh(A)[1][:, -1]  # largest eigenvector is the avg
     # Same as the largest eigenvector from the concatenation of all as
     # linalg.svd(quats, full_matrices=False)[-1][0], but faster.
-    avg_quat = avg_quat[:3]
-    if avg_quat[-1] != 0:
-        avg_quat *= np.sign(avg_quat[-1])
+    #
+    # By local convention we take the real term (which we remove from our
+    # representation) as positive. Since it can be zero, let's just ensure
+    # that the first non-zero element is positive. This shouldn't matter once
+    # we go to a rotation matrix, but it's nice for testing to have
+    # consistency.
+    avg_quat *= np.sign(avg_quat[avg_quat != 0][0])
+    avg_quat = avg_quat[1:]
     return avg_quat
+
+
+@fill_doc
+def read_ras_mni_t(subject, subjects_dir=None):
+    """Read a subject's RAS to MNI transform.
+
+    Parameters
+    ----------
+    subject : str
+        The subject.
+    %(subjects_dir)s
+
+    Returns
+    -------
+    ras_mni_t : instance of Transform
+        The transform from RAS to MNI.
+    """
+    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
+                                    raise_error=True)
+    _validate_type(subject, 'str', 'subject')
+    fname = op.join(subjects_dir, subject, 'mri', 'transforms',
+                    'talairach.xfm')
+    fname = _check_fname(
+        fname, 'read', True, 'FreeSurfer Talairach transformation file')
+    return Transform('ras', 'mni_tal', _read_fs_xfm(fname)[0])
 
 
 def _read_fs_xfm(fname):
@@ -1301,6 +1453,7 @@ def _read_fs_xfm(fname):
         for li, line in enumerate(fid):
             if li == 0:
                 kind = line.strip()
+                logger.debug('Found: %r' % (kind,))
             if line[:len(comp)] == comp:
                 # we have the right line, so don't read any more
                 break
@@ -1331,3 +1484,35 @@ def _write_fs_xfm(fname, xfm, kind):
             line = ' '.join(['%0.6f' % l for l in line])
             line += '\n' if li < 2 else ';\n'
             fid.write(line.encode('ascii'))
+
+
+def _quat_to_euler(quat):
+    euler = np.empty(quat.shape)
+    x, y, z = quat[..., 0], quat[..., 1], quat[..., 2]
+    w = _quat_real(quat)
+    np.arctan2(2 * (w * x + y * z), 1 - 2 * (x * x + y * y), out=euler[..., 0])
+    np.arcsin(2 * (w * y - x * z), out=euler[..., 1])
+    np.arctan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z), out=euler[..., 2])
+    return euler
+
+
+def _euler_to_quat(euler):
+    quat = np.empty(euler.shape)
+    phi, theta, psi = euler[..., 0] / 2, euler[..., 1] / 2, euler[..., 2] / 2
+    cphi, sphi = np.cos(phi), np.sin(phi)
+    del phi
+    ctheta, stheta = np.cos(theta), np.sin(theta)
+    del theta
+    cpsi, spsi = np.cos(psi), np.sin(psi)
+    del psi
+    mult = np.sign(cphi * ctheta * cpsi + sphi * stheta * spsi)
+    if np.isscalar(mult):
+        mult = 1. if mult == 0 else mult
+    else:
+        mult[mult == 0] = 1.
+    mult = mult[..., np.newaxis]
+    quat[..., 0] = sphi * ctheta * cpsi - cphi * stheta * spsi
+    quat[..., 1] = cphi * stheta * cpsi + sphi * ctheta * spsi
+    quat[..., 2] = cphi * ctheta * spsi - sphi * stheta * cpsi
+    quat *= mult
+    return quat

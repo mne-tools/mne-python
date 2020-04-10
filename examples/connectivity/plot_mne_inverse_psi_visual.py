@@ -3,7 +3,7 @@
 Compute Phase Slope Index (PSI) in source space for a visual stimulus
 =====================================================================
 
-This example demonstrates how the Phase Slope Index (PSI) [1]_ can be computed
+This example demonstrates how the phase slope index (PSI) [1]_ can be computed
 in source space based on single trial dSPM source estimates. In addition,
 the example shows advanced usage of the connectivity estimation routines
 by first extracting a label time course for each epoch and then combining
@@ -11,7 +11,8 @@ the label time course with the single trial source estimates to compute the
 connectivity.
 
 The result clearly shows how the activity in the visual label precedes more
-widespread activity (a postivive PSI means the label time course is leading).
+widespread activity (as a postivive PSI means the label time course is
+leading).
 
 References
 ----------
@@ -105,8 +106,8 @@ psi, freqs, times, n_epochs, _ = phase_slope_index(
 psi_stc = mne.SourceEstimate(psi, vertices=vertices, tmin=0, tstep=1,
                              subject='sample')
 
-# Now we can visualize the PSI using the plot method. We use a custom colormap
-# to show signed values
+# Now we can visualize the PSI using the :meth:`~mne.SourceEstimate.plot`
+# method. We use a custom colormap to show signed values
 v_max = np.max(np.abs(psi))
 brain = psi_stc.plot(surface='inflated', hemi='lh',
                      time_label='Phase Slope Index (PSI)',

@@ -11,11 +11,11 @@ that improper regularization can lead to overestimation of source amplitudes.
 This example makes use of the previous, non-optimized code path that was used
 before implementing the suggestions presented in [1]_.
 
+This example does quite a bit of processing, so even on a
+fast machine it can take a couple of minutes to complete.
+
 .. warning:: Please do not copy the patterns presented here for your own
              analysis, this is example is purely illustrative.
-
-.. note:: This example does quite a bit of processing, so even on a
-          fast machine it can take a couple of minutes to complete.
 
 References
 ----------
@@ -53,20 +53,18 @@ raw = io.read_raw_ctf(raw_fname % 1)  # Take first run
 raw = raw.crop(0, 150.).load_data()
 
 picks = mne.pick_types(raw.info, meg=True, exclude='bads')
-raw.filter(1, 20., n_jobs=1, fir_design='firwin')
+raw.filter(None, 20.)
 
 events = mne.find_events(raw, stim_channel='UPPT001')
 
 event_ids = {"faces": 1, "scrambled": 2}
 tmin, tmax = -0.2, 0.5
-baseline = None  # no baseline as high-pass is applied
+baseline = (None, 0)
 reject = dict(mag=3e-12)
 
-# Make source space
-
+# Make forward
 trans = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces1_3D_raw-trans.fif'
-src = mne.setup_source_space('spm', spacing='oct6', subjects_dir=subjects_dir,
-                             add_dist=False)
+src = data_path + '/subjects/spm/bem/spm-oct-6-src.fif'
 bem = data_path + '/subjects/spm/bem/spm-5120-5120-5120-bem-sol.fif'
 forward = mne.make_forward_solution(raw.info, trans, src, bem)
 del src
@@ -75,7 +73,6 @@ del src
 conditions = 'faces', 'scrambled'
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
-method = 'dSPM'
 clim = dict(kind='value', lims=[0, 2.5, 5])
 
 ###############################################################################
@@ -104,7 +101,7 @@ for n_train in samples_epochs:
     # with verbose='error'
     noise_covs = compute_covariance(
         epochs_train, method=method, tmin=None, tmax=0,  # baseline only
-        return_estimators=True, verbose='error')  # returns list
+        return_estimators=True, rank=None, verbose='error')  # returns list
     # prepare contrast
     evokeds = [epochs_train[k].average() for k in conditions]
     del epochs_train, events_
@@ -120,8 +117,8 @@ for n_train in samples_epochs:
     methods_ordered.append(list())
     for cov in noise_covs:
         inverse_operator = make_inverse_operator(evokeds[0].info, forward,
-                                                 cov, loose=0.2, depth=0.8,
-                                                 rank=274)
+                                                 cov, loose=0.2, depth=0.8)
+        assert len(inverse_operator['sing']) == 274  # sanity check
         stc_a, stc_b = (apply_inverse(e, inverse_operator, lambda2, "dSPM",
                                       pick_ori=None) for e in evokeds)
         stc = stc_a - stc_b
@@ -173,4 +170,3 @@ for ni, (n_train, axes) in enumerate(zip(samples_epochs, (axes1, axes2))):
     ax_dynamics.legend(loc='upper left', fontsize=10)
 
 fig.subplots_adjust(hspace=0.2, left=0.01, right=0.99, wspace=0.03)
-mne.viz.utils.plt_show()

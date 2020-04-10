@@ -1,16 +1,17 @@
 """Conversion tool from CTF to FIF."""
 
-# Author: Eric Larson <larson.eric.d<gmail.com>
+# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
+#          Eric Larson <larsoner@uw.edu>
 #
 # License: BSD (3-clause)
 
 import os
-from os import path as op
+import os.path as op
 
 import numpy as np
 
-from ...utils import verbose, logger, _clean_names
-from ...externals.six import string_types
+from .._digitization import _format_dig_points
+from ...utils import verbose, logger, _clean_names, fill_doc, _check_option
 
 from ..base import BaseRaw
 from ..utils import _mult_cal_one, _blk_read_lims
@@ -19,10 +20,12 @@ from .res4 import _read_res4, _make_ctf_name
 from .hc import _read_hc
 from .eeg import _read_eeg, _read_pos
 from .trans import _make_ctf_coord_trans_set
-from .info import _compose_meas_info
+from .info import _compose_meas_info, _read_bad_chans, _annotate_bad_segments
 from .constants import CTF
+from .markers import _read_annotations_ctf_call
 
 
+@fill_doc
 def read_raw_ctf(directory, system_clock='truncate', preload=False,
                  clean_names=False, verbose=None):
     """Raw object from CTF directory.
@@ -36,18 +39,11 @@ def read_raw_ctf(directory, system_clock='truncate', preload=False,
         the data file when the system clock drops to zero, and use "ignore"
         to ignore the system clock (e.g., if head positions are measured
         multiple times during a recording).
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
     clean_names : bool, optional
         If True main channel names and compensation channel names will
         be cleaned from CTF suffixes. The default is False.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -66,6 +62,7 @@ def read_raw_ctf(directory, system_clock='truncate', preload=False,
                   clean_names=clean_names, verbose=verbose)
 
 
+@fill_doc
 class RawCTF(BaseRaw):
     """Raw object from CTF directory.
 
@@ -78,18 +75,11 @@ class RawCTF(BaseRaw):
         the data file when the system clock drops to zero, and use "ignore"
         to ignore the system clock (e.g., if head positions are measured
         multiple times during a recording).
-    preload : bool or str (default False)
-        Preload data into memory for data manipulation and faster indexing.
-        If True, the data will be preloaded into memory (fast, requires
-        large amount of memory). If preload is a string, preload is the
-        file name of a memory-mapped file which is used to store the data
-        on the hard drive (slower, requires less memory).
+    %(preload)s
     clean_names : bool, optional
         If True main channel names and compensation channel names will
         be cleaned from CTF suffixes. The default is False.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     See Also
     --------
@@ -100,16 +90,12 @@ class RawCTF(BaseRaw):
     def __init__(self, directory, system_clock='truncate', preload=False,
                  verbose=None, clean_names=False):  # noqa: D102
         # adapted from mne_ctf2fiff.c
-        if not isinstance(directory, string_types) or \
+        if not isinstance(directory, str) or \
                 not directory.endswith('.ds'):
             raise TypeError('directory must be a directory ending with ".ds"')
         if not op.isdir(directory):
             raise ValueError('directory does not exist: "%s"' % directory)
-        known_types = ['ignore', 'truncate']
-        if not isinstance(system_clock, string_types) or \
-                system_clock not in known_types:
-            raise ValueError('system_clock must be one of %s, not %s'
-                             % (known_types, system_clock))
+        _check_option('system_clock', system_clock, ['ignore', 'truncate'])
         logger.info('ds directory : %s' % directory)
         res4 = _read_res4(directory)  # Read the magical res4 file
         coils = _read_hc(directory)  # Read the coil locations
@@ -123,6 +109,8 @@ class RawCTF(BaseRaw):
         # Compose a structure which makes fiff writing a piece of cake
         info = _compose_meas_info(res4, coils, coord_trans, eeg)
         info['dig'] += digs
+        info['dig'] = _format_dig_points(info['dig'])
+        info['bads'] += _read_bad_chans(directory, info)
 
         # Determine how our data is distributed across files
         fnames = list()
@@ -138,8 +126,9 @@ class RawCTF(BaseRaw):
             if sample_info['n_samp'] == 0:
                 break
             if len(fnames) == 0:
-                info['buffer_size_sec'] = \
-                    sample_info['block_size'] / info['sfreq']
+                buffer_size_sec = sample_info['block_size'] / info['sfreq']
+            else:
+                buffer_size_sec = 1.
             fnames.append(meg4_name)
             last_samps.append(sample_info['n_samp'] - 1)
             raw_extras.append(sample_info)
@@ -147,12 +136,25 @@ class RawCTF(BaseRaw):
         super(RawCTF, self).__init__(
             info, preload, first_samps=first_samps,
             last_samps=last_samps, filenames=fnames,
-            raw_extras=raw_extras, orig_format='int', verbose=verbose)
+            raw_extras=raw_extras, orig_format='int',
+            buffer_size_sec=buffer_size_sec, verbose=verbose)
+
+        # Add bad segments as Annotations (correct for start time)
+        start_time = -res4['pre_trig_pts'] / float(info['sfreq'])
+        annot = _annotate_bad_segments(directory, start_time,
+                                       info['meas_date'])
+        marker_annot = _read_annotations_ctf_call(
+            directory=directory,
+            total_offset=(res4['pre_trig_pts'] / res4['sfreq']),
+            trial_duration=(res4['nsamp'] / res4['sfreq']),
+            meas_date=info['meas_date']
+        )
+        annot = marker_annot if annot is None else annot + marker_annot
+        self.set_annotations(annot)
 
         if clean_names:
             self._clean_names()
 
-    @verbose
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         si = self._raw_extras[fi]

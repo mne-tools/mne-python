@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
@@ -7,8 +7,7 @@
 import numpy as np
 from functools import reduce
 from string import ascii_uppercase
-
-from ..externals.six import string_types
+from ..utils import _check_option
 
 # The following function is a rewriting of scipy.stats.f_oneway
 # Contrary to the scipy.stats.f_oneway implementation it does not
@@ -37,7 +36,7 @@ def ttest_1samp_no_p(X, sigma=0, method='relative'):
     Returns
     -------
     t : array
-        t-values, potentially adjusted using the hat method.
+        T-values, potentially adjusted using the hat method.
 
     Notes
     -----
@@ -58,9 +57,7 @@ def ttest_1samp_no_p(X, sigma=0, method='relative'):
        statistical parametric mapping; a new hat avoids a 'haircut'",
        NeuroImage. 2012 Feb 1;59(3):2131-41.
     """
-    if method not in ['absolute', 'relative']:
-        raise ValueError('method must be "absolute" or "relative", not %s'
-                         % method)
+    _check_option('method', method, ['absolute', 'relative'])
     var = np.var(X, axis=0, ddof=1)
     if sigma > 0:
         limit = sigma * np.max(var) if method == 'relative' else sigma
@@ -108,9 +105,7 @@ def f_oneway(*args):
     ----------
     .. [1] Lowry, Richard.  "Concepts and Applications of Inferential
            Statistics". Chapter 14.
-           http://faculty.vassar.edu/lowry/ch14pt1.html
     .. [2] Heiman, G.W.  Research Methods in Statistics. 2002.
-
     """
     n_classes = len(args)
     n_samples_per_class = np.array([len(a) for a in args])
@@ -141,7 +136,7 @@ def _map_effects(n_factors, effects):
 
     factor_names = list(ascii_uppercase[:n_factors])
 
-    if isinstance(effects, string_types):
+    if isinstance(effects, str):
         if '*' in effects and ':' in effects:
             raise ValueError('Not "*" and ":" permitted in effects')
         elif '+' in effects and ':' in effects:
@@ -156,13 +151,13 @@ def _map_effects(n_factors, effects):
         elif '*' in effects:
             pass  # handle later
         else:
-            raise ValueError('"{0}" is not a valid option for "effects"'
+            raise ValueError('"{}" is not a valid option for "effects"'
                              .format(effects))
     if isinstance(effects, list):
         bad_names = [e for e in effects if e not in factor_names]
         if len(bad_names) > 1:
-            raise ValueError('Effect names: {0} are not valid. They should '
-                             'the first `n_factors` ({1}) characters from the'
+            raise ValueError('Effect names: {} are not valid. They should '
+                             'the first `n_factors` ({}) characters from the'
                              'alphabet'.format(bad_names, n_factors))
 
     indices = list(np.arange(2 ** n_factors - 1))
@@ -174,7 +169,7 @@ def _map_effects(n_factors, effects):
         this_name.sort()
         names.append(':'.join(this_name))
 
-    if effects is None or isinstance(effects, string_types):
+    if effects is None or isinstance(effects, str):
         effects_ = names
     else:
         effects_ = effects
@@ -182,7 +177,7 @@ def _map_effects(n_factors, effects):
     selection = [names.index(sel) for sel in effects_]
     names = [names[sel] for sel in selection]
 
-    if isinstance(effects, string_types):
+    if isinstance(effects, str):
         if '*' in effects:
             # hierarchical order of effects
             # the * based effect can be used as stop index
@@ -227,7 +222,7 @@ def _iter_contrasts(n_subjects, factor_levels, effect_picks):
 
 def f_threshold_mway_rm(n_subjects, factor_levels, effects='A*B',
                         pvalue=0.05):
-    """Compute F-value thesholds for a two-way ANOVA.
+    """Compute F-value thresholds for a two-way ANOVA.
 
     Parameters
     ----------
@@ -251,7 +246,7 @@ def f_threshold_mway_rm(n_subjects, factor_levels, effects='A*B',
     Returns
     -------
     F_threshold : list | float
-        list of F-values for each effect if the number of effects
+        List of F-values for each effect if the number of effects
         requested > 2, else float.
 
     See Also
@@ -274,7 +269,7 @@ def f_threshold_mway_rm(n_subjects, factor_levels, effects='A*B',
     return F_threshold if len(F_threshold) > 1 else F_threshold[0]
 
 
-def f_mway_rm(data, factor_levels, effects='all', alpha=0.05,
+def f_mway_rm(data, factor_levels, effects='all',
               correction=False, return_pvals=True):
     """Compute M-way repeated measures ANOVA for fully balanced designs.
 
@@ -306,8 +301,6 @@ def f_mway_rm(data, factor_levels, effects='all', alpha=0.05,
             * ``'all'``: all effects (equals 'A*B' in a 2 way design)
 
         If list, effect names are used: ``['A', 'B', 'A:B']``.
-    alpha : float
-        The significance threshold.
     correction : bool
         The correction method to be employed if one factor has more than two
         levels. If True, sphericity correction using the Greenhouse-Geisser
@@ -334,6 +327,7 @@ def f_mway_rm(data, factor_levels, effects='all', alpha=0.05,
     .. versionadded:: 0.10
     """
     from scipy.stats import f
+
     if data.ndim == 2:  # general purpose support, e.g. behavioural data
         data = data[:, :, np.newaxis]
     elif data.ndim > 3:  # let's allow for some magic here.
@@ -388,10 +382,4 @@ def _parametric_ci(arr, ci=.95):
         return mean, sigma
     from scipy import stats
     sigma = stats.sem(arr, 0)
-    # This is highly convoluted to support 17th century Scipy
-    # XXX Fix when Scipy 0.12 support is dropped!
-    # then it becomes just:
-    # return stats.t.interval(ci, loc=mean, scale=sigma, df=arr.shape[0])
-    return np.asarray([stats.t.interval(ci, arr.shape[0],
-                       loc=mean_, scale=sigma_)
-                       for mean_, sigma_ in zip(mean, sigma)]).T
+    return stats.t.interval(ci, loc=mean, scale=sigma, df=arr.shape[0])

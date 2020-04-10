@@ -11,7 +11,7 @@ when they are computed with and without subtracting the evoked response
 from each epoch. The former results in induced activity only while the
 latter also includes evoked (stimulus-locked) activity.
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 

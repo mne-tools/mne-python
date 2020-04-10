@@ -1,5 +1,4 @@
-from __future__ import print_function
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -8,27 +7,22 @@ from __future__ import print_function
 
 import copy
 import os.path as op
-import warnings
-# Set our plotters to test mode
-import matplotlib
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_allclose)
-from nose.tools import assert_equal, assert_true, assert_raises
+                           assert_allclose, assert_equal)
+import pytest
+import matplotlib.pyplot as plt
+
 from mne.channels import (make_eeg_layout, make_grid_layout, read_layout,
-                          find_layout)
-from mne.channels.layout import (_box_size, _auto_topomap_coords,
+                          find_layout, HEAD_SIZE_DEFAULT)
+from mne.channels.layout import (_box_size, _find_topomap_coords,
                                  generate_2d_layout)
 from mne.utils import run_tests_if_main
 from mne import pick_types, pick_info
 from mne.io import read_raw_kit, _empty_info, read_info
 from mne.io.constants import FIFF
-from mne.bem import fit_sphere_to_headshape
 from mne.utils import _TempDir
-matplotlib.use('Agg')  # for testing don't use X server
-
-warnings.simplefilter('always')
 
 io_dir = op.join(op.dirname(__file__), '..', '..', 'io')
 fif_fname = op.join(io_dir, 'tests', 'data', 'test_raw.fif')
@@ -40,7 +34,7 @@ fname_kit_umd = op.join(io_dir, 'kit', 'tests', 'data', 'test_umd-raw.sqd')
 
 
 def _get_test_info():
-    """Helper to make test info"""
+    """Make test info."""
     test_info = _empty_info(1000)
     loc = np.array([0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 1.],
                    dtype=np.float32)
@@ -60,31 +54,30 @@ def _get_test_info():
 
 
 def test_io_layout_lout():
-    """Test IO with .lout files"""
+    """Test IO with .lout files."""
     tempdir = _TempDir()
     layout = read_layout('Vectorview-all', scale=False)
     layout.save(op.join(tempdir, 'foobar.lout'))
     layout_read = read_layout(op.join(tempdir, 'foobar.lout'), path='./',
                               scale=False)
     assert_array_almost_equal(layout.pos, layout_read.pos, decimal=2)
-    assert_true(layout.names, layout_read.names)
-
+    assert layout.names == layout_read.names
     print(layout)  # test repr
 
 
 def test_io_layout_lay():
-    """Test IO with .lay files"""
+    """Test IO with .lay files."""
     tempdir = _TempDir()
     layout = read_layout('CTF151', scale=False)
     layout.save(op.join(tempdir, 'foobar.lay'))
     layout_read = read_layout(op.join(tempdir, 'foobar.lay'), path='./',
                               scale=False)
     assert_array_almost_equal(layout.pos, layout_read.pos, decimal=2)
-    assert_true(layout.names, layout_read.names)
+    assert layout.names == layout_read.names
 
 
-def test_auto_topomap_coords():
-    """Test mapping of coordinates in 3D space to 2D"""
+def test_find_topomap_coords():
+    """Test mapping of coordinates in 3D space to 2D."""
     info = read_info(fif_fname)
     picks = pick_types(info, meg=False, eeg=True, eog=False, stim=False)
 
@@ -92,55 +85,61 @@ def test_auto_topomap_coords():
     # with the EEG channels
     del info['dig'][85]
 
-    # Remove head origin from channel locations, so mapping with digitization
-    # points yields the same result
-    dig_kinds = (FIFF.FIFFV_POINT_CARDINAL,
-                 FIFF.FIFFV_POINT_EEG,
-                 FIFF.FIFFV_POINT_EXTRA)
-    _, origin_head, _ = fit_sphere_to_headshape(info, dig_kinds, units='m')
-    for ch in info['chs']:
-        ch['loc'][:3] -= origin_head
-
     # Use channel locations
-    l0 = _auto_topomap_coords(info, picks)
+    kwargs = dict(ignore_overlap=False, to_sphere=True,
+                  sphere=HEAD_SIZE_DEFAULT)
+    l0 = _find_topomap_coords(info, picks, **kwargs)
 
     # Remove electrode position information, use digitization points from now
     # on.
     for ch in info['chs']:
         ch['loc'].fill(np.nan)
 
-    l1 = _auto_topomap_coords(info, picks)
+    l1 = _find_topomap_coords(info, picks, **kwargs)
     assert_allclose(l1, l0, atol=1e-3)
+
+    for z_pt in ((HEAD_SIZE_DEFAULT, 0., 0.),
+                 (0., HEAD_SIZE_DEFAULT, 0.)):
+        info['dig'][-1]['r'] = z_pt
+        l1 = _find_topomap_coords(info, picks, **kwargs)
+        assert_allclose(l1[-1], z_pt[:2], err_msg='Z=0 point moved', atol=1e-6)
 
     # Test plotting mag topomap without channel locations: it should fail
     mag_picks = pick_types(info, meg='mag')
-    assert_raises(ValueError, _auto_topomap_coords, info, mag_picks)
+    with pytest.raises(ValueError, match='Cannot determine location'):
+        _find_topomap_coords(info, mag_picks, **kwargs)
 
     # Test function with too many EEG digitization points: it should fail
     info['dig'].append({'r': [1, 2, 3], 'kind': FIFF.FIFFV_POINT_EEG})
-    assert_raises(ValueError, _auto_topomap_coords, info, picks)
+    with pytest.raises(ValueError, match='Number of EEG digitization points'):
+        _find_topomap_coords(info, picks, **kwargs)
 
     # Test function with too little EEG digitization points: it should fail
     info['dig'] = info['dig'][:-2]
-    assert_raises(ValueError, _auto_topomap_coords, info, picks)
+    with pytest.raises(ValueError, match='Number of EEG digitization points'):
+        _find_topomap_coords(info, picks, **kwargs)
 
     # Electrode positions must be unique
     info['dig'].append(info['dig'][-1])
-    assert_raises(ValueError, _auto_topomap_coords, info, picks)
+    with pytest.raises(ValueError, match='overlapping positions'):
+        _find_topomap_coords(info, picks, **kwargs)
 
     # Test function without EEG digitization points: it should fail
     info['dig'] = [d for d in info['dig'] if d['kind'] != FIFF.FIFFV_POINT_EEG]
-    assert_raises(RuntimeError, _auto_topomap_coords, info, picks)
+    with pytest.raises(RuntimeError, match='Did not find any digitization'):
+        _find_topomap_coords(info, picks, **kwargs)
 
     # Test function without any digitization points, it should fail
     info['dig'] = None
-    assert_raises(RuntimeError, _auto_topomap_coords, info, picks)
+    with pytest.raises(RuntimeError, match='No digitization points found'):
+        _find_topomap_coords(info, picks, **kwargs)
     info['dig'] = []
-    assert_raises(RuntimeError, _auto_topomap_coords, info, picks)
+    with pytest.raises(RuntimeError, match='No digitization points found'):
+        _find_topomap_coords(info, picks, **kwargs)
 
 
 def test_make_eeg_layout():
-    """Test creation of EEG layout"""
+    """Test creation of EEG layout."""
     tempdir = _TempDir()
     tmp_name = 'foo'
     lout_name = 'test_raw'
@@ -157,16 +156,16 @@ def test_make_eeg_layout():
     assert_array_equal(lout_orig.names, lout_new.names)
 
     # Test input validation
-    assert_raises(ValueError, make_eeg_layout, info, radius=-0.1)
-    assert_raises(ValueError, make_eeg_layout, info, radius=0.6)
-    assert_raises(ValueError, make_eeg_layout, info, width=-0.1)
-    assert_raises(ValueError, make_eeg_layout, info, width=1.1)
-    assert_raises(ValueError, make_eeg_layout, info, height=-0.1)
-    assert_raises(ValueError, make_eeg_layout, info, height=1.1)
+    pytest.raises(ValueError, make_eeg_layout, info, radius=-0.1)
+    pytest.raises(ValueError, make_eeg_layout, info, radius=0.6)
+    pytest.raises(ValueError, make_eeg_layout, info, width=-0.1)
+    pytest.raises(ValueError, make_eeg_layout, info, width=1.1)
+    pytest.raises(ValueError, make_eeg_layout, info, height=-0.1)
+    pytest.raises(ValueError, make_eeg_layout, info, height=1.1)
 
 
 def test_make_grid_layout():
-    """Test creation of grid layout"""
+    """Test creation of grid layout."""
     tempdir = _TempDir()
     tmp_name = 'bar'
     lout_name = 'test_ica'
@@ -181,17 +180,16 @@ def test_make_grid_layout():
     # Test creating grid layout with specified number of columns
     layout = make_grid_layout(_get_test_info(), n_col=2)
     # Vertical positions should be equal
-    assert_true(layout.pos[0, 1] == layout.pos[1, 1])
+    assert layout.pos[0, 1] == layout.pos[1, 1]
     # Horizontal positions should be unequal
-    assert_true(layout.pos[0, 0] != layout.pos[1, 0])
+    assert layout.pos[0, 0] != layout.pos[1, 0]
     # Box sizes should be equal
     assert_array_equal(layout.pos[0, 3:], layout.pos[1, 3:])
 
 
 def test_find_layout():
-    """Test finding layout"""
-    import matplotlib.pyplot as plt
-    assert_raises(ValueError, find_layout, _get_test_info(), ch_type='meep')
+    """Test finding layout."""
+    pytest.raises(ValueError, find_layout, _get_test_info(), ch_type='meep')
 
     sample_info = read_info(fif_fname)
     grads = pick_types(sample_info, meg='grad')
@@ -210,8 +208,8 @@ def test_find_layout():
     sample_info5 = pick_info(sample_info, eegs)
 
     lout = find_layout(sample_info, ch_type=None)
-    assert_equal(lout.kind, 'Vectorview-all')
-    assert_true(all(' ' in k for k in lout.names))
+    assert lout.kind == 'Vectorview-all'
+    assert all(' ' in k for k in lout.names)
 
     lout = find_layout(sample_info2, ch_type='meg')
     assert_equal(lout.kind, 'Vectorview-all')
@@ -219,7 +217,7 @@ def test_find_layout():
     # test new vector-view
     lout = find_layout(sample_info4, ch_type=None)
     assert_equal(lout.kind, 'Vectorview-all')
-    assert_true(all(' ' not in k for k in lout.names))
+    assert all(' ' not in k for k in lout.names)
 
     lout = find_layout(sample_info, ch_type='grad')
     assert_equal(lout.kind, 'Vectorview-grad')
@@ -261,6 +259,10 @@ def test_find_layout():
     raw_kit.info['bads'] = ['MEG  13', 'MEG  14', 'MEG  15', 'MEG  16']
     lout = find_layout(raw_kit.info)
     assert_equal(lout.kind, 'KIT-157')
+    # fallback for missing IDs
+    raw_kit.info['kit_system_id'] = 35
+    lout = find_layout(raw_kit.info)
+    assert lout.kind == 'custom'
 
     raw_umd = read_raw_kit(fname_kit_umd)
     lout = find_layout(raw_umd.info)
@@ -298,8 +300,8 @@ def test_box_size():
     rng = np.random.RandomState(42)
     points = rng.rand(100, 2)
     width, height = _box_size(points)
-    assert_true(width is not None)
-    assert_true(height is not None)
+    assert width is not None
+    assert height is not None
 
     # Test specifying an existing width.
     points = [(0.25, 0.25), (0.75, 0.25), (0.5, 0.75)]
@@ -349,19 +351,20 @@ def test_generate_2d_layout():
 
     # Correct points ordering / minmaxing
     comp_1, comp_2 = [(5, 0), (7, 0)]
-    assert_true(lt.pos[:, :2].max() == 1)
-    assert_true(lt.pos[:, :2].min() == 0)
+    assert lt.pos[:, :2].max() == 1
+    assert lt.pos[:, :2].min() == 0
     with np.errstate(invalid='ignore'):  # divide by zero
         assert_allclose(xy[comp_2] / float(xy[comp_1]),
                         lt.pos[comp_2] / float(lt.pos[comp_1]))
     assert_allclose(lt.pos[0, [2, 3]], [w, h])
 
     # Correct number elements
-    assert_true(lt.pos.shape[1] == 4)
-    assert_true(len(lt.box) == 4)
+    assert lt.pos.shape[1] == 4
+    assert len(lt.box) == 4
 
     # Make sure background image normalizing is correct
     lt_bg = generate_2d_layout(xy, bg_image=bg_image)
     assert_allclose(lt_bg.pos[:, :2].max(), xy.max() / float(sbg))
+
 
 run_tests_if_main()

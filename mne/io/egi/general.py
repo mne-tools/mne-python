@@ -8,6 +8,8 @@ import re
 
 import numpy as np
 
+from ...utils import _pl
+
 
 def _extract(tags, filepath=None, obj=None):
     """Extract info from XML."""
@@ -108,6 +110,8 @@ def _get_blocks(filepath):
     if any([f != sfreq[0] for f in sfreq]):
         raise RuntimeError("All the blocks don't have the same sampling "
                            "frequency.")
+    if len(samples_block) < 1:
+        raise RuntimeError("There seems to be no data")
     samples_block = np.array(samples_block)
     signal_blocks = dict(n_channels=n_channels[0], sfreq=sfreq[0],
                          n_blocks=n_blocks, samples_block=samples_block,
@@ -121,9 +125,11 @@ def _get_signalfname(filepath):
     binfiles = list(f for f in listfiles if 'signal' in f and
                     f[-4:] == '.bin' and f[0] != '.')
     all_files = {}
+    infofiles = list()
     for binfile in binfiles:
         bin_num_str = re.search(r'\d+', binfile).group()
         infofile = 'info' + bin_num_str + '.xml'
+        infofiles.append(infofile)
         infobjfile = os.path.join(filepath, infofile)
         infobj = parse(infobjfile)
         if len(infobj.getElementsByTagName('EEG')):
@@ -133,6 +139,10 @@ def _get_signalfname(filepath):
         all_files[signal_type] = {
             'signal': 'signal{}.bin'.format(bin_num_str),
             'info': infofile}
+    if 'EEG' not in all_files:
+        raise FileNotFoundError(
+            'Could not find any EEG data in the %d file%s found in %s:\n%s'
+            % (len(infofiles), _pl(infofiles), filepath, '\n'.join(infofiles)))
     return all_files
 
 

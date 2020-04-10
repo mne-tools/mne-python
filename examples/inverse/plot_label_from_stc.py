@@ -11,7 +11,7 @@ functional label. As expected the time course in the functional
 label yields higher values.
 """
 # Author: Luke Bloy <luke.bloy@gmail.com>
-#         Alex Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#         Alex Gramfort <alexandre.gramfort@inria.fr>
 # License: BSD (3-clause)
 
 import numpy as np
@@ -24,7 +24,6 @@ from mne.datasets import sample
 print(__doc__)
 
 data_path = sample.data_path()
-subjects_dir = data_path + '/subjects'
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
 subjects_dir = data_path + '/subjects'

@@ -1,12 +1,11 @@
 import numpy as np
 from numpy.testing import assert_array_almost_equal
-from nose.tools import assert_true
 
 from mne.connectivity import phase_slope_index
 
 
 def test_psi():
-    """Test Phase Slope Index (PSI) estimation"""
+    """Test Phase Slope Index (PSI) estimation."""
     sfreq = 50.
     n_signals = 3
     n_epochs = 10
@@ -21,8 +20,8 @@ def test_psi():
 
     psi, freqs, times, n_epochs, n_tapers = phase_slope_index(
         data, mode='fourier', sfreq=sfreq)
-    assert_true(psi[1, 0, 0] < 0)
-    assert_true(psi[2, 0, 0] > 0)
+    assert psi[1, 0, 0] < 0
+    assert psi[2, 0, 0] > 0
 
     indices = (np.array([0]), np.array([1]))
     psi_2, freqs, times, n_epochs, n_tapers = phase_slope_index(
@@ -36,5 +35,5 @@ def test_psi():
         data, mode='cwt_morlet', sfreq=sfreq, cwt_freqs=cwt_freqs,
         indices=indices)
 
-    assert_true(np.all(psi_cwt > 0))
-    assert_true(psi_cwt.shape[-1] == n_times)
+    assert np.all(psi_cwt > 0)
+    assert psi_cwt.shape[-1] == n_times

@@ -6,8 +6,9 @@ Plot single trial activity, grouped by ROI and sorted by RT
 This will produce what is sometimes called an event related
 potential / field (ERP/ERF) image.
 
-The EEGLAB example file - containing an experiment with button press responses
-to simple visual stimuli - is read in and response times are calculated.
+The EEGLAB example file, which contains an experiment with button press
+responses to simple visual stimuli, is read in and response times are
+calculated.
 Regions of Interest are determined by the channel types (in 10/20 channel
 notation, even channels are right, odd are left, and 'z' are central). The
 median and the Global Field Power within each channel group is calculated,
@@ -18,24 +19,34 @@ and the trials are plotted, sorting by response time.
 # License: BSD (3-clause)
 
 import mne
-from mne.datasets import testing
-from mne import Epochs, io, pick_types
 from mne.event import define_target_events
+from mne.channels import make_1020_channel_selections
 
 print(__doc__)
 
 ###############################################################################
 # Load EEGLAB example data (a small EEG dataset)
-data_path = testing.data_path()
+data_path = mne.datasets.testing.data_path()
 fname = data_path + "/EEGLAB/test_raw.set"
-montage = data_path + "/EEGLAB/test_chans.locs"
 
 event_id = {"rt": 1, "square": 2}  # must be specified for str events
-eog = {"FPz", "EOG1", "EOG2"}
-raw = io.eeglab.read_raw_eeglab(fname, eog=eog, montage=montage,
-                                event_id=event_id)
-picks = pick_types(raw.info, eeg=True)
-events = mne.find_events(raw)
+raw = mne.io.read_raw_eeglab(fname)
+
+mapping = {
+    'EEG 000': 'Fpz', 'EEG 001': 'EOG1', 'EEG 002': 'F3', 'EEG 003': 'Fz',
+    'EEG 004': 'F4', 'EEG 005': 'EOG2', 'EEG 006': 'FC5', 'EEG 007': 'FC1',
+    'EEG 008': 'FC2', 'EEG 009': 'FC6', 'EEG 010': 'T7', 'EEG 011': 'C3',
+    'EEG 012': 'C4', 'EEG 013': 'Cz', 'EEG 014': 'T8', 'EEG 015': 'CP5',
+    'EEG 016': 'CP1', 'EEG 017': 'CP2', 'EEG 018': 'CP6', 'EEG 019': 'P7',
+    'EEG 020': 'P3', 'EEG 021': 'Pz', 'EEG 022': 'P4', 'EEG 023': 'P8',
+    'EEG 024': 'PO7', 'EEG 025': 'PO3', 'EEG 026': 'POz', 'EEG 027': 'PO4',
+    'EEG 028': 'PO8', 'EEG 029': 'O1', 'EEG 030': 'Oz', 'EEG 031': 'O2'
+}
+raw.rename_channels(mapping)
+raw.set_channel_types({"EOG1": 'eog', "EOG2": 'eog'})
+raw.set_montage('standard_1020')
+
+events = mne.events_from_annotations(raw, event_id)[0]
 
 ###############################################################################
 # Create Epochs
@@ -49,24 +60,25 @@ reference_id, target_id = 2, 1
 new_events, rts = define_target_events(events, reference_id, target_id, sfreq,
                                        tmin=0., tmax=tmax, new_id=2)
 
-epochs = Epochs(raw, events=new_events, tmax=tmax + .1,
-                event_id={"square": 2}, picks=picks)
+epochs = mne.Epochs(raw, events=new_events, tmax=tmax + .1,
+                    event_id={"square": 2})
 
 ###############################################################################
-# Plot
+# Plot using :term:`Global Field Power <GFP>`
 
 # Parameters for plotting
 order = rts.argsort()  # sorting from fast to slow trials
 
-rois = dict()
-for pick, channel in enumerate(epochs.ch_names):
-    last_char = channel[-1]  # for 10/20, last letter codes the hemisphere
-    roi = ("Midline" if last_char in "z12" else
-           ("Left" if int(last_char) % 2 else "Right"))
-    rois[roi] = rois.get(roi, list()) + [pick]
+selections = make_1020_channel_selections(epochs.info, midline="12z")
 
-# The actual plots
-for combine_measures in ('gfp', 'median'):
-    epochs.plot_image(group_by=rois, order=order, overlay_times=rts / 1000.,
-                      sigma=1.5, combine=combine_measures,
-                      ts_args=dict(vlines=[0, rts.mean() / 1000.]))
+# The actual plots (GFP)
+epochs.plot_image(group_by=selections, order=order, sigma=1.5,
+                  overlay_times=rts / 1000., combine='gfp',
+                  ts_args=dict(vlines=[0, rts.mean() / 1000.]))
+
+###############################################################################
+# Plot using median
+
+epochs.plot_image(group_by=selections, order=order, sigma=1.5,
+                  overlay_times=rts / 1000., combine='median',
+                  ts_args=dict(vlines=[0, rts.mean() / 1000.]))

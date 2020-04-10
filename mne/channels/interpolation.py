@@ -10,11 +10,30 @@ from ..fixes import einsum
 from ..utils import logger, warn, verbose
 from ..io.pick import pick_types, pick_channels, pick_info
 from ..surface import _normalize_vectors
-from ..bem import _fit_sphere
 from ..forward import _map_meg_channels
+from ..utils import _check_option
 
 
-def _calc_g(cosang, stiffness=4, num_lterms=50):
+def _calc_h(cosang, stiffness=4, n_legendre_terms=50):
+    """Calculate spherical spline h function between points on a sphere.
+
+    Parameters
+    ----------
+    cosang : array-like | float
+        cosine of angles between pairs of points on a spherical surface. This
+        is equivalent to the dot product of unit vectors.
+    stiffness : float
+        stiffnes of the spline. Also referred to as `m`.
+    n_legendre_terms : int
+        number of Legendre terms to evaluate.
+    """
+    factors = [(2 * n + 1) /
+               (n ** (stiffness - 1) * (n + 1) ** (stiffness - 1) * 4 * np.pi)
+               for n in range(1, n_legendre_terms + 1)]
+    return legval(cosang, [0] + factors)
+
+
+def _calc_g(cosang, stiffness=4, n_legendre_terms=50):
     """Calculate spherical spline g function between points on a sphere.
 
     Parameters
@@ -24,7 +43,7 @@ def _calc_g(cosang, stiffness=4, num_lterms=50):
         is equivalent to the dot product of unit vectors.
     stiffness : float
         stiffness of the spline.
-    num_lterms : int
+    n_legendre_terms : int
         number of Legendre terms to evaluate.
 
     Returns
@@ -33,7 +52,8 @@ def _calc_g(cosang, stiffness=4, num_lterms=50):
         The G matrix.
     """
     factors = [(2 * n + 1) / (n ** stiffness * (n + 1) ** stiffness *
-                              4 * np.pi) for n in range(1, num_lterms + 1)]
+                              4 * np.pi)
+               for n in range(1, n_legendre_terms + 1)]
     return legval(cosang, [0] + factors)
 
 
@@ -101,12 +121,12 @@ def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
         inst._data[:, bads_idx, :] = einsum(
             'ij,xjy->xiy', interpolation, inst._data[:, goods_idx, :])
     else:
-        raise ValueError('Inputs of type {0} are not supported'
+        raise ValueError('Inputs of type {} are not supported'
                          .format(type(inst)))
 
 
 @verbose
-def _interpolate_bads_eeg(inst, verbose=None):
+def _interpolate_bads_eeg(inst, origin, verbose=None):
     """Interpolate bad EEG channels.
 
     Operates in place.
@@ -135,28 +155,26 @@ def _interpolate_bads_eeg(inst, verbose=None):
     bads_idx_pos = bads_idx[picks]
     goods_idx_pos = goods_idx[picks]
 
-    pos_good = pos[goods_idx_pos]
-    pos_bad = pos[bads_idx_pos]
-
     # test spherical fit
-    radius, center = _fit_sphere(pos_good)
-    distance = np.sqrt(np.sum((pos_good - center) ** 2, 1))
-    distance = np.mean(distance / radius)
+    distance = np.linalg.norm(pos - origin, axis=-1)
+    distance = np.mean(distance / np.mean(distance))
     if np.abs(1. - distance) > 0.1:
         warn('Your spherical fit is poor, interpolation results are '
              'likely to be inaccurate.')
 
-    logger.info('Computing interpolation matrix from {0} sensor '
+    pos_good = pos[goods_idx_pos] - origin
+    pos_bad = pos[bads_idx_pos] - origin
+    logger.info('Computing interpolation matrix from {} sensor '
                 'positions'.format(len(pos_good)))
-
     interpolation = _make_interpolation_matrix(pos_good, pos_bad)
 
-    logger.info('Interpolating {0} sensors'.format(len(pos_bad)))
+    logger.info('Interpolating {} sensors'.format(len(pos_bad)))
     _do_interp_dots(inst, interpolation, goods_idx, bads_idx)
 
 
 @verbose
-def _interpolate_bads_meg(inst, mode='accurate', verbose=None):
+def _interpolate_bads_meg(inst, mode='accurate', origin=(0., 0., 0.04),
+                          verbose=None, ref_meg=False):
     """Interpolate bad channels from data in good channels.
 
     Parameters
@@ -167,12 +185,18 @@ def _interpolate_bads_meg(inst, mode='accurate', verbose=None):
         Either `'accurate'` or `'fast'`, determines the quality of the
         Legendre polynomial expansion used for interpolation. `'fast'` should
         be sufficient for most applications.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    origin : array-like, shape (3,) | str
+        Origin of the sphere in the head coordinate frame and in meters.
+        Can be ``'auto'``, which means a head-digitization-based origin
+        fit. Default is ``(0., 0., 0.04)``.
+    %(verbose)s
+    ref_meg : bool
+        Should always be False; only exists for testing purpose.
     """
-    picks_meg = pick_types(inst.info, meg=True, eeg=False, exclude=[])
-    picks_good = pick_types(inst.info, meg=True, eeg=False, exclude='bads')
+    picks_meg = pick_types(inst.info, meg=True, eeg=False,
+                           ref_meg=ref_meg, exclude=[])
+    picks_good = pick_types(inst.info, meg=True, eeg=False,
+                            ref_meg=ref_meg, exclude='bads')
     meg_ch_names = [inst.info['ch_names'][p] for p in picks_meg]
     bads_meg = [ch for ch in inst.info['bads'] if ch in meg_ch_names]
 
@@ -188,5 +212,60 @@ def _interpolate_bads_meg(inst, mode='accurate', verbose=None):
         return
     info_from = pick_info(inst.info, picks_good)
     info_to = pick_info(inst.info, picks_bad)
-    mapping = _map_meg_channels(info_from, info_to, mode=mode)
+    mapping = _map_meg_channels(info_from, info_to, mode=mode, origin=origin)
     _do_interp_dots(inst, mapping, picks_good, picks_bad)
+
+
+@verbose
+def _interpolate_bads_nirs(inst, method='nearest', verbose=None):
+    """Interpolate bad nirs channels. Simply replaces by closest non bad.
+
+    Parameters
+    ----------
+    inst : mne.io.Raw, mne.Epochs or mne.Evoked
+        The data to interpolate. Must be preloaded.
+    method : str
+        Only the method 'nearest' is currently available. This method replaces
+        each bad channel with the nearest non bad channel.
+    %(verbose)s
+    """
+    from scipy.spatial.distance import pdist, squareform
+    from mne.preprocessing.nirs import _channel_frequencies,\
+        _check_channels_ordered
+
+    # Returns pick of all nirs and ensures channels are correctly ordered
+    freqs = np.unique(_channel_frequencies(inst))
+    picks_nirs = _check_channels_ordered(inst, freqs)
+    if len(picks_nirs) == 0:
+        return
+
+    nirs_ch_names = [inst.info['ch_names'][p] for p in picks_nirs]
+    bads_nirs = [ch for ch in inst.info['bads'] if ch in nirs_ch_names]
+    if len(bads_nirs) == 0:
+        return
+    picks_bad = pick_channels(inst.info['ch_names'], bads_nirs, exclude=[])
+    bads_mask = [p in picks_bad for p in picks_nirs]
+
+    chs = [inst.info['chs'][i] for i in picks_nirs]
+    locs3d = np.array([ch['loc'][:3] for ch in chs])
+
+    _check_option('fnirs_method', method, ['nearest'])
+
+    if method == 'nearest':
+
+        dist = pdist(locs3d)
+        dist = squareform(dist)
+
+        for bad in picks_bad:
+            dists_to_bad = dist[bad]
+            # Ignore distances to self
+            dists_to_bad[dists_to_bad == 0] = np.inf
+            # Ignore distances to other bad channels
+            dists_to_bad[bads_mask] = np.inf
+            # Find closest remaining channels for same frequency
+            closest_idx = np.argmin(dists_to_bad) + (bad % 2)
+            inst._data[bad] = inst._data[closest_idx]
+
+        inst.info['bads'] = []
+
+    return inst

@@ -3,7 +3,6 @@
 Decoding in time-frequency space data using the Common Spatial Pattern (CSP)
 ============================================================================
 
-
 The time-frequency decomposition is estimated by iterating over raw data that
 has been band-passed at different frequencies. This is used to compute a
 covariance matrix over each epoch or a rolling time-window and extract the CSP
@@ -13,14 +12,15 @@ signals.
 # Authors: Laura Gwilliams <laura.gwilliams@nyu.edu>
 #          Jean-Remi King <jeanremi.king@gmail.com>
 #          Alex Barachant <alexandre.barachant@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
+
 
 import numpy as np
 import matplotlib.pyplot as plt
 
-from mne import Epochs, find_events, create_info
+from mne import Epochs, create_info, events_from_annotations
 from mne.io import concatenate_raws, read_raw_edf
 from mne.datasets import eegbci
 from mne.decoding import CSP
@@ -37,14 +37,13 @@ event_id = dict(hands=2, feet=3)  # motor imagery: hands vs feet
 subject = 1
 runs = [6, 10, 14]
 raw_fnames = eegbci.load_data(subject, runs)
-raw_files = [read_raw_edf(f, stim_channel='auto', preload=True)
-             for f in raw_fnames]
-raw = concatenate_raws(raw_files)
+raw = concatenate_raws([read_raw_edf(f) for f in raw_fnames])
 
 # Extract information from the raw file
 sfreq = raw.info['sfreq']
-events = find_events(raw, shortest_event=0, stim_channel='STI 014')
+events, _ = events_from_annotations(raw, event_id=dict(T1=2, T2=3))
 raw.pick_types(meg=False, eeg=True, stim=False, eog=False, exclude='bads')
+raw.load_data()
 
 # Assemble the classifier using scikit-learn pipeline
 clf = make_pipeline(CSP(n_components=4, reg=None, log=True, norm_trace=False),

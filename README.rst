@@ -1,15 +1,15 @@
 .. -*- mode: rst -*-
 
 
-|Travis|_ |Appveyor|_ |Circle|_ |Codecov|_ |Zenodo|_
+|Travis|_ |Azure|_ |Circle|_ |Codecov|_ |Zenodo|_
 
 |MNE|_
 
 .. |Travis| image:: https://api.travis-ci.org/mne-tools/mne-python.png?branch=master
-.. _Travis: https://travis-ci.org/mne-tools/mne-python
+.. _Travis: https://travis-ci.org/mne-tools/mne-python/branches
 
-.. |Appveyor| image:: https://ci.appveyor.com/api/projects/status/7isroetnxsp7hgxv/branch/master?svg=true
-.. _Appveyor: https://ci.appveyor.com/project/mne-tools/mne-python/branch/master
+.. |Azure| image:: https://dev.azure.com/mne-tools/mne-python/_apis/build/status/mne-tools.mne-python?branchName=master
+.. _Azure: https://dev.azure.com/mne-tools/mne-python/_build/latest?definitionId=1&branchName=master
 
 .. |Circle| image:: https://circleci.com/gh/mne-tools/mne-python.svg?style=svg
 .. _Circle: https://circleci.com/gh/mne-tools/mne-python
@@ -20,8 +20,8 @@
 .. |Zenodo| image:: https://zenodo.org/badge/5822/mne-tools/mne-python.svg
 .. _Zenodo: https://zenodo.org/badge/latestdoi/5822/mne-tools/mne-python
 
-.. |MNE| image:: https://martinos.org/mne/stable/_static/mne_logo.png
-.. _MNE: https://martinos.org/mne
+.. |MNE| image:: https://mne.tools/stable/_static/mne_logo.svg
+.. _MNE: https://mne.tools/dev/
 
 MNE-Python
 ==========
@@ -39,30 +39,40 @@ Documentation
 `MNE documentation`_ for MNE-Python is available online.
 
 
+Installing MNE-Python
+^^^^^^^^^^^^^^^^^^^^^
+
+To install the latest stable version of MNE-Python, you can use pip_ in a terminal:
+
+.. code-block:: bash
+
+    pip install -U mne
+
+**Note** that MNE-Python 0.17 was the last release to support Python 2.
+MNE-Python 0.18 only works under Python 3, and MNE-Python 0.19 requires
+Python 3.5 or higher.
+
+For more complete instructions and more advanced installation methods (e.g. for
+the latest development version), see the `installation guide`_.
+
+
 Get the latest code
 ^^^^^^^^^^^^^^^^^^^
 
-To get the latest code using `git <https://git-scm.com/>`_, open a terminal and type:
+To install the latest version of the code using pip_ open a terminal and type:
+
+.. code-block:: bash
+
+    pip install -U https://github.com/mne-tools/mne-python/archive/master.zip
+
+To get the latest code using `git <https://git-scm.com/>`__, open a terminal and type:
 
 .. code-block:: bash
 
     git clone git://github.com/mne-tools/mne-python.git
 
 Alternatively, you can also download a
-`zip file of the latest development version <https://github.com/mne-tools/mne-python/archive/master.zip>`_.
-
-
-Installing MNE-Python
-^^^^^^^^^^^^^^^^^^^^^
-
-To install the latest stable version of MNE-Python, you can use `pip <https://pip.pypa.io/en/stable/>`_ in a terminal:
-
-.. code-block:: bash
-
-    pip install -U mne
-
-For more complete instructions and more advanced installation methods (e.g. for
-the latest development version), see the `getting started page`_.
+`zip file of the latest development version <https://github.com/mne-tools/mne-python/archive/master.zip>`__.
 
 
 Dependencies
@@ -70,30 +80,30 @@ Dependencies
 
 The minimum required dependencies to run MNE-Python are:
 
-- Python >= 2.7
-- NumPy >= 1.8
-- SciPy >= 0.12
-- Matplotlib >= 1.3
+- Python >= 3.5
+- NumPy >= 1.13.3
+- SciPy >= 1.0.0
 
 For full functionality, some functions require:
 
-- Scikit-learn >= 0.15 (>= 0.18 recommended)
+- Matplotlib >= 2.1
+- Mayavi >= 4.6
+- PySurfer >= 0.8
+- Scikit-learn >= 0.19.1
+- Numba >= 0.40
 - NiBabel >= 2.1.0
-- Pandas >= 0.13
+- Pandas >= 0.21
 - Picard >= 0.3
-
-To use `NVIDIA CUDA <https://developer.nvidia.com/cuda-zone>`_ for resampling
-and FFT FIR filtering, you will also need to install the NVIDIA CUDA SDK,
-pycuda, and scikit-cuda (see the `getting started page`_
-for more information).
-
+- CuPy >= 4.0 (for NVIDIA CUDA acceleration)
+- DIPY >= 0.10.1
+- PyVista >= 0.24
 
 Contributing to MNE-Python
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Please see the documentation on the MNE-Python homepage:
 
-https://martinos.org/mne/contributing.html
+https://mne.tools/dev/install/contributing.html
 
 
 Mailing list
@@ -110,7 +120,7 @@ MNE-Python is **BSD-licenced** (3 clause):
     This software is OSI Certified Open Source Software.
     OSI Certified is a certification mark of the Open Source Initiative.
 
-    Copyright (c) 2011-2017, authors of MNE-Python.
+    Copyright (c) 2011-2019, authors of MNE-Python.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -141,6 +151,7 @@ MNE-Python is **BSD-licenced** (3 clause):
     damage.**
 
 
-.. _MNE-Python software: https://martinos.org/mne
-.. _MNE documentation: http://martinos.org/mne/documentation.html
-.. _getting started page: https://martinos.org/mne/getting_started.html
+.. _MNE-Python software: https://mne.tools/dev/
+.. _MNE documentation: https://mne.tools/dev/overview/index.html
+.. _installation guide: https://mne.tools/dev/install/index.html
+.. _pip: https://pip.pypa.io/en/stable/

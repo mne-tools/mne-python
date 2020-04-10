@@ -1,45 +1,49 @@
-name: mne
+name: base
 channels:
 - defaults
 dependencies:
-- python>=3.6
+- python>=3.5
 - pip
 - mkl
 - numpy
 - scipy
 - matplotlib
+- numba
 - pyqt>=5.9
-- vtk>=8
-- pandas
+- pandas>=0.18
+- xlrd
 - scikit-learn
 - h5py
 - pillow
 - statsmodels
 - jupyter
-- nose
-- pytest
+- pytest<5.4
 - pytest-cov
-- sphinx
+- pytest-mock
+- pytest-timeout
 - joblib
 - psutil
-- numpydoc
 - flake8
 - spyder
 - numexpr
+- traits>=4.6.0
+- pyface>=6
+- traitsui>=6
+- vtk
 - pip:
   - mne
-  - "https://api.github.com/repos/enthought/traits/zipball/a99b3f64d50c5f7f28ffc01bf69419b061f9e976"
-  - "https://api.github.com/repos/enthought/pyface/zipball/6a0cac149d56293482bb828a7d98122667c773be"
-  - "https://api.github.com/repos/enthought/traitsui/zipball/e366ad3886d3c39bedb96e83bab447d31c4ab725"
-  - "https://api.github.com/repos/enthought/mayavi/zipball/master"
-  - "https://api.github.com/repos/nipy/PySurfer/zipball/master"
-  - nitime
+  - https://github.com/numpy/numpydoc/archive/master.zip
+  - pyvista>=0.24
+  - mayavi
+  - PySurfer[save_movie]
+  - dipy --only-binary dipy
   - nibabel
   - nilearn
   - neo
-  - pytest-sugar
   - pytest-faulthandler
+  - pytest-sugar
   - pydocstyle
-  - sphinx_bootstrap_theme
-  - "https://api.github.com/repos/sphinx-gallery/sphinx-gallery/zipball/master"
+  - codespell
   - python-picard
+  - tqdm
+  - PyQt5>=5.10,<5.14; platform_system == "Darwin"

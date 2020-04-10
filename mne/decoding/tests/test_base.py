@@ -4,10 +4,12 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_array_almost_equal
-from nose.tools import assert_true, assert_equal, assert_raises
+from numpy.testing import (assert_array_equal, assert_array_almost_equal,
+                           assert_equal)
+import pytest
+
 from mne.fixes import is_regressor, is_classifier
-from mne.utils import requires_version
+from mne.utils import requires_sklearn, check_version
 from mne.decoding.base import (_get_inverse_funcs, LinearModel, get_coef,
                                cross_val_multiscore)
 from mne.decoding.search_light import SlidingEstimator
@@ -36,7 +38,6 @@ def _make_data(n_samples=1000, n_features=5, n_targets=3):
         The forward model, mapping the latent variables (=Y) to the measured
         data (=X).
     """
-
     # Define Y latent factors
     np.random.seed(0)
     cov_Y = np.eye(n_targets) * 10 + np.random.rand(n_targets, n_targets)
@@ -54,19 +55,30 @@ def _make_data(n_samples=1000, n_features=5, n_targets=3):
     return X, Y, A
 
 
-@requires_version('sklearn', '0.17')
+@requires_sklearn
 def test_get_coef():
     """Test getting linear coefficients (filters/patterns) from estimators."""
     from sklearn.base import TransformerMixin, BaseEstimator
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import StandardScaler
+    from sklearn import svm
     from sklearn.linear_model import Ridge, LinearRegression
+    from sklearn.model_selection import GridSearchCV
 
-    lm = LinearModel()
-    assert_true(is_classifier(lm))
+    lm_classification = LinearModel()
+    assert (is_classifier(lm_classification))
 
-    lm = LinearModel(Ridge())
-    assert_true(is_regressor(lm))
+    lm_regression = LinearModel(Ridge())
+    assert (is_regressor(lm_regression))
+
+    parameters = {'kernel': ['linear'], 'C': [1, 10]}
+    lm_gs_classification = LinearModel(
+        GridSearchCV(svm.SVC(), parameters, cv=2, refit=True, n_jobs=1))
+    assert (is_classifier(lm_gs_classification))
+
+    lm_gs_regression = LinearModel(
+        GridSearchCV(svm.SVR(), parameters, cv=2, refit=True, n_jobs=1))
+    assert (is_regressor(lm_gs_regression))
 
     # Define a classifier, an invertible transformer and an non-invertible one.
 
@@ -85,7 +97,7 @@ def test_get_coef():
         def inverse_transform(self, X):
             return X
 
-    X, y, A = _make_data(n_samples=2000, n_features=3, n_targets=1)
+    X, y, A = _make_data(n_samples=1000, n_features=3, n_targets=1)
 
     # I. Test inverse function
 
@@ -99,7 +111,7 @@ def test_get_coef():
 
     for expected_n, est in good_estimators:
         est.fit(X, y)
-        assert_true(expected_n == len(_get_inverse_funcs(est)))
+        assert (expected_n == len(_get_inverse_funcs(est)))
 
     bad_estimators = [
         Clf(),  # no preprocessing
@@ -113,29 +125,57 @@ def test_get_coef():
         invs = _get_inverse_funcs(est)
         assert_equal(invs, list())
 
-    # II. Test get coef for simple estimator and pipelines
-    for clf in (lm, make_pipeline(StandardScaler(), lm)):
+    # II. Test get coef for classification/regression estimators and pipelines
+    rng = np.random.RandomState(0)
+    for clf in (lm_regression,
+                lm_gs_classification,
+                make_pipeline(StandardScaler(), lm_classification),
+                make_pipeline(StandardScaler(), lm_gs_regression)):
+
+        # generate some categorical/continuous data
+        # according to the type of estimator.
+        if is_classifier(clf):
+            n, n_features = 1000, 3
+            X = rng.rand(n, n_features)
+            y = np.arange(n) % 2
+        else:
+            X, y, A = _make_data(n_samples=1000, n_features=3, n_targets=1)
+            y = np.ravel(y)
+
         clf.fit(X, y)
+
         # Retrieve final linear model
         filters = get_coef(clf, 'filters_', False)
         if hasattr(clf, 'steps'):
-            coefs = clf.steps[-1][-1].model.coef_
+            if hasattr(clf.steps[-1][-1].model, 'best_estimator_'):
+                # Linear Model with GridSearchCV
+                coefs = clf.steps[-1][-1].model.best_estimator_.coef_
+            else:
+                # Standard Linear Model
+                coefs = clf.steps[-1][-1].model.coef_
         else:
-            coefs = clf.model.coef_
-        assert_array_equal(filters, coefs[0])
+            if hasattr(clf.model, 'best_estimator_'):
+                # Linear Model with GridSearchCV
+                coefs = clf.model.best_estimator_.coef_
+            else:
+                # Standard Linear Model
+                coefs = clf.model.coef_
+        if coefs.ndim == 2 and coefs.shape[0] == 1:
+            coefs = coefs[0]
+        assert_array_equal(filters, coefs)
         patterns = get_coef(clf, 'patterns_', False)
-        assert_true(filters[0] != patterns[0])
+        assert (filters[0] != patterns[0])
         n_chans = X.shape[1]
         assert_array_equal(filters.shape, patterns.shape, [n_chans, n_chans])
 
     # Inverse transform linear model
     filters_inv = get_coef(clf, 'filters_', True)
-    assert_true(filters[0] != filters_inv[0])
+    assert (filters[0] != filters_inv[0])
     patterns_inv = get_coef(clf, 'patterns_', True)
-    assert_true(patterns[0] != patterns_inv[0])
+    assert (patterns[0] != patterns_inv[0])
 
     # Check with search_light and combination of preprocessing ending with sl:
-    slider = SlidingEstimator(make_pipeline(StandardScaler(), lm))
+    slider = SlidingEstimator(make_pipeline(StandardScaler(), lm_regression))
     X = np.transpose([X, -X], [1, 2, 0])  # invert X across 2 time samples
     clfs = (make_pipeline(Scaler(None, scalings='mean'), slider), slider)
     for clf in clfs:
@@ -154,7 +194,7 @@ def test_get_coef():
     # Check patterns with more than 1 regressor
     for n_features in [1, 5]:
         for n_targets in [1, 3]:
-            X, Y, A = _make_data(n_samples=5000, n_features=5, n_targets=3)
+            X, Y, A = _make_data(n_samples=3000, n_features=5, n_targets=3)
             lm = LinearModel(LinearRegression()).fit(X, Y)
             assert_array_equal(lm.filters_.shape, lm.patterns_.shape)
             assert_array_equal(lm.filters_.shape, [3, 5])
@@ -166,48 +206,83 @@ def test_get_coef():
     lm.fit(X, Y, sample_weight=np.ones(len(Y)))
 
 
-@requires_version('sklearn', '0.15')
+@requires_sklearn
 def test_linearmodel():
     """Test LinearModel class for computing filters and patterns."""
+    # check categorical target fit in standard linear model
     from sklearn.linear_model import LinearRegression
-    np.random.seed(42)
+    rng = np.random.RandomState(0)
     clf = LinearModel()
     n, n_features = 20, 3
-    X = np.random.rand(n, n_features)
+    X = rng.rand(n, n_features)
     y = np.arange(n) % 2
     clf.fit(X, y)
     assert_equal(clf.filters_.shape, (n_features,))
     assert_equal(clf.patterns_.shape, (n_features,))
-    assert_raises(ValueError, clf.fit, np.random.rand(n, n_features, 99), y)
+    with pytest.raises(ValueError):
+        wrong_X = rng.rand(n, n_features, 99)
+        clf.fit(wrong_X, y)
 
-    # check multi-target fit
+    # check categorical target fit in standard linear model with GridSearchCV
+    from sklearn import svm
+    from sklearn.model_selection import GridSearchCV
+    parameters = {'kernel': ['linear'], 'C': [1, 10]}
+    clf = LinearModel(
+        GridSearchCV(svm.SVC(), parameters, cv=2, refit=True, n_jobs=1))
+    clf.fit(X, y)
+    assert_equal(clf.filters_.shape, (n_features,))
+    assert_equal(clf.patterns_.shape, (n_features,))
+    with pytest.raises(ValueError):
+        wrong_X = rng.rand(n, n_features, 99)
+        clf.fit(wrong_X, y)
+
+    # check continuous target fit in standard linear model with GridSearchCV
+    n_targets = 1
+    Y = rng.rand(n, n_targets)
+    clf = LinearModel(
+        GridSearchCV(svm.SVR(), parameters, cv=2, refit=True, n_jobs=1))
+    clf.fit(X, y)
+    assert_equal(clf.filters_.shape, (n_features, ))
+    assert_equal(clf.patterns_.shape, (n_features, ))
+    with pytest.raises(ValueError):
+        wrong_y = rng.rand(n, n_features, 99)
+        clf.fit(X, wrong_y)
+
+    # check multi-target fit in standard linear model
     n_targets = 5
+    Y = rng.rand(n, n_targets)
     clf = LinearModel(LinearRegression())
-    Y = np.random.rand(n, n_targets)
     clf.fit(X, Y)
     assert_equal(clf.filters_.shape, (n_targets, n_features))
     assert_equal(clf.patterns_.shape, (n_targets, n_features))
-    assert_raises(ValueError, clf.fit, X, np.random.rand(n, n_features, 99))
+    with pytest.raises(ValueError):
+        wrong_y = rng.rand(n, n_features, 99)
+        clf.fit(X, wrong_y)
 
 
-@requires_version('sklearn', '0.18')
+@requires_sklearn
 def test_cross_val_multiscore():
     """Test cross_val_multiscore for computing scores on decoding over time."""
     from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score
     from sklearn.linear_model import LogisticRegression, LinearRegression
 
+    if check_version('sklearn', '0.20'):
+        logreg = LogisticRegression(solver='liblinear', random_state=0)
+    else:
+        logreg = LogisticRegression(random_state=0)
+
     # compare to cross-val-score
     X = np.random.rand(20, 3)
     y = np.arange(20) % 2
-    clf = LogisticRegression()
-    cv = KFold(2, random_state=0)
+    cv = KFold(2, random_state=0, shuffle=True)
+    clf = logreg
     assert_array_equal(cross_val_score(clf, X, y, cv=cv),
                        cross_val_multiscore(clf, X, y, cv=cv))
 
     # Test with search light
     X = np.random.rand(20, 4, 3)
     y = np.arange(20) % 2
-    clf = SlidingEstimator(LogisticRegression(), scoring='accuracy')
+    clf = SlidingEstimator(logreg, scoring='accuracy')
     scores_acc = cross_val_multiscore(clf, X, y, cv=cv)
     assert_array_equal(np.shape(scores_acc), [2, 3])
 
@@ -222,9 +297,9 @@ def test_cross_val_multiscore():
     # raise an error if scoring is defined at cross-val-score level and
     # search light, because search light does not return a 1-dimensional
     # prediction.
-    assert_raises(ValueError, cross_val_multiscore, clf, X, y, cv=cv,
+    pytest.raises(ValueError, cross_val_multiscore, clf, X, y, cv=cv,
                   scoring='roc_auc')
-    clf = SlidingEstimator(LogisticRegression(), scoring='roc_auc')
+    clf = SlidingEstimator(logreg, scoring='roc_auc')
     scores_auc = cross_val_multiscore(clf, X, y, cv=cv, n_jobs=1)
     scores_auc_manual = list()
     for train, test in cv.split(X, y):
@@ -236,14 +311,14 @@ def test_cross_val_multiscore():
     # estimator and generates a StratifiedKFold for classiers and a KFold
     # otherwise
     X = np.random.randn(1000, 3)
-    y = np.r_[np.zeros(500), np.ones(500)]
-    clf = LogisticRegression(random_state=0)
+    y = np.ones(1000, dtype=int)
+    y[::2] = 0
+    clf = logreg
     reg = LinearRegression()
     for cross_val in (cross_val_score, cross_val_multiscore):
         manual = cross_val(clf, X, y, cv=StratifiedKFold(2))
         auto = cross_val(clf, X, y, cv=2)
         assert_array_equal(manual, auto)
-        assert_raises(ValueError, cross_val, clf, X, y, cv=KFold(2))
 
         manual = cross_val(reg, X, y, cv=KFold(2))
         auto = cross_val(reg, X, y, cv=2)

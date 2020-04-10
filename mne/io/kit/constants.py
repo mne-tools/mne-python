@@ -5,10 +5,11 @@
 #
 # License: BSD (3-clause)
 
-from ..constants import Bunch, FIFF
+from ..constants import FIFF
+from ...utils import BunchConst
 
 
-KIT = Bunch()
+KIT = BunchConst()
 
 # byte values
 KIT.SHORT = 2
@@ -45,6 +46,7 @@ KIT.FLL_SETTINGS = {
     50: (2, 1, 1),  # Hanger Type #3
     60: (2, 1, 1),  # Hanger Type #3
     100: (3, 3, 3),  # Low Band Kapper Type
+    120: (3, 3, 3),  # Low Band Kapper Type
     200: (4, 4, 3),  # High Band Kapper Type
 }
 
@@ -133,33 +135,61 @@ KIT.DIG_POINTS = 10000
 # Known KIT systems
 # -----------------
 # KIT recording system is encoded in the SQD file as integer:
+KIT.SYSTEM_MQ_ADULT = 345  # Macquarie Dept of Cognitive Science, 2006 -
+KIT.SYSTEM_MQ_CHILD = 403  # Macquarie Dept of Cognitive Science, 2006 -
 KIT.SYSTEM_AS = 260  # Academia Sinica at Taiwan
 KIT.SYSTEM_AS_2008 = 261  # Academia Sinica, 2008 or 2009 -
 KIT.SYSTEM_NYU_2008 = 32  # NYU-NY, July 7, 2008 -
 KIT.SYSTEM_NYU_2009 = 33  # NYU-NY, January 24, 2009 -
 KIT.SYSTEM_NYU_2010 = 34  # NYU-NY, January 22, 2010 -
+KIT.SYSTEM_NYU_2019 = 35  # NYU-NY, September 18, 2019 -
 KIT.SYSTEM_NYUAD_2011 = 440  # NYU-AD initial launch May 20, 2011 -
 KIT.SYSTEM_NYUAD_2012 = 441  # NYU-AD more channels July 11, 2012 -
 KIT.SYSTEM_NYUAD_2014 = 442  # NYU-AD move to NYUAD campus Nov 20, 2014 -
 KIT.SYSTEM_UMD_2004 = 51  # UMD Marie Mount Hall, October 1, 2004 -
 KIT.SYSTEM_UMD_2014_07 = 52  # UMD update to 16 bit ADC, July 4, 2014 -
 KIT.SYSTEM_UMD_2014_12 = 53  # UMD December 4, 2014 -
-# Sensor layouts, used for plotting and connectivity
+KIT.SYSTEM_UMD_2019_09 = 54  # UMD September 3, 2019 -
+# Sensor layouts for plotting
 KIT_LAYOUT = {
     KIT.SYSTEM_AS: None,
     KIT.SYSTEM_AS_2008: 'KIT-AS-2008',
+    KIT.SYSTEM_MQ_ADULT: 'KIT-160',
+    KIT.SYSTEM_MQ_CHILD: 'KIT-125',
     KIT.SYSTEM_NYU_2008: 'KIT-157',
     KIT.SYSTEM_NYU_2009: 'KIT-157',
     KIT.SYSTEM_NYU_2010: 'KIT-157',
+    KIT.SYSTEM_NYU_2019: None,
     KIT.SYSTEM_NYUAD_2011: 'KIT-AD',
     KIT.SYSTEM_NYUAD_2012: 'KIT-AD',
     KIT.SYSTEM_NYUAD_2014: 'KIT-AD',
     KIT.SYSTEM_UMD_2004: None,
     KIT.SYSTEM_UMD_2014_07: None,
     KIT.SYSTEM_UMD_2014_12: 'KIT-UMD-3',
+    KIT.SYSTEM_UMD_2019_09: None,
+}
+# Sensor neighbor definitions
+KIT_NEIGHBORS = {
+    KIT.SYSTEM_AS: None,
+    KIT.SYSTEM_AS_2008: None,
+    KIT.SYSTEM_MQ_ADULT: None,
+    KIT.SYSTEM_MQ_CHILD: None,
+    KIT.SYSTEM_NYU_2008: 'KIT-157',
+    KIT.SYSTEM_NYU_2009: 'KIT-157',
+    KIT.SYSTEM_NYU_2010: 'KIT-157',
+    KIT.SYSTEM_NYU_2019: 'KIT-NYU-2019',
+    KIT.SYSTEM_NYUAD_2011: 'KIT-208',
+    KIT.SYSTEM_NYUAD_2012: 'KIT-208',
+    KIT.SYSTEM_NYUAD_2014: 'KIT-208',
+    KIT.SYSTEM_UMD_2004: 'KIT-UMD-1',
+    KIT.SYSTEM_UMD_2014_07: 'KIT-UMD-2',
+    KIT.SYSTEM_UMD_2014_12: 'KIT-UMD-3',
+    KIT.SYSTEM_UMD_2019_09: 'KIT-UMD-4',
 }
 # Names displayed in the info dict description
 KIT_SYSNAMES = {
+    KIT.SYSTEM_MQ_ADULT: 'Macquarie Dept of Cognitive Science (Adult), 2006-',
+    KIT.SYSTEM_MQ_CHILD: 'Macquarie Dept of Cognitive Science (Child), 2006-',
     KIT.SYSTEM_AS: 'Academia Sinica, -2008',
     KIT.SYSTEM_AS_2008: 'Academia Sinica, 2008-',
     KIT.SYSTEM_NYU_2008: 'NYU New York, 2008-9',
@@ -171,6 +201,7 @@ KIT_SYSNAMES = {
     KIT.SYSTEM_UMD_2004: 'University of Maryland, 2004-14',
     KIT.SYSTEM_UMD_2014_07: 'University of Maryland, 2014',
     KIT.SYSTEM_UMD_2014_12: 'University of Maryland, 2014-',
+    KIT.SYSTEM_UMD_2019_09: 'University of Maryland, 2019-',
 }
 
 LEGACY_AMP_PARAMS = {

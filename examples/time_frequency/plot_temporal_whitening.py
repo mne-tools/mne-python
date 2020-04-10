@@ -7,7 +7,7 @@ Here we fit an AR model to the data and use it
 to temporally whiten the signals.
 
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 

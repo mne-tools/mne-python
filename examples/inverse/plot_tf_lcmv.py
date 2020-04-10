@@ -36,7 +36,7 @@ fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
 
 ###############################################################################
 # Read raw data, preload to allow filtering
-raw = mne.io.read_raw_fif(raw_fname, preload=True)
+raw = mne.io.read_raw_fif(raw_fname)
 raw.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 
 # Pick a selection of magnetometer channels. A subset of all channels was used
@@ -46,7 +46,7 @@ raw.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 # but here we use raw.pick_types() to save memory.
 left_temporal_channels = mne.read_selection('Left-temporal')
 raw.pick_types(meg='mag', eeg=False, eog=False, stim=False, exclude='bads',
-               selection=left_temporal_channels)
+               selection=left_temporal_channels).load_data()
 reject = dict(mag=4e-12)
 # Re-normalize our empty-room projectors, which should be fine after
 # subselection
@@ -126,7 +126,7 @@ for (l_freq, h_freq) in freq_bins:
                              tmin=tmin_plot, tmax=tmax_plot, baseline=None,
                              proj=True)
 
-    noise_cov = compute_covariance(epochs_band, method='shrunk')
+    noise_cov = compute_covariance(epochs_band, method='shrunk', rank=None)
     noise_covs.append(noise_cov)
     del raw_band  # to save memory
 
@@ -134,7 +134,7 @@ for (l_freq, h_freq) in freq_bins:
 # space for faster computation, use label=None for full solution
 stcs = tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                freq_bins=freq_bins, subtract_evoked=subtract_evoked,
-               reg=data_reg, label=label)
+               reg=data_reg, label=label, rank=None)
 
 # Plotting source spectrogram for source with maximum activity.
 # Note that tmin and tmax are set to display a time range that is smaller than

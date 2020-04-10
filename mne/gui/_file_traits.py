@@ -13,7 +13,7 @@ import numpy as np
 from traits.api import (Any, HasTraits, HasPrivateTraits, cached_property,
                         on_trait_change, Array, Bool, Button, DelegatesTo,
                         Directory, Enum, Event, File, Instance, Int, List,
-                        Property, Str)
+                        Property, Str, ArrayOrNone)
 from traitsui.api import View, Item, VGroup
 from pyface.api import DirectoryDialog, OK, ProgressDialog, error, information
 
@@ -29,7 +29,7 @@ from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
                      create_default_subject)
 from ..utils import get_config, set_config
 from ..viz._3d import _fiducial_coords
-from ..channels import read_dig_montage, DigMontage
+from ..channels import read_dig_fif, DigMontage
 
 
 fid_wildcard = "*.fif"
@@ -210,23 +210,18 @@ class FiducialsSource(HasTraits):
 
     file = File(filter=[fid_wildcard])
     fname = Property(depends_on='file')
-    points = Property(depends_on='file')
+    points = Property(ArrayOrNone, depends_on='file')
+    mni_points = ArrayOrNone(float, shape=(3, 3))
 
-    @cached_property
     def _get_fname(self):
-        fname = op.basename(self.file)
-        return fname
+        return op.basename(self.file)
 
     @cached_property
     def _get_points(self):
         if not op.exists(self.file):
-            return None
-
+            return self.mni_points  # can be None
         try:
-            fids, coord_frame = read_fiducials(self.file)
-            points = _fiducial_coords(fids, coord_frame)
-            assert points.shape == (3, 3)
-            return points
+            return _fiducial_coords(*read_fiducials(self.file))
         except Exception as err:
             error(None, "Error reading fiducials from %s: %s (See terminal "
                   "for more information)" % (self.fname, str(err)),
@@ -300,20 +295,12 @@ class DigSource(HasPrivateTraits):
             if len(dir_tree_find(tree, FIFF.FIFFB_MEAS_INFO)) > 0:
                 info = read_info(self.file, verbose=False)
             elif len(dir_tree_find(tree, FIFF.FIFFB_ISOTRAK)) > 0:
-                info = read_dig_montage(fif=self.file)
+                info = read_dig_fif(fname=self.file)
 
             if isinstance(info, DigMontage):
-                info.transform_to_head()
-                digs = list()
-                _append_fiducials(digs, info.lpa, info.nasion, info.rpa)
-                for idx, pos in enumerate(info.hsp):
-                    dig = {'coord_frame': FIFF.FIFFV_COORD_HEAD,
-                           'ident': idx,
-                           'kind': FIFF.FIFFV_POINT_EXTRA,
-                           'r': pos}
-                    digs.append(dig)
+                dig = info.dig
                 info = _empty_info(1)
-                info['dig'] = digs
+                info['dig'] = dig
             elif info is None or info['dig'] is None:
                 error(None, "The selected FIFF file does not contain "
                       "digitizer information. Please select a different "

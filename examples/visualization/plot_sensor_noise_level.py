@@ -27,4 +27,5 @@ raw_erm = mne.io.read_raw_fif(op.join(data_path, 'MEG', 'sample',
 
 ###############################################################################
 # We can plot the absolute noise levels:
-raw_erm.plot_psd(tmax=10., average=True, dB=False, xscale='log')
+raw_erm.plot_psd(tmax=10., average=True, spatial_colors=False,
+                 dB=False, xscale='log')

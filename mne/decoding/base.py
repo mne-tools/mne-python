@@ -1,7 +1,7 @@
 """Base class copy from sklearn.base."""
 # Authors: Gael Varoquaux <gael.varoquaux@normalesup.org>
 #          Romain Trachel <trachelr@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD (3-clause)
@@ -10,8 +10,8 @@ import numpy as np
 import time
 import numbers
 from ..parallel import parallel_func
-from ..fixes import BaseEstimator, is_classifier
-from ..utils import check_version, logger, warn
+from ..fixes import BaseEstimator, is_classifier, _get_check_scoring
+from ..utils import check_version, logger, warn, fill_doc
 
 
 class LinearModel(BaseEstimator):
@@ -36,15 +36,15 @@ class LinearModel(BaseEstimator):
     patterns_ : ndarray, shape ([n_targets], n_features)
         If fit, the patterns used to restore M/EEG signals.
 
-    Notes
-    -----
-    .. versionadded:: 0.10
-
     See Also
     --------
     CSP
     mne.preprocessing.ICA
     mne.preprocessing.Xdawn
+
+    Notes
+    -----
+    .. versionadded:: 0.10
 
     References
     ----------
@@ -57,7 +57,10 @@ class LinearModel(BaseEstimator):
     def __init__(self, model=None):  # noqa: D102
         if model is None:
             from sklearn.linear_model import LogisticRegression
-            model = LogisticRegression()
+            if check_version('sklearn', '0.20'):
+                model = LogisticRegression(solver='liblinear')
+            else:
+                model = LogisticRegression()
 
         self.model = model
         self._estimator_type = getattr(model, "_estimator_type", None)
@@ -106,9 +109,14 @@ class LinearModel(BaseEstimator):
 
     @property
     def filters_(self):
-        if not hasattr(self.model, 'coef_'):
+        if hasattr(self.model, 'coef_'):
+            # Standard Linear Model
+            filters = self.model.coef_
+        elif hasattr(self.model.best_estimator_, 'coef_'):
+            # Linear Model with GridSearchCV
+            filters = self.model.best_estimator_.coef_
+        else:
             raise ValueError('model does not have a `coef_` attribute.')
-        filters = self.model.coef_
         if filters.ndim == 2 and filters.shape[0] == 1:
             filters = filters[0]
         return filters
@@ -204,7 +212,7 @@ class LinearModel(BaseEstimator):
         Returns
         -------
         score : float
-            Score of the linear model
+            Score of the linear model.
         """
         return self.model.score(X, y)
 
@@ -217,35 +225,17 @@ def _set_cv(cv, estimator=None, X=None, y=None):
     else:
         est_is_classifier = is_classifier(estimator)
     # Setup CV
-    if check_version('sklearn', '0.18'):
-        from sklearn import model_selection as models
-        from sklearn.model_selection import (check_cv, StratifiedKFold, KFold)
-        if isinstance(cv, (int, np.int)):
-            XFold = StratifiedKFold if est_is_classifier else KFold
-            cv = XFold(n_splits=cv)
-        elif isinstance(cv, str):
-            if not hasattr(models, cv):
-                raise ValueError('Unknown cross-validation')
-            cv = getattr(models, cv)
-            cv = cv()
-        cv = check_cv(cv=cv, y=y, classifier=est_is_classifier)
-    else:
-        from sklearn import cross_validation as models
-        from sklearn.cross_validation import (check_cv, StratifiedKFold, KFold)
-        if isinstance(cv, (int, np.int)):
-            if est_is_classifier:
-                cv = StratifiedKFold(y=y, n_folds=cv)
-            else:
-                cv = KFold(n=len(y), n_folds=cv)
-        elif isinstance(cv, str):
-            if not hasattr(models, cv):
-                raise ValueError('Unknown cross-validation')
-            cv = getattr(models, cv)
-            if cv.__name__ not in ['KFold', 'LeaveOneOut']:
-                raise NotImplementedError('CV cannot be defined with str for'
-                                          ' sklearn < .017.')
-            cv = cv(len(y))
-        cv = check_cv(cv=cv, X=X, y=y, classifier=est_is_classifier)
+    from sklearn import model_selection as models
+    from sklearn.model_selection import (check_cv, StratifiedKFold, KFold)
+    if isinstance(cv, (int, np.int)):
+        XFold = StratifiedKFold if est_is_classifier else KFold
+        cv = XFold(n_splits=cv)
+    elif isinstance(cv, str):
+        if not hasattr(models, cv):
+            raise ValueError('Unknown cross-validation')
+        cv = getattr(models, cv)
+        cv = cv()
+    cv = check_cv(cv=cv, y=y, classifier=est_is_classifier)
 
     # Extract train and test set to retrieve them at predict time
     if hasattr(cv, 'split'):
@@ -363,6 +353,7 @@ def get_coef(estimator, attr='filters_', inverse_transform=False):
     return coef
 
 
+@fill_doc
 def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
                          cv=None, n_jobs=1, verbose=0, fit_params=None,
                          pre_dispatch='2*n_jobs'):
@@ -370,8 +361,9 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
 
     Parameters
     ----------
-    estimator : estimator object implementing 'fit'
+    estimator : instance of sklearn.base.BaseEstimator
         The object to use to fit the data.
+        Must implement the 'fit' method.
     X : array-like, shape (n_samples, n_dimensional_features,)
         The data to fit. Can be, for example a list, or an array at least 2d.
     y : array-like, shape (n_samples, n_targets,)
@@ -380,10 +372,14 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
     groups : array-like, with shape (n_samples,)
         Group labels for the samples used while splitting the dataset into
         train/test set.
-    scoring : string, callable | None
+    scoring : str, callable | None
         A string (see model evaluation documentation) or
         a scorer callable object / function with signature
         ``scorer(estimator, X, y)``.
+        Note that when using an estimator which inherently returns
+        multidimensional output - in particular, SlidingEstimator
+        or GeneralizingEstimator - you should set the scorer
+        there, not here.
     cv : int, cross-validation generator | iterable
         Determines the cross-validation splitting strategy.
         Possible inputs for cv are:
@@ -397,14 +393,12 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
         either binary or multiclass,
         :class:`sklearn.model_selection.StratifiedKFold` is used. In all
         other cases, :class:`sklearn.model_selection.KFold` is used.
-    n_jobs : integer, optional
-        The number of CPUs to use to do the computation. -1 means
-        'all CPUs'.
-    verbose : integer, optional
+    %(n_jobs)s
+    verbose : int, optional
         The verbosity level.
     fit_params : dict, optional
         Parameters to pass to the fit method of the estimator.
-    pre_dispatch : int, or string, optional
+    pre_dispatch : int, or str, optional
         Controls the number of jobs that get dispatched during parallel
         execution. Reducing this number can be useful to avoid an
         explosion of memory consumption when more jobs get dispatched
@@ -428,8 +422,8 @@ def cross_val_multiscore(estimator, X, y=None, groups=None, scoring=None,
 
     from sklearn.base import clone
     from sklearn.utils import indexable
-    from sklearn.metrics.scorer import check_scoring
     from sklearn.model_selection._split import check_cv
+    check_scoring = _get_check_scoring()
 
     X, y, groups = indexable(X, y, groups)
 
@@ -453,7 +447,7 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
                    return_times=False, error_score='raise'):
     """Fit estimator and compute scores for a given dataset split."""
     #  This code is adapted from sklearn
-    from sklearn.model_selection._validation import _index_param_value
+    from ..fixes import _check_fit_params
     from sklearn.utils.metaestimators import _safe_split
     from sklearn.utils.validation import _num_samples
 
@@ -467,8 +461,7 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
 
     # Adjust length of sample weights
     fit_params = fit_params if fit_params is not None else {}
-    fit_params = dict([(k, _index_param_value(X, v, train))
-                      for k, v in fit_params.items()])
+    fit_params = _check_fit_params(X, fit_params, train)
 
     if parameters is not None:
         estimator.set_params(**parameters)

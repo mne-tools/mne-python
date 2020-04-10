@@ -6,13 +6,11 @@ Compute Power Spectral Density of inverse solution from single epochs
 Compute PSD of dSPM inverse solution on single trial epochs restricted
 to a brain label. The PSD is computed using a multi-taper method with
 Discrete Prolate Spheroidal Sequence (DPSS) windows.
-
 """
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
-import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
@@ -27,6 +25,7 @@ fname_raw = data_path + '/MEG/sample/sample_audvis_raw.fif'
 fname_event = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 label_name = 'Aud-lh'
 fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
+subjects_dir = data_path + '/subjects'
 
 event_id, tmin, tmax = 1, -0.2, 0.5
 snr = 1.0  # use smaller SNR for raw data
@@ -55,33 +54,42 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 fmin, fmax = 0., 70.
 bandwidth = 4.  # bandwidth of the windows in Hz
 
-# compute source space psd in label
+###############################################################################
+# Compute source space PSD in label
+# ---------------------------------
+#
+# ..note:: By using "return_generator=True" stcs will be a generator object
+#          instead of a list. This allows us so to iterate without having to
+#          keep everything in memory.
 
-# Note: By using "return_generator=True" stcs will be a generator object
-# instead of a list. This allows us so to iterate without having to
-# keep everything in memory.
-
-stcs = compute_source_psd_epochs(epochs, inverse_operator, lambda2=lambda2,
+n_epochs_use = 10
+stcs = compute_source_psd_epochs(epochs[:n_epochs_use], inverse_operator,
+                                 lambda2=lambda2,
                                  method=method, fmin=fmin, fmax=fmax,
                                  bandwidth=bandwidth, label=label,
-                                 return_generator=True)
+                                 return_generator=True, verbose=True)
 
 # compute average PSD over the first 10 epochs
-n_epochs = 10
+psd_avg = 0.
 for i, stc in enumerate(stcs):
-    if i >= n_epochs:
-        break
-
-    if i == 0:
-        psd_avg = np.mean(stc.data, axis=0)
-    else:
-        psd_avg += np.mean(stc.data, axis=0)
-
-psd_avg /= n_epochs
+    psd_avg += stc.data
+psd_avg /= n_epochs_use
 freqs = stc.times  # the frequencies are stored here
+stc.data = psd_avg  # overwrite the last epoch's data with the average
 
-plt.figure()
-plt.plot(freqs, psd_avg)
-plt.xlabel('Freq (Hz)')
-plt.ylabel('Power Spectral Density')
-plt.show()
+###############################################################################
+# Visualize the 10 Hz PSD:
+
+brain = stc.plot(initial_time=10., hemi='lh', views='lat',  # 10 HZ
+                 clim=dict(kind='value', lims=(20, 40, 60)),
+                 smoothing_steps=3, subjects_dir=subjects_dir)
+brain.add_label(label, borders=True, color='k')
+
+###############################################################################
+# Visualize the entire spectrum:
+
+fig, ax = plt.subplots()
+ax.plot(freqs, psd_avg.mean(axis=0))
+ax.set_xlabel('Freq (Hz)')
+ax.set_xlim(stc.times[[0, -1]])
+ax.set_ylabel('Power Spectral Density')
