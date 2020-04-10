@@ -72,7 +72,7 @@ raw.crop(tmax=60).load_data()
 # What is a STIM channel?
 # ^^^^^^^^^^^^^^^^^^^^^^^
 #
-# A :term:`STIM channel` (short for "stimulus channel") is a channel that does
+# A :term:`stim channel` (short for "stimulus channel") is a channel that does
 # not receive signals from an EEG, MEG, or other sensor. Instead, STIM channels
 # record voltages (usually short, rectangular DC pulses of fixed magnitudes
 # sent from the experiment-controlling computer) that are time-locked to
