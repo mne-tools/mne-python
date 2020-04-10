@@ -74,11 +74,10 @@ erm_fname = op.join(data_path, 'MEG', 'bst_auditory',
 # In the memory saving mode we use ``preload=False`` and use the memory
 # efficient IO which loads the data on demand. However, filtering and some
 # other functions require the data to be preloaded in the memory.
-preload = not use_precomputed
-raw = read_raw_ctf(raw_fname1, preload=preload)
+raw = read_raw_ctf(raw_fname1)
 n_times_run1 = raw.n_times
-mne.io.concatenate_raws([raw, read_raw_ctf(raw_fname2, preload=preload)])
-raw_erm = read_raw_ctf(erm_fname, preload=preload)
+mne.io.concatenate_raws([raw, read_raw_ctf(raw_fname2)])
+raw_erm = read_raw_ctf(erm_fname)
 
 ###############################################################################
 # Data channel array consisted of 274 MEG axial gradiometers, 26 MEG reference
@@ -98,7 +97,7 @@ raw_erm = read_raw_ctf(erm_fname, preload=preload)
 raw.set_channel_types({'HEOG': 'eog', 'VEOG': 'eog', 'ECG': 'ecg'})
 if not use_precomputed:
     # Leave out the two EEG channels for easier computation of forward.
-    raw.pick(['meg', 'stim', 'misc', 'eog', 'ecg'])
+    raw.pick(['meg', 'stim', 'misc', 'eog', 'ecg']).load_data()
 
 ###############################################################################
 # For noise reduction, a set of bad segments have been identified and stored

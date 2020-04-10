@@ -18,15 +18,15 @@ from mne.datasets import sample
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-raw = mne.io.read_raw_fif(raw_fname, preload=True)
+raw = mne.io.read_raw_fif(raw_fname)
+
+###############################################################################
+# Let's restrict the data to the EEG channels
+raw.pick_types(meg=False, eeg=True, eog=True).load_data()
 
 # This particular dataset already has an average reference projection added
 # that we now want to remove it for the sake of this example.
 raw.set_eeg_reference([])
-
-###############################################################################
-# Let's restrict the data to the EEG channels
-raw.pick_types(meg=False, eeg=True, eog=True)
 
 ###############################################################################
 # By looking at the measurement info you will see that we have now

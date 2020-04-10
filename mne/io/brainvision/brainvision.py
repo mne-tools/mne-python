@@ -65,18 +65,16 @@ class RawBrainVision(BaseRaw):
         vhdr_fname = op.abspath(vhdr_fname)
         (info, data_fname, fmt, order, n_samples, mrk_fname, montage,
          orig_units) = _get_vhdr_info(vhdr_fname, eog, misc, scale)
-        self._order = order
-        self._n_samples = n_samples
 
         with open(data_fname, 'rb') as f:
             if isinstance(fmt, dict):  # ASCII, this will be slow :(
-                if self._order == 'F':  # multiplexed, channels in columns
+                if order == 'F':  # multiplexed, channels in columns
                     n_skip = 0
                     for ii in range(int(fmt['skiplines'])):
                         n_skip += len(f.readline())
                     offsets = np.cumsum([n_skip] + [len(line) for line in f])
                     n_samples = len(offsets) - 1
-                elif self._order == 'C':  # vectorized, channels, in rows
+                elif order == 'C':  # vectorized, channels, in rows
                     raise NotImplementedError()
             else:
                 n_data_ch = int(info['nchan'])
@@ -86,10 +84,12 @@ class RawBrainVision(BaseRaw):
                 offsets = None
                 n_samples = n_samples // (dtype_bytes * n_data_ch)
 
+        raw_extras = dict(
+            offsets=offsets, fmt=fmt, order=order, n_samples=n_samples)
         super(RawBrainVision, self).__init__(
             info, last_samps=[n_samples - 1], filenames=[data_fname],
             orig_format=fmt, preload=preload, verbose=verbose,
-            raw_extras=[offsets], orig_units=orig_units)
+            raw_extras=[raw_extras], orig_units=orig_units)
 
         self.set_montage(montage)
 
@@ -100,18 +100,19 @@ class RawBrainVision(BaseRaw):
     def _read_segment_file(self, data, idx, fi, start, stop, cals, mult):
         """Read a chunk of raw data."""
         # read data
-        n_data_ch = len(self.ch_names)
-        if self._order == 'C':
+        n_data_ch = self._raw_extras[fi]['orig_nchan']
+        fmt = self._raw_extras[fi]['fmt']
+        if self._raw_extras[fi]['order'] == 'C':
             _read_segments_c(self, data, idx, fi, start, stop, cals, mult)
-        elif isinstance(self.orig_format, str):
-            dtype = _fmt_dtype_dict[self.orig_format]
+        elif isinstance(fmt, str):
+            dtype = _fmt_dtype_dict[fmt]
             _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
                                 dtype=dtype, n_channels=n_data_ch)
         else:
-            offsets = self._raw_extras[fi]
+            offsets = self._raw_extras[fi]['offsets']
             with open(self._filenames[fi], 'rb') as fid:
                 fid.seek(offsets[start])
-                block = np.empty((len(self.ch_names), stop - start))
+                block = np.empty((n_data_ch, stop - start))
                 for ii in range(stop - start):
                     line = fid.readline().decode('ASCII')
                     line = line.strip().replace(',', '.').split()
@@ -121,13 +122,16 @@ class RawBrainVision(BaseRaw):
 
 def _read_segments_c(raw, data, idx, fi, start, stop, cals, mult):
     """Read chunk of vectorized raw data."""
-    n_samples = raw._n_samples
-    dtype = _fmt_dtype_dict[raw.orig_format]
-    n_bytes = _fmt_byte_dict[raw.orig_format]
-    n_channels = len(raw.ch_names)
+    n_samples = raw._raw_extras[fi]['n_samples']
+    fmt = raw._raw_extras[fi]['fmt']
+    dtype = _fmt_dtype_dict[fmt]
+    n_bytes = _fmt_byte_dict[fmt]
+    n_channels = raw._raw_extras[fi]['orig_nchan']
     block = np.zeros((n_channels, stop - start))
     with open(raw._filenames[fi], 'rb', buffering=0) as fid:
-        for ch_id in np.arange(n_channels)[idx]:
+        if isinstance(idx, slice):
+            idx = np.arange(idx.start, idx.stop)
+        for ch_id in idx:
             fid.seek(start * n_bytes + ch_id * n_bytes * n_samples)
             block[ch_id] = np.fromfile(fid, dtype, stop - start)
 

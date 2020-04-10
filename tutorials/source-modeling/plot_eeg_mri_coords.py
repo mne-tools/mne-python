@@ -65,7 +65,7 @@ fname_mon = op.join(misc_path, 'sample_eeg_mri', 'sample_mri_montage.elc')
 # which does a maximum intensity projection (easy to see the fake electrodes).
 # This plotting function requires data to be in MNI space.
 # Because ``img.affine`` gives the voxel-to-world (RAS) mapping, if we apply a
-# RAS-to-MRI transform to it, it becomes the voxel-to-MNI transformation we
+# RAS-to-MNI transform to it, it becomes the voxel-to-MNI transformation we
 # need. Thus we create a "new" MRI image in MNI coordinates and plot it as:
 
 img = nibabel.load(fname_T1_electrodes)  # original subject MRI w/EEG
@@ -94,9 +94,9 @@ plot_glass_brain(img_mni, cmap='hot_black_bone', threshold=0., black_bg=True,
 #
 #         >>> pos_vox = ...  # loaded from a file somehow
 #         >>> img = nibabel.load(fname_T1)
-#         >>> vox2mri = img.header.get_vox2ras_tkr()  # voxel -> mri
-#         >>> vox2mri[:3] /= 1000.  # mm -> m
-#         >>> pos_mri = mne.transforms.apply_trans(vox2mri, pos_vox)
+#         >>> vox2mri_t = img.header.get_vox2ras_tkr()  # voxel -> mri trans
+#         >>> pos_mri = mne.transforms.apply_trans(vox2mri_t, pos_vox)
+#         >>> pos_mri /= 1000.  # mm -> m
 #
 #     You can also verify that these are correct (or manually convert voxels
 #     to MRI coords) by looking at the points in Freeview or tkmedit.
@@ -117,7 +117,7 @@ print(trans)  # should be mri->head, as the "native" space here is MRI
 # shown by :meth:`~mne.io.Raw.plot_sensors`.
 
 raw = mne.io.read_raw_fif(fname_raw)
-raw.load_data().pick_types(meg=False, eeg=True, stim=True, exclude=())
+raw.pick_types(meg=False, eeg=True, stim=True, exclude=()).load_data()
 raw.set_montage(dig_montage)
 raw.plot_sensors(show_names=True)
 

@@ -22,7 +22,7 @@ sample_data_folder = mne.datasets.sample.data_path()
 sample_data_raw_file = os.path.join(sample_data_folder, 'MEG', 'sample',
                                     'sample_audvis_raw.fif')
 raw = mne.io.read_raw_fif(sample_data_raw_file, verbose=False)
-raw.crop(tmax=60).load_data()
+raw.crop(tmax=60)
 
 ###############################################################################
 # Background on SSS and Maxwell filtering
@@ -104,7 +104,7 @@ crosstalk_file = os.path.join(sample_data_folder, 'SSS', 'ct_sparse_mgh.fif')
 # we just low-pass filter these data:
 
 raw.info['bads'] = []
-raw_check = raw.copy().pick_types(exclude=()).filter(None, 40)
+raw_check = raw.copy().pick_types(exclude=()).load_data().filter(None, 40)
 auto_noisy_chs, auto_flat_chs = mne.preprocessing.find_bad_channels_maxwell(
     raw_check, cross_talk=crosstalk_file, calibration=fine_cal_file,
     verbose=True)

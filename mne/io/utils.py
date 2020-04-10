@@ -196,10 +196,10 @@ def _file_size(fname):
 
 
 def _read_segments_file(raw, data, idx, fi, start, stop, cals, mult,
-                        dtype='<i2', n_channels=None, offset=0,
-                        trigger_ch=None):
+                        dtype, n_channels=None, offset=0, trigger_ch=None):
     """Read a chunk of raw data."""
-    n_channels = raw.info['nchan'] if n_channels is None else n_channels
+    if n_channels is None:
+        n_channels = raw._raw_extras[fi]['orig_nchan']
 
     n_bytes = np.dtype(dtype).itemsize
     # data_offset and data_left count data samples (channels x time points),

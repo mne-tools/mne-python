@@ -517,7 +517,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
             # otherwise it's modified inplace
             _copy_channel(inst, an, 'TMP')
             an = 'TMP'
-        _apply_reference(inst, [ca], [an])
+        _apply_reference(inst, [ca], [an])  # ensures preloaded
         an_idx = inst.ch_names.index(an)
         inst.info['chs'][an_idx] = chs
         inst.info['chs'][an_idx]['ch_name'] = name

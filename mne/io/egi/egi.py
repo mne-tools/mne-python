@@ -219,14 +219,14 @@ class RawEGI(BaseRaw):
             logger.info('    Excluding events {%s} ...' %
                         ", ".join([k for i, k in enumerate(event_codes)
                                    if i not in include_]))
-            self._new_trigger = _combine_triggers(egi_events[include_],
-                                                  remapping=event_ids)
+            egi_info['new_trigger'] = _combine_triggers(
+                egi_events[include_], remapping=event_ids)
             self.event_id = dict(zip([e for e in event_codes if e in
                                       include_names], event_ids))
         else:
             # No events
             self.event_id = None
-            self._new_trigger = None
+            egi_info['new_trigger'] = None
         info = _empty_info(egi_info['samp_rate'])
         my_time = datetime.datetime(
             egi_info['year'], egi_info['month'], egi_info['day'],
@@ -236,7 +236,7 @@ class RawEGI(BaseRaw):
         ch_names = [channel_naming % (i + 1) for i in
                     range(egi_info['n_channels'])]
         ch_names.extend(list(egi_info['event_codes']))
-        if self._new_trigger is not None:
+        if egi_info['new_trigger'] is not None:
             ch_names.append('STI 014')  # our new_trigger
         nchan = len(ch_names)
         cals = np.repeat(cal, nchan)
@@ -263,6 +263,7 @@ class RawEGI(BaseRaw):
         dtype = egi_info['dtype']
         n_chan_read = egi_info['n_channels'] + egi_info['n_events']
         offset = 36 + egi_info['n_events'] * 4
+        trigger_ch = egi_info['new_trigger']
         _read_segments_file(self, data, idx, fi, start, stop, cals, mult,
                             dtype=dtype, n_channels=n_chan_read, offset=offset,
-                            trigger_ch=self._new_trigger)
+                            trigger_ch=trigger_ch)

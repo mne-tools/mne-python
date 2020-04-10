@@ -15,6 +15,8 @@ Current (0.21.dev0)
 Changelog
 ~~~~~~~~~
 
+- Allow picking channels in raw instances (e.g., :meth:`mne.io.Raw.pick_types`) without preloading data, by `Eric Larson`_
+
 - Add support for signals in mV for :func:`mne.io.read_raw_brainvision` by `Clemens Brunner`_
 
 - Allow resampling raw data with :func:`mne.io.Raw.resample` without preloading data, by `Eric Larson`_
@@ -41,6 +43,10 @@ Bug
 - Fix bug with :func:`mne.make_forward_dipole` where :func:`mne.write_forward_solution` could not be used by `Eric Larson`_
 
 - Fix bug that prevents ``n_jobs`` from being a NumPy integer type, by `Daniel McCloy`_.
+
+- Fix bug with :func:`mne.io.read_raw_gdf` where birthdays were not parsed properly, leading to an error by `Svea Marie Meyer`_
+
+
 
 API
 ~~~

@@ -961,7 +961,8 @@ class RawBTi(BaseRaw):
         bti_info = self._raw_extras[fi]
         fname = bti_info['pdf_fname']
         dtype = bti_info['dtype']
-        n_channels = self.info['nchan']
+        assert len(bti_info['chs']) == self._raw_extras[fi]['orig_nchan']
+        n_channels = len(bti_info['chs'])
         n_bytes = np.dtype(dtype).itemsize
         data_left = (stop - start) * n_channels
         read_cals = np.empty((bti_info['total_chans'],))
