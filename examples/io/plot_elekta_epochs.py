@@ -1,4 +1,6 @@
 """
+.. _ex-io-ave-fiff:
+
 ======================================
 Getting averaging info from .fif files
 ======================================
@@ -65,4 +67,4 @@ newcat['index'] = 9  # can be set freely
 cond = raw.acqparser.get_condition(raw, newcat)
 epochs = mne.Epochs(raw, reject=raw.acqparser.reject,
                     flat=raw.acqparser.flat, **cond)
-epochs.average().plot()
+epochs.average().plot(time_unit='s')

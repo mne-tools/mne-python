@@ -52,7 +52,7 @@ for ev in events:
 
 # Here's a helper function we'll use later
 def plot_query_results(query):
-    fig = epochs[query].average().plot(show=False)
+    fig = epochs[query].average().plot(show=False, time_unit='s')
     title = fig.axes[0].get_title()
     add = 'Query: {}\nNum Epochs: {}'.format(query, len(epochs[query]))
     fig.axes[0].set(title='\n'.join([add, title]))
@@ -63,8 +63,11 @@ def plot_query_results(query):
 # First we'll create our metadata object. This should be a
 # :class:`pandas.DataFrame` with each row corresponding to an event.
 #
-# .. warning:: The Dataframe Index can change during MNE I/O operations, so
-#              do not rely on it to query your metadata.
+# .. warning:: Do not set or change the Dataframe index of ``epochs.metadata``.
+#              It will be controlled by MNE to mirror ``epochs.selection``.
+#              Also, while some inplace operations on ``epochs.metadata`` are
+#              possible, do not manually drop or add rows, as this will
+#              create inconsistency between the metadata and actual data.
 
 metadata = {'event_time': events[:, 0] / raw.info['sfreq'],
             'trial_number': range(len(events)),

@@ -1,4 +1,3 @@
-from ..externals import six
 
 
 class TransformerMixin(object):
@@ -12,15 +11,16 @@ class TransformerMixin(object):
 
         Parameters
         ----------
-        X : numpy array of shape [n_samples, n_features]
+        X : array, shape (n_samples, n_features)
             Training set.
-
-        y : numpy array of shape [n_samples]
+        y : array, shape (n_samples,)
             Target values.
+        **fit_params : dict
+            Additional fitting parameters passed to ``self.fit``.
 
         Returns
         -------
-        X_new : numpy array of shape [n_samples, n_features_new]
+        X_new : array, shape (n_samples, n_features_new)
             Transformed array.
         """
         # non-optimized default implementation; override when a better
@@ -36,16 +36,33 @@ class TransformerMixin(object):
 class EstimatorMixin(object):
     """Mixin class for estimators."""
 
-    def get_params(self):
-        """Get the estimator params."""
-        pass
+    def get_params(self, deep=True):
+        """Get the estimator params.
+
+        Parameters
+        ----------
+        deep : bool
+            Deep.
+        """
+        return
 
     def set_params(self, **params):
-        """Set parameters (mimics sklearn API)."""
+        """Set parameters (mimics sklearn API).
+
+        Parameters
+        ----------
+        **params : dict
+            Extra parameters.
+
+        Returns
+        -------
+        inst : object
+            The instance.
+        """
         if not params:
             return self
         valid_params = self.get_params(deep=True)
-        for key, value in six.iteritems(params):
+        for key, value in params.items():
             split = key.split('__', 1)
             if len(split) > 1:
                 # nested objects case

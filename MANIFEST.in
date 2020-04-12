@@ -1,5 +1,6 @@
 include *.rst
 include LICENSE.txt
+include requirements.txt
 include mne/__init__.py
 
 recursive-include examples *.py
@@ -12,6 +13,8 @@ recursive-include mne/data *
 recursive-include mne/data/helmets *
 recursive-include mne/data/image *
 recursive-include mne/data/fsaverage *
+include mne/datasets/_fsaverage/root.txt
+include mne/datasets/_fsaverage/bem.txt
 
 recursive-include mne/channels/data/layouts *
 recursive-include mne/channels/data/montages *
@@ -24,6 +27,10 @@ recursive-include mne/html *.css
 
 recursive-include mne/io/artemis123/resources *
 
+recursive-include mne mne/datasets *.csv
+include mne/io/edf/gdf_encodes.txt
+include mne/datasets/sleep_physionet/SHA1SUMS
+include mne/externals/tqdm/_tqdm/tqdm.1
 
 ### Exclude
 
@@ -34,12 +41,21 @@ recursive-exclude examples/MNE-somato-data *
 exclude Makefile
 exclude .coveragerc
 exclude *.yml
-exclude dictionary.txt
+exclude ignore_words.txt
 exclude .mailmap
 recursive-exclude mne *.pyc
 
 recursive-exclude doc *
 recursive-exclude logo *
+
+exclude CODE_OF_CONDUCT.md
+exclude .github
+exclude .github/CONTRIBUTING.md
+exclude .github/ISSUE_TEMPLATE
+exclude .github/ISSUE_TEMPLATE/blank.md
+exclude .github/ISSUE_TEMPLATE/bug_report.md
+exclude .github/ISSUE_TEMPLATE/feature_request.md
+exclude .github/PULL_REQUEST_TEMPLATE.md
 
 # Test files
 

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """File data sources for traits GUIs."""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
@@ -12,21 +13,23 @@ import numpy as np
 from traits.api import (Any, HasTraits, HasPrivateTraits, cached_property,
                         on_trait_change, Array, Bool, Button, DelegatesTo,
                         Directory, Enum, Event, File, Instance, Int, List,
-                        Property, Str)
-from traitsui.api import View, Item, VGroup, HGroup, Label
+                        Property, Str, ArrayOrNone)
+from traitsui.api import View, Item, VGroup
 from pyface.api import DirectoryDialog, OK, ProgressDialog, error, information
+
+from ._viewer import _DIG_SOURCE_WIDTH
 
 from ..bem import read_bem_surfaces
 from ..io.constants import FIFF
 from ..io import read_info, read_fiducials
 from ..io.meas_info import _empty_info
 from ..io.open import fiff_open, dir_tree_find
-from ..surface import read_surface
+from ..surface import read_surface, complete_surface_info
 from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
                      create_default_subject)
 from ..utils import get_config, set_config
 from ..viz._3d import _fiducial_coords
-from ..channels import read_dig_montage, DigMontage
+from ..channels import read_dig_fif, DigMontage
 
 
 fid_wildcard = "*.fif"
@@ -132,6 +135,14 @@ def _mne_root_problem(mne_root):
                     "installation, consider reinstalling." % mne_root)
 
 
+class Surf(HasTraits):
+    """Expose a surface similar to the ones used elsewhere in MNE."""
+
+    rr = Array(shape=(None, 3), value=np.empty((0, 3)))
+    nn = Array(shape=(None, 3), value=np.empty((0, 3)))
+    tris = Array(shape=(None, 3), value=np.empty((0, 3)))
+
+
 class SurfaceSource(HasTraits):
     """Expose points and tris of a file storing a surface.
 
@@ -154,9 +165,7 @@ class SurfaceSource(HasTraits):
     """
 
     file = File(exists=True, filter=['*.fif', '*.*'])
-    points = Array(shape=(None, 3), value=np.empty((0, 3)))
-    norms = Array
-    tris = Array(shape=(None, 3), value=np.empty((0, 3)))
+    surf = Instance(Surf)
 
     @on_trait_change('file')
     def read_file(self):
@@ -164,26 +173,25 @@ class SurfaceSource(HasTraits):
         if op.exists(self.file):
             if self.file.endswith('.fif'):
                 bem = read_bem_surfaces(self.file, verbose=False)[0]
-                self.points = bem['rr']
-                self.norms = bem['nn']
-                self.tris = bem['tris']
             else:
                 try:
-                    points, tris = read_surface(self.file)
-                    points /= 1e3
-                    self.points = points
-                    self.norms = []
-                    self.tris = tris
+                    bem = read_surface(self.file, return_dict=True)[2]
+                    bem['rr'] *= 1e-3
+                    complete_surface_info(bem, copy=False)
                 except Exception:
-                    error(message="Error loading surface from %s (see "
-                                  "Terminal for details).",
+                    error(parent=None,
+                          message="Error loading surface from %s (see "
+                                  "Terminal for details)." % self.file,
                           title="Error Loading Surface")
                     self.reset_traits(['file'])
                     raise
+            self.surf = Surf(rr=bem['rr'], tris=bem['tris'], nn=bem['nn'])
         else:
-            self.points = np.empty((0, 3))
-            self.norms = np.empty((0, 3))
-            self.tris = np.empty((0, 3))
+            self.surf = self._default_surf()
+
+    def _surf_default(self):
+        return Surf(rr=np.empty((0, 3)),
+                    tris=np.empty((0, 3), int), nn=np.empty((0, 3)))
 
 
 class FiducialsSource(HasTraits):
@@ -202,23 +210,18 @@ class FiducialsSource(HasTraits):
 
     file = File(filter=[fid_wildcard])
     fname = Property(depends_on='file')
-    points = Property(depends_on='file')
+    points = Property(ArrayOrNone, depends_on='file')
+    mni_points = ArrayOrNone(float, shape=(3, 3))
 
-    @cached_property
     def _get_fname(self):
-        fname = op.basename(self.file)
-        return fname
+        return op.basename(self.file)
 
     @cached_property
     def _get_points(self):
         if not op.exists(self.file):
-            return None
-
+            return self.mni_points  # can be None
         try:
-            fids, coord_frame = read_fiducials(self.file)
-            points = _fiducial_coords(fids, coord_frame)
-            assert points.shape == (3, 3)
-            return points
+            return _fiducial_coords(*read_fiducials(self.file))
         except Exception as err:
             error(None, "Error reading fiducials from %s: %s (See terminal "
                   "for more information)" % (self.fname, str(err)),
@@ -270,9 +273,11 @@ class DigSource(HasPrivateTraits):
     # EEG
     eeg_points = Property(depends_on='_info',
                           desc="EEG sensor coordinates (N x 3 array)")
+    hpi_points = Property(depends_on='_info',
+                          desc='HPI coil coordinates (N x 3 array)')
 
-    view = View(VGroup(Item('file'),
-                       Item('inst_fname', show_label=False, style='readonly')))
+    view = View(Item('file', width=_DIG_SOURCE_WIDTH, tooltip='FIF file '
+                     '(Raw, Epochs, Evoked, or DigMontage)', show_label=False))
 
     @cached_property
     def _get_n_omitted(self):
@@ -290,26 +295,18 @@ class DigSource(HasPrivateTraits):
             if len(dir_tree_find(tree, FIFF.FIFFB_MEAS_INFO)) > 0:
                 info = read_info(self.file, verbose=False)
             elif len(dir_tree_find(tree, FIFF.FIFFB_ISOTRAK)) > 0:
-                info = read_dig_montage(fif=self.file)
+                info = read_dig_fif(fname=self.file)
 
-            if info is None:
+            if isinstance(info, DigMontage):
+                dig = info.dig
+                info = _empty_info(1)
+                info['dig'] = dig
+            elif info is None or info['dig'] is None:
                 error(None, "The selected FIFF file does not contain "
                       "digitizer information. Please select a different "
                       "file.", "Error Reading FIFF File")
                 self.reset_traits(['file'])
                 return
-            elif isinstance(info, DigMontage):
-                info.transform_to_head()
-                digs = list()
-                _append_fiducials(digs, info.lpa, info.nasion, info.rpa)
-                for idx, pos in enumerate(info.hsp):
-                    dig = {'coord_frame': FIFF.FIFFV_COORD_HEAD,
-                           'ident': idx,
-                           'kind': FIFF.FIFFV_POINT_EXTRA,
-                           'r': pos}
-                    digs.append(dig)
-                info = _empty_info(1)
-                info['dig'] = digs
             else:
                 # check that all fiducial points are present
                 has_point = {FIFF.FIFFV_POINT_LPA: False,
@@ -391,8 +388,22 @@ class DigSource(HasPrivateTraits):
     @cached_property
     def _get_eeg_points(self):
         if self._info:
-            return np.array([d['r'] for d in self._info['dig'] if
-                             d['kind'] == FIFF.FIFFV_POINT_EEG])
+            out = [d['r'] for d in self._info['dig'] if
+                   d['kind'] == FIFF.FIFFV_POINT_EEG and
+                   d['coord_frame'] == FIFF.FIFFV_COORD_HEAD]
+            out = np.empty((0, 3)) if len(out) == 0 else np.array(out)
+            return out
+        else:
+            return np.empty((0, 3))
+
+    @cached_property
+    def _get_hpi_points(self):
+        if self._info:
+            out = [d['r'] for d in self._info['dig'] if
+                   d['kind'] == FIFF.FIFFV_POINT_HPI and
+                   d['coord_frame'] == FIFF.FIFFV_COORD_HEAD]
+            out = np.empty((0, 3)) if len(out) == 0 else np.array(out)
+            return out
         else:
             return np.empty((0, 3))
 
@@ -433,7 +444,6 @@ class MRISubjectSource(HasPrivateTraits):
     subjects_dir = Directory(exists=True)
     subjects = Property(List(Str), depends_on=['subjects_dir', 'refresh'])
     subject = Enum(values='subjects')
-    use_high_res_head = Bool(True)
 
     # info
     can_create_fsaverage = Property(Bool, depends_on=['subjects_dir',
@@ -480,19 +490,19 @@ class MRISubjectSource(HasPrivateTraits):
 
     def create_fsaverage(self):  # noqa: D102
         if not self.subjects_dir:
-            err = ("No subjects directory is selected. Please specify "
-                   "subjects_dir first.")
-            raise RuntimeError(err)
+            raise RuntimeError(
+                "No subjects directory is selected. Please specify "
+                "subjects_dir first.")
 
         fs_home = get_fs_home()
         if fs_home is None:
-            err = ("FreeSurfer contains files that are needed for copying the "
-                   "fsaverage brain. Please install FreeSurfer and try again.")
-            raise RuntimeError(err)
+            raise RuntimeError(
+                "FreeSurfer contains files that are needed for copying the "
+                "fsaverage brain. Please install FreeSurfer and try again.")
 
-        create_default_subject(fs_home=fs_home, subjects_dir=self.subjects_dir)
+        create_default_subject(fs_home=fs_home, update=True,
+                               subjects_dir=self.subjects_dir)
         self.refresh = True
-        self.use_high_res_head = False
         self.subject = 'fsaverage'
 
     @on_trait_change('subjects_dir')
@@ -511,23 +521,20 @@ class SubjectSelectorPanel(HasPrivateTraits):
     subjects_dir = DelegatesTo('model')
     subject = DelegatesTo('model')
     subjects = DelegatesTo('model')
-    use_high_res_head = DelegatesTo('model')
 
     create_fsaverage = Button(
-        "Copy 'fsaverage' to subjects directory",
-        desc="Copy the files for the fsaverage subject to the subjects "
-             "directory. This button is disabled if a subject called "
-             "fsaverage already exists in the selected subjects-directory.")
+        u"fsaverage⇨SUBJECTS_DIR",
+        desc="whether to copy the files for the fsaverage subject to the "
+             "subjects directory. This button is disabled if "
+             "fsaverage already exists in the selected subjects directory.")
 
-    view = View(VGroup(Label('Subjects directory and subject:',
-                             show_label=True),
-                       HGroup('subjects_dir', show_labels=False),
-                       HGroup('subject', show_labels=False),
-                       HGroup(Item('use_high_res_head',
-                                   label='High Resolution Head',
-                                   show_label=True)),
+    view = View(VGroup(Item('subjects_dir', width=_DIG_SOURCE_WIDTH,
+                            tooltip='Subject MRI structurals (SUBJECTS_DIR)'),
+                       Item('subject', width=_DIG_SOURCE_WIDTH,
+                            tooltip='Subject to use within SUBJECTS_DIR'),
                        Item('create_fsaverage',
-                            enabled_when='can_create_fsaverage'),
+                            enabled_when='can_create_fsaverage',
+                            width=_DIG_SOURCE_WIDTH),
                        show_labels=False))
 
     def _create_fsaverage_fired(self):

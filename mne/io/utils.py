@@ -1,17 +1,65 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# -*- coding: utf-8 -*-
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
 #          Marijn van Vliet <w.m.vanvliet@gmail.com>
 #          Mainak Jas <mainak.jas@telecom-paristech.fr>
+#          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
 
 import numpy as np
+import os
 
-from ..externals.six import b
 from .constants import FIFF
+from .meas_info import _get_valid_units
+
+
+def _check_orig_units(orig_units):
+    """Check original units from a raw file.
+
+    Units that are close to a valid_unit but not equal can be remapped to fit
+    into the valid_units. All other units that are not valid will be replaced
+    with "n/a".
+
+    Parameters
+    ----------
+    orig_units : dict
+        Dictionary mapping channel names to their units as specified in
+        the header file. Example: {'FC1': 'nV'}
+
+    Returns
+    -------
+    orig_units_remapped : dict
+        Dictionary mapping channel names to their VALID units as specified in
+        the header file. Invalid units are now labeled "n/a".
+        Example: {'FC1': 'nV', 'Hfp3erz': 'n/a'}
+    """
+    if orig_units is None:
+        return
+    valid_units = _get_valid_units()
+    valid_units_lowered = [unit.lower() for unit in valid_units]
+    orig_units_remapped = dict(orig_units)
+    for ch_name, unit in orig_units.items():
+
+        # Be lenient: we ignore case for now.
+        if unit.lower() in valid_units_lowered:
+            continue
+
+        # Common "invalid units" can be remapped to their valid equivalent
+        remap_dict = dict()
+        remap_dict['uv'] = 'µV'
+        remap_dict['μv'] = 'µV'  # greek letter mu vs micro sign. use micro
+        if unit.lower() in remap_dict:
+            orig_units_remapped[ch_name] = remap_dict[unit.lower()]
+            continue
+
+        # Some units cannot be saved, they are invalid: assign "n/a"
+        orig_units_remapped[ch_name] = 'n/a'
+
+    return orig_units_remapped
 
 
 def _find_channels(ch_names, ch_type='EOG'):
@@ -140,12 +188,19 @@ def _blk_read_lims(start, stop, buf_len):
     return block_start_idx, r_lims, d_lims
 
 
+def _file_size(fname):
+    """Get the file size in bytes."""
+    with open(fname, 'rb') as f:
+        f.seek(0, os.SEEK_END)
+        return f.tell()
+
+
 def _read_segments_file(raw, data, idx, fi, start, stop, cals, mult,
-                        dtype='<i2', n_channels=None, offset=0,
-                        trigger_ch=None):
+                        dtype, n_channels=None, offset=0, trigger_ch=None):
     """Read a chunk of raw data."""
     if n_channels is None:
-        n_channels = raw.info['nchan']
+        n_channels = raw._raw_extras[fi]['orig_nchan']
+
     n_bytes = np.dtype(dtype).itemsize
     # data_offset and data_left count data samples (channels x time points),
     # not bytes.
@@ -161,6 +216,10 @@ def _read_segments_file(raw, data, idx, fi, start, stop, cals, mult,
         for sample_start in np.arange(0, data_left, block_size) // n_channels:
             count = min(block_size, data_left - sample_start * n_channels)
             block = np.fromfile(fid, dtype, count)
+            if block.size != count:
+                raise RuntimeError('Incorrect number of samples (%s != %s), '
+                                   'please report this error to MNE-Python '
+                                   'developers' % (block.size, count))
             block = block.reshape(n_channels, -1, order='F')
             n_samples = block.shape[1]  # = count // n_channels
             sample_stop = sample_start + n_samples
@@ -175,9 +234,9 @@ def read_str(fid, count=1):
     """Read string from a binary file in a python version compatible way."""
     dtype = np.dtype('>S%i' % count)
     string = fid.read(dtype.itemsize)
-    data = np.fromstring(string, dtype=dtype)[0]
-    bytestr = b('').join([data[0:data.index(b('\x00')) if
-                          b('\x00') in data else count]])
+    data = np.frombuffer(string, dtype=dtype)[0]
+    bytestr = b''.join([data[0:data.index(b'\x00') if
+                             b'\x00' in data else count]])
 
     return str(bytestr.decode('ascii'))  # Return native str type for Py2/3
 
@@ -217,8 +276,7 @@ def _synthesize_stim_channel(events, n_samples):
     Parameters
     ----------
     events : array, shape (n_events, 3)
-        Each row representing an event as (onset, duration, trigger) sequence
-        (the format returned by `_read_vmrk_events` or `_read_eeglab_events`).
+        Each row representing an event.
     n_samples : int
         The number of samples.
 
@@ -228,9 +286,25 @@ def _synthesize_stim_channel(events, n_samples):
         An array containing the whole recording's event marking.
     """
     # select events overlapping buffer
-    onset = events[:, 0]
+    events = events.copy()
+    events[events[:, 1] < 1, 1] = 1
     # create output buffer
     stim_channel = np.zeros(n_samples, int)
     for onset, duration, trigger in events:
         stim_channel[onset:onset + duration] = trigger
     return stim_channel
+
+
+def _construct_bids_filename(base, ext, part_idx):
+    """Construct a BIDS compatible filename for split files."""
+    # insert index in filename
+    deconstructed_base = base.split('_')
+    bids_supported = ['meg', 'eeg', 'ieeg']
+    for mod in bids_supported:
+        if mod in deconstructed_base:
+            idx = deconstructed_base.index(mod)
+            modality = deconstructed_base.pop(idx)
+    base = '_'.join(deconstructed_base)
+    use_fname = '%s_part-%02d_%s%s' % (base, part_idx, modality, ext)
+
+    return use_fname

@@ -3,44 +3,34 @@
 # License: BSD (3-clause)
 
 import os
-import sys
-from unittest import SkipTest
-import warnings
 
 import numpy as np
 from numpy.testing import assert_array_equal
-from nose.tools import assert_true, assert_false
 
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.io.kit import read_mrk
-from mne.utils import _TempDir, requires_mayavi, run_tests_if_main
+from mne.utils import (requires_mayavi, run_tests_if_main, traits_test,
+                       modified_env)
 
 mrk_pre_path = os.path.join(kit_data_dir, 'test_mrk_pre.sqd')
 mrk_post_path = os.path.join(kit_data_dir, 'test_mrk_post.sqd')
 mrk_avg_path = os.path.join(kit_data_dir, 'test_mrk.sqd')
 
-warnings.simplefilter('always')
-
-
-def _check_ci():
-    if os.getenv('TRAVIS', 'false').lower() == 'true' and \
-            sys.platform == 'darwin':
-        raise SkipTest('Skipping GUI tests on Travis OSX')
-
 
 @requires_mayavi
-def test_combine_markers_model():
-    """Test CombineMarkersModel Traits Model"""
-    from mne.gui._marker_gui import CombineMarkersModel, CombineMarkersPanel
-    tempdir = _TempDir()
+@traits_test
+def test_combine_markers_model(tmpdir):
+    """Test CombineMarkersModel Traits Model."""
+    from mne.gui._marker_gui import CombineMarkersModel
+    tempdir = str(tmpdir)
     tgt_fname = os.path.join(tempdir, 'test.txt')
 
     model = CombineMarkersModel()
 
     # set one marker file
-    assert_false(model.mrk3.can_save)
+    assert not model.mrk3.can_save
     model.mrk1.file = mrk_pre_path
-    assert_true(model.mrk3.can_save)
+    assert model.mrk3.can_save
     assert_array_equal(model.mrk3.points, model.mrk1.points)
 
     # setting second marker file
@@ -50,7 +40,7 @@ def test_combine_markers_model():
     # set second marker
     model.mrk2.clear = True
     model.mrk2.file = mrk_post_path
-    assert_true(np.any(model.mrk3.points))
+    assert np.any(model.mrk3.points)
     points_interpolate_mrk1_mrk2 = model.mrk3.points
 
     # change interpolation method
@@ -68,7 +58,7 @@ def test_combine_markers_model():
     mrk_io = read_mrk(tgt_fname)
     assert_array_equal(mrk_io, model.mrk3.points)
 
-    # exlude an individual marker
+    # exclude an individual marker
     model.mrk1.use = [1, 2, 3, 4]
     assert_array_equal(model.mrk3.points[0], model.mrk2.points[0])
     assert_array_equal(model.mrk3.points[1:], mrk_avg[1:])
@@ -79,14 +69,14 @@ def test_combine_markers_model():
     model.mrk2.file = mrk_post_path
     assert_array_equal(model.mrk3.points, points_interpolate_mrk1_mrk2)
 
-    _check_ci()
-    os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
-    try:
-        with warnings.catch_warnings(record=True):  # traits warnings
-            warnings.simplefilter('always')
-            CombineMarkersPanel()
-    finally:
-        del os.environ['_MNE_GUI_TESTING_MODE']
+
+@requires_mayavi
+@traits_test
+def test_combine_markers_panel(check_gui_ci):
+    """Test CombineMarkersPanel."""
+    from mne.gui._marker_gui import CombineMarkersPanel
+    with modified_env(_MNE_GUI_TESTING_MODE='true'):
+        CombineMarkersPanel()
 
 
 run_tests_if_main()

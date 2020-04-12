@@ -1,73 +1,89 @@
 """
-=========================================
-Compute source power using DICS beamfomer
-=========================================
+.. _ex-inverse-source-power:
+
+==========================================
+Compute source power using DICS beamformer
+==========================================
 
 Compute a Dynamic Imaging of Coherent Sources (DICS) [1]_ filter from
-single-trial activity to estimate source power for two frequencies of
-interest.
+single-trial activity to estimate source power across a frequency band. This
+example demonstrates how to source localize the event-related synchronization
+(ERS) of beta band activity in this dataset: :ref:`somato-dataset`
 
 References
 ----------
 .. [1] Gross et al. Dynamic imaging of coherent sources: Studying neural
        interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
 """
-# Author: Roman Goj <roman.goj@gmail.com>
+# Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
+#         Roman Goj <roman.goj@gmail.com>
 #         Denis Engemann <denis.engemann@gmail.com>
+#         Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 #
 # License: BSD (3-clause)
+import os.path as op
 
+import numpy as np
 import mne
-from mne.datasets import sample
-from mne.time_frequency import csd_epochs
-from mne.beamformer import dics_source_power
+from mne.datasets import somato
+from mne.time_frequency import csd_morlet
+from mne.beamformer import make_dics, apply_dics_csd
 
 print(__doc__)
 
-data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
-fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
-subjects_dir = data_path + '/subjects'
-
 ###############################################################################
-# Read raw data
-raw = mne.io.read_raw_fif(raw_fname)
-raw.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
+# Reading the raw data and creating epochs:
+data_path = somato.data_path()
+subject = '01'
+task = 'somato'
+raw_fname = op.join(data_path, 'sub-{}'.format(subject), 'meg',
+                    'sub-{}_task-{}_meg.fif'.format(subject, task))
 
-# Set picks
-picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
-                       stim=False, exclude='bads')
+raw = mne.io.read_raw_fif(raw_fname)
+
+# Set picks, use a single sensor type
+picks = mne.pick_types(raw.info, meg='grad', exclude='bads')
 
 # Read epochs
-event_id, tmin, tmax = 1, -0.2, 0.5
-events = mne.read_events(event_fname)
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                    picks=picks, baseline=(None, 0), preload=True,
-                    reject=dict(grad=4000e-13, mag=4e-12))
-evoked = epochs.average()
+events = mne.find_events(raw)
+epochs = mne.Epochs(raw, events, event_id=1, tmin=-1.5, tmax=2, picks=picks,
+                    preload=True)
 
-# Read forward operator
-forward = mne.read_forward_solution(fname_fwd)
+# Read forward operator and point to freesurfer subject directory
+fname_fwd = op.join(data_path, 'derivatives', 'sub-{}'.format(subject),
+                    'sub-{}_task-{}-fwd.fif'.format(subject, task))
+subjects_dir = op.join(data_path, 'derivatives', 'freesurfer', 'subjects')
 
-# Computing the data and noise cross-spectral density matrices
-# The time-frequency window was chosen on the basis of spectrograms from
-# example time_frequency/plot_time_frequency.py
-# As fsum is False csd_epochs returns a list of CrossSpectralDensity
-# instances than can then be passed to dics_source_power
-data_csds = csd_epochs(epochs, mode='multitaper', tmin=0.04, tmax=0.15,
-                       fmin=15, fmax=30, fsum=False)
-noise_csds = csd_epochs(epochs, mode='multitaper', tmin=-0.11,
-                        tmax=-0.001, fmin=15, fmax=30, fsum=False)
+fwd = mne.read_forward_solution(fname_fwd)
 
-# Compute DICS spatial filter and estimate source power
-stc = dics_source_power(epochs.info, forward, noise_csds, data_csds)
+###############################################################################
+# We are interested in the beta band. Define a range of frequencies, using a
+# log scale, from 12 to 30 Hz.
+freqs = np.logspace(np.log10(12), np.log10(30), 9)
 
-for i, csd in enumerate(data_csds):
-    message = 'DICS source power at %0.1f Hz' % csd.freqs[0]
-    brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
-                     time_label=message, figure=i)
-    brain.set_data_time_index(i)
-    brain.show_view('lateral')
-    # Uncomment line below to save images
-    # brain.save_image('DICS_source_power_freq_%d.png' % csd.freqs[0])
+###############################################################################
+# Computing the cross-spectral density matrix for the beta frequency band, for
+# different time intervals. We use a decim value of 20 to speed up the
+# computation in this example at the loss of accuracy.
+csd = csd_morlet(epochs, freqs, tmin=-1, tmax=1.5, decim=20)
+csd_baseline = csd_morlet(epochs, freqs, tmin=-1, tmax=0, decim=20)
+# ERS activity starts at 0.5 seconds after stimulus onset
+csd_ers = csd_morlet(epochs, freqs, tmin=0.5, tmax=1.5, decim=20)
+
+###############################################################################
+# Computing DICS spatial filters using the CSD that was computed on the entire
+# timecourse.
+filters = make_dics(epochs.info, fwd, csd.mean(), pick_ori='max-power')
+
+###############################################################################
+# Applying DICS spatial filters separately to the CSD computed using the
+# baseline and the CSD computed during the ERS activity.
+baseline_source_power, freqs = apply_dics_csd(csd_baseline.mean(), filters)
+beta_source_power, freqs = apply_dics_csd(csd_ers.mean(), filters)
+
+###############################################################################
+# Visualizing source power during ERS activity relative to the baseline power.
+stc = beta_source_power / baseline_source_power
+message = 'DICS source power in the 12-30 Hz frequency band'
+brain = stc.plot(hemi='both', views='par', subjects_dir=subjects_dir,
+                 subject=subject, time_label=message)

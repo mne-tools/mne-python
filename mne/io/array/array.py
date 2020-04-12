@@ -7,10 +7,10 @@
 import numpy as np
 
 from ..base import BaseRaw
-from ..meas_info import Info
-from ...utils import verbose, logger
+from ...utils import verbose, logger, _validate_type, fill_doc, _check_option
 
 
+@fill_doc
 class RawArray(BaseRaw):
     """Raw object from numpy array.
 
@@ -25,10 +25,19 @@ class RawArray(BaseRaw):
         First sample offset used during recording (default 0).
 
         .. versionadded:: 0.12
+    copy : {'data', 'info', 'both', 'auto', None}
+        Determines what gets copied on instantiation. "auto" (default)
+        will copy info, and copy "data" only if necessary to get to
+        double floating point precision.
 
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+        .. versionadded:: 0.18
+    %(verbose)s
+
+    See Also
+    --------
+    mne.EpochsArray
+    mne.EvokedArray
+    mne.create_info
 
     Notes
     -----
@@ -39,35 +48,35 @@ class RawArray(BaseRaw):
     * M: hbo, hbr
     * Am: dipole
     * AU: misc
-
-    See Also
-    --------
-    mne.EpochsArray
-    mne.EvokedArray
-    mne.create_info
     """
 
     @verbose
-    def __init__(self, data, info, first_samp=0, verbose=None):  # noqa: D102
-        if not isinstance(info, Info):
-            raise TypeError('info must be an instance of Info, got %s'
-                            % type(info))
+    def __init__(self, data, info, first_samp=0, copy='auto',
+                 verbose=None):  # noqa: D102
+        _validate_type(info, 'info', 'info')
+        _check_option('copy', copy, ('data', 'info', 'both', 'auto', None))
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
-        data = np.asanyarray(data, dtype=dtype)
-
+        orig_data = data
+        data = np.asanyarray(orig_data, dtype=dtype)
         if data.ndim != 2:
             raise ValueError('Data must be a 2D array of shape (n_channels, '
-                             'n_samples')
-
+                             'n_samples), got shape %s' % (data.shape,))
+        if len(data) != len(info['ch_names']):
+            raise ValueError('len(data) (%s) does not match '
+                             'len(info["ch_names"]) (%s)'
+                             % (len(data), len(info['ch_names'])))
+        assert len(info['ch_names']) == info['nchan']
+        if copy in ('auto', 'info', 'both'):
+            info = info.copy()
+        if copy in ('data', 'both'):
+            if data is orig_data:
+                data = data.copy()
+        elif copy != 'auto' and data is not orig_data:
+            raise ValueError('data copying was not requested by copy=%r but '
+                             'it was required to get to double floating point '
+                             'precision' % (copy,))
         logger.info('Creating RawArray with %s data, n_channels=%s, n_times=%s'
                     % (dtype.__name__, data.shape[0], data.shape[1]))
-
-        if len(data) != len(info['ch_names']):
-            raise ValueError('len(data) does not match len(info["ch_names"])')
-        assert len(info['ch_names']) == info['nchan']
-        if info.get('buffer_size_sec', None) is None:
-            info['buffer_size_sec'] = 1.  # reasonable default
-        info = info.copy()  # do not modify original info
         super(RawArray, self).__init__(info, data,
                                        first_samps=(int(first_samp),),
                                        dtype=dtype, verbose=verbose)

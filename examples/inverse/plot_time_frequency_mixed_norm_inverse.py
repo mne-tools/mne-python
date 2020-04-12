@@ -18,20 +18,20 @@ that promotes focal (sparse) sources (such as dipole fitting techniques)
 
 References
 ----------
-.. [1] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
+.. [1] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hämäläinen, M. Kowalski
    "Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
    non-stationary source activations",
    Neuroimage, Volume 70, pp. 410-422, 15 April 2013.
    DOI: 10.1016/j.neuroimage.2012.12.051
 
-.. [2] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
+.. [2] A. Gramfort, D. Strohmeier, J. Haueisen, M. Hämäläinen, M. Kowalski
    "Functional Brain Imaging with M/EEG Using Structured Sparsity in
    Time-Frequency Dictionaries",
    Proceedings Information Processing in Medical Imaging
    Lecture Notes in Computer Science, Volume 6801/2011, pp. 600-611, 2011.
    DOI: 10.1007/978-3-642-22092-0_49
 """
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: BSD (3-clause)
@@ -70,11 +70,11 @@ forward = mne.read_forward_solution(fwd_fname)
 ###############################################################################
 # Run solver
 
-# alpha_space regularization parameter is between 0 and 100 (100 is high)
-alpha_space = 30.  # spatial regularization parameter
-# alpha_time parameter promotes temporal smoothness
+# alpha parameter is between 0 and 100 (100 gives 0 active source)
+alpha = 40.  # general regularization parameter
+# l1_ratio parameter between 0 and 1 promotes temporal smoothness
 # (0 means no temporal regularization)
-alpha_time = 1.  # temporal regularization parameter
+l1_ratio = 0.03  # temporal regularization parameter
 
 loose, depth = 0.2, 0.9  # loose orientation & depth weighting
 
@@ -86,9 +86,9 @@ stc_dspm = apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
 
 # Compute TF-MxNE inverse solution with dipole output
 dipoles, residual = tf_mixed_norm(
-    evoked, forward, cov, alpha_space, alpha_time, loose=loose, depth=depth,
-    maxit=200, tol=1e-6, weights=stc_dspm, weights_min=8., debias=True,
-    wsize=16, tstep=4, window=0.05, return_as_dipoles=True,
+    evoked, forward, cov, alpha=alpha, l1_ratio=l1_ratio, loose=loose,
+    depth=depth, maxit=200, tol=1e-6, weights=stc_dspm, weights_min=8.,
+    debias=True, wsize=16, tstep=4, window=0.05, return_as_dipoles=True,
     return_residual=True)
 
 # Crop to remove edges
@@ -118,11 +118,11 @@ plot_dipole_locations(dipoles[idx], forward['mri_head_t'], 'sample',
 ylim = dict(grad=[-120, 120])
 evoked.pick_types(meg='grad', exclude='bads')
 evoked.plot(titles=dict(grad='Evoked Response: Gradiometers'), ylim=ylim,
-            proj=True)
+            proj=True, time_unit='s')
 
 residual.pick_types(meg='grad', exclude='bads')
 residual.plot(titles=dict(grad='Residuals: Gradiometers'), ylim=ylim,
-              proj=True)
+              proj=True, time_unit='s')
 
 ###############################################################################
 # Generate stc from dipoles

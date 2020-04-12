@@ -1,18 +1,20 @@
 #!/usr/bin/env python
 """View the 3-Layers BEM model using Freeview.
 
-You can do for example:
+Examples
+--------
+.. code-block:: console
 
-$ mne freeview_bem_surfaces -s sample
+    $ mne freeview_bem_surfaces -s sample
+
 """
-from __future__ import print_function
-
-# Authors:  Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors:  Alexandre Gramfort <alexandre.gramfort@inria.fr>
 
 import sys
 import os
 import os.path as op
 
+import mne
 from mne.utils import run_subprocess, get_subjects_dir
 
 
@@ -30,6 +32,15 @@ def freeview_bem_surfaces(subject, subjects_dir, method):
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
+    if subject is None:
+        raise ValueError("subject argument is None.")
+
+    subject_dir = op.join(subjects_dir, subject)
+
+    if not op.isdir(subject_dir):
+        raise ValueError("Wrong path: '{}'. Check subjects-dir or"
+                         "subject argument.".format(subject_dir))
+
     env = os.environ.copy()
     env['SUBJECT'] = subject
     env['SUBJECTS_DIR'] = subjects_dir
@@ -37,8 +48,8 @@ def freeview_bem_surfaces(subject, subjects_dir, method):
     if 'FREESURFER_HOME' not in env:
         raise RuntimeError('The FreeSurfer environment needs to be set up.')
 
-    mri_dir = op.join(subjects_dir, subject, 'mri')
-    bem_dir = op.join(subjects_dir, subject, 'bem')
+    mri_dir = op.join(subject_dir, 'mri')
+    bem_dir = op.join(subject_dir, 'bem')
     mri = op.join(mri_dir, 'T1.mgz')
 
     if method == 'watershed':
@@ -91,6 +102,4 @@ def run():
     freeview_bem_surfaces(subject, subjects_dir, method)
 
 
-is_main = (__name__ == '__main__')
-if is_main:
-    run()
+mne.utils.run_command_if_main()

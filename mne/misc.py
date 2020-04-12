@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Scott Burns <sburns@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
@@ -9,8 +9,8 @@ def parse_config(fname):
 
     Parameters
     ----------
-    fname : string
-        config file name
+    fname : str
+        Config file name.
 
     Returns
     -------
@@ -20,7 +20,6 @@ def parse_config(fname):
 
             tmin, tmax, name, grad_reject, mag_reject,
             eeg_reject, eog_reject
-
     """
     reject_params = read_reject_parameters(fname)
 
@@ -63,6 +62,11 @@ def read_reject_parameters(fname):
     ----------
     fname : str
         Filename to read.
+
+    Returns
+    -------
+    params : dict
+        The rejection parameters.
     """
     with open(fname, 'r') as f:
         lines = f.readlines()

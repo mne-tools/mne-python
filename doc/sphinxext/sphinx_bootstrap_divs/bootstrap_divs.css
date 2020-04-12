@@ -1,0 +1,9 @@
+.panel-title a {
+    display: block !important;
+    text-decoration: none;
+}
+@media (max-width: 991px) {
+    .collapse.in{
+        display:block !important;
+    }
+  }

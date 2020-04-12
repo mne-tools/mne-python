@@ -1,40 +1,46 @@
-"""Data Equivalence Tests"""
-from __future__ import print_function
-
 # Authors: Alexandre Barachant <alexandre.barachant@gmail.com>
 #          Nicolas Barascud <nicolas.barascud@ens.fr>
 #
 # License: BSD (3-clause)
 
 import os.path as op
-import warnings
+import shutil
 
-from nose.tools import assert_true
+import pytest
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_equal)
 import numpy as np
 import scipy.io as sio
 
 from mne.datasets import testing
-from mne.io import read_raw_edf
+from mne.io import read_raw_gdf
+from mne.io.tests.test_raw import _test_raw_reader
 from mne.utils import run_tests_if_main
-from mne import pick_types, find_events
-
-warnings.simplefilter('always')
+from mne import pick_types, find_events, events_from_annotations
 
 data_path = testing.data_path(download=False)
 gdf1_path = op.join(data_path, 'GDF', 'test_gdf_1.25')
 gdf2_path = op.join(data_path, 'GDF', 'test_gdf_2.20')
+gdf_1ch_path = op.join(data_path, 'GDF', 'test_1ch.gdf')
 
 
 @testing.requires_testing_data
 def test_gdf_data():
     """Test reading raw GDF 1.x files."""
-    with warnings.catch_warnings(record=True):  # interpolate / overlap events
-        raw = read_raw_edf(gdf1_path + '.gdf', eog=None,
-                           misc=None, preload=True, stim_channel='auto')
+    raw = read_raw_gdf(gdf1_path + '.gdf', eog=None, misc=None, preload=True)
     picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
     data, _ = raw[picks]
+
+    # Test Status is added as event
+    EXPECTED_EVS_ONSETS = raw._raw_extras[0]['events'][1]
+    EXPECTED_EVS_ID = {
+        '{}'.format(evs): i for i, evs in enumerate(
+            [32769, 32770, 33024, 33025, 33026, 33027, 33028, 33029, 33040,
+             33041, 33042, 33043, 33044, 33045, 33285, 33286], 1)
+    }
+    evs, evs_id = events_from_annotations(raw)
+    assert_array_equal(evs[:, 0], EXPECTED_EVS_ONSETS)
+    assert evs_id == EXPECTED_EVS_ID
 
     # this .npy was generated using the official biosig python package
     raw_biosig = np.load(gdf1_path + '_biosig.npy')
@@ -44,25 +50,38 @@ def test_gdf_data():
     # Assert data are almost equal
     assert_array_almost_equal(data, data_biosig, 8)
 
-    # Test for stim channel
-    events = find_events(raw, shortest_event=1)
-    # The events are overlapping.
-    assert_array_equal(events[:, 0], raw._raw_extras[0]['events'][1][::2])
+    # Test for events
+    assert len(raw.annotations.duration == 963)
 
-    # Test events are encoded to stim channel.
-    events = find_events(raw)
-    evs = raw.find_edf_events()
-    assert_true(all([event in evs[1] for event in events[:, 0]]))
+    # gh-5604
+    assert raw.info['meas_date'] is None
+
+
+@testing.requires_testing_data
+def test_gdf2_birthday(tmpdir):
+    """Test reading raw GDF 2.x files."""
+    new_fname = str(tmpdir.join('temp.gdf'))
+    shutil.copyfile(gdf2_path + '.gdf', new_fname)
+    d = int(3.1e15)  # chosen by trial and error to give a reasonable age
+    with open(new_fname, 'r+b') as fid:
+        fid.seek(176, 0)
+        assert np.fromfile(fid, np.uint64, 1)[0] == 0
+        fid.seek(176, 0)
+        fid.write(np.array([d], np.uint64).tobytes())
+        fid.seek(176, 0)
+        assert np.fromfile(fid, np.uint64, 1)[0] == d
+    raw = read_raw_gdf(new_fname, eog=None, misc=None, preload=True)
+    assert raw._raw_extras[0]['subject_info']['age'] == 44
+    # XXX this is a bug, it should be populated...
+    assert raw.info['subject_info'] is None
 
 
 @testing.requires_testing_data
 def test_gdf2_data():
     """Test reading raw GDF 2.x files."""
-    raw = read_raw_edf(gdf2_path + '.gdf', eog=None, misc=None, preload=True,
-                       stim_channel='STATUS')
+    raw = read_raw_gdf(gdf2_path + '.gdf', eog=None, misc=None, preload=True)
+    assert raw._raw_extras[0]['subject_info']['age'] is None
 
-    nchan = raw.info['nchan']
-    ch_names = raw.ch_names  # Renamed STATUS -> STI 014.
     picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
     data, _ = raw[picks]
 
@@ -80,13 +99,19 @@ def test_gdf2_data():
     assert_equal(events.shape[0], 2)  # 2 events in file
     assert_array_equal(events[:, 2], [20, 28])
 
-    with warnings.catch_warnings(record=True) as w:
-        # header contains no events
-        raw = read_raw_edf(gdf2_path + '.gdf', stim_channel='auto')
-        assert_equal(len(w), 1)
-        assert_true(str(w[0].message).startswith('No events found.'))
-    assert_equal(nchan, raw.info['nchan'])  # stim channel not constructed
-    assert_array_equal(ch_names[1:], raw.ch_names[1:])
+    # gh-5604
+    assert raw.info['meas_date'] is None
+    _test_raw_reader(read_raw_gdf, input_fname=gdf2_path + '.gdf',
+                     eog=None, misc=None)
+
+
+@testing.requires_testing_data
+def test_one_channel_gdf():
+    """Test a one-channel GDF file."""
+    with pytest.warns(RuntimeWarning, match='different highpass'):
+        ecg = read_raw_gdf(gdf_1ch_path, preload=True)
+    assert ecg['ECG'][0].shape == (1, 4500)
+    assert 150.0 == ecg.info['sfreq']
 
 
 run_tests_if_main()

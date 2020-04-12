@@ -10,8 +10,7 @@ In this example, digitized EEG sensor locations are shown on the scalp.
 # License: BSD (3-clause)
 
 import mne
-from mne.viz import plot_alignment
-from mayavi import mlab
+from mne.viz import plot_alignment, set_3d_view
 
 print(__doc__)
 
@@ -22,4 +21,4 @@ raw = mne.io.read_raw_fif(data_path + '/MEG/sample/sample_audvis_raw.fif')
 fig = plot_alignment(raw.info, trans, subject='sample', dig=False,
                      eeg=['original', 'projected'], meg=[],
                      coord_frame='head', subjects_dir=subjects_dir)
-mlab.view(135, 80)
+set_3d_view(figure=fig, azimuth=135, elevation=80)

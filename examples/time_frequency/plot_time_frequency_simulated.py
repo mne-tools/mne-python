@@ -60,6 +60,8 @@ for k in range(n_epochs):
 epochs = EpochsArray(data=data, info=info, events=events, event_id=event_id,
                      reject=reject)
 
+epochs.average().plot()
+
 ###############################################################################
 # Calculate a time-frequency representation (TFR)
 # -----------------------------------------------

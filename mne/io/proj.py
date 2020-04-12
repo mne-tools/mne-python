@@ -1,5 +1,5 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
 #
@@ -18,8 +18,7 @@ from .constants import FIFF
 from .pick import pick_types
 from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
-from ..utils import logger, verbose, warn
-from ..externals.six import string_types
+from ..utils import logger, verbose, warn, fill_doc
 
 
 class Projection(dict):
@@ -34,73 +33,38 @@ class Projection(dict):
         s += ", n_channels : %s" % self['data']['ncol']
         return "<Projection  |  %s>" % s
 
-    # Can't use copy_ function here b/c of circular import
-    def plot_topomap(self, layout=None, cmap=None, sensors=True,
+    # speed up info copy by taking advantage of mutability
+    def __deepcopy__(self, memodict):
+        """Make a deepcopy."""
+        cls = self.__class__
+        result = cls.__new__(cls)
+        for k, v in self.items():
+            if k == 'data':
+                v = v.copy()
+                v['data'] = v['data'].copy()
+                result[k] = v
+            else:
+                result[k] = v  # kind, active, desc, explained_var immutable
+        return result
+
+    @fill_doc
+    def plot_topomap(self, info, cmap=None, sensors=True,
                      colorbar=False, res=64, size=1, show=True,
                      outlines='head', contours=6, image_interp='bilinear',
-                     axes=None, info=None):
+                     axes=None, vlim=(None, None), sphere=None, border=0):
         """Plot topographic maps of SSP projections.
 
         Parameters
         ----------
-        layout : None | Layout | list of Layout
-            Layout instance specifying sensor positions (does not need to be
-            specified for Neuromag data). Or a list of Layout if projections
-            are from different sensor types.
-        cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
-            Colormap to use. If tuple, the first value indicates the colormap to
-            use and the second value is a boolean defining interactivity. In
-            interactive mode (only works if ``colorbar=True``) the colors are
-            adjustable by clicking and dragging the colorbar with left and right
-            mouse button. Left mouse button moves the scale up and down and right
-            mouse button adjusts the range. Hitting space bar resets the range. Up
-            and down arrows can be used to change the colormap. If None (default),
-            'Reds' is used for all positive data, otherwise defaults to 'RdBu_r'.
-            If 'interactive', translates to (None, True).
-        sensors : bool | str
-            Add markers for sensor locations to the plot. Accepts matplotlib plot
-            format string (e.g., 'r+' for red plusses). If True, a circle will be
-            used (via .add_artist). Defaults to True.
-        colorbar : bool
-            Plot a colorbar.
-        res : int
-            The resolution of the topomap image (n pixels along each side).
-        size : scalar
-            Side length of the topomaps in inches (only applies when plotting
-            multiple topomaps at a time).
-        show : bool
-            Show figure if True.
-        outlines : 'head' | 'skirt' | dict | None
-            The outlines to be drawn. If 'head', the default head scheme will be
-            drawn. If 'skirt' the head scheme will be drawn, but sensors are
-            allowed to be plotted outside of the head circle. If dict, each key
-            refers to a tuple of x and y positions, the values in 'mask_pos' will
-            serve as image mask, and the 'autoshrink' (bool) field will trigger
-            automated shrinking of the positions due to points outside the outline.
-            Alternatively, a matplotlib patch object can be passed for advanced
-            masking options, either directly or as a function that returns patches
-            (required for multi-axis plots). If None, nothing will be drawn.
-            Defaults to 'head'.
-        contours : int | array of float
-            The number of contour lines to draw. If 0, no contours will be drawn.
-            When an integer, matplotlib ticker locator is used to find suitable
-            values for the contour thresholds (may sometimes be inaccurate, use
-            array for accuracy). If an array, the values represent the levels for
-            the contours. Defaults to 6.
-        image_interp : str
-            The image interpolation to be used. All matplotlib options are
-            accepted.
-        axes : instance of Axes | list | None
-            The axes to plot to. If list, the list must be a list of Axes of
-            the same length as the number of projectors. If instance of Axes,
-            there must be only one projector. Defaults to None.
         info : instance of Info | None
             The measurement information to use to determine the layout.
-            If not None, ``layout`` must be None.
+        %(proj_topomap_kwargs)s
+        %(topomap_sphere_auto)s
+        %(topomap_border)s
 
         Returns
         -------
-        fig : instance of matplotlib figure
+        fig : instance of Figure
             Figure distributing one image per channel across sensor topography.
 
         Notes
@@ -108,9 +72,10 @@ class Projection(dict):
         .. versionadded:: 0.15.0
         """  # noqa: E501
         from ..viz.topomap import plot_projs_topomap
-        return plot_projs_topomap([self], layout, cmap, sensors, colorbar,
+        return plot_projs_topomap(self, info, cmap, sensors, colorbar,
                                   res, size, show, outlines,
-                                  contours, image_interp, axes, info)
+                                  contours, image_interp, axes, vlim,
+                                  sphere=sphere, border=border)
 
 
 class ProjMixin(object):
@@ -155,10 +120,7 @@ class ProjMixin(object):
             List with projection vectors.
         remove_existing : bool
             Remove the projection vectors currently in the file.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see
-            :func:`mne.verbose` and :ref:`Logging documentation <tut_logging>`
-            for more).
+        %(verbose_meth)s
 
         Returns
         -------
@@ -191,6 +153,11 @@ class ProjMixin(object):
     def apply_proj(self):
         """Apply the signal space projection (SSP) operators to the data.
 
+        Returns
+        -------
+        self : instance of Raw | Epochs | Evoked
+            The instance.
+
         Notes
         -----
         Once the projectors have been applied, they can no longer be
@@ -210,11 +177,6 @@ class ProjMixin(object):
             # drop the first and see again
             evoked.copy().del_proj(0).apply_proj().plot()
             evoked.apply_proj()  # finally keep both
-
-        Returns
-        -------
-        self : instance of Raw | Epochs | Evoked
-            The instance.
         """
         from ..epochs import BaseEpochs
         from ..evoked import Evoked
@@ -234,8 +196,8 @@ class ProjMixin(object):
                         'Setting proj attribute to True.')
             return self
 
-        _projector, info = setup_proj(deepcopy(self.info), activate=True,
-                                      verbose=self.verbose)
+        _projector, info = setup_proj(deepcopy(self.info), add_eeg_ref=False,
+                                      activate=True, verbose=self.verbose)
         # let's not raise a RuntimeError here, otherwise interactive plotting
         if _projector is None:  # won't be fun.
             logger.info('The projections don\'t apply to these data.'
@@ -257,8 +219,8 @@ class ProjMixin(object):
     def del_proj(self, idx='all'):
         """Remove SSP projection vector.
 
-        Note: The projection vector can only be removed if it is inactive
-              (has not been applied to the data).
+        .. note:: The projection vector can only be removed if it is inactive
+                  (has not been applied to the data).
 
         Parameters
         ----------
@@ -269,62 +231,58 @@ class ProjMixin(object):
         Returns
         -------
         self : instance of Raw | Epochs | Evoked
+            The instance.
         """
-        if isinstance(idx, string_types) and idx == 'all':
+        if isinstance(idx, str) and idx == 'all':
             idx = list(range(len(self.info['projs'])))
         idx = np.atleast_1d(np.array(idx, int)).ravel()
         if any(self.info['projs'][ii]['active'] for ii in idx):
             raise ValueError('Cannot remove projectors that have already '
                              'been applied')
-        self.info['projs'] = [p for pi, p in enumerate(self.info['projs'])
-                              if pi not in idx]
+        keep = np.ones(len(self.info['projs']))
+        keep[idx] = False  # works with negative indexing and does checks
+        self.info['projs'] = [p for p, k in zip(self.info['projs'], keep) if k]
         return self
 
-    def plot_projs_topomap(self, ch_type=None, layout=None, axes=None):
+    @fill_doc
+    def plot_projs_topomap(self, ch_type=None, cmap=None,
+                           sensors=True, colorbar=False, res=64, size=1,
+                           show=True, outlines='head', contours=6,
+                           image_interp='bilinear', axes=None,
+                           vlim=(None, None), sphere=None, extrapolate='box',
+                           border=0):
         """Plot SSP vector.
 
         Parameters
         ----------
-        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None | List
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None | list
             The channel type to plot. For 'grad', the gradiometers are collec-
             ted in pairs and the RMS for each pair is plotted. If None
             (default), it will return all channel types present. If a list of
             ch_types is provided, it will return multiple figures.
-        layout : None | Layout | List of Layouts
-            Layout instance specifying sensor positions (does not need to
-            be specified for Neuromag data). If possible, the correct
-            layout file is inferred from the data; if no appropriate layout
-            file was found, the layout is automatically generated from the
-            sensor locations. Or a list of Layout if projections
-            are from different sensor types.
-        axes : instance of Axes | list | None
-            The axes to plot to. If list, the list must be a list of Axes of
-            the same length as the number of projectors. If instance of Axes,
-            there must be only one projector. Defaults to None.
+        %(proj_topomap_kwargs)s
+        %(topomap_sphere_auto)s
+        %(topomap_extrapolate)s
+
+            .. versionadded:: 0.20
+        %(topomap_border)s
 
         Returns
         -------
-        fig : instance of matplotlib figure
+        fig : instance of Figure
             Figure distributing one image per channel across sensor topography.
         """
         if self.info['projs'] is not None or len(self.info['projs']) != 0:
             from ..viz.topomap import plot_projs_topomap
-            from ..channels.layout import find_layout
-            if layout is None:
-                layout = []
-                if ch_type is None:
-                    ch_type = [ch for ch in ['meg', 'eeg'] if ch in self]
-                elif isinstance(ch_type, string_types):
-                    ch_type = [ch_type]
-                for ch in ch_type:
-                    if ch in self:
-                        layout.append(find_layout(self.info, ch, exclude=[]))
-                    else:
-                        warn('Channel type %s is not found in info.' % ch)
-            fig = plot_projs_topomap(self.info['projs'], layout, axes=axes)
+            fig = plot_projs_topomap(self.info['projs'], self.info, cmap=cmap,
+                                     sensors=sensors, colorbar=colorbar,
+                                     res=res, size=size, show=show,
+                                     outlines=outlines, contours=contours,
+                                     image_interp=image_interp, axes=axes,
+                                     vlim=vlim, sphere=sphere,
+                                     extrapolate=extrapolate, border=border)
         else:
             raise ValueError("Info is missing projs. Nothing to plot.")
-
         return fig
 
 
@@ -351,9 +309,7 @@ def _read_proj(fid, node, verbose=None):
         The file descriptor of the open file.
     node : tree node
         The node of the tree where to look.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -542,7 +498,7 @@ def make_projector(projs, ch_names, bads=(), include_active=True):
     nproj : int
         How many items in the projector.
     U : array
-        The orthogonal basis of the projection vectors (optional).
+        The orthogonal basis of the projection vectors.
     """
     return _make_projector(projs, ch_names, bads, include_active)
 
@@ -559,7 +515,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
     if nchan == 0:
         raise ValueError('No channel names specified')
 
-    default_return = (np.eye(nchan, nchan), 0, [])
+    default_return = (np.eye(nchan, nchan), 0, np.empty((nchan, 0)))
 
     #   Check trivial cases first
     if projs is None:
@@ -610,7 +566,7 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
                     orig_n = p['data']['data'].any(axis=0).sum()
                     # Average ref still works if channels are removed
                     if len(vecsel) < 0.9 * orig_n and not inplace and \
-                            (p['kind'] != FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF or
+                            (p['kind'] != FIFF.FIFFV_PROJ_ITEM_EEG_AVREF or
                              len(vecsel) == 1):
                         warn('Projection vector "%s" has magnitude %0.2f '
                              '(should be unity), applying projector with '
@@ -643,6 +599,9 @@ def _make_projector(projs, ch_names, bads=(), include_active=True,
 
     # Here is the celebrated result
     proj = np.eye(nchan, nchan) - np.dot(U, U.T)
+    if nproj >= nchan:  # e.g., 3 channels and 3 projectors
+        raise RuntimeError('Application of %d projectors for %d channels '
+                           'will yield no components.' % (nproj, nchan))
 
     return proj, nproj, U
 
@@ -695,9 +654,7 @@ def activate_proj(projs, copy=True, verbose=None):
         The projectors.
     copy : bool
         Modify projs in place or operate on a copy.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -728,9 +685,7 @@ def deactivate_proj(projs, copy=True, verbose=None):
         The projectors.
     copy : bool
         Modify projs in place or operate on a copy.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -759,9 +714,7 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
         Measurement info.
     activate : bool
         If True projections are activated.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -790,7 +743,7 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
                          data=vec, nrow=1, ncol=n_eeg)
     eeg_proj = Projection(active=activate, data=eeg_proj_data,
                           desc='Average EEG reference',
-                          kind=FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF,
+                          kind=FIFF.FIFFV_PROJ_ITEM_EEG_AVREF,
                           explained_var=explained_var)
     return eeg_proj
 
@@ -803,7 +756,7 @@ def _has_eeg_average_ref_proj(projs, check_active=False):
     """
     for proj in projs:
         if (proj['desc'] == 'Average EEG reference' or
-                proj['kind'] == FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF):
+                proj['kind'] == FIFF.FIFFV_PROJ_ITEM_EEG_AVREF):
             if not check_active or proj['active']:
                 return True
     return False
@@ -835,9 +788,7 @@ def setup_proj(info, add_eeg_ref=True, activate=True, verbose=None):
         already exists).
     activate : bool
         If True projections are activated.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------

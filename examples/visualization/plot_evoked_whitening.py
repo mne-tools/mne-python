@@ -5,9 +5,9 @@ Whitening evoked data with a noise covariance
 
 Evoked data are loaded and then whitened using a given noise covariance
 matrix. It's an excellent quality check to see if baseline signals match
-the assumption of Gaussian white noise from which we expect values around
-0 with less than 2 standard deviations. Covariance estimation and diagnostic
-plots are based on [1]_.
+the assumption of Gaussian white noise during the baseline period.
+
+Covariance estimation and diagnostic plots are based on [1]_.
 
 References
 ----------
@@ -16,7 +16,7 @@ References
     108, 328-342, NeuroImage.
 
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
@@ -43,10 +43,9 @@ events = mne.read_events(event_fname)
 
 # let's look at rare events, button presses
 event_id, tmin, tmax = 2, -0.2, 0.5
-picks = mne.pick_types(raw.info, meg=True, eeg=True, eog=True, exclude='bads')
 reject = dict(mag=4e-12, grad=4000e-13, eeg=80e-6)
 
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=('meg', 'eeg'),
                     baseline=None, reject=reject, preload=True)
 
 # Uncomment next line to use fewer samples and study regularization effects
@@ -54,9 +53,11 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 
 ###############################################################################
 # Compute covariance using automated regularization
+method_params = dict(diagonal_fixed=dict(mag=0.01, grad=0.01, eeg=0.01))
 noise_covs = compute_covariance(epochs, tmin=None, tmax=0, method='auto',
                                 return_estimators=True, verbose=True, n_jobs=1,
-                                projs=None)
+                                projs=None, rank=None,
+                                method_params=method_params)
 
 # With "return_estimator=True" all estimated covariances sorted
 # by log-likelihood are returned.
@@ -66,15 +67,19 @@ for c in noise_covs:
     print("%s : %s" % (c['method'], c['loglik']))
 
 ###############################################################################
-# Show whitening
+# Show the evoked data:
 
 evoked = epochs.average()
 
-evoked.plot()  # plot evoked response
+evoked.plot(time_unit='s')  # plot evoked response
 
-# plot the whitened evoked data for to see if baseline signals match the
-# assumption of Gaussian white noise from which we expect values around
-# 0 with less than 2 standard deviations. For the Global field power we expect
-# a value of 1.
+###############################################################################
+# We can then show whitening for our various noise covariance estimates.
+#
+# Here we should look to see if baseline signals match the
+# assumption of Gaussian white noise. we expect values centered at
+# 0 within 2 standard deviations for 95% of the time points.
+#
+# For the Global field power we expect a value of 1.
 
-evoked.plot_white(noise_covs)
+evoked.plot_white(noise_covs, time_unit='s')

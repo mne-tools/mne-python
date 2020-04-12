@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Authors: Eric Larson <larson.eric.d@gmail.com>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
@@ -23,7 +23,7 @@ fname_evoked = op.join(s_path, 'sample_audvis-ave.fif')
 @testing.requires_testing_data
 @requires_mne
 def test_snr():
-    """Test SNR calculation"""
+    """Test SNR calculation."""
     tempdir = _TempDir()
     inv = read_inverse_operator(fname_inv)
     evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0]
@@ -38,5 +38,6 @@ def test_snr():
         pass  # this returns 1 for some reason
     finally:
         os.chdir(orig_dir)
-    snr_c = np.loadtxt(op.join(tempdir, 'SNR'))[:, 1]
+    times, snr_c, _ = np.loadtxt(op.join(tempdir, 'SNR')).T
+    assert_allclose(times / 1000., evoked.times, atol=1e-2)
     assert_allclose(snr, snr_c, atol=1e-2, rtol=1e-2)

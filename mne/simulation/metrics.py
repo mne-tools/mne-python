@@ -6,6 +6,8 @@
 import numpy as np
 from scipy.linalg import norm
 
+from ..utils import _check_option
+
 # TODO: Add more localization accuracy functions. For example, distance between
 #       true dipole position (in simulated stc) and the centroid of the
 #       estimated activity.
@@ -45,10 +47,7 @@ def source_estimate_quantification(stc1, stc2, metric='rms'):
 
     .. versionadded:: 0.10.0
     """
-    known_metrics = ['rms', 'cosine']
-    if metric not in known_metrics:
-        raise ValueError('metric must be a str from the known metrics: '
-                         '"rms" or "cosine"')
+    _check_option('metric', metric, ['rms', 'cosine'])
 
     # This is checking that the datas are having the same size meaning
     # no comparison between distributed and sparse can be done so far.

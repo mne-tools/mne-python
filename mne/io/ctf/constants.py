@@ -1,10 +1,11 @@
 """CTF constants."""
 
-# Author: Eric Larson <larson.eric.d@gmail.com>
+# Authors: Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
+#          Eric Larson <larsoner@uw.edu>
 #
 # License: BSD (3-clause)
 
-from ..constants import BunchConst
+from ...utils import BunchConst
 
 
 CTF = BunchConst()

@@ -3,8 +3,17 @@
 
 """Import KIT / NYU data to fif file.
 
-example usage:  $ mne kit2fiff --input input.sqd --output output.fif
-Use without arguments to invoke GUI:  $ mne kt2fiff
+Examples
+--------
+.. code-block:: console
+
+    $ mne kit2fiff --input input.sqd --output output.fif
+
+Use without arguments to invoke GUI:
+
+.. code-block:: console
+
+    $ mne kt2fiff
 
 """
 
@@ -72,8 +81,6 @@ def run():
 
     raw.save(out_fname)
     raw.close()
-    sys.exit(0)
 
-is_main = (__name__ == '__main__')
-if is_main:
-    run()
+
+mne.utils.run_command_if_main()

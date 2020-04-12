@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Authors: Romain Trachel <trachelr@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Alexandre Barachant <alexandre.barachant@gmail.com>
 #          Clemens Brunner <clemens.brunner@gmail.com>
 #          Jean-Remi King <jeanremi.king@gmail.com>
@@ -15,8 +15,10 @@ from scipy import linalg
 from .mixin import TransformerMixin
 from .base import BaseEstimator
 from ..cov import _regularized_covariance
+from ..utils import fill_doc, _check_option
 
 
+@fill_doc
 class CSP(TransformerMixin, BaseEstimator):
     u"""M/EEG signal decomposition using the Common Spatial Patterns (CSP).
 
@@ -28,19 +30,20 @@ class CSP(TransformerMixin, BaseEstimator):
 
     Parameters
     ----------
-    n_components : int, defaults to 4
+    n_components : int, default 4
         The number of components to decompose M/EEG signals.
         This number should be set by cross-validation.
-    reg : float | str | None, defaults to None
-        if not None, allow regularization for covariance estimation
-        if float, shrinkage covariance is used (0 <= shrinkage <= 1).
-        if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('ledoit_wolf')
-        or Oracle Approximating Shrinkage ('oas').
-    log : None | bool, defaults to None
+    reg : float | str | None (default None)
+        If not None (same as ``'empirical'``, default), allow
+        regularization for covariance estimation.
+        If float, shrinkage is used (0 <= shrinkage <= 1).
+        For str options, ``reg`` will be passed to ``method`` to
+        :func:`mne.compute_covariance`.
+    log : None | bool (default None)
         If transform_into == 'average_power' and log is None or True, then
         applies a log transform to standardize the features, else the features
         are z-scored. If transform_into == 'csp_space', then log must be None.
-    cov_est : 'concat' | 'epoch', defaults to 'concat'
+    cov_est : 'concat' | 'epoch', default 'concat'
         If 'concat', covariance matrices are estimated on concatenated epochs
         for each class.
         If 'epoch', covariance matrices are estimated on each epoch separately
@@ -55,16 +58,23 @@ class CSP(TransformerMixin, BaseEstimator):
         magnitude variations in the EEG between individuals. It is not applied
         in more recent work [2]_, [3]_ and can have a negative impact on
         patterns ordering.
+    cov_method_params : dict | None
+        Parameters to pass to :func:`mne.compute_covariance`.
+
+        .. versionadded:: 0.16
+    %(rank_None)s
+
+        .. versionadded:: 0.17
 
     Attributes
     ----------
-    ``filters_`` : ndarray, shape (n_components, n_channels)
+    filters_ :  ndarray, shape (n_channels, n_channels)
         If fit, the CSP components used to decompose the data, else None.
-    ``patterns_`` : ndarray, shape (n_components, n_channels)
+    patterns_ : ndarray, shape (n_channels, n_channels)
         If fit, the CSP patterns used to restore M/EEG signals, else None.
-    ``mean_`` : ndarray, shape (n_components,)
+    mean_ : ndarray, shape (n_components,)
         If fit, the mean squared power for each component.
-    ``std_`` : ndarray, shape (n_components,)
+    std_ : ndarray, shape (n_components,)
         If fit, the std squared power for each component.
 
     See Also
@@ -86,22 +96,15 @@ class CSP(TransformerMixin, BaseEstimator):
     """
 
     def __init__(self, n_components=4, reg=None, log=None, cov_est="concat",
-                 transform_into='average_power', norm_trace=False):
+                 transform_into='average_power', norm_trace=False,
+                 cov_method_params=None, rank=None):
         """Init of CSP."""
         # Init default CSP
         if not isinstance(n_components, int):
             raise ValueError('n_components must be an integer.')
         self.n_components = n_components
+        self.rank = rank
 
-        # Init default regularization
-        if (
-            (reg is not None) and
-            (reg not in ['oas', 'ledoit_wolf']) and
-            ((not isinstance(reg, (float, int))) or
-             (not ((reg <= 1.) and (reg >= 0.))))
-        ):
-            raise ValueError('reg must be None, "oas", "ledoit_wolf" or a '
-                             'float in between 0. and 1.')
         self.reg = reg
 
         # Init default cov_est
@@ -110,9 +113,8 @@ class CSP(TransformerMixin, BaseEstimator):
         self.cov_est = cov_est
 
         # Init default transform_into
-        if transform_into not in ('average_power', 'csp_space'):
-            raise ValueError('transform_into must be "average_power" or '
-                             '"csp_space".')
+        _check_option('transform_into', transform_into,
+                      ['average_power', 'csp_space'])
         self.transform_into = transform_into
 
         # Init default log
@@ -129,6 +131,7 @@ class CSP(TransformerMixin, BaseEstimator):
         if not isinstance(norm_trace, bool):
             raise ValueError('norm_trace must be a bool.')
         self.norm_trace = norm_trace
+        self.cov_method_params = cov_method_params
 
     def _check_Xy(self, X, y=None):
         """Aux. function to check input data."""
@@ -170,13 +173,18 @@ class CSP(TransformerMixin, BaseEstimator):
             if self.cov_est == "concat":  # concatenate epochs
                 class_ = np.transpose(X[y == this_class], [1, 0, 2])
                 class_ = class_.reshape(n_channels, -1)
-                cov = _regularized_covariance(class_, reg=self.reg)
+                cov = _regularized_covariance(
+                    class_, reg=self.reg, method_params=self.cov_method_params,
+                    rank=self.rank)
                 weight = sum(y == this_class)
             elif self.cov_est == "epoch":
                 class_ = X[y == this_class]
                 cov = np.zeros((n_channels, n_channels))
                 for this_X in class_:
-                    cov += _regularized_covariance(this_X, reg=self.reg)
+                    cov += _regularized_covariance(
+                        this_X, reg=self.reg,
+                        method_params=self.cov_method_params,
+                        rank=self.rank)
                 cov /= len(class_)
                 weight = len(class_)
 
@@ -184,7 +192,7 @@ class CSP(TransformerMixin, BaseEstimator):
             if self.norm_trace:
                 # Append covariance matrix and weight. Prior to version 0.15,
                 # trace normalization was applied, but was breaking results for
-                # some usecases by chaging the apparent ranking of patterns.
+                # some usecases by changing the apparent ranking of patterns.
                 # Trace normalization of the covariance matrix was removed
                 # without signigificant effect on patterns or performances.
                 # If the user interested in this feature, we suggest trace
@@ -232,7 +240,7 @@ class CSP(TransformerMixin, BaseEstimator):
         eigen_vectors = eigen_vectors[:, ix]
 
         self.filters_ = eigen_vectors.T
-        self.patterns_ = linalg.pinv(eigen_vectors)
+        self.patterns_ = linalg.pinv2(eigen_vectors)
 
         pick_filters = self.filters_[:self.n_components]
         X = np.asarray([np.dot(pick_filters, epoch) for epoch in X])
@@ -260,7 +268,7 @@ class CSP(TransformerMixin, BaseEstimator):
             If self.transform_into == 'average_power' then returns the power of
             CSP features averaged over time and shape (n_epochs, n_sources)
             If self.transform_into == 'csp_space' then returns the data in CSP
-            space and shape is (n_epochs, n_sources, n_times)
+            space and shape is (n_epochs, n_sources, n_times).
         """
         if not isinstance(X, np.ndarray):
             raise ValueError("X should be of type ndarray (got %s)." % type(X))
@@ -282,13 +290,15 @@ class CSP(TransformerMixin, BaseEstimator):
                 X /= self.std_
         return X
 
-    def plot_patterns(self, info, components=None, ch_type=None, layout=None,
+    @fill_doc
+    def plot_patterns(self, info, components=None, ch_type=None,
                       vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                       colorbar=True, scalings=None, units='a.u.', res=64,
                       size=1, cbar_fmt='%3.1f', name_format='CSP%01d',
                       show=True, show_names=False, title=None, mask=None,
                       mask_params=None, outlines='head', contours=6,
-                      image_interp='bilinear', average=None, head_pos=None):
+                      image_interp='bilinear', average=None,
+                      sphere=None):
         """Plot topographic patterns of components.
 
         The patterns explain how the measured data was generated from the
@@ -299,26 +309,21 @@ class CSP(TransformerMixin, BaseEstimator):
         info : instance of Info
             Info dictionary of the epochs used for fitting.
             If not possible, consider using ``create_info``.
-        components : float | array of floats | None.
+        components : float | array of float | None
            The patterns to plot. If None, n_components will be shown.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are
             collected in pairs and the RMS for each pair is plotted.
             If None, then first available channel type from order given
             above is used. Defaults to None.
-        layout : None | Layout
-            Layout instance specifying sensor positions (does not need to be
-            specified for Neuromag data). If possible, the correct layout file
-            is inferred from the data; if no appropriate layout file was found
-            the layout is automatically generated from the sensor locations.
         vmin : float | callable
-            The value specfying the lower bound of the color range.
+            The value specifying the lower bound of the color range.
             If None, and vmax is None, -vmax is used. Else np.min(data).
             If callable, the output equals vmin(data).
         vmax : float | callable
-            The value specfying the upper bound of the color range.
+            The value specifying the upper bound of the color range.
             If None, the maximum absolute value is used. If vmin is None,
-            but vmax is not, defaults to np.min(data).
+            but vmax is not, default np.min(data).
             If callable, the output equals vmax(data).
         cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
             Colormap to use. If tuple, the first value indicates the colormap
@@ -333,7 +338,6 @@ class CSP(TransformerMixin, BaseEstimator):
 
             .. warning::  Interactive mode works smoothly only for a small
                 amount of topomaps.
-
         sensors : bool | str
             Add markers for sensor locations to the plot. Accepts matplotlib
             plot format string (e.g., 'r+' for red plusses). If True,
@@ -353,7 +357,7 @@ class CSP(TransformerMixin, BaseEstimator):
         cbar_fmt : str
             String format for colorbar values.
         name_format : str
-            String format for topomap values. Defaults to "CSP%01d"
+            String format for topomap values. Defaults to "CSP%%01d".
         show : bool
             Show figure if True.
         show_names : bool | callable
@@ -373,18 +377,7 @@ class CSP(TransformerMixin, BaseEstimator):
 
                 dict(marker='o', markerfacecolor='w', markeredgecolor='k',
                      linewidth=0, markersize=4)
-
-        outlines : 'head' | 'skirt' | dict | None
-            The outlines to be drawn. If 'head', the default head scheme will
-            be drawn. If 'skirt' the head scheme will be drawn, but sensors are
-            allowed to be plotted outside of the head circle. If dict, each key
-            refers to a tuple of x and y positions, the values in 'mask_pos'
-            will serve as image mask, and the 'autoshrink' (bool) field will
-            trigger automated shrinking of the positions due to points outside
-            the outline. Alternatively, a matplotlib patch object can be passed
-            for advanced masking options, either directly or as a function that
-            returns patches (required for multi-axis plots). If None, nothing
-            will be drawn. Defaults to 'head'.
+        %(topomap_outlines)s
         contours : int | array of float
             The number of contour lines to draw. If 0, no contours will be
             drawn. When an integer, matplotlib ticker locator is used to find
@@ -399,11 +392,7 @@ class CSP(TransformerMixin, BaseEstimator):
             (seconds). For example, 0.01 would translate into window that
             starts 5 ms before and ends 5 ms after a given time point.
             Defaults to None, which means no averaging.
-        head_pos : dict | None
-            If None (default), the sensors are positioned such that they span
-            the head circle. If dict, can have entries 'center' (tuple) and
-            'scale' (tuple) for what the center and scale of the head
-            should be relative to the electrode locations.
+        %(topomap_sphere_auto)s
 
         Returns
         -------
@@ -421,22 +410,23 @@ class CSP(TransformerMixin, BaseEstimator):
         patterns = EvokedArray(self.patterns_.T, info, tmin=0)
         # the call plot_topomap
         return patterns.plot_topomap(
-            times=components, ch_type=ch_type, layout=layout,
+            times=components, ch_type=ch_type,
             vmin=vmin, vmax=vmax, cmap=cmap, colorbar=colorbar, res=res,
             cbar_fmt=cbar_fmt, sensors=sensors,
-            scalings=scalings, units=units, scaling_time=1,
+            scalings=scalings, units=units, time_unit='s',
             time_format=name_format, size=size, show_names=show_names,
             title=title, mask_params=mask_params, mask=mask, outlines=outlines,
             contours=contours, image_interp=image_interp, show=show,
-            average=average, head_pos=head_pos)
+            average=average, sphere=sphere)
 
-    def plot_filters(self, info, components=None, ch_type=None, layout=None,
+    @fill_doc
+    def plot_filters(self, info, components=None, ch_type=None,
                      vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                      colorbar=True, scalings=None, units='a.u.', res=64,
                      size=1, cbar_fmt='%3.1f', name_format='CSP%01d',
                      show=True, show_names=False, title=None, mask=None,
                      mask_params=None, outlines='head', contours=6,
-                     image_interp='bilinear', average=None, head_pos=None):
+                     image_interp='bilinear', average=None):
         """Plot topographic filters of components.
 
         The filters are used to extract discriminant neural sources from
@@ -447,24 +437,19 @@ class CSP(TransformerMixin, BaseEstimator):
         info : instance of Info
             Info dictionary of the epochs used for fitting.
             If not possible, consider using ``create_info``.
-        components : float | array of floats | None.
+        components : float | array of float | None
            The patterns to plot. If None, n_components will be shown.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are
             collected in pairs and the RMS for each pair is plotted.
             If None, then first available channel type from order given
             above is used. Defaults to None.
-        layout : None | Layout
-            Layout instance specifying sensor positions (does not need to be
-            specified for Neuromag data). If possible, the correct layout file
-            is inferred from the data; if no appropriate layout file was found
-            the layout is automatically generated from the sensor locations.
         vmin : float | callable
-            The value specfying the lower bound of the color range.
+            The value specifying the lower bound of the color range.
             If None, and vmax is None, -vmax is used. Else np.min(data).
             If callable, the output equals vmin(data).
         vmax : float | callable
-            The value specfying the upper bound of the color range.
+            The value specifying the upper bound of the color range.
             If None, the maximum absolute value is used. If vmin is None,
             but vmax is not, defaults to np.min(data).
             If callable, the output equals vmax(data).
@@ -481,7 +466,6 @@ class CSP(TransformerMixin, BaseEstimator):
 
             .. warning::  Interactive mode works smoothly only for a small
                 amount of topomaps.
-
         sensors : bool | str
             Add markers for sensor locations to the plot. Accepts matplotlib
             plot format string (e.g., 'r+' for red plusses). If True,
@@ -501,7 +485,7 @@ class CSP(TransformerMixin, BaseEstimator):
         cbar_fmt : str
             String format for colorbar values.
         name_format : str
-            String format for topomap values. Defaults to "CSP%01d"
+            String format for topomap values. Defaults to "CSP%%01d".
         show : bool
             Show figure if True.
         show_names : bool | callable
@@ -521,18 +505,7 @@ class CSP(TransformerMixin, BaseEstimator):
 
                 dict(marker='o', markerfacecolor='w', markeredgecolor='k',
                      linewidth=0, markersize=4)
-
-        outlines : 'head' | 'skirt' | dict | None
-            The outlines to be drawn. If 'head', the default head scheme will
-            be drawn. If 'skirt' the head scheme will be drawn, but sensors are
-            allowed to be plotted outside of the head circle. If dict, each key
-            refers to a tuple of x and y positions, the values in 'mask_pos'
-            will serve as image mask, and the 'autoshrink' (bool) field will
-            trigger automated shrinking of the positions due to points outside
-            the outline. Alternatively, a matplotlib patch object can be passed
-            for advanced masking options, either directly or as a function that
-            returns patches (required for multi-axis plots). If None, nothing
-            will be drawn. Defaults to 'head'.
+        %(topomap_outlines)s
         contours : int | array of float
             The number of contour lines to draw. If 0, no contours will be
             drawn. When an integer, matplotlib ticker locator is used to find
@@ -547,11 +520,6 @@ class CSP(TransformerMixin, BaseEstimator):
             (seconds). For example, 0.01 would translate into window that
             starts 5 ms before and ends 5 ms after a given time point.
             Defaults to None, which means no averaging.
-        head_pos : dict | None
-            If None (default), the sensors are positioned such that they span
-            the head circle. If dict, can have entries 'center' (tuple) and
-            'scale' (tuple) for what the center and scale of the head
-            should be relative to the electrode locations.
 
         Returns
         -------
@@ -569,14 +537,13 @@ class CSP(TransformerMixin, BaseEstimator):
         filters = EvokedArray(self.filters_, info, tmin=0)
         # the call plot_topomap
         return filters.plot_topomap(
-            times=components, ch_type=ch_type, layout=layout, vmin=vmin,
+            times=components, ch_type=ch_type, vmin=vmin,
             vmax=vmax, cmap=cmap, colorbar=colorbar, res=res,
             cbar_fmt=cbar_fmt, sensors=sensors, scalings=scalings, units=units,
-            scaling_time=1, time_format=name_format, size=size,
+            time_unit='s', time_format=name_format, size=size,
             show_names=show_names, title=title, mask_params=mask_params,
             mask=mask, outlines=outlines, contours=contours,
-            image_interp=image_interp, show=show, average=average,
-            head_pos=head_pos)
+            image_interp=image_interp, show=show, average=average)
 
 
 def _ajd_pham(X, eps=1e-6, max_iter=15):
@@ -588,9 +555,9 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
     ----------
     X : ndarray, shape (n_epochs, n_channels, n_channels)
         A set of covariance matrices to diagonalize.
-    eps : float, defaults to 1e-6
-        The tolerance for stoping criterion.
-    max_iter : int, defaults to 1000
+    eps : float, default 1e-6
+        The tolerance for stopping criterion.
+    max_iter : int, default 1000
         The maximum number of iteration to reach convergence.
 
     Returns
@@ -663,6 +630,7 @@ def _ajd_pham(X, eps=1e-6, max_iter=15):
     return V, D
 
 
+@fill_doc
 class SPoC(CSP):
     """Implementation of the SPoC spatial filtering.
 
@@ -680,12 +648,13 @@ class SPoC(CSP):
     ----------
     n_components : int
         The number of components to decompose M/EEG signals.
-    reg : float | str | None, defaults to None
-        if not None, allow regularization for covariance estimation
-        if float, shrinkage covariance is used (0 <= shrinkage <= 1).
-        if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('ledoit_wolf')
-        or Oracle Approximating Shrinkage ('oas').
-    log : None | bool, defaults to None
+    reg : float | str | None (default None)
+        If not None (same as ``'empirical'``, default), allow
+        regularization for covariance estimation.
+        If float, shrinkage is used (0 <= shrinkage <= 1).
+        For str options, ``reg`` will be passed to ``method`` to
+        :func:`mne.compute_covariance`.
+    log : None | bool (default None)
         If transform_into == 'average_power' and log is None or True, then
         applies a log transform to standardize the features, else the features
         are z-scored. If transform_into == 'csp_space', then log must be None.
@@ -693,16 +662,23 @@ class SPoC(CSP):
         If 'average_power' then self.transform will return the average power of
         each spatial filter. If 'csp_space' self.transform will return the data
         in CSP space. Defaults to 'average_power'.
+    cov_method_params : dict | None
+        Parameters to pass to :func:`mne.compute_covariance`.
+
+        .. versionadded:: 0.16
+    %(rank_None)s
+
+        .. versionadded:: 0.17
 
     Attributes
     ----------
-    ``filters_`` : ndarray, shape (n_components, n_channels)
+    filters_ : ndarray, shape (n_channels, n_channels)
         If fit, the SPoC spatial filters, else None.
-    ``patterns_`` : ndarray, shape (n_components, n_channels)
+    patterns_ : ndarray, shape (n_channels, n_channels)
         If fit, the SPoC spatial patterns, else None.
-    ``mean_`` : ndarray, shape (n_components,)
+    mean_ : ndarray, shape (n_components,)
         If fit, the mean squared power for each component.
-    ``std_`` : ndarray, shape (n_components,)
+    std_ : ndarray, shape (n_components,)
         If fit, the std squared power for each component.
 
     See Also
@@ -718,11 +694,13 @@ class SPoC(CSP):
     """
 
     def __init__(self, n_components=4, reg=None, log=None,
-                 transform_into='average_power'):
+                 transform_into='average_power', cov_method_params=None,
+                 rank=None):
         """Init of SPoC."""
         super(SPoC, self).__init__(n_components=n_components, reg=reg, log=log,
                                    cov_est="epoch", norm_trace=False,
-                                   transform_into=transform_into)
+                                   transform_into=transform_into, rank=rank,
+                                   cov_method_params=cov_method_params)
         # Covariance estimation have to be done on the single epoch level,
         # unlike CSP where covariance estimation can also be achieved through
         # concatenation of all epochs from the same class.
@@ -752,7 +730,7 @@ class SPoC(CSP):
         if len(np.unique(y)) < 2:
             raise ValueError("y must have at least two distinct values.")
 
-        # The following code is direclty copied from pyRiemann
+        # The following code is directly copied from pyRiemann
 
         # Normalize target variable
         target = y.astype(np.float64)
@@ -764,7 +742,9 @@ class SPoC(CSP):
         # Estimate single trial covariance
         covs = np.empty((n_epochs, n_channels, n_channels))
         for ii, epoch in enumerate(X):
-            covs[ii] = _regularized_covariance(epoch, reg=self.reg)
+            covs[ii] = _regularized_covariance(
+                epoch, reg=self.reg, method_params=self.cov_method_params,
+                rank=self.rank)
 
         C = covs.mean(0)
         Cz = np.mean(covs * target[:, np.newaxis, np.newaxis], axis=0)
@@ -809,6 +789,6 @@ class SPoC(CSP):
             If self.transform_into == 'average_power' then returns the power of
             CSP features averaged over time and shape (n_epochs, n_sources)
             If self.transform_into == 'csp_space' then returns the data in CSP
-            space and shape is (n_epochs, n_sources, n_times)
+            space and shape is (n_epochs, n_sources, n_times).
         """
         return super(SPoC, self).transform(X)

@@ -1,5 +1,5 @@
 # Authors: Yousra Bekhti <yousra.bekhti@gmail.com>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 
@@ -7,9 +7,7 @@ import os.path as op
 import numpy as np
 from scipy import linalg
 
-import warnings
-from nose.tools import assert_true, assert_equal
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_equal
 
 import mne
 from mne.datasets import testing
@@ -24,15 +22,13 @@ fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
-
 
 def _get_data(ch_decim=1):
     """Read in data used in tests."""
     # Read evoked
     evoked = mne.read_evokeds(fname_ave, 0, baseline=(None, 0))
     evoked.info['bads'] = ['MEG 2443']
-    evoked.info['lowpass'] = 20  # fake for decim
+    evoked.info['lowpass'] = 16  # fake for decim
     evoked.decimate(12)
     evoked.crop(0.0, 0.3)
     picks = mne.pick_types(evoked.info, meg=True, eeg=False)
@@ -42,7 +38,7 @@ def _get_data(ch_decim=1):
 
     noise_cov = mne.read_cov(fname_cov)
     noise_cov['projs'] = []
-    noise_cov = regularize(noise_cov, evoked.info)
+    noise_cov = regularize(noise_cov, evoked.info, rank='full', proj=False)
     return evoked, noise_cov
 
 
@@ -90,8 +86,8 @@ def _check_dipoles(dipoles, fwd, stc, evoked, residual=None):
                             len(src[0]['vertno'])]
 
     # Check the position of the two dipoles
-    assert_true(dipoles[0].pos[0] in np.array([pos1, pos2]))
-    assert_true(dipoles[1].pos[0] in np.array([pos1, pos2]))
+    assert (dipoles[0].pos[0] in np.array([pos1, pos2]))
+    assert (dipoles[1].pos[0] in np.array([pos1, pos2]))
 
     ori1 = fwd['source_nn'][np.where(src[0]['vertno'] ==
                                      stc.vertices[0])[0]][0]
@@ -100,20 +96,19 @@ def _check_dipoles(dipoles, fwd, stc, evoked, residual=None):
                             len(src[0]['vertno'])][0]
 
     # Check the orientation of the dipoles
-    assert_true(np.max(np.abs(np.dot(dipoles[0].ori[0],
-                                     np.array([ori1, ori2]).T))) > 0.99)
+    assert (np.max(np.abs(np.dot(dipoles[0].ori[0],
+                                 np.array([ori1, ori2]).T))) > 0.99)
 
-    assert_true(np.max(np.abs(np.dot(dipoles[1].ori[0],
-                                     np.array([ori1, ori2]).T))) > 0.99)
+    assert (np.max(np.abs(np.dot(dipoles[1].ori[0],
+                                 np.array([ori1, ori2]).T))) > 0.99)
 
     if residual is not None:
         picks_grad = mne.pick_types(residual.info, meg='grad')
         picks_mag = mne.pick_types(residual.info, meg='mag')
         rel_tol = 0.02
         for picks in [picks_grad, picks_mag]:
-            assert_true(linalg.norm(residual.data[picks], ord='fro') <
-                        rel_tol *
-                        linalg.norm(evoked.data[picks], ord='fro'))
+            assert (linalg.norm(residual.data[picks], ord='fro') <
+                    rel_tol * linalg.norm(evoked.data[picks], ord='fro'))
 
 
 @testing.requires_testing_data
@@ -133,8 +128,8 @@ def test_rap_music_simulated():
     dipoles = rap_music(sim_evoked, forward_fixed, noise_cov,
                         n_dipoles=n_dipoles)
     _check_dipoles(dipoles, forward_fixed, stc, sim_evoked)
-    assert_true(0.98 < dipoles[0].gof.max() < 1.)
-    assert_true(dipoles[0].gof.min() >= 0.)
+    assert (0.97 < dipoles[0].gof.max() < 1.)
+    assert (dipoles[0].gof.min() >= 0.)
     assert_array_equal(dipoles[0].gof, dipoles[1].gof)
 
     nave = 100000  # add a tiny amount of noise to the simulated evokeds
@@ -162,7 +157,8 @@ def test_rap_music_sphere():
     sphere = mne.make_sphere_model(r0=(0., 0., 0.04))
     src = mne.setup_volume_source_space(subject=None, pos=10.,
                                         sphere=(0.0, 0.0, 40, 65.0),
-                                        mindist=5.0, exclude=0.0)
+                                        mindist=5.0, exclude=0.0,
+                                        sphere_units='mm')
     forward = mne.make_forward_solution(evoked.info, trans=None, src=src,
                                         bem=sphere)
 
@@ -173,11 +169,24 @@ def test_rap_music_sphere():
     assert_equal((pos[:, 0] < 0).sum(), 1)
     assert_equal((pos[:, 0] > 0).sum(), 1)
     # Check the amplitude scale
-    assert_true(1e-10 < dipoles[0].amplitude[0] < 1e-7)
+    assert (1e-10 < dipoles[0].amplitude[0] < 1e-7)
     # Check the orientation
     dip_fit = mne.fit_dipole(evoked, noise_cov, sphere)[0]
-    assert_true(np.max(np.abs(np.dot(dip_fit.ori, dipoles[0].ori[0]))) > 0.99)
-    assert_true(np.max(np.abs(np.dot(dip_fit.ori, dipoles[1].ori[0]))) > 0.99)
+    assert (np.max(np.abs(np.dot(dip_fit.ori, dipoles[0].ori[0]))) > 0.99)
+    assert (np.max(np.abs(np.dot(dip_fit.ori, dipoles[1].ori[0]))) > 0.99)
+
+
+@testing.requires_testing_data
+def test_rap_music_picks():
+    """Test RAP-MUSIC with picking."""
+    evoked = mne.read_evokeds(fname_ave, condition='Right Auditory',
+                              baseline=(None, 0))
+    evoked.crop(tmin=0.05, tmax=0.15)  # select N100
+    evoked.pick_types(meg=True, eeg=False)
+    forward = mne.read_forward_solution(fname_fwd)
+    noise_cov = mne.read_cov(fname_cov)
+    dipoles = rap_music(evoked, forward, noise_cov, n_dipoles=2)
+    assert len(dipoles) == 2
 
 
 run_tests_if_main()

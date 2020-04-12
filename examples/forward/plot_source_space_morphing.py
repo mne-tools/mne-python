@@ -4,8 +4,8 @@ Use source space morphing
 =========================
 
 This example shows how to use source space morphing (as opposed to
-SourceEstimate morphing) to create data that can be compared between
-subjects.
+:class:`~mne.SourceEstimate` morphing) to create data that can be compared
+between subjects.
 
 .. warning:: Source space morphing will likely lead to source spaces that are
              less evenly sampled than source spaces created for individual
@@ -61,7 +61,7 @@ kwargs = dict(clim=dict(kind='percent', lims=[0, 50, 99]),
 # Our testing code suggests a correlation of higher than 0.99.
 
 brain_subject = mag_map.plot(  # plot forward in subject source space (morphed)
-    time_label=None, subjects_dir=subjects_dir, **kwargs)
+    time_label='Morphed', subjects_dir=subjects_dir, **kwargs)
 
 brain_fs = mag_map_fs.plot(  # plot forward in original source space (remapped)
-    time_label=None, subjects_dir=subjects_dir, **kwargs)
+    time_label='Remapped', subjects_dir=subjects_dir, **kwargs)

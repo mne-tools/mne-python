@@ -1,4 +1,6 @@
 """
+.. _ex-decoding-csp-eeg:
+
 ===========================================================================
 Motor imagery decoding from EEG data using the Common Spatial Pattern (CSP)
 ===========================================================================
@@ -6,7 +8,7 @@ Motor imagery decoding from EEG data using the Common Spatial Pattern (CSP)
 Decoding of motor imagery applied to EEG data decomposed using CSP.
 Here the classifier is applied to features extracted on CSP filtered signals.
 
-See http://en.wikipedia.org/wiki/Common_spatial_pattern and [1]_. The EEGBCI
+See https://en.wikipedia.org/wiki/Common_spatial_pattern and [1]_. The EEGBCI
 dataset is documented in [2]_. The data set is available at PhysioNet [3]_.
 
 References
@@ -27,6 +29,7 @@ References
 #
 # License: BSD (3-clause)
 
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -34,8 +37,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.model_selection import ShuffleSplit, cross_val_score
 
-from mne import Epochs, pick_types, find_events
-from mne.channels import read_layout
+from mne import Epochs, pick_types, events_from_annotations
+from mne.channels import make_standard_montage
 from mne.io import concatenate_raws, read_raw_edf
 from mne.datasets import eegbci
 from mne.decoding import CSP
@@ -53,9 +56,10 @@ subject = 1
 runs = [6, 10, 14]  # motor imagery: hands vs feet
 
 raw_fnames = eegbci.load_data(subject, runs)
-raw_files = [read_raw_edf(f, preload=True, stim_channel='auto') for f in
-             raw_fnames]
-raw = concatenate_raws(raw_files)
+raw = concatenate_raws([read_raw_edf(f, preload=True) for f in raw_fnames])
+eegbci.standardize(raw)  # set channel names
+montage = make_standard_montage('standard_1005')
+raw.set_montage(montage)
 
 # strip channel names of "." characters
 raw.rename_channels(lambda x: x.strip('.'))
@@ -63,7 +67,7 @@ raw.rename_channels(lambda x: x.strip('.'))
 # Apply band-pass filter
 raw.filter(7., 30., fir_design='firwin', skip_by_annotation='edge')
 
-events = find_events(raw, shortest_event=0, stim_channel='STI 014')
+events, _ = events_from_annotations(raw, event_id=dict(T1=2, T2=3))
 
 picks = pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
                    exclude='bads')
@@ -102,9 +106,7 @@ print("Classification accuracy: %f / Chance level: %f" % (np.mean(scores),
 # plot CSP patterns estimated on full data for visualization
 csp.fit_transform(epochs_data, labels)
 
-layout = read_layout('EEG1005')
-csp.plot_patterns(epochs.info, layout=layout, ch_type='eeg',
-                  units='Patterns (AU)', size=1.5)
+csp.plot_patterns(epochs.info, ch_type='eeg', units='Patterns (AU)', size=1.5)
 
 ###############################################################################
 # Look at performance over time

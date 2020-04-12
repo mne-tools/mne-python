@@ -3,98 +3,12 @@
 
 # Parts of this code were copied from NiTime http://nipy.sourceforge.net/nitime
 
+import operator
 import numpy as np
-from scipy import linalg
 
+from ..fixes import _get_dpss, rfft, irfft, rfftfreq
 from ..parallel import parallel_func
-from ..utils import sum_squared, warn, verbose
-
-
-def tridisolve(d, e, b, overwrite_b=True):
-    """Symmetric tridiagonal system solver, from Golub and Van Loan p157.
-
-    .. note:: Copied from NiTime.
-
-    Parameters
-    ----------
-    d : ndarray
-      main diagonal stored in d[:]
-    e : ndarray
-      superdiagonal stored in e[:-1]
-    b : ndarray
-      RHS vector
-
-    Returns
-    -------
-    x : ndarray
-      Solution to Ax = b (if overwrite_b is False). Otherwise solution is
-      stored in previous RHS vector b
-
-    """
-    N = len(b)
-    # work vectors
-    dw = d.copy()
-    ew = e.copy()
-    if overwrite_b:
-        x = b
-    else:
-        x = b.copy()
-    for k in range(1, N):
-        # e^(k-1) = e(k-1) / d(k-1)
-        # d(k) = d(k) - e^(k-1)e(k-1) / d(k-1)
-        t = ew[k - 1]
-        ew[k - 1] = t / dw[k - 1]
-        dw[k] = dw[k] - t * ew[k - 1]
-    for k in range(1, N):
-        x[k] = x[k] - ew[k - 1] * x[k - 1]
-    x[N - 1] = x[N - 1] / dw[N - 1]
-    for k in range(N - 2, -1, -1):
-        x[k] = x[k] / dw[k] - ew[k] * x[k + 1]
-
-    if not overwrite_b:
-        return x
-
-
-def tridi_inverse_iteration(d, e, w, x0=None, rtol=1e-8):
-    """Perform an inverse iteration.
-
-    This will find the eigenvector corresponding to the given eigenvalue
-    in a symmetric tridiagonal system.
-
-    ..note:: Copied from NiTime.
-
-    Parameters
-    ----------
-    d : ndarray
-      main diagonal of the tridiagonal system
-    e : ndarray
-      offdiagonal stored in e[:-1]
-    w : float
-      eigenvalue of the eigenvector
-    x0 : ndarray
-      initial point to start the iteration
-    rtol : float
-      tolerance for the norm of the difference of iterates
-
-    Returns
-    -------
-    e: ndarray
-      The converged eigenvector
-    """
-    eig_diag = d - w
-    if x0 is None:
-        x0 = np.random.randn(len(d))
-    x_prev = np.zeros_like(x0)
-    norm_x = np.linalg.norm(x0)
-    # the eigenvector is unique up to sign change, so iterate
-    # until || |x^(n)| - |x^(n-1)| ||^2 < rtol
-    x0 /= norm_x
-    while np.linalg.norm(np.abs(x0) - np.abs(x_prev)) > rtol:
-        x_prev = x0.copy()
-        tridisolve(eig_diag, e, x0)
-        norm_x = np.linalg.norm(x0)
-        x0 /= norm_x
-    return x0
+from ..utils import sum_squared, warn, verbose, logger, _check_option
 
 
 def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
@@ -109,30 +23,33 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     Parameters
     ----------
     N : int
-        Sequence length
-    half_nbw : float, unitless
+        Sequence length.
+    half_nbw : float
         Standardized half bandwidth corresponding to 2 * half_bw = BW*f0
-        = BW*N/dt but with dt taken as 1
+        = BW*N/dt but with dt taken as 1.
     Kmax : int
-        Number of DPSS windows to return is Kmax (orders 0 through Kmax-1)
-    low_bias : Bool
-        Keep only tapers with eigenvalues > 0.9
+        Number of DPSS windows to return is Kmax (orders 0 through Kmax-1).
+    low_bias : bool
+        Keep only tapers with eigenvalues > 0.9.
     interp_from : int (optional)
         The dpss can be calculated using interpolation from a set of dpss
         with the same NW and Kmax, but shorter N. This is the length of this
         shorter set of dpss windows.
+
+        .. note:: If SciPy 1.1 or greater is available, interpolating
+                  is likely not necessary as DPSS computations should be
+                  sufficiently fast.
     interp_kind : str (optional)
         This input variable is passed to scipy.interpolate.interp1d and
         specifies the kind of interpolation as a string ('linear', 'nearest',
         'zero', 'slinear', 'quadratic, 'cubic') or as an integer specifying the
         order of the spline interpolator to use.
 
-
     Returns
     -------
     v, e : tuple,
-        v is an array of DPSS windows shaped (Kmax, N)
-        e are the eigenvalues
+        The v array contains DPSS windows shaped (Kmax, N).
+        e are the eigenvalues.
 
     Notes
     -----
@@ -144,7 +61,10 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     """
     from scipy import interpolate
     from ..filter import next_fast_len
-    Kmax = int(Kmax)
+    # This np.int32 business works around a weird Windows bug, see
+    # gh-5039 and https://github.com/scipy/scipy/pull/8608
+    Kmax = np.int32(operator.index(Kmax))
+    N = np.int32(operator.index(N))
     W = float(half_nbw) / N
     nidx = np.arange(N, dtype='d')
 
@@ -172,56 +92,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
         dpss = np.array(dpss)
 
     else:
-        # here we want to set up an optimization problem to find a sequence
-        # whose energy is maximally concentrated within band [-W,W].
-        # Thus, the measure lambda(T,W) is the ratio between the energy within
-        # that band, and the total energy. This leads to the eigen-system
-        # (A - (l1)I)v = 0, where the eigenvector corresponding to the largest
-        # eigenvalue is the sequence with maximally concentrated energy. The
-        # collection of eigenvectors of this system are called Slepian
-        # sequences, or discrete prolate spheroidal sequences (DPSS). Only the
-        # first K, K = 2NW/dt orders of DPSS will exhibit good spectral
-        # concentration
-        # [see http://en.wikipedia.org/wiki/Spectral_concentration_problem]
-
-        # Here I set up an alternative symmetric tri-diagonal eigenvalue
-        # problem such that
-        # (B - (l2)I)v = 0, and v are our DPSS (but eigenvalues l2 != l1)
-        # the main diagonal = ([N-1-2*t]/2)**2 cos(2PIW), t=[0,1,2,...,N-1]
-        # and the first off-diagonal = t(N-t)/2, t=[1,2,...,N-1]
-        # [see Percival and Walden, 1993]
-        diagonal = ((N - 1 - 2 * nidx) / 2.) ** 2 * np.cos(2 * np.pi * W)
-        off_diag = np.zeros_like(nidx)
-        off_diag[:-1] = nidx[1:] * (N - nidx[1:]) / 2.
-        # put the diagonals in LAPACK "packed" storage
-        ab = np.zeros((2, N), 'd')
-        ab[1] = diagonal
-        ab[0, 1:] = off_diag[:-1]
-        # only calculate the highest Kmax eigenvalues
-        w = linalg.eigvals_banded(ab, select='i',
-                                  select_range=(N - Kmax, N - 1))
-        w = w[::-1]
-
-        # find the corresponding eigenvectors via inverse iteration
-        t = np.linspace(0, np.pi, N)
-        dpss = np.zeros((Kmax, N), 'd')
-        for k in range(Kmax):
-            dpss[k] = tridi_inverse_iteration(diagonal, off_diag, w[k],
-                                              x0=np.sin((k + 1) * t))
-
-    # By convention (Percival and Walden, 1993 pg 379)
-    # * symmetric tapers (k=0,2,4,...) should have a positive average.
-    # * antisymmetric tapers should begin with a positive lobe
-    fix_symmetric = (dpss[0::2].sum(axis=1) < 0)
-    for i, f in enumerate(fix_symmetric):
-        if f:
-            dpss[2 * i] *= -1
-    # rather than test the sign of one point, test the sign of the
-    # linear slope up to the first (largest) peak
-    pk = np.argmax(np.abs(dpss[1::2, :N // 2]), axis=1)
-    for i, p in enumerate(pk):
-        if np.sum(dpss[2 * i + 1, :p]) < 0:
-            dpss[2 * i + 1] *= -1
+        dpss = _get_dpss()(N, half_nbw, Kmax)
 
     # Now find the eigenvalues of the original spectral concentration problem
     # Use the autocorr sequence technique from Percival and Walden, 1993 pg 390
@@ -229,8 +100,8 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     # compute autocorr using FFT (same as nitime.utils.autocorr(dpss) * N)
     rxx_size = 2 * N - 1
     n_fft = next_fast_len(rxx_size)
-    dpss_fft = np.fft.rfft(dpss, n_fft)
-    dpss_rxx = np.fft.irfft(dpss_fft * dpss_fft.conj(), n_fft)
+    dpss_fft = rfft(dpss, n_fft)
+    dpss_rxx = irfft(dpss_fft * dpss_fft.conj(), n_fft)
     dpss_rxx = dpss_rxx[:, :N]
 
     r = 4 * W * np.sinc(2 * W * nidx)
@@ -326,7 +197,7 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150,
         err = np.zeros_like(xk)
         for n in range(max_iter):
             d_k = (psd_iter / (eigvals[:, np.newaxis] * psd_iter +
-                   (1 - eigvals[:, np.newaxis]) * var))
+                               (1 - eigvals[:, np.newaxis]) * var))
             d_k *= rt_eig[:, np.newaxis]
             # Test for convergence -- this is overly conservative, since
             # iteration only stops when all frequencies have converged.
@@ -410,7 +281,7 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
 
     Parameters
     ----------
-    x : array, shape=(n_signals, n_times)
+    x : array, shape=(..., n_times)
         Input signal
     dpss : array, shape=(n_tapers, n_times)
         The tapers
@@ -422,7 +293,7 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
 
     Returns
     -------
-    x_mt : array, shape=(n_signals, n_tapers, n_times)
+    x_mt : array, shape=(..., n_tapers, n_times)
         The tapered spectra
     freqs : array
         The frequency points in Hz of the spectra
@@ -431,17 +302,18 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
         n_fft = x.shape[1]
 
     # remove mean (do not use in-place subtraction as it may modify input x)
-    x = x - np.mean(x, axis=-1)[:, np.newaxis]
+    x = x - np.mean(x, axis=-1, keepdims=True)
 
     # only keep positive frequencies
-    freqs = np.fft.rfftfreq(n_fft, 1. / sfreq)
+    freqs = rfftfreq(n_fft, 1. / sfreq)
 
     # The following is equivalent to this, but uses less memory:
     # x_mt = fftpack.fft(x[:, np.newaxis, :] * dpss, n=n_fft)
     n_tapers = dpss.shape[0] if dpss.ndim > 1 else 1
-    x_mt = np.zeros((len(x), n_tapers, len(freqs)), dtype=np.complex128)
+    x_mt = np.zeros(x.shape[:-1] + (n_tapers, len(freqs)),
+                    dtype=np.complex128)
     for idx, sig in enumerate(x):
-        x_mt[idx] = np.fft.rfft(sig[np.newaxis, :] * dpss, n=n_fft)
+        x_mt[idx] = rfft(sig[..., np.newaxis, :] * dpss, n=n_fft)
     # Adjust DC and maybe Nyquist, depending on one-sided transform
     x_mt[:, :, 0] /= np.sqrt(2.)
     if x.shape[1] % 2 == 0:
@@ -450,10 +322,48 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
 
 
 @verbose
+def _compute_mt_params(n_times, sfreq, bandwidth, low_bias, adaptive,
+                       interp_from=None, verbose=None):
+    """Triage windowing and multitaper parameters."""
+    # Compute standardized half-bandwidth
+    from scipy.signal import get_window
+    if isinstance(bandwidth, str):
+        logger.info('    Using standard spectrum estimation with "%s" window'
+                    % (bandwidth,))
+        window_fun = get_window(bandwidth, n_times)[np.newaxis]
+        return window_fun, np.ones(1), False
+
+    if bandwidth is not None:
+        half_nbw = float(bandwidth) * n_times / (2. * sfreq)
+    else:
+        half_nbw = 4.
+    if half_nbw < 0.5:
+        raise ValueError(
+            'bandwidth value %s yields a normalized bandwidth of %s < 0.5, '
+            'use a value of at least %s'
+            % (bandwidth, half_nbw, sfreq / n_times))
+
+    # Compute DPSS windows
+    n_tapers_max = int(2 * half_nbw)
+    window_fun, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
+                                       low_bias=low_bias,
+                                       interp_from=interp_from)
+    logger.info('    Using multitaper spectrum estimation with %d DPSS '
+                'windows' % len(eigvals))
+
+    if adaptive and len(eigvals) < 3:
+        warn('Not adaptively combining the spectral estimators due to a '
+             'low number of tapers (%s < 3).' % (len(eigvals),))
+        adaptive = False
+
+    return window_fun, eigvals, adaptive
+
+
+@verbose
 def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
                          adaptive=False, low_bias=True, normalization='length',
                          n_jobs=1, verbose=None):
-    """Compute power spectrum density (PSD) using a multi-taper method.
+    """Compute power spectral density (PSD) using a multi-taper method.
 
     Parameters
     ----------
@@ -471,17 +381,14 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
         Use adaptive weights to combine the tapered spectra into PSD
         (slow, use n_jobs >> 1 to speed up computation).
     low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth.
     normalization : str
         Either "full" or "length" (default). If "full", the PSD will
         be normalized by the sampling rate as well as the length of
         the signal (as in nitime).
-    n_jobs : int
-        Number of parallel jobs to use (only used if adaptive=True).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(n_jobs)s
+    %(verbose)s
 
     Returns
     -------
@@ -493,15 +400,16 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
 
     See Also
     --------
-    mne.io.Raw.plot_psd, mne.Epochs.plot_psd, csd_epochs, psd_multitaper
+    mne.io.Raw.plot_psd
+    mne.Epochs.plot_psd
+    csd_multitaper
+    psd_multitaper
 
     Notes
     -----
     .. versionadded:: 0.14.0
     """
-    if normalization not in ('length', 'full'):
-        raise ValueError('Normalization must be "length" or "full", not %s'
-                         % normalization)
+    _check_option('normalization', normalization, ['length', 'full'])
 
     # Reshape data so its 2-D for parallelization
     ndim_in = x.ndim
@@ -510,27 +418,13 @@ def psd_array_multitaper(x, sfreq, fmin=0, fmax=np.inf, bandwidth=None,
     dshape = x.shape[:-1]
     x = x.reshape(-1, n_times)
 
-    # compute standardized half-bandwidth
-    if bandwidth is not None:
-        half_nbw = float(bandwidth) * n_times / (2 * sfreq)
-    else:
-        half_nbw = 4
-
-    # Create tapers and compute spectra
-    n_tapers_max = int(2 * half_nbw)
-    dpss, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
-                                 low_bias=low_bias)
+    dpss, eigvals, adaptive = _compute_mt_params(
+        n_times, sfreq, bandwidth, low_bias, adaptive)
 
     # decide which frequencies to keep
-    freqs = np.fft.rfftfreq(x.shape[1], 1. / sfreq)
+    freqs = rfftfreq(n_times, 1. / sfreq)
     freq_mask = (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[freq_mask]
-
-    # combine the tapered spectra
-    if adaptive and len(eigvals) < 3:
-        warn('Not adaptively combining the spectral estimators due to a low '
-             'number of tapers.')
-        adaptive = False
 
     psd = np.zeros((x.shape[0], freq_mask.sum()))
     # Let's go in up to 50 MB chunks of signals to save memory
@@ -574,7 +468,7 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
         The epochs.
     sfreq : float | int
         Sampling frequency of the data.
-    freqs : array-like of floats, shape (n_freqs)
+    freqs : array-like of float, shape (n_freqs,)
         The frequencies.
     n_cycles : float | array of float
         Number of cycles  in the Morlet wavelet. Fixed number or one per
@@ -584,7 +478,7 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
     time_bandwidth : float
         If None, will be set to 4.0 (3 tapers). Time x (Full) Bandwidth
         product. The number of good tapers (low-bias) is chosen automatically
-        based on this to equal floor(time_bandwidth - 1). Defaults to None
+        based on this to equal floor(time_bandwidth - 1). Defaults to None.
     use_fft : bool
         Use the FFT for convolutions or not. Defaults to True.
     decim : int | slice
@@ -596,8 +490,7 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
         .. note::
             Decimation may create aliasing artifacts, yet decimation
             is done after the convolutions.
-
-    output : str, defaults to 'complex'
+    output : str, default 'complex'
 
         * 'complex' : single trial complex.
         * 'power' : single trial power.
@@ -606,13 +499,10 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
         * 'itc' : inter-trial coherence.
         * 'avg_power_itc' : average of single trial power and inter-trial
           coherence across trials.
-
-    n_jobs : int
+    %(n_jobs)s
         The number of epochs to process at the same time. The parallelization
         is implemented across channels. Defaults to 1.
-    verbose : bool, str, int, or None, defaults to None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -621,7 +511,7 @@ def tfr_array_multitaper(epoch_data, sfreq, freqs, n_cycles=7.0,
         'phase', 'power'], then shape of out is (n_epochs, n_chans, n_freqs,
         n_times), else it is (n_chans, n_freqs, n_times). If output is
         'avg_power_itc', the real values code for 'avg_power' and the
-        imaginary values code for the 'itc': out = avg_power + i * itc
+        imaginary values code for the 'itc': out = avg_power + i * itc.
 
     See Also
     --------

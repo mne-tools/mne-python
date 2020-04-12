@@ -1,7 +1,7 @@
 # Authors: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
-from ..externals.six.moves import zip
+
 import copy
 
 import numpy as np
@@ -33,12 +33,6 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
     The PSI is computed from the coherency (see spectral_connectivity), details
     can be found in [1].
 
-    References
-    ----------
-    [1] Nolte et al. "Robustly Estimating the Flow Direction of Information in
-    Complex Physical Systems", Physical Review Letters, vol. 100, no. 23,
-    pp. 1-4, Jun. 2008.
-
     Parameters
     ----------
     data : array-like, shape=(n_epochs, n_signals, n_times)
@@ -49,7 +43,7 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
         e.g., data = [(arr_0, stc_0), (arr_1, stc_1), (arr_2, stc_2)],
         corresponds to 3 epochs, and arr_* could be an array with the same
         number of time points as stc_*.
-    indices : tuple of arrays | None
+    indices : tuple of array | None
         Two arrays with indices of connections for which to compute
         connectivity. If None, all connections are computed.
     sfreq : float
@@ -57,12 +51,12 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
     mode : str
         Spectrum estimation mode can be either: 'multitaper', 'fourier', or
         'cwt_morlet'.
-    fmin : float | tuple of floats
+    fmin : float | tuple of float
         The lower frequency of interest. Multiple bands are defined using
         a tuple, e.g., (8., 20.) for two bands with 8Hz and 20Hz lower freq.
         If None the frequency corresponding to an epoch length of 5 cycles
         is used.
-    fmax : float | tuple of floats
+    fmax : float | tuple of float
         The upper frequency of interest. Multiple bands are dedined using
         a tuple, e.g. (13., 30.) for two band with 13Hz and 30Hz upper freq.
     tmin : float | None
@@ -76,11 +70,11 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
         Use adaptive weights to combine the tapered spectra into PSD.
         Only used in 'multitaper' mode.
     mt_low_bias : bool
-        Only use tapers with more than 90% spectral concentration within
+        Only use tapers with more than 90%% spectral concentration within
         bandwidth. Only used in 'multitaper' mode.
     cwt_freqs : array
         Array of frequencies of interest. Only used in 'cwt_morlet' mode.
-    cwt_n_cycles: float | array of float
+    cwt_n_cycles : float | array of float
         Number of cycles. Fixed number or one per frequency. Only used in
         'cwt_morlet' mode.
     block_size : int
@@ -88,9 +82,7 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
         but require more memory).
     n_jobs : int
         How many epochs to process in parallel.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
@@ -111,6 +103,12 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
     n_tapers : int
         The number of DPSS tapers used. Only defined in 'multitaper' mode.
         Otherwise None is returned.
+
+    References
+    ----------
+    [1] Nolte et al. "Robustly Estimating the Flow Direction of Information in
+        Complex Physical Systems", Physical Review Letters, vol. 100, no. 23,
+        pp. 1-4, Jun. 2008.
     """
     logger.info('Estimating phase slope index (PSI)')
     # estimate the coherency
@@ -153,10 +151,10 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
         for fi, fj in zip(freq_idx, freq_idx[1:]):
             idx_fi[freq_dim] = fi
             idx_fj[freq_dim] = fj
-            acc += np.conj(cohy[idx_fi]) * cohy[idx_fj]
+            acc += np.conj(cohy[tuple(idx_fi)]) * cohy[tuple(idx_fj)]
 
         idx_fi[freq_dim] = band_idx
-        psi[idx_fi] = np.imag(acc)
+        psi[tuple(idx_fi)] = np.imag(acc)
     logger.info('[PSI Estimation Done]')
 
     return psi, freqs, times, n_epochs, n_tapers

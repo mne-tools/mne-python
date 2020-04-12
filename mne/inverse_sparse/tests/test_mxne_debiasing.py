@@ -1,5 +1,5 @@
 # Authors: Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 
@@ -10,7 +10,7 @@ from mne.inverse_sparse.mxne_debiasing import compute_bias
 
 
 def test_compute_debiasing():
-    """Test source amplitude debiasing"""
+    """Test source amplitude debiasing."""
     rng = np.random.RandomState(42)
     G = rng.randn(10, 4)
     X = rng.randn(4, 20)

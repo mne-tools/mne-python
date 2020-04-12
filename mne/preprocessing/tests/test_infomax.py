@@ -2,10 +2,9 @@
 #
 # License: BSD (3-clause)
 
-"""
-Test the infomax algorithm.
-Parts of this code are taken from scikit-learn
-"""
+# Parts of this code are taken from scikit-learn
+
+import pytest
 
 import numpy as np
 from numpy.testing import assert_almost_equal
@@ -18,10 +17,10 @@ from mne.utils import requires_sklearn, run_tests_if_main, check_version
 
 
 def center_and_norm(x, axis=-1):
-    """ Centers and norms x **in place**
+    """Center and norm x in place.
 
     Parameters
-    -----------
+    ----------
     x: ndarray
         Array with an axis of observations (statistical units) measured on
         random variables.
@@ -35,9 +34,7 @@ def center_and_norm(x, axis=-1):
 
 @requires_sklearn
 def test_infomax_blowup():
-    """ Test the infomax algorithm blowup condition
-    """
-
+    """Test the infomax algorithm blowup condition."""
     # scipy.stats uses the global RNG:
     np.random.seed(0)
     n_samples = 100
@@ -50,7 +47,7 @@ def test_infomax_blowup():
 
     # Mixing angle
     phi = 0.6
-    mixing = np.array([[np.cos(phi),  np.sin(phi)],
+    mixing = np.array([[np.cos(phi),  np.sin(phi)],  # noqa: E241
                        [np.sin(phi), -np.cos(phi)]])
     m = np.dot(mixing, s)
 
@@ -76,8 +73,7 @@ def test_infomax_blowup():
 
 @requires_sklearn
 def test_infomax_simple():
-    """ Test the infomax algorithm on very simple data.
-    """
+    """Test the infomax algorithm on very simple data."""
     rng = np.random.RandomState(0)
     # scipy.stats uses the global RNG:
     np.random.seed(0)
@@ -91,7 +87,7 @@ def test_infomax_simple():
 
     # Mixing angle
     phi = 0.6
-    mixing = np.array([[np.cos(phi),  np.sin(phi)],
+    mixing = np.array([[np.cos(phi),  np.sin(phi)],  # noqa: E241
                        [np.sin(phi), -np.cos(phi)]])
     for add_noise in (False, True):
         m = np.dot(mixing, s)
@@ -124,9 +120,7 @@ def test_infomax_simple():
 
 
 def test_infomax_weights_ini():
-    """ Test the infomax algorithm when user provides an initial weights matrix.
-    """
-
+    """Test the infomax algorithm w/initial weights matrix."""
     X = np.random.random((3, 100))
     weights = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=np.float64)
 
@@ -139,8 +133,7 @@ def test_infomax_weights_ini():
 
 @requires_sklearn
 def test_non_square_infomax():
-    """ Test non-square infomax
-    """
+    """Test non-square infomax."""
     rng = np.random.RandomState(0)
 
     n_samples = 200
@@ -185,6 +178,21 @@ def test_non_square_infomax():
         if not add_noise:
             assert_almost_equal(np.dot(s1_, s1) / n_samples, 1, decimal=2)
             assert_almost_equal(np.dot(s2_, s2) / n_samples, 1, decimal=2)
+
+
+@pytest.mark.parametrize("return_n_iter", [True, False])
+def test_infomax_n_iter(return_n_iter):
+    """Test the return_n_iter kwarg."""
+    X = np.random.random((3, 100))
+    max_iter = 1
+    r = infomax(X, max_iter=max_iter, extended=True,
+                return_n_iter=return_n_iter)
+
+    if return_n_iter:
+        assert isinstance(r, tuple)
+        assert r[1] == max_iter
+    else:
+        assert isinstance(r, np.ndarray)
 
 
 def _get_pca(rng=None):

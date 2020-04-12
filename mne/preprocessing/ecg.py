@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
@@ -6,19 +6,21 @@
 
 import numpy as np
 
-from .. import pick_types, pick_channels
-from ..externals.six import string_types
+from ..annotations import _annotations_starts_stops
 from ..utils import logger, verbose, sum_squared, warn
 from ..filter import filter_data
 from ..epochs import Epochs, BaseEpochs
 from ..io.base import BaseRaw
 from ..evoked import Evoked
 from ..io import RawArray
-from .. import create_info
+from ..io.meas_info import create_info
+from ..io.pick import _picks_to_idx, pick_types, pick_channels
 
 
+@verbose
 def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
-                 l_freq=5, h_freq=35, tstart=0, filter_length='10s'):
+                 l_freq=5, h_freq=35, tstart=0, filter_length='10s',
+                 verbose=None):
     """Detect QRS component in ECG channels.
 
     QRS is the main wave on the heart beat.
@@ -44,6 +46,7 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
         Start detection after tstart seconds.
     filter_length : str | int | None
         Number of taps to use for filtering.
+    %(verbose)s
 
     Returns
     -------
@@ -73,7 +76,7 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
 
     if thresh_value == 'auto':
         thresh_runs = np.arange(0.3, 1.1, 0.05)
-    elif isinstance(thresh_value, string_types):
+    elif isinstance(thresh_value, str):
         raise ValueError('threshold value must be "auto" or a float')
     else:
         thresh_runs = [thresh_value]
@@ -131,15 +134,16 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
 @verbose
 def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
                     l_freq=5, h_freq=35, qrs_threshold='auto',
-                    filter_length='10s', return_ecg=False, verbose=None):
+                    filter_length='10s', return_ecg=False,
+                    reject_by_annotation=True, verbose=None):
     """Find ECG peaks.
 
     Parameters
     ----------
     raw : instance of Raw
-        The raw data
+        The raw data.
     event_id : int
-        The index to assign to found events
+        The index to assign to found events.
     ch_name : None | str
         The name of the channel to use for ECG peak detection.
         If None (default), a synthetic ECG channel is created from
@@ -149,9 +153,9 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
         Start detection after tstart seconds. Useful when beginning
         of run is noisy.
     l_freq : float
-        Low pass frequency.
+        Low pass frequency to apply to the ECG channel while finding events.
     h_freq : float
-        High pass frequency.
+        High pass frequency to apply to the ECG channel while finding events.
     qrs_threshold : float | str
         Between 0 and 1. qrs detection threshold. Can also be "auto" to
         automatically choose the threshold that generates a reasonable
@@ -161,9 +165,11 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     return_ecg : bool
         Return ecg channel if synthesized. Defaults to False. If True and
         and ecg exists this will yield None.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    reject_by_annotation : bool
+        Whether to omit data that is annotated as bad.
+
+        .. versionadded:: 0.18
+    %(verbose)s
 
     Returns
     -------
@@ -173,22 +179,60 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
         Name of channel used.
     average_pulse : float
         Estimated average pulse.
+
+    See Also
+    --------
+    create_ecg_epochs
+    compute_proj_ecg
     """
+    skip_by_annotation = ('edge', 'bad') if reject_by_annotation else ()
+    del reject_by_annotation
     idx_ecg = _get_ecg_channel_index(ch_name, raw)
     if idx_ecg is not None:
         logger.info('Using channel %s to identify heart beats.'
                     % raw.ch_names[idx_ecg])
-        ecg, times = raw[idx_ecg, :]
+        ecg = raw.get_data(picks=idx_ecg)
     else:
-        ecg, times = _make_ecg(raw, None, None, verbose=verbose)
+        ecg = _make_ecg(raw, None, None)[0]
+    assert ecg.ndim == 2 and ecg.shape[0] == 1
+    ecg = ecg[0]
+    # Deal with filtering the same way we do in raw, i.e. filter each good
+    # segment
+    onsets, ends = _annotations_starts_stops(
+        raw, skip_by_annotation, 'reject_by_annotation', invert=True)
+    ecgs = list()
+    max_idx = (ends - onsets).argmax()
+    for si, (start, stop) in enumerate(zip(onsets, ends)):
+        # Only output filter params once (for info level), and only warn
+        # once about the length criterion (longest segment is too short)
+        use_verbose = verbose if si == max_idx else 'error'
+        ecgs.append(filter_data(
+            ecg[start:stop], raw.info['sfreq'], l_freq, h_freq, [0],
+            filter_length, 0.5, 0.5, 1, 'fir', None, copy=False,
+            phase='zero-double', fir_window='hann', fir_design='firwin2',
+            verbose=use_verbose))
+    ecg = np.concatenate(ecgs)
 
-    # detecting QRS and generating event file
-    ecg_events = qrs_detector(raw.info['sfreq'], ecg.ravel(), tstart=tstart,
-                              thresh_value=qrs_threshold, l_freq=l_freq,
-                              h_freq=h_freq, filter_length=filter_length)
+    # detecting QRS and generating event file. Since not user-controlled, don't
+    # output filter params here (hardcode verbose=False)
+    ecg_events = qrs_detector(raw.info['sfreq'], ecg, tstart=tstart,
+                              thresh_value=qrs_threshold, l_freq=None,
+                              h_freq=None, verbose=False)
+
+    # map ECG events back to original times
+    remap = np.empty(len(ecg), int)
+    offset = 0
+    for start, stop in zip(onsets, ends):
+        this_len = stop - start
+        assert this_len >= 0
+        remap[offset:offset + this_len] = np.arange(start, stop)
+        offset += this_len
+    assert offset == len(ecg)
+    ecg_events = remap[ecg_events]
 
     n_events = len(ecg_events)
-    average_pulse = n_events * 60.0 / (times[-1] - times[0])
+    minutes = len(ecg) / (raw.info['sfreq'] * 60.)
+    average_pulse = n_events / minutes
     logger.info("Number of ECG events detected : %d (average pulse %d / "
                 "min.)" % (n_events, average_pulse))
 
@@ -196,6 +240,7 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
                            np.zeros(n_events, int),
                            event_id * np.ones(n_events, int)]).T
     out = (ecg_events, idx_ecg, average_pulse)
+    ecg = ecg[np.newaxis]  # backward compat output 2D
     if return_ecg:
         out += (ecg,)
     return out
@@ -235,25 +280,24 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
     Parameters
     ----------
     raw : instance of Raw
-        The raw data
+        The raw data.
     ch_name : None | str
         The name of the channel to use for ECG peak detection.
         If None (default), ECG channel is used if present. If None and no
         ECG channel is present, a synthetic ECG channel is created from
         cross channel average. Synthetic channel can only be created from
-        'meg' channels.
+        MEG channels.
     event_id : int
-        The index to assign to found events
-    picks : array-like of int | None (default)
-        Indices of channels to include. If None, all channels are used.
+        The index to assign to found events.
+    %(picks_all)s
     tmin : float
         Start time before event.
     tmax : float
         End time after event.
     l_freq : float
-        Low pass frequency.
+        Low pass frequency to apply to the ECG channel while finding events.
     h_freq : float
-        High pass frequency.
+        High pass frequency to apply to the ECG channel while finding events.
     reject : dict | None
         Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
@@ -279,7 +323,8 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         If baseline is equal to (None, None) all the time
         interval is used. If None, no correction is applied.
     preload : bool
-        Preload epochs or not.
+        Preload epochs or not (default True). Must be True if
+        keep_ecg is True.
     keep_ecg : bool
         When ECG is synthetically created (after picking), should it be added
         to the epochs? Must be False when synthetic channel is not used.
@@ -290,51 +335,57 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None, tmin=-0.5,
         rejected. If False, no rejection based on annotations is performed.
 
         .. versionadded:: 0.14.0
-
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+    %(verbose)s
 
     Returns
     -------
     ecg_epochs : instance of Epochs
         Data epoched around ECG r-peaks.
+
+    See Also
+    --------
+    find_ecg_events
+    compute_proj_ecg
+
+    Notes
+    -----
+    Filtering is only applied to the ECG channel while finding events.
+    The resulting ``ecg_epochs`` will have no filtering applied (i.e., have
+    the same filter properties as the input ``raw`` instance).
     """
     has_ecg = 'ecg' in raw or ch_name is not None
+    if keep_ecg and (has_ecg or not preload):
+        raise ValueError('keep_ecg can be True only if the ECG channel is '
+                         'created synthetically and preload=True.')
 
     events, _, _, ecg = find_ecg_events(
         raw, ch_name=ch_name, event_id=event_id, l_freq=l_freq, h_freq=h_freq,
-        return_ecg=True, verbose=verbose)
+        return_ecg=True, reject_by_annotation=reject_by_annotation)
 
-    # Load raw data so that add_channels works
-    raw.load_data()
+    picks = _picks_to_idx(raw.info, picks, 'all', exclude=())
 
-    if not has_ecg:
-        ecg_raw = RawArray(
-            ecg[None],
-            create_info(ch_names=['ECG-SYN'],
-                        sfreq=raw.info['sfreq'], ch_types=['ecg']))
-        ignore = ['ch_names', 'chs', 'nchan', 'bads']
-        for k, v in raw.info.items():
-            if k not in ignore:
-                ecg_raw.info[k] = v
-        raw.add_channels([ecg_raw])
-
-    if keep_ecg:
-        if has_ecg:
-            raise ValueError('keep_ecg can be True only if the ECG channel is '
-                             'created synthetically.')
-        else:
-            picks = np.append(picks, raw.ch_names.index('ECG-SYN'))
     # create epochs around ECG events and baseline (important)
     ecg_epochs = Epochs(raw, events=events, event_id=event_id,
                         tmin=tmin, tmax=tmax, proj=False, flat=flat,
                         picks=picks, reject=reject, baseline=baseline,
                         reject_by_annotation=reject_by_annotation,
-                        verbose=verbose, preload=preload)
+                        preload=preload)
 
-    if not has_ecg:
-        raw.drop_channels(['ECG-SYN'])
+    if keep_ecg:
+        # We know we have created a synthetic channel and epochs are preloaded
+        ecg_raw = RawArray(
+            ecg, create_info(ch_names=['ECG-SYN'],
+                             sfreq=raw.info['sfreq'], ch_types=['ecg']),
+            first_samp=raw.first_samp)
+        ignore = ['ch_names', 'chs', 'nchan', 'bads']
+        for k, v in raw.info.items():
+            if k not in ignore:
+                ecg_raw.info[k] = v
+        syn_epochs = Epochs(ecg_raw, events=ecg_epochs.events,
+                            event_id=event_id, tmin=tmin, tmax=tmax,
+                            proj=False, picks=[0], baseline=baseline,
+                            preload=True)
+        ecg_epochs = ecg_epochs.add_channels([syn_epochs])
 
     return ecg_epochs
 
@@ -347,7 +398,7 @@ def _make_ecg(inst, start, stop, reject_by_annotation=False, verbose=None):
     for ch in ['mag', 'grad']:
         if ch in inst:
             break
-    logger.info('Reconstructing ECG signal from {0}'
+    logger.info('Reconstructing ECG signal from {}'
                 .format({'mag': 'Magnetometers',
                          'grad': 'Gradiometers'}[ch]))
     picks = pick_types(inst.info, meg=ch, eeg=False, ref_meg=False)
@@ -361,4 +412,4 @@ def _make_ecg(inst, start, stop, reject_by_annotation=False, verbose=None):
     elif isinstance(inst, Evoked):
         ecg = inst.data
         times = inst.times
-    return ecg.mean(0), times
+    return ecg.mean(0, keepdims=True), times

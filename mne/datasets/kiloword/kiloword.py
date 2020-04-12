@@ -27,8 +27,7 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
     update_path : bool | None
         If True, set the MNE_DATASETS_KILOWORD_PATH in mne-python
         config to the given path. If None, the user is prompted.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+    %(verbose)s
 
     Returns
     -------

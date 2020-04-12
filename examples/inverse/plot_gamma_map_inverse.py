@@ -44,7 +44,7 @@ forward = mne.read_forward_solution(fwd_fname)
 
 # Read noise noise covariance matrix and regularize it
 cov = mne.read_cov(cov_fname)
-cov = mne.cov.regularize(cov, evoked.info)
+cov = mne.cov.regularize(cov, evoked.info, rank=None)
 
 # Run the Gamma-MAP method with dipole output
 alpha = 0.5
@@ -73,11 +73,11 @@ plot_dipole_locations(dipoles[idx], forward['mri_head_t'], 'sample',
 ylim = dict(grad=[-120, 120])
 evoked.pick_types(meg='grad', exclude='bads')
 evoked.plot(titles=dict(grad='Evoked Response Gradiometers'), ylim=ylim,
-            proj=True)
+            proj=True, time_unit='s')
 
 residual.pick_types(meg='grad', exclude='bads')
 residual.plot(titles=dict(grad='Residuals Gradiometers'), ylim=ylim,
-              proj=True)
+              proj=True, time_unit='s')
 
 ###############################################################################
 # Generate stc from dipoles

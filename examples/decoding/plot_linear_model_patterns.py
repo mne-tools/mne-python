@@ -4,7 +4,7 @@
 Linear classifier on sensor data with plot patterns and filters
 ===============================================================
 
-Decoding, a.k.a MVPA or supervised machine learning applied to MEG and EEG
+Here decoding, a.k.a MVPA or supervised machine learning, is applied to M/EEG
 data in sensor space. Fit a linear classifier with the LinearModel object
 providing topographical patterns which are more neurophysiologically
 interpretable [1]_ than the classifier filters (weight vectors).
@@ -21,7 +21,7 @@ References
        weight vectors of linear models in multivariate neuroimaging.
        NeuroImage, 87, 96–110. doi:10.1016/j.neuroimage.2013.10.067
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #          Romain Trachel <trachelr@gmail.com>
 #          Jean-Remi King <jeanremi.king@gmail.com>
 #
@@ -68,7 +68,7 @@ meg_data = meg_epochs.get_data().reshape(len(labels), -1)
 ###############################################################################
 # Decoding in sensor space using a LogisticRegression classifier
 
-clf = LogisticRegression()
+clf = LogisticRegression(solver='lbfgs')
 scaler = StandardScaler()
 
 # create a linear model with LogisticRegression
@@ -90,7 +90,7 @@ for name, coef in (('patterns', model.patterns_), ('filters', model.filters_)):
 
     # Plot
     evoked = EvokedArray(coef, meg_epochs.info, tmin=epochs.tmin)
-    evoked.plot_topomap(title='MEG %s' % name)
+    evoked.plot_topomap(title='MEG %s' % name, time_unit='s')
 
 ###############################################################################
 # Let's do the same on EEG data using a scikit-learn pipeline
@@ -102,7 +102,8 @@ y = epochs.events[:, 2]
 clf = make_pipeline(
     Vectorizer(),                       # 1) vectorize across time and channels
     StandardScaler(),                   # 2) normalize features across trials
-    LinearModel(LogisticRegression()))  # 3) fits a logistic regression
+    LinearModel(
+        LogisticRegression(solver='lbfgs')))  # 3) fits a logistic regression
 clf.fit(X, y)
 
 # Extract and plot patterns and filters
@@ -111,4 +112,4 @@ for name in ('patterns_', 'filters_'):
     # contained in the pipeline, in reverse order.
     coef = get_coef(clf, name, inverse_transform=True)
     evoked = EvokedArray(coef, epochs.info, tmin=epochs.tmin)
-    evoked.plot_topomap(title='EEG %s' % name[:-1])
+    evoked.plot_topomap(title='EEG %s' % name[:-1], time_unit='s')

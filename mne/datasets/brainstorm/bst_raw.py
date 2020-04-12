@@ -4,11 +4,11 @@
 
 from functools import partial
 
-from ...utils import verbose
+from ...utils import verbose, get_config
 from ..utils import (has_dataset, _data_path, _get_version, _version_doc,
                      _data_path_doc)
 
-has_brainstorm_data = partial(has_dataset, name='brainstorm')
+has_brainstorm_data = partial(has_dataset, name='brainstorm.bst_raw')
 
 _description = u"""
 URL: http://neuroimage.usc.edu/brainstorm/DatasetMedianNerveCtf
@@ -42,7 +42,7 @@ data_path.__doc__ = _data_path_doc
 
 
 def get_version():  # noqa: D103
-    return _get_version('brainstorm')
+    return _get_version('brainstorm.bst_raw')
 
 
 get_version.__doc__ = _version_doc.format(name='brainstorm')
@@ -52,3 +52,17 @@ def description():  # noqa: D103
     """Get description of brainstorm (bst_raw) dataset."""
     for desc in _description.splitlines():
         print(desc)
+
+
+def _skip_bstraw_data():
+    skip_testing = (get_config('MNE_SKIP_TESTING_DATASET_TESTS', 'false') ==
+                    'true')
+    skip = skip_testing or not has_brainstorm_data()
+    return skip
+
+
+def requires_bstraw_data(func):
+    """Skip testing data test."""
+    import pytest
+    return pytest.mark.skipif(_skip_bstraw_data(),
+                              reason='Requires brainstorm dataset')(func)

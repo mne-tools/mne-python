@@ -8,8 +8,8 @@ a list of events. For illustration, we compute the evoked responses
 for both MEG and EEG data by averaging all the epochs.
 
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Matti Hämäläinen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
@@ -45,4 +45,4 @@ evoked = epochs.average()  # average epochs to get the evoked response
 
 ###############################################################################
 # Show result
-evoked.plot()
+evoked.plot(time_unit='s')

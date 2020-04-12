@@ -1,7 +1,7 @@
 """
-================
- XDAWN Denoising
-================
+===============
+XDAWN Denoising
+===============
 
 XDAWN filters are trained from epochs, signal is projected in the sources
 space and then projected back in the sensor space using only the first two
@@ -64,6 +64,10 @@ epochs = Epochs(raw, events, event_id, tmin, tmax, proj=False,
 # Plot image epoch before xdawn
 plot_epochs_image(epochs['vis_r'], picks=[230], vmin=-500, vmax=500)
 
+###############################################################################
+# Now, we estimate a set of xDAWN filters for the epochs (which contain only
+# the ``vis_r`` class).
+
 # Estimates signal covariance
 signal_cov = compute_raw_covariance(raw, picks=picks)
 
@@ -73,7 +77,10 @@ xd = Xdawn(n_components=2, signal_cov=signal_cov)
 # Fit xdawn
 xd.fit(epochs)
 
-# Denoise epochs
+###############################################################################
+# Epochs are denoised by calling ``apply``, which by default keeps only the
+# signal subspace corresponding to the first ``n_components`` specified in the
+# ``Xdawn`` constructor above.
 epochs_denoised = xd.apply(epochs)
 
 # Plot image epoch after Xdawn

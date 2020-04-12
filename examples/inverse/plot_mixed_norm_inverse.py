@@ -7,23 +7,13 @@ Runs an (ir)MxNE (L1/L2 [1]_ or L0.5/L2 [2]_ mixed norm) inverse solver.
 L0.5/L2 is done with irMxNE which allows for sparser
 source estimates with less amplitude bias due to the non-convexity
 of the L0.5/L2 mixed norm penalty.
-
-References
-----------
-.. [1] Gramfort A., Kowalski M. and Hamalainen, M.
-   "Mixed-norm estimates for the M/EEG inverse problem using accelerated
-   gradient methods", Physics in Medicine and Biology, 2012.
-   http://dx.doi.org/10.1088/0031-9155/57/7/1937.
-
-.. [2] Strohmeier D., Haueisen J., and Gramfort A.
-   "Improved MEG/EEG source localization with reweighted mixed-norms",
-   4th International Workshop on Pattern Recognition in Neuroimaging,
-   Tuebingen, 2014. 10.1109/PRNI.2014.6858545
 """
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: BSD (3-clause)
+
+# sphinx_gallery_thumbnail_number = 2
 
 import numpy as np
 
@@ -82,19 +72,19 @@ plot_dipole_locations(dipoles[idx], forward['mri_head_t'], 'sample',
                       subjects_dir=subjects_dir, mode='orthoview',
                       idx='amplitude')
 
-# # Plot dipole locations of all dipoles with MRI slices
-# for dip in dipoles:
-#     plot_dipole_locations(dip, forward['mri_head_t'], 'sample',
-#                           subjects_dir=subjects_dir, mode='orthoview',
-#                           idx='amplitude')
+# Plot dipole locations of all dipoles with MRI slices
+for dip in dipoles:
+    plot_dipole_locations(dip, forward['mri_head_t'], 'sample',
+                          subjects_dir=subjects_dir, mode='orthoview',
+                          idx='amplitude')
 
 ###############################################################################
 # Plot residual
 ylim = dict(eeg=[-10, 10], grad=[-400, 400], mag=[-600, 600])
 evoked.pick_types(meg=True, eeg=True, exclude='bads')
-evoked.plot(ylim=ylim, proj=True)
+evoked.plot(ylim=ylim, proj=True, time_unit='s')
 residual.pick_types(meg=True, eeg=True, exclude='bads')
-residual.plot(ylim=ylim, proj=True)
+residual.plot(ylim=ylim, proj=True, time_unit='s')
 
 ###############################################################################
 # Generate stc from dipoles
@@ -102,17 +92,33 @@ stc = make_stc_from_dipoles(dipoles, forward['src'])
 
 ###############################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)
+solver = "MxNE" if n_mxne_iter == 1 else "irMxNE"
 plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
-                             fig_name="MxNE (cond %s)" % condition,
+                             fig_name="%s (cond %s)" % (solver, condition),
                              opacity=0.1)
 
 ###############################################################################
 # Morph onto fsaverage brain and view
-stc_fsaverage = stc.morph(subject_from='sample', subject_to='fsaverage',
-                          grade=None, sparse=True, subjects_dir=subjects_dir)
+morph = mne.compute_source_morph(stc, subject_from='sample',
+                                 subject_to='fsaverage', spacing=None,
+                                 sparse=True, subjects_dir=subjects_dir)
+stc_fsaverage = morph.apply(stc)
 src_fsaverage_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
 src_fsaverage = mne.read_source_spaces(src_fsaverage_fname)
 
 plot_sparse_source_estimates(src_fsaverage, stc_fsaverage, bgcolor=(1, 1, 1),
-                             fig_name="Morphed MxNE (cond %s)" % condition,
-                             opacity=0.1)
+                             fig_name="Morphed %s (cond %s)" % (solver,
+                             condition), opacity=0.1)
+
+###############################################################################
+# References
+# ----------
+# .. [1] Gramfort A., Kowalski M. and Hämäläinen, M.
+#    "Mixed-norm estimates for the M/EEG inverse problem using accelerated
+#    gradient methods", Physics in Medicine and Biology, 2012.
+#    https://doi.org/10.1088/0031-9155/57/7/1937.
+#
+# .. [2] Strohmeier D., Haueisen J., and Gramfort A.
+#    "Improved MEG/EEG source localization with reweighted mixed-norms",
+#    4th International Workshop on Pattern Recognition in Neuroimaging,
+#    Tuebingen, 2014. 10.1109/PRNI.2014.6858545

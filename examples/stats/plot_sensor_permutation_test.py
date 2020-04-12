@@ -8,7 +8,7 @@ during a fixed time window of interest. Here computation
 is performed on MNE sample dataset between 40 and 60 ms.
 
 """
-# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
 #
 # License: BSD (3-clause)
 
@@ -67,4 +67,5 @@ mask = p_values[:, np.newaxis] <= 0.05
 evoked.plot_topomap(ch_type='grad', times=[0], scalings=1,
                     time_format=None, cmap='Reds', vmin=0., vmax=np.max,
                     units='-log10(p)', cbar_fmt='-%0.1f', mask=mask,
-                    size=3, show_names=lambda x: x[4:] + ' ' * 20)
+                    size=3, show_names=lambda x: x[4:] + ' ' * 20,
+                    time_unit='s')

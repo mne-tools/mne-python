@@ -8,7 +8,7 @@ from ...utils import verbose
 from ..utils import (has_dataset, _data_path, _get_version, _version_doc,
                      _data_path_doc)
 
-has_brainstorm_data = partial(has_dataset, name='brainstorm')
+has_brainstorm_data = partial(has_dataset, name='brainstorm.bst_resting')
 
 _description = u"""
 URL: http://neuroimage.usc.edu/brainstorm/DatasetResting
@@ -35,7 +35,7 @@ data_path.__doc__ = _data_path_doc
 
 
 def get_version():  # noqa: D103
-    return _get_version('brainstorm')
+    return _get_version('brainstorm.bst_resting')
 
 
 get_version.__doc__ = _version_doc.format(name='brainstorm')
