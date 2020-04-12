@@ -539,7 +539,7 @@ def _read_edf_header(fname, exclude):
 
         # Recording ID
         meas_id = {}
-        meas_id['recording_id'] = fid.read(80).decode().strip(' \x00')
+        meas_id['recording_id'] = fid.read(80).decode('latin-1').strip(' \x00')
 
         day, month, year = [int(x) for x in
                             re.findall(r'(\d+)', fid.read(8).decode())]
