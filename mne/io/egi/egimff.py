@@ -45,9 +45,10 @@ def _read_mff_header(filepath):
     bad = (n_samps_epochs != n_samps_block or
            not (epochs['first_samps'] < epochs['last_samps']).all() or
            not (epochs['first_samps'][1:] >= epochs['last_samps'][:-1]).all())
-    egi_internal_error = 'Internal EGI inconsistency'
     if bad:
-        raise RuntimeError(egi_internal_error)
+        raise RuntimeError('EGI epoch first/last samps could not be parsed:\n'
+                           '%s\n%s' % (list(epochs['first_samps']),
+                                       list(epochs['last_samps'])))
     summaryinfo.update(epochs)
     # index which samples in raw are actually readable from disk (i.e., not
     # in a skip)
@@ -83,7 +84,9 @@ def _read_mff_header(filepath):
             chan_unit.append('uV')
             n_chans = n_chans + 1
     if n_chans != summaryinfo['n_channels']:
-        raise RuntimeError(egi_internal_error)
+        raise RuntimeError('Number of defined channels (%d) did not match the '
+                           'expected channels (%d)'
+                           % (n_chans, summaryinfo['n_channels']))
 
     # Check presence of PNS data
     pns_names = []
@@ -96,7 +99,9 @@ def _read_mff_header(filepath):
                                       signal_samples[:-1]) and
                        pns_samples[-1] in (signal_samples[-1] - np.arange(2)))
         if not same_blocks:
-            raise RuntimeError(egi_internal_error)
+            raise RuntimeError('PNS and signals samples did not match:\n'
+                               '%s\nvs\n%s'
+                               % (list(pns_samples), list(signal_samples)))
 
         pns_file = op.join(filepath, 'pnsSet.xml')
         pns_obj = parse(pns_file)
