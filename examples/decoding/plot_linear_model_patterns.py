@@ -58,6 +58,7 @@ events = mne.read_events(event_fname)
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     decim=2, baseline=None, preload=True)
+del raw
 
 labels = epochs.events[:, -1]
 
