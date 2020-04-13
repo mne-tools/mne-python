@@ -611,10 +611,18 @@ class _GridData(object):
             v_extra = np.zeros(self.n_extra)
             indices, indptr = self.tri.vertex_neighbor_vertices
             rng = range(n_points, n_points + self.n_extra)
+            used = np.zeros(len(rng), bool)
             for idx, extra_idx in enumerate(rng):
                 ngb = indptr[indices[extra_idx]:indices[extra_idx + 1]]
                 ngb = ngb[ngb < n_points]
-                v_extra[idx] = v[ngb].mean()
+                if len(ngb) > 0:
+                    used[idx] = True
+                    v_extra[idx] = v[ngb].mean()
+            if not used.all() and used.any():
+                # Eventually we might want to use the value of the nearest
+                # point or something, but this case should hopefully be
+                # rare so for now just use the average value of all extras
+                v_extra[~used] = np.mean(v_extra[used])
         else:
             v_extra = np.full(self.n_extra, self.border, dtype=float)
 
