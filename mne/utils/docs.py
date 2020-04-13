@@ -75,21 +75,26 @@ docdict['topomap_extrapolate'] = """
 extrapolate : str
     Options:
 
-    - 'box' (default)
+    - ``'box'``
         Extrapolate to four points placed to form a square encompassing all
         data points, where each side of the square is three times the range
         of the data in the respective dimension.
-    - 'local'
+    - ``'local'`` (default)
         Extrapolate only to nearby points (approximately to points closer than
-        median inter-electrode distance).
-    - 'head'
+        median inter-electrode distance). This will also set the
+        mask to be polygonal based on the convex hull of the sensors.
+    - ``'head'``
         Extrapolate to the edges of the head circle (does not work well
         with sensors outside the head circle).
+
+    .. versionchanged:: 0.21
+       The default was changed to ``'local'``, and ``'local'`` was changed to
+       use a convex hull mask.
 """
 docdict['topomap_border'] = """
 border : float | 'mean'
-    Value to extrapolate to on the topomap borders. If ``'mean'`` then each
-    extrapolated point has the average value of its neighbours.
+    Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
+    then each extrapolated point has the average value of its neighbours.
 
     .. versionadded:: 0.20
 """

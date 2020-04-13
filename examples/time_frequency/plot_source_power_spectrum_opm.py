@@ -95,7 +95,7 @@ ssp_ecg_eog, _ = mne.preprocessing.compute_proj_eog(
 raws['vv'].add_proj(ssp_ecg_eog, remove_existing=True)
 raw_erms['vv'].add_proj(ssp_ecg_eog)
 fig = mne.viz.plot_projs_topomap(raws['vv'].info['projs'][-4:],
-                                 info=raws['vv'].info)
+                                 info=raws['vv'].info, extrapolate='local')
 fig.suptitle(titles['vv'])
 fig.subplots_adjust(0.05, 0.05, 0.95, 0.85)
 
