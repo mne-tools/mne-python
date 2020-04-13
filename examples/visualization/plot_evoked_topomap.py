@@ -83,13 +83,13 @@ evoked.plot_topomap(times, ch_type='mag', cmap='Spectral_r', res=32,
 
 ###############################################################################
 # If you look at the edges of the head circle of a single topomap you'll see
-# the effect of extrapolation. By default ``extrapolate='box'`` is used which
-# extrapolates to a large box stretching beyond the head circle.
+# the effect of extrapolation. By default ``extrapolate='local'`` is used which
+# extrapolates to points close to the sensors.
 # Compare this with ``extrapolate='head'`` (second topography below) where
-# extrapolation goes to 0 at the head circle and ``extrapolate='local'`` where
-# extrapolation is performed only within some distance from channels:
+# extrapolation goes to 0 at the head circle and ``extrapolate='box'`` where
+# extrapolation extends out to a large box stretching beyond the head circle:
 
-extrapolations = ['box', 'head', 'local']
+extrapolations = ['local', 'head', 'box']
 fig, axes = plt.subplots(figsize=(7.5, 2.5), ncols=3)
 
 # Here we look at EEG channels, and use a custom head sphere to get all the
@@ -107,7 +107,7 @@ for ax, extr in zip(axes, extrapolations):
 # post-stimulus, add channel labels, title and adjust plot margins:
 evoked.plot_topomap(0.1, ch_type='mag', show_names=True, colorbar=False,
                     size=6, res=128, title='Auditory response',
-                    time_unit='s', extrapolate='local', border='mean')
+                    time_unit='s'
 plt.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.88)
 
 ###############################################################################
