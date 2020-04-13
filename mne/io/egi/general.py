@@ -64,7 +64,7 @@ def _get_ep_info(filepath):
         epoch_info['first_blocks'].append(first_block)
         epoch_info['last_blocks'].append(last_block)
     for key in keys:
-        epoch_info[key] = np.array(epoch_info[key], int)
+        epoch_info[key] = np.array(epoch_info[key], np.uint64)
     return epoch_info
 
 
