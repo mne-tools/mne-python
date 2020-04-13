@@ -265,7 +265,7 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
                        colorbar=False, res=64, size=1, show=True,
                        outlines='head', contours=6, image_interp='bilinear',
                        axes=None, vlim=(None, None),
-                       sphere=None, extrapolate='box', border=0):
+                       sphere=None, extrapolate='box', border='mean'):
     """Plot topographic maps of SSP projections.
 
     Parameters
@@ -461,15 +461,10 @@ def _get_extra_points(pos, extrapolate, sphere):
 
     # the old method of placement - large box
     if extrapolate == 'box':
-        extremes = np.array([pos.min(axis=0), pos.max(axis=0)])
-        diffs = extremes[1] - extremes[0]
-        extremes[0] -= diffs
-        extremes[1] += diffs
-        eidx = np.array(list(itertools.product(
-            *([[0] * (pos.shape[1] - 1) + [1]] * pos.shape[1]))))
-        pidx = np.tile(np.arange(pos.shape[1])[np.newaxis], (len(eidx), 1))
-        outer_pts = extremes[eidx, pidx]
-        return outer_pts, Delaunay(np.concatenate((pos, outer_pts)))
+        extrapolate = 'local'
+        add_box = True
+    else:
+        add_box = False
 
     # check if positions are colinear:
     diffs = np.diff(pos, axis=0)
@@ -526,15 +521,15 @@ def _get_extra_points(pos, extrapolate, sphere):
         radial_dir = hull_pos - channels_center[np.newaxis, :]
         unit_radial_dir = radial_dir / np.linalg.norm(radial_dir, axis=-1,
                                                       keepdims=True)
-        hull_extended = hull_pos + unit_radial_dir * distance
+        hull_extended = hull_pos + unit_radial_dir * distance * 0.5
         hull_diff = np.diff(hull_pos, axis=1)[:, 0]
         hull_distances = np.linalg.norm(hull_diff, axis=-1)
 
         # add points along hull edges so that the distance between points
-        # is around that of average distance between channels
+        # is around half of that of average distance between channels
         add_points = list()
         eps = np.finfo('float').eps
-        n_times_dist = np.round(hull_distances / distance).astype('int')
+        n_times_dist = np.round(0.5 * hull_distances / distance).astype('int')
         for n in range(2, n_times_dist.max() + 1):
             mask = n_times_dist == n
             mult = np.arange(1 / n, 1 - eps, 1 / n)[:, np.newaxis, np.newaxis]
@@ -557,6 +552,18 @@ def _get_extra_points(pos, extrapolate, sphere):
             tri = Delaunay(np.concatenate([pos, new_pos], axis=0))
             return new_pos, tri
     tri.add_points(new_pos)
+
+    if add_box:
+        extremes = np.array([new_pos.min(axis=0), new_pos.max(axis=0)])
+        diffs = extremes[1] - extremes[0]
+        extremes[0] -= diffs
+        extremes[1] += diffs
+        eidx = np.array(list(itertools.product(
+            *([[0] * (new_pos.shape[1] - 1) + [1]] * new_pos.shape[1]))))
+        pidx = np.tile(np.arange(new_pos.shape[1])[np.newaxis], (len(eidx), 1))
+        outer_pts = extremes[eidx, pidx]
+        new_pos, tri = np.concatenate([new_pos, outer_pts]), Delaunay(np.concatenate((pos, new_pos, outer_pts)))
+
     return new_pos, tri
 
 
@@ -575,6 +582,7 @@ class _GridData(object):
 
         # Adding points outside the extremes helps the interpolators
         outer_pts, tri = _get_extra_points(pos, extrapolate, sphere)
+        self.has_box = extrapolate == 'box'
         self.n_extra = outer_pts.shape[0]
         self.border = border
         self.tri = tri
@@ -599,10 +607,17 @@ class _GridData(object):
             v_extra = np.zeros(self.n_extra)
             indices, indptr = self.tri.vertex_neighbor_vertices
             rng = range(n_points, n_points + self.n_extra)
+            stop = len(rng) - 4 if self.has_box else len(rng)
             for idx, extra_idx in enumerate(rng):
                 ngb = indptr[indices[extra_idx]:indices[extra_idx + 1]]
-                ngb = ngb[ngb < n_points]
-                v_extra[idx] = v[ngb].mean()
+                if idx < stop:
+                    ngb = ngb[ngb < n_points]
+                    v_extra[idx] = np.median(v[ngb])
+                else:
+                    # The box points come from the already constructed
+                    # local extrapolation points
+                    ngb = ngb[ngb > n_points] - n_points
+                    v_extra[idx] = v[ngb].mean()
         else:
             v_extra = np.full(self.n_extra, self.border, dtype=float)
 
@@ -648,7 +663,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                  mask_params=None, outlines='head',
                  contours=6, image_interp='bilinear', show=True,
                  onselect=None, extrapolate='box',
-                 sphere=None, border=0):
+                 sphere=None, border='mean'):
     """Plot a topographic map as image.
 
     Parameters
@@ -765,7 +780,7 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                   mask_params=None, outlines='head',
                   contours=6, image_interp='bilinear', show=True,
                   onselect=None, extrapolate='box',
-                  sphere=None, border=0):
+                  sphere=None, border='mean'):
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
     data = np.asarray(data)
@@ -937,7 +952,7 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64,
                       title=None, show=True, outlines='head', contours=6,
                       image_interp='bilinear', axes=None,
                       sensors=True, allow_ref_meg=False, extrapolate='box',
-                      sphere=None, border=0):
+                      sphere=None, border='mean'):
     """Plot single ica map to axes."""
     from matplotlib.axes import Axes
 
@@ -1403,8 +1418,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
                         show=True, show_names=False, title=None, mask=None,
                         mask_params=None, outlines='head', contours=6,
                         image_interp='bilinear', average=None,
-                        axes=None, extrapolate='box', sphere=None, border=0,
-                        nrows=1, ncols='auto'):
+                        axes=None, extrapolate='box', sphere=None,
+                        border='mean', nrows=1, ncols='auto'):
     """Plot topographic maps of specific time points of evoked data.
 
     Parameters

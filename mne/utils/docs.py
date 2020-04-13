@@ -88,10 +88,12 @@ extrapolate : str
 """
 docdict['topomap_border'] = """
 border : float | 'mean'
-    Value to extrapolate to on the topomap borders. If ``'mean'`` then each
-    extrapolated point has the average value of its neighbours.
+    Value to extrapolate to on the topomap borders. If ``'mean'`` (default)
+    then each extrapolated point has the average value of its neighbours.
 
     .. versionadded:: 0.20
+    .. versionchanged:: 0.21
+       Default changed to ``'mean'``.
 """
 docdict['topomap_sphere'] = """
 sphere : float | array-like | instance of ConductorModel

@@ -51,7 +51,7 @@ class Projection(dict):
     def plot_topomap(self, info, cmap=None, sensors=True,
                      colorbar=False, res=64, size=1, show=True,
                      outlines='head', contours=6, image_interp='bilinear',
-                     axes=None, vlim=(None, None), sphere=None, border=0):
+                     axes=None, vlim=(None, None), sphere=None, border='mean'):
         """Plot topographic maps of SSP projections.
 
         Parameters
@@ -250,7 +250,7 @@ class ProjMixin(object):
                            show=True, outlines='head', contours=6,
                            image_interp='bilinear', axes=None,
                            vlim=(None, None), sphere=None, extrapolate='box',
-                           border=0):
+                           border='mean'):
         """Plot SSP vector.
 
         Parameters

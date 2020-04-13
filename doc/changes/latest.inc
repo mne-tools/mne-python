@@ -42,6 +42,10 @@ Bug
 
 - Fix bug with :func:`mne.make_forward_dipole` where :func:`mne.write_forward_solution` could not be used by `Eric Larson`_
 
+- Default ``border`` argument for :func:`mne.Evoked.plot_topomap` and related functions was changed from ``0.`` to ``'mean'`` to help borders be more correct by `Eric Larson`_
+
+- The ``extrapolate='box'`` mode now uses ``'local'`` extrapolation first, then adds a box outside to reduce edge artifacts by `Eric Larson`_
+
 - Fix bug that prevents ``n_jobs`` from being a NumPy integer type, by `Daniel McCloy`_.
 
 - Fix bug with :func:`mne.io.read_raw_gdf` where birthdays were not parsed properly, leading to an error by `Svea Marie Meyer`_
