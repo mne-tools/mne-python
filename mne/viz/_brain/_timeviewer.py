@@ -780,6 +780,7 @@ class _TimeViewer(object):
 
     def load_icons(self):
         from PyQt5.QtGui import QIcon
+        resources.qInitResources()
         self.icons["help"] = QIcon(":/help.svg")
         self.icons["play"] = QIcon(":/play.svg")
         self.icons["pause"] = QIcon(":/pause.svg")
@@ -1045,6 +1046,7 @@ class _TimeViewer(object):
         self.act_data["lh"] = None
         self.act_data["rh"] = None
         self.act_data = None
+        resources.qCleanupResources()
 
 
 class _LinkViewer(object):
