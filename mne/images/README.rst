@@ -9,7 +9,7 @@ It is necessary to build those images into a resource file for proper usage by
 the application.
 
 The resource configuration file `mne.qrc` describes the location of the resources
-in the filesystem and also define aliases for their use in the code.
+in the filesystem and also defines aliases for their use in the code.
 
 To generate automatically the resource file in `mne/viz/_brain`:
 
