@@ -16,9 +16,10 @@ from ...externals.decorator import decorator
 from ...source_space import vertex_to_mni
 from ...utils import _ReuseCycle
 
-# all icons are stored in mne/resources.py, which must be automatically
-# generated with "pyrcc5 -o mne/resources.py mne.qrc"
-from ... import resources  # noqa
+# all icons are stored in mne/viz/_brain/resources.py, which must be
+# automatically generated with:
+# "pyrcc5 -o mne/viz/_brain/resources.py mne.qrc"
+from . import resources  # noqa
 
 
 @decorator
