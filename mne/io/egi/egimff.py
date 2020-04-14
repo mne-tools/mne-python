@@ -41,6 +41,10 @@ def _read_mff_header(filepath):
     if n_samps_epochs == n_samps_block * 1000:
         for key in ('last_samps', 'first_samps'):
             epochs[key] //= 1000
+    for key in ('last_samps', 'first_samps'):
+        # Should be safe to cast to int now, which makes things later not
+        # upbroadcast to float
+        epochs[key] = epochs[key].astype(np.int64)
     n_samps_epochs = (epochs['last_samps'] - epochs['first_samps']).sum()
     bad = (n_samps_epochs != n_samps_block or
            not (epochs['first_samps'] < epochs['last_samps']).all() or
