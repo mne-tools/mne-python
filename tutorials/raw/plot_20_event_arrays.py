@@ -33,7 +33,7 @@ raw.crop(tmax=60).load_data()
 # :class:`~mne.io.Raw` object (see the section
 # :ref:`overview-tut-events-section` for details). Since the :ref:`sample
 # dataset <sample-dataset>` includes experimental events recorded on
-# :term:`STIM channel` ``STI 014``, we'll start this tutorial by parsing the
+# :term:`stim channel` ``STI 014``, we'll start this tutorial by parsing the
 # events from that channel using :func:`mne.find_events`:
 
 events = mne.find_events(raw, stim_channel='STI 014')

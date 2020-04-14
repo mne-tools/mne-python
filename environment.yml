@@ -30,9 +30,11 @@ dependencies:
 - pyface>=6
 - traitsui>=6
 - vtk
+- imageio>=2.6.1
 - pip:
   - mne
   - https://github.com/numpy/numpydoc/archive/master.zip
+  - imageio-ffmpeg>=0.4.1
   - pyvista>=0.24
   - mayavi
   - PySurfer[save_movie]

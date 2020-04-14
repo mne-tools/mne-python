@@ -299,3 +299,5 @@
 .. _Adam Li: http://github.com/adam2392
 
 .. _Ramiro Gatti: https://github.com/ragatti
+
+.. _Svea Marie Meyer: https://github.com/SveaMeyer13

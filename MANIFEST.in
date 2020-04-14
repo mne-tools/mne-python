@@ -57,6 +57,9 @@ exclude .github/ISSUE_TEMPLATE/bug_report.md
 exclude .github/ISSUE_TEMPLATE/feature_request.md
 exclude .github/PULL_REQUEST_TEMPLATE.md
 
+exclude mne.qrc
+prune mne/images
+
 # Test files
 
 recursive-exclude mne/io/tests/data *

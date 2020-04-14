@@ -278,6 +278,9 @@ def _read_dig_points(fname, comments='%', unit='auto'):
         #      read_dig_montage. To be deprecated
         # raise RuntimeError('if you are reading isotrak files please use'
         #                    ' read_dig_polhemus_isotrak')
+        # Eventually it should use read_dig_polhemus_isotrak and/or
+        # read_dig_polhemus_fastscan, but needs refactoring to handle
+        # these formats better.
         with open(fname) as fid:
             file_str = fid.read()
         value_pattern = r"\-?\d+\.?\d*e?\-?\d*"

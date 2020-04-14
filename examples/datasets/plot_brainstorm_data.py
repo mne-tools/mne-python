@@ -37,7 +37,8 @@ data_path = bst_raw.data_path()
 
 raw_path = (data_path + '/MEG/bst_raw/' +
             'subj001_somatosensory_20111109_01_AUX-f.ds')
-raw = read_raw_ctf(raw_path, preload=True)
+# Here we crop to half the length to save memory
+raw = read_raw_ctf(raw_path).crop(0, 180).load_data()
 raw.plot()
 
 # set EOG channel

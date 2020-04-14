@@ -15,7 +15,6 @@ from collections import OrderedDict
 import os.path as op
 import re
 from copy import deepcopy
-from itertools import takewhile, chain
 from functools import partial
 
 import numpy as np
@@ -747,26 +746,28 @@ def _read_isotrak_hsp_points(fname):
         The dictionary containing locations for 'nasion', 'lpa', 'rpa'
         and 'points'.
     """
-    def consume(fid, predicate):  # just a consumer to move around conveniently
-        while(predicate(fid.readline())):
-            pass
-
     def get_hsp_fiducial(line):
         return np.fromstring(line.replace('%F', ''), dtype=float, sep='\t')
 
     with open(fname) as ff:
-        consume(ff, lambda l: 'position of fiducials' not in l.lower())
+        for line in ff:
+            if 'position of fiducials' in line.lower():
+                break
 
         nasion = get_hsp_fiducial(ff.readline())
         lpa = get_hsp_fiducial(ff.readline())
         rpa = get_hsp_fiducial(ff.readline())
 
         _ = ff.readline()
-        n_points, n_cols = np.fromstring(ff.readline(), dtype=int, sep='\t')
-        points = np.fromstring(
-            string=ff.read(), dtype=float, sep='\t',
-        ).reshape(-1, n_cols)
-        assert points.shape[0] == n_points
+        line = ff.readline()
+        if line:
+            n_points, n_cols = np.fromstring(line, dtype=int, sep='\t')
+            points = np.fromstring(
+                string=ff.read(), dtype=float, sep='\t',
+            ).reshape(-1, n_cols)
+            assert points.shape[0] == n_points
+        else:
+            points = np.empty((0, 3))
 
     return {
         'nasion': nasion, 'lpa': lpa, 'rpa': rpa, 'points': points
@@ -783,7 +784,9 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
         File extension is expected to be '.hsp', '.elp' or '.eeg'.
     ch_names : None | list of str
         The names of the points. This will make the points
-        considered as EEG channels.
+        considered as EEG channels. If None, channels will be assumed
+        to be HPI if the extension is ``'.elp'``, and extra headshape
+        points otherwise.
     unit : 'm' | 'cm' | 'mm'
         Unit of the digitizer file. Polhemus ISOTrak systems data is usually
         exported in meters. Defaults to 'm'
@@ -841,11 +844,15 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
     return make_dig_montage(**data)
 
 
-def _get_polhemus_fastscan_header(fname):
+def _is_polhemus_fastscan(fname):
+    header = ''
     with open(fname, 'r') as fid:
-        header = [l for l in takewhile(lambda line: line.startswith('%'), fid)]
+        for line in fid:
+            if not line.startswith('%'):
+                break
+            header += line
 
-    return ''.join(header)
+    return 'FastSCAN' in header
 
 
 def read_polhemus_fastscan(fname, unit='mm'):
@@ -876,10 +883,9 @@ def read_polhemus_fastscan(fname, unit='mm'):
     _, ext = op.splitext(fname)
     _check_option('fname', ext, VALID_FILE_EXT)
 
-    if _get_polhemus_fastscan_header(fname).find('FastSCAN') == -1:
+    if not _is_polhemus_fastscan(fname):
         raise ValueError(
-            "%s does not contain Polhemus FastSCAN header" % fname
-        )
+            "%s does not contain Polhemus FastSCAN header" % fname)
 
     points = _scale * np.loadtxt(fname, comments='%', ndmin=2)
 
@@ -953,7 +959,7 @@ def read_custom_montage(fname, head_size=HEAD_SIZE_DEFAULT, coord_frame=None):
     }
 
     _, ext = op.splitext(fname)
-    _check_option('fname', ext, list(chain(*SUPPORTED_FILE_EXT.values())))
+    _check_option('fname', ext, list(sum(SUPPORTED_FILE_EXT.values(), ())))
 
     if ext in SUPPORTED_FILE_EXT['eeglab']:
         if head_size is None:

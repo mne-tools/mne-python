@@ -29,6 +29,8 @@ Changelog
 
 - Add function :func:`mne.preprocessing.annotate_muscle_zscore` to annotate periods with muscle artifacts. by `Adonay Nunes`_
 
+- Support for saving movies of source time courses (STCs) with ``brain.save_movie`` method by `Guillaume Favelier`_
+
 Bug
 ~~~
 
@@ -43,6 +45,10 @@ Bug
 - Fix bug with :func:`mne.make_forward_dipole` where :func:`mne.write_forward_solution` could not be used by `Eric Larson`_
 
 - Fix bug that prevents ``n_jobs`` from being a NumPy integer type, by `Daniel McCloy`_.
+
+- Fix bug with :func:`mne.io.read_raw_gdf` where birthdays were not parsed properly, leading to an error by `Svea Marie Meyer`_
+
+
 
 API
 ~~~
