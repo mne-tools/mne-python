@@ -16,6 +16,11 @@ from ...externals.decorator import decorator
 from ...source_space import vertex_to_mni
 from ...utils import _ReuseCycle
 
+# all icons are stored in mne/viz/_brain/resources.py, which must be
+# automatically generated with:
+# "pyrcc5 -o mne/viz/_brain/resources.py mne.qrc"
+from . import resources  # noqa
+
 
 @decorator
 def safe_event(fun, *args, **kwargs):
@@ -329,6 +334,8 @@ class _TimeViewer(object):
         self.color_cycle = None
         self.picked_points = {'lh': list(), 'rh': list()}
         self._mouse_no_mvt = -1
+        self.icons = dict()
+        self.actions = dict()
         self.orientation = [
             'lateral',
             'medial',
@@ -359,6 +366,7 @@ class _TimeViewer(object):
         self.plotter = brain._renderer.plotter
         self.main_menu = self.plotter.main_menu
         self.window = self.plotter.app_window
+        self.tool_bar = self.window.addToolBar("toolbar")
         self.status_bar = self.window.statusBar()
         self.interactor = self.plotter.interactor
         self.interactor.keyPressEvent = self.keyPressEvent
@@ -374,12 +382,14 @@ class _TimeViewer(object):
             self.show_traces = show_traces
             self.separate_canvas = False
 
+        self.load_icons()
         self.configure_time_label()
         self.configure_sliders()
         self.configure_scalar_bar()
         self.configure_playback()
         self.configure_point_picking()
         self.configure_menu()
+        self.configure_tool_bar()
 
         # show everything at the end
         self.toggle_interface()
@@ -393,6 +403,12 @@ class _TimeViewer(object):
 
     def toggle_interface(self):
         self.visibility = not self.visibility
+
+        # update tool bar icon
+        if self.visibility:
+            self.actions["visibility"].setIcon(self.icons["visibility_on"])
+        else:
+            self.actions["visibility"].setIcon(self.icons["visibility_off"])
 
         # manage sliders
         for slider in self.plotter.slider_widgets:
@@ -432,6 +448,13 @@ class _TimeViewer(object):
 
     def toggle_playback(self):
         self.playback = not self.playback
+
+        # update tool bar icon
+        if self.playback:
+            self.actions["play"].setIcon(self.icons["pause"])
+        else:
+            self.actions["play"].setIcon(self.icons["play"])
+
         if self.playback:
             time_data = self.brain._data['time']
             max_time = np.max(time_data)
@@ -755,6 +778,56 @@ class _TimeViewer(object):
                 self.on_pick
             )
 
+    def load_icons(self):
+        from PyQt5.QtGui import QIcon
+        resources.qInitResources()
+        self.icons["help"] = QIcon(":/help.svg")
+        self.icons["play"] = QIcon(":/play.svg")
+        self.icons["pause"] = QIcon(":/pause.svg")
+        self.icons["scale"] = QIcon(":/scale.svg")
+        self.icons["clear"] = QIcon(":/clear.svg")
+        self.icons["restore"] = QIcon(":/restore.svg")
+        self.icons["screenshot"] = QIcon(":/screenshot.svg")
+        self.icons["visibility_on"] = QIcon(":/visibility_on.svg")
+        self.icons["visibility_off"] = QIcon(":/visibility_off.svg")
+
+    def configure_tool_bar(self):
+        self.actions["screenshot"] = self.tool_bar.addAction(
+            self.icons["screenshot"],
+            "Take a screenshot",
+            self.plotter._qt_screenshot
+        )
+        self.actions["visibility"] = self.tool_bar.addAction(
+            self.icons["visibility_on"],
+            "Toggle Visibility",
+            self.toggle_interface
+        )
+        self.actions["play"] = self.tool_bar.addAction(
+            self.icons["play"],
+            "Play/Pause",
+            self.toggle_playback
+        )
+        self.actions["scale"] = self.tool_bar.addAction(
+            self.icons["scale"],
+            "Auto-Scale",
+            self.apply_auto_scaling
+        )
+        self.actions["restore"] = self.tool_bar.addAction(
+            self.icons["restore"],
+            "Restore scaling",
+            self.restore_user_scaling
+        )
+        self.actions["clear"] = self.tool_bar.addAction(
+            self.icons["clear"],
+            "Clear traces",
+            self.clear_points
+        )
+        self.actions["help"] = self.tool_bar.addAction(
+            self.icons["help"],
+            "Help",
+            self.help
+        )
+
     def configure_menu(self):
         # remove default picking menu
         to_remove = list()
@@ -973,6 +1046,7 @@ class _TimeViewer(object):
         self.act_data["lh"] = None
         self.act_data["rh"] = None
         self.act_data = None
+        resources.qCleanupResources()
 
 
 class _LinkViewer(object):
