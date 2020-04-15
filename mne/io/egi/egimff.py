@@ -2,6 +2,7 @@
 
 import datetime
 import os.path as op
+import re
 import time
 from xml.dom.minidom import parse
 
@@ -24,6 +25,13 @@ def _read_mff_header(filepath):
     eeg_file = all_files['EEG']['signal']
     eeg_info_file = all_files['EEG']['info']
 
+    info_filepath = op.join(filepath, 'info.xml')  # add with filepath
+    tags = ['mffVersion', 'recordTime']
+    version_and_date = _extract(tags, filepath=info_filepath)
+    version = ""
+    if len(version_and_date['mffVersion']):
+        version = version_and_date['mffVersion'][0]
+
     fname = op.join(filepath, eeg_file)
     signal_blocks = _get_blocks(fname)
     epochs = _get_ep_info(filepath)
@@ -31,24 +39,31 @@ def _read_mff_header(filepath):
                        info_fname=eeg_info_file)
     summaryinfo.update(signal_blocks)
     # sanity check and update relevant values
+    record_time = version_and_date['recordTime'][0]
+    # e.g.,
+    # 2018-07-30T10:47:01.021673-04:00
+    # 2017-09-20T09:55:44.072000000+01:00
+    g = re.match(
+        r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.(\d{6}(?:\d{3})?)[+-]\d{2}:\d{2}',  # noqa: E501
+        record_time)
+    if g is None:
+        raise RuntimeError('Could not parse recordTime %r' % (record_time,))
+    frac = g.groups(0)[0]
+    assert len(frac) in (6, 9) and all(f.isnumeric() for f in frac)  # regex
+    div = 1000 if len(frac) == 6 else 1000000
     for key in ('last_samps', 'first_samps'):
         # convert from times in µS to samples
         for ei, e in enumerate(epochs[key]):
-            epochs[key][ei] = (
-                epochs[key][ei] * signal_blocks['sfreq']) // 1000000
-    n_samps_block = signal_blocks['samples_block'].sum()
-    n_samps_epochs = sum(l - f for l, f in zip(epochs['last_samps'],
-                                               epochs['first_samps']))
-    # XXX perhaps there is a way to detect micro versus nano (it is different
-    # in the recording time) but this should be safe enough...
-    if n_samps_epochs == n_samps_block * 1000:
-        for key in ('last_samps', 'first_samps'):
-            for ei, e in enumerate(epochs[key]):
-                epochs[key][ei] = e // 1000
-    for key in ('last_samps', 'first_samps'):
+            if e % div != 0:
+                raise RuntimeError('Could not parse epoch time %s' % (e,))
+            e //= div
+            epochs[key][ei] = (e * signal_blocks['sfreq']) // 1000
         # Should be safe to cast to int now, which makes things later not
         # upbroadcast to float
         epochs[key] = np.array(epochs[key], np.int64)
+    n_samps_block = signal_blocks['samples_block'].sum()
+    n_samps_epochs = sum(l - f for l, f in zip(epochs['last_samps'],
+                                               epochs['first_samps']))
     n_samps_epochs = (epochs['last_samps'] - epochs['first_samps']).sum()
     bad = (n_samps_epochs != n_samps_block or
            not (epochs['first_samps'] < epochs['last_samps']).all() or
@@ -138,15 +153,7 @@ def _read_mff_header(filepath):
         summaryinfo.update(pns_types=pns_types, pns_units=pns_units,
                            pns_fname=all_files['PNS']['signal'],
                            pns_sample_blocks=pns_blocks)
-    summaryinfo.update(pns_names=pns_names)
-
-    info_filepath = op.join(filepath, 'info.xml')  # add with filepath
-    tags = ['mffVersion', 'recordTime']
-    version_and_date = _extract(tags, filepath=info_filepath)
-    version = ""
-    if len(version_and_date['mffVersion']):
-        version = version_and_date['mffVersion'][0]
-    summaryinfo.update(version=version,
+    summaryinfo.update(pns_names=pns_names, version=version,
                        date=version_and_date['recordTime'][0],
                        chan_type=chan_type, chan_unit=chan_unit,
                        numbers=numbers)

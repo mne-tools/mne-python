@@ -32,15 +32,16 @@ egi_pause_w1337_fname = op.join(egi_path, 'w1337_20191014_105416.mff')
 
 
 @requires_testing_data
-@pytest.mark.parametrize('fname, n_pause, n_events', [
-    (egi_pause_fname, 2, 18),
-    (egi_eprime_pause_fname, 2, 18),
-    (egi_pause_w1337_fname, 2, 0),
+@pytest.mark.parametrize('fname, n_pause, n_events, sfreq', [
+    (egi_pause_fname, 2, 18, 250),
+    (egi_eprime_pause_fname, 2, 18, 250),
+    (egi_pause_w1337_fname, 2, 0, 250),
 ])
-def test_egi_mff_pause(fname, n_pause, n_events):
+def test_egi_mff_pause(fname, n_pause, n_events, sfreq):
     """Test EGI MFF with pauses."""
     with pytest.warns(RuntimeWarning, match='Acquisition skips detected'):
         raw = _test_raw_reader(read_raw_egi, input_fname=fname)
+    assert raw.info['sfreq'] == sfreq
     assert len(raw.annotations) == n_pause
     if n_events == 0:
         with pytest.raises(ValueError, match='Consider using .*events_from'):
@@ -70,6 +71,7 @@ def test_io_egi_mff():
     include = ['DIN1', 'DIN2', 'DIN3', 'DIN4', 'DIN5', 'DIN7']
     raw = _test_raw_reader(read_raw_egi, input_fname=egi_mff_fname,
                            include=include, channel_naming='EEG %03d')
+    assert raw.info['sfreq'] == 1000.
 
     assert_equal('eeg' in raw, True)
     eeg_chan = [c for c in raw.ch_names if 'EEG' in c]
