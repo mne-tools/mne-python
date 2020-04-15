@@ -22,7 +22,7 @@ Patching
 ========
 
 The output file imports `PyQt5` globally, which is not consistent with MNE core
-structure so unit testing will fail. It is then strongly recommended to modify
+structure, causing unit testing to fail. It is then strongly recommended to modify
 it as follows:
 
 - Refactor the Qt version checking into a `_check_version` function
