@@ -11,7 +11,7 @@ the application.
 The resource configuration file `mne.qrc` describes the location of the resources
 in the filesystem and also defines aliases for their use in the code.
 
-To generate automatically the resource file in `mne/viz/_brain`:
+To automatically generate the resource file in `mne/viz/_brain`:
 
 .. code-block:: bash
 
