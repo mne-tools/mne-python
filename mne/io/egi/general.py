@@ -63,8 +63,8 @@ def _get_ep_info(filepath):
         epoch_info['last_samps'].append(ep_end)
         epoch_info['first_blocks'].append(first_block)
         epoch_info['last_blocks'].append(last_block)
-    for key in keys:
-        epoch_info[key] = np.array(epoch_info[key], np.uint64)
+    # Don't turn into ndarray here, keep native int because it can deal with
+    # huge numbers (could use np.uint64 but it's more work)
     return epoch_info
 
 

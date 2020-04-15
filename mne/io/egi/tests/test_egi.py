@@ -42,13 +42,24 @@ def test_egi_mff_pause(fname, n_pause, n_events):
     with pytest.warns(RuntimeWarning, match='Acquisition skips detected'):
         raw = _test_raw_reader(read_raw_egi, input_fname=fname)
     assert len(raw.annotations) == n_pause
-    assert (raw.annotations.description == 'BAD_ACQ_SKIP').all()
     if n_events == 0:
         with pytest.raises(ValueError, match='Consider using .*events_from'):
             find_events(raw)
     else:
         events = find_events(raw)
         assert len(events) == n_events
+    # read some data from the middle of the skip, assert it's all zeros
+    stim_picks = pick_types(raw.info, meg=False, stim=True, exclude=())
+    other_picks = np.setdiff1d(np.arange(len(raw.ch_names)), stim_picks)
+    for annot in raw.annotations:
+        assert annot['description'] == 'BAD_ACQ_SKIP'
+        start, stop = raw.time_as_index(
+            [annot['onset'], annot['onset'] + annot['duration']])
+        data, _ = raw[:, start:stop]
+        assert_array_equal(data[other_picks], 0.)
+        if n_events > 0:
+            assert raw.ch_names[-1] == 'STI 014'
+            assert not np.array_equal(data[stim_picks], 0.)
 
 
 @requires_testing_data
