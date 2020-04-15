@@ -48,7 +48,7 @@ def _read_mff_header(filepath):
         record_time)
     if g is None:
         raise RuntimeError('Could not parse recordTime %r' % (record_time,))
-    frac = g.groups(0)[0]
+    frac = g.groups()[0]
     assert len(frac) in (6, 9) and all(f.isnumeric() for f in frac)  # regex
     div = 1000 if len(frac) == 6 else 1000000
     for key in ('last_samps', 'first_samps'):
