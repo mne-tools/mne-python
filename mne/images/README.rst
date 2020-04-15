@@ -21,7 +21,7 @@ To automatically generate the resource file in `mne/viz/_brain`:
 Patching
 ========
 
-The output file imports `PyQt5` globally which is not consistent with MNE core
+The output file imports `PyQt5` globally, which is not consistent with MNE core
 structure so unit testing will fail. It is then strongly recommended to modify
 it as follows:
 
