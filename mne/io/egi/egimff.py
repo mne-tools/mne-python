@@ -60,7 +60,8 @@ def _read_mff_header(filepath):
         # Should be safe to cast to int now, which makes things later not
         # upbroadcast to float
         epochs[key] = np.array(epochs[key], np.int64)
-        epochs[key] *= signal_blocks['sfreq']
+        with np.errstate(over='raise'):
+            epochs[key] *= signal_blocks['sfreq']
         epochs[key] //= 1000
     n_samps_block = signal_blocks['samples_block'].sum()
     n_samps_epochs = (epochs['last_samps'] - epochs['first_samps']).sum()
