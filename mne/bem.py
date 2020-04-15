@@ -1209,7 +1209,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     logger.info('Created %s\n\nComplete.' % (fname_head,))
 
 
-def _extract_volume_info(mgz, raise_error=True):
+def _extract_volume_info(mgz, raise_error=False):
     """Extract volume info from a mgz file."""
     try:
         import nibabel as nib
@@ -1220,13 +1220,15 @@ def _extract_volume_info(mgz, raise_error=True):
     version = header['version']
     if version == 1:
         version = '%s  # volume info valid' % version
-    else:
+    elif raise_error:
         raise ValueError('Volume info invalid.')
+    else:
+        return
     vol_info['valid'] = version
     vol_info['filename'] = mgz
     vol_info['volume'] = header['dims'][:3]
     vol_info['voxelsize'] = header['delta']
-    vol_info['xras'], vol_info['yras'], vol_info['zras'] = header['Mdc'].T
+    vol_info['xras'], vol_info['yras'], vol_info['zras'] = header['Mdc']
     vol_info['cras'] = header['Pxyz_c']
     return vol_info
 
