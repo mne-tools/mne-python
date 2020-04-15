@@ -158,8 +158,7 @@ class _Renderer(_BaseRenderer):
 
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=FutureWarning)
-            if MNE_3D_BACKEND_TESTING:
-                self.figure.plotter_class = Plotter
+            self.figure.plotter_class = Plotter
             with _disabled_depth_peeling():
                 self.plotter = self.figure.build()
             self.plotter.hide_axes()

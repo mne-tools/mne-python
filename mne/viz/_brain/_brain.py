@@ -247,9 +247,6 @@ class _Brain(object):
                     self._renderer.set_camera(azimuth=views_dict[v].azim,
                                               elevation=views_dict[v].elev)
 
-        if show:
-            self._renderer.show()
-
     @verbose
     def add_data(self, array, fmin=None, fmid=None, fmax=None,
                  thresh=None, center=None, transparent=False, colormap="auto",
