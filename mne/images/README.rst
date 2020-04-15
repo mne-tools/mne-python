@@ -26,7 +26,7 @@ structure, causing unit testing to fail. It is then strongly recommended to modi
 it as follows:
 
 - Refactor the Qt version checking into a `_check_version` function
-- Use local import of `QtCore` in each function definition instead of globally
+- Use a local (instead of a global) import of `QtCore` in each function definition
 - Do not call `qInitResources()` from the resource file itself, this function is
   called externally
 
