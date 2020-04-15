@@ -306,6 +306,11 @@ filter_length : str | int
     * **int**: Specified length in samples. For fir_design="firwin",
       this should not be used.
 """
+docdict['filter_length_notch'] = docdict['filter_length'] + """
+    When ``method=='spectrum_fit'``, this sets the effective window duration
+    over which fits are computed. The default in 0.21 is None, but this will
+    change to 10. in 0.22.
+"""
 docdict['l_trans_bandwidth'] = """
 l_trans_bandwidth : float | str
     Width of the transition band at the low cut-off frequency in Hz
