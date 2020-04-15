@@ -56,14 +56,13 @@ def _read_mff_header(filepath):
         for ei, e in enumerate(epochs[key]):
             if e % div != 0:
                 raise RuntimeError('Could not parse epoch time %s' % (e,))
-            e //= div
-            epochs[key][ei] = (e * signal_blocks['sfreq']) // 1000
+            epochs[key][ei] = e // div
         # Should be safe to cast to int now, which makes things later not
         # upbroadcast to float
         epochs[key] = np.array(epochs[key], np.int64)
+        epochs[key] *= signal_blocks['sfreq']
+        epochs[key] //= 1000
     n_samps_block = signal_blocks['samples_block'].sum()
-    n_samps_epochs = sum(l - f for l, f in zip(epochs['last_samps'],
-                                               epochs['first_samps']))
     n_samps_epochs = (epochs['last_samps'] - epochs['first_samps']).sum()
     bad = (n_samps_epochs != n_samps_block or
            not (epochs['first_samps'] < epochs['last_samps']).all() or
