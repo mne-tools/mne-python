@@ -32,8 +32,6 @@ Changelog
 Bug
 ~~~
 
-- Fix bug with :func:`mne.io.read_raw_edf`  where recordind ID were not read properly for special character by `Lx37`_
-
 - Fix bug with :func:`mne.minimum_norm.compute_source_psd_epochs` and :func:`mne.minimum_norm.source_band_induced_power` raised errors when ``method='eLORETA'`` by `Eric Larson`_
 
 - Fix bug with :func:`mne.io.Raw.plot` where toggling all projectors did not actually take effect by `Eric Larson`_
@@ -48,6 +46,7 @@ Bug
 
 - Fix bug with :func:`mne.io.read_raw_gdf` where birthdays were not parsed properly, leading to an error by `Svea Marie Meyer`_
 
+- Fix bug with :func:`mne.io.read_raw_edf` where recording ID  was not read properly for non-ASCII characters by `Lx37`_
 
 
 API
