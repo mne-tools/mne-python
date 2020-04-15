@@ -1,6 +1,7 @@
 """EGI NetStation Load Function."""
 
 import datetime
+import math
 import os.path as op
 import re
 import time
@@ -57,12 +58,26 @@ def _read_mff_header(filepath):
             if e % div != 0:
                 raise RuntimeError('Could not parse epoch time %s' % (e,))
             epochs[key][ei] = e // div
+        epochs[key] = np.array(epochs[key], np.uint64)
+        # I guess they refer to times in milliseconds?
+        # What we really need to do here is:
+        # epochs[key] *= signal_blocks['sfreq']
+        # epochs[key] //= 1000
+        # But that multiplication risks an overflow, so let's only multiply
+        # by what we need to (e.g., a sample rate of 500 means we can multiply
+        # by 1 and divide by 2 rather than multiplying by 500 and dividing by
+        # 1000)
+        numerator = signal_blocks['sfreq']
+        denominator = 1000
+        this_gcd = math.gcd(numerator, denominator)
+        numerator = numerator // this_gcd
+        denominator = denominator // this_gcd
+        with np.errstate(over='raise'):
+            epochs[key] *= numerator
+        epochs[key] //= denominator
         # Should be safe to cast to int now, which makes things later not
         # upbroadcast to float
-        epochs[key] = np.array(epochs[key], np.int64)
-        with np.errstate(over='raise'):
-            epochs[key] *= signal_blocks['sfreq']
-        epochs[key] //= 1000
+        epochs[key] = epochs[key].astype(np.int64)
     n_samps_block = signal_blocks['samples_block'].sum()
     n_samps_epochs = (epochs['last_samps'] - epochs['first_samps']).sum()
     bad = (n_samps_epochs != n_samps_block or
