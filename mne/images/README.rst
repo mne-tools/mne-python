@@ -33,5 +33,8 @@ it as follows:
 Note
 ====
 
-The output file does not follow PEP8 guidelines so minor code formatting is
-expected. 
+The output file contains minor code formatting deviations from PEP8:
+
+- E302 expected 2 blank lines, found 1
+- E305 expected 2 blank lines after class or function definition, found 1
+- E501 line too long (103 > 79 characters)
