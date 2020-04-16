@@ -47,17 +47,18 @@ egi_eprime_pause_skips = [(1344000.0, 1804000.0)]
 egi_pause_w1337_events = None
 egi_pause_w1337_skips = [(21956000.0, 40444000.0), (60936000.0, 89332000.0)]
 
+
 @requires_testing_data
-@pytest.mark.parametrize('fname, skip_times, event_times, sfreq', [
-    (egi_pause_fname, egi_pause_skips, egi_pause_events, 250),
-    (egi_eprime_pause_fname, egi_eprime_pause_skips, egi_eprime_pause_events, 250),
-    (egi_pause_w1337_fname, egi_pause_w1337_skips, egi_pause_w1337_events, 250),
+@pytest.mark.parametrize('fname, skip_times, event_times', [
+    (egi_pause_fname, egi_pause_skips, egi_pause_events),
+    (egi_eprime_pause_fname, egi_eprime_pause_skips, egi_eprime_pause_events),
+    (egi_pause_w1337_fname, egi_pause_w1337_skips, egi_pause_w1337_events),
 ])
 def test_egi_mff_pause(fname, skip_times, event_times):
     """Test EGI MFF with pauses."""
     with pytest.warns(RuntimeWarning, match='Acquisition skips detected'):
         raw = _test_raw_reader(read_raw_egi, input_fname=fname)
-    assert raw.info['sfreq'] == sfreq
+    assert raw.info['sfreq'] == 250.  # true for all of these files
     assert len(raw.annotations) == len(skip_times)
 
     # assert event onsets match expected times
@@ -65,12 +66,13 @@ def test_egi_mff_pause(fname, skip_times, event_times):
         with pytest.raises(ValueError, match='Consider using .*events_from'):
             find_events(raw)
     else:
-        events = find_events(raw)        
+        events = find_events(raw)
         for event_type in event_times.keys():
-            ns_samples = np.floor(np.array(event_times[event_type])
-                                * raw.info['sfreq'])
-            assert_array_equal(events[events[:, 2] == raw.event_id[event_type], 0],
-                               ns_samples)
+            ns_samples = np.floor(np.array(event_times[event_type]) *
+                                  raw.info['sfreq'])
+            assert_array_equal(
+                events[events[:, 2] == raw.event_id[event_type], 0],
+                ns_samples)
 
     # read some data from the middle of the skip, assert it's all zeros
     stim_picks = pick_types(raw.info, meg=False, stim=True, exclude=())
@@ -84,10 +86,10 @@ def test_egi_mff_pause(fname, skip_times, event_times):
         if event_times is not None:
             assert raw.ch_names[-1] == 'STI 014'
             assert not np.array_equal(data[stim_picks], 0.)
-        
+
         # assert skips match expected onset and duration
         skip = ((start + 1) / raw.info['sfreq'] * 1e6,
-              (stop + 1) / raw.info['sfreq'] * 1e6)
+                (stop + 1) / raw.info['sfreq'] * 1e6)
         assert skip == skip_times[ii]
 
 
