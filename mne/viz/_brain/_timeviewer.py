@@ -517,8 +517,11 @@ class _TimeViewer(object):
         self.fmax_slider_rep.SetValue(self.brain._data['fmax'])
         self.plotter.update()
 
-    def toggle_playback(self):
-        self.playback = not self.playback
+    def toggle_playback(self, value=None):
+        if value is None:
+            self.playback = not self.playback
+        else:
+            self.playback = value
 
         # update tool bar icon
         if self.playback:
@@ -542,7 +545,7 @@ class _TimeViewer(object):
             try:
                 self._advance()
             except Exception:
-                self.playback = False
+                self.toggle_playback(value=False)
                 raise
 
     def _advance(self):
@@ -560,7 +563,7 @@ class _TimeViewer(object):
         idx = np.interp(time_point, time_data, times)
         self.time_call(idx, update_widget=True)
         if time_point == max_time:
-            self.playback = False
+            self.toggle_playback(value=False)
 
     def set_slider_style(self, slider, show_label=True, show_cap=False):
         if slider is not None:
