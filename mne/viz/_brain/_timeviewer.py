@@ -872,6 +872,7 @@ class _TimeViewer(object):
         self.icons["pause"] = QIcon(":/pause.svg")
         self.icons["scale"] = QIcon(":/scale.svg")
         self.icons["clear"] = QIcon(":/clear.svg")
+        self.icons["movie"] = QIcon(":/movie.svg")
         self.icons["restore"] = QIcon(":/restore.svg")
         self.icons["screenshot"] = QIcon(":/screenshot.svg")
         self.icons["visibility_on"] = QIcon(":/visibility_on.svg")
@@ -884,6 +885,7 @@ class _TimeViewer(object):
             self.plotter._qt_screenshot
         )
         self.actions["movie"] = self.tool_bar.addAction(
+            self.icons["movie"],
             "Save movie...",
             self.save_movie
         )
