@@ -1957,12 +1957,17 @@ def plot_psds_topomap(
     vmax : None
         Deprecated; use ``vlim`` instead.
     bands : list of tuple | None
-        The lower and upper frequency and the name for that band. If None,
-        (default) expands to:
+        The frequencies or frequency ranges to plot. Length-2 tuples specify
+        a single frequency and a subplot title (e.g.,
+        ``(6.5, 'presentation rate')``); length-3 tuples specify lower and
+        upper band edges and a subplot title. If ``None`` (the default),
+        expands to:
 
             bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
                      (12, 30, 'Beta'), (30, 45, 'Gamma')]
 
+        In bands where a single frequency is provided, the topomap will reflect
+        the single frequency bin that is closest to the provided value.
     cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
         Colormap to use. If tuple, the first value indicates the colormap to
         use and the second value is a boolean defining interactivity. In
@@ -2013,6 +2018,13 @@ def plot_psds_topomap(
     if bands is None:
         bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
                  (12, 30, 'Beta'), (30, 45, 'Gamma')]
+    else:  # upconvert single freqs to band upper/lower edges as needed
+        bin_spacing = np.diff(freqs)[0]
+        bin_edges = np.array([0, bin_spacing]) - bin_spacing / 2
+        for ix, band in enumerate(bands):
+            if len(band) == 2:
+                bin_freq = freqs[np.argmin(np.abs(freqs - band[0]))]
+                bands[ix] = tuple(bin_edges + bin_freq) + (band[-1],)
 
     if agg_fun is None:
         agg_fun = np.sum if normalize else np.mean
