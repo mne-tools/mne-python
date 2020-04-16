@@ -29,7 +29,7 @@ Changelog
 
 - Add function :func:`mne.preprocessing.annotate_muscle_zscore` to annotate periods with muscle artifacts. by `Adonay Nunes`_
 
-- Support for saving movies of source time courses (STCs) with ``brain.save_movie`` method by `Guillaume Favelier`_
+- Support for saving movies of source time courses (STCs) with ``brain.save_movie`` method and from graphical user interface by `Guillaume Favelier`_
 
 Bug
 ~~~
