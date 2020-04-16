@@ -883,6 +883,10 @@ class _TimeViewer(object):
             "Take a screenshot",
             self.plotter._qt_screenshot
         )
+        self.actions["movie"] = self.tool_bar.addAction(
+            "Save movie...",
+            self.save_movie
+        )
         self.actions["visibility"] = self.tool_bar.addAction(
             self.icons["visibility_on"],
             "Toggle Visibility",
@@ -913,6 +917,8 @@ class _TimeViewer(object):
             "Help",
             self.help
         )
+
+        self.actions["movie"].setShortcut("ctrl+shift+s")
 
     def configure_menu(self):
         # remove default picking menu
