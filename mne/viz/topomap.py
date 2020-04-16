@@ -1802,8 +1802,12 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
     _hide_frame(ax)
     vmin = np.min(data) if vmin is None else vmin
     vmax = np.max(data) if vmax is None else vmax
+    # this definition of "norm" allows non-diverging colormap for cases where
+    # min & vmax are both negative (e.g., when they are power in dB)
+    signs = np.sign([vmin, vmax])
+    norm = len(set(signs)) == 1 or np.any(signs == 0)
 
-    cmap = _setup_cmap(cmap)
+    cmap = _setup_cmap(cmap, norm=norm)
     if title is not None:
         ax.set_title(title, fontsize=10)
     im, _ = plot_topomap(data, pos, vmin=vmin, vmax=vmax, axes=ax,
@@ -1824,10 +1828,10 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
                             tmin=None, tmax=None, proj=False,
                             bandwidth=None, adaptive=False, low_bias=True,
                             normalization='length', ch_type=None,
-                            cmap='RdBu_r', agg_fun=None, dB=False, n_jobs=1,
+                            cmap=None, agg_fun=None, dB=False, n_jobs=1,
                             normalize=False, cbar_fmt='%0.3f',
                             outlines='head', axes=None, show=True,
-                            sphere=None, verbose=None):
+                            sphere=None, vlim=(None, None), verbose=None):
     """Plot the topomap of the power spectral density across epochs.
 
     Parameters
@@ -1841,14 +1845,10 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
                  (12, 30, 'Beta'), (30, 45, 'Gamma')]
 
-    vmin : float | callable | None
-        The value specifying the lower bound of the color range.
-        If None np.min(data) is used. If callable, the output equals
-        vmin(data).
-    vmax : float | callable | None
-        The value specifying the upper bound of the color range.
-        If None, the maximum absolute value is used. If callable, the output
-        equals vmax(data). Defaults to None.
+    vmin : None
+        Deprecated; use ``vlim`` instead.
+    vmax : None
+        Deprecated; use ``vlim`` instead.
     tmin : float | None
         Start time to consider.
     tmax : float | None
@@ -1880,9 +1880,9 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         colorbar with left and right mouse button. Left mouse button moves the
         scale up and down and right mouse button adjusts the range. Hitting
         space bar resets the range. Up and down arrows can be used to change
-        the colormap. If None (default), 'Reds' is used for all positive data,
-        otherwise defaults to 'RdBu_r'. If 'interactive', translates to
-        (None, True).
+        the colormap. If None (default), 'Reds' is used for data that is either
+        all-positive or all-negative, otherwise defaults to 'RdBu_r'.
+        ``'interactive'`` is equivalent to ``(None, True)``.
     agg_fun : callable
         The function used to aggregate over frequencies.
         Defaults to np.sum. if normalize is True, else np.mean.
@@ -1903,6 +1903,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     show : bool
         Show figure if True.
     %(topomap_sphere_auto)s
+    %(vlim_joint)s
     %(verbose)s
 
     Returns
@@ -1930,14 +1931,14 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         psds=psds, freqs=freqs, pos=pos, agg_fun=agg_fun, vmin=vmin,
         vmax=vmax, bands=bands, cmap=cmap, dB=dB, normalize=normalize,
         cbar_fmt=cbar_fmt, outlines=outlines, axes=axes, show=show,
-        sphere=sphere)
+        sphere=sphere, vlim=vlim)
 
 
 @fill_doc
 def plot_psds_topomap(
         psds, freqs, pos, agg_fun=None, vmin=None, vmax=None, bands=None,
         cmap=None, dB=True, normalize=False, cbar_fmt='%0.3f', outlines='head',
-        axes=None, show=True, sphere=None):
+        axes=None, show=True, sphere=None, vlim=(None, None)):
     """Plot spatial maps of PSDs.
 
     Parameters
@@ -1951,14 +1952,10 @@ def plot_psds_topomap(
     agg_fun : callable
         The function used to aggregate over frequencies.
         Defaults to np.sum. if normalize is True, else np.mean.
-    vmin : float | callable | None
-        The value specifying the lower bound of the color range.
-        If None np.min(data) is used. If callable, the output equals
-        vmin(data).
-    vmax : float | callable | None
-        The value specifying the upper bound of the color range.
-        If None, the maximum absolute value is used. If callable, the output
-        equals vmax(data). Defaults to None.
+    vmin : None
+        Deprecated; use ``vlim`` instead.
+    vmax : None
+        Deprecated; use ``vlim`` instead.
     bands : list of tuple | None
         The lower and upper frequency and the name for that band. If None,
         (default) expands to:
@@ -1992,6 +1989,7 @@ def plot_psds_topomap(
     show : bool
         Show figure if True.
     %(topomap_sphere)s
+    %(vlim_joint)s
 
     Returns
     -------
@@ -2000,6 +1998,17 @@ def plot_psds_topomap(
     """
     import matplotlib.pyplot as plt
     sphere = _check_sphere(sphere)
+
+    if vmin is not None or vmax is not None:
+        if vlim == (None, None):
+            msg = ('Since you didn\'t specify "vlim", your provided values of '
+                   '"vmin" and "vmax" will be used.')
+            vlim = (vmin, vmax)
+        else:
+            msg = ('Your provided values for "vlim" will be used, and "vmin" '
+                   'and "vmax" will be ignored.')
+        warn('"vmin" and "vmax" are deprecated in favor of a single argument '
+             '"vlim". ' + msg, DeprecationWarning)
 
     if bands is None:
         bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
@@ -2020,6 +2029,16 @@ def plot_psds_topomap(
         fig, axes = plt.subplots(1, n_axes, figsize=(2 * n_axes, 1.5))
         if n_axes == 1:
             axes = [axes]
+
+    # handle vmin/vmax
+    if vlim == 'joint':
+        _freq_mask = np.any([(fmin < freqs) & (freqs < fmax)
+                             for (fmin, fmax, _) in bands], axis=0)
+        _data = 10 * np.log10(psds) if dB and not normalize else psds
+        vmin = _data[:, _freq_mask].min()
+        vmax = _data[:, _freq_mask].max()
+    else:
+        vmin, vmax = vlim
 
     for ax, (fmin, fmax, title) in zip(axes, bands):
         freq_mask = (fmin < freqs) & (freqs < fmax)

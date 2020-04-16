@@ -118,6 +118,19 @@ sphere : float | array-like | str | None
     .. versionadded:: 0.20
 """ % (HEAD_SIZE_DEFAULT,)
 
+docdict["vlim_joint"] = """
+vlim : tuple of length 2 | 'joint'
+    Colormap limits to use. If a :class:`tuple` of floats, specifies the
+    lower and upper bounds of the colormap (in that order); providing
+    ``None`` for either entry will set the corresponding boundary at the
+    min/max of the data (separately for each topomap). Elements of the
+    :class:`tuple` may also be callable functions which take in a
+    :class:`NumPy array <numpy.ndarray>` and return a scalar.
+    If ``vlim='joint'``, will compute the colormap limits jointly across
+    all topomaps of the same channel type, using the min/max of the data.
+    Defaults to ``(None, None)``.
+"""
+
 # Picks
 docdict['picks_header'] = 'picks : str | list | slice | None'
 docdict['picks_base'] = docdict['picks_header'] + """
