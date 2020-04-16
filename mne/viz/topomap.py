@@ -2015,9 +2015,9 @@ def plot_psds_topomap(
                  (12, 30, 'Beta'), (30, 45, 'Gamma')]
 
     if agg_fun is None:
-        agg_fun = np.sum if normalize is True else np.mean
+        agg_fun = np.sum if normalize else np.mean
 
-    if normalize is True:
+    if normalize:
         psds /= psds.sum(axis=-1)[..., None]
         assert np.allclose(psds.sum(axis=-1), 1.)
 
@@ -2046,7 +2046,7 @@ def plot_psds_topomap(
             raise RuntimeError('No frequencies in band "%s" (%s, %s)'
                                % (title, fmin, fmax))
         data = agg_fun(psds[:, freq_mask], axis=1)
-        if dB is True and normalize is False:
+        if dB and not normalize:
             data = 10 * np.log10(data)
             unit = 'dB'
         else:
