@@ -288,7 +288,7 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
     Returns
     -------
     fig : instance of matplotlib.figure.Figure
-        Figure distributing one image per channel across sensor topography.
+        Figure with a topomap subplot for each projector.
 
     Notes
     -----
