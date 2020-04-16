@@ -16,13 +16,3 @@ To automatically generate the resource file in ``mne/viz/_brain``:
 .. code-block:: bash
 
     pyrcc5 -o mne/viz/_brain/resources.py mne.qrc
-
-
-Note
-====
-
-The output file contains minor code formatting deviations from PEP8:
-
-- E302 expected 2 blank lines, found 1
-- E305 expected 2 blank lines after class or function definition, found 1
-- E501 line too long (103 > 79 characters)
