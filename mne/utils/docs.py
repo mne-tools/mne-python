@@ -463,7 +463,7 @@ pick_ori : None | "normal" | "vector"
     - ``"vector"``
         No pooling of the orientations is done, and the vector result
         will be returned in the form of a :class:`mne.VectorSourceEstimate`
-        object. This is only implemented when working with loose orientations.
+        object.
 """
 docdict['reduce_rank'] = """
 reduce_rank : bool
