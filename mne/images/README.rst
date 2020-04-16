@@ -18,18 +18,6 @@ To automatically generate the resource file in ``mne/viz/_brain``:
     pyrcc5 -o mne/viz/_brain/resources.py mne.qrc
 
 
-Patching
-========
-
-The output file imports ``PyQt5`` globally, which is not consistent with MNE core
-structure, causing unit testing to fail. It is then strongly recommended to modify
-it as follows:
-
-- Refactor the Qt version checking into a ``_check_version`` function
-- Use a local (instead of a global) import of ``QtCore`` in each function definition
-- Do not call ``qInitResources()`` from the resource file itself, this function is
-  called externally
-
 Note
 ====
 

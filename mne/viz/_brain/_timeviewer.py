@@ -16,11 +16,6 @@ from ...externals.decorator import decorator
 from ...source_space import vertex_to_mni
 from ...utils import _ReuseCycle
 
-# all icons are stored in mne/viz/_brain/resources.py, which must be
-# automatically generated with:
-# "pyrcc5 -o mne/viz/_brain/resources.py mne.qrc"
-from . import resources  # noqa
-
 
 @decorator
 def safe_event(fun, *args, **kwargs):
@@ -782,7 +777,7 @@ class _TimeViewer(object):
 
     def load_icons(self):
         from PyQt5.QtGui import QIcon
-        resources.qInitResources()
+        from . import resources  # noqa
         self.icons["help"] = QIcon(":/help.svg")
         self.icons["play"] = QIcon(":/play.svg")
         self.icons["pause"] = QIcon(":/pause.svg")
@@ -1013,6 +1008,7 @@ class _TimeViewer(object):
 
     @safe_event
     def clean(self):
+        from .resources import qCleanupResources
         # resolve the reference cycle
         self.clear_points()
         self.orientation_call.plotter = None
@@ -1056,7 +1052,7 @@ class _TimeViewer(object):
         self.act_data["lh"] = None
         self.act_data["rh"] = None
         self.act_data = None
-        resources.qCleanupResources()
+        qCleanupResources()
 
 
 class _LinkViewer(object):
