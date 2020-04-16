@@ -1074,7 +1074,8 @@ class _LinkViewer(object):
 
         # link toggle to start/pause playback
         for time_viewer in self.time_viewers:
-            time_viewer.key_bindings[' '] = self.toggle_playback
+            time_viewer.actions["play"].triggered.disconnect()
+            time_viewer.actions["play"].triggered.connect(self.toggle_playback)
 
     def set_time_point(self, value):
         for time_viewer in self.time_viewers:
