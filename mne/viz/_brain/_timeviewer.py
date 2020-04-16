@@ -347,14 +347,6 @@ class _TimeViewer(object):
             'frontal',
             'parietal'
         ]
-        self.key_bindings = {
-            '?': self.help,
-            'i': self.toggle_interface,
-            's': self.apply_auto_scaling,
-            'r': self.restore_user_scaling,
-            'c': self.clear_points,
-            ' ': self.toggle_playback,
-        }
         self.slider_length = 0.02
         self.slider_width = 0.04
         self.slider_color = (0.43137255, 0.44313725, 0.45882353)
@@ -370,7 +362,6 @@ class _TimeViewer(object):
         self.tool_bar = self.window.addToolBar("toolbar")
         self.status_bar = self.window.statusBar()
         self.interactor = self.plotter.interactor
-        self.interactor.keyPressEvent = self.keyPressEvent
         self.window.signal_close.connect(self.clean)
 
         # Derived parameters:
@@ -396,12 +387,6 @@ class _TimeViewer(object):
         # show everything at the end
         self.toggle_interface()
         self.brain.show()
-
-    @safe_event
-    def keyPressEvent(self, event):
-        callback = self.key_bindings.get(event.text())
-        if callback is not None:
-            callback()
 
     def toggle_interface(self):
         self.visibility = not self.visibility
@@ -830,6 +815,13 @@ class _TimeViewer(object):
             self.help
         )
 
+        self.actions["visibility"].setShortcut("i")
+        self.actions["play"].setShortcut(" ")
+        self.actions["scale"].setShortcut("s")
+        self.actions["restore"].setShortcut("r")
+        self.actions["clear"].setShortcut("c")
+        self.actions["help"].setShortcut("?")
+
     def configure_menu(self):
         # remove default picking menu
         to_remove = list()
@@ -1015,6 +1007,7 @@ class _TimeViewer(object):
     def clean(self):
         # resolve the reference cycle
         self.clear_points()
+        self.actions.clear()
         self.orientation_call.plotter = None
         self.orientation_call.brain = None
         self.orientation_call = None
@@ -1038,7 +1031,6 @@ class _TimeViewer(object):
         self.fscale_call.plotter = None
         self.fscale_call.brain = None
         self.fscale_call = None
-        self.key_bindings = None
         self.brain.time_viewer = None
         self.brain = None
         self.plotter = None
@@ -1082,7 +1074,8 @@ class _LinkViewer(object):
 
         # link toggle to start/pause playback
         for time_viewer in self.time_viewers:
-            time_viewer.key_bindings[' '] = self.toggle_playback
+            time_viewer.actions["play"].triggered.disconnect()
+            time_viewer.actions["play"].triggered.connect(self.toggle_playback)
 
     def set_time_point(self, value):
         for time_viewer in self.time_viewers:
