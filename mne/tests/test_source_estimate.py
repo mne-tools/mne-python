@@ -985,8 +985,11 @@ def test_vec_stc_inv_fixed(invs, pick_ori):
     """Test vector STC behavior with fixed-orientation inverses."""
     evoked, _, _, _, fixed, fixedish = invs
     stc_fixed = apply_inverse(evoked, fixed)
+    stc_fixed_vector = apply_inverse(evoked, fixed, pick_ori='vector')
+    assert_allclose(stc_fixed.data, stc_fixed_vector.normal(fixed['src']).data)
     stc_fixedish = apply_inverse(evoked, fixedish, pick_ori=pick_ori)
     if pick_ori == 'vector':
+        assert_allclose(stc_fixed_vector.data, stc_fixedish.data, atol=1e-2)
         # two ways here: with magnitude...
         assert_allclose(
             abs(stc_fixed).data, stc_fixedish.magnitude().data, atol=1e-2)

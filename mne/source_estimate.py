@@ -413,10 +413,16 @@ def _make_stc(data, vertices, src_type=None, tmin=None, tstep=None,
     # massage the data
     if src_type == 'surface' and vector:
         n_vertices = len(vertices[0]) + len(vertices[1])
-        data = np.matmul(
-            np.transpose(source_nn.reshape(n_vertices, 3, 3), axes=[0, 2, 1]),
-            data.reshape(n_vertices, 3, -1)
-        )
+        assert data.shape[0] in (n_vertices, n_vertices * 3)
+        if data.shape[0] == n_vertices:  # fixed orientation
+            data = data[:, np.newaxis] * source_nn[:, :, np.newaxis]
+        else:
+            data = np.matmul(
+                np.transpose(
+                    source_nn.reshape(n_vertices, 3, 3), axes=[0, 2, 1]),
+                data.reshape(n_vertices, 3, -1)
+            )
+        assert data.shape[:2] == (n_vertices, 3)
     elif src_type in ('volume', 'discrete') and vector:
         data = data.reshape((-1, 3, data.shape[-1]))
     else:
