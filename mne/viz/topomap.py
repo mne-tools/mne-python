@@ -2041,11 +2041,14 @@ def plot_psds_topomap(
 
     # handle vmin/vmax
     if vlim == 'joint':
-        _freq_mask = np.any([(fmin < freqs) & (freqs < fmax)
-                             for (fmin, fmax, _) in bands], axis=0)
-        _data = 10 * np.log10(psds) if dB and not normalize else psds
-        vmin = _data[:, _freq_mask].min()
-        vmax = _data[:, _freq_mask].max()
+        _freq_masks = [(fmin < freqs) & (freqs < fmax)
+                       for (fmin, fmax, _) in bands]
+        _datas = [agg_fun(psds[:, _freq_mask], axis=1)
+                  for _freq_mask in _freq_masks]
+        _datas = [10 * np.log10(_d) if (dB and not normalize) else _d
+                  for _d in _datas]
+        vmin = np.array(_datas).min()
+        vmax = np.array(_datas).max()
     else:
         vmin, vmax = vlim
 
