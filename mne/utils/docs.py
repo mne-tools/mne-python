@@ -129,6 +129,8 @@ vlim : tuple of length 2 | 'joint'
     If ``vlim='joint'``, will compute the colormap limits jointly across
     all topomaps of the same channel type, using the min/max of the data.
     Defaults to ``(None, None)``.
+
+    .. versionadded:: 0.21
 """
 
 # Picks
