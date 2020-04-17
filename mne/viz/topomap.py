@@ -226,7 +226,7 @@ def _add_colorbar(ax, im, cmap, side="right", pad=.05, title=None,
                   format=None, size="5%"):
     """Add a colorbar to an axis."""
     import matplotlib.pyplot as plt
-    from mpl_toolkits.axes_grid1 import make_axes_locatable  # noqa: F401
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
     divider = make_axes_locatable(ax)
     cax = divider.append_axes(side, size=size, pad=pad)
     cbar = plt.colorbar(im, cax=cax, format=format)
@@ -1814,8 +1814,8 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
                          cmap=cmap[0], image_interp='bilinear', contours=0,
                          outlines=outlines, show=False, sphere=sphere)
 
-    if colorbar is True:
-        cbar, cax = _add_colorbar(ax, im, cmap, pad=.25, title=None,
+    if colorbar:
+        cbar, cax = _add_colorbar(ax, im, cmap, pad=0.25, title=None,
                                   size="10%", format=cbar_fmt)
         cbar.set_ticks((vmin, vmax))
         if unit is not None:
@@ -1950,8 +1950,8 @@ def plot_psds_topomap(
     pos : numpy.ndarray of float, shape (n_sensors, 2)
         The positions of the sensors.
     agg_fun : callable
-        The function used to aggregate over frequencies.
-        Defaults to np.sum. if normalize is True, else np.mean.
+        The function used to aggregate over frequencies. Defaults to
+        :func:`numpy.sum` if normalize is ``True``, else :func:`numpy.mean`.
     vmin : None
         Deprecated; use ``vlim`` instead.
     vmax : None
