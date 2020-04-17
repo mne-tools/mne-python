@@ -2027,7 +2027,7 @@ def plot_psds_topomap(
         agg_fun = np.sum if normalize else np.mean
 
     if normalize:
-        psds /= psds.sum(axis=-1)[..., None]
+        psds /= psds.sum(axis=-1, keepdims=True)
         assert np.allclose(psds.sum(axis=-1), 1.)
 
     n_axes = len(bands)
