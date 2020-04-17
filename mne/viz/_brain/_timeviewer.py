@@ -166,28 +166,18 @@ class UpdateColorbarScale(object):
     def __init__(self, plotter=None, brain=None):
         self.plotter = plotter
         self.brain = brain
-        self.slider_rep = None
+        self.keys = ("fmin", "fmid", "fmax")
+        self.slider_rep = {key: None for key in self.keys}
+        self.fscale_slider_rep = None
 
     def __call__(self, value):
         """Update the colorbar sliders."""
         self.brain.update_fscale(value)
-        fmin = self.brain._data['fmin']
-        fmid = self.brain._data['fmid']
-        fmax = self.brain._data['fmax']
-        for slider in self.plotter.slider_widgets:
-            name = getattr(slider, "name", None)
-            if name == "fmin":
-                slider_rep = slider.GetRepresentation()
-                slider_rep.SetValue(fmin)
-            elif name == "fmid":
-                slider_rep = slider.GetRepresentation()
-                slider_rep.SetValue(fmid)
-            elif name == "fmax":
-                slider_rep = slider.GetRepresentation()
-                slider_rep.SetValue(fmax)
-            elif name == "fscale":
-                slider_rep = slider.GetRepresentation()
-                slider_rep.SetValue(1.0)
+        for key in self.keys:
+            if self.slider_rep[key] is not None:
+                self.slider_rep[key].SetValue(self.brain._data[key])
+        if self.fscale_slider_rep is not None:
+            self.fscale_slider_rep.SetValue(1.0)
         self.plotter.update()
 
 
@@ -751,6 +741,10 @@ class _TimeViewer(object):
             pointb=(0.98, 0.10)
         )
         fscale_slider.name = "fscale"
+        self.fscale_call.slider_rep["fmin"] = fmin_slider.GetRepresentation()
+        self.fscale_call.slider_rep["fmid"] = fmid_slider.GetRepresentation()
+        self.fscale_call.slider_rep["fmax"] = fmax_slider.GetRepresentation()
+        self.fscale_call.fscale_slider_rep = fscale_slider.GetRepresentation()
 
         # set the slider style
         self.set_slider_style(smoothing_slider)
