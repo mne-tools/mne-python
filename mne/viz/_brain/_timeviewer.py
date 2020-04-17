@@ -21,6 +21,14 @@ from ...utils import _ReuseCycle, warn, copy_doc
 
 
 @decorator
+def run_once(fun, *args, **kwargs):
+    """Run the function only once."""
+    if not hasattr(fun, "_has_run"):
+        fun._has_run = True
+        return fun(*args, **kwargs)
+
+
+@decorator
 def safe_event(fun, *args, **kwargs):
     """Protect against PyQt5 exiting on event-handling errors."""
     try:
@@ -849,8 +857,7 @@ class _TimeViewer(object):
 
     def load_icons(self):
         from PyQt5.QtGui import QIcon
-        from ...icons import resources
-        resources.qInitResources()
+        _init_resources()
         self.icons["help"] = QIcon(":/help.svg")
         self.icons["play"] = QIcon(":/play.svg")
         self.icons["pause"] = QIcon(":/pause.svg")
@@ -1095,7 +1102,6 @@ class _TimeViewer(object):
 
     @safe_event
     def clean(self):
-        from ...icons import resources
         # resolve the reference cycle
         self.clear_points()
         self.actions.clear()
@@ -1140,7 +1146,6 @@ class _TimeViewer(object):
         self.act_data["lh"] = None
         self.act_data["rh"] = None
         self.act_data = None
-        resources.qCleanupResources()
 
 
 class _LinkViewer(object):
@@ -1202,3 +1207,9 @@ def _get_range(brain):
 
 def _normalize(point, shape):
     return (point[0] / shape[1], point[1] / shape[0])
+
+
+@run_once
+def _init_resources():
+    from ...icons import resources
+    resources.qInitResources()
