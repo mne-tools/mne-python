@@ -1866,15 +1866,14 @@ def find_bad_channels_maxwell(
         skip_by_annotation=('edge', 'bad_acq_skip'), verbose=None):
     r"""Find bad channels using Maxwell filtering.
 
+    .. note:: For closer equivalence with MaxFilter, it's recommended to
+        low-pass filter your data (e.g., at 40 Hz) prior to running this
+        function.
+
     Parameters
     ----------
     raw : instance of Raw
         Raw data to process.
-
-        .. note:: For closer equivalence with MaxFilter, it's recommended
-            to low-pass filter your data (e.g., at 40 Hz) prior to running
-            this function.
-
     limit : float
         Detection limit (default is 7.). Smaller values will find more bad
         channels at increased risk of including good ones.
