@@ -105,23 +105,16 @@ class MplCanvas(object):
 class IntSlider(object):
     """Class to set a integer slider."""
 
-    def __init__(self, plotter=None, callback=None, first_call=True,
-                 name=None):
+    def __init__(self, plotter=None, callback=None, first_call=True):
         self.plotter = plotter
         self.callback = callback
         self.slider_rep = None
         self.first_call = first_call
         self._first_time = True
-        self.name = name
 
     def __call__(self, value):
         """Round the label of the slider."""
         idx = int(round(value))
-        if self.slider_rep is None:
-            for slider in self.plotter.slider_widgets:
-                name = getattr(slider, "name", None)
-                if name == self.name:
-                    self.slider_rep = slider.GetRepresentation()
         if self.slider_rep is not None:
             self.slider_rep.SetValue(idx)
             self.plotter.update()
@@ -156,11 +149,6 @@ class TimeSlider(object):
         if self.callback is not None:
             self.callback()
         current_time = self.brain._current_time
-        if self.slider_rep is None:
-            for slider in self.plotter.slider_widgets:
-                name = getattr(slider, "name", None)
-                if name == "time":
-                    self.slider_rep = slider.GetRepresentation()
         if self.slider_rep is not None:
             if self.time_label is not None:
                 current_time = self.time_label(current_time)
@@ -260,7 +248,7 @@ class ShowView(object):
     """Class that selects the correct view."""
 
     def __init__(self, plotter=None, brain=None, orientation=None,
-                 row=None, col=None, hemi=None, name=None):
+                 row=None, col=None, hemi=None):
         self.plotter = plotter
         self.brain = brain
         self.orientation = orientation
@@ -268,7 +256,6 @@ class ShowView(object):
         self.row = row
         self.col = col
         self.hemi = hemi
-        self.name = name
         self.slider_rep = None
 
     def __call__(self, value, update_widget=False):
@@ -280,11 +267,6 @@ class ShowView(object):
                 idx = self.orientation.index(value)
             else:
                 idx = self.short_orientation.index(value)
-            if self.slider_rep is None:
-                for slider in self.plotter.slider_widgets:
-                    name = getattr(slider, "name", None)
-                    if name == self.name:
-                        self.slider_rep = slider.GetRepresentation()
             if self.slider_rep is not None:
                 self.slider_rep.SetValue(idx)
                 self.slider_rep.SetTitleText(self.orientation[idx])
@@ -298,21 +280,15 @@ class SmartSlider(object):
     and uses it when necessary.
     """
 
-    def __init__(self, plotter=None, callback=None, name=None):
+    def __init__(self, plotter=None, callback=None):
         self.plotter = plotter
         self.callback = callback
-        self.name = name
         self.slider_rep = None
 
     def __call__(self, value, update_widget=False):
         """Update the value."""
         self.callback(value)
         if update_widget:
-            if self.slider_rep is None:
-                for slider in self.plotter.slider_widgets:
-                    name = getattr(slider, "name", None)
-                    if name == self.name:
-                        self.slider_rep = slider.GetRepresentation()
             if self.slider_rep is not None:
                 self.slider_rep.SetValue(value)
                 self.plotter.update()
@@ -613,7 +589,6 @@ class _TimeViewer(object):
                 ci = 0
             for ri, view in enumerate(self.brain._views):
                 self.plotter.subplot(ri, ci)
-                name = "orientation_" + str(ri) + "_" + str(ci)
                 self.orientation_call = ShowView(
                     plotter=self.plotter,
                     brain=self.brain,
@@ -621,7 +596,6 @@ class _TimeViewer(object):
                     hemi=hemi,
                     row=ri,
                     col=ci,
-                    name=name
                 )
                 orientation_slider = self.plotter.add_text_slider_widget(
                     self.orientation_call,
@@ -631,8 +605,9 @@ class _TimeViewer(object):
                     pointb=(0.98, 0.74),
                     event_type='always'
                 )
+                self.orientation_call.slider_rep = \
+                    orientation_slider.GetRepresentation()
                 self.set_slider_style(orientation_slider, show_label=False)
-                orientation_slider.name = name
                 self.orientation_call(view, update_widget=True)
 
         # necessary because show_view modified subplot
@@ -644,7 +619,6 @@ class _TimeViewer(object):
             plotter=self.plotter,
             callback=self.brain.set_data_smoothing,
             first_call=False,
-            name="smoothing"
         )
         smoothing_slider = self.plotter.add_slider_widget(
             self.smoothing_call,
@@ -653,7 +627,7 @@ class _TimeViewer(object):
             pointa=(0.82, 0.90),
             pointb=(0.98, 0.90)
         )
-        smoothing_slider.name = 'smoothing'
+        self.smoothing_call.slider_rep = smoothing_slider.GetRepresentation()
 
         # Time slider
         max_time = len(self.brain._data['time']) - 1
@@ -677,7 +651,7 @@ class _TimeViewer(object):
                 pointb=(0.77, 0.1),
                 event_type='always'
             )
-            time_slider.name = "time"
+            self.time_call.slider_rep = time_slider.GetRepresentation()
             # configure properties of the time slider
             time_slider.GetRepresentation().SetLabelFormat('idx=%0.1f')
 
@@ -701,7 +675,6 @@ class _TimeViewer(object):
             self.playback_speed_call = SmartSlider(
                 plotter=self.plotter,
                 callback=self.set_playback_speed,
-                name="playback_speed"
             )
             playback_speed_slider = self.plotter.add_slider_widget(
                 self.playback_speed_call,
@@ -711,7 +684,8 @@ class _TimeViewer(object):
                 pointb=(0.18, 0.1),
                 event_type='always'
             )
-            playback_speed_slider.name = "playback_speed"
+            self.playback_speed_call.slider_rep = \
+                playback_speed_slider.GetRepresentation()
 
         # Colormap slider
         pointa = np.array((0.82, 0.26))
