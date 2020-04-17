@@ -849,7 +849,7 @@ class _TimeViewer(object):
 
     def load_icons(self):
         from PyQt5.QtGui import QIcon
-        from ...images import resources  # noqa
+        from ...icons import resources  # noqa
         self.icons["help"] = QIcon(":/help.svg")
         self.icons["play"] = QIcon(":/play.svg")
         self.icons["pause"] = QIcon(":/pause.svg")
@@ -1094,7 +1094,7 @@ class _TimeViewer(object):
 
     @safe_event
     def clean(self):
-        from ...images import resources
+        from ...icons import resources
         # resolve the reference cycle
         self.clear_points()
         self.actions.clear()

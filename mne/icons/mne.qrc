@@ -1,0 +1,14 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+    <file alias="visibility_on.svg">mne/icons/visibility_on-black-18dp.svg</file>
+    <file alias="visibility_off.svg">mne/icons/visibility_off-black-18dp.svg</file>
+    <file alias="help.svg">mne/icons/help-black-18dp.svg</file>
+    <file alias="play.svg">mne/icons/play-black-18dp.svg</file>
+    <file alias="pause.svg">mne/icons/pause-black-18dp.svg</file>
+    <file alias="scale.svg">mne/icons/scale-black-18dp.svg</file>
+    <file alias="restore.svg">mne/icons/restore-black-18dp.svg</file>
+    <file alias="clear.svg">mne/icons/clear-black-18dp.svg</file>
+    <file alias="screenshot.svg">mne/icons/screenshot-black-18dp.svg</file>
+    <file alias="movie.svg">mne/icons/movie-black-18dp.svg</file>
+</qresource>
+</RCC>
