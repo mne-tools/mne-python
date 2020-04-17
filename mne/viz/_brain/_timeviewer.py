@@ -753,6 +753,10 @@ class _TimeViewer(object):
             self.set_slider_style(playback_speed_slider)
             self.set_slider_style(time_slider)
 
+        # store sliders for linking
+        self._time_slider = time_slider
+        self._playback_speed_slider = playback_speed_slider
+
     def configure_playback(self):
         self.plotter.add_callback(self.play, self.refresh_rate_ms)
 
@@ -1068,6 +1072,8 @@ class _TimeViewer(object):
         self.clear_points()
         self.actions.clear()
         self.reps = None
+        self._time_slider = None
+        self._playback_speed_slider = None
         self.orientation_call.plotter = None
         self.orientation_call.brain = None
         self.orientation_call = None
@@ -1121,14 +1127,14 @@ class _LinkViewer(object):
 
         # link time sliders
         self.link_sliders(
-            name="time",
+            name="_time_slider",
             callback=self.set_time_point,
             event_type="always"
         )
 
         # link playback speed sliders
         self.link_sliders(
-            name="playback_speed",
+            name="_playback_speed_slider",
             callback=self.set_playback_speed,
             event_type="always"
         )
@@ -1153,15 +1159,13 @@ class _LinkViewer(object):
     def link_sliders(self, name, callback, event_type):
         from ..backends._pyvista import _update_slider_callback
         for time_viewer in self.time_viewers:
-            plotter = time_viewer.plotter
-            for slider in plotter.slider_widgets:
-                slider_name = getattr(slider, "name", None)
-                if slider_name == name:
-                    _update_slider_callback(
-                        slider=slider,
-                        callback=callback,
-                        event_type=event_type
-                    )
+            slider = getattr(time_viewer, name, None)
+            if slider is not None:
+                _update_slider_callback(
+                    slider=slider,
+                    callback=callback,
+                    event_type=event_type
+                )
 
 
 def _get_range(brain):
