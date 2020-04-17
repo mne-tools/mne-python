@@ -30,6 +30,28 @@ raw_intensity = mne.io.read_raw_nirx(fnirs_raw_dir, verbose=True).load_data()
 
 
 ###############################################################################
+# View location of sensors over brain surface
+# -------------------------------------------
+#
+# Here we validate that the location of sources-detector pairs and channels
+# are in the expected locations. Source-detector pairs are shown as lines
+# between the optodes, channels (the mid point of source-detector pairs) are
+# shown as dots.
+
+mne.datasets.fetch_fsaverage()
+subjects_dir = mne.datasets.sample.data_path() + '/subjects'
+mne.viz.set_3d_backend('pyvista')
+
+fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
+fig = mne.viz.plot_alignment(raw_intensity.info, show_axes=True,
+                             subject='fsaverage',
+                             trans='fsaverage', surfaces=['brain'],
+                             fnirs=['channels', 'pairs'],
+                             subjects_dir=subjects_dir, fig=fig)
+mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
+
+
+###############################################################################
 # Selecting channels appropriate for detecting neural responses
 # -------------------------------------------------------------
 #
