@@ -1794,14 +1794,13 @@ def _slider_changed(val, ax, data, times, pos, scaling, func, time_format,
         ax.set_title(time_format % (val * scaling_time))
 
 
-def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
-                             vmax=None, cmap=None, outlines='head',
-                             colorbar=False, cbar_fmt='%3.3f',
-                             sphere=None):
+def _plot_topomap_multi_cbar(data, pos, ax, vmin, vmax, title=None, unit=None,
+                             cmap=None, outlines='head', colorbar=False,
+                             cbar_fmt='%3.3f', sphere=None):
     """Plot topomap multi cbar."""
     _hide_frame(ax)
-    vmin = np.min(data) if vmin is None else vmin
-    vmax = np.max(data) if vmax is None else vmax
+    vmin = data.min() if vmin is None else vmin
+    vmax = data.max() if vmax is None else vmax
     # this definition of "norm" allows non-diverging colormap for cases where
     # min & vmax are both negative (e.g., when they are power in dB)
     signs = np.sign([vmin, vmax])
@@ -2062,8 +2061,8 @@ def plot_psds_topomap(
         else:
             unit = 'power'
 
-        _plot_topomap_multi_cbar(data, pos, ax, title=title, vmin=vmin,
-                                 vmax=vmax, cmap=cmap, outlines=outlines,
+        _plot_topomap_multi_cbar(data, pos, ax, vmin=vmin, vmax=vmax,
+                                 title=title, cmap=cmap, outlines=outlines,
                                  colorbar=True, unit=unit, cbar_fmt=cbar_fmt,
                                  sphere=sphere)
     tight_layout(fig=fig)
