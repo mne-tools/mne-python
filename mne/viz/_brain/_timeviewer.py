@@ -1153,6 +1153,10 @@ class _LinkViewer(object):
             time_viewer.playback_speed_call(value, update_widget=True)
 
     def toggle_playback(self):
+        master = self.time_viewers[0]  # select a master time_viewer
+        value = master.time_call.slider_rep.GetValue()
+        # synchronize starting points before playback
+        self.set_time_point(value)
         for time_viewer in self.time_viewers:
             time_viewer.toggle_playback()
 
