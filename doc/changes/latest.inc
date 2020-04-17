@@ -54,7 +54,7 @@ Bug
 
 - Fix bug with :func:`mne.io.read_raw_edf` where recording ID was not read properly for non-ASCII characters by `Lx37`_
 
-- Make :func:`mne.set_config` accept arbitrary input values as long as they can be represented as a string by `Richard Höchenberger`_
+- Make :func:`mne.set_config` accept path-like input values by `Richard Höchenberger`_
 
 API
 ~~~
