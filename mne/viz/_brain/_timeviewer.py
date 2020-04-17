@@ -166,16 +166,16 @@ class UpdateColorbarScale(object):
     def __init__(self, plotter=None, brain=None):
         self.plotter = plotter
         self.brain = brain
-        self.keys = ("fmin", "fmid", "fmax")
-        self.slider_rep = {key: None for key in self.keys}
+        self.keys = ('fmin', 'fmid', 'fmax')
+        self.reps = {key: None for key in self.keys}
         self.fscale_slider_rep = None
 
     def __call__(self, value):
         """Update the colorbar sliders."""
         self.brain.update_fscale(value)
         for key in self.keys:
-            if self.slider_rep[key] is not None:
-                self.slider_rep[key].SetValue(self.brain._data[key])
+            if self.reps[key] is not None:
+                self.reps[key].SetValue(self.brain._data[key])
         if self.fscale_slider_rep is not None:
             self.fscale_slider_rep.SetValue(1.0)
         self.plotter.update()
@@ -193,41 +193,37 @@ class BumpColorbarPoints(object):
             "fmid": brain.update_fmid,
             "fmax": brain.update_fmax
         }
+        self.keys = ('fmin', 'fmid', 'fmax')
+        self.reps = {key: None for key in self.keys}
         self.last_update = time.time()
 
     def __call__(self, value):
         """Update the colorbar sliders."""
-        keys = ('fmin', 'fmid', 'fmax')
-        vals = {key: self.brain._data[key] for key in keys}
-        reps = {key: None for key in keys}
-        for slider in self.plotter.slider_widgets:
-            name = getattr(slider, "name", None)
-            if name is not None:
-                reps[name] = slider.GetRepresentation()
-        if self.name == "fmin" and reps["fmin"] is not None:
+        vals = {key: self.brain._data[key] for key in self.keys}
+        if self.name == "fmin" and self.reps["fmin"] is not None:
             if vals['fmax'] < value:
                 self.brain.update_fmax(value)
-                reps['fmax'].SetValue(value)
+                self.reps['fmax'].SetValue(value)
             if vals['fmid'] < value:
                 self.brain.update_fmid(value)
-                reps['fmid'].SetValue(value)
-            reps['fmin'].SetValue(value)
-        elif self.name == "fmid" and reps['fmid'] is not None:
+                self.reps['fmid'].SetValue(value)
+            self.reps['fmin'].SetValue(value)
+        elif self.name == "fmid" and self.reps['fmid'] is not None:
             if vals['fmin'] > value:
                 self.brain.update_fmin(value)
-                reps['fmin'].SetValue(value)
+                self.reps['fmin'].SetValue(value)
             if vals['fmax'] < value:
                 self.brain.update_fmax(value)
-                reps['fmax'].SetValue(value)
-            reps['fmid'].SetValue(value)
-        elif self.name == "fmax" and reps['fmax'] is not None:
+                self.reps['fmax'].SetValue(value)
+            self.reps['fmid'].SetValue(value)
+        elif self.name == "fmax" and self.reps['fmax'] is not None:
             if vals['fmin'] > value:
                 self.brain.update_fmin(value)
-                reps['fmin'].SetValue(value)
+                self.reps['fmin'].SetValue(value)
             if vals['fmid'] > value:
                 self.brain.update_fmid(value)
-                reps['fmid'].SetValue(value)
-            reps['fmax'].SetValue(value)
+                self.reps['fmid'].SetValue(value)
+            self.reps['fmax'].SetValue(value)
         if time.time() > self.last_update + 1. / 60.:
             self.callback[self.name](value)
             self.last_update = time.time()
@@ -306,6 +302,7 @@ class _TimeViewer(object):
         self._mouse_no_mvt = -1
         self.icons = dict()
         self.actions = dict()
+        self.keys = ('fmin', 'fmid', 'fmax')
         self.orientation = [
             'lateral',
             'medial',
@@ -471,16 +468,14 @@ class _TimeViewer(object):
 
     def apply_auto_scaling(self):
         self.brain.update_auto_scaling()
-        self.fmin_slider_rep.SetValue(self.brain._data['fmin'])
-        self.fmid_slider_rep.SetValue(self.brain._data['fmid'])
-        self.fmax_slider_rep.SetValue(self.brain._data['fmax'])
+        for key in ('fmin', 'fmid', 'fmax'):
+            self.reps[key].SetValue(self.brain._data[key])
         self.plotter.update()
 
     def restore_user_scaling(self):
         self.brain.update_auto_scaling(restore=True)
-        self.fmin_slider_rep.SetValue(self.brain._data['fmin'])
-        self.fmid_slider_rep.SetValue(self.brain._data['fmid'])
-        self.fmax_slider_rep.SetValue(self.brain._data['fmax'])
+        for key in ('fmin', 'fmid', 'fmax'):
+            self.reps[key].SetValue(self.brain._data[key])
         self.plotter.update()
 
     def toggle_playback(self, value=None):
@@ -681,7 +676,7 @@ class _TimeViewer(object):
         pointa = np.array((0.82, 0.26))
         pointb = np.array((0.98, 0.26))
         shift = np.array([0, 0.1])
-        fmin = self.brain._data["fmin"]
+        # fmin
         self.fmin_call = BumpColorbarPoints(
             plotter=self.plotter,
             brain=self.brain,
@@ -689,15 +684,13 @@ class _TimeViewer(object):
         )
         fmin_slider = self.plotter.add_slider_widget(
             self.fmin_call,
-            value=fmin,
+            value=self.brain._data["fmin"],
             rng=rng, title="clim",
             pointa=pointa,
             pointb=pointb,
             event_type="always",
         )
-        fmin_slider.name = "fmin"
-        self.fmin_slider_rep = fmin_slider.GetRepresentation()
-        fmid = self.brain._data["fmid"]
+        # fmid
         self.fmid_call = BumpColorbarPoints(
             plotter=self.plotter,
             brain=self.brain,
@@ -705,15 +698,13 @@ class _TimeViewer(object):
         )
         fmid_slider = self.plotter.add_slider_widget(
             self.fmid_call,
-            value=fmid,
+            value=self.brain._data["fmid"],
             rng=rng, title="",
             pointa=pointa + shift,
             pointb=pointb + shift,
             event_type="always",
         )
-        fmid_slider.name = "fmid"
-        self.fmid_slider_rep = fmid_slider.GetRepresentation()
-        fmax = self.brain._data["fmax"]
+        # fmax
         self.fmax_call = BumpColorbarPoints(
             plotter=self.plotter,
             brain=self.brain,
@@ -721,14 +712,13 @@ class _TimeViewer(object):
         )
         fmax_slider = self.plotter.add_slider_widget(
             self.fmax_call,
-            value=fmax,
+            value=self.brain._data["fmax"],
             rng=rng, title="",
             pointa=pointa + 2 * shift,
             pointb=pointb + 2 * shift,
             event_type="always",
         )
-        fmax_slider.name = "fmax"
-        self.fmax_slider_rep = fmax_slider.GetRepresentation()
+        # fscale
         self.fscale_call = UpdateColorbarScale(
             plotter=self.plotter,
             brain=self.brain,
@@ -740,11 +730,18 @@ class _TimeViewer(object):
             pointa=(0.82, 0.10),
             pointb=(0.98, 0.10)
         )
-        fscale_slider.name = "fscale"
-        self.fscale_call.slider_rep["fmin"] = fmin_slider.GetRepresentation()
-        self.fscale_call.slider_rep["fmid"] = fmid_slider.GetRepresentation()
-        self.fscale_call.slider_rep["fmax"] = fmax_slider.GetRepresentation()
         self.fscale_call.fscale_slider_rep = fscale_slider.GetRepresentation()
+
+        # register colorbar slider representations
+        self.reps = {
+            "fmin": fmin_slider.GetRepresentation(),
+            "fmid": fmid_slider.GetRepresentation(),
+            "fmax": fmax_slider.GetRepresentation(),
+        }
+        self.fmin_call.reps = self.reps
+        self.fmid_call.reps = self.reps
+        self.fmax_call.reps = self.reps
+        self.fscale_call.reps = self.reps
 
         # set the slider style
         self.set_slider_style(smoothing_slider)
@@ -1070,6 +1067,7 @@ class _TimeViewer(object):
         # resolve the reference cycle
         self.clear_points()
         self.actions.clear()
+        self.reps = None
         self.orientation_call.plotter = None
         self.orientation_call.brain = None
         self.orientation_call = None
