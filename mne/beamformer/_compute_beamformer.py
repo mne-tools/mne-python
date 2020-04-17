@@ -18,6 +18,7 @@ from ..minimum_norm.inverse import _get_vertno, _prepare_forward
 from ..source_space import label_src_vertno_sel
 from ..utils import (verbose, check_fname, _reg_pinv, _check_option, logger,
                      _pl, _check_src_normal, check_version)
+from ..utils.linalg import _sym_inv
 from ..time_frequency.csd import CrossSpectralDensity
 
 from ..externals.h5io import read_hdf5, write_hdf5
@@ -99,20 +100,6 @@ def _prepare_beamformer_input(info, forward, label=None, pick_ori=None,
         info_picked['projs'], info_picked['ch_names'])
     return (is_free_ori, info_picked, proj, vertno, gain, whitener, nn,
             orient_std)
-
-
-def _sym_inv(x, reduce_rank):
-    """Symmetric inversion with optional rank reduction."""
-    s, u = np.linalg.eigh(x)
-    # mimic default np.linalg.pinv behavior
-    cutoff = 1e-15 * s[:, -1:]
-    s[s <= cutoff] = np.inf
-    if reduce_rank:
-        # These are ordered smallest to largest, so we set the first one
-        # to inf -- then the 1. / s below will turn this to zero, as needed.
-        s[:, 0] = np.inf
-    s = 1. / s
-    return np.matmul(u * s[:, np.newaxis], u.transpose(0, 2, 1))
 
 
 def _reduce_leadfield_rank(G):
