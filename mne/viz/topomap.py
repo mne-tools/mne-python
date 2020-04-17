@@ -2021,10 +2021,8 @@ def plot_psds_topomap(
     else:  # upconvert single freqs to band upper/lower edges as needed
         bin_spacing = np.diff(freqs)[0]
         bin_edges = np.array([0, bin_spacing]) - bin_spacing / 2
-        for ix, band in enumerate(bands):
-            if len(band) == 2:
-                bin_freq = freqs[np.argmin(np.abs(freqs - band[0]))]
-                bands[ix] = tuple(bin_edges + bin_freq) + (band[-1],)
+        bands = [tuple(bin_edges + freqs[np.argmin(np.abs(freqs - band[0]))]) +
+                 (band[1],) if len(band) == 2 else band for band in bands]
 
     if agg_fun is None:
         agg_fun = np.sum if normalize else np.mean
