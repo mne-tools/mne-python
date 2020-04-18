@@ -1156,9 +1156,8 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     if op.isfile(T1_mgz):
         new_info = _extract_volume_info(T1_mgz)
         if new_info is None:
-            warn('nibabel is required to replace the volume info. Volume info'
-                 'not updated in the written surface.')
-            new_info = dict()
+            warn('nibabel is not available or the volumn info is invalid.'
+                 'Volume info not updated in the written surface.')
         surfs = ['brain', 'inner_skull', 'outer_skull', 'outer_skin']
         for s in surfs:
             surf_ws_out = op.join(ws_dir, '%s_%s_surface' % (subject, s))
@@ -1216,7 +1215,6 @@ def _extract_volume_info(mgz, raise_error=False):
     except ImportError:
         return  # warning raised elsewhere
     header = nib.load(mgz).header
-    vol_info = dict()
     version = header['version']
     if version == 1:
         version = '%s  # volume info valid' % version
@@ -1224,6 +1222,8 @@ def _extract_volume_info(mgz, raise_error=False):
         raise ValueError('Volume info invalid.')
     else:
         return
+
+    vol_info = dict()
     vol_info['valid'] = version
     vol_info['filename'] = mgz
     vol_info['volume'] = header['dims'][:3]
