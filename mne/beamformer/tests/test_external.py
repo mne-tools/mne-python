@@ -46,9 +46,9 @@ def _get_bf_data(save_fieldtrip=False):
     epochs.pick_types(meg='grad')
     evoked.pick_types(meg='grad')
 
-    # compute covariance matrix
+    # compute covariance matrix (ignore false alarm about no baseline)
     data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.145,
-                                      method='empirical')
+                                      method='empirical', verbose='error')
 
     if save_fieldtrip is True:
         # if the covariance matrix and epochs need resaving:
