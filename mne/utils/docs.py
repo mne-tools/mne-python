@@ -161,18 +161,18 @@ cbar_fmt : str
     to '%%0.3f' if ``dB=False`` and '%%0.1f' if ``dB=True``. Defaults to
     ``'auto'``.
 """
-docdict['psd_topo_normalize'] """
+docdict['psd_topo_normalize'] = """
 normalize : bool
     If True, each band will be divided by the total power. Defaults to
     False.
 """
-docdict['psd_topo_bands'] """
+docdict['psd_topo_bands'] = """
 bands : list of tuple | None
     The frequencies or frequency ranges to plot. Length-2 tuples specify
     a single frequency and a subplot title (e.g.,
     ``(6.5, 'presentation rate')``); length-3 tuples specify lower and
     upper band edges and a subplot title. If ``None`` (the default),
-    expands to:
+    expands to::
 
         bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
                  (12, 30, 'Beta'), (30, 45, 'Gamma')]
@@ -180,7 +180,7 @@ bands : list of tuple | None
     In bands where a single frequency is provided, the topomap will reflect
     the single frequency bin that is closest to the provided value.
 """
-docdict['psd_topo_axes'] """
+docdict['psd_topo_axes'] = """
 axes : list of Axes | None
     List of axes to plot consecutive topographies to. If ``None`` the axes
     will be created automatically. Defaults to ``None``.
