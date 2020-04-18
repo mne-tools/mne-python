@@ -1919,9 +1919,6 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     if merge_channels:
         psds, names = _merge_ch_data(psds, ch_type, names, method='mean')
 
-    if cbar_fmt == 'auto':
-        cbar_fmt = '%0.1f' if dB else '%0.3f'
-
     return plot_psds_topomap(
         psds=psds, freqs=freqs, pos=pos, agg_fun=agg_fun, vmin=vmin,
         vmax=vmax, bands=bands, cmap=cmap, dB=dB, normalize=normalize,
@@ -1989,6 +1986,9 @@ def plot_psds_topomap(
     """
     import matplotlib.pyplot as plt
     sphere = _check_sphere(sphere)
+
+    if cbar_fmt == 'auto':
+        cbar_fmt = '%0.1f' if dB else '%0.3f'
 
     if vmin is not None or vmax is not None:
         if vlim == (None, None):
