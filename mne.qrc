@@ -9,5 +9,6 @@
     <file alias="restore.svg">mne/images/restore-black-18dp.svg</file>
     <file alias="clear.svg">mne/images/clear-black-18dp.svg</file>
     <file alias="screenshot.svg">mne/images/screenshot-black-18dp.svg</file>
+    <file alias="movie.svg">mne/images/movie-black-18dp.svg</file>
 </qresource>
 </RCC>

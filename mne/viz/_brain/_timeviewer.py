@@ -5,16 +5,19 @@
 # License: Simplified BSD
 
 import warnings
+from functools import partial
+import os
 import time
 import traceback
 import sys
 
 import numpy as np
 
+from . import _Brain
 from ..utils import _check_option, _show_help, _get_color_list, tight_layout
 from ...externals.decorator import decorator
 from ...source_space import vertex_to_mni
-from ...utils import _ReuseCycle
+from ...utils import _ReuseCycle, warn, copy_doc
 
 # all icons are stored in mne/viz/_brain/resources.py, which must be
 # automatically generated with:
@@ -330,6 +333,7 @@ class _TimeViewer(object):
         self.default_smoothing_range = [0, 15]
         self.default_playback_speed_range = [0.01, 1]
         self.default_playback_speed_value = 0.05
+        self.default_status_bar_msg = "Press ? for help"
         self.act_data = {'lh': None, 'rh': None}
         self.color_cycle = None
         self.picked_points = {'lh': list(), 'rh': list()}
@@ -346,14 +350,6 @@ class _TimeViewer(object):
             'frontal',
             'parietal'
         ]
-        self.key_bindings = {
-            '?': self.help,
-            'i': self.toggle_interface,
-            's': self.apply_auto_scaling,
-            'r': self.restore_user_scaling,
-            'c': self.clear_points,
-            ' ': self.toggle_playback,
-        }
         self.slider_length = 0.02
         self.slider_width = 0.04
         self.slider_color = (0.43137255, 0.44313725, 0.45882353)
@@ -363,13 +359,14 @@ class _TimeViewer(object):
         # Direct access parameters:
         self.brain = brain
         self.brain.time_viewer = self
+        self.brain._save_movie = self.brain.save_movie
+        self.brain.save_movie = self.save_movie
         self.plotter = brain._renderer.plotter
         self.main_menu = self.plotter.main_menu
         self.window = self.plotter.app_window
         self.tool_bar = self.window.addToolBar("toolbar")
         self.status_bar = self.window.statusBar()
         self.interactor = self.plotter.interactor
-        self.interactor.keyPressEvent = self.keyPressEvent
         self.window.signal_close.connect(self.clean)
 
         # Derived parameters:
@@ -390,19 +387,17 @@ class _TimeViewer(object):
         self.configure_point_picking()
         self.configure_menu()
         self.configure_tool_bar()
+        self.configure_status_bar()
 
         # show everything at the end
         self.toggle_interface()
         self.brain.show()
 
-    @safe_event
-    def keyPressEvent(self, event):
-        callback = self.key_bindings.get(event.text())
-        if callback is not None:
-            callback()
-
-    def toggle_interface(self):
-        self.visibility = not self.visibility
+    def toggle_interface(self, value=None):
+        if value is None:
+            self.visibility = not self.visibility
+        else:
+            self.visibility = value
 
         # update tool bar icon
         if self.visibility:
@@ -432,6 +427,82 @@ class _TimeViewer(object):
 
         self.plotter.update()
 
+    def _save_movie(self, filename, **kwargs):
+        from PyQt5.QtCore import Qt
+        from PyQt5.QtGui import QCursor
+
+        def frame_callback(frame, n_frames):
+            if frame == n_frames:
+                # On the ImageIO step
+                self.status_msg.setText(
+                    "Saving with ImageIO: %s"
+                    % filename
+                )
+                self.status_msg.show()
+                self.status_progress.hide()
+                self.status_bar.layout().update()
+            else:
+                self.status_msg.setText(
+                    "Rendering images (frame %d / %d) ..."
+                    % (frame + 1, n_frames)
+                )
+                self.status_msg.show()
+                self.status_progress.show()
+                self.status_progress.setRange(0, n_frames - 1)
+                self.status_progress.setValue(frame)
+                self.status_progress.update()
+                self.status_progress.repaint()
+            self.status_msg.update()
+            self.status_msg.parent().update()
+            self.status_msg.repaint()
+
+        # temporarily hide interface
+        default_visibility = self.visibility
+        self.toggle_interface(value=False)
+        # set cursor to busy
+        default_cursor = self.interactor.cursor()
+        self.interactor.setCursor(QCursor(Qt.WaitCursor))
+
+        try:
+            self.brain._save_movie(
+                filename=filename,
+                time_dilation=(1. / self.playback_speed),
+                callback=frame_callback,
+                **kwargs
+            )
+        except (Exception, KeyboardInterrupt):
+            warn('Movie saving aborted:\n' + traceback.format_exc())
+
+        # restore visibility
+        self.toggle_interface(value=default_visibility)
+        # restore cursor
+        self.interactor.setCursor(default_cursor)
+
+    @copy_doc(_Brain.save_movie)
+    def save_movie(self, filename=None, **kwargs):
+        from pyvista.plotting.qt_plotting import FileDialog
+
+        if filename is None:
+            self.status_msg.setText("Choose movie path ...")
+            self.status_msg.show()
+            self.status_progress.setValue(0)
+
+            def _clean(unused):
+                del unused
+                self.status_msg.hide()
+                self.status_progress.hide()
+
+            dialog = FileDialog(
+                self.plotter.app_window,
+                callback=partial(self._save_movie, **kwargs)
+            )
+            dialog.setDirectory(os.getcwd())
+            dialog.finished.connect(_clean)
+            return dialog
+        else:
+            self._save_movie(filename=filename, **kwargs)
+            return
+
     def apply_auto_scaling(self):
         self.brain.update_auto_scaling()
         self.fmin_slider_rep.SetValue(self.brain._data['fmin'])
@@ -446,8 +517,11 @@ class _TimeViewer(object):
         self.fmax_slider_rep.SetValue(self.brain._data['fmax'])
         self.plotter.update()
 
-    def toggle_playback(self):
-        self.playback = not self.playback
+    def toggle_playback(self, value=None):
+        if value is None:
+            self.playback = not self.playback
+        else:
+            self.playback = value
 
         # update tool bar icon
         if self.playback:
@@ -471,7 +545,7 @@ class _TimeViewer(object):
             try:
                 self._advance()
             except Exception:
-                self.playback = False
+                self.toggle_playback(value=False)
                 raise
 
     def _advance(self):
@@ -489,7 +563,7 @@ class _TimeViewer(object):
         idx = np.interp(time_point, time_data, times)
         self.time_call(idx, update_widget=True)
         if time_point == max_time:
-            self.playback = False
+            self.toggle_playback(value=False)
 
     def set_slider_style(self, slider, show_label=True, show_cap=False):
         if slider is not None:
@@ -786,6 +860,7 @@ class _TimeViewer(object):
         self.icons["pause"] = QIcon(":/pause.svg")
         self.icons["scale"] = QIcon(":/scale.svg")
         self.icons["clear"] = QIcon(":/clear.svg")
+        self.icons["movie"] = QIcon(":/movie.svg")
         self.icons["restore"] = QIcon(":/restore.svg")
         self.icons["screenshot"] = QIcon(":/screenshot.svg")
         self.icons["visibility_on"] = QIcon(":/visibility_on.svg")
@@ -796,6 +871,11 @@ class _TimeViewer(object):
             self.icons["screenshot"],
             "Take a screenshot",
             self.plotter._qt_screenshot
+        )
+        self.actions["movie"] = self.tool_bar.addAction(
+            self.icons["movie"],
+            "Save movie...",
+            self.save_movie
         )
         self.actions["visibility"] = self.tool_bar.addAction(
             self.icons["visibility_on"],
@@ -828,6 +908,14 @@ class _TimeViewer(object):
             self.help
         )
 
+        self.actions["movie"].setShortcut("ctrl+shift+s")
+        self.actions["visibility"].setShortcut("i")
+        self.actions["play"].setShortcut(" ")
+        self.actions["scale"].setShortcut("s")
+        self.actions["restore"].setShortcut("r")
+        self.actions["clear"].setShortcut("c")
+        self.actions["help"].setShortcut("?")
+
     def configure_menu(self):
         # remove default picking menu
         to_remove = list()
@@ -840,6 +928,14 @@ class _TimeViewer(object):
         # add help menu
         menu = self.main_menu.addMenu('Help')
         menu.addAction('Show MNE key bindings\t?', self.help)
+
+    def configure_status_bar(self):
+        from PyQt5.QtWidgets import QLabel, QProgressBar
+        self.status_msg = QLabel(self.default_status_bar_msg)
+        self.status_progress = QProgressBar()
+        self.status_bar.layout().addWidget(self.status_msg, 1)
+        self.status_bar.layout().addWidget(self.status_progress, 0)
+        self.status_progress.hide()
 
     def on_mouse_move(self, vtk_picker, event):
         if self._mouse_no_mvt:
@@ -1005,6 +1101,7 @@ class _TimeViewer(object):
     def clean(self):
         # resolve the reference cycle
         self.clear_points()
+        self.actions.clear()
         self.orientation_call.plotter = None
         self.orientation_call.brain = None
         self.orientation_call = None
@@ -1028,12 +1125,12 @@ class _TimeViewer(object):
         self.fscale_call.plotter = None
         self.fscale_call.brain = None
         self.fscale_call = None
-        self.key_bindings = None
         self.brain.time_viewer = None
         self.brain = None
         self.plotter = None
         self.main_menu = None
         self.window = None
+        self.tool_bar = None
         self.status_bar = None
         self.interactor = None
         if hasattr(self, "mpl_canvas"):
@@ -1072,7 +1169,8 @@ class _LinkViewer(object):
 
         # link toggle to start/pause playback
         for time_viewer in self.time_viewers:
-            time_viewer.key_bindings[' '] = self.toggle_playback
+            time_viewer.actions["play"].triggered.disconnect()
+            time_viewer.actions["play"].triggered.connect(self.toggle_playback)
 
     def set_time_point(self, value):
         for time_viewer in self.time_viewers:
