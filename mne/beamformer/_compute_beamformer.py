@@ -241,8 +241,6 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     Cm_inv, loading_factor, rank = _reg_pinv(Cm, reg, rank)
     Cm_inv_sq = Cm_inv.dot(Cm_inv)
 
-    # Compute spatial filters
-    W = np.dot(G.T, Cm_inv)
     assert orient_std.shape == (G.shape[1],)
     n_sources = G.shape[1] // n_orient
     assert nn.shape == (n_sources, 3)
@@ -251,7 +249,6 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                 % (n_sources, _pl(n_sources)))
     n_channels = G.shape[0]
     assert n_orient in (3, 1)
-    Wk = np.reshape(W, (n_sources, n_orient, n_channels))
     Gk = np.reshape(G.T, (n_sources, n_orient, n_channels)).transpose(0, 2, 1)
     assert Gk.shape == (n_sources, n_channels, n_orient)
     sk = np.reshape(orient_std, (n_sources, n_orient))
@@ -281,6 +278,9 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
     # rank reduction of the lead field
     if reduce_rank:
         Gk = _reduce_leadfield_rank(Gk)
+
+    # Compute numerator of beamformer formula, G.T @ Cm_inv
+    Wk = np.matmul(Gk.transpose(0, 2, 1), Cm_inv[np.newaxis])
 
     with _noop_indentation_context():
         if (inversion == 'matrix' and pick_ori == 'max-power' and
