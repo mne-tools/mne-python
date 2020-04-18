@@ -189,7 +189,7 @@ epochs['auditory'].plot_image(picks='mag', combine='mean')
 # plot the global field power (useful for combining sensors that respond with
 # opposite polarity).
 
-# sphinx_gallery_thumbnail_number = 12
+# sphinx_gallery_thumbnail_number = 10
 epochs['auditory'].plot_image(picks=['MEG 0242', 'MEG 0243'])
 epochs['auditory'].plot_image(picks=['MEG 0242', 'MEG 0243'], combine='gfp')
 
