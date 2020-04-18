@@ -1953,15 +1953,16 @@ def plot_psds_topomap(
         cbar_fmt = '%0.1f' if dB else '%0.3f'
 
     if vmin is not None or vmax is not None:
+        msg = ('"vmin" and "vmax" are deprecated and will be removed in '
+               'version 0.22. Use "vlim" instead. ')
         if vlim == (None, None):
-            msg = ('Since you didn\'t specify "vlim", your provided values of '
-                   '"vmin" and "vmax" will be used.')
+            msg += ('Since you didn\'t specify "vlim", your provided values '
+                    'of "vmin" and "vmax" will be used.')
             vlim = (vmin, vmax)
         else:
-            msg = ('Your provided values for "vlim" will be used, and "vmin" '
-                   'and "vmax" will be ignored.')
-        warn('"vmin" and "vmax" are deprecated in favor of a single argument '
-             '"vlim". ' + msg, DeprecationWarning)
+            msg += ('Your provided values for "vlim" will be used, and "vmin" '
+                    'and "vmax" will be ignored.')
+        warn(msg, DeprecationWarning)
 
     if bands is None:
         bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
