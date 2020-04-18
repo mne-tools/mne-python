@@ -1088,8 +1088,8 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     def plot_psd_topomap(self, bands=None, vmin=None, vmax=None, tmin=None,
                          tmax=None, proj=False, bandwidth=None, adaptive=False,
                          low_bias=True, normalization='length', ch_type=None,
-                         cmap='RdBu_r', agg_fun=None, dB=True,
-                         n_jobs=1, normalize=False, cbar_fmt='%0.3f',
+                         cmap=None, agg_fun=None, dB=True,
+                         n_jobs=1, normalize=False, cbar_fmt='auto',
                          outlines='head', axes=None, show=True,
                          sphere=None, vlim=(None, None), verbose=None):
         return plot_epochs_psd_topomap(

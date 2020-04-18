@@ -1828,7 +1828,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
                             bandwidth=None, adaptive=False, low_bias=True,
                             normalization='length', ch_type=None,
                             cmap=None, agg_fun=None, dB=False, n_jobs=1,
-                            normalize=False, cbar_fmt='%0.3f',
+                            normalize=False, cbar_fmt='auto',
                             outlines='head', axes=None, show=True,
                             sphere=None, vlim=(None, None), verbose=None):
     """Plot the topomap of the power spectral density across epochs.
@@ -1894,7 +1894,8 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         If True, each band will be divided by the total power. Defaults to
         False.
     cbar_fmt : str
-        The colorbar format. Defaults to '%%0.3f'.
+        The colorbar format. If ``'auto'``, is equivalent to '%%0.3f' if
+        ``dB=False`` and '%%0.1f' if ``dB=True``. Defaults to ``'auto'``.
     %(topomap_outlines)s
     axes : list of Axes | None
         List of axes to plot consecutive topographies to. If None the axes
@@ -1925,6 +1926,9 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
 
     if merge_channels:
         psds, names = _merge_ch_data(psds, ch_type, names, method='mean')
+
+    if cbar_fmt == 'auto':
+        cbar_fmt = '%0.1f' if dB else '%0.3f'
 
     return plot_psds_topomap(
         psds=psds, freqs=freqs, pos=pos, agg_fun=agg_fun, vmin=vmin,
