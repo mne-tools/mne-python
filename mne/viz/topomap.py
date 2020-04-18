@@ -1838,13 +1838,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     ----------
     epochs : instance of Epochs
         The epochs object.
-    bands : list of tuple | None
-        The lower and upper frequency and the name for that band. If None,
-        (default) expands to:
-
-        bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
-                 (12, 30, 'Beta'), (30, 45, 'Gamma')]
-
+    %(psd_topo_bands)s
     vmin : None
         Deprecated; use ``vlim`` instead.
     vmax : None
@@ -1873,29 +1867,18 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         pairs and the mean for each pair is plotted. If None, then first
         available channel type from order given above is used. Defaults to
         None.
-    %(cmap_psd_topo)s
-    agg_fun : callable
-        The function used to aggregate over frequencies.
-        Defaults to np.sum. if normalize is True, else np.mean.
-    dB : bool
-        If True, transform data to decibels (with ``10 * np.log10(data)``)
-        following the application of `agg_fun`. Only valid if normalize is
-        False.
+    %(psd_topo_cmap)s
+    %(psd_topo_agg_fun)s
+    %(psd_topo_dB)s
     %(n_jobs)s
-    normalize : bool
-        If True, each band will be divided by the total power. Defaults to
-        False.
-    cbar_fmt : str
-        The colorbar format. If ``'auto'``, is equivalent to '%%0.3f' if
-        ``dB=False`` and '%%0.1f' if ``dB=True``. Defaults to ``'auto'``.
+    %(psd_topo_normalize)s
+    %(psd_topo_cbar_fmt)s
     %(topomap_outlines)s
-    axes : list of Axes | None
-        List of axes to plot consecutive topographies to. If None the axes
-        will be created automatically. Defaults to None.
+    %(psd_topo_axes)s
     show : bool
         Show figure if True.
     %(topomap_sphere_auto)s
-    %(vlim_joint)s
+    %(psd_topo_vlim_joint)s
     %(verbose)s
 
     Returns
@@ -1941,43 +1924,22 @@ def plot_psds_topomap(
         Frequencies used to compute psds.
     pos : numpy.ndarray of float, shape (n_sensors, 2)
         The positions of the sensors.
-    agg_fun : callable
-        The function used to aggregate over frequencies. Defaults to
-        :func:`numpy.sum` if normalize is ``True``, else :func:`numpy.mean`.
+    %(psd_topo_agg_fun)s
     vmin : None
         Deprecated; use ``vlim`` instead.
     vmax : None
         Deprecated; use ``vlim`` instead.
-    bands : list of tuple | None
-        The frequencies or frequency ranges to plot. Length-2 tuples specify
-        a single frequency and a subplot title (e.g.,
-        ``(6.5, 'presentation rate')``); length-3 tuples specify lower and
-        upper band edges and a subplot title. If ``None`` (the default),
-        expands to:
-
-            bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
-                     (12, 30, 'Beta'), (30, 45, 'Gamma')]
-
-        In bands where a single frequency is provided, the topomap will reflect
-        the single frequency bin that is closest to the provided value.
-    %(cmap_psd_topo)s
-    dB : bool
-        If True, transform data to decibels (with ``10 * np.log10(data)``)
-        following the application of `agg_fun`. Only valid if normalize is
-        False.
-    normalize : bool
-        If True, each band will be divided by the total power. Defaults to
-        False.
-    cbar_fmt : str
-        The colorbar format. Defaults to '%%0.3f'.
+    %(psd_topo_bands)s
+    %(psd_topo_cmap)s
+    %(psd_topo_dB)s
+    %(psd_topo_normalize)s
+    %(psd_topo_cbar_fmt)s
     %(topomap_outlines)s
-    axes : list of axes | None
-        List of axes to plot consecutive topographies to. If None the axes
-        will be created automatically. Defaults to None.
+    %(psd_topo_axes)s
     show : bool
         Show figure if True.
     %(topomap_sphere)s
-    %(vlim_joint)s
+    %(psd_topo_vlim_joint)s
 
     Returns
     -------

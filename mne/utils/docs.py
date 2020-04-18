@@ -118,7 +118,8 @@ sphere : float | array-like | str | None
     .. versionadded:: 0.20
 """ % (HEAD_SIZE_DEFAULT,)
 
-docdict["vlim_joint"] = """
+# PSD topomaps
+docdict["psd_topo_vlim_joint"] = """
 vlim : tuple of length 2 | 'joint'
     Colormap limits to use. If a :class:`tuple` of floats, specifies the
     lower and upper bounds of the colormap (in that order); providing
@@ -132,7 +133,17 @@ vlim : tuple of length 2 | 'joint'
 
     .. versionadded:: 0.21
 """
-docdict['cmap_psd_topo'] = """
+docdict['psd_topo_agg_fun'] = """
+agg_fun : callable
+    The function used to aggregate over frequencies. Defaults to
+    :func:`numpy.sum` if ``normalize=True``, else :func:`numpy.mean`.
+"""
+docdict['psd_topo_dB'] = """
+dB : bool
+    If ``True``, transform data to decibels (with ``10 * np.log10(data)``)
+    following the application of ``agg_fun``. Ignored if ``normalize=True``.
+"""
+docdict['psd_topo_cmap'] = """
 cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
     Colormap to use. If :class:`tuple`, the first value indicates the colormap
     to use and the second value is a boolean defining interactivity. In
@@ -143,6 +154,36 @@ cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
     the colormap. If ``None``, ``'Reds'`` is used for data that is either
     all-positive or all-negative, and ``'RdBu_r'`` is used otherwise.
     ``'interactive'`` is equivalent to ``(None, True)``. Defaults to ``None``.
+"""
+docdict['psd_topo_cbar_fmt'] = """
+cbar_fmt : str
+    Format string for the colorbar tick labels. If ``'auto'``, is equivalent
+    to '%%0.3f' if ``dB=False`` and '%%0.1f' if ``dB=True``. Defaults to
+    ``'auto'``.
+"""
+docdict['psd_topo_normalize'] """
+normalize : bool
+    If True, each band will be divided by the total power. Defaults to
+    False.
+"""
+docdict['psd_topo_bands'] """
+bands : list of tuple | None
+    The frequencies or frequency ranges to plot. Length-2 tuples specify
+    a single frequency and a subplot title (e.g.,
+    ``(6.5, 'presentation rate')``); length-3 tuples specify lower and
+    upper band edges and a subplot title. If ``None`` (the default),
+    expands to:
+
+        bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
+                 (12, 30, 'Beta'), (30, 45, 'Gamma')]
+
+    In bands where a single frequency is provided, the topomap will reflect
+    the single frequency bin that is closest to the provided value.
+"""
+docdict['psd_topo_axes'] """
+axes : list of Axes | None
+    List of axes to plot consecutive topographies to. If ``None`` the axes
+    will be created automatically. Defaults to ``None``.
 """
 
 # Picks
