@@ -19,6 +19,8 @@ Changelog
 
 - Add support for signals in mV for :func:`mne.io.read_raw_brainvision` by `Clemens Brunner`_
 
+- :meth:`mne.Epochs.plot_psd_topomap`, :func:`mne.viz.plot_epochs_psd_topomap`, and :func:`mne.viz.pot_psds_topomap` now allow joint colorbar limits across subplots, by `Daniel McCloy`_.
+
 - Allow resampling raw data with :func:`mne.io.Raw.resample` without preloading data, by `Eric Larson`_
 
 - :func:`mne.viz.plot_dipole_locations` and :meth:`mne.Dipole.plot_locations` gained a ``title`` argument to specify a custom figure title in ``orthoview`` mode by `Richard Höchenberger`_
@@ -54,4 +56,4 @@ Bug
 API
 ~~~
 
-- Nothing yet
+- ``vmin`` and ``vmax`` parameters are deprecated in :meth:`mne.Epochs.plot_psd_topomap`, :func:`mne.viz.plot_epochs_psd_topomap`, and :func:`mne.viz.pot_psds_topomap`; use new ``vlim`` parameter instead, by `Daniel McCloy`_.
