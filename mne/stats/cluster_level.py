@@ -369,6 +369,10 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
             raise KeyError('threshold, if dict, must have at least '
                            '"start" and "step"')
         tfce = True
+        use_x = x[np.isfinite(x)]
+        if use_x.size == 0:
+            raise RuntimeError(
+                'No finite values found in the observed statistic values')
         if tail == -1:
             if threshold['start'] > 0:
                 raise ValueError('threshold["start"] must be <= 0 for '
@@ -376,11 +380,12 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
             if threshold['step'] >= 0:
                 raise ValueError('threshold["step"] must be < 0 for '
                                  'tail == -1')
-            stop = np.min(x)
+            stop = np.min(use_x)
         elif tail == 1:
-            stop = np.max(x)
+            stop = np.max(use_x)
         else:  # tail == 0
-            stop = np.max(np.abs(x))
+            stop = np.max(np.abs(use_x))
+        del use_x
         thresholds = np.arange(threshold['start'], stop,
                                threshold['step'], float)
         h_power = threshold.get('h_power', 2)
