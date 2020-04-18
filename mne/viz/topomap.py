@@ -1872,16 +1872,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         pairs and the mean for each pair is plotted. If None, then first
         available channel type from order given above is used. Defaults to
         None.
-    cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
-        Colormap to use. If tuple, the first value indicates the colormap to
-        use and the second value is a boolean defining interactivity. In
-        interactive mode the colors are adjustable by clicking and dragging the
-        colorbar with left and right mouse button. Left mouse button moves the
-        scale up and down and right mouse button adjusts the range. Hitting
-        space bar resets the range. Up and down arrows can be used to change
-        the colormap. If None (default), 'Reds' is used for data that is either
-        all-positive or all-negative, otherwise defaults to 'RdBu_r'.
-        ``'interactive'`` is equivalent to ``(None, True)``.
+    %(cmap_psd_topo)s
     agg_fun : callable
         The function used to aggregate over frequencies.
         Defaults to np.sum. if normalize is True, else np.mean.
@@ -1971,16 +1962,7 @@ def plot_psds_topomap(
 
         In bands where a single frequency is provided, the topomap will reflect
         the single frequency bin that is closest to the provided value.
-    cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
-        Colormap to use. If tuple, the first value indicates the colormap to
-        use and the second value is a boolean defining interactivity. In
-        interactive mode the colors are adjustable by clicking and dragging the
-        colorbar with left and right mouse button. Left mouse button moves the
-        scale up and down and right mouse button adjusts the range. Hitting
-        space bar resets the range. Up and down arrows can be used to change
-        the colormap. If None (default), 'Reds' is used for all positive data,
-        otherwise defaults to 'RdBu_r'. If 'interactive', translates to
-        (None, True).
+    %(cmap_psd_topo)s
     dB : bool
         If True, transform data to decibels (with ``10 * np.log10(data)``)
         following the application of `agg_fun`. Only valid if normalize is

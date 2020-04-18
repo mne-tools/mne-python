@@ -132,6 +132,18 @@ vlim : tuple of length 2 | 'joint'
 
     .. versionadded:: 0.21
 """
+docdict['cmap_psd_topo'] = """
+cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+    Colormap to use. If :class:`tuple`, the first value indicates the colormap
+    to use and the second value is a boolean defining interactivity. In
+    interactive mode the colors are adjustable by clicking and dragging the
+    colorbar with left and right mouse button. Left mouse button moves the
+    scale up and down and right mouse button adjusts the range. Hitting
+    space bar resets the range. Up and down arrows can be used to change
+    the colormap. If ``None``, ``'Reds'`` is used for data that is either
+    all-positive or all-negative, and ``'RdBu_r'`` is used otherwise.
+    ``'interactive'`` is equivalent to ``(None, True)``. Defaults to ``None``.
+"""
 
 # Picks
 docdict['picks_header'] = 'picks : str | list | slice | None'
