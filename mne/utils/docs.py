@@ -158,7 +158,7 @@ cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
 docdict['psd_topo_cbar_fmt'] = """
 cbar_fmt : str
     Format string for the colorbar tick labels. If ``'auto'``, is equivalent
-    to '%%0.3f' if ``dB=False`` and '%%0.1f' if ``dB=True``. Defaults to
+    to '%0.3f' if ``dB=False`` and '%0.1f' if ``dB=True``. Defaults to
     ``'auto'``.
 """
 docdict['psd_topo_normalize'] = """
@@ -843,7 +843,7 @@ docdict["time_label"] = """
 time_label : str | callable | None
     Format of the time label (a format string, a function that maps
     floating point time values to strings, or None for no label). The
-    default is ``'auto'``, which will use ``time=%%0.2f ms`` if there
+    default is ``'auto'``, which will use ``time=%0.2f ms`` if there
     is more than one time point.
 """
 
