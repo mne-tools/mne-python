@@ -5,10 +5,10 @@
 
 import numpy as np
 from numpy.testing import assert_allclose
-from mne.utils import _sym_inv
+from mne.utils import _pos_semidef_inv
 
 
-def test_sym_inv():
+def test_pos_semidef_inv():
     # make 3 dimensional  matrices that are positive semidefinite
     random = np.random.RandomState(73)
 
@@ -26,13 +26,13 @@ def test_sym_inv():
     mat_complex = np.dot(mat_complex, mat_complex.conj().T)
     mat_complex = np.array([mat_complex, mat_complex])
 
-    # _sym_inv should behave like pinv
+    # _pos_semidef_inv should behave like pinv
     # Test for real-valued matrices:
     mat_pinv = np.linalg.pinv(mat_real)
-    mat_symv = _sym_inv(mat_real, reduce_rank=False)
+    mat_symv = _pos_semidef_inv(mat_real, reduce_rank=False)
     assert_allclose(mat_pinv, mat_symv)
 
     # Test for complex values:
     mat_pinv = np.linalg.pinv(mat_complex)
-    mat_symv = _sym_inv(mat_complex, reduce_rank=False)
+    mat_symv = _pos_semidef_inv(mat_complex, reduce_rank=False)
     assert_allclose(mat_pinv, mat_symv)

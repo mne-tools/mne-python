@@ -17,7 +17,7 @@ from ..io.proj import make_projector, Projection
 from ..minimum_norm.inverse import _get_vertno, _prepare_forward
 from ..source_space import label_src_vertno_sel
 from ..utils import (verbose, check_fname, _reg_pinv, _check_option, logger,
-                     _pl, _check_src_normal, check_version, _sym_inv)
+                     _pl, _check_src_normal, check_version, _pos_semidef_inv)
 from ..time_frequency.csd import CrossSpectralDensity
 
 from ..externals.h5io import read_hdf5, write_hdf5
@@ -143,7 +143,7 @@ def _normalized_weights(Wk, Gk, Cm_inv_sq, reduce_rank, nn, sk):
                          np.matmul(Cm_inv_sq[np.newaxis], Gk))
 
     # invert this using an eigenvalue decomposition
-    norm = _sym_inv(norm_inv, reduce_rank)
+    norm = _pos_semidef_inv(norm_inv, reduce_rank)
 
     # Reapply source covariance after inversion
     norm *= sk[:, :, np.newaxis]
@@ -286,7 +286,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                 assert Ck.shape[1:] == (3, 3)
                 # Invert for all dipoles simultaneously using matrix
                 # inversion.
-                norm = _sym_inv(Ck, reduce_rank)
+                norm = _pos_semidef_inv(Ck, reduce_rank)
             # Reapply source covariance after inversion
             norm *= sk[:, :, np.newaxis]
             norm *= sk[:, np.newaxis, :]

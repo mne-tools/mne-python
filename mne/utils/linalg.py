@@ -158,8 +158,8 @@ def sqrtm_sym(A, rcond=1e-7, inv=False):
     return a, s
 
 
-def _sym_inv(x, reduce_rank):
-    """Symmetric inversion with optional rank reduction."""
+def _pos_semidef_inv(x, reduce_rank):
+    """Invert positive semidefinite matrices with optional rank reduction."""
     s, u = np.linalg.eigh(x)
     # mimic default np.linalg.pinv behavior
     cutoff = 1e-15 * s[:, -1:]
