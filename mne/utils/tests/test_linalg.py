@@ -5,7 +5,7 @@
 
 import numpy as np
 from numpy.testing import assert_allclose
-from mne.utils import _pos_semidef_inv
+from mne.utils import run_tests_if_main, _pos_semidef_inv
 
 
 def test_pos_semidef_inv():
@@ -36,3 +36,6 @@ def test_pos_semidef_inv():
     mat_pinv = np.linalg.pinv(mat_complex)
     mat_symv = _pos_semidef_inv(mat_complex, reduce_rank=False)
     assert_allclose(mat_pinv, mat_symv)
+
+
+run_tests_if_main()
