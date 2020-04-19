@@ -312,7 +312,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                 # Compute power by applying the spatial filters to
                 # the cov matrix.
                 power = np.matmul(np.matmul(Wk, Cm),
-                                  Wk.transpose(0, 2, 1))
+                                  Wk.conjugate().transpose(0, 2, 1))
             assert power.shape == (n_sources, 3, 3)
             _, u_ = np.linalg.eigh(power.real)
             max_power_ori = u_[:, :, -1]
