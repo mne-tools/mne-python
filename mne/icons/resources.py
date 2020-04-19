@@ -6,6 +6,8 @@
 #
 # WARNING! All changes made in this file will be lost!
 
+from PyQt5 import QtCore
+
 qt_resource_data = b"\
 \x00\x00\x01\x2e\
 \x3c\
@@ -393,30 +395,18 @@ qt_resource_struct_v2 = b"\
 \x00\x00\x01\x71\x83\x3c\x64\x13\
 "
 
-
-def _check_version():
-    from PyQt5 import QtCore
-    qt_version = [int(v) for v in QtCore.qVersion().split('.')]
-    if qt_version < [5, 8, 0]:
-        rcc_version = 1
-        qt_resource_struct = qt_resource_struct_v1
-    else:
-        rcc_version = 2
-        qt_resource_struct = qt_resource_struct_v2
-    return rcc_version, qt_resource_struct
-
+qt_version = [int(v) for v in QtCore.qVersion().split('.')]
+if qt_version < [5, 8, 0]:
+    rcc_version = 1
+    qt_resource_struct = qt_resource_struct_v1
+else:
+    rcc_version = 2
+    qt_resource_struct = qt_resource_struct_v2
 
 def qInitResources():
-    """Initialize the resources."""
-    from PyQt5 import QtCore
-    rcc_version, qt_resource_struct = _check_version()
-    QtCore.qRegisterResourceData(rcc_version, qt_resource_struct,
-                                 qt_resource_name, qt_resource_data)
-
+    QtCore.qRegisterResourceData(rcc_version, qt_resource_struct, qt_resource_name, qt_resource_data)
 
 def qCleanupResources():
-    """Cleanup the resources."""
-    from PyQt5 import QtCore
-    rcc_version, qt_resource_struct = _check_version()
-    QtCore.qUnregisterResourceData(rcc_version, qt_resource_struct,
-                                   qt_resource_name, qt_resource_data)
+    QtCore.qUnregisterResourceData(rcc_version, qt_resource_struct, qt_resource_name, qt_resource_data)
+
+qInitResources()
