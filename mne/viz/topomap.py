@@ -1965,8 +1965,9 @@ def plot_psds_topomap(
         warn(msg, DeprecationWarning)
 
     if bands is None:
-        bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
-                 (12, 30, 'Beta'), (30, 45, 'Gamma')]
+        bands = [(0, 4, 'Delta (0-4 Hz)'), (4, 8, 'Theta (4-8 Hz)'),
+                 (8, 12, 'Alpha (8-12 Hz)'), (12, 30, 'Beta (12-30 Hz)'),
+                 (30, 45, 'Gamma (30-45 Hz)')]
     else:  # upconvert single freqs to band upper/lower edges as needed
         bin_spacing = np.diff(freqs)[0]
         bin_edges = np.array([0, bin_spacing]) - bin_spacing / 2
