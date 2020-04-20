@@ -254,8 +254,11 @@ def test_render_mri(renderer, tmpdir):
     assert repr(report)
     report.add_bem_to_section('sample', caption='extra', section='foo',
                               subjects_dir=subjects_dir, decim=30)
-    report.save(op.join(tempdir, 'report.html'), open_browser=False,
-                overwrite=True)
+    fname = op.join(tempdir, 'report.html')
+    report.save(fname, open_browser=False, overwrite=True)
+    with open(fname, 'r') as fid:
+        html = fid.read()
+    assert 'class="report_foo"' in html
 
 
 @testing.requires_testing_data
