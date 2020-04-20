@@ -1508,6 +1508,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self._set_times(self.times[tmask])
         self._raw_times = self._raw_times[tmask]
         self._data = self._data[:, :, tmask]
+        try:
+            _check_baseline(self.baseline, tmin, tmax, self.info['sfreq'])
+        except ValueError:  # in no longer applies, wipe it out
+            warn('Cropping removes baseline period, setting '
+                 'epochs.baseline = None')
+            self.baseline = None
         return self
 
     def copy(self):
