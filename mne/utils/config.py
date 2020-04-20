@@ -263,8 +263,9 @@ def set_config(key, value, home_dir=None, set_env=True):
     _validate_type(key, 'str', "key")
     # While JSON allow non-string types, we allow users to override config
     # settings using env, which are strings, so we enforce that here
-    _validate_type(value, (str, type(None)), "value",
-                   "None or string")
+    _validate_type(value, (str, 'path-like', type(None)), 'value')
+    if value is not None:
+        value = str(value)
 
     if key not in known_config_types and not \
             any(k in key for k in known_config_wildcards):

@@ -474,6 +474,10 @@ class _Brain(object):
                 actor, mesh = mesh_data
                 # add metadata to the mesh for picking
                 mesh._hemi = hemi
+                mapper = actor.GetMapper()
+                mapper.SetResolveCoincidentTopologyToPolygonOffset()
+                mapper.SetRelativeCoincidentTopologyPolygonOffsetParameters(
+                    -1., -1.)
             else:
                 actor, mesh = mesh_data, None
             self._data[hemi]['actor'].append(actor)
