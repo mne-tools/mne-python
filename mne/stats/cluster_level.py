@@ -1042,7 +1042,7 @@ def permutation_cluster_test(
         buffer_size=1000, verbose=None):
     """Cluster-level statistical permutation test.
 
-    For a list of :class:`NumPy arrays <np.ndarray>` of data,
+    For a list of :class:`NumPy arrays <numpy.ndarray>` of data,
     calculate some statistics corrected for multiple comparisons using
     permutations and cluster-level correction. Each element of the list ``X``
     should contain the data for one group of observations (e.g., 2D arrays for
