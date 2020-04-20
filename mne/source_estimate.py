@@ -2246,9 +2246,9 @@ class MixedSourceEstimate(_BaseMixedSourceEstimate):
             self, labels, src, mode=mode, return_generator=False,
             allow_empty=allow_empty, verbose=verbose)
 
+    @fill_doc
     @deprecated('stc_mixed.plot_surface(...) is deprecated and will be removed'
                 ' in 0.22, use stc_mixed.surface().plot(...)')
-    @fill_doc
     def plot_surface(self, src, subject=None, surface='inflated', hemi='lh',
                      colormap='auto', time_label='time=%02.f ms',
                      smoothing_steps=10,
