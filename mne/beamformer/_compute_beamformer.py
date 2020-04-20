@@ -307,7 +307,7 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
                 # cov matrix to compute power.
                 Wk_norm = Wk / np.linalg.norm(Wk, axis=2, keepdims=True)
                 power = np.matmul(np.matmul(Wk_norm, Cm),
-                                  Wk_norm.transpose(0, 2, 1))
+                                  Wk_norm.conjugate().transpose(0, 2, 1))
             elif weight_norm is None:
                 # Compute power by applying the spatial filters to
                 # the cov matrix.
