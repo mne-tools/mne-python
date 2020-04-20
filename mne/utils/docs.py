@@ -712,7 +712,7 @@ match_case : bool
 """
 docdict['on_missing_montage'] = """
 on_missing : str
-    Either 'raise' to raise an error when
+    Either 'raise', or 'warn' to raise an error/warning when
     channels have missing coordinates,
     or 'ignore' to set channels to np.nan and set montage.
     

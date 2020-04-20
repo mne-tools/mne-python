@@ -635,7 +635,9 @@ def _set_montage(info, montage, match_case=True, on_missing=True):
         montage = make_standard_montage(montage)
 
     if isinstance(montage, DigMontage):
-        _check_option('on_missing', on_missing, ('raise', 'ignore'))
+        _check_option('on_missing', on_missing, ['raise',
+                                                 'ignore',
+                                                 'warn'])
 
         mnt_head = _get_montage_in_head(montage)
 
@@ -690,17 +692,19 @@ def _set_montage(info, montage, match_case=True, on_missing=True):
                                    not_in_montage)
             if on_missing == 'raise':
                 raise ValueError(missing_coord_msg)
+            elif on_missing == 'warn':
+                logger.warning(missing_coord_msg)
             elif on_missing == 'ignore':
-                # set ch coordinates and names from digmontage or nan coords
-                _ch_pos_use = dict()
-                for name, use in zip(info_names, info_names_use):
-                    if use in ch_pos_use:
-                        _ch_pos_use[use] = ch_pos_use[use]
-                    else:
-                        _ch_pos_use[use] = [np.nan, np.nan, np.nan]
-                ch_pos_use = _ch_pos_use
-
                 logger.info(missing_coord_msg)
+
+            # set ch coordinates and names from digmontage or nan coords
+            _ch_pos_use = dict()
+            for name, use in zip(info_names, info_names_use):
+                if use in ch_pos_use:
+                    _ch_pos_use[use] = ch_pos_use[use]
+                else:
+                    _ch_pos_use[use] = [np.nan, np.nan, np.nan]
+            ch_pos_use = _ch_pos_use
 
         for name, use in zip(info_names, info_names_use):
             _loc_view = info['chs'][info['ch_names'].index(name)]['loc']
