@@ -91,7 +91,8 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
             baseline=(None, 0), preload=epochs_preload, reject=reject)
         if epochs_preload:
             epochs.resample(200, npad=0)
-        epochs.crop(0, None)
+        with pytest.warns(RuntimeWarning, match='baseline = None'):
+            epochs.crop(0, None)
         evoked = epochs.average()
         info = evoked.info
     else:
@@ -104,7 +105,8 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
     noise_cov = mne.cov.regularize(noise_cov, info, mag=0.05, grad=0.05,
                                    eeg=0.1, proj=True, rank=None)
     if data_cov:
-        data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.145)
+        data_cov = mne.compute_covariance(
+            epochs, tmin=0.04, tmax=0.145, verbose='error')  # baseline warning
     else:
         data_cov = None
 
