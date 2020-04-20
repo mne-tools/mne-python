@@ -43,13 +43,37 @@ from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          _ensure_trans, read_ras_mni_t)
 
 
-def _get_lut():
-    """Get the FreeSurfer LUT."""
-    data_dir = op.join(op.dirname(__file__), 'data')
-    lut_fname = op.join(data_dir, 'FreeSurferColorLUT.txt')
+def read_freesurfer_lut(fname=None):
+    """Read a Freesurfer-formatted LUT.
+
+    Parameters
+    ----------
+    fname : str | None
+        The filename. Can be None to read the standard Freesurfer LUT.
+
+    Returns
+    -------
+    atlas_ids : dict
+        Mapping from label names to IDs.
+    colors : dict
+        Mapping from label names to colors.
+    """
+    lut = _get_lut(fname)
+    names, ids = lut['name'], lut['id']
+    colors = np.array([lut['R'], lut['G'], lut['B'], lut['A']], float).T
+    atlas_ids = dict(zip(names, ids))
+    colors = dict(zip(names, colors))
+    return atlas_ids, colors
+
+
+def _get_lut(fname=None):
+    """Get a FreeSurfer LUT."""
+    _validate_type(fname, ('path-like', None), 'fname')
+    if fname is None:
+        fname = op.join(op.dirname(__file__), 'data', 'FreeSurferColorLUT.txt')
     dtype = [('id', '<i8'), ('name', 'U47'),
              ('R', '<i8'), ('G', '<i8'), ('B', '<i8'), ('A', '<i8')]
-    return np.genfromtxt(lut_fname, dtype=dtype)
+    return np.genfromtxt(fname, dtype=dtype)
 
 
 def _get_lut_id(lut, label, use_lut):
@@ -1511,13 +1535,26 @@ def setup_source_space(subject, spacing='oct6', surface='white',
     return src
 
 
+def _check_mri(mri, subject, subjects_dir):
+    _validate_type(mri, 'path-like', 'mri')
+    if not op.isfile(mri):
+        if subject is None:
+            raise FileNotFoundError(
+                'mri file %r not found and no subject provided' % (mri,))
+        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        mri = op.join(subjects_dir, subject, 'mri', mri)
+        if not op.isfile(mri):
+            raise FileNotFoundError('mri file %r not found' % (mri,))
+    return mri
+
+
 @verbose
 def setup_volume_source_space(subject=None, pos=5.0, mri=None,
                               sphere=None, bem=None,
                               surface=None, mindist=5.0, exclude=0.0,
                               subjects_dir=None, volume_label=None,
                               add_interpolator=True, sphere_units='m',
-                              verbose=None):
+                              atlas_ids=None, verbose=None):
     """Set up a volume source space with grid spacing or discrete source space.
 
     Parameters
@@ -1572,6 +1609,9 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         Defaults to ``"m"``.
 
         .. versionadded:: 0.20
+    atlas_ids : dict | None
+        The mapping from volume atlas names to values in the MRI.
+        Can be None to use the standard Freesurfer mappings.
     %(verbose)s
 
     Returns
@@ -1603,12 +1643,14 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
     If you're going to use a BEM conductor model for forward model
     it is recommended to pass it here.
 
-    To create a discrete source space, `pos` must be a dict, 'mri' must be
-    None, and 'volume_label' must be None. To create a whole brain volume
-    source space, `pos` must be a float and 'mri' must be provided. To create
-    a volume source space from label, 'pos' must be a float, 'volume_label'
-    must be provided, and 'mri' must refer to a .mgh or .mgz file with values
-    corresponding to the freesurfer lookup-table (typically aseg.mgz).
+    To create a discrete source space, ``pos`` must be a dict, ``mri`` must be
+    None, and ``volume_label`` must be None. To create a whole brain volume
+    source space, `pos` must be a float and 'mri' must be provided.
+
+    To create a volume source space from label, ``pos`` must be a float,
+    ``volume_label`` must be provided, and 'mri' must refer to a .mgh or .mgz
+    file with values corresponding to the freesurfer lookup-table (typically
+    ``aseg.mgz``).
     """
     subjects_dir = get_subjects_dir(subjects_dir)
 
@@ -1622,16 +1664,14 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         elif _is_numeric(pos):
             mri = 'T1.mgz'
 
-    if volume_label is not None and mri == 'T1.mgz':
-        raise RuntimeError('Cannot use T1.mgz with some volume_label.')
+    if volume_label is not None and atlas_ids is None and \
+            (mri is None or not mri.endswith('aseg.mgz')):
+        raise RuntimeError(
+            'Must use an aseg.mgz file with volume_label (when atlas_ids is '
+            'None), consider passing mri="aseg.mgz".')
 
     if mri is not None:
-        if not op.isfile(mri):
-            if subject is None:
-                raise IOError('mri file "%s" not found' % mri)
-            mri = op.join(subjects_dir, subject, 'mri', mri)
-            if not op.isfile(mri):
-                raise IOError('mri file "%s" not found' % mri)
+        mri = _check_mri(mri, subject, subjects_dir)
         if isinstance(pos, dict):
             raise ValueError('Cannot create interpolation matrix for '
                              'discrete source space, mri must be None if '
@@ -1645,14 +1685,27 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
             volume_label = [volume_label]
 
         # Check that volume label is found in .mgz file
-        volume_labels = get_volume_labels_from_aseg(mri)
+        _validate_type(atlas_ids, (dict, None), 'atlas_ids')
+        if atlas_ids is None:
+            extra = (
+                'in file %s. Double check freesurfer lookup table.' % (mri,))
+            atlas_ids, _ = read_freesurfer_lut()
+            # This step isn't strictly necessary but will make the suggestions
+            # cleaner
+            atlas_ids = {
+                k: atlas_ids[k] for k in get_volume_labels_from_aseg(mri)}
+        else:
+            extra = 'in atlas_ids'
 
         for label in volume_label:
-            if label not in volume_labels:
+            if label not in atlas_ids:
                 raise ValueError(
-                    'Volume %s not found in file %s. Double check freesurfer '
-                    'lookup table.%s'
-                    % (label, mri, _suggest(label, volume_labels)))
+                    'Volume %r not found %s%s'
+                    % (label, extra, _suggest(label, atlas_ids)))
+            elif not _is_numeric(atlas_ids[label]):
+                raise TypeError(
+                    'atlas_ids[%r] must be numeric, got %s (type %s)'
+                    % (label, atlas_ids[label], type(atlas_ids[label])))
 
     need_warn = sphere_units is None and not isinstance(sphere, ConductorModel)
     sphere = _check_sphere(sphere, sphere_units=sphere_units)
@@ -1704,8 +1757,16 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         pos /= 1000.0  # convert pos from m to mm
     if exclude > 0.0:
         logger.info('Exclude               : %.1f mm' % exclude)
+    vol_info = dict()
     if mri is not None:
         logger.info('MRI volume            : %s' % mri)
+        logger.info('')
+        logger.info('Reading %s...' % mri)
+        _, vol_info['vox_mri_t'], vol_info['mri_ras_t'], dims, _ = \
+            _read_mri_info(mri)
+        vol_info.update(mri_width=dims[0], mri_height=dims[1],
+                        mri_depth=dims[1], mri_volume_name=mri)
+
     exclude /= 1000.0  # convert exclude from m to mm
     logger.info('')
 
@@ -1750,13 +1811,14 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         if volume_label is not None:
             sp = []
             for li, label in enumerate(volume_label):
-                vol_sp = _make_volume_source_space(surf, pos, exclude, mindist,
-                                                   mri, label, first=li == 0)
+                vol_sp = _make_volume_source_space(
+                    surf, pos, exclude, mindist, mri, label, first=li == 0,
+                    atlas_ids=atlas_ids, vol_info=vol_info)
                 sp.append(vol_sp)
             logger.info('')
         else:
             sp = [_make_volume_source_space(surf, pos, exclude, mindist, mri,
-                                            volume_label)]
+                                            vol_info=vol_info)]
     del sphere
     if volume_label is None:
         volume_label = ['the whole brain']
@@ -1767,8 +1829,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
 
     if mri is not None:
         for si, s in enumerate(sp):
-            _add_interpolator(s, mri, add_interpolator, first=si == 0,
-                              volume_label=volume_label[si])
+            _add_interpolator(s, add_interpolator, volume_label[si])
     elif sp[0]['type'] == 'vol':
         # If there is no interpolator, it's actually a discrete source space
         sp[0]['type'] = 'discrete'
@@ -1849,21 +1910,24 @@ def _make_discrete_source_space(pos, coord_frame='mri'):
     return sp
 
 
-def _get_volume_label_mask(mri, volume_label, rr):
+def _import_nibabel(why='use MRI files'):
     try:
         import nibabel as nib
-    except ImportError:
-        raise ImportError("nibabel is required to read segmentation file.")
+    except ImportError as exp:
+        msg = 'nibabel is required to %s, got:\n%s' % (why, exp)
+    else:
+        msg = ''
+    if msg:
+        raise ImportError(msg)
+    return nib
 
-    logger.info('Selecting voxels from %s' % volume_label)
+
+def _get_volume_label_mask(mri, vol_id, rr):
+    nib = _import_nibabel()
 
     # Read the segmentation data using nibabel
     mgz = nib.load(mri)
     mgz_data = _get_img_fdata(mgz)
-
-    # Get the numeric index for this volume label
-    lut = _get_lut()
-    vol_id = _get_lut_id(lut, volume_label, True)
 
     # Transform MRI coordinates (where our surfaces live) to voxels
     _, vox_mri_t, _, _, _ = _read_mri_info(mri)
@@ -1881,7 +1945,7 @@ def _get_volume_label_mask(mri, volume_label, rr):
 
 def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
                               volume_label=None, do_neighbors=True, n_jobs=1,
-                              first=True):
+                              first=True, atlas_ids=None, vol_info={}):
     """Make a source space which covers the volume bounded by surf."""
     # Figure out the grid size in the MRI coordinate frame
     if 'rr' in surf:
@@ -1952,7 +2016,9 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
             raise RuntimeError('volume_label cannot be None unless '
                                'do_neighbors is True')
         logger.info('')
-        bads = ~_get_volume_label_mask(mri, volume_label, sp['rr'])
+        logger.info('Selecting voxels from %s' % volume_label)
+        vol_id = atlas_ids[volume_label]
+        bads = ~_get_volume_label_mask(mri, vol_id, sp['rr'])
         # Update source info
         sp['inuse'][bads] = False
         sp['nuse'] = sp['inuse'].sum()
@@ -2075,6 +2141,12 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
     ras = np.eye(3)
     sp['src_mri_t'] = _make_voxel_ras_trans(r0, ras, voxel_size)
     sp['vol_dims'] = maxn - minn + 1
+    sp.update(vol_info)
+    if first:
+        _print_coord_trans(sp['src_mri_t'], 'Source space : ')
+        for key in ('vox_mri_t', 'mri_ras_t'):
+            if key in sp:
+                _print_coord_trans(sp[key], 'MRI volume : ')
     return sp
 
 
@@ -2119,28 +2191,16 @@ def _get_mgz_header(fname):
     return header
 
 
-def _add_interpolator(s, mri_name, add_interpolator, first=True,
-                      volume_label='the whole brain'):
+def _add_interpolator(s, add_interpolator, volume_label='the whole brain'):
     """Compute a sparse matrix to interpolate the data into an MRI volume."""
     # extract transformation information from mri
-    if first:
-        logger.info('Reading %s...' % mri_name)
-
-    _, s['vox_mri_t'], s['mri_ras_t'], dims, _ = _read_mri_info(mri_name)
-    mri_width, mri_height, mri_depth = dims
-    del dims
-
-    s.update(mri_width=mri_width, mri_height=mri_height,
-             mri_depth=mri_depth, mri_volume_name=mri_name)
+    mri_width = s['mri_width']
+    mri_height = s['mri_height']
+    mri_depth = s['mri_depth']
     nvox = mri_width * mri_height * mri_depth
     if not add_interpolator:
         s['interpolator'] = sparse.csr_matrix((nvox, s['np']))
         return
-
-    if first:
-        _print_coord_trans(s['src_mri_t'], 'Source space : ')
-        _print_coord_trans(s['vox_mri_t'], 'MRI volume : ')
-        _print_coord_trans(s['mri_ras_t'], 'MRI volume : ')
 
     #
     # Convert MRI voxels from destination (MRI volume) to source (volume
@@ -2535,36 +2595,33 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False):
     label_colors : list of str
         The RGB colors of the labels included in this mgz file.
 
+    See Also
+    --------
+    read_freesurfer_lut
+
     Notes
     -----
     .. versionadded:: 0.9.0
     """
     import nibabel as nib
-
-    # Read the mgz file using nibabel
-    mgz_data = _get_img_fdata(nib.load(mgz_fname))
-
-    # Get the unique label names
-    lut = _get_lut()
-
-    label_names = [lut[lut['id'] == ii]['name'][0]
-                   for ii in np.unique(mgz_data)]
-    label_colors = [[lut[lut['id'] == ii]['R'][0],
-                     lut[lut['id'] == ii]['G'][0],
-                     lut[lut['id'] == ii]['B'][0],
-                     lut[lut['id'] == ii]['A'][0]]
-                    for ii in np.unique(mgz_data)]
-
-    order = np.argsort(label_names)
-    label_names = [label_names[k] for k in order]
-    label_colors = [label_colors[k] for k in order]
-
+    atlas = nib.load(mgz_fname)
+    want = np.unique(_get_img_fdata(atlas))
+    ids, colors = read_freesurfer_lut()
+    # restrict to the ones in the MRI, sorted by label name
+    keep = np.in1d(list(ids.values()), want)
+    keys = sorted(key for ki, key in enumerate(colors.keys()) if keep[ki])
+    colors = [colors[k] for k in keys]
     if return_colors:
-        return label_names, label_colors
+        out = keys, colors
     else:
-        return label_names
+        out = keys
+    return out
 
 
+# XXX this should probably be deprecated because it returns surface Labels,
+# and probably isn't the way to go moving forward
+# XXX this also assumes that the first two source spaces are surf without
+# checking, which might not be the case (could be all volumes)
 def get_volume_labels_from_src(src, subject, subjects_dir):
     """Return a list of Label of segmented volumes included in the src space.
 
@@ -2589,8 +2646,8 @@ def get_volume_labels_from_src(src, subject, subjects_dir):
     aseg_fname = op.join(subjects_dir, subject, 'mri', 'aseg.mgz')
     if not op.isfile(aseg_fname):
         raise IOError('aseg file "%s" not found' % aseg_fname)
-    all_labels_aseg = get_volume_labels_from_aseg(aseg_fname,
-                                                  return_colors=True)
+    all_labels_aseg = get_volume_labels_from_aseg(
+        aseg_fname, return_colors=True)
 
     # Create a list of Label
     if len(src) < 2:

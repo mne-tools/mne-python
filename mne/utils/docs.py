@@ -924,6 +924,23 @@ Valid values for ``mode`` are:
 The only modes that work for vector source estimates are ``'mean'``,
 ``'max'``, and ``'auto'``.
 """
+docdict['get_peak_parameters'] = """
+tmin : float | None
+    The minimum point in time to be considered for peak getting.
+tmax : float | None
+    The maximum point in time to be considered for peak getting.
+mode : {'pos', 'neg', 'abs'}
+    How to deal with the sign of the data. If 'pos' only positive
+    values will be considered. If 'neg' only negative values will
+    be considered. If 'abs' absolute values will be considered.
+    Defaults to 'abs'.
+vert_as_index : bool
+    Whether to return the vertex index (True) instead of of its ID
+    (False, default).
+time_as_index : bool
+    Whether to return the time index (True) instead of the latency
+    (False, default).
+"""
 
 # Clustering
 docdict['clust_thresh'] = """

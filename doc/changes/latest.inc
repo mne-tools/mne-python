@@ -35,6 +35,8 @@ Changelog
 
 - Added temporal derivative distribution repair :func:`mne.preprocessing.nirs.temporal_derivative_distribution_repair` by `Robert Luke`_
 
+- Add :func:`mne.read_freesurfer_lut` to make it easier to work with volume atlases by `Eric Larson`_
+
 - Add functionality to interpolate bad NIRS channels by `Robert Luke`_
 
 - Add support to in :meth:`mne.io.Raw.plot` for passing ``clipping`` as a float to clip to a proportion of the dedicated channel range by `Eric Larson`_

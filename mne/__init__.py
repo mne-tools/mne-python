@@ -72,7 +72,7 @@ from .source_space import (read_source_spaces, vertex_to_mni,
                            setup_volume_source_space, SourceSpaces,
                            add_source_space_distances, morph_source_spaces,
                            get_volume_labels_from_aseg,
-                           get_volume_labels_from_src)
+                           get_volume_labels_from_src, read_freesurfer_lut)
 from .annotations import (Annotations, read_annotations, annotations_from_events,
                           events_from_annotations)
 from .epochs import (BaseEpochs, Epochs, EpochsArray, read_epochs,

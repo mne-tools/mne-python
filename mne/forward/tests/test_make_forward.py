@@ -298,12 +298,12 @@ def test_make_forward_solution_sphere(tmpdir):
 def test_forward_mixed_source_space(tmpdir):
     """Test making the forward solution for a mixed source space."""
     # get the surface source space
+    rng = np.random.RandomState(0)
     surf = read_source_spaces(fname_src)
 
     # setup two volume source spaces
     label_names = get_volume_labels_from_aseg(fname_aseg)
-    vol_labels = [label_names[int(np.random.rand() * len(label_names))]
-                  for _ in range(2)]
+    vol_labels = rng.choice(label_names, 2)
     vol1 = setup_volume_source_space('sample', pos=20., mri=fname_aseg,
                                      volume_label=vol_labels[0],
                                      add_interpolator=False)
