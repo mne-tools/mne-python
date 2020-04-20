@@ -94,13 +94,14 @@ class SourceSpaces(list):
         # First check the types is actually a valid config
         _validate_type(source_spaces, list, 'source_spaces')
         super(SourceSpaces, self).__init__(source_spaces)  # list
-        self._set_kind()
+        self.kind  # will raise an error if there is a problem
         if info is None:
             self.info = dict()
         else:
             self.info = dict(info)
 
-    def _set_kind(self):
+    @property
+    def kind(self):
         types = list()
         for si, s in enumerate(self):
             _validate_type(s, dict, 'source_spaces[%d]' % (si,))
@@ -110,17 +111,18 @@ class SourceSpaces(list):
         if all(k == 'surf' for k in types[:2]):
             surf_check = 2
             if len(types) == 2:
-                self.kind = 'surface'
+                kind = 'surface'
             else:
-                self.kind = 'mixed'
+                kind = 'mixed'
         else:
             surf_check = 0
             if all(k == 'discrete' for k in types):
-                self.kind = 'discrete'
+                kind = 'discrete'
             else:
-                self.kind = 'volume'
+                kind = 'volume'
         if any(k == 'surf' for k in types[surf_check:]):
             raise RuntimeError('Invalid source space with kinds %s' % (types,))
+        return kind
 
     @verbose
     def plot(self, head=False, brain=None, skull=None, subjects_dir=None,
@@ -213,6 +215,12 @@ class SourceSpaces(list):
             bem=bem, src=self
         )
 
+    def __getitem__(self, *args, **kwargs):
+        out = super().__getitem__(*args, **kwargs)
+        if isinstance(out, list):
+            out = SourceSpaces(out)
+        return out
+
     def __repr__(self):  # noqa: D105
         ss_repr = []
         extra = []
@@ -241,22 +249,11 @@ class SourceSpaces(list):
     def _subject(self):
         return self[0].get('subject_his_id', None)
 
-    def __iadd__(self, other):
-        """Combine source spaces in place."""
-        super().extend(other)
-        try:
-            self._set_kind()
-        except Exception:
-            for _ in range(len(other)):
-                self.pop(-1)
-            raise
-        return self
-
     def __add__(self, other):
         """Combine source spaces."""
         out = self.copy()
         out += other
-        return out
+        return SourceSpaces(out)
 
     def copy(self):
         """Make a copy of the source spaces.
@@ -2342,6 +2339,8 @@ def _adjust_patch_info(s, verbose=None):
 @verbose
 def _ensure_src(src, kind=None, extra='', verbose=None):
     """Ensure we have a source space."""
+    _check_option(
+        'kind', kind, (None, 'surface', 'volume', 'mixed', 'discrete'))
     msg = 'src must be a string or instance of SourceSpaces%s' % (extra,)
     if _check_path_like(src):
         src = str(src)
@@ -2351,9 +2350,15 @@ def _ensure_src(src, kind=None, extra='', verbose=None):
         src = read_source_spaces(src, verbose=False)
     if not isinstance(src, SourceSpaces):
         raise ValueError('%s, got %s (type %s)' % (msg, src, type(src)))
-    if kind is not None and src.kind != kind:
-        raise ValueError('Source space must be %s type, got '
-                         '%s' % (kind, src.kind))
+    if kind is not None:
+        if src.kind != kind and src.kind == 'mixed':
+            if kind == 'surface':
+                src = src[:2]
+            elif kind == 'volume':
+                src = src[2:]
+        if src.kind != kind:
+            raise ValueError('Source space must contain %s type, got '
+                             '%s' % (kind, src.kind))
     return src
 
 

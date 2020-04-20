@@ -2020,13 +2020,14 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         src = _ensure_src(src, kind='volume', extra=' or SourceMorph')
         img = stc.as_volume(src, mri_resolution=False)
         kind, src_subject = 'src subject', src._subject
+    del src
     _print_coord_trans(Transform('mri_voxel', 'ras', img.affine),
                        prefix='Image affine ', units='mm', level='debug')
     subject = _check_subject(src_subject, subject, True, kind=kind)
     stc_ijk = np.array(
         np.unravel_index(stc.vertices[0], img.shape[:3], order='F')).T
     assert stc_ijk.shape == (len(stc.vertices[0]), 3)
-    del src, kind
+    del kind
 
     # XXX this assumes zooms are uniform, should probably mult by zooms...
     dist_to_verts = _DistanceQuery(stc_ijk, allow_kdtree=True)
