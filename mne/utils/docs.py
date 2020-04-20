@@ -717,6 +717,7 @@ on_missing : str
     or 'ignore' to set channels to np.nan and set montage.
     
     .. versionadded:: 0.20.1
+"""
 
 # Brain plotting
 docdict["clim"] = """
