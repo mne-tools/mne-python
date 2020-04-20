@@ -604,7 +604,11 @@ def test_read_volume_from_src():
                                         volume_label=labels_vol,
                                         subjects_dir=subjects_dir)
     # Generate the mixed source space
+    assert src.kind == 'surface'
+    assert vol_src.kind == 'volume'
     src += vol_src
+    assert src.kind == 'mixed'
+    assert vol_src.kind == 'volume'
 
     volume_src = get_volume_labels_from_src(src, 'sample', subjects_dir)
     volume_label = volume_src[0].name

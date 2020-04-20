@@ -94,9 +94,15 @@ class SourceSpaces(list):
         # First check the types is actually a valid config
         _validate_type(source_spaces, list, 'source_spaces')
         super(SourceSpaces, self).__init__(source_spaces)  # list
+        self._set_kind()
+        if info is None:
+            self.info = dict()
+        else:
+            self.info = dict(info)
 
+    def _set_kind(self):
         types = list()
-        for si, s in enumerate(source_spaces):
+        for si, s in enumerate(self):
             _validate_type(s, dict, 'source_spaces[%d]' % (si,))
             types.append(s.get('type', None))
             _check_option('source_spaces[%d]["type"]' % (si,),
@@ -115,11 +121,6 @@ class SourceSpaces(list):
                 self.kind = 'volume'
         if any(k == 'surf' for k in types[surf_check:]):
             raise RuntimeError('Invalid source space with kinds %s' % (types,))
-
-        if info is None:
-            self.info = dict()
-        else:
-            self.info = dict(info)
 
     @verbose
     def plot(self, head=False, brain=None, skull=None, subjects_dir=None,
@@ -240,9 +241,22 @@ class SourceSpaces(list):
     def _subject(self):
         return self[0].get('subject_his_id', None)
 
+    def __iadd__(self, other):
+        """Combine source spaces in place."""
+        super().extend(other)
+        try:
+            self._set_kind()
+        except Exception:
+            for _ in range(len(other)):
+                self.pop(-1)
+            raise
+        return self
+
     def __add__(self, other):
         """Combine source spaces."""
-        return SourceSpaces(list.__add__(self, other))
+        out = self.copy()
+        out += other
+        return out
 
     def copy(self):
         """Make a copy of the source spaces.
@@ -252,8 +266,7 @@ class SourceSpaces(list):
         src : instance of SourceSpaces
             The copied source spaces.
         """
-        src = deepcopy(self)
-        return src
+        return deepcopy(self)
 
     def save(self, fname, overwrite=False):
         """Save the source spaces to a fif file.
