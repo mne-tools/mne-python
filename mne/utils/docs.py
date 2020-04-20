@@ -122,6 +122,13 @@ sphere : float | array-like | str | None
 
     .. versionadded:: 0.20
 """ % (HEAD_SIZE_DEFAULT,)
+docdict['topomap_ch_type'] = """
+ch_type : str
+    The channel type being plotted. Determines the ``'auto'``
+    extrapolation mode.
+
+    .. versionadded:: 0.21
+"""
 
 # PSD topomaps
 docdict["psd_topo_vlim_joint"] = """
