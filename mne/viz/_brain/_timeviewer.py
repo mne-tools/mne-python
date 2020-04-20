@@ -468,7 +468,7 @@ class _TimeViewer(object):
         self.interactor.setCursor(QCursor(Qt.WaitCursor))
 
         try:
-            self.brain.save_movie(
+            self.brain._save_movie(
                 filename=filename,
                 time_dilation=(1. / self.playback_speed),
                 callback=frame_callback,
