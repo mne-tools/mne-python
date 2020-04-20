@@ -325,9 +325,6 @@ class _TimeViewer(object):
         # Direct access parameters:
         self.brain = brain
         self.brain.time_viewer = self
-        # replace brain's save_movie function
-        self.brain._save_movie = self.brain.save_movie
-        self.brain.save_movie = self.save_movie
         self.plotter = brain._renderer.plotter
         self.main_menu = self.plotter.main_menu
         self.window = self.plotter.app_window
@@ -431,7 +428,7 @@ class _TimeViewer(object):
         self.interactor.setCursor(QCursor(Qt.WaitCursor))
 
         try:
-            self.brain._save_movie(
+            self.brain.save_movie(
                 filename=filename,
                 time_dilation=(1. / self.playback_speed),
                 callback=frame_callback,
@@ -1073,10 +1070,6 @@ class _TimeViewer(object):
 
     @safe_event
     def clean(self):
-        # restore brain's save_movie function
-        self.brain.save_movie = self.brain._save_movie
-        self.brain._save_movie = None
-
         # resolve the reference cycle
         self.clear_points()
         self.actions.clear()
