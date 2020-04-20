@@ -247,8 +247,8 @@ def test_make_dics(tmpdir, _load_forward, idx, mat_tol, vol_tol):
         epochs.info, fwd_surf, csd, label=label, pick_ori='max-power',
         weight_norm='unit-noise-gain', normalize_fwd=False)
     w_ung = filters_ung['weights'][0]
-    assert np.allclose(np.corrcoef(np.abs(w_nai).ravel(),
-                                   np.abs(w_ung).ravel()), 1)
+    assert_allclose(np.corrcoef(np.abs(w_nai).ravel(),
+                                np.abs(w_ung).ravel()), 1, atol=1e-7)
 
     # Test whether spatial filter contains src_type
     assert 'src_type' in filters
@@ -325,7 +325,7 @@ def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion, idx,
     inds = np.triu_indices(csd.n_channels)
     csd_noise._data[...] = np.eye(csd.n_channels)[inds][:, np.newaxis]
     noise_power, f = apply_dics_csd(csd_noise, filters)
-    assert np.allclose(noise_power.data, 1)
+    assert_allclose(noise_power.data, 1., atol=1e-7)
 
     # Test filter with forward normalization instead of weight
     # normalization

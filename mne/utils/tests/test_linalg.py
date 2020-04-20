@@ -21,7 +21,7 @@ from mne.utils import run_tests_if_main, _pos_semidef_inv
 def test_pos_semidef_inv(ndim, dtype, n, deficient, reduce_rank):
     """Test positive semidefinite inverse."""
     # make n-dimensional matrix
-    n_extra = 2  #  how we add along the other dims
+    n_extra = 2  # how many we add along the other dims
     rng = np.random.RandomState(73)
     shape = (n_extra,) * (ndim - 2) + (n, n)
     mat = rng.randn(*shape) + 1j * rng.randn(*shape)
