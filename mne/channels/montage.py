@@ -606,7 +606,7 @@ def _get_montage_in_head(montage):
 
 
 @fill_doc
-def _set_montage(info, montage, match_case=True):
+def _set_montage(info, montage, match_case=True, on_missing=True):
     """Apply montage to data.
 
     With a DigMontage, this function will replace the digitizer info with
@@ -621,6 +621,7 @@ def _set_montage(info, montage, match_case=True):
         The measurement info to update.
     %(montage)s
     %(match_case)s
+    %(on_missing)s
 
     Notes
     -----
@@ -679,20 +680,25 @@ def _set_montage(info, montage, match_case=True):
         not_in_montage = [name for name, use in zip(info_names, info_names_use)
                           if use not in ch_pos_use]
         if len(not_in_montage):  # DigMontage is subset of info
-            warn('DigMontage is a only a subset of info. '
-                 'There are %s channel position%s not present in '
-                 'the DigMontage. The required channels are: %s'
-                 % (len(not_in_montage), _pl(not_in_montage),
-                    not_in_montage))
+            missing_coord_msg = 'DigMontage is a only a subset of info. ' \
+                                'There are %s channel position%s ' \
+                                'not present in the DigMontage. ' \
+                                'The required channels are: %s' \
+                                % (len(not_in_montage), _pl(not_in_montage),
+                                   not_in_montage)
+            if on_missing == 'raise':
+                raise ValueError(missing_coord_msg)
+            elif on_missing == 'ignore':
+                # set ch coordinates and names from digmontage or nan coords
+                _ch_pos_use = dict()
+                for name, use in zip(info_names, info_names_use):
+                    if use in ch_pos_use:
+                        _ch_pos_use[use] = ch_pos_use[use]
+                    else:
+                        _ch_pos_use[use] = [np.nan, np.nan, np.nan]
+                ch_pos_use = _ch_pos_use
 
-        # set ch coordinates and names from digmontage or nan coords
-        _ch_pos_use = dict()
-        for name, use in zip(info_names, info_names_use):
-            if use in ch_pos_use:
-                _ch_pos_use[use] = ch_pos_use[use]
-            else:
-                _ch_pos_use[use] = [np.nan, np.nan, np.nan]
-        ch_pos_use = _ch_pos_use
+                warn(missing_coord_msg)
 
         for name, use in zip(info_names, info_names_use):
             _loc_view = info['chs'][info['ch_names'].index(name)]['loc']

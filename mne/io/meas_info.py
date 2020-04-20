@@ -150,13 +150,18 @@ class MontageMixin(object):
     """Mixin for Montage setting."""
 
     @verbose
-    def set_montage(self, montage, match_case=True, verbose=None):
+    def set_montage(self, montage, match_case=True,
+                    on_missing='raise', verbose=None):
         """Set EEG sensor configuration and head digitization.
 
         Parameters
         ----------
         %(montage)s
         %(match_case)s
+        on_missing : str
+            Either 'raise' to raise an error when
+            channels have missing coordinates,
+            or 'ignore' to set channels to np.nan and set montage.
         %(verbose_meth)s
 
         Returns
@@ -173,7 +178,7 @@ class MontageMixin(object):
 
         from ..channels.montage import _set_montage
         info = self if isinstance(self, Info) else self.info
-        _set_montage(info, montage, match_case)
+        _set_montage(info, montage, match_case, on_missing)
         return self
 
 
