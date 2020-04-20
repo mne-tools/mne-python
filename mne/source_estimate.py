@@ -2231,7 +2231,7 @@ class MixedSourceEstimate(_BaseMixedSourceEstimate):
 
         Returns
         -------
-        label_tc : array, shape=(n_labels, n_times)
+        label_tc : array, shape (n_labels, n_times)
             Extracted time course for each label.
 
         See Also
@@ -2333,7 +2333,7 @@ class MixedVectorSourceEstimate(_BaseVectorSourceEstimate,
 
     Parameters
     ----------
-    data : array of shape (n_dipoles, 3, n_times)
+    data : array, shape (n_dipoles, 3, n_times)
         The data in source space. Each dipole contains three vectors that
         denote the dipole strength in X, Y and Z directions over time.
     vertices : list of array, shape (n_src,)
@@ -2351,7 +2351,7 @@ class MixedVectorSourceEstimate(_BaseVectorSourceEstimate,
     ----------
     subject : str | None
         The subject name.
-    times : array of shape (n_times,)
+    times : array, shape (n_times,)
         The time vector.
     vertices : array of shape (n_dipoles,)
         The indices of the dipoles in the source space.
