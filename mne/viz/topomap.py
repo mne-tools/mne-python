@@ -1949,7 +1949,7 @@ def plot_psds_topomap(
     Returns
     -------
     fig : instance of matplotlib.figure.Figure
-        Figure distributing one image per channel across sensor topography.
+        Figure with a topomap subplot for each band.
     """
     import matplotlib.pyplot as plt
     sphere = _check_sphere(sphere)
