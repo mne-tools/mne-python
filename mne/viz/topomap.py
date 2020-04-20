@@ -452,16 +452,12 @@ def _draw_outlines(ax, outlines):
     return outlines_
 
 
-def _get_extra_points(pos, extrapolate, sphere):
-    """Get coordinates of additinal interpolation points.
-
-    If sphere is None, returns coordinates of convex hull of channel
-    positions, expanded by the median inter-channel distance.
-    Otherwise gives positions of points on the head circle placed with a step
-    of median inter-channel distance.
-    """
+def _get_extra_points(pos, extrapolate, origin, radii):
+    """Get coordinates of additinal interpolation points."""
     from scipy.spatial.qhull import Delaunay
-    x, y, _, head_radius = sphere
+    radii = np.array(radii, float)
+    assert radii.shape == (2,)
+    x, y = origin
     # auto should be gone by now
     _check_option('extrapolate', extrapolate, ('head', 'box', 'local'))
 
@@ -565,11 +561,11 @@ def _get_extra_points(pos, extrapolate, sphere):
     else:
         assert extrapolate == 'head'
         # return points on the head circle
-        angle = np.arcsin(distance / 2 / head_radius)
+        angle = np.arcsin(distance / 2 / np.mean(radii))
         points_l = np.arange(0, 2 * np.pi, angle)
-        use_radius = head_radius * 1.1
-        points_x = np.cos(points_l) * use_radius + x
-        points_y = np.sin(points_l) * use_radius + y
+        use_radii = radii * 1.1
+        points_x = np.cos(points_l) * use_radii[0] + x
+        points_y = np.sin(points_l) * use_radii[1] + y
         new_pos = np.stack([points_x, points_y], axis=1)
         if colinear or pos.shape[0] == 3:
             tri = Delaunay(np.concatenate([pos, new_pos], axis=0))
@@ -586,13 +582,14 @@ class _GridData(object):
     to be set independently.
     """
 
-    def __init__(self, pos, extrapolate, sphere, border):
+    def __init__(self, pos, extrapolate, origin, radii, border):
         # in principle this works in N dimensions, not just 2
         assert pos.ndim == 2 and pos.shape[1] == 2, pos.shape
         _validate_type(border, ('numeric', str), 'border')
 
         # Adding points outside the extremes helps the interpolators
-        outer_pts, mask_pts, tri = _get_extra_points(pos, extrapolate, sphere)
+        outer_pts, mask_pts, tri = _get_extra_points(
+            pos, extrapolate, origin, radii)
         self.n_extra = outer_pts.shape[0]
         self.mask_pts = mask_pts
         self.border = border
@@ -784,7 +781,7 @@ def _setup_interp(pos, res, extrapolate, sphere, outlines, border):
     xi = np.linspace(xmin, xmax, res)
     yi = np.linspace(ymin, ymax, res)
     Xi, Yi = np.meshgrid(xi, yi)
-    interp = _GridData(pos, extrapolate, sphere, border)
+    interp = _GridData(pos, extrapolate, clip_origin, clip_radius, border)
     extent = (xmin, xmax, ymin, ymax)
     return extent, Xi, Yi, interp
 
