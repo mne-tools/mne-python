@@ -660,6 +660,7 @@ class _TimeViewer(object):
         # Playback speed slider
         if time_slider is None:
             self.playback_speed_call = None
+            playback_speed_slider = None
         else:
             self.playback_speed_call = SmartSlider(
                 plotter=self.plotter,
