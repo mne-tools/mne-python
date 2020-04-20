@@ -80,10 +80,10 @@ print('the src space contains %d spaces and %d points' % (len(src), n))
 #
 #    >>> write_source_spaces(fname_mixed_src, src, overwrite=True)
 #
-# We can also export source positions to nift file and visualize it again:
+# We can also export source positions to nifti file and visualize it again:
 
 nii_fname = op.join(bem_dir, '%s-mixed-src.nii' % subject)
-src.export_volume(nii_fname, mri_resolution=True)
+src.export_volume(nii_fname, mri_resolution=True, overwrite=True)
 
 plotting.plot_img(nii_fname, cmap='nipy_spectral')
 
