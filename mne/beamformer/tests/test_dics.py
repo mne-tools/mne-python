@@ -112,7 +112,7 @@ def _test_weight_norm(filters, norm=1):
 
 idx_param = pytest.mark.parametrize('idx, mat_tol, vol_tol', [
     (0, 0.055, 0.),
-    (100, 0.020, 0.01),
+    (100, 0.020, 0.007),
     (200, 0., 0.015),
     (233, 0.035, 0.),
 ])
