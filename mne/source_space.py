@@ -216,6 +216,7 @@ class SourceSpaces(list):
         )
 
     def __getitem__(self, *args, **kwargs):
+        """Get an item."""
         out = super().__getitem__(*args, **kwargs)
         if isinstance(out, list):
             out = SourceSpaces(out)
