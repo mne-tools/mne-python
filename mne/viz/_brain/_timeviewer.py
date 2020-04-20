@@ -13,11 +13,10 @@ import sys
 
 import numpy as np
 
-from . import _Brain
 from ..utils import _check_option, _show_help, _get_color_list, tight_layout
 from ...externals.decorator import decorator
 from ...source_space import vertex_to_mni
-from ...utils import _ReuseCycle, warn, copy_doc
+from ...utils import _ReuseCycle, warn
 
 
 @decorator
@@ -362,8 +361,6 @@ class _TimeViewer(object):
         # Direct access parameters:
         self.brain = brain
         self.brain.time_viewer = self
-        self.brain._save_movie = self.brain.save_movie
-        self.brain.save_movie = self.save_movie
         self.plotter = brain._renderer.plotter
         self.main_menu = self.plotter.main_menu
         self.window = self.plotter.app_window
@@ -467,7 +464,7 @@ class _TimeViewer(object):
         self.interactor.setCursor(QCursor(Qt.WaitCursor))
 
         try:
-            self.brain._save_movie(
+            self.brain.save_movie(
                 filename=filename,
                 time_dilation=(1. / self.playback_speed),
                 callback=frame_callback,
@@ -481,7 +478,6 @@ class _TimeViewer(object):
         # restore cursor
         self.interactor.setCursor(default_cursor)
 
-    @copy_doc(_Brain.save_movie)
     def save_movie(self, filename=None, **kwargs):
         from pyvista.plotting.qt_plotting import FileDialog
 
