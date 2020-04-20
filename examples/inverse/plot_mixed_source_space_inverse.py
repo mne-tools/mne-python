@@ -131,14 +131,15 @@ src = inverse_operator['src']
 # Plot the surface
 # ----------------
 initial_time = 0.1
-brain = stc.surface().plot(initial_time=initial_time)
-
+brain = stc.surface().plot(initial_time=initial_time,
+                           subjects_dir=subjects_dir)
 ###############################################################################
 # Plot the volume
 # ----------------
 
 # sphinx_gallery_thumbnail_number = 4
-fig = stc.volume().plot(initial_time=initial_time, src=src)
+fig = stc.volume().plot(initial_time=initial_time, src=src,
+                        subjects_dir=subjects_dir)
 
 ###############################################################################
 # Process labels
