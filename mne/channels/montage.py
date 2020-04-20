@@ -34,7 +34,7 @@ from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..utils import (warn, copy_function_doc_to_method_doc, _pl,
                      _check_option, _validate_type, _check_fname,
-                     fill_doc)
+                     fill_doc, logger)
 
 from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
@@ -621,7 +621,7 @@ def _set_montage(info, montage, match_case=True, on_missing=True):
         The measurement info to update.
     %(montage)s
     %(match_case)s
-    %(on_missing)s
+    %(on_missing_montage)s
 
     Notes
     -----
@@ -635,6 +635,8 @@ def _set_montage(info, montage, match_case=True, on_missing=True):
         montage = make_standard_montage(montage)
 
     if isinstance(montage, DigMontage):
+        _check_option('on_missing', on_missing, ('raise', 'ignore'))
+
         mnt_head = _get_montage_in_head(montage)
 
         def _backcompat_value(pos, ref_pos):
@@ -698,7 +700,7 @@ def _set_montage(info, montage, match_case=True, on_missing=True):
                         _ch_pos_use[use] = [np.nan, np.nan, np.nan]
                 ch_pos_use = _ch_pos_use
 
-                warn(missing_coord_msg)
+                logger.info(missing_coord_msg)
 
         for name, use in zip(info_names, info_names_use):
             _loc_view = info['chs'][info['ch_names'].index(name)]['loc']

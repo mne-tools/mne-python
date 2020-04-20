@@ -710,6 +710,13 @@ match_case : bool
 
     .. versionadded:: 0.20
 """
+docdict['on_missing_montage'] = """
+on_missing : str
+    Either 'raise' to raise an error when
+    channels have missing coordinates,
+    or 'ignore' to set channels to np.nan and set montage.
+    
+    .. versionadded:: 0.20.1
 
 # Brain plotting
 docdict["clim"] = """
