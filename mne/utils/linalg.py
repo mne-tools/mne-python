@@ -169,4 +169,6 @@ def _pos_semidef_inv(x, reduce_rank):
         # to inf -- then the 1. / s below will turn this to zero, as needed.
         s[:, 0] = np.inf
     s = 1. / s
+    # For positive semidefinite matrices, the transpose is equal to the
+    # conjugate.
     return np.matmul(u * s[:, np.newaxis], u.transpose(0, 2, 1))
