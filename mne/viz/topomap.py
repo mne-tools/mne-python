@@ -1819,7 +1819,7 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
                                   size="10%", format=cbar_fmt)
         cbar.set_ticks((vmin, vmax))
         if unit is not None:
-            cbar.ax.set_title(unit, fontsize=8)
+            cbar.ax.set_ylabel(unit, fontsize=8)
         cbar.ax.tick_params(labelsize=8)
 
 
@@ -1887,6 +1887,8 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         Figure distributing one image per channel across sensor topography.
     """
     ch_type = _get_ch_type(epochs, ch_type)
+    units = _handle_default('units', None)
+    unit = units[ch_type]
 
     picks, pos, merge_channels, names, ch_type, sphere, clip_origin = \
         _prepare_topomap_plot(epochs, ch_type, sphere=sphere)
@@ -1906,14 +1908,14 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         psds=psds, freqs=freqs, pos=pos, agg_fun=agg_fun, vmin=vmin,
         vmax=vmax, bands=bands, cmap=cmap, dB=dB, normalize=normalize,
         cbar_fmt=cbar_fmt, outlines=outlines, axes=axes, show=show,
-        sphere=sphere, vlim=vlim)
+        sphere=sphere, vlim=vlim, unit=unit)
 
 
 @fill_doc
 def plot_psds_topomap(
         psds, freqs, pos, agg_fun=None, vmin=None, vmax=None, bands=None,
         cmap=None, dB=True, normalize=False, cbar_fmt='%0.3f', outlines='head',
-        axes=None, show=True, sphere=None, vlim=(None, None)):
+        axes=None, show=True, sphere=None, vlim=(None, None), unit=None):
     """Plot spatial maps of PSDs.
 
     Parameters
@@ -1940,6 +1942,9 @@ def plot_psds_topomap(
         Show figure if True.
     %(topomap_sphere)s
     %(psd_topo_vlim_joint)s
+    unit : str | None
+        Measurement unit to be displayed with the colorbar. If ``None``, no
+        unit is displayed (only "power" or "dB" as appropriate).
 
     Returns
     -------
@@ -2003,6 +2008,15 @@ def plot_psds_topomap(
     else:
         vmin, vmax = vlim
 
+    if unit is None:
+        unit = 'dB' if dB and not normalize else 'power'
+    else:
+        if '/' in unit:
+            unit = '(%s)' % unit
+        unit += '²/Hz'
+        if dB and not normalize:
+            unit += ' (dB)'
+
     for ax, (fmin, fmax, title) in zip(axes, bands):
         freq_mask = (fmin < freqs) & (freqs < fmax)
         if freq_mask.sum() == 0:
@@ -2011,9 +2025,6 @@ def plot_psds_topomap(
         data = agg_fun(psds[:, freq_mask], axis=1)
         if dB and not normalize:
             data = 10 * np.log10(data)
-            unit = 'dB'
-        else:
-            unit = 'power'
 
         _plot_topomap_multi_cbar(data, pos, ax, title=title, vmin=vmin,
                                  vmax=vmax, cmap=cmap, outlines=outlines,
