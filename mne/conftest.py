@@ -27,7 +27,6 @@ except Exception:
 import numpy as np
 import mne
 from mne.datasets import testing
-from mne.fixes import _fn35
 
 test_path = testing.data_path(download=False)
 s_path = op.join(test_path, 'MEG', 'sample')
@@ -48,7 +47,7 @@ def pytest_configure(config):
         config.addinivalue_line('markers', marker)
 
     # Fixtures
-    for fixture in ('matplotlib_config', 'fix_pytest_tmpdir_35'):
+    for fixture in ('matplotlib_config',):
         config.addinivalue_line('usefixtures', fixture)
 
     # Warnings
@@ -143,27 +142,6 @@ def check_gui_ci():
     win = os.getenv('AZURE_CI_WINDOWS', 'false').lower() == 'true'
     if win or osx:
         pytest.skip('Skipping GUI tests on Travis OSX and Azure Windows')
-
-
-def _replace(mod, key):
-    orig = getattr(mod, key)
-
-    def func(x, *args, **kwargs):
-        return orig(_fn35(x), *args, **kwargs)
-
-    setattr(mod, key, func)
-
-
-@pytest.fixture(scope='session')
-def fix_pytest_tmpdir_35():
-    """Deal with tmpdir being a LocalPath, which bombs on 3.5."""
-    if sys.version_info >= (3, 6):
-        return
-
-    for key in ('stat', 'mkdir', 'makedirs', 'access'):
-        _replace(os, key)
-    for key in ('split', 'splitext', 'realpath', 'join', 'basename'):
-        _replace(op, key)
 
 
 @pytest.fixture(scope='session', params=[testing._pytest_param()])
