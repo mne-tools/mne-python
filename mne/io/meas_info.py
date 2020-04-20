@@ -162,6 +162,8 @@ class MontageMixin(object):
             Either 'raise' to raise an error when
             channels have missing coordinates,
             or 'ignore' to set channels to np.nan and set montage.
+
+            .. versionadded:: 0.20.1
         %(verbose_meth)s
 
         Returns
