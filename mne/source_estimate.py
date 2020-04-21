@@ -1897,7 +1897,7 @@ class _BaseVolSourceEstimate(_BaseSourceEstimate):
         stc = self.magnitude() if self._data_ndim == 3 else self
         vert_idx, time_idx, _ = _get_peak(stc.data, self.times, tmin, tmax,
                                           mode)
-        if vert_as_index:
+        if not vert_as_index:
             vert_idx = np.concatenate(self.vertices)[vert_idx]
 
         return (vert_idx,
