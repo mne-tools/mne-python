@@ -75,21 +75,30 @@ docdict['topomap_extrapolate'] = """
 extrapolate : str
     Options:
 
-    - 'box' (default)
+    - ``'box'``
         Extrapolate to four points placed to form a square encompassing all
         data points, where each side of the square is three times the range
         of the data in the respective dimension.
-    - 'local'
+    - ``'local'`` (default)
         Extrapolate only to nearby points (approximately to points closer than
-        median inter-electrode distance).
-    - 'head'
-        Extrapolate to the edges of the head circle (does not work well
-        with sensors outside the head circle).
+        median inter-electrode distance). This will also set the
+        mask to be polygonal based on the convex hull of the sensors.
+    - ``'head'``
+        Extrapolate out to the edges of the clipping circle. This will be on
+        the head circle when the sensors are contained within the head circle,
+        but it can extend beyond the head when sensors are plotted outside
+        the head circle.
+
+    .. versionchanged:: 0.21
+
+       - The default was changed to ``'local'``
+       - ``'local'`` was changed to use a convex hull mask
+       - ``'head'`` was changed to extrapolate out to the clipping circle.
 """
 docdict['topomap_border'] = """
 border : float | 'mean'
-    Value to extrapolate to on the topomap borders. If ``'mean'`` then each
-    extrapolated point has the average value of its neighbours.
+    Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
+    then each extrapolated point has the average value of its neighbours.
 
     .. versionadded:: 0.20
 """
@@ -117,6 +126,13 @@ sphere : float | array-like | str | None
 
     .. versionadded:: 0.20
 """ % (HEAD_SIZE_DEFAULT,)
+docdict['topomap_ch_type'] = """
+ch_type : str
+    The channel type being plotted. Determines the ``'auto'``
+    extrapolation mode.
+
+    .. versionadded:: 0.21
+"""
 
 # PSD topomaps
 docdict["psd_topo_vlim_joint"] = """

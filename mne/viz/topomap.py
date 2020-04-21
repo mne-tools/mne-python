@@ -20,10 +20,12 @@ from ..baseline import rescale
 from ..channels.channels import _get_ch_type
 from ..channels.layout import (
     _find_topomap_coords, find_layout, _pair_grad_sensors, _merge_ch_data)
+from ..defaults import _EXTRAPOLATE_DEFAULT, _BORDER_DEFAULT
 from ..io.pick import (pick_types, _picks_by_type, pick_info, pick_channels,
-                       _pick_data_channels, _picks_to_idx, _get_channel_types)
+                       _pick_data_channels, _picks_to_idx, _get_channel_types,
+                       _MEG_CH_TYPES_SPLIT)
 from ..utils import (_clean_names, _time_mask, verbose, logger, warn, fill_doc,
-                     _validate_type, _check_sphere)
+                     _validate_type, _check_sphere, _check_option)
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox, figure_nobar,
                     plt_show, _process_times, DraggableColorbar,
@@ -265,7 +267,8 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
                        colorbar=False, res=64, size=1, show=True,
                        outlines='head', contours=6, image_interp='bilinear',
                        axes=None, vlim=(None, None),
-                       sphere=None, extrapolate='box', border=0):
+                       sphere=None, extrapolate=_EXTRAPOLATE_DEFAULT,
+                       border=_BORDER_DEFAULT):
     """Plot topographic maps of SSP projections.
 
     Parameters
@@ -303,7 +306,7 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
 
     _validate_type(info, 'info', 'info')
 
-    types, datas, poss, spheres, outliness = [], [], [], [], []
+    types, datas, poss, spheres, outliness, ch_typess = [], [], [], [], [], []
     for proj in projs:
         # get ch_names, ch_types, data
         proj = _eliminate_zeros(proj)  # gh 5641
@@ -319,8 +322,8 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
         data = proj['data']['data'].ravel()
         info_names = _clean_names(info['ch_names'], remove_whitespace=True)
         use_info = pick_info(info, pick_channels(info_names, ch_names))
-        data_picks, pos, merge_channels, names, _, this_sphere, clip_origin = \
-            _prepare_topomap_plot(
+        data_picks, pos, merge_channels, names, ch_type, this_sphere, \
+            clip_origin = _prepare_topomap_plot(
                 use_info, _get_ch_type(use_info, None), sphere=sphere)
         these_outlines = _make_head_outlines(
             sphere, pos, outlines, clip_origin)
@@ -334,6 +337,7 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
         poss.append(pos)
         spheres.append(this_sphere)
         outliness.append(these_outlines)
+        ch_typess.append(ch_type)
     del sphere
 
     # setup axes
@@ -362,8 +366,8 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
         vlims = [vlim for _ in range(len(datas))]
 
     # plot
-    for proj, ax, _data, _pos, _vlim, _sphere, _outlines in zip(
-            projs, axes, datas, poss, vlims, spheres, outliness):
+    for proj, ax, _data, _pos, _vlim, _sphere, _outlines, _ch_type in zip(
+            projs, axes, datas, poss, vlims, spheres, outliness, ch_typess):
         # title
         title = proj['desc']
         title = '\n'.join(title[ii:ii + 22] for ii in range(0, len(title), 22))
@@ -375,7 +379,7 @@ def plot_projs_topomap(projs, info, cmap=None, sensors=True,
                           outlines=_outlines, contours=contours,
                           image_interp=image_interp, show=False,
                           extrapolate=extrapolate, sphere=_sphere,
-                          border=border)[0]
+                          border=border, ch_type=ch_type)[0]
 
         if colorbar:
             _add_colorbar(ax, im, cmap)
@@ -448,18 +452,17 @@ def _draw_outlines(ax, outlines):
     return outlines_
 
 
-def _get_extra_points(pos, extrapolate, sphere):
-    """Get coordinates of additinal interpolation points.
-
-    If sphere is None, returns coordinates of convex hull of channel
-    positions, expanded by the median inter-channel distance.
-    Otherwise gives positions of points on the head circle placed with a step
-    of median inter-channel distance.
-    """
+def _get_extra_points(pos, extrapolate, origin, radii):
+    """Get coordinates of additinal interpolation points."""
     from scipy.spatial.qhull import Delaunay
-    x, y, _, head_radius = sphere
+    radii = np.array(radii, float)
+    assert radii.shape == (2,)
+    x, y = origin
+    # auto should be gone by now
+    _check_option('extrapolate', extrapolate, ('head', 'box', 'local'))
 
     # the old method of placement - large box
+    mask_pos = None
     if extrapolate == 'box':
         extremes = np.array([pos.min(axis=0), pos.max(axis=0)])
         diffs = extremes[1] - extremes[0]
@@ -469,7 +472,7 @@ def _get_extra_points(pos, extrapolate, sphere):
             *([[0] * (pos.shape[1] - 1) + [1]] * pos.shape[1]))))
         pidx = np.tile(np.arange(pos.shape[1])[np.newaxis], (len(eidx), 1))
         outer_pts = extremes[eidx, pidx]
-        return outer_pts, Delaunay(np.concatenate((pos, outer_pts)))
+        return outer_pts, mask_pos, Delaunay(np.concatenate((pos, outer_pts)))
 
     # check if positions are colinear:
     diffs = np.diff(pos, axis=0)
@@ -516,25 +519,35 @@ def _get_extra_points(pos, extrapolate, sphere):
                 new_pos = new_pos[good_extra]
 
             tri = Delaunay(np.concatenate([pos, new_pos], axis=0))
-            return new_pos, tri
+            return new_pos, new_pos, tri
 
         # get the convex hull of data points from triangulation
         hull_pos = pos[tri.convex_hull]
 
         # extend the convex hull limits outwards a bit
-        channels_center = pos.mean(axis=0, keepdims=True)
-        radial_dir = hull_pos - channels_center[np.newaxis, :]
+        channels_center = pos.mean(axis=0)
+        radial_dir = hull_pos - channels_center
         unit_radial_dir = radial_dir / np.linalg.norm(radial_dir, axis=-1,
                                                       keepdims=True)
         hull_extended = hull_pos + unit_radial_dir * distance
+        mask_pos = hull_pos + unit_radial_dir * distance * 0.5
         hull_diff = np.diff(hull_pos, axis=1)[:, 0]
         hull_distances = np.linalg.norm(hull_diff, axis=-1)
+        del channels_center
+
+        # Construct a mask
+        mask_pos = np.unique(mask_pos.reshape(-1, 2), axis=0)
+        mask_center = np.mean(mask_pos, axis=0)
+        mask_pos -= mask_center
+        mask_pos = mask_pos[
+            np.argsort(np.arctan2(mask_pos[:, 1], mask_pos[:, 0]))]
+        mask_pos += mask_center
 
         # add points along hull edges so that the distance between points
         # is around that of average distance between channels
         add_points = list()
         eps = np.finfo('float').eps
-        n_times_dist = np.round(hull_distances / distance).astype('int')
+        n_times_dist = np.round(0.25 * hull_distances / distance).astype('int')
         for n in range(2, n_times_dist.max() + 1):
             mask = n_times_dist == n
             mult = np.arange(1 / n, 1 - eps, 1 / n)[:, np.newaxis, np.newaxis]
@@ -546,18 +559,19 @@ def _get_extra_points(pos, extrapolate, sphere):
         hull_extended = np.unique(hull_extended.reshape((-1, 2)), axis=0)
         new_pos = np.concatenate([hull_extended] + add_points)
     else:
+        assert extrapolate == 'head'
         # return points on the head circle
-        angle = np.arcsin(distance / 2 / head_radius)
+        angle = np.arcsin(distance / 2 / np.mean(radii))
         points_l = np.arange(0, 2 * np.pi, angle)
-        use_radius = head_radius * 1.1
-        points_x = np.cos(points_l) * use_radius + x
-        points_y = np.sin(points_l) * use_radius + y
+        use_radii = radii * 1.1
+        points_x = np.cos(points_l) * use_radii[0] + x
+        points_y = np.sin(points_l) * use_radii[1] + y
         new_pos = np.stack([points_x, points_y], axis=1)
         if colinear or pos.shape[0] == 3:
             tri = Delaunay(np.concatenate([pos, new_pos], axis=0))
-            return new_pos, tri
+            return new_pos, mask_pos, tri
     tri.add_points(new_pos)
-    return new_pos, tri
+    return new_pos, mask_pos, tri
 
 
 class _GridData(object):
@@ -568,14 +582,16 @@ class _GridData(object):
     to be set independently.
     """
 
-    def __init__(self, pos, extrapolate, sphere, border):
+    def __init__(self, pos, extrapolate, origin, radii, border):
         # in principle this works in N dimensions, not just 2
         assert pos.ndim == 2 and pos.shape[1] == 2, pos.shape
         _validate_type(border, ('numeric', str), 'border')
 
         # Adding points outside the extremes helps the interpolators
-        outer_pts, tri = _get_extra_points(pos, extrapolate, sphere)
+        outer_pts, mask_pts, tri = _get_extra_points(
+            pos, extrapolate, origin, radii)
         self.n_extra = outer_pts.shape[0]
+        self.mask_pts = mask_pts
         self.border = border
         self.tri = tri
 
@@ -599,10 +615,18 @@ class _GridData(object):
             v_extra = np.zeros(self.n_extra)
             indices, indptr = self.tri.vertex_neighbor_vertices
             rng = range(n_points, n_points + self.n_extra)
+            used = np.zeros(len(rng), bool)
             for idx, extra_idx in enumerate(rng):
                 ngb = indptr[indices[extra_idx]:indices[extra_idx + 1]]
                 ngb = ngb[ngb < n_points]
-                v_extra[idx] = v[ngb].mean()
+                if len(ngb) > 0:
+                    used[idx] = True
+                    v_extra[idx] = v[ngb].mean()
+            if not used.all() and used.any():
+                # Eventually we might want to use the value of the nearest
+                # point or something, but this case should hopefully be
+                # rare so for now just use the average value of all extras
+                v_extra[~used] = np.mean(v_extra[used])
         else:
             v_extra = np.full(self.n_extra, self.border, dtype=float)
 
@@ -647,8 +671,9 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                  res=64, axes=None, names=None, show_names=False, mask=None,
                  mask_params=None, outlines='head',
                  contours=6, image_interp='bilinear', show=True,
-                 onselect=None, extrapolate='box',
-                 sphere=None, border=0):
+                 onselect=None, extrapolate=_EXTRAPOLATE_DEFAULT,
+                 sphere=None, border=_BORDER_DEFAULT,
+                 ch_type='eeg'):
     """Plot a topographic map as image.
 
     Parameters
@@ -718,6 +743,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         .. versionadded:: 0.18
     %(topomap_sphere)s
     %(topomap_border)s
+    %(topomap_ch_type)s
 
     Returns
     -------
@@ -730,8 +756,8 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
     return _plot_topomap(data, pos, vmin, vmax, cmap, sensors, res, axes,
                          names, show_names, mask, mask_params, outlines,
                          contours, image_interp, show,
-                         onselect, extrapolate,
-                         sphere=sphere, border=border)[:2]
+                         onselect, extrapolate, sphere=sphere, border=border,
+                         ch_type=ch_type)[:2]
 
 
 def _setup_interp(pos, res, extrapolate, sphere, outlines, border):
@@ -755,7 +781,7 @@ def _setup_interp(pos, res, extrapolate, sphere, outlines, border):
     xi = np.linspace(xmin, xmax, res)
     yi = np.linspace(ymin, ymax, res)
     Xi, Yi = np.meshgrid(xi, yi)
-    interp = _GridData(pos, extrapolate, sphere, border)
+    interp = _GridData(pos, extrapolate, clip_origin, clip_radius, border)
     extent = (xmin, xmax, ymin, ymax)
     return extent, Xi, Yi, interp
 
@@ -764,8 +790,8 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
                   res=64, axes=None, names=None, show_names=False, mask=None,
                   mask_params=None, outlines='head',
                   contours=6, image_interp='bilinear', show=True,
-                  onselect=None, extrapolate='box',
-                  sphere=None, border=0):
+                  onselect=None, extrapolate=_EXTRAPOLATE_DEFAULT, sphere=None,
+                  border=_BORDER_DEFAULT, ch_type='eeg'):
     import matplotlib.pyplot as plt
     from matplotlib.widgets import RectangleSelector
     data = np.asarray(data)
@@ -798,6 +824,10 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         else:
             picks = list(range(data.shape[0]))
             pos = _find_topomap_coords(pos, picks=picks, sphere=sphere)
+
+    _check_option('extrapolate', extrapolate, ('box', 'local', 'head', 'auto'))
+    if extrapolate == 'auto':
+        extrapolate = 'local' if ch_type in _MEG_CH_TYPES_SPLIT else 'head'
 
     if data.ndim > 1:
         raise ValueError("Data needs to be array of shape (n_sensors,); got "
@@ -861,11 +891,13 @@ def _plot_topomap(data, pos, vmin=None, vmax=None, cmap=None, sensors=True,
         ax.set_clip_path(patch_)
     if _use_default_outlines:
         from matplotlib import patches
-        patch_ = patches.Ellipse(clip_origin,
-                                 2 * clip_radius[0],
-                                 2 * clip_radius[1],
-                                 clip_on=True,
-                                 transform=ax.transData)
+        if extrapolate == 'local':
+            patch_ = patches.Polygon(
+                interp.mask_pts, clip_on=True, transform=ax.transData)
+        else:
+            patch_ = patches.Ellipse(
+                clip_origin, 2 * clip_radius[0], 2 * clip_radius[1],
+                clip_on=True, transform=ax.transData)
 
     # plot interpolated map
     im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
@@ -936,8 +968,9 @@ def _plot_ica_topomap(ica, idx=0, ch_type=None, res=64,
                       vmin=None, vmax=None, cmap='RdBu_r', colorbar=False,
                       title=None, show=True, outlines='head', contours=6,
                       image_interp='bilinear', axes=None,
-                      sensors=True, allow_ref_meg=False, extrapolate='box',
-                      sphere=None, border=0):
+                      sensors=True, allow_ref_meg=False,
+                      extrapolate=_EXTRAPOLATE_DEFAULT,
+                      sphere=None, border=_BORDER_DEFAULT):
     """Plot single ica map to axes."""
     from matplotlib.axes import Axes
 
@@ -1403,7 +1436,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
                         show=True, show_names=False, title=None, mask=None,
                         mask_params=None, outlines='head', contours=6,
                         image_interp='bilinear', average=None,
-                        axes=None, extrapolate='box', sphere=None, border=0,
+                        axes=None, extrapolate=_EXTRAPOLATE_DEFAULT,
+                        sphere=None, border=_BORDER_DEFAULT,
                         nrows=1, ncols='auto'):
     """Plot topographic maps of specific time points of evoked data.
 
@@ -1697,7 +1731,8 @@ def plot_evoked_topomap(evoked, times="auto", ch_type=None,
                   show_names=show_names, cmap=cmap[0], mask_params=mask_params,
                   outlines=outlines, contours=contours,
                   image_interp=image_interp, show=False,
-                  extrapolate=extrapolate, sphere=sphere, border=border)
+                  extrapolate=extrapolate, sphere=sphere, border=border,
+                  ch_type=ch_type)
     for idx, time in enumerate(times):
         ax_idx = idx
         if colorbar and ncols is not None:
@@ -1797,7 +1832,7 @@ def _slider_changed(val, ax, data, times, pos, scaling, func, time_format,
 def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None, vmin=None,
                              vmax=None, cmap=None, outlines='head',
                              colorbar=False, cbar_fmt='%3.3f',
-                             sphere=None):
+                             sphere=None, ch_type='eeg'):
     """Plot topomap multi cbar."""
     _hide_frame(ax)
     vmin = np.min(data) if vmin is None else vmin
@@ -1908,14 +1943,15 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         psds=psds, freqs=freqs, pos=pos, agg_fun=agg_fun, vmin=vmin,
         vmax=vmax, bands=bands, cmap=cmap, dB=dB, normalize=normalize,
         cbar_fmt=cbar_fmt, outlines=outlines, axes=axes, show=show,
-        sphere=sphere, vlim=vlim, unit=unit)
+        sphere=sphere, vlim=vlim, unit=unit, ch_type=ch_type)
 
 
 @fill_doc
 def plot_psds_topomap(
         psds, freqs, pos, agg_fun=None, vmin=None, vmax=None, bands=None,
         cmap=None, dB=True, normalize=False, cbar_fmt='%0.3f', outlines='head',
-        axes=None, show=True, sphere=None, vlim=(None, None), unit=None):
+        axes=None, show=True, sphere=None, vlim=(None, None), unit=None,
+        ch_type='eeg'):
     """Plot spatial maps of PSDs.
 
     Parameters
@@ -1945,6 +1981,7 @@ def plot_psds_topomap(
     unit : str | None
         Measurement unit to be displayed with the colorbar. If ``None``, no
         unit is displayed (only "power" or "dB" as appropriate).
+    %(topomap_ch_type)s
 
     Returns
     -------
@@ -2029,7 +2066,7 @@ def plot_psds_topomap(
         _plot_topomap_multi_cbar(data, pos, ax, title=title, vmin=vmin,
                                  vmax=vmax, cmap=cmap, outlines=outlines,
                                  colorbar=True, unit=unit, cbar_fmt=cbar_fmt,
-                                 sphere=sphere)
+                                 sphere=sphere, ch_type=ch_type)
     tight_layout(fig=fig)
     fig.canvas.draw()
     plt_show(show)
@@ -2458,7 +2495,8 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
                   vmax=None, cmap=None, sensors=True, res=64, axes=None,
                   names=None, show_names=False, mask=None, mask_params=None,
                   outlines='head', contours=6, image_interp='bilinear',
-                  show=True, onselect=None, extrapolate='box', sphere=None):
+                  show=True, onselect=None, extrapolate=_EXTRAPOLATE_DEFAULT,
+                  sphere=None):
     """Plot arrow map.
 
     Compute arrowmaps, based upon the Hosaka-Cohen transformation [1]_,
@@ -2602,7 +2640,8 @@ def plot_arrowmap(data, info_from, info_to=None, scale=3e-10, vmin=None,
                  sensors=sensors, res=res, names=names, show_names=show_names,
                  mask=mask, mask_params=mask_params, outlines=outlines,
                  contours=contours, image_interp=image_interp, show=show,
-                 onselect=onselect, extrapolate=extrapolate, sphere=sphere)
+                 onselect=onselect, extrapolate=extrapolate, sphere=sphere,
+                 ch_type=ch_type)
     x, y = tuple(pos.T)
     dx, dy = _trigradient(x, y, data)
     dxx = dy.data
