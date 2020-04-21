@@ -9,7 +9,8 @@ to average the times series in a label. We compare a simple average, with an
 averaging using the dipoles normal (flip mode) and then a PCA,
 also using a sign flip.
 """
-# Author: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@inria.fr>
+#          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
 
