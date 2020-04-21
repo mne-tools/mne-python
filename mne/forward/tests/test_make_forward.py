@@ -14,7 +14,7 @@ from mne import (read_forward_solution, write_forward_solution,
                  make_forward_solution, convert_forward_solution,
                  setup_volume_source_space, read_source_spaces, create_info,
                  make_sphere_model, pick_types_forward, pick_info, pick_types,
-                 read_evokeds, read_cov, read_dipole, SourceSpaces)
+                 read_evokeds, read_cov, read_dipole)
 from mne.utils import (requires_mne, requires_nibabel,
                        run_tests_if_main, run_subprocess)
 from mne.forward._make_forward import _create_meg_coils, make_forward_dipole
@@ -234,13 +234,14 @@ def test_make_forward_solution():
 
 
 @testing.requires_testing_data
-def test_make_forward_solution_discrete():
+def test_make_forward_solution_discrete(tmpdir):
     """Test making and converting a forward solution with discrete src."""
     # smoke test for depth weighting and discrete source spaces
-    src = read_source_spaces(fname_src)[0]
-    src = SourceSpaces([src] + setup_volume_source_space(
-        pos=dict(rr=src['rr'][src['vertno'][:3]].copy(),
-                 nn=src['nn'][src['vertno'][:3]].copy())))
+    src = setup_source_space('sample', 'oct2', subjects_dir=subjects_dir,
+                             add_dist=False)
+    src = src + setup_volume_source_space(
+        pos=dict(rr=src[0]['rr'][src[0]['vertno'][:3]].copy(),
+                 nn=src[0]['nn'][src[0]['vertno'][:3]].copy()))
     sphere = make_sphere_model()
     fwd = make_forward_solution(fname_raw, fname_trans, src, sphere,
                                 meg=True, eeg=False)
