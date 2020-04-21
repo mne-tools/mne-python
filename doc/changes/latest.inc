@@ -56,6 +56,8 @@ Bug
 
 - Make :func:`mne.set_config` accept path-like input values by `Richard Höchenberger`_
 
+- Fix bug with :func:`mne.beamformer._compute_beamformer` where matrices with complex values were not treated correctly for DICS beamformers by `Britta Westner`_ and `Eric Larson`_
+
 API
 ~~~
 
