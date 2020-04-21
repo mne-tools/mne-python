@@ -107,7 +107,7 @@ def _test_weight_norm(filters, norm=1):
     for ws in filters['weights']:
         ws = ws.reshape(-1, filters['n_orient'], ws.shape[1])
         for w in ws:
-            assert_allclose(np.trace(w.dot(w.T)), norm)
+            assert_allclose(np.trace(w.dot(w.conjugate().T)), norm)
 
 
 idx_param = pytest.mark.parametrize('idx, mat_tol, vol_tol', [
@@ -229,13 +229,14 @@ def test_make_dics(tmpdir, _load_forward, idx, mat_tol, vol_tol):
     filters = make_dics(epochs.info, fwd_surf, csd_noise, label=label,
                         weight_norm=None, normalize_fwd=True)
     w = filters['weights'][0][:3]
-    assert_allclose(np.diag(w.dot(w.T)), 1.0, rtol=1e-6, atol=0)
+    assert_allclose(np.diag(w.dot(w.conjugate().T)), 1.0, rtol=1e-6, atol=0)
 
     # Test turning off both forward and weight normalization
     filters = make_dics(epochs.info, fwd_surf, csd, label=label,
                         weight_norm=None, normalize_fwd=False)
     w = filters['weights'][0][:3]
-    assert not np.allclose(np.diag(w.dot(w.T)), 1.0, rtol=1e-2, atol=0)
+    assert not np.allclose(np.diag(w.dot(w.conjugate().T)), 1.0,
+                           rtol=1e-2, atol=0)
 
     # Test neural-activity-index weight normalization. It should be a scaled
     # version of the unit-noise-gain beamformer.
