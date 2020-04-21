@@ -419,11 +419,12 @@ def test_make_watershed_bem(tmpdir):
     try:
         make_watershed_bem('sample', subjects_dir=subjects_dir, overwrite=True)
         for surf in ('inner_skull', 'outer_skull', 'outer_skin'):
-            coords, faces, vol_info = read_surface(op.join(
-                bemdir, surf + '.surf'), read_metadata=True)
+            surf_out = '%s.surf' % surf
+            coords, faces, vol_info = read_surface(op.join(bemdir, surf_out),
+                                                   read_metadata=True)
             surf = 'outer_skin_from_testing' if surf == 'outer_skin' else surf
             # should testing data include the computed watershed bems ?
-            _, _, vol_info_c = read_surface(op.join(tmp, surf + '.surf'),
+            _, _, vol_info_c = read_surface(op.join(tmp, surf_out),
                                             read_metadata=True)
             # compare to the flash bems
             assert_allclose(
@@ -435,8 +436,8 @@ def test_make_watershed_bem(tmpdir):
             assert_equal(coords.shape[0], faces.max() + 1)
     finally:
         for surf in ('inner_skull', 'outer_skull', 'outer_skin'):
-            remove(op.join(bemdir, surf + '.surf'))  # delete symlinks
-            copy(op.join(tmp, surf + '.surf'), bemdir)  # return moved surf
+            remove(op.join(bemdir, surf_out))  # delete symlinks
+            copy(op.join(tmp, surf_out), bemdir)  # return moved surf
         copy(op.join(tmp, 'outer_skin_from_testing.surf'), bemdir)
 
 
