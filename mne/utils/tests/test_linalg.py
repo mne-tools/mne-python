@@ -7,9 +7,10 @@ import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
 import pytest
 
-from mne.utils import run_tests_if_main, _pos_semidef_inv
+from mne.utils import run_tests_if_main, _pos_semidef_inv, requires_version
 
 
+@requires_version('numpy', '1.17')  # hermitian kwarg
 @pytest.mark.parametrize('dtype', (np.float64, np.complex128))  # real, complex
 @pytest.mark.parametrize('ndim', (2, 3, 4))
 @pytest.mark.parametrize('n', (3, 4))
@@ -56,7 +57,7 @@ def test_pos_semidef_inv(ndim, dtype, n, deficient, reduce_rank):
     want_rank = n - deficient
     assert_array_equal(rank, want_rank)
     # assert equiv with NumPy
-    mat_pinv = np.linalg.pinv(mat)
+    mat_pinv = np.linalg.pinv(mat, hermitian=True)
     mat_symv = _pos_semidef_inv(mat, reduce_rank=reduce_rank)
     assert_allclose(mat_pinv, mat_symv, **kwargs)
     want = np.dot(proj, np.eye(n))
