@@ -84,12 +84,16 @@ extrapolate : str
         median inter-electrode distance). This will also set the
         mask to be polygonal based on the convex hull of the sensors.
     - ``'head'``
-        Extrapolate to the edges of the head circle (does not work well
-        with sensors outside the head circle).
+        Extrapolate out to the edges of the clipping circle. This will be on
+        the head circle when the sensors are contained within the head circle,
+        but it can extend beyond the head when sensors are plotted outside
+        the head circle.
 
     .. versionchanged:: 0.21
-       The default was changed to ``'local'``, and ``'local'`` was changed to
-       use a convex hull mask.
+
+       - The default was changed to ``'local'``
+       - ``'local'`` was changed to use a convex hull mask
+       - ``'head'`` was changed to extrapolate out to the clipping circle.
 """
 docdict['topomap_border'] = """
 border : float | 'mean'

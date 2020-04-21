@@ -1951,7 +1951,7 @@ def plot_psds_topomap(
         psds, freqs, pos, agg_fun=None, vmin=None, vmax=None, bands=None,
         cmap=None, dB=True, normalize=False, cbar_fmt='%0.3f', outlines='head',
         axes=None, show=True, sphere=None, vlim=(None, None), unit=None,
-        ch_type=ch_type):
+        ch_type='eeg'):
     """Plot spatial maps of PSDs.
 
     Parameters
