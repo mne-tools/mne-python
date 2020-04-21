@@ -44,6 +44,8 @@ Bug
 
 - Fix bug with :func:`mne.read_epochs` when loading data in complex format with ``preload=False`` by `Eric Larson`_
 
+- Fix bug with :class:`mne.Report` where the BEM section could not be toggled by `Eric Larson`_
+
 - Fix bug when using :meth:`mne.Epochs.crop` to exclude the baseline period would break :func:`mne.Epochs.save` / :func:`mne.read_epochs` round-trip by `Eric Larson`_
 
 - Fix :ref:`gen_mne_setup_forward_model` to have it actually compute the BEM solution in addition to creating the BEM model by `Eric Larson`_
