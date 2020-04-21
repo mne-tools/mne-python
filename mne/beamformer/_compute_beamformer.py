@@ -399,9 +399,9 @@ def _compute_power(Cm, W, n_orient):
         power = Wk.dot(Cm).dot(Wk.conjugate().T)
 
         if n_orient > 1:  # Pool the orientations
-            source_power[k] = np.abs(power.trace())
+            source_power[k] = power.trace().real
         else:
-            source_power[k] = np.abs(power)
+            source_power[k] = power.real
 
     return source_power
 
