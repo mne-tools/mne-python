@@ -3,6 +3,7 @@
 # License: BSD (3-clause)
 
 from contextlib import contextmanager
+from functools import partial
 import os.path as op
 import pathlib
 import re
@@ -24,7 +25,8 @@ from mne.io import (read_raw_fif, read_info, read_raw_bti, read_raw_kit,
                     BaseRaw, read_raw_ctf)
 from mne.io.constants import FIFF
 from mne.preprocessing.maxwell import (
-    maxwell_filter, _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
+    maxwell_filter as _maxwell_filter,
+    _get_n_moments, _sss_basis_basic, _sh_complex_to_real,
     _sh_real_to_complex, _sh_negate, _bases_complex_to_real, _trans_sss_basis,
     _bases_real_to_complex, _prep_mf_coils, find_bad_channels_maxwell)
 from mne.rank import _get_rank_sss, _compute_rank_int
@@ -132,6 +134,12 @@ def read_crop(fname, lims=(0, None)):
     return read_raw_fif(fname, allow_maxshield='yes').crop(*lims)
 
 
+# For backward compat and to be most like MaxFilter, we make "maxwell_filter"
+# the one that behaves like MaxFilter. _maxwell_filter is left to
+# be the advanced/better one.
+maxwell_filter = partial(_maxwell_filter, st_overlap=False, mc_interp='zero')
+
+
 @pytest.mark.slowtest
 @testing.requires_testing_data
 def test_movement_compensation(tmpdir):
@@ -221,6 +229,28 @@ def test_movement_compensation(tmpdir):
         raw.copy().crop(0, 0.05), head_pos=head_pos_bad, origin=mf_head_origin)
     assert_meg_snr(raw_sss_tweak, raw_sss.copy().crop(0, 0.05), 1.4, 8.,
                    chpi_med_tol=5)
+
+
+@testing.requires_testing_data
+def test_movement_compensation_smooth():
+    """Test movement compensation with smooth interpolation."""
+    lims = (0, 10)
+    raw = read_crop(raw_fname, lims).load_data()
+    mag_picks = pick_types(raw.info, meg='mag', exclude=())
+    power = np.sqrt(np.sum(raw[mag_picks][0] ** 2))
+    head_pos = read_head_pos(pos_fname)
+    raw_sss = maxwell_filter(raw, head_pos=head_pos, origin=mf_head_origin,
+                             regularize=None, bad_condition='ignore')
+    assert_meg_snr(raw_sss, read_crop(sss_movecomp_fname, lims),
+                   3.9, 10.8, chpi_med_tol=58)
+    # MC increases noise
+    _assert_shielding(raw_sss, power, 0.25, max_factor=0.26)
+    raw_sss = _maxwell_filter(raw, head_pos=head_pos, origin=mf_head_origin,
+                              regularize=None, bad_condition='ignore',
+                              st_overlap=False, mc_interp='hann')
+    assert_meg_snr(raw_sss, read_crop(sss_movecomp_fname, lims),
+                   2.49, 9.8, chpi_med_tol=58)
+    _assert_shielding(raw_sss, power, 0.26, max_factor=0.27)
 
 
 @pytest.mark.slowtest
@@ -541,6 +571,8 @@ def test_spatiotemporal():
     """Test Maxwell filter (tSSS) spatiotemporal processing."""
     # Load raw testing data
     raw = read_crop(raw_fname)
+    mag_picks = pick_types(raw.info, meg='mag', exclude=())
+    power = np.sqrt(np.sum(raw[mag_picks][0] ** 2))
 
     # Test that window is less than length of data
     with pytest.raises(ValueError, match='must be'):
@@ -575,10 +607,28 @@ def test_spatiotemporal():
         assert (len(py_st) > 0)
         assert py_st['buflen'] == st_duration
         assert py_st['subspcorr'] == 0.98
+        _assert_shielding(raw_tsss, power, 20.8)
 
     # Degenerate cases
     with pytest.raises(ValueError, match='Need 0 < st_correlation'):
         maxwell_filter(raw, st_duration=10., st_correlation=0.)
+
+
+@buggy_mkl_svd
+@testing.requires_testing_data
+def test_st_overlap():
+    """Test st_overlap."""
+    raw = read_crop(raw_fname).crop(0, 1.)
+    mag_picks = pick_types(raw.info, meg='mag', exclude=())
+    power = np.sqrt(np.sum(raw[mag_picks][0] ** 2))
+    kwargs = dict(origin=mf_head_origin, regularize=None,
+                  bad_condition='ignore', st_duration=0.5)
+    raw_tsss = maxwell_filter(raw, **kwargs)
+    assert _compute_rank_int(raw_tsss, proj=False) == 140
+    _assert_shielding(raw_tsss, power, 35.8, max_factor=35.9)
+    raw_tsss = _maxwell_filter(raw, st_overlap=True, **kwargs)
+    assert _compute_rank_int(raw_tsss, proj=False) == 140
+    _assert_shielding(raw_tsss, power, 35.6, max_factor=35.7)
 
 
 @pytest.mark.slowtest
@@ -596,18 +646,24 @@ def test_spatiotemporal_only():
     raw_tsss = maxwell_filter(raw, st_duration=tmax / 2., st_only=True)
     assert len(raw.info['projs']) == len(raw_tsss.info['projs'])
     assert _compute_rank_int(raw_tsss, proj=False) == len(picks)
-    _assert_shielding(raw_tsss, power, 9)
+    _assert_shielding(raw_tsss, power, 9.2)
     # with movement
     head_pos = read_head_pos(pos_fname)
     raw_tsss = maxwell_filter(raw, st_duration=tmax / 2., st_only=True,
                               head_pos=head_pos)
     assert _compute_rank_int(raw_tsss, proj=False) == len(picks)
-    _assert_shielding(raw_tsss, power, 9)
+    _assert_shielding(raw_tsss, power, 9.2)
     with pytest.warns(RuntimeWarning, match='st_fixed'):
         raw_tsss = maxwell_filter(raw, st_duration=tmax / 2., st_only=True,
                                   head_pos=head_pos, st_fixed=False)
     assert _compute_rank_int(raw_tsss, proj=False) == len(picks)
-    _assert_shielding(raw_tsss, power, 9)
+    _assert_shielding(raw_tsss, power, 9.2, max_factor=9.4)
+    # COLA
+    raw_tsss = maxwell_filter(raw, st_duration=tmax / 2., st_only=True,
+                              head_pos=head_pos, st_overlap=True,
+                              mc_interp='hann')
+    assert _compute_rank_int(raw_tsss, proj=False) == len(picks)
+    _assert_shielding(raw_tsss, power, 9.5)
     # should do nothing
     raw_tsss = maxwell_filter(raw, st_duration=tmax, st_correlation=1.,
                               st_only=True)

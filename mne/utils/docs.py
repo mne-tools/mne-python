@@ -529,6 +529,14 @@ extended_proj : list
 
     .. versionadded:: 0.21
 """
+docdict['maxwell_mc_interp'] = """
+mc_interp : str
+    Interpolation to use between adjacent time points in movement
+    compensation. Can be "zero" (default in 0.21; used by MaxFilter),
+    "linear", or "hann" (default in 0.22).
+
+    .. versionadded:: 0.21
+"""
 
 # Rank
 docdict['rank'] = """
