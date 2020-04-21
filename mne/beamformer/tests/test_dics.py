@@ -303,7 +303,7 @@ def test_apply_dics_csd(_load_forward, idx, mat_tol, vol_tol):
 @idx_param
 def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion, idx,
                             mat_tol, vol_tol):
-    """Testpicking different orientations and inversion modes."""
+    """Test picking different orientations and inversion modes."""
     fwd_free, fwd_surf, fwd_fixed, fwd_vol = _load_forward
     epochs, _, csd, source_vertno, label, vertices, source_ind = \
         _simulate_data(fwd_fixed, idx)

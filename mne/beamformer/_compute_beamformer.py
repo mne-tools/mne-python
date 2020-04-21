@@ -339,10 +339,10 @@ def _compute_beamformer(G, Cm, reg, n_orient, weight_norm, pick_ori,
         if pick_ori in [None, 'vector'] and n_orient > 1:
             # Rescale each set of 3 filters
             W = W.reshape(-1, 3, W.shape[1])
-            noise_norm = np.sqrt(np.sum(W ** 2, axis=(1, 2), keepdims=True))
+            noise_norm = np.linalg.norm(W, axis=(1, 2), keepdims=True)
         else:
             # Rescale each filter separately
-            noise_norm = np.sqrt(np.sum(W ** 2, axis=1, keepdims=True))
+            noise_norm = np.linalg.norm(W, axis=1, keepdims=True)
 
         if weight_norm == 'nai':
             # Estimate noise level based on covariance matrix, taking the
@@ -396,12 +396,12 @@ def _compute_power(Cm, W, n_orient):
     source_power = np.zeros(n_sources)
     for k in range(n_sources):
         Wk = W[n_orient * k: n_orient * k + n_orient]
-        power = Wk.dot(Cm).dot(Wk.T)  # XXX why no conj on Wk?
+        power = Wk.dot(Cm).dot(Wk.conj().T)
 
         if n_orient > 1:  # Pool the orientations
-            source_power[k] = np.abs(power.trace())
+            source_power[k] = power.trace().real
         else:
-            source_power[k] = np.abs(power)
+            source_power[k] = power.real
 
     return source_power
 
