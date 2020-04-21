@@ -253,8 +253,7 @@ def _prep_maxwell_filter(
         raise ValueError('Need 0 < st_correlation <= 1., got %s'
                          % st_correlation)
     _check_option('coord_frame', coord_frame, ['head', 'meg'])
-    head_frame = True if coord_frame == 'head' else False
-    recon_trans = _check_destination(destination, raw.info, head_frame)
+    recon_trans = _check_destination(destination, raw.info, coord_frame)
     if st_duration is not None:
         st_duration = float(st_duration)
         st_correlation = float(st_correlation)
@@ -270,8 +269,8 @@ def _prep_maxwell_filter(
                            'coord_frame="meg"')
     if st_only and st_duration is None:
         raise ValueError('st_duration must not be None if st_only is True')
-    head_pos = _check_pos(head_pos, head_frame, raw, st_fixed,
-                          raw.info['sfreq'])
+    add_channels = (head_pos is not None) and (not st_only)
+    head_pos = _check_pos(head_pos, coord_frame, raw, st_fixed)
     _check_info(raw.info, sss=not st_only, tsss=st_duration is not None,
                 calibration=not st_only and calibration is not None,
                 ctc=not st_only and cross_talk is not None)
@@ -401,7 +400,6 @@ def _prep_maxwell_filter(
 
     # Figure out which transforms we need for each tSSS block
     # (and transform pos[1] to times)
-    head_pos[1] = raw.time_as_index(head_pos[1], use_rounding=True)
     # Compute the first bit of pos_data for cHPI reporting
     if info['dev_head_t'] is not None and head_pos[0] is not None:
         this_pos_quat = np.concatenate([
@@ -426,7 +424,8 @@ def _prep_maxwell_filter(
         this_pos_quat=this_pos_quat, meg_picks=meg_picks,
         good_mask=good_mask, grad_picks=grad_picks, head_pos=head_pos,
         info=info, _get_this_decomp_trans=_get_this_decomp_trans,
-        S_recon=S_recon, update_kwargs=update_kwargs)
+        S_recon=S_recon, update_kwargs=update_kwargs,
+        add_channels=add_channels)
     return params
 
 
@@ -434,7 +433,7 @@ def _run_maxwell_filter(
         raw, skip_by_annotation, st_duration, st_correlation, st_only,
         st_when, ctc, coil_scale, this_pos_quat, meg_picks, good_mask,
         grad_picks, head_pos, info, _get_this_decomp_trans, S_recon,
-        update_kwargs,
+        update_kwargs, add_channels,
         reconstruct='in', copy=True):
     # Eventually find_bad_channels_maxwell could be sped up by moving this
     # outside the loop (e.g., in the prep function) but regularization depends
@@ -447,7 +446,7 @@ def _run_maxwell_filter(
     if ctc is not None:
         ctc = ctc[good_mask][:, good_mask]
 
-    add_channels = (head_pos[0] is not None) and (not st_only) and copy
+    add_channels = add_channels and copy
     raw_sss, pos_picks = _copy_preload_add_channels(
         raw, add_channels, copy, info)
     sfreq = info['sfreq']
@@ -644,11 +643,11 @@ def _remove_meg_projs(inst):
     inst.add_proj(non_meg_proj, remove_existing=True, verbose=False)
 
 
-def _check_destination(destination, info, head_frame):
+def _check_destination(destination, info, coord_frame):
     """Triage our reconstruction trans."""
     if destination is None:
         return info['dev_head_t']
-    if not head_frame:
+    if coord_frame != 'head':
         raise RuntimeError('destination can only be set if using the '
                            'head coordinate frame')
     if isinstance(destination, str):
@@ -820,12 +819,12 @@ def _copy_preload_add_channels(raw, add_channels, copy, info):
         return raw, np.array([], int)
 
 
-def _check_pos(pos, head_frame, raw, st_fixed, sfreq):
+def _check_pos(pos, coord_frame, raw, st_fixed):
     """Check for a valid pos array and transform it to a more usable form."""
     _validate_type(pos, (np.ndarray, None), 'head_pos')
     if pos is None:
-        return [None, np.array([-1])]
-    if not head_frame:
+        pos = np.empty((0, 10))
+    elif coord_frame != 'head':
         raise ValueError('positions can only be used if coord_frame="head"')
     if not st_fixed:
         warn('st_fixed=False is untested, use with caution!')
@@ -838,21 +837,34 @@ def _check_pos(pos, head_frame, raw, st_fixed, sfreq):
         raise ValueError('Time points must unique and in ascending order')
     # We need an extra 1e-3 (1 ms) here because MaxFilter outputs values
     # only out to 3 decimal places
-    if not _time_mask(t, tmin=raw._first_time - 1e-3, tmax=None,
-                      sfreq=sfreq).all():
-        raise ValueError('Head position time points must be greater than '
-                         'first sample offset, but found %0.4f < %0.4f'
-                         % (t[0], raw._first_time))
+    if len(pos) > 0:
+        if not _time_mask(t, tmin=raw._first_time - 1e-3, tmax=None,
+                          sfreq=raw.info['sfreq']).all():
+            raise ValueError('Head position time points must be greater than '
+                             'first sample offset, but found %0.4f < %0.4f'
+                             % (t[0], raw._first_time))
+    t = t - raw._first_time
+    if len(t) == 0 or t[0] > 0:
+        # Prepend the existing dev_head_t to make movecomp easier
+        t = np.concatenate([[0.], t])
+        trans = raw.info['dev_head_t']
+        trans = np.eye(4) if trans is None else trans['trans']
+        dev_head_pos = np.concatenate([t[[0]], rot_to_quat(trans[:3, :3]),
+                                       trans[:3, 3], [0, 0, 0]])
+        pos = np.concatenate([dev_head_pos[np.newaxis], pos])
     max_dist = np.sqrt(np.sum(pos[:, 4:7] ** 2, axis=1)).max()
     if max_dist > 1.:
         warn('Found a distance greater than 1 m (%0.3g m) from the device '
              'origin, positions may be invalid and Maxwell filtering could '
              'fail' % (max_dist,))
+    t[0] = 0
     dev_head_ts = np.zeros((len(t), 4, 4))
     dev_head_ts[:, 3, 3] = 1.
     dev_head_ts[:, :3, 3] = pos[:, 4:7]
     dev_head_ts[:, :3, :3] = quat_to_rot(pos[:, 1:4])
-    pos = [dev_head_ts, t - raw._first_time, pos[:, 1:]]
+    t = raw.time_as_index(t, use_rounding=True)
+    pos = [dev_head_ts, t, pos[:, 1:]]
+    assert all(len(p) == len(pos[0]) for p in pos)
     return pos
 
 
