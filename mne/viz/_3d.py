@@ -685,9 +685,8 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     if not all(x in ('original', 'projected') for x in eeg):
         raise ValueError('eeg must only contain "original" and '
                          '"projected", got %s' % (eeg,))
-    if not all(x in ('channels', 'pairs') for x in fnirs):
-        raise ValueError('fnirs must only contain "channels" or "pairs", '
-                         'got %s' % (fnirs,))
+    for xi, x in enumerate(fnirs):
+        _check_option('fnirs[%d]' % xi, x, ('channels', 'pairs'))
 
     info = create_info(1, 1000., 'misc') if info is None else info
     _validate_type(info, "info")

@@ -57,6 +57,7 @@ mne.viz.set_3d_view(figure=fig, azimuth=20, elevation=55, distance=0.6)
 #
 # First we remove channels that are too close together (short channels) to
 # detect a neural response (less than 1 cm distance between optodes).
+# These short channels can be seen in the figure above.
 # To achieve this we pick all the channels that are not considered to be short.
 
 picks = mne.pick_types(raw_intensity.info, meg=False, fnirs=True)

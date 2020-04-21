@@ -179,6 +179,9 @@ class _Renderer(_BaseRenderer):
         origin = np.atleast_2d(origin)
         destination = np.atleast_2d(destination)
         if scalars is None:
+            # TODO: iterating over each tube rather than plotting in
+            #       one call may be slow.
+            #       See https://github.com/mne-tools/mne-python/issues/7644
             for idx in range(origin.shape[0]):
                 surface = self.mlab.plot3d([origin[idx, 0],
                                             destination[idx, 0]],
