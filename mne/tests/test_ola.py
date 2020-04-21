@@ -1,5 +1,6 @@
 import numpy as np
 from numpy.testing import assert_allclose
+import pytest
 
 from mne._ola import _COLA, _Interp2, _Storer
 
@@ -77,17 +78,21 @@ def test_interp_2pt():
         assert_allclose(out, expected)
 
 
-def test_cola():
+@pytest.mark.parametrize('ndim', (1, 2, 3))
+def test_cola(ndim):
     """Test COLA processing."""
+    sfreq = 1000.
+    rng = np.random.RandomState(0)
 
     def processor(x):
         return (x / 2.,)  # halve the signal
 
-    sfreq = 1000.
-    rng = np.random.RandomState(0)
     for n_total in (999, 1000, 1001):
-        signal = rng.randn(1, n_total)
-        out = rng.randn(1, n_total)  # shouldn't matter
+        signal = rng.randn(n_total)
+        out = rng.randn(n_total)  # shouldn't matter
+        for _ in range(ndim - 1):
+            signal = signal[np.newaxis]
+            out = out[np.newaxis]
         for n_samples in (99, 100, 101, 102,
                           n_total - n_total // 2 + 1, n_total):
             for window in ('hann', 'bartlett', 'boxcar', 'triang'):
@@ -107,6 +112,6 @@ def test_cola():
                         while n_input < n_total:
                             next_len = min(rng.randint(1, 30),
                                            n_total - n_input)
-                            cola.feed(signal[:, n_input:n_input + next_len])
+                            cola.feed(signal[..., n_input:n_input + next_len])
                             n_input += next_len
                         assert_allclose(out, signal / 2., atol=1e-7)
