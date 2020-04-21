@@ -233,6 +233,7 @@ Visualization
    plot_dipole_locations
    plot_drop_log
    plot_epochs
+   plot_epochs_psd_topomap
    plot_events
    plot_evoked
    plot_evoked_image
