@@ -25,6 +25,8 @@ Changelog
 
 - Add :meth:`mne.MixedSourceEstimate.surface` and :meth:`mne.MixedSourceEstimate.volume` methods to allow surface and volume extraction by `Eric Larson`_
 
+- Add support to :func:`mne.extract_label_time_course` for vector-valued :class:`VectorSourceEstimate` and :class:`mne.MixedVectorSourceEstimate` by `Eric Larson`_
+
 - Allow resampling raw data with :func:`mne.io.Raw.resample` without preloading data, by `Eric Larson`_
 
 - Allow using ``pick_ori='vector'`` with a fixed-orientation inverse to facilitate visualization with :func:`mne.viz.plot_vector_source_estimates` by `Eric Larson`_
@@ -86,4 +88,3 @@ API
 - ``vmin`` and ``vmax`` parameters are deprecated in :meth:`mne.Epochs.plot_psd_topomap` and :func:`mne.viz.plot_epochs_psd_topomap`; use new ``vlim`` parameter instead, by `Daniel McCloy`_.
 
 - The method ``stc_mixed.plot_surface`` for a :class:`mne.MixedSourceEstimate` has been deprecated in favor of :meth:`stc.surface().plot(...) <mne.MixedSourceEstimate.surface>` by `Eric Larson`_
-

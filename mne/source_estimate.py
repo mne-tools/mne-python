@@ -1239,6 +1239,40 @@ class _BaseSurfaceSourceEstimate(_BaseSourceEstimate):
 
         return vertices, values
 
+    # XXX once volumes are supported, this should move to BaseSourceEstimate
+    @verbose
+    def extract_label_time_course(self, labels, src, mode='auto',
+                                  allow_empty=False, verbose=None):
+        """Extract label time courses for lists of labels.
+
+        This function will extract one time course for each label. The way the
+        time courses are extracted depends on the mode parameter.
+
+        Parameters
+        ----------
+        %(eltc_labels)s
+        %(eltc_src)s
+        %(eltc_mode)s
+        %(eltc_allow_empty)s
+        %(verbose_meth)s
+
+        Returns
+        -------
+        label_tc : array, shape=(n_labels, n_times)
+            Extracted time course for each label.
+
+        See Also
+        --------
+        extract_label_time_course : Extract time courses for multiple STCs.
+
+        Notes
+        -----
+        %(eltc_mode_notes)s
+        """
+        return extract_label_time_course(
+            self, labels, src, mode=mode, return_generator=False,
+            allow_empty=allow_empty, verbose=verbose)
+
     def in_label(self, label):
         """Get a source estimate object restricted to a label.
 
@@ -1480,39 +1514,6 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
             spacing=spacing, title=title, show_traces=show_traces,
             verbose=verbose)
         return brain
-
-    @verbose
-    def extract_label_time_course(self, labels, src, mode='mean_flip',
-                                  allow_empty=False, verbose=None):
-        """Extract label time courses for lists of labels.
-
-        This function will extract one time course for each label. The way the
-        time courses are extracted depends on the mode parameter.
-
-        Parameters
-        ----------
-        %(eltc_labels)s
-        %(eltc_src)s
-        %(eltc_mode)s
-        %(eltc_allow_empty)s
-        %(verbose_meth)s
-
-        Returns
-        -------
-        label_tc : array, shape=(n_labels, n_times)
-            Extracted time course for each label.
-
-        See Also
-        --------
-        extract_label_time_course : Extract time courses for multiple STCs.
-
-        Notes
-        -----
-        %(eltc_mode_notes)s
-        """
-        return extract_label_time_course(
-            self, labels, src, mode=mode, return_generator=False,
-            allow_empty=allow_empty, verbose=verbose)
 
     @verbose
     def estimate_snr(self, info, fwd, cov, verbose=None):
@@ -2129,6 +2130,40 @@ class _BaseMixedSourceEstimate(_BaseSourceEstimate):
     def _n_surf_vert(self):
         return sum(len(v) for v in self.vertices[:2])
 
+    # XXX once volumes are supported, this should move to BaseSourceEstimate
+    @verbose
+    def extract_label_time_course(self, labels, src, mode='auto',
+                                  allow_empty=False, verbose=None):
+        """Extract label time courses for lists of labels.
+
+        This function will extract one time course for each label. The way the
+        time courses are extracted depends on the mode parameter.
+
+        Parameters
+        ----------
+        %(eltc_labels)s
+        %(eltc_src)s
+        %(eltc_mode)s
+        %(eltc_allow_empty)s
+        %(verbose_meth)s
+
+        Returns
+        -------
+        label_tc : array, shape (n_labels, n_times)
+            Extracted time course for each label.
+
+        See Also
+        --------
+        extract_label_time_course : Extract time courses for multiple STCs.
+
+        Notes
+        -----
+        %(eltc_mode_notes)s
+        """
+        return extract_label_time_course(
+            self, labels, src, mode=mode, return_generator=False,
+            allow_empty=allow_empty, verbose=verbose)
+
     def surface(self):
         """Return the cortical surface source estimate.
 
@@ -2210,41 +2245,6 @@ class MixedSourceEstimate(_BaseMixedSourceEstimate):
     -----
     .. versionadded:: 0.9.0
     """
-
-    # XXX once volumes and vector variants are supported, this should move to
-    # BaseSourceEstimate
-    @verbose
-    def extract_label_time_course(self, labels, src, mode='mean_flip',
-                                  allow_empty=False, verbose=None):
-        """Extract label time courses for lists of labels.
-
-        This function will extract one time course for each label. The way the
-        time courses are extracted depends on the mode parameter.
-
-        Parameters
-        ----------
-        %(eltc_labels)s
-        %(eltc_src)s
-        %(eltc_mode)s
-        %(eltc_allow_empty)s
-        %(verbose_meth)s
-
-        Returns
-        -------
-        label_tc : array, shape (n_labels, n_times)
-            Extracted time course for each label.
-
-        See Also
-        --------
-        extract_label_time_course : Extract time courses for multiple STCs.
-
-        Notes
-        -----
-        %(eltc_mode_notes)s
-        """
-        return extract_label_time_course(
-            self, labels, src, mode=mode, return_generator=False,
-            allow_empty=allow_empty, verbose=verbose)
 
     @fill_doc
     @deprecated('stc_mixed.plot_surface(...) is deprecated and will be removed'
@@ -2797,8 +2797,7 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                                    allow_empty=False, verbose=None):
     # loop through source estimates and extract time series
     _validate_type(src, SourceSpaces)
-    _check_option('mode', mode, sorted(_label_funcs.keys()))
-    func = _label_funcs[mode]
+    _check_option('mode', mode, sorted(_label_funcs.keys()) + ['auto'])
 
     if sum(s['type'] == 'surf' for s in src[:2]) != 2:
         raise ValueError('The first two source spaces must be surface type')
@@ -2808,17 +2807,26 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
     n_aseg = len(src[2:])
     n_aparc = len(labels)
     n_labels = n_aparc + n_aseg
-    vertno = None
+    vertno = func = None
+    allowed_types = (_BaseSourceEstimate, _BaseMixedSourceEstimate)
     for stc in stcs:
-        if not isinstance(stc, (SourceEstimate, MixedSourceEstimate)):
+        if not isinstance(stc, allowed_types):
             raise ValueError(
                 'Extracting source time courses is only supported for surface '
                 'and mixed source estimates, got type %s' % (type(stc),))
+        if isinstance(stc, _BaseVectorSourceEstimate):
+            _check_option(
+                'mode', mode, ('mean', 'max', 'auto'),
+                'when using a vector source estimate')
+            mode = 'mean' if mode == 'auto' else mode
+        else:
+            mode = 'mean_flip' if mode == 'auto' else mode
         if vertno is None:
             vertno = copy.deepcopy(stc.vertices)  # avoid keeping a ref
             nvert = np.array([len(v) for v in vertno])
             label_vertidx, src_flip = _prepare_label_extraction(
                 stc, labels, src, mode, allow_empty)
+            func = _label_funcs[mode]
         # make sure the stc is compatible with the source space
         if len(vertno) != len(stc.vertices):
             raise ValueError('stc not compatible with source space')
@@ -2837,18 +2845,18 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                     % (n_labels, mode))
 
         # do the extraction
-        label_tc = np.zeros((n_labels, stc.data.shape[1]),
+        label_tc = np.zeros((n_labels,) + stc.data.shape[1:],
                             dtype=stc.data.dtype)
         for i, (vertidx, flip) in enumerate(zip(label_vertidx, src_flip)):
             if vertidx is not None:
-                label_tc[i] = func(flip, stc.data[vertidx, :])
+                label_tc[i] = func(flip, stc.data[vertidx])
 
         # extract label time series for the vol src space (only mean supported)
         offset = nvert[:-n_aseg].sum()  # effectively :2 or :0
         for i, nv in enumerate(nvert[2:]):
             if nv != 0:
                 v2 = offset + nv
-                label_tc[n_aparc + i] = np.mean(stc.data[offset:v2, :], axis=0)
+                label_tc[n_aparc + i] = np.mean(stc.data[offset:v2], axis=0)
                 offset = v2
 
         # this is a generator!
@@ -2856,7 +2864,7 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
 
 
 @verbose
-def extract_label_time_course(stcs, labels, src, mode='mean_flip',
+def extract_label_time_course(stcs, labels, src, mode='auto',
                               allow_empty=False, return_generator=False,
                               verbose=None):
     """Extract label time course for lists of labels and source estimates.
@@ -2888,8 +2896,9 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
 
     If encountering a ``ValueError`` due to mismatch between number of
     source points in the subject source space and computed ``stc`` object set
-    ``src`` argument to ``fwd['src']`` to ensure the source space is
-    compatible between forward and inverse routines.
+    ``src`` argument to ``fwd['src']`` or ``inv['src']`` to ensure the source
+    space is the one actually used by the inverse to compute the source
+    time courses.
     """
     # convert inputs to lists
     if not isinstance(stcs, (list, tuple, GeneratorType)):

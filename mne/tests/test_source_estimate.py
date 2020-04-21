@@ -510,7 +510,8 @@ def test_center_of_mass():
 
 @testing.requires_testing_data
 @pytest.mark.parametrize('kind', ('surface', 'mixed'))
-def test_extract_label_time_course(kind):
+@pytest.mark.parametrize('vector', (False, True))
+def test_extract_label_time_course(kind, vector):
     """Test extraction of label time courses from (Mixed)SourceEstimate."""
     n_stcs = 3
     n_times = 50
@@ -522,9 +523,11 @@ def test_extract_label_time_course(kind):
         src += setup_volume_source_space(
             'sample', pos=20., volume_label=label_names,
             subjects_dir=subjects_dir, add_interpolator=False)
-        klass = MixedSourceEstimate
+        klass = MixedVectorSourceEstimate
     else:
-        klass = SourceEstimate
+        klass = VectorSourceEstimate
+    if not vector:
+        klass = klass._scalar_class
     vertices = [s['vertno'] for s in src]
     n_verts = np.array([len(v) for v in vertices])
     vol_means = np.arange(-1, 1 - len(src), -1)
@@ -541,16 +544,19 @@ def test_extract_label_time_course(kind):
 
     n_labels = len(labels)
 
-    label_means = np.arange(n_labels)[:, None] * np.ones((n_labels, n_times))
-    label_maxs = np.arange(n_labels)[:, None] * np.ones((n_labels, n_times))
+    label_tcs = dict(
+        mean=np.arange(n_labels)[:, None] * np.ones((n_labels, n_times)))
+    label_tcs['max'] = label_tcs['mean']
 
     # compute the mean with sign flip
-    label_means_flipped = np.zeros_like(label_means)
+    label_tcs['mean_flip'] = np.zeros_like(label_tcs['mean'])
     for i, label in enumerate(labels):
-        label_means_flipped[i] = i * np.mean(label_sign_flip(label, src[:2]))
+        label_tcs['mean_flip'][i] = i * np.mean(
+            label_sign_flip(label, src[:2]))
 
     # generate some stc's with known data
     stcs = list()
+    pad = (((0, 0), (2, 0), (0, 0)), 'constant')
     for i in range(n_stcs):
         data = np.zeros((n_verts.sum(), n_times))
         # set the value of the stc within each label
@@ -561,38 +567,51 @@ def test_extract_label_time_course(kind):
             elif label.hemi == 'rh':
                 idx = np.intersect1d(vertices[1], label.vertices)
                 idx = len(vertices[0]) + np.searchsorted(vertices[1], idx)
-            data[idx] = label_means[j]
+            data[idx] = label_tcs['mean'][j]
         for j in range(len(vol_means)):
             offset = n_verts[:2 + j].sum()
             data[offset:offset + n_verts[j]] = vol_means[j]
 
+        if vector:
+            # the values it on the Z axis
+            data = np.pad(data[:, np.newaxis], *pad)
         this_stc = klass(data, vertices, 0, 1)
         stcs.append(this_stc)
 
+    if vector:
+        for key in label_tcs:
+            label_tcs[key] = np.pad(label_tcs[key][:, np.newaxis], *pad)
+        vol_means_t = np.pad(vol_means_t[:, np.newaxis], *pad)
+
     # test some invalid inputs
-    pytest.raises(ValueError, extract_label_time_course, stcs, labels,
-                  src, mode='notamode')
+    with pytest.raises(ValueError, match="Invalid value for the 'mode'"):
+        extract_label_time_course(stcs, labels, src, mode='notamode')
 
     # have an empty label
     empty_label = labels[0].copy()
     empty_label.vertices += 1000000
-    pytest.raises(ValueError, extract_label_time_course, stcs, empty_label,
-                  src, mode='mean')
+    with pytest.raises(ValueError, match='does not contain any vertices'):
+        extract_label_time_course(stcs, empty_label, src)
 
     # but this works:
     with pytest.warns(RuntimeWarning, match='does not contain any vertices'):
-        tc = extract_label_time_course(stcs, empty_label, src, mode='mean',
+        tc = extract_label_time_course(stcs, empty_label, src,
                                        allow_empty=True)
+    end_shape = (3, n_times) if vector else (n_times,)
     for arr in tc:
-        assert (arr.shape == (1 + len(vol_means), n_times))
-        assert_array_equal(arr[:1], np.zeros((1, n_times)))
+        assert arr.shape == (1 + len(vol_means),) + end_shape
+        assert_array_equal(arr[:1], np.zeros((1,) + end_shape))
         if len(vol_means):
             assert_array_equal(arr[1:], vol_means_t)
 
     # test the different modes
-    modes = ['mean', 'mean_flip', 'pca_flip', 'max']
+    modes = ['mean', 'mean_flip', 'pca_flip', 'max', 'auto']
 
     for mode in modes:
+        if vector and mode not in ('mean', 'max', 'auto'):
+            with pytest.raises(ValueError, match='when using a vector'):
+                extract_label_time_course(stcs, labels, src, mode=mode)
+            continue
         label_tc = extract_label_time_course(stcs, labels, src, mode=mode)
         label_tc_method = [stc.extract_label_time_course(labels, src,
                                                          mode=mode)
@@ -600,15 +619,16 @@ def test_extract_label_time_course(kind):
         assert (len(label_tc) == n_stcs)
         assert (len(label_tc_method) == n_stcs)
         for tc1, tc2 in zip(label_tc, label_tc_method):
-            assert (tc1.shape == (n_labels + len(vol_means), n_times))
-            assert (tc2.shape == (n_labels + len(vol_means), n_times))
-            assert (np.allclose(tc1, tc2, rtol=1e-8, atol=1e-16))
-            if mode == 'mean':
-                assert_array_almost_equal(tc1[:n_labels], label_means)
-            if mode == 'mean_flip':
-                assert_array_almost_equal(tc1[:n_labels], label_means_flipped)
-            if mode == 'max':
-                assert_array_almost_equal(tc1[:n_labels], label_maxs)
+            assert tc1.shape == (n_labels + len(vol_means),) + end_shape
+            assert tc2.shape == (n_labels + len(vol_means),) + end_shape
+            assert_allclose(tc1, tc2, rtol=1e-8, atol=1e-16)
+            if mode == 'auto':
+                use_mode = 'mean' if vector else 'mean_flip'
+            else:
+                use_mode = mode
+            # XXX we don't check pca_flip, probably should someday...
+            if use_mode in ('mean', 'max', 'mean_flip'):
+                assert_array_almost_equal(tc1[:n_labels], label_tcs[use_mode])
             assert_array_almost_equal(tc1[n_labels:], vol_means_t)
 
     # test label with very few vertices (check SVD conditionals)

@@ -888,7 +888,10 @@ Valid values for ``mode`` are:
     Maximum value across vertices at each time point within each label.
 - ``'mean'``
     Average across vertices at each time point within each label. Ignores
-    orientation of sources.
+    orientation of sources for standard source estimates, which varies
+    across the cortical surface, which can lead to cancellation.
+    Vector source estimates are always in XYZ / RAS orientation, and are thus
+    already geometrically aligned.
 - ``'mean_flip'``
     Finds the dominant direction of source space normal vector orientations
     within each label, applies a sign-flip to time series at vertices whose
@@ -903,6 +906,15 @@ Valid values for ``mode`` are:
     ``flip`` is the same sign-flip vector used when ``mode='mean_flip'``. This
     sign-flip ensures that extracting time courses from the same label in
     similar STCs does not result in 180° direction/phase changes.
+- ``'auto'`` (default)
+    Uses ``'mean_flip'`` when a standard source estimate is applied, and
+    ``'mean'`` when a vector source estimate is supplied.
+
+    .. versionadded:: 0.21
+       Support for ``'auto'`` and vector source estimates.
+
+The only modes that work for vector source estimates are ``'mean'``,
+``'max'``, and ``'auto'``.
 """
 
 # Clustering
