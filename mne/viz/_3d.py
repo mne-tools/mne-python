@@ -597,7 +597,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     fnirs : str | list | bool | None
         Can be "channels" or "pairs" to show the fNIRS channel locations or
         line between source-detector pairs, or a combination like
-        ``('pairs', 'channels')``. True translates to ``('channels')``.
+        ``('pairs', 'channels')``. True translates to ``('channels',)``.
 
         .. versionadded:: 0.20
     show_axes : bool
