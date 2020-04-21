@@ -1158,6 +1158,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
         if new_info is None:
             warn('nibabel is not available or the volumn info is invalid.'
                  'Volume info not updated in the written surface.')
+            new_info = dict()
         surfs = ['brain', 'inner_skull', 'outer_skull', 'outer_skin']
         for s in surfs:
             surf_ws_out = op.join(ws_dir, '%s_%s_surface' % (subject, s))

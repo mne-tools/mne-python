@@ -24,7 +24,8 @@ from mne.utils import (run_tests_if_main, catch_logging,
                        requires_freesurfer, requires_nibabel)
 from mne.bem import (_ico_downsample, _get_ico_map, _order_surfaces,
                      _assert_complete_surface, _assert_inside,
-                     _check_surface_size, _bem_find_surface, make_flash_bem)
+                     _check_surface_size, _bem_find_surface, make_flash_bem,
+                     make_watershed_bem)
 from mne.surface import read_surface
 from mne.io import read_info
 
@@ -368,7 +369,6 @@ def test_fit_sphere_to_headshape():
     pytest.raises(TypeError, fit_sphere_to_headshape, 1, units='m')
 
 
-@requires_nibabel()
 @requires_freesurfer('mri_convert')
 @testing.requires_testing_data
 def test_make_flash_bem(tmpdir):
@@ -403,6 +403,41 @@ def test_make_flash_bem(tmpdir):
         copy(op.join(tmp, 'inner_skull_tmp.tri'), bemdir)
         copy(op.join(tmp, 'outer_skin_from_testing.surf'), bemdir)
     plt.close('all')
+
+
+@requires_freesurfer('mri_watershed')
+@requires_nibabel()
+@testing.requires_testing_data
+def test_make_watershed_bem(tmpdir):
+    tmp = str(tmpdir)
+    bemdir = op.join(subjects_dir, 'sample', 'bem')
+
+    for surf in ('inner_skull', 'outer_skull', 'outer_skin'):
+        copy(op.join(bemdir, surf + '.surf'), tmp)
+    copy(op.join(bemdir, 'outer_skin_from_testing.surf'), tmp)
+
+    try:
+        make_watershed_bem('sample', subjects_dir=subjects_dir, overwrite=True)
+        for surf in ('inner_skull', 'outer_skull', 'outer_skin'):
+            coords, faces, vol_info = read_surface(op.join(
+                bemdir, surf + '.surf'), read_metadata=True)
+            surf = 'outer_skin_from_testing' if surf == 'outer_skin' else surf
+            # should testing data include the computed watershed bems ?
+            _, _, vol_info_c = read_surface(op.join(tmp, surf + '.surf'),
+                                            read_metadata=True)
+            # compare to the flash bems
+            assert_allclose(
+                [vol_info['xras'], vol_info['yras'], vol_info['zras']],
+                [vol_info_c['xras'], vol_info_c['yras'], vol_info_c['zras']],
+                atol=1e-4)
+            assert_allclose(vol_info['cras'], vol_info_c['cras'], atol=1e-4)
+            assert_equal(0, faces.min())
+            assert_equal(coords.shape[0], faces.max() + 1)
+    finally:
+        for surf in ('inner_skull', 'outer_skull', 'outer_skin'):
+            remove(op.join(bemdir, surf + '.surf'))  # delete symlinks
+            copy(op.join(tmp, surf + '.surf'), bemdir)  # return moved surf
+        copy(op.join(tmp, 'outer_skin_from_testing.surf'), bemdir)
 
 
 run_tests_if_main()
