@@ -17,7 +17,7 @@ from itertools import cycle
 import os
 import os.path as op
 import warnings
-import collections
+from collections.abc import Iterable
 from functools import partial
 
 import numpy as np
@@ -1605,7 +1605,7 @@ def link_brains(brains):
         raise NotImplementedError("Expected 3d backend is pyvista but"
                                   " {} was given.".format(get_3d_backend()))
     from ._brain import _Brain, _TimeViewer, _LinkViewer
-    if not isinstance(brains, collections.Iterable):
+    if not isinstance(brains, Iterable):
         brains = [brains]
     if len(brains) == 0:
         raise ValueError("The collection of brains is empty.")
