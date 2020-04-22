@@ -4,6 +4,7 @@ from os import path as op
 import shutil
 import glob
 
+import numpy as np
 import pytest
 from numpy.testing import assert_equal, assert_allclose
 
@@ -215,12 +216,13 @@ def test_surf2bem():
 @testing.requires_testing_data
 def test_watershed_bem(tmpdir):
     """Test mne watershed bem."""
-    import nibabel
     check_usage(mne_watershed_bem)
+    # from T1.mgz
+    Mdc = np.array([[-1, 0, 0], [0, 0, -1], [0, 1, 0]])
+    Pxyz_c = np.array([-5.273613, 9.039085, -27.287964])
     # Copy necessary files to tempdir
     tempdir = str(tmpdir)
     mridata_path = op.join(subjects_dir, 'sample', 'mri')
-    bem_path = op.join(subjects_dir, 'sample', 'bem', 'watershed')
     subject_path_new = op.join(tempdir, 'sample')
     mridata_path_new = op.join(subject_path_new, 'mri')
     os.makedirs(mridata_path_new)
@@ -238,21 +240,19 @@ def test_watershed_bem(tmpdir):
     with ArgvSetter(args):
         mne_watershed_bem.run()
 
-    header = nibabel.load(new_fname).header
+    kwargs = dict(rtol=1e-5, atol=1e-5)
     for s in ('outer_skin', 'outer_skull', 'inner_skull'):
         rr, tris, vol_info = read_surface(op.join(subject_path_new, 'bem',
                                                   '%s.surf' % s),
                                           read_metadata=True)
+        assert_equal(len(tris), 20480)
+        assert_equal(tris.min(), 0)
+        assert_equal(rr.shape[0], tris.max() + 1)
         # compare the volume info to the mgz header
-        assert_allclose(vol_info['xras'], header['Mdc'][0])
-        assert_allclose(vol_info['yras'], header['Mdc'][1])
-        assert_allclose(vol_info['zras'], header['Mdc'][2])
-        assert_allclose(vol_info['cras'], header['Pxyz_c'])
-
-        # compare the generated surfaces to testing data
-        rr_c, tris_c = read_surface(op.join(bem_path, 'sample_%s.surf' % s))
-        assert_allclose(rr, rr_c)
-        assert_allclose(tris, tris_c)
+        assert_allclose(vol_info['xras'], Mdc[0], **kwargs)
+        assert_allclose(vol_info['yras'], Mdc[1], **kwargs)
+        assert_allclose(vol_info['zras'], Mdc[2], **kwargs)
+        assert_allclose(vol_info['cras'], Pxyz_c, **kwargs)
 
 
 @pytest.mark.timeout(300)  # took 200 sec locally
