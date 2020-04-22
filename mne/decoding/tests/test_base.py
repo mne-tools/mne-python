@@ -8,12 +8,13 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_equal, assert_allclose)
 import pytest
 
+from mne import create_info
 from mne.fixes import is_regressor, is_classifier
 from mne.utils import requires_sklearn, check_version
 from mne.decoding.base import (_get_inverse_funcs, LinearModel, get_coef,
-                               cross_val_multiscore)
+                               cross_val_multiscore, BaseEstimator)
 from mne.decoding.search_light import SlidingEstimator
-from mne.decoding import Scaler
+from mne.decoding import Scaler, TransformerMixin, Vectorizer
 
 
 def _make_data(n_samples=1000, n_features=5, n_targets=3):
@@ -62,7 +63,7 @@ def test_get_coef():
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import StandardScaler
     from sklearn import svm
-    from sklearn.linear_model import Ridge, LinearRegression
+    from sklearn.linear_model import Ridge
     from sklearn.model_selection import GridSearchCV
 
     lm_classification = LinearModel()
@@ -193,6 +194,8 @@ class _Noop(BaseEstimator, TransformerMixin):
 ])
 def test_get_coef_inverse_transform(inverse, Scale, kwargs):
     """Test get_coef with and without inverse_transform."""
+    from sklearn.linear_model import Ridge
+    from sklearn.pipeline import make_pipeline
     lm_regression = LinearModel(Ridge())
     X, y, A = _make_data(n_samples=1000, n_features=3, n_targets=1)
     # Check with search_light and combination of preprocessing ending with sl:
@@ -221,6 +224,8 @@ def test_get_coef_inverse_transform(inverse, Scale, kwargs):
 def test_get_coef_multiclass(n_features, n_targets):
     """Test get_coef on multiclass problems."""
     # Check patterns with more than 1 regressor
+    from sklearn.linear_model import LinearRegression, Ridge
+    from sklearn.pipeline import make_pipeline
     X, Y, A = _make_data(
         n_samples=30000, n_features=n_features, n_targets=n_targets)
     lm = LinearModel(LinearRegression()).fit(X, Y)

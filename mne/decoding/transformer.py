@@ -13,7 +13,7 @@ from .base import BaseEstimator
 from .. import pick_types
 from ..filter import filter_data, _triage_filter_params
 from ..time_frequency.psd import psd_array_multitaper
-from ..utils import fill_doc, _check_option
+from ..utils import fill_doc, _check_option, _validate_type
 from ..io.pick import (pick_info, _pick_data_channels, _picks_by_type,
                        _picks_to_idx)
 from ..cov import _check_scalings_user
@@ -143,6 +143,7 @@ class Scaler(TransformerMixin, BaseEstimator):
         self : instance of Scaler
             The modified instance.
         """
+        _validate_type(epochs_data, np.ndarray, 'epochs_data')
         assert epochs_data.ndim == 3
         _sklearn_reshape_apply(self._scaler.fit, False, epochs_data, y=y)
         return self
@@ -165,6 +166,7 @@ class Scaler(TransformerMixin, BaseEstimator):
         This function makes a copy of the data before the operations and the
         memory usage may be large with big data.
         """
+        _validate_type(epochs_data, np.ndarray, 'epochs_data')
         assert epochs_data.ndim == 3
         return _sklearn_reshape_apply(self._scaler.transform, True,
                                       epochs_data)
