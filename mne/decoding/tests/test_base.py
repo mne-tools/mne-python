@@ -220,6 +220,7 @@ def test_get_coef_inverse_transform(inverse, Scale, kwargs):
             assert_array_equal(filters_t, filters[:, t])
 
 
+@requires_sklearn
 @pytest.mark.parametrize('n_features', [1, 5])
 @pytest.mark.parametrize('n_targets', [1, 3])
 def test_get_coef_multiclass(n_features, n_targets):
@@ -266,7 +267,7 @@ def test_get_coef_multiclass(n_features, n_targets):
     lm.fit(X, Y, sample_weight=np.ones(len(Y)))
 
 
-@requires_sklearn
+@requires_version('sklearn', '0.22')  # roc_auc_ovr_weighted
 @pytest.mark.parametrize('n_classes, n_channels, n_times', [
     (4, 10, 2),
     (4, 3, 2),
