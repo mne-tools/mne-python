@@ -32,7 +32,7 @@ from .surface import (read_surface, write_surface, complete_surface_info,
 from .transforms import _ensure_trans, apply_trans, Transform
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir, warn,
                     _pl, _validate_type, _TempDir, _check_freesurfer_home,
-                    _check_fname)
+                    _check_fname, has_nibabel)
 from .fixes import einsum
 
 
@@ -1154,11 +1154,10 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     run_subprocess_env(cmd)
     del tempdir  # clean up directory
     if op.isfile(T1_mgz):
-        new_info = _extract_volume_info(T1_mgz)
-        if new_info is None:
+        new_info = _extract_volume_info(T1_mgz) if has_nibabel() else dict()
+        if not new_info:
             warn('nibabel is not available or the volumn info is invalid.'
                  'Volume info not updated in the written surface.')
-            new_info = dict()
         surfs = ['brain', 'inner_skull', 'outer_skull', 'outer_skin']
         for s in surfs:
             surf_ws_out = op.join(ws_dir, '%s_%s_surface' % (subject, s))
@@ -1209,28 +1208,21 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     logger.info('Created %s\n\nComplete.' % (fname_head,))
 
 
-def _extract_volume_info(mgz, raise_error=False):
+def _extract_volume_info(mgz):
     """Extract volume info from a mgz file."""
-    try:
-        import nibabel as nib
-    except ImportError:
-        return  # warning raised elsewhere
-    header = nib.load(mgz).header
+    import nibabel
+    header = nibabel.load(mgz).header
     version = header['version']
+    vol_info = dict()
     if version == 1:
         version = '%s  # volume info valid' % version
-    elif raise_error:
-        raise ValueError('Volume info invalid.')
-    else:
-        return
+        vol_info['valid'] = version
+        vol_info['filename'] = mgz
+        vol_info['volume'] = header['dims'][:3]
+        vol_info['voxelsize'] = header['delta']
+        vol_info['xras'], vol_info['yras'], vol_info['zras'] = header['Mdc']
+        vol_info['cras'] = header['Pxyz_c']
 
-    vol_info = dict()
-    vol_info['valid'] = version
-    vol_info['filename'] = mgz
-    vol_info['volume'] = header['dims'][:3]
-    vol_info['voxelsize'] = header['delta']
-    vol_info['xras'], vol_info['yras'], vol_info['zras'] = header['Mdc']
-    vol_info['cras'] = header['Pxyz_c']
     return vol_info
 
 
