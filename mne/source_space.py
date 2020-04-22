@@ -1865,20 +1865,18 @@ def _get_volume_label_mask(mri, volume_label, rr):
     lut = _get_lut()
     vol_id = _get_lut_id(lut, volume_label, True)
 
-    # Get indices for this volume label in voxel space
-    vox_bool = mgz_data == vol_id
-
-    # Get the 3 dimensional indices in voxel space
-    vox_ijk = np.array(np.where(vox_bool)).T
-
-    # Transform to MRI coordinates (where our surfaces live)
+    # Transform MRI coordinates (where our surfaces live) to voxels
     _, vox_mri_t, _, _, _ = _read_mri_info(mri)
-    rr_voi = apply_trans(vox_mri_t, vox_ijk)  # mri voxels -> MRI surface RAS
-    # Filter out points too far from volume region voxels
-    dists = _compute_nearest(rr_voi, rr, return_dists=True)[1]
-    # Maximum distance from center of mass of a voxel to any of its corners
-    maxdist = linalg.norm(vox_mri_t['trans'][:3, :3].sum(0) / 2.)
-    return dists <= maxdist
+    mri_vox_t = invert_transform(vox_mri_t)
+    rr_vox = apply_trans(mri_vox_t, rr)
+    good = (rr_vox >= -.5).all(-1)
+    idx = np.empty(rr.shape[::-1], np.int64)
+    for ii in range(3):
+        good &= rr_vox[:, ii] < mgz_data.shape[ii] - 0.5
+        idx[ii] = np.clip(np.round(rr_vox[:, ii]).astype(np.int64),
+                          0, mgz_data.shape[ii] - 1)
+    good &= mgz_data[tuple(idx)] == vol_id
+    return good
 
 
 def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
