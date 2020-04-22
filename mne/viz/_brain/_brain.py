@@ -20,7 +20,7 @@ from .view import lh_views_dict, rh_views_dict, View
 from .._3d import _process_clim, _handle_time
 
 from ...morph import _hemi_morph
-from ...label import read_label
+from ...label import read_label, _read_annot
 from ...utils import _check_option, logger, verbose, fill_doc, _validate_type
 
 
@@ -191,6 +191,8 @@ class _Brain(object):
         self._subjects_dir = subjects_dir
         self._views = views
         self._times = None
+        self._hemi_actors = {}
+        self._hemi_meshes = {}
         # for now only one color bar can be added
         # since it is the same for all figures
         self._colorbar_added = False
@@ -199,7 +201,7 @@ class _Brain(object):
         self._time_label_added = False
         # array of data used by TimeViewer
         self._data = {}
-        self.geo, self._hemi_meshes, self._overlays = {}, {}, {}
+        self.geo, self._overlays = {}, {}
         self.set_time_interpolation('nearest')
 
         # load geometry for one or both hemispheres as necessary
@@ -240,12 +242,13 @@ class _Brain(object):
                         opacity=alpha,
                     )
                     if isinstance(mesh_data, tuple):
-                        _, mesh = mesh_data
+                        actor, mesh = mesh_data
                         # add metadata to the mesh for picking
                         mesh._hemi = h
                     else:
-                        _, mesh = mesh_data, None
+                        actor, mesh = mesh_data, None
                     self._hemi_meshes[h] = mesh
+                    self._hemi_actors[h] = actor
                     self._renderer.set_camera(azimuth=views_dict[v].azim,
                                               elevation=views_dict[v].elev)
 
@@ -734,6 +737,115 @@ class _Brain(object):
 
         self._renderer.text2d(x_window=x, y_window=y, text=text, color=color,
                               size=font_size, justification=justification)
+
+    def add_annotation(self, annot, borders=True, alpha=1, hemi=None,
+                       remove_existing=True, color=None, **kwargs):
+        """Add an annotation file.
+
+        Parameters
+        ----------
+        annot : str | tuple
+            Either path to annotation file or annotation name. Alternatively,
+            the annotation can be specified as a ``(labels, ctab)`` tuple per
+            hemisphere, i.e. ``annot=(labels, ctab)`` for a single hemisphere
+            or ``annot=((lh_labels, lh_ctab), (rh_labels, rh_ctab))`` for both
+            hemispheres. ``labels`` and ``ctab`` should be arrays as returned
+            by :func:`nibabel.freesurfer.io.read_annot`.
+        borders : bool | int
+            Show only label borders. If int, specify the number of steps
+            (away from the true border) along the cortical mesh to include
+            as part of the border definition.
+        alpha : float in [0, 1]
+            Alpha level to control opacity.
+        hemi : str | None
+            If None, it is assumed to belong to the hemipshere being
+            shown. If two hemispheres are being shown, data must exist
+            for both hemispheres.
+        remove_existing : bool
+            If True (default), remove old annotations.
+        color : matplotlib-style color code
+            If used, show all annotations in the same (specified) color.
+            Probably useful only when showing annotation borders.
+        **kwargs : additional keyword arguments
+            These are passed to the underlying
+            ``mayavi.mlab.pipeline.surface`` call.
+        """
+        hemis = self._check_hemis(hemi)
+
+        # Figure out where the data is coming from
+        if isinstance(annot, str):
+            if os.path.isfile(annot):
+                filepath = annot
+                path = os.path.split(filepath)[0]
+                file_hemi, annot = os.path.basename(filepath).split('.')[:2]
+                if len(hemis) > 1:
+                    if annot[:2] == 'lh.':
+                        filepaths = [filepath, op.join(path, 'rh' + annot[2:])]
+                    elif annot[:2] == 'rh.':
+                        filepaths = [op.join(path, 'lh' + annot[2:], filepath)]
+                    else:
+                        raise RuntimeError('To add both hemispheres '
+                                           'simultaneously, filename must '
+                                           'begin with "lh." or "rh."')
+                else:
+                    filepaths = [filepath]
+            else:
+                filepaths = []
+                for hemi in hemis:
+                    filepath = op.join(self._subjects_dir,
+                                       self._subject_id,
+                                       'label',
+                                       ".".join([hemi, annot, 'annot']))
+                    print(filepath)
+                    if not os.path.exists(filepath):
+                        raise ValueError('Annotation file %s does not exist'
+                                         % filepath)
+                    filepaths += [filepath]
+            annots = []
+            for hemi, filepath in zip(hemis, filepaths):
+                # Read in the data
+                labels, cmap, _ = _read_annot(filepath)
+                annots.append((labels, cmap))
+        else:
+            annots = [annot] if len(hemis) == 1 else annot
+            annot = 'annotation'
+
+        for hemi, (labels, cmap) in zip(hemis, annots):
+
+            # Maybe zero-out the non-border vertices
+            # self._to_borders(labels, hemi, borders)
+
+            # Handle null labels properly
+            cmap[:, 3] = 255
+            # bgcolor = self._brain_color
+            bgcolor = [144, 144, 144, 255]
+            bgcolor[-1] = 0
+            cmap[cmap[:, 4] < 0, 4] += 2 ** 24  # wrap to positive
+            cmap[cmap[:, 4] <= 0, :4] = bgcolor
+            if np.any(labels == 0) and not np.any(cmap[:, -1] <= 0):
+                cmap = np.vstack((cmap, np.concatenate([bgcolor, [0]])))
+
+            # Set label ids sensibly
+            order = np.argsort(cmap[:, -1])
+            cmap = cmap[order]
+            ids = np.searchsorted(cmap[:, -1], labels)
+            cmap = cmap[:, :4]
+
+            #  Set the alpha level
+            alpha_vec = cmap[:, 3]
+            alpha_vec[alpha_vec > 0] = alpha * 255
+
+            # Override the cmap when a single color is used
+            if color is not None:
+                from matplotlib.colors import colorConverter
+                rgb = np.round(np.multiply(colorConverter.to_rgb(color), 255))
+                cmap[:, :3] = rgb.astype(cmap.dtype)
+
+            mesh = self._hemi_meshes.get(hemi, None)
+            if mesh is not None:
+                mesh.point_arrays[annot] = ids
+                mesh.set_active_scalars(annot)
+                cmap = np.round(cmap).astype(np.uint8)
 
     def remove_labels(self, labels=None):
         """Remove one or more previously added labels from the image.
@@ -1267,6 +1379,20 @@ class _Brain(object):
             extra = ' or None' if self._hemi in ['lh', 'rh'] else ''
             raise ValueError('hemi must be either "lh" or "rh"' +
                              extra + ", got " + str(hemi))
+        return hemi
+
+    def _check_hemis(self, hemi):
+        """Check for safe dual or single-hemi input, returns list"""
+        if hemi is None:
+            if self._hemi not in ['lh', 'rh']:
+                hemi = ['lh', 'rh']
+            else:
+                hemi = [self._hemi]
+        elif hemi not in ['lh', 'rh']:
+            extra = ' or None' if self._hemi in ['lh', 'rh'] else ''
+            raise ValueError('hemi must be either "lh" or "rh"' + extra)
+        else:
+            hemi = [hemi]
         return hemi
 
     def scale_data_colormap(self, fmin, fmid, fmax, transparent,
