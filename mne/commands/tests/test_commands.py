@@ -4,6 +4,7 @@ from os import path as op
 import shutil
 import glob
 
+import numpy as np
 import pytest
 from numpy.testing import assert_equal, assert_allclose
 
@@ -23,7 +24,8 @@ from mne.datasets import testing, sample
 from mne.io import read_raw_fif, read_info
 from mne.utils import (run_tests_if_main, requires_mne,
                        requires_mayavi, requires_vtk, requires_freesurfer,
-                       traits_test, ArgvSetter, modified_env, _stamp_to_dt)
+                       requires_nibabel, traits_test, ArgvSetter, modified_env,
+                       _stamp_to_dt)
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -209,11 +211,15 @@ def test_surf2bem():
 @pytest.mark.timeout(600)  # took ~400 sec on a local test
 @pytest.mark.slowtest
 @pytest.mark.ultraslowtest
+@requires_nibabel()
 @requires_freesurfer
 @testing.requires_testing_data
 def test_watershed_bem(tmpdir):
     """Test mne watershed bem."""
     check_usage(mne_watershed_bem)
+    # from T1.mgz
+    Mdc = np.array([[-1, 0, 0], [0, 0, -1], [0, 1, 0]])
+    Pxyz_c = np.array([-5.273613, 9.039085, -27.287964])
     # Copy necessary files to tempdir
     tempdir = str(tmpdir)
     mridata_path = op.join(subjects_dir, 'sample', 'mri')
@@ -229,15 +235,24 @@ def test_watershed_bem(tmpdir):
         with ArgvSetter(args):
             mne_watershed_bem.run()
     os.chmod(new_fname, old_mode)
-    out_fnames = list()
-    for kind in ('outer_skin', 'outer_skull', 'inner_skull'):
-        out_fnames.append(op.join(subject_path_new, 'bem', 'inner_skull.surf'))
-    assert not any(op.isfile(out_fname) for out_fname in out_fnames)
+    for s in ('outer_skin', 'outer_skull', 'inner_skull'):
+        assert not op.isfile(op.join(subject_path_new, 'bem', '%s.surf' % s))
     with ArgvSetter(args):
         mne_watershed_bem.run()
-    for out_fname in out_fnames:
-        _, tris = read_surface(out_fname)
-        assert len(tris) == 20480
+
+    kwargs = dict(rtol=1e-5, atol=1e-5)
+    for s in ('outer_skin', 'outer_skull', 'inner_skull'):
+        rr, tris, vol_info = read_surface(op.join(subject_path_new, 'bem',
+                                                  '%s.surf' % s),
+                                          read_metadata=True)
+        assert_equal(len(tris), 20480)
+        assert_equal(tris.min(), 0)
+        assert_equal(rr.shape[0], tris.max() + 1)
+        # compare the volume info to the mgz header
+        assert_allclose(vol_info['xras'], Mdc[0], **kwargs)
+        assert_allclose(vol_info['yras'], Mdc[1], **kwargs)
+        assert_allclose(vol_info['zras'], Mdc[2], **kwargs)
+        assert_allclose(vol_info['cras'], Pxyz_c, **kwargs)
 
 
 @pytest.mark.timeout(300)  # took 200 sec locally
