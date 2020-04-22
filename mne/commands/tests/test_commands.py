@@ -212,7 +212,7 @@ def test_surf2bem():
 @pytest.mark.ultraslowtest
 @requires_nibabel()
 @requires_freesurfer
-@testing.requires_testing_data
+@sample.requires_sample_data
 def test_watershed_bem(tmpdir):
     """Test mne watershed bem."""
     import nibabel
@@ -242,7 +242,7 @@ def test_watershed_bem(tmpdir):
     header = nibabel.load(new_fname).header
     for out_fname in out_fnames:
         rr, tris, vol_info = read_surface(out_fname, read_metadata=True)
-        # compare the volumn info to the mgz header
+        # compare the volume info to the mgz header
         assert_allclose(vol_info['xras'], header['Mdc'][0])
         assert_allclose(vol_info['yras'], header['Mdc'][1])
         assert_allclose(vol_info['zras'], header['Mdc'][2])
@@ -282,16 +282,18 @@ def test_flash_bem(tmpdir):
     # Test mne flash_bem with --noconvert option
     # (since there are no DICOM Flash images in dataset)
     out_fnames = list()
-    for kind in ('outer_skin', 'outer_skull', 'inner_skull'):
-        out_fnames.append(op.join(subject_path_new, 'bem', 'outer_skin.surf'))
+    for surf in ('outer_skin', 'outer_skull', 'inner_skull'):
+        out_fnames.append(op.join(subject_path_new, 'bem', '%s.surf' % surf))
     assert not any(op.isfile(out_fname) for out_fname in out_fnames)
     with ArgvSetter(('-d', tempdir, '-s', 'sample', '-n'),
                     disable_stdout=False, disable_stderr=False):
         mne_flash_bem.run()
     # do they exist and are expected size
     for out_fname in out_fnames:
-        _, tris = read_surface(out_fname)
+        rr, tris = read_surface(out_fname)
         assert len(tris) == 5120
+        assert_equal(0, tris.min())
+        assert_equal(rr.shape[0], tris.max() + 1)
 
 
 @testing.requires_testing_data
