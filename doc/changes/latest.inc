@@ -56,6 +56,8 @@ Bug
 
 - Make :func:`mne.set_config` accept path-like input values by `Richard Höchenberger`_
 
+- Fix bug with :func:`mne.bem.make_watershed_bem` where RAS coordinates of watershed BEM surfaces were not updated properly by `Yu-Han Luo`_
+
 API
 ~~~
 
