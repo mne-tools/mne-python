@@ -94,7 +94,7 @@ def run():
         clipping = None if clipping.lower() == 'none' else clipping
     try:
         clipping = float(clipping)  # allow float and convert it
-    except ValueError:
+    except (TypeError, ValueError):
         pass
     filterchpi = options.filterchpi
     verbose = options.verbose
