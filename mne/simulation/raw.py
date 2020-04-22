@@ -639,7 +639,7 @@ def _stc_data_event(stc_counted, head_idx, sfreq, src=None, verts=None):
     if len(stc.times) <= 2:  # to ensure event encoding works
         raise ValueError('stc must have at least three time points, got %s'
                          % (len(stc.times),))
-    verts_ = stc._vertices_list
+    verts_ = stc.vertices
     if verts is None:
         assert stc_idx == 0
     else:

@@ -60,8 +60,10 @@ fname_vol_inv = op.join(s_path,
                         'sample_audvis_trunc-meg-vol-7-meg-inv.fif')
 # trans and bem needed for channel reordering tests incl. forward computation
 fname_trans = op.join(s_path, 'sample_audvis_trunc-trans.fif')
-s_path_bem = op.join(test_path, 'subjects', 'sample', 'bem')
+subjects_dir = op.join(test_path, 'subjects')
+s_path_bem = op.join(subjects_dir, 'sample', 'bem')
 fname_bem = op.join(s_path_bem, 'sample-320-320-320-bem-sol.fif')
+fname_bem_homog = op.join(s_path_bem, 'sample-320-bem-sol.fif')
 src_fname = op.join(s_path_bem, 'sample-oct-4-src.fif')
 
 snr = 3.0
@@ -671,8 +673,6 @@ def test_make_inverse_operator_vector(evoked, noise_cov):
     inv_1 = make_inverse_operator(evoked.info, fwd, noise_cov, loose=1)
     inv_2 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, depth=None,
                                   use_cps=True)
-    inv_3 = make_inverse_operator(evoked.info, fwd_surf, noise_cov, fixed=True,
-                                  use_cps=True)
     inv_4 = make_inverse_operator(evoked.info, fwd, noise_cov,
                                   loose=.2, depth=None)
 
@@ -685,10 +685,6 @@ def test_make_inverse_operator_vector(evoked, noise_cov):
             stc_vec = apply_inverse(evoked, inv, pick_ori='vector',
                                     method=method)
             assert_allclose(stc.data, stc_vec.magnitude().data)
-
-    # Vector estimates don't work when using fixed orientations
-    with pytest.raises(RuntimeError, match='fixed orientation'):
-        apply_inverse(evoked, inv_3, pick_ori='vector')
 
     # When computing with vector fields, computing the difference between two
     # evokeds and then performing the inverse should yield the same result as
@@ -1030,6 +1026,38 @@ def test_inverse_ctf_comp():
     raw.apply_gradient_compensation(0)
     with pytest.raises(RuntimeError, match='Compensation grade .* not match'):
         apply_inverse_raw(raw, inv, 1. / 9.)
+
+
+def test_inverse_mixed(all_src_types_inv_evoked):
+    """Test creating and applying an inverse to mixed source spaces."""
+    stcs = dict()
+    invs, evoked = all_src_types_inv_evoked
+    for kind, klass in [('surface', mne.VectorSourceEstimate),
+                        ('volume', mne.VolVectorSourceEstimate),
+                        ('mixed', mne.MixedVectorSourceEstimate)]:
+        assert invs[kind]['src'].kind == kind
+        with pytest.warns(RuntimeWarning, match='has magnitude'):
+            stc = apply_inverse(evoked, invs[kind])
+        assert isinstance(stc, klass._scalar_class)
+        with pytest.warns(RuntimeWarning, match='has magnitude'):
+            stc_vec = apply_inverse(evoked, invs[kind], pick_ori='vector')
+        stcs[kind] = stc_vec
+        assert isinstance(stc_vec, klass)
+        assert_allclose(stc.data, stc_vec.magnitude().data, atol=1e-2)
+    # Check class equivalences, need to force the mixed to have the same
+    # data as the other two
+    surf_src = invs['surface']['src']
+    stcs['mixed'].data = np.concatenate(
+        [stcs['surface'].data, stcs['volume'].data], axis=0)
+    for kind in ('surface', 'volume'):
+        assert_allclose(getattr(stcs['mixed'], kind)().data,
+                        stcs[kind].data)
+        assert_allclose(getattr(stcs['mixed'].magnitude(), kind)().data,
+                        stcs[kind].magnitude().data)
+        assert_allclose(getattr(stcs['mixed'], kind)().magnitude().data,
+                        stcs[kind].magnitude().data)
+    assert_allclose(stcs['mixed'].surface().normal(surf_src).data,
+                    stcs['surface'].normal(surf_src).data)
 
 
 run_tests_if_main()

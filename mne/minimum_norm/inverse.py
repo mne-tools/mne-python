@@ -751,9 +751,6 @@ def _assemble_kernel(inv, label, method, pick_ori, use_cps=True, verbose=None):
 def _check_ori(pick_ori, source_ori, src, allow_vector=True):
     """Check pick_ori."""
     _check_option('pick_ori', pick_ori, [None, 'normal', 'vector'])
-    if pick_ori == 'vector' and source_ori != FIFF.FIFFV_MNE_FREE_ORI:
-        raise RuntimeError('pick_ori="vector" cannot be combined with an '
-                           'inverse operator with fixed orientations.')
     _check_src_normal(pick_ori, src)
 
 

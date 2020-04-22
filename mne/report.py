@@ -1471,7 +1471,7 @@ class Report(object):
                 self.html.append(self._render_bem(
                     self.subject, self.subjects_dir, mri_decim, n_jobs))
                 self.fnames.append('bem')
-                self._sectionlabels.append('mri')
+                self._sectionlabels.append('bem')
             else:
                 warn('`subjects_dir` and `subject` not provided. Cannot '
                      'render MRI and -trans.fif(.gz) files.')
@@ -1963,7 +1963,7 @@ class Report(object):
             return html
 
     def _render_bem(self, subject, subjects_dir, decim, n_jobs,
-                    section='mri', caption='BEM'):
+                    section='bem', caption='BEM'):
         """Render mri+bem (only PNG)."""
         import nibabel as nib
 
@@ -2004,13 +2004,13 @@ class Report(object):
 
         global_id = self._get_id()
 
-        if section == 'mri' and 'mri' not in self.sections:
-            self.sections.append('mri')
-            self._sectionvars['mri'] = 'mri'
+        if section == 'bem' and 'bem' not in self.sections:
+            self.sections.append('bem')
+            self._sectionvars['bem'] = 'bem'
 
         name = caption
 
-        html += u'<li class="mri" id="%d">\n' % global_id
+        html += u'<li class="report_%s" id="%d">\n' % (section, global_id)
         html += u'<h4>%s</h4>\n' % name  # all other captions are h4
         html += self._render_one_bem_axis(mri_fname, surf_fnames, global_id,
                                           shape, 'axial', decim, n_jobs)

@@ -546,7 +546,8 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
 def _simplify_float(label):
     # Heuristic to turn floats to ints where possible (e.g. -500.0 to -500)
-    if isinstance(label, float) and float(str(label)) != round(label):
+    if isinstance(label, float) and np.isfinite(label) and \
+            float(str(label)) != round(label):
         label = round(label, 2)
     return label
 
@@ -1879,11 +1880,15 @@ def _compute_scalings(scalings, inst, remove_dc=False, duration=10):
             this_data = this_data[:, :this_data.shape[1] // length * length]
             shape = this_data.shape  # original shape
             this_data = this_data.T.reshape(-1, length, shape[0])  # segment
-            this_data -= this_data.mean(0)  # subtract segment means
+            this_data -= np.nanmean(this_data, 0)  # subtract segment means
             this_data = this_data.T.reshape(shape)  # reshape into original
-
-        iqr = np.diff(np.percentile(this_data.ravel(), [25, 75]))
-        scalings[key] = iqr.item()
+        this_data = this_data.ravel()
+        this_data = this_data[np.isfinite(this_data)]
+        if this_data.size:
+            iqr = np.diff(np.percentile(this_data, [25, 75]))[0]
+        else:
+            iqr = 1.
+        scalings[key] = iqr
     return scalings
 
 

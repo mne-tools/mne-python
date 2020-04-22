@@ -1078,19 +1078,3 @@ else:
     @jit()
     def mean(array, axis):
         return _np_apply_along_axis(np.mean, axis, array)
-
-
-###############################################################################
-# Python 3.5 compat with pathlib.Path-like objects
-
-def _fn35(fname):
-    try:
-        from py._path.common import PathBase
-    except ImportError:
-        pass
-    else:
-        if isinstance(fname, PathBase):
-            fname = str(fname)
-    if isinstance(fname, Path):
-        fname = str(fname)
-    return fname

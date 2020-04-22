@@ -98,3 +98,5 @@ def _handle_default(k, v=None):
 
 
 HEAD_SIZE_DEFAULT = 0.095  # in [m]
+_BORDER_DEFAULT = 'mean'
+_EXTRAPOLATE_DEFAULT = 'auto'

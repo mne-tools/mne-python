@@ -31,7 +31,7 @@ from ..io.write import _generate_meas_id, DATE_NONE
 from ..io import _loc_to_coil_trans, _coil_trans_to_loc, BaseRaw, RawArray
 from ..io.pick import pick_types, pick_info
 from ..utils import (verbose, logger, _clean_names, warn, _time_mask, _pl,
-                     _check_option, _ensure_int)
+                     _check_option, _ensure_int, _validate_type)
 from ..fixes import _get_args, _safe_svd, einsum, bincount
 from ..channels.channels import _get_T1T2_mag_inds
 
@@ -240,8 +240,7 @@ def _prep_maxwell_filter(
     # Our code follows the same standard that ``scipy`` uses for ``sph_harm``.
 
     # triage inputs ASAP to avoid late-thrown errors
-    if not isinstance(raw, BaseRaw):
-        raise TypeError('raw must be Raw, not %s' % type(raw))
+    _validate_type(raw, BaseRaw, 'raw')
     _check_usable(raw)
     _check_regularize(regularize)
     st_correlation = float(st_correlation)
@@ -791,6 +790,7 @@ def _copy_preload_add_channels(raw, add_channels, copy):
 
 def _check_pos(pos, head_frame, raw, st_fixed, sfreq):
     """Check for a valid pos array and transform it to a more usable form."""
+    _validate_type(pos, (np.ndarray, None), 'head_pos')
     if pos is None:
         return [None, np.array([-1])]
     if not head_frame:
@@ -1866,12 +1866,14 @@ def find_bad_channels_maxwell(
         skip_by_annotation=('edge', 'bad_acq_skip'), verbose=None):
     r"""Find bad channels using Maxwell filtering.
 
+    .. note:: For closer equivalence with MaxFilter, it's recommended to
+        low-pass filter your data (e.g., at 40 Hz) prior to running this
+        function.
+
     Parameters
     ----------
     raw : instance of Raw
-        Raw data to process. For equivalence with MaxFilter, it's recommended
-        to low-pass filter your data (e.g., at 40 Hz) prior to running
-        this function.
+        Raw data to process.
     limit : float
         Detection limit (default is 7.). Smaller values will find more bad
         channels at increased risk of including good ones.

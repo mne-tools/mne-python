@@ -233,6 +233,7 @@ Visualization
    plot_dipole_locations
    plot_drop_log
    plot_epochs
+   plot_epochs_psd_topomap
    plot_events
    plot_evoked
    plot_evoked_image
@@ -313,7 +314,7 @@ Projections:
    get_builtin_montages
    make_dig_montage
    read_dig_polhemus_isotrak
-   read_dig_captrack
+   read_dig_captrak
    read_dig_dat
    read_dig_egi
    read_dig_fif
@@ -748,6 +749,7 @@ Source Space Data
    BiHemiLabel
    Label
    MixedSourceEstimate
+   MixedVectorSourceEstimate
    SourceEstimate
    VectorSourceEstimate
    VolSourceEstimate

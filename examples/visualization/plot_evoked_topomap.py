@@ -83,21 +83,28 @@ evoked.plot_topomap(times, ch_type='mag', cmap='Spectral_r', res=32,
 
 ###############################################################################
 # If you look at the edges of the head circle of a single topomap you'll see
-# the effect of extrapolation. By default ``extrapolate='box'`` is used which
-# extrapolates to a large box stretching beyond the head circle.
-# Compare this with ``extrapolate='head'`` (second topography below) where
-# extrapolation goes to 0 at the head circle and ``extrapolate='local'`` where
-# extrapolation is performed only within some distance from channels:
+# the effect of extrapolation. There are three extrapolation modes:
+#
+# - ``extrapolate='local'`` extrapolates only to points close to the sensors.
+# - ``extrapolate='head'`` extrapolates out to the head head circle.
+# - ``extrapolate='box'`` extrapolates to a large box stretching beyond the
+#   head circle.
+#
+# The default value ``extrapolate='auto'`` will use ``'local'`` for MEG sensors
+# and ``'head'`` otherwise. Here we show each option:
 
-extrapolations = ['box', 'head', 'local']
-fig, axes = plt.subplots(figsize=(7.5, 2.5), ncols=3)
+extrapolations = ['local', 'head', 'box']
+fig, axes = plt.subplots(figsize=(7.5, 4.5), nrows=2, ncols=3)
 
 # Here we look at EEG channels, and use a custom head sphere to get all the
 # sensors to be well within the drawn head surface
-for ax, extr in zip(axes, extrapolations):
-    evoked.plot_topomap(0.1, ch_type='eeg', size=2, extrapolate=extr, axes=ax,
-                        show=False, colorbar=False, sphere=(0., 0., 0., 0.09))
-    ax.set_title(extr, fontsize=14)
+for axes_row, ch_type in zip(axes, ('mag', 'eeg')):
+    for ax, extr in zip(axes_row, extrapolations):
+        evoked.plot_topomap(0.1, ch_type=ch_type, size=2, extrapolate=extr,
+                            axes=ax, show=False, colorbar=False,
+                            sphere=(0., 0., 0., 0.09))
+        ax.set_title('%s %s' % (ch_type.upper(), extr), fontsize=14)
+fig.tight_layout()
 
 ###############################################################################
 # More advanced usage
@@ -107,7 +114,7 @@ for ax, extr in zip(axes, extrapolations):
 # post-stimulus, add channel labels, title and adjust plot margins:
 evoked.plot_topomap(0.1, ch_type='mag', show_names=True, colorbar=False,
                     size=6, res=128, title='Auditory response',
-                    time_unit='s', extrapolate='local', border='mean')
+                    time_unit='s')
 plt.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.88)
 
 ###############################################################################

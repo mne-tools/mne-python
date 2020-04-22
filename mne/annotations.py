@@ -7,7 +7,8 @@ import os.path as op
 import re
 from copy import deepcopy
 from itertools import takewhile
-import collections
+from collections import Counter
+from collections.abc import Iterable
 import warnings
 from textwrap import shorten
 import numpy as np
@@ -206,7 +207,7 @@ class Annotations(object):
 
     def __repr__(self):
         """Show the representation."""
-        counter = collections.Counter(self.description)
+        counter = Counter(self.description)
         kinds = ', '.join(['%s (%s)' % k for k in sorted(counter.items())])
         kinds = (': ' if len(kinds) > 0 else '') + kinds
         s = ('Annotations | %s segment%s%s' %
@@ -248,7 +249,7 @@ class Annotations(object):
             out_keys = ('onset', 'duration', 'description', 'orig_time')
             out_vals = (self.onset[key], self.duration[key],
                         self.description[key], self.orig_time)
-            return collections.OrderedDict(zip(out_keys, out_vals))
+            return dict(zip(out_keys, out_vals))
         else:
             key = list(key) if isinstance(key, tuple) else key
             return Annotations(onset=self.onset[key],
@@ -915,7 +916,7 @@ def _check_event_description(event_desc, events):
     if isinstance(event_desc, dict):
         for val in event_desc.values():
             _validate_type(val, (str, None), 'Event names')
-    elif isinstance(event_desc, collections.Iterable):
+    elif isinstance(event_desc, Iterable):
         event_desc = np.asarray(event_desc)
         if event_desc.ndim != 1:
             raise ValueError('event_desc must be 1D, got shape {}'.format(

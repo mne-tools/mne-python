@@ -1426,6 +1426,8 @@ def _find_nearest_tri_pts(rrs, pt_triss, pt_lens,
         pqs = np.empty((len(drs), 2))
         dists = np.empty(len(drs))
         dist = np.inf
+        # make life easier for numba var typing
+        p, q, pt = np.float64(0.), np.float64(1.), np.int64(0)
         found = False
         for ii in range(len(drs)):
             pqs[ii] = np.dot(mats[ii], np.dot(r1213s[ii], drs[ii]))
