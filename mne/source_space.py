@@ -1767,7 +1767,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         logger.info('MRI volume            : %s' % mri)
         logger.info('')
         logger.info('Reading %s...' % mri)
-        vol_info.update(_get_mri_info_data(mri, data=volume_label is not None))
+        vol_info = _get_mri_info_data(mri, data=volume_label is not None)
 
     exclude /= 1000.0  # convert exclude from m to mm
     logger.info('')

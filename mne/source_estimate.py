@@ -20,7 +20,11 @@ from .filter import resample
 from .fixes import einsum
 from .surface import read_surface, _get_ico_surface, mesh_edges
 from .source_space import (_ensure_src, _get_morph_src_reordering,
-                           _ensure_src_subject, SourceSpaces, _get_src_nn)
+                           _ensure_src_subject, SourceSpaces, _get_src_nn,
+                           _import_nibabel, _get_mri_info_data,
+                           _get_atlas_values)
+from .transforms import (_angle_between_quats, rot_to_quat,
+                         _print_coord_trans)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     _time_mask, warn, copy_function_doc_to_method_doc,
                     fill_doc, _check_option, _validate_type, _check_src_normal,
@@ -2745,11 +2749,30 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty):
 def _volume_labels(src, labels):
     # This will create Label objects that should do the right thing for our
     # given volumetric source space when used with extract_label_time_course
-    import nibabel
+    from .label import Label
     assert src.kind == 'volume'
-    _validate_type(labels, (str, nibabel.spatialimages.SpatialImage),
+    nib = _import_nibabel('use volume atlas labels')
+    _validate_type(labels, (str, nib.MGHImage),
                    'labels when using a volume source space')
-    raise NotImplementedError
+    logger.info('Reading atlas %s' % (labels,))
+    vol_info = _get_mri_info_data(labels, data=True)
+    vox_mri_t = vol_info['vox_mri_t']
+    want = src[0].get('vox_mri_t', None)
+    if want is None:
+        raise RuntimeError(
+            'Cannot use volumetric atlas if no mri was supplied during '
+            'source space creation')
+    _print_coord_trans(vox_mri_t, 'MRI volume : ')
+    vox_mri_t, want = vox_mri_t['trans'], want['trans']
+    if not np.allclose(vox_mri_t, want, atol=1e-6):
+        raise RuntimeError(
+            'atlas vox_mri_t does not match that used to create the source '
+            'space')
+    vertno = src[0]['vertno']
+    src_values = _get_atlas_values(vol_info, src[0]['rr'][vertno])
+    labels = [Label(vertno[src_values == val])
+              for val in np.unique(vol_info['data'])]
+    return labels
 
 
 def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
