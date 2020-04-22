@@ -212,7 +212,7 @@ def test_surf2bem():
 @pytest.mark.ultraslowtest
 @requires_nibabel()
 @requires_freesurfer
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_watershed_bem(tmpdir):
     """Test mne watershed bem."""
     import nibabel
@@ -220,6 +220,7 @@ def test_watershed_bem(tmpdir):
     # Copy necessary files to tempdir
     tempdir = str(tmpdir)
     mridata_path = op.join(subjects_dir, 'sample', 'mri')
+    bem_path = op.join(subjects_dir, 'sample', 'bem', 'watershed')
     subject_path_new = op.join(tempdir, 'sample')
     mridata_path_new = op.join(subject_path_new, 'mri')
     os.makedirs(mridata_path_new)
@@ -232,25 +233,29 @@ def test_watershed_bem(tmpdir):
         with ArgvSetter(args):
             mne_watershed_bem.run()
     os.chmod(new_fname, old_mode)
-    out_fnames = list()
-    for surf in ('outer_skin', 'outer_skull', 'inner_skull'):
-        out_fnames.append(op.join(subject_path_new, 'bem', '%s.surf' % surf))
-    assert not any(op.isfile(out_fname) for out_fname in out_fnames)
+    for s in ('outer_skin', 'outer_skull', 'inner_skull'):
+        assert not op.isfile(op.join(subject_path_new, 'bem', '%s.surf' % s))
     with ArgvSetter(args):
         mne_watershed_bem.run()
 
     header = nibabel.load(new_fname).header
-    for out_fname in out_fnames:
-        rr, tris, vol_info = read_surface(out_fname, read_metadata=True)
+    for s in ('outer_skin', 'outer_skull', 'inner_skull'):
+        rr, tris, vol_info = read_surface(op.join(subject_path_new, 'bem',
+                                                  '%s.surf' % s),
+                                          read_metadata=True)
         # compare the volume info to the mgz header
         assert_allclose(vol_info['xras'], header['Mdc'][0])
         assert_allclose(vol_info['yras'], header['Mdc'][1])
         assert_allclose(vol_info['zras'], header['Mdc'][2])
         assert_allclose(vol_info['cras'], header['Pxyz_c'])
 
-        assert len(tris) == 20480
-        assert_equal(0, tris.min())
-        assert_equal(rr.shape[0], tris.max() + 1)
+        # compare the generated surfaces to testing data
+        # FIXME: remove the checking after testing-data has the watershed bems
+        if op.isfile(op.join(bem_path, 'sample_%s.surf' % s)):
+            rr_c, tris_c = read_surface(op.join(bem_path,
+                                                'sample_%s.surf' % s))
+            assert_allclose(rr, rr_c)
+            assert_allclose(tris, tris_c)
 
 
 @pytest.mark.timeout(300)  # took 200 sec locally
