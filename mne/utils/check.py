@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 
+from difflib import get_close_matches
 from distutils.version import LooseVersion
 import operator
 import os
@@ -681,3 +682,13 @@ def _check_freesurfer_home():
         raise RuntimeError(
             'The FREESURFER_HOME environment variable is not set.')
     return fs_home
+
+
+def _suggest(val, options, cutoff=0.66):
+    options = get_close_matches(val, options, cutoff=cutoff)
+    if len(options) == 0:
+        return ''
+    elif len(options) == 1:
+        return ' Did you mean %r?' % (options[0],)
+    else:
+        return ' Did you mean one of %r?' % (options,)

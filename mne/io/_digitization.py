@@ -7,7 +7,7 @@
 #
 # License: BSD (3-clause)
 
-from collections import OrderedDict, Counter
+from collections import Counter
 
 import datetime
 import os.path as op
@@ -15,7 +15,7 @@ import re
 
 import numpy as np
 
-from ..utils import logger, warn, _check_option, Bunch
+from ..utils import logger, warn, _check_option, Bunch, _validate_type
 
 from .constants import FIFF
 from .tree import dir_tree_find
@@ -426,18 +426,14 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                         'kind': FIFF.FIFFV_POINT_EXTRA,
                         'coord_frame': coord_frame})
     if dig_ch_pos is not None:
-        keys = dig_ch_pos.keys()
-        if not isinstance(dig_ch_pos, OrderedDict):
-            keys = sorted(keys)
         try:  # use the last 3 as int if possible (e.g., EEG001->1)
             idents = []
-            for key in keys:
-                if not isinstance(key, str):
-                    raise ValueError()
+            for key in dig_ch_pos:
+                _validate_type(key, str, 'dig_ch_pos')
                 idents.append(int(key[-3:]))
         except ValueError:  # and if any conversion fails, simply use arange
-            idents = np.arange(1, len(keys) + 1)
-        for key, ident in zip(keys, idents):
+            idents = np.arange(1, len(dig_ch_pos) + 1)
+        for key, ident in zip(dig_ch_pos, idents):
             dig.append({'r': dig_ch_pos[key], 'ident': ident,
                         'kind': FIFF.FIFFV_POINT_EEG,
                         'coord_frame': coord_frame})

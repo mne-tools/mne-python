@@ -64,6 +64,7 @@ docstring_ignores = {
     'mne.fixes',
     'mne.io.write',
     'mne.io.meas_info.Info',
+    'mne.utils.docs.deprecated',
 }
 char_limit = 800  # XX eventually we should probably get this lower
 tab_ignores = [

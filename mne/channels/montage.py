@@ -11,7 +11,6 @@
 #
 # License: Simplified BSD
 
-from collections import OrderedDict
 import os.path as op
 import re
 from copy import deepcopy
@@ -34,7 +33,7 @@ from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..utils import (warn, copy_function_doc_to_method_doc, _pl,
                      _check_option, _validate_type, _check_fname,
-                     fill_doc, logger)
+                     fill_doc, logger, deprecated)
 
 from ._dig_montage_utils import _read_dig_montage_egi
 from ._dig_montage_utils import _parse_brainvision_dig_montage
@@ -110,7 +109,7 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     See Also
     --------
     DigMontage
-    read_dig_captrack
+    read_dig_captrak
     read_dig_egi
     read_dig_fif
     read_dig_polhemus_isotrak
@@ -118,9 +117,7 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     if ch_pos is None:
         ch_names = None
     else:
-        ch_names = list(ch_pos.keys())
-        if not isinstance(ch_pos, OrderedDict):
-            ch_names = sorted(ch_names)
+        ch_names = list(ch_pos)
     dig = _make_dig_points(
         nasion=nasion, lpa=lpa, rpa=rpa, hpi=hpi, extra_points=hsp,
         dig_ch_pos=ch_pos, coord_frame=coord_frame
@@ -147,7 +144,7 @@ class DigMontage(object):
 
     See Also
     --------
-    read_dig_captrack
+    read_dig_captrak
     read_dig_dat
     read_dig_egi
     read_dig_fif
@@ -345,7 +342,7 @@ def read_dig_dat(fname):
 
     See Also
     --------
-    read_dig_captrack
+    read_dig_captrak
     read_dig_dat
     read_dig_egi
     read_dig_fif
@@ -410,7 +407,7 @@ def read_dig_fif(fname):
     DigMontage
     read_dig_dat
     read_dig_egi
-    read_dig_captrack
+    read_dig_captrak
     read_dig_polhemus_isotrak
     read_dig_hpts
     make_dig_montage
@@ -448,7 +445,7 @@ def read_dig_hpts(fname, unit='mm'):
     See Also
     --------
     DigMontage
-    read_dig_captrack
+    read_dig_captrak
     read_dig_dat
     read_dig_egi
     read_dig_fif
@@ -539,7 +536,7 @@ def read_dig_egi(fname):
     See Also
     --------
     DigMontage
-    read_dig_captrack
+    read_dig_captrak
     read_dig_dat
     read_dig_fif
     read_dig_hpts
@@ -562,7 +559,7 @@ def read_dig_egi(fname):
     return make_dig_montage(**data)
 
 
-def read_dig_captrack(fname):
+def read_dig_captrak(fname):
     """Read electrode locations from CapTrak Brain Products system.
 
     Parameters
@@ -589,12 +586,37 @@ def read_dig_captrack(fname):
     _check_fname(fname, overwrite='read', must_exist=True)
     data = _parse_brainvision_dig_montage(fname, scale=1e-3)
 
-    # XXX: to change to the new naming in v.0.20 (all this block should go)
-    data.pop('point_names')
-    data['hpi'] = data.pop('elp')
-    data['ch_pos'] = data.pop('dig_ch_pos')
-
     return make_dig_montage(**data)
+
+
+@deprecated('read_dig_captrack is deprecated and will be removed in 0.22; '
+            'please use read_dig_captrak instead '
+            '(note the spelling correction: captraCK -> captraK).')
+def read_dig_captrack(fname):
+    """Read electrode locations from CapTrak Brain Products system.
+
+    Parameters
+    ----------
+    fname : path-like
+        BrainVision CapTrak coordinates file from which to read EEG electrode
+        locations. This is typically in XML format with the .bvct extension.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The montage.
+
+    See Also
+    --------
+    DigMontage
+    read_dig_dat
+    read_dig_egi
+    read_dig_fif
+    read_dig_hpts
+    read_dig_polhemus_isotrak
+    make_dig_montage
+    """
+    return read_dig_captrak(fname)
 
 
 def _get_montage_in_head(montage):
@@ -822,7 +844,7 @@ def read_dig_polhemus_isotrak(fname, ch_names=None, unit='m'):
     DigMontage
     make_dig_montage
     read_polhemus_fastscan
-    read_dig_captrack
+    read_dig_captrak
     read_dig_dat
     read_dig_egi
     read_dig_fif
@@ -1127,7 +1149,7 @@ def make_standard_montage(kind, head_size=HEAD_SIZE_DEFAULT):
     Notes
     -----
     Individualized (digitized) electrode positions should be read in using
-    :func:`read_dig_captrack`, :func:`read_dig_dat`, :func:`read_dig_egi`,
+    :func:`read_dig_captrak`, :func:`read_dig_dat`, :func:`read_dig_egi`,
     :func:`read_dig_fif`, :func:`read_dig_polhemus_isotrak`,
     :func:`read_dig_hpts` or made with :func:`make_dig_montage`.
 

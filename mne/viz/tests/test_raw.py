@@ -293,6 +293,12 @@ def test_plot_raw():
     for key in ['down', 'up', 'escape']:
         fig.canvas.key_press_event(key)
 
+    raw._data[:] = np.nan
+    # this should (at least) not die, the output should pretty clearly show
+    # that there is a problem so probably okay to just plot something blank
+    with pytest.warns(None):
+        raw.plot(scalings='auto')
+
     plt.close('all')
 
 

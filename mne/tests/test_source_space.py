@@ -26,7 +26,7 @@ from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_space import _get_mgz_header, _read_talxfm
 from mne.source_estimate import _get_src_type
 from mne.transforms import apply_trans, invert_transform
-from mne.source_space import (get_volume_labels_from_aseg, SourceSpaces,
+from mne.source_space import (get_volume_labels_from_aseg,
                               get_volume_labels_from_src,
                               _compare_source_spaces)
 from mne.io.constants import FIFF
@@ -568,10 +568,6 @@ def test_source_space_from_label(tmpdir):
     pytest.raises(ValueError, setup_volume_source_space, 'sample', pos=pos,
                   volume_label=volume_label, mri=aseg_fname)
 
-    # Test no mri provided
-    pytest.raises(RuntimeError, setup_volume_source_space, 'sample', mri=None,
-                  volume_label=volume_label)
-
     # Test invalid volume label
     pytest.raises(ValueError, setup_volume_source_space, 'sample',
                   volume_label='Hello World!', mri=aseg_fname)
@@ -607,8 +603,17 @@ def test_read_volume_from_src():
                                         bem=fname_bem,
                                         volume_label=labels_vol,
                                         subjects_dir=subjects_dir)
-    # Generate the mixed source space
+    # Generate the mixed source space, testing some list methods
+    assert src.kind == 'surface'
+    assert vol_src.kind == 'volume'
     src += vol_src
+    assert src.kind == 'mixed'
+    assert vol_src.kind == 'volume'
+    assert src[:2].kind == 'surface'
+    assert src[2:].kind == 'volume'
+    assert src[:].kind == 'mixed'
+    with pytest.raises(RuntimeError, match='Invalid source space'):
+        src[::2]
 
     volume_src = get_volume_labels_from_src(src, 'sample', subjects_dir)
     volume_label = volume_src[0].name
@@ -646,11 +651,17 @@ def test_combine_source_spaces(tmpdir):
                                      pos=pos, verbose='error')
 
     # combine source spaces
+    assert srf.kind == 'surface'
+    assert vol.kind == 'volume'
+    assert disc.kind == 'discrete'
     src = srf + vol + disc
+    assert src.kind == 'mixed'
+    assert srf.kind == 'surface'
+    assert vol.kind == 'volume'
+    assert disc.kind == 'discrete'
 
     # test addition of source spaces
-    assert_equal(type(src), SourceSpaces)
-    assert_equal(len(src), 4)
+    assert len(src) == 4
 
     # test reading and writing
     src_out_name = tmpdir.join('temp-src.fif')
@@ -673,9 +684,9 @@ def test_combine_source_spaces(tmpdir):
     # unrecognized source type
     disc2 = disc.copy()
     disc2[0]['type'] = 'kitty'
-    src_unrecognized = src + disc2
-    pytest.raises(ValueError, src_unrecognized.export_volume, image_fname,
-                  verbose='error')
+    with pytest.raises(ValueError, match='Invalid value'):
+        src + disc2
+    del disc2
 
     # unrecognized file type
     bad_image_fname = tmpdir.join('temp-image.png')

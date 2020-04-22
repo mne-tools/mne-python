@@ -123,7 +123,7 @@ def test_gamma_map_vol_sphere():
     # Compare orientation obtained using fit_dipole and gamma_map
     # for a simulated evoked containing a single dipole
     stc = mne.VolSourceEstimate(50e-9 * np.random.RandomState(42).randn(1, 4),
-                                vertices=stc.vertices[:1],
+                                vertices=[stc.vertices[0][:1]],
                                 tmin=stc.tmin,
                                 tstep=stc.tstep)
     evoked_dip = mne.simulation.simulate_evoked(fwd, stc, info, cov, nave=1e9,
@@ -133,7 +133,7 @@ def test_gamma_map_vol_sphere():
 
     amp_max = [np.max(d.amplitude) for d in dip_gmap]
     dip_gmap = dip_gmap[np.argmax(amp_max)]
-    assert (dip_gmap[0].pos[0] in src[0]['rr'][stc.vertices])
+    assert (dip_gmap[0].pos[0] in src[0]['rr'][stc.vertices[0]])
 
     dip_fit = mne.fit_dipole(evoked_dip, cov, sphere)[0]
     assert (np.abs(np.dot(dip_fit.ori[0], dip_gmap.ori[0])) > 0.99)

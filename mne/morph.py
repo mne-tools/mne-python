@@ -199,7 +199,7 @@ def compute_source_morph(src, subject_from=None, subject_to='fsaverage',
             src_data['to_vox_map'] = (
                 src_to[0]['shape'], src_to[0]['src_mri_t']['trans'] *
                 np.array([[1e3, 1e3, 1e3, 1]]).T)
-            vertices_to = src_to[0]['vertno']
+            vertices_to = [src_to[0]['vertno']]
             zooms_src_to = np.diag(src_data['to_vox_map'][1])[:3]
             assert (zooms_src_to[0] == zooms_src_to).all()
             zooms_src_to = tuple(zooms_src_to)
@@ -372,8 +372,8 @@ class SourceMorph(object):
     def _get_vertices_nz(self, vertices_from):
         logger.info('Computing nonzero vertices after morph ...')
         stc_ones = VolSourceEstimate(np.ones((len(vertices_from), 1)),
-                                     vertices_from, tmin=0., tstep=1.)
-        return np.where(self._morph_one_vol(stc_ones))[0]
+                                     [vertices_from], tmin=0., tstep=1.)
+        return [np.where(self._morph_one_vol(stc_ones))[0]]
 
     @verbose
     def apply(self, stc_from, output='stc', mri_resolution=False,
@@ -567,6 +567,9 @@ def read_source_morph(fname):
         morph = vals['sdr_morph']
         vals['sdr_morph'] = DiffeomorphicMap(None, [])
         vals['sdr_morph'].__dict__ = morph
+    # Backward compat with when it used to be a list
+    if isinstance(vals['vertices_to'], np.ndarray):
+        vals['vertices_to'] = [vals['vertices_to']]
     return SourceMorph(**vals)
 
 
@@ -620,7 +623,7 @@ def _morphed_stc_as_volume(morph, stc, mri_resolution, mri_space, output):
     assert stc.data.ndim == 2
     n_times = stc.data.shape[1]
     img = np.zeros((np.prod(shape), n_times))
-    img[stc.vertices, :] = stc.data
+    img[stc.vertices[0], :] = stc.data
     img = img.reshape(shape + (n_times,), order='F')  # match order='F' above
     del shape
 
@@ -1215,17 +1218,18 @@ def _apply_morph_data(morph, stc_from):
             raise ValueError('stc_from was type %s but must be a volume '
                              'source estimate' % (type(stc_from),))
         vertices_from = np.where(morph.src_data['inuse'])[0]
-        _check_vertices_match(stc_from.vertices, vertices_from, 'volume')
+        _check_vertices_match(
+            vertices_from, stc_from.vertices[0], 'volume')
         n_times = np.prod(stc_from.data.shape[1:])
-        data = np.empty((len(morph.vertices_to), n_times))
+        data = np.empty((len(morph.vertices_to[0]), n_times))
         data_from = np.reshape(stc_from.data, (stc_from.data.shape[0], -1))
         # Loop over time points to save memory
         for k in range(n_times):
             this_stc = VolSourceEstimate(
                 data_from[:, k:k + 1], stc_from.vertices, tmin=0., tstep=1.)
             this_img_to = morph._morph_one_vol(this_stc)
-            data[:, k] = this_img_to[morph.vertices_to]
-        data.shape = (len(morph.vertices_to),) + stc_from.data.shape[1:]
+            data[:, k] = this_img_to[morph.vertices_to[0]]
+        data.shape = (len(morph.vertices_to[0]),) + stc_from.data.shape[1:]
     else:
         assert morph.kind == 'surface'
         if not isinstance(stc_from, (SourceEstimate, VectorSourceEstimate)):

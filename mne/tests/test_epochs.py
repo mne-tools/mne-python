@@ -677,32 +677,33 @@ def test_rescale():
     assert_allclose(tester(mode='zlogratio'), x / s)
 
 
-def test_epochs_baseline():
+@pytest.mark.parametrize('preload', (True, False))
+def test_epochs_baseline(preload):
     """Test baseline and rescaling modes with and without preloading."""
     data = np.array([[2, 3], [2, 3]], float)
     info = create_info(2, 1000., ('eeg', 'misc'))
     raw = RawArray(data, info)
     events = np.array([[0, 0, 1]])
-    for preload in (False, True):
-        epochs = mne.Epochs(raw, events, None, 0, 1e-3, baseline=None,
-                            preload=preload)
-        epochs.drop_bad()
-        epochs_data = epochs.get_data()
-        assert epochs_data.shape == (1, 2, 2)
-        expected = data.copy()
-        assert_array_equal(epochs_data[0], expected)
-        # the baseline period (1 sample here)
-        epochs.apply_baseline((0, 0))
-        expected[0] = [0, 1]
-        if preload:
-            assert_allclose(epochs_data[0][0], expected[0])
-        else:
-            assert_allclose(epochs_data[0][0], expected[1])
-        assert_allclose(epochs.get_data()[0], expected, atol=1e-7)
-        # entire interval
-        epochs.apply_baseline((None, None))
-        expected[0] = [-0.5, 0.5]
-        assert_allclose(epochs.get_data()[0], expected)
+
+    epochs = mne.Epochs(raw, events, None, 0, 1e-3, baseline=None,
+                        preload=preload)
+    epochs.drop_bad()
+    epochs_data = epochs.get_data()
+    assert epochs_data.shape == (1, 2, 2)
+    expected = data.copy()
+    assert_array_equal(epochs_data[0], expected)
+    # the baseline period (1 sample here)
+    epochs.apply_baseline((0, 0))
+    expected[0] = [0, 1]
+    if preload:
+        assert_allclose(epochs_data[0][0], expected[0])
+    else:
+        assert_allclose(epochs_data[0][0], expected[1])
+    assert_allclose(epochs.get_data()[0], expected, atol=1e-7)
+    # entire interval
+    epochs.apply_baseline((None, None))
+    expected[0] = [-0.5, 0.5]
+    assert_allclose(epochs.get_data()[0], expected)
 
 
 def test_epochs_bad_baseline():
@@ -929,11 +930,26 @@ def test_epochs_io_preload(tmpdir, preload):
 
     epochs.event_id.pop('1')
     epochs.event_id.update({'a:a': 1})  # test allow for ':' in key
-    epochs.save(op.join(tempdir, 'foo-epo.fif'), overwrite=True)
-    epochs_read2 = read_epochs(op.join(tempdir, 'foo-epo.fif'),
-                               preload=preload)
-    assert_equal(epochs_read2.event_id, epochs.event_id)
-    assert_equal(epochs_read2['a:a'].average().comment, 'a:a')
+    fname_temp = op.join(tempdir, 'foo-epo.fif')
+    epochs.save(fname_temp, overwrite=True)
+    epochs_read = read_epochs(fname_temp, preload=preload)
+    assert_equal(epochs_read.event_id, epochs.event_id)
+    assert_equal(epochs_read['a:a'].average().comment, 'a:a')
+
+    # now use a baseline, crop it out, and I/O round trip afterward
+    assert epochs.times[0] < 0
+    assert epochs.times[-1] > 0
+    epochs.apply_baseline((None, 0))
+    with pytest.warns(RuntimeWarning,
+                      match=r'setting epochs\.baseline = None'):
+        epochs.crop(1. / epochs.info['sfreq'], None)
+    assert epochs.baseline is None
+    epochs.save(fname_temp, overwrite=True)
+    epochs_read = read_epochs(fname_temp, preload=preload)
+    assert epochs_read.baseline is None
+    assert_allclose(epochs.get_data(), epochs_read.get_data(),
+                    rtol=6e-4)  # XXX this rtol should be better...?
+    del epochs, epochs_read
 
     # add reject here so some of the epochs get dropped
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
@@ -988,7 +1004,10 @@ def test_epochs_io_preload(tmpdir, preload):
     assert epochs.drop_log == epochs_read.drop_log
 
     # Test that having a single time point works
-    epochs.load_data().crop(0, 0)
+    assert epochs.baseline is not None
+    with pytest.warns(RuntimeWarning, match=r'setting epochs\.baseline'):
+        epochs.load_data().crop(0, 0)
+    assert epochs.baseline is None
     assert_equal(len(epochs.times), 1)
     assert_equal(epochs.get_data().shape[-1], 1)
     epochs.save(temp_fname, overwrite=True)
@@ -2598,7 +2617,7 @@ def assert_metadata_equal(got, exp):
         assert isinstance(exp, pandas.DataFrame)
         assert isinstance(got, pandas.DataFrame)
         assert set(got.columns) == set(exp.columns)
-        if LooseVersion(pandas.__version__) < LooseVersion('0.19'):
+        if LooseVersion(pandas.__version__) < LooseVersion('0.25'):
             # Old Pandas does not necessarily order them properly
             got = got[exp.columns]
         check = (got == exp)

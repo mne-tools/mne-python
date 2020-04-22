@@ -17,7 +17,7 @@ from itertools import cycle
 import os
 import os.path as op
 import warnings
-import collections
+from collections.abc import Iterable
 from functools import partial
 
 import numpy as np
@@ -1605,7 +1605,7 @@ def link_brains(brains):
         raise NotImplementedError("Expected 3d backend is pyvista but"
                                   " {} was given.".format(get_3d_backend()))
     from ._brain import _Brain, _TimeViewer, _LinkViewer
-    if not isinstance(brains, collections.Iterable):
+    if not isinstance(brains, Iterable):
         brains = [brains]
     if len(brains) == 0:
         raise ValueError("The collection of brains is empty.")
@@ -2020,13 +2020,14 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         src = _ensure_src(src, kind='volume', extra=' or SourceMorph')
         img = stc.as_volume(src, mri_resolution=False)
         kind, src_subject = 'src subject', src._subject
+    del src
     _print_coord_trans(Transform('mri_voxel', 'ras', img.affine),
                        prefix='Image affine ', units='mm', level='debug')
     subject = _check_subject(src_subject, subject, True, kind=kind)
     stc_ijk = np.array(
-        np.unravel_index(stc.vertices, img.shape[:3], order='F')).T
-    assert stc_ijk.shape == (len(stc.vertices), 3)
-    del src, kind
+        np.unravel_index(stc.vertices[0], img.shape[:3], order='F')).T
+    assert stc_ijk.shape == (len(stc.vertices[0]), 3)
+    del kind
 
     # XXX this assumes zooms are uniform, should probably mult by zooms...
     dist_to_verts = _DistanceQuery(stc_ijk, allow_kdtree=True)
@@ -2040,7 +2041,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
         dist, loc_idx = dist_to_verts.query(ijk[np.newaxis])
         dist, loc_idx = dist[0], loc_idx[0]
         logger.debug('    Using vertex %d at a distance of %d voxels'
-                     % (stc.vertices[loc_idx], dist))
+                     % (stc.vertices[0][loc_idx], dist))
         return loc_idx
 
     ax_name = dict(x='X (saggital)', y='Y (coronal)', z='Z (axial)')
@@ -2207,7 +2208,7 @@ def plot_volume_source_estimates(stc, src, subject=None, subjects_dir=None,
     logger.info('Showing: t = %0.3f s, (%0.1f, %0.1f, %0.1f) mm, '
                 '[%d, %d, %d] vox, %d vertex'
                 % ((stc.times[time_idx],) + tuple(cut_coords) + tuple(ijk) +
-                   (stc.vertices[loc_idx],)))
+                   (stc.vertices[0][loc_idx],)))
     del ijk
 
     # Plot initial figure

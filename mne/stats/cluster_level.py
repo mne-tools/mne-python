@@ -369,6 +369,10 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
             raise KeyError('threshold, if dict, must have at least '
                            '"start" and "step"')
         tfce = True
+        use_x = x[np.isfinite(x)]
+        if use_x.size == 0:
+            raise RuntimeError(
+                'No finite values found in the observed statistic values')
         if tail == -1:
             if threshold['start'] > 0:
                 raise ValueError('threshold["start"] must be <= 0 for '
@@ -376,11 +380,12 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
             if threshold['step'] >= 0:
                 raise ValueError('threshold["step"] must be < 0 for '
                                  'tail == -1')
-            stop = np.min(x)
+            stop = np.min(use_x)
         elif tail == 1:
-            stop = np.max(x)
+            stop = np.max(use_x)
         else:  # tail == 0
-            stop = np.max(np.abs(x))
+            stop = np.max(np.abs(use_x))
+        del use_x
         thresholds = np.arange(threshold['start'], stop,
                                threshold['step'], float)
         h_power = threshold.get('h_power', 2)
@@ -1037,12 +1042,13 @@ def permutation_cluster_test(
         buffer_size=1000, verbose=None):
     """Cluster-level statistical permutation test.
 
-    For a list of nd-arrays of data, e.g. 2d for time series or 3d for
-    time-frequency power values, calculate some statistics corrected for
-    multiple comparisons using permutations and cluster level correction.
-    Each element of the list X contains the data for one group of
-    observations. Randomized data are generated with random partitions
-    of the data. See :footcite:`MarisOostenveld2007` for details.
+    For a list of :class:`NumPy arrays <numpy.ndarray>` of data,
+    calculate some statistics corrected for multiple comparisons using
+    permutations and cluster-level correction. Each element of the list ``X``
+    should contain the data for one group of observations (e.g., 2D arrays for
+    time series, 3D arrays for time-frequency power values). Permutations are
+    generated with random partitions of the data. See
+    :footcite:`MarisOostenveld2007` for details.
 
     Parameters
     ----------
@@ -1053,7 +1059,11 @@ def permutation_cluster_test(
         the size of a single observation. For example if ``X = [X1, X2]``
         with ``X1.shape = (20, 50, 4)`` and ``X2.shape = (17, 50, 4)``, then
         ``X`` has 2 groups with respectively 20 and 17 observations in each,
-        and each data point is of shape ``(50, 4)``.
+        and each data point is of shape ``(50, 4)``. Note: that the
+        *last dimension* of each element of ``X`` should correspond to the
+        dimension represented in the ``connectivity`` parameter
+        (e.g., spectral data should be provided as
+        ``(observations, frequencies, channels/vertices)``).
     %(clust_thresh_f)s
     %(clust_nperm_int)s
     %(clust_tail)s

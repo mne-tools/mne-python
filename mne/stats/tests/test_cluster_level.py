@@ -76,8 +76,8 @@ def test_thresholds(numba_conditional):
     my_fun = partial(ttest_1samp_no_p)
     with catch_logging() as log:
         with pytest.warns(RuntimeWarning, match='threshold is only valid'):
-            out = permutation_cluster_1samp_test(X, stat_fun=my_fun,
-                                                 seed=0, verbose=True)
+            out = permutation_cluster_1samp_test(
+                X, stat_fun=my_fun, seed=0, verbose=True)
     log = log.getvalue()
     assert str(want_thresh)[:6] in log
     assert len(out[1]) == 1  # 1 cluster
@@ -100,6 +100,21 @@ def test_thresholds(numba_conditional):
     assert_allclose(out[2], 0.041992, atol=1e-6)
     with pytest.warns(RuntimeWarning, match='Ignoring argument "tail"'):
         permutation_cluster_test(X, tail=0)
+
+    # nan handling in TFCE
+    X = np.repeat(X[0], 2, axis=1)
+    X[:, 1] = 0
+    with pytest.warns(RuntimeWarning, match='invalid value'):  # NumPy
+        out = permutation_cluster_1samp_test(
+            X, seed=0, threshold=dict(start=0, step=0.1))
+    assert (out[2] < 0.05).any()
+    assert not (out[2] < 0.05).all()
+    X[:, 0] = 0
+    with pytest.raises(RuntimeError, match='finite'):
+        with np.errstate(invalid='ignore'):
+            permutation_cluster_1samp_test(
+                X, seed=0, threshold=dict(start=0, step=0.1),
+                buffer_size=None)
 
 
 def test_cache_dir(tmpdir, numba_conditional):

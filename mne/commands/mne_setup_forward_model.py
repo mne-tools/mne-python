@@ -116,6 +116,10 @@ def run():
     fname = os.path.join(subjects_dir, subject, "bem", fname)
     # Save source space to file
     mne.write_bem_surfaces(fname, bem_model)
+    # Compute the solution
+    sol_fname = os.path.splitext(fname)[0] + '-sol.fif'
+    bem_sol = mne.make_bem_solution(bem_model, verbose=verbose)
+    mne.write_bem_solution(sol_fname, bem_sol)
 
 
 mne.utils.run_command_if_main()
