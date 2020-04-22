@@ -38,9 +38,7 @@ raw_intensity = mne.io.read_raw_nirx(fnirs_raw_dir, verbose=True).load_data()
 # between the optodes, channels (the mid point of source-detector pairs) are
 # shown as dots.
 
-mne.datasets.fetch_fsaverage()
 subjects_dir = mne.datasets.sample.data_path() + '/subjects'
-mne.viz.set_3d_backend('pyvista')
 
 fig = mne.viz.create_3d_figure(size=(800, 600), bgcolor='white')
 fig = mne.viz.plot_alignment(raw_intensity.info, show_axes=True,
