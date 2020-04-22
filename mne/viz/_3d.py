@@ -597,7 +597,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
     fnirs : str | list | bool | None
         Can be "channels" or "pairs" to show the fNIRS channel locations or
         line between source-detector pairs, or a combination like
-        ``('pairs', 'channels')``. True translates to ``('channels',)``.
+        ``('pairs', 'channels')``. True translates to ``('pairs',)``.
 
         .. versionadded:: 0.20
     show_axes : bool
@@ -667,7 +667,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
         eeg = [eeg]
 
     if fnirs is True:
-        fnirs = ['channels']
+        fnirs = ['pairs']
     elif fnirs is False:
         fnirs = list()
     elif isinstance(fnirs, str):
@@ -1147,7 +1147,7 @@ def plot_alignment(info=None, trans=None, subject=None, subjects_dir=None,
                               fwd_nn[:, ori, 1],
                               fwd_nn[:, ori, 2],
                               color=color, mode='arrow', scale=1.5e-3)
-    if 'pairs' in fnirs:
+    if 'pairs' in fnirs and len(fnirs_picks) > 0:
         fnirs_loc = np.array([info['chs'][k]['loc'][3:9] for k in fnirs_picks])
         logger.info('Plotting %d fnirs pairs' % (fnirs_loc.shape[0]))
         renderer.tube(origin=fnirs_loc[:, :3],

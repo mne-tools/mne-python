@@ -338,7 +338,7 @@ def test_plot_alignment(tmpdir, renderer):
     with catch_logging() as log:
         plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True)
     log = log.getvalue()
-    assert '26 fnirs locations' in log
+    assert '26 fnirs pairs' in log
 
     with catch_logging() as log:
         plot_alignment(info, subject='fsaverage', surfaces=(), verbose=True,
