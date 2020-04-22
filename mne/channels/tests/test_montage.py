@@ -19,7 +19,8 @@ from numpy.testing import (assert_array_equal,
 from mne import __file__ as _mne_file, create_info, read_evokeds
 from mne.utils._testing import _dig_sort_key
 from mne.channels import (get_builtin_montages, DigMontage, read_dig_dat,
-                          read_dig_egi, read_dig_captrack, read_dig_fif,
+                          read_dig_egi, read_dig_captrak, read_dig_fif,
+                          read_dig_captrack,  # XXX: remove with 0.22
                           make_standard_montage, read_custom_montage,
                           compute_dev_head_t, make_dig_montage,
                           read_dig_polhemus_isotrak,
@@ -836,8 +837,8 @@ def _pop_montage(dig_montage, ch_name):
 
 
 @testing.requires_testing_data
-def test_read_dig_captrack(tmpdir):
-    """Test reading a captrack montage file."""
+def test_read_dig_captrak(tmpdir):
+    """Test reading a captrak montage file."""
     EXPECTED_CH_NAMES_OLD = [
         'AF3', 'AF4', 'AF7', 'AF8', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'CP1',
         'CP2', 'CP3', 'CP4', 'CP5', 'CP6', 'CPz', 'Cz', 'F1', 'F2', 'F3', 'F4',
@@ -857,9 +858,17 @@ def test_read_dig_captrack(tmpdir):
         'C6', 'FT8'
     ]
     assert set(EXPECTED_CH_NAMES) == set(EXPECTED_CH_NAMES_OLD)
-    montage = read_dig_captrack(
+    montage = read_dig_captrak(
         fname=op.join(data_path, 'montage', 'captrak_coords.bvct')
     )
+
+    # XXX: remove with 0.22 once captrCK is deprecated
+    with pytest.warns(DeprecationWarning,
+                      match='read_dig_captrack is deprecated'):
+        montage2 = read_dig_captrack(
+            fname=op.join(data_path, 'montage', 'captrak_coords.bvct')
+        )
+        assert repr(montage) == repr(montage2)
 
     assert montage.ch_names == EXPECTED_CH_NAMES
     assert repr(montage) == (
