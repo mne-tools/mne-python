@@ -92,7 +92,7 @@ def run():
     clipping = options.clipping
     try:
         clipping = float(clipping)  # allow float and convert it
-    except ValueError:
+    except (TypeError, ValueError):  # catch None and non-float str
         pass
     if isinstance(clipping, str):
         clipping = None if clipping.lower() == 'none' else clipping
