@@ -4,6 +4,7 @@
 
 from copy import deepcopy
 import os.path as op
+import re
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -25,11 +26,12 @@ from mne import (stats, SourceEstimate, VectorSourceEstimate,
 from mne.datasets import testing
 from mne.fixes import fft, _get_img_fdata
 from mne.source_estimate import grade_to_tris, _get_vol_mask
-from mne.source_space import _get_src_nn
+from mne.source_space import (_get_src_nn, get_volume_labels_from_aseg,
+                              read_freesurfer_lut)
 from mne.minimum_norm import (read_inverse_operator, apply_inverse,
                               apply_inverse_epochs, make_inverse_operator)
 from mne.label import read_labels_from_annot, label_sign_flip
-from mne.utils import (requires_pandas, requires_sklearn,
+from mne.utils import (requires_pandas, requires_sklearn, catch_logging,
                        requires_h5py, run_tests_if_main, requires_nibabel)
 from mne.io import read_raw_fif
 
@@ -47,7 +49,11 @@ fname_cov = op.join(
 fname_evoked = op.join(data_path, 'MEG', 'sample',
                        'sample_audvis_trunc-ave.fif')
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
+fname_bem = op.join(
+    data_path, 'subjects', 'sample', 'bem', 'sample-1280-bem.fif')
 fname_t1 = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
+fname_fs_t1 = op.join(data_path, 'subjects', 'fsaverage', 'mri', 'T1.mgz')
+fname_aseg = op.join(data_path, 'subjects', 'sample', 'mri', 'aseg.mgz')
 fname_src = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 fname_src_fs = op.join(data_path, 'subjects', 'fsaverage', 'bem',
@@ -638,6 +644,77 @@ def test_extract_label_time_course(kind, vector):
     label = Label(vertices=[], hemi='lh')
     x = label_sign_flip(label, src[:2])
     assert (x.size == 0)
+
+
+@pytest.fixture(scope='module')
+@pytest.mark.parametrize(params=[testing._pytest_param()])
+def src_volume_labels():
+    """Create a 7mm source space with labels."""
+    volume_labels = get_volume_labels_from_aseg(fname_aseg)
+    src = setup_volume_source_space(
+        'sample', 7., mri='aseg.mgz', volume_label=volume_labels,
+        add_interpolator=False, bem=fname_bem)
+    lut, _ = read_freesurfer_lut()
+    assert len(volume_labels) == 46
+    assert volume_labels[0] == 'Unknown'
+    assert lut['Unknown'] == 0  # it will be excluded during label gen
+    return src, volume_labels
+
+
+@pytest.mark.slowtest  # ~3 sec to generate the vol above ...
+@pytest.mark.parametrize('vector', (False, True))
+def test_extract_label_time_course_volume(vector, src_volume_labels):
+    """Test extraction of label time courses from Vol(Vector)SourceEstimate."""
+    src_labels, volume_labels = src_volume_labels
+    inv = read_inverse_operator(fname_inv_vol)
+    src = inv['src']
+    assert len(src) == 1 and src.kind == 'volume'
+    klass = VolVectorSourceEstimate
+    if not vector:
+        klass = klass._scalar_class
+    vertices = [src[0]['vertno']]
+    n_verts = len(src[0]['vertno'])
+    n_times = 50
+    data = vertex_values = np.arange(1, n_verts + 1)
+    end_shape = (n_times,)
+    if vector:
+        end_shape = (3,) + end_shape
+        data = np.pad(data[:, np.newaxis], ((0, 0), (2, 0)), 'constant')
+    data = np.repeat(data[..., np.newaxis], n_times, -1)
+    stcs = [klass(data, vertices, 0, 1)]
+    with pytest.raises(RuntimeError, match='atlas vox_mri_t does not match'):
+        extract_label_time_course(stcs, fname_fs_t1, src)
+    assert len(src_labels) == 46  # includes unknown
+    assert_array_equal(
+        src[0]['vertno'],  # src includes some in "unknown" space
+        np.sort(np.concatenate([s['vertno'] for s in src_labels])))
+    src_labels = src_labels[1:]
+    for mode in ('mean', 'max'):
+        with catch_logging() as log:
+            label_tc = extract_label_time_course(
+                stcs, fname_aseg, src, mode=mode,
+                allow_empty='ignore', verbose=True)
+        log = log.getvalue()
+        assert re.search('^Reading atlas.*aseg\\.mgz\n', log) is not None
+        assert '\n31/45 atlas regions had at least' in log
+        assert len(label_tc) == 1
+        label_tc = label_tc[0]
+        assert label_tc.shape == (45,) + end_shape
+        if vector:
+            assert_array_equal(label_tc[:, :2], 0.)
+            label_tc = label_tc[:, 2]
+        assert label_tc.shape == (45, n_times)
+        # let's test some actual values by trusting the masks provided by
+        # setup_volume_source_space
+        for si, s in enumerate(src_labels):
+            func = dict(mean=np.mean, max=np.max)[mode]
+            these = vertex_values[np.in1d(src[0]['vertno'], s['vertno'])]
+            assert len(these) == s['nuse']
+            if s['nuse'] == 0:
+                assert_array_equal(label_tc[si], 0.)
+            else:
+                want = func(these)
+                assert_allclose(label_tc[si], want)
 
 
 @testing.requires_testing_data

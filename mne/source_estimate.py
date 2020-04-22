@@ -23,9 +23,7 @@ from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject, SourceSpaces, _get_src_nn,
                            _import_nibabel, _get_mri_info_data,
                            _get_atlas_values)
-from .transforms import (_angle_between_quats, rot_to_quat,
-                         _print_coord_trans)
-from .utils import (get_subjects_dir, _check_subject, logger, verbose,
+from .utils import (get_subjects_dir, _check_subject, logger, verbose, _pl,
                     _time_mask, warn, copy_function_doc_to_method_doc,
                     fill_doc, _check_option, _validate_type, _check_src_normal,
                     _check_stc_units, _check_pandas_installed, deprecated,
@@ -2684,7 +2682,6 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty):
     # of vol src space
     from .label import label_sign_flip, Label, BiHemiLabel
 
-
     # get vertices from source space, they have to be the same as in the stcs
     vertno = stc.vertices
     nvert = [len(vn) for vn in vertno]
@@ -2698,6 +2695,7 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty):
             raise ValueError('%d/%d %s hemisphere stc vertices missing from '
                              'the source space, likely mismatch'
                              % (n_missing, len(v), hemi))
+    bad_labels = list()
     for li, label in enumerate(labels):
         _validate_type(label, (Label, BiHemiLabel), 'labels[%d]' % (li,))
 
@@ -2722,12 +2720,7 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty):
         this_vertidx = np.concatenate(this_vertidx)
         this_flip = None
         if len(this_vertidx) == 0:
-            msg = ('source space does not contain any vertices for label %s'
-                   % label.name)
-            if not allow_empty:
-                raise ValueError(msg)
-            else:
-                warn(msg + '. Assigning all-zero time series to label.')
+            bad_labels.append(label.name)
             this_vertidx = None  # to later check if label is empty
         elif mode not in ('mean', 'max'):  # mode-dependent initialization
             # label_sign_flip uses two properties:
@@ -2743,6 +2736,18 @@ def _prepare_label_extraction(stc, labels, src, mode, allow_empty):
         label_vertidx.append(this_vertidx)
         label_flip.append(this_flip)
 
+    if len(bad_labels):
+        msg = ('source space does not contain any vertices for %d label%s:\n%s'
+               % (len(bad_labels), _pl(bad_labels), bad_labels))
+        if not allow_empty:
+            raise ValueError(msg)
+        else:
+            msg += '\nAssigning all-zero time series.'
+            if allow_empty == 'ignore':
+                logger.info(msg)
+            else:
+                warn(msg)
+
     return label_vertidx, label_flip
 
 
@@ -2756,13 +2761,19 @@ def _volume_labels(src, labels):
                    'labels when using a volume source space')
     logger.info('Reading atlas %s' % (labels,))
     vol_info = _get_mri_info_data(labels, data=True)
+    atlas_values = np.unique(vol_info['data'])
+    atlas_values = atlas_values[np.isfinite(atlas_values)]
+    atlas_values = atlas_values[atlas_values != 0]
+    if not (atlas_values == np.round(atlas_values)).all():
+        raise RuntimeError('Non-integer values present in atlas, cannot '
+                           'labelize')
+    atlas_values = np.round(atlas_values).astype(np.int64)
     vox_mri_t = vol_info['vox_mri_t']
     want = src[0].get('vox_mri_t', None)
     if want is None:
         raise RuntimeError(
             'Cannot use volumetric atlas if no mri was supplied during '
             'source space creation')
-    _print_coord_trans(vox_mri_t, 'MRI volume : ')
     vox_mri_t, want = vox_mri_t['trans'], want['trans']
     if not np.allclose(vox_mri_t, want, atol=1e-6):
         raise RuntimeError(
@@ -2770,8 +2781,15 @@ def _volume_labels(src, labels):
             'space')
     vertno = src[0]['vertno']
     src_values = _get_atlas_values(vol_info, src[0]['rr'][vertno])
-    labels = [Label(vertno[src_values == val])
-              for val in np.unique(vol_info['data'])]
+    valid = np.isfinite(src_values)
+    if not (src_values[valid] == np.round(src_values[valid])).all():
+        raise RuntimeError('MRI is not ')
+    vertices = [vertno[src_values == val] for val in atlas_values]
+    labels = [Label(v, hemi='lh', name=val)
+              for v, val in zip(vertices, atlas_values)]
+    nnz = sum(len(v) != 0 for v in vertices)
+    logger.info('%d/%d atlas regions had at least one vertex '
+                'in the source space' % (nnz, len(atlas_values)))
     return labels
 
 

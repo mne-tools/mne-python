@@ -2613,6 +2613,9 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False):
 
     Notes
     -----
+    .. versionchanged:: 0.21.0
+       The label names are now sorted in the same order as their corresponding
+       values in the MRI file.
     .. versionadded:: 0.9.0
     """
     import nibabel as nib
@@ -2621,7 +2624,8 @@ def get_volume_labels_from_aseg(mgz_fname, return_colors=False):
     ids, colors = read_freesurfer_lut()
     # restrict to the ones in the MRI, sorted by label name
     keep = np.in1d(list(ids.values()), want)
-    keys = sorted(key for ki, key in enumerate(colors.keys()) if keep[ki])
+    keys = sorted((key for ki, key in enumerate(colors.keys()) if keep[ki]),
+                  key=lambda x: ids[x])
     colors = [colors[k] for k in keys]
     if return_colors:
         out = keys, colors

@@ -873,8 +873,14 @@ time_label : str | callable | None
 
 # STC label time course
 docdict['eltc_labels'] = """
-labels : Label | BiHemiLabel | list of Label or BiHemiLabel
+labels : Label | BiHemiLabel | list of Label or BiHemiLabel | str
     The labels for which to extract the time course.
+    If a whole-brain volume source estimates are used, this can
+    also be a string path to a MGZ atlas for the subject (e.g., their
+    'aseg.mgz').
+
+    .. versionchanged 0.21.0::
+       Support for volume source estimates.
 """
 docdict['eltc_src'] = """
 src : list
@@ -885,9 +891,15 @@ mode : str
     Extraction mode, see Notes.
 """
 docdict['eltc_allow_empty'] = """
-allow_empty : bool
-    Instead of emitting an error, return all-zero time courses for labels
-    that do not have any vertices in the source estimate. Default is ``False``.
+allow_empty : bool | str
+    ``False`` (default) will emit an error if there are labels that have no
+    vertices in the source estimate. ``True`` and ``'ignore'`` will return
+    all-zero time courses for labels that do not have any vertices in the
+    source estimate, and True will emit a warning while and "ignore" will
+    just log a message.
+
+    .. versionchanged:: 0.21.0
+       Support for "ignore".
 """
 docdict['eltc_mode_notes'] = """
 Valid values for ``mode`` are:
@@ -919,9 +931,9 @@ Valid values for ``mode`` are:
     ``'mean'`` when a vector source estimate is supplied.
 
     .. versionadded:: 0.21
-       Support for ``'auto'`` and vector source estimates.
+       Support for ``'auto'``, vector, and volume source estimates.
 
-The only modes that work for vector source estimates are ``'mean'``,
+The only modes that work for vector and volume source estimates are ``'mean'``,
 ``'max'``, and ``'auto'``.
 """
 docdict['get_peak_parameters'] = """
