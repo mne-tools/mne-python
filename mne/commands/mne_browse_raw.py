@@ -90,12 +90,12 @@ def run():
     lowpass = options.lowpass
     filtorder = options.filtorder
     clipping = options.clipping
-    if isinstance(clipping, str):
-        clipping = None if clipping.lower() == 'none' else clipping
     try:
         clipping = float(clipping)  # allow float and convert it
-    except (TypeError, ValueError):
+    except ValueError:
         pass
+    if isinstance(clipping, str):
+        clipping = None if clipping.lower() == 'none' else clipping
     filterchpi = options.filterchpi
     verbose = options.verbose
 
