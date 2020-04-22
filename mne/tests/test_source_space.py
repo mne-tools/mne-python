@@ -595,7 +595,8 @@ def test_source_space_exclusive():
     volume_label = ['Left-Cerebral-White-Matter', 'Left-Cerebral-Cortex']
     src = setup_volume_source_space(
         'sample', subjects_dir=subjects_dir, volume_label=volume_label,
-        mri='aseg.mgz', add_interpolator=False)
+        mri='aseg.mgz', add_interpolator=False, sphere=(0, 0, 0, 0.095),
+        sphere_units='m')
     assert src[0]['nuse'] == 2034  # was 2832
     assert src[1]['nuse'] == 1520  # was 2623
     overlap = np.in1d(src[0]['vertno'], src[1]['vertno']).mean()
