@@ -107,12 +107,12 @@ def _test_weight_norm(filters, norm=1):
     for ws in filters['weights']:
         ws = ws.reshape(-1, filters['n_orient'], ws.shape[1])
         for w in ws:
-            assert_allclose(np.trace(w.dot(w.T)), norm)
+            assert_allclose(np.trace(w.dot(w.conjugate().T)), norm)
 
 
 idx_param = pytest.mark.parametrize('idx, mat_tol, vol_tol', [
     (0, 0.055, 0.),
-    (100, 0.020, 0.01),
+    (100, 0.020, 0.007),
     (200, 0., 0.015),
     (233, 0.035, 0.),
 ])
@@ -229,13 +229,14 @@ def test_make_dics(tmpdir, _load_forward, idx, mat_tol, vol_tol):
     filters = make_dics(epochs.info, fwd_surf, csd_noise, label=label,
                         weight_norm=None, normalize_fwd=True)
     w = filters['weights'][0][:3]
-    assert_allclose(np.diag(w.dot(w.T)), 1.0, rtol=1e-6, atol=0)
+    assert_allclose(np.diag(w.dot(w.conjugate().T)), 1.0, rtol=1e-6, atol=0)
 
     # Test turning off both forward and weight normalization
     filters = make_dics(epochs.info, fwd_surf, csd, label=label,
                         weight_norm=None, normalize_fwd=False)
     w = filters['weights'][0][:3]
-    assert not np.allclose(np.diag(w.dot(w.T)), 1.0, rtol=1e-2, atol=0)
+    assert not np.allclose(np.diag(w.dot(w.conjugate().T)), 1.0,
+                           rtol=1e-2, atol=0)
 
     # Test neural-activity-index weight normalization. It should be a scaled
     # version of the unit-noise-gain beamformer.
@@ -247,8 +248,8 @@ def test_make_dics(tmpdir, _load_forward, idx, mat_tol, vol_tol):
         epochs.info, fwd_surf, csd, label=label, pick_ori='max-power',
         weight_norm='unit-noise-gain', normalize_fwd=False)
     w_ung = filters_ung['weights'][0]
-    assert np.allclose(np.corrcoef(np.abs(w_nai).ravel(),
-                                   np.abs(w_ung).ravel()), 1)
+    assert_allclose(np.corrcoef(np.abs(w_nai).ravel(),
+                                np.abs(w_ung).ravel()), 1, atol=1e-7)
 
     # Test whether spatial filter contains src_type
     assert 'src_type' in filters
@@ -303,7 +304,7 @@ def test_apply_dics_csd(_load_forward, idx, mat_tol, vol_tol):
 @idx_param
 def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion, idx,
                             mat_tol, vol_tol):
-    """Testpicking different orientations and inversion modes."""
+    """Test picking different orientations and inversion modes."""
     fwd_free, fwd_surf, fwd_fixed, fwd_vol = _load_forward
     epochs, _, csd, source_vertno, label, vertices, source_ind = \
         _simulate_data(fwd_fixed, idx)
@@ -325,7 +326,7 @@ def test_apply_dics_ori_inv(_load_forward, pick_ori, inversion, idx,
     inds = np.triu_indices(csd.n_channels)
     csd_noise._data[...] = np.eye(csd.n_channels)[inds][:, np.newaxis]
     noise_power, f = apply_dics_csd(csd_noise, filters)
-    assert np.allclose(noise_power.data, 1)
+    assert_allclose(noise_power.data, 1., atol=1e-7)
 
     # Test filter with forward normalization instead of weight
     # normalization

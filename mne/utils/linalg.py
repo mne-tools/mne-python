@@ -156,3 +156,19 @@ def sqrtm_sym(A, rcond=1e-7, inv=False):
         use_s = s
     a = np.matmul(u * use_s[..., np.newaxis, :], u.swapaxes(-2, -1))
     return a, s
+
+
+def _pos_semidef_inv(x, reduce_rank):
+    """Invert positive semidefinite matrices with optional rank reduction."""
+    s, u = np.linalg.eigh(x)
+    # mimic default np.linalg.pinv behavior
+    cutoff = 1e-15 * s[..., -1:]
+    s[s <= cutoff] = np.inf
+    if reduce_rank:
+        # These are ordered smallest to largest, so we set the first one
+        # to inf -- then the 1. / s below will turn this to zero, as needed.
+        s[..., 0] = np.inf
+    s = 1. / s
+    # For positive semidefinite matrices, the transpose is equal to the
+    # conjugate.
+    return np.matmul(u * s[..., np.newaxis, :], u.swapaxes(-2, -1).conj())
