@@ -606,7 +606,7 @@ def _get_montage_in_head(montage):
 
 
 @fill_doc
-def _set_montage(info, montage, match_case=True, on_missing=True):
+def _set_montage(info, montage, match_case=True, on_missing='raise'):
     """Apply montage to data.
 
     With a DigMontage, this function will replace the digitizer info with
