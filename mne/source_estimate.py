@@ -1638,12 +1638,16 @@ class SourceEstimate(_BaseSurfaceSourceEstimate):
         if hemi == 'lh':
             use = self.__class__(
                 self.lh_data, [self.vertices[0], []], self.tmin, self.tstep)
+            meth = use.get_peak
         elif hemi == 'rh':
             use = self.__class__(
                 self.rh_data, [[], self.vertices[1]], self.tmin, self.tstep)
+            meth = use.get_peak
         else:
-            use = self
-        return use.get_peak(tmin, tmax, mode, vert_as_index, time_as_index)
+            meth = super().get_peak
+        return meth(tmin=tmin, tmax=tmax, mode=mode,
+                    vert_as_index=vert_as_index,
+                    time_as_index=time_as_index)
 
     @fill_doc
     def center_of_mass(self, subject=None, hemi=None, restrict_vertices=False,
@@ -2806,11 +2810,11 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                 label_tc[i] = func(flip, stc.data[vertidx])
 
         # extract label time series for the vol src space (only mean supported)
-        offset = nvert[:-n_aseg].sum()  # effectively :2 or :0
+        offset = nvert[:-n_mean].sum()  # effectively :2 or :0
         for i, nv in enumerate(nvert[2:]):
             if nv != 0:
                 v2 = offset + nv
-                label_tc[n_aparc + i] = np.mean(stc.data[offset:v2], axis=0)
+                label_tc[n_mode + i] = np.mean(stc.data[offset:v2], axis=0)
                 offset = v2
 
         # this is a generator!

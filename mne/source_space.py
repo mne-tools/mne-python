@@ -1337,15 +1337,17 @@ def _read_talxfm(subject, subjects_dir, verbose=None):
     return mri_mni_t
 
 
-def _read_mri_info(path, units='m'):
+def _read_mri_info(path, units='m', return_img=False):
     if has_nibabel():
         import nibabel
-        hdr = nibabel.load(path).header
+        mgz = nibabel.load(path)
+        hdr = mgz.header
         n_orig = hdr.get_vox2ras()
         t_orig = hdr.get_vox2ras_tkr()
         dims = hdr.get_data_shape()
         zooms = hdr.get_zooms()[:3]
     else:
+        mgz = None
         hdr = _get_mgz_header(path)
         n_orig = hdr['vox2ras']
         t_orig = hdr['vox2ras_tkr']
@@ -1371,7 +1373,10 @@ def _read_mri_info(path, units='m'):
         # just the translation term
         mri_ras_t['trans'][:, 3:4] *= conv
 
-    return vox_ras_t, vox_mri_t, mri_ras_t, dims, zooms
+    out = (vox_ras_t, vox_mri_t, mri_ras_t, dims, zooms)
+    if return_img:
+        out += (mgz,)
+    return out
 
 
 ###############################################################################
@@ -1762,10 +1767,7 @@ def setup_volume_source_space(subject=None, pos=5.0, mri=None,
         logger.info('MRI volume            : %s' % mri)
         logger.info('')
         logger.info('Reading %s...' % mri)
-        _, vol_info['vox_mri_t'], vol_info['mri_ras_t'], dims, _ = \
-            _read_mri_info(mri)
-        vol_info.update(mri_width=dims[0], mri_height=dims[1],
-                        mri_depth=dims[1], mri_volume_name=mri)
+        vol_info.update(_get_mri_info_data(mri, data=volume_label is not None))
 
     exclude /= 1000.0  # convert exclude from m to mm
     logger.info('')
@@ -1922,25 +1924,32 @@ def _import_nibabel(why='use MRI files'):
     return nib
 
 
-def _get_volume_label_mask(mri, vol_id, rr):
-    nib = _import_nibabel()
-
+def _get_mri_info_data(mri, data):
     # Read the segmentation data using nibabel
-    mgz = nib.load(mri)
-    mgz_data = _get_img_fdata(mgz)
+    if data:
+        _import_nibabel('load MRI atlas data')
+    out = dict()
+    _, out['vox_mri_t'], out['mri_ras_t'], dims, _, mgz = _read_mri_info(
+        mri, return_img=True)
+    out.update(
+        mri_width=dims[0], mri_height=dims[1],
+        mri_depth=dims[1], mri_volume_name=mri)
+    if data:
+        assert mgz is not None
+        out['mri_vox_t'] = invert_transform(out['vox_mri_t'])
+        out['data'] = _get_img_fdata(mgz)
+    return out
 
+
+def _get_atlas_values(vol_info, rr):
     # Transform MRI coordinates (where our surfaces live) to voxels
-    _, vox_mri_t, _, _, _ = _read_mri_info(mri)
-    mri_vox_t = invert_transform(vox_mri_t)
-    rr_vox = apply_trans(mri_vox_t, rr)
-    good = (rr_vox >= -.5).all(-1)
-    idx = np.empty(rr.shape[::-1], np.int64)
-    for ii in range(3):
-        good &= rr_vox[:, ii] < mgz_data.shape[ii] - 0.5
-        idx[ii] = np.clip(np.round(rr_vox[:, ii]).astype(np.int64),
-                          0, mgz_data.shape[ii] - 1)
-    good &= mgz_data[tuple(idx)] == vol_id
-    return good
+    rr_vox = apply_trans(vol_info['mri_vox_t'], rr)
+    good = ((rr_vox >= -.5) &
+            (rr_vox < np.array(vol_info['data'].shape, int) - 0.5)).all(-1)
+    idx = np.round(rr_vox[good].T).astype(np.int64)
+    values = np.full(rr.shape[0], np.nan)
+    values[good] = vol_info['data'][tuple(idx)]
+    return values
 
 
 def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
@@ -2018,7 +2027,7 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
         logger.info('')
         logger.info('Selecting voxels from %s' % volume_label)
         vol_id = atlas_ids[volume_label]
-        bads = ~_get_volume_label_mask(mri, vol_id, sp['rr'])
+        bads = _get_atlas_values(vol_info, sp['rr']) != vol_id
         # Update source info
         sp['inuse'][bads] = False
         sp['nuse'] = sp['inuse'].sum()
@@ -2141,7 +2150,10 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
     ras = np.eye(3)
     sp['src_mri_t'] = _make_voxel_ras_trans(r0, ras, voxel_size)
     sp['vol_dims'] = maxn - minn + 1
-    sp.update(vol_info)
+    for key in ('mri_width', 'mri_height', 'mri_depth', 'mri_volume_name',
+                'vox_mri_t', 'mri_ras_t'):
+        if key in vol_info:
+            sp[key] = vol_info[key]
     if first:
         _print_coord_trans(sp['src_mri_t'], 'Source space : ')
         for key in ('vox_mri_t', 'mri_ras_t'):
