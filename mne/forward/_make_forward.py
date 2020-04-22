@@ -728,14 +728,14 @@ def make_forward_dipole(dipole, bem, info, trans=None, n_jobs=1, verbose=None):
         row += len(amp)
 
     if tstep > 0:
-        stc = VolSourceEstimate(data, vertices=fwd['src'][0]['vertno'],
+        stc = VolSourceEstimate(data, vertices=[fwd['src'][0]['vertno']],
                                 tmin=timepoints[0],
                                 tstep=tstep, subject=None)
     else:  # Must return a list of stc, one for each time point
         stc = []
         for col, tp in enumerate(timepoints):
             stc += [VolSourceEstimate(data[:, col][:, np.newaxis],
-                                      vertices=fwd['src'][0]['vertno'],
+                                      vertices=[fwd['src'][0]['vertno']],
                                       tmin=tp, tstep=0.001, subject=None)]
     return fwd, stc
 

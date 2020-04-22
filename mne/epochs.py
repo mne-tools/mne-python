@@ -1088,17 +1088,17 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
     def plot_psd_topomap(self, bands=None, vmin=None, vmax=None, tmin=None,
                          tmax=None, proj=False, bandwidth=None, adaptive=False,
                          low_bias=True, normalization='length', ch_type=None,
-                         cmap='RdBu_r', agg_fun=None, dB=True,
-                         n_jobs=1, normalize=False, cbar_fmt='%0.3f',
+                         cmap=None, agg_fun=None, dB=True,
+                         n_jobs=1, normalize=False, cbar_fmt='auto',
                          outlines='head', axes=None, show=True,
-                         sphere=None, verbose=None):
+                         sphere=None, vlim=(None, None), verbose=None):
         return plot_epochs_psd_topomap(
             self, bands=bands, vmin=vmin, vmax=vmax, tmin=tmin, tmax=tmax,
             proj=proj, bandwidth=bandwidth, adaptive=adaptive,
             low_bias=low_bias, normalization=normalization, ch_type=ch_type,
             cmap=cmap, agg_fun=agg_fun, dB=dB, n_jobs=n_jobs,
             normalize=normalize, cbar_fmt=cbar_fmt, outlines=outlines,
-            axes=axes, show=show, sphere=sphere, verbose=verbose)
+            axes=axes, show=show, sphere=sphere, vlim=vlim, verbose=verbose)
 
     @copy_function_doc_to_method_doc(plot_topo_image_epochs)
     def plot_topo_image(self, layout=None, sigma=0., vmin=None, vmax=None,
@@ -1507,6 +1507,12 @@ class BaseEpochs(ProjMixin, ContainsMixin, UpdateChannelsMixin, ShiftTimeMixin,
         self._set_times(self.times[tmask])
         self._raw_times = self._raw_times[tmask]
         self._data = self._data[:, :, tmask]
+        try:
+            _check_baseline(self.baseline, tmin, tmax, self.info['sfreq'])
+        except ValueError:  # in no longer applies, wipe it out
+            warn('Cropping removes baseline period, setting '
+                 'epochs.baseline = None')
+            self.baseline = None
         return self
 
     def copy(self):

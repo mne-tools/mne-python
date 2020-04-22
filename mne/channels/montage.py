@@ -11,7 +11,6 @@
 #
 # License: Simplified BSD
 
-from collections import OrderedDict
 import os.path as op
 import re
 from copy import deepcopy
@@ -118,9 +117,7 @@ def make_dig_montage(ch_pos=None, nasion=None, lpa=None, rpa=None,
     if ch_pos is None:
         ch_names = None
     else:
-        ch_names = list(ch_pos.keys())
-        if not isinstance(ch_pos, OrderedDict):
-            ch_names = sorted(ch_names)
+        ch_names = list(ch_pos)
     dig = _make_dig_points(
         nasion=nasion, lpa=lpa, rpa=rpa, hpi=hpi, extra_points=hsp,
         dig_ch_pos=ch_pos, coord_frame=coord_frame
@@ -588,11 +585,6 @@ def read_dig_captrack(fname):
     """
     _check_fname(fname, overwrite='read', must_exist=True)
     data = _parse_brainvision_dig_montage(fname, scale=1e-3)
-
-    # XXX: to change to the new naming in v.0.20 (all this block should go)
-    data.pop('point_names')
-    data['hpi'] = data.pop('elp')
-    data['ch_pos'] = data.pop('dig_ch_pos')
 
     return make_dig_montage(**data)
 

@@ -16,6 +16,7 @@ Examples
 import sys
 
 import mne
+from mne.utils import _check_option
 
 
 def run():
@@ -69,6 +70,12 @@ def run():
                             ' (one for each hemisphere).',
                       default=1,
                       type='int')
+    parser.add_option('--add-dist',
+                      dest='add_dist',
+                      help='Add distances. Can be "True", "False", or "patch" '
+                      'to only compute cortical patch statistics (like the '
+                      '--cps option in MNE-C; requires SciPy >= 1.3)',
+                      default='True')
     parser.add_option('-o', '--overwrite',
                       dest='overwrite',
                       help='to write over existing files',
@@ -90,6 +97,9 @@ def run():
     oct = options.oct
     surface = options.surface
     n_jobs = options.n_jobs
+    add_dist = options.add_dist
+    _check_option('add_dist', add_dist, ('True', 'False', 'patch'))
+    add_dist = {'True': True, 'False': False, 'patch': 'patch'}[add_dist]
     verbose = True if options.verbose is not None else False
     overwrite = True if options.overwrite is not None else False
 
@@ -121,13 +131,13 @@ def run():
     # Create source space
     src = mne.setup_source_space(subject=subject, spacing=use_spacing,
                                  surface=surface, subjects_dir=subjects_dir,
-                                 n_jobs=n_jobs, verbose=verbose)
+                                 n_jobs=n_jobs, add_dist=add_dist,
+                                 verbose=verbose)
     # Morph source space if --morph is set
     if subject_to is not None:
         src = mne.morph_source_spaces(src, subject_to=subject_to,
                                       subjects_dir=subjects_dir,
-                                      surf=surface,
-                                      verbose=verbose)
+                                      surf=surface, verbose=verbose)
 
     # Save source space to file
     src.save(fname=fname, overwrite=overwrite)

@@ -5,21 +5,27 @@
 # License: Simplified BSD
 
 import warnings
+from functools import partial
+import os
 import time
 import traceback
 import sys
 
 import numpy as np
 
+from . import _Brain
 from ..utils import _check_option, _show_help, _get_color_list, tight_layout
 from ...externals.decorator import decorator
 from ...source_space import vertex_to_mni
-from ...utils import _ReuseCycle
+from ...utils import _ReuseCycle, warn, copy_doc
 
-# all icons are stored in mne/viz/_brain/resources.py, which must be
-# automatically generated with:
-# "pyrcc5 -o mne/viz/_brain/resources.py mne.qrc"
-from . import resources  # noqa
+
+@decorator
+def run_once(fun, *args, **kwargs):
+    """Run the function only once."""
+    if not hasattr(fun, "_has_run"):
+        fun._has_run = True
+        return fun(*args, **kwargs)
 
 
 @decorator
@@ -102,23 +108,16 @@ class MplCanvas(object):
 class IntSlider(object):
     """Class to set a integer slider."""
 
-    def __init__(self, plotter=None, callback=None, first_call=True,
-                 name=None):
+    def __init__(self, plotter=None, callback=None, first_call=True):
         self.plotter = plotter
         self.callback = callback
         self.slider_rep = None
         self.first_call = first_call
         self._first_time = True
-        self.name = name
 
     def __call__(self, value):
         """Round the label of the slider."""
         idx = int(round(value))
-        if self.slider_rep is None:
-            for slider in self.plotter.slider_widgets:
-                name = getattr(slider, "name", None)
-                if name == self.name:
-                    self.slider_rep = slider.GetRepresentation()
         if self.slider_rep is not None:
             self.slider_rep.SetValue(idx)
             self.plotter.update()
@@ -153,11 +152,6 @@ class TimeSlider(object):
         if self.callback is not None:
             self.callback()
         current_time = self.brain._current_time
-        if self.slider_rep is None:
-            for slider in self.plotter.slider_widgets:
-                name = getattr(slider, "name", None)
-                if name == "time":
-                    self.slider_rep = slider.GetRepresentation()
         if self.slider_rep is not None:
             if self.time_label is not None:
                 current_time = self.time_label(current_time)
@@ -175,28 +169,18 @@ class UpdateColorbarScale(object):
     def __init__(self, plotter=None, brain=None):
         self.plotter = plotter
         self.brain = brain
-        self.slider_rep = None
+        self.keys = ('fmin', 'fmid', 'fmax')
+        self.reps = {key: None for key in self.keys}
+        self.fscale_slider_rep = None
 
     def __call__(self, value):
         """Update the colorbar sliders."""
         self.brain.update_fscale(value)
-        fmin = self.brain._data['fmin']
-        fmid = self.brain._data['fmid']
-        fmax = self.brain._data['fmax']
-        for slider in self.plotter.slider_widgets:
-            name = getattr(slider, "name", None)
-            if name == "fmin":
-                slider_rep = slider.GetRepresentation()
-                slider_rep.SetValue(fmin)
-            elif name == "fmid":
-                slider_rep = slider.GetRepresentation()
-                slider_rep.SetValue(fmid)
-            elif name == "fmax":
-                slider_rep = slider.GetRepresentation()
-                slider_rep.SetValue(fmax)
-            elif name == "fscale":
-                slider_rep = slider.GetRepresentation()
-                slider_rep.SetValue(1.0)
+        for key in self.keys:
+            if self.reps[key] is not None:
+                self.reps[key].SetValue(self.brain._data[key])
+        if self.fscale_slider_rep is not None:
+            self.fscale_slider_rep.SetValue(1.0)
         self.plotter.update()
 
 
@@ -212,41 +196,37 @@ class BumpColorbarPoints(object):
             "fmid": brain.update_fmid,
             "fmax": brain.update_fmax
         }
+        self.keys = ('fmin', 'fmid', 'fmax')
+        self.reps = {key: None for key in self.keys}
         self.last_update = time.time()
 
     def __call__(self, value):
         """Update the colorbar sliders."""
-        keys = ('fmin', 'fmid', 'fmax')
-        vals = {key: self.brain._data[key] for key in keys}
-        reps = {key: None for key in keys}
-        for slider in self.plotter.slider_widgets:
-            name = getattr(slider, "name", None)
-            if name is not None:
-                reps[name] = slider.GetRepresentation()
-        if self.name == "fmin" and reps["fmin"] is not None:
+        vals = {key: self.brain._data[key] for key in self.keys}
+        if self.name == "fmin" and self.reps["fmin"] is not None:
             if vals['fmax'] < value:
                 self.brain.update_fmax(value)
-                reps['fmax'].SetValue(value)
+                self.reps['fmax'].SetValue(value)
             if vals['fmid'] < value:
                 self.brain.update_fmid(value)
-                reps['fmid'].SetValue(value)
-            reps['fmin'].SetValue(value)
-        elif self.name == "fmid" and reps['fmid'] is not None:
+                self.reps['fmid'].SetValue(value)
+            self.reps['fmin'].SetValue(value)
+        elif self.name == "fmid" and self.reps['fmid'] is not None:
             if vals['fmin'] > value:
                 self.brain.update_fmin(value)
-                reps['fmin'].SetValue(value)
+                self.reps['fmin'].SetValue(value)
             if vals['fmax'] < value:
                 self.brain.update_fmax(value)
-                reps['fmax'].SetValue(value)
-            reps['fmid'].SetValue(value)
-        elif self.name == "fmax" and reps['fmax'] is not None:
+                self.reps['fmax'].SetValue(value)
+            self.reps['fmid'].SetValue(value)
+        elif self.name == "fmax" and self.reps['fmax'] is not None:
             if vals['fmin'] > value:
                 self.brain.update_fmin(value)
-                reps['fmin'].SetValue(value)
+                self.reps['fmin'].SetValue(value)
             if vals['fmid'] > value:
                 self.brain.update_fmid(value)
-                reps['fmid'].SetValue(value)
-            reps['fmax'].SetValue(value)
+                self.reps['fmid'].SetValue(value)
+            self.reps['fmax'].SetValue(value)
         if time.time() > self.last_update + 1. / 60.:
             self.callback[self.name](value)
             self.last_update = time.time()
@@ -257,7 +237,7 @@ class ShowView(object):
     """Class that selects the correct view."""
 
     def __init__(self, plotter=None, brain=None, orientation=None,
-                 row=None, col=None, hemi=None, name=None):
+                 row=None, col=None, hemi=None):
         self.plotter = plotter
         self.brain = brain
         self.orientation = orientation
@@ -265,7 +245,6 @@ class ShowView(object):
         self.row = row
         self.col = col
         self.hemi = hemi
-        self.name = name
         self.slider_rep = None
 
     def __call__(self, value, update_widget=False):
@@ -277,11 +256,6 @@ class ShowView(object):
                 idx = self.orientation.index(value)
             else:
                 idx = self.short_orientation.index(value)
-            if self.slider_rep is None:
-                for slider in self.plotter.slider_widgets:
-                    name = getattr(slider, "name", None)
-                    if name == self.name:
-                        self.slider_rep = slider.GetRepresentation()
             if self.slider_rep is not None:
                 self.slider_rep.SetValue(idx)
                 self.slider_rep.SetTitleText(self.orientation[idx])
@@ -295,21 +269,15 @@ class SmartSlider(object):
     and uses it when necessary.
     """
 
-    def __init__(self, plotter=None, callback=None, name=None):
+    def __init__(self, plotter=None, callback=None):
         self.plotter = plotter
         self.callback = callback
-        self.name = name
         self.slider_rep = None
 
     def __call__(self, value, update_widget=False):
         """Update the value."""
         self.callback(value)
         if update_widget:
-            if self.slider_rep is None:
-                for slider in self.plotter.slider_widgets:
-                    name = getattr(slider, "name", None)
-                    if name == self.name:
-                        self.slider_rep = slider.GetRepresentation()
             if self.slider_rep is not None:
                 self.slider_rep.SetValue(value)
                 self.plotter.update()
@@ -330,12 +298,14 @@ class _TimeViewer(object):
         self.default_smoothing_range = [0, 15]
         self.default_playback_speed_range = [0.01, 1]
         self.default_playback_speed_value = 0.05
+        self.default_status_bar_msg = "Press ? for help"
         self.act_data = {'lh': None, 'rh': None}
         self.color_cycle = None
         self.picked_points = {'lh': list(), 'rh': list()}
         self._mouse_no_mvt = -1
         self.icons = dict()
         self.actions = dict()
+        self.keys = ('fmin', 'fmid', 'fmax')
         self.orientation = [
             'lateral',
             'medial',
@@ -346,14 +316,6 @@ class _TimeViewer(object):
             'frontal',
             'parietal'
         ]
-        self.key_bindings = {
-            '?': self.help,
-            'i': self.toggle_interface,
-            's': self.apply_auto_scaling,
-            'r': self.restore_user_scaling,
-            'c': self.clear_points,
-            ' ': self.toggle_playback,
-        }
         self.slider_length = 0.02
         self.slider_width = 0.04
         self.slider_color = (0.43137255, 0.44313725, 0.45882353)
@@ -369,7 +331,6 @@ class _TimeViewer(object):
         self.tool_bar = self.window.addToolBar("toolbar")
         self.status_bar = self.window.statusBar()
         self.interactor = self.plotter.interactor
-        self.interactor.keyPressEvent = self.keyPressEvent
         self.window.signal_close.connect(self.clean)
 
         # Derived parameters:
@@ -390,19 +351,17 @@ class _TimeViewer(object):
         self.configure_point_picking()
         self.configure_menu()
         self.configure_tool_bar()
+        self.configure_status_bar()
 
         # show everything at the end
         self.toggle_interface()
         self.brain.show()
 
-    @safe_event
-    def keyPressEvent(self, event):
-        callback = self.key_bindings.get(event.text())
-        if callback is not None:
-            callback()
-
-    def toggle_interface(self):
-        self.visibility = not self.visibility
+    def toggle_interface(self, value=None):
+        if value is None:
+            self.visibility = not self.visibility
+        else:
+            self.visibility = value
 
         # update tool bar icon
         if self.visibility:
@@ -432,22 +391,99 @@ class _TimeViewer(object):
 
         self.plotter.update()
 
+    def _save_movie(self, filename, **kwargs):
+        from PyQt5.QtCore import Qt
+        from PyQt5.QtGui import QCursor
+
+        def frame_callback(frame, n_frames):
+            if frame == n_frames:
+                # On the ImageIO step
+                self.status_msg.setText(
+                    "Saving with ImageIO: %s"
+                    % filename
+                )
+                self.status_msg.show()
+                self.status_progress.hide()
+                self.status_bar.layout().update()
+            else:
+                self.status_msg.setText(
+                    "Rendering images (frame %d / %d) ..."
+                    % (frame + 1, n_frames)
+                )
+                self.status_msg.show()
+                self.status_progress.show()
+                self.status_progress.setRange(0, n_frames - 1)
+                self.status_progress.setValue(frame)
+                self.status_progress.update()
+                self.status_progress.repaint()
+            self.status_msg.update()
+            self.status_msg.parent().update()
+            self.status_msg.repaint()
+
+        # temporarily hide interface
+        default_visibility = self.visibility
+        self.toggle_interface(value=False)
+        # set cursor to busy
+        default_cursor = self.interactor.cursor()
+        self.interactor.setCursor(QCursor(Qt.WaitCursor))
+
+        try:
+            self.brain.save_movie(
+                filename=filename,
+                time_dilation=(1. / self.playback_speed),
+                callback=frame_callback,
+                **kwargs
+            )
+        except (Exception, KeyboardInterrupt):
+            warn('Movie saving aborted:\n' + traceback.format_exc())
+
+        # restore visibility
+        self.toggle_interface(value=default_visibility)
+        # restore cursor
+        self.interactor.setCursor(default_cursor)
+
+    @copy_doc(_Brain.save_movie)
+    def save_movie(self, filename=None, **kwargs):
+        from pyvista.plotting.qt_plotting import FileDialog
+
+        if filename is None:
+            self.status_msg.setText("Choose movie path ...")
+            self.status_msg.show()
+            self.status_progress.setValue(0)
+
+            def _clean(unused):
+                del unused
+                self.status_msg.hide()
+                self.status_progress.hide()
+
+            dialog = FileDialog(
+                self.plotter.app_window,
+                callback=partial(self._save_movie, **kwargs)
+            )
+            dialog.setDirectory(os.getcwd())
+            dialog.finished.connect(_clean)
+            return dialog
+        else:
+            self._save_movie(filename=filename, **kwargs)
+            return
+
     def apply_auto_scaling(self):
         self.brain.update_auto_scaling()
-        self.fmin_slider_rep.SetValue(self.brain._data['fmin'])
-        self.fmid_slider_rep.SetValue(self.brain._data['fmid'])
-        self.fmax_slider_rep.SetValue(self.brain._data['fmax'])
+        for key in ('fmin', 'fmid', 'fmax'):
+            self.reps[key].SetValue(self.brain._data[key])
         self.plotter.update()
 
     def restore_user_scaling(self):
         self.brain.update_auto_scaling(restore=True)
-        self.fmin_slider_rep.SetValue(self.brain._data['fmin'])
-        self.fmid_slider_rep.SetValue(self.brain._data['fmid'])
-        self.fmax_slider_rep.SetValue(self.brain._data['fmax'])
+        for key in ('fmin', 'fmid', 'fmax'):
+            self.reps[key].SetValue(self.brain._data[key])
         self.plotter.update()
 
-    def toggle_playback(self):
-        self.playback = not self.playback
+    def toggle_playback(self, value=None):
+        if value is None:
+            self.playback = not self.playback
+        else:
+            self.playback = value
 
         # update tool bar icon
         if self.playback:
@@ -471,7 +507,7 @@ class _TimeViewer(object):
             try:
                 self._advance()
             except Exception:
-                self.playback = False
+                self.toggle_playback(value=False)
                 raise
 
     def _advance(self):
@@ -489,7 +525,7 @@ class _TimeViewer(object):
         idx = np.interp(time_point, time_data, times)
         self.time_call(idx, update_widget=True)
         if time_point == max_time:
-            self.playback = False
+            self.toggle_playback(value=False)
 
     def set_slider_style(self, slider, show_label=True, show_cap=False):
         if slider is not None:
@@ -539,7 +575,6 @@ class _TimeViewer(object):
                 ci = 0
             for ri, view in enumerate(self.brain._views):
                 self.plotter.subplot(ri, ci)
-                name = "orientation_" + str(ri) + "_" + str(ci)
                 self.orientation_call = ShowView(
                     plotter=self.plotter,
                     brain=self.brain,
@@ -547,7 +582,6 @@ class _TimeViewer(object):
                     hemi=hemi,
                     row=ri,
                     col=ci,
-                    name=name
                 )
                 orientation_slider = self.plotter.add_text_slider_widget(
                     self.orientation_call,
@@ -557,8 +591,9 @@ class _TimeViewer(object):
                     pointb=(0.98, 0.74),
                     event_type='always'
                 )
+                self.orientation_call.slider_rep = \
+                    orientation_slider.GetRepresentation()
                 self.set_slider_style(orientation_slider, show_label=False)
-                orientation_slider.name = name
                 self.orientation_call(view, update_widget=True)
 
         # necessary because show_view modified subplot
@@ -570,7 +605,6 @@ class _TimeViewer(object):
             plotter=self.plotter,
             callback=self.brain.set_data_smoothing,
             first_call=False,
-            name="smoothing"
         )
         smoothing_slider = self.plotter.add_slider_widget(
             self.smoothing_call,
@@ -579,7 +613,7 @@ class _TimeViewer(object):
             pointa=(0.82, 0.90),
             pointb=(0.98, 0.90)
         )
-        smoothing_slider.name = 'smoothing'
+        self.smoothing_call.slider_rep = smoothing_slider.GetRepresentation()
 
         # Time slider
         max_time = len(self.brain._data['time']) - 1
@@ -603,7 +637,7 @@ class _TimeViewer(object):
                 pointb=(0.77, 0.1),
                 event_type='always'
             )
-            time_slider.name = "time"
+            self.time_call.slider_rep = time_slider.GetRepresentation()
             # configure properties of the time slider
             time_slider.GetRepresentation().SetLabelFormat('idx=%0.1f')
 
@@ -623,11 +657,11 @@ class _TimeViewer(object):
         # Playback speed slider
         if time_slider is None:
             self.playback_speed_call = None
+            playback_speed_slider = None
         else:
             self.playback_speed_call = SmartSlider(
                 plotter=self.plotter,
                 callback=self.set_playback_speed,
-                name="playback_speed"
             )
             playback_speed_slider = self.plotter.add_slider_widget(
                 self.playback_speed_call,
@@ -637,13 +671,14 @@ class _TimeViewer(object):
                 pointb=(0.18, 0.1),
                 event_type='always'
             )
-            playback_speed_slider.name = "playback_speed"
+            self.playback_speed_call.slider_rep = \
+                playback_speed_slider.GetRepresentation()
 
         # Colormap slider
         pointa = np.array((0.82, 0.26))
         pointb = np.array((0.98, 0.26))
         shift = np.array([0, 0.1])
-        fmin = self.brain._data["fmin"]
+        # fmin
         self.fmin_call = BumpColorbarPoints(
             plotter=self.plotter,
             brain=self.brain,
@@ -651,15 +686,13 @@ class _TimeViewer(object):
         )
         fmin_slider = self.plotter.add_slider_widget(
             self.fmin_call,
-            value=fmin,
+            value=self.brain._data["fmin"],
             rng=rng, title="clim",
             pointa=pointa,
             pointb=pointb,
             event_type="always",
         )
-        fmin_slider.name = "fmin"
-        self.fmin_slider_rep = fmin_slider.GetRepresentation()
-        fmid = self.brain._data["fmid"]
+        # fmid
         self.fmid_call = BumpColorbarPoints(
             plotter=self.plotter,
             brain=self.brain,
@@ -667,15 +700,13 @@ class _TimeViewer(object):
         )
         fmid_slider = self.plotter.add_slider_widget(
             self.fmid_call,
-            value=fmid,
+            value=self.brain._data["fmid"],
             rng=rng, title="",
             pointa=pointa + shift,
             pointb=pointb + shift,
             event_type="always",
         )
-        fmid_slider.name = "fmid"
-        self.fmid_slider_rep = fmid_slider.GetRepresentation()
-        fmax = self.brain._data["fmax"]
+        # fmax
         self.fmax_call = BumpColorbarPoints(
             plotter=self.plotter,
             brain=self.brain,
@@ -683,14 +714,13 @@ class _TimeViewer(object):
         )
         fmax_slider = self.plotter.add_slider_widget(
             self.fmax_call,
-            value=fmax,
+            value=self.brain._data["fmax"],
             rng=rng, title="",
             pointa=pointa + 2 * shift,
             pointb=pointb + 2 * shift,
             event_type="always",
         )
-        fmax_slider.name = "fmax"
-        self.fmax_slider_rep = fmax_slider.GetRepresentation()
+        # fscale
         self.fscale_call = UpdateColorbarScale(
             plotter=self.plotter,
             brain=self.brain,
@@ -702,7 +732,18 @@ class _TimeViewer(object):
             pointa=(0.82, 0.10),
             pointb=(0.98, 0.10)
         )
-        fscale_slider.name = "fscale"
+        self.fscale_call.fscale_slider_rep = fscale_slider.GetRepresentation()
+
+        # register colorbar slider representations
+        self.reps = {
+            "fmin": fmin_slider.GetRepresentation(),
+            "fmid": fmid_slider.GetRepresentation(),
+            "fmax": fmax_slider.GetRepresentation(),
+        }
+        self.fmin_call.reps = self.reps
+        self.fmid_call.reps = self.reps
+        self.fmax_call.reps = self.reps
+        self.fscale_call.reps = self.reps
 
         # set the slider style
         self.set_slider_style(smoothing_slider)
@@ -713,6 +754,10 @@ class _TimeViewer(object):
         if time_slider is not None:
             self.set_slider_style(playback_speed_slider)
             self.set_slider_style(time_slider)
+
+        # store sliders for linking
+        self._time_slider = time_slider
+        self._playback_speed_slider = playback_speed_slider
 
     def configure_playback(self):
         self.plotter.add_callback(self.play, self.refresh_rate_ms)
@@ -780,12 +825,13 @@ class _TimeViewer(object):
 
     def load_icons(self):
         from PyQt5.QtGui import QIcon
-        resources.qInitResources()
+        _init_resources()
         self.icons["help"] = QIcon(":/help.svg")
         self.icons["play"] = QIcon(":/play.svg")
         self.icons["pause"] = QIcon(":/pause.svg")
         self.icons["scale"] = QIcon(":/scale.svg")
         self.icons["clear"] = QIcon(":/clear.svg")
+        self.icons["movie"] = QIcon(":/movie.svg")
         self.icons["restore"] = QIcon(":/restore.svg")
         self.icons["screenshot"] = QIcon(":/screenshot.svg")
         self.icons["visibility_on"] = QIcon(":/visibility_on.svg")
@@ -796,6 +842,11 @@ class _TimeViewer(object):
             self.icons["screenshot"],
             "Take a screenshot",
             self.plotter._qt_screenshot
+        )
+        self.actions["movie"] = self.tool_bar.addAction(
+            self.icons["movie"],
+            "Save movie...",
+            self.save_movie
         )
         self.actions["visibility"] = self.tool_bar.addAction(
             self.icons["visibility_on"],
@@ -828,6 +879,14 @@ class _TimeViewer(object):
             self.help
         )
 
+        self.actions["movie"].setShortcut("ctrl+shift+s")
+        self.actions["visibility"].setShortcut("i")
+        self.actions["play"].setShortcut(" ")
+        self.actions["scale"].setShortcut("s")
+        self.actions["restore"].setShortcut("r")
+        self.actions["clear"].setShortcut("c")
+        self.actions["help"].setShortcut("?")
+
     def configure_menu(self):
         # remove default picking menu
         to_remove = list()
@@ -840,6 +899,14 @@ class _TimeViewer(object):
         # add help menu
         menu = self.main_menu.addMenu('Help')
         menu.addAction('Show MNE key bindings\t?', self.help)
+
+    def configure_status_bar(self):
+        from PyQt5.QtWidgets import QLabel, QProgressBar
+        self.status_msg = QLabel(self.default_status_bar_msg)
+        self.status_progress = QProgressBar()
+        self.status_bar.layout().addWidget(self.status_msg, 1)
+        self.status_bar.layout().addWidget(self.status_progress, 0)
+        self.status_progress.hide()
 
     def on_mouse_move(self, vtk_picker, event):
         if self._mouse_no_mvt:
@@ -1005,6 +1072,10 @@ class _TimeViewer(object):
     def clean(self):
         # resolve the reference cycle
         self.clear_points()
+        self.actions.clear()
+        self.reps = None
+        self._time_slider = None
+        self._playback_speed_slider = None
         self.orientation_call.plotter = None
         self.orientation_call.brain = None
         self.orientation_call = None
@@ -1028,12 +1099,12 @@ class _TimeViewer(object):
         self.fscale_call.plotter = None
         self.fscale_call.brain = None
         self.fscale_call = None
-        self.key_bindings = None
         self.brain.time_viewer = None
         self.brain = None
         self.plotter = None
         self.main_menu = None
         self.window = None
+        self.tool_bar = None
         self.status_bar = None
         self.interactor = None
         if hasattr(self, "mpl_canvas"):
@@ -1046,7 +1117,6 @@ class _TimeViewer(object):
         self.act_data["lh"] = None
         self.act_data["rh"] = None
         self.act_data = None
-        resources.qCleanupResources()
 
 
 class _LinkViewer(object):
@@ -1058,21 +1128,22 @@ class _LinkViewer(object):
 
         # link time sliders
         self.link_sliders(
-            name="time",
+            name="_time_slider",
             callback=self.set_time_point,
             event_type="always"
         )
 
         # link playback speed sliders
         self.link_sliders(
-            name="playback_speed",
+            name="_playback_speed_slider",
             callback=self.set_playback_speed,
             event_type="always"
         )
 
         # link toggle to start/pause playback
         for time_viewer in self.time_viewers:
-            time_viewer.key_bindings[' '] = self.toggle_playback
+            time_viewer.actions["play"].triggered.disconnect()
+            time_viewer.actions["play"].triggered.connect(self.toggle_playback)
 
     def set_time_point(self, value):
         for time_viewer in self.time_viewers:
@@ -1083,21 +1154,23 @@ class _LinkViewer(object):
             time_viewer.playback_speed_call(value, update_widget=True)
 
     def toggle_playback(self):
+        master = self.time_viewers[0]  # select a master time_viewer
+        value = master.time_call.slider_rep.GetValue()
+        # synchronize starting points before playback
+        self.set_time_point(value)
         for time_viewer in self.time_viewers:
             time_viewer.toggle_playback()
 
     def link_sliders(self, name, callback, event_type):
         from ..backends._pyvista import _update_slider_callback
         for time_viewer in self.time_viewers:
-            plotter = time_viewer.plotter
-            for slider in plotter.slider_widgets:
-                slider_name = getattr(slider, "name", None)
-                if slider_name == name:
-                    _update_slider_callback(
-                        slider=slider,
-                        callback=callback,
-                        event_type=event_type
-                    )
+            slider = getattr(time_viewer, name, None)
+            if slider is not None:
+                _update_slider_callback(
+                    slider=slider,
+                    callback=callback,
+                    event_type=event_type
+                )
 
 
 def _get_range(brain):
@@ -1107,3 +1180,9 @@ def _get_range(brain):
 
 def _normalize(point, shape):
     return (point[0] / shape[1], point[1] / shape[0])
+
+
+@run_once
+def _init_resources():
+    from ...icons import resources
+    resources.qInitResources()

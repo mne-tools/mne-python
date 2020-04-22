@@ -80,7 +80,7 @@ corr = envelope_correlation(stcs, verbose=True)
 # ------------------------------
 
 degree = mne.connectivity.degree(corr, 0.15)
-stc = mne.VolSourceEstimate(degree, src[0]['vertno'], 0, 1, 'bst_resting')
+stc = mne.VolSourceEstimate(degree, [src[0]['vertno']], 0, 1, 'bst_resting')
 brain = stc.plot(
     src, clim=dict(kind='percent', lims=[75, 85, 95]), colormap='gnuplot',
     subjects_dir=subjects_dir, mode='glass_brain')

@@ -281,7 +281,6 @@ def test_flash_bem(tmpdir):
         assert len(tris) == 5120
 
 
-@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_setup_source_space(tmpdir):
     """Test mne setup_source_space."""
@@ -292,7 +291,7 @@ def test_setup_source_space(tmpdir):
     # Test  command
     with ArgvSetter(('--src', use_fname, '-d', subjects_dir,
                      '-s', 'sample', '--morph', 'sample',
-                     '--ico', '3', '--verbose')):
+                     '--add-dist', 'False', '--ico', '3', '--verbose')):
         mne_setup_source_space.run()
     src = read_source_spaces(use_fname)
     assert len(src) == 2
@@ -311,20 +310,21 @@ def test_setup_source_space(tmpdir):
             assert mne_setup_source_space.run()
 
 
-@pytest.mark.slowtest
 @testing.requires_testing_data
 def test_setup_forward_model(tmpdir):
-    """Test mne setup_source_space."""
+    """Test mne setup_forward_model."""
     check_usage(mne_setup_forward_model, force_help=True)
     # Using the sample dataset
     subjects_dir = op.join(testing.data_path(download=False), 'subjects')
     use_fname = op.join(tmpdir, "model-bem.fif")
     # Test  command
-    with ArgvSetter(('--model', use_fname, '-d', subjects_dir,
+    with ArgvSetter(('--model', use_fname, '-d', subjects_dir, '--homog',
                      '-s', 'sample', '--ico', '3', '--verbose')):
         mne_setup_forward_model.run()
     model = read_bem_surfaces(use_fname)
-    assert len(model) == 3
+    assert len(model) == 1
+    sol_fname = op.splitext(use_fname)[0] + '-sol.fif'
+    read_bem_solution(sol_fname)
 
 
 @pytest.mark.slowtest

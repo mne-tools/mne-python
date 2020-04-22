@@ -521,6 +521,10 @@ def _parse_prefilter_string(prefiltering):
     return highpass, lowpass
 
 
+def _edf_str_int(x, fid=None):
+    return int(x.decode().rstrip('\x00'))
+
+
 def _read_edf_header(fname, exclude):
     """Read header information from EDF+ or BDF file."""
     edf_info = {'events': []}
@@ -539,7 +543,7 @@ def _read_edf_header(fname, exclude):
 
         # Recording ID
         meas_id = {}
-        meas_id['recording_id'] = fid.read(80).decode().strip(' \x00')
+        meas_id['recording_id'] = fid.read(80).decode('latin-1').strip(' \x00')
 
         day, month, year = [int(x) for x in
                             re.findall(r'(\d+)', fid.read(8).decode())]
@@ -549,7 +553,7 @@ def _read_edf_header(fname, exclude):
         meas_date = datetime(year + century, month, day, hour, minute, sec,
                              tzinfo=timezone.utc)
 
-        header_nbytes = int(fid.read(8).decode())
+        header_nbytes = _edf_str_int(fid.read(8))
 
         # The following 44 bytes sometimes identify the file type, but this is
         # not guaranteed. Therefore, we skip this field and use the file
@@ -559,7 +563,7 @@ def _read_edf_header(fname, exclude):
         fid.read(44)
         subtype = os.path.splitext(fname)[1][1:].lower()
 
-        n_records = int(fid.read(8).decode())
+        n_records = _edf_str_int(fid.read(8))
         record_length = fid.read(8).decode().strip('\x00').strip()
         record_length = np.array([float(record_length), 1.])  # in seconds
         if record_length[0] == 0:
@@ -567,7 +571,7 @@ def _read_edf_header(fname, exclude):
             warn('Header information is incorrect for record length. Default '
                  'record length set to 1.')
 
-        nchan = int(fid.read(4).decode())
+        nchan = _edf_str_int(fid.read(4))
         channels = list(range(nchan))
         ch_names = [fid.read(16).strip().decode('latin-1') for ch in channels]
         exclude = _find_exclude_idx(ch_names, exclude)
@@ -609,8 +613,7 @@ def _read_edf_header(fname, exclude):
         highpass, lowpass = _parse_prefilter_string(prefiltering)
 
         # number of samples per record
-        n_samps = np.array([int(fid.read(8).decode()) for ch
-                            in channels])
+        n_samps = np.array([_edf_str_int(fid.read(8)) for ch in channels])
 
         # Populate edf_info
         edf_info.update(

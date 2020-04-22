@@ -5,7 +5,6 @@
 #          Stefan Appelhoff <stefan.appelhoff@mailbox.org>
 # License: BSD Style.
 
-from collections import OrderedDict
 import os
 import os.path as op
 import shutil
@@ -239,7 +238,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     path = _get_path(path, key, name)
     # To update the testing or misc dataset, push commits, then make a new
     # release on GitHub. Then update the "releases" variable:
-    releases = dict(testing='0.82', misc='0.5')
+    releases = dict(testing='0.84', misc='0.5')
     # And also update the "md5_hashes['testing']" variable below.
 
     # To update any other dataset, update the data archive itself (upload
@@ -323,7 +322,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         sample='12b75d1cb7df9dfb4ad73ed82f61094f',
         somato='ea825966c0a1e9b2f84e3826c5500161',
         spm='9f43f67150e3b694b523a21eb929ea75',
-        testing='4089649dff26f9f095d434b5a544f1a4',
+        testing='25fbb89902adfee47a77807270cc0857',
         multimodal='26ec847ae9ab80f58f204d09e2c08367',
         fnirs_motor='c4935d19ddab35422a69f3326a01fef8',
         opm='370ad1dcfd5c47e029e692c85358a374',
@@ -698,7 +697,7 @@ def fetch_hcp_mmp_parcellation(subjects_dir=None, combine=True, verbose=None):
             return
         # otherwise, let's make them
         logger.info('Creating combined labels')
-        groups = OrderedDict([
+        groups = dict([
             ('Primary Visual Cortex (V1)',
              ('V1',)),
             ('Early Visual Cortex',

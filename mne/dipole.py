@@ -741,7 +741,7 @@ def _make_guesses(surf, grid, exclude, mindist, n_jobs=1, verbose=None):
     # simplify the result to make things easier later
     src = dict(rr=src['rr'][src['vertno']], nn=src['nn'][src['vertno']],
                nuse=src['nuse'], coord_frame=src['coord_frame'],
-               vertno=np.arange(src['nuse']))
+               vertno=np.arange(src['nuse']), type='discrete')
     return SourceSpaces([src])
 
 

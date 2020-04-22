@@ -207,7 +207,7 @@ def test_plot_topomap_basic(monkeypatch):
     img_data = ax.get_array().data
 
     assert np.abs(img_data[31, 31] - data[0]) < 0.12
-    assert np.abs(img_data[10, 54]) < 0.3
+    assert np.abs(img_data[10, 55]) < 0.3
 
     # border='mean'
     ax, _ = plot_topomap(data, info, extrapolate='head', border='mean',

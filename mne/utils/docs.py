@@ -75,21 +75,30 @@ docdict['topomap_extrapolate'] = """
 extrapolate : str
     Options:
 
-    - 'box' (default)
+    - ``'box'``
         Extrapolate to four points placed to form a square encompassing all
         data points, where each side of the square is three times the range
         of the data in the respective dimension.
-    - 'local'
+    - ``'local'`` (default)
         Extrapolate only to nearby points (approximately to points closer than
-        median inter-electrode distance).
-    - 'head'
-        Extrapolate to the edges of the head circle (does not work well
-        with sensors outside the head circle).
+        median inter-electrode distance). This will also set the
+        mask to be polygonal based on the convex hull of the sensors.
+    - ``'head'``
+        Extrapolate out to the edges of the clipping circle. This will be on
+        the head circle when the sensors are contained within the head circle,
+        but it can extend beyond the head when sensors are plotted outside
+        the head circle.
+
+    .. versionchanged:: 0.21
+
+       - The default was changed to ``'local'``
+       - ``'local'`` was changed to use a convex hull mask
+       - ``'head'`` was changed to extrapolate out to the clipping circle.
 """
 docdict['topomap_border'] = """
 border : float | 'mean'
-    Value to extrapolate to on the topomap borders. If ``'mean'`` then each
-    extrapolated point has the average value of its neighbours.
+    Value to extrapolate to on the topomap borders. If ``'mean'`` (default),
+    then each extrapolated point has the average value of its neighbours.
 
     .. versionadded:: 0.20
 """
@@ -117,6 +126,81 @@ sphere : float | array-like | str | None
 
     .. versionadded:: 0.20
 """ % (HEAD_SIZE_DEFAULT,)
+docdict['topomap_ch_type'] = """
+ch_type : str
+    The channel type being plotted. Determines the ``'auto'``
+    extrapolation mode.
+
+    .. versionadded:: 0.21
+"""
+
+# PSD topomaps
+docdict["psd_topo_vlim_joint"] = """
+vlim : tuple of length 2 | 'joint'
+    Colormap limits to use. If a :class:`tuple` of floats, specifies the
+    lower and upper bounds of the colormap (in that order); providing
+    ``None`` for either entry will set the corresponding boundary at the
+    min/max of the data (separately for each topomap). Elements of the
+    :class:`tuple` may also be callable functions which take in a
+    :class:`NumPy array <numpy.ndarray>` and return a scalar.
+    If ``vlim='joint'``, will compute the colormap limits jointly across
+    all topomaps of the same channel type, using the min/max of the data.
+    Defaults to ``(None, None)``.
+
+    .. versionadded:: 0.21
+"""
+docdict['psd_topo_agg_fun'] = """
+agg_fun : callable
+    The function used to aggregate over frequencies. Defaults to
+    :func:`numpy.sum` if ``normalize=True``, else :func:`numpy.mean`.
+"""
+docdict['psd_topo_dB'] = """
+dB : bool
+    If ``True``, transform data to decibels (with ``10 * np.log10(data)``)
+    following the application of ``agg_fun``. Ignored if ``normalize=True``.
+"""
+docdict['psd_topo_cmap'] = """
+cmap : matplotlib colormap | (colormap, bool) | 'interactive' | None
+    Colormap to use. If :class:`tuple`, the first value indicates the colormap
+    to use and the second value is a boolean defining interactivity. In
+    interactive mode the colors are adjustable by clicking and dragging the
+    colorbar with left and right mouse button. Left mouse button moves the
+    scale up and down and right mouse button adjusts the range. Hitting
+    space bar resets the range. Up and down arrows can be used to change
+    the colormap. If ``None``, ``'Reds'`` is used for data that is either
+    all-positive or all-negative, and ``'RdBu_r'`` is used otherwise.
+    ``'interactive'`` is equivalent to ``(None, True)``. Defaults to ``None``.
+"""
+docdict['psd_topo_cbar_fmt'] = """
+cbar_fmt : str
+    Format string for the colorbar tick labels. If ``'auto'``, is equivalent
+    to '%0.3f' if ``dB=False`` and '%0.1f' if ``dB=True``. Defaults to
+    ``'auto'``.
+"""
+docdict['psd_topo_normalize'] = """
+normalize : bool
+    If True, each band will be divided by the total power. Defaults to
+    False.
+"""
+docdict['psd_topo_bands'] = """
+bands : list of tuple | None
+    The frequencies or frequency ranges to plot. Length-2 tuples specify
+    a single frequency and a subplot title (e.g.,
+    ``(6.5, 'presentation rate')``); length-3 tuples specify lower and
+    upper band edges and a subplot title. If ``None`` (the default),
+    expands to::
+
+        bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
+                 (12, 30, 'Beta'), (30, 45, 'Gamma')]
+
+    In bands where a single frequency is provided, the topomap will reflect
+    the single frequency bin that is closest to the provided value.
+"""
+docdict['psd_topo_axes'] = """
+axes : list of Axes | None
+    List of axes to plot consecutive topographies to. If ``None`` the axes
+    will be created automatically. Defaults to ``None``.
+"""
 
 # Picks
 docdict['picks_header'] = 'picks : str | list | slice | None'
@@ -463,7 +547,7 @@ pick_ori : None | "normal" | "vector"
     - ``"vector"``
         No pooling of the orientations is done, and the vector result
         will be returned in the form of a :class:`mne.VectorSourceEstimate`
-        object. This is only implemented when working with loose orientations.
+        object.
 """
 docdict['reduce_rank'] = """
 reduce_rank : bool
@@ -775,7 +859,7 @@ docdict["time_label"] = """
 time_label : str | callable | None
     Format of the time label (a format string, a function that maps
     floating point time values to strings, or None for no label). The
-    default is ``'auto'``, which will use ``time=%%0.2f ms`` if there
+    default is ``'auto'``, which will use ``time=%0.2f ms`` if there
     is more than one time point.
 """
 
@@ -804,7 +888,10 @@ Valid values for ``mode`` are:
     Maximum value across vertices at each time point within each label.
 - ``'mean'``
     Average across vertices at each time point within each label. Ignores
-    orientation of sources.
+    orientation of sources for standard source estimates, which varies
+    across the cortical surface, which can lead to cancellation.
+    Vector source estimates are always in XYZ / RAS orientation, and are thus
+    already geometrically aligned.
 - ``'mean_flip'``
     Finds the dominant direction of source space normal vector orientations
     within each label, applies a sign-flip to time series at vertices whose
@@ -819,6 +906,15 @@ Valid values for ``mode`` are:
     ``flip`` is the same sign-flip vector used when ``mode='mean_flip'``. This
     sign-flip ensures that extracting time courses from the same label in
     similar STCs does not result in 180° direction/phase changes.
+- ``'auto'`` (default)
+    Uses ``'mean_flip'`` when a standard source estimate is applied, and
+    ``'mean'`` when a vector source estimate is supplied.
+
+    .. versionadded:: 0.21
+       Support for ``'auto'`` and vector source estimates.
+
+The only modes that work for vector source estimates are ``'mean'``,
+``'max'``, and ``'auto'``.
 """
 
 # Clustering
