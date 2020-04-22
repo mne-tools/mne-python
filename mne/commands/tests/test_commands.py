@@ -250,12 +250,9 @@ def test_watershed_bem(tmpdir):
         assert_allclose(vol_info['cras'], header['Pxyz_c'])
 
         # compare the generated surfaces to testing data
-        # FIXME: remove the checking after testing-data has the watershed bems
-        if op.isfile(op.join(bem_path, 'sample_%s.surf' % s)):
-            rr_c, tris_c = read_surface(op.join(bem_path,
-                                                'sample_%s.surf' % s))
-            assert_allclose(rr, rr_c)
-            assert_allclose(tris, tris_c)
+        rr_c, tris_c = read_surface(op.join(bem_path, 'sample_%s.surf' % s))
+        assert_allclose(rr, rr_c)
+        assert_allclose(tris, tris_c)
 
 
 @pytest.mark.timeout(300)  # took 200 sec locally
