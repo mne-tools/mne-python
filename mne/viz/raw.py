@@ -193,8 +193,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=20,
         the plot. If "clamp", then values are clamped to the appropriate
         range for display, creating step-like artifacts. If "transparent",
         then excessive values are not shown, creating gaps in the traces.
-        If float, values are outside the float factor ``clipping`` beyond their
-        dedicated range, so ``clipping=1.`` is an alias for
+        If float, clipping occurs for values beyond the ``clipping`` multiple
+        of their dedicated range, so ``clipping=1.`` is an alias for
         ``clipping='transparent'``.
 
         .. versionchanged:: 0.21
