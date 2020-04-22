@@ -21,11 +21,10 @@ from mne.io.constants import FIFF
 from mne.transforms import translation
 from mne.datasets import testing
 from mne.utils import (run_tests_if_main, catch_logging,
-                       requires_freesurfer, requires_nibabel)
+                       requires_freesurfer)
 from mne.bem import (_ico_downsample, _get_ico_map, _order_surfaces,
                      _assert_complete_surface, _assert_inside,
-                     _check_surface_size, _bem_find_surface, make_flash_bem,
-                     make_watershed_bem)
+                     _check_surface_size, _bem_find_surface, make_flash_bem)
 from mne.surface import read_surface
 from mne.io import read_info
 
