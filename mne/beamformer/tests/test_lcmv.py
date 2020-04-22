@@ -717,9 +717,11 @@ def test_unit_gain_relationships(pick_ori):
     W_ug = make_lcmv(epochs.info, forward, data_cov, reg=0.05,
                      noise_cov=noise_cov, pick_ori=pick_ori,
                      weight_norm=None, rank=None)['weights']
-    assert W_ung.shape == (forward['nsource'], len(epochs.ch_names))
+    n_orient = 3 if pick_ori == 'vector' else 1
+    assert W_ung.shape == (forward['nsource'] * n_orient, len(epochs.ch_names))
     W_ung_2 = W_ug / np.linalg.norm(W_ug, axis=1, keepdims=True)
-    assert_allclose(W_ung_2, W_ung)
+    assert 1e-3 < np.mean(np.abs(W_ung)) < 1e-1  # ensure our atol is okay
+    assert_allclose(W_ung_2, W_ung, atol=1e-10)
 
 
 @testing.requires_testing_data
